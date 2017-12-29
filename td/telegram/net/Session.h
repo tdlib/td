@@ -62,7 +62,7 @@ class Session final
   };
 
   Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data, int32 dc_id, bool is_main,
-          bool use_pfs, bool is_cdn, const mtproto::AuthKey &tmp_auth_key,
+          bool use_pfs, bool is_cdn, bool need_destroy, const mtproto::AuthKey &tmp_auth_key,
           std::vector<mtproto::ServerSalt> server_salts);
   void send(NetQueryPtr &&query);
   void on_network(bool network_flag, uint32 network_generation);
@@ -101,6 +101,7 @@ class Session final
   enum class Mode : int8 { Tcp, Http } mode_ = Mode::Tcp;
   bool is_main_;
   bool is_cdn_;
+  bool need_destroy_;
   bool was_on_network_ = false;
   bool network_flag_ = false;
   uint32 network_generation_ = 0;
@@ -193,6 +194,8 @@ class Session final
 
   void on_message_info(uint64 id, int32 state, uint64 answer_id, int32 answer_size) override;
 
+  Status on_destroy_auth_key() override;
+
   void flush_pending_invoke_after_queries();
   bool has_queries() const;
 
@@ -221,6 +224,7 @@ class Session final
   void connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_query, uint64 message_id = 0);
   bool need_send_bind_key();
   bool need_send_query();
+  bool can_destroy_auth_key();
   bool connection_send_bind_key(ConnectionInfo *info);
 
   void on_result(NetQueryPtr query) override;

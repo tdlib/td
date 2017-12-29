@@ -166,6 +166,7 @@ class AuthManager : public NetActor {
   void logout(uint64 query_id);
   void delete_account(uint64 query_id, const string &reason);
 
+  void on_authorization_lost();
   void on_closing();
 
   // can return nullptr if state isn't initialized yet
@@ -181,6 +182,7 @@ class AuthManager : public NetActor {
     WaitPassword,
     Ok,
     LoggingOut,
+    DestroyingKeys,
     Closing
   } state_ = State::None;
   enum class NetQueryType : int32 {
@@ -290,6 +292,8 @@ class AuthManager : public NetActor {
   void on_query_error(uint64 id, Status status);
   void on_query_ok();
   void start_net_query(NetQueryType net_query_type, NetQueryPtr net_query);
+
+  void destroy_auth_keys();
 
   void on_send_code_result(NetQueryPtr &result);
   void on_get_password_result(NetQueryPtr &result);

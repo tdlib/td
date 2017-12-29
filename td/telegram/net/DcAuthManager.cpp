@@ -192,11 +192,34 @@ void DcAuthManager::dc_loop(DcInfo &dc) {
   }
 }
 
+void DcAuthManager::destroy(Promise<> promise) {
+  destroy_promise_ = std::move(promise);
+  loop();
+}
+
+void DcAuthManager::destroy_loop() {
+  if (!destroy_promise_) {
+    return;
+  }
+  bool is_ready{true};
+  for (auto &dc : dcs_) {
+    is_ready &= dc.auth_state == AuthState::Empty;
+  }
+
+  if (is_ready) {
+    LOG(INFO) << "Destroy auth keys loop is ready, all keys are destroyed";
+    destroy_promise_.set_value(Unit());
+  } else {
+    LOG(ERROR) << "NOT READY";
+  }
+}
+
 void DcAuthManager::loop() {
   if (close_flag_) {
     VLOG(dc) << "Skip loop because close_flag";
     return;
   }
+  destroy_loop();
   if (!main_dc_id_.is_exact()) {
     VLOG(dc) << "Skip loop because main_dc_id is unknown";
     return;
@@ -205,6 +228,7 @@ void DcAuthManager::loop() {
   if (!main_dc || main_dc->auth_state != AuthState::OK) {
     if (was_auth_) {
       G()->shared_config().set_option_boolean("auth", false);
+      destroy_loop();
     }
     VLOG(dc) << "Skip loop because auth state of main dc " << main_dc_id_.get_raw_id() << " is "
              << (main_dc != nullptr ? (PSTRING() << main_dc->auth_state) : "unknown");

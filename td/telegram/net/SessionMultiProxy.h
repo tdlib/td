@@ -24,7 +24,7 @@ class SessionMultiProxy : public Actor {
   SessionMultiProxy &operator=(const SessionMultiProxy &other) = delete;
   ~SessionMultiProxy() override;
   SessionMultiProxy(int32 session_count, std::shared_ptr<AuthDataShared> shared_auth_data, bool is_main, bool use_pfs,
-                    bool allow_media_only, bool is_media, bool is_cdn);
+                    bool allow_media_only, bool is_media, bool is_cdn, bool need_destroy_auth_key);
 
   void send(NetQueryPtr query);
   void update_main_flag(bool is_main);
@@ -33,6 +33,8 @@ class SessionMultiProxy : public Actor {
   void update_use_pfs(bool use_pfs);
   void update_options(int32 session_count, bool use_pfs);
   void update_mtproto_header();
+
+  void update_destroy_auth_key(bool need_destroy_auth_key);
 
  private:
   size_t pos_ = 0;
@@ -43,6 +45,7 @@ class SessionMultiProxy : public Actor {
   bool allow_media_only_ = false;
   bool is_media_ = false;
   bool is_cdn_ = false;
+  bool need_destroy_auth_key_ = false;
   std::vector<ActorOwn<SessionProxy>> sessions_;
 
   void start_up() override;

@@ -66,6 +66,10 @@ msg_new_detailed_info#809db6df answer_msg_id:long bytes:int status:int = MsgDeta
 
 rsa_public_key n:string e:string = RSAPublicKey;
 
+destroy_auth_key_ok#f660e1d4 = DestroyAuthKeyRes;
+destroy_auth_key_none#0a9f2259 = DestroyAuthKeyRes;
+destroy_auth_key_fail#ea109b13 = DestroyAuthKeyRes;
+
 ---functions---
 
 req_pq_multi#be7e8ef1 nonce:int128 = ResPQ;
@@ -81,6 +85,8 @@ ping_delay_disconnect#f3427b8c ping_id:long disconnect_delay:int = Pong;
 destroy_session#e7512126 session_id:long = DestroySessionRes;
 
 http_wait#9299359f max_delay:int wait_after:int max_wait:int = HttpWait;
+
+destroy_auth_key#d1435160 = DestroyAuthKeyRes;
 
 //test.useGzipPacked = GzipPacked;
 //test.useServerDhInnerData = Server_DH_inner_data;

@@ -63,14 +63,15 @@ class SessionCallback : public Session::Callback {
 };
 
 SessionProxy::SessionProxy(std::shared_ptr<AuthDataShared> shared_auth_data, bool is_main, bool allow_media_only,
-                           bool is_media, bool use_pfs, bool need_wait_for_key, bool is_cdn)
+                           bool is_media, bool use_pfs, bool need_wait_for_key, bool is_cdn, bool need_destroy)
     : auth_data_(std::move(shared_auth_data))
     , is_main_(is_main)
     , allow_media_only_(allow_media_only)
     , is_media_(is_media)
     , use_pfs_(use_pfs)
     , need_wait_for_key_(need_wait_for_key)
-    , is_cdn_(is_cdn) {
+    , is_cdn_(is_cdn)
+    , need_destroy_(need_destroy) {
 }
 
 void SessionProxy::start_up() {
@@ -91,9 +92,7 @@ void SessionProxy::start_up() {
   };
   auth_state_ = auth_data_->get_auth_state().first;
   auth_data_->add_auth_key_listener(make_unique<Listener>(actor_shared(this)));
-  if (is_main_ && !need_wait_for_key_) {
-    open_session();
-  }
+  open_session();
 }
 
 void SessionProxy::tear_down() {
@@ -110,9 +109,7 @@ void SessionProxy::send(NetQueryPtr query) {
     pending_queries_.emplace_back(std::move(query));
     return;
   }
-  if (session_.empty()) {
-    open_session(true);
-  }
+  open_session(true);
   query->debug(PSTRING() << get_name() << ": sent to session");
   send_closure(session_, &Session::send, std::move(query));
 }
@@ -123,6 +120,12 @@ void SessionProxy::update_main_flag(bool is_main) {
   }
   LOG(INFO) << "Update " << get_name() << " is_main to " << is_main;
   is_main_ = is_main;
+  close_session();
+  open_session();
+}
+
+void SessionProxy::update_destroy(bool need_destroy) {
+  need_destroy_ = need_destroy;
   close_session();
   open_session();
 }
@@ -148,9 +151,19 @@ void SessionProxy::close_session() {
   session_generation_++;
 }
 void SessionProxy::open_session(bool force) {
-  if (!force && !is_main_) {
+  if (!session_.empty()) {
     return;
   }
+  if (auth_state_ == AuthState::Empty && need_destroy_) {
+    return;
+  }
+  if (auth_state_ != AuthState::OK && need_wait_for_key_) {
+    return;
+  }
+  if (!is_main_ && pending_queries_.empty() && !need_destroy_) {
+    return;
+  }
+
   CHECK(session_.empty());
   auto dc_id = auth_data_->dc_id();
   string name = PSTRING() << "Session" << get_name().substr(Slice("SessionProxy").size());
@@ -166,20 +179,12 @@ void SessionProxy::open_session(bool force) {
   session_ = create_actor<Session>(
       name,
       make_unique<SessionCallback>(actor_shared(this, session_generation_), dc_id, allow_media_only_, is_media_, hash),
-      auth_data_, int_dc_id, is_main_, use_pfs_, is_cdn_, tmp_auth_key_, server_salts_);
+      auth_data_, int_dc_id, is_main_, use_pfs_, is_cdn_, need_destroy_, tmp_auth_key_, server_salts_);
 }
 
 void SessionProxy::update_auth_state() {
   auth_state_ = auth_data_->get_auth_state().first;
-  if (pending_queries_.empty() && !need_wait_for_key_) {
-    return;
-  }
-  if (auth_state_ != AuthState::OK) {
-    return;
-  }
-  if (session_.empty()) {
-    open_session(true);
-  }
+  open_session(true);
   for (auto &query : pending_queries_) {
     query->debug(PSTRING() << get_name() << ": sent to session");
     send_closure(session_, &Session::send, std::move(query));

@@ -10,7 +10,6 @@
 #include "td/telegram/net/AuthDataShared.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQuery.h"
-
 #include "td/actor/actor.h"
 
 #include "td/utils/buffer.h"
@@ -26,6 +25,7 @@ class DcAuthManager : public NetQueryCallback {
 
   void add_dc(std::shared_ptr<AuthDataShared> auth_data);
   void update_main_dc(DcId new_main_dc_id);
+  void destroy(Promise<> promise);
 
  private:
   struct DcInfo {
@@ -43,9 +43,10 @@ class DcAuthManager : public NetQueryCallback {
   ActorShared<> parent_;
 
   std::vector<DcInfo> dcs_;
-  bool was_auth_ = false;
+  bool was_auth_{false};
   DcId main_dc_id_;
-  bool close_flag_ = false;
+  bool close_flag_{false};
+  Promise<> destroy_promise_;
 
   DcInfo &get_dc(int32 dc_id);
   DcInfo *find_dc(int32 dc_id);
@@ -55,6 +56,7 @@ class DcAuthManager : public NetQueryCallback {
   void on_result(NetQueryPtr result) override;
   void dc_loop(DcInfo &dc);
 
+  void destroy_loop();
   void loop() override;
 };
 

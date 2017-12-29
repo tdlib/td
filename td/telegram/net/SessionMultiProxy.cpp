@@ -18,14 +18,16 @@ SessionMultiProxy::SessionMultiProxy() = default;
 SessionMultiProxy::~SessionMultiProxy() = default;
 
 SessionMultiProxy::SessionMultiProxy(int32 session_count, std::shared_ptr<AuthDataShared> shared_auth_data,
-                                     bool is_main, bool use_pfs, bool allow_media_only, bool is_media, bool is_cdn)
+                                     bool is_main, bool use_pfs, bool allow_media_only, bool is_media, bool is_cdn,
+                                     bool need_destroy_auth_key)
     : session_count_(session_count)
     , auth_data_(std::move(shared_auth_data))
     , is_main_(is_main)
     , use_pfs_(use_pfs)
     , allow_media_only_(allow_media_only)
     , is_media_(is_media)
-    , is_cdn_(is_cdn) {
+    , is_cdn_(is_cdn)
+    , need_destroy_auth_key_(need_destroy_auth_key) {
   if (allow_media_only_) {
     CHECK(is_media_);
   }
@@ -50,6 +52,13 @@ void SessionMultiProxy::update_main_flag(bool is_main) {
   is_main_ = is_main;
   for (auto &session : sessions_) {
     send_closure(session, &SessionProxy::update_main_flag, is_main);
+  }
+}
+
+void SessionMultiProxy::update_destroy_auth_key(bool need_destroy_auth_key) {
+  need_destroy_auth_key_ = need_destroy_auth_key;
+  for (auto &session : sessions_) {
+    send_closure(session, &SessionProxy::update_destroy, need_destroy_auth_key_);
   }
 }
 void SessionMultiProxy::update_session_count(int32 session_count) {
@@ -110,7 +119,8 @@ void SessionMultiProxy::init() {
     string name = PSTRING() << "Session" << get_name().substr(Slice("SessionMulti").size())
                             << format::cond(session_count_ > 1, format::concat("#", i));
     sessions_.push_back(create_actor<SessionProxy>(name, auth_data_, is_main_, allow_media_only_, is_media_,
-                                                   get_pfs_flag(), is_main_ && i != 0, is_cdn_));
+                                                   get_pfs_flag(), is_main_ && i != 0, is_cdn_,
+                                                   need_destroy_auth_key_));
   }
 }
 

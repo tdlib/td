@@ -136,7 +136,7 @@ class AuthData {
   void set_auth_flag(bool auth_flag) {
     main_auth_key_.set_auth_flag(auth_flag);
     if (!auth_flag) {
-      tmp_auth_key_.set_auth_flag(auth_flag);
+      drop_tmp_auth_key();
     }
   }
 

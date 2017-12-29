@@ -17,6 +17,12 @@
 #include "td/utils/Time.h"
 
 namespace td {
+namespace mtproto_api {
+class msg_container {
+ public:
+  static const int32 ID = 0x73f1f8dc;
+};
+}  // namespace mtproto_api
 namespace mtproto {
 
 template <class Object, class ObjectStorer>
@@ -65,6 +71,7 @@ using GetFutureSaltsImpl = ObjectImpl<mtproto_api::get_future_salts, TLStorer<mt
 using ResendImpl = ObjectImpl<mtproto_api::msg_resend_req, TLObjectStorer<mtproto_api::msg_resend_req>>;
 using CancelImpl = ObjectImpl<mtproto_api::rpc_drop_answer, TLStorer<mtproto_api::rpc_drop_answer>>;
 using GetInfoImpl = ObjectImpl<mtproto_api::msgs_state_req, TLObjectStorer<mtproto_api::msgs_state_req>>;
+using DestroyAuthKeyImpl = ObjectImpl<mtproto_api::destroy_auth_key, TLStorer<mtproto_api::destroy_auth_key>>;
 
 class CancelVectorImpl {
  public:
@@ -182,8 +189,8 @@ class CryptoImpl {
  public:
   CryptoImpl(const vector<Query> &to_send, Slice header, vector<int64> &&to_ack, int64 ping_id, int ping_timeout,
              int max_delay, int max_after, int max_wait, int future_salt_n, vector<int64> get_info,
-             vector<int64> resend, vector<int64> cancel, AuthData *auth_data, uint64 *container_id, uint64 *get_info_id,
-             uint64 *resend_id, uint64 *ping_message_id, uint64 *parent_message_id)
+             vector<int64> resend, vector<int64> cancel, bool destroy_key, AuthData *auth_data, uint64 *container_id,
+             uint64 *get_info_id, uint64 *resend_id, uint64 *ping_message_id, uint64 *parent_message_id)
       : query_storer_(to_send, header)
       , ack_empty_(to_ack.empty())
       , ack_storer_(!ack_empty_, mtproto_api::msgs_ack(std::move(to_ack)), auth_data)
@@ -197,16 +204,18 @@ class CryptoImpl {
       , cancel_not_empty_(!cancel.empty())
       , cancel_cnt_(static_cast<int32>(cancel.size()))
       , cancel_storer_(cancel_not_empty_, std::move(cancel), auth_data, true)
+      , destroy_key_storer_(destroy_key, mtproto_api::destroy_auth_key(), auth_data, true)
       , tmp_storer_(query_storer_, ack_storer_)
       , tmp2_storer_(tmp_storer_, http_wait_storer_)
       , tmp3_storer_(tmp2_storer_, get_future_salts_storer_)
       , tmp4_storer_(tmp3_storer_, get_info_storer_)
       , tmp5_storer_(tmp4_storer_, resend_storer_)
       , tmp6_storer_(tmp5_storer_, cancel_storer_)
-      , concat_storer_(tmp6_storer_, ping_storer_)
+      , tmp7_storer_(tmp6_storer_, destroy_key_storer_)
+      , concat_storer_(tmp7_storer_, ping_storer_)
       , cnt_(static_cast<int32>(to_send.size()) + ack_storer_.not_empty() + ping_storer_.not_empty() +
              http_wait_storer_.not_empty() + get_future_salts_storer_.not_empty() + get_info_storer_.not_empty() +
-             resend_storer_.not_empty() + cancel_cnt_)
+             resend_storer_.not_empty() + cancel_cnt_ + destroy_key_storer_.not_empty())
       , container_storer_(cnt_, concat_storer_) {
     CHECK(cnt_ != 0);
     if (get_info_storer_.not_empty() && get_info_id) {
@@ -252,6 +261,9 @@ class CryptoImpl {
     } else if (cancel_storer_.not_empty()) {
       type_ = OnlyCancel;
       *parent_message_id = cancel_storer_.get_message_id();
+    } else if (destroy_key_storer_.not_empty()) {
+      type_ = OnlyDestroyKey;
+      *parent_message_id = destroy_key_storer_.get_message_id();
     } else {
       UNREACHABLE();
     }
@@ -284,6 +296,9 @@ class CryptoImpl {
       case OnlyGetInfo:
         return storer.store_storer(get_info_storer_);
 
+      case OnlyDestroyKey:
+        return storer.store_storer(destroy_key_storer_);
+
       default:
         storer.store_binary(message_id_);
         storer.store_binary(seq_no_);
@@ -306,12 +321,14 @@ class CryptoImpl {
   bool cancel_not_empty_;
   int32 cancel_cnt_;
   PacketStorer<CancelVectorImpl> cancel_storer_;
+  PacketStorer<DestroyAuthKeyImpl> destroy_key_storer_;
   ConcatStorer tmp_storer_;
   ConcatStorer tmp2_storer_;
   ConcatStorer tmp3_storer_;
   ConcatStorer tmp4_storer_;
   ConcatStorer tmp5_storer_;
   ConcatStorer tmp6_storer_;
+  ConcatStorer tmp7_storer_;
   ConcatStorer concat_storer_;
   int32 cnt_;
   PacketStorer<ContainerImpl> container_storer_;
@@ -324,6 +341,7 @@ class CryptoImpl {
     OnlyResend,
     OnlyCancel,
     OnlyGetInfo,
+    OnlyDestroyKey,
     Mixed
   };
   Type type_;

@@ -25,11 +25,6 @@
 namespace td {
 namespace mtproto_api {
 
-class msg_container {
- public:
-  static const int32 ID = 0x73f1f8dc;
-};
-
 class rpc_error;
 class new_session_created;
 class bad_msg_notification;
@@ -42,6 +37,10 @@ class msgs_state_info;
 class msgs_all_info;
 class msg_detailed_info;
 class msg_new_detailed_info;
+class DestroyAuthKeyRes;
+class destroy_auth_key_ok;
+class destroy_auth_key_fail;
+class destroy_auth_key_none;
 }  // namespace mtproto_api
 
 namespace mtproto {
@@ -78,6 +77,7 @@ class SessionConnection
   void get_state_info(int64 message_id);
   void resend_answer(int64 message_id);
   void cancel_answer(int64 message_id);
+  void destroy_key();
 
   void set_online(bool online_flag);
 
@@ -109,6 +109,8 @@ class SessionConnection
     virtual void on_message_result_error(uint64 id, int code, BufferSlice descr) = 0;
     virtual void on_message_failed(uint64 id, Status status) = 0;
     virtual void on_message_info(uint64 id, int32 state, uint64 answer_id, int32 answer_size) = 0;
+
+    virtual Status on_destroy_auth_key() = 0;
   };
 
   double flush(SessionConnection::Callback *callback);
@@ -168,6 +170,9 @@ class SessionConnection
   uint64 last_ping_message_id_ = 0;
   uint64 last_ping_container_id_ = 0;
 
+  bool need_destroy_auth_key_{false};
+  bool sent_destroy_auth_key_{false};
+
   double wakeup_at_ = 0;
   double flush_packet_at_ = 0;
 
@@ -222,6 +227,12 @@ class SessionConnection
   Status on_packet(const MsgInfo &info, const mtproto_api::msg_detailed_info &msg_detailed_info) TD_WARN_UNUSED_RESULT;
   Status on_packet(const MsgInfo &info,
                    const mtproto_api::msg_new_detailed_info &msg_new_detailed_info) TD_WARN_UNUSED_RESULT;
+  Status on_packet(const MsgInfo &info, const mtproto_api::destroy_auth_key_ok &destroy_auth_key) TD_WARN_UNUSED_RESULT;
+  Status on_packet(const MsgInfo &info,
+                   const mtproto_api::destroy_auth_key_none &destroy_auth_key) TD_WARN_UNUSED_RESULT;
+  Status on_packet(const MsgInfo &info,
+                   const mtproto_api::destroy_auth_key_fail &destroy_auth_key) TD_WARN_UNUSED_RESULT;
+  Status on_destroy_auth_key(const mtproto_api::DestroyAuthKeyRes &destroy_auth_key);
 
   Status on_slice_packet(const MsgInfo &info, Slice packet) TD_WARN_UNUSED_RESULT;
   Status on_main_packet(const PacketInfo &info, Slice packet) TD_WARN_UNUSED_RESULT;

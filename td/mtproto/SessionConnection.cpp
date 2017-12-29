@@ -270,14 +270,29 @@ Status SessionConnection::on_packet(const MsgInfo &info, const T &packet) {
   LOG(ERROR) << "Unsupported: " << to_string(packet);
   return Status::OK();
 }
+Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::destroy_auth_key_ok &destroy_auth_key) {
+  return on_destroy_auth_key(destroy_auth_key);
+}
+Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::destroy_auth_key_none &destroy_auth_key) {
+  return on_destroy_auth_key(destroy_auth_key);
+}
+Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::destroy_auth_key_fail &destroy_auth_key) {
+  return on_destroy_auth_key(destroy_auth_key);
+}
+
+Status SessionConnection::on_destroy_auth_key(const mtproto_api::DestroyAuthKeyRes &destroy_auth_key) {
+  CHECK(need_destroy_auth_key_);
+  LOG(INFO) << to_string(destroy_auth_key);
+  return callback_->on_destroy_auth_key();
+}
 
 Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::rpc_error &rpc_error) {
   return on_packet(info, 0, rpc_error);
 }
 
 Status SessionConnection::on_packet(const MsgInfo &info, uint64 req_msg_id, const mtproto_api::rpc_error &rpc_error) {
-  VLOG(mtproto) << "ERROR [code:" << rpc_error.error_code_ << "] [msg:" << rpc_error.error_message_.str().c_str()
-                << "]";
+  VLOG(mtproto) << "ERROR [code:" << rpc_error.error_code_ << "] [msg:" << rpc_error.error_message_.str().c_str() << "]"
+                << " " << tag("req_msg_id", req_msg_id);
   if (req_msg_id != 0) {
     callback_->on_message_result_error(req_msg_id, rpc_error.error_code_, as_buffer_slice(rpc_error.error_message_));
   } else {
@@ -524,6 +539,8 @@ Status SessionConnection::on_main_packet(const PacketInfo &info, Slice packet) {
 void SessionConnection::on_message_failed(uint64 id, Status status) {
   callback_->on_message_failed(id, std::move(status));
 
+  sent_destroy_auth_key_ = false;
+
   if (id == last_ping_message_id_ || id == last_ping_container_id_) {
     // restart ping immediately
     last_ping_at_ = 0;
@@ -611,6 +628,10 @@ bool SessionConnection::must_flush_packet() {
       return true;
     }
     relax_timeout_at(&flush_packet_at_, get_future_salts_at);
+  }
+
+  if (has_salt && need_destroy_auth_key_ && !sent_destroy_auth_key_) {
+    return true;
   }
 
   return false;
@@ -741,6 +762,11 @@ void SessionConnection::cancel_answer(int64 message_id) {
   to_cancel_answer_.push_back(message_id);
 }
 
+void SessionConnection::destroy_key() {
+  LOG(INFO) << "need_destroy_key = true";
+  need_destroy_auth_key_ = true;
+}
+
 std::pair<uint64, BufferSlice> SessionConnection::encrypted_bind(int64 perm_key, int64 nonce, int32 expire_at) {
   int64 temp_key = auth_data_->get_tmp_auth_key().id();
 
@@ -839,17 +865,21 @@ void SessionConnection::flush_packet() {
     to_send_.erase(to_send_.begin(), to_send_.begin() + send_till);
   }
 
+  bool destroy_auth_key = need_destroy_auth_key_ && !sent_destroy_auth_key_;
+
   if (queries.empty() && to_ack_.empty() && ping_id == 0 && max_delay < 0 && future_salt_n == 0 &&
-      to_resend_answer_.empty() && to_cancel_answer_.empty() && to_get_state_info_.empty()) {
+      to_resend_answer_.empty() && to_cancel_answer_.empty() && to_get_state_info_.empty() && !destroy_auth_key) {
     force_send_at_ = 0;
     return;
   }
+
+  sent_destroy_auth_key_ |= destroy_auth_key;
 
   VLOG(mtproto) << "Sent packet: " << tag("query_count", queries.size()) << tag("ack_cnt", to_ack_.size())
                 << tag("ping", ping_id != 0) << tag("http_wait", max_delay >= 0)
                 << tag("future_salt", future_salt_n > 0) << tag("get_info", to_get_state_info_.size())
                 << tag("resend", to_resend_answer_.size()) << tag("cancel", to_cancel_answer_.size())
-                << tag("auth_id", auth_data_->get_auth_key().id());
+                << tag("destroy_key", destroy_auth_key) << tag("auth_id", auth_data_->get_auth_key().id());
 
   auto cut_tail = [](auto &v, size_t size, Slice name) {
     if (size >= v.size()) {
@@ -878,8 +908,8 @@ void SessionConnection::flush_packet() {
     uint64 parent_message_id = 0;
     auto storer = PacketStorer<CryptoImpl>(
         queries, auth_data_->get_header(), std::move(to_ack), ping_id, ping_disconnect_delay() + 2, max_delay,
-        max_after, max_wait, future_salt_n, to_get_state_info, to_resend_answer, to_cancel_answer, auth_data_,
-        &container_id, &get_state_info_id, &resend_answer_id, &ping_message_id, &parent_message_id);
+        max_after, max_wait, future_salt_n, to_get_state_info, to_resend_answer, to_cancel_answer, destroy_auth_key,
+        auth_data_, &container_id, &get_state_info_id, &resend_answer_id, &ping_message_id, &parent_message_id);
 
     auto quick_ack_token = use_quick_ack ? parent_message_id : 0;
     send_crypto(storer, quick_ack_token);

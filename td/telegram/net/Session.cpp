@@ -108,10 +108,15 @@ class GenAuthKeyActor : public Actor {
 }  // namespace detail
 
 Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data, int32 dc_id,
-                 bool is_main, bool use_pfs, bool is_cdn, const mtproto::AuthKey &tmp_auth_key,
+                 bool is_main, bool use_pfs, bool is_cdn, bool need_destroy, const mtproto::AuthKey &tmp_auth_key,
                  std::vector<mtproto::ServerSalt> server_salts)
     : dc_id_(dc_id), is_main_(is_main), is_cdn_(is_cdn) {
   VLOG(dc) << "Start connection";
+  need_destroy_ = need_destroy;
+  if (need_destroy) {
+    use_pfs = false;
+    CHECK(!is_cdn);
+  }
 
   shared_auth_data_ = std::move(shared_auth_data);
   auth_data_.set_use_pfs(use_pfs);
@@ -139,6 +144,10 @@ Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> 
     auth_data_.set_header(G()->mtproto_header().get_default_header().str());
   }
   last_activity_timestamp_ = Time::now();
+}
+
+bool Session::can_destroy_auth_key() {
+  return need_destroy_;
 }
 
 void Session::start_up() {
@@ -415,6 +424,9 @@ void Session::on_closed(Status status) {
       auth_data_.drop_main_auth_key();
       on_auth_key_updated();
       on_session_failed(std::move(status));
+    } else if (need_destroy_) {
+      auth_data_.drop_main_auth_key();
+      on_auth_key_updated();
     }
   }
 
@@ -774,6 +786,11 @@ void Session::on_message_info(uint64 id, int32 state, uint64 answer_id, int32 an
     current_info_->connection->resend_answer(answer_id);
   }
 }
+Status Session::on_destroy_auth_key() {
+  auth_data_.drop_main_auth_key();
+  on_auth_key_updated();
+  return Status::Error("Close because of on_destroy_auth_key");
+}
 
 bool Session::has_queries() const {
   return !pending_invoke_after_queries_.empty() || !pending_queries_.empty() || !sent_queries_.empty();
@@ -993,7 +1010,8 @@ bool Session::need_send_bind_key() {
   return auth_data_.use_pfs() && !auth_data_.get_bind_flag() && auth_data_.get_tmp_auth_key().id() != tmp_auth_key_id_;
 }
 bool Session::need_send_query() {
-  return !close_flag_ && (!auth_data_.use_pfs() || auth_data_.get_bind_flag()) && !pending_queries_.empty();
+  return !close_flag_ && (!auth_data_.use_pfs() || auth_data_.get_bind_flag()) && !pending_queries_.empty() &&
+         !can_destroy_auth_key();
 }
 bool Session::connection_send_bind_key(ConnectionInfo *info) {
   CHECK(info->state != ConnectionInfo::State::Empty);
@@ -1116,6 +1134,9 @@ void Session::create_gen_auth_key_actor(HandshakeId handshake_id) {
 }
 
 void Session::auth_loop() {
+  if (can_destroy_auth_key()) {
+    return;
+  }
   if (auth_data_.need_main_auth_key()) {
     create_gen_auth_key_actor(MainAuthKeyHandshake);
   }
@@ -1133,7 +1154,8 @@ void Session::loop() {
   if (cached_connection_timestamp_ < Time::now_cached() - 10) {
     cached_connection_.reset();
   }
-  if (!is_main_ && !has_queries() && last_activity_timestamp_ < Time::now_cached() - ACTIVITY_TIMEOUT) {
+  if (!is_main_ && !has_queries() && !need_destroy_ &&
+      last_activity_timestamp_ < Time::now_cached() - ACTIVITY_TIMEOUT) {
     on_session_failed(Status::OK());
   }
 
@@ -1178,6 +1200,11 @@ void Session::loop() {
           // send auth.bindTempAuthKey
           connection_send_bind_key(&main_connection_);
           need_flush = true;
+        }
+        if (can_destroy_auth_key()) {
+          if (main_connection_.connection) {
+            main_connection_.connection->destroy_key();
+          }
         }
       }
       if (need_flush) {

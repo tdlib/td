@@ -431,6 +431,8 @@ AuthManager::AuthManager(int32 api_id, const string &api_hash, ActorShared<> par
     }
   } else if (auth_str == "logout") {
     update_state(State::LoggingOut);
+  } else if (auth_str == "destroy") {
+    update_state(State::DestroyingKeys);
   } else {
     if (!load_state()) {
       update_state(State::WaitPhoneNumber);
@@ -441,6 +443,8 @@ AuthManager::AuthManager(int32 api_id, const string &api_hash, ActorShared<> par
 void AuthManager::start_up() {
   if (state_ == State::LoggingOut) {
     start_net_query(NetQueryType::LogOut, G()->net_query_creator().create(create_storer(telegram_api::auth_logOut())));
+  } else if (state_ == State::DestroyingKeys) {
+    destroy_auth_keys();
   }
 }
 void AuthManager::tear_down() {
@@ -475,6 +479,7 @@ tl_object_ptr<td_api::AuthorizationState> AuthManager::get_authorization_state_o
       return make_tl_object<td_api::authorizationStateWaitPassword>(
           wait_password_state_.hint_, wait_password_state_.has_recovery_, wait_password_state_.email_address_pattern_);
     case State::LoggingOut:
+    case State::DestroyingKeys:
       return make_tl_object<td_api::authorizationStateLoggingOut>();
     case State::Closing:
       return make_tl_object<td_api::authorizationStateClosing>();
@@ -655,7 +660,7 @@ void AuthManager::logout(uint64 query_id) {
   if (state_ == State::Closing) {
     return on_query_error(query_id, Status::Error(8, "Already logged out"));
   }
-  if (state_ == State::LoggingOut) {
+  if (state_ == State::LoggingOut || state_ == State::DestroyingKeys) {
     return on_query_error(query_id, Status::Error(8, "Already logging out"));
   }
   on_new_query(query_id);
@@ -663,7 +668,6 @@ void AuthManager::logout(uint64 query_id) {
     update_state(State::LoggingOut);
     // TODO: could skip full logout if still no authorization
     // TODO: send auth.cancelCode if state_ == State::WaitCode
-    send_closure_later(G()->td(), &Td::destroy);
     on_query_ok();
   } else {
     LOG(INFO) << "Logging out";
@@ -844,10 +848,28 @@ void AuthManager::on_log_out_result(NetQueryPtr &result) {
   }
   LOG_IF(ERROR, status.is_error()) << "auth.logOut failed: " << status;
   // state_ will stay logout, so no queries will work.
-  send_closure_later(G()->td(), &Td::destroy);
+  destroy_auth_keys();
   if (query_id_ != 0) {
     on_query_ok();
   }
+}
+void AuthManager::on_authorization_lost() {
+  destroy_auth_keys();
+}
+
+void AuthManager::destroy_auth_keys() {
+  if (state_ == State::Closing) {
+    return;
+  }
+  update_state(State::DestroyingKeys);
+  auto promise = PromiseCreator::lambda(
+      [](Unit) {
+        G()->net_query_dispatcher().destroy_auth_keys(PromiseCreator::lambda(
+            [](Unit) { send_closure_later(G()->td(), &Td::destroy); }, PromiseCreator::Ignore()));
+      },
+      PromiseCreator::Ignore());
+  G()->td_db()->get_binlog_pmc()->set("auth", "destroy");
+  G()->td_db()->get_binlog_pmc()->force_sync(std::move(promise));
 }
 
 void AuthManager::on_delete_account_result(NetQueryPtr &result) {
@@ -871,8 +893,7 @@ void AuthManager::on_delete_account_result(NetQueryPtr &result) {
       on_query_error(std::move(status));
     }
   } else {
-    update_state(State::LoggingOut);
-    send_closure_later(G()->td(), &Td::destroy);
+    destroy_auth_keys();
     if (query_id_ != 0) {
       on_query_ok();
     }

@@ -33,11 +33,7 @@ class AuthKey {
     return was_auth_flag_;
   }
   void set_auth_flag(bool new_auth_flag) {
-    if (new_auth_flag == false) {
-      clear();
-    } else {
-      was_auth_flag_ = true;
-    }
+    was_auth_flag_ |= new_auth_flag;
     auth_flag_ = new_auth_flag;
   }
 

@@ -127,12 +127,14 @@ Status NetQueryDispatcher::wait_dc_init(DcId dc_id, bool force) {
 
   if (should_init) {
     std::lock_guard<std::mutex> guard(main_dc_id_mutex_);
-    if (stop_flag_.load(std::memory_order_relaxed)) {
+    if (stop_flag_.load(std::memory_order_relaxed) || need_destroy_auth_key_) {
       return Status::Error("Closing");
     }
     // init dc
+    dc.id_ = dc_id;
     decltype(common_public_rsa_key_) public_rsa_key;
     bool is_cdn = false;
+    bool need_destroy_key = false;
     if (dc_id.is_internal()) {
       public_rsa_key = common_public_rsa_key_;
     } else {
@@ -150,18 +152,18 @@ Status NetQueryDispatcher::wait_dc_init(DcId dc_id, bool force) {
     int32 upload_session_count = raw_dc_id != 2 && raw_dc_id != 4 ? 8 : 4;
     int32 download_session_count = 2;
     int32 download_small_session_count = 2;
-    dc.main_session_ =
-        create_actor<SessionMultiProxy>(PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":main", session_count,
-                                        auth_data, raw_dc_id == main_dc_id_, use_pfs, false, false, is_cdn);
+    dc.main_session_ = create_actor<SessionMultiProxy>(PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":main",
+                                                       session_count, auth_data, raw_dc_id == main_dc_id_, use_pfs,
+                                                       false, false, is_cdn, need_destroy_key);
     dc.upload_session_ = create_actor_on_scheduler<SessionMultiProxy>(
         PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":upload", slow_net_scheduler_id, upload_session_count,
-        auth_data, false, use_pfs, false, true, is_cdn);
+        auth_data, false, use_pfs, false, true, is_cdn, need_destroy_key);
     dc.download_session_ = create_actor_on_scheduler<SessionMultiProxy>(
         PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":download", slow_net_scheduler_id, download_session_count,
-        auth_data, false, use_pfs, true, true, is_cdn);
+        auth_data, false, use_pfs, true, true, is_cdn, need_destroy_key);
     dc.download_small_session_ = create_actor_on_scheduler<SessionMultiProxy>(
         PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":download_small", slow_net_scheduler_id,
-        download_small_session_count, auth_data, false, use_pfs, true, true, is_cdn);
+        download_small_session_count, auth_data, false, use_pfs, true, true, is_cdn, need_destroy_key);
     dc.is_inited_ = true;
     if (dc_id.is_internal()) {
       send_closure_later(dc_auth_manager_, &DcAuthManager::add_dc, std::move(auth_data));
@@ -211,6 +213,18 @@ void NetQueryDispatcher::update_session_count() {
       send_closure_later(dcs_[i - 1].download_small_session_, &SessionMultiProxy::update_use_pfs, use_pfs);
     }
   }
+}
+void NetQueryDispatcher::destroy_auth_keys(Promise<> promise) {
+  std::lock_guard<std::mutex> guard(main_dc_id_mutex_);
+  LOG(INFO) << "Destory auth keys";
+  need_destroy_auth_key_ = true;
+  for (size_t i = 1; i < MAX_DC_COUNT; i++) {
+    if (is_dc_inited(narrow_cast<int32>(i)) && dcs_[i - 1].id_.is_internal()) {
+      send_closure_later(dcs_[i - 1].main_session_, &SessionMultiProxy::update_destroy_auth_key,
+                         need_destroy_auth_key_);
+    }
+  }
+  send_closure_later(dc_auth_manager_, &DcAuthManager::destroy, std::move(promise));
 }
 
 void NetQueryDispatcher::update_use_pfs() {

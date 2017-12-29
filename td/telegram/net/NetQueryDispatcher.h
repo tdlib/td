@@ -11,6 +11,7 @@
 #include "td/telegram/net/NetQuery.h"
 
 #include "td/actor/actor.h"
+#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/common.h"
 #include "td/utils/ScopeGuard.h"
@@ -46,6 +47,7 @@ class NetQueryDispatcher {
   void stop();
 
   void update_session_count();
+  void destroy_auth_keys(Promise<> promise);
   void update_use_pfs();
   void update_mtproto_header();
 
@@ -57,9 +59,11 @@ class NetQueryDispatcher {
 
  private:
   std::atomic<bool> stop_flag_{false};
+  bool need_destroy_auth_key_{false};
   ActorOwn<NetQueryDelayer> delayer_;
   ActorOwn<DcAuthManager> dc_auth_manager_;
   struct Dc {
+    DcId id_;
     std::atomic<bool> is_valid_{false};
     std::atomic<bool> is_inited_{false};  // TODO: cache in scheduler local storage :D
 
