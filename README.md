@@ -117,7 +117,7 @@ C:\src\vcpkg> .\vcpkg install openssl zlib
 * Build `TDLib` with cmake as explained above, but instead of `cmake ..` use `cmake -DCMAKE_TOOLCHAIN_FILE=C:\src\vcpkg\scripts\buildsystems\vcpkg.cmake ..`.
 
 #### Linux
-Install all depenencies using your package manager.
+Install all dependencies using your package manager.
 
 <a name="usage"></a>
 ### `TDLib` usage
