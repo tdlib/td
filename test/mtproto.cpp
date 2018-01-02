@@ -1,5 +1,5 @@
 //
-// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2017
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2018
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -120,11 +120,7 @@ class TestPingActor : public Actor {
 
 static IPAddress get_default_ip_address() {
   IPAddress ip_address;
-#if TD_EMSCRIPTEN
-  ip_address.init_ipv4_port("95.213.227.238", 446).ensure();
-#else
   ip_address.init_ipv4_port("149.154.167.40", 80).ensure();
-#endif
   return ip_address;
 }
 
