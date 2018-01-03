@@ -3513,10 +3513,7 @@ void Td::on_alarm_timeout(int64 request_id) {
 }
 
 void Td::on_online_updated(bool force, bool send_update) {
-  if (auth_manager_->is_bot()) {
-    return;
-  }
-  if (!auth_manager_->is_authorized()) {
+  if (close_flag_ >= 2 || auth_manager_->is_bot() || !auth_manager_->is_authorized()) {
     return;
   }
   if (force || is_online_) {
@@ -3999,7 +3996,6 @@ void Td::close_impl(bool destroy_flag) {
   close_flag_ = 1;
   G()->set_close_flag();
   send_closure(auth_manager_actor_, &AuthManager::on_closing);
-  close_flag_ = 1;
   LOG(WARNING) << "Close " << tag("destroy", destroy_flag);
 
   // wait till all request_actors will stop.
