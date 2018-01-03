@@ -100,7 +100,7 @@ example of such usage.
 * Install the latest XCode command line tools.
 * Install other dependencies, for example, using [Homebrew](https://brew.sh):
 ```
-homebrew install gperf cmake openssl 
+brew install gperf cmake openssl
 ```
 * After that you may need to manually specify path to the installed OpenSSL to CMake, e.g.,
 ```

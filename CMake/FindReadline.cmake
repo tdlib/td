@@ -1,29 +1,25 @@
-# from http://websvn.kde.org/trunk/KDE/kdeedu/cmake/modules/FindReadline.cmake
-# http://websvn.kde.org/trunk/KDE/kdeedu/cmake/modules/COPYING-CMAKE-SCRIPTS
-# --> BSD licensed
-#
-# GNU Readline library finder
-if(READLINE_INCLUDE_DIR AND READLINE_LIBRARY)
-  set(READLINE_FOUND TRUE)
-else(READLINE_INCLUDE_DIR AND READLINE_LIBRARY)
-  FIND_PATH(READLINE_INCLUDE_DIR readline/readline.h
-    /usr/include/readline
-    )
+if (APPLE)
+  find_path(READLINE_INCLUDE_DIR readline/readline.h /usr/local/opt/readline/include /opt/local/include /opt/include /usr/local/include /usr/include NO_DEFAULT_PATH)
+endif()
+find_path(READLINE_INCLUDE_DIR readline/readline.h)
 
-  # 2008-04-22 The next clause used to read like this:
-  #
-  #  FIND_LIBRARY(READLINE_LIBRARY NAMES readline)
-  #        FIND_LIBRARY(NCURSES_LIBRARY NAMES ncurses )
-  #        include(FindPackageHandleStandardArgs)
-  #        FIND_PACKAGE_HANDLE_STANDARD_ARGS(Readline DEFAULT_MSG NCURSES_LIBRARY READLINE_INCLUDE_DIR READLINE_LIBRARY )
-  #
-  # I was advised to modify it such that it will find an ncurses library if
-  # required, but not if one was explicitly given, that is, it allows the
-  # default to be overridden. PH
+if (APPLE)
+  find_library(READLINE_LIBRARY readline /usr/local/opt/readline/lib /opt/local/lib /opt/lib /usr/local/lib /usr/lib NO_DEFAULT_PATH)
+endif()
+find_library(READLINE_LIBRARY readline)
 
-  FIND_LIBRARY(READLINE_LIBRARY NAMES readline)
-  include(FindPackageHandleStandardArgs)
-  FIND_PACKAGE_HANDLE_STANDARD_ARGS(Readline DEFAULT_MSG READLINE_INCLUDE_DIR READLINE_LIBRARY )
+if (READLINE_INCLUDE_DIR AND READLINE_LIBRARY AND NOT GNU_READLINE_FOUND)
+  set(CMAKE_REQUIRED_INCLUDES "${READLINE_INCLUDE_DIR}")
+  set(CMAKE_REQUIRED_LIBRARIES "${READLINE_LIBRARY}")
+  include(CheckCXXSourceCompiles)
+  unset(GNU_READLINE_FOUND CACHE)
+  CHECK_CXX_SOURCE_COMPILES("#include <stdio.h>\n#include <readline/readline.h>\nint main() { rl_replace_line(\"\", 0); }" GNU_READLINE_FOUND)
+  if (NOT GNU_READLINE_FOUND)
+    unset(READLINE_INCLUDE_DIR CACHE)
+    unset(READLINE_LIBRARY CACHE)
+  endif()
+endif()
 
-  MARK_AS_ADVANCED(READLINE_INCLUDE_DIR READLINE_LIBRARY)
-endif(READLINE_INCLUDE_DIR AND READLINE_LIBRARY)
+include(FindPackageHandleStandardArgs)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(Readline DEFAULT_MSG READLINE_INCLUDE_DIR READLINE_LIBRARY)
+mark_as_advanced(READLINE_INCLUDE_DIR READLINE_LIBRARY)
