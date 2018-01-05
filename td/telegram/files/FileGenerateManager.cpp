@@ -141,6 +141,7 @@ class FileExternalGenerateActor : public FileGenerateActor {
     if (local_.type_ == LocalFileLocation::Type::Partial) {
       const auto &partial = local_.partial();
       path_ = partial.path_;
+      LOG(INFO) << "Unlink partially generated file at " << path_;
       unlink(path_).ignore();
     } else {
       auto r_file_path = open_temp_file(generate_location_.type_);
@@ -191,6 +192,7 @@ class FileExternalGenerateActor : public FileGenerateActor {
     }
 
     if (status.is_error()) {
+      LOG(INFO) << "Unlink partially generated file at " << path_ << " because of " << status;
       unlink(path_).ignore();
       callback_->on_error(std::move(status));
       callback_.reset();

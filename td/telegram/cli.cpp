@@ -550,6 +550,7 @@ class CliClient final : public Actor {
 
   void quit() {
     LOG(WARNING) << "QUIT";
+    close_flag_ = true;
     dump_memory_usage();
     td_.reset();
 #if TD_WINDOWS
@@ -557,7 +558,6 @@ class CliClient final : public Actor {
 #else
     is_stdin_reader_stopped_ = true;
 #endif
-    close_flag_ = true;
     yield();
   }
 
@@ -2738,6 +2738,10 @@ class CliClient final : public Actor {
   }
 
   void timeout_expired() override {
+    if (close_flag_) {
+      return;
+    }
+
     for (auto it = pending_file_generations.begin(); it != pending_file_generations.end();) {
       auto left_size = it->size - it->local_size;
       CHECK(left_size > 0);

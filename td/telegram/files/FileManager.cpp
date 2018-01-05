@@ -1277,7 +1277,7 @@ void FileManager::delete_file(FileId file_id, Promise<Unit> promise, const char 
   // TODO: review delete condition
   if (file_view.has_local_location()) {
     if (begins_with(file_view.local_location().path_, get_files_dir(file_view.get_type()))) {
-      LOG(INFO) << "Delete file " << file_id << " at " << file_view.local_location().path_;
+      LOG(INFO) << "Unlink file " << file_id << " at " << file_view.local_location().path_;
       clear_from_pmc(node);
 
       unlink(file_view.local_location().path_).ignore();
@@ -1290,6 +1290,7 @@ void FileManager::delete_file(FileId file_id, Promise<Unit> promise, const char 
       clear_from_pmc(node);
     }
     if (node->local_.type_ == LocalFileLocation::Type::Partial) {
+      LOG(INFO) << "Unlink partial file " << file_id << " at " << node->local_.partial().path_;
       unlink(node->local_.partial().path_).ignore();
       node->set_local_location(LocalFileLocation(), 0);
       try_flush_node(node);
