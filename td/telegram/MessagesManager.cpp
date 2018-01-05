@@ -21478,6 +21478,10 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
         ((old_message->reply_markup == nullptr) != (new_message->reply_markup == nullptr)) ||
         (old_message->reply_markup != nullptr && *old_message->reply_markup != *new_message->reply_markup);
     if (reply_markup_changed) {
+      if (d->reply_markup_message_id == message_id && !td_->auth_manager_->is_bot() &&
+          new_message->reply_markup == nullptr) {
+        set_dialog_reply_markup(d, MessageId());
+      }
       old_message->reply_markup = std::move(new_message->reply_markup);
       is_edited = true;
       is_changed = true;

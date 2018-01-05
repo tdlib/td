@@ -34,7 +34,7 @@ This repository contains the code of the Telegram Database library (`TDLib`).
 * **Fully-asynchronous**: requests to `TDLib` don't block each other or anything else, responses will be sent when they are available.
 
 <a name="license"></a>
-## License 
+## License
 The Telegram Database library is licensed under the terms of the
 Boost Software License. See [LICENSE](http://www.boost.org/LICENSE_1_0.txt) for more information.
 
