@@ -1801,6 +1801,7 @@ Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> re
 
   if (!file_view.has_remote_location()) {
     // TODO why not return file_id here? We will dup it anyway
+    // But it will not be duped if has_input_media(), so for now we can't return main_file_id
     file_id = next_file_id();
     get_file_id_info(file_id)->node_id_ = file_node_id;
     file_nodes_[file_node_id]->file_ids_.push_back(file_id);

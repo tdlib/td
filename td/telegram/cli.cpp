@@ -2073,6 +2073,21 @@ class CliClient final : public Actor {
 
       send_message(chat_id,
                    make_tl_object<td_api::inputMessageAnimation>(as_input_file_id(file_id), nullptr, 0, 0, 0, ""));
+    } else if (op == "sanurl") {
+      string chat_id;
+      string url;
+      std::tie(chat_id, url) = split(args);
+
+      send_message(chat_id,
+                   make_tl_object<td_api::inputMessageAnimation>(
+                       td_api::make_object<td_api::inputFileGenerated>(url, "#url#", 0), nullptr, 0, 0, 0, ""));
+    } else if (op == "sanurl2") {
+      string chat_id;
+      string url;
+      std::tie(chat_id, url) = split(args);
+
+      send_message(chat_id, make_tl_object<td_api::inputMessageAnimation>(
+                                td_api::make_object<td_api::inputFileRemote>(url), nullptr, 0, 0, 0, ""));
     } else if (op == "sau") {
       string chat_id;
       string audio_path;
