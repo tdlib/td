@@ -615,7 +615,6 @@ void AuthManager::on_get_password_result(NetQueryPtr &result) {
   if (password->get_id() == telegram_api::account_noPassword::ID) {
     auto no_password = move_tl_object_as<telegram_api::account_noPassword>(password);
     new_salt_ = no_password->new_salt_.as_slice().str();
-    email_address_unconfirmed_pattern_ = no_password->email_unconfirmed_pattern_;
   } else {
     CHECK(password->get_id() == telegram_api::account_password::ID);
     auto password_info = move_tl_object_as<telegram_api::account_password>(password);
@@ -623,7 +622,6 @@ void AuthManager::on_get_password_result(NetQueryPtr &result) {
     new_salt_ = password_info->new_salt_.as_slice().str();
     hint_ = password_info->hint_;
     has_recovery_ = password_info->has_recovery_;
-    email_address_unconfirmed_pattern_ = password_info->email_unconfirmed_pattern_;
   }
   update_state(State::WaitPassword);
   on_query_ok();
@@ -637,6 +635,7 @@ void AuthManager::on_request_password_recovery_result(NetQueryPtr &result) {
   auto email_address_pattern = r_email_address_pattern.move_as_ok();
   CHECK(email_address_pattern->get_id() == telegram_api::auth_passwordRecovery::ID);
   email_address_pattern_ = email_address_pattern->email_pattern_;
+  update_state(State::WaitPassword, true);
   on_query_ok();
 }
 

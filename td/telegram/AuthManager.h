@@ -160,7 +160,6 @@ class AuthManager : public NetActor {
   string new_salt_;
   string hint_;
   bool has_recovery_;
-  string email_address_unconfirmed_pattern_;
   string email_address_pattern_;
 
   bool was_check_bot_token_ = false;
