@@ -8301,10 +8301,10 @@ void MessagesManager::ttl_on_view(const Dialog *d, Message *message, double view
   }
 }
 
-bool MessagesManager::ttl_on_open(const Dialog *d, Message *message, double now, bool is_local_read) {
+bool MessagesManager::ttl_on_open(Dialog *d, Message *message, double now, bool is_local_read) {
   if (message->ttl > 0 && message->ttl_expires_at == 0) {
     if (!is_local_read && d->dialog_id.get_type() != DialogType::SecretChat) {
-      on_message_ttl_expired(d->dialog_id, message);
+      on_message_ttl_expired(d, message);
     } else {
       message->ttl_expires_at = message->ttl + now;
       ttl_register_message(d->dialog_id, message, now);
@@ -8354,7 +8354,7 @@ void MessagesManager::ttl_loop(double now) {
       CHECK(d != nullptr);
       auto m = get_message(d, full_message_id.get_message_id());
       CHECK(m != nullptr);
-      on_message_ttl_expired(dialog_id, m);
+      on_message_ttl_expired(d, m);
       add_message_to_database(d, m, "ttl_loop");
     }
   }
@@ -8375,29 +8375,37 @@ void MessagesManager::ttl_update_timeout(double now) {
   ttl_slot_.set_timeout_in(ttl_heap_.top_key() - now);
 }
 
-void MessagesManager::on_message_ttl_expired(DialogId dialog_id, Message *message) {
+void MessagesManager::on_message_ttl_expired(Dialog *d, Message *message) {
+  CHECK(d != nullptr);
   CHECK(message != nullptr);
   CHECK(message->ttl > 0);
-  CHECK(dialog_id.get_type() != DialogType::SecretChat);
+  CHECK(d->dialog_id.get_type() != DialogType::SecretChat);
+  ttl_unregister_message(d->dialog_id, message, Time::now());
+  on_message_ttl_expired_impl(d, message);
+  send_update_message_content(d->dialog_id, message->message_id, message->content.get(), "on_message_ttl_expired");
+}
+
+void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *message) {
+  CHECK(d != nullptr);
+  CHECK(message != nullptr);
+  CHECK(message->ttl > 0);
+  CHECK(d->dialog_id.get_type() != DialogType::SecretChat);
   delete_message_files(message);
   switch (message->content->get_id()) {
     case MessagePhoto::ID:
       message->content = make_unique<MessageExpiredPhoto>();
       break;
     case MessageVideo::ID:
-      message->content = make_unique<MessageExpiredPhoto>();
+      message->content = make_unique<MessageExpiredVideo>();
       break;
     default:
       UNREACHABLE();
   }
-  ttl_unregister_message(dialog_id, message, Time::now());
   message->ttl = 0;
   message->ttl_expires_at = 0;
   if (message->reply_markup != nullptr) {
     if (message->reply_markup->type != ReplyMarkup::Type::InlineKeyboard) {
       if (!td_->auth_manager_->is_bot()) {
-        Dialog *d = get_dialog(dialog_id);
-        CHECK(d != nullptr);
         if (d->reply_markup_message_id == message->message_id) {
           set_dialog_reply_markup(d, MessageId());
         }
@@ -8407,7 +8415,6 @@ void MessagesManager::on_message_ttl_expired(DialogId dialog_id, Message *messag
     message->reply_markup = nullptr;
   }
   message->reply_to_message_id = MessageId();
-  send_update_message_content(dialog_id, message->message_id, message->content.get(), "on_message_ttl_expired");
 }
 
 void MessagesManager::loop() {
@@ -13327,7 +13334,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
       can_edit_message(dialog_id, message, false, true), can_forward_message(dialog_id, message), can_delete_for_self,
       can_delete_for_all_users, message->is_channel_post, message->contains_unread_mention, message->date,
       message->edit_date, get_message_forward_info_object(message->forward_info), message->reply_to_message_id.get(),
-      message->ttl, message->ttl_expires_at != 0 ? std::max(message->ttl_expires_at - Time::now(), 0.0) : message->ttl,
+      message->ttl, message->ttl_expires_at != 0 ? std::max(message->ttl_expires_at - Time::now(), 1e-3) : message->ttl,
       message->via_bot_user_id.get(), message->author_signature, message->views, message->media_album_id,
       get_message_content_object(message->content.get()), get_reply_markup_object(message->reply_markup));
 }
@@ -20768,9 +20775,16 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   if (message->ttl > 0 && message->ttl_expires_at != 0) {
     auto now = Time::now();
     if (message->ttl_expires_at <= now) {
-      LOG(INFO) << "Can't add " << message_id << " with expired TTL to " << dialog_id;
-      delete_message_from_database(d, message_id, message.get(), true);
-      return nullptr;
+      if (d->dialog_id.get_type() == DialogType::SecretChat) {
+        LOG(INFO) << "Can't add " << message_id << " with expired TTL to " << dialog_id;
+        delete_message_from_database(d, message_id, message.get(), true);
+        return nullptr;
+      } else {
+        on_message_ttl_expired_impl(d, message.get());
+        if (message->from_database) {
+          add_message_to_database(d, message.get(), "add expired message to dialog");
+        }
+      }
     } else {
       ttl_register_message(dialog_id, message.get(), now);
     }

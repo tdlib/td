@@ -2222,12 +2222,14 @@ class MessagesManager : public Actor {
   void ttl_read_history_outbox(DialogId dialog_id, MessageId from_message_id, MessageId till_message_id,
                                double timestamp);
   void ttl_on_view(const Dialog *d, Message *message, double view_date, double now);
-  bool ttl_on_open(const Dialog *d, Message *message, double now, bool is_local_read);
+  bool ttl_on_open(Dialog *d, Message *message, double now, bool is_local_read);
   void ttl_register_message(DialogId dialog_id, const Message *message, double now);
   void ttl_unregister_message(DialogId dialog_id, const Message *message, double now);
   void ttl_loop(double now);
   void ttl_update_timeout(double now);
-  void on_message_ttl_expired(DialogId dialog_id, Message *message);
+
+  void on_message_ttl_expired(Dialog *d, Message *message);
+  void on_message_ttl_expired_impl(Dialog *d, Message *message);
 
   void start_up() override;
   void loop() override;
