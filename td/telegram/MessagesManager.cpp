@@ -13107,6 +13107,12 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     message->from_database = true;
 
     auto old_message = get_message(d, message->message_id);
+    if (old_message == nullptr && message->content->get_id() == MessageText::ID) {
+      auto web_page_id = static_cast<const MessageText *>(message->content.get())->web_page_id;
+      if (web_page_id.is_valid()) {
+        td_->web_pages_manager_->have_web_page_force(web_page_id);
+      }
+    }
     Message *m = old_message ? old_message
                              : add_message_to_dialog(d, std::move(message), false, &need_update,
                                                      &need_update_dialog_pos, "on_get_history_from_database");
@@ -17572,6 +17578,7 @@ void MessagesManager::send_update_message_send_succeeded(Dialog *d, MessageId ol
 
 void MessagesManager::send_update_message_content(DialogId dialog_id, MessageId message_id,
                                                   const MessageContent *content, const char *source) const {
+  LOG(INFO) << "Send updateMessageContent for " << message_id << " in " << dialog_id << " from " << source;
   CHECK(have_dialog(dialog_id)) << "Send updateMessageContent in unknown " << dialog_id << " from " << source
                                 << " with load count " << loaded_dialogs_.count(dialog_id);
   send_closure(G()->td(), &Td::send_update,
