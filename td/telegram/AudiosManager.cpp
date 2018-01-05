@@ -50,6 +50,7 @@ tl_object_ptr<td_api::audio> AudiosManager::get_audio_object(FileId file_id) {
 
 FileId AudiosManager::on_get_audio(std::unique_ptr<Audio> new_audio, bool replace) {
   auto file_id = new_audio->file_id;
+  LOG(INFO) << "Receive audio " << file_id;
   auto &a = audios_[file_id];
   if (a == nullptr) {
     a = std::move(new_audio);
@@ -113,6 +114,8 @@ bool AudiosManager::merge_audios(FileId new_id, FileId old_id, bool can_delete_o
     LOG(ERROR) << "Old file id is invalid";
     return true;
   }
+
+  LOG(INFO) << "Merge audios " << new_id << " and " << old_id;
   const Audio *old_ = get_audio(old_id);
   CHECK(old_ != nullptr);
   if (old_id == new_id) {

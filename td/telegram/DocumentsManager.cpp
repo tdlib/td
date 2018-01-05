@@ -279,6 +279,7 @@ std::pair<DocumentsManager::DocumentType, FileId> DocumentsManager::on_get_docum
 
 FileId DocumentsManager::on_get_document(std::unique_ptr<Document> new_document, bool replace) {
   auto file_id = new_document->file_id;
+  LOG(INFO) << "Receive document " << file_id;
   auto &d = documents_[new_document->file_id];
   if (d == nullptr) {
     d = std::move(new_document);
@@ -436,6 +437,8 @@ bool DocumentsManager::merge_documents(FileId new_id, FileId old_id, bool can_de
     LOG(ERROR) << "Old file id is invalid";
     return true;
   }
+
+  LOG(INFO) << "Merge documents " << new_id << " and " << old_id;
   const Document *old_ = get_document(old_id);
   CHECK(old_ != nullptr);
   if (old_id == new_id) {

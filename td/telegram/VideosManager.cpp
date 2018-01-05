@@ -51,6 +51,7 @@ tl_object_ptr<td_api::video> VideosManager::get_video_object(FileId file_id) {
 
 FileId VideosManager::on_get_video(std::unique_ptr<Video> new_video, bool replace) {
   auto file_id = new_video->file_id;
+  LOG(INFO) << "Receive video " << file_id;
   auto &v = videos_[file_id];
   if (v == nullptr) {
     v = std::move(new_video);
@@ -132,6 +133,8 @@ bool VideosManager::merge_videos(FileId new_id, FileId old_id, bool can_delete_o
     LOG(ERROR) << "Old file id is invalid";
     return true;
   }
+
+  LOG(INFO) << "Merge videos " << new_id << " and " << old_id;
   const Video *old_ = get_video(old_id);
   CHECK(old_ != nullptr);
   if (old_id == new_id) {

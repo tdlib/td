@@ -129,6 +129,7 @@ tl_object_ptr<td_api::animation> AnimationsManager::get_animation_object(FileId 
 
 FileId AnimationsManager::on_get_animation(std::unique_ptr<Animation> new_animation, bool replace) {
   auto file_id = new_animation->file_id;
+  LOG(INFO) << "Receive animation " << file_id;
   auto &a = animations_[file_id];
   if (a == nullptr) {
     a = std::move(new_animation);
@@ -207,6 +208,8 @@ bool AnimationsManager::merge_animations(FileId new_id, FileId old_id, bool can_
     LOG(ERROR) << "Old file id is invalid";
     return true;
   }
+
+  LOG(INFO) << "Merge animations " << new_id << " and " << old_id;
   const Animation *old_ = get_animation(old_id);
   CHECK(old_ != nullptr);
   if (old_id == new_id) {

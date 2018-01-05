@@ -855,6 +855,7 @@ tl_object_ptr<telegram_api::InputStickerSet> StickersManager::get_input_sticker_
 
 FileId StickersManager::on_get_sticker(std::unique_ptr<Sticker> new_sticker, bool replace) {
   auto file_id = new_sticker->file_id;
+  LOG(INFO) << "Receive sticker " << file_id;
   auto &s = stickers_[file_id];
   if (s == nullptr) {
     s = std::move(new_sticker);
@@ -1060,6 +1061,8 @@ bool StickersManager::merge_stickers(FileId new_id, FileId old_id, bool can_dele
     LOG(ERROR) << "Old file id is invalid";
     return true;
   }
+
+  LOG(INFO) << "Merge stickers " << new_id << " and " << old_id;
   const Sticker *old_ = get_sticker(old_id);
   CHECK(old_ != nullptr);
   if (old_id == new_id) {

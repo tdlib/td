@@ -17803,7 +17803,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
       case MessageAnimation::ID: {
         auto content = static_cast<MessageAnimation *>(sent_message->content.get());
         if (new_file_id != content->file_id) {
-          td_->animations_manager_->merge_animations(new_file_id, content->file_id, true);
+          td_->animations_manager_->merge_animations(new_file_id, content->file_id, false);
           content->file_id = new_file_id;
           is_content_changed = true;
         }
@@ -17812,7 +17812,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
       case MessageAudio::ID: {
         auto content = static_cast<MessageAudio *>(sent_message->content.get());
         if (new_file_id != content->file_id) {
-          td_->audios_manager_->merge_audios(new_file_id, content->file_id, true);
+          td_->audios_manager_->merge_audios(new_file_id, content->file_id, false);
           content->file_id = new_file_id;
           is_content_changed = true;
         }
@@ -17821,7 +17821,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
       case MessageDocument::ID: {
         auto content = static_cast<MessageDocument *>(sent_message->content.get());
         if (new_file_id != content->file_id) {
-          td_->documents_manager_->merge_documents(new_file_id, content->file_id, true);
+          td_->documents_manager_->merge_documents(new_file_id, content->file_id, false);
           content->file_id = new_file_id;
           is_content_changed = true;
         }
@@ -17843,7 +17843,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
       case MessageSticker::ID: {
         auto content = static_cast<MessageSticker *>(sent_message->content.get());
         if (new_file_id != content->file_id) {
-          td_->stickers_manager_->merge_stickers(new_file_id, content->file_id, true);
+          td_->stickers_manager_->merge_stickers(new_file_id, content->file_id, false);
           content->file_id = new_file_id;
           is_content_changed = true;
         }
@@ -17852,7 +17852,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
       case MessageVideo::ID: {
         auto content = static_cast<MessageVideo *>(sent_message->content.get());
         if (new_file_id != content->file_id) {
-          td_->videos_manager_->merge_videos(new_file_id, content->file_id, true);
+          td_->videos_manager_->merge_videos(new_file_id, content->file_id, false);
           content->file_id = new_file_id;
           is_content_changed = true;
         }
@@ -17861,7 +17861,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
       case MessageVideoNote::ID: {
         auto content = static_cast<MessageVideoNote *>(sent_message->content.get());
         if (new_file_id != content->file_id) {
-          td_->video_notes_manager_->merge_video_notes(new_file_id, content->file_id, true);
+          td_->video_notes_manager_->merge_video_notes(new_file_id, content->file_id, false);
           content->file_id = new_file_id;
           is_content_changed = true;
         }
@@ -17870,7 +17870,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
       case MessageVoiceNote::ID: {
         auto content = static_cast<MessageVoiceNote *>(sent_message->content.get());
         if (new_file_id != content->file_id) {
-          td_->voice_notes_manager_->merge_voice_notes(new_file_id, content->file_id, true);
+          td_->voice_notes_manager_->merge_voice_notes(new_file_id, content->file_id, false);
           content->file_id = new_file_id;
           is_content_changed = true;
         }
@@ -21579,7 +21579,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, const Message *
   bool need_update = false;
   int32 old_content_type = old_content->get_id();
   int32 new_content_type = new_content->get_id();
-  bool can_delete_old_document = old_message->message_id.is_yet_unsent();
+  bool can_delete_old_document = old_message->message_id.is_yet_unsent() && false;
   if (old_content_type != new_content_type) {
     need_update = true;
     LOG(INFO) << "Message content has changed its type from " << old_content_type << " to " << new_content_type;

@@ -50,6 +50,7 @@ tl_object_ptr<td_api::videoNote> VideoNotesManager::get_video_note_object(FileId
 
 FileId VideoNotesManager::on_get_video_note(std::unique_ptr<VideoNote> new_video_note, bool replace) {
   auto file_id = new_video_note->file_id;
+  LOG(INFO) << "Receive video note " << file_id;
   auto &v = video_notes_[file_id];
   if (v == nullptr) {
     v = std::move(new_video_note);
@@ -113,6 +114,8 @@ bool VideoNotesManager::merge_video_notes(FileId new_id, FileId old_id, bool can
     LOG(ERROR) << "Old file id is invalid";
     return true;
   }
+
+  LOG(INFO) << "Merge video notes " << new_id << " and " << old_id;
   const VideoNote *old_ = get_video_note(old_id);
   CHECK(old_ != nullptr);
   if (old_id == new_id) {

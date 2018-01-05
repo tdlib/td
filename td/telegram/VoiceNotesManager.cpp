@@ -49,6 +49,7 @@ tl_object_ptr<td_api::voiceNote> VoiceNotesManager::get_voice_note_object(FileId
 
 FileId VoiceNotesManager::on_get_voice_note(std::unique_ptr<VoiceNote> new_voice_note, bool replace) {
   auto file_id = new_voice_note->file_id;
+  LOG(INFO) << "Receive voice note " << file_id;
   auto &v = voice_notes_[file_id];
   if (v == nullptr) {
     v = std::move(new_voice_note);
@@ -95,6 +96,8 @@ bool VoiceNotesManager::merge_voice_notes(FileId new_id, FileId old_id, bool can
     LOG(ERROR) << "Old file id is invalid";
     return true;
   }
+
+  LOG(INFO) << "Merge voice notes " << new_id << " and " << old_id;
   const VoiceNote *old_ = get_voice_note(old_id);
   CHECK(old_ != nullptr);
   if (old_id == new_id) {
