@@ -284,7 +284,8 @@ class FileManager : public FileLoadManager::Callback {
   FileId parse_file(T &parser);
 
  private:
-  Result<FileId> check_input_file_id(FileType type, Result<FileId> result, bool is_encrypted) TD_WARN_UNUSED_RESULT;
+  Result<FileId> check_input_file_id(FileType type, Result<FileId> result, bool is_encrypted,
+                                     bool allow_zero) TD_WARN_UNUSED_RESULT;
 
   FileId register_url(string url, FileType file_type, DialogId owner_dialog_id);
 

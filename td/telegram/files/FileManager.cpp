@@ -1781,8 +1781,12 @@ tl_object_ptr<td_api::file> FileManager::get_file_object(FileId file_id, bool wi
                                               file_view.has_remote_location(), remote_size));
 }
 
-Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> result, bool is_encrypted) {
+Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> result, bool is_encrypted,
+                                                bool allow_zero) {
   TRY_RESULT(file_id, std::move(result));
+  if (allow_zero && !file_id.is_valid()) {
+    return FileId();
+  }
 
   int32 file_node_id;
   auto *file_node = get_file_node(file_id, &file_node_id);
@@ -1852,38 +1856,42 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
     return Status::Error(6, "InputFile not specified");
   }
 
-  switch (file->get_id()) {
-    case td_api::inputFileLocal::ID: {
-      const string &path = static_cast<const td_api::inputFileLocal *>(file.get())->path_;
-      if (allow_zero && path.empty()) {
-        return FileId();
+  auto r_file_id = [&]() -> Result<FileId> {
+    switch (file->get_id()) {
+      case td_api::inputFileLocal::ID: {
+        const string &path = static_cast<const td_api::inputFileLocal *>(file.get())->path_;
+        if (allow_zero && path.empty()) {
+          return FileId();
+        }
+        return register_local(FullLocalFileLocation(is_encrypted ? FileType::Encrypted : type, path, 0),
+                              owner_dialog_id, 0, get_by_hash);
       }
-      return register_local(FullLocalFileLocation(is_encrypted ? FileType::Encrypted : type, path, 0), owner_dialog_id,
-                            0, get_by_hash);
-    }
-    case td_api::inputFileId::ID: {
-      FileId file_id(static_cast<const td_api::inputFileId *>(file.get())->id_);
-      if (allow_zero && !file_id.is_valid()) {
-        return FileId();
+      case td_api::inputFileId::ID: {
+        FileId file_id(static_cast<const td_api::inputFileId *>(file.get())->id_);
+        if (!file_id.is_valid()) {
+          return FileId();
+        }
+        return file_id;
       }
-      return check_input_file_id(type, file_id, is_encrypted);
-    }
-    case td_api::inputFileRemote::ID: {
-      const string &file_persistent_id = static_cast<const td_api::inputFileRemote *>(file.get())->id_;
-      if (allow_zero && file_persistent_id.empty()) {
-        return FileId();
+      case td_api::inputFileRemote::ID: {
+        const string &file_persistent_id = static_cast<const td_api::inputFileRemote *>(file.get())->id_;
+        if (allow_zero && file_persistent_id.empty()) {
+          return FileId();
+        }
+        return from_persistent_id(file_persistent_id, type);
       }
-      return check_input_file_id(type, from_persistent_id(file_persistent_id, type), is_encrypted);
+      case td_api::inputFileGenerated::ID: {
+        auto *generated_file = static_cast<const td_api::inputFileGenerated *>(file.get());
+        return register_generate(is_encrypted ? FileType::Encrypted : type, generated_file->original_path_,
+                                 generated_file->conversion_, owner_dialog_id, generated_file->expected_size_);
+      }
+      default:
+        UNREACHABLE();
+        return Status::Error(500, "Unreachable");
     }
-    case td_api::inputFileGenerated::ID: {
-      auto *generated_file = static_cast<const td_api::inputFileGenerated *>(file.get());
-      return register_generate(is_encrypted ? FileType::Encrypted : type, generated_file->original_path_,
-                               generated_file->conversion_, owner_dialog_id, generated_file->expected_size_);
-    }
-    default:
-      UNREACHABLE();
-      return Status::Error(500, "Unreachable");
-  }
+  }();
+
+  return check_input_file_id(type, std::move(r_file_id), is_encrypted, allow_zero);
 }
 
 vector<tl_object_ptr<telegram_api::InputDocument>> FileManager::get_input_documents(const vector<FileId> &file_ids) {
