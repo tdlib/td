@@ -527,7 +527,8 @@ Status FileManager::check_local_location(FileNode *node) {
 }
 
 FileManager::FileIdInfo *FileManager::get_file_id_info(FileId file_id) {
-  CHECK(0 <= file_id.get() && file_id.get() < static_cast<int32>(file_id_info_.size()));
+  CHECK(0 <= file_id.get() && file_id.get() < static_cast<int32>(file_id_info_.size()))
+      << file_id << " " << file_id_info_.size();
   return &file_id_info_[file_id.get()];
 }
 
