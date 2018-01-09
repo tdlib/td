@@ -156,10 +156,10 @@ void DeviceTokenManager::loop() {
     NetQueryPtr net_query;
     if (info.state == TokenInfo::State::Unregister) {
       net_query = G()->net_query_creator().create(
-          create_storer(telegram_api::account_unregisterDevice(token_type, info.token)));
+          create_storer(telegram_api::account_unregisterDevice(token_type, info.token, {})));
     } else {
-      net_query =
-          G()->net_query_creator().create(create_storer(telegram_api::account_registerDevice(token_type, info.token)));
+      net_query = G()->net_query_creator().create(
+          create_storer(telegram_api::account_registerDevice(token_type, info.token, false, {})));
     }
     info.net_query_id = net_query->id();
     G()->net_query_dispatcher().dispatch_with_callback(std::move(net_query), actor_shared(this, token_type));

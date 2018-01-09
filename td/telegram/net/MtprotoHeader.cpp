@@ -10,7 +10,6 @@
 
 namespace td {
 
-static constexpr int32 LAYER = 73;
 namespace {
 class HeaderStorer {
  public:
@@ -19,6 +18,8 @@ class HeaderStorer {
   }
   template <class StorerT>
   void store(StorerT &storer) const {
+    constexpr int32 LAYER = 74;
+
     using td::store;
     // invokeWithLayer#da9b0d0d {X:Type} layer:int query:!X = X;
     store(static_cast<int32>(0xda9b0d0d), storer);

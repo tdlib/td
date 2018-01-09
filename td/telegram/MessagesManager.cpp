@@ -388,8 +388,8 @@ class ExportChannelMessageLinkQuery : public Td::ResultHandler {
     message_id_ = message_id;
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
-    send_query(G()->net_query_creator().create(create_storer(
-        telegram_api::channels_exportMessageLink(std::move(input_channel), message_id.get_server_message_id().get()))));
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_exportMessageLink(
+        std::move(input_channel), message_id.get_server_message_id().get(), false))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
