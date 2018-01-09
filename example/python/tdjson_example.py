@@ -33,6 +33,10 @@ td_set_log_file_path = tdjson.td_set_log_file_path
 td_set_log_file_path.restype = None
 td_set_log_file_path.argtypes = [c_char_p]
 
+td_set_log_max_file_size = tdjson.td_set_log_max_file_size
+td_set_log_max_file_size.restype = None
+td_set_log_max_file_size.argtypes = [c_longlong]
+
 td_set_log_verbosity_level = tdjson.td_set_log_verbosity_level
 td_set_log_verbosity_level.restype = None
 td_set_log_verbosity_level.argtypes = [c_int]
