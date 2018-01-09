@@ -802,6 +802,7 @@ void FileManager::cancel_download(FileNode *node) {
   }
   send_closure(file_load_manager_, &FileLoadManager::cancel, node->download_id_);
   node->download_id_ = 0;
+  node->is_download_started_ = false;
   node->set_download_priority(0);
 }
 
@@ -911,8 +912,10 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     cancel_download(node);
     node->set_local_location(other_node->local_, other_node->local_ready_size_);
     node->download_id_ = other_node->download_id_;
+    node->is_download_started_ |= other_node->is_download_started_;
     node->set_download_priority(other_node->download_priority_);
     other_node->download_id_ = 0;
+    other_node->is_download_started_ = false;
     other_node->download_priority_ = 0;
 
     //cancel_generate(node);
@@ -1245,6 +1248,7 @@ bool FileManager::set_content(FileId file_id, BufferSlice bytes) {
 
   QueryId id = queries_container_.create(Query{file_id, Query::SetContent});
   node->download_id_ = id;
+  node->is_download_started_ = true;
   send_closure(file_load_manager_, &FileLoadManager::from_bytes, id, node->remote_.full().type_, std::move(bytes),
                node->name_);
   return true;
@@ -1387,6 +1391,7 @@ void FileManager::run_download(FileNode *node) {
   auto file_id = node->file_ids_.back();
   QueryId id = queries_container_.create(Query{file_id, Query::Download});
   node->download_id_ = id;
+  node->is_download_started_ = false;
   send_closure(file_load_manager_, &FileLoadManager::download, id, node->remote_.full(), node->local_, node->size_,
                node->name_, node->encryption_key_, priority);
 }
@@ -1927,6 +1932,23 @@ FileManager::FileNodeId FileManager::next_file_node_id() {
   return res;
 }
 
+void FileManager::on_start_download(QueryId query_id) {
+  auto query = queries_container_.get(query_id);
+  CHECK(query != nullptr);
+
+  auto file_id = query->file_id_;
+  auto *file_node = get_file_node(file_id);
+  if (file_node == nullptr) {
+    return;
+  }
+  if (file_node->download_id_ != query_id) {
+    return;
+  }
+
+  LOG(DEBUG) << "Start to download part of file " << file_id;
+  file_node->is_download_started_ = true;
+}
+
 void FileManager::on_partial_download(QueryId query_id, const PartialLocalFileLocation &partial_local,
                                       int64 ready_size) {
   auto query = queries_container_.get(query_id);
@@ -2203,6 +2225,7 @@ std::pair<FileManager::Query, bool> FileManager::finish_query(QueryId query_id) 
   }
   if (node->download_id_ == query_id) {
     node->download_id_ = 0;
+    node->is_download_started_ = false;
     node->set_download_priority(0);
     was_active = true;
   }

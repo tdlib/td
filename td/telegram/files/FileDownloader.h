@@ -28,6 +28,7 @@ class FileDownloader : public FileLoader {
  public:
   class Callback : public FileLoader::Callback {
    public:
+    virtual void on_start_download() = 0;
     virtual void on_partial_download(const PartialLocalFileLocation &partial_local, int64 ready_size) = 0;
     virtual void on_ok(const FullLocalFileLocation &full_local, int64 size) = 0;
     virtual void on_error(Status status) = 0;

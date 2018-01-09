@@ -177,6 +177,8 @@ Result<std::pair<NetQueryPtr, bool>> FileDownloader::start_part(Part part, int32
   auto size = get_part_size();
   CHECK(part.size <= size);
 
+  callback_->on_start_download();
+
   NetQueryPtr net_query;
   if (!use_cdn_) {
     net_query = G()->net_query_creator().create(

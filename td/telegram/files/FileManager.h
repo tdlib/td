@@ -86,6 +86,7 @@ class FileNode {
   FileLoadManager::QueryId download_id_ = 0;
   int32 download_priority_ = 0;
   int64 remote_ready_size_ = 0;
+  bool is_download_started_ = false;
 
   GenerateFileLocation generate_;
   FileLoadManager::QueryId generate_id_ = 0;
@@ -370,6 +371,7 @@ class FileManager : public FileLoadManager::Callback {
   void run_download(FileNode *node);
   void run_generate(FileNode *node);
 
+  void on_start_download(QueryId query_id) override;
   void on_partial_download(QueryId query_id, const PartialLocalFileLocation &partial_local, int64 ready_size) override;
   void on_partial_upload(QueryId query_id, const PartialRemoteFileLocation &partial_remote, int64 ready_size) override;
   void on_download_ok(QueryId query_id, const FullLocalFileLocation &local, int64 size) override;
