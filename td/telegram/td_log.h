@@ -23,10 +23,19 @@ extern "C" {
  * By default TDLib writes logs to stderr or an OS specific log.
  * Use this method to write the log to a file instead.
  *
- * \param[in]  path Path to a file where the internal TDLib log will be written. Use an empty path to switch back to
- *                  the default logging behaviour.
+ * \param[in]  file_path Path to a file where the internal TDLib log will be written. Use an empty path to
+ *                       switch back to the default logging behaviour.
  */
-TDJSON_EXPORT void td_set_log_file_path(const char *path);
+TDJSON_EXPORT void td_set_log_file_path(const char *file_path);
+
+/**
+ * Sets maximum size of the file to where the internal TDLib log is written before the file will be auto-rotated.
+ * Unused if log is not written to a file. Defaults to 10 MB.
+ *
+ * \param[in]  max_file_size Maximum size of the file to where the internal TDLib log is written before the file
+ *                           will be auto-rotated. Should be positive.
+ */
+TDJSON_EXPORT void td_set_log_max_file_size(long long max_file_size);
 
 /**
  * Sets the verbosity level of the internal logging of TDLib.

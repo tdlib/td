@@ -66,6 +66,10 @@ class FileLog : public LogInterface {
     rotate_threshold_ = rotate_threshold;
   }
 
+  void set_rotate_threshold(int64 rotate_threshold) {
+    rotate_threshold_ = rotate_threshold;
+  }
+
  private:
   FileFd fd_;
   string path_;
