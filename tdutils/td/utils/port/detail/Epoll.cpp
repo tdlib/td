@@ -53,13 +53,16 @@ void Epoll::subscribe(const Fd &fd, Fd::Flags flags) {
   event.data.fd = native_fd;
   int err = epoll_ctl(epoll_fd, EPOLL_CTL_ADD, native_fd, &event);
   auto epoll_ctl_errno = errno;
-  LOG_IF(FATAL, err == -1) << Status::PosixError(epoll_ctl_errno, "epoll_ctl ADD failed");
+  LOG_IF(FATAL, err == -1) << Status::PosixError(epoll_ctl_errno, "epoll_ctl ADD failed") << ", epoll_fd = " << epoll_fd
+                           << ", fd = " << native_fd;
 }
 
 void Epoll::unsubscribe(const Fd &fd) {
-  int err = epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd.get_native_fd(), nullptr);
+  auto native_fd = fd.get_native_fd();
+  int err = epoll_ctl(epoll_fd, EPOLL_CTL_DEL, native_fd, nullptr);
   auto epoll_ctl_errno = errno;
-  LOG_IF(FATAL, err == -1) << Status::PosixError(epoll_ctl_errno, "epoll_ctl DEL failed");
+  LOG_IF(FATAL, err == -1) << Status::PosixError(epoll_ctl_errno, "epoll_ctl DEL failed") << ", epoll_fd = " << epoll_fd
+                           << ", fd = " << native_fd;
 }
 
 void Epoll::unsubscribe_before_close(const Fd &fd) {
