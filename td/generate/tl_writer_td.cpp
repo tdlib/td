@@ -217,7 +217,8 @@ std::string TD_TL_writer::gen_int_const(const tl::tl_tree *tree_c, const std::ve
   return std::string();
 }
 
-std::string TD_TL_writer::gen_constructor_parameter(int field_num, const tl::arg &a, bool is_default) const {
+std::string TD_TL_writer::gen_constructor_parameter(int field_num, const std::string &class_name, const tl::arg &a,
+                                                    bool is_default) const {
   if (is_default) {
     return "";
   }

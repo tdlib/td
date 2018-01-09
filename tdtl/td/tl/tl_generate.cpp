@@ -54,13 +54,13 @@ static void write_class_constructor(tl_outputer &out, const tl_combinator *t, co
   //  std::fprintf(stderr, "Gen constructor %s\n", class_name.c_str());
   int fields_num = 0;
   for (std::size_t i = 0; i < t->args.size(); i++) {
-    fields_num += !w.gen_constructor_parameter(0, t->args[i], is_default).empty();
+    fields_num += !w.gen_constructor_parameter(0, class_name, t->args[i], is_default).empty();
   }
 
   out.append(w.gen_constructor_begin(fields_num, class_name, is_default));
   int field_num = 0;
   for (std::size_t i = 0; i < t->args.size(); i++) {
-    std::string parameter_init = w.gen_constructor_parameter(field_num, t->args[i], is_default);
+    std::string parameter_init = w.gen_constructor_parameter(field_num, class_name, t->args[i], is_default);
     if (parameter_init.size()) {
       out.append(parameter_init);
       field_num++;
@@ -70,7 +70,7 @@ static void write_class_constructor(tl_outputer &out, const tl_combinator *t, co
 
   field_num = 0;
   for (std::size_t i = 0; i < t->args.size(); i++) {
-    std::string field_init = w.gen_constructor_field_init(field_num, t->args[i], is_default);
+    std::string field_init = w.gen_constructor_field_init(field_num, class_name, t->args[i], is_default);
     if (field_init.size()) {
       out.append(field_init);
       field_num++;

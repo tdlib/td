@@ -346,7 +346,8 @@ class TlWriterCCommon : public tl::TL_writer {
               (fields_num ? "" : "void");
     return ss.str();
   }
-  std::string gen_constructor_parameter(int field_num, const tl::arg &a, bool is_default) const override {
+  std::string gen_constructor_parameter(int field_num, const std::string &class_name, const tl::arg &a,
+                                        bool is_default) const override {
     if (!is_default || is_header_ == -1) {
       return "";
     }
@@ -356,7 +357,8 @@ class TlWriterCCommon : public tl::TL_writer {
     ss << field_type << gen_field_name(a.name);
     return ss.str();
   }
-  std::string gen_constructor_field_init(int field_num, const tl::arg &a, bool is_default) const override {
+  std::string gen_constructor_field_init(int field_num, const std::string &class_name, const tl::arg &a,
+                                         bool is_default) const override {
     return "";
   }
   std::string gen_constructor_end(const tl::tl_combinator *t, int fields_num, bool is_default) const override {

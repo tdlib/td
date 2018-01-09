@@ -242,11 +242,13 @@ std::string TD_TL_writer_hpp::gen_constructor_begin(int fields_num, const std::s
   return "";
 }
 
-std::string TD_TL_writer_hpp::gen_constructor_parameter(int field_num, const tl::arg &a, bool is_default) const {
+std::string TD_TL_writer_hpp::gen_constructor_parameter(int field_num, const std::string &class_name, const tl::arg &a,
+                                                        bool is_default) const {
   return "";
 }
 
-std::string TD_TL_writer_hpp::gen_constructor_field_init(int field_num, const tl::arg &a, bool is_default) const {
+std::string TD_TL_writer_hpp::gen_constructor_field_init(int field_num, const std::string &class_name, const tl::arg &a,
+                                                         bool is_default) const {
   return "";
 }
 

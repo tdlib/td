@@ -500,7 +500,8 @@ std::string TD_TL_writer_java::gen_constructor_begin(int fields_num, const std::
          class_name + "(";
 }
 
-std::string TD_TL_writer_java::gen_constructor_parameter(int field_num, const tl::arg &a, bool is_default) const {
+std::string TD_TL_writer_java::gen_constructor_parameter(int field_num, const std::string &class_name, const tl::arg &a,
+                                                         bool is_default) const {
   if (is_default) {
     return "";
   }
@@ -517,7 +518,8 @@ std::string TD_TL_writer_java::gen_constructor_parameter(int field_num, const tl
   return (field_num == 0 ? "" : ", ") + field_type + gen_field_name(a.name);
 }
 
-std::string TD_TL_writer_java::gen_constructor_field_init(int field_num, const tl::arg &a, bool is_default) const {
+std::string TD_TL_writer_java::gen_constructor_field_init(int field_num, const std::string &class_name,
+                                                          const tl::arg &a, bool is_default) const {
   std::string field_type = gen_field_type(a);
   if (field_type.empty()) {
     return "";
