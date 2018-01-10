@@ -1010,9 +1010,15 @@ class CliClient final : public Actor {
       std::tie(dc_id, ip_port) = split(args);
       send_request(make_tl_object<td_api::processDcUpdate>(dc_id, ip_port));
     } else if (op == "rdb" || op == "RegisterDeviceB") {
-      send_request(make_tl_object<td_api::registerDevice>(make_tl_object<td_api::deviceTokenBlackberryPush>(args)));
+      send_request(make_tl_object<td_api::registerDevice>(make_tl_object<td_api::deviceTokenBlackberryPush>(args),
+                                                          as_user_ids("")));
     } else if (op == "rdu" || op == "RegisterDeviceU") {
-      send_request(make_tl_object<td_api::registerDevice>(make_tl_object<td_api::deviceTokenUbuntuPush>(args)));
+      string token;
+      string other_user_ids_str;
+
+      std::tie(token, other_user_ids_str) = split(args);
+      send_request(make_tl_object<td_api::registerDevice>(make_tl_object<td_api::deviceTokenUbuntuPush>(token),
+                                                          as_user_ids(other_user_ids_str)));
     } else if (op == "gpf") {
       string chat_id;
       string message_id;

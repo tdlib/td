@@ -2613,8 +2613,8 @@ getSupportUser = User;
 getWallpapers = Wallpapers;
 
 
-//@description Registers the currently used device for receiving push notifications @device_token Device token
-registerDevice device_token:DeviceToken = Ok;
+//@description Registers the currently used device for receiving push notifications @device_token Device token @other_user_ids List of at most 100 user identifiers of other users currently using the client
+registerDevice device_token:DeviceToken other_user_ids:vector<int32> = Ok;
 
 
 //@description Returns t.me URLs recently visited by a newly registered user @referrer Google Play referrer to identify the user

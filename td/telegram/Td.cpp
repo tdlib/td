@@ -4598,7 +4598,7 @@ void Td::on_request(uint64 id, td_api::registerDevice &request) {
 
   CREATE_REQUEST_PROMISE(promise);
   send_closure(device_token_manager_, &DeviceTokenManager::register_device, std::move(request.device_token_),
-               std::move(promise));
+               std::move(request.other_user_ids_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getUserPrivacySettingRules &request) {

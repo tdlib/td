@@ -18,44 +18,48 @@
 #include <array>
 
 namespace td {
+
 class DeviceTokenManager : public NetQueryCallback {
  public:
   explicit DeviceTokenManager(ActorShared<> parent) : parent_(std::move(parent)) {
   }
-  void register_device(tl_object_ptr<td_api::DeviceToken> device_token, Promise<tl_object_ptr<td_api::ok>> promise);
+  void register_device(tl_object_ptr<td_api::DeviceToken> device_token_ptr, vector<int32> other_user_ids,
+                       Promise<tl_object_ptr<td_api::ok>> promise);
 
  private:
+  static constexpr size_t MAX_OTHER_USER_IDS = 100;
+
   ActorShared<> parent_;
   enum TokenType : int32 { APNS = 1, GCM = 2, MPNS = 3, SimplePush = 4, UbuntuPhone = 5, Blackberry = 6, Size };
-  struct Token {
-    TokenType type;
-    string token;
-    Token(TokenType type, string token) : type(type), token(std::move(token)) {
-    }
-    explicit Token(td_api::DeviceToken &device_token);
-    tl_object_ptr<td_api::DeviceToken> as_td_api();
-  };
   struct TokenInfo {
     enum class State { Sync, Unregister, Register };
     State state = State::Sync;
     string token;
     uint64 net_query_id = 0;
+    vector<int32> other_user_ids;
     Promise<tl_object_ptr<td_api::ok>> promise;
 
-    TokenInfo() = default;
-    explicit TokenInfo(string from);
+    template <class StorerT>
+    void store(StorerT &storer) const;
 
-    string serialize();
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const TokenInfo &token_info);
 
   std::array<TokenInfo, TokenType::Size> tokens_;
   int32 sync_cnt_{0};
 
   void start_up() override;
+
+  static string get_database_key(int32 token_type);
   void save_info(int32 token_type);
+
   void dec_sync_cnt();
 
   void loop() override;
   void on_result(NetQueryPtr net_query) override;
 };
+
 }  // namespace td
