@@ -152,7 +152,7 @@ class MpscLinkQueueUniquePtrNode {
   explicit MpscLinkQueueUniquePtrNode(std::unique_ptr<Value> ptr) : ptr_(std::move(ptr)) {
   }
 
-  auto to_mpsc_link_queue_node() {
+  MpscLinkQueueImpl::Node *to_mpsc_link_queue_node() {
     return ptr_.release()->to_mpsc_link_queue_node();
   }
   static MpscLinkQueueUniquePtrNode<Value> from_mpsc_link_queue_node(td::MpscLinkQueueImpl::Node *node) {
