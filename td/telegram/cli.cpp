@@ -284,8 +284,9 @@ class CliClient final : public Actor {
   }
 
   int64 get_history_chat_id = 0;
+  int64 search_chat_id = 0;
   void on_get_messages(const td_api::messages &messages) {
-    if (get_history_chat_id > 0) {
+    if (get_history_chat_id != 0) {
       int64 last_message_id = 0;
       for (auto &m : messages.messages_) {
         // LOG(PLAIN) << to_string(m);
@@ -299,6 +300,17 @@ class CliClient final : public Actor {
         send_request(make_tl_object<td_api::getChatHistory>(get_history_chat_id, last_message_id, 0, 100, false));
       } else {
         get_history_chat_id = 0;
+      }
+    }
+    if (search_chat_id != 0) {
+      if (!messages.messages_.empty()) {
+        auto last_message_id = messages.messages_.back()->id_;
+        LOG(ERROR) << (last_message_id >> 20);
+        send_request(
+            make_tl_object<td_api::searchChatMessages>(search_chat_id, "", 0, last_message_id, 0, 100,
+                                                       make_tl_object<td_api::searchMessagesFilterPhotoAndVideo>()));
+      } else {
+        search_chat_id = 0;
       }
     }
   }
@@ -1203,6 +1215,11 @@ class CliClient final : public Actor {
 
       send_request(make_tl_object<td_api::getChatHistory>(get_history_chat_id, std::numeric_limits<int64>::max(), 0,
                                                           100, false));
+    } else if (op == "spvf") {
+      search_chat_id = as_chat_id(args);
+
+      send_request(make_tl_object<td_api::searchChatMessages>(
+          search_chat_id, "", 0, 0, 0, 100, make_tl_object<td_api::searchMessagesFilterPhotoAndVideo>()));
     } else if (op == "Search") {
       string from_date;
       string limit;
