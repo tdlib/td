@@ -4161,6 +4161,9 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, UserId 
   }
   if (!c->status.is_member()) {
     if (user_id == get_my_id("restrict_channel_participant")) {
+      if (status.is_member()) {
+        return promise.set_error(Status::Error(3, "Can't unrestrict self"));
+      }
       return promise.set_value(Unit());
     } else {
       return promise.set_error(Status::Error(3, "Not in the chat"));
@@ -4175,7 +4178,9 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, UserId 
     if (status.is_restricted() || status.is_banned()) {
       return promise.set_error(Status::Error(3, "Can't restrict self"));
     }
-    CHECK(!status.is_member());
+    if (status.is_member()) {
+      return promise.set_error(Status::Error(3, "Can't unrestrict self"));
+    }
 
     // leave the channel
     td_->create_handler<LeaveChannelQuery>(std::move(promise))->send(channel_id);
