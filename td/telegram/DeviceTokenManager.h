@@ -37,6 +37,7 @@ class DeviceTokenManager : public NetQueryCallback {
     string token;
     uint64 net_query_id = 0;
     vector<int32> other_user_ids;
+    bool is_app_sandbox = false;
     Promise<tl_object_ptr<td_api::ok>> promise;
 
     template <class StorerT>

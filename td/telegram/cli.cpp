@@ -1009,10 +1009,13 @@ class CliClient final : public Actor {
       string ip_port;
       std::tie(dc_id, ip_port) = split(args);
       send_request(make_tl_object<td_api::processDcUpdate>(dc_id, ip_port));
-    } else if (op == "rdb" || op == "RegisterDeviceB") {
+    } else if (op == "rda") {
+      send_request(make_tl_object<td_api::registerDevice>(make_tl_object<td_api::deviceTokenApplePush>(args, true),
+                                                          as_user_ids("")));
+    } else if (op == "rdb") {
       send_request(make_tl_object<td_api::registerDevice>(make_tl_object<td_api::deviceTokenBlackberryPush>(args),
                                                           as_user_ids("")));
-    } else if (op == "rdu" || op == "RegisterDeviceU") {
+    } else if (op == "rdu") {
       string token;
       string other_user_ids_str;
 

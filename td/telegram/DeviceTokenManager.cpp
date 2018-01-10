@@ -35,6 +35,7 @@ void DeviceTokenManager::TokenInfo::store(StorerT &storer) const {
   STORE_FLAG(is_sync);
   STORE_FLAG(is_unregister);
   STORE_FLAG(is_register);
+  STORE_FLAG(is_app_sandbox);
   END_STORE_FLAGS();
   store(token, storer);
   if (has_other_user_ids) {
@@ -54,6 +55,7 @@ void DeviceTokenManager::TokenInfo::parse(ParserT &parser) {
   PARSE_FLAG(is_sync);
   PARSE_FLAG(is_unregister);
   PARSE_FLAG(is_register);
+  PARSE_FLAG(is_app_sandbox);
   END_PARSE_FLAGS();
   CHECK(is_sync + is_unregister + is_register == 1);
   if (is_sync) {
@@ -87,6 +89,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DeviceTokenManage
   if (!token_info.other_user_ids.empty()) {
     string_builder << ", with other users " << token_info.other_user_ids;
   }
+  if (token_info.is_app_sandbox) {
+    string_builder << ", sandboxed";
+  }
   return string_builder;
 }
 
@@ -95,11 +100,13 @@ void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> devi
   CHECK(device_token_ptr != nullptr);
   TokenType token_type;
   string token;
+  bool is_app_sandbox = false;
   switch (device_token_ptr->get_id()) {
     case td_api::deviceTokenApplePush::ID: {
       auto device_token = static_cast<td_api::deviceTokenApplePush *>(device_token_ptr.get());
       token = std::move(device_token->token_);
       token_type = TokenType::APNS;
+      is_app_sandbox = device_token->is_app_sandbox_;
       break;
     }
     case td_api::deviceTokenGoogleCloudMessaging::ID: {
@@ -162,6 +169,7 @@ void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> devi
     info.token = std::move(token);
   }
   info.other_user_ids = std::move(other_user_ids);
+  info.is_app_sandbox = is_app_sandbox;
   info.promise.set_value(make_tl_object<td_api::ok>());
   info.promise = std::move(promise);
   save_info(token_type);
@@ -238,7 +246,7 @@ void DeviceTokenManager::loop() {
           create_storer(telegram_api::account_unregisterDevice(token_type, info.token, std::move(other_user_ids))));
     } else {
       net_query = G()->net_query_creator().create(create_storer(
-          telegram_api::account_registerDevice(token_type, info.token, false, std::move(other_user_ids))));
+          telegram_api::account_registerDevice(token_type, info.token, info.is_app_sandbox, std::move(other_user_ids))));
     }
     info.net_query_id = net_query->id();
     G()->net_query_dispatcher().dispatch_with_callback(std::move(net_query), actor_shared(this, token_type));
@@ -268,7 +276,6 @@ void DeviceTokenManager::on_result(NetQueryPtr net_query) {
       info.token = "";
     }
     info.state = TokenInfo::State::Sync;
-    save_info(token_type);
   } else {
     if (info.promise) {
       if (r_flag.is_error()) {
@@ -283,10 +290,11 @@ void DeviceTokenManager::on_result(NetQueryPtr net_query) {
       info.state = TokenInfo::State::Sync;
       info.token = "";
     }
-    save_info(token_type);
     if (r_flag.is_error()) {
       LOG(ERROR) << r_flag.error();
     }
   }
+  save_info(token_type);
 }
+
 }  // namespace td

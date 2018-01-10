@@ -1419,8 +1419,8 @@ chatEventLogFilters message_edits:Bool message_deletions:Bool message_pins:Bool 
 
 //@class DeviceToken @description Represents a token for push notifications
 
-//@description A token for Apple Push Notification Service @token Token, may be empty to de-register a device
-deviceTokenApplePush token:string = DeviceToken;
+//@description A token for Apple Push Notification Service @token Token, may be empty to de-register a device @is_app_sandbox True, if App Sandbox is enabled
+deviceTokenApplePush token:string is_app_sandbox:Bool = DeviceToken;
 
 //@description A token for Google Cloud Messaging @token Token, may be empty to de-register a device
 deviceTokenGoogleCloudMessaging token:string = DeviceToken;
