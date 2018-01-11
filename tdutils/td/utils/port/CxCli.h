@@ -31,6 +31,7 @@ using Platform::Collections::Vector;
 #define ArraySize(arr) ((arr)->Size)
 #define ArrayGet(arr, index) ((arr)->GetAt(index))
 #define ArraySet(arr, index, value) ((arr)->SetAt((index), (value)))
+#define ArrayIndexType unsigned
 
 using Platform::String;
 
@@ -95,6 +96,7 @@ using float64 = double;
 #define ArraySize(arr) ((arr)->Length)
 #define ArrayGet(arr, index) ((arr)[index])
 #define ArraySet(arr, index, value) ((arr)[index] = (value))
+#define ArrayIndexType int
 
 using System::String;
 
