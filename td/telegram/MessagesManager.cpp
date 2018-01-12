@@ -18251,21 +18251,24 @@ bool MessagesManager::update_dialog_draft_message(Dialog *d, unique_ptr<DraftMes
       return true;
     }
   } else {
-    if (d->draft_message == nullptr || d->draft_message->date < draft_message->date) {
-      if (d->draft_message != nullptr && d->draft_message->reply_to_message_id == draft_message->reply_to_message_id &&
-          d->draft_message->input_message_text == draft_message->input_message_text) {
+    if (d->draft_message != nullptr && d->draft_message->reply_to_message_id == draft_message->reply_to_message_id &&
+        d->draft_message->input_message_text == draft_message->input_message_text) {
+      if (d->draft_message->date < draft_message->date) {
         if (need_update_dialog_pos) {
           update_dialog_pos(d, false, "update_dialog_draft_message 2");
         }
         d->draft_message->date = draft_message->date;
-      } else {
+        return true;
+      }
+    } else {
+      if (!from_update || d->draft_message == nullptr || d->draft_message->date <= draft_message->date) {
         d->draft_message = std::move(draft_message);
         if (need_update_dialog_pos) {
           update_dialog_pos(d, false, "update_dialog_draft_message 3", false);
         }
         send_update_chat_draft_message(d);
+        return true;
       }
-      return true;
     }
   }
   return false;
