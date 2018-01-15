@@ -32,7 +32,7 @@ jmethodID DoubleGetValueMethodID;
 jclass get_jclass(JNIEnv *env, const char *class_name) {
   jclass clazz = env->FindClass(class_name);
   if (!clazz) {
-    LOG(INFO, "Can't find class [%s]", class_name);
+    LOG(INFO) << "Can't find class [" << class_name << "]";
     env->ExceptionClear();
     return clazz;
   }
@@ -41,7 +41,7 @@ jclass get_jclass(JNIEnv *env, const char *class_name) {
   env->DeleteLocalRef(clazz);
 
   if (!clazz_global) {
-    LOG(ERROR, "Can't create global reference to [%s]", class_name);
+    LOG(ERROR) << "Can't create global reference to [" << class_name << "]";
     env->FatalError("Can't create global reference");
   }
 
@@ -55,7 +55,7 @@ jmethodID get_method_id(JNIEnv *env, jclass clazz, const char *name, const char 
       return res;
     }
 
-    LOG(ERROR, "Can't find method %s %s", name, sig);
+    LOG(ERROR) << "Can't find method [" << name << "] with signature [" << sig << "]";
     env->FatalError("Can't find method");
   }
   return nullptr;
@@ -68,7 +68,7 @@ jfieldID get_field_id(JNIEnv *env, jclass clazz, const char *name, const char *s
     return res;
   }
 
-  LOG(ERROR, "Can't find field name=(%s) sig=(%s)", name, sig);
+  LOG(ERROR) << "Can't find field [" << name << "] with signature [" << sig << "]";
   env->FatalError("Can't find field");
   return 0;
 }
@@ -229,8 +229,10 @@ std::string from_bytes(JNIEnv *env, jbyteArray arr) {
   std::string b;
   if (arr != nullptr) {
     jsize length = env->GetArrayLength(arr);
-    b.resize(narrow_cast<size_t>(length));
-    env->GetByteArrayRegion(arr, 0, length, reinterpret_cast<jbyte *>(&b[0]));
+    if (length != 0) {
+      b.resize(narrow_cast<size_t>(length));
+      env->GetByteArrayRegion(arr, 0, length, reinterpret_cast<jbyte *>(&b[0]));
+    }
     env->DeleteLocalRef(arr);
   }
   return b;
@@ -240,7 +242,7 @@ jbyteArray to_bytes(JNIEnv *env, const std::string &b) {
   static_assert(sizeof(char) == sizeof(jbyte), "Mismatched jbyte size");
   jsize length = narrow_cast<jsize>(b.size());
   jbyteArray arr = env->NewByteArray(length);
-  if (arr != nullptr) {
+  if (arr != nullptr && length != 0) {
     env->SetByteArrayRegion(arr, 0, length, reinterpret_cast<const jbyte *>(b.data()));
   }
   return arr;
@@ -250,7 +252,7 @@ jintArray store_vector(JNIEnv *env, const std::vector<std::int32_t> &v) {
   static_assert(sizeof(std::int32_t) == sizeof(jint), "Mismatched jint size");
   jsize length = narrow_cast<jsize>(v.size());
   jintArray arr = env->NewIntArray(length);
-  if (arr) {
+  if (arr != nullptr && length != 0) {
     env->SetIntArrayRegion(arr, 0, length, reinterpret_cast<const jint *>(&v[0]));
   }
   return arr;
@@ -260,7 +262,7 @@ jlongArray store_vector(JNIEnv *env, const std::vector<std::int64_t> &v) {
   static_assert(sizeof(std::int64_t) == sizeof(jlong), "Mismatched jlong size");
   jsize length = narrow_cast<jsize>(v.size());
   jlongArray arr = env->NewLongArray(length);
-  if (arr) {
+  if (arr != nullptr && length != 0) {
     env->SetLongArrayRegion(arr, 0, length, reinterpret_cast<const jlong *>(&v[0]));
   }
   return arr;
@@ -270,7 +272,7 @@ jdoubleArray store_vector(JNIEnv *env, const std::vector<double> &v) {
   static_assert(sizeof(double) == sizeof(jdouble), "Mismatched jdouble size");
   jsize length = narrow_cast<jsize>(v.size());
   jdoubleArray arr = env->NewDoubleArray(length);
-  if (arr) {
+  if (arr != nullptr && length != 0) {
     env->SetDoubleArrayRegion(arr, 0, length, reinterpret_cast<const jdouble *>(&v[0]));
   }
   return arr;
@@ -279,7 +281,7 @@ jdoubleArray store_vector(JNIEnv *env, const std::vector<double> &v) {
 jobjectArray store_vector(JNIEnv *env, const std::vector<std::string> &v) {
   jsize length = narrow_cast<jsize>(v.size());
   jobjectArray arr = env->NewObjectArray(length, StringClass, 0);
-  if (arr) {
+  if (arr != nullptr) {
     for (jsize i = 0; i < length; i++) {
       jstring str = to_jstring(env, v[i]);
       if (str) {
@@ -289,6 +291,45 @@ jobjectArray store_vector(JNIEnv *env, const std::vector<std::string> &v) {
     }
   }
   return arr;
+}
+
+std::vector<std::int32_t> fetch_vector(JNIEnv *env, jintArray arr) {
+  std::vector<std::int32_t> result;
+  if (arr != nullptr) {
+    jsize length = env->GetArrayLength(arr);
+    if (length != 0) {
+      result.resize(length);
+      env->GetIntArrayRegion(arr, 0, length, reinterpret_cast<jint *>(&result[0]));
+    }
+    env->DeleteLocalRef(arr);
+  }
+  return result;
+}
+
+std::vector<std::int64_t> fetch_vector(JNIEnv *env, jlongArray arr) {
+  std::vector<std::int64_t> result;
+  if (arr != nullptr) {
+    jsize length = env->GetArrayLength(arr);
+    if (length != 0) {
+      result.resize(length);
+      env->GetLongArrayRegion(arr, 0, length, reinterpret_cast<jlong *>(&result[0]));
+    }
+    env->DeleteLocalRef(arr);
+  }
+  return result;
+}
+
+std::vector<double> fetch_vector(JNIEnv *env, jdoubleArray arr) {
+  std::vector<double> result;
+  if (arr != nullptr) {
+    jsize length = env->GetArrayLength(arr);
+    if (length != 0) {
+      result.resize(length);
+      env->GetDoubleArrayRegion(arr, 0, length, reinterpret_cast<jdouble *>(&result[0]));
+    }
+    env->DeleteLocalRef(arr);
+  }
+  return result;
 }
 
 }  // namespace jni

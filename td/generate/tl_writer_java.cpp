@@ -449,7 +449,7 @@ std::string TD_TL_writer_java::gen_store_function_begin(const std::string &store
                                                     "        protected " +
                                                         storer_name + " appendLine(" + storer_name +
                                                         " s, int shift) {\n"
-                                                        "            s.append('\\n');\n"
+                                                        "            s.append(System.lineSeparator());\n"
                                                         "            for (int i = 0; i < shift; i++) {\n"
                                                         "                s.append(' ');\n"
                                                         "            }\n"

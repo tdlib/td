@@ -17,6 +17,7 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/Status.h"
+#include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
 
 #include <type_traits>
@@ -245,8 +246,8 @@ void DeviceTokenManager::loop() {
       net_query = G()->net_query_creator().create(
           create_storer(telegram_api::account_unregisterDevice(token_type, info.token, std::move(other_user_ids))));
     } else {
-      net_query = G()->net_query_creator().create(create_storer(
-          telegram_api::account_registerDevice(token_type, info.token, info.is_app_sandbox, std::move(other_user_ids))));
+      net_query = G()->net_query_creator().create(create_storer(telegram_api::account_registerDevice(
+          token_type, info.token, info.is_app_sandbox, std::move(other_user_ids))));
     }
     info.net_query_id = net_query->id();
     G()->net_query_dispatcher().dispatch_with_callback(std::move(net_query), actor_shared(this, token_type));

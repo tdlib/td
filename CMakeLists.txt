@@ -547,6 +547,15 @@ target_include_directories(tdcore PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURC
 target_include_directories(tdcore SYSTEM PRIVATE ${OPENSSL_INCLUDE_DIR})
 target_link_libraries(tdcore PUBLIC tdactor tdutils tdnet tddb PRIVATE ${OPENSSL_CRYPTO_LIBRARY})
 
+if (TD_API_JAVA_PACKAGE AND NOT ANDROID) # jni is available by default on Android
+  if (NOT JNI_FOUND)
+    find_package(JNI REQUIRED)
+  endif()
+  message(STATUS "Found JNI: ${JNI_INCLUDE_DIRS} ${JNI_LIBRARIES}")
+  target_include_directories(tdcore PUBLIC ${JAVA_INCLUDE_PATH} ${JAVA_INCLUDE_PATH2})
+  target_link_libraries(tdcore PUBLIC ${JAVA_JVM_LIBRARY})
+endif()
+
 if (NOT CMAKE_CROSSCOMPILING)
   add_dependencies(tdcore tl_generate_common)
 endif()
@@ -557,6 +566,11 @@ target_include_directories(tdclient PUBLIC
   $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDES}>
 )
 target_link_libraries(tdclient PRIVATE tdcore)
+
+if (TD_API_JAVA_PACKAGE AND NOT ANDROID) # jni is available by default on Android
+  target_include_directories(tdclient PUBLIC ${JAVA_INCLUDE_PATH} ${JAVA_INCLUDE_PATH2})
+  target_link_libraries(tdclient PUBLIC ${JAVA_JVM_LIBRARY})
+endif()
 
 # tdc - TDLib interface in pure c.
 add_library(tdc STATIC ${TL_C_SCHEME_SOURCE} td/telegram/td_c_client.cpp td/telegram/td_c_client.h)
@@ -595,12 +609,20 @@ target_link_libraries(tdjson_static PRIVATE tdjson_private)
 target_compile_definitions(tdjson_static PUBLIC TDJSON_STATIC_DEFINE)
 target_include_directories(tdjson_static PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
 
+set(BIGOBJ)
 if (WIN32 OR CYGWIN)
   if (MSVC)
-    target_compile_options(tdcore PUBLIC "/bigobj")
+    set(BIGOBJ "/bigobj")
   elseif (GCC)
-    target_compile_options(tdcore PUBLIC "-Wa,-mbig-obj")
+    set(BIGOBJ "-Wa,-mbig-obj")
   endif()
+endif()
+if (BIGOBJ)
+  target_compile_options(tdc PUBLIC ${BIGOBJ})
+  target_compile_options(tdcore PUBLIC ${BIGOBJ})
+  target_compile_options(tdclient PUBLIC ${BIGOBJ})
+  target_compile_options(tdjson PUBLIC ${BIGOBJ})
+  target_compile_options(tdjson_static PUBLIC ${BIGOBJ})
 endif()
 
 if (EMSCRIPTEN)
@@ -660,6 +682,9 @@ install(FILES ${TD_JSON_HEADERS} ${CMAKE_CURRENT_BINARY_DIR}/td/telegram/tdjson_
 install(FILES td/telegram/Client.h td/telegram/Log.h DESTINATION include/td/telegram)
 install(FILES td/tl/TlObject.h DESTINATION include/td/tl)
 install(FILES ${TL_TD_AUTO_INCLUDES}/td/telegram/td_api.h ${TL_TD_AUTO_INCLUDES}/td/telegram/td_api.hpp DESTINATION include/td/telegram)
+if (TD_API_JAVA_PACKAGE)
+  install(FILES td/tl/tl_jni_object.h DESTINATION include/td/tl)
+endif()
 
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file("TdConfigVersion.cmake"

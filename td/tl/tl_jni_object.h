@@ -74,7 +74,7 @@ template <class T>
 jobjectArray store_vector(JNIEnv *env, const std::vector<T> &v) {
   jint length = static_cast<jint>(v.size());
   jobjectArray arr = env->NewObjectArray(length, T::element_type::Class, jobject());
-  if (arr) {
+  if (arr != nullptr) {
     for (jint i = 0; i < length; i++) {
       if (v[i] != nullptr) {
         jobject stored_object;
@@ -114,7 +114,7 @@ template <class T>
 jobjectArray store_vector(JNIEnv *env, const std::vector<std::vector<T>> &v) {
   jint length = static_cast<jint>(v.size());
   jobjectArray arr = env->NewObjectArray(length, get_array_class<typename T::element_type>::get(), 0);
-  if (arr) {
+  if (arr != nullptr) {
     for (jint i = 0; i < length; i++) {
       auto stored_array = store_vector(env, v[i]);
       if (stored_array) {
@@ -125,6 +125,74 @@ jobjectArray store_vector(JNIEnv *env, const std::vector<std::vector<T>> &v) {
   }
   return arr;
 }
+
+template <class T>
+auto fetch_tl_object(JNIEnv *env, jobject obj) {
+  decltype(T::fetch(env, obj)) result;
+  if (obj != nullptr) {
+    result = T::fetch(env, obj);
+    env->DeleteLocalRef(obj);
+  }
+  return result;
+}
+
+std::vector<std::int32_t> fetch_vector(JNIEnv *env, jintArray arr);
+
+std::vector<std::int64_t> fetch_vector(JNIEnv *env, jlongArray arr);
+
+std::vector<double> fetch_vector(JNIEnv *env, jdoubleArray arr);
+
+template <class T>
+struct FetchVector {
+  static auto fetch(JNIEnv *env, jobjectArray arr) {
+    std::vector<decltype(fetch_tl_object<T>(env, jobject()))> result;
+    if (arr != nullptr) {
+      jsize length = env->GetArrayLength(arr);
+      result.reserve(length);
+      for (jsize i = 0; i < length; i++) {
+        result.push_back(fetch_tl_object<T>(env, env->GetObjectArrayElement(arr, i)));
+      }
+      env->DeleteLocalRef(arr);
+    }
+    return result;
+  }
+};
+
+template <>
+struct FetchVector<std::string> {
+  static std::vector<std::string> fetch(JNIEnv *env, jobjectArray arr) {
+    std::vector<std::string> result;
+    if (arr != nullptr) {
+      jsize length = env->GetArrayLength(arr);
+      result.reserve(length);
+      for (jsize i = 0; i < length; i++) {
+        jstring str = (jstring)env->GetObjectArrayElement(arr, i);
+        result.push_back(jni::from_jstring(env, str));
+        if (str) {
+          env->DeleteLocalRef(str);
+        }
+      }
+      env->DeleteLocalRef(arr);
+    }
+    return result;
+  }
+};
+
+template <class T>
+struct FetchVector<std::vector<T>> {
+  static auto fetch(JNIEnv *env, jobjectArray arr) {
+    std::vector<decltype(FetchVector<T>::fetch(env, jobjectArray()))> result;
+    if (arr != nullptr) {
+      jsize length = env->GetArrayLength(arr);
+      result.reserve(length);
+      for (jsize i = 0; i < length; i++) {
+        result.push_back(FetchVector<T>::fetch(env, (jobjectArray)env->GetObjectArrayElement(arr, i)));
+      }
+      env->DeleteLocalRef(arr);
+    }
+    return result;
+  }
+};
 
 }  // namespace jni
 }  // namespace td
