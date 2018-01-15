@@ -404,7 +404,7 @@ static vector<Slice> match_urls(Slice str) {
     }
   };
 
-  Slice bad_path_end_chars(".:;,('?!");
+  Slice bad_path_end_chars(".:;,('?!`");
 
   while (true) {
     auto dot_pos = str.find('.');
@@ -783,7 +783,7 @@ Slice fix_url(Slice str) {
       break;
     }
   }
-  Slice bad_path_end_chars(".:;,('?!");
+  Slice bad_path_end_chars(".:;,('?!`");
   while (path_pos > 0 && bad_path_end_chars.find(path[path_pos - 1]) < bad_path_end_chars.size()) {
     path_pos--;
   }
