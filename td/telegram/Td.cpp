@@ -5568,7 +5568,7 @@ void Td::on_request(uint64 id, const td_api::downloadFile &request) {
 void Td::on_request(uint64 id, const td_api::cancelDownloadFile &request) {
   CHECK_AUTH();
 
-  file_manager_->download(FileId(request.file_id_), nullptr, 0);
+  file_manager_->download(FileId(request.file_id_), nullptr, request.only_if_pending_ ? -1 : 0);
 
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
 }

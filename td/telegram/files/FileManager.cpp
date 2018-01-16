@@ -1339,6 +1339,13 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
     return;
   }
 
+  if (new_priority == -1) {
+    if (node->is_download_started_) {
+      return;
+    }
+    new_priority = 0;
+  }
+
   auto *file_info = get_file_id_info(file_id);
   CHECK(new_priority == 0 || callback);
   file_info->download_priority_ = new_priority;

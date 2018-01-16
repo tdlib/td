@@ -1796,7 +1796,7 @@ class CliClient final : public Actor {
         send_request(make_tl_object<td_api::downloadFile>(i, to_integer<int32>(priority)));
       }
     } else if (op == "cdf") {
-      send_request(make_tl_object<td_api::cancelDownloadFile>(as_file_id(args)));
+      send_request(make_tl_object<td_api::cancelDownloadFile>(as_file_id(args), true));
     } else if (op == "uf") {
       string file_path;
       string priority;
