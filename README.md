@@ -81,7 +81,7 @@ target_link_library(YourLibrary Td::TdJson)
 
 Or you could install `TDLib` and then reference it in your CMakeLists.txt like this:
 ```
-find_package(Td 1.0)
+find_package(Td 1.0.2)
 target_link_library(YourLibrary Td::TdJson)
 ```
 See [example/cpp/CMakeLists.txt](https://github.com/tdlib/td/tree/master/example/cpp/CMakeLists.txt).
