@@ -908,6 +908,26 @@ class SearchChatsRequest : public RequestActor<> {
   }
 };
 
+class SearchChatsOnServerRequest : public RequestActor<> {
+  string query_;
+  int32 limit_;
+
+  vector<DialogId> dialog_ids_;
+
+  void do_run(Promise<Unit> &&promise) override {
+    dialog_ids_ = td->messages_manager_->search_dialogs_on_server(query_, limit_, std::move(promise));
+  }
+
+  void do_send_result() override {
+    send_result(MessagesManager::get_chats_object(dialog_ids_));
+  }
+
+ public:
+  SearchChatsOnServerRequest(ActorShared<Td> td, uint64 request_id, string query, int32 limit)
+      : RequestActor(std::move(td), request_id), query_(std::move(query)), limit_(limit) {
+  }
+};
+
 class GetGroupsInCommonRequest : public RequestActor<> {
   UserId user_id_;
   DialogId offset_dialog_id_;
@@ -4959,6 +4979,13 @@ void Td::on_request(uint64 id, td_api::searchChats &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
   CREATE_REQUEST(SearchChatsRequest, request.query_, request.limit_);
+}
+
+void Td::on_request(uint64 id, td_api::searchChatsOnServer &request) {
+  CHECK_AUTH();
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.query_);
+  CREATE_REQUEST(SearchChatsOnServerRequest, request.query_, request.limit_);
 }
 
 void Td::on_request(uint64 id, const td_api::getGroupsInCommon &request) {

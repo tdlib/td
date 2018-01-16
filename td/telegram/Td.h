@@ -396,6 +396,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::searchChats &request);
 
+  void on_request(uint64 id, td_api::searchChatsOnServer &request);
+
   void on_request(uint64 id, const td_api::addRecentlyFoundChat &request);
 
   void on_request(uint64 id, const td_api::removeRecentlyFoundChat &request);

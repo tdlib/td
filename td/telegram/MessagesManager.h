@@ -850,7 +850,8 @@ class MessagesManager : public Actor {
   void on_get_history(DialogId dialog_id, MessageId from_message_id, int32 offset, int32 limit, bool from_the_end,
                       vector<tl_object_ptr<telegram_api::Message>> &&messages);
 
-  void on_get_public_dialogs_search_result(const string &query, vector<tl_object_ptr<telegram_api::Peer>> &&peers);
+  void on_get_public_dialogs_search_result(const string &query, vector<tl_object_ptr<telegram_api::Peer>> &&my_peers,
+                                           vector<tl_object_ptr<telegram_api::Peer>> &&peers);
   void on_failed_public_dialogs_search(const string &query, Status &&error);
 
   void on_get_dialog_messages_search_result(DialogId dialog_id, const string &query, UserId sender_user_id,
@@ -1089,6 +1090,8 @@ class MessagesManager : public Actor {
   vector<DialogId> search_public_dialogs(const string &query, Promise<Unit> &&promise);
 
   std::pair<size_t, vector<DialogId>> search_dialogs(const string &query, int32 limit, Promise<Unit> &&promise);
+
+  vector<DialogId> search_dialogs_on_server(const string &query, int32 limit, Promise<Unit> &&promise);
 
   vector<DialogId> get_common_dialogs(UserId user_id, DialogId offset_dialog_id, int32 limit, bool force,
                                       Promise<Unit> &&promise);
@@ -2054,6 +2057,10 @@ class MessagesManager : public Actor {
   static tl_object_ptr<td_api::messages> get_messages_object(int32 total_count,
                                                              vector<tl_object_ptr<td_api::message>> &&messages);
 
+  vector<DialogId> sort_dialogs_by_order(const vector<DialogId> &dialog_ids, int32 limit) const;
+
+  vector<DialogId> get_peers_dialog_ids(vector<tl_object_ptr<telegram_api::Peer>> &&peers);
+
   void set_dialog_last_read_inbox_message_id(Dialog *d, MessageId message_id, int32 server_unread_count,
                                              int32 local_unread_count, bool force_update, const char *source);
 
@@ -2513,7 +2520,8 @@ class MessagesManager : public Actor {
       postponed_get_message_requests_;
 
   std::unordered_map<string, vector<Promise<Unit>>> search_public_dialogs_queries_;
-  std::unordered_map<string, vector<DialogId>> found_public_dialogs_;  // TODO time bound cache
+  std::unordered_map<string, vector<DialogId>> found_public_dialogs_;     // TODO time bound cache
+  std::unordered_map<string, vector<DialogId>> found_on_server_dialogs_;  // TODO time bound cache
 
   std::unordered_map<UserId, vector<DialogId>, UserIdHash> found_common_dialogs_;  // TODO time bound cache
 

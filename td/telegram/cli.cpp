@@ -2588,6 +2588,11 @@ class CliClient final : public Actor {
       string query;
       std::tie(limit, query) = split(args);
       send_request(make_tl_object<td_api::searchChats>(query, to_integer<int32>(limit)));
+    } else if (op == "scos") {
+      string limit;
+      string query;
+      std::tie(limit, query) = split(args);
+      send_request(make_tl_object<td_api::searchChatsOnServer>(query, to_integer<int32>(limit)));
     } else if (op == "sco") {
       string limit;
       string query;

@@ -2026,6 +2026,9 @@ searchPublicChats query:string = Chats;
 //@description Searches for the specified query in the title and username of already known chats, this is an offline request. Returns chats in the order seen in the chat list @query Query to search for. If the query is empty, returns up to 20 recently found chats @limit Maximum number of chats to be returned
 searchChats query:string limit:int32 = Chats;
 
+//@description Searches for the specified query in the title and username of already known chats via request to the server. Returns chats in the order seen in the chat list @query Query to search for @limit Maximum number of chats to be returned
+searchChatsOnServer query:string limit:int32 = Chats;
+
 //@description Returns a list of frequently used chats. Supported only if the chat info database is enabled @category Category of chats to be returned @limit Maximum number of chats to be returned; up to 30
 getTopChats category:TopChatCategory limit:int32 = Chats;
 

@@ -484,7 +484,8 @@ class SearchPublicDialogsQuery : public Td::ResultHandler {
     LOG(INFO) << "Receive result for SearchPublicDialogsQuery " << to_string(dialogs);
     td->contacts_manager_->on_get_chats(std::move(dialogs->chats_));
     td->contacts_manager_->on_get_users(std::move(dialogs->users_));
-    td->messages_manager_->on_get_public_dialogs_search_result(query_, std::move(dialogs->results_));
+    td->messages_manager_->on_get_public_dialogs_search_result(query_, std::move(dialogs->my_results_),
+                                                               std::move(dialogs->results_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -6475,7 +6476,21 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
   }
 }
 
+vector<DialogId> MessagesManager::get_peers_dialog_ids(vector<tl_object_ptr<telegram_api::Peer>> &&peers) {
+  vector<DialogId> result;
+  result.reserve(peers.size());
+  for (auto &peer : peers) {
+    DialogId dialog_id(peer);
+    if (dialog_id.is_valid()) {
+      force_create_dialog(dialog_id, "get_peers_dialog_ids");
+      result.push_back(dialog_id);
+    }
+  }
+  return result;
+}
+
 void MessagesManager::on_get_public_dialogs_search_result(const string &query,
+                                                          vector<tl_object_ptr<telegram_api::Peer>> &&my_peers,
                                                           vector<tl_object_ptr<telegram_api::Peer>> &&peers) {
   auto it = search_public_dialogs_queries_.find(query);
   CHECK(it != search_public_dialogs_queries_.end());
@@ -6483,17 +6498,8 @@ void MessagesManager::on_get_public_dialogs_search_result(const string &query,
   auto promises = std::move(it->second);
   search_public_dialogs_queries_.erase(it);
 
-  vector<DialogId> result;
-  result.reserve(peers.size());
-  for (auto &peer : peers) {
-    DialogId dialog_id(peer);
-    if (dialog_id.is_valid()) {
-      force_create_dialog(dialog_id, "public dialogs search");
-      result.push_back(dialog_id);
-    }
-  }
-
-  found_public_dialogs_[query] = std::move(result);
+  found_public_dialogs_[query] = get_peers_dialog_ids(std::move(peers));
+  found_on_server_dialogs_[query] = get_peers_dialog_ids(std::move(my_peers));
 
   for (auto &promise : promises) {
     promise.set_value(Unit());
@@ -6507,7 +6513,8 @@ void MessagesManager::on_failed_public_dialogs_search(const string &query, Statu
   auto promises = std::move(it->second);
   search_public_dialogs_queries_.erase(it);
 
-  found_public_dialogs_[query];  // negative cache
+  found_public_dialogs_[query];     // negative cache
+  found_on_server_dialogs_[query];  // negative cache
 
   for (auto &promise : promises) {
     promise.set_error(error.clone());
@@ -10557,6 +10564,47 @@ std::pair<size_t, vector<DialogId>> MessagesManager::search_dialogs(const string
 
   promise.set_value(Unit());
   return {result.first, std::move(dialog_ids)};
+}
+
+vector<DialogId> MessagesManager::sort_dialogs_by_order(const vector<DialogId> &dialog_ids, int32 limit) const {
+  auto dialog_dates = transform(dialog_ids, [this](auto dialog_id) {
+    const Dialog *d = this->get_dialog(dialog_id);
+    CHECK(d != nullptr);
+    return DialogDate(d->order, dialog_id);
+  });
+  if (static_cast<size_t>(limit) >= dialog_dates.size()) {
+    std::sort(dialog_dates.begin(), dialog_dates.end());
+  } else {
+    std::partial_sort(dialog_dates.begin(), dialog_dates.begin() + limit, dialog_dates.end());
+    dialog_dates.resize(limit, MAX_DIALOG_DATE);
+  }
+  return transform(dialog_dates, [](auto dialog_date) { return dialog_date.get_dialog_id(); });
+}
+
+vector<DialogId> MessagesManager::search_dialogs_on_server(const string &query, int32 limit, Promise<Unit> &&promise) {
+  LOG(INFO) << "Search chats on server with query \"" << query << "\" and limit " << limit;
+
+  if (limit < 0) {
+    promise.set_error(Status::Error(400, "Limit must be non-negative"));
+    return {};
+  }
+  if (limit > MAX_GET_DIALOGS) {
+    limit = MAX_GET_DIALOGS;
+  }
+
+  if (query.empty()) {
+    promise.set_value(Unit());
+    return {};
+  }
+
+  auto it = found_on_server_dialogs_.find(query);
+  if (it != found_on_server_dialogs_.end()) {
+    promise.set_value(Unit());
+    return sort_dialogs_by_order(it->second, limit);
+  }
+
+  send_search_public_dialogs_query(query, std::move(promise));
+  return vector<DialogId>();
 }
 
 vector<DialogId> MessagesManager::get_common_dialogs(UserId user_id, DialogId offset_dialog_id, int32 limit, bool force,
