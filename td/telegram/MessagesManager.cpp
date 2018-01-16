@@ -465,17 +465,13 @@ class GetDialogListQuery : public NetActorOnce {
 };
 
 class SearchPublicDialogsQuery : public Td::ResultHandler {
-  Promise<Unit> promise_;
   string query_;
 
  public:
-  explicit SearchPublicDialogsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
   void send(const string &query) {
     query_ = query;
     send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::contacts_search(query, 100 /* ignored server-side */))));
+        create_storer(telegram_api::contacts_search(query, 3 /* ignored server-side */))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -489,14 +485,11 @@ class SearchPublicDialogsQuery : public Td::ResultHandler {
     td->contacts_manager_->on_get_chats(std::move(dialogs->chats_));
     td->contacts_manager_->on_get_users(std::move(dialogs->users_));
     td->messages_manager_->on_get_public_dialogs_search_result(query_, std::move(dialogs->results_));
-
-    promise_.set_value(Unit());
   }
 
   void on_error(uint64 id, Status status) override {
-    td->messages_manager_->on_failed_public_dialogs_search(query_);
     LOG(ERROR) << "Receive error for SearchPublicDialogsQuery: " << status;
-    promise_.set_error(std::move(status));
+    td->messages_manager_->on_failed_public_dialogs_search(query_, std::move(status));
   }
 };
 
@@ -6484,6 +6477,12 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
 
 void MessagesManager::on_get_public_dialogs_search_result(const string &query,
                                                           vector<tl_object_ptr<telegram_api::Peer>> &&peers) {
+  auto it = search_public_dialogs_queries_.find(query);
+  CHECK(it != search_public_dialogs_queries_.end());
+  CHECK(it->second.size() > 0);
+  auto promises = std::move(it->second);
+  search_public_dialogs_queries_.erase(it);
+
   vector<DialogId> result;
   result.reserve(peers.size());
   for (auto &peer : peers) {
@@ -6495,10 +6494,24 @@ void MessagesManager::on_get_public_dialogs_search_result(const string &query,
   }
 
   found_public_dialogs_[query] = std::move(result);
+
+  for (auto &promise : promises) {
+    promise.set_value(Unit());
+  }
 }
 
-void MessagesManager::on_failed_public_dialogs_search(const string &query) {
+void MessagesManager::on_failed_public_dialogs_search(const string &query, Status &&error) {
+  auto it = search_public_dialogs_queries_.find(query);
+  CHECK(it != search_public_dialogs_queries_.end());
+  CHECK(it->second.size() > 0);
+  auto promises = std::move(it->second);
+  search_public_dialogs_queries_.erase(it);
+
   found_public_dialogs_[query];  // negative cache
+
+  for (auto &promise : promises) {
+    promise.set_error(error.clone());
+  }
 }
 
 void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, const string &query,
@@ -10501,9 +10514,19 @@ vector<DialogId> MessagesManager::search_public_dialogs(const string &query, Pro
     return it->second;
   }
 
-  // TODO MultiPromise
-  td_->create_handler<SearchPublicDialogsQuery>(std::move(promise))->send(query);
+  send_search_public_dialogs_query(query, std::move(promise));
   return vector<DialogId>();
+}
+
+void MessagesManager::send_search_public_dialogs_query(const string &query, Promise<Unit> &&promise) {
+  auto &promises = search_public_dialogs_queries_[query];
+  promises.push_back(std::move(promise));
+  if (promises.size() != 1) {
+    // query has already been sent, just wait for the result
+    return;
+  }
+
+  td_->create_handler<SearchPublicDialogsQuery>()->send(query);
 }
 
 std::pair<size_t, vector<DialogId>> MessagesManager::search_dialogs(const string &query, int32 limit,
@@ -11282,7 +11305,7 @@ void MessagesManager::create_dialog(DialogId dialog_id, Promise<Unit> &&promise)
   } else {
     const Dialog *d = get_dialog_force(dialog_id);
     if (d == nullptr || !d->notification_settings.is_synchronized) {
-      return get_dialog_query(dialog_id, std::move(promise));
+      return send_get_dialog_query(dialog_id, std::move(promise));
     }
   }
 
@@ -11790,7 +11813,7 @@ tl_object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *d) {
     if (!d->notification_settings.is_synchronized && d->dialog_id.get_type() != DialogType::SecretChat &&
         have_input_peer(d->dialog_id, AccessRights::Read)) {
       // asynchronously get dialog from the server
-      get_dialog_query(d->dialog_id, Auto());
+      send_get_dialog_query(d->dialog_id, Auto());
     }
   }
 
@@ -17549,7 +17572,7 @@ void MessagesManager::send_update_new_message(Dialog *d, const Message *m, bool 
     auto promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = d->dialog_id](Result<Unit> result) {
       send_closure(actor_id, &MessagesManager::flush_pending_update_new_messages, dialog_id);
     });
-    get_dialog_query(settings_dialog_id, std::move(promise));  // TODO use GetNotifySettingsQuery when possible
+    send_get_dialog_query(settings_dialog_id, std::move(promise));  // TODO use GetNotifySettingsQuery when possible
     return;
   }
 
@@ -18419,7 +18442,7 @@ DialogId MessagesManager::search_public_dialog(const string &username_to_search,
       } else {
         const Dialog *d = get_dialog_force(dialog_id);
         if (d == nullptr || !d->notification_settings.is_synchronized) {
-          get_dialog_query(dialog_id, std::move(promise));
+          send_get_dialog_query(dialog_id, std::move(promise));
           return DialogId();
         }
       }
@@ -18440,7 +18463,7 @@ DialogId MessagesManager::search_public_dialog(const string &username_to_search,
   return DialogId();
 }
 
-void MessagesManager::get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise) {
+void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
@@ -18541,7 +18564,7 @@ void MessagesManager::drop_username(const string &username) {
   auto dialog_id = it->second.dialog_id;
   if (have_input_peer(dialog_id, AccessRights::Read)) {
     CHECK(dialog_id.get_type() != DialogType::SecretChat);
-    get_dialog_query(dialog_id, Auto());
+    send_get_dialog_query(dialog_id, Auto());
   }
 
   resolved_usernames_.erase(it);
@@ -22084,7 +22107,7 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
     if (have_input_peer(dialog_id, AccessRights::Read)) {
       if (dialog_id.get_type() != DialogType::SecretChat && !d->notification_settings.is_synchronized) {
         // asynchronously preload information about the dialog
-        get_dialog_query(dialog_id, Auto());
+        send_get_dialog_query(dialog_id, Auto());
       }
     } else {
       if (!have_dialog_info(dialog_id)) {

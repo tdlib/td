@@ -851,7 +851,7 @@ class MessagesManager : public Actor {
                       vector<tl_object_ptr<telegram_api::Message>> &&messages);
 
   void on_get_public_dialogs_search_result(const string &query, vector<tl_object_ptr<telegram_api::Peer>> &&peers);
-  void on_failed_public_dialogs_search(const string &query);
+  void on_failed_public_dialogs_search(const string &query, Status &&error);
 
   void on_get_dialog_messages_search_result(DialogId dialog_id, const string &query, UserId sender_user_id,
                                             MessageId from_message_id, int32 offset, int32 limit,
@@ -2121,7 +2121,9 @@ class MessagesManager : public Actor {
 
   void on_get_dialogs_from_database(vector<BufferSlice> &&dialogs, Promise<Unit> &&promise);
 
-  void get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise);
+  void send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise);
+
+  void send_search_public_dialogs_query(const string &query, Promise<Unit> &&promise);
 
   vector<DialogId> get_pinned_dialogs() const;
 
@@ -2510,7 +2512,9 @@ class MessagesManager : public Actor {
   std::unordered_map<DialogId, vector<std::pair<MessageId, Promise<Unit>>>, DialogIdHash>
       postponed_get_message_requests_;
 
-  std::unordered_map<string, vector<DialogId>> found_public_dialogs_;              // TODO time bound cache
+  std::unordered_map<string, vector<Promise<Unit>>> search_public_dialogs_queries_;
+  std::unordered_map<string, vector<DialogId>> found_public_dialogs_;  // TODO time bound cache
+
   std::unordered_map<UserId, vector<DialogId>, UserIdHash> found_common_dialogs_;  // TODO time bound cache
 
   std::unordered_map<int64, FullMessageId> get_dialog_message_by_date_results_;
