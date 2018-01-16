@@ -1764,8 +1764,11 @@ class CliClient final : public Actor {
     } else if (op == "gpml") {
       string chat_id;
       string message_id;
-      std::tie(chat_id, message_id) = split(args);
-      send_request(make_tl_object<td_api::getPublicMessageLink>(as_chat_id(chat_id), as_message_id(message_id)));
+      string for_album;
+      std::tie(chat_id, args) = split(args);
+      std::tie(message_id, for_album) = split(args);
+      send_request(make_tl_object<td_api::getPublicMessageLink>(as_chat_id(chat_id), as_message_id(message_id),
+                                                                as_bool(for_album)));
     } else if (op == "gcmbd") {
       string chat_id;
       string date;

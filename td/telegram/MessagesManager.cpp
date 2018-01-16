@@ -378,18 +378,20 @@ class ExportChannelMessageLinkQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
   MessageId message_id_;
+  bool for_group_;
 
  public:
   explicit ExportChannelMessageLinkQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, MessageId message_id) {
+  void send(ChannelId channel_id, MessageId message_id, bool for_group) {
     channel_id_ = channel_id;
     message_id_ = message_id;
+    for_group_ = for_group;
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_exportMessageLink(
-        std::move(input_channel), message_id.get_server_message_id().get(), false))));
+        std::move(input_channel), message_id.get_server_message_id().get(), for_group))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -400,7 +402,8 @@ class ExportChannelMessageLinkQuery : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(DEBUG) << "Receive result for ExportChannelMessageLinkQuery " << to_string(ptr);
-    td->messages_manager_->on_get_public_message_link({DialogId(channel_id_), message_id_}, std::move(ptr->link_));
+    td->messages_manager_->on_get_public_message_link({DialogId(channel_id_), message_id_}, for_group_,
+                                                      std::move(ptr->link_), std::move(ptr->html_));
 
     promise_.set_value(Unit());
   }
@@ -9952,14 +9955,13 @@ bool MessagesManager::is_message_unload_enabled() const {
 }
 
 bool MessagesManager::can_unload_message(const Dialog *d, const Message *m) const {
-  // don't want to unload messages from opened dialogs and messages with resolved public links
+  // don't want to unload messages from opened dialogs
   // don't want to unload messages to which there are replies in yet unsent messages
   // don't want to unload messages with pending web pages
   // can't unload from memory last dialog, last database messages, yet unsent messages and active live locations
   FullMessageId full_message_id{d->dialog_id, m->message_id};
   return !d->is_opened && m->message_id != d->last_message_id && m->message_id != d->last_database_message_id &&
-         !m->message_id.is_yet_unsent() && m->public_link.empty() &&
-         active_live_location_full_message_ids_.count(full_message_id) == 0 &&
+         !m->message_id.is_yet_unsent() && active_live_location_full_message_ids_.count(full_message_id) == 0 &&
          replied_by_yet_unsent_messages_.count(full_message_id) == 0 &&
          waiting_for_web_page_messages_.count(full_message_id) == 0;
 }
@@ -10919,51 +10921,51 @@ bool MessagesManager::is_message_edited_recently(FullMessageId full_message_id, 
   return m->edit_date >= G()->unix_time() - seconds;
 }
 
-string MessagesManager::get_public_message_link(FullMessageId full_message_id, Promise<Unit> &&promise) {
+std::pair<string, string> MessagesManager::get_public_message_link(FullMessageId full_message_id, bool for_group,
+                                                                   Promise<Unit> &&promise) {
   auto dialog_id = full_message_id.get_dialog_id();
   auto d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     promise.set_error(Status::Error(6, "Chat not found"));
-    return string();
+    return {};
   }
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     promise.set_error(Status::Error(6, "Can't access the chat"));
-    return string();
+    return {};
   }
   if (dialog_id.get_type() != DialogType::Channel ||
       td_->contacts_manager_->get_channel_username(dialog_id.get_channel_id()).empty()) {
     promise.set_error(Status::Error(
         6, "Public message links are available only for messages in public supergroups and channel chats"));
-    return string();
+    return {};
   }
 
   auto message_id = full_message_id.get_message_id();
   auto message = get_message_force(d, message_id);
   if (message == nullptr) {
     promise.set_error(Status::Error(6, "Message not found"));
-    return string();
+    return {};
   }
   if (!message_id.is_server()) {
     promise.set_error(Status::Error(6, "Message is local"));
-    return string();
+    return {};
   }
 
-  if (message->public_link.empty()) {
+  auto it = public_message_links_[for_group].find(full_message_id);
+  if (it == public_message_links_[for_group].end()) {
     td_->create_handler<ExportChannelMessageLinkQuery>(std::move(promise))
-        ->send(dialog_id.get_channel_id(), message_id);
-    return string();
+        ->send(dialog_id.get_channel_id(), message_id, for_group);
+    return {};
   }
 
   promise.set_value(Unit());
-  return message->public_link;
+  return it->second;
 }
 
-void MessagesManager::on_get_public_message_link(FullMessageId full_message_id, string url) {
-  LOG_IF(ERROR, url.empty()) << "Receive empty public link for " << full_message_id;
-  auto message = get_message_force(full_message_id);
-  if (message != nullptr) {
-    message->public_link = std::move(url);
-  }
+void MessagesManager::on_get_public_message_link(FullMessageId full_message_id, bool for_group, string url,
+                                                 string html) {
+  LOG_IF(ERROR, url.empty() && html.empty()) << "Receive empty public link for " << full_message_id;
+  public_message_links_[for_group][full_message_id] = {std::move(url), std::move(html)};
 }
 
 Status MessagesManager::delete_dialog_reply_markup(DialogId dialog_id, MessageId message_id) {

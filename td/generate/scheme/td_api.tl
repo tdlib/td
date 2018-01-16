@@ -1531,8 +1531,8 @@ chatReportReasonPornography = ChatReportReason;
 chatReportReasonCustom text:string = ChatReportReason;
 
 
-//@description Contains a public HTTPS link to a message in a public supergroup or channel @link Message link
-publicMessageLink link:string = PublicMessageLink;
+//@description Contains a public HTTPS link to a message in a public supergroup or channel @link Message link @html HTML-code for embedding the message
+publicMessageLink link:string html:string = PublicMessageLink;
 
 
 //@class FileType @description Represents the type of a file
@@ -2098,8 +2098,11 @@ getActiveLiveLocationMessages = Messages;
 getChatMessageByDate chat_id:int53 date:int32 = Messages;
 
 
-//@description Returns a public HTTPS link to a message. Available only for messages in public supergroups and channels @chat_id Identifier of the chat to which the message belongs @message_id Identifier of the message
-getPublicMessageLink chat_id:int53 message_id:int53 = PublicMessageLink;
+//@description Returns a public HTTPS link to a message. Available only for messages in public supergroups and channels
+//@chat_id Identifier of the chat to which the message belongs
+//@message_id Identifier of the message
+//@for_album Pass true if a link for a whole media album should be returned
+getPublicMessageLink chat_id:int53 message_id:int53 for_album:Bool = PublicMessageLink;
 
 
 //@description Sends a message. Returns the sent message @chat_id Target chat @reply_to_message_id Identifier of the message to reply to or 0

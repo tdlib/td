@@ -1106,9 +1106,10 @@ class MessagesManager : public Actor {
 
   bool is_message_edited_recently(FullMessageId full_message_id, int32 seconds);
 
-  string get_public_message_link(FullMessageId full_message_id, Promise<Unit> &&promise);
+  std::pair<string, string> get_public_message_link(FullMessageId full_message_id, bool for_group,
+                                                    Promise<Unit> &&promise);
 
-  void on_get_public_message_link(FullMessageId full_message_id, string url);
+  void on_get_public_message_link(FullMessageId full_message_id, bool for_group, string url, string html);
 
   Status delete_dialog_reply_markup(DialogId dialog_id, MessageId message_id) TD_WARN_UNUSED_RESULT;
 
@@ -1413,8 +1414,6 @@ class MessagesManager : public Actor {
     unique_ptr<MessageContent> content;
 
     unique_ptr<ReplyMarkup> reply_markup;
-
-    string public_link;
 
     unique_ptr<Message> left;
     unique_ptr<Message> right;
@@ -2538,6 +2537,8 @@ class MessagesManager : public Actor {
 
   std::unordered_map<int64, std::pair<int64, vector<FullMessageId>>>
       found_fts_messages_;  // random_id -> [from_search_id, [full_message_id]...]
+
+  std::unordered_map<FullMessageId, std::pair<string, string>, FullMessageIdHash> public_message_links_[2];
 
   std::unordered_map<int64, tl_object_ptr<td_api::chatEvents>> chat_events_;  // random_id -> chat events
 
