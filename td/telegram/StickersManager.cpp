@@ -816,9 +816,19 @@ tl_object_ptr<td_api::stickerSets> StickersManager::get_sticker_sets_object(int3
   vector<tl_object_ptr<td_api::stickerSetInfo>> result;
   result.reserve(sticker_set_ids.size());
   for (auto sticker_set_id : sticker_set_ids) {
-    result.push_back(get_sticker_set_info_object(sticker_set_id, covers_limit));
+    auto sticker_set_info = get_sticker_set_info_object(sticker_set_id, covers_limit);
+    if (sticker_set_info->size_ != 0) {
+      result.push_back(std::move(sticker_set_info));
+    }
   }
 
+  auto result_size = narrow_cast<int32>(result.size());
+  if (total_count < result_size) {
+    if (total_count != -1) {
+      LOG(ERROR) << "Have total_count = " << total_count << ", but there are " << result_size << " results";
+    }
+    total_count = result_size;
+  }
   return make_tl_object<td_api::stickerSets>(total_count, std::move(result));
 }
 
@@ -3143,9 +3153,9 @@ void StickersManager::send_update_featured_sticker_sets() {
     need_update_featured_sticker_sets_ = false;
     featured_sticker_sets_hash_ = get_featured_sticker_sets_hash();
 
-    send_closure(G()->td(), &Td::send_update,
-                 make_tl_object<td_api::updateTrendingStickerSets>(get_sticker_sets_object(
-                     narrow_cast<int32>(featured_sticker_set_ids_.size()), featured_sticker_set_ids_, 5)));
+    send_closure(
+        G()->td(), &Td::send_update,
+        make_tl_object<td_api::updateTrendingStickerSets>(get_sticker_sets_object(-1, featured_sticker_set_ids_, 5)));
   }
 }
 

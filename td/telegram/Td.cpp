@@ -2570,8 +2570,7 @@ class GetInstalledStickerSetsRequest : public RequestActor<> {
   }
 
   void do_send_result() override {
-    send_result(td->stickers_manager_->get_sticker_sets_object(narrow_cast<int32>(sticker_set_ids_.size()),
-                                                               sticker_set_ids_, 1));
+    send_result(td->stickers_manager_->get_sticker_sets_object(-1, sticker_set_ids_, 1));
   }
 
  public:
@@ -2615,8 +2614,7 @@ class GetTrendingStickerSetsRequest : public RequestActor<> {
   }
 
   void do_send_result() override {
-    send_result(td->stickers_manager_->get_sticker_sets_object(narrow_cast<int32>(sticker_set_ids_.size()),
-                                                               sticker_set_ids_, 5));
+    send_result(td->stickers_manager_->get_sticker_sets_object(-1, sticker_set_ids_, 5));
   }
 
  public:
@@ -2634,8 +2632,7 @@ class GetAttachedStickerSetsRequest : public RequestActor<> {
   }
 
   void do_send_result() override {
-    send_result(td->stickers_manager_->get_sticker_sets_object(narrow_cast<int32>(sticker_set_ids_.size()),
-                                                               sticker_set_ids_, 5));
+    send_result(td->stickers_manager_->get_sticker_sets_object(-1, sticker_set_ids_, 5));
   }
 
  public:
