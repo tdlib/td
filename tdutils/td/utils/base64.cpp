@@ -188,11 +188,8 @@ Result<string> base64url_decode(Slice base64) {
   return output;
 }
 
-bool is_base64(Slice input) {
-  if ((input.size() & 3) != 0) {
-    return false;
-  }
-
+template <bool is_url>
+static bool is_base64_impl(Slice input) {
   size_t padding_length = 0;
   while (!input.empty() && input.back() == '=') {
     input.remove_suffix(1);
@@ -201,22 +198,35 @@ bool is_base64(Slice input) {
   if (padding_length >= 3) {
     return false;
   }
+  if ((!is_url || padding_length > 0) && ((input.size() + padding_length) & 3) != 0) {
+    return false;
+  }
+  if (is_url && (input.size() & 3) == 1) {
+    return false;
+  }
 
-  init_base64_table();
-  for (size_t i = 0; i < input.size(); i++) {
-    if (char_to_value[input.ubegin()[i]] == 64) {
+  unsigned char *table;
+  if (is_url) {
+    init_base64url_table();
+    table = url_char_to_value;
+  } else {
+    init_base64_table();
+    table = char_to_value;
+  }
+  for (auto c:input) {
+    if (table[static_cast<unsigned char>(c)] == 64) {
       return false;
     }
   }
 
   if ((input.size() & 3) == 2) {
-    auto value = char_to_value[input.back()];
+    auto value = table[input.back()];
     if ((value & 15) != 0) {
       return false;
     }
   }
   if ((input.size() & 3) == 3) {
-    auto value = char_to_value[input.back()];
+    auto value = table[input.back()];
     if ((value & 3) != 0) {
       return false;
     }
@@ -225,13 +235,21 @@ bool is_base64(Slice input) {
   return true;
 }
 
+bool is_base64(Slice input) {
+  return is_base64_impl<false>(input);
+}
+
+bool is_base64url(Slice input) {
+  return is_base64_impl<true>(input);
+}
+
 string base64_filter(Slice input) {
   string res;
   res.reserve(input.size());
   init_base64_table();
-  for (size_t i = 0; i < input.size(); i++) {
-    if (char_to_value[input.ubegin()[i]] != 64 || input[i] == '=') {
-      res += input[i];
+  for (auto c : input) {
+    if (char_to_value[static_cast<unsigned char>(c)] != 64 || c == '=') {
+      res += c;
     }
   }
   return res;
