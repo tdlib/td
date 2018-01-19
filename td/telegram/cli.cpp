@@ -1027,6 +1027,13 @@ class CliClient final : public Actor {
     } else if (op == "rdb") {
       send_request(make_tl_object<td_api::registerDevice>(make_tl_object<td_api::deviceTokenBlackberryPush>(args),
                                                           as_user_ids("")));
+    } else if (op == "rdt") {
+      string token;
+      string other_user_ids_str;
+
+      std::tie(token, other_user_ids_str) = split(args);
+      send_request(make_tl_object<td_api::registerDevice>(make_tl_object<td_api::deviceTokenTizenPush>(token),
+                                                          as_user_ids(other_user_ids_str)));
     } else if (op == "rdu") {
       string token;
       string other_user_ids_str;
@@ -1034,6 +1041,17 @@ class CliClient final : public Actor {
       std::tie(token, other_user_ids_str) = split(args);
       send_request(make_tl_object<td_api::registerDevice>(make_tl_object<td_api::deviceTokenUbuntuPush>(token),
                                                           as_user_ids(other_user_ids_str)));
+    } else if (op == "rdw") {
+      string endpoint;
+      string key;
+      string secret;
+      string other_user_ids_str;
+
+      std::tie(endpoint, args) = split(args);
+      std::tie(key, args) = split(args);
+      std::tie(secret, other_user_ids_str) = split(args);
+      send_request(make_tl_object<td_api::registerDevice>(
+          make_tl_object<td_api::deviceTokenWebPush>(endpoint, key, secret), as_user_ids(other_user_ids_str)));
     } else if (op == "gpf") {
       string chat_id;
       string message_id;

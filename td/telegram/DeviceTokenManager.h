@@ -14,6 +14,7 @@
 #include "td/telegram/td_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/StringBuilder.h"
 
 #include <array>
 
@@ -30,7 +31,21 @@ class DeviceTokenManager : public NetQueryCallback {
   static constexpr size_t MAX_OTHER_USER_IDS = 100;
 
   ActorShared<> parent_;
-  enum TokenType : int32 { APNS = 1, GCM = 2, MPNS = 3, SimplePush = 4, UbuntuPhone = 5, Blackberry = 6, Size };
+  enum TokenType : int32 {
+    APNS = 1,
+    GCM = 2,
+    MPNS = 3,
+    SIMPLE_PUSH = 4,
+    UBUNTU_PHONE = 5,
+    BLACKBERRY = 6,
+    UNUSED = 7,
+    WNS = 8,
+    APNS_VOIP = 9,
+    WEB_PUSH = 10,
+    MPNS_VOIP = 11,
+    TIZEN = 12,
+    SIZE
+  };
   struct TokenInfo {
     enum class State { Sync, Unregister, Register };
     State state = State::Sync;
@@ -49,7 +64,7 @@ class DeviceTokenManager : public NetQueryCallback {
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const TokenInfo &token_info);
 
-  std::array<TokenInfo, TokenType::Size> tokens_;
+  std::array<TokenInfo, TokenType::SIZE> tokens_;
   int32 sync_cnt_{0};
 
   void start_up() override;

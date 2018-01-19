@@ -965,7 +965,8 @@ td_api::object_ptr<td_api::file> copy(const td_api::file &obj) {
   if (file_id.is_valid()) {
     return G()->td().get_actor_unsafe()->file_manager_.get()->get_file_object(file_id);
   } else {
-    return td_api::make_object<td_api::file>(obj.id_, obj.size_, obj.expected_size_, copy(obj.local_), copy(obj.remote_));
+    return td_api::make_object<td_api::file>(obj.id_, obj.size_, obj.expected_size_, copy(obj.local_),
+                                             copy(obj.remote_));
   }
 }
 

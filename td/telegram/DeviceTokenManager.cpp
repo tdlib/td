@@ -14,10 +14,11 @@
 #include "td/telegram/td_api.hpp"
 #include "td/telegram/telegram_api.h"
 
+#include "td/utils/base64.h"
 #include "td/utils/format.h"
+#include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/Status.h"
-#include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
 
 #include <type_traits>
@@ -105,7 +106,7 @@ void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> devi
   switch (device_token_ptr->get_id()) {
     case td_api::deviceTokenApplePush::ID: {
       auto device_token = static_cast<td_api::deviceTokenApplePush *>(device_token_ptr.get());
-      token = std::move(device_token->token_);
+      token = std::move(device_token->device_token_);
       token_type = TokenType::APNS;
       is_app_sandbox = device_token->is_app_sandbox_;
       break;
@@ -118,31 +119,110 @@ void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> devi
     }
     case td_api::deviceTokenMicrosoftPush::ID: {
       auto device_token = static_cast<td_api::deviceTokenMicrosoftPush *>(device_token_ptr.get());
-      token = std::move(device_token->token_);
+      token = std::move(device_token->channel_uri_);
       token_type = TokenType::MPNS;
       break;
     }
     case td_api::deviceTokenSimplePush::ID: {
       auto device_token = static_cast<td_api::deviceTokenSimplePush *>(device_token_ptr.get());
-      token = std::move(device_token->token_);
-      token_type = TokenType::SimplePush;
+      token = std::move(device_token->endpoint_);
+      token_type = TokenType::SIMPLE_PUSH;
       break;
     }
     case td_api::deviceTokenUbuntuPush::ID: {
       auto device_token = static_cast<td_api::deviceTokenUbuntuPush *>(device_token_ptr.get());
       token = std::move(device_token->token_);
-      token_type = TokenType::UbuntuPhone;
+      token_type = TokenType::UBUNTU_PHONE;
       break;
     }
     case td_api::deviceTokenBlackberryPush::ID: {
       auto device_token = static_cast<td_api::deviceTokenBlackberryPush *>(device_token_ptr.get());
       token = std::move(device_token->token_);
-      token_type = TokenType::Blackberry;
+      token_type = TokenType::BLACKBERRY;
+      break;
+    }
+    case td_api::deviceTokenWindowsPush::ID: {
+      auto device_token = static_cast<td_api::deviceTokenWindowsPush *>(device_token_ptr.get());
+      token = std::move(device_token->access_token_);
+      token_type = TokenType::WNS;
+      break;
+    }
+    case td_api::deviceTokenApplePushVoIP::ID: {
+      auto device_token = static_cast<td_api::deviceTokenApplePushVoIP *>(device_token_ptr.get());
+      token = std::move(device_token->device_token_);
+      token_type = TokenType::APNS_VOIP;
+      is_app_sandbox = device_token->is_app_sandbox_;
+      break;
+    }
+    case td_api::deviceTokenWebPush::ID: {
+      auto device_token = static_cast<td_api::deviceTokenWebPush *>(device_token_ptr.get());
+      if (device_token->endpoint_.find(',') != string::npos) {
+        return promise.set_error(Status::Error(400, "Illegal endpoint value"));
+      }
+      if (!is_base64url(device_token->p256dh_base64url_)) {
+        return promise.set_error(Status::Error(400, "Public key must be base64url-encoded"));
+      }
+      if (!is_base64url(device_token->auth_base64url_)) {
+        return promise.set_error(Status::Error(400, "Authentication secret must be base64url-encoded"));
+      }
+      if (!clean_input_string(device_token->endpoint_)) {
+        return promise.set_error(Status::Error(400, "Endpoint must be encoded in UTF-8"));
+      }
+
+      if (!device_token->endpoint_.empty()) {
+        class JsonKeys : public Jsonable {
+         public:
+          JsonKeys(Slice p256dh, Slice auth) : p256dh_(p256dh), auth_(auth) {
+          }
+          void store(JsonValueScope *scope) const {
+            auto object = scope->enter_object();
+            object << ctie("p256dh", p256dh_);
+            object << ctie("auth", auth_);
+          }
+
+         private:
+          Slice p256dh_;
+          Slice auth_;
+        };
+        class JsonWebPushToken : public Jsonable {
+         public:
+          JsonWebPushToken(Slice endpoint, Slice p256dh, Slice auth)
+              : endpoint_(endpoint), p256dh_(p256dh), auth_(auth) {
+          }
+          void store(JsonValueScope *scope) const {
+            auto object = scope->enter_object();
+            object << ctie("endpoint", endpoint_);
+            object << ctie("keys", JsonKeys(p256dh_, auth_));
+          }
+
+         private:
+          Slice endpoint_;
+          Slice p256dh_;
+          Slice auth_;
+        };
+
+        token = json_encode<string>(
+            JsonWebPushToken(device_token->endpoint_, device_token->p256dh_base64url_, device_token->auth_base64url_));
+      }
+      token_type = TokenType::WEB_PUSH;
+      break;
+    }
+    case td_api::deviceTokenMicrosoftPushVoIP::ID: {
+      auto device_token = static_cast<td_api::deviceTokenMicrosoftPushVoIP *>(device_token_ptr.get());
+      token = std::move(device_token->channel_uri_);
+      token_type = TokenType::MPNS_VOIP;
+      break;
+    }
+    case td_api::deviceTokenTizenPush::ID: {
+      auto device_token = static_cast<td_api::deviceTokenTizenPush *>(device_token_ptr.get());
+      token = std::move(device_token->reg_id_);
+      token_type = TokenType::TIZEN;
       break;
     }
     default:
       UNREACHABLE();
   }
+
   if (!clean_input_string(token)) {
     return promise.set_error(Status::Error(400, "Device token must be encoded in UTF-8"));
   }
@@ -181,7 +261,7 @@ string DeviceTokenManager::get_database_key(int32 token_type) {
 }
 
 void DeviceTokenManager::start_up() {
-  for (int32 token_type = 1; token_type < TokenType::Size; token_type++) {
+  for (int32 token_type = 1; token_type < TokenType::SIZE; token_type++) {
     auto serialized = G()->td_db()->get_binlog_pmc()->get(get_database_key(token_type));
     if (serialized.empty()) {
       continue;
@@ -231,7 +311,7 @@ void DeviceTokenManager::loop() {
   if (sync_cnt_ != 0) {
     return;
   }
-  for (int32 token_type = 1; token_type < TokenType::Size; token_type++) {
+  for (int32 token_type = 1; token_type < TokenType::SIZE; token_type++) {
     auto &info = tokens_[token_type];
     if (info.state == TokenInfo::State::Sync) {
       continue;
@@ -256,7 +336,7 @@ void DeviceTokenManager::loop() {
 
 void DeviceTokenManager::on_result(NetQueryPtr net_query) {
   auto token_type = static_cast<TokenType>(get_link_token());
-  CHECK(token_type >= 1 && token_type < TokenType::Size);
+  CHECK(token_type >= 1 && token_type < TokenType::SIZE);
   auto &info = tokens_[token_type];
   if (info.net_query_id != net_query->id()) {
     net_query->clear();

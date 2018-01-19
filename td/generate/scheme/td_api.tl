@@ -1419,23 +1419,39 @@ chatEventLogFilters message_edits:Bool message_deletions:Bool message_pins:Bool 
 
 //@class DeviceToken @description Represents a token for push notifications
 
-//@description A token for Apple Push Notification Service @token Token, may be empty to de-register a device @is_app_sandbox True, if App Sandbox is enabled
-deviceTokenApplePush token:string is_app_sandbox:Bool = DeviceToken;
-
-//@description A token for Google Cloud Messaging @token Token, may be empty to de-register a device
+//@description A token for Google Cloud Messaging @token Device registration token, may be empty to de-register a device
 deviceTokenGoogleCloudMessaging token:string = DeviceToken;
 
-//@description A token for Microsoft Push Notification Service @token Token, may be empty to de-register a device
-deviceTokenMicrosoftPush token:string = DeviceToken;
+//@description A token for Apple Push Notification Service @device_token Device token, may be empty to de-register a device @is_app_sandbox True, if App Sandbox is enabled
+deviceTokenApplePush device_token:string is_app_sandbox:Bool = DeviceToken;
 
-//@description A token for Simple Push API @token Token, may be empty to de-register a device
-deviceTokenSimplePush token:string = DeviceToken;
+//@description A token for Apple Push Notification Service VoIP notifications @device_token Device token, may be empty to de-register a device @is_app_sandbox True, if App Sandbox is enabled
+deviceTokenApplePushVoIP device_token:string is_app_sandbox:Bool = DeviceToken;
+
+//@description A token for Windows Push Notification Services @access_token The access token that will be used to send notifications, may be empty to de-register a device
+deviceTokenWindowsPush access_token:string = DeviceToken;
+
+//@description A token for Microsoft Push Notification Service @channel_uri Push notification channel URI, may be empty to de-register a device
+deviceTokenMicrosoftPush channel_uri:string = DeviceToken;
+
+//@description A token for Microsoft Push Notification Service VoIP channel @channel_uri Push notification channel URI, may be empty to de-register a device
+deviceTokenMicrosoftPushVoIP channel_uri:string = DeviceToken;
+
+//@description A token for web Push API @endpoint Absolute URL exposed by the push service where the application server can send push messages, may be empty to de-register a device
+//@p256dh_base64url Base64url-encoded P-256 elliptic curve Diffie-Hellman public key @auth_base64url Base64url-encoded authentication secret
+deviceTokenWebPush endpoint:string p256dh_base64url:string auth_base64url:string = DeviceToken;
+
+//@description A token for Simple Push API for Firefox OS @endpoint Absolute URL exposed by the push service where the application server can send push messages, may be empty to de-register a device
+deviceTokenSimplePush endpoint:string = DeviceToken;
 
 //@description A token for Ubuntu Push Client service @token Token, may be empty to de-register a device
 deviceTokenUbuntuPush token:string = DeviceToken;
 
 //@description A token for Blackberry Push Service @token Token, may be empty to de-register a device
 deviceTokenBlackberryPush token:string = DeviceToken;
+
+//@description A token for Tizen Push Service @reg_id Push service registration identifier, may be empty to de-register a device
+deviceTokenTizenPush reg_id:string = DeviceToken;
 
 
 //@description Contains information about a wallpaper @id Unique persistent wallpaper identifier @sizes Available variants of the wallpaper in different sizes. These photos can only be downloaded; they can't be sent in a message @color Main color of the wallpaper in RGB24 format; should be treated as background color if no photos are specified
