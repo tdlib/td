@@ -115,7 +115,7 @@ TEST(Misc, errno_tls_bug) {
 }
 
 TEST(Misc, base64) {
-  for (int l = 0; l < 300000; l += l / 20 + 1) {
+  for (int l = 0; l < 300000; l += l / 20 + l / 1000 * 500 + 1) {
     for (int t = 0; t < 10; t++) {
       string s = rand_string(std::numeric_limits<char>::min(), std::numeric_limits<char>::max(), l);
       string encoded = base64url_encode(s);
@@ -139,6 +139,16 @@ TEST(Misc, base64) {
   ASSERT_TRUE(base64_encode("      /'.;.';≤.];,].',[.;/,.;/]/..;!@#!*(%?::;!%\";") ==
               "ICAgICAgLycuOy4nO+KJpC5dOyxdLicsWy47LywuOy9dLy4uOyFAIyEqKCU/"
               "Ojo7ISUiOw==");
+  ASSERT_TRUE(is_base64("dGVzdA==") == true);
+  ASSERT_TRUE(is_base64("dGVzdB==") == false);
+  ASSERT_TRUE(is_base64("dGVzdA=") == false);
+  ASSERT_TRUE(is_base64("dGVzdA") == false);
+  ASSERT_TRUE(is_base64("dGVz") == true);
+  ASSERT_TRUE(is_base64("") == true);
+  ASSERT_TRUE(is_base64("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/") == true);
+  ASSERT_TRUE(is_base64("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=") == false);
+  ASSERT_TRUE(is_base64("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-/") == false);
+  ASSERT_TRUE(is_base64("====") == false);
 }
 
 TEST(Misc, to_integer) {
