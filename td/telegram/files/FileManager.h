@@ -166,13 +166,13 @@ class FileView {
 
   FileType get_type() const {
     if (has_local_location()) {
-      return local_location().type_;
+      return local_location().file_type_;
     }
     if (has_remote_location()) {
-      return remote_location().type_;
+      return remote_location().file_type_;
     }
     if (has_generate_location()) {
-      return generate_location().type_;
+      return generate_location().file_type_;
     }
     return FileType::Temp;
   }

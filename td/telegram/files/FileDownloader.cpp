@@ -45,12 +45,12 @@ Result<FileLoader::FileInfo> FileDownloader::init() {
   SCOPE_EXIT {
     try_release_fd();
   };
-  if (local_.type_ == LocalFileLocation::Type::Full) {
+  if (local_.type() == LocalFileLocation::Type::Full) {
     return Status::Error("File is already downloaded");
   }
   int offset = 0;
   int32 part_size = 0;
-  if (local_.type_ == LocalFileLocation::Type::Partial) {
+  if (local_.type() == LocalFileLocation::Type::Partial) {
     const auto &partial = local_.partial();
     path_ = partial.path_;
     auto result_fd = FileFd::open(path_, FileFd::Write | FileFd::Read);
@@ -80,11 +80,11 @@ Result<FileLoader::FileInfo> FileDownloader::init() {
   return res;
 }
 Status FileDownloader::on_ok(int64 size) {
-  auto dir = get_files_dir(remote_.type_);
+  auto dir = get_files_dir(remote_.file_type_);
 
   TRY_RESULT(perm_path, create_from_temp(path_, dir, name_));
   fd_.close();
-  callback_->on_ok(FullLocalFileLocation(remote_.type_, std::move(perm_path), 0), size);
+  callback_->on_ok(FullLocalFileLocation(remote_.file_type_, std::move(perm_path), 0), size);
   return Status::OK();
 }
 void FileDownloader::on_error(Status status) {
@@ -212,7 +212,7 @@ Result<std::pair<NetQueryPtr, bool>> FileDownloader::start_part(Part part, int32
       cdn_part_reupload_token_.erase(it);
     }
   }
-  net_query->file_type_ = narrow_cast<int32>(remote_.type_);
+  net_query->file_type_ = narrow_cast<int32>(remote_.file_type_);
   return std::make_pair(std::move(net_query), false);
 }
 
@@ -306,7 +306,7 @@ void FileDownloader::on_progress(int32 part_count, int32 part_size, int32 ready_
     return;
   }
   if (encryption_key_.empty()) {
-    callback_->on_partial_download(PartialLocalFileLocation{remote_.type_, path_, part_size, ready_part_count, ""},
+    callback_->on_partial_download(PartialLocalFileLocation{remote_.file_type_, path_, part_size, ready_part_count, ""},
                                    ready_size);
   } else {
     UInt256 iv;
@@ -315,9 +315,9 @@ void FileDownloader::on_progress(int32 part_count, int32 part_size, int32 ready_
     } else {
       LOG(FATAL) << tag("ready_part_count", ready_part_count) << tag("next_part", next_part_);
     }
-    callback_->on_partial_download(
-        PartialLocalFileLocation{remote_.type_, path_, part_size, ready_part_count, Slice(iv.raw, sizeof(iv)).str()},
-        ready_size);
+    callback_->on_partial_download(PartialLocalFileLocation{remote_.file_type_, path_, part_size, ready_part_count,
+                                                            Slice(iv.raw, sizeof(iv)).str()},
+                                   ready_size);
   }
 }
 
@@ -417,7 +417,7 @@ void FileDownloader::try_release_fd() {
 Status FileDownloader::acquire_fd() {
   if (fd_.empty()) {
     if (path_.empty()) {
-      TRY_RESULT(file_path, open_temp_file(remote_.type_));
+      TRY_RESULT(file_path, open_temp_file(remote_.file_type_));
       std::tie(fd_, path_) = std::move(file_path);
     } else {
       TRY_RESULT(fd, FileFd::open(path_, FileFd::Write | FileFd::Read));

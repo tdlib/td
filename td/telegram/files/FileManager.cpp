@@ -57,7 +57,7 @@ void FileNode::set_remote_location(const RemoteFileLocation &remote, FileLocatio
     on_info_changed();
   }
   if (remote_ == remote) {
-    if (remote_.type_ == RemoteFileLocation::Type::Full) {
+    if (remote_.type() == RemoteFileLocation::Type::Full) {
       if (remote_.full().get_access_hash() == remote.full().get_access_hash()) {
         return;
       }
@@ -178,22 +178,22 @@ bool FileNode::need_pmc_flush() const {
 
   // We must save encryption key
   if (!encryption_key_.empty()) {
-    // && remote_.type_ != RemoteFileLocation::Type::Empty
+    // && remote_.type() != RemoteFileLocation::Type::Empty
     return true;
   }
 
-  bool has_generate_location = generate_.type_ == GenerateFileLocation::Type::Full;
+  bool has_generate_location = generate_.type() == GenerateFileLocation::Type::Full;
   // Do not save "#file_id#" conversion.
   if (has_generate_location && begins_with(generate_.full().conversion_, "#file_id#")) {
     has_generate_location = false;
   }
 
-  if (remote_.type_ == RemoteFileLocation::Type::Full &&
-      (has_generate_location || local_.type_ != LocalFileLocation::Type::Empty)) {
+  if (remote_.type() == RemoteFileLocation::Type::Full &&
+      (has_generate_location || local_.type() != LocalFileLocation::Type::Empty)) {
     return true;
   }
-  if (local_.type_ == LocalFileLocation::Type::Full &&
-      (has_generate_location || remote_.type_ != RemoteFileLocation::Type::Empty)) {
+  if (local_.type() == LocalFileLocation::Type::Full &&
+      (has_generate_location || remote_.type() != RemoteFileLocation::Type::Empty)) {
     return true;
   }
 
@@ -211,21 +211,21 @@ void FileNode::on_info_flushed() {
 
 /*** FileView ***/
 bool FileView::has_local_location() const {
-  return node_->local_.type_ == LocalFileLocation::Type::Full;
+  return node_->local_.type() == LocalFileLocation::Type::Full;
 }
 const FullLocalFileLocation &FileView::local_location() const {
   CHECK(has_local_location());
   return node_->local_.full();
 }
 bool FileView::has_remote_location() const {
-  return node_->remote_.type_ == RemoteFileLocation::Type::Full;
+  return node_->remote_.type() == RemoteFileLocation::Type::Full;
 }
 const FullRemoteFileLocation &FileView::remote_location() const {
   CHECK(has_remote_location());
   return node_->remote_.full();
 }
 bool FileView::has_generate_location() const {
-  return node_->generate_.type_ == GenerateFileLocation::Type::Full;
+  return node_->generate_.type() == GenerateFileLocation::Type::Full;
 }
 const FullGenerateFileLocation &FileView::generate_location() const {
   CHECK(has_generate_location());
@@ -248,7 +248,7 @@ bool FileView::is_downloading() const {
 }
 
 int64 FileView::local_size() const {
-  switch (node_->local_.type_) {
+  switch (node_->local_.type()) {
     case LocalFileLocation::Type::Full:
       return node_->size_;
     case LocalFileLocation::Type::Partial:
@@ -258,7 +258,7 @@ int64 FileView::local_size() const {
   }
 }
 int64 FileView::local_total_size() const {
-  switch (node_->local_.type_) {
+  switch (node_->local_.type()) {
     case LocalFileLocation::Type::Empty:
       return 0;
     case LocalFileLocation::Type::Full:
@@ -278,7 +278,7 @@ bool FileView::is_uploading() const {
 }
 
 int64 FileView::remote_size() const {
-  switch (node_->remote_.type_) {
+  switch (node_->remote_.type()) {
     case RemoteFileLocation::Type::Full:
       return node_->size_;
     case RemoteFileLocation::Type::Partial: {
@@ -296,7 +296,7 @@ int64 FileView::remote_size() const {
 }
 
 string FileView::path() const {
-  switch (node_->local_.type_) {
+  switch (node_->local_.type()) {
     case LocalFileLocation::Type::Full:
       return node_->local_.full().path_;
     case LocalFileLocation::Type::Partial:
@@ -337,7 +337,7 @@ bool FileView::can_download_from_server() const {
   if (!has_remote_location()) {
     return false;
   }
-  if (remote_location().type_ == FileType::Encrypted && encryption_key().empty()) {
+  if (remote_location().file_type_ == FileType::Encrypted && encryption_key().empty()) {
     return false;
   }
   if (remote_location().get_dc_id().is_empty()) {
@@ -353,7 +353,7 @@ bool FileView::can_delete() const {
   if (has_local_location()) {
     return begins_with(local_location().path_, get_files_dir(get_type()));
   }
-  return node_->local_.type_ == LocalFileLocation::Type::Partial;
+  return node_->local_.type() == LocalFileLocation::Type::Partial;
 }
 
 /*** FileManager ***/
@@ -493,7 +493,7 @@ Status FileManager::check_local_location(FullLocalFileLocation &location, int64 
     LOG(INFO) << "File was nodified: old mtime = " << location.mtime_nsec_ << ", new mtime = " << stat.mtime_nsec_;
     return Status::Error("File was modified");
   }
-  if ((location.type_ == FileType::Thumbnail || location.type_ == FileType::EncryptedThumbnail) &&
+  if ((location.file_type_ == FileType::Thumbnail || location.file_type_ == FileType::EncryptedThumbnail) &&
       size >= MAX_THUMBNAIL_SIZE) {
     return Status::Error(PSLICE() << "File is too big for thumbnail " << tag("size", format::as_size(size)));
   }
@@ -514,9 +514,9 @@ static Status check_partial_local_location(const PartialLocalFileLocation &locat
 
 Status FileManager::check_local_location(FileNode *node) {
   Status status;
-  if (node->local_.type_ == LocalFileLocation::Type::Full) {
+  if (node->local_.type() == LocalFileLocation::Type::Full) {
     status = check_local_location(node->local_.full(), node->size_);
-  } else if (node->local_.type_ == LocalFileLocation::Type::Partial) {
+  } else if (node->local_.type() == LocalFileLocation::Type::Partial) {
     status = check_partial_local_location(node->local_.partial());
   }
   if (status.is_error()) {
@@ -623,13 +623,13 @@ Result<FileId> FileManager::register_generate(FileType file_type, string origina
 
 Result<FileId> FileManager::register_file(FileData data, FileLocationSource file_location_source, const char *source,
                                           bool force) {
-  bool has_remote = data.remote_.type_ == RemoteFileLocation::Type::Full;
-  bool has_generate = data.generate_.type_ == GenerateFileLocation::Type::Full;
-  if (data.local_.type_ == LocalFileLocation::Type::Full && !force) {
+  bool has_remote = data.remote_.type() == RemoteFileLocation::Type::Full;
+  bool has_generate = data.generate_.type() == GenerateFileLocation::Type::Full;
+  if (data.local_.type() == LocalFileLocation::Type::Full && !force) {
     if (file_location_source == FileLocationSource::FromDb) {
       PathView path_view(data.local_.full().path_);
       if (path_view.is_relative()) {
-        data.local_.full().path_ = get_files_base_dir(data.local_.full().type_) + data.local_.full().path_;
+        data.local_.full().path_ = get_files_base_dir(data.local_.full().file_type_) + data.local_.full().path_;
       }
     }
 
@@ -643,7 +643,7 @@ Result<FileId> FileManager::register_file(FileData data, FileLocationSource file
       }
     }
   }
-  bool has_local = data.local_.type_ == LocalFileLocation::Type::Full;
+  bool has_local = data.local_.type() == LocalFileLocation::Type::Full;
   bool has_location = has_local || has_remote || has_generate;
   if (!has_location) {
     return Status::Error("No location");
@@ -711,8 +711,8 @@ Result<FileId> FileManager::register_file(FileData data, FileLocationSource file
 // 1 -- choose y
 // 2 -- choose any
 static int merge_choose(const LocalFileLocation &x, const LocalFileLocation &y) {
-  int32 x_type = static_cast<int32>(x.type_);
-  int32 y_type = static_cast<int32>(y.type_);
+  int32 x_type = static_cast<int32>(x.type());
+  int32 y_type = static_cast<int32>(y.type());
   if (x_type != y_type) {
     return x_type < y_type;
   }
@@ -720,13 +720,13 @@ static int merge_choose(const LocalFileLocation &x, const LocalFileLocation &y) 
 }
 
 static int merge_choose(const RemoteFileLocation &x, int8 x_source, const RemoteFileLocation &y, int8 y_source) {
-  int32 x_type = static_cast<int32>(x.type_);
-  int32 y_type = static_cast<int32>(y.type_);
+  int32 x_type = static_cast<int32>(x.type());
+  int32 y_type = static_cast<int32>(y.type());
   if (x_type != y_type) {
     return x_type < y_type;
   }
   // If access_hash changed use a newer one
-  if (x.type_ == RemoteFileLocation::Type::Full) {
+  if (x.type() == RemoteFileLocation::Type::Full) {
     if (x.full().get_access_hash() != y.full().get_access_hash()) {
       return x_source < y_source;
     }
@@ -734,8 +734,8 @@ static int merge_choose(const RemoteFileLocation &x, int8 x_source, const Remote
   return 2;
 }
 static int merge_choose(const GenerateFileLocation &x, const GenerateFileLocation &y) {
-  int32 x_type = static_cast<int32>(x.type_);
-  int32 y_type = static_cast<int32>(y.type_);
+  int32 x_type = static_cast<int32>(x.type());
+  int32 y_type = static_cast<int32>(y.type());
   if (x_type != y_type) {
     return x_type < y_type;
   }
@@ -856,8 +856,8 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     y_node->upload_pause_ = FileId();
   }
 
-  if (x_node->remote_.type_ == RemoteFileLocation::Type::Full &&
-      y_node->remote_.type_ == RemoteFileLocation::Type::Full &&
+  if (x_node->remote_.type() == RemoteFileLocation::Type::Full &&
+      y_node->remote_.type() == RemoteFileLocation::Type::Full &&
       x_node->remote_.full().get_dc_id() != y_node->remote_.full().get_dc_id()) {
     LOG(ERROR) << "File remote location was changed from " << y_node->remote_.full() << " to "
                << x_node->remote_.full();
@@ -884,8 +884,8 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
                                   << y_node->size_);
   }
   if (encryption_key_i == -1) {
-    if (nodes[remote_i]->remote_.type_ == RemoteFileLocation::Type::Full &&
-        nodes[local_i]->local_.type_ != LocalFileLocation::Type::Partial) {
+    if (nodes[remote_i]->remote_.type() == RemoteFileLocation::Type::Full &&
+        nodes[local_i]->local_.type() != LocalFileLocation::Type::Partial) {
       //???
       LOG(ERROR) << "Different encryption key in files, but go Choose same key as remote location";
       encryption_key_i = remote_i;
@@ -1105,19 +1105,19 @@ void FileManager::flush_to_pmc(FileNode *node, bool new_remote, bool new_local, 
   FileData data;
   data.pmc_id_ = node->pmc_id_;
   data.local_ = node->local_;
-  if (data.local_.type_ == LocalFileLocation::Type::Full) {
-    prepare_path_for_pmc(data.local_.full().type_, data.local_.full().path_);
+  if (data.local_.type() == LocalFileLocation::Type::Full) {
+    prepare_path_for_pmc(data.local_.full().file_type_, data.local_.full().path_);
   }
   data.remote_ = node->remote_;
   data.generate_ = node->generate_;
 
-  if (data.generate_.type_ == GenerateFileLocation::Type::Full &&
+  if (data.generate_.type() == GenerateFileLocation::Type::Full &&
       begins_with(data.generate_.full().conversion_, "#file_id#")) {
     data.generate_ = GenerateFileLocation();
   }
 
   // TODO: not needed when GenerateLocation has constant convertion
-  if (data.remote_.type_ != RemoteFileLocation::Type::Full && data.local_.type_ != LocalFileLocation::Type::Full) {
+  if (data.remote_.type() != RemoteFileLocation::Type::Full && data.local_.type() != LocalFileLocation::Type::Full) {
     data.local_ = LocalFileLocation();
     data.remote_ = RemoteFileLocation();
   }
@@ -1182,7 +1182,7 @@ bool FileManager::load_from_pmc(FileNode *node, bool new_remote, bool new_local,
   new_local &= file_view.has_local_location();
   if (new_local) {
     local = get_file_view(file_id).local_location();
-    prepare_path_for_pmc(local.type_, local.path_);
+    prepare_path_for_pmc(local.file_type_, local.path_);
   }
   new_generate &= file_view.has_generate_location();
   if (new_generate) {
@@ -1230,7 +1230,7 @@ bool FileManager::set_content(FileId file_id, BufferSlice bytes) {
     return false;
   }
 
-  if (node->local_.type_ == LocalFileLocation::Type::Full) {
+  if (node->local_.type() == LocalFileLocation::Type::Full) {
     // There was no download so we don't need an update
     return true;
   }
@@ -1249,7 +1249,7 @@ bool FileManager::set_content(FileId file_id, BufferSlice bytes) {
   QueryId id = queries_container_.create(Query{file_id, Query::SetContent});
   node->download_id_ = id;
   node->is_download_started_ = true;
-  send_closure(file_load_manager_, &FileLoadManager::from_bytes, id, node->remote_.full().type_, std::move(bytes),
+  send_closure(file_load_manager_, &FileLoadManager::from_bytes, id, node->remote_.full().file_type_, std::move(bytes),
                node->name_);
   return true;
 }
@@ -1294,7 +1294,7 @@ void FileManager::delete_file(FileId file_id, Promise<Unit> promise, const char 
     if (file_view.get_type() == FileType::Encrypted) {
       clear_from_pmc(node);
     }
-    if (node->local_.type_ == LocalFileLocation::Type::Partial) {
+    if (node->local_.type() == LocalFileLocation::Type::Partial) {
       LOG(INFO) << "Unlink partial file " << file_id << " at " << node->local_.partial().path_;
       unlink(node->local_.partial().path_).ignore();
       node->set_local_location(LocalFileLocation(), 0);
@@ -1314,7 +1314,7 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
     return;
   }
 
-  if (node->local_.type_ == LocalFileLocation::Type::Full) {
+  if (node->local_.type() == LocalFileLocation::Type::Full) {
     auto status = check_local_location(node);
     if (status.is_error()) {
       LOG(WARNING) << "Need to redownload file " << file_id << ": " << status.error();
@@ -1324,7 +1324,7 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
       }
       return;
     }
-  } else if (node->local_.type_ == LocalFileLocation::Type::Partial) {
+  } else if (node->local_.type() == LocalFileLocation::Type::Partial) {
     auto status = check_local_location(node);
     if (status.is_error()) {
       LOG(WARNING) << "Need to download file " << file_id << " from beginning: " << status.error();
@@ -1461,7 +1461,7 @@ bool FileManager::delete_partial_remote_location(FileId file_id) {
   if (node->upload_pause_ == file_id) {
     node->upload_pause_ = FileId();
   }
-  if (node->remote_.type_ == RemoteFileLocation::Type::Full) {
+  if (node->remote_.type() == RemoteFileLocation::Type::Full) {
     LOG(INFO) << "File " << file_id << " is already uploaded";
     return true;
   }
@@ -1470,7 +1470,7 @@ bool FileManager::delete_partial_remote_location(FileId file_id) {
   auto *file_info = get_file_id_info(file_id);
   file_info->upload_priority_ = 0;
 
-  if (node->local_.type_ != LocalFileLocation::Type::Full) {
+  if (node->local_.type() != LocalFileLocation::Type::Full) {
     LOG(INFO) << "Need full local location to upload file " << file_id;
     return false;
   }
@@ -1603,8 +1603,8 @@ void FileManager::run_upload(FileNode *node, std::vector<int> bad_parts) {
   }
 
   // create encryption key if necessary
-  if (((file_view.has_generate_location() && file_view.generate_location().type_ == FileType::Encrypted) ||
-       (file_view.has_local_location() && file_view.local_location().type_ == FileType::Encrypted)) &&
+  if (((file_view.has_generate_location() && file_view.generate_location().file_type_ == FileType::Encrypted) ||
+       (file_view.has_local_location() && file_view.local_location().file_type_ == FileType::Encrypted)) &&
       file_view.encryption_key().empty()) {
     CHECK(!node->file_ids_.empty());
     bool success = set_encryption_key(node->file_ids_[0], FileEncryptionKey::create());
@@ -1619,7 +1619,7 @@ void FileManager::run_upload(FileNode *node, std::vector<int> bad_parts) {
   }
 
   CHECK(node->upload_id_ == 0);
-  if (node->remote_.type_ != RemoteFileLocation::Type::Partial && node->get_by_hash_) {
+  if (node->remote_.type() != RemoteFileLocation::Type::Partial && node->get_by_hash_) {
     QueryId id = queries_container_.create(Query{file_id, Query::UploadByHash});
     node->upload_id_ = id;
 
@@ -1726,10 +1726,10 @@ Result<FileId> FileManager::from_persistent_id(CSlice persistent_id, FileType fi
   if (status.is_error()) {
     return Status::Error(10, "Wrong remote file id specified: can't unserialize it");
   }
-  auto &real_type = remote_location.type_;
-  if (is_document_type(real_type) && is_document_type(file_type)) {
-    real_type = file_type;
-  } else if (real_type != file_type && file_type != FileType::Temp) {
+  auto &real_file_type = remote_location.file_type_;
+  if (is_document_type(real_file_type) && is_document_type(file_type)) {
+    real_file_type = file_type;
+  } else if (real_file_type != file_type && file_type != FileType::Temp) {
     return Status::Error(10, "Type of file mismatch");
   }
   FileData data;
@@ -2173,12 +2173,12 @@ void FileManager::on_error_impl(FileNode *node, FileManager::Query::Type type, b
                  << ". File type is " << file_type_name[static_cast<int32>(FileView(node).get_type())];
     if (status.code() == 0) {
       // Remove partial locations
-      if (node->local_.type_ == LocalFileLocation::Type::Partial) {
+      if (node->local_.type() == LocalFileLocation::Type::Partial) {
         LOG(INFO) << "Unlink file " << node->local_.partial().path_;
         unlink(node->local_.partial().path_).ignore();
         node->set_local_location(LocalFileLocation(), 0);
       }
-      if (node->remote_.type_ == RemoteFileLocation::Type::Partial) {
+      if (node->remote_.type() == RemoteFileLocation::Type::Partial) {
         node->set_remote_location(RemoteFileLocation(), FileLocationSource::None, 0);
       }
       status = Status::Error(400, status.message());

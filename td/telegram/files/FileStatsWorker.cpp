@@ -54,11 +54,11 @@ Status scan_db(CallbackT &&callback) {
       return;
     }
     DbFileInfo info;
-    if (data.local_.type_ == LocalFileLocation::Type::Full) {
-      info.file_type = data.local_.full().type_;
+    if (data.local_.type() == LocalFileLocation::Type::Full) {
+      info.file_type = data.local_.full().file_type_;
       info.path = data.local_.full().path_;
-    } else if (data.local_.type_ == LocalFileLocation::Type::Partial) {
-      info.file_type = data.local_.partial().type_;
+    } else if (data.local_.type() == LocalFileLocation::Type::Partial) {
+      info.file_type = data.local_.partial().file_type_;
       info.path = data.local_.partial().path_;
     } else {
       return;
@@ -69,7 +69,7 @@ Status scan_db(CallbackT &&callback) {
     }
     info.owner_dialog_id = data.owner_dialog_id_;
     info.size = data.size_;
-    if (info.size == 0 && data.local_.type_ == LocalFileLocation::Type::Full) {
+    if (info.size == 0 && data.local_.type() == LocalFileLocation::Type::Full) {
       LOG(ERROR) << "Unknown size in db";
       return;
     }
