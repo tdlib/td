@@ -699,7 +699,6 @@ class RemoteFileLocation {
  public:
   enum class Type : int32 { Empty, Partial, Full };
   Type type_;
-  Variant<EmptyRemoteFileLocation, PartialRemoteFileLocation, FullRemoteFileLocation> variant_;
 
   template <class StorerT>
   void store(StorerT &storer) const {
@@ -758,6 +757,11 @@ class RemoteFileLocation {
   RemoteFileLocation(FileType file_type, int64 id, int64 access_hash, DcId dc_id)
       : type_(Type::Full), variant_(FullRemoteFileLocation{file_type, id, access_hash, dc_id}) {
   }
+
+ private:
+  Variant<EmptyRemoteFileLocation, PartialRemoteFileLocation, FullRemoteFileLocation> variant_;
+
+  friend bool operator==(const RemoteFileLocation &lhs, const RemoteFileLocation &rhs);
 };
 
 inline bool operator==(const RemoteFileLocation &lhs, const RemoteFileLocation &rhs) {
@@ -880,7 +884,6 @@ class LocalFileLocation {
  public:
   enum class Type : int32 { Empty, Partial, Full };
   Type type_;
-  Variant<EmptyLocalFileLocation, PartialLocalFileLocation, FullLocalFileLocation> variant_;
 
   PartialLocalFileLocation &partial() {
     return variant_.get<1>();
@@ -931,6 +934,11 @@ class LocalFileLocation {
   LocalFileLocation(FileType file_type, string path, uint64 mtime_nsec)
       : type_(Type::Full), variant_(FullLocalFileLocation{file_type, std::move(path), mtime_nsec}) {
   }
+
+ private:
+  Variant<EmptyLocalFileLocation, PartialLocalFileLocation, FullLocalFileLocation> variant_;
+
+  friend bool operator==(const LocalFileLocation &lhs, const LocalFileLocation &rhs);
 };
 
 inline bool operator==(const LocalFileLocation &lhs, const LocalFileLocation &rhs) {
