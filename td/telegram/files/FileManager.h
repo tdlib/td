@@ -59,9 +59,9 @@ class FileNode {
   void set_owner_dialog_id(DialogId owner_id);
   void set_encryption_key(FileEncryptionKey key);
 
-  void set_download_priority(int32 priority);
-  void set_upload_priority(int32 priority);
-  void set_generate_priority(int32 download_priority, int32 upload_priority);
+  void set_download_priority(int8 priority);
+  void set_upload_priority(int8 priority);
+  void set_generate_priority(int8 download_priority, int8 upload_priority);
 
   void on_changed();
   void on_info_changed();
@@ -102,12 +102,12 @@ class FileNode {
   FileId main_file_id_;
 
   FileId upload_pause_;
-  int32 upload_priority_ = 0;
-  int32 download_priority_ = 0;
-  int32 generate_priority_ = 0;
+  int8 upload_priority_ = 0;
+  int8 download_priority_ = 0;
+  int8 generate_priority_ = 0;
 
-  int32 generate_download_priority_ = 0;
-  int32 generate_upload_priority_ = 0;
+  int8 generate_download_priority_ = 0;
+  int8 generate_upload_priority_ = 0;
 
   int8 main_file_id_priority_ = 0;
 
@@ -299,7 +299,7 @@ class FileManager : public FileLoadManager::Callback {
 
   FileId register_url(string url, FileType file_type, DialogId owner_dialog_id);
 
-  static constexpr int32 FROM_BYTES_PRIORITY = 10;
+  static constexpr int8 FROM_BYTES_PRIORITY = 10;
   using FileNodeId = int32;
   using QueryId = FileLoadManager::QueryId;
   class Query {
@@ -312,11 +312,12 @@ class FileManager : public FileLoadManager::Callback {
     bool send_updates_flag_{false};
     bool pin_flag_{false};
 
-    int32 download_priority_{0};
-    std::shared_ptr<DownloadCallback> download_callback_;
+    int8 download_priority_{0};
+    int8 upload_priority_{0};
 
-    int32 upload_priority_{0};
     uint64 upload_order_;
+
+    std::shared_ptr<DownloadCallback> download_callback_;
     std::shared_ptr<UploadCallback> upload_callback_;
   };
 

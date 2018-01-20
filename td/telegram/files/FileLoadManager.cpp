@@ -30,7 +30,7 @@ void FileLoadManager::start_up() {
 
 void FileLoadManager::download(QueryId id, const FullRemoteFileLocation &remote_location,
                                const LocalFileLocation &local, int64 size, string name,
-                               const FileEncryptionKey &encryption_key, int priority) {
+                               const FileEncryptionKey &encryption_key, int8 priority) {
   if (stop_flag_) {
     return;
   }
@@ -51,7 +51,7 @@ void FileLoadManager::download(QueryId id, const FullRemoteFileLocation &remote_
 
 void FileLoadManager::upload(QueryId id, const LocalFileLocation &local_location,
                              const RemoteFileLocation &remote_location, int64 size,
-                             const FileEncryptionKey &encryption_key, int priority, vector<int> bad_parts) {
+                             const FileEncryptionKey &encryption_key, int8 priority, vector<int> bad_parts) {
   if (stop_flag_) {
     return;
   }
@@ -69,7 +69,7 @@ void FileLoadManager::upload(QueryId id, const LocalFileLocation &local_location
 }
 
 void FileLoadManager::upload_by_hash(QueryId id, const FullLocalFileLocation &local_location, int64 size,
-                                     int priority) {
+                                     int8 priority) {
   if (stop_flag_) {
     return;
   }
@@ -85,7 +85,7 @@ void FileLoadManager::upload_by_hash(QueryId id, const FullLocalFileLocation &lo
   query_id_to_node_id_[id] = node_id;
 }
 
-void FileLoadManager::update_priority(QueryId id, int priority) {
+void FileLoadManager::update_priority(QueryId id, int8 priority) {
   if (stop_flag_) {
     return;
   }

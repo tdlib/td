@@ -124,7 +124,7 @@ void FileNode::set_encryption_key(FileEncryptionKey key) {
   }
 }
 
-void FileNode::set_download_priority(int32 priority) {
+void FileNode::set_download_priority(int8 priority) {
   if ((download_priority_ == 0) != (priority == 0)) {
     VLOG(update_file) << "File " << main_file_id_ << " has changed download priority to " << priority;
     on_info_changed();
@@ -132,7 +132,7 @@ void FileNode::set_download_priority(int32 priority) {
   download_priority_ = priority;
 }
 
-void FileNode::set_upload_priority(int32 priority) {
+void FileNode::set_upload_priority(int8 priority) {
   if ((upload_priority_ == 0) != (priority == 0)) {
     VLOG(update_file) << "File " << main_file_id_ << " has changed upload priority to " << priority;
     on_info_changed();
@@ -140,7 +140,7 @@ void FileNode::set_upload_priority(int32 priority) {
   upload_priority_ = priority;
 }
 
-void FileNode::set_generate_priority(int32 download_priority, int32 upload_priority) {
+void FileNode::set_generate_priority(int8 download_priority, int8 upload_priority) {
   if ((download_priority_ == 0) != (download_priority == 0) || (upload_priority_ == 0) != (upload_priority == 0)) {
     VLOG(update_file) << "File " << main_file_id_ << " has changed generate priority to " << download_priority << "/"
                       << upload_priority;
@@ -265,7 +265,7 @@ int64 FileView::local_total_size() const {
       return node_->size_;
     case LocalFileLocation::Type::Partial:
       return std::max(
-          static_cast<int64>(node_->local_.partial().part_size_ * node_->local_.partial().ready_part_count_),
+          static_cast<int64>(node_->local_.partial().part_size_) * node_->local_.partial().ready_part_count_,
           node_->local_ready_size_);
     default:
       UNREACHABLE();
@@ -719,7 +719,7 @@ static int merge_choose(const LocalFileLocation &x, const LocalFileLocation &y) 
   return 2;
 }
 
-static int merge_choose(const RemoteFileLocation &x, int x_priority, const RemoteFileLocation &y, int y_priority) {
+static int merge_choose(const RemoteFileLocation &x, int8 x_source, const RemoteFileLocation &y, int8 y_source) {
   int32 x_type = static_cast<int32>(x.type_);
   int32 y_type = static_cast<int32>(y.type_);
   if (x_type != y_type) {
@@ -728,7 +728,7 @@ static int merge_choose(const RemoteFileLocation &x, int x_priority, const Remot
   // If access_hash changed use a newer one
   if (x.type_ == RemoteFileLocation::Type::Full) {
     if (x.full().get_access_hash() != y.full().get_access_hash()) {
-      return x_priority < y_priority;
+      return x_source < y_source;
     }
   }
   return 2;
@@ -867,8 +867,8 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   FileNodeId node_ids[] = {x_node_id, y_node_id};
 
   int local_i = merge_choose(x_node->local_, y_node->local_);
-  int remote_i = merge_choose(x_node->remote_, static_cast<int>(x_node->remote_source_), y_node->remote_,
-                              static_cast<int>(y_node->remote_source_));
+  int remote_i = merge_choose(x_node->remote_, static_cast<int8>(x_node->remote_source_), y_node->remote_,
+                              static_cast<int8>(y_node->remote_source_));
   int generate_i = merge_choose(x_node->generate_, y_node->generate_);
   int size_i = merge_choose_size(x_node->size_, y_node->size_);
   int expected_size_i = merge_choose_expected_size(x_node->expected_size_, y_node->expected_size_);
@@ -1348,7 +1348,7 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
 
   auto *file_info = get_file_id_info(file_id);
   CHECK(new_priority == 0 || callback);
-  file_info->download_priority_ = new_priority;
+  file_info->download_priority_ = narrow_cast<int8>(new_priority);
   file_info->download_callback_ = std::move(callback);
   // TODO: send current progress?
 
@@ -1369,7 +1369,7 @@ void FileManager::run_download(FileNode *node) {
   if (!file_view.can_download_from_server()) {
     return;
   }
-  int32 priority = 0;
+  int8 priority = 0;
   for (auto id : node->file_ids_) {
     auto *info = get_file_id_info(id);
     if (info->download_priority_ > priority) {
@@ -1443,7 +1443,7 @@ void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std:
   auto *file_info = get_file_id_info(file_id);
   CHECK(new_priority == 0 || callback);
   file_info->upload_order_ = upload_order;
-  file_info->upload_priority_ = new_priority;
+  file_info->upload_priority_ = narrow_cast<int8>(new_priority);
   file_info->upload_callback_ = std::move(callback);
   // TODO: send current progress?
 
@@ -1505,8 +1505,8 @@ void FileManager::run_generate(FileNode *node) {
     return;
   }
 
-  int32 download_priority = 0;
-  int32 upload_priority = 0;
+  int8 download_priority = 0;
+  int8 upload_priority = 0;
   FileId file_id;
   for (auto id : node->file_ids_) {
     auto *info = get_file_id_info(id);
@@ -1581,7 +1581,7 @@ void FileManager::run_upload(FileNode *node, std::vector<int> bad_parts) {
       return;
     }
   }
-  int32 priority = 0;
+  int8 priority = 0;
   FileId file_id;
   for (auto id : node->file_ids_) {
     auto *info = get_file_id_info(id);
@@ -1614,7 +1614,7 @@ void FileManager::run_upload(FileNode *node, std::vector<int> bad_parts) {
   if (old_priority != 0) {
     LOG(INFO) << "File " << file_id << " is already uploading";
     CHECK(node->upload_id_ != 0);
-    send_closure(file_load_manager_, &FileLoadManager::update_priority, node->upload_id_, -priority);
+    send_closure(file_load_manager_, &FileLoadManager::update_priority, node->upload_id_, narrow_cast<int8>(-priority));
     return;
   }
 
@@ -1623,14 +1623,16 @@ void FileManager::run_upload(FileNode *node, std::vector<int> bad_parts) {
     QueryId id = queries_container_.create(Query{file_id, Query::UploadByHash});
     node->upload_id_ = id;
 
-    send_closure(file_load_manager_, &FileLoadManager::upload_by_hash, id, node->local_.full(), node->size_, -priority);
+    send_closure(file_load_manager_, &FileLoadManager::upload_by_hash, id, node->local_.full(), node->size_,
+                 narrow_cast<int8>(-priority));
     return;
   }
 
   QueryId id = queries_container_.create(Query{file_id, Query::Upload});
   node->upload_id_ = id;
   send_closure(file_load_manager_, &FileLoadManager::upload, id, node->local_, node->remote_, node->size_,
-               node->encryption_key_, bad_parts.empty() ? -priority : priority, std::move(bad_parts));
+               node->encryption_key_, narrow_cast<int8>(bad_parts.empty() ? -priority : priority),
+               std::move(bad_parts));
 
   LOG(INFO) << "File " << file_id << " upload request has sent to FileLoadManager";
 }
@@ -2243,12 +2245,14 @@ std::pair<FileManager::Query, bool> FileManager::finish_query(QueryId query_id) 
   }
   return std::make_pair(res, was_active);
 }
+
 void FileManager::hangup() {
   file_db_.reset();
   file_generate_manager_.reset();
   file_load_manager_.reset();
   stop();
 }
+
 void FileManager::tear_down() {
   parent_.reset();
 }

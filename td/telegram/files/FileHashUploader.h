@@ -38,7 +38,7 @@ class FileHashUploader : public FileLoaderActor {
     send_closure(resource_manager_, &ResourceManager::update_resources, resource_state_);
   }
 
-  void update_priority(int32 priority) override {
+  void update_priority(int8 priority) override {
     send_closure(resource_manager_, &ResourceManager::update_priority, priority);
   }
   void update_resources(const ResourceState &other) override {

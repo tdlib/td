@@ -213,7 +213,7 @@ static bool is_base64_impl(Slice input) {
     init_base64_table();
     table = char_to_value;
   }
-  for (auto c:input) {
+  for (auto c : input) {
     if (table[static_cast<unsigned char>(c)] == 64) {
       return false;
     }

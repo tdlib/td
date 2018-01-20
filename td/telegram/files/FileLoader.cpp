@@ -24,7 +24,7 @@ void FileLoader::set_resource_manager(ActorShared<ResourceManager> resource_mana
   resource_manager_ = std::move(resource_manager);
   send_closure(resource_manager_, &ResourceManager::update_resources, resource_state_);
 }
-void FileLoader::update_priority(int32 priority) {
+void FileLoader::update_priority(int8 priority) {
   send_closure(resource_manager_, &ResourceManager::update_priority, priority);
 }
 void FileLoader::update_resources(const ResourceState &other) {

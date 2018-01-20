@@ -33,7 +33,7 @@ class FileLoader : public FileLoaderActor {
     virtual ~Callback() = default;
   };
   void set_resource_manager(ActorShared<ResourceManager> resource_manager) override;
-  void update_priority(int32 priority) override;
+  void update_priority(int8 priority) override;
   void update_resources(const ResourceState &other) override;
 
   void update_local_file_location(const LocalFileLocation &local) override;

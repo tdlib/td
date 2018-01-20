@@ -44,11 +44,11 @@ class FileLoadManager final : public Actor {
 
   explicit FileLoadManager(ActorShared<Callback> callback, ActorShared<> parent);
   void download(QueryId id, const FullRemoteFileLocation &remote_location, const LocalFileLocation &local, int64 size,
-                string name, const FileEncryptionKey &encryption_key, int priority);
+                string name, const FileEncryptionKey &encryption_key, int8 priority);
   void upload(QueryId id, const LocalFileLocation &local_location, const RemoteFileLocation &remote_location,
-              int64 size, const FileEncryptionKey &encryption_key, int priority, vector<int> bad_parts);
-  void upload_by_hash(QueryId id, const FullLocalFileLocation &local_location, int64 size, int priority);
-  void update_priority(QueryId id, int priority);
+              int64 size, const FileEncryptionKey &encryption_key, int8 priority, vector<int> bad_parts);
+  void upload_by_hash(QueryId id, const FullLocalFileLocation &local_location, int64 size, int8 priority);
+  void update_priority(QueryId id, int8 priority);
   void from_bytes(QueryId id, FileType type, BufferSlice bytes, string name);
   void cancel(QueryId id);
   void update_local_file_location(QueryId id, const LocalFileLocation &local);
