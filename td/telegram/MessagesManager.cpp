@@ -14514,6 +14514,26 @@ MessageId MessagesManager::get_reply_to_message_id(Dialog *d, MessageId message_
   return message_id;
 }
 
+string MessagesManager::get_message_content_caption(const MessageContent *content) {
+  // TODO return with entities
+  switch (content->get_id()) {
+    case MessageAnimation::ID:
+      return static_cast<const MessageAnimation *>(content)->caption;
+    case MessageAudio::ID:
+      return static_cast<const MessageAudio *>(content)->caption;
+    case MessageDocument::ID:
+      return static_cast<const MessageDocument *>(content)->caption;
+    case MessagePhoto::ID:
+      return static_cast<const MessagePhoto *>(content)->caption;
+    case MessageVideo::ID:
+      return static_cast<const MessageVideo *>(content)->caption;
+    case MessageVoiceNote::ID:
+      return static_cast<const MessageVoiceNote *>(content)->caption;
+    default:
+      return string();
+  }
+}
+
 int32 MessagesManager::get_message_content_duration(const MessageContent *content) const {
   CHECK(content != nullptr);
   switch (content->get_id()) {
@@ -15674,8 +15694,6 @@ void MessagesManager::on_secret_message_media_uploaded(DialogId dialog_id, Messa
 
 void MessagesManager::on_upload_message_media_success(DialogId dialog_id, MessageId message_id,
                                                       tl_object_ptr<telegram_api::MessageMedia> &&media) {
-  auto content = get_message_content(string(), std::move(media), Auto(), dialog_id, false, UserId(), nullptr);
-
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
@@ -15692,6 +15710,9 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     return;  // the message should be deleted soon
   }
+
+  // TODO use get_message_content_caption()
+  auto content = get_message_content(string(), std::move(media), Auto(), dialog_id, false, UserId(), nullptr);
 
   update_message_content(dialog_id, m, m->content, std::move(content), true);
 
