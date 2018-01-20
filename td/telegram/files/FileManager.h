@@ -29,12 +29,14 @@
 #include <utility>
 
 namespace td {
-enum class FileLocationSource : int { None, FromUser, FromDb, FromServer };
+
+enum class FileLocationSource : int8 { None, FromUser, FromDb, FromServer };
+
 class FileNode {
  public:
   FileNode(LocalFileLocation local, RemoteFileLocation remote, GenerateFileLocation generate, int64 size,
            int64 expected_size, string name, string url, DialogId owner_dialog_id, FileEncryptionKey key,
-           FileId main_file_id, int main_file_id_priority)
+           FileId main_file_id, int8 main_file_id_priority)
       : local_(std::move(local))
       , remote_(std::move(remote))
       , generate_(std::move(generate))
@@ -77,39 +79,46 @@ class FileNode {
 
   LocalFileLocation local_;
   FileLoadManager::QueryId upload_id_ = 0;
-  int32 upload_priority_ = 0;
-  FileId upload_pause_;
   int64 local_ready_size_ = 0;
 
   RemoteFileLocation remote_;
-  FileLocationSource remote_source_ = FileLocationSource::FromUser;
   FileLoadManager::QueryId download_id_ = 0;
-  int32 download_priority_ = 0;
   int64 remote_ready_size_ = 0;
-  bool is_download_started_ = false;
 
   GenerateFileLocation generate_;
   FileLoadManager::QueryId generate_id_ = 0;
-  bool generate_was_update_ = false;
-  int32 generate_priority_ = 0;
-  int32 generate_download_priority_ = 0;
-  int32 generate_upload_priority_ = 0;
 
   BufferSlice content_;
 
   int64 size_ = 0;
   int64 expected_size_ = 0;
-  string name_ = "";
-  string url_ = "";
+  string name_;
+  string url_;
   DialogId owner_dialog_id_;
   FileEncryptionKey encryption_key_;
-  bool need_load_from_pmc_ = false;
   FileDbId pmc_id_ = 0;
   std::vector<FileId> file_ids_;
 
   FileId main_file_id_;
-  int main_file_id_priority_ = 0;
+
+  FileId upload_pause_;
+  int32 upload_priority_ = 0;
+  int32 download_priority_ = 0;
+  int32 generate_priority_ = 0;
+
+  int32 generate_download_priority_ = 0;
+  int32 generate_upload_priority_ = 0;
+
+  int8 main_file_id_priority_ = 0;
+
+  FileLocationSource remote_source_ = FileLocationSource::FromUser;
+
   bool get_by_hash_ = false;
+
+  bool is_download_started_ = false;
+  bool generate_was_update_ = false;
+
+  bool need_load_from_pmc_ = false;
 
   bool pmc_changed_flag_{false};
   bool info_changed_flag_{false};
@@ -134,7 +143,7 @@ class FileView {
 
   const string &name() const;
 
-  const DialogId &owner_dialog_id() const;
+  DialogId owner_dialog_id() const;
 
   bool get_by_hash() const;
 

@@ -318,7 +318,7 @@ const string &FileView::name() const {
   return node_->name_;
 }
 
-const DialogId &FileView::owner_dialog_id() const {
+DialogId FileView::owner_dialog_id() const {
   return node_->owner_dialog_id_;
 }
 
@@ -779,7 +779,7 @@ static int merge_choose_owner(DialogId x, DialogId y) {
   return 2;
 }
 
-static int merge_choose_main_file_id(FileId a, int32 a_priority, FileId b, int32 b_priority) {
+static int merge_choose_main_file_id(FileId a, int8 a_priority, FileId b, int8 b_priority) {
   if (a_priority != b_priority) {
     return a_priority < b_priority;
   }
