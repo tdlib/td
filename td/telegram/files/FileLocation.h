@@ -695,8 +695,10 @@ inline StringBuilder &operator<<(StringBuilder &string_builder,
   return string_builder << "]";
 }
 
-struct RemoteFileLocation {
-  enum class Type : int32 { Empty, Partial, Full } type_;
+class RemoteFileLocation {
+ public:
+  enum class Type : int32 { Empty, Partial, Full };
+  Type type_;
   Variant<EmptyRemoteFileLocation, PartialRemoteFileLocation, FullRemoteFileLocation> variant_;
 
   template <class StorerT>
@@ -710,17 +712,11 @@ struct RemoteFileLocation {
     });
     CHECK(ok);
   }
-  EmptyRemoteFileLocation &empty_location() {
-    return variant_.get<0>();
-  }
   PartialRemoteFileLocation &partial() {
     return variant_.get<1>();
   }
   FullRemoteFileLocation &full() {
     return variant_.get<2>();
-  }
-  const EmptyRemoteFileLocation &empty_location() const {
-    return variant_.get<0>();
   }
   const PartialRemoteFileLocation &partial() const {
     return variant_.get<1>();
@@ -734,7 +730,7 @@ struct RemoteFileLocation {
     switch (type_) {
       case Type::Empty: {
         variant_ = EmptyRemoteFileLocation();
-        return empty_location().parse(parser);
+        return;
       }
       case Type::Partial: {
         variant_ = PartialRemoteFileLocation();
@@ -792,8 +788,8 @@ inline bool operator!=(const EmptyLocalFileLocation &lhs, const EmptyLocalFileLo
 struct PartialLocalFileLocation {
   FileType type_;
   string path_;
-  int part_size_;
-  int ready_part_count_;
+  int32 part_size_;
+  int32 ready_part_count_;
   string iv_;
 
   template <class StorerT>
@@ -880,22 +876,17 @@ inline StringBuilder &operator<<(StringBuilder &sb, const FullLocalFileLocation 
   return sb << tag("path", location.path_);
 }
 
-struct LocalFileLocation {
+class LocalFileLocation {
+ public:
   enum class Type : int32 { Empty, Partial, Full };
   Type type_;
   Variant<EmptyLocalFileLocation, PartialLocalFileLocation, FullLocalFileLocation> variant_;
 
-  EmptyLocalFileLocation &empty_location() {
-    return variant_.get<0>();
-  }
   PartialLocalFileLocation &partial() {
     return variant_.get<1>();
   }
   FullLocalFileLocation &full() {
     return variant_.get<2>();
-  }
-  const EmptyLocalFileLocation &empty_location() const {
-    return variant_.get<0>();
   }
   const PartialLocalFileLocation &partial() const {
     return variant_.get<1>();
@@ -920,7 +911,7 @@ struct LocalFileLocation {
     switch (type_) {
       case Type::Empty:
         variant_ = EmptyLocalFileLocation();
-        return parse(empty_location(), parser);
+        return;
       case Type::Partial:
         variant_ = PartialLocalFileLocation();
         return parse(partial(), parser);
@@ -947,23 +938,6 @@ inline bool operator==(const LocalFileLocation &lhs, const LocalFileLocation &rh
 }
 
 inline bool operator!=(const LocalFileLocation &lhs, const LocalFileLocation &rhs) {
-  return !(lhs == rhs);
-}
-
-struct EmptyGenerateFileLocation {
-  template <class StorerT>
-  void store(StorerT &storer) const {
-  }
-  template <class ParserT>
-  void parse(ParserT &parser) {
-  }
-};
-
-inline bool operator==(const EmptyGenerateFileLocation &lhs, const EmptyGenerateFileLocation &rhs) {
-  return true;
-}
-
-inline bool operator!=(const EmptyGenerateFileLocation &lhs, const EmptyGenerateFileLocation &rhs) {
   return !(lhs == rhs);
 }
 
@@ -1019,33 +993,41 @@ inline StringBuilder &operator<<(StringBuilder &string_builder,
                         << tag("conversion", full_generated_file_location.conversion_) << "]";
 }
 
-struct GenerateFileLocation {
+class GenerateFileLocation {
+ public:
   enum class Type : int32 { Empty, Full };
   Type type_;
-  EmptyGenerateFileLocation empty_;
-  FullGenerateFileLocation full_;
+
+  FullGenerateFileLocation &full() {
+    CHECK(type_ == Type::Full);
+    return full_;
+  }
+  const FullGenerateFileLocation &full() const {
+    CHECK(type_ == Type::Full);
+    return full_;
+  }
 
   template <class StorerT>
   void store(StorerT &storer) const {
-    storer.store_int(static_cast<int32>(type_));
+    td::store(type_, storer);
     switch (type_) {
       case Type::Empty:
-        return empty_.store(storer);
+        return;
       case Type::Full:
-        return full_.store(storer);
+        return td::store(full_, storer);
     }
-    UNREACHABLE();
   }
+
   template <class ParserT>
   void parse(ParserT &parser) {
-    type_ = static_cast<Type>(parser.fetch_int());
+    td::parse(type_, parser);
     switch (type_) {
       case Type::Empty:
-        return empty_.parse(parser);
+        return;
       case Type::Full:
-        return full_.parse(parser);
+        return td::parse(full_, parser);
     }
-    return parser.set_error("Invalid type in LocalFileLocation");
+    return parser.set_error("Invalid type in GenerateFileLocation");
   }
 
   GenerateFileLocation() : type_(Type::Empty) {
@@ -1053,9 +1035,13 @@ struct GenerateFileLocation {
 
   explicit GenerateFileLocation(const FullGenerateFileLocation &full) : type_(Type::Full), full_(full) {
   }
+
   GenerateFileLocation(FileType file_type, string original_path, string conversion)
-      : type_(Type::Full), full_(file_type, std::move(original_path), std::move(conversion)) {
+      : type_(Type::Full), full_{file_type, std::move(original_path), std::move(conversion)} {
   }
+
+ private:
+  FullGenerateFileLocation full_;
 };
 
 inline bool operator==(const GenerateFileLocation &lhs, const GenerateFileLocation &rhs) {
@@ -1064,9 +1050,9 @@ inline bool operator==(const GenerateFileLocation &lhs, const GenerateFileLocati
   }
   switch (lhs.type_) {
     case GenerateFileLocation::Type::Empty:
-      return lhs.empty_ == rhs.empty_;
+      return true;
     case GenerateFileLocation::Type::Full:
-      return lhs.full_ == rhs.full_;
+      return lhs.full() == rhs.full();
   }
   UNREACHABLE();
   return false;

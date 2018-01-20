@@ -184,7 +184,7 @@ bool FileNode::need_pmc_flush() const {
 
   bool has_generate_location = generate_.type_ == GenerateFileLocation::Type::Full;
   // Do not save "#file_id#" conversion.
-  if (has_generate_location && begins_with(generate_.full_.conversion_, "#file_id#")) {
+  if (has_generate_location && begins_with(generate_.full().conversion_, "#file_id#")) {
     has_generate_location = false;
   }
 
@@ -229,7 +229,7 @@ bool FileView::has_generate_location() const {
 }
 const FullGenerateFileLocation &FileView::generate_location() const {
   CHECK(has_generate_location());
-  return node_->generate_.full_;
+  return node_->generate_.full();
 }
 
 int64 FileView::size() const {
@@ -1112,7 +1112,7 @@ void FileManager::flush_to_pmc(FileNode *node, bool new_remote, bool new_local, 
   data.generate_ = node->generate_;
 
   if (data.generate_.type_ == GenerateFileLocation::Type::Full &&
-      begins_with(data.generate_.full_.conversion_, "#file_id#")) {
+      begins_with(data.generate_.full().conversion_, "#file_id#")) {
     data.generate_ = GenerateFileLocation();
   }
 
@@ -1542,7 +1542,7 @@ void FileManager::run_generate(FileNode *node) {
 
   QueryId id = queries_container_.create(Query{file_id, Query::Generate});
   node->generate_id_ = id;
-  send_closure(file_generate_manager_, &FileGenerateManager::generate_file, id, node->generate_.full_, node->local_,
+  send_closure(file_generate_manager_, &FileGenerateManager::generate_file, id, node->generate_.full(), node->local_,
                node->name_, [file_manager = this, id] {
                  class Callback : public FileGenerateCallback {
                    ActorId<FileManager> actor_;

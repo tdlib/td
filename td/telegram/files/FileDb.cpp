@@ -185,7 +185,7 @@ class FileDb : public FileDbInterface {
     }
     string generate_key;
     if (file_data.generate_.type_ == GenerateFileLocation::Type::Full) {
-      generate_key = as_key(file_data.generate_.full_);
+      generate_key = as_key(file_data.generate_.full());
     }
     send_closure(file_db_actor_, &FileDbActor::clear_file_data, id, remote_key, local_key, generate_key);
   }
@@ -200,7 +200,7 @@ class FileDb : public FileDbInterface {
     }
     string generate_key;
     if (file_data.generate_.type_ == GenerateFileLocation::Type::Full && new_generate) {
-      generate_key = as_key(file_data.generate_.full_);
+      generate_key = as_key(file_data.generate_.full());
     }
     LOG(DEBUG) << "SAVE " << id << " -> " << file_data << " "
                << tag("remote", format::as_hex_dump<4>(Slice(remote_key)))

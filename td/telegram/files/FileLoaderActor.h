@@ -11,7 +11,7 @@
 
 namespace td {
 
-struct LocalFileLocation;
+class LocalFileLocation;
 class ResourceManager;
 
 class FileLoaderActor : public NetQueryCallback {
