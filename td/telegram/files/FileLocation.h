@@ -700,12 +700,12 @@ class RemoteFileLocation {
   enum class Type : int32 { Empty, Partial, Full };
 
   Type type() const {
-    return type_;
+    return static_cast<Type>(variant_.get_offset());
   }
 
   template <class StorerT>
   void store(StorerT &storer) const {
-    storer.store_int(static_cast<int32>(type_));
+    storer.store_int(variant_.get_offset());
     bool ok{false};
     variant_.visit([&](auto &&value) {
       using td::store;
@@ -728,8 +728,8 @@ class RemoteFileLocation {
   }
   template <class ParserT>
   void parse(ParserT &parser) {
-    type_ = static_cast<Type>(parser.fetch_int());
-    switch (type_) {
+    auto type = static_cast<Type>(parser.fetch_int());
+    switch (type) {
       case Type::Empty: {
         variant_ = EmptyRemoteFileLocation();
         return;
@@ -746,23 +746,21 @@ class RemoteFileLocation {
     parser.set_error("Invalid type in RemoteFileLocation");
   }
 
-  RemoteFileLocation() : type_(Type::Empty), variant_{EmptyRemoteFileLocation{}} {
+  RemoteFileLocation() : variant_{EmptyRemoteFileLocation{}} {
   }
-  explicit RemoteFileLocation(const FullRemoteFileLocation &full) : type_(Type::Full), variant_(full) {
+  explicit RemoteFileLocation(const FullRemoteFileLocation &full) : variant_(full) {
   }
-  explicit RemoteFileLocation(const PartialRemoteFileLocation &partial) : type_(Type::Partial), variant_(partial) {
+  explicit RemoteFileLocation(const PartialRemoteFileLocation &partial) : variant_(partial) {
   }
   RemoteFileLocation(FileType file_type, int64 id, int64 access_hash, int32 local_id, int64 volume_id, int64 secret,
                      DcId dc_id)
-      : type_(Type::Full)
-      , variant_(FullRemoteFileLocation{file_type, id, access_hash, local_id, volume_id, secret, dc_id}) {
+      : variant_(FullRemoteFileLocation{file_type, id, access_hash, local_id, volume_id, secret, dc_id}) {
   }
   RemoteFileLocation(FileType file_type, int64 id, int64 access_hash, DcId dc_id)
-      : type_(Type::Full), variant_(FullRemoteFileLocation{file_type, id, access_hash, dc_id}) {
+      : variant_(FullRemoteFileLocation{file_type, id, access_hash, dc_id}) {
   }
 
  private:
-  Type type_;
   Variant<EmptyRemoteFileLocation, PartialRemoteFileLocation, FullRemoteFileLocation> variant_;
 
   friend bool operator==(const RemoteFileLocation &lhs, const RemoteFileLocation &rhs);
@@ -889,7 +887,7 @@ class LocalFileLocation {
   enum class Type : int32 { Empty, Partial, Full };
 
   Type type() const {
-    return type_;
+    return static_cast<Type>(variant_.get_offset());
   }
 
   PartialLocalFileLocation &partial() {
@@ -908,7 +906,7 @@ class LocalFileLocation {
   template <class StorerT>
   void store(StorerT &storer) const {
     using td::store;
-    store(type_, storer);
+    store(variant_.get_offset(), storer);
     variant_.visit([&](auto &&value) {
       using td::store;
       store(value, storer);
@@ -917,8 +915,8 @@ class LocalFileLocation {
   template <class ParserT>
   void parse(ParserT &parser) {
     using td::parse;
-    type_ = static_cast<Type>(parser.fetch_int());
-    switch (type_) {
+    auto type = static_cast<Type>(parser.fetch_int());
+    switch (type) {
       case Type::Empty:
         variant_ = EmptyLocalFileLocation();
         return;
@@ -932,18 +930,17 @@ class LocalFileLocation {
     return parser.set_error("Invalid type in LocalFileLocation");
   }
 
-  LocalFileLocation() : type_(Type::Empty), variant_{EmptyLocalFileLocation()} {
+  LocalFileLocation() : variant_{EmptyLocalFileLocation()} {
   }
-  explicit LocalFileLocation(const PartialLocalFileLocation &partial) : type_(Type::Partial), variant_(partial) {
+  explicit LocalFileLocation(const PartialLocalFileLocation &partial) : variant_(partial) {
   }
-  explicit LocalFileLocation(const FullLocalFileLocation &full) : type_(Type::Full), variant_(full) {
+  explicit LocalFileLocation(const FullLocalFileLocation &full) : variant_(full) {
   }
   LocalFileLocation(FileType file_type, string path, uint64 mtime_nsec)
-      : type_(Type::Full), variant_(FullLocalFileLocation{file_type, std::move(path), mtime_nsec}) {
+      : variant_(FullLocalFileLocation{file_type, std::move(path), mtime_nsec}) {
   }
 
  private:
-  Type type_;
   Variant<EmptyLocalFileLocation, PartialLocalFileLocation, FullLocalFileLocation> variant_;
 
   friend bool operator==(const LocalFileLocation &lhs, const LocalFileLocation &rhs);
