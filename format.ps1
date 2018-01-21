@@ -1,4 +1,4 @@
 ﻿./src.ps1 | ForEach-Object {
   echo $_
-  clang-format -style=file -i $_
+  clang-format -verbose -style=file -i $_
 }
