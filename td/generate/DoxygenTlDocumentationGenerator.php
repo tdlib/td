@@ -117,7 +117,9 @@ class DoxygenTlDocumentationGenerator extends TlDocumentationGenerator
         $tline = trim($line);
         return empty($tline) || $tline[0] == '}' || $tline == 'public:' || strpos($line, '#pragma ') === 0 ||
             strpos($line, '#include <') === 0 || strpos($tline, 'return ') === 0 || strpos($tline, 'namespace') === 0 ||
-            preg_match('/class [A-Za-z0-9_]*;/', $line) || $tline === 'if (value == nullptr) {';
+            preg_match('/class [A-Za-z0-9_]*;/', $line) || $tline === 'if (value == nullptr) {' ||
+            strpos($line, 'JNIEnv') || strpos($line, 'jfieldID') || $tline === 'virtual ~Object() {' ||
+            $tline == 'virtual void store(TlStorerToString &s, const char *field_name) const = 0;';
     }
 
     protected function isHeaderLine($line)
@@ -135,8 +137,14 @@ class DoxygenTlDocumentationGenerator extends TlDocumentationGenerator
 
     protected function fixLine($line)
     {
-        if (strpos($line, 'ID = ') > 0 || strpos($line, 'ReturnType = ') > 0) {
+        if (strpos($line, 'ID = ') > 0 || strpos($line, 'ReturnType = ') > 0 || strpos($line, 'using BaseObject = ') === 0) {
             return substr($line, 0, strpos($line, '='));
+        }
+        if (strpos($line, 'class Function: ') === 0) {
+            return 'class Function';
+        }
+        if (strpos($line, 'class Object {') === 0 || strpos($line, 'class Object: public TlObject {') === 0) {
+            return 'class Object';
         }
 
         return $line;
@@ -152,7 +160,7 @@ class DoxygenTlDocumentationGenerator extends TlDocumentationGenerator
 EOT
 );
 
-        $this->addDocumentation('using BaseObject = ::td::TlObject;', <<<EOT
+        $this->addDocumentation('using BaseObject', <<<EOT
 /**
  * This class is a base class for all TDLib API classes and functions.
  */
@@ -189,10 +197,10 @@ EOT
  * Casting an object to an incorrect type will lead to undefined bejaviour.
  * Usage example:
  * \\code
- * td::tl_object_ptr<td::td_api::callState> call_state = ...;
+ * td::td_api::object_ptr<td::td_api::callState> call_state = ...;
  * switch (call_state->get_id()) {
  *   case td::td_api::callStatePending::ID: {
- *     auto state = td::move_tl_object_as<td::td_api::callStatePending>(call_state);
+ *     auto state = td::td_api::move_object_as<td::td_api::callStatePending>(call_state);
  *     // use state
  *     break;
  *   }
@@ -201,7 +209,7 @@ EOT
  *     break;
  *   }
  *   case td::td_api::callStateReady::ID: {
- *     auto state = td::move_tl_object_as<td::td_api::callStateReady>(call_state);
+ *     auto state = td::td_api::move_object_as<td::td_api::callStateReady>(call_state);
  *     // use state
  *     break;
  *   }
@@ -210,12 +218,12 @@ EOT
  *     break;
  *   }
  *   case td::td_api::callStateDiscarded::ID: {
- *     auto state = td::move_tl_object_as<td::td_api::callStateDiscarded>(call_state);
+ *     auto state = td::td_api::move_object_as<td::td_api::callStateDiscarded>(call_state);
  *     // use state
  *     break;
  *   }
  *   case td::td_api::callStateError::ID: {
- *     auto state = td::move_tl_object_as<td::td_api::callStateError>(call_state);
+ *     auto state = td::td_api::move_object_as<td::td_api::callStateError>(call_state);
  *     // use state
  *     break;
  *   }
@@ -259,14 +267,14 @@ EOT
 EOT
 );
 
-        $this->addDocumentation('class Object: public TlObject {', <<<EOT
+        $this->addDocumentation('class Object', <<<EOT
 /**
  * This class is a base class for all TDLib API classes.
  */
 EOT
 );
 
-        $this->addDocumentation('class Function: public TlObject {', <<<EOT
+        $this->addDocumentation('class Function', <<<EOT
 /**
  * This class is a base class for all TDLib API functions.
  */
@@ -275,6 +283,13 @@ EOT
 
         $this->addDocumentation('  static const std::int32_t ID', <<<EOT
   /// Identifier uniquely determining a type of the object.
+EOT
+);
+
+        $this->addDocumentation('  virtual std::int32_t get_id() const = 0;', <<<EOT
+  /**
+   * Returns identifier uniquely determining a type of the object.
+   */
 EOT
 );
 

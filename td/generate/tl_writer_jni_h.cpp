@@ -118,7 +118,8 @@ std::string TD_TL_writer_jni_h::gen_class_begin(const std::string &class_name, c
            " {\n"
            " public:\n"
            "  virtual ~" +
-           class_name + "() {}\n\n" +
+           class_name + "() {\n"
+           "  }\n\n" +
            "  virtual void store(JNIEnv *env, jobject &s) const {\n"
            "  }\n\n"
            "  virtual void store(TlStorerToString &s, const char *field_name) const = 0;\n\n"
