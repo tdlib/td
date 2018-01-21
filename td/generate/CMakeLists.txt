@@ -106,8 +106,8 @@ if (NOT CMAKE_CROSSCOMPILING)
     DEPENDS generate_c scheme/td_api.tlo
   )
 
-  add_executable(generate_java ${TL_GENERATE_JAVA_SOURCE})
-  target_link_libraries(generate_java PRIVATE tdtl)
+  add_executable(td_generate_java_api ${TL_GENERATE_JAVA_SOURCE})
+  target_link_libraries(td_generate_java_api PRIVATE tdtl)
 
   add_executable(generate_json ${TL_GENERATE_JSON_SOURCE})
   target_link_libraries(generate_json PRIVATE tdtl tdutils)
@@ -119,7 +119,7 @@ if (NOT CMAKE_CROSSCOMPILING)
   )
 
   if (TD_ENABLE_JNI)
-    install(TARGETS generate_java RUNTIME DESTINATION bin)
+    install(TARGETS td_generate_java_api RUNTIME DESTINATION bin)
     install(FILES JavadocTlDocumentationGenerator.php TlDocumentationGenerator.php DESTINATION bin/td/generate)
     install(FILES scheme/td_api.tlo scheme/td_api.tl DESTINATION bin/td/generate/scheme)
   endif()
