@@ -2117,6 +2117,7 @@ class MessagesManager : public Actor {
   tl_object_ptr<td_api::chat> get_chat_object(const Dialog *d);
 
   bool have_dialog_info(DialogId dialog_id) const;
+  bool have_dialog_info_force(DialogId dialog_id) const;
 
   Dialog *get_dialog(DialogId dialog_id);
   const Dialog *get_dialog(DialogId dialog_id) const;

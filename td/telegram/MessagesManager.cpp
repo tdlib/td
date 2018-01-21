@@ -4751,6 +4751,30 @@ bool MessagesManager::have_dialog_info(DialogId dialog_id) const {
   }
 }
 
+bool MessagesManager::have_dialog_info_force(DialogId dialog_id) const {
+  switch (dialog_id.get_type()) {
+    case DialogType::User: {
+      UserId user_id = dialog_id.get_user_id();
+      return td_->contacts_manager_->have_user_force(user_id);
+    }
+    case DialogType::Chat: {
+      ChatId chat_id = dialog_id.get_chat_id();
+      return td_->contacts_manager_->have_chat_force(chat_id);
+    }
+    case DialogType::Channel: {
+      ChannelId channel_id = dialog_id.get_channel_id();
+      return td_->contacts_manager_->have_channel_force(channel_id);
+    }
+    case DialogType::SecretChat: {
+      SecretChatId secret_chat_id = dialog_id.get_secret_chat_id();
+      return td_->contacts_manager_->have_secret_chat_force(secret_chat_id);
+    }
+    case DialogType::None:
+    default:
+      return false;
+  }
+}
+
 tl_object_ptr<telegram_api::inputEncryptedChat> MessagesManager::get_input_encrypted_chat(
     DialogId dialog_id, AccessRights access_rights) const {
   switch (dialog_id.get_type()) {
@@ -11344,10 +11368,12 @@ Status MessagesManager::set_dialog_client_data(DialogId dialog_id, string &&clie
 
 void MessagesManager::create_dialog(DialogId dialog_id, Promise<Unit> &&promise) {
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    if (!have_dialog_info(dialog_id)) {
+    if (!have_dialog_info_force(dialog_id)) {
       return promise.set_error(Status::Error(6, "Chat info not found"));
     }
-    return promise.set_error(Status::Error(6, "Can't access the chat"));
+    if (!have_input_peer(dialog_id, AccessRights::Read)) {
+      return promise.set_error(Status::Error(6, "Can't access the chat"));
+    }
   }
 
   if (td_->auth_manager_->is_bot() || dialog_id.get_type() == DialogType::SecretChat) {
