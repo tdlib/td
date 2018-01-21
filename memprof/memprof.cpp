@@ -175,7 +175,10 @@ std::int32_t get_ht_pos(const Backtrace &bt, bool force = false) {
       pos++;
       if (pos == static_cast<std::int32_t>(ht.size())) {
         pos = 0;
-        assert(!was_overflow);
+        if (was_overflow) {
+          // unreachable
+          std::abort();
+        }
         was_overflow = true;
       }
     }
