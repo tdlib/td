@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
 project(TDLib VERSION 1.0.4 LANGUAGES CXX C)
 
+option(TD_ENABLE_JNI "Use \"ON\" to enable JNI-compatible TDLib API.")
+
 if (NOT DEFINED CMAKE_MODULE_PATH)
   set(CMAKE_MODULE_PATH "")
 endif()
@@ -240,7 +242,7 @@ endif()
 #SOURCE SETS
 
 set_source_files_properties(${TL_TD_AUTO} PROPERTIES GENERATED TRUE)
-if (TD_API_JAVA_PACKAGE)
+if (TD_ENABLE_JNI)
   set(TL_JNI_OBJECT
     td/tl/tl_jni_object.cpp
     td/tl/tl_jni_object.h
@@ -547,7 +549,7 @@ target_include_directories(tdcore PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURC
 target_include_directories(tdcore SYSTEM PRIVATE ${OPENSSL_INCLUDE_DIR})
 target_link_libraries(tdcore PUBLIC tdactor tdutils tdnet tddb PRIVATE ${OPENSSL_CRYPTO_LIBRARY})
 
-if (TD_API_JAVA_PACKAGE AND NOT ANDROID) # jni is available by default on Android
+if (TD_ENABLE_JNI AND NOT ANDROID) # jni is available by default on Android
   if (NOT JNI_FOUND)
     find_package(JNI REQUIRED)
   endif()
@@ -558,6 +560,9 @@ endif()
 
 if (NOT CMAKE_CROSSCOMPILING)
   add_dependencies(tdcore tl_generate_common)
+  if (TD_ENABLE_JNI)
+    add_dependencies(tdcore generate_java)
+  endif()
 endif()
 
 add_library(tdclient td/telegram/Client.cpp td/telegram/Client.h td/telegram/Log.cpp td/telegram/Log.h)
@@ -567,7 +572,7 @@ target_include_directories(tdclient PUBLIC
 )
 target_link_libraries(tdclient PRIVATE tdcore)
 
-if (TD_API_JAVA_PACKAGE AND NOT ANDROID) # jni is available by default on Android
+if (TD_ENABLE_JNI AND NOT ANDROID) # jni is available by default on Android
   target_include_directories(tdclient PUBLIC ${JAVA_INCLUDE_PATH} ${JAVA_INCLUDE_PATH2})
   target_link_libraries(tdclient PUBLIC ${JAVA_JVM_LIBRARY})
 endif()
@@ -665,7 +670,7 @@ add_library(Td::TdStatic ALIAS TdStatic)
 add_library(Td::TdJson ALIAS TdJson)
 add_library(Td::TdJsonStatic ALIAS TdJsonStatic)
 
-install(TARGETS tdjson TdJson tdjson_static tdjson_private tdclient tdcore TdJsonStatic TdStatic EXPORT TdTargets
+install(TARGETS tdjson TdJson tdjson_static TdJsonStatic tdjson_private tdclient tdcore TdStatic EXPORT TdTargets
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION bin
@@ -682,7 +687,7 @@ install(FILES ${TD_JSON_HEADERS} ${CMAKE_CURRENT_BINARY_DIR}/td/telegram/tdjson_
 install(FILES td/telegram/Client.h td/telegram/Log.h DESTINATION include/td/telegram)
 install(FILES td/tl/TlObject.h DESTINATION include/td/tl)
 install(FILES ${TL_TD_AUTO_INCLUDES}/td/telegram/td_api.h ${TL_TD_AUTO_INCLUDES}/td/telegram/td_api.hpp DESTINATION include/td/telegram)
-if (TD_API_JAVA_PACKAGE)
+if (TD_ENABLE_JNI)
   install(FILES td/tl/tl_jni_object.h DESTINATION include/td/tl)
 endif()
 

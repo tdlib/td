@@ -141,7 +141,7 @@ std::string TD_TL_writer_jni_h::gen_additional_function(const std::string &funct
   if (function_name == "init_jni_vars") {
     return "\n"
            "  static void " +
-           function_name + "(JNIEnv *env);\n";
+           function_name + "(JNIEnv *env, const char *package_name);\n";
   }
 
   return TD_TL_writer_h::gen_additional_function(function_name, t, is_function);
@@ -154,7 +154,7 @@ std::string TD_TL_writer_jni_h::gen_additional_proxy_function_begin(const std::s
   if (function_name == "init_jni_vars") {
     return "\n"
            "  static void " +
-           function_name + "(JNIEnv *env);\n";
+           function_name + "(JNIEnv *env, const char *package_name);\n";
   }
 
   return TD_TL_writer_h::gen_additional_proxy_function_begin(function_name, type, class_name, arity, is_function);

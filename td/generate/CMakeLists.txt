@@ -79,7 +79,7 @@ set(TL_GENERATE_JSON_SOURCE
 if (NOT CMAKE_CROSSCOMPILING)
   find_program(PHP_EXECUTABLE php)
 
-  if (PHP_EXECUTABLE AND NOT TD_API_JAVA_PACKAGE)
+  if (PHP_EXECUTABLE AND NOT TD_ENABLE_JNI)
     set(GENERATE_COMMON_CMD generate_common && ${PHP_EXECUTABLE} DoxygenTlDocumentationGenerator.php scheme/td_api.tl auto/td/telegram/td_api.h)
   else()
     set(GENERATE_COMMON_CMD generate_common)
@@ -93,8 +93,8 @@ if (NOT CMAKE_CROSSCOMPILING)
     COMMENT "Generate common tl source files"
     DEPENDS generate_common scheme/mtproto_api.tlo scheme/telegram_api.tlo scheme/secret_api.tlo scheme/td_api.tlo
   )
-  if (TD_API_JAVA_PACKAGE)
-    target_compile_definitions(generate_common PRIVATE TD_API_JAVA_PACKAGE=\"${TD_API_JAVA_PACKAGE}\")
+  if (TD_ENABLE_JNI)
+    target_compile_definitions(generate_common PRIVATE TD_ENABLE_JNI=1)
   endif()
 
   add_executable(generate_c ${TL_GENERATE_C_SOURCE})
@@ -117,4 +117,10 @@ if (NOT CMAKE_CROSSCOMPILING)
     COMMENT "Generate JSON tl source files"
     DEPENDS generate_json scheme/td_api.tlo
   )
+
+  if (TD_ENABLE_JNI)
+    install(TARGETS generate_java RUNTIME DESTINATION bin)
+    install(FILES JavadocTlDocumentationGenerator.php TlDocumentationGenerator.php DESTINATION bin/td/generate)
+    install(FILES scheme/td_api.tlo scheme/td_api.tl DESTINATION bin/td/generate/scheme)
+  endif()
 endif()

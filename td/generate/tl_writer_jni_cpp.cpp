@@ -518,7 +518,7 @@ std::string TD_TL_writer_jni_cpp::gen_basic_java_class_name(std::string name) co
 }
 
 std::string TD_TL_writer_jni_cpp::gen_java_class_name(std::string name) const {
-  return package_name + "/" + "TdApi" + "$" + gen_basic_java_class_name(name);
+  return "(PSLICE() << package_name << \"/TdApi$" + gen_basic_java_class_name(name) + "\").c_str()";
 }
 
 std::string TD_TL_writer_jni_cpp::gen_type_signature(const tl::tl_tree_type *tree_type) const {
@@ -543,7 +543,7 @@ std::string TD_TL_writer_jni_cpp::gen_type_signature(const tl::tl_tree_type *tre
     const tl::tl_tree_type *child = static_cast<const tl::tl_tree_type *>(tree_type->children[0]);
     return "[" + gen_type_signature(child);
   } else {
-    return "L" + gen_java_class_name(gen_main_class_name(t)) + ";";
+    return "L%PACKAGE_NAME%/TdApi$" + gen_basic_java_class_name(gen_main_class_name(t)) + ";";
   }
   assert(false);
   return "";
@@ -558,9 +558,9 @@ std::string TD_TL_writer_jni_cpp::gen_additional_function(const std::string &fun
       "\n"
       "void " +
       class_name + "::" + function_name +
-      "(JNIEnv *env) {\n"
+      "(JNIEnv *env, const char *package_name) {\n"
       "  " +
-      class_name_class + " = jni::get_jclass(env, \"" + gen_java_class_name(gen_class_name(t->name)) + "\");\n";
+      class_name_class + " = jni::get_jclass(env, " + gen_java_class_name(gen_class_name(t->name)) + ");\n";
 
   if (t->args.size()) {
     res +=
@@ -577,8 +577,24 @@ std::string TD_TL_writer_jni_cpp::gen_additional_function(const std::string &fun
       assert(field_name.size());
       std::string java_field_name = gen_java_field_name(std::string(field_name, 0, field_name.size() - 1));
 
+      std::string type_signature = gen_type_signature(tree_type);
+      if (type_signature.find("%PACKAGE_NAME%") == std::string::npos) {
+        type_signature = '"' + type_signature + '"';
+      } else {
+        std::string new_type_signature = "(PSLICE()";
+        std::size_t pos = type_signature.find("%PACKAGE_NAME%");
+        while (pos != std::string::npos) {
+          new_type_signature += " << \"" + type_signature.substr(0, pos) + "\" << package_name";
+          type_signature = type_signature.substr(pos + 14);
+          pos = type_signature.find("%PACKAGE_NAME%");
+        }
+        if (!type_signature.empty()) {
+          new_type_signature += " << \"" + type_signature + "\"";
+        }
+        type_signature = new_type_signature + ").c_str()";
+      }
       res += "    " + field_name + "fieldID = jni::get_field_id(env, " + class_name_class + ", \"" + java_field_name +
-             "\", \"" + gen_type_signature(tree_type) + "\");\n";
+             "\", " + type_signature + ");\n";
     }
 
     res += "  }\n";
@@ -596,9 +612,9 @@ std::string TD_TL_writer_jni_cpp::gen_additional_proxy_function_begin(const std:
   return "\n"
          "void " +
          class_name + "::" + function_name +
-         "(JNIEnv *env) {\n"
-         "  Class = jni::get_jclass(env, \"" +
-         gen_java_class_name(class_name) + "\");\n";
+         "(JNIEnv *env, const char *package_name) {\n"
+         "  Class = jni::get_jclass(env, " +
+         gen_java_class_name(class_name) + ");\n";
 }
 
 std::string TD_TL_writer_jni_cpp::gen_additional_proxy_function_case(const std::string &function_name,
@@ -606,7 +622,7 @@ std::string TD_TL_writer_jni_cpp::gen_additional_proxy_function_case(const std::
                                                                      const std::string &class_name, int arity) const {
   assert(function_name == "init_jni_vars");
   assert(arity == 0);
-  return "  " + class_name + "::" + function_name + "(env);\n";
+  return "  " + class_name + "::" + function_name + "(env, package_name);\n";
 }
 
 std::string TD_TL_writer_jni_cpp::gen_additional_proxy_function_case(const std::string &function_name,
@@ -615,7 +631,7 @@ std::string TD_TL_writer_jni_cpp::gen_additional_proxy_function_case(const std::
                                                                      bool is_function) const {
   assert(function_name == "init_jni_vars");
   assert(arity == 0);
-  return "  " + gen_class_name(t->name) + "::" + function_name + "(env);\n";
+  return "  " + gen_class_name(t->name) + "::" + function_name + "(env, package_name);\n";
 }
 
 std::string TD_TL_writer_jni_cpp::gen_additional_proxy_function_end(const std::string &function_name,

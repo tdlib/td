@@ -38,13 +38,8 @@ class TD_TL_writer_jni_cpp : public TD_TL_writer_cpp {
 
  public:
   TD_TL_writer_jni_cpp(const std::string &tl_name, const std::string &string_type, const std::string &bytes_type,
-                       const std::vector<std::string> &ext_include, const std::string &package_name_)
-      : TD_TL_writer_cpp(tl_name, string_type, bytes_type, ext_include), package_name(package_name_) {
-    for (std::size_t i = 0; i < package_name.size(); i++) {
-      if (package_name[i] == '.') {
-        package_name[i] = '/';
-      }
-    }
+                       const std::vector<std::string> &ext_include)
+      : TD_TL_writer_cpp(tl_name, string_type, bytes_type, ext_include) {
   }
 
   bool is_built_in_simple_type(const std::string &name) const override;
