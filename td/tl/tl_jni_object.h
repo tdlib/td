@@ -31,6 +31,14 @@ extern jmethodID IntegerGetValueMethodID;
 extern jmethodID LongGetValueMethodID;
 extern jmethodID DoubleGetValueMethodID;
 
+jclass get_jclass(JNIEnv *env, const char *class_name);
+
+jmethodID get_method_id(JNIEnv *env, jclass clazz, const char *name, const char *signature);
+
+jfieldID get_field_id(JNIEnv *env, jclass clazz, const char *name, const char *signature);
+
+void register_native_method(JNIEnv *env, jclass clazz, std::string name, std::string signature, void *function_ptr);
+
 std::string fetch_string(JNIEnv *env, jobject o, jfieldID id);
 
 inline jobject fetch_object(JNIEnv *env, const jobject &o, const jfieldID &id) {
@@ -54,13 +62,7 @@ std::string from_bytes(JNIEnv *env, jbyteArray arr);
 
 jbyteArray to_bytes(JNIEnv *env, const std::string &b);
 
-jclass get_jclass(JNIEnv *env, const char *class_name);
-
-jmethodID get_method_id(JNIEnv *env, jclass clazz, const char *name, const char *sig);
-
-jfieldID get_field_id(JNIEnv *env, jclass clazz, const char *name, const char *sig);
-
-bool init_vars(JNIEnv *env, const char *td_api_java_package);
+void init_vars(JNIEnv *env, const char *td_api_java_package);
 
 jintArray store_vector(JNIEnv *env, const std::vector<std::int32_t> &v);
 

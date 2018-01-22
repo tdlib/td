@@ -9,6 +9,9 @@
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/Slice.h"
+
+#include <memory>
 
 namespace td {
 namespace jni {
@@ -29,51 +32,51 @@ jmethodID IntegerGetValueMethodID;
 jmethodID LongGetValueMethodID;
 jmethodID DoubleGetValueMethodID;
 
+static void fatal_error(JNIEnv *env, CSlice error) {
+  LOG(ERROR) << error;
+  env->FatalError(error.c_str());
+}
+
 jclass get_jclass(JNIEnv *env, const char *class_name) {
   jclass clazz = env->FindClass(class_name);
   if (!clazz) {
-    LOG(INFO) << "Can't find class [" << class_name << "]";
-    env->ExceptionClear();
-    return clazz;
+    fatal_error(env, PSLICE() << "Can't find class [" << class_name << "]");
   }
   jclass clazz_global = (jclass)env->NewGlobalRef(clazz);
 
   env->DeleteLocalRef(clazz);
 
   if (!clazz_global) {
-    LOG(ERROR) << "Can't create global reference to [" << class_name << "]";
-    env->FatalError("Can't create global reference");
+    fatal_error(env, PSLICE() << "Can't create global reference to [" << class_name << "]");
   }
 
   return clazz_global;
 }
 
-jmethodID get_method_id(JNIEnv *env, jclass clazz, const char *name, const char *sig) {
-  if (clazz) {
-    jmethodID res = env->GetMethodID(clazz, name, sig);
-    if (res) {
-      return res;
-    }
-
-    LOG(ERROR) << "Can't find method [" << name << "] with signature [" << sig << "]";
-    env->FatalError("Can't find method");
+jmethodID get_method_id(JNIEnv *env, jclass clazz, const char *name, const char *signature) {
+  jmethodID res = env->GetMethodID(clazz, name, signature);
+  if (!res) {
+    fatal_error(env, PSLICE() << "Can't find method [" << name << "] with signature [" << signature << "]");
   }
-  return nullptr;
+  return res;
 }
 
-jfieldID get_field_id(JNIEnv *env, jclass clazz, const char *name, const char *sig) {
-  // TODO check clazz != nullptr on call
-  jfieldID res = env->GetFieldID(clazz, name, sig);
-  if (res) {
-    return res;
+jfieldID get_field_id(JNIEnv *env, jclass clazz, const char *name, const char *signature) {
+  jfieldID res = env->GetFieldID(clazz, name, signature);
+  if (!res) {
+    fatal_error(env, PSLICE() << "Can't find field [" << name << "] with signature [" << signature << "]");
   }
-
-  LOG(ERROR) << "Can't find field [" << name << "] with signature [" << sig << "]";
-  env->FatalError("Can't find field");
-  return 0;
+  return res;
 }
 
-bool init_vars(JNIEnv *env, const char *td_api_java_package) {
+void register_native_method(JNIEnv *env, jclass clazz, std::string name, std::string signature, void *function_ptr) {
+  JNINativeMethod native_method{&name[0], &signature[0], function_ptr};
+  if (env->RegisterNatives(clazz, &native_method, 1) != 0) {
+    fatal_error(env, PSLICE() << "RegisterNatives failed for " << name << " with signature " << signature);
+  }
+}
+
+void init_vars(JNIEnv *env, const char *td_api_java_package) {
   BooleanClass = get_jclass(env, "java/lang/Boolean");
   IntegerClass = get_jclass(env, "java/lang/Integer");
   LongClass = get_jclass(env, "java/lang/Long");
@@ -89,7 +92,6 @@ bool init_vars(JNIEnv *env, const char *td_api_java_package) {
   IntegerGetValueMethodID = get_method_id(env, IntegerClass, "intValue", "()I");
   LongGetValueMethodID = get_method_id(env, LongClass, "longValue", "()J");
   DoubleGetValueMethodID = get_method_id(env, DoubleClass, "doubleValue", "()D");
-  return true;
 }
 
 static size_t get_utf8_from_utf16_length(const jchar *p, jsize len) {
@@ -105,7 +107,7 @@ static size_t get_utf8_from_utf16_length(const jchar *p, jsize len) {
         }
       }
 
-      // TODO wrong UTF-16
+      LOG(FATAL) << "Receive wrong UTF-16 string";
       return 0;
     }
     result += 1 + (cur >= 0x80) + (cur >= 0x800);
@@ -218,11 +220,9 @@ jstring to_jstring(JNIEnv *env, const std::string &s) {
     return env->NewString(result, result_len);
   }
 
-  jchar *result = new jchar[result_len];
-  utf8_to_utf16(s.c_str(), s.size(), result);
-  jstring result_jstring = env->NewString(result, result_len);
-  delete[] result;
-  return result_jstring;
+  auto result = std::make_unique<jchar[]>(result_len);
+  utf8_to_utf16(s.c_str(), s.size(), result.get());
+  return env->NewString(result.get(), result_len);
 }
 
 std::string from_bytes(JNIEnv *env, jbyteArray arr) {

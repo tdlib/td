@@ -563,11 +563,6 @@ std::string TD_TL_writer_jni_cpp::gen_additional_function(const std::string &fun
       class_name_class + " = jni::get_jclass(env, " + gen_java_class_name(gen_class_name(t->name)) + ");\n";
 
   if (t->args.size()) {
-    res +=
-        "\n"
-        "  if (" +
-        class_name_class + ") {\n";
-
     for (std::size_t i = 0; i < t->args.size(); i++) {
       const tl::arg &a = t->args[i];
       assert(a.type->get_type() == tl::NODE_TYPE_TYPE);
@@ -593,11 +588,9 @@ std::string TD_TL_writer_jni_cpp::gen_additional_function(const std::string &fun
         }
         type_signature = new_type_signature + ").c_str()";
       }
-      res += "    " + field_name + "fieldID = jni::get_field_id(env, " + class_name_class + ", \"" + java_field_name +
+      res += "  " + field_name + "fieldID = jni::get_field_id(env, " + class_name_class + ", \"" + java_field_name +
              "\", " + type_signature + ");\n";
     }
-
-    res += "  }\n";
   }
   res += "}\n";
   return res;
