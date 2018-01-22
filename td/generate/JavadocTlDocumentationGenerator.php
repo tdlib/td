@@ -141,7 +141,7 @@ EOT
 EOT
 );
 
-        $this->addDocumentation('        public String toString() {', <<<EOT
+        $this->addDocumentation('        public native String toString();', <<<EOT
         /**
          * @return string representation of the object.
          */

@@ -561,7 +561,7 @@ endif()
 if (NOT CMAKE_CROSSCOMPILING)
   add_dependencies(tdcore tl_generate_common)
   if (TD_ENABLE_JNI)
-    add_dependencies(tdcore generate_java)
+    add_dependencies(tdcore td_generate_java_api)
   endif()
 endif()
 

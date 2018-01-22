@@ -53,7 +53,7 @@ int TD_TL_writer_java::get_parser_type(const tl::tl_combinator *t, const std::st
 }
 
 int TD_TL_writer_java::get_storer_type(const tl::tl_combinator *t, const std::string &storer_name) const {
-  return storer_name == "StringBuilder";
+  return 0;
 }
 
 std::vector<std::string> TD_TL_writer_java::get_parsers() const {
@@ -63,9 +63,7 @@ std::vector<std::string> TD_TL_writer_java::get_parsers() const {
 }
 
 std::vector<std::string> TD_TL_writer_java::get_storers() const {
-  std::vector<std::string> storers;
-  storers.push_back("StringBuilder");
-  return storers;
+  return std::vector<std::string>();
 }
 
 std::string TD_TL_writer_java::gen_base_tl_class_name() const {
@@ -195,11 +193,8 @@ std::string TD_TL_writer_java::gen_int_const(const tl::tl_tree *tree_c,
 std::string TD_TL_writer_java::gen_output_begin() const {
   return "package " + package_name +
          ";\n\n"
-         "import java.util.Arrays;\n\n"
          "public class " +
-         tl_name +
-         " {\n"
-         "    private static final char[] HEX_CHARACTERS = \"0123456789ABCDEF\".toCharArray();\n\n";
+         tl_name + " {\n";
 }
 
 std::string TD_TL_writer_java::gen_output_end() const {
@@ -212,8 +207,16 @@ std::string TD_TL_writer_java::gen_forward_class_declaration(const std::string &
 
 std::string TD_TL_writer_java::gen_class_begin(const std::string &class_name, const std::string &base_class_name,
                                                bool is_proxy) const {
-  return "    public " + std::string(is_proxy ? "abstract " : "") + "static class " + class_name +
-         (class_name == gen_base_tl_class_name() ? std::string() : " extends " + base_class_name) + " {\n";
+  std::string full_class_name = "static class " + class_name;
+  if (class_name != gen_base_tl_class_name()) {
+    full_class_name += " extends " + base_class_name;
+  }
+  std::string result = "    public " + std::string(is_proxy ? "abstract " : "") + full_class_name + " {\n";
+  if (class_name == gen_base_tl_class_name() || class_name == gen_base_function_class_name()) {
+    result += "        public native String toString();\n";
+  }
+
+  return result;
 }
 
 std::string TD_TL_writer_java::gen_class_end() const {
@@ -305,22 +308,7 @@ std::string TD_TL_writer_java::gen_field_fetch(int field_num, const tl::arg &a, 
 
 std::string TD_TL_writer_java::gen_field_store(const tl::arg &a, std::vector<tl::var_description> &vars, bool flat,
                                                int storer_type) const {
-  assert(a.exist_var_num == -1);
-  assert(a.type->get_type() != tl::NODE_TYPE_VAR_TYPE);
-
-  assert(!(a.flags & tl::FLAG_EXCL));
-  assert(!(a.flags & tl::FLAG_OPT_VAR));
-
-  if (flat) {
-    //    TODO
-    //    return gen_field_store(const tl::arg &a, std::vector<tl::var_description> &vars, bool flat, int storer_type);
-  }
-
-  assert(a.var_num == -1);
-  assert(a.type->get_type() == tl::NODE_TYPE_TYPE);
-  const tl::tl_tree_type *tree_type = static_cast<tl::tl_tree_type *>(a.type);
-  return storer_type == 1 ? "            " + gen_type_store(gen_field_name(a.name), tree_type, vars, storer_type) + "\n"
-                          : "";
+  return "";
 }
 
 std::string TD_TL_writer_java::gen_type_fetch(const std::string &field_name, const tl::tl_tree_type *tree_type,
@@ -330,35 +318,6 @@ std::string TD_TL_writer_java::gen_type_fetch(const std::string &field_name, con
 
 std::string TD_TL_writer_java::gen_type_store(const std::string &field_name, const tl::tl_tree_type *tree_type,
                                               const std::vector<tl::var_description> &vars, int storer_type) const {
-  if (storer_type == 1) {
-    const tl::tl_type *t = tree_type->type;
-    const std::string &name = t->name;
-
-    std::string res;
-
-    res = "appendLine(s, shift).append(\"" + field_name + " = \")";
-    if (name == "Int32" || name == "Int53" || name == "Int64" || name == "Double" || name == "Bool" ||
-        name == "String") {
-      res += ".append(" + field_name + ");";
-    } else if (name == "Bytes") {
-      res += ".append(\"bytes { \"); ";
-      res += "{ for (byte k : " + field_name + ") { ";
-      res += "int b = (int)k & 255; s.append(HEX_CHARACTERS[b >> 4]).append(HEX_CHARACTERS[b & 15]).append(' '); ";
-      res += "} } s.append('}');";
-    } else if (name == "Vector") {
-      const tl::tl_tree_type *child = static_cast<const tl::tl_tree_type *>(tree_type->children[0]);
-      std::string vector_type = child->type->name;
-
-      res +=
-          ".append(Arrays." + std::string(vector_type == "Vector" ? "deepTo" : "to") + "String(" + field_name + "));";
-    } else {
-      res += "; if (" + field_name + " != null) { " + field_name +
-             ".toStringBuilder(shift, s); } else { s.append(\"null\"); }";
-      assert(tree_type->children.empty());
-    }
-    return res;
-  }
-
   return "";
 }
 
@@ -421,62 +380,13 @@ std::string TD_TL_writer_java::gen_fetch_function_result_any_end(bool is_proxy) 
 std::string TD_TL_writer_java::gen_store_function_begin(const std::string &storer_name, const std::string &class_name,
                                                         int arity, std::vector<tl::var_description> &vars,
                                                         int storer_type) const {
-  for (std::size_t i = 0; i < vars.size(); i++) {
-    vars[i].is_stored = false;
-  }
-
-  assert(arity == 0);
-  if (storer_type == 1) {
-    return "\n"
-           "        @Override\n"
-           "        protected void toStringBuilder(int shift, " +
-           storer_name +
-           " s) {\n"
-           "            s.append(\"" +
-           class_name +
-           "\").append(\" {\");\n"
-           "            shift += 2;\n";
-  }
-
-  if (storer_type == -1) {
-    return class_name == gen_base_tl_class_name() ? "\n"
-                                                    "        public String toString() {\n"
-                                                    "            StringBuilder s = new StringBuilder();\n"
-                                                    "            toStringBuilder(0, s);\n"
-                                                    "            return s.toString();\n"
-                                                    "        }\n"
-                                                    "\n"
-                                                    "        protected " +
-                                                        storer_name + " appendLine(" + storer_name +
-                                                        " s, int shift) {\n"
-                                                        "            s.append(System.lineSeparator());\n"
-                                                        "            for (int i = 0; i < shift; i++) {\n"
-                                                        "                s.append(' ');\n"
-                                                        "            }\n"
-                                                        "            return s;\n"
-                                                        "        }\n"
-                                                        "\n"
-                                                        "        protected abstract void toStringBuilder(int shift, " +
-                                                        storer_name + " s);\n"
-                                                  : "";
-  }
   assert(false);
-
   return "";
 }
 
 std::string TD_TL_writer_java::gen_store_function_end(const std::vector<tl::var_description> &vars,
                                                       int storer_type) const {
-  for (std::size_t i = 0; i < vars.size(); i++) {
-    assert(vars[i].is_stored);
-  }
-
-  if (storer_type == 1) {
-    return "            shift -= 2;\n"
-           "            appendLine(s, shift).append(\"}\");\n"
-           "        }\n";
-  }
-
+  assert(false);
   return "";
 }
 
