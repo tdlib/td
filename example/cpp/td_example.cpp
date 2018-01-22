@@ -63,9 +63,9 @@ class TdExample {
       } else if (!are_authorized_) {
         process_response(client_->receive(10));
       } else {
-        std::cerr
-            << "Enter action [q] quit [u] check for updates and request results [c] show chats [m <id> <text>] send message [l] logout: "
-            << std::endl;
+        std::cerr << "Enter action [q] quit [u] check for updates and request results [c] show chats [m <id> <text>] "
+                     "send message [l] logout: "
+                  << std::endl;
         std::string line;
         std::getline(std::cin, line);
         std::istringstream ss(line);
