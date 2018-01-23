@@ -187,7 +187,7 @@ class Td final : public NetQueryCallback {
   static td_api::object_ptr<td_api::Object> static_request(td_api::object_ptr<td_api::Function> function);
 
  private:
-  static constexpr const char *tdlib_version = "1.0.4";
+  static constexpr const char *tdlib_version = "1.0.5";
   static constexpr int32 ONLINE_TIMEOUT = 240;
 
   void send_result(uint64 id, tl_object_ptr<td_api::Object> object);

@@ -1667,9 +1667,10 @@ class GetWebPageInstantViewRequest : public RequestActor<> {
 
 class CreateChatRequest : public RequestActor<> {
   DialogId dialog_id_;
+  bool force_;
 
   void do_run(Promise<Unit> &&promise) override {
-    td->messages_manager_->create_dialog(dialog_id_, std::move(promise));
+    td->messages_manager_->create_dialog(dialog_id_, force_, std::move(promise));
   }
 
   void do_send_result() override {
@@ -1677,8 +1678,8 @@ class CreateChatRequest : public RequestActor<> {
   }
 
  public:
-  CreateChatRequest(ActorShared<Td> td, uint64 request_id, DialogId dialog_id)
-      : RequestActor<>(std::move(td), request_id), dialog_id_(dialog_id) {
+  CreateChatRequest(ActorShared<Td> td, uint64 request_id, DialogId dialog_id, bool force)
+      : RequestActor<>(std::move(td), request_id), dialog_id_(dialog_id), force_(force) {
   }
 };
 
@@ -5344,22 +5345,22 @@ void Td::on_request(uint64 id, td_api::getWebPageInstantView &request) {
 
 void Td::on_request(uint64 id, const td_api::createPrivateChat &request) {
   CHECK_AUTH();
-  CREATE_REQUEST(CreateChatRequest, DialogId(UserId(request.user_id_)));
+  CREATE_REQUEST(CreateChatRequest, DialogId(UserId(request.user_id_)), request.force_);
 }
 
 void Td::on_request(uint64 id, const td_api::createBasicGroupChat &request) {
   CHECK_AUTH();
-  CREATE_REQUEST(CreateChatRequest, DialogId(ChatId(request.basic_group_id_)));
+  CREATE_REQUEST(CreateChatRequest, DialogId(ChatId(request.basic_group_id_)), request.force_);
 }
 
 void Td::on_request(uint64 id, const td_api::createSupergroupChat &request) {
   CHECK_AUTH();
-  CREATE_REQUEST(CreateChatRequest, DialogId(ChannelId(request.supergroup_id_)));
+  CREATE_REQUEST(CreateChatRequest, DialogId(ChannelId(request.supergroup_id_)), request.force_);
 }
 
 void Td::on_request(uint64 id, td_api::createSecretChat &request) {
   CHECK_AUTH();
-  CREATE_REQUEST(CreateChatRequest, DialogId(SecretChatId(request.secret_chat_id_)));
+  CREATE_REQUEST(CreateChatRequest, DialogId(SecretChatId(request.secret_chat_id_)), true);
 }
 
 void Td::on_request(uint64 id, td_api::createNewBasicGroupChat &request) {

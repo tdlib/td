@@ -2263,16 +2263,16 @@ openMessageContent chat_id:int53 message_id:int53 = Ok;
 readAllChatMentions chat_id:int53 = Ok;
 
 
-//@description Returns an existing chat corresponding to a given user @user_id User identifier
-createPrivateChat user_id:int32 = Chat;
+//@description Returns an existing chat corresponding to a given user @user_id User identifier @force If true, the chat will be created without network request. In this case all information about the chat except its type, title and photo can be incorrect
+createPrivateChat user_id:int32 force:Bool = Chat;
 
-//@description Returns an existing chat corresponding to a known basic group @basic_group_id Basic group identifier
-createBasicGroupChat basic_group_id:int32 = Chat;
+//@description Returns an existing chat corresponding to a known basic group @basic_group_id Basic group identifier @force If true, the chat will be created without network request. In this case all information about the chat except its type, title and photo can be incorrect
+createBasicGroupChat basic_group_id:int32 force:Bool = Chat;
 
-//@description Returns an existing chat corresponding to a known supergroup or channel @supergroup_id Supergroup or channel identifier
-createSupergroupChat supergroup_id:int32 = Chat;
+//@description Returns an existing chat corresponding to a known supergroup or channel @supergroup_id Supergroup or channel identifier @force If true, the chat will be created without network request. In this case all information about the chat except its type, title and photo can be incorrect
+createSupergroupChat supergroup_id:int32 force:Bool = Chat;
 
-//@description Returns an existing chat corresponding to a known secret chat @secret_chat_id Secret Chat identifier
+//@description Returns an existing chat corresponding to a known secret chat @secret_chat_id Secret chat identifier
 createSecretChat secret_chat_id:int32 = Chat;
 
 //@description Creates a new basic group and sends a corresponding messageBasicGroupChatCreate. Returns the newly created chat @user_ids Identifiers of users to be added to the basic group @title Title of the new basic group; 1-255 characters

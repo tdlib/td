@@ -301,7 +301,7 @@ class SetUsername : public Task {
   void send_self_message() {
     tag_ = PSTRING() << format::as_hex(Random::secure_int64());
 
-    send_query(make_tl_object<td_api::createPrivateChat>(self_id_), [this](auto res) {
+    send_query(make_tl_object<td_api::createPrivateChat>(self_id_, false), [this](auto res) {
       CHECK(res->get_id() == td_api::chat::ID);
       auto chat = move_tl_object_as<td_api::chat>(res);
       this->send_query(

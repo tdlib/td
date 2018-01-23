@@ -1122,7 +1122,7 @@ class MessagesManager : public Actor {
 
   Status set_dialog_client_data(DialogId dialog_id, string &&client_data) TD_WARN_UNUSED_RESULT;
 
-  void create_dialog(DialogId dialog_id, Promise<Unit> &&promise);
+  void create_dialog(DialogId dialog_id, bool force, Promise<Unit> &&promise);
 
   DialogId create_new_group_chat(const vector<UserId> &user_ids, const string &title, int64 &random_id,
                                  Promise<Unit> &&promise);

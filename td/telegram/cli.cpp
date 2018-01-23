@@ -2429,11 +2429,23 @@ class CliClient final : public Actor {
     } else if (op == "gcpc") {
       send_request(make_tl_object<td_api::getCreatedPublicChats>());
     } else if (op == "cpc") {
-      send_request(make_tl_object<td_api::createPrivateChat>(as_user_id(args)));
+      string user_id;
+      string force;
+
+      std::tie(user_id, force) = split(args);
+      send_request(make_tl_object<td_api::createPrivateChat>(as_user_id(user_id), as_bool(force)));
     } else if (op == "cbgc") {
-      send_request(make_tl_object<td_api::createBasicGroupChat>(to_integer<int32>(args)));
+      string basic_group_id;
+      string force;
+
+      std::tie(basic_group_id, force) = split(args);
+      send_request(make_tl_object<td_api::createBasicGroupChat>(to_integer<int32>(basic_group_id), as_bool(force)));
     } else if (op == "csgc" || op == "cchc") {
-      send_request(make_tl_object<td_api::createSupergroupChat>(to_integer<int32>(args)));
+      string supergroup_id;
+      string force;
+
+      std::tie(supergroup_id, force) = split(args);
+      send_request(make_tl_object<td_api::createSupergroupChat>(to_integer<int32>(supergroup_id), as_bool(force)));
     } else if (op == "sct") {
       string chat_id;
       string title;

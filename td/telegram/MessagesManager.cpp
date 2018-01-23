@@ -11366,7 +11366,7 @@ Status MessagesManager::set_dialog_client_data(DialogId dialog_id, string &&clie
   return Status::OK();
 }
 
-void MessagesManager::create_dialog(DialogId dialog_id, Promise<Unit> &&promise) {
+void MessagesManager::create_dialog(DialogId dialog_id, bool force, Promise<Unit> &&promise) {
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     if (!have_dialog_info_force(dialog_id)) {
       return promise.set_error(Status::Error(6, "Chat info not found"));
@@ -11376,7 +11376,7 @@ void MessagesManager::create_dialog(DialogId dialog_id, Promise<Unit> &&promise)
     }
   }
 
-  if (td_->auth_manager_->is_bot() || dialog_id.get_type() == DialogType::SecretChat) {
+  if (force || td_->auth_manager_->is_bot() || dialog_id.get_type() == DialogType::SecretChat) {
     force_create_dialog(dialog_id, "create dialog");
   } else {
     const Dialog *d = get_dialog_force(dialog_id);
