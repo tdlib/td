@@ -89,7 +89,7 @@ See [example/cpp/CMakeLists.txt](https://github.com/tdlib/td/tree/master/example
 <a name="using-json"></a>
 ### Using `TDLib` from other languages
 `TDLib` provides efficient native C++, Java, and C# (will be released soon) interfaces.
-But for most use cases we suggest to use the JSON interface. It can be easily used with any language that supports C bindinds. See
+But for most use cases we suggest to use the JSON interface. It can be easily used with any language that supports C bindings. See
 [example/python/tdjson_example.py](https://github.com/tdlib/td/tree/master/example/python/tdjson_example.py) for an
 example of such usage.
 
