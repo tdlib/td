@@ -88,8 +88,6 @@ class FileNode {
   GenerateFileLocation generate_;
   FileLoadManager::QueryId generate_id_ = 0;
 
-  BufferSlice content_;
-
   int64 size_ = 0;
   int64 expected_size_ = 0;
   string name_;
