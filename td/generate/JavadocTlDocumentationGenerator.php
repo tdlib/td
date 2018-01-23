@@ -89,8 +89,7 @@ class JavadocTlDocumentationGenerator extends TlDocumentationGenerator
     protected function needSkipLine($line)
     {
         $line = trim($line);
-        return strpos($line, 'public') !== 0 && !($this->nullable_type && $line == 'import java.util.Arrays;') &&
-            !$this->isHeaderLine($line);
+        return strpos($line, 'public') !== 0 && !$this->isHeaderLine($line);
     }
 
     protected function isHeaderLine($line)
@@ -117,8 +116,14 @@ class JavadocTlDocumentationGenerator extends TlDocumentationGenerator
 
     protected function addGlobalDocumentation()
     {
+        if ($this->nullable_type) {
+            $nullable_type_import = "import $this->nullable_type;\n";
+        } else {
+            $nullable_type_import = '';
+        }
+
         $this->addDocumentation('public class TdApi {', <<<EOT
-/**
+$nullable_type_import/**
  * This class contains as static nested classes all other TDLib interface
  * type-classes and function-classes.
  * <p>
@@ -168,12 +173,6 @@ EOT
          */
 EOT
 );
-
-        if ($this->nullable_type) {
-            $import = 'import java.util.Arrays;';
-            $this->addDocumentation($import, '');
-            $this->addLineReplacement($import, "import $this->nullable_type;\n$import\n");
-        }
     }
 
     protected function addAbstractClassDocumentation($class_name, $documentation)
