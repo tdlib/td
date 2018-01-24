@@ -563,6 +563,10 @@ class CliClient final : public Actor {
   }
 
   void quit() {
+    if (close_flag_) {
+      return;
+    }
+
     LOG(WARNING) << "QUIT";
     close_flag_ = true;
     dump_memory_usage();
