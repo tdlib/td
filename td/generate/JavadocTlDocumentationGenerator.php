@@ -26,7 +26,7 @@ class JavadocTlDocumentationGenerator extends TlDocumentationGenerator
 
     protected function getClassName($type)
     {
-        return implode(array_map(ucfirst, explode('.', trim($type, "\n ;"))));
+        return implode(array_map('ucfirst', explode('.', trim($type, "\n ;"))));
     }
 
     protected function getTypeName($type)
