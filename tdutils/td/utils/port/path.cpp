@@ -74,7 +74,8 @@ Status mkdir(CSlice dir, int32 mode) {
 }
 
 Status rename(CSlice from, CSlice to) {
-  if (::rename(from.c_str(), to.c_str()) < 0) {
+  int rename_res = skip_eintr([&] { return ::rename(from.c_str(), to.c_str()); });
+  if (rename_res < 0) {
     return OS_ERROR(PSLICE() << "Can't rename \"" << from << "\" to \"" << to << '\"');
   }
   return Status::OK();
@@ -82,7 +83,7 @@ Status rename(CSlice from, CSlice to) {
 
 Result<string> realpath(CSlice slice) {
   char full_path[PATH_MAX + 1];
-  char *err = ::realpath(slice.c_str(), full_path);
+  char *err = skip_eintr([&] { return ::realpath(slice.c_str(), full_path); });
   if (err != full_path) {
     return OS_ERROR(PSLICE() << "Realpath failed for \"" << slice << '"');
   }
@@ -99,21 +100,24 @@ Result<string> realpath(CSlice slice) {
 }
 
 Status chdir(CSlice dir) {
-  if (::chdir(dir.c_str())) {
+  int chdir_res = skip_eintr([&] { return ::chdir(dir.c_str()); });
+  if (chdir_res) {
     return OS_ERROR(PSLICE() << "Can't change directory to \"" << dir << '"');
   }
   return Status::OK();
 }
 
 Status rmdir(CSlice dir) {
-  if (::rmdir(dir.c_str())) {
+  int rmdir_res = skip_eintr([&] { return ::rmdir(dir.c_str()); });
+  if (rmdir_res) {
     return OS_ERROR(PSLICE() << "Can't delete directory \"" << dir << '"');
   }
   return Status::OK();
 }
 
 Status unlink(CSlice path) {
-  if (::unlink(path.c_str())) {
+  int unlink_res = skip_eintr([&] { return ::unlink(path.c_str()); });
+  if (unlink_res) {
     return OS_ERROR(PSLICE() << "Can't unlink \"" << path << '"');
   }
   return Status::OK();
@@ -159,7 +163,7 @@ Result<std::pair<FileFd, string>> mkstemp(CSlice dir) {
   }
   file_pattern += "tmpXXXXXXXXXX";
 
-  int fd = ::mkstemp(&file_pattern[0]);
+  int fd = skip_eintr([&] { return ::mkstemp(&file_pattern[0]); });
   if (fd == -1) {
     return OS_ERROR(PSLICE() << "Can't create temporary file \"" << file_pattern << '"');
   }
@@ -191,7 +195,7 @@ Result<string> mkdtemp(CSlice dir, Slice prefix) {
   dir_pattern.append(prefix.begin(), prefix.size());
   dir_pattern += "XXXXXX";
 
-  char *result = ::mkdtemp(&dir_pattern[0]);
+  char *result = skip_eintr([&] { return ::mkdtemp(&dir_pattern[0]); });
   if (result == nullptr) {
     return OS_ERROR(PSLICE() << "Can't create temporary directory \"" << dir_pattern << '"');
   }
