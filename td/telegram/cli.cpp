@@ -2870,7 +2870,7 @@ class CliClient final : public Actor {
 };
 CliClient *CliClient::instance_ = nullptr;
 
-static void quit() {
+void quit() {
   CliClient::quit_instance();
 }
 

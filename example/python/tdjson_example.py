@@ -41,7 +41,18 @@ td_set_log_verbosity_level = tdjson.td_set_log_verbosity_level
 td_set_log_verbosity_level.restype = None
 td_set_log_verbosity_level.argtypes = [c_int]
 
+fatal_error_callback_type = CFUNCTYPE(None, c_char_p)
+
+td_set_log_fatal_error_callback = tdjson.td_set_log_fatal_error_callback
+td_set_log_fatal_error_callback.restype = None
+td_set_log_fatal_error_callback.argtypes = [fatal_error_callback_type]
+
+def on_fatal_error_callback(error_message):
+    print('TDLib fatal error: ', error_message)
+
 td_set_log_verbosity_level(2)
+c_on_fatal_error_callback = fatal_error_callback_type(on_fatal_error_callback)
+td_set_log_fatal_error_callback(c_on_fatal_error_callback)
 
 client = td_json_client_create()
 
@@ -50,7 +61,7 @@ def td_send(query):
     td_json_client_send(client, query)
 
 def td_receive():
-    result = td_json_client_receive(client, 10)
+    result = td_json_client_receive(client, 1.0)
     if result:
         result = json.loads(result.decode('utf-8'))
     return result
