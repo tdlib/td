@@ -56,6 +56,24 @@ class Log {
    *                                 value greater than 5 and up to 1024 can be used to enable even more logging.
    */
   static void set_verbosity_level(int new_verbosity_level);
+
+  /**
+   * A type of callback function that will be called when a fatal error happens.
+   *
+   * \param error_message Null-terminated string with a description of a happened fatal error.
+   */
+  using FatalErrorCallbackPtr = void (*)(const char *error_message);
+
+  /**
+   * Sets the callback that will be called when a fatal error happens.
+   * None of the TDLib methods can be called from the callback.
+   * The TDLib will crash as soon as callback returns.
+   * By default the callback is not set.
+   *
+   * \param[in]  callback Callback that will be called when a fatal error happens.
+   *                      Pass nullptr to remove the callback.
+   */
+  static void set_fatal_error_callback(FatalErrorCallbackPtr callback);
 };
 
 }  // namespace td

@@ -652,7 +652,7 @@ if (NOT CMAKE_CROSSCOMPILING)
     target_include_directories(tg_cli SYSTEM PRIVATE ${READLINE_INCLUDE_DIR})
     target_compile_definitions(tg_cli PRIVATE -DUSE_READLINE=1)
   endif()
-  target_link_libraries(tg_cli PRIVATE memprof tdcore tdtl)
+  target_link_libraries(tg_cli PRIVATE memprof tdclient tdcore tdtl)
   add_dependencies(tg_cli tl_generate_json)
 endif()
 

@@ -30,7 +30,6 @@
 #include "td/utils/StringBuilder.h"
 
 #include <atomic>
-#include <cstdlib>
 #include <type_traits>
 
 #define PSTR_IMPL(...) ::td::Logger(::td::NullLog().ref(), 0, true).printf(__VA_ARGS__)
@@ -98,7 +97,7 @@ inline bool no_return_func() {
 
 #define UNREACHABLE(...)   \
   LOG(FATAL, __VA_ARGS__); \
-  std::abort()
+  ::td::process_fatal_error("Unreachable in " __FILE__ " at " TD_DEFINE_STR(__LINE__))
 
 constexpr int VERBOSITY_NAME(PLAIN) = -1;
 constexpr int VERBOSITY_NAME(FATAL) = 0;
@@ -148,8 +147,11 @@ class NullLog : public LogInterface {
 
 extern LogInterface *const default_log_interface;
 extern LogInterface *log_interface;
-typedef void (*OnFatalErrorF)(CSlice msg);
-extern OnFatalErrorF default_log_on_fatal_error;
+
+using OnFatalErrorCallback = void (*)(CSlice message);
+void set_log_fatal_error_callback(OnFatalErrorCallback callback);
+
+[[noreturn]] void process_fatal_error(CSlice message);
 
 #define TC_RED "\e[1;31m"
 #define TC_BLUE "\e[1;34m"

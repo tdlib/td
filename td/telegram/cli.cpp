@@ -5,6 +5,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/telegram/ClientActor.h"
+#include "td/telegram/Log.h"
 
 #include "td/telegram/td_api_json.h"
 
@@ -42,6 +43,7 @@
 #include <cstdlib>
 #include <cstring>  // for strcmp
 #include <ctime>
+#include <iostream>
 #include <limits>
 #include <memory>
 #include <queue>
@@ -56,7 +58,7 @@
 
 namespace td {
 
-void dump_memory_usage() {
+static void dump_memory_usage() {
   if (is_memprof_on()) {
     LOG(WARNING) << "memory_dump";
     clear_thread_locals();
@@ -87,7 +89,7 @@ static int32 saved_point;
 static string saved_line;
 static std::atomic_flag readline_lock = ATOMIC_FLAG_INIT;
 
-void deactivate_readline() {
+static void deactivate_readline() {
   while (readline_lock.test_and_set(std::memory_order_acquire)) {
     // spin
   }
@@ -100,7 +102,7 @@ void deactivate_readline() {
   rl_redisplay();
 }
 
-void reactivate_readline() {
+static void reactivate_readline() {
   rl_set_prompt(prompt);
   rl_replace_line(saved_line.c_str(), 0);
   rl_point = saved_point;
@@ -109,7 +111,7 @@ void reactivate_readline() {
   readline_lock.clear(std::memory_order_release);
 }
 
-char *command_generator(const char *text, int state) {
+static char *command_generator(const char *text, int state) {
   static vector<CSlice> commands{"GetContacts",
                                  "GetChats",
                                  "GetHistory",
@@ -162,7 +164,7 @@ char *command_generator(const char *text, int state) {
   return nullptr;
 }
 
-char **tg_cli_completion(const char *text, int start, int end) {
+static char **tg_cli_completion(const char *text, int start, int end) {
   char **matches = nullptr;
   if (start == 0) {
     matches = rl_completion_matches(text, command_generator);
@@ -2751,6 +2753,10 @@ class CliClient final : public Actor {
       quit();
     } else if (op == "dnq" || op == "DumpNetQueries") {
       dump_pending_network_queries();
+    } else if (op == "fatal") {
+      LOG(FATAL) << "Fatal!";
+    } else if (op == "unreachable") {
+      UNREACHABLE();
     } else {
       op_not_found_count++;
     }
@@ -2864,19 +2870,23 @@ class CliClient final : public Actor {
 };
 CliClient *CliClient::instance_ = nullptr;
 
-void quit() {
+static void quit() {
   CliClient::quit_instance();
 }
 
-void fail_signal(int sig) {
+static void fail_signal(int sig) {
   signal_safe_write_signal_number(sig);
   while (true) {
     // spin forever to allow debugger to attach
   }
 }
 
-void usage() {
+static void usage() {
   //TODO:
+}
+
+static void on_fatal_error(const char *error) {
+  std::cerr << "Fatal error: " << error << std::endl;
 }
 
 void main(int argc, char **argv) {
@@ -2884,6 +2894,7 @@ void main(int argc, char **argv) {
   ignore_signal(SignalType::Pipe).ensure();
   set_signal_handler(SignalType::Error, fail_signal).ensure();
   set_signal_handler(SignalType::Abort, fail_signal).ensure();
+  td::Log::set_fatal_error_callback(on_fatal_error);
 
   CliLog cli_log;
   log_interface = &cli_log;

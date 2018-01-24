@@ -13,7 +13,6 @@
 #include "td/utils/port/path.h"
 #include "td/utils/Slice.h"
 
-#include <cstdlib>
 #include <limits>
 
 namespace td {
@@ -23,25 +22,25 @@ class FileLog : public LogInterface {
   static constexpr int DEFAULT_ROTATE_THRESHOLD = 10 * (1 << 20);
 
  public:
-  void append(CSlice xslice, int log_level) override {
-    Slice slice = xslice;
+  void append(CSlice cslice, int log_level) override {
+    Slice slice = cslice;
     while (!slice.empty()) {
       auto r_size = fd_.write(slice);
       if (r_size.is_error()) {
-        std::abort();
+        process_fatal_error(r_size.error().message());
       }
       auto written = r_size.ok();
       size_ += static_cast<int64>(written);
       slice.remove_prefix(written);
     }
     if (log_level == VERBOSITY_NAME(FATAL)) {
-      std::abort();
+      process_fatal_error(cslice);
     }
 
     if (size_ > rotate_threshold_) {
       auto status = rename(path_, path_ + ".old");
       if (status.is_error()) {
-        std::abort();
+        process_fatal_error(status.message());
       }
       do_rotate();
     }
@@ -83,7 +82,7 @@ class FileLog : public LogInterface {
     fd_.close();
     auto r_fd = FileFd::open(path_, FileFd::Create | FileFd::Truncate | FileFd::Write);
     if (r_fd.is_error()) {
-      std::abort();
+      process_fatal_error(r_fd.error().message());
     }
     fd_ = r_fd.move_as_ok();
     Fd::duplicate(fd_.get_fd(), Fd::Stderr()).ignore();

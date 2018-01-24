@@ -23,8 +23,8 @@ extern "C" {
  * By default TDLib writes logs to stderr or an OS specific log.
  * Use this method to write the log to a file instead.
  *
- * \param[in]  file_path Path to a file where the internal TDLib log will be written. Use an empty path to
- *                       switch back to the default logging behaviour.
+ * \param[in]  file_path Null-terminated path to a file where the internal TDLib log will be written.
+ *                       Use an empty path to switch back to the default logging behaviour.
  */
 TDJSON_EXPORT void td_set_log_file_path(const char *file_path);
 
@@ -51,6 +51,24 @@ TDJSON_EXPORT void td_set_log_max_file_size(long long max_file_size);
  *                                 value greater than 5 and up to 1024 can be used to enable even more logging.
  */
 TDJSON_EXPORT void td_set_log_verbosity_level(int new_verbosity_level);
+
+/**
+ * A type of callback function that will be called when a fatal error happens.
+ *
+ * \param error_message Null-terminated string with a description of a happened fatal error.
+ */
+using td_log_fatal_error_callback_ptr = void (*)(const char *error_message);
+
+/**
+ * Sets the callback that will be called when a fatal error happens.
+ * None of the TDLib methods can be called from the callback.
+ * The TDLib will crash as soon as callback returns.
+ * By default the callback is not set.
+ *
+ * \param[in]  callback Callback that will be called when a fatal error happens.
+ *                      Pass NULL to remove the callback.
+ */
+TDJSON_EXPORT void td_set_log_fatal_error_callback(td_log_fatal_error_callback_ptr callback);
 
 #ifdef __cplusplus
 }  // extern "C"

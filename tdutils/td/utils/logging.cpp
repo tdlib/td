@@ -216,11 +216,7 @@ class DefaultLog : public LogInterface {
     TsCerr() << slice;
 #endif
     if (log_level == VERBOSITY_NAME(FATAL)) {
-      auto f = default_log_on_fatal_error;
-      if (f) {
-        f(slice);
-      }
-      std::abort();
+      process_fatal_error(slice);
     }
   }
   void rotate() override {
@@ -230,6 +226,19 @@ static DefaultLog default_log;
 
 LogInterface *const default_log_interface = &default_log;
 LogInterface *log_interface = default_log_interface;
-OnFatalErrorF default_log_on_fatal_error = nullptr;
+
+static OnFatalErrorCallback on_fatal_error_callback = nullptr;
+
+void set_log_fatal_error_callback(OnFatalErrorCallback callback) {
+  on_fatal_error_callback = callback;
+}
+
+void process_fatal_error(CSlice message) {
+  auto callback = on_fatal_error_callback;
+  if (callback) {
+    callback(message);
+  }
+  std::abort();
+}
 
 }  // namespace td
