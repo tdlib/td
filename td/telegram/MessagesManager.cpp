@@ -17758,12 +17758,15 @@ void MessagesManager::send_update_chat_draft_message(const Dialog *d) {
 }
 
 void MessagesManager::send_update_chat_last_message(Dialog *d, const char *source) {
-  CHECK(d != nullptr);
   update_dialog_pos(d, false, source, false);
+  send_update_chat_last_message_impl(d, source);
+}
 
+void MessagesManager::send_update_chat_last_message_impl(const Dialog *d, const char *source) const {
+  CHECK(d != nullptr);
   LOG(INFO) << "Send updateChatLastMessage in " << d->dialog_id << " to " << d->last_message_id << " from " << source;
   auto update = make_tl_object<td_api::updateChatLastMessage>(
-      d->dialog_id.get(), get_message_object(d->dialog_id, get_message_force(d, d->last_message_id)),
+      d->dialog_id.get(), get_message_object(d->dialog_id, get_message(d, d->last_message_id)),
       DialogDate(d->order, d->dialog_id) <= last_dialog_date_ ? d->order : 0);
   send_closure(G()->td(), &Td::send_update, std::move(update));
 }
@@ -21286,6 +21289,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 void MessagesManager::on_message_changed(const Dialog *d, const Message *m, const char *source) {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
+  if (m->message_id == d->last_message_id) {
+    send_update_chat_last_message_impl(d, source);
+  }
+
   if (m->message_id == d->last_database_message_id) {
     on_dialog_updated(d->dialog_id, source);
   }
@@ -22524,6 +22531,7 @@ int64 MessagesManager::get_next_pinned_dialog_order() {
 
 void MessagesManager::update_dialog_pos(Dialog *d, bool remove_from_dialog_list, const char *source,
                                         bool need_send_update_chat_order) {
+  CHECK(d != nullptr);
   LOG(INFO) << "Trying to update dialog " << d->dialog_id << " order from " << source;
   auto dialog_type = d->dialog_id.get_type();
 

@@ -2047,6 +2047,8 @@ class MessagesManager : public Actor {
 
   void send_update_chat_last_message(Dialog *d, const char *source);
 
+  void send_update_chat_last_message_impl(const Dialog *d, const char *source) const;
+
   void send_update_chat_read_inbox(const Dialog *d, bool force, const char *source);
 
   void send_update_chat_read_outbox(const Dialog *d);
