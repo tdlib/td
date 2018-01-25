@@ -1743,7 +1743,7 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
     if (need_load && !force) {
       load_sticker_sets(std::move(sets_to_load),
                         PromiseCreator::lambda([promise = std::move(promise)](Result<Unit> result) mutable {
-                          if (result.is_error()) {
+                          if (result.is_error() && result.error().message() != "STICKERSET_INVALID") {
                             LOG(ERROR) << "Failed to load sticker sets: " << result.error();
                           }
                           promise.set_value(Unit());
