@@ -698,6 +698,7 @@ Result<FileId> FileManager::register_file(FileData data, FileLocationSource file
   }
   bool no_sync_merge = to_merge.size() == 1 && new_cnt == 0;
   for (auto id : to_merge) {
+    // may invalidate node
     merge(file_id, id, no_sync_merge).ignore();
   }
 
@@ -1043,7 +1044,7 @@ void FileManager::try_flush_node(FileNode *node, bool new_remote, bool new_local
                                  FileDbId other_pmc_id) {
   if (node->need_pmc_flush()) {
     if (file_db_) {
-      load_from_pmc(node, true, true, true);
+      node = load_from_pmc(node, true, true, true);
       flush_to_pmc(node, new_remote, new_local, new_generate);
       if (other_pmc_id != 0 && node->pmc_id_ != other_pmc_id) {
         file_db_->set_file_data_ref(other_pmc_id, node->pmc_id_);
@@ -1155,20 +1156,17 @@ FileNode *FileManager::get_sync_file_node(FileId file_id, FileNodeId *file_node_
   if (!file_node) {
     return nullptr;
   }
-  if (load_from_pmc(file_node, true, true, true)) {
-    file_node = get_file_node(file_id, file_node_id);
-  }
-  return file_node;
+  return load_from_pmc(file_node, true, true, true);
 }
 
-bool FileManager::load_from_pmc(FileNode *node, bool new_remote, bool new_local, bool new_generate) {
+FileNode *FileManager::load_from_pmc(FileNode *node, bool new_remote, bool new_local, bool new_generate) {
   if (!node->need_load_from_pmc_) {
-    return false;
+    return node;
   }
   auto file_id = node->main_file_id_;
   node->need_load_from_pmc_ = false;
   if (!file_db_) {
-    return false;
+    return node;
   }
   auto file_view = get_file_view(file_id);
 
@@ -1192,7 +1190,8 @@ bool FileManager::load_from_pmc(FileNode *node, bool new_remote, bool new_local,
   auto load = [&](auto location) {
     TRY_RESULT(file_data, file_db_->get_file_data_sync(location));
     TRY_RESULT(new_file_id, register_file(std::move(file_data), FileLocationSource::FromDb, "load_from_pmc"));
-    TRY_STATUS(merge(file_id, new_file_id));
+    TRY_RESULT(main_file_id, merge(file_id, new_file_id));
+    file_id = main_file_id;
     return Status::OK();
   };
   if (new_remote) {
@@ -1204,7 +1203,7 @@ bool FileManager::load_from_pmc(FileNode *node, bool new_remote, bool new_local,
   if (new_generate) {
     load(generate);
   }
-  return true;
+  return get_file_node(file_id);
 }
 
 bool FileManager::set_encryption_key(FileId file_id, FileEncryptionKey key) {
@@ -2127,11 +2126,11 @@ void FileManager::on_generate_ok(QueryId query_id, const FullLocalFileLocation &
       status = result.move_as_error();
     }
   }
+  file_node = get_file_node(generate_file_id);
   if (status.is_error()) {
     return on_error_impl(file_node, query.type_, was_active, std::move(status));
   }
 
-  file_node = get_file_node(generate_file_id);
   CHECK(file_node != nullptr);
   context_->on_new_file(FileView(file_node).size());
 

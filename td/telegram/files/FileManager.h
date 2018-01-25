@@ -360,7 +360,7 @@ class FileManager : public FileLoadManager::Callback {
   void try_flush_node_info(FileNode *node);
   void clear_from_pmc(FileNode *node);
   void flush_to_pmc(FileNode *node, bool new_remote, bool new_local, bool new_generate);
-  bool load_from_pmc(FileNode *node, bool new_remote, bool new_local, bool new_generate);
+  FileNode *load_from_pmc(FileNode *node, bool new_remote, bool new_local, bool new_generate) TD_WARN_UNUSED_RESULT;
 
   string get_persistent_id(const FullRemoteFileLocation &location);
 
