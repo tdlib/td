@@ -20889,7 +20889,13 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   if (d->have_full_history && !message->from_database && !from_update && !message_id.is_local() &&
       !message_id.is_yet_unsent()) {
-    LOG(ERROR) << "Have full history in " << dialog_id << ", but receive unknown " << message_id;
+    LOG(ERROR) << "Have full history in " << dialog_id << ", but receive unknown " << message_id << ". Last new is "
+               << d->last_new_message_id << ", last is " << d->last_message_id << ", first database is "
+               << d->first_database_message_id << ", last database is " << d->last_database_message_id
+               << ", last read inbox is " << d->last_read_inbox_message_id << ", last read outbox is "
+               << d->last_read_inbox_message_id << ", last read all mentions is "
+               << d->last_read_all_mentions_message_id << ", max unavailable is " << d->max_unavailable_message_id
+               << ", last assigned is " << d->last_assigned_message_id;
     d->have_full_history = false;
     on_dialog_updated(dialog_id, "drop have_full_history");
   }
