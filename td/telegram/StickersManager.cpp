@@ -2203,11 +2203,12 @@ void StickersManager::on_load_sticker_set_from_database(int64 sticker_set_id, bo
   auto old_sticker_count = sticker_set->sticker_ids.size();
 
   {
-    LOG_IF(ERROR, sticker_set->is_changed)
-        << "Sticker set " << sticker_set_id << " was changed before it is loaded from database";
+    LOG_IF(ERROR, sticker_set->is_changed) << "Sticker set with" << (with_stickers ? "" : "out") << " stickers "
+                                           << sticker_set_id << " was changed before it is loaded from database";
     LogEventParser parser(value);
     parse_sticker_set(sticker_set, parser);
-    LOG_IF(ERROR, sticker_set->is_changed) << "Sticker set " << sticker_set_id << " is changed";
+    LOG_IF(ERROR, sticker_set->is_changed)
+        << "Sticker set with" << (with_stickers ? "" : "out") << " stickers " << sticker_set_id << " is changed";
     parser.fetch_end();
     parser.get_status().ensure();
   }

@@ -159,7 +159,8 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, T &parser) {
   parse(access_hash, parser);
   CHECK(sticker_set->id == sticker_set_id);
   if (sticker_set->access_hash != access_hash) {
-    LOG(ERROR) << "Sticker set " << sticker_set_id << " access hash has changed";
+    LOG(ERROR) << "Sticker set " << sticker_set_id << " access hash has changed from " << access_hash << " to "
+               << sticker_set->access_hash;
   }
 
   if (sticker_set->is_inited) {
