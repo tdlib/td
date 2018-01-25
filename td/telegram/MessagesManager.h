@@ -2203,7 +2203,7 @@ class MessagesManager : public Actor {
   unique_ptr<MessageContent> get_message_content(string message_text, tl_object_ptr<telegram_api::MessageMedia> &&media,
                                                  vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,
                                                  DialogId owner_dialog_id, bool is_content_read, UserId via_bot_user_id,
-                                                 int32 *ttl) const;
+                                                 int32 *ttl, int32 send_date) const;
 
   unique_ptr<MessageContent> dup_message_content(DialogId dialog_id, const MessageContent *content, bool for_forward);
 

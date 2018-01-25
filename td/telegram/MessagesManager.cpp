@@ -5063,9 +5063,10 @@ MessagesManager::Dialog *MessagesManager::get_service_notifications_dialog() {
 
 void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api::updateServiceNotification> &&update) {
   int32 ttl = 0;
-  auto content = get_message_content(
-      std::move(update->message_), std::move(update->media_), std::move(update->entities_),
-      td_->auth_manager_->is_bot() ? DialogId() : get_service_notifications_dialog()->dialog_id, false, UserId(), &ttl);
+  auto content =
+      get_message_content(std::move(update->message_), std::move(update->media_), std::move(update->entities_),
+                          td_->auth_manager_->is_bot() ? DialogId() : get_service_notifications_dialog()->dialog_id,
+                          false, UserId(), &ttl, update->inbox_date_);
   if ((update->flags_ & telegram_api::updateServiceNotification::POPUP_MASK) != 0) {
     send_closure(
         G()->td(), &Td::send_update,
@@ -9087,7 +9088,8 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       }
       message_info.content =
           get_message_content(std::move(message->message_), std::move(message->media_), std::move(message->entities_),
-                              message_info.dialog_id, is_content_read, message_info.via_bot_user_id, &message_info.ttl);
+                              message_info.dialog_id, is_content_read, message_info.via_bot_user_id, &message_info.ttl,
+                              message_info.forward_header ? message_info.forward_header->date_ : message_info.date);
       message_info.reply_markup =
           message->flags_ & MESSAGE_FLAG_HAS_REPLY_MARKUP ? std::move(message->reply_markup_) : nullptr;
       message_info.author_signature = std::move(message->post_author_);
@@ -9609,7 +9611,8 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
   auto message_text = static_cast<const MessageText *>(m->content.get());
 
   auto new_content = get_message_content(message_text->text, std::move(message_media), std::move(entities), dialog_id,
-                                         true /*likely ignored*/, UserId() /*likely ignored*/, nullptr /*ignored*/);
+                                         true /*likely ignored*/, UserId() /*likely ignored*/, nullptr /*ignored*/,
+                                         m->forward_info ? m->forward_info->date : m->date);
   if (new_content->get_id() != MessageText::ID) {
     LOG(ERROR) << "Text message content has changed to " << new_content->get_id();
     return;
@@ -15740,7 +15743,8 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
   }
 
   // TODO use get_message_content_caption()
-  auto content = get_message_content(string(), std::move(media), Auto(), dialog_id, false, UserId(), nullptr);
+  auto content = get_message_content(string(), std::move(media), Auto(), dialog_id, false, UserId(), nullptr,
+                                     m->forward_info ? m->forward_info->date : m->date);
 
   update_message_content(dialog_id, m, m->content, std::move(content), true);
 
@@ -20170,12 +20174,14 @@ unique_ptr<MessageContent> MessagesManager::get_secret_message_content(
 unique_ptr<MessageContent> MessagesManager::get_message_content(
     string message_text, tl_object_ptr<telegram_api::MessageMedia> &&media,
     vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities, DialogId owner_dialog_id,
-    bool is_content_read, UserId via_bot_user_id, int32 *ttl) const {
+    bool is_content_read, UserId via_bot_user_id, int32 *ttl, int32 send_date) const {
   auto entities = get_message_entities(std::move(server_entities));
   auto status = fix_text_message(message_text, entities, nullptr, true, true, true, false);
   if (status.is_error()) {
-    LOG(ERROR) << "Receive error " << status << " while parsing message content \"" << message_text
-               << "\" with entities " << format::as_array(entities);
+    if (send_date > 1497000000) {  // approximate fix date
+      LOG(ERROR) << "Receive error " << status << " while parsing message content \"" << message_text << "\" sent at "
+                 << send_date << " with entities " << format::as_array(entities);
+    }
     if (!clean_input_string(message_text)) {
       message_text.clear();
     }
