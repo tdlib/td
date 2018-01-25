@@ -23243,6 +23243,7 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
       auto update_pts_count = it->second.pts_count;
       d->postponed_channel_updates.erase(it);
       auto old_size = d->postponed_channel_updates.size();
+      auto update_id = update->get_id();
       add_pending_channel_update(dialog_id, std::move(update), update_pts, update_pts_count,
                                  "apply postponed channel updates", true);
       if (d->postponed_channel_updates.size() != old_size || running_get_channel_difference(dialog_id)) {
@@ -23252,8 +23253,8 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
           LOG(INFO) << "Can't apply postponed channel updates";
         } else {
           // otherwise we protecting from getChannelDifference repeating calls by dropping pending updates
-          LOG(ERROR) << "Failed to apply postponed updates in " << dialog_id << " with pts " << d->pts
-                     << ", update pts is " << update_pts << ", update pts count is " << update_pts_count;
+          LOG(ERROR) << "Failed to apply postponed updates of type " << update_id << " in " << dialog_id << " with pts "
+                     << d->pts << ", update pts is " << update_pts << ", update pts count is " << update_pts_count;
           d->postponed_channel_updates.clear();
         }
         break;
