@@ -226,12 +226,12 @@ class FileDb : public FileDbInterface {
     TRY_RESULT(id, get_id(pmc, key));
 
     string data_str;
-    int attempts_count = 0;
+    int attempt_count = 0;
     while (true) {
-      if (attempts_count > 5) {
+      if (attempt_count > 5) {
         LOG(FATAL) << "cycle in files db?";
       }
-      attempts_count++;
+      attempt_count++;
 
       data_str = pmc.get(PSTRING() << "file" << id);
       auto data_slice = Slice(data_str);

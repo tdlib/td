@@ -601,7 +601,7 @@ FileId FileManager::register_remote(const FullRemoteFileLocation &location, Dial
   data.size_ = size;
   data.expected_size_ = expected_size;
   data.name_ = std::move(name);
-  return register_file(std::move(data), FileLocationSource::FromServer, "register_remote").move_as_ok();
+  return register_file(std::move(data), FileLocationSource::FromServer, "register_remote", false).move_as_ok();
 }
 
 FileId FileManager::register_url(string url, FileType file_type, DialogId owner_dialog_id) {
@@ -618,7 +618,7 @@ Result<FileId> FileManager::register_generate(FileType file_type, string origina
   data.generate_ = GenerateFileLocation(FullGenerateFileLocation(file_type, original_path, std::move(conversion)));
   data.owner_dialog_id_ = owner_dialog_id;
   data.expected_size_ = expected_size;
-  return register_file(std::move(data), FileLocationSource::FromServer, "register_generate");
+  return register_file(std::move(data), FileLocationSource::FromServer, "register_generate", false);
 }
 
 Result<FileId> FileManager::register_file(FileData data, FileLocationSource file_location_source, const char *source,
@@ -657,7 +657,8 @@ Result<FileId> FileManager::register_file(FileData data, FileLocationSource file
   auto &node = file_nodes_[file_node_id];
   node = std::make_unique<FileNode>(std::move(data.local_), std::move(data.remote_), std::move(data.generate_),
                                     data.size_, data.expected_size_, std::move(data.name_), std::move(data.url_),
-                                    data.owner_dialog_id_, std::move(data.encryption_key_), file_id, 0);
+                                    data.owner_dialog_id_, std::move(data.encryption_key_), file_id,
+                                    has_remote ? static_cast<int8>(file_location_source) : 0);
   node->remote_source_ = file_location_source;
   node->pmc_id_ = data.pmc_id_;
   get_file_id_info(file_id)->node_id_ = file_node_id;
@@ -1189,7 +1190,7 @@ FileNode *FileManager::load_from_pmc(FileNode *node, bool new_remote, bool new_l
 
   auto load = [&](auto location) {
     TRY_RESULT(file_data, file_db_->get_file_data_sync(location));
-    TRY_RESULT(new_file_id, register_file(std::move(file_data), FileLocationSource::FromDb, "load_from_pmc"));
+    TRY_RESULT(new_file_id, register_file(std::move(file_data), FileLocationSource::FromDb, "load_from_pmc", false));
     TRY_RESULT(main_file_id, merge(file_id, new_file_id));
     file_id = main_file_id;
     return Status::OK();
@@ -1733,7 +1734,7 @@ Result<FileId> FileManager::from_persistent_id(CSlice persistent_id, FileType fi
   }
   FileData data;
   data.remote_ = RemoteFileLocation(std::move(remote_location));
-  return register_file(std::move(data), FileLocationSource::FromUser, "from_persistent_id").move_as_ok();
+  return register_file(std::move(data), FileLocationSource::FromUser, "from_persistent_id", false).move_as_ok();
 }
 
 FileView FileManager::get_file_view(FileId file_id) const {
@@ -1784,7 +1785,7 @@ tl_object_ptr<td_api::file> FileManager::get_file_object(FileId file_id, bool wi
     file_info = get_file_id_info(file_view.file_id());
   }
   file_info->send_updates_flag_ = true;
-  VLOG(update_file) << "Update send_updates_flag_ for file "
+  VLOG(update_file) << "Send file " << file_id << " as " << result_file_id << " and update send_updates_flag_ for file "
                     << (with_main_file_id ? file_view.file_id() : result_file_id);
 
   return td_api::make_object<td_api::file>(
@@ -1822,6 +1823,7 @@ Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> re
     // TODO why not return file_id here? We will dup it anyway
     // But it will not be duped if has_input_media(), so for now we can't return main_file_id
     file_id = next_file_id();
+    LOG(INFO) << "Dup file " << file_node->main_file_id_ << " without remote location to " << file_id;
     get_file_id_info(file_id)->node_id_ = file_node_id;
     file_nodes_[file_node_id]->file_ids_.push_back(file_id);
     return file_id;

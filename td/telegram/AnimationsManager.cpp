@@ -129,7 +129,7 @@ tl_object_ptr<td_api::animation> AnimationsManager::get_animation_object(FileId 
 
 FileId AnimationsManager::on_get_animation(std::unique_ptr<Animation> new_animation, bool replace) {
   auto file_id = new_animation->file_id;
-  LOG(INFO) << "Receive animation " << file_id;
+  LOG(INFO) << (replace ? "Replace" : "Add") << " animation " << file_id << " of size " << new_animation->dimensions;
   auto &a = animations_[file_id];
   if (a == nullptr) {
     a = std::move(new_animation);
@@ -193,6 +193,7 @@ void AnimationsManager::delete_animation_thumbnail(FileId file_id) {
 }
 
 FileId AnimationsManager::dup_animation(FileId new_id, FileId old_id) {
+  LOG(INFO) << "Dup animation " << old_id << " to " << new_id;
   const Animation *old_animation = get_animation(old_id);
   CHECK(old_animation != nullptr);
   auto &new_animation = animations_[new_id];

@@ -250,8 +250,7 @@ class FileManager : public FileLoadManager::Callback {
                          int64 expected_size, string name = "") TD_WARN_UNUSED_RESULT;
   Result<FileId> register_generate(FileType file_type, string original_path, string conversion,
                                    DialogId owner_dialog_id, int64 expected_size) TD_WARN_UNUSED_RESULT;
-  Result<FileId> register_file(FileData data, FileLocationSource file_location_source, const char *source,
-                               bool force = false);
+  Result<FileId> register_file(FileData data, FileLocationSource file_location_source, const char *source, bool force);
 
   Result<FileId> merge(FileId x_file_id, FileId y_file_id, bool no_sync = false) TD_WARN_UNUSED_RESULT;
 
