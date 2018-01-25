@@ -5323,8 +5323,8 @@ void MessagesManager::on_update_message_views(FullMessageId full_message_id, int
     return;
   }
 
-  if (update_message_views(full_message_id.get_dialog_id(), m, views) && !message_id.is_yet_unsent()) {
-    add_message_to_database(d, m, "on_update_message_views");
+  if (update_message_views(full_message_id.get_dialog_id(), m, views)) {
+    on_message_changed(d, m, "on_update_message_views");
   }
 }
 
@@ -7722,7 +7722,7 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, Promise<Unit>
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateMessageMentionRead>(dialog_id.get(), m->message_id.get(), 0));
     is_update_sent = true;
-    add_message_to_database(d, m, "read_all_mentions");
+    on_message_changed(d, m, "read_all_mentions");
   }
 
   if (d->unread_mention_count != 0) {
@@ -7833,7 +7833,7 @@ bool MessagesManager::read_message_content(Dialog *d, Message *m, bool is_local_
   bool is_content_read = update_opened_message_content(m) | ttl_on_open(d, m, Time::now(), is_local_read);
 
   if (is_mention_read || is_content_read) {
-    add_message_to_database(d, m, "read_message_content");
+    on_message_changed(d, m, "read_message_content");
     if (is_content_read) {
       send_closure(G()->td(), &Td::send_update,
                    make_tl_object<td_api::updateMessageContentOpened>(d->dialog_id.get(), m->message_id.get()));
@@ -8344,7 +8344,7 @@ void MessagesManager::ttl_on_view(const Dialog *d, Message *message, double view
       message->ttl > 0 && message->ttl_expires_at == 0) {
     message->ttl_expires_at = message->ttl + view_date;
     ttl_register_message(d->dialog_id, message, now);
-    add_message_to_database(d, message, "ttl_on_view");
+    on_message_changed(d, message, "ttl_on_view");
   }
 }
 
@@ -8402,7 +8402,7 @@ void MessagesManager::ttl_loop(double now) {
       auto m = get_message(d, full_message_id.get_message_id());
       CHECK(m != nullptr);
       on_message_ttl_expired(d, m);
-      add_message_to_database(d, m, "ttl_loop");
+      on_message_changed(d, m, "ttl_loop");
     }
   }
   for (auto &it : to_delete) {
@@ -9664,9 +9664,7 @@ void MessagesManager::on_update_message_web_page(FullMessageId full_message_id, 
     content->web_page_id = WebPageId();
     // don't need to send an update
 
-    if (!message_id.is_yet_unsent()) {
-      add_message_to_database(d, message, "on_update_message_web_page");
-    }
+    on_message_changed(d, message, "on_update_message_web_page");
     return;
   }
 
@@ -11022,9 +11020,7 @@ Status MessagesManager::delete_dialog_reply_markup(DialogId dialog_id, MessageId
       message->reply_markup->is_personal = false;
       set_dialog_reply_markup(d, message_id);
 
-      if (!message_id.is_yet_unsent()) {
-        add_message_to_database(d, message, "delete_dialog_reply_markup");
-      }
+      on_message_changed(d, message, "delete_dialog_reply_markup");
     }
   } else {
     // non-bots can't have messages with RemoveKeyboard
@@ -11612,7 +11608,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
             update_message_contains_unread_mention(d, message, false)) {
           CHECK(message_id.is_server());
           read_content_message_ids.push_back(message_id);
-          add_message_to_database(d, message, "view_messages");
+          on_message_changed(d, message, "view_messages");
         }
       }
     }
@@ -21097,7 +21093,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         set_dialog_first_database_message_id(d, message_id, "add_message_to_dialog");
         try_restore_dialog_reply_markup(d, message.get());
       }
-      LOG(INFO) << "Update last_database_message_id in " << dialog_id << " to " << d->last_database_message_id;
       on_dialog_updated(dialog_id, "update_last_database_message_id");
     }
   }
@@ -21288,6 +21283,18 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   return v->get();
 }
 
+void MessagesManager::on_message_changed(const Dialog *d, const Message *m, const char *source) {
+  CHECK(d != nullptr);
+  CHECK(m != nullptr);
+  if (m->message_id == d->last_database_message_id) {
+    on_dialog_updated(d->dialog_id, source);
+  }
+
+  if (!m->message_id.is_yet_unsent()) {
+    add_message_to_database(d, m, source);
+  }
+}
+
 void MessagesManager::add_message_to_database(const Dialog *d, const Message *m, const char *source) {
   if (!G()->parameters().use_message_db) {
     return;
@@ -21299,10 +21306,6 @@ void MessagesManager::add_message_to_database(const Dialog *d, const Message *m,
   CHECK(message_id.is_server() || message_id.is_local()) << source;
 
   LOG(INFO) << "Add " << FullMessageId(d->dialog_id, message_id) << " to database from " << source;
-
-  if (message_id == d->last_database_message_id) {
-    on_dialog_updated(d->dialog_id, "update_last_database_message");
-  }
 
   ServerMessageId unique_message_id;
   int64 random_id = 0;
@@ -21699,9 +21702,9 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
 
   (void)is_changed;
   // need to save message always, because it might be added to some message index
-  if (!message_id.is_yet_unsent() /*&& is_changed*/) {
-    add_message_to_database(d, old_message.get(), "update_message");
-  }
+  // if (is_changed) {
+  on_message_changed(d, old_message.get(), "update_message");
+  // }
 }
 
 bool MessagesManager::need_message_text_changed_warning(const Message *old_message, const MessageText *old_content,

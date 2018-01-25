@@ -1999,6 +1999,8 @@ class MessagesManager : public Actor {
   Message *add_message_to_dialog(Dialog *d, unique_ptr<Message> message, bool from_update, bool *need_update,
                                  bool *need_update_dialog_pos, const char *source);
 
+  void on_message_changed(const Dialog *d, const Message *m, const char *source);
+
   void add_message_to_database(const Dialog *d, const Message *m, const char *source);
 
   void delete_all_dialog_messages_from_database(DialogId dialog_id, MessageId message_id, const char *source);
