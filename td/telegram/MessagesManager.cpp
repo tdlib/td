@@ -15022,6 +15022,7 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId re
     m->ttl = message_content.ttl;
   }
 
+  send_update_new_message(d, m, true);
   if (need_update_dialog_pos) {
     send_update_chat_last_message(d, "send_message");
   }
@@ -15531,6 +15532,8 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
 
     save_send_message_logevent(dialog_id, m);
     do_send_message(dialog_id, m);
+
+    send_update_new_message(d, m, true);
   }
 
   if (need_update_dialog_pos) {
@@ -16053,6 +16056,7 @@ Result<MessageId> MessagesManager::send_bot_start_message(UserId bot_user_id, Di
           WebPageId()),
       &need_update_dialog_pos);
 
+  send_update_new_message(d, m, true);
   if (need_update_dialog_pos) {
     send_update_chat_last_message(d, "send_bot_start_message");
   }
@@ -16185,6 +16189,7 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
 
   update_dialog_draft_message(d, nullptr, false, !need_update_dialog_pos);
 
+  send_update_new_message(d, m, true);
   if (need_update_dialog_pos) {
     send_update_chat_last_message(d, "send_inline_query_result_message");
   }
@@ -17386,6 +17391,8 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     result[i] = m->message_id;
     forwarded_messages.push_back(m);
     forwarded_message_ids.push_back(message_id);
+
+    send_update_new_message(to_dialog, m, true);
   }
 
   if (!forwarded_messages.empty()) {
@@ -17404,6 +17411,8 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
       save_send_message_logevent(to_dialog_id, m);
       do_send_message(to_dialog_id, m);
       result[i] = m->message_id;
+
+      send_update_new_message(to_dialog, m, true);
     }
   }
 
@@ -17435,6 +17444,7 @@ Result<MessageId> MessagesManager::send_dialog_set_ttl_message(DialogId dialog_i
   Message *m =
       get_message_to_send(d, MessageId(), false, false, make_unique<MessageChatSetTtl>(ttl), &need_update_dialog_pos);
 
+  send_update_new_message(d, m, true);
   if (need_update_dialog_pos) {
     send_update_chat_last_message(d, "send_dialog_set_ttl_message");
   }
@@ -17469,7 +17479,7 @@ Status MessagesManager::send_screenshot_taken_notification_message(DialogId dial
 
     do_send_screenshot_taken_notification_message(dialog_id, m, 0);
 
-    send_update_new_message(d, m);
+    send_update_new_message(d, m, true);
     if (need_update_dialog_pos) {
       send_update_chat_last_message(d, "send_screenshot_taken_notification_message");
     }

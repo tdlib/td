@@ -1729,7 +1729,7 @@ inputSticker png_sticker:InputFile emojis:string mask_position:maskPosition = In
 //@description The user authorization state has changed @authorization_state New authorization state
 updateAuthorizationState authorization_state:AuthorizationState = Update;
 
-//@description A new message was received; can also be an outgoing message sent from a different device @message The new message @disable_notification True, if this message must not generate a notification @contains_mention True, if the message contains a mention of the current user
+//@description A new message was received; can also be an outgoing message @message The new message @disable_notification True, if this message must not generate a notification @contains_mention True, if the message contains a mention of the current user
 updateNewMessage message:message disable_notification:Bool contains_mention:Bool = Update;
 
 //@description A request to send a message has reached the Telegram server. This doesn't mean that the message will be sent successfully or even that the send message request will be processed. This update will be sent only if the option "use_quick_ack" is set to true. This update may be sent multiple times for the same message
