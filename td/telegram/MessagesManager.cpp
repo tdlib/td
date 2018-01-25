@@ -5402,7 +5402,8 @@ void MessagesManager::on_update_channel_max_unavailable_message_id(ChannelId cha
     LOG(ERROR) << "Receive wrong max_unavailable_message_id: " << max_unavailable_message_id;
     max_unavailable_message_id = MessageId();
   }
-  set_dialog_max_unavailable_message_id(dialog_id, max_unavailable_message_id, true);
+  set_dialog_max_unavailable_message_id(dialog_id, max_unavailable_message_id, true,
+                                        "on_update_channel_max_unavailable_message_id");
 }
 
 void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_ptr<telegram_api::Update> &&update,
@@ -7301,7 +7302,7 @@ void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from
     return;
   }
 
-  set_dialog_max_unavailable_message_id(dialog_id, last_new_message_id, false);
+  set_dialog_max_unavailable_message_id(dialog_id, last_new_message_id, false, "delete_dialog_history");
 
   delete_dialog_history_from_server(dialog_id, last_new_message_id, remove_from_dialog_list, allow_error, 0,
                                     std::move(promise));
@@ -8001,12 +8002,12 @@ void MessagesManager::set_dialog_last_read_outbox_message_id(Dialog *d, MessageI
 }
 
 void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, MessageId max_unavailable_message_id,
-                                                            bool from_update) {
+                                                            bool from_update, const char *source) {
   Dialog *d = get_dialog_force(dialog_id);
   if (d != nullptr) {
     if (d->last_new_message_id.is_valid() && max_unavailable_message_id.get() > d->last_new_message_id.get()) {
-      LOG(ERROR) << "Tried to set dialog max unavailable message id to " << max_unavailable_message_id
-                 << ", but last new message id is " << d->last_new_message_id;
+      LOG(ERROR) << "Tried to set dialog max unavailable message id to " << max_unavailable_message_id << " from "
+                 << source << ", but last new message id is " << d->last_new_message_id;
       max_unavailable_message_id = d->last_new_message_id;
     }
 
@@ -8015,10 +8016,12 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
     }
 
     if (max_unavailable_message_id.is_valid() && max_unavailable_message_id.is_yet_unsent()) {
-      LOG(ERROR) << "Try to update " << dialog_id << " last read outbox message with " << max_unavailable_message_id;
+      LOG(ERROR) << "Try to update " << dialog_id << " last read outbox message with " << max_unavailable_message_id
+                 << " from " << source;
       return;
     }
-    LOG(INFO) << "Set min available message id to " << max_unavailable_message_id << " in " << dialog_id;
+    LOG(INFO) << "Set min available message id to " << max_unavailable_message_id << " in " << dialog_id << " from "
+              << source;
 
     on_dialog_updated(dialog_id, "set_dialog_max_unavailable_message_id");
 
@@ -8059,7 +8062,7 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
       read_history_inbox(dialog_id, max_unavailable_message_id, -1, "set_dialog_max_unavailable_message_id");
     }
   } else {
-    LOG(INFO) << "Receive min available message identifier in unknown " << dialog_id;
+    LOG(INFO) << "Receive min available message identifier in unknown " << dialog_id << " from " << source;
   }
 }
 

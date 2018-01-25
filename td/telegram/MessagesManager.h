@@ -1946,8 +1946,8 @@ class MessagesManager : public Actor {
 
   void read_secret_chat_outbox_inner(DialogId dialog_id, int32 up_to_date, int32 read_date);
 
-  void set_dialog_max_unavailable_message_id(DialogId dialog_id, MessageId max_unavailable_message_id,
-                                             bool from_update);
+  void set_dialog_max_unavailable_message_id(DialogId dialog_id, MessageId max_unavailable_message_id, bool from_update,
+                                             const char *source);
 
   void preload_newer_messages(const Dialog *d, MessageId max_message_id);
 
