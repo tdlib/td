@@ -408,15 +408,16 @@ class ContactsManager : public Actor {
 
     ProfilePhoto photo;
 
-    int32 was_online = 0;
     string restriction_reason;
     string inline_query_placeholder;
     int32 bot_info_version = -1;
 
-    LinkState outbound = LinkState::Unknown;
-    LinkState inbound = LinkState::Unknown;
+    int32 was_online = 0;
 
     string language_code;
+
+    LinkState outbound = LinkState::Unknown;
+    LinkState inbound = LinkState::Unknown;
 
     bool is_received = false;
     bool is_verified = false;
@@ -463,16 +464,19 @@ class ContactsManager : public Actor {
     vector<Photo> photos;
     int32 photo_count = -1;
     int32 photos_offset = -1;
-    bool getting_photos_now = false;
 
     std::unique_ptr<BotInfo> bot_info;
+
+    string about;
+
+    int32 common_chat_count = 0;
+
+    bool getting_photos_now = false;
 
     bool is_inited = false;  // photos and bot_info may be inited regardless this flag
     bool is_blocked = false;
     bool can_be_called = false;
     bool has_private_calls = false;
-    string about;
-    int32 common_chat_count = 0;
 
     bool is_changed = true;
 
@@ -531,9 +535,9 @@ class ContactsManager : public Actor {
     string title;
     DialogPhoto photo;
     string username;
-    int32 date = 0;
     string restriction_reason;
     DialogParticipantStatus status = DialogParticipantStatus::Banned(0);
+    int32 date = 0;
     int32 participant_count = 0;
 
     bool anyone_can_invite = false;
@@ -571,10 +575,10 @@ class ContactsManager : public Actor {
     string invite_link;
     MessageId pinned_message_id;
 
-    ChatId migrated_from_chat_id;
-    MessageId migrated_from_max_message_id;
-
     int64 sticker_set_id = 0;  // do not forget to store along with access hash
+
+    MessageId migrated_from_max_message_id;
+    ChatId migrated_from_chat_id;
 
     bool can_get_participants = false;
     bool can_set_username = false;
@@ -591,11 +595,12 @@ class ContactsManager : public Actor {
     int64 access_hash = 0;
     UserId user_id;
     SecretChatState state;
-    bool is_outbound = false;
+    string key_hash;
     int32 ttl = 0;
     int32 date = 0;
-    string key_hash;
     int32 layer = 0;
+
+    bool is_outbound = false;
 
     bool is_changed = true;        // have new changes not sent to the database except changes visible to the client
     bool need_send_update = true;  // have new changes not sent to the client
