@@ -1528,6 +1528,8 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::optimizeStorage>(
           10000000, -1, -1, 0, std::vector<tl_object_ptr<td_api::FileType>>(), as_chat_ids(chat_ids, ','),
           as_chat_ids(exclude_chat_ids, ','), to_integer<int32>(chat_ids_limit)));
+    } else if (op == "clean_storage_default") {
+      send_request(make_tl_object<td_api::optimizeStorage>());
     } else if (op == "clean_storage") {
       std::vector<tl_object_ptr<td_api::FileType>> types;
       types.push_back(make_tl_object<td_api::fileTypeThumbnail>());
