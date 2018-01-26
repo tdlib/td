@@ -38,7 +38,7 @@ namespace td {
 Status mkdir(CSlice dir, int32 mode = 0700) TD_WARN_UNUSED_RESULT;
 Status mkpath(CSlice path, int32 mode = 0700) TD_WARN_UNUSED_RESULT;
 Status rename(CSlice from, CSlice to) TD_WARN_UNUSED_RESULT;
-Result<string> realpath(CSlice slice) TD_WARN_UNUSED_RESULT;
+Result<string> realpath(CSlice slice, bool ignore_access_denied = false) TD_WARN_UNUSED_RESULT;
 Status chdir(CSlice dir) TD_WARN_UNUSED_RESULT;
 Status rmdir(CSlice dir) TD_WARN_UNUSED_RESULT;
 Status unlink(CSlice path) TD_WARN_UNUSED_RESULT;

@@ -719,7 +719,7 @@ Status HttpReader::open_temp_file(CSlice desired_file_name) {
     return Status::Error("Can't find temporary directory");
   }
 
-  TRY_RESULT(dir, realpath(tmp_dir));
+  TRY_RESULT(dir, realpath(tmp_dir, true));
   CHECK(!dir.empty());
 
   auto first_try = try_open_temp_file(dir, desired_file_name);

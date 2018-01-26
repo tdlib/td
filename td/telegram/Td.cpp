@@ -4374,7 +4374,7 @@ Status Td::fix_parameters(TdParameters &parameters) {
       dir += TD_DIR_SLASH;
     }
     TRY_STATUS(mkpath(dir, 0750));
-    TRY_RESULT(real_dir, realpath(dir));
+    TRY_RESULT(real_dir, realpath(dir, true));
     if (dir.back() != TD_DIR_SLASH) {
       dir += TD_DIR_SLASH;
     }

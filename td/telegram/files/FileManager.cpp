@@ -466,7 +466,7 @@ Status FileManager::check_local_location(FullLocalFileLocation &location, int64 
   if (location.path_.empty()) {
     return Status::Error("File must have non-empty path");
   }
-  TRY_RESULT(path, realpath(location.path_));
+  TRY_RESULT(path, realpath(location.path_, true));
   if (bad_paths_.count(path) != 0) {
     return Status::Error("Sending of internal database files is forbidden");
   }

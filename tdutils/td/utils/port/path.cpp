@@ -81,13 +81,19 @@ Status rename(CSlice from, CSlice to) {
   return Status::OK();
 }
 
-Result<string> realpath(CSlice slice) {
+Result<string> realpath(CSlice slice, bool ignore_access_denied) {
   char full_path[PATH_MAX + 1];
+  string res;
   char *err = skip_eintr([&] { return ::realpath(slice.c_str(), full_path); });
   if (err != full_path) {
-    return OS_ERROR(PSLICE() << "Realpath failed for \"" << slice << '"');
+    if (ignore_access_denied && errno == EACCES) {
+      res = slice.str();
+    } else {
+      return OS_ERROR(PSLICE() << "Realpath failed for \"" << slice << '"');
+    }
+  } else {
+    res = full_path;
   }
-  string res = full_path;
   if (res.empty()) {
     return Status::Error("Empty path");
   }
@@ -225,7 +231,7 @@ Status rename(CSlice from, CSlice to) {
   return Status::OK();
 }
 
-Result<string> realpath(CSlice slice) {
+Result<string> realpath(CSlice slice, bool /*ignore_access_denied*/) {
   wchar_t buf[MAX_PATH + 1];
   TRY_RESULT(wslice, to_wstring(slice));
   auto status = GetFullPathNameW(wslice.c_str(), MAX_PATH, buf, nullptr);
