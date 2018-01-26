@@ -50,7 +50,7 @@ Status scan_db(CallbackT &&callback) {
     FileData data;
     auto status = unserialize(data, value);
     if (status.is_error()) {
-      LOG(ERROR) << "Invalid FileData in db " << tag("value", format::escaped(value));
+      LOG(ERROR) << "Invalid FileData in the database " << tag("value", format::escaped(value));
       return;
     }
     DbFileInfo info;
@@ -67,10 +67,11 @@ Status scan_db(CallbackT &&callback) {
     if (path_view.is_relative()) {
       info.path = get_files_base_dir(info.file_type) + info.path;
     }
+    // LOG(INFO) << "Found file in the database: " << data << " " << info.path;
     info.owner_dialog_id = data.owner_dialog_id_;
     info.size = data.size_;
     if (info.size == 0 && data.local_.type() == LocalFileLocation::Type::Full) {
-      LOG(ERROR) << "Unknown size in db";
+      LOG(ERROR) << "Unknown size in the database";
       return;
     }
     callback(info);
@@ -147,7 +148,10 @@ void FileStatsWorker::get_stats(bool need_all_files, bool split_by_owner_dialog_
       info.size = fs_info.size;
       info.atime_nsec = fs_info.atime_nsec;
       info.mtime_nsec = fs_info.mtime_nsec;
-      full_infos.push_back(info);
+
+      // LOG(INFO) << "Found file of size " << info.size << " at " << info.path;
+
+      full_infos.push_back(std::move(info));
     });
 
     std::unordered_map<size_t, size_t> hash_to_pos;
@@ -161,6 +165,7 @@ void FileStatsWorker::get_stats(bool need_all_files, bool split_by_owner_dialog_
       if (it == hash_to_pos.end()) {
         return;
       }
+      // LOG(INFO) << "Match! " << db_info.path << " from " << db_info.owner_dialog_id;
       full_infos[it->second].owner_dialog_id = db_info.owner_dialog_id;
     });
 

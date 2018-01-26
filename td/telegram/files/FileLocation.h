@@ -1146,9 +1146,16 @@ class FileData {
   }
 };
 inline StringBuilder &operator<<(StringBuilder &sb, const FileData &file_data) {
-  sb << "[" << tag("name", file_data.name_);
+  sb << "[" << tag("name", file_data.name_) << " " << file_data.owner_dialog_id_ << " " << tag("size", file_data.size_)
+     << tag("expected_size", file_data.expected_size_);
+  if (!file_data.url_.empty()) {
+    sb << tag("url", file_data.url_);
+  }
   if (file_data.local_.type() == LocalFileLocation::Type::Full) {
     sb << " local " << file_data.local_.full();
+  }
+  if (file_data.generate_.type() == GenerateFileLocation::Type::Full) {
+    sb << " generate " << file_data.generate_.full();
   }
   if (file_data.remote_.type() == RemoteFileLocation::Type::Full) {
     sb << " remote " << file_data.remote_.full();
