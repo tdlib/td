@@ -1840,7 +1840,7 @@ updateFileGenerationStart generation_id:int64 original_path:string destination_p
 //@description File generation is no longer needed @generation_id Unique identifier for the generation process
 updateFileGenerationStop generation_id:int64 = Update;
 
-//@description Information about a call was updated @call New data about a call
+//@description New call was created or information about a call was updated @call New data about a call
 updateCall call:call = Update;
 
 //@description Some privacy setting rules have been changed @setting The privacy setting @rules New privacy rules
