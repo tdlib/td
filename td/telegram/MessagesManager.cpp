@@ -5732,6 +5732,7 @@ bool MessagesManager::update_notification_settings(NotificationSettingsScope sco
         scope != NOTIFICATION_SETTINGS_FOR_ALL_CHATS) {
       DialogId dialog_id(scope);
       CHECK(dialog_id.is_valid());
+      CHECK(have_dialog(dialog_id)) << "Wrong " << dialog_id << " in update_notification_settings";
       on_dialog_updated(dialog_id, "update_notification_settings");
     } else {
       string key = get_notification_settings_scope_database_key(scope);
@@ -9540,11 +9541,13 @@ void MessagesManager::set_dialog_is_empty(Dialog *d, const char *source) {
 }
 
 void MessagesManager::set_dialog_is_pinned(Dialog *d, bool is_pinned) {
+  CHECK(d != nullptr);
   bool was_pinned = d->pinned_order != DEFAULT_ORDER;
   d->pinned_order = is_pinned ? get_next_pinned_dialog_order() : DEFAULT_ORDER;
   on_dialog_updated(d->dialog_id, "set_dialog_is_pinned");
 
   if (is_pinned != was_pinned) {
+    CHECK(d == get_dialog(d->dialog_id)) << "Wrong " << d->dialog_id << " in set_dialog_is_pinned";
     update_dialog_pos(d, false, "set_dialog_is_pinned", false);
     DialogDate dialog_date(d->order, d->dialog_id);
     send_closure(G()->td(), &Td::send_update,
@@ -9561,6 +9564,7 @@ void MessagesManager::set_dialog_reply_markup(Dialog *d, MessageId message_id) {
   d->need_restore_reply_markup = false;
 
   if (d->reply_markup_message_id.is_valid() || message_id.is_valid()) {
+    CHECK(d == get_dialog(d->dialog_id)) << "Wrong " << d->dialog_id << " in set_dialog_reply_markup";
     d->reply_markup_message_id = message_id;
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateChatReplyMarkup>(d->dialog_id.get(), message_id.get()));
@@ -17743,6 +17747,7 @@ void MessagesManager::send_update_message_edited(DialogId dialog_id, const Messa
 void MessagesManager::send_update_delete_messages(DialogId dialog_id, vector<int64> &&message_ids, bool is_permanent,
                                                   bool from_cache) const {
   if (!message_ids.empty()) {
+    CHECK(have_dialog(dialog_id)) << "Wrong " << dialog_id << " in send_update_delete_messages";
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateDeleteMessages>(dialog_id.get(), std::move(message_ids), is_permanent,
                                                               from_cache));
@@ -17757,6 +17762,7 @@ void MessagesManager::send_update_chat(Dialog *d) {
 
 void MessagesManager::send_update_chat_draft_message(const Dialog *d) {
   CHECK(d != nullptr);
+  CHECK(d == get_dialog(d->dialog_id)) << "Wrong " << d->dialog_id << " in send_update_chat_draft_message";
   on_dialog_updated(d->dialog_id, "send_update_chat_draft_message");
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateChatDraftMessage>(
@@ -17771,6 +17777,8 @@ void MessagesManager::send_update_chat_last_message(Dialog *d, const char *sourc
 
 void MessagesManager::send_update_chat_last_message_impl(const Dialog *d, const char *source) const {
   CHECK(d != nullptr);
+  CHECK(d == get_dialog(d->dialog_id)) << "Wrong " << d->dialog_id << " in send_update_chat_last_message from "
+                                       << source;
   LOG(INFO) << "Send updateChatLastMessage in " << d->dialog_id << " to " << d->last_message_id << " from " << source;
   auto update = make_tl_object<td_api::updateChatLastMessage>(
       d->dialog_id.get(), get_message_object(d->dialog_id, get_message(d, d->last_message_id)),
@@ -17800,6 +17808,7 @@ void MessagesManager::send_update_chat_read_inbox(const Dialog *d, bool force, c
 void MessagesManager::send_update_chat_read_outbox(const Dialog *d) {
   CHECK(d != nullptr);
   if (!td_->auth_manager_->is_bot()) {
+    CHECK(d == get_dialog(d->dialog_id)) << "Wrong " << d->dialog_id << " in send_update_chat_read_outbox";
     on_dialog_updated(d->dialog_id, "send_update_chat_read_outbox");
     send_closure(
         G()->td(), &Td::send_update,
@@ -17810,6 +17819,7 @@ void MessagesManager::send_update_chat_read_outbox(const Dialog *d) {
 void MessagesManager::send_update_chat_unread_mention_count(const Dialog *d) {
   CHECK(d != nullptr);
   if (!td_->auth_manager_->is_bot()) {
+    CHECK(d == get_dialog(d->dialog_id)) << "Wrong " << d->dialog_id << " in send_update_chat_unread_mention_count";
     LOG(INFO) << "Update unread mention message count in " << d->dialog_id << " to " << d->unread_mention_count;
     on_dialog_updated(d->dialog_id, "send_update_chat_unread_mention_count");
     send_closure(G()->td(), &Td::send_update,
