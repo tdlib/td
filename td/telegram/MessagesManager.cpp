@@ -17356,7 +17356,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
 
     bool is_game = content_id == MessageGame::ID;
     unique_ptr<MessageForwardInfo> forward_info;
-    if (!is_game) {
+    if (!is_game && content_id != MessageAudio::ID) {
       DialogId saved_from_dialog_id;
       MessageId saved_from_message_id;
       if (to_dialog_id == DialogId(my_id)) {
