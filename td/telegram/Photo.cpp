@@ -92,8 +92,8 @@ static FileId register_photo(FileManager *file_manager, FileType file_type, int6
   LOG(DEBUG) << "Receive photo of type " << static_cast<int8>(file_type) << " in [" << dc_id << "," << volume_id << ","
              << local_id << "]. Id: (" << id << ", " << access_hash << ")";
   return file_manager->register_remote(
-      FullRemoteFileLocation(file_type, id, access_hash, local_id, volume_id, secret, dc_id), owner_dialog_id,
-      file_size, 0, to_string(std::abs(id ? id : local_id)) + ".jpg");
+      FullRemoteFileLocation(file_type, id, access_hash, local_id, volume_id, secret, dc_id),
+      FileLocationSource::FromServer, owner_dialog_id, file_size, 0, to_string(std::abs(id ? id : local_id)) + ".jpg");
 }
 
 ProfilePhoto get_profile_photo(FileManager *file_manager,
@@ -221,8 +221,8 @@ PhotoSize get_thumbnail_photo_size(FileManager *file_manager, BufferSlice bytes,
   auto volume_id = Random::secure_int64();
   auto secret = 0;
   res.file_id = file_manager->register_remote(
-      FullRemoteFileLocation(FileType::EncryptedThumbnail, 0, 0, local_id, volume_id, secret, dc_id), owner_dialog_id,
-      res.size, 0, to_string(std::abs(local_id)) + ".jpg");
+      FullRemoteFileLocation(FileType::EncryptedThumbnail, 0, 0, local_id, volume_id, secret, dc_id),
+      FileLocationSource::FromServer, owner_dialog_id, res.size, 0, to_string(std::abs(local_id)) + ".jpg");
   file_manager->set_content(res.file_id, std::move(bytes));
 
   return res;
@@ -315,7 +315,7 @@ Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::encrypted
   CHECK(DcId::is_valid(file->dc_id_));
   FileId file_id = file_manager->register_remote(
       FullRemoteFileLocation(FileType::Encrypted, file->id_, file->access_hash_, DcId::internal(file->dc_id_)),
-      owner_dialog_id, photo->size_, 0, to_string(std::abs(file->id_)) + ".jpg");
+      FileLocationSource::FromServer, owner_dialog_id, photo->size_, 0, to_string(std::abs(file->id_)) + ".jpg");
   file_manager->set_encryption_key(file_id, FileEncryptionKey{photo->key_.as_slice(), photo->iv_.as_slice()});
 
   Photo res;

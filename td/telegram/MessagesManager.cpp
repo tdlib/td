@@ -8759,7 +8759,7 @@ void MessagesManager::on_send_secret_message_success(int64 random_id, MessageId 
 
       new_file_id = td_->file_manager_->register_remote(
           FullRemoteFileLocation(FileType::Encrypted, file->id_, file->access_hash_, DcId::internal(file->dc_id_)),
-          owner_dialog_id, 0, 0);
+          FileLocationSource::FromServer, owner_dialog_id, 0, 0);
     }
   }
 
@@ -19963,7 +19963,7 @@ Photo MessagesManager::get_web_document_photo(tl_object_ptr<telegram_api::webDoc
   // TODO real file name
   FileId file_id = td_->file_manager_->register_remote(
       FullRemoteFileLocation(FileType::Photo, url, web_document->access_hash_, DcId::internal(web_document->dc_id_)),
-      owner_dialog_id, 0, web_document->size_, "");
+      FileLocationSource::FromServer, owner_dialog_id, 0, web_document->size_, "");
 
   Dimensions dimensions;
   for (auto &attribute : web_document->attributes_) {
@@ -20360,8 +20360,8 @@ unique_ptr<MessageContent> MessagesManager::dup_message_content(DialogId dialog_
     if (to_secret && !file_view.is_encrypted()) {
       auto download_file_id = file_manager->dup_file_id(file_id);
       file_id = file_manager
-                    ->register_generate(FileType::Encrypted, "", PSTRING() << "#file_id#" << download_file_id.get(),
-                                        dialog_id, file_view.size())
+                    ->register_generate(FileType::Encrypted, FileLocationSource::FromServer, "",
+                                        PSTRING() << "#file_id#" << download_file_id.get(), dialog_id, file_view.size())
                     .ok();
     }
     return file_manager->dup_file_id(file_id);
@@ -21945,7 +21945,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, const Message *
               FileId file_id = td_->file_manager_->register_remote(
                   FullRemoteFileLocation(FileType::Photo, new_file_view.remote_location().get_id(),
                                          new_file_view.remote_location().get_access_hash(), 0, 0, 0, DcId::invalid()),
-                  dialog_id, old_photo->photos.back().size, 0, "");
+                  FileLocationSource::FromServer, dialog_id, old_photo->photos.back().size, 0, "");
               LOG_STATUS(td_->file_manager_->merge(file_id, old_file_id));
             }
           }

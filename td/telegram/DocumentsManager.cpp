@@ -222,9 +222,9 @@ std::pair<DocumentsManager::DocumentType, FileId> DocumentsManager::on_get_docum
       file_name += extension;
     }
   }
-  FileId file_id =
-      td_->file_manager_->register_remote(FullRemoteFileLocation(file_type, id, access_hash, DcId::internal(dc_id)),
-                                          owner_dialog_id, size, 0, suggested_file_name);
+  FileId file_id = td_->file_manager_->register_remote(
+      FullRemoteFileLocation(file_type, id, access_hash, DcId::internal(dc_id)), FileLocationSource::FromServer,
+      owner_dialog_id, size, 0, suggested_file_name);
   if (!encryption_key.empty()) {
     td_->file_manager_->set_encryption_key(file_id, std::move(encryption_key));
   }

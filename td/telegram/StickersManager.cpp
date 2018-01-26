@@ -955,7 +955,7 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<
   int64 document_id = document->id_;
   FileId sticker_id = td_->file_manager_->register_remote(
       FullRemoteFileLocation(FileType::Sticker, document_id, document->access_hash_, DcId::internal(document->dc_id_)),
-      DialogId(), document->size_, 0, to_string(document_id) + ".webp");
+      FileLocationSource::FromServer, DialogId(), document->size_, 0, to_string(document_id) + ".webp");
 
   PhotoSize thumbnail =
       get_photo_size(td_->file_manager_.get(), FileType::Thumbnail, 0, 0, DialogId(), std::move(document->thumb_));

@@ -246,10 +246,12 @@ class FileManager : public FileLoadManager::Callback {
   FileId register_empty(FileType type);
   Result<FileId> register_local(FullLocalFileLocation location, DialogId owner_dialog_id, int64 size,
                                 bool get_by_hash = false, bool force = false) TD_WARN_UNUSED_RESULT;
-  FileId register_remote(const FullRemoteFileLocation &location, DialogId owner_dialog_id, int64 size,
-                         int64 expected_size, string name = "") TD_WARN_UNUSED_RESULT;
-  Result<FileId> register_generate(FileType file_type, string original_path, string conversion,
-                                   DialogId owner_dialog_id, int64 expected_size) TD_WARN_UNUSED_RESULT;
+  FileId register_remote(const FullRemoteFileLocation &location, FileLocationSource file_location_source,
+                         DialogId owner_dialog_id, int64 size, int64 expected_size,
+                         string name = "") TD_WARN_UNUSED_RESULT;
+  Result<FileId> register_generate(FileType file_type, FileLocationSource file_location_source, string original_path,
+                                   string conversion, DialogId owner_dialog_id,
+                                   int64 expected_size) TD_WARN_UNUSED_RESULT;
   Result<FileId> register_file(FileData data, FileLocationSource file_location_source, const char *source, bool force);
 
   Result<FileId> merge(FileId x_file_id, FileId y_file_id, bool no_sync = false) TD_WARN_UNUSED_RESULT;
@@ -294,7 +296,8 @@ class FileManager : public FileLoadManager::Callback {
   Result<FileId> check_input_file_id(FileType type, Result<FileId> result, bool is_encrypted,
                                      bool allow_zero) TD_WARN_UNUSED_RESULT;
 
-  FileId register_url(string url, FileType file_type, DialogId owner_dialog_id);
+  FileId register_url(string url, FileType file_type, FileLocationSource file_location_source,
+                      DialogId owner_dialog_id);
 
   static constexpr int8 FROM_BYTES_PRIORITY = 10;
   using FileNodeId = int32;

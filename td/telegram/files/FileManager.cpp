@@ -593,32 +593,34 @@ Result<FileId> FileManager::register_local(FullLocalFileLocation location, Dialo
   return register_file(std::move(data), FileLocationSource::None /*won't be used*/, "register_local", force);
 }
 
-FileId FileManager::register_remote(const FullRemoteFileLocation &location, DialogId owner_dialog_id, int64 size,
-                                    int64 expected_size, string name) {
+FileId FileManager::register_remote(const FullRemoteFileLocation &location, FileLocationSource file_location_source,
+                                    DialogId owner_dialog_id, int64 size, int64 expected_size, string name) {
   FileData data;
   data.remote_ = RemoteFileLocation(location);
   data.owner_dialog_id_ = owner_dialog_id;
   data.size_ = size;
   data.expected_size_ = expected_size;
   data.name_ = std::move(name);
-  return register_file(std::move(data), FileLocationSource::FromServer, "register_remote", false).move_as_ok();
+  return register_file(std::move(data), file_location_source, "register_remote", false).move_as_ok();
 }
 
-FileId FileManager::register_url(string url, FileType file_type, DialogId owner_dialog_id) {
-  auto file_id = register_generate(file_type, url, "#url#", owner_dialog_id, 0).ok();
+FileId FileManager::register_url(string url, FileType file_type, FileLocationSource file_location_source,
+                                 DialogId owner_dialog_id) {
+  auto file_id = register_generate(file_type, file_location_source, url, "#url#", owner_dialog_id, 0).ok();
   auto *file_node = get_file_node(file_id);
   CHECK(file_node);
   file_node->set_url(url);
   return file_id;
 }
 
-Result<FileId> FileManager::register_generate(FileType file_type, string original_path, string conversion,
-                                              DialogId owner_dialog_id, int64 expected_size) {
+Result<FileId> FileManager::register_generate(FileType file_type, FileLocationSource file_location_source,
+                                              string original_path, string conversion, DialogId owner_dialog_id,
+                                              int64 expected_size) {
   FileData data;
   data.generate_ = GenerateFileLocation(FullGenerateFileLocation(file_type, original_path, std::move(conversion)));
   data.owner_dialog_id_ = owner_dialog_id;
   data.expected_size_ = expected_size;
-  return register_file(std::move(data), FileLocationSource::FromServer, "register_generate", false);
+  return register_file(std::move(data), file_location_source, "register_generate", false);
 }
 
 Result<FileId> FileManager::register_file(FileData data, FileLocationSource file_location_source, const char *source,
@@ -1705,7 +1707,7 @@ Result<FileId> FileManager::from_persistent_id(CSlice persistent_id, FileType fi
     if (!clean_input_string(url)) {
       return Status::Error(400, "URL must be in UTF-8");
     }
-    return register_url(std::move(url), file_type, DialogId());
+    return register_url(std::move(url), file_type, FileLocationSource::FromUser, DialogId());
   }
 
   auto r_binary = base64url_decode(persistent_id);
@@ -1851,8 +1853,8 @@ Result<FileId> FileManager::get_input_thumbnail_file_id(const tl_object_ptr<td_a
     case td_api::inputFileGenerated::ID: {
       auto *generated_thumbnail = static_cast<const td_api::inputFileGenerated *>(thumbnail_input_file.get());
       return register_generate(is_encrypted ? FileType::EncryptedThumbnail : FileType::Thumbnail,
-                               generated_thumbnail->original_path_, generated_thumbnail->conversion_, owner_dialog_id,
-                               generated_thumbnail->expected_size_);
+                               FileLocationSource::FromUser, generated_thumbnail->original_path_,
+                               generated_thumbnail->conversion_, owner_dialog_id, generated_thumbnail->expected_size_);
     }
     default:
       UNREACHABLE();
@@ -1899,8 +1901,9 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
       }
       case td_api::inputFileGenerated::ID: {
         auto *generated_file = static_cast<const td_api::inputFileGenerated *>(file.get());
-        return register_generate(is_encrypted ? FileType::Encrypted : type, generated_file->original_path_,
-                                 generated_file->conversion_, owner_dialog_id, generated_file->expected_size_);
+        return register_generate(is_encrypted ? FileType::Encrypted : type, FileLocationSource::FromUser,
+                                 generated_file->original_path_, generated_file->conversion_, owner_dialog_id,
+                                 generated_file->expected_size_);
       }
       default:
         UNREACHABLE();
@@ -2070,7 +2073,7 @@ void FileManager::on_upload_ok(QueryId query_id, FileType file_type, const Parti
 void FileManager::on_upload_full_ok(QueryId query_id, const FullRemoteFileLocation &remote) {
   LOG(INFO) << "ON UPLOAD OK";
   auto file_id = finish_query(query_id).first.file_id_;
-  auto new_file_id = register_remote(remote, DialogId(), 0, 0, "");
+  auto new_file_id = register_remote(remote, FileLocationSource::FromServer, DialogId(), 0, 0, "");
   LOG_STATUS(merge(new_file_id, file_id));
 }
 
