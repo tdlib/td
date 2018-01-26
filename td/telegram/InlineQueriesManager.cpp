@@ -332,7 +332,7 @@ bool InlineQueriesManager::register_inline_message_content(
   switch (inline_message->get_id()) {
     case telegram_api::botInlineMessageText::ID: {
       auto inline_message_text = move_tl_object_as<telegram_api::botInlineMessageText>(inline_message);
-      auto entities = get_message_entities(std::move(inline_message_text->entities_));
+      auto entities = get_message_entities(td_->contacts_manager_.get(), std::move(inline_message_text->entities_));
       auto status =
           MessagesManager::fix_text_message(inline_message_text->message_, entities, nullptr, false, true, true, false);
       if (status.is_error()) {
@@ -1733,9 +1733,10 @@ void InlineQueriesManager::on_new_query(int64 query_id, UserId sender_user_id, L
     LOG(ERROR) << "Receive new inline query";
     return;
   }
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateNewInlineQuery>(query_id, sender_user_id.get(),
-                                                            user_location.get_location_object(), query, offset));
+  send_closure(
+      G()->td(), &Td::send_update,
+      make_tl_object<td_api::updateNewInlineQuery>(query_id, td_->contacts_manager_->get_user_id_object(sender_user_id),
+                                                   user_location.get_location_object(), query, offset));
 }
 
 void InlineQueriesManager::on_chosen_result(
@@ -1752,8 +1753,8 @@ void InlineQueriesManager::on_chosen_result(
   }
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateNewChosenInlineResult>(
-                   user_id.get(), user_location.get_location_object(), query, result_id,
-                   get_inline_message_id(std::move(input_bot_inline_message_id))));
+                   td_->contacts_manager_->get_user_id_object(user_id), user_location.get_location_object(), query,
+                   result_id, get_inline_message_id(std::move(input_bot_inline_message_id))));
 }
 
 bool InlineQueriesManager::update_bot_usage(UserId bot_user_id) {

@@ -1464,9 +1464,10 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserTyping> upd
     LOG(DEBUG) << "Ignore user typing in unknown " << dialog_id;
     return;
   }
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateUserChatAction>(dialog_id.get(), user_id.get(),
-                                                            convertSendMessageAction(std::move(update->action_))));
+  send_closure(
+      G()->td(), &Td::send_update,
+      make_tl_object<td_api::updateUserChatAction>(dialog_id.get(), td_->contacts_manager_->get_user_id_object(user_id),
+                                                   convertSendMessageAction(std::move(update->action_))));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatUserTyping> update, bool /*force_apply*/) {
@@ -1485,9 +1486,10 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatUserTyping>
       return;
     }
   }
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateUserChatAction>(dialog_id.get(), user_id.get(),
-                                                            convertSendMessageAction(std::move(update->action_))));
+  send_closure(
+      G()->td(), &Td::send_update,
+      make_tl_object<td_api::updateUserChatAction>(dialog_id.get(), td_->contacts_manager_->get_user_id_object(user_id),
+                                                   convertSendMessageAction(std::move(update->action_))));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEncryptedChatTyping> update, bool /*force_apply*/) {
@@ -1505,9 +1507,10 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEncryptedChatTy
     return;
   }
 
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateUserChatAction>(dialog_id.get(), user_id.get(),
-                                                            make_tl_object<td_api::chatActionTyping>()));
+  send_closure(
+      G()->td(), &Td::send_update,
+      make_tl_object<td_api::updateUserChatAction>(dialog_id.get(), td_->contacts_manager_->get_user_id_object(user_id),
+                                                   make_tl_object<td_api::chatActionTyping>()));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserStatus> update, bool /*force_apply*/) {
@@ -1663,11 +1666,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotShippingQuer
   }
   CHECK(update->shipping_address_ != nullptr);
 
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateNewShippingQuery>(
-                   update->query_id_, user_id.get(), update->payload_.as_slice().str(),
-                   get_shipping_address_object(get_shipping_address(
-                       std::move(update->shipping_address_)))));  // TODO use convert_shipping_address
+  send_closure(
+      G()->td(), &Td::send_update,
+      make_tl_object<td_api::updateNewShippingQuery>(
+          update->query_id_, td_->contacts_manager_->get_user_id_object(user_id), update->payload_.as_slice().str(),
+          get_shipping_address_object(
+              get_shipping_address(std::move(update->shipping_address_)))));  // TODO use convert_shipping_address
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotPrecheckoutQuery> update, bool /*force_apply*/) {
@@ -1677,11 +1681,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotPrecheckoutQ
     return;
   }
 
-  send_closure(
-      G()->td(), &Td::send_update,
-      make_tl_object<td_api::updateNewPreCheckoutQuery>(
-          update->query_id_, user_id.get(), update->currency_, update->total_amount_, update->payload_.as_slice().str(),
-          update->shipping_option_id_, get_order_info_object(get_order_info(std::move(update->info_)))));
+  send_closure(G()->td(), &Td::send_update,
+               make_tl_object<td_api::updateNewPreCheckoutQuery>(
+                   update->query_id_, td_->contacts_manager_->get_user_id_object(user_id), update->currency_,
+                   update->total_amount_, update->payload_.as_slice().str(), update->shipping_option_id_,
+                   get_order_info_object(get_order_info(std::move(update->info_)))));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotWebhookJSON> update, bool /*force_apply*/) {

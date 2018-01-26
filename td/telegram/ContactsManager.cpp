@@ -5816,9 +5816,9 @@ void ContactsManager::update_user_full(UserFull *user_full, UserId user_id) {
   if (user_full->is_changed) {
     user_full->is_changed = false;
     if (user_full->is_inited) {
-      send_closure(
-          G()->td(), &Td::send_update,
-          make_tl_object<td_api::updateUserFullInfo>(user_id.get(), get_user_full_info_object(user_id, user_full)));
+      send_closure(G()->td(), &Td::send_update,
+                   make_tl_object<td_api::updateUserFullInfo>(get_user_id_object(user_id),
+                                                              get_user_full_info_object(user_id, user_full)));
     }
   }
 }
@@ -6598,8 +6598,9 @@ tl_object_ptr<td_api::chatMember> ContactsManager::get_chat_member_object(
     const DialogParticipant &dialog_participant) const {
   UserId participant_user_id = dialog_participant.user_id;
   return make_tl_object<td_api::chatMember>(
-      participant_user_id.get(), dialog_participant.inviter_user_id.get(), dialog_participant.joined_date,
-      dialog_participant.status.get_chat_member_status_object(), get_bot_info_object(participant_user_id));
+      get_user_id_object(participant_user_id), get_user_id_object(dialog_participant.inviter_user_id),
+      dialog_participant.joined_date, dialog_participant.status.get_chat_member_status_object(),
+      get_bot_info_object(participant_user_id));
 }
 
 bool ContactsManager::on_get_channel_error(ChannelId channel_id, const Status &status, const string &source) {
@@ -8941,6 +8942,20 @@ tl_object_ptr<td_api::UserStatus> ContactsManager::get_user_status_object(const 
   }
 }
 
+int32 ContactsManager::get_user_id_object(UserId user_id) const {
+  if (user_id.is_valid() && get_user(user_id) == nullptr && unknown_users_.count(user_id) == 0) {
+    LOG(ERROR) << "Have no info about " << user_id;
+    unknown_users_.insert(user_id);
+    send_closure(G()->td(), &Td::send_update,
+                 td_api::make_object<td_api::updateUser>(td_api::make_object<td_api::user>(
+                     user_id.get(), "", "", "", "", td_api::make_object<td_api::userStatusEmpty>(),
+                     get_profile_photo_object(td_->file_manager_.get(), nullptr),
+                     get_link_state_object(LinkState::Unknown), get_link_state_object(LinkState::Unknown), false, "",
+                     false, td_api::make_object<td_api::userTypeUnknown>(), "")));
+  }
+  return user_id.get();
+}
+
 tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id) const {
   return get_user_object(user_id, get_user(user_id));
 }
@@ -8966,11 +8981,12 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
       u->language_code);
 }
 
-vector<int32> ContactsManager::get_user_ids_object(const vector<UserId> &user_ids) {
-  return transform(user_ids, [](UserId user_id) { return user_id.get(); });
+vector<int32> ContactsManager::get_user_ids_object(const vector<UserId> &user_ids) const {
+  return transform(user_ids, [this](UserId user_id) { return get_user_id_object(user_id); });
 }
 
-tl_object_ptr<td_api::users> ContactsManager::get_users_object(int32 total_count, const vector<UserId> &user_ids) {
+tl_object_ptr<td_api::users> ContactsManager::get_users_object(int32 total_count,
+                                                               const vector<UserId> &user_ids) const {
   if (total_count == -1) {
     total_count = narrow_cast<int32>(user_ids.size());
   }
@@ -9012,7 +9028,7 @@ tl_object_ptr<td_api::basicGroupFullInfo> ContactsManager::get_basic_group_full_
     const ChatFull *chat_full) const {
   CHECK(chat_full != nullptr);
   return make_tl_object<td_api::basicGroupFullInfo>(
-      chat_full->creator_user_id.get(),
+      get_user_id_object(chat_full->creator_user_id),
       transform(chat_full->participants,
                 [this](const DialogParticipant &chat_participant) { return get_chat_member_object(chat_participant); }),
       chat_full->invite_link);
@@ -9074,7 +9090,7 @@ tl_object_ptr<td_api::secretChat> ContactsManager::get_secret_chat_object(Secret
   }
   get_user_force(secret_chat->user_id);
   return td_api::make_object<td_api::secretChat>(
-      secret_chat_id.get(), secret_chat->user_id.get(), get_secret_chat_state_object(secret_chat->state),
+      secret_chat_id.get(), get_user_id_object(secret_chat->user_id), get_secret_chat_state_object(secret_chat->state),
       secret_chat->is_outbound, secret_chat->ttl, secret_chat->key_hash, secret_chat->layer);
 }
 

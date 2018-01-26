@@ -2175,7 +2175,8 @@ class MessagesManager : public Actor {
 
   NotificationSettings *get_notification_settings(NotificationSettingsScope scope, bool force);
 
-  static unique_ptr<DraftMessage> get_draft_message(tl_object_ptr<telegram_api::DraftMessage> &&draft_message_ptr);
+  static unique_ptr<DraftMessage> get_draft_message(ContactsManager *contacts_manager,
+                                                    tl_object_ptr<telegram_api::DraftMessage> &&draft_message_ptr);
 
   static string get_media_caption(const string &message_text, string &&caption);
 
@@ -2232,8 +2233,8 @@ class MessagesManager : public Actor {
   unique_ptr<MessageForwardInfo> get_message_forward_info(
       tl_object_ptr<telegram_api::messageFwdHeader> &&forward_header);
 
-  static tl_object_ptr<td_api::MessageForwardInfo> get_message_forward_info_object(
-      const unique_ptr<MessageForwardInfo> &forward_info);
+  tl_object_ptr<td_api::MessageForwardInfo> get_message_forward_info_object(
+      const unique_ptr<MessageForwardInfo> &forward_info) const;
 
   void ttl_read_history_inbox(DialogId dialog_id, MessageId from_message_id, MessageId till_message_id,
                               double timestamp);

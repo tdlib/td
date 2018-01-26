@@ -415,8 +415,9 @@ class GetPaymentReceiptQuery : public Td::ResultHandler {
     }
 
     promise_.set_value(make_tl_object<td_api::paymentReceipt>(
-        payment_receipt->date_, payments_provider_user_id.get(), convert_invoice(std::move(payment_receipt->invoice_)),
-        convert_order_info(std::move(payment_receipt->info_)),
+        payment_receipt->date_,
+        G()->td().get_actor_unsafe()->contacts_manager_->get_user_id_object(payments_provider_user_id),
+        convert_invoice(std::move(payment_receipt->invoice_)), convert_order_info(std::move(payment_receipt->info_)),
         convert_shipping_option(std::move(payment_receipt->shipping_)),
         std::move(payment_receipt->credentials_title_)));
   }

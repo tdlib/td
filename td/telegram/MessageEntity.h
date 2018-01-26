@@ -135,7 +135,8 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
 vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entities(
     const vector<MessageEntity> &entities);
 
-vector<MessageEntity> get_message_entities(vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities);
+vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manager,
+                                           vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities);
 
 vector<MessageEntity> get_message_entities(vector<tl_object_ptr<secret_api::MessageEntity>> &&secret_entities);
 

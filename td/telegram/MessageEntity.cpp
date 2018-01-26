@@ -1573,7 +1573,8 @@ vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entiti
   return result;
 }
 
-vector<MessageEntity> get_message_entities(vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities) {
+vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manager,
+                                           vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities) {
   vector<MessageEntity> entities;
   entities.reserve(server_entities.size());
   for (auto &entity : server_entities) {
@@ -1648,6 +1649,10 @@ vector<MessageEntity> get_message_entities(vector<tl_object_ptr<telegram_api::Me
         UserId user_id(entity_mention_name->user_id_);
         if (!user_id.is_valid()) {
           LOG(ERROR) << "Receive invalid " << user_id << " in MentionName";
+          continue;
+        }
+        if (!contacts_manager->have_user(user_id)) {
+          LOG(ERROR) << "Receive unknown " << user_id << " in MentionName";
           continue;
         }
         entities.emplace_back(entity_mention_name->offset_, entity_mention_name->length_, user_id);

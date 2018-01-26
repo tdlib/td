@@ -8151,7 +8151,7 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
     case MessageChatCreate::ID: {
       const MessageChatCreate *m = static_cast<const MessageChatCreate *>(content);
       return make_tl_object<td_api::messageBasicGroupChatCreate>(
-          m->title, ContactsManager::get_user_ids_object(m->participant_user_ids));
+          m->title, td_->contacts_manager_->get_user_ids_object(m->participant_user_ids));
     }
     case MessageChatChangeTitle::ID: {
       const MessageChatChangeTitle *m = static_cast<const MessageChatChangeTitle *>(content);
@@ -8167,13 +8167,13 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
       return make_tl_object<td_api::messageUnsupported>();
     case MessageChatAddUsers::ID: {
       const MessageChatAddUsers *m = static_cast<const MessageChatAddUsers *>(content);
-      return make_tl_object<td_api::messageChatAddMembers>(ContactsManager::get_user_ids_object(m->user_ids));
+      return make_tl_object<td_api::messageChatAddMembers>(td_->contacts_manager_->get_user_ids_object(m->user_ids));
     }
     case MessageChatJoinedByLink::ID:
       return make_tl_object<td_api::messageChatJoinByLink>();
     case MessageChatDeleteUser::ID: {
       const MessageChatDeleteUser *m = static_cast<const MessageChatDeleteUser *>(content);
-      return make_tl_object<td_api::messageChatDeleteMember>(m->user_id.get());
+      return make_tl_object<td_api::messageChatDeleteMember>(td_->contacts_manager_->get_user_id_object(m->user_id));
     }
     case MessageChatMigrateTo::ID: {
       const MessageChatMigrateTo *m = static_cast<const MessageChatMigrateTo *>(content);
@@ -9842,7 +9842,8 @@ void MessagesManager::on_get_dialogs(vector<tl_object_ptr<telegram_api::dialog>>
       dialog->unread_mentions_count_ = 0;
     }
 
-    need_update_dialog_pos |= update_dialog_draft_message(d, get_draft_message(std::move(dialog->draft_)), true, false);
+    need_update_dialog_pos |= update_dialog_draft_message(
+        d, get_draft_message(td_->contacts_manager_.get(), std::move(dialog->draft_)), true, false);
     if (is_new) {
       bool has_pts = (dialog->flags_ & DIALOG_FLAG_HAS_PTS) != 0;
       if (last_message_id.is_valid()) {
@@ -11882,7 +11883,8 @@ tl_object_ptr<td_api::ChatType> MessagesManager::get_chat_type_object(DialogId d
     case DialogType::SecretChat: {
       auto secret_chat_id = dialog_id.get_secret_chat_id();
       auto user_id = td_->contacts_manager_->get_secret_chat_user_id(secret_chat_id);
-      return make_tl_object<td_api::chatTypeSecret>(secret_chat_id.get(), user_id.get());
+      return make_tl_object<td_api::chatTypeSecret>(secret_chat_id.get(),
+                                                    td_->contacts_manager_->get_user_id_object(user_id));
     }
     case DialogType::None:
     default:
@@ -12106,7 +12108,7 @@ void MessagesManager::reset_all_notification_settings() {
 }
 
 unique_ptr<DraftMessage> MessagesManager::get_draft_message(
-    tl_object_ptr<telegram_api::DraftMessage> &&draft_message_ptr) {
+    ContactsManager *contacts_manager, tl_object_ptr<telegram_api::DraftMessage> &&draft_message_ptr) {
   if (draft_message_ptr == nullptr) {
     return nullptr;
   }
@@ -12127,7 +12129,7 @@ unique_ptr<DraftMessage> MessagesManager::get_draft_message(
         }
       }
 
-      auto entities = get_message_entities(std::move(draft->entities_));
+      auto entities = get_message_entities(contacts_manager, std::move(draft->entities_));
       auto status = fix_text_message(draft->message_, entities, nullptr, true, true, true, true);
       if (status.is_error()) {
         LOG(ERROR) << "Receive error " << status << " while parsing draft " << draft->message_;
@@ -13441,13 +13443,15 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
     }
   }
   return make_tl_object<td_api::message>(
-      message->message_id.get(), message->sender_user_id.get(), dialog_id.get(), std::move(sending_state), is_outgoing,
-      can_edit_message(dialog_id, message, false, true), can_forward_message(dialog_id, message), can_delete_for_self,
-      can_delete_for_all_users, message->is_channel_post, message->contains_unread_mention, message->date,
-      message->edit_date, get_message_forward_info_object(message->forward_info), message->reply_to_message_id.get(),
-      message->ttl, message->ttl_expires_at != 0 ? std::max(message->ttl_expires_at - Time::now(), 1e-3) : message->ttl,
-      message->via_bot_user_id.get(), message->author_signature, message->views, message->media_album_id,
-      get_message_content_object(message->content.get()), get_reply_markup_object(message->reply_markup));
+      message->message_id.get(), td_->contacts_manager_->get_user_id_object(message->sender_user_id), dialog_id.get(),
+      std::move(sending_state), is_outgoing, can_edit_message(dialog_id, message, false, true),
+      can_forward_message(dialog_id, message), can_delete_for_self, can_delete_for_all_users, message->is_channel_post,
+      message->contains_unread_mention, message->date, message->edit_date,
+      get_message_forward_info_object(message->forward_info), message->reply_to_message_id.get(), message->ttl,
+      message->ttl_expires_at != 0 ? std::max(message->ttl_expires_at - Time::now(), 1e-3) : message->ttl,
+      td_->contacts_manager_->get_user_id_object(message->via_bot_user_id), message->author_signature, message->views,
+      message->media_album_id, get_message_content_object(message->content.get()),
+      get_reply_markup_object(message->reply_markup));
 }
 
 tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total_count, DialogId dialog_id,
@@ -17022,7 +17026,8 @@ void MessagesManager::on_get_game_high_scores(int64 random_id,
       LOG(ERROR) << "Receive wrong score = " << score;
       continue;
     }
-    result->scores_.push_back(make_tl_object<td_api::gameHighScore>(position, user_id.get(), score));
+    result->scores_.push_back(
+        make_tl_object<td_api::gameHighScore>(position, td_->contacts_manager_->get_user_id_object(user_id), score));
   }
 }
 
@@ -17112,7 +17117,7 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_for
 }
 
 tl_object_ptr<td_api::MessageForwardInfo> MessagesManager::get_message_forward_info_object(
-    const unique_ptr<MessageForwardInfo> &forward_info) {
+    const unique_ptr<MessageForwardInfo> &forward_info) const {
   if (forward_info == nullptr) {
     return nullptr;
   }
@@ -17122,9 +17127,9 @@ tl_object_ptr<td_api::MessageForwardInfo> MessagesManager::get_message_forward_i
         forward_info->dialog_id.get(), forward_info->author_signature, forward_info->date,
         forward_info->message_id.get(), forward_info->from_dialog_id.get(), forward_info->from_message_id.get());
   }
-  return make_tl_object<td_api::messageForwardedFromUser>(forward_info->sender_user_id.get(), forward_info->date,
-                                                          forward_info->from_dialog_id.get(),
-                                                          forward_info->from_message_id.get());
+  return make_tl_object<td_api::messageForwardedFromUser>(
+      td_->contacts_manager_->get_user_id_object(forward_info->sender_user_id), forward_info->date,
+      forward_info->from_dialog_id.get(), forward_info->from_message_id.get());
 }
 
 Result<unique_ptr<ReplyMarkup>> MessagesManager::get_dialog_reply_markup(
@@ -18386,7 +18391,7 @@ void MessagesManager::on_update_dialog_draft_message(DialogId dialog_id,
     LOG(INFO) << "Ignore update chat draft in unknown " << dialog_id;
     return;
   }
-  update_dialog_draft_message(d, get_draft_message(std::move(draft_message)), true, true);
+  update_dialog_draft_message(d, get_draft_message(td_->contacts_manager_.get(), std::move(draft_message)), true, true);
 }
 
 bool MessagesManager::update_dialog_draft_message(Dialog *d, unique_ptr<DraftMessage> &&draft_message, bool from_update,
@@ -19426,7 +19431,7 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
     case telegram_api::channelAdminLogEventActionParticipantInvite::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantInvite>(action_ptr);
       auto member = td_->contacts_manager_->get_dialog_participant(ChannelId(), std::move(action->participant_));
-      return make_tl_object<td_api::chatEventMemberInvited>(member.user_id.get(),
+      return make_tl_object<td_api::chatEventMemberInvited>(td_->contacts_manager_->get_user_id_object(member.user_id),
                                                             member.status.get_chat_member_status_object());
     }
     case telegram_api::channelAdminLogEventActionParticipantToggleBan::ID: {
@@ -19439,9 +19444,9 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
         LOG(ERROR) << old_member.user_id << " VS " << new_member.user_id;
         return nullptr;
       }
-      return make_tl_object<td_api::chatEventMemberRestricted>(old_member.user_id.get(),
-                                                               old_member.status.get_chat_member_status_object(),
-                                                               new_member.status.get_chat_member_status_object());
+      return make_tl_object<td_api::chatEventMemberRestricted>(
+          td_->contacts_manager_->get_user_id_object(old_member.user_id),
+          old_member.status.get_chat_member_status_object(), new_member.status.get_chat_member_status_object());
     }
     case telegram_api::channelAdminLogEventActionParticipantToggleAdmin::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantToggleAdmin>(action_ptr);
@@ -19453,9 +19458,9 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
         LOG(ERROR) << old_member.user_id << " VS " << new_member.user_id;
         return nullptr;
       }
-      return make_tl_object<td_api::chatEventMemberPromoted>(old_member.user_id.get(),
-                                                             old_member.status.get_chat_member_status_object(),
-                                                             new_member.status.get_chat_member_status_object());
+      return make_tl_object<td_api::chatEventMemberPromoted>(
+          td_->contacts_manager_->get_user_id_object(old_member.user_id),
+          old_member.status.get_chat_member_status_object(), new_member.status.get_chat_member_status_object());
     }
     case telegram_api::channelAdminLogEventActionChangeTitle::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionChangeTitle>(action_ptr);
@@ -19569,8 +19574,8 @@ void MessagesManager::on_get_event_log(int64 random_id,
     if (action == nullptr) {
       continue;
     }
-    result->events_.push_back(
-        make_tl_object<td_api::chatEvent>(event->id_, event->date_, user_id.get(), std::move(action)));
+    result->events_.push_back(make_tl_object<td_api::chatEvent>(
+        event->id_, event->date_, td_->contacts_manager_->get_user_id_object(user_id), std::move(action)));
   }
 }
 
@@ -20191,7 +20196,7 @@ unique_ptr<MessageContent> MessagesManager::get_message_content(
     string message_text, tl_object_ptr<telegram_api::MessageMedia> &&media,
     vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities, DialogId owner_dialog_id,
     bool is_content_read, UserId via_bot_user_id, int32 *ttl, int32 send_date) const {
-  auto entities = get_message_entities(std::move(server_entities));
+  auto entities = get_message_entities(td_->contacts_manager_.get(), std::move(server_entities));
   auto status = fix_text_message(message_text, entities, nullptr, true, true, true, false);
   if (status.is_error()) {
     if (send_date > 1497000000) {  // approximate fix date

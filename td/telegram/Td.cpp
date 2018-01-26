@@ -229,7 +229,7 @@ class GetRecentMeUrlsQuery : public Td::ResultHandler {
             result = nullptr;
             break;
           }
-          result->type_ = make_tl_object<td_api::tMeUrlTypeUser>(user_id.get());
+          result->type_ = make_tl_object<td_api::tMeUrlTypeUser>(td->contacts_manager_->get_user_id_object(user_id));
           break;
         }
         case telegram_api::recentMeUrlChat::ID: {
@@ -1947,7 +1947,7 @@ class GetChatAdministratorsRequest : public RequestActor<> {
   }
 
   void do_send_result() override {
-    send_result(ContactsManager::get_users_object(-1, user_ids_));
+    send_result(td->contacts_manager_->get_users_object(-1, user_ids_));
   }
 
  public:
@@ -2075,7 +2075,8 @@ class ImportContactsRequest : public RequestActor<> {
     CHECK(imported_contacts_.first.size() == contacts_.size());
     CHECK(imported_contacts_.second.size() == contacts_.size());
     send_result(make_tl_object<td_api::importedContacts>(
-        transform(imported_contacts_.first, [](UserId user_id) { return user_id.get(); }),
+        transform(imported_contacts_.first,
+                  [this](UserId user_id) { return td->contacts_manager_->get_user_id_object(user_id); }),
         std::move(imported_contacts_.second)));
   }
 
@@ -2097,7 +2098,7 @@ class SearchContactsRequest : public RequestActor<> {
   }
 
   void do_send_result() override {
-    send_result(ContactsManager::get_users_object(user_ids_.first, user_ids_.second));
+    send_result(td->contacts_manager_->get_users_object(user_ids_.first, user_ids_.second));
   }
 
  public:
@@ -2155,7 +2156,8 @@ class ChangeImportedContactsRequest : public RequestActor<> {
     CHECK(imported_contacts_.first.size() == contacts_size_);
     CHECK(imported_contacts_.second.size() == contacts_size_);
     send_result(make_tl_object<td_api::importedContacts>(
-        transform(imported_contacts_.first, [](UserId user_id) { return user_id.get(); }),
+        transform(imported_contacts_.first,
+                  [this](UserId user_id) { return td->contacts_manager_->get_user_id_object(user_id); }),
         std::move(imported_contacts_.second)));
   }
 
@@ -2189,7 +2191,7 @@ class GetRecentInlineBotsRequest : public RequestActor<> {
   }
 
   void do_send_result() override {
-    send_result(ContactsManager::get_users_object(-1, user_ids_));
+    send_result(td->contacts_manager_->get_users_object(-1, user_ids_));
   }
 
  public:

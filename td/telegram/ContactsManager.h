@@ -362,11 +362,13 @@ class ContactsManager : public Actor {
 
   vector<UserId> get_dialog_administrators(DialogId chat_id, int left_tries, Promise<Unit> &&promise);
 
+  int32 get_user_id_object(UserId user_id) const;
+
   tl_object_ptr<td_api::user> get_user_object(UserId user_id) const;
 
-  static vector<int32> get_user_ids_object(const vector<UserId> &user_ids);
+  vector<int32> get_user_ids_object(const vector<UserId> &user_ids) const;
 
-  static tl_object_ptr<td_api::users> get_users_object(int32 total_count, const vector<UserId> &user_ids);
+  tl_object_ptr<td_api::users> get_users_object(int32 total_count, const vector<UserId> &user_ids) const;
 
   tl_object_ptr<td_api::userFullInfo> get_user_full_info_object(UserId user_id) const;
 
@@ -977,6 +979,7 @@ class ContactsManager : public Actor {
 
   std::unordered_map<UserId, User, UserIdHash> users_;
   std::unordered_map<UserId, UserFull, UserIdHash> users_full_;
+  mutable std::unordered_set<UserId, UserIdHash> unknown_users_;
 
   std::unordered_map<ChatId, Chat, ChatIdHash> chats_;
   std::unordered_map<ChatId, ChatFull, ChatIdHash> chats_full_;
