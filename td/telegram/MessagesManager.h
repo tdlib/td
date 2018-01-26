@@ -1471,6 +1471,9 @@ class MessagesManager : public Actor {
     int64 pinned_order = DEFAULT_ORDER;
     int32 delete_last_message_date = 0;
     MessageId deleted_last_message_id;
+
+    bool has_contact_registered_message = false;
+
     bool is_last_message_deleted_locally = false;
 
     bool know_can_report_spam = false;

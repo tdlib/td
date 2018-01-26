@@ -4121,6 +4121,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   STORE_FLAG(has_deleted_last_message);
   STORE_FLAG(has_last_clear_history_message_id);
   STORE_FLAG(is_last_message_deleted_locally);
+  STORE_FLAG(has_contact_registered_message);
   END_STORE_FLAGS();
 
   store(dialog_id, storer);  // must be stored at offset 4
@@ -4214,6 +4215,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   PARSE_FLAG(has_deleted_last_message);
   PARSE_FLAG(has_last_clear_history_message_id);
   PARSE_FLAG(is_last_message_deleted_locally);
+  PARSE_FLAG(has_contact_registered_message);
   END_PARSE_FLAGS();
 
   parse(dialog_id, parser);  // must be stored at offset 4
@@ -5121,6 +5123,10 @@ void MessagesManager::on_update_contact_registered(tl_object_ptr<telegram_api::u
     Dialog *d = get_dialog(dialog_id);
     CHECK(d != nullptr);
 
+    if (d->has_contact_registered_message) {
+      LOG(INFO) << "Ignore duplicate updateContactRegistered about " << user_id;
+      return;
+    }
     if (d->last_message_id.is_valid()) {
       auto m = get_message(d, d->last_message_id);
       CHECK(m != nullptr);
@@ -20942,6 +20948,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         return nullptr;
       } else {
         on_message_ttl_expired_impl(d, message.get());
+        message_content_id = message->content->get_id();
         if (message->from_database) {
           add_message_to_database(d, message.get(), "add expired message to dialog");
         }
@@ -21147,7 +21154,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   if (!td_->auth_manager_->is_bot() && from_update && d->reply_markup_message_id != MessageId() &&
-      message->content->get_id() == MessageChatDeleteUser::ID) {
+      message_content_id == MessageChatDeleteUser::ID) {
     auto deleted_user_id = static_cast<const MessageChatDeleteUser *>(message->content.get())->user_id;
     if (td_->contacts_manager_->is_user_bot(deleted_user_id)) {
       const Message *old_message = get_message_force(d, d->reply_markup_message_id);
@@ -21157,9 +21164,14 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
+  if (message_content_id == MessageContactRegistered::ID && !d->has_contact_registered_message) {
+    d->has_contact_registered_message = true;
+    on_dialog_updated(dialog_id, "update_has_contact_registered_message");
+  }
+
   if (from_update && dialog_id.get_type() == DialogType::Channel) {
     int32 new_participant_count = 0;
-    switch (message->content->get_id()) {
+    switch (message_content_id) {
       case MessageChatAddUsers::ID:
         new_participant_count =
             narrow_cast<int32>(static_cast<const MessageChatAddUsers *>(message->content.get())->user_ids.size());
@@ -21182,7 +21194,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
   if (!td_->auth_manager_->is_bot() && (from_update || message_id.is_yet_unsent()) &&
       message->forward_info == nullptr && (message->is_outgoing || dialog_id == my_dialog_id)) {
-    switch (message->content->get_id()) {
+    switch (message_content_id) {
       case MessageAnimation::ID:
         if (dialog_id.get_type() != DialogType::SecretChat) {
           td_->animations_manager_->add_saved_animation_by_id(get_message_content_file_id(message->content.get()));
