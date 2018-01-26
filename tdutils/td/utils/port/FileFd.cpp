@@ -401,10 +401,12 @@ int64 FileFd::get_size() {
   return stat().size_;
 }
 
+#if TD_PORT_WINDOWS
 static uint64 filetime_to_unix_time_nsec(LONGLONG filetime) {
   const auto FILETIME_UNIX_TIME_DIFF = 116444736000000000ll;
   return static_cast<uint64>((filetime - FILETIME_UNIX_TIME_DIFF) * 100);
 }
+#endif
 
 Stat FileFd::stat() {
   CHECK(!empty());
