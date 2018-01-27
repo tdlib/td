@@ -8177,7 +8177,8 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
     }
     case MessageChatMigrateTo::ID: {
       const MessageChatMigrateTo *m = static_cast<const MessageChatMigrateTo *>(content);
-      return make_tl_object<td_api::messageChatUpgradeTo>(m->migrated_to_channel_id.get());
+      return make_tl_object<td_api::messageChatUpgradeTo>(
+          td_->contacts_manager_->get_supergroup_id_object(m->migrated_to_channel_id));
     }
     case MessageChannelCreate::ID: {
       const MessageChannelCreate *m = static_cast<const MessageChannelCreate *>(content);
@@ -8185,7 +8186,8 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
     }
     case MessageChannelMigrateFrom::ID: {
       const MessageChannelMigrateFrom *m = static_cast<const MessageChannelMigrateFrom *>(content);
-      return make_tl_object<td_api::messageChatUpgradeFrom>(m->title, m->migrated_from_chat_id.get());
+      return make_tl_object<td_api::messageChatUpgradeFrom>(
+          m->title, td_->contacts_manager_->get_basic_group_id_object(m->migrated_from_chat_id));
     }
     case MessagePinMessage::ID: {
       const MessagePinMessage *m = static_cast<const MessagePinMessage *>(content);
@@ -11872,18 +11874,21 @@ tl_object_ptr<td_api::draftMessage> MessagesManager::get_draft_message_object(
 tl_object_ptr<td_api::ChatType> MessagesManager::get_chat_type_object(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return make_tl_object<td_api::chatTypePrivate>(dialog_id.get_user_id().get());
+      return make_tl_object<td_api::chatTypePrivate>(
+          td_->contacts_manager_->get_user_id_object(dialog_id.get_user_id()));
     case DialogType::Chat:
-      return make_tl_object<td_api::chatTypeBasicGroup>(dialog_id.get_chat_id().get());
+      return make_tl_object<td_api::chatTypeBasicGroup>(
+          td_->contacts_manager_->get_basic_group_id_object(dialog_id.get_chat_id()));
     case DialogType::Channel: {
       auto channel_id = dialog_id.get_channel_id();
       auto channel_type = td_->contacts_manager_->get_channel_type(channel_id);
-      return make_tl_object<td_api::chatTypeSupergroup>(channel_id.get(), channel_type != ChannelType::Megagroup);
+      return make_tl_object<td_api::chatTypeSupergroup>(td_->contacts_manager_->get_supergroup_id_object(channel_id),
+                                                        channel_type != ChannelType::Megagroup);
     }
     case DialogType::SecretChat: {
       auto secret_chat_id = dialog_id.get_secret_chat_id();
       auto user_id = td_->contacts_manager_->get_secret_chat_user_id(secret_chat_id);
-      return make_tl_object<td_api::chatTypeSecret>(secret_chat_id.get(),
+      return make_tl_object<td_api::chatTypeSecret>(td_->contacts_manager_->get_secret_chat_id_object(secret_chat_id),
                                                     td_->contacts_manager_->get_user_id_object(user_id));
     }
     case DialogType::None:

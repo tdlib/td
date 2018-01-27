@@ -1806,16 +1806,16 @@ updateUserChatAction chat_id:int53 user_id:int32 action:ChatAction = Update;
 //@description The user went online or offline @user_id User identifier @status New status of the user
 updateUserStatus user_id:int32 status:UserStatus = Update;
 
-//@description Some data of a user has changed. This update is guaranteed to come before the user identifier is returned to the client as long as the library has information on the user @user New data about the user
+//@description Some data of a user has changed. This update is guaranteed to come before the user identifier is returned to the client @user New data about the user
 updateUser user:user = Update;
 
-//@description Some data of a basic group has changed. This update is guaranteed to come before the basic group identifier is returned to the client, as long as the library has information on the group @basic_group New data about the group
+//@description Some data of a basic group has changed. This update is guaranteed to come before the basic group identifier is returned to the client @basic_group New data about the group
 updateBasicGroup basic_group:basicGroup = Update;
 
-//@description Some data of a supergroup or a channel has changed. This update is guaranteed to come before the supergroup identifier is returned to the client as long as the library has information on the supergroup @supergroup New data about the supergroup
+//@description Some data of a supergroup or a channel has changed. This update is guaranteed to come before the supergroup identifier is returned to the client @supergroup New data about the supergroup
 updateSupergroup supergroup:supergroup = Update;
 
-//@description Some data of a secret chat has changed. This update is guaranteed to come before the secret chat identifier is returned to the client as long as the library has information about the secret chat @secret_chat New data about the secret chat
+//@description Some data of a secret chat has changed. This update is guaranteed to come before the secret chat identifier is returned to the client @secret_chat New data about the secret chat
 updateSecretChat secret_chat:secretChat = Update;
 
 //@description Some data from userFullInfo has been changed @user_id User identifier @user_full_info New full information about the user
@@ -2036,7 +2036,7 @@ getChats offset_order:int64 offset_chat_id:int53 limit:int32 = Chats;
 //@description Searches a public chat by its username. Currently only private chats, supergroups and channels can be public. Returns the chat if found; otherwise an error is returned @username Username to be resolved
 searchPublicChat username:string = Chat;
 
-//@description Searches public chats by a prefix of their username. Currently only private chats, supergroups and channels can be public. Returns a meaningful number of results. Returns nothing if the length of the searched username prefix is less than 5. Excludes private chats with contacts and chats from the chat list from the results @query Query to search for
+//@description Searches public chats by looking for specified query in their username and title. Currently only private chats, supergroups and channels can be public. Returns a meaningful number of results. Returns nothing if the length of the searched username prefix is less than 5. Excludes private chats with contacts and chats from the chat list from the results @query Query to search for
 searchPublicChats query:string = Chats;
 
 //@description Searches for the specified query in the title and username of already known chats, this is an offline request. Returns chats in the order seen in the chat list @query Query to search for. If the query is empty, returns up to 20 recently found chats @limit Maximum number of chats to be returned

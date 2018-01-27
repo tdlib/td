@@ -241,7 +241,8 @@ class GetRecentMeUrlsQuery : public Td::ResultHandler {
             result = nullptr;
             break;
           }
-          result->type_ = make_tl_object<td_api::tMeUrlTypeSupergroup>(channel_id.get());
+          result->type_ =
+              make_tl_object<td_api::tMeUrlTypeSupergroup>(td->contacts_manager_->get_supergroup_id_object(channel_id));
           break;
         }
         case telegram_api::recentMeUrlChatInvite::ID: {

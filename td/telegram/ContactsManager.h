@@ -372,13 +372,19 @@ class ContactsManager : public Actor {
 
   tl_object_ptr<td_api::userFullInfo> get_user_full_info_object(UserId user_id) const;
 
+  int32 get_basic_group_id_object(ChatId chat_id) const;
+
   tl_object_ptr<td_api::basicGroup> get_basic_group_object(ChatId chat_id) const;
 
   tl_object_ptr<td_api::basicGroupFullInfo> get_basic_group_full_info_object(ChatId chat_id) const;
 
+  int32 get_supergroup_id_object(ChannelId channel_id) const;
+
   tl_object_ptr<td_api::supergroup> get_supergroup_object(ChannelId channel_id) const;
 
   tl_object_ptr<td_api::supergroupFullInfo> get_channel_full_info_object(ChannelId channel_id) const;
+
+  int32 get_secret_chat_id_object(SecretChatId secret_chat_id) const;
 
   tl_object_ptr<td_api::secretChat> get_secret_chat_object(SecretChatId secret_chat_id);
 
@@ -983,12 +989,15 @@ class ContactsManager : public Actor {
 
   std::unordered_map<ChatId, Chat, ChatIdHash> chats_;
   std::unordered_map<ChatId, ChatFull, ChatIdHash> chats_full_;
+  mutable std::unordered_set<ChatId, ChatIdHash> unknown_chats_;
 
   std::unordered_set<ChannelId, ChannelIdHash> min_channels_;
   std::unordered_map<ChannelId, Channel, ChannelIdHash> channels_;
   std::unordered_map<ChannelId, ChannelFull, ChannelIdHash> channels_full_;
+  mutable std::unordered_set<ChannelId, ChannelIdHash> unknown_channels_;
 
   std::unordered_map<SecretChatId, SecretChat, SecretChatIdHash> secret_chats_;
+  mutable std::unordered_set<SecretChatId, SecretChatIdHash> unknown_secret_chats_;
 
   std::unordered_map<UserId, vector<SecretChatId>, UserIdHash> secret_chats_with_user_;
 
