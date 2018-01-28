@@ -660,7 +660,7 @@ Result<FileId> FileManager::register_file(FileData data, FileLocationSource file
   node = std::make_unique<FileNode>(std::move(data.local_), std::move(data.remote_), std::move(data.generate_),
                                     data.size_, data.expected_size_, std::move(data.name_), std::move(data.url_),
                                     data.owner_dialog_id_, std::move(data.encryption_key_), file_id,
-                                    has_remote ? static_cast<int8>(file_location_source) : 0);
+                                    static_cast<int8>(has_remote));
   node->remote_source_ = file_location_source;
   node->pmc_id_ = data.pmc_id_;
   get_file_id_info(file_id)->node_id_ = file_node_id;
