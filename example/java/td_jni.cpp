@@ -6,6 +6,7 @@
 //
 #include <td/telegram/Client.h>
 #include <td/telegram/Log.h>
+#include <td/telegram/td_api.h>
 
 #include <td/tl/tl_jni_object.h>
 

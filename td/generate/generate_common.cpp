@@ -13,7 +13,6 @@
 #include "td/tl/tl_config.h"
 #include "td/tl/tl_generate.h"
 
-#include <algorithm>
 #include <string>
 #include <vector>
 

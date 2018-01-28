@@ -5,7 +5,7 @@ For Javadoc documentation generation PHP is needed.
 
 TDLib should be prebuilt for using with Java and installed to local subdirectory `td/`:
 ```
-cd <path to tdlib sources>
+cd <path to TDLib sources>
 mkdir jnibuild
 cd jnibuild
 cmake -DCMAKE_BUILD_TYPE=Release -DTD_ENABLE_JNI=ON -DCMAKE_INSTALL_PREFIX:PATH=../example/java/td ..
@@ -15,10 +15,10 @@ If you want to compile TDLib for 64-bit Java on Windows, you will also need to a
 
 Then you can build this example:
 ```
-cd <path to tdlib sources>/example/java
+cd <path to TDLib sources>/example/java
 mkdir build
 cd build
-cmake -DCMAKE_BUILD_TYPE=Release -DTd_DIR=<full path to tdlib sources>/example/java/td/lib/cmake/Td -DCMAKE_INSTALL_PREFIX:PATH=.. ..
+cmake -DCMAKE_BUILD_TYPE=Release -DTd_DIR=<full path to TDLib sources>/example/java/td/lib/cmake/Td -DCMAKE_INSTALL_PREFIX:PATH=.. ..
 cmake --build . --target install
 ```
 
@@ -26,7 +26,7 @@ Compiled TDLib shared library and Java example after that will be placed in bin/
 
 Now you can run Java example:
 ```
-cd <path to tdlib sources>/example/java/bin
+cd <path to TDLib sources>/example/java/bin
 java -Djava.library.path=. org/drinkless/tdlib/example/Example
 ```
 

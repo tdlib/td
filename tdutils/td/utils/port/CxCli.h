@@ -16,6 +16,7 @@
 
 #include "collection.h"
 
+#include <cstdint>
 #include <map>
 #include <mutex>
 
