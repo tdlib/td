@@ -39,6 +39,37 @@ jfieldID get_field_id(JNIEnv *env, jclass clazz, const char *name, const char *s
 
 void register_native_method(JNIEnv *env, jclass clazz, std::string name, std::string signature, void *function_ptr);
 
+class JvmThreadDetacher {
+  JavaVM *java_vm_;
+
+  void detach() {
+    if (java_vm_ != nullptr) {
+      java_vm_->DetachCurrentThread();
+      java_vm_ = nullptr;
+    }
+  }
+
+ public:
+  explicit JvmThreadDetacher(JavaVM *java_vm): java_vm_(java_vm) {
+  }
+
+  JvmThreadDetacher(const JvmThreadDetacher &other) = delete;
+  JvmThreadDetacher &operator=(const JvmThreadDetacher &other) = delete;
+  JvmThreadDetacher(JvmThreadDetacher &&other): java_vm_(other.java_vm_) {
+    other.java_vm_ = nullptr;
+  }
+  JvmThreadDetacher &operator=(JvmThreadDetacher &&other) = delete;
+  ~JvmThreadDetacher() {
+    detach();
+  }
+
+  void operator()(JNIEnv *env) {
+    detach();
+  }
+};
+
+std::unique_ptr<JNIEnv, JvmThreadDetacher> get_jni_env(JavaVM *java_vm, jint jni_version);
+
 std::string fetch_string(JNIEnv *env, jobject o, jfieldID id);
 
 inline jobject fetch_object(JNIEnv *env, const jobject &o, const jfieldID &id) {

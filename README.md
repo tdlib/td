@@ -23,10 +23,10 @@ TDLib (Telegram Database library) is a cross-platform library for building [Tele
 * **Easy to use**: `TDLib` takes care of all network implementation details, encryption and local data storage.
 * **High-performance**: in the [Telegram Bot API](https://core.telegram.org/bots/api), each `TDLib` instance handles more than 18000 active bots simultaneously.
 * **Well-documented**: all `TDLib` API methods and public interfaces are fully documented.
-* **Consistent**: `TDLib` guarantees that all updates will be delivered in the right order.
+* **Consistent**: `TDLib` guarantees that all updates are delivered in the right order.
 * **Reliable**: `TDLib` remains stable on slow and unstable Internet connections.
 * **Secure**: all local data is encrypted using a user-provided encryption key.
-* **Fully-asynchronous**: requests to `TDLib` don't block each other or anything else, responses will be sent when they are available.
+* **Fully-asynchronous**: requests to `TDLib` don't block each other or anything else, responses are sent when they are available.
 
 <a name="usage"></a>
 ## Examples and documentation
