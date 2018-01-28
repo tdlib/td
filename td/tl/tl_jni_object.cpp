@@ -107,7 +107,7 @@ static size_t get_utf8_from_utf16_length(const jchar *p, jsize len) {
         }
       }
 
-      LOG(FATAL) << "Receive wrong UTF-16 string";
+      // TODO wrong UTF-16, it is possible
       return 0;
     }
     result += 1 + (cur >= 0x80) + (cur >= 0x800);
