@@ -218,8 +218,8 @@ std::pair<DocumentsManager::DocumentType, FileId> DocumentsManager::on_get_docum
     suggested_file_name = to_string(std::abs(id));
     auto extension = MimeType::to_extension(mime_type, default_extension);
     if (!extension.empty()) {
-      file_name += '.';
-      file_name += extension;
+      suggested_file_name += '.';
+      suggested_file_name += extension;
     }
   }
   FileId file_id = td_->file_manager_->register_remote(
