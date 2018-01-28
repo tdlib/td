@@ -1,0 +1,33 @@
+# TDLib Java example
+
+To run this example, you will need installed JDK >= 1.6.
+For Javadoc documentation generation PHP is needed.
+
+TDLib should be prebuilt for using with Java and installed to local subdirectory `td/`:
+```
+cd <path to tdlib sources>
+mkdir jnibuild
+cd jnibuild
+cmake -DCMAKE_BUILD_TYPE=Release -DTD_ENABLE_JNI=ON -DCMAKE_INSTALL_PREFIX:PATH=../example/java/td ..
+cmake --build . --target install
+```
+If you want to compile TDLib for 64-bit Java on Windows, you will also need to add `-G "Visual Studio 14 2015 Win64"` option to CMake.
+
+Then you can build this example:
+```
+cd <path to tdlib sources>/example/java
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE=Release -DTd_DIR=<full path to tdlib sources>/example/java/td/lib/cmake/Td -DCMAKE_INSTALL_PREFIX:PATH=.. ..
+cmake --build . --target install
+```
+
+Compiled TDLib shared library and Java example after that will be placed in bin/ and Javadoc documentation in docs/.
+
+Now you can run Java example:
+```
+cd <path to tdlib sources>/example/java/bin
+java -Djava.library.path=. org/drinkless/tdlib/example/Example
+```
+
+If you get java.lang.UnsatisfiedLinkError with "Can't find dependent libraries" you may also need to copy some dependent shared libraries to bin/.
