@@ -2948,10 +2948,9 @@ void main(int argc, char **argv) {
       if (*arg == '\0' && i + 1 < argc) {
         arg = argv[++i];
       }
-      file_log.init(arg);
-      file_log.init(arg);
-      file_log.init(arg);
-      log_interface = &ts_log;
+      if (file_log.init(arg) && file_log.init(arg) && file_log.init(arg)) {
+        log_interface = &ts_log;
+      }
     } else if (!std::strcmp(argv[i], "-W")) {
       get_chat_list = true;
     } else if (!std::strcmp(argv[i], "--disable-network") || !std::strcmp(argv[i], "-n")) {

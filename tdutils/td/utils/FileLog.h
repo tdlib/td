@@ -17,7 +17,7 @@ class FileLog : public LogInterface {
   static constexpr int64 DEFAULT_ROTATE_THRESHOLD = 10 * (1 << 20);
 
  public:
-  void init(string path, int64 rotate_threshold = DEFAULT_ROTATE_THRESHOLD);
+  bool init(string path, int64 rotate_threshold = DEFAULT_ROTATE_THRESHOLD);
 
   void set_rotate_threshold(int64 rotate_threshold);
 

@@ -17,16 +17,26 @@
 
 namespace td {
 
-void FileLog::init(string path, int64 rotate_threshold) {
-  fd_.close();
-  path_ = std::move(path);
+bool FileLog::init(string path, int64 rotate_threshold) {
+  if (path == path_) {
+    set_rotate_threshold(rotate_threshold);
+    return true;
+  }
 
-  auto r_fd = FileFd::open(path_, FileFd::Create | FileFd::Write | FileFd::Append);
-  LOG_IF(FATAL, r_fd.is_error()) << "Can't open log: " << r_fd.error();
+  auto r_fd = FileFd::open(path, FileFd::Create | FileFd::Write | FileFd::Append);
+  if (r_fd.is_error()) {
+    LOG(ERROR) << "Can't open log: " << r_fd.error();
+    return false;
+  }
+
+  fd_.close();
   fd_ = r_fd.move_as_ok();
   Fd::duplicate(fd_.get_fd(), Fd::Stderr()).ignore();
+
+  path_ = std::move(path);
   size_ = fd_.get_size();
   rotate_threshold_ = rotate_threshold;
+  return true;
 }
 
 void FileLog::set_rotate_threshold(int64 rotate_threshold) {

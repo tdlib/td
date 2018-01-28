@@ -30,8 +30,11 @@ void Log::set_file_path(string file_path) {
     return;
   }
 
-  file_log.init(file_path, max_log_file_size);
-  log_interface = &ts_log;
+  if (file_log.init(file_path, max_log_file_size)) {
+    log_interface = &ts_log;
+  } else {
+    LOG(FATAL) << "Can't init file log";
+  }
 }
 
 void Log::set_max_file_size(int64 max_file_size) {
