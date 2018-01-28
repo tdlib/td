@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 
 project(TdJavaExample VERSION 1.0 LANGUAGES CXX)
 
@@ -29,7 +29,7 @@ endif()
 
 add_custom_target(td_generate_java_api
   COMMAND ${GENERATE_JAVA_API_CMD}
-  COMMENT "Generate Java TDLib API source files"
+  COMMENT "Generating Java TDLib API source files"
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/td/bin/td_generate_java_api ${TD_API_TLO_PATH} ${TD_API_TL_PATH} ${JAVADOC_TL_DOCUMENTATION_GENERATOR_PATH}
 )
 
@@ -38,7 +38,7 @@ get_filename_component(JAVA_OUTPUT_DIRECTORY ${CMAKE_INSTALL_PREFIX}/bin REALPAT
 file(MAKE_DIRECTORY ${JAVA_OUTPUT_DIRECTORY})
 add_custom_target(build_java
   COMMAND ${Java_JAVAC_EXECUTABLE} -d ${JAVA_OUTPUT_DIRECTORY} ${JAVA_SOURCE_PATH}/example/Example.java ${JAVA_SOURCE_PATH}/Client.java ${JAVA_SOURCE_PATH}/Log.java ${JAVA_SOURCE_PATH}/TdApi.java
-  COMMENT "Build Java code"
+  COMMENT "Building Java code"
   DEPENDS td_generate_java_api
 )
 
@@ -46,7 +46,7 @@ set(JAVA_SOURCE_PATH "${TD_API_JAVA_PATH}/${TD_API_JAVA_PACKAGE}")
 add_custom_target(generate_javadoc
   COMMAND ${Java_JAVADOC_EXECUTABLE} -d ${JAVA_OUTPUT_DIRECTORY}/../docs org.drinkless.tdlib
   WORKING_DIRECTORY ${TD_API_JAVA_PATH}
-  COMMENT "Generate Javadoc documentation"
+  COMMENT "Generating Javadoc documentation"
   DEPENDS td_generate_java_api
 )
 

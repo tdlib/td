@@ -30,7 +30,7 @@ td_json_client_destroy.restype = None
 td_json_client_destroy.argtypes = [c_void_p]
 
 td_set_log_file_path = tdjson.td_set_log_file_path
-td_set_log_file_path.restype = None
+td_set_log_file_path.restype = c_int
 td_set_log_file_path.argtypes = [c_char_p]
 
 td_set_log_max_file_size = tdjson.td_set_log_max_file_size

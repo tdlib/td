@@ -24,17 +24,18 @@ static void fatal_error_callback_wrapper(CSlice message) {
   fatal_error_callback(message.c_str());
 }
 
-void Log::set_file_path(string file_path) {
+bool Log::set_file_path(string file_path) {
   if (file_path.empty()) {
     log_interface = default_log_interface;
-    return;
+    return true;
   }
 
   if (file_log.init(file_path, max_log_file_size)) {
     log_interface = &ts_log;
-  } else {
-    LOG(FATAL) << "Can't init file log";
+    return true;
   }
+
+  return false;
 }
 
 void Log::set_max_file_size(int64 max_file_size) {

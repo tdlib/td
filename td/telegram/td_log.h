@@ -25,8 +25,9 @@ extern "C" {
  *
  * \param[in]  file_path Null-terminated path to a file where the internal TDLib log will be written.
  *                       Use an empty path to switch back to the default logging behaviour.
+ * \return True 1 on success, or 0 otherwise, i.e. if the file can't be opened for writing.
  */
-TDJSON_EXPORT void td_set_log_file_path(const char *file_path);
+TDJSON_EXPORT int td_set_log_file_path(const char *file_path);
 
 /**
  * Sets maximum size of the file to where the internal TDLib log is written before the file will be auto-rotated.

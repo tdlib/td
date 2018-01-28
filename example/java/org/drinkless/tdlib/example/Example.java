@@ -11,6 +11,8 @@ import org.drinkless.tdlib.Log;
 import org.drinkless.tdlib.TdApi;
 
 import java.io.Console;
+import java.io.IOError;
+import java.io.IOException;
 import java.util.NavigableSet;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
@@ -161,39 +163,43 @@ public final class Example {
     }
 
     private static void getCommand() {
-        String command = System.console().readLine("Enter command (gcs - GetChats, gc - GetChat, me - GetMe, sm <chatId> <message> - SendMessage, lo - LogOut, q - Quit): ");
+        String command = System.console().readLine("Enter command (gcs - GetChats, gc <chatId> - GetChat, me - GetMe, sm <chatId> <message> - SendMessage, lo - LogOut, q - Quit): ");
         String[] commands = command.split(" ", 2);
-        switch (commands[0]) {
-            case "gcs": {
-                int limit = 20;
-                if (commands.length > 1) {
-                    limit = toInt(commands[1]);
+        try {
+            switch (commands[0]) {
+                case "gcs": {
+                    int limit = 20;
+                    if (commands.length > 1) {
+                        limit = toInt(commands[1]);
+                    }
+                    getChatList(limit);
+                    break;
                 }
-                getChatList(limit);
-                break;
+                case "gc":
+                    client.send(new TdApi.GetChat(getChatId(commands[1])), defaultHandler);
+                    break;
+                case "me":
+                    client.send(new TdApi.GetMe(), defaultHandler);
+                    break;
+                case "sm": {
+                    String[] args = commands[1].split(" ", 2);
+                    sendMessage(getChatId(args[0]), args[1]);
+                    break;
+                }
+                case "lo":
+                    haveAuthorization = false;
+                    client.send(new TdApi.LogOut(), defaultHandler);
+                    break;
+                case "q":
+                    quiting = true;
+                    haveAuthorization = false;
+                    client.send(new TdApi.Close(), defaultHandler);
+                    break;
+                default:
+                    System.err.println("Unsupported command: " + command);
             }
-            case "gc":
-                client.send(new TdApi.GetChat(getChatId(commands[1])), defaultHandler);
-                break;
-            case "me":
-                client.send(new TdApi.GetMe(), defaultHandler);
-                break;
-            case "sm": {
-                String[] args = commands[1].split(" ", 2);
-                sendMessage(getChatId(args[0]), args[1]);
-                break;
-            }
-            case "lo":
-                haveAuthorization = false;
-                client.send(new TdApi.LogOut(), defaultHandler);
-                break;
-            case "q":
-                quiting = true;
-                haveAuthorization = false;
-                client.send(new TdApi.Close(), defaultHandler);
-                break;
-            default:
-                System.err.println("Unsupported command: " + command);
+        } catch (ArrayIndexOutOfBoundsException e) {
+            print("Not enough arguments");
         }
     }
 
@@ -259,6 +265,9 @@ public final class Example {
     public static void main(String[] args) throws InterruptedException {
         // disable TDLib log
         Log.setVerbosityLevel(0);
+        if (!Log.setFilePath("log")) {
+            throw new IOError(new IOException("Write access to the current directory is required"));
+        }
 
         // create client
         client = Client.create(new UpdatesHandler(), null, null);

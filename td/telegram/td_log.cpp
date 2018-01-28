@@ -10,8 +10,8 @@
 
 #include <cstdint>
 
-void td_set_log_file_path(const char *file_path) {
-  td::Log::set_file_path(file_path == nullptr ? "" : file_path);
+int td_set_log_file_path(const char *file_path) {
+  return static_cast<int>(td::Log::set_file_path(file_path == nullptr ? "" : file_path));
 }
 
 void td_set_log_max_file_size(long long max_file_size) {

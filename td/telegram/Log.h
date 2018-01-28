@@ -30,8 +30,9 @@ class Log {
    *
    * \param[in]  file_path Path to a file where the internal TDLib log will be written. Use an empty path to
    *                       switch back to the default logging behaviour.
+   * \return True on success, or false otherwise, i.e. if the file can't be opened for writing.
    */
-  static void set_file_path(std::string file_path);
+  static bool set_file_path(std::string file_path);
 
   /**
    * Sets maximum size of the file to where the internal TDLib log is written before the file will be auto-rotated.

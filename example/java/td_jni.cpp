@@ -73,8 +73,8 @@ static void Log_setVerbosityLevel(JNIEnv *env, jclass clazz, jint new_log_verbos
   td::Log::set_verbosity_level(static_cast<int>(new_log_verbosity_level));
 }
 
-static void Log_setFilePath(JNIEnv *env, jclass clazz, jstring file_path) {
-  td::Log::set_file_path(td::jni::from_jstring(env, file_path));
+static jboolean Log_setFilePath(JNIEnv *env, jclass clazz, jstring file_path) {
+  return td::Log::set_file_path(td::jni::from_jstring(env, file_path)) ? JNI_TRUE : JNI_FALSE;
 }
 
 static void Log_setMaxFileSize(JNIEnv *env, jclass clazz, jlong max_file_size) {
@@ -132,7 +132,7 @@ static jint register_native(JavaVM *vm) {
   register_method(client_class, "destroyNativeClient", "(J)V", Client_destroyNativeClient);
 
   register_method(log_class, "setVerbosityLevel", "(I)V", Log_setVerbosityLevel);
-  register_method(log_class, "setFilePath", "(Ljava/lang/String;)V", Log_setFilePath);
+  register_method(log_class, "setFilePath", "(Ljava/lang/String;)Z", Log_setFilePath);
   register_method(log_class, "setMaxFileSize", "(J)V", Log_setMaxFileSize);
 
   register_method(object_class, "toString", "()Ljava/lang/String;", Object_toString);
