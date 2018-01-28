@@ -59,7 +59,7 @@ FileId StickersManager::parse_sticker(bool in_sticker_set, T &parser) {
   PARSE_FLAG(has_sticker_set_access_hash);
   PARSE_FLAG(in_sticker_set_stored);
   END_PARSE_FLAGS();
-  CHECK(in_sticker_set_stored == in_sticker_set);
+  CHECK(in_sticker_set_stored == in_sticker_set) << in_sticker_set << " " << in_sticker_set_stored;
   if (!in_sticker_set) {
     parse(sticker->set_id, parser);
     if (has_sticker_set_access_hash) {

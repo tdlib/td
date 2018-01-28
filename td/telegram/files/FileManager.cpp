@@ -996,7 +996,8 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   bool send_updates_flag = false;
   for (auto file_id : other_node->file_ids_) {
     auto file_id_info = get_file_id_info(file_id);
-    CHECK(file_id_info->node_id_ == node_ids[other_node_i]);
+    CHECK(file_id_info->node_id_ == node_ids[other_node_i])
+        << node_ids[node_i] << " " << node_ids[other_node_i] << " " << file_id << " " << file_id_info->node_id_;
     file_id_info->node_id_ = node_ids[node_i];
     send_updates_flag |= file_id_info->send_updates_flag_;
   }

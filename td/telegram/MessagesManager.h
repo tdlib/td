@@ -2584,7 +2584,7 @@ class MessagesManager : public Actor {
   MultiPromiseActor load_dialog_list_multipromise_;  // should be defined before pending_on_get_dialogs_
   Timeout preload_dialog_list_timeout_;
 
-  std::unordered_set<DialogId, DialogIdHash> active_get_channel_differencies_;
+  std::unordered_map<DialogId, string, DialogIdHash> active_get_channel_differencies_;
   std::unordered_map<DialogId, uint64, DialogIdHash> get_channel_difference_to_logevent_id_;
 
   MultiTimeout channel_get_difference_timeout_;

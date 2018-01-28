@@ -5512,7 +5512,7 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
 
   if (d == nullptr || pts_count > 0) {
     process_channel_update(std::move(update));
-    CHECK(!running_get_channel_difference(dialog_id));
+    CHECK(!running_get_channel_difference(dialog_id)) << '"' << active_get_channel_differencies_[dialog_id] << '"';
   } else {
     LOG_IF(INFO, update->get_id() != dummyUpdate::ID)
         << "Skip useless channel update from " << source << ": " << to_string(update);
@@ -22967,7 +22967,7 @@ void MessagesManager::get_channel_difference(DialogId dialog_id, int32 pts, bool
 void MessagesManager::do_get_channel_difference(DialogId dialog_id, int32 pts, bool force,
                                                 tl_object_ptr<telegram_api::InputChannel> &&input_channel,
                                                 const char *source) {
-  auto inserted = active_get_channel_differencies_.insert(dialog_id);
+  auto inserted = active_get_channel_differencies_.emplace(dialog_id, source);
   if (!inserted.second) {
     LOG(INFO) << "Skip running channels.getDifference for " << dialog_id << " from " << source
               << " because it has already been run";
@@ -23019,7 +23019,7 @@ void MessagesManager::process_get_channel_difference_updates(
       }
     }
   }
-  CHECK(!running_get_channel_difference(dialog_id));
+  CHECK(!running_get_channel_difference(dialog_id)) << '"' << active_get_channel_differencies_[dialog_id] << '"';
 }
 
 void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_message_id,
@@ -23261,7 +23261,7 @@ void MessagesManager::on_get_channel_difference(
 }
 
 void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool success) {
-  CHECK(!running_get_channel_difference(dialog_id));
+  CHECK(!running_get_channel_difference(dialog_id)) << '"' << active_get_channel_differencies_[dialog_id] << '"';
 
   auto logevent_it = get_channel_difference_to_logevent_id_.find(dialog_id);
   if (logevent_it != get_channel_difference_to_logevent_id_.end()) {
