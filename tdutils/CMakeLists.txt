@@ -59,6 +59,7 @@ set(TDUTILS_SOURCE
   td/utils/BigNum.cpp
   td/utils/buffer.cpp
   td/utils/crypto.cpp
+  td/utils/FileLog.cpp
   td/utils/filesystem.cpp
   td/utils/find_boundary.cpp
   td/utils/Gzip.cpp
