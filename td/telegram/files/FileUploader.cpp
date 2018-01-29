@@ -140,6 +140,9 @@ Result<FileLoader::PrefixInfo> FileUploader::on_update_local_location(const Loca
   }
 
   local_size_ = local_size;
+  if (expected_size_ < local_size_) {
+    expected_size_ = local_size_;
+  }
   local_is_ready_ = local_is_ready;
   file_type_ = file_type;
 

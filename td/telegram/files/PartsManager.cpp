@@ -63,8 +63,7 @@ Status PartsManager::init(int64 size, bool is_size_final, size_t part_size, cons
   if (part_size != 0) {
     part_size_ = part_size;
     if (use_part_count_limit_ && (size_ + part_size_ - 1) / part_size_ > MAX_PART_COUNT) {
-      return Status::Error(PSLICE() << "Should restart load with bigger part_size " << tag("part_size_", part_size_)
-                                    << tag("size", size_));
+      return Status::Error("FILE_UPLOAD_RESTART");
     }
   } else {
     // TODO choose part_size_ depending on size

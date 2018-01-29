@@ -2190,6 +2190,11 @@ void FileManager::on_error_impl(FileNode *node, FileManager::Query::Type type, b
     }
   }
 
+  if (status.message() == "FILE_UPLOAD_RESTART") {
+    run_upload(node, {});
+    return;
+  }
+
   if (!was_active) {
     return;
   }
