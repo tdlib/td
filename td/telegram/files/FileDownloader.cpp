@@ -327,7 +327,7 @@ FileLoader::Callback *FileDownloader::get_callback() {
 
 Status FileDownloader::process_check_query(NetQueryPtr net_query) {
   has_hash_query_ = false;
-  TRY_RESULT(file_hashes, fetch_result<telegram_api::upload_getCdnFileHashes>(net_query->ok()));
+  TRY_RESULT(file_hashes, fetch_result<telegram_api::upload_getCdnFileHashes>(std::move(net_query)));
   add_hash_info(file_hashes);
   return Status::OK();
 }
