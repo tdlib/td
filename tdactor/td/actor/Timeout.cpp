@@ -82,11 +82,15 @@ void MultiTimeout::timeout_expired() {
   while (!timeout_queue_.empty() && timeout_queue_.top_key() < now) {
     int64 key = static_cast<Item *>(timeout_queue_.pop())->key;
     items_.erase(Item(key));
-    callback_(data_, key);
+    expired_.push_back(key);
   }
   if (!items_.empty()) {
     update_timeout();
   }
+  for (auto key : expired_) {
+    callback_(data_, key);
+  }
+  expired_.clear();
 }
 
 }  // namespace td

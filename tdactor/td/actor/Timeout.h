@@ -117,6 +117,7 @@ class MultiTimeout final : public Actor {
 
   KHeap<double> timeout_queue_;
   std::set<Item> items_;
+  std::vector<int64> expired_;
 
   void update_timeout();
 
