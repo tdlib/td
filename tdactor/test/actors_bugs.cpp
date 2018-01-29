@@ -29,7 +29,7 @@ TEST(MultiTimeout, bug) {
     multi_timeout = std::make_unique<MultiTimeout>();
     data.multi_timeout = multi_timeout.get();
     multi_timeout->set_callback([](void *void_data, int64 key) {
-      auto &data = *reinterpret_cast<Data *>(void_data);
+      auto &data = *static_cast<Data *>(void_data);
       if (key == 1) {
         data.multi_timeout->cancel_timeout(key + 1);
         data.multi_timeout->set_timeout_in(key + 2, 1);
