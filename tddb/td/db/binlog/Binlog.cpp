@@ -489,7 +489,7 @@ Status Binlog::load_binlog(const Callback &callback, const Callback &debug_callb
     fd_.truncate_to_current_position(offset).ensure();
     db_key_used_ = false;  // force reindex
   }
-  CHECK(IGNORE_ERASE_HACK || fd_size_ == offset);
+  CHECK(IGNORE_ERASE_HACK || fd_size_ == offset) << fd_size << " " << fd_size_ << " " << offset;
   binlog_reader_ptr_ = nullptr;
   state_ = State::Run;
 
