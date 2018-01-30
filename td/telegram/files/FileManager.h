@@ -123,8 +123,52 @@ class FileNode {
 };
 
 class FileManager;
-using FileNodePtr = FileNode *;
-using ConstFileNodePtr = const FileNode *;
+
+class FileNodePtr {
+ public:
+  FileNodePtr() = default;
+  FileNodePtr(FileId file_id, FileManager *file_manager) : file_id_(file_id), file_manager_(file_manager) {
+  }
+  FileNodePtr(FileNodePtr &&other) = default;
+  FileNodePtr(const FileNodePtr &other) = default;
+  FileNodePtr &operator=(FileNodePtr &&other) = default;
+  FileNodePtr &operator=(const FileNodePtr &other) = default;
+
+  FileNode *operator->() const;
+  FileNode &operator*() const;
+  FileNode *get() const;
+  operator bool() const;
+
+ private:
+  FileId file_id_;
+  FileManager *file_manager_ = nullptr;
+  FileNode *get_unsafe() const;
+};
+
+class ConstFileNodePtr {
+ public:
+  ConstFileNodePtr() = default;
+  ConstFileNodePtr(FileNodePtr file_node_ptr) : file_node_ptr_(file_node_ptr) {
+  }
+  ConstFileNodePtr(ConstFileNodePtr &&other) = default;
+  ConstFileNodePtr(const ConstFileNodePtr &other) = default;
+  ConstFileNodePtr &operator=(ConstFileNodePtr &&other) = default;
+  ConstFileNodePtr &operator=(const ConstFileNodePtr &other) = default;
+
+  const FileNode *operator->() const {
+    return file_node_ptr_.operator->();
+  }
+  const FileNode &operator*() const {
+    return file_node_ptr_.operator*();
+  }
+
+  operator bool() const {
+    return bool(file_node_ptr_);
+  }
+
+ private:
+  FileNodePtr file_node_ptr_;
+};
 
 class FileView {
  public:
@@ -348,7 +392,7 @@ class FileManager : public FileLoadManager::Callback {
   FileId next_file_id();
   FileNodeId next_file_node_id();
   int32 next_pmc_file_id();
-  FileId create_file_id(int32 file_node_id, FileNodePtr file_node);
+  FileId create_file_id(int32 file_node_id, FileNode *file_node);
   void try_forget_file_id(FileId file_id);
 
   void load_from_pmc(FileId file_id, FullLocalFileLocation full_local);
@@ -366,16 +410,22 @@ class FileManager : public FileLoadManager::Callback {
   void try_flush_node_info(FileNodePtr node);
   void clear_from_pmc(FileNodePtr node);
   void flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local, bool new_generate);
-  FileNodePtr load_from_pmc(FileNodePtr node, bool new_remote, bool new_local, bool new_generate) TD_WARN_UNUSED_RESULT;
+  void load_from_pmc(FileNodePtr node, bool new_remote, bool new_local, bool new_generate);
 
   string get_persistent_id(const FullRemoteFileLocation &location);
 
   string fix_file_extension(Slice file_name, Slice file_type, Slice file_extension);
   string get_file_name(FileType file_type, Slice path);
 
-  ConstFileNodePtr get_file_node(FileId file_id, FileNodeId *file_node_id = nullptr) const;
-  FileNodePtr get_file_node(FileId file_id, FileNodeId *file_node_id = nullptr);
-  FileNodePtr get_sync_file_node(FileId file_id, FileNodeId *file_node_id = nullptr);
+  ConstFileNodePtr get_file_node(FileId file_id) const {
+    return ConstFileNodePtr{FileNodePtr{file_id, const_cast<FileManager *>(this)}};
+  }
+  FileNodePtr get_file_node(FileId file_id) {
+    return FileNodePtr{file_id, this};
+  }
+  FileNode *get_file_node_raw(FileId file_id, FileNodeId *file_node_id = nullptr);
+
+  FileNodePtr get_sync_file_node(FileId file_id);
 
   // void release_file_node(FileNodeId id);
   void cancel_download(FileNodePtr node);
@@ -403,5 +453,7 @@ class FileManager : public FileLoadManager::Callback {
 
   void hangup() override;
   void tear_down() override;
+
+  friend class FileNodePtr;
 };
 }  // namespace td

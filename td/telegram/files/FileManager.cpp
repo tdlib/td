@@ -35,6 +35,24 @@
 namespace td {
 
 static int VERBOSITY_NAME(update_file) = VERBOSITY_NAME(INFO);
+FileNode *FileNodePtr::operator->() const {
+  return get();
+}
+FileNode &FileNodePtr::operator*() const {
+  return *get();
+}
+FileNode *FileNodePtr::get() const {
+  auto res = get_unsafe();
+  CHECK(res);
+  return res;
+}
+FileNode *FileNodePtr::get_unsafe() const {
+  CHECK(file_manager_ != nullptr);
+  return file_manager_->get_file_node_raw(file_id_);
+}
+FileNodePtr::operator bool() const {
+  return file_manager_ != nullptr && get_unsafe() != nullptr;
+}
 
 /*** FileNodePtr **/
 void FileNode::set_local_location(const LocalFileLocation &local, int64 ready_size) {
@@ -330,7 +348,7 @@ FileView::FileView(ConstFileNodePtr node) : node_(node) {
 }
 
 bool FileView::empty() const {
-  return node_ == nullptr;
+  return !node_;
 }
 
 bool FileView::can_download_from_server() const {
@@ -534,7 +552,7 @@ FileManager::FileIdInfo *FileManager::get_file_id_info(FileId file_id) {
 
 FileId FileManager::dup_file_id(FileId file_id) {
   int32 file_node_id;
-  auto *file_node = get_file_node(file_id, &file_node_id);
+  auto *file_node = get_file_node_raw(file_id, &file_node_id);
   if (!file_node) {
     return FileId();
   }
@@ -543,7 +561,7 @@ FileId FileManager::dup_file_id(FileId file_id) {
   return result;
 }
 
-FileId FileManager::create_file_id(int32 file_node_id, FileNodePtr file_node) {
+FileId FileManager::create_file_id(int32 file_node_id, FileNode *file_node) {
   auto file_id = next_file_id();
   get_file_id_info(file_id)->node_id_ = file_node_id;
   file_node->file_ids_.push_back(file_id);
@@ -554,16 +572,16 @@ void FileManager::try_forget_file_id(FileId file_id) {
   if (info->send_updates_flag_ || info->pin_flag_) {
     return;
   }
-  auto *file_node = get_file_node(file_id);
+  auto file_node = get_file_node(file_id);
   if (file_node->main_file_id_ == file_id) {
     return;
   }
 
   LOG(INFO) << "Forget file " << file_id;
-  *info = FileIdInfo();
   auto it = std::find(file_node->file_ids_.begin(), file_node->file_ids_.end(), file_id);
   CHECK(it != file_node->file_ids_.end());
   file_node->file_ids_.erase(it);
+  *info = FileIdInfo();
   empty_file_ids_.push_back(file_id);
 }
 
@@ -577,7 +595,7 @@ void FileManager::on_file_unlink(const FullLocalFileLocation &location) {
     return;
   }
   auto file_id = it->second;
-  auto *file_node = get_sync_file_node(file_id);
+  auto file_node = get_sync_file_node(file_id);
   CHECK(file_node);
   file_node->set_local_location(LocalFileLocation(), 0);
   try_flush_node_info(file_node);
@@ -607,7 +625,7 @@ FileId FileManager::register_remote(const FullRemoteFileLocation &location, File
 FileId FileManager::register_url(string url, FileType file_type, FileLocationSource file_location_source,
                                  DialogId owner_dialog_id) {
   auto file_id = register_generate(file_type, file_location_source, url, "#url#", owner_dialog_id, 0).ok();
-  auto *file_node = get_file_node(file_id);
+  auto file_node = get_file_node(file_id);
   CHECK(file_node);
   file_node->set_url(url);
   return file_id;
@@ -669,7 +687,7 @@ Result<FileId> FileManager::register_file(FileData data, FileLocationSource file
   get_file_id_info(file_id)->node_id_ = file_node_id;
   node->file_ids_.push_back(file_id);
 
-  FileView file_view(node.get());
+  FileView file_view(get_file_node(file_id));
 
   std::vector<FileId> to_merge;
   auto register_location = [&](const auto &location, auto &mp) {
@@ -838,8 +856,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   if (!x_file_id.is_valid()) {
     return Status::Error("First file_id is invalid");
   }
-  FileNodeId x_node_id;
-  FileNodePtr x_node = no_sync ? get_file_node(x_file_id, &x_node_id) : get_sync_file_node(x_file_id, &x_node_id);
+  FileNodePtr x_node = no_sync ? get_file_node(x_file_id) : get_sync_file_node(x_file_id);
   if (!x_node) {
     return Status::Error(PSLICE() << "Can't merge files. First id is invalid: " << x_file_id << " and " << y_file_id);
   }
@@ -847,8 +864,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   if (!y_file_id.is_valid()) {
     return x_node->main_file_id_;
   }
-  FileNodeId y_node_id;
-  FileNodePtr y_node = no_sync ? get_file_node(y_file_id, &y_node_id) : get_file_node(y_file_id, &y_node_id);
+  FileNodePtr y_node = no_sync ? get_file_node(y_file_id) : get_file_node(y_file_id);
   if (!y_node) {
     return Status::Error(PSLICE() << "Can't merge files. Second id is invalid: " << x_file_id << " and " << y_file_id);
   }
@@ -856,7 +872,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   if (x_file_id == x_node->upload_pause_) {
     x_node->upload_pause_ = FileId();
   }
-  if (x_node == y_node) {
+  if (x_node.get() == y_node.get()) {
     return x_node->main_file_id_;
   }
   if (y_file_id == y_node->upload_pause_) {
@@ -871,7 +887,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   }
 
   FileNodePtr nodes[] = {x_node, y_node, x_node};
-  FileNodeId node_ids[] = {x_node_id, y_node_id};
+  FileNodeId node_ids[] = {get_file_id_info(x_file_id)->node_id_, get_file_id_info(y_file_id)->node_id_};
 
   int local_i = merge_choose(x_node->local_, y_node->local_);
   int remote_i = merge_choose(x_node->remote_, static_cast<int8>(x_node->remote_source_), y_node->remote_,
@@ -997,6 +1013,9 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   }
 
   bool send_updates_flag = false;
+  auto other_pmc_id = other_node->pmc_id_;
+  node->file_ids_.insert(node->file_ids_.end(), other_node->file_ids_.begin(), other_node->file_ids_.end());
+
   for (auto file_id : other_node->file_ids_) {
     auto file_id_info = get_file_id_info(file_id);
     CHECK(file_id_info->node_id_ == node_ids[other_node_i])
@@ -1004,7 +1023,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     file_id_info->node_id_ = node_ids[node_i];
     send_updates_flag |= file_id_info->send_updates_flag_;
   }
-  node->file_ids_.insert(node->file_ids_.end(), other_node->file_ids_.begin(), other_node->file_ids_.end());
+  other_node = {};
 
   if (send_updates_flag) {
     // node might not changed, but other_node might changed, so we need to send update anyway
@@ -1031,7 +1050,6 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     }
   }
 
-  auto other_pmc_id = other_node->pmc_id_;
   file_nodes_[node_ids[other_node_i]] = nullptr;
 
   run_generate(node);
@@ -1051,7 +1069,7 @@ void FileManager::try_flush_node(FileNodePtr node, bool new_remote, bool new_loc
                                  FileDbId other_pmc_id) {
   if (node->need_pmc_flush()) {
     if (file_db_) {
-      node = load_from_pmc(node, true, true, true);
+      load_from_pmc(node, true, true, true);
       flush_to_pmc(node, new_remote, new_local, new_generate);
       if (other_pmc_id != 0 && node->pmc_id_ != other_pmc_id) {
         file_db_->set_file_data_ref(other_pmc_id, node->pmc_id_);
@@ -1141,7 +1159,7 @@ void FileManager::flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local
                           (create_flag || new_generate));
 }
 
-ConstFileNodePtr FileManager::get_file_node(FileId file_id, FileNodeId *file_node_id) const {
+FileNode *FileManager::get_file_node_raw(FileId file_id, FileNodeId *file_node_id) {
   if (file_id.get() <= 0 || file_id.get() >= static_cast<int32>(file_id_info_.size())) {
     return nullptr;
   }
@@ -1155,25 +1173,23 @@ ConstFileNodePtr FileManager::get_file_node(FileId file_id, FileNodeId *file_nod
   return file_nodes_[node_id].get();
 }
 
-FileNodePtr FileManager::get_file_node(FileId file_id, FileNodeId *file_node_id) {
-  return const_cast<FileNodePtr>(static_cast<const FileManager *>(this)->get_file_node(file_id, file_node_id));
-}
-FileNodePtr FileManager::get_sync_file_node(FileId file_id, FileNodeId *file_node_id) {
-  auto file_node = get_file_node(file_id, file_node_id);
+FileNodePtr FileManager::get_sync_file_node(FileId file_id) {
+  auto file_node = get_file_node(file_id);
   if (!file_node) {
-    return nullptr;
+    return {};
   }
-  return load_from_pmc(file_node, true, true, true);
+  load_from_pmc(file_node, true, true, true);
+  return file_node;
 }
 
-FileNodePtr FileManager::load_from_pmc(FileNodePtr node, bool new_remote, bool new_local, bool new_generate) {
+void FileManager::load_from_pmc(FileNodePtr node, bool new_remote, bool new_local, bool new_generate) {
   if (!node->need_load_from_pmc_) {
-    return node;
+    return;
   }
   auto file_id = node->main_file_id_;
   node->need_load_from_pmc_ = false;
   if (!file_db_) {
-    return node;
+    return;
   }
   auto file_view = get_file_view(file_id);
 
@@ -1210,7 +1226,7 @@ FileNodePtr FileManager::load_from_pmc(FileNodePtr node, bool new_remote, bool n
   if (new_generate) {
     load(generate);
   }
-  return get_file_node(file_id);
+  return;
 }
 
 bool FileManager::set_encryption_key(FileId file_id, FileEncryptionKey key) {
@@ -1413,7 +1429,7 @@ void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std:
                                 int32 new_priority, uint64 upload_order) {
   LOG(INFO) << "Resume upload of file " << file_id << " with priority " << new_priority;
 
-  auto *node = get_sync_file_node(file_id);
+  auto node = get_sync_file_node(file_id);
   if (!node) {
     if (callback) {
       callback->on_upload_error(file_id, Status::Error("Wrong file id to upload"));
@@ -1459,7 +1475,7 @@ void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std:
 }
 
 bool FileManager::delete_partial_remote_location(FileId file_id) {
-  auto *node = get_sync_file_node(file_id);
+  auto node = get_sync_file_node(file_id);
   if (!node) {
     LOG(INFO) << "Wrong file id " << file_id;
     return false;
@@ -1744,15 +1760,15 @@ Result<FileId> FileManager::from_persistent_id(CSlice persistent_id, FileType fi
 }
 
 FileView FileManager::get_file_view(FileId file_id) const {
-  auto *file_node = get_file_node(file_id);
-  if (file_node == nullptr) {
+  auto file_node = get_file_node(file_id);
+  if (!file_node) {
     return FileView();
   }
   return FileView(file_node);
 }
 FileView FileManager::get_sync_file_view(FileId file_id) {
-  auto *file_node = get_sync_file_node(file_id);
-  if (file_node == nullptr) {
+  auto file_node = get_sync_file_node(file_id);
+  if (!file_node) {
     return FileView();
   }
   return FileView(file_node);
@@ -1810,9 +1826,8 @@ Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> re
     return FileId();
   }
 
-  int32 file_node_id;
-  auto *file_node = get_file_node(file_id, &file_node_id);
-  if (file_node == nullptr) {
+  auto file_node = get_file_node(file_id);
+  if (!file_node) {
     return Status::Error(6, "File not found");
   }
   auto file_view = FileView(file_node);
@@ -1828,11 +1843,7 @@ Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> re
   if (!file_view.has_remote_location()) {
     // TODO why not return file_id here? We will dup it anyway
     // But it will not be duped if has_input_media(), so for now we can't return main_file_id
-    file_id = next_file_id();
-    LOG(INFO) << "Dup file " << file_node->main_file_id_ << " without remote location to " << file_id;
-    get_file_id_info(file_id)->node_id_ = file_node_id;
-    file_nodes_[file_node_id]->file_ids_.push_back(file_id);
-    return file_id;
+    return dup_file_id(file_id);
   }
   return file_node->main_file_id_;
 }
@@ -1954,8 +1965,8 @@ void FileManager::on_start_download(QueryId query_id) {
   CHECK(query != nullptr);
 
   auto file_id = query->file_id_;
-  auto *file_node = get_file_node(file_id);
-  if (file_node == nullptr) {
+  auto file_node = get_file_node(file_id);
+  if (!file_node) {
     return;
   }
   if (file_node->download_id_ != query_id) {
@@ -1972,8 +1983,8 @@ void FileManager::on_partial_download(QueryId query_id, const PartialLocalFileLo
   CHECK(query != nullptr);
 
   auto file_id = query->file_id_;
-  auto *file_node = get_file_node(file_id);
-  if (file_node == nullptr) {
+  auto file_node = get_file_node(file_id);
+  if (!file_node) {
     return;
   }
   if (file_node->download_id_ != query_id) {
@@ -1990,8 +2001,8 @@ void FileManager::on_partial_upload(QueryId query_id, const PartialRemoteFileLoc
   CHECK(query != nullptr);
 
   auto file_id = query->file_id_;
-  auto *file_node = get_file_node(file_id);
-  if (file_node == nullptr) {
+  auto file_node = get_file_node(file_id);
+  if (!file_node) {
     return;
   }
   if (file_node->upload_id_ != query_id) {
@@ -2018,8 +2029,8 @@ void FileManager::on_upload_ok(QueryId query_id, FileType file_type, const Parti
   auto some_file_id = finish_query(query_id).first.file_id_;
   LOG(INFO) << "ON UPLOAD OK file " << some_file_id << " of size " << size;
 
-  auto *file_node = get_file_node(some_file_id);
-  if (file_node == nullptr) {
+  auto file_node = get_file_node(some_file_id);
+  if (!file_node) {
     return;
   }
 
@@ -2088,8 +2099,8 @@ void FileManager::on_partial_generate(QueryId query_id, const PartialLocalFileLo
   CHECK(query != nullptr);
 
   auto file_id = query->file_id_;
-  auto *file_node = get_file_node(file_id);
-  if (file_node == nullptr) {
+  auto file_node = get_file_node(file_id);
+  if (!file_node) {
     return;
   }
   if (file_node->generate_id_ != query_id) {
@@ -2118,8 +2129,8 @@ void FileManager::on_generate_ok(QueryId query_id, const FullLocalFileLocation &
   std::tie(query, was_active) = finish_query(query_id);
   auto generate_file_id = query.file_id_;
 
-  auto *file_node = get_file_node(generate_file_id);
-  if (file_node == nullptr) {
+  auto file_node = get_file_node(generate_file_id);
+  if (!file_node) {
     return;
   }
 
@@ -2140,7 +2151,7 @@ void FileManager::on_generate_ok(QueryId query_id, const FullLocalFileLocation &
     return on_error_impl(file_node, query.type_, was_active, std::move(status));
   }
 
-  CHECK(file_node != nullptr);
+  CHECK(file_node);
   context_->on_new_file(FileView(file_node).size());
 
   run_upload(file_node, {});
@@ -2157,7 +2168,7 @@ void FileManager::on_error(QueryId query_id, Status status) {
   Query query;
   bool was_active;
   std::tie(query, was_active) = finish_query(query_id);
-  auto *node = get_file_node(query.file_id_);
+  auto node = get_file_node(query.file_id_);
   if (!node) {
     LOG(ERROR) << "Can't find file node for " << query.file_id_;
     return;
@@ -2234,7 +2245,7 @@ std::pair<FileManager::Query, bool> FileManager::finish_query(QueryId query_id) 
   CHECK(query != nullptr);
 
   auto res = *query;
-  auto *node = get_file_node(res.file_id_);
+  auto node = get_file_node(res.file_id_);
   if (!node) {
     return std::make_pair(res, false);
   }
