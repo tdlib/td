@@ -122,10 +122,14 @@ class FileNode {
   bool info_changed_flag_{false};
 };
 
+class FileManager;
+using FileNodePtr = FileNode *;
+using ConstFileNodePtr = const FileNode *;
+
 class FileView {
  public:
   FileView() = default;
-  explicit FileView(const FileNode *node);
+  explicit FileView(ConstFileNodePtr node);
 
   bool empty() const;
 
@@ -182,7 +186,7 @@ class FileView {
   }
 
  private:
-  const FileNode *node_ = nullptr;
+  ConstFileNodePtr node_{};
 };
 
 class Td;
@@ -344,7 +348,7 @@ class FileManager : public FileLoadManager::Callback {
   FileId next_file_id();
   FileNodeId next_file_node_id();
   int32 next_pmc_file_id();
-  FileId create_file_id(int32 file_node_id, FileNode *file_node);
+  FileId create_file_id(int32 file_node_id, FileNodePtr file_node);
   void try_forget_file_id(FileId file_id);
 
   void load_from_pmc(FileId file_id, FullLocalFileLocation full_local);
@@ -355,31 +359,31 @@ class FileManager : public FileLoadManager::Callback {
   void load_from_pmc_result(FileId file_id, Result<FileData> &&result);
   FileId register_pmc_file_data(FileData &&data);
 
-  Status check_local_location(FileNode *node);
+  Status check_local_location(FileNodePtr node);
   Status check_local_location(FullLocalFileLocation &location, int64 &size);
-  void try_flush_node(FileNode *node, bool new_remote = false, bool new_local = false, bool new_generate = false,
+  void try_flush_node(FileNodePtr node, bool new_remote = false, bool new_local = false, bool new_generate = false,
                       FileDbId other_pmc_id = Auto());
-  void try_flush_node_info(FileNode *node);
-  void clear_from_pmc(FileNode *node);
-  void flush_to_pmc(FileNode *node, bool new_remote, bool new_local, bool new_generate);
-  FileNode *load_from_pmc(FileNode *node, bool new_remote, bool new_local, bool new_generate) TD_WARN_UNUSED_RESULT;
+  void try_flush_node_info(FileNodePtr node);
+  void clear_from_pmc(FileNodePtr node);
+  void flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local, bool new_generate);
+  FileNodePtr load_from_pmc(FileNodePtr node, bool new_remote, bool new_local, bool new_generate) TD_WARN_UNUSED_RESULT;
 
   string get_persistent_id(const FullRemoteFileLocation &location);
 
   string fix_file_extension(Slice file_name, Slice file_type, Slice file_extension);
   string get_file_name(FileType file_type, Slice path);
 
-  const FileNode *get_file_node(FileId file_id, FileNodeId *file_node_id = nullptr) const;
-  FileNode *get_file_node(FileId file_id, FileNodeId *file_node_id = nullptr);
-  FileNode *get_sync_file_node(FileId file_id, FileNodeId *file_node_id = nullptr);
+  ConstFileNodePtr get_file_node(FileId file_id, FileNodeId *file_node_id = nullptr) const;
+  FileNodePtr get_file_node(FileId file_id, FileNodeId *file_node_id = nullptr);
+  FileNodePtr get_sync_file_node(FileId file_id, FileNodeId *file_node_id = nullptr);
 
   // void release_file_node(FileNodeId id);
-  void cancel_download(FileNode *node);
-  void cancel_upload(FileNode *node);
-  void cancel_generate(FileNode *node);
-  void run_upload(FileNode *node, std::vector<int> bad_parts);
-  void run_download(FileNode *node);
-  void run_generate(FileNode *node);
+  void cancel_download(FileNodePtr node);
+  void cancel_upload(FileNodePtr node);
+  void cancel_generate(FileNodePtr node);
+  void run_upload(FileNodePtr node, std::vector<int> bad_parts);
+  void run_download(FileNodePtr node);
+  void run_generate(FileNodePtr node);
 
   void on_start_download(QueryId query_id) override;
   void on_partial_download(QueryId query_id, const PartialLocalFileLocation &partial_local, int64 ready_size) override;
@@ -390,7 +394,7 @@ class FileManager : public FileLoadManager::Callback {
   void on_upload_full_ok(QueryId query_id, const FullRemoteFileLocation &remote) override;
   void on_error(QueryId query_id, Status status) override;
 
-  void on_error_impl(FileNode *node, Query::Type type, bool was_active, Status status);
+  void on_error_impl(FileNodePtr node, Query::Type type, bool was_active, Status status);
 
   void on_partial_generate(QueryId, const PartialLocalFileLocation &partial_local, int32 expected_size);
   void on_generate_ok(QueryId, const FullLocalFileLocation &local);

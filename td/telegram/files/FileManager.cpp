@@ -36,7 +36,7 @@ namespace td {
 
 static int VERBOSITY_NAME(update_file) = VERBOSITY_NAME(INFO);
 
-/*** FileNode ***/
+/*** FileNodePtr **/
 void FileNode::set_local_location(const LocalFileLocation &local, int64 ready_size) {
   if (local_ready_size_ != ready_size) {
     local_ready_size_ = ready_size;
@@ -326,7 +326,7 @@ bool FileView::get_by_hash() const {
   return node_->get_by_hash_;
 }
 
-FileView::FileView(const FileNode *node) : node_(node) {
+FileView::FileView(ConstFileNodePtr node) : node_(node) {
 }
 
 bool FileView::empty() const {
@@ -512,7 +512,7 @@ static Status check_partial_local_location(const PartialLocalFileLocation &locat
   return Status::OK();
 }
 
-Status FileManager::check_local_location(FileNode *node) {
+Status FileManager::check_local_location(FileNodePtr node) {
   Status status;
   if (node->local_.type() == LocalFileLocation::Type::Full) {
     status = check_local_location(node->local_.full(), node->size_);
@@ -543,7 +543,7 @@ FileId FileManager::dup_file_id(FileId file_id) {
   return result;
 }
 
-FileId FileManager::create_file_id(int32 file_node_id, FileNode *file_node) {
+FileId FileManager::create_file_id(int32 file_node_id, FileNodePtr file_node) {
   auto file_id = next_file_id();
   get_file_id_info(file_id)->node_id_ = file_node_id;
   file_node->file_ids_.push_back(file_id);
@@ -803,7 +803,7 @@ static int merge_choose_encryption_key(const FileEncryptionKey &a, const FileEnc
   return 2;
 }
 
-void FileManager::cancel_download(FileNode *node) {
+void FileManager::cancel_download(FileNodePtr node) {
   if (node->download_id_ == 0) {
     return;
   }
@@ -813,7 +813,7 @@ void FileManager::cancel_download(FileNode *node) {
   node->set_download_priority(0);
 }
 
-void FileManager::cancel_upload(FileNode *node) {
+void FileManager::cancel_upload(FileNodePtr node) {
   if (node->upload_id_ == 0) {
     return;
   }
@@ -822,7 +822,7 @@ void FileManager::cancel_upload(FileNode *node) {
   node->set_upload_priority(0);
 }
 
-void FileManager::cancel_generate(FileNode *node) {
+void FileManager::cancel_generate(FileNodePtr node) {
   if (node->generate_id_ == 0) {
     return;
   }
@@ -839,7 +839,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     return Status::Error("First file_id is invalid");
   }
   FileNodeId x_node_id;
-  FileNode *x_node = no_sync ? get_file_node(x_file_id, &x_node_id) : get_sync_file_node(x_file_id, &x_node_id);
+  FileNodePtr x_node = no_sync ? get_file_node(x_file_id, &x_node_id) : get_sync_file_node(x_file_id, &x_node_id);
   if (!x_node) {
     return Status::Error(PSLICE() << "Can't merge files. First id is invalid: " << x_file_id << " and " << y_file_id);
   }
@@ -848,7 +848,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     return x_node->main_file_id_;
   }
   FileNodeId y_node_id;
-  FileNode *y_node = no_sync ? get_file_node(y_file_id, &y_node_id) : get_file_node(y_file_id, &y_node_id);
+  FileNodePtr y_node = no_sync ? get_file_node(y_file_id, &y_node_id) : get_file_node(y_file_id, &y_node_id);
   if (!y_node) {
     return Status::Error(PSLICE() << "Can't merge files. Second id is invalid: " << x_file_id << " and " << y_file_id);
   }
@@ -870,7 +870,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
                << x_node->remote_.full();
   }
 
-  FileNode *nodes[] = {x_node, y_node, x_node};
+  FileNodePtr nodes[] = {x_node, y_node, x_node};
   FileNodeId node_ids[] = {x_node_id, y_node_id};
 
   int local_i = merge_choose(x_node->local_, y_node->local_);
@@ -905,8 +905,8 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
                std::make_tuple(x_node->pmc_id_, x_node->file_ids_.size(), main_file_id_i == 0);
 
   auto other_node_i = 1 - node_i;
-  FileNode *node = nodes[node_i];
-  FileNode *other_node = nodes[other_node_i];
+  FileNodePtr node = nodes[node_i];
+  FileNodePtr other_node = nodes[other_node_i];
   auto file_view = FileView(node);
 
   LOG(INFO) << "x_node->pmc_id_ = " << x_node->pmc_id_ << ", y_node->pmc_id_ = " << y_node->pmc_id_
@@ -1047,7 +1047,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   return node->main_file_id_;
 }
 
-void FileManager::try_flush_node(FileNode *node, bool new_remote, bool new_local, bool new_generate,
+void FileManager::try_flush_node(FileNodePtr node, bool new_remote, bool new_local, bool new_generate,
                                  FileDbId other_pmc_id) {
   if (node->need_pmc_flush()) {
     if (file_db_) {
@@ -1063,7 +1063,7 @@ void FileManager::try_flush_node(FileNode *node, bool new_remote, bool new_local
   try_flush_node_info(node);
 }
 
-void FileManager::try_flush_node_info(FileNode *node) {
+void FileManager::try_flush_node_info(FileNodePtr node) {
   if (node->need_info_flush()) {
     for (auto file_id : node->file_ids_) {
       auto *info = get_file_id_info(file_id);
@@ -1076,7 +1076,7 @@ void FileManager::try_flush_node_info(FileNode *node) {
   }
 }
 
-void FileManager::clear_from_pmc(FileNode *node) {
+void FileManager::clear_from_pmc(FileNodePtr node) {
   if (!file_db_) {
     return;
   }
@@ -1099,7 +1099,7 @@ void FileManager::clear_from_pmc(FileNode *node) {
   file_db_->clear_file_data(node->pmc_id_, data);
 }
 
-void FileManager::flush_to_pmc(FileNode *node, bool new_remote, bool new_local, bool new_generate) {
+void FileManager::flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local, bool new_generate) {
   if (!file_db_) {
     return;
   }
@@ -1141,7 +1141,7 @@ void FileManager::flush_to_pmc(FileNode *node, bool new_remote, bool new_local, 
                           (create_flag || new_generate));
 }
 
-const FileNode *FileManager::get_file_node(FileId file_id, FileNodeId *file_node_id) const {
+ConstFileNodePtr FileManager::get_file_node(FileId file_id, FileNodeId *file_node_id) const {
   if (file_id.get() <= 0 || file_id.get() >= static_cast<int32>(file_id_info_.size())) {
     return nullptr;
   }
@@ -1155,10 +1155,10 @@ const FileNode *FileManager::get_file_node(FileId file_id, FileNodeId *file_node
   return file_nodes_[node_id].get();
 }
 
-FileNode *FileManager::get_file_node(FileId file_id, FileNodeId *file_node_id) {
-  return const_cast<FileNode *>(static_cast<const FileManager *>(this)->get_file_node(file_id, file_node_id));
+FileNodePtr FileManager::get_file_node(FileId file_id, FileNodeId *file_node_id) {
+  return const_cast<FileNodePtr>(static_cast<const FileManager *>(this)->get_file_node(file_id, file_node_id));
 }
-FileNode *FileManager::get_sync_file_node(FileId file_id, FileNodeId *file_node_id) {
+FileNodePtr FileManager::get_sync_file_node(FileId file_id, FileNodeId *file_node_id) {
   auto file_node = get_file_node(file_id, file_node_id);
   if (!file_node) {
     return nullptr;
@@ -1166,7 +1166,7 @@ FileNode *FileManager::get_sync_file_node(FileId file_id, FileNodeId *file_node_
   return load_from_pmc(file_node, true, true, true);
 }
 
-FileNode *FileManager::load_from_pmc(FileNode *node, bool new_remote, bool new_local, bool new_generate) {
+FileNodePtr FileManager::load_from_pmc(FileNodePtr node, bool new_remote, bool new_local, bool new_generate) {
   if (!node->need_load_from_pmc_) {
     return node;
   }
@@ -1364,7 +1364,7 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
   try_flush_node(node);
 }
 
-void FileManager::run_download(FileNode *node) {
+void FileManager::run_download(FileNodePtr node) {
   if (node->need_load_from_pmc_) {
     return;
   }
@@ -1502,7 +1502,7 @@ void FileManager::external_file_generate_finish(int64 id, Status status, Promise
                std::move(promise));
 }
 
-void FileManager::run_generate(FileNode *node) {
+void FileManager::run_generate(FileNodePtr node) {
   if (node->need_load_from_pmc_) {
     return;
   }
@@ -1574,7 +1574,7 @@ void FileManager::run_generate(FileNode *node) {
   LOG(INFO) << "File " << file_id << " generate request has sent to FileGenerateManager";
 }
 
-void FileManager::run_upload(FileNode *node, std::vector<int> bad_parts) {
+void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
   if (node->need_load_from_pmc_) {
     return;
   }
@@ -2172,7 +2172,7 @@ void FileManager::on_error(QueryId query_id, Status status) {
   on_error_impl(node, query.type_, was_active, std::move(status));
 }
 
-void FileManager::on_error_impl(FileNode *node, FileManager::Query::Type type, bool was_active, Status status) {
+void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type, bool was_active, Status status) {
   SCOPE_EXIT {
     try_flush_node(node);
   };
