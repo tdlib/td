@@ -7595,10 +7595,15 @@ void MessagesManager::unload_dialog(DialogId dialog_id) {
     unloaded_message_ids.push_back(message_id.get());
   }
 
-  if (!unloaded_message_ids.empty() && !G()->parameters().use_message_db) {
-    d->have_full_history = false;
+  if (!unloaded_message_ids.empty()) {
+    if (!G()->parameters().use_message_db) {
+      d->have_full_history = false;
+    }
+
+    send_closure_later(
+        G()->td(), &Td::send_update,
+        make_tl_object<td_api::updateDeleteMessages>(dialog_id.get(), std::move(unloaded_message_ids), false, true));
   }
-  send_update_delete_messages(dialog_id, std::move(unloaded_message_ids), false, true);
 
   if (left_to_unload > 0) {
     LOG(INFO) << "Need to unload " << left_to_unload << " messages more in " << dialog_id;

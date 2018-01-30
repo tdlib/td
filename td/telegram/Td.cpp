@@ -3527,7 +3527,7 @@ Td::Td(std::unique_ptr<TdCallback> callback) : callback_(std::move(callback)) {
 void Td::on_alarm_timeout_callback(void *td_ptr, int64 request_id) {
   auto td = static_cast<Td *>(td_ptr);
   auto td_id = td->actor_id(td);
-  send_closure(td_id, &Td::on_alarm_timeout, request_id);
+  send_closure_later(td_id, &Td::on_alarm_timeout, request_id);
 }
 
 void Td::on_alarm_timeout(int64 request_id) {
@@ -3551,6 +3551,13 @@ void Td::on_online_updated(bool force, bool send_update) {
   } else {
     alarm_timeout_.cancel_timeout(0);
   }
+}
+
+void Td::on_channel_unban_timeout(int64 channel_id_long) {
+  if (close_flag_ >= 2) {
+    return;
+  }
+  contacts_manager_->on_channel_unban_timeout(ChannelId(narrow_cast<int32>(channel_id_long)));
 }
 
 void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {

@@ -204,6 +204,8 @@ class ContactsManager : public Actor {
 
   void on_update_online_status_privacy();
 
+  void on_channel_unban_timeout(ChannelId channel_id);
+
   void set_account_ttl(int32 account_ttl, Promise<Unit> &&promise) const;
   void get_account_ttl(Promise<int32> &&promise) const;
 

@@ -2195,27 +2195,28 @@ void ContactsManager::on_user_online_timeout_callback(void *contacts_manager_ptr
   CHECK(u != nullptr);
 
   LOG(INFO) << "Update " << user_id << " online status to offline";
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateUserStatus>(user_id.get(), get_user_status_object(u)));
+  send_closure_later(G()->td(), &Td::send_update,
+                     make_tl_object<td_api::updateUserStatus>(user_id.get(), get_user_status_object(u)));
 }
 
 void ContactsManager::on_channel_unban_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long) {
-  auto contacts_manager = static_cast<ContactsManager *>(contacts_manager_ptr);
-  ChannelId channel_id(narrow_cast<int32>(channel_id_long));
-  auto c = contacts_manager->get_channel(channel_id);
+  auto td = static_cast<ContactsManager *>(contacts_manager_ptr)->td_;
+  send_closure_later(td->actor_id(td), &Td::on_channel_unban_timeout, channel_id_long);
+}
+
+void ContactsManager::on_channel_unban_timeout(ChannelId channel_id) {
+  auto c = get_channel(channel_id);
   CHECK(c != nullptr);
 
   auto old_status = c->status;
   c->status.update_restrictions();
-  if (c->status == old_status) {
-    LOG(ERROR) << "Status of " << channel_id << " wasn't updated: " << c->status;
-    return;
-  }
+  LOG_IF(ERROR, c->status == old_status && (c->status.is_restricted() || c->status.is_banned()))
+      << "Status of " << channel_id << " wasn't updated: " << c->status;
 
   LOG(INFO) << "Update " << channel_id << " status";
   c->is_status_changed = true;
-  contacts_manager->invalidate_channel_full(channel_id);
-  contacts_manager->update_channel(c, channel_id);
+  invalidate_channel_full(channel_id);
+  update_channel(c, channel_id);  // always call, because in case of failure we need to reactivate timeout
 }
 
 template <class StorerT>
