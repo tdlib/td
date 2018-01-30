@@ -104,7 +104,7 @@ SecretInputMedia photo_get_secret_input_media(FileManager *file_manager, const P
 
 tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(FileManager *file_manager, const Photo &photo,
                                                               tl_object_ptr<telegram_api::InputFile> input_file,
-                                                              const string &caption, int32 ttl);
+                                                              int32 ttl);
 
 bool operator==(const Photo &lhs, const Photo &rhs);
 bool operator!=(const Photo &lhs, const Photo &rhs);

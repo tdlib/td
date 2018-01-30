@@ -307,7 +307,8 @@ class SetUsername : public Task {
       this->send_query(
           make_tl_object<td_api::sendMessage>(
               chat->id_, 0, false, false, nullptr,
-              make_tl_object<td_api::inputMessageText>(PSTRING() << tag_ << " INIT", false, false, Auto(), nullptr)),
+              make_tl_object<td_api::inputMessageText>(
+                  make_tl_object<td_api::formattedText>(PSTRING() << tag_ << " INIT", Auto()), false, false)),
           [](auto res) {});
     });
   }
@@ -321,7 +322,7 @@ class SetUsername : public Task {
       auto &message = updateNewMessage->message_;
       if (message->content_->get_id() == td_api::messageText::ID) {
         auto messageText = move_tl_object_as<td_api::messageText>(message->content_);
-        auto text = messageText->text_;
+        auto text = messageText->text_->text_;
         if (text.substr(0, tag_.size()) == tag_) {
           LOG(INFO) << "GOT SELF MESSAGE";
           return stop();
@@ -347,7 +348,7 @@ class CheckTestA : public Task {
       auto &message = updateNewMessage->message_;
       if (message->content_->get_id() == td_api::messageText::ID) {
         auto messageText = move_tl_object_as<td_api::messageText>(message->content_);
-        auto text = messageText->text_;
+        auto text = messageText->text_->text_;
         if (text.substr(0, tag_.size()) == tag_) {
           CHECK(text > previous_text_) << tag("now", text) << tag("previous", previous_text_);
           previous_text_ = text;
@@ -373,14 +374,11 @@ class TestA : public Task {
       for (int i = 0; i < 20; i++) {
         this->send_query(make_tl_object<td_api::sendMessage>(
                              chat->id_, 0, false, false, nullptr,
-                             make_tl_object<td_api::inputMessageText>(PSTRING() << tag_ << " " << (1000 + i), false,
-                                                                      false, Auto(), nullptr)),
+                             make_tl_object<td_api::inputMessageText>(
+                                 make_tl_object<td_api::formattedText>(PSTRING() << tag_ << " " << (1000 + i), Auto()),
+                                 false, false)),
                          [&](auto res) { this->stop(); });
       }
-      // sendMessage chat_id:long reply_to_message_id:int disable_notification:Bool from_background:Bool
-      // reply_markup:ReplyMarkup input_message_content:InputMessageContent = Message;
-      // inputMessageText text:string disable_web_page_preview:Bool clear_draft:Bool entities:vector<MessageEntity>
-      // parse_mode:TextParseMode = InputMessageContent;
     });
   }
 
@@ -424,8 +422,9 @@ class TestSecretChat : public Task {
       for (int i = 0; i < 20; i++) {
         send_query(make_tl_object<td_api::sendMessage>(
                        chat_id_, 0, false, false, nullptr,
-                       make_tl_object<td_api::inputMessageText>(PSTRING() << tag_ << " " << (1000 + i), false, false,
-                                                                Auto(), nullptr)),
+                       make_tl_object<td_api::inputMessageText>(
+                           make_tl_object<td_api::formattedText>(PSTRING() << tag_ << " " << (1000 + i), Auto()), false,
+                           false)),
                    [](auto res) {});
       }
     }
@@ -456,7 +455,7 @@ class TestFileGenerated : public Task {
       chat_id_ = message->chat_id_;
       if (message->content_->get_id() == td_api::messageText::ID) {
         auto messageText = move_tl_object_as<td_api::messageText>(message->content_);
-        auto text = messageText->text_;
+        auto text = messageText->text_->text_;
         if (text.substr(0, tag_.size()) == tag_) {
           if (text.substr(tag_.size() + 1) == "ONE_FILE") {
             return one_file();
@@ -489,14 +488,15 @@ class TestFileGenerated : public Task {
                              make_tl_object<td_api::inputFileGenerated>(file_path, "square", 0),
                              make_tl_object<td_api::inputThumbnail>(
                                  make_tl_object<td_api::inputFileGenerated>(file_path, "thumbnail", 0), 0, 0),
-                             tag_)),
+                             make_tl_object<td_api::formattedText>(tag_, Auto()))),
                      [](auto res) { check_td_error(res); });
 
-    this->send_query(make_tl_object<td_api::sendMessage>(
-                         chat_id_, 0, false, false, nullptr,
-                         make_tl_object<td_api::inputMessageDocument>(
-                             make_tl_object<td_api::inputFileGenerated>(file_path, "square", 0), nullptr, tag_)),
-                     [](auto res) { check_td_error(res); });
+    this->send_query(
+        make_tl_object<td_api::sendMessage>(chat_id_, 0, false, false, nullptr,
+                                            make_tl_object<td_api::inputMessageDocument>(
+                                                make_tl_object<td_api::inputFileGenerated>(file_path, "square", 0),
+                                                nullptr, make_tl_object<td_api::formattedText>(tag_, Auto()))),
+        [](auto res) { check_td_error(res); });
   }
 
   friend class GenerateFile;
@@ -599,7 +599,8 @@ class CheckTestC : public Task {
     this->send_query(
         make_tl_object<td_api::sendMessage>(
             chat_id_, 0, false, false, nullptr,
-            make_tl_object<td_api::inputMessageText>(PSTRING() << tag_ << " ONE_FILE", false, false, Auto(), nullptr)),
+            make_tl_object<td_api::inputMessageText>(
+                make_tl_object<td_api::formattedText>(PSTRING() << tag_ << " ONE_FILE", Auto()), false, false)),
         [](auto res) { check_td_error(res); });
   }
 
@@ -612,7 +613,7 @@ class CheckTestC : public Task {
       auto &message = updateNewMessage->message_;
       if (message->content_->get_id() == td_api::messageDocument::ID) {
         auto messageDocument = move_tl_object_as<td_api::messageDocument>(message->content_);
-        auto text = messageDocument->caption_;
+        auto text = messageDocument->caption_->text_;
         if (text.substr(0, tag_.size()) == tag_) {
           file_id_to_check_ = messageDocument->document_->document_->id_;
           LOG(ERROR) << "GOT FILE " << to_string(messageDocument->document_->document_);

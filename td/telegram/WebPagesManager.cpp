@@ -60,7 +60,8 @@ class GetWebPagePreviewQuery : public Td::ResultHandler {
 
   void send(const string &message_text) {
     message_text_ = message_text;
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_getWebPagePreview(message_text))));
+    send_query(G()->net_query_creator().create(
+        create_storer(telegram_api::messages_getWebPagePreview(0, message_text, Auto()))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {

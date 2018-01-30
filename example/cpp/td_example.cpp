@@ -100,7 +100,8 @@ class TdExample {
           auto send_message = td_api::make_object<td_api::sendMessage>();
           send_message->chat_id_ = chat_id;
           auto message_content = td_api::make_object<td_api::inputMessageText>();
-          message_content->text_ = std::move(text);
+          message_content->text_ = td_api::make_object<td_api::formattedText>();
+          message_content->text_->text_ = std::move(text);
           send_message->input_message_content_ = std::move(message_content);
 
           send_query(std::move(send_message), {});
@@ -194,7 +195,7 @@ class TdExample {
                        auto sender_user_name = get_user_name(update_new_message.message_->sender_user_id_);
                        std::string text;
                        if (update_new_message.message_->content_->get_id() == td_api::messageText::ID) {
-                         text = static_cast<td_api::messageText &>(*update_new_message.message_->content_).text_;
+                         text = static_cast<td_api::messageText &>(*update_new_message.message_->content_).text_->text_;
                        }
                        std::cerr << "Got message: [chat_id:" << chat_id << "] [from:" << sender_user_name << "] ["
                                  << text << "]" << std::endl;

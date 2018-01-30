@@ -128,8 +128,6 @@ vector<tl_object_ptr<td_api::textEntity>> get_text_entities_object(const vector<
   return result;
 }
 
-// 0 means nothing
-
 static bool is_word_character(uint32 a) {
   switch (get_unicode_simple_category(a)) {
     case UnicodeSimpleCategory::Letter:
@@ -139,6 +137,10 @@ static bool is_word_character(uint32 a) {
     default:
       return a == '_';
   }
+}
+
+td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const FormattedText &text) {
+  return td_api::make_object<td_api::formattedText>(text.text, get_text_entities_object(text.entities));
 }
 
 /*
@@ -1571,6 +1573,75 @@ vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entiti
   }
 
   return result;
+}
+
+Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contacts_manager,
+                                                   const vector<tl_object_ptr<td_api::textEntity>> &input_entities) {
+  vector<MessageEntity> entities;
+  for (auto &entity : input_entities) {
+    if (entity == nullptr || entity->type_ == nullptr) {
+      continue;
+    }
+
+    switch (entity->type_->get_id()) {
+      case td_api::textEntityTypeMention::ID:
+        return Status::Error(400, "EntityMention can't be used in outgoing messages");
+      case td_api::textEntityTypeHashtag::ID:
+        return Status::Error(400, "EntityHashtag can't be used in outgoing messages");
+      case td_api::textEntityTypeBotCommand::ID:
+        return Status::Error(400, "EntityBotCommand can't be used in outgoing messages");
+      case td_api::textEntityTypeUrl::ID:
+        return Status::Error(400, "EntityUrl can't be used in outgoing messages");
+      case td_api::textEntityTypeEmailAddress::ID:
+        return Status::Error(400, "EntityEmailAddress can't be used in outgoing messages");
+      case td_api::textEntityTypeBold::ID:
+        entities.emplace_back(MessageEntity::Type::Bold, entity->offset_, entity->length_);
+        break;
+      case td_api::textEntityTypeItalic::ID:
+        entities.emplace_back(MessageEntity::Type::Italic, entity->offset_, entity->length_);
+        break;
+      case td_api::textEntityTypeCode::ID:
+        entities.emplace_back(MessageEntity::Type::Code, entity->offset_, entity->length_);
+        break;
+      case td_api::textEntityTypePre::ID:
+        entities.emplace_back(MessageEntity::Type::Pre, entity->offset_, entity->length_);
+        break;
+      case td_api::textEntityTypePreCode::ID: {
+        auto entity_pre_code = static_cast<td_api::textEntityTypePreCode *>(entity->type_.get());
+        if (!clean_input_string(entity_pre_code->language_)) {
+          return Status::Error(400, "MessageEntityPreCode.language must be encoded in UTF-8");
+        }
+        entities.emplace_back(MessageEntity::Type::PreCode, entity->offset_, entity->length_,
+                              entity_pre_code->language_);
+        break;
+      }
+      case td_api::textEntityTypeTextUrl::ID: {
+        auto entity_text_url = static_cast<td_api::textEntityTypeTextUrl *>(entity->type_.get());
+        if (!clean_input_string(entity_text_url->url_)) {
+          return Status::Error(400, "MessageEntityTextUrl.url must be encoded in UTF-8");
+        }
+        auto r_http_url = parse_url(entity_text_url->url_);
+        if (r_http_url.is_error()) {
+          return Status::Error(400, PSTRING() << "Wrong message entity: " << r_http_url.error().message());
+        }
+        entities.emplace_back(MessageEntity::Type::TextUrl, entity->offset_, entity->length_,
+                              r_http_url.ok().get_url());
+        break;
+      }
+      case td_api::textEntityTypeMentionName::ID: {
+        auto entity_mention_name = static_cast<td_api::textEntityTypeMentionName *>(entity->type_.get());
+        UserId user_id(entity_mention_name->user_id_);
+        if (!contacts_manager->have_input_user(user_id)) {
+          return Status::Error(7, "Have no access to the user");
+        }
+        entities.emplace_back(entity->offset_, entity->length_, user_id);
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
+  return entities;
 }
 
 vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manager,

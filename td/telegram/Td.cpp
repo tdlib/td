@@ -1081,10 +1081,10 @@ class EditMessageLiveLocationRequest : public RequestOnceActor {
 class EditMessageCaptionRequest : public RequestOnceActor {
   FullMessageId full_message_id_;
   tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
-  string caption_;
+  tl_object_ptr<td_api::formattedText> caption_;
 
   void do_run(Promise<Unit> &&promise) override {
-    td->messages_manager_->edit_message_caption(full_message_id_, std::move(reply_markup_), caption_,
+    td->messages_manager_->edit_message_caption(full_message_id_, std::move(reply_markup_), std::move(caption_),
                                                 std::move(promise));
   }
 
@@ -1094,7 +1094,8 @@ class EditMessageCaptionRequest : public RequestOnceActor {
 
  public:
   EditMessageCaptionRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id,
-                            tl_object_ptr<td_api::ReplyMarkup> reply_markup, string caption)
+                            tl_object_ptr<td_api::ReplyMarkup> reply_markup,
+                            tl_object_ptr<td_api::formattedText> caption)
       : RequestOnceActor(std::move(td), request_id)
       , full_message_id_(DialogId(dialog_id), MessageId(message_id))
       , reply_markup_(std::move(reply_markup))
@@ -1168,16 +1169,17 @@ class EditInlineMessageLiveLocationRequest : public RequestOnceActor {
 class EditInlineMessageCaptionRequest : public RequestOnceActor {
   string inline_message_id_;
   tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
-  string caption_;
+  tl_object_ptr<td_api::formattedText> caption_;
 
   void do_run(Promise<Unit> &&promise) override {
-    td->messages_manager_->edit_inline_message_caption(inline_message_id_, std::move(reply_markup_), caption_,
-                                                       std::move(promise));
+    td->messages_manager_->edit_inline_message_caption(inline_message_id_, std::move(reply_markup_),
+                                                       std::move(caption_), std::move(promise));
   }
 
  public:
   EditInlineMessageCaptionRequest(ActorShared<Td> td, uint64 request_id, string inline_message_id,
-                                  tl_object_ptr<td_api::ReplyMarkup> reply_markup, string caption)
+                                  tl_object_ptr<td_api::ReplyMarkup> reply_markup,
+                                  tl_object_ptr<td_api::formattedText> caption)
       : RequestOnceActor(std::move(td), request_id)
       , inline_message_id_(std::move(inline_message_id))
       , reply_markup_(std::move(reply_markup))
@@ -5233,7 +5235,6 @@ void Td::on_request(uint64 id, td_api::editMessageLiveLocation &request) {
 
 void Td::on_request(uint64 id, td_api::editMessageCaption &request) {
   CHECK_AUTH();
-  CLEAN_INPUT_STRING(request.caption_);
   CREATE_REQUEST(EditMessageCaptionRequest, request.chat_id_, request.message_id_, std::move(request.reply_markup_),
                  std::move(request.caption_));
 }
@@ -5265,7 +5266,6 @@ void Td::on_request(uint64 id, td_api::editInlineMessageCaption &request) {
   CHECK_AUTH();
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.inline_message_id_);
-  CLEAN_INPUT_STRING(request.caption_);
   CREATE_REQUEST(EditInlineMessageCaptionRequest, std::move(request.inline_message_id_),
                  std::move(request.reply_markup_), std::move(request.caption_));
 }
@@ -6463,6 +6463,11 @@ void Td::on_request(uint64 id, const td_api::getTextEntities &request) {
   send_result(id, do_static_request(request));
 }
 
+void Td::on_request(uint64 id, td_api::parseTextEntities &request) {
+  // don't check authorization state
+  send_result(id, do_static_request(request));
+}
+
 void Td::on_request(uint64 id, const td_api::getFileMimeType &request) {
   // don't check authorization state
   send_result(id, do_static_request(request));
@@ -6484,6 +6489,33 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getTextEn
   }
   auto text_entities = find_entities(request.text_, false);
   return make_tl_object<td_api::textEntities>(get_text_entities_object(text_entities));
+}
+
+td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::parseTextEntities &request) {
+  if (!check_utf8(request.text_)) {
+    return create_error_raw(400, "Text must be encoded in UTF-8");
+  }
+  if (request.parse_mode_ == nullptr) {
+    return create_error_raw(400, "Parse mode must be non-empty");
+  }
+
+  Result<vector<MessageEntity>> r_entities;
+  switch (request.parse_mode_->get_id()) {
+    case td_api::textParseModeHTML::ID:
+      r_entities = parse_html(request.text_);
+      break;
+    case td_api::textParseModeMarkdown::ID:
+      r_entities = parse_markdown(request.text_);
+      break;
+    default:
+      UNREACHABLE();
+      break;
+  }
+  if (r_entities.is_error()) {
+    return create_error_raw(400, PSLICE() << "Can't parse entities: " << r_entities.error().message());
+  }
+
+  return make_tl_object<td_api::formattedText>(std::move(request.text_), get_text_entities_object(r_entities.ok()));
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getFileMimeType &request) {

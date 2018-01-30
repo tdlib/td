@@ -201,10 +201,10 @@ tl_object_ptr<telegram_api::InputMedia> VideoNotesManager::get_input_media(
     return nullptr;
   }
   if (file_view.has_remote_location() && !file_view.remote_location().is_web()) {
-    return make_tl_object<telegram_api::inputMediaDocument>(0, file_view.remote_location().as_input_document(), "", 0);
+    return make_tl_object<telegram_api::inputMediaDocument>(0, file_view.remote_location().as_input_document(), 0);
   }
   if (file_view.has_url()) {
-    return make_tl_object<telegram_api::inputMediaDocumentExternal>(0, file_view.url(), "", 0);
+    return make_tl_object<telegram_api::inputMediaDocumentExternal>(0, file_view.url(), 0);
   }
   CHECK(!file_view.has_remote_location());
 
@@ -223,7 +223,7 @@ tl_object_ptr<telegram_api::InputMedia> VideoNotesManager::get_input_media(
     }
     return make_tl_object<telegram_api::inputMediaUploadedDocument>(
         flags, false /*ignored*/, std::move(input_file), std::move(input_thumbnail), "video/mp4", std::move(attributes),
-        "", vector<tl_object_ptr<telegram_api::InputDocument>>(), 0);
+        vector<tl_object_ptr<telegram_api::InputDocument>>(), 0);
   }
 
   return nullptr;

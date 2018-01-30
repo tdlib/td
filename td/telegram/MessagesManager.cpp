@@ -5,7 +5,6 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/telegram/MessagesManager.h"
-
 #include "td/telegram/secret_api.hpp"
 #include "td/telegram/td_api.hpp"
 #include "td/telegram/telegram_api.h"
@@ -773,7 +772,7 @@ class SaveDraftMessageQuery : public Td::ResultHandler {
       if (draft_message->input_message_text.disable_web_page_preview) {
         flags |= MessagesManager::SEND_MESSAGE_FLAG_DISABLE_WEB_PAGE_PREVIEW;
       }
-      if (draft_message->input_message_text.entities.size()) {
+      if (draft_message->input_message_text.text.entities.size()) {
         flags |= MessagesManager::SEND_MESSAGE_FLAG_HAS_ENTITIES;
       }
     }
@@ -781,10 +780,10 @@ class SaveDraftMessageQuery : public Td::ResultHandler {
     dialog_id_ = dialog_id;
     send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_saveDraft(
         flags, false /*ignored*/, reply_to_message_id.get(), std::move(input_peer),
-        draft_message == nullptr ? "" : draft_message->input_message_text.text,
-        draft_message == nullptr
-            ? vector<tl_object_ptr<telegram_api::MessageEntity>>()
-            : get_input_message_entities(td->contacts_manager_.get(), draft_message->input_message_text.entities)))));
+        draft_message == nullptr ? "" : draft_message->input_message_text.text.text,
+        draft_message == nullptr ? vector<tl_object_ptr<telegram_api::MessageEntity>>()
+                                 : get_input_message_entities(td->contacts_manager_.get(),
+                                                              draft_message->input_message_text.text.entities)))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -2084,8 +2083,10 @@ class SendMediaActor : public NetActorOnce {
 
  public:
   void send(FileId file_id, FileId thumbnail_file_id, int32 flags, DialogId dialog_id, MessageId reply_to_message_id,
-            tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup, tl_object_ptr<telegram_api::InputMedia> &&message,
-            int64 random_id, NetQueryRef *send_query_ref, uint64 sequence_dispatcher_id) {
+            tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup,
+            vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities, const string &message,
+            tl_object_ptr<telegram_api::InputMedia> &&input_media, int64 random_id, NetQueryRef *send_query_ref,
+            uint64 sequence_dispatcher_id) {
     random_id_ = random_id;
     file_id_ = file_id;
     thumbnail_file_id_ = thumbnail_file_id;
@@ -2096,10 +2097,14 @@ class SendMediaActor : public NetActorOnce {
       on_error(0, Status::Error(400, "Have no write access to the chat"));
       return;
     }
+    if (!entities.empty()) {
+      flags |= telegram_api::messages_sendMedia::ENTITIES_MASK;
+    }
 
     telegram_api::messages_sendMedia request(flags, false /*ignored*/, false /*ignored*/, false /*ignored*/,
                                              std::move(input_peer), reply_to_message_id.get_server_message_id().get(),
-                                             std::move(message), random_id, std::move(reply_markup));
+                                             std::move(input_media), message, random_id, std::move(reply_markup),
+                                             std::move(entities));
     LOG(INFO) << "Send media: " << to_string(request);
     auto query = G()->net_query_creator().create(create_storer(request));
     if (G()->shared_config().get_option_boolean("use_quick_ack")) {
@@ -3206,7 +3211,7 @@ class GetChannelAdminLogQuery : public Td::ResultHandler {
 
 bool operator==(const InputMessageText &lhs, const InputMessageText &rhs) {
   return lhs.text == rhs.text && lhs.disable_web_page_preview == rhs.disable_web_page_preview &&
-         lhs.clear_draft == rhs.clear_draft && lhs.entities == rhs.entities;
+         lhs.clear_draft == rhs.clear_draft;
 }
 
 bool operator!=(const InputMessageText &lhs, const InputMessageText &rhs) {
@@ -3337,7 +3342,6 @@ static void store(const MessageContent *content, StorerT &storer) {
     case MessageText::ID: {
       auto m = static_cast<const MessageText *>(content);
       store(m->text, storer);
-      store(m->entities, storer);
       store(m->web_page_id, storer);
       break;
     }
@@ -3495,6 +3499,16 @@ static void store(const MessageContent *content, StorerT &storer) {
 }
 
 template <class ParserT>
+static void parse_caption(FormattedText &caption, ParserT &parser) {
+  parse(caption.text, parser);
+  if (parser.version() >= static_cast<int32>(Version::AddCaptionEntities)) {
+    parse(caption.entities, parser);
+  } else {
+    caption.entities = find_entities(caption.text, false);
+  }
+}
+
+template <class ParserT>
 static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
   Td *td = parser.context()->td().get_actor_unsafe();
   CHECK(td != nullptr);
@@ -3507,7 +3521,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageAnimation::ID: {
       auto m = make_unique<MessageAnimation>();
       m->file_id = td->animations_manager_->parse_animation(parser);
-      parse(m->caption, parser);
+      parse_caption(m->caption, parser);
       is_bad = !m->file_id.is_valid();
       content = std::move(m);
       break;
@@ -3515,7 +3529,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageAudio::ID: {
       auto m = make_unique<MessageAudio>();
       m->file_id = td->audios_manager_->parse_audio(parser);
-      parse(m->caption, parser);
+      parse_caption(m->caption, parser);
       bool legacy_is_listened;
       parse(legacy_is_listened, parser);
       is_bad = !m->file_id.is_valid();
@@ -3531,7 +3545,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageDocument::ID: {
       auto m = make_unique<MessageDocument>();
       m->file_id = td->documents_manager_->parse_document(parser);
-      parse(m->caption, parser);
+      parse_caption(m->caption, parser);
       is_bad = !m->file_id.is_valid();
       content = std::move(m);
       break;
@@ -3582,7 +3596,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
           is_bad = true;
         }
       }
-      parse(m->caption, parser);
+      parse_caption(m->caption, parser);
       content = std::move(m);
       break;
     }
@@ -3596,7 +3610,6 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageText::ID: {
       auto m = make_unique<MessageText>();
       parse(m->text, parser);
-      parse(m->entities, parser);
       parse(m->web_page_id, parser);
       content = std::move(m);
       break;
@@ -3613,7 +3626,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageVideo::ID: {
       auto m = make_unique<MessageVideo>();
       m->file_id = td->videos_manager_->parse_video(parser);
-      parse(m->caption, parser);
+      parse_caption(m->caption, parser);
       is_bad = !m->file_id.is_valid();
       content = std::move(m);
       break;
@@ -3629,7 +3642,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageVoiceNote::ID: {
       auto m = make_unique<MessageVoiceNote>();
       m->file_id = td->voice_notes_manager_->parse_voice_note(parser);
-      parse(m->caption, parser);
+      parse_caption(m->caption, parser);
       parse(m->is_listened, parser);
       is_bad = !m->file_id.is_valid();
       content = std::move(m);
@@ -4054,7 +4067,6 @@ void store(const InputMessageText &input_message_text, StorerT &storer) {
   STORE_FLAG(input_message_text.clear_draft);
   END_STORE_FLAGS();
   store(input_message_text.text, storer);
-  store(input_message_text.entities, storer);
 }
 
 template <class ParserT>
@@ -4064,7 +4076,6 @@ void parse(InputMessageText &input_message_text, ParserT &parser) {
   PARSE_FLAG(input_message_text.clear_draft);
   END_PARSE_FLAGS();
   parse(input_message_text.text, parser);
-  parse(input_message_text.entities, parser);
 }
 
 template <class StorerT>
@@ -4576,7 +4587,7 @@ int32 MessagesManager::get_message_content_index_mask(const MessageContent *cont
       return search_messages_filter_index_mask(SearchMessagesFilter::Photo) |
              search_messages_filter_index_mask(SearchMessagesFilter::PhotoAndVideo);
     case MessageText::ID:
-      for (auto &entity : static_cast<const MessageText *>(content)->entities) {
+      for (auto &entity : static_cast<const MessageText *>(content)->text.entities) {
         if (entity.type == MessageEntity::Type::Url || entity.type == MessageEntity::Type::EmailAddress) {
           return search_messages_filter_index_mask(SearchMessagesFilter::Url);
         }
@@ -5065,10 +5076,10 @@ MessagesManager::Dialog *MessagesManager::get_service_notifications_dialog() {
 
 void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api::updateServiceNotification> &&update) {
   int32 ttl = 0;
-  auto content =
-      get_message_content(std::move(update->message_), std::move(update->media_), std::move(update->entities_),
-                          td_->auth_manager_->is_bot() ? DialogId() : get_service_notifications_dialog()->dialog_id,
-                          false, UserId(), &ttl, update->inbox_date_);
+  auto content = get_message_content(
+      get_message_text(std::move(update->message_), std::move(update->entities_), update->inbox_date_),
+      std::move(update->media_),
+      td_->auth_manager_->is_bot() ? DialogId() : get_service_notifications_dialog()->dialog_id, false, UserId(), &ttl);
   if ((update->flags_ & telegram_api::updateServiceNotification::POPUP_MASK) != 0) {
     send_closure(
         G()->td(), &Td::send_update,
@@ -6881,31 +6892,32 @@ string MessagesManager::get_search_text(const Message *m) {
     case MessageText::ID: {
       auto *text = static_cast<const MessageText *>(m->content.get());
       if (!text->web_page_id.is_valid()) {
-        return text->text;
+        return text->text.text;
       }
-      return PSTRING() << text->text << " " << td_->web_pages_manager_->get_web_page_search_text(text->web_page_id);
+      return PSTRING() << text->text.text << " "
+                       << td_->web_pages_manager_->get_web_page_search_text(text->web_page_id);
     }
     case MessageAnimation::ID: {
       auto animation = static_cast<const MessageAnimation *>(m->content.get());
       return PSTRING() << td_->animations_manager_->get_animation_search_text(animation->file_id) << " "
-                       << animation->caption;
+                       << animation->caption.text;
     }
     case MessageAudio::ID: {
       auto audio = static_cast<const MessageAudio *>(m->content.get());
-      return PSTRING() << td_->audios_manager_->get_audio_search_text(audio->file_id) << " " << audio->caption;
+      return PSTRING() << td_->audios_manager_->get_audio_search_text(audio->file_id) << " " << audio->caption.text;
     }
     case MessageDocument::ID: {
       auto document = static_cast<const MessageDocument *>(m->content.get());
       return PSTRING() << td_->documents_manager_->get_document_search_text(document->file_id) << " "
-                       << document->caption;
+                       << document->caption.text;
     }
     case MessagePhoto::ID: {
       auto photo = static_cast<const MessagePhoto *>(m->content.get());
-      return PSTRING() << photo->caption;
+      return PSTRING() << photo->caption.text;
     }
     case MessageVideo::ID: {
       auto video = static_cast<const MessageVideo *>(m->content.get());
-      return PSTRING() << td_->videos_manager_->get_video_search_text(video->file_id) << " " << video->caption;
+      return PSTRING() << td_->videos_manager_->get_video_search_text(video->file_id) << " " << video->caption.text;
     }
     case MessageContact::ID:
     case MessageGame::ID:
@@ -8085,11 +8097,13 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
     case MessageAnimation::ID: {
       const MessageAnimation *m = static_cast<const MessageAnimation *>(content);
       return make_tl_object<td_api::messageAnimation>(
-          td_->animations_manager_->get_animation_object(m->file_id, "get_message_content_object"), m->caption);
+          td_->animations_manager_->get_animation_object(m->file_id, "get_message_content_object"),
+          get_formatted_text_object(m->caption));
     }
     case MessageAudio::ID: {
       const MessageAudio *m = static_cast<const MessageAudio *>(content);
-      return make_tl_object<td_api::messageAudio>(td_->audios_manager_->get_audio_object(m->file_id), m->caption);
+      return make_tl_object<td_api::messageAudio>(td_->audios_manager_->get_audio_object(m->file_id),
+                                                  get_formatted_text_object(m->caption));
     }
     case MessageContact::ID: {
       const MessageContact *m = static_cast<const MessageContact *>(content);
@@ -8098,7 +8112,7 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
     case MessageDocument::ID: {
       const MessageDocument *m = static_cast<const MessageDocument *>(content);
       return make_tl_object<td_api::messageDocument>(td_->documents_manager_->get_document_object(m->file_id),
-                                                     m->caption);
+                                                     get_formatted_text_object(m->caption));
     }
     case MessageGame::ID: {
       const MessageGame *m = static_cast<const MessageGame *>(content);
@@ -8121,7 +8135,8 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
     }
     case MessagePhoto::ID: {
       const MessagePhoto *m = static_cast<const MessagePhoto *>(content);
-      return make_tl_object<td_api::messagePhoto>(get_photo_object(td_->file_manager_.get(), &m->photo), m->caption);
+      return make_tl_object<td_api::messagePhoto>(get_photo_object(td_->file_manager_.get(), &m->photo),
+                                                  get_formatted_text_object(m->caption));
     }
     case MessageSticker::ID: {
       const MessageSticker *m = static_cast<const MessageSticker *>(content);
@@ -8129,7 +8144,7 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
     }
     case MessageText::ID: {
       const MessageText *m = static_cast<const MessageText *>(content);
-      return make_tl_object<td_api::messageText>(m->text, get_text_entities_object(m->entities),
+      return make_tl_object<td_api::messageText>(get_formatted_text_object(m->text),
                                                  td_->web_pages_manager_->get_web_page_object(m->web_page_id));
     }
     case MessageUnsupported::ID: {
@@ -8141,7 +8156,8 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
     }
     case MessageVideo::ID: {
       const MessageVideo *m = static_cast<const MessageVideo *>(content);
-      return make_tl_object<td_api::messageVideo>(td_->videos_manager_->get_video_object(m->file_id), m->caption);
+      return make_tl_object<td_api::messageVideo>(td_->videos_manager_->get_video_object(m->file_id),
+                                                  get_formatted_text_object(m->caption));
     }
     case MessageVideoNote::ID: {
       const MessageVideoNote *m = static_cast<const MessageVideoNote *>(content);
@@ -8151,7 +8167,7 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
     case MessageVoiceNote::ID: {
       const MessageVoiceNote *m = static_cast<const MessageVoiceNote *>(content);
       return make_tl_object<td_api::messageVoiceNote>(td_->voice_notes_manager_->get_voice_note_object(m->file_id),
-                                                      m->caption, m->is_listened);
+                                                      get_formatted_text_object(m->caption), m->is_listened);
     }
     case MessageChatCreate::ID: {
       const MessageChatCreate *m = static_cast<const MessageChatCreate *>(content);
@@ -8617,7 +8633,7 @@ void MessagesManager::start_up() {
         m->random_y = get_random_y(message_id);
         m->message_id = message_id;
         m->date = G()->unix_time();
-        m->content = make_unique<MessageText>("text", vector<MessageEntity>(), WebPageId());
+        m->content = make_unique<MessageText>(FormattedText{"text", vector<MessageEntity>()}, WebPageId());
 
         m->have_previous = have_previous;
         m->have_next = have_next;
@@ -9100,10 +9116,11 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       if (is_message_auto_read(message_info.dialog_id, (message->flags_ & MESSAGE_FLAG_IS_OUT) != 0, true)) {
         is_content_read = true;
       }
-      message_info.content =
-          get_message_content(std::move(message->message_), std::move(message->media_), std::move(message->entities_),
-                              message_info.dialog_id, is_content_read, message_info.via_bot_user_id, &message_info.ttl,
-                              message_info.forward_header ? message_info.forward_header->date_ : message_info.date);
+      message_info.content = get_message_content(
+          get_message_text(std::move(message->message_), std::move(message->entities_),
+                           message_info.forward_header ? message_info.forward_header->date_ : message_info.date),
+          std::move(message->media_), message_info.dialog_id, is_content_read, message_info.via_bot_user_id,
+          &message_info.ttl);
       message_info.reply_markup =
           message->flags_ & MESSAGE_FLAG_HAS_REPLY_MARKUP ? std::move(message->reply_markup_) : nullptr;
       message_info.author_signature = std::move(message->post_author_);
@@ -9627,9 +9644,9 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
   }
   auto message_text = static_cast<const MessageText *>(m->content.get());
 
-  auto new_content = get_message_content(message_text->text, std::move(message_media), std::move(entities), dialog_id,
-                                         true /*likely ignored*/, UserId() /*likely ignored*/, nullptr /*ignored*/,
-                                         m->forward_info ? m->forward_info->date : m->date);
+  auto new_content = get_message_content(
+      get_message_text(message_text->text.text, std::move(entities), m->forward_info ? m->forward_info->date : m->date),
+      std::move(message_media), dialog_id, true /*likely ignored*/, UserId() /*likely ignored*/, nullptr /*ignored*/);
   if (new_content->get_id() != MessageText::ID) {
     LOG(ERROR) << "Text message content has changed to " << new_content->get_id();
     return;
@@ -9639,7 +9656,7 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
   bool need_update = false;
   bool is_content_changed = false;
 
-  if (message_text->entities != new_message_text->entities) {
+  if (message_text->text.entities != new_message_text->text.entities) {
     is_content_changed = true;
     need_update = true;
   }
@@ -11096,7 +11113,7 @@ Status MessagesManager::set_dialog_draft_message(DialogId dialog_id,
       new_draft_message->input_message_text = std::move(message_content);
     }
 
-    if (!new_draft_message->reply_to_message_id.is_valid() && new_draft_message->input_message_text.text.empty()) {
+    if (!new_draft_message->reply_to_message_id.is_valid() && new_draft_message->input_message_text.text.text.empty()) {
       new_draft_message = nullptr;
     }
   }
@@ -11862,9 +11879,9 @@ void MessagesManager::close_dialog(Dialog *d) {
 
 tl_object_ptr<td_api::inputMessageText> MessagesManager::get_input_message_text_object(
     const InputMessageText &input_message_text) const {
-  return make_tl_object<td_api::inputMessageText>(input_message_text.text, input_message_text.disable_web_page_preview,
-                                                  input_message_text.clear_draft,
-                                                  get_text_entities_object(input_message_text.entities), nullptr);
+  return make_tl_object<td_api::inputMessageText>(get_formatted_text_object(input_message_text.text),
+                                                  input_message_text.disable_web_page_preview,
+                                                  input_message_text.clear_draft);
 }
 
 tl_object_ptr<td_api::draftMessage> MessagesManager::get_draft_message_object(
@@ -12140,7 +12157,7 @@ unique_ptr<DraftMessage> MessagesManager::get_draft_message(
       }
 
       auto entities = get_message_entities(contacts_manager, std::move(draft->entities_));
-      auto status = fix_text_message(draft->message_, entities, nullptr, true, true, true, true);
+      auto status = fix_text_message(draft->message_, entities, true, true, true, true);
       if (status.is_error()) {
         LOG(ERROR) << "Receive error " << status << " while parsing draft " << draft->message_;
         if (!clean_input_string(draft->message_)) {
@@ -12148,10 +12165,9 @@ unique_ptr<DraftMessage> MessagesManager::get_draft_message(
         }
         entities.clear();
       }
-      result->input_message_text.text = std::move(draft->message_);
+      result->input_message_text.text = FormattedText{std::move(draft->message_), std::move(entities)};
       result->input_message_text.disable_web_page_preview = (flags & SEND_MESSAGE_FLAG_DISABLE_WEB_PAGE_PREVIEW) != 0;
       result->input_message_text.clear_draft = false;
-      result->input_message_text.entities = std::move(entities);
 
       return result;
     }
@@ -13488,32 +13504,33 @@ tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(
   return td_api::make_object<td_api::messages>(total_count, std::move(messages));
 }
 
-// like clean_input_string but also validates entities
-Status MessagesManager::fix_text_message(string &text, vector<MessageEntity> &entities,
-                                         tl_object_ptr<td_api::TextParseMode> &&parse_mode, bool allow_empty,
-                                         bool skip_new_entities, bool skip_bot_commands, bool for_draft) {
-  if (!check_utf8(text)) {
-    return Status::Error(400, "Message text must be encoded in UTF-8");
+bool MessagesManager::need_skip_bot_commands(DialogId dialog_id, bool is_bot) const {
+  if (is_bot) {
+    return false;
   }
 
-  if (parse_mode != nullptr) {
-    Result<vector<MessageEntity>> r_entities;
-    switch (parse_mode->get_id()) {
-      case td_api::textParseModeHTML::ID:
-        r_entities = parse_html(text);
-        break;
-      case td_api::textParseModeMarkdown::ID:
-        r_entities = parse_markdown(text);
-        break;
-      default:
-        UNREACHABLE();
-        break;
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return !td_->contacts_manager_->is_user_bot(dialog_id.get_user_id());
+    case DialogType::SecretChat: {
+      auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+      return !td_->contacts_manager_->is_user_bot(user_id);
     }
-    if (r_entities.is_error()) {
-      return Status::Error(400, PSLICE() << "Can't parse entities in message text: " << r_entities.error().message());
-    } else {
-      entities = r_entities.move_as_ok();
-    }
+    case DialogType::Chat:
+    case DialogType::Channel:
+    case DialogType::None:
+      return false;
+    default:
+      UNREACHABLE();
+      return false;
+  }
+}
+
+// like clean_input_string but also validates entities
+Status MessagesManager::fix_text_message(string &text, vector<MessageEntity> &entities, bool allow_empty,
+                                         bool skip_new_entities, bool skip_bot_commands, bool for_draft) {
+  if (!check_utf8(text)) {
+    return Status::Error(400, "Strings must be encoded in UTF-8");
   }
 
   fix_entities(entities);
@@ -13720,9 +13737,17 @@ Status MessagesManager::fix_text_message(string &text, vector<MessageEntity> &en
     }
   }
 
-  // TODO MAX_MESSAGE_LENGTH
+  // TODO MAX_MESSAGE_LENGTH and MAX_CAPTION_LENGTH
 
   return Status::OK();
+}
+
+Result<FormattedText> MessagesManager::process_input_caption(DialogId dialog_id,
+                                                             tl_object_ptr<td_api::formattedText> &&text,
+                                                             bool is_bot) const {
+  TRY_RESULT(entities, get_message_entities(td_->contacts_manager_.get(), std::move(text->entities_)));
+  TRY_STATUS(fix_text_message(text->text_, entities, true, false, need_skip_bot_commands(dialog_id, is_bot), false));
+  return FormattedText{std::move(text->text_), std::move(entities)};
 }
 
 Result<InputMessageText> MessagesManager::process_input_message_text(
@@ -13731,98 +13756,12 @@ Result<InputMessageText> MessagesManager::process_input_message_text(
   CHECK(input_message_content != nullptr);
   CHECK(input_message_content->get_id() == td_api::inputMessageText::ID);
   auto input_message_text = static_cast<td_api::inputMessageText *>(input_message_content.get());
-
-  vector<MessageEntity> entities;
-  for (auto &entity : input_message_text->entities_) {
-    if (entity == nullptr || entity->type_ == nullptr) {
-      continue;
-    }
-
-    switch (entity->type_->get_id()) {
-      case td_api::textEntityTypeMention::ID:
-        return Status::Error(400, "EntityMention can't be used in outgoing messages");
-      case td_api::textEntityTypeHashtag::ID:
-        return Status::Error(400, "EntityHashtag can't be used in outgoing messages");
-      case td_api::textEntityTypeBotCommand::ID:
-        return Status::Error(400, "EntityBotCommand can't be used in outgoing messages");
-      case td_api::textEntityTypeUrl::ID:
-        return Status::Error(400, "EntityUrl can't be used in outgoing messages");
-      case td_api::textEntityTypeEmailAddress::ID:
-        return Status::Error(400, "EntityEmailAddress can't be used in outgoing messages");
-      case td_api::textEntityTypeBold::ID:
-        entities.emplace_back(MessageEntity::Type::Bold, entity->offset_, entity->length_);
-        break;
-      case td_api::textEntityTypeItalic::ID:
-        entities.emplace_back(MessageEntity::Type::Italic, entity->offset_, entity->length_);
-        break;
-      case td_api::textEntityTypeCode::ID:
-        entities.emplace_back(MessageEntity::Type::Code, entity->offset_, entity->length_);
-        break;
-      case td_api::textEntityTypePre::ID:
-        entities.emplace_back(MessageEntity::Type::Pre, entity->offset_, entity->length_);
-        break;
-      case td_api::textEntityTypePreCode::ID: {
-        auto entity_pre_code = static_cast<td_api::textEntityTypePreCode *>(entity->type_.get());
-        if (!clean_input_string(entity_pre_code->language_)) {
-          return Status::Error(400, "MessageEntityPreCode.language must be encoded in UTF-8");
-        }
-        entities.emplace_back(MessageEntity::Type::PreCode, entity->offset_, entity->length_,
-                              entity_pre_code->language_);
-        break;
-      }
-      case td_api::textEntityTypeTextUrl::ID: {
-        auto entity_text_url = static_cast<td_api::textEntityTypeTextUrl *>(entity->type_.get());
-        if (!clean_input_string(entity_text_url->url_)) {
-          return Status::Error(400, "MessageEntityTextUrl.url must be encoded in UTF-8");
-        }
-        auto r_http_url = parse_url(entity_text_url->url_);
-        if (r_http_url.is_error()) {
-          return Status::Error(400, PSTRING() << "Wrong message entity: " << r_http_url.error().message());
-        }
-        entities.emplace_back(MessageEntity::Type::TextUrl, entity->offset_, entity->length_,
-                              r_http_url.ok().get_url());
-        break;
-      }
-      case td_api::textEntityTypeMentionName::ID: {
-        auto entity_mention_name = static_cast<td_api::textEntityTypeMentionName *>(entity->type_.get());
-        UserId user_id(entity_mention_name->user_id_);
-        if (!td_->contacts_manager_->have_input_user(user_id)) {
-          return Status::Error(7, "Have no access to the user");
-        }
-        entities.emplace_back(entity->offset_, entity->length_, user_id);
-        break;
-      }
-      default:
-        UNREACHABLE();
-    }
-  }
-
-  bool skip_bot_commands = false;
-  if (!is_bot) {
-    switch (dialog_id.get_type()) {
-      case DialogType::User:
-        if (!td_->contacts_manager_->is_user_bot(dialog_id.get_user_id())) {
-          skip_bot_commands = true;
-        }
-        break;
-      case DialogType::Chat:
-        break;
-      case DialogType::Channel:
-        break;
-      case DialogType::SecretChat:
-        skip_bot_commands = true;
-        break;
-      case DialogType::None:
-        break;
-      default:
-        UNREACHABLE();
-    }
-  }
-  TRY_STATUS(fix_text_message(input_message_text->text_, entities, std::move(input_message_text->parse_mode_),
-                              for_draft, false, skip_bot_commands, for_draft));
-
-  return InputMessageText{std::move(input_message_text->text_), input_message_text->disable_web_page_preview_,
-                          input_message_text->clear_draft_, std::move(entities)};
+  TRY_RESULT(entities,
+             get_message_entities(td_->contacts_manager_.get(), std::move(input_message_text->text_->entities_)));
+  TRY_STATUS(fix_text_message(input_message_text->text_->text_, entities, for_draft, false,
+                              need_skip_bot_commands(dialog_id, is_bot), for_draft));
+  return InputMessageText{FormattedText{std::move(input_message_text->text_->text_), std::move(entities)},
+                          input_message_text->disable_web_page_preview_, input_message_text->clear_draft_};
 }
 
 Result<std::pair<Location, int32>> MessagesManager::process_input_message_location(
@@ -13923,12 +13862,12 @@ SecretInputMedia MessagesManager::get_secret_input_media(const MessageContent *c
   switch (content->get_id()) {
     case MessageAnimation::ID: {
       auto m = static_cast<const MessageAnimation *>(content);
-      return td_->animations_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption,
+      return td_->animations_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text,
                                                               std::move(thumbnail));
     }
     case MessageAudio::ID: {
       auto m = static_cast<const MessageAudio *>(content);
-      return td_->audios_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption,
+      return td_->audios_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text,
                                                           std::move(thumbnail));
     }
     case MessageContact::ID: {
@@ -13937,7 +13876,7 @@ SecretInputMedia MessagesManager::get_secret_input_media(const MessageContent *c
     }
     case MessageDocument::ID: {
       auto m = static_cast<const MessageDocument *>(content);
-      return td_->documents_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption,
+      return td_->documents_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text,
                                                              std::move(thumbnail));
     }
     case MessageLocation::ID: {
@@ -13946,7 +13885,7 @@ SecretInputMedia MessagesManager::get_secret_input_media(const MessageContent *c
     }
     case MessagePhoto::ID: {
       auto m = static_cast<const MessagePhoto *>(content);
-      return photo_get_secret_input_media(td_->file_manager_.get(), m->photo, std::move(input_file), m->caption,
+      return photo_get_secret_input_media(td_->file_manager_.get(), m->photo, std::move(input_file), m->caption.text,
                                           std::move(thumbnail));
     }
     case MessageSticker::ID: {
@@ -13965,7 +13904,7 @@ SecretInputMedia MessagesManager::get_secret_input_media(const MessageContent *c
     }
     case MessageVideo::ID: {
       auto m = static_cast<const MessageVideo *>(content);
-      return td_->videos_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption,
+      return td_->videos_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text,
                                                           std::move(thumbnail));
     }
     case MessageVideoNote::ID: {
@@ -13975,7 +13914,7 @@ SecretInputMedia MessagesManager::get_secret_input_media(const MessageContent *c
     }
     case MessageVoiceNote::ID: {
       auto m = static_cast<const MessageVoiceNote *>(content);
-      return td_->voice_notes_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption);
+      return td_->voice_notes_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text);
     }
     case MessageLiveLocation::ID:
     case MessageGame::ID:
@@ -14096,13 +14035,11 @@ tl_object_ptr<telegram_api::InputMedia> MessagesManager::get_input_media(
   switch (content->get_id()) {
     case MessageAnimation::ID: {
       auto m = static_cast<const MessageAnimation *>(content);
-      return td_->animations_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail),
-                                                       m->caption);
+      return td_->animations_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail));
     }
     case MessageAudio::ID: {
       auto m = static_cast<const MessageAudio *>(content);
-      return td_->audios_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail),
-                                                   m->caption);
+      return td_->audios_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail));
     }
     case MessageContact::ID: {
       auto m = static_cast<const MessageContact *>(content);
@@ -14110,8 +14047,7 @@ tl_object_ptr<telegram_api::InputMedia> MessagesManager::get_input_media(
     }
     case MessageDocument::ID: {
       auto m = static_cast<const MessageDocument *>(content);
-      return td_->documents_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail),
-                                                      m->caption);
+      return td_->documents_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail));
     }
     case MessageGame::ID: {
       auto m = static_cast<const MessageGame *>(content);
@@ -14131,7 +14067,7 @@ tl_object_ptr<telegram_api::InputMedia> MessagesManager::get_input_media(
     }
     case MessagePhoto::ID: {
       auto m = static_cast<const MessagePhoto *>(content);
-      return photo_get_input_media(td_->file_manager_.get(), m->photo, std::move(input_file), m->caption, ttl);
+      return photo_get_input_media(td_->file_manager_.get(), m->photo, std::move(input_file), ttl);
     }
     case MessageSticker::ID: {
       auto m = static_cast<const MessageSticker *>(content);
@@ -14143,8 +14079,7 @@ tl_object_ptr<telegram_api::InputMedia> MessagesManager::get_input_media(
     }
     case MessageVideo::ID: {
       auto m = static_cast<const MessageVideo *>(content);
-      return td_->videos_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail),
-                                                   m->caption, ttl);
+      return td_->videos_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail), ttl);
     }
     case MessageVideoNote::ID: {
       auto m = static_cast<const MessageVideoNote *>(content);
@@ -14152,7 +14087,7 @@ tl_object_ptr<telegram_api::InputMedia> MessagesManager::get_input_media(
     }
     case MessageVoiceNote::ID: {
       auto m = static_cast<const MessageVoiceNote *>(content);
-      return td_->voice_notes_manager_->get_input_media(m->file_id, std::move(input_file), m->caption);
+      return td_->voice_notes_manager_->get_input_media(m->file_id, std::move(input_file));
     }
     case MessageText::ID:
     case MessageUnsupported::ID:
@@ -14566,8 +14501,7 @@ MessageId MessagesManager::get_reply_to_message_id(Dialog *d, MessageId message_
   return message_id;
 }
 
-string MessagesManager::get_message_content_caption(const MessageContent *content) {
-  // TODO return with entities
+FormattedText MessagesManager::get_message_content_caption(const MessageContent *content) {
   switch (content->get_id()) {
     case MessageAnimation::ID:
       return static_cast<const MessageAnimation *>(content)->caption;
@@ -14582,7 +14516,7 @@ string MessagesManager::get_message_content_caption(const MessageContent *conten
     case MessageVoiceNote::ID:
       return static_cast<const MessageVoiceNote *>(content)->caption;
     default:
-      return string();
+      return FormattedText();
   }
 }
 
@@ -14824,8 +14758,10 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, Dialo
   switch (m->content->get_id()) {
     case MessageText::ID: {
       auto content = static_cast<const MessageText *>(m->content.get());
-      for (auto &entity : content->entities) {
-        dependencies.user_ids.insert(entity.user_id);
+      for (auto &entity : content->text.entities) {
+        if (entity.user_id.is_valid()) {
+          dependencies.user_ids.insert(entity.user_id);
+        }
       }
       dependencies.web_page_ids.insert(content->web_page_id);
       break;
@@ -15198,10 +15134,10 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
   unique_ptr<MessageContent> content;
   UserId via_bot_user_id;
   int32 ttl = 0;
+  bool is_bot = td_->auth_manager_->is_bot();
   switch (message_type) {
     case td_api::inputMessageText::ID: {
-      TRY_RESULT(input_message_text,
-                 process_input_message_text(dialog_id, std::move(input_message_content), td_->auth_manager_->is_bot()));
+      TRY_RESULT(input_message_text, process_input_message_text(dialog_id, std::move(input_message_content), is_bot));
       disable_web_page_preview = input_message_text.disable_web_page_preview;
       clear_draft = input_message_text.clear_draft;
 
@@ -15210,25 +15146,21 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
           (dialog_id.get_type() != DialogType::Channel ||
            td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).can_add_web_page_previews())) {
         web_page_id = td_->web_pages_manager_->get_web_page_by_url(
-            get_first_url(input_message_text.text, input_message_text.entities));
+            get_first_url(input_message_text.text.text, input_message_text.text.entities));
       }
-      content = make_unique<MessageText>(std::move(input_message_text.text), std::move(input_message_text.entities),
-                                         web_page_id);
+      content = make_unique<MessageText>(std::move(input_message_text.text), web_page_id);
       break;
     }
     case td_api::inputMessageAnimation::ID: {
       auto input_animation = static_cast<td_api::inputMessageAnimation *>(input_message_content.get());
 
-      if (!clean_input_string(input_animation->caption_)) {
-        return Status::Error(400, "Animation caption must be encoded in UTF-8");
-      }
+      TRY_RESULT(caption, process_input_caption(dialog_id, std::move(input_animation->caption_), is_bot));
 
       td_->animations_manager_->create_animation(
           file_id, thumbnail, std::move(file_name), std::move(mime_type), input_animation->duration_,
           get_dimensions(input_animation->width_, input_animation->height_), false);
 
-      content =
-          make_unique<MessageAnimation>(file_id, strip_empty_characters(input_animation->caption_, MAX_CAPTION_LENGTH));
+      content = make_unique<MessageAnimation>(file_id, std::move(caption));
       break;
     }
     case td_api::inputMessageAudio::ID: {
@@ -15240,36 +15172,29 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
       if (!clean_input_string(input_audio->performer_)) {
         return Status::Error(400, "Audio performer must be encoded in UTF-8");
       }
-      if (!clean_input_string(input_audio->caption_)) {
-        return Status::Error(400, "Audio caption must be encoded in UTF-8");
-      }
+      TRY_RESULT(caption, process_input_caption(dialog_id, std::move(input_audio->caption_), is_bot));
 
       td_->audios_manager_->create_audio(file_id, thumbnail, std::move(file_name), std::move(mime_type),
                                          input_audio->duration_, std::move(input_audio->title_),
                                          std::move(input_audio->performer_), false);
 
-      content = make_unique<MessageAudio>(file_id, strip_empty_characters(input_audio->caption_, MAX_CAPTION_LENGTH));
+      content = make_unique<MessageAudio>(file_id, std::move(caption));
       break;
     }
     case td_api::inputMessageDocument::ID: {
       auto input_document = static_cast<td_api::inputMessageDocument *>(input_message_content.get());
 
-      if (!clean_input_string(input_document->caption_)) {
-        return Status::Error(400, "Document caption must be encoded in UTF-8");
-      }
+      TRY_RESULT(caption, process_input_caption(dialog_id, std::move(input_document->caption_), is_bot));
 
       td_->documents_manager_->create_document(file_id, thumbnail, std::move(file_name), std::move(mime_type), false);
 
-      content =
-          make_unique<MessageDocument>(file_id, strip_empty_characters(input_document->caption_, MAX_CAPTION_LENGTH));
+      content = make_unique<MessageDocument>(file_id, std::move(caption));
       break;
     }
     case td_api::inputMessagePhoto::ID: {
       auto input_photo = static_cast<td_api::inputMessagePhoto *>(input_message_content.get());
 
-      if (!clean_input_string(input_photo->caption_)) {
-        return Status::Error(400, "Photo caption must be encoded in UTF-8");
-      }
+      TRY_RESULT(caption, process_input_caption(dialog_id, std::move(input_photo->caption_), is_bot));
       if (input_photo->width_ < 0 || input_photo->width_ > 10000) {
         return Status::Error(400, "Wrong photo width");
       }
@@ -15300,7 +15225,7 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
       message_photo->photo.has_stickers = !sticker_file_ids.empty();
       message_photo->photo.sticker_file_ids = std::move(sticker_file_ids);
 
-      message_photo->caption = strip_empty_characters(input_photo->caption_, MAX_CAPTION_LENGTH);
+      message_photo->caption = std::move(caption);
 
       content = std::move(message_photo);
       break;
@@ -15316,9 +15241,7 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
     case td_api::inputMessageVideo::ID: {
       auto input_video = static_cast<td_api::inputMessageVideo *>(input_message_content.get());
 
-      if (!clean_input_string(input_video->caption_)) {
-        return Status::Error(400, "Video caption must be encoded in UTF-8");
-      }
+      TRY_RESULT(caption, process_input_caption(dialog_id, std::move(input_video->caption_), is_bot));
       ttl = input_video->ttl_;
 
       bool has_stickers = !sticker_file_ids.empty();
@@ -15326,7 +15249,7 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
                                          std::move(file_name), std::move(mime_type), input_video->duration_,
                                          get_dimensions(input_video->width_, input_video->height_), false);
 
-      content = make_unique<MessageVideo>(file_id, strip_empty_characters(input_video->caption_, MAX_CAPTION_LENGTH));
+      content = make_unique<MessageVideo>(file_id, std::move(caption));
       break;
     }
     case td_api::inputMessageVideoNote::ID: {
@@ -15346,15 +15269,12 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
     case td_api::inputMessageVoiceNote::ID: {
       auto input_voice_note = static_cast<td_api::inputMessageVoiceNote *>(input_message_content.get());
 
-      if (!clean_input_string(input_voice_note->caption_)) {
-        return Status::Error(400, "Voice note caption must be encoded in UTF-8");
-      }
+      TRY_RESULT(caption, process_input_caption(dialog_id, std::move(input_voice_note->caption_), is_bot));
 
       td_->voice_notes_manager_->create_voice_note(file_id, std::move(mime_type), input_voice_note->duration_,
                                                    std::move(input_voice_note->waveform_), false);
 
-      content = make_unique<MessageVoiceNote>(
-          file_id, strip_empty_characters(input_voice_note->caption_, MAX_CAPTION_LENGTH), false);
+      content = make_unique<MessageVoiceNote>(file_id, std::move(caption), false);
       break;
     }
     case td_api::inputMessageLocation::ID: {
@@ -15387,7 +15307,7 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
       break;
     }
     case td_api::inputMessageInvoice::ID: {
-      if (!td_->auth_manager_->is_bot()) {
+      if (!is_bot) {
         return Status::Error(400, "Invoices can be sent only by bots");
       }
 
@@ -15605,15 +15525,16 @@ void MessagesManager::do_send_message(DialogId dialog_id, Message *m, vector<int
     if (is_secret) {
       auto layer = td_->contacts_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
       send_closure(td_->create_net_actor<SendSecretMessageActor>(), &SendSecretMessageActor::send, dialog_id,
-                   m->reply_to_random_id, m->ttl, message_text->text,
+                   m->reply_to_random_id, m->ttl, message_text->text.text,
                    get_secret_input_media(content, nullptr, BufferSlice(), layer),
-                   get_input_secret_message_entities(message_text->entities), m->via_bot_user_id, m->media_album_id,
-                   random_id);
+                   get_input_secret_message_entities(message_text->text.entities), m->via_bot_user_id,
+                   m->media_album_id, random_id);
     } else {
       send_closure(td_->create_net_actor<SendMessageActor>(), &SendMessageActor::send, get_message_flags(m), dialog_id,
                    m->reply_to_message_id, get_input_reply_markup(m->reply_markup),
-                   get_input_message_entities(td_->contacts_manager_.get(), message_text->entities), message_text->text,
-                   random_id, &m->send_query_ref, get_sequence_dispatcher_id(dialog_id, content_type));
+                   get_input_message_entities(td_->contacts_manager_.get(), message_text->text.entities),
+                   message_text->text.text, random_id, &m->send_query_ref,
+                   get_sequence_dispatcher_id(dialog_id, content_type));
     }
     return;
   }
@@ -15669,11 +15590,15 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, Message *m,
           auto m = result.move_as_ok();
           CHECK(m != nullptr);
           CHECK(input_media != nullptr);
+
+          auto caption = get_message_content_caption(m->content.get());
+
           LOG(INFO) << "Send media from " << m->message_id << " in " << dialog_id << " in reply to "
                     << m->reply_to_message_id;
           int64 random_id = begin_send_message(dialog_id, m);
           send_closure(td_->create_net_actor<SendMediaActor>(), &SendMediaActor::send, file_id, thumbnail_file_id,
                        get_message_flags(m), dialog_id, m->reply_to_message_id, get_input_reply_markup(m->reply_markup),
+                       get_input_message_entities(td_->contacts_manager_.get(), caption.entities), caption.text,
                        std::move(input_media), random_id, &m->send_query_ref,
                        get_sequence_dispatcher_id(dialog_id, m->content->get_id()));
         }));
@@ -15766,9 +15691,8 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
     return;  // the message should be deleted soon
   }
 
-  // TODO use get_message_content_caption()
-  auto content = get_message_content(string(), std::move(media), Auto(), dialog_id, false, UserId(), nullptr,
-                                     m->forward_info ? m->forward_info->date : m->date);
+  auto content = get_message_content(get_message_content_caption(m->content.get()), std::move(media), dialog_id, false,
+                                     UserId(), nullptr);
 
   update_message_content(dialog_id, m, m->content, std::move(content), true);
 
@@ -15891,7 +15815,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
   auto default_status = can_send_message(dialog_id);
   bool success = default_status.is_ok();
   vector<int64> random_ids;
-  vector<tl_object_ptr<telegram_api::InputMedia>> input_media;
+  vector<tl_object_ptr<telegram_api::inputSingleMedia>> input_single_media;
   MessageId reply_to_message_id;
   int32 flags = 0;
   for (size_t i = 0; i < request.message_ids.size(); i++) {
@@ -15899,7 +15823,6 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     if (m == nullptr) {
       // skip deleted messages
       random_ids.push_back(0);
-      input_media.push_back(nullptr);
       continue;
     }
 
@@ -15907,7 +15830,16 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     flags = get_message_flags(m);
 
     random_ids.push_back(begin_send_message(dialog_id, m));
-    input_media.push_back(get_input_media(m->content.get(), nullptr, nullptr, m->ttl));
+    auto caption = get_message_content_caption(m->content.get());
+    auto input_media = get_input_media(m->content.get(), nullptr, nullptr, m->ttl);
+    auto entities = get_input_message_entities(td_->contacts_manager_.get(), caption.entities);
+    int32 input_single_media_flags = 0;
+    if (!entities.empty()) {
+      input_single_media_flags |= telegram_api::inputSingleMedia::ENTITIES_MASK;
+    }
+
+    input_single_media.push_back(make_tl_object<telegram_api::inputSingleMedia>(
+        std::move(input_media), input_single_media_flags, random_ids.back(), caption.text, std::move(entities)));
     if (request.results[i].is_error()) {
       success = false;
     }
@@ -15930,15 +15862,6 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
   pending_message_group_sends_.erase(it);
 
   LOG(INFO) << "Begin to send media group " << media_album_id << " to " << dialog_id;
-
-  vector<tl_object_ptr<telegram_api::inputSingleMedia>> input_single_media;
-  for (size_t i = 0; i < random_ids.size(); i++) {
-    if (random_ids[i] != 0) {
-      CHECK(input_media[i] != nullptr);
-      input_single_media.push_back(
-          make_tl_object<telegram_api::inputSingleMedia>(std::move(input_media[i]), random_ids[i]));
-    }
-  }
 
   if (input_single_media.empty()) {
     LOG(INFO) << "Media group " << media_album_id << " from " << dialog_id << " is empty";
@@ -16078,8 +16001,8 @@ Result<MessageId> MessagesManager::send_bot_start_message(UserId bot_user_id, Di
   Message *m = get_message_to_send(
       d, MessageId(), false, false,
       make_unique<MessageText>(
-          text,
-          vector<MessageEntity>{MessageEntity(MessageEntity::Type::BotCommand, 0, narrow_cast<int32>(text.size()))},
+          FormattedText{text, vector<MessageEntity>{MessageEntity(MessageEntity::Type::BotCommand, 0,
+                                                                  narrow_cast<int32>(text.size()))}},
           WebPageId()),
       &need_update_dialog_pos);
 
@@ -16488,8 +16411,8 @@ void MessagesManager::edit_message_text(FullMessageId full_message_id,
   }
 
   send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, flags, dialog_id,
-               message_id, input_message_text.text,
-               get_input_message_entities(td_->contacts_manager_.get(), input_message_text.entities), nullptr,
+               message_id, input_message_text.text.text,
+               get_input_message_entities(td_->contacts_manager_.get(), input_message_text.text.entities), nullptr,
                std::move(input_reply_markup), get_sequence_dispatcher_id(dialog_id, -1));
 }
 
@@ -16546,9 +16469,11 @@ void MessagesManager::edit_message_live_location(FullMessageId full_message_id,
 }
 
 void MessagesManager::edit_message_caption(FullMessageId full_message_id,
-                                           tl_object_ptr<td_api::ReplyMarkup> &&reply_markup, const string &caption,
+                                           tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
+                                           tl_object_ptr<td_api::formattedText> &&input_caption,
                                            Promise<Unit> &&promise) {
   LOG(INFO) << "Begin to edit caption of " << full_message_id;
+
   auto dialog_id = full_message_id.get_dialog_id();
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
@@ -16614,6 +16539,12 @@ void MessagesManager::edit_message_caption(FullMessageId full_message_id,
       UNREACHABLE();
   }
 
+  auto r_caption = process_input_caption(dialog_id, std::move(input_caption), td_->auth_manager_->is_bot());
+  if (r_caption.is_error()) {
+    return promise.set_error(r_caption.move_as_error());
+  }
+  auto caption = r_caption.move_as_ok();
+
   auto r_new_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false,
                                              !is_broadcast_channel(dialog_id));
   if (r_new_reply_markup.is_error()) {
@@ -16622,9 +16553,8 @@ void MessagesManager::edit_message_caption(FullMessageId full_message_id,
   auto input_reply_markup = get_input_reply_markup(r_new_reply_markup.ok());
 
   send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 1 << 11, dialog_id,
-               message_id, strip_empty_characters(caption, MAX_CAPTION_LENGTH),
-               vector<tl_object_ptr<telegram_api::MessageEntity>>(), nullptr, std::move(input_reply_markup),
-               get_sequence_dispatcher_id(dialog_id, -1));
+               message_id, caption.text, get_input_message_entities(td_->contacts_manager_.get(), caption.entities),
+               nullptr, std::move(input_reply_markup), get_sequence_dispatcher_id(dialog_id, -1));
 }
 
 void MessagesManager::edit_message_reply_markup(FullMessageId full_message_id,
@@ -16704,8 +16634,8 @@ void MessagesManager::edit_inline_message_text(const string &inline_message_id,
     flags |= SEND_MESSAGE_FLAG_DISABLE_WEB_PAGE_PREVIEW;
   }
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
-      ->send(flags, std::move(input_bot_inline_message_id), input_message_text.text,
-             get_input_message_entities(td_->contacts_manager_.get(), input_message_text.entities), nullptr,
+      ->send(flags, std::move(input_bot_inline_message_id), input_message_text.text.text,
+             get_input_message_entities(td_->contacts_manager_.get(), input_message_text.text.entities), nullptr,
              get_input_reply_markup(r_new_reply_markup.ok()));
 }
 
@@ -16744,10 +16674,17 @@ void MessagesManager::edit_inline_message_live_location(const string &inline_mes
 
 void MessagesManager::edit_inline_message_caption(const string &inline_message_id,
                                                   tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
-                                                  const string &caption, Promise<Unit> &&promise) {
+                                                  tl_object_ptr<td_api::formattedText> &&input_caption,
+                                                  Promise<Unit> &&promise) {
   if (!td_->auth_manager_->is_bot()) {
     return promise.set_error(Status::Error(3, "Method is available only for bots"));
   }
+
+  auto r_caption = process_input_caption(DialogId(), std::move(input_caption), td_->auth_manager_->is_bot());
+  if (r_caption.is_error()) {
+    return promise.set_error(r_caption.move_as_error());
+  }
+  auto caption = r_caption.move_as_ok();
 
   auto r_new_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false, true);
   if (r_new_reply_markup.is_error()) {
@@ -16760,8 +16697,8 @@ void MessagesManager::edit_inline_message_caption(const string &inline_message_i
   }
 
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
-      ->send(1 << 11, std::move(input_bot_inline_message_id), strip_empty_characters(caption, MAX_CAPTION_LENGTH),
-             vector<tl_object_ptr<telegram_api::MessageEntity>>(), nullptr,
+      ->send(1 << 11, std::move(input_bot_inline_message_id), caption.text,
+             get_input_message_entities(td_->contacts_manager_.get(), caption.entities), nullptr,
              get_input_reply_markup(r_new_reply_markup.ok()));
 }
 
@@ -19733,15 +19670,15 @@ NotificationSettings MessagesManager::get_notification_settings(
 unique_ptr<MessageContent> MessagesManager::get_secret_message_document(
     tl_object_ptr<telegram_api::encryptedFile> file,
     tl_object_ptr<secret_api::decryptedMessageMediaDocument> &&document,
-    vector<tl_object_ptr<telegram_api::DocumentAttribute>> &&attributes, DialogId owner_dialog_id, string &&caption,
-    bool is_opened) const {
+    vector<tl_object_ptr<telegram_api::DocumentAttribute>> &&attributes, DialogId owner_dialog_id,
+    FormattedText &&caption, bool is_opened) const {
   return get_message_document(td_->documents_manager_->on_get_document(
                                   {std::move(file), std::move(document), std::move(attributes)}, owner_dialog_id),
                               std::move(caption), is_opened);
 }
 
 unique_ptr<MessageContent> MessagesManager::get_message_document(tl_object_ptr<telegram_api::document> &&document,
-                                                                 DialogId owner_dialog_id, string &&caption,
+                                                                 DialogId owner_dialog_id, FormattedText &&caption,
                                                                  bool is_opened,
                                                                  MultiPromiseActor *load_data_multipromise_ptr) const {
   return get_message_document(
@@ -19750,7 +19687,8 @@ unique_ptr<MessageContent> MessagesManager::get_message_document(tl_object_ptr<t
 }
 
 unique_ptr<MessageContent> MessagesManager::get_message_document(
-    std::pair<DocumentsManager::DocumentType, FileId> &&parsed_document, string &&caption, bool is_opened) const {
+    std::pair<DocumentsManager::DocumentType, FileId> &&parsed_document, FormattedText &&caption,
+    bool is_opened) const {
   auto document_type = parsed_document.first;
   auto file_id = parsed_document.second;
   if (document_type != DocumentsManager::DocumentType::Unknown) {
@@ -19780,7 +19718,7 @@ unique_ptr<MessageContent> MessagesManager::get_message_document(
 }
 
 unique_ptr<MessagePhoto> MessagesManager::get_message_photo(tl_object_ptr<telegram_api::photo> &&photo,
-                                                            DialogId owner_dialog_id, string &&caption) const {
+                                                            DialogId owner_dialog_id, FormattedText &&caption) const {
   auto m = make_unique<MessagePhoto>();
 
   m->photo = get_photo(td_->file_manager_.get(), std::move(photo), owner_dialog_id);
@@ -19789,14 +19727,36 @@ unique_ptr<MessagePhoto> MessagesManager::get_message_photo(tl_object_ptr<telegr
   return m;
 }
 
-string MessagesManager::get_media_caption(const string &message_text, string &&caption) {
+FormattedText MessagesManager::get_secret_media_caption(string &&message_text, string &&message_caption) {
+  FormattedText caption;
   if (message_text.empty()) {
-    return std::move(caption);
+    caption.text = std::move(message_caption);
+  } else if (message_caption.empty()) {
+    caption.text = std::move(message_text);
+  } else {
+    caption.text = message_text + "\n\n" + message_caption;
   }
-  if (caption.empty()) {
-    return message_text;
+
+  caption.entities = find_entities(caption.text, false);
+  return caption;
+}
+
+FormattedText MessagesManager::get_message_text(string message_text,
+                                                vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,
+                                                int32 send_date) const {
+  auto entities = get_message_entities(td_->contacts_manager_.get(), std::move(server_entities));
+  auto status = fix_text_message(message_text, entities, true, true, true, false);
+  if (status.is_error()) {
+    if (send_date == 0 || send_date > 1497000000) {  // approximate fix date
+      LOG(ERROR) << "Receive error " << status << " while parsing message content \"" << message_text << "\" sent at "
+                 << send_date << " with entities " << format::as_array(entities);
+    }
+    if (!clean_input_string(message_text)) {
+      message_text.clear();
+    }
+    entities.clear();
   }
-  return message_text + "\n\n" + caption;
+  return FormattedText{std::move(message_text), std::move(entities)};
 }
 
 template <class ToT, class FromT>
@@ -20036,7 +19996,7 @@ unique_ptr<MessageContent> MessagesManager::get_secret_message_content(
     vector<tl_object_ptr<secret_api::MessageEntity>> &&secret_entities, DialogId owner_dialog_id,
     MultiPromiseActor &load_data_multipromise) const {
   auto entities = get_message_entities(std::move(secret_entities));
-  auto status = fix_text_message(message_text, entities, nullptr, true, false, true, false);
+  auto status = fix_text_message(message_text, entities, true, false, true, false);
   if (status.is_error()) {
     LOG(WARNING) << "Receive error " << status << " while parsing secret message \"" << message_text
                  << "\" with entities " << format::as_array(entities);
@@ -20047,7 +20007,7 @@ unique_ptr<MessageContent> MessagesManager::get_secret_message_content(
   }
 
   if (media == nullptr) {
-    return make_unique<MessageText>(std::move(message_text), std::move(entities), WebPageId());
+    return make_unique<MessageText>(FormattedText{std::move(message_text), std::move(entities)}, WebPageId());
   }
 
   int32 constructor_id = media->get_id();
@@ -20055,7 +20015,7 @@ unique_ptr<MessageContent> MessagesManager::get_secret_message_content(
     if (constructor_id != secret_api::decryptedMessageMediaEmpty::ID) {
       LOG(INFO) << "Receive non-empty message text and media";
     } else {
-      return make_unique<MessageText>(std::move(message_text), std::move(entities), WebPageId());
+      return make_unique<MessageText>(FormattedText{std::move(message_text), std::move(entities)}, WebPageId());
     }
   }
 
@@ -20146,7 +20106,7 @@ unique_ptr<MessageContent> MessagesManager::get_secret_message_content(
       auto url = r_http_url.ok().get_url();
 
       auto web_page_id = td_->web_pages_manager_->get_web_page_by_url(url, load_data_multipromise.get_promise());
-      auto result = make_unique<MessageText>(std::move(message_text), std::move(entities), web_page_id);
+      auto result = make_unique<MessageText>(FormattedText{std::move(message_text), std::move(entities)}, web_page_id);
       if (!result->web_page_id.is_valid()) {
         load_data_multipromise.add_promise(
             PromiseCreator::lambda([td = td_, url, &web_page_id = result->web_page_id](Result<Unit> result) {
@@ -20160,7 +20120,8 @@ unique_ptr<MessageContent> MessagesManager::get_secret_message_content(
     case secret_api::decryptedMessageMediaExternalDocument::ID: {
       auto external_document = move_tl_object_as<secret_api::decryptedMessageMediaExternalDocument>(media);
       auto document = secret_to_telegram_document(*external_document);
-      return get_message_document(std::move(document), owner_dialog_id, std::move(message_text), false,
+      return get_message_document(std::move(document), owner_dialog_id,
+                                  FormattedText{std::move(message_text), std::move(entities)}, false,
                                   &load_data_multipromise);
     }
   }
@@ -20169,7 +20130,7 @@ unique_ptr<MessageContent> MessagesManager::get_secret_message_content(
     is_media_empty = true;
   }
   if (is_media_empty) {
-    return make_unique<MessageText>(std::move(message_text), std::move(entities), WebPageId());
+    return make_unique<MessageText>(FormattedText{std::move(message_text), std::move(entities)}, WebPageId());
   }
   switch (constructor_id) {
     case secret_api::decryptedMessageMediaPhoto::ID: {
@@ -20177,10 +20138,9 @@ unique_ptr<MessageContent> MessagesManager::get_secret_message_content(
       if (!clean_input_string(message_photo->caption_)) {
         message_photo->caption_.clear();
       }
-      string caption = get_media_caption(message_text, std::move(message_photo->caption_));
       return make_unique<MessagePhoto>(
           get_photo(td_->file_manager_.get(), std::move(file), std::move(message_photo), owner_dialog_id),
-          std::move(caption));
+          get_secret_media_caption(std::move(message_text), std::move(message_photo->caption_)));
     }
     case secret_api::decryptedMessageMediaDocument::ID: {
       auto message_document = move_tl_object_as<secret_api::decryptedMessageMediaDocument>(media);
@@ -20190,11 +20150,11 @@ unique_ptr<MessageContent> MessagesManager::get_secret_message_content(
       if (!clean_input_string(message_document->mime_type_)) {
         message_document->mime_type_.clear();
       }
-      string caption = get_media_caption(message_text, std::move(message_document->caption_));
       auto attributes = secret_to_telegram(message_document->attributes_);
       message_document->attributes_.clear();
-      return get_secret_message_document(std::move(file), std::move(message_document), std::move(attributes),
-                                         owner_dialog_id, std::move(caption), false);
+      return get_secret_message_document(
+          std::move(file), std::move(message_document), std::move(attributes), owner_dialog_id,
+          get_secret_media_caption(std::move(message_text), std::move(message_document->caption_)), false);
     }
     default:
       LOG(ERROR) << "Unsupported: " << to_string(media);
@@ -20202,43 +20162,28 @@ unique_ptr<MessageContent> MessagesManager::get_secret_message_content(
   }
 }
 
-unique_ptr<MessageContent> MessagesManager::get_message_content(
-    string message_text, tl_object_ptr<telegram_api::MessageMedia> &&media,
-    vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities, DialogId owner_dialog_id,
-    bool is_content_read, UserId via_bot_user_id, int32 *ttl, int32 send_date) const {
-  auto entities = get_message_entities(td_->contacts_manager_.get(), std::move(server_entities));
-  auto status = fix_text_message(message_text, entities, nullptr, true, true, true, false);
-  if (status.is_error()) {
-    if (send_date > 1497000000) {  // approximate fix date
-      LOG(ERROR) << "Receive error " << status << " while parsing message content \"" << message_text << "\" sent at "
-                 << send_date << " with entities " << format::as_array(entities);
-    }
-    if (!clean_input_string(message_text)) {
-      message_text.clear();
-    }
-    entities.clear();
-  }
-
+unique_ptr<MessageContent> MessagesManager::get_message_content(FormattedText message,
+                                                                tl_object_ptr<telegram_api::MessageMedia> &&media,
+                                                                DialogId owner_dialog_id, bool is_content_read,
+                                                                UserId via_bot_user_id, int32 *ttl) const {
   if (media == nullptr) {
-    return make_unique<MessageText>(std::move(message_text), std::move(entities), WebPageId());
+    return make_unique<MessageText>(std::move(message), WebPageId());
   }
 
   int32 constructor_id = media->get_id();
-  if (message_text.size()) {
+  if (message.text.size()) {
     if (constructor_id != telegram_api::messageMediaEmpty::ID) {
       LOG(INFO) << "Receive non-empty message text and media for message from " << owner_dialog_id;
     } else {
-      return make_unique<MessageText>(std::move(message_text), std::move(entities), WebPageId());
+      return make_unique<MessageText>(std::move(message), WebPageId());
     }
   }
-  string caption;
   switch (constructor_id) {
     case telegram_api::messageMediaEmpty::ID:
       LOG(ERROR) << "Receive empty message text and media for message from " << owner_dialog_id;
-      return make_unique<MessageText>(std::move(message_text), std::move(entities), WebPageId());
+      return make_unique<MessageText>(std::move(message), WebPageId());
     case telegram_api::messageMediaPhoto::ID: {
       auto message_photo = move_tl_object_as<telegram_api::messageMediaPhoto>(media);
-      caption = get_media_caption(message_text, std::move(message_photo->caption_));
       if ((message_photo->flags_ & telegram_api::messageMediaPhoto::PHOTO_MASK) == 0) {
         if ((message_photo->flags_ & telegram_api::messageMediaPhoto::TTL_SECONDS_MASK) == 0) {
           LOG(ERROR) << "Receive messageMediaPhoto without photo and TTL: " << oneline(to_string(message_photo));
@@ -20258,7 +20203,7 @@ unique_ptr<MessageContent> MessagesManager::get_message_content(
       if (ttl != nullptr && (message_photo->flags_ & telegram_api::messageMediaPhoto::TTL_SECONDS_MASK) != 0) {
         *ttl = message_photo->ttl_seconds_;
       }
-      return get_message_photo(move_tl_object_as<telegram_api::photo>(photo_ptr), owner_dialog_id, std::move(caption));
+      return get_message_photo(move_tl_object_as<telegram_api::photo>(photo_ptr), owner_dialog_id, std::move(message));
     }
     case telegram_api::messageMediaGeo::ID: {
       auto message_geo_point = move_tl_object_as<telegram_api::messageMediaGeo>(media);
@@ -20303,7 +20248,6 @@ unique_ptr<MessageContent> MessagesManager::get_message_content(
     }
     case telegram_api::messageMediaDocument::ID: {
       auto message_document = move_tl_object_as<telegram_api::messageMediaDocument>(media);
-      caption = get_media_caption(message_text, std::move(message_document->caption_));
       if ((message_document->flags_ & telegram_api::messageMediaDocument::DOCUMENT_MASK) == 0) {
         if ((message_document->flags_ & telegram_api::messageMediaDocument::TTL_SECONDS_MASK) == 0) {
           LOG(ERROR) << "Receive messageMediaDocument without document and TTL: "
@@ -20325,7 +20269,7 @@ unique_ptr<MessageContent> MessagesManager::get_message_content(
         *ttl = message_document->ttl_seconds_;
       }
       return get_message_document(move_tl_object_as<telegram_api::document>(document_ptr), owner_dialog_id,
-                                  std::move(caption), is_content_read, nullptr);
+                                  std::move(message), is_content_read, nullptr);
     }
     case telegram_api::messageMediaGame::ID: {
       auto message_game = move_tl_object_as<telegram_api::messageMediaGame>(media);
@@ -20336,7 +20280,7 @@ unique_ptr<MessageContent> MessagesManager::get_message_content(
       }
 
       m->game.set_bot_user_id(via_bot_user_id);
-      m->game.set_message_text(std::move(message_text), std::move(entities));
+      m->game.set_message_text(std::move(message));
 
       return std::move(m);
     }
@@ -20363,7 +20307,7 @@ unique_ptr<MessageContent> MessagesManager::get_message_content(
     case telegram_api::messageMediaWebPage::ID: {
       auto media_web_page = move_tl_object_as<telegram_api::messageMediaWebPage>(media);
       auto web_page_id = td_->web_pages_manager_->on_get_web_page(std::move(media_web_page->webpage_), owner_dialog_id);
-      return make_unique<MessageText>(std::move(message_text), std::move(entities), web_page_id);
+      return make_unique<MessageText>(std::move(message), web_page_id);
     }
 
     case telegram_api::messageMediaUnsupported::ID: {
@@ -20374,11 +20318,7 @@ unique_ptr<MessageContent> MessagesManager::get_message_content(
   }
 
   // explicit empty media message
-  if (!caption.empty()) {
-    // caption already includes message text
-    return make_unique<MessageText>(std::move(caption), std::move(entities), WebPageId());
-  }
-  return make_unique<MessageText>(std::move(message_text), std::move(entities), WebPageId());
+  return make_unique<MessageText>(std::move(message), WebPageId());
 }
 
 unique_ptr<MessageContent> MessagesManager::dup_message_content(DialogId dialog_id, const MessageContent *content,
@@ -20724,7 +20664,7 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
       UNREACHABLE();
   }
   // explicit empty or wrong action
-  return make_unique<MessageText>("", vector<MessageEntity>(), WebPageId());
+  return make_unique<MessageText>(FormattedText{}, WebPageId());
 }
 
 int32 MessagesManager::get_random_y(MessageId message_id) {
@@ -21770,14 +21710,15 @@ bool MessagesManager::need_message_text_changed_warning(const Message *old_messa
     // original message may be edited
     return false;
   }
-  if (new_content->text == "Unsupported characters" ||
-      new_content->text == "This channel is blocked because it was used to spread pornographic content.") {
+  if (new_content->text.text == "Unsupported characters" ||
+      new_content->text.text == "This channel is blocked because it was used to spread pornographic content.") {
     // message contained unsupported characters, text is replaced
     return false;
   }
-  if (old_message->message_id.is_yet_unsent() && !old_content->entities.empty() &&
-      old_content->entities[0].offset == 0 && (new_content->entities.empty() || new_content->entities[0].offset != 0) &&
-      old_content->text != new_content->text && ends_with(old_content->text, new_content->text)) {
+  if (old_message->message_id.is_yet_unsent() && !old_content->text.entities.empty() &&
+      old_content->text.entities[0].offset == 0 &&
+      (new_content->text.entities.empty() || new_content->text.entities[0].offset != 0) &&
+      old_content->text.text != new_content->text.text && ends_with(old_content->text.text, new_content->text.text)) {
     // server has deleted first entity and ltrim the message
     return false;
   }
@@ -21847,17 +21788,17 @@ bool MessagesManager::update_message_content(DialogId dialog_id, const Message *
       case MessageText::ID: {
         auto old_ = static_cast<const MessageText *>(old_content.get());
         auto new_ = static_cast<const MessageText *>(new_content.get());
-        if (old_->text != new_->text) {
+        if (old_->text.text != new_->text.text) {
           if (need_message_text_changed_warning(old_message, old_, new_)) {
             LOG(ERROR) << "Message text has changed for " << to_string(get_message_object(dialog_id, old_message))
                        << ". New content is " << to_string(get_message_content_object(new_content.get()));
           }
           need_update = true;
         }
-        if (old_->entities != new_->entities) {
+        if (old_->text.entities != new_->text.entities) {
           const int32 MAX_CUSTOM_ENTITIES_COUNT = 100;  // server-size limit
           if (need_message_text_changed_warning(old_message, old_, new_) &&
-              old_->entities.size() <= MAX_CUSTOM_ENTITIES_COUNT) {
+              old_->text.entities.size() <= MAX_CUSTOM_ENTITIES_COUNT) {
             LOG(WARNING) << "Entities has changed for " << to_string(get_message_object(dialog_id, old_message))
                          << ". New content is " << to_string(get_message_content_object(new_content.get()));
           }
@@ -23347,10 +23288,10 @@ void MessagesManager::update_used_hashtags(DialogId dialog_id, const Message *m)
     return;
   }
   auto message_text = static_cast<const MessageText *>(m->content.get());
-  const unsigned char *ptr = Slice(message_text->text).ubegin();
-  const unsigned char *end = Slice(message_text->text).uend();
+  const unsigned char *ptr = Slice(message_text->text.text).ubegin();
+  const unsigned char *end = Slice(message_text->text.text).uend();
   int32 utf16_pos = 0;
-  for (auto &entity : message_text->entities) {
+  for (auto &entity : message_text->text.entities) {
     if (entity.type != MessageEntity::Type::Hashtag) {
       continue;
     }

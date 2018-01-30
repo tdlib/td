@@ -397,7 +397,7 @@ bool photo_has_input_media(FileManager *file_manager, const Photo &photo, bool i
 
 tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(FileManager *file_manager, const Photo &photo,
                                                               tl_object_ptr<telegram_api::InputFile> input_file,
-                                                              const string &caption, int32 ttl) {
+                                                              int32 ttl) {
   if (!photo.photos.empty()) {
     auto file_id = photo.photos.back().file_id;
     auto file_view = file_manager->get_file_view(file_id);
@@ -409,17 +409,15 @@ tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(FileManager *file_
       if (ttl != 0) {
         flags |= telegram_api::inputMediaPhoto::TTL_SECONDS_MASK;
       }
-      return make_tl_object<telegram_api::inputMediaPhoto>(flags, file_view.remote_location().as_input_photo(), caption,
-                                                           ttl);
+      return make_tl_object<telegram_api::inputMediaPhoto>(flags, file_view.remote_location().as_input_photo(), ttl);
     }
     if (file_view.has_url()) {
       int32 flags = 0;
       if (ttl != 0) {
         flags |= telegram_api::inputMediaPhotoExternal::TTL_SECONDS_MASK;
       }
-      LOG(INFO) << "Create inputMediaPhotoExternal with a URL " << file_view.url() << ", caption " << caption
-                << " and ttl " << ttl;
-      return make_tl_object<telegram_api::inputMediaPhotoExternal>(flags, file_view.url(), caption, ttl);
+      LOG(INFO) << "Create inputMediaPhotoExternal with a URL " << file_view.url() << " and ttl " << ttl;
+      return make_tl_object<telegram_api::inputMediaPhotoExternal>(flags, file_view.url(), ttl);
     }
     CHECK(!file_view.has_remote_location());
   }
@@ -434,7 +432,7 @@ tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(FileManager *file_
       flags |= telegram_api::inputMediaUploadedPhoto::TTL_SECONDS_MASK;
     }
 
-    return make_tl_object<telegram_api::inputMediaUploadedPhoto>(flags, std::move(input_file), caption,
+    return make_tl_object<telegram_api::inputMediaUploadedPhoto>(flags, std::move(input_file),
                                                                  std::move(added_stickers), ttl);
   }
   return nullptr;

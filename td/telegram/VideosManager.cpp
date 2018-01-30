@@ -215,7 +215,7 @@ SecretInputMedia VideosManager::get_secret_input_media(FileId video_file_id,
 
 tl_object_ptr<telegram_api::InputMedia> VideosManager::get_input_media(
     FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file,
-    tl_object_ptr<telegram_api::InputFile> input_thumbnail, const string &caption, int32 ttl) const {
+    tl_object_ptr<telegram_api::InputFile> input_thumbnail, int32 ttl) const {
   if (!file_id.is_valid()) {
     LOG_IF(ERROR, ttl == 0) << "Video has invalid file_id";
     return nullptr;
@@ -230,14 +230,14 @@ tl_object_ptr<telegram_api::InputMedia> VideosManager::get_input_media(
       flags |= telegram_api::inputMediaDocument::TTL_SECONDS_MASK;
     }
     return make_tl_object<telegram_api::inputMediaDocument>(flags, file_view.remote_location().as_input_document(),
-                                                            caption, ttl);
+                                                            ttl);
   }
   if (file_view.has_url()) {
     int32 flags = 0;
     if (ttl != 0) {
       flags |= telegram_api::inputMediaDocumentExternal::TTL_SECONDS_MASK;
     }
-    return make_tl_object<telegram_api::inputMediaDocumentExternal>(flags, file_view.url(), caption, ttl);
+    return make_tl_object<telegram_api::inputMediaDocumentExternal>(flags, file_view.url(), ttl);
   }
   CHECK(!file_view.has_remote_location());
 
@@ -269,7 +269,7 @@ tl_object_ptr<telegram_api::InputMedia> VideosManager::get_input_media(
     }
     return make_tl_object<telegram_api::inputMediaUploadedDocument>(
         flags, false /*ignored*/, std::move(input_file), std::move(input_thumbnail), mime_type, std::move(attributes),
-        caption, std::move(added_stickers), ttl);
+        std::move(added_stickers), ttl);
   }
 
   return nullptr;

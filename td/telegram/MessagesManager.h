@@ -76,13 +76,11 @@ class MessageContent {
 
 class MessageText : public MessageContent {
  public:
-  string text;
-  vector<MessageEntity> entities;
+  FormattedText text;
   WebPageId web_page_id;
 
   MessageText() = default;
-  MessageText(string text, vector<MessageEntity> &&entities, WebPageId web_page_id)
-      : text(std::move(text)), entities(std::move(entities)), web_page_id(web_page_id) {
+  MessageText(FormattedText text, WebPageId web_page_id) : text(std::move(text)), web_page_id(web_page_id) {
   }
 
   static const int32 ID = 0;
@@ -95,10 +93,10 @@ class MessageAnimation : public MessageContent {
  public:
   FileId file_id;
 
-  string caption;
+  FormattedText caption;
 
   MessageAnimation() = default;
-  MessageAnimation(FileId file_id, string &&caption) : file_id(file_id), caption(std::move(caption)) {
+  MessageAnimation(FileId file_id, FormattedText &&caption) : file_id(file_id), caption(std::move(caption)) {
   }
 
   static const int32 ID = 1;
@@ -111,10 +109,10 @@ class MessageAudio : public MessageContent {
  public:
   FileId file_id;
 
-  string caption;
+  FormattedText caption;
 
   MessageAudio() = default;
-  MessageAudio(FileId file_id, string &&caption) : file_id(file_id), caption(std::move(caption)) {
+  MessageAudio(FileId file_id, FormattedText &&caption) : file_id(file_id), caption(std::move(caption)) {
   }
 
   static const int32 ID = 2;
@@ -127,10 +125,10 @@ class MessageDocument : public MessageContent {
  public:
   FileId file_id;
 
-  string caption;
+  FormattedText caption;
 
   MessageDocument() = default;
-  MessageDocument(FileId file_id, string &&caption) : file_id(file_id), caption(std::move(caption)) {
+  MessageDocument(FileId file_id, FormattedText &&caption) : file_id(file_id), caption(std::move(caption)) {
   }
 
   static const int32 ID = 3;
@@ -143,10 +141,10 @@ class MessagePhoto : public MessageContent {
  public:
   Photo photo;
 
-  string caption;
+  FormattedText caption;
 
   MessagePhoto() = default;
-  MessagePhoto(Photo &&photo, string &&caption) : photo(std::move(photo)), caption(std::move(caption)) {
+  MessagePhoto(Photo &&photo, FormattedText &&caption) : photo(std::move(photo)), caption(std::move(caption)) {
   }
 
   static const int32 ID = 4;
@@ -173,10 +171,10 @@ class MessageVideo : public MessageContent {
  public:
   FileId file_id;
 
-  string caption;
+  FormattedText caption;
 
   MessageVideo() = default;
-  MessageVideo(FileId file_id, string &&caption) : file_id(file_id), caption(std::move(caption)) {
+  MessageVideo(FileId file_id, FormattedText &&caption) : file_id(file_id), caption(std::move(caption)) {
   }
 
   static const int32 ID = 6;
@@ -189,11 +187,11 @@ class MessageVoiceNote : public MessageContent {
  public:
   FileId file_id;
 
-  string caption;
+  FormattedText caption;
   bool is_listened;
 
   MessageVoiceNote() = default;
-  MessageVoiceNote(FileId file_id, string &&caption, bool is_listened)
+  MessageVoiceNote(FileId file_id, FormattedText &&caption, bool is_listened)
       : file_id(file_id), caption(std::move(caption)), is_listened(is_listened) {
   }
 
@@ -616,16 +614,12 @@ class MessageCustomServiceAction : public MessageContent {
 
 class InputMessageText {
  public:
-  string text;
+  FormattedText text;
   bool disable_web_page_preview = false;
   bool clear_draft = false;
-  vector<MessageEntity> entities;
   InputMessageText() = default;
-  InputMessageText(string text, bool disable_web_page_preview, bool clear_draft, vector<MessageEntity> entities)
-      : text(std::move(text))
-      , disable_web_page_preview(disable_web_page_preview)
-      , clear_draft(clear_draft)
-      , entities(std::move(entities)) {
+  InputMessageText(FormattedText text, bool disable_web_page_preview, bool clear_draft)
+      : text(std::move(text)), disable_web_page_preview(disable_web_page_preview), clear_draft(clear_draft) {
   }
 };
 
@@ -958,6 +952,9 @@ class MessagesManager : public Actor {
 
   DialogId search_public_dialog(const string &username_to_search, bool force, Promise<Unit> &&promise);
 
+  Result<FormattedText> process_input_caption(DialogId dialog_id, tl_object_ptr<td_api::formattedText> &&text,
+                                              bool is_bot) const;
+
   Result<InputMessageText> process_input_message_text(
       DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, bool is_bot,
       bool for_draft = false) const TD_WARN_UNUSED_RESULT;
@@ -974,8 +971,13 @@ class MessagesManager : public Actor {
   Result<Game> process_input_message_game(tl_object_ptr<td_api::InputMessageContent> &&input_message_content) const
       TD_WARN_UNUSED_RESULT;
 
-  static Status fix_text_message(string &text, vector<MessageEntity> &entities,
-                                 tl_object_ptr<td_api::TextParseMode> &&parse_mode, bool allow_empty,
+  bool need_skip_bot_commands(DialogId dialog_id, bool is_bot) const;
+
+  FormattedText get_message_text(string message_text,
+                                 vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,
+                                 int32 send_date) const;
+
+  static Status fix_text_message(string &text, vector<MessageEntity> &entities, bool allow_empty,
                                  bool skip_new_entities, bool skip_bot_commands, bool for_draft) TD_WARN_UNUSED_RESULT;
 
   Result<MessageId> send_message(DialogId dialog_id, MessageId reply_to_message_id, bool disable_notification,
@@ -1010,7 +1012,7 @@ class MessagesManager : public Actor {
                                   tl_object_ptr<td_api::location> &&input_location, Promise<Unit> &&promise);
 
   void edit_message_caption(FullMessageId full_message_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
-                            const string &caption, Promise<Unit> &&promise);
+                            tl_object_ptr<td_api::formattedText> &&input_caption, Promise<Unit> &&promise);
 
   void edit_message_reply_markup(FullMessageId full_message_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                  Promise<Unit> &&promise);
@@ -1024,7 +1026,7 @@ class MessagesManager : public Actor {
                                          tl_object_ptr<td_api::location> &&input_location, Promise<Unit> &&promise);
 
   void edit_inline_message_caption(const string &inline_message_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
-                                   const string &caption, Promise<Unit> &&promise);
+                                   tl_object_ptr<td_api::formattedText> &&input_caption, Promise<Unit> &&promise);
 
   void edit_inline_message_reply_markup(const string &inline_message_id,
                                         tl_object_ptr<td_api::ReplyMarkup> &&reply_markup, Promise<Unit> &&promise);
@@ -2178,25 +2180,25 @@ class MessagesManager : public Actor {
   static unique_ptr<DraftMessage> get_draft_message(ContactsManager *contacts_manager,
                                                     tl_object_ptr<telegram_api::DraftMessage> &&draft_message_ptr);
 
-  static string get_media_caption(const string &message_text, string &&caption);
+  static FormattedText get_secret_media_caption(string &&message_text, string &&message_caption);
 
   Photo get_web_document_photo(tl_object_ptr<telegram_api::webDocument> web_document, DialogId owner_dialog_id) const;
 
   unique_ptr<MessageContent> get_secret_message_document(
       tl_object_ptr<telegram_api::encryptedFile> file,
       tl_object_ptr<secret_api::decryptedMessageMediaDocument> &&document,
-      vector<tl_object_ptr<telegram_api::DocumentAttribute>> &&attributes, DialogId owner_dialog_id, string &&caption,
-      bool is_opened) const;
+      vector<tl_object_ptr<telegram_api::DocumentAttribute>> &&attributes, DialogId owner_dialog_id,
+      FormattedText &&caption, bool is_opened) const;
 
   unique_ptr<MessageContent> get_message_document(tl_object_ptr<telegram_api::document> &&document,
-                                                  DialogId owner_dialog_id, string &&caption, bool is_opened,
+                                                  DialogId owner_dialog_id, FormattedText &&caption, bool is_opened,
                                                   MultiPromiseActor *load_data_multipromise_ptr) const;
 
   unique_ptr<MessageContent> get_message_document(std::pair<DocumentsManager::DocumentType, FileId> &&parsed_document,
-                                                  string &&caption, bool is_opened) const;
+                                                  FormattedText &&caption, bool is_opened) const;
 
   unique_ptr<MessagePhoto> get_message_photo(tl_object_ptr<telegram_api::photo> &&photo, DialogId owner_dialog_id,
-                                             string &&caption) const;
+                                             FormattedText &&caption) const;
 
   unique_ptr<MessageContent> get_secret_message_content(
       string message_text, tl_object_ptr<telegram_api::encryptedFile> file,
@@ -2204,10 +2206,10 @@ class MessagesManager : public Actor {
       vector<tl_object_ptr<secret_api::MessageEntity>> &&secret_entities, DialogId owner_dialog_id,
       MultiPromiseActor &load_data_multipromise) const;
 
-  unique_ptr<MessageContent> get_message_content(string message_text, tl_object_ptr<telegram_api::MessageMedia> &&media,
-                                                 vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,
+  unique_ptr<MessageContent> get_message_content(FormattedText message_text,
+                                                 tl_object_ptr<telegram_api::MessageMedia> &&media,
                                                  DialogId owner_dialog_id, bool is_content_read, UserId via_bot_user_id,
-                                                 int32 *ttl, int32 send_date) const;
+                                                 int32 *ttl) const;
 
   unique_ptr<MessageContent> dup_message_content(DialogId dialog_id, const MessageContent *content, bool for_forward);
 
@@ -2216,7 +2218,7 @@ class MessagesManager : public Actor {
 
   tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content) const;
 
-  static string get_message_content_caption(const MessageContent *content);
+  static FormattedText get_message_content_caption(const MessageContent *content);
 
   int32 get_message_content_duration(const MessageContent *content) const;
 

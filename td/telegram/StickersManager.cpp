@@ -1319,10 +1319,10 @@ tl_object_ptr<telegram_api::InputMedia> StickersManager::get_input_media(
     return nullptr;
   }
   if (file_view.has_remote_location() && !file_view.remote_location().is_web()) {
-    return make_tl_object<telegram_api::inputMediaDocument>(0, file_view.remote_location().as_input_document(), "", 0);
+    return make_tl_object<telegram_api::inputMediaDocument>(0, file_view.remote_location().as_input_document(), 0);
   }
   if (file_view.has_url()) {
-    return make_tl_object<telegram_api::inputMediaDocumentExternal>(0, file_view.url(), "", 0);
+    return make_tl_object<telegram_api::inputMediaDocumentExternal>(0, file_view.url(), 0);
   }
   CHECK(!file_view.has_remote_location());
 
@@ -1344,7 +1344,7 @@ tl_object_ptr<telegram_api::InputMedia> StickersManager::get_input_media(
     }
     return make_tl_object<telegram_api::inputMediaUploadedDocument>(
         flags, false /*ignored*/, std::move(input_file), std::move(input_thumbnail), "image/webp",
-        std::move(attributes), "", vector<tl_object_ptr<telegram_api::InputDocument>>(), 0);
+        std::move(attributes), vector<tl_object_ptr<telegram_api::InputDocument>>(), 0);
   }
 
   return nullptr;
@@ -2832,7 +2832,7 @@ void StickersManager::create_new_sticker_set(UserId user_id, string &title, stri
 }
 
 void StickersManager::upload_sticker_file(UserId user_id, FileId file_id, Promise<Unit> &&promise) {
-  CHECK(td_->documents_manager_->get_input_media(file_id, nullptr, nullptr, "") == nullptr);
+  CHECK(td_->documents_manager_->get_input_media(file_id, nullptr, nullptr) == nullptr);
 
   auto upload_file_id = td_->documents_manager_->dup_document(td_->file_manager_->dup_file_id(file_id), file_id);
 
@@ -2886,7 +2886,7 @@ void StickersManager::do_upload_sticker_file(UserId user_id, FileId file_id,
     return promise.set_error(Status::Error(3, "Have no access to the user"));
   }
 
-  auto input_media = td_->documents_manager_->get_input_media(file_id, std::move(input_file), nullptr, "");
+  auto input_media = td_->documents_manager_->get_input_media(file_id, std::move(input_file), nullptr);
   CHECK(input_media != nullptr);
 
   td_->create_handler<UploadStickerFileQuery>(std::move(promise))

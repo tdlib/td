@@ -24,6 +24,8 @@
 
 namespace td {
 
+class ContactsManager;
+
 class MessageEntity {
   tl_object_ptr<td_api::TextEntityType> get_text_entity_type_object() const;
 
@@ -104,9 +106,39 @@ class MessageEntity {
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity &message_entity);
 
+struct FormattedText {
+  string text;
+  vector<MessageEntity> entities;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(text, storer);
+    td::store(entities, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(text, parser);
+    td::parse(entities, parser);
+  }
+};
+
+inline bool operator==(const FormattedText &lhs, const FormattedText &rhs) {
+  return lhs.text == rhs.text && lhs.entities == rhs.entities;
+}
+
+inline bool operator!=(const FormattedText &lhs, const FormattedText &rhs) {
+  return !(lhs == rhs);
+}
+
 const std::unordered_set<Slice, SliceHash> &get_valid_short_usernames();
 
+Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contacts_manager,
+                                                   const vector<tl_object_ptr<td_api::textEntity>> &input_entities);
+
 vector<tl_object_ptr<td_api::textEntity>> get_text_entities_object(const vector<MessageEntity> &entities);
+
+td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const FormattedText &text);
 
 // sorts entities, removes intersecting and empty entities
 void fix_entities(vector<MessageEntity> &entities);
@@ -126,8 +158,6 @@ string get_first_url(Slice text, const vector<MessageEntity> &entities);
 Result<vector<MessageEntity>> parse_markdown(string &text);
 
 Result<vector<MessageEntity>> parse_html(string &text);
-
-class ContactsManager;
 
 vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(const ContactsManager *contacts_manager,
                                                                               const vector<MessageEntity> &entities);

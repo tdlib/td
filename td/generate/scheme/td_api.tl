@@ -176,6 +176,12 @@ maskPosition point:MaskPoint x_shift:double y_shift:double scale:double = MaskPo
 //@description Represents a part of the text that needs to be formatted in some unusual way @offset Offset of the entity in UTF-16 code points @length Length of the entity, in UTF-16 code points @type Type of the entity
 textEntity offset:int32 length:int32 type:TextEntityType = TextEntity;
 
+//@description Contains a list of text entities @entities List of text entities
+textEntities entities:vector<textEntity> = TextEntities;
+
+//@description A text with some entities @text The text @entities Entities contained in the text
+formattedText text:string entities:vector<textEntity> = FormattedText;
+
 
 //@description Describes an animation file. The animation must be encoded in GIF or MPEG4 format @duration Duration of the animation, in seconds; as defined by the sender @width Width of the animation @height Height of the animation
 //@file_name Original name of the file; as defined by the sender @mime_type MIME type of the file, usually "image/gif" or "video/mp4" @thumbnail Animation thumbnail; may be null @animation File containing the animation
@@ -218,8 +224,8 @@ location latitude:double longitude:double = Location;
 venue location:location title:string address:string provider:string id:string = Venue;
 
 //@description Describes a game @id Game ID @short_name Game short name. To share a game use the URL https://t.me/{bot_username}?game={game_short_name} @title Game title @text Game text, usually containing scoreboards for a game
-//@text_entities Entities contained in the text @param_description Game description @photo Game photo @animation Game animation; may be null
-game id:int64 short_name:string title:string text:string text_entities:vector<textEntity> description:string photo:photo animation:animation = Game;
+//@param_description Game description @photo Game photo @animation Game animation; may be null
+game id:int64 short_name:string title:string text:formattedText description:string photo:photo animation:animation = Game;
 
 
 //@description Describes a user profile photo @id Photo identifier; 0 for an empty photo. Can be used to find a photo in a list of userProfilePhotos
@@ -527,7 +533,7 @@ chatTypeSecret secret_chat_id:int32 user_id:int32 = ChatType;
 //@unread_mention_count Number of unread messages with a mention/reply in the chat
 //@notification_settings Notification settings for this chat
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
-//@draft_message A draft of a message in the chat; may be null. parse_mode in input_message_text will always be null
+//@draft_message A draft of a message in the chat; may be null
 //@client_data Contains client-specific data associated with the chat. (For example, the chat position or local chat notification settings can be stored here.) Persistent if a message database is used
 chat id:int53 type:ChatType title:string photo:chatPhoto last_message:message order:int64 is_pinned:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:notificationSettings reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
 
@@ -791,20 +797,20 @@ paymentReceipt date:int32 payments_provider_user_id:int32 invoice:invoice order_
 
 //@class MessageContent @description Contains the content of a message
 
-//@description A text message @text Text of the message @entities Entities contained in the text @web_page A preview of the web page that's mentioned in the text; may be null
-messageText text:string entities:vector<textEntity> web_page:webPage = MessageContent;
+//@description A text message @text Text of the message @web_page A preview of the web page that's mentioned in the text; may be null
+messageText text:formattedText web_page:webPage = MessageContent;
 
 //@description An animation message (GIF-style). @animation Message content @caption Animation caption
-messageAnimation animation:animation caption:string = MessageContent;
+messageAnimation animation:animation caption:formattedText = MessageContent;
 
 //@description An audio message @audio Message content @caption Audio caption
-messageAudio audio:audio caption:string = MessageContent;
+messageAudio audio:audio caption:formattedText = MessageContent;
 
 //@description A document message (general file) @document Message content @caption Document caption
-messageDocument document:document caption:string = MessageContent;
+messageDocument document:document caption:formattedText = MessageContent;
 
 //@description A photo message @photo Message content @caption Photo caption
-messagePhoto photo:photo caption:string = MessageContent;
+messagePhoto photo:photo caption:formattedText = MessageContent;
 
 //@description An expired photo message (self-destructed after TTL has elapsed)
 messageExpiredPhoto = MessageContent;
@@ -813,7 +819,7 @@ messageExpiredPhoto = MessageContent;
 messageSticker sticker:sticker = MessageContent;
 
 //@description A video message @video Message content @caption Video caption
-messageVideo video:video caption:string = MessageContent;
+messageVideo video:video caption:formattedText = MessageContent;
 
 //@description An expired video message (self-destructed after TTL has elapsed)
 messageExpiredVideo = MessageContent;
@@ -822,7 +828,7 @@ messageExpiredVideo = MessageContent;
 messageVideoNote video_note:videoNote is_viewed:Bool = MessageContent;
 
 //@description A voice note message @voice_note Message content @caption Voice note caption @is_listened True, if at least one of the recipients has listened to the voice note
-messageVoiceNote voice_note:voiceNote caption:string is_listened:Bool = MessageContent;
+messageVoiceNote voice_note:voiceNote caption:formattedText is_listened:Bool = MessageContent;
 
 //@description A message with a location @location Message content @live_period Time relative to the message sent date until which the location can be updated, in seconds
 messageLocation location:location live_period:int32 = MessageContent;
@@ -943,19 +949,6 @@ textEntityTypeTextUrl url:string = TextEntityType;
 textEntityTypeMentionName user_id:int32 = TextEntityType;
 
 
-//@class TextParseMode @description Describes the way the text should be parsed for MessageEntities. By default, text is treated as-is
-
-//@description The text should be parsed in markdown-style
-textParseModeMarkdown = TextParseMode;
-
-//@description The text should be parsed in HTML-style
-textParseModeHTML = TextParseMode;
-
-
-//@description Contains a list of text entities @entities List of text entities
-textEntities entities:vector<textEntity> = TextEntities;
-
-
 //@description A thumbnail to be sent along with a file; should be in JPEG or WEBP format for stickers, and less than 200 kB in size @thumbnail Thumbnail file to send. Sending thumbnails by file_id is currently not supported
 //@width Thumbnail width, usually shouldn't exceed 90. Use 0 if unknown @height Thumbnail height, usually shouldn't exceed 90. Use 0 if unknown
 inputThumbnail thumbnail:InputFile width:int32 height:int32 = InputThumbnail;
@@ -963,36 +956,36 @@ inputThumbnail thumbnail:InputFile width:int32 height:int32 = InputThumbnail;
 
 //@class InputMessageContent @description The content of a message to send
 
-//@description A text message @text Text to be sent @disable_web_page_preview True, if rich web page previews for URLs in the message text should be disabled @clear_draft True, if a chat message draft should be deleted
-//@entities Bold, Italic, Code, Pre, PreCode and TextUrl entities contained in the text. Can't be used with a non-null parse_mode @parse_mode Text parse mode; may be null. Can't be used in combination with enitities
-inputMessageText text:string disable_web_page_preview:Bool clear_draft:Bool entities:vector<textEntity> parse_mode:TextParseMode = InputMessageContent;
+//@description A text message @text Formatted text to be sent. Only Bold, Italic, Code, Pre, PreCode and TextUrl entities are allowed to be specified manually
+//@disable_web_page_preview True, if rich web page previews for URLs in the message text should be disabled @clear_draft True, if a chat message draft should be deleted
+inputMessageText text:formattedText disable_web_page_preview:Bool clear_draft:Bool = InputMessageContent;
 
 //@description An animation message (GIF-style). @animation Animation file to be sent @thumbnail Animation thumbnail, if available @duration Duration of the animation, in seconds @width Width of the animation; may be replaced by the server @height Height of the animation; may be replaced by the server @caption Animation caption; 0-200 characters
-inputMessageAnimation animation:InputFile thumbnail:inputThumbnail duration:int32 width:int32 height:int32 caption:string = InputMessageContent;
+inputMessageAnimation animation:InputFile thumbnail:inputThumbnail duration:int32 width:int32 height:int32 caption:formattedText = InputMessageContent;
 
 //@description An audio message @audio Audio file to be sent @album_cover_thumbnail Thumbnail of the cover for the album, if available @duration Duration of the audio, in seconds; may be replaced by the server @title Title of the audio; 0-64 characters; may be replaced by the server
 //@performer Performer of the audio; 0-64 characters, may be replaced by the server @caption Audio caption; 0-200 characters
-inputMessageAudio audio:InputFile album_cover_thumbnail:inputThumbnail duration:int32 title:string performer:string caption:string = InputMessageContent;
+inputMessageAudio audio:InputFile album_cover_thumbnail:inputThumbnail duration:int32 title:string performer:string caption:formattedText = InputMessageContent;
 
 //@description A document message (general file) @document Document to be sent @thumbnail Document thumbnail, if available @caption Document caption; 0-200 characters
-inputMessageDocument document:InputFile thumbnail:inputThumbnail caption:string = InputMessageContent;
+inputMessageDocument document:InputFile thumbnail:inputThumbnail caption:formattedText = InputMessageContent;
 
 //@description A photo message @photo Photo to send @thumbnail Photo thumbnail to be sent, this is sent to the other party in secret chats only @added_sticker_file_ids File identifiers of the stickers added to the photo, if applicable @width Photo width @height Photo height @caption Photo caption; 0-200 characters
 //@ttl Photo TTL (Time To Live), in seconds (0-60). A non-zero TTL can be specified only in private chats
-inputMessagePhoto photo:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> width:int32 height:int32 caption:string ttl:int32 = InputMessageContent;
+inputMessagePhoto photo:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> width:int32 height:int32 caption:formattedText ttl:int32 = InputMessageContent;
 
 //@description A sticker message @sticker Sticker to be sent @thumbnail Sticker thumbnail, if available @width Sticker width @height Sticker height
 inputMessageSticker sticker:InputFile thumbnail:inputThumbnail width:int32 height:int32 = InputMessageContent;
 
 //@description A video message @video Video to be sent @thumbnail Video thumbnail, if available @added_sticker_file_ids File identifiers of the stickers added to the video, if applicable @duration Duration of the video, in seconds @width Video width @height Video height @caption Video caption; 0-200 characters
 //@ttl Video TTL (Time To Live), in seconds (0-60). A non-zero TTL can be specified only in private chats
-inputMessageVideo video:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> duration:int32 width:int32 height:int32 caption:string ttl:int32 = InputMessageContent;
+inputMessageVideo video:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> duration:int32 width:int32 height:int32 caption:formattedText ttl:int32 = InputMessageContent;
 
 //@description A video note message @video_note Video note to be sent @thumbnail Video thumbnail, if available @duration Duration of the video, in seconds @length Video width and height; must be positive and not greater than 640
 inputMessageVideoNote video_note:InputFile thumbnail:inputThumbnail duration:int32 length:int32 = InputMessageContent;
 
 //@description A voice note message @voice_note Voice note to be sent @duration Duration of the voice note, in seconds @waveform Waveform representation of the voice note, in 5-bit format @caption Voice note caption; 0-200 characters
-inputMessageVoiceNote voice_note:InputFile duration:int32 waveform:bytes caption:string = InputMessageContent;
+inputMessageVoiceNote voice_note:InputFile duration:int32 waveform:bytes caption:formattedText = InputMessageContent;
 
 //@description A message with a location @location Location to be sent @live_period Period for which the location can be updated, in seconds; should bebetween 60 and 86400 for a live location and 0 otherwise
 inputMessageLocation location:location live_period:int32 = InputMessageContent;
@@ -1711,6 +1704,15 @@ count count:int32 = Count;
 text text:string = Text;
 
 
+//@class TextParseMode @description Describes the way the text should be parsed for TextEntities
+
+//@description The text should be parsed in markdown-style
+textParseModeMarkdown = TextParseMode;
+
+//@description The text should be parsed in HTML-style
+textParseModeHTML = TextParseMode;
+
+
 //@class Proxy @description Contains information about a proxy server
 
 //@description An empty proxy server
@@ -2169,7 +2171,7 @@ editMessageLiveLocation chat_id:int53 message_id:int53 reply_markup:ReplyMarkup 
 
 //@description Edits the message content caption. Non-bots can edit messages for a limited period of time. Returns the edited message after the edit is completed server-side
 //@chat_id The chat the message belongs to @message_id Identifier of the message @reply_markup The new message reply markup; for bots only @caption New message content caption; 0-200 characters
-editMessageCaption chat_id:int53 message_id:int53 reply_markup:ReplyMarkup caption:string = Message;
+editMessageCaption chat_id:int53 message_id:int53 reply_markup:ReplyMarkup caption:formattedText = Message;
 
 //@description Edits the message reply markup; for bots only. Returns the edited message after the edit is completed server-side
 //@chat_id The chat the message belongs to @message_id Identifier of the message @reply_markup New message reply markup
@@ -2182,7 +2184,7 @@ editInlineMessageText inline_message_id:string reply_markup:ReplyMarkup input_me
 editInlineMessageLiveLocation inline_message_id:string reply_markup:ReplyMarkup location:location = Ok;
 
 //@description Edits the caption of an inline message sent via a bot; for bots only @inline_message_id Inline message identifier @reply_markup New message reply markup @caption New message content caption; 0-200 characters
-editInlineMessageCaption inline_message_id:string reply_markup:ReplyMarkup caption:string = Ok;
+editInlineMessageCaption inline_message_id:string reply_markup:ReplyMarkup caption:formattedText = Ok;
 
 //@description Edits the reply markup of an inline message sent via a bot; for bots only @inline_message_id Inline message identifier @reply_markup New message reply markup
 editInlineMessageReplyMarkup inline_message_id:string reply_markup:ReplyMarkup = Ok;
@@ -2190,6 +2192,9 @@ editInlineMessageReplyMarkup inline_message_id:string reply_markup:ReplyMarkup =
 
 //@description Returns all entities (mentions, hashtags, bot commands, URLs, and email addresses) contained in the text. This is an offline method. May be called before authorization. Can be called synchronously @text The text in which to look for entites
 getTextEntities text:string = TextEntities;
+
+//@description Parses Bold, Italic, Code, Pre, PreCode and TextUrl entities contained in the text. This is an offline method. May be called before authorization. Can be called synchronously @text The text which should be parsed @parse_mode Text parse mode
+parseTextEntities text:string parse_mode:TextParseMode = FormattedText;
 
 //@description Returns the MIME type of a file, guessed by its extension. Returns an empty string on failure. This is an offline method. May be called before authorization. Can be called synchronously @file_name The name of the file or path to the file
 getFileMimeType file_name:string = Text;

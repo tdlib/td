@@ -32,8 +32,7 @@ class Game {
   Photo photo_;
   FileId animation_file_id_;
 
-  string text_;
-  vector<MessageEntity> entities_;
+  FormattedText text_;
 
   friend bool operator==(const Game &lhs, const Game &rhs);
   friend bool operator!=(const Game &lhs, const Game &rhs);
@@ -56,7 +55,7 @@ class Game {
 
   UserId get_bot_user_id() const;
 
-  void set_message_text(string text, vector<MessageEntity> &&entities);
+  void set_message_text(FormattedText &&text);
 
   tl_object_ptr<td_api::game> get_game_object(const Td *td) const;
 

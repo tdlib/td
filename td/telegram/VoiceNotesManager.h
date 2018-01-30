@@ -33,8 +33,7 @@ class VoiceNotesManager {
   void create_voice_note(FileId file_id, string mime_type, int32 duration, string waveform, bool replace);
 
   tl_object_ptr<telegram_api::InputMedia> get_input_media(FileId file_id,
-                                                          tl_object_ptr<telegram_api::InputFile> input_file,
-                                                          const string &caption) const;
+                                                          tl_object_ptr<telegram_api::InputFile> input_file) const;
 
   SecretInputMedia get_secret_input_media(FileId voice_file_id,
                                           tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
