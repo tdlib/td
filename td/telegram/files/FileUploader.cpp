@@ -223,7 +223,8 @@ Result<std::pair<NetQueryPtr, bool>> FileUploader::start_part(Part part, int32 p
 
   NetQueryPtr net_query;
   if (big_flag_) {
-    auto query = telegram_api::upload_saveBigFilePart(file_id_, part.id, part_count, std::move(bytes));
+    auto query =
+        telegram_api::upload_saveBigFilePart(file_id_, part.id, local_is_ready_ ? part_count : -1, std::move(bytes));
     net_query = G()->net_query_creator().create(create_storer(query), DcId::main(), NetQuery::Type::Upload,
                                                 NetQuery::AuthFlag::On, NetQuery::GzipFlag::Off);
   } else {

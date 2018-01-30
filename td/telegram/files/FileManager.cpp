@@ -639,6 +639,9 @@ Result<FileId> FileManager::register_file(FileData data, FileLocationSource file
     if (status.is_error()) {
       LOG(WARNING) << "Invalid local location: " << status << " from " << source;
       data.local_ = LocalFileLocation();
+      if (data.remote_.type() == RemoteFileLocation::Type::Partial) {
+        data.remote_ = {};
+      }
 
       if (!has_remote && !has_generate) {
         return std::move(status);
@@ -2178,7 +2181,7 @@ void FileManager::on_error_impl(FileNode *node, FileManager::Query::Type type, b
                  << ". File type is " << file_type_name[static_cast<int32>(FileView(node).get_type())];
     if (status.code() == 0) {
       // Remove partial locations
-      if (node->local_.type() == LocalFileLocation::Type::Partial) {
+      if (node->local_.type() == LocalFileLocation::Type::Partial && status.message() != "FILE_UPLOAD_RESTART") {
         LOG(INFO) << "Unlink file " << node->local_.partial().path_;
         unlink(node->local_.partial().path_).ignore();
         node->set_local_location(LocalFileLocation(), 0);

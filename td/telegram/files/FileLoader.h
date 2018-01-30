@@ -48,6 +48,7 @@ class FileLoader : public FileLoaderActor {
   };
   struct FileInfo {
     int64 size;
+    int64 expected_size = 0;
     bool is_size_final;
     int32 part_size;
     std::vector<int> ready_parts;

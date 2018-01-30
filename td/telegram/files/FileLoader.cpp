@@ -54,7 +54,12 @@ void FileLoader::update_local_file_location(const LocalFileLocation &local) {
     return;
   }
   auto prefix_info = r_prefix_info.move_as_ok();
-  parts_manager_.set_known_prefix(narrow_cast<size_t>(prefix_info.size), prefix_info.is_ready);
+  auto status = parts_manager_.set_known_prefix(narrow_cast<size_t>(prefix_info.size), prefix_info.is_ready);
+  if (status.is_error()) {
+    on_error(std::move(status));
+    stop_flag_ = true;
+    return;
+  }
   loop();
 }
 
@@ -67,11 +72,12 @@ void FileLoader::start_up() {
   }
   auto file_info = r_file_info.ok();
   auto size = file_info.size;
+  auto expected_size = std::max(size, file_info.expected_size);
   bool is_size_final = file_info.is_size_final;
   auto part_size = file_info.part_size;
   auto &ready_parts = file_info.ready_parts;
   auto use_part_count_limit = file_info.use_part_count_limit;
-  auto status = parts_manager_.init(size, is_size_final, part_size, ready_parts, use_part_count_limit);
+  auto status = parts_manager_.init(size, expected_size, is_size_final, part_size, ready_parts, use_part_count_limit);
   if (status.is_error()) {
     on_error(std::move(status));
     stop_flag_ = true;
