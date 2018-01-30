@@ -54,7 +54,6 @@ FileNodePtr::operator bool() const {
   return file_manager_ != nullptr && get_unsafe() != nullptr;
 }
 
-/*** FileNodePtr **/
 void FileNode::set_local_location(const LocalFileLocation &local, int64 ready_size) {
   if (local_ready_size_ != ready_size) {
     local_ready_size_ = ready_size;

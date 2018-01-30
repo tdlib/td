@@ -129,15 +129,11 @@ class FileNodePtr {
   FileNodePtr() = default;
   FileNodePtr(FileId file_id, FileManager *file_manager) : file_id_(file_id), file_manager_(file_manager) {
   }
-  FileNodePtr(FileNodePtr &&other) = default;
-  FileNodePtr(const FileNodePtr &other) = default;
-  FileNodePtr &operator=(FileNodePtr &&other) = default;
-  FileNodePtr &operator=(const FileNodePtr &other) = default;
 
   FileNode *operator->() const;
   FileNode &operator*() const;
   FileNode *get() const;
-  operator bool() const;
+  explicit operator bool() const;
 
  private:
   FileId file_id_;
@@ -150,10 +146,6 @@ class ConstFileNodePtr {
   ConstFileNodePtr() = default;
   ConstFileNodePtr(FileNodePtr file_node_ptr) : file_node_ptr_(file_node_ptr) {
   }
-  ConstFileNodePtr(ConstFileNodePtr &&other) = default;
-  ConstFileNodePtr(const ConstFileNodePtr &other) = default;
-  ConstFileNodePtr &operator=(ConstFileNodePtr &&other) = default;
-  ConstFileNodePtr &operator=(const ConstFileNodePtr &other) = default;
 
   const FileNode *operator->() const {
     return file_node_ptr_.operator->();
@@ -162,7 +154,7 @@ class ConstFileNodePtr {
     return file_node_ptr_.operator*();
   }
 
-  operator bool() const {
+  explicit operator bool() const {
     return bool(file_node_ptr_);
   }
 
