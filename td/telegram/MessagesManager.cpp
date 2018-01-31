@@ -13771,6 +13771,9 @@ Status MessagesManager::fix_text_message(string &text, vector<MessageEntity> &en
 Result<FormattedText> MessagesManager::process_input_caption(DialogId dialog_id,
                                                              tl_object_ptr<td_api::formattedText> &&text,
                                                              bool is_bot) const {
+  if (text == nullptr) {
+    return {};
+  }
   TRY_RESULT(entities, get_message_entities(td_->contacts_manager_.get(), std::move(text->entities_)));
   TRY_STATUS(fix_text_message(text->text_, entities, true, false, need_skip_bot_commands(dialog_id, is_bot), false));
   return FormattedText{std::move(text->text_), std::move(entities)};
@@ -13782,6 +13785,15 @@ Result<InputMessageText> MessagesManager::process_input_message_text(
   CHECK(input_message_content != nullptr);
   CHECK(input_message_content->get_id() == td_api::inputMessageText::ID);
   auto input_message_text = static_cast<td_api::inputMessageText *>(input_message_content.get());
+  if (input_message_text->text_ == nullptr) {
+    if (for_draft) {
+      return InputMessageText{FormattedText{},
+                          input_message_text->disable_web_page_preview_, input_message_text->clear_draft_};
+    }
+
+    return Status::Error(400, "Message text can't be empty");
+  }
+
   TRY_RESULT(entities,
              get_message_entities(td_->contacts_manager_.get(), std::move(input_message_text->text_->entities_)));
   TRY_STATUS(fix_text_message(input_message_text->text_->text_, entities, for_draft, false,
