@@ -1229,7 +1229,7 @@ bool StickersManager::has_input_media(FileId sticker_file_id, bool is_secret) co
   auto file_view = td_->file_manager_->get_file_view(sticker_file_id);
   if (is_secret) {
     if (file_view.is_encrypted()) {
-      if (file_view.has_remote_location()) {
+      if (file_view.has_remote_location() && !sticker->message_thumbnail.file_id.is_valid()) {
         return true;
       }
     } else {

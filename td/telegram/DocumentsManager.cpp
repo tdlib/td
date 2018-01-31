@@ -330,10 +330,14 @@ const DocumentsManager::Document *DocumentsManager::get_document(FileId file_id)
   return document->second.get();
 }
 
-bool DocumentsManager::has_input_media(FileId file_id, bool is_secret) const {
+bool DocumentsManager::has_input_media(FileId file_id, FileId thumbnail_file_id, bool is_secret) const {
   auto file_view = td_->file_manager_->get_file_view(file_id);
   if (is_secret) {
-    return file_view.is_encrypted() && file_view.has_remote_location();
+    if (file_view.encryption_key().empty() || !file_view.has_remote_location()) {
+      return false;
+    }
+
+    return !thumbnail_file_id.is_valid();
   } else {
     if (file_view.is_encrypted()) {
       return false;

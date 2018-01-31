@@ -386,7 +386,17 @@ bool photo_has_input_media(FileManager *file_manager, const Photo &photo, bool i
   auto file_id = photo.photos.back().file_id;
   auto file_view = file_manager->get_file_view(file_id);
   if (is_secret) {
-    return file_view.is_encrypted() && file_view.has_remote_location();
+    if (file_view.encryption_key().empty() || !file_view.has_remote_location()) {
+      return false;
+    }
+
+    for (const auto &size : photo.photos) {
+      if (size.type == 't' && size.file_id.is_valid()) {
+        return false;
+      }
+    }
+
+    return true;
   } else {
     if (file_view.is_encrypted()) {
       return false;

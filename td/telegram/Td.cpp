@@ -3562,6 +3562,10 @@ void Td::on_channel_unban_timeout(int64 channel_id_long) {
   contacts_manager_->on_channel_unban_timeout(ChannelId(narrow_cast<int32>(channel_id_long)));
 }
 
+bool Td::is_online() const {
+  return is_online_;
+}
+
 void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
   request_set_.insert(id);
 

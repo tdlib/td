@@ -1687,6 +1687,7 @@ void SecretChatActor::on_outbound_outer_send_message_promise(uint64 state_id, Pr
   LOG(INFO) << "Outbound secret message [TODO] " << tag("logevent_id", state->message->logevent_id());
   promise.set_value(Unit());  // Seems like this message is at least stored to binlog already
 }
+
 void SecretChatActor::outbound_loop(OutboundMessageState *state, uint64 state_id) {
   if (close_flag_) {
     return;

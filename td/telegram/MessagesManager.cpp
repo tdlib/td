@@ -6310,16 +6310,18 @@ void MessagesManager::after_get_difference() {
     }
   }
 
-  // TODO move to AnimationsManager
-  td_->animations_manager_->get_saved_animations(Auto());
+  if (td_->is_online()) {
+    // TODO move to AnimationsManager
+    td_->animations_manager_->get_saved_animations(Auto());
 
-  // TODO move to StickersManager
-  td_->stickers_manager_->get_installed_sticker_sets(false, Auto());
-  td_->stickers_manager_->get_installed_sticker_sets(true, Auto());
-  td_->stickers_manager_->get_featured_sticker_sets(Auto());
-  td_->stickers_manager_->get_recent_stickers(false, Auto());
-  td_->stickers_manager_->get_recent_stickers(true, Auto());
-  td_->stickers_manager_->get_favorite_stickers(Auto());
+    // TODO move to StickersManager
+    td_->stickers_manager_->get_installed_sticker_sets(false, Auto());
+    td_->stickers_manager_->get_installed_sticker_sets(true, Auto());
+    td_->stickers_manager_->get_featured_sticker_sets(Auto());
+    td_->stickers_manager_->get_recent_stickers(false, Auto());
+    td_->stickers_manager_->get_recent_stickers(true, Auto());
+    td_->stickers_manager_->get_favorite_stickers(Auto());
+  }
 
   load_notification_settings();
 
@@ -20342,10 +20344,14 @@ unique_ptr<MessageContent> MessagesManager::dup_message_content(DialogId dialog_
     return file_manager->dup_file_id(file_id);
   };
 
+  FileId thumbnail_file_id;
+  if (to_secret) {
+    thumbnail_file_id = get_message_content_thumbnail_file_id(content);
+  }
   switch (content->get_id()) {
     case MessageAnimation::ID: {
       auto result = make_unique<MessageAnimation>(*static_cast<const MessageAnimation *>(content));
-      if (td_->documents_manager_->has_input_media(result->file_id, to_secret)) {
+      if (td_->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
         return std::move(result);
       }
       result->file_id = td_->animations_manager_->dup_animation(fix_file_id(result->file_id), result->file_id);
@@ -20354,7 +20360,7 @@ unique_ptr<MessageContent> MessagesManager::dup_message_content(DialogId dialog_
     }
     case MessageAudio::ID: {
       auto result = make_unique<MessageAudio>(*static_cast<const MessageAudio *>(content));
-      if (td_->documents_manager_->has_input_media(result->file_id, to_secret)) {
+      if (td_->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
         return std::move(result);
       }
       result->file_id = td_->audios_manager_->dup_audio(fix_file_id(result->file_id), result->file_id);
@@ -20365,7 +20371,7 @@ unique_ptr<MessageContent> MessagesManager::dup_message_content(DialogId dialog_
       return make_unique<MessageContact>(*static_cast<const MessageContact *>(content));
     case MessageDocument::ID: {
       auto result = make_unique<MessageDocument>(*static_cast<const MessageDocument *>(content));
-      if (td_->documents_manager_->has_input_media(result->file_id, to_secret)) {
+      if (td_->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
         return std::move(result);
       }
       result->file_id = td_->documents_manager_->dup_document(fix_file_id(result->file_id), result->file_id);
@@ -20436,6 +20442,9 @@ unique_ptr<MessageContent> MessagesManager::dup_message_content(DialogId dialog_
       }
 
       result->photo.photos.back().file_id = fix_file_id(result->photo.photos.back().file_id);
+      if (thumbnail.type != 0) {
+        result->photo.photos[0].file_id = td_->file_manager_->dup_file_id(result->photo.photos[0].file_id);
+      }
       return std::move(result);
     }
     case MessageSticker::ID: {
@@ -20453,7 +20462,7 @@ unique_ptr<MessageContent> MessagesManager::dup_message_content(DialogId dialog_
       return make_unique<MessageVenue>(*static_cast<const MessageVenue *>(content));
     case MessageVideo::ID: {
       auto result = make_unique<MessageVideo>(*static_cast<const MessageVideo *>(content));
-      if (td_->documents_manager_->has_input_media(result->file_id, to_secret)) {
+      if (td_->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
         return std::move(result);
       }
       result->file_id = td_->videos_manager_->dup_video(fix_file_id(result->file_id), result->file_id);
@@ -20463,7 +20472,7 @@ unique_ptr<MessageContent> MessagesManager::dup_message_content(DialogId dialog_
     case MessageVideoNote::ID: {
       auto result = make_unique<MessageVideoNote>(*static_cast<const MessageVideoNote *>(content));
       result->is_viewed = false;
-      if (td_->documents_manager_->has_input_media(result->file_id, to_secret)) {
+      if (td_->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
         return std::move(result);
       }
       result->file_id = td_->video_notes_manager_->dup_video_note(fix_file_id(result->file_id), result->file_id);
@@ -20473,7 +20482,7 @@ unique_ptr<MessageContent> MessagesManager::dup_message_content(DialogId dialog_
     case MessageVoiceNote::ID: {
       auto result = make_unique<MessageVoiceNote>(*static_cast<const MessageVoiceNote *>(content));
       result->is_listened = false;
-      if (td_->documents_manager_->has_input_media(result->file_id, to_secret)) {
+      if (td_->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
         return std::move(result);
       }
       result->file_id = td_->voice_notes_manager_->dup_voice_note(fix_file_id(result->file_id), result->file_id);

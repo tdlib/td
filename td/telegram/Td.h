@@ -97,6 +97,8 @@ class Td final : public NetQueryCallback {
 
   void on_channel_unban_timeout(int64 channel_id_long);
 
+  bool is_online() const;
+
   template <class ActorT, class... ArgsT>
   ActorId<ActorT> create_net_actor(ArgsT &&... args) {
     auto slot_id = request_actors_.create(ActorOwn<>(), RequestActorIdType);
