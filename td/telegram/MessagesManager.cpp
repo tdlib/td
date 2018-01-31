@@ -1374,7 +1374,7 @@ class SearchMessagesQuery : public Td::ResultHandler {
 
   void on_error(uint64 id, Status status) override {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SearchMessagesQuery");
-    td->messages_manager_->on_failed_dialog_messages_search(random_id_);
+    td->messages_manager_->on_failed_dialog_messages_search(dialog_id_, random_id_);
     promise_.set_error(std::move(status));
   }
 };
@@ -6702,7 +6702,14 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
   it->second.first = total_count;
 }
 
-void MessagesManager::on_failed_dialog_messages_search(int64 random_id) {
+void MessagesManager::on_failed_dialog_messages_search(DialogId dialog_id, int64 random_id) {
+  if (!dialog_id.is_valid()) {
+    auto it = found_call_messages_.find(random_id);
+    CHECK(it != found_call_messages_.end());
+    found_call_messages_.erase(it);
+    return;
+  }
+
   auto it = found_dialog_messages_.find(random_id);
   CHECK(it != found_dialog_messages_.end());
   found_dialog_messages_.erase(it);

@@ -852,7 +852,7 @@ class MessagesManager : public Actor {
                                             MessageId from_message_id, int32 offset, int32 limit,
                                             SearchMessagesFilter filter, int64 random_id, int32 total_count,
                                             vector<tl_object_ptr<telegram_api::Message>> &&messages);
-  void on_failed_dialog_messages_search(int64 random_id);
+  void on_failed_dialog_messages_search(DialogId dialog_id, int64 random_id);
 
   void on_get_messages_search_result(const string &query, int32 offset_date, DialogId offset_dialog_id,
                                      MessageId offset_message_id, int32 limit, int64 random_id, int32 total_count,
