@@ -1585,15 +1585,11 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
 
     switch (entity->type_->get_id()) {
       case td_api::textEntityTypeMention::ID:
-        return Status::Error(400, "EntityMention can't be used in outgoing messages");
       case td_api::textEntityTypeHashtag::ID:
-        return Status::Error(400, "EntityHashtag can't be used in outgoing messages");
       case td_api::textEntityTypeBotCommand::ID:
-        return Status::Error(400, "EntityBotCommand can't be used in outgoing messages");
       case td_api::textEntityTypeUrl::ID:
-        return Status::Error(400, "EntityUrl can't be used in outgoing messages");
       case td_api::textEntityTypeEmailAddress::ID:
-        return Status::Error(400, "EntityEmailAddress can't be used in outgoing messages");
+        break;
       case td_api::textEntityTypeBold::ID:
         entities.emplace_back(MessageEntity::Type::Bold, entity->offset_, entity->length_);
         break;
