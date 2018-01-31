@@ -9054,7 +9054,19 @@ void MessagesManager::add_secret_message(unique_ptr<PendingSecretMessage> pendin
 }
 
 void MessagesManager::finish_add_secret_message(unique_ptr<PendingSecretMessage> pending_secret_message) {
-  on_get_message(std::move(pending_secret_message->message_info), true, false, true, true, "finish add secret message");
+  auto d = get_dialog(pending_secret_message->message_info.dialog_id);
+  CHECK(d != nullptr);
+  auto random_id = pending_secret_message->message_info.random_id;
+  auto message_id = get_message_id_by_random_id(d, random_id);
+  if (message_id.is_valid()) {
+    if (message_id != pending_secret_message->message_info.message_id) {
+      LOG(WARNING) << "Ignore duplicate " << pending_secret_message->message_info.message_id
+                   << " received earlier with " << message_id << " and random_id " << random_id;
+    }
+  } else {
+    on_get_message(std::move(pending_secret_message->message_info), true, false, true, true,
+                   "finish add secret message");
+  }
   pending_secret_message->success_promise.set_value(Unit());  // TODO: set after message is saved
 }
 
@@ -10262,6 +10274,8 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
       // nothing to do
       break;
     case DialogType::SecretChat:
+      LOG(INFO) << "Delete correspondence random_id " << result->random_id << " to " << message_id << " in "
+                << d->dialog_id;
       d->random_id_to_message_id.erase(result->random_id);
       break;
     case DialogType::None:
@@ -10306,6 +10320,7 @@ void MessagesManager::do_delete_all_dialog_messages(Dialog *d, unique_ptr<Messag
       // nothing to do
       break;
     case DialogType::SecretChat:
+      LOG(INFO) << "Delete correspondence random_id " << m->random_id << " to " << message_id << " in " << d->dialog_id;
       d->random_id_to_message_id.erase(m->random_id);
       break;
     case DialogType::None:
@@ -18092,6 +18107,8 @@ void MessagesManager::on_send_message_file_part_missing(int64 random_id, int bad
     } while (m->random_id == 0 || message_random_ids_.find(m->random_id) != message_random_ids_.end());
     message_random_ids_.insert(m->random_id);
 
+    LOG(INFO) << "Replace random_id from " << random_id << " to " << m->random_id << " in " << m->message_id << " in "
+              << dialog_id;
     d->random_id_to_message_id.erase(random_id);
     d->random_id_to_message_id[m->random_id] = m->message_id;
 
@@ -21275,6 +21292,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       // nothing to do
       break;
     case DialogType::SecretChat:
+      LOG(INFO) << "Add correspondence random_id " << (*v)->random_id << " to " << message_id << " in " << dialog_id;
       d->random_id_to_message_id[(*v)->random_id] = message_id;
       break;
     case DialogType::None:
