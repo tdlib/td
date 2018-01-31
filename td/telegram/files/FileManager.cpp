@@ -394,7 +394,12 @@ FileManager::FileManager(std::unique_ptr<Context> context) : context_(std::move(
     dirs.push_back(path.str());
     auto status = mkdir(path, 0750);
     if (status.is_error()) {
-      LOG(FATAL) << "mkdir " << tag("path", path) << " failed " << status;
+      auto r_stat = stat(path);
+      if (r_stat.is_ok() && r_stat.ok().is_dir_) {
+        LOG(ERROR) << "mkdir " << tag("path", path) << " failed " << status << ", but directory exists";
+      } else {
+        LOG(FATAL) << "mkdir " << tag("path", path) << " failed " << status;
+      }
     }
 #if TD_ANDROID
     FileFd::open(dirs.back() + ".nomedia", FileFd::Create | FileFd::Read).ignore();
