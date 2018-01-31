@@ -3242,6 +3242,10 @@ void ContactsManager::on_load_imported_contacts_from_database(string value) {
 void ContactsManager::on_load_imported_contacts_finished() {
   LOG(INFO) << "Finished to load " << all_imported_contacts_.size() << " imported contacts";
 
+  for (const auto &contact : all_imported_contacts_) {
+    get_user_id_object(contact.get_user_id());  // to ensure updateUser
+  }
+
   are_imported_contacts_loaded_ = true;
   auto promises = std::move(load_imported_contacts_queries_);
   load_imported_contacts_queries_.clear();
@@ -4324,6 +4328,7 @@ void ContactsManager::on_imported_contacts(int64 random_id, vector<UserId> impor
     std::unordered_map<size_t, int32> unique_id_to_unimported_contact_invites;
     for (size_t i = 0; i < add_size; i++) {
       auto unique_id = imported_contacts_pos_[i];
+      get_user_id_object(imported_contact_user_ids[i]);  // to ensure updateUser
       all_imported_contacts_[unique_id].set_user_id(imported_contact_user_ids[i]);
       unique_id_to_unimported_contact_invites[unique_id] = unimported_contact_invites[i];
     }

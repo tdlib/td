@@ -20275,6 +20275,9 @@ unique_ptr<MessageContent> MessagesManager::get_message_content(FormattedText me
     }
     case telegram_api::messageMediaContact::ID: {
       auto message_contact = move_tl_object_as<telegram_api::messageMediaContact>(media);
+      if (message_contact->user_id_ != 0) {
+        td_->contacts_manager_->get_user_id_object(UserId(message_contact->user_id_)); // to ensure updateUser
+      }
       return make_unique<MessageContact>(Contact(message_contact->phone_number_, message_contact->first_name_,
                                                  message_contact->last_name_, message_contact->user_id_));
     }
