@@ -14910,6 +14910,7 @@ void MessagesManager::resolve_dependencies_force(const Dependencies &dependencie
   for (auto dialog_id : dependencies.dialog_ids) {
     if (dialog_id.is_valid() && !have_dialog_force(dialog_id)) {
       LOG(ERROR) << "Can't find " << dialog_id;
+      force_create_dialog(dialog_id, "resolve_dependencies_force");
     }
   }
   for (auto web_page_id : dependencies.web_page_ids) {
@@ -17057,6 +17058,9 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_for
       LOG(ERROR) << "Receive valid sender user id in message forward header: " << oneline(to_string(forward_header));
       sender_user_id = UserId();
     }
+  }
+  if (from_dialog_id.is_valid()) {
+    force_create_dialog(from_dialog_id, "message forward from info");
   }
 
   return make_unique<MessageForwardInfo>(sender_user_id, forward_header->date_, dialog_id, message_id, author_signature,
