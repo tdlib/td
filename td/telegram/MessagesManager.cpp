@@ -15922,7 +15922,7 @@ void MessagesManager::on_media_message_ready_to_send(DialogId dialog_id, Message
     }
     return;
   }
-  CHECK(!it->second);
+  CHECK(!it->second) << dialog_id << " " << message_id;
   it->second = std::move(promise);
 
   on_yet_unsent_media_queue_updated(dialog_id);
