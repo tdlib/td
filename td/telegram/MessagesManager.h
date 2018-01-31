@@ -1931,7 +1931,7 @@ class MessagesManager : public Actor {
 
   bool update_message_views(DialogId dialog_id, Message *m, int32 views);
 
-  bool update_message_contains_unread_mention(Dialog *d, Message *m, bool contains_unread_mention);
+  bool update_message_contains_unread_mention(Dialog *d, Message *m, bool contains_unread_mention, const char *source);
 
   static bool update_opened_message_content(Message *m);
 
@@ -1939,7 +1939,7 @@ class MessagesManager : public Actor {
 
   void read_channel_message_content_from_updates(Dialog *d, MessageId message_id);
 
-  bool read_message_content(Dialog *d, Message *m, bool is_local_read);
+  bool read_message_content(Dialog *d, Message *m, bool is_local_read, const char *source);
 
   void read_message_contents_on_server(DialogId dialog_id, vector<MessageId> message_ids, uint64 logevent_id);
 

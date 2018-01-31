@@ -5357,13 +5357,14 @@ bool MessagesManager::update_message_views(DialogId dialog_id, Message *m, int32
   return false;
 }
 
-bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message *m, bool contains_unread_mention) {
-  CHECK(m != nullptr);
+bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message *m, bool contains_unread_mention,
+                                                             const char *source) {
+  CHECK(m != nullptr) << source;
   if (!contains_unread_mention && m->contains_unread_mention) {
     m->contains_unread_mention = false;
     if (d->unread_mention_count == 0) {
       LOG_IF(ERROR, d->message_count_by_index[search_messages_filter_index(SearchMessagesFilter::UnreadMention)] != -1)
-          << "Unread mention count of " << d->dialog_id << " became negative";
+          << "Unread mention count of " << d->dialog_id << " became negative from " << source;
     } else {
       d->unread_mention_count--;
       d->message_count_by_index[search_messages_filter_index(SearchMessagesFilter::UnreadMention)] =
@@ -5371,7 +5372,7 @@ bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message 
       on_dialog_updated(d->dialog_id, "update_message_contains_unread_mention");
     }
     LOG(INFO) << "Update unread mention message count in " << d->dialog_id << " to " << d->unread_mention_count
-              << " by reading " << m->message_id;
+              << " by reading " << m->message_id << " from " << source;
 
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateMessageMentionRead>(d->dialog_id.get(), m->message_id.get(),
@@ -7817,7 +7818,7 @@ void MessagesManager::read_message_content_from_updates(MessageId message_id) {
   if (d != nullptr) {
     Message *m = get_message(d, message_id);
     CHECK(m != nullptr);
-    read_message_content(d, m, false);
+    read_message_content(d, m, false, "read_message_content_from_updates");
   }
 }
 
@@ -7829,7 +7830,7 @@ void MessagesManager::read_channel_message_content_from_updates(Dialog *d, Messa
 
   Message *m = get_message_force(d, message_id);
   if (m != nullptr) {
-    read_message_content(d, m, false);
+    read_message_content(d, m, false, "read_channel_message_content_from_updates");
   }
 }
 
@@ -7856,8 +7857,9 @@ bool MessagesManager::update_opened_message_content(Message *m) {
   }
 }
 
-bool MessagesManager::read_message_content(Dialog *d, Message *m, bool is_local_read) {
-  bool is_mention_read = update_message_contains_unread_mention(d, m, false);
+bool MessagesManager::read_message_content(Dialog *d, Message *m, bool is_local_read, const char *source) {
+  CHECK(m != nullptr) << source;
+  bool is_mention_read = update_message_contains_unread_mention(d, m, false, "read_message_content");
   bool is_content_read = update_opened_message_content(m) | ttl_on_open(d, m, Time::now(), is_local_read);
 
   if (is_mention_read || is_content_read) {
@@ -8892,7 +8894,7 @@ void MessagesManager::open_secret_message(SecretChatId secret_chat_id, int64 ran
     return;
   }
 
-  read_message_content(d, m, false);
+  read_message_content(d, m, false, "open_secret_message");
 }
 
 void MessagesManager::on_get_secret_message(SecretChatId secret_chat_id, UserId user_id, MessageId message_id,
@@ -11663,7 +11665,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
       if (need_read) {
         auto message_content_type = message->content->get_id();
         if (message_content_type != MessageVoiceNote::ID && message_content_type != MessageVideoNote::ID &&
-            update_message_contains_unread_mention(d, message, false)) {
+            update_message_contains_unread_mention(d, message, false, "view_messages")) {
           CHECK(message_id.is_server());
           read_content_message_ids.push_back(message_id);
           on_message_changed(d, message, "view_messages");
@@ -11734,7 +11736,7 @@ Status MessagesManager::open_message_content(FullMessageId full_message_id) {
     return Status::OK();
   }
 
-  if (read_message_content(d, message, true) &&
+  if (read_message_content(d, message, true, "open_message_content") &&
       (message_id.is_server() || dialog_id.get_type() == DialogType::SecretChat)) {
     read_message_contents_on_server(dialog_id, {message_id}, 0);
   }
@@ -21652,7 +21654,8 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
       << ". Old message: " << to_string(get_message_object(dialog_id, old_message.get()))
       << ". New message: " << to_string(get_message_object(dialog_id, new_message.get()));
 
-  if (update_message_contains_unread_mention(d, old_message.get(), new_message->contains_unread_mention)) {
+  if (update_message_contains_unread_mention(d, old_message.get(), new_message->contains_unread_mention,
+                                             "update_message")) {
     is_changed = true;
   }
   if (update_message_views(dialog_id, old_message.get(), new_message->views)) {
@@ -22484,7 +22487,7 @@ void MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Mes
   CHECK(last_database_message->right == nullptr);
 
   auto message_id = last_database_message->message_id;
-  CHECK(d->last_database_message_id == message_id);
+  CHECK(d->last_database_message_id == message_id) << message_id << " " << d->last_database_message_id;
 
   if (!have_input_peer(d->dialog_id, AccessRights::Read)) {
     // do not add last message to inaccessible dialog
