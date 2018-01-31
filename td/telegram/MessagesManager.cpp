@@ -2832,7 +2832,7 @@ class GetNotifySettingsQuery : public Td::ResultHandler {
   void send(NotificationSettingsScope scope) {
     scope_ = scope;
     auto input_notify_peer = td->messages_manager_->get_input_notify_peer(scope);
-    CHECK(input_notify_peer != nullptr);
+    CHECK(input_notify_peer != nullptr) << scope;
     send_query(G()->net_query_creator().create(
         create_storer(telegram_api::account_getNotifySettings(std::move(input_notify_peer)))));
   }
