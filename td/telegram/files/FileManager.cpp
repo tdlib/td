@@ -1036,7 +1036,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   }
 
   // Check is some download/upload queries are ready
-  for (auto file_id : node->file_ids_) {
+  for (auto file_id : vector<FileId>(node->file_ids_)) {
     auto *info = get_file_id_info(file_id);
     if (info->download_priority_ != 0 && file_view.has_local_location()) {
       info->download_priority_ = 0;
@@ -1087,7 +1087,7 @@ void FileManager::try_flush_node(FileNodePtr node, bool new_remote, bool new_loc
 
 void FileManager::try_flush_node_info(FileNodePtr node) {
   if (node->need_info_flush()) {
-    for (auto file_id : node->file_ids_) {
+    for (auto file_id : vector<FileId>(node->file_ids_)) {
       auto *info = get_file_id_info(file_id);
       if (info->send_updates_flag_) {
         VLOG(update_file) << "Send UpdateFile about file " << file_id;
@@ -2222,7 +2222,7 @@ void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type,
   cancel_download(node);
   cancel_upload(node);
 
-  for (auto file_id : node->file_ids_) {
+  for (auto file_id : vector<FileId>(node->file_ids_)) {
     auto *info = get_file_id_info(file_id);
     if (info->download_priority_ != 0) {
       info->download_priority_ = 0;
