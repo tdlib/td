@@ -94,7 +94,6 @@ class ActorInfo
   vector<Event> mailbox_;
 
   bool is_lite() const;
-  bool can_flush_mailbox() const;
 
   void set_wait_generation(uint32 wait_generation);
   bool must_wait(uint32 wait_generation) const;

@@ -14,7 +14,7 @@ Changes in 1.1.0:
   - Replaced fields `text` and `text_entities` with the field `text` of type `formattedText` in class `game`.
   - Removed field `parse_mode` from class `inputMessageText`.
   - Added synchronous method `parseTextEntities`.
-* updateNewMessage is now sent for all sent messages. 
+* updateNewMessage is now sent for all sent messages.
 * updateChatLastMessage is now sent when any field of the last message in a chat changes.
 * Reworked the `registerDevice` method:
   - Added parameter `other_user_ids` to method `registerDevice` to support multiple accounts.

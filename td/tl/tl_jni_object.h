@@ -50,12 +50,12 @@ class JvmThreadDetacher {
   }
 
  public:
-  explicit JvmThreadDetacher(JavaVM *java_vm): java_vm_(java_vm) {
+  explicit JvmThreadDetacher(JavaVM *java_vm) : java_vm_(java_vm) {
   }
 
   JvmThreadDetacher(const JvmThreadDetacher &other) = delete;
   JvmThreadDetacher &operator=(const JvmThreadDetacher &other) = delete;
-  JvmThreadDetacher(JvmThreadDetacher &&other): java_vm_(other.java_vm_) {
+  JvmThreadDetacher(JvmThreadDetacher &&other) : java_vm_(other.java_vm_) {
     other.java_vm_ = nullptr;
   }
   JvmThreadDetacher &operator=(JvmThreadDetacher &&other) = delete;
