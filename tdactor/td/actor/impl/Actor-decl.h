@@ -77,6 +77,8 @@ class Actor : public ObserverBase {
   void set_context(std::shared_ptr<ActorContext> context);
   void set_tag(CSlice tag);
 
+  void always_wait_for_mailbox();
+
   // for ActorInfo mostly
   void init(ObjectPool<ActorInfo>::OwnerPtr &&info);
   ActorInfo *get_info();

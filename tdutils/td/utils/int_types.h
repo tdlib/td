@@ -51,7 +51,7 @@ struct UInt {
 
 template <size_t size>
 inline bool operator==(const UInt<size> &a, const UInt<size> &b) {
-  return std::memcmp(a.raw, b.raw, sizeof(a)) == 0;
+  return std::memcmp(a.raw, b.raw, sizeof(a.raw)) == 0;
 }
 
 template <size_t size>

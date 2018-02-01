@@ -94,14 +94,17 @@ class ActorInfo
   vector<Event> mailbox_;
 
   bool is_lite() const;
+  bool can_flush_mailbox() const;
 
   void set_wait_generation(uint32 wait_generation);
   bool must_wait(uint32 wait_generation) const;
+  void always_wait_for_mailbox();
 
  private:
   Deleter deleter_;
   bool is_lite_;
   bool is_running_;
+  bool always_wait_for_mailbox_{false};
   uint32 wait_generation_{0};
 
   std::atomic<int32> sched_id_{0};
