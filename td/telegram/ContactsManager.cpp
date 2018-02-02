@@ -3243,7 +3243,7 @@ void ContactsManager::on_load_imported_contacts_finished() {
   LOG(INFO) << "Finished to load " << all_imported_contacts_.size() << " imported contacts";
 
   for (const auto &contact : all_imported_contacts_) {
-    get_user_id_object(contact.get_user_id());  // to ensure updateUser
+    get_user_id_object(contact.get_user_id(), "on_load_imported_contacts_finished");  // to ensure updateUser
   }
 
   are_imported_contacts_loaded_ = true;
@@ -4328,7 +4328,7 @@ void ContactsManager::on_imported_contacts(int64 random_id, vector<UserId> impor
     std::unordered_map<size_t, int32> unique_id_to_unimported_contact_invites;
     for (size_t i = 0; i < add_size; i++) {
       auto unique_id = imported_contacts_pos_[i];
-      get_user_id_object(imported_contact_user_ids[i]);  // to ensure updateUser
+      get_user_id_object(imported_contact_user_ids[i], "on_imported_contacts");  // to ensure updateUser
       all_imported_contacts_[unique_id].set_user_id(imported_contact_user_ids[i]);
       unique_id_to_unimported_contact_invites[unique_id] = unimported_contact_invites[i];
     }
@@ -5823,7 +5823,7 @@ void ContactsManager::update_user_full(UserFull *user_full, UserId user_id) {
     user_full->is_changed = false;
     if (user_full->is_inited) {
       send_closure(G()->td(), &Td::send_update,
-                   make_tl_object<td_api::updateUserFullInfo>(get_user_id_object(user_id),
+                   make_tl_object<td_api::updateUserFullInfo>(get_user_id_object(user_id, "updateUserFullInfo"),
                                                               get_user_full_info_object(user_id, user_full)));
     }
   }
@@ -5841,9 +5841,10 @@ void ContactsManager::update_chat_full(ChatFull *chat_full, ChatId chat_id) {
     on_update_dialog_administrators(DialogId(chat_id), std::move(administrator_user_ids), chat_full->version != -1);
 
     chat_full->is_changed = false;
-    send_closure(G()->td(), &Td::send_update,
-                 make_tl_object<td_api::updateBasicGroupFullInfo>(get_basic_group_id_object(chat_id),
-                                                                  get_basic_group_full_info_object(chat_full)));
+    send_closure(
+        G()->td(), &Td::send_update,
+        make_tl_object<td_api::updateBasicGroupFullInfo>(get_basic_group_id_object(chat_id, "update_chat_full"),
+                                                         get_basic_group_full_info_object(chat_full)));
   }
 }
 
@@ -5854,9 +5855,10 @@ void ContactsManager::update_channel_full(ChannelFull *channel_full, ChannelId c
       channel_full->administrator_count = channel_full->participant_count;
     }
     channel_full->is_changed = false;
-    send_closure(G()->td(), &Td::send_update,
-                 make_tl_object<td_api::updateSupergroupFullInfo>(get_supergroup_id_object(channel_id),
-                                                                  get_channel_full_info_object(channel_full)));
+    send_closure(
+        G()->td(), &Td::send_update,
+        make_tl_object<td_api::updateSupergroupFullInfo>(get_supergroup_id_object(channel_id, "update_channel_full"),
+                                                         get_channel_full_info_object(channel_full)));
   }
 }
 
@@ -6604,7 +6606,8 @@ tl_object_ptr<td_api::chatMember> ContactsManager::get_chat_member_object(
     const DialogParticipant &dialog_participant) const {
   UserId participant_user_id = dialog_participant.user_id;
   return make_tl_object<td_api::chatMember>(
-      get_user_id_object(participant_user_id), get_user_id_object(dialog_participant.inviter_user_id),
+      get_user_id_object(participant_user_id, "chatMember.user_id"),
+      get_user_id_object(dialog_participant.inviter_user_id, "chatMember.inviter_user_id"),
       dialog_participant.joined_date, dialog_participant.status.get_chat_member_status_object(),
       get_bot_info_object(participant_user_id));
 }
@@ -8948,9 +8951,9 @@ tl_object_ptr<td_api::UserStatus> ContactsManager::get_user_status_object(const 
   }
 }
 
-int32 ContactsManager::get_user_id_object(UserId user_id) const {
+int32 ContactsManager::get_user_id_object(UserId user_id, const char *source) const {
   if (user_id.is_valid() && get_user(user_id) == nullptr && unknown_users_.count(user_id) == 0) {
-    LOG(ERROR) << "Have no info about " << user_id;
+    LOG(ERROR) << "Have no info about " << user_id << " from " << source;
     unknown_users_.insert(user_id);
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateUser>(td_api::make_object<td_api::user>(
@@ -8988,7 +8991,7 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
 }
 
 vector<int32> ContactsManager::get_user_ids_object(const vector<UserId> &user_ids) const {
-  return transform(user_ids, [this](UserId user_id) { return get_user_id_object(user_id); });
+  return transform(user_ids, [this](UserId user_id) { return get_user_id_object(user_id, "get_user_ids_object"); });
 }
 
 tl_object_ptr<td_api::users> ContactsManager::get_users_object(int32 total_count,
@@ -9013,9 +9016,9 @@ tl_object_ptr<td_api::userFullInfo> ContactsManager::get_user_full_info_object(U
                                               get_bot_info_object(user_full->bot_info.get()));
 }
 
-int32 ContactsManager::get_basic_group_id_object(ChatId chat_id) const {
+int32 ContactsManager::get_basic_group_id_object(ChatId chat_id, const char *source) const {
   if (chat_id.is_valid() && get_chat(chat_id) == nullptr && unknown_chats_.count(chat_id) == 0) {
-    LOG(ERROR) << "Have no info about " << chat_id;
+    LOG(ERROR) << "Have no info about " << chat_id << " from " << source;
     unknown_chats_.insert(chat_id);
     send_closure(
         G()->td(), &Td::send_update,
@@ -9035,7 +9038,8 @@ tl_object_ptr<td_api::basicGroup> ContactsManager::get_basic_group_object(ChatId
   }
   return make_tl_object<td_api::basicGroup>(
       chat_id.get(), chat->participant_count, get_chat_status(chat).get_chat_member_status_object(),
-      chat->everyone_is_administrator, chat->is_active, get_supergroup_id_object(chat->migrated_to_channel_id));
+      chat->everyone_is_administrator, chat->is_active,
+      get_supergroup_id_object(chat->migrated_to_channel_id, "get_basic_group_object"));
 }
 
 tl_object_ptr<td_api::basicGroupFullInfo> ContactsManager::get_basic_group_full_info_object(ChatId chat_id) const {
@@ -9046,15 +9050,15 @@ tl_object_ptr<td_api::basicGroupFullInfo> ContactsManager::get_basic_group_full_
     const ChatFull *chat_full) const {
   CHECK(chat_full != nullptr);
   return make_tl_object<td_api::basicGroupFullInfo>(
-      get_user_id_object(chat_full->creator_user_id),
+      get_user_id_object(chat_full->creator_user_id, "basicGroupFullInfo"),
       transform(chat_full->participants,
                 [this](const DialogParticipant &chat_participant) { return get_chat_member_object(chat_participant); }),
       chat_full->invite_link);
 }
 
-int32 ContactsManager::get_supergroup_id_object(ChannelId channel_id) const {
+int32 ContactsManager::get_supergroup_id_object(ChannelId channel_id, const char *source) const {
   if (channel_id.is_valid() && get_channel(channel_id) == nullptr && unknown_channels_.count(channel_id) == 0) {
-    LOG(ERROR) << "Have no info about " << channel_id;
+    LOG(ERROR) << "Have no info about " << channel_id << " received from " << source;
     unknown_channels_.insert(channel_id);
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
@@ -9091,7 +9095,8 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_channel_full_info
       channel_full->restricted_count, channel_full->banned_count, channel_full->can_get_participants,
       channel_full->can_set_username, channel_full->can_set_sticker_set, channel_full->is_all_history_available,
       channel_full->sticker_set_id, channel_full->invite_link, channel_full->pinned_message_id.get(),
-      get_basic_group_id_object(channel_full->migrated_from_chat_id), channel_full->migrated_from_max_message_id.get());
+      get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_channel_full_info_object"),
+      channel_full->migrated_from_max_message_id.get());
 }
 
 tl_object_ptr<td_api::SecretChatState> ContactsManager::get_secret_chat_state_object(SecretChatState state) {
@@ -9109,10 +9114,10 @@ tl_object_ptr<td_api::SecretChatState> ContactsManager::get_secret_chat_state_ob
   }
 }
 
-int32 ContactsManager::get_secret_chat_id_object(SecretChatId secret_chat_id) const {
+int32 ContactsManager::get_secret_chat_id_object(SecretChatId secret_chat_id, const char *source) const {
   if (secret_chat_id.is_valid() && get_secret_chat(secret_chat_id) == nullptr &&
       unknown_secret_chats_.count(secret_chat_id) == 0) {
-    LOG(ERROR) << "Have no info about " << secret_chat_id;
+    LOG(ERROR) << "Have no info about " << secret_chat_id << " from " << source;
     unknown_secret_chats_.insert(secret_chat_id);
     send_closure(
         G()->td(), &Td::send_update,
@@ -9133,8 +9138,9 @@ tl_object_ptr<td_api::secretChat> ContactsManager::get_secret_chat_object(Secret
   }
   get_user_force(secret_chat->user_id);
   return td_api::make_object<td_api::secretChat>(
-      secret_chat_id.get(), get_user_id_object(secret_chat->user_id), get_secret_chat_state_object(secret_chat->state),
-      secret_chat->is_outbound, secret_chat->ttl, secret_chat->key_hash, secret_chat->layer);
+      secret_chat_id.get(), get_user_id_object(secret_chat->user_id, "secretChat"),
+      get_secret_chat_state_object(secret_chat->state), secret_chat->is_outbound, secret_chat->ttl,
+      secret_chat->key_hash, secret_chat->layer);
 }
 
 tl_object_ptr<td_api::LinkState> ContactsManager::get_link_state_object(LinkState link) {
@@ -9205,7 +9211,8 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
     } else {
       LOG(ERROR) << "Have no information about " << chat_id;
     }
-    chat_type = td_api::make_object<td_api::chatTypeBasicGroup>(get_basic_group_id_object(chat_id));
+    chat_type = td_api::make_object<td_api::chatTypeBasicGroup>(
+        get_basic_group_id_object(chat_id, "get_chat_invite_link_info_object"));
   } else if (invite_link_info->channel_id != ChannelId()) {
     CHECK(invite_link_info->chat_id == ChatId());
     auto channel_id = invite_link_info->channel_id;
@@ -9223,7 +9230,8 @@ tl_object_ptr<td_api::chatInviteLinkInfo> ContactsManager::get_chat_invite_link_
     } else {
       LOG(ERROR) << "Have no information about " << channel_id;
     }
-    chat_type = td_api::make_object<td_api::chatTypeSupergroup>(get_supergroup_id_object(channel_id), !is_megagroup);
+    chat_type = td_api::make_object<td_api::chatTypeSupergroup>(
+        get_supergroup_id_object(channel_id, "get_chat_invite_link_info_object"), !is_megagroup);
   } else {
     title = invite_link_info->title;
     photo = &invite_link_info->photo;

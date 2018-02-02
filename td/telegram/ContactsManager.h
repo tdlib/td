@@ -364,7 +364,7 @@ class ContactsManager : public Actor {
 
   vector<UserId> get_dialog_administrators(DialogId chat_id, int left_tries, Promise<Unit> &&promise);
 
-  int32 get_user_id_object(UserId user_id) const;
+  int32 get_user_id_object(UserId user_id, const char *source) const;
 
   tl_object_ptr<td_api::user> get_user_object(UserId user_id) const;
 
@@ -374,19 +374,19 @@ class ContactsManager : public Actor {
 
   tl_object_ptr<td_api::userFullInfo> get_user_full_info_object(UserId user_id) const;
 
-  int32 get_basic_group_id_object(ChatId chat_id) const;
+  int32 get_basic_group_id_object(ChatId chat_id, const char *source) const;
 
   tl_object_ptr<td_api::basicGroup> get_basic_group_object(ChatId chat_id) const;
 
   tl_object_ptr<td_api::basicGroupFullInfo> get_basic_group_full_info_object(ChatId chat_id) const;
 
-  int32 get_supergroup_id_object(ChannelId channel_id) const;
+  int32 get_supergroup_id_object(ChannelId channel_id, const char *source) const;
 
   tl_object_ptr<td_api::supergroup> get_supergroup_object(ChannelId channel_id) const;
 
   tl_object_ptr<td_api::supergroupFullInfo> get_channel_full_info_object(ChannelId channel_id) const;
 
-  int32 get_secret_chat_id_object(SecretChatId secret_chat_id) const;
+  int32 get_secret_chat_id_object(SecretChatId secret_chat_id, const char *source) const;
 
   tl_object_ptr<td_api::secretChat> get_secret_chat_object(SecretChatId secret_chat_id);
 

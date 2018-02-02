@@ -229,7 +229,8 @@ class GetRecentMeUrlsQuery : public Td::ResultHandler {
             result = nullptr;
             break;
           }
-          result->type_ = make_tl_object<td_api::tMeUrlTypeUser>(td->contacts_manager_->get_user_id_object(user_id));
+          result->type_ = make_tl_object<td_api::tMeUrlTypeUser>(
+              td->contacts_manager_->get_user_id_object(user_id, "tMeUrlTypeUser"));
           break;
         }
         case telegram_api::recentMeUrlChat::ID: {
@@ -241,8 +242,8 @@ class GetRecentMeUrlsQuery : public Td::ResultHandler {
             result = nullptr;
             break;
           }
-          result->type_ =
-              make_tl_object<td_api::tMeUrlTypeSupergroup>(td->contacts_manager_->get_supergroup_id_object(channel_id));
+          result->type_ = make_tl_object<td_api::tMeUrlTypeSupergroup>(
+              td->contacts_manager_->get_supergroup_id_object(channel_id, "tMeUrlTypeSupergroup"));
           break;
         }
         case telegram_api::recentMeUrlChatInvite::ID: {
@@ -2077,10 +2078,12 @@ class ImportContactsRequest : public RequestActor<> {
   void do_send_result() override {
     CHECK(imported_contacts_.first.size() == contacts_.size());
     CHECK(imported_contacts_.second.size() == contacts_.size());
-    send_result(make_tl_object<td_api::importedContacts>(
-        transform(imported_contacts_.first,
-                  [this](UserId user_id) { return td->contacts_manager_->get_user_id_object(user_id); }),
-        std::move(imported_contacts_.second)));
+    send_result(make_tl_object<td_api::importedContacts>(transform(imported_contacts_.first,
+                                                                   [this](UserId user_id) {
+                                                                     return td->contacts_manager_->get_user_id_object(
+                                                                         user_id, "ImportContactsRequest");
+                                                                   }),
+                                                         std::move(imported_contacts_.second)));
   }
 
  public:
@@ -2158,10 +2161,12 @@ class ChangeImportedContactsRequest : public RequestActor<> {
   void do_send_result() override {
     CHECK(imported_contacts_.first.size() == contacts_size_);
     CHECK(imported_contacts_.second.size() == contacts_size_);
-    send_result(make_tl_object<td_api::importedContacts>(
-        transform(imported_contacts_.first,
-                  [this](UserId user_id) { return td->contacts_manager_->get_user_id_object(user_id); }),
-        std::move(imported_contacts_.second)));
+    send_result(make_tl_object<td_api::importedContacts>(transform(imported_contacts_.first,
+                                                                   [this](UserId user_id) {
+                                                                     return td->contacts_manager_->get_user_id_object(
+                                                                         user_id, "ChangeImportedContactsRequest");
+                                                                   }),
+                                                         std::move(imported_contacts_.second)));
   }
 
  public:

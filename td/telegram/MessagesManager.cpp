@@ -1772,6 +1772,11 @@ class SendSecretMessageActor : public NetActor {
   void send(DialogId dialog_id, int64 reply_to_random_id, int32 ttl, const string &message, SecretInputMedia media,
             vector<tl_object_ptr<secret_api::MessageEntity>> &&entities, UserId via_bot_user_id, int64 media_album_id,
             int64 random_id) {
+    if (false && !media.empty()) {
+      td->messages_manager_->on_send_secret_message_error(random_id, Status::Error(400, "FILE_PART_1_MISSING"), Auto());
+      return;
+    }
+
     CHECK(dialog_id.get_type() == DialogType::SecretChat);
     random_id_ = random_id;
 
@@ -8205,12 +8210,13 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
       return make_tl_object<td_api::messageChatJoinByLink>();
     case MessageChatDeleteUser::ID: {
       const MessageChatDeleteUser *m = static_cast<const MessageChatDeleteUser *>(content);
-      return make_tl_object<td_api::messageChatDeleteMember>(td_->contacts_manager_->get_user_id_object(m->user_id));
+      return make_tl_object<td_api::messageChatDeleteMember>(
+          td_->contacts_manager_->get_user_id_object(m->user_id, "messageChatDeleteMember"));
     }
     case MessageChatMigrateTo::ID: {
       const MessageChatMigrateTo *m = static_cast<const MessageChatMigrateTo *>(content);
       return make_tl_object<td_api::messageChatUpgradeTo>(
-          td_->contacts_manager_->get_supergroup_id_object(m->migrated_to_channel_id));
+          td_->contacts_manager_->get_supergroup_id_object(m->migrated_to_channel_id, "messageChatUpgradeTo"));
     }
     case MessageChannelCreate::ID: {
       const MessageChannelCreate *m = static_cast<const MessageChannelCreate *>(content);
@@ -8219,7 +8225,8 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
     case MessageChannelMigrateFrom::ID: {
       const MessageChannelMigrateFrom *m = static_cast<const MessageChannelMigrateFrom *>(content);
       return make_tl_object<td_api::messageChatUpgradeFrom>(
-          m->title, td_->contacts_manager_->get_basic_group_id_object(m->migrated_from_chat_id));
+          m->title,
+          td_->contacts_manager_->get_basic_group_id_object(m->migrated_from_chat_id, "messageChatUpgradeFrom"));
     }
     case MessagePinMessage::ID: {
       const MessagePinMessage *m = static_cast<const MessagePinMessage *>(content);
@@ -11923,21 +11930,23 @@ tl_object_ptr<td_api::ChatType> MessagesManager::get_chat_type_object(DialogId d
   switch (dialog_id.get_type()) {
     case DialogType::User:
       return make_tl_object<td_api::chatTypePrivate>(
-          td_->contacts_manager_->get_user_id_object(dialog_id.get_user_id()));
+          td_->contacts_manager_->get_user_id_object(dialog_id.get_user_id(), "chatTypePrivate"));
     case DialogType::Chat:
       return make_tl_object<td_api::chatTypeBasicGroup>(
-          td_->contacts_manager_->get_basic_group_id_object(dialog_id.get_chat_id()));
+          td_->contacts_manager_->get_basic_group_id_object(dialog_id.get_chat_id(), "chatTypeBasicGroup"));
     case DialogType::Channel: {
       auto channel_id = dialog_id.get_channel_id();
       auto channel_type = td_->contacts_manager_->get_channel_type(channel_id);
-      return make_tl_object<td_api::chatTypeSupergroup>(td_->contacts_manager_->get_supergroup_id_object(channel_id),
-                                                        channel_type != ChannelType::Megagroup);
+      return make_tl_object<td_api::chatTypeSupergroup>(
+          td_->contacts_manager_->get_supergroup_id_object(channel_id, "chatTypeSupergroup"),
+          channel_type != ChannelType::Megagroup);
     }
     case DialogType::SecretChat: {
       auto secret_chat_id = dialog_id.get_secret_chat_id();
       auto user_id = td_->contacts_manager_->get_secret_chat_user_id(secret_chat_id);
-      return make_tl_object<td_api::chatTypeSecret>(td_->contacts_manager_->get_secret_chat_id_object(secret_chat_id),
-                                                    td_->contacts_manager_->get_user_id_object(user_id));
+      return make_tl_object<td_api::chatTypeSecret>(
+          td_->contacts_manager_->get_secret_chat_id_object(secret_chat_id, "chatTypeSecret"),
+          td_->contacts_manager_->get_user_id_object(user_id, "chatTypeSecret"));
     }
     case DialogType::None:
     default:
@@ -13495,15 +13504,15 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
     }
   }
   return make_tl_object<td_api::message>(
-      message->message_id.get(), td_->contacts_manager_->get_user_id_object(message->sender_user_id), dialog_id.get(),
-      std::move(sending_state), is_outgoing, can_edit_message(dialog_id, message, false, true),
+      message->message_id.get(), td_->contacts_manager_->get_user_id_object(message->sender_user_id, "sender_user_id"),
+      dialog_id.get(), std::move(sending_state), is_outgoing, can_edit_message(dialog_id, message, false, true),
       can_forward_message(dialog_id, message), can_delete_for_self, can_delete_for_all_users, message->is_channel_post,
       message->contains_unread_mention, message->date, message->edit_date,
       get_message_forward_info_object(message->forward_info), message->reply_to_message_id.get(), message->ttl,
       message->ttl_expires_at != 0 ? std::max(message->ttl_expires_at - Time::now(), 1e-3) : message->ttl,
-      td_->contacts_manager_->get_user_id_object(message->via_bot_user_id), message->author_signature, message->views,
-      message->media_album_id, get_message_content_object(message->content.get()),
-      get_reply_markup_object(message->reply_markup));
+      td_->contacts_manager_->get_user_id_object(message->via_bot_user_id, "via_bot_user_id"),
+      message->author_signature, message->views, message->media_album_id,
+      get_message_content_object(message->content.get()), get_reply_markup_object(message->reply_markup));
 }
 
 tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total_count, DialogId dialog_id,
@@ -17012,8 +17021,8 @@ void MessagesManager::on_get_game_high_scores(int64 random_id,
       LOG(ERROR) << "Receive wrong score = " << score;
       continue;
     }
-    result->scores_.push_back(
-        make_tl_object<td_api::gameHighScore>(position, td_->contacts_manager_->get_user_id_object(user_id), score));
+    result->scores_.push_back(make_tl_object<td_api::gameHighScore>(
+        position, td_->contacts_manager_->get_user_id_object(user_id, "gameHighScore"), score));
   }
 }
 
@@ -17117,8 +17126,8 @@ tl_object_ptr<td_api::MessageForwardInfo> MessagesManager::get_message_forward_i
         forward_info->message_id.get(), forward_info->from_dialog_id.get(), forward_info->from_message_id.get());
   }
   return make_tl_object<td_api::messageForwardedFromUser>(
-      td_->contacts_manager_->get_user_id_object(forward_info->sender_user_id), forward_info->date,
-      forward_info->from_dialog_id.get(), forward_info->from_message_id.get());
+      td_->contacts_manager_->get_user_id_object(forward_info->sender_user_id, "messageForwardedFromUser"),
+      forward_info->date, forward_info->from_dialog_id.get(), forward_info->from_message_id.get());
 }
 
 Result<unique_ptr<ReplyMarkup>> MessagesManager::get_dialog_reply_markup(
@@ -19424,8 +19433,9 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
     case telegram_api::channelAdminLogEventActionParticipantInvite::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantInvite>(action_ptr);
       auto member = td_->contacts_manager_->get_dialog_participant(ChannelId(), std::move(action->participant_));
-      return make_tl_object<td_api::chatEventMemberInvited>(td_->contacts_manager_->get_user_id_object(member.user_id),
-                                                            member.status.get_chat_member_status_object());
+      return make_tl_object<td_api::chatEventMemberInvited>(
+          td_->contacts_manager_->get_user_id_object(member.user_id, "chatEventMemberInvited"),
+          member.status.get_chat_member_status_object());
     }
     case telegram_api::channelAdminLogEventActionParticipantToggleBan::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionParticipantToggleBan>(action_ptr);
@@ -19438,7 +19448,7 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
         return nullptr;
       }
       return make_tl_object<td_api::chatEventMemberRestricted>(
-          td_->contacts_manager_->get_user_id_object(old_member.user_id),
+          td_->contacts_manager_->get_user_id_object(old_member.user_id, "chatEventMemberRestricted"),
           old_member.status.get_chat_member_status_object(), new_member.status.get_chat_member_status_object());
     }
     case telegram_api::channelAdminLogEventActionParticipantToggleAdmin::ID: {
@@ -19452,7 +19462,7 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
         return nullptr;
       }
       return make_tl_object<td_api::chatEventMemberPromoted>(
-          td_->contacts_manager_->get_user_id_object(old_member.user_id),
+          td_->contacts_manager_->get_user_id_object(old_member.user_id, "chatEventMemberPromoted"),
           old_member.status.get_chat_member_status_object(), new_member.status.get_chat_member_status_object());
     }
     case telegram_api::channelAdminLogEventActionChangeTitle::ID: {
@@ -19568,7 +19578,7 @@ void MessagesManager::on_get_event_log(int64 random_id,
       continue;
     }
     result->events_.push_back(make_tl_object<td_api::chatEvent>(
-        event->id_, event->date_, td_->contacts_manager_->get_user_id_object(user_id), std::move(action)));
+        event->id_, event->date_, td_->contacts_manager_->get_user_id_object(user_id, "chatEvent"), std::move(action)));
   }
 }
 
@@ -20290,7 +20300,8 @@ unique_ptr<MessageContent> MessagesManager::get_message_content(FormattedText me
     case telegram_api::messageMediaContact::ID: {
       auto message_contact = move_tl_object_as<telegram_api::messageMediaContact>(media);
       if (message_contact->user_id_ != 0) {
-        td_->contacts_manager_->get_user_id_object(UserId(message_contact->user_id_));  // to ensure updateUser
+        td_->contacts_manager_->get_user_id_object(UserId(message_contact->user_id_),
+                                                   "messageMediaContact");  // to ensure updateUser
       }
       return make_unique<MessageContact>(Contact(message_contact->phone_number_, message_contact->first_name_,
                                                  message_contact->last_name_, message_contact->user_id_));

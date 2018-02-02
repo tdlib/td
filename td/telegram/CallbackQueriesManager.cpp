@@ -177,10 +177,11 @@ void CallbackQueriesManager::on_new_query(int32 flags, int64 callback_query_id, 
   }
 
   td_->messages_manager_->force_create_dialog(dialog_id, "on_new_callback_query");
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateNewCallbackQuery>(
-                   callback_query_id, td_->contacts_manager_->get_user_id_object(sender_user_id), dialog_id.get(),
-                   message_id.get(), chat_instance, std::move(payload)));
+  send_closure(
+      G()->td(), &Td::send_update,
+      make_tl_object<td_api::updateNewCallbackQuery>(
+          callback_query_id, td_->contacts_manager_->get_user_id_object(sender_user_id, "updateNewCallbackQuery"),
+          dialog_id.get(), message_id.get(), chat_instance, std::move(payload)));
 }
 
 void CallbackQueriesManager::on_new_inline_query(
@@ -202,11 +203,12 @@ void CallbackQueriesManager::on_new_inline_query(
   if (payload == nullptr) {
     return;
   }
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateNewInlineCallbackQuery>(
-                   callback_query_id, td_->contacts_manager_->get_user_id_object(sender_user_id),
-                   InlineQueriesManager::get_inline_message_id(std::move(inline_message_id)), chat_instance,
-                   std::move(payload)));
+  send_closure(
+      G()->td(), &Td::send_update,
+      make_tl_object<td_api::updateNewInlineCallbackQuery>(
+          callback_query_id, td_->contacts_manager_->get_user_id_object(sender_user_id, "updateNewInlineCallbackQuery"),
+          InlineQueriesManager::get_inline_message_id(std::move(inline_message_id)), chat_instance,
+          std::move(payload)));
 }
 
 int64 CallbackQueriesManager::send_callback_query(FullMessageId full_message_id,
