@@ -18348,7 +18348,8 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
     // dump_debug_message_op(d, 5);
   }
 
-  message->message_id = MessageId(old_message_id.get() - MessageId::TYPE_YET_UNSENT + MessageId::TYPE_LOCAL);
+  auto new_message_id = MessageId(old_message_id.get() - MessageId::TYPE_YET_UNSENT + MessageId::TYPE_LOCAL);
+  message->message_id = new_message_id;
   CHECK(message->message_id.is_valid());
   message->random_y = get_random_y(message->message_id);
   message->is_failed_to_send = true;
@@ -18359,7 +18360,8 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
   bool need_update = false;
   Message *m = add_message_to_dialog(dialog_id, std::move(message), false, &need_update, &need_update_dialog_pos,
                                      "fail_send_message");
-  CHECK(m != nullptr);
+  CHECK(m != nullptr) << "Failed to add failed to send " << new_message_id << " to " << dialog_id << " due to "
+                      << debug_add_message_to_dialog_fail_reason;
 
   LOG(INFO) << "Send updateMessageSendFailed for " << full_message_id;
   d->yet_unsent_message_id_to_persistent_message_id.emplace(old_message_id, m->message_id);
@@ -20735,6 +20737,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(DialogId dialog
   MessageId message_id = message->message_id;
   if (!message_id.is_valid()) {
     LOG(ERROR) << "Receive " << message_id << " in " << dialog_id;
+    debug_add_message_to_dialog_fail_reason = "invalid message id";
     return nullptr;
   }
 
@@ -20763,10 +20766,12 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   if (d->deleted_message_ids.count(message_id)) {
     LOG(INFO) << "Skip adding deleted " << message_id << " to " << dialog_id;
+    debug_add_message_to_dialog_fail_reason = "adding deleted message";
     return nullptr;
   }
   if (message_id.get() <= d->last_clear_history_message_id.get()) {
     LOG(INFO) << "Skip adding cleared " << message_id << " to " << dialog_id;
+    debug_add_message_to_dialog_fail_reason = "cleared full history";
     return nullptr;
   }
   if (d->deleted_message_ids.count(message->reply_to_message_id)) {
@@ -20783,6 +20788,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   if (!message_id.is_valid()) {
     LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " from " << source;
     CHECK(!message->from_database);
+    debug_add_message_to_dialog_fail_reason = "invalid message id";
     return nullptr;
   }
 
@@ -20823,6 +20829,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     } else {
       LOG(INFO) << "Ignore " << message_id << " in " << dialog_id << " received not through update from " << source;
     }
+    debug_add_message_to_dialog_fail_reason = "too new message not from update";
     return nullptr;
   }
   if ((message_id.is_server() || (message_id.is_local() && dialog_id.get_type() == DialogType::SecretChat)) &&
@@ -20831,6 +20838,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     if (message->from_database) {
       delete_message_from_database(d, message_id, message.get(), true);
     }
+    debug_add_message_to_dialog_fail_reason = "ignore unavailable message";
     return nullptr;
   }
 
@@ -20870,6 +20878,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     LOG(INFO) << "Process MessageChatDeleteHistory in " << message_id << " in " << dialog_id << " with date "
               << message->date << " from " << source;
     CHECK(!message->from_database);
+    debug_add_message_to_dialog_fail_reason = "skip adding MessageChatDeleteHistory";
     return nullptr;
   }
 
@@ -20954,6 +20963,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       if (d->dialog_id.get_type() == DialogType::SecretChat) {
         LOG(INFO) << "Can't add " << message_id << " with expired TTL to " << dialog_id;
         delete_message_from_database(d, message_id, message.get(), true);
+        debug_add_message_to_dialog_fail_reason = "delete expired by TTL message";
         return nullptr;
       } else {
         on_message_ttl_expired_impl(d, message.get());

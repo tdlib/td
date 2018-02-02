@@ -2497,6 +2497,8 @@ class MessagesManager : public Actor {
       update_message_ids_;                                         // full_message_id -> temporary_id
   std::unordered_map<int64, DialogId> debug_being_sent_messages_;  // message_random_id -> dialog_id
 
+  const char *debug_add_message_to_dialog_fail_reason = "";
+
   struct UploadedDialogPhotoInfo {
     Promise<Unit> promise;
     DialogId dialog_id;
