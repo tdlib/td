@@ -4937,6 +4937,10 @@ bool ContactsManager::have_user_force(UserId user_id) {
 }
 
 ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
+  if (!user_id.is_valid()) {
+    return nullptr;
+  }
+
   User *u = get_user(user_id);
   if (u != nullptr) {
     return u;
@@ -5138,6 +5142,10 @@ void ContactsManager::on_load_chat_from_database(ChatId chat_id, string value) {
     }
   }
 
+  if (c != nullptr && c->migrated_to_channel_id.is_valid() && !have_channel_force(c->migrated_to_channel_id)) {
+    LOG(ERROR) << "Can't find " << c->migrated_to_channel_id << " from " << chat_id;
+  }
+
   for (auto &promise : promises) {
     promise.set_value(Unit());
   }
@@ -5148,8 +5156,16 @@ bool ContactsManager::have_chat_force(ChatId chat_id) {
 }
 
 ContactsManager::Chat *ContactsManager::get_chat_force(ChatId chat_id) {
+  if (!chat_id.is_valid()) {
+    return nullptr;
+  }
+
   Chat *c = get_chat(chat_id);
   if (c != nullptr) {
+    if (c->migrated_to_channel_id.is_valid() && !have_channel_force(c->migrated_to_channel_id)) {
+      LOG(ERROR) << "Can't find " << c->migrated_to_channel_id << " from " << chat_id;
+    }
+
     return c;
   }
   if (!G()->parameters().use_chat_info_db) {
@@ -5360,6 +5376,10 @@ bool ContactsManager::have_channel_force(ChannelId channel_id) {
 }
 
 ContactsManager::Channel *ContactsManager::get_channel_force(ChannelId channel_id) {
+  if (!channel_id.is_valid()) {
+    return nullptr;
+  }
+
   Channel *c = get_channel(channel_id);
   if (c != nullptr) {
     return c;
@@ -5581,11 +5601,14 @@ bool ContactsManager::have_secret_chat_force(SecretChatId secret_chat_id) {
 }
 
 ContactsManager::SecretChat *ContactsManager::get_secret_chat_force(SecretChatId secret_chat_id) {
+  if (!secret_chat_id.is_valid()) {
+    return nullptr;
+  }
+
   SecretChat *c = get_secret_chat(secret_chat_id);
   if (c != nullptr) {
     if (!have_user_force(c->user_id)) {
       LOG(ERROR) << "Can't find " << c->user_id << " from " << secret_chat_id;
-      return nullptr;
     }
     return c;
   }
@@ -9028,13 +9051,16 @@ int32 ContactsManager::get_basic_group_id_object(ChatId chat_id, const char *sou
   return chat_id.get();
 }
 
-tl_object_ptr<td_api::basicGroup> ContactsManager::get_basic_group_object(ChatId chat_id) const {
+tl_object_ptr<td_api::basicGroup> ContactsManager::get_basic_group_object(ChatId chat_id) {
   return get_basic_group_object(chat_id, get_chat(chat_id));
 }
 
-tl_object_ptr<td_api::basicGroup> ContactsManager::get_basic_group_object(ChatId chat_id, const Chat *chat) const {
+tl_object_ptr<td_api::basicGroup> ContactsManager::get_basic_group_object(ChatId chat_id, const Chat *chat) {
   if (chat == nullptr) {
     return nullptr;
+  }
+  if (chat->migrated_to_channel_id.is_valid()) {
+    get_channel_force(chat->migrated_to_channel_id);
   }
   return make_tl_object<td_api::basicGroup>(
       chat_id.get(), chat->participant_count, get_chat_status(chat).get_chat_member_status_object(),

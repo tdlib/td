@@ -19249,11 +19249,12 @@ std::pair<int32, vector<DialogParticipant>> MessagesManager::search_dialog_parti
       return td_->contacts_manager_->get_channel_participants(
           dialog_id.get_channel_id(), td_api::make_object<td_api::supergroupMembersFilterSearch>(query), 0, limit,
           random_id, force, std::move(promise));
-    case DialogType::SecretChat:
+    case DialogType::SecretChat: {
       promise.set_value(Unit());
-      return search_private_chat_participants(
-          td_->contacts_manager_->get_my_id("search_dialog_participants"),
-          td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id()), query, limit);
+      auto peer_user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+      return search_private_chat_participants(td_->contacts_manager_->get_my_id("search_dialog_participants"),
+                                              peer_user_id, query, limit);
+    }
     case DialogType::None:
     default:
       UNREACHABLE();

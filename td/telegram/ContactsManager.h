@@ -376,7 +376,7 @@ class ContactsManager : public Actor {
 
   int32 get_basic_group_id_object(ChatId chat_id, const char *source) const;
 
-  tl_object_ptr<td_api::basicGroup> get_basic_group_object(ChatId chat_id) const;
+  tl_object_ptr<td_api::basicGroup> get_basic_group_object(ChatId chat_id);
 
   tl_object_ptr<td_api::basicGroupFullInfo> get_basic_group_full_info_object(ChatId chat_id) const;
 
@@ -945,7 +945,7 @@ class ContactsManager : public Actor {
 
   tl_object_ptr<td_api::userFullInfo> get_user_full_info_object(UserId user_id, const UserFull *user_full) const;
 
-  tl_object_ptr<td_api::basicGroup> get_basic_group_object(ChatId chat_id, const Chat *chat) const;
+  tl_object_ptr<td_api::basicGroup> get_basic_group_object(ChatId chat_id, const Chat *chat);
 
   tl_object_ptr<td_api::basicGroupFullInfo> get_basic_group_full_info_object(const ChatFull *chat_full) const;
 

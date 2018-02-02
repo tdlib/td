@@ -1502,7 +1502,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEncryptedChatTy
   }
 
   UserId user_id = td_->contacts_manager_->get_secret_chat_user_id(secret_chat_id);
-  if (!user_id.is_valid()) {
+  if (!td_->contacts_manager_->have_user_force(user_id)) {
     LOG(DEBUG) << "Ignore secret chat typing of unknown " << user_id;
     return;
   }
