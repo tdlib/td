@@ -58,7 +58,7 @@ TDJSON_EXPORT void td_set_log_verbosity_level(int new_verbosity_level);
  *
  * \param error_message Null-terminated string with a description of a happened fatal error.
  */
-using td_log_fatal_error_callback_ptr = void (*)(const char *error_message);
+typedef void (*td_log_fatal_error_callback_ptr)(const char *error_message);
 
 /**
  * Sets the callback that will be called when a fatal error happens.
