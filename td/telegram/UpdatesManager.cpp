@@ -329,7 +329,7 @@ bool UpdatesManager::is_acceptable_message_entities(
     if (entity->get_id() == telegram_api::messageEntityMentionName::ID) {
       auto entity_mention_name = static_cast<const telegram_api::messageEntityMentionName *>(entity.get());
       UserId user_id(entity_mention_name->user_id_);
-      if (!td_->contacts_manager_->have_user(user_id)) {
+      if (!td_->contacts_manager_->have_user(user_id) || !td_->contacts_manager_->have_input_user(user_id)) {
         return false;
       }
     }

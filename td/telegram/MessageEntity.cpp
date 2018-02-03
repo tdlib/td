@@ -1722,6 +1722,10 @@ vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manag
           LOG(ERROR) << "Receive unknown " << user_id << " in MentionName";
           continue;
         }
+        if (!contacts_manager->have_input_user(user_id)) {
+          LOG(ERROR) << "Receive unaccessible " << user_id << " in MentionName";
+          continue;
+        }
         entities.emplace_back(entity_mention_name->offset_, entity_mention_name->length_, user_id);
         break;
       }
