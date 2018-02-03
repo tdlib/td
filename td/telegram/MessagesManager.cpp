@@ -9451,7 +9451,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
   }
 
   if (need_update && m->reply_markup != nullptr && m->reply_markup->type != ReplyMarkup::Type::InlineKeyboard &&
-      !td_->auth_manager_->is_bot()) {
+      m->reply_markup->is_personal && !td_->auth_manager_->is_bot()) {
     set_dialog_reply_markup(d, message_id);
   }
 
@@ -9639,7 +9639,8 @@ void MessagesManager::try_restore_dialog_reply_markup(Dialog *d, const Message *
   if (m->had_reply_markup) {
     LOG(INFO) << "Restore deleted reply markup in " << d->dialog_id;
     set_dialog_reply_markup(d, MessageId());
-  } else if (m->reply_markup != nullptr && m->reply_markup->type != ReplyMarkup::Type::InlineKeyboard) {
+  } else if (m->reply_markup != nullptr && m->reply_markup->type != ReplyMarkup::Type::InlineKeyboard &&
+             m->reply_markup->is_personal) {
     LOG(INFO) << "Restore reply markup in " << d->dialog_id << " to " << m->message_id;
     set_dialog_reply_markup(d, m->message_id);
   }
