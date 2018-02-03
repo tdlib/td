@@ -264,7 +264,7 @@ typename std::enable_if<std::is_unsigned<T>::value, T>::type hex_to_integer(Slic
   return integer_value;
 }
 
-double to_double(CSlice str);
+double to_double(Slice str);
 
 template <class T>
 T clamp(T value, T min_value, T max_value) {

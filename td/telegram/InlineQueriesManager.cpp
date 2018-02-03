@@ -1409,7 +1409,7 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
             Location l(inline_message_geo->geo_);
             location->location_ = l.get_location_object();
           } else {
-            auto coordinates = split(result->description_);
+            auto coordinates = split(Slice(result->description_));
             Location l(to_double(coordinates.first), to_double(coordinates.second));
             location->location_ = l.get_location_object();
           }

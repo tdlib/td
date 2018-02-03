@@ -122,7 +122,7 @@ inline Status from_json(double &to, JsonValue &from) {
   if (from.type() != JsonValue::Type::Number) {
     return Status::Error(PSLICE() << "Expected number, got " << from.type());
   }
-  to = to_double(from.get_number().str());
+  to = to_double(from.get_number());
   return Status::OK();
 }
 

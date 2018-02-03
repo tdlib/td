@@ -58,7 +58,7 @@ string oneline(Slice str) {
   return result;
 }
 
-double to_double(CSlice str) {
+double to_double(Slice str) {
   static TD_THREAD_LOCAL std::stringstream *ss;
   if (init_thread_local<std::stringstream>(ss)) {
     ss->imbue(std::locale::classic());
