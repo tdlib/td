@@ -11,7 +11,6 @@
 #include "td/utils/StackAllocator.h"
 
 #include <cstdarg>
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <type_traits>
@@ -31,6 +30,7 @@ class StringBuilder {
     current_ptr_ = begin_ptr_;
     error_flag_ = false;
   }
+
   MutableCSlice as_cslice() {
     if (current_ptr_ >= end_ptr_ + reserved_size) {
       std::abort();  // shouldn't happen
@@ -82,101 +82,30 @@ class StringBuilder {
     return *this << static_cast<int>(c);
   }
 
-  // TODO: optimize
-  StringBuilder &operator<<(int x) {
-    if (unlikely(end_ptr_ < current_ptr_)) {
-      return on_error();
-    }
-    current_ptr_ += std::snprintf(current_ptr_, reserved_size, "%d", x);
-    return *this;
-  }
+  StringBuilder &operator<<(int x);
 
-  StringBuilder &operator<<(unsigned int x) {
-    if (unlikely(end_ptr_ < current_ptr_)) {
-      return on_error();
-    }
-    current_ptr_ += std::snprintf(current_ptr_, reserved_size, "%u", x);
-    return *this;
-  }
+  StringBuilder &operator<<(unsigned int x);
 
-  StringBuilder &operator<<(long int x) {
-    if (unlikely(end_ptr_ < current_ptr_)) {
-      return on_error();
-    }
-    current_ptr_ += std::snprintf(current_ptr_, reserved_size, "%ld", x);
-    return *this;
-  }
+  StringBuilder &operator<<(long int x);
 
-  StringBuilder &operator<<(long unsigned int x) {
-    if (unlikely(end_ptr_ < current_ptr_)) {
-      return on_error();
-    }
-    current_ptr_ += std::snprintf(current_ptr_, reserved_size, "%lu", x);
-    return *this;
-  }
+  StringBuilder &operator<<(long unsigned int x);
 
-  StringBuilder &operator<<(long long int x) {
-    if (unlikely(end_ptr_ < current_ptr_)) {
-      return on_error();
-    }
-    current_ptr_ += std::snprintf(current_ptr_, reserved_size, "%lld", x);
-    return *this;
-  }
+  StringBuilder &operator<<(long long int x);
 
-  StringBuilder &operator<<(long long unsigned int x) {
-    if (unlikely(end_ptr_ < current_ptr_)) {
-      return on_error();
-    }
-    current_ptr_ += std::snprintf(current_ptr_, reserved_size, "%llu", x);
-    return *this;
-  }
+  StringBuilder &operator<<(long long unsigned int x);
 
-  StringBuilder &operator<<(double x) {
-    if (unlikely(end_ptr_ < current_ptr_)) {
-      return on_error();
-    }
-    auto left = end_ptr_ + reserved_size - current_ptr_;
-    int len = std::snprintf(current_ptr_, left, "%lf", x);
-    if (unlikely(len >= left)) {
-      error_flag_ = true;
-      current_ptr_ += left - 1;
-    } else {
-      current_ptr_ += len;
-    }
-    return *this;
-  }
+  StringBuilder &operator<<(double x);
+
+  StringBuilder &operator<<(const void *ptr);
 
   template <class T>
   StringBuilder &operator<<(const T *ptr) {
-    if (unlikely(end_ptr_ < current_ptr_)) {
-      return on_error();
-    }
-    current_ptr_ += std::snprintf(current_ptr_, reserved_size, "%p", ptr);
-    return *this;
+    return *this << static_cast<const void *>(ptr);
   }
 
-  void vprintf(const char *fmt, va_list list) {
-    if (unlikely(end_ptr_ < current_ptr_)) {
-      on_error();
-      return;
-    }
+  void vprintf(const char *fmt, va_list list);
 
-    auto left = end_ptr_ + reserved_size - current_ptr_;
-    int len = std::vsnprintf(current_ptr_, left, fmt, list);
-    if (unlikely(len >= left)) {
-      error_flag_ = true;
-      current_ptr_ += left - 1;
-    } else {
-      current_ptr_ += len;
-    }
-  }
-
-  void printf(const char *fmt, ...) TD_ATTRIBUTE_FORMAT_PRINTF(2, 3) {
-    va_list list;
-    va_start(list, fmt);
-    vprintf(fmt, list);
-    va_end(list);
-  }
+  void printf(const char *fmt, ...) TD_ATTRIBUTE_FORMAT_PRINTF(2, 3);
 
  private:
   char *begin_ptr_;

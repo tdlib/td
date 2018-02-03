@@ -12,8 +12,8 @@
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 
+#include <algorithm>
 #include <cstdint>
-#include <cstdlib>
 #include <initializer_list>
 #include <iterator>
 #include <limits>
@@ -23,15 +23,7 @@
 
 namespace td {
 
-inline char *str_dup(Slice str) {
-  char *res = static_cast<char *>(std::malloc(str.size() + 1));
-  if (res == nullptr) {
-    return nullptr;
-  }
-  std::copy(str.begin(), str.end(), res);
-  res[str.size()] = '\0';
-  return res;
-}
+char *str_dup(Slice str);
 
 template <class T>
 std::pair<T, T> split(T s, char delimiter = ' ') {
@@ -54,16 +46,7 @@ vector<T> full_split(T s, char delimiter = ' ') {
   return result;
 }
 
-inline string implode(vector<string> v, char delimiter = ' ') {
-  string result;
-  for (auto &str : v) {
-    if (!result.empty()) {
-      result += delimiter;
-    }
-    result += str;
-  }
-  return result;
-}
+string implode(vector<string> v, char delimiter = ' ');
 
 namespace detail {
 
@@ -209,29 +192,7 @@ T trim(T str) {
   return T(begin, end);
 }
 
-inline string oneline(Slice str) {
-  string result;
-  result.reserve(str.size());
-  bool after_new_line = true;
-  for (auto c : str) {
-    if (c != '\n') {
-      if (after_new_line) {
-        if (c == ' ') {
-          continue;
-        }
-        after_new_line = false;
-      }
-      result += c;
-    } else {
-      after_new_line = true;
-      result += ' ';
-    }
-  }
-  while (!result.empty() && result.back() == ' ') {
-    result.pop_back();
-  }
-  return result;
-}
+string oneline(Slice str);
 
 template <class T>
 std::enable_if_t<std::is_signed<T>::value, T> to_integer(Slice str) {
@@ -303,9 +264,7 @@ typename std::enable_if<std::is_unsigned<T>::value, T>::type hex_to_integer(Slic
   return integer_value;
 }
 
-inline double to_double(CSlice str) {
-  return std::atof(str.c_str());
-}
+double to_double(CSlice str);
 
 template <class T>
 T clamp(T value, T min_value, T max_value) {

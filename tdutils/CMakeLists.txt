@@ -68,10 +68,12 @@ set(TDUTILS_SOURCE
   td/utils/HttpUrl.cpp
   td/utils/JsonBuilder.cpp
   td/utils/logging.cpp
+  td/utils/misc.cpp
   td/utils/MimeType.cpp
   td/utils/Random.cpp
   td/utils/StackAllocator.cpp
   td/utils/Status.cpp
+  td/utils/StringBuilder.cpp
   td/utils/Time.cpp
   td/utils/Timer.cpp
   td/utils/tl_parsers.cpp
@@ -162,10 +164,10 @@ set(TDUTILS_SOURCE
   td/utils/queue.h
   td/utils/Random.h
   td/utils/ScopeGuard.h
+  td/utils/SharedObjectPool.h
   td/utils/Slice-decl.h
   td/utils/Slice.h
   td/utils/SpinLock.h
-  td/utils/SharedObjectPool.h
   td/utils/StackAllocator.h
   td/utils/Status.h
   td/utils/Storer.h
