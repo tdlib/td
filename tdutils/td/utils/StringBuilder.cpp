@@ -81,7 +81,7 @@ StringBuilder &StringBuilder::operator<<(double x) {
   auto left = end_ptr_ + reserved_size - current_ptr_;
   if (unlikely(len >= left)) {
     error_flag_ = true;
-    len = left - 1;
+    len = left ? narrow_cast<int>(left - 1) : 0;
   }
   ss->read(current_ptr_, len);
   current_ptr_ += len;
