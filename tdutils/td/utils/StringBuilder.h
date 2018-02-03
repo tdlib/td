@@ -6,15 +6,15 @@
 //
 #pragma once
 
+#include "td/utils/common.h"
+#include "td/utils/Slice-decl.h"
+#include "td/utils/StackAllocator.h"
+
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <type_traits>
-
-#include "td/utils/common.h"
-#include "td/utils/Slice-decl.h"
-#include "td/utils/StackAllocator.h"
 
 namespace td {
 

@@ -19,6 +19,9 @@
 #include "td/telegram/secret_api.h"
 #include "td/telegram/telegram_api.h"
 
+#include "td/tl/tl_object_parse.h"
+#include "td/tl/tl_object_store.h"
+
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"
 #include "td/utils/crypto.h"
@@ -39,9 +42,6 @@
 #include <limits>
 #include <map>
 #include <memory>
-
-#include "td/tl/tl_object_parse.h"
-#include "td/tl/tl_object_store.h"
 
 REGISTER_TESTS(secret);
 

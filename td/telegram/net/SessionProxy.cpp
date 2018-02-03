@@ -11,10 +11,10 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/net/Session.h"
 
-#include <functional>
-
 #include "td/utils/logging.h"
 #include "td/utils/Slice.h"
+
+#include <functional>
 
 namespace td {
 namespace mtproto {

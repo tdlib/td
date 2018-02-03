@@ -6,6 +6,12 @@
 //
 #include "td/utils/port/path.h"
 
+#include "td/utils/port/Fd.h"
+
+#if TD_WINDOWS
+#include "td/utils/Random.h"
+#endif
+
 #if TD_PORT_POSIX
 
 #include <limits.h>
@@ -24,12 +30,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#endif
-
-#include "td/utils/port/Fd.h"
-
-#if TD_WINDOWS
-#include "td/utils/Random.h"
 #endif
 
 #include <cstdlib>

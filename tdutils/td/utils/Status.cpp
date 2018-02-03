@@ -6,16 +6,16 @@
 //
 #include "td/utils/Status.h"
 
+#if TD_PORT_WINDOWS
+#include "td/utils/port/wstring_convert.h"
+#endif
+
 #if TD_PORT_POSIX
 #include "td/utils/port/thread_local.h"
 
 #include <string.h>
 
 #include <cstring>
-#endif
-
-#if TD_PORT_WINDOWS
-#include "td/utils/port/wstring_convert.h"
 #endif
 
 namespace td {

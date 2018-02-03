@@ -6,13 +6,14 @@
 //
 #include "td/telegram/net/PublicRsaKeyShared.h"
 
-#include <algorithm>
-
 #include "td/utils/logging.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
+#include <algorithm>
+
 namespace td {
+
 PublicRsaKeyShared::PublicRsaKeyShared(DcId dc_id) : dc_id_(dc_id) {
   if (!dc_id_.is_empty()) {
     return;
@@ -140,4 +141,5 @@ void PublicRsaKeyShared::notify() {
   auto it = remove_if(listeners_.begin(), listeners_.end(), [&](auto &listener) { return !listener->notify(); });
   listeners_.erase(it, listeners_.end());
 }
+
 }  // namespace td
