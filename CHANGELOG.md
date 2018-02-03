@@ -1,3 +1,9 @@
+Changes in 1.1.1:
+* Fixed C JSON bindings compilation error.
+* Fixed locale-dependent JSON generation.
+
+-----------------------------------------------------------------------------------------------------------------------
+
 Changes in 1.1.0:
 
 * Methods `td::Log::set_file_path` and `td_set_log_file_path` now return whether they succeeded.
