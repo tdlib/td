@@ -40,6 +40,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <clocale>
 #include <cstdlib>
 #include <cstring>  // for strcmp
 #include <ctime>
@@ -2928,6 +2929,8 @@ void main(int argc, char **argv) {
   set_signal_handler(SignalType::Error, fail_signal).ensure();
   set_signal_handler(SignalType::Abort, fail_signal).ensure();
   td::Log::set_fatal_error_callback(on_fatal_error);
+
+  std::setlocale(LC_ALL, "fr-FR");
 
   CliLog cli_log;
   log_interface = &cli_log;

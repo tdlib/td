@@ -8,6 +8,8 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <locale>
+#include <sstream>
 
 namespace td {
 
@@ -57,7 +59,18 @@ string oneline(Slice str) {
 }
 
 double to_double(CSlice str) {
-  return std::atof(str.c_str());
+  static TD_THREAD_LOCAL std::stringstream *ss;
+  if (init_thread_local<std::stringstream>(ss)) {
+    ss->imbue(std::locale::classic());
+  } else {
+    ss->str(std::string());
+    ss->clear();
+  }
+  ss->write(str.begin(), narrow_cast<std::streamsize>(str.size()));
+
+  double result = 0.0;
+  *ss >> result;
+  return result;
 }
 
 }  // namespace td

@@ -6,7 +6,11 @@
 //
 #include "td/utils/StringBuilder.h"
 
+#include "td/utils/misc.h"
+
 #include <cstdio>
+#include <locale>
+#include <sstream>
 
 namespace td {
 
@@ -63,14 +67,24 @@ StringBuilder &StringBuilder::operator<<(double x) {
   if (unlikely(end_ptr_ < current_ptr_)) {
     return on_error();
   }
+
+  static TD_THREAD_LOCAL std::stringstream *ss;
+  if (init_thread_local<std::stringstream>(ss)) {
+    ss->imbue(std::locale::classic());
+  } else {
+    ss->str(std::string());
+    ss->clear();
+  }
+  *ss << x;
+
+  int len = narrow_cast<int>(static_cast<std::streamoff>(ss->tellp()));
   auto left = end_ptr_ + reserved_size - current_ptr_;
-  int len = std::snprintf(current_ptr_, left, "%lf", x);
   if (unlikely(len >= left)) {
     error_flag_ = true;
-    current_ptr_ += left - 1;
-  } else {
-    current_ptr_ += len;
+    len = left - 1;
   }
+  ss->read(current_ptr_, len);
+  current_ptr_ += len;
   return *this;
 }
 

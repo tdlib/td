@@ -14,9 +14,11 @@
 #include "td/utils/port/Stat.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/Random.h"
+#include "td/utils/Slice.h"
 #include "td/utils/tests.h"
 
 #include <atomic>
+#include <clocale>
 #include <limits>
 
 using namespace td;
@@ -186,4 +188,36 @@ TEST(Misc, to_integer) {
   ASSERT_EQ(to_integer_safe<int64>("-12345678910111213").ok(), -12345678910111213);
   ASSERT_EQ(to_integer_safe<uint64>("12345678910111213").ok(), 12345678910111213ull);
   ASSERT_TRUE(to_integer_safe<uint64>("-12345678910111213").is_error());
+}
+
+static void test_to_double_one(CSlice str, Slice expected) {
+  auto result = PSTRING() << to_double(str);
+  if (expected != result) {
+    LOG(ERROR) << "To double conversion failed: have " << str << ", expected " << expected << ", parsed "
+               << to_double(str) << ", got " << result;
+  }
+}
+
+static void test_to_double() {
+  test_to_double_one("0", "0");
+  test_to_double_one("1", "1");
+  test_to_double_one("-10", "-10");
+  test_to_double_one("1.234", "1.234");
+  test_to_double_one("-1.234e2", "-123.4");
+  test_to_double_one("inf", "inf");
+  test_to_double_one("  inF  asdasd", "inf");
+  test_to_double_one("  inFasdasd", "0");
+  test_to_double_one("  NaN", "nan");
+  test_to_double_one("  12345678910111213141516171819  asdasd", "1.23457e+28");
+  test_to_double_one("1.234567891011121314E123", "1.23457e+123");
+  test_to_double_one("123456789", "1.23457e+08");
+  test_to_double_one("-1,234567891011121314E123", "-1");
+}
+
+TEST(Misc, to_double) {
+  test_to_double();
+  std::setlocale(LC_ALL, "fr-FR");
+  test_to_double();
+  std::setlocale(LC_ALL, "C");
+  test_to_double();
 }
