@@ -476,7 +476,7 @@ std::string TD_TL_writer_jni_cpp::gen_fetch_switch_case(const tl::tl_combinator 
 
 std::string TD_TL_writer_jni_cpp::gen_fetch_switch_end() const {
   return "    default:\n"
-         "      UNREACHABLE();\n"
+         "      LOG(WARNING) << \"Unknown constructor found\";\n"
          "      return nullptr;\n"
          "  }\n";
 }
