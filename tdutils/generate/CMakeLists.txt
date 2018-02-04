@@ -17,6 +17,11 @@ set(TDMIME_AUTO
 add_custom_target(tdmime_auto DEPENDS ${TDMIME_SOURCE})
 
 if (NOT CMAKE_CROSSCOMPILING)
+  find_program(GPERF_EXECUTABLE gperf)
+  if(NOT GPERF_EXECUTABLE)
+    message(FATAL_ERROR "Could NOT find gperf. Path to gperf needs to be specified manually, i.e. 'cmake -DGPERF_EXECUTABLE:FILEPATH=\"<path to gperf executable>\" .')")
+  endif()
+
   set(GPERF_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/auto/mime_type_to_extension.gperf
     ${CMAKE_CURRENT_SOURCE_DIR}/auto/extension_to_mime_type.gperf
@@ -34,9 +39,9 @@ if (NOT CMAKE_CROSSCOMPILING)
   )
 
   if (WIN32)
-    set(MIME_TYPE_TO_EXTENSION_CMD powershell -ExecutionPolicy ByPass \" & gperf -m100 --output-file=auto/mime_type_to_extension.cpp auto/mime_type_to_extension.gperf\")
+    set(MIME_TYPE_TO_EXTENSION_CMD ${GPERF_EXECUTABLE} -m100 --output-file=auto/mime_type_to_extension.cpp auto/mime_type_to_extension.gperf)
   else()
-    set(MIME_TYPE_TO_EXTENSION_CMD gperf -m100 auto/mime_type_to_extension.gperf | grep -v __gnu_inline__ > auto/mime_type_to_extension.cpp)
+    set(MIME_TYPE_TO_EXTENSION_CMD ${GPERF_EXECUTABLE} -m100 auto/mime_type_to_extension.gperf | grep -v __gnu_inline__ > auto/mime_type_to_extension.cpp)
   endif()
   add_custom_command(
     OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/auto/mime_type_to_extension.cpp
@@ -46,9 +51,9 @@ if (NOT CMAKE_CROSSCOMPILING)
   )
 
   if (WIN32)
-    set(EXTENSION_TO_MIME_TYPE_CMD powershell -ExecutionPolicy ByPass \" & gperf -m100 --output-file=auto/extension_to_mime_type.cpp auto/extension_to_mime_type.gperf\")
+    set(EXTENSION_TO_MIME_TYPE_CMD ${GPERF_EXECUTABLE} -m100 --output-file=auto/extension_to_mime_type.cpp auto/extension_to_mime_type.gperf)
   else()
-    set(EXTENSION_TO_MIME_TYPE_CMD gperf -m100 auto/extension_to_mime_type.gperf | grep -v __gnu_inline__ > auto/extension_to_mime_type.cpp)
+    set(EXTENSION_TO_MIME_TYPE_CMD ${GPERF_EXECUTABLE} -m100 auto/extension_to_mime_type.gperf | grep -v __gnu_inline__ > auto/extension_to_mime_type.cpp)
   endif()
   add_custom_command(
     OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/auto/extension_to_mime_type.cpp
