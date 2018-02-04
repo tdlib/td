@@ -34,8 +34,8 @@ enum class FileLocationSource : int8 { None, FromUser, FromDb, FromServer };
 
 class FileNode {
  public:
-  FileNode(LocalFileLocation local, RemoteFileLocation remote, GenerateFileLocation generate, int64 size,
-           int64 expected_size, string name, string url, DialogId owner_dialog_id, FileEncryptionKey key,
+  FileNode(LocalFileLocation local, RemoteFileLocation remote, unique_ptr<FullGenerateFileLocation> generate,
+           int64 size, int64 expected_size, string name, string url, DialogId owner_dialog_id, FileEncryptionKey key,
            FileId main_file_id, int8 main_file_id_priority)
       : local_(std::move(local))
       , remote_(std::move(remote))
@@ -51,7 +51,7 @@ class FileNode {
   }
   void set_local_location(const LocalFileLocation &local, int64 ready_size);
   void set_remote_location(const RemoteFileLocation &remote, FileLocationSource source, int64 ready_size);
-  void set_generate_location(const GenerateFileLocation &generate);
+  void set_generate_location(unique_ptr<FullGenerateFileLocation> &&generate);
   void set_size(int64 size);
   void set_expected_size(int64 expected_size);
   void set_name(string name);
@@ -85,7 +85,7 @@ class FileNode {
   FileLoadManager::QueryId download_id_ = 0;
   int64 remote_ready_size_ = 0;
 
-  GenerateFileLocation generate_;
+  unique_ptr<FullGenerateFileLocation> generate_;
   FileLoadManager::QueryId generate_id_ = 0;
 
   int64 size_ = 0;

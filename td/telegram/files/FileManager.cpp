@@ -89,9 +89,10 @@ void FileNode::set_remote_location(const RemoteFileLocation &remote, FileLocatio
   on_changed();
 }
 
-void FileNode::set_generate_location(const GenerateFileLocation &generate) {
-  if (generate_ != generate) {
-    generate_ = generate;
+void FileNode::set_generate_location(unique_ptr<FullGenerateFileLocation> &&generate) {
+  bool is_changed = generate_ == nullptr ? generate != nullptr : generate == nullptr || *generate_ != *generate;
+  if (is_changed) {
+    generate_ = std::move(generate);
     on_pmc_changed();
   }
 }
@@ -199,9 +200,9 @@ bool FileNode::need_pmc_flush() const {
     return true;
   }
 
-  bool has_generate_location = generate_.type() == GenerateFileLocation::Type::Full;
+  bool has_generate_location = generate_ != nullptr;
   // Do not save "#file_id#" conversion.
-  if (has_generate_location && begins_with(generate_.full().conversion_, "#file_id#")) {
+  if (has_generate_location && begins_with(generate_->conversion_, "#file_id#")) {
     has_generate_location = false;
   }
 
@@ -242,11 +243,11 @@ const FullRemoteFileLocation &FileView::remote_location() const {
   return node_->remote_.full();
 }
 bool FileView::has_generate_location() const {
-  return node_->generate_.type() == GenerateFileLocation::Type::Full;
+  return node_->generate_ != nullptr;
 }
 const FullGenerateFileLocation &FileView::generate_location() const {
   CHECK(has_generate_location());
-  return node_->generate_.full();
+  return *node_->generate_;
 }
 
 int64 FileView::size() const {
@@ -639,7 +640,7 @@ Result<FileId> FileManager::register_generate(FileType file_type, FileLocationSo
                                               string original_path, string conversion, DialogId owner_dialog_id,
                                               int64 expected_size) {
   FileData data;
-  data.generate_ = GenerateFileLocation(FullGenerateFileLocation(file_type, original_path, std::move(conversion)));
+  data.generate_ = make_unique<FullGenerateFileLocation>(file_type, std::move(original_path), std::move(conversion));
   data.owner_dialog_id_ = owner_dialog_id;
   data.expected_size_ = expected_size;
   return register_file(std::move(data), file_location_source, "register_generate", false);
@@ -648,7 +649,7 @@ Result<FileId> FileManager::register_generate(FileType file_type, FileLocationSo
 Result<FileId> FileManager::register_file(FileData data, FileLocationSource file_location_source, const char *source,
                                           bool force) {
   bool has_remote = data.remote_.type() == RemoteFileLocation::Type::Full;
-  bool has_generate = data.generate_.type() == GenerateFileLocation::Type::Full;
+  bool has_generate = data.generate_ != nullptr;
   if (data.local_.type() == LocalFileLocation::Type::Full && !force) {
     if (file_location_source == FileLocationSource::FromDb) {
       PathView path_view(data.local_.full().path_);
@@ -762,9 +763,9 @@ static int merge_choose(const RemoteFileLocation &x, int8 x_source, const Remote
   }
   return 2;
 }
-static int merge_choose(const GenerateFileLocation &x, const GenerateFileLocation &y) {
-  int32 x_type = static_cast<int32>(x.type());
-  int32 y_type = static_cast<int32>(y.type());
+static int merge_choose(const unique_ptr<FullGenerateFileLocation> &x, const unique_ptr<FullGenerateFileLocation> &y) {
+  int x_type = static_cast<int>(x != nullptr);
+  int y_type = static_cast<int>(y != nullptr);
   if (x_type != y_type) {
     return x_type < y_type;
   }
@@ -946,7 +947,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     other_node->download_priority_ = 0;
 
     //cancel_generate(node);
-    //node->set_generate_location(other_node->generate_);
+    //node->set_generate_location(std::move(other_node->generate_));
     //node->generate_id_ = other_node->generate_id_;
     //node->set_generate_priority(other_node->generate_download_priority_, other_node->generate_upload_priority_);
     //other_node->generate_id_ = 0;
@@ -974,7 +975,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
 
   if (generate_i == other_node_i) {
     cancel_generate(node);
-    node->set_generate_location(other_node->generate_);
+    node->set_generate_location(std::move(other_node->generate_));
     node->generate_id_ = other_node->generate_id_;
     node->set_generate_priority(other_node->generate_download_priority_, other_node->generate_upload_priority_);
     other_node->generate_id_ = 0;
@@ -1116,7 +1117,7 @@ void FileManager::clear_from_pmc(FileNodePtr node) {
     data.remote_ = node->remote_;
   }
   if (file_view.has_generate_location()) {
-    data.generate_ = node->generate_;
+    data.generate_ = std::make_unique<FullGenerateFileLocation>(*node->generate_);
   }
   file_db_->clear_file_data(node->pmc_id_, data);
 }
@@ -1139,11 +1140,8 @@ void FileManager::flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local
     prepare_path_for_pmc(data.local_.full().file_type_, data.local_.full().path_);
   }
   data.remote_ = node->remote_;
-  data.generate_ = node->generate_;
-
-  if (data.generate_.type() == GenerateFileLocation::Type::Full &&
-      begins_with(data.generate_.full().conversion_, "#file_id#")) {
-    data.generate_ = GenerateFileLocation();
+  if (node->generate_ != nullptr && !begins_with(node->generate_->conversion_, "#file_id#")) {
+    data.generate_ = std::make_unique<FullGenerateFileLocation>(*node->generate_);
   }
 
   // TODO: not needed when GenerateLocation has constant convertion
@@ -1568,7 +1566,7 @@ void FileManager::run_generate(FileNodePtr node) {
 
   QueryId id = queries_container_.create(Query{file_id, Query::Generate});
   node->generate_id_ = id;
-  send_closure(file_generate_manager_, &FileGenerateManager::generate_file, id, node->generate_.full(), node->local_,
+  send_closure(file_generate_manager_, &FileGenerateManager::generate_file, id, *node->generate_, node->local_,
                node->name_, [file_manager = this, id] {
                  class Callback : public FileGenerateCallback {
                    ActorId<FileManager> actor_;

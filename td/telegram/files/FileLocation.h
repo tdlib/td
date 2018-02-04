@@ -1085,7 +1085,7 @@ class FileData {
   uint64 pmc_id_ = 0;
   RemoteFileLocation remote_;
   LocalFileLocation local_;
-  GenerateFileLocation generate_;
+  unique_ptr<FullGenerateFileLocation> generate_;
   int64 size_ = 0;
   int64 expected_size_ = 0;
   string name_;
@@ -1108,7 +1108,8 @@ class FileData {
     store(pmc_id_, storer);
     store(remote_, storer);
     store(local_, storer);
-    store(generate_, storer);
+    auto generate = generate_ == nullptr ? GenerateFileLocation() : GenerateFileLocation(*generate_);
+    store(generate, storer);
     if (has_expected_size) {
       store(expected_size_, storer);
     } else {
@@ -1134,7 +1135,13 @@ class FileData {
     parse(pmc_id_, parser);
     parse(remote_, parser);
     parse(local_, parser);
-    parse(generate_, parser);
+    GenerateFileLocation generate;
+    parse(generate, parser);
+    if (generate.type() == GenerateFileLocation::Type::Full) {
+      generate_ = std::make_unique<FullGenerateFileLocation>(generate.full());
+    } else {
+      generate_ = nullptr;
+    }
     if (has_expected_size) {
       parse(expected_size_, parser);
     } else {
@@ -1154,8 +1161,8 @@ inline StringBuilder &operator<<(StringBuilder &sb, const FileData &file_data) {
   if (file_data.local_.type() == LocalFileLocation::Type::Full) {
     sb << " local " << file_data.local_.full();
   }
-  if (file_data.generate_.type() == GenerateFileLocation::Type::Full) {
-    sb << " generate " << file_data.generate_.full();
+  if (file_data.generate_ != nullptr) {
+    sb << " generate " << *file_data.generate_;
   }
   if (file_data.remote_.type() == RemoteFileLocation::Type::Full) {
     sb << " remote " << file_data.remote_.full();
