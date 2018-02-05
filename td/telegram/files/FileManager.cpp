@@ -399,7 +399,7 @@ FileManager::FileManager(std::unique_ptr<Context> context) : context_(std::move(
       if (r_stat.is_ok() && r_stat.ok().is_dir_) {
         LOG(ERROR) << "mkdir " << tag("path", path) << " failed " << status << ", but directory exists";
       } else {
-        LOG(FATAL) << "mkdir " << tag("path", path) << " failed " << status;
+        LOG(ERROR) << "mkdir " << tag("path", path) << " failed " << status;
       }
     }
 #if TD_ANDROID
