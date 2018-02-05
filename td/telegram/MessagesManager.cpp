@@ -15891,7 +15891,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     }
 
     input_single_media.push_back(make_tl_object<telegram_api::inputSingleMedia>(
-        std::move(input_media), input_single_media_flags, random_ids.back(), caption.text, std::move(entities)));
+        input_single_media_flags, std::move(input_media), random_ids.back(), caption.text, std::move(entities)));
     if (request.results[i].is_error()) {
       success = false;
     }
