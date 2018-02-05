@@ -4223,12 +4223,13 @@ Status Td::init(DbKey key) {
     contacts_manager_->on_binlog_user_event(std::move(event));
   }
 
-  for (auto &event : events.chat_events) {
-    contacts_manager_->on_binlog_chat_event(std::move(event));
-  }
-
   for (auto &event : events.channel_events) {
     contacts_manager_->on_binlog_channel_event(std::move(event));
+  }
+
+  // chats may contain links to channels, so should be inited after
+  for (auto &event : events.chat_events) {
+    contacts_manager_->on_binlog_chat_event(std::move(event));
   }
 
   for (auto &event : events.secret_chat_events) {
