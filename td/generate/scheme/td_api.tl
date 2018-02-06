@@ -203,8 +203,9 @@ photo id:int64 has_stickers:Bool sizes:vector<photoSize> = Photo;
 sticker set_id:int64 width:int32 height:int32 emoji:string is_mask:Bool mask_position:maskPosition thumbnail:photoSize sticker:file = Sticker;
 
 //@description Describes a video file @duration Duration of the video, in seconds; as defined by the sender @width Video width; as defined by the sender @height Video height; as defined by the sender
-//@file_name Original name of the file; as defined by the sender @mime_type MIME type of the file; as defined by the sender @has_stickers True, if stickers were added to the photo @thumbnail Video thumbnail; as defined by the sender; may be null @video File containing the video
-video duration:int32 width:int32 height:int32 file_name:string mime_type:string has_stickers:Bool thumbnail:photoSize video:file = Video;
+//@file_name Original name of the file; as defined by the sender @mime_type MIME type of the file; as defined by the sender @has_stickers True, if stickers were added to the photo
+//@supports_streaming True, if the video should be tried to streamed @thumbnail Video thumbnail; as defined by the sender; may be null @video File containing the video
+video duration:int32 width:int32 height:int32 file_name:string mime_type:string has_stickers:Bool supports_streaming:Bool thumbnail:photoSize video:file = Video;
 
 //@description Describes a video note. The video must be equal in width and height, cropped to a circle, and stored in MPEG4 format @duration Duration of the video, in seconds; as defined by the sender @length Video width and height; as defined by the sender @thumbnail Video thumbnail; as defined by the sender; may be null @video File containing the video
 videoNote duration:int32 length:int32 thumbnail:photoSize video:file = VideoNote;
@@ -977,9 +978,10 @@ inputMessagePhoto photo:InputFile thumbnail:inputThumbnail added_sticker_file_id
 //@description A sticker message @sticker Sticker to be sent @thumbnail Sticker thumbnail, if available @width Sticker width @height Sticker height
 inputMessageSticker sticker:InputFile thumbnail:inputThumbnail width:int32 height:int32 = InputMessageContent;
 
-//@description A video message @video Video to be sent @thumbnail Video thumbnail, if available @added_sticker_file_ids File identifiers of the stickers added to the video, if applicable @duration Duration of the video, in seconds @width Video width @height Video height @caption Video caption; 0-200 characters
-//@ttl Video TTL (Time To Live), in seconds (0-60). A non-zero TTL can be specified only in private chats
-inputMessageVideo video:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> duration:int32 width:int32 height:int32 caption:formattedText ttl:int32 = InputMessageContent;
+//@description A video message @video Video to be sent @thumbnail Video thumbnail, if available @added_sticker_file_ids File identifiers of the stickers added to the video, if applicable
+//@duration Duration of the video, in seconds @width Video width @height Video height @supports_streaming True, if the video should be tried to streamed
+//@caption Video caption; 0-200 characters @ttl Video TTL (Time To Live), in seconds (0-60). A non-zero TTL can be specified only in private chats
+inputMessageVideo video:InputFile thumbnail:inputThumbnail added_sticker_file_ids:vector<int32> duration:int32 width:int32 height:int32 supports_streaming:Bool caption:formattedText ttl:int32 = InputMessageContent;
 
 //@description A video note message @video_note Video note to be sent @thumbnail Video thumbnail, if available @duration Duration of the video, in seconds @length Video width and height; must be positive and not greater than 640
 inputMessageVideoNote video_note:InputFile thumbnail:inputThumbnail duration:int32 length:int32 = InputMessageContent;
@@ -1512,14 +1514,33 @@ userPrivacySettingAllowCalls = UserPrivacySetting;
 accountTtl days:int32 = AccountTtl;
 
 
-//@description Contains information about one session in a Telegram application used by the current user @id Session identifier @is_current True, if this session is the current session @api_id Telegram API identifier, as provided by the application @application_name Name of the application, as provided by the application
-//@application_version The version of the application, as provided by the application @is_official_application True, if the application is an official application or uses the api_id of an official application @device_model Model of the device the application has been run or is running on, as provided by the application @platform Operating system the application has been run or is running on, as provided by the application
-//@system_version Version of the operating system the application has been run or is running on, as provided by the application @log_in_date Point in time (Unix timestamp) when the user has logged in @last_active_date Point in time (Unix timestamp) when the session was last used @ip IP address from which the session was created, in human-readable format
+//@description Contains information about one session in a Telegram application used by the current user @id Session identifier @is_current True, if this session is the current session
+//@api_id Telegram API identifier, as provided by the application @application_name Name of the application, as provided by the application
+//@application_version The version of the application, as provided by the application @is_official_application True, if the application is an official application or uses the api_id of an official application
+//@device_model Model of the device the application has been run or is running on, as provided by the application @platform Operating system the application has been run or is running on, as provided by the application
+//@system_version Version of the operating system the application has been run or is running on, as provided by the application @log_in_date Point in time (Unix timestamp) when the user has logged in
+//@last_active_date Point in time (Unix timestamp) when the session was last used @ip IP address from which the session was created, in human-readable format
 //@country A two-letter country code for the country from which the session was created, based on the IP address @region Region code from which the session was created, based on the IP address
 session id:int64 is_current:Bool api_id:int32 application_name:string application_version:string is_official_application:Bool device_model:string platform:string system_version:string log_in_date:int32 last_active_date:int32 ip:string country:string region:string = Session;
 
 //@description Contains a list of sessions @sessions List of sessions
 sessions sessions:vector<session> = Sessions;
+
+
+//@description Contains information about one website the current user is logged in with Telegram
+//@id Website identifier
+//@domain_name The domain name of the website
+//@bot_user_id User identifier of a bot linked with the website
+//@browser The version of a browser used to log in
+//@platform Operating system the browser is running on
+//@log_in_date Point in time (Unix timestamp) when the user was logged in
+//@last_active_date Point in time (Unix timestamp) when obtained authorization was last used
+//@ip IP address from which the user was logged in, in human-readable format
+//@location Human-readable description of a country and a region, from which the user was logged in, based on the IP address
+connectedWebsite id:int64 domain_name:string bot_user_id:int32 browser:string platform:string log_in_date:int32 last_active_date:int32 ip:string location:string = ConnectedWebsite;
+
+//@description Contains a list of websites the current user is logged in with Telegram @websites List of connected websites
+connectedWebsites websites:vector<connectedWebsite> = ConnectedWebsites;
 
 
 //@description Contains information about the availability of the "Report spam" action for a chat @can_report_spam True, if a prompt with the "Report spam" action should be shown to the user
@@ -2021,6 +2042,12 @@ getChat chat_id:int53 = Chat;
 
 //@description Returns information about a message @chat_id Identifier of the chat the message belongs to @message_id Identifier of the message to get
 getMessage chat_id:int53 message_id:int53 = Message;
+
+//@description Returns information about a message that is replied by given message @chat_id Identifier of the chat the message belongs to @message_id Identifier of the message reply to which get
+getRepliedMessage chat_id:int53 message_id:int53 = Message;
+
+//@description Returns information about a pinned chat message @chat_id Identifier of the chat the message belongs to
+getChatPinnedMessage chat_id:int53 = Message;
 
 //@description Returns information about messages. If a message is not found, returns null on the corresponding position of the result @chat_id Identifier of the chat the messages belong to @message_ids Identifiers of the messages to get
 getMessages chat_id:int53 message_ids:vector<int53> = Messages;
@@ -2559,6 +2586,16 @@ terminateSession session_id:int64 = Ok;
 
 //@description Terminates all other sessions of the current user
 terminateAllOtherSessions = Ok;
+
+
+//@description Returns all website where the current user used Telegram to log in
+getConnectedWebsites = ConnectedWebsites;
+
+//@description Disconnects website from the current user's Telegram account @website_id Website identifier
+disconnectWebsite website_id:int64 = Ok;
+
+//@description Disconnects all websites from the current user's Telegram account
+disconnectAllWebsites = Ok;
 
 
 //@description Toggles the "All members are admins" setting in basic groups; requires creator privileges in the group @basic_group_id Identifier of the basic group @everyone_is_administrator New value of everyone_is_administrator

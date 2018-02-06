@@ -683,6 +683,55 @@ class TerminateAllOtherSessionsRequest : public RequestOnceActor {
   }
 };
 
+class GetConnectedWebsitesRequest : public RequestActor<tl_object_ptr<td_api::connectedWebsites>> {
+  tl_object_ptr<td_api::connectedWebsites> connected_websites_;
+
+  void do_run(Promise<tl_object_ptr<td_api::connectedWebsites>> &&promise) override {
+    if (get_tries() < 2) {
+      promise.set_value(std::move(connected_websites_));
+      return;
+    }
+
+    td->contacts_manager_->get_connected_websites(std::move(promise));
+  }
+
+  void do_set_result(tl_object_ptr<td_api::connectedWebsites> &&result) override {
+    connected_websites_ = std::move(result);
+  }
+
+  void do_send_result() override {
+    CHECK(connected_websites_ != nullptr);
+    send_result(std::move(connected_websites_));
+  }
+
+ public:
+  GetConnectedWebsitesRequest(ActorShared<Td> td, uint64 request_id) : RequestActor(std::move(td), request_id) {
+  }
+};
+
+class DisconnectWebsiteRequest : public RequestOnceActor {
+  int64 website_id_;
+
+  void do_run(Promise<Unit> &&promise) override {
+    td->contacts_manager_->disconnect_website(website_id_, std::move(promise));
+  }
+
+ public:
+  DisconnectWebsiteRequest(ActorShared<Td> td, uint64 request_id, int64 website_id)
+      : RequestOnceActor(std::move(td), request_id), website_id_(website_id) {
+  }
+};
+
+class DisconnectAllWebsitesRequest : public RequestOnceActor {
+  void do_run(Promise<Unit> &&promise) override {
+    td->contacts_manager_->disconnect_all_websites(std::move(promise));
+  }
+
+ public:
+  DisconnectAllWebsitesRequest(ActorShared<Td> td, uint64 request_id) : RequestOnceActor(std::move(td), request_id) {
+  }
+};
+
 class GetUserRequest : public RequestActor<> {
   UserId user_id_;
 
@@ -982,6 +1031,49 @@ class GetMessageRequest : public RequestOnceActor {
  public:
   GetMessageRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id)
       : RequestOnceActor(std::move(td), request_id), full_message_id_(DialogId(dialog_id), MessageId(message_id)) {
+  }
+};
+
+class GetRepliedMessageRequest : public RequestOnceActor {
+  DialogId dialog_id_;
+  MessageId message_id_;
+
+  MessageId replied_message_id_;
+
+  void do_run(Promise<Unit> &&promise) override {
+    replied_message_id_ =
+        td->messages_manager_->get_replied_message(dialog_id_, message_id_, get_tries() < 3, std::move(promise));
+  }
+
+  void do_send_result() override {
+    send_result(td->messages_manager_->get_message_object({dialog_id_, replied_message_id_}));
+  }
+
+ public:
+  GetRepliedMessageRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id)
+      : RequestOnceActor(std::move(td), request_id), dialog_id_(dialog_id), message_id_(message_id) {
+    set_tries(3);
+  }
+};
+
+class GetChatPinnedMessageRequest : public RequestActor<> {
+  DialogId dialog_id_;
+
+  MessageId pinned_message_id_;
+
+  void do_run(Promise<Unit> &&promise) override {
+    pinned_message_id_ =
+        td->messages_manager_->get_dialog_pinned_message(dialog_id_, get_tries() < 3, std::move(promise));
+  }
+
+  void do_send_result() override {
+    send_result(td->messages_manager_->get_message_object({dialog_id_, pinned_message_id_}));
+  }
+
+ public:
+  GetChatPinnedMessageRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id)
+      : RequestActor<>(std::move(td), request_id), dialog_id_(dialog_id) {
+    set_tries(3);
   }
 };
 
@@ -4724,6 +4816,24 @@ void Td::on_request(uint64 id, const td_api::terminateAllOtherSessions &request)
   CREATE_NO_ARGS_REQUEST(TerminateAllOtherSessionsRequest);
 }
 
+void Td::on_request(uint64 id, const td_api::getConnectedWebsites &request) {
+  CHECK_AUTH();
+  CHECK_IS_USER();
+  CREATE_NO_ARGS_REQUEST(GetConnectedWebsitesRequest);
+}
+
+void Td::on_request(uint64 id, const td_api::disconnectWebsite &request) {
+  CHECK_AUTH();
+  CHECK_IS_USER();
+  CREATE_REQUEST(DisconnectWebsiteRequest, request.website_id_);
+}
+
+void Td::on_request(uint64 id, const td_api::disconnectAllWebsites &request) {
+  CHECK_AUTH();
+  CHECK_IS_USER();
+  CREATE_NO_ARGS_REQUEST(DisconnectAllWebsitesRequest);
+}
+
 void Td::on_request(uint64 id, const td_api::getMe &) {
   CHECK_AUTH();
 
@@ -4775,6 +4885,16 @@ void Td::on_request(uint64 id, const td_api::getChat &request) {
 void Td::on_request(uint64 id, const td_api::getMessage &request) {
   CHECK_AUTH();
   CREATE_REQUEST(GetMessageRequest, request.chat_id_, request.message_id_);
+}
+
+void Td::on_request(uint64 id, const td_api::getRepliedMessage &request) {
+  CHECK_AUTH();
+  CREATE_REQUEST(GetRepliedMessageRequest, request.chat_id_, request.message_id_);
+}
+
+void Td::on_request(uint64 id, const td_api::getChatPinnedMessage &request) {
+  CHECK_AUTH();
+  CREATE_REQUEST(GetChatPinnedMessageRequest, request.chat_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::getMessages &request) {

@@ -1022,7 +1022,8 @@ tl_object_ptr<td_api::sticker> copy(const td_api::sticker &obj) {
 template <>
 tl_object_ptr<td_api::video> copy(const td_api::video &obj) {
   return make_tl_object<td_api::video>(obj.duration_, obj.width_, obj.height_, obj.file_name_, obj.mime_type_,
-                                       obj.has_stickers_, copy(obj.thumbnail_), copy(obj.video_));
+                                       obj.has_stickers_, obj.supports_streaming_, copy(obj.thumbnail_),
+                                       copy(obj.video_));
 }
 
 template <>
@@ -1561,7 +1562,7 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
             auto video = make_tl_object<td_api::inlineQueryResultVideo>();
             video->id_ = std::move(result->id_);
             td_->videos_manager_->create_video(file_id, std::move(thumbnail), false, {}, std::move(file_name),
-                                               std::move(result->content_type_), duration, dimensions, false);
+                                               std::move(result->content_type_), duration, dimensions, false, false);
             video->video_ = td_->videos_manager_->get_video_object(file_id);
             video->title_ = std::move(result->title_);
             video->description_ = std::move(result->description_);

@@ -124,6 +124,7 @@ std::pair<DocumentsManager::DocumentType, FileId> DocumentsManager::on_get_docum
   auto document_type = DocumentType::General;
   FileType file_type = FileType::Document;
   Slice default_extension;
+  bool supports_streaming = false;
   if (type_attributes == 1) {  // not a general document
     if (animated != nullptr) {
       document_type = DocumentType::Animation;
@@ -154,6 +155,7 @@ std::pair<DocumentsManager::DocumentType, FileId> DocumentsManager::on_get_docum
       } else {
         document_type = DocumentType::Video;
         file_type = FileType::Video;
+        supports_streaming = (video->flags_ & telegram_api::documentAttributeVideo::SUPPORTS_STREAMING_MASK) != 0;
       }
       default_extension = "mp4";
     }
@@ -260,7 +262,8 @@ std::pair<DocumentsManager::DocumentType, FileId> DocumentsManager::on_get_docum
       break;
     case DocumentType::Video:
       td_->videos_manager_->create_video(file_id, std::move(thumbnail), has_stickers, vector<FileId>(),
-                                         std::move(file_name), std::move(mime_type), video_duration, dimensions, true);
+                                         std::move(file_name), std::move(mime_type), video_duration, dimensions,
+                                         supports_streaming, true);
       break;
     case DocumentType::VideoNote:
       td_->video_notes_manager_->create_video_note(file_id, std::move(thumbnail), video_duration, dimensions, true);

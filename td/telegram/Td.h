@@ -191,7 +191,7 @@ class Td final : public NetQueryCallback {
   static td_api::object_ptr<td_api::Object> static_request(td_api::object_ptr<td_api::Function> function);
 
  private:
-  static constexpr const char *tdlib_version = "1.1.1";
+  static constexpr const char *tdlib_version = "1.1.2";
   static constexpr int32 ONLINE_TIMEOUT = 240;
 
   void send_result(uint64 id, tl_object_ptr<td_api::Object> object);
@@ -346,6 +346,12 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::terminateAllOtherSessions &request);
 
+  void on_request(uint64 id, const td_api::getConnectedWebsites &request);
+
+  void on_request(uint64 id, const td_api::disconnectWebsite &request);
+
+  void on_request(uint64 id, const td_api::disconnectAllWebsites &request);
+
   void on_request(uint64 id, const td_api::getMe &request);
 
   void on_request(uint64 id, const td_api::getUser &request);
@@ -365,6 +371,10 @@ class Td final : public NetQueryCallback {
   void on_request(uint64 id, const td_api::getChat &request);
 
   void on_request(uint64 id, const td_api::getMessage &request);
+
+  void on_request(uint64 id, const td_api::getRepliedMessage &request);
+
+  void on_request(uint64 id, const td_api::getChatPinnedMessage &request);
 
   void on_request(uint64 id, const td_api::getMessages &request);
 

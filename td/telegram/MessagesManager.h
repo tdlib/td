@@ -815,10 +815,11 @@ class MessagesManager : public Actor {
   MessagesManager &operator=(MessagesManager &&) = delete;
   ~MessagesManager() override;
 
-  static vector<MessageId> get_message_ids(const vector<int32> &input_message_ids);
   static vector<MessageId> get_message_ids(const vector<int64> &input_message_ids);
 
   static vector<int32> get_server_message_ids(const vector<MessageId> &message_ids);
+
+  static tl_object_ptr<telegram_api::InputMessage> get_input_message(MessageId message_id);
 
   static MessageId get_message_id(const tl_object_ptr<telegram_api::Message> &message_ptr);
 
@@ -1100,7 +1101,11 @@ class MessagesManager : public Actor {
 
   bool have_message(FullMessageId full_message_id);
 
-  bool get_message(FullMessageId full_message_id, Promise<Unit> &&promise);
+  void get_message(FullMessageId full_message_id, Promise<Unit> &&promise);
+
+  MessageId get_replied_message(DialogId dialog_id, MessageId message_id, bool force, Promise<Unit> &&promise);
+
+  MessageId get_dialog_pinned_message(DialogId dialog_id, bool force, Promise<Unit> &&promise);
 
   bool get_messages(DialogId dialog_id, const vector<MessageId> &message_ids, Promise<Unit> &&promise);
 
@@ -1797,6 +1802,8 @@ class MessagesManager : public Actor {
 
   MessageId get_persistent_message_id(const Dialog *d, MessageId message_id) const;
 
+  static MessageId get_replied_message_id(const Message *m);
+
   MessageId get_reply_to_message_id(Dialog *d, MessageId message_id);
 
   bool can_set_game_score(DialogId dialog_id, const Message *m) const;
@@ -2161,6 +2168,8 @@ class MessagesManager : public Actor {
   Message *get_message_force(Dialog *d, MessageId message_id);
 
   Message *get_message_force(FullMessageId full_message_id);
+
+  void get_message_force_from_server(Dialog *d, MessageId message_id, Promise<Unit> &&promise);
 
   Message *on_get_message_from_database(DialogId dialog_id, Dialog *d, const BufferSlice &value);
 

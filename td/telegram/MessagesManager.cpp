@@ -248,9 +248,9 @@ class GetMessagesQuery : public Td::ResultHandler {
   explicit GetMessagesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(vector<MessageId> &&message_ids) {
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::messages_getMessages(MessagesManager::get_server_message_ids(message_ids)))));
+  void send(vector<tl_object_ptr<telegram_api::InputMessage>> &&message_ids) {
+    send_query(
+        G()->net_query_creator().create(create_storer(telegram_api::messages_getMessages(std::move(message_ids)))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -313,11 +313,11 @@ class GetChannelMessagesQuery : public Td::ResultHandler {
   }
 
   void send(ChannelId channel_id, tl_object_ptr<telegram_api::InputChannel> &&input_channel,
-            vector<MessageId> &&message_ids) {
+            vector<tl_object_ptr<telegram_api::InputMessage>> &&message_ids) {
     channel_id_ = channel_id;
     CHECK(input_channel != nullptr);
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_getMessages(
-        std::move(input_channel), MessagesManager::get_server_message_ids(message_ids)))));
+    send_query(G()->net_query_creator().create(
+        create_storer(telegram_api::channels_getMessages(std::move(input_channel), std::move(message_ids)))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -4671,12 +4671,11 @@ vector<MessageId> MessagesManager::get_message_ids(const vector<int64> &input_me
 }
 
 vector<int32> MessagesManager::get_server_message_ids(const vector<MessageId> &message_ids) {
-  vector<int32> server_message_ids;
-  server_message_ids.reserve(message_ids.size());
-  for (auto &message_id : message_ids) {
-    server_message_ids.push_back(message_id.get_server_message_id().get());
-  }
-  return server_message_ids;
+  return transform(message_ids, [](MessageId message_id) { return message_id.get_server_message_id().get(); });
+}
+
+tl_object_ptr<telegram_api::InputMessage> MessagesManager::get_input_message(MessageId message_id) {
+  return make_tl_object<telegram_api::inputMessageID>(message_id.get_server_message_id().get());
 }
 
 tl_object_ptr<telegram_api::InputPeer> MessagesManager::get_input_peer(DialogId dialog_id,
@@ -10890,39 +10889,103 @@ MessagesManager::Message *MessagesManager::get_message_force(FullMessageId full_
   return get_message_force(d, full_message_id.get_message_id());
 }
 
-bool MessagesManager::get_message(FullMessageId full_message_id, Promise<Unit> &&promise) {
-  Dialog *d = get_dialog_force(full_message_id.get_dialog_id());
-  if (d == nullptr) {
-    promise.set_error(Status::Error(6, "Chat not found"));
-    return false;
+MessageId MessagesManager::get_replied_message_id(const Message *m) {
+  switch (m->content->get_id()) {
+    case MessagePinMessage::ID:
+      CHECK(!m->reply_to_message_id.is_valid());
+      return static_cast<const MessagePinMessage *>(m->content.get())->message_id;
+    case MessageGameScore::ID:
+      CHECK(!m->reply_to_message_id.is_valid());
+      return static_cast<const MessageGameScore *>(m->content.get())->game_message_id;
+    case MessagePaymentSuccessful::ID:
+      CHECK(!m->reply_to_message_id.is_valid());
+      return static_cast<const MessagePaymentSuccessful *>(m->content.get())->invoice_message_id;
+    default:
+      return m->reply_to_message_id;
   }
+}
 
-  auto message_id = full_message_id.get_message_id();
-  auto message = get_message_force(d, message_id);
-  if (message == nullptr && message_id.is_valid() && message_id.is_server()) {
+void MessagesManager::get_message_force_from_server(Dialog *d, MessageId message_id, Promise<Unit> &&promise) {
+  auto m = get_message_force(d, message_id);
+  if (m == nullptr && message_id.is_valid() && message_id.is_server()) {
+    auto dialog_type = d->dialog_id.get_type();
     if (d->last_new_message_id != MessageId() && message_id.get() > d->last_new_message_id.get()) {
       // message will not be added to the dialog anyway
-      if (d->dialog_id.get_type() == DialogType::Channel) {
+      if (dialog_type == DialogType::Channel) {
         // so we try to force channel difference first
         postponed_get_message_requests_[d->dialog_id].emplace_back(message_id, std::move(promise));
         get_channel_difference(d->dialog_id, d->pts, true, "get_message");
       } else {
         promise.set_value(Unit());
       }
-      return false;
+      return;
     }
 
-    if (d->deleted_message_ids.count(message_id)) {
-      promise.set_value(Unit());
-      return false;
+    if (d->deleted_message_ids.count(message_id) == 0 && dialog_type != DialogType::SecretChat) {
+      return get_messages_from_server({FullMessageId(d->dialog_id, message_id)}, std::move(promise));
     }
-
-    get_messages_from_server({full_message_id}, std::move(promise));
-    return false;
   }
 
   promise.set_value(Unit());
-  return true;
+}
+
+void MessagesManager::get_message(FullMessageId full_message_id, Promise<Unit> &&promise) {
+  Dialog *d = get_dialog_force(full_message_id.get_dialog_id());
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(6, "Chat not found"));
+  }
+
+  get_message_force_from_server(d, full_message_id.get_message_id(), std::move(promise));
+}
+
+MessageId MessagesManager::get_replied_message(DialogId dialog_id, MessageId message_id, bool force,
+                                               Promise<Unit> &&promise) {
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    promise.set_error(Status::Error(6, "Chat not found"));
+    return MessageId();
+  }
+
+  auto m = get_message_force(d, message_id);
+  if (m == nullptr) {
+    if (force) {
+      promise.set_value(Unit());
+    } else {
+      get_message_force_from_server(d, message_id, std::move(promise));
+    }
+    return MessageId();
+  }
+
+  auto replied_message_id = get_replied_message_id(m);
+  get_message_force_from_server(d, replied_message_id, std::move(promise));
+  return replied_message_id;
+}
+
+MessageId MessagesManager::get_dialog_pinned_message(DialogId dialog_id, bool force, Promise<Unit> &&promise) {
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    promise.set_error(Status::Error(6, "Chat not found"));
+    return MessageId();
+  }
+
+  if (dialog_id.get_type() != DialogType::Channel) {
+    promise.set_value(Unit());
+    return MessageId();
+  }
+
+  auto channel_id = dialog_id.get_channel_id();
+  auto message_id = td_->contacts_manager_->get_channel_pinned_message_id(channel_id);
+  if (!message_id.is_valid()) {
+    if (force) {
+      promise.set_value(Unit());
+    } else {
+      td_->contacts_manager_->get_channel_full(channel_id, std::move(promise));
+    }
+    return MessageId();
+  }
+
+  get_message_force_from_server(d, message_id, std::move(promise));
+  return message_id;
 }
 
 bool MessagesManager::get_messages(DialogId dialog_id, const vector<MessageId> &message_ids, Promise<Unit> &&promise) {
@@ -10932,6 +10995,7 @@ bool MessagesManager::get_messages(DialogId dialog_id, const vector<MessageId> &
     return false;
   }
 
+  bool is_secret = dialog_id.get_type() == DialogType::SecretChat;
   vector<FullMessageId> missed_message_ids;
   for (auto message_id : message_ids) {
     if (!message_id.is_valid()) {
@@ -10940,11 +11004,9 @@ bool MessagesManager::get_messages(DialogId dialog_id, const vector<MessageId> &
     }
 
     auto message = get_message_force(d, message_id);
-    if (message == nullptr) {
-      if (message_id.is_server()) {
-        missed_message_ids.emplace_back(dialog_id, message_id);
-        continue;
-      }
+    if (message == nullptr && message_id.is_server() && !is_secret) {
+      missed_message_ids.emplace_back(dialog_id, message_id);
+      continue;
     }
   }
 
@@ -10962,8 +11024,8 @@ void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_i
     LOG(ERROR) << "Empty message_ids";
     return;
   }
-  vector<MessageId> ordinary_message_ids;
-  std::unordered_map<ChannelId, vector<MessageId>, ChannelIdHash> channel_message_ids;
+  vector<tl_object_ptr<telegram_api::InputMessage>> ordinary_message_ids;
+  std::unordered_map<ChannelId, vector<tl_object_ptr<telegram_api::InputMessage>>, ChannelIdHash> channel_message_ids;
   for (auto &full_message_id : message_ids) {
     auto dialog_id = full_message_id.get_dialog_id();
     auto message_id = full_message_id.get_message_id();
@@ -10974,10 +11036,10 @@ void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_i
     switch (dialog_id.get_type()) {
       case DialogType::User:
       case DialogType::Chat:
-        ordinary_message_ids.push_back(message_id);
+        ordinary_message_ids.push_back(get_input_message(message_id));
         break;
       case DialogType::Channel:
-        channel_message_ids[dialog_id.get_channel_id()].push_back(message_id);
+        channel_message_ids[dialog_id.get_channel_id()].push_back(get_input_message(message_id));
         break;
       case DialogType::SecretChat:
         LOG(ERROR) << "Can't get secret chat message from server";
@@ -15299,7 +15361,8 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
       bool has_stickers = !sticker_file_ids.empty();
       td_->videos_manager_->create_video(file_id, thumbnail, has_stickers, std::move(sticker_file_ids),
                                          std::move(file_name), std::move(mime_type), input_video->duration_,
-                                         get_dimensions(input_video->width_, input_video->height_), false);
+                                         get_dimensions(input_video->width_, input_video->height_),
+                                         input_video->supports_streaming_, false);
 
       content = make_unique<MessageVideo>(file_id, std::move(caption));
       break;
@@ -19900,8 +19963,8 @@ static auto secret_to_telegram(secret_api::documentAttributeSticker &sticker) {
 
 // documentAttributeVideo #5910cccb duration:int w:int h:int = DocumentAttribute;
 static auto secret_to_telegram(secret_api::documentAttributeVideo &video) {
-  return make_tl_object<telegram_api::documentAttributeVideo>(0, false /*ignored*/, video.duration_, video.w_,
-                                                              video.h_);
+  return make_tl_object<telegram_api::documentAttributeVideo>(0, false /*ignored*/, false /*ignored*/, video.duration_,
+                                                              video.w_, video.h_);
 }
 
 // documentAttributeFilename #15590068 file_name:string = DocumentAttribute;
@@ -19918,7 +19981,7 @@ static auto secret_to_telegram(secret_api::documentAttributeVideo66 &video) {
       (video.flags_ & secret_api::documentAttributeVideo66::ROUND_MESSAGE_MASK) != 0
           ? telegram_api::documentAttributeVideo::ROUND_MESSAGE_MASK
           : 0,
-      video.round_message_, video.duration_, video.w_, video.h_);
+      video.round_message_, false, video.duration_, video.w_, video.h_);
 }
 
 static auto telegram_documentAttributeAudio(bool is_voice_note, int duration, string title, string performer,

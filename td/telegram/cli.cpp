@@ -395,7 +395,11 @@ class CliClient final : public Actor {
   }
 
   static int64 as_message_id(Slice str) {
-    return to_integer<int64>(trim(str));
+    str = trim(str);
+    if (!str.empty() && str.back() == 's') {
+      return to_integer<int32>(str) << 20;
+    }
+    return to_integer<int64>(str);
   }
 
   static vector<int64> as_message_ids(Slice message_ids_string, char delimiter = ' ') {
@@ -1479,6 +1483,12 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::terminateSession>(to_integer<int64>(args)));
     } else if (op == "TerminateAllOtherSessions") {
       send_request(make_tl_object<td_api::terminateAllOtherSessions>());
+    } else if (op == "gcw") {
+      send_request(make_tl_object<td_api::getConnectedWebsites>());
+    } else if (op == "dw") {
+      send_request(make_tl_object<td_api::disconnectWebsite>(to_integer<int64>(args)));
+    } else if (op == "daw") {
+      send_request(make_tl_object<td_api::disconnectAllWebsites>());
     } else if (op == "gw") {
       send_request(make_tl_object<td_api::getWallpapers>());
     } else if (op == "git") {
@@ -1797,6 +1807,14 @@ class CliClient final : public Actor {
       string message_id;
       std::tie(chat_id, message_id) = split(args);
       send_request(make_tl_object<td_api::getMessage>(as_chat_id(chat_id), as_message_id(message_id)));
+    } else if (op == "grm") {
+      string chat_id;
+      string message_id;
+      std::tie(chat_id, message_id) = split(args);
+      send_request(make_tl_object<td_api::getRepliedMessage>(as_chat_id(chat_id), as_message_id(message_id)));
+    } else if (op == "gcpm") {
+      string chat_id = args;
+      send_request(make_tl_object<td_api::getChatPinnedMessage>(as_chat_id(chat_id)));
     } else if (op == "gms") {
       string chat_id;
       string message_ids;
@@ -2408,9 +2426,9 @@ class CliClient final : public Actor {
         sticker_file_ids = to_integers<int32>(sticker_file_ids_str, ',');
       }
 
-      send_message(chat_id,
-                   make_tl_object<td_api::inputMessageVideo>(as_local_file(video_path), nullptr,
-                                                             std::move(sticker_file_ids), 1, 2, 3, as_caption(""), 0));
+      send_message(chat_id, make_tl_object<td_api::inputMessageVideo>(as_local_file(video_path), nullptr,
+                                                                      std::move(sticker_file_ids), 1, 2, 3, true,
+                                                                      as_caption(""), 0));
     } else if (op == "svn") {
       string chat_id;
       string video_path;

@@ -214,8 +214,8 @@ tl_object_ptr<telegram_api::InputMedia> VideoNotesManager::get_input_media(
 
     vector<tl_object_ptr<telegram_api::DocumentAttribute>> attributes;
     attributes.push_back(make_tl_object<telegram_api::documentAttributeVideo>(
-        telegram_api::documentAttributeVideo::ROUND_MESSAGE_MASK, false /*ignored*/, video_note->duration,
-        video_note->dimensions.width ? video_note->dimensions.width : 240,
+        telegram_api::documentAttributeVideo::ROUND_MESSAGE_MASK, false /*ignored*/, false /*ignored*/,
+        video_note->duration, video_note->dimensions.width ? video_note->dimensions.width : 240,
         video_note->dimensions.height ? video_note->dimensions.height : 240));
     int32 flags = 0;
     if (input_thumbnail != nullptr) {

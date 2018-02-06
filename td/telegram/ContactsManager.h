@@ -213,6 +213,10 @@ class ContactsManager : public Actor {
   void terminate_session(int64 session_id, Promise<Unit> &&promise) const;
   void terminate_all_other_sessions(Promise<Unit> &&promise) const;
 
+  void get_connected_websites(Promise<tl_object_ptr<td_api::connectedWebsites>> &&promise) const;
+  void disconnect_website(int64 authorizations_id, Promise<Unit> &&promise) const;
+  void disconnect_all_websites(Promise<Unit> &&promise) const;
+
   Status block_user(UserId user_id);
 
   Status unblock_user(UserId user_id);
@@ -301,6 +305,8 @@ class ContactsManager : public Actor {
   string get_chat_invite_link(ChatId chat_id) const;
 
   string get_channel_invite_link(ChannelId channel_id) const;
+
+  MessageId get_channel_pinned_message_id(ChannelId channel_id) const;
 
   ChannelId migrate_chat_to_megagroup(ChatId chat_id, Promise<Unit> &promise);
 
