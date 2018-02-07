@@ -28,7 +28,9 @@
 #include <algorithm>
 
 namespace td {
+
 namespace detail {
+
 class StatsCallback final : public mtproto::RawConnection::StatsCallback {
  public:
   StatsCallback(std::shared_ptr<NetStatsCallback> net_stats_callback, ActorId<ConnectionCreator> connection_creator,
@@ -63,6 +65,7 @@ class StatsCallback final : public mtproto::RawConnection::StatsCallback {
   size_t hash_;
   DcOptionsSet::Stat *option_stat_;
 };
+
 class PingActor : public Actor {
  public:
   PingActor(std::unique_ptr<mtproto::RawConnection> raw_connection,
@@ -135,6 +138,7 @@ class PingActor : public Actor {
     }
   }
 };
+
 }  // namespace detail
 
 template <class T>

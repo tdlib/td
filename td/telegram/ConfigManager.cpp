@@ -106,6 +106,7 @@ Result<SimpleConfig> decode_config(Slice input) {
 }
 
 ActorOwn<> get_simple_config_google_app(Promise<SimpleConfig> promise, bool is_test, int32 scheduler_id) {
+  VLOG(config_recoverer) << "Request simple config from Google App";
 #if TD_EMSCRIPTEN  // FIXME
   return ActorOwn<>();
 #else
@@ -124,6 +125,7 @@ ActorOwn<> get_simple_config_google_app(Promise<SimpleConfig> promise, bool is_t
 }
 
 ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfig> promise, bool is_test, int32 scheduler_id) {
+  VLOG(config_recoverer) << "Request simple config from Google DNS";
 #if TD_EMSCRIPTEN  // FIXME
   return ActorOwn<>();
 #else
@@ -178,16 +180,17 @@ ActorOwn<> get_full_config(IPAddress ip_address, Promise<FullConfig> promise) {
     }
     void request_raw_connection(Promise<std::unique_ptr<mtproto::RawConnection>> promise) final {
       request_raw_connection_cnt_++;
+      VLOG(config_recoverer) << "Request full config from " << address_ << ", try = " << request_raw_connection_cnt_;
       if (request_raw_connection_cnt_ <= 1) {
         send_closure(G()->connection_creator(), &ConnectionCreator::request_raw_connection_by_ip, address_,
                      std::move(promise));
       } else {
-        //Delay all queries but first forever
+        // Delay all queries except first forever
         delay_forever_.push_back(std::move(promise));
       }
     }
     void on_tmp_auth_key_updated(mtproto::AuthKey auth_key) final {
-      //nop
+      // nop
     }
 
    private:
@@ -432,6 +435,12 @@ class ConfigRecoverer : public Actor {
       return;
     }
 
+    if (is_connecting_) {
+      VLOG(config_recoverer) << "Failed to connect for " << Time::now_cached() - connecting_since_;
+    } else {
+      VLOG(config_recoverer) << "Successfully connected";
+    }
+
     Timestamp wakeup_timestamp;
     auto check_timeout = [&](Timestamp timestamp) {
       if (timestamp.at() < Time::now_cached()) {
@@ -441,7 +450,6 @@ class ConfigRecoverer : public Actor {
       return false;
     };
 
-    VLOG(config_recoverer) << is_connecting_ << " " << Time::now_cached() - connecting_since_;
     bool has_connecting_problem =
         is_connecting_ && check_timeout(Timestamp::at(connecting_since_ + max_connecting_delay()));
     bool is_valid_simple_config = !check_timeout(Timestamp::at(simple_config_expire_at_));
