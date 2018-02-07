@@ -13847,7 +13847,7 @@ Result<FormattedText> MessagesManager::process_input_caption(DialogId dialog_id,
                                                              tl_object_ptr<td_api::formattedText> &&text,
                                                              bool is_bot) const {
   if (text == nullptr) {
-    return FormattedText{};
+    return FormattedText();
   }
   TRY_RESULT(entities, get_message_entities(td_->contacts_manager_.get(), std::move(text->entities_)));
   TRY_STATUS(fix_text_message(text->text_, entities, true, false, need_skip_bot_commands(dialog_id, is_bot), false));
@@ -13862,7 +13862,7 @@ Result<InputMessageText> MessagesManager::process_input_message_text(
   auto input_message_text = static_cast<td_api::inputMessageText *>(input_message_content.get());
   if (input_message_text->text_ == nullptr) {
     if (for_draft) {
-      return InputMessageText{FormattedText{}, input_message_text->disable_web_page_preview_,
+      return InputMessageText{FormattedText(), input_message_text->disable_web_page_preview_,
                               input_message_text->clear_draft_};
     }
 
@@ -20799,7 +20799,7 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
       UNREACHABLE();
   }
   // explicit empty or wrong action
-  return make_unique<MessageText>(FormattedText{}, WebPageId());
+  return make_unique<MessageText>(FormattedText(), WebPageId());
 }
 
 int32 MessagesManager::get_random_y(MessageId message_id) {
