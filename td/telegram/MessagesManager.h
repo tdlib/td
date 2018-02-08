@@ -1109,7 +1109,8 @@ class MessagesManager : public Actor {
 
   bool get_messages(DialogId dialog_id, const vector<MessageId> &message_ids, Promise<Unit> &&promise);
 
-  void get_messages_from_server(vector<FullMessageId> &&message_ids, Promise<Unit> &&promise);
+  void get_messages_from_server(vector<FullMessageId> &&message_ids, Promise<Unit> &&promise,
+                                tl_object_ptr<telegram_api::InputMessage> input_message = nullptr);
 
   bool is_message_edited_recently(FullMessageId full_message_id, int32 seconds);
 
@@ -2169,7 +2170,8 @@ class MessagesManager : public Actor {
 
   Message *get_message_force(FullMessageId full_message_id);
 
-  void get_message_force_from_server(Dialog *d, MessageId message_id, Promise<Unit> &&promise);
+  void get_message_force_from_server(Dialog *d, MessageId message_id, Promise<Unit> &&promise,
+                                     tl_object_ptr<telegram_api::InputMessage> input_message = nullptr);
 
   Message *on_get_message_from_database(DialogId dialog_id, Dialog *d, const BufferSlice &value);
 

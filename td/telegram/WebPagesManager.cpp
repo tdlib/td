@@ -2133,7 +2133,7 @@ void WebPagesManager::on_pending_web_page_timeout(WebPageId web_page_id) {
       count++;
     }
     send_closure_later(G()->messages_manager(), &MessagesManager::get_messages_from_server, std::move(full_message_ids),
-                       Promise<Unit>());
+                       Promise<Unit>(), nullptr);
   }
   auto get_it = pending_get_web_pages_.find(web_page_id);
   if (get_it != pending_get_web_pages_.end()) {

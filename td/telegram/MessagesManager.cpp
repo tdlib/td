@@ -10905,7 +10905,8 @@ MessageId MessagesManager::get_replied_message_id(const Message *m) {
   }
 }
 
-void MessagesManager::get_message_force_from_server(Dialog *d, MessageId message_id, Promise<Unit> &&promise) {
+void MessagesManager::get_message_force_from_server(Dialog *d, MessageId message_id, Promise<Unit> &&promise,
+                                                    tl_object_ptr<telegram_api::InputMessage> input_message) {
   auto m = get_message_force(d, message_id);
   if (m == nullptr && message_id.is_valid() && message_id.is_server()) {
     auto dialog_type = d->dialog_id.get_type();
@@ -10913,6 +10914,7 @@ void MessagesManager::get_message_force_from_server(Dialog *d, MessageId message
       // message will not be added to the dialog anyway
       if (dialog_type == DialogType::Channel) {
         // so we try to force channel difference first
+        CHECK(input_message == nullptr);  // replied message can't be older than already added original message
         postponed_get_message_requests_[d->dialog_id].emplace_back(message_id, std::move(promise));
         get_channel_difference(d->dialog_id, d->pts, true, "get_message");
       } else {
@@ -10922,7 +10924,8 @@ void MessagesManager::get_message_force_from_server(Dialog *d, MessageId message
     }
 
     if (d->deleted_message_ids.count(message_id) == 0 && dialog_type != DialogType::SecretChat) {
-      return get_messages_from_server({FullMessageId(d->dialog_id, message_id)}, std::move(promise));
+      return get_messages_from_server({FullMessageId(d->dialog_id, message_id)}, std::move(promise),
+                                      std::move(input_message));
     }
   }
 
@@ -10957,7 +10960,9 @@ MessageId MessagesManager::get_replied_message(DialogId dialog_id, MessageId mes
   }
 
   auto replied_message_id = get_replied_message_id(m);
-  get_message_force_from_server(d, replied_message_id, std::move(promise));
+  get_message_force_from_server(
+      d, replied_message_id, std::move(promise),
+      make_tl_object<telegram_api::inputMessageReplyTo>(message_id.get_server_message_id().get()));
   return replied_message_id;
 }
 
@@ -11019,11 +11024,17 @@ bool MessagesManager::get_messages(DialogId dialog_id, const vector<MessageId> &
   return true;
 }
 
-void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_ids, Promise<Unit> &&promise) {
+void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_ids, Promise<Unit> &&promise,
+                                               tl_object_ptr<telegram_api::InputMessage> input_message) {
   if (message_ids.empty()) {
     LOG(ERROR) << "Empty message_ids";
     return;
   }
+
+  if (input_message != nullptr) {
+    CHECK(message_ids.size() == 1);
+  }
+
   vector<tl_object_ptr<telegram_api::InputMessage>> ordinary_message_ids;
   std::unordered_map<ChannelId, vector<tl_object_ptr<telegram_api::InputMessage>>, ChannelIdHash> channel_message_ids;
   for (auto &full_message_id : message_ids) {
@@ -11036,10 +11047,12 @@ void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_i
     switch (dialog_id.get_type()) {
       case DialogType::User:
       case DialogType::Chat:
-        ordinary_message_ids.push_back(get_input_message(message_id));
+        ordinary_message_ids.push_back(input_message == nullptr ? get_input_message(message_id)
+                                                                : std::move(input_message));
         break;
       case DialogType::Channel:
-        channel_message_ids[dialog_id.get_channel_id()].push_back(get_input_message(message_id));
+        channel_message_ids[dialog_id.get_channel_id()].push_back(
+            input_message == nullptr ? get_input_message(message_id) : std::move(input_message));
         break;
       case DialogType::SecretChat:
         LOG(ERROR) << "Can't get secret chat message from server";
