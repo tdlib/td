@@ -1056,14 +1056,22 @@ class GetRepliedMessageRequest : public RequestOnceActor {
   }
 };
 
-class GetChatPinnedMessageRequest : public RequestActor<> {
+class GetChatPinnedMessageRequest : public RequestActor<MessageId> {
   DialogId dialog_id_;
 
   MessageId pinned_message_id_;
 
-  void do_run(Promise<Unit> &&promise) override {
-    pinned_message_id_ =
-        td->messages_manager_->get_dialog_pinned_message(dialog_id_, get_tries() < 3, std::move(promise));
+  void do_run(Promise<MessageId> &&promise) override {
+    if (get_tries() < 2) {
+      promise.set_value(std::move(pinned_message_id_));
+      return;
+    }
+
+    td->messages_manager_->get_dialog_pinned_message(dialog_id_, std::move(promise));
+  }
+
+  void do_set_result(MessageId &&result) override {
+    pinned_message_id_ = result;
   }
 
   void do_send_result() override {
@@ -1072,8 +1080,7 @@ class GetChatPinnedMessageRequest : public RequestActor<> {
 
  public:
   GetChatPinnedMessageRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id)
-      : RequestActor<>(std::move(td), request_id), dialog_id_(dialog_id) {
-    set_tries(3);
+      : RequestActor(std::move(td), request_id), dialog_id_(dialog_id) {
   }
 };
 

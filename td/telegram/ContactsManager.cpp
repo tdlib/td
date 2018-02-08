@@ -4213,7 +4213,8 @@ string ContactsManager::get_chat_invite_link(ChatId chat_id) const {
   return chat_full->invite_link;
 }
 
-string ContactsManager::get_channel_invite_link(ChannelId channel_id) const {
+string ContactsManager::get_channel_invite_link(
+    ChannelId channel_id) {  // should be non-const to update ChannelFull cache
   auto channel_full = get_channel_full(channel_id);
   if (channel_full == nullptr) {
     auto it = channel_invite_links_.find(channel_id);
@@ -4222,7 +4223,8 @@ string ContactsManager::get_channel_invite_link(ChannelId channel_id) const {
   return channel_full->invite_link;
 }
 
-MessageId ContactsManager::get_channel_pinned_message_id(ChannelId channel_id) const {
+MessageId ContactsManager::get_channel_pinned_message_id(
+    ChannelId channel_id) {  // should be non-const to update ChannelFull cache
   auto channel_full = get_channel_full(channel_id);
   if (channel_full == nullptr) {
     return MessageId();
@@ -8247,9 +8249,16 @@ ContactsManager::ChannelFull *ContactsManager::get_channel_full(ChannelId channe
   auto p = channels_full_.find(channel_id);
   if (p == channels_full_.end()) {
     return nullptr;
-  } else {
-    return &p->second;
   }
+
+  auto channel_full = &p->second;
+  if (channel_full->is_expired()) {
+    auto input_channel = get_input_channel(channel_id);
+    CHECK(input_channel != nullptr);
+    send_get_channel_full_query(channel_id, std::move(input_channel), Auto());
+  }
+
+  return channel_full;
 }
 
 bool ContactsManager::get_channel_full(ChannelId channel_id, Promise<Unit> &&promise) {
@@ -8265,13 +8274,14 @@ bool ContactsManager::get_channel_full(ChannelId channel_id, Promise<Unit> &&pro
     return false;
   }
   if (channel_full->is_expired()) {
-    auto input_channel = get_input_channel(channel_id);
-    CHECK(input_channel != nullptr);
     if (td_->auth_manager_->is_bot()) {
+      auto input_channel = get_input_channel(channel_id);
+      CHECK(input_channel != nullptr);
       send_get_channel_full_query(channel_id, std::move(input_channel), std::move(promise));
       return false;
     } else {
-      send_get_channel_full_query(channel_id, std::move(input_channel), Auto());
+      // request was already sent in get_channel_full
+      // send_get_channel_full_query(channel_id, std::move(input_channel), Auto());
     }
   }
 

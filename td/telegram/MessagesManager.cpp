@@ -373,6 +373,76 @@ class GetChannelMessagesQuery : public Td::ResultHandler {
   }
 };
 
+class GetChannelPinnedMessageQuery : public Td::ResultHandler {
+  Promise<MessageId> promise_;
+  ChannelId channel_id_;
+
+ public:
+  explicit GetChannelPinnedMessageQuery(Promise<MessageId> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(ChannelId channel_id) {
+    auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
+    if (input_channel == nullptr) {
+      return promise_.set_error(Status::Error(6, "Can't access the chat"));
+    }
+
+    channel_id_ = channel_id;
+    vector<tl_object_ptr<telegram_api::InputMessage>> input_messages;
+    input_messages.push_back(make_tl_object<telegram_api::inputMessagePinned>());
+    send_query(G()->net_query_creator().create(
+        create_storer(telegram_api::channels_getMessages(std::move(input_channel), std::move(input_messages)))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::channels_getMessages>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for GetChannelPinnedMessageQuery " << to_string(ptr);
+    int32 constructor_id = ptr->get_id();
+    switch (constructor_id) {
+      case telegram_api::messages_messages::ID:
+      case telegram_api::messages_messagesSlice::ID:
+        LOG(ERROR) << "Receive ordinary messages in GetChannelPinnedMessageQuery " << to_string(ptr);
+        return promise_.set_error(Status::Error(500, "Receive wrong request result"));
+      case telegram_api::messages_channelMessages::ID: {
+        auto messages = move_tl_object_as<telegram_api::messages_channelMessages>(ptr);
+
+        td->contacts_manager_->on_get_chats(std::move(messages->chats_));
+        td->contacts_manager_->on_get_users(std::move(messages->users_));
+        if (messages->messages_.empty()) {
+          return promise_.set_value(MessageId());
+        }
+        if (messages->messages_.size() >= 2) {
+          LOG(ERROR) << to_string(ptr);
+          return promise_.set_error(Status::Error(500, "More than 1 pinned message received"));
+        }
+        auto full_message_id = td->messages_manager_->on_get_message(std::move(messages->messages_[0]), false, true,
+                                                                     false, false, "get channel pinned messages");
+        if (full_message_id.get_dialog_id().is_valid() && full_message_id.get_dialog_id() != DialogId(channel_id_)) {
+          LOG(ERROR) << full_message_id << " " << to_string(ptr);
+          return promise_.set_error(Status::Error(500, "Receive pinned message in a wrong chat"));
+        }
+        return promise_.set_value(full_message_id.get_message_id());
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  void on_error(uint64 id, Status status) override {
+    if (status.message() == "MESSAGE_IDS_EMPTY") {
+      promise_.set_value(MessageId());
+      return;
+    }
+    td->contacts_manager_->on_get_channel_error(channel_id_, status, "GetChannelPinnedMessageQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ExportChannelMessageLinkQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
@@ -10966,31 +11036,23 @@ MessageId MessagesManager::get_replied_message(DialogId dialog_id, MessageId mes
   return replied_message_id;
 }
 
-MessageId MessagesManager::get_dialog_pinned_message(DialogId dialog_id, bool force, Promise<Unit> &&promise) {
+void MessagesManager::get_dialog_pinned_message(DialogId dialog_id, Promise<MessageId> &&promise) {
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
-    promise.set_error(Status::Error(6, "Chat not found"));
-    return MessageId();
+    return promise.set_error(Status::Error(6, "Chat not found"));
   }
 
   if (dialog_id.get_type() != DialogType::Channel) {
-    promise.set_value(Unit());
-    return MessageId();
+    return promise.set_value(MessageId());
   }
 
   auto channel_id = dialog_id.get_channel_id();
   auto message_id = td_->contacts_manager_->get_channel_pinned_message_id(channel_id);
-  if (!message_id.is_valid()) {
-    if (force) {
-      promise.set_value(Unit());
-    } else {
-      td_->contacts_manager_->get_channel_full(channel_id, std::move(promise));
-    }
-    return MessageId();
+  if (get_message_force(d, message_id) == nullptr) {
+    return td_->create_handler<GetChannelPinnedMessageQuery>(std::move(promise))->send(channel_id);
   }
 
-  get_message_force_from_server(d, message_id, std::move(promise));
-  return message_id;
+  promise.set_value(std::move(message_id));
 }
 
 bool MessagesManager::get_messages(DialogId dialog_id, const vector<MessageId> &message_ids, Promise<Unit> &&promise) {
@@ -11076,6 +11138,7 @@ void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_i
     auto input_channel = td_->contacts_manager_->get_input_channel(it.first);
     if (input_channel == nullptr) {
       LOG(ERROR) << "Can't find info about " << it.first << " to get a message from it";
+      promise.set_error(Status::Error(6, "Can't access the chat"));
       continue;
     }
     td_->create_handler<GetChannelMessagesQuery>(std::move(promise))

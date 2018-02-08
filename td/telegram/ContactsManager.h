@@ -304,9 +304,9 @@ class ContactsManager : public Actor {
 
   string get_chat_invite_link(ChatId chat_id) const;
 
-  string get_channel_invite_link(ChannelId channel_id) const;
+  string get_channel_invite_link(ChannelId channel_id);
 
-  MessageId get_channel_pinned_message_id(ChannelId channel_id) const;
+  MessageId get_channel_pinned_message_id(ChannelId channel_id);
 
   ChannelId migrate_chat_to_megagroup(ChatId chat_id, Promise<Unit> &promise);
 

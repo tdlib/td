@@ -1105,7 +1105,7 @@ class MessagesManager : public Actor {
 
   MessageId get_replied_message(DialogId dialog_id, MessageId message_id, bool force, Promise<Unit> &&promise);
 
-  MessageId get_dialog_pinned_message(DialogId dialog_id, bool force, Promise<Unit> &&promise);
+  void get_dialog_pinned_message(DialogId dialog_id, Promise<MessageId> &&promise);
 
   bool get_messages(DialogId dialog_id, const vector<MessageId> &message_ids, Promise<Unit> &&promise);
 
