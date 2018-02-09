@@ -2957,9 +2957,9 @@ void main(int argc, char **argv) {
   set_signal_handler(SignalType::Abort, fail_signal).ensure();
   td::Log::set_fatal_error_callback(on_fatal_error);
 
-  std::string locale_name = (std::setlocale(LC_ALL, "fr-FR") == nullptr ? "C" : "fr-FR");
-  std::locale locale_fr(locale_name);
-  std::locale::global(locale_fr);
+  const char *locale_name = (std::setlocale(LC_ALL, "fr-FR") == nullptr ? "" : "fr-FR");
+  std::locale new_locale(locale_name);
+  std::locale::global(new_locale);
   SCOPE_EXIT {
     std::locale::global(std::locale::classic());
   };
