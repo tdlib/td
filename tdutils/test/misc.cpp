@@ -20,6 +20,7 @@
 #include <atomic>
 #include <clocale>
 #include <limits>
+#include <locale>
 
 using namespace td;
 
@@ -216,8 +217,10 @@ static void test_to_double() {
 
 TEST(Misc, to_double) {
   test_to_double();
-  std::setlocale(LC_ALL, "fr-FR");
+  std::string locale_name = (std::setlocale(LC_ALL, "fr-FR") == nullptr ? "C" : "fr-FR");
+  std::locale new_locale(locale_name);
+  std::locale::global(new_locale);
   test_to_double();
-  std::setlocale(LC_ALL, "C");
+  std::locale::global(std::locale::classic());
   test_to_double();
 }
