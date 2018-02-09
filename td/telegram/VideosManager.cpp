@@ -12,6 +12,7 @@
 
 #include "td/actor/PromiseFuture.h"
 
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
@@ -263,6 +264,9 @@ tl_object_ptr<telegram_api::InputMedia> VideosManager::get_input_media(
     }
     int32 flags = 0;
     vector<tl_object_ptr<telegram_api::InputDocument>> added_stickers;
+    if (ttl != 0 || !td_->auth_manager_->is_bot()) {
+      flags |= telegram_api::inputMediaUploadedDocument::NOSOUND_VIDEO_MASK;
+    }
     if (video->has_stickers) {
       flags |= telegram_api::inputMediaUploadedDocument::STICKERS_MASK;
       added_stickers = td_->file_manager_->get_input_documents(video->sticker_file_ids);
