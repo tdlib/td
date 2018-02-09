@@ -231,10 +231,13 @@ class Td final : public NetQueryCallback {
   Container<ActorOwn<Actor>> request_actors_;
 
   bool is_online_ = false;
+
+  int64 alarm_id_ = 1;
+  std::unordered_map<int64, uint64> pending_alarms_;
   MultiTimeout alarm_timeout_;
 
-  static void on_alarm_timeout_callback(void *td_ptr, int64 request_id);
-  void on_alarm_timeout(int64 request_id);
+  static void on_alarm_timeout_callback(void *td_ptr, int64 alarm_id);
+  void on_alarm_timeout(int64 alarm_id);
 
   template <class T>
   friend class RequestActor;              // uses send_result/send_error

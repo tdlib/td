@@ -3630,18 +3630,22 @@ class GetTermsOfServiceRequest : public RequestActor<string> {
 Td::Td(std::unique_ptr<TdCallback> callback) : callback_(std::move(callback)) {
 }
 
-void Td::on_alarm_timeout_callback(void *td_ptr, int64 request_id) {
+void Td::on_alarm_timeout_callback(void *td_ptr, int64 alarm_id) {
   auto td = static_cast<Td *>(td_ptr);
   auto td_id = td->actor_id(td);
-  send_closure_later(td_id, &Td::on_alarm_timeout, request_id);
+  send_closure_later(td_id, &Td::on_alarm_timeout, alarm_id);
 }
 
-void Td::on_alarm_timeout(int64 request_id) {
-  if (request_id == 0) {
+void Td::on_alarm_timeout(int64 alarm_id) {
+  if (alarm_id == 0) {
     on_online_updated(false, true);
     return;
   }
-  send_result(static_cast<uint64>(request_id), make_tl_object<td_api::ok>());
+  auto it = pending_alarms_.find(alarm_id);
+  CHECK(it != pending_alarms_.end());
+  uint64 request_id = it->second;
+  pending_alarms_.erase(alarm_id);
+  send_result(request_id, make_tl_object<td_api::ok>());
 }
 
 void Td::on_online_updated(bool force, bool send_update) {
@@ -4000,8 +4004,8 @@ void Td::dec_actor_refcnt() {
 void Td::on_closed() {
   LOG(WARNING) << "ON_CLOSED";
   close_flag_ = 5;
-  send_update(td_api::make_object<td_api::updateAuthorizationState>(
-      td_api::make_object<td_api::authorizationStateClosed>()));
+  send_update(
+      td_api::make_object<td_api::updateAuthorizationState>(td_api::make_object<td_api::authorizationStateClosed>()));
   callback_->on_closed();
   dec_stop_cnt();
 }
@@ -4057,6 +4061,12 @@ void Td::clear() {
   LOG(DEBUG) << "NetQueryDispatcher was stopped " << timer;
   state_manager_.reset();
   LOG(DEBUG) << "StateManager was cleared " << timer;
+  while (!pending_alarms_.empty()) {
+    auto it = pending_alarms_.begin();
+    auto alarm_id = it->first;
+    pending_alarms_.erase(it);
+    alarm_timeout_.cancel_timeout(alarm_id);
+  }
   while (!request_set_.empty()) {
     uint64 id = *request_set_.begin();
     if (destroy_flag_) {
@@ -4064,7 +4074,6 @@ void Td::clear() {
     } else {
       send_error_raw(id, 500, "Internal Server Error: closing");
     }
-    alarm_timeout_.cancel_timeout(static_cast<int64>(id));
   }
   if (is_online_) {
     is_online_ = false;
@@ -4408,7 +4417,9 @@ void Td::send_update(tl_object_ptr<td_api::Update> &&object) {
 
 void Td::send_result(uint64 id, tl_object_ptr<td_api::Object> object) {
   LOG_IF(ERROR, id == 0) << "Sending " << to_string(object) << " through send_result";
-  if (id == 0 || request_set_.erase(id)) {
+  auto it = request_set_.find(id);
+  if (it != request_set_.end()) {
+    request_set_.erase(it);
     VLOG(td_requests) << "Sending result for request " << id << ": " << to_string(object);
     if (object == nullptr) {
       object = make_tl_object<td_api::error>(404, "Not Found");
@@ -4421,7 +4432,9 @@ void Td::send_error_impl(uint64 id, tl_object_ptr<td_api::error> error) {
   CHECK(id != 0);
   CHECK(callback_ != nullptr);
   CHECK(error != nullptr);
-  if (request_set_.erase(id)) {
+  auto it = request_set_.find(id);
+  if (it != request_set_.end()) {
+    request_set_.erase(it);
     VLOG(td_requests) << "Sending error for request " << id << ": " << oneline(to_string(error));
     callback_->on_error(id, std::move(error));
   }
@@ -6541,7 +6554,10 @@ void Td::on_request(uint64 id, const td_api::setAlarm &request) {
   if (request.seconds_ < 0 || request.seconds_ > 3e9) {
     return send_error_raw(id, 400, "Wrong parameter seconds specified");
   }
-  alarm_timeout_.set_timeout_in(static_cast<int64>(id), request.seconds_);
+
+  int64 alarm_id = alarm_id_++;
+  pending_alarms_.emplace(alarm_id, id);
+  alarm_timeout_.set_timeout_in(alarm_id, request.seconds_);
 }
 
 void Td::on_request(uint64 id, td_api::searchHashtags &request) {

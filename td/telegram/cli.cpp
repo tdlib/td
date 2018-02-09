@@ -657,6 +657,11 @@ class CliClient final : public Actor {
     parameters->application_version_ = "tg_cli";
     send_request(td_api::make_object<td_api::setTdlibParameters>(std::move(parameters)));
     send_request(td_api::make_object<td_api::checkDatabaseEncryptionKey>());
+
+    for (int i = 0; i < 4; i++) {
+      send_closure_later(td_, &ClientActor::request, std::numeric_limits<uint64>::max(),
+                         td_api::make_object<td_api::setAlarm>(0.001 + 1000 * (i / 2)));
+    }
   }
 
   void init() {
