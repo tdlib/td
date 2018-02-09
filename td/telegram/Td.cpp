@@ -3689,7 +3689,7 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
           return send_result(id, td_api::make_object<td_api::authorizationStateWaitTdlibParameters>());
         case td_api::setTdlibParameters::ID:
           return answer_ok_query(
-              id, set_td_parameters(std::move(move_tl_object_as<td_api::setTdlibParameters>(function)->parameters_)));
+              id, set_parameters(std::move(move_tl_object_as<td_api::setTdlibParameters>(function)->parameters_)));
         default:
           return send_error_raw(id, 401, "Initialization parameters are needed");
       }
@@ -3990,16 +3990,20 @@ void Td::dec_actor_refcnt() {
       // NetQueryDispatcher will be closed automatically
       close_flag_ = 4;
     } else if (close_flag_ == 4) {
-      LOG(WARNING) << "ON_CLOSED";
-      close_flag_ = 5;
-      send_update(td_api::make_object<td_api::updateAuthorizationState>(
-          td_api::make_object<td_api::authorizationStateClosed>()));
-      callback_->on_closed();
-      dec_stop_cnt();
+      on_closed();
     } else {
       UNREACHABLE();
     }
   }
+}
+
+void Td::on_closed() {
+  LOG(WARNING) << "ON_CLOSED";
+  close_flag_ = 5;
+  send_update(td_api::make_object<td_api::updateAuthorizationState>(
+      td_api::make_object<td_api::authorizationStateClosed>()));
+  callback_->on_closed();
+  dec_stop_cnt();
 }
 
 void Td::dec_stop_cnt() {
@@ -4128,6 +4132,9 @@ void Td::close_impl(bool destroy_flag) {
   destroy_flag_ |= destroy_flag;
   if (close_flag_) {
     return;
+  }
+  if (state_ == State::WaitParameters) {
+    return on_closed();
   }
   if (state_ == State::Decrypt) {
     if (destroy_flag) {
@@ -4520,7 +4527,7 @@ Status Td::fix_parameters(TdParameters &parameters) {
   return Status::OK();
 }
 
-Status Td::set_td_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters) {
+Status Td::set_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters) {
   if (!clean_input_string(parameters->api_hash_) && !clean_input_string(parameters->system_language_code_) &&
       !clean_input_string(parameters->device_model_) && !clean_input_string(parameters->system_version_) &&
       !clean_input_string(parameters->application_version_)) {

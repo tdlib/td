@@ -206,6 +206,8 @@ class Td final : public NetQueryCallback {
   void inc_request_actor_refcnt();
   void dec_request_actor_refcnt();
 
+  void on_closed();
+
   void dec_stop_cnt();
 
   TdParameters parameters_;
@@ -783,7 +785,7 @@ class Td final : public NetQueryCallback {
   void clear();
   void close_impl(bool destroy_flag);
   Status fix_parameters(TdParameters &parameters) TD_WARN_UNUSED_RESULT;
-  Status set_td_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters) TD_WARN_UNUSED_RESULT;
+  Status set_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters) TD_WARN_UNUSED_RESULT;
 
   // Actor
   void start_up() override;

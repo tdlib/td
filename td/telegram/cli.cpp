@@ -635,7 +635,9 @@ class CliClient final : public Actor {
     close_flag_ = false;
     ready_to_stop_ = false;
 
-    td_ = create_actor<ClientActor>("Td-proxy", make_td_callback());
+    td_ = create_actor<ClientActor>("ClientActor1", make_td_callback());
+    td_ = create_actor<ClientActor>("ClientActor2", make_td_callback());
+    ready_to_stop_ = false;
 
     auto bad_parameters = td_api::make_object<td_api::tdlibParameters>();
     bad_parameters->database_directory_ = "/..";
