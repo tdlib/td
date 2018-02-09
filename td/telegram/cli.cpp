@@ -28,6 +28,7 @@
 #include "td/utils/port/Stat.h"
 #include "td/utils/port/thread_local.h"
 #include "td/utils/Random.h"
+#include "td/utils/ScopeGuard.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
@@ -46,6 +47,7 @@
 #include <ctime>
 #include <iostream>
 #include <limits>
+#include <locale>
 #include <memory>
 #include <queue>
 #include <tuple>
@@ -2955,7 +2957,12 @@ void main(int argc, char **argv) {
   set_signal_handler(SignalType::Abort, fail_signal).ensure();
   td::Log::set_fatal_error_callback(on_fatal_error);
 
-  std::setlocale(LC_ALL, "fr-FR");
+  std::string locale_name = (std::setlocale(LC_ALL, "fr-FR") == nullptr ? "C" : "fr-FR");
+  std::locale locale_fr(locale_name);
+  std::locale::global(locale_fr);
+  SCOPE_EXIT {
+    std::locale::global(std::locale::classic());
+  };
 
   CliLog cli_log;
   log_interface = &cli_log;
