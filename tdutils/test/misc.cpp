@@ -200,19 +200,20 @@ static void test_to_double_one(CSlice str, Slice expected) {
 }
 
 static void test_to_double() {
-  test_to_double_one("0", "0");
-  test_to_double_one("1", "1");
-  test_to_double_one("-10", "-10");
-  test_to_double_one("1.234", "1.234");
-  test_to_double_one("-1.234e2", "-123.4");
+  test_to_double_one("0", "0.000000");
+  test_to_double_one("1", "1.000000");
+  test_to_double_one("-10", "-10.000000");
+  test_to_double_one("1.234", "1.234000");
+  test_to_double_one("-1.234e2", "-123.400000");
   test_to_double_one("inf", "inf");
   test_to_double_one("  inF  asdasd", "inf");
-  test_to_double_one("  inFasdasd", "0");
+  test_to_double_one("  inFasdasd", "0.000000");
   test_to_double_one("  NaN", "nan");
-  test_to_double_one("  12345678910111213141516171819  asdasd", "1.23457e+28");
-  test_to_double_one("1.234567891011121314E123", "1.23457e+123");
-  test_to_double_one("123456789", "1.23457e+08");
-  test_to_double_one("-1,234567891011121314E123", "-1");
+  test_to_double_one("  12345678910111213141516171819  asdasd", "12345678910111213670658736128.000000");
+  test_to_double_one("1.234567891011121314E123", "1234567891011121363209105003376291141757777526749278953577304234065881343284952489418916814035346625663604561924259911303168.000000");
+  test_to_double_one("1.234567891011121314E-9", "0.000000");
+  test_to_double_one("123456789", "123456789.000000");
+  test_to_double_one("-1,234567891011121314E123", "-1.000000");
 }
 
 TEST(Misc, to_double) {

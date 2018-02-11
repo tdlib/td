@@ -71,6 +71,7 @@ StringBuilder &StringBuilder::operator<<(double x) {
   static TD_THREAD_LOCAL std::stringstream *ss;
   if (init_thread_local<std::stringstream>(ss)) {
     ss->imbue(std::locale::classic());
+    ss->setf(std::ios_base::fixed, std::ios_base::floatfield);
   } else {
     ss->str(std::string());
     ss->clear();
