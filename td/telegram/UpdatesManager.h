@@ -42,6 +42,10 @@ class UpdatesManager : public Actor {
 
   void init_state();
 
+  void ping_server();
+
+  void on_server_pong(tl_object_ptr<telegram_api::updates_state> &&state);
+
   int32 get_pts() const {
     return pts_manager_.mem_pts();
   }

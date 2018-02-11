@@ -193,7 +193,10 @@ class Td final : public NetQueryCallback {
 
  private:
   static constexpr const char *tdlib_version = "1.1.2";
+  static constexpr int64 ONLINE_ALARM_ID = 0;
   static constexpr int32 ONLINE_TIMEOUT = 240;
+  static constexpr int64 PING_SERVER_ALARM_ID = -1;
+  static constexpr int32 PING_SERVER_TIMEOUT = 300;
 
   void send_result(uint64 id, tl_object_ptr<td_api::Object> object);
   void send_error(uint64 id, Status error);

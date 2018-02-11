@@ -92,6 +92,29 @@ class GetUpdatesStateQuery : public Td::ResultHandler {
   }
 };
 
+class PingServerQuery : public Td::ResultHandler {
+ public:
+  void send() {
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::updates_getState())));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::updates_getState>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto state = result_ptr.move_as_ok();
+    CHECK(state->get_id() == telegram_api::updates_state::ID);
+    td->updates_manager_->on_server_pong(std::move(state));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    status.ignore();
+    td->updates_manager_->on_server_pong(nullptr);
+  }
+};
+
 class GetDifferenceQuery : public Td::ResultHandler {
  public:
   void send() {
@@ -839,6 +862,17 @@ void UpdatesManager::init_state() {
   send_closure(td_->secret_chats_manager_, &SecretChatsManager::init_qts, qts_);
 
   get_difference("init_state");
+}
+
+void UpdatesManager::ping_server() {
+  td_->create_handler<PingServerQuery>()->send();
+}
+
+void UpdatesManager::on_server_pong(tl_object_ptr<telegram_api::updates_state> &&state) {
+  LOG(INFO) << "Receive " << oneline(to_string(state));
+  if (state == nullptr || state->pts_ > get_pts() || state->seq_ > seq_) {
+    get_difference("on server pong");
+  }
 }
 
 void UpdatesManager::process_get_difference_updates(

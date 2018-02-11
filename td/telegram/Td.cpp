@@ -3637,8 +3637,13 @@ void Td::on_alarm_timeout_callback(void *td_ptr, int64 alarm_id) {
 }
 
 void Td::on_alarm_timeout(int64 alarm_id) {
-  if (alarm_id == 0) {
+  if (alarm_id == ONLINE_ALARM_ID) {
     on_online_updated(false, true);
+    return;
+  }
+  if (alarm_id == PING_SERVER_ALARM_ID && updates_manager_ != nullptr) {
+    updates_manager_->ping_server();
+    alarm_timeout_.set_timeout_in(PING_SERVER_ALARM_ID, PING_SERVER_TIMEOUT + Random::fast(0, PING_SERVER_TIMEOUT / 5));
     return;
   }
   auto it = pending_alarms_.find(alarm_id);
@@ -3657,9 +3662,9 @@ void Td::on_online_updated(bool force, bool send_update) {
     create_handler<UpdateStatusQuery>()->send(!is_online_);
   }
   if (is_online_) {
-    alarm_timeout_.set_timeout_in(0, ONLINE_TIMEOUT);
+    alarm_timeout_.set_timeout_in(ONLINE_ALARM_ID, ONLINE_TIMEOUT);
   } else {
-    alarm_timeout_.cancel_timeout(0);
+    alarm_timeout_.cancel_timeout(ONLINE_ALARM_ID);
   }
 }
 
@@ -3822,6 +3827,10 @@ void Td::on_result(NetQueryPtr query) {
       updates_manager_->schedule_get_difference("failed to fetch update");
     } else {
       updates_manager_->on_get_updates(std::move(ptr));
+      if (auth_manager_->is_bot()) {
+        alarm_timeout_.set_timeout_in(PING_SERVER_ALARM_ID,
+                                      PING_SERVER_TIMEOUT + Random::fast(0, PING_SERVER_TIMEOUT / 5));
+      }
     }
     return;
   }
@@ -4077,8 +4086,9 @@ void Td::clear() {
   }
   if (is_online_) {
     is_online_ = false;
-    alarm_timeout_.cancel_timeout(0);
+    alarm_timeout_.cancel_timeout(ONLINE_ALARM_ID);
   }
+  alarm_timeout_.cancel_timeout(PING_SERVER_ALARM_ID);
   LOG(DEBUG) << "Requests was answered " << timer;
 
   // close all pure actors
@@ -4416,7 +4426,11 @@ void Td::send_update(tl_object_ptr<td_api::Update> &&object) {
 }
 
 void Td::send_result(uint64 id, tl_object_ptr<td_api::Object> object) {
-  LOG_IF(ERROR, id == 0) << "Sending " << to_string(object) << " through send_result";
+  if (id == 0) {
+    LOG(ERROR) << "Sending " << to_string(object) << " through send_result";
+    return;
+  }
+
   auto it = request_set_.find(id);
   if (it != request_set_.end()) {
     request_set_.erase(it);
