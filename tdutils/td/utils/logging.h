@@ -12,14 +12,14 @@
  * Predefined log levels: FATAL, ERROR, WARNING, INFO, DEBUG
  *
  * LOG(WARNING) << "Hello world!";
- * LOG(INFO, "Hello %d", 1234) << " world!";
+ * LOG(INFO) << "Hello " << 1234 << " world!";
  * LOG_IF(INFO, condition) << "Hello world if condition!";
  *
  * Custom log levels may be defined and used using VLOG:
  * int VERBOSITY_NAME(custom) = VERBOSITY_NAME(WARNING);
  * VLOG(custom) << "Hello custom world!"
  *
- * LOG(FATAL, "power is off");
+ * LOG(FATAL) << "Power is off";
  * CHECK(condition) <===> LOG_IF(FATAL, !(condition))
  */
 

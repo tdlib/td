@@ -147,7 +147,7 @@ void KQueue::run(int timeout_ms) {
       flags |= Fd::Close;
     }
     if (event->fflags & EV_ERROR) {
-      LOG(FATAL, "EV_ERROR in kqueue is not supported");
+      LOG(FATAL) << "EV_ERROR in kqueue is not supported";
     }
     VLOG(fd) << "Event [fd:" << event->ident << "] [filter:" << event->filter << "] [udata: " << event->udata << "]";
     // LOG(WARNING) << "event->ident = " << event->ident << "event->filter = " << event->filter;

@@ -64,7 +64,7 @@ Stat fstat(int native_fd) {
   struct ::stat buf;
   int err = fstat(native_fd, &buf);
   auto fstat_errno = errno;
-  LOG_IF(FATAL, err < 0) << Status::PosixError(fstat_errno, PSLICE() << "stat of fd " << native_fd << " failed");
+  LOG_IF(FATAL, err < 0) << Status::PosixError(fstat_errno, PSLICE() << "stat for fd " << native_fd << " failed");
   return detail::from_native_stat(buf);
 }
 

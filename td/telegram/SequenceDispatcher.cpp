@@ -201,7 +201,7 @@ void SequenceDispatcher::timeout_expired() {
   }
   CHECK(!parent_.empty());
   set_timeout_in(1);
-  VLOG(DEBUG) << "SequenceDispatcher ready to close";
+  LOG(DEBUG) << "SequenceDispatcher ready to close";
   send_closure(parent_, &Parent::ready_to_close);
 }
 

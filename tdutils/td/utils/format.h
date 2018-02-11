@@ -147,7 +147,8 @@ inline StringBuilder &operator<<(StringBuilder &builder, const Escaped &escaped)
     if (c > 31 && c < 127 && c != '"' && c != '\\') {
       builder << static_cast<char>(c);
     } else {
-      builder.printf("\\%03o", c);
+      const char *oct = "01234567";
+      builder << "\\0" << oct[c >> 6] << oct[(c >> 3) & 7] << oct[c & 7];
     }
   }
   return builder;

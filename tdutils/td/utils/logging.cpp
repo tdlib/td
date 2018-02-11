@@ -56,12 +56,18 @@ Logger::Logger(LogInterface &log, int log_level, Slice file_name, int line_num, 
   }
   file_name = file_name.substr(last_slash_ + 1);
 
-  printf("[%2d]", log_level);
-  auto tid = get_thread_id();
-  if (tid != -1) {
-    printf("[t%2d]", tid);
+  auto thread_id = get_thread_id();
+
+  (*this) << '[';
+  if (log_level < 10) {
+    (*this) << ' ';
   }
-  (*this) << StringBuilder::FixedDouble(Clocks::system(), 9) << "[" << file_name << ":" << line_num << "]";
+  (*this) << log_level << '][t';
+  if (thread_id < 10) {
+    (*this) << ' ';
+  }
+  (*this) << thread_id << ']' << StringBuilder::FixedDouble(Clocks::system(), 9) << "[" << file_name << ":" << line_num
+          << "]";
   if (tag_ != nullptr && *tag_) {
     (*this) << "[#" << Slice(tag_) << "]";
   }

@@ -3928,7 +3928,7 @@ void Td::hangup_shared() {
   } else if (type == ActorIdType) {
     dec_actor_refcnt();
   } else {
-    LOG(FATAL, "Unknown hangup_shared ") << tag("type", type);
+    LOG(FATAL) << "Unknown hangup_shared of type " << type;
   }
 }
 

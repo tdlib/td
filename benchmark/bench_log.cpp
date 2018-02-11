@@ -75,7 +75,7 @@ class FILEWriteBench : public td::Benchmark {
 
  public:
   std::string get_description() const override {
-    return "fprintf (to file, no buf, no flush)";
+    return "std::fprintf (to file, no buf, no flush)";
   }
 
   void start_up() override {
