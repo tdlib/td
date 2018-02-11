@@ -35,10 +35,6 @@
 #include <sys/syscall.h>
 #endif
 
-#include <cinttypes>
-#include <cstdio>
-#include <cstring>
-
 namespace td {
 namespace detail {
 Stat from_native_stat(const struct ::stat &buf) {
@@ -68,8 +64,7 @@ Stat fstat(int native_fd) {
   struct ::stat buf;
   int err = fstat(native_fd, &buf);
   auto fstat_errno = errno;
-  LOG_IF(FATAL, err < 0) << Status::PosixError(fstat_errno, PSLICE()
-                                                                << "stat of " << tag("fd", native_fd) << " failed");
+  LOG_IF(FATAL, err < 0) << Status::PosixError(fstat_errno, PSLICE() << "stat of fd " << native_fd << " failed");
   return detail::from_native_stat(buf);
 }
 
@@ -166,7 +161,6 @@ Result<MemStat> mem_stat() {
 
   const char *s = mem;
   MemStat res;
-  std::memset(&res, 0, sizeof(res));
   while (*s) {
     const char *name_begin = s;
     while (*s != 0 && *s != '\n') {
@@ -192,14 +186,13 @@ Result<MemStat> mem_stat() {
       x = &res.resident_size_;
     }
     if (x != nullptr) {
-      unsigned long long xx;
-      if (name_end == s || name_end + 1 == s || std::sscanf(name_end + 1, "%llu", &xx) != 1) {
-        LOG(ERROR) << "Failed to parse memory stats" << tag("line", Slice(name_begin, s))
-                   << tag(":number", Slice(name_end, s));
+      Slice value(name_end, s);
+      auto r_mem = to_integer_safe<uint64>(value);
+      if (r_mem.is_error()) {
+        LOG(ERROR) << "Failed to parse memory stats " << tag("name", name) << tag("value", value);
         *x = static_cast<uint64>(-1);
       } else {
-        xx *= 1024;  // memory is in kB
-        *x = static_cast<uint64>(xx);
+        *x = r_mem.ok() * 1024;  // memory is in kB
       }
     }
     if (*s == 0) {
