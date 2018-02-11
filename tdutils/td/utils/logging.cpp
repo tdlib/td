@@ -61,8 +61,7 @@ Logger::Logger(LogInterface &log, int log_level, Slice file_name, int line_num, 
   if (tid != -1) {
     printf("[t%2d]", tid);
   }
-  printf("[%.9lf]", Clocks::system());
-  (*this) << "[" << file_name << ":" << line_num << "]";
+  (*this) << StringBuilder::FixedDouble(Clocks::system(), 9) << "[" << file_name << ":" << line_num << "]";
   if (tag_ != nullptr && *tag_) {
     (*this) << "[#" << Slice(tag_) << "]";
   }

@@ -175,7 +175,7 @@ inline StringBuilder &operator<<(StringBuilder &logger, Time t) {
   while (i + 1 < durations_n && t.seconds_ > 10 * durations[i + 1].value) {
     i++;
   }
-  logger.printf("%.1lf%s", t.seconds_ / durations[i].value, durations[i].name);
+  logger << StringBuilder::FixedDouble(t.seconds_ / durations[i].value, 1) << durations[i].name;
   return logger;
 }
 
