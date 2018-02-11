@@ -7959,6 +7959,10 @@ bool MessagesManager::read_message_content(Dialog *d, Message *m, bool is_local_
 
 void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_message_id, int32 unread_count,
                                          const char *source) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   Dialog *d = get_dialog_force(dialog_id);
   if (d != nullptr) {
     if (unread_count < 0) {
@@ -7974,13 +7978,14 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
       }
     }
     if (d->is_last_read_inbox_message_id_inited && max_message_id.get() <= d->last_read_inbox_message_id.get()) {
-      LOG(INFO) << "Receive read inbox update up to " << max_message_id << ", but all messages are already read up to "
-                << d->last_read_inbox_message_id << " from " << source;
+      LOG(INFO) << "Receive read inbox update in " << dialog_id << " up to " << max_message_id << " from " << source
+                << ", but all messages are already read up to " << d->last_read_inbox_message_id;
       return;
     }
 
     if (max_message_id != MessageId() && max_message_id.is_yet_unsent()) {
-      LOG(ERROR) << "Try to update last read inbox message with " << max_message_id << " from " << source;
+      LOG(ERROR) << "Try to update last read inbox message in " << dialog_id << " with " << max_message_id << " from "
+                 << source;
       return;
     }
 
@@ -8028,7 +8033,7 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
     if (unread_count >= 0) {
       if (unread_count < server_unread_count) {
         LOG(ERROR) << "Receive unread_count = " << unread_count << ", but have at least " << server_unread_count
-                   << " unread messages";
+                   << " unread messages in " << dialog_id;
       } else {
         server_unread_count = unread_count;
       }
@@ -8041,6 +8046,10 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
 }
 
 void MessagesManager::read_history_outbox(DialogId dialog_id, MessageId max_message_id, int32 read_date) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   Dialog *d = get_dialog_force(dialog_id);
   if (d != nullptr) {
     if (!max_message_id.is_valid()) {
@@ -8092,6 +8101,10 @@ void MessagesManager::read_history_outbox(DialogId dialog_id, MessageId max_mess
 void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId message_id, int32 server_unread_count,
                                                             int32 local_unread_count, bool force_update,
                                                             const char *source) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   CHECK(d != nullptr);
   LOG(INFO) << "Update last read inbox message in " << d->dialog_id << " from " << d->last_read_inbox_message_id
             << " to " << message_id << " and update unread message count from " << d->server_unread_count << " + "
@@ -8106,6 +8119,10 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
 }
 
 void MessagesManager::set_dialog_last_read_outbox_message_id(Dialog *d, MessageId message_id) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   CHECK(d != nullptr);
   LOG(INFO) << "Update last read outbox message in " << d->dialog_id << " from " << d->last_read_outbox_message_id
             << " to " << message_id;
@@ -10178,7 +10195,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
       can't do this because the message may be never received in the dialog, unread count will became negative
       // if last_read_inbox_message_id is not known, we can't be sure whether unread_count should be decreased or not
       if (message_id.is_valid() && !message_id.is_yet_unsent() && d->is_last_read_inbox_message_id_inited &&
-          message_id.get() > d->last_read_inbox_message_id.get()) {
+          message_id.get() > d->last_read_inbox_message_id.get() && !td_->auth_manager_->is_bot()) {
         int32 &unread_count = message_id.is_server() ? d->server_unread_count : d->local_unread_count;
         unread_count--;
         if (unread_count < 0) {
@@ -10324,7 +10341,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     // if last_read_inbox_message_id is not known, we can't be sure whether unread_count should be decreased or not
     if (!result->is_outgoing && message_id.get() > d->last_read_inbox_message_id.get() &&
         d->dialog_id != DialogId(td_->contacts_manager_->get_my_id("do_delete_message")) &&
-        d->is_last_read_inbox_message_id_inited) {
+        d->is_last_read_inbox_message_id_inited && !td_->auth_manager_->is_bot()) {
       int32 &unread_count = message_id.is_server() ? d->server_unread_count : d->local_unread_count;
       unread_count--;
       if (unread_count < 0) {
@@ -21254,7 +21271,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   UserId my_user_id(td_->contacts_manager_->get_my_id("add_message_to_dialog"));
   DialogId my_dialog_id(my_user_id);
-  if (*need_update && message_id.get() > d->last_read_inbox_message_id.get()) {
+  if (*need_update && message_id.get() > d->last_read_inbox_message_id.get() && !td_->auth_manager_->is_bot()) {
     if (!message->is_outgoing && dialog_id != my_dialog_id) {
       if (message_id.is_server()) {
         d->server_unread_count++;
