@@ -21797,11 +21797,14 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
     }
   } else {
     if (new_message->forward_info != nullptr) {
-      LOG_IF(ERROR, *old_message->forward_info != *new_message->forward_info &&
-                        (!old_message->forward_info->sender_user_id.is_valid() ||
-                         new_message->forward_info->sender_user_id.is_valid()))
-          << message_id << " in " << dialog_id << " has changed forward info from " << *old_message->forward_info
-          << " to " << *new_message->forward_info << ", really forwarded from " << old_message->debug_forward_from;
+      if (*old_message->forward_info != *new_message->forward_info &&
+          (!old_message->forward_info->sender_user_id.is_valid() ||
+           new_message->forward_info->sender_user_id.is_valid())) {
+        old_message->forward_info->author_signature = new_message->forward_info->author_signature;
+        LOG_IF(ERROR, *old_message->forward_info != *new_message->forward_info)
+            << message_id << " in " << dialog_id << " has changed forward info from " << *old_message->forward_info
+            << " to " << *new_message->forward_info << ", really forwarded from " << old_message->debug_forward_from;
+      }
       old_message->forward_info = std::move(new_message->forward_info);
       is_changed = true;
     } else {
