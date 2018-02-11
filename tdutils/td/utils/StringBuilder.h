@@ -94,7 +94,18 @@ class StringBuilder {
 
   StringBuilder &operator<<(long long unsigned int x);
 
-  StringBuilder &operator<<(double x);
+  struct FixedDouble {
+    double d;
+    int precision;
+
+    FixedDouble(double d, int precision) : d(d), precision(precision) {
+    }
+  };
+  StringBuilder &operator<<(FixedDouble x);
+
+  StringBuilder &operator<<(double x) {
+    return *this << FixedDouble(x, 6);
+  }
 
   StringBuilder &operator<<(const void *ptr);
 

@@ -63,7 +63,7 @@ StringBuilder &StringBuilder::operator<<(long long unsigned int x) {
   return *this;
 }
 
-StringBuilder &StringBuilder::operator<<(double x) {
+StringBuilder &StringBuilder::operator<<(FixedDouble x) {
   if (unlikely(end_ptr_ < current_ptr_)) {
     return on_error();
   }
@@ -76,7 +76,8 @@ StringBuilder &StringBuilder::operator<<(double x) {
     ss->str(std::string());
     ss->clear();
   }
-  *ss << x;
+  ss->precision(x.precision);
+  *ss << x.d;
 
   int len = narrow_cast<int>(static_cast<std::streamoff>(ss->tellp()));
   auto left = end_ptr_ + reserved_size - current_ptr_;

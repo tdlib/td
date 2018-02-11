@@ -191,8 +191,8 @@ TEST(Misc, to_integer) {
   ASSERT_TRUE(to_integer_safe<uint64>("-12345678910111213").is_error());
 }
 
-static void test_to_double_one(CSlice str, Slice expected) {
-  auto result = PSTRING() << to_double(str);
+static void test_to_double_one(CSlice str, Slice expected, int precision = 6) {
+  auto result = PSTRING() << td::StringBuilder::FixedDouble(to_double(str), precision);
   if (expected != result) {
     LOG(ERROR) << "To double conversion failed: have " << str << ", expected " << expected << ", parsed "
                << to_double(str) << ", got " << result;
@@ -210,10 +210,24 @@ static void test_to_double() {
   test_to_double_one("  inFasdasd", "0.000000");
   test_to_double_one("  NaN", "nan");
   test_to_double_one("  12345678910111213141516171819  asdasd", "12345678910111213670658736128.000000");
-  test_to_double_one("1.234567891011121314E123", "1234567891011121363209105003376291141757777526749278953577304234065881343284952489418916814035346625663604561924259911303168.000000");
+  test_to_double_one("1.234567891011121314E123",
+                     "1234567891011121363209105003376291141757777526749278953577304234065881343284952489418916814035346"
+                     "625663604561924259911303168.000000");
   test_to_double_one("1.234567891011121314E-9", "0.000000");
   test_to_double_one("123456789", "123456789.000000");
   test_to_double_one("-1,234567891011121314E123", "-1.000000");
+  test_to_double_one("123456789", "123456789", 0);
+  test_to_double_one("1.23456789", "1", 0);
+  test_to_double_one("1.23456789", "1.2", 1);
+  test_to_double_one("1.23456789", "1.23", 2);
+  test_to_double_one("1.23456789", "1.235", 3);
+  test_to_double_one("1.23456789", "1.2346", 4);
+  test_to_double_one("1.23456789", "1.23457", 5);
+  test_to_double_one("1.23456789", "1.234568", 6);
+  test_to_double_one("1.23456789", "1.2345679", 7);
+  test_to_double_one("1.23456789", "1.23456789", 8);
+  test_to_double_one("1.23456789", "1.234567890", 9);
+  test_to_double_one("1.23456789", "1.2345678900", 10);
 }
 
 TEST(Misc, to_double) {
