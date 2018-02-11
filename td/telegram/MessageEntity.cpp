@@ -1641,7 +1641,8 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
 }
 
 vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manager,
-                                           vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities) {
+                                           vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,
+                                           const char *source) {
   vector<MessageEntity> entities;
   entities.reserve(server_entities.size());
   for (auto &entity : server_entities) {
@@ -1704,7 +1705,8 @@ vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manag
         auto entity_text_url = static_cast<telegram_api::messageEntityTextUrl *>(entity.get());
         auto r_http_url = parse_url(entity_text_url->url_);
         if (r_http_url.is_error()) {
-          LOG(ERROR) << "Wrong URL entity: \"" << entity_text_url->url_ << "\": " << r_http_url.error().message();
+          LOG(ERROR) << "Wrong URL entity: \"" << entity_text_url->url_ << "\": " << r_http_url.error().message()
+                     << " from " << source;
           continue;
         }
         entities.emplace_back(MessageEntity::Type::TextUrl, entity_text_url->offset_, entity_text_url->length_,
@@ -1715,15 +1717,15 @@ vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manag
         auto entity_mention_name = static_cast<const telegram_api::messageEntityMentionName *>(entity.get());
         UserId user_id(entity_mention_name->user_id_);
         if (!user_id.is_valid()) {
-          LOG(ERROR) << "Receive invalid " << user_id << " in MentionName";
+          LOG(ERROR) << "Receive invalid " << user_id << " in MentionName from " << source;
           continue;
         }
         if (!contacts_manager->have_user(user_id)) {
-          LOG(ERROR) << "Receive unknown " << user_id << " in MentionName";
+          LOG(ERROR) << "Receive unknown " << user_id << " in MentionName from " << source;
           continue;
         }
         if (!contacts_manager->have_input_user(user_id)) {
-          LOG(ERROR) << "Receive unaccessible " << user_id << " in MentionName";
+          LOG(ERROR) << "Receive unaccessible " << user_id << " in MentionName from " << source;
           continue;
         }
         entities.emplace_back(entity_mention_name->offset_, entity_mention_name->length_, user_id);

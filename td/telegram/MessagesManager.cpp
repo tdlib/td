@@ -12333,7 +12333,7 @@ unique_ptr<DraftMessage> MessagesManager::get_draft_message(
         }
       }
 
-      auto entities = get_message_entities(contacts_manager, std::move(draft->entities_));
+      auto entities = get_message_entities(contacts_manager, std::move(draft->entities_), "draftMessage");
       auto status = fix_text_message(draft->message_, entities, true, true, true, true);
       if (status.is_error()) {
         LOG(ERROR) << "Receive error " << status << " while parsing draft " << draft->message_;
@@ -19944,7 +19944,7 @@ FormattedText MessagesManager::get_secret_media_caption(string &&message_text, s
 FormattedText MessagesManager::get_message_text(string message_text,
                                                 vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,
                                                 int32 send_date) const {
-  auto entities = get_message_entities(td_->contacts_manager_.get(), std::move(server_entities));
+  auto entities = get_message_entities(td_->contacts_manager_.get(), std::move(server_entities), "get_message_text");
   auto status = fix_text_message(message_text, entities, true, true, true, false);
   if (status.is_error()) {
     if (send_date == 0 || send_date > 1497000000) {  // approximate fix date

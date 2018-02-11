@@ -330,7 +330,8 @@ bool InlineQueriesManager::register_inline_message_content(
   switch (inline_message->get_id()) {
     case telegram_api::botInlineMessageText::ID: {
       auto inline_message_text = move_tl_object_as<telegram_api::botInlineMessageText>(inline_message);
-      auto entities = get_message_entities(td_->contacts_manager_.get(), std::move(inline_message_text->entities_));
+      auto entities = get_message_entities(td_->contacts_manager_.get(), std::move(inline_message_text->entities_),
+                                           "botInlineMessageText");
       auto status =
           MessagesManager::fix_text_message(inline_message_text->message_, entities, false, true, true, false);
       if (status.is_error()) {
