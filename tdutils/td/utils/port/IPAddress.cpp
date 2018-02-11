@@ -44,7 +44,8 @@ size_t IPAddress::get_sockaddr_len() const {
     case AF_INET:
       return sizeof(ipv4_addr_);
     default:
-      UNREACHABLE("Unknown address family");
+      LOG(FATAL) << "Unknown address family";
+      return 0;
   }
 }
 
@@ -79,7 +80,7 @@ IPAddress IPAddress::get_any_addr() const {
       res.init_ipv4_any();
       break;
     default:
-      UNREACHABLE("Unknown address family");
+      LOG(FATAL) << "Unknown address family";
   }
   return res;
 }
@@ -317,7 +318,7 @@ bool operator==(const IPAddress &a, const IPAddress &b) {
            std::memcmp(&a.ipv6_addr_.sin6_addr, &b.ipv6_addr_.sin6_addr, sizeof(a.ipv6_addr_.sin6_addr)) == 0;
   }
 
-  UNREACHABLE("Unknown address family");
+  LOG(FATAL) << "Unknown address family";
   return false;
 }
 
@@ -341,7 +342,7 @@ bool operator<(const IPAddress &a, const IPAddress &b) {
     return std::memcmp(&a.ipv6_addr_.sin6_addr, &b.ipv6_addr_.sin6_addr, sizeof(a.ipv6_addr_.sin6_addr)) < 0;
   }
 
-  UNREACHABLE("Unknown address family");
+  LOG(FATAL) << "Unknown address family";
   return false;
 }
 
