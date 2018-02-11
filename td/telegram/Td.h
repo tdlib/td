@@ -25,6 +25,7 @@
 #include "td/utils/Status.h"
 
 #include <memory>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 

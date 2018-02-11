@@ -17,6 +17,7 @@
 #include "td/utils/misc.h"
 #include "td/utils/ScopeGuard.h"
 
+#include <algorithm>
 #include <tuple>
 
 namespace td {

@@ -10,6 +10,7 @@
 #include "td/utils/invoke.h"
 #include "td/utils/logging.h"
 
+#include <cstdlib>
 #include <tuple>
 #include <type_traits>
 #include <utility>

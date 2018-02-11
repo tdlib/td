@@ -35,6 +35,7 @@
 #include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
 
+#include <functional>
 #include <map>
 #include <memory>
 #include <tuple>
