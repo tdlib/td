@@ -13,7 +13,6 @@
 #include "td/utils/Time.h"
 
 #include <atomic>
-#include <cstdarg>
 #include <cstdlib>
 
 #if TD_ANDROID
@@ -62,12 +61,12 @@ Logger::Logger(LogInterface &log, int log_level, Slice file_name, int line_num, 
   if (log_level < 10) {
     (*this) << ' ';
   }
-  (*this) << log_level << '][t';
+  (*this) << log_level << "][t";
   if (thread_id < 10) {
     (*this) << ' ';
   }
-  (*this) << thread_id << ']' << StringBuilder::FixedDouble(Clocks::system(), 9) << "[" << file_name << ":" << line_num
-          << "]";
+  (*this) << thread_id << "][" << StringBuilder::FixedDouble(Clocks::system(), 9) << "][" << file_name << ':'
+          << line_num << ']';
   if (tag_ != nullptr && *tag_) {
     (*this) << "[#" << Slice(tag_) << "]";
   }
@@ -78,17 +77,6 @@ Logger::Logger(LogInterface &log, int log_level, Slice file_name, int line_num, 
     (*this) << "[&" << comment << "]";
   }
   (*this) << "\t";
-}
-
-Logger &Logger::printf(const char *fmt, ...) {
-  if (!*fmt) {
-    return *this;
-  }
-  va_list list;
-  va_start(list, fmt);
-  sb_.vprintf(fmt, list);
-  va_end(list);
-  return *this;
 }
 
 Logger::~Logger() {

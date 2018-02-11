@@ -98,27 +98,4 @@ StringBuilder &StringBuilder::operator<<(const void *ptr) {
   return *this;
 }
 
-void StringBuilder::vprintf(const char *fmt, va_list list) {
-  if (unlikely(end_ptr_ < current_ptr_)) {
-    on_error();
-    return;
-  }
-
-  auto left = end_ptr_ + reserved_size - current_ptr_;
-  int len = std::vsnprintf(current_ptr_, left, fmt, list);
-  if (unlikely(len >= left)) {
-    error_flag_ = true;
-    current_ptr_ += left - 1;
-  } else {
-    current_ptr_ += len;
-  }
-}
-
-void StringBuilder::printf(const char *fmt, ...) {
-  va_list list;
-  va_start(list, fmt);
-  vprintf(fmt, list);
-  va_end(list);
-}
-
 }  // namespace td
