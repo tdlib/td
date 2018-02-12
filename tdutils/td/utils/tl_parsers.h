@@ -33,7 +33,7 @@ class TlParser {
   static constexpr size_t SMALL_DATA_ARRAY_SIZE = 6;
   std::array<int32, SMALL_DATA_ARRAY_SIZE> small_data_array;
 
-  static const unsigned char empty_data[sizeof(UInt256)];
+  alignas(4) static const unsigned char empty_data[sizeof(UInt256)];
 
  public:
   explicit TlParser(Slice slice) {
