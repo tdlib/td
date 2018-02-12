@@ -13517,17 +13517,18 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
 
 void MessagesManager::get_history_from_the_end(DialogId dialog_id, bool from_database, bool only_local,
                                                Promise<Unit> &&promise) {
+  const int32 limit = MAX_GET_HISTORY;
   if (from_database && G()->parameters().use_message_db) {
     LOG(INFO) << "Get history from the end of " << dialog_id << " from database";
     MessagesDbMessagesQuery db_query;
     db_query.dialog_id = dialog_id;
     db_query.from_message_id = MessageId::max();
-    db_query.limit = MAX_GET_HISTORY;
+    db_query.limit = limit;
     G()->td_db()->get_messages_db_async()->get_messages(
-        db_query, PromiseCreator::lambda([dialog_id, only_local, actor_id = actor_id(this),
+        db_query, PromiseCreator::lambda([dialog_id, only_local, limit, actor_id = actor_id(this),
                                           promise = std::move(promise)](MessagesDbMessagesResult result) mutable {
           send_closure(actor_id, &MessagesManager::on_get_history_from_database, dialog_id, MessageId::max(), 0,
-                       MAX_GET_HISTORY, true, only_local, std::move(result.messages), std::move(promise));
+                       limit, true, only_local, std::move(result.messages), std::move(promise));
         }));
   } else {
     if (only_local || dialog_id.get_type() == DialogType::SecretChat) {
@@ -13536,7 +13537,7 @@ void MessagesManager::get_history_from_the_end(DialogId dialog_id, bool from_dat
     }
 
     LOG(INFO) << "Get history from the end of " << dialog_id << " from server";
-    td_->create_handler<GetHistoryQuery>(std::move(promise))->send_get_from_the_end(dialog_id, MAX_GET_HISTORY);
+    td_->create_handler<GetHistoryQuery>(std::move(promise))->send_get_from_the_end(dialog_id, limit);
   }
 }
 
