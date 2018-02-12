@@ -31,6 +31,7 @@ if (CLANG)
 endif()
 
 set(TDUTILS_SOURCE
+  td/utils/port/Clocks.cpp
   td/utils/port/Fd.cpp
   td/utils/port/FileFd.cpp
   td/utils/port/IPAddress.cpp

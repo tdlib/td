@@ -15,6 +15,7 @@
 #include <cstring>
 
 namespace td {
+
 template <int buffer_size = 32 * (1 << 10)>
 class MemoryLog : public LogInterface {
   static constexpr size_t MAX_OUTPUT_SIZE = buffer_size / 16 < (8 << 10) ? buffer_size / 16 : (8 << 10);
@@ -78,4 +79,5 @@ class MemoryLog : public LogInterface {
   char buffer_[buffer_size];
   std::atomic<uint32> pos_;
 };
+
 }  // namespace td

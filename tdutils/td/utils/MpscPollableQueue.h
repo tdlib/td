@@ -8,16 +8,15 @@
 
 #include "td/utils/misc.h"
 #include "td/utils/port/EventFd.h"
+#include "td/utils/SpinLock.h"
 
 #if !TD_EVENTFD_UNSUPPORTED
 #if !TD_WINDOWS
-#include <poll.h>  // for pollfd, poll, POLLIN
+#include <poll.h>
 #include <sched.h>
 #endif
 
 #include <utility>
-
-#include <td/utils/SpinLock.h>
 
 namespace td {
 // interface like in PollableQueue
