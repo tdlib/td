@@ -2907,7 +2907,7 @@ class GetNotifySettingsQuery : public Td::ResultHandler {
   void send(NotificationSettingsScope scope) {
     scope_ = scope;
     auto input_notify_peer = td->messages_manager_->get_input_notify_peer(scope);
-    CHECK(input_notify_peer != nullptr) << scope;
+    CHECK(input_notify_peer != nullptr);
     send_query(G()->net_query_creator().create(
         create_storer(telegram_api::account_getNotifySettings(std::move(input_notify_peer)))));
   }
@@ -2968,7 +2968,7 @@ class UpdateNotifySettingsQuery : public Td::ResultHandler {
     LOG(INFO) << "Receive error for set notification settings: " << status;
     status.ignore();
 
-    if (!td->auth_manager_->is_bot()) {
+    if (!td->auth_manager_->is_bot() && td->messages_manager_->get_input_notify_peer(scope_) != nullptr) {
       // trying to repair notification settings for this scope
       td->create_handler<GetNotifySettingsQuery>(Promise<>())->send(scope_);
     }
