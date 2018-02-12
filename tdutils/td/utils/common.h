@@ -91,7 +91,7 @@ T max(T a, T b) {
 
 template <class T>
 T min(T a, T b) {
-  return a > b ? b : a;
+  return a < b ? a : b;
 }
 
 using string = std::string;
