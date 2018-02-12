@@ -5,6 +5,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
+
 #include "td/mtproto/AuthKey.h"
 
 #include "td/utils/format.h"
@@ -25,12 +26,14 @@ struct ServerSalt {
   double valid_since;
   double valid_until;
 };
+
 template <class StorerT>
 void store(const ServerSalt &salt, StorerT &storer) {
   storer.template store_binary<int64>(salt.salt);
   storer.template store_binary<double>(salt.valid_since);
   storer.template store_binary<double>(salt.valid_until);
 }
+
 template <class ParserT>
 void parse(ServerSalt &salt, ParserT &parser) {
   salt.salt = parser.fetch_long();

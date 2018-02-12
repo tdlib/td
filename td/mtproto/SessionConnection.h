@@ -129,12 +129,15 @@ class SessionConnection
   int rtt() const {
     return std::max(2, static_cast<int>(raw_connection_->rtt_ * 1.5));
   }
+
   int32 ping_disconnect_delay() const {
     return online_flag_ ? rtt() * 5 / 2 : 135;
   }
+
   int32 ping_may_delay() const {
     return online_flag_ ? rtt() / 2 : 30;
   }
+
   int32 ping_must_delay() const {
     return online_flag_ ? rtt() : 60;
   }
