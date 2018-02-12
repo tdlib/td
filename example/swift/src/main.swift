@@ -1,14 +1,14 @@
 import Foundation
 
+// TDLib Client Swift binding
 class TdClient {
     typealias Client = UnsafeMutableRawPointer
     var client = td_json_client_create()!
-    let tdlibMainLoop = DispatchQueue(label: "tdlib")
-    let tdlibQueryQueue = DispatchQueue(label: "tdlibQuery")
+    let tdlibMainLoop = DispatchQueue(label: "TDLib")
+    let tdlibQueryQueue = DispatchQueue(label: "TDLibQuery")
     var queryF = Dictionary<Int64, (Dictionary<String,Any>)->()>()
     var updateF : ((Dictionary<String,Any>)->())?
     var queryId : Int64 = 0
-    var closing = false
     
     func queryAsync(query: [String: Any], f: ((Dictionary<String,Any>)->())? = nil) {
         tdlibQueryQueue.async {
@@ -16,9 +16,9 @@ class TdClient {
             
             if f != nil {
                 let nextQueryId = self.queryId + 1
-            newQuery["@extra"] = nextQueryId
-            self.queryF[nextQueryId] = f
-            self.queryId = nextQueryId
+                newQuery["@extra"] = nextQueryId
+                self.queryF[nextQueryId] = f
+                self.queryId = nextQueryId
             }
             td_json_client_send(self.client, to_json(newQuery))
         }
@@ -36,22 +36,18 @@ class TdClient {
         
     }
     
-    func close() {
-        closing = true
-    }
     init() {
     }
+
     deinit {
         td_json_client_destroy(client)
     }
+
     func run(updateHandler: @escaping (Dictionary<String,Any>)->()) {
         updateF = updateHandler
         tdlibMainLoop.async { [weak self] in
             while (true) {
                 if let s = self {
-                    if s.closing {
-                        break
-                    }
                     if let res = td_json_client_receive(s.client,10) {
                         let event = String(cString: res)
                         s.queryResultAsync(event)
@@ -77,20 +73,23 @@ class TdClient {
             }
         }
     }
-    
-    
 }
 
-// Just an example of usage
-func to_json(_ obj: Any)  -> String  {
+func to_json(_ obj: Any) -> String  {
     do {
         let obj = try JSONSerialization.data(withJSONObject: obj)
         return String(data: obj, encoding: .utf8)!
     } catch {
         return ""
     }
-    
 }
+
+
+// An example of usage
+td_set_log_verbosity_level(1);
+
+var client = TdClient()
+
 func myReadLine() -> String {
     while (true) {
         if let line = readLine() {
@@ -99,11 +98,8 @@ func myReadLine() -> String {
     }
 }
 
-
-td_set_log_verbosity_level(2);
-var client = TdClient()
 func updateAuthorizationState(authState : Dictionary<String, Any>) {
-        switch(authState["@type"] as! String) {
+    switch(authState["@type"] as! String) {
         case "authorizationStateWaitTdlibParameters":
             client.queryAsync(query:[
                 "@type":"setTdlibParameters",
@@ -118,7 +114,8 @@ func updateAuthorizationState(authState : Dictionary<String, Any>) {
                     "application_version":"1.0",
                     "enable_storage_optimizer":true
                 ]
-                ]);
+            ]);
+
         case "authorizationStateWaitEncryptionKey":
             client.queryAsync(query: ["@type":"checkDatabaseEncryptionKey", "key":"cucumber"])
             
@@ -138,19 +135,21 @@ func updateAuthorizationState(authState : Dictionary<String, Any>) {
                 print("Enter your last name: ")
                 last_name = myReadLine()
             }
-            print("Enter (sms) code: ")
+            print("Enter (SMS) code: ")
             code = myReadLine()
             client.queryAsync(query:["@type":"checkAuthenticationCode", "code":code, "first_name":first_name, "last_name":last_name], f:checkAuthError)
+
         case "authorizationStateWaitPassword":
             print("Enter password: ")
             let password = myReadLine()
             client.queryAsync(query:["@type":"checkAuthenticationPassword", "password":password], f:checkAuthError)
+
         case "authorizationStateReady":
             ()
+
         default:
-            assert(false, "TODO: Unknown auth state ");
-            
-        }
+            assert(false, "TODO: Unknown authorization state");
+    }
 }
 
 func checkAuthError(error: Dictionary<String, Any>) {
