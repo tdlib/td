@@ -271,6 +271,7 @@ set(TL_C_SCHEME_SOURCE
 )
 
 set(TDLIB_SOURCE
+  td/mtproto/AuthData.cpp
   td/mtproto/crypto.cpp
   td/mtproto/Handshake.cpp
   td/mtproto/HandshakeActor.cpp
