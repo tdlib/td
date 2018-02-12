@@ -249,7 +249,7 @@ void AnimationsManager::create_animation(FileId file_id, PhotoSize thumbnail, st
   a->file_id = file_id;
   a->file_name = std::move(file_name);
   a->mime_type = std::move(mime_type);
-  a->duration = std::max(duration, 0);
+  a->duration = max(duration, 0);
   a->dimensions = dimensions;
   a->thumbnail = std::move(thumbnail);
   on_get_animation(std::move(a), replace);

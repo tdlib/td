@@ -24,8 +24,6 @@
 #include "td/utils/tl_helpers.h"
 #include "td/utils/tl_parsers.h"
 
-#include <algorithm>
-
 namespace td {
 namespace detail {
 struct AesCtrEncryptionEvent {
@@ -465,7 +463,7 @@ Status Binlog::load_binlog(const Callback &callback, const Callback &debug_callb
       if (ready_flag) {
         break;
       }
-      TRY_STATUS(fd_.flush_read(std::max(need_size, static_cast<size_t>(4096))));
+      TRY_STATUS(fd_.flush_read(max(need_size, static_cast<size_t>(4096))));
       buffer_reader_.sync_with_writer();
       if (byte_flow_flag_) {
         byte_flow_source_.wakeup();

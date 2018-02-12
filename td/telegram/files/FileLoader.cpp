@@ -17,7 +17,6 @@
 #include "td/utils/misc.h"
 #include "td/utils/ScopeGuard.h"
 
-#include <algorithm>
 #include <tuple>
 
 namespace td {
@@ -73,7 +72,7 @@ void FileLoader::start_up() {
   }
   auto file_info = r_file_info.ok();
   auto size = file_info.size;
-  auto expected_size = std::max(size, file_info.expected_size);
+  auto expected_size = max(size, file_info.expected_size);
   bool is_size_final = file_info.is_size_final;
   auto part_size = file_info.part_size;
   auto &ready_parts = file_info.ready_parts;

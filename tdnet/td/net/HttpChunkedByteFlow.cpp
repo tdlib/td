@@ -12,9 +12,8 @@
 #include "td/utils/misc.h"
 #include "td/utils/Status.h"
 
-#include <algorithm>
-
 namespace td {
+
 void HttpChunkedByteFlow::loop() {
   bool was_updated = false;
   size_t need_size;
@@ -40,8 +39,8 @@ void HttpChunkedByteFlow::loop() {
     }
 
     auto size = input_->size();
-    auto ready = std::min(len_, size);
-    need_size = std::min(MIN_UPDATE_SIZE, len_ + 2);
+    auto ready = min(len_, size);
+    need_size = min(MIN_UPDATE_SIZE, len_ + 2);
     if (size < need_size) {
       break;
     }
@@ -80,5 +79,5 @@ void HttpChunkedByteFlow::loop() {
   }
   set_need_size(need_size);
 }
-constexpr size_t HttpChunkedByteFlow::MIN_UPDATE_SIZE;
+
 }  // namespace td

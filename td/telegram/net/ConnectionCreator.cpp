@@ -352,9 +352,9 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
 
     // Check flood
     auto &flood_control = online_flag_ ? client.flood_control_online : client.flood_control;
-    auto wakeup_at = std::max(flood_control.get_wakeup_at(), client.mtproto_error_flood_control.get_wakeup_at());
+    auto wakeup_at = max(flood_control.get_wakeup_at(), client.mtproto_error_flood_control.get_wakeup_at());
     if (!online_flag_) {
-      wakeup_at = std::max(wakeup_at, client.backoff.get_wakeup_at());
+      wakeup_at = max(wakeup_at, client.backoff.get_wakeup_at());
     }
     if (wakeup_at > Time::now()) {
       return client_set_timeout_at(client, wakeup_at);
@@ -690,7 +690,5 @@ void ConnectionCreator::on_proxy_resolved(Result<IPAddress> r_ip_address, bool d
     client_loop(client.second);
   }
 }
-
-constexpr int32 ConnectionCreator::ClientInfo::Backoff::MAX_BACKOFF;
 
 }  // namespace td

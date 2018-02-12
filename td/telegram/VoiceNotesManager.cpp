@@ -22,8 +22,6 @@
 #include "td/utils/misc.h"
 #include "td/utils/Status.h"
 
-#include <algorithm>
-
 namespace td {
 
 VoiceNotesManager::VoiceNotesManager(Td *td) : td_(td) {
@@ -136,7 +134,7 @@ void VoiceNotesManager::create_voice_note(FileId file_id, string mime_type, int3
   auto v = std::make_unique<VoiceNote>();
   v->file_id = file_id;
   v->mime_type = std::move(mime_type);
-  v->duration = std::max(duration, 0);
+  v->duration = max(duration, 0);
   v->waveform = std::move(waveform);
   on_get_voice_note(std::move(v), replace);
 }

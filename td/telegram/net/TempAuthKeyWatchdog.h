@@ -19,7 +19,6 @@
 #include "td/utils/logging.h"
 #include "td/utils/Time.h"
 
-#include <algorithm>
 #include <map>
 
 namespace td {
@@ -89,7 +88,7 @@ class TempAuthKeyWatchdog : public NetQueryCallback {
       sync_at_ = now + SYNC_WAIT_MAX;
     }
     LOG(DEBUG) << "set timeout";
-    set_timeout_at(std::min(sync_at_, now + SYNC_WAIT));
+    set_timeout_at(min(sync_at_, now + SYNC_WAIT));
   }
 
   void timeout_expired() override {

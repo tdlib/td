@@ -78,7 +78,6 @@
 #include "td/utils/tl_parsers.h"
 #include "td/utils/utf8.h"
 
-#include <algorithm>
 #include <limits>
 #include <tuple>
 #include <type_traits>
@@ -4212,7 +4211,7 @@ Status Td::init(DbKey key) {
 
   TdDb::Events events;
   TRY_RESULT(td_db,
-             TdDb::open(std::min(current_scheduler_id + 1, scheduler_count - 1), parameters_, std::move(key), events));
+             TdDb::open(min(current_scheduler_id + 1, scheduler_count - 1), parameters_, std::move(key), events));
   LOG(INFO) << "Successfully inited database in " << tag("database_directory", parameters_.database_directory)
             << " and " << tag("files_directory", parameters_.files_directory);
   G()->init(parameters_, actor_id(this), std::move(td_db)).ensure();
@@ -4339,7 +4338,7 @@ Status Td::init(DbKey key) {
   secret_chats_manager_ = create_actor<SecretChatsManager>("SecretChatsManager", create_reference());
   G()->set_secret_chats_manager(secret_chats_manager_.get());
   storage_manager_ = create_actor<StorageManager>("StorageManager", create_reference(),
-                                                  std::min(current_scheduler_id + 2, scheduler_count - 1));
+                                                  min(current_scheduler_id + 2, scheduler_count - 1));
   G()->set_storage_manager(storage_manager_.get());
   top_dialog_manager_ = create_actor<TopDialogManager>("TopDialogManager", create_reference());
   G()->set_top_dialog_manager(top_dialog_manager_.get());
@@ -6313,7 +6312,7 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
                                   << min << ", " << max << "]");
           return true;
         }
-        G()->shared_config().set_option_integer(name, std::max(std::min(value, max), min));
+        G()->shared_config().set_option_integer(name, clamp(value, min, max));
       }
       send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
       return true;

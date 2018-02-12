@@ -21,8 +21,6 @@
 #include "td/utils/misc.h"
 #include "td/utils/Status.h"
 
-#include <algorithm>
-
 namespace td {
 
 AudiosManager::AudiosManager(Td *td) : td_(td) {
@@ -176,7 +174,7 @@ void AudiosManager::create_audio(FileId file_id, PhotoSize thumbnail, string fil
   a->file_id = file_id;
   a->file_name = std::move(file_name);
   a->mime_type = std::move(mime_type);
-  a->duration = std::max(duration, 0);
+  a->duration = max(duration, 0);
   a->title = std::move(title);
   a->performer = std::move(performer);
   a->thumbnail = std::move(thumbnail);

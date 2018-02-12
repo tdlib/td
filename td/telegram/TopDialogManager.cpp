@@ -33,8 +33,6 @@
 
 namespace td {
 
-constexpr size_t TopDialogManager::MAX_TOP_DIALOGS_LIMIT;
-
 static CSlice top_dialog_category_name(TopDialogCategory category) {
   switch (category) {
     case TopDialogCategory::Correspondent:
@@ -235,9 +233,9 @@ void TopDialogManager::do_get_top_dialogs(GetTopDialogsQuery &&query) {
   CHECK(pos < by_category_.size());
   auto &top_dialogs = by_category_[pos];
 
-  auto limit = std::min(query.limit, MAX_TOP_DIALOGS_LIMIT);
+  auto limit = min(query.limit, MAX_TOP_DIALOGS_LIMIT);
 
-  limit = std::min(limit, top_dialogs.dialogs.size());
+  limit = min(limit, top_dialogs.dialogs.size());
   vector<DialogId> dialog_ids = transform(top_dialogs.dialogs, [](const auto &x) { return x.dialog_id; });
 
   auto promise = PromiseCreator::lambda([query = std::move(query), dialog_ids, limit](Result<Unit>) mutable {

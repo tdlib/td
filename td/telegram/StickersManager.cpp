@@ -1783,7 +1783,7 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
     }
 
     vector<FileId> sorted;
-    sorted.reserve(std::min(limit_size_t, result.size()));
+    sorted.reserve(min(limit_size_t, result.size()));
     for (auto &sticker_id : prepend_sticker_ids) {
       bool is_good = false;
       auto it = std::find(result.begin(), result.end(), sticker_id);

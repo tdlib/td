@@ -38,7 +38,6 @@
 #include "td/utils/Time.h"
 #include "td/utils/tl_parsers.h"
 
-#include <algorithm>
 #include <memory>
 #include <utility>
 
@@ -646,7 +645,7 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   bool is_from_main_dc = G()->net_query_dispatcher().main_dc_id().get_value() == config->this_dc_;
 
   LOG(INFO) << to_string(config);
-  auto reload_in = std::max(60 /* at least 60 seconds*/, config->expires_ - config->date_);
+  auto reload_in = max(60 /* at least 60 seconds*/, config->expires_ - config->date_);
   save_config_expire(Timestamp::in(reload_in));
   reload_in -= Random::fast(0, reload_in / 5);
   if (!is_from_main_dc) {

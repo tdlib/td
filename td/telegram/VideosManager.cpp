@@ -22,8 +22,6 @@
 #include "td/utils/misc.h"
 #include "td/utils/Status.h"
 
-#include <algorithm>
-
 namespace td {
 
 VideosManager::VideosManager(Td *td) : td_(td) {
@@ -182,7 +180,7 @@ void VideosManager::create_video(FileId file_id, PhotoSize thumbnail, bool has_s
   v->file_id = file_id;
   v->file_name = std::move(file_name);
   v->mime_type = std::move(mime_type);
-  v->duration = std::max(duration, 0);
+  v->duration = max(duration, 0);
   v->dimensions = dimensions;
   v->thumbnail = std::move(thumbnail);
   v->supports_streaming = supports_streaming;

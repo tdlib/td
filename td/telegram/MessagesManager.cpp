@@ -526,7 +526,7 @@ class GetDialogListQuery : public NetActorOnce {
       auto dialogs = move_tl_object_as<telegram_api::messages_dialogsSlice>(ptr);
       td->contacts_manager_->on_get_chats(std::move(dialogs->chats_));
       td->contacts_manager_->on_get_users(std::move(dialogs->users_));
-      td->messages_manager_->on_get_dialogs(std::move(dialogs->dialogs_), std::max(dialogs->count_, 0),
+      td->messages_manager_->on_get_dialogs(std::move(dialogs->dialogs_), max(dialogs->count_, 0),
                                             std::move(dialogs->messages_), std::move(promise));
     }
   }
@@ -3967,7 +3967,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     if (ttl_expires_at == 0) {
       store(-1.0, storer);
     } else {
-      double ttl_left = std::max(ttl_expires_at - Time::now_cached(), 0.0);
+      double ttl_left = max(ttl_expires_at - Time::now_cached(), 0.0);
       store(ttl_left, storer);
       store(server_time, storer);
     }
@@ -4079,8 +4079,8 @@ void MessagesManager::Message::parse(ParserT &parser) {
     } else {
       double old_server_time;
       parse(old_server_time, parser);
-      double passed_server_time = std::max(parser.context()->server_time() - old_server_time, 0.0);
-      ttl_left = std::max(ttl_left - passed_server_time, 0.0);
+      double passed_server_time = max(parser.context()->server_time() - old_server_time, 0.0);
+      ttl_left = max(ttl_left - passed_server_time, 0.0);
       ttl_expires_at = Time::now_cached() + ttl_left;
     }
   }
@@ -4514,7 +4514,7 @@ void MessagesManager::on_pending_message_views_timeout_callback(void *messages_m
 
   const size_t MAX_MESSAGE_VIEWS = 100;  // server side limit
   vector<MessageId> message_ids;
-  message_ids.reserve(std::min(d->pending_viewed_message_ids.size(), MAX_MESSAGE_VIEWS));
+  message_ids.reserve(min(d->pending_viewed_message_ids.size(), MAX_MESSAGE_VIEWS));
   for (auto message_id : d->pending_viewed_message_ids) {
     message_ids.push_back(message_id);
     if (message_ids.size() >= MAX_MESSAGE_VIEWS) {
@@ -9360,7 +9360,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     LOG(ERROR) << "Wrong ttl = " << ttl << " received in " << message_id << " in " << dialog_id;
     ttl = 0;
   } else if (ttl > 0) {
-    ttl = std::max(ttl, get_message_content_duration(message_info.content.get()) + 1);
+    ttl = max(ttl, get_message_content_duration(message_info.content.get()) + 1);
   }
 
   int32 views = message_info.views;
@@ -10613,14 +10613,14 @@ void MessagesManager::on_get_dialogs_from_database(vector<BufferSlice> &&dialogs
     // if there is no more dialogs in the database
     last_loaded_database_dialog_date_ = MAX_DIALOG_DATE;
     LOG(INFO) << "Set last loaded database dialog date to " << last_loaded_database_dialog_date_;
-    last_server_dialog_date_ = std::max(last_server_dialog_date_, last_database_server_dialog_date_);
+    last_server_dialog_date_ = max(last_server_dialog_date_, last_database_server_dialog_date_);
     LOG(INFO) << "Set last server dialog date to " << last_server_dialog_date_;
     update_last_dialog_date();
   }
   if (last_loaded_database_dialog_date_ < max_dialog_date) {
-    last_loaded_database_dialog_date_ = std::min(max_dialog_date, last_database_server_dialog_date_);
+    last_loaded_database_dialog_date_ = min(max_dialog_date, last_database_server_dialog_date_);
     LOG(INFO) << "Set last loaded database dialog date to " << last_loaded_database_dialog_date_;
-    last_server_dialog_date_ = std::max(last_server_dialog_date_, last_loaded_database_dialog_date_);
+    last_server_dialog_date_ = max(last_server_dialog_date_, last_loaded_database_dialog_date_);
     LOG(INFO) << "Set last server dialog date to " << last_server_dialog_date_;
     update_last_dialog_date();
   } else if (!dialogs.empty()) {
@@ -10738,7 +10738,7 @@ std::pair<size_t, vector<DialogId>> MessagesManager::search_dialogs(const string
     }
 
     promise.set_value(Unit());
-    size_t result_size = std::min(static_cast<size_t>(limit), recently_found_dialog_ids_.size());
+    size_t result_size = min(static_cast<size_t>(limit), recently_found_dialog_ids_.size());
     return {recently_found_dialog_ids_.size(),
             vector<DialogId>(recently_found_dialog_ids_.begin(), recently_found_dialog_ids_.begin() + result_size)};
   }
@@ -12165,7 +12165,7 @@ tl_object_ptr<td_api::NotificationSettingsScope> MessagesManager::get_notificati
 
 tl_object_ptr<td_api::notificationSettings> MessagesManager::get_notification_settings_object(
     const NotificationSettings *notification_settings) {
-  return make_tl_object<td_api::notificationSettings>(std::max(0, notification_settings->mute_until - G()->unix_time()),
+  return make_tl_object<td_api::notificationSettings>(max(0, notification_settings->mute_until - G()->unix_time()),
                                                       notification_settings->sound,
                                                       notification_settings->show_preview);
 }
@@ -13597,11 +13597,11 @@ void MessagesManager::load_messages(DialogId dialog_id, MessageId from_message_i
   }
   if (offset >= -1) {
     // get history before some server or local message
-    limit = std::min(std::max(limit + offset + 1, MAX_GET_HISTORY / 2), MAX_GET_HISTORY);
+    limit = min(max(limit + offset + 1, MAX_GET_HISTORY / 2), MAX_GET_HISTORY);
     offset = -1;
   } else {
     // get history around some server or local message
-    int32 messages_to_load = std::max(MAX_GET_HISTORY, limit);
+    int32 messages_to_load = max(MAX_GET_HISTORY, limit);
     int32 max_add = messages_to_load - limit;
     offset -= max_add;
     limit = MAX_GET_HISTORY;
@@ -13668,7 +13668,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
       can_forward_message(dialog_id, message), can_delete_for_self, can_delete_for_all_users, message->is_channel_post,
       message->contains_unread_mention, message->date, message->edit_date,
       get_message_forward_info_object(message->forward_info), message->reply_to_message_id.get(), message->ttl,
-      message->ttl_expires_at != 0 ? std::max(message->ttl_expires_at - Time::now(), 1e-3) : message->ttl,
+      message->ttl_expires_at != 0 ? max(message->ttl_expires_at - Time::now(), 1e-3) : message->ttl,
       td_->contacts_manager_->get_user_id_object(message->via_bot_user_id, "via_bot_user_id"),
       message->author_signature, message->views, message->media_album_id,
       get_message_content_object(message->content.get()), get_reply_markup_object(message->reply_markup));
@@ -14439,7 +14439,7 @@ MessagesManager::Message *MessagesManager::get_message_to_send(Dialog *d, Messag
       m->ttl = 0;
     }
     if (m->ttl > 0) {
-      m->ttl = std::max(m->ttl, get_message_content_duration(m->content.get()) + 1);
+      m->ttl = max(m->ttl, get_message_content_duration(m->content.get()) + 1);
     }
     if (reply_to_message_id.is_valid()) {
       auto *reply_to_message = get_message_force(d, reply_to_message_id);
@@ -24332,7 +24332,5 @@ void MessagesManager::get_payment_receipt(FullMessageId full_message_id,
 
   td::get_payment_receipt(message_id.get_server_message_id(), std::move(promise));
 }
-
-constexpr int32 MessagesManager::MAX_GET_HISTORY;
 
 }  // namespace td

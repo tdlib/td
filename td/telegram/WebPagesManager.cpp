@@ -45,7 +45,6 @@
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
 
-#include <algorithm>
 #include <type_traits>
 
 namespace td {
@@ -544,7 +543,7 @@ class WebPagesManager::PageBlockAuthorDate : public PageBlock {
 
  public:
   PageBlockAuthorDate() = default;
-  PageBlockAuthorDate(RichText &&author, int32 date) : author(std::move(author)), date(std::max(date, 0)) {
+  PageBlockAuthorDate(RichText &&author, int32 date) : author(std::move(author)), date(max(date, 0)) {
   }
 
   Type get_type() const override {
@@ -1125,7 +1124,7 @@ class WebPagesManager::PageBlockEmbeddedPost : public PageBlock {
       : url(std::move(url))
       , author(std::move(author))
       , author_photo(std::move(author_photo))
-      , date(std::max(date, 0))
+      , date(max(date, 0))
       , page_blocks(std::move(page_blocks))
       , caption(std::move(caption)) {
   }
@@ -1439,7 +1438,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
       auto web_page_date = web_page->date_;
       LOG(INFO) << "Got pending " << web_page_id << ", date = " << web_page_date << ", now = " << G()->server_time();
 
-      pending_web_pages_timeout_.add_timeout_in(web_page_id.get(), std::max(web_page_date - G()->server_time(), 1.0));
+      pending_web_pages_timeout_.add_timeout_in(web_page_id.get(), max(web_page_date - G()->server_time(), 1.0));
       return web_page_id;
     }
     case telegram_api::webPage::ID: {

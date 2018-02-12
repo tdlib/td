@@ -164,7 +164,7 @@ void FileNode::set_generate_priority(int8 download_priority, int8 upload_priorit
                       << upload_priority;
     on_info_changed();
   }
-  generate_priority_ = std::max(download_priority, upload_priority);
+  generate_priority_ = max(download_priority, upload_priority);
   generate_download_priority_ = download_priority;
   generate_upload_priority_ = upload_priority;
 }
@@ -282,9 +282,8 @@ int64 FileView::local_total_size() const {
     case LocalFileLocation::Type::Full:
       return node_->size_;
     case LocalFileLocation::Type::Partial:
-      return std::max(
-          static_cast<int64>(node_->local_.partial().part_size_) * node_->local_.partial().ready_part_count_,
-          node_->local_ready_size_);
+      return max(static_cast<int64>(node_->local_.partial().part_size_) * node_->local_.partial().ready_part_count_,
+                 node_->local_ready_size_);
     default:
       UNREACHABLE();
       return 0;
@@ -301,8 +300,8 @@ int64 FileView::remote_size() const {
       return node_->size_;
     case RemoteFileLocation::Type::Partial: {
       auto res =
-          std::max(static_cast<int64>(node_->remote_.partial().part_size_) * node_->remote_.partial().ready_part_count_,
-                   node_->remote_ready_size_);
+          max(static_cast<int64>(node_->remote_.partial().part_size_) * node_->remote_.partial().ready_part_count_,
+              node_->remote_ready_size_);
       if (size() != 0 && size() < res) {
         res = size();
       }

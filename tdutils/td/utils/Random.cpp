@@ -13,7 +13,6 @@
 #include <openssl/rand.h>
 #endif
 
-#include <algorithm>
 #include <cstring>
 #include <limits>
 #include <random>
@@ -33,7 +32,7 @@ void Random::secure_bytes(unsigned char *ptr, size_t size) {
     buf_pos = buf_size;
   }
 
-  auto ready = std::min(size, buf_size - buf_pos);
+  auto ready = min(size, buf_size - buf_pos);
   if (ready != 0) {
     std::memcpy(ptr, buf + buf_pos, ready);
     buf_pos += ready;

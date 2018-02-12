@@ -11,8 +11,6 @@
 #include "td/utils/logging.h"
 #include "td/utils/Slice.h"
 
-#include <algorithm>
-
 namespace td {
 
 static FileLog file_log;
@@ -40,7 +38,7 @@ bool Log::set_file_path(string file_path) {
 }
 
 void Log::set_max_file_size(int64 max_file_size) {
-  max_log_file_size = std::max(max_file_size, static_cast<int64>(0));
+  max_log_file_size = max(max_file_size, static_cast<int64>(0));
   file_log.set_rotate_threshold(max_log_file_size);
 }
 

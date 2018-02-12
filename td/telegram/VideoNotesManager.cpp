@@ -21,8 +21,6 @@
 #include "td/utils/misc.h"
 #include "td/utils/Status.h"
 
-#include <algorithm>
-
 namespace td {
 
 VideoNotesManager::VideoNotesManager(Td *td) : td_(td) {
@@ -151,7 +149,7 @@ void VideoNotesManager::create_video_note(FileId file_id, PhotoSize thumbnail, i
                                           bool replace) {
   auto v = make_unique<VideoNote>();
   v->file_id = file_id;
-  v->duration = std::max(duration, 0);
+  v->duration = max(duration, 0);
   if (dimensions.width == dimensions.height && dimensions.width <= 640) {
     v->dimensions = dimensions;
   } else {

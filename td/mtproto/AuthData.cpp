@@ -125,8 +125,7 @@ Status AuthData::check_packet(int64 session_id, int64 message_id, double now, bo
   // Client is to check that the session_id field in the decrypted message indeed equals to that of an active session
   // created by the client.
   if (get_session_id() != static_cast<uint64>(session_id)) {
-    return Status::Error(PSLICE() << "Got packet from different session "
-                                  << tag("current session_id", get_session_id())
+    return Status::Error(PSLICE() << "Got packet from different session " << tag("current session_id", get_session_id())
                                   << tag("got session_id", session_id));
   }
 

@@ -21,7 +21,6 @@
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Slice.h"
 
-#include <algorithm>
 #include <tuple>
 
 namespace td {
@@ -171,7 +170,7 @@ Result<std::pair<NetQueryPtr, bool>> FileDownloader::start_part(Part part, int32
   // auto size = part.size;
   //// sometimes we can ask more than server has, just to check size
   // if (size < get_part_size()) {
-  // size = std::min(size + 16, get_part_size());
+  // size = min(size + 16, get_part_size());
   // LOG(INFO) << "Ask " << size << " instead of " << part.size;
   //}
   auto size = get_part_size();

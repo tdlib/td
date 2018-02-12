@@ -28,7 +28,6 @@
 #include "td/utils/buffer.h"
 #include "td/utils/misc.h"
 
-#include <algorithm>
 #include <cstring>
 
 #endif
@@ -555,7 +554,7 @@ class Fd::FdImpl {
   }
   Result<size_t> read_async(MutableSlice slice) TD_WARN_UNUSED_RESULT {
     CHECK(async_mode_);
-    auto res = input_reader_.advance(std::min(slice.size(), input_reader_.size()), slice);
+    auto res = input_reader_.advance(min(slice.size(), input_reader_.size()), slice);
     if (res == 0) {
       clear_flags(Fd::Flag::Read);
     }

@@ -96,7 +96,7 @@ auto append(vector<T> &destination, vector<T> &&source) {
     return;
   }
   destination.reserve(destination.size() + source.size());
-  for (auto &elem:source) {
+  for (auto &elem : source) {
     destination.push_back(std::move(elem));
   }
   reset_to_empty(source);

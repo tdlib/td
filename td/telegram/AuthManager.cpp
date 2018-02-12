@@ -24,8 +24,6 @@
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Time.h"
 
-#include <algorithm>
-
 namespace td {
 
 // SendCodeHelper
@@ -43,9 +41,9 @@ td_api::object_ptr<td_api::authorizationStateWaitCode> SendCodeHelper::get_autho
 }
 
 td_api::object_ptr<td_api::authenticationCodeInfo> SendCodeHelper::get_authentication_code_info_object() const {
-  return make_tl_object<td_api::authenticationCodeInfo>(
-      get_authentication_code_type_object(sent_code_info_), get_authentication_code_type_object(next_code_info_),
-      std::max(next_code_timeout_ - static_cast<int32>(Time::now()), 0));
+  return make_tl_object<td_api::authenticationCodeInfo>(get_authentication_code_type_object(sent_code_info_),
+                                                        get_authentication_code_type_object(next_code_info_),
+                                                        max(next_code_timeout_ - static_cast<int32>(Time::now()), 0));
 }
 
 Result<telegram_api::auth_resendCode> SendCodeHelper::resend_code() {

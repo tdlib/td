@@ -25,8 +25,6 @@
 #include "td/utils/port/thread.h"
 #include "td/utils/Slice.h"
 
-#include <algorithm>
-
 namespace td {
 void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
   net_query->debug("dispatch");
@@ -231,7 +229,7 @@ bool NetQueryDispatcher::is_dc_inited(int32 raw_dc_id) {
   return dcs_[raw_dc_id - 1].is_valid_.load(std::memory_order_relaxed);
 }
 int32 NetQueryDispatcher::get_session_count() {
-  return std::max(G()->shared_config().get_option_integer("session_count"), 1);
+  return max(G()->shared_config().get_option_integer("session_count"), 1);
 }
 
 bool NetQueryDispatcher::get_use_pfs() {

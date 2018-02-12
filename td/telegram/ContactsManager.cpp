@@ -2267,7 +2267,7 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
   if (G()->parameters().use_chat_info_db) {
     auto next_contacts_sync_date_string = G()->td_db()->get_binlog_pmc()->get("next_contacts_sync_date");
     if (!next_contacts_sync_date_string.empty()) {
-      next_contacts_sync_date_ = std::min(to_integer<int32>(next_contacts_sync_date_string), G()->unix_time() + 100000);
+      next_contacts_sync_date_ = min(to_integer<int32>(next_contacts_sync_date_string), G()->unix_time() + 100000);
     }
 
     auto saved_contact_count_string = G()->td_db()->get_binlog_pmc()->get("saved_contact_count");
