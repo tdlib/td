@@ -943,12 +943,14 @@ Status SecretChatActor::do_inbound_message_decrypted_unchecked(
       uint32 start_seq_no = static_cast<uint32>(action_resend->start_seq_no_ / 2);
       uint32 finish_seq_no = static_cast<uint32>(action_resend->end_seq_no_ / 2);
       if (start_seq_no + MAX_RESEND_COUNT < finish_seq_no) {
+        message->qts_ack.set_value(Unit());
         return Status::Error(PSLICE() << "Won't resend more than " << MAX_RESEND_COUNT << " messages");
       }
       LOG(INFO) << "ActionResend: " << tag("start", start_seq_no) << tag("finish_seq_no", finish_seq_no);
       for (auto seq_no = start_seq_no; seq_no <= finish_seq_no; seq_no++) {
         auto it = out_seq_no_to_outbound_message_state_token_.find(seq_no);
         if (it == out_seq_no_to_outbound_message_state_token_.end()) {
+          message->qts_ack.set_value(Unit());
           return Status::Error(PSLICE() << "Can't resend query " << tag("seq_no", seq_no));
         }
         auto state_id = it->second;
