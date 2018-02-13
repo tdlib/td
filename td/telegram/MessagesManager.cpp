@@ -6468,6 +6468,18 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
   MessageId last_added_message_id;
   bool have_next = false;
   Dialog *d = get_dialog(dialog_id);
+
+  MessageId prev_last_new_message_id;
+  MessageId prev_first_database_message_id;
+  MessageId prev_last_database_message_id;
+  MessageId prev_last_message_id;
+  if (d != nullptr) {
+    prev_last_new_message_id = d->last_new_message_id;
+    prev_first_database_message_id = d->first_database_message_id;
+    prev_last_database_message_id = d->last_database_message_id;
+    prev_last_message_id = d->last_message_id;
+  }
+
   for (auto &message : messages) {
     if (!have_next && from_the_end && get_message_id(message).get() < d->last_message_id.get()) {
       // last message in the dialog should be attached to the next message if there is some
@@ -6558,7 +6570,8 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
       CHECK(d->last_new_message_id.is_valid())
           << dialog_id << " " << from_the_end << " " << d->first_database_message_id << " "
           << d->last_database_message_id << " " << first_added_message_id << " " << last_added_message_id << " "
-          << d->last_message_id;
+          << d->last_message_id << prev_last_new_message_id << prev_first_database_message_id
+          << prev_last_database_message_id << prev_last_message_id;
       CHECK(d->first_database_message_id.is_valid());
       {
         MessagesConstIterator it(d, d->first_database_message_id);
