@@ -5,6 +5,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/telegram/MessagesManager.h"
+
 #include "td/telegram/secret_api.hpp"
 #include "td/telegram/td_api.hpp"
 #include "td/telegram/telegram_api.h"
@@ -16020,6 +16021,7 @@ void MessagesManager::on_upload_message_media_finished(int64 media_album_id, Dia
                            }
 
                            auto m = result.move_as_ok();
+                           CHECK(m != nullptr);
                            send_closure_later(actor_id, &MessagesManager::do_send_message_group, m->media_album_id);
                          }));
     }
@@ -16122,7 +16124,10 @@ void MessagesManager::on_media_message_ready_to_send(DialogId dialog_id, Message
     }
     return;
   }
-  CHECK(!it->second) << dialog_id << " " << message_id;
+  if (it->second) {
+    promise.set_error(Status::Error(500, "Duplicate promise"));
+    return;
+  }
   it->second = std::move(promise);
 
   on_yet_unsent_media_queue_updated(dialog_id);
