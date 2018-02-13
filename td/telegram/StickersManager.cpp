@@ -1623,10 +1623,8 @@ void StickersManager::on_get_installed_sticker_sets(bool is_masks,
     LOG_IF(ERROR, sticker_set->is_masks != is_masks) << "Receive sticker set of a wrong type in getAllStickers";
     CHECK(sticker_set->is_inited);
 
-    if (sticker_set->is_installed) {
-      if (sticker_set->is_masks == is_masks) {
-        installed_sticker_set_ids.push_back(set_id);
-      }
+    if (sticker_set->is_installed && !sticker_set->is_archived && sticker_set->is_masks == is_masks) {
+      installed_sticker_set_ids.push_back(set_id);
       uninstalled_sticker_sets.erase(set_id);
     }
     update_sticker_set(sticker_set);
@@ -1700,7 +1698,7 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
 
   vector<int64> sets_to_load;
   bool need_load = false;
-  for (auto &sticker_set_id : installed_sticker_set_ids_[0]) {
+  for (const auto &sticker_set_id : installed_sticker_set_ids_[0]) {
     const StickerSet *sticker_set = get_sticker_set(sticker_set_id);
     CHECK(sticker_set != nullptr);
     CHECK(sticker_set->is_inited);
@@ -1724,7 +1722,7 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
       }
     }
 
-    for (auto &sticker_id : prepend_sticker_ids) {
+    for (const auto &sticker_id : prepend_sticker_ids) {
       const Sticker *s = get_sticker(sticker_id);
       if (s->set_id != 0 && std::find(installed_sticker_set_ids_[0].begin(), installed_sticker_set_ids_[0].end(),
                                       s->set_id) == installed_sticker_set_ids_[0].end()) {
@@ -1757,7 +1755,7 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
   vector<FileId> result;
   auto limit_size_t = static_cast<size_t>(limit);
   if (emoji.empty()) {
-    for (auto &sticker_set_id : installed_sticker_set_ids_[0]) {
+    for (const auto &sticker_set_id : installed_sticker_set_ids_[0]) {
       const StickerSet *sticker_set = get_sticker_set(sticker_set_id);
       if (sticker_set == nullptr || !sticker_set->was_loaded) {
         continue;
@@ -1770,7 +1768,7 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
       }
     }
   } else {
-    for (auto &sticker_set_id : installed_sticker_set_ids_[0]) {
+    for (const auto &sticker_set_id : installed_sticker_set_ids_[0]) {
       const StickerSet *sticker_set = get_sticker_set(sticker_set_id);
       if (sticker_set == nullptr || !sticker_set->was_loaded) {
         continue;
@@ -1784,7 +1782,7 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
 
     vector<FileId> sorted;
     sorted.reserve(min(limit_size_t, result.size()));
-    for (auto &sticker_id : prepend_sticker_ids) {
+    for (const auto &sticker_id : prepend_sticker_ids) {
       bool is_good = false;
       auto it = std::find(result.begin(), result.end(), sticker_id);
       if (it != result.end()) {
@@ -1815,7 +1813,7 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
       }
     }
     if (sorted.size() != limit_size_t) {
-      for (auto &sticker_id : result) {
+      for (const auto &sticker_id : result) {
         if (sticker_id.is_valid()) {
           sorted.push_back(sticker_id);
           if (sorted.size() == limit_size_t) {
@@ -2050,7 +2048,30 @@ void StickersManager::on_load_installed_sticker_sets_from_database(bool is_masks
 
 void StickersManager::on_load_installed_sticker_sets_finished(bool is_masks, vector<int64> &&installed_sticker_set_ids,
                                                               bool from_database) {
-  installed_sticker_set_ids_[is_masks] = std::move(installed_sticker_set_ids);
+  bool need_reload = false;
+  if (!are_installed_sticker_sets_loaded_[is_masks] && !installed_sticker_set_ids_[is_masks].empty()) {
+    need_reload = true;
+  }
+  installed_sticker_set_ids_[is_masks].clear();
+  for (auto set_id : installed_sticker_set_ids) {
+    CHECK(set_id != 0);
+
+    auto sticker_set = get_sticker_set(set_id);
+    CHECK(sticker_set != nullptr);
+    CHECK(sticker_set->is_inited);
+    CHECK(sticker_set->is_masks == is_masks);
+    if (sticker_set->is_installed && !sticker_set->is_archived) {
+      installed_sticker_set_ids_[is_masks].push_back(set_id);
+    } else {
+      need_reload = true;
+    }
+  }
+  if (need_reload) {
+    LOG(ERROR) << "Reload installed sticker sets, because only " << installed_sticker_set_ids_[is_masks].size()
+               << " of " << installed_sticker_set_ids.size() << " are really installed";
+    reload_installed_sticker_sets(is_masks, true);
+  }
+
   are_installed_sticker_sets_loaded_[is_masks] = true;
   need_update_installed_sticker_sets_[is_masks] = true;
   send_update_installed_sticker_sets(from_database);
@@ -2572,8 +2593,13 @@ void StickersManager::on_get_attached_sticker_sets(
   send_update_installed_sticker_sets();
 }
 
+// -1 - order can't be applied, because some sticker sets aren't loaded or aren't installed,
 // 0 - order wasn't changed, 1 - order was partly replaced by the new order, 2 - order was replaced by the new order
 int StickersManager::apply_installed_sticker_sets_order(bool is_masks, const vector<int64> &sticker_set_ids) {
+  if (!are_installed_sticker_sets_loaded_[is_masks]) {
+    return -1;
+  }
+
   vector<int64> &current_sticker_set_ids = installed_sticker_set_ids_[is_masks];
   if (sticker_set_ids == current_sticker_set_ids) {
     return 0;
@@ -2586,6 +2612,8 @@ int StickersManager::apply_installed_sticker_sets_order(bool is_masks, const vec
     if (it != valid_set_ids.end()) {
       new_sticker_set_ids.push_back(sticker_set_id);
       valid_set_ids.erase(it);
+    } else {
+      return -1;
     }
   }
   if (new_sticker_set_ids.empty()) {
@@ -2600,9 +2628,10 @@ int StickersManager::apply_installed_sticker_sets_order(bool is_masks, const vec
         valid_set_ids.erase(it);
       }
     }
-    missed_sticker_set_ids.insert(missed_sticker_set_ids.end(), new_sticker_set_ids.begin(), new_sticker_set_ids.end());
+    append(missed_sticker_set_ids, new_sticker_set_ids);
     new_sticker_set_ids = std::move(missed_sticker_set_ids);
   }
+  CHECK(valid_set_ids.empty());
 
   if (new_sticker_set_ids == current_sticker_set_ids) {
     return 0;
@@ -2618,17 +2647,21 @@ int StickersManager::apply_installed_sticker_sets_order(bool is_masks, const vec
 
 void StickersManager::on_update_sticker_sets_order(bool is_masks, const vector<int64> &sticker_set_ids) {
   int result = apply_installed_sticker_sets_order(is_masks, sticker_set_ids);
+  if (result < 0) {
+    return reload_installed_sticker_sets(is_masks, true);
+  }
   if (result > 0) {
     send_update_installed_sticker_sets();
-    if (result == 1) {
-      reload_installed_sticker_sets(is_masks, true);
-    }
   }
 }
 
 void StickersManager::reorder_installed_sticker_sets(bool is_masks, const vector<int64> &sticker_set_ids,
                                                      Promise<Unit> &&promise) {
-  if (apply_installed_sticker_sets_order(is_masks, sticker_set_ids) > 0) {
+  auto result = apply_installed_sticker_sets_order(is_masks, sticker_set_ids);
+  if (result < 0) {
+    return promise.set_error(Status::Error(400, "Wrong sticker set list"));
+  }
+  if (result > 0) {
     td_->create_handler<ReorderStickerSetsQuery>()->send(is_masks, installed_sticker_set_ids_[is_masks]);
     send_update_installed_sticker_sets();
   }
