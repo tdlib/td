@@ -22602,6 +22602,17 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
   Dialog *dialog = dialog_it->second.get();
   send_update_chat(dialog);
 
+  fix_new_dialog(dialog, std::move(last_database_message), order, last_clear_history_date,
+                 last_clear_history_message_id);
+
+  return dialog;
+}
+
+void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_database_message, int64 order,
+                                     int32 last_clear_history_date, MessageId last_clear_history_message_id) {
+  CHECK(d != nullptr);
+  auto dialog_id = d->dialog_id;
+
   auto pending_it = pending_add_dialog_last_database_message_dependent_dialogs_.find(dialog_id);
   if (pending_it != pending_add_dialog_last_database_message_dependent_dialogs_.end()) {
     auto pending_dialogs = std::move(pending_it->second);
@@ -22618,29 +22629,29 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
     }
   }
 
-  set_dialog_last_clear_history_date(dialog, last_clear_history_date, last_clear_history_message_id, "add_new_dialog");
+  set_dialog_last_clear_history_date(d, last_clear_history_date, last_clear_history_message_id, "add_new_dialog");
 
-  set_dialog_order(dialog, order, false);
+  set_dialog_order(d, order, false);
 
-  if (dialog_id.get_type() != DialogType::SecretChat && dialog->last_new_message_id.is_valid() &&
-      !dialog->last_new_message_id.is_server()) {
+  if (dialog_id.get_type() != DialogType::SecretChat && d->last_new_message_id.is_valid() &&
+      !d->last_new_message_id.is_server()) {
     // fix wrong last_new_message_id
-    dialog->last_new_message_id = MessageId(dialog->last_new_message_id.get() & ~MessageId::FULL_TYPE_MASK);
+    d->last_new_message_id = MessageId(d->last_new_message_id.get() & ~MessageId::FULL_TYPE_MASK);
   }
 
   // add last database message to dialog
   if (last_database_message != nullptr) {
     auto message_id = last_database_message->message_id;
-    if (!dialog->first_database_message_id.is_valid()) {
-      LOG(ERROR) << "Bugfixing wrong first_database_message_id to " << message_id;
-      set_dialog_first_database_message_id(dialog, message_id, "add_new_dialog");
+    if (!d->first_database_message_id.is_valid()) {
+      LOG(ERROR) << "Bugfixing wrong first_database_message_id to " << message_id << " in " << dialog_id;
+      set_dialog_first_database_message_id(d, message_id, "add_new_dialog");
     }
-    set_dialog_last_database_message_id(dialog, message_id, "add_new_dialog");
+    set_dialog_last_database_message_id(d, message_id, "add_new_dialog");
     if ((message_id.is_server() || dialog_id.get_type() == DialogType::SecretChat) &&
-        !dialog->last_new_message_id.is_valid()) {
+        !d->last_new_message_id.is_valid()) {
       // is it even possible?
-      LOG(ERROR) << "Bugfixing wrong last_new_message_id to " << message_id;
-      set_dialog_last_new_message_id(dialog, message_id, "add_new_dialog");
+      LOG(ERROR) << "Bugfixing wrong last_new_message_id to " << message_id << " in " << dialog_id;
+      set_dialog_last_new_message_id(d, message_id, "add_new_dialog");
     }
 
     int32 dependent_dialog_count = 0;
@@ -22662,7 +22673,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
     }
 
     if (dependent_dialog_count == 0) {
-      add_dialog_last_database_message(dialog, std::move(last_database_message));
+      add_dialog_last_database_message(d, std::move(last_database_message));
     } else {
       // can't add message immediately, because needs to notify first about adding of dependent dialogs
       pending_add_dialog_last_database_message_[dialog_id] = {dependent_dialog_count, std::move(last_database_message)};
@@ -22673,13 +22684,13 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
     case DialogType::User:
       break;
     case DialogType::Chat:
-      if (dialog->last_read_inbox_message_id.get() < dialog->last_read_outbox_message_id.get()) {
-        LOG(INFO) << "Have last read outbox message " << dialog->last_read_outbox_message_id << " in " << dialog_id
-                  << ", but last read inbox message is " << dialog->last_read_inbox_message_id;
+      if (d->last_read_inbox_message_id.get() < d->last_read_outbox_message_id.get()) {
+        LOG(INFO) << "Have last read outbox message " << d->last_read_outbox_message_id << " in " << dialog_id
+                  << ", but last read inbox message is " << d->last_read_inbox_message_id;
         // can't fix last_read_inbox_message_id by last_read_outbox_message_id because last_read_outbox_message_id is
         // just a message id not less than last read outgoing message and less than first unread outgoing message, so
         // it may not point to the outgoing message
-        // read_history_inbox(dialog_id, dialog->last_read_outbox_message_id, dialog->server_unread_count, "add_new_dialog");
+        // read_history_inbox(dialog_id, d->last_read_outbox_message_id, d->server_unread_count, "add_new_dialog");
       }
       break;
     case DialogType::Channel:
@@ -22691,31 +22702,29 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
       UNREACHABLE();
   }
 
-  update_dialogs_hints(dialog);
+  update_dialogs_hints(d);
 
   bool need_get_history = false;
-  if (dialog->delete_last_message_date != 0) {
-    if (dialog->last_message_id.is_valid()) {
-      LOG(ERROR) << "Last " << dialog->deleted_last_message_id << " in " << dialog_id << " was deleted at "
-                 << dialog->delete_last_message_date << ", but have last " << dialog->last_message_id;
-      dialog->delete_last_message_date = 0;
-      dialog->deleted_last_message_id = MessageId();
-      dialog->is_last_message_deleted_locally = false;
+  if (d->delete_last_message_date != 0) {
+    if (d->last_message_id.is_valid()) {
+      LOG(ERROR) << "Last " << d->deleted_last_message_id << " in " << dialog_id << " was deleted at "
+                 << d->delete_last_message_date << ", but have last " << d->last_message_id;
+      d->delete_last_message_date = 0;
+      d->deleted_last_message_id = MessageId();
+      d->is_last_message_deleted_locally = false;
       on_dialog_updated(dialog_id, "update_delete_last_message_date");
     } else {
       need_get_history = true;
     }
   }
-  if (!dialog->last_database_message_id.is_valid()) {
+  if (!d->last_database_message_id.is_valid()) {
     need_get_history = true;
   }
 
   if (need_get_history && !td_->auth_manager_->is_bot() && have_input_peer(dialog_id, AccessRights::Read) &&
-      dialog->order != DEFAULT_ORDER) {
+      d->order != DEFAULT_ORDER) {
     get_history_from_the_end(dialog_id, true, false, Auto());
   }
-
-  return dialog;
 }
 
 void MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Message> &&last_database_message) {

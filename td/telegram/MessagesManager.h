@@ -2122,6 +2122,9 @@ class MessagesManager : public Actor {
 
   Dialog *add_new_dialog(unique_ptr<Dialog> &&d, bool is_loaded_from_database);
 
+  void fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_database_message, int64 order,
+                      int32 last_clear_history_date, MessageId last_clear_history_message_id);
+
   void add_dialog_last_database_message(Dialog *d, unique_ptr<Message> &&last_database_message);
 
   tl_object_ptr<td_api::inputMessageText> get_input_message_text_object(
