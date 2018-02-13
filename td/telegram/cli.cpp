@@ -2004,15 +2004,16 @@ class CliClient final : public Actor {
       string action;
       std::tie(chat_id, action) = split(args);
       send_request(make_tl_object<td_api::sendChatAction>(as_chat_id(chat_id), get_chat_action(action)));
-    } else if (op == "smt") {
+    } else if (op == "smt" || op == "smtp" || op == "smtf" || op == "smtpf") {
       const string &chat_id = args;
       for (int i = 1; i <= 200; i++) {
         string message = PSTRING() << "#" << i;
-        if (i == 6) {
-          send_message(chat_id, make_tl_object<td_api::inputMessageText>(
-                                    make_tl_object<td_api::formattedText>(string(4097, 'a'),
-                                                                          vector<tl_object_ptr<td_api::textEntity>>()),
-                                    false, true));
+        if (i == 6 || (op.back() == 'f' && i % 2 == 0)) {
+          message = string(4097, 'a');
+        }
+        if (op[3] == 'p') {
+          send_message(chat_id, make_tl_object<td_api::inputMessagePhoto>(as_local_file("rgb.jpg"), nullptr, Auto(), 0,
+                                                                          0, as_caption(message), 0));
         } else {
           send_message(chat_id,
                        make_tl_object<td_api::inputMessageText>(
