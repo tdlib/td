@@ -6485,13 +6485,16 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
         on_get_message(std::move(message), false, is_channel_message, false, have_next, "get history");
     auto message_id = full_message_id.get_message_id();
     if (message_id.is_valid()) {
+      if (!last_added_message_id.is_valid()) {
+        last_added_message_id = message_id;
+      }
+
       if (!have_next) {
         if (d == nullptr) {
           d = get_dialog(dialog_id);
           CHECK(d != nullptr);
         }
         have_next = true;
-        last_added_message_id = message_id;
       } else if (first_added_message_id.is_valid()) {
         Message *next_message = get_message(d, first_added_message_id);
         CHECK(next_message != nullptr);
@@ -13527,8 +13530,8 @@ void MessagesManager::get_history_from_the_end(DialogId dialog_id, bool from_dat
     G()->td_db()->get_messages_db_async()->get_messages(
         db_query, PromiseCreator::lambda([dialog_id, only_local, limit, actor_id = actor_id(this),
                                           promise = std::move(promise)](MessagesDbMessagesResult result) mutable {
-          send_closure(actor_id, &MessagesManager::on_get_history_from_database, dialog_id, MessageId::max(), 0,
-                       limit, true, only_local, std::move(result.messages), std::move(promise));
+          send_closure(actor_id, &MessagesManager::on_get_history_from_database, dialog_id, MessageId::max(), 0, limit,
+                       true, only_local, std::move(result.messages), std::move(promise));
         }));
   } else {
     if (only_local || dialog_id.get_type() == DialogType::SecretChat) {
@@ -21306,7 +21309,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     *need_update_dialog_pos = true;
   }
   if (auto_attach && !message_id.is_yet_unsent() && message_id.get() >= d->last_new_message_id.get() &&
-      (d->last_new_message_id.is_valid() || message_id.get() >= d->last_message_id.get())) {
+      (d->last_new_message_id.is_valid() || (message_id.is_local() && message_id.get() >= d->last_message_id.get()))) {
     CHECK(message_id.get() <= d->last_message_id.get());
     if (message_id.get() > d->last_database_message_id.get()) {
       set_dialog_last_database_message_id(d, message_id, "add_message_to_dialog");
@@ -22613,6 +22616,12 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
       set_dialog_first_database_message_id(dialog, message_id, "add_new_dialog");
     }
     set_dialog_last_database_message_id(dialog, message_id, "add_new_dialog");
+    if ((message_id.is_server() || dialog_id.get_type() == DialogType::SecretChat) &&
+        !dialog->last_new_message_id.is_valid()) {
+      // is it even possible?
+      LOG(ERROR) << "Bugfixing wrong last_new_message_id to " << message_id;
+      set_dialog_last_new_message_id(dialog, message_id, "add_new_dialog");
+    }
 
     int32 dependent_dialog_count = 0;
     if (last_database_message->forward_info != nullptr) {
