@@ -13,6 +13,8 @@
 #include "td/utils/port/RwMutex.h"
 #include "td/utils/tl_helpers.h"
 
+#include <algorithm>
+
 namespace td {
 
 class AuthDataSharedImpl : public AuthDataShared {
@@ -99,8 +101,8 @@ class AuthDataSharedImpl : public AuthDataShared {
   void notify() {
     auto lock = rw_mutex_.lock_read();
 
-    auto it = remove_if(auth_key_listeners_.begin(), auth_key_listeners_.end(),
-                        [&](auto &listener) { return !listener->notify(); });
+    auto it = std::remove_if(auth_key_listeners_.begin(), auth_key_listeners_.end(),
+                             [&](auto &listener) { return !listener->notify(); });
     auth_key_listeners_.erase(it, auth_key_listeners_.end());
   }
 

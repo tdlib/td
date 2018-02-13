@@ -38,6 +38,7 @@
 #include "td/utils/Time.h"
 #include "td/utils/tl_parsers.h"
 
+#include <algorithm>
 #include <memory>
 #include <utility>
 
@@ -250,8 +251,8 @@ ActorOwn<> get_full_config(IPAddress ip_address, Promise<FullConfig> promise) {
 
     std::vector<std::unique_ptr<Listener>> auth_key_listeners_;
     void notify() {
-      auto it = remove_if(auth_key_listeners_.begin(), auth_key_listeners_.end(),
-                          [&](auto &listener) { return !listener->notify(); });
+      auto it = std::remove_if(auth_key_listeners_.begin(), auth_key_listeners_.end(),
+                               [&](auto &listener) { return !listener->notify(); });
       auth_key_listeners_.erase(it, auth_key_listeners_.end());
     }
   };

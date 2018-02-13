@@ -964,7 +964,7 @@ class CliClient final : public Actor {
 
   void on_cmd(string cmd) {
     // TODO: need to remove https://en.wikipedia.org/wiki/ANSI_escape_code from cmd
-    cmd.erase(remove_if(cmd.begin(), cmd.end(), [](char c) { return 0 <= c && c < 32; }), cmd.end());
+    cmd.erase(std::remove_if(cmd.begin(), cmd.end(), [](char c) { return 0 <= c && c < 32; }), cmd.end());
     LOG(INFO) << "CMD:[" << cmd << "]";
 
     string op;

@@ -64,7 +64,7 @@ static std::vector<PqQuery> gen_pq_queries() {
       res.emplace_back(p, q);
     }
   }
-  sort(res.begin(), res.end(), cmp);
+  std::sort(res.begin(), res.end(), cmp);
   return res;
 }
 
