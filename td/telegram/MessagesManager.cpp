@@ -8635,6 +8635,8 @@ void MessagesManager::tear_down() {
 }
 
 void MessagesManager::start_up() {
+  always_wait_for_mailbox();
+
   if (G()->parameters().use_message_db) {
     ttl_db_loop_start(G()->server_time());
   }
