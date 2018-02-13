@@ -8153,8 +8153,8 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
   Dialog *d = get_dialog_force(dialog_id);
   if (d != nullptr) {
     if (d->last_new_message_id.is_valid() && max_unavailable_message_id.get() > d->last_new_message_id.get()) {
-      LOG(ERROR) << "Tried to set dialog max unavailable message id to " << max_unavailable_message_id << " from "
-                 << source << ", but last new message id is " << d->last_new_message_id;
+      LOG(ERROR) << "Tried to set " << dialog_id << " max unavailable message id to " << max_unavailable_message_id
+                 << " from " << source << ", but last new message id is " << d->last_new_message_id;
       max_unavailable_message_id = d->last_new_message_id;
     }
 
@@ -8195,7 +8195,7 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
       CHECK(m->message_id == message_id);
       deleted_message_ids.push_back(message_id.get());
       auto p =
-          delete_message(d, message_id, !from_update, &need_update_dialog_pos, "set dialog max unavailable message id");
+          delete_message(d, message_id, !from_update, &need_update_dialog_pos, "set_dialog_max_unavailable_message_id");
       CHECK(p.get() == m);
     }
 
@@ -10089,14 +10089,14 @@ void MessagesManager::on_get_dialogs(vector<tl_object_ptr<telegram_api::dialog>>
           // leave dialog where it is
           continue;
         }
-        LOG(INFO) << "Pin dialog " << dialog_id;
+        LOG(INFO) << "Pin " << dialog_id;
         Dialog *d = get_dialog(dialog_id);
         CHECK(d != nullptr);
         set_dialog_is_pinned(d, true);
         update_dialog_pos(d, false, "set pinned order");
       }
       for (auto dialog_id : old_pinned_dialog_ids) {
-        LOG(INFO) << "Unpin dialog " << dialog_id;
+        LOG(INFO) << "Unpin " << dialog_id;
         Dialog *d = get_dialog(dialog_id);
         CHECK(d != nullptr);
         set_dialog_is_pinned(d, false);
@@ -10647,7 +10647,7 @@ void MessagesManager::on_get_dialogs_from_database(vector<BufferSlice> &&dialogs
   }
 
   if (!preload_dialog_list_timeout_.has_timeout()) {
-    LOG(INFO) << "Schedule dialog list preload";
+    LOG(INFO) << "Schedule chat list preload";
     preload_dialog_list_timeout_.set_callback(std::move(MessagesManager::preload_dialog_list));
     preload_dialog_list_timeout_.set_callback_data(static_cast<void *>(this));
   }
@@ -11523,7 +11523,7 @@ Status MessagesManager::set_pinned_dialogs(vector<DialogId> dialog_ids) {
   if (pinned_dialog_ids == dialog_ids) {
     return Status::OK();
   }
-  LOG(INFO) << "Reorder pinned dialogs order from " << format::as_array(pinned_dialog_ids) << " to "
+  LOG(INFO) << "Reorder pinned chats order from " << format::as_array(pinned_dialog_ids) << " to "
             << format::as_array(dialog_ids);
 
   auto server_old_dialog_ids = remove_secret_chat_dialog_ids(pinned_dialog_ids);
@@ -11546,14 +11546,14 @@ Status MessagesManager::set_pinned_dialogs(vector<DialogId> dialog_ids) {
       // leave dialog where it is
       continue;
     }
-    LOG(INFO) << "Pin dialog " << dialog_id;
+    LOG(INFO) << "Pin " << dialog_id;
     Dialog *d = get_dialog(dialog_id);
     CHECK(d != nullptr);
     set_dialog_is_pinned(d, true);
     update_dialog_pos(d, false, "set pinned order");
   }
   for (auto dialog_id : old_pinned_dialog_ids) {
-    LOG(INFO) << "Unpin dialog " << dialog_id;
+    LOG(INFO) << "Unpin " << dialog_id;
     Dialog *d = get_dialog(dialog_id);
     CHECK(d != nullptr);
     set_dialog_is_pinned(d, false);
@@ -18627,7 +18627,7 @@ void MessagesManager::on_update_dialog_pinned(DialogId dialog_id, bool is_pinned
   }
   auto d = get_dialog_force(dialog_id);
   if (d == nullptr) {
-    LOG(WARNING) << "Can't apply update dialog pinned " << dialog_id;
+    LOG(WARNING) << "Can't apply updateDialogPinned with " << dialog_id;
     // TODO logevent + promise
     send_closure(td_->create_net_actor<GetPinnedDialogsQuery>(Promise<>()), &GetPinnedDialogsQuery::send,
                  get_sequence_dispatcher_id(DialogId(), -1));
@@ -19393,7 +19393,7 @@ DialogParticipant MessagesManager::get_dialog_participant(DialogId dialog_id, Us
     case DialogType::None:
     default:
       UNREACHABLE();
-      promise.set_error(Status::Error(500, "Wrong dialog type"));
+      promise.set_error(Status::Error(500, "Wrong chat type"));
   }
   return DialogParticipant();
 }
@@ -19442,7 +19442,7 @@ std::pair<int32, vector<DialogParticipant>> MessagesManager::search_dialog_parti
     case DialogType::None:
     default:
       UNREACHABLE();
-      promise.set_error(Status::Error(500, "Wrong dialog type"));
+      promise.set_error(Status::Error(500, "Wrong chat type"));
   }
   return {};
 }
@@ -19465,7 +19465,7 @@ vector<UserId> MessagesManager::get_dialog_administrators(DialogId dialog_id, in
     case DialogType::None:
     default:
       UNREACHABLE();
-      promise.set_error(Status::Error(500, "Wrong dialog type"));
+      promise.set_error(Status::Error(500, "Wrong chat type"));
   }
   return {};
 }
@@ -22800,7 +22800,7 @@ int64 MessagesManager::get_next_pinned_dialog_order() {
 void MessagesManager::update_dialog_pos(Dialog *d, bool remove_from_dialog_list, const char *source,
                                         bool need_send_update_chat_order) {
   CHECK(d != nullptr);
-  LOG(INFO) << "Trying to update dialog " << d->dialog_id << " order from " << source;
+  LOG(INFO) << "Trying to update " << d->dialog_id << " order from " << source;
   auto dialog_type = d->dialog_id.get_type();
 
   switch (dialog_type) {
