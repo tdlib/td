@@ -26,6 +26,7 @@ class SleepActor : public Actor {
   }
   void timeout_expired() override {
     promise_.set_value(Unit());
+    stop();
   }
 };
 
