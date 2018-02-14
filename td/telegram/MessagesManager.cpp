@@ -11049,6 +11049,7 @@ void MessagesManager::get_message(FullMessageId full_message_id, Promise<Unit> &
 
 MessageId MessagesManager::get_replied_message(DialogId dialog_id, MessageId message_id, bool force,
                                                Promise<Unit> &&promise) {
+  LOG(INFO) << "Get replied message to " << message_id << " in " << dialog_id;
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     promise.set_error(Status::Error(6, "Chat not found"));
@@ -11065,14 +11066,13 @@ MessageId MessagesManager::get_replied_message(DialogId dialog_id, MessageId mes
     return MessageId();
   }
 
-  auto replied_message_id = get_replied_message_id(m);
-  if (!replied_message_id.is_valid()) {
-    promise.set_value(Unit());
-    return MessageId();
+  tl_object_ptr<telegram_api::InputMessage> input_message;
+  if (message_id.is_server()) {
+    input_message = make_tl_object<telegram_api::inputMessageReplyTo>(message_id.get_server_message_id().get());
   }
-  get_message_force_from_server(
-      d, replied_message_id, std::move(promise),
-      make_tl_object<telegram_api::inputMessageReplyTo>(message_id.get_server_message_id().get()));
+  auto replied_message_id = get_replied_message_id(m);
+  get_message_force_from_server(d, replied_message_id, std::move(promise), std::move(input_message));
+
   return replied_message_id;
 }
 
