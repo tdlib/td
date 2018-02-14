@@ -187,6 +187,11 @@ Result<MemStat> mem_stat() {
     }
     if (x != nullptr) {
       Slice value(name_end, s);
+      if (!value.empty() && value[0] == ':') {
+        value.remove_prefix(1);
+      }
+      value = trim(value);
+      value = split(value).first;
       auto r_mem = to_integer_safe<uint64>(value);
       if (r_mem.is_error()) {
         LOG(ERROR) << "Failed to parse memory stats " << tag("name", name) << tag("value", value);
