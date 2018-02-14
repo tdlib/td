@@ -5,7 +5,7 @@ rm -rf build
 mkdir -p build
 cd build
 
-platforms="macOS iOS watchOS"
+platforms="macOS iOS watchOS tvOS"
 for platform in $platforms;
 do
   echo "Platform = ${platform} Simulator = ${simulator}"
@@ -45,6 +45,9 @@ do
       fi
       if [[ $platform = "watchOS" ]]; then
 	ios_platform="WATCH${ios_platform}"
+      fi
+      if [[ $platform = "tvOS" ]]; then
+	ios_platform="TV${ios_platform}"
       fi
       echo $ios_platform
       rm -rf $build

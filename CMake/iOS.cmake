@@ -93,6 +93,23 @@ elseif (${IOS_PLATFORM} STREQUAL "WATCHSIMULATOR")
     set (CMAKE_XCODE_EFFECTIVE_PLATFORMS "-watchsimulator")
 
     set (APPLE_WATCH True)
+elseif (${IOS_PLATFORM} STREQUAL "TVOS")
+    set (IOS_PLATFORM_LOCATION "AppleTvOS.platform")
+    set (XCODE_IOS_PLATFORM tvos)
+
+    # This causes the installers to properly locate the output libraries
+    set (CMAKE_XCODE_EFFECTIVE_PLATFORMS "-appletvos")
+
+    set (APPLE_TV True)
+elseif (${IOS_PLATFORM} STREQUAL "TVSIMULATOR")
+    set (SIMULATOR_FLAG true)
+    set (IOS_PLATFORM_LOCATION "AppleTvSimulator.platform")
+    set (XCODE_IOS_PLATFORM tvsimulator)
+
+    # This causes the installers to properly locate the output libraries
+    set (CMAKE_XCODE_EFFECTIVE_PLATFORMS "-tvsimulator")
+
+    set (APPLE_TV True)
 else (${IOS_PLATFORM} STREQUAL "OS")
     message (FATAL_ERROR "Unsupported IOS_PLATFORM value selected. Please choose OS, SIMULATOR, or WATCHOS.")
 endif ()
@@ -183,6 +200,10 @@ elseif (IOS_PLATFORM STREQUAL "WATCHOS")
     set (IOS_ARCH "armv7k")
 elseif (IOS_PLATFORM STREQUAL "WATCHSIMULATOR")
     set (IOS_ARCH "i386")
+elseif (IOS_PLATFORM STREQUAL "TVOS")
+    set (IOS_ARCH "arm64")
+elseif (IOS_PLATFORM STREQUAL "TVSIMULATOR")
+    set (IOS_ARCH "x86_64")
 else()
     message (WARNING "Unknown IOS_PLATFORM=<${IOS_PLATFORM}>")
 endif()
