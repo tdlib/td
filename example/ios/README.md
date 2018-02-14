@@ -1,7 +1,10 @@
 # Build for iOS
 
 Bellow are instructions for building TdLib for iOS, watchOS and also macOS.
-If you need just macOS build take a look [here](https://github.com/tdlib/td#os-x)
+
+If you need just macOS build take a look [here](https://github.com/tdlib/td#os-x).
+
+For example of usage take a look [here](https://github.com/tdlib/td/tree/master/example/swift).
 
 ## Build OpenSSL
 First, you should build OpenSSL library for ios
