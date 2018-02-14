@@ -83,7 +83,7 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
         if (result.is_error() || result.ok() != 0) {
           return result;
         }
-        if (query_->type_ == HttpQuery::Type::GET) {
+        if (transfer_encoding_.empty() && content_length_ == 0) {
           break;
         }
 
