@@ -60,7 +60,8 @@ cmake --build .
 <a name="installing-dependencies"></a>
 ### Installing dependencies
 
-#### OS X
+<a name="macos"></a>
+#### macOS
 * Install the latest Xcode command line tools.
 * Install other dependencies, for example, using [Homebrew](https://brew.sh):
 ```
@@ -71,6 +72,7 @@ brew install gperf cmake openssl
 cmake -DCMAKE_BUILD_TYPE=Release -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl/ ..
 ```
 
+<a name="windows"></a>
 #### Windows
 * Download and install [gperf](https://sourceforge.net/projects/gnuwin32/files/gperf/3.0.1/). Add the path to gperf to the PATH environment variable.
 * Install [vcpkg](https://github.com/Microsoft/vcpkg#quick-start).
@@ -83,6 +85,7 @@ C:\src\vcpkg> .\vcpkg install openssl zlib
   cmake -DCMAKE_TOOLCHAIN_FILE=C:\src\vcpkg\scripts\buildsystems\vcpkg.cmake ..
   ```
 
+<a name="linux"></a>
 #### Linux
 * Install all dependencies using your package manager.
 
