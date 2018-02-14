@@ -11066,6 +11066,10 @@ MessageId MessagesManager::get_replied_message(DialogId dialog_id, MessageId mes
   }
 
   auto replied_message_id = get_replied_message_id(m);
+  if (!replied_message_id.is_valid()) {
+    promise.set_value(Unit());
+    return MessageId();
+  }
   get_message_force_from_server(
       d, replied_message_id, std::move(promise),
       make_tl_object<telegram_api::inputMessageReplyTo>(message_id.get_server_message_id().get()));
