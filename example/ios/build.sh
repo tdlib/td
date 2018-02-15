@@ -49,7 +49,7 @@ do
         ios_platform="WATCH${ios_platform}"
       fi
       if [[ $platform = "tvOS" ]]; then
-	ios_platform="TV${ios_platform}"
+        ios_platform="TV${ios_platform}"
       fi
       echo $ios_platform
       rm -rf $build
