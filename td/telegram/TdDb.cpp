@@ -40,6 +40,7 @@ Result<EncryptionInfo> check_encryption(string path) {
   }
   EncryptionInfo info;
   info.is_encrypted = binlog.get_info().wrong_password;
+  binlog.close(false /*need_sync*/);
   return info;
 }
 
