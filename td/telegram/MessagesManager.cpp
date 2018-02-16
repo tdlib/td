@@ -6059,9 +6059,9 @@ void MessagesManager::on_upload_media(FileId file_id, tl_object_ptr<telegram_api
 
   Message *m = get_message(full_message_id);
   if (m == nullptr) {
-    // message is already deleted by the user or sent to inaccessible channel, do not need to send it
+    // message has already been deleted by the user or sent to inaccessible channel, do not need to send it
     // file upload should be already cancelled in cancel_send_message_query, it shouldn't happen
-    LOG(ERROR) << "Message with a media is already deleted";
+    LOG(ERROR) << "Message with a media has already been deleted";
     return;
   }
 
@@ -6183,10 +6183,10 @@ void MessagesManager::on_load_secret_thumbnail(FileId thumbnail_file_id, BufferS
 
   Message *m = get_message(full_message_id);
   if (m == nullptr) {
-    // message is already deleted by the user, do not need to send it
+    // message has already been deleted by the user, do not need to send it
     // cancel file upload of the main file to allow next upload with the same file to succeed
     td_->file_manager_->upload(file_id, nullptr, 0, 0);
-    LOG(INFO) << "Message with a media is already deleted";
+    LOG(INFO) << "Message with a media has already been deleted";
     return;
   }
 
@@ -6231,9 +6231,9 @@ void MessagesManager::on_upload_thumbnail(FileId thumbnail_file_id,
 
   Message *m = get_message(full_message_id);
   if (m == nullptr) {
-    // message is already deleted by the user or sent to inaccessible channel, do not need to send it
+    // message has already been deleted by the user or sent to inaccessible channel, do not need to send it
     // thumbnail file upload should be already cancelled in cancel_send_message_query
-    LOG(ERROR) << "Message with a media is already deleted";
+    LOG(ERROR) << "Message with a media has already been deleted";
     return;
   }
 
@@ -6360,7 +6360,7 @@ void MessagesManager::after_get_difference() {
   }
 
   for (auto &it : update_message_ids_) {
-    // this is impossible for ordinary chats because updates coming during getDifference are already applied
+    // this is impossible for ordinary chats because updates coming during getDifference have already been applied
     auto dialog_id = it.first.get_dialog_id();
     switch (dialog_id.get_type()) {
       case DialogType::Channel:
@@ -7422,7 +7422,7 @@ void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from
   delete_all_dialog_messages(d, remove_from_dialog_list, true);
 
   if (last_new_message_id.is_valid() && last_new_message_id == d->max_unavailable_message_id) {
-    // history was already cleared, nothing to do
+    // history has already been cleared, nothing to do
     promise.set_value(Unit());
     return;
   }
@@ -7997,7 +7997,7 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
     }
     if (d->is_last_read_inbox_message_id_inited && max_message_id.get() <= d->last_read_inbox_message_id.get()) {
       LOG(INFO) << "Receive read inbox update in " << dialog_id << " up to " << max_message_id << " from " << source
-                << ", but all messages are already read up to " << d->last_read_inbox_message_id;
+                << ", but all messages have already been read up to " << d->last_read_inbox_message_id;
       return;
     }
 
@@ -8075,8 +8075,8 @@ void MessagesManager::read_history_outbox(DialogId dialog_id, MessageId max_mess
       return;
     }
     if (max_message_id.get() <= d->last_read_outbox_message_id.get()) {
-      LOG(INFO) << "Receive read outbox update up to " << max_message_id << ", but all messages are already read up to "
-                << d->last_read_outbox_message_id;
+      LOG(INFO) << "Receive read outbox update up to " << max_message_id
+                << ", but all messages have already been read up to " << d->last_read_outbox_message_id;
       return;
     }
 
@@ -9419,7 +9419,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
 
   auto content_id = message->content->get_id();
   if (content_id == MessageExpiredPhoto::ID || content_id == MessageExpiredVideo::ID) {
-    CHECK(message->ttl == 0);  // ttl is ignored/set to 0 if the message is already expired
+    CHECK(message->ttl == 0);  // ttl is ignored/set to 0 if the message has already been expired
     if (message->reply_markup != nullptr) {
       if (message->reply_markup->type != ReplyMarkup::Type::InlineKeyboard) {
         message->had_reply_markup = true;
@@ -9499,7 +9499,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
         delete_message(d, old_message_id, false, &need_update_dialog_pos, "add sent message");
     if (old_message == nullptr) {
       // message has already been deleted by the user or sent to inaccessible channel
-      // don't need to send update to the user, because the message is already deleted
+      // don't need to send update to the user, because the message has already been deleted
       LOG(INFO) << "Delete already deleted sent " << new_message->message_id << " from server";
       delete_messages_from_server(dialog_id, {new_message->message_id}, true, 0, Auto());
       return FullMessageId();
@@ -9769,14 +9769,14 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
 
   auto it = being_sent_messages_.find(random_id);
   if (it == being_sent_messages_.end()) {
-    // result of sending message already received through getDifference
+    // result of sending message has already been received through getDifference
     return;
   }
 
   auto dialog_id = it->second.get_dialog_id();
   auto m = get_message_force(it->second);
   if (m == nullptr) {
-    // message was already deleted
+    // message has already been deleted
     return;
   }
 
@@ -9837,7 +9837,7 @@ void MessagesManager::on_update_message_web_page(FullMessageId full_message_id, 
   CHECK(content_type == MessageText::ID);
   auto content = static_cast<MessageText *>(message->content.get());
   if (!content->web_page_id.is_valid()) {
-    // webpage was already received as empty
+    // webpage has already been received as empty
     LOG_IF(ERROR, have_web_page) << "Receive earlier not received web page";
     return;
   }
@@ -10581,7 +10581,7 @@ void MessagesManager::load_dialog_list(Promise<Unit> &&promise) {
   auto &multipromise = load_dialog_list_multipromise_;
   multipromise.add_promise(std::move(promise));
   if (multipromise.promise_count() != 1) {
-    // queries are already sent, just wait for the result
+    // queries have already been sent, just wait for the result
     return;
   }
 
@@ -11648,7 +11648,7 @@ DialogId MessagesManager::create_new_group_chat(const vector<UserId> &user_ids, 
   LOG(INFO) << "Trying to create group chat \"" << title << "\" with members " << format::as_array(user_ids);
 
   if (random_id != 0) {
-    // request was already sent before
+    // request has already been sent before
     auto it = created_dialogs_.find(random_id);
     CHECK(it != created_dialogs_.end());
     auto dialog_id = it->second;
@@ -11701,7 +11701,7 @@ DialogId MessagesManager::create_new_channel_chat(const string &title, bool is_m
             << "\" and description \"" << description << "\"";
 
   if (random_id != 0) {
-    // request was already sent before
+    // request has already been sent before
     auto it = created_dialogs_.find(random_id);
     CHECK(it != created_dialogs_.end());
     auto dialog_id = it->second;
@@ -12611,7 +12611,7 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
     int32 limit, const tl_object_ptr<td_api::SearchMessagesFilter> &filter, int64 &random_id, bool use_db,
     Promise<Unit> &&promise) {
   if (random_id != 0) {
-    // request was already sent before
+    // request has already been sent before
     auto it = found_dialog_messages_.find(random_id);
     if (it != found_dialog_messages_.end()) {
       auto result = std::move(it->second);
@@ -12746,7 +12746,7 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_call_messages(Me
                                                                               bool only_missed, int64 &random_id,
                                                                               bool use_db, Promise<Unit> &&promise) {
   if (random_id != 0) {
-    // request was already sent before
+    // request has already been sent before
     auto it = found_call_messages_.find(random_id);
     if (it != found_call_messages_.end()) {
       auto result = std::move(it->second);
@@ -12822,7 +12822,7 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_recent_locati
                                                                                             int64 &random_id,
                                                                                             Promise<Unit> &&promise) {
   if (random_id != 0) {
-    // request was already sent before
+    // request has already been sent before
     auto it = found_dialog_recent_location_messages_.find(random_id);
     CHECK(it != found_dialog_recent_location_messages_.end());
     auto result = std::move(it->second);
@@ -13061,7 +13061,7 @@ std::pair<int64, vector<FullMessageId>> MessagesManager::offline_search_messages
     DialogId dialog_id, const string &query, int64 from_search_id, int32 limit,
     const tl_object_ptr<td_api::SearchMessagesFilter> &filter, int64 &random_id, Promise<> &&promise) {
   if (random_id != 0) {
-    // request was already sent before
+    // request has already been sent before
     auto it = found_fts_messages_.find(random_id);
     CHECK(it != found_fts_messages_.end());
     auto result = std::move(it->second);
@@ -13169,7 +13169,7 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_messages(const s
                                                                          MessageId offset_message_id, int32 limit,
                                                                          int64 &random_id, Promise<Unit> &&promise) {
   if (random_id != 0) {
-    // request was already sent before
+    // request has already been sent before
     auto it = found_messages_.find(random_id);
     CHECK(it != found_messages_.end());
     auto result = std::move(it->second);
@@ -15885,7 +15885,7 @@ void MessagesManager::on_secret_message_media_uploaded(DialogId dialog_id, Messa
   }
 */
   // TODO use file_id, thumbnail_file_id, invalidate partial remote location for file_id in case of failed upload
-  // even message is already deleted
+  // even message has already been deleted
   on_media_message_ready_to_send(
       dialog_id, m->message_id,
       PromiseCreator::lambda([this, dialog_id, secret_input_media = std::move(secret_input_media), file_id,
@@ -15914,8 +15914,8 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
 
   Message *m = get_message(d, message_id);
   if (m == nullptr) {
-    // message already deleted by the user or sent to inaccessible channel
-    // don't need to send error to the user, because the message is already deleted
+    // message has already been deleted by the user or sent to inaccessible channel
+    // don't need to send error to the user, because the message has already been deleted
     // and there is nothing to be deleted from the server
     LOG(INFO) << "Fail to send already deleted by the user or sent to inaccessible chat "
               << FullMessageId{dialog_id, message_id};
@@ -15948,8 +15948,8 @@ void MessagesManager::on_upload_message_media_file_part_missing(DialogId dialog_
 
   Message *m = get_message(d, message_id);
   if (m == nullptr) {
-    // message already deleted by the user or sent to inaccessible channel
-    // don't need to send error to the user, because the message is already deleted
+    // message has already been deleted by the user or sent to inaccessible channel
+    // don't need to send error to the user, because the message has already been deleted
     // and there is nothing to be deleted from the server
     LOG(INFO) << "Fail to send already deleted by the user or sent to inaccessible chat "
               << FullMessageId{dialog_id, message_id};
@@ -15973,8 +15973,8 @@ void MessagesManager::on_upload_message_media_fail(DialogId dialog_id, MessageId
 
   Message *m = get_message(d, message_id);
   if (m == nullptr) {
-    // message already deleted by the user or sent to inaccessible channel
-    // don't need to send error to the user, because the message is already deleted
+    // message has already been deleted by the user or sent to inaccessible channel
+    // don't need to send error to the user, because the message has already been deleted
     // and there is nothing to be deleted from the server
     LOG(INFO) << "Fail to send already deleted by the user or sent to inaccessible chat "
               << FullMessageId{dialog_id, message_id};
@@ -18125,8 +18125,8 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
   bool need_update_dialog_pos = false;
   unique_ptr<Message> sent_message = delete_message(d, old_message_id, false, &need_update_dialog_pos, source);
   if (sent_message == nullptr) {
-    // message already deleted by the user or sent to inaccessible channel
-    // don't need to send update to the user, because the message is already deleted
+    // message has already been deleted by the user or sent to inaccessible channel
+    // don't need to send update to the user, because the message has already been deleted
     LOG(INFO) << "Delete already deleted sent " << new_message_id << " from server";
     delete_messages_from_server(dialog_id, {new_message_id}, true, 0, Auto());
     return {};
@@ -18306,8 +18306,8 @@ void MessagesManager::on_send_message_file_part_missing(int64 random_id, int bad
 
   Message *m = get_message(full_message_id);
   if (m == nullptr) {
-    // message already deleted by the user or sent to inaccessible channel
-    // don't need to send error to the user, because the message is already deleted
+    // message has already been deleted by the user or sent to inaccessible channel
+    // don't need to send error to the user, because the message has already been deleted
     // and there is nothing to be deleted from the server
     LOG(INFO) << "Fail to send already deleted by the user or sent to inaccessible chat " << full_message_id;
     return;
@@ -18378,8 +18378,8 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
 
   Message *m = get_message(full_message_id);
   if (m == nullptr) {
-    // message already deleted by the user or sent to inaccessible channel
-    // don't need to send error to the user, because the message is already deleted
+    // message has already been deleted by the user or sent to inaccessible channel
+    // don't need to send error to the user, because the message has already been deleted
     // and there is nothing to be deleted from the server
     LOG(INFO) << "Fail to send already deleted by the user or sent to inaccessible chat " << full_message_id;
     return;
@@ -18401,7 +18401,7 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
       LOG(ERROR) << "Receive error 420: " << error_message;
       break;
     case 429:
-      // nothing special, error description was already changed
+      // nothing special, error description has already been changed
       LOG_IF(ERROR, !begins_with(error_message, "Too Many Requests: retry after "))
           << "Wrong error message: " << error_message;
       break;
@@ -18538,7 +18538,7 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
   unique_ptr<Message> message = delete_message(d, old_message_id, false, &need_update_dialog_pos, "fail send message");
   if (message == nullptr) {
     // message has already been deleted by the user or sent to inaccessible channel
-    // don't need to send update to the user, because the message is already deleted
+    // don't need to send update to the user, because the message has already been deleted
     // and there is nothing to be deleted from the server
     return;
   }
@@ -18682,7 +18682,7 @@ void MessagesManager::on_create_new_dialog_success(int64 random_id, tl_object_pt
   if (d != nullptr && d->last_new_message_id.is_valid()) {
     // dialog have been already created and at least one non-temporary message was added,
     // i.e. we are not interested in the creation of dialog by searchMessages
-    // then messages already added, so just set promise
+    // then messages have already been added, so just set promise
     return promise.set_value(Unit());
   }
 
@@ -19217,7 +19217,7 @@ void MessagesManager::set_dialog_photo(DialogId dialog_id, const tl_object_ptr<t
 
   auto input_chat_photo = get_input_chat_photo(file_id);
   if (input_chat_photo != nullptr) {
-    // file is already uploaded, just send change photo request
+    // file has already been uploaded, just send change photo request
     // TODO invoke after
     td_->create_handler<EditDialogPhotoQuery>(std::move(promise))
         ->send(FileId(), dialog_id, std::move(input_chat_photo));
@@ -21111,7 +21111,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     if ((*v)->message_id.get() < message_id.get()) {
       v = &(*v)->right;
     } else if ((*v)->message_id == message_id) {
-      LOG(INFO) << "Adding already existed " << message_id << " in " << dialog_id;
+      LOG(INFO) << "Adding already existing " << message_id << " in " << dialog_id;
       if (*need_update) {
         *need_update = false;
         if (!G()->parameters().use_message_db) {

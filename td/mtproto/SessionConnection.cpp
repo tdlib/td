@@ -156,10 +156,10 @@ namespace mtproto {
  *    2: message not received (msg_id in stored range)
  *    3: message not receiver (msg_id is too high)
  *    4: message received. No extra ack will be sent
- *    +8: message already acknowledged
- *    +16: message not requiring acknolegement
- *    +32: RPC query contained in message being processed or processing already complete
- *    +64: content-related response to message already generated
+ *    +8: message is already acknowledged
+ *    +16: message don't requires acknowledgement
+ *    +32: RPC query contained in message being processed or the processing has already been completed
+ *    +64: content-related response to message has already been generated
  *    +128: other party knows for a fact that message is already received
  *
  * 13. Voluntary Communication of Status of Messages

@@ -124,7 +124,7 @@ class RawConnection {
 
   Status do_flush(const AuthKey &auth_key, Callback &callback) TD_WARN_UNUSED_RESULT {
     if (has_error_) {
-      return Status::Error("Connection already failed");
+      return Status::Error("Connection has already failed");
     }
 
     // read/write

@@ -3184,7 +3184,7 @@ void ContactsManager::load_contacts(Promise<Unit> &&promise) {
       reload_contacts(true);
     }
   } else {
-    LOG(INFO) << "Load contacts request was already sent";
+    LOG(INFO) << "Load contacts request has already been sent";
   }
 }
 
@@ -3227,7 +3227,7 @@ std::pair<vector<UserId>, vector<int32>> ContactsManager::import_contacts(
 
   LOG(INFO) << "Asked to import " << contacts.size() << " contacts with random_id = " << random_id;
   if (random_id != 0) {
-    // request was already sent before
+    // request has already been sent before
     auto it = imported_contacts_.find(random_id);
     CHECK(it != imported_contacts_.end());
     auto result = std::move(it->second);
@@ -3322,7 +3322,7 @@ void ContactsManager::load_imported_contacts(Promise<Unit> &&promise) {
       send_closure_later(G()->contacts_manager(), &ContactsManager::on_load_imported_contacts_from_database, string());
     }
   } else {
-    LOG(INFO) << "Load imported contacts request was already sent";
+    LOG(INFO) << "Load imported contacts request has already been sent";
   }
 }
 
@@ -3382,7 +3382,7 @@ std::pair<vector<UserId>, vector<int32>> ContactsManager::change_imported_contac
   LOG(INFO) << "Asked to change imported contacts to a list of " << contacts.size()
             << " contacts with random_id = " << random_id;
   if (random_id != 0) {
-    // request was already sent before
+    // request has already been sent before
     CHECK(are_imported_contacts_changing_);
     are_imported_contacts_changing_ = false;
 
@@ -8280,7 +8280,7 @@ bool ContactsManager::get_channel_full(ChannelId channel_id, Promise<Unit> &&pro
       send_get_channel_full_query(channel_id, std::move(input_channel), std::move(promise));
       return false;
     } else {
-      // request was already sent in get_channel_full
+      // request has already been sent in get_channel_full
       // send_get_channel_full_query(channel_id, std::move(input_channel), Auto());
     }
   }
@@ -8488,7 +8488,7 @@ DialogParticipant ContactsManager::get_channel_participant(ChannelId channel_id,
                                                            bool force, Promise<Unit> &&promise) {
   LOG(INFO) << "Trying to get " << user_id << " as member of " << channel_id;
   if (random_id != 0) {
-    // request was already sent before
+    // request has already been sent before
     auto it = received_channel_participant_.find(random_id);
     CHECK(it != received_channel_participant_.end());
     auto result = std::move(it->second);
@@ -8548,7 +8548,7 @@ std::pair<int32, vector<DialogParticipant>> ContactsManager::get_channel_partici
     ChannelId channel_id, const tl_object_ptr<td_api::SupergroupMembersFilter> &filter, int32 offset, int32 limit,
     int64 &random_id, bool force, Promise<Unit> &&promise) {
   if (random_id != 0) {
-    // request was already sent before
+    // request has already been sent before
     auto it = received_channel_participants_.find(random_id);
     CHECK(it != received_channel_participants_.end());
     auto result = std::move(it->second);
