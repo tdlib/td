@@ -49,9 +49,9 @@ public:
     value = it->second;
     return true;
   }
-  void Remove(Key value) {
+  void Remove(Key key, Value &value) {
     std::lock_guard<std::mutex> guard(mutex_);
-    impl_.erase(value);
+    impl_.erase(key);
   }
   Value &operator [] (Key key) {
     std::lock_guard<std::mutex> guard(mutex_);
@@ -105,7 +105,9 @@ using System::NullReferenceException;
 
 using System::Collections::Concurrent::ConcurrentDictionary;
 
-using System::Threading::Interlocked::Increment;
+inline std::int64_t Increment(std::int64_t %value) {
+  return System::Threading::Interlocked::Increment(value);
+}
 
 inline std::string string_to_unmanaged(String^ string) {
   return msclr::interop::marshal_as<std::string>(string);
