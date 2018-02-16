@@ -3868,7 +3868,8 @@ void Td::on_config_option_updated(const string &name) {
              name == "channels_read_media_period") {
     return;
   }
-  send_update(make_tl_object<td_api::updateOption>(name, G()->shared_config().get_option_value(name)));
+  send_closure(actor_id(this), &Td::send_update,
+               make_tl_object<td_api::updateOption>(name, G()->shared_config().get_option_value(name)));
 }
 
 tl_object_ptr<td_api::ConnectionState> Td::get_connection_state_object(StateManager::State state) {
@@ -3899,7 +3900,8 @@ void Td::on_connection_state_changed(StateManager::State new_state) {
   }
   connection_state_ = new_state;
 
-  send_update(make_tl_object<td_api::updateConnectionState>(get_connection_state_object(connection_state_)));
+  send_closure(actor_id(this), &Td::send_update,
+               make_tl_object<td_api::updateConnectionState>(get_connection_state_object(connection_state_)));
 }
 
 void Td::on_authorization_lost() {
@@ -4664,12 +4666,12 @@ void Td::on_request(uint64 id, const td_api::logOut &request) {
 
 void Td::on_request(uint64 id, const td_api::close &request) {
   close();
-  send_result(id, td_api::make_object<td_api::ok>());
+  send_closure(actor_id(this), &Td::send_result, id, td_api::make_object<td_api::ok>());
 }
 
 void Td::on_request(uint64 id, const td_api::destroy &request) {
   destroy();
-  send_result(id, td_api::make_object<td_api::ok>());
+  send_closure(actor_id(this), &Td::send_result, id, td_api::make_object<td_api::ok>());
 }
 
 void Td::on_request(uint64 id, td_api::checkAuthenticationBotToken &request) {
@@ -6635,22 +6637,22 @@ void Td::on_request(uint64 id, const td_api::setProxy &request) {
 
 void Td::on_request(uint64 id, const td_api::getTextEntities &request) {
   // don't check authorization state
-  send_result(id, do_static_request(request));
+  send_closure(actor_id(this), &Td::send_result, id, do_static_request(request));
 }
 
 void Td::on_request(uint64 id, td_api::parseTextEntities &request) {
   // don't check authorization state
-  send_result(id, do_static_request(request));
+  send_closure(actor_id(this), &Td::send_result, id, do_static_request(request));
 }
 
 void Td::on_request(uint64 id, const td_api::getFileMimeType &request) {
   // don't check authorization state
-  send_result(id, do_static_request(request));
+  send_closure(actor_id(this), &Td::send_result, id, do_static_request(request));
 }
 
 void Td::on_request(uint64 id, const td_api::getFileExtension &request) {
   // don't check authorization state
-  send_result(id, do_static_request(request));
+  send_closure(actor_id(this), &Td::send_result, id, do_static_request(request));
 }
 
 template <class T>
