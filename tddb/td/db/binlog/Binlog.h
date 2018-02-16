@@ -123,6 +123,7 @@ class Binlog {
   bool in_flush_events_buffer_{false};
   uint64 last_id_{0};
   double need_flush_since_ = 0;
+  bool need_sync_{false};
   enum class State { Empty, Load, Reindex, Run } state_{State::Empty};
 
   static constexpr uint32 MAX_EVENT_SIZE = 65536;
