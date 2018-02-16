@@ -119,7 +119,7 @@ See [example/java](https://github.com/tdlib/td/tree/master/example/java) for exa
 ## Using from other programming languages
 `TDLib` provides efficient native C++, Java, and C# (will be released soon) interfaces.
 But for most use cases we suggest to use the JSON interface, which can be easily used with any programming language that is able to execute C functions.
-See [example/python/tdjson_example.py](https://github.com/tdlib/td/tree/master/example/python/tdjson_example.py) for an example of such usage.
+See [example/python/tdjson_example.py](https://github.com/tdlib/td/tree/master/example/python/tdjson_example.py) and [example/ruby/example.rb](https://github.com/tdlib/td/tree/master/example/ruby/example.rb) for an example of such usage.
 
 <a name="license"></a>
 ## License
