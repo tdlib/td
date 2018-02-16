@@ -123,11 +123,11 @@ TEST(MessageEntities, is_email_address) {
   check_is_email_address("A@a.a.a.ab", true);
   check_is_email_address("A@a.ab", true);
   check_is_email_address("Test@aa.aa.aa.aa", true);
-  check_is_email_address("Test@test.abc", true);
+  check_is_email_address("Test@test.abd", true);
   check_is_email_address("a@a.a.a.ab", true);
-  check_is_email_address("test@test.abc", true);
+  check_is_email_address("test@test.abd", true);
   check_is_email_address("test@test.com", true);
-  check_is_email_address("test.abc", false);
+  check_is_email_address("test.abd", false);
   check_is_email_address("a.ab", false);
   check_is_email_address("a.bc@d.ef", true);
 
@@ -331,7 +331,7 @@ TEST(MessageEntities, url) {
   check_url("1.0", {});
   check_url("www.🤙.tk", {"www.🤙.tk"});
   check_url("a.ab", {});
-  check_url("test.abc", {});
+  check_url("test.abd", {});
   check_url("ТеСт.Москва", {});
   check_url("ТеСт.МоСкВΑ", {});
   check_url("ТеСт.МоСкВа", {"ТеСт.МоСкВа"});
@@ -350,7 +350,7 @@ TEST(MessageEntities, url) {
   check_url("http://google_.com", {});
   check_url("http://google._com_", {});
   check_url("http://[2001:4860:0:2001::68]/", {});  // TODO
-  check_url("test.abc", {});
+  check_url("test.abd", {});
   check_url("/.b/..a    @.....@/. a.ba", {"a.ba"});
   check_url("bbbbbbbbbbbbbb.@.@", {});
   check_url("http://google.com/", {"http://google.com/"});
