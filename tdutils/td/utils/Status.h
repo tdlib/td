@@ -25,7 +25,7 @@
       return try_status.move_as_error(); \
     }                                    \
   }
-#define TRY_RESULT(name, result) TRY_RESULT_IMPL(TD_CONCAT(r_, name), name, result)
+#define TRY_RESULT(name, result) TRY_RESULT_IMPL(TD_CONCAT(TD_CONCAT(r_, name), __LINE__), name, result)
 
 #define TRY_RESULT_IMPL(r_name, name, result) \
   auto r_name = (result);                     \

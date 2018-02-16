@@ -738,7 +738,7 @@ Status HttpReader::open_temp_file(CSlice desired_file_name) {
     return Status::OK();
   }
 
-  rmdir(r_directory.move_as_ok()).ignore();
+  rmdir(directory).ignore();
   LOG(WARNING) << "Failed to create temporary file " << desired_file_name << ": " << second_try.error();
   return second_try.move_as_error();
 }
