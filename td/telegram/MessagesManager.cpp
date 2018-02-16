@@ -7129,7 +7129,8 @@ bool MessagesManager::can_forward_message(DialogId from_dialog_id, const Message
   }
 
   auto content_id = m->content->get_id();
-  return !is_service_message_content(content_id) && content_id != MessageUnsupported::ID;
+  return !is_service_message_content(content_id) && content_id != MessageUnsupported::ID &&
+         content_id != MessageExpiredPhoto::ID && content_id != MessageExpiredVideo::ID;
 }
 
 bool MessagesManager::can_delete_channel_message(DialogParticipantStatus status, const Message *m, bool is_bot) {
@@ -8619,6 +8620,8 @@ void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *message) {
     }
     message->reply_markup = nullptr;
   }
+  update_message_contains_unread_mention(d, message, false, "on_message_ttl_expired_impl");
+  message->contains_mention = false;
   message->reply_to_message_id = MessageId();
 }
 
@@ -9416,7 +9419,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
 
   auto content_id = message->content->get_id();
   if (content_id == MessageExpiredPhoto::ID || content_id == MessageExpiredVideo::ID) {
-    CHECK(message->ttl == 0);
+    CHECK(message->ttl == 0);  // ttl is ignored/set to 0 if the message is already expired
     if (message->reply_markup != nullptr) {
       if (message->reply_markup->type != ReplyMarkup::Type::InlineKeyboard) {
         message->had_reply_markup = true;
