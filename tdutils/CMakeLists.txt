@@ -1,18 +1,19 @@
 cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
-if (NOT OPENSSL_FOUND)
-  find_package(OpenSSL)
-endif()
-if (OPENSSL_FOUND)
-  set(TD_HAVE_OPENSSL 1)
-endif()
-
 if (NOT ZLIB_FOUND)
   find_package(ZLIB)
 endif()
 if (ZLIB_FOUND)
   set(TD_HAVE_ZLIB 1)
   message(STATUS "Found ZLIB: ${ZLIB_INCLUDE_DIR} ${ZLIB_LIBRARIES}")
+
+  # OpenSSL internally depends on zlib
+  if (NOT OPENSSL_FOUND)
+    find_package(OpenSSL)
+  endif()
+  if (OPENSSL_FOUND)
+    set(TD_HAVE_OPENSSL 1)
+  endif()
 endif()
 
 configure_file(td/utils/config.h.in td/utils/config.h @ONLY)
@@ -221,10 +222,7 @@ endif()
 target_include_directories(tdutils PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
 
 if (OPENSSL_FOUND)
-  target_link_libraries(tdutils PRIVATE ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS})
-  if (NOT WIN32)
-    target_link_libraries(tdutils PRIVATE z)
-  endif()
+  target_link_libraries(tdutils PRIVATE ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
   target_include_directories(tdutils SYSTEM PRIVATE ${OPENSSL_INCLUDE_DIR})
 endif()
 

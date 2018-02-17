@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
 if (NOT OPENSSL_FOUND)
   find_package(OpenSSL REQUIRED)
+  find_package(ZLIB REQUIRED)
 endif()
 
 set(SQLITE_SOURCE
@@ -15,7 +16,7 @@ set(SQLITE_SOURCE
 add_library(tdsqlite STATIC ${SQLITE_SOURCE})
 target_include_directories(tdsqlite PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_include_directories(tdsqlite SYSTEM PRIVATE ${OPENSSL_INCLUDE_DIR})
-target_link_libraries(tdsqlite PRIVATE ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS})
+target_link_libraries(tdsqlite PRIVATE ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
 target_compile_definitions(tdsqlite PRIVATE
   -DSQLITE_DEFAULT_MEMSTATUS=0
   -DSQLITE_OMIT_LOAD_EXTENSION
@@ -27,7 +28,6 @@ target_compile_definitions(tdsqlite PRIVATE
 target_compile_definitions(tdsqlite PRIVATE -DSQLITE_HAS_CODEC -DSQLITE_TEMP_STORE=2 -DSQLITE_ENABLE_FTS5 -DSQLITE_DISABLE_LFS)
 
 if (NOT WIN32)
-  target_link_libraries(tdsqlite PRIVATE z)
   target_compile_definitions(tdsqlite PRIVATE -DHAVE_USLEEP -DNDEBUG=1)
 endif()
 
