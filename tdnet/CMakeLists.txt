@@ -43,9 +43,9 @@ set(TDNET_SOURCE
 add_library(tdnet STATIC ${TDNET_SOURCE})
 target_include_directories(tdnet PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_include_directories(tdnet SYSTEM PUBLIC $<BUILD_INTERFACE:${OPENSSL_INCLUDE_DIR}>)
-target_link_libraries(tdnet PUBLIC tdutils tdactor ${OPENSSL_LIBRARIES})
+target_link_libraries(tdnet PUBLIC tdutils tdactor ${OPENSSL_LIBRARIES} ${CMAKE_DL_LIBS})
 if (UNIX)
-  target_link_libraries(tdnet PRIVATE dl z) # for OpenSSL
+  target_link_libraries(tdnet PRIVATE z) # for OpenSSL
 endif()
 
 install(TARGETS tdnet EXPORT TdTargets

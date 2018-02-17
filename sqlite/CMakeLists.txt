@@ -15,7 +15,7 @@ set(SQLITE_SOURCE
 add_library(tdsqlite STATIC ${SQLITE_SOURCE})
 target_include_directories(tdsqlite PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_include_directories(tdsqlite SYSTEM PRIVATE ${OPENSSL_INCLUDE_DIR})
-target_link_libraries(tdsqlite PRIVATE ${OPENSSL_CRYPTO_LIBRARY})
+target_link_libraries(tdsqlite PRIVATE ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS})
 target_compile_definitions(tdsqlite PRIVATE
   -DSQLITE_DEFAULT_MEMSTATUS=0
   -DSQLITE_OMIT_LOAD_EXTENSION

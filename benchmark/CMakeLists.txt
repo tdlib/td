@@ -6,10 +6,10 @@ endif()
 
 #TODO: all benchmarks in one file
 add_executable(bench_crypto bench_crypto.cpp)
-target_link_libraries(bench_crypto PRIVATE tdcore tdutils ${OPENSSL_CRYPTO_LIBRARY})
+target_link_libraries(bench_crypto PRIVATE tdcore tdutils ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS})
 target_include_directories(bench_crypto SYSTEM PRIVATE ${OPENSSL_INCLUDE_DIR})
 if (NOT WIN32)
-  target_link_libraries(bench_crypto PRIVATE dl z) # for OpenSSL
+  target_link_libraries(bench_crypto PRIVATE z) # for OpenSSL
 endif()
 
 add_executable(bench_actor bench_actor.cpp)
