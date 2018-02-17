@@ -1059,7 +1059,7 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::registerDevice>(make_tl_object<td_api::deviceTokenApplePush>(args, true),
                                                           as_user_ids("")));
     } else if (op == "rdb") {
-      send_request(make_tl_object<td_api::registerDevice>(make_tl_object<td_api::deviceTokenBlackberryPush>(args),
+      send_request(make_tl_object<td_api::registerDevice>(make_tl_object<td_api::deviceTokenBlackBerryPush>(args),
                                                           as_user_ids("")));
     } else if (op == "rdt") {
       string token;

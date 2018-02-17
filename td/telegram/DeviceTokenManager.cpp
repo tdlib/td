@@ -136,8 +136,8 @@ void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> devi
       token_type = TokenType::UBUNTU_PHONE;
       break;
     }
-    case td_api::deviceTokenBlackberryPush::ID: {
-      auto device_token = static_cast<td_api::deviceTokenBlackberryPush *>(device_token_ptr.get());
+    case td_api::deviceTokenBlackBerryPush::ID: {
+      auto device_token = static_cast<td_api::deviceTokenBlackBerryPush *>(device_token_ptr.get());
       token = std::move(device_token->token_);
       token_type = TokenType::BLACKBERRY;
       break;

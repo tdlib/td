@@ -1412,15 +1412,15 @@ chatEvents events:vector<chatEvent> = ChatEvents;
 chatEventLogFilters message_edits:Bool message_deletions:Bool message_pins:Bool member_joins:Bool member_leaves:Bool member_invites:Bool member_promotions:Bool member_restrictions:Bool info_changes:Bool setting_changes:Bool = ChatEventLogFilters;
 
 
-//@class DeviceToken @description Represents a token for push notifications
+//@class DeviceToken @description Represents a data needed to subscrive for push notifications. To use specific push notification service, you must specify the correct application platform and upload valid server authentication data at https://my.telegram.org
 
 //@description A token for Google Cloud Messaging @token Device registration token, may be empty to de-register a device
 deviceTokenGoogleCloudMessaging token:string = DeviceToken;
 
-//@description A token for Apple Push Notification Service @device_token Device token, may be empty to de-register a device @is_app_sandbox True, if App Sandbox is enabled
+//@description A token for Apple Push Notification service @device_token Device token, may be empty to de-register a device @is_app_sandbox True, if App Sandbox is enabled
 deviceTokenApplePush device_token:string is_app_sandbox:Bool = DeviceToken;
 
-//@description A token for Apple Push Notification Service VoIP notifications @device_token Device token, may be empty to de-register a device @is_app_sandbox True, if App Sandbox is enabled
+//@description A token for Apple Push Notification service VoIP notifications @device_token Device token, may be empty to de-register a device @is_app_sandbox True, if App Sandbox is enabled
 deviceTokenApplePushVoIP device_token:string is_app_sandbox:Bool = DeviceToken;
 
 //@description A token for Windows Push Notification Services @access_token The access token that will be used to send notifications, may be empty to de-register a device
@@ -1442,8 +1442,8 @@ deviceTokenSimplePush endpoint:string = DeviceToken;
 //@description A token for Ubuntu Push Client service @token Token, may be empty to de-register a device
 deviceTokenUbuntuPush token:string = DeviceToken;
 
-//@description A token for Blackberry Push Service @token Token, may be empty to de-register a device
-deviceTokenBlackberryPush token:string = DeviceToken;
+//@description A token for BlackBerry Push Service @token Token, may be empty to de-register a device
+deviceTokenBlackBerryPush token:string = DeviceToken;
 
 //@description A token for Tizen Push Service @reg_id Push service registration identifier, may be empty to de-register a device
 deviceTokenTizenPush reg_id:string = DeviceToken;
@@ -1856,8 +1856,11 @@ updateServiceNotification type:string content:MessageContent = Update;
 //@description Information about a file was updated @file New data about the file
 updateFile file:file = Update;
 
-//@description The file generation process needs to be started by the client @generation_id Unique identifier for the generation process @original_path The path to a file from which a new file is generated, may be empty
-//@destination_path The path to a file that should be created and where the new file should be generated @conversion String specifying the conversion applied to the original file
+//@description The file generation process needs to be started by the client
+//@generation_id Unique identifier for the generation process
+//@original_path The path to a file from which a new file is generated, may be empty
+//@destination_path The path to a file that should be created and where the new file should be generated
+//@conversion String specifying the conversion applied to the original file. If conversion is "#url#" than original_path contains a HTTP/HTTPS URL of a file, which should be downloaded by the client
 updateFileGenerationStart generation_id:int64 original_path:string destination_path:string conversion:string = Update;
 
 //@description File generation is no longer needed @generation_id Unique identifier for the generation process
@@ -1939,7 +1942,7 @@ testVectorStringObject value:vector<testString> = TestVectorStringObject;
 getAuthorizationState = AuthorizationState;
 
 
-//@description Sets the parameters for TDLib initialization @parameters Parameters
+//@description Sets the parameters for TDLib initialization. Works only when the current authorization state is authorizationStateWaitTdlibParameters @parameters Parameters
 setTdlibParameters parameters:tdlibParameters = Ok;
 
 //@description Checks the database encryption key for correctness. Works only when the current authorization state is authorizationStateWaitEncryptionKey @encryption_key Encryption key to check or set up
@@ -2058,7 +2061,8 @@ getFile file_id:int32 = File;
 //@description Returns information about a file by its remote ID; this is an offline request. Can be used to register a URL as a file for further uploading, or sending as a message @remote_file_id Remote identifier of the file to get @file_type File type, if known
 getRemoteFile remote_file_id:string file_type:FileType = File;
 
-//@description Returns an ordered list of chats. Chats are sorted by the pair (order, chat_id) in decreasing order. (For example, to get a list of chats from the beginning, the offset_order should be equal to 2^63 - 1) @offset_order Chat order to return chats from @offset_chat_id Chat identifier to return chats from
+//@description Returns an ordered list of chats. Chats are sorted by the pair (order, chat_id) in decreasing order. (For example, to get a list of chats from the beginning, the offset_order should be equal to 2^63 - 1).
+//-For optimal performance the number of returned chats is chosen by the library. @offset_order Chat order to return chats from @offset_chat_id Chat identifier to return chats from
 //@limit The maximum number of chats to be returned. It is possible that fewer chats than the limit are returned even if the end of the list is not reached
 getChats offset_order:int64 offset_chat_id:int53 limit:int32 = Chats;
 
@@ -2096,7 +2100,8 @@ getGroupsInCommon user_id:int32 offset_chat_id:int53 limit:int32 = Chats;
 getCreatedPublicChats = Chats;
 
 
-//@description Returns messages in a chat. The messages are returned in a reverse chronological order (i.e., in order of decreasing message_id). This is an offline request if only_local is true
+//@description Returns messages in a chat. The messages are returned in a reverse chronological order (i.e., in order of decreasing message_id).
+//-For optimal performance the number of returned messages is chosen by the library. This is an offline request if only_local is true
 //@chat_id Chat identifier
 //@from_message_id Identifier of the message starting from which history must be fetched; use 0 to get results from the beginning (i.e., from oldest to newest)
 //@offset Specify 0 to get results from exactly the from_message_id or a negative offset to get the specified message and some newer messages
@@ -2107,7 +2112,8 @@ getChatHistory chat_id:int53 from_message_id:int53 offset:int32 limit:int32 only
 //@description Deletes all messages in the chat only for the user. Cannot be used in channels and public supergroups @chat_id Chat identifier @remove_from_chat_list Pass true if the chat should be removed from the chats list
 deleteChatHistory chat_id:int53 remove_from_chat_list:Bool = Ok;
 
-//@description Searches for messages with given words in the chat. Returns the results in reverse chronological order, i.e. in order of decreasing message_id. Cannot be used in secret chats with a non-empty query (searchSecretMessages should be used instead), or without an enabled message database
+//@description Searches for messages with given words in the chat. Returns the results in reverse chronological order, i.e. in order of decreasing message_id. Cannot be used in secret chats with a non-empty query
+//-(searchSecretMessages should be used instead), or without an enabled message database. For optimal performance the number of returned messages is chosen by the library
 //@chat_id Identifier of the chat in which to search messages
 //@query Query to search for
 //@sender_user_id If not 0, only messages sent by the specified user will be returned. Not supported in secret chats
@@ -2117,19 +2123,24 @@ deleteChatHistory chat_id:int53 remove_from_chat_list:Bool = Ok;
 //@filter Filter for message content in the search results
 searchChatMessages chat_id:int53 query:string sender_user_id:int32 from_message_id:int53 offset:int32 limit:int32 filter:SearchMessagesFilter = Messages;
 
-//@description Searches for messages in all chats except secret chats. Returns the results in reverse chronological order (i.e., in order of decreasing (date, chat_id, message_id))
+//@description Searches for messages in all chats except secret chats. Returns the results in reverse chronological order (i.e., in order of decreasing (date, chat_id, message_id)).
+//-For optimal performance the number of returned messages is chosen by the library
 //@query Query to search for
 //@offset_date The date of the message starting from which the results should be fetched. Use 0 or any date in the future to get results from the beginning
 //@offset_chat_id The chat identifier of the last found message, or 0 for the first request
 //@offset_message_id The message identifier of the last found message, or 0 for the first request
-//@limit The maximum number of messages to be returned, up to 100
+//@limit The maximum number of messages to be returned, up to 100. Fewer messages may be returned than specified by the limit, even if the end of the message history has not been reached
 searchMessages query:string offset_date:int32 offset_chat_id:int53 offset_message_id:int53 limit:int32 = Messages;
 
-//@description Searches for messages in secret chats. Returns the results in reverse chronological order @chat_id Identifier of the chat in which to search. Specify 0 to search in all secret chats @query Query to search for. If empty, searchChatMessages should be used instead
-//@from_search_id The identifier from the result of a previous request, use 0 to get results from the beginning @limit Maximum number of messages to be returned; up to 100 @filter A filter for the content of messages in the search results
+//@description Searches for messages in secret chats. Returns the results in reverse chronological order. For optimal performance the number of returned messages is chosen by the library
+//@chat_id Identifier of the chat in which to search. Specify 0 to search in all secret chats @query Query to search for. If empty, searchChatMessages should be used instead
+//@from_search_id The identifier from the result of a previous request, use 0 to get results from the beginning
+//@limit Maximum number of messages to be returned; up to 100. Fewer messages may be returned than specified by the limit, even if the end of the message history has not been reached
+//@filter A filter for the content of messages in the search results
 searchSecretMessages chat_id:int53 query:string from_search_id:int64 limit:int32 filter:SearchMessagesFilter = FoundMessages;
 
-//@description Searches for call messages. Returns the results in reverse chronological order (i. e., in order of decreasing message_id) @from_message_id Identifier of the message from which to search; use 0 to get results from the beginning
+//@description Searches for call messages. Returns the results in reverse chronological order (i. e., in order of decreasing message_id). For optimal performance the number of returned messages is chosen by the library
+//@from_message_id Identifier of the message from which to search; use 0 to get results from the beginning
 //@limit The maximum number of messages to be returned; up to 100. Fewer messages may be returned than specified by the limit, even if the end of the message history has not been reached @only_missed If true, returns only messages with missed calls
 searchCallMessages from_message_id:int53 limit:int32 only_missed:Bool = Messages;
 
