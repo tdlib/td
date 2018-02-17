@@ -16,14 +16,18 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 enable_testing()
 
 if (POLICY CMP0069)
-  cmake_policy(SET CMP0069 NEW)
-  include(CheckIPOSupported)
-  check_ipo_supported(RESULT IPO_SUPPORTED)
-  if (IPO_SUPPORTED)
-    #set_property(DIRECTORY PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE) do not work?
-    string(REPLACE ";" " " CXX_FLAGS_IPO "${CMAKE_CXX_COMPILE_OPTIONS_IPO}")
-    message(STATUS "Use link time optimizations: ${CXX_FLAGS_IPO}")
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CXX_FLAGS_IPO}")
+  option(TD_ENABLE_LTO "Use \"ON\" to enable Link Time Optimization.")
+
+  if (TD_ENABLE_LTO)
+    cmake_policy(SET CMP0069 NEW)
+    include(CheckIPOSupported)
+    check_ipo_supported(RESULT IPO_SUPPORTED)
+    if (IPO_SUPPORTED)
+      #set_property(DIRECTORY PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE) do not work?
+      string(REPLACE ";" " " CXX_FLAGS_IPO "${CMAKE_CXX_COMPILE_OPTIONS_IPO}")
+      message(STATUS "Use link time optimizations: ${CXX_FLAGS_IPO}")
+      set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CXX_FLAGS_IPO}")
+    endif()
   endif()
 endif()
 
