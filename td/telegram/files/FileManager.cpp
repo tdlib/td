@@ -113,9 +113,9 @@ void FileNode::set_expected_size(int64 expected_size) {
   }
 }
 
-void FileNode::set_name(string name) {
-  if (name_ != name) {
-    name_ = std::move(name);
+void FileNode::set_remote_name(string remote_name) {
+  if (remote_name_ != remote_name) {
+    remote_name_ = std::move(remote_name);
     on_pmc_changed();
   }
 }
@@ -331,8 +331,8 @@ const string &FileView::url() const {
   return node_->url_;
 }
 
-const string &FileView::name() const {
-  return node_->name_;
+const string &FileView::remote_name() const {
+  return node_->remote_name_;
 }
 
 DialogId FileView::owner_dialog_id() const {
@@ -622,7 +622,7 @@ FileId FileManager::register_remote(const FullRemoteFileLocation &location, File
   data.owner_dialog_id_ = owner_dialog_id;
   data.size_ = size;
   data.expected_size_ = expected_size;
-  data.name_ = std::move(name);
+  data.remote_name_ = std::move(name);
   return register_file(std::move(data), file_location_source, "register_remote", false).move_as_ok();
 }
 
@@ -683,7 +683,7 @@ Result<FileId> FileManager::register_file(FileData data, FileLocationSource file
   auto file_node_id = next_file_node_id();
   auto &node = file_nodes_[file_node_id];
   node = std::make_unique<FileNode>(std::move(data.local_), std::move(data.remote_), std::move(data.generate_),
-                                    data.size_, data.expected_size_, std::move(data.name_), std::move(data.url_),
+                                    data.size_, data.expected_size_, std::move(data.remote_name_), std::move(data.url_),
                                     data.owner_dialog_id_, std::move(data.encryption_key_), file_id,
                                     static_cast<int8>(has_remote));
   node->remote_source_ = file_location_source;
@@ -899,7 +899,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   int generate_i = merge_choose(x_node->generate_, y_node->generate_);
   int size_i = merge_choose_size(x_node->size_, y_node->size_);
   int expected_size_i = merge_choose_expected_size(x_node->expected_size_, y_node->expected_size_);
-  int name_i = merge_choose_name(x_node->name_, y_node->name_);
+  int remote_name_i = merge_choose_name(x_node->remote_name_, y_node->remote_name_);
   int url_i = merge_choose_name(x_node->url_, y_node->url_);
   int owner_i = merge_choose_owner(x_node->owner_dialog_id_, y_node->owner_dialog_id_);
   int encryption_key_i = merge_choose_encryption_key(x_node->encryption_key_, y_node->encryption_key_);
@@ -932,7 +932,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   LOG(INFO) << "x_node->pmc_id_ = " << x_node->pmc_id_ << ", y_node->pmc_id_ = " << y_node->pmc_id_
             << ", x_node_size = " << x_node->file_ids_.size() << ", y_node_size = " << y_node->file_ids_.size()
             << ", node_i = " << node_i << ", local_i = " << local_i << ", remote_i = " << remote_i
-            << ", generate_i = " << generate_i << ", size_i = " << size_i << ", name_i = " << name_i
+            << ", generate_i = " << generate_i << ", size_i = " << size_i << ", remote_name_i = " << remote_name_i
             << ", url_i = " << url_i << ", owner_i = " << owner_i << ", encryption_key_i = " << encryption_key_i
             << ", main_file_id_i = " << main_file_id_i;
   if (local_i == other_node_i) {
@@ -993,8 +993,8 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     node->set_expected_size(other_node->expected_size_);
   }
 
-  if (name_i == other_node_i) {
-    node->set_name(other_node->name_);
+  if (remote_name_i == other_node_i) {
+    node->set_remote_name(other_node->remote_name_);
   }
 
   if (url_i == other_node_i) {
@@ -1151,7 +1151,7 @@ void FileManager::flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local
 
   data.size_ = node->size_;
   data.expected_size_ = node->expected_size_;
-  data.name_ = node->name_;
+  data.remote_name_ = node->remote_name_;
   data.encryption_key_ = node->encryption_key_;
   data.url_ = node->url_;
   data.owner_dialog_id_ = node->owner_dialog_id_;
@@ -1273,7 +1273,7 @@ bool FileManager::set_content(FileId file_id, BufferSlice bytes) {
   node->download_id_ = id;
   node->is_download_started_ = true;
   send_closure(file_load_manager_, &FileLoadManager::from_bytes, id, node->remote_.full().file_type_, std::move(bytes),
-               node->name_);
+               node->remote_name_);
   return true;
 }
 
@@ -1423,7 +1423,7 @@ void FileManager::run_download(FileNodePtr node) {
   node->download_id_ = id;
   node->is_download_started_ = false;
   send_closure(file_load_manager_, &FileLoadManager::download, id, node->remote_.full(), node->local_, node->size_,
-               node->name_, node->encryption_key_, priority);
+               node->remote_name_, node->encryption_key_, priority);
 }
 
 void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std::shared_ptr<UploadCallback> callback,
@@ -1566,7 +1566,7 @@ void FileManager::run_generate(FileNodePtr node) {
   QueryId id = queries_container_.create(Query{file_id, Query::Generate});
   node->generate_id_ = id;
   send_closure(file_generate_manager_, &FileGenerateManager::generate_file, id, *node->generate_, node->local_,
-               node->name_, [file_manager = this, id] {
+               node->remote_name_, [file_manager = this, id] {
                  class Callback : public FileGenerateCallback {
                    ActorId<FileManager> actor_;
                    uint64 query_id_;

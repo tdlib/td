@@ -64,12 +64,13 @@ Result<std::pair<FileFd, string>> open_temp_file(const FileType &file_type) {
 }
 
 Result<string> create_from_temp(CSlice temp_path, CSlice dir, CSlice name) {
-  decltype(try_create_new_file("path")) res;
+  LOG(INFO) << "Create file in directory " << dir << " with suggested name " << name << " from temporary file "
+            << temp_path;
   auto cleaned_name = clean_filename(name);
-
   PathView path_view(cleaned_name);
   auto stem = path_view.file_stem();
   auto ext = path_view.extension();
+  Result<std::pair<FileFd, string>> res;
   if (!stem.empty() && !G()->parameters().ignore_file_names) {
     res = try_create_new_file(PSLICE_SAFE() << dir << stem << Ext{ext});
     for (int i = 0; res.is_error() && i < 10; i++) {

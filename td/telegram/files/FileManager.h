@@ -35,14 +35,14 @@ enum class FileLocationSource : int8 { None, FromUser, FromDb, FromServer };
 class FileNode {
  public:
   FileNode(LocalFileLocation local, RemoteFileLocation remote, unique_ptr<FullGenerateFileLocation> generate,
-           int64 size, int64 expected_size, string name, string url, DialogId owner_dialog_id, FileEncryptionKey key,
-           FileId main_file_id, int8 main_file_id_priority)
+           int64 size, int64 expected_size, string remote_name, string url, DialogId owner_dialog_id,
+           FileEncryptionKey key, FileId main_file_id, int8 main_file_id_priority)
       : local_(std::move(local))
       , remote_(std::move(remote))
       , generate_(std::move(generate))
       , size_(size)
       , expected_size_(expected_size)
-      , name_(std::move(name))
+      , remote_name_(std::move(remote_name))
       , url_(std::move(url))
       , owner_dialog_id_(owner_dialog_id)
       , encryption_key_(std::move(key))
@@ -54,7 +54,7 @@ class FileNode {
   void set_generate_location(unique_ptr<FullGenerateFileLocation> &&generate);
   void set_size(int64 size);
   void set_expected_size(int64 expected_size);
-  void set_name(string name);
+  void set_remote_name(string remote_name);
   void set_url(string url);
   void set_owner_dialog_id(DialogId owner_id);
   void set_encryption_key(FileEncryptionKey key);
@@ -90,7 +90,7 @@ class FileNode {
 
   int64 size_ = 0;
   int64 expected_size_ = 0;
-  string name_;
+  string remote_name_;
   string url_;
   DialogId owner_dialog_id_;
   FileEncryptionKey encryption_key_;
@@ -179,7 +179,7 @@ class FileView {
   bool has_url() const;
   const string &url() const;
 
-  const string &name() const;
+  const string &remote_name() const;
 
   DialogId owner_dialog_id() const;
 
@@ -287,8 +287,7 @@ class FileManager : public FileLoadManager::Callback {
   Result<FileId> register_local(FullLocalFileLocation location, DialogId owner_dialog_id, int64 size,
                                 bool get_by_hash = false, bool force = false) TD_WARN_UNUSED_RESULT;
   FileId register_remote(const FullRemoteFileLocation &location, FileLocationSource file_location_source,
-                         DialogId owner_dialog_id, int64 size, int64 expected_size,
-                         string name = "") TD_WARN_UNUSED_RESULT;
+                         DialogId owner_dialog_id, int64 size, int64 expected_size, string name) TD_WARN_UNUSED_RESULT;
   Result<FileId> register_generate(FileType file_type, FileLocationSource file_location_source, string original_path,
                                    string conversion, DialogId owner_dialog_id,
                                    int64 expected_size) TD_WARN_UNUSED_RESULT;

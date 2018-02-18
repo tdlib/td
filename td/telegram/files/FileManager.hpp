@@ -62,7 +62,7 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
       } else {
         store(narrow_cast<int32>(file_view.size()), storer);
       }
-      store(file_view.name(), storer);
+      store(file_view.remote_name(), storer);
       store(file_view.owner_dialog_id(), storer);
       break;
     }

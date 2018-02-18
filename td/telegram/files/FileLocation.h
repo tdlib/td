@@ -1088,7 +1088,7 @@ class FileData {
   unique_ptr<FullGenerateFileLocation> generate_;
   int64 size_ = 0;
   int64 expected_size_ = 0;
-  string name_;
+  string remote_name_;
   string url_;
   FileEncryptionKey encryption_key_;
 
@@ -1115,7 +1115,7 @@ class FileData {
     } else {
       store(size_, storer);
     }
-    store(name_, storer);
+    store(remote_name_, storer);
     store(url_, storer);
     store(encryption_key_, storer);
   }
@@ -1147,14 +1147,14 @@ class FileData {
     } else {
       parse(size_, parser);
     }
-    parse(name_, parser);
+    parse(remote_name_, parser);
     parse(url_, parser);
     parse(encryption_key_, parser);
   }
 };
 inline StringBuilder &operator<<(StringBuilder &sb, const FileData &file_data) {
-  sb << "[" << tag("name", file_data.name_) << " " << file_data.owner_dialog_id_ << " " << tag("size", file_data.size_)
-     << tag("expected_size", file_data.expected_size_);
+  sb << "[" << tag("remote_name", file_data.remote_name_) << " " << file_data.owner_dialog_id_ << " "
+     << tag("size", file_data.size_) << tag("expected_size", file_data.expected_size_);
   if (!file_data.url_.empty()) {
     sb << tag("url", file_data.url_);
   }
