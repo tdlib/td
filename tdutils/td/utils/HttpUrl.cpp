@@ -164,4 +164,15 @@ StringBuilder &operator<<(StringBuilder &sb, const HttpUrl &url) {
   return sb;
 }
 
+string get_url_query_file_name(const string &query) {
+  Slice query_slice = query;
+  query_slice.truncate(query.find_first_of("?#"));
+
+  auto slash_pos = query_slice.rfind('/');
+  if (slash_pos < query_slice.size()) {
+    return query_slice.substr(slash_pos + 1).str();
+  }
+  return query_slice.str();
+}
+
 }  // namespace td

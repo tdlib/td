@@ -5,6 +5,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/utils/base64.h"
+#include "td/utils/HttpUrl.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/EventFd.h"
@@ -239,4 +240,19 @@ TEST(Misc, to_double) {
   test_to_double();
   std::locale::global(std::locale::classic());
   test_to_double();
+}
+
+static void test_get_url_query_file_name_one(const char *prefix, const char *suffix, const char *file_name) {
+  ASSERT_STREQ(file_name, get_url_query_file_name(string(prefix) + string(file_name) + string(suffix)));
+}
+
+TEST(Misc, get_url_query_file_name) {
+  for (auto suffix : {"?t=1#test", "#test?t=1", "#?t=1", "?t=1#", "#test", "?t=1", "#", "?", ""}) {
+    test_get_url_query_file_name_one("", suffix, "");
+    test_get_url_query_file_name_one("/", suffix, "");
+    test_get_url_query_file_name_one("/a/adasd/", suffix, "");
+    test_get_url_query_file_name_one("/a/lklrjetn/", suffix, "adasd.asdas");
+    test_get_url_query_file_name_one("/", suffix, "a123asadas");
+    test_get_url_query_file_name_one("/", suffix, "\\a\\1\\2\\3\\a\\s\\a\\das");
+  }
 }
