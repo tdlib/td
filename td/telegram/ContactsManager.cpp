@@ -4954,6 +4954,7 @@ void ContactsManager::save_user_to_database(User *u, UserId user_id) {
 void ContactsManager::save_user_to_database_impl(User *u, UserId user_id, string value) {
   CHECK(u != nullptr);
   CHECK(load_user_from_database_queries_.count(user_id) == 0);
+  CHECK(!u->is_being_saved);
   u->is_being_saved = true;
   u->is_saved = true;
   u->is_status_saved = true;

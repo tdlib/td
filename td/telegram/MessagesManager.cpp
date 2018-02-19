@@ -9214,9 +9214,9 @@ void MessagesManager::fix_message_info_dialog_id(MessageInfo &message_info) cons
 }
 
 MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
-    tl_object_ptr<telegram_api::Message> message_ptr) const {
-  LOG(DEBUG) << "Receive " << to_string(message_ptr);
-  CHECK(message_ptr != nullptr);
+    tl_object_ptr<telegram_api::Message> message_ptr, const char *source) const {
+  LOG(DEBUG) << "Receive from " << source << " " << to_string(message_ptr);
+  CHECK(message_ptr != nullptr) << source;
   int32 constructor_id = message_ptr->get_id();
 
   MessageInfo message_info;
@@ -9238,7 +9238,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       if (message->flags_ & MESSAGE_FLAG_IS_SENT_VIA_BOT) {
         message_info.via_bot_user_id = UserId(message->via_bot_id_);
         if (!message_info.via_bot_user_id.is_valid()) {
-          LOG(ERROR) << "Receive invalid " << message_info.via_bot_user_id;
+          LOG(ERROR) << "Receive invalid " << message_info.via_bot_user_id << " from " << source;
           message_info.via_bot_user_id = UserId();
         }
       }
@@ -9445,7 +9445,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
 FullMessageId MessagesManager::on_get_message(tl_object_ptr<telegram_api::Message> message_ptr, bool from_update,
                                               bool is_channel_message, bool have_previous, bool have_next,
                                               const char *source) {
-  return on_get_message(parse_telegram_api_message(std::move(message_ptr)), from_update, is_channel_message,
+  return on_get_message(parse_telegram_api_message(std::move(message_ptr), source), from_update, is_channel_message,
                         have_previous, have_next, source);
 }
 
@@ -13543,6 +13543,11 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
 
 void MessagesManager::get_history_from_the_end(DialogId dialog_id, bool from_database, bool only_local,
                                                Promise<Unit> &&promise) {
+  CHECK(dialog_id.is_valid());
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    // can't get history in dialogs without read access
+    return promise.set_value(Unit());
+  }
   const int32 limit = MAX_GET_HISTORY;
   if (from_database && G()->parameters().use_message_db) {
     LOG(INFO) << "Get history from the end of " << dialog_id << " from database";
@@ -13569,6 +13574,7 @@ void MessagesManager::get_history_from_the_end(DialogId dialog_id, bool from_dat
 
 void MessagesManager::get_history(DialogId dialog_id, MessageId from_message_id, int32 offset, int32 limit,
                                   bool from_database, bool only_local, Promise<Unit> &&promise) {
+  CHECK(dialog_id.is_valid());
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     // can't get history in dialogs without read access
     return promise.set_value(Unit());
@@ -19690,7 +19696,8 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
     }
     case telegram_api::channelAdminLogEventActionUpdatePinned::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionUpdatePinned>(action_ptr);
-      auto message = create_message(parse_telegram_api_message(std::move(action->message_)), true);
+      auto message = create_message(
+          parse_telegram_api_message(std::move(action->message_), "channelAdminLogEventActionUpdatePinned"), true);
       if (message.second == nullptr) {
         return make_tl_object<td_api::chatEventMessageUnpinned>();
       }
@@ -19698,8 +19705,12 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
     }
     case telegram_api::channelAdminLogEventActionEditMessage::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionEditMessage>(action_ptr);
-      auto old_message = create_message(parse_telegram_api_message(std::move(action->prev_message_)), true);
-      auto new_message = create_message(parse_telegram_api_message(std::move(action->new_message_)), true);
+      auto old_message = create_message(
+          parse_telegram_api_message(std::move(action->prev_message_), "prev channelAdminLogEventActionEditMessage"),
+          true);
+      auto new_message = create_message(
+          parse_telegram_api_message(std::move(action->new_message_), "new channelAdminLogEventActionEditMessage"),
+          true);
       if (old_message.second == nullptr || new_message.second == nullptr || old_message.first != new_message.first) {
         LOG(ERROR) << "Failed to get edited message";
         return nullptr;
@@ -19710,7 +19721,8 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
     }
     case telegram_api::channelAdminLogEventActionDeleteMessage::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionDeleteMessage>(action_ptr);
-      auto message = create_message(parse_telegram_api_message(std::move(action->message_)), true);
+      auto message = create_message(
+          parse_telegram_api_message(std::move(action->message_), "channelAdminLogEventActionDeleteMessage"), true);
       if (message.second == nullptr) {
         LOG(ERROR) << "Failed to get deleted message";
         return nullptr;

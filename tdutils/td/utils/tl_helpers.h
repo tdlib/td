@@ -28,7 +28,7 @@
   bit_offset_store++
 
 #define END_STORE_FLAGS()       \
-  CHECK(bit_offset_store < 32); \
+  CHECK(bit_offset_store < 31); \
   td::store(flags_store, storer)
 
 #define BEGIN_PARSE_FLAGS()    \
@@ -40,7 +40,9 @@
   flag = ((flags_parse >> bit_offset_parse) & 1) != 0; \
   bit_offset_parse++
 
-#define END_PARSE_FLAGS() CHECK(bit_offset_parse < 32)
+#define END_PARSE_FLAGS()       \
+  CHECK(bit_offset_parse < 31); \
+  CHECK((flags_parse & ~((1 << bit_offset_parse) - 1)) == 0) << flags_parse << " " << bit_offset_parse;
 
 namespace td {
 template <class StorerT>
