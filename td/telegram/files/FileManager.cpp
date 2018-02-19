@@ -35,21 +35,26 @@
 namespace td {
 
 static int VERBOSITY_NAME(update_file) = VERBOSITY_NAME(INFO);
+
 FileNode *FileNodePtr::operator->() const {
   return get();
 }
+
 FileNode &FileNodePtr::operator*() const {
   return *get();
 }
+
 FileNode *FileNodePtr::get() const {
   auto res = get_unsafe();
   CHECK(res);
   return res;
 }
+
 FileNode *FileNodePtr::get_unsafe() const {
   CHECK(file_manager_ != nullptr);
   return file_manager_->get_file_node_raw(file_id_);
 }
+
 FileNodePtr::operator bool() const {
   return file_manager_ != nullptr && get_unsafe() != nullptr;
 }
@@ -227,6 +232,26 @@ void FileNode::on_info_flushed() {
   info_changed_flag_ = false;
 }
 
+CSlice FileNode::suggested_name() const {
+  if (!remote_name_.empty()) {
+    return remote_name_;
+  }
+  CSlice local_name(local_.file_name());
+  if (!local_name.empty()) {
+    return local_name;
+  }
+  if (!url_.empty()) {
+    return url_;
+  }
+  if (generate_ != nullptr) {
+    CSlice generate_name(generate_->original_path_);
+    if (!generate_name.empty()) {
+      return generate_name;
+    }
+  }
+  return CSlice();
+}
+
 /*** FileView ***/
 bool FileView::has_local_location() const {
   return node_->local_.type() == LocalFileLocation::Type::Full;
@@ -333,6 +358,10 @@ const string &FileView::url() const {
 
 const string &FileView::remote_name() const {
   return node_->remote_name_;
+}
+
+CSlice FileView::suggested_name() const {
+  return node_->suggested_name();
 }
 
 DialogId FileView::owner_dialog_id() const {
@@ -1273,7 +1302,7 @@ bool FileManager::set_content(FileId file_id, BufferSlice bytes) {
   node->download_id_ = id;
   node->is_download_started_ = true;
   send_closure(file_load_manager_, &FileLoadManager::from_bytes, id, node->remote_.full().file_type_, std::move(bytes),
-               node->remote_name_);
+               node->suggested_name().str());
   return true;
 }
 
@@ -1423,7 +1452,7 @@ void FileManager::run_download(FileNodePtr node) {
   node->download_id_ = id;
   node->is_download_started_ = false;
   send_closure(file_load_manager_, &FileLoadManager::download, id, node->remote_.full(), node->local_, node->size_,
-               node->remote_name_, node->encryption_key_, priority);
+               node->suggested_name().str(), node->encryption_key_, priority);
 }
 
 void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std::shared_ptr<UploadCallback> callback,
@@ -1566,7 +1595,7 @@ void FileManager::run_generate(FileNodePtr node) {
   QueryId id = queries_container_.create(Query{file_id, Query::Generate});
   node->generate_id_ = id;
   send_closure(file_generate_manager_, &FileGenerateManager::generate_file, id, *node->generate_, node->local_,
-               node->remote_name_, [file_manager = this, id] {
+               node->suggested_name().str(), [file_manager = this, id] {
                  class Callback : public FileGenerateCallback {
                    ActorId<FileManager> actor_;
                    uint64 query_id_;

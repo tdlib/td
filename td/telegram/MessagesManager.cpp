@@ -15334,15 +15334,9 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
     file_id = r_file_id.ok();
     CHECK(file_id.is_valid());
     file_view = td_->file_manager_->get_file_view(file_id);
-    if (file_view.has_local_location()) {
-      const PathView path_view(file_view.local_location().path_);
-      file_name = path_view.file_name().str();
-      mime_type = MimeType::from_extension(path_view.extension());
-    } else if (file_view.has_generate_location()) {
-      const PathView path_view(file_view.generate_location().original_path_);
-      file_name = path_view.file_name().str();
-      mime_type = MimeType::from_extension(path_view.extension());
-    }
+    const PathView path_view(file_view.suggested_name());
+    file_name = path_view.file_name().str();
+    mime_type = MimeType::from_extension(path_view.extension());
   }
 
   FileId thumbnail_file_id;

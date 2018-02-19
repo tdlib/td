@@ -73,6 +73,8 @@ class FileNode {
   void on_pmc_flushed();
   void on_info_flushed();
 
+  CSlice suggested_name() const;
+
  private:
   friend class FileView;
   friend class FileManager;
@@ -180,6 +182,8 @@ class FileView {
   const string &url() const;
 
   const string &remote_name() const;
+
+  CSlice suggested_name() const;
 
   DialogId owner_dialog_id() const;
 

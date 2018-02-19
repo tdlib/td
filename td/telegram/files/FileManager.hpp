@@ -28,7 +28,7 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
     file_store_type = FileStoreType::Remote;
   } else if (file_view.has_local_location()) {
     file_store_type = FileStoreType::Local;
-  } else if (!file_view.url().empty()) {
+  } else if (file_view.has_url()) {
     file_store_type = FileStoreType::Url;
   } else if (file_view.has_generate_location()) {
     file_store_type = FileStoreType::Generate;

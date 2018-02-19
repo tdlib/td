@@ -903,6 +903,18 @@ class LocalFileLocation {
     return variant_.get<2>();
   }
 
+  CSlice file_name() const {
+    switch (type()) {
+      case Type::Partial:
+        return partial().path_;
+      case Type::Full:
+        return full().path_;
+      case Type::Empty:
+      default:
+        return CSlice();
+    }
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const {
     using td::store;
