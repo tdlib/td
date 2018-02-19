@@ -32,10 +32,10 @@ ok = Ok;
 //@use_secret_chats If set to true, support for secret chats will be enabled
 //@api_id Application identifier for Telegram API access, which can be obtained at https://my.telegram.org
 //@api_hash Application identifier hash for Telegram API access, which can be obtained at https://my.telegram.org
-//@system_language_code IETF language tag of the user's operating system language
-//@device_model Model of the device the application is being run on
-//@system_version Version of the operating system the application is being run on
-//@application_version Application version
+//@system_language_code IETF language tag of the user's operating system language; must be non-empty
+//@device_model Model of the device the application is being run on; must be non-empty
+//@system_version Version of the operating system the application is being run on; must be non-empty
+//@application_version Application version; must be non-empty
 //@enable_storage_optimizer If set to true, old files will automatically be deleted
 //@ignore_file_names If set to true, original file names will be ignored. Otherwise, downloaded files will be saved under names as close as possible to the original name
 tdlibParameters use_test_dc:Bool database_directory:string files_directory:string use_file_database:Bool use_chat_info_database:Bool use_message_database:Bool use_secret_chats:Bool api_id:int32 api_hash:string system_language_code:string device_model:string system_version:string application_version:string enable_storage_optimizer:Bool ignore_file_names:Bool = TdlibParameters;
@@ -2637,7 +2637,7 @@ pinSupergroupMessage supergroup_id:int32 message_id:int53 disable_notification:B
 //@description Removes the pinned message from a supergroup or channel; requires appropriate administrator rights in the supergroup or channel @supergroup_id Identifier of the supergroup or channel
 unpinSupergroupMessage supergroup_id:int32 = Ok;
 
-//@description Reports some messages from a user in a supergroup as spam @supergroup_id Supergroup identifier @user_id User identifier @message_ids Identifiers of messages sent in the supergroup by the user. This list should be non-empty
+//@description Reports some messages from a user in a supergroup as spam @supergroup_id Supergroup identifier @user_id User identifier @message_ids Identifiers of messages sent in the supergroup by the user. This list must be non-empty
 reportSupergroupSpam supergroup_id:int32 user_id:int32 message_ids:vector<int53> = Ok;
 
 //@description Returns information about members or banned users in a supergroup or channel. Can be used only if SupergroupFullInfo.can_get_members == true; additionally, administrator privileges may be required for some filters @supergroup_id Identifier of the supergroup or channel

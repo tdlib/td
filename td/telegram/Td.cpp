@@ -3694,7 +3694,8 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
     case State::WaitParameters: {
       switch (function->get_id()) {
         case td_api::getAuthorizationState::ID:
-          return send_result(id, td_api::make_object<td_api::authorizationStateWaitTdlibParameters>());
+          return send_closure(actor_id(this), &Td::send_result, id,
+                              td_api::make_object<td_api::authorizationStateWaitTdlibParameters>());
         case td_api::setTdlibParameters::ID:
           return answer_ok_query(
               id, set_parameters(std::move(move_tl_object_as<td_api::setTdlibParameters>(function)->parameters_)));
@@ -3707,8 +3708,9 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
       string encryption_key;
       switch (function->get_id()) {
         case td_api::getAuthorizationState::ID:
-          return send_result(
-              id, td_api::make_object<td_api::authorizationStateWaitEncryptionKey>(encryption_info_.is_encrypted));
+          return send_closure(
+              actor_id(this), &Td::send_result, id,
+              td_api::make_object<td_api::authorizationStateWaitEncryptionKey>(encryption_info_.is_encrypted));
         case td_api::checkDatabaseEncryptionKey::ID: {
           auto check_key = move_tl_object_as<td_api::checkDatabaseEncryptionKey>(function);
           encryption_key = std::move(check_key->encryption_key_);
@@ -3731,9 +3733,11 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
     case State::Close: {
       if (function->get_id() == td_api::getAuthorizationState::ID) {
         if (close_flag_ == 5) {
-          return send_result(id, td_api::make_object<td_api::authorizationStateClosed>());
+          return send_closure(actor_id(this), &Td::send_result, id,
+                              td_api::make_object<td_api::authorizationStateClosed>());
         } else {
-          return send_result(id, td_api::make_object<td_api::authorizationStateClosing>());
+          return send_closure(actor_id(this), &Td::send_result, id,
+                              td_api::make_object<td_api::authorizationStateClosing>());
         }
       }
       return send_error_raw(id, 401, "Unauthorized");
@@ -3909,6 +3913,10 @@ void Td::on_authorization_lost() {
   destroy();
 }
 
+static td_api::object_ptr<td_api::error> make_error(int32 code, CSlice error) {
+  return td_api::make_object<td_api::error>(code, error.str());
+}
+
 void Td::start_up() {
   always_wait_for_mailbox();
 
@@ -4080,9 +4088,9 @@ void Td::clear() {
   while (!request_set_.empty()) {
     uint64 id = *request_set_.begin();
     if (destroy_flag_) {
-      send_error_raw(id, 401, "Unauthorized");
+      send_error_impl(id, make_error(401, "Unauthorized"));
     } else {
-      send_error_raw(id, 500, "Internal Server Error: closing");
+      send_error_impl(id, make_error(500, "Internal Server Error: closing"));
     }
   }
   if (is_online_) {
@@ -4460,14 +4468,8 @@ void Td::send_error(uint64 id, Status error) {
   error.ignore();
 }
 
-namespace {
-auto create_error_raw(int32 code, CSlice error) {
-  return make_tl_object<td_api::error>(code, error.str());
-}
-}  // namespace
-
 void Td::send_error_raw(uint64 id, int32 code, CSlice error) {
-  send_error_impl(id, create_error_raw(code, error));
+  send_closure(actor_id(this), &Td::send_error_impl, id, make_error(code, error));
 }
 
 void Td::answer_ok_query(uint64 id, Status status) {
@@ -4587,10 +4589,22 @@ Status Td::set_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters
 
   MtprotoHeader::Options options;
   options.api_id = parameters->api_id_;
-  options.system_language_code = parameters->system_language_code_;
-  options.device_model = parameters->device_model_;
-  options.system_version = parameters->system_version_;
-  options.application_version = parameters->application_version_;
+  options.system_language_code = trim(parameters->system_language_code_);
+  options.device_model = trim(parameters->device_model_);
+  options.system_version = trim(parameters->system_version_);
+  options.application_version = trim(parameters->application_version_);
+  if (options.system_language_code.empty()) {
+    return Status::Error(400, "System language code must be non-empty");
+  }
+  if (options.device_model.empty()) {
+    return Status::Error(400, "Device model must be non-empty");
+  }
+  if (options.system_version.empty()) {
+    return Status::Error(400, "System version must be non-empty");
+  }
+  if (options.application_version.empty()) {
+    return Status::Error(400, "Application version must be non-empty");
+  }
   if (options.api_id != 21724) {
     options.application_version += ", TDLib ";
     options.application_version += tdlib_version;
@@ -4598,8 +4612,9 @@ Status Td::set_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters
   G()->set_mtproto_header(std::make_unique<MtprotoHeader>(options));
 
   state_ = State::Decrypt;
-  send_update(td_api::make_object<td_api::updateAuthorizationState>(
-      td_api::make_object<td_api::authorizationStateWaitEncryptionKey>(encryption_info_.is_encrypted)));
+  send_closure(actor_id(this), &Td::send_update,
+               td_api::make_object<td_api::updateAuthorizationState>(
+                   td_api::make_object<td_api::authorizationStateWaitEncryptionKey>(encryption_info_.is_encrypted)));
   return Status::OK();
 }
 
@@ -6657,12 +6672,12 @@ void Td::on_request(uint64 id, const td_api::getFileExtension &request) {
 
 template <class T>
 td_api::object_ptr<td_api::Object> Td::do_static_request(const T &) {
-  return create_error_raw(400, "Function can't be executed synchronously");
+  return make_error(400, "Function can't be executed synchronously");
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getTextEntities &request) {
   if (!check_utf8(request.text_)) {
-    return create_error_raw(400, "Text must be encoded in UTF-8");
+    return make_error(400, "Text must be encoded in UTF-8");
   }
   auto text_entities = find_entities(request.text_, false);
   return make_tl_object<td_api::textEntities>(get_text_entities_object(text_entities));
@@ -6670,10 +6685,10 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getTextEn
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::parseTextEntities &request) {
   if (!check_utf8(request.text_)) {
-    return create_error_raw(400, "Text must be encoded in UTF-8");
+    return make_error(400, "Text must be encoded in UTF-8");
   }
   if (request.parse_mode_ == nullptr) {
-    return create_error_raw(400, "Parse mode must be non-empty");
+    return make_error(400, "Parse mode must be non-empty");
   }
 
   Result<vector<MessageEntity>> r_entities;
@@ -6689,7 +6704,7 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::parseTextEntiti
       break;
   }
   if (r_entities.is_error()) {
-    return create_error_raw(400, PSLICE() << "Can't parse entities: " << r_entities.error().message());
+    return make_error(400, PSLICE() << "Can't parse entities: " << r_entities.error().message());
   }
 
   return make_tl_object<td_api::formattedText>(std::move(request.text_), get_text_entities_object(r_entities.ok()));
