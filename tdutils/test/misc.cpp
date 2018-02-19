@@ -243,7 +243,11 @@ TEST(Misc, to_double) {
 }
 
 static void test_get_url_query_file_name_one(const char *prefix, const char *suffix, const char *file_name) {
-  ASSERT_STREQ(file_name, get_url_query_file_name(string(prefix) + string(file_name) + string(suffix)));
+  auto path = string(prefix) + string(file_name) + string(suffix);
+  ASSERT_STREQ(file_name, get_url_query_file_name(path));
+  ASSERT_STREQ(file_name, get_url_file_name("http://telegram.org" + path));
+  ASSERT_STREQ(file_name, get_url_file_name("http://telegram.org:80" + path));
+  ASSERT_STREQ(file_name, get_url_file_name("telegram.org" + path));
 }
 
 TEST(Misc, get_url_query_file_name) {

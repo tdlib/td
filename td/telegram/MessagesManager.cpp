@@ -14242,12 +14242,10 @@ tl_object_ptr<telegram_api::inputWebDocument> MessagesManager::get_input_web_doc
   auto file_view = td_->file_manager_->get_file_view(size.file_id);
   CHECK(file_view.has_url());
 
-  // TODO right MIME type
-  // auto url_path = http_url.query_.substr(0, http_url.query_.find_first_of("?#"));
-  // auto file_name = PathView(url_path).file_name().str();
-
-  return make_tl_object<telegram_api::inputWebDocument>(file_view.url(), size.size, "image/jpeg",
-                                                        std::move(attributes));
+  auto file_name = get_url_file_name(file_view.url());
+  return make_tl_object<telegram_api::inputWebDocument>(
+      file_view.url(), size.size, MimeType::from_extension(PathView(file_name).extension(), "image/jpeg"),
+      std::move(attributes));
 }
 
 tl_object_ptr<telegram_api::inputMediaInvoice> MessagesManager::get_input_media_invoice(
@@ -15334,7 +15332,8 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
     file_id = r_file_id.ok();
     CHECK(file_id.is_valid());
     file_view = td_->file_manager_->get_file_view(file_id);
-    const PathView path_view(file_view.suggested_name());
+    auto suggested_name = file_view.suggested_name();
+    const PathView path_view(suggested_name);
     file_name = path_view.file_name().str();
     mime_type = MimeType::from_extension(path_view.extension());
   }

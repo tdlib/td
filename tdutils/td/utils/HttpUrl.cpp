@@ -175,4 +175,15 @@ string get_url_query_file_name(const string &query) {
   return query_slice.str();
 }
 
+string get_url_file_name(const string &url) {
+  // TODO remove copy
+  string url_copy = url;
+  auto r_http_url = parse_url(url_copy);
+  if (r_http_url.is_error()) {
+    LOG(WARNING) << "Receive wrong URL \"" << url << '"';
+    return string();
+  }
+  return get_url_query_file_name(r_http_url.ok().query_);
+}
+
 }  // namespace td

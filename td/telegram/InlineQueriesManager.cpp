@@ -1463,9 +1463,7 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
             continue;
           }
           auto file_id = r_file_id.move_as_ok();
-
-          auto url_path = http_url.query_.substr(0, http_url.query_.find_first_of("?#"));
-          auto file_name = PathView(url_path).file_name().str();
+          auto file_name = get_url_query_file_name(http_url.query_);
 
           PhotoSize thumbnail;
           if (result->thumb_url_.find('.') != string::npos) {

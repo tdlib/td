@@ -232,24 +232,22 @@ void FileNode::on_info_flushed() {
   info_changed_flag_ = false;
 }
 
-CSlice FileNode::suggested_name() const {
+string FileNode::suggested_name() const {
   if (!remote_name_.empty()) {
     return remote_name_;
   }
-  CSlice local_name(local_.file_name());
-  if (!local_name.empty()) {
-    return local_name;
-  }
   if (!url_.empty()) {
-    return url_;
-  }
-  if (generate_ != nullptr) {
-    CSlice generate_name(generate_->original_path_);
-    if (!generate_name.empty()) {
-      return generate_name;
+    auto file_name = get_url_file_name(url_);
+    if (!file_name.empty()) {
+      return file_name;
     }
   }
-  return CSlice();
+  if (generate_ != nullptr) {
+    if (!generate_->original_path_.empty()) {
+      return generate_->original_path_;
+    }
+  }
+  return local_.file_name().str();
 }
 
 /*** FileView ***/
@@ -360,7 +358,7 @@ const string &FileView::remote_name() const {
   return node_->remote_name_;
 }
 
-CSlice FileView::suggested_name() const {
+string FileView::suggested_name() const {
   return node_->suggested_name();
 }
 
@@ -1302,7 +1300,7 @@ bool FileManager::set_content(FileId file_id, BufferSlice bytes) {
   node->download_id_ = id;
   node->is_download_started_ = true;
   send_closure(file_load_manager_, &FileLoadManager::from_bytes, id, node->remote_.full().file_type_, std::move(bytes),
-               node->suggested_name().str());
+               node->suggested_name());
   return true;
 }
 
@@ -1452,7 +1450,7 @@ void FileManager::run_download(FileNodePtr node) {
   node->download_id_ = id;
   node->is_download_started_ = false;
   send_closure(file_load_manager_, &FileLoadManager::download, id, node->remote_.full(), node->local_, node->size_,
-               node->suggested_name().str(), node->encryption_key_, priority);
+               node->suggested_name(), node->encryption_key_, priority);
 }
 
 void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std::shared_ptr<UploadCallback> callback,
@@ -1595,7 +1593,7 @@ void FileManager::run_generate(FileNodePtr node) {
   QueryId id = queries_container_.create(Query{file_id, Query::Generate});
   node->generate_id_ = id;
   send_closure(file_generate_manager_, &FileGenerateManager::generate_file, id, *node->generate_, node->local_,
-               node->suggested_name().str(), [file_manager = this, id] {
+               node->suggested_name(), [file_manager = this, id] {
                  class Callback : public FileGenerateCallback {
                    ActorId<FileManager> actor_;
                    uint64 query_id_;
@@ -2082,7 +2080,7 @@ void FileManager::on_upload_ok(QueryId query_id, FileType file_type, const Parti
   file_info->download_priority_ = 0;
 
   FileView file_view(file_node);
-  string file_name = get_file_name(file_type, file_view.has_local_location() ? file_view.local_location().path_ : "");
+  string file_name = get_file_name(file_type, file_view.suggested_name());
 
   if (file_view.is_encrypted()) {
     tl_object_ptr<telegram_api::InputEncryptedFile> input_file;
