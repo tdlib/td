@@ -142,30 +142,30 @@ class PingActor : public Actor {
 }  // namespace detail
 
 template <class T>
-void parse(Proxy &proxy, T &parser) {
+void Proxy::parse(T &parser) {
   using td::parse;
-  parse(proxy.type_, parser);
-  if (proxy.type() == Proxy::Type::Socks5) {
-    parse(proxy.server_, parser);
-    parse(proxy.port_, parser);
-    parse(proxy.user_, parser);
-    parse(proxy.password_, parser);
+  parse(type_, parser);
+  if (type_ == Proxy::Type::Socks5) {
+    parse(server_, parser);
+    parse(port_, parser);
+    parse(user_, parser);
+    parse(password_, parser);
   } else {
-    CHECK(proxy.type() == Proxy::Type::None);
+    CHECK(type_ == Proxy::Type::None);
   }
 }
 
 template <class T>
-void store(const Proxy &proxy, T &storer) {
+void Proxy::store(T &storer) const {
   using td::store;
-  store(proxy.type_, storer);
-  if (proxy.type() == Proxy::Type::Socks5) {
-    store(proxy.server_, storer);
-    store(proxy.port_, storer);
-    store(proxy.user_, storer);
-    store(proxy.password_, storer);
+  store(type_, storer);
+  if (type_ == Proxy::Type::Socks5) {
+    store(server_, storer);
+    store(port_, storer);
+    store(user_, storer);
+    store(password_, storer);
   } else {
-    CHECK(proxy.type() == Proxy::Type::None);
+    CHECK(type_ == Proxy::Type::None);
   }
 }
 
@@ -203,6 +203,10 @@ void ConnectionCreator::set_proxy(Proxy proxy) {
 }
 
 void ConnectionCreator::set_proxy_impl(Proxy proxy, bool from_db) {
+  if (proxy_ == proxy) {
+    return;
+  }
+
   proxy_ = std::move(proxy);
   send_closure(G()->state_manager(), &StateManager::on_proxy, proxy_.type() != Proxy::Type::None);
 
