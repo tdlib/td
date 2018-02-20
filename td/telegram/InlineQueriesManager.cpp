@@ -19,6 +19,7 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Game.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/Photo.h"
@@ -332,8 +333,7 @@ bool InlineQueriesManager::register_inline_message_content(
       auto inline_message_text = move_tl_object_as<telegram_api::botInlineMessageText>(inline_message);
       auto entities = get_message_entities(td_->contacts_manager_.get(), std::move(inline_message_text->entities_),
                                            "botInlineMessageText");
-      auto status =
-          MessagesManager::fix_text_message(inline_message_text->message_, entities, false, true, true, false);
+      auto status = fix_formatted_text(inline_message_text->message_, entities, false, true, true, false);
       if (status.is_error()) {
         LOG(ERROR) << "Receive error " << status << " while parsing botInlineMessageText "
                    << inline_message_text->message_;

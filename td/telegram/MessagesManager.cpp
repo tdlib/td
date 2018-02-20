@@ -9712,9 +9712,9 @@ void MessagesManager::set_dialog_is_empty(Dialog *d, const char *source) {
 }
 
 void MessagesManager::set_dialog_is_pinned(DialogId dialog_id, bool is_pinned) {
-   Dialog *d = get_dialog(dialog_id);
-   set_dialog_is_pinned(d, is_pinned);
-   update_dialog_pos(d, false, "set_dialog_is_pinned");
+  Dialog *d = get_dialog(dialog_id);
+  set_dialog_is_pinned(d, is_pinned);
+  update_dialog_pos(d, false, "set_dialog_is_pinned");
 }
 
 void MessagesManager::set_dialog_is_pinned(Dialog *d, bool is_pinned) {
@@ -12368,7 +12368,7 @@ unique_ptr<DraftMessage> MessagesManager::get_draft_message(
       }
 
       auto entities = get_message_entities(contacts_manager, std::move(draft->entities_), "draftMessage");
-      auto status = fix_text_message(draft->message_, entities, true, true, true, true);
+      auto status = fix_formatted_text(draft->message_, entities, true, true, true, true);
       if (status.is_error()) {
         LOG(ERROR) << "Receive error " << status << " while parsing draft " << draft->message_;
         if (!clean_input_string(draft->message_)) {
@@ -13744,222 +13744,6 @@ bool MessagesManager::need_skip_bot_commands(DialogId dialog_id, bool is_bot) co
   }
 }
 
-// like clean_input_string but also validates entities
-Status MessagesManager::fix_text_message(string &text, vector<MessageEntity> &entities, bool allow_empty,
-                                         bool skip_new_entities, bool skip_bot_commands, bool for_draft) {
-  if (!check_utf8(text)) {
-    return Status::Error(400, "Strings must be encoded in UTF-8");
-  }
-
-  fix_entities(entities);
-
-  bool in_entity = false;
-  bool has_non_space_in_entity = false;
-  size_t current_entity = 0;
-  int32 skipped_before_current_entity = 0;
-  size_t left_entities = 0;  // will remove all entities containing spaces only
-
-  int32 utf16_offset = 0;
-  int32 utf16_skipped = 0;
-
-  size_t text_size = text.size();
-  size_t last_non_space_pos = text_size + 1;
-  int32 last_non_space_utf16_offset = 0;
-
-  string result;
-  result.reserve(text_size);
-  for (size_t pos = 0; pos <= text_size; pos++) {
-    auto c = static_cast<unsigned char>(text[pos]);
-    bool is_utf8_character_begin = is_utf8_character_first_code_unit(c);
-    if (is_utf8_character_begin) {
-      if (in_entity) {
-        CHECK(current_entity < entities.size());
-        if (utf16_offset >= entities[current_entity].offset + entities[current_entity].length) {
-          if (utf16_offset != entities[current_entity].offset + entities[current_entity].length) {
-            CHECK(utf16_offset == entities[current_entity].offset + entities[current_entity].length + 1);
-            return Status::Error(16, PSLICE() << "Entity beginning at UTF-16 offset " << entities[current_entity].offset
-                                              << " ends in a middle of a UTF-16 symbol at byte offset " << pos);
-          }
-          entities[current_entity].offset -= skipped_before_current_entity;
-          entities[current_entity].length -= utf16_skipped - skipped_before_current_entity;
-          in_entity = false;
-
-          if (has_non_space_in_entity) {
-            // TODO check entities for validness, for example, that mention, hashtag and URLs are valid
-            if (current_entity != left_entities) {
-              entities[left_entities] = std::move(entities[current_entity]);
-            }
-            left_entities++;
-          }
-          current_entity++;
-        }
-      }
-      if (!in_entity && current_entity < entities.size() && utf16_offset >= entities[current_entity].offset) {
-        if (utf16_offset != entities[current_entity].offset) {
-          CHECK(utf16_offset == entities[current_entity].offset + 1);
-          return Status::Error(16, PSLICE() << "Entity begins in a middle of a UTF-16 symbol at byte offset " << pos);
-        }
-        in_entity = true;
-        has_non_space_in_entity = false;
-        skipped_before_current_entity = utf16_skipped;
-      }
-    }
-    if (pos == text_size) {
-      break;
-    }
-
-    switch (c) {
-      // remove control characters
-      case 0:
-      case 1:
-      case 2:
-      case 3:
-      case 4:
-      case 5:
-      case 6:
-      case 7:
-      case 8:
-      case 9:
-      // allow '\n'
-      case 11:
-      case 12:
-      // ignore '\r'
-      case 14:
-      case 15:
-      case 16:
-      case 17:
-      case 18:
-      case 19:
-      case 20:
-      case 21:
-      case 22:
-      case 23:
-      case 24:
-      case 25:
-      case 26:
-      case 27:
-      case 28:
-      case 29:
-      case 30:
-      case 31:
-      case 32:
-        result.push_back(' ');
-        utf16_offset++;
-        break;
-      case '\r':
-        // skip
-        utf16_offset++;
-        utf16_skipped++;
-        break;
-      default:
-        if (is_utf8_character_begin) {
-          utf16_offset += 1 + (c >= 0xf0);  // >= 4 bytes in symbol => surrogaite pair
-        }
-        if (c == 0xe2 && pos + 2 < text_size) {
-          unsigned char next = static_cast<unsigned char>(text[pos + 1]);
-          if (next == 0x80) {
-            next = static_cast<unsigned char>(text[pos + 2]);
-            if (0xa8 <= next && next <= 0xae) {
-              pos += 2;
-              utf16_skipped++;
-              break;
-            }
-          }
-        }
-        if (c == 0xcc && pos + 1 < text_size) {
-          unsigned char next = static_cast<unsigned char>(text[pos + 1]);
-          // remove vertical lines
-          if (next == 0xb3 || next == 0xbf || next == 0x8a) {
-            pos++;
-            utf16_skipped++;
-            break;
-          }
-        }
-
-        result.push_back(text[pos]);
-
-        if (c != '\n') {
-          has_non_space_in_entity = true;
-          last_non_space_pos = result.size();
-          last_non_space_utf16_offset = utf16_offset - utf16_skipped;
-        }
-        break;
-    }
-  }
-  entities.erase(entities.begin() + left_entities, entities.end());
-
-  if (last_non_space_pos == text_size + 1) {
-    if (allow_empty) {
-      text.clear();
-      entities.clear();
-      return Status::OK();
-    }
-    return Status::Error(3, "Message must be non-empty");
-  }
-
-  if (for_draft) {
-    text = std::move(result);
-  } else {
-    // rtrim
-    result.resize(last_non_space_pos);
-    for (auto &entity : entities) {
-      if (entity.offset + entity.length > last_non_space_utf16_offset) {
-        entity.length = last_non_space_utf16_offset - entity.offset;
-        CHECK(entity.length > 0);
-      }
-    }
-
-    // ltrim
-    size_t first_non_spaces_pos = 0;
-    size_t first_entity_begin_pos = entities.empty() ? result.size() : entities[0].offset;
-    while (first_non_spaces_pos < first_entity_begin_pos &&
-           (result[first_non_spaces_pos] == ' ' || result[first_non_spaces_pos] == '\n')) {
-      first_non_spaces_pos++;
-    }
-    if (first_non_spaces_pos > 0) {
-      int32 offset = narrow_cast<int32>(first_non_spaces_pos);
-      text = result.substr(first_non_spaces_pos);
-      for (auto &entity : entities) {
-        entity.offset -= offset;
-        CHECK(entity.offset >= 0);
-      }
-    } else {
-      text = std::move(result);
-    }
-  }
-
-  if (!allow_empty && is_empty_string(text)) {
-    return Status::Error(3, "Message must be non-empty");
-  }
-
-  constexpr size_t LENGTH_LIMIT = 35000;  // server side limit
-  if (text.size() > LENGTH_LIMIT) {
-    size_t new_size = LENGTH_LIMIT;
-    while (!is_utf8_character_first_code_unit(text[new_size])) {
-      new_size--;
-    }
-    text.resize(new_size);
-    while (!entities.empty() && entities.back().offset + entities.back().length > 8192) {
-      entities.pop_back();
-    }
-  }
-
-  if (!skip_new_entities) {
-    entities = merge_entities(std::move(entities), find_entities(text, skip_bot_commands));
-  }
-
-  for (auto it = entities.begin(); it != entities.end(); ++it) {
-    CHECK(it->length > 0);
-    if (it + 1 != entities.end()) {
-      CHECK(it->offset + it->length <= (it + 1)->offset);
-    }
-  }
-
-  // TODO MAX_MESSAGE_LENGTH and MAX_CAPTION_LENGTH
-
-  return Status::OK();
-}
-
 Result<FormattedText> MessagesManager::process_input_caption(DialogId dialog_id,
                                                              tl_object_ptr<td_api::formattedText> &&text,
                                                              bool is_bot) const {
@@ -13967,7 +13751,7 @@ Result<FormattedText> MessagesManager::process_input_caption(DialogId dialog_id,
     return FormattedText();
   }
   TRY_RESULT(entities, get_message_entities(td_->contacts_manager_.get(), std::move(text->entities_)));
-  TRY_STATUS(fix_text_message(text->text_, entities, true, false, need_skip_bot_commands(dialog_id, is_bot), false));
+  TRY_STATUS(fix_formatted_text(text->text_, entities, true, false, need_skip_bot_commands(dialog_id, is_bot), false));
   return FormattedText{std::move(text->text_), std::move(entities)};
 }
 
@@ -13988,8 +13772,8 @@ Result<InputMessageText> MessagesManager::process_input_message_text(
 
   TRY_RESULT(entities,
              get_message_entities(td_->contacts_manager_.get(), std::move(input_message_text->text_->entities_)));
-  TRY_STATUS(fix_text_message(input_message_text->text_->text_, entities, for_draft, false,
-                              need_skip_bot_commands(dialog_id, is_bot), for_draft));
+  TRY_STATUS(fix_formatted_text(input_message_text->text_->text_, entities, for_draft, false,
+                                need_skip_bot_commands(dialog_id, is_bot), for_draft));
   return InputMessageText{FormattedText{std::move(input_message_text->text_->text_), std::move(entities)},
                           input_message_text->disable_web_page_preview_, input_message_text->clear_draft_};
 }
@@ -19993,7 +19777,7 @@ FormattedText MessagesManager::get_message_text(string message_text,
                                                 vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,
                                                 int32 send_date) const {
   auto entities = get_message_entities(td_->contacts_manager_.get(), std::move(server_entities), "get_message_text");
-  auto status = fix_text_message(message_text, entities, true, true, true, false);
+  auto status = fix_formatted_text(message_text, entities, true, true, true, false);
   if (status.is_error()) {
     if (send_date == 0 || send_date > 1497000000) {  // approximate fix date
       LOG(ERROR) << "Receive error " << status << " while parsing message content \"" << message_text << "\" sent at "
@@ -20244,7 +20028,7 @@ unique_ptr<MessageContent> MessagesManager::get_secret_message_content(
     vector<tl_object_ptr<secret_api::MessageEntity>> &&secret_entities, DialogId owner_dialog_id,
     MultiPromiseActor &load_data_multipromise) const {
   auto entities = get_message_entities(std::move(secret_entities));
-  auto status = fix_text_message(message_text, entities, true, false, true, false);
+  auto status = fix_formatted_text(message_text, entities, true, false, true, false);
   if (status.is_error()) {
     LOG(WARNING) << "Receive error " << status << " while parsing secret message \"" << message_text
                  << "\" with entities " << format::as_array(entities);

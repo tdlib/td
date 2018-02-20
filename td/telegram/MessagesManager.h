@@ -978,9 +978,6 @@ class MessagesManager : public Actor {
                                  vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,
                                  int32 send_date) const;
 
-  static Status fix_text_message(string &text, vector<MessageEntity> &entities, bool allow_empty,
-                                 bool skip_new_entities, bool skip_bot_commands, bool for_draft) TD_WARN_UNUSED_RESULT;
-
   Result<MessageId> send_message(DialogId dialog_id, MessageId reply_to_message_id, bool disable_notification,
                                  bool from_background, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                  tl_object_ptr<td_api::InputMessageContent> &&input_message_content)
