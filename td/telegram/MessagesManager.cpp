@@ -9711,6 +9711,12 @@ void MessagesManager::set_dialog_is_empty(Dialog *d, const char *source) {
   update_dialog_pos(d, false, source);
 }
 
+void MessagesManager::set_dialog_is_pinned(DialogId dialog_id, bool is_pinned) {
+   Dialog *d = get_dialog(dialog_id);
+   set_dialog_is_pinned(d, is_pinned);
+   update_dialog_pos(d, false, "set_dialog_is_pinned");
+}
+
 void MessagesManager::set_dialog_is_pinned(Dialog *d, bool is_pinned) {
   CHECK(d != nullptr);
   bool was_pinned = d->pinned_order != DEFAULT_ORDER;
@@ -9718,6 +9724,7 @@ void MessagesManager::set_dialog_is_pinned(Dialog *d, bool is_pinned) {
   on_dialog_updated(d->dialog_id, "set_dialog_is_pinned");
 
   if (is_pinned != was_pinned) {
+    LOG(INFO) << "Set " << d->dialog_id << " is pinned to " << is_pinned;
     CHECK(d == get_dialog(d->dialog_id)) << "Wrong " << d->dialog_id << " in set_dialog_is_pinned";
     update_dialog_pos(d, false, "set_dialog_is_pinned", false);
     DialogDate dialog_date(d->order, d->dialog_id);
@@ -10092,18 +10099,10 @@ void MessagesManager::on_get_dialogs(vector<tl_object_ptr<telegram_api::dialog>>
           // leave dialog where it is
           continue;
         }
-        LOG(INFO) << "Pin " << dialog_id;
-        Dialog *d = get_dialog(dialog_id);
-        CHECK(d != nullptr);
-        set_dialog_is_pinned(d, true);
-        update_dialog_pos(d, false, "set pinned order");
+        set_dialog_is_pinned(dialog_id, true);
       }
       for (auto dialog_id : old_pinned_dialog_ids) {
-        LOG(INFO) << "Unpin " << dialog_id;
-        Dialog *d = get_dialog(dialog_id);
-        CHECK(d != nullptr);
-        set_dialog_is_pinned(d, false);
-        update_dialog_pos(d, false, "unset pinned order");
+        set_dialog_is_pinned(dialog_id, false);
       }
     }
   }
@@ -11553,18 +11552,10 @@ Status MessagesManager::set_pinned_dialogs(vector<DialogId> dialog_ids) {
       // leave dialog where it is
       continue;
     }
-    LOG(INFO) << "Pin " << dialog_id;
-    Dialog *d = get_dialog(dialog_id);
-    CHECK(d != nullptr);
-    set_dialog_is_pinned(d, true);
-    update_dialog_pos(d, false, "set pinned order");
+    set_dialog_is_pinned(dialog_id, true);
   }
   for (auto dialog_id : old_pinned_dialog_ids) {
-    LOG(INFO) << "Unpin " << dialog_id;
-    Dialog *d = get_dialog(dialog_id);
-    CHECK(d != nullptr);
-    set_dialog_is_pinned(d, false);
-    update_dialog_pos(d, false, "unset pinned order");
+    set_dialog_is_pinned(dialog_id, false);
   }
 
   if (server_old_dialog_ids != server_new_dialog_ids) {

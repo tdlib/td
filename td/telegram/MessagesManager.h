@@ -2099,6 +2099,8 @@ class MessagesManager : public Actor {
 
   static vector<DialogId> remove_secret_chat_dialog_ids(vector<DialogId> dialog_ids);
 
+  void set_dialog_is_pinned(DialogId dialog_id, bool is_pinned);
+
   void set_dialog_is_pinned(Dialog *d, bool is_pinned);
 
   void toggle_dialog_is_pinned_on_server(DialogId dialog_id, bool is_pinned, uint64 logevent_id);
