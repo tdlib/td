@@ -1595,8 +1595,6 @@ void SecretChatActor::on_outbound_send_message_result(NetQueryPtr query, Promise
                                                                                                 dc_id, key_fingerprint);
                                 };
                               }));
-        context_->on_send_message_ok(state->message->random_id, MessageId(ServerMessageId(state->message->message_id)),
-                                     sent->date_, std::move(sent->file_), std::move(send_message_finish_promise));
 
         state->send_result_ = [this, random_id = state->message->random_id,
                                message_id = MessageId(ServerMessageId(state->message->message_id)), date = sent->date_,
@@ -1604,7 +1602,6 @@ void SecretChatActor::on_outbound_send_message_result(NetQueryPtr query, Promise
           this->context_->on_send_message_ok(random_id, message_id, date, get_file(), std::move(promise));
         };
         state->send_result_(std::move(send_message_finish_promise));
-        return;
         return;
       }
     }

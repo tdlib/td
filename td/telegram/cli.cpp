@@ -936,9 +936,9 @@ class CliClient final : public Actor {
   }
 
   static td_api::object_ptr<td_api::Object> execute(tl_object_ptr<td_api::Function> f) {
-    LOG(INFO) << "Execute request " << to_string(f);
+    LOG(INFO) << "Execute request: " << to_string(f);
     auto res = ClientActor::execute(std::move(f));
-    LOG(INFO) << "Execute response" << to_string(res);
+    LOG(INFO) << "Execute response: " << to_string(res);
     return res;
   }
 
