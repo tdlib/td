@@ -18548,6 +18548,10 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
   }
 
   auto new_message_id = MessageId(old_message_id.get() - MessageId::TYPE_YET_UNSENT + MessageId::TYPE_LOCAL);
+  if (get_message_force(d, new_message_id) != nullptr || d->deleted_message_ids.count(new_message_id)) {
+    new_message_id = get_next_local_message_id(d);
+  }
+
   message->message_id = new_message_id;
   CHECK(message->message_id.is_valid());
   message->random_y = get_random_y(message->message_id);
