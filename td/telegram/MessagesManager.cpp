@@ -21226,7 +21226,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       set_dialog_last_new_message_id(d, message_id, "add_message_to_dialog");
     }
   }
-  if (!d->have_full_history && d->last_message_id.is_valid() &&
+  if (!(d->have_full_history && auto_attach) && d->last_message_id.is_valid() &&
       d->last_message_id.get() < MessageId(ServerMessageId(1)).get() &&
       message_id.get() >= MessageId(ServerMessageId(1)).get()) {
     set_dialog_last_message_id(d, MessageId(), "add_message_to_dialog");
