@@ -2302,6 +2302,7 @@ viewMessages chat_id:int53 message_ids:vector<int53> force_read:Bool = Ok;
 //@description This method should be called if the message content has been opened (e.g., the user has opened a photo, video, document, location or venue, or has listened to an audio file or voice note message). An updateMessageContentOpened update will be generated if something has changed @chat_id Chat identifier of the message @message_id Identifier of the message with the opened content
 openMessageContent chat_id:int53 message_id:int53 = Ok;
 
+
 //@description Marks all mentions in a chat as read @chat_id Chat identifier
 readAllChatMentions chat_id:int53 = Ok;
 
@@ -2545,8 +2546,8 @@ searchHashtags prefix:string limit:int32 = Hashtags;
 removeRecentHashtag hashtag:string = Ok;
 
 
-//@description Returns a web page preview by the text of the message. Do not call this function too often. Returns a 404 error if the web page has no preview @message_text Message text
-getWebPagePreview message_text:string = WebPage;
+//@description Returns a web page preview by the text of the message. Do not call this function too often. Returns a 404 error if the web page has no preview @text Message text with formatting
+getWebPagePreview text:formattedText = WebPage;
 
 //@description Returns an instant view version of a web page if available. Returns a 404 error if the web page has no instant view page @url The web page URL @force_full If true, the full instant view for the web page will be returned
 getWebPageInstantView url:string force_full:Bool = WebPageInstantView;

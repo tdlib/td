@@ -1727,22 +1727,22 @@ class ReadAllChatMentionsRequest : public RequestOnceActor {
   }
 };
 
-class GetWebPagePreviewRequest : public RequestActor<> {
-  string message_text_;
+class GetWebPagePreviewRequest : public RequestOnceActor {
+  td_api::object_ptr<td_api::formattedText> text_;
 
-  WebPageId web_page_id_;
+  int64 request_id_ = 0;
 
   void do_run(Promise<Unit> &&promise) override {
-    web_page_id_ = td->web_pages_manager_->get_web_page_preview(message_text_, std::move(promise));
+    request_id_ = td->web_pages_manager_->get_web_page_preview(std::move(text_), std::move(promise));
   }
 
   void do_send_result() override {
-    send_result(td->web_pages_manager_->get_web_page_object(web_page_id_));
+    send_result(td->web_pages_manager_->get_web_page_preview_result(request_id_));
   }
 
  public:
-  GetWebPagePreviewRequest(ActorShared<Td> td, uint64 request_id, string message_text)
-      : RequestActor(std::move(td), request_id), message_text_(std::move(message_text)) {
+  GetWebPagePreviewRequest(ActorShared<Td> td, uint64 request_id, td_api::object_ptr<td_api::formattedText> text)
+      : RequestOnceActor(std::move(td), request_id), text_(std::move(text)) {
   }
 };
 
@@ -5531,8 +5531,7 @@ void Td::on_request(uint64 id, const td_api::forwardMessages &request) {
 void Td::on_request(uint64 id, td_api::getWebPagePreview &request) {
   CHECK_AUTH();
   CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.message_text_);
-  CREATE_REQUEST(GetWebPagePreviewRequest, std::move(request.message_text_));
+  CREATE_REQUEST(GetWebPagePreviewRequest, std::move(request.text_));
 }
 
 void Td::on_request(uint64 id, td_api::getWebPageInstantView &request) {

@@ -16278,7 +16278,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
       auto channel_id = dialog_id.get_channel_id();
       auto channel_status = td_->contacts_manager_->get_channel_status(channel_id);
       if (m->is_channel_post) {
-        if (!channel_status.can_edit_messages() && (!channel_status.can_post_messages() || !m->is_outgoing)) {
+        if (!channel_status.can_edit_messages() && !(channel_status.can_post_messages() && m->is_outgoing)) {
           return false;
         }
       } else {

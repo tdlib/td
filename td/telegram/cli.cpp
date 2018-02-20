@@ -762,9 +762,7 @@ class CliClient final : public Actor {
       auto parsed_caption =
           execute(make_tl_object<td_api::parseTextEntities>(caption, make_tl_object<td_api::textParseModeMarkdown>()));
       if (parsed_caption->get_id() == td_api::formattedText::ID) {
-        auto text = td_api::move_object_as<td_api::formattedText>(parsed_caption);
-        caption = std::move(text->text_);
-        entities = std::move(text->entities_);
+        return td_api::move_object_as<td_api::formattedText>(parsed_caption);
       }
     }
     return make_tl_object<td_api::formattedText>(caption, std::move(entities));
@@ -2702,7 +2700,7 @@ class CliClient final : public Actor {
     } else if (op == "crfcs") {
       send_request(make_tl_object<td_api::clearRecentlyFoundChats>());
     } else if (op == "gwpp") {
-      send_request(make_tl_object<td_api::getWebPagePreview>(args));
+      send_request(make_tl_object<td_api::getWebPagePreview>(as_caption(args)));
     } else if (op == "gwpiv") {
       string url;
       string force_full;
