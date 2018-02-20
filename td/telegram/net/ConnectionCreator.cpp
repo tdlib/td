@@ -599,7 +599,7 @@ void ConnectionCreator::start_up() {
   }
 
   get_host_by_name_actor_ =
-      create_actor_on_scheduler<GetHostByNameActor>("GetHostByNameActor", G()->get_slow_net_scheduler_id(), 29 * 60, 0);
+      create_actor_on_scheduler<GetHostByNameActor>("GetHostByNameActor", G()->get_gc_scheduler_id(), 29 * 60, 0);
 
   ref_cnt_guard_ = create_reference(-1);
 
