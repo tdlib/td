@@ -9407,7 +9407,8 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->author_signature = std::move(message_info.author_signature);
   message->is_outgoing = is_outgoing;
   message->is_channel_post = is_channel_post;
-  message->contains_mention = !is_outgoing && dialog_id != my_dialog_id && (flags & MESSAGE_FLAG_HAS_MENTION) != 0;
+  message->contains_mention =
+      !is_outgoing && dialog_type != DialogType::User && (flags & MESSAGE_FLAG_HAS_MENTION) != 0;
   message->contains_unread_mention =
       message_id.is_server() && message->contains_mention && (flags & MESSAGE_FLAG_HAS_UNREAD_CONTENT) != 0 &&
       (dialog_type == DialogType::Chat || (dialog_type == DialogType::Channel && !is_broadcast_channel(dialog_id)));
@@ -17767,8 +17768,8 @@ void MessagesManager::send_update_chat_read_inbox(const Dialog *d, bool force, c
                                          << source;
     on_dialog_updated(d->dialog_id, source);
     if (!force && (running_get_difference_ || running_get_channel_difference(d->dialog_id))) {
-      LOG(INFO) << "Postpone updateChatReadInbox in " << d->dialog_id << "(" << get_dialog_title(d->dialog_id) << ") to "
-                << d->server_unread_count << " + " << d->local_unread_count << " from " << source;
+      LOG(INFO) << "Postpone updateChatReadInbox in " << d->dialog_id << "(" << get_dialog_title(d->dialog_id)
+                << ") to " << d->server_unread_count << " + " << d->local_unread_count << " from " << source;
       postponed_chat_read_inbox_updates_.insert(d->dialog_id);
     } else {
       postponed_chat_read_inbox_updates_.erase(d->dialog_id);
