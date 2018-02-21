@@ -17767,6 +17767,8 @@ void MessagesManager::send_update_chat_read_inbox(const Dialog *d, bool force, c
                                          << source;
     on_dialog_updated(d->dialog_id, source);
     if (!force && (running_get_difference_ || running_get_channel_difference(d->dialog_id))) {
+      LOG(INFO) << "Postpone updateChatReadInbox in " << d->dialog_id << "(" << get_dialog_title(d->dialog_id) << ") to "
+                << d->server_unread_count << " + " << d->local_unread_count << " from " << source;
       postponed_chat_read_inbox_updates_.insert(d->dialog_id);
     } else {
       postponed_chat_read_inbox_updates_.erase(d->dialog_id);
