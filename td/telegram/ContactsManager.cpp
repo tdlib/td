@@ -8771,14 +8771,15 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat) {
           if (!migrated_to.is_valid()) {
             LOG(ERROR) << "Receive invalid " << migrated_to << " in " << debug_str;
           } else {
-            // temporary create the channel
+            // temporarily create the channel
             Channel *c = add_channel(migrated_to);
             c->access_hash = input_channel->access_hash_;
             c->title = chat.title_;
             c->status = DialogParticipantStatus::Left();
             c->is_megagroup = true;
 
-            // TODO do we need to call update_channel?
+            // we definitely need to call update_channel, because client should know about every added channel
+            update_channel(c, channel_id);
 
             // get info about the channel
             td_->create_handler<GetChannelsQuery>(Promise<>())->send(std::move(input_channel));
