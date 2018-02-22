@@ -49,7 +49,7 @@ public:
     value = it->second;
     return true;
   }
-  void Remove(Key key, Value &value) {
+  void TryRemove(Key key, Value &value) {
     std::lock_guard<std::mutex> guard(mutex_);
     impl_.erase(key);
   }

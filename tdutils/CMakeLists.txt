@@ -210,7 +210,9 @@ set(TDUTILS_TEST_SOURCE
 #LIBRARIES
 add_library(tdutils STATIC ${TDUTILS_SOURCE})
 if (WIN32)
-  target_link_libraries(tdutils PRIVATE ws2_32 Mswsock)
+  find_library(WS2_32_LIBRARY ws2_32)
+  find_library(MSWSOCK_LIBRARY Mswsock)
+  target_link_libraries(tdutils PRIVATE ${WS2_32_LIBRARY} ${MSWSOCK_LIBRARY})
 endif()
 if (NOT CMAKE_CROSSCOMPILING)
   add_dependencies(tdutils tdmime_auto)
