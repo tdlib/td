@@ -612,6 +612,20 @@ class MessageCustomServiceAction : public MessageContent {
   }
 };
 
+class MessageWebsiteConnected : public MessageContent {
+ public:
+  string domain_name;
+
+  MessageWebsiteConnected() = default;
+  explicit MessageWebsiteConnected(string &&domain_name) : domain_name(std::move(domain_name)) {
+  }
+
+  static const int32 ID = 37;
+  int32 get_id() const override {
+    return ID;
+  }
+};
+
 class InputMessageText {
  public:
   FormattedText text;
@@ -833,6 +847,12 @@ class MessagesManager : public Actor {
 
   vector<tl_object_ptr<telegram_api::InputPeer>> get_input_peers(const vector<DialogId> &dialog_ids,
                                                                  AccessRights access_rights) const;
+
+  tl_object_ptr<telegram_api::inputDialogPeer> get_input_dialog_peer(DialogId dialog_id,
+                                                                     AccessRights access_rights) const;
+
+  vector<tl_object_ptr<telegram_api::inputDialogPeer>> get_input_dialog_peers(const vector<DialogId> &dialog_ids,
+                                                                              AccessRights access_rights) const;
 
   tl_object_ptr<telegram_api::inputEncryptedChat> get_input_encrypted_chat(DialogId dialog_id,
                                                                            AccessRights access_rights) const;

@@ -987,17 +987,15 @@ vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool onl
       entities.emplace_back(MessageEntity::Type::Mention, narrow_cast<int32>(mention.begin() - text.begin()),
                             narrow_cast<int32>(mention.size()));
     }
-  }
 
-  if (!skip_bot_commands && !only_urls) {
-    auto bot_commands = find_bot_commands(text);
-    for (auto &bot_command : bot_commands) {
-      entities.emplace_back(MessageEntity::Type::BotCommand, narrow_cast<int32>(bot_command.begin() - text.begin()),
-                            narrow_cast<int32>(bot_command.size()));
+    if (!skip_bot_commands) {
+      auto bot_commands = find_bot_commands(text);
+      for (auto &bot_command : bot_commands) {
+        entities.emplace_back(MessageEntity::Type::BotCommand, narrow_cast<int32>(bot_command.begin() - text.begin()),
+                              narrow_cast<int32>(bot_command.size()));
+      }
     }
-  }
 
-  if (!only_urls) {
     auto hashtags = find_hashtags(text);
     for (auto &hashtag : hashtags) {
       entities.emplace_back(MessageEntity::Type::Hashtag, narrow_cast<int32>(hashtag.begin() - text.begin()),
@@ -1704,6 +1702,12 @@ vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manag
         entities.emplace_back(MessageEntity::Type::Hashtag, entity_hashtag->offset_, entity_hashtag->length_);
         break;
       }
+      case telegram_api::messageEntityCashtag::ID:
+        // skip for now
+        break;
+      case telegram_api::messageEntityPhone::ID:
+        // skip for now
+        break;
       case telegram_api::messageEntityBotCommand::ID: {
         auto entity_bot_command = static_cast<const telegram_api::messageEntityBotCommand *>(entity.get());
         entities.emplace_back(MessageEntity::Type::BotCommand, entity_bot_command->offset_,
@@ -1794,6 +1798,12 @@ vector<MessageEntity> get_message_entities(vector<tl_object_ptr<secret_api::Mess
         // skip, will find it ourselves
         break;
       case secret_api::messageEntityHashtag::ID:
+        // skip, will find it ourselves
+        break;
+      case secret_api::messageEntityCashtag::ID:
+        // skip, will find it ourselves
+        break;
+      case secret_api::messageEntityPhone::ID:
         // skip, will find it ourselves
         break;
       case secret_api::messageEntityBotCommand::ID:

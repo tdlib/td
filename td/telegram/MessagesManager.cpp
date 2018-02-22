@@ -139,7 +139,7 @@ class GetDialogQuery : public Td::ResultHandler {
   void send(DialogId dialog_id) {
     dialog_id_ = dialog_id;
     send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_getPeerDialogs(
-        td->messages_manager_->get_input_peers({dialog_id}, AccessRights::Read)))));
+        td->messages_manager_->get_input_dialog_peers({dialog_id}, AccessRights::Read)))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -219,7 +219,7 @@ class GetDialogsQuery : public Td::ResultHandler {
 
   void send(vector<DialogId> &&dialog_ids) {
     send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_getPeerDialogs(
-        td->messages_manager_->get_input_peers(dialog_ids, AccessRights::Read)))));
+        td->messages_manager_->get_input_dialog_peers(dialog_ids, AccessRights::Read)))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -891,7 +891,7 @@ class ToggleDialogPinQuery : public Td::ResultHandler {
   void send(DialogId dialog_id, bool is_pinned) {
     dialog_id_ = dialog_id;
     is_pinned_ = is_pinned;
-    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    auto input_peer = td->messages_manager_->get_input_dialog_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       return;
     }
@@ -937,7 +937,7 @@ class ReorderPinnedDialogsQuery : public Td::ResultHandler {
   void send(const vector<DialogId> &dialog_ids) {
     int32 flags = telegram_api::messages_reorderPinnedDialogs::FORCE_MASK;
     send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_reorderPinnedDialogs(
-        flags, true /*ignored*/, td->messages_manager_->get_input_peers(dialog_ids, AccessRights::Read)))));
+        flags, true /*ignored*/, td->messages_manager_->get_input_dialog_peers(dialog_ids, AccessRights::Read)))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1389,7 +1389,7 @@ class SearchMessagesQuery : public Td::ResultHandler {
       send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_search(
           flags, std::move(input_peer), query, std::move(sender_input_user),
           MessagesManager::get_input_messages_filter(filter), 0, std::numeric_limits<int32>::max(),
-          from_message_id.get_server_message_id().get(), offset, limit, std::numeric_limits<int32>::max(), 0))));
+          from_message_id.get_server_message_id().get(), offset, limit, std::numeric_limits<int32>::max(), 0, 0))));
     }
   }
 
@@ -1556,7 +1556,7 @@ class GetRecentLocationsQuery : public Td::ResultHandler {
     random_id_ = random_id;
 
     send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::messages_getRecentLocations(std::move(input_peer), limit))));
+        create_storer(telegram_api::messages_getRecentLocations(std::move(input_peer), limit, 0))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -3569,6 +3569,11 @@ static void store(const MessageContent *content, StorerT &storer) {
       store(m->message, storer);
       break;
     }
+    case MessageWebsiteConnected::ID: {
+      auto m = static_cast<const MessageWebsiteConnected *>(content);
+      store(m->domain_name, storer);
+      break;
+    }
     default:
       UNREACHABLE();
   }
@@ -3866,6 +3871,12 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageCustomServiceAction::ID: {
       auto m = make_unique<MessageCustomServiceAction>();
       parse(m->message, parser);
+      content = std::move(m);
+      break;
+    }
+    case MessageWebsiteConnected::ID: {
+      auto m = make_unique<MessageWebsiteConnected>();
+      parse(m->domain_name, parser);
       content = std::move(m);
       break;
     }
@@ -4724,6 +4735,7 @@ int32 MessagesManager::get_message_content_index_mask(const MessageContent *cont
     case MessageExpiredPhoto::ID:
     case MessageExpiredVideo::ID:
     case MessageCustomServiceAction::ID:
+    case MessageWebsiteConnected::ID:
       return 0;
     default:
       UNREACHABLE();
@@ -4787,6 +4799,37 @@ vector<tl_object_ptr<telegram_api::InputPeer>> MessagesManager::get_input_peers(
     input_peers.push_back(std::move(input_peer));
   }
   return input_peers;
+}
+
+tl_object_ptr<telegram_api::inputDialogPeer> MessagesManager::get_input_dialog_peer(DialogId dialog_id,
+                                                                                    AccessRights access_rights) const {
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+    case DialogType::Chat:
+    case DialogType::Channel:
+    case DialogType::None:
+      return make_tl_object<telegram_api::inputDialogPeer>(get_input_peer(dialog_id, access_rights));
+    case DialogType::SecretChat:
+      return nullptr;
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
+vector<tl_object_ptr<telegram_api::inputDialogPeer>> MessagesManager::get_input_dialog_peers(
+    const vector<DialogId> &dialog_ids, AccessRights access_rights) const {
+  vector<tl_object_ptr<telegram_api::inputDialogPeer>> input_dialog_peers;
+  input_dialog_peers.reserve(dialog_ids.size());
+  for (auto &dialog_id : dialog_ids) {
+    auto input_dialog_peer = get_input_dialog_peer(dialog_id, access_rights);
+    if (input_dialog_peer == nullptr) {
+      LOG(ERROR) << "Have no access to " << dialog_id;
+      continue;
+    }
+    input_dialog_peers.push_back(std::move(input_dialog_peer));
+  }
+  return input_dialog_peers;
 }
 
 bool MessagesManager::have_input_peer(DialogId dialog_id, AccessRights access_rights) const {
@@ -6984,6 +7027,7 @@ bool MessagesManager::is_service_message_content(int32 content_type) {
     case MessagePaymentSuccessful::ID:
     case MessageContactRegistered::ID:
     case MessageCustomServiceAction::ID:
+    case MessageWebsiteConnected::ID:
       return true;
     default:
       UNREACHABLE();
@@ -7053,6 +7097,7 @@ string MessagesManager::get_search_text(const Message *m) {
     case MessageExpiredPhoto::ID:
     case MessageExpiredVideo::ID:
     case MessageCustomServiceAction::ID:
+    case MessageWebsiteConnected::ID:
       return "";
     default:
       UNREACHABLE();
@@ -7100,6 +7145,7 @@ bool MessagesManager::is_allowed_media_group_content(int32 content_type) {
     case MessagePaymentSuccessful::ID:
     case MessageContactRegistered::ID:
     case MessageCustomServiceAction::ID:
+    case MessageWebsiteConnected::ID:
       return false;
     default:
       UNREACHABLE();
@@ -8373,6 +8419,10 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
     case MessageCustomServiceAction::ID: {
       const MessageCustomServiceAction *m = static_cast<const MessageCustomServiceAction *>(content);
       return make_tl_object<td_api::messageCustomServiceAction>(m->message);
+    }
+    case MessageWebsiteConnected::ID: {
+      const MessageWebsiteConnected *m = static_cast<const MessageWebsiteConnected *>(content);
+      return make_tl_object<td_api::messageWebsiteConnected>(m->domain_name);
     }
     default:
       UNREACHABLE();
@@ -13955,6 +14005,7 @@ SecretInputMedia MessagesManager::get_secret_input_media(const MessageContent *c
     case MessageExpiredPhoto::ID:
     case MessageExpiredVideo::ID:
     case MessageCustomServiceAction::ID:
+    case MessageWebsiteConnected::ID:
       break;
     default:
       UNREACHABLE();
@@ -14125,6 +14176,7 @@ tl_object_ptr<telegram_api::InputMedia> MessagesManager::get_input_media(
     case MessageExpiredPhoto::ID:
     case MessageExpiredVideo::ID:
     case MessageCustomServiceAction::ID:
+    case MessageWebsiteConnected::ID:
       break;
     default:
       UNREACHABLE();
@@ -14192,6 +14244,7 @@ void MessagesManager::delete_message_content_thumbnail(MessageContent *content) 
     case MessageExpiredPhoto::ID:
     case MessageExpiredVideo::ID:
     case MessageCustomServiceAction::ID:
+    case MessageWebsiteConnected::ID:
       break;
     default:
       UNREACHABLE();
@@ -14480,6 +14533,7 @@ Status MessagesManager::can_send_message_content(DialogId dialog_id, const Messa
     case MessageExpiredPhoto::ID:
     case MessageExpiredVideo::ID:
     case MessageCustomServiceAction::ID:
+    case MessageWebsiteConnected::ID:
       UNREACHABLE();
   }
   return Status::OK();
@@ -14871,6 +14925,8 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, Dialo
     case MessageExpiredVideo::ID:
       break;
     case MessageCustomServiceAction::ID:
+      break;
+    case MessageWebsiteConnected::ID:
       break;
     default:
       UNREACHABLE();
@@ -16352,6 +16408,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
     case MessageExpiredPhoto::ID:
     case MessageExpiredVideo::ID:
     case MessageCustomServiceAction::ID:
+    case MessageWebsiteConnected::ID:
       return false;
     default:
       UNREACHABLE();
@@ -16548,6 +16605,7 @@ void MessagesManager::edit_message_caption(FullMessageId full_message_id,
     case MessageExpiredPhoto::ID:
     case MessageExpiredVideo::ID:
     case MessageCustomServiceAction::ID:
+    case MessageWebsiteConnected::ID:
       return promise.set_error(Status::Error(400, "There is no caption in the message to edit"));
     default:
       UNREACHABLE();
@@ -18038,6 +18096,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
       case MessageExpiredPhoto::ID:
       case MessageExpiredVideo::ID:
       case MessageCustomServiceAction::ID:
+      case MessageWebsiteConnected::ID:
         LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
         break;
       default:
@@ -20544,6 +20603,7 @@ unique_ptr<MessageContent> MessagesManager::dup_message_content(DialogId dialog_
     case MessageExpiredPhoto::ID:
     case MessageExpiredVideo::ID:
     case MessageCustomServiceAction::ID:
+    case MessageWebsiteConnected::ID:
       return nullptr;
     default:
       UNREACHABLE();
@@ -20705,6 +20765,10 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
     case telegram_api::messageActionCustomAction::ID: {
       auto custom_action = move_tl_object_as<telegram_api::messageActionCustomAction>(action);
       return make_unique<MessageCustomServiceAction>(std::move(custom_action->message_));
+    }
+    case telegram_api::messageActionBotAllowed::ID: {
+      auto bot_allowed = move_tl_object_as<telegram_api::messageActionBotAllowed>(action);
+      return make_unique<MessageWebsiteConnected>(std::move(bot_allowed->domain_));
     }
     default:
       UNREACHABLE();
@@ -22188,6 +22252,14 @@ bool MessagesManager::update_message_content(DialogId dialog_id, const Message *
         auto old_ = static_cast<const MessageCustomServiceAction *>(old_content.get());
         auto new_ = static_cast<const MessageCustomServiceAction *>(new_content.get());
         if (old_->message != new_->message) {
+          need_update = true;
+        }
+        break;
+      }
+      case MessageWebsiteConnected::ID: {
+        auto old_ = static_cast<const MessageWebsiteConnected *>(old_content.get());
+        auto new_ = static_cast<const MessageWebsiteConnected *>(new_content.get());
+        if (old_->domain_name != new_->domain_name) {
           need_update = true;
         }
         break;

@@ -1354,7 +1354,7 @@ int64 StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::stickerSet
   int64 set_id = set->id_;
   StickerSet *s = add_sticker_set(set_id, set->access_hash_);
 
-  bool is_installed = (set->flags_ & telegram_api::stickerSet::INSTALLED_MASK) != 0;
+  bool is_installed = (set->flags_ & telegram_api::stickerSet::INSTALLED_DATE_MASK) != 0;
   bool is_archived = (set->flags_ & telegram_api::stickerSet::ARCHIVED_MASK) != 0;
   bool is_official = (set->flags_ & telegram_api::stickerSet::OFFICIAL_MASK) != 0;
   bool is_masks = (set->flags_ & telegram_api::stickerSet::MASKS_MASK) != 0;

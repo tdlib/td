@@ -56,7 +56,7 @@ Result<size_t> AuthKeyHandshake::fill_data_with_hash(uint8 *data_with_hash, cons
 }
 
 Status AuthKeyHandshake::on_res_pq(Slice message, Callback *connection, PublicRsaKeyInterface *public_rsa_key) {
-  TRY_RESULT(res_pq, fetch_result<mtproto_api::req_pq>(message));
+  TRY_RESULT(res_pq, fetch_result<mtproto_api::req_pq_multi>(message));
   if (res_pq->nonce_ != nonce) {
     return Status::Error("Nonce mismatch");
   }
@@ -272,7 +272,7 @@ Status AuthKeyHandshake::on_start(Callback *connection) {
     return Status::Error(PSLICE() << "on_start called after start " << tag("state", state_));
   }
   Random::secure_bytes(nonce.raw, sizeof(nonce));
-  send(connection, create_storer(mtproto_api::req_pq(nonce)));
+  send(connection, create_storer(mtproto_api::req_pq_multi(nonce)));
   state_ = ResPQ;
 
   return Status::OK();

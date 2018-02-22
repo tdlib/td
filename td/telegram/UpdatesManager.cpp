@@ -478,6 +478,7 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionChatEditPhoto::ID:
         case telegram_api::messageActionChatDeletePhoto::ID:
         case telegram_api::messageActionCustomAction::ID:
+        case telegram_api::messageActionBotAllowed::ID:
         case telegram_api::messageActionHistoryClear::ID:
         case telegram_api::messageActionChannelCreate::ID:
         case telegram_api::messageActionPinMessage::ID:

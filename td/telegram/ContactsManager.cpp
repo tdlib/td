@@ -7433,7 +7433,7 @@ void ContactsManager::on_update_chat_active(Chat *c, ChatId chat_id, bool is_act
   }
 }
 
-void ContactsManager::on_update_chat_migrated_to(Chat *c, ChatId chat_id, ChannelId migrated_to_channel_id) {
+void ContactsManager::on_update_chat_migrated_to_channel_id(Chat *c, ChatId chat_id, ChannelId migrated_to_channel_id) {
   if (c->migrated_to_channel_id != migrated_to_channel_id && migrated_to_channel_id.is_valid()) {
     LOG_IF(ERROR, c->migrated_to_channel_id.is_valid())
         << "Group upgraded to supergroup has changed from " << c->migrated_to_channel_id << " to "
@@ -8757,7 +8757,7 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat) {
 
   bool is_active = 0 == (chat.flags_ & CHAT_FLAG_IS_DEACTIVATED);
 
-  ChannelId migrated_to;
+  ChannelId migrated_to_channel_id;
   if (chat.flags_ & CHAT_FLAG_WAS_MIGRATED) {
     switch (chat.migrated_to_->get_id()) {
       case telegram_api::inputChannelEmpty::ID: {
@@ -8766,20 +8766,20 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat) {
       }
       case telegram_api::inputChannel::ID: {
         auto input_channel = move_tl_object_as<telegram_api::inputChannel>(chat.migrated_to_);
-        migrated_to = ChannelId(input_channel->channel_id_);
-        if (!have_channel(migrated_to)) {
-          if (!migrated_to.is_valid()) {
-            LOG(ERROR) << "Receive invalid " << migrated_to << " in " << debug_str;
+        migrated_to_channel_id = ChannelId(input_channel->channel_id_);
+        if (!have_channel(migrated_to_channel_id)) {
+          if (!migrated_to_channel_id.is_valid()) {
+            LOG(ERROR) << "Receive invalid " << migrated_to_channel_id << " in " << debug_str;
           } else {
             // temporarily create the channel
-            Channel *c = add_channel(migrated_to);
+            Channel *c = add_channel(migrated_to_channel_id);
             c->access_hash = input_channel->access_hash_;
             c->title = chat.title_;
             c->status = DialogParticipantStatus::Left();
             c->is_megagroup = true;
 
             // we definitely need to call update_channel, because client should know about every added channel
-            update_channel(c, channel_id);
+            update_channel(c, migrated_to_channel_id);
 
             // get info about the channel
             td_->create_handler<GetChannelsQuery>(Promise<>())->send(std::move(input_channel));
@@ -8807,8 +8807,8 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat) {
   on_update_chat_rights(c, chat_id, is_creator, is_administrator, everyone_is_administrator);
   on_update_chat_photo(c, chat_id, std::move(chat.photo_));
   on_update_chat_active(c, chat_id, is_active);
-  on_update_chat_migrated_to(c, chat_id, migrated_to);
-  LOG_IF(ERROR, !is_active && !migrated_to.is_valid()) << chat_id << " is deactivated in " << debug_str;
+  on_update_chat_migrated_to_channel_id(c, chat_id, migrated_to_channel_id);
+  LOG_IF(ERROR, !is_active && !migrated_to_channel_id.is_valid()) << chat_id << " is deactivated in " << debug_str;
   update_chat(c, chat_id);
 }
 
@@ -8833,7 +8833,7 @@ void ContactsManager::on_chat_update(telegram_api::chatForbidden &chat) {
   on_update_chat_left(c, chat_id, true, true);
   if (is_uninited) {
     on_update_chat_active(c, chat_id, true);
-    on_update_chat_migrated_to(c, chat_id, ChannelId());
+    on_update_chat_migrated_to_channel_id(c, chat_id, ChannelId());
   } else {
     // leave active and migrated to as is
   }

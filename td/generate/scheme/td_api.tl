@@ -907,6 +907,9 @@ messagePaymentSuccessfulBot invoice_message_id:int53 currency:string total_amoun
 //@description A contact has registered with Telegram
 messageContactRegistered = MessageContent;
 
+//@description The current user has connected a website by logging in using Telegram Login Widget on it @domain_name Domain name of the connected website
+messageWebsiteConnected domain_name:string = MessageContent;
+
 //@description Message content that is not supported by the client
 messageUnsupported = MessageContent;
 

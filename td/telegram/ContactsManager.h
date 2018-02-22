@@ -818,7 +818,7 @@ class ContactsManager : public Actor {
                              bool everyone_is_administrator);
   void on_update_chat_title(Chat *c, ChatId chat_id, string &&title);
   void on_update_chat_active(Chat *c, ChatId chat_id, bool is_active);
-  void on_update_chat_migrated_to(Chat *c, ChatId chat_id, ChannelId migrated_to_channel_id);
+  void on_update_chat_migrated_to_channel_id(Chat *c, ChatId chat_id, ChannelId migrated_to_channel_id);
 
   bool on_update_chat_full_participants_short(ChatFull *chat_full, ChatId chat_id, int32 version);
   void on_update_chat_full_participants(ChatFull *chat_full, ChatId chat_id, vector<DialogParticipant> participants,

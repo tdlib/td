@@ -706,6 +706,12 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   shared_config.set_option_empty("notify_cloud_delay_ms");
   shared_config.set_option_empty("notify_default_delay_ms");
 
+  if (is_from_main_dc) {
+    for (auto &feature : shared_config.get_options("disabled_")) {
+      shared_config.set_option_empty(feature.first);
+    }
+  }
+
   // TODO implement online status updates
   //  shared_config.set_option_integer("online_update_period_ms", config->online_update_period_ms_);
   //  shared_config.set_option_integer("offline_blur_timeout_ms", config->offline_blur_timeout_ms_);
@@ -716,19 +722,6 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
 
   //  shared_config.set_option_integer("push_chat_period_ms", config->push_chat_period_ms_);
   //  shared_config.set_option_integer("push_chat_limit", config->push_chat_limit_);
-
-  if (is_from_main_dc) {
-    auto old_disabled_features = shared_config.get_options("disabled_");
-    for (auto &feature : config->disabled_features_) {
-      string option_name = "disabled_" + feature->feature_;
-      shared_config.set_option_string(option_name, feature->description_);
-      old_disabled_features.erase(option_name);
-    }
-
-    for (auto &feature : old_disabled_features) {
-      shared_config.set_option_empty(feature.first);
-    }
-  }
 }
 
 }  // namespace td
