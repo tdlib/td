@@ -49,9 +49,15 @@ public:
     value = it->second;
     return true;
   }
-  void TryRemove(Key key, Value &value) {
+  bool TryRemove(Key key, Value &value) {
     std::lock_guard<std::mutex> guard(mutex_);
-    impl_.erase(key);
+    auto it = impl_.find(key);
+    if (it == impl_.end()) {
+      return false;
+    }
+    value = std::move(it->second);
+    impl_.erase(it);
+    return true;
   }
   Value &operator [] (Key key) {
     std::lock_guard<std::mutex> guard(mutex_);
