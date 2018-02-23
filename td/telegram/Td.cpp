@@ -4215,10 +4215,13 @@ class Td::UploadFileCallback : public FileManager::UploadCallback {
   }
 };
 
+int VERBOSITY_NAME(td_init) = VERBOSITY_NAME(DEBUG) + 3;
+
 Status Td::init(DbKey key) {
   auto current_scheduler_id = Scheduler::instance()->sched_id();
   auto scheduler_count = Scheduler::instance()->sched_count();
 
+  VLOG(td_init) << "Begin to init database";
   TdDb::Events events;
   TRY_RESULT(td_db,
              TdDb::open(min(current_scheduler_id + 1, scheduler_count - 1), parameters_, std::move(key), events));
@@ -4227,6 +4230,7 @@ Status Td::init(DbKey key) {
   G()->init(parameters_, actor_id(this), std::move(td_db)).ensure();
 
   // Init all managers and actors
+  VLOG(td_init) << "Create StateManager";
   class StateManagerCallback : public StateManager::Callback {
    public:
     explicit StateManagerCallback(ActorShared<Td> td) : td_(std::move(td)) {
@@ -4244,6 +4248,7 @@ Status Td::init(DbKey key) {
   G()->set_state_manager(state_manager_.get());
   connection_state_ = StateManager::State::Empty;
 
+  VLOG(td_init) << "Create ConnectionCreator";
   {
     auto connection_creator = create_actor<ConnectionCreator>("ConnectionCreator", create_reference());
     auto net_stats_manager = create_actor<NetStatsManager>("NetStatsManager", create_reference());
@@ -4259,10 +4264,11 @@ Status Td::init(DbKey key) {
     net_stats_manager_ = std::move(net_stats_manager);
   }
 
+  VLOG(td_init) << "Create TempAuthKeyWatchdog";
   auto temp_auth_key_watchdog = create_actor<TempAuthKeyWatchdog>("TempAuthKeyWatchdog");
   G()->set_temp_auth_key_watchdog(std::move(temp_auth_key_watchdog));
 
-  // create ConfigManager and ConfigShared
+  VLOG(td_init) << "Create ConfigManager and ConfigShared";
   class ConfigSharedCallback : public ConfigShared::Callback {
    public:
     void on_option_updated(const string &name) override {
@@ -4277,12 +4283,15 @@ Status Td::init(DbKey key) {
   config_manager_ = create_actor<ConfigManager>("ConfigManager", create_reference());
   G()->set_config_manager(config_manager_.get());
 
+  VLOG(td_init) << "Create NetQueryDispatcher";
   auto net_query_dispatcher = std::make_unique<NetQueryDispatcher>([&] { return create_reference(); });
   G()->set_net_query_dispatcher(std::move(net_query_dispatcher));
 
+  VLOG(td_init) << "Create AuthManager";
   auth_manager_ = std::make_unique<AuthManager>(parameters_.api_id, parameters_.api_hash, create_reference());
   auth_manager_actor_ = register_actor("AuthManager", auth_manager_.get());
 
+  VLOG(td_init) << "Create FileManager";
   download_file_callback_ = std::make_shared<DownloadFileCallback>();
   upload_file_callback_ = std::make_shared<UploadFileCallback>();
 
@@ -4309,6 +4318,7 @@ Status Td::init(DbKey key) {
   file_manager_->init_actor();
   G()->set_file_manager(file_manager_actor_.get());
 
+  VLOG(td_init) << "Create Managers";
   audios_manager_ = make_unique<AudiosManager>(this);
   callback_queries_manager_ = make_unique<CallbackQueriesManager>(this);
   documents_manager_ = make_unique<DocumentsManager>(this);
@@ -4353,6 +4363,7 @@ Status Td::init(DbKey key) {
   top_dialog_manager_ = create_actor<TopDialogManager>("TopDialogManager", create_reference());
   G()->set_top_dialog_manager(top_dialog_manager_.get());
 
+  VLOG(td_init) << "Send binlog events";
   for (auto &event : events.user_events) {
     contacts_manager_->on_binlog_user_event(std::move(event));
   }
@@ -4405,6 +4416,7 @@ Status Td::init(DbKey key) {
   G()->on_binlog_replay_finish();
   send_closure(secret_chats_manager_, &SecretChatsManager::binlog_replay_finish);
 
+  VLOG(td_init) << "Ping datacenter";
   if (!auth_manager_->is_authorized()) {
     create_handler<GetNearestDcQuery>()->send();
   } else {
@@ -4510,21 +4522,27 @@ void Td::answer_ok_query(uint64 id, Status status) {
 
 Status Td::fix_parameters(TdParameters &parameters) {
   if (parameters.database_directory.empty()) {
+    VLOG(td_init) << "Fix database_directory";
     parameters.database_directory = ".";
   }
   if (parameters.files_directory.empty()) {
+    VLOG(td_init) << "Fix files_directory";
     parameters.files_directory = parameters.database_directory;
   }
   if (parameters.use_message_db) {
+    VLOG(td_init) << "Fix use_chat_info_db";
     parameters.use_chat_info_db = true;
   }
   if (parameters.use_chat_info_db) {
+    VLOG(td_init) << "Fix use_file_db";
     parameters.use_file_db = true;
   }
-  if (parameters.api_id == 0) {
+  if (parameters.api_id <= 0) {
+    VLOG(td_init) << "Invalid api_id";
     return Status::Error(400, "Valid api_id must be provided. Can be obtained at https://my.telegram.org");
   }
   if (parameters.api_hash.empty()) {
+    VLOG(td_init) << "Invalid api_hash";
     return Status::Error(400, "Valid api_hash must be provided. Can be obtained at https://my.telegram.org");
   }
 
@@ -4543,12 +4561,14 @@ Status Td::fix_parameters(TdParameters &parameters) {
 
   auto r_database_directory = prepare_dir(parameters.database_directory);
   if (r_database_directory.is_error()) {
+    VLOG(td_init) << "Invalid database_directory";
     return Status::Error(400, PSLICE() << "Can't init database in the directory \"" << parameters.database_directory
                                        << "\": " << r_database_directory.error());
   }
   parameters.database_directory = r_database_directory.move_as_ok();
   auto r_files_directory = prepare_dir(parameters.files_directory);
   if (r_files_directory.is_error()) {
+    VLOG(td_init) << "Invalid files_directory";
     return Status::Error(400, PSLICE() << "Can't init files directory \"" << parameters.files_directory
                                        << "\": " << r_files_directory.error());
   }
@@ -4558,9 +4578,11 @@ Status Td::fix_parameters(TdParameters &parameters) {
 }
 
 Status Td::set_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters) {
+  VLOG(td_init) << "Begin to set TDLib parameters";
   if (!clean_input_string(parameters->api_hash_) && !clean_input_string(parameters->system_language_code_) &&
       !clean_input_string(parameters->device_model_) && !clean_input_string(parameters->system_version_) &&
       !clean_input_string(parameters->application_version_)) {
+    VLOG(td_init) << "Wrong string encoding";
     return Status::Error(400, "Strings must be encoded in UTF-8");
   }
 
@@ -4576,17 +4598,22 @@ Status Td::set_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters
   parameters_.use_chat_info_db = parameters->use_chat_info_database_;
   parameters_.use_message_db = parameters->use_message_database_;
 
+  VLOG(td_init) << "Fix parameters...";
   TRY_STATUS(fix_parameters(parameters_));
+  VLOG(td_init) << "Check binlog encryption...";
   TRY_RESULT(encryption_info, TdDb::check_encryption(parameters_));
   encryption_info_ = std::move(encryption_info);
 
+  VLOG(td_init) << "Init alarm multitimeout...";
   alarm_timeout_.set_callback(on_alarm_timeout_callback);
   alarm_timeout_.set_callback_data(static_cast<void *>(this));
 
+  VLOG(td_init) << "Create Global";
   set_context(std::make_shared<Global>());
   inc_request_actor_refcnt();  // guard
   inc_actor_refcnt();          // guard
 
+  VLOG(td_init) << "Create MtprotoHeader";
   MtprotoHeader::Options options;
   options.api_id = parameters->api_id_;
   options.system_language_code = trim(parameters->system_language_code_);
@@ -4612,9 +4639,11 @@ Status Td::set_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters
   G()->set_mtproto_header(std::make_unique<MtprotoHeader>(options));
 
   state_ = State::Decrypt;
+  VLOG(td_init) << "Send authorizationStateWaitEncryptionKey";
   send_closure(actor_id(this), &Td::send_update,
                td_api::make_object<td_api::updateAuthorizationState>(
                    td_api::make_object<td_api::authorizationStateWaitEncryptionKey>(encryption_info_.is_encrypted)));
+  VLOG(td_init) << "Finish set parameters";
   return Status::OK();
 }
 
