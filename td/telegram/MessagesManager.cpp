@@ -74,7 +74,6 @@
 #include <iterator>
 #include <limits>
 #include <set>
-#include <sstream>
 #include <tuple>
 #include <type_traits>
 #include <unordered_map>
@@ -4484,14 +4483,16 @@ MessagesManager::MessagesManager(Td *td, ActorShared<> parent) : td_(td), parent
   if (G()->parameters().use_message_db) {
     auto last_database_server_dialog_date_string = G()->td_db()->get_binlog_pmc()->get("last_server_dialog_date");
     if (!last_database_server_dialog_date_string.empty()) {
-      int64 order;
-      int64 dialog_id;
-      std::stringstream ss(last_database_server_dialog_date_string);
-      ss >> order >> dialog_id;
-      if (ss.fail()) {
+      string order_str;
+      string dialog_id_str;
+      std::tie(order_str, dialog_id_str) = split(last_database_server_dialog_date_string);
+
+      auto r_order = to_integer_safe<int64>(order_str);
+      auto r_dialog_id = to_integer_safe<int64>(dialog_id_str);
+      if (r_order.is_error() || r_dialog_id.is_error()) {
         LOG(ERROR) << "Can't parse " << last_database_server_dialog_date_string;
       } else {
-        last_database_server_dialog_date_ = DialogDate(order, DialogId(dialog_id));
+        last_database_server_dialog_date_ = DialogDate(r_order.ok(), DialogId(r_dialog_id.ok()));
       }
     }
     LOG(INFO) << "Load last_database_server_dialog_date_ = " << last_database_server_dialog_date_;
@@ -22900,9 +22901,8 @@ void MessagesManager::update_last_dialog_date() {
   }
 
   if (G()->parameters().use_message_db && last_database_server_dialog_date_ < last_server_dialog_date_) {
-    std::stringstream ss;
-    ss << last_server_dialog_date_.get_order() << " " << last_server_dialog_date_.get_dialog_id().get();
-    auto last_server_dialog_date_string = ss.str();
+    auto last_server_dialog_date_string = to_string(last_server_dialog_date_.get_order()) + " " +
+                                          to_string(last_server_dialog_date_.get_dialog_id().get());
     G()->td_db()->get_binlog_pmc()->set("last_server_dialog_date", last_server_dialog_date_string);
     LOG(INFO) << "Save last server dialog date " << last_server_dialog_date_string;
     last_database_server_dialog_date_ = last_server_dialog_date_;
