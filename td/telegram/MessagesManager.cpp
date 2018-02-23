@@ -4476,6 +4476,9 @@ MessagesManager::MessagesManager(Td *td, ActorShared<> parent) : td_(td), parent
   pending_unload_dialog_timeout_.set_callback(on_pending_unload_dialog_timeout_callback);
   pending_unload_dialog_timeout_.set_callback_data(static_cast<void *>(this));
 
+  dialog_unmute_timeout_.set_callback(on_dialog_unmute_timeout_callback);
+  dialog_unmute_timeout_.set_callback_data(static_cast<void *>(this));
+
   sequence_dispatcher_ = create_actor<MultiSequenceDispatcher>("multi sequence dispatcher");
 
   if (G()->parameters().use_message_db) {
@@ -4563,6 +4566,16 @@ void MessagesManager::on_pending_unload_dialog_timeout_callback(void *messages_m
 
   auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
   messages_manager->unload_dialog(DialogId(dialog_id_int));
+}
+
+void MessagesManager::on_dialog_unmute_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
+  send_closure_later(messages_manager->actor_id(messages_manager), &MessagesManager::on_dialog_unmute,
+                     DialogId(dialog_id_int));
 }
 
 BufferSlice MessagesManager::get_dialog_database_value(const Dialog *d) {
@@ -5869,12 +5882,13 @@ bool MessagesManager::update_notification_settings(NotificationSettingsScope sco
       DialogId dialog_id(scope);
       CHECK(dialog_id.is_valid());
       CHECK(have_dialog(dialog_id)) << "Wrong " << dialog_id << " in update_notification_settings";
+      update_dialog_unmute_timeout(dialog_id, current_settings->mute_until, new_settings.mute_until);
       on_dialog_updated(dialog_id, "update_notification_settings");
     } else {
       string key = get_notification_settings_scope_database_key(scope);
       G()->td_db()->get_binlog_pmc()->set(key, log_event_store(new_settings).as_slice().str());
     }
-    LOG(INFO) << "Update notification settings in " << scope;
+    LOG(INFO) << "Update notification settings in " << scope << " from " << *current_settings << " to " << new_settings;
     *current_settings = new_settings;
 
     if (need_update) {
@@ -5885,6 +5899,45 @@ bool MessagesManager::update_notification_settings(NotificationSettingsScope sco
     }
   }
   return is_changed;
+}
+
+void MessagesManager::update_dialog_unmute_timeout(DialogId dialog_id, int32 old_mute_until, int32 new_mute_until) {
+  if (old_mute_until == new_mute_until) {
+    return;
+  }
+
+  auto now = G()->unix_time_cached();
+  if (new_mute_until >= now && new_mute_until < now + 366 * 86400) {
+    dialog_unmute_timeout_.set_timeout_in(dialog_id.get(), new_mute_until - now + 1);
+  } else {
+    dialog_unmute_timeout_.cancel_timeout(dialog_id.get());
+  }
+}
+
+void MessagesManager::on_dialog_unmute(DialogId dialog_id) {
+  auto d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+
+  if (d->notification_settings.mute_until == 0) {
+    return;
+  }
+
+  auto now = G()->unix_time();
+  if (d->notification_settings.mute_until > now) {
+    LOG(ERROR) << "Failed to unmute " << dialog_id << " in " << now << ", will be unmuted in "
+               << d->notification_settings.mute_until;
+    update_dialog_unmute_timeout(dialog_id, -1, d->notification_settings.mute_until);
+    return;
+  }
+
+  LOG(INFO) << "Unmute " << dialog_id;
+  update_dialog_unmute_timeout(dialog_id, d->notification_settings.mute_until, 0);
+  d->notification_settings.mute_until = 0;
+  send_closure(G()->td(), &Td::send_update,
+               make_tl_object<td_api::updateNotificationSettings>(
+                   get_notification_settings_scope_object(NotificationSettingsScope(dialog_id.get())),
+                   get_notification_settings_object(&d->notification_settings)));
+  on_dialog_updated(dialog_id, "on_dialog_unmute");
 }
 
 void MessagesManager::on_update_notify_settings(
@@ -22483,6 +22536,8 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
                                      int32 last_clear_history_date, MessageId last_clear_history_message_id) {
   CHECK(d != nullptr);
   auto dialog_id = d->dialog_id;
+
+  update_dialog_unmute_timeout(d->dialog_id, -1, d->notification_settings.mute_until);
 
   auto pending_it = pending_add_dialog_last_database_message_dependent_dialogs_.find(dialog_id);
   if (pending_it != pending_add_dialog_last_database_message_dependent_dialogs_.end()) {

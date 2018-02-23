@@ -674,6 +674,12 @@ class NotificationSettings {
   }
 };
 
+inline StringBuilder &operator<<(StringBuilder &string_builder, NotificationSettings notification_settings) {
+  return string_builder << "[" << notification_settings.mute_until << ", " << notification_settings.sound << ", "
+                        << notification_settings.show_preview << ", " << notification_settings.silent_send_message
+                        << ", " << notification_settings.is_synchronized << "]";
+}
+
 inline constexpr size_t search_messages_filter_size() {
   return static_cast<int32>(SearchMessagesFilter::Size) - 1;
 }
@@ -2133,6 +2139,10 @@ class MessagesManager : public Actor {
   bool update_notification_settings(NotificationSettingsScope scope, NotificationSettings *current_settings,
                                     const NotificationSettings &new_settings);
 
+  void update_dialog_unmute_timeout(DialogId dialog_id, int32 old_mute_until, int32 new_mute_until);
+
+  void on_dialog_unmute(DialogId dialog_id);
+
   Dialog *get_dialog_by_message_id(MessageId message_id);
 
   MessageId get_message_id_by_random_id(Dialog *d, int64 random_id);
@@ -2389,6 +2399,8 @@ class MessagesManager : public Actor {
 
   static void on_pending_unload_dialog_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
 
+  static void on_dialog_unmute_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
+
   void load_secret_thumbnail(FileId thumbnail_file_id);
 
   static tl_object_ptr<telegram_api::channelAdminLogEventsFilter> get_channel_admin_log_events_filter(
@@ -2630,6 +2642,7 @@ class MessagesManager : public Actor {
   MultiTimeout pending_draft_message_timeout_;
   MultiTimeout pending_updated_dialog_timeout_;
   MultiTimeout pending_unload_dialog_timeout_;
+  MultiTimeout dialog_unmute_timeout_;
 
   Hints dialogs_hints_;  // search dialogs by title and username
 
