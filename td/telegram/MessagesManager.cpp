@@ -7787,10 +7787,9 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
     if (max_message_id.is_valid()) {
       read_history_inbox(d->dialog_id, max_message_id, -1, "delete_all_dialog_messages");
     }
-    d->server_unread_count = 0;
-    d->local_unread_count = 0;
-    LOG(INFO) << "Update unread message count in " << d->dialog_id << " to " << d->server_unread_count << " + "
-              << d->local_unread_count;
+    if (d->server_unread_count != 0 || d->local_unread_count != 0) {
+      set_dialog_last_read_inbox_message_id(d, MessageId::min(), 0, 0, true, "delete_all_dialog_messages");
+    }
   }
 
   if (d->unread_mention_count > 0) {
@@ -8174,8 +8173,10 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
             << " to " << message_id << " and update unread message count from " << d->server_unread_count << " + "
             << d->local_unread_count << " to " << server_unread_count << " + " << local_unread_count << " from "
             << source;
-  d->last_read_inbox_message_id = message_id;
-  d->is_last_read_inbox_message_id_inited = true;
+  if (message_id != MessageId::min()) {
+    d->last_read_inbox_message_id = message_id;
+    d->is_last_read_inbox_message_id_inited = true;
+  }
   d->server_unread_count = server_unread_count;
   d->local_unread_count = local_unread_count;
 
@@ -10268,15 +10269,18 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
       // if last_read_inbox_message_id is not known, we can't be sure whether unread_count should be decreased or not
       if (message_id.is_valid() && !message_id.is_yet_unsent() && d->is_last_read_inbox_message_id_inited &&
           message_id.get() > d->last_read_inbox_message_id.get() && !td_->auth_manager_->is_bot()) {
-        int32 &unread_count = message_id.is_server() ? d->server_unread_count : d->local_unread_count;
-        unread_count--;
-        if (unread_count < 0) {
+        int32 server_unread_count = d->server_unread_count;
+        int32 local_unread_count = d->local_unread_count;
+        int32 &unread_count = message_id.is_server() ? server_unread_count : local_unread_count;
+        if (unread_count == 0) {
           LOG(ERROR) << "Unread count became negative in " << d->dialog_id << " after deletion of " << message_id
                      << ". Last read is " << d->last_read_inbox_message_id;
           dump_debug_message_op(d, 3);
-          unread_count = 0;
+        } else {
+          unread_count--;
+          set_dialog_last_read_inbox_message_id(d, MessageId::min(), server_unread_count, local_unread_count, false,
+                                                source);
         }
-        send_update_chat_read_inbox(d, false, source);
       }
       */
       return nullptr;
@@ -10414,18 +10418,18 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     if (!result->is_outgoing && message_id.get() > d->last_read_inbox_message_id.get() &&
         d->dialog_id != DialogId(td_->contacts_manager_->get_my_id("do_delete_message")) &&
         d->is_last_read_inbox_message_id_inited && !td_->auth_manager_->is_bot()) {
-      int32 &unread_count = message_id.is_server() ? d->server_unread_count : d->local_unread_count;
-      unread_count--;
-      if (unread_count < 0) {
+      int32 server_unread_count = d->server_unread_count;
+      int32 local_unread_count = d->local_unread_count;
+      int32 &unread_count = message_id.is_server() ? server_unread_count : local_unread_count;
+      if (unread_count == 0) {
         LOG(ERROR) << "Unread count became negative in " << d->dialog_id << " after deletion of " << message_id
                    << ". Last read is " << d->last_read_inbox_message_id;
         dump_debug_message_op(d, 3);
-        unread_count = 0;
+      } else {
+        unread_count--;
+        set_dialog_last_read_inbox_message_id(d, MessageId::min(), server_unread_count, local_unread_count, false,
+                                              source);
       }
-      LOG(INFO) << "Delete incoming unread message and update unread message count in " << d->dialog_id << " to "
-                << d->server_unread_count << " + " << d->local_unread_count;
-
-      send_update_chat_read_inbox(d, false, source);
     }
     if (result->contains_unread_mention) {
       if (d->unread_mention_count == 0) {
@@ -21155,14 +21159,15 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   DialogId my_dialog_id(my_user_id);
   if (*need_update && message_id.get() > d->last_read_inbox_message_id.get() && !td_->auth_manager_->is_bot()) {
     if (!message->is_outgoing && dialog_id != my_dialog_id) {
+      int32 server_unread_count = d->server_unread_count;
+      int32 local_unread_count = d->local_unread_count;
       if (message_id.is_server()) {
-        d->server_unread_count++;
+        server_unread_count++;
       } else {
-        d->local_unread_count++;
+        local_unread_count++;
       }
-      LOG(INFO) << "Receive incoming unread " << message_id << " in " << dialog_id
-                << " and update unread message count to " << d->server_unread_count << " + " << d->local_unread_count;
-      send_update_chat_read_inbox(d, false, source);
+      set_dialog_last_read_inbox_message_id(d, MessageId::min(), server_unread_count, local_unread_count, false,
+                                            source);
     } else {
       // if outgoing message has id one greater than last_read_inbox_message_id than definitely there is no
       // unread incoming message before it
