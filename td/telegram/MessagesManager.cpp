@@ -69,7 +69,6 @@
 #include "td/utils/utf8.h"
 
 #include <algorithm>
-#include <cstdio>
 #include <cstring>
 #include <iterator>
 #include <limits>
@@ -8770,7 +8769,7 @@ void MessagesManager::start_up() {
   }
 
   /*
-  FILE *f = fopen("error.txt", "r");
+  FI LE *f = std::f open("error.txt", "r");
   if (f != nullptr) {
     DialogId dialog_id(ChannelId(123456));
     force_create_dialog(dialog_id, "test");
@@ -8801,7 +8800,7 @@ void MessagesManager::start_up() {
     };
 
     char buf[1280];
-    while (fgets(buf, sizeof(buf), f) != nullptr) {
+    while (std::f gets(buf, sizeof(buf), f) != nullptr) {
       Slice log_string(buf, std::strlen(buf));
       Slice op = log_string.substr(0, log_string.find(' '));
       if (op != "MessageOpAdd" && op != "MessageOpDelete") {
@@ -8912,7 +8911,7 @@ void MessagesManager::start_up() {
       CHECK(m != nullptr);
     }
 
-    fclose(f);
+    std::f close(f);
   }
   */
 }
