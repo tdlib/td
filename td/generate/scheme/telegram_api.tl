@@ -343,7 +343,7 @@ photos.photosSlice#15051f54 count:int photos:Vector<Photo> users:Vector<User> = 
 photos.photo#20212ca8 photo:Photo users:Vector<User> = photos.Photo;
 
 upload.file#96a18d5 type:storage.FileType mtime:int bytes:bytes = upload.File;
-upload.fileCdnRedirect#ea52fe5a dc_id:int file_token:bytes encryption_key:bytes encryption_iv:bytes cdn_file_hashes:Vector<CdnFileHash> = upload.File;
+upload.fileCdnRedirect#f18cda44 dc_id:int file_token:bytes encryption_key:bytes encryption_iv:bytes file_hashes:Vector<FileHash> = upload.File;
 
 dcOption#5d8c6cc flags:# ipv6:flags.0?true media_only:flags.1?true tcpo_only:flags.2?true cdn:flags.3?true static:flags.4?true id:int ip_address:string port:int = DcOption;
 
@@ -810,8 +810,6 @@ channelAdminLogEventsFilter#ea107ae4 flags:# join:flags.0?true leave:flags.1?tru
 
 popularContact#5ce14175 client_id:long importers:int = PopularContact;
 
-cdnFileHash#77eec38f offset:int limit:int hash:bytes = CdnFileHash;
-
 messages.favedStickersNotModified#9e8fa6d3 = messages.FavedStickers;
 messages.favedStickers#f37f2f16 hash:int packs:Vector<StickerPack> stickers:Vector<Document> = messages.FavedStickers;
 
@@ -838,7 +836,9 @@ inputDialogPeer#fcaafeb7 peer:InputPeer = InputDialogPeer;
 dialogPeer#e56dbf05 peer:Peer = DialogPeer;
 
 messages.foundStickerSetsNotModified#d54b65d = messages.FoundStickerSets;
-messages.foundStickerSets#b35bcea9 hash:int sets:Vector<StickerSet> = messages.FoundStickerSets;
+messages.foundStickerSets#5108d648 hash:int sets:Vector<StickerSetCovered> = messages.FoundStickerSets;
+
+fileHash#6242c773 offset:int limit:int hash:bytes = FileHash;
 
 ---functions---
 
@@ -931,6 +931,7 @@ messages.forwardMessages#708e0195 flags:# silent:flags.5?true background:flags.6
 messages.reportSpam#cf1592db peer:InputPeer = Bool;
 messages.hideReportSpam#a8f1709b peer:InputPeer = Bool;
 messages.getPeerSettings#3672e09c peer:InputPeer = PeerSettings;
+messages.report#bd82b658 peer:InputPeer id:Vector<int> reason:ReportReason = Bool;
 messages.getChats#3c6aa187 id:Vector<int> = messages.Chats;
 messages.getFullChat#3b831c66 chat_id:int = messages.ChatFull;
 messages.editChatTitle#dc452855 chat_id:int title:string = Updates;
@@ -1026,8 +1027,9 @@ upload.getFile#e3a6cfb5 location:InputFileLocation offset:int limit:int = upload
 upload.saveBigFilePart#de7b673d file_id:long file_part:int file_total_parts:int bytes:bytes = Bool;
 upload.getWebFile#24e6818d location:InputWebFileLocation offset:int limit:int = upload.WebFile;
 upload.getCdnFile#2000bcc3 file_token:bytes offset:int limit:int = upload.CdnFile;
-upload.reuploadCdnFile#1af91c09 file_token:bytes request_token:bytes = Vector<CdnFileHash>;
-upload.getCdnFileHashes#f715c87b file_token:bytes offset:int = Vector<CdnFileHash>;
+upload.reuploadCdnFile#9b2754a8 file_token:bytes request_token:bytes = Vector<FileHash>;
+upload.getCdnFileHashes#4da54231 file_token:bytes offset:int = Vector<FileHash>;
+upload.getFileHashes#c7025931 location:InputFileLocation offset:int = Vector<FileHash>;
 
 help.getConfig#c4f9186b = Config;
 help.getNearestDc#1fb33026 = NearestDc;

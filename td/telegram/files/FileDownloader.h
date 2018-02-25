@@ -87,7 +87,7 @@ class FileDownloader : public FileLoader {
   FileLoader::Callback *get_callback() override;
   Status process_check_query(NetQueryPtr net_query) override;
   Result<CheckInfo> check_loop(int64 checked_prefix_size, int64 ready_prefix_size, bool is_ready) override;
-  void add_hash_info(const std::vector<telegram_api::object_ptr<telegram_api::cdnFileHash>> &hashes);
+  void add_hash_info(const std::vector<telegram_api::object_ptr<telegram_api::fileHash>> &hashes);
 
   bool keep_fd_ = false;
   void keep_fd_flag(bool keep_fd) override;

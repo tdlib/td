@@ -125,7 +125,7 @@ Result<bool> FileDownloader::should_restart_part(Part part, NetQueryPtr &net_que
         cdn_dc_id_ = DcId::external(file->dc_id_);
         cdn_encryption_key_ = file->encryption_key_.as_slice().str();
         cdn_encryption_iv_ = file->encryption_iv_.as_slice().str();
-        add_hash_info(file->cdn_file_hashes_);
+        add_hash_info(file->file_hashes_);
         if (cdn_encryption_iv_.size() != 16 || cdn_encryption_key_.size() != 32) {
           return Status::Error("Wrong ctr key or iv size");
         }
@@ -391,7 +391,7 @@ Result<FileLoader::CheckInfo> FileDownloader::check_loop(int64 checked_prefix_si
   info.checked_prefix_size = checked_prefix_size;
   return std::move(info);
 }
-void FileDownloader::add_hash_info(const std::vector<telegram_api::object_ptr<telegram_api::cdnFileHash>> &hashes) {
+void FileDownloader::add_hash_info(const std::vector<telegram_api::object_ptr<telegram_api::fileHash>> &hashes) {
   for (auto &hash : hashes) {
     //LOG(ERROR) << "ADD HASH " << hash->offset_ << "->" << hash->limit_;
     HashInfo hash_info;
