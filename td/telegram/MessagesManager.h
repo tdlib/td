@@ -2085,6 +2085,8 @@ class MessagesManager : public Actor {
 
   void send_update_chat_last_message_impl(const Dialog *d, const char *source) const;
 
+  void send_update_unread_message_count(DialogId dialog_id, bool force, const char *source);
+
   void send_update_chat_read_inbox(const Dialog *d, bool force, const char *source);
 
   void send_update_chat_read_outbox(const Dialog *d);
@@ -2099,6 +2101,8 @@ class MessagesManager : public Actor {
   vector<DialogId> sort_dialogs_by_order(const vector<DialogId> &dialog_ids, int32 limit) const;
 
   vector<DialogId> get_peers_dialog_ids(vector<tl_object_ptr<telegram_api::Peer>> &&peers);
+
+  void recalc_unread_message_count();
 
   void set_dialog_last_read_inbox_message_id(Dialog *d, MessageId message_id, int32 server_unread_count,
                                              int32 local_unread_count, bool force_update, const char *source);
@@ -2139,7 +2143,7 @@ class MessagesManager : public Actor {
   bool update_notification_settings(NotificationSettingsScope scope, NotificationSettings *current_settings,
                                     const NotificationSettings &new_settings);
 
-  void update_dialog_unmute_timeout(DialogId dialog_id, int32 old_mute_until, int32 new_mute_until);
+  void update_dialog_unmute_timeout(Dialog *d, int32 old_mute_until, int32 new_mute_until);
 
   void on_dialog_unmute(DialogId dialog_id);
 
@@ -2529,7 +2533,7 @@ class MessagesManager : public Actor {
   KHeap<double> ttl_heap_;
   Slot ttl_slot_;
 
-  enum YieldType { None, Ttl, TtlDb };  // None should be first
+  enum YieldType { None, Ttl, TtlDb };  // None must be first
   int32 ttl_db_expire_from_;
   int32 ttl_db_expire_till_;
   bool ttl_db_has_query_;
@@ -2613,6 +2617,12 @@ class MessagesManager : public Actor {
   NotificationSettings users_notification_settings_;
   NotificationSettings chats_notification_settings_;
   NotificationSettings dialogs_notification_settings_;
+
+  bool have_postponed_unread_message_count_update_ = false;
+  bool is_unread_count_inited_ = false;
+  bool need_unread_count_recalc_ = true;
+  int32 unread_message_total_count_ = 0;
+  int32 unread_message_muted_count_ = 0;
 
   // uint32 preloaded_dialogs_ = 0;  // TODO remove variable
 

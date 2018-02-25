@@ -4495,8 +4495,28 @@ MessagesManager::MessagesManager(Td *td, ActorShared<> parent) : td_(td), parent
       }
     }
     LOG(INFO) << "Load last_database_server_dialog_date_ = " << last_database_server_dialog_date_;
+
+    auto unread_message_count_string = G()->td_db()->get_binlog_pmc()->get("unread_message_count");
+    if (!unread_message_count_string.empty()) {
+      string total_count;
+      string muted_count;
+      std::tie(total_count, muted_count) = split(unread_message_count_string);
+
+      auto r_total_count = to_integer_safe<int32>(total_count);
+      auto r_muted_count = to_integer_safe<int32>(muted_count);
+      if (r_total_count.is_error() || r_muted_count.is_error()) {
+        LOG(ERROR) << "Can't parse " << unread_message_count_string;
+      } else {
+        unread_message_total_count_ = r_total_count.ok();
+        unread_message_muted_count_ = r_muted_count.ok();
+        is_unread_count_inited_ = true;
+        send_update_unread_message_count(DialogId(), true, "load unread_message_count");
+      }
+    }
+    LOG(INFO) << "Load last_database_server_dialog_date_ = " << last_database_server_dialog_date_;
   } else {
     G()->td_db()->get_binlog_pmc()->erase("last_server_dialog_date");
+    G()->td_db()->get_binlog_pmc()->erase("unread_message_count");
   }
 }
 
@@ -5881,8 +5901,9 @@ bool MessagesManager::update_notification_settings(NotificationSettingsScope sco
         scope != NOTIFICATION_SETTINGS_FOR_ALL_CHATS) {
       DialogId dialog_id(scope);
       CHECK(dialog_id.is_valid());
-      CHECK(have_dialog(dialog_id)) << "Wrong " << dialog_id << " in update_notification_settings";
-      update_dialog_unmute_timeout(dialog_id, current_settings->mute_until, new_settings.mute_until);
+      Dialog *d = get_dialog(dialog_id);
+      CHECK(d != nullptr) << "Wrong " << dialog_id << " in update_notification_settings";
+      update_dialog_unmute_timeout(d, current_settings->mute_until, new_settings.mute_until);
       on_dialog_updated(dialog_id, "update_notification_settings");
     } else {
       string key = get_notification_settings_scope_database_key(scope);
@@ -5901,16 +5922,31 @@ bool MessagesManager::update_notification_settings(NotificationSettingsScope sco
   return is_changed;
 }
 
-void MessagesManager::update_dialog_unmute_timeout(DialogId dialog_id, int32 old_mute_until, int32 new_mute_until) {
+void MessagesManager::update_dialog_unmute_timeout(Dialog *d, int32 old_mute_until, int32 new_mute_until) {
   if (old_mute_until == new_mute_until) {
     return;
   }
+  CHECK(d != nullptr);
 
   auto now = G()->unix_time_cached();
   if (new_mute_until >= now && new_mute_until < now + 366 * 86400) {
-    dialog_unmute_timeout_.set_timeout_in(dialog_id.get(), new_mute_until - now + 1);
+    dialog_unmute_timeout_.set_timeout_in(d->dialog_id.get(), new_mute_until - now + 1);
   } else {
-    dialog_unmute_timeout_.cancel_timeout(dialog_id.get());
+    dialog_unmute_timeout_.cancel_timeout(d->dialog_id.get());
+  }
+
+  if (old_mute_until != -1 && is_unread_count_inited_ && d->order != DEFAULT_ORDER) {
+    auto unread_count = d->server_unread_count + d->local_unread_count;
+    if (unread_count != 0) {
+      if (old_mute_until != 0 && new_mute_until == 0) {
+        unread_message_muted_count_ -= unread_count;
+        send_update_unread_message_count(d->dialog_id, true, "on_dialog_unmute");
+      }
+      if (old_mute_until == 0 && new_mute_until != 0) {
+        unread_message_muted_count_ += unread_count;
+        send_update_unread_message_count(d->dialog_id, true, "on_dialog_mute");
+      }
+    }
   }
 }
 
@@ -5926,12 +5962,12 @@ void MessagesManager::on_dialog_unmute(DialogId dialog_id) {
   if (d->notification_settings.mute_until > now) {
     LOG(ERROR) << "Failed to unmute " << dialog_id << " in " << now << ", will be unmuted in "
                << d->notification_settings.mute_until;
-    update_dialog_unmute_timeout(dialog_id, -1, d->notification_settings.mute_until);
+    update_dialog_unmute_timeout(d, -1, d->notification_settings.mute_until);
     return;
   }
 
   LOG(INFO) << "Unmute " << dialog_id;
-  update_dialog_unmute_timeout(dialog_id, d->notification_settings.mute_until, 0);
+  update_dialog_unmute_timeout(d, d->notification_settings.mute_until, 0);
   d->notification_settings.mute_until = 0;
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateNotificationSettings>(
@@ -6448,11 +6484,15 @@ void MessagesManager::after_get_difference() {
   }
 
   if (!postponed_chat_read_inbox_updates_.empty()) {
-    LOG(INFO) << "Apply postponed chat read inbox updates";
+    LOG(INFO) << "Send postponed chat read inbox updates";
     auto dialog_ids = std::move(postponed_chat_read_inbox_updates_);
     for (auto dialog_id : dialog_ids) {
       send_update_chat_read_inbox(get_dialog(dialog_id), false, "after_get_difference");
     }
+  }
+  if (have_postponed_unread_message_count_update_) {
+    LOG(INFO) << "Send postponed unread message count update";
+    send_update_unread_message_count(DialogId(), false, "after_get_difference");
   }
 
   for (auto &it : update_message_ids_) {
@@ -8214,6 +8254,37 @@ void MessagesManager::read_history_outbox(DialogId dialog_id, MessageId max_mess
   }
 }
 
+void MessagesManager::recalc_unread_message_count() {
+  if (td_->auth_manager_->is_bot() || !need_unread_count_recalc_) {
+    return;
+  }
+  need_unread_count_recalc_ = false;
+  is_unread_count_inited_ = true;
+
+  int32 total_count = 0;
+  int32 muted_count = 0;
+  for (auto &dialog_date : ordered_server_dialogs_) {
+    auto dialog_id = dialog_date.get_dialog_id();
+    Dialog *d = get_dialog(dialog_id);
+    CHECK(d != nullptr);
+    int unread_count = d->server_unread_count + d->local_unread_count;
+    if (d->order != DEFAULT_ORDER && unread_count > 0) {
+      total_count += unread_count;
+      if (d->notification_settings.mute_until != 0) {
+        muted_count += unread_count;
+      } else {
+        LOG(DEBUG) << "Have " << unread_count << " messages in unmuted " << dialog_id;
+      }
+    }
+  }
+
+  if (unread_message_total_count_ != total_count || unread_message_muted_count_ != muted_count) {
+    unread_message_total_count_ = total_count;
+    unread_message_muted_count_ = muted_count;
+    send_update_unread_message_count(DialogId(), true, "recalc_unread_message_count");
+  }
+}
+
 void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId message_id, int32 server_unread_count,
                                                             int32 local_unread_count, bool force_update,
                                                             const char *source) {
@@ -8230,8 +8301,18 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
     d->last_read_inbox_message_id = message_id;
     d->is_last_read_inbox_message_id_inited = true;
   }
+  int32 old_unread_count = d->server_unread_count + d->local_unread_count;
   d->server_unread_count = server_unread_count;
   d->local_unread_count = local_unread_count;
+  int32 new_unread_count = d->server_unread_count + d->local_unread_count;
+  int32 delta = new_unread_count - old_unread_count;
+  if (delta != 0 && d->order != DEFAULT_ORDER && is_unread_count_inited_) {
+    unread_message_total_count_ += delta;
+    if (d->notification_settings.mute_until != 0) {
+      unread_message_muted_count_ += delta;
+    }
+    send_update_unread_message_count(d->dialog_id, force_update, source);
+  }
 
   send_update_chat_read_inbox(d, force_update, source);
 }
@@ -10778,6 +10859,7 @@ void MessagesManager::preload_dialog_list(void *messages_manager_void) {
 
   if (messages_manager->ordered_dialogs_.size() > MAX_PRELOADED_DIALOGS) {
     // do nothing if there are more than MAX_PRELOADED_DIALOGS dialogs already loaded
+    messages_manager->recalc_unread_message_count();
     return;
   }
 
@@ -17876,6 +17958,41 @@ void MessagesManager::send_update_chat_last_message_impl(const Dialog *d, const 
   send_closure(G()->td(), &Td::send_update, std::move(update));
 }
 
+void MessagesManager::send_update_unread_message_count(DialogId dialog_id, bool force, const char *source) {
+  if (!td_->auth_manager_->is_bot() && G()->parameters().use_message_db) {
+    CHECK(is_unread_count_inited_);
+    if (unread_message_total_count_ < 0 || unread_message_muted_count_ < 0 ||
+        unread_message_muted_count_ > unread_message_total_count_) {
+      LOG(ERROR) << "Unread messafe count became invalid: " << unread_message_total_count_ << '/'
+                 << unread_message_total_count_ - unread_message_muted_count_ << " from " << source << " and "
+                 << dialog_id;
+      if (unread_message_total_count_ < 0) {
+        unread_message_total_count_ = 0;
+      }
+      if (unread_message_muted_count_ < 0) {
+        unread_message_muted_count_ = 0;
+      }
+      if (unread_message_muted_count_ > unread_message_total_count_) {
+        unread_message_muted_count_ = unread_message_total_count_;
+      }
+    }
+    G()->td_db()->get_binlog_pmc()->set("unread_message_count",
+                                        PSTRING() << unread_message_total_count_ << ' ' << unread_message_muted_count_);
+    int32 unread_unmuted_count = unread_message_total_count_ - unread_message_muted_count_;
+    if (!force && running_get_difference_) {
+      LOG(INFO) << "Postpone updateUnreadMessageCount to " << unread_message_total_count_ << '/' << unread_unmuted_count
+                << " from " << source << " and " << dialog_id;
+      have_postponed_unread_message_count_update_ = true;
+    } else {
+      have_postponed_unread_message_count_update_ = false;
+      LOG(INFO) << "Send updateUnreadMessageCount to " << unread_message_total_count_ << '/' << unread_unmuted_count
+                << " from " << source << " and " << dialog_id;
+      send_closure(G()->td(), &Td::send_update,
+                   make_tl_object<td_api::updateUnreadMessageCount>(unread_message_total_count_, unread_unmuted_count));
+    }
+  }
+}
+
 void MessagesManager::send_update_chat_read_inbox(const Dialog *d, bool force, const char *source) {
   CHECK(d != nullptr);
   if (!td_->auth_manager_->is_bot()) {
@@ -22537,7 +22654,11 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   CHECK(d != nullptr);
   auto dialog_id = d->dialog_id;
 
-  update_dialog_unmute_timeout(d->dialog_id, -1, d->notification_settings.mute_until);
+  if (d->notification_settings.mute_until <= G()->unix_time()) {
+    d->notification_settings.mute_until = 0;
+  } else {
+    update_dialog_unmute_timeout(d, -1, d->notification_settings.mute_until);
+  }
 
   auto pending_it = pending_add_dialog_last_database_message_dependent_dialogs_.find(dialog_id);
   if (pending_it != pending_add_dialog_last_database_message_dependent_dialogs_.end()) {
@@ -22826,11 +22947,6 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
   CHECK(d != nullptr);
   DialogDate old_date(d->order, d->dialog_id);
   DialogDate new_date(new_order, d->dialog_id);
-  if (old_date == new_date) {
-    LOG(INFO) << "Dialog order is not changed: " << new_order;
-    return false;
-  }
-  LOG(INFO) << "Update order of " << d->dialog_id << " to " << new_order;
 
   std::set<DialogDate> *ordered_dialogs_set = nullptr;
   switch (d->dialog_id.get_type()) {
@@ -22846,6 +22962,15 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
       return false;
   }
 
+  if (old_date == new_date) {
+    if (new_order == DEFAULT_ORDER && ordered_dialogs_set->count(old_date) == 0) {
+      ordered_dialogs_set->insert(new_date);
+    }
+    LOG(INFO) << "Dialog order is not changed: " << new_order;
+    return false;
+  }
+  LOG(INFO) << "Update order of " << d->dialog_id << " from " << d->order << " to " << new_order;
+
   bool need_update = false;
   if (old_date <= last_dialog_date_) {
     if (ordered_dialogs_.erase(old_date) == 0) {
@@ -22853,9 +22978,8 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
     }
     need_update = true;
   }
-  if (ordered_dialogs_set->erase(old_date) == 0) {
-    LOG_IF(ERROR, d->order != DEFAULT_ORDER) << d->dialog_id << " not found in the chat list";
-  }
+  bool is_new = ordered_dialogs_set->erase(old_date) == 0;
+  LOG_IF(ERROR, is_new && d->order != DEFAULT_ORDER) << d->dialog_id << " not found in the chat list";
 
   int64 updated_to = 0;
   if (new_date <= last_dialog_date_) {
@@ -22866,6 +22990,25 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
   ordered_dialogs_set->insert(new_date);
 
   bool add_to_hints = (d->order == DEFAULT_ORDER);
+
+  if (!is_new && (d->order == DEFAULT_ORDER || new_order == DEFAULT_ORDER)) {
+    auto unread_count = d->server_unread_count + d->local_unread_count;
+    if (unread_count != 0 && is_unread_count_inited_) {
+      const char *source = "on_dialog_join";
+      if (d->order != DEFAULT_ORDER) {
+        unread_count = -unread_count;
+        source = "on_dialog_leave";
+      } else {
+        CHECK(new_order != DEFAULT_ORDER);
+      }
+
+      unread_message_total_count_ += unread_count;
+      if (d->notification_settings.mute_until != 0) {
+        unread_message_muted_count_ += unread_count;
+      }
+      send_update_unread_message_count(d->dialog_id, true, source);
+    }
+  }
 
   d->order = new_order;
 
@@ -22896,6 +23039,10 @@ void MessagesManager::update_last_dialog_date() {
       CHECK(d != nullptr);
       ordered_dialogs_.insert(DialogDate(d->order, d->dialog_id));
       send_closure(G()->td(), &Td::send_update, make_tl_object<td_api::updateChatOrder>(d->dialog_id.get(), d->order));
+    }
+
+    if (last_dialog_date_ == MAX_DIALOG_DATE) {
+      recalc_unread_message_count();
     }
   }
 
