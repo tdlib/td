@@ -30,7 +30,7 @@ void FileLoadManager::start_up() {
 
 void FileLoadManager::download(QueryId id, const FullRemoteFileLocation &remote_location,
                                const LocalFileLocation &local, int64 size, string name,
-                               const FileEncryptionKey &encryption_key, int8 priority) {
+                               const FileEncryptionKey &encryption_key, bool search_file, int8 priority) {
   if (stop_flag_) {
     return;
   }
@@ -42,7 +42,7 @@ void FileLoadManager::download(QueryId id, const FullRemoteFileLocation &remote_
   auto callback = make_unique<FileDownloaderCallback>(actor_shared(this, node_id));
   bool is_small = size < 20 * 1024;
   node->loader_ = create_actor<FileDownloader>("Downloader", remote_location, local, size, std::move(name),
-                                               encryption_key, is_small, std::move(callback));
+                                               encryption_key, is_small, search_file, std::move(callback));
   auto &resource_manager = is_small ? download_small_resource_manager_ : download_resource_manager_;
   send_closure(resource_manager, &ResourceManager::register_worker,
                ActorShared<FileLoaderActor>(node->loader_.get(), static_cast<uint64>(-1)), priority);

@@ -78,6 +78,9 @@ void FileLoader::start_up() {
   auto &ready_parts = file_info.ready_parts;
   auto use_part_count_limit = file_info.use_part_count_limit;
   auto status = parts_manager_.init(size, expected_size, is_size_final, part_size, ready_parts, use_part_count_limit);
+  if (file_info.only_check_) {
+    parts_manager_.set_checked_prefix_size(0);
+  }
   if (status.is_error()) {
     on_error(std::move(status));
     stop_flag_ = true;
@@ -110,6 +113,9 @@ Status FileLoader::do_loop() {
   TRY_RESULT(check_info,
              check_loop(parts_manager_.get_checked_prefix_size(), parts_manager_.get_unchecked_ready_prefix_size(),
                         parts_manager_.unchecked_ready()));
+  if (check_info.changed) {
+    on_progress_impl(narrow_cast<size_t>(parts_manager_.get_ready_size()));
+  }
   for (auto &query : check_info.queries) {
     G()->net_query_dispatcher().dispatch_with_callback(
         std::move(query), actor_shared(this, UniqueId::next(UniqueId::Type::Default, CommonQueryKey)));

@@ -1037,6 +1037,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     nodes[node_i]->set_encryption_key(nodes[encryption_key_i]->encryption_key_);
   }
   node->need_load_from_pmc_ |= other_node->need_load_from_pmc_;
+  node->can_search_locally_ &= other_node->can_search_locally_;
 
   if (main_file_id_i == other_node_i) {
     node->main_file_id_ = other_node->main_file_id_;
@@ -1450,7 +1451,7 @@ void FileManager::run_download(FileNodePtr node) {
   node->download_id_ = id;
   node->is_download_started_ = false;
   send_closure(file_load_manager_, &FileLoadManager::download, id, node->remote_.full(), node->local_, node->size_,
-               node->suggested_name(), node->encryption_key_, priority);
+               node->suggested_name(), node->encryption_key_, node->can_search_locally_, priority);
 }
 
 void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std::shared_ptr<UploadCallback> callback,
@@ -2234,6 +2235,11 @@ void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type,
 
   if (status.message() == "FILE_UPLOAD_RESTART") {
     run_upload(node, {});
+    return;
+  }
+  if (status.message() == "FILE_DOWNLOAD_RESTART") {
+    node->can_search_locally_ = false;
+    run_download(node);
     return;
   }
 

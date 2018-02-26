@@ -35,7 +35,8 @@ class FileDownloader : public FileLoader {
   };
 
   FileDownloader(const FullRemoteFileLocation &remote, const LocalFileLocation &local, int64 size, string name,
-                 const FileEncryptionKey &encryption_key, bool is_small, std::unique_ptr<Callback> callback);
+                 const FileEncryptionKey &encryption_key, bool is_small, bool search_file,
+                 std::unique_ptr<Callback> callback);
 
   // Should just implement all parent pure virtual methods.
   // Must not call any of them...
@@ -48,6 +49,7 @@ class FileDownloader : public FileLoader {
   string name_;
   FileEncryptionKey encryption_key_;
   std::unique_ptr<Callback> callback_;
+  bool only_check_{false};
 
   string path_;
   FileFd fd_;
@@ -55,6 +57,7 @@ class FileDownloader : public FileLoader {
   int32 next_part_ = 0;
   bool next_part_stop_ = false;
   bool is_small_;
+  bool search_file_{false};
 
   bool use_cdn_ = false;
   DcId cdn_dc_id_;

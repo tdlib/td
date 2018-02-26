@@ -114,6 +114,7 @@ class FileNode {
   FileLocationSource remote_source_ = FileLocationSource::FromUser;
 
   bool get_by_hash_ = false;
+  bool can_search_locally_{true};
 
   bool is_download_started_ = false;
   bool generate_was_update_ = false;

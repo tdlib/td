@@ -53,6 +53,7 @@ class FileLoader : public FileLoaderActor {
     int32 part_size;
     std::vector<int> ready_parts;
     bool use_part_count_limit = true;
+    bool only_check_ = false;
   };
   virtual Result<FileInfo> init() TD_WARN_UNUSED_RESULT = 0;
   virtual Status on_ok(int64 size) TD_WARN_UNUSED_RESULT = 0;
@@ -79,6 +80,7 @@ class FileLoader : public FileLoaderActor {
   }
   struct CheckInfo {
     bool need_check{false};
+    bool changed{false};
     int64 checked_prefix_size{0};
     std::vector<NetQueryPtr> queries;
   };
