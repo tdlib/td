@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
 project(TDLib VERSION 1.1.3 LANGUAGES CXX C)
 
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsStore")
+  set(UWP 1)
+endif()
+
 option(TD_ENABLE_JNI "Use \"ON\" to enable JNI-compatible TDLib API.")
 
 if (NOT DEFINED CMAKE_MODULE_PATH)
@@ -145,6 +149,11 @@ elseif (INTEL)
 endif()
 
 if (WIN32)
+  if (CMAKE_CXX_FLAGS_DEBUG MATCHES "/RTC1")
+    string(REPLACE "/RTC1" " " CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+  endif()
+  add_definitions(-D_SCL_SECURE_NO_WARNINGS)
+
   add_definitions(-DNTDDI_VERSION=0x06020000 -DWINVER=0x0602 -D_WIN32_WINNT=0x0602 -DNOMINMAX -DUNICODE -D_UNICODE)
 endif()
 if (CYGWIN)
@@ -273,6 +282,12 @@ set(TL_TD_JSON
 set_source_files_properties(${TL_C_AUTO} PROPERTIES GENERATED TRUE)
 set(TL_C_SCHEME_SOURCE
   ${TL_C_AUTO}
+)
+
+set_source_files_properties(${TL_WINDOWS_AUTO} PROPERTIES GENERATED TRUE)
+set(TL_WINDOWS_SCHEME_SOURCE
+  ${TL_TD_WINDOWS_AUTO}
+  td/tl/tl_win_object.h
 )
 
 set(TDLIB_SOURCE
@@ -581,6 +596,30 @@ target_link_libraries(tdclient PRIVATE tdcore)
 if (TD_ENABLE_JNI AND NOT ANDROID) # jni is available by default on Android
   target_include_directories(tdclient PUBLIC ${JAVA_INCLUDE_PATH} ${JAVA_INCLUDE_PATH2})
   target_link_libraries(tdclient PUBLIC ${JAVA_JVM_LIBRARY})
+endif()
+
+if (TD_ENABLE_DOTNET)
+  add_library(TdWindows SHARED
+    td/telegram/ClientWindows.cpp
+    td/telegram/LogWindows.cpp
+    ${TL_WINDOWS_SCHEME_SOURCE}
+  )
+  target_link_libraries(TdWindows PRIVATE tdclient tdutils)
+  target_include_directories(TdWindows PUBLIC
+    $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDES}>
+  )
+  if (NOT CMAKE_CROSSCOMPILING)
+    add_dependencies(TdWindows generate_td_windows_api)
+  endif()
+  if (UWP)
+    set_target_properties(TdWindows PROPERTIES VS_WINRT_COMPONENT "true")
+    target_compile_options(TdWindows PUBLIC "/ZW")
+  else()
+    set_target_properties(TdWindows PROPERTIES COMPILE_FLAGS "/GR /clr")
+    target_compile_options(TdWindows PUBLIC "/EHa")
+  endif()
+  
+  target_compile_options(TdWindows PUBLIC "/bigobj")
 endif()
 
 # tdc - TDLib interface in pure c.

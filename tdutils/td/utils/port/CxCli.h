@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/utils/common.h"
+#include "td/utils/port/config.h"
 #undef small
 
 #if TD_WINRT

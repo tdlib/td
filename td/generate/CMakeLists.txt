@@ -27,12 +27,19 @@ set(TL_TD_JSON_AUTO
   PARENT_SCOPE
 )
 
-set(TL_TD_API_TLO ${CMAKE_CURRENT_SOURCE_DIR}/scheme/td_api.tlo PARENT_SCOPE)
+set(TL_TD_API_TLO ${CMAKE_CURRENT_SOURCE_DIR}/scheme/td_api.tlo)
+set(TL_TD_API_TLO ${TL_TD_API_TLO} PARENT_SCOPE)
 
 set(TL_C_AUTO
   ${CMAKE_CURRENT_SOURCE_DIR}/auto/td/telegram/td_tdc_api.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/auto/td/telegram/td_tdc_api.h
   ${CMAKE_CURRENT_SOURCE_DIR}/auto/td/telegram/td_tdc_api_inner.h
+  PARENT_SCOPE
+)
+
+set(TL_TD_WINDOWS_AUTO
+  ${CMAKE_CURRENT_SOURCE_DIR}/auto/td/telegram/TdWindowsApi.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/auto/td/telegram/TdWindowsApi.h
   PARENT_SCOPE
 )
 
@@ -76,6 +83,7 @@ set(TL_GENERATE_JSON_SOURCE
   tl_json_converter.h
 )
 
+
 if (NOT CMAKE_CROSSCOMPILING)
   find_program(PHP_EXECUTABLE php)
 
@@ -89,8 +97,7 @@ if (NOT CMAKE_CROSSCOMPILING)
   target_link_libraries(generate_common PRIVATE tdtl)
   add_custom_target(tl_generate_common
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMAND ${GENERATE_COMMON_CMD}
-    COMMENT "Generate common tl source files"
+    COMMAND ${GENERATE_COMMON_CMD} COMMENT "Generate common tl source files"
     DEPENDS generate_common scheme/mtproto_api.tlo scheme/telegram_api.tlo scheme/secret_api.tlo scheme/td_api.tlo
   )
   if (TD_ENABLE_JNI)
@@ -123,4 +130,13 @@ if (NOT CMAKE_CROSSCOMPILING)
     install(FILES JavadocTlDocumentationGenerator.php TlDocumentationGenerator.php DESTINATION bin/td/generate)
     install(FILES scheme/td_api.tlo scheme/td_api.tl DESTINATION bin/td/generate/scheme)
   endif()
+  
+  add_executable(generate_td_windows_api_exe generate_td_windows_api.cpp tl_writer_win.h)
+  target_link_libraries(generate_td_windows_api_exe PRIVATE tdtl)
+  add_custom_target(generate_td_windows_api
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMAND generate_td_windows_api_exe ${TL_TD_API_TLO}
+    COMMENT "Generate tl-files"
+    DEPENDS generate_td_windows_api_exe ${TL_TD_API_TLO}
+  )
 endif()
