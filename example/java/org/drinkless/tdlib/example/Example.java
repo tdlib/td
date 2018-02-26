@@ -83,6 +83,7 @@ public final class Example {
         switch (Example.authorizationState.getConstructor()) {
             case TdApi.AuthorizationStateWaitTdlibParameters.CONSTRUCTOR:
                 TdApi.TdlibParameters parameters = new TdApi.TdlibParameters();
+                parameters.databaseDirectory = "tdlib";
                 parameters.useMessageDatabase = true;
                 parameters.useSecretChats = true;
                 parameters.apiId = 94575;
@@ -265,7 +266,7 @@ public final class Example {
     public static void main(String[] args) throws InterruptedException {
         // disable TDLib log
         Log.setVerbosityLevel(0);
-        if (!Log.setFilePath("log")) {
+        if (!Log.setFilePath("tdlib.log")) {
             throw new IOError(new IOException("Write access to the current directory is required"));
         }
 

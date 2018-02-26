@@ -103,6 +103,7 @@ func updateAuthorizationState(authState: Dictionary<String, Any>) {
             client.queryAsync(query:[
                 "@type":"setTdlibParameters",
                 "parameters":[
+                    "database_directory":"tdlib",
                     "use_message_database":true,
                     "use_secret_chats":true,
                     "api_id":94575,

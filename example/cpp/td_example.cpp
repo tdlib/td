@@ -273,6 +273,7 @@ class TdExample {
             },
             [this](td_api::authorizationStateWaitTdlibParameters &) {
               auto parameters = td_api::make_object<td_api::tdlibParameters>();
+              parameters->database_directory_ = "tdlib";
               parameters->use_message_database_ = true;
               parameters->use_secret_chats_ = true;
               parameters->api_id_ = 94575;
