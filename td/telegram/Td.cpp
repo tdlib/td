@@ -4579,6 +4579,11 @@ Status Td::fix_parameters(TdParameters &parameters) {
 
 Status Td::set_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters) {
   VLOG(td_init) << "Begin to set TDLib parameters";
+  if (parameters == nullptr) {
+    VLOG(td_init) << "Empty parameters";
+    return Status::Error(400, "Parameters aren't specified");
+  }
+
   if (!clean_input_string(parameters->api_hash_) && !clean_input_string(parameters->system_language_code_) &&
       !clean_input_string(parameters->device_model_) && !clean_input_string(parameters->system_version_) &&
       !clean_input_string(parameters->application_version_)) {
