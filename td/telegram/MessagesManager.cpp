@@ -10866,6 +10866,8 @@ void MessagesManager::preload_dialog_list(void *messages_manager_void) {
   if (messages_manager->last_loaded_database_dialog_date_ < messages_manager->last_database_server_dialog_date_) {
     // if there are some dialogs in database, preload some of them
     messages_manager->load_dialog_list_from_database(20, Auto());
+  } else if (messages_manager->last_dialog_date_ != MAX_DIALOG_DATE) {
+    messages_manager->load_dialog_list(Auto());
   }
 }
 
