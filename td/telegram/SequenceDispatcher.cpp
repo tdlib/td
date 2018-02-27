@@ -147,6 +147,9 @@ void SequenceDispatcher::on_result(NetQueryPtr query) {
 void SequenceDispatcher::loop() {
   for (; finish_i_ < data_.size() && data_[finish_i_].state_ == State::Finish; finish_i_++) {
   }
+  if (next_i_ < finish_i_) {
+    next_i_ = finish_i_;
+  }
   for (; next_i_ < data_.size() && data_[next_i_].state_ != State::Wait && wait_cnt_ < MAX_SIMULTANEOUS_WAIT;
        next_i_++) {
     if (data_[next_i_].state_ == State::Finish) {
