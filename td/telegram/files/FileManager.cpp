@@ -2199,7 +2199,7 @@ void FileManager::on_error(QueryId query_id, Status status) {
   std::tie(query, was_active) = finish_query(query_id);
   auto node = get_file_node(query.file_id_);
   if (!node) {
-    LOG(ERROR) << "Can't find file node for " << query.file_id_;
+    LOG(ERROR) << "Can't find file node for " << query.file_id_ << " " << status;
     return;
   }
 
