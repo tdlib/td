@@ -590,24 +590,24 @@ if (TD_ENABLE_JNI AND NOT ANDROID) # jni is available by default on Android
 endif()
 
 if (TD_ENABLE_DOTNET)
-  add_library(TdDotNet SHARED
+  add_library(tddotnet SHARED
     td/telegram/ClientDotNet.cpp
     td/telegram/LogDotNet.cpp
     ${TL_DOTNET_SCHEME_SOURCE}
   )
-  target_link_libraries(TdDotNet PRIVATE tdclient tdutils)
-  target_include_directories(TdDotNet PUBLIC
+  target_link_libraries(tddotnet PRIVATE tdclient tdutils)
+  target_include_directories(tddotnet PUBLIC
     $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDES}>
   )
   if (NOT CMAKE_CROSSCOMPILING)
-    add_dependencies(TdDotNet generate_dotnet_api)
+    add_dependencies(tddotnet generate_dotnet_api)
   endif()
   if ("${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsStore")
-    set_target_properties(TdDotNet PROPERTIES VS_WINRT_COMPONENT "true")
-    target_compile_options(TdDotNet PUBLIC "/ZW")
+    set_target_properties(tddotnet PROPERTIES VS_WINRT_COMPONENT "true")
+    target_compile_options(tddotnet PUBLIC "/ZW")
   else()
-    set_target_properties(TdDotNet PROPERTIES COMPILE_FLAGS "/GR /clr")
-    target_compile_options(TdDotNet PUBLIC "/EHa")
+    set_target_properties(tddotnet PROPERTIES COMPILE_FLAGS "/GR /clr")
+    target_compile_options(tddotnet PUBLIC "/EHa")
   endif()
 endif()
 
@@ -663,7 +663,7 @@ if (BIGOBJ)
   target_compile_options(tdjson PUBLIC ${BIGOBJ})
   target_compile_options(tdjson_static PUBLIC ${BIGOBJ})
   if (TD_ENABLE_DOTNET)
-    target_compile_options(TdDotNet PUBLIC "/bigobj")
+    target_compile_options(tddotnet PUBLIC "/bigobj")
   endif()
 endif()
 
