@@ -10848,6 +10848,10 @@ void MessagesManager::on_get_dialogs_from_database(vector<BufferSlice> &&dialogs
 }
 
 void MessagesManager::preload_dialog_list(void *messages_manager_void) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   CHECK(messages_manager_void != nullptr);
   auto messages_manager = static_cast<MessagesManager *>(messages_manager_void);
 
@@ -10867,7 +10871,13 @@ void MessagesManager::preload_dialog_list(void *messages_manager_void) {
     // if there are some dialogs in database, preload some of them
     messages_manager->load_dialog_list_from_database(20, Auto());
   } else if (messages_manager->last_dialog_date_ != MAX_DIALOG_DATE) {
-    messages_manager->load_dialog_list(Auto());
+    messages_manager->load_dialog_list(PromiseCreator::lambda([messages_manager](Result<Unit> result) {
+      if (result.is_ok()) {
+        messages_manager->recalc_unread_message_count();
+      }
+    }));
+  } else {
+    messages_manager->recalc_unread_message_count();
   }
 }
 
