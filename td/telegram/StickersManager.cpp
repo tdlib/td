@@ -2034,6 +2034,7 @@ void StickersManager::on_load_installed_sticker_sets_from_database(bool is_masks
       sets_to_load.push_back(sticker_set_id);
     }
   }
+  std::reverse(sets_to_load.begin(), sets_to_load.end());  // load installed sticker sets in reverse order
 
   load_sticker_sets_without_stickers(
       std::move(sets_to_load),
@@ -2049,8 +2050,9 @@ void StickersManager::on_load_installed_sticker_sets_from_database(bool is_masks
 void StickersManager::on_load_installed_sticker_sets_finished(bool is_masks, vector<int64> &&installed_sticker_set_ids,
                                                               bool from_database) {
   bool need_reload = false;
+  vector<int64> old_installed_sticker_set_ids;
   if (!are_installed_sticker_sets_loaded_[is_masks] && !installed_sticker_set_ids_[is_masks].empty()) {
-    need_reload = true;
+    old_installed_sticker_set_ids = std::move(installed_sticker_set_ids_[is_masks]);
   }
   installed_sticker_set_ids_[is_masks].clear();
   for (auto set_id : installed_sticker_set_ids) {
@@ -2069,6 +2071,11 @@ void StickersManager::on_load_installed_sticker_sets_finished(bool is_masks, vec
   if (need_reload) {
     LOG(ERROR) << "Reload installed sticker sets, because only " << installed_sticker_set_ids_[is_masks].size()
                << " of " << installed_sticker_set_ids.size() << " are really installed";
+    reload_installed_sticker_sets(is_masks, true);
+  } else if (!old_installed_sticker_set_ids.empty() &&
+             old_installed_sticker_set_ids != installed_sticker_set_ids_[is_masks]) {
+    LOG(ERROR) << "Reload installed sticker sets, because they has changed from " << old_installed_sticker_set_ids
+               << " to " << installed_sticker_set_ids_[is_masks];
     reload_installed_sticker_sets(is_masks, true);
   }
 
