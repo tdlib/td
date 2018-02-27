@@ -4,13 +4,14 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-#include "td/telegram/TdWindowsApi.h"
+#include "td/telegram/TdDotNetApi.h"
 
 #include "td/telegram/Client.h"
 
 #include "td/utils/port/CxCli.h"
 
 namespace TdWindows {
+
 using namespace CxCli;
 
 public interface class ClientResultHandler {

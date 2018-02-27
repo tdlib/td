@@ -8,7 +8,6 @@
 
 #include "td/utils/misc.h"
 #include "td/utils/port/CxCli.h"
-#include "td/utils/tl_storers.h"
 
 #include "td/telegram/td_api.h"
 #include "td/telegram/td_api.hpp"

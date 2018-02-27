@@ -16,11 +16,11 @@
 namespace td {
 namespace tl {
 
-class TlWriterWinCommon : public TL_writer {
+class TlWriterDotNet : public TL_writer {
  public:
   bool is_header_;
   std::string prefix_;
-  TlWriterWinCommon(const std::string &name, bool is_header, const std::string &prefix = "")
+  TlWriterDotNet(const std::string &name, bool is_header, const std::string &prefix = "")
       : TL_writer(name), is_header_(is_header), prefix_(prefix) {
   }
   int get_max_arity(void) const override {
@@ -179,7 +179,7 @@ class TlWriterWinCommon : public TL_writer {
   std::string gen_output_begin(void) const override {
     return prefix_ +
            "#include \"td/utils/port/CxCli.h\"\n"
-           "#include \"td/tl/tl_win_object.h\"\n\n"
+           "#include \"td/tl/tl_dotnet_object.h\"\n\n"
            "namespace TdWindows {\n";
   }
   std::string gen_output_end() const override {

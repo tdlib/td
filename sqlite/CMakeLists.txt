@@ -40,8 +40,8 @@ elseif (MSVC)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /wd4996")
 endif()
 
-if (UWP)
-  target_compile_options(tdsqlite PRIVATE /DSQLITE_OS_WINRT=1)
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsStore")
+  target_compile_definitions(tdsqlite PRIVATE -DSQLITE_OS_WINRT=1)
 endif()
 
 install(TARGETS tdsqlite EXPORT TdTargets

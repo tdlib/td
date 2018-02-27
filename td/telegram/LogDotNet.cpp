@@ -9,7 +9,9 @@
 #include "td/utils/port/CxCli.h"
 
 namespace TdWindows {
+
 using namespace CxCli;
+
 public ref class Log sealed {
 public:
   static void SetFilePath(String^ filePath) {
@@ -24,4 +26,5 @@ public:
     ::td::Log::set_verbosity_level(verbosityLevel);
   }
 };
+
 }  // namespace TdWindows

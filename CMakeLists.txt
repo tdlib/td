@@ -2,10 +2,6 @@ cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
 project(TDLib VERSION 1.1.3 LANGUAGES CXX C)
 
-if ("${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsStore")
-  set(UWP 1)
-endif()
-
 option(TD_ENABLE_JNI "Use \"ON\" to enable JNI-compatible TDLib API.")
 option(TD_ENABLE_DOTNET "Use \"ON\" to enable generation of C++/CLI or C++/CX TDLib API bindings.")
 
@@ -53,7 +49,6 @@ In FAST mode stack is unwinded only using frame pointers, which may fail. \
 In SAFE mode stack is unwinded using backtrace function from execinfo.h, which may be very slow. \
 By default both methods are used to achieve maximum speed and accuracy")
 
-# LIBRARIES
 if (EMSCRIPTEN)
   # use prebuilt zlib
   set(ZLIB_FOUND 1)
@@ -283,7 +278,7 @@ set(TL_C_SCHEME_SOURCE
 set_source_files_properties(${TL_DOTNET_AUTO} PROPERTIES GENERATED TRUE)
 set(TL_DOTNET_SCHEME_SOURCE
   ${TL_TD_DOTNET_AUTO}
-  td/tl/tl_win_object.h
+  td/tl/tl_dotnet_object.h
 )
 
 set(TDLIB_SOURCE
@@ -595,27 +590,25 @@ if (TD_ENABLE_JNI AND NOT ANDROID) # jni is available by default on Android
 endif()
 
 if (TD_ENABLE_DOTNET)
-  add_library(TdWindows SHARED
-    td/telegram/ClientWindows.cpp
-    td/telegram/LogWindows.cpp
+  add_library(TdDotNet SHARED
+    td/telegram/ClientDotNet.cpp
+    td/telegram/LogDotNet.cpp
     ${TL_DOTNET_SCHEME_SOURCE}
   )
-  target_link_libraries(TdWindows PRIVATE tdclient tdutils)
-  target_include_directories(TdWindows PUBLIC
+  target_link_libraries(TdDotNet PRIVATE tdclient tdutils)
+  target_include_directories(TdDotNet PUBLIC
     $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDES}>
   )
   if (NOT CMAKE_CROSSCOMPILING)
-    add_dependencies(TdWindows generate_td_windows_api)
+    add_dependencies(TdDotNet generate_dotnet_api)
   endif()
-  if (UWP)
-    set_target_properties(TdWindows PROPERTIES VS_WINRT_COMPONENT "true")
-    target_compile_options(TdWindows PUBLIC "/ZW")
+  if ("${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsStore")
+    set_target_properties(TdDotNet PROPERTIES VS_WINRT_COMPONENT "true")
+    target_compile_options(TdDotNet PUBLIC "/ZW")
   else()
-    set_target_properties(TdWindows PROPERTIES COMPILE_FLAGS "/GR /clr")
-    target_compile_options(TdWindows PUBLIC "/EHa")
+    set_target_properties(TdDotNet PROPERTIES COMPILE_FLAGS "/GR /clr")
+    target_compile_options(TdDotNet PUBLIC "/EHa")
   endif()
-  
-  target_compile_options(TdWindows PUBLIC "/bigobj")
 endif()
 
 # tdc - TDLib interface in pure c.
@@ -669,6 +662,9 @@ if (BIGOBJ)
   target_compile_options(tdclient PUBLIC ${BIGOBJ})
   target_compile_options(tdjson PUBLIC ${BIGOBJ})
   target_compile_options(tdjson_static PUBLIC ${BIGOBJ})
+  if (TD_ENABLE_DOTNET)
+    target_compile_options(TdDotNet PUBLIC "/bigobj")
+  endif()
 endif()
 
 if (EMSCRIPTEN)

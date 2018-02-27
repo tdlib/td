@@ -38,8 +38,8 @@ set(TL_C_AUTO
 )
 
 set(TL_TD_DOTNET_AUTO
-  ${CMAKE_CURRENT_SOURCE_DIR}/auto/td/telegram/TdWindowsApi.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/auto/td/telegram/TdWindowsApi.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/auto/td/telegram/TdDotNetApi.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/auto/td/telegram/TdDotNetApi.h
   PARENT_SCOPE
 )
 
@@ -98,7 +98,7 @@ if (NOT CMAKE_CROSSCOMPILING)
   add_custom_target(tl_generate_common
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND ${GENERATE_COMMON_CMD} COMMENT "Generate common tl source files"
-    DEPENDS generate_common scheme/mtproto_api.tlo scheme/telegram_api.tlo scheme/secret_api.tlo scheme/td_api.tlo
+    DEPENDS generate_common scheme/mtproto_api.tlo scheme/telegram_api.tlo scheme/secret_api.tlo ${TL_TD_API_TLO}
   )
   if (TD_ENABLE_JNI)
     target_compile_definitions(generate_common PRIVATE TD_ENABLE_JNI=1)
@@ -110,7 +110,7 @@ if (NOT CMAKE_CROSSCOMPILING)
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND generate_c
     COMMENT "Generate C tl source files"
-    DEPENDS generate_c scheme/td_api.tlo
+    DEPENDS generate_c ${TL_TD_API_TLO}
   )
 
   add_executable(td_generate_java_api ${TL_GENERATE_JAVA_SOURCE})
@@ -122,7 +122,7 @@ if (NOT CMAKE_CROSSCOMPILING)
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND generate_json
     COMMENT "Generate JSON tl source files"
-    DEPENDS generate_json scheme/td_api.tlo
+    DEPENDS generate_json ${TL_TD_API_TLO}
   )
 
   if (TD_ENABLE_JNI)
@@ -131,12 +131,14 @@ if (NOT CMAKE_CROSSCOMPILING)
     install(FILES scheme/td_api.tlo scheme/td_api.tl DESTINATION bin/td/generate/scheme)
   endif()
   
-  add_executable(generate_td_windows_api_exe generate_td_windows_api.cpp tl_writer_win.h)
-  target_link_libraries(generate_td_windows_api_exe PRIVATE tdtl)
-  add_custom_target(generate_td_windows_api
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMAND generate_td_windows_api_exe ${TL_TD_API_TLO}
-    COMMENT "Generate tl-files"
-    DEPENDS generate_td_windows_api_exe ${TL_TD_API_TLO}
-  )
+  if (TD_ENABLE_DOTNET)
+    add_executable(td_generate_dotnet_api generate_dotnet.cpp tl_writer_dotnet.h)
+    target_link_libraries(td_generate_dotnet_api PRIVATE tdtl)
+    add_custom_target(generate_dotnet_api
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+      COMMAND td_generate_dotnet_api ${TL_TD_API_TLO}
+      COMMENT "Generate .Net API files"
+      DEPENDS td_generate_dotnet_api ${TL_TD_API_TLO}
+    )
+  endif()
 endif()
