@@ -7,6 +7,7 @@ if ("${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsStore")
 endif()
 
 option(TD_ENABLE_JNI "Use \"ON\" to enable JNI-compatible TDLib API.")
+option(TD_ENABLE_DOTNET "Use \"ON\" to enable generation of C++/CLI or C++/CX TDLib API bindings.")
 
 if (NOT DEFINED CMAKE_MODULE_PATH)
   set(CMAKE_MODULE_PATH "")
@@ -149,11 +150,6 @@ elseif (INTEL)
 endif()
 
 if (WIN32)
-  if (CMAKE_CXX_FLAGS_DEBUG MATCHES "/RTC1")
-    string(REPLACE "/RTC1" " " CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
-  endif()
-  add_definitions(-D_SCL_SECURE_NO_WARNINGS)
-
   add_definitions(-DNTDDI_VERSION=0x06020000 -DWINVER=0x0602 -D_WIN32_WINNT=0x0602 -DNOMINMAX -DUNICODE -D_UNICODE)
 endif()
 if (CYGWIN)
@@ -284,9 +280,9 @@ set(TL_C_SCHEME_SOURCE
   ${TL_C_AUTO}
 )
 
-set_source_files_properties(${TL_WINDOWS_AUTO} PROPERTIES GENERATED TRUE)
-set(TL_WINDOWS_SCHEME_SOURCE
-  ${TL_TD_WINDOWS_AUTO}
+set_source_files_properties(${TL_DOTNET_AUTO} PROPERTIES GENERATED TRUE)
+set(TL_DOTNET_SCHEME_SOURCE
+  ${TL_TD_DOTNET_AUTO}
   td/tl/tl_win_object.h
 )
 
@@ -602,7 +598,7 @@ if (TD_ENABLE_DOTNET)
   add_library(TdWindows SHARED
     td/telegram/ClientWindows.cpp
     td/telegram/LogWindows.cpp
-    ${TL_WINDOWS_SCHEME_SOURCE}
+    ${TL_DOTNET_SCHEME_SOURCE}
   )
   target_link_libraries(TdWindows PRIVATE tdclient tdutils)
   target_include_directories(TdWindows PUBLIC
