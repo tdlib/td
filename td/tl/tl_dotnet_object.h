@@ -41,7 +41,7 @@ public:
   virtual NativeObject^ ToUnmanaged();
 };
 
-//from unmanaged 
+// from unmanaged
 inline bool FromUnmanaged(bool val) {
   return val;
 }
@@ -71,7 +71,7 @@ inline auto CLRCALL BytesFromUnmanaged(const std::string &from) {
   return res;
 }
 
-template <class FromT> 
+template <class FromT>
 auto CLRCALL FromUnmanaged(std::vector<FromT> &vec) {
   using ToT = decltype(FromUnmanaged(vec[0]));
   Array<ToT>^ res = REF_NEW Vector<ToT>(td::narrow_cast<int>(vec.size()));

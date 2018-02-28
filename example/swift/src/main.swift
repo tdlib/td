@@ -97,8 +97,8 @@ func myReadLine() -> String {
     }
 }
 
-func updateAuthorizationState(authState: Dictionary<String, Any>) {
-    switch(authState["@type"] as! String) {
+func updateAuthorizationState(authorizationState: Dictionary<String, Any>) {
+    switch(authorizationState["@type"] as! String) {
         case "authorizationStateWaitTdlibParameters":
             client.queryAsync(query:[
                 "@type":"setTdlibParameters",
@@ -122,13 +122,13 @@ func updateAuthorizationState(authState: Dictionary<String, Any>) {
         case "authorizationStateWaitPhoneNumber":
             print("Enter your phone: ")
             let phone = myReadLine()
-            client.queryAsync(query:["@type":"setAuthenticationPhoneNumber", "phone_number":phone], f:checkAuthError)
+            client.queryAsync(query:["@type":"setAuthenticationPhoneNumber", "phone_number":phone], f:checkAuthenticationError)
 
         case "authorizationStateWaitCode":
             var first_name: String = ""
             var last_name: String = ""
             var code: String = ""
-            if let is_registered = authState["is_registered"] as? Bool, is_registered {
+            if let is_registered = authorizationState["is_registered"] as? Bool, is_registered {
             } else {
                 print("Enter your first name: ")
                 first_name = myReadLine()
@@ -137,12 +137,12 @@ func updateAuthorizationState(authState: Dictionary<String, Any>) {
             }
             print("Enter (SMS) code: ")
             code = myReadLine()
-            client.queryAsync(query:["@type":"checkAuthenticationCode", "code":code, "first_name":first_name, "last_name":last_name], f:checkAuthError)
+            client.queryAsync(query:["@type":"checkAuthenticationCode", "code":code, "first_name":first_name, "last_name":last_name], f:checkAuthenticationError)
 
         case "authorizationStateWaitPassword":
             print("Enter password: ")
             let password = myReadLine()
-            client.queryAsync(query:["@type":"checkAuthenticationPassword", "password":password], f:checkAuthError)
+            client.queryAsync(query:["@type":"checkAuthenticationPassword", "password":password], f:checkAuthenticationError)
 
         case "authorizationStateReady":
             ()
@@ -152,7 +152,7 @@ func updateAuthorizationState(authState: Dictionary<String, Any>) {
     }
 }
 
-func checkAuthError(error: Dictionary<String, Any>) {
+func checkAuthenticationError(error: Dictionary<String, Any>) {
     if (error["@type"] as! String == "error") {
         client.queryAsync(query:["@type":"getAuthorizationState"], f:updateAuthorizationState)
     }
@@ -162,7 +162,7 @@ client.run {
     let update = $0
     print(update)
     if update["@type"] as! String == "updateAuthorizationState" {
-        updateAuthorizationState(authState: update["authorization_state"] as! Dictionary<String, Any>)
+        updateAuthorizationState(authorizationState: update["authorization_state"] as! Dictionary<String, Any>)
     }
 }
 

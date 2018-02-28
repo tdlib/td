@@ -9,6 +9,7 @@
 #include "td/tl/tl_writer.h"
 
 #include <cassert>
+#include <cstdint>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -362,7 +363,7 @@ class TlWriterDotNet : public TL_writer {
   void gen_from_unmanaged(std::stringstream &ss, const tl_combinator *t) const {
     auto native_class_name = gen_native_class_name(t->name);
     auto class_name = gen_class_name(t->name);
-    ss << class_name << "^ FromUnmanaged(td::td_api::" << native_class_name << "& from)";
+    ss << class_name << "^ FromUnmanaged(td::td_api::" << native_class_name << " &from)";
     if (is_header_) {
       ss << ";\n";
       return;
@@ -422,7 +423,7 @@ class TlWriterDotNet : public TL_writer {
     assert(result_type->children.empty());
     return "";
   }
-  std::string gen_constructor_id_store(int32_t id, int storer_type) const override {
+  std::string gen_constructor_id_store(std::int32_t id, int storer_type) const override {
     return "";
   }
   std::string gen_field_fetch(int field_num, const arg &a, std::vector<var_description> &vars, bool flat,
@@ -454,7 +455,7 @@ class TlWriterDotNet : public TL_writer {
     return "";
   }
 
-  std::string gen_get_id(const std::string &class_name, int32_t id, bool is_proxy) const override {
+  std::string gen_get_id(const std::string &class_name, std::int32_t id, bool is_proxy) const override {
     return "";
   }
 
@@ -520,7 +521,7 @@ class TlWriterDotNet : public TL_writer {
          << "  }\n"
          << "  return td::td_api::move_object_as<td::td_api::" << native_class_name << ">(from->ToUnmanaged()->get_object_ptr());\n}\n";
     } else {
-      ss << class_name << "^ FromUnmanaged(td::td_api::" << native_class_name << "& from)";
+      ss << class_name << "^ FromUnmanaged(td::td_api::" << native_class_name << " &from)";
       if (is_header_) {
         ss << ";\n";
         return ss.str();

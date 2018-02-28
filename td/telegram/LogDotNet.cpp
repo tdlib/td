@@ -8,6 +8,8 @@
 
 #include "td/utils/port/CxCli.h"
 
+#include <cstdint>
+
 namespace Telegram {
 namespace Td {
 

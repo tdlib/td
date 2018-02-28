@@ -20,6 +20,8 @@
 #include "td/utils/Random.h"
 #include "td/utils/StringBuilder.h"
 
+#include <tuple>
+
 namespace td {
 
 namespace {
@@ -104,7 +106,7 @@ bool for_suggested_file_name(CSlice name, bool use_pmc, bool use_random, F &&cal
 Result<string> create_from_temp(CSlice temp_path, CSlice dir, CSlice name) {
   LOG(INFO) << "Create file in directory " << dir << " with suggested name " << name << " from temporary file "
             << temp_path;
-  Result<std::pair<FileFd, string>> res = Status::Error();
+  Result<std::pair<FileFd, string>> res = Status::Error(500, "Can't find suitable file name");
   for_suggested_file_name(name, true, true, [&](CSlice suggested_name) {
     res = try_create_new_file(PSLICE_SAFE() << dir << suggested_name);
     return res.is_error();
@@ -117,7 +119,7 @@ Result<string> create_from_temp(CSlice temp_path, CSlice dir, CSlice name) {
 }
 
 Result<string> search_file(CSlice dir, CSlice name, int64 expected_size) {
-  Result<std::string> res = Status::Error();
+  Result<std::string> res = Status::Error(500, "Can't find suitable file name");
   for_suggested_file_name(name, false, false, [&](CSlice suggested_name) {
     auto r_pair = try_open_file(PSLICE_SAFE() << dir << suggested_name);
     if (r_pair.is_error()) {

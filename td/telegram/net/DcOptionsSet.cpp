@@ -6,6 +6,7 @@
 //
 #include "td/telegram/net/DcOptionsSet.h"
 
+#include "td/utils/format.h"
 #include "td/utils/logging.h"
 
 #include <algorithm>
