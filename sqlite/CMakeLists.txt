@@ -31,17 +31,17 @@ if (NOT WIN32)
   target_compile_definitions(tdsqlite PRIVATE -DHAVE_USLEEP -DNDEBUG=1)
 endif()
 
-if (GCC OR CLANG)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-deprecated-declarations -Wno-unused-variable -Wno-unused-const-variable -Wno-unused-function")
-  if (CLANG)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-parentheses-equality -Wno-unused-value")
-  endif()
-elseif (MSVC)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /wd4996")
-endif()
-
 if ("${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsStore")
   target_compile_definitions(tdsqlite PRIVATE -DSQLITE_OS_WINRT=1)
+endif()
+
+if (GCC OR CLANG)
+  target_compile_options(tdsqlite PRIVATE "-Wno-deprecated-declarations -Wno-unused-variable -Wno-unused-const-variable -Wno-unused-function")
+  if (CLANG)
+    target_compile_options(tdsqlite PRIVATE "-Wno-parentheses-equality -Wno-unused-value")
+  endif()
+elseif (MSVC)
+  target_compile_options(tdsqlite PRIVATE /wd4996)
 endif()
 
 install(TARGETS tdsqlite EXPORT TdTargets
