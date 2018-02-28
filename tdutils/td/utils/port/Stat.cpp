@@ -75,7 +75,6 @@ Status update_atime(int native_fd) {
   times[0].tv_nsec = UTIME_NOW;
   // modify time
   times[1].tv_nsec = UTIME_OMIT;
-  // if (utimensat(native_fd, nullptr, times, 0) < 0) {
   if (futimens(native_fd, times) < 0) {
     auto status = OS_ERROR(PSLICE() << "futimens " << tag("fd", native_fd));
     LOG(WARNING) << status;
@@ -211,8 +210,86 @@ Result<MemStat> mem_stat() {
   return Status::Error("Not supported");
 #endif
 }
-}  // namespace td
+
+#if TD_LINUX
+Status cpu_stat_self(CpuStat &stat) {
+  TRY_RESULT(fd, FileFd::open("/proc/self/stat", FileFd::Read));
+  SCOPE_EXIT {
+    fd.close();
+  };
+
+  constexpr int TMEM_SIZE = 10000;
+  char mem[TMEM_SIZE];
+  TRY_RESULT(size, fd.read(MutableSlice(mem, TMEM_SIZE - 1)));
+  CHECK(size < TMEM_SIZE - 1);
+  mem[size] = 0;
+
+  char *s = mem;
+  char *t = mem + size;
+  int pass_cnt = 0;
+
+  while (pass_cnt < 15) {
+    if (pass_cnt == 13) {
+      stat.process_user_ticks = to_integer<uint64>(Slice(s, t));
+    }
+    if (pass_cnt == 14) {
+      stat.process_system_ticks = to_integer<uint64>(Slice(s, t));
+    }
+    while (*s && *s != ' ') {
+      s++;
+    }
+    if (*s == ' ') {
+      s++;
+      pass_cnt++;
+    } else {
+      return Status::Error("unexpected end of proc file");
+    }
+  }
+  return Status::OK();
+}
+Status cpu_stat_total(CpuStat &stat) {
+  TRY_RESULT(fd, FileFd::open("/proc/stat", FileFd::Read));
+  SCOPE_EXIT {
+    fd.close();
+  };
+
+  constexpr int TMEM_SIZE = 10000;
+  char mem[TMEM_SIZE];
+  TRY_RESULT(size, fd.read(MutableSlice(mem, TMEM_SIZE - 1)));
+  CHECK(size < TMEM_SIZE - 1);
+  mem[size] = 0;
+
+  uint64 sum = 0, cur = 0;
+  for (size_t i = 0; i < size; i++) {
+    int c = mem[i];
+    if (c >= '0' && c <= '9') {
+      cur = cur * 10 + (uint64)c - '0';
+    } else {
+      sum += cur;
+      cur = 0;
+      if (c == '\n') {
+        break;
+      }
+    }
+  }
+
+  stat.total_ticks = sum;
+  return Status::OK();
+}
 #endif
+
+Result<CpuStat> cpu_stat() {
+#if TD_LINUX
+  CpuStat stat;
+  TRY_STATUS(cpu_stat_self(stat));
+  TRY_STATUS(cpu_stat_total(stat));
+  return stat;
+#else
+  return Status::Error("Not supported");
+#endif
+}
+#endif
+}
 
 #if TD_PORT_WINDOWS
 namespace td {

@@ -41,6 +41,13 @@ struct MemStat {
 
 Result<MemStat> mem_stat() TD_WARN_UNUSED_RESULT;
 
+struct CpuStat {
+  uint64 total_ticks{0};
+  uint64 process_user_ticks{0};
+  uint64 process_system_ticks{0};
+};
+Result<CpuStat> cpu_stat() TD_WARN_UNUSED_RESULT;
+
 #endif
 
 }  // namespace td
