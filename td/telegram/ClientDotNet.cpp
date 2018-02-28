@@ -18,12 +18,12 @@ namespace Td {
 using namespace CxCli;
 
 public interface class ClientResultHandler {
-  void OnResult(BaseObject^ object);
+  void OnResult(Api::BaseObject^ object);
 };
 
 public ref class Client sealed {
 public:
-  void Send(Function^ function, ClientResultHandler^ handler) {
+  void Send(Api::Function^ function, ClientResultHandler^ handler) {
     if (function == nullptr) {
       throw REF_NEW NullReferenceException("Function can't be null");
     }
@@ -38,7 +38,7 @@ public:
     client->send(std::move(request));
   }
 
-  BaseObject^ Execute(Function^ function) {
+  Api::BaseObject^ Execute(Api::Function^ function) {
     if (function == nullptr) {
       throw REF_NEW NullReferenceException("Function can't be null");
     }
@@ -46,7 +46,7 @@ public:
     td::Client::Request request;
     request.id = 0;
     request.function = td::td_api::move_object_as<td::td_api::Function>(ToUnmanaged(function)->get_object_ptr());
-    return FromUnmanaged(*client->execute(std::move(request)).object);
+    return Api::FromUnmanaged(*client->execute(std::move(request)).object);
   }
 
   void SetUpdatesHandler(ClientResultHandler^ handler) {
@@ -57,7 +57,7 @@ public:
     while (true) {
       auto response = client->receive(10.0);
       if (response.object != nullptr) {
-        ProcessResult(response.id, FromUnmanaged(*response.object));
+        ProcessResult(response.id, Api::FromUnmanaged(*response.object));
 
         if (response.object->get_id() == td::td_api::updateAuthorizationState::ID &&
             static_cast<td::td_api::updateAuthorizationState &>(*response.object).authorization_state_->get_id() ==
@@ -86,7 +86,7 @@ private:
   ConcurrentDictionary<std::uint64_t, ClientResultHandler^> handlers;
   td::Client *client = nullptr;
 
-  void ProcessResult(std::uint64_t id, BaseObject^ object) {
+  void ProcessResult(std::uint64_t id, Api::BaseObject^ object) {
     ClientResultHandler^ handler;
     // update handler stays forever
     if (id == 0 ? handlers.TryGetValue(id, handler) : handlers.TryRemove(id, handler)) {

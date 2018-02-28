@@ -14,6 +14,7 @@
 
 namespace Telegram {
 namespace Td {
+namespace Api {
 
 using namespace CxCli;
 
@@ -174,5 +175,6 @@ inline String^ ToString(BaseObject^ from) {
   return string_from_unmanaged(td::td_api::to_string(ToUnmanaged(from)->get_object_ptr()));
 }
 
+}  // namespace Api
 }  // namespace Td
 }  // namespace Telegram
