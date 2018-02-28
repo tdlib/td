@@ -97,7 +97,8 @@ if (NOT CMAKE_CROSSCOMPILING)
   target_link_libraries(generate_common PRIVATE tdtl)
   add_custom_target(tl_generate_common
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMAND ${GENERATE_COMMON_CMD} COMMENT "Generate common tl source files"
+    COMMAND ${GENERATE_COMMON_CMD}
+    COMMENT "Generate common tl source files"
     DEPENDS generate_common scheme/mtproto_api.tlo scheme/telegram_api.tlo scheme/secret_api.tlo ${TL_TD_API_TLO}
   )
   if (TD_ENABLE_JNI)
