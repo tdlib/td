@@ -2798,11 +2798,14 @@ class CliClient final : public Actor {
     } else if (op == "sproxy") {
       string server;
       string port;
-      std::tie(server, port) = split(args);
+      string user;
+      string password;
+      std::tie(server, args) = split(args);
+      std::tie(port, args) = split(args);
+      std::tie(user, password) = split(args);
 
       send_request(make_tl_object<td_api::setProxy>(
-          make_tl_object<td_api::proxySocks5>(server.empty() ? "162.213.174.36" : server,
-                                              port.empty() ? 13313 : to_integer<int32>(port), "sosouser", "SoSo23")));
+          make_tl_object<td_api::proxySocks5>(server, to_integer<int32>(port), user, password)));
     } else if (op == "gproxy") {
       send_request(make_tl_object<td_api::getProxy>());
     } else if (op == "SetVerbosity") {
