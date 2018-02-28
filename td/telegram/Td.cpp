@@ -2096,16 +2096,32 @@ class CheckChatInviteLinkRequest : public RequestActor<> {
   }
 };
 
-class JoinChatByInviteLinkRequest : public RequestOnceActor {
+class JoinChatByInviteLinkRequest : public RequestActor<DialogId> {
   string invite_link_;
 
-  void do_run(Promise<Unit> &&promise) override {
+  DialogId dialog_id_;
+
+  void do_run(Promise<DialogId> &&promise) override {
+    if (get_tries() < 2) {
+      promise.set_value(std::move(dialog_id_));
+      return;
+    }
     td->contacts_manager_->import_dialog_invite_link(invite_link_, std::move(promise));
+  }
+
+  void do_set_result(DialogId &&result) override {
+    dialog_id_ = result;
+  }
+
+  void do_send_result() override {
+    CHECK(dialog_id_.is_valid());
+    td->messages_manager_->force_create_dialog(dialog_id_, "join chat by invite link");
+    send_result(td->messages_manager_->get_chat_object(dialog_id_));
   }
 
  public:
   JoinChatByInviteLinkRequest(ActorShared<Td> td, uint64 request_id, string invite_link)
-      : RequestOnceActor(std::move(td), request_id), invite_link_(std::move(invite_link)) {
+      : RequestActor(std::move(td), request_id), invite_link_(std::move(invite_link)) {
   }
 };
 

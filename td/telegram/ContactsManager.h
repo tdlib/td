@@ -57,6 +57,10 @@ class ContactsManager : public Actor {
  public:
   ContactsManager(Td *td, ActorShared<> parent);
 
+  static UserId get_user_id(const tl_object_ptr<telegram_api::User> &user);
+  static ChatId get_chat_id(const tl_object_ptr<telegram_api::Chat> &chat);
+  static ChannelId get_channel_id(const tl_object_ptr<telegram_api::Chat> &chat);
+
   tl_object_ptr<telegram_api::InputUser> get_input_user(UserId user_id) const;
   bool have_input_user(UserId user_id) const;
 
@@ -185,6 +189,8 @@ class ContactsManager : public Actor {
   void on_get_dialog_invite_link_info(const string &invite_link,
                                       tl_object_ptr<telegram_api::ChatInvite> &&chat_invite_ptr);
 
+  void invalidate_invite_link(const string &invite_link);
+
   void on_get_created_public_channels(vector<tl_object_ptr<telegram_api::Chat>> &&chats);
 
   void on_get_user_full_success(UserId user_id);
@@ -300,7 +306,7 @@ class ContactsManager : public Actor {
 
   void check_dialog_invite_link(const string &invite_link, Promise<Unit> &&promise) const;
 
-  void import_dialog_invite_link(const string &invite_link, Promise<Unit> &&promise);
+  void import_dialog_invite_link(const string &invite_link, Promise<DialogId> &&promise);
 
   string get_chat_invite_link(ChatId chat_id) const;
 
@@ -732,10 +738,6 @@ class ContactsManager : public Actor {
   static constexpr int32 ACCOUNT_UPDATE_ABOUT = 1 << 2;
 
   static const CSlice INVITE_LINK_URLS[3];
-
-  static UserId get_user_id(const tl_object_ptr<telegram_api::User> &user);
-  static ChatId get_chat_id(const tl_object_ptr<telegram_api::Chat> &chat);
-  static ChannelId get_channel_id(const tl_object_ptr<telegram_api::Chat> &chat);
 
   static bool have_input_peer_user(const User *user, AccessRights access_rights);
   static bool have_input_peer_chat(const Chat *chat, AccessRights access_rights);

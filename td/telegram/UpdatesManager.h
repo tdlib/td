@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/PtsManager.h"
 
 #include "td/telegram/td_api.h"
@@ -35,6 +36,8 @@ class UpdatesManager : public Actor {
   std::unordered_set<int64> get_sent_messages_random_ids(const telegram_api::Updates *updates_ptr);
 
   vector<const tl_object_ptr<telegram_api::Message> *> get_new_messages(const telegram_api::Updates *updates_ptr);
+
+  vector<DialogId> get_chats(const telegram_api::Updates *updates_ptr);
 
   void get_difference(const char *source);
 

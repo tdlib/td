@@ -837,6 +837,52 @@ vector<const tl_object_ptr<telegram_api::Message> *> UpdatesManager::get_new_mes
   return messages;
 }
 
+vector<DialogId> UpdatesManager::get_chats(const telegram_api::Updates *updates_ptr) {
+  const vector<tl_object_ptr<telegram_api::Chat>> *chats = nullptr;
+  switch (updates_ptr->get_id()) {
+    case telegram_api::updatesTooLong::ID:
+    case telegram_api::updateShortMessage::ID:
+    case telegram_api::updateShortChatMessage::ID:
+    case telegram_api::updateShort::ID:
+    case telegram_api::updateShortSentMessage::ID:
+      LOG(ERROR) << "Receive " << oneline(to_string(*updates_ptr)) << " instead of updates";
+      break;
+    case telegram_api::updatesCombined::ID: {
+      chats = &static_cast<const telegram_api::updatesCombined *>(updates_ptr)->chats_;
+      break;
+    }
+    case telegram_api::updates::ID: {
+      chats = &static_cast<const telegram_api::updates *>(updates_ptr)->chats_;
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+
+  if (chats == nullptr) {
+    return {};
+  }
+
+  vector<DialogId> dialog_ids;
+  dialog_ids.reserve(chats->size());
+  for (const auto &chat : *chats) {
+    auto chat_id = ContactsManager::get_chat_id(chat);
+    if (chat_id.is_valid()) {
+      dialog_ids.push_back(DialogId(chat_id));
+      continue;
+    }
+
+    auto channel_id = ContactsManager::get_channel_id(chat);
+    if (channel_id.is_valid()) {
+      dialog_ids.push_back(DialogId(channel_id));
+      continue;
+    }
+
+    LOG(ERROR) << "Can't find id of " << oneline(to_string(chat));
+  }
+  return dialog_ids;
+}
+
 void UpdatesManager::init_state() {
   if (!td_->auth_manager_->is_authorized()) {
     return;

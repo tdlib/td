@@ -2157,7 +2157,7 @@ searchChatRecentLocationMessages chat_id:int53 limit:int32 = Messages;
 getActiveLiveLocationMessages = Messages;
 
 //@description Returns the last message sent in a chat no later than the specified date @chat_id Chat identifier @date Point in time (Unix timestamp) relative to which to search for messages
-getChatMessageByDate chat_id:int53 date:int32 = Messages;
+getChatMessageByDate chat_id:int53 date:int32 = Message;
 
 
 //@description Returns a public HTTPS link to a message. Available only for messages in public supergroups and channels
@@ -2419,7 +2419,7 @@ checkChatInviteLink invite_link:string = ChatInviteLinkInfo;
 
 //@description Uses an invite link to add the current user to the chat if possible. The new member will not be added until the chat state has been synchronized with the server
 //@invite_link Invite link to import; should begin with "https://t.me/joinchat/", "https://telegram.me/joinchat/", or "https://telegram.dog/joinchat/"
-joinChatByInviteLink invite_link:string = Ok;
+joinChatByInviteLink invite_link:string = Chat;
 
 
 //@description Creates a new call @user_id Identifier of the user to be called @protocol Description of the call protocols supported by the client

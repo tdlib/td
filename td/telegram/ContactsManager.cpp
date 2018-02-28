@@ -1403,13 +1403,16 @@ class CheckDialogInviteLinkQuery : public Td::ResultHandler {
 };
 
 class ImportDialogInviteLinkQuery : public Td::ResultHandler {
-  Promise<Unit> promise_;
+  Promise<DialogId> promise_;
+
+  string invite_link_;
 
  public:
-  explicit ImportDialogInviteLinkQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit ImportDialogInviteLinkQuery(Promise<DialogId> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(const string &invite_link) {
+    invite_link_ = invite_link;
     send_query(G()->net_query_creator().create(create_storer(
         telegram_api::messages_importChatInvite(ContactsManager::get_dialog_invite_link_hash(invite_link).str()))));
   }
@@ -1423,11 +1426,19 @@ class ImportDialogInviteLinkQuery : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for importChatInvite: " << to_string(ptr);
 
+    auto dialog_ids = td->updates_manager_->get_chats(ptr.get());
+    if (dialog_ids.size() != 1u) {
+      LOG(ERROR) << "Receive wrong result for ImportDialogInviteLinkQuery: " << to_string(ptr);
+      return on_error(id, Status::Error(500, "Internal Server Error"));
+    }
+
     td->updates_manager_->on_get_updates(std::move(ptr));
-    promise_.set_value(Unit());
+    td->contacts_manager_->invalidate_invite_link(invite_link_);
+    promise_.set_value(std::move(dialog_ids[0]));
   }
 
   void on_error(uint64 id, Status status) override {
+    td->contacts_manager_->invalidate_invite_link(invite_link_);
     promise_.set_error(std::move(status));
   }
 };
@@ -4199,7 +4210,7 @@ void ContactsManager::check_dialog_invite_link(const string &invite_link, Promis
   td_->create_handler<CheckDialogInviteLinkQuery>(std::move(promise))->send(invite_link);
 }
 
-void ContactsManager::import_dialog_invite_link(const string &invite_link, Promise<Unit> &&promise) {
+void ContactsManager::import_dialog_invite_link(const string &invite_link, Promise<DialogId> &&promise) {
   if (!is_valid_invite_link(invite_link)) {
     return promise.set_error(Status::Error(3, "Wrong invite link"));
   }
@@ -7107,6 +7118,10 @@ bool ContactsManager::update_invite_link(string &invite_link,
     return true;
   }
   return false;
+}
+
+void ContactsManager::invalidate_invite_link(const string &invite_link) {
+  invite_link_infos_.erase(invite_link);
 }
 
 void ContactsManager::repair_chat_participants(ChatId chat_id) {
