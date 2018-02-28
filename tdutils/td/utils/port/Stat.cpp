@@ -288,8 +288,8 @@ Result<CpuStat> cpu_stat() {
   return Status::Error("Not supported");
 #endif
 }
-#endif
 }
+#endif
 
 #if TD_PORT_WINDOWS
 namespace td {

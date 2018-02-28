@@ -1,0 +1,15 @@
+<PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011">
+  <Metadata>
+    <Identity Id="TDLib.UWP" Version="1.1.3" Language="en-US" Publisher="Telegram team" />
+    <DisplayName>TDLib for Universal Windows Platform</DisplayName>
+    <Description>TDLib is a library for building Telegram clients</Description>
+    <MoreInfo>https://core.telegram.org/tdlib</MoreInfo>
+    <Tags>Telegram, TDLib</Tags>
+  </Metadata>
+  <Installation AllUsers="true" Scope="Global">
+    <InstallationTarget Id="Microsoft.ExtensionSDK" TargetPlatformIdentifier="UAP" TargetPlatformVersion="v0.8.0.0" SdkName="TDLib.UWP" SdkVersion="1.0" />
+  </Installation>
+  <Assets>
+    <Asset Type="Microsoft.ExtensionSDK" Path="SDKManifest.xml" />
+  </Assets>
+</PackageManifest>

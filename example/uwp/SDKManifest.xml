@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<FileList
+    DisplayName="TDLib for Universal Windows Platfrom"
+    ProductFamilyName="TDLib.UWP"
+    MoreInfo="https://core.telegram.org/tdlib"
+    MinVSVersion="14.0"
+    AppliesTo="WindowsAppContainer"
+    DependsOn="Microsoft.VCLibs, version=14.0"
+    SupportsMultipleVersions="Error"
+    SupportedArchitectures="x86;x64;ARM">
+  <File Reference="tddotnet.winmd" Implementation="tddotnet.dll" />
+</FileList>
