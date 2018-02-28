@@ -8,7 +8,8 @@
 
 #include "td/utils/port/CxCli.h"
 
-namespace TdWindows {
+namespace Telegram {
+namespace Td {
 
 using namespace CxCli;
 
@@ -27,4 +28,5 @@ public:
   }
 };
 
-}  // namespace TdWindows
+}  // namespace Td
+}  // namespace Telegram

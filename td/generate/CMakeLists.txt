@@ -37,7 +37,7 @@ set(TL_C_AUTO
   PARENT_SCOPE
 )
 
-set(TL_TD_DOTNET_AUTO
+set(TL_DOTNET_AUTO
   ${CMAKE_CURRENT_SOURCE_DIR}/auto/td/telegram/TdDotNetApi.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/auto/td/telegram/TdDotNetApi.h
   PARENT_SCOPE

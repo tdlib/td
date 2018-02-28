@@ -180,10 +180,12 @@ class TlWriterDotNet : public TL_writer {
     return prefix_ +
            "#include \"td/utils/port/CxCli.h\"\n"
            "#include \"td/tl/tl_dotnet_object.h\"\n\n"
-           "namespace TdWindows {\n";
+           "namespace Telegram {\n"
+           "namespace Td {\n";
   }
   std::string gen_output_end() const override {
-    return "}\n";
+    return "}\n"
+           "}\n";
   }
 
   std::string gen_forward_class_declaration(const std::string &class_name, bool is_proxy) const override {
@@ -221,7 +223,7 @@ class TlWriterDotNet : public TL_writer {
       fixed_field_name += "Value";
     }
     if (type_name.substr(0, field_name.size()) == field_name) {
-      auto fixed_type_name = "::TdWindows::" + type_name;
+      auto fixed_type_name = "::Telegram::Td::" + type_name;
       std::stringstream ss;
       ss << "private:\n";
       ss << "  " << fixed_type_name << " " << fixed_field_name << "Private;\n";
@@ -248,14 +250,14 @@ class TlWriterDotNet : public TL_writer {
     ss << "\n";
     if (storer_type) {
       ss << (is_header_ ? "  virtual " : "") << "String^ " << (is_header_ ? "" : gen_class_name(class_name) + "::")
-         << "ToString()" << (is_header_ ? " override;" : " {\n  return ::TdWindows::ToString(this);\n}") << "\n";
+         << "ToString()" << (is_header_ ? " override;" : " {\n  return ::Telegram::Td::ToString(this);\n}") << "\n";
     } else {
       ss << (is_header_ ? "  virtual " : "") << "NativeObject^ "
          << (is_header_ ? "" : gen_class_name(class_name) + "::") << "ToUnmanaged()";
       if (is_header_) {
         ss << ";\n";
       } else {
-        ss << "{\n  return REF_NEW NativeObject(::TdWindows::ToUnmanaged(this).release());\n}\n";
+        ss << "{\n  return REF_NEW NativeObject(::Telegram::Td::ToUnmanaged(this).release());\n}\n";
       }
     }
     return ss.str();
@@ -280,7 +282,7 @@ class TlWriterDotNet : public TL_writer {
     if (field_type.substr(0, 5) == "Array") {
       ss << "CXCONST ";
     } else if (field_type.substr(0, 6) != "String" && to_upper(field_type[0]) == field_type[0]) {
-      field_type = "::TdWindows::" + field_type;
+      field_type = "::Telegram::Td::" + field_type;
     }
     ss << field_type << " " << to_camelCase(a.name);
     return ss.str();

@@ -12,7 +12,9 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/td_api.hpp"
 
-namespace TdWindows {
+namespace Telegram {
+namespace Td {
+
 using namespace CxCli;
 
 public ref class NativeObject sealed {
@@ -172,4 +174,5 @@ inline String^ ToString(BaseObject^ from) {
   return string_from_unmanaged(td::td_api::to_string(ToUnmanaged(from)->get_object_ptr()));
 }
 
-}  // namespace TdWindows
+}  // namespace Td
+}  // namespace Telegram

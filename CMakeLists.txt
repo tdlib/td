@@ -281,7 +281,7 @@ set(TL_C_SCHEME_SOURCE
 
 set_source_files_properties(${TL_DOTNET_AUTO} PROPERTIES GENERATED TRUE)
 set(TL_DOTNET_SCHEME_SOURCE
-  ${TL_TD_DOTNET_AUTO}
+  ${TL_DOTNET_AUTO}
   td/tl/tl_dotnet_object.h
 )
 
