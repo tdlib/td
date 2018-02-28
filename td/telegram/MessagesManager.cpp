@@ -20976,7 +20976,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(DialogId dialog
 
   MessageId message_id = message->message_id;
   if (!message_id.is_valid()) {
-    LOG(ERROR) << "Receive " << message_id << " in " << dialog_id;
+    LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " from " << source;
     debug_add_message_to_dialog_fail_reason = "invalid message id";
     return nullptr;
   }
@@ -21005,17 +21005,17 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   MessageId message_id = message->message_id;
 
   if (d->deleted_message_ids.count(message_id)) {
-    LOG(INFO) << "Skip adding deleted " << message_id << " to " << dialog_id;
+    LOG(INFO) << "Skip adding deleted " << message_id << " to " << dialog_id << " from " << source;
     debug_add_message_to_dialog_fail_reason = "adding deleted message";
     return nullptr;
   }
   if (message_id.get() <= d->last_clear_history_message_id.get()) {
-    LOG(INFO) << "Skip adding cleared " << message_id << " to " << dialog_id;
+    LOG(INFO) << "Skip adding cleared " << message_id << " to " << dialog_id << " from " << source;
     debug_add_message_to_dialog_fail_reason = "cleared full history";
     return nullptr;
   }
   if (d->deleted_message_ids.count(message->reply_to_message_id)) {
-    // LOG(INFO) << "Remove reply to deleted " << message->reply_to_message_id << " in " << message_id << " from " << dialog_id;
+    // LOG(INFO) << "Remove reply to deleted " << message->reply_to_message_id << " in " << message_id << " from " << dialog_id << " from " << source;
     // we don't want to lose information that the message was a reply for now
     // message->reply_to_message_id = MessageId();
   }
@@ -21074,7 +21074,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
   if ((message_id.is_server() || (message_id.is_local() && dialog_id.get_type() == DialogType::SecretChat)) &&
       message_id.get() <= d->max_unavailable_message_id.get()) {
-    LOG(INFO) << "Can't add an unavailable " << message_id << " to " << dialog_id;
+    LOG(INFO) << "Can't add an unavailable " << message_id << " to " << dialog_id << " from " << source;
     if (message->from_database) {
       delete_message_from_database(d, message_id, message.get(), true);
     }
@@ -21148,7 +21148,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     if ((*v)->message_id.get() < message_id.get()) {
       v = &(*v)->right;
     } else if ((*v)->message_id == message_id) {
-      LOG(INFO) << "Adding already existing " << message_id << " in " << dialog_id;
+      LOG(INFO) << "Adding already existing " << message_id << " in " << dialog_id << " from " << source;
       if (*need_update) {
         *need_update = false;
         if (!G()->parameters().use_message_db) {
@@ -21181,7 +21181,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   if (d->have_full_history && !message->from_database && !from_update && !message_id.is_local() &&
       !message_id.is_yet_unsent()) {
-    LOG(ERROR) << "Have full history in " << dialog_id << ", but receive unknown " << message_id << ". Last new is "
+    LOG(ERROR) << "Have full history in " << dialog_id << ", but receive unknown " << message_id << " from " << source << ". Last new is "
                << d->last_new_message_id << ", last is " << d->last_message_id << ", first database is "
                << d->first_database_message_id << ", last database is " << d->last_database_message_id
                << ", last read inbox is " << d->last_read_inbox_message_id << ", last read outbox is "
@@ -21201,7 +21201,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     auto now = Time::now();
     if (message->ttl_expires_at <= now) {
       if (d->dialog_id.get_type() == DialogType::SecretChat) {
-        LOG(INFO) << "Can't add " << message_id << " with expired TTL to " << dialog_id;
+        LOG(INFO) << "Can't add " << message_id << " with expired TTL to " << dialog_id << " from " << source;
         delete_message_from_database(d, message_id, message.get(), true);
         debug_add_message_to_dialog_fail_reason = "delete expired by TTL message";
         return nullptr;
@@ -21217,7 +21217,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
-  LOG(INFO) << "Adding not found " << message_id << " to " << dialog_id;
+  LOG(INFO) << "Adding not found " << message_id << " to " << dialog_id << " from " << source;
   if (d->is_empty) {
     d->is_empty = false;
     *need_update_dialog_pos = true;
@@ -21242,7 +21242,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   if (G()->parameters().use_file_db && message_id.is_yet_unsent() && !message->via_bot_user_id.is_valid()) {
     auto queue_id = get_sequence_dispatcher_id(dialog_id, message_content_id);
     if (queue_id & 1) {
-      LOG(INFO) << "Add " << message_id << " to queue " << queue_id;
+      LOG(INFO) << "Add " << message_id << " from " << source << " to queue " << queue_id;
       yet_unsent_media_queues_[queue_id][message_id.get()];  // reserve place for promise
     }
   }
@@ -21322,7 +21322,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       if (next_message != nullptr) {
         CHECK(!next_message->have_previous);
         LOG(INFO) << "Attach " << message_id << " to the next " << next_message->message_id;
-        LOG_IF(ERROR, from_update) << "Attach " << message_id << " to the next " << next_message->message_id << " in "
+        LOG_IF(ERROR, from_update) << "Attach " << message_id << " from " << source << " to the next " << next_message->message_id << " in "
                                    << dialog_id;
         message->have_next = true;
         message->have_previous = next_message->have_previous;
