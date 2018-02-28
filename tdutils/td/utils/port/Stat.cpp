@@ -299,5 +299,9 @@ Result<Stat> stat(CSlice path) {
   return fd.stat();
 }
 
+Result<CpuStat> cpu_stat() {
+  return Status::Error("Not supported");
+}
+
 }  // namespace td
 #endif
