@@ -66,7 +66,7 @@ Result<FileLoader::FileInfo> FileDownloader::init() {
       ready_part_count = partial.ready_part_count_;
     }
   }
-  if (search_file_ && fd_.empty() && size_ > 0 && size_ < 1000 * (1 << 20) && encryption_key_.empty() &&
+  if (false && search_file_ && fd_.empty() && size_ > 0 && size_ < 1000 * (1 << 20) && encryption_key_.empty() &&
       !remote_.is_web()) {
     [&] {
       TRY_RESULT(path, search_file(get_files_dir(remote_.file_type_), name_, size_));
