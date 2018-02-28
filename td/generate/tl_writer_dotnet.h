@@ -218,7 +218,7 @@ class TlWriterDotNet : public TL_writer {
     }
     auto fixed_field_name = field_name;
     if (field_name == class_name) {
-      fixed_field_name += "Data";
+      fixed_field_name += "Value";
     }
     if (type_name.substr(0, field_name.size()) == field_name) {
       auto fixed_type_name = "::TdWindows::" + type_name;
@@ -296,7 +296,7 @@ class TlWriterDotNet : public TL_writer {
     }
     auto field_name = gen_field_name(a.name);
     if (field_name == class_name) {
-      field_name += "Data";
+      field_name += "Value";
     }
     ss << "  " << field_name << " = " << to_camelCase(a.name) << ";\n";
 
@@ -350,7 +350,7 @@ class TlWriterDotNet : public TL_writer {
       }
       auto field_name = gen_field_name(it.name);
       if (field_name == class_name) {
-        field_name += "Data";
+        field_name += "Value";
       }
       ss << "ToUnmanaged(from->" << field_name << ")";
     }
