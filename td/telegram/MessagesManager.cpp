@@ -5232,9 +5232,9 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
       std::move(update->media_),
       td_->auth_manager_->is_bot() ? DialogId() : get_service_notifications_dialog()->dialog_id, false, UserId(), &ttl);
   if ((update->flags_ & telegram_api::updateServiceNotification::POPUP_MASK) != 0) {
-    send_closure(
-        G()->td(), &Td::send_update,
-        make_tl_object<td_api::updateServiceNotification>(update->type_, get_message_content_object(content.get())));
+    send_closure(G()->td(), &Td::send_update,
+                 make_tl_object<td_api::updateServiceNotification>(
+                     update->type_, get_message_content_object(content.get(), update->inbox_date_)));
   }
   if ((update->flags_ & telegram_api::updateServiceNotification::INBOX_DATE_MASK) != 0 &&
       !td_->auth_manager_->is_bot()) {
@@ -8395,7 +8395,8 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
   }
 }
 
-tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_object(const MessageContent *content) const {
+tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_object(const MessageContent *content,
+                                                                                  int32 message_date) const {
   CHECK(content != nullptr);
   switch (content->get_id()) {
     case MessageAnimation::ID: {
@@ -8431,11 +8432,13 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
     }
     case MessageLiveLocation::ID: {
       const MessageLiveLocation *m = static_cast<const MessageLiveLocation *>(content);
-      return make_tl_object<td_api::messageLocation>(m->location.get_location_object(), m->period);
+      auto passed = max(G()->unix_time_cached() - message_date, 0);
+      return make_tl_object<td_api::messageLocation>(m->location.get_location_object(), m->period,
+                                                     max(0, m->period - passed));
     }
     case MessageLocation::ID: {
       const MessageLocation *m = static_cast<const MessageLocation *>(content);
-      return make_tl_object<td_api::messageLocation>(m->location.get_location_object(), 0);
+      return make_tl_object<td_api::messageLocation>(m->location.get_location_object(), 0, 0);
     }
     case MessagePhoto::ID: {
       const MessagePhoto *m = static_cast<const MessagePhoto *>(content);
@@ -8773,7 +8776,8 @@ void MessagesManager::on_message_ttl_expired(Dialog *d, Message *message) {
   CHECK(d->dialog_id.get_type() != DialogType::SecretChat);
   ttl_unregister_message(d->dialog_id, message, Time::now());
   on_message_ttl_expired_impl(d, message);
-  send_update_message_content(d->dialog_id, message->message_id, message->content.get(), "on_message_ttl_expired");
+  send_update_message_content(d->dialog_id, message->message_id, message->content.get(), message->date,
+                              "on_message_ttl_expired");
 }
 
 void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *message) {
@@ -9619,7 +9623,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     if (!is_allowed_media_group_content(content_id)) {
       LOG(ERROR) << "Receive media group id " << message_info.media_album_id << " in " << message_id << " from "
                  << dialog_id << " with content "
-                 << oneline(to_string(get_message_content_object(message->content.get())));
+                 << oneline(to_string(get_message_content_object(message->content.get(), message->date)));
     } else {
       message->media_album_id = message_info.media_album_id;
     }
@@ -10006,7 +10010,7 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
     m->content = std::move(new_content);
   }
   if (need_update) {
-    send_update_message_content(dialog_id, m->message_id, m->content.get(), "on_update_sent_text_message");
+    send_update_message_content(dialog_id, m->message_id, m->content.get(), m->date, "on_update_sent_text_message");
   }
 }
 
@@ -10043,8 +10047,7 @@ void MessagesManager::on_update_message_web_page(FullMessageId full_message_id, 
     return;
   }
 
-  send_update_message_content(full_message_id.get_dialog_id(), full_message_id.get_message_id(), content,
-                              "on_update_message_web_page");
+  send_update_message_content(dialog_id, message_id, content, message->date, "on_update_message_web_page");
 }
 
 void MessagesManager::on_get_dialogs(vector<tl_object_ptr<telegram_api::dialog>> &&dialogs, int32 total_count,
@@ -13897,7 +13900,8 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
       message->ttl_expires_at != 0 ? max(message->ttl_expires_at - Time::now(), 1e-3) : message->ttl,
       td_->contacts_manager_->get_user_id_object(message->via_bot_user_id, "via_bot_user_id"),
       message->author_signature, message->views, message->media_album_id,
-      get_message_content_object(message->content.get()), get_reply_markup_object(message->reply_markup));
+      get_message_content_object(message->content.get(), message->date),
+      get_reply_markup_object(message->reply_markup));
 }
 
 tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(int32 total_count, DialogId dialog_id,
@@ -17908,13 +17912,14 @@ void MessagesManager::send_update_message_send_succeeded(Dialog *d, MessageId ol
 }
 
 void MessagesManager::send_update_message_content(DialogId dialog_id, MessageId message_id,
-                                                  const MessageContent *content, const char *source) const {
+                                                  const MessageContent *content, int32 message_date,
+                                                  const char *source) const {
   LOG(INFO) << "Send updateMessageContent for " << message_id << " in " << dialog_id << " from " << source;
   CHECK(have_dialog(dialog_id)) << "Send updateMessageContent in unknown " << dialog_id << " from " << source
                                 << " with load count " << loaded_dialogs_.count(dialog_id);
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateMessageContent>(dialog_id.get(), message_id.get(),
-                                                            get_message_content_object(content)));
+                                                            get_message_content_object(content, message_date)));
 }
 
 void MessagesManager::send_update_message_edited(FullMessageId full_message_id) const {
@@ -18291,7 +18296,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
     }
   }
   if (is_content_changed) {
-    send_update_message_content(dialog_id, old_message_id, sent_message->content.get(), source);
+    send_update_message_content(dialog_id, old_message_id, sent_message->content.get(), sent_message->date, source);
   }
 
   sent_message->message_id = new_message_id;
@@ -21181,11 +21186,11 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   if (d->have_full_history && !message->from_database && !from_update && !message_id.is_local() &&
       !message_id.is_yet_unsent()) {
-    LOG(ERROR) << "Have full history in " << dialog_id << ", but receive unknown " << message_id << " from " << source << ". Last new is "
-               << d->last_new_message_id << ", last is " << d->last_message_id << ", first database is "
-               << d->first_database_message_id << ", last database is " << d->last_database_message_id
-               << ", last read inbox is " << d->last_read_inbox_message_id << ", last read outbox is "
-               << d->last_read_inbox_message_id << ", last read all mentions is "
+    LOG(ERROR) << "Have full history in " << dialog_id << ", but receive unknown " << message_id << " from " << source
+               << ". Last new is " << d->last_new_message_id << ", last is " << d->last_message_id
+               << ", first database is " << d->first_database_message_id << ", last database is "
+               << d->last_database_message_id << ", last read inbox is " << d->last_read_inbox_message_id
+               << ", last read outbox is " << d->last_read_inbox_message_id << ", last read all mentions is "
                << d->last_read_all_mentions_message_id << ", max unavailable is " << d->max_unavailable_message_id
                << ", last assigned is " << d->last_assigned_message_id;
     d->have_full_history = false;
@@ -21322,8 +21327,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       if (next_message != nullptr) {
         CHECK(!next_message->have_previous);
         LOG(INFO) << "Attach " << message_id << " to the next " << next_message->message_id;
-        LOG_IF(ERROR, from_update) << "Attach " << message_id << " from " << source << " to the next " << next_message->message_id << " in "
-                                   << dialog_id;
+        LOG_IF(ERROR, from_update) << "Attach " << message_id << " from " << source << " to the next "
+                                   << next_message->message_id << " in " << dialog_id;
         message->have_next = true;
         message->have_previous = next_message->have_previous;
         next_message->have_previous = true;
@@ -22102,7 +22107,8 @@ bool MessagesManager::update_message_content(DialogId dialog_id, const Message *
         if (old_->text.text != new_->text.text) {
           if (need_message_text_changed_warning(old_message, old_, new_)) {
             LOG(ERROR) << "Message text has changed for " << to_string(get_message_object(dialog_id, old_message))
-                       << ". New content is " << to_string(get_message_content_object(new_content.get()));
+                       << ". New content is "
+                       << to_string(get_message_content_object(new_content.get(), old_message->date));
           }
           need_update = true;
         }
@@ -22111,7 +22117,8 @@ bool MessagesManager::update_message_content(DialogId dialog_id, const Message *
           if (need_message_text_changed_warning(old_message, old_, new_) &&
               old_->text.entities.size() <= MAX_CUSTOM_ENTITIES_COUNT) {
             LOG(WARNING) << "Entities has changed for " << to_string(get_message_object(dialog_id, old_message))
-                         << ". New content is " << to_string(get_message_content_object(new_content.get()));
+                         << ". New content is "
+                         << to_string(get_message_content_object(new_content.get(), old_message->date));
           }
           need_update = true;
         }
@@ -22467,7 +22474,8 @@ bool MessagesManager::update_message_content(DialogId dialog_id, const Message *
   }
 
   if (need_update && need_send_update_message_content) {
-    send_update_message_content(dialog_id, old_message->message_id, old_content.get(), "update_message_content");
+    send_update_message_content(dialog_id, old_message->message_id, old_content.get(), old_message->date,
+                                "update_message_content");
   }
   return is_content_changed || need_update;
 }

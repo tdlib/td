@@ -2068,7 +2068,7 @@ class MessagesManager : public Actor {
   void send_update_message_send_succeeded(Dialog *d, MessageId old_message_id, const Message *m) const;
 
   void send_update_message_content(DialogId dialog_id, MessageId message_id, const MessageContent *content,
-                                   const char *source) const;
+                                   int32 message_date, const char *source) const;
 
   void send_update_message_edited(FullMessageId full_message_id) const;
 
@@ -2263,7 +2263,8 @@ class MessagesManager : public Actor {
   unique_ptr<MessageContent> get_message_action_content(tl_object_ptr<telegram_api::MessageAction> &&action,
                                                         DialogId owner_dialog_id, MessageId reply_to_message_id) const;
 
-  tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content) const;
+  tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content,
+                                                                   int32 message_date) const;
 
   static FormattedText get_message_content_caption(const MessageContent *content);
 

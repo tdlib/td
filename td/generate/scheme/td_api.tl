@@ -832,7 +832,8 @@ messageVideoNote video_note:videoNote is_viewed:Bool = MessageContent;
 messageVoiceNote voice_note:voiceNote caption:formattedText is_listened:Bool = MessageContent;
 
 //@description A message with a location @location Message content @live_period Time relative to the message sent date until which the location can be updated, in seconds
-messageLocation location:location live_period:int32 = MessageContent;
+//@expires_in Left time for which the location can be updated, in seconds. updateMessageContent is not sent when this field changes
+messageLocation location:location live_period:int32 expires_in:int32 = MessageContent;
 
 //@description A message with information about a venue @venue Message content
 messageVenue venue:venue = MessageContent;
