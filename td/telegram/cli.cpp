@@ -2623,7 +2623,13 @@ class CliClient final : public Actor {
       std::tie(group_id, everyone_is_administrator) = split(args);
       send_request(make_tl_object<td_api::toggleBasicGroupAdministrators>(to_integer<int32>(group_id),
                                                                           as_bool(everyone_is_administrator)));
-    } else if (op == "csgun" || op == "cchun") {
+    } else if (op == "ccun") {
+      string chat_id;
+      string username;
+
+      std::tie(chat_id, username) = split(args);
+      send_request(make_tl_object<td_api::checkChatUsername>(as_chat_id(chat_id), username));
+    } else if (op == "ssgun" || op == "schun") {
       string supergroup_id;
       string username;
 

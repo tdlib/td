@@ -53,6 +53,8 @@ struct BotData {
 
 enum class ChannelType { Broadcast, Megagroup, Unknown };
 
+enum class CheckDialogUsernameResult { Ok, Invalid, Occupied, PublicDialogsTooMuch, PublicGroupsUnavailable };
+
 class ContactsManager : public Actor {
  public:
   ContactsManager(Td *td, ActorShared<> parent);
@@ -211,6 +213,11 @@ class ContactsManager : public Actor {
   void on_update_online_status_privacy();
 
   void on_channel_unban_timeout(ChannelId channel_id);
+
+  void check_dialog_username(DialogId dialog_id, const string &username, Promise<CheckDialogUsernameResult> &&promise);
+
+  static td_api::object_ptr<td_api::CheckChatUsernameResult> get_check_chat_username_result_object(
+      CheckDialogUsernameResult result);
 
   void set_account_ttl(int32 account_ttl, Promise<Unit> &&promise) const;
   void get_account_ttl(Promise<int32> &&promise) const;

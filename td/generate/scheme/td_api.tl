@@ -1464,6 +1464,24 @@ wallpapers wallpapers:vector<wallpaper> = Wallpapers;
 hashtags hashtags:vector<string> = Hashtags;
 
 
+//@class CheckChatUsernameResult @description Represents result of checking whether a username can be set for a chat
+
+//@description The username can be set
+checkChatUsernameResultOk = CheckChatUsernameResult;
+
+//@description The username is invalid
+checkChatUsernameResultUsernameInvalid = CheckChatUsernameResult;
+
+//@description The username is occupied
+checkChatUsernameResultUsernameOccupied = CheckChatUsernameResult;
+
+//@description The user has too much public chats, one of them should be made private first
+checkChatUsernameResultPublicChatsTooMuch = CheckChatUsernameResult;
+
+//@description The user can't be a member of a public supergroup
+checkChatUsernameResultPublicGroupsUnavailable = CheckChatUsernameResult;
+
+
 //@class OptionValue @description Represents the value of an option
 
 //@description Boolean option @value The value of the option
@@ -2100,11 +2118,15 @@ removeRecentlyFoundChat chat_id:int53 = Ok;
 //@description Clears the list of recently found chats
 clearRecentlyFoundChats = Ok;
 
-//@description Returns a list of common chats with a given user. Chats are sorted by their type and creation date @user_id User identifier @offset_chat_id Chat identifier starting from which to return chats; use 0 for the first request @limit Maximum number of chats to be returned; up to 100
-getGroupsInCommon user_id:int32 offset_chat_id:int53 limit:int32 = Chats;
+//@description Checks whether a username can be set for a chat @chat_id Chat identifier; should be identifier of a supergroup chat, or a channel chat, or a private chat with self, or zero if chat is being created @username Username to be checked
+checkChatUsername chat_id:int64 username:string = CheckChatUsernameResult;
 
 //@description Returns a list of public chats created by the user
 getCreatedPublicChats = Chats;
+
+
+//@description Returns a list of common chats with a given user. Chats are sorted by their type and creation date @user_id User identifier @offset_chat_id Chat identifier starting from which to return chats; use 0 for the first request @limit Maximum number of chats to be returned; up to 100
+getGroupsInCommon user_id:int32 offset_chat_id:int53 limit:int32 = Chats;
 
 
 //@description Returns messages in a chat. The messages are returned in a reverse chronological order (i.e., in order of decreasing message_id).
@@ -2621,7 +2643,7 @@ disconnectAllWebsites = Ok;
 toggleBasicGroupAdministrators basic_group_id:int32 everyone_is_administrator:Bool = Ok;
 
 
-//@description Changes the username of the supergroup or channel, requires creator privileges in the supergroup or channel @supergroup_id Identifier of the supergroup or channel @username New value of the username. Use an empty string to remove the username
+//@description Changes the username of a supergroup or channel, requires creator privileges in the supergroup or channel @supergroup_id Identifier of the supergroup or channel @username New value of the username. Use an empty string to remove the username
 setSupergroupUsername supergroup_id:int32 username:string = Ok;
 
 //@description Changes the sticker set of a supergroup; requires appropriate rights in the supergroup @supergroup_id Identifier of the supergroup @sticker_set_id New value of the supergroup sticker set identifier. Use 0 to remove the supergroup sticker set
