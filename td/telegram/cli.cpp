@@ -2546,9 +2546,6 @@ class CliClient final : public Actor {
         status = make_tl_object<td_api::chatMemberStatusCreator>(true);
       } else if (status_str == "uncreator") {
         status = make_tl_object<td_api::chatMemberStatusCreator>(false);
-      } else if (status_str == "admin") {
-        status =
-            make_tl_object<td_api::chatMemberStatusAdministrator>(true, true, true, true, true, true, true, true, true);
       } else if (status_str == "unadmin") {
         status = make_tl_object<td_api::chatMemberStatusAdministrator>(true, false, false, false, false, false, false,
                                                                        false, false);
