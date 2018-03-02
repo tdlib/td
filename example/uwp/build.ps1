@@ -36,7 +36,7 @@ function prepare {
 
   cmake $td_root -DCMAKE_TOOLCHAIN_FILE="$vcpkg_cmake" -DTD_ENABLE_DOTNET=1
   CheckLastExitCode
-  cmake --build . --target prepare_cross_compiling 
+  cmake --build . --target prepare_cross_compiling
   CheckLastExitCode
 
   cd ..
@@ -45,7 +45,7 @@ function prepare {
 function config {
   New-Item -ItemType Directory -Force -Path build-uwp
   cd build-uwp
-  
+
   ForEach($arch in $arch_list) {
     echo "Config Arch = [$arch]"
     Remove-Item $arch -Force -Recurse -ErrorAction SilentlyContinue
@@ -80,28 +80,31 @@ function export {
   cd build-uwp
   Remove-Item vsix -Force -Recurse -ErrorAction SilentlyContinue
   mkdir vsix
-  cp ../SDKManifest.xml vsix 
+  cp ../SDKManifest.xml vsix
   cp ../extension.vsixmanifest vsix
   cp '../`[Content_Types`].xml' vsix
-  
+
   ForEach($arch in $arch_list) {
     New-Item -ItemType Directory -Force -Path vsix/DesignTime/Debug/${arch}
     New-Item -ItemType Directory -Force -Path vsix/DesignTime/Retail/${arch}
     New-Item -ItemType Directory -Force -Path vsix/Redist/Debug/${arch}
     New-Item -ItemType Directory -Force -Path vsix/Redist/Retail/${arch}
     New-Item -ItemType Directory -Force -Path vsix/References/CommonConfiguration/${arch}
-  
-    cp ${arch}/Debug/* -filter "tddotnet.*" -include "*.lib" vsix/DesignTime/Debug/${arch}/
-    cp ${arch}/Release/*  -filter "tddotnet.*" -include "*.lib" vsix/DesignTime/Retail/${arch}/
-  
-    cp ${arch}/Debug/*  -filter "tddotnet.*" -include "*.pdb","*.dll" vsix/Redist/Debug/${arch}/
-    cp ${arch}/Release/*  -filter "tddotnet.*" -include "*.pdb","*.dll" vsix/Redist/Retail/${arch}/
-  
-    cp ${arch}/Release/* -filter "tddotnet.*" -include "*.pri","*.winmd" vsix/References/CommonConfiguration/${arch}/
+
+    cp ${arch}/Debug/* -include "LIBEAY*","SSLEAY*","zlib*" vsix/Redist/Debug/${arch}/
+    cp ${arch}/Release/* -include "LIBEAY*","SSLEAY*","zlib*" vsix/Redist/Retail/${arch}/
+
+    cp ${arch}/Debug/* -filter "Telegram.Td.*" -include "*.lib" vsix/DesignTime/Debug/${arch}/
+    cp ${arch}/Release/*  -filter "Telegram.Td.*" -include "*.lib" vsix/DesignTime/Retail/${arch}/
+
+    cp ${arch}/Debug/*  -filter "Telegram.Td.*" -include "*.pdb","*.dll" vsix/Redist/Debug/${arch}/
+    cp ${arch}/Release/*  -filter "Telegram.Td.*" -include "*.pdb","*.dll" vsix/Redist/Retail/${arch}/
+
+    cp ${arch}/Release/* -filter "Telegram.Td.*" -include "*.pri","*.winmd" vsix/References/CommonConfiguration/${arch}/
   }
-  
+
   cd vsix
-  
+
   7z.exe a -tzip -r tdlib.vsix *
   #zip -r tdlib.vsix *
   #WinRAR.exe a -afzip -r -ep1 tdlib.vsix *

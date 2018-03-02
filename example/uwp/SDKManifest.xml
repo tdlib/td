@@ -8,5 +8,5 @@
     DependsOn="Microsoft.VCLibs, version=14.0"
     SupportsMultipleVersions="Error"
     SupportedArchitectures="x86;x64;ARM">
-  <File Reference="tddotnet.winmd" Implementation="tddotnet.dll" />
+  <File Reference="Telegram.Td.winmd" Implementation="Telegram.Td.dll" />
 </FileList>
