@@ -18,3 +18,5 @@ cd build
 cmake -DCMAKE_BUILD_TYPE=Release -DTd_DIR=<full path to TDLib sources>/example/cpp/td/lib/cmake/Td ..
 cmake --build .
 ```
+
+Documentation for all available classes and methods can be found at https://core.telegram.org/tdlib/docs.

@@ -37,3 +37,5 @@ Resulting library for iOS will work on any architecture (arv7, armv7s, arm64) an
 We use [CMake/iOS.cmake](https://github.com/tdlib/td/blob/master/CMake/iOS.cmake) toolchain, other toolchains may work too.
 
 Built libraries will be store in `tdjson` directory.
+
+Documentation for all available classes and methods can be found at https://core.telegram.org/tdlib/docs.
