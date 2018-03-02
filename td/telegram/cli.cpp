@@ -404,8 +404,8 @@ class CliClient final : public Actor {
     return to_integer<int64>(str);
   }
 
-  static vector<int64> as_message_ids(Slice message_ids_string, char delimiter = ' ') {
-    return transform(full_split(message_ids_string, delimiter), as_message_id);
+  static vector<int64> as_message_ids(Slice message_ids, char delimiter = ' ') {
+    return transform(full_split(message_ids, delimiter), as_message_id);
   }
 
   int32 as_user_id(Slice str) const {
@@ -1899,23 +1899,23 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::deleteFile>(as_file_id(file_id)));
     } else if (op == "dm") {
       string chat_id;
-      string message_ids_string;
+      string message_ids;
       string revoke;
       std::tie(chat_id, args) = split(args);
-      std::tie(message_ids_string, revoke) = split(args);
+      std::tie(message_ids, revoke) = split(args);
 
-      send_request(make_tl_object<td_api::deleteMessages>(as_chat_id(chat_id), as_message_ids(message_ids_string, ','),
+      send_request(make_tl_object<td_api::deleteMessages>(as_chat_id(chat_id), as_message_ids(message_ids, ','),
                                                           as_bool(revoke)));
     } else if (op == "fm" || op == "fmg") {
       string chat_id;
       string from_chat_id;
-      string message_ids_string;
+      string message_ids;
       std::tie(chat_id, args) = split(args);
-      std::tie(from_chat_id, message_ids_string) = split(args);
+      std::tie(from_chat_id, message_ids) = split(args);
 
       auto chat = as_chat_id(chat_id);
-      send_request(make_tl_object<td_api::forwardMessages>(
-          chat, as_chat_id(from_chat_id), as_message_ids(message_ids_string), false, false, op == "fmg"));
+      send_request(make_tl_object<td_api::forwardMessages>(chat, as_chat_id(from_chat_id), as_message_ids(message_ids),
+                                                           false, false, op == "fmg"));
     } else if (op == "csc" || op == "CreateSecretChat") {
       send_request(make_tl_object<td_api::createSecretChat>(to_integer<int32>(args)));
     } else if (op == "cnsc" || op == "CreateNewSecretChat") {
@@ -2728,10 +2728,10 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::removeRecentHashtag>(hashtag));
     } else if (op == "view") {
       string chat_id;
-      string message_ids_string;
-      std::tie(chat_id, message_ids_string) = split(args);
+      string message_ids;
+      std::tie(chat_id, message_ids) = split(args);
 
-      send_request(make_tl_object<td_api::viewMessages>(as_chat_id(chat_id), as_message_ids(message_ids_string), true));
+      send_request(make_tl_object<td_api::viewMessages>(as_chat_id(chat_id), as_message_ids(message_ids), true));
     } else if (op == "omc") {
       string chat_id;
       string message_id;
@@ -2774,7 +2774,9 @@ class CliClient final : public Actor {
     } else if (op == "rc") {
       string chat_id;
       string reason_str;
-      std::tie(chat_id, reason_str) = split(args);
+      string message_ids;
+      std::tie(chat_id, args) = split(args);
+      std::tie(reason_str, message_ids) = split(args);
 
       tl_object_ptr<td_api::ChatReportReason> reason;
       if (reason_str == "spam") {
@@ -2787,16 +2789,17 @@ class CliClient final : public Actor {
         reason = make_tl_object<td_api::chatReportReasonCustom>(reason_str);
       }
 
-      send_request(make_tl_object<td_api::reportChat>(as_chat_id(chat_id), std::move(reason)));
+      send_request(
+          make_tl_object<td_api::reportChat>(as_chat_id(chat_id), std::move(reason), as_message_ids(message_ids)));
     } else if (op == "rsgs" || op == "rchs") {
       string supergroup_id;
       string user_id;
-      string message_ids_string;
+      string message_ids;
       std::tie(supergroup_id, args) = split(args);
-      std::tie(user_id, message_ids_string) = split(args);
+      std::tie(user_id, message_ids) = split(args);
 
       send_request(make_tl_object<td_api::reportSupergroupSpam>(to_integer<int32>(supergroup_id), as_user_id(user_id),
-                                                                as_message_ids(message_ids_string)));
+                                                                as_message_ids(message_ids)));
     } else if (op == "gdiff") {
       send_request(make_tl_object<td_api::testGetDifference>());
     } else if (op == "cproxy") {

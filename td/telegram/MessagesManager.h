@@ -1268,7 +1268,7 @@ class MessagesManager : public Actor {
   void change_dialog_report_spam_state(DialogId dialog_id, bool is_spam_dialog, Promise<Unit> &&promise);
 
   void report_dialog(DialogId dialog_id, const tl_object_ptr<td_api::ChatReportReason> &reason,
-                     Promise<Unit> &&promise);
+                     const vector<MessageId> &message_ids, Promise<Unit> &&promise);
 
   void on_get_peer_settings(DialogId dialog_id, tl_object_ptr<telegram_api::peerSettings> &&peer_settings);
 

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
-project(TDLib VERSION 1.1.3 LANGUAGES CXX C)
+project(TDLib VERSION 1.1.4 LANGUAGES CXX C)
 
 option(TD_ENABLE_JNI "Use \"ON\" to enable JNI-compatible TDLib API.")
 option(TD_ENABLE_DOTNET "Use \"ON\" to enable generation of C++/CLI or C++/CX TDLib API bindings.")

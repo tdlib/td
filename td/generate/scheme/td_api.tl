@@ -2758,8 +2758,8 @@ getChatReportSpamState chat_id:int53 = ChatReportSpamState;
 //@description Used to let the server know whether a chat is spam or not. Can be used only if ChatReportSpamState.can_report_spam is true. After this request, ChatReportSpamState.can_report_spam becomes false forever @chat_id Chat identifier @is_spam_chat If true, the chat will be reported as spam; otherwise it will be marked as not spam
 changeChatReportSpamState chat_id:int53 is_spam_chat:Bool = Ok;
 
-//@description Reports a chat to the Telegram moderators. Supported only for supergroups, channels, or private chats with bots, since other chats can't be checked by moderators @chat_id Chat identifier @reason The reason for reporting the chat
-reportChat chat_id:int53 reason:ChatReportReason = Ok;
+//@description Reports a chat to the Telegram moderators. Supported only for supergroups, channels, or private chats with bots, since other chats can't be checked by moderators @chat_id Chat identifier @reason The reason for reporting the chat @message_ids Identifiers of reported messages, if any
+reportChat chat_id:int53 reason:ChatReportReason message_ids:vector<int53> = Ok;
 
 
 //@description Returns storage usage statistics @chat_limit Maximum number of chats with the largest storage usage for which separate statistics should be returned. All other chats will be grouped in entries with chat_id == 0. If the chat info database is not used, the chat_limit is ignored and is always set to 0

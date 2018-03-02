@@ -2707,15 +2707,19 @@ class ChangeChatReportSpamStateRequest : public RequestOnceActor {
 class ReportChatRequest : public RequestOnceActor {
   DialogId dialog_id_;
   tl_object_ptr<td_api::ChatReportReason> reason_;
+  vector<MessageId> message_ids_;
 
   void do_run(Promise<Unit> &&promise) override {
-    td->messages_manager_->report_dialog(dialog_id_, reason_, std::move(promise));
+    td->messages_manager_->report_dialog(dialog_id_, reason_, message_ids_, std::move(promise));
   }
 
  public:
   ReportChatRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id,
-                    tl_object_ptr<td_api::ChatReportReason> reason)
-      : RequestOnceActor(std::move(td), request_id), dialog_id_(dialog_id), reason_(std::move(reason)) {
+                    tl_object_ptr<td_api::ChatReportReason> reason, const vector<int64> &message_ids)
+      : RequestOnceActor(std::move(td), request_id)
+      , dialog_id_(dialog_id)
+      , reason_(std::move(reason))
+      , message_ids_(MessagesManager::get_message_ids(message_ids)) {
   }
 };
 
@@ -6353,7 +6357,7 @@ void Td::on_request(uint64 id, const td_api::changeChatReportSpamState &request)
 void Td::on_request(uint64 id, td_api::reportChat &request) {
   CHECK_AUTH();
   CHECK_IS_USER();
-  CREATE_REQUEST(ReportChatRequest, request.chat_id_, std::move(request.reason_));
+  CREATE_REQUEST(ReportChatRequest, request.chat_id_, std::move(request.reason_), request.message_ids_);
 }
 
 void Td::on_request(uint64 id, td_api::setNotificationSettings &request) {

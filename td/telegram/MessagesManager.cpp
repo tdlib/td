@@ -3125,17 +3125,26 @@ class ReportPeerQuery : public Td::ResultHandler {
   explicit ReportPeerQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, tl_object_ptr<telegram_api::ReportReason> &&report_reason) {
+  void send(DialogId dialog_id, tl_object_ptr<telegram_api::ReportReason> &&report_reason,
+            const vector<MessageId> &message_ids) {
     dialog_id_ = dialog_id;
 
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     CHECK(input_peer != nullptr);
 
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::account_reportPeer(std::move(input_peer), std::move(report_reason)))));
+    if (message_ids.empty()) {
+      send_query(G()->net_query_creator().create(
+          create_storer(telegram_api::account_reportPeer(std::move(input_peer), std::move(report_reason)))));
+    } else {
+      send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_report(
+          std::move(input_peer), MessagesManager::get_server_message_ids(message_ids), std::move(report_reason)))));
+    }
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
+    static_assert(
+        std::is_same<telegram_api::account_reportPeer::ReturnType, telegram_api::messages_report::ReturnType>::value,
+        "");
     auto result_ptr = fetch_result<telegram_api::account_reportPeer>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -6060,7 +6069,7 @@ void MessagesManager::change_dialog_report_spam_state(DialogId dialog_id, bool i
 }
 
 void MessagesManager::report_dialog(DialogId dialog_id, const tl_object_ptr<td_api::ChatReportReason> &reason,
-                                    Promise<Unit> &&promise) {
+                                    const vector<MessageId> &message_ids, Promise<Unit> &&promise) {
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     return promise.set_error(Status::Error(3, "Chat not found"));
@@ -6093,6 +6102,13 @@ void MessagesManager::report_dialog(DialogId dialog_id, const tl_object_ptr<td_a
       return;
   }
 
+  vector<MessageId> server_message_ids;
+  for (auto message_id : message_ids) {
+    if (message_id.is_valid() && message_id.is_server()) {
+      server_message_ids.push_back(message_id);
+    }
+  }
+
   tl_object_ptr<telegram_api::ReportReason> report_reason;
   switch (reason->get_id()) {
     case td_api::chatReportReasonSpam::ID:
@@ -6119,7 +6135,8 @@ void MessagesManager::report_dialog(DialogId dialog_id, const tl_object_ptr<td_a
   }
   CHECK(report_reason != nullptr);
 
-  td_->create_handler<ReportPeerQuery>(std::move(promise))->send(dialog_id, std::move(report_reason));
+  td_->create_handler<ReportPeerQuery>(std::move(promise))
+      ->send(dialog_id, std::move(report_reason), server_message_ids);
 }
 
 void MessagesManager::on_get_peer_settings(DialogId dialog_id,
