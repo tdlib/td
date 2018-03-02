@@ -20,6 +20,7 @@
 
 // Simple single-threaded example of TDLib usage.
 // Real world programs should use separate thread for the user input.
+// Example includes user authentication, receiving updates, getting chat list and sending text messages.
 
 // overloaded
 namespace detail {
