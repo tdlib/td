@@ -54,7 +54,7 @@ add_library(tdactor STATIC ${TDACTOR_SOURCE})
 target_include_directories(tdactor PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_link_libraries(tdactor PUBLIC tdutils)
 
-add_executable(example example/example.cpp)
+add_executable(example example.cpp)
 target_link_libraries(example PRIVATE tdactor)
 
 install(TARGETS tdactor EXPORT TdTargets
