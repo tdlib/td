@@ -2359,6 +2359,9 @@ class EditMessageActor : public NetActorOnce {
 
   void on_error(uint64 id, Status status) override {
     LOG(INFO) << "Receive error for editMessage: " << status;
+    if (!td->auth_manager_->is_bot() && status.message() == "MESSAGE_NOT_MODIFIED") {
+      return promise_.set_value(Unit());
+    }
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "EditMessageActor");
     promise_.set_error(std::move(status));
   }
