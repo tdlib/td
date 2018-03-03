@@ -8,6 +8,7 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/td_api.hpp"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/telegram_api.hpp"
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AnimationsManager.h"
@@ -477,6 +478,8 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
     string thumbnail_url;
     string content_url;
     string content_type;
+    int32 thumbnail_width = 0;
+    int32 thumbnail_height = 0;
     int32 width = 0;
     int32 height = 0;
     int32 duration = 0;
@@ -492,7 +495,7 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
         thumbnail_url = std::move(animated_gif->thumbnail_url_);
         content_url = std::move(animated_gif->gif_url_);
         content_type = "image/gif";
-        duration = animated_gif->gif_duration_;
+        // duration = animated_gif->gif_duration_;
         width = animated_gif->gif_width_;
         height = animated_gif->gif_height_;
         is_gallery = true;
@@ -534,8 +537,8 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
         description = std::move(article->description_);
         thumbnail_url = std::move(article->thumbnail_url_);
         if (!thumbnail_url.empty()) {
-          width = article->thumbnail_width_;
-          height = article->thumbnail_height_;
+          thumbnail_width = article->thumbnail_width_;
+          thumbnail_height = article->thumbnail_height_;
         }
         force_vertical = true;
 
@@ -576,8 +579,8 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
         description = std::move(phone_number);
         thumbnail_url = std::move(contact->thumbnail_url_);
         if (!thumbnail_url.empty()) {
-          width = contact->thumbnail_width_;
-          height = contact->thumbnail_height_;
+          thumbnail_width = contact->thumbnail_width_;
+          thumbnail_height = contact->thumbnail_height_;
         }
         force_vertical = true;
 
@@ -594,8 +597,8 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
         thumbnail_url = std::move(document->thumbnail_url_);
         content_url = std::move(document->document_url_);
         content_type = std::move(document->mime_type_);
-        width = document->thumbnail_width_;
-        height = document->thumbnail_height_;
+        thumbnail_width = document->thumbnail_width_;
+        thumbnail_height = document->thumbnail_height_;
 
         if (content_url.find('.') != string::npos) {
           if (begins_with(content_type, "application/pdf")) {
@@ -637,10 +640,10 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
         title = std::move(location->title_);
         description = to_string(location->location_->latitude_) + " " + to_string(location->location_->longitude_);
         thumbnail_url = std::move(location->thumbnail_url_);
-        duration = location->live_period_;
+        // duration = location->live_period_;
         if (!thumbnail_url.empty()) {
-          width = location->thumbnail_width_;
-          height = location->thumbnail_height_;
+          thumbnail_width = location->thumbnail_width_;
+          thumbnail_height = location->thumbnail_height_;
         }
 
         r_inline_message =
@@ -693,8 +696,8 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
         description = std::move(venue->venue_->address_);
         thumbnail_url = std::move(venue->thumbnail_url_);
         if (!thumbnail_url.empty()) {
-          width = venue->thumbnail_width_;
-          height = venue->thumbnail_height_;
+          thumbnail_width = venue->thumbnail_width_;
+          thumbnail_height = venue->thumbnail_height_;
         }
 
         r_inline_message =
@@ -806,35 +809,54 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
         return promise.set_error(Status::Error(400, "Strings must be encoded in UTF-8"));
       }
     }
+    tl_object_ptr<telegram_api::inputWebDocument> thumbnail;
     if (!thumbnail_url.empty()) {
-      flags |= telegram_api::inputBotInlineResult::THUMB_URL_MASK;
+      flags |= telegram_api::inputBotInlineResult::THUMB_MASK;
       if (!clean_input_string(thumbnail_url)) {
         return promise.set_error(Status::Error(400, "Strings must be encoded in UTF-8"));
       }
+      vector<tl_object_ptr<telegram_api::DocumentAttribute>> attributes;
+      if (thumbnail_width > 0 && thumbnail_height > 0) {
+        attributes.push_back(
+            make_tl_object<telegram_api::documentAttributeImageSize>(thumbnail_width, thumbnail_height));
+      }
+      thumbnail = make_tl_object<telegram_api::inputWebDocument>(thumbnail_url, 0, "image/jpeg", std::move(attributes));
     }
+    tl_object_ptr<telegram_api::inputWebDocument> content;
     if (!content_url.empty() || !content_type.empty()) {
-      static_assert(
-          telegram_api::inputBotInlineResult::CONTENT_URL_MASK == telegram_api::inputBotInlineResult::CONTENT_TYPE_MASK,
-          "");
-      flags |= telegram_api::inputBotInlineResult::CONTENT_URL_MASK;
+      flags |= telegram_api::inputBotInlineResult::CONTENT_MASK;
       if (!clean_input_string(content_url)) {
         return promise.set_error(Status::Error(400, "Strings must be encoded in UTF-8"));
       }
       if (!clean_input_string(content_type)) {
         return promise.set_error(Status::Error(400, "Strings must be encoded in UTF-8"));
       }
-    }
-    if (width > 0 && height > 0) {
-      static_assert(telegram_api::inputBotInlineResult::W_MASK == telegram_api::inputBotInlineResult::H_MASK, "");
-      flags |= telegram_api::inputBotInlineResult::W_MASK;
-    }
-    if (duration > 0) {
-      flags |= telegram_api::inputBotInlineResult::DURATION_MASK;
+
+      vector<tl_object_ptr<telegram_api::DocumentAttribute>> attributes;
+      if (width > 0 && height > 0) {
+        if (duration > 0 && !begins_with(content_type, "image/")) {
+          attributes.push_back(make_tl_object<telegram_api::documentAttributeVideo>(
+              0, false /*ignored*/, false /*ignored*/, duration, width, height));
+        } else {
+          attributes.push_back(make_tl_object<telegram_api::documentAttributeImageSize>(width, height));
+        }
+      } else if (duration > 0) {
+        if (type == "audio") {
+          attributes.push_back(make_tl_object<telegram_api::documentAttributeAudio>(
+              telegram_api::documentAttributeAudio::TITLE_MASK | telegram_api::documentAttributeAudio::PERFORMER_MASK,
+              false /*ignored*/, duration, title, description, BufferSlice()));
+        } else if (type == "voice") {
+          attributes.push_back(make_tl_object<telegram_api::documentAttributeAudio>(
+              telegram_api::documentAttributeAudio::VOICE_MASK, false /*ignored*/, duration, "", "", BufferSlice()));
+        }
+      }
+      attributes.push_back(make_tl_object<telegram_api::documentAttributeFilename>(get_url_file_name(content_url)));
+
+      content = make_tl_object<telegram_api::inputWebDocument>(content_url, 0, content_type, std::move(attributes));
     }
 
-    auto result = make_tl_object<telegram_api::inputBotInlineResult>(flags, id, type, title, description, url,
-                                                                     thumbnail_url, content_url, content_type, width,
-                                                                     height, duration, std::move(inline_message));
+    auto result = make_tl_object<telegram_api::inputBotInlineResult>(
+        flags, id, type, title, description, url, std::move(thumbnail), std::move(content), std::move(inline_message));
     results.push_back(std::move(result));
   }
 
@@ -1155,19 +1177,62 @@ tl_object_ptr<td_api::inlineQueryResults> InlineQueriesManager::decrease_pending
   return copy(it->second.results);
 }
 
-tl_object_ptr<td_api::photoSize> InlineQueriesManager::register_thumbnail(const string &thumbnail_url,
-                                                                          Dimensions dimensions) const {
-  if (thumbnail_url.find('.') != string::npos) {
-    auto r_thumbnail_file_id = td_->file_manager_->from_persistent_id(thumbnail_url, FileType::Temp);
-    if (r_thumbnail_file_id.is_ok()) {
-      PhotoSize thumbnail;
-      thumbnail.type = 't';
-      thumbnail.dimensions = dimensions;
-      thumbnail.file_id = r_thumbnail_file_id.move_as_ok();
-      return get_photo_size_object(td_->file_manager_.get(), &thumbnail);
-    }
+tl_object_ptr<td_api::photoSize> InlineQueriesManager::register_thumbnail(
+    tl_object_ptr<telegram_api::WebDocument> &&web_document_ptr) const {
+  PhotoSize thumbnail = get_web_document_photo_size(td_->file_manager_.get(), FileType::Thumbnail, DialogId(),
+                                                    std::move(web_document_ptr));
+  if (!thumbnail.file_id.is_valid()) {
+    return nullptr;
   }
-  return nullptr;
+
+  return get_photo_size_object(td_->file_manager_.get(), &thumbnail);
+}
+
+string InlineQueriesManager::get_web_document_url(const tl_object_ptr<telegram_api::WebDocument> &web_document_ptr) {
+  if (web_document_ptr == nullptr) {
+    return {};
+  }
+
+  string url;
+  switch (web_document_ptr->get_id()) {
+    case telegram_api::webDocument::ID: {
+      auto web_document = static_cast<const telegram_api::webDocument *>(web_document_ptr.get());
+      url = web_document->url_;
+      break;
+    }
+    case telegram_api::webDocumentNoProxy::ID: {
+      auto web_document = static_cast<const telegram_api::webDocumentNoProxy *>(web_document_ptr.get());
+      url = web_document->url_;
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+
+  auto r_http_url = parse_url(url);
+  if (r_http_url.is_error()) {
+    LOG(ERROR) << "Can't parse URL " << url;
+    return {};
+  }
+  return r_http_url.ok().get_url();
+}
+
+string InlineQueriesManager::get_web_document_content_type(
+    const tl_object_ptr<telegram_api::WebDocument> &web_document_ptr) {
+  if (web_document_ptr == nullptr) {
+    return {};
+  }
+
+  switch (web_document_ptr->get_id()) {
+    case telegram_api::webDocument::ID:
+      return static_cast<const telegram_api::webDocument *>(web_document_ptr.get())->mime_type_;
+    case telegram_api::webDocumentNoProxy::ID:
+      return static_cast<const telegram_api::webDocumentNoProxy *>(web_document_ptr.get())->mime_type_;
+    default:
+      UNREACHABLE();
+  }
+
+  return {};
 }
 
 void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint64 query_hash,
@@ -1346,25 +1411,11 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
       }
       case telegram_api::botInlineResult::ID: {
         auto result = move_tl_object_as<telegram_api::botInlineResult>(result_ptr);
-        Dimensions dimensions;
-        if (result->flags_ & (1 << 6)) {
-          dimensions = get_dimensions(result->w_, result->h_);
-        }  // TODO zero fetch init
-
-        int32 duration;
-        if (result->flags_ & (1 << 7)) {
-          duration = result->duration_;
-          if (duration < 0) {
-            duration = 0;
-          }
-        } else {
-          duration = 0;
-        }  // TODO zero fetch init
-
+        auto content_type = get_web_document_content_type(result->content_);
         if (result->type_ == "article") {
           auto article = make_tl_object<td_api::inlineQueryResultArticle>();
           article->id_ = std::move(result->id_);
-          article->url_ = std::move(result->content_url_);
+          article->url_ = get_web_document_url(std::move(result->content_));
           if (result->url_.empty()) {
             article->hide_url_ = true;
           } else {
@@ -1374,7 +1425,7 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
           }
           article->title_ = std::move(result->title_);
           article->description_ = std::move(result->description_);
-          article->thumbnail_ = register_thumbnail(result->thumb_url_, dimensions);
+          article->thumbnail_ = register_thumbnail(std::move(result->thumb_));
 
           if (!register_inline_message_content(results->query_id_, article->id_, FileId(),
                                                std::move(result->send_message_), -1)) {
@@ -1394,7 +1445,7 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
             Contact c(std::move(result->description_), std::move(result->title_), string(), 0);
             contact->contact_ = c.get_contact_object();
           }
-          contact->thumbnail_ = register_thumbnail(result->thumb_url_, dimensions);
+          contact->thumbnail_ = register_thumbnail(std::move(result->thumb_));
 
           if (!register_inline_message_content(results->query_id_, contact->id_, FileId(),
                                                std::move(result->send_message_), -1)) {
@@ -1415,7 +1466,7 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
             Location l(to_double(coordinates.first), to_double(coordinates.second));
             location->location_ = l.get_location_object();
           }
-          location->thumbnail_ = register_thumbnail(result->thumb_url_, dimensions);
+          location->thumbnail_ = register_thumbnail(std::move(result->thumb_));
 
           if (!register_inline_message_content(results->query_id_, location->id_, FileId(),
                                                std::move(result->send_message_), -1)) {
@@ -1441,144 +1492,141 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
             Venue v(nullptr, std::move(result->title_), std::move(result->description_), string(), string());
             venue->venue_ = v.get_venue_object();
           }
-          venue->thumbnail_ = register_thumbnail(result->thumb_url_, dimensions);
+          venue->thumbnail_ = register_thumbnail(std::move(result->thumb_));
 
           if (!register_inline_message_content(results->query_id_, venue->id_, FileId(),
                                                std::move(result->send_message_), -1)) {
             continue;
           }
           output_result = std::move(venue);
+        } else if (result->type_ == "photo" && content_type == "image/jpeg") {
+          auto photo = make_tl_object<td_api::inlineQueryResultPhoto>();
+          photo->id_ = std::move(result->id_);
+
+          PhotoSize photo_size = get_web_document_photo_size(td_->file_manager_.get(), FileType::Temp, DialogId(),
+                                                             std::move(result->content_));
+          if (!photo_size.file_id.is_valid()) {
+            LOG(ERROR) << "Receive invalid web document photo";
+            continue;
+          }
+
+          Photo new_photo;
+          PhotoSize thumbnail = get_web_document_photo_size(td_->file_manager_.get(), FileType::Thumbnail, DialogId(),
+                                                            std::move(result->thumb_));
+          if (thumbnail.file_id.is_valid()) {
+            new_photo.photos.push_back(std::move(thumbnail));
+          }
+          new_photo.photos.push_back(std::move(photo_size));
+
+          photo->photo_ = get_photo_object(td_->file_manager_.get(), &new_photo);
+          photo->title_ = std::move(result->title_);
+          photo->description_ = std::move(result->description_);
+
+          if (!register_inline_message_content(results->query_id_, photo->id_, FileId(),
+                                               std::move(result->send_message_), td_api::inputMessagePhoto::ID,
+                                               &new_photo)) {
+            continue;
+          }
+          output_result = std::move(photo);
         } else {
-          auto r_http_url = parse_url(result->content_url_);
-          if (r_http_url.is_error()) {
-            LOG(ERROR) << "Can't parse url " << result->content_url_;
+          if (result->content_ == nullptr) {
+            LOG(ERROR) << "Unsupported inline query result without content " << to_string(result);
             continue;
           }
-          auto http_url = r_http_url.ok();
-          auto url = http_url.get_url();
-          auto r_file_id = td_->file_manager_->from_persistent_id(url, FileType::Temp);
-          if (r_file_id.is_error()) {
-            LOG(ERROR) << "Can't register url " << url;
-            continue;
-          }
-          auto file_id = r_file_id.move_as_ok();
-          auto file_name = get_url_query_file_name(http_url.query_);
 
-          PhotoSize thumbnail;
-          if (result->thumb_url_.find('.') != string::npos) {
-            auto r_thumbnail_file_id = td_->file_manager_->from_persistent_id(result->thumb_url_, FileType::Temp);
-            if (r_thumbnail_file_id.is_error()) {
-              LOG(ERROR) << "Can't register thumbnail url " << result->thumb_url_;
-              continue;
+          vector<tl_object_ptr<telegram_api::DocumentAttribute>> attributes;
+          downcast_call(*result->content_,
+                        [&attributes](auto &web_document) { attributes = std::move(web_document.attributes_); });
+
+          bool is_animation = result->type_ == "gif" && (content_type == "image/gif" || content_type == "video/mp4");
+          if (is_animation) {
+            attributes.push_back(make_tl_object<telegram_api::documentAttributeAnimated>());
+          }
+          auto default_document_type = [type = result->type_, is_animation] {
+            if (type == "audio") {
+              return DocumentsManager::DocumentType::Audio;
             }
-            thumbnail.type = 't';
-            thumbnail.file_id = r_thumbnail_file_id.move_as_ok();
-          }
+            if (is_animation) {
+              return DocumentsManager::DocumentType::Animation;
+            }
+            if (type == "sticker") {
+              return DocumentsManager::DocumentType::Sticker;
+            }
+            if (type == "video") {
+              return DocumentsManager::DocumentType::Video;
+            }
+            if (type == "voice") {
+              return DocumentsManager::DocumentType::VoiceNote;
+            }
+            return DocumentsManager::DocumentType::General;
+          }();
 
-          if (result->type_ == "audio") {
+          auto parsed_document = td_->documents_manager_->on_get_document(
+              {std::move(result->content_),
+               get_web_document_photo_size(td_->file_manager_.get(), FileType::Thumbnail, DialogId(),
+                                           std::move(result->thumb_)),
+               std::move(attributes)},
+              DialogId(), nullptr, default_document_type);
+          auto file_id = parsed_document.second;
+          if (!file_id.is_valid()) {
+            continue;
+          }
+          if (result->type_ == "audio" && parsed_document.first == DocumentsManager::DocumentType::Audio) {
             auto audio = make_tl_object<td_api::inlineQueryResultAudio>();
             audio->id_ = std::move(result->id_);
-            td_->audios_manager_->create_audio(file_id, std::move(thumbnail), std::move(file_name),
-                                               std::move(result->content_type_), duration, std::move(result->title_),
-                                               std::move(result->description_), false);
             audio->audio_ = td_->audios_manager_->get_audio_object(file_id);
-
             if (!register_inline_message_content(results->query_id_, audio->id_, file_id,
                                                  std::move(result->send_message_), td_api::inputMessageAudio::ID)) {
               continue;
             }
             output_result = std::move(audio);
-          } else if (result->type_ == "file") {
-            thumbnail.dimensions = dimensions;
-
+          } else if (result->type_ == "file" && parsed_document.first == DocumentsManager::DocumentType::General) {
             auto document = make_tl_object<td_api::inlineQueryResultDocument>();
             document->id_ = std::move(result->id_);
-            td_->documents_manager_->create_document(file_id, std::move(thumbnail), std::move(file_name),
-                                                     std::move(result->content_type_), false);
             document->document_ = td_->documents_manager_->get_document_object(file_id);
             document->title_ = std::move(result->title_);
             document->description_ = std::move(result->description_);
-
             if (!register_inline_message_content(results->query_id_, document->id_, file_id,
                                                  std::move(result->send_message_), td_api::inputMessageDocument::ID)) {
               continue;
             }
             output_result = std::move(document);
-          } else if (result->type_ == "gif" &&
-                     (result->content_type_ == "image/gif" || result->content_type_ == "video/mp4")) {
+          } else if (is_animation && parsed_document.first == DocumentsManager::DocumentType::Animation) {
             auto animation = make_tl_object<td_api::inlineQueryResultAnimation>();
             animation->id_ = std::move(result->id_);
-            td_->animations_manager_->create_animation(file_id, std::move(thumbnail), std::move(file_name),
-                                                       std::move(result->content_type_), duration, dimensions, false);
             animation->animation_ =
                 td_->animations_manager_->get_animation_object(file_id, "inlineQueryResultAnimationCached");
             animation->title_ = std::move(result->title_);
-
             if (!register_inline_message_content(results->query_id_, animation->id_, file_id,
                                                  std::move(result->send_message_), td_api::inputMessageAnimation::ID)) {
               continue;
             }
             output_result = std::move(animation);
-          } else if (result->type_ == "photo" && result->content_type_ == "image/jpeg") {
-            auto photo = make_tl_object<td_api::inlineQueryResultPhoto>();
-            photo->id_ = std::move(result->id_);
-
-            // TODO create_photo
-            Photo new_photo;
-            PhotoSize s;
-            s.type = 'u';
-            s.dimensions = dimensions;
-            s.size = 0;
-            s.file_id = file_id;
-
-            if (thumbnail.file_id.is_valid()) {
-              new_photo.photos.push_back(std::move(thumbnail));
-            }
-            new_photo.photos.push_back(std::move(s));
-
-            photo->photo_ = get_photo_object(td_->file_manager_.get(), &new_photo);
-            photo->title_ = std::move(result->title_);
-            photo->description_ = std::move(result->description_);
-
-            if (!register_inline_message_content(results->query_id_, photo->id_, FileId(),
-                                                 std::move(result->send_message_), td_api::inputMessagePhoto::ID,
-                                                 &new_photo)) {
-              continue;
-            }
-            output_result = std::move(photo);
-          } else if (result->type_ == "sticker") {
+          } else if (result->type_ == "sticker" && parsed_document.first == DocumentsManager::DocumentType::Sticker) {
             auto sticker = make_tl_object<td_api::inlineQueryResultSticker>();
             sticker->id_ = std::move(result->id_);
-            td_->stickers_manager_->create_sticker(file_id, std::move(thumbnail), dimensions, true, nullptr, nullptr);
             sticker->sticker_ = td_->stickers_manager_->get_sticker_object(file_id);
-
             if (!register_inline_message_content(results->query_id_, sticker->id_, file_id,
                                                  std::move(result->send_message_), td_api::inputMessageSticker::ID)) {
               continue;
             }
             output_result = std::move(sticker);
-          } else if (result->type_ == "video") {
+          } else if (result->type_ == "video" && parsed_document.first == DocumentsManager::DocumentType::Video) {
             auto video = make_tl_object<td_api::inlineQueryResultVideo>();
             video->id_ = std::move(result->id_);
-            td_->videos_manager_->create_video(file_id, std::move(thumbnail), false, {}, std::move(file_name),
-                                               std::move(result->content_type_), duration, dimensions, false, false);
             video->video_ = td_->videos_manager_->get_video_object(file_id);
             video->title_ = std::move(result->title_);
             video->description_ = std::move(result->description_);
-
             if (!register_inline_message_content(results->query_id_, video->id_, file_id,
                                                  std::move(result->send_message_), td_api::inputMessageVideo::ID)) {
               continue;
             }
             output_result = std::move(video);
-          } else if (result->type_ == "voice") {
+          } else if (result->type_ == "voice" && parsed_document.first == DocumentsManager::DocumentType::VoiceNote) {
             auto voice_note = make_tl_object<td_api::inlineQueryResultVoiceNote>();
             voice_note->id_ = std::move(result->id_);
-            td_->voice_notes_manager_->create_voice_note(file_id, std::move(result->content_type_), duration, string(),
-                                                         false);
             voice_note->voice_note_ = td_->voice_notes_manager_->get_voice_note_object(file_id);
             voice_note->title_ = std::move(result->title_);
-
             if (!register_inline_message_content(results->query_id_, voice_note->id_, file_id,
                                                  std::move(result->send_message_), td_api::inputMessageVoiceNote::ID)) {
               continue;

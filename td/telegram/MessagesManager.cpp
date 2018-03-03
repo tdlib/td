@@ -20233,62 +20233,17 @@ static tl_object_ptr<ToT> secret_to_telegram(FromT &from) {
   return res;
 }
 
-Photo MessagesManager::get_web_document_photo(tl_object_ptr<telegram_api::webDocument> web_document,
+Photo MessagesManager::get_web_document_photo(tl_object_ptr<telegram_api::WebDocument> web_document,
                                               DialogId owner_dialog_id) const {
+  PhotoSize s =
+      get_web_document_photo_size(td_->file_manager_.get(), FileType::Photo, owner_dialog_id, std::move(web_document));
   Photo photo;
-  photo.id = -2;
-
-  if (web_document == nullptr) {
-    return photo;
+  if (!s.file_id.is_valid()) {
+    photo.id = -2;
+  } else {
+    photo.id = 0;
+    photo.photos.push_back(s);
   }
-  if (!DcId::is_valid(web_document->dc_id_)) {
-    LOG(ERROR) << "Wrong dc_id = " << web_document->dc_id_;
-    return photo;
-  }
-
-  auto r_http_url = parse_url(web_document->url_);
-  if (r_http_url.is_error()) {
-    LOG(ERROR) << "Can't parse url " << web_document->url_;
-    return photo;
-  }
-  auto http_url = r_http_url.move_as_ok();
-  auto url = http_url.get_url();
-  // TODO real file name
-  FileId file_id = td_->file_manager_->register_remote(
-      FullRemoteFileLocation(FileType::Photo, url, web_document->access_hash_, DcId::internal(web_document->dc_id_)),
-      FileLocationSource::FromServer, owner_dialog_id, 0, web_document->size_, "");
-
-  Dimensions dimensions;
-  for (auto &attribute : web_document->attributes_) {
-    switch (attribute->get_id()) {
-      case telegram_api::documentAttributeImageSize::ID: {
-        auto image_size = move_tl_object_as<telegram_api::documentAttributeImageSize>(attribute);
-        dimensions = get_dimensions(image_size->w_, image_size->h_);
-        break;
-      }
-      case telegram_api::documentAttributeAnimated::ID:
-      case telegram_api::documentAttributeHasStickers::ID:
-      case telegram_api::documentAttributeSticker::ID:
-      case telegram_api::documentAttributeVideo::ID:
-      case telegram_api::documentAttributeAudio::ID:
-        LOG(ERROR) << "Unexpected web document attribute " << to_string(attribute);
-        break;
-      case telegram_api::documentAttributeFilename::ID:
-        break;
-      default:
-        UNREACHABLE();
-    }
-  }
-
-  PhotoSize s;
-  s.type = 'u';
-  s.dimensions = dimensions;
-  s.size = web_document->size_;
-  s.file_id = file_id;
-
-  photo.id = 0;
-  photo.photos.push_back(s);
-
   return photo;
 }
 

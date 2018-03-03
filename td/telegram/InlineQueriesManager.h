@@ -100,7 +100,11 @@ class InlineQueriesManager : public Actor {
                                        tl_object_ptr<telegram_api::BotInlineMessage> &&inline_message,
                                        int32 allowed_media_content_id, Photo *photo = nullptr, Game *game = nullptr);
 
-  tl_object_ptr<td_api::photoSize> register_thumbnail(const string &thumbnail_url, Dimensions dimensions) const;
+  tl_object_ptr<td_api::photoSize> register_thumbnail(
+      tl_object_ptr<telegram_api::WebDocument> &&web_document_ptr) const;
+
+  static string get_web_document_url(const tl_object_ptr<telegram_api::WebDocument> &web_document_ptr);
+  static string get_web_document_content_type(const tl_object_ptr<telegram_api::WebDocument> &web_document_ptr);
 
   bool update_bot_usage(UserId bot_user_id);
 

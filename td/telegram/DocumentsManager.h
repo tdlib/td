@@ -40,6 +40,9 @@ class DocumentsManager {
     // or
     tl_object_ptr<telegram_api::encryptedFile> secret_file;
     tl_object_ptr<secret_api::decryptedMessageMediaDocument> secret_document;
+    // or
+    tl_object_ptr<telegram_api::WebDocument> web_document;
+    PhotoSize thumbnail;
 
     vector<tl_object_ptr<telegram_api::DocumentAttribute>> attributes;
 
@@ -47,7 +50,19 @@ class DocumentsManager {
         : document(std::move(server_document))
         , secret_file(nullptr)
         , secret_document(nullptr)
+        , web_document(nullptr)
+        , thumbnail()
         , attributes(std::move(document->attributes_)) {
+    }
+
+    RemoteDocument(tl_object_ptr<telegram_api::WebDocument> &&web_document, PhotoSize thumbnail,
+                   vector<tl_object_ptr<telegram_api::DocumentAttribute>> &&attributes)
+        : document(nullptr)
+        , secret_file(nullptr)
+        , secret_document(nullptr)
+        , web_document(std::move(web_document))
+        , thumbnail(std::move(thumbnail))
+        , attributes(std::move(attributes)) {
     }
 
     RemoteDocument(tl_object_ptr<telegram_api::encryptedFile> &&secret_file,
@@ -56,6 +71,8 @@ class DocumentsManager {
         : document(nullptr)
         , secret_file(std::move(secret_file))
         , secret_document(std::move(secret_document))
+        , web_document(nullptr)
+        , thumbnail()
         , attributes(std::move(attributes)) {
     }
   };
@@ -63,7 +80,8 @@ class DocumentsManager {
   tl_object_ptr<td_api::document> get_document_object(FileId file_id);
 
   std::pair<DocumentType, FileId> on_get_document(RemoteDocument remote_document, DialogId owner_dialog_id,
-                                                  MultiPromiseActor *load_data_multipromise_ptr = nullptr);
+                                                  MultiPromiseActor *load_data_multipromise_ptr = nullptr,
+                                                  DocumentType default_document_type = DocumentType::General);
 
   void create_document(FileId file_id, PhotoSize thumbnail, string file_name, string mime_type, bool replace);
 

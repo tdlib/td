@@ -2229,7 +2229,7 @@ class MessagesManager : public Actor {
 
   static FormattedText get_secret_media_caption(string &&message_text, string &&message_caption);
 
-  Photo get_web_document_photo(tl_object_ptr<telegram_api::webDocument> web_document, DialogId owner_dialog_id) const;
+  Photo get_web_document_photo(tl_object_ptr<telegram_api::WebDocument> web_document, DialogId owner_dialog_id) const;
 
   unique_ptr<MessageContent> get_secret_message_document(
       tl_object_ptr<telegram_api::encryptedFile> file,
