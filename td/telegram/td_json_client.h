@@ -16,9 +16,10 @@
  * the same keys as the API object field names. The object type name is stored in the special field "@type", which is
  * optional in places where a type is uniquely determined by the context.
  * Bool object fields are stored as Booleans in JSON. int32, int53 and double fields are stored as Numbers.
- * int64 and string fields are stored as Strings. vectors are stored as Arrays.
+ * int64 and string fields are stored as Strings. bytes fields are base64 encoded and then stored as String.
+ * vectors are stored as Arrays.
  * The main TDLib interface is asynchronous. To match requests with a corresponding response a field "@extra" can
- * be added to the request object. The corresponding response will have an "@extra" field with the same value.
+ * be added to the request object. The corresponding response will have an "@extra" field with exactly the same value.
  *
  * A TDLib client instance should be created through td_json_client_create.
  * Requests then can be sent using td_json_client_send from any thread.
