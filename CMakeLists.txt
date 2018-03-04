@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
-project(TDLib VERSION 1.1.4 LANGUAGES CXX C)
+project(TDLib VERSION 1.1.5 LANGUAGES CXX C)
 
 # Prevent in-source build
 get_filename_component(TD_REAL_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" REALPATH)

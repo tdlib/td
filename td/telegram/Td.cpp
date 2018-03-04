@@ -118,7 +118,12 @@ void Td::ResultHandler::send_query(NetQueryPtr query) {
 }
 
 class GetNearestDcQuery : public Td::ResultHandler {
+  Promise<string> promise_;
+
  public:
+  explicit GetNearestDcQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
+  }
+
   void send() {
     send_query(G()->net_query_creator().create(create_storer(telegram_api::help_getNearestDc()), DcId::main(),
                                                NetQuery::Type::Common, NetQuery::AuthFlag::Off));
@@ -129,11 +134,13 @@ class GetNearestDcQuery : public Td::ResultHandler {
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
     }
+
+    promise_.set_value(std::move(result_ptr.ok()->country_));
   }
 
   void on_error(uint64 id, Status status) override {
     LOG(ERROR) << "GetNearestDc returned " << status;
-    status.ignore();
+    promise_.set_error(std::move(status));
   }
 };
 
@@ -419,7 +426,8 @@ class GetTermsOfServiceQuery : public Td::ResultHandler {
   }
 
   void send() {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::help_getTermsOfService())));
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::help_getTermsOfService()), DcId::main(),
+                                               NetQuery::Type::Common, NetQuery::AuthFlag::Off));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -3625,6 +3633,31 @@ class AnswerCustomQueryRequest : public RequestOnceActor {
   }
 };
 
+class GetCountryCodeRequest : public RequestActor<string> {
+  string country_code_;
+
+  void do_run(Promise<string> &&promise) override {
+    if (get_tries() < 2) {
+      promise.set_value(std::move(country_code_));
+      return;
+    }
+
+    td->create_handler<GetNearestDcQuery>(std::move(promise))->send();
+  }
+
+  void do_set_result(string &&result) override {
+    country_code_ = std::move(result);
+  }
+
+  void do_send_result() override {
+    send_result(make_tl_object<td_api::text>(country_code_));
+  }
+
+ public:
+  GetCountryCodeRequest(ActorShared<Td> td, uint64 request_id) : RequestActor(std::move(td), request_id) {
+  }
+};
+
 class GetInviteTextRequest : public RequestActor<string> {
   string text_;
 
@@ -4471,7 +4504,7 @@ Status Td::init(DbKey key) {
 
   VLOG(td_init) << "Ping datacenter";
   if (!auth_manager_->is_authorized()) {
-    create_handler<GetNearestDcQuery>()->send();
+    create_handler<GetNearestDcQuery>(Auto())->send();
   } else {
     updates_manager_->get_difference("init");
   }
@@ -6713,6 +6746,10 @@ void Td::on_request(uint64 id, td_api::removeRecentHashtag &request) {
     }
   });
   send_closure(hashtag_hints_, &HashtagHints::remove_hashtag, std::move(request.hashtag_), std::move(query_promise));
+}
+
+void Td::on_request(uint64 id, const td_api::getCountryCode &request) {
+  CREATE_NO_ARGS_REQUEST(GetCountryCodeRequest);
 }
 
 void Td::on_request(uint64 id, const td_api::getInviteText &request) {

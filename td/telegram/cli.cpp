@@ -1498,6 +1498,8 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::disconnectAllWebsites>());
     } else if (op == "gw") {
       send_request(make_tl_object<td_api::getWallpapers>());
+    } else if (op == "gccode") {
+      send_request(make_tl_object<td_api::getCountryCode>());
     } else if (op == "git") {
       send_request(make_tl_object<td_api::getInviteText>());
     } else if (op == "gtos") {

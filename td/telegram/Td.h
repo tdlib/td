@@ -192,7 +192,7 @@ class Td final : public NetQueryCallback {
   static td_api::object_ptr<td_api::Object> static_request(td_api::object_ptr<td_api::Function> function);
 
  private:
-  static constexpr const char *tdlib_version = "1.1.4";
+  static constexpr const char *tdlib_version = "1.1.5";
   static constexpr int64 ONLINE_ALARM_ID = 0;
   static constexpr int32 ONLINE_TIMEOUT = 240;
   static constexpr int64 PING_SERVER_ALARM_ID = -1;
@@ -754,6 +754,8 @@ class Td final : public NetQueryCallback {
   void on_request(uint64 id, td_api::searchHashtags &request);
 
   void on_request(uint64 id, td_api::removeRecentHashtag &request);
+
+  void on_request(uint64 id, const td_api::getCountryCode &request);
 
   void on_request(uint64 id, const td_api::getInviteText &request);
 

@@ -2038,7 +2038,7 @@ createTemporaryPassword password:string valid_for:int32 = TemporaryPasswordState
 getTemporaryPasswordState = TemporaryPasswordState;
 
 
-//@description Handles a DC_UPDATE push service notification, can be called before authorization @dc Value of the "dc" parameter of the notification @addr Value of the "addr" parameter of the notification
+//@description Handles a DC_UPDATE push service notification. Can be called before authorization @dc Value of the "dc" parameter of the notification @addr Value of the "addr" parameter of the notification
 processDcUpdate dc:string addr:string = Ok;
 
 
@@ -2258,16 +2258,16 @@ editInlineMessageCaption inline_message_id:string reply_markup:ReplyMarkup capti
 editInlineMessageReplyMarkup inline_message_id:string reply_markup:ReplyMarkup = Ok;
 
 
-//@description Returns all entities (mentions, hashtags, bot commands, URLs, and email addresses) contained in the text. This is an offline method. May be called before authorization. Can be called synchronously @text The text in which to look for entites
+//@description Returns all entities (mentions, hashtags, bot commands, URLs, and email addresses) contained in the text. This is an offline method. Can be called before authorization. Can be called synchronously @text The text in which to look for entites
 getTextEntities text:string = TextEntities;
 
-//@description Parses Bold, Italic, Code, Pre, PreCode and TextUrl entities contained in the text. This is an offline method. May be called before authorization. Can be called synchronously @text The text which should be parsed @parse_mode Text parse mode
+//@description Parses Bold, Italic, Code, Pre, PreCode and TextUrl entities contained in the text. This is an offline method. Can be called before authorization. Can be called synchronously @text The text which should be parsed @parse_mode Text parse mode
 parseTextEntities text:string parse_mode:TextParseMode = FormattedText;
 
-//@description Returns the MIME type of a file, guessed by its extension. Returns an empty string on failure. This is an offline method. May be called before authorization. Can be called synchronously @file_name The name of the file or path to the file
+//@description Returns the MIME type of a file, guessed by its extension. Returns an empty string on failure. This is an offline method. Can be called before authorization. Can be called synchronously @file_name The name of the file or path to the file
 getFileMimeType file_name:string = Text;
 
-//@description Returns the extension of a file, guessed by its MIME type. Returns an empty string on failure. This is an offline method. May be called before authorization. Can be called synchronously @mime_type The MIME type of the file
+//@description Returns the extension of a file, guessed by its MIME type. Returns an empty string on failure. This is an offline method. Can be called before authorization. Can be called synchronously @mime_type The MIME type of the file
 getFileExtension mime_type:string = Text;
 
 
@@ -2734,11 +2734,11 @@ setUserPrivacySettingRules setting:UserPrivacySetting rules:userPrivacySettingRu
 getUserPrivacySettingRules setting:UserPrivacySetting = UserPrivacySettingRules;
 
 
-//@description Returns the value of an option by its name. (Check the list of available options on https://core.telegram.org/tdlib/options.) This method can be called before authorization
+//@description Returns the value of an option by its name. (Check the list of available options on https://core.telegram.org/tdlib/options.) Can be called before authorization
 //@name The name of the option
 getOption name:string = OptionValue;
 
-//@description Sets the value of an option. (Check the list of available options on https://core.telegram.org/tdlib/options.) Only writable options can be set. This method can be called before authorization
+//@description Sets the value of an option. (Check the list of available options on https://core.telegram.org/tdlib/options.) Only writable options can be set. Can be called before authorization
 //@name The name of the option @value The new value of the option
 setOption name:string value:OptionValue = Ok;
 
@@ -2827,7 +2827,10 @@ answerCustomQuery custom_query_id:int64 data:string = Ok;
 setAlarm seconds:double = Ok;
 
 
-//@description Returns the default text for invitation messages to be used as a placeholder when the current user invites friends to Telegram.
+//@description Uses current user IP to found his country. Returns two-letter ISO 3166-1 alpha-2 country code. Can be called before authorization
+getCountryCode = Text;
+
+//@description Returns the default text for invitation messages to be used as a placeholder when the current user invites friends to Telegram
 getInviteText = Text;
 
 //@description Returns the terms of service. Can be called before authorization
