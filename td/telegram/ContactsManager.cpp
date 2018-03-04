@@ -3092,7 +3092,7 @@ void ContactsManager::set_my_online_status(bool is_online, bool send_update) {
 
 void ContactsManager::check_dialog_username(DialogId dialog_id, const string &username,
                                             Promise<CheckDialogUsernameResult> &&promise) {
-  if (dialog_id != DialogId() && !td_->messages_manager_->have_dialog_force(dialog_id)) {
+  if (dialog_id != DialogId() && !dialog_id.is_valid()) {
     return promise.set_error(Status::Error(3, "Chat not found"));
   }
 
