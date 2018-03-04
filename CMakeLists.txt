@@ -2,6 +2,21 @@ cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
 project(TDLib VERSION 1.1.4 LANGUAGES CXX C)
 
+# Prevent in-source build
+get_filename_component(TD_REAL_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" REALPATH)
+get_filename_component(TD_REAL_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}" REALPATH)
+
+if (TD_REAL_BINARY_DIR STREQUAL TD_REAL_SOURCE_DIR)
+  message("  Out-of-source build should be used to build TDLib.")
+  message("  You need to remove the files already created by CMake and")
+  message("  rerun CMake from a new directory:")
+  message("  rm -rf CMakeFiles CMakeCache.txt")
+  message("  mkdir build")
+  message("  cd build")
+  message("  cmake ..")
+  message(FATAL_ERROR "In-source build failed.")
+endif()
+
 option(TD_ENABLE_JNI "Use \"ON\" to enable JNI-compatible TDLib API.")
 option(TD_ENABLE_DOTNET "Use \"ON\" to enable generation of C++/CLI or C++/CX TDLib API bindings.")
 
@@ -28,7 +43,7 @@ if (POLICY CMP0069)
     include(CheckIPOSupported)
     check_ipo_supported(RESULT IPO_SUPPORTED)
     if (IPO_SUPPORTED)
-      #set_property(DIRECTORY PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE) do not work?
+      # set_property(DIRECTORY PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE) do not work?
       string(REPLACE ";" " " CXX_FLAGS_IPO "${CMAKE_CXX_COMPILE_OPTIONS_IPO}")
       message(STATUS "Use link time optimizations: ${CXX_FLAGS_IPO}")
       set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CXX_FLAGS_IPO}")
