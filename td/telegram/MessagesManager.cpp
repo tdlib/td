@@ -6071,6 +6071,23 @@ void MessagesManager::change_dialog_report_spam_state(DialogId dialog_id, bool i
   }
 }
 
+bool MessagesManager::can_report_dialog(DialogId dialog_id) const {
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return td_->contacts_manager_->is_user_bot(dialog_id.get_user_id());
+    case DialogType::Chat:
+      return false;
+    case DialogType::Channel:
+      return !td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).is_creator();
+    case DialogType::SecretChat:
+      return false;
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+      return false;
+  }
+}
+
 void MessagesManager::report_dialog(DialogId dialog_id, const tl_object_ptr<td_api::ChatReportReason> &reason,
                                     const vector<MessageId> &message_ids, Promise<Unit> &&promise) {
   Dialog *d = get_dialog_force(dialog_id);
@@ -6086,23 +6103,8 @@ void MessagesManager::report_dialog(DialogId dialog_id, const tl_object_ptr<td_a
     return promise.set_error(Status::Error(3, "Reason shouldn't be empty"));
   }
 
-  switch (dialog_id.get_type()) {
-    case DialogType::Channel:
-      // can be reported
-      break;
-    case DialogType::User:
-      if (td_->contacts_manager_->is_user_bot(dialog_id.get_user_id())) {
-        // bots can be reported
-        break;
-      }
-    // fallthrough
-    case DialogType::Chat:
-    case DialogType::SecretChat:
-      return promise.set_error(Status::Error(3, "Chat can't be reported"));
-    case DialogType::None:
-    default:
-      UNREACHABLE();
-      return;
+  if (!can_report_dialog(dialog_id)) {
+    return promise.set_error(Status::Error(3, "Chat can't be reported"));
   }
 
   vector<MessageId> server_message_ids;
@@ -12375,8 +12377,8 @@ tl_object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *d) {
       get_chat_photo_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
       get_message_object(d->dialog_id, get_message(d, d->last_message_id)),
       DialogDate(d->order, d->dialog_id) <= last_dialog_date_ ? d->order : 0, d->pinned_order != DEFAULT_ORDER,
-      d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
-      d->last_read_outbox_message_id.get(), d->unread_mention_count,
+      can_report_dialog(d->dialog_id), d->server_unread_count + d->local_unread_count,
+      d->last_read_inbox_message_id.get(), d->last_read_outbox_message_id.get(), d->unread_mention_count,
       get_notification_settings_object(&d->notification_settings), d->reply_markup_message_id.get(),
       get_draft_message_object(d->draft_message), d->client_data);
 }

@@ -1824,6 +1824,8 @@ class MessagesManager : public Actor {
 
   bool can_edit_message(DialogId dialog_id, const Message *m, bool is_editing, bool only_reply_markup = false) const;
 
+  bool can_report_dialog(DialogId dialog_id) const;
+
   MessageId get_persistent_message_id(const Dialog *d, MessageId message_id) const;
 
   static MessageId get_replied_message_id(const Message *m);
