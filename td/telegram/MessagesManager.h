@@ -1960,8 +1960,6 @@ class MessagesManager : public Actor {
   void find_unloadable_messages(const Dialog *d, int32 unload_before_date, const unique_ptr<Message> &m,
                                 vector<MessageId> &message_ids, int32 &left_to_unload) const;
 
-  bool message_views_enabled(DialogId dialog_id) const;
-
   bool update_message_views(DialogId dialog_id, Message *m, int32 views);
 
   bool update_message_contains_unread_mention(Dialog *d, Message *m, bool contains_unread_mention, const char *source);

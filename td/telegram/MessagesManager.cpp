@@ -4554,7 +4554,6 @@ void MessagesManager::on_pending_message_views_timeout_callback(void *messages_m
 
   auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
   DialogId dialog_id(dialog_id_int);
-  CHECK(dialog_id.get_type() == DialogType::Channel);
   auto d = messages_manager->get_dialog(dialog_id);
   CHECK(d != nullptr);
   CHECK(!d->pending_viewed_message_ids.empty());
@@ -12020,25 +12019,6 @@ Status MessagesManager::close_dialog(DialogId dialog_id) {
   return Status::OK();
 }
 
-bool MessagesManager::message_views_enabled(DialogId dialog_id) const {
-  switch (dialog_id.get_type()) {
-    case DialogType::User:
-    case DialogType::Chat:
-    case DialogType::SecretChat:
-      return false;
-    case DialogType::Channel: {
-      auto channel_id = dialog_id.get_channel_id();
-      auto channel_type = td_->contacts_manager_->get_channel_type(channel_id);
-      return channel_type != ChannelType::Megagroup &&
-             td_->contacts_manager_->have_input_peer_channel(channel_id, AccessRights::Read);
-    }
-    case DialogType::None:
-    default:
-      UNREACHABLE();
-      return false;
-  }
-}
-
 Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId> &message_ids, bool force_read) {
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
@@ -12049,17 +12029,8 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
       return Status::Error(3, "Invalid message identifier");
     }
   }
-
-  if (message_views_enabled(dialog_id)) {
-    for (auto message_id : message_ids) {
-      if (message_id.is_server()) {
-        d->pending_viewed_message_ids.insert(message_id);
-      }
-    }
-  }
-
-  if (!d->pending_viewed_message_ids.empty()) {
-    pending_message_views_timeout_.add_timeout_in(dialog_id.get(), MAX_MESSAGE_VIEW_DELAY);
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return Status::Error(5, "Can't access the chat");
   }
 
   bool need_read = force_read || d->is_opened;
@@ -12070,6 +12041,10 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
   for (auto message_id : message_ids) {
     auto message = get_message_force(d, message_id);
     if (message != nullptr) {
+      if (message_id.is_server() && message->views > 0) {
+        d->pending_viewed_message_ids.insert(message_id);
+      }
+
       if (!message_id.is_yet_unsent() && message_id.get() > max_incoming_message_id.get()) {
         if (!message->is_outgoing && (message_id.is_server() || is_secret)) {
           max_incoming_message_id = message_id;
@@ -12089,6 +12064,9 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
         }
       }
     }
+  }
+  if (!d->pending_viewed_message_ids.empty()) {
+    pending_message_views_timeout_.add_timeout_in(dialog_id.get(), MAX_MESSAGE_VIEW_DELAY);
   }
   if (!read_content_message_ids.empty()) {
     read_message_contents_on_server(dialog_id, std::move(read_content_message_ids), 0);
