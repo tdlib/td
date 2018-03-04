@@ -1520,6 +1520,8 @@ class MessagesManager : public Actor {
     bool is_last_read_inbox_message_id_inited = false;
     bool is_last_read_outbox_message_id_inited = false;
 
+    bool increment_view_counter = false;
+
     int32 pts = 0;                                                     // for channels only
     std::multimap<int32, PendingPtsUpdate> postponed_channel_updates;  // for channels only
     int32 retry_get_difference_timeout = 1;                            // for channels only

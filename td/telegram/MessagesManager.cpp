@@ -965,17 +965,19 @@ class GetMessagesViewsQuery : public Td::ResultHandler {
   vector<MessageId> message_ids_;
 
  public:
-  void send(DialogId dialog_id, vector<MessageId> &&message_ids) {
+  void send(DialogId dialog_id, vector<MessageId> &&message_ids, bool increment_view_counter) {
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       LOG(ERROR) << "Can't update message views because doesn't have info about the " << dialog_id;
       return;
     }
 
+    LOG(INFO) << "View " << message_ids.size() << " messages in " << dialog_id
+              << ", increment = " << increment_view_counter;
     dialog_id_ = dialog_id;
     message_ids_ = std::move(message_ids);
     send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_getMessagesViews(
-        std::move(input_peer), MessagesManager::get_server_message_ids(message_ids_), true))));
+        std::move(input_peer), MessagesManager::get_server_message_ids(message_ids_), increment_view_counter))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -4564,14 +4566,17 @@ void MessagesManager::on_pending_message_views_timeout_callback(void *messages_m
   for (auto message_id : d->pending_viewed_message_ids) {
     message_ids.push_back(message_id);
     if (message_ids.size() >= MAX_MESSAGE_VIEWS) {
-      messages_manager->td_->create_handler<GetMessagesViewsQuery>()->send(dialog_id, std::move(message_ids));
+      messages_manager->td_->create_handler<GetMessagesViewsQuery>()->send(dialog_id, std::move(message_ids),
+                                                                           d->increment_view_counter);
       message_ids.clear();
     }
   }
   if (!message_ids.empty()) {
-    messages_manager->td_->create_handler<GetMessagesViewsQuery>()->send(dialog_id, std::move(message_ids));
+    messages_manager->td_->create_handler<GetMessagesViewsQuery>()->send(dialog_id, std::move(message_ids),
+                                                                         d->increment_view_counter);
   }
   d->pending_viewed_message_ids.clear();
+  d->increment_view_counter = false;
 }
 
 void MessagesManager::on_pending_draft_message_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int) {
@@ -12067,6 +12072,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
   }
   if (!d->pending_viewed_message_ids.empty()) {
     pending_message_views_timeout_.add_timeout_in(dialog_id.get(), MAX_MESSAGE_VIEW_DELAY);
+    d->increment_view_counter |= d->is_opened;
   }
   if (!read_content_message_ids.empty()) {
     read_message_contents_on_server(dialog_id, std::move(read_content_message_ids), 0);
@@ -12268,6 +12274,7 @@ void MessagesManager::close_dialog(Dialog *d) {
   } else {
     pending_message_views_timeout_.cancel_timeout(d->dialog_id.get());
     d->pending_viewed_message_ids.clear();
+    d->increment_view_counter = false;
   }
 
   if (is_message_unload_enabled()) {
