@@ -3947,6 +3947,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   STORE_FLAG(has_media_album_id);
   STORE_FLAG(has_forward_from);
   STORE_FLAG(in_game_share);
+  STORE_FLAG(is_content_secret);
   END_STORE_FLAGS();
 
   store(message_id, storer);
@@ -4054,6 +4055,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   PARSE_FLAG(has_media_album_id);
   PARSE_FLAG(has_forward_from);
   PARSE_FLAG(in_game_share);
+  PARSE_FLAG(is_content_secret);
   END_PARSE_FLAGS();
 
   parse(message_id, parser);
@@ -4119,6 +4121,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     reply_markup = make_unique<ReplyMarkup>();
     parse(*reply_markup, parser);
   }
+  is_content_secret |= is_secret_message_content(ttl, content->get_id());  // repair is_content_secret for old messages
 }
 
 template <class StorerT>
@@ -4693,7 +4696,8 @@ int32 MessagesManager::get_message_index_mask(DialogId dialog_id, const Message 
   if (!m->message_id.is_server() && !is_secret) {
     return 0;
   }
-  if (m->ttl > 0 && !is_secret) {
+  // retain second condition just in case
+  if (m->is_content_secret || (m->ttl > 0 && !is_secret)) {
     return 0;
   }
   int32 mentions_mask = get_message_content_index_mask(m->content.get(), is_secret, m->is_outgoing);
@@ -5247,10 +5251,11 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
       get_message_text(std::move(update->message_), std::move(update->entities_), update->inbox_date_),
       std::move(update->media_),
       td_->auth_manager_->is_bot() ? DialogId() : get_service_notifications_dialog()->dialog_id, false, UserId(), &ttl);
+  bool is_content_secret = is_secret_message_content(ttl, content->get_id());
   if ((update->flags_ & telegram_api::updateServiceNotification::POPUP_MASK) != 0) {
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateServiceNotification>(
-                     update->type_, get_message_content_object(content.get(), update->inbox_date_)));
+                     update->type_, get_message_content_object(content.get(), update->inbox_date_, is_content_secret)));
   }
   if ((update->flags_ & telegram_api::updateServiceNotification::INBOX_DATE_MASK) != 0 &&
       !td_->auth_manager_->is_bot()) {
@@ -5264,6 +5269,7 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
     new_message->sender_user_id = dialog_id.get_user_id();
     new_message->date = update->inbox_date_;
     new_message->ttl = ttl;
+    new_message->is_content_secret = is_content_secret;
     new_message->content = std::move(content);
     new_message->have_previous = true;
     new_message->have_next = true;
@@ -7106,6 +7112,57 @@ void MessagesManager::delete_dialog_messages_from_updates(DialogId dialog_id, co
   send_update_delete_messages(dialog_id, std::move(deleted_message_ids), true, false);
 }
 
+bool MessagesManager::is_secret_message_content(int32 ttl, int32 content_type) {
+  if (ttl <= 0 || ttl > 60) {
+    return false;
+  }
+  switch (content_type) {
+    case MessageAnimation::ID:
+    case MessageAudio::ID:
+    case MessagePhoto::ID:
+    case MessageVideo::ID:
+    case MessageVideoNote::ID:
+    case MessageVoiceNote::ID:
+      return true;
+    case MessageContact::ID:
+    case MessageDocument::ID:
+    case MessageGame::ID:
+    case MessageInvoice::ID:
+    case MessageLiveLocation::ID:
+    case MessageLocation::ID:
+    case MessageSticker::ID:
+    case MessageText::ID:
+    case MessageUnsupported::ID:
+    case MessageVenue::ID:
+    case MessageExpiredPhoto::ID:
+    case MessageExpiredVideo::ID:
+    case MessageChatCreate::ID:
+    case MessageChatChangeTitle::ID:
+    case MessageChatChangePhoto::ID:
+    case MessageChatDeletePhoto::ID:
+    case MessageChatDeleteHistory::ID:
+    case MessageChatAddUsers::ID:
+    case MessageChatJoinedByLink::ID:
+    case MessageChatDeleteUser::ID:
+    case MessageChatMigrateTo::ID:
+    case MessageChannelCreate::ID:
+    case MessageChannelMigrateFrom::ID:
+    case MessagePinMessage::ID:
+    case MessageGameScore::ID:
+    case MessageScreenshotTaken::ID:
+    case MessageChatSetTtl::ID:
+    case MessageCall::ID:
+    case MessagePaymentSuccessful::ID:
+    case MessageContactRegistered::ID:
+    case MessageCustomServiceAction::ID:
+    case MessageWebsiteConnected::ID:
+      return false;
+    default:
+      UNREACHABLE();
+      return false;
+  }
+}
+
 bool MessagesManager::is_service_message_content(int32 content_type) {
   switch (content_type) {
     case MessageAnimation::ID:
@@ -7155,6 +7212,9 @@ bool MessagesManager::is_service_message_content(int32 content_type) {
 }
 
 string MessagesManager::get_search_text(const Message *m) {
+  if (m->is_content_secret) {
+    return "";
+  }
   switch (m->content->get_id()) {
     case MessageText::ID: {
       auto *text = static_cast<const MessageText *>(m->content.get());
@@ -8422,14 +8482,15 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
 }
 
 tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_object(const MessageContent *content,
-                                                                                  int32 message_date) const {
+                                                                                  int32 message_date,
+                                                                                  bool is_content_secret) const {
   CHECK(content != nullptr);
   switch (content->get_id()) {
     case MessageAnimation::ID: {
       const MessageAnimation *m = static_cast<const MessageAnimation *>(content);
       return make_tl_object<td_api::messageAnimation>(
           td_->animations_manager_->get_animation_object(m->file_id, "get_message_content_object"),
-          get_formatted_text_object(m->caption));
+          get_formatted_text_object(m->caption), is_content_secret);
     }
     case MessageAudio::ID: {
       const MessageAudio *m = static_cast<const MessageAudio *>(content);
@@ -8469,7 +8530,7 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
     case MessagePhoto::ID: {
       const MessagePhoto *m = static_cast<const MessagePhoto *>(content);
       return make_tl_object<td_api::messagePhoto>(get_photo_object(td_->file_manager_.get(), &m->photo),
-                                                  get_formatted_text_object(m->caption));
+                                                  get_formatted_text_object(m->caption), is_content_secret);
     }
     case MessageSticker::ID: {
       const MessageSticker *m = static_cast<const MessageSticker *>(content);
@@ -8490,12 +8551,12 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
     case MessageVideo::ID: {
       const MessageVideo *m = static_cast<const MessageVideo *>(content);
       return make_tl_object<td_api::messageVideo>(td_->videos_manager_->get_video_object(m->file_id),
-                                                  get_formatted_text_object(m->caption));
+                                                  get_formatted_text_object(m->caption), is_content_secret);
     }
     case MessageVideoNote::ID: {
       const MessageVideoNote *m = static_cast<const MessageVideoNote *>(content);
       return make_tl_object<td_api::messageVideoNote>(td_->video_notes_manager_->get_video_note_object(m->file_id),
-                                                      m->is_viewed);
+                                                      m->is_viewed, is_content_secret);
     }
     case MessageVoiceNote::ID: {
       const MessageVoiceNote *m = static_cast<const MessageVoiceNote *>(content);
@@ -8710,11 +8771,7 @@ void MessagesManager::ttl_read_history_outbox(DialogId dialog_id, MessageId from
 }
 
 void MessagesManager::ttl_on_view(const Dialog *d, Message *message, double view_date, double now) {
-  auto content_type = message->content->get_id();
-  if ((content_type == MessageText::ID || content_type == MessageContact::ID ||
-       content_type == MessageLiveLocation::ID || content_type == MessageLocation::ID ||
-       content_type == MessageSticker::ID || content_type == MessageVenue::ID) &&
-      message->ttl > 0 && message->ttl_expires_at == 0) {
+  if (message->ttl > 0 && message->ttl_expires_at == 0 && !message->is_content_secret) {
     message->ttl_expires_at = message->ttl + view_date;
     ttl_register_message(d->dialog_id, message, now);
     on_message_changed(d, message, "ttl_on_view");
@@ -8803,7 +8860,7 @@ void MessagesManager::on_message_ttl_expired(Dialog *d, Message *message) {
   ttl_unregister_message(d->dialog_id, message, Time::now());
   on_message_ttl_expired_impl(d, message);
   send_update_message_content(d->dialog_id, message->message_id, message->content.get(), message->date,
-                              "on_message_ttl_expired");
+                              message->is_content_secret, "on_message_ttl_expired");
 }
 
 void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *message) {
@@ -8838,6 +8895,7 @@ void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *message) {
   update_message_contains_unread_mention(d, message, false, "on_message_ttl_expired_impl");
   message->contains_mention = false;
   message->reply_to_message_id = MessageId();
+  message->is_content_secret = false;
 }
 
 void MessagesManager::loop() {
@@ -9593,6 +9651,8 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   }
 
   int32 ttl = message_info.ttl;
+  bool is_content_secret =
+      is_secret_message_content(ttl, message_info.content->get_id());  // should be calculated before TTL is adjusted
   if (ttl < 0) {
     LOG(ERROR) << "Wrong ttl = " << ttl << " received in " << message_id << " in " << dialog_id;
     ttl = 0;
@@ -9628,6 +9688,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
       message_id.is_server() && message->contains_mention && (flags & MESSAGE_FLAG_HAS_UNREAD_CONTENT) != 0 &&
       (dialog_type == DialogType::Chat || (dialog_type == DialogType::Channel && !is_broadcast_channel(dialog_id)));
   message->disable_notification = is_silent;
+  message->is_content_secret = is_content_secret;
   message->views = views;
   message->content = std::move(message_info.content);
   message->reply_markup = get_reply_markup(std::move(message_info.reply_markup), td_->auth_manager_->is_bot(), false,
@@ -9649,7 +9710,8 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     if (!is_allowed_media_group_content(content_id)) {
       LOG(ERROR) << "Receive media group id " << message_info.media_album_id << " in " << message_id << " from "
                  << dialog_id << " with content "
-                 << oneline(to_string(get_message_content_object(message->content.get(), message->date)));
+                 << oneline(to_string(
+                        get_message_content_object(message->content.get(), message->date, is_content_secret)));
     } else {
       message->media_album_id = message_info.media_album_id;
     }
@@ -10034,9 +10096,11 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
 
   if (is_content_changed) {
     m->content = std::move(new_content);
+    m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_id());
   }
   if (need_update) {
-    send_update_message_content(dialog_id, m->message_id, m->content.get(), m->date, "on_update_sent_text_message");
+    send_update_message_content(dialog_id, m->message_id, m->content.get(), m->date, m->is_content_secret,
+                                "on_update_sent_text_message");
   }
 }
 
@@ -10073,7 +10137,8 @@ void MessagesManager::on_update_message_web_page(FullMessageId full_message_id, 
     return;
   }
 
-  send_update_message_content(dialog_id, message_id, content, message->date, "on_update_message_web_page");
+  send_update_message_content(dialog_id, message_id, content, message->date, message->is_content_secret,
+                              "on_update_message_web_page");
 }
 
 void MessagesManager::on_get_dialogs(vector<tl_object_ptr<telegram_api::dialog>> &&dialogs, int32 total_count,
@@ -13907,7 +13972,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
       message->ttl_expires_at != 0 ? max(message->ttl_expires_at - Time::now(), 1e-3) : message->ttl,
       td_->contacts_manager_->get_user_id_object(message->via_bot_user_id, "via_bot_user_id"),
       message->author_signature, message->views, message->media_album_id,
-      get_message_content_object(message->content.get(), message->date),
+      get_message_content_object(message->content.get(), message->date, message->is_content_secret),
       get_reply_markup_object(message->reply_markup));
 }
 
@@ -14460,9 +14525,7 @@ MessagesManager::Message *MessagesManager::get_message_to_send(Dialog *d, Messag
     if (is_service_message_content(m->content->get_id())) {
       m->ttl = 0;
     }
-    if (m->ttl > 0) {
-      m->ttl = max(m->ttl, get_message_content_duration(m->content.get()) + 1);
-    }
+    m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_id());
     if (reply_to_message_id.is_valid()) {
       auto *reply_to_message = get_message_force(d, reply_to_message_id);
       if (reply_to_message != nullptr) {
@@ -15214,6 +15277,7 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId re
   m->clear_draft = message_content.clear_draft;
   if (message_content.ttl > 0) {
     m->ttl = message_content.ttl;
+    m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_id());
   }
 
   send_update_new_message(d, m, true);
@@ -15701,6 +15765,7 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
     auto ttl = message_content.second;
     if (ttl > 0) {
       m->ttl = ttl;
+      m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_id());
     }
     m->media_album_id = media_album_id;
 
@@ -17920,13 +17985,14 @@ void MessagesManager::send_update_message_send_succeeded(Dialog *d, MessageId ol
 
 void MessagesManager::send_update_message_content(DialogId dialog_id, MessageId message_id,
                                                   const MessageContent *content, int32 message_date,
-                                                  const char *source) const {
+                                                  bool is_content_secret, const char *source) const {
   LOG(INFO) << "Send updateMessageContent for " << message_id << " in " << dialog_id << " from " << source;
   CHECK(have_dialog(dialog_id)) << "Send updateMessageContent in unknown " << dialog_id << " from " << source
                                 << " with load count " << loaded_dialogs_.count(dialog_id);
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateMessageContent>(dialog_id.get(), message_id.get(),
-                                                            get_message_content_object(content, message_date)));
+  send_closure(
+      G()->td(), &Td::send_update,
+      make_tl_object<td_api::updateMessageContent>(
+          dialog_id.get(), message_id.get(), get_message_content_object(content, message_date, is_content_secret)));
 }
 
 void MessagesManager::send_update_message_edited(FullMessageId full_message_id) const {
@@ -18303,7 +18369,8 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
     }
   }
   if (is_content_changed) {
-    send_update_message_content(dialog_id, old_message_id, sent_message->content.get(), sent_message->date, source);
+    send_update_message_content(dialog_id, old_message_id, sent_message->content.get(), sent_message->date,
+                                sent_message->is_content_secret, source);
   }
 
   sent_message->message_id = new_message_id;
@@ -21696,7 +21763,7 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
   }
 
   auto is_secret = d->dialog_id.get_type() == DialogType::SecretChat;
-  if (m != nullptr && m->ttl > 0 && !is_secret) {
+  if (m != nullptr && m->ttl > 0) {
     delete_message_files(m);
   }
 
@@ -22003,7 +22070,7 @@ bool MessagesManager::need_message_text_changed_warning(const Message *old_messa
   return true;
 }
 
-bool MessagesManager::update_message_content(DialogId dialog_id, const Message *old_message,
+bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_message,
                                              unique_ptr<MessageContent> &old_content,
                                              unique_ptr<MessageContent> new_content,
                                              bool need_send_update_message_content) {
@@ -22015,6 +22082,8 @@ bool MessagesManager::update_message_content(DialogId dialog_id, const Message *
   if (old_content_type != new_content_type) {
     need_update = true;
     LOG(INFO) << "Message content has changed its type from " << old_content_type << " to " << new_content_type;
+
+    old_message->is_content_secret = is_secret_message_content(old_message->ttl, new_content->get_id());
 
     auto old_file_id = get_message_content_file_id(old_content.get());
     if (old_file_id.is_valid()) {
@@ -22070,7 +22139,8 @@ bool MessagesManager::update_message_content(DialogId dialog_id, const Message *
           if (need_message_text_changed_warning(old_message, old_, new_)) {
             LOG(ERROR) << "Message text has changed for " << to_string(get_message_object(dialog_id, old_message))
                        << ". New content is "
-                       << to_string(get_message_content_object(new_content.get(), old_message->date));
+                       << to_string(get_message_content_object(new_content.get(), old_message->date,
+                                                               old_message->is_content_secret));
           }
           need_update = true;
         }
@@ -22080,7 +22150,8 @@ bool MessagesManager::update_message_content(DialogId dialog_id, const Message *
               old_->text.entities.size() <= MAX_CUSTOM_ENTITIES_COUNT) {
             LOG(WARNING) << "Entities has changed for " << to_string(get_message_object(dialog_id, old_message))
                          << ". New content is "
-                         << to_string(get_message_content_object(new_content.get(), old_message->date));
+                         << to_string(get_message_content_object(new_content.get(), old_message->date,
+                                                                 old_message->is_content_secret));
           }
           need_update = true;
         }
@@ -22437,7 +22508,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, const Message *
 
   if (need_update && need_send_update_message_content) {
     send_update_message_content(dialog_id, old_message->message_id, old_content.get(), old_message->date,
-                                "update_message_content");
+                                old_message->is_content_secret, "update_message_content");
   }
   return is_content_changed || need_update;
 }

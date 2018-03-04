@@ -802,8 +802,8 @@ paymentReceipt date:int32 payments_provider_user_id:int32 invoice:invoice order_
 //@description A text message @text Text of the message @web_page A preview of the web page that's mentioned in the text; may be null
 messageText text:formattedText web_page:webPage = MessageContent;
 
-//@description An animation message (GIF-style). @animation Message content @caption Animation caption
-messageAnimation animation:animation caption:formattedText = MessageContent;
+//@description An animation message (GIF-style). @animation Message content @caption Animation caption @is_secret True, if the animation thumbnail must be blurred and the animation must be shown only while tapped
+messageAnimation animation:animation caption:formattedText is_secret:Bool = MessageContent;
 
 //@description An audio message @audio Message content @caption Audio caption
 messageAudio audio:audio caption:formattedText = MessageContent;
@@ -811,8 +811,8 @@ messageAudio audio:audio caption:formattedText = MessageContent;
 //@description A document message (general file) @document Message content @caption Document caption
 messageDocument document:document caption:formattedText = MessageContent;
 
-//@description A photo message @photo Message content @caption Photo caption
-messagePhoto photo:photo caption:formattedText = MessageContent;
+//@description A photo message @photo Message content @caption Photo caption @is_secret True, if the photo must be blurred and must be shown only while tapped
+messagePhoto photo:photo caption:formattedText is_secret:Bool = MessageContent;
 
 //@description An expired photo message (self-destructed after TTL has elapsed)
 messageExpiredPhoto = MessageContent;
@@ -820,14 +820,14 @@ messageExpiredPhoto = MessageContent;
 //@description A sticker message @sticker Message content
 messageSticker sticker:sticker = MessageContent;
 
-//@description A video message @video Message content @caption Video caption
-messageVideo video:video caption:formattedText = MessageContent;
+//@description A video message @video Message content @caption Video caption @is_secret True, if the video thumbnail must be blurred and the video must be shown only while tapped
+messageVideo video:video caption:formattedText is_secret:Bool = MessageContent;
 
 //@description An expired video message (self-destructed after TTL has elapsed)
 messageExpiredVideo = MessageContent;
 
-//@description A video note message @video_note Message content @is_viewed True, if at least one of the recipients has viewed the video note
-messageVideoNote video_note:videoNote is_viewed:Bool = MessageContent;
+//@description A video note message @video_note Message content @is_viewed True, if at least one of the recipients has viewed the video note @is_secret True, if the video note thumbnail must be blurred and the video note must be shown only while tapped
+messageVideoNote video_note:videoNote is_viewed:Bool is_secret:Bool = MessageContent;
 
 //@description A voice note message @voice_note Message content @caption Voice note caption @is_listened True, if at least one of the recipients has listened to the voice note
 messageVoiceNote voice_note:voiceNote caption:formattedText is_listened:Bool = MessageContent;

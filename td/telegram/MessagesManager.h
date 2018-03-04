@@ -1424,7 +1424,8 @@ class MessagesManager : public Actor {
     bool disable_notification = false;
     bool contains_mention = false;
     bool contains_unread_mention = false;
-    bool had_reply_markup = false;  // had non-inline reply markup?
+    bool had_reply_markup = false;   // had non-inline reply markup?
+    bool is_content_secret = false;  // should be shown only while tapped
 
     bool from_background = false;           // for send_message
     bool disable_web_page_preview = false;  // for send_message
@@ -1918,6 +1919,8 @@ class MessagesManager : public Actor {
 
   static bool can_forward_message(DialogId from_dialog_id, const Message *m);
 
+  static bool is_secret_message_content(int32 ttl, int32 content_type);
+
   static bool is_service_message_content(int32 content_type);
 
   static bool can_delete_channel_message(DialogParticipantStatus status, const Message *m, bool is_bot);
@@ -2060,7 +2063,7 @@ class MessagesManager : public Actor {
   bool need_message_text_changed_warning(const Message *old_message, const MessageText *old_content,
                                          const MessageText *new_content);
 
-  bool update_message_content(DialogId dialog_id, const Message *old_message, unique_ptr<MessageContent> &old_content,
+  bool update_message_content(DialogId dialog_id, Message *old_message, unique_ptr<MessageContent> &old_content,
                               unique_ptr<MessageContent> new_content, bool need_send_update_message_content);
 
   void send_update_new_message(Dialog *d, const Message *m, bool force = false);
@@ -2070,7 +2073,7 @@ class MessagesManager : public Actor {
   void send_update_message_send_succeeded(Dialog *d, MessageId old_message_id, const Message *m) const;
 
   void send_update_message_content(DialogId dialog_id, MessageId message_id, const MessageContent *content,
-                                   int32 message_date, const char *source) const;
+                                   int32 message_date, bool is_content_secret, const char *source) const;
 
   void send_update_message_edited(FullMessageId full_message_id) const;
 
@@ -2265,8 +2268,8 @@ class MessagesManager : public Actor {
   unique_ptr<MessageContent> get_message_action_content(tl_object_ptr<telegram_api::MessageAction> &&action,
                                                         DialogId owner_dialog_id, MessageId reply_to_message_id) const;
 
-  tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content,
-                                                                   int32 message_date) const;
+  tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content, int32 message_date,
+                                                                   bool is_content_secret) const;
 
   static FormattedText get_message_content_caption(const MessageContent *content);
 
