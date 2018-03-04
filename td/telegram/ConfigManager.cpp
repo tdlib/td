@@ -679,6 +679,12 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
     }
   }
 
+  shared_config.set_option_integer("edit_time_limit", config->edit_time_limit_);
+  shared_config.set_option_boolean("revoke_pm_inbox",
+                                   (config->flags_ & telegram_api::config::REVOKE_PM_INBOX_MASK) != 0);
+  shared_config.set_option_integer("revoke_time_limit", config->revoke_time_limit_);
+  shared_config.set_option_integer("revoke_pm_time_limit", config->revoke_pm_time_limit_);
+
   shared_config.set_option_integer("rating_e_decay", config->rating_e_decay_);
 
   if (is_from_main_dc) {

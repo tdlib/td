@@ -3897,6 +3897,13 @@ void Td::on_result(NetQueryPtr query) {
   handler->on_result(std::move(query));
 }
 
+bool Td::is_internal_config_option(Slice name) {
+  return name == "call_ring_timeout_ms" || name == "call_receive_timeout_ms" || name == "channels_read_media_period" ||
+         name == "edit_time_limit" || name == "revoke_pm_inbox" || name == "revoke_time_limit" ||
+         name == "revoke_pm_time_limit" || name == "rating_e_decay" || name == "saved_animations_limit" ||
+         name == "auth";
+}
+
 void Td::on_config_option_updated(const string &name) {
   if (close_flag_) {
     return;
@@ -3918,8 +3925,7 @@ void Td::on_config_option_updated(const string &name) {
     send_closure(storage_manager_, &StorageManager::update_use_storage_optimizer);
   } else if (name == "rating_e_decay") {
     return send_closure(top_dialog_manager_, &TopDialogManager::update_rating_e_decay);
-  } else if (name == "call_ring_timeout_ms" || name == "call_receive_timeout_ms" ||
-             name == "channels_read_media_period") {
+  } else if (is_internal_config_option(name)) {
     return;
   }
   send_closure(actor_id(this), &Td::send_update,
@@ -4112,12 +4118,9 @@ void Td::clear() {
   Timer timer;
   if (destroy_flag_) {
     for (auto &option : G()->shared_config().get_options()) {
-      if (option.first == "rating_e_decay" || option.first == "saved_animations_limit" ||
-          option.first == "call_receive_timeout_ms" || option.first == "call_ring_timeout_ms" ||
-          option.first == "channels_read_media_period" || option.first == "auth") {
-        continue;
+      if (!is_internal_config_option(option.first)) {
+        send_update(make_tl_object<td_api::updateOption>(option.first, make_tl_object<td_api::optionValueEmpty>()));
       }
-      send_update(make_tl_object<td_api::updateOption>(option.first, make_tl_object<td_api::optionValueEmpty>()));
     }
   }
   LOG(DEBUG) << "Options was cleared " << timer;

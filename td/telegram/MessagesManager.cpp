@@ -7411,8 +7411,13 @@ bool MessagesManager::can_revoke_message(DialogId dialog_id, const Message *m) c
   CHECK(m->message_id.is_server());
 
   bool is_appointed_administrator = false;
+  bool can_revoke_incoming = false;
+  const int32 DEFAULT_REVOKE_TIME_LIMIT = 2 * 86400;
+  int32 revoke_time_limit = G()->shared_config().get_option_integer("revoke_time_limit", DEFAULT_REVOKE_TIME_LIMIT);
   switch (dialog_id.get_type()) {
     case DialogType::User:
+      can_revoke_incoming = G()->shared_config().get_option_boolean("revoke_pm_inbox");
+      revoke_time_limit = G()->shared_config().get_option_integer("revoke_pm_time_limit", DEFAULT_REVOKE_TIME_LIMIT);
       break;
     case DialogType::Chat:
       is_appointed_administrator = td_->contacts_manager_->is_appointed_chat_administrator(dialog_id.get_chat_id());
@@ -7428,9 +7433,9 @@ bool MessagesManager::can_revoke_message(DialogId dialog_id, const Message *m) c
       return false;
   }
 
-  // TODO use const from the config
-  return ((m->is_outgoing && !is_service_message_content(m->content->get_id())) || is_appointed_administrator) &&
-         G()->unix_time_cached() < m->date + 2 * 86400;
+  return (((m->is_outgoing || can_revoke_incoming) && !is_service_message_content(m->content->get_id())) ||
+          is_appointed_administrator) &&
+         G()->unix_time_cached() - m->date <= revoke_time_limit;
 }
 
 void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId> &input_message_ids, bool revoke,
@@ -16583,8 +16588,9 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
       return false;
   }
 
-  // TODO use const from the config
-  if (has_edit_time_limit && G()->unix_time_cached() - m->date >= 2 * 86400 + (is_editing ? 300 : 0)) {
+  const int32 DEFAULT_EDIT_TIME_LIMIT = 2 * 86400;
+  int32 edit_time_limit = G()->shared_config().get_option_integer("edit_time_limit", DEFAULT_EDIT_TIME_LIMIT);
+  if (has_edit_time_limit && G()->unix_time_cached() - m->date >= edit_time_limit + (is_editing ? 300 : 0)) {
     return false;
   }
 
