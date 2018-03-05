@@ -4545,7 +4545,7 @@ Status Td::init(DbKey key) {
 
   VLOG(td_init) << "Ping datacenter";
   if (!auth_manager_->is_authorized()) {
-    create_handler<GetNearestDcQuery>(Auto())->send();
+    create_handler<GetNearestDcQuery>(Promise<string>())->send();
   } else {
     updates_manager_->get_difference("init");
   }
