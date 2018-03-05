@@ -528,7 +528,7 @@ chatTypeSecret secret_chat_id:int32 user_id:int32 = ChatType;
 //@last_message Last message in the chat; may be null
 //@order Descending parameter by which chats are sorted in the main chat list. If the order number of two chats is the same, they must be sorted in descending order by ID. If 0, the position of the chat in the list is undetermined
 //@is_pinned True, if the chat is pinned
-//#can_be_reported True, if the chat can be reported to Telegram moderators through reportChat
+//@can_be_reported True, if the chat can be reported to Telegram moderators through reportChat
 //@unread_count Number of unread messages in the chat
 //@last_read_inbox_message_id Identifier of the last read incoming message
 //@last_read_outbox_message_id Identifier of the last read outgoing message
