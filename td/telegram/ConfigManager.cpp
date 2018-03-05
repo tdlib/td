@@ -671,6 +671,7 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   shared_config.set_option_integer("supergroup_size_max", config->megagroup_size_max_);
   shared_config.set_option_integer("large_chat_size", config->chat_big_size_);
   shared_config.set_option_integer("pinned_chat_count_max", config->pinned_dialogs_count_max_);
+  shared_config.set_option_string("t_me_url", config->me_url_prefix_);
   if (is_from_main_dc) {
     if ((config->flags_ & telegram_api::config::TMP_SESSIONS_MASK) != 0) {
       G()->shared_config().set_option_integer("session_count", config->tmp_sessions_);
