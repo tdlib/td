@@ -657,6 +657,10 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::searchStickerSet &request);
 
+  void on_request(uint64 id, td_api::searchInstalledStickerSets &request);
+
+  void on_request(uint64 id, td_api::searchStickerSets &request);
+
   void on_request(uint64 id, const td_api::changeStickerSet &request);
 
   void on_request(uint64 id, const td_api::viewTrendingStickerSets &request);

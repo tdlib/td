@@ -1618,6 +1618,10 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::removeTopChat>(get_top_chat_category(category), as_chat_id(chat_id)));
     } else if (op == "sss") {
       send_request(make_tl_object<td_api::searchStickerSet>(args));
+    } else if (op == "siss") {
+      send_request(make_tl_object<td_api::searchInstalledStickerSets>(false, args, 2));
+    } else if (op == "ssss") {
+      send_request(make_tl_object<td_api::searchStickerSets>(args));
     } else if (op == "css") {
       string set_id;
       string is_installed;

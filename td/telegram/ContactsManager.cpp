@@ -3735,7 +3735,7 @@ std::pair<int32, vector<UserId>> ContactsManager::search_contacts(const string &
   }
 
   promise.set_value(Unit());
-  return {narrow_cast<int32>(result.first), user_ids};
+  return {narrow_cast<int32>(result.first), std::move(user_ids)};
 }
 
 void ContactsManager::set_profile_photo(const tl_object_ptr<td_api::InputFile> &input_photo, Promise<Unit> &&promise) {

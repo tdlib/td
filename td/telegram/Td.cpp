@@ -2873,6 +2873,47 @@ class SearchStickerSetRequest : public RequestActor<> {
   }
 };
 
+class SearchInstalledStickerSetsRequest : public RequestActor<> {
+  bool is_masks_;
+  string query_;
+  int32 limit_;
+
+  std::pair<int32, vector<int64>> sticker_set_ids_;
+
+  void do_run(Promise<Unit> &&promise) override {
+    sticker_set_ids_ =
+        td->stickers_manager_->search_installed_sticker_sets(is_masks_, query_, limit_, std::move(promise));
+  }
+
+  void do_send_result() override {
+    send_result(td->stickers_manager_->get_sticker_sets_object(sticker_set_ids_.first, sticker_set_ids_.second, 5));
+  }
+
+ public:
+  SearchInstalledStickerSetsRequest(ActorShared<Td> td, uint64 request_id, bool is_masks, string &&query, int32 limit)
+      : RequestActor(std::move(td), request_id), is_masks_(is_masks), query_(std::move(query)), limit_(limit) {
+  }
+};
+
+class SearchStickerSetsRequest : public RequestActor<> {
+  string query_;
+
+  vector<int64> sticker_set_ids_;
+
+  void do_run(Promise<Unit> &&promise) override {
+    sticker_set_ids_ = td->stickers_manager_->search_sticker_sets(query_, std::move(promise));
+  }
+
+  void do_send_result() override {
+    send_result(td->stickers_manager_->get_sticker_sets_object(-1, sticker_set_ids_, 5));
+  }
+
+ public:
+  SearchStickerSetsRequest(ActorShared<Td> td, uint64 request_id, string &&query)
+      : RequestActor(std::move(td), request_id), query_(std::move(query)) {
+  }
+};
+
 class ChangeStickerSetRequest : public RequestOnceActor {
   int64 set_id_;
   bool is_installed_;
@@ -6251,6 +6292,18 @@ void Td::on_request(uint64 id, td_api::searchStickerSet &request) {
   CHECK_AUTH();
   CLEAN_INPUT_STRING(request.name_);
   CREATE_REQUEST(SearchStickerSetRequest, std::move(request.name_));
+}
+
+void Td::on_request(uint64 id, td_api::searchInstalledStickerSets &request) {
+  CHECK_AUTH();
+  CLEAN_INPUT_STRING(request.query_);
+  CREATE_REQUEST(SearchInstalledStickerSetsRequest, request.is_masks_, std::move(request.query_), request.limit_);
+}
+
+void Td::on_request(uint64 id, td_api::searchStickerSets &request) {
+  CHECK_AUTH();
+  CLEAN_INPUT_STRING(request.query_);
+  CREATE_REQUEST(SearchStickerSetsRequest, std::move(request.query_));
 }
 
 void Td::on_request(uint64 id, const td_api::changeStickerSet &request) {

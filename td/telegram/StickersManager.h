@@ -17,6 +17,7 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
+#include "td/utils/Hints.h"
 #include "td/utils/Status.h"
 
 #include "td/telegram/td_api.h"
@@ -73,6 +74,11 @@ class StickersManager : public Actor {
   int64 get_sticker_set(int64 set_id, Promise<Unit> &&promise);
 
   int64 search_sticker_set(const string &short_name_to_search, Promise<Unit> &&promise);
+
+  std::pair<int32, vector<int64>> search_installed_sticker_sets(bool is_masks, const string &query, int32 limit,
+                                                                Promise<Unit> &&promise);
+
+  vector<int64> search_sticker_sets(const string &query, Promise<Unit> &&promise);
 
   void change_sticker_set(int64 set_id, bool is_installed, bool is_archived, Promise<Unit> &&promise);
 
@@ -191,6 +197,11 @@ class StickersManager : public Actor {
 
   void on_uploaded_sticker_file(FileId file_id, tl_object_ptr<telegram_api::MessageMedia> media,
                                 Promise<Unit> &&promise);
+
+  void on_find_sticker_sets_success(const string &query,
+                                    tl_object_ptr<telegram_api::messages_FoundStickerSets> &&sticker_sets);
+
+  void on_find_sticker_sets_fail(const string &query, Status &&error);
 
  private:
   static constexpr int32 MAX_FEATURED_STICKER_SET_VIEW_DELAY = 5;
@@ -449,6 +460,11 @@ class StickersManager : public Actor {
   int32 total_archived_sticker_set_count_[2] = {-1, -1};
 
   std::unordered_map<FileId, vector<int64>, FileIdHash> attached_sticker_sets_;
+
+  Hints installed_sticker_sets_hints_[2];  // search installed sticker sets by their title and name
+
+  std::unordered_map<string, vector<int64>> found_sticker_sets_;
+  std::unordered_map<string, vector<Promise<Unit>>> search_sticker_sets_queries_;
 
   std::unordered_set<int64> pending_viewed_featured_sticker_set_ids_;
   Timeout pending_featured_sticker_set_views_timeout_;

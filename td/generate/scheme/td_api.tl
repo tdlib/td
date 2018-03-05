@@ -2515,8 +2515,14 @@ getAttachedStickerSets file_id:int32 = StickerSets;
 //@description Returns information about a sticker set by its identifier @set_id Identifier of the sticker set
 getStickerSet set_id:int64 = StickerSet;
 
-//@description Searches for a sticker set by its short name @name Name of the sticker set
+//@description Searches for a sticker set by its name @name Name of the sticker set
 searchStickerSet name:string = StickerSet;
+
+//@description Searches for installed sticker sets by looking for specified query in their title and name @is_masks Pass true to return mask sticker sets; pass false to return ordinary sticker sets @query Query to search for @limit Maximum number of sticker sets to return
+searchInstalledStickerSets is_masks:Bool query:string limit:int32 = StickerSets;
+
+//@description Searches for ordinary sticker sets by looking for specified query in their title and name. Excludes installed sticker sets from the results @query Query to search for
+searchStickerSets query:string = StickerSets;
 
 //@description Installs/uninstalls or activates/archives a sticker set @set_id Identifier of the sticker set @is_installed The new value of is_installed @is_archived The new value of is_archived. A sticker set can't be installed and archived simultaneously
 changeStickerSet set_id:int64 is_installed:Bool is_archived:Bool = Ok;
