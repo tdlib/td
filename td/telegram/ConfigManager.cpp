@@ -669,7 +669,6 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   shared_config.set_option_integer("forwarded_message_count_max", config->forwarded_count_max_);
   shared_config.set_option_integer("basic_group_size_max", config->chat_size_max_);
   shared_config.set_option_integer("supergroup_size_max", config->megagroup_size_max_);
-  shared_config.set_option_integer("large_chat_size", config->chat_big_size_);
   shared_config.set_option_integer("pinned_chat_count_max", config->pinned_dialogs_count_max_);
   shared_config.set_option_string("t_me_url", config->me_url_prefix_);
   if (is_from_main_dc) {
@@ -712,6 +711,7 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   shared_config.set_option_empty("online_cloud_timeout_ms");
   shared_config.set_option_empty("notify_cloud_delay_ms");
   shared_config.set_option_empty("notify_default_delay_ms");
+  shared_config.set_option_empty("large_chat_size");
 
   if (is_from_main_dc) {
     for (auto &feature : shared_config.get_options("disabled_")) {
