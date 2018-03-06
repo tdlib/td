@@ -378,8 +378,7 @@ class FileManager : public FileLoadManager::Callback {
 
   struct RemoteInfo {
     FullRemoteFileLocation remote_;
-    FileId file_id;
-    FileLocationSource source_;
+    FileId file_id_;
     bool operator==(const RemoteInfo &other) const {
       return this->remote_ == other.remote_;
     }

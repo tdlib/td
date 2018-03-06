@@ -743,14 +743,14 @@ Result<FileId> FileManager::register_file(FileData data, FileLocationSource file
   bool new_remote = false;
   int32 remote_key = 0;
   if (file_view.has_remote_location()) {
-    RemoteInfo info{file_view.remote_location(), file_id, file_location_source};
+    RemoteInfo info{file_view.remote_location(), file_id};
     remote_key = remote_location_info_.add(info);
     auto &stored_info = remote_location_info_.get(remote_key);
-    if (stored_info.file_id == file_id) {
+    if (stored_info.file_id_ == file_id) {
       get_file_id_info(file_id)->pin_flag_ = true;
       new_remote = true;
     } else {
-      to_merge.push_back(stored_info.file_id);
+      to_merge.push_back(stored_info.file_id_);
       if (stored_info.remote_ == file_view.remote_location() &&
           stored_info.remote_.get_access_hash() != file_view.remote_location().get_access_hash() &&
           file_location_source == FileLocationSource::FromServer) {
