@@ -124,7 +124,7 @@ tl_object_ptr<td_api::animation> AnimationsManager::get_animation_object(FileId 
   return make_tl_object<td_api::animation>(animation->duration, animation->dimensions.width,
                                            animation->dimensions.height, animation->file_name, animation->mime_type,
                                            get_photo_size_object(td_->file_manager_.get(), &animation->thumbnail),
-                                           td_->file_manager_->get_file_object(animation->file_id));
+                                           td_->file_manager_->get_file_object(file_id));
 }
 
 FileId AnimationsManager::on_get_animation(std::unique_ptr<Animation> new_animation, bool replace) {
@@ -512,7 +512,7 @@ int32 AnimationsManager::get_saved_animations_hash() const {
   for (auto animation_id : saved_animation_ids_) {
     auto animation = get_animation(animation_id);
     CHECK(animation != nullptr);
-    auto file_view = td_->file_manager_->get_file_view(animation->file_id);
+    auto file_view = td_->file_manager_->get_file_view(animation_id);
     CHECK(file_view.has_remote_location());
     CHECK(!file_view.remote_location().is_encrypted());
     CHECK(!file_view.remote_location().is_web());

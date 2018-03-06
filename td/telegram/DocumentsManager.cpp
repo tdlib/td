@@ -54,7 +54,7 @@ tl_object_ptr<td_api::document> DocumentsManager::get_document_object(FileId fil
   document->is_changed = false;
   return make_tl_object<td_api::document>(document->file_name, document->mime_type,
                                           get_photo_size_object(td_->file_manager_.get(), &document->thumbnail),
-                                          td_->file_manager_->get_file_object(document->file_id));
+                                          td_->file_manager_->get_file_object(file_id));
 }
 
 std::pair<DocumentsManager::DocumentType, FileId> DocumentsManager::on_get_document(

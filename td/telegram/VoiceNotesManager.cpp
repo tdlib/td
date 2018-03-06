@@ -42,7 +42,7 @@ tl_object_ptr<td_api::voiceNote> VoiceNotesManager::get_voice_note_object(FileId
   CHECK(voice_note != nullptr);
   voice_note->is_changed = false;
   return make_tl_object<td_api::voiceNote>(voice_note->duration, voice_note->waveform, voice_note->mime_type,
-                                           td_->file_manager_->get_file_object(voice_note->file_id));
+                                           td_->file_manager_->get_file_object(file_id));
 }
 
 FileId VoiceNotesManager::on_get_voice_note(std::unique_ptr<VoiceNote> new_voice_note, bool replace) {

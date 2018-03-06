@@ -46,7 +46,7 @@ tl_object_ptr<td_api::video> VideosManager::get_video_object(FileId file_id) {
                                        video->file_name, video->mime_type, video->has_stickers,
                                        video->supports_streaming,
                                        get_photo_size_object(td_->file_manager_.get(), &video->thumbnail),
-                                       td_->file_manager_->get_file_object(video->file_id));
+                                       td_->file_manager_->get_file_object(file_id));
 }
 
 FileId VideosManager::on_get_video(std::unique_ptr<Video> new_video, bool replace) {

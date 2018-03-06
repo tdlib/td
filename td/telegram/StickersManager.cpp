@@ -802,7 +802,7 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
   return make_tl_object<td_api::sticker>(sticker->set_id, sticker->dimensions.width, sticker->dimensions.height,
                                          sticker->alt, sticker->is_mask, std::move(mask_position),
                                          get_photo_size_object(td_->file_manager_.get(), &thumbnail),
-                                         td_->file_manager_->get_file_object(sticker->file_id));
+                                         td_->file_manager_->get_file_object(file_id));
 }
 
 tl_object_ptr<td_api::stickers> StickersManager::get_stickers_object(const vector<FileId> &sticker_ids) {
@@ -3452,7 +3452,7 @@ int32 StickersManager::get_recent_stickers_hash(const vector<FileId> &sticker_id
   for (auto sticker_id : sticker_ids) {
     auto sticker = get_sticker(sticker_id);
     CHECK(sticker != nullptr);
-    auto file_view = td_->file_manager_->get_file_view(sticker->file_id);
+    auto file_view = td_->file_manager_->get_file_view(sticker_id);
     CHECK(file_view.has_remote_location());
     CHECK(!file_view.remote_location().is_encrypted());
     CHECK(!file_view.remote_location().is_web());

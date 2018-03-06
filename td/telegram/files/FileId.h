@@ -63,6 +63,6 @@ struct FileIdHash {
 };
 
 inline StringBuilder &operator<<(StringBuilder &string_builder, FileId file_id) {
-  return string_builder << file_id.get();
+  return string_builder << file_id.get() << "(" << file_id.get_remote() << ")";
 }
 }  // namespace td

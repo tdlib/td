@@ -745,7 +745,6 @@ Result<FileId> FileManager::register_file(FileData data, FileLocationSource file
   if (file_view.has_remote_location()) {
     RemoteInfo info{file_view.remote_location(), file_id, file_location_source};
     remote_key = remote_location_info_.add(info);
-    CHECK(remote_key < 1000);
     auto &stored_info = remote_location_info_.get(remote_key);
     if (stored_info.file_id == file_id) {
       get_file_id_info(file_id)->pin_flag_ = true;
