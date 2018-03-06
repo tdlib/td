@@ -82,7 +82,7 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
       } else if (begins_with(generate_location.conversion_, "#file_id#")) {
         // It is not the best possible way to serialize file_id
         from_file_id =
-            FileId(to_integer<int32>(Slice(generate_location.conversion_).remove_prefix(Slice("#file_id#").size())));
+            FileId(to_integer<int32>(Slice(generate_location.conversion_).remove_prefix(Slice("#file_id#").size())), 0);
         generate_location.conversion_ = "#_file_id#";
         have_file_id = true;
       }

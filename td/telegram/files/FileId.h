@@ -16,11 +16,14 @@ namespace td {
 
 class FileId {
   int32 id = 0;
+  int32 remote_id = 0;
 
  public:
   FileId() = default;
 
-  explicit FileId(int32 file_id) : id(file_id) {
+  explicit FileId(int32 file_id, int32 remote_id) : id(file_id), remote_id(remote_id) {
+  }
+  explicit FileId(int32 file_id) : FileId(file_id, 0) {
   }
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int32>::value>>
   FileId(T file_id) = delete;
@@ -34,6 +37,10 @@ class FileId {
 
   int32 get() const {
     return id;
+  }
+
+  int32 get_remote() const {
+    return remote_id;
   }
 
   bool operator<(const FileId &other) const {

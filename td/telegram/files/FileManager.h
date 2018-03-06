@@ -20,6 +20,7 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/Container.h"
+#include "td/utils/Enumerator.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
@@ -136,6 +137,7 @@ class FileNodePtr {
   FileNode *operator->() const;
   FileNode &operator*() const;
   FileNode *get() const;
+  FullRemoteFileLocation *get_remote() const;
   explicit operator bool() const;
 
  private:
@@ -159,6 +161,9 @@ class ConstFileNodePtr {
 
   explicit operator bool() const {
     return bool(file_node_ptr_);
+  }
+  const FullRemoteFileLocation *get_remote() const {
+    return file_node_ptr_.get_remote();
   }
 
  private:
@@ -371,10 +376,23 @@ class FileManager : public FileLoadManager::Callback {
 
   FileIdInfo *get_file_id_info(FileId file_id);
 
-  std::map<FullRemoteFileLocation, FileId> remote_location_to_file_id_;
+  struct RemoteInfo {
+    FullRemoteFileLocation remote_;
+    FileId file_id;
+    FileLocationSource source_;
+    bool operator==(const RemoteInfo &other) const {
+      return this->remote_ == other.remote_;
+    }
+    bool operator<(const RemoteInfo &other) const {
+      return this->remote_ < other.remote_;
+    }
+  };
+  Enumerator<RemoteInfo> remote_location_info_;
+
   std::map<FullLocalFileLocation, FileId> local_location_to_file_id_;
   std::map<FullGenerateFileLocation, FileId> generate_location_to_file_id_;
   std::map<FileDbId, int32> pmc_id_to_file_node_id_;
+
   vector<FileIdInfo> file_id_info_;
   vector<FileId> empty_file_ids_;
   vector<std::unique_ptr<FileNode>> file_nodes_;
@@ -446,6 +464,8 @@ class FileManager : public FileLoadManager::Callback {
   void on_generate_ok(QueryId, const FullLocalFileLocation &local);
 
   std::pair<Query, bool> finish_query(QueryId query_id);
+
+  FullRemoteFileLocation *get_remote(int32 key);
 
   void hangup() override;
   void tear_down() override;

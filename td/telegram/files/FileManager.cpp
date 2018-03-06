@@ -50,6 +50,10 @@ FileNode *FileNodePtr::get() const {
   return res;
 }
 
+FullRemoteFileLocation *FileNodePtr::get_remote() const {
+  return file_manager_->get_remote(file_id_.get_remote());
+}
+
 FileNode *FileNodePtr::get_unsafe() const {
   CHECK(file_manager_ != nullptr);
   return file_manager_->get_file_node_raw(file_id_);
@@ -263,6 +267,10 @@ bool FileView::has_remote_location() const {
 }
 const FullRemoteFileLocation &FileView::remote_location() const {
   CHECK(has_remote_location());
+  auto *remote = node_.get_remote();
+  if (remote) {
+    return *remote;
+  }
   return node_->remote_.full();
 }
 bool FileView::has_generate_location() const {
@@ -733,8 +741,23 @@ Result<FileId> FileManager::register_file(FileData data, FileLocationSource file
     }
   };
   bool new_remote = false;
+  int32 remote_key = 0;
   if (file_view.has_remote_location()) {
-    new_remote = register_location(file_view.remote_location(), remote_location_to_file_id_);
+    RemoteInfo info{file_view.remote_location(), file_id, file_location_source};
+    remote_key = remote_location_info_.add(info);
+    CHECK(remote_key < 1000);
+    auto &stored_info = remote_location_info_.get(remote_key);
+    if (stored_info.file_id == file_id) {
+      get_file_id_info(file_id)->pin_flag_ = true;
+      new_remote = true;
+    } else {
+      to_merge.push_back(stored_info.file_id);
+      if (stored_info.remote_ == file_view.remote_location() &&
+          stored_info.remote_.get_access_hash() != file_view.remote_location().get_access_hash() &&
+          file_location_source == FileLocationSource::FromServer) {
+        stored_info.remote_ = file_view.remote_location();
+      }
+    }
   }
   bool new_local = false;
   if (file_view.has_local_location()) {
@@ -760,7 +783,7 @@ Result<FileId> FileManager::register_file(FileData data, FileLocationSource file
   try_flush_node(get_file_node(file_id));
   auto main_file_id = get_file_node(file_id)->main_file_id_;
   try_forget_file_id(file_id);
-  return main_file_id;
+  return FileId(main_file_id.get(), remote_key);
 }
 
 // 0 -- choose x
@@ -1930,7 +1953,7 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
                               owner_dialog_id, 0, get_by_hash);
       }
       case td_api::inputFileId::ID: {
-        FileId file_id(static_cast<const td_api::inputFileId *>(file.get())->id_);
+        FileId file_id(static_cast<const td_api::inputFileId *>(file.get())->id_, 0);
         if (!file_id.is_valid()) {
           return FileId();
         }
@@ -1977,7 +2000,7 @@ FileId FileManager::next_file_id() {
     empty_file_ids_.pop_back();
     return res;
   }
-  FileId res(static_cast<int32>(file_id_info_.size()));
+  FileId res(static_cast<int32>(file_id_info_.size()), 0);
   // LOG(ERROR) << "NEXT file_id " << res;
   file_id_info_.push_back({});
   return res;
@@ -2302,6 +2325,13 @@ std::pair<FileManager::Query, bool> FileManager::finish_query(QueryId query_id) 
     was_active = true;
   }
   return std::make_pair(res, was_active);
+}
+
+FullRemoteFileLocation *FileManager::get_remote(int32 key) {
+  if (key == 0) {
+    return nullptr;
+  }
+  return &remote_location_info_.get(key).remote_;
 }
 
 void FileManager::hangup() {

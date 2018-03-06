@@ -223,7 +223,7 @@ void FileGenerateManager::generate_file(uint64 query_id, const FullGenerateFileL
 
   auto &query = it_flag.first->second;
   if (conversion.copy().truncate(file_id_query.size()) == file_id_query) {
-    auto file_id = FileId(to_integer<int32>(conversion.substr(file_id_query.size())));
+    auto file_id = FileId(to_integer<int32>(conversion.substr(file_id_query.size())), 0);
     query.worker_ = create_actor<FileDownloadGenerateActor>("FileDownloadGenerateActor", generate_location.file_type_,
                                                             file_id, std::move(callback), std::move(parent));
   } else {
