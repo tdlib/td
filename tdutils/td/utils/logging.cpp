@@ -178,6 +178,7 @@ class DefaultLog : public LogInterface {
         emscripten_log(
             EM_LOG_ERROR | EM_LOG_CONSOLE | EM_LOG_C_STACK | EM_LOG_JS_STACK | EM_LOG_DEMANGLE | EM_LOG_FUNC_PARAMS,
             "%s", slice.c_str());
+        EM_ASM(throw(UTF8ToString($0)), slice.c_str());
         break;
       case VERBOSITY_NAME(ERROR):
         emscripten_log(EM_LOG_ERROR | EM_LOG_CONSOLE, "%s", slice.c_str());
