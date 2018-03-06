@@ -393,7 +393,7 @@ class FileManager : public FileLoadManager::Callback {
   std::map<FileDbId, int32> pmc_id_to_file_node_id_;
 
   vector<FileIdInfo> file_id_info_;
-  vector<FileId> empty_file_ids_;
+  vector<int32> empty_file_ids_;
   vector<std::unique_ptr<FileNode>> file_nodes_;
   ActorOwn<FileLoadManager> file_load_manager_;
   ActorOwn<FileGenerateManager> file_generate_manager_;

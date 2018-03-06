@@ -974,7 +974,7 @@ td_api::object_ptr<td_api::remoteFile> copy(const td_api::remoteFile &obj) {
 
 template <>
 td_api::object_ptr<td_api::file> copy(const td_api::file &obj) {
-  FileId file_id(obj.id_);
+  FileId file_id(obj.id_, 0);  // wrong, but there should be no difference for get_file_object
   if (file_id.is_valid()) {
     return G()->td().get_actor_unsafe()->file_manager_.get()->get_file_object(file_id);
   } else {

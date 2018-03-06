@@ -21,12 +21,11 @@ class FileId {
  public:
   FileId() = default;
 
-  explicit FileId(int32 file_id, int32 remote_id) : id(file_id), remote_id(remote_id) {
+  FileId(int32 file_id, int32 remote_id) : id(file_id), remote_id(remote_id) {
   }
-  explicit FileId(int32 file_id) : FileId(file_id, 0) {
-  }
-  template <class T, typename = std::enable_if_t<std::is_convertible<T, int32>::value>>
-  FileId(T file_id) = delete;
+  template <class T1, class T2, typename = std::enable_if_t<std::is_convertible<T1, int32>::value>,
+            typename = std::enable_if_t<std::is_convertible<T2, int32>::value>>
+  FileId(T1 file_id, T2 remote_id) = delete;
 
   bool empty() const {
     return id <= 0;

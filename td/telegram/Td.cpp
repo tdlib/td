@@ -2829,7 +2829,7 @@ class GetAttachedStickerSetsRequest : public RequestActor<> {
 
  public:
   GetAttachedStickerSetsRequest(ActorShared<Td> td, uint64 request_id, int32 file_id)
-      : RequestActor(std::move(td), request_id), file_id_(file_id) {
+      : RequestActor(std::move(td), request_id), file_id_(file_id, 0) {
   }
 };
 
@@ -5127,7 +5127,7 @@ void Td::on_request(uint64 id, const td_api::getPublicMessageLink &request) {
 
 void Td::on_request(uint64 id, const td_api::getFile &request) {
   CHECK_AUTH();
-  send_closure(actor_id(this), &Td::send_result, id, file_manager_->get_file_object(FileId(request.file_id_)));
+  send_closure(actor_id(this), &Td::send_result, id, file_manager_->get_file_object(FileId(request.file_id_, 0)));
 }
 
 void Td::on_request(uint64 id, td_api::getRemoteFile &request) {
@@ -5954,9 +5954,9 @@ void Td::on_request(uint64 id, const td_api::downloadFile &request) {
   if (!(1 <= priority && priority <= 32)) {
     return send_error_raw(id, 5, "Download priority must be in [1;32] range");
   }
-  file_manager_->download(FileId(request.file_id_), download_file_callback_, priority);
+  file_manager_->download(FileId(request.file_id_, 0), download_file_callback_, priority);
 
-  auto file = file_manager_->get_file_object(FileId(request.file_id_), false);
+  auto file = file_manager_->get_file_object(FileId(request.file_id_, 0), false);
   if (file->id_ == 0) {
     return send_error_raw(id, 400, "Invalid file id");
   }
@@ -5967,7 +5967,7 @@ void Td::on_request(uint64 id, const td_api::downloadFile &request) {
 void Td::on_request(uint64 id, const td_api::cancelDownloadFile &request) {
   CHECK_AUTH();
 
-  file_manager_->download(FileId(request.file_id_), nullptr, request.only_if_pending_ ? -1 : 0);
+  file_manager_->download(FileId(request.file_id_, 0), nullptr, request.only_if_pending_ ? -1 : 0);
 
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
 }
@@ -5997,7 +5997,7 @@ void Td::on_request(uint64 id, td_api::uploadFile &request) {
 void Td::on_request(uint64 id, const td_api::cancelUploadFile &request) {
   CHECK_AUTH();
 
-  file_manager_->upload(FileId(request.file_id_), nullptr, 0, 0);
+  file_manager_->upload(FileId(request.file_id_, 0), nullptr, 0, 0);
 
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
 }
@@ -6046,7 +6046,7 @@ void Td::on_request(uint64 id, const td_api::deleteFile &request) {
     }
   });
 
-  send_closure(file_manager_actor_, &FileManager::delete_file, FileId(request.file_id_), std::move(query_promise),
+  send_closure(file_manager_actor_, &FileManager::delete_file, FileId(request.file_id_, 0), std::move(query_promise),
                "td_api::deleteFile");
 }
 

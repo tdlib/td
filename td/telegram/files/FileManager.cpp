@@ -621,7 +621,7 @@ void FileManager::try_forget_file_id(FileId file_id) {
   CHECK(it != file_node->file_ids_.end());
   file_node->file_ids_.erase(it);
   *info = FileIdInfo();
-  empty_file_ids_.push_back(FileId(file_id.get()));
+  empty_file_ids_.push_back(file_id.get());
 }
 
 FileId FileManager::register_empty(FileType type) {
@@ -1997,7 +1997,7 @@ FileId FileManager::next_file_id() {
   if (!empty_file_ids_.empty()) {
     auto res = empty_file_ids_.back();
     empty_file_ids_.pop_back();
-    return res;
+    return FileId{res, 0};
   }
   FileId res(static_cast<int32>(file_id_info_.size()), 0);
   // LOG(ERROR) << "NEXT file_id " << res;

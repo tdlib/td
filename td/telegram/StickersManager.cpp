@@ -3242,7 +3242,7 @@ vector<FileId> StickersManager::get_attached_sticker_file_ids(const vector<int32
 
   result.reserve(int_file_ids.size());
   for (auto int_file_id : int_file_ids) {
-    FileId file_id(int_file_id);
+    FileId file_id(int_file_id, 0);
     if (get_sticker(file_id) == nullptr) {
       LOG(WARNING) << "Can't find sticker " << file_id;
       continue;
