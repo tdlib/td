@@ -19,9 +19,8 @@ template <class ValueT>
 class Enumerator {
  public:
   using Key = int32;
-  template <class T>
-  Key add(T &&value) {
-    ValueT v = std::forward<T>(value);
+
+  Key add(ValueT v) {
     container_->set_zero_value(&v);
     auto it = set_.lower_bound(Key{0});
     container_->set_zero_value(nullptr);
@@ -32,6 +31,7 @@ class Enumerator {
     set_.insert(it, key);
     return key;
   }
+
   ValueT &get(Key key) {
     return container_->get_value(key);
   }
