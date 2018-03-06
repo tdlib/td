@@ -22127,10 +22127,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
                 FullLocalFileLocation(new_file_type, old_location.path_, old_location.mtime_nsec_), dialog_id,
                 old_file_view.size());
             if (r_file_id.is_ok()) {
-              // disable merging a local location with the file, because it has lead to one local file having
-              // multiple remote locations. Therefore file_id -> remote_location correspondence was broken
-              // and file list hashes (for example, saved animation hashes) was wrongly calculated
-              // LOG_STATUS(td_->file_manager_->merge(new_file_id, r_file_id.ok()));
+              LOG_STATUS(td_->file_manager_->merge(new_file_id, r_file_id.ok()));
             }
           }
         }
