@@ -22,7 +22,7 @@
             <Button Grid.Column="1" x:Name="Send" Content="send" Click="Button_Click"/>
         </Grid>
         <ListBox Grid.Row="1" x:Name="ItemsControl" ItemsSource="{Binding Items, ElementName=Self}">
-            
+
         </ListBox>
         <!--<Button Content="Test" Click="Button_Click"/>-->
     </Grid>

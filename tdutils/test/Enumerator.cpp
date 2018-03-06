@@ -5,9 +5,6 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/utils/Enumerator.h"
-#include "td/utils/logging.h"
-#include "td/utils/port/thread.h"
-#include "td/utils/Random.h"
 #include "td/utils/tests.h"
 
 TEST(Enumerator, simple) {

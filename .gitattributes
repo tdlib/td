@@ -17,7 +17,17 @@
 *.java text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
 *.py text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
 *.swift text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
+*.cs text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
+*.xaml text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
+*.appxmanifest text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
+*.json text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
+*.csproj text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
+*.sln text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
+*.xml text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
 
 sqlite/sqlite/* linguist-vendored
 
 *.tlo binary
+
+*.pfx binary
+*.png binary

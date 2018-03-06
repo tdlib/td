@@ -5,10 +5,13 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
+
 #include "td/utils/common.h"
+#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 
 #include <set>
+#include <utility>
 
 namespace td {
 
