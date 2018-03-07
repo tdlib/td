@@ -49,7 +49,6 @@ function config {
 
   ForEach($arch in $arch_list) {
     echo "Config Arch = [$arch]"
-    Remove-Item $arch -Force -Recurse -ErrorAction SilentlyContinue
     New-Item -ItemType Directory -Force -Path $arch
     cd $arch
     echo "${td_root}"

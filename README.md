@@ -78,7 +78,7 @@ cmake -DCMAKE_BUILD_TYPE=Release -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl/ ..
 * Install [vcpkg](https://github.com/Microsoft/vcpkg#quick-start).
 * Run the following commands to install `TDLib` dependencies using vcpkg:
 ```
-C:\src\vcpkg> .\vcpkg install openssl:x64-windows openssl:x86-windows zlib:x64-windows zlib:x86-windows
+C:\src\vcpkg> .\vcpkg.exe install openssl:x64-windows openssl:x86-windows zlib:x64-windows zlib:x86-windows
 ```
 * Build `TDLib` with CMake as explained in [building](#building), but instead of `cmake -DCMAKE_BUILD_TYPE=Release ..` use
 ```
