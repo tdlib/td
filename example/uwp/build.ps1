@@ -18,11 +18,11 @@ $td_root = Resolve-Path "../.."
 
 function CheckLastExitCode {
   if ($LastExitCode -ne 0) {
-            $msg = @"
+    $msg = @"
 EXE RETURNED EXIT CODE $LastExitCode
 CALLSTACK:$(Get-PSCallStack | Out-String)
 "@
-        throw $msg
+    throw $msg
   }
 }
 
@@ -140,4 +140,3 @@ function run {
 }
 
 run
-
