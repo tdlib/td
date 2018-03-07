@@ -109,6 +109,58 @@ TEST(MessageEntities, hashtag) {
   check_hashtag(u8"#a\u2122", {"#a"});
 }
 
+static void check_cashtag(string str, std::vector<string> expected) {
+  auto result_slice = find_cashtags(str);
+  std::vector<string> result;
+  for (auto &it : result_slice) {
+    result.push_back(it.str());
+  }
+  if (result != expected) {
+    LOG(FATAL) << tag("text", str) << tag("got", format::as_array(result))
+               << tag("expected", format::as_array(expected));
+  }
+}
+
+TEST(MessageEntities, cashtag) {
+  check_cashtag("", {});
+  check_cashtag("$", {});
+  check_cashtag("$$", {});
+  check_cashtag("$$$", {});
+  check_cashtag("$a", {});
+  check_cashtag(" $a", {});
+  check_cashtag("$a ", {});
+  check_cashtag(" $я ", {});
+  check_cashtag("$ab", {});
+  check_cashtag("$abc", {});
+  check_cashtag("$", {});
+  check_cashtag("$A", {});
+  check_cashtag("$AB", {});
+  check_cashtag("$АBC", {});
+  check_cashtag("$АВС", {});
+  check_cashtag("$ABC", {"$ABC"});
+  check_cashtag("$ABCD", {"$ABCD"});
+  check_cashtag("$ABCDE", {"$ABCDE"});
+  check_cashtag("$ABCDEF", {"$ABCDEF"});
+  check_cashtag("$ABCDEFG", {"$ABCDEFG"});
+  check_cashtag("$ABCDEFGH", {"$ABCDEFGH"});
+  check_cashtag("$ABCDEFGHJ", {});
+  check_cashtag("$ABCDEFGH1", {});
+  check_cashtag(" $XYZ", {"$XYZ"});
+  check_cashtag("$XYZ ", {"$XYZ"});
+  check_cashtag(" $XYZ ", {"$XYZ"});
+  check_cashtag(" $$XYZ ", {});
+  check_cashtag(" $XYZ$ ", {});
+  check_cashtag(" $ABC1 ", {});
+  check_cashtag(" $1ABC ", {});
+  check_cashtag(" 1$ABC ", {});
+  check_cashtag(" А$ABC ", {});
+  check_cashtag("$ABC$DEF $GHI $KLM", {"$GHI", "$KLM"});
+  check_cashtag("$TEST", {"$TEST"});
+  check_cashtag(u8"$ABC\u2122", {"$ABC"});
+  check_cashtag(u8"\u2122$ABC", {"$ABC"});
+  check_cashtag(u8"\u2122$ABC\u2122", {"$ABC"});
+}
+
 static void check_is_email_address(string str, bool expected) {
   bool result = is_email_address(str);
   LOG_IF(FATAL, result != expected) << "Expected " << expected << " as result of is_email_address(" << str << ")";

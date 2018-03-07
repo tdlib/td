@@ -177,13 +177,14 @@ static vector<Slice> match_mentions(Slice str) {
       break;
     }
 
-    uint32 prev = 0;
     if (ptr != begin) {
+      uint32 prev;
       next_utf8_unsafe(prev_utf8_unsafe(ptr), &prev);
-    }
-    if (is_word_character(prev)) {
-      ptr++;
-      continue;
+
+      if (is_word_character(prev)) {
+        ptr++;
+        continue;
+      }
     }
     auto mention_begin = ++ptr;
     while (ptr != end && is_alpha_digit_or_underscore(*ptr)) {
@@ -220,13 +221,14 @@ static vector<Slice> match_bot_commands(Slice str) {
       break;
     }
 
-    uint32 prev = 0;
     if (ptr != begin) {
+      uint32 prev;
       next_utf8_unsafe(prev_utf8_unsafe(ptr), &prev);
-    }
-    if (is_word_character(prev) || prev == '/' || prev == '<' || prev == '>') {
-      ptr++;
-      continue;
+
+      if (is_word_character(prev) || prev == '/' || prev == '<' || prev == '>') {
+        ptr++;
+        continue;
+      }
     }
 
     auto command_begin = ++ptr;
@@ -264,6 +266,20 @@ static vector<Slice> match_bot_commands(Slice str) {
   return result;
 }
 
+static bool is_hashtag_letter(uint32 c, UnicodeSimpleCategory &category) {
+  category = get_unicode_simple_category(c);
+  if (c == '_' || c == 0x200c) {
+    return true;
+  }
+  switch (category) {
+    case UnicodeSimpleCategory::DecimalNumber:
+    case UnicodeSimpleCategory::Letter:
+      return true;
+    default:
+      return false;
+  }
+}
+
 static vector<Slice> match_hashtags(Slice str) {
   vector<Slice> result;
   const unsigned char *begin = str.ubegin();
@@ -274,19 +290,6 @@ static vector<Slice> match_hashtags(Slice str) {
   // and at least one letter
 
   UnicodeSimpleCategory category;
-  const auto &is_hashtag_letter = [&category](uint32 c) {
-    category = get_unicode_simple_category(c);
-    if (c == '_' || c == 0x200c) {
-      return true;
-    }
-    switch (category) {
-      case UnicodeSimpleCategory::DecimalNumber:
-      case UnicodeSimpleCategory::Letter:
-        return true;
-      default:
-        return false;
-    }
-  };
 
   while (true) {
     ptr = reinterpret_cast<const unsigned char *>(std::memchr(ptr, '#', narrow_cast<int32>(end - ptr)));
@@ -294,13 +297,14 @@ static vector<Slice> match_hashtags(Slice str) {
       break;
     }
 
-    uint32 prev = 0;
     if (ptr != begin) {
+      uint32 prev;
       next_utf8_unsafe(prev_utf8_unsafe(ptr), &prev);
-    }
-    if (is_hashtag_letter(prev)) {
-      ptr++;
-      continue;
+
+      if (is_hashtag_letter(prev, category)) {
+        ptr++;
+        continue;
+      }
     }
     auto hashtag_begin = ++ptr;
     size_t hashtag_size = 0;
@@ -309,7 +313,7 @@ static vector<Slice> match_hashtags(Slice str) {
     while (ptr != end) {
       uint32 code;
       auto next_ptr = next_utf8_unsafe(ptr, &code);
-      if (!is_hashtag_letter(code)) {
+      if (!is_hashtag_letter(code, category)) {
         break;
       }
       ptr = next_ptr;
@@ -335,6 +339,54 @@ static vector<Slice> match_hashtags(Slice str) {
       continue;
     }
     result.emplace_back(hashtag_begin - 1, hashtag_end);
+  }
+  return result;
+}
+
+static vector<Slice> match_cashtags(Slice str) {
+  vector<Slice> result;
+  const unsigned char *begin = str.ubegin();
+  const unsigned char *end = str.uend();
+  const unsigned char *ptr = begin;
+
+  // '/(?<=^|[^$\d_\pL\x{200c}])\$([A-Z]{3,8})(?![$\d_\pL\x{200c}])/u'
+
+  UnicodeSimpleCategory category;
+  while (true) {
+    ptr = reinterpret_cast<const unsigned char *>(std::memchr(ptr, '$', narrow_cast<int32>(end - ptr)));
+    if (ptr == nullptr) {
+      break;
+    }
+
+    if (ptr != begin) {
+      uint32 prev;
+      next_utf8_unsafe(prev_utf8_unsafe(ptr), &prev);
+
+      if (is_hashtag_letter(prev, category) || prev == '$') {
+        ptr++;
+        continue;
+      }
+    }
+
+    auto cashtag_begin = ++ptr;
+    while (ptr != end && 'Z' >= *ptr && *ptr >= 'A') {
+      ptr++;
+    }
+    auto cashtag_end = ptr;
+    auto cashtag_size = cashtag_end - cashtag_begin;
+    if (cashtag_size < 3 || cashtag_size > 8) {
+      continue;
+    }
+
+    if (cashtag_end != end) {
+      uint32 code;
+      next_utf8_unsafe(ptr, &code);
+      if (is_hashtag_letter(code, category) || code == '$') {
+        continue;
+      }
+    }
+
+    result.emplace_back(cashtag_begin - 1, cashtag_end);
   }
   return result;
 }
@@ -939,6 +991,10 @@ vector<Slice> find_bot_commands(Slice str) {
 
 vector<Slice> find_hashtags(Slice str) {
   return match_hashtags(str);
+}
+
+vector<Slice> find_cashtags(Slice str) {
+  return match_cashtags(str);
 }
 
 vector<std::pair<Slice, bool>> find_urls(Slice str) {

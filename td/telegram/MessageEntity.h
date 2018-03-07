@@ -145,6 +145,7 @@ vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool onl
 vector<Slice> find_mentions(Slice str);
 vector<Slice> find_bot_commands(Slice str);
 vector<Slice> find_hashtags(Slice str);
+vector<Slice> find_cashtags(Slice str);
 bool is_email_address(Slice str);
 vector<std::pair<Slice, bool>> find_urls(Slice str);  // slice + is_email_address
 
