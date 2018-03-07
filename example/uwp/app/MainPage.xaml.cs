@@ -61,9 +61,9 @@ namespace TdApp
         public void Print(String str)
         {
             var delayTask = Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
-             {
-                 Items.Insert(0, str.Substring(0, Math.Min(1024, str.Length)));
-             });
+            {
+                Items.Insert(0, str.Substring(0, Math.Min(1024, str.Length)));
+            });
         }
 
         private static Td.Client _client;
