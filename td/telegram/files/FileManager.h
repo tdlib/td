@@ -377,7 +377,8 @@ class FileManager : public FileLoadManager::Callback {
   FileIdInfo *get_file_id_info(FileId file_id);
 
   struct RemoteInfo {
-    FullRemoteFileLocation remote_;
+    // mutible is set to to enable changing access hash
+    mutable FullRemoteFileLocation remote_;
     FileId file_id_;
     bool operator==(const RemoteInfo &other) const {
       return this->remote_ == other.remote_;

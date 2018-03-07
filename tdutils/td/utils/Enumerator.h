@@ -10,7 +10,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 
-#include <set>
+#include <map>
 #include <utility>
 
 namespace td {
@@ -21,69 +21,28 @@ class Enumerator {
   using Key = int32;
 
   Key add(ValueT v) {
-    container_->set_zero_value(&v);
-    auto it = set_.lower_bound(Key{0});
-    container_->set_zero_value(nullptr);
-    if (it != set_.end() && container_->get_value(*it) == v) {
-      return *it;
+    int32 next_id = narrow_cast<int32>(arr_.size() + 1);
+    bool was_inserted;
+    decltype(map_.begin()) it;
+    std::tie(it, was_inserted) = map_.insert(std::make_pair(std::move(v), next_id));
+    if (was_inserted) {
+      arr_.push_back(&it->first);
     }
-    auto key = container_->add_value(std::move(v));
-    set_.insert(it, key);
-    return key;
+    return it->second;
   }
 
-  ValueT &get(Key key) {
-    return container_->get_value(key);
-  }
+  //ValueT &get(Key key) {
+  //CHECK(key != 0);
+  //return *arr_[narrow_cast<size_t>(key - 1)];
+  //}
   const ValueT &get(Key key) const {
-    return container_->get_value(key);
+    CHECK(key != 0);
+    return *arr_[narrow_cast<size_t>(key - 1)];
   }
 
  private:
-  class Container {
-   public:
-    bool compare(Key a, Key b) const {
-      return get_value(a) < get_value(b);
-    }
-    const ValueT &get_value(Key key) const {
-      if (key == 0) {
-        CHECK(zero_value_);
-        return *zero_value_;
-      }
-      size_t pos = narrow_cast<size_t>(key - 1);
-      CHECK(pos < values_.size());
-      return values_[pos];
-    }
-    ValueT &get_value(Key key) {
-      return const_cast<ValueT &>(const_cast<const Container *>(this)->get_value(key));
-    }
-    void set_zero_value(ValueT *value) {
-      zero_value_ = value;
-    }
-    Key add_value(ValueT &&value) {
-      values_.push_back(std::move(value));
-      return narrow_cast<Key>(values_.size());
-    }
-
-   private:
-    std::vector<ValueT> values_;
-    ValueT *zero_value_ = nullptr;
-  };
-
-  class Comparator {
-   public:
-    explicit Comparator(Container *container) : container_(container) {
-    }
-    bool operator()(Key a, Key b) const {
-      return container_->compare(a, b);
-    }
-
-   private:
-    Container *container_;
-  };
-
-  std::unique_ptr<Container> container_{std::make_unique<Container>()};
-  std::set<Key, Comparator> set_{Comparator{container_.get()}};
+  std::map<ValueT, int32> map_;
+  std::vector<const ValueT *> arr_;
 };
 
 }  // namespace td
