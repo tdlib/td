@@ -11,7 +11,7 @@
 #include "td/utils/misc.h"
 
 #include <map>
-#include <utility>
+#include <tuple>
 
 namespace td {
 
@@ -24,20 +24,17 @@ class Enumerator {
     int32 next_id = narrow_cast<int32>(arr_.size() + 1);
     bool was_inserted;
     decltype(map_.begin()) it;
-    std::tie(it, was_inserted) = map_.insert(std::make_pair(std::move(v), next_id));
+    std::tie(it, was_inserted) = map_.emplace(std::move(v), next_id);
     if (was_inserted) {
       arr_.push_back(&it->first);
     }
     return it->second;
   }
 
-  //ValueT &get(Key key) {
-  //CHECK(key != 0);
-  //return *arr_[narrow_cast<size_t>(key - 1)];
-  //}
   const ValueT &get(Key key) const {
-    CHECK(key != 0);
-    return *arr_[narrow_cast<size_t>(key - 1)];
+    auto pos = static_cast<size_t>(key - 1);
+    CHECK(pos < arr_.size());
+    return *arr_[pos];
   }
 
  private:
