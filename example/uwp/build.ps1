@@ -1,7 +1,7 @@
 param (
   [string]$vcpkg_root = $(throw "-vcpkg_root=<path to vcpkg> is required"),
   [string]$arch = "",
-  [string]$mode = "all"
+  [string]$mode = "all",
   [string]$compress = "7z"
 )
 $ErrorActionPreference = "Stop"
@@ -108,7 +108,7 @@ function export {
 
  if ($compress -eq "zip") {
     zip -r tdlib.vsix *
-  } else if ($compress -eq "winrar") {
+  } elseif ($compress -eq "winrar") {
     WinRAR.exe a -afzip -r -ep1 tdlib.vsix *
   } else {
     7z.exe a -tzip -r tdlib.vsix *
@@ -119,6 +119,9 @@ function export {
 function run {
   Push-Location
   Try {
+    if ($mode -eq "clean") {
+      clean
+    }
     if (($mode -eq "prepare") -or ($mode -eq "all")) {
       prepare
     }
