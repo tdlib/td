@@ -4004,8 +4004,8 @@ void Td::on_config_option_updated(const string &name) {
   } else if (is_internal_config_option(name)) {
     return;
   }
-  send_closure(actor_id(this), &Td::send_update,
-               make_tl_object<td_api::updateOption>(name, G()->shared_config().get_option_value(name)));
+  // send_closure was already used in the callback
+  send_update(make_tl_object<td_api::updateOption>(name, G()->shared_config().get_option_value(name)));
 }
 
 tl_object_ptr<td_api::ConnectionState> Td::get_connection_state_object(StateManager::State state) {
@@ -4404,7 +4404,7 @@ Status Td::init(DbKey key) {
       send_closure(G()->td(), &Td::on_config_option_updated, name);
     }
   };
-  send_update(
+  send_closure(actor_id(this), &Td::send_update,
       make_tl_object<td_api::updateOption>("version", make_tl_object<td_api::optionValueString>(tdlib_version)));
 
   G()->set_shared_config(

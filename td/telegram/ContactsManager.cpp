@@ -2322,23 +2322,8 @@ const CSlice ContactsManager::INVITE_LINK_URLS[3] = {"t.me/joinchat/", "telegram
 ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   upload_profile_photo_callback_ = std::make_shared<UploadProfilePhotoCallback>();
 
-  auto id_string = G()->td_db()->get_binlog_pmc()->get("my_id");
-  if (!id_string.empty()) {
-    UserId new_my_id(to_integer<int32>(id_string));
-    if (new_my_id.is_valid()) {
-      my_id_ = new_my_id;
-      G()->shared_config().set_option_integer("my_id", my_id_.get());
-    } else {
-      new_my_id = UserId(to_integer<int32>(Slice(id_string).substr(5)));
-      if (new_my_id.is_valid()) {
-        my_id_ = new_my_id;
-        G()->td_db()->get_binlog_pmc()->set("my_id", to_string(my_id_.get()));
-        G()->shared_config().set_option_integer("my_id", my_id_.get());
-      } else {
-        LOG(ERROR) << "Wrong my id = \"" << id_string << "\" stored in database";
-      }
-    }
-  }
+  my_id_ = load_my_id();
+
   if (G()->parameters().use_chat_info_db) {
     auto next_contacts_sync_date_string = G()->td_db()->get_binlog_pmc()->get("next_contacts_sync_date");
     if (!next_contacts_sync_date_string.empty()) {
@@ -2363,6 +2348,25 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
 
 void ContactsManager::tear_down() {
   parent_.reset();
+}
+
+UserId ContactsManager::load_my_id() {
+  auto id_string = G()->td_db()->get_binlog_pmc()->get("my_id");
+  if (!id_string.empty()) {
+    UserId my_id(to_integer<int32>(id_string));
+    if (my_id.is_valid()) {
+      return my_id;
+    }
+
+    my_id = UserId(to_integer<int32>(Slice(id_string).substr(5)));
+    if (my_id.is_valid()) {
+      G()->td_db()->get_binlog_pmc()->set("my_id", to_string(my_id.get()));
+      return my_id;
+    }
+
+    LOG(ERROR) << "Wrong my id = \"" << id_string << "\" stored in database";
+  }
+  return UserId();
 }
 
 void ContactsManager::on_user_online_timeout_callback(void *contacts_manager_ptr, int64 user_id_long) {

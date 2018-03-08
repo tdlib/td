@@ -311,6 +311,11 @@ AuthManager::AuthManager(int32 api_id, const string &api_hash, ActorShared<> par
     if (is_bot_str == "true") {
       is_bot_ = true;
     }
+    auto my_id = ContactsManager::load_my_id();
+    if (my_id.is_valid()) {
+      // just in case
+      G()->shared_config().set_option_integer("my_id", my_id.get());
+    }
     update_state(State::Ok);
   } else if (auth_str == "logout") {
     update_state(State::LoggingOut);
@@ -716,8 +721,9 @@ void AuthManager::on_authorization(tl_object_ptr<telegram_api::auth_authorizatio
     G()->td_db()->get_binlog_pmc()->set("auth_is_bot", "true");
   }
   G()->td_db()->get_binlog_pmc()->set("auth", "ok");
-  update_state(State::Ok);
+  state_ = State::Ok;
   td->contacts_manager_->on_get_user(std::move(auth->user_), true);
+  update_state(State::Ok, true);
   if (!td->contacts_manager_->get_my_id("on_authorization").is_valid()) {
     LOG(ERROR) << "Server doesn't send proper authorization";
     if (query_id_ != 0) {

@@ -59,6 +59,8 @@ class ContactsManager : public Actor {
  public:
   ContactsManager(Td *td, ActorShared<> parent);
 
+  static UserId load_my_id();
+
   static UserId get_user_id(const tl_object_ptr<telegram_api::User> &user);
   static ChatId get_chat_id(const tl_object_ptr<telegram_api::Chat> &chat);
   static ChannelId get_channel_id(const tl_object_ptr<telegram_api::Chat> &chat);
