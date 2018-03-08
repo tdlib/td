@@ -35,7 +35,6 @@
 #include "td/utils/StringBuilder.h"
 #include "td/utils/utf8.h"
 
-#include <cstdlib>
 #include <limits>
 
 namespace td {
@@ -279,7 +278,7 @@ std::pair<DocumentsManager::DocumentType, FileId> DocumentsManager::on_get_docum
 
   auto suggested_file_name = file_name;
   if (suggested_file_name.empty()) {
-    suggested_file_name = to_string(std::abs(id));
+    suggested_file_name = to_string(static_cast<uint64>(id));
     auto extension = MimeType::to_extension(mime_type, default_extension);
     if (!extension.empty()) {
       suggested_file_name += '.';
