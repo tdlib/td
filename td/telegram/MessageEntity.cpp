@@ -64,6 +64,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity &me
     case MessageEntity::Type::MentionName:
       string_builder << "MentionName";
       break;
+    case MessageEntity::Type::Cashtag:
+      string_builder << "Cashtag";
+      break;
     default:
       UNREACHABLE();
       string_builder << "Impossible";
@@ -107,6 +110,8 @@ tl_object_ptr<td_api::TextEntityType> MessageEntity::get_text_entity_type_object
       return make_tl_object<td_api::textEntityTypeTextUrl>(argument);
     case MessageEntity::Type::MentionName:
       return make_tl_object<td_api::textEntityTypeMentionName>(user_id.get());
+    case MessageEntity::Type::Cashtag:
+      return make_tl_object<td_api::textEntityTypeCashtag>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -1057,6 +1062,12 @@ vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool onl
       entities.emplace_back(MessageEntity::Type::Hashtag, narrow_cast<int32>(hashtag.begin() - text.begin()),
                             narrow_cast<int32>(hashtag.size()));
     }
+
+    auto cashtags = find_cashtags(text);
+    for (auto &cashtag : cashtags) {
+      entities.emplace_back(MessageEntity::Type::Cashtag, narrow_cast<int32>(cashtag.begin() - text.begin()),
+                            narrow_cast<int32>(cashtag.size()));
+    }
   }
 
   auto urls = find_urls(text);
@@ -1172,6 +1183,8 @@ string get_first_url(Slice text, const vector<MessageEntity> &entities) {
       case MessageEntity::Type::TextUrl:
         return entity.argument;
       case MessageEntity::Type::MentionName:
+        break;
+      case MessageEntity::Type::Cashtag:
         break;
       default:
         UNREACHABLE();
@@ -1591,6 +1604,7 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
       case MessageEntity::Type::BotCommand:
       case MessageEntity::Type::Url:
       case MessageEntity::Type::EmailAddress:
+      case MessageEntity::Type::Cashtag:
         continue;
       case MessageEntity::Type::Bold:
         result.push_back(make_tl_object<telegram_api::messageEntityBold>(entity.offset, entity.length));
@@ -1636,6 +1650,8 @@ vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entiti
         break;
       case MessageEntity::Type::Hashtag:
         result.push_back(make_tl_object<secret_api::messageEntityHashtag>(entity.offset, entity.length));
+        break;
+      case MessageEntity::Type::Cashtag:
         break;
       case MessageEntity::Type::BotCommand:
         break;
@@ -1688,6 +1704,7 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
       case td_api::textEntityTypeBotCommand::ID:
       case td_api::textEntityTypeUrl::ID:
       case td_api::textEntityTypeEmailAddress::ID:
+      case td_api::textEntityTypeCashtag::ID:
         break;
       case td_api::textEntityTypeBold::ID:
         entities.emplace_back(MessageEntity::Type::Bold, entity->offset_, entity->length_);
@@ -1758,9 +1775,11 @@ vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manag
         entities.emplace_back(MessageEntity::Type::Hashtag, entity_hashtag->offset_, entity_hashtag->length_);
         break;
       }
-      case telegram_api::messageEntityCashtag::ID:
-        // skip for now
+      case telegram_api::messageEntityCashtag::ID: {
+        auto entity_cashtag = static_cast<const telegram_api::messageEntityCashtag *>(entity.get());
+        entities.emplace_back(MessageEntity::Type::Cashtag, entity_cashtag->offset_, entity_cashtag->length_);
         break;
+      }
       case telegram_api::messageEntityPhone::ID:
         // skip for now
         break;
@@ -1971,7 +1990,7 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
           in_entity = false;
 
           if (has_non_space_in_entity) {
-            // TODO check entities for validness, for example, that mention, hashtag and URLs are valid
+            // TODO check entities for validness, for example, that mentions, hashtags, cashtags and URLs are valid
             if (current_entity != left_entities) {
               entities[left_entities] = std::move(entities[current_entity]);
             }

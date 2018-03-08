@@ -924,6 +924,9 @@ textEntityTypeMention = TextEntityType;
 //@description A hashtag text, beginning with "#"
 textEntityTypeHashtag = TextEntityType;
 
+//@description A cashtag text, beginning with "$" and consisting of capital english letters (i.e. "$USD")
+textEntityTypeCashtag = TextEntityType;
+
 //@description A bot command, beginning with "/". This shouldn't be highlighted if there are no bots in the chat
 textEntityTypeBotCommand = TextEntityType;
 

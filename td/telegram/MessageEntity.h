@@ -42,7 +42,8 @@ class MessageEntity {
     Pre,
     PreCode,
     TextUrl,
-    MentionName
+    MentionName,
+    Cashtag
   };
   Type type;
   int32 offset;
