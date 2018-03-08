@@ -19,9 +19,9 @@ TDLib (Telegram Database library) is a cross-platform library for building [Tele
 `TDLib` has many advantages. Notably `TDLib` is:
 
 * **Cross-platform**: `TDLib` can be used on Android, iOS, Windows, macOS, Linux, Windows Phone, WebAssembly, watchOS, tvOS, Tizen, Cygwin. It should also work on other *nix systems with or without minimal effort.
-* **Multilanguage**: `TDLib` can be easily used with any programming language that is able to execute C functions. Additionally it already has native Java (using JNI) bindings and C# (using C++/CLI and C++/CX) bindings.
+* **Multilanguage**: `TDLib` can be easily used with any programming language that is able to execute C functions. Additionally it already has native Java (using JNI) bindings and .NET (using C++/CLI and C++/CX) bindings.
 * **Easy to use**: `TDLib` takes care of all network implementation details, encryption and local data storage.
-* **High-performance**: in the [Telegram Bot API](https://core.telegram.org/bots/api), each `TDLib` instance handles more than 18000 active bots simultaneously.
+* **High-performance**: in the [Telegram Bot API](https://core.telegram.org/bots/api), each `TDLib` instance handles more than 19000 active bots simultaneously.
 * **Well-documented**: all `TDLib` API methods and public interfaces are fully documented.
 * **Consistent**: `TDLib` guarantees that all updates are delivered in the right order.
 * **Reliable**: `TDLib` remains stable on slow and unreliable Internet connections.
@@ -96,8 +96,11 @@ For C++ projects that use CMake, the best approach is to build `TDLib` as part o
 There are several libraries that you could use in your CMake project:
 
 * Td::TdJson, Td::TdJsonStatic — dynamic and static version of a JSON interface. This has a simple C interface, so it can be easily used with any programming language that is able to execute C functions.
-* Td::TdStatic — static library with C++ interface.
+  See [td_json_client](https://core.telegram.org/tdlib/docs/td__json__client_8h.html) and [td_log](https://core.telegram.org/tdlib/docs/td__log_8h.html) documentation for more information.
+* Td::TdStatic — static library with C++ interface for general usage.
+  See [Client](https://core.telegram.org/tdlib/docs/classtd_1_1_client.html) and [Log](https://core.telegram.org/tdlib/docs/classtd_1_1_log.html) documentation for more information.
 * Td::TdCoreStatic — static library with low-level C++ interface intended mostly for internal usage.
+  See [ClientActor](https://core.telegram.org/tdlib/docs/classtd_1_1_client_actor.html) and [Log](https://core.telegram.org/tdlib/docs/classtd_1_1_log.html) documentation for more information.
 
 For example, part of your CMakeLists.txt may look like this:
 ```
@@ -120,9 +123,10 @@ See [example/java](https://github.com/tdlib/td/tree/master/example/java) for exa
 
 <a name="using-json"></a>
 ## Using from other programming languages
-`TDLib` provides efficient native C++, Java, and C# (will be released soon) interfaces.
+`TDLib` provides efficient native C++, Java, and .NET interfaces.
 But for most use cases we suggest to use the JSON interface, which can be easily used with any programming language that is able to execute C functions.
-See [example/python/tdjson_example.py](https://github.com/tdlib/td/tree/master/example/python/tdjson_example.py) for an example of such usage.
+See [td_json_client](https://core.telegram.org/tdlib/docs/td__json__client_8h.html) and [td_log](https://core.telegram.org/tdlib/docs/td__log_8h.html) documentation for detailed JSON interface description.
+See [example/python/tdjson_example.py](https://github.com/tdlib/td/tree/master/example/python/tdjson_example.py) for an example of its usage.
 
 <a name="license"></a>
 ## License

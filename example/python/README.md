@@ -1,6 +1,6 @@
 # TDLib Python example
 
-First you need to [build](https://github.com/tdlib/td#building) TDLib and copy built tdjson shared library to this directory.
+To run this example you need to [build](https://github.com/tdlib/td#building) TDLib and copy built tdjson shared library to this directory.
 
 Then you can run the example:
 ```
