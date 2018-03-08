@@ -29,7 +29,7 @@ void VideosManager::store_video(FileId file_id, T &storer) const {
   store(video->duration, storer);
   store(video->dimensions, storer);
   store(video->thumbnail, storer);
-  store(video->file_id, storer);
+  store(file_id, storer);
   if (video->has_stickers) {
     store(video->sticker_file_ids, storer);
   }

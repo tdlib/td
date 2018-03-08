@@ -23,7 +23,7 @@ void VoiceNotesManager::store_voice_note(FileId file_id, T &storer) const {
   store(voice_note->mime_type, storer);
   store(voice_note->duration, storer);
   store(voice_note->waveform, storer);
-  store(voice_note->file_id, storer);
+  store(file_id, storer);
 }
 
 template <class T>

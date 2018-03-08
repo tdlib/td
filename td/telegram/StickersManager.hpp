@@ -40,7 +40,7 @@ void StickersManager::store_sticker(FileId file_id, bool in_sticker_set, T &stor
   store(sticker->dimensions, storer);
   store(sticker->message_thumbnail, storer);
   store(sticker->sticker_thumbnail, storer);
-  store(sticker->file_id, storer);
+  store(file_id, storer);
   if (sticker->is_mask) {
     store(sticker->point, storer);
     store(sticker->x_shift, storer);
