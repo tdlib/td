@@ -14873,6 +14873,35 @@ FileId MessagesManager::get_message_content_file_id(const MessageContent *conten
   return FileId();
 }
 
+void MessagesManager::update_message_content_file_id_remote(MessageContent *content, FileId file_id) {
+  if (file_id.get_remote() == 0) {
+    return;
+  }
+  FileId *old_file_id = [&]() {
+    switch (content->get_id()) {
+      case MessageAnimation::ID:
+        return &static_cast<MessageAnimation *>(content)->file_id;
+      case MessageAudio::ID:
+        return &static_cast<MessageAudio *>(content)->file_id;
+      case MessageDocument::ID:
+        return &static_cast<MessageDocument *>(content)->file_id;
+      case MessageSticker::ID:
+        return &static_cast<MessageSticker *>(content)->file_id;
+      case MessageVideo::ID:
+        return &static_cast<MessageVideo *>(content)->file_id;
+      case MessageVideoNote::ID:
+        return &static_cast<MessageVideoNote *>(content)->file_id;
+      case MessageVoiceNote::ID:
+        return &static_cast<MessageVoiceNote *>(content)->file_id;
+      default:
+        return static_cast<FileId *>(nullptr);
+    }
+  }();
+  if (old_file_id != nullptr && *old_file_id == file_id && old_file_id->get_remote() == 0) {
+    *old_file_id = file_id;
+  }
+}
+
 FileId MessagesManager::get_message_content_thumbnail_file_id(const MessageContent *content) const {
   switch (content->get_id()) {
     case MessageAnimation::ID:
@@ -22085,6 +22114,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
   int32 old_content_type = old_content->get_id();
   int32 new_content_type = new_content->get_id();
   bool can_delete_old_document = old_message->message_id.is_yet_unsent() && false;
+
   if (old_content_type != new_content_type) {
     need_update = true;
     LOG(INFO) << "Message content has changed its type from " << old_content_type << " to " << new_content_type;
@@ -22503,7 +22533,11 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
   }
 
   if (is_content_changed || need_update) {
+    auto old_file_id = get_message_content_file_id(old_content.get());
     old_content = std::move(new_content);
+    update_message_content_file_id_remote(old_content.get(), old_file_id);
+  } else {
+    update_message_content_file_id_remote(old_content.get(), get_message_content_file_id(new_content.get()));
   }
   if (is_content_changed && !need_update) {
     LOG(INFO) << "Content of " << old_message->message_id << " in " << dialog_id << " has changed";

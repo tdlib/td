@@ -2277,6 +2277,8 @@ class MessagesManager : public Actor {
 
   static FileId get_message_content_file_id(const MessageContent *content);
 
+  static void update_message_content_file_id_remote(MessageContent *content, FileId file_id);
+
   FileId get_message_content_thumbnail_file_id(const MessageContent *content) const;
 
   vector<FileId> get_message_file_ids(const Message *message) const;
