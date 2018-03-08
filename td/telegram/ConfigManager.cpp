@@ -661,6 +661,7 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   // Do not save dc_options in config, because it will be interpreted and saved by ConnectionCreator.
   send_closure(G()->connection_creator(), &ConnectionCreator::on_dc_options, DcOptions(config->dc_options_));
 
+  shared_config.set_option_integer("recent_stickers_limit", config->stickers_recent_limit_);
   shared_config.set_option_integer("favorite_stickers_limit", config->stickers_faved_limit_);
   shared_config.set_option_integer("saved_animations_limit", config->saved_gifs_limit_);
   shared_config.set_option_integer("channels_read_media_period", config->channels_read_media_period_);

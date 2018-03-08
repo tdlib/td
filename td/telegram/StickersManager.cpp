@@ -3546,7 +3546,7 @@ bool StickersManager::add_recent_sticker_impl(bool is_attached, FileId sticker_i
 
   auto it = std::find(sticker_ids.begin(), sticker_ids.end(), sticker_id);
   if (it == sticker_ids.end()) {
-    if (sticker_ids.size() == RECENT_STICKERS_LIMIT) {
+    if (static_cast<int32>(sticker_ids.size()) == recent_stickers_limit_) {
       sticker_ids.back() = sticker_id;
     } else {
       sticker_ids.push_back(sticker_id);
@@ -3644,6 +3644,23 @@ void StickersManager::send_update_recent_stickers(bool from_database) {
                                               log_event_store(log_event).as_slice().str(), Auto());
         }
       }
+    }
+  }
+}
+
+void StickersManager::on_update_recent_stickers_limit(int32 recent_stickers_limit) {
+  if (recent_stickers_limit != recent_stickers_limit_) {
+    if (recent_stickers_limit > 0) {
+      LOG(INFO) << "Update recent stickers limit to " << recent_stickers_limit;
+      recent_stickers_limit_ = recent_stickers_limit;
+      for (int is_attached = 0; is_attached < 2; is_attached++) {
+        if (static_cast<int32>(recent_sticker_ids_[is_attached].size()) > recent_stickers_limit) {
+          recent_sticker_ids_[is_attached].resize(recent_stickers_limit);
+          send_update_recent_stickers();
+        }
+      }
+    } else {
+      LOG(ERROR) << "Receive wrong recent stickers limit = " << recent_stickers_limit;
     }
   }
 }

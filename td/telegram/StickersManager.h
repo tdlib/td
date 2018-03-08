@@ -155,6 +155,8 @@ class StickersManager : public Actor {
 
   void clear_recent_stickers(bool is_attached, Promise<Unit> &&promise);
 
+  void on_update_recent_stickers_limit(int32 recent_stickers_limit);
+
   void on_update_favorite_stickers_limit(int32 favorite_stickers_limit);
 
   void reload_favorite_stickers(bool force);
@@ -205,7 +207,6 @@ class StickersManager : public Actor {
 
  private:
   static constexpr int32 MAX_FEATURED_STICKER_SET_VIEW_DELAY = 5;
-  static constexpr size_t RECENT_STICKERS_LIMIT = 30;
 
   static constexpr int64 MAX_STICKER_FILE_SIZE = 1 << 19;          // server side limit
   static constexpr size_t MAX_STICKER_SET_TITLE_LENGTH = 64;       // server side limit
@@ -469,7 +470,8 @@ class StickersManager : public Actor {
   std::unordered_set<int64> pending_viewed_featured_sticker_set_ids_;
   Timeout pending_featured_sticker_set_views_timeout_;
 
-  int32 favorite_stickers_limit_ = 200;
+  int32 recent_stickers_limit_ = 200;
+  int32 favorite_stickers_limit_ = 5;
 
   struct StickerSetLoadRequest {
     Promise<Unit> promise;

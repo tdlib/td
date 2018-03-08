@@ -3975,7 +3975,7 @@ bool Td::is_internal_config_option(Slice name) {
   return name == "call_ring_timeout_ms" || name == "call_receive_timeout_ms" || name == "channels_read_media_period" ||
          name == "edit_time_limit" || name == "revoke_pm_inbox" || name == "revoke_time_limit" ||
          name == "revoke_pm_time_limit" || name == "rating_e_decay" || name == "saved_animations_limit" ||
-         name == "auth";
+         name == "recent_stickers_limit" || name == "auth";
 }
 
 void Td::on_config_option_updated(const string &name) {
@@ -3987,6 +3987,8 @@ void Td::on_config_option_updated(const string &name) {
     return;
   } else if (name == "saved_animations_limit") {
     return animations_manager_->on_update_saved_animations_limit(G()->shared_config().get_option_integer(name));
+  } else if (name == "recent_stickers_limit") {
+    return stickers_manager_->on_update_recent_stickers_limit(G()->shared_config().get_option_integer(name));
   } else if (name == "favorite_stickers_limit") {
     stickers_manager_->on_update_favorite_stickers_limit(G()->shared_config().get_option_integer(name));
   } else if (name == "my_id") {
