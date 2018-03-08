@@ -447,6 +447,9 @@ void AnimationsManager::on_load_saved_animations_from_database(const string &val
 }
 
 void AnimationsManager::on_load_saved_animations_finished(vector<FileId> &&saved_animation_ids, bool from_database) {
+  if (static_cast<int32>(saved_animation_ids.size()) > saved_animations_limit_) {
+    saved_animation_ids.resize(saved_animations_limit_);
+  }
   saved_animation_ids_ = std::move(saved_animation_ids);
   are_saved_animations_loaded_ = true;
   send_update_saved_animations(from_database);

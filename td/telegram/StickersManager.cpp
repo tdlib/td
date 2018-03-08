@@ -3396,6 +3396,9 @@ void StickersManager::on_load_recent_stickers_from_database(bool is_attached, st
 
 void StickersManager::on_load_recent_stickers_finished(bool is_attached, vector<FileId> &&recent_sticker_ids,
                                                        bool from_database) {
+  if (static_cast<int32>(recent_sticker_ids.size()) > recent_stickers_limit_) {
+    recent_sticker_ids.resize(recent_stickers_limit_);
+  }
   recent_sticker_ids_[is_attached] = std::move(recent_sticker_ids);
   are_recent_stickers_loaded_[is_attached] = true;
   need_update_recent_stickers_[is_attached] = true;
@@ -3740,6 +3743,9 @@ void StickersManager::on_load_favorite_stickers_from_database(const string &valu
 }
 
 void StickersManager::on_load_favorite_stickers_finished(vector<FileId> &&favorite_sticker_ids, bool from_database) {
+  if (static_cast<int32>(favorite_sticker_ids.size()) > favorite_stickers_limit_) {
+    favorite_sticker_ids.resize(favorite_stickers_limit_);
+  }
   favorite_sticker_ids_ = std::move(favorite_sticker_ids);
   are_favorite_stickers_loaded_ = true;
   send_update_favorite_stickers(from_database);
