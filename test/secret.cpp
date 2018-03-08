@@ -490,16 +490,22 @@ class OldFakeKeyValue : public KeyValueSyncInterface {
     kv_[key] = value;
     return 0;
   }
+
   SeqNo erase(const string &key) override {
     kv_.erase(key);
     return 0;
   }
+
+  bool isset(const string &key) override {
+    return kv_.count(key) > 0;
+  }
+
   string get(const string &key) override {
     auto it = kv_.find(key);
     if (it != kv_.end()) {
       return it->second;
     }
-    return "";
+    return string();
   }
 
  private:

@@ -671,7 +671,9 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   shared_config.set_option_integer("basic_group_size_max", config->chat_size_max_);
   shared_config.set_option_integer("supergroup_size_max", config->megagroup_size_max_);
   shared_config.set_option_integer("pinned_chat_count_max", config->pinned_dialogs_count_max_);
-  shared_config.set_option_string("t_me_url", config->me_url_prefix_);
+  if (is_from_main_dc || !shared_config.have_option("t_me_url")) {
+    shared_config.set_option_string("t_me_url", config->me_url_prefix_);
+  }
   if (is_from_main_dc) {
     if ((config->flags_ & telegram_api::config::TMP_SESSIONS_MASK) != 0) {
       G()->shared_config().set_option_integer("session_count", config->tmp_sessions_);
@@ -680,15 +682,15 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
     }
   }
 
-  shared_config.set_option_integer("edit_time_limit", config->edit_time_limit_);
-  shared_config.set_option_boolean("revoke_pm_inbox",
-                                   (config->flags_ & telegram_api::config::REVOKE_PM_INBOX_MASK) != 0);
-  shared_config.set_option_integer("revoke_time_limit", config->revoke_time_limit_);
-  shared_config.set_option_integer("revoke_pm_time_limit", config->revoke_pm_time_limit_);
-
-  shared_config.set_option_integer("rating_e_decay", config->rating_e_decay_);
-
   if (is_from_main_dc) {
+    shared_config.set_option_integer("edit_time_limit", config->edit_time_limit_);
+    shared_config.set_option_boolean("revoke_pm_inbox",
+                                     (config->flags_ & telegram_api::config::REVOKE_PM_INBOX_MASK) != 0);
+    shared_config.set_option_integer("revoke_time_limit", config->revoke_time_limit_);
+    shared_config.set_option_integer("revoke_pm_time_limit", config->revoke_pm_time_limit_);
+
+    shared_config.set_option_integer("rating_e_decay", config->rating_e_decay_);
+
     shared_config.set_option_boolean("calls_enabled", config->phonecalls_enabled_);
   }
   shared_config.set_option_integer("call_ring_timeout_ms", config->call_ring_timeout_ms_);
