@@ -112,6 +112,8 @@ class AnimationsManager : public Actor {
 
   void send_update_saved_animations(bool from_database = false);
 
+  void save_saved_animations_to_database();
+
   void tear_down() override;
 
   class AnimationListLogEvent;

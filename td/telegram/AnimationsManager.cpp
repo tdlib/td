@@ -574,6 +574,11 @@ bool AnimationsManager::add_saved_animation_impl(FileId animation_id, Promise<Un
   }
 
   if (!saved_animation_ids_.empty() && saved_animation_ids_[0] == animation_id) {
+    if (saved_animation_ids_[0].get_remote() == 0 && animation_id.get_remote() != 0) {
+      saved_animation_ids_[0] = animation_id;
+      save_saved_animations_to_database();
+    }
+
     promise.set_value(Unit());
     return false;
   }
@@ -612,6 +617,9 @@ bool AnimationsManager::add_saved_animation_impl(FileId animation_id, Promise<Un
     it = saved_animation_ids_.end() - 1;
   }
   std::rotate(saved_animation_ids_.begin(), it, it + 1);
+  if (saved_animation_ids_[0].get_remote() == 0 && animation_id.get_remote() != 0) {
+    saved_animation_ids_[0] = animation_id;
+  }
 
   send_update_saved_animations();
   return true;
@@ -664,11 +672,17 @@ void AnimationsManager::send_update_saved_animations(bool from_database) {
     }
     send_closure(G()->td(), &Td::send_update, make_tl_object<td_api::updateSavedAnimations>(std::move(animations)));
 
-    if (!from_database && G()->parameters().use_file_db) {
-      LOG(INFO) << "Save saved animations to database";
-      AnimationListLogEvent log_event(saved_animation_ids_);
-      G()->td_db()->get_sqlite_pmc()->set("ans", log_event_store(log_event).as_slice().str(), Auto());
+    if (!from_database) {
+      save_saved_animations_to_database();
     }
+  }
+}
+
+void AnimationsManager::save_saved_animations_to_database() {
+  if (G()->parameters().use_file_db) {
+    LOG(INFO) << "Save saved animations to database";
+    AnimationListLogEvent log_event(saved_animation_ids_);
+    G()->td_db()->get_sqlite_pmc()->set("ans", log_event_store(log_event).as_slice().str(), Auto());
   }
 }
 

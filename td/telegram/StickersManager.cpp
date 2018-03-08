@@ -3517,6 +3517,11 @@ bool StickersManager::add_recent_sticker_impl(bool is_attached, FileId sticker_i
 
   vector<FileId> &sticker_ids = recent_sticker_ids_[is_attached];
   if (!sticker_ids.empty() && sticker_ids[0] == sticker_id) {
+    if (sticker_ids[0].get_remote() == 0 && sticker_id.get_remote() != 0) {
+      sticker_ids[0] = sticker_id;
+      save_recent_stickers_to_database(is_attached);
+    }
+
     promise.set_value(Unit());
     return false;
   }
@@ -3557,6 +3562,9 @@ bool StickersManager::add_recent_sticker_impl(bool is_attached, FileId sticker_i
     it = sticker_ids.end() - 1;
   }
   std::rotate(sticker_ids.begin(), it, it + 1);
+  if (sticker_ids[0].get_remote() == 0 && sticker_id.get_remote() != 0) {
+    sticker_ids[0] = sticker_id;
+  }
 
   send_update_recent_stickers();
   return true;
@@ -3640,14 +3648,20 @@ void StickersManager::send_update_recent_stickers(bool from_database) {
         send_closure(G()->td(), &Td::send_update,
                      make_tl_object<td_api::updateRecentStickers>(is_attached != 0, std::move(stickers)));
 
-        if (!from_database && G()->parameters().use_file_db) {
-          LOG(INFO) << "Save recent " << (is_attached ? "attached " : "") << "stickers to database";
-          StickerListLogEvent log_event(recent_sticker_ids_[is_attached]);
-          G()->td_db()->get_sqlite_pmc()->set(is_attached ? "ssr1" : "ssr0",
-                                              log_event_store(log_event).as_slice().str(), Auto());
+        if (!from_database) {
+          save_recent_stickers_to_database(is_attached != 0);
         }
       }
     }
+  }
+}
+
+void StickersManager::save_recent_stickers_to_database(bool is_attached) {
+  if (G()->parameters().use_file_db) {
+    LOG(INFO) << "Save recent " << (is_attached ? "attached " : "") << "stickers to database";
+    StickerListLogEvent log_event(recent_sticker_ids_[is_attached]);
+    G()->td_db()->get_sqlite_pmc()->set(is_attached ? "ssr1" : "ssr0", log_event_store(log_event).as_slice().str(),
+                                        Auto());
   }
 }
 
@@ -3851,6 +3865,11 @@ bool StickersManager::add_favorite_sticker_impl(FileId sticker_id, Promise<Unit>
   }
 
   if (!favorite_sticker_ids_.empty() && favorite_sticker_ids_[0] == sticker_id) {
+    if (favorite_sticker_ids_[0].get_remote() == 0 && sticker_id.get_remote() != 0) {
+      favorite_sticker_ids_[0] = sticker_id;
+      save_favorite_stickers_to_database();
+    }
+
     promise.set_value(Unit());
     return false;
   }
@@ -3889,6 +3908,9 @@ bool StickersManager::add_favorite_sticker_impl(FileId sticker_id, Promise<Unit>
     it = favorite_sticker_ids_.end() - 1;
   }
   std::rotate(favorite_sticker_ids_.begin(), it, it + 1);
+  if (favorite_sticker_ids_[0].get_remote() == 0 && sticker_id.get_remote() != 0) {
+    favorite_sticker_ids_[0] = sticker_id;
+  }
 
   send_update_favorite_stickers();
   return true;
@@ -3942,11 +3964,17 @@ void StickersManager::send_update_favorite_stickers(bool from_database) {
     }
     send_closure(G()->td(), &Td::send_update, make_tl_object<td_api::updateFavoriteStickers>(std::move(stickers)));
 
-    if (!from_database && G()->parameters().use_file_db) {
-      LOG(INFO) << "Save favorite stickers to database";
-      StickerListLogEvent log_event(favorite_sticker_ids_);
-      G()->td_db()->get_sqlite_pmc()->set("ssfav", log_event_store(log_event).as_slice().str(), Auto());
+    if (!from_database) {
+      save_favorite_stickers_to_database();
     }
+  }
+}
+
+void StickersManager::save_favorite_stickers_to_database() {
+  if (G()->parameters().use_file_db) {
+    LOG(INFO) << "Save favorite stickers to database";
+    StickerListLogEvent log_event(favorite_sticker_ids_);
+    G()->td_db()->get_sqlite_pmc()->set("ssfav", log_event_store(log_event).as_slice().str(), Auto());
   }
 }
 

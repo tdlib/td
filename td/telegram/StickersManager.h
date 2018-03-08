@@ -367,6 +367,8 @@ class StickersManager : public Actor {
 
   void send_update_recent_stickers(bool from_database = false);
 
+  void save_recent_stickers_to_database(bool is_attached);
+
   void add_recent_sticker_inner(bool is_attached, FileId sticker_id, Promise<Unit> &&promise);
 
   bool add_recent_sticker_impl(bool is_attached, FileId sticker_id, Promise<Unit> &promise);
@@ -384,6 +386,8 @@ class StickersManager : public Actor {
   void on_load_favorite_stickers_finished(vector<FileId> &&favorite_sticker_ids, bool from_database = false);
 
   void send_update_favorite_stickers(bool from_database = false);
+
+  void save_favorite_stickers_to_database();
 
   template <class T>
   void store_sticker_set(const StickerSet *sticker_set, bool with_stickers, T &storer) const;
