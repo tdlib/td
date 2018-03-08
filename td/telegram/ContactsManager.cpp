@@ -4901,8 +4901,10 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     flags |= USER_FLAG_IS_ME;
   }
 
+  bool is_bot = (flags & USER_FLAG_IS_BOT) != 0;
   if (flags & USER_FLAG_IS_ME) {
     set_my_id(user_id);
+    td_->auth_manager_->set_is_bot(is_bot);
   } else {
     /*
     if (!(flags & USER_FLAG_HAS_ACCESS_HASH) && !(flags & USER_FLAG_IS_DELETED) &&
@@ -4958,7 +4960,6 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
 
   bool is_verified = (flags & USER_FLAG_IS_VERIFIED) != 0;
   bool is_deleted = (flags & USER_FLAG_IS_DELETED) != 0;
-  bool is_bot = (flags & USER_FLAG_IS_BOT) != 0;
   bool can_join_groups = (flags & USER_FLAG_IS_PRIVATE_BOT) == 0;
   bool can_read_all_group_messages = (flags & USER_FLAG_IS_BOT_WITH_PRIVACY_DISABLED) != 0;
   string restriction_reason = std::move(user->restriction_reason_);

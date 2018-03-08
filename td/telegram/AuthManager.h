@@ -111,6 +111,7 @@ class AuthManager : public NetActor {
   AuthManager(int32 api_id, const string &api_hash, ActorShared<> parent);
 
   bool is_bot() const;
+  void set_is_bot(bool is_bot);
 
   bool is_authorized() const;
   void get_state(uint64 query_id);

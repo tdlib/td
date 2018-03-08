@@ -332,6 +332,14 @@ bool AuthManager::is_bot() const {
   return is_authorized() && is_bot_;
 }
 
+void AuthManager::set_is_bot(bool is_bot) {
+  if (!is_bot_ && is_bot && api_id_ == 23818) {
+    LOG(ERROR) << "Fix is_bot to " << is_bot;
+    G()->td_db()->get_binlog_pmc()->set("auth_is_bot", "true");
+    is_bot_ = true;
+  }
+}
+
 bool AuthManager::is_authorized() const {
   return state_ == State::Ok;
 }
