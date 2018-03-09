@@ -18,6 +18,8 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/UpdatesManager.h"
 
+#include "td/actor/PromiseFuture.h"
+
 #include "td/utils/buffer.h"
 #include "td/utils/crypto.h"
 #include "td/utils/logging.h"
@@ -315,6 +317,9 @@ AuthManager::AuthManager(int32 api_id, const string &api_hash, ActorShared<> par
     if (my_id.is_valid()) {
       // just in case
       G()->shared_config().set_option_integer("my_id", my_id.get());
+    } else {
+      LOG(ERROR) << "Restore unknown my_id";
+      ContactsManager::send_get_me_query(G()->td().get_actor_unsafe(), Auto());
     }
     update_state(State::Ok);
   } else if (auth_str == "logout") {

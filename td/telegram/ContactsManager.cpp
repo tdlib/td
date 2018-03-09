@@ -7925,12 +7925,16 @@ ContactsManager::User *ContactsManager::get_user(UserId user_id) {
   }
 }
 
+void ContactsManager::send_get_me_query(Td *td, Promise<Unit> &&promise) {
+  vector<tl_object_ptr<telegram_api::InputUser>> users;
+  users.push_back(make_tl_object<telegram_api::inputUserSelf>());
+  td->create_handler<GetUsersQuery>(std::move(promise))->send(std::move(users));
+}
+
 UserId ContactsManager::get_me(Promise<Unit> &&promise) {
   auto my_id = get_my_id("get_me");
   if (!have_user_force(my_id)) {
-    vector<tl_object_ptr<telegram_api::InputUser>> users;
-    users.push_back(make_tl_object<telegram_api::inputUserSelf>());
-    td_->create_handler<GetUsersQuery>(std::move(promise))->send(std::move(users));
+    send_get_me_query(td_, std::move(promise));
     return UserId();
   }
 
