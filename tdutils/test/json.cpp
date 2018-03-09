@@ -17,7 +17,7 @@ REGISTER_TESTS(json)
 
 using namespace td;
 
-static void decode_encode(string str) {
+static void decode_encode(string str, string result = "") {
   auto str_copy = str;
   auto r_value = json_decode(str_copy);
   ASSERT_TRUE(r_value.is_ok());
@@ -26,7 +26,10 @@ static void decode_encode(string str) {
     return;
   }
   auto new_str = json_encode<string>(r_value.ok());
-  ASSERT_EQ(str, new_str);
+  if (result.empty()) {
+    result = str;
+  }
+  ASSERT_EQ(result, new_str);
 }
 
 TEST(JSON, array) {
@@ -81,6 +84,11 @@ TEST(JSON, kphp) {
       "\\u1234"
       "\"");
   decode_encode(
+      "{\"keyboard\":[[\"\\u2022 abcdefg\"],[\"\\u2022 hijklmnop\"],[\"\\u2022 "
+      "qrstuvwxyz\"]],\"one_time_keyboard\":true}");
+  decode_encode(
+      "  \n   {  \"keyboard\"  : \n  [[  \"\\u2022 abcdefg\"  ]  , \n [  \"\\u2022 hijklmnop\" \n ],[  \n \"\\u2022 "
+      "qrstuvwxyz\"]], \n  \"one_time_keyboard\"\n:\ntrue\n}\n   \n",
       "{\"keyboard\":[[\"\\u2022 abcdefg\"],[\"\\u2022 hijklmnop\"],[\"\\u2022 "
       "qrstuvwxyz\"]],\"one_time_keyboard\":true}");
 }

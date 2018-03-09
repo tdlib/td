@@ -720,8 +720,11 @@ inline Result<JsonValue> json_decode(MutableSlice from) {
   Parser parser(from);
   const int32 DEFAULT_MAX_DEPTH = 100;
   auto result = do_json_decode(parser, DEFAULT_MAX_DEPTH);
-  if (result.is_ok() && !parser.empty()) {
-    return Status::Error("Expected string end");
+  if (result.is_ok()) {
+    parser.skip_whitespaces();
+    if (!parser.empty()) {
+      return Status::Error("Expected string end");
+    }
   }
   return result;
 }
