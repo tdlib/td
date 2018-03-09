@@ -1733,6 +1733,10 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
       load_favorite_stickers(std::move(promise));
       return {};
     }
+    if (!are_featured_sticker_sets_loaded_) {
+      load_featured_sticker_sets(std::move(promise));
+      return {};
+    }
   }
 
   vector<int64> sets_to_load;
@@ -1753,18 +1757,16 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
   vector<FileId> prepend_sticker_ids;
   if (!emoji.empty()) {
     prepend_sticker_ids.reserve(favorite_sticker_ids_.size() + recent_sticker_ids_[0].size());
-    append(prepend_sticker_ids, favorite_sticker_ids_);
-    for (auto sticker_id : recent_sticker_ids_[0]) {
-      if (std::find(favorite_sticker_ids_.begin(), favorite_sticker_ids_.end(), sticker_id) ==
-          favorite_sticker_ids_.end()) {
+    append(prepend_sticker_ids, recent_sticker_ids_[0]);
+    for (auto sticker_id : favorite_sticker_ids_) {
+      if (std::find(prepend_sticker_ids.begin(), prepend_sticker_ids.end(), sticker_id) == prepend_sticker_ids.end()) {
         prepend_sticker_ids.push_back(sticker_id);
       }
     }
 
     for (const auto &sticker_id : prepend_sticker_ids) {
       const Sticker *s = get_sticker(sticker_id);
-      if (s->set_id != 0 && std::find(installed_sticker_set_ids_[0].begin(), installed_sticker_set_ids_[0].end(),
-                                      s->set_id) == installed_sticker_set_ids_[0].end()) {
+      if (s->set_id != 0 && std::find(sets_to_load.begin(), sets_to_load.end(), s->set_id) == sets_to_load.end()) {
         const StickerSet *sticker_set = get_sticker_set(s->set_id);
         if (sticker_set == nullptr || !sticker_set->is_loaded) {
           sets_to_load.push_back(s->set_id);
@@ -1807,7 +1809,14 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
       }
     }
   } else {
+    vector<int64> examined_sticker_set_ids = featured_sticker_set_ids_;
     for (const auto &sticker_set_id : installed_sticker_set_ids_[0]) {
+      if (std::find(examined_sticker_set_ids.begin(), examined_sticker_set_ids.end(), sticker_set_id) ==
+          examined_sticker_set_ids.end()) {
+        examined_sticker_set_ids.push_back(sticker_set_id);
+      }
+    }
+    for (const auto &sticker_set_id : examined_sticker_set_ids) {
       const StickerSet *sticker_set = get_sticker_set(sticker_set_id);
       if (sticker_set == nullptr || !sticker_set->was_loaded) {
         continue;
@@ -1821,7 +1830,14 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
 
     vector<FileId> sorted;
     sorted.reserve(min(limit_size_t, result.size()));
-    for (const auto &sticker_id : prepend_sticker_ids) {
+    auto recent_stickers_size = recent_sticker_ids_[0].size();
+    const size_t MAX_RECENT_STICKERS = 5;
+    for (size_t i = 0; i < prepend_sticker_ids.size(); i++) {
+      if (sorted.size() == MAX_RECENT_STICKERS && i < recent_stickers_size) {
+        continue;
+      }
+
+      auto sticker_id = prepend_sticker_ids[i];
       bool is_good = false;
       auto it = std::find(result.begin(), result.end(), sticker_id);
       if (it != result.end()) {

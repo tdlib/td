@@ -2766,7 +2766,7 @@ class GetStickersRequest : public RequestActor<> {
  public:
   GetStickersRequest(ActorShared<Td> td, uint64 request_id, string &&emoji, int32 limit)
       : RequestActor(std::move(td), request_id), emoji_(std::move(emoji)), limit_(limit) {
-    set_tries(5);
+    set_tries(6);
   }
 };
 
