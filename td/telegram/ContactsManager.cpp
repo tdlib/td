@@ -7925,6 +7925,19 @@ ContactsManager::User *ContactsManager::get_user(UserId user_id) {
   }
 }
 
+UserId ContactsManager::get_me(Promise<Unit> &&promise) {
+  auto my_id = get_my_id("get_me");
+  if (!have_user_force(my_id)) {
+    vector<tl_object_ptr<telegram_api::InputUser>> users;
+    users.push_back(make_tl_object<telegram_api::inputUserSelf>());
+    td_->create_handler<GetUsersQuery>(std::move(promise))->send(std::move(users));
+    return UserId();
+  }
+
+  promise.set_value(Unit());
+  return my_id;
+}
+
 bool ContactsManager::get_user(UserId user_id, int left_tries, Promise<Unit> &&promise) {
   if (!user_id.is_valid()) {
     promise.set_error(Status::Error(6, "Invalid user id"));

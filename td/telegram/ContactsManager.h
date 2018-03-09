@@ -335,6 +335,8 @@ class ContactsManager : public Actor {
   bool have_user(UserId user_id) const;
   bool have_min_user(UserId user_id) const;
   bool have_user_force(UserId user_id);
+
+  UserId get_me(Promise<Unit> &&promise);
   bool get_user(UserId user_id, int left_tries, Promise<Unit> &&promise);
   bool get_user_full(UserId user_id, Promise<Unit> &&promise);
 

@@ -2824,9 +2824,7 @@ class CliClient final : public Actor {
     } else if (op == "gproxy") {
       send_request(make_tl_object<td_api::getProxy>());
     } else if (op == "SetVerbosity") {
-      int new_verbosity = to_integer<int>(args);
-      SET_VERBOSITY_LEVEL(VERBOSITY_NAME(FATAL) + new_verbosity);
-      LOG(PLAIN) << "Verbosity=" << new_verbosity;
+      td::Log::set_verbosity_level(to_integer<int>(args));
     } else if (op == "q" || op == "Quit") {
       quit();
     } else if (op == "dnq" || op == "DumpNetQueries") {
@@ -3027,7 +3025,7 @@ void main(int argc, char **argv) {
       if (*arg == '\0' && i + 1 < argc) {
         arg = argv[++i];
       }
-      if (file_log.init(arg) && file_log.init(arg) && file_log.init(arg)) {
+      if (file_log.init(arg) && file_log.init(arg) && file_log.init(arg, 1000 << 20)) {
         log_interface = &ts_log;
       }
     } else if (!std::strcmp(argv[i], "-W")) {

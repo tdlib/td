@@ -740,6 +740,23 @@ class DisconnectAllWebsitesRequest : public RequestOnceActor {
   }
 };
 
+class GetMeRequest : public RequestActor<> {
+  UserId user_id_;
+
+  void do_run(Promise<Unit> &&promise) override {
+    user_id_ = td->contacts_manager_->get_me(std::move(promise));
+  }
+
+  void do_send_result() override {
+    send_result(td->contacts_manager_->get_user_object(user_id_));
+  }
+
+ public:
+  GetMeRequest(ActorShared<Td> td, uint64 request_id)
+      : RequestActor(std::move(td), request_id) {
+  }
+};
+
 class GetUserRequest : public RequestActor<> {
   UserId user_id_;
 
@@ -4811,7 +4828,7 @@ void Td::on_request(uint64 id, td_api::setAuthenticationPhoneNumber &request) {
                request.allow_flash_call_, request.is_current_phone_number_);
 }
 
-void Td::on_request(uint64 id, const td_api::resendAuthenticationCode &) {
+void Td::on_request(uint64 id, const td_api::resendAuthenticationCode &request) {
   send_closure(auth_manager_actor_, &AuthManager::resend_authentication_code, id);
 }
 
@@ -5054,12 +5071,9 @@ void Td::on_request(uint64 id, const td_api::disconnectAllWebsites &request) {
   CREATE_NO_ARGS_REQUEST(DisconnectAllWebsitesRequest);
 }
 
-void Td::on_request(uint64 id, const td_api::getMe &) {
+void Td::on_request(uint64 id, const td_api::getMe &request) {
   CHECK_AUTH();
-
-  UserId my_id = contacts_manager_->get_my_id("getMe");
-  CHECK(my_id.is_valid());
-  CREATE_REQUEST(GetUserRequest, my_id.get());
+  CREATE_NO_ARGS_REQUEST(GetMeRequest);
 }
 
 void Td::on_request(uint64 id, const td_api::getUser &request) {
@@ -6856,7 +6870,7 @@ void Td::on_request(uint64 id, const td_api::getFileExtension &request) {
 }
 
 template <class T>
-td_api::object_ptr<td_api::Object> Td::do_static_request(const T &) {
+td_api::object_ptr<td_api::Object> Td::do_static_request(const T &request) {
   return make_error(400, "Function can't be executed synchronously");
 }
 

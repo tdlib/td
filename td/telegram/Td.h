@@ -792,7 +792,7 @@ class Td final : public NetQueryCallback {
   void on_request(uint64 id, td_api::testCallVectorStringObject &request);
 
   template <class T>
-  static td_api::object_ptr<td_api::Object> do_static_request(const T &);
+  static td_api::object_ptr<td_api::Object> do_static_request(const T &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getTextEntities &request);
   static td_api::object_ptr<td_api::Object> do_static_request(td_api::parseTextEntities &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getFileMimeType &request);
