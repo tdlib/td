@@ -317,11 +317,13 @@ AuthManager::AuthManager(int32 api_id, const string &api_hash, ActorShared<> par
     if (my_id.is_valid()) {
       // just in case
       G()->shared_config().set_option_integer("my_id", my_id.get());
+      update_state(State::Ok);
     } else {
       LOG(ERROR) << "Restore unknown my_id";
-      ContactsManager::send_get_me_query(G()->td().get_actor_unsafe(), Auto());
+      ContactsManager::send_get_me_query(
+          G()->td().get_actor_unsafe(),
+          PromiseCreator::lambda([this](Result<Unit> result) { update_state(State::Ok); }));
     }
-    update_state(State::Ok);
   } else if (auth_str == "logout") {
     update_state(State::LoggingOut);
   } else {
@@ -376,7 +378,11 @@ tl_object_ptr<td_api::AuthorizationState> AuthManager::get_authorization_state_o
 }
 
 void AuthManager::get_state(uint64 query_id) {
-  send_closure(G()->td(), &Td::send_result, query_id, get_authorization_state_object(state_));
+  if (state_ == State::None) {
+    pending_get_authorization_state_requests_.push_back(query_id);
+  } else {
+    send_closure(G()->td(), &Td::send_result, query_id, get_authorization_state_object(state_));
+  }
 }
 
 void AuthManager::check_bot_token(uint64 query_id, string bot_token) {
@@ -817,6 +823,13 @@ void AuthManager::update_state(State new_state, bool force) {
   state_ = new_state;
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateAuthorizationState>(get_authorization_state_object(state_)));
+
+  if (!pending_get_authorization_state_requests_.empty()) {
+    auto query_ids = std::move(pending_get_authorization_state_requests_);
+    for (auto query_id : query_ids) {
+      send_closure(G()->td(), &Td::send_result, query_id, get_authorization_state_object(state_));
+    }
+  }
 }
 
 }  // namespace td

@@ -752,8 +752,7 @@ class GetMeRequest : public RequestActor<> {
   }
 
  public:
-  GetMeRequest(ActorShared<Td> td, uint64 request_id)
-      : RequestActor(std::move(td), request_id) {
+  GetMeRequest(ActorShared<Td> td, uint64 request_id) : RequestActor(std::move(td), request_id) {
   }
 };
 
@@ -4421,7 +4420,8 @@ Status Td::init(DbKey key) {
       send_closure(G()->td(), &Td::on_config_option_updated, name);
     }
   };
-  send_closure(actor_id(this), &Td::send_update,
+  send_closure(
+      actor_id(this), &Td::send_update,
       make_tl_object<td_api::updateOption>("version", make_tl_object<td_api::optionValueString>(tdlib_version)));
 
   G()->set_shared_config(

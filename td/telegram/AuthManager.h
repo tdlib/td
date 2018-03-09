@@ -168,6 +168,8 @@ class AuthManager : public NetActor {
   uint64 net_query_id_ = 0;
   NetQueryType net_query_type_;
 
+  vector<uint64> pending_get_authorization_state_requests_;
+
   void on_new_query(uint64 query_id);
   void on_query_error(Status status);
   void on_query_error(uint64 id, Status status);
