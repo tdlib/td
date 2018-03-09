@@ -1531,6 +1531,11 @@ class CliClient final : public Actor {
       string emoji;
       std::tie(limit, emoji) = split(args);
       send_request(make_tl_object<td_api::getStickers>(emoji, to_integer<int32>(limit)));
+    } else if (op == "sst") {
+      string limit;
+      string emoji;
+      std::tie(limit, emoji) = split(args);
+      send_request(make_tl_object<td_api::searchStickers>(emoji, to_integer<int32>(limit)));
     } else if (op == "gss") {
       send_request(make_tl_object<td_api::getStickerSet>(to_integer<int64>(args)));
     } else if (op == "giss") {

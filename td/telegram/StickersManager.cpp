@@ -73,6 +73,34 @@ class GetAllStickersQuery : public Td::ResultHandler {
   }
 };
 
+class SearchStickersQuery : public Td::ResultHandler {
+  string emoji_;
+
+ public:
+  void send(string emoji) {
+    emoji_ = std::move(emoji);
+    int32 flags = telegram_api::messages_getStickers::EXCLUDE_FEATURED_MASK;
+    send_query(G()->net_query_creator().create(
+        create_storer(telegram_api::messages_getStickers(flags, false /*ignored*/, emoji_, ""))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_getStickers>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for search stickers: " << to_string(ptr);
+    td->stickers_manager_->on_find_stickers_success(emoji_, std::move(ptr));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    LOG(ERROR) << "Receive error for search stickers: " << status;
+    td->stickers_manager_->on_find_stickers_fail(emoji_, std::move(status));
+  }
+};
+
 class GetArchivedStickerSetsQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   bool is_masks_;
@@ -1883,6 +1911,93 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
 
   promise.set_value(Unit());
   return result;
+}
+
+vector<FileId> StickersManager::search_stickers(string emoji, int32 limit, Promise<Unit> &&promise) {
+  if (td_->auth_manager_->is_bot()) {
+    promise.set_error(Status::Error(7, "Method is not available for bots"));
+    return {};
+  }
+  if (limit <= 0) {
+    promise.set_error(Status::Error(3, "Parameter limit must be positive"));
+    return {};
+  }
+  if (limit > MAX_FOUND_STICKERS) {
+    limit = MAX_FOUND_STICKERS;
+  }
+  if (emoji.empty()) {
+    promise.set_error(Status::Error(3, "Emoji must be non-empty"));
+    return {};
+  }
+
+  emoji = remove_emoji_modifiers(emoji);
+  if (emoji.empty()) {
+    promise.set_value(Unit());
+    return {};
+  }
+
+  auto it = found_stickers_.find(emoji);
+  if (it != found_stickers_.end()) {
+    promise.set_value(Unit());
+    auto result_size = min(static_cast<size_t>(limit), it->second.size());
+    return vector<FileId>(it->second.begin(), it->second.begin() + result_size);
+  }
+
+  auto &promises = search_stickers_queries_[emoji];
+  promises.push_back(std::move(promise));
+  if (promises.size() == 1u) {
+    td_->create_handler<SearchStickersQuery>()->send(std::move(emoji));
+  }
+
+  return {};
+}
+
+void StickersManager::on_find_stickers_success(const string &emoji,
+                                               tl_object_ptr<telegram_api::messages_Stickers> &&stickers) {
+  CHECK(stickers != nullptr);
+  switch (stickers->get_id()) {
+    case telegram_api::messages_stickersNotModified::ID:
+      return on_find_stickers_fail(emoji, Status::Error(500, "Receive messages.stickerNotModified"));
+    case telegram_api::messages_stickers::ID: {
+      auto found_stickers = move_tl_object_as<telegram_api::messages_stickers>(stickers);
+      vector<FileId> &sticker_ids = found_stickers_[emoji];
+      CHECK(sticker_ids.empty());
+
+      for (auto &sticker : found_stickers->stickers_) {
+        FileId sticker_id = on_get_sticker_document(std::move(sticker), false).second;
+        if (sticker_id.is_valid()) {
+          sticker_ids.push_back(sticker_id);
+        }
+      }
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+
+  auto it = search_stickers_queries_.find(emoji);
+  CHECK(it != search_stickers_queries_.end());
+  CHECK(!it->second.empty());
+  auto promises = std::move(it->second);
+  search_stickers_queries_.erase(it);
+
+  for (auto &promise : promises) {
+    promise.set_value(Unit());
+  }
+}
+
+void StickersManager::on_find_stickers_fail(const string &emoji, Status &&error) {
+  CHECK(found_stickers_.count(emoji) == 0);
+
+  auto it = search_stickers_queries_.find(emoji);
+  CHECK(it != search_stickers_queries_.end());
+  CHECK(!it->second.empty());
+  auto promises = std::move(it->second);
+  search_stickers_queries_.erase(it);
+
+  for (auto &promise : promises) {
+    promise.set_error(error.clone());
+  }
 }
 
 vector<int64> StickersManager::get_installed_sticker_sets(bool is_masks, Promise<Unit> &&promise) {

@@ -2500,8 +2500,11 @@ clearImportedContacts = Ok;
 getUserProfilePhotos user_id:int32 offset:int32 limit:int32 = UserProfilePhotos;
 
 
-//@description Returns stickers from the installed sticker sets that correspond to a given emoji. If the emoji is not empty, favorite and recently used stickers may also be returned @emoji String representation of emoji. If empty, returns all known stickers @limit Maximum number of stickers to be returned
+//@description Returns stickers from the installed sticker sets that correspond to a given emoji. If the emoji is not empty, favorite, recently used and trending stickers may also be returned @emoji String representation of emoji. If empty, returns all known installed stickers @limit Maximum number of stickers to be returned
 getStickers emoji:string limit:int32 = Stickers;
+
+//@description Searches for stickers from public sticker sets that correspond to a given emoji. May exclude some stickers returned by getStickers from the results @emoji String representation of emoji; must be non-empty @limit Maximum number of stickers to be returned
+searchStickers emoji:string limit:int32 = Stickers;
 
 //@description Returns a list of installed sticker sets @is_masks Pass true to return mask sticker sets; pass false to return ordinary sticker sets
 getInstalledStickerSets is_masks:Bool = StickerSets;

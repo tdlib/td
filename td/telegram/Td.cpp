@@ -2770,6 +2770,26 @@ class GetStickersRequest : public RequestActor<> {
   }
 };
 
+class SearchStickersRequest : public RequestActor<> {
+  string emoji_;
+  int32 limit_;
+
+  vector<FileId> sticker_ids_;
+
+  void do_run(Promise<Unit> &&promise) override {
+    sticker_ids_ = td->stickers_manager_->search_stickers(emoji_, limit_, std::move(promise));
+  }
+
+  void do_send_result() override {
+    send_result(td->stickers_manager_->get_stickers_object(sticker_ids_));
+  }
+
+ public:
+  SearchStickersRequest(ActorShared<Td> td, uint64 request_id, string &&emoji, int32 limit)
+      : RequestActor(std::move(td), request_id), emoji_(std::move(emoji)), limit_(limit) {
+  }
+};
+
 class GetInstalledStickerSetsRequest : public RequestActor<> {
   bool is_masks_;
 
@@ -6275,6 +6295,13 @@ void Td::on_request(uint64 id, td_api::getStickers &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.emoji_);
   CREATE_REQUEST(GetStickersRequest, std::move(request.emoji_), request.limit_);
+}
+
+void Td::on_request(uint64 id, td_api::searchStickers &request) {
+  CHECK_AUTH();
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.emoji_);
+  CREATE_REQUEST(SearchStickersRequest, std::move(request.emoji_), request.limit_);
 }
 
 void Td::on_request(uint64 id, const td_api::getInstalledStickerSets &request) {
