@@ -43,6 +43,7 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/PasswordManager.h"
+#include "td/telegram/Photo.h"
 #include "td/telegram/PrivacyManager.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/SecretChatsManager.h"
@@ -177,6 +178,7 @@ class GetWallpapersQuery : public Td::ResultHandler {
                 get_photo_size(td->file_manager_.get(), FileType::Wallpaper, 0, 0, DialogId(), std::move(size_ptr));
             sizes.push_back(get_photo_size_object(td->file_manager_.get(), &photo_size));
           }
+          sort_photo_sizes(sizes);
           results->wallpapers_.push_back(
               make_tl_object<td_api::wallpaper>(wallpaper->id_, std::move(sizes), wallpaper->color_));
           break;

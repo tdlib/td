@@ -390,6 +390,15 @@ tl_object_ptr<td_api::photoSize> get_photo_size_object(FileManager *file_manager
       file_manager->get_file_object(photo_size->file_id), photo_size->dimensions.width, photo_size->dimensions.height);
 }
 
+void sort_photo_sizes(vector<td_api::object_ptr<td_api::photoSize>> &sizes) {
+  std::sort(sizes.begin(), sizes.end(), [](const auto &lhs, const auto &rhs) {
+    if (lhs->photo_->expected_size_ != rhs->photo_->expected_size_) {
+      return lhs->photo_->expected_size_ < rhs->photo_->expected_size_;
+    }
+    return lhs->width_ * lhs->height_ < rhs->width_ * rhs->height_;
+  });
+}
+
 bool operator==(const PhotoSize &lhs, const PhotoSize &rhs) {
   return lhs.type == rhs.type && lhs.dimensions == rhs.dimensions && lhs.size == rhs.size && lhs.file_id == rhs.file_id;
 }
@@ -454,13 +463,7 @@ tl_object_ptr<td_api::photo> get_photo_object(FileManager *file_manager, const P
   for (auto &photo_size : photo->photos) {
     photos.push_back(get_photo_size_object(file_manager, &photo_size));
   }
-  std::sort(photos.begin(), photos.end(), [](const auto &lhs, const auto &rhs) {
-    if (lhs->photo_->size_ != 0 && rhs->photo_->size_ != 0) {
-      return lhs->photo_->size_ < rhs->photo_->size_;
-    }
-    return lhs->width_ * lhs->height_ < rhs->width_ * rhs->height_;
-  });
-
+  sort_photo_sizes(photos);
   return make_tl_object<td_api::photo>(photo->id, photo->has_stickers, std::move(photos));
 }
 
