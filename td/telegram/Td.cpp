@@ -2967,7 +2967,7 @@ class ChangeStickerSetRequest : public RequestOnceActor {
       , set_id_(set_id)
       , is_installed_(is_installed)
       , is_archived_(is_archived) {
-    set_tries(3);
+    set_tries(4);
   }
 };
 

@@ -2179,6 +2179,10 @@ void StickersManager::change_sticker_set(int64 set_id, bool is_installed, bool i
     load_sticker_sets({set_id}, std::move(promise));
     return;
   }
+  if (!are_installed_sticker_sets_loaded_[sticker_set->is_masks]) {
+    load_installed_sticker_sets(sticker_set->is_masks, std::move(promise));
+    return;
+  }
 
   if (is_archived) {
     is_installed = true;
