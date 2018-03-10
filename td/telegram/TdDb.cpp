@@ -36,7 +36,7 @@ Result<EncryptionInfo> check_encryption(string path) {
   Binlog binlog;
   auto status = binlog.init(path, Binlog::Callback());
   if (status.is_error() && status.code() != Binlog::Error::WrongPassword) {
-    return std::move(status);
+    return Status::Error(400, status.message());
   }
   EncryptionInfo info;
   info.is_encrypted = binlog.get_info().wrong_password;
