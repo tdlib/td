@@ -235,6 +235,7 @@ class Td final : public NetQueryCallback {
   Container<ActorOwn<Actor>> request_actors_;
 
   bool is_online_ = false;
+  NetQueryRef update_status_query_;
 
   int64 alarm_id_ = 1;
   std::unordered_map<int64, uint64> pending_alarms_;
