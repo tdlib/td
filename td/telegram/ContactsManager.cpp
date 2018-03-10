@@ -6629,10 +6629,10 @@ void ContactsManager::on_update_user_online(User *u, UserId user_id, tl_object_p
 
     auto st = move_tl_object_as<telegram_api::userStatusOffline>(status);
     new_online = st->was_online_;
-    if (new_online > now + 10) {
-      LOG(ERROR) << "Receive userStatusOffline but was online points to future time " << new_online << ", now is "
-                 << now;
-      new_online = now;
+    if (new_online >= now) {
+      LOG_IF(ERROR, new_online > now + 10)
+          << "Receive userStatusOffline but was online points to future time " << new_online << ", now is " << now;
+      new_online = now - 1;
     }
     is_offline = true;
   } else if (id == telegram_api::userStatusRecently::ID) {
