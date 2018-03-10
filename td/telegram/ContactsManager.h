@@ -210,7 +210,7 @@ class ContactsManager : public Actor {
   void on_get_channel_full_fail(ChannelId channel_id, Status &&error);
 
   UserId get_my_id(const char *source) const;
-  void set_my_online_status(bool is_online, bool send_update);
+  void set_my_online_status(bool is_online, bool send_update, bool is_local);
 
   void on_update_online_status_privacy();
 
@@ -955,7 +955,7 @@ class ContactsManager : public Actor {
 
   void reload_dialog_administrators(DialogId dialog_id, int32 hash, Promise<Unit> &&promise);
 
-  static tl_object_ptr<td_api::UserStatus> get_user_status_object(const User *u);
+  tl_object_ptr<td_api::UserStatus> get_user_status_object(UserId user_id, const User *u) const;
 
   static tl_object_ptr<td_api::LinkState> get_link_state_object(LinkState link);
 
@@ -1004,6 +1004,7 @@ class ContactsManager : public Actor {
   ActorShared<> parent_;
   UserId my_id_;
   UserId support_user_id_;
+  int32 my_was_online_local_ = 0;
 
   std::unordered_map<UserId, User, UserIdHash> users_;
   std::unordered_map<UserId, UserFull, UserIdHash> users_full_;

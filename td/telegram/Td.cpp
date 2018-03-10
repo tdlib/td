@@ -374,8 +374,11 @@ class SetBotUpdatesStatusQuery : public Td::ResultHandler {
 };
 
 class UpdateStatusQuery : public Td::ResultHandler {
+  bool is_offline_;
+
  public:
   NetQueryRef send(bool is_offline) {
+    is_offline_ = is_offline;
     auto net_query = G()->net_query_creator().create(create_storer(telegram_api::account_updateStatus(is_offline)));
     auto result = net_query.get_weak();
     send_query(std::move(net_query));
@@ -390,6 +393,7 @@ class UpdateStatusQuery : public Td::ResultHandler {
 
     bool result = result_ptr.ok();
     LOG(INFO) << "UpdateStatus returned " << result;
+    td->on_update_status_success(!is_offline_);
   }
 
   void on_error(uint64 id, Status status) override {
@@ -3824,7 +3828,7 @@ void Td::on_online_updated(bool force, bool send_update) {
     return;
   }
   if (force || is_online_) {
-    contacts_manager_->set_my_online_status(is_online_, send_update);
+    contacts_manager_->set_my_online_status(is_online_, send_update, true);
     if (!update_status_query_.empty()) {
       LOG(INFO) << "Cancel previous update status query";
       cancel_query(update_status_query_);
@@ -3835,6 +3839,15 @@ void Td::on_online_updated(bool force, bool send_update) {
     alarm_timeout_.set_timeout_in(ONLINE_ALARM_ID, ONLINE_TIMEOUT);
   } else {
     alarm_timeout_.cancel_timeout(ONLINE_ALARM_ID);
+  }
+}
+
+void Td::on_update_status_success(bool is_online) {
+  if (is_online == is_online_) {
+    if (!update_status_query_.empty()) {
+      update_status_query_ = NetQueryRef();
+    }
+    contacts_manager_->set_my_online_status(is_online_, true, false);
   }
 }
 

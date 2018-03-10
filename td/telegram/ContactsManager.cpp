@@ -2376,8 +2376,9 @@ void ContactsManager::on_user_online_timeout_callback(void *contacts_manager_ptr
   CHECK(u != nullptr);
 
   LOG(INFO) << "Update " << user_id << " online status to offline";
-  send_closure_later(G()->td(), &Td::send_update,
-                     make_tl_object<td_api::updateUserStatus>(user_id.get(), get_user_status_object(u)));
+  send_closure_later(
+      G()->td(), &Td::send_update,
+      make_tl_object<td_api::updateUserStatus>(user_id.get(), contacts_manager->get_user_status_object(user_id, u)));
 }
 
 void ContactsManager::on_channel_unban_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long) {
@@ -3069,7 +3070,7 @@ void ContactsManager::set_my_id(UserId my_id) {
   }
 }
 
-void ContactsManager::set_my_online_status(bool is_online, bool send_update) {
+void ContactsManager::set_my_online_status(bool is_online, bool send_update, bool is_local) {
   auto my_id = get_my_id("set_my_online_status");
   User *u = get_user_force(my_id);
   if (u != nullptr) {
@@ -3081,11 +3082,22 @@ void ContactsManager::set_my_online_status(bool is_online, bool send_update) {
       new_online = now - 1;
     }
 
-    if (new_online != u->was_online) {
-      LOG(INFO) << "Update my online from " << u->was_online << " to " << new_online;
-      u->was_online = new_online;
-
-      u->is_status_changed = true;
+    if (is_local) {
+      LOG(INFO) << "Update my local online from " << my_was_online_local_ << " to " << new_online;
+      if (!is_online) {
+        new_online = min(new_online, u->was_online);
+      }
+      if (new_online != my_was_online_local_) {
+        my_was_online_local_ = new_online;
+        u->is_status_changed = true;
+      }
+    } else {
+      if (my_was_online_local_ != 0 || new_online != u->was_online) {
+        LOG(INFO) << "Update my online from " << u->was_online << " to " << new_online;
+        my_was_online_local_ = 0;
+        u->was_online = new_online;
+        u->is_status_changed = true;
+      }
     }
 
     if (send_update) {
@@ -6011,7 +6023,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
       u->is_status_saved = false;
     }
     send_closure(G()->td(), &Td::send_update,
-                 make_tl_object<td_api::updateUserStatus>(user_id.get(), get_user_status_object(u)));
+                 make_tl_object<td_api::updateUserStatus>(user_id.get(), get_user_status_object(user_id, u)));
     u->is_status_changed = false;
   }
 
@@ -6641,8 +6653,11 @@ void ContactsManager::on_update_user_online(User *u, UserId user_id, tl_object_p
     u->was_online = new_online;
     u->is_status_changed = true;
 
-    if (is_offline && user_id == get_my_id("on_update_user_online")) {
-      td_->on_online_updated(false, false);
+    if (user_id == get_my_id("on_update_user_online")) {
+      my_was_online_local_ = 0;
+      if (is_offline) {
+        td_->on_online_updated(false, false);
+      }
     }
   }
 }
@@ -8632,13 +8647,18 @@ std::pair<int32, vector<UserId>> ContactsManager::search_among_users(const vecto
                                                                      const string &query, int32 limit) {
   Hints hints;  // TODO cache Hints
 
+  UserId my_user_id = get_my_id("search_among_users");
   for (auto user_id : user_ids) {
     auto u = get_user(user_id);
     if (u == nullptr) {
       continue;
     }
     hints.add(user_id.get(), u->first_name + " " + u->last_name + " " + u->username);
-    hints.set_rating(user_id.get(), -u->was_online);
+    auto was_online = u->was_online;
+    if (user_id == my_user_id && my_was_online_local_ != 0) {
+      was_online = my_was_online_local_;
+    }
+    hints.set_rating(user_id.get(), -was_online);
   }
 
   auto result = hints.search(query, limit, true);
@@ -9289,11 +9309,15 @@ void ContactsManager::on_upload_profile_photo_error(FileId file_id, Status statu
   promise.set_error(std::move(status));  // TODO check that status has valid error code
 }
 
-tl_object_ptr<td_api::UserStatus> ContactsManager::get_user_status_object(const User *u) {
+tl_object_ptr<td_api::UserStatus> ContactsManager::get_user_status_object(UserId user_id, const User *u) const {
   if (u->is_bot) {
     return make_tl_object<td_api::userStatusOnline>(std::numeric_limits<int32>::max());
   }
+
   int32 was_online = u->was_online;
+  if (user_id == get_my_id("get_user_status_object") && my_was_online_local_ != 0) {
+    was_online = my_was_online_local_;
+  }
   switch (was_online) {
     case -3:
       return make_tl_object<td_api::userStatusLastMonth>();
@@ -9347,7 +9371,7 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
   }
 
   return make_tl_object<td_api::user>(
-      user_id.get(), u->first_name, u->last_name, u->username, u->phone_number, get_user_status_object(u),
+      user_id.get(), u->first_name, u->last_name, u->username, u->phone_number, get_user_status_object(user_id, u),
       get_profile_photo_object(td_->file_manager_.get(), &u->photo), get_link_state_object(u->outbound),
       get_link_state_object(u->inbound), u->is_verified, u->restriction_reason, u->is_received, std::move(type),
       u->language_code);
