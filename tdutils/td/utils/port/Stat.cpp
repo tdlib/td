@@ -16,6 +16,8 @@
 #include "td/utils/port/Clocks.h"
 #include "td/utils/ScopeGuard.h"
 
+#include <utility>
+
 #if TD_DARWIN
 #include <mach/mach.h>
 #include <sys/time.h>
@@ -36,27 +38,55 @@
 #endif
 
 namespace td {
+
 namespace detail {
+
+template <class...>
+struct voider {
+  using type = void;
+};
+template <class... T>
+using void_t = typename voider<T...>::type;
+
+template <class T, class = void>
+struct TimeNsec {
+  static std::pair<int, int> get(const T &) {
+    T().warning("Platform lacks support of precise access/modification file times, comment this line to continue");
+    return {0, 0};
+  }
+};
+
+template <class T>
+struct TimeNsec<T, void_t<char, decltype(T::st_atimespec), decltype(T::st_mtimespec)>> {
+  static std::pair<decltype(decltype(T::st_atimespec)::tv_nsec), decltype(decltype(T::st_mtimespec)::tv_nsec)> get(
+      const T &s) {
+    return {s.st_atimespec.tv_nsec, s.st_mtimespec.tv_nsec};
+  }
+};
+
+template <class T>
+struct TimeNsec<T, void_t<short, decltype(T::st_atimensec), decltype(T::st_mtimensec)>> {
+  static std::pair<decltype(T::st_atimensec), decltype(T::st_mtimensec)> get(const T &s) {
+    return {s.st_atimensec, s.st_mtimensec};
+  }
+};
+
+template <class T>
+struct TimeNsec<T, void_t<int, decltype(T::st_atim), decltype(T::st_mtim)>> {
+  static std::pair<decltype(decltype(T::st_atim)::tv_nsec), decltype(decltype(T::st_mtim)::tv_nsec)> get(const T &s) {
+    return {s.st_atim.tv_nsec, s.st_mtim.tv_nsec};
+  }
+};
+
 Stat from_native_stat(const struct ::stat &buf) {
+  auto time_nsec = TimeNsec<struct ::stat>::get(buf);
+
   Stat res;
-#if TD_DARWIN
-  res.mtime_nsec_ = buf.st_mtimespec.tv_sec * 1000000000ll + buf.st_mtimespec.tv_nsec;  // khm
-  res.atime_nsec_ = buf.st_atimespec.tv_sec * 1000000000ll + buf.st_atimespec.tv_nsec;
-#else
-#if defined(_BSD_SOURCE) || defined(_SVID_SOURCE) || _POSIX_C_SOURCE >= 200809L || _XOPEN_SOURCE >= 700 || TD_EMSCRIPTEN
-  res.mtime_nsec_ = buf.st_mtime * 1000000000ll + buf.st_mtim.tv_nsec;
-  res.atime_nsec_ = buf.st_atime * 1000000000ll + buf.st_atim.tv_nsec;
-#else
-  res.mtime_nsec_ = buf.st_mtime * 1000000000ll + buf.st_mtimensec;
-  res.atime_nsec_ = buf.st_atime * 1000000000ll + buf.st_atimensec;
-#endif
-#endif
+  res.atime_nsec_ = static_cast<uint64>(buf.st_atime) * 1000000000 + time_nsec.first;
+  res.mtime_nsec_ = static_cast<uint64>(buf.st_mtime) * 1000000000 + time_nsec.second / 1000 * 1000;
   res.size_ = buf.st_size;
   res.is_dir_ = (buf.st_mode & S_IFMT) == S_IFDIR;
   res.is_reg_ = (buf.st_mode & S_IFMT) == S_IFREG;
-  res.mtime_nsec_ /= 1000;
-  res.mtime_nsec_ *= 1000;
-
   return res;
 }
 
