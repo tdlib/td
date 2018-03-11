@@ -17,8 +17,8 @@ using namespace CxCli;
 
 public ref class Log sealed {
 public:
-  static void SetFilePath(String^ filePath) {
-    ::td::Log::set_file_path(string_to_unmanaged(filePath));
+  static bool SetFilePath(String^ filePath) {
+    return ::td::Log::set_file_path(string_to_unmanaged(filePath));
   }
 
   static void SetMaxFileSize(std::int64_t maxFileSize) {

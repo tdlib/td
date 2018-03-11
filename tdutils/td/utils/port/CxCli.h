@@ -74,8 +74,11 @@ inline std::int64_t Increment(volatile std::int64_t &value) {
   return InterlockedIncrement64(&value);
 }
 
-inline std::string string_to_unmanaged(String^ string) {
-  return td::from_wstring(string->Data(), string->Length()).ok();
+inline std::string string_to_unmanaged(String^ str) {
+  if (!str) {
+    return std::string();
+  }
+  return td::from_wstring(str->Data(), str->Length()).ok();
 }
 
 inline String^ string_from_unmanaged(const std::string &from) {
@@ -117,8 +120,11 @@ inline std::int64_t Increment(std::int64_t %value) {
   return System::Threading::Interlocked::Increment(value);
 }
 
-inline std::string string_to_unmanaged(String^ string) {
-  return msclr::interop::marshal_as<std::string>(string);
+inline std::string string_to_unmanaged(String^ str) {
+  if (!str) {
+    return std::string();
+  }
+  return msclr::interop::marshal_as<std::string>(str);
 }
 
 inline String^ string_from_unmanaged(const std::string &from) {
