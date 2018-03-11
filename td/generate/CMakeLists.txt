@@ -138,7 +138,7 @@ if (NOT CMAKE_CROSSCOMPILING)
     add_custom_target(generate_dotnet_api
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
       COMMAND td_generate_dotnet_api ${TL_TD_API_TLO}
-      COMMENT "Generate .Net API files"
+      COMMENT "Generate .NET API files"
       DEPENDS td_generate_dotnet_api ${TL_TD_API_TLO}
     )
   endif()

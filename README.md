@@ -10,6 +10,7 @@ TDLib (Telegram Database library) is a cross-platform library for building [Tele
 - [Installing dependencies](#installing-dependencies)
 - [Using in CMake C++ projects](#using-cxx)
 - [Using in Java projects](#using-java)
+- [Using in .NET projects](#using-dotnet)
 - [Using with other programming languages](#using-json)
 - [License](#license)
 
@@ -19,7 +20,7 @@ TDLib (Telegram Database library) is a cross-platform library for building [Tele
 `TDLib` has many advantages. Notably `TDLib` is:
 
 * **Cross-platform**: `TDLib` can be used on Android, iOS, Windows, macOS, Linux, Windows Phone, WebAssembly, watchOS, tvOS, Tizen, Cygwin. It should also work on other *nix systems with or without minimal effort.
-* **Multilanguage**: `TDLib` can be easily used with any programming language that is able to execute C functions. Additionally it already has native Java (using JNI) bindings and .NET (using C++/CLI and C++/CX) bindings.
+* **Multilanguage**: `TDLib` can be easily used with any programming language that is able to execute C functions. Additionally it already has native Java (using `JNI`) bindings and .NET (using `C++/CLI` and `C++/CX`) bindings.
 * **Easy to use**: `TDLib` takes care of all network implementation details, encryption and local data storage.
 * **High-performance**: in the [Telegram Bot API](https://core.telegram.org/bots/api), each `TDLib` instance handles more than 19000 active bots simultaneously.
 * **Well-documented**: all `TDLib` API methods and public interfaces are fully documented.
@@ -117,9 +118,17 @@ See [example/cpp/CMakeLists.txt](https://github.com/tdlib/td/tree/master/example
 
 <a name="using-java"></a>
 ## Using in Java projects
-`TDLib` provides native Java interface through JNI.
+`TDLib` provides native Java interface through JNI. To enable it, specify option `-DTD_ENABLE_JNI=ON` to CMake.
 
 See [example/java](https://github.com/tdlib/td/tree/master/example/java) for example of using `TDLib` from Java and detailed build and usage instructions.
+
+<a name="using-dotnet"></a>
+## Using in .NET projects
+`TDLib` provides native .NET interface through `C++/CLI` and `C++/CX`. To enable it, specify option `-DTD_ENABLE_DOTNET=ON` to CMake.
+.NET Core doesn't support `C++/CLI`, so if .NET Core is used, then `TDLib` JSON interface should be used through P/Invoke instead.
+
+See [example/csharp](https://github.com/tdlib/td/tree/master/example/csharp) for example of using `TDLib` from C# and detailed build and usage instructions.
+See [example/uwp](https://github.com/tdlib/td/tree/master/example/uwp) for example of using `TDLib` from C# UWP application and detailed build and usage instructions for Visual Studio Extension "TDLib for Universal Windows Platform".
 
 <a name="using-json"></a>
 ## Using from other programming languages
