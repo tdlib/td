@@ -1,20 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
+﻿//
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2018
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+using System;
 using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
 using Td = Telegram.Td;
 using TdApi = Telegram.Td.Api;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
 using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Controls.Primitives;
-using Windows.UI.Xaml.Data;
-using Windows.UI.Xaml.Input;
-using Windows.UI.Xaml.Media;
-using Windows.UI.Xaml.Navigation;
 
 namespace TdApp
 {
@@ -26,7 +22,7 @@ namespace TdApp
 
         public MainPage()
         {
-            this.InitializeComponent();
+            InitializeComponent();
 
             Items = new System.Collections.ObjectModel.ObservableCollection<string>();
             _handler = new MyClientResultHandler(this);
