@@ -105,8 +105,8 @@ Result<SimpleConfig> decode_config(Slice input) {
   return std::move(config);
 }
 
-ActorOwn<> get_simple_config_google_app(Promise<SimpleConfig> promise, bool is_test, int32 scheduler_id) {
-  VLOG(config_recoverer) << "Request simple config from Google App";
+static ActorOwn<> get_simple_config_impl(Promise<SimpleConfig> promise, int32 scheduler_id, string url, string host) {
+  VLOG(config_recoverer) << "Request simple config from " << url;
 #if TD_EMSCRIPTEN  // FIXME
   return ActorOwn<>();
 #else
@@ -118,10 +118,19 @@ ActorOwn<> get_simple_config_google_app(Promise<SimpleConfig> promise, bool is_t
           return decode_config(http_query->content_);
         }());
       }),
-      PSTRING() << "https://www.google.com/" << (is_test ? "test/" : ""),
-      std::vector<std::pair<string, string>>({{"Host", "dns-telegram.appspot.com"}}), 10 /*timeout*/, 3 /*ttl*/,
+      std::move(url), std::vector<std::pair<string, string>>({{"Host", std::move(host)}}), 10 /*timeout*/, 3 /*ttl*/,
       SslFd::VerifyPeer::Off));
 #endif
+}
+
+ActorOwn<> get_simple_config_azure(Promise<SimpleConfig> promise, bool is_test, int32 scheduler_id) {
+  string url = PSTRING() << "https://software-download.microsoft.com/" << (is_test ? "test" : "prod") << "/config.txt";
+  return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "tcdnb.azureedge.net");
+}
+
+ActorOwn<> get_simple_config_google_app(Promise<SimpleConfig> promise, bool is_test, int32 scheduler_id) {
+  string url = PSTRING() << "https://www.google.com/" << (is_test ? "test/" : "");
+  return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "dns-telegram.appspot.com");
 }
 
 ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfig> promise, bool is_test, int32 scheduler_id) {
@@ -468,13 +477,18 @@ class ConfigRecoverer : public Actor {
       auto promise = PromiseCreator::lambda([actor_id = actor_shared(this)](Result<SimpleConfig> r_simple_config) {
         send_closure(actor_id, &ConfigRecoverer::on_simple_config, std::move(r_simple_config), false);
       });
-      if (simple_config_turn_ % 2 == 0) {
-        simple_config_query_ =
-            get_simple_config_google_app(std::move(promise), G()->is_test_dc(), G()->get_gc_scheduler_id());
-      } else {
-        simple_config_query_ =
-            get_simple_config_google_dns(std::move(promise), G()->is_test_dc(), G()->get_gc_scheduler_id());
-      }
+      auto get_dimple_config = [&]() {
+        switch (simple_config_turn_ % 3) {
+          case 0:
+            return get_simple_config_azure;
+          case 1:
+            return get_simple_config_google_app;
+          case 2:
+          default:
+            return get_simple_config_google_dns;
+        }
+      }();
+      simple_config_query_ = get_dimple_config(std::move(promise), G()->is_test_dc(), G()->get_gc_scheduler_id());
       simple_config_turn_++;
     }
 
