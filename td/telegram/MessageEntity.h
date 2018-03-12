@@ -43,7 +43,8 @@ class MessageEntity {
     PreCode,
     TextUrl,
     MentionName,
-    Cashtag
+    Cashtag,
+    PhoneNumber
   };
   Type type;
   int32 offset;

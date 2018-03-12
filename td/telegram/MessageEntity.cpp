@@ -67,6 +67,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity &me
     case MessageEntity::Type::Cashtag:
       string_builder << "Cashtag";
       break;
+    case MessageEntity::Type::PhoneNumber:
+      string_builder << "PhoneNumber";
+      break;
     default:
       UNREACHABLE();
       string_builder << "Impossible";
@@ -112,6 +115,8 @@ tl_object_ptr<td_api::TextEntityType> MessageEntity::get_text_entity_type_object
       return make_tl_object<td_api::textEntityTypeMentionName>(user_id.get());
     case MessageEntity::Type::Cashtag:
       return make_tl_object<td_api::textEntityTypeCashtag>();
+    case MessageEntity::Type::PhoneNumber:
+      return make_tl_object<td_api::textEntityTypePhoneNumber>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -1068,6 +1073,8 @@ vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool onl
       entities.emplace_back(MessageEntity::Type::Cashtag, narrow_cast<int32>(cashtag.begin() - text.begin()),
                             narrow_cast<int32>(cashtag.size()));
     }
+
+    // TODO find_phone_numbers
   }
 
   auto urls = find_urls(text);
@@ -1185,6 +1192,8 @@ string get_first_url(Slice text, const vector<MessageEntity> &entities) {
       case MessageEntity::Type::MentionName:
         break;
       case MessageEntity::Type::Cashtag:
+        break;
+      case MessageEntity::Type::PhoneNumber:
         break;
       default:
         UNREACHABLE();
@@ -1605,6 +1614,7 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
       case MessageEntity::Type::Url:
       case MessageEntity::Type::EmailAddress:
       case MessageEntity::Type::Cashtag:
+      case MessageEntity::Type::PhoneNumber:
         continue;
       case MessageEntity::Type::Bold:
         result.push_back(make_tl_object<telegram_api::messageEntityBold>(entity.offset, entity.length));
@@ -1682,6 +1692,8 @@ vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entiti
         break;
       case MessageEntity::Type::MentionName:
         break;
+      case MessageEntity::Type::PhoneNumber:
+        break;
       default:
         UNREACHABLE();
     }
@@ -1705,6 +1717,7 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
       case td_api::textEntityTypeUrl::ID:
       case td_api::textEntityTypeEmailAddress::ID:
       case td_api::textEntityTypeCashtag::ID:
+      case td_api::textEntityTypePhoneNumber::ID:
         break;
       case td_api::textEntityTypeBold::ID:
         entities.emplace_back(MessageEntity::Type::Bold, entity->offset_, entity->length_);
@@ -1780,9 +1793,11 @@ vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manag
         entities.emplace_back(MessageEntity::Type::Cashtag, entity_cashtag->offset_, entity_cashtag->length_);
         break;
       }
-      case telegram_api::messageEntityPhone::ID:
-        // skip for now
+      case telegram_api::messageEntityPhone::ID: {
+        auto entity_phone = static_cast<const telegram_api::messageEntityPhone *>(entity.get());
+        entities.emplace_back(MessageEntity::Type::PhoneNumber, entity_phone->offset_, entity_phone->length_);
         break;
+      }
       case telegram_api::messageEntityBotCommand::ID: {
         auto entity_bot_command = static_cast<const telegram_api::messageEntityBotCommand *>(entity.get());
         entities.emplace_back(MessageEntity::Type::BotCommand, entity_bot_command->offset_,

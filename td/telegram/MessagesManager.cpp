@@ -22202,6 +22202,12 @@ bool MessagesManager::need_message_text_changed_warning(const Message *old_messa
     // server has deleted first entity and ltrim the message
     return false;
   }
+  for (auto &entity : new_content->entities) {
+    if (entity.type == MessageEntity::Type::PhoneNumber) {
+      // TODO remove after find_phone_numbers is implemented
+      return false;
+    }
+  }
   return true;
 }
 
