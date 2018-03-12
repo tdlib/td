@@ -1253,6 +1253,9 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
       case telegram_api::botInlineMediaResult::ID: {
         auto result = move_tl_object_as<telegram_api::botInlineMediaResult>(result_ptr);
         auto flags = result->flags_;
+        bool has_document = (flags & BOT_INLINE_MEDIA_RESULT_FLAG_HAS_DOCUMENT) != 0;
+        bool has_photo = (flags & BOT_INLINE_MEDIA_RESULT_FLAG_HAS_PHOTO) != 0;
+        bool is_photo = result->type_ == "photo";
         if (result->type_ == "game") {
           auto game = make_tl_object<td_api::inlineQueryResultGame>();
           Game inline_game(td_, std::move(result->title_), std::move(result->description_), std::move(result->photo_),
@@ -1267,7 +1270,7 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
             continue;
           }
           output_result = std::move(game);
-        } else if (flags & BOT_INLINE_MEDIA_RESULT_FLAG_HAS_DOCUMENT) {
+        } else if (has_document && !(has_photo && is_photo)) {
           auto document_ptr = std::move(result->document_);
           int32 document_id = document_ptr->get_id();
           if (document_id == telegram_api::documentEmpty::ID) {
@@ -1383,7 +1386,8 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
               UNREACHABLE();
               break;
           }
-        } else if (flags & BOT_INLINE_MEDIA_RESULT_FLAG_HAS_PHOTO) {
+        } else if (has_photo) {
+          LOG_IF(ERROR, !is_photo) << "Wrong result type " << result->type_;
           auto photo = make_tl_object<td_api::inlineQueryResultPhoto>();
           photo->id_ = std::move(result->id_);
           auto photo_ptr = std::move(result->photo_);
