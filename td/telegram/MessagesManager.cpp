@@ -2762,13 +2762,16 @@ class SetTypingQuery : public Td::ResultHandler {
   explicit SetTypingQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, tl_object_ptr<telegram_api::SendMessageAction> &&action) {
+  NetQueryRef send(DialogId dialog_id, tl_object_ptr<telegram_api::SendMessageAction> &&action) {
     dialog_id_ = dialog_id;
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     CHECK(input_peer != nullptr);
 
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::messages_setTyping(std::move(input_peer), std::move(action)))));
+    auto net_query = G()->net_query_creator().create(
+        create_storer(telegram_api::messages_setTyping(std::move(input_peer), std::move(action))));
+    auto result = net_query.get_weak();
+    send_query(std::move(net_query));
+    return result;
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -4494,6 +4497,9 @@ MessagesManager::MessagesManager(Td *td, ActorShared<> parent) : td_(td), parent
   dialog_unmute_timeout_.set_callback(on_dialog_unmute_timeout_callback);
   dialog_unmute_timeout_.set_callback_data(static_cast<void *>(this));
 
+  pending_send_dialog_action_timeout_.set_callback(on_pending_send_dialog_action_timeout_callback);
+  pending_send_dialog_action_timeout_.set_callback_data(static_cast<void *>(this));
+
   sequence_dispatcher_ = create_actor<MultiSequenceDispatcher>("multi sequence dispatcher");
 
   if (G()->parameters().use_message_db) {
@@ -4614,6 +4620,16 @@ void MessagesManager::on_dialog_unmute_timeout_callback(void *messages_manager_p
 
   auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
   send_closure_later(messages_manager->actor_id(messages_manager), &MessagesManager::on_dialog_unmute,
+                     DialogId(dialog_id_int));
+}
+
+void MessagesManager::on_pending_send_dialog_action_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
+  send_closure_later(messages_manager->actor_id(messages_manager), &MessagesManager::on_send_dialog_action_timeout,
                      DialogId(dialog_id_int));
 }
 
@@ -19150,6 +19166,7 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, const tl_object_ptr
       default:
         UNREACHABLE();
     }
+    // TODO cancel previous query
     send_closure(G()->secret_chats_manager(), &SecretChatsManager::send_message_action, dialog_id.get_secret_chat_id(),
                  std::move(send_action));
     promise.set_value(Unit());
@@ -19211,8 +19228,88 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, const tl_object_ptr
       UNREACHABLE();
   }
 
-  // TODO auto send Uploading actions, resend action every 4 seconds, flood control on actions. ActionsManager?
-  td_->create_handler<SetTypingQuery>(std::move(promise))->send(dialog_id, std::move(send_action));
+  auto &query_ref = set_typing_query_[dialog_id];
+  if (!query_ref.empty()) {
+    LOG(INFO) << "Cancel previous set typing query";
+    cancel_query(query_ref);
+  }
+  query_ref = td_->create_handler<SetTypingQuery>(std::move(promise))->send(dialog_id, std::move(send_action));
+}
+
+void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {
+  LOG(INFO) << "Receive send_dialog_action timeout in " << dialog_id;
+  Dialog *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+
+  if (can_send_message(dialog_id).is_error()) {
+    return;
+  }
+
+  auto queue_id = get_sequence_dispatcher_id(dialog_id, MessagePhoto::ID);
+  CHECK(queue_id & 1);
+
+  auto queue_it = yet_unsent_media_queues_.find(queue_id);
+  if (queue_it == yet_unsent_media_queues_.end()) {
+    return;
+  }
+
+  pending_send_dialog_action_timeout_.add_timeout_in(dialog_id.get(), 4.0);
+
+  CHECK(!queue_it->second.empty());
+  MessageId message_id(queue_it->second.begin()->first);
+  const Message *m = get_message(d, message_id);
+  if (m == nullptr) {
+    return;
+  }
+  if (m->forward_info != nullptr) {
+    return;
+  }
+
+  auto file_id = get_message_content_file_id(m->content.get());
+  if (!file_id.is_valid()) {
+    LOG(ERROR) << "Have no file in "
+               << to_string(get_message_content_object(m->content.get(), m->date, m->is_content_secret));
+    return;
+  }
+  auto file_view = td_->file_manager_->get_file_view(file_id);
+  if (!file_view.is_uploading()) {
+    return;
+  }
+  int64 total_size = file_view.expected_size();
+  int64 uploaded_size = file_view.remote_size();
+  int32 progress = 0;
+  if (total_size > 0 && uploaded_size > 0) {
+    if (uploaded_size > total_size) {
+      uploaded_size = total_size;  // just in case
+    }
+    progress = static_cast<int32>(100 * uploaded_size / total_size);
+  }
+
+  td_api::object_ptr<td_api::ChatAction> action;
+  switch (m->content->get_id()) {
+    case MessageAnimation::ID:
+    case MessageAudio::ID:
+    case MessageDocument::ID:
+      action = td_api::make_object<td_api::chatActionUploadingDocument>(progress);
+      break;
+    case MessagePhoto::ID:
+      action = td_api::make_object<td_api::chatActionUploadingPhoto>(progress);
+      break;
+    case MessageVideo::ID:
+      action = td_api::make_object<td_api::chatActionUploadingVideo>(progress);
+      break;
+    case MessageVideoNote::ID:
+      action = td_api::make_object<td_api::chatActionUploadingVideoNote>(progress);
+      break;
+    case MessageVoiceNote::ID:
+      action = td_api::make_object<td_api::chatActionUploadingVoiceNote>(progress);
+      break;
+    default:
+      return;
+  }
+  CHECK(action != nullptr);
+  LOG(INFO) << "Send action in " << dialog_id << ": " << to_string(action);
+  send_dialog_action(dialog_id, std::move(action), Auto());
 }
 
 tl_object_ptr<telegram_api::InputChatPhoto> MessagesManager::get_input_chat_photo(FileId file_id) const {
@@ -21313,6 +21410,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     if (queue_id & 1) {
       LOG(INFO) << "Add " << message_id << " from " << source << " to queue " << queue_id;
       yet_unsent_media_queues_[queue_id][message_id.get()];  // reserve place for promise
+      if (!td_->auth_manager_->is_bot() && !is_broadcast_channel(dialog_id)) {
+        pending_send_dialog_action_timeout_.add_timeout_in(dialog_id.get(), 1.0);
+      }
     }
   }
 

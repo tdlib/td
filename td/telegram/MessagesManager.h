@@ -2152,6 +2152,8 @@ class MessagesManager : public Actor {
 
   void on_dialog_unmute(DialogId dialog_id);
 
+  void on_send_dialog_action_timeout(DialogId dialog_id);
+
   Dialog *get_dialog_by_message_id(MessageId message_id);
 
   MessageId get_message_id_by_random_id(Dialog *d, int64 random_id);
@@ -2413,6 +2415,8 @@ class MessagesManager : public Actor {
 
   static void on_dialog_unmute_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
 
+  static void on_pending_send_dialog_action_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
+
   void load_secret_thumbnail(FileId thumbnail_file_id);
 
   static tl_object_ptr<telegram_api::channelAdminLogEventsFilter> get_channel_admin_log_events_filter(
@@ -2661,6 +2665,7 @@ class MessagesManager : public Actor {
   MultiTimeout pending_updated_dialog_timeout_;
   MultiTimeout pending_unload_dialog_timeout_;
   MultiTimeout dialog_unmute_timeout_;
+  MultiTimeout pending_send_dialog_action_timeout_;
 
   Hints dialogs_hints_;  // search dialogs by title and username
 
@@ -2696,6 +2701,8 @@ class MessagesManager : public Actor {
   CallsDbState calls_db_state_;
 
   std::unordered_map<uint64, std::map<int64, Promise<Message *>>> yet_unsent_media_queues_;
+
+  std::unordered_map<DialogId, NetQueryRef, DialogIdHash> set_typing_query_;
 
   Td *td_;
   ActorShared<> parent_;
