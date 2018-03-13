@@ -140,7 +140,7 @@ Status NetQueryDispatcher::wait_dc_init(DcId dc_id, bool force) {
       send_closure_later(public_rsa_key_watchdog_, &PublicRsaKeyWatchdog::add_public_rsa_key, public_rsa_key);
       is_cdn = true;
     }
-    auto auth_data = AuthDataShared::create(dc_id, std::move(public_rsa_key));
+    auto auth_data = AuthDataShared::create(dc_id, std::move(public_rsa_key), td_guard_);
     int32 session_count = get_session_count();
     bool use_pfs = get_use_pfs();
 
@@ -184,6 +184,7 @@ void NetQueryDispatcher::dispatch_with_callback(NetQueryPtr net_query, ActorShar
 
 void NetQueryDispatcher::stop() {
   std::lock_guard<std::mutex> guard(main_dc_id_mutex_);
+  td_guard_.reset();
   stop_flag_ = true;
   delayer_.hangup();
   for (const auto &dc : dcs_) {
@@ -246,6 +247,8 @@ NetQueryDispatcher::NetQueryDispatcher(std::function<ActorShared<>()> create_ref
   dc_auth_manager_ = create_actor<DcAuthManager>("DcAuthManager", create_reference());
   common_public_rsa_key_ = std::make_shared<PublicRsaKeyShared>(DcId::empty());
   public_rsa_key_watchdog_ = create_actor<PublicRsaKeyWatchdog>("PublicRsaKeyWatchdog", create_reference());
+
+  td_guard_ = create_shared_lamda_guard([actor = create_reference] {});
 }
 
 NetQueryDispatcher::NetQueryDispatcher() = default;

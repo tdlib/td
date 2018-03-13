@@ -13,6 +13,7 @@
 #include "td/telegram/net/PublicRsaKeyShared.h"
 
 #include "td/utils/common.h"
+#include "td/utils/ScopeGuard.h"
 #include "td/utils/StringBuilder.h"
 
 #include <memory>
@@ -70,7 +71,8 @@ class AuthDataShared {
     return state;
   }
 
-  static std::shared_ptr<AuthDataShared> create(DcId dc_id, std::shared_ptr<PublicRsaKeyShared> public_rsa_key);
+  static std::shared_ptr<AuthDataShared> create(DcId dc_id, std::shared_ptr<PublicRsaKeyShared> public_rsa_key,
+                                                std::shared_ptr<Guard> guard);
 };
 
 };  // namespace td
