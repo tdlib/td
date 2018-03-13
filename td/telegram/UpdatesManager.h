@@ -139,7 +139,7 @@ class UpdatesManager : public Actor {
 
   void set_date(int32 date, bool from_update, string date_source);
 
-  static tl_object_ptr<td_api::ChatAction> convertSendMessageAction(
+  static tl_object_ptr<td_api::ChatAction> convert_send_message_action(
       tl_object_ptr<telegram_api::SendMessageAction> action);
 
   void process_get_difference_updates(vector<tl_object_ptr<telegram_api::Message>> &&new_messages,

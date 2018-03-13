@@ -1497,7 +1497,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelWebPage>
                                                      update->pts_count_, "on_updateChannelWebPage");
 }
 
-tl_object_ptr<td_api::ChatAction> UpdatesManager::convertSendMessageAction(
+tl_object_ptr<td_api::ChatAction> UpdatesManager::convert_send_message_action(
     tl_object_ptr<telegram_api::SendMessageAction> action) {
   auto fix_progress = [](int32 progress) { return progress <= 0 || progress > 100 ? 0 : progress; };
 
@@ -1554,10 +1554,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserTyping> upd
     LOG(DEBUG) << "Ignore user typing in unknown " << dialog_id;
     return;
   }
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateUserChatAction>(
-                   dialog_id.get(), td_->contacts_manager_->get_user_id_object(user_id, "updateUserTyping"),
-                   convertSendMessageAction(std::move(update->action_))));
+  td_->messages_manager_->on_user_dialog_action(dialog_id, user_id,
+                                                convert_send_message_action(std::move(update->action_)));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatUserTyping> update, bool /*force_apply*/) {
@@ -1576,10 +1574,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatUserTyping>
       return;
     }
   }
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateUserChatAction>(
-                   dialog_id.get(), td_->contacts_manager_->get_user_id_object(user_id, "updateChatUserTyping"),
-                   convertSendMessageAction(std::move(update->action_))));
+  td_->messages_manager_->on_user_dialog_action(dialog_id, user_id,
+                                                convert_send_message_action(std::move(update->action_)));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEncryptedChatTyping> update, bool /*force_apply*/) {
@@ -1597,10 +1593,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEncryptedChatTy
     return;
   }
 
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateUserChatAction>(
-                   dialog_id.get(), td_->contacts_manager_->get_user_id_object(user_id, "updateEncryptedChatTyping"),
-                   make_tl_object<td_api::chatActionTyping>()));
+  td_->messages_manager_->on_user_dialog_action(dialog_id, user_id, make_tl_object<td_api::chatActionTyping>());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserStatus> update, bool /*force_apply*/) {

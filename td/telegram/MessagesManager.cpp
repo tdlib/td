@@ -5618,6 +5618,14 @@ void MessagesManager::on_update_channel_max_unavailable_message_id(ChannelId cha
                                         "on_update_channel_max_unavailable_message_id");
 }
 
+void MessagesManager::on_user_dialog_action(DialogId dialog_id, UserId user_id,
+                                            tl_object_ptr<td_api::ChatAction> &&action) {
+  send_closure(G()->td(), &Td::send_update,
+               make_tl_object<td_api::updateUserChatAction>(
+                   dialog_id.get(), td_->contacts_manager_->get_user_id_object(user_id, "on_user_dialog_action"),
+                   std::move(action)));
+}
+
 void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_ptr<telegram_api::Update> &&update,
                                                  int32 new_pts, int32 pts_count, const char *source,
                                                  bool is_postponed_udpate) {
