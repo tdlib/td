@@ -571,6 +571,8 @@ class SecretChatActor : public NetQueryCallback {
 
   Container<OutboundMessageState> outbound_message_states_;
 
+  NetQueryRef set_typing_query_;
+
   enum SendFlag {
     None = 0,
     External = 1,

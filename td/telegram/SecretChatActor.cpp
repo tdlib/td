@@ -339,10 +339,16 @@ void SecretChatActor::send_message_action(tl_object_ptr<secret_api::SendMessageA
     return;
   }
   bool flag = action->get_id() != secret_api::sendMessageCancelAction::ID;
-  context_->send_net_query(context_->net_query_creator().create(
-                               UniqueId::next(UniqueId::Type::Default, static_cast<uint8>(QueryType::Ignore)),
-                               create_storer(telegram_api::messages_setEncryptedTyping(get_input_chat(), flag))),
-                           actor_shared(this), false);
+
+  auto net_query = context_->net_query_creator().create(
+      UniqueId::next(UniqueId::Type::Default, static_cast<uint8>(QueryType::Ignore)),
+      create_storer(telegram_api::messages_setEncryptedTyping(get_input_chat(), flag)));
+  if (!set_typing_query_.empty()) {
+    LOG(INFO) << "Cancel previous set typing query";
+    cancel_query(set_typing_query_);
+  }
+  set_typing_query_ = net_query.get_weak();
+  context_->send_net_query(std::move(net_query), actor_shared(this), false);
 }
 void SecretChatActor::send_read_history(int32 date, Promise<> promise) {
   if (close_flag_) {

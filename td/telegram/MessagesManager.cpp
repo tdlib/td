@@ -2786,6 +2786,10 @@ class SetTypingQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
+    if (status.code() == NetQuery::Cancelled) {
+      return promise_.set_value(Unit());
+    }
+
     LOG(INFO) << "Receive error for set typing: " << status;
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SetTypingQuery");
     promise_.set_error(std::move(status));
@@ -19166,7 +19170,6 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, const tl_object_ptr
       default:
         UNREACHABLE();
     }
-    // TODO cancel previous query
     send_closure(G()->secret_chats_manager(), &SecretChatsManager::send_message_action, dialog_id.get_secret_chat_id(),
                  std::move(send_action));
     promise.set_value(Unit());
@@ -19229,7 +19232,7 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, const tl_object_ptr
   }
 
   auto &query_ref = set_typing_query_[dialog_id];
-  if (!query_ref.empty()) {
+  if (!query_ref.empty() && !td_->auth_manager_->is_bot()) {
     LOG(INFO) << "Cancel previous set typing query";
     cancel_query(query_ref);
   }
