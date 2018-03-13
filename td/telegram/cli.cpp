@@ -2252,13 +2252,7 @@ class CliClient final : public Actor {
       std::tie(chat_id, document_path) = split(args);
       send_message(chat_id, make_tl_object<td_api::inputMessageDocument>(
                                 as_local_file(document_path), nullptr,
-                                Random::fast(0, 1)
-                                    ? as_caption(u8"\u1680\u180Etest \u180E\n\u180E\n\u180E\n cap\ttion\u180E\u180E")
-                                    : as_caption(u8"\u200C\u200D\u202E                                             "
-                                                 "                                                                 "
-                                                 "                                                                 "
-                                                 "                                                                 "
-                                                 "                                                          abacaba")));
+                                as_caption(u8"\u1680\u180Etest \u180E\n\u180E\n\u180E\n cap\ttion\u180E\u180E")));
     } else if (op == "sdt") {
       string chat_id;
       string document_path;
