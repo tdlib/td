@@ -4504,6 +4504,9 @@ MessagesManager::MessagesManager(Td *td, ActorShared<> parent) : td_(td), parent
   pending_send_dialog_action_timeout_.set_callback(on_pending_send_dialog_action_timeout_callback);
   pending_send_dialog_action_timeout_.set_callback_data(static_cast<void *>(this));
 
+  active_dialog_action_timeout_.set_callback(on_active_dialog_action_timeout_callback);
+  active_dialog_action_timeout_.set_callback_data(static_cast<void *>(this));
+
   sequence_dispatcher_ = create_actor<MultiSequenceDispatcher>("multi sequence dispatcher");
 
   if (G()->parameters().use_message_db) {
@@ -4634,6 +4637,16 @@ void MessagesManager::on_pending_send_dialog_action_timeout_callback(void *messa
 
   auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
   send_closure_later(messages_manager->actor_id(messages_manager), &MessagesManager::on_send_dialog_action_timeout,
+                     DialogId(dialog_id_int));
+}
+
+void MessagesManager::on_active_dialog_action_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
+  send_closure_later(messages_manager->actor_id(messages_manager), &MessagesManager::on_active_dialog_action_timeout,
                      DialogId(dialog_id_int));
 }
 
@@ -5620,6 +5633,77 @@ void MessagesManager::on_update_channel_max_unavailable_message_id(ChannelId cha
 
 void MessagesManager::on_user_dialog_action(DialogId dialog_id, UserId user_id,
                                             tl_object_ptr<td_api::ChatAction> &&action) {
+  if (td_->auth_manager_->is_bot() || !user_id.is_valid() || is_broadcast_channel(dialog_id)) {
+    return;
+  }
+
+  bool is_canceled = action == nullptr || action->get_id() == td_api::chatActionCancel::ID;
+  if (is_canceled) {
+    auto actions_it = active_dialog_actions_.find(dialog_id);
+    if (actions_it == active_dialog_actions_.end()) {
+      return;
+    }
+
+    auto &active_actions = actions_it->second;
+    auto it = std::find_if(active_actions.begin(), active_actions.end(),
+                           [user_id](const ActiveDialogAction &action) { return action.user_id == user_id; });
+    if (it == active_actions.end()) {
+      return;
+    }
+
+    LOG(DEBUG) << "Cancel action of " << user_id << " in " << dialog_id;
+    active_actions.erase(it);
+    if (active_actions.empty()) {
+      active_dialog_actions_.erase(dialog_id);
+      LOG(DEBUG) << "Cancel action timeout in " << dialog_id;
+      active_dialog_action_timeout_.cancel_timeout(dialog_id.get());
+    }
+    if (action == nullptr) {
+      action = make_tl_object<td_api::chatActionCancel>();
+    }
+  } else {
+    auto &active_actions = active_dialog_actions_[dialog_id];
+    auto it = std::find_if(active_actions.begin(), active_actions.end(),
+                           [user_id](const ActiveDialogAction &action) { return action.user_id == user_id; });
+    int32 prev_action_id = 0;
+    int32 prev_progress = 0;
+    if (it != active_actions.end()) {
+      LOG(DEBUG) << "Re-add action of " << user_id << " in " << dialog_id;
+      prev_action_id = it->action_id;
+      prev_progress = it->progress;
+      active_actions.erase(it);
+    } else {
+      LOG(DEBUG) << "Add action of " << user_id << " in " << dialog_id;
+    }
+
+    auto action_id = action->get_id();
+    auto progress = [&] {
+      switch (action_id) {
+        case td_api::chatActionUploadingVideo::ID:
+          return static_cast<td_api::chatActionUploadingVideo &>(*action).progress_;
+        case td_api::chatActionUploadingVoiceNote::ID:
+          return static_cast<td_api::chatActionUploadingVoiceNote &>(*action).progress_;
+        case td_api::chatActionUploadingPhoto::ID:
+          return static_cast<td_api::chatActionUploadingPhoto &>(*action).progress_;
+        case td_api::chatActionUploadingDocument::ID:
+          return static_cast<td_api::chatActionUploadingDocument &>(*action).progress_;
+        case td_api::chatActionUploadingVideoNote::ID:
+          return static_cast<td_api::chatActionUploadingVideoNote &>(*action).progress_;
+        default:
+          return 0;
+      }
+    }();
+    active_actions.emplace_back(user_id, action_id, Time::now());
+    if (action_id == prev_action_id && progress <= prev_progress) {
+      return;
+    }
+    if (active_actions.size() == 1u) {
+      LOG(DEBUG) << "Set action timeout in " << dialog_id;
+      active_dialog_action_timeout_.set_timeout_in(dialog_id.get(), DIALOG_ACTION_TIMEOUT);
+    }
+  }
+
+  LOG(DEBUG) << "Send action of " << user_id << " in " << dialog_id << ": " << to_string(action);
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateUserChatAction>(
                    dialog_id.get(), td_->contacts_manager_->get_user_id_object(user_id, "on_user_dialog_action"),
@@ -18058,12 +18142,13 @@ void MessagesManager::send_update_message_content(DialogId dialog_id, MessageId 
           dialog_id.get(), message_id.get(), get_message_content_object(content, message_date, is_content_secret)));
 }
 
-void MessagesManager::send_update_message_edited(FullMessageId full_message_id) const {
+void MessagesManager::send_update_message_edited(FullMessageId full_message_id) {
   return send_update_message_edited(full_message_id.get_dialog_id(), get_message(full_message_id));
 }
 
-void MessagesManager::send_update_message_edited(DialogId dialog_id, const Message *m) const {
+void MessagesManager::send_update_message_edited(DialogId dialog_id, const Message *m) {
   CHECK(m != nullptr);
+  on_user_dialog_action(dialog_id, m->sender_user_id, nullptr);
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateMessageEdited>(dialog_id.get(), m->message_id.get(), m->edit_date,
                                                            get_reply_markup_object(m->reply_markup)));
@@ -19321,6 +19406,33 @@ void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {
   CHECK(action != nullptr);
   LOG(INFO) << "Send action in " << dialog_id << ": " << to_string(action);
   send_dialog_action(dialog_id, std::move(action), Auto());
+}
+
+void MessagesManager::on_active_dialog_action_timeout(DialogId dialog_id) {
+  LOG(DEBUG) << "Receive active dialog action timeout in " << dialog_id;
+  Dialog *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+
+  auto actions_it = active_dialog_actions_.find(dialog_id);
+  if (actions_it == active_dialog_actions_.end()) {
+    return;
+  }
+  CHECK(!actions_it->second.empty());
+
+  auto now = Time::now();
+  while (actions_it->second[0].start_time + DIALOG_ACTION_TIMEOUT < now + 0.1) {
+    on_user_dialog_action(dialog_id, actions_it->second[0].user_id, nullptr);
+
+    actions_it = active_dialog_actions_.find(dialog_id);
+    if (actions_it == active_dialog_actions_.end()) {
+      return;
+    }
+    CHECK(!actions_it->second.empty());
+  }
+
+  LOG(DEBUG) << "Schedule next action timeout in " << dialog_id;
+  active_dialog_action_timeout_.add_timeout_in(dialog_id.get(),
+                                               actions_it->second[0].start_time + DIALOG_ACTION_TIMEOUT - now);
 }
 
 tl_object_ptr<telegram_api::InputChatPhoto> MessagesManager::get_input_chat_photo(FileId file_id) const {
@@ -21318,6 +21430,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
     message->had_reply_markup = message->reply_markup->is_personal;
     message->reply_markup = nullptr;
+  }
+
+  if (from_update) {
+    on_user_dialog_action(dialog_id, message->sender_user_id, nullptr);
   }
 
   unique_ptr<Message> *v = &d->messages;

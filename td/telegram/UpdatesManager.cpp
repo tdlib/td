@@ -1540,6 +1540,7 @@ tl_object_ptr<td_api::ChatAction> UpdatesManager::convert_send_message_action(
     }
     default:
       UNREACHABLE();
+      return make_tl_object<td_api::chatActionTyping>();
   }
 }
 

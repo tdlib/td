@@ -1792,6 +1792,8 @@ class MessagesManager : public Actor {
 
   static constexpr int32 MAX_PRELOADED_DIALOGS = 1000;
 
+  static constexpr double DIALOG_ACTION_TIMEOUT = 5.5;
+
   static constexpr const char *DELETE_MESSAGE_USER_REQUEST_SOURCE = "user request";
 
   static constexpr bool DROP_UPDATES = false;
@@ -2077,9 +2079,9 @@ class MessagesManager : public Actor {
   void send_update_message_content(DialogId dialog_id, MessageId message_id, const MessageContent *content,
                                    int32 message_date, bool is_content_secret, const char *source) const;
 
-  void send_update_message_edited(FullMessageId full_message_id) const;
+  void send_update_message_edited(FullMessageId full_message_id);
 
-  void send_update_message_edited(DialogId dialog_id, const Message *m) const;
+  void send_update_message_edited(DialogId dialog_id, const Message *m);
 
   void send_update_delete_messages(DialogId dialog_id, vector<int64> &&message_ids, bool is_permanent,
                                    bool from_cache) const;
@@ -2155,6 +2157,8 @@ class MessagesManager : public Actor {
   void on_dialog_unmute(DialogId dialog_id);
 
   void on_send_dialog_action_timeout(DialogId dialog_id);
+
+  void on_active_dialog_action_timeout(DialogId dialog_id);
 
   Dialog *get_dialog_by_message_id(MessageId message_id);
 
@@ -2419,6 +2423,8 @@ class MessagesManager : public Actor {
 
   static void on_pending_send_dialog_action_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
 
+  static void on_active_dialog_action_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
+
   void load_secret_thumbnail(FileId thumbnail_file_id);
 
   static tl_object_ptr<telegram_api::channelAdminLogEventsFilter> get_channel_admin_log_events_filter(
@@ -2628,6 +2634,19 @@ class MessagesManager : public Actor {
 
   std::unordered_set<FullMessageId, FullMessageIdHash> waiting_for_web_page_messages_;
 
+  struct ActiveDialogAction {
+    UserId user_id;
+    int32 action_id;
+    int32 progress;
+    double start_time;
+
+    ActiveDialogAction(UserId user_id, int32 action_id, double start_time)
+        : user_id(user_id), action_id(action_id), start_time(start_time) {
+    }
+  };
+
+  std::unordered_map<DialogId, std::vector<ActiveDialogAction>, DialogIdHash> active_dialog_actions_;
+
   NotificationSettings users_notification_settings_;
   NotificationSettings chats_notification_settings_;
   NotificationSettings dialogs_notification_settings_;
@@ -2668,6 +2687,7 @@ class MessagesManager : public Actor {
   MultiTimeout pending_unload_dialog_timeout_;
   MultiTimeout dialog_unmute_timeout_;
   MultiTimeout pending_send_dialog_action_timeout_;
+  MultiTimeout active_dialog_action_timeout_;
 
   Hints dialogs_hints_;  // search dialogs by title and username
 
