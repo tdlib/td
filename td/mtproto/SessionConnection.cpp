@@ -123,7 +123,7 @@ namespace mtproto {
  *   20: message is to old -- full resend. (or fail query, if we are afraid of double send)
  *
  *   32: seq_no is too low. (msg_id1 < msg_id2 <==> seq_no1 < seq_no2). Error and fail connection
- *   33: seq_no is too hight. Error and fail connection.
+ *   33: seq_no is too high. Error and fail connection.
  *   34: (?) an even msg_seqno expected (irrelevant message), but odd received. (Fail and call a developer...)
  *   35: (?) odd msg_seqno expected (relevant message), but even received (Fail and call a developer)
  *

@@ -20,3 +20,5 @@ cmake --build .
 ```
 
 Documentation for all available classes and methods can be found at https://core.telegram.org/tdlib/docs.
+
+To run `tdjson_example` you may need to manually copy a `tdjson` shared library from `td/bin` to a directory containing built binaries.

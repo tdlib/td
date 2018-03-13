@@ -86,7 +86,8 @@ C:\src\vcpkg> .\vcpkg.exe install openssl:x64-windows openssl:x86-windows zlib:x
 cmake -DCMAKE_TOOLCHAIN_FILE=C:\src\vcpkg\scripts\buildsystems\vcpkg.cmake ..
 ```
 
-To build 64-bit `TDLib` using MSVC you will need too additionally specify option `-A x64` to CMake.
+To build 64-bit `TDLib` using MSVC, you will need to additionally specify parameter `-A x64` to CMake.
+To build `TDLib` in Release mode using MSVC, you will need to additionally specify parameter `--config Release` to the `cmake --build .` command.
 
 <a name="linux"></a>
 #### Linux
