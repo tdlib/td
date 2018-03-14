@@ -223,6 +223,16 @@ class BufferSlice {
   size_t end_ = 0;
 };
 
+template <class StorerT>
+void store(const BufferSlice &buffer_slice, StorerT &storer) {
+  storer.store_string(buffer_slice);
+}
+
+template <class ParserT>
+void parse(BufferSlice &buffer_slice, ParserT &parser) {
+  buffer_slice = parser.template fetch_string<BufferSlice>();
+}
+
 class BufferWriter {
  public:
   BufferWriter() = default;

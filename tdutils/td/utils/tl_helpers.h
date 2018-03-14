@@ -6,14 +6,12 @@
 //
 #pragma once
 
-#include "td/utils/buffer.h"  // for BufferSlice
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 #include "td/utils/StackAllocator.h"
 #include "td/utils/Status.h"
-#include "td/utils/Time.h"
 #include "td/utils/tl_parsers.h"
 #include "td/utils/tl_storers.h"
 
@@ -112,15 +110,6 @@ void parse(string &x, ParserT &parser) {
   x = parser.template fetch_string<string>();
 }
 
-template <class StorerT>
-void store(const BufferSlice &x, StorerT &storer) {
-  storer.store_string(x);
-}
-template <class ParserT>
-void parse(BufferSlice &x, ParserT &parser) {
-  x = parser.template fetch_string<BufferSlice>();
-}
-
 template <class T, class StorerT>
 void store(const vector<T> &vec, StorerT &storer) {
   storer.store_binary(narrow_cast<int32>(vec.size()));
@@ -139,14 +128,6 @@ void parse(vector<T> &vec, ParserT &parser) {
   for (auto &val : vec) {
     parse(val, parser);
   }
-}
-template <class T>
-void parse(Timestamp &timestamp, T &parser) {
-  timestamp = Timestamp::in(static_cast<double>(parser.fetch_long()) / 1000000 - Clocks::system());
-}
-template <class T>
-void store(const Timestamp &timestamp, T &storer) {
-  storer.store_long(static_cast<int64>((timestamp.at() - Time::now() + Clocks::system()) * 1000000));
 }
 
 template <class Key, class Hash, class KeyEqual, class Allocator, class StorerT>
