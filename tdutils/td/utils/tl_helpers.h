@@ -13,6 +13,7 @@
 #include "td/utils/Slice.h"
 #include "td/utils/StackAllocator.h"
 #include "td/utils/Status.h"
+#include "td/utils/Time.h"
 #include "td/utils/tl_parsers.h"
 #include "td/utils/tl_storers.h"
 
@@ -138,6 +139,14 @@ void parse(vector<T> &vec, ParserT &parser) {
   for (auto &val : vec) {
     parse(val, parser);
   }
+}
+template <class T>
+void parse(Timestamp &timestamp, T &parser) {
+  timestamp = Timestamp::in(static_cast<double>(parser.fetch_long()) / 1000000 - Clocks::system());
+}
+template <class T>
+void store(const Timestamp &timestamp, T &storer) {
+  storer.store_long(static_cast<int64>((timestamp.at() - Time::now() + Clocks::system()) * 1000000));
 }
 
 template <class Key, class Hash, class KeyEqual, class Allocator, class StorerT>
