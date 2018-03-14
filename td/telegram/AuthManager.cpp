@@ -844,20 +844,20 @@ bool AuthManager::load_state() {
   DbState db_state;
   auto status = log_event_parse(db_state, data);
   if (status.is_error()) {
-    LOG(INFO) << "Ignore auth_state :" << status;
+    LOG(INFO) << "Ignore auth_state: " << status;
     return false;
   }
   CHECK(db_state.state_ == State::WaitCode);
   if (db_state.api_id_ != api_id_ || db_state.api_hash_ != api_hash_) {
-    LOG(INFO) << "Ignore auth_state : api_id or api_hash changed";
+    LOG(INFO) << "Ignore auth_state: api_id or api_hash changed";
     return false;
   }
   if (!db_state.state_timestamp_.is_in_past()) {
-    LOG(INFO) << "Ignore auth_state : timestamp in future";
+    LOG(INFO) << "Ignore auth_state: timestamp in future";
     return false;
   }
   if (Timestamp::at(db_state.state_timestamp_.at() + 5 * 60).is_in_past()) {
-    LOG(INFO) << "Ignore auth_state :  expired " << db_state.state_timestamp_.in();
+    LOG(INFO) << "Ignore auth_state: expired " << db_state.state_timestamp_.in();
     return false;
   }
   LOG(INFO) << "Load auth_state from db";

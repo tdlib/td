@@ -12,16 +12,14 @@ namespace td {
 template <class T>
 void SendCodeHelper::AuthenticationCodeInfo::store(T &storer) const {
   using td::store;
-  store(static_cast<int>(type), storer);
+  store(type, storer);
   store(length, storer);
   store(pattern, storer);
 }
 template <class T>
 void SendCodeHelper::AuthenticationCodeInfo::parse(T &parser) {
   using td::parse;
-  int32 type_int;
-  parse(type_int, parser);
-  type = narrow_cast<decltype(type)>(type_int);
+  parse(type, parser);
   parse(length, parser);
   parse(pattern, parser);
 }
@@ -52,7 +50,7 @@ template <class T>
 void AuthManager::DbState::store(T &storer) const {
   using td::store;
   CHECK(state_ == State::WaitCode);
-  store(static_cast<int32>(state_), storer);
+  store(state_, storer);
   store(api_id_, storer);
   store(api_hash_, storer);
   store(send_code_helper_, storer);
@@ -61,9 +59,7 @@ void AuthManager::DbState::store(T &storer) const {
 template <class T>
 void AuthManager::DbState::parse(T &parser) {
   using td::parse;
-  int32 state;
-  parse(state, parser);
-  state_ = narrow_cast<State>(state);
+  parse(state_, parser);
   parse(api_id_, parser);
   parse(api_hash_, parser);
   parse(send_code_helper_, parser);

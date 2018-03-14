@@ -51,7 +51,7 @@ class SendCodeHelper {
   static constexpr int32 SENT_CODE_FLAG_HAS_TIMEOUT = 1 << 2;
 
   struct AuthenticationCodeInfo {
-    enum class Type { None, Message, Sms, Call, FlashCall };
+    enum class Type : int32 { None, Message, Sms, Call, FlashCall };
     Type type = Type::None;
     int32 length = 0;
     string pattern;
@@ -141,7 +141,7 @@ class AuthManager : public NetActor {
  private:
   static constexpr size_t MAX_NAME_LENGTH = 255;  // server side limit
 
-  enum class State { None, WaitPhoneNumber, WaitCode, WaitPassword, Ok, LoggingOut, Closing } state_ = State::None;
+  enum class State : int32 { None, WaitPhoneNumber, WaitCode, WaitPassword, Ok, LoggingOut, Closing } state_ = State::None;
   enum class NetQueryType {
     None,
     SignIn,
