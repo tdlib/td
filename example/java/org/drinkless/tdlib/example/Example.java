@@ -51,6 +51,7 @@ public final class Example {
 
     private static final Console console = System.console();
     private static final String newLine = System.getProperty("line.separator");
+    private static final String commandsLine = "Enter command (gcs - GetChats, gc <chatId> - GetChat, me - GetMe, sm <chatId> <message> - SendMessage, lo - LogOut, q - Quit): ";
 
     static {
         System.loadLibrary("tdjni");
@@ -59,6 +60,10 @@ public final class Example {
     private static void print(String str) {
         System.out.println();
         System.out.println(str);
+        if (haveAuthorization)
+        {
+            System.out.print(commandsLine);
+        }
     }
 
     private static void setChatOrder(TdApi.Chat chat, long order) {
@@ -162,7 +167,7 @@ public final class Example {
     }
 
     private static void getCommand() {
-        String command = console.readLine("Enter command (gcs - GetChats, gc <chatId> - GetChat, me - GetMe, sm <chatId> <message> - SendMessage, lo - LogOut, q - Quit): ");
+        String command = console.readLine(commandsLine);
         String[] commands = command.split(" ", 2);
         try {
             switch (commands[0]) {
