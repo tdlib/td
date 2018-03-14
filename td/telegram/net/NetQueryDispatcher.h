@@ -11,6 +11,7 @@
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
+#include "td/utils/ScopeGuard.h"
 #include "td/utils/Status.h"
 
 #include <array>

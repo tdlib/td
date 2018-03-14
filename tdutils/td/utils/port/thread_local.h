@@ -50,7 +50,7 @@ void do_init_thread_local(P &raw_ptr, ArgsT &&... args) {
   auto ptr = std::make_unique<T>(std::forward<ArgsT>(args)...);
   raw_ptr = ptr.get();
 
-  detail::add_thread_local_destructor(create_lamda_guard([ptr = std::move(ptr), &raw_ptr]() mutable {
+  detail::add_thread_local_destructor(create_lambda_guard([ptr = std::move(ptr), &raw_ptr]() mutable {
     ptr.reset();
     raw_ptr = nullptr;
   }));

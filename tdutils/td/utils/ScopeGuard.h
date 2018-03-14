@@ -8,10 +8,10 @@
 
 #include "td/utils/common.h"
 
+#include <cstdlib>
+#include <memory>
 #include <type_traits>
 #include <utility>
-#include <memory>
-#include <cstdlib>
 
 namespace td {
 class Guard {
@@ -23,7 +23,7 @@ class Guard {
   Guard &operator=(Guard &&other) = default;
   virtual ~Guard() = default;
   virtual void dismiss() {
-    abort();
+    std::abort();
   }
 };
 
@@ -57,11 +57,11 @@ class LambdaGuard : public Guard {
 };
 
 template <class F>
-std::unique_ptr<Guard> create_lamda_guard(F &&f) {
+std::unique_ptr<Guard> create_lambda_guard(F &&f) {
   return std::make_unique<LambdaGuard<F>>(std::forward<F>(f));
 }
 template <class F>
-std::shared_ptr<Guard> create_shared_lamda_guard(F &&f) {
+std::shared_ptr<Guard> create_shared_lambda_guard(F &&f) {
   return std::make_shared<LambdaGuard<F>>(std::forward<F>(f));
 }
 

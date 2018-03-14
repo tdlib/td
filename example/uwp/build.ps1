@@ -105,7 +105,7 @@ function export {
 
   cd vsix
 
- if ($compress -eq "zip") {
+  if ($compress -eq "zip") {
     zip -r tdlib.vsix *
   } elseif ($compress -eq "winrar") {
     WinRAR.exe a -afzip -r -ep1 tdlib.vsix *

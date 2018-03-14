@@ -248,7 +248,7 @@ NetQueryDispatcher::NetQueryDispatcher(std::function<ActorShared<>()> create_ref
   common_public_rsa_key_ = std::make_shared<PublicRsaKeyShared>(DcId::empty());
   public_rsa_key_watchdog_ = create_actor<PublicRsaKeyWatchdog>("PublicRsaKeyWatchdog", create_reference());
 
-  td_guard_ = create_shared_lamda_guard([actor = create_reference] {});
+  td_guard_ = create_shared_lambda_guard([actor = create_reference] {});
 }
 
 NetQueryDispatcher::NetQueryDispatcher() = default;
