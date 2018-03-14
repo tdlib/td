@@ -27,7 +27,7 @@ Compiled TDLib shared library and Java example after that will be placed in bin/
 Now you can run Java example:
 ```
 cd <path to TDLib sources>/example/java/bin
-java -Djava.library.path=. org/drinkless/tdlib/example/Example
+java '-Djava.library.path=.' org/drinkless/tdlib/example/Example
 ```
 
 If you get "Could NOT find JNI ..." error from CMake, you need to specify to CMake path to the installed JDK, for example, "-DJAVA_HOME=/usr/lib/jvm/java-8-oracle/".
