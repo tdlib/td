@@ -959,7 +959,8 @@ class MessagesManager : public Actor {
 
   void on_update_channel_max_unavailable_message_id(ChannelId channel_id, MessageId max_unavailable_message_id);
 
-  void on_user_dialog_action(DialogId dialog_id, UserId user_id, tl_object_ptr<td_api::ChatAction> &&action);
+  void on_user_dialog_action(DialogId dialog_id, UserId user_id, tl_object_ptr<td_api::ChatAction> &&action,
+                             int32 message_content_id = -1);
 
   void delete_messages(DialogId dialog_id, const vector<MessageId> &message_ids, bool revoke, Promise<Unit> &&promise);
 
@@ -1927,6 +1928,8 @@ class MessagesManager : public Actor {
 
   static bool is_service_message_content(int32 content_type);
 
+  static bool can_have_message_content_caption(int32 content_type);
+
   static bool can_delete_channel_message(DialogParticipantStatus status, const Message *m, bool is_bot);
 
   bool can_revoke_message(DialogId dialog_id, const Message *m) const;
@@ -2159,6 +2162,10 @@ class MessagesManager : public Actor {
   void on_send_dialog_action_timeout(DialogId dialog_id);
 
   void on_active_dialog_action_timeout(DialogId dialog_id);
+
+  static bool need_cancel_user_dialog_action(int32 action_id, int32 message_content_id);
+
+  void cancel_user_dialog_action(DialogId dialog_id, const Message *m);
 
   Dialog *get_dialog_by_message_id(MessageId message_id);
 

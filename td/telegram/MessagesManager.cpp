@@ -5631,8 +5631,71 @@ void MessagesManager::on_update_channel_max_unavailable_message_id(ChannelId cha
                                         "on_update_channel_max_unavailable_message_id");
 }
 
+bool MessagesManager::need_cancel_user_dialog_action(int32 action_id, int32 message_content_id) {
+  if (message_content_id == -1) {
+    return true;
+  }
+
+  if (action_id == td_api::chatActionTyping::ID) {
+    return message_content_id == MessageText::ID || message_content_id == MessageGame::ID ||
+           can_have_message_content_caption(message_content_id);
+  }
+
+  switch (message_content_id) {
+    case MessageAnimation::ID:
+    case MessageAudio::ID:
+    case MessageDocument::ID:
+      return action_id == td_api::chatActionUploadingDocument::ID;
+    case MessageExpiredPhoto::ID:
+    case MessagePhoto::ID:
+      return action_id == td_api::chatActionUploadingPhoto::ID;
+    case MessageExpiredVideo::ID:
+    case MessageVideo::ID:
+      return action_id == td_api::chatActionRecordingVideo::ID || action_id == td_api::chatActionUploadingVideo::ID;
+    case MessageVideoNote::ID:
+      return action_id == td_api::chatActionRecordingVideoNote::ID ||
+             action_id == td_api::chatActionUploadingVideoNote::ID;
+    case MessageVoiceNote::ID:
+      return action_id == td_api::chatActionRecordingVoiceNote::ID ||
+             action_id == td_api::chatActionUploadingVoiceNote::ID;
+    case MessageContact::ID:
+      return action_id == td_api::chatActionChoosingContact::ID;
+    case MessageLiveLocation::ID:
+    case MessageLocation::ID:
+    case MessageVenue::ID:
+      return action_id == td_api::chatActionChoosingLocation::ID;
+    case MessageText::ID:
+    case MessageGame::ID:
+    case MessageUnsupported::ID:
+    case MessageChatCreate::ID:
+    case MessageChatChangeTitle::ID:
+    case MessageChatChangePhoto::ID:
+    case MessageChatDeletePhoto::ID:
+    case MessageChatDeleteHistory::ID:
+    case MessageChatAddUsers::ID:
+    case MessageChatJoinedByLink::ID:
+    case MessageChatDeleteUser::ID:
+    case MessageChatMigrateTo::ID:
+    case MessageChannelCreate::ID:
+    case MessageChannelMigrateFrom::ID:
+    case MessagePinMessage::ID:
+    case MessageGameScore::ID:
+    case MessageScreenshotTaken::ID:
+    case MessageChatSetTtl::ID:
+    case MessageCall::ID:
+    case MessagePaymentSuccessful::ID:
+    case MessageContactRegistered::ID:
+    case MessageCustomServiceAction::ID:
+    case MessageWebsiteConnected::ID:
+      return false;
+    default:
+      UNREACHABLE();
+      return false;
+  }
+}
+
 void MessagesManager::on_user_dialog_action(DialogId dialog_id, UserId user_id,
-                                            tl_object_ptr<td_api::ChatAction> &&action) {
+                                            tl_object_ptr<td_api::ChatAction> &&action, int32 message_content_id) {
   if (td_->auth_manager_->is_bot() || !user_id.is_valid() || is_broadcast_channel(dialog_id)) {
     return;
   }
@@ -5648,6 +5711,10 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, UserId user_id,
     auto it = std::find_if(active_actions.begin(), active_actions.end(),
                            [user_id](const ActiveDialogAction &action) { return action.user_id == user_id; });
     if (it == active_actions.end()) {
+      return;
+    }
+
+    if (!need_cancel_user_dialog_action(it->action_id, message_content_id)) {
       return;
     }
 
@@ -5708,6 +5775,15 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, UserId user_id,
                make_tl_object<td_api::updateUserChatAction>(
                    dialog_id.get(), td_->contacts_manager_->get_user_id_object(user_id, "on_user_dialog_action"),
                    std::move(action)));
+}
+
+void MessagesManager::cancel_user_dialog_action(DialogId dialog_id, const Message *m) {
+  CHECK(m != nullptr);
+  if (m->forward_info != nullptr || m->via_bot_user_id.is_valid() || m->is_channel_post) {
+    return;
+  }
+
+  on_user_dialog_action(dialog_id, m->sender_user_id, nullptr, m->content->get_id());
 }
 
 void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_ptr<telegram_api::Update> &&update,
@@ -7323,6 +7399,54 @@ bool MessagesManager::is_service_message_content(int32 content_type) {
   }
 }
 
+bool MessagesManager::can_have_message_content_caption(int32 content_type) {
+  switch (content_type) {
+    case MessageAnimation::ID:
+    case MessageAudio::ID:
+    case MessageDocument::ID:
+    case MessagePhoto::ID:
+    case MessageVideo::ID:
+    case MessageVoiceNote::ID:
+      return true;
+    case MessageContact::ID:
+    case MessageGame::ID:
+    case MessageInvoice::ID:
+    case MessageLiveLocation::ID:
+    case MessageLocation::ID:
+    case MessageSticker::ID:
+    case MessageText::ID:
+    case MessageUnsupported::ID:
+    case MessageVenue::ID:
+    case MessageVideoNote::ID:
+    case MessageChatCreate::ID:
+    case MessageChatChangeTitle::ID:
+    case MessageChatChangePhoto::ID:
+    case MessageChatDeletePhoto::ID:
+    case MessageChatDeleteHistory::ID:
+    case MessageChatAddUsers::ID:
+    case MessageChatJoinedByLink::ID:
+    case MessageChatDeleteUser::ID:
+    case MessageChatMigrateTo::ID:
+    case MessageChannelCreate::ID:
+    case MessageChannelMigrateFrom::ID:
+    case MessagePinMessage::ID:
+    case MessageGameScore::ID:
+    case MessageScreenshotTaken::ID:
+    case MessageChatSetTtl::ID:
+    case MessageCall::ID:
+    case MessagePaymentSuccessful::ID:
+    case MessageContactRegistered::ID:
+    case MessageExpiredPhoto::ID:
+    case MessageExpiredVideo::ID:
+    case MessageCustomServiceAction::ID:
+    case MessageWebsiteConnected::ID:
+      return false;
+    default:
+      UNREACHABLE();
+      return false;
+  }
+}
+
 string MessagesManager::get_search_text(const Message *m) {
   if (m->is_content_secret) {
     return "";
@@ -8552,7 +8676,7 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
                  << " from " << source;
       return;
     }
-    LOG(INFO) << "Set min available message id to " << max_unavailable_message_id << " in " << dialog_id << " from "
+    LOG(INFO) << "Set max unavailable message id to " << max_unavailable_message_id << " in " << dialog_id << " from "
               << source;
 
     on_dialog_updated(dialog_id, "set_dialog_max_unavailable_message_id");
@@ -8594,7 +8718,7 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
       read_history_inbox(dialog_id, max_unavailable_message_id, -1, "set_dialog_max_unavailable_message_id");
     }
   } else {
-    LOG(INFO) << "Receive min available message identifier in unknown " << dialog_id << " from " << source;
+    LOG(INFO) << "Receive max unavailable message identifier in unknown " << dialog_id << " from " << source;
   }
 }
 
@@ -16939,50 +17063,8 @@ void MessagesManager::edit_message_caption(FullMessageId full_message_id,
     return promise.set_error(Status::Error(5, "Message can't be edited"));
   }
 
-  switch (message->content->get_id()) {
-    case MessageAnimation::ID:
-    case MessageAudio::ID:
-    case MessageDocument::ID:
-    case MessagePhoto::ID:
-    case MessageVideo::ID:
-    case MessageVoiceNote::ID:
-      // ok
-      break;
-    case MessageContact::ID:
-    case MessageGame::ID:
-    case MessageInvoice::ID:
-    case MessageLiveLocation::ID:
-    case MessageLocation::ID:
-    case MessageSticker::ID:
-    case MessageText::ID:
-    case MessageUnsupported::ID:
-    case MessageVenue::ID:
-    case MessageVideoNote::ID:
-    case MessageChatCreate::ID:
-    case MessageChatChangeTitle::ID:
-    case MessageChatChangePhoto::ID:
-    case MessageChatDeletePhoto::ID:
-    case MessageChatDeleteHistory::ID:
-    case MessageChatAddUsers::ID:
-    case MessageChatJoinedByLink::ID:
-    case MessageChatDeleteUser::ID:
-    case MessageChatMigrateTo::ID:
-    case MessageChannelCreate::ID:
-    case MessageChannelMigrateFrom::ID:
-    case MessagePinMessage::ID:
-    case MessageGameScore::ID:
-    case MessageScreenshotTaken::ID:
-    case MessageChatSetTtl::ID:
-    case MessageCall::ID:
-    case MessagePaymentSuccessful::ID:
-    case MessageContactRegistered::ID:
-    case MessageExpiredPhoto::ID:
-    case MessageExpiredVideo::ID:
-    case MessageCustomServiceAction::ID:
-    case MessageWebsiteConnected::ID:
-      return promise.set_error(Status::Error(400, "There is no caption in the message to edit"));
-    default:
-      UNREACHABLE();
+  if (!can_have_message_content_caption(message->content->get_id())) {
+    return promise.set_error(Status::Error(400, "There is no caption in the message to edit"));
   }
 
   auto r_caption = process_input_caption(dialog_id, std::move(input_caption), td_->auth_manager_->is_bot());
@@ -18148,7 +18230,7 @@ void MessagesManager::send_update_message_edited(FullMessageId full_message_id) 
 
 void MessagesManager::send_update_message_edited(DialogId dialog_id, const Message *m) {
   CHECK(m != nullptr);
-  on_user_dialog_action(dialog_id, m->sender_user_id, nullptr);
+  cancel_user_dialog_action(dialog_id, m);
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateMessageEdited>(dialog_id.get(), m->message_id.get(), m->edit_date,
                                                            get_reply_markup_object(m->reply_markup)));
@@ -21433,7 +21515,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   if (from_update) {
-    on_user_dialog_action(dialog_id, message->sender_user_id, nullptr);
+    cancel_user_dialog_action(dialog_id, message.get());
   }
 
   unique_ptr<Message> *v = &d->messages;
@@ -23611,8 +23693,8 @@ void MessagesManager::do_get_channel_difference(DialogId dialog_id, int32 pts, b
 void MessagesManager::process_get_channel_difference_updates(
     DialogId dialog_id, vector<tl_object_ptr<telegram_api::Message>> &&new_messages,
     vector<tl_object_ptr<telegram_api::Update>> &&other_updates) {
-  LOG(INFO) << "In get channel difference receive " << new_messages.size() << " messages and " << other_updates.size()
-            << " other updates";
+  LOG(INFO) << "In get channel difference for " << dialog_id << " receive " << new_messages.size() << " messages and "
+            << other_updates.size() << " other updates";
   for (auto &update : other_updates) {
     if (update->get_id() == telegram_api::updateMessageID::ID) {
       auto sent_message_update = move_tl_object_as<telegram_api::updateMessageID>(update);
@@ -23776,8 +23858,8 @@ void MessagesManager::on_get_channel_difference(
   LOG_IF(ERROR, cur_pts != request_pts) << "Channel pts has changed from " << request_pts << " to " << d->pts << " in "
                                         << dialog_id << " during getChannelDifference";
 
-  LOG(INFO) << "Receive result of getChannelDifference with pts = " << request_pts << " and limit = " << request_limit
-            << ": " << to_string(difference_ptr);
+  LOG(INFO) << "Receive result of getChannelDifference for " << dialog_id << " with pts = " << request_pts
+            << " and limit = " << request_limit << ": " << to_string(difference_ptr);
 
   d->retry_get_difference_timeout = 1;
 
