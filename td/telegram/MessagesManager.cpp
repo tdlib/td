@@ -7216,6 +7216,12 @@ void MessagesManager::on_get_recent_locations(DialogId dialog_id, int32 limit, i
         LOG(ERROR) << "Receive " << new_message << " instead of a message in " << dialog_id;
         continue;
       }
+      auto m = get_message(new_message);
+      if (m->content->get_id() != MessageLiveLocation::ID) {
+        LOG(ERROR) << "Receive a message of wrong type " << m->content->get_id() << " in on_get_recent_locations in "
+                   << dialog_id;
+        continue;
+      }
 
       result.push_back(new_message.get_message_id());
     } else {
