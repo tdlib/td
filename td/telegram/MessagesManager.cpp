@@ -16216,23 +16216,23 @@ void MessagesManager::on_secret_message_media_uploaded(DialogId dialog_id, Messa
   // even message has already been deleted
   on_media_message_ready_to_send(
       dialog_id, m->message_id,
-      PromiseCreator::lambda([this, dialog_id, secret_input_media = std::move(secret_input_media), file_id,
-                              thumbnail_file_id](Result<Message *> result) mutable {
-        if (result.is_error() || G()->close_flag()) {
-          return;
-        }
+      PromiseCreator::lambda(
+          [this, dialog_id, secret_input_media = std::move(secret_input_media)](Result<Message *> result) mutable {
+            if (result.is_error() || G()->close_flag()) {
+              return;
+            }
 
-        auto m = result.move_as_ok();
-        CHECK(m != nullptr);
-        CHECK(!secret_input_media.empty());
-        LOG(INFO) << "Send secret media from " << m->message_id << " in " << dialog_id << " in reply to "
-                  << m->reply_to_message_id;
-        int64 random_id = begin_send_message(dialog_id, m);
-        send_closure(td_->create_net_actor<SendSecretMessageActor>(), &SendSecretMessageActor::send, dialog_id,
-                     m->reply_to_random_id, m->ttl, "", std::move(secret_input_media),
-                     vector<tl_object_ptr<secret_api::MessageEntity>>(), m->via_bot_user_id, m->media_album_id,
-                     random_id);
-      }));
+            auto m = result.move_as_ok();
+            CHECK(m != nullptr);
+            CHECK(!secret_input_media.empty());
+            LOG(INFO) << "Send secret media from " << m->message_id << " in " << dialog_id << " in reply to "
+                      << m->reply_to_message_id;
+            int64 random_id = begin_send_message(dialog_id, m);
+            send_closure(td_->create_net_actor<SendSecretMessageActor>(), &SendSecretMessageActor::send, dialog_id,
+                         m->reply_to_random_id, m->ttl, "", std::move(secret_input_media),
+                         vector<tl_object_ptr<secret_api::MessageEntity>>(), m->via_bot_user_id, m->media_album_id,
+                         random_id);
+          }));
 }
 
 void MessagesManager::on_upload_message_media_success(DialogId dialog_id, MessageId message_id,
