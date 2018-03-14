@@ -148,7 +148,7 @@ Status IPAddress::init_host_port(CSlice host, CSlice port) {
   std::memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_INET;  // TODO AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
-  LOG(INFO) << "Try to init ipv4 address " << host << " with port " << port;
+  LOG(INFO) << "Try to init IP address of " << host << " with port " << port;
   auto s = getaddrinfo(host.c_str(), port.c_str(), &hints, &info);
   if (s != 0) {
     return Status::Error(PSLICE() << "getaddrinfo: " << gai_strerror(s));

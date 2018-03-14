@@ -630,11 +630,15 @@ void ConnectionCreator::hangup() {
 
 DcOptions ConnectionCreator::get_default_dc_options(bool is_test) {
   DcOptions res;
-  auto add_ip_ports = [&res](int32 dc_id, const vector<string> &ips, const vector<int> &ports) {
+  auto add_ip_ports = [&res](int32 dc_id, const vector<string> &ips, const vector<int> &ports, bool is_ipv6 = false) {
     IPAddress ip_address;
     for (auto &ip : ips) {
       for (auto port : ports) {
-        ip_address.init_ipv4_port(ip, port).ensure();
+        if (is_ipv6) {
+          ip_address.init_ipv6_port(ip, port).ensure();
+        } else {
+          ip_address.init_ipv4_port(ip, port).ensure();
+        }
         res.dc_options.emplace_back(DcId::internal(dc_id), ip_address);
       }
     }
@@ -644,12 +648,22 @@ DcOptions ConnectionCreator::get_default_dc_options(bool is_test) {
     add_ip_ports(1, {"149.154.175.10"}, ports);
     add_ip_ports(2, {"149.154.167.40"}, ports);
     add_ip_ports(3, {"149.154.175.117"}, ports);
+
+    add_ip_ports(1, {"2001:b28:f23d:f001::e"}, ports, true);
+    add_ip_ports(2, {"2001:67c:4e8:f002::e"}, ports, true);
+    add_ip_ports(3, {"2001:b28:f23d:f003::e"}, ports, true);
   } else {
     add_ip_ports(1, {"149.154.175.50"}, ports);
     add_ip_ports(2, {"149.154.167.51"}, ports);
     add_ip_ports(3, {"149.154.175.100"}, ports);
     add_ip_ports(4, {"149.154.167.91"}, ports);
     add_ip_ports(5, {"149.154.171.5"}, ports);
+
+    add_ip_ports(1, {"2001:b28:f23d:f001::a"}, ports, true);
+    add_ip_ports(2, {"2001:67c:4e8:f002::a"}, ports, true);
+    add_ip_ports(3, {"2001:b28:f23d:f003::a"}, ports, true);
+    add_ip_ports(4, {"2001:67c:4e8:f004::a"}, ports, true);
+    add_ip_ports(5, {"2001:b28:f23f:f005::a"}, ports, true);
   }
   return res;
 }
