@@ -627,6 +627,7 @@ if (TD_ENABLE_DOTNET)
   if (NOT CMAKE_CROSSCOMPILING)
     add_dependencies(tddotnet generate_dotnet_api)
   endif()
+
   if ("${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsStore")
     set_target_properties(tddotnet PROPERTIES VS_WINRT_COMPONENT "true")
     target_compile_options(tddotnet PUBLIC "/ZW")

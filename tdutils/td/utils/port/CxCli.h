@@ -13,7 +13,6 @@
 
 #if TD_WINRT
 
-#include "td/utils/misc.h"  // for narrow_cast
 #include "td/utils/port/wstring_convert.h"
 
 #include "collection.h"
@@ -83,7 +82,7 @@ inline std::string string_to_unmanaged(String^ str) {
 
 inline String^ string_from_unmanaged(const std::string &from) {
   auto tmp = td::to_wstring(from).ok();
-  return REF_NEW String(tmp.c_str(), td::narrow_cast<unsigned>(tmp.size()));
+  return REF_NEW String(tmp.c_str(), static_cast<unsigned>(tmp.size()));
 }
 
 } // namespace CxCli

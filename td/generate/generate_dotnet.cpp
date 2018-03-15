@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
   td::tl::tl_config config_td = td::tl::read_tl_config_from_file(argv[1]);
 
   td::tl::write_tl_to_file(config_td, "auto/td/telegram/TdDotNetApi.cpp",
-                           td::tl::TlWriterDotNet("TdApi", false, "#include \"td/telegram/TdDotNetApi.h\"\n"));
+                           td::tl::TlWriterDotNet("TdApi", false, "#include \"td/telegram/TdDotNetApi.h\"\n\n"));
   td::tl::write_tl_to_file(config_td, "auto/td/telegram/TdDotNetApi.h",
-                           td::tl::TlWriterDotNet("TdApi", true, "#include \"td/telegram/td_api.h\"\n"));
+                           td::tl::TlWriterDotNet("TdApi", true, ""));
 }

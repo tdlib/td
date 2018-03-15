@@ -87,7 +87,7 @@ set(TL_GENERATE_JSON_SOURCE
 if (NOT CMAKE_CROSSCOMPILING)
   find_program(PHP_EXECUTABLE php)
 
-  if (PHP_EXECUTABLE)
+  if (PHP_EXECUTABLE AND NOT TD_ENABLE_DOTNET)
     set(GENERATE_COMMON_CMD generate_common && ${PHP_EXECUTABLE} DoxygenTlDocumentationGenerator.php scheme/td_api.tl auto/td/telegram/td_api.h)
   else()
     set(GENERATE_COMMON_CMD generate_common)

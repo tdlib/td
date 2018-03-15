@@ -6,7 +6,6 @@
 //
 #pragma once
 
-#include "td/utils/misc.h"
 #include "td/utils/port/CxCli.h"
 
 #include "td/telegram/td_api.h"
@@ -64,7 +63,7 @@ inline String^ FromUnmanaged(const std::string &from) {
 }
 
 inline auto CLRCALL BytesFromUnmanaged(const std::string &from) {
-  Array<byte>^ res = REF_NEW Vector<byte>(td::narrow_cast<int>(from.size()));
+  Array<byte>^ res = REF_NEW Vector<byte>(static_cast<ArrayIndexType>(from.size()));
   ArrayIndexType i = 0;
   for (auto b : from) {
     ArraySet(res, i++, b);
@@ -75,7 +74,7 @@ inline auto CLRCALL BytesFromUnmanaged(const std::string &from) {
 template <class FromT>
 auto CLRCALL FromUnmanaged(std::vector<FromT> &vec) {
   using ToT = decltype(FromUnmanaged(vec[0]));
-  Array<ToT>^ res = REF_NEW Vector<ToT>(td::narrow_cast<int>(vec.size()));
+  Array<ToT>^ res = REF_NEW Vector<ToT>(static_cast<ArrayIndexType>(vec.size()));
   ArrayIndexType i = 0;
   for (auto &from : vec) {
     ArraySet(res, i++, FromUnmanaged(from));

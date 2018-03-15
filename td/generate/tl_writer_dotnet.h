@@ -179,7 +179,6 @@ class TlWriterDotNet : public TL_writer {
   }
   std::string gen_output_begin(void) const override {
     return prefix_ +
-           "#include \"td/utils/port/CxCli.h\"\n"
            "#include \"td/tl/tl_dotnet_object.h\"\n\n"
            "namespace Telegram {\n"
            "namespace Td {\n"

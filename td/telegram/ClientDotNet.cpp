@@ -4,9 +4,9 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-#include "td/telegram/TdDotNetApi.h"
-
 #include "td/telegram/Client.h"
+
+#include "td/telegram/TdDotNetApi.h"
 
 #include "td/utils/port/CxCli.h"
 
@@ -17,12 +17,29 @@ namespace Td {
 
 using namespace CxCli;
 
+/// <summary>
+/// Interface for handler for results of queries to TDLib and incoming updates from TDLib.
+/// </summary>
 public interface class ClientResultHandler {
+  /// <summary>
+  /// Callback called on result of query to TDLib or incoming update from TDLib.
+  /// </summary>
+  /// <param name="object">Result of query or update of type Telegram.Td.Api.Update about new events.</param>
   void OnResult(Api::BaseObject^ object);
 };
 
+/// <summary>
+/// Main class for interaction with the TDLib.
+/// </summary>
 public ref class Client sealed {
 public:
+  /// <summary>
+  /// Sends a request to the TDLib.
+  /// </summary>
+  /// <param name="function">Object representing a query to the TDLib.</param>
+  /// <param name="handler">Result handler with OnResult method which will be called with result
+  /// of the query or with Telegram.Td.Api.Error as parameter. If it is null, nothing will be called.</param>
+  /// <exception cref="NullReferenceException">Thrown when query is null.</exception>
   void Send(Api::Function^ function, ClientResultHandler^ handler) {
     if (function == nullptr) {
       throw REF_NEW NullReferenceException("Function can't be null");
@@ -38,6 +55,12 @@ public:
     client->send(std::move(request));
   }
 
+  /// <summary>
+  /// Synchronously executes a TDLib request. Only a few marked accordingly requests can be executed synchronously.
+  /// </summary>
+  /// <param name="function">Object representing a query to the TDLib.</param>
+  /// <returns>Returns request result.</returns>
+  /// <exception cref="NullReferenceException">Thrown when query is null.</exception>
   Api::BaseObject^ Execute(Api::Function^ function) {
     if (function == nullptr) {
       throw REF_NEW NullReferenceException("Function can't be null");
@@ -49,10 +72,19 @@ public:
     return Api::FromUnmanaged(*client->execute(std::move(request)).object);
   }
 
-  void SetUpdatesHandler(ClientResultHandler^ handler) {
-    handlers[0] = handler;
+  /// <summary>
+  /// Replaces handler for incoming updates from the TDLib.
+  /// </summary>
+  /// <param name="updatesHandler">Handler with OnResult method which will be called for every incoming update from the TDLib.</param>
+  void SetUpdatesHandler(ClientResultHandler^ updatesHandler) {
+    handlers[0] = updatesHandler;
   }
 
+  /// <summary>
+  /// Launches a cycle which will fetch all results of queries to TDLib and incoming updates from TDLib.
+  /// Must be called once on a separate dedicated thread, on which all updates and query results will be handled.
+  /// Returns only when TDLib instance is closed.
+  /// </summary>
   void Run() {
     while (true) {
       auto response = client->receive(10.0);
@@ -68,6 +100,11 @@ public:
     }
   }
 
+  /// <summary>
+  /// Creates new Client.
+  /// </summary>
+  /// <param name="updatesHandler">Handler for incoming updates.</param>
+  /// <returns>Returns created Client.</returns>
   static Client^ Create(ClientResultHandler^ updatesHandler) {
     return REF_NEW Client(updatesHandler);
   }
