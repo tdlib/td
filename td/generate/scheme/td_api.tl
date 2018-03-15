@@ -56,8 +56,8 @@ authenticationCodeTypeCall length:int32 = AuthenticationCodeType;
 authenticationCodeTypeFlashCall pattern:string = AuthenticationCodeType;
 
 
-//@description Information about the authentication code that was sent @type Describes the way the code was sent to the user @next_type Describes the way the next code will be sent to the user; may be null @timeout Timeout before the code should be re-sent, in seconds
-authenticationCodeInfo type:AuthenticationCodeType next_type:AuthenticationCodeType timeout:int32 = AuthenticationCodeInfo;
+//@description Information about the authentication code that was sent @phone_number A phone number that is being authenticated @type Describes the way the code was sent to the user @next_type Describes the way the next code will be sent to the user; may be null @timeout Timeout before the code should be re-sent, in seconds
+authenticationCodeInfo phone_number:string type:AuthenticationCodeType next_type:AuthenticationCodeType timeout:int32 = AuthenticationCodeInfo;
 
 
 //@class AuthorizationState @description Represents the current authorization state of the client

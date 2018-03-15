@@ -46,7 +46,8 @@ td_api::object_ptr<td_api::authorizationStateWaitCode> SendCodeHelper::get_autho
 
 td_api::object_ptr<td_api::authenticationCodeInfo> SendCodeHelper::get_authentication_code_info_object() const {
   return make_tl_object<td_api::authenticationCodeInfo>(
-      get_authentication_code_type_object(sent_code_info_), get_authentication_code_type_object(next_code_info_),
+      phone_number_, get_authentication_code_type_object(sent_code_info_),
+      get_authentication_code_type_object(next_code_info_),
       max(static_cast<int32>(next_code_timestamp_.in() + 1 - 1e-9), 0));
 }
 
