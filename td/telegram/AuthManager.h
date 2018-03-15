@@ -141,7 +141,15 @@ class AuthManager : public NetActor {
  private:
   static constexpr size_t MAX_NAME_LENGTH = 255;  // server side limit
 
-  enum class State : int32 { None, WaitPhoneNumber, WaitCode, WaitPassword, Ok, LoggingOut, Closing } state_ = State::None;
+  enum class State : int32 {
+    None,
+    WaitPhoneNumber,
+    WaitCode,
+    WaitPassword,
+    Ok,
+    LoggingOut,
+    Closing
+  } state_ = State::None;
   enum class NetQueryType {
     None,
     SignIn,
@@ -157,12 +165,50 @@ class AuthManager : public NetActor {
     DeleteAccount
   };
 
+  struct WaitPasswordState {
+    string current_salt_;
+    string new_salt_;
+    string hint_;
+    bool has_recovery_;
+    string email_address_pattern_;
+
+    template <class T>
+    void store(T &storer) const;
+    template <class T>
+    void parse(T &parser);
+  };
+
   struct DbState {
     State state_;
     int32 api_id_;
     string api_hash_;
-    SendCodeHelper send_code_helper_;
     Timestamp state_timestamp_;
+
+    // WaitCode
+    SendCodeHelper send_code_helper_;
+
+    //WaitPassword
+    WaitPasswordState wait_password_state_;
+
+    static DbState wait_code(int32 api_id, string api_hash, SendCodeHelper send_code_helper) {
+      DbState state;
+      state.state_ = State::WaitCode;
+      state.api_id_ = api_id;
+      state.api_hash_ = api_hash;
+      state.send_code_helper_ = std::move(send_code_helper);
+      state.state_timestamp_ = Timestamp::now();
+      return state;
+    }
+
+    static DbState wait_password(int32 api_id, string api_hash, WaitPasswordState wait_password_state) {
+      DbState state;
+      state.state_ = State::WaitPassword;
+      state.api_id_ = api_id;
+      state.api_hash_ = api_hash;
+      state.wait_password_state_ = std::move(wait_password_state);
+      state.state_timestamp_ = Timestamp::now();
+      return state;
+    }
 
     template <class T>
     void store(T &storer) const;
@@ -187,12 +233,7 @@ class AuthManager : public NetActor {
   string bot_token_;
   uint64 query_id_ = 0;
 
-  // State::WaitPassword
-  string current_salt_;
-  string new_salt_;
-  string hint_;
-  bool has_recovery_;
-  string email_address_pattern_;
+  WaitPasswordState wait_password_state_;
 
   bool was_check_bot_token_ = false;
   bool is_bot_ = false;
