@@ -1169,6 +1169,7 @@ void FileManager::clear_from_pmc(FileNodePtr node) {
     data.generate_ = std::make_unique<FullGenerateFileLocation>(*node->generate_);
   }
   file_db_->clear_file_data(node->pmc_id_, data);
+  node->pmc_id_ = 0;
 }
 
 void FileManager::flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local, bool new_generate) {
