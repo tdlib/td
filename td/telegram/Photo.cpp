@@ -91,12 +91,7 @@ static FileId register_photo(FileManager *file_manager, FileType file_type, int6
 
   LOG(DEBUG) << "Receive photo of type " << static_cast<int8>(file_type) << " in [" << dc_id << "," << volume_id << ","
              << local_id << "]. Id: (" << id << ", " << access_hash << ")";
-  auto suggested_name = [&] {
-    if (id) {
-      return PSTRING() << static_cast<uint64>(id) << ".jpg";
-    }
-    return PSTRING() << static_cast<uint64>(volume_id) << "_" << static_cast<uint64>(local_id) << ".jpg";
-  }();
+  auto suggested_name = PSTRING() << static_cast<uint64>(volume_id) << "_" << static_cast<uint64>(local_id) << ".jpg";
   return file_manager->register_remote(
       FullRemoteFileLocation(file_type, id, access_hash, local_id, volume_id, secret, dc_id),
       FileLocationSource::FromServer, owner_dialog_id, file_size, 0, std::move(suggested_name));
