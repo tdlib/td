@@ -856,6 +856,7 @@ static bool put_file_contents(const std::string &file_name, const std::string &m
 static std::string remove_documentation(const std::string &str) {
   std::size_t line_begin = 0;
   std::string result;
+  bool inside_documentation = false;
   while (line_begin < str.size()) {
     std::size_t line_end = str.find('\n', line_begin);
     if (line_end == std::string::npos) {
@@ -865,12 +866,15 @@ static std::string remove_documentation(const std::string &str) {
     line_begin = line_end + 1;
 
     std::size_t pos = line.find_first_not_of(' ');
-    if (pos != std::string::npos &&
-        ((line[pos] == '/' && line[pos + 1] == '/' && line[pos + 2] == '/') ||
-         (line[pos] == '/' && line[pos + 1] == '*' && line[pos + 2] == '*') || line[pos] == '*')) {
+    if (pos != std::string::npos && ((line[pos] == '/' && line[pos + 1] == '/' && line[pos + 2] == '/') ||
+                                     (line[pos] == '/' && line[pos + 1] == '*' && line[pos + 2] == '*') ||
+                                     (inside_documentation && line[pos] == '*'))) {
+      inside_documentation = !(line[pos] == '/' && line[pos + 1] == '/' && line[pos + 2] == '/') &&
+                             !(line[pos] == '*' && line[pos + 1] == '/');
       continue;
     }
 
+    inside_documentation = false;
     result += line;
   }
   return result;
