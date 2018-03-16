@@ -83,7 +83,6 @@ set(TL_GENERATE_JSON_SOURCE
   tl_json_converter.h
 )
 
-
 if (NOT CMAKE_CROSSCOMPILING)
   find_program(PHP_EXECUTABLE php)
 
@@ -142,4 +141,7 @@ if (NOT CMAKE_CROSSCOMPILING)
       DEPENDS td_generate_dotnet_api ${TL_TD_API_TLO}
     )
   endif()
+
+  add_executable(remove_documentation remove_documentation.cpp)
+  target_link_libraries(remove_documentation PRIVATE tdtl)
 endif()

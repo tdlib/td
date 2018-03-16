@@ -6,7 +6,7 @@
 //
 #pragma once
 
-/**
+/*
  * Simple logging.
  *
  * Predefined log levels: FATAL, ERROR, WARNING, INFO, DEBUG
