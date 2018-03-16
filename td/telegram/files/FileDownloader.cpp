@@ -93,7 +93,8 @@ Result<FileLoader::FileInfo> FileDownloader::init() {
   res.part_size = part_size;
   res.ready_parts = std::move(parts);
   res.use_part_count_limit = false;
-  res.only_check_ = only_check_;
+  res.only_check = only_check_;
+  res.need_delay = !is_small_;
   return res;
 }
 Status FileDownloader::on_ok(int64 size) {

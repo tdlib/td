@@ -78,7 +78,7 @@ void FileLoader::start_up() {
   auto &ready_parts = file_info.ready_parts;
   auto use_part_count_limit = file_info.use_part_count_limit;
   auto status = parts_manager_.init(size, expected_size, is_size_final, part_size, ready_parts, use_part_count_limit);
-  if (file_info.only_check_) {
+  if (file_info.only_check) {
     parts_manager_.set_checked_prefix_size(0);
   }
   if (status.is_error()) {
@@ -88,6 +88,9 @@ void FileLoader::start_up() {
   }
   if (ordered_flag_) {
     ordered_parts_ = OrderedEventsProcessor<std::pair<Part, NetQueryPtr>>(parts_manager_.get_ready_prefix_count());
+  }
+  if (file_info.need_delay && false) {
+    delay_dispatcher_ = create_actor<DelayDispatcher>("DelayDispatcher");
   }
   resource_state_.set_unit_size(parts_manager_.get_part_size());
   update_estimated_limit();
@@ -128,6 +131,8 @@ Status FileLoader::do_loop() {
   if (parts_manager_.ready()) {
     TRY_STATUS(parts_manager_.finish());
     TRY_STATUS(on_ok(parts_manager_.get_size()));
+    LOG(INFO) << "Bad download order rate: " << (100.0 * debug_bad_part_order_ / debug_total_parts_) << "% "
+              << debug_bad_part_order_ << "/" << debug_total_parts_;
     stop_flag_ = true;
     return Status::OK();
   }
@@ -162,15 +167,20 @@ Status FileLoader::do_loop() {
     }
     part_map_[id] = std::make_pair(part, query->cancel_slot_.get_signal_new());
     // part_map_[id] = std::make_pair(part, query.get_weak());
-    G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, id));
+
+    auto callback = actor_shared(this, id);
+    if (delay_dispatcher_.empty()) {
+      G()->net_query_dispatcher().dispatch_with_callback(std::move(query), std::move(callback));
+    } else {
+      send_closure(delay_dispatcher_, &DelayDispatcher::send_with_callback, std::move(query), std::move(callback));
+    }
   }
   return Status::OK();
 }
 
 void FileLoader::tear_down() {
   for (auto &it : part_map_) {
-    it.second.second.reset();
-    // cancel_query(it.second.second);
+    it.second.second.reset();  // cancel_query(it.second.second);
   }
 }
 void FileLoader::update_estimated_limit() {
@@ -259,7 +269,13 @@ Status FileLoader::try_on_part_query(Part part, NetQueryPtr query) {
   TRY_RESULT(size, process_part(part, std::move(query)));
   VLOG(files) << "Ok part " << tag("id", part.id) << tag("size", part.size);
   resource_state_.stop_use(static_cast<int64>(part.size));
+  auto old_ready_prefix_count = parts_manager_.get_ready_prefix_count();
   TRY_STATUS(parts_manager_.on_part_ok(part.id, part.size, size));
+  auto new_ready_prefix_count = parts_manager_.get_ready_prefix_count();
+  debug_total_parts_++;
+  if (old_ready_prefix_count == new_ready_prefix_count) {
+    debug_bad_part_order_++;
+  }
   on_progress_impl(size);
   return Status::OK();
 }
