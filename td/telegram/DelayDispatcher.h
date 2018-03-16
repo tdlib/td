@@ -5,16 +5,22 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
+
 #include "td/telegram/net/NetQuery.h"
 
 #include "td/actor/actor.h"
+
 #include "td/utils/Time.h"
 
 #include <queue>
 
 namespace td {
+
 class DelayDispatcher : public Actor {
  public:
+  explicit DelayDispatcher(double delay) : delay_(delay) {
+  }
+
   void send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback);
 
  private:
@@ -24,8 +30,9 @@ class DelayDispatcher : public Actor {
   };
   std::queue<Query> queue_;
   Timestamp wakeup_at_;
-  static constexpr double DELAY = 0.000;
+  double delay_;
 
   void loop() override;
 };
+
 }  // namespace td

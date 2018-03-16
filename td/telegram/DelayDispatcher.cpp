@@ -10,6 +10,7 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 
 namespace td {
+
 void DelayDispatcher::send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback) {
   queue_.push({std::move(query), std::move(callback)});
   loop();
@@ -29,7 +30,7 @@ void DelayDispatcher::loop() {
   queue_.pop();
   G()->net_query_dispatcher().dispatch_with_callback(std::move(query.net_query), std::move(query.callback));
 
-  wakeup_at_ = Timestamp::in(DELAY);
+  wakeup_at_ = Timestamp::in(delay_);
 
   if (queue_.empty()) {
     return;
@@ -37,4 +38,5 @@ void DelayDispatcher::loop() {
 
   set_timeout_at(wakeup_at_.at());
 }
+
 }  // namespace td

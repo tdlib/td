@@ -89,8 +89,8 @@ void FileLoader::start_up() {
   if (ordered_flag_) {
     ordered_parts_ = OrderedEventsProcessor<std::pair<Part, NetQueryPtr>>(parts_manager_.get_ready_prefix_count());
   }
-  if (file_info.need_delay && false) {
-    delay_dispatcher_ = create_actor<DelayDispatcher>("DelayDispatcher");
+  if (file_info.need_delay) {
+    delay_dispatcher_ = create_actor<DelayDispatcher>("DelayDispatcher", 0.003);
   }
   resource_state_.set_unit_size(parts_manager_.get_part_size());
   update_estimated_limit();
@@ -131,7 +131,8 @@ Status FileLoader::do_loop() {
   if (parts_manager_.ready()) {
     TRY_STATUS(parts_manager_.finish());
     TRY_STATUS(on_ok(parts_manager_.get_size()));
-    LOG(INFO) << "Bad download order rate: " << (100.0 * debug_bad_part_order_ / debug_total_parts_) << "% "
+    LOG(INFO) << "Bad download order rate: "
+              << (debug_total_parts_ == 0 ? 0.0 : 100.0 * debug_bad_part_order_ / debug_total_parts_) << "% "
               << debug_bad_part_order_ << "/" << debug_total_parts_;
     stop_flag_ = true;
     return Status::OK();

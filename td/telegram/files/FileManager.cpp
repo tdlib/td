@@ -544,18 +544,21 @@ Status FileManager::check_local_location(FullLocalFileLocation &location, int64 
     size = stat.size_;
   }
   if (location.mtime_nsec_ == 0) {
-    LOG(INFO) << "Set file modification time to " << stat.mtime_nsec_;
+    LOG(INFO) << "Set file \"" << location.path_ << "\" modification time to " << stat.mtime_nsec_;
     location.mtime_nsec_ = stat.mtime_nsec_;
   } else if (location.mtime_nsec_ != stat.mtime_nsec_) {
-    LOG(INFO) << "File was nodified: old mtime = " << location.mtime_nsec_ << ", new mtime = " << stat.mtime_nsec_;
-    return Status::Error("File was modified");
+    LOG(INFO) << "File \"" << location.path_ << "\" was nodified: old mtime = " << location.mtime_nsec_
+              << ", new mtime = " << stat.mtime_nsec_;
+    return Status::Error(PSLICE() << "File \"" << location.path_ << "\" was modified");
   }
   if ((location.file_type_ == FileType::Thumbnail || location.file_type_ == FileType::EncryptedThumbnail) &&
       size >= MAX_THUMBNAIL_SIZE) {
-    return Status::Error(PSLICE() << "File is too big for thumbnail " << tag("size", format::as_size(size)));
+    return Status::Error(PSLICE() << "File \"" << location.path_ << "\" is too big for thumbnail "
+                                  << tag("size", format::as_size(size)));
   }
   if (size >= MAX_FILE_SIZE) {
-    return Status::Error(PSLICE() << "File is too big " << tag("size", format::as_size(size)));
+    return Status::Error(PSLICE() << "File \"" << location.path_ << "\" is too big "
+                                  << tag("size", format::as_size(size)));
   }
   return Status::OK();
 }
@@ -563,6 +566,9 @@ Status FileManager::check_local_location(FullLocalFileLocation &location, int64 
 static Status check_partial_local_location(const PartialLocalFileLocation &location) {
   TRY_RESULT(stat, stat(location.path_));
   if (!stat.is_reg_) {
+    if (stat.is_dir_) {
+      return Status::Error(PSLICE() << "Can't use directory \"" << location.path_ << "\" as a file path");
+    }
     return Status::Error("File must be a regular file");
   }
   // can't check mtime. Hope nobody will mess with this file in our temporary dir.
@@ -1262,6 +1268,8 @@ void FileManager::load_from_pmc(FileNodePtr node, bool new_remote, bool new_loca
     generate = file_view.generate_location();
   }
 
+  LOG(INFO) << "Load from pmc " << file_id << "/" << file_view.file_id() << ", new_remote = " << new_remote
+            << ", new_local = " << new_local << ", new_generate = " << new_generate;
   auto load = [&](auto location) {
     TRY_RESULT(file_data, file_db_->get_file_data_sync(location));
     TRY_RESULT(new_file_id, register_file(std::move(file_data), FileLocationSource::FromDb, "load_from_pmc", false));
@@ -1270,13 +1278,13 @@ void FileManager::load_from_pmc(FileNodePtr node, bool new_remote, bool new_loca
     return Status::OK();
   };
   if (new_remote) {
-    load(remote);
+    LOG_STATUS(load(remote));
   }
   if (new_local) {
-    load(local);
+    LOG_STATUS(load(local));
   }
   if (new_generate) {
-    load(generate);
+    LOG_STATUS(load(generate));
   }
   return;
 }
