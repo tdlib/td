@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <FileList
     DisplayName="TDLib for Universal Windows Platform"
-    ProductFamilyName="TDLib.UWP"
+    ProductFamilyName="Telegram.Td.UWP"
     MoreInfo="https://core.telegram.org/tdlib"
     MinVSVersion="14.0"
     AppliesTo="WindowsAppContainer"

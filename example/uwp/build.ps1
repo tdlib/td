@@ -79,10 +79,11 @@ function build {
 function export {
   cd build-uwp
   Remove-Item vsix -Force -Recurse -ErrorAction SilentlyContinue
-  mkdir vsix
+  New-Item -ItemType Directory -Force -Path vsix
   cp ../SDKManifest.xml vsix
   cp ../extension.vsixmanifest vsix
   cp '../`[Content_Types`].xml' vsix
+  cp ../LICENSE_1_0.txt vsix
 
   ForEach($arch in $arch_list) {
     New-Item -ItemType Directory -Force -Path vsix/DesignTime/Debug/${arch}

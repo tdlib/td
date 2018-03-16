@@ -133,7 +133,7 @@
     <SDKReference Include="Microsoft.VCLibs, Version=14.0">
       <Name>Visual C++ 2015 Runtime for Universal Windows Platform Apps</Name>
     </SDKReference>
-    <SDKReference Include="TDLib.UWP, Version=1.0">
+    <SDKReference Include="Telegram.Td.UWP, Version=1.0">
       <Name>TDLib for Universal Windows Platform</Name>
     </SDKReference>
   </ItemGroup>
