@@ -1278,13 +1278,13 @@ void FileManager::load_from_pmc(FileNodePtr node, bool new_remote, bool new_loca
     return Status::OK();
   };
   if (new_remote) {
-    LOG_STATUS(load(remote));
+    load(remote);
   }
   if (new_local) {
-    LOG_STATUS(load(local));
+    load(local);
   }
   if (new_generate) {
-    LOG_STATUS(load(generate));
+    load(generate);
   }
   return;
 }
