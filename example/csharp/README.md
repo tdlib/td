@@ -12,7 +12,7 @@ This is an example of building TDLib with `C++/CLI` support and an example of TD
 C:\src\vcpkg> .\vcpkg.exe install openssl:x64-windows openssl:x86-windows zlib:x64-windows zlib:x86-windows
 ```
 * Download and install [gperf](https://sourceforge.net/projects/gnuwin32/files/gperf/3.0.1/). Add the path to gperf.exe to the PATH environment variable.
-* Build `TDLib` with CMake enabling .NET support and specifying correct path to `vcpkg` toolchain file:
+* Build `TDLib` with CMake enabling `.NET` support and specifying correct path to `vcpkg` toolchain file:
 ```
 cd <path to TDLib sources>/example/csharp
 mkdir build

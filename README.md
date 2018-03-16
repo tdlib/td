@@ -133,6 +133,11 @@ See [example/java](https://github.com/tdlib/td/tree/master/example/java) for exa
 See [example/csharp](https://github.com/tdlib/td/tree/master/example/csharp) for example of using `TDLib` from C# and detailed build and usage instructions.
 See [example/uwp](https://github.com/tdlib/td/tree/master/example/uwp) for example of using `TDLib` from C# UWP application and detailed build and usage instructions for Visual Studio Extension "TDLib for Universal Windows Platform".
 
+When `TDLib` is built with `TD_ENABLE_DOTNET` option enabled, `C++` documentation is removed from some files. You need to checkout these files to return `C++` documentation back:
+```
+git checkout td/telegram/Client.h td/telegram/Log.h td/tl/TlObject.h
+```
+
 <a name="using-json"></a>
 ## Using from other programming languages
 `TDLib` provides efficient native C++, Java, and .NET interfaces.

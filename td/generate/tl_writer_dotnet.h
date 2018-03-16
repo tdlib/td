@@ -228,14 +228,14 @@ class TlWriterDotNet : public TL_writer {
       auto fixed_type_name = "::Telegram::Td::Api::" + type_name;
       std::stringstream ss;
       ss << "private:\n";
-      ss << "  " << fixed_type_name << " " << fixed_field_name << "Private;\n";
+      ss << "  " << fixed_type_name << " " << fixed_field_name << "PrivateField;\n";
       ss << "public:\n";
       ss << "  property " << fixed_type_name << " " << fixed_field_name << " {\n";
       ss << "    " << fixed_type_name << " get() {\n";
-      ss << "      return " << fixed_field_name << "Private;\n";
+      ss << "      return " << fixed_field_name << "PrivateField;\n";
       ss << "    }\n";
       ss << "    void set(" << fixed_type_name << " newValue) {\n";
-      ss << "      " << fixed_field_name << "Private = newValue;\n";
+      ss << "      " << fixed_field_name << "PrivateField = newValue;\n";
       ss << "    }\n";
       ss << "  }\n";
       return ss.str();
@@ -281,9 +281,7 @@ class TlWriterDotNet : public TL_writer {
     std::stringstream ss;
     ss << (field_num == 0 ? "" : ", ");
     auto field_type = gen_field_type(a);
-    if (field_type.substr(0, 5) == "Array") {
-      ss << "CXCONST ";
-    } else if (field_type.substr(0, 6) != "String" && to_upper(field_type[0]) == field_type[0]) {
+    if (field_type.substr(0, 5) != "Array" && field_type.substr(0, 6) != "String" && to_upper(field_type[0]) == field_type[0]) {
       field_type = "::Telegram::Td::Api::" + field_type;
     }
     ss << field_type << " " << to_camelCase(a.name);

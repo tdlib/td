@@ -17,6 +17,7 @@ abstract class TlDocumentationGenerator
         }
 
         $this->documentation[$code] = $doc;
+        // $this->printError($code);
     }
 
     final protected function addLineReplacement($line, $new_line) {
@@ -64,7 +65,7 @@ abstract class TlDocumentationGenerator
 
     abstract protected function escapeDocumentation($doc);
 
-    abstract protected function getFieldName($name);
+    abstract protected function getFieldName($name, $class_name);
 
     abstract protected function getClassName($name);
 
@@ -187,7 +188,7 @@ abstract class TlDocumentationGenerator
                 if (!$is_function) {
                     $type_lower = strtolower($type);
                     $class_name_lower = strtolower($class_name);
-                    if (empty($current_class) == ($type_lower !== $class_name_lower)) {
+                    if (empty($current_class) === ($type_lower !== $class_name_lower)) {
                         $this->printError('Wrong constructor name');
                     }
                     if (strpos($class_name_lower, $type_lower) !== 0) {
@@ -236,7 +237,7 @@ abstract class TlDocumentationGenerator
 
                 foreach ($known_fields as $name => $type) {
                     $may_be_null = stripos($info[$name], 'may be null') !== false;
-                    $this->addFieldDocumentation($class_name, $this->getFieldName($name), $this->getTypeName($type), $info[$name], $may_be_null);
+                    $this->addFieldDocumentation($class_name, $this->getFieldName($name, $class_name), $this->getTypeName($type), $info[$name], $may_be_null);
                 }
 
                 $this->addDefaultConstructorDocumentation($class_name);
@@ -275,8 +276,10 @@ abstract class TlDocumentationGenerator
             $doc = '';
             if (isset($this->documentation[$fixed_line])) {
                 $doc = $this->documentation[$fixed_line];
+                // unset($this->documentation[$fixed_line]);
             } elseif (isset($this->documentation[$current_class.$fixed_line])) {
                 $doc = $this->documentation[$current_class.$fixed_line];
+                // unset($this->documentation[$current_class.$fixed_line]);
             } else {
                 $this->printError('Have no docs for "'.$fixed_line.'"');
             }
@@ -294,6 +297,10 @@ abstract class TlDocumentationGenerator
 
         if (file_get_contents($source_file) !== $result) {
             file_put_contents($source_file, $result);
+        }
+
+        if (count($this->documentation)) {
+            // $this->printError('Have unused docs '.print_r(array_keys($this->documentation), true));
         }
     }
 }

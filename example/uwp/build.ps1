@@ -100,7 +100,7 @@ function export {
     cp ${arch}/Debug/*  -filter "Telegram.Td.*" -include "*.pdb","*.dll" vsix/Redist/Debug/${arch}/
     cp ${arch}/Release/*  -filter "Telegram.Td.*" -include "*.pdb","*.dll" vsix/Redist/Retail/${arch}/
 
-    cp ${arch}/Release/* -filter "Telegram.Td.*" -include "*.pri","*.winmd" vsix/References/CommonConfiguration/${arch}/
+    cp ${arch}/Release/* -filter "Telegram.Td.*" -include "*.pri","*.winmd","*.xml" vsix/References/CommonConfiguration/${arch}/
   }
 
   cd vsix

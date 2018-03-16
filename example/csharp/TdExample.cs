@@ -11,11 +11,11 @@ using TdApi = Telegram.Td.Api;
 using System;
 using System.Threading;
 
-/**
- * Example class for TDLib usage from C#.
- */
 namespace TdExample
 {
+    /// <summary>
+    /// Example class for TDLib usage from C#.
+    /// </summary>
     class Example
     {
         private static Td.Client _client = null;
@@ -256,7 +256,7 @@ namespace TdExample
                 }
                 else
                 {
-                    // ok result is already received through UpdateAuthorizationState, nothing to do
+                    // result is already received through UpdateAuthorizationState, nothing to do
                 }
             }
         }
