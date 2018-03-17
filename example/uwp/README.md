@@ -11,6 +11,7 @@ This is an example of building TDLib SDK for Universal Windows Platform and an e
 ```
 C:\src\vcpkg> .\vcpkg.exe install openssl:arm-uwp openssl:x64-uwp openssl:x86-uwp zlib:arm-uwp zlib:x64-uwp zlib:x86-uwp
 ```
+* (Optional. For XML documentation generation.) Download [PHP](https://windows.php.net/download#php-7.2). Add the path to php.exe to the PATH environment variable.
 * Download and install [gperf](https://sourceforge.net/projects/gnuwin32/files/gperf/3.0.1/). Add the path to gperf.exe to the PATH environment variable.
 * Download and install [7-Zip](http://www.7-zip.org/download.html) archiver, which is used by the `build.ps1` script to create a Telegram.Td.UWP Visual Studio Extension. Add the path to 7z.exe to the PATH environment variable.
   Alternatively `build.ps1` supports compressing using [WinRAR](https://en.wikipedia.org/wiki/WinRAR) with option `-compress winrar` and compressing using [zip](http://gnuwin32.sourceforge.net/packages/zip.htm) with `-compress zip`.

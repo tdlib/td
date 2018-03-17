@@ -42,8 +42,8 @@ Take a look at our [examples](https://github.com/tdlib/td/tree/master/example) a
 * zlib
 * gperf (build only)
 * CMake (3.0.2+, build only)
-* PHP (optional, for docs generation)
-* Doxygen (optional, for docs generation)
+* PHP (optional, for documentation generation)
+* Doxygen (optional, for documentation generation)
 
 <a name="building"></a>
 ## Building

@@ -11,7 +11,7 @@ Changes in 1.1.0:
 * Added methods `td::Log::set_fatal_error_callback` and `td_set_log_fatal_error_callback` for providing callbacks
   on fatal errors.
 * JNI-bindings are now package-agnostic. Use CMake option `TD_ENABLE_JNI` to enable JNI-bindings.
-* Added a Java example. See [Readme](example/java/README.md) for build and usage instructions.
+* Added a Java example. See [README](example/java/README.md) for build and usage instructions.
 * Added support for text entities in media captions.
   - Added new type `formattedText` containing a text with entities.
   - Replaced all string fields `caption` with fields of type `formattedText`.
@@ -26,7 +26,7 @@ Changes in 1.1.0:
   - Added parameter `other_user_ids` to method `registerDevice` to support multiple accounts.
   - It is now possible to specify tokens for VoIP pushes, WNS, web Push API, Tizen Push Service as `DeviceToken`.
   - Added support for Apple Push Notification Service inside App Sandbox.
-* Add method `searchChatsOnServer` analogous to `searchChats`, but using server search.
+* Added method `searchChatsOnServer` analogous to `searchChats`, but using server search.
 * Results from the `searchChatsOnServer` method are now excluded from `searchPublicChats` results,
   so `searchChatsOnServer` (along with `searchContacts`) should be called whenever `searchPublicChats` is called
   to ensure that no results were omitted.
