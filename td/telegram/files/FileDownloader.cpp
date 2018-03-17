@@ -94,7 +94,10 @@ Result<FileLoader::FileInfo> FileDownloader::init() {
   res.ready_parts = std::move(parts);
   res.use_part_count_limit = false;
   res.only_check = only_check_;
-  res.need_delay = !is_small_;
+  res.need_delay = !is_small_ && (remote_.file_type_ == FileType::VideoNote ||
+                                  remote_.file_type_ == FileType::VoiceNote || remote_.file_type_ == FileType::Audio ||
+                                  remote_.file_type_ == FileType::Video || remote_.file_type_ == FileType::Animation ||
+                                  (remote_.file_type_ == FileType::Encrypted && size_ > (1 << 20)));
   return res;
 }
 Status FileDownloader::on_ok(int64 size) {

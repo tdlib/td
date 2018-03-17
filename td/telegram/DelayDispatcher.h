@@ -18,19 +18,21 @@ namespace td {
 
 class DelayDispatcher : public Actor {
  public:
-  explicit DelayDispatcher(double delay) : delay_(delay) {
+  explicit DelayDispatcher(double default_delay) : default_delay_(default_delay) {
   }
 
   void send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback);
+  void send_with_callback_and_delay(NetQueryPtr query, ActorShared<NetQueryCallback> callback, double delay);
 
  private:
   struct Query {
     NetQueryPtr net_query;
     ActorShared<NetQueryCallback> callback;
+    double delay;
   };
   std::queue<Query> queue_;
   Timestamp wakeup_at_;
-  double delay_;
+  double default_delay_;
 
   void loop() override;
 };

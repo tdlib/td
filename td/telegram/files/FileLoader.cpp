@@ -91,6 +91,7 @@ void FileLoader::start_up() {
   }
   if (file_info.need_delay) {
     delay_dispatcher_ = create_actor<DelayDispatcher>("DelayDispatcher", 0.003);
+    next_delay_ = 0.05;
   }
   resource_state_.set_unit_size(parts_manager_.get_part_size());
   update_estimated_limit();
@@ -133,7 +134,7 @@ Status FileLoader::do_loop() {
     TRY_STATUS(on_ok(parts_manager_.get_size()));
     LOG(INFO) << "Bad download order rate: "
               << (debug_total_parts_ == 0 ? 0.0 : 100.0 * debug_bad_part_order_ / debug_total_parts_) << "% "
-              << debug_bad_part_order_ << "/" << debug_total_parts_;
+              << debug_bad_part_order_ << "/" << debug_total_parts_ << " " << format::as_array(debug_bad_parts_);
     stop_flag_ = true;
     return Status::OK();
   }
@@ -173,7 +174,9 @@ Status FileLoader::do_loop() {
     if (delay_dispatcher_.empty()) {
       G()->net_query_dispatcher().dispatch_with_callback(std::move(query), std::move(callback));
     } else {
-      send_closure(delay_dispatcher_, &DelayDispatcher::send_with_callback, std::move(query), std::move(callback));
+      send_closure(delay_dispatcher_, &DelayDispatcher::send_with_callback_and_delay, std::move(query),
+                   std::move(callback), next_delay_);
+      next_delay_ = std::max(next_delay_ * 0.8, 0.003);
     }
   }
   return Status::OK();
@@ -275,6 +278,7 @@ Status FileLoader::try_on_part_query(Part part, NetQueryPtr query) {
   auto new_ready_prefix_count = parts_manager_.get_ready_prefix_count();
   debug_total_parts_++;
   if (old_ready_prefix_count == new_ready_prefix_count) {
+    debug_bad_parts_.push_back(part.id);
     debug_bad_part_order_++;
   }
   on_progress_impl(size);

@@ -106,9 +106,11 @@ class FileLoader : public FileLoaderActor {
   bool ordered_flag_ = false;
   OrderedEventsProcessor<std::pair<Part, NetQueryPtr>> ordered_parts_;
   ActorOwn<DelayDispatcher> delay_dispatcher_;
+  double next_delay_ = 0;
 
   uint32 debug_total_parts_ = 0;
   uint32 debug_bad_part_order_ = 0;
+  std::vector<int32> debug_bad_parts_;
 
   void start_up() override;
   void loop() override;

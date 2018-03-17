@@ -12,9 +12,13 @@
 namespace td {
 
 void DelayDispatcher::send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback) {
-  queue_.push({std::move(query), std::move(callback)});
-  loop();
+  send_with_callback_and_delay(std::move(query), std::move(callback), default_delay_);
 }
+void DelayDispatcher::send_with_callback_and_delay(NetQueryPtr query, ActorShared<NetQueryCallback> callback,
+                                                   double delay) {
+  queue_.push({std::move(query), std::move(callback), delay});
+  loop();
+}  // namespace td
 
 void DelayDispatcher::loop() {
   if (!wakeup_at_.is_in_past()) {
@@ -30,7 +34,7 @@ void DelayDispatcher::loop() {
   queue_.pop();
   G()->net_query_dispatcher().dispatch_with_callback(std::move(query.net_query), std::move(query.callback));
 
-  wakeup_at_ = Timestamp::in(delay_);
+  wakeup_at_ = Timestamp::in(query.delay);
 
   if (queue_.empty()) {
     return;
