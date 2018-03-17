@@ -79,7 +79,7 @@ class SearchStickersQuery : public Td::ResultHandler {
  public:
   void send(string emoji) {
     emoji_ = std::move(emoji);
-    int32 flags = telegram_api::messages_getStickers::EXCLUDE_FEATURED_MASK;
+    int32 flags = 0;
     send_query(G()->net_query_creator().create(
         create_storer(telegram_api::messages_getStickers(flags, false /*ignored*/, emoji_, ""))));
   }
@@ -1761,10 +1761,12 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
       load_favorite_stickers(std::move(promise));
       return {};
     }
+    /*
     if (!are_featured_sticker_sets_loaded_) {
       load_featured_sticker_sets(std::move(promise));
       return {};
     }
+    */
   }
 
   vector<int64> sets_to_load;
@@ -1837,7 +1839,7 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
       }
     }
   } else {
-    vector<int64> examined_sticker_set_ids = featured_sticker_set_ids_;
+    vector<int64> examined_sticker_set_ids;  // = featured_sticker_set_ids_;
     for (const auto &sticker_set_id : installed_sticker_set_ids_[0]) {
       if (std::find(examined_sticker_set_ids.begin(), examined_sticker_set_ids.end(), sticker_set_id) ==
           examined_sticker_set_ids.end()) {
