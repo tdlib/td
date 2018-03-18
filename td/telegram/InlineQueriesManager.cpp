@@ -530,6 +530,7 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
         type = "article";
         id = std::move(article->id_);
         content_url = std::move(article->url_);
+        content_type = "text/html";
         if (!article->hide_url_) {
           url = content_url;
         }
