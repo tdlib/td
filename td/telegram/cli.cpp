@@ -345,6 +345,8 @@ class CliClient final : public Actor {
       // TODO: actually download
       file_generation.source = "test.jpg";
       file_generation.part_size = 1000000;
+    } else if (update.conversion_ == "skip") {
+      return;
     } else {
       file_generation.source = update.original_path_;
       file_generation.part_size = to_integer<int32>(update.conversion_);

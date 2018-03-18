@@ -1589,7 +1589,7 @@ void FileManager::run_generate(FileNodePtr node) {
 
   int8 download_priority = 0;
   int8 upload_priority = 0;
-  FileId file_id;
+  FileId file_id = node->main_file_id_;
   for (auto id : node->file_ids_) {
     auto *info = get_file_id_info(id);
     if (info->download_priority_ > download_priority) {
@@ -1664,7 +1664,7 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
     }
   }
   int8 priority = 0;
-  FileId file_id;
+  FileId file_id = node->main_file_id_;
   for (auto id : node->file_ids_) {
     auto *info = get_file_id_info(id);
     if (info->upload_priority_ > priority) {
