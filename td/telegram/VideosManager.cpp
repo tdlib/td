@@ -243,7 +243,7 @@ tl_object_ptr<telegram_api::InputMedia> VideosManager::get_input_media(
   }
   CHECK(!file_view.has_remote_location());
 
-  if (input_file != nullptr) {
+  if (input_file != nullptr && input_thumbnail != nullptr) {
     const Video *video = get_video(file_id);
     CHECK(video != nullptr);
 
@@ -275,9 +275,9 @@ tl_object_ptr<telegram_api::InputMedia> VideosManager::get_input_media(
     if (ttl != 0) {
       flags |= telegram_api::inputMediaUploadedDocument::TTL_SECONDS_MASK;
     }
-    if (input_thumbnail != nullptr) {
-      flags |= telegram_api::inputMediaUploadedDocument::THUMB_MASK;
-    }
+
+    flags |= telegram_api::inputMediaUploadedDocument::THUMB_MASK;
+
     return make_tl_object<telegram_api::inputMediaUploadedDocument>(
         flags, false /*ignored*/, std::move(input_file), std::move(input_thumbnail), mime_type, std::move(attributes),
         std::move(added_stickers), ttl);

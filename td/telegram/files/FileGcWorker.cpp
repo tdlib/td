@@ -122,7 +122,7 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
       files.end());
 
   // sort by max(atime, mtime)
-  std::sort(files.begin(), files.end(), [](const auto &a, const auto &b) { return a.atime_nsec < a.atime_nsec; });
+  std::sort(files.begin(), files.end(), [](const auto &a, const auto &b) { return a.atime_nsec < b.atime_nsec; });
 
   // 1. Total memory must be less than max_memory
   // 2. Total file count must be less than MAX_FILE_COUNT

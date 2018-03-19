@@ -923,7 +923,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   if (!y_file_id.is_valid()) {
     return x_node->main_file_id_;
   }
-  FileNodePtr y_node = no_sync ? get_file_node(y_file_id) : get_file_node(y_file_id);
+  FileNodePtr y_node = no_sync ? get_file_node(y_file_id) : get_sync_file_node(y_file_id);
   if (!y_node) {
     return Status::Error(PSLICE() << "Can't merge files. Second id is invalid: " << x_file_id << " and " << y_file_id);
   }
