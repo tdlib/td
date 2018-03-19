@@ -12,10 +12,7 @@
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 
-#include <algorithm>
 #include <cstdint>
-#include <initializer_list>
-#include <iterator>
 #include <limits>
 #include <tuple>
 #include <type_traits>
@@ -99,7 +96,9 @@ auto append(vector<T> &destination, vector<T> &&source) {
     return;
   }
   destination.reserve(destination.size() + source.size());
-  std::move(source.begin(), source.end(), std::back_inserter(destination));
+  for (auto &elem : source) {
+    destination.push_back(std::move(elem));
+  }
   reset_to_empty(source);
 }
 

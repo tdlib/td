@@ -44,7 +44,7 @@ class FileLoadManager final : public Actor {
 
   explicit FileLoadManager(ActorShared<Callback> callback, ActorShared<> parent);
   void download(QueryId id, const FullRemoteFileLocation &remote_location, const LocalFileLocation &local, int64 size,
-                string name, const FileEncryptionKey &encryption_key, int8 priority);
+                string name, const FileEncryptionKey &encryption_key, bool search_file, int8 priority);
   void upload(QueryId id, const LocalFileLocation &local_location, const RemoteFileLocation &remote_location,
               int64 size, const FileEncryptionKey &encryption_key, int8 priority, vector<int> bad_parts);
   void upload_by_hash(QueryId id, const FullLocalFileLocation &local_location, int64 size, int8 priority);
@@ -65,8 +65,8 @@ class FileLoadManager final : public Actor {
   };
   using NodeId = uint64;
 
-  ActorOwn<ResourceManager> download_resource_manager_;
-  ActorOwn<ResourceManager> download_small_resource_manager_;
+  std::map<DcId, ActorOwn<ResourceManager>> download_resource_manager_map_;
+  std::map<DcId, ActorOwn<ResourceManager>> download_small_resource_manager_map_;
   ActorOwn<ResourceManager> upload_resource_manager_;
 
   Container<Node> nodes_container_;
@@ -80,6 +80,7 @@ class FileLoadManager final : public Actor {
   void hangup_shared() override;
 
   void close_node(NodeId node_id);
+  ActorOwn<ResourceManager> &get_download_resource_manager(bool is_small, DcId dc_id);
 
   void on_start_download();
   void on_partial_download(const PartialLocalFileLocation &partial_local, int64 ready_size);

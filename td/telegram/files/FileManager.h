@@ -20,6 +20,7 @@
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/Container.h"
+#include "td/utils/Enumerator.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
@@ -34,15 +35,15 @@ enum class FileLocationSource : int8 { None, FromUser, FromDb, FromServer };
 
 class FileNode {
  public:
-  FileNode(LocalFileLocation local, RemoteFileLocation remote, GenerateFileLocation generate, int64 size,
-           int64 expected_size, string name, string url, DialogId owner_dialog_id, FileEncryptionKey key,
-           FileId main_file_id, int8 main_file_id_priority)
+  FileNode(LocalFileLocation local, RemoteFileLocation remote, unique_ptr<FullGenerateFileLocation> generate,
+           int64 size, int64 expected_size, string remote_name, string url, DialogId owner_dialog_id,
+           FileEncryptionKey key, FileId main_file_id, int8 main_file_id_priority)
       : local_(std::move(local))
       , remote_(std::move(remote))
       , generate_(std::move(generate))
       , size_(size)
       , expected_size_(expected_size)
-      , name_(std::move(name))
+      , remote_name_(std::move(remote_name))
       , url_(std::move(url))
       , owner_dialog_id_(owner_dialog_id)
       , encryption_key_(std::move(key))
@@ -51,10 +52,10 @@ class FileNode {
   }
   void set_local_location(const LocalFileLocation &local, int64 ready_size);
   void set_remote_location(const RemoteFileLocation &remote, FileLocationSource source, int64 ready_size);
-  void set_generate_location(const GenerateFileLocation &generate);
+  void set_generate_location(unique_ptr<FullGenerateFileLocation> &&generate);
   void set_size(int64 size);
   void set_expected_size(int64 expected_size);
-  void set_name(string name);
+  void set_remote_name(string remote_name);
   void set_url(string url);
   void set_owner_dialog_id(DialogId owner_id);
   void set_encryption_key(FileEncryptionKey key);
@@ -73,6 +74,8 @@ class FileNode {
   void on_pmc_flushed();
   void on_info_flushed();
 
+  string suggested_name() const;
+
  private:
   friend class FileView;
   friend class FileManager;
@@ -85,12 +88,12 @@ class FileNode {
   FileLoadManager::QueryId download_id_ = 0;
   int64 remote_ready_size_ = 0;
 
-  GenerateFileLocation generate_;
+  unique_ptr<FullGenerateFileLocation> generate_;
   FileLoadManager::QueryId generate_id_ = 0;
 
   int64 size_ = 0;
   int64 expected_size_ = 0;
-  string name_;
+  string remote_name_;
   string url_;
   DialogId owner_dialog_id_;
   FileEncryptionKey encryption_key_;
@@ -112,6 +115,7 @@ class FileNode {
   FileLocationSource remote_source_ = FileLocationSource::FromUser;
 
   bool get_by_hash_ = false;
+  bool can_search_locally_{true};
 
   bool is_download_started_ = false;
   bool generate_was_update_ = false;
@@ -133,6 +137,7 @@ class FileNodePtr {
   FileNode *operator->() const;
   FileNode &operator*() const;
   FileNode *get() const;
+  FullRemoteFileLocation *get_remote() const;
   explicit operator bool() const;
 
  private:
@@ -157,6 +162,9 @@ class ConstFileNodePtr {
   explicit operator bool() const {
     return bool(file_node_ptr_);
   }
+  const FullRemoteFileLocation *get_remote() const {
+    return file_node_ptr_.get_remote();
+  }
 
  private:
   FileNodePtr file_node_ptr_;
@@ -179,7 +187,9 @@ class FileView {
   bool has_url() const;
   const string &url() const;
 
-  const string &name() const;
+  const string &remote_name() const;
+
+  string suggested_name() const;
 
   DialogId owner_dialog_id() const;
 
@@ -287,8 +297,7 @@ class FileManager : public FileLoadManager::Callback {
   Result<FileId> register_local(FullLocalFileLocation location, DialogId owner_dialog_id, int64 size,
                                 bool get_by_hash = false, bool force = false) TD_WARN_UNUSED_RESULT;
   FileId register_remote(const FullRemoteFileLocation &location, FileLocationSource file_location_source,
-                         DialogId owner_dialog_id, int64 size, int64 expected_size,
-                         string name = "") TD_WARN_UNUSED_RESULT;
+                         DialogId owner_dialog_id, int64 size, int64 expected_size, string name) TD_WARN_UNUSED_RESULT;
   Result<FileId> register_generate(FileType file_type, FileLocationSource file_location_source, string original_path,
                                    string conversion, DialogId owner_dialog_id,
                                    int64 expected_size) TD_WARN_UNUSED_RESULT;
@@ -367,12 +376,25 @@ class FileManager : public FileLoadManager::Callback {
 
   FileIdInfo *get_file_id_info(FileId file_id);
 
-  std::map<FullRemoteFileLocation, FileId> remote_location_to_file_id_;
+  struct RemoteInfo {
+    // mutible is set to to enable changing access hash
+    mutable FullRemoteFileLocation remote_;
+    FileId file_id_;
+    bool operator==(const RemoteInfo &other) const {
+      return this->remote_ == other.remote_;
+    }
+    bool operator<(const RemoteInfo &other) const {
+      return this->remote_ < other.remote_;
+    }
+  };
+  Enumerator<RemoteInfo> remote_location_info_;
+
   std::map<FullLocalFileLocation, FileId> local_location_to_file_id_;
   std::map<FullGenerateFileLocation, FileId> generate_location_to_file_id_;
   std::map<FileDbId, int32> pmc_id_to_file_node_id_;
+
   vector<FileIdInfo> file_id_info_;
-  vector<FileId> empty_file_ids_;
+  vector<int32> empty_file_ids_;
   vector<std::unique_ptr<FileNode>> file_nodes_;
   ActorOwn<FileLoadManager> file_load_manager_;
   ActorOwn<FileGenerateManager> file_generate_manager_;
@@ -442,6 +464,8 @@ class FileManager : public FileLoadManager::Callback {
   void on_generate_ok(QueryId, const FullLocalFileLocation &local);
 
   std::pair<Query, bool> finish_query(QueryId query_id);
+
+  FullRemoteFileLocation *get_remote(int32 key);
 
   void hangup() override;
   void tear_down() override;

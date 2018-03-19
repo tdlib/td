@@ -33,7 +33,8 @@ class VideosManager {
   tl_object_ptr<td_api::video> get_video_object(FileId file_id);
 
   void create_video(FileId file_id, PhotoSize thumbnail, bool has_stickers, vector<FileId> &&sticker_file_ids,
-                    string file_name, string mime_type, int32 duration, Dimensions dimensions, bool replace);
+                    string file_name, string mime_type, int32 duration, Dimensions dimensions, bool supports_streaming,
+                    bool replace);
 
   tl_object_ptr<telegram_api::InputMedia> get_input_media(FileId file_id,
                                                           tl_object_ptr<telegram_api::InputFile> input_file,
@@ -68,6 +69,8 @@ class VideosManager {
     int32 duration = 0;
     Dimensions dimensions;
     PhotoSize thumbnail;
+
+    bool supports_streaming = false;
 
     bool has_stickers = false;
     vector<FileId> sticker_file_ids;

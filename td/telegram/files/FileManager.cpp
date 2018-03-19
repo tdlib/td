@@ -35,21 +35,30 @@
 namespace td {
 
 static int VERBOSITY_NAME(update_file) = VERBOSITY_NAME(INFO);
+
 FileNode *FileNodePtr::operator->() const {
   return get();
 }
+
 FileNode &FileNodePtr::operator*() const {
   return *get();
 }
+
 FileNode *FileNodePtr::get() const {
   auto res = get_unsafe();
   CHECK(res);
   return res;
 }
+
+FullRemoteFileLocation *FileNodePtr::get_remote() const {
+  return file_manager_->get_remote(file_id_.get_remote());
+}
+
 FileNode *FileNodePtr::get_unsafe() const {
   CHECK(file_manager_ != nullptr);
   return file_manager_->get_file_node_raw(file_id_);
 }
+
 FileNodePtr::operator bool() const {
   return file_manager_ != nullptr && get_unsafe() != nullptr;
 }
@@ -89,9 +98,10 @@ void FileNode::set_remote_location(const RemoteFileLocation &remote, FileLocatio
   on_changed();
 }
 
-void FileNode::set_generate_location(const GenerateFileLocation &generate) {
-  if (generate_ != generate) {
-    generate_ = generate;
+void FileNode::set_generate_location(unique_ptr<FullGenerateFileLocation> &&generate) {
+  bool is_changed = generate_ == nullptr ? generate != nullptr : generate == nullptr || *generate_ != *generate;
+  if (is_changed) {
+    generate_ = std::move(generate);
     on_pmc_changed();
   }
 }
@@ -112,9 +122,9 @@ void FileNode::set_expected_size(int64 expected_size) {
   }
 }
 
-void FileNode::set_name(string name) {
-  if (name_ != name) {
-    name_ = std::move(name);
+void FileNode::set_remote_name(string remote_name) {
+  if (remote_name_ != remote_name) {
+    remote_name_ = std::move(remote_name);
     on_pmc_changed();
   }
 }
@@ -163,7 +173,7 @@ void FileNode::set_generate_priority(int8 download_priority, int8 upload_priorit
                       << upload_priority;
     on_info_changed();
   }
-  generate_priority_ = std::max(download_priority, upload_priority);
+  generate_priority_ = max(download_priority, upload_priority);
   generate_download_priority_ = download_priority;
   generate_upload_priority_ = upload_priority;
 }
@@ -199,9 +209,9 @@ bool FileNode::need_pmc_flush() const {
     return true;
   }
 
-  bool has_generate_location = generate_.type() == GenerateFileLocation::Type::Full;
+  bool has_generate_location = generate_ != nullptr;
   // Do not save "#file_id#" conversion.
-  if (has_generate_location && begins_with(generate_.full().conversion_, "#file_id#")) {
+  if (has_generate_location && begins_with(generate_->conversion_, "#file_id#")) {
     has_generate_location = false;
   }
 
@@ -226,6 +236,24 @@ void FileNode::on_info_flushed() {
   info_changed_flag_ = false;
 }
 
+string FileNode::suggested_name() const {
+  if (!remote_name_.empty()) {
+    return remote_name_;
+  }
+  if (!url_.empty()) {
+    auto file_name = get_url_file_name(url_);
+    if (!file_name.empty()) {
+      return file_name;
+    }
+  }
+  if (generate_ != nullptr) {
+    if (!generate_->original_path_.empty()) {
+      return generate_->original_path_;
+    }
+  }
+  return local_.file_name().str();
+}
+
 /*** FileView ***/
 bool FileView::has_local_location() const {
   return node_->local_.type() == LocalFileLocation::Type::Full;
@@ -239,14 +267,18 @@ bool FileView::has_remote_location() const {
 }
 const FullRemoteFileLocation &FileView::remote_location() const {
   CHECK(has_remote_location());
+  auto *remote = node_.get_remote();
+  if (remote) {
+    return *remote;
+  }
   return node_->remote_.full();
 }
 bool FileView::has_generate_location() const {
-  return node_->generate_.type() == GenerateFileLocation::Type::Full;
+  return node_->generate_ != nullptr;
 }
 const FullGenerateFileLocation &FileView::generate_location() const {
   CHECK(has_generate_location());
-  return node_->generate_.full();
+  return *node_->generate_;
 }
 
 int64 FileView::size() const {
@@ -281,9 +313,8 @@ int64 FileView::local_total_size() const {
     case LocalFileLocation::Type::Full:
       return node_->size_;
     case LocalFileLocation::Type::Partial:
-      return std::max(
-          static_cast<int64>(node_->local_.partial().part_size_) * node_->local_.partial().ready_part_count_,
-          node_->local_ready_size_);
+      return max(static_cast<int64>(node_->local_.partial().part_size_) * node_->local_.partial().ready_part_count_,
+                 node_->local_ready_size_);
     default:
       UNREACHABLE();
       return 0;
@@ -300,8 +331,8 @@ int64 FileView::remote_size() const {
       return node_->size_;
     case RemoteFileLocation::Type::Partial: {
       auto res =
-          std::max(static_cast<int64>(node_->remote_.partial().part_size_) * node_->remote_.partial().ready_part_count_,
-                   node_->remote_ready_size_);
+          max(static_cast<int64>(node_->remote_.partial().part_size_) * node_->remote_.partial().ready_part_count_,
+              node_->remote_ready_size_);
       if (size() != 0 && size() < res) {
         res = size();
       }
@@ -331,8 +362,12 @@ const string &FileView::url() const {
   return node_->url_;
 }
 
-const string &FileView::name() const {
-  return node_->name_;
+const string &FileView::remote_name() const {
+  return node_->remote_name_;
+}
+
+string FileView::suggested_name() const {
+  return node_->suggested_name();
 }
 
 DialogId FileView::owner_dialog_id() const {
@@ -398,7 +433,7 @@ FileManager::FileManager(std::unique_ptr<Context> context) : context_(std::move(
       if (r_stat.is_ok() && r_stat.ok().is_dir_) {
         LOG(ERROR) << "mkdir " << tag("path", path) << " failed " << status << ", but directory exists";
       } else {
-        LOG(FATAL) << "mkdir " << tag("path", path) << " failed " << status;
+        LOG(ERROR) << "mkdir " << tag("path", path) << " failed " << status;
       }
     }
 #if TD_ANDROID
@@ -509,18 +544,21 @@ Status FileManager::check_local_location(FullLocalFileLocation &location, int64 
     size = stat.size_;
   }
   if (location.mtime_nsec_ == 0) {
-    LOG(INFO) << "Set file modification time to " << stat.mtime_nsec_;
+    LOG(INFO) << "Set file \"" << location.path_ << "\" modification time to " << stat.mtime_nsec_;
     location.mtime_nsec_ = stat.mtime_nsec_;
   } else if (location.mtime_nsec_ != stat.mtime_nsec_) {
-    LOG(INFO) << "File was nodified: old mtime = " << location.mtime_nsec_ << ", new mtime = " << stat.mtime_nsec_;
-    return Status::Error("File was modified");
+    LOG(INFO) << "File \"" << location.path_ << "\" was nodified: old mtime = " << location.mtime_nsec_
+              << ", new mtime = " << stat.mtime_nsec_;
+    return Status::Error(PSLICE() << "File \"" << location.path_ << "\" was modified");
   }
   if ((location.file_type_ == FileType::Thumbnail || location.file_type_ == FileType::EncryptedThumbnail) &&
       size >= MAX_THUMBNAIL_SIZE) {
-    return Status::Error(PSLICE() << "File is too big for thumbnail " << tag("size", format::as_size(size)));
+    return Status::Error(PSLICE() << "File \"" << location.path_ << "\" is too big for thumbnail "
+                                  << tag("size", format::as_size(size)));
   }
   if (size >= MAX_FILE_SIZE) {
-    return Status::Error(PSLICE() << "File is too big " << tag("size", format::as_size(size)));
+    return Status::Error(PSLICE() << "File \"" << location.path_ << "\" is too big "
+                                  << tag("size", format::as_size(size)));
   }
   return Status::OK();
 }
@@ -528,6 +566,9 @@ Status FileManager::check_local_location(FullLocalFileLocation &location, int64 
 static Status check_partial_local_location(const PartialLocalFileLocation &location) {
   TRY_RESULT(stat, stat(location.path_));
   if (!stat.is_reg_) {
+    if (stat.is_dir_) {
+      return Status::Error(PSLICE() << "Can't use directory \"" << location.path_ << "\" as a file path");
+    }
     return Status::Error("File must be a regular file");
   }
   // can't check mtime. Hope nobody will mess with this file in our temporary dir.
@@ -586,7 +627,7 @@ void FileManager::try_forget_file_id(FileId file_id) {
   CHECK(it != file_node->file_ids_.end());
   file_node->file_ids_.erase(it);
   *info = FileIdInfo();
-  empty_file_ids_.push_back(file_id);
+  empty_file_ids_.push_back(file_id.get());
 }
 
 FileId FileManager::register_empty(FileType type) {
@@ -622,7 +663,7 @@ FileId FileManager::register_remote(const FullRemoteFileLocation &location, File
   data.owner_dialog_id_ = owner_dialog_id;
   data.size_ = size;
   data.expected_size_ = expected_size;
-  data.name_ = std::move(name);
+  data.remote_name_ = std::move(name);
   return register_file(std::move(data), file_location_source, "register_remote", false).move_as_ok();
 }
 
@@ -639,7 +680,7 @@ Result<FileId> FileManager::register_generate(FileType file_type, FileLocationSo
                                               string original_path, string conversion, DialogId owner_dialog_id,
                                               int64 expected_size) {
   FileData data;
-  data.generate_ = GenerateFileLocation(FullGenerateFileLocation(file_type, original_path, std::move(conversion)));
+  data.generate_ = make_unique<FullGenerateFileLocation>(file_type, std::move(original_path), std::move(conversion));
   data.owner_dialog_id_ = owner_dialog_id;
   data.expected_size_ = expected_size;
   return register_file(std::move(data), file_location_source, "register_generate", false);
@@ -648,7 +689,7 @@ Result<FileId> FileManager::register_generate(FileType file_type, FileLocationSo
 Result<FileId> FileManager::register_file(FileData data, FileLocationSource file_location_source, const char *source,
                                           bool force) {
   bool has_remote = data.remote_.type() == RemoteFileLocation::Type::Full;
-  bool has_generate = data.generate_.type() == GenerateFileLocation::Type::Full;
+  bool has_generate = data.generate_ != nullptr;
   if (data.local_.type() == LocalFileLocation::Type::Full && !force) {
     if (file_location_source == FileLocationSource::FromDb) {
       PathView path_view(data.local_.full().path_);
@@ -683,7 +724,7 @@ Result<FileId> FileManager::register_file(FileData data, FileLocationSource file
   auto file_node_id = next_file_node_id();
   auto &node = file_nodes_[file_node_id];
   node = std::make_unique<FileNode>(std::move(data.local_), std::move(data.remote_), std::move(data.generate_),
-                                    data.size_, data.expected_size_, std::move(data.name_), std::move(data.url_),
+                                    data.size_, data.expected_size_, std::move(data.remote_name_), std::move(data.url_),
                                     data.owner_dialog_id_, std::move(data.encryption_key_), file_id,
                                     static_cast<int8>(has_remote));
   node->remote_source_ = file_location_source;
@@ -706,8 +747,22 @@ Result<FileId> FileManager::register_file(FileData data, FileLocationSource file
     }
   };
   bool new_remote = false;
+  int32 remote_key = 0;
   if (file_view.has_remote_location()) {
-    new_remote = register_location(file_view.remote_location(), remote_location_to_file_id_);
+    RemoteInfo info{file_view.remote_location(), file_id};
+    remote_key = remote_location_info_.add(info);
+    auto &stored_info = remote_location_info_.get(remote_key);
+    if (stored_info.file_id_ == file_id) {
+      get_file_id_info(file_id)->pin_flag_ = true;
+      new_remote = true;
+    } else {
+      to_merge.push_back(stored_info.file_id_);
+      if (stored_info.remote_ == file_view.remote_location() &&
+          stored_info.remote_.get_access_hash() != file_view.remote_location().get_access_hash() &&
+          file_location_source == FileLocationSource::FromServer) {
+        stored_info.remote_ = file_view.remote_location();
+      }
+    }
   }
   bool new_local = false;
   if (file_view.has_local_location()) {
@@ -733,7 +788,7 @@ Result<FileId> FileManager::register_file(FileData data, FileLocationSource file
   try_flush_node(get_file_node(file_id));
   auto main_file_id = get_file_node(file_id)->main_file_id_;
   try_forget_file_id(file_id);
-  return main_file_id;
+  return FileId(main_file_id.get(), remote_key);
 }
 
 // 0 -- choose x
@@ -762,9 +817,9 @@ static int merge_choose(const RemoteFileLocation &x, int8 x_source, const Remote
   }
   return 2;
 }
-static int merge_choose(const GenerateFileLocation &x, const GenerateFileLocation &y) {
-  int32 x_type = static_cast<int32>(x.type());
-  int32 y_type = static_cast<int32>(y.type());
+static int merge_choose(const unique_ptr<FullGenerateFileLocation> &x, const unique_ptr<FullGenerateFileLocation> &y) {
+  int x_type = static_cast<int>(x != nullptr);
+  int y_type = static_cast<int>(y != nullptr);
   if (x_type != y_type) {
     return x_type < y_type;
   }
@@ -899,7 +954,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   int generate_i = merge_choose(x_node->generate_, y_node->generate_);
   int size_i = merge_choose_size(x_node->size_, y_node->size_);
   int expected_size_i = merge_choose_expected_size(x_node->expected_size_, y_node->expected_size_);
-  int name_i = merge_choose_name(x_node->name_, y_node->name_);
+  int remote_name_i = merge_choose_name(x_node->remote_name_, y_node->remote_name_);
   int url_i = merge_choose_name(x_node->url_, y_node->url_);
   int owner_i = merge_choose_owner(x_node->owner_dialog_id_, y_node->owner_dialog_id_);
   int encryption_key_i = merge_choose_encryption_key(x_node->encryption_key_, y_node->encryption_key_);
@@ -932,7 +987,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   LOG(INFO) << "x_node->pmc_id_ = " << x_node->pmc_id_ << ", y_node->pmc_id_ = " << y_node->pmc_id_
             << ", x_node_size = " << x_node->file_ids_.size() << ", y_node_size = " << y_node->file_ids_.size()
             << ", node_i = " << node_i << ", local_i = " << local_i << ", remote_i = " << remote_i
-            << ", generate_i = " << generate_i << ", size_i = " << size_i << ", name_i = " << name_i
+            << ", generate_i = " << generate_i << ", size_i = " << size_i << ", remote_name_i = " << remote_name_i
             << ", url_i = " << url_i << ", owner_i = " << owner_i << ", encryption_key_i = " << encryption_key_i
             << ", main_file_id_i = " << main_file_id_i;
   if (local_i == other_node_i) {
@@ -946,7 +1001,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     other_node->download_priority_ = 0;
 
     //cancel_generate(node);
-    //node->set_generate_location(other_node->generate_);
+    //node->set_generate_location(std::move(other_node->generate_));
     //node->generate_id_ = other_node->generate_id_;
     //node->set_generate_priority(other_node->generate_download_priority_, other_node->generate_upload_priority_);
     //other_node->generate_id_ = 0;
@@ -974,7 +1029,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
 
   if (generate_i == other_node_i) {
     cancel_generate(node);
-    node->set_generate_location(other_node->generate_);
+    node->set_generate_location(std::move(other_node->generate_));
     node->generate_id_ = other_node->generate_id_;
     node->set_generate_priority(other_node->generate_download_priority_, other_node->generate_upload_priority_);
     other_node->generate_id_ = 0;
@@ -993,8 +1048,8 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     node->set_expected_size(other_node->expected_size_);
   }
 
-  if (name_i == other_node_i) {
-    node->set_name(other_node->name_);
+  if (remote_name_i == other_node_i) {
+    node->set_remote_name(other_node->remote_name_);
   }
 
   if (url_i == other_node_i) {
@@ -1010,6 +1065,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     nodes[node_i]->set_encryption_key(nodes[encryption_key_i]->encryption_key_);
   }
   node->need_load_from_pmc_ |= other_node->need_load_from_pmc_;
+  node->can_search_locally_ &= other_node->can_search_locally_;
 
   if (main_file_id_i == other_node_i) {
     node->main_file_id_ = other_node->main_file_id_;
@@ -1116,9 +1172,10 @@ void FileManager::clear_from_pmc(FileNodePtr node) {
     data.remote_ = node->remote_;
   }
   if (file_view.has_generate_location()) {
-    data.generate_ = node->generate_;
+    data.generate_ = std::make_unique<FullGenerateFileLocation>(*node->generate_);
   }
   file_db_->clear_file_data(node->pmc_id_, data);
+  node->pmc_id_ = 0;
 }
 
 void FileManager::flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local, bool new_generate) {
@@ -1139,11 +1196,8 @@ void FileManager::flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local
     prepare_path_for_pmc(data.local_.full().file_type_, data.local_.full().path_);
   }
   data.remote_ = node->remote_;
-  data.generate_ = node->generate_;
-
-  if (data.generate_.type() == GenerateFileLocation::Type::Full &&
-      begins_with(data.generate_.full().conversion_, "#file_id#")) {
-    data.generate_ = GenerateFileLocation();
+  if (node->generate_ != nullptr && !begins_with(node->generate_->conversion_, "#file_id#")) {
+    data.generate_ = std::make_unique<FullGenerateFileLocation>(*node->generate_);
   }
 
   // TODO: not needed when GenerateLocation has constant convertion
@@ -1154,7 +1208,7 @@ void FileManager::flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local
 
   data.size_ = node->size_;
   data.expected_size_ = node->expected_size_;
-  data.name_ = node->name_;
+  data.remote_name_ = node->remote_name_;
   data.encryption_key_ = node->encryption_key_;
   data.url_ = node->url_;
   data.owner_dialog_id_ = node->owner_dialog_id_;
@@ -1214,6 +1268,8 @@ void FileManager::load_from_pmc(FileNodePtr node, bool new_remote, bool new_loca
     generate = file_view.generate_location();
   }
 
+  LOG(INFO) << "Load from pmc " << file_id << "/" << file_view.file_id() << ", new_remote = " << new_remote
+            << ", new_local = " << new_local << ", new_generate = " << new_generate;
   auto load = [&](auto location) {
     TRY_RESULT(file_data, file_db_->get_file_data_sync(location));
     TRY_RESULT(new_file_id, register_file(std::move(file_data), FileLocationSource::FromDb, "load_from_pmc", false));
@@ -1276,7 +1332,7 @@ bool FileManager::set_content(FileId file_id, BufferSlice bytes) {
   node->download_id_ = id;
   node->is_download_started_ = true;
   send_closure(file_load_manager_, &FileLoadManager::from_bytes, id, node->remote_.full().file_type_, std::move(bytes),
-               node->name_);
+               node->suggested_name());
   return true;
 }
 
@@ -1426,7 +1482,7 @@ void FileManager::run_download(FileNodePtr node) {
   node->download_id_ = id;
   node->is_download_started_ = false;
   send_closure(file_load_manager_, &FileLoadManager::download, id, node->remote_.full(), node->local_, node->size_,
-               node->name_, node->encryption_key_, priority);
+               node->suggested_name(), node->encryption_key_, node->can_search_locally_, priority);
 }
 
 void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std::shared_ptr<UploadCallback> callback,
@@ -1533,7 +1589,7 @@ void FileManager::run_generate(FileNodePtr node) {
 
   int8 download_priority = 0;
   int8 upload_priority = 0;
-  FileId file_id;
+  FileId file_id = node->main_file_id_;
   for (auto id : node->file_ids_) {
     auto *info = get_file_id_info(id);
     if (info->download_priority_ > download_priority) {
@@ -1568,8 +1624,8 @@ void FileManager::run_generate(FileNodePtr node) {
 
   QueryId id = queries_container_.create(Query{file_id, Query::Generate});
   node->generate_id_ = id;
-  send_closure(file_generate_manager_, &FileGenerateManager::generate_file, id, node->generate_.full(), node->local_,
-               node->name_, [file_manager = this, id] {
+  send_closure(file_generate_manager_, &FileGenerateManager::generate_file, id, *node->generate_, node->local_,
+               node->suggested_name(), [file_manager = this, id] {
                  class Callback : public FileGenerateCallback {
                    ActorId<FileManager> actor_;
                    uint64 query_id_;
@@ -1608,7 +1664,7 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
     }
   }
   int8 priority = 0;
-  FileId file_id;
+  FileId file_id = node->main_file_id_;
   for (auto id : node->file_ids_) {
     auto *info = get_file_id_info(id);
     if (info->upload_priority_ > priority) {
@@ -1905,7 +1961,7 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
                               owner_dialog_id, 0, get_by_hash);
       }
       case td_api::inputFileId::ID: {
-        FileId file_id(static_cast<const td_api::inputFileId *>(file.get())->id_);
+        FileId file_id(static_cast<const td_api::inputFileId *>(file.get())->id_, 0);
         if (!file_id.is_valid()) {
           return FileId();
         }
@@ -1950,9 +2006,9 @@ FileId FileManager::next_file_id() {
   if (!empty_file_ids_.empty()) {
     auto res = empty_file_ids_.back();
     empty_file_ids_.pop_back();
-    return res;
+    return FileId{res, 0};
   }
-  FileId res(static_cast<int32>(file_id_info_.size()));
+  FileId res(static_cast<int32>(file_id_info_.size()), 0);
   // LOG(ERROR) << "NEXT file_id " << res;
   file_id_info_.push_back({});
   return res;
@@ -2056,7 +2112,7 @@ void FileManager::on_upload_ok(QueryId query_id, FileType file_type, const Parti
   file_info->download_priority_ = 0;
 
   FileView file_view(file_node);
-  string file_name = get_file_name(file_type, file_view.has_local_location() ? file_view.local_location().path_ : "");
+  string file_name = get_file_name(file_type, file_view.suggested_name());
 
   if (file_view.is_encrypted()) {
     tl_object_ptr<telegram_api::InputEncryptedFile> input_file;
@@ -2174,7 +2230,7 @@ void FileManager::on_error(QueryId query_id, Status status) {
   std::tie(query, was_active) = finish_query(query_id);
   auto node = get_file_node(query.file_id_);
   if (!node) {
-    LOG(ERROR) << "Can't find file node for " << query.file_id_;
+    LOG(ERROR) << "Can't find file node for " << query.file_id_ << " " << status;
     return;
   }
 
@@ -2210,6 +2266,11 @@ void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type,
 
   if (status.message() == "FILE_UPLOAD_RESTART") {
     run_upload(node, {});
+    return;
+  }
+  if (status.message() == "FILE_DOWNLOAD_RESTART") {
+    node->can_search_locally_ = false;
+    run_download(node);
     return;
   }
 
@@ -2272,6 +2333,13 @@ std::pair<FileManager::Query, bool> FileManager::finish_query(QueryId query_id) 
     was_active = true;
   }
   return std::make_pair(res, was_active);
+}
+
+FullRemoteFileLocation *FileManager::get_remote(int32 key) {
+  if (key == 0) {
+    return nullptr;
+  }
+  return &remote_location_info_.get(key).remote_;
 }
 
 void FileManager::hangup() {

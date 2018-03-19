@@ -6,12 +6,13 @@
 //
 #pragma once
 
+#include "td/utils/port/config.h"
+
 #include "td/utils/common.h"
 #undef small
 
 #if TD_WINRT
 
-#include "td/utils/misc.h"  // for narrow_cast
 #include "td/utils/port/wstring_convert.h"
 
 #include "collection.h"
@@ -22,7 +23,6 @@
 
 #define REF_NEW ref new
 #define CLRCALL
-#define CXCONST
 
 namespace CxCli {
 
@@ -49,9 +49,15 @@ public:
     value = it->second;
     return true;
   }
-  void Remove(Key value) {
+  bool TryRemove(Key key, Value &value) {
     std::lock_guard<std::mutex> guard(mutex_);
-    impl_.erase(value);
+    auto it = impl_.find(key);
+    if (it == impl_.end()) {
+      return false;
+    }
+    value = std::move(it->second);
+    impl_.erase(it);
+    return true;
   }
   Value &operator [] (Key key) {
     std::lock_guard<std::mutex> guard(mutex_);
@@ -66,13 +72,16 @@ inline std::int64_t Increment(volatile std::int64_t &value) {
   return InterlockedIncrement64(&value);
 }
 
-inline std::string string_to_unmanaged(String^ string) {
-  return td::from_wstring(string->Data(), string->Length()).ok();
+inline std::string string_to_unmanaged(String^ str) {
+  if (!str) {
+    return std::string();
+  }
+  return td::from_wstring(str->Data(), str->Length()).ok();
 }
 
 inline String^ string_from_unmanaged(const std::string &from) {
   auto tmp = td::to_wstring(from).ok();
-  return REF_NEW String(tmp.c_str(), td::narrow_cast<unsigned>(tmp.size()));
+  return REF_NEW String(tmp.c_str(), static_cast<unsigned>(tmp.size()));
 }
 
 } // namespace CxCli
@@ -83,7 +92,6 @@ inline String^ string_from_unmanaged(const std::string &from) {
 
 #define REF_NEW gcnew
 #define CLRCALL __clrcall
-#define CXCONST
 
 namespace CxCli {
 
@@ -105,10 +113,15 @@ using System::NullReferenceException;
 
 using System::Collections::Concurrent::ConcurrentDictionary;
 
-using System::Threading::Interlocked::Increment;
+inline std::int64_t Increment(std::int64_t %value) {
+  return System::Threading::Interlocked::Increment(value);
+}
 
-inline std::string string_to_unmanaged(String^ string) {
-  return msclr::interop::marshal_as<std::string>(string);
+inline std::string string_to_unmanaged(String^ str) {
+  if (!str) {
+    return std::string();
+  }
+  return msclr::interop::marshal_as<std::string>(str);
 }
 
 inline String^ string_from_unmanaged(const std::string &from) {

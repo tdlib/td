@@ -124,7 +124,7 @@ tl_object_ptr<td_api::animation> AnimationsManager::get_animation_object(FileId 
   return make_tl_object<td_api::animation>(animation->duration, animation->dimensions.width,
                                            animation->dimensions.height, animation->file_name, animation->mime_type,
                                            get_photo_size_object(td_->file_manager_.get(), &animation->thumbnail),
-                                           td_->file_manager_->get_file_object(animation->file_id));
+                                           td_->file_manager_->get_file_object(file_id));
 }
 
 FileId AnimationsManager::on_get_animation(std::unique_ptr<Animation> new_animation, bool replace) {
@@ -249,7 +249,7 @@ void AnimationsManager::create_animation(FileId file_id, PhotoSize thumbnail, st
   a->file_id = file_id;
   a->file_name = std::move(file_name);
   a->mime_type = std::move(mime_type);
-  a->duration = std::max(duration, 0);
+  a->duration = max(duration, 0);
   a->dimensions = dimensions;
   a->thumbnail = std::move(thumbnail);
   on_get_animation(std::move(a), replace);
@@ -281,7 +281,8 @@ tl_object_ptr<telegram_api::InputMedia> AnimationsManager::get_input_media(
     string mime_type = animation->mime_type;
     if (animation->mime_type == "video/mp4") {
       attributes.push_back(make_tl_object<telegram_api::documentAttributeVideo>(
-          0, false /*ignored*/, animation->duration, animation->dimensions.width, animation->dimensions.height));
+          0, false /*ignored*/, false /*ignored*/, animation->duration, animation->dimensions.width,
+          animation->dimensions.height));
     } else if (animation->dimensions.width != 0 && animation->dimensions.height != 0) {
       if (!begins_with(mime_type, "image/")) {
         mime_type = "image/gif";
@@ -446,6 +447,9 @@ void AnimationsManager::on_load_saved_animations_from_database(const string &val
 }
 
 void AnimationsManager::on_load_saved_animations_finished(vector<FileId> &&saved_animation_ids, bool from_database) {
+  if (static_cast<int32>(saved_animation_ids.size()) > saved_animations_limit_) {
+    saved_animation_ids.resize(saved_animations_limit_);
+  }
   saved_animation_ids_ = std::move(saved_animation_ids);
   are_saved_animations_loaded_ = true;
   send_update_saved_animations(from_database);
@@ -511,7 +515,7 @@ int32 AnimationsManager::get_saved_animations_hash() const {
   for (auto animation_id : saved_animation_ids_) {
     auto animation = get_animation(animation_id);
     CHECK(animation != nullptr);
-    auto file_view = td_->file_manager_->get_file_view(animation->file_id);
+    auto file_view = td_->file_manager_->get_file_view(animation_id);
     CHECK(file_view.has_remote_location());
     CHECK(!file_view.remote_location().is_encrypted());
     CHECK(!file_view.remote_location().is_web());
@@ -570,6 +574,11 @@ bool AnimationsManager::add_saved_animation_impl(FileId animation_id, Promise<Un
   }
 
   if (!saved_animation_ids_.empty() && saved_animation_ids_[0] == animation_id) {
+    if (saved_animation_ids_[0].get_remote() == 0 && animation_id.get_remote() != 0) {
+      saved_animation_ids_[0] = animation_id;
+      save_saved_animations_to_database();
+    }
+
     promise.set_value(Unit());
     return false;
   }
@@ -608,6 +617,9 @@ bool AnimationsManager::add_saved_animation_impl(FileId animation_id, Promise<Un
     it = saved_animation_ids_.end() - 1;
   }
   std::rotate(saved_animation_ids_.begin(), it, it + 1);
+  if (saved_animation_ids_[0].get_remote() == 0 && animation_id.get_remote() != 0) {
+    saved_animation_ids_[0] = animation_id;
+  }
 
   send_update_saved_animations();
   return true;
@@ -660,11 +672,17 @@ void AnimationsManager::send_update_saved_animations(bool from_database) {
     }
     send_closure(G()->td(), &Td::send_update, make_tl_object<td_api::updateSavedAnimations>(std::move(animations)));
 
-    if (!from_database && G()->parameters().use_file_db) {
-      LOG(INFO) << "Save saved animations to database";
-      AnimationListLogEvent log_event(saved_animation_ids_);
-      G()->td_db()->get_sqlite_pmc()->set("ans", log_event_store(log_event).as_slice().str(), Auto());
+    if (!from_database) {
+      save_saved_animations_to_database();
     }
+  }
+}
+
+void AnimationsManager::save_saved_animations_to_database() {
+  if (G()->parameters().use_file_db) {
+    LOG(INFO) << "Save saved animations to database";
+    AnimationListLogEvent log_event(saved_animation_ids_);
+    G()->td_db()->get_sqlite_pmc()->set("ans", log_event_store(log_event).as_slice().str(), Auto());
   }
 }
 

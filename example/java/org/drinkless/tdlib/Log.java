@@ -31,7 +31,7 @@ public final class Log {
      *
      * @param filePath Path to a file for writing TDLib internal log. Use an empty path to
      *                 switch back to logging to the System.err.
-     * @return whether opening the log file succeeded
+     * @return whether opening the log file succeeded.
      */
     public static native boolean setFilePath(String filePath);
 

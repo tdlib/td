@@ -37,9 +37,17 @@ TEST(Mtproto, config) {
   int threads_n = 0;
   sched.init(threads_n);
 
-  int cnt = 2;
+  int cnt = 3;
   {
     auto guard = sched.get_current_guard();
+    get_simple_config_azure(PromiseCreator::lambda([&](Result<SimpleConfig> r_simple_config) {
+      LOG(ERROR) << to_string(r_simple_config.ok());
+      if (--cnt == 0) {
+        Scheduler::instance()->finish();
+      }
+    }))
+        .release();
+
     get_simple_config_google_app(PromiseCreator::lambda([&](Result<SimpleConfig> r_simple_config) {
       LOG(ERROR) << to_string(r_simple_config.ok());
       if (--cnt == 0) {

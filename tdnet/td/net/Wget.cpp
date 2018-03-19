@@ -51,10 +51,16 @@ Status Wget::try_init() {
 
   HttpHeaderCreator hc;
   hc.init_get(url.query_);
+  bool was_host = false;
   for (auto &header : headers_) {
+    if (header.first == "Host") {  // TODO: lowercase
+      was_host = true;
+    }
     hc.add_header(header.first, header.second);
   }
-  hc.add_header("Host", url.host_);
+  if (!was_host) {
+    hc.add_header("Host", url.host_);
+  }
   hc.add_header("Accept-Encoding", "gzip, deflate");
 
   send_closure(connection_, &HttpOutboundConnection::write_next, BufferSlice(hc.finish().ok()));
@@ -92,7 +98,7 @@ void Wget::on_ok(HttpQueryPtr http_query_ptr) {
     promise_.set_value(std::move(http_query_ptr));
     stop();
   } else {
-    on_error(Status::Error("http error"));
+    on_error(Status::Error(PSLICE() << "http error: " << http_query_ptr->code_));
   }
 }
 

@@ -339,10 +339,16 @@ void SecretChatActor::send_message_action(tl_object_ptr<secret_api::SendMessageA
     return;
   }
   bool flag = action->get_id() != secret_api::sendMessageCancelAction::ID;
-  context_->send_net_query(context_->net_query_creator().create(
-                               UniqueId::next(UniqueId::Type::Default, static_cast<uint8>(QueryType::Ignore)),
-                               create_storer(telegram_api::messages_setEncryptedTyping(get_input_chat(), flag))),
-                           actor_shared(this), false);
+
+  auto net_query = context_->net_query_creator().create(
+      UniqueId::next(UniqueId::Type::Default, static_cast<uint8>(QueryType::Ignore)),
+      create_storer(telegram_api::messages_setEncryptedTyping(get_input_chat(), flag)));
+  if (!set_typing_query_.empty()) {
+    LOG(INFO) << "Cancel previous set typing query";
+    cancel_query(set_typing_query_);
+  }
+  set_typing_query_ = net_query.get_weak();
+  context_->send_net_query(std::move(net_query), actor_shared(this), false);
 }
 void SecretChatActor::send_read_history(int32 date, Promise<> promise) {
   if (close_flag_) {
@@ -943,12 +949,14 @@ Status SecretChatActor::do_inbound_message_decrypted_unchecked(
       uint32 start_seq_no = static_cast<uint32>(action_resend->start_seq_no_ / 2);
       uint32 finish_seq_no = static_cast<uint32>(action_resend->end_seq_no_ / 2);
       if (start_seq_no + MAX_RESEND_COUNT < finish_seq_no) {
+        message->qts_ack.set_value(Unit());
         return Status::Error(PSLICE() << "Won't resend more than " << MAX_RESEND_COUNT << " messages");
       }
       LOG(INFO) << "ActionResend: " << tag("start", start_seq_no) << tag("finish_seq_no", finish_seq_no);
       for (auto seq_no = start_seq_no; seq_no <= finish_seq_no; seq_no++) {
         auto it = out_seq_no_to_outbound_message_state_token_.find(seq_no);
         if (it == out_seq_no_to_outbound_message_state_token_.end()) {
+          message->qts_ack.set_value(Unit());
           return Status::Error(PSLICE() << "Can't resend query " << tag("seq_no", seq_no));
         }
         auto state_id = it->second;
@@ -1593,8 +1601,6 @@ void SecretChatActor::on_outbound_send_message_result(NetQueryPtr query, Promise
                                                                                                 dc_id, key_fingerprint);
                                 };
                               }));
-        context_->on_send_message_ok(state->message->random_id, MessageId(ServerMessageId(state->message->message_id)),
-                                     sent->date_, std::move(sent->file_), std::move(send_message_finish_promise));
 
         state->send_result_ = [this, random_id = state->message->random_id,
                                message_id = MessageId(ServerMessageId(state->message->message_id)), date = sent->date_,
@@ -1602,7 +1608,6 @@ void SecretChatActor::on_outbound_send_message_result(NetQueryPtr query, Promise
           this->context_->on_send_message_ok(random_id, message_id, date, get_file(), std::move(promise));
         };
         state->send_result_(std::move(send_message_finish_promise));
-        return;
         return;
       }
     }

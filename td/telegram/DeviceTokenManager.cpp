@@ -15,6 +15,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/base64.h"
+#include "td/utils/buffer.h"
 #include "td/utils/format.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
@@ -136,8 +137,8 @@ void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> devi
       token_type = TokenType::UBUNTU_PHONE;
       break;
     }
-    case td_api::deviceTokenBlackberryPush::ID: {
-      auto device_token = static_cast<td_api::deviceTokenBlackberryPush *>(device_token_ptr.get());
+    case td_api::deviceTokenBlackBerryPush::ID: {
+      auto device_token = static_cast<td_api::deviceTokenBlackBerryPush *>(device_token_ptr.get());
       token = std::move(device_token->token_);
       token_type = TokenType::BLACKBERRY;
       break;
@@ -328,7 +329,7 @@ void DeviceTokenManager::loop() {
           create_storer(telegram_api::account_unregisterDevice(token_type, info.token, std::move(other_user_ids))));
     } else {
       net_query = G()->net_query_creator().create(create_storer(telegram_api::account_registerDevice(
-          token_type, info.token, info.is_app_sandbox, std::move(other_user_ids))));
+          token_type, info.token, info.is_app_sandbox, BufferSlice(), std::move(other_user_ids))));
     }
     info.net_query_id = net_query->id();
     G()->net_query_dispatcher().dispatch_with_callback(std::move(net_query), actor_shared(this, token_type));

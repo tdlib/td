@@ -21,8 +21,6 @@
 #include "td/utils/misc.h"
 #include "td/utils/Status.h"
 
-#include <algorithm>
-
 namespace td {
 
 AudiosManager::AudiosManager(Td *td) : td_(td) {
@@ -42,10 +40,9 @@ tl_object_ptr<td_api::audio> AudiosManager::get_audio_object(FileId file_id) {
   auto &audio = audios_[file_id];
   CHECK(audio != nullptr);
   audio->is_changed = false;
-  return make_tl_object<td_api::audio>(audio->duration, audio->title, audio->performer, audio->file_name,
-                                       audio->mime_type,
-                                       get_photo_size_object(td_->file_manager_.get(), &audio->thumbnail),
-                                       td_->file_manager_->get_file_object(audio->file_id));
+  return make_tl_object<td_api::audio>(
+      audio->duration, audio->title, audio->performer, audio->file_name, audio->mime_type,
+      get_photo_size_object(td_->file_manager_.get(), &audio->thumbnail), td_->file_manager_->get_file_object(file_id));
 }
 
 FileId AudiosManager::on_get_audio(std::unique_ptr<Audio> new_audio, bool replace) {
@@ -176,7 +173,7 @@ void AudiosManager::create_audio(FileId file_id, PhotoSize thumbnail, string fil
   a->file_id = file_id;
   a->file_name = std::move(file_name);
   a->mime_type = std::move(mime_type);
-  a->duration = std::max(duration, 0);
+  a->duration = max(duration, 0);
   a->title = std::move(title);
   a->performer = std::move(performer);
   a->thumbnail = std::move(thumbnail);

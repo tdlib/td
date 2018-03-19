@@ -42,6 +42,10 @@ void ConfigShared::set_option_string(Slice name, Slice value) {
   }
 }
 
+bool ConfigShared::have_option(Slice name) const {
+  return config_pmc_->isset(name.str());
+}
+
 string ConfigShared::get_option(Slice name) const {
   return config_pmc_->get(name.str());
 }

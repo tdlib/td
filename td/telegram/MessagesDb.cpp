@@ -403,7 +403,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
                                                  MessageId last_message_id, int32 date) override {
     int64 left_message_id = first_message_id.get();
     int64 right_message_id = last_message_id.get();
-    CHECK(left_message_id <= right_message_id);
+    CHECK(left_message_id <= right_message_id) << first_message_id << " " << last_message_id;
     TRY_RESULT(first_messages,
                get_messages_inner(get_messages_stmt_.asc_stmt_, dialog_id.get(), left_message_id - 1, 1));
     if (!first_messages.empty()) {
@@ -703,7 +703,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
 
   Result<MessagesDbMessagesResult> get_messages_impl(GetMessagesStmt &stmt, DialogId dialog_id,
                                                      MessageId from_message_id, int32 offset, int32 limit) {
-    CHECK(dialog_id.is_valid());
+    CHECK(dialog_id.is_valid()) << dialog_id;
     CHECK(from_message_id.is_valid());
 
     auto message_id = from_message_id.get();

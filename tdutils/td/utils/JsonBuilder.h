@@ -125,14 +125,14 @@ class JsonChar {
     auto c = val.c_;
     if (c < 0x10000) {
       if (0xD7FF < c && c < 0xE000) {
-        // UTF-8 correctness already checked
+        // UTF-8 correctness has already been checked
         UNREACHABLE();
       }
       return sb << JsonOneChar(c);
     } else if (c <= 0x10ffff) {
       return sb << JsonOneChar(0xD7C0 + (c >> 10)) << JsonOneChar(0xDC00 + (c & 0x3FF));
     } else {
-      // UTF-8 correctness already checked
+      // UTF-8 correctness has already been checked
       UNREACHABLE();
     }
   }
@@ -720,8 +720,11 @@ inline Result<JsonValue> json_decode(MutableSlice from) {
   Parser parser(from);
   const int32 DEFAULT_MAX_DEPTH = 100;
   auto result = do_json_decode(parser, DEFAULT_MAX_DEPTH);
-  if (result.is_ok() && !parser.empty()) {
-    return Status::Error("Expected string end");
+  if (result.is_ok()) {
+    parser.skip_whitespaces();
+    if (!parser.empty()) {
+      return Status::Error("Expected string end");
+    }
   }
   return result;
 }

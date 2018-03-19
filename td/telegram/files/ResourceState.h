@@ -11,8 +11,6 @@
 #include "td/utils/logging.h"
 #include "td/utils/StringBuilder.h"
 
-#include <algorithm>
-
 namespace td {
 
 class ResourceState {
@@ -58,7 +56,7 @@ class ResourceState {
   }
 
   int64 estimated_extra() const {
-    auto new_unused = std::max(limit_, estimated_limit_) - using_ - used_;
+    auto new_unused = max(limit_, estimated_limit_) - using_ - used_;
     new_unused = static_cast<int64>((new_unused + unit_size() - 1) / unit_size() * unit_size());
     return new_unused + using_ + used_ - limit_;
   }

@@ -33,8 +33,6 @@
 
 namespace td {
 
-constexpr size_t TopDialogManager::MAX_TOP_DIALOGS_LIMIT;
-
 static CSlice top_dialog_category_name(TopDialogCategory category) {
   switch (category) {
     case TopDialogCategory::Correspondent:
@@ -235,19 +233,24 @@ void TopDialogManager::do_get_top_dialogs(GetTopDialogsQuery &&query) {
   CHECK(pos < by_category_.size());
   auto &top_dialogs = by_category_[pos];
 
-  auto limit = std::min(query.limit, MAX_TOP_DIALOGS_LIMIT);
+  auto limit = std::min({query.limit, MAX_TOP_DIALOGS_LIMIT, top_dialogs.dialogs.size()});
 
-  limit = std::min(limit, top_dialogs.dialogs.size());
   vector<DialogId> dialog_ids = transform(top_dialogs.dialogs, [](const auto &x) { return x.dialog_id; });
 
   auto promise = PromiseCreator::lambda([query = std::move(query), dialog_ids, limit](Result<Unit>) mutable {
     vector<DialogId> result;
     result.reserve(limit);
     for (auto dialog_id : dialog_ids) {
-      if (dialog_id.get_type() == DialogType::User &&
-          G()->td().get_actor_unsafe()->contacts_manager_->is_user_deleted(dialog_id.get_user_id())) {
-        LOG(INFO) << "Skip deleted " << dialog_id.get_user_id();
-        continue;
+      if (dialog_id.get_type() == DialogType::User) {
+        auto user_id = dialog_id.get_user_id();
+        if (G()->td().get_actor_unsafe()->contacts_manager_->is_user_deleted(user_id)) {
+          LOG(INFO) << "Skip deleted " << user_id;
+          continue;
+        }
+        if (G()->td().get_actor_unsafe()->contacts_manager_->get_my_id("do_get_top_dialogs") == user_id) {
+          LOG(INFO) << "Skip self " << user_id;
+          continue;
+        }
       }
 
       result.push_back(dialog_id);
@@ -410,7 +413,6 @@ void TopDialogManager::loop() {
     return;
   }
 
-  Timestamp wakeup_timeout;
   if (!pending_get_top_dialogs_.empty()) {
     for (auto &query : pending_get_top_dialogs_) {
       do_get_top_dialogs(std::move(query));
@@ -427,6 +429,7 @@ void TopDialogManager::loop() {
     }
   }
 
+  Timestamp wakeup_timeout;
   if (server_sync_state_ == SyncState::Ok) {
     wakeup_timeout.relax(server_sync_timeout);
   } else if (server_sync_state_ == SyncState::None && was_first_sync_) {

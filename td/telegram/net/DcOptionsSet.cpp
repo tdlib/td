@@ -6,6 +6,7 @@
 //
 #include "td/telegram/net/DcOptionsSet.h"
 
+#include "td/utils/format.h"
 #include "td/utils/logging.h"
 
 #include <algorithm>
@@ -97,7 +98,8 @@ Result<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_connection(DcId dc_id, b
   }
 
   if (options.empty()) {
-    return Status::Error("No such connection");
+    return Status::Error(PSLICE() << "No such connection: " << tag("dc_id", dc_id)
+                                  << tag("allow_media_only", allow_media_only) << tag("use_static", use_static));
   }
 
   auto last_error_at = std::min_element(options.begin(), options.end(),

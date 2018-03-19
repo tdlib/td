@@ -13,6 +13,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 
+#include <algorithm>
 #include <limits>
 #include <utility>
 
@@ -64,7 +65,7 @@ static std::vector<PqQuery> gen_pq_queries() {
       res.emplace_back(p, q);
     }
   }
-  sort(res.begin(), res.end(), cmp);
+  std::sort(res.begin(), res.end(), cmp);
   return res;
 }
 

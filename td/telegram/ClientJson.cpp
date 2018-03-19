@@ -16,8 +16,6 @@
 #include "td/utils/logging.h"
 #include "td/utils/Status.h"
 
-#include <algorithm>
-
 namespace td {
 
 Result<Client::Request> ClientJson::to_request(Slice request) {

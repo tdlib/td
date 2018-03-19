@@ -34,6 +34,8 @@ class DialogId {
 
   int64 id = 0;
 
+  static int64 get_peer_id(const tl_object_ptr<telegram_api::Peer> &peer);
+
  public:
   using UnderlyingType = decltype(id);
   DialogId() = default;
@@ -43,6 +45,7 @@ class DialogId {
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int64>::value>>
   DialogId(T dialog_id) = delete;
 
+  explicit DialogId(const tl_object_ptr<telegram_api::dialogPeer> &dialog_peer);
   explicit DialogId(const tl_object_ptr<telegram_api::Peer> &peer);
   explicit DialogId(UserId user_id);
   explicit DialogId(ChatId chat_id);

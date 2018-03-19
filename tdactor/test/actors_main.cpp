@@ -12,7 +12,6 @@
 #include "td/utils/logging.h"
 #include "td/utils/Random.h"
 
-#include <initializer_list>
 #include <limits>
 #include <map>
 #include <utility>

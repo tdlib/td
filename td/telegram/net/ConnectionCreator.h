@@ -26,7 +26,6 @@
 #include "td/utils/Status.h"
 #include "td/utils/Time.h"
 
-#include <algorithm>
 #include <map>
 #include <memory>
 #include <utility>
@@ -104,19 +103,28 @@ class Proxy {
     return type_;
   }
 
+  template <class T>
+  void parse(T &parser);
+
+  template <class T>
+  void store(T &storer) const;
+
  private:
   Type type_{Type::None};
   string server_;
-  int32 port_;
+  int32 port_ = 0;
   string user_;
   string password_;
-
-  template <class T>
-  friend void parse(Proxy &proxy, T &parser);
-
-  template <class T>
-  friend void store(const Proxy &proxy, T &store);
 };
+
+inline bool operator==(const Proxy &lhs, const Proxy &rhs) {
+  return lhs.type() == rhs.type() && lhs.server() == rhs.server() && lhs.port() == rhs.port() &&
+         lhs.user() == rhs.user() && lhs.password() == rhs.password();
+}
+
+inline bool operator!=(const Proxy &lhs, const Proxy &rhs) {
+  return !(lhs == rhs);
+}
 
 class ConnectionCreator : public Actor {
  public:
@@ -161,7 +169,7 @@ class ConnectionCreator : public Actor {
      public:
       void add_event(int32 now) {
         wakeup_at_ = now + next_delay_;
-        next_delay_ = std::min(MAX_BACKOFF, next_delay_ * 2);
+        next_delay_ = min(MAX_BACKOFF, next_delay_ * 2);
       }
       int32 get_wakeup_at() const {
         return wakeup_at_;

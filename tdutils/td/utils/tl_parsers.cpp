@@ -8,7 +8,7 @@
 
 namespace td {
 
-const unsigned char TlParser::empty_data[sizeof(UInt256)] = {};  // static zero-initialized
+alignas(4) const unsigned char TlParser::empty_data[sizeof(UInt256)] = {};  // static zero-initialized
 
 void TlParser::set_error(const string &error_message) {
   if (error.empty()) {

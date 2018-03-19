@@ -68,7 +68,7 @@ class GenAuthKeyActor : public Actor {
   ActorOwn<mtproto::HandshakeActor> child_;
 
   void start_up() override {
-    // Bug in in android clang and MSVC?
+    // Bug in Android clang and MSVC
     // std::tuple<Result<int>> b(std::forward_as_tuple(Result<int>()));
 
     callback_->request_raw_connection(PromiseCreator::lambda(

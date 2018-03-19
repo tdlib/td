@@ -42,7 +42,9 @@ class MessageEntity {
     Pre,
     PreCode,
     TextUrl,
-    MentionName
+    MentionName,
+    Cashtag,
+    PhoneNumber
   };
   Type type;
   int32 offset;
@@ -140,16 +142,12 @@ vector<tl_object_ptr<td_api::textEntity>> get_text_entities_object(const vector<
 
 td_api::object_ptr<td_api::formattedText> get_formatted_text_object(const FormattedText &text);
 
-// sorts entities, removes intersecting and empty entities
-void fix_entities(vector<MessageEntity> &entities);
-
 vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool only_urls = false);
-
-vector<MessageEntity> merge_entities(vector<MessageEntity> old_entities, vector<MessageEntity> new_entities);
 
 vector<Slice> find_mentions(Slice str);
 vector<Slice> find_bot_commands(Slice str);
 vector<Slice> find_hashtags(Slice str);
+vector<Slice> find_cashtags(Slice str);
 bool is_email_address(Slice str);
 vector<std::pair<Slice, bool>> find_urls(Slice str);  // slice + is_email_address
 
@@ -166,8 +164,13 @@ vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entiti
     const vector<MessageEntity> &entities);
 
 vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manager,
-                                           vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities);
+                                           vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,
+                                           const char *source);
 
 vector<MessageEntity> get_message_entities(vector<tl_object_ptr<secret_api::MessageEntity>> &&secret_entities);
+
+// like clean_input_string but also validates entities
+Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool allow_empty, bool skip_new_entities,
+                          bool skip_bot_commands, bool for_draft) TD_WARN_UNUSED_RESULT;
 
 }  // namespace td

@@ -16,6 +16,8 @@
 #include "td/utils/port/Clocks.h"
 #include "td/utils/ScopeGuard.h"
 
+#include <utility>
+
 #if TD_DARWIN
 #include <mach/mach.h>
 #include <sys/time.h>
@@ -35,32 +37,56 @@
 #include <sys/syscall.h>
 #endif
 
-#include <cinttypes>
-#include <cstdio>
-#include <cstring>
-
 namespace td {
+
 namespace detail {
+
+template <class...>
+struct voider {
+  using type = void;
+};
+template <class... T>
+using void_t = typename voider<T...>::type;
+
+template <class T, class = void>
+struct TimeNsec {
+  static std::pair<int, int> get(const T &) {
+    T().warning("Platform lacks support of precise access/modification file times, comment this line to continue");
+    return {0, 0};
+  }
+};
+
+template <class T>
+struct TimeNsec<T, void_t<char, decltype(T::st_atimespec), decltype(T::st_mtimespec)>> {
+  static std::pair<decltype(decltype(T::st_atimespec)::tv_nsec), decltype(decltype(T::st_mtimespec)::tv_nsec)> get(
+      const T &s) {
+    return {s.st_atimespec.tv_nsec, s.st_mtimespec.tv_nsec};
+  }
+};
+
+template <class T>
+struct TimeNsec<T, void_t<short, decltype(T::st_atimensec), decltype(T::st_mtimensec)>> {
+  static std::pair<decltype(T::st_atimensec), decltype(T::st_mtimensec)> get(const T &s) {
+    return {s.st_atimensec, s.st_mtimensec};
+  }
+};
+
+template <class T>
+struct TimeNsec<T, void_t<int, decltype(T::st_atim), decltype(T::st_mtim)>> {
+  static std::pair<decltype(decltype(T::st_atim)::tv_nsec), decltype(decltype(T::st_mtim)::tv_nsec)> get(const T &s) {
+    return {s.st_atim.tv_nsec, s.st_mtim.tv_nsec};
+  }
+};
+
 Stat from_native_stat(const struct ::stat &buf) {
+  auto time_nsec = TimeNsec<struct ::stat>::get(buf);
+
   Stat res;
-#if TD_DARWIN
-  res.mtime_nsec_ = buf.st_mtimespec.tv_sec * 1000000000ll + buf.st_mtimespec.tv_nsec;  // khm
-  res.atime_nsec_ = buf.st_atimespec.tv_sec * 1000000000ll + buf.st_atimespec.tv_nsec;
-#else
-#if defined(_BSD_SOURCE) || defined(_SVID_SOURCE) || _POSIX_C_SOURCE >= 200809L || _XOPEN_SOURCE >= 700 || TD_EMSCRIPTEN
-  res.mtime_nsec_ = buf.st_mtime * 1000000000ll + buf.st_mtim.tv_nsec;
-  res.atime_nsec_ = buf.st_atime * 1000000000ll + buf.st_atim.tv_nsec;
-#else
-  res.mtime_nsec_ = buf.st_mtime * 1000000000ll + buf.st_mtimensec;
-  res.atime_nsec_ = buf.st_atime * 1000000000ll + buf.st_atimensec;
-#endif
-#endif
+  res.atime_nsec_ = static_cast<uint64>(buf.st_atime) * 1000000000 + time_nsec.first;
+  res.mtime_nsec_ = static_cast<uint64>(buf.st_mtime) * 1000000000 + time_nsec.second / 1000 * 1000;
   res.size_ = buf.st_size;
   res.is_dir_ = (buf.st_mode & S_IFMT) == S_IFDIR;
   res.is_reg_ = (buf.st_mode & S_IFMT) == S_IFREG;
-  res.mtime_nsec_ /= 1000;
-  res.mtime_nsec_ *= 1000;
-
   return res;
 }
 
@@ -68,8 +94,7 @@ Stat fstat(int native_fd) {
   struct ::stat buf;
   int err = fstat(native_fd, &buf);
   auto fstat_errno = errno;
-  LOG_IF(FATAL, err < 0) << Status::PosixError(fstat_errno, PSLICE()
-                                                                << "stat of " << tag("fd", native_fd) << " failed");
+  LOG_IF(FATAL, err < 0) << Status::PosixError(fstat_errno, PSLICE() << "stat for fd " << native_fd << " failed");
   return detail::from_native_stat(buf);
 }
 
@@ -80,7 +105,6 @@ Status update_atime(int native_fd) {
   times[0].tv_nsec = UTIME_NOW;
   // modify time
   times[1].tv_nsec = UTIME_OMIT;
-  // if (utimensat(native_fd, nullptr, times, 0) < 0) {
   if (futimens(native_fd, times) < 0) {
     auto status = OS_ERROR(PSLICE() << "futimens " << tag("fd", native_fd));
     LOG(WARNING) << status;
@@ -166,7 +190,6 @@ Result<MemStat> mem_stat() {
 
   const char *s = mem;
   MemStat res;
-  std::memset(&res, 0, sizeof(res));
   while (*s) {
     const char *name_begin = s;
     while (*s != 0 && *s != '\n') {
@@ -192,14 +215,18 @@ Result<MemStat> mem_stat() {
       x = &res.resident_size_;
     }
     if (x != nullptr) {
-      unsigned long long xx;
-      if (name_end == s || name_end + 1 == s || std::sscanf(name_end + 1, "%llu", &xx) != 1) {
-        LOG(ERROR) << "Failed to parse memory stats" << tag("line", Slice(name_begin, s))
-                   << tag(":number", Slice(name_end, s));
+      Slice value(name_end, s);
+      if (!value.empty() && value[0] == ':') {
+        value.remove_prefix(1);
+      }
+      value = trim(value);
+      value = split(value).first;
+      auto r_mem = to_integer_safe<uint64>(value);
+      if (r_mem.is_error()) {
+        LOG(ERROR) << "Failed to parse memory stats " << tag("name", name) << tag("value", value);
         *x = static_cast<uint64>(-1);
       } else {
-        xx *= 1024;  // memory is in kB
-        *x = static_cast<uint64>(xx);
+        *x = r_mem.ok() * 1024;  // memory is in kB
       }
     }
     if (*s == 0) {
@@ -213,6 +240,84 @@ Result<MemStat> mem_stat() {
   return Status::Error("Not supported");
 #endif
 }
+
+#if TD_LINUX
+Status cpu_stat_self(CpuStat &stat) {
+  TRY_RESULT(fd, FileFd::open("/proc/self/stat", FileFd::Read));
+  SCOPE_EXIT {
+    fd.close();
+  };
+
+  constexpr int TMEM_SIZE = 10000;
+  char mem[TMEM_SIZE];
+  TRY_RESULT(size, fd.read(MutableSlice(mem, TMEM_SIZE - 1)));
+  CHECK(size < TMEM_SIZE - 1);
+  mem[size] = 0;
+
+  char *s = mem;
+  char *t = mem + size;
+  int pass_cnt = 0;
+
+  while (pass_cnt < 15) {
+    if (pass_cnt == 13) {
+      stat.process_user_ticks = to_integer<uint64>(Slice(s, t));
+    }
+    if (pass_cnt == 14) {
+      stat.process_system_ticks = to_integer<uint64>(Slice(s, t));
+    }
+    while (*s && *s != ' ') {
+      s++;
+    }
+    if (*s == ' ') {
+      s++;
+      pass_cnt++;
+    } else {
+      return Status::Error("unexpected end of proc file");
+    }
+  }
+  return Status::OK();
+}
+Status cpu_stat_total(CpuStat &stat) {
+  TRY_RESULT(fd, FileFd::open("/proc/stat", FileFd::Read));
+  SCOPE_EXIT {
+    fd.close();
+  };
+
+  constexpr int TMEM_SIZE = 10000;
+  char mem[TMEM_SIZE];
+  TRY_RESULT(size, fd.read(MutableSlice(mem, TMEM_SIZE - 1)));
+  CHECK(size < TMEM_SIZE - 1);
+  mem[size] = 0;
+
+  uint64 sum = 0, cur = 0;
+  for (size_t i = 0; i < size; i++) {
+    int c = mem[i];
+    if (c >= '0' && c <= '9') {
+      cur = cur * 10 + (uint64)c - '0';
+    } else {
+      sum += cur;
+      cur = 0;
+      if (c == '\n') {
+        break;
+      }
+    }
+  }
+
+  stat.total_ticks = sum;
+  return Status::OK();
+}
+#endif
+
+Result<CpuStat> cpu_stat() {
+#if TD_LINUX
+  CpuStat stat;
+  TRY_STATUS(cpu_stat_self(stat));
+  TRY_STATUS(cpu_stat_total(stat));
+  return stat;
+#else
+  return Status::Error("Not supported");
+#endif
+}
 }  // namespace td
 #endif
 
@@ -222,6 +327,10 @@ namespace td {
 Result<Stat> stat(CSlice path) {
   TRY_RESULT(fd, FileFd::open(path, FileFd::Flags::Read));
   return fd.stat();
+}
+
+Result<CpuStat> cpu_stat() {
+  return Status::Error("Not supported");
 }
 
 }  // namespace td

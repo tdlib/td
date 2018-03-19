@@ -13,6 +13,9 @@
 #include "td/utils/Slice.h"
 
 namespace td {
+
+static int VERBOSITY_NAME(socks5) = VERBOSITY_NAME(DEBUG);
+
 Socks5::Socks5(SocketFd socket_fd, IPAddress ip_address, string username, string password,
                std::unique_ptr<Callback> callback, ActorShared<> parent)
     : fd_(std::move(socket_fd))
@@ -22,15 +25,19 @@ Socks5::Socks5(SocketFd socket_fd, IPAddress ip_address, string username, string
     , callback_(std::move(callback))
     , parent_(std::move(parent)) {
 }
+
 void Socks5::on_error(Status status) {
   CHECK(status.is_error());
+  VLOG(socks5) << "Receive " << status;
   if (callback_) {
     callback_->set_result(std::move(status));
     callback_.reset();
   }
   stop();
 }
+
 void Socks5::tear_down() {
+  VLOG(socks5) << "Finish to connect to proxy";
   unsubscribe(fd_.get_fd());
   fd_.get_fd().set_observer(nullptr);
   if (callback_) {
@@ -44,12 +51,17 @@ void Socks5::hangup() {
 }
 
 void Socks5::start_up() {
+  VLOG(socks5) << "Begin to connect to proxy";
   fd_.get_fd().set_observer(this);
   subscribe(fd_.get_fd());
   set_timeout_in(10);
+  if (can_write(fd_)) {
+    loop();
+  }
 }
 
 void Socks5::send_greeting() {
+  VLOG(socks5) << "Send greeting to proxy";
   CHECK(state_ == State::SendGreeting);
   state_ = State::WaitGreetingResponse;
 
@@ -68,6 +80,7 @@ void Socks5::send_greeting() {
 
 Status Socks5::wait_greeting_response() {
   auto &buf = fd_.input_buffer();
+  VLOG(socks5) << "Receive greeting response of size " << buf.size();
   if (buf.size() < 2) {
     return Status::OK();
   }
@@ -89,6 +102,7 @@ Status Socks5::wait_greeting_response() {
 }
 
 Status Socks5::send_username_password() {
+  VLOG(socks5) << "Send username and password";
   if (username_.size() >= 128) {
     return Status::Error("Username is too long");
   }
@@ -110,6 +124,7 @@ Status Socks5::send_username_password() {
 
 Status Socks5::wait_password_response() {
   auto &buf = fd_.input_buffer();
+  VLOG(socks5) << "Receive password response of size " << buf.size();
   if (buf.size() < 2) {
     return Status::OK();
   }
@@ -128,6 +143,7 @@ Status Socks5::wait_password_response() {
 }
 
 void Socks5::send_ip_address() {
+  VLOG(socks5) << "Send IP address";
   CHECK(state_ == State::SendIpAddress);
   callback_->on_connected();
   string request;
@@ -155,6 +171,7 @@ void Socks5::send_ip_address() {
 Status Socks5::wait_ip_address_response() {
   CHECK(state_ == State::WaitIpAddressResponse);
   auto it = fd_.input_buffer().clone();
+  VLOG(socks5) << "Receive IP address response of size " << it.size();
   if (it.size() < 4) {
     return Status::OK();
   }
@@ -224,7 +241,9 @@ void Socks5::loop() {
     on_error(Status::Error("Connection closed"));
   }
 }
+
 void Socks5::timeout_expired() {
   on_error(Status::Error("Timeout expired"));
 }
+
 }  // namespace td

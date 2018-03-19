@@ -27,12 +27,19 @@ set(TL_TD_JSON_AUTO
   PARENT_SCOPE
 )
 
-set(TL_TD_API_TLO ${CMAKE_CURRENT_SOURCE_DIR}/scheme/td_api.tlo PARENT_SCOPE)
+set(TL_TD_API_TLO ${CMAKE_CURRENT_SOURCE_DIR}/scheme/td_api.tlo)
+set(TL_TD_API_TLO ${TL_TD_API_TLO} PARENT_SCOPE)
 
 set(TL_C_AUTO
   ${CMAKE_CURRENT_SOURCE_DIR}/auto/td/telegram/td_tdc_api.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/auto/td/telegram/td_tdc_api.h
   ${CMAKE_CURRENT_SOURCE_DIR}/auto/td/telegram/td_tdc_api_inner.h
+  PARENT_SCOPE
+)
+
+set(TL_DOTNET_AUTO
+  ${CMAKE_CURRENT_SOURCE_DIR}/auto/td/telegram/TdDotNetApi.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/auto/td/telegram/TdDotNetApi.h
   PARENT_SCOPE
 )
 
@@ -79,7 +86,7 @@ set(TL_GENERATE_JSON_SOURCE
 if (NOT CMAKE_CROSSCOMPILING)
   find_program(PHP_EXECUTABLE php)
 
-  if (PHP_EXECUTABLE)
+  if (PHP_EXECUTABLE AND NOT TD_ENABLE_DOTNET)
     set(GENERATE_COMMON_CMD generate_common && ${PHP_EXECUTABLE} DoxygenTlDocumentationGenerator.php scheme/td_api.tl auto/td/telegram/td_api.h)
   else()
     set(GENERATE_COMMON_CMD generate_common)
@@ -91,10 +98,13 @@ if (NOT CMAKE_CROSSCOMPILING)
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND ${GENERATE_COMMON_CMD}
     COMMENT "Generate common tl source files"
-    DEPENDS generate_common scheme/mtproto_api.tlo scheme/telegram_api.tlo scheme/secret_api.tlo scheme/td_api.tlo
+    DEPENDS generate_common scheme/mtproto_api.tlo scheme/telegram_api.tlo scheme/secret_api.tlo ${TL_TD_API_TLO} DoxygenTlDocumentationGenerator.php
   )
   if (TD_ENABLE_JNI)
     target_compile_definitions(generate_common PRIVATE TD_ENABLE_JNI=1)
+  endif()
+  if (TD_ENABLE_DOTNET)
+    target_compile_definitions(generate_common PRIVATE DISABLE_HPP_DOCUMENTATION=1)
   endif()
 
   add_executable(generate_c ${TL_GENERATE_C_SOURCE})
@@ -103,7 +113,7 @@ if (NOT CMAKE_CROSSCOMPILING)
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND generate_c
     COMMENT "Generate C tl source files"
-    DEPENDS generate_c scheme/td_api.tlo
+    DEPENDS generate_c ${TL_TD_API_TLO}
   )
 
   add_executable(td_generate_java_api ${TL_GENERATE_JAVA_SOURCE})
@@ -115,7 +125,7 @@ if (NOT CMAKE_CROSSCOMPILING)
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMAND generate_json
     COMMENT "Generate JSON tl source files"
-    DEPENDS generate_json scheme/td_api.tlo
+    DEPENDS generate_json ${TL_TD_API_TLO}
   )
 
   if (TD_ENABLE_JNI)
@@ -123,4 +133,24 @@ if (NOT CMAKE_CROSSCOMPILING)
     install(FILES JavadocTlDocumentationGenerator.php TlDocumentationGenerator.php DESTINATION bin/td/generate)
     install(FILES scheme/td_api.tlo scheme/td_api.tl DESTINATION bin/td/generate/scheme)
   endif()
+
+  if (TD_ENABLE_DOTNET)
+    if (PHP_EXECUTABLE)
+      set(GENERATE_DOTNET_API_CMD td_generate_dotnet_api ${TL_TD_API_TLO} && ${PHP_EXECUTABLE} DotnetTlDocumentationGenerator.php scheme/td_api.tl auto/td/telegram/TdDotNetApi.h)
+    else()
+      set(GENERATE_DOTNET_API_CMD td_generate_dotnet_api ${TL_TD_API_TLO})
+    endif()
+
+    add_executable(td_generate_dotnet_api generate_dotnet.cpp tl_writer_dotnet.h)
+    target_link_libraries(td_generate_dotnet_api PRIVATE tdtl)
+    add_custom_target(generate_dotnet_api
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+      COMMAND ${GENERATE_DOTNET_API_CMD} ${TL_TD_API_TLO}
+      COMMENT "Generate .NET API files"
+      DEPENDS td_generate_dotnet_api ${TL_TD_API_TLO} DotnetTlDocumentationGenerator.php
+    )
+  endif()
+
+  add_executable(remove_documentation remove_documentation.cpp)
+  target_link_libraries(remove_documentation PRIVATE tdtl)
 endif()

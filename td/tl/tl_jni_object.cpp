@@ -145,7 +145,7 @@ static void utf16_to_utf8(const jchar *p, jsize len, char *res) {
       *res++ = static_cast<char>(0x80 | ((cur >> 6) & 0x3f));
       *res++ = static_cast<char>(0x80 | (cur & 0x3f));
     } else {
-      // correctness already checked
+      // correctness is already checked
       unsigned int next = p[++i];
       unsigned int val = ((cur - 0xD800) << 10) + next - 0xDC00 + 0x10000;
 

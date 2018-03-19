@@ -38,6 +38,11 @@ class SendCodeHelper {
     return phone_registered_;
   }
 
+  template <class T>
+  void store(T &storer) const;
+  template <class T>
+  void parse(T &parser);
+
  private:
   static constexpr int32 AUTH_SEND_CODE_FLAG_ALLOW_FLASH_CALL = 1 << 0;
 
@@ -46,7 +51,7 @@ class SendCodeHelper {
   static constexpr int32 SENT_CODE_FLAG_HAS_TIMEOUT = 1 << 2;
 
   struct AuthenticationCodeInfo {
-    enum class Type { None, Message, Sms, Call, FlashCall };
+    enum class Type : int32 { None, Message, Sms, Call, FlashCall };
     Type type = Type::None;
     int32 length = 0;
     string pattern;
@@ -55,6 +60,11 @@ class SendCodeHelper {
     AuthenticationCodeInfo(Type type, int length, string pattern)
         : type(type), length(length), pattern(std::move(pattern)) {
     }
+
+    template <class T>
+    void store(T &storer) const;
+    template <class T>
+    void parse(T &parser);
   };
 
   string phone_number_;
@@ -63,7 +73,7 @@ class SendCodeHelper {
 
   SendCodeHelper::AuthenticationCodeInfo sent_code_info_;
   SendCodeHelper::AuthenticationCodeInfo next_code_info_;
-  int32 next_code_timeout_;
+  Timestamp next_code_timestamp_;
 
   static AuthenticationCodeInfo get_authentication_code_info(
       tl_object_ptr<telegram_api::auth_CodeType> &&code_type_ptr);
@@ -111,6 +121,7 @@ class AuthManager : public NetActor {
   AuthManager(int32 api_id, const string &api_hash, ActorShared<> parent);
 
   bool is_bot() const;
+  void set_is_bot(bool is_bot);
 
   bool is_authorized() const;
   void get_state(uint64 query_id);
@@ -130,7 +141,15 @@ class AuthManager : public NetActor {
  private:
   static constexpr size_t MAX_NAME_LENGTH = 255;  // server side limit
 
-  enum class State { None, WaitPhoneNumber, WaitCode, WaitPassword, Ok, LoggingOut, Closing } state_ = State::None;
+  enum class State : int32 {
+    None,
+    WaitPhoneNumber,
+    WaitCode,
+    WaitPassword,
+    Ok,
+    LoggingOut,
+    Closing
+  } state_ = State::None;
   enum class NetQueryType {
     None,
     SignIn,
@@ -146,26 +165,82 @@ class AuthManager : public NetActor {
     DeleteAccount
   };
 
+  struct WaitPasswordState {
+    string current_salt_;
+    string new_salt_;
+    string hint_;
+    bool has_recovery_;
+    string email_address_pattern_;
+
+    template <class T>
+    void store(T &storer) const;
+    template <class T>
+    void parse(T &parser);
+  };
+
+  struct DbState {
+    State state_;
+    int32 api_id_;
+    string api_hash_;
+    Timestamp state_timestamp_;
+
+    // WaitCode
+    SendCodeHelper send_code_helper_;
+
+    //WaitPassword
+    WaitPasswordState wait_password_state_;
+
+    static DbState wait_code(int32 api_id, string api_hash, SendCodeHelper send_code_helper) {
+      DbState state;
+      state.state_ = State::WaitCode;
+      state.api_id_ = api_id;
+      state.api_hash_ = api_hash;
+      state.send_code_helper_ = std::move(send_code_helper);
+      state.state_timestamp_ = Timestamp::now();
+      return state;
+    }
+
+    static DbState wait_password(int32 api_id, string api_hash, WaitPasswordState wait_password_state) {
+      DbState state;
+      state.state_ = State::WaitPassword;
+      state.api_id_ = api_id;
+      state.api_hash_ = api_hash;
+      state.wait_password_state_ = std::move(wait_password_state);
+      state.state_timestamp_ = Timestamp::now();
+      return state;
+    }
+
+    template <class T>
+    void store(T &storer) const;
+    template <class T>
+    void parse(T &parser);
+  };
+
+  bool load_state();
+  void save_state();
+
   ActorShared<> parent_;
 
+  // STATE
+  // from contructor
   int32 api_id_;
   string api_hash_;
 
+  // State::WaitCode
   SendCodeHelper send_code_helper_;
 
+  // for bots
   string bot_token_;
   uint64 query_id_ = 0;
 
-  string current_salt_;
-  string new_salt_;
-  string hint_;
-  bool has_recovery_;
-  string email_address_pattern_;
+  WaitPasswordState wait_password_state_;
 
   bool was_check_bot_token_ = false;
   bool is_bot_ = false;
   uint64 net_query_id_ = 0;
   NetQueryType net_query_type_;
+
+  vector<uint64> pending_get_authorization_state_requests_;
 
   void on_new_query(uint64 query_id);
   void on_query_error(Status status);
@@ -183,7 +258,7 @@ class AuthManager : public NetActor {
 
   void on_result(NetQueryPtr result) override;
 
-  void update_state(State new_state, bool force = false);
+  void update_state(State new_state, bool force = false, bool should_save_state = true);
   tl_object_ptr<td_api::AuthorizationState> get_authorization_state_object(State authorization_state) const;
   void send_ok(uint64 query_id);
 

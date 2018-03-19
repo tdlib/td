@@ -8,47 +8,67 @@
 
 #include "td/utils/common.h"
 
+#include <cstdlib>
+#include <memory>
 #include <type_traits>
 #include <utility>
 
 namespace td {
-
-namespace detail {
-template <class FunctionT>
-class ScopeGuard {
+class Guard {
  public:
-  explicit ScopeGuard(const FunctionT &func) : func_(func) {
+  Guard() = default;
+  Guard(const Guard &other) = delete;
+  Guard &operator=(const Guard &other) = delete;
+  Guard(Guard &&other) = default;
+  Guard &operator=(Guard &&other) = default;
+  virtual ~Guard() = default;
+  virtual void dismiss() {
+    std::abort();
   }
-  explicit ScopeGuard(FunctionT &&func) : func_(std::move(func)) {
+};
+
+template <class FunctionT>
+class LambdaGuard : public Guard {
+ public:
+  explicit LambdaGuard(const FunctionT &func) : func_(func) {
   }
-  ScopeGuard(const ScopeGuard &other) = delete;
-  ScopeGuard &operator=(const ScopeGuard &other) = delete;
-  ScopeGuard(ScopeGuard &&other) : dismissed_(other.dismissed_), func_(std::move(other.func_)) {
+  explicit LambdaGuard(FunctionT &&func) : func_(std::move(func)) {
+  }
+  LambdaGuard(const LambdaGuard &other) = delete;
+  LambdaGuard &operator=(const LambdaGuard &other) = delete;
+  LambdaGuard(LambdaGuard &&other) : func_(std::move(other.func_)), dismissed_(other.dismissed_) {
     other.dismissed_ = true;
   }
-  ScopeGuard &operator=(ScopeGuard &&other) = delete;
+  LambdaGuard &operator=(LambdaGuard &&other) = delete;
 
   void dismiss() {
     dismissed_ = true;
   }
 
-  ~ScopeGuard() {
+  ~LambdaGuard() {
     if (!dismissed_) {
       func_();
     }
   }
 
  private:
-  bool dismissed_ = false;
   FunctionT func_;
+  bool dismissed_ = false;
 };
-}  // namespace detail
+
+template <class F>
+std::unique_ptr<Guard> create_lambda_guard(F &&f) {
+  return std::make_unique<LambdaGuard<F>>(std::forward<F>(f));
+}
+template <class F>
+std::shared_ptr<Guard> create_shared_lambda_guard(F &&f) {
+  return std::make_shared<LambdaGuard<F>>(std::forward<F>(f));
+}
 
 enum class ScopeExit {};
-
 template <class FunctionT>
 auto operator+(ScopeExit, FunctionT &&func) {
-  return detail::ScopeGuard<std::decay_t<FunctionT>>(std::forward<FunctionT>(func));
+  return LambdaGuard<std::decay_t<FunctionT>>(std::forward<FunctionT>(func));
 }
 
 }  // namespace td

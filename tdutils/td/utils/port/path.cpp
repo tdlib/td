@@ -50,10 +50,18 @@ Status set_temporary_dir(CSlice dir) {
 }
 
 Status mkpath(CSlice path, int32 mode) {
+  Status first_error = Status::OK();
+  Status last_error = Status::OK();
   for (size_t i = 1; i < path.size(); i++) {
     if (path[i] == TD_DIR_SLASH) {
-      TRY_STATUS(mkdir(path.substr(0, i).str(), mode))
+      last_error = mkdir(path.substr(0, i).str(), mode);
+      if (last_error.is_error() && first_error.is_ok()) {
+        first_error = last_error.clone();
+      }
     }
+  }
+  if (last_error.is_error()) {
+    return first_error;
   }
   return Status::OK();
 }
@@ -231,14 +239,21 @@ Status rename(CSlice from, CSlice to) {
   return Status::OK();
 }
 
-Result<string> realpath(CSlice slice, bool /*ignore_access_denied*/) {
+Result<string> realpath(CSlice slice, bool ignore_access_denied) {
   wchar_t buf[MAX_PATH + 1];
   TRY_RESULT(wslice, to_wstring(slice));
   auto status = GetFullPathNameW(wslice.c_str(), MAX_PATH, buf, nullptr);
+  string res;
   if (status == 0) {
-    return OS_ERROR(PSLICE() << "GetFullPathNameW failed for \"" << slice << '"');
+    if (ignore_access_denied && errno == ERROR_ACCESS_DENIED) {
+      res = slice.str();
+    } else {
+      return OS_ERROR(PSLICE() << "GetFullPathNameW failed for \"" << slice << '"');
+    }
+  } else {
+    TRY_RESULT(t_res, from_wstring(buf));
+    res = std::move(t_res);
   }
-  TRY_RESULT(res, from_wstring(buf));
   if (res.empty()) {
     return Status::Error("Empty path");
   }

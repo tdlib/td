@@ -25,6 +25,7 @@
 #include "td/utils/Status.h"
 
 #include <memory>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 
@@ -94,6 +95,7 @@ class Td final : public NetQueryCallback {
   void on_authorization_lost();
 
   void on_online_updated(bool force, bool send_update);
+  void on_update_status_success(bool is_online);
 
   void on_channel_unban_timeout(int64 channel_id_long);
 
@@ -191,8 +193,11 @@ class Td final : public NetQueryCallback {
   static td_api::object_ptr<td_api::Object> static_request(td_api::object_ptr<td_api::Function> function);
 
  private:
-  static constexpr const char *tdlib_version = "1.1.1";
+  static constexpr const char *TDLIB_VERSION = "1.2.0";
+  static constexpr int64 ONLINE_ALARM_ID = 0;
   static constexpr int32 ONLINE_TIMEOUT = 240;
+  static constexpr int64 PING_SERVER_ALARM_ID = -1;
+  static constexpr int32 PING_SERVER_TIMEOUT = 300;
 
   void send_result(uint64 id, tl_object_ptr<td_api::Object> object);
   void send_error(uint64 id, Status error);
@@ -205,6 +210,8 @@ class Td final : public NetQueryCallback {
 
   void inc_request_actor_refcnt();
   void dec_request_actor_refcnt();
+
+  void on_closed();
 
   void dec_stop_cnt();
 
@@ -229,10 +236,14 @@ class Td final : public NetQueryCallback {
   Container<ActorOwn<Actor>> request_actors_;
 
   bool is_online_ = false;
+  NetQueryRef update_status_query_;
+
+  int64 alarm_id_ = 1;
+  std::unordered_map<int64, uint64> pending_alarms_;
   MultiTimeout alarm_timeout_;
 
-  static void on_alarm_timeout_callback(void *td_ptr, int64 request_id);
-  void on_alarm_timeout(int64 request_id);
+  static void on_alarm_timeout_callback(void *td_ptr, int64 alarm_id);
+  void on_alarm_timeout(int64 alarm_id);
 
   template <class T>
   friend class RequestActor;              // uses send_result/send_error
@@ -245,6 +256,8 @@ class Td final : public NetQueryCallback {
   void invalidate_handler(ResultHandler *handler);
   void clear_handlers();
   // void destroy_handler(ResultHandler *handler);
+
+  static bool is_internal_config_option(Slice name);
 
   void on_config_option_updated(const string &name);
 
@@ -346,6 +359,12 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::terminateAllOtherSessions &request);
 
+  void on_request(uint64 id, const td_api::getConnectedWebsites &request);
+
+  void on_request(uint64 id, const td_api::disconnectWebsite &request);
+
+  void on_request(uint64 id, const td_api::disconnectAllWebsites &request);
+
   void on_request(uint64 id, const td_api::getMe &request);
 
   void on_request(uint64 id, const td_api::getUser &request);
@@ -365,6 +384,10 @@ class Td final : public NetQueryCallback {
   void on_request(uint64 id, const td_api::getChat &request);
 
   void on_request(uint64 id, const td_api::getMessage &request);
+
+  void on_request(uint64 id, const td_api::getRepliedMessage &request);
+
+  void on_request(uint64 id, const td_api::getChatPinnedMessage &request);
 
   void on_request(uint64 id, const td_api::getMessages &request);
 
@@ -409,6 +432,8 @@ class Td final : public NetQueryCallback {
   void on_request(uint64 id, const td_api::clearRecentlyFoundChats &request);
 
   void on_request(uint64 id, const td_api::getGroupsInCommon &request);
+
+  void on_request(uint64 id, td_api::checkChatUsername &request);
 
   void on_request(uint64 id, const td_api::getCreatedPublicChats &request);
 
@@ -622,6 +647,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::getStickers &request);
 
+  void on_request(uint64 id, td_api::searchStickers &request);
+
   void on_request(uint64 id, const td_api::getInstalledStickerSets &request);
 
   void on_request(uint64 id, const td_api::getArchivedStickerSets &request);
@@ -633,6 +660,10 @@ class Td final : public NetQueryCallback {
   void on_request(uint64 id, const td_api::getStickerSet &request);
 
   void on_request(uint64 id, td_api::searchStickerSet &request);
+
+  void on_request(uint64 id, td_api::searchInstalledStickerSets &request);
+
+  void on_request(uint64 id, td_api::searchStickerSets &request);
 
   void on_request(uint64 id, const td_api::changeStickerSet &request);
 
@@ -732,6 +763,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::removeRecentHashtag &request);
 
+  void on_request(uint64 id, const td_api::getCountryCode &request);
+
   void on_request(uint64 id, const td_api::getInviteText &request);
 
   void on_request(uint64 id, const td_api::getTermsOfService &request);
@@ -763,7 +796,7 @@ class Td final : public NetQueryCallback {
   void on_request(uint64 id, td_api::testCallVectorStringObject &request);
 
   template <class T>
-  static td_api::object_ptr<td_api::Object> do_static_request(const T &);
+  static td_api::object_ptr<td_api::Object> do_static_request(const T &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getTextEntities &request);
   static td_api::object_ptr<td_api::Object> do_static_request(td_api::parseTextEntities &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getFileMimeType &request);
@@ -773,7 +806,7 @@ class Td final : public NetQueryCallback {
   void clear();
   void close_impl(bool destroy_flag);
   Status fix_parameters(TdParameters &parameters) TD_WARN_UNUSED_RESULT;
-  Status set_td_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters) TD_WARN_UNUSED_RESULT;
+  Status set_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters) TD_WARN_UNUSED_RESULT;
 
   // Actor
   void start_up() override;

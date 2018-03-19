@@ -43,7 +43,7 @@ class DoxygenTlDocumentationGenerator extends TlDocumentationGenerator
         return $doc;
     }
 
-    protected function getFieldName($name)
+    protected function getFieldName($name, $class_name)
     {
         if (substr($name, 0, 6) === 'param_') {
             $name = substr($name, 6);
@@ -53,7 +53,7 @@ class DoxygenTlDocumentationGenerator extends TlDocumentationGenerator
 
     protected function getClassName($type)
     {
-        return implode(explode('.', trim($type, "\n ;")));
+        return implode(explode('.', trim($type, "\r\n ;")));
     }
 
     protected function getTypeName($type)
@@ -115,11 +115,11 @@ class DoxygenTlDocumentationGenerator extends TlDocumentationGenerator
     protected function needSkipLine($line)
     {
         $tline = trim($line);
-        return empty($tline) || $tline[0] == '}' || $tline == 'public:' || strpos($line, '#pragma ') === 0 ||
+        return empty($tline) || $tline[0] === '}' || $tline === 'public:' || strpos($line, '#pragma ') === 0 ||
             strpos($line, '#include <') === 0 || strpos($tline, 'return ') === 0 || strpos($tline, 'namespace') === 0 ||
             preg_match('/class [A-Za-z0-9_]*;/', $line) || $tline === 'if (value == nullptr) {' ||
             strpos($line, 'JNIEnv') || strpos($line, 'jfieldID') || $tline === 'virtual ~Object() {' ||
-            $tline == 'virtual void store(TlStorerToString &s, const char *field_name) const = 0;';
+            $tline === 'virtual void store(TlStorerToString &s, const char *field_name) const = 0;';
     }
 
     protected function isHeaderLine($line)
@@ -322,7 +322,7 @@ EOT
 
     protected function addClassDocumentation($class_name, $base_class_name, $description, $return_type)
     {
-        $return_type_description = $return_type ? "\n *\n * Returns $return_type." : '';
+        $return_type_description = $return_type ? PHP_EOL.' *'.PHP_EOL." * Returns $return_type." : '';
 
         $this->addDocumentation("class $class_name final : public $base_class_name {", <<<EOT
 /**
@@ -352,11 +352,11 @@ EOT
 
     protected function addFullConstructorDocumentation($class_name, $known_fields, $info)
     {
-        $explicit = count($known_fields) == 1 ? 'explicit ' : '';
+        $explicit = count($known_fields) === 1 ? 'explicit ' : '';
         $full_constructor = "  $explicit$class_name(";
         $colon = '';
         foreach ($known_fields as $name => $type) {
-            $full_constructor .= $colon.$this->getParameterTypeName($type).$this->getFieldName($name);
+            $full_constructor .= $colon.$this->getParameterTypeName($type).$this->getFieldName($name, $class_name);
             $colon = ', ';
         }
         $full_constructor .= ');';
@@ -368,7 +368,7 @@ EOT
 
 EOT;
         foreach ($known_fields as $name => $type) {
-            $full_doc .= '   * \\param[in] '.$this->getFieldName($name).' '.$info[$name]."\n";
+            $full_doc .= '   * \\param[in] '.$this->getFieldName($name, $class_name).' '.$info[$name].PHP_EOL;
         }
         $full_doc .= '   */';
         $this->addDocumentation($full_constructor, $full_doc);

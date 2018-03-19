@@ -25,8 +25,6 @@
 #include "td/utils/port/thread.h"
 #include "td/utils/Slice.h"
 
-#include <algorithm>
-
 namespace td {
 void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
   net_query->debug("dispatch");
@@ -142,7 +140,7 @@ Status NetQueryDispatcher::wait_dc_init(DcId dc_id, bool force) {
       send_closure_later(public_rsa_key_watchdog_, &PublicRsaKeyWatchdog::add_public_rsa_key, public_rsa_key);
       is_cdn = true;
     }
-    auto auth_data = AuthDataShared::create(dc_id, std::move(public_rsa_key));
+    auto auth_data = AuthDataShared::create(dc_id, std::move(public_rsa_key), td_guard_);
     int32 session_count = get_session_count();
     bool use_pfs = get_use_pfs();
 
@@ -186,6 +184,7 @@ void NetQueryDispatcher::dispatch_with_callback(NetQueryPtr net_query, ActorShar
 
 void NetQueryDispatcher::stop() {
   std::lock_guard<std::mutex> guard(main_dc_id_mutex_);
+  td_guard_.reset();
   stop_flag_ = true;
   delayer_.hangup();
   for (const auto &dc : dcs_) {
@@ -231,7 +230,7 @@ bool NetQueryDispatcher::is_dc_inited(int32 raw_dc_id) {
   return dcs_[raw_dc_id - 1].is_valid_.load(std::memory_order_relaxed);
 }
 int32 NetQueryDispatcher::get_session_count() {
-  return std::max(G()->shared_config().get_option_integer("session_count"), 1);
+  return max(G()->shared_config().get_option_integer("session_count"), 1);
 }
 
 bool NetQueryDispatcher::get_use_pfs() {
@@ -248,6 +247,8 @@ NetQueryDispatcher::NetQueryDispatcher(std::function<ActorShared<>()> create_ref
   dc_auth_manager_ = create_actor<DcAuthManager>("DcAuthManager", create_reference());
   common_public_rsa_key_ = std::make_shared<PublicRsaKeyShared>(DcId::empty());
   public_rsa_key_watchdog_ = create_actor<PublicRsaKeyWatchdog>("PublicRsaKeyWatchdog", create_reference());
+
+  td_guard_ = create_shared_lambda_guard([actor = create_reference] {});
 }
 
 NetQueryDispatcher::NetQueryDispatcher() = default;

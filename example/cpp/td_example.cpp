@@ -20,6 +20,7 @@
 
 // Simple single-threaded example of TDLib usage.
 // Real world programs should use separate thread for the user input.
+// Example includes user authentication, receiving updates, getting chat list and sending text messages.
 
 // overloaded
 namespace detail {
@@ -273,6 +274,7 @@ class TdExample {
             },
             [this](td_api::authorizationStateWaitTdlibParameters &) {
               auto parameters = td_api::make_object<td_api::tdlibParameters>();
+              parameters->database_directory_ = "tdlib";
               parameters->use_message_database_ = true;
               parameters->use_secret_chats_ = true;
               parameters->api_id_ = 94575;

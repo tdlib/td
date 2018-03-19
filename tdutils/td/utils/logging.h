@@ -6,20 +6,20 @@
 //
 #pragma once
 
-/**
+/*
  * Simple logging.
  *
  * Predefined log levels: FATAL, ERROR, WARNING, INFO, DEBUG
  *
  * LOG(WARNING) << "Hello world!";
- * LOG(INFO, "Hello %d", 1234) << " world!";
+ * LOG(INFO) << "Hello " << 1234 << " world!";
  * LOG_IF(INFO, condition) << "Hello world if condition!";
  *
  * Custom log levels may be defined and used using VLOG:
  * int VERBOSITY_NAME(custom) = VERBOSITY_NAME(WARNING);
  * VLOG(custom) << "Hello custom world!"
  *
- * LOG(FATAL, "power is off");
+ * LOG(FATAL) << "Power is off";
  * CHECK(condition) <===> LOG_IF(FATAL, !(condition))
  */
 
@@ -32,11 +32,11 @@
 #include <atomic>
 #include <type_traits>
 
-#define PSTR_IMPL(...) ::td::Logger(::td::NullLog().ref(), 0, true).printf(__VA_ARGS__)
-#define PSLICE(...) ::td::detail::Slicify() & PSTR_IMPL(__VA_ARGS__)
-#define PSTRING(...) ::td::detail::Stringify() & PSTR_IMPL(__VA_ARGS__)
-#define PSLICE_SAFE(...) ::td::detail::SlicifySafe() & PSTR_IMPL(__VA_ARGS__)
-#define PSTRING_SAFE(...) ::td::detail::StringifySafe() & PSTR_IMPL(__VA_ARGS__)
+#define PSTR_IMPL() ::td::Logger(::td::NullLog().ref(), 0, true)
+#define PSLICE() ::td::detail::Slicify() & PSTR_IMPL()
+#define PSTRING() ::td::detail::Stringify() & PSTR_IMPL()
+#define PSLICE_SAFE() ::td::detail::SlicifySafe() & PSTR_IMPL()
+#define PSTRING_SAFE() ::td::detail::StringifySafe() & PSTR_IMPL()
 
 #define VERBOSITY_NAME(x) verbosity_##x
 
@@ -53,17 +53,16 @@
   ::td::Logger(*::td::log_interface, VERBOSITY_NAME(level), __FILE__, __LINE__, comment, \
                VERBOSITY_NAME(level) == VERBOSITY_NAME(PLAIN))
 
-#define LOG_IMPL(strip_level, level, condition, comment, ...)                                   \
+#define LOG_IMPL(strip_level, level, condition, comment)                                        \
   LOG_IS_STRIPPED(strip_level) || VERBOSITY_NAME(level) > GET_VERBOSITY_LEVEL() || !(condition) \
       ? (void)0                                                                                 \
-      : ::td::detail::Voidify() & LOGGER(level, comment).printf(__VA_ARGS__)
+      : ::td::detail::Voidify() & LOGGER(level, comment)
 
-#define LOG(level, ...) LOG_IMPL(level, level, true, ::td::Slice(), __VA_ARGS__)
-#define LOG_IF(level, condition, ...) LOG_IMPL(level, level, condition, #condition, __VA_ARGS__)
+#define LOG(level) LOG_IMPL(level, level, true, ::td::Slice())
+#define LOG_IF(level, condition) LOG_IMPL(level, level, condition, #condition)
 
-#define VLOG(level, ...) LOG_IMPL(DEBUG, level, true, TD_DEFINE_STR(level), __VA_ARGS__)
-#define VLOG_IF(level, condition, ...) \
-  LOG_IMPL(DEBUG, level, condition, TD_DEFINE_STR(level) " " #condition, __VA_ARGS__)
+#define VLOG(level) LOG_IMPL(DEBUG, level, true, TD_DEFINE_STR(level))
+#define VLOG_IF(level, condition) LOG_IMPL(DEBUG, level, condition, TD_DEFINE_STR(level) " " #condition)
 
 #define LOG_ROTATE() ::td::log_interface->rotate()
 
@@ -84,19 +83,19 @@ inline bool no_return_func() {
 #endif
 #ifdef TD_DEBUG
   #if TD_MSVC
-    #define CHECK(condition, ...)       \
+    #define CHECK(condition)            \
       __analysis_assume(!!(condition)); \
-      LOG_IMPL(FATAL, FATAL, !(condition), #condition, __VA_ARGS__)
+      LOG_IMPL(FATAL, FATAL, !(condition), #condition)
   #else
-    #define CHECK(condition, ...) LOG_IMPL(FATAL, FATAL, !(condition) && no_return_func(), #condition, __VA_ARGS__)
+    #define CHECK(condition) LOG_IMPL(FATAL, FATAL, !(condition) && no_return_func(), #condition)
   #endif
 #else
-  #define CHECK(condition, ...) LOG_IF(NEVER, !(condition), __VA_ARGS__)
+  #define CHECK(condition) LOG_IF(NEVER, !(condition))
 #endif
 // clang-format on
 
-#define UNREACHABLE(...)   \
-  LOG(FATAL, __VA_ARGS__); \
+#define UNREACHABLE() \
+  LOG(FATAL);         \
   ::td::process_fatal_error("Unreachable in " __FILE__ " at " TD_DEFINE_STR(__LINE__))
 
 constexpr int VERBOSITY_NAME(PLAIN) = -1;
@@ -196,12 +195,6 @@ class Logger {
     sb_ << other;
     return *this;
   }
-
-  Logger &printf() {
-    return *this;
-  }
-
-  Logger &printf(const char *fmt, ...) TD_ATTRIBUTE_FORMAT_PRINTF(2, 3);
 
   MutableCSlice as_cslice() {
     return sb_.as_cslice();

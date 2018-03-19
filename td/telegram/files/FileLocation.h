@@ -903,6 +903,18 @@ class LocalFileLocation {
     return variant_.get<2>();
   }
 
+  CSlice file_name() const {
+    switch (type()) {
+      case Type::Partial:
+        return partial().path_;
+      case Type::Full:
+        return full().path_;
+      case Type::Empty:
+      default:
+        return CSlice();
+    }
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const {
     using td::store;
@@ -1085,10 +1097,10 @@ class FileData {
   uint64 pmc_id_ = 0;
   RemoteFileLocation remote_;
   LocalFileLocation local_;
-  GenerateFileLocation generate_;
+  unique_ptr<FullGenerateFileLocation> generate_;
   int64 size_ = 0;
   int64 expected_size_ = 0;
-  string name_;
+  string remote_name_;
   string url_;
   FileEncryptionKey encryption_key_;
 
@@ -1108,13 +1120,14 @@ class FileData {
     store(pmc_id_, storer);
     store(remote_, storer);
     store(local_, storer);
-    store(generate_, storer);
+    auto generate = generate_ == nullptr ? GenerateFileLocation() : GenerateFileLocation(*generate_);
+    store(generate, storer);
     if (has_expected_size) {
       store(expected_size_, storer);
     } else {
       store(size_, storer);
     }
-    store(name_, storer);
+    store(remote_name_, storer);
     store(url_, storer);
     store(encryption_key_, storer);
   }
@@ -1134,28 +1147,34 @@ class FileData {
     parse(pmc_id_, parser);
     parse(remote_, parser);
     parse(local_, parser);
-    parse(generate_, parser);
+    GenerateFileLocation generate;
+    parse(generate, parser);
+    if (generate.type() == GenerateFileLocation::Type::Full) {
+      generate_ = std::make_unique<FullGenerateFileLocation>(generate.full());
+    } else {
+      generate_ = nullptr;
+    }
     if (has_expected_size) {
       parse(expected_size_, parser);
     } else {
       parse(size_, parser);
     }
-    parse(name_, parser);
+    parse(remote_name_, parser);
     parse(url_, parser);
     parse(encryption_key_, parser);
   }
 };
 inline StringBuilder &operator<<(StringBuilder &sb, const FileData &file_data) {
-  sb << "[" << tag("name", file_data.name_) << " " << file_data.owner_dialog_id_ << " " << tag("size", file_data.size_)
-     << tag("expected_size", file_data.expected_size_);
+  sb << "[" << tag("remote_name", file_data.remote_name_) << " " << file_data.owner_dialog_id_ << " "
+     << tag("size", file_data.size_) << tag("expected_size", file_data.expected_size_);
   if (!file_data.url_.empty()) {
     sb << tag("url", file_data.url_);
   }
   if (file_data.local_.type() == LocalFileLocation::Type::Full) {
     sb << " local " << file_data.local_.full();
   }
-  if (file_data.generate_.type() == GenerateFileLocation::Type::Full) {
-    sb << " generate " << file_data.generate_.full();
+  if (file_data.generate_ != nullptr) {
+    sb << " generate " << *file_data.generate_;
   }
   if (file_data.remote_.type() == RemoteFileLocation::Type::Full) {
     sb << " remote " << file_data.remote_.full();

@@ -23,7 +23,7 @@ void VideoNotesManager::store_video_note(FileId file_id, T &storer) const {
   store(video_note->duration, storer);
   store(video_note->dimensions, storer);
   store(video_note->thumbnail, storer);
-  store(video_note->file_id, storer);
+  store(file_id, storer);
 }
 
 template <class T>

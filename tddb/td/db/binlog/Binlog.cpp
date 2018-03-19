@@ -24,8 +24,6 @@
 #include "td/utils/tl_helpers.h"
 #include "td/utils/tl_parsers.h"
 
-#include <algorithm>
-
 namespace td {
 namespace detail {
 struct AesCtrEncryptionEvent {
@@ -260,10 +258,12 @@ Status Binlog::close(bool need_sync) {
     path_ = "";
     info_.is_opened = false;
     fd_.close();
+    need_sync_ = false;
   };
-  flush();
   if (need_sync) {
-    TRY_STATUS(fd_.sync());
+    sync();
+  } else {
+    flush();
   }
   return Status::OK();
 }
@@ -355,7 +355,11 @@ void Binlog::do_event(BinlogEvent &&event) {
 
 void Binlog::sync() {
   flush();
-  fd_.sync().ensure();
+  if (need_sync_) {
+    auto status = fd_.sync();
+    LOG_IF(FATAL, status.is_error()) << "Failed to sync binlog: " << status;
+    need_sync_ = false;
+  }
 }
 
 void Binlog::flush() {
@@ -367,8 +371,14 @@ void Binlog::flush() {
   if (byte_flow_flag_) {
     byte_flow_source_.wakeup();
   }
-  fd_.flush_write().ensure();
+  auto r_written = fd_.flush_write();
+  r_written.ensure();
+  auto written = r_written.ok();
+  if (written > 0) {
+    need_sync_ = true;
+  }
   need_flush_since_ = 0;
+  LOG_IF(FATAL, fd_.need_flush_write()) << "Failed to flush binlog";
 }
 
 void Binlog::lazy_flush() {
@@ -465,7 +475,7 @@ Status Binlog::load_binlog(const Callback &callback, const Callback &debug_callb
       if (ready_flag) {
         break;
       }
-      TRY_STATUS(fd_.flush_read(std::max(need_size, static_cast<size_t>(4096))));
+      TRY_STATUS(fd_.flush_read(max(need_size, static_cast<size_t>(4096))));
       buffer_reader_.sync_with_writer();
       if (byte_flow_flag_) {
         byte_flow_source_.wakeup();
@@ -586,13 +596,11 @@ void Binlog::do_reindex() {
   processor_->for_each([&](BinlogEvent &event) {
     do_event(std::move(event));  // NB: no move is actually happens
   });
-  flush();
-  LOG_IF(FATAL, fd_.need_flush_write()) << "Reindex failed: failed to flush everything on disk";
-  auto status = fd_.sync();
-  LOG_IF(FATAL, status.is_error()) << "Failed to sync binlog: " << status;
+  need_sync_ = true;  // must sync creation of the file
+  sync();
 
   // finish_reindex
-  status = unlink(path_);
+  auto status = unlink(path_);
   LOG_IF(FATAL, status.is_error()) << "Failed to unlink old binlog: " << status;
   status = rename(new_path, path_);
   LOG_IF(FATAL, status.is_error()) << "Failed to rename binlog: " << status;

@@ -32,4 +32,8 @@ Result<HttpUrl> parse_url(MutableSlice url,
 
 StringBuilder &operator<<(StringBuilder &sb, const HttpUrl &url);
 
+string get_url_query_file_name(const string &query);
+
+string get_url_file_name(const string &url);
+
 }  // namespace td

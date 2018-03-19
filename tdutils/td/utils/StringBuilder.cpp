@@ -7,6 +7,7 @@
 #include "td/utils/StringBuilder.h"
 
 #include "td/utils/misc.h"
+#include "td/utils/port/thread_local.h"
 
 #include <cstdio>
 #include <locale>
@@ -63,7 +64,7 @@ StringBuilder &StringBuilder::operator<<(long long unsigned int x) {
   return *this;
 }
 
-StringBuilder &StringBuilder::operator<<(double x) {
+StringBuilder &StringBuilder::operator<<(FixedDouble x) {
   if (unlikely(end_ptr_ < current_ptr_)) {
     return on_error();
   }
@@ -71,11 +72,13 @@ StringBuilder &StringBuilder::operator<<(double x) {
   static TD_THREAD_LOCAL std::stringstream *ss;
   if (init_thread_local<std::stringstream>(ss)) {
     ss->imbue(std::locale::classic());
+    ss->setf(std::ios_base::fixed, std::ios_base::floatfield);
   } else {
     ss->str(std::string());
     ss->clear();
   }
-  *ss << x;
+  ss->precision(x.precision);
+  *ss << x.d;
 
   int len = narrow_cast<int>(static_cast<std::streamoff>(ss->tellp()));
   auto left = end_ptr_ + reserved_size - current_ptr_;
@@ -94,29 +97,6 @@ StringBuilder &StringBuilder::operator<<(const void *ptr) {
   }
   current_ptr_ += std::snprintf(current_ptr_, reserved_size, "%p", ptr);
   return *this;
-}
-
-void StringBuilder::vprintf(const char *fmt, va_list list) {
-  if (unlikely(end_ptr_ < current_ptr_)) {
-    on_error();
-    return;
-  }
-
-  auto left = end_ptr_ + reserved_size - current_ptr_;
-  int len = std::vsnprintf(current_ptr_, left, fmt, list);
-  if (unlikely(len >= left)) {
-    error_flag_ = true;
-    current_ptr_ += left - 1;
-  } else {
-    current_ptr_ += len;
-  }
-}
-
-void StringBuilder::printf(const char *fmt, ...) {
-  va_list list;
-  va_start(list, fmt);
-  vprintf(fmt, list);
-  va_end(list);
 }
 
 }  // namespace td

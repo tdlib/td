@@ -83,7 +83,7 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
         if (result.is_error() || result.ok() != 0) {
           return result;
         }
-        if (query_->type_ == HttpQuery::Type::GET) {
+        if (transfer_encoding_.empty() && content_length_ == 0) {
           break;
         }
 
@@ -738,7 +738,7 @@ Status HttpReader::open_temp_file(CSlice desired_file_name) {
     return Status::OK();
   }
 
-  rmdir(r_directory.move_as_ok()).ignore();
+  rmdir(directory).ignore();
   LOG(WARNING) << "Failed to create temporary file " << desired_file_name << ": " << second_try.error();
   return second_try.move_as_error();
 }

@@ -10,7 +10,6 @@
 #include "td/utils/Slice-decl.h"
 #include "td/utils/StackAllocator.h"
 
-#include <cstdarg>
 #include <cstdlib>
 #include <cstring>
 #include <type_traits>
@@ -94,7 +93,18 @@ class StringBuilder {
 
   StringBuilder &operator<<(long long unsigned int x);
 
-  StringBuilder &operator<<(double x);
+  struct FixedDouble {
+    double d;
+    int precision;
+
+    FixedDouble(double d, int precision) : d(d), precision(precision) {
+    }
+  };
+  StringBuilder &operator<<(FixedDouble x);
+
+  StringBuilder &operator<<(double x) {
+    return *this << FixedDouble(x, 6);
+  }
 
   StringBuilder &operator<<(const void *ptr);
 
@@ -102,10 +112,6 @@ class StringBuilder {
   StringBuilder &operator<<(const T *ptr) {
     return *this << static_cast<const void *>(ptr);
   }
-
-  void vprintf(const char *fmt, va_list list);
-
-  void printf(const char *fmt, ...) TD_ATTRIBUTE_FORMAT_PRINTF(2, 3);
 
  private:
   char *begin_ptr_;

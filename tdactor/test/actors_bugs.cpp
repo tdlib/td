@@ -11,8 +11,6 @@
 using namespace td;
 
 TEST(MultiTimeout, bug) {
-  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
-
   ConcurrentScheduler sched;
   int threads_n = 0;
   sched.init(threads_n);

@@ -123,7 +123,7 @@ namespace mtproto {
  *   20: message is to old -- full resend. (or fail query, if we are afraid of double send)
  *
  *   32: seq_no is too low. (msg_id1 < msg_id2 <==> seq_no1 < seq_no2). Error and fail connection
- *   33: seq_no is too hight. Error and fail connection.
+ *   33: seq_no is too high. Error and fail connection.
  *   34: (?) an even msg_seqno expected (irrelevant message), but odd received. (Fail and call a developer...)
  *   35: (?) odd msg_seqno expected (relevant message), but even received (Fail and call a developer)
  *
@@ -156,10 +156,10 @@ namespace mtproto {
  *    2: message not received (msg_id in stored range)
  *    3: message not receiver (msg_id is too high)
  *    4: message received. No extra ack will be sent
- *    +8: message already acknowledged
- *    +16: message not requiring acknolegement
- *    +32: RPC query contained in message being processed or processing already complete
- *    +64: content-related response to message already generated
+ *    +8: message is already acknowledged
+ *    +16: message don't requires acknowledgement
+ *    +32: RPC query contained in message being processed or the processing has already been completed
+ *    +64: content-related response to message has already been generated
  *    +128: other party knows for a fact that message is already received
  *
  * 13. Voluntary Communication of Status of Messages
@@ -796,8 +796,8 @@ void SessionConnection::flush_packet() {
   if (mode_ == Mode::HttpLongPoll) {
     max_delay = HTTP_MAX_DELAY;
     max_after = HTTP_MAX_AFTER;
-    max_wait = std::min(http_max_wait(), static_cast<int>(1000 * std::max(0.1, ping_disconnect_delay() + last_pong_at_ -
-                                                                                   Time::now_cached() - 1)));
+    max_wait = min(http_max_wait(),
+                   static_cast<int>(1000 * max(0.1, ping_disconnect_delay() + last_pong_at_ - Time::now_cached() - 1)));
   } else if (mode_ == Mode::Http) {
     max_delay = HTTP_MAX_DELAY;
     max_after = HTTP_MAX_AFTER;

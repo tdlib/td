@@ -49,7 +49,9 @@ public final class Example {
     private static final ConcurrentMap<Integer, TdApi.BasicGroupFullInfo> basicGroupsFullInfo = new ConcurrentHashMap<Integer, TdApi.BasicGroupFullInfo>();
     private static final ConcurrentMap<Integer, TdApi.SupergroupFullInfo> supergroupsFullInfo = new ConcurrentHashMap<Integer, TdApi.SupergroupFullInfo>();
 
+    private static final Console console = System.console();
     private static final String newLine = System.getProperty("line.separator");
+    private static final String commandsLine = "Enter command (gcs - GetChats, gc <chatId> - GetChat, me - GetMe, sm <chatId> <message> - SendMessage, lo - LogOut, q - Quit): ";
 
     static {
         System.loadLibrary("tdjni");
@@ -58,6 +60,10 @@ public final class Example {
     private static void print(String str) {
         System.out.println();
         System.out.println(str);
+        if (haveAuthorization)
+        {
+            System.out.print(commandsLine);
+        }
     }
 
     private static void setChatOrder(TdApi.Chat chat, long order) {
@@ -83,6 +89,7 @@ public final class Example {
         switch (Example.authorizationState.getConstructor()) {
             case TdApi.AuthorizationStateWaitTdlibParameters.CONSTRUCTOR:
                 TdApi.TdlibParameters parameters = new TdApi.TdlibParameters();
+                parameters.databaseDirectory = "tdlib";
                 parameters.useMessageDatabase = true;
                 parameters.useSecretChats = true;
                 parameters.apiId = 94575;
@@ -99,19 +106,16 @@ public final class Example {
                 client.send(new TdApi.CheckDatabaseEncryptionKey(), new AuthorizationRequestHandler());
                 break;
             case TdApi.AuthorizationStateWaitPhoneNumber.CONSTRUCTOR: {
-                Console console = System.console();
                 String phoneNumber = console.readLine("Please enter phone number: ");
                 client.send(new TdApi.SetAuthenticationPhoneNumber(phoneNumber, false, false), new AuthorizationRequestHandler());
                 break;
             }
             case TdApi.AuthorizationStateWaitCode.CONSTRUCTOR: {
-                Console console = System.console();
                 String code = console.readLine("Please enter authentication code: ");
                 client.send(new TdApi.CheckAuthenticationCode(code, "", ""), new AuthorizationRequestHandler());
                 break;
             }
             case TdApi.AuthorizationStateWaitPassword.CONSTRUCTOR: {
-                Console console = System.console();
                 String password = console.readLine("Please enter password: ");
                 client.send(new TdApi.CheckAuthenticationPassword(password), new AuthorizationRequestHandler());
                 break;
@@ -163,7 +167,7 @@ public final class Example {
     }
 
     private static void getCommand() {
-        String command = System.console().readLine("Enter command (gcs - GetChats, gc <chatId> - GetChat, me - GetMe, sm <chatId> <message> - SendMessage, lo - LogOut, q - Quit): ");
+        String command = console.readLine(commandsLine);
         String[] commands = command.split(" ", 2);
         try {
             switch (commands[0]) {
@@ -263,9 +267,14 @@ public final class Example {
     }
 
     public static void main(String[] args) throws InterruptedException {
+        if (console == null) {
+            System.err.println("This example requires Console for user interaction. On Windows cmd or PowerShell should be used");
+            System.exit(1);
+        }
+
         // disable TDLib log
         Log.setVerbosityLevel(0);
-        if (!Log.setFilePath("log")) {
+        if (!Log.setFilePath("tdlib.log")) {
             throw new IOError(new IOException("Write access to the current directory is required"));
         }
 

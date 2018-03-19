@@ -20,12 +20,19 @@
 #include "td/utils/Random.h"
 #include "td/utils/StringBuilder.h"
 
+#include <tuple>
+
 namespace td {
 
 namespace {
 Result<std::pair<FileFd, string>> try_create_new_file(Result<CSlice> result_name) {
   TRY_RESULT(name, std::move(result_name));
   TRY_RESULT(fd, FileFd::open(name, FileFd::Read | FileFd::Write | FileFd::CreateNew, 0640));
+  return std::make_pair(std::move(fd), name.str());
+}
+Result<std::pair<FileFd, string>> try_open_file(Result<CSlice> result_name) {
+  TRY_RESULT(name, std::move(result_name));
+  TRY_RESULT(fd, FileFd::open(name, FileFd::Read, 0640));
   return std::make_pair(std::move(fd), name.str());
 }
 
@@ -63,36 +70,72 @@ Result<std::pair<FileFd, string>> open_temp_file(const FileType &file_type) {
   return res;
 }
 
-Result<string> create_from_temp(CSlice temp_path, CSlice dir, CSlice name) {
-  decltype(try_create_new_file("path")) res;
+template <class F>
+bool for_suggested_file_name(CSlice name, bool use_pmc, bool use_random, F &&callback) {
+  auto try_callback = [&](Result<CSlice> r_path) {
+    if (r_path.is_error()) {
+      return true;
+    }
+    return callback(r_path.move_as_ok());
+  };
   auto cleaned_name = clean_filename(name);
-
   PathView path_view(cleaned_name);
   auto stem = path_view.file_stem();
   auto ext = path_view.extension();
+  bool active = true;
   if (!stem.empty() && !G()->parameters().ignore_file_names) {
-    res = try_create_new_file(PSLICE_SAFE() << dir << stem << Ext{ext});
-    for (int i = 0; res.is_error() && i < 10; i++) {
-      res = try_create_new_file(PSLICE_SAFE() << dir << stem << "_(" << i << ")" << Ext{ext});
+    active = try_callback(PSLICE_SAFE() << stem << Ext{ext});
+    for (int i = 0; active && i < 10; i++) {
+      active = try_callback(PSLICE_SAFE() << stem << "_(" << i << ")" << Ext{ext});
     }
-    for (int i = 2; res.is_error() && i < 12; i++) {
-      res = try_create_new_file(PSLICE_SAFE() << dir << stem << "_(" << RandSuff{i} << ")" << Ext{ext});
+    for (int i = 2; active && i < 12 && use_random; i++) {
+      active = try_callback(PSLICE_SAFE() << stem << "_(" << RandSuff{i} << ")" << Ext{ext});
     }
-  } else {
+  } else if (use_pmc) {
     auto pmc = G()->td_db()->get_binlog_pmc();
     int32 file_id = to_integer<int32>(pmc->get("perm_file_id"));
     pmc->set("perm_file_id", to_string(file_id + 1));
-    res = try_create_new_file(PSLICE_SAFE() << dir << "file_" << file_id << Ext{ext});
-    if (res.is_error()) {
-      res = try_create_new_file(PSLICE_SAFE() << dir << "file_" << file_id << "_" << RandSuff{6} << Ext{ext});
+    active = try_callback(PSLICE_SAFE() << "file_" << file_id << Ext{ext});
+    if (active) {
+      active = try_callback(PSLICE_SAFE() << "file_" << file_id << "_" << RandSuff{6} << Ext{ext});
     }
   }
+  return active;
+}
 
+Result<string> create_from_temp(CSlice temp_path, CSlice dir, CSlice name) {
+  LOG(INFO) << "Create file in directory " << dir << " with suggested name " << name << " from temporary file "
+            << temp_path;
+  Result<std::pair<FileFd, string>> res = Status::Error(500, "Can't find suitable file name");
+  for_suggested_file_name(name, true, true, [&](CSlice suggested_name) {
+    res = try_create_new_file(PSLICE_SAFE() << dir << suggested_name);
+    return res.is_error();
+  });
   TRY_RESULT(tmp, std::move(res));
   tmp.first.close();
   auto perm_path = std::move(tmp.second);
   TRY_STATUS(rename(temp_path, perm_path));
   return perm_path;
+}
+
+Result<string> search_file(CSlice dir, CSlice name, int64 expected_size) {
+  Result<std::string> res = Status::Error(500, "Can't find suitable file name");
+  for_suggested_file_name(name, false, false, [&](CSlice suggested_name) {
+    auto r_pair = try_open_file(PSLICE_SAFE() << dir << suggested_name);
+    if (r_pair.is_error()) {
+      return false;
+    }
+    FileFd fd;
+    std::string path;
+    std::tie(fd, path) = r_pair.move_as_ok();
+    if (fd.stat().size_ != expected_size) {
+      return true;
+    }
+    fd.close();
+    res = std::move(path);
+    return false;
+  });
+  return res;
 }
 
 const char *file_type_name[file_type_size] = {"thumbnails", "profile_photos", "photos",     "voice",

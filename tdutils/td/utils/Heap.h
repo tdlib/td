@@ -9,8 +9,6 @@
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 
-#include <algorithm>
-
 namespace td {
 
 struct HeapNode {
@@ -119,7 +117,7 @@ class KHeap {
     auto item = array_[pos];
     while (true) {
       int left_pos = pos * K + 1;
-      int right_pos = std::min(left_pos + K, static_cast<int>(array_.size()));
+      int right_pos = min(left_pos + K, static_cast<int>(array_.size()));
       int next_pos = pos;
       KeyT next_key = item.key_;
       for (int i = left_pos; i < right_pos; i++) {

@@ -10,6 +10,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/filesystem.h"
+#include "td/utils/format.h"
 #include "td/utils/logging.h"
 
 namespace td {
@@ -22,15 +23,21 @@ void FileLoadManager::start_up() {
       create_actor<ResourceManager>("UploadResourceManager", !G()->parameters().use_file_db /*tdlib_engine*/
                                                                  ? ResourceManager::Mode::Greedy
                                                                  : ResourceManager::Mode::Baseline);
-  download_resource_manager_ =
-      create_actor<ResourceManager>("DownloadResourceManager", ResourceManager::Mode::Baseline);
-  download_small_resource_manager_ =
-      create_actor<ResourceManager>("DownloadSmallResourceManager", ResourceManager::Mode::Baseline);
+}
+
+ActorOwn<ResourceManager> &FileLoadManager::get_download_resource_manager(bool is_small, DcId dc_id) {
+  auto &actor = is_small ? download_small_resource_manager_map_[dc_id] : download_resource_manager_map_[dc_id];
+  if (actor.empty()) {
+    actor = create_actor<ResourceManager>(
+        PSLICE() << "DownloadResourceManager " << tag("is_small", is_small) << tag("dc_id", dc_id),
+        ResourceManager::Mode::Baseline);
+  }
+  return actor;
 }
 
 void FileLoadManager::download(QueryId id, const FullRemoteFileLocation &remote_location,
                                const LocalFileLocation &local, int64 size, string name,
-                               const FileEncryptionKey &encryption_key, int8 priority) {
+                               const FileEncryptionKey &encryption_key, bool search_file, int8 priority) {
   if (stop_flag_) {
     return;
   }
@@ -42,8 +49,8 @@ void FileLoadManager::download(QueryId id, const FullRemoteFileLocation &remote_
   auto callback = make_unique<FileDownloaderCallback>(actor_shared(this, node_id));
   bool is_small = size < 20 * 1024;
   node->loader_ = create_actor<FileDownloader>("Downloader", remote_location, local, size, std::move(name),
-                                               encryption_key, is_small, std::move(callback));
-  auto &resource_manager = is_small ? download_small_resource_manager_ : download_resource_manager_;
+                                               encryption_key, is_small, search_file, std::move(callback));
+  auto &resource_manager = get_download_resource_manager(is_small, remote_location.get_dc_id());
   send_closure(resource_manager, &ResourceManager::register_worker,
                ActorShared<FileLoaderActor>(node->loader_.get(), static_cast<uint64>(-1)), priority);
   query_id_to_node_id_[id] = node_id;

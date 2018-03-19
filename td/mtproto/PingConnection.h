@@ -41,7 +41,7 @@ class PingConnection : private RawConnection::Callback {
     if (!was_ping_) {
       UInt128 nonce;
       Random::secure_bytes(nonce.raw, sizeof(nonce));
-      raw_connection_->send_no_crypto(PacketStorer<NoCryptoImpl>(1, create_storer(mtproto_api::req_pq(nonce))));
+      raw_connection_->send_no_crypto(PacketStorer<NoCryptoImpl>(1, create_storer(mtproto_api::req_pq_multi(nonce))));
       was_ping_ = true;
     }
     return raw_connection_->flush(AuthKey(), *this);

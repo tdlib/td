@@ -26,6 +26,7 @@
 
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 
 namespace td {
 
@@ -55,7 +56,9 @@ class WebPagesManager : public Actor {
 
   tl_object_ptr<td_api::webPageInstantView> get_web_page_instant_view_object(WebPageId web_page_id) const;
 
-  WebPageId get_web_page_preview(const string &message_text, Promise<Unit> &&promise);
+  int64 get_web_page_preview(td_api::object_ptr<td_api::formattedText> &&text, Promise<Unit> &&promise);
+
+  tl_object_ptr<td_api::webPage> get_web_page_preview_result(int64 request_id);
 
   WebPageId get_web_page_instant_view(const string &url, bool force_full, Promise<Unit> &&promise);
 
@@ -63,11 +66,11 @@ class WebPagesManager : public Actor {
 
   WebPageId get_web_page_by_url(const string &url, Promise<Unit> &&promise);
 
-  void on_get_web_page_preview_success(const string &message_text,
+  void on_get_web_page_preview_success(int64 request_id, const string &url,
                                        tl_object_ptr<telegram_api::MessageMedia> &&message_media_ptr,
                                        Promise<Unit> &&promise);
 
-  void on_get_web_page_preview_fail(const string &message_text, Status error, Promise<Unit> &&promise);
+  void on_get_web_page_preview_fail(int64 request_id, const string &url, Status error, Promise<Unit> &&promise);
 
   SecretInputMedia get_secret_input_media(WebPageId web_page_id) const;
 
@@ -152,7 +155,8 @@ class WebPagesManager : public Actor {
   static void on_pending_web_page_timeout_callback(void *web_pages_manager_ptr, int64 web_page_id);
   void on_pending_web_page_timeout(WebPageId web_page_id);
 
-  void on_get_web_page_preview_success(const string &message_text, WebPageId web_page_id, Promise<Unit> &&promise);
+  void on_get_web_page_preview_success(int64 request_id, const string &url, WebPageId web_page_id,
+                                       Promise<Unit> &&promise);
 
   static RichText get_rich_text(tl_object_ptr<telegram_api::RichText> &&rich_text_ptr);
 
@@ -229,10 +233,11 @@ class WebPagesManager : public Actor {
   std::unordered_map<WebPageId, PendingWebPageInstantViewQueries, WebPageIdHash> load_web_page_instant_view_queries_;
 
   std::unordered_map<WebPageId, std::unordered_set<FullMessageId, FullMessageIdHash>, WebPageIdHash> pending_web_pages_;
-  std::unordered_map<WebPageId, std::unordered_map<string, Promise<Unit>>, WebPageIdHash> pending_get_web_pages_;
+  std::unordered_map<WebPageId, std::unordered_map<int64, std::pair<string, Promise<Unit>>>, WebPageIdHash>
+      pending_get_web_pages_;
 
-  std::unordered_map<string, WebPageId> got_web_page_previews_;
-  std::unordered_set<string> running_get_web_page_previews_;
+  int64 get_web_page_preview_request_id_ = 1;
+  std::unordered_map<int64, WebPageId> got_web_page_previews_;
 
   std::unordered_map<string, WebPageId> url_to_web_page_id_;
 

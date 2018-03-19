@@ -13,7 +13,6 @@
 #include "td/utils/Time.h"
 
 #include <atomic>
-#include <cstdarg>
 #include <cstdlib>
 
 #if TD_ANDROID
@@ -56,13 +55,18 @@ Logger::Logger(LogInterface &log, int log_level, Slice file_name, int line_num, 
   }
   file_name = file_name.substr(last_slash_ + 1);
 
-  printf("[%2d]", log_level);
-  auto tid = get_thread_id();
-  if (tid != -1) {
-    printf("[t%2d]", tid);
+  auto thread_id = get_thread_id();
+
+  (*this) << '[';
+  if (log_level < 10) {
+    (*this) << ' ';
   }
-  printf("[%.9lf]", Clocks::system());
-  (*this) << "[" << file_name << ":" << line_num << "]";
+  (*this) << log_level << "][t";
+  if (thread_id < 10) {
+    (*this) << ' ';
+  }
+  (*this) << thread_id << "][" << StringBuilder::FixedDouble(Clocks::system(), 9) << "][" << file_name << ':'
+          << line_num << ']';
   if (tag_ != nullptr && *tag_) {
     (*this) << "[#" << Slice(tag_) << "]";
   }
@@ -73,17 +77,6 @@ Logger::Logger(LogInterface &log, int log_level, Slice file_name, int line_num, 
     (*this) << "[&" << comment << "]";
   }
   (*this) << "\t";
-}
-
-Logger &Logger::printf(const char *fmt, ...) {
-  if (!*fmt) {
-    return *this;
-  }
-  va_list list;
-  va_start(list, fmt);
-  sb_.vprintf(fmt, list);
-  va_end(list);
-  return *this;
 }
 
 Logger::~Logger() {
@@ -185,6 +178,7 @@ class DefaultLog : public LogInterface {
         emscripten_log(
             EM_LOG_ERROR | EM_LOG_CONSOLE | EM_LOG_C_STACK | EM_LOG_JS_STACK | EM_LOG_DEMANGLE | EM_LOG_FUNC_PARAMS,
             "%s", slice.c_str());
+        EM_ASM(throw(UTF8ToString($0)), slice.c_str());
         break;
       case VERBOSITY_NAME(ERROR):
         emscripten_log(EM_LOG_ERROR | EM_LOG_CONSOLE, "%s", slice.c_str());

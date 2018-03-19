@@ -437,7 +437,7 @@ Result<unique_ptr<ReplyMarkup>> get_reply_markup(tl_object_ptr<td_api::ReplyMark
             continue;
           }
 
-          TRY_RESULT(current_button, get_keyboard_button(std::move(button), request_buttons_allowed))
+          TRY_RESULT(current_button, get_keyboard_button(std::move(button), request_buttons_allowed));
 
           row_buttons.push_back(std::move(current_button));
           row_button_count++;

@@ -164,4 +164,26 @@ StringBuilder &operator<<(StringBuilder &sb, const HttpUrl &url) {
   return sb;
 }
 
+string get_url_query_file_name(const string &query) {
+  Slice query_slice = query;
+  query_slice.truncate(query.find_first_of("?#"));
+
+  auto slash_pos = query_slice.rfind('/');
+  if (slash_pos < query_slice.size()) {
+    return query_slice.substr(slash_pos + 1).str();
+  }
+  return query_slice.str();
+}
+
+string get_url_file_name(const string &url) {
+  // TODO remove copy
+  string url_copy = url;
+  auto r_http_url = parse_url(url_copy);
+  if (r_http_url.is_error()) {
+    LOG(WARNING) << "Receive wrong URL \"" << url << '"';
+    return string();
+  }
+  return get_url_query_file_name(r_http_url.ok().query_);
+}
+
 }  // namespace td

@@ -111,7 +111,7 @@ bool ResourceManager::satisfy_node(NodeId file_node_id) {
     return true;
   }
   auto give = resource_state_.unused();
-  give = std::min(need, give);
+  give = min(need, give);
   give -= give % part_size;
   VLOG(files) << tag("give", give);
   if (give == 0) {

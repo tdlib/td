@@ -28,7 +28,7 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
     file_store_type = FileStoreType::Remote;
   } else if (file_view.has_local_location()) {
     file_store_type = FileStoreType::Local;
-  } else if (!file_view.url().empty()) {
+  } else if (file_view.has_url()) {
     file_store_type = FileStoreType::Url;
   } else if (file_view.has_generate_location()) {
     file_store_type = FileStoreType::Generate;
@@ -62,7 +62,7 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
       } else {
         store(narrow_cast<int32>(file_view.size()), storer);
       }
-      store(file_view.name(), storer);
+      store(file_view.remote_name(), storer);
       store(file_view.owner_dialog_id(), storer);
       break;
     }
@@ -82,7 +82,7 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
       } else if (begins_with(generate_location.conversion_, "#file_id#")) {
         // It is not the best possible way to serialize file_id
         from_file_id =
-            FileId(to_integer<int32>(Slice(generate_location.conversion_).remove_prefix(Slice("#file_id#").size())));
+            FileId(to_integer<int32>(Slice(generate_location.conversion_).remove_prefix(Slice("#file_id#").size())), 0);
         generate_location.conversion_ = "#_file_id#";
         have_file_id = true;
       }
