@@ -16458,6 +16458,10 @@ void MessagesManager::on_media_message_ready_to_send(DialogId dialog_id, Message
   auto &queue = yet_unsent_media_queues_[queue_id];
   auto it = queue.find(message_id.get());
   if (it == queue.end()) {
+    if (queue.empty()) {
+      yet_unsent_media_queues_.erase(queue_id);
+    }
+
     LOG(INFO) << "Can't find " << message_id << " in the queue of " << dialog_id;
     auto m = get_message({dialog_id, message_id});
     if (m != nullptr) {
