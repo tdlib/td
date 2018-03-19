@@ -529,10 +529,12 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
         auto article = move_tl_object_as<td_api::inputInlineQueryResultArticle>(input_result);
         type = "article";
         id = std::move(article->id_);
-        content_url = std::move(article->url_);
-        content_type = "text/html";
-        if (!article->hide_url_) {
-          url = content_url;
+        if (!article->url_.empty()) {
+          content_url = std::move(article->url_);
+          content_type = "text/html";
+          if (!article->hide_url_) {
+            url = content_url;
+          }
         }
         title = std::move(article->title_);
         description = std::move(article->description_);
