@@ -4466,7 +4466,7 @@ Status Td::init(DbKey key) {
   };
   send_closure(
       actor_id(this), &Td::send_update,
-      make_tl_object<td_api::updateOption>("version", make_tl_object<td_api::optionValueString>(tdlib_version)));
+      make_tl_object<td_api::updateOption>("version", make_tl_object<td_api::optionValueString>(TDLIB_VERSION)));
 
   G()->set_shared_config(
       std::make_unique<ConfigShared>(G()->td_db()->get_config_pmc(), std::make_unique<ConfigSharedCallback>()));
@@ -4829,7 +4829,7 @@ Status Td::set_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters
   }
   if (options.api_id != 21724) {
     options.application_version += ", TDLib ";
-    options.application_version += tdlib_version;
+    options.application_version += TDLIB_VERSION;
   }
   G()->set_mtproto_header(std::make_unique<MtprotoHeader>(options));
 
@@ -6544,7 +6544,7 @@ void Td::on_request(uint64 id, td_api::getOption &request) {
       break;
     case 'v':
       if (request.name_ == "version") {
-        option_value = make_tl_object<td_api::optionValueString>(tdlib_version);
+        option_value = make_tl_object<td_api::optionValueString>(TDLIB_VERSION);
       }
       break;
   }
@@ -7031,6 +7031,6 @@ void Td::on_request(uint64 id, td_api::testCallVectorStringObject &request) {
 #undef CREATE_REQUEST
 #undef CREATE_REQUEST_PROMISE
 
-constexpr const char *Td::tdlib_version;
+constexpr const char *Td::TDLIB_VERSION;
 
 }  // namespace td

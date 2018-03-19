@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
-project(TDLib VERSION 1.1.6 LANGUAGES CXX C)
+project(TDLib VERSION 1.2.0 LANGUAGES CXX C)
 
 # Prevent in-source build
 get_filename_component(TD_REAL_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" REALPATH)
@@ -45,11 +45,11 @@ if (POLICY CMP0069)
     if (IPO_SUPPORTED)
       # set_property(DIRECTORY PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE) do not work?
       string(REPLACE ";" " " CXX_FLAGS_IPO "${CMAKE_CXX_COMPILE_OPTIONS_IPO}")
-      message(STATUS "Use link time CXX optimization options: ${CXX_FLAGS_IPO}")
+      message(STATUS "Use link time optimization CXX options: ${CXX_FLAGS_IPO}")
       set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CXX_FLAGS_IPO}")
 
       string(REPLACE ";" " " C_FLAGS_IPO "${CMAKE_C_COMPILE_OPTIONS_IPO}")
-      message(STATUS "Use link time C optimization options: ${C_FLAGS_IPO}")
+      message(STATUS "Use link time optimization C options: ${C_FLAGS_IPO}")
       set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${C_FLAGS_IPO}")
 
       string(REPLACE ";" " " LINK_FLAGS_IPO "${CMAKE_CXX_LINK_OPTIONS_IPO}")

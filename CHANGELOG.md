@@ -1,3 +1,49 @@
+Changes in 1.2.0:
+
+* Added support for native .NET bindings through `C++/CLI` and `C++/CX`.
+  See [using in .NET projects](README.md#using-dotnet) for more details.
+* Added a C# example. See [README](example/csharp/README.md) for build and usage instructions.
+* Added a build and usage example of TDLib SDK for Universal Windows Platform. See
+  [README](example/uwp/README.md) for detailed build and usage instructions.
+* Added a Swift example. See [README](example/swift/README.md) for build and usage instructions.
+* Added an example of building TDLib for iOS, watchOS, tvOS, and also macOS. See [README](example/ios/README.md) for
+  detailed build instructions.
+* Added README to [C++](example/cpp/README.md) and [python](example/python/README.md) examples.
+* Link Time Optimization is disabled by default. Use `-DTD_ENABLE_LTO=ON` CMake option and CMake >= 3.9 to enable it.
+* `updateNotificationSettings` is now automatically sent when the mute time expires for a chat.
+* Added automatic sending of a corresponding `chatAction` when a file is being uploaded.
+* `updateUserChatAction` with `chatActionCancel` is now automatically sent when the timeout expires for an action.
+* Authorizatiion states `authorizationStateWaitCode` and `authorizationStateWaitPassword` are now saved between
+  library restarts for 5 minutes.
+* Added new message content type `messageWebsiteConnected`.
+* Added new text entity types `textEntityTypeCashtag` and `textEntityTypePhoneNumber`.
+* Added new update `updateUnreadMessageCount`, enabled when message database is used.
+* Method `joinChatByInviteLink` now returns the joined `Chat`.
+* Method `getWebPagePreview` now accepts `formattedText` instead of plain `string`.
+* Added field `phone_number` to `authenticationCodeInfo`, which contains a phone number that is being authenticated.
+* Added field `is_secret` to `messageAnimation`, `messagePhoto`, `messageVideo` and `messageVideoNote` classes,
+  which denotes whether the thumbnail for the content must be blurred and the content must be shown only while tapped.
+* Added field `expires_in` to `messageLocation` for live locations.
+* Added flag `can_be_reported` to `chat` class.
+* Added flag `supports_streaming` to classes `video` and `inputMessageVideo`.
+* Added parameter `message_ids` to `reportChat`, which can be used to report specific messages.
+* Added method `checkChatUsername` for checking whether a username can be set for a chat.
+* Added method `getRepliedMessage`, which returns a message that is replied by a given message.
+* Added method `getChatPinnedMessage`, which returns the pinned message from a chat.
+* Added method `searchStickers` to search by emoji for popular stickers suggested by the server.
+* Added method `searchStickerSets` to search by title and name for popular sticker sets suggested by the server.
+* Added method `searchInstalledStickerSets` to search by title and name for installed sticker sets.
+* Added methods for handling connected websites: `getConnectedWebsites`, `disconnectWebsite` and
+  `disconnectAllWebsites`.
+* Added method `getCountryCode`, which uses current user IP to identify their country.
+* Added option `t_me_url`.
+* Fixed `BlackBerry` spelling in `deviceTokenBlackBerryPush`.
+* Fixed return type of `getChatMessageByDate` method, which is `Message` and not `Messages`.
+* Ensured that updateOption("my_id") comes before `updateAuthorizationState` with `authorizationStateReady`.
+* Numerous optimizations and bug fixes.
+
+-----------------------------------------------------------------------------------------------------------------------
+
 Changes in 1.1.1:
 * Fixed C JSON bindings compilation error.
 * Fixed locale-dependent JSON generation.
