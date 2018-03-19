@@ -3,8 +3,9 @@ Changes in 1.2.0:
 * Added support for native .NET bindings through `C++/CLI` and `C++/CX`.
   See [using in .NET projects](README.md#using-dotnet) for more details.
 * Added a C# example. See [README](example/csharp/README.md) for build and usage instructions.
-* Added a build and usage example of TDLib SDK for Universal Windows Platform. See
-  [README](example/uwp/README.md) for detailed build and usage instructions.
+* Added a build and usage example of TDLib SDK for Universal Windows Platform. See [README](example/uwp/README.md)
+  for detailed build and usage instructions. Also see [Unigram](https://github.com/UnigramDev/Unigram), which is
+  a full-featured client rewritten from scratch using TDLib SDK for Universal Windows Platform in less than 2 months.
 * Added a Swift example. See [README](example/swift/README.md) for build and usage instructions.
 * Added an example of building TDLib for iOS, watchOS, tvOS, and also macOS. See [README](example/ios/README.md) for
   detailed build instructions.
@@ -13,7 +14,7 @@ Changes in 1.2.0:
 * `updateNotificationSettings` is now automatically sent when the mute time expires for a chat.
 * Added automatic sending of a corresponding `chatAction` when a file is being uploaded.
 * `updateUserChatAction` with `chatActionCancel` is now automatically sent when the timeout expires for an action.
-* Authorizatiion states `authorizationStateWaitCode` and `authorizationStateWaitPassword` are now saved between
+* Authorization states `authorizationStateWaitCode` and `authorizationStateWaitPassword` are now saved between
   library restarts for 5 minutes.
 * Added new message content type `messageWebsiteConnected`.
 * Added new text entity types `textEntityTypeCashtag` and `textEntityTypePhoneNumber`.
