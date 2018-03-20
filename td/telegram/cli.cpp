@@ -2565,10 +2565,7 @@ class CliClient final : public Actor {
 
       std::tie(chat_id, args) = split(args);
       std::tie(user_id, status_str) = split(args);
-      if (status_str == "admin") {
-        status =
-            make_tl_object<td_api::chatMemberStatusAdministrator>(true, true, true, true, true, true, true, true, true);
-      } else if (status_str == "member") {
+      if (status_str == "member") {
         status = make_tl_object<td_api::chatMemberStatusMember>();
       } else if (status_str == "left") {
         status = make_tl_object<td_api::chatMemberStatusLeft>();
