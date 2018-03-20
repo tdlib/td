@@ -50,7 +50,6 @@ public final class Example {
     private static final ConcurrentMap<Integer, TdApi.BasicGroupFullInfo> basicGroupsFullInfo = new ConcurrentHashMap<Integer, TdApi.BasicGroupFullInfo>();
     private static final ConcurrentMap<Integer, TdApi.SupergroupFullInfo> supergroupsFullInfo = new ConcurrentHashMap<Integer, TdApi.SupergroupFullInfo>();
 
-    private static final Console console = System.console();
     private static final String newLine = System.getProperty("line.separator");
     private static final String commandsLine = "Enter command (gcs - GetChats, gc <chatId> - GetChat, me - GetMe, sm <chatId> <message> - SendMessage, lo - LogOut, q - Quit): ";
 
@@ -283,10 +282,6 @@ public final class Example {
     }
 
     public static void main(String[] args) throws InterruptedException {
-        if (console == null) {
-            System.err.println("This example requires Console for user interaction. On Windows cmd or PowerShell should be used");
-            System.exit(1);
-        }
 
         // disable TDLib log
         Log.setVerbosityLevel(0);
