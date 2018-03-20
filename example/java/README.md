@@ -8,10 +8,12 @@ TDLib should be prebuilt for using with Java and installed to local subdirectory
 cd <path to TDLib sources>
 mkdir jnibuild
 cd jnibuild
-cmake -DCMAKE_BUILD_TYPE=Release -DTD_ENABLE_JNI=ON -DCMAKE_INSTALL_PREFIX:PATH=../example/java/td -DCMAKE_TOOLCHAIN_FILE=<VCPKG_DIR>/scripts/buildsystems/vcpkg.cmake ..
+cmake -DCMAKE_BUILD_TYPE=Release -DTD_ENABLE_JNI=ON -DCMAKE_INSTALL_PREFIX:PATH=../example/java/td ..
 cmake --build . --target install
 ```
 If you want to compile TDLib for 64-bit Java on Windows using MSVC, you will also need to add `-A x64` option to CMake.
+
+In Windows, use Vcpkg toolchain file by adding parameter -DCMAKE_TOOLCHAIN_FILE=<VCPKG_DIR>/scripts/buildsystems/vcpkg.cmake
 
 Then you can build this example:
 ```
