@@ -182,7 +182,7 @@ public final class Example {
     }
 
     private static void getCommand() {
-        String command = promptString("Enter command (gcs - GetChats, gc <chatId> - GetChat, me - GetMe, sm <chatId> <message> - SendMessage, lo - LogOut, q - Quit): ", true);
+        String command = promptString(commandsLine, true);
         String[] commands = command.split(" ", 2);
         try {
             switch (commands[0]) {
