@@ -10,9 +10,10 @@ import org.drinkless.tdlib.Client;
 import org.drinkless.tdlib.Log;
 import org.drinkless.tdlib.TdApi;
 
-import java.io.Console;
 import java.io.IOError;
 import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.NavigableSet;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
@@ -49,7 +50,6 @@ public final class Example {
     private static final ConcurrentMap<Integer, TdApi.BasicGroupFullInfo> basicGroupsFullInfo = new ConcurrentHashMap<Integer, TdApi.BasicGroupFullInfo>();
     private static final ConcurrentMap<Integer, TdApi.SupergroupFullInfo> supergroupsFullInfo = new ConcurrentHashMap<Integer, TdApi.SupergroupFullInfo>();
 
-    private static final Console console = System.console();
     private static final String newLine = System.getProperty("line.separator");
     private static final String commandsLine = "Enter command (gcs - GetChats, gc <chatId> - GetChat, me - GetMe, sm <chatId> <message> - SendMessage, lo - LogOut, q - Quit): ";
 
@@ -106,17 +106,17 @@ public final class Example {
                 client.send(new TdApi.CheckDatabaseEncryptionKey(), new AuthorizationRequestHandler());
                 break;
             case TdApi.AuthorizationStateWaitPhoneNumber.CONSTRUCTOR: {
-                String phoneNumber = console.readLine("Please enter phone number: ");
+                String phoneNumber = promptString("Please enter phone number: ", false);
                 client.send(new TdApi.SetAuthenticationPhoneNumber(phoneNumber, false, false), new AuthorizationRequestHandler());
                 break;
             }
             case TdApi.AuthorizationStateWaitCode.CONSTRUCTOR: {
-                String code = console.readLine("Please enter authentication code: ");
+                String code = promptString("Please enter authentication code: ", false);
                 client.send(new TdApi.CheckAuthenticationCode(code, "", ""), new AuthorizationRequestHandler());
                 break;
             }
             case TdApi.AuthorizationStateWaitPassword.CONSTRUCTOR: {
-                String password = console.readLine("Please enter password: ");
+                String password = promptString("Please enter password: ", false);
                 client.send(new TdApi.CheckAuthenticationPassword(password), new AuthorizationRequestHandler());
                 break;
             }
@@ -165,9 +165,24 @@ public final class Example {
         }
         return chatId;
     }
+    
+    private static String promptString(String prompt, boolean printNewline) {
+        System.out.print(prompt);
+        if (printNewline) {
+            System.out.print(newLine);
+        }
+        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        String str = "";
+        try {
+            str = reader.readLine();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return str;
+    }
 
     private static void getCommand() {
-        String command = console.readLine(commandsLine);
+        String command = promptString(commandsLine, true);
         String[] commands = command.split(" ", 2);
         try {
             switch (commands[0]) {
@@ -267,10 +282,6 @@ public final class Example {
     }
 
     public static void main(String[] args) throws InterruptedException {
-        if (console == null) {
-            System.err.println("This example requires Console for user interaction. On Windows cmd or PowerShell should be used");
-            System.exit(1);
-        }
 
         // disable TDLib log
         Log.setVerbosityLevel(0);
