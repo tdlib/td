@@ -59,6 +59,9 @@ public final class Example {
     }
 
     private static void print(String str) {
+        if (currentPrompt != null) {
+            System.out.println("");
+        }
         System.out.println(str);
         if (currentPrompt != null) {
             System.out.print(currentPrompt);

@@ -29,6 +29,7 @@ namespace TdExample
 
         private static readonly string _newLine = Environment.NewLine;
         private static readonly string _commandsLine = "Enter command (gc <chatId> - GetChat, me - GetMe, sm <chatId> <message> - SendMessage, lo - LogOut, q - Quit): ";
+        private static volatile string _currentPrompt = null;
 
         private static Td.Client CreateTdClient()
         {
@@ -43,19 +44,24 @@ namespace TdExample
 
         private static void Print(string str)
         {
-            Console.WriteLine();
-            Console.WriteLine(str);
-            if (_haveAuthorization)
+            if (_currentPrompt != null)
             {
-                Console.Write(_commandsLine);
+                Console.WriteLine();
+            }
+            Console.WriteLine(str);
+            if (_currentPrompt != null)
+            {
+                Console.Write(_currentPrompt);
             }
         }
 
         private static string ReadLine(string str)
         {
-            Console.WriteLine();
             Console.Write(str);
-            return Console.ReadLine();
+            _currentPrompt = str;
+            var result = Console.ReadLine();
+            _currentPrompt = null;
+            return result;
         }
 
         private static void OnAuthorizationStateUpdated(TdApi.AuthorizationState authorizationState)
