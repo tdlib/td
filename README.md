@@ -91,7 +91,9 @@ To build `TDLib` in Release mode using MSVC, you will need to additionally speci
 
 <a name="linux"></a>
 #### Linux
-* Install all dependencies using your package manager.
+* Install all dependencies using your package manager. 
+
+Please note you need 2Gb or more virtual memory to build the library. It can be the case for a small VPS. You may need to add an extra swap space. 
 
 <a name="using-cxx"></a>
 ## Using in CMake C++ projects
