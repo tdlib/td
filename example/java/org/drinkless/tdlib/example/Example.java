@@ -52,17 +52,16 @@ public final class Example {
 
     private static final String newLine = System.getProperty("line.separator");
     private static final String commandsLine = "Enter command (gcs - GetChats, gc <chatId> - GetChat, me - GetMe, sm <chatId> <message> - SendMessage, lo - LogOut, q - Quit): ";
+    private static volatile String currentPrompt = null;
 
     static {
         System.loadLibrary("tdjni");
     }
 
     private static void print(String str) {
-        System.out.println();
         System.out.println(str);
-        if (haveAuthorization)
-        {
-            System.out.print(commandsLine);
+        if (currentPrompt != null) {
+            System.out.print(currentPrompt);
         }
     }
 
@@ -106,17 +105,17 @@ public final class Example {
                 client.send(new TdApi.CheckDatabaseEncryptionKey(), new AuthorizationRequestHandler());
                 break;
             case TdApi.AuthorizationStateWaitPhoneNumber.CONSTRUCTOR: {
-                String phoneNumber = promptString("Please enter phone number: ", false);
+                String phoneNumber = promptString("Please enter phone number: ");
                 client.send(new TdApi.SetAuthenticationPhoneNumber(phoneNumber, false, false), new AuthorizationRequestHandler());
                 break;
             }
             case TdApi.AuthorizationStateWaitCode.CONSTRUCTOR: {
-                String code = promptString("Please enter authentication code: ", false);
+                String code = promptString("Please enter authentication code: ");
                 client.send(new TdApi.CheckAuthenticationCode(code, "", ""), new AuthorizationRequestHandler());
                 break;
             }
             case TdApi.AuthorizationStateWaitPassword.CONSTRUCTOR: {
-                String password = promptString("Please enter password: ", false);
+                String password = promptString("Please enter password: ");
                 client.send(new TdApi.CheckAuthenticationPassword(password), new AuthorizationRequestHandler());
                 break;
             }
@@ -165,12 +164,10 @@ public final class Example {
         }
         return chatId;
     }
-    
-    private static String promptString(String prompt, boolean printNewline) {
+
+    private static String promptString(String prompt) {
         System.out.print(prompt);
-        if (printNewline) {
-            System.out.print(newLine);
-        }
+        currentPrompt = prompt;
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         String str = "";
         try {
@@ -178,11 +175,12 @@ public final class Example {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        currentPrompt = null;
         return str;
     }
 
     private static void getCommand() {
-        String command = promptString(commandsLine, true);
+        String command = promptString(commandsLine);
         String[] commands = command.split(" ", 2);
         try {
             switch (commands[0]) {
@@ -269,6 +267,7 @@ public final class Example {
                     System.out.println(chatId + ": " + chat.title);
                 }
             }
+            print("");
         }
     }
 
@@ -282,7 +281,6 @@ public final class Example {
     }
 
     public static void main(String[] args) throws InterruptedException {
-
         // disable TDLib log
         Log.setVerbosityLevel(0);
         if (!Log.setFilePath("tdlib.log")) {
