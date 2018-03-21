@@ -340,6 +340,12 @@ void sha256(Slice data, MutableSlice output) {
   CHECK(result == output.ubegin());
 }
 
+void sha512(Slice data, MutableSlice output) {
+  CHECK(output.size() >= 64);
+  auto result = SHA512(data.ubegin(), data.size(), output.ubegin());
+  CHECK(result == output.ubegin());
+}
+
 struct Sha256StateImpl {
   SHA256_CTX ctx;
 };

@@ -48,6 +48,8 @@ void sha1(Slice data, unsigned char output[20]);
 
 void sha256(Slice data, MutableSlice output);
 
+void sha512(Slice data, MutableSlice output);
+
 struct Sha256StateImpl;
 
 struct Sha256State {
