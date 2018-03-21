@@ -138,14 +138,14 @@ vector<tl_object_ptr<td_api::textEntity>> get_text_entities_object(const vector<
   return result;
 }
 
-static bool is_word_character(uint32 a) {
-  switch (get_unicode_simple_category(a)) {
+static bool is_word_character(uint32 code) {
+  switch (get_unicode_simple_category(code)) {
     case UnicodeSimpleCategory::Letter:
     case UnicodeSimpleCategory::DecimalNumber:
     case UnicodeSimpleCategory::Number:
       return true;
     default:
-      return a == '_';
+      return code == '_';
   }
 }
 
@@ -159,16 +159,16 @@ static bool is_word_boundary(uint32 a, uint32 b) {
 }
 */
 
-static bool is_alpha_digit(uint32 a) {
-  return ('0' <= a && a <= '9') || ('a' <= a && a <= 'z') || ('A' <= a && a <= 'Z');
+static bool is_alpha_digit(uint32 code) {
+  return ('0' <= code && code <= '9') || ('a' <= code && code <= 'z') || ('A' <= code && code <= 'Z');
 }
 
-static bool is_alpha_digit_or_underscore(uint32 a) {
-  return is_alpha_digit(a) || a == '_';
+static bool is_alpha_digit_or_underscore(uint32 code) {
+  return is_alpha_digit(code) || code == '_';
 }
 
-static bool is_alpha_digit_or_underscore_or_minus(uint32 a) {
-  return is_alpha_digit_or_underscore(a) || a == '-';
+static bool is_alpha_digit_or_underscore_or_minus(uint32 code) {
+  return is_alpha_digit_or_underscore(code) || code == '-';
 }
 
 // This functions just implements corresponding regexps

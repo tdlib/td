@@ -186,6 +186,10 @@ string strip_empty_characters(string str, size_t max_length) {
       return string();
     }
 
+    if (trimmed[i] == ' ' || trimmed[i] == '\n') {
+      i++;
+      continue;
+    }
     if (static_cast<unsigned char>(trimmed[i]) == 0xE2 && static_cast<unsigned char>(trimmed[i + 1]) == 0x80 &&
         (static_cast<unsigned char>(trimmed[i + 2]) == 0x8C || static_cast<unsigned char>(trimmed[i + 2]) == 0x8D ||
          static_cast<unsigned char>(trimmed[i + 2]) == 0xAE)) {
