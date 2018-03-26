@@ -210,7 +210,10 @@ class ContactsManager : public Actor {
   void on_get_channel_full_fail(ChannelId channel_id, Status &&error);
 
   UserId get_my_id(const char *source) const;
+
   void set_my_online_status(bool is_online, bool send_update, bool is_local);
+
+  UserId get_service_notifications_user_id();
 
   void on_update_online_status_privacy();
 

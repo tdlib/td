@@ -5259,23 +5259,7 @@ void MessagesManager::add_pending_update(tl_object_ptr<telegram_api::Update> &&u
 }
 
 MessagesManager::Dialog *MessagesManager::get_service_notifications_dialog() {
-  UserId service_notifications_user_id(777000);
-  if (!td_->contacts_manager_->have_user_force(service_notifications_user_id) ||
-      !td_->contacts_manager_->have_user(service_notifications_user_id)) {
-    int32 flags = telegram_api::user::ACCESS_HASH_MASK | telegram_api::user::FIRST_NAME_MASK |
-                  telegram_api::user::LAST_NAME_MASK | telegram_api::user::PHONE_MASK | telegram_api::user::PHOTO_MASK |
-                  telegram_api::user::VERIFIED_MASK;
-    auto user = telegram_api::make_object<telegram_api::user>(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, 777000, 1, "Telegram", "Updates", string(), "42777",
-        telegram_api::make_object<telegram_api::userProfilePhoto>(
-            3337190045231018,
-            telegram_api::make_object<telegram_api::fileLocation>(1, 702229962, 26779, 5859320227133863146),
-            telegram_api::make_object<telegram_api::fileLocation>(1, 702229962, 26781, -3695031185685824216)),
-        nullptr, 0, string(), string(), string());
-    td_->contacts_manager_->on_get_user(std::move(user));
-  }
+  UserId service_notifications_user_id = td_->contacts_manager_->get_service_notifications_user_id();
   DialogId service_notifications_dialog_id(service_notifications_user_id);
   force_create_dialog(service_notifications_dialog_id, "get_service_notifications_dialog");
   return get_dialog(service_notifications_dialog_id);

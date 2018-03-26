@@ -3106,6 +3106,26 @@ void ContactsManager::set_my_online_status(bool is_online, bool send_update, boo
   }
 }
 
+UserId ContactsManager::get_service_notifications_user_id() {
+  UserId user_id(777000);
+  if (!have_user_force(user_id) || !have_user(user_id)) {
+    int32 flags = telegram_api::user::ACCESS_HASH_MASK | telegram_api::user::FIRST_NAME_MASK |
+                  telegram_api::user::LAST_NAME_MASK | telegram_api::user::PHONE_MASK | telegram_api::user::PHOTO_MASK |
+                  telegram_api::user::VERIFIED_MASK;
+    auto user = telegram_api::make_object<telegram_api::user>(
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+        false /*ignored*/, 777000, 1, "Telegram", "Updates", string(), "42777",
+        telegram_api::make_object<telegram_api::userProfilePhoto>(
+            3337190045231018,
+            telegram_api::make_object<telegram_api::fileLocation>(1, 702229962, 26779, 5859320227133863146),
+            telegram_api::make_object<telegram_api::fileLocation>(1, 702229962, 26781, -3695031185685824216)),
+        nullptr, 0, string(), string(), string());
+    on_get_user(std::move(user));
+  }
+  return user_id;
+}
+
 void ContactsManager::check_dialog_username(DialogId dialog_id, const string &username,
                                             Promise<CheckDialogUsernameResult> &&promise) {
   if (dialog_id != DialogId() && !dialog_id.is_valid()) {
