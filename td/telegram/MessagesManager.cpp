@@ -5262,8 +5262,11 @@ MessagesManager::Dialog *MessagesManager::get_service_notifications_dialog() {
   UserId service_notifications_user_id(777000);
   if (!td_->contacts_manager_->have_user_force(service_notifications_user_id) ||
       !td_->contacts_manager_->have_user(service_notifications_user_id)) {
+    int32 flags = telegram_api::user::ACCESS_HASH_MASK | telegram_api::user::FIRST_NAME_MASK |
+                  telegram_api::user::LAST_NAME_MASK | telegram_api::user::PHONE_MASK | telegram_api::user::PHOTO_MASK |
+                  telegram_api::user::VERIFIED_MASK;
     auto user = telegram_api::make_object<telegram_api::user>(
-        131127, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, 777000, 1, "Telegram", "Updates", string(), "42777",
         telegram_api::make_object<telegram_api::userProfilePhoto>(
@@ -15556,13 +15559,13 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId re
     m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_id());
   }
 
+  if (message_content.clear_draft) {
+    update_dialog_draft_message(d, nullptr, false, !need_update_dialog_pos);
+  }
+
   send_update_new_message(d, m, true);
   if (need_update_dialog_pos) {
     send_update_chat_last_message(d, "send_message");
-  }
-
-  if (message_content.clear_draft) {
-    update_dialog_draft_message(d, nullptr, false, true);
   }
 
   auto message_id = m->message_id;
@@ -18055,6 +18058,87 @@ void MessagesManager::do_send_screenshot_taken_notification_message(DialogId dia
 
   int64 random_id = begin_send_message(dialog_id, m);
   td_->create_handler<SendScreenshotNotificationQuery>(std::move(promise))->send(dialog_id, random_id);
+}
+
+Result<MessageId> MessagesManager::add_local_message(
+    DialogId dialog_id, MessageId reply_to_message_id,
+    tl_object_ptr<td_api::InputMessageContent> &&input_message_content) {
+  if (input_message_content == nullptr) {
+    return Status::Error(5, "Can't add local message without content");
+  }
+
+  LOG(INFO) << "Begin to add local message to " << dialog_id << " in reply to " << reply_to_message_id;
+  if (input_message_content->get_id() == td_api::inputMessageForwarded::ID) {
+    return Status::Error(5, "Can't add forwarded local message");
+  }
+  if (input_message_content->get_id() == td_api::inputMessageGame::ID) {
+    return Status::Error(5, "Can't add local game message");
+  }
+
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    return Status::Error(5, "Chat not found");
+  }
+
+  TRY_STATUS(can_send_message(dialog_id));
+  TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content)));
+
+  MessageId message_id = get_next_local_message_id(d);
+
+  auto dialog_type = dialog_id.get_type();
+  auto my_id = td_->contacts_manager_->get_my_id("add_local_message");
+
+  auto m = make_unique<Message>();
+  m->random_y = get_random_y(message_id);
+  m->message_id = message_id;
+  bool is_channel_post = is_broadcast_channel(dialog_id);
+  if (is_channel_post) {
+    // sender of the post can be hidden
+    if (td_->contacts_manager_->get_channel_sign_messages(dialog_id.get_channel_id())) {
+      m->author_signature = td_->contacts_manager_->get_user_title(my_id);
+    }
+  } else {
+    m->sender_user_id = my_id;
+  }
+  m->date = G()->unix_time();
+  m->reply_to_message_id = get_reply_to_message_id(d, reply_to_message_id);
+  m->is_channel_post = is_channel_post;
+  m->is_outgoing = dialog_id != DialogId(my_id);
+  m->from_background = false;
+  m->views = 0;
+  m->content = std::move(message_content.content);
+  m->disable_web_page_preview = message_content.disable_web_page_preview;
+  m->clear_draft = message_content.clear_draft;
+  if (dialog_type == DialogType::SecretChat) {
+    m->ttl = td_->contacts_manager_->get_secret_chat_ttl(dialog_id.get_secret_chat_id());
+    if (is_service_message_content(m->content->get_id())) {
+      m->ttl = 0;
+    }
+    m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_id());
+  } else if (message_content.ttl > 0) {
+    m->ttl = message_content.ttl;
+  }
+  m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_id());
+
+  m->have_previous = true;
+  m->have_next = true;
+
+  bool need_update = false;
+  bool need_update_dialog_pos = false;
+  auto result =
+      add_message_to_dialog(d, std::move(m), false, &need_update, &need_update_dialog_pos, "add local message");
+  CHECK(result != nullptr);
+
+  if (message_content.clear_draft) {
+    update_dialog_draft_message(d, nullptr, false, !need_update_dialog_pos);
+  }
+
+  send_update_new_message(d, result, true);
+  if (need_update_dialog_pos) {
+    send_update_chat_last_message(d, "add_local_message");
+  }
+
+  return message_id;
 }
 
 bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_message_id, const string &source) {

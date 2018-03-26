@@ -479,6 +479,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::sendChatSetTtlMessage &request);
 
+  void on_request(uint64 id, td_api::addLocalMessage &request);
+
   void on_request(uint64 id, td_api::editMessageText &request);
 
   void on_request(uint64 id, td_api::editMessageLiveLocation &request);

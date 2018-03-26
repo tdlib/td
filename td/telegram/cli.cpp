@@ -2069,6 +2069,26 @@ class CliClient final : public Actor {
           chat_id,
           make_tl_object<td_api::inputMessageText>(move_tl_object_as<td_api::formattedText>(parsed_text), false, true),
           op == "sms", false, as_message_id(reply_to_message_id));
+    } else if (op == "alm" || op == "almr") {
+      string chat_id;
+      string reply_to_message_id;
+      string message;
+
+      std::tie(chat_id, message) = split(args);
+      if (op == "smr") {
+        std::tie(reply_to_message_id, message) = split(message);
+      }
+
+      auto parsed_text =
+          execute(make_tl_object<td_api::parseTextEntities>(message, make_tl_object<td_api::textParseModeMarkdown>()));
+      if (parsed_text->get_id() == td_api::error::ID) {
+        parsed_text = make_tl_object<td_api::formattedText>(message, vector<tl_object_ptr<td_api::textEntity>>());
+      }
+
+      send_request(make_tl_object<td_api::addLocalMessage>(
+          as_chat_id(chat_id), as_message_id(reply_to_message_id),
+          make_tl_object<td_api::inputMessageText>(move_tl_object_as<td_api::formattedText>(parsed_text), false,
+                                                   true)));
     } else if (op == "smap" || op == "smapr") {
       string chat_id;
       string reply_to_message_id;

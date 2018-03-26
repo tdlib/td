@@ -2228,6 +2228,10 @@ sendChatSetTtlMessage chat_id:int53 ttl:int32 = Message;
 //@description Sends a notification about a screenshot taken in a chat. Supported only in private and secret chats @chat_id Chat identifier
 sendChatScreenshotTakenNotification chat_id:int53 = Ok;
 
+//@description Adds a local message to a chat. The message is persistent across application restarts only if the message database is used. Returns the added message @chat_id Target chat
+//@reply_to_message_id Identifier of the message to reply to or 0 @input_message_content The content of the message to be added
+addLocalMessage chat_id:int53 reply_to_message_id:int53 input_message_content:InputMessageContent = Message;
+
 //@description Deletes messages @chat_id Chat identifier @message_ids Identifiers of the messages to be deleted @revoke Pass true to try to delete outgoing messages for all chat members (may fail if messages are too old). Always true for supergroups, channels and secret chats
 deleteMessages chat_id:int53 message_ids:vector<int53> revoke:Bool = Ok;
 
@@ -2683,7 +2687,7 @@ pinSupergroupMessage supergroup_id:int32 message_id:int53 disable_notification:B
 //@description Removes the pinned message from a supergroup or channel; requires appropriate administrator rights in the supergroup or channel @supergroup_id Identifier of the supergroup or channel
 unpinSupergroupMessage supergroup_id:int32 = Ok;
 
-//@description Reports some messages from a user in a supergroup as spam @supergroup_id Supergroup identifier @user_id User identifier @message_ids Identifiers of messages sent in the supergroup by the user. This list must be non-empty
+//@description Reports some messages from a user in a supergroup as spam; requires administrator rights in the supergroup or channel @supergroup_id Supergroup identifier @user_id User identifier @message_ids Identifiers of messages sent in the supergroup by the user. This list must be non-empty
 reportSupergroupSpam supergroup_id:int32 user_id:int32 message_ids:vector<int53> = Ok;
 
 //@description Returns information about members or banned users in a supergroup or channel. Can be used only if SupergroupFullInfo.can_get_members == true; additionally, administrator privileges may be required for some filters @supergroup_id Identifier of the supergroup or channel
