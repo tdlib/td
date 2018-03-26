@@ -7,6 +7,7 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/mtproto.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/message_entities.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/secret.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/secure_storage.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/string_cleaning.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/TestsRunner.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/tests_runner.cpp
