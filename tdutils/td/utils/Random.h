@@ -18,6 +18,9 @@ class Random {
   static void secure_bytes(unsigned char *ptr, size_t size);
   static int32 secure_int32();
   static int64 secure_int64();
+
+  // works only for current thread
+  static void add_seed(Slice bytes, double entropy = 0);
 #endif
 
   static uint32 fast_uint32();

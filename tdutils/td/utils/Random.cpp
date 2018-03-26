@@ -20,12 +20,15 @@
 namespace td {
 
 #if TD_HAVE_OPENSSL
+namespace {
+constexpr size_t secure_bytes_buffer_size = 512;
+}
 void Random::secure_bytes(MutableSlice dest) {
   Random::secure_bytes(dest.ubegin(), dest.size());
 }
 
 void Random::secure_bytes(unsigned char *ptr, size_t size) {
-  constexpr size_t buf_size = 512;
+  constexpr size_t buf_size = secure_bytes_buffer_size;
   static TD_THREAD_LOCAL unsigned char *buf;  // static zero-initialized
   static TD_THREAD_LOCAL size_t buf_pos;
   if (init_thread_local<unsigned char[]>(buf, buf_size)) {
@@ -67,6 +70,13 @@ int64 Random::secure_int64() {
   int64 res = 0;
   secure_bytes(reinterpret_cast<unsigned char *>(&res), sizeof(int64));
   return res;
+}
+
+void Random::add_seed(Slice bytes, double entropy) {
+  RAND_add(bytes.data(), static_cast<int>(bytes.size()), entropy);
+  // drain all secure_bytes buffer
+  std::array<char, secure_bytes_buffer_size> buf;
+  secure_bytes(MutableSlice(buf.data(), buf.size()));
 }
 #endif
 
