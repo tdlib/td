@@ -1,4 +1,4 @@
-# TDLib cpp basic usage examples
+# TDLib C++ basic usage examples
 
 TDLib should be prebuilt and installed to local subdirectory `td/`:
 ```
