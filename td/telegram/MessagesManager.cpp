@@ -22392,11 +22392,14 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
     send_update_message_edited(dialog_id, old_message.get());
   }
 
-  (void)is_changed;
-  // need to save message always, because it might be added to some message index
-  // if (is_changed) {
-  on_message_changed(d, old_message.get(), "update_message");
-  // }
+  if (is_changed) {
+    on_message_changed(d, old_message.get(), "update_message");
+  } else {
+    // need to save message always, because it might be added to some message index
+    if (!message_id.is_yet_unsent()) {
+      add_message_to_database(d, old_message.get(), "update_message");
+    }
+  }
 }
 
 bool MessagesManager::need_message_text_changed_warning(const Message *old_message, const MessageText *old_content,
