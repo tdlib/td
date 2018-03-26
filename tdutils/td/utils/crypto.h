@@ -44,6 +44,18 @@ class AesCtrState {
   std::unique_ptr<Impl> ctx_;
 };
 
+class AesCbcState {
+ public:
+  AesCbcState(const UInt256 &key, const UInt128 &iv);
+
+  void encrypt(Slice from, MutableSlice to);
+  void decrypt(Slice from, MutableSlice to);
+
+ private:
+  UInt256 key_;
+  UInt128 iv_;
+};
+
 void sha1(Slice data, unsigned char output[20]);
 
 void sha256(Slice data, MutableSlice output);

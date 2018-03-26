@@ -279,6 +279,16 @@ void aes_cbc_decrypt(const UInt256 &aes_key, UInt128 *aes_iv, Slice from, Mutabl
   aes_cbc_xcrypt(aes_key, aes_iv, from, to, false);
 }
 
+AesCbcState::AesCbcState(const UInt256 &key, const UInt128 &iv) : key_(key), iv_(iv) {
+}
+
+void AesCbcState::encrypt(Slice from, MutableSlice to) {
+  ::td::aes_cbc_encrypt(key_, &iv_, from, to);
+}
+void AesCbcState::decrypt(Slice from, MutableSlice to) {
+  ::td::aes_cbc_decrypt(key_, &iv_, from, to);
+}
+
 class AesCtrState::Impl {
  public:
   Impl(const UInt256 &key, const UInt128 &iv) {
