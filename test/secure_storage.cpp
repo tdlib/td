@@ -29,20 +29,22 @@ TEST(SecureStorage, simple) {
   BufferSlice value("Small tale about cucumbers");
   auto value_secret = Secret::create_new();
 
-  auto value_view = BufferSliceDataView(value.copy());
-  BufferSlice prefix = gen_random_prefix(value_view.size());
-  auto prefix_view = BufferSliceDataView(std::move(prefix));
-  auto full_value_view = ConcatDataView(prefix_view, value_view);
-  auto hash = calc_value_hash(full_value_view).move_as_ok();
+  {
+    auto value_view = BufferSliceDataView(value.copy());
+    BufferSlice prefix = gen_random_prefix(value_view.size());
+    auto prefix_view = BufferSliceDataView(std::move(prefix));
+    auto full_value_view = ConcatDataView(prefix_view, value_view);
+    auto hash = calc_value_hash(full_value_view).move_as_ok();
 
-  Encryptor encryptor(calc_aes_cbc_state(PSLICE() << value_secret.as_slice() << hash.as_slice()), full_value_view);
-  auto encrypted_value = encryptor.pread(0, encryptor.size()).move_as_ok();
+    Encryptor encryptor(calc_aes_cbc_state(PSLICE() << value_secret.as_slice() << hash.as_slice()), full_value_view);
+    auto encrypted_value = encryptor.pread(0, encryptor.size()).move_as_ok();
 
-  Decryptor decryptor(calc_aes_cbc_state(PSLICE() << value_secret.as_slice() << hash.as_slice()));
-  auto res = decryptor.append(encrypted_value.copy()).move_as_ok();
-  auto decrypted_hash = decryptor.finish().ok();
-  ASSERT_TRUE(decrypted_hash.as_slice() == hash.as_slice());
-  ASSERT_TRUE(res.as_slice() == value.as_slice());
+    Decryptor decryptor(calc_aes_cbc_state(PSLICE() << value_secret.as_slice() << hash.as_slice()));
+    auto res = decryptor.append(encrypted_value.copy()).move_as_ok();
+    auto decrypted_hash = decryptor.finish().ok();
+    ASSERT_TRUE(decrypted_hash.as_slice() == hash.as_slice());
+    ASSERT_TRUE(res.as_slice() == value.as_slice());
+  }
 
   {
     auto encrypted_value = encrypt_value(value_secret, value.as_slice()).move_as_ok();

@@ -43,7 +43,7 @@ Result<ValueHash> calc_value_hash(DataView &data_view) {
 }
 
 BufferSlice gen_random_prefix(int64 data_size) {
-  BufferSlice buff(((32 + 15 + data_size) & -16) - data_size);
+  BufferSlice buff(narrow_cast<size_t>(((32 + 15 + data_size) & -16) - data_size));
   Random::secure_bytes(buff.as_slice());
   buff.as_slice()[0] = narrow_cast<uint8>(buff.size());
   CHECK((buff.size() + data_size) % 16 == 0);
@@ -58,7 +58,7 @@ int64 FileDataView::size() {
 }
 
 Result<BufferSlice> FileDataView::pread(int64 offset, int64 size) {
-  auto slice = BufferSlice(size);
+  auto slice = BufferSlice(narrow_cast<size_t>(size));
   TRY_RESULT(actual_size, fd_.pread(slice.as_slice(), offset));
   if (static_cast<int64>(actual_size) != size) {
     return Status::Error("Not enough data in file");
@@ -69,14 +69,14 @@ Result<BufferSlice> FileDataView::pread(int64 offset, int64 size) {
 BufferSliceDataView::BufferSliceDataView(BufferSlice buffer_slice) : buffer_slice_(std::move(buffer_slice)) {
 }
 int64 BufferSliceDataView::size() {
-  return buffer_slice_.size();
+  return narrow_cast<int64>(buffer_slice_.size());
 }
 Result<BufferSlice> BufferSliceDataView::pread(int64 offset, int64 size) {
   auto end_offset = size + offset;
   if (this->size() < end_offset) {
     return Status::Error("Not enough data in BufferSlice");
   }
-  return BufferSlice(buffer_slice_.as_slice().substr(offset, size));
+  return BufferSlice(buffer_slice_.as_slice().substr(narrow_cast<size_t>(offset), narrow_cast<size_t>(size)));
 }
 
 ConcatDataView::ConcatDataView(DataView &left, DataView &right) : left_(left), right_(right) {
