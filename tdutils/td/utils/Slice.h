@@ -272,4 +272,13 @@ inline std::size_t SliceHash::operator()(Slice slice) const {
   return result;
 }
 
+template <size_t N>
+td::Slice as_slice(const td::UInt<N> &value) {
+  return td::Slice(value.raw, N / 8);
+}
+template <size_t N>
+td::MutableSlice as_slice(td::UInt<N> &value) {
+  return td::MutableSlice(value.raw, N / 8);
+}
+
 }  // namespace td
