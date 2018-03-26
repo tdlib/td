@@ -8,6 +8,8 @@
 
 #include "td/utils/common.h"
 #include "td/utils/Slice.h"
+#include "td/utils/buffer.h"
+#include "td/utils/Status.h"
 
 namespace td {
 
@@ -80,6 +82,10 @@ void md5(Slice input, MutableSlice output);
 
 void pbkdf2_sha256(Slice password, Slice salt, int iteration_count, MutableSlice dest);
 void hmac_sha256(Slice key, Slice message, MutableSlice dest);
+
+// Interface may be improved
+Result<BufferSlice> rsa_encrypt_pkcs1_oaep(Slice public_key, Slice data);
+Result<BufferSlice> rsa_decrypt_pkcs1_oaep(Slice public_key, Slice data);
 
 void init_openssl_threads();
 #endif

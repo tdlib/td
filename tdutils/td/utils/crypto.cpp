@@ -15,11 +15,14 @@
 
 #if TD_HAVE_OPENSSL
 #include <openssl/aes.h>
+#include <openssl/engine.h>
 #include <openssl/crypto.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/md5.h>
 #include <openssl/sha.h>
+#include <openssl/pem.h>
+#include <openssl/rsa.h>
 #endif
 
 #if TD_HAVE_ZLIB
@@ -552,6 +555,69 @@ static uint64 crc64_partial(Slice data, uint64 crc) {
 
 uint64 crc64(Slice data) {
   return crc64_partial(data, static_cast<uint64>(-1)) ^ static_cast<uint64>(-1);
+}
+
+Result<BufferSlice> rsa_encrypt_pkcs1_oaep(Slice public_key, Slice data) {
+  BIO *mem_bio = BIO_new_mem_buf(public_key.data(), narrow_cast<int>(public_key.size()));
+  SCOPE_EXIT {
+    BIO_vfree(mem_bio);
+  };
+
+  EVP_PKEY *pkey = PEM_read_bio_PUBKEY(mem_bio, nullptr, nullptr, nullptr);
+  if (!pkey) {
+    return Status::Error("Cannot read public key");
+  }
+  EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(pkey, nullptr);
+  if (!ctx) {
+    return Status::Error("Cannot create EVP_PKEY_CTX");
+  }
+  if (EVP_PKEY_encrypt_init(ctx) <= 0) {
+    return Status::Error("Cannot init EVP_PKEY_CTX");
+  }
+  if (EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_OAEP_PADDING) <= 0) {
+    return Status::Error("Cannot set RSA_PKCS1_OAEP padding in EVP_PKEY_CTX");
+  }
+  size_t outlen;
+  if (EVP_PKEY_encrypt(ctx, nullptr, &outlen, data.ubegin(), data.size()) <= 0) {
+    return Status::Error("Cannot calculate encrypted length");
+  }
+  BufferSlice res(outlen);
+  if (EVP_PKEY_encrypt(ctx, res.as_slice().ubegin(), &outlen, data.ubegin(), data.size()) <= 0) {
+    ERR_print_errors_fp(stderr);
+    return Status::Error("Cannot encrypt");
+  }
+  return std::move(res);
+}
+
+Result<BufferSlice> rsa_decrypt_pkcs1_oaep(Slice private_key, Slice data) {
+  BIO *mem_bio = BIO_new_mem_buf(private_key.data(), narrow_cast<int>(private_key.size()));
+  SCOPE_EXIT {
+    BIO_vfree(mem_bio);
+  };
+
+  EVP_PKEY *pkey = PEM_read_bio_PrivateKey(mem_bio, nullptr, nullptr, nullptr);
+  if (!pkey) {
+    return Status::Error("Cannot read private key");
+  }
+  EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(pkey, nullptr);
+  if (!ctx) {
+    return Status::Error("Cannot create EVP_PKEY_CTX");
+  }
+  if (EVP_PKEY_decrypt_init(ctx) <= 0) {
+    return Status::Error("Cannot init EVP_PKEY_CTX");
+  }
+  if (EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_OAEP_PADDING) <= 0) {
+    return Status::Error("Cannot set RSA_PKCS1_OAEP padding in EVP_PKEY_CTX");
+  }
+  size_t outlen;
+  if (EVP_PKEY_decrypt(ctx, nullptr, &outlen, data.ubegin(), data.size()) <= 0) {
+    return Status::Error("Cannot calculate decrypted length");
+  }
+  BufferSlice res(outlen);
+  if (EVP_PKEY_decrypt(ctx, res.as_slice().ubegin(), &outlen, data.ubegin(), data.size()) <= 0) {
+    return Status::Error("Cannot decrypt");
+  }
+  return std::move(res);
 }
 
 }  // namespace td
