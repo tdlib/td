@@ -8,7 +8,6 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
 
 namespace td {
 namespace tl {

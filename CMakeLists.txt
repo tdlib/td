@@ -401,6 +401,7 @@ set(TDLIB_SOURCE
   td/telegram/SecretChatDb.cpp
   td/telegram/SecretChatsManager.cpp
   td/telegram/SecureStorage.cpp
+  td/telegram/SecureValue.cpp
   td/telegram/SequenceDispatcher.cpp
   td/telegram/StateManager.cpp
   td/telegram/StickersManager.cpp
@@ -521,6 +522,7 @@ set(TDLIB_SOURCE
   td/telegram/SecretChatsManager.h
   td/telegram/SecretInputMedia.h
   td/telegram/SecureStorage.h
+  td/telegram/SecureValue.h
   td/telegram/SequenceDispatcher.h
   td/telegram/StateManager.h
   td/telegram/StickersManager.h
@@ -551,6 +553,7 @@ set(TDLIB_SOURCE
   td/telegram/Payments.hpp
   td/telegram/Photo.hpp
   td/telegram/ReplyMarkup.hpp
+  td/telegram/SecureValue.hpp
   td/telegram/StickersManager.hpp
   td/telegram/VideoNotesManager.hpp
   td/telegram/VideosManager.hpp

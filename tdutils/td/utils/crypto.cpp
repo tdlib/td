@@ -12,6 +12,7 @@
 #include "td/utils/port/RwMutex.h"
 #include "td/utils/port/thread_local.h"
 #include "td/utils/Random.h"
+#include "td/utils/ScopeGuard.h"
 
 #if TD_HAVE_OPENSSL
 #include <openssl/aes.h>
@@ -485,7 +486,6 @@ Result<BufferSlice> rsa_encrypt_pkcs1_oaep(Slice public_key, Slice data) {
   }
   BufferSlice res(outlen);
   if (EVP_PKEY_encrypt(ctx, res.as_slice().ubegin(), &outlen, data.ubegin(), data.size()) <= 0) {
-    // ERR_print_errors_fp(stderr);
     return Status::Error("Cannot encrypt");
   }
   return std::move(res);

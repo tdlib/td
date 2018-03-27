@@ -2310,6 +2310,9 @@ class ContactsManager::UploadProfilePhotoCallback : public FileManager::UploadCa
   void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) override {
     UNREACHABLE();
   }
+  void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) override {
+    UNREACHABLE();
+  }
   void on_upload_error(FileId file_id, Status error) override {
     send_closure_later(G()->contacts_manager(), &ContactsManager::on_upload_profile_photo_error, file_id,
                        std::move(error));
@@ -5284,7 +5287,7 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
     auto user = telegram_api::make_object<telegram_api::user>(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, 777000, 1, "Telegram", string(), string(), "42777", std::move(profile_photo), nullptr, 0,
+        false /*ignored*/, 777000, 1, "Telegram", "Updates", string(), "42777", std::move(profile_photo), nullptr, 0,
         string(), string(), string());
     on_get_user(std::move(user));
     u = get_user(user_id);

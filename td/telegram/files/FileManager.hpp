@@ -40,7 +40,7 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
   bool has_expected_size =
       file_store_type == FileStoreType::Remote && file_view.size() == 0 && file_view.expected_size() != 0;
   if (file_store_type != FileStoreType::Empty) {
-    has_encryption_key = !file_view.empty() && file_view.is_encrypted();
+    has_encryption_key = !file_view.empty() && file_view.is_encrypted_secret();
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_encryption_key);
     STORE_FLAG(has_expected_size);

@@ -45,6 +45,7 @@
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/PrivacyManager.h"
+#include "td/telegram/SecureValue.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/StateManager.h"
@@ -61,6 +62,7 @@
 
 #include "td/telegram/td_api.hpp"
 #include "td/telegram/telegram_api.h"
+#include "td/telegram/telegram_api.hpp"
 
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
@@ -71,9 +73,11 @@
 #include "td/utils/format.h"
 #include "td/utils/MimeType.h"
 #include "td/utils/misc.h"
+#include "td/utils/optional.h"
 #include "td/utils/PathView.h"
 #include "td/utils/port/path.h"
 #include "td/utils/Random.h"
+#include "td/utils/overloaded.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/Timer.h"
@@ -3796,6 +3800,134 @@ class GetTermsOfServiceRequest : public RequestActor<string> {
   }
 };
 
+class GetSecureValue : public NetQueryCallback {
+ public:
+  GetSecureValue(std::string password, SecureValueType type, Promise<SecureValue> promise)
+      : password_(std::move(password)), type_(type), promise_(std::move(promise)) {
+  }
+
+ private:
+  string password_;
+  SecureValueType type_;
+  Promise<SecureValue> promise_;
+  optional<EncryptedSecureValue> encrypted_secure_value_;
+  optional<secure_storage::Secret> secret_;
+
+  void on_error(Status status) {
+    promise_.set_error(std::move(status));
+    stop();
+  }
+
+  void on_secret(Result<secure_storage::Secret> r_secret, bool dummy) {
+    LOG_IF(ERROR, r_secret.is_error()) << r_secret.error();
+    LOG_IF(ERROR, r_secret.is_ok()) << r_secret.ok().get_hash();
+    if (r_secret.is_error()) {
+      return on_error(r_secret.move_as_error());
+    }
+    secret_ = r_secret.move_as_ok();
+    loop();
+  }
+
+  void loop() override {
+    if (!encrypted_secure_value_ || !secret_) {
+      return;
+    }
+    promise_.set_result(decrypt_encrypted_secure_value(G()->td().get_actor_unsafe()->file_manager_.get(), *secret_,
+                                                       *encrypted_secure_value_));
+    stop();
+  }
+  void start_up() override {
+    std::vector<telegram_api::object_ptr<telegram_api::SecureValueType>> vec;
+    vec.push_back(get_secure_value_type_telegram_object(type_));
+
+    auto query = G()->net_query_creator().create(create_storer(telegram_api::account_getSecureValue(std::move(vec))));
+
+    G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
+
+    send_closure(G()->password_manager(), &PasswordManager::get_secure_secret, password_, optional<int64>(),
+                 PromiseCreator::lambda([actor_id = actor_id(this)](Result<secure_storage::Secret> r_secret) {
+                   send_closure(actor_id, &GetSecureValue::on_secret, std::move(r_secret), true);
+                 }));
+  }
+
+  void on_result(NetQueryPtr query) override {
+    auto r_result = fetch_result<telegram_api::account_getSecureValue>(std::move(query));
+    if (r_result.is_error()) {
+      return on_error(r_result.move_as_error());
+    }
+    auto result = r_result.move_as_ok();
+    if (result.size() != 1) {
+      return on_error(Status::Error(PSLICE() << "Expected vector of size 1 got " << result.size()));
+    }
+    LOG(ERROR) << to_string(result[0]);
+    encrypted_secure_value_ =
+        get_encrypted_secure_value(G()->td().get_actor_unsafe()->file_manager_.get(), std::move(result[0]));
+    loop();
+  }
+};
+
+class SetSecureValue : public NetQueryCallback {
+ public:
+  SetSecureValue(string password, SecureValue secure_value, Promise<Unit> promise)
+      : password_(std::move(password)), secure_value_(std::move(secure_value)), promise_(std::move(promise)) {
+  }
+
+ private:
+  string password_;
+  SecureValue secure_value_;
+  Promise<Unit> promise_;
+  optional<secure_storage::Secret> secret_;
+
+  enum class State { WaitSecret, WaitSetValue } state_ = State::WaitSecret;
+
+  void on_error(Status status) {
+    promise_.set_error(std::move(status));
+    stop();
+  }
+
+  void on_secret(Result<secure_storage::Secret> r_secret, bool x) {
+    LOG_IF(ERROR, r_secret.is_error()) << r_secret.error();
+    LOG_IF(ERROR, r_secret.is_ok()) << r_secret.ok().get_hash();
+    if (r_secret.is_error()) {
+      return on_error(r_secret.move_as_error());
+    }
+    secret_ = r_secret.move_as_ok();
+    loop();
+  }
+
+  void start_up() override {
+    send_closure(G()->password_manager(), &PasswordManager::get_secure_secret, password_, optional<int64>(),
+                 PromiseCreator::lambda([actor_id = actor_id(this)](Result<secure_storage::Secret> r_secret) {
+                   send_closure(actor_id, &SetSecureValue::on_secret, std::move(r_secret), true);
+                 }));
+  }
+
+  void loop() override {
+    if (state_ == State::WaitSecret) {
+      if (!secret_) {
+        return;
+      }
+      auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
+      auto save_secure_value = telegram_api::account_saveSecureValue(
+          get_input_secure_value_object(file_manager, encrypt_secure_value(file_manager, *secret_, secure_value_)),
+          secret_.value().get_hash());
+      LOG(ERROR) << to_string(save_secure_value);
+      auto query = G()->net_query_creator().create(create_storer(save_secure_value));
+
+      G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
+      state_ = State::WaitSetValue;
+    }
+  }
+  void on_result(NetQueryPtr query) override {
+    auto r_result = fetch_result<telegram_api::account_saveSecureValue>(std::move(query));
+    if (r_result.is_error()) {
+      return on_error(r_result.move_as_error());
+    }
+    auto result = r_result.move_as_ok();
+    LOG(ERROR) << to_string(result);
+  }
+};
+
 /** Td **/
 Td::Td(std::unique_ptr<TdCallback> callback) : callback_(std::move(callback)) {
 }
@@ -4400,6 +4532,11 @@ class Td::UploadFileCallback : public FileManager::UploadCallback {
     send_closure(G()->file_manager(), &FileManager::upload, file_id, nullptr, 0, 0);
   }
 
+  void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) override {
+    // cancel file upload of the file to allow next upload with the same file to succeed
+    send_closure(G()->file_manager(), &FileManager::upload, file_id, nullptr, 0, 0);
+  }
+
   void on_upload_error(FileId file_id, Status error) override {
   }
 };
@@ -4544,6 +4681,7 @@ Status Td::init(DbKey key) {
   device_token_manager_ = create_actor<DeviceTokenManager>("DeviceTokenManager", create_reference());
   hashtag_hints_ = create_actor<HashtagHints>("HashtagHints", "text", create_reference());
   password_manager_ = create_actor<PasswordManager>("PasswordManager", create_reference());
+  G()->set_password_manager(password_manager_.get());
   privacy_manager_ = create_actor<PrivacyManager>("PrivacyManager", create_reference());
   secret_chats_manager_ = create_actor<SecretChatsManager>("SecretChatsManager", create_reference());
   G()->set_secret_chats_manager(secret_chats_manager_.get());
@@ -5847,7 +5985,7 @@ void Td::on_request(uint64 id, td_api::createCall &request) {
   });
 
   if (!request.protocol_) {
-    return query_promise.set_error(Status::Error(5, "CallProtocol must not be empty"));
+    return query_promise.set_error(Status::Error(5, "Call protocol must not be empty"));
   }
 
   UserId user_id(request.user_id_);
@@ -6807,6 +6945,96 @@ void Td::on_request(uint64 id, const td_api::deleteSavedCredentials &request) {
   CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(DeleteSavedCredentialsRequest);
+}
+
+void Td::on_request(uint64 id, td_api::getPassportData &request) {
+  CHECK_AUTH();
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.password_);
+  if (request.type_ == nullptr) {
+    return send_error_raw(id, 400, "Type must not be empty");
+  }
+  create_actor<GetSecureValue>("GetSecureValue", std::move(request.password_),
+                               get_secure_value_type_td_api(std::move(request.type_)),
+                               PromiseCreator::lambda([](Result<SecureValue> r_value) {
+                                 LOG_IF(ERROR, r_value.is_error()) << r_value.error();
+                                 LOG_IF(ERROR, r_value.is_ok()) << r_value.ok().data;
+                               }))
+      .release();
+}
+
+void Td::on_request(uint64 id, td_api::setPassportData &request) {
+  CHECK_AUTH();
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.password_);
+  auto r_secure_value = get_secure_value(std::move(request.value_));
+  if (r_secure_value.is_error()) {
+    return send_closure(actor_id(this), &Td::send_error, id, r_secure_value.move_as_error());
+  }
+  create_actor<SetSecureValue>(
+      "SetSecureValue", std::move(request.password_), r_secure_value.move_as_ok(),
+      PromiseCreator::lambda([](Result<Unit> result) { LOG_IF(ERROR, result.is_error()) << result.error(); }))
+      .release();
+}
+
+void Td::on_request(uint64 id, const td_api::deletePassportData &request) {
+  CHECK_AUTH();
+  CHECK_IS_USER();
+  LOG(FATAL) << "TODO";
+}
+
+void Td::on_request(uint64 id, td_api::sendPhoneNumberVerificationCode &request) {
+  CHECK_AUTH();
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.phone_number_);
+  LOG(FATAL) << "TODO";
+}
+
+void Td::on_request(uint64 id, const td_api::resendPhoneNumberVerificationCode &request) {
+  CHECK_AUTH();
+  CHECK_IS_USER();
+  LOG(FATAL) << "TODO";
+}
+
+void Td::on_request(uint64 id, td_api::checkPhoneNumberVerificationCode &request) {
+  CHECK_AUTH();
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.code_);
+  LOG(FATAL) << "TODO";
+}
+
+void Td::on_request(uint64 id, td_api::sendEmailAddressVerificationCode &request) {
+  CHECK_AUTH();
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.email_address_);
+  LOG(FATAL) << "TODO";
+}
+
+void Td::on_request(uint64 id, const td_api::resendEmailAddressVerificationCode &request) {
+  CHECK_AUTH();
+  CHECK_IS_USER();
+  LOG(FATAL) << "TODO";
+}
+
+void Td::on_request(uint64 id, td_api::checkEmailAddressVerificationCode &request) {
+  CHECK_AUTH();
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.code_);
+  LOG(FATAL) << "TODO";
+}
+
+void Td::on_request(uint64 id, td_api::getPassportAuthorizationForm &request) {
+  CHECK_AUTH();
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.public_key_);
+  CLEAN_INPUT_STRING(request.scope_);
+  LOG(FATAL) << "TODO";
+}
+
+void Td::on_request(uint64 id, const td_api::sendPassportAuthorizationForm &request) {
+  CHECK_AUTH();
+  CHECK_IS_USER();
+  LOG(FATAL) << "TODO";
 }
 
 void Td::on_request(uint64 id, const td_api::getSupportUser &request) {

@@ -79,9 +79,7 @@ class SearchStickersQuery : public Td::ResultHandler {
  public:
   void send(string emoji) {
     emoji_ = std::move(emoji);
-    int32 flags = 0;
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::messages_getStickers(flags, false /*ignored*/, emoji_, ""))));
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_getStickers(emoji_, 0))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -781,6 +779,10 @@ class StickersManager::UploadStickerFileCallback : public FileManager::UploadCal
     UNREACHABLE();
   }
 
+  void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) override {
+    UNREACHABLE();
+  }
+
   void on_upload_error(FileId file_id, Status error) override {
     send_closure_later(G()->stickers_manager(), &StickersManager::on_upload_sticker_file_error, file_id,
                        std::move(error));
@@ -1283,11 +1285,11 @@ bool StickersManager::has_input_media(FileId sticker_file_id, bool is_secret) co
   CHECK(sticker != nullptr);
   auto file_view = td_->file_manager_->get_file_view(sticker_file_id);
   if (is_secret) {
-    if (file_view.is_encrypted()) {
+    if (file_view.is_encrypted_secret()) {
       if (file_view.has_remote_location() && !sticker->message_thumbnail.file_id.is_valid()) {
         return true;
       }
-    } else {
+    } else if (!file_view.is_encrypted()) {
       if (sticker->set_id != 0) {
         // stickers within a set can be sent by id and access_hash
         return true;
@@ -1311,7 +1313,7 @@ SecretInputMedia StickersManager::get_secret_input_media(FileId sticker_file_id,
   const Sticker *sticker = get_sticker(sticker_file_id);
   CHECK(sticker != nullptr);
   auto file_view = td_->file_manager_->get_file_view(sticker_file_id);
-  if (file_view.is_encrypted()) {
+  if (file_view.is_encrypted_secret()) {
     if (file_view.has_remote_location()) {
       input_file = file_view.remote_location().as_input_encrypted_file();
     }
@@ -1321,11 +1323,13 @@ SecretInputMedia StickersManager::get_secret_input_media(FileId sticker_file_id,
     if (sticker->message_thumbnail.file_id.is_valid() && thumbnail.empty()) {
       return {};
     }
-  } else {
+  } else if (!file_view.is_encrypted()) {
     if (sticker->set_id == 0) {
       // stickers without set can't be sent by id and access_hash
       return {};
     }
+  } else {
+    return {};
   }
 
   vector<tl_object_ptr<secret_api::DocumentAttribute>> attributes;
@@ -1347,7 +1351,7 @@ SecretInputMedia StickersManager::get_secret_input_media(FileId sticker_file_id,
         make_tl_object<secret_api::documentAttributeImageSize>(sticker->dimensions.width, sticker->dimensions.height));
   }
 
-  if (file_view.is_encrypted()) {
+  if (file_view.is_encrypted_secret()) {
     auto &encryption_key = file_view.encryption_key();
     return SecretInputMedia{std::move(input_file),
                             make_tl_object<secret_api::decryptedMessageMediaDocument>(
@@ -1356,6 +1360,7 @@ SecretInputMedia StickersManager::get_secret_input_media(FileId sticker_file_id,
                                 narrow_cast<int32>(file_view.size()), BufferSlice(encryption_key.key_slice()),
                                 BufferSlice(encryption_key.iv_slice()), std::move(attributes), "")};
   } else {
+    CHECK(!file_view.is_encrypted());
     auto &remote_location = file_view.remote_location();
     CHECK(!remote_location.is_web());  // web stickers shouldn't have set_id
     return SecretInputMedia{nullptr,
@@ -2829,7 +2834,7 @@ vector<int64> StickersManager::get_attached_sticker_sets(FileId file_id, Promise
     promise.set_error(Status::Error(5, "File not found"));
     return {};
   }
-  if (!file_view.has_remote_location() || file_view.remote_location().is_encrypted() ||
+  if (!file_view.has_remote_location() || !file_view.remote_location().is_document() ||
       file_view.remote_location().is_web()) {
     promise.set_value(Unit());
     return {};
@@ -2979,8 +2984,7 @@ Result<std::tuple<FileId, bool, bool>> StickersManager::prepare_input_file(
   bool is_url = false;
   bool is_local = false;
   if (file_view.has_remote_location()) {
-    CHECK(!file_view.remote_location().is_encrypted());
-    CHECK(!file_view.remote_location().is_photo());
+    CHECK(file_view.remote_location().is_document());
   } else {
     if (file_view.has_url()) {
       is_url = true;
@@ -3347,7 +3351,7 @@ void StickersManager::set_sticker_position_in_set(const tl_object_ptr<td_api::In
 
   auto file_id = r_file_id.move_as_ok();
   auto file_view = td_->file_manager_->get_file_view(file_id);
-  if (!file_view.has_remote_location() || file_view.remote_location().is_encrypted() ||
+  if (!file_view.has_remote_location() || !file_view.remote_location().is_document() ||
       file_view.remote_location().is_web()) {
     return promise.set_error(Status::Error(7, "Wrong sticker file specified"));
   }
@@ -3365,7 +3369,7 @@ void StickersManager::remove_sticker_from_set(const tl_object_ptr<td_api::InputF
 
   auto file_id = r_file_id.move_as_ok();
   auto file_view = td_->file_manager_->get_file_view(file_id);
-  if (!file_view.has_remote_location() || file_view.remote_location().is_encrypted() ||
+  if (!file_view.has_remote_location() || !file_view.remote_location().is_document() ||
       file_view.remote_location().is_web()) {
     return promise.set_error(Status::Error(7, "Wrong sticker file specified"));
   }
@@ -3390,12 +3394,12 @@ vector<FileId> StickersManager::get_attached_sticker_file_ids(const vector<int32
       LOG(WARNING) << "Sticker " << file_id << " has no remote location";
       continue;
     }
-    if (file_view.remote_location().is_encrypted()) {
-      LOG(WARNING) << "Sticker " << file_id << " is encrypted";
-      continue;
-    }
     if (file_view.remote_location().is_web()) {
       LOG(WARNING) << "Sticker " << file_id << " is web";
+      continue;
+    }
+    if (!file_view.remote_location().is_document()) {
+      LOG(WARNING) << "Sticker " << file_id << " is encrypted";
       continue;
     }
     result.push_back(file_id);
@@ -3594,7 +3598,7 @@ int32 StickersManager::get_recent_stickers_hash(const vector<FileId> &sticker_id
     CHECK(sticker != nullptr);
     auto file_view = td_->file_manager_->get_file_view(sticker_id);
     CHECK(file_view.has_remote_location());
-    CHECK(!file_view.remote_location().is_encrypted());
+    CHECK(file_view.remote_location().is_document());
     CHECK(!file_view.remote_location().is_web());
     auto id = static_cast<uint64>(file_view.remote_location().get_id());
     numbers.push_back(static_cast<uint32>(id >> 32));
@@ -3678,12 +3682,12 @@ bool StickersManager::add_recent_sticker_impl(bool is_attached, FileId sticker_i
     promise.set_error(Status::Error(7, "Can save only sent stickers"));
     return false;
   }
-  if (file_view.remote_location().is_encrypted()) {
-    promise.set_error(Status::Error(7, "Can't save encrypted stickers"));
-    return false;
-  }
   if (file_view.remote_location().is_web()) {
     promise.set_error(Status::Error(7, "Can't save web stickers"));
+    return false;
+  }
+  if (!file_view.remote_location().is_document()) {
+    promise.set_error(Status::Error(7, "Can't save encrypted stickers"));
     return false;
   }
 
@@ -3737,7 +3741,7 @@ void StickersManager::remove_recent_sticker(bool is_attached, const tl_object_pt
   // TODO invokeAfter
   auto file_view = td_->file_manager_->get_file_view(file_id);
   CHECK(file_view.has_remote_location());
-  CHECK(!file_view.remote_location().is_encrypted());
+  CHECK(file_view.remote_location().is_document());
   CHECK(!file_view.remote_location().is_web());
   td_->create_handler<SaveRecentStickerQuery>(std::move(promise))
       ->send(is_attached, file_view.remote_location().as_input_document(), true);
@@ -4023,15 +4027,15 @@ bool StickersManager::add_favorite_sticker_impl(FileId sticker_id, Promise<Unit>
 
   auto file_view = td_->file_manager_->get_file_view(sticker_id);
   if (!file_view.has_remote_location()) {
-    promise.set_error(Status::Error(7, "Can fave only sent stickers"));
-    return false;
-  }
-  if (file_view.remote_location().is_encrypted()) {
-    promise.set_error(Status::Error(7, "Can't fave encrypted stickers"));
+    promise.set_error(Status::Error(7, "Can add to favorites only sent stickers"));
     return false;
   }
   if (file_view.remote_location().is_web()) {
-    promise.set_error(Status::Error(7, "Can't fave web stickers"));
+    promise.set_error(Status::Error(7, "Can't add to favorites web stickers"));
+    return false;
+  }
+  if (!file_view.remote_location().is_document()) {
+    promise.set_error(Status::Error(7, "Can't add to favorites encrypted stickers"));
     return false;
   }
 
@@ -4082,7 +4086,7 @@ void StickersManager::remove_favorite_sticker(const tl_object_ptr<td_api::InputF
   // TODO invokeAfter
   auto file_view = td_->file_manager_->get_file_view(file_id);
   CHECK(file_view.has_remote_location());
-  CHECK(!file_view.remote_location().is_encrypted());
+  CHECK(file_view.remote_location().is_document());
   CHECK(!file_view.remote_location().is_web());
   td_->create_handler<FaveStickerQuery>(std::move(promise))
       ->send(file_view.remote_location().as_input_document(), true);
@@ -4140,7 +4144,7 @@ vector<string> StickersManager::get_sticker_emojis(const tl_object_ptr<td_api::I
     promise.set_value(Unit());
     return {};
   }
-  if (file_view.remote_location().is_encrypted()) {
+  if (!file_view.remote_location().is_document()) {
     promise.set_value(Unit());
     return {};
   }

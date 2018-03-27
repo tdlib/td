@@ -38,6 +38,7 @@
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/SecretInputMedia.h"
+#include "td/telegram/SecureValue.h"
 #include "td/telegram/UserId.h"
 #include "td/telegram/WebPageId.h"
 
@@ -621,6 +622,36 @@ class MessageWebsiteConnected : public MessageContent {
   }
 
   static const int32 ID = 37;
+  int32 get_id() const override {
+    return ID;
+  }
+};
+
+class MessagePassportDataSent : public MessageContent {
+ public:
+  vector<SecureValueType> types;
+
+  MessagePassportDataSent() = default;
+  explicit MessagePassportDataSent(vector<SecureValueType> &&types) : types(std::move(types)) {
+  }
+
+  static const int32 ID = 38;
+  int32 get_id() const override {
+    return ID;
+  }
+};
+
+class MessagePassportDataReceived : public MessageContent {
+ public:
+  vector<EncryptedSecureValue> values;
+  SecureCredentials credentials;
+
+  MessagePassportDataReceived() = default;
+  MessagePassportDataReceived(vector<EncryptedSecureValue> &&values, SecureCredentials &&credentials)
+      : values(std::move(values)), credentials(std::move(credentials)) {
+  }
+
+  static const int32 ID = 39;
   int32 get_id() const override {
     return ID;
   }

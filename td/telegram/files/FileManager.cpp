@@ -1887,6 +1887,12 @@ tl_object_ptr<td_api::file> FileManager::get_file_object(FileId file_id, bool wi
                                               file_view.has_remote_location(), remote_size));
 }
 
+vector<tl_object_ptr<td_api::file>> FileManager::get_files_object(const vector<FileId> &file_ids,
+                                                                  bool with_main_file_id) {
+  return transform(file_ids,
+                   [this, with_main_file_id](FileId file_id) { return get_file_object(file_id, with_main_file_id); });
+}
+
 Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> result, bool is_encrypted,
                                                 bool allow_zero) {
   TRY_RESULT(file_id, std::move(result));
@@ -2122,7 +2128,7 @@ void FileManager::on_upload_ok(QueryId query_id, FileType file_type, const Parti
   FileView file_view(file_node);
   string file_name = get_file_name(file_type, file_view.suggested_name());
 
-  if (file_view.is_encrypted()) {
+  if (file_view.is_encrypted_secret()) {
     tl_object_ptr<telegram_api::InputEncryptedFile> input_file;
     if (partial_remote.is_big_) {
       input_file = make_tl_object<telegram_api::inputEncryptedFileBigUploaded>(
@@ -2133,6 +2139,16 @@ void FileManager::on_upload_ok(QueryId query_id, FileType file_type, const Parti
     }
     if (file_info->upload_callback_) {
       file_info->upload_callback_->on_upload_encrypted_ok(file_id, std::move(input_file));
+      file_node->upload_pause_ = file_id;
+      file_info->upload_callback_.reset();
+    }
+  } else if (file_view.is_secure()) {
+    tl_object_ptr<telegram_api::InputSecureFile> input_file;
+    input_file = make_tl_object<telegram_api::inputSecureFileUploaded>(
+        partial_remote.file_id_, partial_remote.part_count_, "" /*md5*/, BufferSlice() /*file_hash*/,
+        BufferSlice() /*encrypted_secret*/);
+    if (file_info->upload_callback_) {
+      file_info->upload_callback_->on_upload_secure_ok(file_id, std::move(input_file));
       file_node->upload_pause_ = file_id;
       file_info->upload_callback_.reset();
     }

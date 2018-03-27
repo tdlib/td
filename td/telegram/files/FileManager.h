@@ -224,8 +224,20 @@ class FileView {
     }
     return FileType::Temp;
   }
-  bool is_encrypted() const {
+  bool is_encrypted_secret() const {
     return get_type() == FileType::Encrypted;
+  }
+  bool is_encrypted_secure() const {
+    return get_type() == FileType::Secure;
+  }
+  bool is_secure() const {
+    return get_type() == FileType::Secure || get_type() == FileType::SecureRaw;
+  }
+  bool is_encrypted_any() const {
+    return is_encrypted_secret() || is_encrypted_secure();
+  }
+  bool is_encrypted() const {
+    return is_encrypted_secret() || is_secure();
   }
   const FileEncryptionKey &encryption_key() const {
     return node_->encryption_key_;
@@ -266,6 +278,7 @@ class FileManager : public FileLoadManager::Callback {
     // Also upload may be resumed after some other merges.
     virtual void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) = 0;
     virtual void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) = 0;
+    virtual void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) = 0;
     virtual void on_upload_error(FileId file_id, Status error) = 0;
   };
 
@@ -326,6 +339,7 @@ class FileManager : public FileLoadManager::Callback {
   FileView get_file_view(FileId file_id) const;
   FileView get_sync_file_view(FileId file_id);
   tl_object_ptr<td_api::file> get_file_object(FileId file_id, bool with_main_file_id = true);
+  vector<tl_object_ptr<td_api::file>> get_files_object(const vector<FileId> &file_ids, bool with_main_file_id = true);
 
   Result<FileId> get_input_thumbnail_file_id(const tl_object_ptr<td_api::InputFile> &thumb_input_file,
                                              DialogId owner_dialog_id, bool is_encrypted) TD_WARN_UNUSED_RESULT;

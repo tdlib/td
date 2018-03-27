@@ -18,6 +18,7 @@
 #include "td/utils/ScopeGuard.h"
 
 #include <tuple>
+#include <utility>
 
 namespace td {
 void FileLoader::set_resource_manager(ActorShared<ResourceManager> resource_manager) {
@@ -176,7 +177,7 @@ Status FileLoader::do_loop() {
     } else {
       send_closure(delay_dispatcher_, &DelayDispatcher::send_with_callback_and_delay, std::move(query),
                    std::move(callback), next_delay_);
-      next_delay_ = std::max(next_delay_ * 0.8, 0.003);
+      next_delay_ = max(next_delay_ * 0.8, 0.003);
     }
   }
   return Status::OK();

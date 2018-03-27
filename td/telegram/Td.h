@@ -747,6 +747,28 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::deleteSavedCredentials &request);
 
+  void on_request(uint64 id, td_api::getPassportData &request);
+
+  void on_request(uint64 id, td_api::setPassportData &request);
+
+  void on_request(uint64 id, const td_api::deletePassportData &request);
+
+  void on_request(uint64 id, td_api::sendPhoneNumberVerificationCode &request);
+
+  void on_request(uint64 id, const td_api::resendPhoneNumberVerificationCode &request);
+
+  void on_request(uint64 id, td_api::checkPhoneNumberVerificationCode &request);
+
+  void on_request(uint64 id, td_api::sendEmailAddressVerificationCode &request);
+
+  void on_request(uint64 id, const td_api::resendEmailAddressVerificationCode &request);
+
+  void on_request(uint64 id, td_api::checkEmailAddressVerificationCode &request);
+
+  void on_request(uint64 id, td_api::getPassportAuthorizationForm &request);
+
+  void on_request(uint64 id, const td_api::sendPassportAuthorizationForm &request);
+
   void on_request(uint64 id, const td_api::getSupportUser &request);
 
   void on_request(uint64 id, const td_api::getWallpapers &request);

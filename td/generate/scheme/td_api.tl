@@ -59,6 +59,9 @@ authenticationCodeTypeFlashCall pattern:string = AuthenticationCodeType;
 //@description Information about the authentication code that was sent @phone_number A phone number that is being authenticated @type Describes the way the code was sent to the user @next_type Describes the way the next code will be sent to the user; may be null @timeout Timeout before the code should be re-sent, in seconds
 authenticationCodeInfo phone_number:string type:AuthenticationCodeType next_type:AuthenticationCodeType timeout:int32 = AuthenticationCodeInfo;
 
+//@description Information about the email address authentication code that was sent @email_address_pattern Pattern of the email address to which an authentication code was sent
+emailAddressAuthenticationCodeInfo email_address_pattern:string = EmailAddressAuthenticationCodeInfo;
+
 
 //@class AuthorizationState @description Represents the current authorization state of the client
 
@@ -94,9 +97,6 @@ authorizationStateClosed = AuthorizationState;
 
 //@description Represents the current state of 2-step verification @has_password True if a 2-step verification password has been set up @password_hint Hint for the password; can be empty @has_recovery_email_address True if a recovery email has been set up @unconfirmed_recovery_email_address_pattern Pattern of the email address to which a confirmation email was sent
 passwordState has_password:Bool password_hint:string has_recovery_email_address:Bool unconfirmed_recovery_email_address_pattern:string = PasswordState;
-
-//@description Contains information available to the user after requesting password recovery @recovery_email_address_pattern Pattern of the email address to which a recovery email was sent
-passwordRecoveryInfo recovery_email_address_pattern:string = PasswordRecoveryInfo;
 
 //@description Contains information about the current recovery email address @recovery_email_address Recovery email address
 recoveryEmailAddress recovery_email_address:string = RecoveryEmailAddress;
@@ -797,6 +797,58 @@ paymentResult success:Bool verification_url:string = PaymentResult;
 paymentReceipt date:int32 payments_provider_user_id:int32 invoice:invoice order_info:orderInfo shipping_option:shippingOption credentials_title:string = PaymentReceipt;
 
 
+//@class PassportDataType @description Contains type of a Telegram Passport data
+
+//@description The Telegram Passport data contains a user's personal details
+passportDataTypePersonalDetails = PassportDataType;
+
+//@description The Telegram Passport data contains a user's passport
+passportDataTypePassport = PassportDataType;
+
+//@description The Telegram Passport data contains a user's driver license
+passportDataTypeDriverLicense = PassportDataType;
+
+//@description The Telegram Passport data contains a user's identity card
+passportDataTypeIdentityCard = PassportDataType;
+
+//@description The Telegram Passport data contains a user's address
+passportDataTypeAddress = PassportDataType;
+
+//@description The Telegram Passport data contains a user's utility bill
+passportDataTypeUtilityBill = PassportDataType;
+
+//@description The Telegram Passport data contains a user's bank statement
+passportDataTypeBankStatement = PassportDataType;
+
+//@description The Telegram Passport data contains a user's rental agreement
+passportDataTypeRentalAgreement = PassportDataType;
+
+//@description The Telegram Passport data contains a user's phone number
+passportDataTypePhoneNumber = PassportDataType;
+
+//@description The Telegram Passport data contains a user's email address
+passportDataTypeEmailAddress = PassportDataType;
+
+
+//@description Contains information about a Telegram Passport data @type Telegram Passport data type @data TODO data should be typed @files List of attached files
+passportData type:PassportDataType data:string files:vector<file> = PassportData;
+
+//@description Contains information about a Telegram Passport data to save @type Telegram Passport data type @data TODO data should be typed @files List of attached files
+inputPassportData type:PassportDataType data:string files:vector<InputFile> = InputPassportData;
+
+
+//@class PassportAuthorizationForm Contains information about requested Telegram Passport authorization form @data Available data
+passportAuthorizationForm id:int32 data:vector<PassportData> = PassportAuthorizationForm;
+
+
+//@class EncryptedCredentials Contains an encrypted Telegram Passport data credentials @data The encrypted credentials @hash The decrypted data hash @secret Encrypted by service public key secret for data decryption
+encryptedCredentials data:bytes hash:bytes secret:bytes = EncryptedCredentials;
+
+
+//@description Contains information about an encrypted Telegram Passport data @type Telegram Passport data type @data Encrypted data about the user @files List of attached files @value Unencrypted data, phone number or email address
+encryptedPassportData type:PassportDataType data:bytes files:vector<file> value:string = EncryptedPassportData;
+
+
 //@class MessageContent @description Contains the content of a message
 
 //@description A text message @text Text of the message @web_page A preview of the web page that's mentioned in the text; may be null
@@ -911,6 +963,12 @@ messageContactRegistered = MessageContent;
 
 //@description The current user has connected a website by logging in using Telegram Login Widget on it @domain_name Domain name of the connected website
 messageWebsiteConnected domain_name:string = MessageContent;
+
+//@description Telegram Passport data has been sent @types List of types of sent data
+messagePassportDataSent types:vector<PassportDataType> = MessageContent;
+
+//@description Telegram Passport data has been received; for bots only @data List of received Telegram Passport data @credentials Encrypted Secure storage data credentials
+messagePassportDataReceived data:vector<EncryptedPassportData> credentials:encryptedCredentials = MessageContent;
 
 //@description Message content that is not supported by the client
 messageUnsupported = MessageContent;
@@ -1617,6 +1675,9 @@ fileTypeProfilePhoto = FileType;
 //@description The file was sent to a secret chat (the file type is not known to the server)
 fileTypeSecret = FileType;
 
+fileTypeSecure = FileType;
+fileTypeSecureEncrypted = FileType;
+
 //@description The file is a sticker
 fileTypeSticker = FileType;
 
@@ -2032,7 +2093,7 @@ getRecoveryEmailAddress password:string = RecoveryEmailAddress;
 setRecoveryEmailAddress password:string new_recovery_email_address:string = PasswordState;
 
 //@description Requests to send a password recovery code to an email address that was previously set up
-requestPasswordRecovery = PasswordRecoveryInfo;
+requestPasswordRecovery = EmailAddressAuthenticationCodeInfo;
 
 //@description Recovers the password using a recovery code sent to an email address that was previously set up @recovery_code Recovery code to check
 recoverPassword recovery_code:string = PasswordState;
@@ -2812,6 +2873,44 @@ addNetworkStatistics entry:NetworkStatisticsEntry = Ok;
 
 //@description Resets all network data usage statistics to zero. Can be called before authorization
 resetNetworkStatistics = Ok;
+
+
+//@description Returns filled Telegram Passport data @type Data type @password Password of the current user
+getPassportData type:PassportDataType password:string = PassportData;
+
+//@description Sets Telegram Passport data @type Data type @password Password of the current user
+setPassportData value:InputPassportData password:string = PassportData;
+
+//@description Deletes Telegram Passport data @type Data type
+deletePassportData type:PassportDataType = Ok;
+
+
+//@description Sends phone number verification code for Telegram Passport
+//@phone_number The phone number of the user, in international format @allow_flash_call Pass true if the authentication code may be sent via flash call to the specified phone number @is_current_phone_number Pass true if the phone number is used on the current device. Ignored if allow_flash_call is false
+sendPhoneNumberVerificationCode phone_number:string allow_flash_call:Bool is_current_phone_number:Bool = AuthenticationCodeInfo;
+
+//@description Resends phone number verification code for Telegram Passport
+resendPhoneNumberVerificationCode = AuthenticationCodeInfo;
+
+//@description Checks phone number verification code for Telegram Passport @code The verification code
+checkPhoneNumberVerificationCode code:string = Ok;
+
+
+//@description Sends email address verification code for Telegram Passport @email_address The email address
+sendEmailAddressVerificationCode email_address:string = EmailAddressAuthenticationCodeInfo;
+
+//@description Resends email address verification code for Telegram Passport
+resendEmailAddressVerificationCode = EmailAddressAuthenticationCodeInfo;
+
+//@description Checks email address verification code for Telegram Passport @code The verification code
+checkEmailAddressVerificationCode code:string = Ok;
+
+
+//@description Returns Telegram Passport authorization form for sharing data with a service @bot_id Service's bot identifier @scope Telegram Passport data types requested by the service @public_key Service's public_key
+getPassportAuthorizationForm bot_id:int32 scope:string public_key:string = PassportAuthorizationForm;
+
+//@description Sends Telegram Passport authorization form, effectively sharing data with the service @autorization_form_id Authorization form identifier
+sendPassportAuthorizationForm autorization_form_id:int32 = Ok;
 
 
 //@description Informs the server about the number of pending bot updates if they haven't been processed for a long time; for bots only @pending_update_count The number of pending updates @error_message The last error message

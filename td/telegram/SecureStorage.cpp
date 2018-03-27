@@ -5,10 +5,24 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/telegram/SecureStorage.h"
+
+#include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/Random.h"
+
 namespace td {
 namespace secure_storage {
+
 // Helpers
+Result<ValueHash> ValueHash::create(Slice data) {
+  UInt256 hash;
+  if (data.size() != ::td::as_slice(hash).size()) {
+    return Status::Error("Wrong hash size");
+  }
+  ::td::as_slice(hash).copy_from(data);
+  return ValueHash{hash};
+}
+
 AesCbcState calc_aes_cbc_state(Slice seed) {
   UInt<512> hash;
   auto hash_slice = as_slice(hash);
@@ -24,7 +38,7 @@ template <class F>
 Status data_view_for_each(DataView &data, F &&f) {
   const int64 step = 128 << 10;
   for (int64 i = 0, size = data.size(); i < size; i += step) {
-    TRY_RESULT(bytes, data.pread(i, std::min(step, size - i)));
+    TRY_RESULT(bytes, data.pread(i, min(step, size - i)));
     TRY_STATUS(f(std::move(bytes)));
   }
   return Status::OK();
@@ -42,6 +56,12 @@ Result<ValueHash> calc_value_hash(DataView &data_view) {
   return ValueHash{res};
 }
 
+ValueHash calc_value_hash(Slice data) {
+  UInt256 res;
+  sha256(data, as_slice(res));
+  return ValueHash{res};
+}
+
 BufferSlice gen_random_prefix(int64 data_size) {
   BufferSlice buff(narrow_cast<size_t>(((32 + 15 + data_size) & -16) - data_size));
   Random::secure_bytes(buff.as_slice());
@@ -53,7 +73,7 @@ BufferSlice gen_random_prefix(int64 data_size) {
 FileDataView::FileDataView(FileFd &fd, int64 size) : fd_(fd), size_(size) {
 }
 
-int64 FileDataView::size() {
+int64 FileDataView::size() const {
   return size_;
 }
 
@@ -68,7 +88,7 @@ Result<BufferSlice> FileDataView::pread(int64 offset, int64 size) {
 
 BufferSliceDataView::BufferSliceDataView(BufferSlice buffer_slice) : buffer_slice_(std::move(buffer_slice)) {
 }
-int64 BufferSliceDataView::size() {
+int64 BufferSliceDataView::size() const {
   return narrow_cast<int64>(buffer_slice_.size());
 }
 Result<BufferSlice> BufferSliceDataView::pread(int64 offset, int64 size) {
@@ -81,7 +101,7 @@ Result<BufferSlice> BufferSliceDataView::pread(int64 offset, int64 size) {
 
 ConcatDataView::ConcatDataView(DataView &left, DataView &right) : left_(left), right_(right) {
 }
-int64 ConcatDataView::size() {
+int64 ConcatDataView::size() const {
   return left_.size() + right_.size();
 }
 Result<BufferSlice> ConcatDataView::pread(int64 offset, int64 size) {
@@ -91,8 +111,8 @@ Result<BufferSlice> ConcatDataView::pread(int64 offset, int64 size) {
   }
 
   auto substr = [](DataView &slice, int64 offset, int64 size) -> Result<BufferSlice> {
-    auto l = std::max(int64{0}, offset);
-    auto r = std::min(slice.size(), offset + size);
+    auto l = max(int64{0}, offset);
+    auto r = min(slice.size(), offset + size);
     if (l >= r) {
       return BufferSlice();
     }
@@ -125,11 +145,11 @@ Slice Password::as_slice() const {
 // Secret
 namespace {
 uint8 secret_checksum(Slice secret) {
-  uint8 sum = 0;
+  uint32 sum = 0;
   for (uint8 c : secret) {
     sum += c;
   }
-  return static_cast<uint8>(239 - sum);
+  return static_cast<uint8>((255 + 239 - sum % 255) % 255);
 }
 }  // namespace
 
@@ -137,12 +157,17 @@ Result<Secret> Secret::create(Slice secret) {
   if (secret.size() != 32) {
     return Status::Error("wrong secret size");
   }
-  if (secret_checksum(secret) != 0) {
-    return Status::Error("Wrong cheksum");
+  uint32 checksum = secret_checksum(secret);
+  if (checksum != 0) {
+    return Status::Error(PSLICE() << "Wrong cheksum " << checksum);
   }
   UInt256 res;
   td::as_slice(res).copy_from(secret);
-  return Secret{res};
+
+  UInt256 secret_sha256;
+  sha256(secret, ::td::as_slice(secret_sha256));
+  auto hash = as<int64>(secret_sha256.raw);
+  return Secret{res, hash};
 }
 
 Secret Secret::create_new() {
@@ -150,13 +175,22 @@ Secret Secret::create_new() {
   auto secret_slice = td::as_slice(secret);
   Random::secure_bytes(secret_slice);
   auto checksum_diff = secret_checksum(secret_slice);
-  secret_slice.ubegin()[0] += checksum_diff;
+  uint8 new_byte = (static_cast<uint32>(secret_slice.ubegin()[0]) + checksum_diff) % 255;
+  secret_slice.ubegin()[0] = new_byte;
   return create(secret_slice).move_as_ok();
 }
 
 Slice Secret::as_slice() const {
   using td::as_slice;
   return as_slice(secret_);
+}
+
+int64 Secret::get_hash() const {
+  return hash_;
+}
+
+Secret Secret::clone() const {
+  return {secret_, hash_};
 }
 
 EncryptedSecret Secret::encrypt(Slice key) {
@@ -166,7 +200,7 @@ EncryptedSecret Secret::encrypt(Slice key) {
   return EncryptedSecret::create(td::as_slice(res)).move_as_ok();
 }
 
-Secret::Secret(UInt256 secret) : secret_(secret) {
+Secret::Secret(UInt256 secret, int64 hash) : secret_(secret), hash_(hash) {
 }
 
 //EncryptedSecret
@@ -207,7 +241,7 @@ Result<BufferSlice> Decryptor::append(BufferSlice data) {
   sha256_update(data.as_slice(), &sha256_state_);
   if (!skipped_prefix_) {
     to_skip_ = data.as_slice().ubegin()[0];
-    size_t to_skip = std::min(to_skip_, data.size());
+    size_t to_skip = min(to_skip_, data.size());
     skipped_prefix_ = true;
     data = data.from_slice(data.as_slice().remove_prefix(to_skip));
   }
@@ -230,7 +264,7 @@ Encryptor::Encryptor(AesCbcState aes_cbc_state, DataView &data_view)
     : aes_cbc_state_(std::move(aes_cbc_state)), data_view_(data_view) {
 }
 
-int64 Encryptor::size() {
+int64 Encryptor::size() const {
   return data_view_.size();
 }
 
@@ -266,7 +300,8 @@ Result<BufferSlice> decrypt_value(const Secret &secret, const ValueHash &hash, S
   TRY_RESULT(decrypted_value, decryptor.append(BufferSlice(data)));
   TRY_RESULT(got_hash, decryptor.finish());
   if (got_hash.as_slice() != hash.as_slice()) {
-    return Status::Error("Hash mismatch");
+    return Status::Error(PSLICE() << "Hash mismatch " << format::as_hex_dump<4>(got_hash.as_slice()) << " "
+                                  << format::as_hex_dump<4>(hash.as_slice()));
   }
   return std::move(decrypted_value);
 }

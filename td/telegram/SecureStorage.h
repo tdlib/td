@@ -4,32 +4,21 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-#include "td/utils/Random.h"
+#pragma once
+
 #include "td/utils/buffer.h"
+#include "td/utils/common.h"
 #include "td/utils/crypto.h"
-#include "td/utils/format.h"
-#include "td/utils/int_types.h"
-#include "td/utils/Status.h"
-#include "td/utils/optional.h"
 #include "td/utils/port/FileFd.h"
+#include "td/utils/Slice.h"
+#include "td/utils/Status.h"
+
+#include "td/actor/actor.h"
 
 namespace td {
-// secureValueSendingStatePending = SecureValueSendingState;
-// secureValueSendingStateFailed = SecureValueSendingState;
-//
-// secureValue key:string sending_state:SecureValueSendingState unencrypted_text:string data:string files:vector<File> = SecureValue;
-//
-// inputSecureValue key:string unencrypted_text:string data:string files:vector<InputFile> = InputSecureValue;
-//
-// updateSecureValue value:SecureValue = Update;
-//
-// setSecureValue password:string value:InputSecureValue = SecureValue;
-// getSecureValue password:string key:string = SecureValue;
-//
-
 // Types
 // Password
-// Secret - 32 bytes with sum == 239
+// Secret - 32 bytes with sum % 255 == 239
 // EncryptedSecret - encrypted secret
 // ValueHash - 32 bytes, sha256 from value
 //
@@ -64,8 +53,9 @@ namespace secure_storage {
 // Helpers
 class ValueHash {
  public:
-  ValueHash(UInt256 hash) : hash_(hash) {
+  explicit ValueHash(UInt256 hash) : hash_(hash) {
   }
+  static Result<ValueHash> create(Slice data);
   Slice as_slice() const {
     return td::as_slice(hash_);
   }
@@ -76,7 +66,7 @@ class ValueHash {
 
 class DataView {
  public:
-  virtual int64 size() = 0;
+  virtual int64 size() const = 0;
   virtual Result<BufferSlice> pread(int64 offset, int64 size) = 0;
   virtual ~DataView() = default;
 };
@@ -85,7 +75,7 @@ class FileDataView : public DataView {
  public:
   FileDataView(FileFd &fd, int64 size);
 
-  int64 size() override;
+  int64 size() const override;
   Result<BufferSlice> pread(int64 offset, int64 size) override;
 
  private:
@@ -95,8 +85,8 @@ class FileDataView : public DataView {
 
 class BufferSliceDataView : public DataView {
  public:
-  BufferSliceDataView(BufferSlice buffer_slice);
-  int64 size() override;
+  explicit BufferSliceDataView(BufferSlice buffer_slice);
+  int64 size() const override;
   Result<BufferSlice> pread(int64 offset, int64 size) override;
 
  private:
@@ -106,7 +96,7 @@ class BufferSliceDataView : public DataView {
 class ConcatDataView : public DataView {
  public:
   ConcatDataView(DataView &left, DataView &right);
-  int64 size() override;
+  int64 size() const override;
   Result<BufferSlice> pread(int64 offset, int64 size) override;
 
  private:
@@ -116,11 +106,12 @@ class ConcatDataView : public DataView {
 
 AesCbcState calc_aes_cbc_state(Slice seed);
 Result<ValueHash> calc_value_hash(DataView &data_view);
+ValueHash calc_value_hash(Slice data);
 BufferSlice gen_random_prefix(int64 data_size);
 
 class Password {
  public:
-  Password(std::string password);
+  explicit Password(std::string password);
   Slice as_slice() const;
 
  private:
@@ -137,9 +128,13 @@ class Secret {
   Slice as_slice() const;
   EncryptedSecret encrypt(Slice key);
 
+  int64 get_hash() const;
+  Secret clone() const;
+
  private:
-  Secret(UInt256 secret);
+  Secret(UInt256 secret, int64 hash);
   UInt256 secret_;
+  int64 hash_;
 };
 
 class EncryptedSecret {
@@ -149,14 +144,14 @@ class EncryptedSecret {
   Slice as_slice() const;
 
  private:
-  EncryptedSecret(UInt256 encrypted_secret);
+  explicit EncryptedSecret(UInt256 encrypted_secret);
   UInt256 encrypted_secret_;
 };
 
 // Decryption
 class Decryptor {
  public:
-  Decryptor(AesCbcState aes_cbc_state);
+  explicit Decryptor(AesCbcState aes_cbc_state);
   Result<BufferSlice> append(BufferSlice data);
   Result<ValueHash> finish();
 
@@ -171,7 +166,7 @@ class Decryptor {
 class Encryptor : public DataView {
  public:
   Encryptor(AesCbcState aes_cbc_state, DataView &data_view);
-  int64 size() override;
+  int64 size() const override;
   Result<BufferSlice> pread(int64 offset, int64 size) override;
 
  private:

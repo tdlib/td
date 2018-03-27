@@ -7,9 +7,11 @@
 #pragma once
 
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/SecureStorage.h"
 
 #include "td/utils/Container.h"
 #include "td/utils/logging.h"
+#include "td/utils/optional.h"
 #include "td/utils/Status.h"
 #include "td/utils/tl_helpers.h"
 
@@ -54,8 +56,10 @@ class PasswordManager : public NetQueryCallback {
   void set_recovery_email_address(string password, string new_recovery_email_address, Promise<State> promise);
   void get_recovery_email_address(string password, Promise<tl_object_ptr<td_api::recoveryEmailAddress>> promise);
 
-  void request_password_recovery(Promise<tl_object_ptr<td_api::passwordRecoveryInfo>> promise);
+  void request_password_recovery(Promise<tl_object_ptr<td_api::emailAddressAuthenticationCodeInfo>> promise);
   void recover_password(string code, Promise<State> promise);
+
+  void get_secure_secret(string password, optional<int64> hash, Promise<secure_storage::Secret> promise);
 
   void get_temp_password_state(Promise<TempState> promise) /*const*/;
   void create_temp_password(string password, int32 timeout, Promise<TempState> promise);
@@ -75,10 +79,23 @@ class PasswordManager : public NetQueryCallback {
     string current_salt;
     string new_salt;
 
+    string new_secure_salt;
+    string secure_random;
+
     State as_td_api() const {
       return td_api::make_object<td_api::passwordState>(has_password, password_hint, has_recovery_email_address,
                                                         unconfirmed_recovery_email_address_pattern);
     }
+  };
+
+  struct PasswordPrivateState {
+    string email;
+    optional<secure_storage::Secret> secret;
+  };
+
+  struct PasswordFullState {
+    PasswordState state;
+    PasswordPrivateState private_state;
   };
 
   struct UpdateSettings {
@@ -88,18 +105,23 @@ class PasswordManager : public NetQueryCallback {
     string new_password;
     string new_hint;
 
+    bool update_secure_secret = false;
+
     bool update_recovery_email_address = false;
     string recovery_email_address;
   };
 
+  optional<secure_storage::Secret> secret_;
   TempPasswordState temp_password_state_;
   Promise<TempState> create_temp_password_promise_;
 
   void update_password_settings(UpdateSettings update_settings, Promise<State> promise);
-  void do_update_password_settings(UpdateSettings update_settings, PasswordState state, Promise<bool> promise);
+  void do_update_password_settings(UpdateSettings update_settings, PasswordFullState full_state, Promise<bool> promise);
   void do_get_state(Promise<PasswordState> promise);
-  void do_get_recovery_email_address(string password, PasswordState state,
-                                     Promise<tl_object_ptr<td_api::recoveryEmailAddress>> promise);
+  void get_full_state(string password, Promise<PasswordFullState> promise);
+  void do_get_secure_secret(bool recursive, string passwod, optional<int64>, Promise<secure_storage::Secret> promise);
+  void do_get_full_state(string password, PasswordState state, Promise<PasswordFullState> promise);
+  void cache_secret(secure_storage::Secret secret);
 
   void do_create_temp_password(string password, int32 timeout, PasswordState &&password_state,
                                Promise<TempPasswordState> promise);

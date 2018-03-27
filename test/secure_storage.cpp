@@ -6,6 +6,7 @@
 //
 #include "td/utils/buffer.h"
 #include "td/utils/filesystem.h"
+#include "td/utils/logging.h"
 #include "td/utils/port/path.h"
 #include "td/utils/tests.h"
 

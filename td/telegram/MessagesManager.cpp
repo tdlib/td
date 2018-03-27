@@ -42,6 +42,7 @@
 #include "td/telegram/ReplyMarkup.hpp"
 #include "td/telegram/SecretChatActor.h"
 #include "td/telegram/SecretChatsManager.h"
+#include "td/telegram/SecureValue.hpp"
 #include "td/telegram/SequenceDispatcher.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StickersManager.hpp"
@@ -3327,6 +3328,9 @@ class MessagesManager::UploadMediaCallback : public FileManager::UploadCallback 
     send_closure_later(G()->messages_manager(), &MessagesManager::on_upload_media, file_id, nullptr,
                        std::move(input_file));
   }
+  void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) override {
+    UNREACHABLE();
+  }
   void on_upload_error(FileId file_id, Status error) override {
     send_closure_later(G()->messages_manager(), &MessagesManager::on_upload_media_error, file_id, std::move(error));
   }
@@ -3338,6 +3342,9 @@ class MessagesManager::UploadThumbnailCallback : public FileManager::UploadCallb
     send_closure_later(G()->messages_manager(), &MessagesManager::on_upload_thumbnail, file_id, std::move(input_file));
   }
   void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) override {
+    UNREACHABLE();
+  }
+  void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) override {
     UNREACHABLE();
   }
   void on_upload_error(FileId file_id, Status error) override {
@@ -3352,6 +3359,9 @@ class MessagesManager::UploadDialogPhotoCallback : public FileManager::UploadCal
                        std::move(input_file));
   }
   void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) override {
+    UNREACHABLE();
+  }
+  void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) override {
     UNREACHABLE();
   }
   void on_upload_error(FileId file_id, Status error) override {
@@ -3593,6 +3603,17 @@ static void store(const MessageContent *content, StorerT &storer) {
     case MessageWebsiteConnected::ID: {
       auto m = static_cast<const MessageWebsiteConnected *>(content);
       store(m->domain_name, storer);
+      break;
+    }
+    case MessagePassportDataSent::ID: {
+      auto m = static_cast<const MessagePassportDataSent *>(content);
+      store(m->types, storer);
+      break;
+    }
+    case MessagePassportDataReceived::ID: {
+      auto m = static_cast<const MessagePassportDataReceived *>(content);
+      store(m->values, storer);
+      store(m->credentials, storer);
       break;
     }
     default:
@@ -3898,6 +3919,19 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
     case MessageWebsiteConnected::ID: {
       auto m = make_unique<MessageWebsiteConnected>();
       parse(m->domain_name, parser);
+      content = std::move(m);
+      break;
+    }
+    case MessagePassportDataSent::ID: {
+      auto m = make_unique<MessagePassportDataSent>();
+      parse(m->types, parser);
+      content = std::move(m);
+      break;
+    }
+    case MessagePassportDataReceived::ID: {
+      auto m = make_unique<MessagePassportDataReceived>();
+      parse(m->values, parser);
+      parse(m->credentials, parser);
       content = std::move(m);
       break;
     }
@@ -4834,6 +4868,8 @@ int32 MessagesManager::get_message_content_index_mask(const MessageContent *cont
     case MessageExpiredVideo::ID:
     case MessageCustomServiceAction::ID:
     case MessageWebsiteConnected::ID:
+    case MessagePassportDataSent::ID:
+    case MessagePassportDataReceived::ID:
       return 0;
     default:
       UNREACHABLE();
@@ -5688,6 +5724,8 @@ bool MessagesManager::need_cancel_user_dialog_action(int32 action_id, int32 mess
     case MessageContactRegistered::ID:
     case MessageCustomServiceAction::ID:
     case MessageWebsiteConnected::ID:
+    case MessagePassportDataSent::ID:
+    case MessagePassportDataReceived::ID:
       return false;
     default:
       UNREACHABLE();
@@ -7351,6 +7389,8 @@ bool MessagesManager::is_secret_message_content(int32 ttl, int32 content_type) {
     case MessageContactRegistered::ID:
     case MessageCustomServiceAction::ID:
     case MessageWebsiteConnected::ID:
+    case MessagePassportDataSent::ID:
+    case MessagePassportDataReceived::ID:
       return false;
     default:
       UNREACHABLE();
@@ -7399,6 +7439,8 @@ bool MessagesManager::is_service_message_content(int32 content_type) {
     case MessageContactRegistered::ID:
     case MessageCustomServiceAction::ID:
     case MessageWebsiteConnected::ID:
+    case MessagePassportDataSent::ID:
+    case MessagePassportDataReceived::ID:
       return true;
     default:
       UNREACHABLE();
@@ -7447,6 +7489,8 @@ bool MessagesManager::can_have_message_content_caption(int32 content_type) {
     case MessageExpiredVideo::ID:
     case MessageCustomServiceAction::ID:
     case MessageWebsiteConnected::ID:
+    case MessagePassportDataSent::ID:
+    case MessagePassportDataReceived::ID:
       return false;
     default:
       UNREACHABLE();
@@ -7520,6 +7564,8 @@ string MessagesManager::get_search_text(const Message *m) {
     case MessageExpiredVideo::ID:
     case MessageCustomServiceAction::ID:
     case MessageWebsiteConnected::ID:
+    case MessagePassportDataSent::ID:
+    case MessagePassportDataReceived::ID:
       return "";
     default:
       UNREACHABLE();
@@ -7568,6 +7614,8 @@ bool MessagesManager::is_allowed_media_group_content(int32 content_type) {
     case MessageContactRegistered::ID:
     case MessageCustomServiceAction::ID:
     case MessageWebsiteConnected::ID:
+    case MessagePassportDataSent::ID:
+    case MessagePassportDataReceived::ID:
       return false;
     default:
       UNREACHABLE();
@@ -8896,6 +8944,16 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
     case MessageWebsiteConnected::ID: {
       const MessageWebsiteConnected *m = static_cast<const MessageWebsiteConnected *>(content);
       return make_tl_object<td_api::messageWebsiteConnected>(m->domain_name);
+    }
+    case MessagePassportDataSent::ID: {
+      const MessagePassportDataSent *m = static_cast<const MessagePassportDataSent *>(content);
+      return make_tl_object<td_api::messagePassportDataSent>(get_passport_data_types_object(m->types));
+    }
+    case MessagePassportDataReceived::ID: {
+      const MessagePassportDataReceived *m = static_cast<const MessagePassportDataReceived *>(content);
+      return make_tl_object<td_api::messagePassportDataReceived>(
+          get_encrypted_passport_data_object(td_->file_manager_.get(), m->values),
+          get_encrypted_credentials_object(m->credentials));
     }
     default:
       UNREACHABLE();
@@ -14497,6 +14555,8 @@ SecretInputMedia MessagesManager::get_secret_input_media(const MessageContent *c
     case MessageExpiredVideo::ID:
     case MessageCustomServiceAction::ID:
     case MessageWebsiteConnected::ID:
+    case MessagePassportDataSent::ID:
+    case MessagePassportDataReceived::ID:
       break;
     default:
       UNREACHABLE();
@@ -14668,6 +14728,8 @@ tl_object_ptr<telegram_api::InputMedia> MessagesManager::get_input_media(
     case MessageExpiredVideo::ID:
     case MessageCustomServiceAction::ID:
     case MessageWebsiteConnected::ID:
+    case MessagePassportDataSent::ID:
+    case MessagePassportDataReceived::ID:
       break;
     default:
       UNREACHABLE();
@@ -14736,6 +14798,8 @@ void MessagesManager::delete_message_content_thumbnail(MessageContent *content) 
     case MessageExpiredVideo::ID:
     case MessageCustomServiceAction::ID:
     case MessageWebsiteConnected::ID:
+    case MessagePassportDataSent::ID:
+    case MessagePassportDataReceived::ID:
       break;
     default:
       UNREACHABLE();
@@ -15023,6 +15087,8 @@ Status MessagesManager::can_send_message_content(DialogId dialog_id, const Messa
     case MessageExpiredVideo::ID:
     case MessageCustomServiceAction::ID:
     case MessageWebsiteConnected::ID:
+    case MessagePassportDataSent::ID:
+    case MessagePassportDataReceived::ID:
       UNREACHABLE();
   }
   return Status::OK();
@@ -15451,6 +15517,10 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, Dialo
     case MessageCustomServiceAction::ID:
       break;
     case MessageWebsiteConnected::ID:
+      break;
+    case MessagePassportDataSent::ID:
+      break;
+    case MessagePassportDataReceived::ID:
       break;
     default:
       UNREACHABLE();
@@ -16144,7 +16214,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, Message *m, vector<int
     auto layer = td_->contacts_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
     auto secret_input_media = get_secret_input_media(content, nullptr, BufferSlice(), layer);
     if (secret_input_media.empty()) {
-      CHECK(file_view.is_encrypted());
+      CHECK(file_view.is_encrypted_secret());
       CHECK(file_id.is_valid());
       being_uploaded_files_[file_id] = {FullMessageId(dialog_id, m->message_id), thumbnail_file_id};
       LOG(INFO) << "Ask to upload encrypted file " << file_id;
@@ -16947,6 +17017,8 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
     case MessageExpiredVideo::ID:
     case MessageCustomServiceAction::ID:
     case MessageWebsiteConnected::ID:
+    case MessagePassportDataSent::ID:
+    case MessagePassportDataReceived::ID:
       return false;
     default:
       UNREACHABLE();
@@ -18730,6 +18802,8 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
       case MessageExpiredVideo::ID:
       case MessageCustomServiceAction::ID:
       case MessageWebsiteConnected::ID:
+      case MessagePassportDataSent::ID:
+      case MessagePassportDataReceived::ID:
         LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
         break;
       default:
@@ -21124,7 +21198,7 @@ unique_ptr<MessageContent> MessagesManager::dup_message_content(DialogId dialog_
   bool to_secret = dialog_id.get_type() == DialogType::SecretChat;
   auto fix_file_id = [dialog_id, to_secret, file_manager = td_->file_manager_.get()](FileId file_id) {
     auto file_view = file_manager->get_file_view(file_id);
-    if (to_secret && !file_view.is_encrypted()) {
+    if (to_secret && !file_view.is_encrypted_secret()) {
       auto download_file_id = file_manager->dup_file_id(file_id);
       file_id = file_manager
                     ->register_generate(FileType::Encrypted, FileLocationSource::FromServer, "",
@@ -21302,6 +21376,8 @@ unique_ptr<MessageContent> MessagesManager::dup_message_content(DialogId dialog_
     case MessageExpiredVideo::ID:
     case MessageCustomServiceAction::ID:
     case MessageWebsiteConnected::ID:
+    case MessagePassportDataSent::ID:
+    case MessagePassportDataReceived::ID:
       return nullptr;
     default:
       UNREACHABLE();
@@ -21467,6 +21543,18 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
     case telegram_api::messageActionBotAllowed::ID: {
       auto bot_allowed = move_tl_object_as<telegram_api::messageActionBotAllowed>(action);
       return make_unique<MessageWebsiteConnected>(std::move(bot_allowed->domain_));
+    }
+    case telegram_api::messageActionSecureValuesSent::ID: {
+      LOG_IF(ERROR, td_->auth_manager_->is_bot()) << "Receive MessageActionSecureValuesSent";
+      auto secure_values = move_tl_object_as<telegram_api::messageActionSecureValuesSent>(action);
+      return make_unique<MessagePassportDataSent>(get_secure_value_types(std::move(secure_values->types_)));
+    }
+    case telegram_api::messageActionSecureValuesSentMe::ID: {
+      LOG_IF(ERROR, !td_->auth_manager_->is_bot()) << "Receive MessageActionSecureValuesSentMe";
+      auto secure_values = move_tl_object_as<telegram_api::messageActionSecureValuesSentMe>(action);
+      return make_unique<MessagePassportDataReceived>(
+          get_encrypted_secure_values(td_->file_manager_.get(), std::move(secure_values->values_)),
+          get_secure_credentials(std::move(secure_values->credentials_)));
     }
     default:
       UNREACHABLE();
@@ -22981,6 +23069,26 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
         auto old_ = static_cast<const MessageWebsiteConnected *>(old_content.get());
         auto new_ = static_cast<const MessageWebsiteConnected *>(new_content.get());
         if (old_->domain_name != new_->domain_name) {
+          need_update = true;
+        }
+        break;
+      }
+      case MessagePassportDataSent::ID: {
+        auto old_ = static_cast<const MessagePassportDataSent *>(old_content.get());
+        auto new_ = static_cast<const MessagePassportDataSent *>(new_content.get());
+        if (old_->types != new_->types) {
+          need_update = true;
+        }
+        break;
+      }
+      case MessagePassportDataReceived::ID: {
+        auto old_ = static_cast<const MessagePassportDataReceived *>(old_content.get());
+        auto new_ = static_cast<const MessagePassportDataReceived *>(new_content.get());
+        if (old_->values != new_->values) {
+          // FIXME merge files?
+          need_update = true;
+        }
+        if (old_->credentials != new_->credentials) {
           need_update = true;
         }
         break;

@@ -14,6 +14,7 @@
 #include "td/utils/crypto.h"
 #include "td/utils/logging.h"
 #include "td/utils/Random.h"
+#include "td/utils/Slice.h"
 
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"  // TODO: this file is already included. Why?
@@ -44,6 +45,7 @@ void PasswordManager::set_password(string current_password, string new_password,
 
   update_settings.current_password = std::move(current_password);
   update_settings.update_password = true;
+  //update_settings.update_secure_secret = true;
   update_settings.new_password = std::move(new_password);
   update_settings.new_hint = std::move(new_hint);
 
@@ -62,6 +64,52 @@ void PasswordManager::set_recovery_email_address(string password, string new_rec
   update_settings.recovery_email_address = std::move(new_recovery_email_address);
 
   update_password_settings(std::move(update_settings), std::move(promise));
+}
+
+void PasswordManager::get_secure_secret(string password, optional<int64> hash,
+                                        Promise<secure_storage::Secret> promise) {
+  return do_get_secure_secret(true, std::move(password), std::move(hash), std::move(promise));
+}
+
+void PasswordManager::do_get_secure_secret(bool recursive, string password, optional<int64> hash,
+                                           Promise<secure_storage::Secret> promise) {
+  if (secret_ && (!hash || secret_.value().get_hash() == hash.value())) {
+    return promise.set_value(secret_.value().clone());
+  }
+  get_full_state(
+      password, PromiseCreator::lambda([password, recursive, hash = std::move(hash), promise = std::move(promise),
+                                        actor_id = actor_id(this)](Result<PasswordFullState> r_state) mutable {
+        if (r_state.is_error()) {
+          return promise.set_error(r_state.move_as_error());
+        }
+        auto state = r_state.move_as_ok();
+        if (!state.state.has_password) {
+          return promise.set_error(Status::Error(400, "2fa is off"));
+        }
+        if (state.private_state.secret) {
+          send_closure(actor_id, &PasswordManager::cache_secret, state.private_state.secret.value().clone());
+          return promise.set_value(std::move(state.private_state.secret.value()));
+        }
+        if (!recursive) {
+          return promise.set_error(Status::Error(400, "Failed to get secure secret"));
+        }
+
+        auto new_promise =
+            PromiseCreator::lambda([recursive, password, hash = std::move(hash), promise = std::move(promise),
+                                    actor_id = actor_id](Result<bool> r_ok) mutable {
+              if (r_ok.is_error()) {
+                return promise.set_error(r_ok.move_as_error());
+              }
+              send_closure(actor_id, &PasswordManager::do_get_secure_secret, false, std::move(password),
+                           std::move(hash), std::move(promise));
+            });
+
+        UpdateSettings update_settings;
+        update_settings.current_password = password;
+        update_settings.update_secure_secret = true;
+        send_closure(actor_id, &PasswordManager::do_update_password_settings, std::move(update_settings),
+                     std::move(state), std::move(new_promise));
+      }));
 }
 
 void PasswordManager::get_temp_password_state(Promise<TempState> promise) /*const*/ {
@@ -135,31 +183,72 @@ void PasswordManager::on_finish_create_temp_password(Result<TempPasswordState> r
   create_temp_password_promise_.set_value(temp_password_state_.as_td_api());
 }
 
-void PasswordManager::get_recovery_email_address(string password,
-                                                 Promise<tl_object_ptr<td_api::recoveryEmailAddress>> promise) {
+void PasswordManager::get_full_state(string password, Promise<PasswordFullState> promise) {
   do_get_state(PromiseCreator::lambda([password = std::move(password), promise = std::move(promise),
                                        actor_id = actor_id(this)](Result<PasswordState> r_state) mutable {
     if (r_state.is_error()) {
       return promise.set_error(r_state.move_as_error());
     }
-    send_closure(actor_id, &PasswordManager::do_get_recovery_email_address, std::move(password), r_state.move_as_ok(),
+    send_closure(actor_id, &PasswordManager::do_get_full_state, std::move(password), r_state.move_as_ok(),
                  std::move(promise));
   }));
 }
 
-void PasswordManager::request_password_recovery(Promise<tl_object_ptr<td_api::passwordRecoveryInfo>> promise) {
-  send_with_promise(G()->net_query_creator().create(create_storer(telegram_api::auth_requestPasswordRecovery())),
-                    PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
-                      if (r_query.is_error()) {
-                        return promise.set_error(r_query.move_as_error());
-                      }
-                      auto r_result = fetch_result<telegram_api::auth_requestPasswordRecovery>(r_query.move_as_ok());
-                      if (r_result.is_error()) {
-                        return promise.set_error(r_result.move_as_error());
-                      }
-                      auto result = r_result.move_as_ok();
-                      return promise.set_value(make_tl_object<td_api::passwordRecoveryInfo>(result->email_pattern_));
+void PasswordManager::do_get_full_state(string password, PasswordState state, Promise<PasswordFullState> promise) {
+  auto current_salt = state.current_salt;
+  send_with_promise(G()->net_query_creator().create(create_storer(
+                        telegram_api::account_getPasswordSettings(calc_password_hash(password, current_salt)))),
+                    PromiseCreator::lambda([promise = std::move(promise), state = std::move(state),
+                                            password](Result<NetQueryPtr> r_query) mutable {
+                      promise.set_result([&]() -> Result<PasswordFullState> {
+                        TRY_RESULT(query, std::move(r_query));
+                        TRY_RESULT(result, fetch_result<telegram_api::account_getPasswordSettings>(std::move(query)));
+                        PasswordPrivateState private_state;
+                        private_state.email = result->email_;
+
+                        namespace ss = secure_storage;
+                        auto r_secret = [&]() -> Result<ss::Secret> {
+                          TRY_RESULT(encrypted_secret, ss::EncryptedSecret::create(result->secure_secret_.as_slice()));
+                          return encrypted_secret.decrypt(PSLICE() << result->secure_salt_.as_slice() << password
+                                                                   << result->secure_salt_.as_slice());
+                        }();
+
+                        LOG_IF(ERROR, r_secret.is_error()) << r_secret.error();
+                        LOG_IF(ERROR, r_secret.is_ok()) << "HAS SECRET";
+                        private_state.secret = std::move(r_secret);
+                        return PasswordFullState{std::move(state), std::move(private_state)};
+                      }());
                     }));
+}
+
+void PasswordManager::get_recovery_email_address(string password,
+                                                 Promise<tl_object_ptr<td_api::recoveryEmailAddress>> promise) {
+  get_full_state(
+      password,
+      PromiseCreator::lambda([password, promise = std::move(promise)](Result<PasswordFullState> r_state) mutable {
+        if (r_state.is_error()) {
+          return promise.set_error(r_state.move_as_error());
+        }
+        auto state = r_state.move_as_ok();
+        return promise.set_value(make_tl_object<td_api::recoveryEmailAddress>(state.private_state.email));
+      }));
+}
+
+void PasswordManager::request_password_recovery(
+    Promise<tl_object_ptr<td_api::emailAddressAuthenticationCodeInfo>> promise) {
+  send_with_promise(
+      G()->net_query_creator().create(create_storer(telegram_api::auth_requestPasswordRecovery())),
+      PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
+        if (r_query.is_error()) {
+          return promise.set_error(r_query.move_as_error());
+        }
+        auto r_result = fetch_result<telegram_api::auth_requestPasswordRecovery>(r_query.move_as_ok());
+        if (r_result.is_error()) {
+          return promise.set_error(r_result.move_as_error());
+        }
+        auto result = r_result.move_as_ok();
+        return promise.set_value(make_tl_object<td_api::emailAddressAuthenticationCodeInfo>(result->email_pattern_));
+      }));
 }
 
 void PasswordManager::recover_password(string code, Promise<State> promise) {
@@ -177,23 +266,6 @@ void PasswordManager::recover_password(string code, Promise<State> promise) {
                         }));
 }
 
-void PasswordManager::do_get_recovery_email_address(string password, PasswordState state,
-                                                    Promise<tl_object_ptr<td_api::recoveryEmailAddress>> promise) {
-  send_with_promise(G()->net_query_creator().create(create_storer(
-                        telegram_api::account_getPasswordSettings(calc_password_hash(password, state.current_salt)))),
-                    PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
-                      if (r_query.is_error()) {
-                        return promise.set_error(r_query.move_as_error());
-                      }
-                      auto r_result = fetch_result<telegram_api::account_getPasswordSettings>(r_query.move_as_ok());
-                      if (r_result.is_error()) {
-                        return promise.set_error(r_result.move_as_error());
-                      }
-                      auto result = r_result.move_as_ok();
-                      return promise.set_value(make_tl_object<td_api::recoveryEmailAddress>(result->email_));
-                    }));
-}
-
 void PasswordManager::update_password_settings(UpdateSettings update_settings, Promise<State> promise) {
   auto result_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), promise = std::move(promise)](Result<bool> r_update_settings) mutable {
@@ -208,9 +280,11 @@ void PasswordManager::update_password_settings(UpdateSettings update_settings, P
         send_closure(actor_id, &PasswordManager::get_state, std::move(promise));
       });
 
-  do_get_state(
+  auto password = update_settings.current_password;
+  get_full_state(
+      std::move(password),
       PromiseCreator::lambda([=, actor_id = actor_id(this), result_promise = std::move(result_promise),
-                              update_settings = std::move(update_settings)](Result<PasswordState> r_state) mutable {
+                              update_settings = std::move(update_settings)](Result<PasswordFullState> r_state) mutable {
         if (r_state.is_error()) {
           result_promise.set_error(r_state.move_as_error());
           return;
@@ -220,23 +294,59 @@ void PasswordManager::update_password_settings(UpdateSettings update_settings, P
       }));
 }
 
-void PasswordManager::do_update_password_settings(UpdateSettings update_settings, PasswordState state,
+namespace {
+BufferSlice create_salt(Slice server_salt) {
+  BufferSlice new_salt(server_salt.size() + 32);
+  new_salt.as_slice().copy_from(server_salt);
+  Random::secure_bytes(new_salt.as_slice().remove_prefix(server_salt.size()));
+  return new_salt;
+}
+}  // namespace
+void PasswordManager::do_update_password_settings(UpdateSettings update_settings, PasswordFullState full_state,
                                                   Promise<bool> promise) {
+  auto state = std::move(full_state.state);
+  auto private_state = std::move(full_state.private_state);
   auto new_settings = make_tl_object<telegram_api::account_passwordInputSettings>();
   if (update_settings.update_password) {
     new_settings->flags_ |= telegram_api::account_passwordInputSettings::NEW_PASSWORD_HASH_MASK;
     new_settings->flags_ |= telegram_api::account_passwordInputSettings::NEW_SALT_MASK;
     new_settings->flags_ |= telegram_api::account_passwordInputSettings::HINT_MASK;
     if (!update_settings.new_password.empty()) {
-      BufferSlice new_salt(state.new_salt.size() * 2);
-      new_salt.as_slice().copy_from(state.new_salt);
-      Random::secure_bytes(new_salt.as_slice().remove_prefix(state.new_salt.size()));
+      auto new_salt = create_salt(state.new_salt);
 
       new_settings->new_salt_ = std::move(new_salt);
       new_settings->new_password_hash_ =
           calc_password_hash(update_settings.new_password, new_settings->new_salt_.as_slice().str());
       new_settings->hint_ = std::move(update_settings.new_hint);
+      if (private_state.secret) {
+        update_settings.update_secure_secret = true;
+      }
     }
+  }
+
+  if (!state.has_password || (update_settings.update_password && update_settings.new_password.empty())) {
+    update_settings.update_secure_secret = false;
+  }
+
+  if (update_settings.update_secure_secret) {
+    new_settings->flags_ |= telegram_api::account_passwordInputSettings::NEW_SECURE_SECRET_ID_MASK;
+    new_settings->flags_ |= telegram_api::account_passwordInputSettings::NEW_SECURE_SALT_MASK;
+    new_settings->flags_ |= telegram_api::account_passwordInputSettings::NEW_SECURE_SECRET_MASK;
+    auto secret = [&]() {
+      if (private_state.secret) {
+        return std::move(private_state.secret.value());
+      }
+      return secure_storage::Secret::create_new();
+    }();
+    auto new_secure_salt = create_salt(state.new_secure_salt);
+    auto encrypted_secret = secret.encrypt(
+        PSLICE() << new_secure_salt.as_slice()
+                 << (update_settings.update_password ? update_settings.new_password : update_settings.current_password)
+                 << new_secure_salt.as_slice());
+
+    new_settings->new_secure_salt_ = std::move(new_secure_salt);
+    new_settings->new_secure_secret_ = BufferSlice(encrypted_secret.as_slice());
+    new_settings->new_secure_secret_id_ = secret.get_hash();
   }
   if (update_settings.update_recovery_email_address) {
     new_settings->flags_ |= telegram_api::account_passwordInputSettings::EMAIL_MASK;
@@ -297,6 +407,8 @@ void PasswordManager::do_get_state(Promise<PasswordState> promise) {
                         state.password_hint = "";
                         state.current_salt = "";
                         state.new_salt = no_password->new_salt_.as_slice().str();
+                        state.new_secure_salt = no_password->new_secure_salt_.as_slice().str();
+                        state.secure_random = no_password->secure_random_.as_slice().str();
                         state.has_recovery_email_address = false;
                         state.unconfirmed_recovery_email_address_pattern = no_password->email_unconfirmed_pattern_;
                       } else if (result->get_id() == telegram_api::account_password::ID) {
@@ -305,6 +417,8 @@ void PasswordManager::do_get_state(Promise<PasswordState> promise) {
                         state.password_hint = password->hint_;
                         state.current_salt = password->current_salt_.as_slice().str();
                         state.new_salt = password->new_salt_.as_slice().str();
+                        state.new_secure_salt = password->new_secure_salt_.as_slice().str();
+                        state.secure_random = password->secure_random_.as_slice().str();
                         state.has_recovery_email_address = password->has_recovery_;
                         state.unconfirmed_recovery_email_address_pattern = password->email_unconfirmed_pattern_;
                       } else {
@@ -312,6 +426,10 @@ void PasswordManager::do_get_state(Promise<PasswordState> promise) {
                       }
                       promise.set_value(std::move(state));
                     }));
+}
+void PasswordManager::cache_secret(secure_storage::Secret secret) {
+  LOG(ERROR) << "CACHE";
+  secret_ = std::move(secret);
 }
 
 void PasswordManager::on_result(NetQueryPtr query) {

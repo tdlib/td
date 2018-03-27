@@ -45,6 +45,8 @@ enum class FileType : int8 {
   EncryptedThumbnail,
   Wallpaper,
   VideoNote,
+  SecureRaw,
+  Secure,
   Size,
   None
 };
@@ -79,6 +81,10 @@ inline FileType from_td_api(const td_api::FileType &file_type) {
       return FileType::Wallpaper;
     case td_api::fileTypeVideoNote::ID:
       return FileType::VideoNote;
+    case td_api::fileTypeSecure::ID:
+      return FileType::Secure;
+    case td_api::fileTypeSecureEncrypted::ID:
+      return FileType::SecureRaw;
     case td_api::fileTypeNone::ID:
       return FileType::None;
     default:
@@ -117,6 +123,10 @@ inline tl_object_ptr<td_api::FileType> as_td_api(FileType file_type) {
       return make_tl_object<td_api::fileTypeWallpaper>();
     case FileType::VideoNote:
       return make_tl_object<td_api::fileTypeVideoNote>();
+    case FileType::Secure:
+      return make_tl_object<td_api::fileTypeSecure>();
+    case FileType::SecureRaw:
+      return make_tl_object<td_api::fileTypeSecureEncrypted>();
     case FileType::None:
       return make_tl_object<td_api::fileTypeNone>();
     default:
@@ -135,6 +145,8 @@ inline FileDirType get_file_dir_type(FileType file_type) {
     case FileType::Temp:
     case FileType::Wallpaper:
     case FileType::EncryptedThumbnail:
+    case FileType::Secure:
+    case FileType::SecureRaw:
       return FileDirType::Secure;
     default:
       return FileDirType::Common;
@@ -422,6 +434,8 @@ class FullRemoteFileLocation {
       case FileType::Animation:
       case FileType::Encrypted:
       case FileType::VideoNote:
+      case FileType::SecureRaw:
+      case FileType::Secure:
         return LocationType::Common;
       case FileType::None:
       case FileType::Size:
@@ -571,8 +585,20 @@ class FullRemoteFileLocation {
   bool is_common() const {
     return location_type() == LocationType::Common;
   }
-  bool is_encrypted() const {
+  bool is_encrypted_secret() const {
     return file_type_ == FileType::Encrypted;
+  }
+  bool is_encrypted_secure() const {
+    return file_type_ == FileType::Secure;
+  }
+  bool is_encrypted_any() const {
+    return is_encrypted_secret() || is_encrypted_secure();
+  }
+  bool is_secure() const {
+    return file_type_ == FileType::SecureRaw || file_type_ == FileType::Secure;
+  }
+  bool is_document() const {
+    return is_common() && !is_secure() && !is_encrypted_secret();
   }
 
   tl_object_ptr<telegram_api::inputWebFileLocation> as_input_web_file_location() const {
@@ -584,8 +610,10 @@ class FullRemoteFileLocation {
       case LocationType::Photo:
         return make_tl_object<telegram_api::inputFileLocation>(photo().volume_id_, photo().local_id_, photo().secret_);
       case LocationType::Common:
-        if (is_encrypted()) {
+        if (is_encrypted_secret()) {
           return make_tl_object<telegram_api::inputEncryptedFileLocation>(common().id_, common().access_hash_);
+        } else if (is_secure()) {
+          return make_tl_object<telegram_api::inputSecureFileLocation>(common().id_, common().access_hash_);
         } else {
           return make_tl_object<telegram_api::inputDocumentFileLocation>(common().id_, common().access_hash_, 0);
         }
@@ -599,7 +627,7 @@ class FullRemoteFileLocation {
 
   tl_object_ptr<telegram_api::InputDocument> as_input_document() const {
     CHECK(is_common());
-    LOG_IF(ERROR, is_encrypted()) << "Can't call as_input_document on an encrypted file";
+    LOG_IF(ERROR, !is_document()) << "Can't call as_input_document on an encrypted file";
     return make_tl_object<telegram_api::inputDocument>(common().id_, common().access_hash_);
   }
 
@@ -609,8 +637,12 @@ class FullRemoteFileLocation {
   }
 
   tl_object_ptr<telegram_api::InputEncryptedFile> as_input_encrypted_file() const {
-    CHECK(is_encrypted()) << "Can't call as_input_encrypted_file on a non-encrypted file";
+    CHECK(is_encrypted_secret()) << "Can't call as_input_encrypted_file on a non-encrypted file";
     return make_tl_object<telegram_api::inputEncryptedFile>(common().id_, common().access_hash_);
+  }
+  tl_object_ptr<telegram_api::InputSecureFile> as_input_secure_file() const {
+    CHECK(is_secure()) << "Can't call as_input_secure_file on a non-secure file";
+    return make_tl_object<telegram_api::inputSecureFile>(common().id_, common().access_hash_);
   }
 
   // TODO: this constructor is just for immediate unserialize

@@ -517,8 +517,7 @@ int32 AnimationsManager::get_saved_animations_hash() const {
     CHECK(animation != nullptr);
     auto file_view = td_->file_manager_->get_file_view(animation_id);
     CHECK(file_view.has_remote_location());
-    CHECK(!file_view.remote_location().is_encrypted());
-    CHECK(!file_view.remote_location().is_web());
+    CHECK(file_view.remote_location().is_document());
     auto id = static_cast<uint64>(file_view.remote_location().get_id());
     numbers.push_back(static_cast<uint32>(id >> 32));
     numbers.push_back(static_cast<uint32>(id & 0xFFFFFFFF));
@@ -598,12 +597,12 @@ bool AnimationsManager::add_saved_animation_impl(FileId animation_id, Promise<Un
     promise.set_error(Status::Error(7, "Can save only sent animations"));
     return false;
   }
-  if (file_view.remote_location().is_encrypted()) {
-    promise.set_error(Status::Error(7, "Can't save encrypted animations"));
-    return false;
-  }
   if (file_view.remote_location().is_web()) {
     promise.set_error(Status::Error(7, "Can't save web animations"));
+    return false;
+  }
+  if (!file_view.remote_location().is_document()) {
+    promise.set_error(Status::Error(7, "Can't save encrypted animations"));
     return false;
   }
 
@@ -654,7 +653,7 @@ void AnimationsManager::remove_saved_animation(const tl_object_ptr<td_api::Input
   // TODO invokeAfter
   auto file_view = td_->file_manager_->get_file_view(file_id);
   CHECK(file_view.has_remote_location());
-  CHECK(!file_view.remote_location().is_encrypted());
+  CHECK(file_view.remote_location().is_document());
   CHECK(!file_view.remote_location().is_web());
   td_->create_handler<SaveGifQuery>(std::move(promise))->send(file_view.remote_location().as_input_document(), true);
 

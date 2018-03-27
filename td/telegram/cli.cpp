@@ -934,6 +934,35 @@ class CliClient final : public Actor {
     return nullptr;
   }
 
+  static tl_object_ptr<td_api::PassportDataType> as_passport_data_type(string passport_data_type) {
+    if (passport_data_type == "address" || passport_data_type == "a") {
+      return make_tl_object<td_api::passportDataTypeAddress>();
+    }
+    if (passport_data_type == "email" || passport_data_type == "e") {
+      return make_tl_object<td_api::passportDataTypeEmailAddress>();
+    }
+    if (passport_data_type == "phone" || passport_data_type == "p") {
+      return make_tl_object<td_api::passportDataTypePhoneNumber>();
+    }
+    return make_tl_object<td_api::passportDataTypePassport>();
+  }
+  static tl_object_ptr<td_api::inputPassportData> as_input_passport_data(string passport_data_type) {
+    return nullptr;
+    /* TODO
+    vector<td_api::object_ptr<td_api::InputFile>> files;
+    if (passport_data_type == "address" || passport_data_type == "a") {
+      return make_tl_object<td_api::inputPassportDataAddress>("cucumber lives here", std::move(files));
+    }
+    if (passport_data_type == "email" || passport_data_type == "e") {
+      return make_tl_object<td_api::inputPassportDataEmailAddress>("{todo}");
+    }
+    if (passport_data_type == "phone" || passport_data_type == "p") {
+      return make_tl_object<td_api::inputPassportDataPhoneNumber>("{todo}");
+    }
+    return make_tl_object<td_api::inputPassportDataIdentity>("I am cucumber", std::move(files));
+    */
+  }
+
   static td_api::object_ptr<td_api::Object> execute(tl_object_ptr<td_api::Function> f) {
     LOG(INFO) << "Execute request: " << to_string(f);
     auto res = ClientActor::execute(std::move(f));
@@ -1049,6 +1078,16 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::getTemporaryPasswordState>());
     } else if (op == "ctp" || op == "CreateTemporaryPassword") {
       send_request(make_tl_object<td_api::createTemporaryPassword>(args, 60 * 6));
+    } else if (op == "gpd") {
+      string password;
+      string passport_data_type;
+      std::tie(password, passport_data_type) = split(args);
+      send_request(make_tl_object<td_api::getPassportData>(as_passport_data_type(passport_data_type), password));
+    } else if (op == "spd") {
+      string password;
+      string passport_data_type;
+      std::tie(password, passport_data_type) = split(args);
+      send_request(make_tl_object<td_api::setPassportData>(as_input_passport_data(passport_data_type), password));
     } else if (op == "pdu" || op == "processDcUpdate") {
       string dc_id;
       string ip_port;
