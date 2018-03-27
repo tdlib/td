@@ -709,7 +709,7 @@ void AuthManager::on_delete_account_result(NetQueryPtr &result) {
     auto r_delete_account = fetch_result<telegram_api::account_deleteAccount>(result->ok());
     if (r_delete_account.is_ok()) {
       if (!r_delete_account.ok()) {
-        status = Status::Error(500, "Receive false as result of the request");
+        // status = Status::Error(500, "Receive false as result of the request");
       }
     } else {
       status = r_delete_account.move_as_error();

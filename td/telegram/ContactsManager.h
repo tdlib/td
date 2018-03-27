@@ -762,6 +762,7 @@ class ContactsManager : public Actor {
   const User *get_user(UserId user_id) const;
   User *get_user(UserId user_id);
   User *get_user_force(UserId user_id);
+  User *get_user_force_impl(UserId user_id);
 
   User *add_user(UserId user_id);
 

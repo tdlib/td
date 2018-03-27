@@ -3108,20 +3108,8 @@ void ContactsManager::set_my_online_status(bool is_online, bool send_update, boo
 
 UserId ContactsManager::get_service_notifications_user_id() {
   UserId user_id(777000);
-  if (!have_user_force(user_id) || !have_user(user_id)) {
-    int32 flags = telegram_api::user::ACCESS_HASH_MASK | telegram_api::user::FIRST_NAME_MASK |
-                  telegram_api::user::LAST_NAME_MASK | telegram_api::user::PHONE_MASK | telegram_api::user::PHOTO_MASK |
-                  telegram_api::user::VERIFIED_MASK;
-    auto user = telegram_api::make_object<telegram_api::user>(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, 777000, 1, "Telegram", "Updates", string(), "42777",
-        telegram_api::make_object<telegram_api::userProfilePhoto>(
-            3337190045231018,
-            telegram_api::make_object<telegram_api::fileLocation>(1, 702229962, 26779, 5859320227133863146),
-            telegram_api::make_object<telegram_api::fileLocation>(1, 702229962, 26781, -3695031185685824216)),
-        nullptr, 0, string(), string(), string());
-    on_get_user(std::move(user));
+  if (!have_user_force(user_id)) {
+    LOG(FATAL) << "Failed to load service notification user";
   }
   return user_id;
 }
@@ -5276,6 +5264,33 @@ bool ContactsManager::have_user_force(UserId user_id) {
 }
 
 ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
+  auto u = get_user_force_impl(user_id);
+  if (user_id == UserId(777000) && (u == nullptr || !u->is_received)) {
+    int32 flags = telegram_api::user::ACCESS_HASH_MASK | telegram_api::user::FIRST_NAME_MASK |
+                  telegram_api::user::LAST_NAME_MASK | telegram_api::user::PHONE_MASK | telegram_api::user::PHOTO_MASK |
+                  telegram_api::user::VERIFIED_MASK;
+    auto profile_photo = telegram_api::make_object<telegram_api::userProfilePhoto>(
+            3337190045231018,
+            telegram_api::make_object<telegram_api::fileLocation>(1, 702229962, 26779, 5859320227133863146),
+            telegram_api::make_object<telegram_api::fileLocation>(1, 702229962, 26781, -3695031185685824216));
+    if (G()->is_test_dc()) {
+      profile_photo = nullptr;
+      flags -= telegram_api::user::PHOTO_MASK;
+    }
+
+    auto user = telegram_api::make_object<telegram_api::user>(
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+        false /*ignored*/, 777000, 1, "Telegram", "Updates", string(), "42777", std::move(profile_photo),
+        nullptr, 0, string(), string(), string());
+    on_get_user(std::move(user));
+    u = get_user(user_id);
+    CHECK(u != nullptr && u->is_received);
+  }
+  return u;
+}
+
+ContactsManager::User *ContactsManager::get_user_force_impl(UserId user_id) {
   if (!user_id.is_valid()) {
     return nullptr;
   }
@@ -7981,6 +7996,10 @@ bool ContactsManager::get_user(UserId user_id, int left_tries, Promise<Unit> &&p
   if (!user_id.is_valid()) {
     promise.set_error(Status::Error(6, "Invalid user id"));
     return false;
+  }
+
+  if (user_id == UserId(777000)) {
+    get_user_force(user_id);  // preload 777000 synchronously
   }
 
   // TODO support loading user from database and merging it with min-user in memory
