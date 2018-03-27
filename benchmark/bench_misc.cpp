@@ -107,8 +107,8 @@ BENCH(ThreadNew, "new struct then delete in several threads") {
   tb.join();
 }
 #endif
-
-// Too hard for android clang (?)
+/*
+// Too hard for clang (?)
 BENCH(Time, "Clocks::monotonic") {
   double res = 0;
   for (int i = 0; i < n; i++) {
@@ -116,7 +116,7 @@ BENCH(Time, "Clocks::monotonic") {
   }
   do_not_optimize_away(res);
 }
-
+*/
 #if !TD_WINDOWS
 class PipeBench : public Benchmark {
  public:
