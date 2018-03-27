@@ -18047,7 +18047,7 @@ void MessagesManager::do_send_screenshot_taken_notification_message(DialogId dia
 }
 
 Result<MessageId> MessagesManager::add_local_message(
-    DialogId dialog_id, MessageId reply_to_message_id,
+    DialogId dialog_id, UserId sender_user_id, MessageId reply_to_message_id, bool disable_notification,
     tl_object_ptr<td_api::InputMessageContent> &&input_message_content) {
   if (input_message_content == nullptr) {
     return Status::Error(5, "Can't add local message without content");
@@ -18066,30 +18066,46 @@ Result<MessageId> MessagesManager::add_local_message(
     return Status::Error(5, "Chat not found");
   }
 
-  TRY_STATUS(can_send_message(dialog_id));
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return Status::Error(400, "Can't access the chat");
+  }
   TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content)));
 
-  MessageId message_id = get_next_local_message_id(d);
+  bool is_channel_post = is_broadcast_channel(dialog_id);
+  if (!td_->contacts_manager_->have_user_force(sender_user_id) && !(is_channel_post && sender_user_id == UserId())) {
+    return Status::Error(400, "User not found");
+  }
 
   auto dialog_type = dialog_id.get_type();
   auto my_id = td_->contacts_manager_->get_my_id("add_local_message");
+  if (sender_user_id != my_id) {
+    if (dialog_type == DialogType::User && DialogId(sender_user_id) != dialog_id) {
+      return Status::Error(400, "Wrong sender user");
+    }
+    if (dialog_type == DialogType::SecretChat &&
+        sender_user_id != td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id())) {
+      return Status::Error(400, "Wrong sender user");
+    }
+  }
+
+  MessageId message_id = get_next_local_message_id(d);
 
   auto m = make_unique<Message>();
   m->random_y = get_random_y(message_id);
   m->message_id = message_id;
-  bool is_channel_post = is_broadcast_channel(dialog_id);
   if (is_channel_post) {
     // sender of the post can be hidden
     if (td_->contacts_manager_->get_channel_sign_messages(dialog_id.get_channel_id())) {
-      m->author_signature = td_->contacts_manager_->get_user_title(my_id);
+      m->author_signature = td_->contacts_manager_->get_user_title(sender_user_id);
     }
   } else {
-    m->sender_user_id = my_id;
+    m->sender_user_id = sender_user_id;
   }
   m->date = G()->unix_time();
   m->reply_to_message_id = get_reply_to_message_id(d, reply_to_message_id);
   m->is_channel_post = is_channel_post;
-  m->is_outgoing = dialog_id != DialogId(my_id);
+  m->is_outgoing = dialog_id != DialogId(my_id) && sender_user_id == my_id;
+  m->disable_notification = disable_notification;
   m->from_background = false;
   m->views = 0;
   m->content = std::move(message_content.content);
@@ -18100,7 +18116,6 @@ Result<MessageId> MessagesManager::add_local_message(
     if (is_service_message_content(m->content->get_id())) {
       m->ttl = 0;
     }
-    m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_id());
   } else if (message_content.ttl > 0) {
     m->ttl = message_content.ttl;
   }

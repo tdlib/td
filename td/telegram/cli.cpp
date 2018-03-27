@@ -2071,10 +2071,12 @@ class CliClient final : public Actor {
           op == "sms", false, as_message_id(reply_to_message_id));
     } else if (op == "alm" || op == "almr") {
       string chat_id;
+      string user_id;
       string reply_to_message_id;
       string message;
 
-      std::tie(chat_id, message) = split(args);
+      std::tie(chat_id, args) = split(args);
+      std::tie(user_id, message) = split(args);
       if (op == "smr") {
         std::tie(reply_to_message_id, message) = split(message);
       }
@@ -2086,7 +2088,7 @@ class CliClient final : public Actor {
       }
 
       send_request(make_tl_object<td_api::addLocalMessage>(
-          as_chat_id(chat_id), as_message_id(reply_to_message_id),
+          as_chat_id(chat_id), as_user_id(user_id), as_message_id(reply_to_message_id), false,
           make_tl_object<td_api::inputMessageText>(move_tl_object_as<td_api::formattedText>(parsed_text), false,
                                                    true)));
     } else if (op == "smap" || op == "smapr") {
@@ -2679,6 +2681,13 @@ class CliClient final : public Actor {
       std::tie(supergroup_id, is_all_history_available) = split(args);
       send_request(make_tl_object<td_api::toggleSupergroupIsAllHistoryAvailable>(to_integer<int32>(supergroup_id),
                                                                                  as_bool(is_all_history_available)));
+    } else if (op == "tsgsm") {
+      string supergroup_id;
+      string sign_messages;
+
+      std::tie(supergroup_id, sign_messages) = split(args);
+      send_request(make_tl_object<td_api::toggleSupergroupSignMessages>(to_integer<int32>(supergroup_id),
+                                                                        as_bool(sign_messages)));
     } else if (op == "csgd" || op == "cchd") {
       string supergroup_id;
       string description;
