@@ -239,7 +239,6 @@ int pq_factorize(Slice pq_str, string *p_str, string *q_str) {
   return 0;
 }
 
-/*** AES ***/
 static void aes_ige_xcrypt(const UInt256 &aes_key, UInt256 *aes_iv, Slice from, MutableSlice to, bool encrypt_flag) {
   AES_KEY key;
   int err;
@@ -388,7 +387,6 @@ void sha256_final(Sha256State *state, MutableSlice output) {
   state->impl.reset();
 }
 
-/*** md5 ***/
 void md5(Slice input, MutableSlice output) {
   CHECK(output.size() >= MD5_DIGEST_LENGTH);
   auto result = MD5(input.ubegin(), input.size(), output.ubegin());
@@ -438,6 +436,103 @@ void hmac_sha256(Slice key, Slice message, MutableSlice dest) {
                      narrow_cast<int>(message.size()), dest.ubegin(), &len);
   CHECK(result == dest.ubegin());
   CHECK(len == dest.size());
+}
+
+static int get_evp_pkey_type(EVP_PKEY *pkey) {
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+  return EVP_PKEY_type(pkey->type);
+#else
+  return EVP_PKEY_base_id(pkey);
+#endif
+}
+
+Result<BufferSlice> rsa_encrypt_pkcs1_oaep(Slice public_key, Slice data) {
+  BIO *mem_bio = BIO_new_mem_buf(const_cast<void *>(static_cast<const void *>(public_key.data())),
+                                 narrow_cast<int>(public_key.size()));
+  SCOPE_EXIT {
+    BIO_vfree(mem_bio);
+  };
+
+  EVP_PKEY *pkey = PEM_read_bio_PUBKEY(mem_bio, nullptr, nullptr, nullptr);
+  if (!pkey) {
+    return Status::Error("Cannot read public key");
+  }
+  SCOPE_EXIT {
+    EVP_PKEY_free(pkey);
+  };
+  if (get_evp_pkey_type(pkey) != EVP_PKEY_RSA) {
+    return Status::Error("Wrong key type, expected RSA");
+  }
+
+  EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(pkey, nullptr);
+  if (!ctx) {
+    return Status::Error("Cannot create EVP_PKEY_CTX");
+  }
+  SCOPE_EXIT {
+    EVP_PKEY_CTX_free(ctx);
+  };
+
+  if (EVP_PKEY_encrypt_init(ctx) <= 0) {
+    return Status::Error("Cannot init EVP_PKEY_CTX");
+  }
+  if (EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_OAEP_PADDING) <= 0) {
+    return Status::Error("Cannot set RSA_PKCS1_OAEP padding in EVP_PKEY_CTX");
+  }
+
+  size_t outlen;
+  if (EVP_PKEY_encrypt(ctx, nullptr, &outlen, data.ubegin(), data.size()) <= 0) {
+    return Status::Error("Cannot calculate encrypted length");
+  }
+  BufferSlice res(outlen);
+  if (EVP_PKEY_encrypt(ctx, res.as_slice().ubegin(), &outlen, data.ubegin(), data.size()) <= 0) {
+    // ERR_print_errors_fp(stderr);
+    return Status::Error("Cannot encrypt");
+  }
+  return std::move(res);
+}
+
+Result<BufferSlice> rsa_decrypt_pkcs1_oaep(Slice private_key, Slice data) {
+  BIO *mem_bio = BIO_new_mem_buf(const_cast<void *>(static_cast<const void *>(private_key.data())),
+                                 narrow_cast<int>(private_key.size()));
+  SCOPE_EXIT {
+    BIO_vfree(mem_bio);
+  };
+
+  EVP_PKEY *pkey = PEM_read_bio_PrivateKey(mem_bio, nullptr, nullptr, nullptr);
+  if (!pkey) {
+    return Status::Error("Cannot read private key");
+  }
+  SCOPE_EXIT {
+    EVP_PKEY_free(pkey);
+  };
+  if (get_evp_pkey_type(pkey) != EVP_PKEY_RSA) {
+    return Status::Error("Wrong key type, expected RSA");
+  }
+
+  EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(pkey, nullptr);
+  if (!ctx) {
+    return Status::Error("Cannot create EVP_PKEY_CTX");
+  }
+  SCOPE_EXIT {
+    EVP_PKEY_CTX_free(ctx);
+  };
+
+  if (EVP_PKEY_decrypt_init(ctx) <= 0) {
+    return Status::Error("Cannot init EVP_PKEY_CTX");
+  }
+  if (EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_OAEP_PADDING) <= 0) {
+    return Status::Error("Cannot set RSA_PKCS1_OAEP padding in EVP_PKEY_CTX");
+  }
+
+  size_t outlen;
+  if (EVP_PKEY_decrypt(ctx, nullptr, &outlen, data.ubegin(), data.size()) <= 0) {
+    return Status::Error("Cannot calculate decrypted length");
+  }
+  BufferSlice res(outlen);
+  if (EVP_PKEY_decrypt(ctx, res.as_slice().ubegin(), &outlen, data.ubegin(), data.size()) <= 0) {
+    return Status::Error("Cannot decrypt");
+  }
+  return std::move(res);
 }
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
@@ -555,103 +650,6 @@ static uint64 crc64_partial(Slice data, uint64 crc) {
 
 uint64 crc64(Slice data) {
   return crc64_partial(data, static_cast<uint64>(-1)) ^ static_cast<uint64>(-1);
-}
-
-static int get_evp_pkey_type(EVP_PKEY *pkey) {
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-  return EVP_PKEY_type(pkey->type);
-#else
-  return EVP_PKEY_base_id(pkey);
-#endif
-}
-
-Result<BufferSlice> rsa_encrypt_pkcs1_oaep(Slice public_key, Slice data) {
-  BIO *mem_bio = BIO_new_mem_buf(const_cast<void *>(static_cast<const void *>(public_key.data())),
-                                 narrow_cast<int>(public_key.size()));
-  SCOPE_EXIT {
-    BIO_vfree(mem_bio);
-  };
-
-  EVP_PKEY *pkey = PEM_read_bio_PUBKEY(mem_bio, nullptr, nullptr, nullptr);
-  if (!pkey) {
-    return Status::Error("Cannot read public key");
-  }
-  SCOPE_EXIT {
-    EVP_PKEY_free(pkey);
-  };
-  if (get_evp_pkey_type(pkey) != EVP_PKEY_RSA) {
-    return Status::Error("Wrong key type, expected RSA");
-  }
-
-  EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(pkey, nullptr);
-  if (!ctx) {
-    return Status::Error("Cannot create EVP_PKEY_CTX");
-  }
-  SCOPE_EXIT {
-    EVP_PKEY_CTX_free(ctx);
-  };
-
-  if (EVP_PKEY_encrypt_init(ctx) <= 0) {
-    return Status::Error("Cannot init EVP_PKEY_CTX");
-  }
-  if (EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_OAEP_PADDING) <= 0) {
-    return Status::Error("Cannot set RSA_PKCS1_OAEP padding in EVP_PKEY_CTX");
-  }
-
-  size_t outlen;
-  if (EVP_PKEY_encrypt(ctx, nullptr, &outlen, data.ubegin(), data.size()) <= 0) {
-    return Status::Error("Cannot calculate encrypted length");
-  }
-  BufferSlice res(outlen);
-  if (EVP_PKEY_encrypt(ctx, res.as_slice().ubegin(), &outlen, data.ubegin(), data.size()) <= 0) {
-    // ERR_print_errors_fp(stderr);
-    return Status::Error("Cannot encrypt");
-  }
-  return std::move(res);
-}
-
-Result<BufferSlice> rsa_decrypt_pkcs1_oaep(Slice private_key, Slice data) {
-  BIO *mem_bio = BIO_new_mem_buf(const_cast<void *>(static_cast<const void *>(private_key.data())),
-                                 narrow_cast<int>(private_key.size()));
-  SCOPE_EXIT {
-    BIO_vfree(mem_bio);
-  };
-
-  EVP_PKEY *pkey = PEM_read_bio_PrivateKey(mem_bio, nullptr, nullptr, nullptr);
-  if (!pkey) {
-    return Status::Error("Cannot read private key");
-  }
-  SCOPE_EXIT {
-    EVP_PKEY_free(pkey);
-  };
-  if (get_evp_pkey_type(pkey) != EVP_PKEY_RSA) {
-    return Status::Error("Wrong key type, expected RSA");
-  }
-
-  EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(pkey, nullptr);
-  if (!ctx) {
-    return Status::Error("Cannot create EVP_PKEY_CTX");
-  }
-  SCOPE_EXIT {
-    EVP_PKEY_CTX_free(ctx);
-  };
-
-  if (EVP_PKEY_decrypt_init(ctx) <= 0) {
-    return Status::Error("Cannot init EVP_PKEY_CTX");
-  }
-  if (EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_OAEP_PADDING) <= 0) {
-    return Status::Error("Cannot set RSA_PKCS1_OAEP padding in EVP_PKEY_CTX");
-  }
-
-  size_t outlen;
-  if (EVP_PKEY_decrypt(ctx, nullptr, &outlen, data.ubegin(), data.size()) <= 0) {
-    return Status::Error("Cannot calculate decrypted length");
-  }
-  BufferSlice res(outlen);
-  if (EVP_PKEY_decrypt(ctx, res.as_slice().ubegin(), &outlen, data.ubegin(), data.size()) <= 0) {
-    return Status::Error("Cannot decrypt");
-  }
-  return std::move(res);
 }
 
 }  // namespace td
