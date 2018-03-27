@@ -5651,8 +5651,10 @@ bool MessagesManager::need_cancel_user_dialog_action(int32 action_id, int32 mess
     case MessageLocation::ID:
     case MessageVenue::ID:
       return action_id == td_api::chatActionChoosingLocation::ID;
-    case MessageText::ID:
     case MessageGame::ID:
+    case MessageInvoice::ID:
+    case MessageSticker::ID:
+    case MessageText::ID:
     case MessageUnsupported::ID:
     case MessageChatCreate::ID:
     case MessageChatChangeTitle::ID:
