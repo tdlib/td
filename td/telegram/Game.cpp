@@ -87,6 +87,10 @@ void Game::set_message_text(FormattedText &&text) {
   text_ = std::move(text);
 }
 
+const FormattedText &Game::get_message_text() const {
+  return text_;
+}
+
 tl_object_ptr<td_api::game> Game::get_game_object(const Td *td) const {
   return make_tl_object<td_api::game>(
       id_, short_name_, title_, get_formatted_text_object(text_), description_,

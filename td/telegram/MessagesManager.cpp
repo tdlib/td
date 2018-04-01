@@ -15340,6 +15340,12 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, Dialo
     case MessageGame::ID: {
       auto content = static_cast<const MessageGame *>(m->content.get());
       dependencies.user_ids.insert(content->game.get_bot_user_id());
+      const FormattedText &formatted_text = content->game.get_message_text();
+      for (auto &entity : formatted_text.entities) {
+        if (entity.user_id.is_valid()) {
+          dependencies.user_ids.insert(entity.user_id);
+        }
+      }
       break;
     }
     case MessageInvoice::ID:
@@ -15424,6 +15430,12 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, Dialo
     default:
       UNREACHABLE();
       break;
+  }
+  auto caption = get_message_content_caption(m->content.get());
+  for (auto &entity : caption.entities) {
+    if (entity.user_id.is_valid()) {
+      dependencies.user_ids.insert(entity.user_id);
+    }
   }
 }
 
