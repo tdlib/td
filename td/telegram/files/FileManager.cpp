@@ -664,7 +664,15 @@ FileId FileManager::register_remote(const FullRemoteFileLocation &location, File
   data.size_ = size;
   data.expected_size_ = expected_size;
   data.remote_name_ = std::move(name);
-  return register_file(std::move(data), file_location_source, "register_remote", false).move_as_ok();
+
+  auto file_id = register_file(std::move(data), file_location_source, "register_remote", false).move_as_ok();
+  auto url = location.get_url();
+  if (!url.empty()) {
+    auto file_node = get_file_node(file_id);
+    CHECK(file_node);
+    file_node->set_url(url);
+  }
+  return file_id;
 }
 
 FileId FileManager::register_url(string url, FileType file_type, FileLocationSource file_location_source,
