@@ -850,9 +850,10 @@ class SaveDraftMessageQuery : public Td::ResultHandler {
     send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_saveDraft(
         flags, false /*ignored*/, reply_to_message_id.get(), std::move(input_peer),
         draft_message == nullptr ? "" : draft_message->input_message_text.text.text,
-        draft_message == nullptr ? vector<tl_object_ptr<telegram_api::MessageEntity>>()
-                                 : get_input_message_entities(td->contacts_manager_.get(),
-                                                              draft_message->input_message_text.text.entities)))));
+        draft_message == nullptr
+            ? vector<tl_object_ptr<telegram_api::MessageEntity>>()
+            : get_input_message_entities(td->contacts_manager_.get(), draft_message->input_message_text.text.entities,
+                                         "SaveDraftMessageQuery")))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -16089,11 +16090,11 @@ void MessagesManager::do_send_message(DialogId dialog_id, Message *m, vector<int
                    get_input_secret_message_entities(message_text->text.entities), m->via_bot_user_id,
                    m->media_album_id, random_id);
     } else {
-      send_closure(td_->create_net_actor<SendMessageActor>(), &SendMessageActor::send, get_message_flags(m), dialog_id,
-                   m->reply_to_message_id, get_input_reply_markup(m->reply_markup),
-                   get_input_message_entities(td_->contacts_manager_.get(), message_text->text.entities),
-                   message_text->text.text, random_id, &m->send_query_ref,
-                   get_sequence_dispatcher_id(dialog_id, content_type));
+      send_closure(
+          td_->create_net_actor<SendMessageActor>(), &SendMessageActor::send, get_message_flags(m), dialog_id,
+          m->reply_to_message_id, get_input_reply_markup(m->reply_markup),
+          get_input_message_entities(td_->contacts_manager_.get(), message_text->text.entities, "do_send_message"),
+          message_text->text.text, random_id, &m->send_query_ref, get_sequence_dispatcher_id(dialog_id, content_type));
     }
     return;
   }
@@ -16155,11 +16156,12 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, Message *m,
           LOG(INFO) << "Send media from " << m->message_id << " in " << dialog_id << " in reply to "
                     << m->reply_to_message_id;
           int64 random_id = begin_send_message(dialog_id, m);
-          send_closure(td_->create_net_actor<SendMediaActor>(), &SendMediaActor::send, file_id, thumbnail_file_id,
-                       get_message_flags(m), dialog_id, m->reply_to_message_id, get_input_reply_markup(m->reply_markup),
-                       get_input_message_entities(td_->contacts_manager_.get(), caption.entities), caption.text,
-                       std::move(input_media), random_id, &m->send_query_ref,
-                       get_sequence_dispatcher_id(dialog_id, m->content->get_id()));
+          send_closure(
+              td_->create_net_actor<SendMediaActor>(), &SendMediaActor::send, file_id, thumbnail_file_id,
+              get_message_flags(m), dialog_id, m->reply_to_message_id, get_input_reply_markup(m->reply_markup),
+              get_input_message_entities(td_->contacts_manager_.get(), caption.entities, "on_message_media_uploaded"),
+              caption.text, std::move(input_media), random_id, &m->send_query_ref,
+              get_sequence_dispatcher_id(dialog_id, m->content->get_id()));
         }));
   } else {
     switch (input_media->get_id()) {
@@ -16392,7 +16394,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     random_ids.push_back(begin_send_message(dialog_id, m));
     auto caption = get_message_content_caption(m->content.get());
     auto input_media = get_input_media(m->content.get(), nullptr, nullptr, m->ttl);
-    auto entities = get_input_message_entities(td_->contacts_manager_.get(), caption.entities);
+    auto entities = get_input_message_entities(td_->contacts_manager_.get(), caption.entities, "do_send_message_group");
     int32 input_single_media_flags = 0;
     if (!entities.empty()) {
       input_single_media_flags |= telegram_api::inputSingleMedia::ENTITIES_MASK;
@@ -16979,10 +16981,11 @@ void MessagesManager::edit_message_text(FullMessageId full_message_id,
     flags |= SEND_MESSAGE_FLAG_DISABLE_WEB_PAGE_PREVIEW;
   }
 
-  send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, flags, dialog_id,
-               message_id, input_message_text.text.text,
-               get_input_message_entities(td_->contacts_manager_.get(), input_message_text.text.entities), nullptr,
-               std::move(input_reply_markup), get_sequence_dispatcher_id(dialog_id, -1));
+  send_closure(
+      td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, flags, dialog_id,
+      message_id, input_message_text.text.text,
+      get_input_message_entities(td_->contacts_manager_.get(), input_message_text.text.entities, "edit_message_text"),
+      nullptr, std::move(input_reply_markup), get_sequence_dispatcher_id(dialog_id, -1));
 }
 
 void MessagesManager::edit_message_live_location(FullMessageId full_message_id,
@@ -17081,7 +17084,8 @@ void MessagesManager::edit_message_caption(FullMessageId full_message_id,
   auto input_reply_markup = get_input_reply_markup(r_new_reply_markup.ok());
 
   send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 1 << 11, dialog_id,
-               message_id, caption.text, get_input_message_entities(td_->contacts_manager_.get(), caption.entities),
+               message_id, caption.text,
+               get_input_message_entities(td_->contacts_manager_.get(), caption.entities, "edit_message_caption"),
                nullptr, std::move(input_reply_markup), get_sequence_dispatcher_id(dialog_id, -1));
 }
 
@@ -17163,8 +17167,9 @@ void MessagesManager::edit_inline_message_text(const string &inline_message_id,
   }
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
       ->send(flags, std::move(input_bot_inline_message_id), input_message_text.text.text,
-             get_input_message_entities(td_->contacts_manager_.get(), input_message_text.text.entities), nullptr,
-             get_input_reply_markup(r_new_reply_markup.ok()));
+             get_input_message_entities(td_->contacts_manager_.get(), input_message_text.text.entities,
+                                        "edit_inline_message_text"),
+             nullptr, get_input_reply_markup(r_new_reply_markup.ok()));
 }
 
 void MessagesManager::edit_inline_message_live_location(const string &inline_message_id,
@@ -17226,8 +17231,8 @@ void MessagesManager::edit_inline_message_caption(const string &inline_message_i
 
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
       ->send(1 << 11, std::move(input_bot_inline_message_id), caption.text,
-             get_input_message_entities(td_->contacts_manager_.get(), caption.entities), nullptr,
-             get_input_reply_markup(r_new_reply_markup.ok()));
+             get_input_message_entities(td_->contacts_manager_.get(), caption.entities, "edit_inline_message_caption"),
+             nullptr, get_input_reply_markup(r_new_reply_markup.ok()));
 }
 
 void MessagesManager::edit_inline_message_reply_markup(const string &inline_message_id,

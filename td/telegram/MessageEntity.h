@@ -158,7 +158,8 @@ Result<vector<MessageEntity>> parse_markdown(string &text);
 Result<vector<MessageEntity>> parse_html(string &text);
 
 vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(const ContactsManager *contacts_manager,
-                                                                              const vector<MessageEntity> &entities);
+                                                                              const vector<MessageEntity> &entities,
+                                                                              const char *source);
 
 vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entities(
     const vector<MessageEntity> &entities);

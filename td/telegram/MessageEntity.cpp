@@ -1604,7 +1604,8 @@ Result<vector<MessageEntity>> parse_html(string &text) {
 }
 
 vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(const ContactsManager *contacts_manager,
-                                                                              const vector<MessageEntity> &entities) {
+                                                                              const vector<MessageEntity> &entities,
+                                                                              const char *source) {
   vector<tl_object_ptr<telegram_api::MessageEntity>> result;
   for (auto &entity : entities) {
     switch (entity.type) {
@@ -1637,7 +1638,7 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
         break;
       case MessageEntity::Type::MentionName: {
         auto input_user = contacts_manager->get_input_user(entity.user_id);
-        CHECK(input_user != nullptr);
+        CHECK(input_user != nullptr) << source;
         result.push_back(make_tl_object<telegram_api::inputMessageEntityMentionName>(entity.offset, entity.length,
                                                                                      std::move(input_user)));
         break;

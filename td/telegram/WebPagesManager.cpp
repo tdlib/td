@@ -1714,8 +1714,8 @@ int64 WebPagesManager::get_web_page_preview(td_api::object_ptr<td_api::formatted
     promise.set_value(Unit());
   } else {
     td_->create_handler<GetWebPagePreviewQuery>(std::move(promise))
-        ->send(text->text_, get_input_message_entities(td_->contacts_manager_.get(), entities), request_id,
-               std::move(url));
+        ->send(text->text_, get_input_message_entities(td_->contacts_manager_.get(), entities, "get_web_page_preview"),
+               request_id, std::move(url));
   }
   return request_id;
 }
