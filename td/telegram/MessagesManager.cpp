@@ -18143,10 +18143,10 @@ Result<MessageId> MessagesManager::add_local_message(
   m->have_previous = true;
   m->have_next = true;
 
-  bool need_update = false;
+  bool need_update = true;
   bool need_update_dialog_pos = false;
   auto result =
-      add_message_to_dialog(d, std::move(m), false, &need_update, &need_update_dialog_pos, "add local message");
+      add_message_to_dialog(d, std::move(m), true, &need_update, &need_update_dialog_pos, "add local message");
   CHECK(result != nullptr);
 
   if (message_content.clear_draft) {
