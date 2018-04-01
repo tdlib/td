@@ -32,6 +32,7 @@
 #include "td/telegram/HashtagHints.h"
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/MessageEntity.hpp"
 #include "td/telegram/MessagesDb.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/NetActor.h"

@@ -8,6 +8,7 @@
 #include "td/telegram/Game.h"
 
 #include "td/telegram/AnimationsManager.hpp"
+#include "td/telegram/MessageEntity.hpp"
 #include "td/telegram/Photo.hpp"
 #include "td/telegram/Version.h"
 

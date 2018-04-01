@@ -12,7 +12,6 @@
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
-#include "td/utils/tl_helpers.h"
 
 #include "td/telegram/secret_api.h"
 #include "td/telegram/td_api.h"
@@ -76,34 +75,11 @@ class MessageEntity {
     return !(*this == rhs);
   }
 
-  // TODO move to hpp
   template <class StorerT>
-  void store(StorerT &storer) const {
-    using td::store;
-    store(type, storer);
-    store(offset, storer);
-    store(length, storer);
-    if (type == Type::PreCode || type == Type::TextUrl) {
-      store(argument, storer);
-    }
-    if (type == Type::MentionName) {
-      store(user_id, storer);
-    }
-  }
+  void store(StorerT &storer) const;
 
   template <class ParserT>
-  void parse(ParserT &parser) {
-    using td::parse;
-    parse(type, parser);
-    parse(offset, parser);
-    parse(length, parser);
-    if (type == Type::PreCode || type == Type::TextUrl) {
-      parse(argument, parser);
-    }
-    if (type == Type::MentionName) {
-      parse(user_id, parser);
-    }
-  }
+  void parse(ParserT &parser);
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, const MessageEntity &message_entity);
@@ -113,16 +89,10 @@ struct FormattedText {
   vector<MessageEntity> entities;
 
   template <class StorerT>
-  void store(StorerT &storer) const {
-    td::store(text, storer);
-    td::store(entities, storer);
-  }
+  void store(StorerT &storer) const;
 
   template <class ParserT>
-  void parse(ParserT &parser) {
-    td::parse(text, parser);
-    td::parse(entities, parser);
-  }
+  void parse(ParserT &parser);
 };
 
 inline bool operator==(const FormattedText &lhs, const FormattedText &rhs) {
