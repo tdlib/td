@@ -2065,9 +2065,9 @@ class MessagesManager : public Actor {
 
   void do_delete_message_logevent(const DeleteMessageLogEvent &logevent) const;
 
-  void attach_message_to_previous(Dialog *d, MessageId message_id);
+  void attach_message_to_previous(Dialog *d, MessageId message_id, const char *source);
 
-  void attach_message_to_next(Dialog *d, MessageId message_id);
+  void attach_message_to_next(Dialog *d, MessageId message_id, const char *source);
 
   void update_message(Dialog *d, unique_ptr<Message> &old_message, unique_ptr<Message> new_message,
                       bool need_send_update_message_content, bool *need_update_dialog_pos);

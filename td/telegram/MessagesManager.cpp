@@ -6861,7 +6861,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
         if (!next_message->have_previous) {
           LOG(INFO) << "Fix have_previous for " << first_added_message_id;
           next_message->have_previous = true;
-          attach_message_to_previous(d, first_added_message_id);
+          attach_message_to_previous(d, first_added_message_id, "on_get_history");
         }
       }
       first_added_message_id = message_id;
@@ -14002,7 +14002,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
       if (next_message != nullptr && !next_message->have_previous) {
         LOG(INFO) << "Fix have_previous for " << next_message->message_id;
         next_message->have_previous = true;
-        attach_message_to_previous(d, next_message->message_id);
+        attach_message_to_previous(d, next_message->message_id, "on_get_history_from_database");
       }
 
       have_next = true;
@@ -22045,9 +22045,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   if (!is_attached) {
     if ((*v)->have_next) {
       CHECK(!(*v)->have_previous);
-      attach_message_to_next(d, message_id);
+      attach_message_to_next(d, message_id, source);
     } else if ((*v)->have_previous) {
-      attach_message_to_previous(d, message_id);
+      attach_message_to_previous(d, message_id, source);
     }
   }
 
@@ -22273,13 +22273,13 @@ void MessagesManager::do_delete_message_logevent(const DeleteMessageLogEvent &lo
   G()->td_db()->get_messages_db_async()->delete_message(logevent.full_message_id_, std::move(db_promise));
 }
 
-void MessagesManager::attach_message_to_previous(Dialog *d, MessageId message_id) {
+void MessagesManager::attach_message_to_previous(Dialog *d, MessageId message_id, const char *source) {
   CHECK(d != nullptr);
   MessagesIterator it(d, message_id);
   Message *message = *it;
   CHECK(message != nullptr);
   CHECK(message->message_id == message_id);
-  CHECK(message->have_previous);
+  CHECK(message->have_previous) << d->dialog_id << " " << message_id << " " << source;
   --it;
   CHECK(*it != nullptr);
   LOG(INFO) << "Attach " << message_id << " to the previous " << (*it)->message_id;
@@ -22290,13 +22290,13 @@ void MessagesManager::attach_message_to_previous(Dialog *d, MessageId message_id
   }
 }
 
-void MessagesManager::attach_message_to_next(Dialog *d, MessageId message_id) {
+void MessagesManager::attach_message_to_next(Dialog *d, MessageId message_id, const char *source) {
   CHECK(d != nullptr);
   MessagesIterator it(d, message_id);
   Message *message = *it;
   CHECK(message != nullptr);
   CHECK(message->message_id == message_id);
-  CHECK(message->have_next);
+  CHECK(message->have_next) << d->dialog_id << " " << message_id << " " << source;
   ++it;
   CHECK(*it != nullptr);
   LOG(INFO) << "Attach " << message_id << " to the next " << (*it)->message_id;
@@ -22481,10 +22481,10 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
   CHECK(!new_message->have_previous || !new_message->have_next);
   if (new_message->have_previous && !old_message->have_previous) {
     old_message->have_previous = true;
-    attach_message_to_previous(d, message_id);
+    attach_message_to_previous(d, message_id, "update_message");
   } else if (new_message->have_next && !old_message->have_next) {
     old_message->have_next = true;
-    attach_message_to_next(d, message_id);
+    attach_message_to_next(d, message_id, "update_message");
   }
 
   if (update_message_content(dialog_id, old_message.get(), old_message->content, std::move(new_message->content),
