@@ -1582,6 +1582,7 @@ class MessagesManager : public Actor {
       }
     };
 
+    const char *debug_set_dialog_last_database_message_id = "Unknown";  // to be removed soon
     vector<MessageOp> debug_message_op;
 
     Dialog() = default;

@@ -10105,6 +10105,7 @@ void MessagesManager::set_dialog_first_database_message_id(Dialog *d, MessageId 
 void MessagesManager::set_dialog_last_database_message_id(Dialog *d, MessageId last_database_message_id,
                                                           const char *source) {
   LOG(INFO) << "Set " << d->dialog_id << " last database message to " << last_database_message_id << " from " << source;
+  d->debug_set_dialog_last_database_message_id = source;
   d->last_database_message_id = last_database_message_id;
 }
 
@@ -10114,7 +10115,7 @@ void MessagesManager::set_dialog_last_new_message_id(Dialog *d, MessageId last_n
   if (!d->last_new_message_id.is_valid()) {
     delete_all_dialog_messages_from_database(d->dialog_id, MessageId::max(), "set_dialog_last_new_message_id");
     set_dialog_first_database_message_id(d, MessageId(), "set_dialog_last_new_message_id");
-    set_dialog_last_database_message_id(d, MessageId(), "set_dialog_last_new_message_id");
+    set_dialog_last_database_message_id(d, MessageId(), source);
     if (d->dialog_id.get_type() != DialogType::SecretChat) {
       d->have_full_history = false;
     }
@@ -21733,7 +21734,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     set_dialog_last_message_id(d, MessageId(), "add_message_to_dialog");
 
     set_dialog_first_database_message_id(d, MessageId(), "add_message_to_dialog");
-    set_dialog_last_database_message_id(d, MessageId(), "add_message_to_dialog");
+    set_dialog_last_database_message_id(d, MessageId(), source);
     d->have_full_history = false;
     for (auto &first_message_id : d->first_database_message_id_by_index) {
       first_message_id = MessageId();
@@ -23225,7 +23226,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     if (dependent_dialog_count == 0) {
       add_dialog_last_database_message(d, std::move(last_database_message));
     } else {
-      // can't add message immediately, because needs to notify first about adding of dependent dialogs
+      // can't add message immediately, because need to notify first about adding of dependent dialogs
       pending_add_dialog_last_database_message_[dialog_id] = {dependent_dialog_count, std::move(last_database_message)};
     }
   }
@@ -23284,7 +23285,8 @@ void MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Mes
   CHECK(last_database_message->right == nullptr);
 
   auto message_id = last_database_message->message_id;
-  CHECK(d->last_database_message_id == message_id) << message_id << " " << d->last_database_message_id;
+  CHECK(d->last_database_message_id == message_id)
+      << message_id << " " << d->last_database_message_id << " " << d->debug_set_dialog_last_database_message_id;
 
   if (!have_input_peer(d->dialog_id, AccessRights::Read)) {
     // do not add last message to inaccessible dialog
