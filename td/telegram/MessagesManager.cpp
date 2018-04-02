@@ -22395,8 +22395,9 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
   }
 
   if (old_message->reply_to_message_id != new_message->reply_to_message_id) {
-    if (new_message->reply_to_message_id == MessageId() &&
-        get_message_force(d, old_message->reply_to_message_id) == nullptr) {
+    // Can't check "&& get_message_force(d, old_message->reply_to_message_id) == nullptr", because it
+    // can change message tree and invalidate reference to old_message
+    if (new_message->reply_to_message_id == MessageId()) {
       old_message->reply_to_message_id = MessageId();
       is_changed = true;
     } else {
