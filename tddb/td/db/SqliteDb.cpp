@@ -156,7 +156,7 @@ Result<SqliteDb> SqliteDb::open_with_key(CSlice path, const DbKey &db_key) {
     TRY_STATUS(db.exec(PSLICE() << "PRAGMA key = " << key));
   }
   if (db.is_encrypted()) {
-    return Status::Error("Wrong key");
+    return Status::Error("Wrong key or database is corrupted");
   }
   return std::move(db);
 }

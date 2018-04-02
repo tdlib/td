@@ -59,7 +59,7 @@ class SqliteDb {
 
   static Status destroy(Slice path) TD_WARN_UNUSED_RESULT;
 
-  // Anyway we can't change the key on the fly, so static functions is more than enough
+  // Anyway we can't change the key on the fly, so having static functions is more than enough
   static Result<SqliteDb> open_with_key(CSlice path, const DbKey &db_key);
   static Status change_key(CSlice path, const DbKey &new_db_key, const DbKey &old_db_key);
 

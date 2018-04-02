@@ -21,7 +21,11 @@ class SqliteConnectionSafe {
   SqliteConnectionSafe() = default;
   explicit SqliteConnectionSafe(string name, DbKey key = DbKey::empty())
       : lsls_connection_([name = name, key = std::move(key)] {
-        auto db = SqliteDb::open_with_key(name, key).move_as_ok();
+        auto r_db = SqliteDb::open_with_key(name, key);
+        if (r_db.is_error()) {
+          LOG(FATAL) << "Can't open database " << name << ": " << r_db.error();
+        }
+        auto db = r_db.move_as_ok();
         db.exec("PRAGMA synchronous=NORMAL").ensure();
         db.exec("PRAGMA temp_store=MEMORY").ensure();
         db.exec("PRAGMA secure_delete=1").ensure();
