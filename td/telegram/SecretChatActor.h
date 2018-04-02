@@ -436,13 +436,13 @@ class SecretChatActor : public NetQueryCallback {
 
   LogEvent::Id create_logevent_id_ = 0;
 
-  enum class QueryType : uint8 { DhConfig, EncryptedChat, Message, Ignore, DiscardEncryption };
+  enum class QueryType : uint8 { DhConfig, EncryptedChat, Message, Ignore, DiscardEncryption, ReadHistory };
 
   bool can_be_empty_;
   AuthState auth_state_;
   ConfigState config_state_;
 
-  // Turns out, that all changes should be made made through StateChange.
+  // Turns out, that all changes should be made through StateChange.
   //
   // The problem is the time between the moment we made decision about change and
   // the moment we actually apply the change to memory.
@@ -457,12 +457,12 @@ class SecretChatActor : public NetQueryCallback {
   // 2. We SEND CHANGE to db only after correspoiding EVENT is SAVED to the binlog.
   // 3. The we are able to ERASE EVENT just AFTER the CHANGE is SAVED to the binlog.
   //
-  // Actually the change will be saved do binlog too.
+  // Actually the change will be saved to binlog too.
   // So we can do it immidiatelly after EVENT is SENT to the binlog, because SEND CHANGE and ERASE EVENT will be
   // ordered automatically.
   //
   // We will use common ChangeProcessor for all changes (inside one SecretChatActor).
-  // So all changes will be saved in exactly the same order as they are applied
+  // So all changes will be saved in exactly the same order as they are applied.
 
   template <class StateT>
   class Change {
@@ -572,6 +572,9 @@ class SecretChatActor : public NetQueryCallback {
   Container<OutboundMessageState> outbound_message_states_;
 
   NetQueryRef set_typing_query_;
+  NetQueryRef read_history_query_;
+  int32 last_read_history_date_ = -1;
+  Promise<Unit> read_history_promise_;
 
   enum SendFlag {
     None = 0,
@@ -648,6 +651,8 @@ class SecretChatActor : public NetQueryCallback {
 
   Status on_update_chat(NetQueryPtr query) TD_WARN_UNUSED_RESULT;
   Status on_update_chat(telegram_api::object_ptr<telegram_api::EncryptedChat> chat) TD_WARN_UNUSED_RESULT;
+
+  Status on_read_history(NetQueryPtr query) TD_WARN_UNUSED_RESULT;
 
   void on_promise_error(Status error, string desc);
 

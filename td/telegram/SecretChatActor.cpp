@@ -105,6 +105,8 @@ void SecretChatActor::on_result_resendable(NetQueryPtr net_query, Promise<NetQue
         return on_update_chat(std::move(net_query));
       case static_cast<uint8>(QueryType::Message):
         return on_outbound_send_message_result(std::move(net_query), std::move(promise)), Status::OK();
+      case static_cast<uint8>(QueryType::ReadHistory):
+        return on_read_history(std::move(net_query));
       case static_cast<uint8>(QueryType::Ignore):
         return Status::OK();
     }
@@ -360,12 +362,27 @@ void SecretChatActor::send_read_history(int32 date, Promise<> promise) {
     promise.set_error(Status::Error(400, "Can't access the chat"));
     return;
   }
-  // TODO: use promise
-  context_->send_net_query(context_->net_query_creator().create(
-                               UniqueId::next(UniqueId::Type::Default, static_cast<uint8>(QueryType::Ignore)),
-                               create_storer(telegram_api::messages_readEncryptedHistory(get_input_chat(), date))),
-                           actor_shared(this), false);
+
+  if (date <= last_read_history_date_) {
+    return promise.set_value(Unit());
+  }
+
+  if (read_history_promise_) {
+    LOG(INFO) << "Cancel previous read history request in secret chat " << auth_state_.id;
+    read_history_promise_.set_value(Unit());
+    cancel_query(read_history_query_);
+  }
+
+  auto net_query = context_->net_query_creator().create(
+      UniqueId::next(UniqueId::Type::Default, static_cast<uint8>(QueryType::ReadHistory)),
+      create_storer(telegram_api::messages_readEncryptedHistory(get_input_chat(), date)));
+  read_history_query_ = net_query.get_weak();
+  last_read_history_date_ = date;
+  read_history_promise_ = std::move(promise);
+  LOG(INFO) << "Send read history request with date " << date << " in secret chat " << auth_state_.id;
+  context_->send_net_query(std::move(net_query), actor_shared(this), false);
 }
+
 void SecretChatActor::send_open_message(int64 random_id, Promise<> promise) {
   if (close_flag_) {
     promise.set_error(Status::Error(400, "Chat is closed"));
@@ -1832,6 +1849,14 @@ Status SecretChatActor::on_update_chat(telegram_api::object_ptr<telegram_api::En
   Status res;
   downcast_call(*chat, [&](auto &obj) { res = this->on_update_chat(obj); });
   return res;
+}
+
+Status SecretChatActor::on_read_history(NetQueryPtr query) {
+  if (query.generation() == read_history_query_.generation()) {
+    read_history_query_ = NetQueryRef();
+    read_history_promise_.set_value(Unit());
+  }
+  return Status::OK();
 }
 
 // DH CONFIG
