@@ -148,7 +148,7 @@ ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfig> promise, bool is_t
             return Status::Error("json error");
           }
           auto &answer_object = json.get_object();
-          TRY_RESULT(answer, get_json_object_field(answer_object, "Answer", JsonValue::Type::Array));
+          TRY_RESULT(answer, get_json_object_field(answer_object, "Answer", JsonValue::Type::Array, false));
           auto &answer_array = answer.get_array();
           vector<string> parts;
           for (auto &v : answer_array) {
@@ -156,7 +156,7 @@ ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfig> promise, bool is_t
               return Status::Error("json error");
             }
             auto &data_object = v.get_object();
-            TRY_RESULT(part, get_json_object_string_field(data_object, "data"));
+            TRY_RESULT(part, get_json_object_string_field(data_object, "data", false));
             parts.push_back(std::move(part));
           }
           if (parts.size() != 2) {
