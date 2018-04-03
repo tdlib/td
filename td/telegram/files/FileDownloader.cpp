@@ -36,7 +36,7 @@ FileDownloader::FileDownloader(const FullRemoteFileLocation &remote, const Local
     , callback_(std::move(callback))
     , is_small_(is_small)
     , search_file_(search_file) {
-  if (!encryption_key.empty()) {
+  if (!encryption_key.is_secret()) {
     set_ordered_flag(true);
   }
 }
@@ -48,6 +48,12 @@ Result<FileLoader::FileInfo> FileDownloader::init() {
   if (local_.type() == LocalFileLocation::Type::Full) {
     return Status::Error("File is already downloaded");
   }
+  if (encryption_key_.is_secure() && !encryption_key_.has_value_hash()) {
+    LOG(ERROR) << "Can't download Secure file with unknown value_hash";
+  }
+  if (remote_.file_type_ == FileType::Secure) {
+    size_ = 0;
+  }
   int ready_part_count = 0;
   int32 part_size = 0;
   if (local_.type() == LocalFileLocation::Type::Partial) {
@@ -56,7 +62,7 @@ Result<FileLoader::FileInfo> FileDownloader::init() {
     auto result_fd = FileFd::open(path_, FileFd::Write | FileFd::Read);
     // TODO: check timestamps..
     if (result_fd.is_ok()) {
-      if (!encryption_key_.empty()) {
+      if (encryption_key_.is_secret()) {
         CHECK(partial.iv_.size() == 32) << partial.iv_.size();
         encryption_key_.mutable_iv() = as<UInt256>(partial.iv_.data());
         next_part_ = partial.ready_part_count_;
@@ -104,13 +110,22 @@ Status FileDownloader::on_ok(int64 size) {
   auto dir = get_files_dir(remote_.file_type_);
 
   std::string path;
+  fd_.close();
+  if (encryption_key_.is_secure()) {
+    TRY_RESULT(file_path, open_temp_file(remote_.file_type_));
+    string tmp_path;
+    std::tie(std::ignore, tmp_path) = std::move(file_path);
+    TRY_STATUS(secure_storage::decrypt_file(encryption_key_.secret(), encryption_key_.value_hash(), path_, tmp_path));
+    path_ = std::move(tmp_path);
+    TRY_RESULT(path_stat, stat(path_));
+    size = path_stat.size_;
+  }
   if (only_check_) {
     path = path_;
   } else {
     TRY_RESULT(perm_path, create_from_temp(path_, dir, name_));
     path = std::move(perm_path);
   }
-  fd_.close();
   callback_->on_ok(FullLocalFileLocation(remote_.file_type_, std::move(path), 0), size);
   return Status::OK();
 }
@@ -192,7 +207,7 @@ Result<bool> FileDownloader::should_restart_part(Part part, NetQueryPtr &net_que
   return false;
 }
 Result<std::pair<NetQueryPtr, bool>> FileDownloader::start_part(Part part, int32 part_count) {
-  if (!encryption_key_.empty()) {
+  if (encryption_key_.is_secret()) {
     part.size = (part.size + 15) & ~15;  // fix for last part
   }
   // auto size = part.size;
@@ -279,7 +294,7 @@ Result<size_t> FileDownloader::process_part(Part part, NetQueryPtr net_query) {
   }
 
   auto padded_size = part.size;
-  if (!encryption_key_.empty()) {
+  if (encryption_key_.is_secret()) {
     padded_size = (part.size + 15) & ~15;
   }
   LOG(INFO) << "Got " << bytes.size() << " padded_size=" << padded_size;
@@ -304,7 +319,7 @@ Result<size_t> FileDownloader::process_part(Part part, NetQueryPtr net_query) {
     ctr_state.init(key, iv);
     ctr_state.decrypt(bytes.as_slice(), bytes.as_slice());
   }
-  if (!encryption_key_.empty()) {
+  if (encryption_key_.is_secret()) {
     CHECK(next_part_ == part.id) << tag("expected part.id", next_part_) << "!=" << tag("part.id", part.id);
     CHECK(!next_part_stop_);
     next_part_++;
@@ -332,10 +347,10 @@ void FileDownloader::on_progress(int32 part_count, int32 part_size, int32 ready_
   if (ready_size == 0 || path_.empty()) {
     return;
   }
-  if (encryption_key_.empty()) {
+  if (encryption_key_.empty() || encryption_key_.is_secure()) {
     callback_->on_partial_download(PartialLocalFileLocation{remote_.file_type_, path_, part_size, ready_part_count, ""},
                                    ready_size);
-  } else {
+  } else if (encryption_key_.is_secret()) {
     UInt256 iv;
     if (ready_part_count == next_part_) {
       iv = encryption_key_.mutable_iv();
@@ -345,6 +360,8 @@ void FileDownloader::on_progress(int32 part_count, int32 part_size, int32 ready_
     callback_->on_partial_download(PartialLocalFileLocation{remote_.file_type_, path_, part_size, ready_part_count,
                                                             Slice(iv.raw, sizeof(iv)).str()},
                                    ready_size);
+  } else {
+    UNREACHABLE();
   }
 }
 

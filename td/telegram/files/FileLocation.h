@@ -10,6 +10,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/SecureStorage.h"
 #include "td/telegram/net/DcId.h"
 
 #include "td/utils/buffer.h"
@@ -157,42 +158,84 @@ constexpr int32 file_type_size = static_cast<int32>(FileType::Size);
 extern const char *file_type_name[file_type_size];
 
 struct FileEncryptionKey {
+  enum class Type { None, Secret, Secure };
   FileEncryptionKey() = default;
-  FileEncryptionKey(Slice key, Slice iv) : key_iv_(key.size() + iv.size(), '\0') {
+  FileEncryptionKey(Slice key, Slice iv) : key_iv_(key.size() + iv.size(), '\0'), type_(Type::Secret) {
     if (key.size() != 32 || iv.size() != 32) {
       LOG(ERROR) << "Wrong key/iv sizes: " << key.size() << " " << iv.size();
+      type_ = Type::None;
       return;
     }
     CHECK(key_iv_.size() == 64);
-    std::memcpy(&key_iv_[0], key.data(), key.size());
-    std::memcpy(&key_iv_[key.size()], iv.data(), iv.size());
+    MutableSlice(key_iv_).copy_from(key);
+    MutableSlice(key_iv_).remove_suffix(key.size()).copy_from(iv);
   }
+
+  FileEncryptionKey(const secure_storage::Secret &secret) : type_(Type::Secure) {
+    key_iv_ = secret.as_slice().str();
+  }
+
+  bool is_secret() const {
+    return type_ == Type::Secret;
+  }
+  bool is_secure() const {
+    return type_ == Type::Secure;
+  }
+
   static FileEncryptionKey create() {
     FileEncryptionKey res;
     res.key_iv_.resize(64);
     Random::secure_bytes(res.key_iv_);
+    res.type_ = Type::Secret;
     return res;
+  }
+  static FileEncryptionKey create_secure_key() {
+    return FileEncryptionKey(secure_storage::Secret::create_new());
   }
 
   const UInt256 &key() const {
+    CHECK(is_secret());
     CHECK(key_iv_.size() == 64);
     return *reinterpret_cast<const UInt256 *>(key_iv_.data());
   }
   Slice key_slice() const {
+    CHECK(is_secret());
     CHECK(key_iv_.size() == 64);
     return Slice(key_iv_.data(), 32);
   }
+  secure_storage::Secret secret() const {
+    CHECK(is_secure());
+    return secure_storage::Secret::create(Slice(key_iv_).truncate(32)).move_as_ok();
+  }
+
+  bool has_value_hash() const {
+    CHECK(is_secure());
+    return key_iv_.size() > secure_storage::Secret::size();
+  }
+
+  void set_value_hash(const secure_storage::ValueHash &value_hash) {
+    key_iv_.resize(secure_storage::Secret::size() + value_hash.as_slice().size());
+    MutableSlice(key_iv_).remove_prefix(secure_storage::Secret::size()).copy_from(value_hash.as_slice());
+  }
+
+  secure_storage::ValueHash value_hash() const {
+    CHECK(has_value_hash());
+    return secure_storage::ValueHash::create(Slice(key_iv_).remove_prefix(secure_storage::Secret::size())).move_as_ok();
+  }
 
   UInt256 &mutable_iv() {
+    CHECK(is_secret());
     CHECK(key_iv_.size() == 64);
     return *reinterpret_cast<UInt256 *>(&key_iv_[0] + 32);
   }
   Slice iv_slice() const {
+    CHECK(is_secret());
     CHECK(key_iv_.size() == 64);
     return Slice(key_iv_.data() + 32, 32);
   }
 
   int32 calc_fingerprint() const {
+    CHECK(is_secret());
     char buf[16];
     md5(key_iv_, {buf, sizeof(buf)});
     return as<int32>(buf) ^ as<int32>(buf + 4);
@@ -207,11 +250,17 @@ struct FileEncryptionKey {
     td::store(key_iv_, storer);
   }
   template <class ParserT>
-  void parse(ParserT &parser) {
+  void parse(Type type, ParserT &parser) {
     td::parse(key_iv_, parser);
+    if (key_iv_.empty()) {
+      type_ = Type::None;
+    } else {
+      type_ = type;
+    }
   }
 
   string key_iv_;  // TODO wrong alignment is possible
+  Type type_;
 };
 
 inline bool operator==(const FileEncryptionKey &lhs, const FileEncryptionKey &rhs) {
@@ -1141,9 +1190,11 @@ class FileData {
     using ::td::store;
     bool has_owner_dialog_id = owner_dialog_id_.is_valid();
     bool has_expected_size = size_ == 0 && expected_size_ != 0;
+    bool encryption_key_is_secure = encryption_key_.is_secure();
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_owner_dialog_id);
     STORE_FLAG(has_expected_size);
+    STORE_FLAG(encryption_key_is_secure);
     END_STORE_FLAGS();
 
     if (has_owner_dialog_id) {
@@ -1168,9 +1219,11 @@ class FileData {
     using ::td::parse;
     bool has_owner_dialog_id;
     bool has_expected_size;
+    bool encryption_key_is_secure;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_owner_dialog_id);
     PARSE_FLAG(has_expected_size);
+    PARSE_FLAG(encryption_key_is_secure);
     END_PARSE_FLAGS();
 
     if (has_owner_dialog_id) {
@@ -1193,7 +1246,8 @@ class FileData {
     }
     parse(remote_name_, parser);
     parse(url_, parser);
-    parse(encryption_key_, parser);
+    encryption_key_.parse(encryption_key_is_secure ? FileEncryptionKey::Type::Secure : FileEncryptionKey::Type::Secret,
+                          parser);
   }
 };
 inline StringBuilder &operator<<(StringBuilder &sb, const FileData &file_data) {

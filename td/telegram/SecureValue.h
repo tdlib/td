@@ -59,8 +59,13 @@ SecureFile get_secure_file(FileManager *file_manager, tl_object_ptr<telegram_api
 vector<SecureFile> get_secure_files(FileManager *file_manager,
                                     vector<tl_object_ptr<telegram_api::SecureFile>> &&secure_files);
 
+struct SecureInputFile {
+  FileId file_id;
+  tl_object_ptr<telegram_api::InputSecureFile> input_file;
+};
 telegram_api::object_ptr<telegram_api::InputSecureFile> get_input_secure_file_object(FileManager *file_manager,
-                                                                                     const SecureFile &file);
+                                                                                     const SecureFile &file,
+                                                                                     SecureInputFile &input_file);
 
 td_api::object_ptr<td_api::file> get_encrypted_file_object(FileManager *file_manager, const SecureFile &file);
 
@@ -68,7 +73,7 @@ vector<td_api::object_ptr<td_api::file>> get_encrypted_files_object(FileManager 
                                                                     const vector<SecureFile> &files);
 
 vector<telegram_api::object_ptr<telegram_api::InputSecureFile>> get_input_secure_files_object(
-    FileManager *file_manager, const vector<SecureFile> &file);
+    FileManager *file_manager, const vector<SecureFile> &file, vector<SecureInputFile> &input_files);
 
 struct SecureData {
   string data;
@@ -103,7 +108,7 @@ vector<EncryptedSecureValue> get_encrypted_secure_values(
 td_api::object_ptr<td_api::encryptedPassportData> get_encrypted_passport_data_object(FileManager *file_manager,
                                                                                      const EncryptedSecureValue &value);
 telegram_api::object_ptr<telegram_api::inputSecureValue> get_input_secure_value_object(
-    FileManager *file_manager, const EncryptedSecureValue &value);
+    FileManager *file_manager, const EncryptedSecureValue &value, vector<SecureInputFile> &input_files);
 
 vector<td_api::object_ptr<td_api::encryptedPassportData>> get_encrypted_passport_data_object(
     FileManager *file_manager, const vector<EncryptedSecureValue> &values);
@@ -129,7 +134,10 @@ class SecureValue {
   FileId selfie;
 };
 
-Result<SecureValue> get_secure_value(td_api::object_ptr<td_api::inputPassportData> &&input_passport_data);
+Result<SecureValue> get_secure_value(FileManager *file_manager,
+                                     td_api::object_ptr<td_api::inputPassportData> &&input_passport_data);
+
+td_api::object_ptr<td_api::passportData> get_passport_data_object(FileManager *file_manager, const SecureValue &value);
 
 Result<FileId> decrypt_secure_file(FileManager *file_manager, const secure_storage::Secret &secret,
                                    const SecureFile &secure_file);

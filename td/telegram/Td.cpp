@@ -3800,16 +3800,17 @@ class GetTermsOfServiceRequest : public RequestActor<string> {
   }
 };
 
+using TdApiSecureValue = td_api::object_ptr<td_api::passportData>;
 class GetSecureValue : public NetQueryCallback {
  public:
-  GetSecureValue(std::string password, SecureValueType type, Promise<SecureValue> promise)
+  GetSecureValue(std::string password, SecureValueType type, Promise<TdApiSecureValue> promise)
       : password_(std::move(password)), type_(type), promise_(std::move(promise)) {
   }
 
  private:
   string password_;
   SecureValueType type_;
-  Promise<SecureValue> promise_;
+  Promise<TdApiSecureValue> promise_;
   optional<EncryptedSecureValue> encrypted_secure_value_;
   optional<secure_storage::Secret> secret_;
 
@@ -3832,8 +3833,12 @@ class GetSecureValue : public NetQueryCallback {
     if (!encrypted_secure_value_ || !secret_) {
       return;
     }
-    promise_.set_result(decrypt_encrypted_secure_value(G()->td().get_actor_unsafe()->file_manager_.get(), *secret_,
-                                                       *encrypted_secure_value_));
+    auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
+    auto r_secure_value = decrypt_encrypted_secure_value(file_manager, *secret_, *encrypted_secure_value_);
+    if (r_secure_value.is_error()) {
+      return on_error(r_secure_value.move_as_error());
+    }
+    promise_.set_result(get_passport_data_object(file_manager, r_secure_value.move_as_ok()));
     stop();
   }
   void start_up() override {
@@ -3868,17 +3873,60 @@ class GetSecureValue : public NetQueryCallback {
 
 class SetSecureValue : public NetQueryCallback {
  public:
-  SetSecureValue(string password, SecureValue secure_value, Promise<Unit> promise)
+  SetSecureValue(string password, SecureValue secure_value, Promise<TdApiSecureValue> promise)
       : password_(std::move(password)), secure_value_(std::move(secure_value)), promise_(std::move(promise)) {
   }
 
  private:
   string password_;
   SecureValue secure_value_;
-  Promise<Unit> promise_;
+  Promise<TdApiSecureValue> promise_;
   optional<secure_storage::Secret> secret_;
 
+  size_t files_left_to_upload_ = 0;
+  vector<SecureInputFile> to_upload_;
+  class UploadCallback;
+  std::shared_ptr<UploadCallback> upload_callback_;
+
   enum class State { WaitSecret, WaitSetValue } state_ = State::WaitSecret;
+
+  class UploadCallback : public FileManager::UploadCallback {
+   public:
+    explicit UploadCallback(ActorId<SetSecureValue> actor_id) : actor_id_(actor_id) {
+    }
+
+   private:
+    ActorId<SetSecureValue> actor_id_;
+    void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) override {
+      UNREACHABLE();
+    }
+    void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) override {
+      UNREACHABLE();
+    }
+    void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) override {
+      send_closure(actor_id_, &SetSecureValue::on_upload_ok, file_id, std::move(input_file));
+    }
+    void on_upload_error(FileId file_id, Status error) override {
+      send_closure(actor_id_, &SetSecureValue::on_upload_error, file_id, std::move(error));
+    }
+  };
+
+  void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) {
+    for (auto &info : to_upload_) {
+      if (info.file_id != file_id) {
+        continue;
+      }
+      CHECK(!info.input_file);
+      info.input_file = std::move(input_file);
+      CHECK(files_left_to_upload_ != 0);
+      files_left_to_upload_--;
+      return loop();
+    }
+    UNREACHABLE();
+  }
+  void on_upload_error(FileId file_id, Status error) {
+    return on_error(std::move(error));
+  }
 
   void on_error(Status status) {
     promise_.set_error(std::move(status));
@@ -3900,6 +3948,31 @@ class SetSecureValue : public NetQueryCallback {
                  PromiseCreator::lambda([actor_id = actor_id(this)](Result<secure_storage::Secret> r_secret) {
                    send_closure(actor_id, &SetSecureValue::on_secret, std::move(r_secret), true);
                  }));
+    auto *file_manager = G()->file_manager().get_actor_unsafe();
+
+    // Remove duplicated files
+    for (auto it = secure_value_.files.begin(); it != secure_value_.files.end();) {
+      bool is_duplicate = false;
+      for (auto pit = secure_value_.files.begin(); pit != it; pit++) {
+        if (file_manager->get_file_view(*it).file_id() == file_manager->get_file_view(*pit).file_id()) {
+          is_duplicate = true;
+          break;
+        }
+      }
+      if (is_duplicate) {
+        it = secure_value_.files.erase(it);
+      } else {
+        it++;
+      }
+    }
+
+    to_upload_.resize(secure_value_.files.size());
+    upload_callback_ = std::make_shared<UploadCallback>(actor_id(this));
+    for (size_t i = 0; i < to_upload_.size(); i++) {
+      to_upload_[i].file_id = file_manager->dup_file_id(secure_value_.files[i]);
+      file_manager->upload(to_upload_[i].file_id, upload_callback_, 1, 0);
+      files_left_to_upload_++;
+    }
   }
 
   void loop() override {
@@ -3907,10 +3980,14 @@ class SetSecureValue : public NetQueryCallback {
       if (!secret_) {
         return;
       }
+      if (files_left_to_upload_ != 0) {
+        return;
+      }
       auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
-      auto save_secure_value = telegram_api::account_saveSecureValue(
-          get_input_secure_value_object(file_manager, encrypt_secure_value(file_manager, *secret_, secure_value_)),
-          secret_.value().get_hash());
+      auto input_secure_value = get_input_secure_value_object(
+          file_manager, encrypt_secure_value(file_manager, *secret_, secure_value_), to_upload_);
+      auto save_secure_value =
+          telegram_api::account_saveSecureValue(std::move(input_secure_value), secret_.value().get_hash());
       LOG(ERROR) << to_string(save_secure_value);
       auto query = G()->net_query_creator().create(create_storer(save_secure_value));
 
@@ -3925,6 +4002,28 @@ class SetSecureValue : public NetQueryCallback {
     }
     auto result = r_result.move_as_ok();
     LOG(ERROR) << to_string(result);
+    auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
+    auto encrypted_secure_value = get_encrypted_secure_value(file_manager, std::move(result));
+    if (secure_value_.files.size() != encrypted_secure_value.files.size()) {
+      return on_error(Status::Error("Different files count"));
+    }
+    for (size_t i = 0; i < secure_value_.files.size(); i++) {
+      auto file_view = file_manager->get_file_view(secure_value_.files[i]);
+      CHECK(!file_view.empty());
+      CHECK(file_view.encryption_key().has_value_hash());
+      if (file_view.encryption_key().value_hash().as_slice() != encrypted_secure_value.files[i].file_hash) {
+        LOG(ERROR) << "hash mismatch";
+        continue;
+      }
+      auto status = file_manager->merge(encrypted_secure_value.files[i].file_id, secure_value_.files[i]);
+      LOG_IF(ERROR, status.is_error()) << status.error();
+    }
+    auto r_secure_value = decrypt_encrypted_secure_value(file_manager, *secret_, encrypted_secure_value);
+    if (r_secure_value.is_error()) {
+      return on_error(r_secure_value.move_as_error());
+    }
+    promise_.set_result(get_passport_data_object(file_manager, r_secure_value.move_as_ok()));
+    stop();
   }
 };
 
@@ -6205,7 +6304,9 @@ void Td::on_request(uint64 id, td_api::uploadFile &request) {
 
   auto file_type = request.file_type_ == nullptr ? FileType::Temp : from_td_api(*request.file_type_);
   bool is_secret = file_type == FileType::Encrypted || file_type == FileType::EncryptedThumbnail;
-  auto r_file_id = file_manager_->get_input_file_id(file_type, request.file_, DialogId(), false, is_secret, true);
+  bool is_secure = file_type == FileType::Secure;
+  auto r_file_id = file_manager_->get_input_file_id(file_type, request.file_, DialogId(), false, is_secret,
+                                                    !is_secure && !is_secret, is_secure);
   if (r_file_id.is_error()) {
     return send_error_raw(id, 400, r_file_id.error().message());
   }
@@ -6951,15 +7052,12 @@ void Td::on_request(uint64 id, td_api::getPassportData &request) {
   CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.password_);
+  CREATE_REQUEST_PROMISE(promise);
   if (request.type_ == nullptr) {
-    return send_error_raw(id, 400, "Type must not be empty");
+    return promise.set_error(Status::Error(400, "Type must not be empty"));
   }
   create_actor<GetSecureValue>("GetSecureValue", std::move(request.password_),
-                               get_secure_value_type_td_api(std::move(request.type_)),
-                               PromiseCreator::lambda([](Result<SecureValue> r_value) {
-                                 LOG_IF(ERROR, r_value.is_error()) << r_value.error();
-                                 LOG_IF(ERROR, r_value.is_ok()) << r_value.ok().data;
-                               }))
+                               get_secure_value_type_td_api(std::move(request.type_)), std::move(promise))
       .release();
 }
 
@@ -6967,13 +7065,13 @@ void Td::on_request(uint64 id, td_api::setPassportData &request) {
   CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.password_);
-  auto r_secure_value = get_secure_value(std::move(request.value_));
+  CREATE_REQUEST_PROMISE(promise);
+  auto r_secure_value = get_secure_value(file_manager_.get(), std::move(request.value_));
   if (r_secure_value.is_error()) {
-    return send_closure(actor_id(this), &Td::send_error, id, r_secure_value.move_as_error());
+    return promise.set_error(r_secure_value.move_as_error());
   }
-  create_actor<SetSecureValue>(
-      "SetSecureValue", std::move(request.password_), r_secure_value.move_as_ok(),
-      PromiseCreator::lambda([](Result<Unit> result) { LOG_IF(ERROR, result.is_error()) << result.error(); }))
+  create_actor<SetSecureValue>("SetSecureValue", std::move(request.password_), r_secure_value.move_as_ok(),
+                               std::move(promise))
       .release();
 }
 

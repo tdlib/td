@@ -300,8 +300,13 @@ int64 FileView::local_size() const {
   switch (node_->local_.type()) {
     case LocalFileLocation::Type::Full:
       return node_->size_;
-    case LocalFileLocation::Type::Partial:
+    case LocalFileLocation::Type::Partial: {
+      if (is_encrypted_secure()) {
+        // File is not decrypted yet
+        return 0;
+      }
       return node_->local_.partial().part_size_ * node_->local_.partial().ready_part_count_;
+    }
     default:
       return 0;
   }
@@ -509,6 +514,8 @@ string FileManager::get_file_name(FileType file_type, Slice path) {
     case FileType::Temp:
     case FileType::EncryptedThumbnail:
     case FileType::Wallpaper:
+    case FileType::Secure:
+    case FileType::SecureRaw:
       break;
     default:
       UNREACHABLE();
@@ -1213,6 +1220,9 @@ void FileManager::flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local
     data.local_ = LocalFileLocation();
     data.remote_ = RemoteFileLocation();
   }
+  if (data.remote_.type() != RemoteFileLocation::Type::Full && node->encryption_key_.is_secure()) {
+    data.remote_ = RemoteFileLocation();
+  }
 
   data.size_ = node->size_;
   data.expected_size_ = node->expected_size_;
@@ -1670,6 +1680,10 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
     if (node->get_by_hash_ || node->generate_id_ == 0 || !node->generate_was_update_) {
       return;
     }
+    if (file_view.has_generate_location() && file_view.generate_location().file_type_ == FileType::Secure) {
+      // Can't upload secure file before its size is known.
+      return;
+    }
   }
   int8 priority = 0;
   FileId file_id = node->main_file_id_;
@@ -1698,6 +1712,14 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
       file_view.encryption_key().empty()) {
     CHECK(!node->file_ids_.empty());
     bool success = set_encryption_key(node->file_ids_[0], FileEncryptionKey::create());
+    LOG_IF(FATAL, !success) << "Failed to set encryption key for file " << file_id;
+  }
+
+  // create encryption key if necessary
+  if (file_view.has_local_location() && file_view.local_location().file_type_ == FileType::Secure &&
+      file_view.encryption_key().empty()) {
+    CHECK(!node->file_ids_.empty());
+    bool success = set_encryption_key(node->file_ids_[0], FileEncryptionKey::create_secure_key());
     LOG_IF(FATAL, !success) << "Failed to set encryption key for file " << file_id;
   }
 
@@ -1894,7 +1916,7 @@ vector<tl_object_ptr<td_api::file>> FileManager::get_files_object(const vector<F
 }
 
 Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> result, bool is_encrypted,
-                                                bool allow_zero) {
+                                                bool allow_zero, bool is_secure) {
   TRY_RESULT(file_id, std::move(result));
   if (allow_zero && !file_id.is_valid()) {
     return FileId();
@@ -1906,7 +1928,7 @@ Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> re
   }
   auto file_view = FileView(file_node);
   FileType real_type = file_view.get_type();
-  if (!is_encrypted) {
+  if (!is_encrypted && !is_secure) {
     if (real_type != type && !(real_type == FileType::Temp && file_view.has_url()) &&
         !(is_document_type(real_type) && is_document_type(type))) {
       // TODO: send encrypted file to unencrypted chat
@@ -1953,7 +1975,7 @@ Result<FileId> FileManager::get_input_thumbnail_file_id(const tl_object_ptr<td_a
 
 Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr<td_api::InputFile> &file,
                                               DialogId owner_dialog_id, bool allow_zero, bool is_encrypted,
-                                              bool get_by_hash) {
+                                              bool get_by_hash, bool is_secure) {
   if (is_encrypted) {
     get_by_hash = false;
   }
@@ -1964,6 +1986,8 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
     return Status::Error(6, "InputFile not specified");
   }
 
+  auto new_type = is_encrypted ? FileType::Encrypted : (is_secure ? FileType::Secure : type);
+
   auto r_file_id = [&]() -> Result<FileId> {
     switch (file->get_id()) {
       case td_api::inputFileLocal::ID: {
@@ -1971,8 +1995,7 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
         if (allow_zero && path.empty()) {
           return FileId();
         }
-        return register_local(FullLocalFileLocation(is_encrypted ? FileType::Encrypted : type, path, 0),
-                              owner_dialog_id, 0, get_by_hash);
+        return register_local(FullLocalFileLocation(new_type, path, 0), owner_dialog_id, 0, get_by_hash);
       }
       case td_api::inputFileId::ID: {
         FileId file_id(static_cast<const td_api::inputFileId *>(file.get())->id_, 0);
@@ -1990,9 +2013,8 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
       }
       case td_api::inputFileGenerated::ID: {
         auto *generated_file = static_cast<const td_api::inputFileGenerated *>(file.get());
-        return register_generate(is_encrypted ? FileType::Encrypted : type, FileLocationSource::FromUser,
-                                 generated_file->original_path_, generated_file->conversion_, owner_dialog_id,
-                                 generated_file->expected_size_);
+        return register_generate(new_type, FileLocationSource::FromUser, generated_file->original_path_,
+                                 generated_file->conversion_, owner_dialog_id, generated_file->expected_size_);
       }
       default:
         UNREACHABLE();
@@ -2000,7 +2022,7 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
     }
   }();
 
-  return check_input_file_id(type, std::move(r_file_id), is_encrypted, allow_zero);
+  return check_input_file_id(type, std::move(r_file_id), is_encrypted, allow_zero, is_secure);
 }
 
 vector<tl_object_ptr<telegram_api::InputDocument>> FileManager::get_input_documents(const vector<FileId> &file_ids) {
@@ -2067,6 +2089,23 @@ void FileManager::on_partial_download(QueryId query_id, const PartialLocalFileLo
 
   file_node->set_local_location(LocalFileLocation(partial_local), ready_size);
   try_flush_node(file_node);
+}
+
+void FileManager::on_hash(QueryId query_id, string hash) {
+  auto query = queries_container_.get(query_id);
+  CHECK(query != nullptr);
+
+  auto file_id = query->file_id_;
+
+  auto file_node = get_file_node(file_id);
+  if (!file_node) {
+    return;
+  }
+  if (file_node->upload_id_ != query_id) {
+    return;
+  }
+
+  file_node->encryption_key_.set_value_hash(secure_storage::ValueHash::create(hash).move_as_ok());
 }
 
 void FileManager::on_partial_upload(QueryId query_id, const PartialRemoteFileLocation &partial_remote,

@@ -181,6 +181,17 @@ void FileLoadManager::on_partial_download(const PartialLocalFileLocation &partia
   }
 }
 
+void FileLoadManager::on_hash(string hash) {
+  auto node_id = get_link_token();
+  auto node = nodes_container_.get(node_id);
+  if (node == nullptr) {
+    return;
+  }
+  if (!stop_flag_) {
+    send_closure(callback_, &Callback::on_hash, node->query_id_, std::move(hash));
+  }
+}
+
 void FileLoadManager::on_partial_upload(const PartialRemoteFileLocation &partial_remote, int64 ready_size) {
   auto node_id = get_link_token();
   auto node = nodes_container_.get(node_id);

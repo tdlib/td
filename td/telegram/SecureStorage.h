@@ -131,6 +131,10 @@ class Secret {
   int64 get_hash() const;
   Secret clone() const;
 
+  static constexpr size_t size() {
+    return sizeof(secret_.raw);
+  }
+
  private:
   Secret(UInt256 secret, int64 hash);
   UInt256 secret_;

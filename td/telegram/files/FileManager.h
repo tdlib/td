@@ -345,7 +345,7 @@ class FileManager : public FileLoadManager::Callback {
                                              DialogId owner_dialog_id, bool is_encrypted) TD_WARN_UNUSED_RESULT;
   Result<FileId> get_input_file_id(FileType type, const tl_object_ptr<td_api::InputFile> &file,
                                    DialogId owner_dialog_id, bool allow_zero, bool is_encrypted,
-                                   bool get_by_hash = false) TD_WARN_UNUSED_RESULT;
+                                   bool get_by_hash = false, bool is_secure = false) TD_WARN_UNUSED_RESULT;
 
   vector<tl_object_ptr<telegram_api::InputDocument>> get_input_documents(const vector<FileId> &file_ids);
 
@@ -356,8 +356,8 @@ class FileManager : public FileLoadManager::Callback {
   FileId parse_file(T &parser);
 
  private:
-  Result<FileId> check_input_file_id(FileType type, Result<FileId> result, bool is_encrypted,
-                                     bool allow_zero) TD_WARN_UNUSED_RESULT;
+  Result<FileId> check_input_file_id(FileType type, Result<FileId> result, bool is_encrypted, bool allow_zero,
+                                     bool is_secure) TD_WARN_UNUSED_RESULT;
 
   FileId register_url(string url, FileType file_type, FileLocationSource file_location_source,
                       DialogId owner_dialog_id);
@@ -465,6 +465,7 @@ class FileManager : public FileLoadManager::Callback {
 
   void on_start_download(QueryId query_id) override;
   void on_partial_download(QueryId query_id, const PartialLocalFileLocation &partial_local, int64 ready_size) override;
+  void on_hash(QueryId query_id, string hash) override;
   void on_partial_upload(QueryId query_id, const PartialRemoteFileLocation &partial_remote, int64 ready_size) override;
   void on_download_ok(QueryId query_id, const FullLocalFileLocation &local, int64 size) override;
   void on_upload_ok(QueryId query_id, FileType file_type, const PartialRemoteFileLocation &partial_remote,

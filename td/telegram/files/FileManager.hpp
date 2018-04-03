@@ -39,11 +39,14 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
   bool has_encryption_key = false;
   bool has_expected_size =
       file_store_type == FileStoreType::Remote && file_view.size() == 0 && file_view.expected_size() != 0;
+  bool has_secure_key = false;
   if (file_store_type != FileStoreType::Empty) {
     has_encryption_key = !file_view.empty() && file_view.is_encrypted_secret();
+    has_secure_key = !file_view.empty() && file_view.is_encrypted_secure();
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_encryption_key);
     STORE_FLAG(has_expected_size);
+    STORE_FLAG(has_secure_key);
     END_STORE_FLAGS();
   }
 
@@ -99,6 +102,8 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
   }
   if (has_encryption_key) {
     store(file_view.encryption_key(), storer);
+  } else if (has_secure_key) {
+    store(file_view.encryption_key(), storer);
   }
 }
 
@@ -113,11 +118,13 @@ FileId FileManager::parse_file(ParserT &parser) {
 
   bool has_encryption_key = false;
   bool has_expected_size = false;
+  bool has_secure_key = false;
   if (file_store_type != FileStoreType::Empty) {
     if (parser.version() >= static_cast<int32>(Version::StoreFileEncryptionKey)) {
       BEGIN_PARSE_FLAGS();
       PARSE_FLAG(has_encryption_key);
       PARSE_FLAG(has_expected_size);
+      PARSE_FLAG(has_secure_key);
       END_PARSE_FLAGS();
     }
   }
@@ -212,7 +219,11 @@ FileId FileManager::parse_file(ParserT &parser) {
 
   if (has_encryption_key) {
     FileEncryptionKey encryption_key;
-    parse(encryption_key, parser);
+    encryption_key.parse(FileEncryptionKey::Type::Secret, parser);
+    set_encryption_key(file_id, std::move(encryption_key));
+  } else if (has_secure_key) {
+    FileEncryptionKey encryption_key;
+    encryption_key.parse(FileEncryptionKey::Type::Secure, parser);
     set_encryption_key(file_id, std::move(encryption_key));
   }
 
