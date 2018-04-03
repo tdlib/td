@@ -830,11 +830,11 @@ passportDataTypePhoneNumber = PassportDataType;
 passportDataTypeEmailAddress = PassportDataType;
 
 
-//@description Contains information about a Telegram Passport data @type Telegram Passport data type @data TODO data should be typed @files List of attached files
-passportData type:PassportDataType data:string files:vector<file> = PassportData;
+//@description Contains information about a Telegram Passport data @type Telegram Passport data type @data TODO data should be typed @files List of attached files with a document @selfie Selfie with the document
+passportData type:PassportDataType data:string files:vector<file> selfie:file = PassportData;
 
-//@description Contains information about a Telegram Passport data to save @type Telegram Passport data type @data TODO data should be typed @files List of attached files
-inputPassportData type:PassportDataType data:string files:vector<InputFile> = InputPassportData;
+//@description Contains information about a Telegram Passport data to save @type Telegram Passport data type @data TODO data should be typed @files List of attached files with a document @selfie Selfie with the document
+inputPassportData type:PassportDataType data:string files:vector<InputFile> selfie:file = InputPassportData;
 
 
 //@class PassportAuthorizationForm Contains information about requested Telegram Passport authorization form @data Available data
@@ -845,8 +845,8 @@ passportAuthorizationForm id:int32 data:vector<PassportData> = PassportAuthoriza
 encryptedCredentials data:bytes hash:bytes secret:bytes = EncryptedCredentials;
 
 
-//@description Contains information about an encrypted Telegram Passport data @type Telegram Passport data type @data Encrypted data about the user @files List of attached files @value Unencrypted data, phone number or email address
-encryptedPassportData type:PassportDataType data:bytes files:vector<file> value:string = EncryptedPassportData;
+//@description Contains information about an encrypted Telegram Passport data @type Telegram Passport data type @data Encrypted data about the user @files List of attached files @value Unencrypted data, phone number or email address @selfie Selfie with the document
+encryptedPassportData type:PassportDataType data:bytes files:vector<file> value:string selfie:file = EncryptedPassportData;
 
 
 //@class MessageContent @description Contains the content of a message

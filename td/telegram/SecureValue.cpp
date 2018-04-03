@@ -281,7 +281,7 @@ td_api::object_ptr<td_api::encryptedPassportData> get_encrypted_passport_data_ob
   bool is_plain = value.data.hash.empty();
   return td_api::make_object<td_api::encryptedPassportData>(
       get_passport_data_type_object(value.type), is_plain ? string() : value.data.data,
-      get_encrypted_files_object(file_manager, value.files), is_plain ? value.data.data : string());
+      get_encrypted_files_object(file_manager, value.files), is_plain ? value.data.data : string(), get_encrypted_file_object(file_manager, value.selfie));
 }
 
 telegram_api::object_ptr<telegram_api::inputSecureValue> get_input_secure_value_object(
@@ -351,6 +351,7 @@ Result<SecureValue> get_secure_value(td_api::object_ptr<td_api::inputPassportDat
   res.type = get_secure_value_type_td_api(std::move(input_passport_data->type_));
   res.data = std::move(input_passport_data->data_);
   // res.files =  TODO
+  // res.selfie =  TODO
   return res;
 }
 
@@ -393,6 +394,8 @@ Result<SecureValue> decrypt_encrypted_secure_value(FileManager *file_manager, co
       // TODO
       //TRY_RESULT(files, decrypt_secure_files(file_manager, secret, encrypted_secure_value.files));
       //res.files = std::move(files);
+      //TRY_RESULT(selfie, decrypt_secure_file(file_manager, secret, encrypted_secure_value.selfie));
+      //res.selfie = std::move(selfie);
       break;
     }
   }
@@ -404,11 +407,13 @@ SecureFile encrypt_secure_file(FileManager *file_manager, const secure_storage::
   //TODO:
   return SecureFile{};
 }
+
 vector<SecureFile> encrypt_secure_files(FileManager *file_manager, const secure_storage::Secret &master_secret,
                                         vector<FileId> files, string &to_hash) {
   return transform(files,
                    [&](auto file_id) { return encrypt_secure_file(file_manager, master_secret, file_id, to_hash); });
 }
+
 SecureData encrypt_secure_data(const secure_storage::Secret &master_secret, Slice data, string &to_hash) {
   namespace ss = secure_storage;
   auto secret = ss::Secret::create_new();
@@ -422,6 +427,7 @@ SecureData encrypt_secure_data(const secure_storage::Secret &master_secret, Slic
   to_hash.append(secret.as_slice().str());
   return res;
 }
+
 EncryptedSecureValue encrypt_secure_value(FileManager *file_manager, const secure_storage::Secret &master_secret,
                                           const SecureValue &secure_value) {
   namespace ss = secure_storage;
@@ -438,6 +444,7 @@ EncryptedSecureValue encrypt_secure_value(FileManager *file_manager, const secur
       res.data = encrypt_secure_data(master_secret, secure_value.data, to_hash);
       // TODO
       //res.files = encrypt_secure_files(file_manager, master_secret, secure_value.files, to_hash);
+      //res.selfie = encrypt_secure_file(file_manager, master_secret, secure_value.selfie, to_hash);
       res.hash = ss::calc_value_hash(to_hash).as_slice().str();
       break;
     }

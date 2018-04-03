@@ -126,6 +126,7 @@ class SecureValue {
   SecureValueType type;
   string data;
   vector<FileId> files;
+  FileId selfie;
 };
 
 Result<SecureValue> get_secure_value(td_api::object_ptr<td_api::inputPassportData> &&input_passport_data);
