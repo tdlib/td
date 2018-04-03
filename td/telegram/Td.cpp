@@ -4618,7 +4618,13 @@ Status Td::init(DbKey key) {
 }
 
 void Td::send_update(tl_object_ptr<td_api::Update> &&object) {
-  switch (object->get_id()) {
+  auto object_id = object->get_id();
+  if (close_flag_ >= 5 && object_id != td_api::updateAuthorizationState::ID) {
+    // just in case
+    return;
+  }
+
+  switch (object_id) {
     case td_api::updateFavoriteStickers::ID:
     case td_api::updateInstalledStickerSets::ID:
     case td_api::updateRecentStickers::ID:
