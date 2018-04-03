@@ -43,6 +43,10 @@ Dimensions get_dimensions(int32 width, int32 height) {
   return result;
 }
 
+static uint32 get_pixel_count(const Dimensions &dimensions) {
+  return static_cast<uint32>(dimensions.width) * static_cast<uint32>(dimensions.height);
+}
+
 bool operator==(const Dimensions &lhs, const Dimensions &rhs) {
   return lhs.width == rhs.width && lhs.height == rhs.height;
 }
@@ -390,7 +394,8 @@ void sort_photo_sizes(vector<td_api::object_ptr<td_api::photoSize>> &sizes) {
     if (lhs->photo_->expected_size_ != rhs->photo_->expected_size_) {
       return lhs->photo_->expected_size_ < rhs->photo_->expected_size_;
     }
-    return lhs->width_ * lhs->height_ < rhs->width_ * rhs->height_;
+    return static_cast<uint32>(lhs->width_) * static_cast<uint32>(lhs->height_) <
+           static_cast<uint32>(rhs->width_) * static_cast<uint32>(rhs->height_);
   });
 }
 
@@ -400,6 +405,26 @@ bool operator==(const PhotoSize &lhs, const PhotoSize &rhs) {
 
 bool operator!=(const PhotoSize &lhs, const PhotoSize &rhs) {
   return !(lhs == rhs);
+}
+
+bool operator<(const PhotoSize &lhs, const PhotoSize &rhs) {
+  if (lhs.size != rhs.size) {
+    return lhs.size < rhs.size;
+  }
+  auto lhs_pixels = get_pixel_count(lhs.dimensions);
+  auto rhs_pixels = get_pixel_count(rhs.dimensions);
+  if (lhs_pixels != rhs_pixels) {
+    return lhs_pixels < rhs_pixels;
+  }
+  int32 lhs_type = lhs.type == 't' ? -1 : lhs.type;
+  int32 rhs_type = rhs.type == 't' ? -1 : rhs.type;
+  if (lhs_type != rhs_type) {
+    return lhs_type < rhs_type;
+  }
+  if (lhs.file_id != rhs.file_id) {
+    return lhs.file_id.get() < rhs.file_id.get();
+  }
+  return lhs.dimensions.width < rhs.dimensions.width;
 }
 
 StringBuilder &operator<<(StringBuilder &string_builder, const PhotoSize &photo_size) {

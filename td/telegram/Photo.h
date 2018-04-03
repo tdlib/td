@@ -38,7 +38,7 @@ struct ProfilePhoto : public DialogPhoto {
 };
 
 struct PhotoSize {
-  int32 type = 0;  // TODO remove
+  int32 type = 0;
   Dimensions dimensions;
   int32 size = 0;
   FileId file_id;
@@ -89,6 +89,8 @@ void sort_photo_sizes(vector<td_api::object_ptr<td_api::photoSize>> &sizes);
 
 bool operator==(const PhotoSize &lhs, const PhotoSize &rhs);
 bool operator!=(const PhotoSize &lhs, const PhotoSize &rhs);
+
+bool operator<(const PhotoSize &lhs, const PhotoSize &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const PhotoSize &photo_size);
 

@@ -21171,7 +21171,7 @@ unique_ptr<MessageContent> MessagesManager::dup_message_content(DialogId dialog_
       }
       if (photo.type == 0) {
         for (const auto &size : result->photo.photos) {
-          if (photo.type == 0 || photo.size < size.size) {
+          if (photo.type == 0 || photo < size) {
             photo = size;
           }
         }
@@ -21186,7 +21186,7 @@ unique_ptr<MessageContent> MessagesManager::dup_message_content(DialogId dialog_
       }
       if (thumbnail.type == 0) {
         for (const auto &size : result->photo.photos) {
-          if (size.type != photo.type && (thumbnail.type == 0 || thumbnail.size > size.size)) {
+          if (size.type != photo.type && (thumbnail.type == 0 || size < thumbnail)) {
             thumbnail = size;
           }
         }
