@@ -1126,13 +1126,18 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
         message_ptr = &update_edit_channel_message->message_;
         pts = update_edit_channel_message->pts_;
       }
-      if (message_ptr != nullptr) {
+
+      // for channels we can try to replace unacceptable update with updateChannelTooLong
+      // don't do that for service messages, because they can be about bot's kicking
+      if (message_ptr != nullptr && (*message_ptr)->get_id() != telegram_api::messageService::ID) {
         auto dialog_id = td_->messages_manager_->get_message_dialog_id(*message_ptr);
         if (dialog_id.get_type() == DialogType::Channel) {
-          // for channels we can replace unacceptable update with updateChannelTooLong
-          update = telegram_api::make_object<telegram_api::updateChannelTooLong>(
-              telegram_api::updateChannelTooLong::PTS_MASK, dialog_id.get_channel_id().get(), pts);
-          continue;
+          auto channel_id = dialog_id.get_channel_id();
+          if (td_->contacts_manager_->have_channel_force(channel_id)) {
+            update = telegram_api::make_object<telegram_api::updateChannelTooLong>(
+                telegram_api::updateChannelTooLong::PTS_MASK, channel_id.get(), pts);
+            continue;
+          }
         } else {
           LOG(ERROR) << "Update is not from a channel: " << to_string(update);
         }
