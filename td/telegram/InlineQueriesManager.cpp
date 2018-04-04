@@ -764,6 +764,10 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
       return promise.set_error(Status::Error(400, "Sent message content should be explicitly specified"));
     }
 
+    if (duration < 0) {
+      duration = 0;
+    }
+
     int32 flags = 0;
     if (!title.empty()) {
       flags |= telegram_api::inputBotInlineResult::TITLE_MASK;
@@ -839,21 +843,19 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
 
       vector<tl_object_ptr<telegram_api::DocumentAttribute>> attributes;
       if (width > 0 && height > 0) {
-        if (duration > 0 && !begins_with(content_type, "image/")) {
+        if ((duration > 0 || type == "video" || content_type == "video/mp4") && !begins_with(content_type, "image/")) {
           attributes.push_back(make_tl_object<telegram_api::documentAttributeVideo>(
               0, false /*ignored*/, false /*ignored*/, duration, width, height));
         } else {
           attributes.push_back(make_tl_object<telegram_api::documentAttributeImageSize>(width, height));
         }
-      } else if (duration > 0) {
-        if (type == "audio") {
-          attributes.push_back(make_tl_object<telegram_api::documentAttributeAudio>(
-              telegram_api::documentAttributeAudio::TITLE_MASK | telegram_api::documentAttributeAudio::PERFORMER_MASK,
-              false /*ignored*/, duration, title, description, BufferSlice()));
-        } else if (type == "voice") {
-          attributes.push_back(make_tl_object<telegram_api::documentAttributeAudio>(
-              telegram_api::documentAttributeAudio::VOICE_MASK, false /*ignored*/, duration, "", "", BufferSlice()));
-        }
+      } else if (type == "audio") {
+        attributes.push_back(make_tl_object<telegram_api::documentAttributeAudio>(
+            telegram_api::documentAttributeAudio::TITLE_MASK | telegram_api::documentAttributeAudio::PERFORMER_MASK,
+            false /*ignored*/, duration, title, description, BufferSlice()));
+      } else if (type == "voice") {
+        attributes.push_back(make_tl_object<telegram_api::documentAttributeAudio>(
+            telegram_api::documentAttributeAudio::VOICE_MASK, false /*ignored*/, duration, "", "", BufferSlice()));
       }
       attributes.push_back(make_tl_object<telegram_api::documentAttributeFilename>(get_url_file_name(content_url)));
 
