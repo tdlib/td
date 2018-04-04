@@ -6961,8 +6961,8 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
         }
       }
     }
-    CHECK(d->first_database_message_id.is_valid())
-        << from_the_end << " " << last_added_message_id << " " << last_message_id << " " << d->last_database_message_id;
+    CHECK(d->first_database_message_id.is_valid()) << from_the_end << " " << last_added_message_id << " "
+                                                   << d->last_message_id << " " << d->last_database_message_id;
     CHECK(d->last_database_message_id.is_valid());
 
     for (auto &first_message_id : d->first_database_message_id_by_index) {
@@ -18915,7 +18915,9 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
         // TODO move check to send_message
       } else if (error.message() == "PEER_ID_INVALID") {
         error_code = 403;
-        error_message = "Bot can't initiate conversation with a user";
+        if (td_->auth_manager_->is_bot()) {
+          error_message = "Bot can't initiate conversation with a user";
+        }
       } else if (error.message() == "WC_CONVERT_URL_INVALID" || error.message() == "EXTERNAL_URL_INVALID") {
         error_message = "Wrong HTTP URL specified";
       } else if (error.message() == "WEBPAGE_CURL_FAILED") {
