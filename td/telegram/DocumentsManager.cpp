@@ -321,18 +321,24 @@ std::pair<DocumentsManager::DocumentType, FileId> DocumentsManager::on_get_docum
       td_->animations_manager_->create_animation(file_id, std::move(thumbnail), std::move(file_name),
                                                  std::move(mime_type), video_duration, dimensions, !is_web);
       break;
-    case DocumentType::Audio:
-      CHECK(audio != nullptr);
+    case DocumentType::Audio: {
+      int32 duration = 0;
+      string title;
+      string performer;
+      if (audio != nullptr) {
+        duration = audio->duration_;
+        title = std::move(audio->title_);
+        performer = std::move(audio->performer_);
+      }
       td_->audios_manager_->create_audio(file_id, std::move(thumbnail), std::move(file_name), std::move(mime_type),
-                                         audio->duration_, std::move(audio->title_), std::move(audio->performer_),
-                                         !is_web);
+                                         duration, std::move(title), std::move(performer), !is_web);
       break;
+    }
     case DocumentType::General:
       td_->documents_manager_->create_document(file_id, std::move(thumbnail), std::move(file_name),
                                                std::move(mime_type), !is_web);
       break;
     case DocumentType::Sticker:
-      CHECK(sticker != nullptr);
       td_->stickers_manager_->create_sticker(file_id, std::move(thumbnail), dimensions, true, std::move(sticker),
                                              load_data_multipromise_ptr);
       break;
@@ -344,11 +350,17 @@ std::pair<DocumentsManager::DocumentType, FileId> DocumentsManager::on_get_docum
     case DocumentType::VideoNote:
       td_->video_notes_manager_->create_video_note(file_id, std::move(thumbnail), video_duration, dimensions, !is_web);
       break;
-    case DocumentType::VoiceNote:
-      CHECK(audio != nullptr);
-      td_->voice_notes_manager_->create_voice_note(file_id, std::move(mime_type), audio->duration_,
-                                                   audio->waveform_.as_slice().str(), !is_web);
+    case DocumentType::VoiceNote: {
+      int32 duration = 0;
+      string waveform;
+      if (audio != nullptr) {
+        duration = audio->duration_;
+        waveform = audio->waveform_.as_slice().str();
+      }
+      td_->voice_notes_manager_->create_voice_note(file_id, std::move(mime_type), duration, std::move(waveform),
+                                                   !is_web);
       break;
+    }
     case DocumentType::Unknown:
     default:
       UNREACHABLE();
