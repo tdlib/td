@@ -984,8 +984,8 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     }
   }
 
-  int node_i = std::make_tuple(y_node->pmc_id_, y_node->file_ids_.size(), main_file_id_i == 1) >
-               std::make_tuple(x_node->pmc_id_, x_node->file_ids_.size(), main_file_id_i == 0);
+  int node_i = std::make_tuple(y_node->pmc_id_ != 0, x_node->pmc_id_, y_node->file_ids_.size(), main_file_id_i == 1) >
+               std::make_tuple(x_node->pmc_id_ != 0, y_node->pmc_id_, x_node->file_ids_.size(), main_file_id_i == 0);
 
   auto other_node_i = 1 - node_i;
   FileNodePtr node = nodes[node_i];

@@ -71,7 +71,7 @@ class FileDb : public FileDbInterface {
     }
 
     void load_file_data(const string &key, Promise<FileData> promise) {
-      promise.set_result(load_file_data_impl(file_pmc(), key));
+      promise.set_result(load_file_data_impl(actor_id(this), file_pmc(), key));
     }
 
     void clear_file_data(Id id, const string &remote_key, const string &local_key, const string &generate_key) {
@@ -138,7 +138,19 @@ class FileDb : public FileDbInterface {
         current_pmc_id_ = id;
       }
 
-      pmc.set("file" + to_string(id), "@@" + to_string(new_id));
+      do_store_file_data_ref(id, new_id);
+    }
+
+    void optimize_refs(const std::vector<Id> ids, Id main_id) {
+      LOG(INFO) << "Optimize ids in file db" << format::as_array(ids) << " " << main_id;
+      auto &pmc = file_pmc();
+      pmc.begin_transaction().ensure();
+      SCOPE_EXIT {
+        pmc.commit_transaction().ensure();
+      };
+      for (size_t i = 0; i + 1 < ids.size(); i++) {
+        do_store_file_data_ref(ids[i], main_id);
+      }
     }
 
    private:
@@ -147,6 +159,10 @@ class FileDb : public FileDbInterface {
 
     SqliteKeyValue &file_pmc() {
       return file_kv_safe_->get();
+    }
+
+    void do_store_file_data_ref(Id id, Id new_id) {
+      file_pmc().set("file" + to_string(id), "@@" + to_string(new_id));
     }
   };
 
@@ -171,7 +187,7 @@ class FileDb : public FileDbInterface {
   }
 
   Result<FileData> get_file_data_sync_impl(string key) override {
-    return load_file_data_impl(file_kv_safe_->get(), key);
+    return load_file_data_impl(file_db_actor_.get(), file_kv_safe_->get(), key);
   }
 
   void clear_file_data(Id id, const FileData &file_data) override {
@@ -221,14 +237,16 @@ class FileDb : public FileDbInterface {
   Id current_pmc_id_;
   std::shared_ptr<SqliteKeyValueSafe> file_kv_safe_;
 
-  static Result<FileData> load_file_data_impl(SqliteKeyValue &pmc, const string &key) {
+  static Result<FileData> load_file_data_impl(ActorId<FileDbActor> file_db_actor_id, SqliteKeyValue &pmc,
+                                              const string &key) {
     //LOG(DEBUG) << "Load by key " << format::as_hex_dump<4>(Slice(key));
     TRY_RESULT(id, get_id(pmc, key));
 
+    vector<Id> ids;
     string data_str;
     int attempt_count = 0;
     while (true) {
-      if (attempt_count > 5) {
+      if (attempt_count > 100) {
         LOG(FATAL) << "cycle in files db?";
       }
       attempt_count++;
@@ -237,12 +255,18 @@ class FileDb : public FileDbInterface {
       auto data_slice = Slice(data_str);
 
       if (data_slice.substr(0, 2) == "@@") {
+        ids.push_back(id);
+
         id = to_integer<Id>(data_slice.substr(2));
       } else {
         break;
       }
     }
+    if (ids.size() > 1) {
+      send_closure(file_db_actor_id, &FileDbActor::optimize_refs, std::move(ids), id);
+    }
     //LOG(DEBUG) << "By id " << id << " found data " << format::as_hex_dump<4>(Slice(data_str));
+    LOG(INFO) << attempt_count;
 
     FileData data;
     auto status = unserialize(data, data_str);
