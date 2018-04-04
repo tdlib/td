@@ -4223,6 +4223,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_local_unread_count = local_unread_count != 0;
   bool has_deleted_last_message = delete_last_message_date > 0;
   bool has_last_clear_history_message_id = last_clear_history_message_id.is_valid();
+  bool has_last_database_message_id = !has_last_database_message && last_database_message_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
@@ -4244,6 +4245,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   STORE_FLAG(has_last_clear_history_message_id);
   STORE_FLAG(is_last_message_deleted_locally);
   STORE_FLAG(has_contact_registered_message);
+  STORE_FLAG(has_last_database_message_id);
   END_STORE_FLAGS();
 
   store(dialog_id, storer);  // must be stored at offset 4
@@ -4299,6 +4301,9 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   if (has_max_unavailable_message_id) {
     store(max_unavailable_message_id, storer);
   }
+  if (has_last_database_message_id) {
+    store(last_database_message_id, storer);
+  }
 }
 
 // do not forget to resolve dialog dependencies including dependencies of last_message
@@ -4317,6 +4322,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   bool has_local_unread_count;
   bool has_deleted_last_message;
   bool has_last_clear_history_message_id;
+  bool has_last_database_message_id;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_draft_message);
   PARSE_FLAG(has_last_database_message);
@@ -4338,6 +4344,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   PARSE_FLAG(has_last_clear_history_message_id);
   PARSE_FLAG(is_last_message_deleted_locally);
   PARSE_FLAG(has_contact_registered_message);
+  PARSE_FLAG(has_last_database_message_id);
   END_PARSE_FLAGS();
 
   parse(dialog_id, parser);  // must be stored at offset 4
@@ -4410,6 +4417,9 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   }
   if (has_max_unavailable_message_id) {
     parse(max_unavailable_message_id, parser);
+  }
+  if (has_last_database_message_id) {
+    parse(last_database_message_id, parser);
   }
 }
 
@@ -23154,6 +23164,8 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
   }
 
   unique_ptr<Message> last_database_message = std::move(d->messages);
+  MessageId last_database_message_id = d->last_database_message_id;
+  d->last_database_message_id = MessageId();
   int64 order = d->order;
   d->order = DEFAULT_ORDER;
   int32 last_clear_history_date = d->last_clear_history_date;
@@ -23173,18 +23185,15 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
   Dialog *dialog = dialog_it->second.get();
   send_update_chat(dialog);
 
-  fix_new_dialog(dialog, std::move(last_database_message), order, last_clear_history_date,
+  fix_new_dialog(dialog, std::move(last_database_message), last_database_message_id, order, last_clear_history_date,
                  last_clear_history_message_id);
-
-  LOG(INFO) << "Loaded " << dialog_id << " with last new " << d->last_new_message_id << ", first database "
-            << d->first_database_message_id << ", last database " << d->last_database_message_id << ", last "
-            << d->last_message_id;
 
   return dialog;
 }
 
-void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_database_message, int64 order,
-                                     int32 last_clear_history_date, MessageId last_clear_history_message_id) {
+void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_database_message,
+                                     MessageId last_database_message_id, int64 order, int32 last_clear_history_date,
+                                     MessageId last_clear_history_message_id) {
   CHECK(d != nullptr);
   auto dialog_id = d->dialog_id;
 
@@ -23220,9 +23229,18 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     d->last_new_message_id = MessageId(d->last_new_message_id.get() & ~MessageId::FULL_TYPE_MASK);
   }
 
+  bool need_get_history = true;
+
   // add last database message to dialog
+  MessageId message_id;
   if (last_database_message != nullptr) {
-    auto message_id = last_database_message->message_id;
+    need_get_history = false;
+    message_id = last_database_message->message_id;
+  } else if (last_database_message_id.is_valid()) {
+    message_id = last_database_message_id;
+  }
+
+  if (message_id.is_valid()) {
     if (!d->first_database_message_id.is_valid() || d->first_database_message_id.get() > message_id.get()) {
       LOG(ERROR) << "Bugfixing wrong first_database_message_id from " << d->first_database_message_id << " to "
                  << message_id << " in " << dialog_id;
@@ -23235,7 +23253,17 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       LOG(ERROR) << "Bugfixing wrong last_new_message_id to " << message_id << " in " << dialog_id;
       set_dialog_last_new_message_id(d, message_id, "add_new_dialog");
     }
+  } else if (d->first_database_message_id.is_valid()) {
+    // ensure that first_database_message_id <= last_database_message_id
+    if (d->first_database_message_id.get() <= d->last_new_message_id.get()) {
+      set_dialog_last_database_message_id(d, d->last_new_message_id, "add_new_dialog 2");
+    } else {
+      // can't fix last_database_message_id, drop first_database_message_id; it shouldn't happen anyway
+      set_dialog_first_database_message_id(d, MessageId(), "add_new_dialog 2");
+    }
+  }
 
+  if (last_database_message != nullptr) {
     int32 dependent_dialog_count = 0;
     if (last_database_message->forward_info != nullptr) {
       auto other_dialog_id = last_database_message->forward_info->dialog_id;
@@ -23286,7 +23314,6 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
 
   update_dialogs_hints(d);
 
-  bool need_get_history = false;
   if (d->delete_last_message_date != 0) {
     if (d->last_message_id.is_valid()) {
       LOG(ERROR) << "Last " << d->deleted_last_message_id << " in " << dialog_id << " was deleted at "
@@ -23299,14 +23326,15 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       need_get_history = true;
     }
   }
-  if (!d->last_database_message_id.is_valid()) {
-    need_get_history = true;
-  }
 
   if (need_get_history && !td_->auth_manager_->is_bot() && have_input_peer(dialog_id, AccessRights::Read) &&
       d->order != DEFAULT_ORDER) {
     get_history_from_the_end(dialog_id, true, false, Auto());
   }
+
+  LOG(INFO) << "Loaded " << dialog_id << " with last new " << d->last_new_message_id << ", first database "
+            << d->first_database_message_id << ", last database " << d->last_database_message_id << ", last "
+            << d->last_message_id;
 }
 
 void MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Message> &&last_database_message) {

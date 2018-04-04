@@ -2056,7 +2056,7 @@ class CliClient final : public Actor {
         std::tie(reply_to_message_id, message) = split(message);
       }
       if (op == "smf") {
-        message = string(1000097, 'a');
+        message = string(5097, 'a');
       }
 
       auto parsed_text =
