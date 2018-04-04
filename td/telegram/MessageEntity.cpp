@@ -976,8 +976,8 @@ Slice fix_url(Slice str) {
 }
 
 const std::unordered_set<Slice, SliceHash> &get_valid_short_usernames() {
-  static const std::unordered_set<Slice, SliceHash> valid_usernames{
-      "ya", "gif", "wiki", "vid", "bing", "pic", "bold", "imdb", "coub", "like", "vote", "giff", "cap"};
+  static const std::unordered_set<Slice, SliceHash> valid_usernames{"ya",   "gif",  "wiki", "vid",  "bing", "pic",
+                                                                    "bold", "imdb", "coub", "like", "vote"};
   return valid_usernames;
 }
 
