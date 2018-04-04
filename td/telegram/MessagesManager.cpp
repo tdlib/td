@@ -10102,6 +10102,7 @@ void MessagesManager::set_dialog_first_database_message_id(Dialog *d, MessageId 
   LOG(INFO) << "Set " << d->dialog_id << " first database message to " << first_database_message_id << " from "
             << source;
   d->first_database_message_id = first_database_message_id;
+  on_dialog_updated(d->dialog_id, "set_dialog_first_database_message_id");
 }
 
 void MessagesManager::set_dialog_last_database_message_id(Dialog *d, MessageId last_database_message_id,
@@ -10109,6 +10110,7 @@ void MessagesManager::set_dialog_last_database_message_id(Dialog *d, MessageId l
   LOG(INFO) << "Set " << d->dialog_id << " last database message to " << last_database_message_id << " from " << source;
   d->debug_set_dialog_last_database_message_id = source;
   d->last_database_message_id = last_database_message_id;
+  on_dialog_updated(d->dialog_id, "set_dialog_last_database_message_id");
 }
 
 void MessagesManager::set_dialog_last_new_message_id(Dialog *d, MessageId last_new_message_id, const char *source) {
@@ -10191,6 +10193,7 @@ void MessagesManager::set_dialog_last_clear_history_date(Dialog *d, int32 date, 
 
   d->last_clear_history_date = date;
   d->last_clear_history_message_id = last_clear_history_message_id;
+  on_dialog_updated(d->dialog_id, "set_dialog_last_clear_history_date");
 
   if (d->last_clear_history_message_id.is_valid()) {
     switch (d->dialog_id.get_type()) {
@@ -10811,6 +10814,11 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
       if (*it != nullptr) {
         if (!(*it)->message_id.is_yet_unsent() && (*it)->message_id != d->last_database_message_id) {
           set_dialog_last_database_message_id(d, (*it)->message_id, "do_delete_message");
+          if (d->last_database_message_id.get() < d->first_database_message_id.get()) {
+            LOG(ERROR) << "Last database " << d->last_database_message_id << " became less than first database "
+                       << d->first_database_message_id << " in " << d->dialog_id;
+            set_dialog_first_database_message_id(d, d->last_database_message_id, "do_delete_message 2");
+          }
         } else {
           need_get_history = true;
         }
@@ -10818,7 +10826,6 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
         LOG(ERROR) << "have_previous is true, but there is no previous";
         dump_debug_message_op(d);
       }
-      on_dialog_updated(d->dialog_id, "do delete last database message");
     }
     if (d->last_database_message_id.is_valid()) {
       CHECK(d->first_database_message_id.is_valid());
@@ -14033,11 +14040,11 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
           !d->first_database_message_id.is_valid()) {
         CHECK(next_message != nullptr);
         CHECK(d->have_full_history);
+        CHECK(next_message->message_id.get() <= d->last_database_message_id.get());
         LOG(ERROR) << "Fix first database message id in " << dialog_id << " from " << d->first_database_message_id
                    << " to " << next_message->message_id;
         set_dialog_first_database_message_id(d, next_message->message_id, "on_get_history_from_database");
       }
-      on_dialog_updated(dialog_id, "on_get_history_from_database");
     }
   }
 
@@ -21739,13 +21746,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
-  if (from_update && message_id.get() > d->last_new_message_id.get()) {
-    CHECK(!message_id.is_yet_unsent());
-    if (d->dialog_id.get_type() == DialogType::SecretChat || message_id.is_server()) {
-      // can delete messages, therefore must be called before message attaching/adding
-      set_dialog_last_new_message_id(d, message_id, "add_message_to_dialog");
-    }
-  }
   if (!(d->have_full_history && auto_attach) && d->last_message_id.is_valid() &&
       d->last_message_id.get() < MessageId(ServerMessageId(1)).get() &&
       message_id.get() >= MessageId(ServerMessageId(1)).get()) {
@@ -21764,6 +21764,14 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
     send_update_chat_last_message(d, "add gap to dialog");
     *need_update_dialog_pos = false;
+  }
+
+  if (from_update && message_id.get() > d->last_new_message_id.get()) {
+    CHECK(!message_id.is_yet_unsent());
+    if (d->dialog_id.get_type() == DialogType::SecretChat || message_id.is_server()) {
+      // can delete messages, therefore must be called before message attaching/adding
+      set_dialog_last_new_message_id(d, message_id, "add_message_to_dialog");
+    }
   }
 
   bool is_attached = false;
@@ -21874,7 +21882,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         set_dialog_first_database_message_id(d, message_id, "add_message_to_dialog");
         try_restore_dialog_reply_markup(d, message.get());
       }
-      on_dialog_updated(dialog_id, "update_last_database_message_id");
     }
   }
   if (!message->from_database && !message_id.is_yet_unsent()) {
@@ -23169,6 +23176,10 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
   fix_new_dialog(dialog, std::move(last_database_message), order, last_clear_history_date,
                  last_clear_history_message_id);
 
+  LOG(INFO) << "Loaded " << dialog_id << " with last new " << d->last_new_message_id << ", first database "
+            << d->first_database_message_id << ", last database " << d->last_database_message_id << ", last "
+            << d->last_message_id;
+
   return dialog;
 }
 
@@ -23212,8 +23223,9 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   // add last database message to dialog
   if (last_database_message != nullptr) {
     auto message_id = last_database_message->message_id;
-    if (!d->first_database_message_id.is_valid()) {
-      LOG(ERROR) << "Bugfixing wrong first_database_message_id to " << message_id << " in " << dialog_id;
+    if (!d->first_database_message_id.is_valid() || d->first_database_message_id.get() > message_id.get()) {
+      LOG(ERROR) << "Bugfixing wrong first_database_message_id from " << d->first_database_message_id << " to "
+                 << message_id << " in " << dialog_id;
       set_dialog_first_database_message_id(d, message_id, "add_new_dialog");
     }
     set_dialog_last_database_message_id(d, message_id, "add_new_dialog");
