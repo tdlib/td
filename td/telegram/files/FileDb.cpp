@@ -266,7 +266,7 @@ class FileDb : public FileDbInterface {
       send_closure(file_db_actor_id, &FileDbActor::optimize_refs, std::move(ids), id);
     }
     //LOG(DEBUG) << "By id " << id << " found data " << format::as_hex_dump<4>(Slice(data_str));
-    LOG(INFO) << attempt_count;
+    //LOG(INFO) << attempt_count;
 
     FileData data;
     auto status = unserialize(data, data_str);

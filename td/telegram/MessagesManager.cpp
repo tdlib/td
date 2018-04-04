@@ -6961,7 +6961,8 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
         }
       }
     }
-    CHECK(d->first_database_message_id.is_valid());
+    CHECK(d->first_database_message_id.is_valid())
+        << from_the_end << " " << last_added_message_id << " " << last_message_id << " " << d->last_database_message_id;
     CHECK(d->last_database_message_id.is_valid());
 
     for (auto &first_message_id : d->first_database_message_id_by_index) {
