@@ -400,6 +400,7 @@ set(TDLIB_SOURCE
   td/telegram/SecretChatActor.cpp
   td/telegram/SecretChatDb.cpp
   td/telegram/SecretChatsManager.cpp
+  td/telegram/SecureManager.cpp
   td/telegram/SecureStorage.cpp
   td/telegram/SecureValue.cpp
   td/telegram/SequenceDispatcher.cpp
@@ -521,6 +522,7 @@ set(TDLIB_SOURCE
   td/telegram/SecretChatDb.h
   td/telegram/SecretChatsManager.h
   td/telegram/SecretInputMedia.h
+  td/telegram/SecureManager.h
   td/telegram/SecureStorage.h
   td/telegram/SecureValue.h
   td/telegram/SequenceDispatcher.h

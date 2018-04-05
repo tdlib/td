@@ -45,6 +45,7 @@
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/PrivacyManager.h"
+#include "td/telegram/SecureManager.h"
 #include "td/telegram/SecureValue.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/SecretChatsManager.h"
@@ -3800,233 +3801,6 @@ class GetTermsOfServiceRequest : public RequestActor<string> {
   }
 };
 
-using TdApiSecureValue = td_api::object_ptr<td_api::passportData>;
-class GetSecureValue : public NetQueryCallback {
- public:
-  GetSecureValue(std::string password, SecureValueType type, Promise<TdApiSecureValue> promise)
-      : password_(std::move(password)), type_(type), promise_(std::move(promise)) {
-  }
-
- private:
-  string password_;
-  SecureValueType type_;
-  Promise<TdApiSecureValue> promise_;
-  optional<EncryptedSecureValue> encrypted_secure_value_;
-  optional<secure_storage::Secret> secret_;
-
-  void on_error(Status status) {
-    promise_.set_error(std::move(status));
-    stop();
-  }
-
-  void on_secret(Result<secure_storage::Secret> r_secret, bool dummy) {
-    LOG_IF(ERROR, r_secret.is_error()) << r_secret.error();
-    LOG_IF(ERROR, r_secret.is_ok()) << r_secret.ok().get_hash();
-    if (r_secret.is_error()) {
-      return on_error(r_secret.move_as_error());
-    }
-    secret_ = r_secret.move_as_ok();
-    loop();
-  }
-
-  void loop() override {
-    if (!encrypted_secure_value_ || !secret_) {
-      return;
-    }
-    auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
-    auto r_secure_value = decrypt_encrypted_secure_value(file_manager, *secret_, *encrypted_secure_value_);
-    if (r_secure_value.is_error()) {
-      return on_error(r_secure_value.move_as_error());
-    }
-    promise_.set_result(get_passport_data_object(file_manager, r_secure_value.move_as_ok()));
-    stop();
-  }
-  void start_up() override {
-    std::vector<telegram_api::object_ptr<telegram_api::SecureValueType>> vec;
-    vec.push_back(get_secure_value_type_telegram_object(type_));
-
-    auto query = G()->net_query_creator().create(create_storer(telegram_api::account_getSecureValue(std::move(vec))));
-
-    G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
-
-    send_closure(G()->password_manager(), &PasswordManager::get_secure_secret, password_, optional<int64>(),
-                 PromiseCreator::lambda([actor_id = actor_id(this)](Result<secure_storage::Secret> r_secret) {
-                   send_closure(actor_id, &GetSecureValue::on_secret, std::move(r_secret), true);
-                 }));
-  }
-
-  void on_result(NetQueryPtr query) override {
-    auto r_result = fetch_result<telegram_api::account_getSecureValue>(std::move(query));
-    if (r_result.is_error()) {
-      return on_error(r_result.move_as_error());
-    }
-    auto result = r_result.move_as_ok();
-    if (result.size() != 1) {
-      return on_error(Status::Error(PSLICE() << "Expected vector of size 1 got " << result.size()));
-    }
-    LOG(ERROR) << to_string(result[0]);
-    encrypted_secure_value_ =
-        get_encrypted_secure_value(G()->td().get_actor_unsafe()->file_manager_.get(), std::move(result[0]));
-    loop();
-  }
-};
-
-class SetSecureValue : public NetQueryCallback {
- public:
-  SetSecureValue(string password, SecureValue secure_value, Promise<TdApiSecureValue> promise)
-      : password_(std::move(password)), secure_value_(std::move(secure_value)), promise_(std::move(promise)) {
-  }
-
- private:
-  string password_;
-  SecureValue secure_value_;
-  Promise<TdApiSecureValue> promise_;
-  optional<secure_storage::Secret> secret_;
-
-  size_t files_left_to_upload_ = 0;
-  vector<SecureInputFile> to_upload_;
-  class UploadCallback;
-  std::shared_ptr<UploadCallback> upload_callback_;
-
-  enum class State { WaitSecret, WaitSetValue } state_ = State::WaitSecret;
-
-  class UploadCallback : public FileManager::UploadCallback {
-   public:
-    explicit UploadCallback(ActorId<SetSecureValue> actor_id) : actor_id_(actor_id) {
-    }
-
-   private:
-    ActorId<SetSecureValue> actor_id_;
-    void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) override {
-      UNREACHABLE();
-    }
-    void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) override {
-      UNREACHABLE();
-    }
-    void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) override {
-      send_closure(actor_id_, &SetSecureValue::on_upload_ok, file_id, std::move(input_file));
-    }
-    void on_upload_error(FileId file_id, Status error) override {
-      send_closure(actor_id_, &SetSecureValue::on_upload_error, file_id, std::move(error));
-    }
-  };
-
-  void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) {
-    for (auto &info : to_upload_) {
-      if (info.file_id != file_id) {
-        continue;
-      }
-      CHECK(!info.input_file);
-      info.input_file = std::move(input_file);
-      CHECK(files_left_to_upload_ != 0);
-      files_left_to_upload_--;
-      return loop();
-    }
-    UNREACHABLE();
-  }
-  void on_upload_error(FileId file_id, Status error) {
-    return on_error(std::move(error));
-  }
-
-  void on_error(Status status) {
-    promise_.set_error(std::move(status));
-    stop();
-  }
-
-  void on_secret(Result<secure_storage::Secret> r_secret, bool x) {
-    LOG_IF(ERROR, r_secret.is_error()) << r_secret.error();
-    LOG_IF(ERROR, r_secret.is_ok()) << r_secret.ok().get_hash();
-    if (r_secret.is_error()) {
-      return on_error(r_secret.move_as_error());
-    }
-    secret_ = r_secret.move_as_ok();
-    loop();
-  }
-
-  void start_up() override {
-    send_closure(G()->password_manager(), &PasswordManager::get_secure_secret, password_, optional<int64>(),
-                 PromiseCreator::lambda([actor_id = actor_id(this)](Result<secure_storage::Secret> r_secret) {
-                   send_closure(actor_id, &SetSecureValue::on_secret, std::move(r_secret), true);
-                 }));
-    auto *file_manager = G()->file_manager().get_actor_unsafe();
-
-    // Remove duplicated files
-    for (auto it = secure_value_.files.begin(); it != secure_value_.files.end();) {
-      bool is_duplicate = false;
-      for (auto pit = secure_value_.files.begin(); pit != it; pit++) {
-        if (file_manager->get_file_view(*it).file_id() == file_manager->get_file_view(*pit).file_id()) {
-          is_duplicate = true;
-          break;
-        }
-      }
-      if (is_duplicate) {
-        it = secure_value_.files.erase(it);
-      } else {
-        it++;
-      }
-    }
-
-    to_upload_.resize(secure_value_.files.size());
-    upload_callback_ = std::make_shared<UploadCallback>(actor_id(this));
-    for (size_t i = 0; i < to_upload_.size(); i++) {
-      to_upload_[i].file_id = file_manager->dup_file_id(secure_value_.files[i]);
-      file_manager->upload(to_upload_[i].file_id, upload_callback_, 1, 0);
-      files_left_to_upload_++;
-    }
-  }
-
-  void loop() override {
-    if (state_ == State::WaitSecret) {
-      if (!secret_) {
-        return;
-      }
-      if (files_left_to_upload_ != 0) {
-        return;
-      }
-      auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
-      auto input_secure_value = get_input_secure_value_object(
-          file_manager, encrypt_secure_value(file_manager, *secret_, secure_value_), to_upload_);
-      auto save_secure_value =
-          telegram_api::account_saveSecureValue(std::move(input_secure_value), secret_.value().get_hash());
-      LOG(ERROR) << to_string(save_secure_value);
-      auto query = G()->net_query_creator().create(create_storer(save_secure_value));
-
-      G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
-      state_ = State::WaitSetValue;
-    }
-  }
-  void on_result(NetQueryPtr query) override {
-    auto r_result = fetch_result<telegram_api::account_saveSecureValue>(std::move(query));
-    if (r_result.is_error()) {
-      return on_error(r_result.move_as_error());
-    }
-    auto result = r_result.move_as_ok();
-    LOG(ERROR) << to_string(result);
-    auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
-    auto encrypted_secure_value = get_encrypted_secure_value(file_manager, std::move(result));
-    if (secure_value_.files.size() != encrypted_secure_value.files.size()) {
-      return on_error(Status::Error("Different files count"));
-    }
-    for (size_t i = 0; i < secure_value_.files.size(); i++) {
-      auto file_view = file_manager->get_file_view(secure_value_.files[i]);
-      CHECK(!file_view.empty());
-      CHECK(file_view.encryption_key().has_value_hash());
-      if (file_view.encryption_key().value_hash().as_slice() != encrypted_secure_value.files[i].file_hash) {
-        LOG(ERROR) << "hash mismatch";
-        continue;
-      }
-      auto status = file_manager->merge(encrypted_secure_value.files[i].file_id, secure_value_.files[i]);
-      LOG_IF(ERROR, status.is_error()) << status.error();
-    }
-    auto r_secure_value = decrypt_encrypted_secure_value(file_manager, *secret_, encrypted_secure_value);
-    if (r_secure_value.is_error()) {
-      return on_error(r_secure_value.move_as_error());
-    }
-    promise_.set_result(get_passport_data_object(file_manager, r_secure_value.move_as_ok()));
-    stop();
-  }
-};
-
 /** Td **/
 Td::Td(std::unique_ptr<TdCallback> callback) : callback_(std::move(callback)) {
 }
@@ -4535,6 +4309,8 @@ void Td::clear() {
   LOG(DEBUG) << "PasswordManager was cleared " << timer;
   privacy_manager_.reset();
   LOG(DEBUG) << "PrivacyManager was cleared " << timer;
+  secure_manager_.reset();
+  LOG(DEBUG) << "SecureManager was cleared " << timer;
   secret_chats_manager_.reset();
   LOG(DEBUG) << "SecretChatsManager was cleared " << timer;
   storage_manager_.reset();
@@ -4782,6 +4558,7 @@ Status Td::init(DbKey key) {
   password_manager_ = create_actor<PasswordManager>("PasswordManager", create_reference());
   G()->set_password_manager(password_manager_.get());
   privacy_manager_ = create_actor<PrivacyManager>("PrivacyManager", create_reference());
+  secure_manager_ = create_actor<SecureManager>("SecureManager", create_reference());
   secret_chats_manager_ = create_actor<SecretChatsManager>("SecretChatsManager", create_reference());
   G()->set_secret_chats_manager(secret_chats_manager_.get());
   storage_manager_ = create_actor<StorageManager>("StorageManager", create_reference(),
@@ -7056,9 +6833,8 @@ void Td::on_request(uint64 id, td_api::getPassportData &request) {
   if (request.type_ == nullptr) {
     return promise.set_error(Status::Error(400, "Type must not be empty"));
   }
-  create_actor<GetSecureValue>("GetSecureValue", std::move(request.password_),
-                               get_secure_value_type_td_api(std::move(request.type_)), std::move(promise))
-      .release();
+  send_closure(secure_manager_, &SecureManager::get_secure_value, std::move(request.password_),
+               get_secure_value_type_td_api(std::move(request.type_)), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setPassportData &request) {
@@ -7070,9 +6846,8 @@ void Td::on_request(uint64 id, td_api::setPassportData &request) {
   if (r_secure_value.is_error()) {
     return promise.set_error(r_secure_value.move_as_error());
   }
-  create_actor<SetSecureValue>("SetSecureValue", std::move(request.password_), r_secure_value.move_as_ok(),
-                               std::move(promise))
-      .release();
+  send_closure(secure_manager_, &SecureManager::set_secure_value, std::move(request.password_),
+               r_secure_value.move_as_ok(), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deletePassportData &request) {

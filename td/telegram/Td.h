@@ -47,6 +47,7 @@ class MessagesManager;
 class NetStatsManager;
 class PasswordManager;
 class PrivacyManager;
+class SecureManager;
 class SecretChatsManager;
 class StickersManager;
 class StorageManager;
@@ -149,6 +150,7 @@ class Td final : public NetQueryCallback {
   ActorOwn<NetStatsManager> net_stats_manager_;
   ActorOwn<PasswordManager> password_manager_;
   ActorOwn<PrivacyManager> privacy_manager_;
+  ActorOwn<SecureManager> secure_manager_;
   ActorOwn<SecretChatsManager> secret_chats_manager_;
   ActorOwn<StateManager> state_manager_;
   ActorOwn<StorageManager> storage_manager_;
