@@ -310,7 +310,8 @@ td_api::object_ptr<td_api::encryptedPassportData> get_encrypted_passport_data_ob
 }
 
 telegram_api::object_ptr<telegram_api::inputSecureValue> get_input_secure_value_object(
-    FileManager *file_manager, const EncryptedSecureValue &value, std::vector<SecureInputFile> &input_files) {
+    FileManager *file_manager, const EncryptedSecureValue &value, std::vector<SecureInputFile> &input_files,
+    optional<SecureInputFile> &selfie) {
   bool is_plain = value.type == SecureValueType::PhoneNumber || value.type == SecureValueType::EmailAddress;
   bool has_selfie = value.selfie.file_id.is_valid();
   int32 flags = 0;
@@ -330,11 +331,12 @@ telegram_api::object_ptr<telegram_api::inputSecureValue> get_input_secure_value_
   }
   if (has_selfie) {
     flags |= telegram_api::inputSecureValue::SELFIE_MASK;
+    CHECK(selfie);
   }
   return telegram_api::make_object<telegram_api::inputSecureValue>(
       flags, get_secure_value_type_telegram_object(value.type), is_plain ? nullptr : get_secure_data_object(value.data),
       get_input_secure_files_object(file_manager, value.files, input_files), std::move(plain_data),
-      has_selfie ? /*TODO*/ nullptr : nullptr);
+      has_selfie ? get_input_secure_file_object(file_manager, value.selfie, *selfie) : nullptr);
 }
 
 vector<td_api::object_ptr<td_api::encryptedPassportData>> get_encrypted_passport_data_object(
@@ -381,15 +383,24 @@ Result<SecureValue> get_secure_value(FileManager *file_manager,
                                                         false, true));
     res.files.push_back(file_id);
   }
-  // res.selfie =  TODO
+  if (input_passport_data->selfie_) {
+    TRY_RESULT(file_id, file_manager->get_input_file_id(FileType::Secure, std::move(input_passport_data->selfie_),
+                                                        DialogId{}, false, false, false, true));
+    res.selfie = file_id;
+  }
   return res;
 }
 td_api::object_ptr<td_api::passportData> get_passport_data_object(FileManager *file_manager, const SecureValue &value) {
   std::vector<td_api::object_ptr<td_api::file>> files;
   files = transform(value.files, [&](FileId id) { return file_manager->get_file_object(id, true); });
-  //TODO selfie
+
+  td_api::object_ptr<td_api::file> selfie;
+  if (value.selfie.is_valid()) {
+    selfie = file_manager->get_file_object(value.selfie, true);
+  }
+
   return td_api::make_object<td_api::passportData>(get_passport_data_type_object(value.type), value.data,
-                                                   std::move(files), nullptr);
+                                                   std::move(files), std::move(selfie));
 }
 
 Result<FileId> decrypt_secure_file(FileManager *file_manager, const secure_storage::Secret &master_secret,
@@ -436,9 +447,8 @@ Result<SecureValue> decrypt_encrypted_secure_value(FileManager *file_manager, co
       res.data = std::move(data);
       TRY_RESULT(files, decrypt_secure_files(file_manager, secret, encrypted_secure_value.files));
       res.files = std::move(files);
-      // TODO
-      //TRY_RESULT(selfie, decrypt_secure_file(file_manager, secret, encrypted_secure_value.selfie));
-      //res.selfie = std::move(selfie);
+      TRY_RESULT(selfie, decrypt_secure_file(file_manager, secret, encrypted_secure_value.selfie));
+      res.selfie = std::move(selfie);
       break;
     }
   }
@@ -506,8 +516,7 @@ EncryptedSecureValue encrypt_secure_value(FileManager *file_manager, const secur
       string to_hash;
       res.data = encrypt_secure_data(master_secret, secure_value.data, to_hash);
       res.files = encrypt_secure_files(file_manager, master_secret, secure_value.files, to_hash);
-      // TODO
-      //res.selfie = encrypt_secure_file(file_manager, master_secret, secure_value.selfie, to_hash);
+      res.selfie = encrypt_secure_file(file_manager, master_secret, secure_value.selfie, to_hash);
       res.hash = ss::calc_value_hash(to_hash).as_slice().str();
       break;
     }

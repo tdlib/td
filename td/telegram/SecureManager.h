@@ -50,6 +50,8 @@ class SetSecureValue : public NetQueryCallback {
 
   size_t files_left_to_upload_ = 0;
   vector<SecureInputFile> to_upload_;
+  optional<SecureInputFile> selfie_;
+
   class UploadCallback;
   std::shared_ptr<UploadCallback> upload_callback_;
 
@@ -75,9 +77,13 @@ class SetSecureValue : public NetQueryCallback {
   void on_secret(Result<secure_storage::Secret> r_secret, bool x);
 
   void start_up() override;
+  void tear_down() override;
 
   void loop() override;
   void on_result(NetQueryPtr query) override;
+
+  void start_upload(FileManager *file_manager, FileId file_id, SecureInputFile &info);
+  void merge(FileManager *file_manager, FileId file_id, SecureFile &encrypted_file);
 };
 
 class SecureManager : public Actor {

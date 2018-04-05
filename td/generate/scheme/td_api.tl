@@ -834,7 +834,7 @@ passportDataTypeEmailAddress = PassportDataType;
 passportData type:PassportDataType data:string files:vector<file> selfie:file = PassportData;
 
 //@description Contains information about a Telegram Passport data to save @type Telegram Passport data type @data TODO data should be typed @files List of attached files with a document @selfie Selfie with the document
-inputPassportData type:PassportDataType data:string files:vector<InputFile> selfie:file = InputPassportData;
+inputPassportData type:PassportDataType data:string files:vector<InputFile> selfie:InputFile = InputPassportData;
 
 
 //@class PassportAuthorizationForm Contains information about requested Telegram Passport authorization form @data Available data

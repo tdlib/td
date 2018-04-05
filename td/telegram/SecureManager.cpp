@@ -43,6 +43,7 @@ void GetSecureValue::loop() {
   promise_.set_result(get_passport_data_object(file_manager, r_secure_value.move_as_ok()));
   stop();
 }
+
 void GetSecureValue::start_up() {
   std::vector<telegram_api::object_ptr<telegram_api::SecureValueType>> vec;
   vec.push_back(get_secure_value_type_telegram_object(type_));
@@ -98,17 +99,24 @@ void SetSecureValue::UploadCallback::on_upload_error(FileId file_id, Status erro
 }
 
 void SetSecureValue::on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) {
+  SecureInputFile *info_ptr = nullptr;
   for (auto &info : to_upload_) {
     if (info.file_id != file_id) {
       continue;
     }
-    CHECK(!info.input_file);
-    info.input_file = std::move(input_file);
-    CHECK(files_left_to_upload_ != 0);
-    files_left_to_upload_--;
-    return loop();
+    info_ptr = &info;
+    break;
   }
-  UNREACHABLE();
+  if (selfie_ && selfie_.value().file_id == file_id) {
+    info_ptr = &selfie_.value();
+  }
+  CHECK(info_ptr);
+  auto &info = *info_ptr;
+  CHECK(!info.input_file);
+  info.input_file = std::move(input_file);
+  CHECK(files_left_to_upload_ != 0);
+  files_left_to_upload_--;
+  return loop();
 }
 void SetSecureValue::on_upload_error(FileId file_id, Status error) {
   return on_error(std::move(error));
@@ -145,6 +153,10 @@ void SetSecureValue::start_up() {
         break;
       }
     }
+    if (secure_value_.selfie.is_valid() &&
+        file_manager->get_file_view(*it).file_id() == file_manager->get_file_view(secure_value_.selfie).file_id()) {
+      is_duplicate = true;
+    }
     if (is_duplicate) {
       it = secure_value_.files.erase(it);
     } else {
@@ -155,10 +167,17 @@ void SetSecureValue::start_up() {
   to_upload_.resize(secure_value_.files.size());
   upload_callback_ = std::make_shared<UploadCallback>(actor_id(this));
   for (size_t i = 0; i < to_upload_.size(); i++) {
-    to_upload_[i].file_id = file_manager->dup_file_id(secure_value_.files[i]);
-    file_manager->upload(to_upload_[i].file_id, upload_callback_, 1, 0);
-    files_left_to_upload_++;
+    start_upload(file_manager, secure_value_.files[i], to_upload_[i]);
   }
+  if (selfie_) {
+    start_upload(file_manager, secure_value_.selfie, selfie_.value());
+  }
+}
+
+void SetSecureValue::start_upload(FileManager *file_manager, FileId file_id, SecureInputFile &info) {
+  info.file_id = file_manager->dup_file_id(file_id);
+  file_manager->upload(info.file_id, upload_callback_, 1, 0);
+  files_left_to_upload_++;
 }
 
 void SetSecureValue::loop() {
@@ -171,7 +190,7 @@ void SetSecureValue::loop() {
     }
     auto *file_manager = G()->file_manager().get_actor_unsafe();
     auto input_secure_value = get_input_secure_value_object(
-        file_manager, encrypt_secure_value(file_manager, *secret_, secure_value_), to_upload_);
+        file_manager, encrypt_secure_value(file_manager, *secret_, secure_value_), to_upload_, selfie_);
     auto save_secure_value =
         telegram_api::account_saveSecureValue(std::move(input_secure_value), secret_.value().get_hash());
     LOG(ERROR) << to_string(save_secure_value);
@@ -181,6 +200,14 @@ void SetSecureValue::loop() {
     state_ = State::WaitSetValue;
   }
 }
+
+void SetSecureValue::tear_down() {
+  auto *file_manager = G()->file_manager().get_actor_unsafe();
+  for (auto &file_info : to_upload_) {
+    file_manager->upload(file_info.file_id, nullptr, 0, 0);
+  }
+}
+
 void SetSecureValue::on_result(NetQueryPtr query) {
   auto r_result = fetch_result<telegram_api::account_saveSecureValue>(std::move(query));
   if (r_result.is_error()) {
@@ -194,15 +221,10 @@ void SetSecureValue::on_result(NetQueryPtr query) {
     return on_error(Status::Error("Different files count"));
   }
   for (size_t i = 0; i < secure_value_.files.size(); i++) {
-    auto file_view = file_manager->get_file_view(secure_value_.files[i]);
-    CHECK(!file_view.empty());
-    CHECK(file_view.encryption_key().has_value_hash());
-    if (file_view.encryption_key().value_hash().as_slice() != encrypted_secure_value.files[i].file_hash) {
-      LOG(ERROR) << "hash mismatch";
-      continue;
-    }
-    auto status = file_manager->merge(encrypted_secure_value.files[i].file_id, secure_value_.files[i]);
-    LOG_IF(ERROR, status.is_error()) << status.error();
+    merge(file_manager, secure_value_.files[i], encrypted_secure_value.files[i]);
+  }
+  if (secure_value_.selfie.is_valid()) {
+    merge(file_manager, secure_value_.selfie, encrypted_secure_value.selfie);
   }
   auto r_secure_value = decrypt_encrypted_secure_value(file_manager, *secret_, encrypted_secure_value);
   if (r_secure_value.is_error()) {
@@ -210,6 +232,18 @@ void SetSecureValue::on_result(NetQueryPtr query) {
   }
   promise_.set_result(get_passport_data_object(file_manager, r_secure_value.move_as_ok()));
   stop();
+}
+
+void SetSecureValue::merge(FileManager *file_manager, FileId file_id, SecureFile &encrypted_file) {
+  auto file_view = file_manager->get_file_view(file_id);
+  CHECK(!file_view.empty());
+  CHECK(file_view.encryption_key().has_value_hash());
+  if (file_view.encryption_key().value_hash().as_slice() != encrypted_file.file_hash) {
+    LOG(ERROR) << "hash mismatch";
+    return;
+  }
+  auto status = file_manager->merge(encrypted_file.file_id, file_id);
+  LOG_IF(ERROR, status.is_error()) << status.error();
 }
 
 SecureManager::SecureManager(ActorShared<> parent) : parent_(std::move(parent)) {

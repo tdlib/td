@@ -13,6 +13,7 @@
 #include "td/telegram/SecureStorage.h"
 
 #include "td/utils/common.h"
+#include "td/utils/optional.h"
 #include "td/utils/Status.h"
 
 namespace td {
@@ -108,7 +109,8 @@ vector<EncryptedSecureValue> get_encrypted_secure_values(
 td_api::object_ptr<td_api::encryptedPassportData> get_encrypted_passport_data_object(FileManager *file_manager,
                                                                                      const EncryptedSecureValue &value);
 telegram_api::object_ptr<telegram_api::inputSecureValue> get_input_secure_value_object(
-    FileManager *file_manager, const EncryptedSecureValue &value, vector<SecureInputFile> &input_files);
+    FileManager *file_manager, const EncryptedSecureValue &value, vector<SecureInputFile> &input_files,
+    optional<SecureInputFile> &selfie);
 
 vector<td_api::object_ptr<td_api::encryptedPassportData>> get_encrypted_passport_data_object(
     FileManager *file_manager, const vector<EncryptedSecureValue> &values);
