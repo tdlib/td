@@ -4910,13 +4910,15 @@ void Td::on_request(uint64 id, const td_api::logOut &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::close &request) {
-  close();
+  // send response before actually closing
   send_closure(actor_id(this), &Td::send_result, id, td_api::make_object<td_api::ok>());
+  close();
 }
 
 void Td::on_request(uint64 id, const td_api::destroy &request) {
-  destroy();
+  // send response before actually destroying
   send_closure(actor_id(this), &Td::send_result, id, td_api::make_object<td_api::ok>());
+  destroy();
 }
 
 void Td::on_request(uint64 id, td_api::checkAuthenticationBotToken &request) {
