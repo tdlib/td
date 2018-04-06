@@ -175,7 +175,7 @@ Secret Secret::create_new() {
   auto secret_slice = td::as_slice(secret);
   Random::secure_bytes(secret_slice);
   auto checksum_diff = secret_checksum(secret_slice);
-  uint8 new_byte = (static_cast<uint32>(secret_slice.ubegin()[0]) + checksum_diff) % 255;
+  uint8 new_byte = static_cast<uint8>((static_cast<uint32>(secret_slice.ubegin()[0]) + checksum_diff) % 255);
   secret_slice.ubegin()[0] = new_byte;
   return create(secret_slice).move_as_ok();
 }
