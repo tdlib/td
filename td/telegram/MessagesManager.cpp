@@ -6779,32 +6779,18 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
   CHECK(-limit < offset && offset <= 0);
   CHECK(offset < 0 || from_the_end);
 
-  if (narrow_cast<int32>(messages.size()) < limit + offset && !messages.empty()) {
-    MessageId first_received_message_id = get_message_id(messages.back());
-    if (first_received_message_id.get() >= from_message_id.get()) {
-      // it is likely that there is no more history messages on the server
-      Dialog *d = get_dialog(dialog_id);
-      if (d != nullptr && d->first_database_message_id.is_valid() &&
-          d->first_database_message_id.get() <= first_received_message_id.get()) {
+  // it is likely that there is no more history messages on the server
+  bool have_full_history = from_the_end && narrow_cast<int32>(messages.size()) < limit;
+  Dialog *d = get_dialog(dialog_id);
+
+  if (messages.empty()) {
+    if (d != nullptr) {
+      if (have_full_history) {
         d->have_full_history = true;
         on_dialog_updated(dialog_id, "set have_full_history");
       }
-    }
-  }
 
-  if (from_the_end && narrow_cast<int32>(messages.size()) < limit) {
-    // it is likely that there is no more history messages on the server
-    Dialog *d = get_dialog(dialog_id);
-    if (d != nullptr) {
-      d->have_full_history = true;
-      on_dialog_updated(dialog_id, "set have_full_history");
-    }
-  }
-
-  if (messages.empty()) {
-    if (from_the_end) {
-      Dialog *d = get_dialog(dialog_id);
-      if (d != nullptr && d->have_full_history) {
+      if (from_the_end && d->have_full_history) {
         set_dialog_is_empty(d, "on_get_history empty");
       }
     }
@@ -6825,7 +6811,15 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
   MessageId last_received_message_id = get_message_id(messages[0]);
   MessageId last_added_message_id;
   bool have_next = false;
-  Dialog *d = get_dialog(dialog_id);
+
+  if (narrow_cast<int32>(messages.size()) < limit + offset && d != nullptr) {
+    MessageId first_received_message_id = get_message_id(messages.back());
+    if (first_received_message_id.get() >= from_message_id.get() && d->first_database_message_id.is_valid() &&
+        first_received_message_id.get() >= d->first_database_message_id.get()) {
+      // it is likely that there is no more history messages on the server
+      have_full_history = true;
+    }
+  }
 
   MessageId prev_last_new_message_id;
   MessageId prev_first_database_message_id;
@@ -6839,7 +6833,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
   }
 
   for (auto &message : messages) {
-    if (!have_next && from_the_end && get_message_id(message).get() < d->last_message_id.get()) {
+    if (!have_next && from_the_end && d != nullptr && get_message_id(message).get() < d->last_message_id.get()) {
       // last message in the dialog should be attached to the next message if there is some
       have_next = true;
     }
@@ -6884,6 +6878,11 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
 
   if (d == nullptr) {
     return;
+  }
+
+  if (have_full_history) {
+    d->have_full_history = true;
+    on_dialog_updated(dialog_id, "set have_full_history 2");
   }
 
   //  LOG_IF(ERROR, d->first_message_id.is_valid() && d->first_message_id.get() > first_received_message_id.get())
