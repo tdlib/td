@@ -80,7 +80,6 @@ class PasswordManager : public NetQueryCallback {
     string new_salt;
 
     string new_secure_salt;
-    string secure_random;
 
     State as_td_api() const {
       return td_api::make_object<td_api::passwordState>(has_password, password_hint, has_recovery_email_address,

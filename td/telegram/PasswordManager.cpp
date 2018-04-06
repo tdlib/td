@@ -401,6 +401,7 @@ void PasswordManager::do_get_state(Promise<PasswordState> promise) {
                       auto result = r_result.move_as_ok();
 
                       PasswordState state;
+                      string secure_random;
                       if (result->get_id() == telegram_api::account_noPassword::ID) {
                         auto no_password = move_tl_object_as<telegram_api::account_noPassword>(result);
                         state.has_password = false;
@@ -408,7 +409,7 @@ void PasswordManager::do_get_state(Promise<PasswordState> promise) {
                         state.current_salt = "";
                         state.new_salt = no_password->new_salt_.as_slice().str();
                         state.new_secure_salt = no_password->new_secure_salt_.as_slice().str();
-                        state.secure_random = no_password->secure_random_.as_slice().str();
+                        secure_random = no_password->secure_random_.as_slice().str();
                         state.has_recovery_email_address = false;
                         state.unconfirmed_recovery_email_address_pattern = no_password->email_unconfirmed_pattern_;
                       } else if (result->get_id() == telegram_api::account_password::ID) {
@@ -418,12 +419,13 @@ void PasswordManager::do_get_state(Promise<PasswordState> promise) {
                         state.current_salt = password->current_salt_.as_slice().str();
                         state.new_salt = password->new_salt_.as_slice().str();
                         state.new_secure_salt = password->new_secure_salt_.as_slice().str();
-                        state.secure_random = password->secure_random_.as_slice().str();
+                        secure_random = password->secure_random_.as_slice().str();
                         state.has_recovery_email_address = password->has_recovery_;
                         state.unconfirmed_recovery_email_address_pattern = password->email_unconfirmed_pattern_;
                       } else {
                         UNREACHABLE();
                       }
+                      Random::add_seed(secure_random);
                       promise.set_value(std::move(state));
                     }));
 }
