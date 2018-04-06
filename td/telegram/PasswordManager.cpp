@@ -209,8 +209,12 @@ void PasswordManager::do_get_full_state(string password, PasswordState state, Pr
 
           auto r_secret = [&]() -> Result<secure_storage::Secret> {
             TRY_RESULT(encrypted_secret, secure_storage::EncryptedSecret::create(result->secure_secret_.as_slice()));
-            return encrypted_secret.decrypt(PSLICE() << result->secure_salt_.as_slice() << password
+            auto r_secret = encrypted_secret.decrypt(PSLICE() << result->secure_salt_.as_slice() << password
                                                      << result->secure_salt_.as_slice());
+            if (r_secret.is_ok() && result->secure_secret_id_ != r_secret.ok().get_hash()) {
+              return Status::Error("Secret hash mismatch");
+            }
+            return r_secret;
           }();
 
           private_state.secret = std::move(r_secret);
