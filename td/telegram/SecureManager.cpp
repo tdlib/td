@@ -12,7 +12,7 @@
 
 namespace td {
 GetSecureValue::GetSecureValue(ActorShared<> parent, std::string password, SecureValueType type,
-                               Promise<TdApiSecureValue> promise)
+                               Promise<SecureValueWithCredentials> promise)
     : parent_(std::move(parent)), password_(std::move(password)), type_(type), promise_(std::move(promise)) {
 }
 
@@ -40,7 +40,7 @@ void GetSecureValue::loop() {
   if (r_secure_value.is_error()) {
     return on_error(r_secure_value.move_as_error());
   }
-  promise_.set_result(get_passport_data_object(file_manager, r_secure_value.move_as_ok()));
+  promise_.set_result(r_secure_value.move_as_ok());
   stop();
 }
 
@@ -73,7 +73,7 @@ void GetSecureValue::on_result(NetQueryPtr query) {
 }
 
 SetSecureValue::SetSecureValue(ActorShared<> parent, string password, SecureValue secure_value,
-                               Promise<TdApiSecureValue> promise)
+                               Promise<SecureValueWithCredentials> promise)
     : parent_(std::move(parent))
     , password_(std::move(password))
     , secure_value_(std::move(secure_value))
@@ -230,7 +230,7 @@ void SetSecureValue::on_result(NetQueryPtr query) {
   if (r_secure_value.is_error()) {
     return on_error(r_secure_value.move_as_error());
   }
-  promise_.set_result(get_passport_data_object(file_manager, r_secure_value.move_as_ok()));
+  promise_.set_result(r_secure_value.move_as_ok());
   stop();
 }
 
@@ -330,7 +330,7 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
         auto r_secure_value =
             decrypt_encrypted_secure_value(file_manager, *secret_, std::move(*encrypted_secure_value));
         if (r_secure_value.is_ok()) {
-          secure_value = r_secure_value.move_as_ok();
+          secure_value = r_secure_value.move_as_ok().value;
         } else {
           LOG(ERROR) << "Failed to decrypt secure value: " << r_secure_value.error();
         }
@@ -348,6 +348,19 @@ SecureManager::SecureManager(ActorShared<> parent) : parent_(std::move(parent)) 
 }
 
 void SecureManager::get_secure_value(std::string password, SecureValueType type, Promise<TdApiSecureValue> promise) {
+  auto new_promise =
+      PromiseCreator::lambda([promise = std::move(promise)](Result<SecureValueWithCredentials> r_secure_value) mutable {
+        if (r_secure_value.is_error()) {
+          return promise.set_error(r_secure_value.move_as_error());
+        }
+        auto *file_manager = G()->file_manager().get_actor_unsafe();
+        promise.set_value(get_passport_data_object(file_manager, r_secure_value.move_as_ok().value));
+      });
+  do_get_secure_value(std::move(password), type, std::move(new_promise));
+}
+
+void SecureManager::do_get_secure_value(std::string password, SecureValueType type,
+                                        Promise<SecureValueWithCredentials> promise) {
   refcnt_++;
   create_actor<GetSecureValue>("GetSecureValue", actor_shared(), std::move(password), type, std::move(promise))
       .release();
@@ -356,15 +369,23 @@ void SecureManager::get_secure_value(std::string password, SecureValueType type,
 void SecureManager::set_secure_value(string password, SecureValue secure_value, Promise<TdApiSecureValue> promise) {
   refcnt_++;
   auto type = secure_value.type;
+  auto new_promise =
+      PromiseCreator::lambda([promise = std::move(promise)](Result<SecureValueWithCredentials> r_secure_value) mutable {
+        if (r_secure_value.is_error()) {
+          return promise.set_error(r_secure_value.move_as_error());
+        }
+        auto *file_manager = G()->file_manager().get_actor_unsafe();
+        promise.set_value(get_passport_data_object(file_manager, r_secure_value.move_as_ok().value));
+      });
   set_secure_value_queries_[type] = create_actor<SetSecureValue>("SetSecureValue", actor_shared(), std::move(password),
-                                                                 std::move(secure_value), std::move(promise));
+                                                                 std::move(secure_value), std::move(new_promise));
 }
 
 void SecureManager::get_passport_authorization_form(string password, int32 bot_id, string scope, string public_key,
-                                                    Promise<TdApiAuthorizationForm> promise) {
+                                                    string payload, Promise<TdApiAuthorizationForm> promise) {
   refcnt_++;
   auto authorization_form_id = ++authorization_form_id_;
-  authorization_forms_[authorization_form_id] = AuthorizationForm{bot_id, public_key};
+  authorization_forms_[authorization_form_id] = AuthorizationForm{bot_id, scope, public_key, payload};
   create_actor<GetPassportAuthorizationForm>("GetPassportAuthorizationForm", actor_shared(), std::move(password),
                                              authorization_form_id, bot_id, std::move(scope), std::move(public_key),
                                              std::move(promise))
@@ -377,7 +398,91 @@ void SecureManager::send_passport_authorization_form(string password, int32 auth
   if (it == authorization_forms_.end()) {
     return promise.set_error(Status::Error(400, "Unknown authorization_form_id"));
   }
+  if (types.empty()) {
+    return promise.set_error(Status::Error(400, "Empty types"));
+  }
+
+  struct JoinPromise {
+    std::mutex mutex_;
+    Promise<std::vector<SecureValueCredentials>> promise_;
+    std::vector<SecureValueCredentials> credentials_;
+    int wait_cnt_{0};
+  };
+
+  auto join = std::make_shared<JoinPromise>();
+  std::lock_guard<std::mutex> guard(join->mutex_);
+  for (auto type : types) {
+    join->wait_cnt_++;
+    do_get_secure_value(password, type,
+                        PromiseCreator::lambda([join](Result<SecureValueWithCredentials> r_secure_value) {
+                          std::lock_guard<std::mutex> guard(join->mutex_);
+                          if (!join->promise_) {
+                            return;
+                          }
+                          if (r_secure_value.is_error()) {
+                            return join->promise_.set_error(r_secure_value.move_as_error());
+                          }
+                          join->credentials_.push_back(r_secure_value.move_as_ok().credentials);
+                          join->wait_cnt_--;
+                          LOG(ERROR) << tag("wait_cnt", join->wait_cnt_);
+                          if (join->wait_cnt_ == 0) {
+                            LOG(ERROR) << "set promise";
+                            join->promise_.set_value(std::move(join->credentials_));
+                          }
+                        }));
+  }
+  join->promise_ =
+      PromiseCreator::lambda([promise = std::move(promise), actor_id = actor_id(this),
+                              authorization_form_id](Result<vector<SecureValueCredentials>> r_credentials) mutable {
+        LOG(ERROR) << "on promise";
+        if (r_credentials.is_error()) {
+          return promise.set_error(r_credentials.move_as_error());
+        }
+        send_closure(actor_id, &SecureManager::do_send_passport_authorization_form, authorization_form_id,
+                     r_credentials.move_as_ok(), std::move(promise));
+      });
 }
+
+void SecureManager::do_send_passport_authorization_form(int32 authorization_form_id,
+                                                        vector<SecureValueCredentials> credentials, Promise<> promise) {
+  LOG(ERROR) << "do_send_passport_authorization_form";
+  auto it = authorization_forms_.find(authorization_form_id);
+  if (it == authorization_forms_.end()) {
+    return promise.set_error(Status::Error(400, "Unknown authorization_form_id"));
+  }
+  if (credentials.empty()) {
+    return promise.set_error(Status::Error(400, "Empty types"));
+  }
+  std::vector<telegram_api::object_ptr<telegram_api::secureValueHash>> hashes;
+  for (auto &c : credentials) {
+    hashes.push_back(telegram_api::make_object<telegram_api::secureValueHash>(
+        get_secure_value_type_telegram_object(c.type), BufferSlice(c.hash)));
+  }
+
+  auto r_encrypted_credentials = encrypted_credentials(credentials, it->second.payload, it->second.public_key);
+  if (r_encrypted_credentials.is_error()) {
+    return promise.set_error(r_encrypted_credentials.move_as_error());
+  }
+
+  auto td_query = telegram_api::account_acceptAuthorization(
+      it->second.bot_id, it->second.scope, it->second.public_key, std::move(hashes),
+      get_secure_credentials_encrypted_object(r_encrypted_credentials.move_as_ok()));
+  LOG(ERROR) << to_string(td_query);
+  auto query = G()->net_query_creator().create(create_storer(td_query));
+  auto new_promise =
+      PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_net_query_ptr) mutable {
+        if (r_net_query_ptr.is_error()) {
+          return promise.set_error(r_net_query_ptr.move_as_error());
+        }
+        auto r_result = fetch_result<telegram_api::account_acceptAuthorization>(r_net_query_ptr.move_as_ok());
+        if (r_result.is_error()) {
+          return promise.set_error(r_result.move_as_error());
+        }
+        promise.set_value(Unit());
+      });
+  send_with_promise(std::move(query), std::move(new_promise));
+}
+
 void SecureManager::hangup() {
   dec_refcnt();
 }
@@ -390,5 +495,14 @@ void SecureManager::dec_refcnt() {
   if (refcnt_ == 0) {
     stop();
   }
+}
+void SecureManager::on_result(NetQueryPtr query) {
+  auto token = get_link_token();
+  container_.extract(token).set_value(std::move(query));
+}
+
+void SecureManager::send_with_promise(NetQueryPtr query, Promise<NetQueryPtr> promise) {
+  auto id = container_.create(std::move(promise));
+  G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, id));
 }
 }  // namespace td

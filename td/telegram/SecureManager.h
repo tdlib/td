@@ -20,13 +20,14 @@ using TdApiSecureValue = td_api::object_ptr<td_api::passportData>;
 using TdApiAuthorizationForm = td_api::object_ptr<td_api::passportAuthorizationForm>;
 class GetSecureValue : public NetQueryCallback {
  public:
-  GetSecureValue(ActorShared<> parent, std::string password, SecureValueType type, Promise<TdApiSecureValue> promise);
+  GetSecureValue(ActorShared<> parent, std::string password, SecureValueType type,
+                 Promise<SecureValueWithCredentials> promise);
 
  private:
   ActorShared<> parent_;
   string password_;
   SecureValueType type_;
-  Promise<TdApiSecureValue> promise_;
+  Promise<SecureValueWithCredentials> promise_;
   optional<EncryptedSecureValue> encrypted_secure_value_;
   optional<secure_storage::Secret> secret_;
 
@@ -40,13 +41,14 @@ class GetSecureValue : public NetQueryCallback {
 
 class SetSecureValue : public NetQueryCallback {
  public:
-  SetSecureValue(ActorShared<> parent, string password, SecureValue secure_value, Promise<TdApiSecureValue> promise);
+  SetSecureValue(ActorShared<> parent, string password, SecureValue secure_value,
+                 Promise<SecureValueWithCredentials> promise);
 
  private:
   ActorShared<> parent_;
   string password_;
   SecureValue secure_value_;
-  Promise<TdApiSecureValue> promise_;
+  Promise<SecureValueWithCredentials> promise_;
   optional<secure_storage::Secret> secret_;
 
   size_t files_left_to_upload_ = 0;
@@ -87,14 +89,14 @@ class SetSecureValue : public NetQueryCallback {
   void merge(FileManager *file_manager, FileId file_id, EncryptedSecureFile &encrypted_file);
 };
 
-class SecureManager : public Actor {
+class SecureManager : public NetQueryCallback {
  public:
   SecureManager(ActorShared<> parent);
 
   void get_secure_value(std::string password, SecureValueType type, Promise<TdApiSecureValue> promise);
   void set_secure_value(string password, SecureValue secure_value, Promise<TdApiSecureValue> promise);
 
-  void get_passport_authorization_form(string password, int32 bot_id, string scope, string public_key,
+  void get_passport_authorization_form(string password, int32 bot_id, string scope, string public_key, string payload,
                                        Promise<TdApiAuthorizationForm> promise);
   void send_passport_authorization_form(string password, int32 authorization_form_id,
                                         std::vector<SecureValueType> types, Promise<> promise);
@@ -106,7 +108,9 @@ class SecureManager : public Actor {
 
   struct AuthorizationForm {
     int32 bot_id;
+    string scope;
     string public_key;
+    string payload;
   };
 
   std::map<int32, AuthorizationForm> authorization_forms_;
@@ -115,5 +119,12 @@ class SecureManager : public Actor {
   void hangup() override;
   void hangup_shared() override;
   void dec_refcnt();
+  void do_get_secure_value(std::string password, SecureValueType type, Promise<SecureValueWithCredentials> promise);
+  void do_send_passport_authorization_form(int32 authorization_form_id, vector<SecureValueCredentials> credentials,
+                                           Promise<> promise);
+
+  void on_result(NetQueryPtr query) override;
+  Container<Promise<NetQueryPtr>> container_;
+  void send_with_promise(NetQueryPtr query, Promise<NetQueryPtr> promise);
 };
 }  // namespace td

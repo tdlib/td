@@ -43,14 +43,14 @@ void parse(EncryptedSecureData &data, ParserT &parser) {
 }
 
 template <class StorerT>
-void store(const SecureCredentials &credentials, StorerT &storer) {
+void store(const EncryptedSecureCredentials &credentials, StorerT &storer) {
   store(credentials.data, storer);
   store(credentials.hash, storer);
   store(credentials.encrypted_secret, storer);
 }
 
 template <class ParserT>
-void parse(SecureCredentials &credentials, ParserT &parser) {
+void parse(EncryptedSecureCredentials &credentials, ParserT &parser) {
   parse(credentials.data, parser);
   parse(credentials.hash, parser);
   parse(credentials.encrypted_secret, parser);

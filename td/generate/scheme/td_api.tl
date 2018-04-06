@@ -2910,10 +2910,10 @@ checkEmailAddressVerificationCode code:string = Ok;
 
 
 //@description Returns Telegram Passport authorization form for sharing data with a service @bot_id Service's bot identifier @scope Telegram Passport data types requested by the service @public_key Service's public_key @password Password of the current user
-getPassportAuthorizationForm bot_id:int32 scope:string public_key:string password:string = PassportAuthorizationForm;
+getPassportAuthorizationForm bot_id:int32 scope:string public_key:string payload:string password:string = PassportAuthorizationForm;
 
 //@description Sends Telegram Passport authorization form, effectively sharing data with the service @autorization_form_id Authorization form identifier
-sendPassportAuthorizationForm autorization_form_id:int32 types:vector<PassportDataType> = Ok;
+sendPassportAuthorizationForm autorization_form_id:int32 types:vector<PassportDataType> password:string = Ok;
 
 
 //@description Informs the server about the number of pending bot updates if they haven't been processed for a long time; for bots only @pending_update_count The number of pending updates @error_message The last error message

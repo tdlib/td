@@ -401,6 +401,10 @@ class Result {
     CHECK(status_.is_ok()) << status_;
     return value_;
   }
+  const T &ok_ref() const {
+    CHECK(status_.is_ok()) << status_;
+    return value_;
+  }
   T move_as_ok() {
     CHECK(status_.is_ok()) << status_;
     return std::move(value_);

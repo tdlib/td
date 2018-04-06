@@ -936,7 +936,7 @@ class CliClient final : public Actor {
     return nullptr;
   }
 
-  static tl_object_ptr<td_api::PassportDataType> as_passport_data_type(string passport_data_type) {
+  static tl_object_ptr<td_api::PassportDataType> as_passport_data_type(Slice passport_data_type) {
     if (passport_data_type == "address" || passport_data_type == "a") {
       return make_tl_object<td_api::passportDataTypeAddress>();
     }
@@ -950,6 +950,10 @@ class CliClient final : public Actor {
       return make_tl_object<td_api::passportDataTypePersonalDetails>();
     }
     return make_tl_object<td_api::passportDataTypePassport>();
+  }
+
+  static auto as_passport_data_types(Slice types, char delimiter = ',') {
+    return transform(full_split(types, delimiter), [](Slice str) { return as_passport_data_type(str); });
   }
 
   static tl_object_ptr<td_api::inputPassportData> as_input_passport_data(string passport_data_type, string file) {
@@ -1091,9 +1095,18 @@ class CliClient final : public Actor {
       string bot_id = query.arg("bot_id").str();
       string scope = query.arg("scope").str();
       string public_key = query.arg("public_key").str();
-      send_request(
-          make_tl_object<td_api::getPassportAuthorizationForm>(to_integer<int32>(bot_id), scope, public_key, password));
+      string payload = query.arg("payload").str();
+      LOG(ERROR) << query.arg("callback_url");
+      send_request(make_tl_object<td_api::getPassportAuthorizationForm>(to_integer<int32>(bot_id), scope, public_key,
+                                                                        payload, password));
     } else if (op == "spaf") {
+      string password;
+      string id;
+      string types;
+      std::tie(password, args) = split(args);
+      std::tie(id, types) = split(args);
+      send_request(make_tl_object<td_api::sendPassportAuthorizationForm>(to_integer<int32>(id),
+                                                                         as_passport_data_types(types), password));
     } else if (op == "srea" || op == "SetRecoveryEmailAddress") {
       string password;
       string recovery_email_address;

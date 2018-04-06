@@ -644,10 +644,10 @@ class MessagePassportDataSent : public MessageContent {
 class MessagePassportDataReceived : public MessageContent {
  public:
   vector<EncryptedSecureValue> values;
-  SecureCredentials credentials;
+  EncryptedSecureCredentials credentials;
 
   MessagePassportDataReceived() = default;
-  MessagePassportDataReceived(vector<EncryptedSecureValue> &&values, SecureCredentials &&credentials)
+  MessagePassportDataReceived(vector<EncryptedSecureValue> &&values, EncryptedSecureCredentials &&credentials)
       : values(std::move(values)), credentials(std::move(credentials)) {
   }
 

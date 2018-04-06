@@ -6902,15 +6902,27 @@ void Td::on_request(uint64 id, td_api::getPassportAuthorizationForm &request) {
   CLEAN_INPUT_STRING(request.password_);
   CLEAN_INPUT_STRING(request.public_key_);
   CLEAN_INPUT_STRING(request.scope_);
+  CLEAN_INPUT_STRING(request.payload_);
   CREATE_REQUEST_PROMISE(promise);
   send_closure(secure_manager_, &SecureManager::get_passport_authorization_form, request.password_, request.bot_id_,
-               request.scope_, request.public_key_, std::move(promise));
+               request.scope_, request.public_key_, request.payload_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::sendPassportAuthorizationForm &request) {
+void Td::on_request(uint64 id, td_api::sendPassportAuthorizationForm &request) {
   CHECK_AUTH();
   CHECK_IS_USER();
-  LOG(FATAL) << "TODO";
+  CLEAN_INPUT_STRING(request.password_);
+  CREATE_REQUEST_PROMISE(promise);
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(make_tl_object<td_api::ok>());
+    }
+  });
+  send_closure(secure_manager_, &SecureManager::send_passport_authorization_form, request.password_,
+               request.autorization_form_id_, get_secure_value_types_td_api(std::move(request.types_)),
+               std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getSupportUser &request) {

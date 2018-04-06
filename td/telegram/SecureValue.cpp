@@ -13,6 +13,8 @@
 
 #include "td/utils/misc.h"
 #include "td/utils/overloaded.h"
+#include "td/utils/JsonBuilder.h"
+#include "td/utils/base64.h"
 
 namespace td {
 
@@ -77,6 +79,11 @@ SecureValueType get_secure_value_type_td_api(tl_object_ptr<td_api::PassportDataT
 vector<SecureValueType> get_secure_value_types(
     vector<tl_object_ptr<telegram_api::SecureValueType>> &&secure_value_types) {
   return transform(std::move(secure_value_types), get_secure_value_type);
+}
+
+vector<SecureValueType> get_secure_value_types_td_api(
+    vector<tl_object_ptr<td_api::PassportDataType>> &&secure_value_types) {
+  return transform(std::move(secure_value_types), get_secure_value_type_td_api);
 }
 
 td_api::object_ptr<td_api::PassportDataType> get_passport_data_type_object(SecureValueType type) {
@@ -291,6 +298,7 @@ EncryptedSecureValue get_encrypted_secure_value(FileManager *file_manager,
   if (secure_value->selfie_ != nullptr) {
     result.selfie = get_secure_file(file_manager, std::move(secure_value->selfie_));
   }
+  result.hash = secure_value->hash_.as_slice().str();
   return result;
 }
 
@@ -347,17 +355,24 @@ vector<td_api::object_ptr<td_api::encryptedPassportData>> get_encrypted_passport
   });
 }
 
-bool operator==(const SecureCredentials &lhs, const SecureCredentials &rhs) {
+bool operator==(const EncryptedSecureCredentials &lhs, const EncryptedSecureCredentials &rhs) {
   return lhs.data == rhs.data && lhs.hash == rhs.hash && lhs.encrypted_secret == rhs.encrypted_secret;
 }
 
-bool operator!=(const SecureCredentials &lhs, const SecureCredentials &rhs) {
+bool operator!=(const EncryptedSecureCredentials &lhs, const EncryptedSecureCredentials &rhs) {
   return !(lhs == rhs);
 }
 
-SecureCredentials get_secure_credentials(tl_object_ptr<telegram_api::secureCredentialsEncrypted> &&credentials) {
+telegram_api::object_ptr<telegram_api::secureCredentialsEncrypted> get_secure_credentials_encrypted_object(
+    const EncryptedSecureCredentials &credentials) {
+  return telegram_api::make_object<telegram_api::secureCredentialsEncrypted>(
+      BufferSlice(credentials.data), BufferSlice(credentials.hash), BufferSlice(credentials.encrypted_secret));
+}
+
+EncryptedSecureCredentials get_secure_credentials(
+    tl_object_ptr<telegram_api::secureCredentialsEncrypted> &&credentials) {
   CHECK(credentials != nullptr);
-  SecureCredentials result;
+  EncryptedSecureCredentials result;
   result.data = credentials->data_.as_slice().str();
   result.hash = credentials->hash_.as_slice().str();
   result.encrypted_secret = credentials->secret_.as_slice().str();
@@ -365,7 +380,7 @@ SecureCredentials get_secure_credentials(tl_object_ptr<telegram_api::secureCrede
 }
 
 td_api::object_ptr<td_api::encryptedCredentials> get_encrypted_credentials_object(
-    const SecureCredentials &credentials) {
+    const EncryptedSecureCredentials &credentials) {
   return td_api::make_object<td_api::encryptedCredentials>(credentials.data, credentials.hash,
                                                            credentials.encrypted_secret);
 }
@@ -404,10 +419,11 @@ td_api::object_ptr<td_api::passportData> get_passport_data_object(FileManager *f
                                                    std::move(files), std::move(selfie));
 }
 
-Result<FileId> decrypt_secure_file(FileManager *file_manager, const secure_storage::Secret &master_secret,
-                                   const EncryptedSecureFile &secure_file) {
+Result<std::pair<FileId, SecureFileCredentials>> decrypt_secure_file(FileManager *file_manager,
+                                                                     const secure_storage::Secret &master_secret,
+                                                                     const EncryptedSecureFile &secure_file) {
   if (!secure_file.file_id.is_valid()) {
-    return secure_file.file_id;
+    return std::make_pair(secure_file.file_id, SecureFileCredentials{});
   }
   TRY_RESULT(hash, secure_storage::ValueHash::create(secure_file.file_hash));
   TRY_RESULT(encrypted_secret, secure_storage::EncryptedSecret::create(secure_file.encrypted_secret));
@@ -415,33 +431,39 @@ Result<FileId> decrypt_secure_file(FileManager *file_manager, const secure_stora
   FileEncryptionKey key{secret};
   key.set_value_hash(hash);
   file_manager->set_encryption_key(secure_file.file_id, std::move(key));
-  return secure_file.file_id;
+  return std::make_pair(secure_file.file_id, SecureFileCredentials{secret.as_slice().str(), hash.as_slice().str()});
 }
 
-Result<vector<FileId>> decrypt_secure_files(FileManager *file_manager, const secure_storage::Secret &secret,
-                                            const vector<EncryptedSecureFile> &secure_files) {
+Result<std::pair<vector<FileId>, vector<SecureFileCredentials>>> decrypt_secure_files(
+    FileManager *file_manager, const secure_storage::Secret &secret, const vector<EncryptedSecureFile> &secure_files) {
   vector<FileId> res;
+  vector<SecureFileCredentials> credentials;
   res.reserve(secure_files.size());
   for (auto &file : secure_files) {
     TRY_RESULT(decrypted_file, decrypt_secure_file(file_manager, secret, file));
-    res.push_back(decrypted_file);
+    res.push_back(decrypted_file.first);
+    credentials.push_back(decrypted_file.second);
   }
 
-  return std::move(res);
+  return std::make_pair(std::move(res), std::move(credentials));
 }
-Result<string> decrypt_secure_data(const secure_storage::Secret &master_secret,
-                                   const EncryptedSecureData &secure_data) {
+Result<std::pair<string, SecureDataCredentials>> decrypt_secure_data(const secure_storage::Secret &master_secret,
+                                                                     const EncryptedSecureData &secure_data) {
   TRY_RESULT(hash, secure_storage::ValueHash::create(secure_data.hash));
   TRY_RESULT(encrypted_secret, secure_storage::EncryptedSecret::create(secure_data.encrypted_secret));
   TRY_RESULT(secret, encrypted_secret.decrypt(PSLICE() << master_secret.as_slice() << hash.as_slice()));
   TRY_RESULT(value, secure_storage::decrypt_value(secret, hash, secure_data.data));
-  return value.as_slice().str();
+  return std::make_pair(value.as_slice().str(), SecureDataCredentials{secret.as_slice().str(), hash.as_slice().str()});
 }
 
-Result<SecureValue> decrypt_encrypted_secure_value(FileManager *file_manager, const secure_storage::Secret &secret,
-                                                   const EncryptedSecureValue &encrypted_secure_value) {
+Result<SecureValueWithCredentials> decrypt_encrypted_secure_value(FileManager *file_manager,
+                                                                  const secure_storage::Secret &secret,
+                                                                  const EncryptedSecureValue &encrypted_secure_value) {
   SecureValue res;
+  SecureValueCredentials res_credentials;
   res.type = encrypted_secure_value.type;
+  res_credentials.type = res.type;
+  res_credentials.hash = encrypted_secure_value.hash;
   switch (encrypted_secure_value.type) {
     case SecureValueType::EmailAddress:
     case SecureValueType::PhoneNumber:
@@ -449,15 +471,22 @@ Result<SecureValue> decrypt_encrypted_secure_value(FileManager *file_manager, co
       break;
     default: {
       TRY_RESULT(data, decrypt_secure_data(secret, encrypted_secure_value.data));
-      res.data = std::move(data);
+      res.data = std::move(data.first);
+      if (!res.data.empty()) {
+        res_credentials.data = std::move(data.second);
+      }
       TRY_RESULT(files, decrypt_secure_files(file_manager, secret, encrypted_secure_value.files));
-      res.files = std::move(files);
+      res.files = std::move(files.first);
+      res_credentials.files = std::move(files.second);
       TRY_RESULT(selfie, decrypt_secure_file(file_manager, secret, encrypted_secure_value.selfie));
-      res.selfie = std::move(selfie);
+      res.selfie = std::move(selfie.first);
+      if (res.selfie.is_valid()) {
+        res_credentials.selfie = std::move(selfie.second);
+      }
       break;
     }
   }
-  return std::move(res);
+  return SecureValueWithCredentials{std::move(res), std::move(res_credentials)};
 }
 
 EncryptedSecureFile encrypt_secure_file(FileManager *file_manager, const secure_storage::Secret &master_secret,
@@ -528,4 +557,117 @@ EncryptedSecureValue encrypt_secure_value(FileManager *file_manager, const secur
   return res;
 }
 
+template <class T>
+class AsJsonable : public Jsonable {
+ public:
+  AsJsonable(const T &value) : value_(value) {
+  }
+  void store(JsonValueScope *scope) const {
+    *scope + value_;
+  }
+
+ private:
+  const T &value_;
+};
+
+template <class T>
+auto as_jsonable(const T &value) {
+  return AsJsonable<T>(value);
+}
+
+JsonScope &operator+(JsonValueScope &scope, const SecureDataCredentials &credentials) {
+  auto object = scope.enter_object();
+  object << ctie("data_hash", base64_encode(credentials.hash));
+  object << ctie("secret", base64_encode(credentials.secret));
+  return scope;
+}
+
+JsonScope &operator+(JsonValueScope &scope, const SecureFileCredentials &credentials) {
+  auto object = scope.enter_object();
+  object << ctie("file_hash", base64_encode(credentials.hash));
+  object << ctie("secret", base64_encode(credentials.secret));
+  return scope;
+}
+
+JsonScope &operator+(JsonValueScope &scope, const vector<SecureFileCredentials> &files) {
+  auto arr = scope.enter_array();
+  for (auto &file : files) {
+    arr << as_jsonable(file);
+  }
+  return scope;
+}
+
+JsonScope &operator+(JsonValueScope &scope, const SecureValueCredentials &credentials) {
+  auto object = scope.enter_object();
+  if (credentials.data) {
+    object << ctie("data", as_jsonable(credentials.data.value()));
+  }
+  if (!credentials.files.empty()) {
+    object << ctie("files", as_jsonable(credentials.files));
+  }
+  if (credentials.selfie) {
+    object << ctie("selfie", as_jsonable(credentials.selfie.value()));
+  }
+  return scope;
+}
+
+Slice secure_value_type_as_slice(SecureValueType type) {
+  switch (type) {
+    case SecureValueType::PersonalDetails:
+      return "personal_details";
+    case SecureValueType::Passport:
+      return "passport";
+    case SecureValueType::DriverLicense:
+      return "driver_license";
+    case SecureValueType::IdentityCard:
+      return "identity_card";
+    case SecureValueType::Address:
+      return "address";
+    case SecureValueType::UtilityBill:
+      return "utility_bill";
+    case SecureValueType::BankStatement:
+      return "bank_statement";
+    case SecureValueType::RentalAgreement:
+      return "rental_agreement";
+    case SecureValueType::PhoneNumber:
+      return "phone_number";
+    case SecureValueType::EmailAddress:
+      return "email_address";
+    default:
+    case SecureValueType::None:
+      UNREACHABLE();
+      return "none";
+  }
+}
+
+JsonScope &operator+(JsonValueScope &scope, const std::vector<SecureValueCredentials> &credentials) {
+  auto object = scope.enter_object();
+  for (auto &c : credentials) {
+    object << ctie(secure_value_type_as_slice(c.type), as_jsonable(c));
+  }
+  return scope;
+}
+
+JsonScope &operator+(JsonValueScope &scope,
+                     const std::pair<const std::vector<SecureValueCredentials> &, const Slice &> &credentials) {
+  auto object = scope.enter_object();
+  object << ctie("secure_data", as_jsonable(credentials.first));
+  object << ctie("payload", credentials.second);
+  return scope;
+}
+
+Result<EncryptedSecureCredentials> encrypted_credentials(std::vector<SecureValueCredentials> &credentials,
+                                                         Slice payload, Slice public_key) {
+  auto encoded_credentials = json_encode<std::string>(as_jsonable(ctie(credentials, payload)));
+  LOG(ERROR) << encoded_credentials;
+
+  auto secret = secure_storage::Secret::create_new();
+  auto encrypted_value = secure_storage::encrypt_value(secret, encoded_credentials).move_as_ok();
+  EncryptedSecureCredentials res;
+  res.data = encrypted_value.data.as_slice().str();
+  res.hash = encrypted_value.data.as_slice().str();
+  TRY_RESULT(encrypted_secret, rsa_encrypt_pkcs1_oaep(public_key, secret.as_slice()));
+  res.encrypted_secret = encrypted_secret.as_slice().str();
+  return res;
+}
 }  // namespace td

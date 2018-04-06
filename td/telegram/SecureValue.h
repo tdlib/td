@@ -13,6 +13,7 @@
 #include "td/telegram/SecureStorage.h"
 
 #include "td/utils/common.h"
+#include "td/utils/JsonBuilder.h"
 #include "td/utils/optional.h"
 #include "td/utils/Status.h"
 
@@ -39,6 +40,8 @@ SecureValueType get_secure_value_type_td_api(tl_object_ptr<td_api::PassportDataT
 
 vector<SecureValueType> get_secure_value_types(
     vector<tl_object_ptr<telegram_api::SecureValueType>> &&secure_value_types);
+vector<SecureValueType> get_secure_value_types_td_api(
+    vector<tl_object_ptr<td_api::PassportDataType>> &&secure_value_types);
 
 td_api::object_ptr<td_api::PassportDataType> get_passport_data_type_object(SecureValueType type);
 td_api::object_ptr<telegram_api::SecureValueType> get_secure_value_type_telegram_object(SecureValueType type);
@@ -116,18 +119,42 @@ telegram_api::object_ptr<telegram_api::inputSecureValue> get_input_secure_value_
 vector<td_api::object_ptr<td_api::encryptedPassportData>> get_encrypted_passport_data_object(
     FileManager *file_manager, const vector<EncryptedSecureValue> &values);
 
-struct SecureCredentials {
+struct EncryptedSecureCredentials {
   string data;
   string hash;
   string encrypted_secret;
 };
 
-bool operator==(const SecureCredentials &lhs, const SecureCredentials &rhs);
-bool operator!=(const SecureCredentials &lhs, const SecureCredentials &rhs);
+bool operator==(const EncryptedSecureCredentials &lhs, const EncryptedSecureCredentials &rhs);
+bool operator!=(const EncryptedSecureCredentials &lhs, const EncryptedSecureCredentials &rhs);
 
-SecureCredentials get_secure_credentials(tl_object_ptr<telegram_api::secureCredentialsEncrypted> &&credentials);
+EncryptedSecureCredentials get_secure_credentials(
+    tl_object_ptr<telegram_api::secureCredentialsEncrypted> &&credentials);
 
-td_api::object_ptr<td_api::encryptedCredentials> get_encrypted_credentials_object(const SecureCredentials &credentials);
+telegram_api::object_ptr<telegram_api::secureCredentialsEncrypted> get_secure_credentials_encrypted_object(
+    const EncryptedSecureCredentials &credentials);
+td_api::object_ptr<td_api::encryptedCredentials> get_encrypted_credentials_object(
+    const EncryptedSecureCredentials &credentials);
+
+struct SecureDataCredentials {
+  string hash;
+  string secret;
+};
+struct SecureFileCredentials {
+  string hash;
+  string secret;
+};
+
+struct SecureValueCredentials {
+  SecureValueType type;
+  string hash;
+  optional<SecureDataCredentials> data;
+  std::vector<SecureFileCredentials> files;
+  optional<SecureFileCredentials> selfie;
+};
+
+Result<EncryptedSecureCredentials> encrypted_credentials(std::vector<SecureValueCredentials> &credentials,
+                                                         Slice payload, Slice public_key);
 
 class SecureValue {
  public:
@@ -137,18 +164,26 @@ class SecureValue {
   FileId selfie;
 };
 
+struct SecureValueWithCredentials {
+  SecureValue value;
+  SecureValueCredentials credentials;
+};
+
 Result<SecureValue> get_secure_value(FileManager *file_manager,
                                      td_api::object_ptr<td_api::inputPassportData> &&input_passport_data);
 
 td_api::object_ptr<td_api::passportData> get_passport_data_object(FileManager *file_manager, const SecureValue &value);
 
-Result<FileId> decrypt_secure_file(FileManager *file_manager, const secure_storage::Secret &secret,
-                                   const EncryptedSecureFile &secure_file);
-Result<vector<FileId>> decrypt_secure_files(FileManager *file_manager, const secure_storage::Secret &secret,
-                                            const vector<EncryptedSecureFile> &secure_file);
-Result<string> decrypt_secure_data(const secure_storage::Secret &secret, const EncryptedSecureData &secure_data);
-Result<SecureValue> decrypt_encrypted_secure_value(FileManager *file_manager, const secure_storage::Secret &secret,
-                                                   const EncryptedSecureValue &encrypted_secure_value);
+Result<std::pair<FileId, SecureFileCredentials>> decrypt_secure_file(FileManager *file_manager,
+                                                                     const secure_storage::Secret &secret,
+                                                                     const EncryptedSecureFile &secure_file);
+Result<std::pair<vector<FileId>, vector<SecureFileCredentials>>> decrypt_secure_files(
+    FileManager *file_manager, const secure_storage::Secret &secret, const vector<EncryptedSecureFile> &secure_file);
+Result<std::pair<string, SecureDataCredentials>> decrypt_secure_data(const secure_storage::Secret &secret,
+                                                                     const EncryptedSecureData &secure_data);
+Result<SecureValueWithCredentials> decrypt_encrypted_secure_value(FileManager *file_manager,
+                                                                  const secure_storage::Secret &secret,
+                                                                  const EncryptedSecureValue &encrypted_secure_value);
 
 EncryptedSecureFile encrypt_secure_file(FileManager *file_manager, const secure_storage::Secret &master_secret,
                                         FileId file, string &to_hash);
