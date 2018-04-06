@@ -17,7 +17,8 @@ namespace secure_storage {
 Result<ValueHash> ValueHash::create(Slice data) {
   UInt256 hash;
   if (data.size() != ::td::as_slice(hash).size()) {
-    return Status::Error("Wrong hash size");
+    LOG(FATAL);
+    return Status::Error(PSLICE() << "Wrong hash size " << data.size());
   }
   ::td::as_slice(hash).copy_from(data);
   return ValueHash{hash};

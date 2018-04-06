@@ -84,7 +84,7 @@ SetSecureValue::UploadCallback::UploadCallback(ActorId<SetSecureValue> actor_id)
 }
 
 void SetSecureValue::UploadCallback::on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) {
-  UNREACHABLE();
+  send_closure(actor_id_, &SetSecureValue::on_upload_ok, file_id, nullptr);
 }
 void SetSecureValue::UploadCallback::on_upload_encrypted_ok(
     FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) {
@@ -246,6 +246,104 @@ void SetSecureValue::merge(FileManager *file_manager, FileId file_id, SecureFile
   LOG_IF(ERROR, status.is_error()) << status.error();
 }
 
+class GetPassportAuthorizationForm : public NetQueryCallback {
+ public:
+  GetPassportAuthorizationForm(ActorShared<> parent, string password, int32 authorization_form_id, int32 bot_id,
+                               string scope, string public_key, Promise<TdApiAuthorizationForm> promise)
+      : parent_(std::move(parent))
+      , password_(std::move(password))
+      , authorization_form_id_(authorization_form_id)
+      , bot_id_(bot_id)
+      , scope_(std::move(scope))
+      , public_key_(std::move(public_key))
+      , promise_(std::move(promise)) {
+  }
+
+ private:
+  ActorShared<> parent_;
+  string password_;
+  int32 authorization_form_id_;
+  int32 bot_id_;
+  string scope_;
+  string public_key_;
+  Promise<TdApiAuthorizationForm> promise_;
+  optional<secure_storage::Secret> secret_;
+  telegram_api::object_ptr<telegram_api::account_authorizationForm> authorization_form_;
+
+  void on_secret(Result<secure_storage::Secret> r_secret, bool dummy) {
+    LOG_IF(ERROR, r_secret.is_error()) << r_secret.error();
+    LOG_IF(ERROR, r_secret.is_ok()) << r_secret.ok().get_hash();
+    if (r_secret.is_error()) {
+      return on_error(r_secret.move_as_error());
+    }
+    secret_ = r_secret.move_as_ok();
+    loop();
+  }
+
+  void on_error(Status status) {
+    promise_.set_error(std::move(status));
+    stop();
+  }
+
+  void start_up() override {
+    auto account_get_authorization_form =
+        telegram_api::account_getAuthorizationForm(bot_id_, std::move(scope_), std::move(public_key_));
+    auto query = G()->net_query_creator().create(create_storer(account_get_authorization_form));
+    G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
+
+    send_closure(G()->password_manager(), &PasswordManager::get_secure_secret, password_, optional<int64>(),
+                 PromiseCreator::lambda([actor_id = actor_id(this)](Result<secure_storage::Secret> r_secret) {
+                   send_closure(actor_id, &GetPassportAuthorizationForm::on_secret, std::move(r_secret), true);
+                 }));
+  }
+
+  void on_result(NetQueryPtr query) override {
+    auto r_result = fetch_result<telegram_api::account_getAuthorizationForm>(std::move(query));
+    if (r_result.is_error()) {
+      return on_error(r_result.move_as_error());
+    }
+    authorization_form_ = r_result.move_as_ok();
+    loop();
+  }
+
+  void loop() override {
+    if (!secret_ || !authorization_form_) {
+      return;
+    }
+    auto *file_manager = G()->file_manager().get_actor_unsafe();
+    std::vector<TdApiSecureValue> values;
+    auto types = get_secure_value_types(std::move(authorization_form_->required_types_));
+    for (auto type : types) {
+      optional<EncryptedSecureValue> encrypted_secure_value;
+      for (auto &value : authorization_form_->values_) {
+        auto value_type = get_secure_value_type(std::move(value->type_));
+        if (value_type != type) {
+          continue;
+        }
+        encrypted_secure_value = get_encrypted_secure_value(file_manager, std::move(value));
+        break;
+      }
+
+      SecureValue secure_value;
+      secure_value.type = type;
+      if (encrypted_secure_value) {
+        auto r_secure_value =
+            decrypt_encrypted_secure_value(file_manager, *secret_, std::move(*encrypted_secure_value));
+        if (r_secure_value.is_ok()) {
+          secure_value = r_secure_value.move_as_ok();
+        } else {
+          LOG(ERROR) << "Failed to decrypt secure value: " << r_secure_value.error();
+        }
+      }
+      values.push_back(get_passport_data_object(file_manager, std::move(secure_value)));
+    }
+    promise_.set_value(make_tl_object<td_api::passportAuthorizationForm>(authorization_form_id_, std::move(values),
+                                                                         authorization_form_->selfie_required_,
+                                                                         authorization_form_->privacy_policy_url_));
+    stop();
+  }
+};
+
 SecureManager::SecureManager(ActorShared<> parent) : parent_(std::move(parent)) {
 }
 
@@ -262,6 +360,24 @@ void SecureManager::set_secure_value(string password, SecureValue secure_value, 
                                                                  std::move(secure_value), std::move(promise));
 }
 
+void SecureManager::get_passport_authorization_form(string password, int32 bot_id, string scope, string public_key,
+                                                    Promise<TdApiAuthorizationForm> promise) {
+  refcnt_++;
+  auto authorization_form_id = ++authorization_form_id_;
+  authorization_forms_[authorization_form_id] = AuthorizationForm{bot_id, public_key};
+  create_actor<GetPassportAuthorizationForm>("GetPassportAuthorizationForm", actor_shared(), std::move(password),
+                                             authorization_form_id, bot_id, std::move(scope), std::move(public_key),
+                                             std::move(promise))
+      .release();
+}
+
+void SecureManager::send_passport_authorization_form(string password, int32 authorization_form_id,
+                                                     std::vector<SecureValueType> types, Promise<> promise) {
+  auto it = authorization_forms_.find(authorization_form_id);
+  if (it == authorization_forms_.end()) {
+    return promise.set_error(Status::Error(400, "Unknown authorization_form_id"));
+  }
+}
 void SecureManager::hangup() {
   dec_refcnt();
 }

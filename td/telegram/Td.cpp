@@ -6899,9 +6899,12 @@ void Td::on_request(uint64 id, td_api::checkEmailAddressVerificationCode &reques
 void Td::on_request(uint64 id, td_api::getPassportAuthorizationForm &request) {
   CHECK_AUTH();
   CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.password_);
   CLEAN_INPUT_STRING(request.public_key_);
   CLEAN_INPUT_STRING(request.scope_);
-  LOG(FATAL) << "TODO";
+  CREATE_REQUEST_PROMISE(promise);
+  send_closure(secure_manager_, &SecureManager::get_passport_authorization_form, request.password_, request.bot_id_,
+               request.scope_, request.public_key_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::sendPassportAuthorizationForm &request) {

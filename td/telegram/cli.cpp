@@ -15,6 +15,8 @@
 
 #include "memprof/memprof.h"
 
+#include "td/net/HttpReader.h"
+
 #include "td/utils/buffer.h"
 #include "td/utils/BufferedFd.h"
 #include "td/utils/FileLog.h"
@@ -944,8 +946,12 @@ class CliClient final : public Actor {
     if (passport_data_type == "phone" || passport_data_type == "p") {
       return make_tl_object<td_api::passportDataTypePhoneNumber>();
     }
+    if (passport_data_type == "pd") {
+      return make_tl_object<td_api::passportDataTypePersonalDetails>();
+    }
     return make_tl_object<td_api::passportDataTypePassport>();
   }
+
   static tl_object_ptr<td_api::inputPassportData> as_input_passport_data(string passport_data_type, string file) {
     vector<td_api::object_ptr<td_api::InputFile>> files;
     LOG(ERROR) << "FILE " << file;
@@ -959,6 +965,8 @@ class CliClient final : public Actor {
     } else if (passport_data_type == "email" || passport_data_type == "e") {
       data = "{todo}";
     } else if (passport_data_type == "phone" || passport_data_type == "p") {
+      data = "{todo}";
+    } else if (passport_data_type == "pd") {
       data = "{todo}";
     } else {
       data = "I am cucumber";
@@ -1066,6 +1074,26 @@ class CliClient final : public Actor {
         recovery_email_address = "";
       }
       send_request(make_tl_object<td_api::setPassword>(password, new_password, new_hint, true, recovery_email_address));
+    } else if (op == "secureid") {
+      string password;
+      std::tie(password, args) = split(args);
+      ChainBufferWriter writer;
+      writer.append(PSLICE() << "GET " << args << " HTTP/1.1\r\n\r\n\r\n");
+      ChainBufferReader reader = writer.extract_reader();
+      HttpReader http_reader;
+      http_reader.init(&reader);
+      HttpQuery query;
+      auto status = http_reader.read_next(&query);
+      if (status.is_error()) {
+        LOG(ERROR) << status.error();
+        return;
+      }
+      string bot_id = query.arg("bot_id").str();
+      string scope = query.arg("scope").str();
+      string public_key = query.arg("public_key").str();
+      send_request(
+          make_tl_object<td_api::getPassportAuthorizationForm>(to_integer<int32>(bot_id), scope, public_key, password));
+    } else if (op == "spaf") {
     } else if (op == "srea" || op == "SetRecoveryEmailAddress") {
       string password;
       string recovery_email_address;

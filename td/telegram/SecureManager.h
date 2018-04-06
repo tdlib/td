@@ -17,6 +17,7 @@
 
 namespace td {
 using TdApiSecureValue = td_api::object_ptr<td_api::passportData>;
+using TdApiAuthorizationForm = td_api::object_ptr<td_api::passportAuthorizationForm>;
 class GetSecureValue : public NetQueryCallback {
  public:
   GetSecureValue(ActorShared<> parent, std::string password, SecureValueType type, Promise<TdApiSecureValue> promise);
@@ -93,10 +94,23 @@ class SecureManager : public Actor {
   void get_secure_value(std::string password, SecureValueType type, Promise<TdApiSecureValue> promise);
   void set_secure_value(string password, SecureValue secure_value, Promise<TdApiSecureValue> promise);
 
+  void get_passport_authorization_form(string password, int32 bot_id, string scope, string public_key,
+                                       Promise<TdApiAuthorizationForm> promise);
+  void send_passport_authorization_form(string password, int32 authorization_form_id,
+                                        std::vector<SecureValueType> types, Promise<> promise);
+
  private:
   ActorShared<> parent_;
   int32 refcnt_{1};
   std::map<SecureValueType, ActorOwn<>> set_secure_value_queries_;
+
+  struct AuthorizationForm {
+    int32 bot_id;
+    string public_key;
+  };
+
+  std::map<int32, AuthorizationForm> authorization_forms_;
+  int32 authorization_form_id_{0};
 
   void hangup() override;
   void hangup_shared() override;

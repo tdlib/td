@@ -405,6 +405,9 @@ td_api::object_ptr<td_api::passportData> get_passport_data_object(FileManager *f
 
 Result<FileId> decrypt_secure_file(FileManager *file_manager, const secure_storage::Secret &master_secret,
                                    const SecureFile &secure_file) {
+  if (!secure_file.file_id.is_valid()) {
+    return secure_file.file_id;
+  }
   TRY_RESULT(hash, secure_storage::ValueHash::create(secure_file.file_hash));
   TRY_RESULT(encrypted_secret, secure_storage::EncryptedSecret::create(secure_file.encrypted_secret));
   TRY_RESULT(secret, encrypted_secret.decrypt(PSLICE() << master_secret.as_slice() << hash.as_slice()));
