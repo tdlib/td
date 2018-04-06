@@ -68,6 +68,9 @@ class PasswordManager : public NetQueryCallback {
   static TempPasswordState get_temp_password_state_sync();
 
  private:
+  static constexpr size_t MIN_NEW_SALT_SIZE = 8;
+  static constexpr size_t MIN_NEW_SECURE_SALT_SIZE = 8;
+
   ActorShared<> parent_;
 
   struct PasswordState {

@@ -296,9 +296,10 @@ void PasswordManager::update_password_settings(UpdateSettings update_settings, P
 
 namespace {
 BufferSlice create_salt(Slice server_salt) {
-  BufferSlice new_salt(server_salt.size() + 32);
+  static constexpr size_t ADDED_SALT_SIZE = 32;
+  BufferSlice new_salt(server_salt.size() + ADDED_SALT_SIZE);
   new_salt.as_slice().copy_from(server_salt);
-  Random::secure_bytes(new_salt.as_slice().remove_prefix(server_salt.size()));
+  Random::secure_bytes(new_salt.as_slice().substr(server_salt.size()));
   return new_salt;
 }
 }  // namespace
@@ -390,13 +391,11 @@ void PasswordManager::do_get_state(Promise<PasswordState> promise) {
   send_with_promise(std::move(query), PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
                                                                  Result<NetQueryPtr> r_query) mutable {
                       if (r_query.is_error()) {
-                        promise.set_error(r_query.move_as_error());
-                        return;
+                        return promise.set_error(r_query.move_as_error());
                       }
                       auto r_result = fetch_result<telegram_api::account_getPassword>(r_query.move_as_ok());
                       if (r_result.is_error()) {
-                        promise.set_error(r_result.move_as_error());
-                        return;
+                        return promise.set_error(r_result.move_as_error());
                       }
                       auto result = r_result.move_as_ok();
 
@@ -426,6 +425,12 @@ void PasswordManager::do_get_state(Promise<PasswordState> promise) {
                         UNREACHABLE();
                       }
                       Random::add_seed(secure_random);
+                      if (state.new_secure_salt.size() < MIN_NEW_SECURE_SALT_SIZE) {
+                        return promise.set_error(Status::Error(500, "New secure salt length too small"));
+                      }
+                      if (state.new_salt.size() < MIN_NEW_SALT_SIZE) {
+                        return promise.set_error(Status::Error(500, "New salt length too small"));
+                      }
                       promise.set_value(std::move(state));
                     }));
 }
