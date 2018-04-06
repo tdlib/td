@@ -15,28 +15,28 @@
 namespace td {
 
 template <class StorerT>
-void store(SecureFile file, StorerT &storer) {
+void store(EncryptedSecureFile file, StorerT &storer) {
   store(file.file_id, storer);
   store(file.file_hash, storer);
   store(file.encrypted_secret, storer);
 }
 
 template <class ParserT>
-void parse(SecureFile &file, ParserT &parser) {
+void parse(EncryptedSecureFile &file, ParserT &parser) {
   parse(file.file_id, parser);
   parse(file.file_hash, parser);
   parse(file.encrypted_secret, parser);
 }
 
 template <class StorerT>
-void store(const SecureData &data, StorerT &storer) {
+void store(const EncryptedSecureData &data, StorerT &storer) {
   store(data.data, storer);
   store(data.hash, storer);
   store(data.encrypted_secret, storer);
 }
 
 template <class ParserT>
-void parse(SecureData &data, ParserT &parser) {
+void parse(EncryptedSecureData &data, ParserT &parser) {
   parse(data.data, parser);
   parse(data.hash, parser);
   parse(data.encrypted_secret, parser);

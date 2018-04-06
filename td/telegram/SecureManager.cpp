@@ -234,7 +234,7 @@ void SetSecureValue::on_result(NetQueryPtr query) {
   stop();
 }
 
-void SetSecureValue::merge(FileManager *file_manager, FileId file_id, SecureFile &encrypted_file) {
+void SetSecureValue::merge(FileManager *file_manager, FileId file_id, EncryptedSecureFile &encrypted_file) {
   auto file_view = file_manager->get_file_view(file_id);
   CHECK(!file_view.empty());
   CHECK(file_view.encryption_key().has_value_hash());

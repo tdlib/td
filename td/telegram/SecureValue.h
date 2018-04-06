@@ -46,54 +46,55 @@ td_api::object_ptr<telegram_api::SecureValueType> get_secure_value_type_telegram
 vector<td_api::object_ptr<td_api::PassportDataType>> get_passport_data_types_object(
     const vector<SecureValueType> &types);
 
-struct SecureFile {
+struct EncryptedSecureFile {
   FileId file_id;
   string file_hash;
   string encrypted_secret;
 };
 
-bool operator==(const SecureFile &lhs, const SecureFile &rhs);
-bool operator!=(const SecureFile &lhs, const SecureFile &rhs);
+bool operator==(const EncryptedSecureFile &lhs, const EncryptedSecureFile &rhs);
+bool operator!=(const EncryptedSecureFile &lhs, const EncryptedSecureFile &rhs);
 
-SecureFile get_secure_file(FileManager *file_manager, tl_object_ptr<telegram_api::SecureFile> &&secure_file_ptr);
+EncryptedSecureFile get_secure_file(FileManager *file_manager,
+                                    tl_object_ptr<telegram_api::SecureFile> &&secure_file_ptr);
 
-vector<SecureFile> get_secure_files(FileManager *file_manager,
-                                    vector<tl_object_ptr<telegram_api::SecureFile>> &&secure_files);
+vector<EncryptedSecureFile> get_secure_files(FileManager *file_manager,
+                                             vector<tl_object_ptr<telegram_api::SecureFile>> &&secure_files);
 
 struct SecureInputFile {
   FileId file_id;
   tl_object_ptr<telegram_api::InputSecureFile> input_file;
 };
 telegram_api::object_ptr<telegram_api::InputSecureFile> get_input_secure_file_object(FileManager *file_manager,
-                                                                                     const SecureFile &file,
+                                                                                     const EncryptedSecureFile &file,
                                                                                      SecureInputFile &input_file);
 
-td_api::object_ptr<td_api::file> get_encrypted_file_object(FileManager *file_manager, const SecureFile &file);
+td_api::object_ptr<td_api::file> get_encrypted_file_object(FileManager *file_manager, const EncryptedSecureFile &file);
 
 vector<td_api::object_ptr<td_api::file>> get_encrypted_files_object(FileManager *file_manager,
-                                                                    const vector<SecureFile> &files);
+                                                                    const vector<EncryptedSecureFile> &files);
 
 vector<telegram_api::object_ptr<telegram_api::InputSecureFile>> get_input_secure_files_object(
-    FileManager *file_manager, const vector<SecureFile> &file, vector<SecureInputFile> &input_files);
+    FileManager *file_manager, const vector<EncryptedSecureFile> &file, vector<SecureInputFile> &input_files);
 
-struct SecureData {
+struct EncryptedSecureData {
   string data;
   string hash;
   string encrypted_secret;
 };
 
-bool operator==(const SecureData &lhs, const SecureData &rhs);
-bool operator!=(const SecureData &lhs, const SecureData &rhs);
+bool operator==(const EncryptedSecureData &lhs, const EncryptedSecureData &rhs);
+bool operator!=(const EncryptedSecureData &lhs, const EncryptedSecureData &rhs);
 
-SecureData get_secure_data(tl_object_ptr<telegram_api::secureData> &&secure_data);
+EncryptedSecureData get_secure_data(tl_object_ptr<telegram_api::secureData> &&secure_data);
 
-telegram_api::object_ptr<telegram_api::secureData> get_secure_data_object(const SecureData &data);
+telegram_api::object_ptr<telegram_api::secureData> get_secure_data_object(const EncryptedSecureData &data);
 
 struct EncryptedSecureValue {
   SecureValueType type = SecureValueType::None;
-  SecureData data;
-  vector<SecureFile> files;
-  SecureFile selfie;
+  EncryptedSecureData data;
+  vector<EncryptedSecureFile> files;
+  EncryptedSecureFile selfie;
   string hash;  // memory only
 };
 
@@ -142,18 +143,18 @@ Result<SecureValue> get_secure_value(FileManager *file_manager,
 td_api::object_ptr<td_api::passportData> get_passport_data_object(FileManager *file_manager, const SecureValue &value);
 
 Result<FileId> decrypt_secure_file(FileManager *file_manager, const secure_storage::Secret &secret,
-                                   const SecureFile &secure_file);
+                                   const EncryptedSecureFile &secure_file);
 Result<vector<FileId>> decrypt_secure_files(FileManager *file_manager, const secure_storage::Secret &secret,
-                                            const vector<SecureFile> &secure_file);
-Result<string> decrypt_secure_data(const secure_storage::Secret &secret, const SecureData &secure_data);
+                                            const vector<EncryptedSecureFile> &secure_file);
+Result<string> decrypt_secure_data(const secure_storage::Secret &secret, const EncryptedSecureData &secure_data);
 Result<SecureValue> decrypt_encrypted_secure_value(FileManager *file_manager, const secure_storage::Secret &secret,
                                                    const EncryptedSecureValue &encrypted_secure_value);
 
-SecureFile encrypt_secure_file(FileManager *file_manager, const secure_storage::Secret &master_secret, FileId file,
-                               string &to_hash);
-vector<SecureFile> encrypt_secure_files(FileManager *file_manager, const secure_storage::Secret &master_secret,
-                                        vector<FileId> files, string &to_hash);
-SecureData encrypt_secure_data(const secure_storage::Secret &master_secret, Slice data, string &to_hash);
+EncryptedSecureFile encrypt_secure_file(FileManager *file_manager, const secure_storage::Secret &master_secret,
+                                        FileId file, string &to_hash);
+vector<EncryptedSecureFile> encrypt_secure_files(FileManager *file_manager, const secure_storage::Secret &master_secret,
+                                                 vector<FileId> files, string &to_hash);
+EncryptedSecureData encrypt_secure_data(const secure_storage::Secret &master_secret, Slice data, string &to_hash);
 EncryptedSecureValue encrypt_secure_value(FileManager *file_manager, const secure_storage::Secret &master_secret,
                                           const SecureValue &secure_value);
 

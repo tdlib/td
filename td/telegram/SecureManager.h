@@ -84,7 +84,7 @@ class SetSecureValue : public NetQueryCallback {
   void on_result(NetQueryPtr query) override;
 
   void start_upload(FileManager *file_manager, FileId file_id, SecureInputFile &info);
-  void merge(FileManager *file_manager, FileId file_id, SecureFile &encrypted_file);
+  void merge(FileManager *file_manager, FileId file_id, EncryptedSecureFile &encrypted_file);
 };
 
 class SecureManager : public Actor {
