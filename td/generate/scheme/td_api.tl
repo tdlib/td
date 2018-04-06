@@ -837,11 +837,11 @@ passportData type:PassportDataType data:string files:vector<file> selfie:file = 
 inputPassportData type:PassportDataType data:string files:vector<InputFile> selfie:InputFile = InputPassportData;
 
 
-//@class PassportAuthorizationForm Contains information about requested Telegram Passport authorization form @data Available data
-passportAuthorizationForm id:int32 data:vector<PassportData> = PassportAuthorizationForm;
+//@description Contains information about requested Telegram Passport authorization form @id Authorization form unique identifier @data Available data
+passportAuthorizationForm id:int32 data:vector<passportData> = PassportAuthorizationForm;
 
 
-//@class EncryptedCredentials Contains an encrypted Telegram Passport data credentials @data The encrypted credentials @hash The decrypted data hash @secret Encrypted by service public key secret for data decryption
+//@description Contains an encrypted Telegram Passport data credentials @data The encrypted credentials @hash The decrypted data hash @secret Encrypted by service public key secret for data decryption
 encryptedCredentials data:bytes hash:bytes secret:bytes = EncryptedCredentials;
 
 
@@ -968,7 +968,7 @@ messageWebsiteConnected domain_name:string = MessageContent;
 messagePassportDataSent types:vector<PassportDataType> = MessageContent;
 
 //@description Telegram Passport data has been received; for bots only @data List of received Telegram Passport data @credentials Encrypted Secure storage data credentials
-messagePassportDataReceived data:vector<EncryptedPassportData> credentials:encryptedCredentials = MessageContent;
+messagePassportDataReceived data:vector<encryptedPassportData> credentials:encryptedCredentials = MessageContent;
 
 //@description Message content that is not supported by the client
 messageUnsupported = MessageContent;
@@ -1675,7 +1675,13 @@ fileTypeProfilePhoto = FileType;
 //@description The file was sent to a secret chat (the file type is not known to the server)
 fileTypeSecret = FileType;
 
+//@description The file is a thumbnail of a file from a secret chat
+fileTypeSecretThumbnail = FileType;
+
+//@description The file is a file from Secure storage used for storing Telegram Passport files
 fileTypeSecure = FileType;
+
+//@description The file is an encrypted file from Secure storage used for storing Telegram Passport files
 fileTypeSecureEncrypted = FileType;
 
 //@description The file is a sticker
@@ -1698,9 +1704,6 @@ fileTypeVoiceNote = FileType;
 
 //@description The file is a wallpaper
 fileTypeWallpaper = FileType;
-
-//@description The file is a thumbnail of a file from a secret chat
-fileTypeSecretThumbnail = FileType;
 
 
 //@description Contains the storage usage statistics for a specific file type @file_type File type @size Total size of the files @count Total number of files
@@ -2878,8 +2881,8 @@ resetNetworkStatistics = Ok;
 //@description Returns filled Telegram Passport data @type Data type @password Password of the current user
 getPassportData type:PassportDataType password:string = PassportData;
 
-//@description Sets Telegram Passport data @type Data type @password Password of the current user
-setPassportData value:InputPassportData password:string = PassportData;
+//@description Sets Telegram Passport data @data Input Telegram Passport data @password Password of the current user
+setPassportData data:inputPassportData password:string = PassportData;
 
 //@description Deletes Telegram Passport data @type Data type
 deletePassportData type:PassportDataType = Ok;

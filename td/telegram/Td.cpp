@@ -6842,7 +6842,7 @@ void Td::on_request(uint64 id, td_api::setPassportData &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.password_);
   CREATE_REQUEST_PROMISE(promise);
-  auto r_secure_value = get_secure_value(file_manager_.get(), std::move(request.value_));
+  auto r_secure_value = get_secure_value(file_manager_.get(), std::move(request.data_));
   if (r_secure_value.is_error()) {
     return promise.set_error(r_secure_value.move_as_error());
   }

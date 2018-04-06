@@ -288,13 +288,6 @@ EOT
 EOT
 );
 
-        $this->addDocumentation('  virtual std::int32_t get_id() const = 0;', <<<EOT
-  /**
-   * Returns identifier uniquely determining a type of the object.
-   */
-EOT
-);
-
         $this->addDocumentation('  std::int32_t get_id() const final {', <<<EOT
   /**
    * Returns identifier uniquely determining a type of the object.
