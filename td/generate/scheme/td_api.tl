@@ -836,9 +836,12 @@ passportData type:PassportDataType data:string files:vector<file> selfie:file = 
 //@description Contains information about a Telegram Passport data to save @type Telegram Passport data type @data TODO data should be typed @files List of attached files with a document @selfie Selfie with the document
 inputPassportData type:PassportDataType data:string files:vector<InputFile> selfie:InputFile = InputPassportData;
 
+//@description Contains information about all filled Telegram Passport data @data All filled Telegram Passport data
+allPassportData data:vector<passportData> = AllPassportData;
 
-//@description Contains information about requested Telegram Passport authorization form @id Authorization form unique identifier @data Available data
-passportAuthorizationForm id:int32 data:vector<passportData> selfie_required:Bool privacy_policy_url:string = PassportAuthorizationForm;
+
+//@description Contains information about requested Telegram Passport authorization form @id Authorization form unique identifier @data Available data @is_selfie_required True, if selfie is required with a document @privacy_policy_url URL with the service privacy policy
+passportAuthorizationForm id:int32 data:vector<passportData> is_selfie_required:Bool privacy_policy_url:string = PassportAuthorizationForm;
 
 
 //@description Contains an encrypted Telegram Passport data credentials @data The encrypted credentials @hash The decrypted data hash @secret Encrypted by service public key secret for data decryption
@@ -2881,6 +2884,9 @@ resetNetworkStatistics = Ok;
 //@description Returns filled Telegram Passport data @type Data type @password Password of the current user
 getPassportData type:PassportDataType password:string = PassportData;
 
+//@description Returns all filled Telegram Passport data @password Password of the current user
+getAllPassportData password:string = AllPassportData;
+
 //@description Sets Telegram Passport data @data Input Telegram Passport data @password Password of the current user
 setPassportData data:inputPassportData password:string = PassportData;
 
@@ -2909,10 +2915,10 @@ resendEmailAddressVerificationCode = EmailAddressAuthenticationCodeInfo;
 checkEmailAddressVerificationCode code:string = Ok;
 
 
-//@description Returns Telegram Passport authorization form for sharing data with a service @bot_id Service's bot identifier @scope Telegram Passport data types requested by the service @public_key Service's public_key @password Password of the current user
-getPassportAuthorizationForm bot_id:int32 scope:string public_key:string payload:string password:string = PassportAuthorizationForm;
+//@description Returns Telegram Passport authorization form for sharing data with a service @bot_user_id Service's bot user identifier @scope Telegram Passport data types requested by the service @public_key Service's public_key @payload Authorization form payload provided by the service @password Password of the current user
+getPassportAuthorizationForm bot_user_id:int32 scope:string public_key:string payload:string password:string = PassportAuthorizationForm;
 
-//@description Sends Telegram Passport authorization form, effectively sharing data with the service @autorization_form_id Authorization form identifier
+//@description Sends Telegram Passport authorization form, effectively sharing data with the service @autorization_form_id Authorization form identifier @types Types of Telegram Passport data chosen by user to complete the authorization form @password Password of the current user
 sendPassportAuthorizationForm autorization_form_id:int32 types:vector<PassportDataType> password:string = Ok;
 
 

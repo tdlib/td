@@ -13,7 +13,6 @@
 #include "td/telegram/SecureStorage.h"
 
 #include "td/utils/common.h"
-#include "td/utils/JsonBuilder.h"
 #include "td/utils/optional.h"
 #include "td/utils/Status.h"
 
@@ -58,11 +57,11 @@ struct EncryptedSecureFile {
 bool operator==(const EncryptedSecureFile &lhs, const EncryptedSecureFile &rhs);
 bool operator!=(const EncryptedSecureFile &lhs, const EncryptedSecureFile &rhs);
 
-EncryptedSecureFile get_secure_file(FileManager *file_manager,
-                                    tl_object_ptr<telegram_api::SecureFile> &&secure_file_ptr);
+EncryptedSecureFile get_encrypted_secure_file(FileManager *file_manager,
+                                              tl_object_ptr<telegram_api::SecureFile> &&secure_file_ptr);
 
-vector<EncryptedSecureFile> get_secure_files(FileManager *file_manager,
-                                             vector<tl_object_ptr<telegram_api::SecureFile>> &&secure_files);
+vector<EncryptedSecureFile> get_encrypted_secure_files(FileManager *file_manager,
+                                                       vector<tl_object_ptr<telegram_api::SecureFile>> &&secure_files);
 
 struct SecureInputFile {
   FileId file_id;
@@ -89,7 +88,7 @@ struct EncryptedSecureData {
 bool operator==(const EncryptedSecureData &lhs, const EncryptedSecureData &rhs);
 bool operator!=(const EncryptedSecureData &lhs, const EncryptedSecureData &rhs);
 
-EncryptedSecureData get_secure_data(tl_object_ptr<telegram_api::secureData> &&secure_data);
+EncryptedSecureData get_encrypted_secure_data(tl_object_ptr<telegram_api::secureData> &&secure_data);
 
 telegram_api::object_ptr<telegram_api::secureData> get_secure_data_object(const EncryptedSecureData &data);
 
@@ -128,7 +127,7 @@ struct EncryptedSecureCredentials {
 bool operator==(const EncryptedSecureCredentials &lhs, const EncryptedSecureCredentials &rhs);
 bool operator!=(const EncryptedSecureCredentials &lhs, const EncryptedSecureCredentials &rhs);
 
-EncryptedSecureCredentials get_secure_credentials(
+EncryptedSecureCredentials get_encrypted_secure_credentials(
     tl_object_ptr<telegram_api::secureCredentialsEncrypted> &&credentials);
 
 telegram_api::object_ptr<telegram_api::secureCredentialsEncrypted> get_secure_credentials_encrypted_object(
@@ -174,6 +173,9 @@ Result<SecureValue> get_secure_value(FileManager *file_manager,
 
 td_api::object_ptr<td_api::passportData> get_passport_data_object(FileManager *file_manager, const SecureValue &value);
 
+td_api::object_ptr<td_api::allPassportData> get_all_passport_data_object(FileManager *file_manager,
+                                                                         const vector<SecureValue> &value);
+
 Result<std::pair<FileId, SecureFileCredentials>> decrypt_secure_file(FileManager *file_manager,
                                                                      const secure_storage::Secret &secret,
                                                                      const EncryptedSecureFile &secure_file);
@@ -184,6 +186,9 @@ Result<std::pair<string, SecureDataCredentials>> decrypt_secure_data(const secur
 Result<SecureValueWithCredentials> decrypt_encrypted_secure_value(FileManager *file_manager,
                                                                   const secure_storage::Secret &secret,
                                                                   const EncryptedSecureValue &encrypted_secure_value);
+Result<vector<SecureValueWithCredentials>> decrypt_encrypted_secure_values(
+    FileManager *file_manager, const secure_storage::Secret &secret,
+    const vector<EncryptedSecureValue> &encrypted_secure_values);
 
 EncryptedSecureFile encrypt_secure_file(FileManager *file_manager, const secure_storage::Secret &master_secret,
                                         FileId file, string &to_hash);

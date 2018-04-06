@@ -21554,7 +21554,7 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
       auto secure_values = move_tl_object_as<telegram_api::messageActionSecureValuesSentMe>(action);
       return make_unique<MessagePassportDataReceived>(
           get_encrypted_secure_values(td_->file_manager_.get(), std::move(secure_values->values_)),
-          get_secure_credentials(std::move(secure_values->credentials_)));
+          get_encrypted_secure_credentials(std::move(secure_values->credentials_)));
     }
     default:
       UNREACHABLE();

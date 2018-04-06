@@ -6,11 +6,14 @@
 //
 #include "td/telegram/SecureManager.h"
 
+#include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
-#include "td/telegram/PasswordManager.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
+#include "td/telegram/PasswordManager.h"
+#include "td/telegram/Td.h"
 
 namespace td {
+
 GetSecureValue::GetSecureValue(ActorShared<> parent, std::string password, SecureValueType type,
                                Promise<SecureValueWithCredentials> promise)
     : parent_(std::move(parent)), password_(std::move(password)), type_(type), promise_(std::move(promise)) {
@@ -35,7 +38,8 @@ void GetSecureValue::loop() {
   if (!encrypted_secure_value_ || !secret_) {
     return;
   }
-  auto *file_manager = G()->file_manager().get_actor_unsafe();
+
+  auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
   auto r_secure_value = decrypt_encrypted_secure_value(file_manager, *secret_, *encrypted_secure_value_);
   if (r_secure_value.is_error()) {
     return on_error(r_secure_value.move_as_error());
@@ -64,11 +68,72 @@ void GetSecureValue::on_result(NetQueryPtr query) {
     return on_error(r_result.move_as_error());
   }
   auto result = r_result.move_as_ok();
+  if (result.empty()) {
+    return on_error(Status::Error(404, "Not Found"));
+  }
   if (result.size() != 1) {
     return on_error(Status::Error(PSLICE() << "Expected vector of size 1 got " << result.size()));
   }
   LOG(ERROR) << to_string(result[0]);
-  encrypted_secure_value_ = get_encrypted_secure_value(G()->file_manager().get_actor_unsafe(), std::move(result[0]));
+  encrypted_secure_value_ =
+      get_encrypted_secure_value(G()->td().get_actor_unsafe()->file_manager_.get(), std::move(result[0]));
+  loop();
+}
+
+GetAllSecureValues::GetAllSecureValues(ActorShared<> parent, std::string password,
+                                       Promise<TdApiAllSecureValues> promise)
+    : parent_(std::move(parent)), password_(std::move(password)), promise_(std::move(promise)) {
+}
+
+void GetAllSecureValues::on_error(Status status) {
+  promise_.set_error(std::move(status));
+  stop();
+}
+
+void GetAllSecureValues::on_secret(Result<secure_storage::Secret> r_secret, bool dummy) {
+  LOG_IF(ERROR, r_secret.is_error()) << r_secret.error();
+  LOG_IF(ERROR, r_secret.is_ok()) << r_secret.ok().get_hash();
+  if (r_secret.is_error()) {
+    return on_error(r_secret.move_as_error());
+  }
+  secret_ = r_secret.move_as_ok();
+  loop();
+}
+
+void GetAllSecureValues::loop() {
+  if (!encrypted_secure_values_ || !secret_) {
+    return;
+  }
+
+  auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
+  auto r_secure_values = decrypt_encrypted_secure_values(file_manager, *secret_, *encrypted_secure_values_);
+  if (r_secure_values.is_error()) {
+    return on_error(r_secure_values.move_as_error());
+  }
+  auto secure_values = transform(r_secure_values.move_as_ok(),
+                                 [](SecureValueWithCredentials &&value) { return std::move(value.value); });
+  promise_.set_result(get_all_passport_data_object(file_manager, std::move(secure_values)));
+  stop();
+}
+
+void GetAllSecureValues::start_up() {
+  auto query = G()->net_query_creator().create(create_storer(telegram_api::account_getAllSecureValues()));
+
+  G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
+
+  send_closure(G()->password_manager(), &PasswordManager::get_secure_secret, password_, optional<int64>(),
+               PromiseCreator::lambda([actor_id = actor_id(this)](Result<secure_storage::Secret> r_secret) {
+                 send_closure(actor_id, &GetAllSecureValues::on_secret, std::move(r_secret), true);
+               }));
+}
+
+void GetAllSecureValues::on_result(NetQueryPtr query) {
+  auto r_result = fetch_result<telegram_api::account_getAllSecureValues>(std::move(query));
+  if (r_result.is_error()) {
+    return on_error(r_result.move_as_error());
+  }
+  encrypted_secure_values_ =
+      get_encrypted_secure_values(G()->td().get_actor_unsafe()->file_manager_.get(), r_result.move_as_ok());
   loop();
 }
 
@@ -188,7 +253,7 @@ void SetSecureValue::loop() {
     if (files_left_to_upload_ != 0) {
       return;
     }
-    auto *file_manager = G()->file_manager().get_actor_unsafe();
+    auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
     auto input_secure_value = get_input_secure_value_object(
         file_manager, encrypt_secure_value(file_manager, *secret_, secure_value_), to_upload_, selfie_);
     auto save_secure_value =
@@ -202,7 +267,7 @@ void SetSecureValue::loop() {
 }
 
 void SetSecureValue::tear_down() {
-  auto *file_manager = G()->file_manager().get_actor_unsafe();
+  auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
   for (auto &file_info : to_upload_) {
     file_manager->upload(file_info.file_id, nullptr, 0, 0);
   }
@@ -215,7 +280,7 @@ void SetSecureValue::on_result(NetQueryPtr query) {
   }
   auto result = r_result.move_as_ok();
   LOG(ERROR) << to_string(result);
-  auto *file_manager = G()->file_manager().get_actor_unsafe();
+  auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
   auto encrypted_secure_value = get_encrypted_secure_value(file_manager, std::move(result));
   if (secure_value_.files.size() != encrypted_secure_value.files.size()) {
     return on_error(Status::Error("Different files count"));
@@ -248,12 +313,12 @@ void SetSecureValue::merge(FileManager *file_manager, FileId file_id, EncryptedS
 
 class GetPassportAuthorizationForm : public NetQueryCallback {
  public:
-  GetPassportAuthorizationForm(ActorShared<> parent, string password, int32 authorization_form_id, int32 bot_id,
+  GetPassportAuthorizationForm(ActorShared<> parent, string password, int32 authorization_form_id, UserId bot_user_id,
                                string scope, string public_key, Promise<TdApiAuthorizationForm> promise)
       : parent_(std::move(parent))
       , password_(std::move(password))
       , authorization_form_id_(authorization_form_id)
-      , bot_id_(bot_id)
+      , bot_user_id_(bot_user_id)
       , scope_(std::move(scope))
       , public_key_(std::move(public_key))
       , promise_(std::move(promise)) {
@@ -263,7 +328,7 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
   ActorShared<> parent_;
   string password_;
   int32 authorization_form_id_;
-  int32 bot_id_;
+  UserId bot_user_id_;
   string scope_;
   string public_key_;
   Promise<TdApiAuthorizationForm> promise_;
@@ -287,7 +352,7 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
 
   void start_up() override {
     auto account_get_authorization_form =
-        telegram_api::account_getAuthorizationForm(bot_id_, std::move(scope_), std::move(public_key_));
+        telegram_api::account_getAuthorizationForm(bot_user_id_.get(), std::move(scope_), std::move(public_key_));
     auto query = G()->net_query_creator().create(create_storer(account_get_authorization_form));
     G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
 
@@ -310,7 +375,7 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
     if (!secret_ || !authorization_form_) {
       return;
     }
-    auto *file_manager = G()->file_manager().get_actor_unsafe();
+    auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
     std::vector<TdApiSecureValue> values;
     auto types = get_secure_value_types(std::move(authorization_form_->required_types_));
     for (auto type : types) {
@@ -353,7 +418,7 @@ void SecureManager::get_secure_value(std::string password, SecureValueType type,
         if (r_secure_value.is_error()) {
           return promise.set_error(r_secure_value.move_as_error());
         }
-        auto *file_manager = G()->file_manager().get_actor_unsafe();
+        auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
         promise.set_value(get_passport_data_object(file_manager, r_secure_value.move_as_ok().value));
       });
   do_get_secure_value(std::move(password), type, std::move(new_promise));
@@ -366,6 +431,12 @@ void SecureManager::do_get_secure_value(std::string password, SecureValueType ty
       .release();
 }
 
+void SecureManager::get_all_secure_values(std::string password, Promise<TdApiAllSecureValues> promise) {
+  refcnt_++;
+  create_actor<GetAllSecureValues>("GetAllSecureValues", actor_shared(), std::move(password), std::move(promise))
+      .release();
+}
+
 void SecureManager::set_secure_value(string password, SecureValue secure_value, Promise<TdApiSecureValue> promise) {
   refcnt_++;
   auto type = secure_value.type;
@@ -374,21 +445,22 @@ void SecureManager::set_secure_value(string password, SecureValue secure_value, 
         if (r_secure_value.is_error()) {
           return promise.set_error(r_secure_value.move_as_error());
         }
-        auto *file_manager = G()->file_manager().get_actor_unsafe();
+        auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
         promise.set_value(get_passport_data_object(file_manager, r_secure_value.move_as_ok().value));
       });
   set_secure_value_queries_[type] = create_actor<SetSecureValue>("SetSecureValue", actor_shared(), std::move(password),
                                                                  std::move(secure_value), std::move(new_promise));
 }
 
-void SecureManager::get_passport_authorization_form(string password, int32 bot_id, string scope, string public_key,
-                                                    string payload, Promise<TdApiAuthorizationForm> promise) {
+void SecureManager::get_passport_authorization_form(string password, UserId bot_user_id, string scope,
+                                                    string public_key, string payload,
+                                                    Promise<TdApiAuthorizationForm> promise) {
   refcnt_++;
   auto authorization_form_id = ++authorization_form_id_;
-  authorization_forms_[authorization_form_id] = AuthorizationForm{bot_id, scope, public_key, payload};
+  authorization_forms_[authorization_form_id] = AuthorizationForm{bot_user_id, scope, public_key, payload};
   create_actor<GetPassportAuthorizationForm>("GetPassportAuthorizationForm", actor_shared(), std::move(password),
-                                             authorization_form_id, bot_id, std::move(scope), std::move(public_key),
-                                             std::move(promise))
+                                             authorization_form_id, bot_user_id, std::move(scope),
+                                             std::move(public_key), std::move(promise))
       .release();
 }
 
@@ -465,7 +537,7 @@ void SecureManager::do_send_passport_authorization_form(int32 authorization_form
   }
 
   auto td_query = telegram_api::account_acceptAuthorization(
-      it->second.bot_id, it->second.scope, it->second.public_key, std::move(hashes),
+      it->second.bot_user_id.get(), it->second.scope, it->second.public_key, std::move(hashes),
       get_secure_credentials_encrypted_object(r_encrypted_credentials.move_as_ok()));
   LOG(ERROR) << to_string(td_query);
   auto query = G()->net_query_creator().create(create_storer(td_query));
@@ -490,12 +562,14 @@ void SecureManager::hangup() {
 void SecureManager::hangup_shared() {
   dec_refcnt();
 }
+
 void SecureManager::dec_refcnt() {
   refcnt_--;
   if (refcnt_ == 0) {
     stop();
   }
 }
+
 void SecureManager::on_result(NetQueryPtr query) {
   auto token = get_link_token();
   container_.extract(token).set_value(std::move(query));
@@ -505,4 +579,5 @@ void SecureManager::send_with_promise(NetQueryPtr query, Promise<NetQueryPtr> pr
   auto id = container_.create(std::move(promise));
   G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, id));
 }
+
 }  // namespace td

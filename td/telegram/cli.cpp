@@ -1078,7 +1078,7 @@ class CliClient final : public Actor {
         recovery_email_address = "";
       }
       send_request(make_tl_object<td_api::setPassword>(password, new_password, new_hint, true, recovery_email_address));
-    } else if (op == "secureid") {
+    } else if (op == "gpaf" || op == "secureid") {
       string password;
       std::tie(password, args) = split(args);
       ChainBufferWriter writer;
@@ -1127,6 +1127,9 @@ class CliClient final : public Actor {
       string passport_data_type;
       std::tie(password, passport_data_type) = split(args);
       send_request(make_tl_object<td_api::getPassportData>(as_passport_data_type(passport_data_type), password));
+    } else if (op == "gapd") {
+      string password = args;
+      send_request(make_tl_object<td_api::getAllPassportData>(password));
     } else if (op == "spd") {
       string password;
       string passport_data_type;

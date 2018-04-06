@@ -751,6 +751,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::getPassportData &request);
 
+  void on_request(uint64 id, td_api::getAllPassportData &request);
+
   void on_request(uint64 id, td_api::setPassportData &request);
 
   void on_request(uint64 id, const td_api::deletePassportData &request);

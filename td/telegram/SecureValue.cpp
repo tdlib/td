@@ -7,14 +7,17 @@
 #include "td/telegram/SecureValue.h"
 
 #include "td/telegram/files/FileManager.h"
+
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/telegram_api.hpp"
 
+#include "td/utils/base64.h"
+#include "td/utils/JsonBuilder.h"
 #include "td/utils/misc.h"
 #include "td/utils/overloaded.h"
-#include "td/utils/JsonBuilder.h"
-#include "td/utils/base64.h"
+
+#include <tuple>
 
 namespace td {
 
@@ -157,8 +160,8 @@ bool operator!=(const EncryptedSecureFile &lhs, const EncryptedSecureFile &rhs) 
   return !(lhs == rhs);
 }
 
-EncryptedSecureFile get_secure_file(FileManager *file_manager,
-                                    tl_object_ptr<telegram_api::SecureFile> &&secure_file_ptr) {
+EncryptedSecureFile get_encrypted_secure_file(FileManager *file_manager,
+                                              tl_object_ptr<telegram_api::SecureFile> &&secure_file_ptr) {
   CHECK(secure_file_ptr != nullptr);
   EncryptedSecureFile result;
   switch (secure_file_ptr->get_id()) {
@@ -184,12 +187,12 @@ EncryptedSecureFile get_secure_file(FileManager *file_manager,
   return result;
 }
 
-vector<EncryptedSecureFile> get_secure_files(FileManager *file_manager,
-                                             vector<tl_object_ptr<telegram_api::SecureFile>> &&secure_files) {
+vector<EncryptedSecureFile> get_encrypted_secure_files(FileManager *file_manager,
+                                                       vector<tl_object_ptr<telegram_api::SecureFile>> &&secure_files) {
   vector<EncryptedSecureFile> results;
   results.reserve(secure_files.size());
   for (auto &secure_file : secure_files) {
-    auto result = get_secure_file(file_manager, std::move(secure_file));
+    auto result = get_encrypted_secure_file(file_manager, std::move(secure_file));
     if (result.file_id.is_valid()) {
       results.push_back(std::move(result));
     }
@@ -250,7 +253,7 @@ bool operator!=(const EncryptedSecureData &lhs, const EncryptedSecureData &rhs) 
   return !(lhs == rhs);
 }
 
-EncryptedSecureData get_secure_data(tl_object_ptr<telegram_api::secureData> &&secure_data) {
+EncryptedSecureData get_encrypted_secure_data(tl_object_ptr<telegram_api::secureData> &&secure_data) {
   CHECK(secure_data != nullptr);
   EncryptedSecureData result;
   result.data = secure_data->data_.as_slice().str();
@@ -292,11 +295,11 @@ EncryptedSecureValue get_encrypted_secure_value(FileManager *file_manager,
     }
   }
   if (secure_value->data_ != nullptr) {
-    result.data = get_secure_data(std::move(secure_value->data_));
+    result.data = get_encrypted_secure_data(std::move(secure_value->data_));
   }
-  result.files = get_secure_files(file_manager, std::move(secure_value->files_));
+  result.files = get_encrypted_secure_files(file_manager, std::move(secure_value->files_));
   if (secure_value->selfie_ != nullptr) {
-    result.selfie = get_secure_file(file_manager, std::move(secure_value->selfie_));
+    result.selfie = get_encrypted_secure_file(file_manager, std::move(secure_value->selfie_));
   }
   result.hash = secure_value->hash_.as_slice().str();
   return result;
@@ -369,7 +372,7 @@ telegram_api::object_ptr<telegram_api::secureCredentialsEncrypted> get_secure_cr
       BufferSlice(credentials.data), BufferSlice(credentials.hash), BufferSlice(credentials.encrypted_secret));
 }
 
-EncryptedSecureCredentials get_secure_credentials(
+EncryptedSecureCredentials get_encrypted_secure_credentials(
     tl_object_ptr<telegram_api::secureCredentialsEncrypted> &&credentials) {
   CHECK(credentials != nullptr);
   EncryptedSecureCredentials result;
@@ -419,6 +422,12 @@ td_api::object_ptr<td_api::passportData> get_passport_data_object(FileManager *f
                                                    std::move(files), std::move(selfie));
 }
 
+td_api::object_ptr<td_api::allPassportData> get_all_passport_data_object(FileManager *file_manager,
+                                                                         const vector<SecureValue> &value) {
+  return td_api::make_object<td_api::allPassportData>(transform(
+      value, [file_manager](const SecureValue &value) { return get_passport_data_object(file_manager, value); }));
+}
+
 Result<std::pair<FileId, SecureFileCredentials>> decrypt_secure_file(FileManager *file_manager,
                                                                      const secure_storage::Secret &master_secret,
                                                                      const EncryptedSecureFile &secure_file) {
@@ -447,6 +456,7 @@ Result<std::pair<vector<FileId>, vector<SecureFileCredentials>>> decrypt_secure_
 
   return std::make_pair(std::move(res), std::move(credentials));
 }
+
 Result<std::pair<string, SecureDataCredentials>> decrypt_secure_data(const secure_storage::Secret &master_secret,
                                                                      const EncryptedSecureData &secure_data) {
   TRY_RESULT(hash, secure_storage::ValueHash::create(secure_data.hash));
@@ -487,6 +497,19 @@ Result<SecureValueWithCredentials> decrypt_encrypted_secure_value(FileManager *f
     }
   }
   return SecureValueWithCredentials{std::move(res), std::move(res_credentials)};
+}
+
+Result<vector<SecureValueWithCredentials>> decrypt_encrypted_secure_values(
+    FileManager *file_manager, const secure_storage::Secret &secret,
+    const vector<EncryptedSecureValue> &encrypted_secure_values) {
+  vector<SecureValueWithCredentials> result;
+  result.reserve(encrypted_secure_values.size());
+  for (auto &encrypted_secure_value : encrypted_secure_values) {
+    TRY_RESULT(secure_value_with_credentials,
+               decrypt_encrypted_secure_value(file_manager, secret, encrypted_secure_value));
+    result.push_back(std::move(secure_value_with_credentials));
+  }
+  return std::move(result);
 }
 
 EncryptedSecureFile encrypt_secure_file(FileManager *file_manager, const secure_storage::Secret &master_secret,
@@ -560,7 +583,7 @@ EncryptedSecureValue encrypt_secure_value(FileManager *file_manager, const secur
 template <class T>
 class AsJsonable : public Jsonable {
  public:
-  AsJsonable(const T &value) : value_(value) {
+  explicit AsJsonable(const T &value) : value_(value) {
   }
   void store(JsonValueScope *scope) const {
     *scope + value_;
@@ -630,9 +653,9 @@ Slice secure_value_type_as_slice(SecureValueType type) {
     case SecureValueType::RentalAgreement:
       return "rental_agreement";
     case SecureValueType::PhoneNumber:
-      return "phone_number";
+      return "phone";
     case SecureValueType::EmailAddress:
-      return "email_address";
+      return "email";
     default:
     case SecureValueType::None:
       UNREACHABLE();
@@ -649,10 +672,10 @@ JsonScope &operator+(JsonValueScope &scope, const std::vector<SecureValueCredent
 }
 
 JsonScope &operator+(JsonValueScope &scope,
-                     const std::pair<const std::vector<SecureValueCredentials> &, const Slice &> &credentials) {
+                     const std::tuple<const std::vector<SecureValueCredentials> &, const Slice &> &credentials) {
   auto object = scope.enter_object();
-  object << ctie("secure_data", as_jsonable(credentials.first));
-  object << ctie("payload", credentials.second);
+  object << ctie("secure_data", as_jsonable(std::get<0>(credentials)));
+  object << ctie("payload", std::get<1>(credentials));
   return scope;
 }
 
@@ -665,7 +688,7 @@ Result<EncryptedSecureCredentials> encrypted_credentials(std::vector<SecureValue
   auto encrypted_value = secure_storage::encrypt_value(secret, encoded_credentials).move_as_ok();
   EncryptedSecureCredentials res;
   res.data = encrypted_value.data.as_slice().str();
-  res.hash = encrypted_value.data.as_slice().str();
+  res.hash = encrypted_value.hash.as_slice().str();
   TRY_RESULT(encrypted_secret, rsa_encrypt_pkcs1_oaep(public_key, secret.as_slice()));
   res.encrypted_secret = encrypted_secret.as_slice().str();
   return res;

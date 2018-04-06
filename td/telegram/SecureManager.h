@@ -5,19 +5,24 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
+
 #include "td/actor/actor.h"
 
+#include "td/telegram/files/FileManager.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/SecureValue.h"
-#include "td/telegram/files/FileManager.h"
+#include "td/telegram/UserId.h"
 
 #include "td/telegram/td_api.h"
 
 #include "td/utils/optional.h"
 
 namespace td {
+
 using TdApiSecureValue = td_api::object_ptr<td_api::passportData>;
+using TdApiAllSecureValues = td_api::object_ptr<td_api::allPassportData>;
 using TdApiAuthorizationForm = td_api::object_ptr<td_api::passportAuthorizationForm>;
+
 class GetSecureValue : public NetQueryCallback {
  public:
   GetSecureValue(ActorShared<> parent, std::string password, SecureValueType type,
@@ -29,6 +34,25 @@ class GetSecureValue : public NetQueryCallback {
   SecureValueType type_;
   Promise<SecureValueWithCredentials> promise_;
   optional<EncryptedSecureValue> encrypted_secure_value_;
+  optional<secure_storage::Secret> secret_;
+
+  void on_error(Status status);
+  void on_secret(Result<secure_storage::Secret> r_secret, bool dummy);
+  void loop() override;
+  void start_up() override;
+
+  void on_result(NetQueryPtr query) override;
+};
+
+class GetAllSecureValues : public NetQueryCallback {
+ public:
+  GetAllSecureValues(ActorShared<> parent, std::string password, Promise<TdApiAllSecureValues> promise);
+
+ private:
+  ActorShared<> parent_;
+  string password_;
+  Promise<TdApiAllSecureValues> promise_;
+  optional<vector<EncryptedSecureValue>> encrypted_secure_values_;
   optional<secure_storage::Secret> secret_;
 
   void on_error(Status status);
@@ -91,13 +115,14 @@ class SetSecureValue : public NetQueryCallback {
 
 class SecureManager : public NetQueryCallback {
  public:
-  SecureManager(ActorShared<> parent);
+  explicit SecureManager(ActorShared<> parent);
 
   void get_secure_value(std::string password, SecureValueType type, Promise<TdApiSecureValue> promise);
+  void get_all_secure_values(std::string password, Promise<TdApiAllSecureValues> promise);
   void set_secure_value(string password, SecureValue secure_value, Promise<TdApiSecureValue> promise);
 
-  void get_passport_authorization_form(string password, int32 bot_id, string scope, string public_key, string payload,
-                                       Promise<TdApiAuthorizationForm> promise);
+  void get_passport_authorization_form(string password, UserId bot_user_id, string scope, string public_key,
+                                       string payload, Promise<TdApiAuthorizationForm> promise);
   void send_passport_authorization_form(string password, int32 authorization_form_id,
                                         std::vector<SecureValueType> types, Promise<> promise);
 
@@ -107,7 +132,7 @@ class SecureManager : public NetQueryCallback {
   std::map<SecureValueType, ActorOwn<>> set_secure_value_queries_;
 
   struct AuthorizationForm {
-    int32 bot_id;
+    UserId bot_user_id;
     string scope;
     string public_key;
     string payload;
@@ -127,4 +152,5 @@ class SecureManager : public NetQueryCallback {
   Container<Promise<NetQueryPtr>> container_;
   void send_with_promise(NetQueryPtr query, Promise<NetQueryPtr> promise);
 };
+
 }  // namespace td

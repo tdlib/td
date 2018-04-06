@@ -6829,12 +6829,21 @@ void Td::on_request(uint64 id, td_api::getPassportData &request) {
   CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.password_);
-  CREATE_REQUEST_PROMISE(promise);
   if (request.type_ == nullptr) {
-    return promise.set_error(Status::Error(400, "Type must not be empty"));
+    return send_error_raw(id, 400, "Type must not be empty");
   }
+  CREATE_REQUEST_PROMISE(promise);
   send_closure(secure_manager_, &SecureManager::get_secure_value, std::move(request.password_),
                get_secure_value_type_td_api(std::move(request.type_)), std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::getAllPassportData &request) {
+  CHECK_AUTH();
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.password_);
+  CREATE_REQUEST_PROMISE(promise);
+  send_closure(secure_manager_, &SecureManager::get_all_secure_values, std::move(request.password_),
+               std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setPassportData &request) {
@@ -6903,8 +6912,12 @@ void Td::on_request(uint64 id, td_api::getPassportAuthorizationForm &request) {
   CLEAN_INPUT_STRING(request.public_key_);
   CLEAN_INPUT_STRING(request.scope_);
   CLEAN_INPUT_STRING(request.payload_);
+  UserId bot_user_id(request.bot_user_id_);
+  if (!bot_user_id.is_valid()) {
+    return send_error_raw(id, 400, "Bot user identifier invalid");
+  }
   CREATE_REQUEST_PROMISE(promise);
-  send_closure(secure_manager_, &SecureManager::get_passport_authorization_form, request.password_, request.bot_id_,
+  send_closure(secure_manager_, &SecureManager::get_passport_authorization_form, request.password_, bot_user_id,
                request.scope_, request.public_key_, request.payload_, std::move(promise));
 }
 
