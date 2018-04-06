@@ -488,9 +488,8 @@ vector<SecureFile> encrypt_secure_files(FileManager *file_manager, const secure_
 }
 
 SecureData encrypt_secure_data(const secure_storage::Secret &master_secret, Slice data, string &to_hash) {
-  namespace ss = secure_storage;
-  auto secret = ss::Secret::create_new();
-  auto encrypted = ss::encrypt_value(secret, data).move_as_ok();
+  auto secret = secure_storage::Secret::create_new();
+  auto encrypted = encrypt_value(secret, data).move_as_ok();
   SecureData res;
   res.encrypted_secret =
       secret.encrypt(PSLICE() << master_secret.as_slice() << encrypted.hash.as_slice()).as_slice().str();
@@ -503,21 +502,20 @@ SecureData encrypt_secure_data(const secure_storage::Secret &master_secret, Slic
 
 EncryptedSecureValue encrypt_secure_value(FileManager *file_manager, const secure_storage::Secret &master_secret,
                                           const SecureValue &secure_value) {
-  namespace ss = secure_storage;
   EncryptedSecureValue res;
   res.type = secure_value.type;
   switch (res.type) {
     case SecureValueType::EmailAddress:
     case SecureValueType::PhoneNumber:
       res.data = SecureData{secure_value.data, "", ""};
-      res.hash = ss::calc_value_hash(secure_value.data).as_slice().str();
+      res.hash = secure_storage::calc_value_hash(secure_value.data).as_slice().str();
       break;
     default: {
       string to_hash;
       res.data = encrypt_secure_data(master_secret, secure_value.data, to_hash);
       res.files = encrypt_secure_files(file_manager, master_secret, secure_value.files, to_hash);
       res.selfie = encrypt_secure_file(file_manager, master_secret, secure_value.selfie, to_hash);
-      res.hash = ss::calc_value_hash(to_hash).as_slice().str();
+      res.hash = secure_storage::calc_value_hash(to_hash).as_slice().str();
       break;
     }
   }

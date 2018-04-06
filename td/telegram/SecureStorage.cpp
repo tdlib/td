@@ -35,7 +35,7 @@ AesCbcState calc_aes_cbc_state(Slice seed) {
 }
 
 template <class F>
-Status data_view_for_each(DataView &data, F &&f) {
+static Status data_view_for_each(DataView &data, F &&f) {
   const int64 step = 128 << 10;
   for (int64 i = 0, size = data.size(); i < size; i += step) {
     TRY_RESULT(bytes, data.pread(i, min(step, size - i)));
@@ -159,7 +159,7 @@ Result<Secret> Secret::create(Slice secret) {
   }
   uint32 checksum = secret_checksum(secret);
   if (checksum != 0) {
-    return Status::Error(PSLICE() << "Wrong cheksum " << checksum);
+    return Status::Error(PSLICE() << "Wrong checksum " << checksum);
   }
   UInt256 res;
   td::as_slice(res).copy_from(secret);
@@ -206,7 +206,7 @@ Secret::Secret(UInt256 secret, int64 hash) : secret_(secret), hash_(hash) {
 //EncryptedSecret
 Result<EncryptedSecret> EncryptedSecret::create(Slice encrypted_secret) {
   if (encrypted_secret.size() != 32) {
-    return Status::Error("Wrong encrypte secret size");
+    return Status::Error("Wrong encrypted secret size");
   }
   UInt256 res;
   td::as_slice(res).copy_from(encrypted_secret);
@@ -242,6 +242,9 @@ Result<BufferSlice> Decryptor::append(BufferSlice data) {
   if (!skipped_prefix_) {
     to_skip_ = data.as_slice().ubegin()[0];
     size_t to_skip = min(to_skip_, data.size());
+    if (to_skip_ > data.size()) {
+      to_skip_ = 0;  // to fail final to_skip check
+    }
     skipped_prefix_ = true;
     data = data.from_slice(data.as_slice().remove_prefix(to_skip));
   }

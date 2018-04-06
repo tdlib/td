@@ -196,29 +196,27 @@ void PasswordManager::get_full_state(string password, Promise<PasswordFullState>
 
 void PasswordManager::do_get_full_state(string password, PasswordState state, Promise<PasswordFullState> promise) {
   auto current_salt = state.current_salt;
-  send_with_promise(G()->net_query_creator().create(create_storer(
-                        telegram_api::account_getPasswordSettings(calc_password_hash(password, current_salt)))),
-                    PromiseCreator::lambda([promise = std::move(promise), state = std::move(state),
-                                            password](Result<NetQueryPtr> r_query) mutable {
-                      promise.set_result([&]() -> Result<PasswordFullState> {
-                        TRY_RESULT(query, std::move(r_query));
-                        TRY_RESULT(result, fetch_result<telegram_api::account_getPasswordSettings>(std::move(query)));
-                        PasswordPrivateState private_state;
-                        private_state.email = result->email_;
+  send_with_promise(
+      G()->net_query_creator().create(
+          create_storer(telegram_api::account_getPasswordSettings(calc_password_hash(password, current_salt)))),
+      PromiseCreator::lambda([promise = std::move(promise), state = std::move(state),
+                              password](Result<NetQueryPtr> r_query) mutable {
+        promise.set_result([&]() -> Result<PasswordFullState> {
+          TRY_RESULT(query, std::move(r_query));
+          TRY_RESULT(result, fetch_result<telegram_api::account_getPasswordSettings>(std::move(query)));
+          PasswordPrivateState private_state;
+          private_state.email = result->email_;
 
-                        namespace ss = secure_storage;
-                        auto r_secret = [&]() -> Result<ss::Secret> {
-                          TRY_RESULT(encrypted_secret, ss::EncryptedSecret::create(result->secure_secret_.as_slice()));
-                          return encrypted_secret.decrypt(PSLICE() << result->secure_salt_.as_slice() << password
-                                                                   << result->secure_salt_.as_slice());
-                        }();
+          auto r_secret = [&]() -> Result<secure_storage::Secret> {
+            TRY_RESULT(encrypted_secret, secure_storage::EncryptedSecret::create(result->secure_secret_.as_slice()));
+            return encrypted_secret.decrypt(PSLICE() << result->secure_salt_.as_slice() << password
+                                                     << result->secure_salt_.as_slice());
+          }();
 
-                        LOG_IF(ERROR, r_secret.is_error()) << r_secret.error();
-                        LOG_IF(ERROR, r_secret.is_ok()) << "HAS SECRET";
-                        private_state.secret = std::move(r_secret);
-                        return PasswordFullState{std::move(state), std::move(private_state)};
-                      }());
-                    }));
+          private_state.secret = std::move(r_secret);
+          return PasswordFullState{std::move(state), std::move(private_state)};
+        }());
+      }));
 }
 
 void PasswordManager::get_recovery_email_address(string password,

@@ -130,7 +130,7 @@ td_api::object_ptr<td_api::encryptedCredentials> get_encrypted_credentials_objec
 
 class SecureValue {
  public:
-  SecureValueType type;
+  SecureValueType type = SecureValueType::None
   string data;
   vector<FileId> files;
   FileId selfie;
