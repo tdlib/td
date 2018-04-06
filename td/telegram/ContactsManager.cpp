@@ -5170,7 +5170,11 @@ void ContactsManager::save_user_to_database_impl(User *u, UserId user_id, string
 void ContactsManager::on_save_user_to_database(UserId user_id, bool success) {
   User *u = get_user(user_id);
   CHECK(u != nullptr);
-  CHECK(u->is_being_saved);
+  CHECK(u->is_being_saved) << user_id << " " << u->is_saved << " " << u->is_status_saved << " "
+                           << load_user_from_database_queries_.count(user_id) << " " << u->is_received << " "
+                           << u->is_deleted << " " << u->is_bot << " " << u->is_changed << " " << u->need_send_update
+                           << " " << u->is_status_changed << " " << u->is_name_changed << " " << u->is_username_changed
+                           << " " << u->is_photo_changed << " " << u->is_outbound_link_changed;
   CHECK(load_user_from_database_queries_.count(user_id) == 0);
   u->is_being_saved = false;
 
