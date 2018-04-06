@@ -10,8 +10,8 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/telegram/DialogId.h"
-#include "td/telegram/SecureStorage.h"
 #include "td/telegram/net/DcId.h"
+#include "td/telegram/SecureStorage.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
@@ -26,7 +26,6 @@
 #include "td/utils/tl_storers.h"
 #include "td/utils/Variant.h"
 
-#include <cstring>
 #include <tuple>
 
 namespace td {
@@ -171,7 +170,7 @@ struct FileEncryptionKey {
     MutableSlice(key_iv_).remove_suffix(key.size()).copy_from(iv);
   }
 
-  FileEncryptionKey(const secure_storage::Secret &secret) : type_(Type::Secure) {
+  explicit FileEncryptionKey(const secure_storage::Secret &secret) : type_(Type::Secure) {
     key_iv_ = secret.as_slice().str();
   }
 

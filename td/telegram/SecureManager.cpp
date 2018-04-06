@@ -12,6 +12,13 @@
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Td.h"
 
+#include "td/utils/buffer.h"
+#include "td/utils/format.h"
+#include "td/utils/logging.h"
+#include "td/utils/misc.h"
+
+#include <mutex>
+
 namespace td {
 
 GetSecureValue::GetSecureValue(ActorShared<> parent, std::string password, SecureValueType type,
@@ -207,7 +214,7 @@ void SetSecureValue::start_up() {
                PromiseCreator::lambda([actor_id = actor_id(this)](Result<secure_storage::Secret> r_secret) {
                  send_closure(actor_id, &SetSecureValue::on_secret, std::move(r_secret), true);
                }));
-  auto *file_manager = G()->file_manager().get_actor_unsafe();
+  auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
 
   // Remove duplicated files
   for (auto it = secure_value_.files.begin(); it != secure_value_.files.end();) {

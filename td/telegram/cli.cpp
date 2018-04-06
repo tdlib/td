@@ -15,6 +15,7 @@
 
 #include "memprof/memprof.h"
 
+#include "td/net/HttpQuery.h"
 #include "td/net/HttpReader.h"
 
 #include "td/utils/buffer.h"

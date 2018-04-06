@@ -6,6 +6,7 @@
 //
 #include "td/telegram/SecureValue.h"
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileManager.h"
 
 #include "td/telegram/td_api.h"
@@ -13,7 +14,10 @@
 #include "td/telegram/telegram_api.hpp"
 
 #include "td/utils/base64.h"
+#include "td/utils/buffer.h"
+#include "td/utils/crypto.h"
 #include "td/utils/JsonBuilder.h"
+#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/overloaded.h"
 
@@ -398,13 +402,13 @@ Result<SecureValue> get_secure_value(FileManager *file_manager,
   res.type = get_secure_value_type_td_api(std::move(input_passport_data->type_));
   res.data = std::move(input_passport_data->data_);
   for (auto &file : input_passport_data->files_) {
-    TRY_RESULT(file_id, file_manager->get_input_file_id(FileType::Secure, std::move(file), DialogId{}, false, false,
+    TRY_RESULT(file_id, file_manager->get_input_file_id(FileType::Secure, std::move(file), DialogId(), false, false,
                                                         false, true));
     res.files.push_back(file_id);
   }
   if (input_passport_data->selfie_) {
     TRY_RESULT(file_id, file_manager->get_input_file_id(FileType::Secure, std::move(input_passport_data->selfie_),
-                                                        DialogId{}, false, false, false, true));
+                                                        DialogId(), false, false, false, true));
     res.selfie = file_id;
   }
   return res;

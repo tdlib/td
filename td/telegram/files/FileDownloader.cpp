@@ -18,6 +18,7 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/port/Stat.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Slice.h"
 
