@@ -10467,7 +10467,6 @@ void MessagesManager::on_get_dialogs(vector<tl_object_ptr<telegram_api::dialog>>
         FullMessageId full_message_id(dialog_id, last_message_id);
         auto it = full_message_id_to_dialog_date.find(full_message_id);
         if (it == full_message_id_to_dialog_date.end()) {
-          // can happen for bots, TODO disable getChats for bots
           LOG(ERROR) << "Last " << last_message_id << " in " << dialog_id << " not found";
           return promise.set_error(Status::Error(500, "Wrong query result returned: last message not found"));
         }
@@ -10513,6 +10512,10 @@ void MessagesManager::on_get_dialogs(vector<tl_object_ptr<telegram_api::dialog>>
     }
 
     DialogId dialog_id(dialog->peer_);
+    if (std::find(added_dialog_ids.begin(), added_dialog_ids.end(), dialog_id) != added_dialog_ids.end()) {
+      LOG(ERROR) << "Receive " << dialog_id << " twice in result of getChats with total_count = " << total_count;
+      continue;
+    }
     added_dialog_ids.push_back(dialog_id);
     Dialog *d = get_dialog_force(dialog_id);
     bool need_update_dialog_pos = false;
@@ -10553,15 +10556,20 @@ void MessagesManager::on_get_dialogs(vector<tl_object_ptr<telegram_api::dialog>>
       bool has_pts = (dialog->flags_ & DIALOG_FLAG_HAS_PTS) != 0;
       if (last_message_id.is_valid()) {
         FullMessageId full_message_id(dialog_id, last_message_id);
-        auto added_full_message_id = on_get_message(std::move(full_message_id_to_message[full_message_id]), false,
-                                                    has_pts, false, false, "get chats");
-        CHECK(d->last_new_message_id == MessageId());
-        set_dialog_last_new_message_id(d, full_message_id.get_message_id(), "on_get_dialogs");
-        if (d->last_new_message_id.get() > d->last_message_id.get() &&
-            added_full_message_id.get_message_id().is_valid()) {
-          CHECK(added_full_message_id.get_message_id() == d->last_new_message_id);
-          set_dialog_last_message_id(d, d->last_new_message_id, "on_get_dialogs");
-          send_update_chat_last_message(d, "on_get_dialogs");
+        auto last_message = std::move(full_message_id_to_message[full_message_id]);
+        if (last_message == nullptr) {
+          LOG(ERROR) << "Last " << full_message_id << " not found";
+        } else {
+          auto added_full_message_id =
+              on_get_message(std::move(last_message), false, has_pts, false, false, "get chats");
+          CHECK(d->last_new_message_id == MessageId());
+          set_dialog_last_new_message_id(d, last_message_id, "on_get_dialogs");
+          if (d->last_new_message_id.get() > d->last_message_id.get() &&
+              added_full_message_id.get_message_id().is_valid()) {
+            CHECK(added_full_message_id.get_message_id() == d->last_new_message_id);
+            set_dialog_last_message_id(d, d->last_new_message_id, "on_get_dialogs");
+            send_update_chat_last_message(d, "on_get_dialogs");
+          }
         }
       }
 
