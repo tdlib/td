@@ -19,6 +19,8 @@
 
 #include <mutex>
 
+#include "td/utils/base64.h"
+
 namespace td {
 
 GetSecureValue::GetSecureValue(ActorShared<> parent, std::string password, SecureValueType type,

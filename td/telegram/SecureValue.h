@@ -139,12 +139,12 @@ td_api::object_ptr<td_api::encryptedCredentials> get_encrypted_credentials_objec
     const EncryptedSecureCredentials &credentials);
 
 struct SecureDataCredentials {
-  string hash;
   string secret;
+  string hash;
 };
 struct SecureFileCredentials {
-  string hash;
   string secret;
+  string hash;
 };
 
 struct SecureValueCredentials {
