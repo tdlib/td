@@ -4,6 +4,9 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
+#include "td/utils/benchmark.h"
+#include "td/utils/logging.h"
+
 #include <cstdio>
 #include <fstream>
 #include <iostream>
@@ -13,9 +16,6 @@
 #include <string>
 
 #include <unistd.h>
-
-#include "td/utils/benchmark.h"
-#include "td/utils/logging.h"
 
 std::string create_tmp_file() {
 #if TD_ANDROID
@@ -75,7 +75,7 @@ class FILEWriteBench : public td::Benchmark {
 
  public:
   std::string get_description() const override {
-    return "fprintf (to file, no buf, no flush)";
+    return "std::fprintf (to file, no buf, no flush)";
   }
 
   void start_up() override {

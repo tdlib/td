@@ -92,6 +92,29 @@ class GetUpdatesStateQuery : public Td::ResultHandler {
   }
 };
 
+class PingServerQuery : public Td::ResultHandler {
+ public:
+  void send() {
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::updates_getState())));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::updates_getState>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto state = result_ptr.move_as_ok();
+    CHECK(state->get_id() == telegram_api::updates_state::ID);
+    td->updates_manager_->on_server_pong(std::move(state));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    status.ignore();
+    td->updates_manager_->on_server_pong(nullptr);
+  }
+};
+
 class GetDifferenceQuery : public Td::ResultHandler {
  public:
   void send() {
@@ -306,6 +329,15 @@ void UpdatesManager::set_date(int32 date, bool from_update, string date_source) 
         return;
       }
     }
+    auto now = G()->unix_time();
+    if (date_ > now + 1) {
+      LOG(ERROR) << "Receive wrong by " << (date_ - now) << " date = " << date_ << " from " << date_source
+                 << ". Now = " << now;
+      date_ = now;
+      if (date_ <= date) {
+        return;
+      }
+    }
 
     date_ = date;
     date_source_ = std::move(date_source);
@@ -329,7 +361,7 @@ bool UpdatesManager::is_acceptable_message_entities(
     if (entity->get_id() == telegram_api::messageEntityMentionName::ID) {
       auto entity_mention_name = static_cast<const telegram_api::messageEntityMentionName *>(entity.get());
       UserId user_id(entity_mention_name->user_id_);
-      if (!td_->contacts_manager_->have_user(user_id)) {
+      if (!td_->contacts_manager_->have_user(user_id) || !td_->contacts_manager_->have_input_user(user_id)) {
         return false;
       }
     }
@@ -446,6 +478,7 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionChatEditPhoto::ID:
         case telegram_api::messageActionChatDeletePhoto::ID:
         case telegram_api::messageActionCustomAction::ID:
+        case telegram_api::messageActionBotAllowed::ID:
         case telegram_api::messageActionHistoryClear::ID:
         case telegram_api::messageActionChannelCreate::ID:
         case telegram_api::messageActionPinMessage::ID:
@@ -804,6 +837,52 @@ vector<const tl_object_ptr<telegram_api::Message> *> UpdatesManager::get_new_mes
   return messages;
 }
 
+vector<DialogId> UpdatesManager::get_chats(const telegram_api::Updates *updates_ptr) {
+  const vector<tl_object_ptr<telegram_api::Chat>> *chats = nullptr;
+  switch (updates_ptr->get_id()) {
+    case telegram_api::updatesTooLong::ID:
+    case telegram_api::updateShortMessage::ID:
+    case telegram_api::updateShortChatMessage::ID:
+    case telegram_api::updateShort::ID:
+    case telegram_api::updateShortSentMessage::ID:
+      LOG(ERROR) << "Receive " << oneline(to_string(*updates_ptr)) << " instead of updates";
+      break;
+    case telegram_api::updatesCombined::ID: {
+      chats = &static_cast<const telegram_api::updatesCombined *>(updates_ptr)->chats_;
+      break;
+    }
+    case telegram_api::updates::ID: {
+      chats = &static_cast<const telegram_api::updates *>(updates_ptr)->chats_;
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+
+  if (chats == nullptr) {
+    return {};
+  }
+
+  vector<DialogId> dialog_ids;
+  dialog_ids.reserve(chats->size());
+  for (const auto &chat : *chats) {
+    auto chat_id = ContactsManager::get_chat_id(chat);
+    if (chat_id.is_valid()) {
+      dialog_ids.push_back(DialogId(chat_id));
+      continue;
+    }
+
+    auto channel_id = ContactsManager::get_channel_id(chat);
+    if (channel_id.is_valid()) {
+      dialog_ids.push_back(DialogId(channel_id));
+      continue;
+    }
+
+    LOG(ERROR) << "Can't find id of " << oneline(to_string(chat));
+  }
+  return dialog_ids;
+}
+
 void UpdatesManager::init_state() {
   if (!td_->auth_manager_->is_authorized()) {
     return;
@@ -830,6 +909,17 @@ void UpdatesManager::init_state() {
   send_closure(td_->secret_chats_manager_, &SecretChatsManager::init_qts, qts_);
 
   get_difference("init_state");
+}
+
+void UpdatesManager::ping_server() {
+  td_->create_handler<PingServerQuery>()->send();
+}
+
+void UpdatesManager::on_server_pong(tl_object_ptr<telegram_api::updates_state> &&state) {
+  LOG(INFO) << "Receive " << oneline(to_string(state));
+  if (state == nullptr || state->pts_ > get_pts() || state->seq_ > seq_) {
+    get_difference("on server pong");
+  }
 }
 
 void UpdatesManager::process_get_difference_updates(
@@ -1407,7 +1497,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelWebPage>
                                                      update->pts_count_, "on_updateChannelWebPage");
 }
 
-tl_object_ptr<td_api::ChatAction> UpdatesManager::convertSendMessageAction(
+tl_object_ptr<td_api::ChatAction> UpdatesManager::convert_send_message_action(
     tl_object_ptr<telegram_api::SendMessageAction> action) {
   auto fix_progress = [](int32 progress) { return progress <= 0 || progress > 100 ? 0 : progress; };
 
@@ -1450,6 +1540,7 @@ tl_object_ptr<td_api::ChatAction> UpdatesManager::convertSendMessageAction(
     }
     default:
       UNREACHABLE();
+      return make_tl_object<td_api::chatActionTyping>();
   }
 }
 
@@ -1464,9 +1555,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserTyping> upd
     LOG(DEBUG) << "Ignore user typing in unknown " << dialog_id;
     return;
   }
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateUserChatAction>(dialog_id.get(), user_id.get(),
-                                                            convertSendMessageAction(std::move(update->action_))));
+  td_->messages_manager_->on_user_dialog_action(dialog_id, user_id,
+                                                convert_send_message_action(std::move(update->action_)));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatUserTyping> update, bool /*force_apply*/) {
@@ -1485,9 +1575,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatUserTyping>
       return;
     }
   }
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateUserChatAction>(dialog_id.get(), user_id.get(),
-                                                            convertSendMessageAction(std::move(update->action_))));
+  td_->messages_manager_->on_user_dialog_action(dialog_id, user_id,
+                                                convert_send_message_action(std::move(update->action_)));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEncryptedChatTyping> update, bool /*force_apply*/) {
@@ -1500,14 +1589,12 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEncryptedChatTy
   }
 
   UserId user_id = td_->contacts_manager_->get_secret_chat_user_id(secret_chat_id);
-  if (!user_id.is_valid()) {
+  if (!td_->contacts_manager_->have_user_force(user_id)) {
     LOG(DEBUG) << "Ignore secret chat typing of unknown " << user_id;
     return;
   }
 
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateUserChatAction>(dialog_id.get(), user_id.get(),
-                                                            make_tl_object<td_api::chatActionTyping>()));
+  td_->messages_manager_->on_user_dialog_action(dialog_id, user_id, make_tl_object<td_api::chatActionTyping>());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserStatus> update, bool /*force_apply*/) {
@@ -1665,7 +1752,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotShippingQuer
 
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateNewShippingQuery>(
-                   update->query_id_, user_id.get(), update->payload_.as_slice().str(),
+                   update->query_id_, td_->contacts_manager_->get_user_id_object(user_id, "updateNewShippingQuery"),
+                   update->payload_.as_slice().str(),
                    get_shipping_address_object(get_shipping_address(
                        std::move(update->shipping_address_)))));  // TODO use convert_shipping_address
 }
@@ -1677,11 +1765,11 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotPrecheckoutQ
     return;
   }
 
-  send_closure(
-      G()->td(), &Td::send_update,
-      make_tl_object<td_api::updateNewPreCheckoutQuery>(
-          update->query_id_, user_id.get(), update->currency_, update->total_amount_, update->payload_.as_slice().str(),
-          update->shipping_option_id_, get_order_info_object(get_order_info(std::move(update->info_)))));
+  send_closure(G()->td(), &Td::send_update,
+               make_tl_object<td_api::updateNewPreCheckoutQuery>(
+                   update->query_id_, td_->contacts_manager_->get_user_id_object(user_id, "updateNewPreCheckoutQuery"),
+                   update->currency_, update->total_amount_, update->payload_.as_slice().str(),
+                   update->shipping_option_id_, get_order_info_object(get_order_info(std::move(update->info_)))));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotWebhookJSON> update, bool /*force_apply*/) {

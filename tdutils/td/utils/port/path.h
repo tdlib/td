@@ -38,7 +38,7 @@ namespace td {
 Status mkdir(CSlice dir, int32 mode = 0700) TD_WARN_UNUSED_RESULT;
 Status mkpath(CSlice path, int32 mode = 0700) TD_WARN_UNUSED_RESULT;
 Status rename(CSlice from, CSlice to) TD_WARN_UNUSED_RESULT;
-Result<string> realpath(CSlice slice) TD_WARN_UNUSED_RESULT;
+Result<string> realpath(CSlice slice, bool ignore_access_denied = false) TD_WARN_UNUSED_RESULT;
 Status chdir(CSlice dir) TD_WARN_UNUSED_RESULT;
 Status rmdir(CSlice dir) TD_WARN_UNUSED_RESULT;
 Status unlink(CSlice path) TD_WARN_UNUSED_RESULT;
@@ -212,7 +212,11 @@ Status walk_path_dir(const std::wstring &dir_name, Func &&func) {
 
 template <class Func>
 Status walk_path(CSlice path, Func &&func) {
-  TRY_RESULT(wpath, to_wstring(path));
+  Slice path_slice = path;
+  while (!path_slice.empty() && (path_slice.back() == '/' || path_slice.back() == '\\')) {
+    path_slice.remove_suffix(1);
+  }
+  TRY_RESULT(wpath, to_wstring(path_slice));
   return detail::walk_path_dir(wpath.c_str(), func);
 }
 

@@ -24,7 +24,7 @@ void DocumentsManager::store_document(FileId file_id, T &storer) const {
   store(document->file_name, storer);
   store(document->mime_type, storer);
   store(document->thumbnail, storer);
-  store(document->file_id, storer);
+  store(file_id, storer);
 }
 
 template <class T>

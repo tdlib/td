@@ -42,6 +42,7 @@ set(TDACTOR_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/test/actors_main.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/actors_simple.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/actors_workers.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/test/actors_bugs.cpp
   PARENT_SCOPE
 )
 

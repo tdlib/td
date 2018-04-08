@@ -55,7 +55,9 @@ int TD_TL_writer::get_storer_type(const tl::tl_combinator *t, const std::string 
 
 tl::TL_writer::Mode TD_TL_writer::get_parser_mode(int type) const {
   if (tl_name == "td_api") {
+#ifndef TD_ENABLE_JNI  // we need to parse all types in order to implement toString
     return Server;
+#endif
   }
   if (tl_name == "telegram_api") {
     return Client;
@@ -217,7 +219,8 @@ std::string TD_TL_writer::gen_int_const(const tl::tl_tree *tree_c, const std::ve
   return std::string();
 }
 
-std::string TD_TL_writer::gen_constructor_parameter(int field_num, const tl::arg &a, bool is_default) const {
+std::string TD_TL_writer::gen_constructor_parameter(int field_num, const std::string &class_name, const tl::arg &a,
+                                                    bool is_default) const {
   if (is_default) {
     return "";
   }

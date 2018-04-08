@@ -13,12 +13,14 @@
 #include "td/utils/port/RwMutex.h"
 #include "td/utils/tl_helpers.h"
 
+#include <algorithm>
+
 namespace td {
 
 class AuthDataSharedImpl : public AuthDataShared {
  public:
-  AuthDataSharedImpl(DcId dc_id, std::shared_ptr<PublicRsaKeyShared> public_rsa_key)
-      : dc_id_(dc_id), public_rsa_key_(std::move(public_rsa_key)) {
+  AuthDataSharedImpl(DcId dc_id, std::shared_ptr<PublicRsaKeyShared> public_rsa_key, std::shared_ptr<Guard> guard)
+      : dc_id_(dc_id), public_rsa_key_(std::move(public_rsa_key)), guard_(std::move(guard)) {
     log_auth_key(get_auth_key());
   }
 
@@ -87,6 +89,7 @@ class AuthDataSharedImpl : public AuthDataShared {
   DcId dc_id_;
   std::vector<unique_ptr<Listener>> auth_key_listeners_;
   std::shared_ptr<PublicRsaKeyShared> public_rsa_key_;
+  std::shared_ptr<Guard> guard_;
   RwMutex rw_mutex_;
 
   string auth_key_key() {
@@ -99,8 +102,8 @@ class AuthDataSharedImpl : public AuthDataShared {
   void notify() {
     auto lock = rw_mutex_.lock_read();
 
-    auto it = remove_if(auth_key_listeners_.begin(), auth_key_listeners_.end(),
-                        [&](auto &listener) { return !listener->notify(); });
+    auto it = std::remove_if(auth_key_listeners_.begin(), auth_key_listeners_.end(),
+                             [&](auto &listener) { return !listener->notify(); });
     auth_key_listeners_.erase(it, auth_key_listeners_.end());
   }
 
@@ -109,7 +112,8 @@ class AuthDataSharedImpl : public AuthDataShared {
   }
 };
 
-std::shared_ptr<AuthDataShared> AuthDataShared::create(DcId dc_id, std::shared_ptr<PublicRsaKeyShared> public_rsa_key) {
-  return std::make_shared<AuthDataSharedImpl>(dc_id, std::move(public_rsa_key));
+std::shared_ptr<AuthDataShared> AuthDataShared::create(DcId dc_id, std::shared_ptr<PublicRsaKeyShared> public_rsa_key,
+                                                       std::shared_ptr<Guard> guard) {
+  return std::make_shared<AuthDataSharedImpl>(dc_id, std::move(public_rsa_key), std::move(guard));
 }
 }  // namespace td

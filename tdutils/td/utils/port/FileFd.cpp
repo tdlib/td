@@ -8,6 +8,8 @@
 
 #if TD_PORT_WINDOWS
 #include "td/utils/misc.h"  // for narrow_cast
+
+#include "td/utils/port/Stat.h"
 #include "td/utils/port/wstring_convert.h"
 #endif
 
@@ -399,6 +401,13 @@ int64 FileFd::get_size() {
   return stat().size_;
 }
 
+#if TD_PORT_WINDOWS
+static uint64 filetime_to_unix_time_nsec(LONGLONG filetime) {
+  const auto FILETIME_UNIX_TIME_DIFF = 116444736000000000ll;
+  return static_cast<uint64>((filetime - FILETIME_UNIX_TIME_DIFF) * 100);
+}
+#endif
+
 Stat FileFd::stat() {
   CHECK(!empty());
 #if TD_PORT_POSIX
@@ -412,8 +421,8 @@ Stat FileFd::stat() {
     auto error = OS_ERROR("Stat failed");
     LOG(FATAL) << error;
   }
-  res.atime_nsec_ = basic_info.LastAccessTime.QuadPart * 100;
-  res.mtime_nsec_ = basic_info.LastWriteTime.QuadPart * 100;
+  res.atime_nsec_ = filetime_to_unix_time_nsec(basic_info.LastAccessTime.QuadPart);
+  res.mtime_nsec_ = filetime_to_unix_time_nsec(basic_info.LastWriteTime.QuadPart);
   res.is_dir_ = (basic_info.FileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
   res.is_reg_ = true;
 

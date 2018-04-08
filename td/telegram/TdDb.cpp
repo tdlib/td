@@ -36,10 +36,11 @@ Result<EncryptionInfo> check_encryption(string path) {
   Binlog binlog;
   auto status = binlog.init(path, Binlog::Callback());
   if (status.is_error() && status.code() != Binlog::Error::WrongPassword) {
-    return std::move(status);
+    return Status::Error(400, status.message());
   }
   EncryptionInfo info;
   info.is_encrypted = binlog.get_info().wrong_password;
+  binlog.close(false /*need_sync*/).ensure();
   return info;
 }
 
@@ -296,6 +297,7 @@ Status TdDb::init_sqlite(int32 scheduler_id, const TdParameters &parameters, DbK
   }
 
   if (dialog_db_was_created) {
+    binlog_pmc.erase("unread_message_count");
     binlog_pmc.erase("last_server_dialog_date");
   }
   if (db_version == 0) {

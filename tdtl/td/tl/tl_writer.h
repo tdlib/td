@@ -139,8 +139,10 @@ class TL_writer {
   virtual std::string gen_fetch_switch_end() const = 0;
 
   virtual std::string gen_constructor_begin(int fields_num, const std::string &class_name, bool is_default) const = 0;
-  virtual std::string gen_constructor_parameter(int field_num, const arg &a, bool is_default) const = 0;
-  virtual std::string gen_constructor_field_init(int field_num, const arg &a, bool is_default) const = 0;
+  virtual std::string gen_constructor_parameter(int field_num, const std::string &class_name, const arg &a,
+                                                bool is_default) const = 0;
+  virtual std::string gen_constructor_field_init(int field_num, const std::string &class_name, const arg &a,
+                                                 bool is_default) const = 0;
   virtual std::string gen_constructor_end(const tl_combinator *t, int fields_num, bool is_default) const = 0;
 
   virtual std::string gen_additional_function(const std::string &function_name, const tl_combinator *t,

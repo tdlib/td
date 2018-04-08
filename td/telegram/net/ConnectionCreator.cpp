@@ -28,7 +28,9 @@
 #include <algorithm>
 
 namespace td {
+
 namespace detail {
+
 class StatsCallback final : public mtproto::RawConnection::StatsCallback {
  public:
   StatsCallback(std::shared_ptr<NetStatsCallback> net_stats_callback, ActorId<ConnectionCreator> connection_creator,
@@ -63,6 +65,7 @@ class StatsCallback final : public mtproto::RawConnection::StatsCallback {
   size_t hash_;
   DcOptionsSet::Stat *option_stat_;
 };
+
 class PingActor : public Actor {
  public:
   PingActor(std::unique_ptr<mtproto::RawConnection> raw_connection,
@@ -135,33 +138,34 @@ class PingActor : public Actor {
     }
   }
 };
+
 }  // namespace detail
 
 template <class T>
-void parse(Proxy &proxy, T &parser) {
+void Proxy::parse(T &parser) {
   using td::parse;
-  parse(proxy.type_, parser);
-  if (proxy.type() == Proxy::Type::Socks5) {
-    parse(proxy.server_, parser);
-    parse(proxy.port_, parser);
-    parse(proxy.user_, parser);
-    parse(proxy.password_, parser);
+  parse(type_, parser);
+  if (type_ == Proxy::Type::Socks5) {
+    parse(server_, parser);
+    parse(port_, parser);
+    parse(user_, parser);
+    parse(password_, parser);
   } else {
-    CHECK(proxy.type() == Proxy::Type::None);
+    CHECK(type_ == Proxy::Type::None);
   }
 }
 
 template <class T>
-void store(const Proxy &proxy, T &storer) {
+void Proxy::store(T &storer) const {
   using td::store;
-  store(proxy.type_, storer);
-  if (proxy.type() == Proxy::Type::Socks5) {
-    store(proxy.server_, storer);
-    store(proxy.port_, storer);
-    store(proxy.user_, storer);
-    store(proxy.password_, storer);
+  store(type_, storer);
+  if (type_ == Proxy::Type::Socks5) {
+    store(server_, storer);
+    store(port_, storer);
+    store(user_, storer);
+    store(password_, storer);
   } else {
-    CHECK(proxy.type() == Proxy::Type::None);
+    CHECK(type_ == Proxy::Type::None);
   }
 }
 
@@ -199,6 +203,10 @@ void ConnectionCreator::set_proxy(Proxy proxy) {
 }
 
 void ConnectionCreator::set_proxy_impl(Proxy proxy, bool from_db) {
+  if (proxy_ == proxy) {
+    return;
+  }
+
   proxy_ = std::move(proxy);
   send_closure(G()->state_manager(), &StateManager::on_proxy, proxy_.type() != Proxy::Type::None);
 
@@ -348,9 +356,9 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
 
     // Check flood
     auto &flood_control = online_flag_ ? client.flood_control_online : client.flood_control;
-    auto wakeup_at = std::max(flood_control.get_wakeup_at(), client.mtproto_error_flood_control.get_wakeup_at());
+    auto wakeup_at = max(flood_control.get_wakeup_at(), client.mtproto_error_flood_control.get_wakeup_at());
     if (!online_flag_) {
-      wakeup_at = std::max(wakeup_at, client.backoff.get_wakeup_at());
+      wakeup_at = max(wakeup_at, client.backoff.get_wakeup_at());
     }
     if (wakeup_at > Time::now()) {
       return client_set_timeout_at(client, wakeup_at);
@@ -591,7 +599,7 @@ void ConnectionCreator::start_up() {
   }
 
   get_host_by_name_actor_ =
-      create_actor_on_scheduler<GetHostByNameActor>("GetHostByNameActor", G()->get_slow_net_scheduler_id(), 29 * 60, 0);
+      create_actor_on_scheduler<GetHostByNameActor>("GetHostByNameActor", G()->get_gc_scheduler_id(), 29 * 60, 0);
 
   ref_cnt_guard_ = create_reference(-1);
 
@@ -622,11 +630,15 @@ void ConnectionCreator::hangup() {
 
 DcOptions ConnectionCreator::get_default_dc_options(bool is_test) {
   DcOptions res;
-  auto add_ip_ports = [&res](int32 dc_id, const vector<string> &ips, const vector<int> &ports) {
+  auto add_ip_ports = [&res](int32 dc_id, const vector<string> &ips, const vector<int> &ports, bool is_ipv6 = false) {
     IPAddress ip_address;
     for (auto &ip : ips) {
       for (auto port : ports) {
-        ip_address.init_ipv4_port(ip, port).ensure();
+        if (is_ipv6) {
+          ip_address.init_ipv6_port(ip, port).ensure();
+        } else {
+          ip_address.init_ipv4_port(ip, port).ensure();
+        }
         res.dc_options.emplace_back(DcId::internal(dc_id), ip_address);
       }
     }
@@ -636,12 +648,22 @@ DcOptions ConnectionCreator::get_default_dc_options(bool is_test) {
     add_ip_ports(1, {"149.154.175.10"}, ports);
     add_ip_ports(2, {"149.154.167.40"}, ports);
     add_ip_ports(3, {"149.154.175.117"}, ports);
+
+    add_ip_ports(1, {"2001:b28:f23d:f001::e"}, ports, true);
+    add_ip_ports(2, {"2001:67c:4e8:f002::e"}, ports, true);
+    add_ip_ports(3, {"2001:b28:f23d:f003::e"}, ports, true);
   } else {
     add_ip_ports(1, {"149.154.175.50"}, ports);
     add_ip_ports(2, {"149.154.167.51"}, ports);
     add_ip_ports(3, {"149.154.175.100"}, ports);
     add_ip_ports(4, {"149.154.167.91"}, ports);
     add_ip_ports(5, {"149.154.171.5"}, ports);
+
+    add_ip_ports(1, {"2001:b28:f23d:f001::a"}, ports, true);
+    add_ip_ports(2, {"2001:67c:4e8:f002::a"}, ports, true);
+    add_ip_ports(3, {"2001:b28:f23d:f003::a"}, ports, true);
+    add_ip_ports(4, {"2001:67c:4e8:f004::a"}, ports, true);
+    add_ip_ports(5, {"2001:b28:f23f:f005::a"}, ports, true);
   }
   return res;
 }
@@ -686,7 +708,5 @@ void ConnectionCreator::on_proxy_resolved(Result<IPAddress> r_ip_address, bool d
     client_loop(client.second);
   }
 }
-
-constexpr int32 ConnectionCreator::ClientInfo::Backoff::MAX_BACKOFF;
 
 }  // namespace td

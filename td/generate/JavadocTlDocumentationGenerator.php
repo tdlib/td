@@ -16,7 +16,7 @@ class JavadocTlDocumentationGenerator extends TlDocumentationGenerator
         return $doc;
     }
 
-    protected function getFieldName($name)
+    protected function getFieldName($name, $class_name)
     {
         if (substr($name, 0, 6) === 'param_') {
             $name = substr($name, 6);
@@ -26,7 +26,7 @@ class JavadocTlDocumentationGenerator extends TlDocumentationGenerator
 
     protected function getClassName($type)
     {
-        return implode(array_map(ucfirst, explode('.', trim($type, "\n ;"))));
+        return implode(array_map('ucfirst', explode('.', trim($type, "\r\n ;"))));
     }
 
     protected function getTypeName($type)
@@ -89,8 +89,7 @@ class JavadocTlDocumentationGenerator extends TlDocumentationGenerator
     protected function needSkipLine($line)
     {
         $line = trim($line);
-        return strpos($line, 'public') !== 0 && !($this->nullable_type && $line == 'import java.util.Arrays;') &&
-            !$this->isHeaderLine($line);
+        return strpos($line, 'public') !== 0 && !$this->isHeaderLine($line);
     }
 
     protected function isHeaderLine($line)
@@ -117,8 +116,14 @@ class JavadocTlDocumentationGenerator extends TlDocumentationGenerator
 
     protected function addGlobalDocumentation()
     {
+        if ($this->nullable_type) {
+            $nullable_type_import = "import $this->nullable_type;".PHP_EOL;
+        } else {
+            $nullable_type_import = '';
+        }
+
         $this->addDocumentation('public class TdApi {', <<<EOT
-/**
+$nullable_type_import/**
  * This class contains as static nested classes all other TDLib interface
  * type-classes and function-classes.
  * <p>
@@ -141,7 +146,7 @@ EOT
 EOT
 );
 
-        $this->addDocumentation('        public String toString() {', <<<EOT
+        $this->addDocumentation('        public native String toString();', <<<EOT
         /**
          * @return string representation of the object.
          */
@@ -168,12 +173,6 @@ EOT
          */
 EOT
 );
-
-        if ($this->nullable_type) {
-            $import = 'import java.util.Arrays;';
-            $this->addDocumentation($import, '');
-            $this->addLineReplacement($import, "import $this->nullable_type;\n$import\n");
-        }
     }
 
     protected function addAbstractClassDocumentation($class_name, $documentation)
@@ -189,7 +188,7 @@ EOT
 
     protected function addClassDocumentation($class_name, $base_class_name, $description, $return_type)
     {
-        $return_type_description = $return_type ? "\n     *\n     * <p> Returns {@link $return_type $return_type} </p>" : '';
+        $return_type_description = $return_type ? PHP_EOL.'     *'.PHP_EOL."     * <p> Returns {@link $return_type $return_type} </p>" : '';
 
         $this->addDocumentation("    public static class $class_name extends $base_class_name {", <<<EOT
     /**
@@ -209,7 +208,7 @@ EOT
 EOT
 );
         if ($may_be_null && $this->nullable_annotation && ($this->java_version >= 8 || substr($type_name, -1) != ']')) {
-            $this->addLineReplacement($full_line, "        public $this->nullable_annotation $type_name $field_name;\n");
+            $this->addLineReplacement($full_line, "        public $this->nullable_annotation $type_name $field_name;".PHP_EOL);
         }
     }
 
@@ -225,11 +224,10 @@ EOT
 
     protected function addFullConstructorDocumentation($class_name, $known_fields, $info)
     {
-        $explicit = count($known_fields) == 1 ? 'explicit ' : '';
         $full_constructor = "        public $class_name(";
         $colon = '';
         foreach ($known_fields as $name => $type) {
-            $full_constructor .= $colon.$this->getTypeName($type).' '.$this->getFieldName($name);
+            $full_constructor .= $colon.$this->getTypeName($type).' '.$this->getFieldName($name, $class_name);
             $colon = ', ';
         }
         $full_constructor .= ') {';
@@ -241,7 +239,7 @@ EOT
 
 EOT;
         foreach ($known_fields as $name => $type) {
-            $full_doc .= '         * @param '.$this->getFieldName($name).' '.$info[$name]."\n";
+            $full_doc .= '         * @param '.$this->getFieldName($name, $class_name).' '.$info[$name].PHP_EOL;
         }
         $full_doc .= '         */';
         $this->addDocumentation($full_constructor, $full_doc);

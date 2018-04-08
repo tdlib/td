@@ -6,11 +6,10 @@
 //
 #pragma once
 
-#include <atomic>
-#include <cmath>
-
 #include "td/utils/common.h"
 #include "td/utils/port/Clocks.h"
+
+#include <atomic>
 
 namespace td {
 
@@ -83,9 +82,7 @@ class Timestamp {
     }
   }
 
-  friend bool operator==(Timestamp a, Timestamp b) {
-    return std::abs(a.at() - b.at()) < 1e-6;
-  }
+  friend bool operator==(Timestamp a, Timestamp b);
 
  private:
   double at_{0};
@@ -93,5 +90,15 @@ class Timestamp {
   explicit Timestamp(double timeout) : at_(timeout) {
   }
 };
+
+template <class T>
+void parse(Timestamp &timestamp, T &parser) {
+  timestamp = Timestamp::in(parser.fetch_double() - Clocks::system());
+}
+
+template <class T>
+void store(const Timestamp &timestamp, T &storer) {
+  storer.store_binary(timestamp.at() - Time::now() + Clocks::system());
+}
 
 }  // namespace td

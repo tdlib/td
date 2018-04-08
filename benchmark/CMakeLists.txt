@@ -2,15 +2,13 @@ cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
 if (NOT OPENSSL_FOUND)
   find_package(OpenSSL REQUIRED)
+  find_package(ZLIB REQUIRED)
 endif()
 
 #TODO: all benchmarks in one file
 add_executable(bench_crypto bench_crypto.cpp)
-target_link_libraries(bench_crypto PRIVATE tdcore tdutils ${OPENSSL_CRYPTO_LIBRARY})
+target_link_libraries(bench_crypto PRIVATE tdcore tdutils ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
 target_include_directories(bench_crypto SYSTEM PRIVATE ${OPENSSL_INCLUDE_DIR})
-if (NOT WIN32)
-  target_link_libraries(bench_crypto PRIVATE dl z) # for OpenSSL
-endif()
 
 add_executable(bench_actor bench_actor.cpp)
 target_link_libraries(bench_actor PRIVATE tdactor tdutils)

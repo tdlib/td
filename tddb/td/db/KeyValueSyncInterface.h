@@ -9,6 +9,7 @@
 #include "td/utils/common.h"
 
 namespace td {
+
 class KeyValueSyncInterface {
  public:
   // SeqNo is used to restore total order on all write queries.
@@ -21,8 +22,14 @@ class KeyValueSyncInterface {
   KeyValueSyncInterface(KeyValueSyncInterface &&) = default;
   KeyValueSyncInterface &operator=(KeyValueSyncInterface &&) = default;
   virtual ~KeyValueSyncInterface() = default;
+
   virtual SeqNo set(string key, string value) = 0;
-  virtual SeqNo erase(const string &key) = 0;
+
+  virtual bool isset(const string &key) = 0;
+
   virtual string get(const string &key) = 0;
+
+  virtual SeqNo erase(const string &key) = 0;
 };
+
 }  // namespace td

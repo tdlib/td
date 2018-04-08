@@ -6,7 +6,6 @@
 //
 #pragma once
 
-#include "td/utils/buffer.h"  // for BufferSlice
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -28,7 +27,7 @@
   bit_offset_store++
 
 #define END_STORE_FLAGS()       \
-  CHECK(bit_offset_store < 32); \
+  CHECK(bit_offset_store < 31); \
   td::store(flags_store, storer)
 
 #define BEGIN_PARSE_FLAGS()    \
@@ -40,7 +39,9 @@
   flag = ((flags_parse >> bit_offset_parse) & 1) != 0; \
   bit_offset_parse++
 
-#define END_PARSE_FLAGS() CHECK(bit_offset_parse < 32)
+#define END_PARSE_FLAGS()       \
+  CHECK(bit_offset_parse < 31); \
+  CHECK((flags_parse & ~((1 << bit_offset_parse) - 1)) == 0) << flags_parse << " " << bit_offset_parse;
 
 namespace td {
 template <class StorerT>
@@ -107,15 +108,6 @@ void store(const string &x, StorerT &storer) {
 template <class ParserT>
 void parse(string &x, ParserT &parser) {
   x = parser.template fetch_string<string>();
-}
-
-template <class StorerT>
-void store(const BufferSlice &x, StorerT &storer) {
-  storer.store_string(x);
-}
-template <class ParserT>
-void parse(BufferSlice &x, ParserT &parser) {
-  x = parser.template fetch_string<BufferSlice>();
 }
 
 template <class T, class StorerT>

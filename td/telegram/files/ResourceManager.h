@@ -24,10 +24,10 @@ class ResourceManager : public Actor {
   explicit ResourceManager(Mode mode) : mode_(mode) {
   }
   // use through ActorShared
-  void update_priority(int32 priority);
+  void update_priority(int8 priority);
   void update_resources(const ResourceState &resource_state);
 
-  void register_worker(ActorShared<FileLoaderActor> callback, int32 priority);
+  void register_worker(ActorShared<FileLoaderActor> callback, int8 priority);
 
  private:
   Mode mode_;
@@ -47,7 +47,7 @@ class ResourceManager : public Actor {
   };
 
   Container<std::unique_ptr<Node>> nodes_container_;
-  vector<std::pair<int32, NodeId>> to_xload_;
+  vector<std::pair<int8, NodeId>> to_xload_;
   KHeap<int64> by_estimated_extra_;
   ResourceState resource_state_;
 
@@ -60,7 +60,7 @@ class ResourceManager : public Actor {
 
   void add_to_heap(Node *node);
   bool satisfy_node(NodeId file_node_id);
-  void add_node(NodeId node_id, int32 priority);
+  void add_node(NodeId node_id, int8 priority);
   bool remove_node(NodeId node_id);
 };
 }  // namespace td

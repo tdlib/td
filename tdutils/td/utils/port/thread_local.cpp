@@ -13,11 +13,11 @@ namespace td {
 namespace detail {
 
 static TD_THREAD_LOCAL int32 thread_id_;
-static TD_THREAD_LOCAL std::vector<std::unique_ptr<Destructor>> *thread_local_destructors;
+static TD_THREAD_LOCAL std::vector<std::unique_ptr<Guard>> *thread_local_destructors;
 
-void add_thread_local_destructor(std::unique_ptr<Destructor> destructor) {
+void add_thread_local_destructor(std::unique_ptr<Guard> destructor) {
   if (thread_local_destructors == nullptr) {
-    thread_local_destructors = new std::vector<std::unique_ptr<Destructor>>();
+    thread_local_destructors = new std::vector<std::unique_ptr<Guard>>();
   }
   thread_local_destructors->push_back(std::move(destructor));
 }

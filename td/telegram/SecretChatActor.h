@@ -35,6 +35,7 @@
 #include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
 
+#include <functional>
 #include <map>
 #include <memory>
 #include <tuple>
@@ -562,11 +563,15 @@ class SecretChatActor : public NetQueryCallback {
     uint64 net_query_id = 0;
     NetQueryRef net_query_ref;
     bool net_query_may_fail = false;
+
+    std::function<void(Promise<>)> send_result_;
   };
   std::map<uint64, uint64> random_id_to_outbound_message_state_token_;
   std::map<int32, uint64> out_seq_no_to_outbound_message_state_token_;
 
   Container<OutboundMessageState> outbound_message_states_;
+
+  NetQueryRef set_typing_query_;
 
   enum SendFlag {
     None = 0,

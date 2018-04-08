@@ -212,7 +212,7 @@ class ActorMailbox {
     queue_.push_unsafe(std::move(message));
   }
 
-  auto &reader() {
+  td::MpscLinkQueue<ActorMessage>::Reader &reader() {
     return reader_;
   }
 
@@ -1162,11 +1162,11 @@ class ActorMessageHangup : public ActorMessageImpl {
 class ActorMessageCreator {
  public:
   template <class F>
-  static auto lambda(F &&f) {
+  static ActorMessage lambda(F &&f) {
     return ActorMessage(std::make_unique<ActorMessageLambda<F>>(std::forward<F>(f)));
   }
 
-  static auto hangup() {
+  static ActorMessage hangup() {
     return ActorMessage(std::make_unique<ActorMessageHangup>());
   }
 

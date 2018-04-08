@@ -108,8 +108,10 @@ class TD_TL_writer_java : public tl::TL_writer {
   std::string gen_fetch_switch_end() const override;
 
   std::string gen_constructor_begin(int fields_num, const std::string &class_name, bool is_default) const override;
-  std::string gen_constructor_parameter(int field_num, const tl::arg &a, bool is_default) const override;
-  std::string gen_constructor_field_init(int field_num, const tl::arg &a, bool is_default) const override;
+  std::string gen_constructor_parameter(int field_num, const std::string &class_name, const tl::arg &a,
+                                        bool is_default) const override;
+  std::string gen_constructor_field_init(int field_num, const std::string &class_name, const tl::arg &a,
+                                         bool is_default) const override;
   std::string gen_constructor_end(const tl::tl_combinator *t, int fields_num, bool is_default) const override;
 };
 

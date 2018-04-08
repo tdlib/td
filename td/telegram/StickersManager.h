@@ -17,6 +17,7 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
+#include "td/utils/Hints.h"
 #include "td/utils/Status.h"
 
 #include "td/telegram/td_api.h"
@@ -66,6 +67,8 @@ class StickersManager : public Actor {
 
   vector<FileId> get_stickers(string emoji, int32 limit, bool force, Promise<Unit> &&promise);
 
+  vector<FileId> search_stickers(string emoji, int32 limit, Promise<Unit> &&promise);
+
   vector<int64> get_installed_sticker_sets(bool is_masks, Promise<Unit> &&promise);
 
   int64 add_sticker_set(tl_object_ptr<telegram_api::InputStickerSet> &&set_ptr);
@@ -73,6 +76,11 @@ class StickersManager : public Actor {
   int64 get_sticker_set(int64 set_id, Promise<Unit> &&promise);
 
   int64 search_sticker_set(const string &short_name_to_search, Promise<Unit> &&promise);
+
+  std::pair<int32, vector<int64>> search_installed_sticker_sets(bool is_masks, const string &query, int32 limit,
+                                                                Promise<Unit> &&promise);
+
+  vector<int64> search_sticker_sets(const string &query, Promise<Unit> &&promise);
 
   void change_sticker_set(int64 set_id, bool is_installed, bool is_archived, Promise<Unit> &&promise);
 
@@ -149,6 +157,8 @@ class StickersManager : public Actor {
 
   void clear_recent_stickers(bool is_attached, Promise<Unit> &&promise);
 
+  void on_update_recent_stickers_limit(int32 recent_stickers_limit);
+
   void on_update_favorite_stickers_limit(int32 favorite_stickers_limit);
 
   void reload_favorite_stickers(bool force);
@@ -192,10 +202,19 @@ class StickersManager : public Actor {
   void on_uploaded_sticker_file(FileId file_id, tl_object_ptr<telegram_api::MessageMedia> media,
                                 Promise<Unit> &&promise);
 
+  void on_find_stickers_success(const string &emoji, tl_object_ptr<telegram_api::messages_Stickers> &&sticker_sets);
+
+  void on_find_stickers_fail(const string &emoji, Status &&error);
+
+  void on_find_sticker_sets_success(const string &query,
+                                    tl_object_ptr<telegram_api::messages_FoundStickerSets> &&sticker_sets);
+
+  void on_find_sticker_sets_fail(const string &query, Status &&error);
+
  private:
   static constexpr int32 MAX_FEATURED_STICKER_SET_VIEW_DELAY = 5;
-  static constexpr size_t RECENT_STICKERS_LIMIT = 30;
 
+  static constexpr int32 MAX_FOUND_STICKERS = 100;                 // server side limit
   static constexpr int64 MAX_STICKER_FILE_SIZE = 1 << 19;          // server side limit
   static constexpr size_t MAX_STICKER_SET_TITLE_LENGTH = 64;       // server side limit
   static constexpr size_t MAX_STICKER_SET_SHORT_NAME_LENGTH = 64;  // server side limit
@@ -355,6 +374,8 @@ class StickersManager : public Actor {
 
   void send_update_recent_stickers(bool from_database = false);
 
+  void save_recent_stickers_to_database(bool is_attached);
+
   void add_recent_sticker_inner(bool is_attached, FileId sticker_id, Promise<Unit> &&promise);
 
   bool add_recent_sticker_impl(bool is_attached, FileId sticker_id, Promise<Unit> &promise);
@@ -372,6 +393,8 @@ class StickersManager : public Actor {
   void on_load_favorite_stickers_finished(vector<FileId> &&favorite_sticker_ids, bool from_database = false);
 
   void send_update_favorite_stickers(bool from_database = false);
+
+  void save_favorite_stickers_to_database();
 
   template <class T>
   void store_sticker_set(const StickerSet *sticker_set, bool with_stickers, T &storer) const;
@@ -450,10 +473,19 @@ class StickersManager : public Actor {
 
   std::unordered_map<FileId, vector<int64>, FileIdHash> attached_sticker_sets_;
 
+  Hints installed_sticker_sets_hints_[2];  // search installed sticker sets by their title and name
+
+  std::unordered_map<string, vector<FileId>> found_stickers_;
+  std::unordered_map<string, vector<Promise<Unit>>> search_stickers_queries_;
+
+  std::unordered_map<string, vector<int64>> found_sticker_sets_;
+  std::unordered_map<string, vector<Promise<Unit>>> search_sticker_sets_queries_;
+
   std::unordered_set<int64> pending_viewed_featured_sticker_set_ids_;
   Timeout pending_featured_sticker_set_views_timeout_;
 
-  int32 favorite_stickers_limit_ = 200;
+  int32 recent_stickers_limit_ = 200;
+  int32 favorite_stickers_limit_ = 5;
 
   struct StickerSetLoadRequest {
     Promise<Unit> promise;

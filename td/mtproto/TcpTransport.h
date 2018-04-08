@@ -13,13 +13,8 @@
 #include "td/utils/ByteFlow.h"
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
-#include "td/utils/logging.h"
 #include "td/utils/port/Fd.h"
-#include "td/utils/Random.h"
-#include "td/utils/Slice.h"
 #include "td/utils/Status.h"
-
-#include <algorithm>
 
 namespace td {
 namespace mtproto {
@@ -128,48 +123,7 @@ class ObfuscatedTransport : public IStreamTransport {
     output_->append(std::move(slice));
   }
 
-  void init(ChainBufferReader *input, ChainBufferWriter *output) override {
-    input_ = input;
-    output_ = output;
-
-    const size_t header_size = 64;
-    string header(header_size, '\0');
-    MutableSlice header_slice = header;
-    int32 try_cnt = 0;
-    while (true) {
-      try_cnt++;
-      CHECK(try_cnt < 10);
-      Random::secure_bytes(header_slice.ubegin(), header.size());
-      if (as<uint8>(header.data()) == 0xef) {
-        continue;
-      }
-      auto first_int = as<uint32>(header.data());
-      if (first_int == 0x44414548 || first_int == 0x54534f50 || first_int == 0x20544547 || first_int == 0x4954504f ||
-          first_int == 0xeeeeeeee) {
-        continue;
-      }
-      auto second_int = as<uint32>(header.data() + sizeof(uint32));
-      if (second_int == 0) {
-        continue;
-      }
-      break;
-    }
-    // TODO: It is actually IntermediateTransport::init_output_stream, so it will work only with
-    // TransportImpl==IntermediateTransport
-    as<uint32>(header_slice.begin() + 56) = 0xeeeeeeee;
-
-    string rheader = header;
-    std::reverse(rheader.begin(), rheader.end());
-    aes_ctr_byte_flow_.init(as<UInt256>(rheader.data() + 8), as<UInt128>(rheader.data() + 8 + 32));
-    aes_ctr_byte_flow_.set_input(input_);
-    aes_ctr_byte_flow_ >> byte_flow_sink_;
-
-    output_key_ = as<UInt256>(header.data() + 8);
-    output_state_.init(output_key_, as<UInt128>(header.data() + 8 + 32));
-    output_->append(header_slice.substr(0, 56));
-    output_state_.encrypt(header_slice, header_slice);
-    output_->append(header_slice.substr(56, 8));
-  }
+  void init(ChainBufferReader *input, ChainBufferWriter *output) override;
 
   bool can_read() const override {
     return true;

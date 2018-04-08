@@ -43,7 +43,7 @@ class Parser {
   void clear() {
     ptr_ = nullptr;
     end_ = ptr_;
-    status_ = Status();
+    status_ = Status::OK();
   }
 
   MutableSlice read_till_nofail(char c) {

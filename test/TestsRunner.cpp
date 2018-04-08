@@ -55,8 +55,9 @@ void TestsRunner::init(string dir) {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(WARNING));
   chdir(dir).ensure();
   LOG(WARNING) << "Redirect log into " << tag("file", dir + TD_DIR_SLASH + "log.txt");
-  file_log.init("log.txt", std::numeric_limits<int64>::max());
-  log_interface = &ts_log;
+  if (file_log.init("log.txt", std::numeric_limits<int64>::max())) {
+    log_interface = &ts_log;
+  }
 }
 
 }  // namespace td

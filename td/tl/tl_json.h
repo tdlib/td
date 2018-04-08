@@ -122,7 +122,7 @@ inline Status from_json(double &to, JsonValue &from) {
   if (from.type() != JsonValue::Type::Number) {
     return Status::Error(PSLICE() << "Expected number, got " << from.type());
   }
-  to = to_double(from.get_number().str());
+  to = to_double(from.get_number());
   return Status::OK();
 }
 
@@ -164,10 +164,6 @@ class DowncastHelper : public T {
   }
   int32 get_id() const override {
     return constructor_;
-  }
-  void store(TlStorerUnsafe &s) const override {
-  }
-  void store(TlStorerCalcLength &s) const override {
   }
   void store(TlStorerToString &s, const char *field_name) const override {
   }

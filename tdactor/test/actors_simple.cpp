@@ -10,6 +10,7 @@
 #include "td/actor/MultiPromise.h"
 #include "td/actor/PromiseFuture.h"
 #include "td/actor/SleepActor.h"
+#include "td/actor/Timeout.h"
 
 #include "td/utils/logging.h"
 #include "td/utils/Observer.h"
@@ -578,6 +579,42 @@ TEST(Actors, stop_in_teardown) {
   ConcurrentScheduler scheduler;
   scheduler.init(0);
   scheduler.create_actor_unsafe<StopInTeardown>(0, "A").release();
+  scheduler.start();
+  while (scheduler.run_main(10)) {
+  }
+  scheduler.finish();
+}
+
+class AlwaysWaitForMailbox : public Actor {
+ public:
+  void start_up() override {
+    always_wait_for_mailbox();
+    create_actor<SleepActor>("Sleep", 0.1, PromiseCreator::lambda([actor_id = actor_id(this), ptr = this](Unit) {
+                               send_closure(actor_id, &AlwaysWaitForMailbox::g);
+                               send_closure(actor_id, &AlwaysWaitForMailbox::g);
+                               CHECK(!ptr->was_f_);
+                             }))
+        .release();
+  }
+
+  void f() {
+    was_f_ = true;
+    Scheduler::instance()->finish();
+  }
+  void g() {
+    send_closure(actor_id(this), &AlwaysWaitForMailbox::f);
+  }
+
+ private:
+  Timeout timeout_;
+  bool was_f_{false};
+};
+
+TEST(Actors, always_wait_for_mailbox) {
+  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
+  ConcurrentScheduler scheduler;
+  scheduler.init(0);
+  scheduler.create_actor_unsafe<AlwaysWaitForMailbox>(0, "A").release();
   scheduler.start();
   while (scheduler.run_main(10)) {
   }

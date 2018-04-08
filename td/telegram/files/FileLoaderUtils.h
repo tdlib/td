@@ -18,6 +18,7 @@ enum class FileType : int8;
 
 Result<std::pair<FileFd, string>> open_temp_file(const FileType &file_type) TD_WARN_UNUSED_RESULT;
 Result<string> create_from_temp(CSlice temp_path, CSlice dir, CSlice name) TD_WARN_UNUSED_RESULT;
+Result<string> search_file(CSlice dir, CSlice name, int64 expected_size) TD_WARN_UNUSED_RESULT;
 string get_files_base_dir(const FileType &file_type);
 string get_files_temp_dir(const FileType &file_type);
 string get_files_dir(const FileType &file_type);

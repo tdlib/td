@@ -623,7 +623,7 @@ Result<double> get_json_object_double_field(JsonObject &object, Slice name, bool
   if (value.type() == JsonValue::Type::Null) {
     return default_value;
   }
-  return to_double(value.get_number().str());
+  return to_double(value.get_number());
 }
 
 Result<string> get_json_object_string_field(JsonObject &object, Slice name, bool is_optional, string default_value) {

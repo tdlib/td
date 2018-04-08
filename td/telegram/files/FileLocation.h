@@ -394,7 +394,7 @@ inline StringBuilder &operator<<(StringBuilder &string_builder, const CommonRemo
 
 class FullRemoteFileLocation {
  public:
-  FileType type_{FileType::None};
+  FileType file_type_{FileType::None};
 
  private:
   static constexpr int32 WEB_LOCATION_FLAG = 1 << 24;
@@ -407,7 +407,7 @@ class FullRemoteFileLocation {
     if (is_web()) {
       return LocationType::Web;
     }
-    switch (type_) {
+    switch (file_type_) {
       case FileType::Photo:
       case FileType::ProfilePhoto:
       case FileType::Thumbnail:
@@ -455,7 +455,7 @@ class FullRemoteFileLocation {
                                    const FullRemoteFileLocation &full_remote_file_location);
 
   int32 full_type() const {
-    auto type = static_cast<int32>(type_);
+    auto type = static_cast<int32>(file_type_);
     if (is_web()) {
       type |= WEB_LOCATION_FLAG;
     }
@@ -483,7 +483,7 @@ class FullRemoteFileLocation {
     if (raw_type < 0 || raw_type >= static_cast<int32>(FileType::Size)) {
       return parser.set_error("Invalid FileType in FullRemoteFileLocation");
     }
-    type_ = static_cast<FileType>(raw_type);
+    file_type_ = static_cast<FileType>(raw_type);
     int32 dc_id_value;
     parse(dc_id_value, parser);
     dc_id_ = DcId::from_value(dc_id_value);
@@ -572,7 +572,7 @@ class FullRemoteFileLocation {
     return location_type() == LocationType::Common;
   }
   bool is_encrypted() const {
-    return type_ == FileType::Encrypted;
+    return file_type_ == FileType::Encrypted;
   }
 
   tl_object_ptr<telegram_api::inputWebFileLocation> as_input_web_file_location() const {
@@ -617,17 +617,17 @@ class FullRemoteFileLocation {
   FullRemoteFileLocation() = default;
   FullRemoteFileLocation(FileType file_type, int64 id, int64 access_hash, int32 local_id, int64 volume_id, int64 secret,
                          DcId dc_id)
-      : type_(file_type)
+      : file_type_(file_type)
       , dc_id_(dc_id)
       , variant_(PhotoRemoteFileLocation{id, access_hash, volume_id, secret, local_id}) {
     CHECK(is_photo());
   }
   FullRemoteFileLocation(FileType file_type, int64 id, int64 access_hash, DcId dc_id)
-      : type_(file_type), dc_id_(dc_id), variant_(CommonRemoteFileLocation{id, access_hash}) {
+      : file_type_(file_type), dc_id_(dc_id), variant_(CommonRemoteFileLocation{id, access_hash}) {
     CHECK(is_common());
   }
   FullRemoteFileLocation(FileType file_type, string url, int64 access_hash, DcId dc_id)
-      : type_(file_type)
+      : file_type_(file_type)
       , web_location_flag_{true}
       , dc_id_(dc_id)
       , variant_(WebRemoteFileLocation{std::move(url), access_hash}) {
@@ -681,7 +681,7 @@ class FullRemoteFileLocation {
 
 inline StringBuilder &operator<<(StringBuilder &string_builder,
                                  const FullRemoteFileLocation &full_remote_file_location) {
-  string_builder << "[" << file_type_name[static_cast<int32>(full_remote_file_location.type_)] << ", "
+  string_builder << "[" << file_type_name[static_cast<int32>(full_remote_file_location.file_type_)] << ", "
                  << full_remote_file_location.get_dc_id() << ", location = ";
 
   if (full_remote_file_location.is_web()) {
@@ -695,13 +695,17 @@ inline StringBuilder &operator<<(StringBuilder &string_builder,
   return string_builder << "]";
 }
 
-struct RemoteFileLocation {
-  enum class Type : int32 { Empty, Partial, Full } type_;
-  Variant<EmptyRemoteFileLocation, PartialRemoteFileLocation, FullRemoteFileLocation> variant_;
+class RemoteFileLocation {
+ public:
+  enum class Type : int32 { Empty, Partial, Full };
+
+  Type type() const {
+    return static_cast<Type>(variant_.get_offset());
+  }
 
   template <class StorerT>
   void store(StorerT &storer) const {
-    storer.store_int(static_cast<int32>(type_));
+    storer.store_int(variant_.get_offset());
     bool ok{false};
     variant_.visit([&](auto &&value) {
       using td::store;
@@ -710,17 +714,11 @@ struct RemoteFileLocation {
     });
     CHECK(ok);
   }
-  EmptyRemoteFileLocation &empty_location() {
-    return variant_.get<0>();
-  }
   PartialRemoteFileLocation &partial() {
     return variant_.get<1>();
   }
   FullRemoteFileLocation &full() {
     return variant_.get<2>();
-  }
-  const EmptyRemoteFileLocation &empty_location() const {
-    return variant_.get<0>();
   }
   const PartialRemoteFileLocation &partial() const {
     return variant_.get<1>();
@@ -730,11 +728,11 @@ struct RemoteFileLocation {
   }
   template <class ParserT>
   void parse(ParserT &parser) {
-    type_ = static_cast<Type>(parser.fetch_int());
-    switch (type_) {
+    auto type = static_cast<Type>(parser.fetch_int());
+    switch (type) {
       case Type::Empty: {
         variant_ = EmptyRemoteFileLocation();
-        return empty_location().parse(parser);
+        return;
       }
       case Type::Partial: {
         variant_ = PartialRemoteFileLocation();
@@ -748,20 +746,24 @@ struct RemoteFileLocation {
     parser.set_error("Invalid type in RemoteFileLocation");
   }
 
-  RemoteFileLocation() : type_(Type::Empty), variant_{EmptyRemoteFileLocation{}} {
+  RemoteFileLocation() : variant_{EmptyRemoteFileLocation{}} {
   }
-  explicit RemoteFileLocation(const FullRemoteFileLocation &full) : type_(Type::Full), variant_(full) {
+  explicit RemoteFileLocation(const FullRemoteFileLocation &full) : variant_(full) {
   }
-  explicit RemoteFileLocation(const PartialRemoteFileLocation &partial) : type_(Type::Partial), variant_(partial) {
+  explicit RemoteFileLocation(const PartialRemoteFileLocation &partial) : variant_(partial) {
   }
   RemoteFileLocation(FileType file_type, int64 id, int64 access_hash, int32 local_id, int64 volume_id, int64 secret,
                      DcId dc_id)
-      : type_(Type::Full)
-      , variant_(FullRemoteFileLocation{file_type, id, access_hash, local_id, volume_id, secret, dc_id}) {
+      : variant_(FullRemoteFileLocation{file_type, id, access_hash, local_id, volume_id, secret, dc_id}) {
   }
   RemoteFileLocation(FileType file_type, int64 id, int64 access_hash, DcId dc_id)
-      : type_(Type::Full), variant_(FullRemoteFileLocation{file_type, id, access_hash, dc_id}) {
+      : variant_(FullRemoteFileLocation{file_type, id, access_hash, dc_id}) {
   }
+
+ private:
+  Variant<EmptyRemoteFileLocation, PartialRemoteFileLocation, FullRemoteFileLocation> variant_;
+
+  friend bool operator==(const RemoteFileLocation &lhs, const RemoteFileLocation &rhs);
 };
 
 inline bool operator==(const RemoteFileLocation &lhs, const RemoteFileLocation &rhs) {
@@ -790,16 +792,16 @@ inline bool operator!=(const EmptyLocalFileLocation &lhs, const EmptyLocalFileLo
 }
 
 struct PartialLocalFileLocation {
-  FileType type_;
+  FileType file_type_;
   string path_;
-  int part_size_;
-  int ready_part_count_;
+  int32 part_size_;
+  int32 ready_part_count_;
   string iv_;
 
   template <class StorerT>
   void store(StorerT &storer) const {
     using td::store;
-    store(type_, storer);
+    store(file_type_, storer);
     store(path_, storer);
     store(part_size_, storer);
     store(ready_part_count_, storer);
@@ -808,8 +810,8 @@ struct PartialLocalFileLocation {
   template <class ParserT>
   void parse(ParserT &parser) {
     using td::parse;
-    parse(type_, parser);
-    if (type_ < FileType::Thumbnail || type_ >= FileType::Size) {
+    parse(file_type_, parser);
+    if (file_type_ < FileType::Thumbnail || file_type_ >= FileType::Size) {
       return parser.set_error("Invalid type in PartialLocalFileLocation");
     }
     parse(path_, parser);
@@ -820,7 +822,7 @@ struct PartialLocalFileLocation {
 };
 
 inline bool operator==(const PartialLocalFileLocation &lhs, const PartialLocalFileLocation &rhs) {
-  return lhs.type_ == rhs.type_ && lhs.path_ == rhs.path_ && lhs.part_size_ == rhs.part_size_ &&
+  return lhs.file_type_ == rhs.file_type_ && lhs.path_ == rhs.path_ && lhs.part_size_ == rhs.part_size_ &&
          lhs.ready_part_count_ == rhs.ready_part_count_ && lhs.iv_ == rhs.iv_;
 }
 
@@ -829,22 +831,22 @@ inline bool operator!=(const PartialLocalFileLocation &lhs, const PartialLocalFi
 }
 
 struct FullLocalFileLocation {
-  FileType type_;
+  FileType file_type_;
   string path_;
   uint64 mtime_nsec_;
 
   template <class StorerT>
   void store(StorerT &storer) const {
     using td::store;
-    store(type_, storer);
+    store(file_type_, storer);
     store(mtime_nsec_, storer);
     store(path_, storer);
   }
   template <class ParserT>
   void parse(ParserT &parser) {
     using td::parse;
-    parse(type_, parser);
-    if (type_ < FileType::Thumbnail || type_ >= FileType::Size) {
+    parse(file_type_, parser);
+    if (file_type_ < FileType::Thumbnail || file_type_ >= FileType::Size) {
       return parser.set_error("Invalid type in FullLocalFileLocation");
     }
     parse(mtime_nsec_, parser);
@@ -855,21 +857,21 @@ struct FullLocalFileLocation {
   }
 
   // TODO: remove this constructor
-  FullLocalFileLocation() : type_(FileType::Photo) {
+  FullLocalFileLocation() : file_type_(FileType::Photo) {
   }
   FullLocalFileLocation(FileType file_type, string path, uint64 mtime_nsec)
-      : type_(file_type), path_(std::move(path)), mtime_nsec_(mtime_nsec) {
+      : file_type_(file_type), path_(std::move(path)), mtime_nsec_(mtime_nsec) {
   }
 
   static const int32 KEY_MAGIC = 0x84373817;
 };
 
 inline bool operator<(const FullLocalFileLocation &lhs, const FullLocalFileLocation &rhs) {
-  return std::tie(lhs.type_, lhs.mtime_nsec_, lhs.path_) < std::tie(rhs.type_, rhs.mtime_nsec_, rhs.path_);
+  return std::tie(lhs.file_type_, lhs.mtime_nsec_, lhs.path_) < std::tie(rhs.file_type_, rhs.mtime_nsec_, rhs.path_);
 }
 
 inline bool operator==(const FullLocalFileLocation &lhs, const FullLocalFileLocation &rhs) {
-  return std::tie(lhs.type_, lhs.mtime_nsec_, lhs.path_) == std::tie(rhs.type_, rhs.mtime_nsec_, rhs.path_);
+  return std::tie(lhs.file_type_, lhs.mtime_nsec_, lhs.path_) == std::tie(rhs.file_type_, rhs.mtime_nsec_, rhs.path_);
 }
 
 inline bool operator!=(const FullLocalFileLocation &lhs, const FullLocalFileLocation &rhs) {
@@ -880,22 +882,19 @@ inline StringBuilder &operator<<(StringBuilder &sb, const FullLocalFileLocation 
   return sb << tag("path", location.path_);
 }
 
-struct LocalFileLocation {
+class LocalFileLocation {
+ public:
   enum class Type : int32 { Empty, Partial, Full };
-  Type type_;
-  Variant<EmptyLocalFileLocation, PartialLocalFileLocation, FullLocalFileLocation> variant_;
 
-  EmptyLocalFileLocation &empty_location() {
-    return variant_.get<0>();
+  Type type() const {
+    return static_cast<Type>(variant_.get_offset());
   }
+
   PartialLocalFileLocation &partial() {
     return variant_.get<1>();
   }
   FullLocalFileLocation &full() {
     return variant_.get<2>();
-  }
-  const EmptyLocalFileLocation &empty_location() const {
-    return variant_.get<0>();
   }
   const PartialLocalFileLocation &partial() const {
     return variant_.get<1>();
@@ -904,10 +903,22 @@ struct LocalFileLocation {
     return variant_.get<2>();
   }
 
+  CSlice file_name() const {
+    switch (type()) {
+      case Type::Partial:
+        return partial().path_;
+      case Type::Full:
+        return full().path_;
+      case Type::Empty:
+      default:
+        return CSlice();
+    }
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const {
     using td::store;
-    store(type_, storer);
+    store(variant_.get_offset(), storer);
     variant_.visit([&](auto &&value) {
       using td::store;
       store(value, storer);
@@ -916,11 +927,11 @@ struct LocalFileLocation {
   template <class ParserT>
   void parse(ParserT &parser) {
     using td::parse;
-    type_ = static_cast<Type>(parser.fetch_int());
-    switch (type_) {
+    auto type = static_cast<Type>(parser.fetch_int());
+    switch (type) {
       case Type::Empty:
         variant_ = EmptyLocalFileLocation();
-        return parse(empty_location(), parser);
+        return;
       case Type::Partial:
         variant_ = PartialLocalFileLocation();
         return parse(partial(), parser);
@@ -931,15 +942,20 @@ struct LocalFileLocation {
     return parser.set_error("Invalid type in LocalFileLocation");
   }
 
-  LocalFileLocation() : type_(Type::Empty), variant_{EmptyLocalFileLocation()} {
+  LocalFileLocation() : variant_{EmptyLocalFileLocation()} {
   }
-  explicit LocalFileLocation(const PartialLocalFileLocation &partial) : type_(Type::Partial), variant_(partial) {
+  explicit LocalFileLocation(const PartialLocalFileLocation &partial) : variant_(partial) {
   }
-  explicit LocalFileLocation(const FullLocalFileLocation &full) : type_(Type::Full), variant_(full) {
+  explicit LocalFileLocation(const FullLocalFileLocation &full) : variant_(full) {
   }
   LocalFileLocation(FileType file_type, string path, uint64 mtime_nsec)
-      : type_(Type::Full), variant_(FullLocalFileLocation{file_type, std::move(path), mtime_nsec}) {
+      : variant_(FullLocalFileLocation{file_type, std::move(path), mtime_nsec}) {
   }
+
+ private:
+  Variant<EmptyLocalFileLocation, PartialLocalFileLocation, FullLocalFileLocation> variant_;
+
+  friend bool operator==(const LocalFileLocation &lhs, const LocalFileLocation &rhs);
 };
 
 inline bool operator==(const LocalFileLocation &lhs, const LocalFileLocation &rhs) {
@@ -950,25 +966,8 @@ inline bool operator!=(const LocalFileLocation &lhs, const LocalFileLocation &rh
   return !(lhs == rhs);
 }
 
-struct EmptyGenerateFileLocation {
-  template <class StorerT>
-  void store(StorerT &storer) const {
-  }
-  template <class ParserT>
-  void parse(ParserT &parser) {
-  }
-};
-
-inline bool operator==(const EmptyGenerateFileLocation &lhs, const EmptyGenerateFileLocation &rhs) {
-  return true;
-}
-
-inline bool operator!=(const EmptyGenerateFileLocation &lhs, const EmptyGenerateFileLocation &rhs) {
-  return !(lhs == rhs);
-}
-
 struct FullGenerateFileLocation {
-  FileType type_{FileType::None};
+  FileType file_type_{FileType::None};
   string original_path_;
   string conversion_;
   static const int32 KEY_MAGIC = 0x8b60a1c8;
@@ -976,14 +975,14 @@ struct FullGenerateFileLocation {
   template <class StorerT>
   void store(StorerT &storer) const {
     using td::store;
-    store(type_, storer);
+    store(file_type_, storer);
     store(original_path_, storer);
     store(conversion_, storer);
   }
   template <class ParserT>
   void parse(ParserT &parser) {
     using td::parse;
-    parse(type_, parser);
+    parse(file_type_, parser);
     parse(original_path_, parser);
     parse(conversion_, parser);
   }
@@ -992,19 +991,19 @@ struct FullGenerateFileLocation {
     return *this;
   }
   FullGenerateFileLocation() = default;
-  FullGenerateFileLocation(FileType type, string original_path, string conversion)
-      : type_(type), original_path_(std::move(original_path)), conversion_(std::move(conversion)) {
+  FullGenerateFileLocation(FileType file_type, string original_path, string conversion)
+      : file_type_(file_type), original_path_(std::move(original_path)), conversion_(std::move(conversion)) {
   }
 };
 
 inline bool operator<(const FullGenerateFileLocation &lhs, const FullGenerateFileLocation &rhs) {
-  return std::tie(lhs.type_, lhs.original_path_, lhs.conversion_) <
-         std::tie(rhs.type_, rhs.original_path_, rhs.conversion_);
+  return std::tie(lhs.file_type_, lhs.original_path_, lhs.conversion_) <
+         std::tie(rhs.file_type_, rhs.original_path_, rhs.conversion_);
 }
 
 inline bool operator==(const FullGenerateFileLocation &lhs, const FullGenerateFileLocation &rhs) {
-  return std::tie(lhs.type_, lhs.original_path_, lhs.conversion_) ==
-         std::tie(rhs.type_, rhs.original_path_, rhs.conversion_);
+  return std::tie(lhs.file_type_, lhs.original_path_, lhs.conversion_) ==
+         std::tie(rhs.file_type_, rhs.original_path_, rhs.conversion_);
 }
 
 inline bool operator!=(const FullGenerateFileLocation &lhs, const FullGenerateFileLocation &rhs) {
@@ -1014,38 +1013,49 @@ inline bool operator!=(const FullGenerateFileLocation &lhs, const FullGenerateFi
 inline StringBuilder &operator<<(StringBuilder &string_builder,
                                  const FullGenerateFileLocation &full_generated_file_location) {
   return string_builder << "["
-                        << tag("file_type", file_type_name[static_cast<int32>(full_generated_file_location.type_)])
+                        << tag("file_type", file_type_name[static_cast<int32>(full_generated_file_location.file_type_)])
                         << tag("original_path", full_generated_file_location.original_path_)
                         << tag("conversion", full_generated_file_location.conversion_) << "]";
 }
 
-struct GenerateFileLocation {
+class GenerateFileLocation {
+ public:
   enum class Type : int32 { Empty, Full };
-  Type type_;
-  EmptyGenerateFileLocation empty_;
-  FullGenerateFileLocation full_;
+
+  Type type() const {
+    return type_;
+  }
+
+  FullGenerateFileLocation &full() {
+    CHECK(type_ == Type::Full);
+    return full_;
+  }
+  const FullGenerateFileLocation &full() const {
+    CHECK(type_ == Type::Full);
+    return full_;
+  }
 
   template <class StorerT>
   void store(StorerT &storer) const {
-    storer.store_int(static_cast<int32>(type_));
+    td::store(type_, storer);
     switch (type_) {
       case Type::Empty:
-        return empty_.store(storer);
+        return;
       case Type::Full:
-        return full_.store(storer);
+        return td::store(full_, storer);
     }
-    UNREACHABLE();
   }
+
   template <class ParserT>
   void parse(ParserT &parser) {
-    type_ = static_cast<Type>(parser.fetch_int());
+    td::parse(type_, parser);
     switch (type_) {
       case Type::Empty:
-        return empty_.parse(parser);
+        return;
       case Type::Full:
-        return full_.parse(parser);
+        return td::parse(full_, parser);
     }
-    return parser.set_error("Invalid type in LocalFileLocation");
+    return parser.set_error("Invalid type in GenerateFileLocation");
   }
 
   GenerateFileLocation() : type_(Type::Empty) {
@@ -1053,20 +1063,25 @@ struct GenerateFileLocation {
 
   explicit GenerateFileLocation(const FullGenerateFileLocation &full) : type_(Type::Full), full_(full) {
   }
+
   GenerateFileLocation(FileType file_type, string original_path, string conversion)
-      : type_(Type::Full), full_(file_type, std::move(original_path), std::move(conversion)) {
+      : type_(Type::Full), full_{file_type, std::move(original_path), std::move(conversion)} {
   }
+
+ private:
+  Type type_;
+  FullGenerateFileLocation full_;
 };
 
 inline bool operator==(const GenerateFileLocation &lhs, const GenerateFileLocation &rhs) {
-  if (lhs.type_ != rhs.type_) {
+  if (lhs.type() != rhs.type()) {
     return false;
   }
-  switch (lhs.type_) {
+  switch (lhs.type()) {
     case GenerateFileLocation::Type::Empty:
-      return lhs.empty_ == rhs.empty_;
+      return true;
     case GenerateFileLocation::Type::Full:
-      return lhs.full_ == rhs.full_;
+      return lhs.full() == rhs.full();
   }
   UNREACHABLE();
   return false;
@@ -1082,10 +1097,10 @@ class FileData {
   uint64 pmc_id_ = 0;
   RemoteFileLocation remote_;
   LocalFileLocation local_;
-  GenerateFileLocation generate_;
+  unique_ptr<FullGenerateFileLocation> generate_;
   int64 size_ = 0;
   int64 expected_size_ = 0;
-  string name_;
+  string remote_name_;
   string url_;
   FileEncryptionKey encryption_key_;
 
@@ -1105,13 +1120,14 @@ class FileData {
     store(pmc_id_, storer);
     store(remote_, storer);
     store(local_, storer);
-    store(generate_, storer);
+    auto generate = generate_ == nullptr ? GenerateFileLocation() : GenerateFileLocation(*generate_);
+    store(generate, storer);
     if (has_expected_size) {
       store(expected_size_, storer);
     } else {
       store(size_, storer);
     }
-    store(name_, storer);
+    store(remote_name_, storer);
     store(url_, storer);
     store(encryption_key_, storer);
   }
@@ -1131,23 +1147,36 @@ class FileData {
     parse(pmc_id_, parser);
     parse(remote_, parser);
     parse(local_, parser);
-    parse(generate_, parser);
+    GenerateFileLocation generate;
+    parse(generate, parser);
+    if (generate.type() == GenerateFileLocation::Type::Full) {
+      generate_ = std::make_unique<FullGenerateFileLocation>(generate.full());
+    } else {
+      generate_ = nullptr;
+    }
     if (has_expected_size) {
       parse(expected_size_, parser);
     } else {
       parse(size_, parser);
     }
-    parse(name_, parser);
+    parse(remote_name_, parser);
     parse(url_, parser);
     parse(encryption_key_, parser);
   }
 };
 inline StringBuilder &operator<<(StringBuilder &sb, const FileData &file_data) {
-  sb << "[" << tag("name", file_data.name_);
-  if (file_data.local_.type_ == LocalFileLocation::Type::Full) {
+  sb << "[" << tag("remote_name", file_data.remote_name_) << " " << file_data.owner_dialog_id_ << " "
+     << tag("size", file_data.size_) << tag("expected_size", file_data.expected_size_);
+  if (!file_data.url_.empty()) {
+    sb << tag("url", file_data.url_);
+  }
+  if (file_data.local_.type() == LocalFileLocation::Type::Full) {
     sb << " local " << file_data.local_.full();
   }
-  if (file_data.remote_.type_ == RemoteFileLocation::Type::Full) {
+  if (file_data.generate_ != nullptr) {
+    sb << " generate " << *file_data.generate_;
+  }
+  if (file_data.remote_.type() == RemoteFileLocation::Type::Full) {
     sb << " remote " << file_data.remote_.full();
   }
   return sb << "]";

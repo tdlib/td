@@ -10,6 +10,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/filesystem.h"
+#include "td/utils/format.h"
 #include "td/utils/logging.h"
 
 namespace td {
@@ -22,15 +23,21 @@ void FileLoadManager::start_up() {
       create_actor<ResourceManager>("UploadResourceManager", !G()->parameters().use_file_db /*tdlib_engine*/
                                                                  ? ResourceManager::Mode::Greedy
                                                                  : ResourceManager::Mode::Baseline);
-  download_resource_manager_ =
-      create_actor<ResourceManager>("DownloadResourceManager", ResourceManager::Mode::Baseline);
-  download_small_resource_manager_ =
-      create_actor<ResourceManager>("DownloadSmallResourceManager", ResourceManager::Mode::Baseline);
+}
+
+ActorOwn<ResourceManager> &FileLoadManager::get_download_resource_manager(bool is_small, DcId dc_id) {
+  auto &actor = is_small ? download_small_resource_manager_map_[dc_id] : download_resource_manager_map_[dc_id];
+  if (actor.empty()) {
+    actor = create_actor<ResourceManager>(
+        PSLICE() << "DownloadResourceManager " << tag("is_small", is_small) << tag("dc_id", dc_id),
+        ResourceManager::Mode::Baseline);
+  }
+  return actor;
 }
 
 void FileLoadManager::download(QueryId id, const FullRemoteFileLocation &remote_location,
                                const LocalFileLocation &local, int64 size, string name,
-                               const FileEncryptionKey &encryption_key, int priority) {
+                               const FileEncryptionKey &encryption_key, bool search_file, int8 priority) {
   if (stop_flag_) {
     return;
   }
@@ -42,8 +49,8 @@ void FileLoadManager::download(QueryId id, const FullRemoteFileLocation &remote_
   auto callback = make_unique<FileDownloaderCallback>(actor_shared(this, node_id));
   bool is_small = size < 20 * 1024;
   node->loader_ = create_actor<FileDownloader>("Downloader", remote_location, local, size, std::move(name),
-                                               encryption_key, is_small, std::move(callback));
-  auto &resource_manager = is_small ? download_small_resource_manager_ : download_resource_manager_;
+                                               encryption_key, is_small, search_file, std::move(callback));
+  auto &resource_manager = get_download_resource_manager(is_small, remote_location.get_dc_id());
   send_closure(resource_manager, &ResourceManager::register_worker,
                ActorShared<FileLoaderActor>(node->loader_.get(), static_cast<uint64>(-1)), priority);
   query_id_to_node_id_[id] = node_id;
@@ -51,7 +58,7 @@ void FileLoadManager::download(QueryId id, const FullRemoteFileLocation &remote_
 
 void FileLoadManager::upload(QueryId id, const LocalFileLocation &local_location,
                              const RemoteFileLocation &remote_location, int64 size,
-                             const FileEncryptionKey &encryption_key, int priority, vector<int> bad_parts) {
+                             const FileEncryptionKey &encryption_key, int8 priority, vector<int> bad_parts) {
   if (stop_flag_) {
     return;
   }
@@ -69,7 +76,7 @@ void FileLoadManager::upload(QueryId id, const LocalFileLocation &local_location
 }
 
 void FileLoadManager::upload_by_hash(QueryId id, const FullLocalFileLocation &local_location, int64 size,
-                                     int priority) {
+                                     int8 priority) {
   if (stop_flag_) {
     return;
   }
@@ -85,7 +92,7 @@ void FileLoadManager::upload_by_hash(QueryId id, const FullLocalFileLocation &lo
   query_id_to_node_id_[id] = node_id;
 }
 
-void FileLoadManager::update_priority(QueryId id, int priority) {
+void FileLoadManager::update_priority(QueryId id, int8 priority) {
   if (stop_flag_) {
     return;
   }
@@ -152,6 +159,17 @@ void FileLoadManager::close() {
   loop();
 }
 
+void FileLoadManager::on_start_download() {
+  auto node_id = get_link_token();
+  auto node = nodes_container_.get(node_id);
+  if (node == nullptr) {
+    return;
+  }
+  if (!stop_flag_) {
+    send_closure(callback_, &Callback::on_start_download, node->query_id_);
+  }
+}
+
 void FileLoadManager::on_partial_download(const PartialLocalFileLocation &partial_local, int64 ready_size) {
   auto node_id = get_link_token();
   auto node = nodes_container_.get(node_id);
@@ -162,6 +180,7 @@ void FileLoadManager::on_partial_download(const PartialLocalFileLocation &partia
     send_closure(callback_, &Callback::on_partial_download, node->query_id_, partial_local, ready_size);
   }
 }
+
 void FileLoadManager::on_partial_upload(const PartialRemoteFileLocation &partial_remote, int64 ready_size) {
   auto node_id = get_link_token();
   auto node = nodes_container_.get(node_id);
@@ -172,6 +191,7 @@ void FileLoadManager::on_partial_upload(const PartialRemoteFileLocation &partial
     send_closure(callback_, &Callback::on_partial_upload, node->query_id_, partial_remote, ready_size);
   }
 }
+
 void FileLoadManager::on_ok_download(const FullLocalFileLocation &local, int64 size) {
   auto node_id = get_link_token();
   auto node = nodes_container_.get(node_id);
@@ -184,6 +204,7 @@ void FileLoadManager::on_ok_download(const FullLocalFileLocation &local, int64 s
   close_node(node_id);
   loop();
 }
+
 void FileLoadManager::on_ok_upload(FileType file_type, const PartialRemoteFileLocation &remote, int64 size) {
   auto node_id = get_link_token();
   auto node = nodes_container_.get(node_id);
@@ -196,6 +217,7 @@ void FileLoadManager::on_ok_upload(FileType file_type, const PartialRemoteFileLo
   close_node(node_id);
   loop();
 }
+
 void FileLoadManager::on_ok_upload_full(const FullRemoteFileLocation &remote) {
   auto node_id = get_link_token();
   auto node = nodes_container_.get(node_id);
@@ -208,10 +230,12 @@ void FileLoadManager::on_ok_upload_full(const FullRemoteFileLocation &remote) {
   close_node(node_id);
   loop();
 }
+
 void FileLoadManager::on_error(Status status) {
   auto node_id = get_link_token();
   on_error_impl(node_id, std::move(status));
 }
+
 void FileLoadManager::on_error_impl(NodeId node_id, Status status) {
   auto node = nodes_container_.get(node_id);
   if (node == nullptr) {

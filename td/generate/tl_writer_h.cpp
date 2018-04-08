@@ -338,7 +338,8 @@ std::string TD_TL_writer_h::gen_constructor_begin(int fields_num, const std::str
          std::string(fields_num == 1 ? "explicit " : "") + class_name + "(";
 }
 
-std::string TD_TL_writer_h::gen_constructor_field_init(int field_num, const tl::arg &a, bool is_default) const {
+std::string TD_TL_writer_h::gen_constructor_field_init(int field_num, const std::string &class_name, const tl::arg &a,
+                                                       bool is_default) const {
   return "";
 }
 

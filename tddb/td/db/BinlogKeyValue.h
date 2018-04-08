@@ -162,6 +162,11 @@ class BinlogKeyValue : public KeyValueSyncInterface {
     binlog_->add_raw_event(seq_no, std::move(event));
   }
 
+  bool isset(const string &key) override {
+    auto lock = rw_mutex_.lock_read().move_as_ok();
+    return map_.count(key) > 0;
+  }
+
   string get(const string &key) override {
     auto lock = rw_mutex_.lock_read().move_as_ok();
     auto it = map_.find(key);

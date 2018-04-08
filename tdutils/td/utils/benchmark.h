@@ -9,6 +9,7 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/Clocks.h"
+#include "td/utils/StringBuilder.h"
 
 #include <cmath>
 #include <tuple>
@@ -110,12 +111,18 @@ inline void bench(Benchmark &b, double max_time = 1.0) {
       max_pass_time = pass_time;
     }
   }
-  double avg = sum / pass_cnt;
-  double d = sqrt(square_sum / pass_cnt - avg * avg);
+  double average = sum / pass_cnt;
+  double d = sqrt(square_sum / pass_cnt - average * average);
 
-  LOG(ERROR, "Bench [%40s]:\t%.3lf[%.3lf-%.3lf] ops/sec,\t", b.get_description().c_str(), avg, min_pass_time,
-      max_pass_time)
-      << format::as_time(1 / avg) << (PSLICE(" [d = %.6lf]", d));
+  auto description = b.get_description();
+  std::string pad;
+  if (description.size() < 40) {
+    pad = std::string(40 - description.size(), ' ');
+  }
+
+  LOG(ERROR) << "Bench [" << pad << description << "]: " << StringBuilder::FixedDouble(average, 3) << '['
+             << StringBuilder::FixedDouble(min_pass_time, 3) << '-' << StringBuilder::FixedDouble(max_pass_time, 3)
+             << "] ops/sec,\t" << format::as_time(1 / average) << " [d = " << StringBuilder::FixedDouble(d, 6) << ']';
 }
 
 inline void bench(Benchmark &&b, double max_time = 1.0) {

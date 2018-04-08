@@ -20,8 +20,8 @@ struct Part {
 
 class PartsManager {
  public:
-  Status init(int64 size, bool is_size_final, size_t part_size, const std::vector<int> &ready_parts,
-              bool use_part_count_limit) TD_WARN_UNUSED_RESULT;
+  Status init(int64 size, int64 expected_size, bool is_size_final, size_t part_size,
+              const std::vector<int> &ready_parts, bool use_part_count_limit) TD_WARN_UNUSED_RESULT;
   bool ready();
   bool unchecked_ready();
   Status finish() TD_WARN_UNUSED_RESULT;
@@ -30,7 +30,7 @@ class PartsManager {
   Result<Part> start_part() TD_WARN_UNUSED_RESULT;
   Status on_part_ok(int32 id, size_t part_size, size_t actual_size) TD_WARN_UNUSED_RESULT;
   void on_part_failed(int32 id);
-  void set_known_prefix(size_t size, bool is_ready);
+  Status set_known_prefix(size_t size, bool is_ready);
   void set_need_check();
   void set_checked_prefix_size(int64 size);
 
@@ -58,6 +58,7 @@ class PartsManager {
   int64 known_prefix_size_;
 
   int64 size_;
+  int64 expected_size_;
   int64 min_size_;
   int64 max_size_;
   bool unknown_size_flag_;

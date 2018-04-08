@@ -16,6 +16,8 @@
 #include "td/telegram/files/ResourceState.h"
 #include "td/telegram/net/NetQuery.h"
 
+#include "td/telegram/DelayDispatcher.h"
+
 #include "td/utils/OrderedEventsProcessor.h"
 #include "td/utils/Status.h"
 
@@ -33,7 +35,7 @@ class FileLoader : public FileLoaderActor {
     virtual ~Callback() = default;
   };
   void set_resource_manager(ActorShared<ResourceManager> resource_manager) override;
-  void update_priority(int32 priority) override;
+  void update_priority(int8 priority) override;
   void update_resources(const ResourceState &other) override;
 
   void update_local_file_location(const LocalFileLocation &local) override;
@@ -48,10 +50,13 @@ class FileLoader : public FileLoaderActor {
   };
   struct FileInfo {
     int64 size;
+    int64 expected_size = 0;
     bool is_size_final;
     int32 part_size;
     std::vector<int> ready_parts;
     bool use_part_count_limit = true;
+    bool only_check = false;
+    bool need_delay = false;
   };
   virtual Result<FileInfo> init() TD_WARN_UNUSED_RESULT = 0;
   virtual Status on_ok(int64 size) TD_WARN_UNUSED_RESULT = 0;
@@ -78,6 +83,7 @@ class FileLoader : public FileLoaderActor {
   }
   struct CheckInfo {
     bool need_check{false};
+    bool changed{false};
     int64 checked_prefix_size{0};
     std::vector<NetQueryPtr> queries;
   };
@@ -99,6 +105,12 @@ class FileLoader : public FileLoaderActor {
   // std::map<uint64, std::pair<Part, NetQueryRef>> part_map_;
   bool ordered_flag_ = false;
   OrderedEventsProcessor<std::pair<Part, NetQueryPtr>> ordered_parts_;
+  ActorOwn<DelayDispatcher> delay_dispatcher_;
+  double next_delay_ = 0;
+
+  uint32 debug_total_parts_ = 0;
+  uint32 debug_bad_part_order_ = 0;
+  std::vector<int32> debug_bad_parts_;
 
   void start_up() override;
   void loop() override;

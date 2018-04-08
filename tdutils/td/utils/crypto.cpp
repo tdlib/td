@@ -73,7 +73,7 @@ uint64 pq_factorize(uint64 pq) {
     uint64 q = Random::fast(17, 32) % (pq - 1);
     uint64 x = Random::fast_uint64() % (pq - 1) + 1;
     uint64 y = x;
-    int lim = 1 << (std::min(5, i) + 18);
+    int lim = 1 << (min(5, i) + 18);
     for (int j = 1; j < lim; j++) {
       it++;
       uint64 a = x;

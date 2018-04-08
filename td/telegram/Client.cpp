@@ -269,7 +269,7 @@ Client::Client() : impl_(make_unique<Impl>()) {
   init_openssl_threads();
 }
 
-void Client::send(Request request) {
+void Client::send(Request &&request) {
   impl_->send(std::move(request));
 }
 
@@ -277,7 +277,7 @@ Client::Response Client::receive(double timeout) {
   return impl_->receive(timeout);
 }
 
-Client::Response Client::execute(Request request) {
+Client::Response Client::execute(Request &&request) {
   Response response;
   response.id = request.id;
   response.object = Td::static_request(std::move(request.function));

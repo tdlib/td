@@ -82,6 +82,18 @@ inline bool unlikely(bool x) {
 #endif
 }
 
+// replace std::max and std::min to not have to include <algorithm> everywhere
+// as a side bonus, accept parameters by value, so constexpr variables aren't required to be instantiated
+template <class T>
+T max(T a, T b) {
+  return a < b ? b : a;
+}
+
+template <class T>
+T min(T a, T b) {
+  return a < b ? a : b;
+}
+
 using string = std::string;
 
 template <class ValueT>

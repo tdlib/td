@@ -4,6 +4,12 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
+#include "td/utils/benchmark.h"
+#include "td/utils/common.h"
+#include "td/utils/logging.h"
+#include "td/utils/MpscPollableQueue.h"
+#include "td/utils/queue.h"
+
 // TODO: check system calls
 // TODO: all return values must be checked
 
@@ -17,12 +23,6 @@
 #include <semaphore.h>
 #include <sys/syscall.h>
 #include <unistd.h>
-
-#include "td/utils/benchmark.h"
-#include "td/utils/common.h"
-#include "td/utils/logging.h"
-#include "td/utils/MpscPollableQueue.h"
-#include "td/utils/queue.h"
 
 #if TD_LINUX
 #include <sys/eventfd.h>

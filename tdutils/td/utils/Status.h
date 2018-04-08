@@ -25,7 +25,7 @@
       return try_status.move_as_error(); \
     }                                    \
   }
-#define TRY_RESULT(name, result) TRY_RESULT_IMPL(TD_CONCAT(r_, name), name, result)
+#define TRY_RESULT(name, result) TRY_RESULT_IMPL(TD_CONCAT(TD_CONCAT(r_, name), __LINE__), name, result)
 
 #define TRY_RESULT_IMPL(r_name, name, result) \
   auto r_name = (result);                     \
@@ -41,6 +41,11 @@
       LOG(ERROR) << log_status.move_as_error(); \
     }                                           \
   }
+
+#ifndef TD_STATUS_NO_ENSURE
+#define ensure() ensure_impl(__FILE__, __LINE__)
+#define ensure_error() ensure_error_impl(__FILE__, __LINE__)
+#endif
 
 #if TD_PORT_POSIX
 #define OS_ERROR(message)                                    \
@@ -181,14 +186,14 @@ class Status {
     return ptr_ != nullptr;
   }
 
-  void ensure() const {
+  void ensure_impl(CSlice file_name, int line) const {
     if (!is_ok()) {
-      LOG(FATAL) << "FAILED: " << to_string();
+      LOG(FATAL) << "Unexpexted Status " << to_string() << " in file " << file_name << " at line " << line;
     }
   }
-  void ensure_error() const {
+  void ensure_error_impl(CSlice file_name, int line) const {
     if (is_ok()) {
-      LOG(FATAL) << "Expected Status::Error";
+      LOG(FATAL) << "Unexpected Status::OK in file " << file_name << " at line " << line;
     }
   }
 
@@ -362,11 +367,11 @@ class Result {
     }
   }
 
-  void ensure() const {
-    status_.ensure();
+  void ensure_impl(CSlice file_name, int line) const {
+    status_.ensure_impl(file_name, line);
   }
-  void ensure_error() const {
-    status_.ensure_error();
+  void ensure_error_impl(CSlice file_name, int line) const {
+    status_.ensure_error_impl(file_name, line);
   }
   void ignore() const {
     status_.ignore();

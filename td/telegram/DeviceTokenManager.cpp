@@ -9,127 +9,296 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
+#include "td/telegram/UserId.h"
 
 #include "td/telegram/td_api.hpp"
 #include "td/telegram/telegram_api.h"
 
+#include "td/utils/base64.h"
+#include "td/utils/buffer.h"
 #include "td/utils/format.h"
+#include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
+#include "td/utils/Slice.h"
 #include "td/utils/Status.h"
+#include "td/utils/tl_helpers.h"
 
 #include <type_traits>
 
 namespace td {
-void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> device_token,
-                                         Promise<tl_object_ptr<td_api::ok>> promise) {
-  Token token(*device_token);
-  if (!clean_input_string(token.token)) {
-    return promise.set_error(Status::Error(400, "Device token must be encoded in UTF-8"));
-  }
 
-  auto &info = tokens_[token.type];
-  info.net_query_id = 0;
-  if (token.token.empty()) {
-    info.state = TokenInfo::State::Unregister;
-    if (info.token.empty()) {
-      info.state = TokenInfo::State::Sync;
-    }
+template <class StorerT>
+void DeviceTokenManager::TokenInfo::store(StorerT &storer) const {
+  using td::store;
+  bool has_other_user_ids = !other_user_ids.empty();
+  bool is_sync = state == State::Sync;
+  bool is_unregister = state == State::Unregister;
+  bool is_register = state == State::Register;
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(has_other_user_ids);
+  STORE_FLAG(is_sync);
+  STORE_FLAG(is_unregister);
+  STORE_FLAG(is_register);
+  STORE_FLAG(is_app_sandbox);
+  END_STORE_FLAGS();
+  store(token, storer);
+  if (has_other_user_ids) {
+    store(other_user_ids, storer);
+  }
+}
+
+template <class ParserT>
+void DeviceTokenManager::TokenInfo::parse(ParserT &parser) {
+  using td::parse;
+  bool has_other_user_ids;
+  bool is_sync;
+  bool is_unregister;
+  bool is_register;
+  BEGIN_PARSE_FLAGS();
+  PARSE_FLAG(has_other_user_ids);
+  PARSE_FLAG(is_sync);
+  PARSE_FLAG(is_unregister);
+  PARSE_FLAG(is_register);
+  PARSE_FLAG(is_app_sandbox);
+  END_PARSE_FLAGS();
+  CHECK(is_sync + is_unregister + is_register == 1);
+  if (is_sync) {
+    state = State::Sync;
+  } else if (is_unregister) {
+    state = State::Unregister;
   } else {
-    info.token = token.token;
-    info.state = TokenInfo::State::Register;
+    state = State::Register;
   }
-  if (info.promise) {
-    info.promise.set_error(Status::Error(5, "Cancelled due to new registerDevice request"));
+  parse(token, parser);
+  if (has_other_user_ids) {
+    parse(other_user_ids, parser);
   }
-  info.promise = std::move(promise);
-  save_info(token.type);
-  loop();
 }
 
-DeviceTokenManager::Token::Token(td_api::DeviceToken &device_token) {
-  bool ok = downcast_call(device_token, [&](auto &obj) { token = obj.token_; });
-  CHECK(ok);
-  type = [&] {
-    switch (device_token.get_id()) {
-      case td_api::deviceTokenApplePush::ID:
-        return TokenType::APNS;
-      case td_api::deviceTokenGoogleCloudMessaging::ID:
-        return TokenType::GCM;
-      case td_api::deviceTokenMicrosoftPush::ID:
-        return TokenType::MPNS;
-      case td_api::deviceTokenUbuntuPush::ID:
-        return TokenType::UbuntuPhone;
-      case td_api::deviceTokenBlackberryPush::ID:
-        return TokenType::Blackberry;
-      default:
-        UNREACHABLE();
-    }
-  }();
-}
-tl_object_ptr<td_api::DeviceToken> DeviceTokenManager::Token::as_td_api() {
-  switch (type) {
-    case TokenType::APNS:
-      return make_tl_object<td_api::deviceTokenApplePush>(token);
-    case TokenType::GCM:
-      return make_tl_object<td_api::deviceTokenGoogleCloudMessaging>(token);
-    case TokenType::MPNS:
-      return make_tl_object<td_api::deviceTokenMicrosoftPush>(token);
-    case TokenType::SimplePush:
-      return make_tl_object<td_api::deviceTokenSimplePush>(token);
-    case TokenType::UbuntuPhone:
-      return make_tl_object<td_api::deviceTokenUbuntuPush>(token);
-    case TokenType::Blackberry:
-      return make_tl_object<td_api::deviceTokenBlackberryPush>(token);
+StringBuilder &operator<<(StringBuilder &string_builder, const DeviceTokenManager::TokenInfo &token_info) {
+  switch (token_info.state) {
+    case DeviceTokenManager::TokenInfo::State::Sync:
+      string_builder << "Synchronized";
+      break;
+    case DeviceTokenManager::TokenInfo::State::Unregister:
+      string_builder << "Unregister";
+      break;
+    case DeviceTokenManager::TokenInfo::State::Register:
+      string_builder << "Register";
+      break;
     default:
       UNREACHABLE();
   }
-}
-DeviceTokenManager::TokenInfo::TokenInfo(string from) {
-  if (from.empty()) {
-    return;
+  string_builder << " token \"" << format::escaped(token_info.token) << "\"";
+  if (!token_info.other_user_ids.empty()) {
+    string_builder << ", with other users " << token_info.other_user_ids;
   }
-  char c = from[0];
-  if (c == '+') {
-    state = State::Register;
-  } else if (c == '-') {
-    state = State::Unregister;
-  } else if (c == '=') {
-    state = State::Sync;
-  } else {
-    LOG(ERROR) << "Invalid serialized TokenInfo: " << tag("token_info", from);
-    return;
+  if (token_info.is_app_sandbox) {
+    string_builder << ", sandboxed";
   }
-  token = from.substr(1);
+  return string_builder;
 }
 
-string DeviceTokenManager::TokenInfo::serialize() {
-  char c = [&] {
-    switch (state) {
-      case State::Sync:
-        return '=';
-      case State::Unregister:
-        return '-';
-      case State::Register:
-        return '+';
-      default:
-        UNREACHABLE();
+void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> device_token_ptr,
+                                         vector<int32> other_user_ids, Promise<tl_object_ptr<td_api::ok>> promise) {
+  CHECK(device_token_ptr != nullptr);
+  TokenType token_type;
+  string token;
+  bool is_app_sandbox = false;
+  switch (device_token_ptr->get_id()) {
+    case td_api::deviceTokenApplePush::ID: {
+      auto device_token = static_cast<td_api::deviceTokenApplePush *>(device_token_ptr.get());
+      token = std::move(device_token->device_token_);
+      token_type = TokenType::APNS;
+      is_app_sandbox = device_token->is_app_sandbox_;
+      break;
     }
-  }();
-  return c + token;
+    case td_api::deviceTokenGoogleCloudMessaging::ID: {
+      auto device_token = static_cast<td_api::deviceTokenGoogleCloudMessaging *>(device_token_ptr.get());
+      token = std::move(device_token->token_);
+      token_type = TokenType::GCM;
+      break;
+    }
+    case td_api::deviceTokenMicrosoftPush::ID: {
+      auto device_token = static_cast<td_api::deviceTokenMicrosoftPush *>(device_token_ptr.get());
+      token = std::move(device_token->channel_uri_);
+      token_type = TokenType::MPNS;
+      break;
+    }
+    case td_api::deviceTokenSimplePush::ID: {
+      auto device_token = static_cast<td_api::deviceTokenSimplePush *>(device_token_ptr.get());
+      token = std::move(device_token->endpoint_);
+      token_type = TokenType::SIMPLE_PUSH;
+      break;
+    }
+    case td_api::deviceTokenUbuntuPush::ID: {
+      auto device_token = static_cast<td_api::deviceTokenUbuntuPush *>(device_token_ptr.get());
+      token = std::move(device_token->token_);
+      token_type = TokenType::UBUNTU_PHONE;
+      break;
+    }
+    case td_api::deviceTokenBlackBerryPush::ID: {
+      auto device_token = static_cast<td_api::deviceTokenBlackBerryPush *>(device_token_ptr.get());
+      token = std::move(device_token->token_);
+      token_type = TokenType::BLACKBERRY;
+      break;
+    }
+    case td_api::deviceTokenWindowsPush::ID: {
+      auto device_token = static_cast<td_api::deviceTokenWindowsPush *>(device_token_ptr.get());
+      token = std::move(device_token->access_token_);
+      token_type = TokenType::WNS;
+      break;
+    }
+    case td_api::deviceTokenApplePushVoIP::ID: {
+      auto device_token = static_cast<td_api::deviceTokenApplePushVoIP *>(device_token_ptr.get());
+      token = std::move(device_token->device_token_);
+      token_type = TokenType::APNS_VOIP;
+      is_app_sandbox = device_token->is_app_sandbox_;
+      break;
+    }
+    case td_api::deviceTokenWebPush::ID: {
+      auto device_token = static_cast<td_api::deviceTokenWebPush *>(device_token_ptr.get());
+      if (device_token->endpoint_.find(',') != string::npos) {
+        return promise.set_error(Status::Error(400, "Illegal endpoint value"));
+      }
+      if (!is_base64url(device_token->p256dh_base64url_)) {
+        return promise.set_error(Status::Error(400, "Public key must be base64url-encoded"));
+      }
+      if (!is_base64url(device_token->auth_base64url_)) {
+        return promise.set_error(Status::Error(400, "Authentication secret must be base64url-encoded"));
+      }
+      if (!clean_input_string(device_token->endpoint_)) {
+        return promise.set_error(Status::Error(400, "Endpoint must be encoded in UTF-8"));
+      }
+
+      if (!device_token->endpoint_.empty()) {
+        class JsonKeys : public Jsonable {
+         public:
+          JsonKeys(Slice p256dh, Slice auth) : p256dh_(p256dh), auth_(auth) {
+          }
+          void store(JsonValueScope *scope) const {
+            auto object = scope->enter_object();
+            object << ctie("p256dh", p256dh_);
+            object << ctie("auth", auth_);
+          }
+
+         private:
+          Slice p256dh_;
+          Slice auth_;
+        };
+        class JsonWebPushToken : public Jsonable {
+         public:
+          JsonWebPushToken(Slice endpoint, Slice p256dh, Slice auth)
+              : endpoint_(endpoint), p256dh_(p256dh), auth_(auth) {
+          }
+          void store(JsonValueScope *scope) const {
+            auto object = scope->enter_object();
+            object << ctie("endpoint", endpoint_);
+            object << ctie("keys", JsonKeys(p256dh_, auth_));
+          }
+
+         private:
+          Slice endpoint_;
+          Slice p256dh_;
+          Slice auth_;
+        };
+
+        token = json_encode<string>(
+            JsonWebPushToken(device_token->endpoint_, device_token->p256dh_base64url_, device_token->auth_base64url_));
+      }
+      token_type = TokenType::WEB_PUSH;
+      break;
+    }
+    case td_api::deviceTokenMicrosoftPushVoIP::ID: {
+      auto device_token = static_cast<td_api::deviceTokenMicrosoftPushVoIP *>(device_token_ptr.get());
+      token = std::move(device_token->channel_uri_);
+      token_type = TokenType::MPNS_VOIP;
+      break;
+    }
+    case td_api::deviceTokenTizenPush::ID: {
+      auto device_token = static_cast<td_api::deviceTokenTizenPush *>(device_token_ptr.get());
+      token = std::move(device_token->reg_id_);
+      token_type = TokenType::TIZEN;
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+
+  if (!clean_input_string(token)) {
+    return promise.set_error(Status::Error(400, "Device token must be encoded in UTF-8"));
+  }
+  for (auto &other_user_id : other_user_ids) {
+    UserId user_id(other_user_id);
+    if (!user_id.is_valid()) {
+      return promise.set_error(Status::Error(400, "Invalid user_id among other user_ids"));
+    }
+  }
+  if (other_user_ids.size() > MAX_OTHER_USER_IDS) {
+    return promise.set_error(Status::Error(400, "Too much other user_ids"));
+  }
+
+  auto &info = tokens_[token_type];
+  info.net_query_id = 0;
+  if (token.empty()) {
+    if (info.token.empty()) {
+      // already unregistered
+      return promise.set_value(make_tl_object<td_api::ok>());
+    }
+
+    info.state = TokenInfo::State::Unregister;
+  } else {
+    info.state = TokenInfo::State::Register;
+    info.token = std::move(token);
+  }
+  info.other_user_ids = std::move(other_user_ids);
+  info.is_app_sandbox = is_app_sandbox;
+  info.promise.set_value(make_tl_object<td_api::ok>());
+  info.promise = std::move(promise);
+  save_info(token_type);
+}
+
+string DeviceTokenManager::get_database_key(int32 token_type) {
+  return PSTRING() << "device_token" << token_type;
 }
 
 void DeviceTokenManager::start_up() {
-  for (int32 token_type = 1; token_type < TokenType::Size; token_type++) {
-    tokens_[token_type] = TokenInfo(G()->td_db()->get_binlog_pmc()->get(PSTRING() << "device_token" << token_type));
-    LOG(INFO) << token_type << "--->" << tokens_[token_type].serialize();
+  for (int32 token_type = 1; token_type < TokenType::SIZE; token_type++) {
+    auto serialized = G()->td_db()->get_binlog_pmc()->get(get_database_key(token_type));
+    if (serialized.empty()) {
+      continue;
+    }
+
+    auto &token = tokens_[token_type];
+    char c = serialized[0];
+    if (c == '*') {
+      unserialize(token, serialized.substr(1)).ensure();
+    } else {
+      // legacy
+      if (c == '+') {
+        token.state = TokenInfo::State::Register;
+      } else if (c == '-') {
+        token.state = TokenInfo::State::Unregister;
+      } else if (c == '=') {
+        token.state = TokenInfo::State::Sync;
+      } else {
+        LOG(ERROR) << "Invalid serialized TokenInfo: " << format::escaped(serialized);
+        continue;
+      }
+      token.token = serialized.substr(1);
+    }
+    LOG(INFO) << "GET device token " << token_type << "--->" << tokens_[token_type];
   }
   loop();
 }
+
 void DeviceTokenManager::save_info(int32 token_type) {
-  auto key = PSTRING() << "device_token" << token_type;
-  string value = tokens_[token_type].serialize();
-  LOG(INFO) << "SET " << key << "--->" << value;
-  G()->td_db()->get_binlog_pmc()->set(key, value);
+  LOG(INFO) << "SET device token " << token_type << "--->" << tokens_[token_type];
+  if (tokens_[token_type].token.empty()) {
+    G()->td_db()->get_binlog_pmc()->erase(get_database_key(token_type));
+  } else {
+    G()->td_db()->get_binlog_pmc()->set(get_database_key(token_type), "*" + serialize(tokens_[token_type]));
+  }
   sync_cnt_++;
   G()->td_db()->get_binlog_pmc()->force_sync(
       PromiseCreator::event(self_closure(this, &DeviceTokenManager::dec_sync_cnt)));
@@ -144,7 +313,7 @@ void DeviceTokenManager::loop() {
   if (sync_cnt_ != 0) {
     return;
   }
-  for (int32 token_type = 1; token_type < TokenType::Size; token_type++) {
+  for (int32 token_type = 1; token_type < TokenType::SIZE; token_type++) {
     auto &info = tokens_[token_type];
     if (info.state == TokenInfo::State::Sync) {
       continue;
@@ -154,12 +323,13 @@ void DeviceTokenManager::loop() {
     }
     // have to send query
     NetQueryPtr net_query;
+    auto other_user_ids = info.other_user_ids;
     if (info.state == TokenInfo::State::Unregister) {
       net_query = G()->net_query_creator().create(
-          create_storer(telegram_api::account_unregisterDevice(token_type, info.token)));
+          create_storer(telegram_api::account_unregisterDevice(token_type, info.token, std::move(other_user_ids))));
     } else {
-      net_query =
-          G()->net_query_creator().create(create_storer(telegram_api::account_registerDevice(token_type, info.token)));
+      net_query = G()->net_query_creator().create(create_storer(telegram_api::account_registerDevice(
+          token_type, info.token, info.is_app_sandbox, BufferSlice(), std::move(other_user_ids))));
     }
     info.net_query_id = net_query->id();
     G()->net_query_dispatcher().dispatch_with_callback(std::move(net_query), actor_shared(this, token_type));
@@ -168,7 +338,7 @@ void DeviceTokenManager::loop() {
 
 void DeviceTokenManager::on_result(NetQueryPtr net_query) {
   auto token_type = static_cast<TokenType>(get_link_token());
-  CHECK(token_type >= 1 && token_type < TokenType::Size);
+  CHECK(token_type >= 1 && token_type < TokenType::SIZE);
   auto &info = tokens_[token_type];
   if (info.net_query_id != net_query->id()) {
     net_query->clear();
@@ -189,7 +359,6 @@ void DeviceTokenManager::on_result(NetQueryPtr net_query) {
       info.token = "";
     }
     info.state = TokenInfo::State::Sync;
-    save_info(token_type);
   } else {
     if (info.promise) {
       if (r_flag.is_error()) {
@@ -204,11 +373,11 @@ void DeviceTokenManager::on_result(NetQueryPtr net_query) {
       info.state = TokenInfo::State::Sync;
       info.token = "";
     }
-    save_info(token_type);
     if (r_flag.is_error()) {
       LOG(ERROR) << r_flag.error();
     }
   }
-  loop();
+  save_info(token_type);
 }
+
 }  // namespace td

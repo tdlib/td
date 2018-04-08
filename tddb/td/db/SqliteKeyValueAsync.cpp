@@ -81,7 +81,7 @@ class SqliteKeyValueAsync : public SqliteKeyValueAsyncInterface {
     std::shared_ptr<SqliteKeyValueSafe> kv_safe_;
     SqliteKeyValue *kv_ = nullptr;
 
-    static constexpr double MAX_PENDING_QUERIES_DELAY = 10;
+    static constexpr double MAX_PENDING_QUERIES_DELAY = 1;
     static constexpr size_t MAX_PENDING_QUERIES_COUNT = 100;
     std::unordered_map<string, optional<string>> buffer_;
     std::vector<Promise<>> buffer_promises_;

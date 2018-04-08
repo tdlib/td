@@ -55,7 +55,8 @@ class TD_TL_writer : public tl::TL_writer {
 
   std::string gen_int_const(const tl::tl_tree *tree_c, const std::vector<tl::var_description> &vars) const override;
 
-  std::string gen_constructor_parameter(int field_num, const tl::arg &a, bool is_default) const override;
+  std::string gen_constructor_parameter(int field_num, const std::string &class_name, const tl::arg &a,
+                                        bool is_default) const override;
 };
 
 }  // namespace td

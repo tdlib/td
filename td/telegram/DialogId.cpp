@@ -103,48 +103,51 @@ DialogId::DialogId(SecretChatId chat_id) {
   }
 }
 
-DialogId::DialogId(const tl_object_ptr<telegram_api::Peer> &peer) {
+DialogId::DialogId(const tl_object_ptr<telegram_api::dialogPeer> &dialog_peer) {
+  id = get_peer_id(dialog_peer->peer_);
+}
+
+DialogId::DialogId(const tl_object_ptr<telegram_api::Peer> &peer) : id(get_peer_id(peer)) {
+}
+
+int64 DialogId::get_peer_id(const tl_object_ptr<telegram_api::Peer> &peer) {
   CHECK(peer != nullptr);
 
-  int constructor_id = peer->get_id();
-  switch (constructor_id) {
+  switch (peer->get_id()) {
     case telegram_api::peerUser::ID: {
       auto peer_user = static_cast<const telegram_api::peerUser *>(peer.get());
       UserId user_id(peer_user->user_id_);
       if (!user_id.is_valid()) {
         LOG(ERROR) << "Receive invalid " << user_id;
-        id = 0;
-      } else {
-        id = static_cast<int64>(user_id.get());
+        return 0;
       }
-      return;
+
+      return static_cast<int64>(user_id.get());
     }
     case telegram_api::peerChat::ID: {
       auto peer_chat = static_cast<const telegram_api::peerChat *>(peer.get());
       ChatId chat_id(peer_chat->chat_id_);
       if (!chat_id.is_valid()) {
         LOG(ERROR) << "Receive invalid " << chat_id;
-        id = 0;
-      } else {
-        id = -static_cast<int64>(chat_id.get());
+        return 0;
       }
-      return;
+
+      return -static_cast<int64>(chat_id.get());
     }
     case telegram_api::peerChannel::ID: {
       auto peer_channel = static_cast<const telegram_api::peerChannel *>(peer.get());
       ChannelId channel_id(peer_channel->channel_id_);
       if (!channel_id.is_valid()) {
         LOG(ERROR) << "Receive invalid " << channel_id;
-        id = 0;
-      } else {
-        id = MAX_CHANNEL_ID - static_cast<int64>(channel_id.get());
+        return 0;
       }
-      return;
+
+      return MAX_CHANNEL_ID - static_cast<int64>(channel_id.get());
     }
     default:
       UNREACHABLE();
+      return 0;
   }
-  id = 0;
 }
 
 }  // namespace td

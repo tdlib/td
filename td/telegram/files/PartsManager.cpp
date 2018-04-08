@@ -10,12 +10,19 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 
-#include <algorithm>
 #include <limits>
 #include <numeric>
 
 namespace td {
 /*** PartsManager ***/
+
+namespace {
+int64 calc_parts_count(int64 size, int64 part_size) {
+  CHECK(part_size != 0);
+  return (size + part_size - 1) / part_size;
+}
+}  // namespace
+
 Status PartsManager::init_known_prefix(int64 known_prefix, size_t part_size, const std::vector<int> &ready_parts) {
   known_prefix_flag_ = true;
   known_prefix_size_ = known_prefix;
@@ -32,29 +39,39 @@ Status PartsManager::init_no_size(size_t part_size, const std::vector<int> &read
     part_size_ = part_size;
   } else {
     part_size_ = 32 * (1 << 10);
+    while (use_part_count_limit_ && calc_parts_count(expected_size_, part_size_) > MAX_PART_COUNT) {
+      part_size_ *= 2;
+      CHECK(part_size_ <= MAX_PART_SIZE);
+    }
+    // just in case if expected_size_ is wrong
+    if (part_size_ < MAX_PART_SIZE) {
+      part_size_ *= 2;
+    }
   }
   part_count_ = 0;
   if (known_prefix_flag_) {
     part_count_ = static_cast<int>(known_prefix_size_ / part_size_);
   }
-  part_count_ = std::max(part_count_, std::accumulate(ready_parts.begin(), ready_parts.end(), 0,
-                                                      [](auto a, auto b) { return std::max(a, b + 1); }));
+  part_count_ = max(part_count_, std::accumulate(ready_parts.begin(), ready_parts.end(), 0,
+                                                 [](auto a, auto b) { return max(a, b + 1); }));
 
   init_common(ready_parts);
   return Status::OK();
 }
 
-Status PartsManager::init(int64 size, bool is_size_final, size_t part_size, const std::vector<int> &ready_parts,
-                          bool use_part_count_limit) {
+Status PartsManager::init(int64 size, int64 expected_size, bool is_size_final, size_t part_size,
+                          const std::vector<int> &ready_parts, bool use_part_count_limit) {
+  CHECK(expected_size >= size);
   use_part_count_limit_ = use_part_count_limit;
+  expected_size_ = expected_size;
+  if (expected_size_ > MAX_FILE_SIZE) {
+    return Status::Error("Too big file");
+  }
   if (!is_size_final) {
     return init_known_prefix(size, part_size, ready_parts);
   }
   if (size == 0) {
     return init_no_size(part_size, ready_parts);
-  }
-  if (size > MAX_FILE_SIZE) {
-    return Status::Error("Too big file");
   }
   CHECK(size > 0) << tag("size", size);
   unknown_size_flag_ = false;
@@ -62,18 +79,22 @@ Status PartsManager::init(int64 size, bool is_size_final, size_t part_size, cons
 
   if (part_size != 0) {
     part_size_ = part_size;
+    if (use_part_count_limit_ && calc_parts_count(expected_size_, part_size_) > MAX_PART_COUNT) {
+      return Status::Error("FILE_UPLOAD_RESTART");
+    }
   } else {
     // TODO choose part_size_ depending on size
     part_size_ = 64 * (1 << 10);
-    while (use_part_count_limit && (size_ + part_size_ - 1) / part_size_ > MAX_PART_COUNT) {
+    while (use_part_count_limit && calc_parts_count(expected_size_, part_size_) > MAX_PART_COUNT) {
       part_size_ *= 2;
       CHECK(part_size_ <= MAX_PART_SIZE);
     }
   }
   CHECK(1 <= size_) << tag("size_", size_);
-  CHECK(!use_part_count_limit || (size_ + part_size_ - 1) / part_size_ <= MAX_PART_COUNT)
-      << tag("size_", size_) << tag("part_size_", part_size_);
-  part_count_ = static_cast<int>((size + part_size_ - 1) / part_size_);
+  CHECK(!use_part_count_limit || calc_parts_count(expected_size_, part_size_) <= MAX_PART_COUNT)
+      << tag("size_", size_) << tag("expected_size", size_) << tag("is_size_final", is_size_final)
+      << tag("part_size_", part_size_) << tag("ready_parts", ready_parts.size());
+  part_count_ = static_cast<int>(calc_parts_count(size_, part_size_));
 
   init_common(ready_parts);
   return Status::OK();
@@ -143,22 +164,28 @@ Result<Part> PartsManager::start_part() {
   return get_part(id);
 }
 
-void PartsManager::set_known_prefix(size_t size, bool is_ready) {
+Status PartsManager::set_known_prefix(size_t size, bool is_ready) {
   CHECK(known_prefix_flag_);
   CHECK(size >= static_cast<size_t>(known_prefix_size_));
   known_prefix_size_ = narrow_cast<int64>(size);
+  expected_size_ = max(known_prefix_size_, expected_size_);
 
   CHECK(static_cast<size_t>(part_count_) == part_status_.size());
   if (is_ready) {
-    part_count_ = static_cast<int>((size + part_size_ - 1) / part_size_);
+    part_count_ = static_cast<int>(calc_parts_count(size, part_size_));
 
     size_ = narrow_cast<int64>(size);
     unknown_size_flag_ = false;
   } else {
     part_count_ = static_cast<int>(size / part_size_);
   }
-  CHECK(static_cast<size_t>(part_count_) >= part_status_.size());
+  CHECK(static_cast<size_t>(part_count_) >= part_status_.size())
+      << size << " " << is_ready << " " << part_count_ << " " << part_size_ << " " << part_status_.size();
   part_status_.resize(part_count_);
+  if (use_part_count_limit_ && calc_parts_count(expected_size_, part_size_) > MAX_PART_COUNT) {
+    return Status::Error("FILE_UPLOAD_RESTART");
+  }
+  return Status::OK();
 }
 
 Status PartsManager::on_part_ok(int32 id, size_t part_size, size_t actual_size) {
@@ -175,10 +202,10 @@ Status PartsManager::on_part_ok(int32 id, size_t part_size, size_t actual_size) 
   if (unknown_size_flag_) {
     CHECK(part_size == part_size_);
     if (actual_size < part_size_) {
-      max_size_ = std::min(max_size_, end_offset);
+      max_size_ = min(max_size_, end_offset);
     }
     if (actual_size) {
-      min_size_ = std::max(min_size_, end_offset);
+      min_size_ = max(min_size_, end_offset);
     }
     if (min_size_ > max_size_) {
       auto status = Status::Error(PSLICE() << "Failed to transfer file: " << tag("min_size", min_size_)
@@ -223,7 +250,7 @@ int64 PartsManager::get_ready_size() const {
 
 int64 PartsManager::get_expected_size() const {
   if (unknown_size_flag_) {
-    return std::max(static_cast<int64>(512 * (1 << 10)), get_ready_size() * 2);
+    return max(static_cast<int64>(512 * (1 << 10)), get_ready_size() * 2);
   }
   return get_size();
 }
@@ -274,7 +301,7 @@ int64 PartsManager::get_unchecked_ready_prefix_size() {
   int64 res = part.offset;
   if (!unknown_size_flag_) {
     res += narrow_cast<int64>(part.size);
-    res = std::min(res, get_size());
+    res = min(res, get_size());
   }
   return res;
 }
@@ -287,7 +314,7 @@ Part PartsManager::get_part(int id) {
     if (total_size < offset) {
       size = 0;
     } else {
-      size = std::min(size, total_size - offset);
+      size = min(size, total_size - offset);
     }
   }
   return Part{id, offset, static_cast<size_t>(size)};

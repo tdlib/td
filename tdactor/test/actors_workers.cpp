@@ -10,8 +10,6 @@
 
 #include "td/utils/logging.h"
 
-#include <initializer_list>
-
 REGISTER_TESTS(actors_workers);
 
 namespace {

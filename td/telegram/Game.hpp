@@ -33,7 +33,6 @@ void Game::store(StorerT &storer) const {
     storer.context()->td().get_actor_unsafe()->animations_manager_->store_animation(animation_file_id_, storer);
   }
   store(text_, storer);
-  store(entities_, storer);
 }
 
 template <class ParserT>
@@ -56,7 +55,6 @@ void Game::parse(ParserT &parser) {
     animation_file_id_ = parser.context()->td().get_actor_unsafe()->animations_manager_->parse_animation(parser);
   }
   parse(text_, parser);
-  parse(entities_, parser);
 }
 
 }  // namespace td

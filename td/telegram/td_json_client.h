@@ -16,9 +16,10 @@
  * the same keys as the API object field names. The object type name is stored in the special field "@type", which is
  * optional in places where a type is uniquely determined by the context.
  * Bool object fields are stored as Booleans in JSON. int32, int53 and double fields are stored as Numbers.
- * int64 and string fields are stored as Strings. vectors are stored as Arrays.
+ * int64 and string fields are stored as Strings. bytes fields are base64 encoded and then stored as String.
+ * vectors are stored as Arrays.
  * The main TDLib interface is asynchronous. To match requests with a corresponding response a field "@extra" can
- * be added to the request object. The corresponding response will have an "@extra" field with the same value.
+ * be added to the request object. The corresponding response will have an "@extra" field with exactly the same value.
  *
  * A TDLib client instance should be created through td_json_client_create.
  * Requests then can be sent using td_json_client_send from any thread.
@@ -68,6 +69,8 @@ TDJSON_EXPORT void td_json_client_send(void *client, const char *request);
 /**
  * Receives incoming updates and request responses from the TDLib client. May be called from any thread, but
  * shouldn't be called simultaneously from two different threads.
+ * Returned pointer will be deallocated by TDLib during next call to td_json_client_receive or td_json_client_execute
+ * in the same thread, so it can't be used after that.
  * \param[in] client The client.
  * \param[in] timeout Maximum number of seconds allowed for this function to wait for new data.
  * \return JSON-serialized null-terminated incoming update or request response. May be NULL if the timeout expires.
@@ -77,6 +80,8 @@ TDJSON_EXPORT const char *td_json_client_receive(void *client, double timeout);
 /**
  * Synchronously executes TDLib request. May be called from any thread.
  * Only a few requests can be executed synchronously.
+ * Returned pointer will be deallocated by TDLib during next call to td_json_client_receive or td_json_client_execute
+ * in the same thread, so it can't be used after that.
  * \param[in] client The client.
  * \param[in] request JSON-serialized null-terminated request to TDLib.
  * \return JSON-serialized null-terminated request response. May be NULL if the request can't be parsed.

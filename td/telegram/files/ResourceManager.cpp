@@ -15,7 +15,7 @@
 
 namespace td {
 
-void ResourceManager::register_worker(ActorShared<FileLoaderActor> callback, int32 priority) {
+void ResourceManager::register_worker(ActorShared<FileLoaderActor> callback, int8 priority) {
   auto node_id = nodes_container_.create();
   auto *node_ptr = nodes_container_.get(node_id);
   *node_ptr = std::make_unique<Node>();
@@ -28,7 +28,7 @@ void ResourceManager::register_worker(ActorShared<FileLoaderActor> callback, int
   send_closure(node->callback_, &FileLoaderActor::set_resource_manager, actor_shared(this, node_id));
 }
 
-void ResourceManager::update_priority(int32 priority) {
+void ResourceManager::update_priority(int8 priority) {
   if (stop_flag_) {
     return;
   }
@@ -111,7 +111,7 @@ bool ResourceManager::satisfy_node(NodeId file_node_id) {
     return true;
   }
   auto give = resource_state_.unused();
-  give = std::min(need, give);
+  give = min(need, give);
   give -= give % part_size;
   VLOG(files) << tag("give", give);
   if (give == 0) {
@@ -158,7 +158,7 @@ void ResourceManager::loop() {
     }
   }
 }
-void ResourceManager::add_node(NodeId node_id, int32 priority) {
+void ResourceManager::add_node(NodeId node_id, int8 priority) {
   if (priority >= 0) {
     auto it = std::find_if(to_xload_.begin(), to_xload_.end(), [&](auto &x) { return x.first <= priority; });
     to_xload_.insert(it, std::make_pair(priority, node_id));

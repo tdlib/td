@@ -25,9 +25,12 @@ void ConcurrentScheduler::init(int32 threads_n) {
   threads_n++;
   std::vector<std::shared_ptr<MpscPollableQueue<EventFull>>> outbound(threads_n);
   for (int32 i = 0; i < threads_n; i++) {
+#if TD_THREAD_UNSUPPORTED || TD_EVENTFD_UNSUPPORTED
+#else
     auto queue = std::make_shared<MpscPollableQueue<EventFull>>();
     queue->init();
     outbound[i] = queue;
+#endif
   }
 
   schedulers_.resize(threads_n);

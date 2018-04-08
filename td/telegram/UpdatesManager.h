@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/PtsManager.h"
 
 #include "td/telegram/td_api.h"
@@ -36,11 +37,17 @@ class UpdatesManager : public Actor {
 
   vector<const tl_object_ptr<telegram_api::Message> *> get_new_messages(const telegram_api::Updates *updates_ptr);
 
+  vector<DialogId> get_chats(const telegram_api::Updates *updates_ptr);
+
   void get_difference(const char *source);
 
   void schedule_get_difference(const char *source);
 
   void init_state();
+
+  void ping_server();
+
+  void on_server_pong(tl_object_ptr<telegram_api::updates_state> &&state);
 
   int32 get_pts() const {
     return pts_manager_.mem_pts();
@@ -132,7 +139,7 @@ class UpdatesManager : public Actor {
 
   void set_date(int32 date, bool from_update, string date_source);
 
-  static tl_object_ptr<td_api::ChatAction> convertSendMessageAction(
+  static tl_object_ptr<td_api::ChatAction> convert_send_message_action(
       tl_object_ptr<telegram_api::SendMessageAction> action);
 
   void process_get_difference_updates(vector<tl_object_ptr<telegram_api::Message>> &&new_messages,

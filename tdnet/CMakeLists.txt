@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
 if (NOT OPENSSL_FOUND)
   find_package(OpenSSL REQUIRED)
+  find_package(ZLIB REQUIRED)
 endif()
 
 #SOURCE SETS
@@ -43,10 +44,7 @@ set(TDNET_SOURCE
 add_library(tdnet STATIC ${TDNET_SOURCE})
 target_include_directories(tdnet PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_include_directories(tdnet SYSTEM PUBLIC $<BUILD_INTERFACE:${OPENSSL_INCLUDE_DIR}>)
-target_link_libraries(tdnet PUBLIC tdutils tdactor ${OPENSSL_LIBRARIES})
-if (UNIX)
-  target_link_libraries(tdnet PRIVATE dl z) # for OpenSSL
-endif()
+target_link_libraries(tdnet PUBLIC tdutils tdactor ${OPENSSL_LIBRARIES} PRIVATE ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
 
 install(TARGETS tdnet EXPORT TdTargets
   LIBRARY DESTINATION lib

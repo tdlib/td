@@ -22,6 +22,7 @@ enum class Version : int32 {
   FixMinUsers,
   FixPageBlockAudioEmptyFile,
   AddMessageInvoiceProviderData,
+  AddCaptionEntities,
   Next
 };
 

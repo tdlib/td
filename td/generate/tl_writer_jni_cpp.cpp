@@ -77,113 +77,44 @@ std::string TD_TL_writer_jni_cpp::gen_vector_fetch(std::string field_name, const
                                                    int parser_type) const {
   std::string vector_type = gen_type_name(t);
 
-  std::string type;
-  std::string Type;
-
   if (vector_type == "bool") {
     assert(false);  // TODO
   }
 
+  std::string fetch_object = "jni::fetch_object(env, p, " + field_name + "fieldID)";
+  std::string array_type;
   if (vector_type == "std::int32_t") {
-    type = "int";
-    Type = "Int";
+    array_type = "jintArray";
   }
   if (vector_type == "std::int64_t") {
-    type = "long";
-    Type = "Long";
+    array_type = "jlongArray";
   }
   if (vector_type == "double") {
-    type = "double";
-    Type = "Double";
+    array_type = "jdoubleArray";
   }
 
-  std::string res_begin;
-  std::string res_end;
-  std::string fetch_object;
-  if (field_name.empty()) {
-    res_begin = "({ std::vector<" + vector_type + "> res_tmp_; ";
-    field_name = "res_tmp_";
-    res_end = " std::move(res_tmp_); })";
-    fetch_object = "p; ";
-  } else {
-    fetch_object = "jni::fetch_object(env, p, " + field_name + "fieldID); ";
-  }
-  std::string resize_vector;
-  if (!type.empty()) {
-    resize_vector = field_name + ".resize(length_tmp_); ";
-  } else {
-    resize_vector = field_name + ".reserve(length_tmp_); ";
+  if (!array_type.empty()) {
+    return "jni::fetch_vector(env, (" + array_type + ")" + fetch_object + ");";
   }
 
-  std::string res;
-  if (!type.empty()) {
-    res =
-        "{ "
-        "j" +
-        type + "Array arr_tmp_ = (j" + type + "Array)" + fetch_object +
-        "if (arr_tmp_) { "
-        "jsize length_tmp_ = env->GetArrayLength(arr_tmp_); " +
-        resize_vector + "env->Get" + Type + "ArrayRegion(arr_tmp_, 0, length_tmp_, reinterpret_cast<j" + type +
-        " *>(&" + field_name +
-        "[0])); "
-        "env->DeleteLocalRef(arr_tmp_); "
-        "} }";
-  } else if (vector_type == string_type) {
-    res =
-        "{ "
-        "jobjectArray arr_tmp_ = (jobjectArray)" +
-        fetch_object +
-        "if (arr_tmp_) { "
-        "jsize length_tmp_ = env->GetArrayLength(arr_tmp_); " +
-        resize_vector +
-        "for (jsize i_tmp_ = 0; i_tmp_ < length_tmp_; i_tmp_++) { "
-        "jstring str_tmp_ = (jstring)env->GetObjectArrayElement(arr_tmp_, i_tmp_); " +
-        field_name +
-        ".push_back(jni::from_jstring(env, str_tmp_)); "
-        "env->DeleteLocalRef(str_tmp_); "
-        "} "
-        "env->DeleteLocalRef(arr_tmp_); "
-        "} }";
+  std::string template_type;
+  if (vector_type == string_type) {
+    template_type = "std::string";
   } else if (vector_type.compare(0, 11, "std::vector") == 0) {
     const tl::tl_tree_type *child = static_cast<const tl::tl_tree_type *>(t->children[0]);
-
-    res =
-        "{ "
-        "jobjectArray arr_tmp_ = (jobjectArray)" +
-        fetch_object +
-        "if (arr_tmp_) { "
-        "jsize length_tmp_ = env->GetArrayLength(arr_tmp_); " +
-        resize_vector +
-        "for (jsize i_tmp_ = 0; i_tmp_ < length_tmp_; i_tmp_++) { "
-        "jobject p = env->GetObjectArrayElement(arr_tmp_, i_tmp_); " +
-        field_name + ".push_back(" + gen_vector_fetch("", child, vars, parser_type) +
-        "); "
-        "if (p) { env->DeleteLocalRef(p); "
-        "} } "
-        "env->DeleteLocalRef(arr_tmp_); "
-        "} }";
+    template_type = gen_type_name(child);
+    if (template_type.compare(0, 10, "object_ptr") == 0) {
+      template_type = gen_main_class_name(child->type);
+    }
+    template_type = "std::vector<" + template_type + ">";
   } else if (vector_type == bytes_type) {
     std::fprintf(stderr, "Vector of Bytes is not supported\n");
     assert(false);
   } else {
     assert(vector_type.compare(0, 10, "object_ptr") == 0);
-    res =
-        "{ "
-        "jobjectArray arr_tmp_ = (jobjectArray)" +
-        fetch_object +
-        "if (arr_tmp_) { "
-        "jsize length_tmp_ = env->GetArrayLength(arr_tmp_); " +
-        resize_vector +
-        "for (jsize i_tmp_ = 0; i_tmp_ < length_tmp_; i_tmp_++) { "
-        "jobject o_ = env->GetObjectArrayElement(arr_tmp_, i_tmp_); " +
-        field_name + ".push_back(" + gen_main_class_name(t->type) +
-        "::fetch(env, o_)); "
-        "if (o_) { env->DeleteLocalRef(o_); "
-        "} } "
-        "env->DeleteLocalRef(arr_tmp_); "
-        "} }";
+    template_type = gen_main_class_name(t->type);
   }
-  return res_begin + res + res_end;
+  return "jni::FetchVector<" + template_type + ">::fetch(env, (jobjectArray)" + fetch_object + ");";
 }
 
 std::string TD_TL_writer_jni_cpp::gen_type_fetch(const std::string &field_name, const tl::tl_tree_type *tree_type,
@@ -229,7 +160,7 @@ std::string TD_TL_writer_jni_cpp::gen_type_fetch(const std::string &field_name, 
   }
 
   if (name == "Bool") {
-    res = "env->GetBooleanField(p, " + field_name + "fieldID)";
+    res = "(env->GetBooleanField(p, " + field_name + "fieldID) != 0)";
   } else if (name == "Int32") {
     res = "env->GetIntField(p, " + field_name + "fieldID)";
   } else if (name == "Int53" || name == "Int64") {
@@ -242,13 +173,13 @@ std::string TD_TL_writer_jni_cpp::gen_type_fetch(const std::string &field_name, 
     res = "jni::from_bytes(env, (jbyteArray)jni::fetch_object(env, p, " + field_name + "fieldID))";
   } else if (name == "Vector") {
     const tl::tl_tree_type *child = static_cast<const tl::tl_tree_type *>(tree_type->children[0]);
-    return gen_vector_fetch(field_name, child, vars, parser_type);
+    res = gen_vector_fetch(field_name, child, vars, parser_type);
   } else {
     if (field_name == "") {
       return gen_main_class_name(tree_type->type) + "::fetch(env, p)";
     }
-    res = "({jobject jobject_tmp_ = jni::fetch_object(env, p, " + field_name + "fieldID); " +
-          gen_main_class_name(tree_type->type) + "::fetch(env, jobject_tmp_);})";
+    res = "jni::fetch_tl_object<" + gen_main_class_name(tree_type->type) + ">(env, jni::fetch_object(env, p, " +
+          field_name + "fieldID));";
   }
   return res_begin + res;
 }
@@ -523,7 +454,8 @@ std::string TD_TL_writer_jni_cpp::gen_store_function_begin(const std::string &st
          "void " +
          class_name + "::store(" + storer_name + " &s" +
          std::string(storer_type <= 0 ? "" : ", const char *field_name") + ") const {\n" +
-         (storer_type <= 0 ? "  if (!(s = env->AllocObject(Class))) { return; }\n"
+         (storer_type <= 0 ? "  s = env->AllocObject(Class);\n"
+                             "  if (!s) { return; }\n"
                            : "  if (!LOG_IS_STRIPPED(ERROR)) {\n"
                              "    s.store_class_begin(field_name, \"" +
                                  get_pretty_class_name(class_name) + "\");\n");
@@ -544,7 +476,7 @@ std::string TD_TL_writer_jni_cpp::gen_fetch_switch_case(const tl::tl_combinator 
 
 std::string TD_TL_writer_jni_cpp::gen_fetch_switch_end() const {
   return "    default:\n"
-         "      UNREACHABLE();\n"
+         "      LOG(WARNING) << \"Unknown constructor found\";\n"
          "      return nullptr;\n"
          "  }\n";
 }
@@ -586,7 +518,7 @@ std::string TD_TL_writer_jni_cpp::gen_basic_java_class_name(std::string name) co
 }
 
 std::string TD_TL_writer_jni_cpp::gen_java_class_name(std::string name) const {
-  return package_name + "/" + "TdApi" + "$" + gen_basic_java_class_name(name);
+  return "(PSLICE() << package_name << \"/TdApi$" + gen_basic_java_class_name(name) + "\").c_str()";
 }
 
 std::string TD_TL_writer_jni_cpp::gen_type_signature(const tl::tl_tree_type *tree_type) const {
@@ -611,7 +543,7 @@ std::string TD_TL_writer_jni_cpp::gen_type_signature(const tl::tl_tree_type *tre
     const tl::tl_tree_type *child = static_cast<const tl::tl_tree_type *>(tree_type->children[0]);
     return "[" + gen_type_signature(child);
   } else {
-    return "L" + gen_java_class_name(gen_main_class_name(t)) + ";";
+    return "L%PACKAGE_NAME%/TdApi$" + gen_basic_java_class_name(gen_main_class_name(t)) + ";";
   }
   assert(false);
   return "";
@@ -626,16 +558,11 @@ std::string TD_TL_writer_jni_cpp::gen_additional_function(const std::string &fun
       "\n"
       "void " +
       class_name + "::" + function_name +
-      "(JNIEnv *env) {\n"
+      "(JNIEnv *env, const char *package_name) {\n"
       "  " +
-      class_name_class + " = jni::get_jclass(env, \"" + gen_java_class_name(gen_class_name(t->name)) + "\");\n";
+      class_name_class + " = jni::get_jclass(env, " + gen_java_class_name(gen_class_name(t->name)) + ");\n";
 
   if (t->args.size()) {
-    res +=
-        "\n"
-        "  if (" +
-        class_name_class + ") {\n";
-
     for (std::size_t i = 0; i < t->args.size(); i++) {
       const tl::arg &a = t->args[i];
       assert(a.type->get_type() == tl::NODE_TYPE_TYPE);
@@ -645,11 +572,25 @@ std::string TD_TL_writer_jni_cpp::gen_additional_function(const std::string &fun
       assert(field_name.size());
       std::string java_field_name = gen_java_field_name(std::string(field_name, 0, field_name.size() - 1));
 
-      res += "    " + field_name + "fieldID = jni::get_field_id(env, " + class_name_class + ", \"" + java_field_name +
-             "\", \"" + gen_type_signature(tree_type) + "\");\n";
+      std::string type_signature = gen_type_signature(tree_type);
+      if (type_signature.find("%PACKAGE_NAME%") == std::string::npos) {
+        type_signature = '"' + type_signature + '"';
+      } else {
+        std::string new_type_signature = "(PSLICE()";
+        std::size_t pos = type_signature.find("%PACKAGE_NAME%");
+        while (pos != std::string::npos) {
+          new_type_signature += " << \"" + type_signature.substr(0, pos) + "\" << package_name";
+          type_signature = type_signature.substr(pos + 14);
+          pos = type_signature.find("%PACKAGE_NAME%");
+        }
+        if (!type_signature.empty()) {
+          new_type_signature += " << \"" + type_signature + "\"";
+        }
+        type_signature = new_type_signature + ").c_str()";
+      }
+      res += "  " + field_name + "fieldID = jni::get_field_id(env, " + class_name_class + ", \"" + java_field_name +
+             "\", " + type_signature + ");\n";
     }
-
-    res += "  }\n";
   }
   res += "}\n";
   return res;
@@ -664,9 +605,9 @@ std::string TD_TL_writer_jni_cpp::gen_additional_proxy_function_begin(const std:
   return "\n"
          "void " +
          class_name + "::" + function_name +
-         "(JNIEnv *env) {\n"
-         "  Class = jni::get_jclass(env, \"" +
-         gen_java_class_name(class_name) + "\");\n";
+         "(JNIEnv *env, const char *package_name) {\n"
+         "  Class = jni::get_jclass(env, " +
+         gen_java_class_name(class_name) + ");\n";
 }
 
 std::string TD_TL_writer_jni_cpp::gen_additional_proxy_function_case(const std::string &function_name,
@@ -674,7 +615,7 @@ std::string TD_TL_writer_jni_cpp::gen_additional_proxy_function_case(const std::
                                                                      const std::string &class_name, int arity) const {
   assert(function_name == "init_jni_vars");
   assert(arity == 0);
-  return "  " + class_name + "::" + function_name + "(env);\n";
+  return "  " + class_name + "::" + function_name + "(env, package_name);\n";
 }
 
 std::string TD_TL_writer_jni_cpp::gen_additional_proxy_function_case(const std::string &function_name,
@@ -683,7 +624,7 @@ std::string TD_TL_writer_jni_cpp::gen_additional_proxy_function_case(const std::
                                                                      bool is_function) const {
   assert(function_name == "init_jni_vars");
   assert(arity == 0);
-  return "  " + gen_class_name(t->name) + "::" + function_name + "(env);\n";
+  return "  " + gen_class_name(t->name) + "::" + function_name + "(env, package_name);\n";
 }
 
 std::string TD_TL_writer_jni_cpp::gen_additional_proxy_function_end(const std::string &function_name,

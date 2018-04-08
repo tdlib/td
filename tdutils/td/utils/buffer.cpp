@@ -76,7 +76,7 @@ BufferAllocator::ReaderPtr BufferAllocator::create_reader(const ReaderPtr &raw) 
 void BufferAllocator::dec_ref_cnt(BufferRaw *ptr) {
   int left = ptr->ref_cnt_.fetch_sub(1, std::memory_order_acq_rel);
   if (left == 1) {
-    auto buf_size = std::max(sizeof(BufferRaw), offsetof(BufferRaw, data_) + ptr->data_size_);
+    auto buf_size = max(sizeof(BufferRaw), offsetof(BufferRaw, data_) + ptr->data_size_);
     buffer_mem -= buf_size;
     ptr->~BufferRaw();
     delete[] ptr;

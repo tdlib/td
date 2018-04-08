@@ -17,6 +17,7 @@
 #include <utility>
 
 namespace td {
+
 class PublicRsaKeyShared : public PublicRsaKeyInterface {
  public:
   explicit PublicRsaKeyShared(DcId dc_id);

@@ -21,8 +21,6 @@
 #include "td/utils/port/Clocks.h"
 #include "td/utils/tl_helpers.h"
 
-#include <algorithm>
-
 namespace td {
 
 Global::Global() = default;
@@ -64,8 +62,8 @@ void Global::set_mtproto_header(std::unique_ptr<MtprotoHeader> mtproto_header) {
 Status Global::init(const TdParameters &parameters, ActorId<Td> td, std::unique_ptr<TdDb> td_db) {
   parameters_ = parameters;
 
-  gc_scheduler_id_ = std::min(Scheduler::instance()->sched_id() + 2, Scheduler::instance()->sched_count() - 1);
-  slow_net_scheduler_id_ = std::min(Scheduler::instance()->sched_id() + 3, Scheduler::instance()->sched_count() - 1);
+  gc_scheduler_id_ = min(Scheduler::instance()->sched_id() + 2, Scheduler::instance()->sched_count() - 1);
+  slow_net_scheduler_id_ = min(Scheduler::instance()->sched_id() + 3, Scheduler::instance()->sched_count() - 1);
 
   td_ = td;
   td_db_ = std::move(td_db);

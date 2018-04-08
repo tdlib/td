@@ -5,4 +5,4 @@
 auto/
 db_backup
 *.pyc
-docs
+docs/

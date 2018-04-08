@@ -46,7 +46,7 @@ class FileFromBytes : public FileLoaderActor {
   void wakeup() override;
   void set_resource_manager(ActorShared<ResourceManager>) override {
   }
-  void update_priority(int32) override {
+  void update_priority(int8 priority) override {
   }
   void update_resources(const ResourceState &other) override {
   }

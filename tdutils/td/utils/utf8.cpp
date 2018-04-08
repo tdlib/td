@@ -103,6 +103,9 @@ const unsigned char *next_utf8_unsafe(const unsigned char *ptr, uint32 *code) {
     return ptr + 4;
   }
   UNREACHABLE();
+  if (code) {
+    *code = 0;
+  }
   return ptr;
 }
 

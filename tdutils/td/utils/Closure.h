@@ -10,6 +10,7 @@
 #include "td/utils/invoke.h"
 #include "td/utils/logging.h"
 
+#include <cstdlib>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -129,14 +130,16 @@ class DelayedClosure {
   explicit DelayedClosure(
       const DelayedClosure<FromActorT, FromFunctionT, FromArgsT...> &other,
       std::enable_if_t<!LogicAnd<std::is_copy_constructible<FromArgsT>::value...>::value, int> = 0) {
-    UNREACHABLE("deleted constructor");
+    LOG(FATAL) << "Deleted constructor";
+    std::abort();
   }
 
   template <class FromActorT, class FromFunctionT, class... FromArgsT>
   std::enable_if_t<!LogicAnd<std::is_copy_constructible<FromArgsT>::value...>::value,
                    DelayedClosure<FromActorT, FromFunctionT, FromArgsT...>>
   do_clone(const DelayedClosure<FromActorT, FromFunctionT, FromArgsT...> &value) const {
-    UNREACHABLE("Trying to clone DelayedClosure that contains noncopyable elements");
+    LOG(FATAL) << "Trying to clone DelayedClosure that contains noncopyable elements";
+    std::abort();
   }
 
   template <class FromActorT, class FromFunctionT, class... FromArgsT>

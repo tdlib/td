@@ -15,6 +15,7 @@
 #include <cstring>
 
 namespace td {
+
 template <int buffer_size = 32 * (1 << 10)>
 class MemoryLog : public LogInterface {
   static constexpr size_t MAX_OUTPUT_SIZE = buffer_size / 16 < (8 << 10) ? buffer_size / 16 : (8 << 10);
@@ -57,6 +58,10 @@ class MemoryLog : public LogInterface {
     size_t printed = std::snprintf(&buffer_[start_pos + 1], magic_size - 1, "LOG:%08x: ", real_pos);
     CHECK(printed == magic_size - 2);
     buffer_[start_pos + magic_size - 1] = ' ';
+
+    if (log_level == VERBOSITY_NAME(FATAL)) {
+      process_fatal_error(new_slice);
+    }
   }
 
   void rotate() override {
@@ -74,4 +79,5 @@ class MemoryLog : public LogInterface {
   char buffer_[buffer_size];
   std::atomic<uint32> pos_;
 };
+
 }  // namespace td

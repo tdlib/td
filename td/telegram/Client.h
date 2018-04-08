@@ -77,7 +77,7 @@ class Client final {
    * Sends request to TDLib. May be called from any thread.
    * \param[in] request Request to TDLib.
    */
-  void send(Request request);
+  void send(Request &&request);
 
   /**
    * A response to a request, or an incoming update from TDLib.
@@ -109,7 +109,7 @@ class Client final {
    * \param[in] request Request to the TDLib.
    * \return The request response.
    */
-  static Response execute(Request request);
+  static Response execute(Request &&request);
 
   /**
    * Destroys the client and TDLib instance.

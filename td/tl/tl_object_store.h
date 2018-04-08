@@ -6,14 +6,14 @@
 //
 #pragma once
 
+#include "td/tl/TlObject.h"
+
+#include "td/utils/misc.h"
+
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
-
-#include "td/tl/TlObject.h"
-
-#include "td/utils/misc.h"
 
 namespace td {
 

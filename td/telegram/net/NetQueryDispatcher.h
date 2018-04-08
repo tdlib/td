@@ -11,6 +11,7 @@
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"
+#include "td/utils/ScopeGuard.h"
 #include "td/utils/Status.h"
 
 #include <array>
@@ -74,6 +75,7 @@ class NetQueryDispatcher {
   std::shared_ptr<PublicRsaKeyShared> common_public_rsa_key_;
   ActorOwn<PublicRsaKeyWatchdog> public_rsa_key_watchdog_;
   std::mutex main_dc_id_mutex_;
+  std::shared_ptr<Guard> td_guard_;
 
   Status wait_dc_init(DcId dc_id, bool force);
   bool is_dc_inited(int32 raw_dc_id);

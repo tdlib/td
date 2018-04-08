@@ -32,7 +32,7 @@ class RingBench : public td::Benchmark {
   std::string get_description() const override {
     static const char *types[] = {"later", "immediate", "raw", "tail", "lambda"};
     static_assert(0 <= type && type < 5, "");
-    return PSTRING("Ring (send_%s) (threads_n = %d)", types[type], thread_n_);
+    return PSTRING() << "Ring (send_" << types[type] << ") (threads_n = " << thread_n_ << ")";
   }
 
   struct PassActor : public td::Actor {

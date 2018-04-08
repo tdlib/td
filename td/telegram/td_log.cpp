@@ -8,10 +8,20 @@
 
 #include "td/telegram/Log.h"
 
-void td_set_log_file_path(const char *path) {
-  td::Log::set_file_path(path);
+#include <cstdint>
+
+int td_set_log_file_path(const char *file_path) {
+  return static_cast<int>(td::Log::set_file_path(file_path == nullptr ? "" : file_path));
+}
+
+void td_set_log_max_file_size(long long max_file_size) {
+  td::Log::set_max_file_size(static_cast<std::int64_t>(max_file_size));
 }
 
 void td_set_log_verbosity_level(int new_verbosity_level) {
   td::Log::set_verbosity_level(new_verbosity_level);
+}
+
+void td_set_log_fatal_error_callback(td_log_fatal_error_callback_ptr callback) {
+  td::Log::set_fatal_error_callback(callback);
 }

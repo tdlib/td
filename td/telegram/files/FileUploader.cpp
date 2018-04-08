@@ -36,7 +36,7 @@ FileUploader::FileUploader(const LocalFileLocation &local, const RemoteFileLocat
 }
 
 Result<FileLoader::FileInfo> FileUploader::init() {
-  if (remote_.type_ == RemoteFileLocation::Type::Full) {
+  if (remote_.type() == RemoteFileLocation::Type::Full) {
     return Status::Error("File is already uploaded");
   }
 
@@ -45,7 +45,7 @@ Result<FileLoader::FileInfo> FileUploader::init() {
 
   int offset = 0;
   int part_size = 0;
-  if (remote_.type_ == RemoteFileLocation::Type::Partial) {
+  if (remote_.type() == RemoteFileLocation::Type::Partial) {
     const auto &partial = remote_.partial();
     file_id_ = partial.file_id_;
     part_size = partial.part_size_;
@@ -87,20 +87,20 @@ Result<FileLoader::PrefixInfo> FileUploader::on_update_local_location(const Loca
   int64 local_size = 0;
   bool local_is_ready{false};
   FileType file_type{FileType::Temp};
-  if (location.type_ == LocalFileLocation::Type::Empty) {
+  if (location.type() == LocalFileLocation::Type::Empty) {
     path = "";
     local_size = 0;
     local_is_ready = false;
     file_type = FileType::Temp;
-  } else if (location.type_ == LocalFileLocation::Type::Partial) {
+  } else if (location.type() == LocalFileLocation::Type::Partial) {
     path = location.partial().path_;
     local_size = static_cast<int64>(location.partial().part_size_) * location.partial().ready_part_count_;
     local_is_ready = false;
-    file_type = location.partial().type_;
+    file_type = location.partial().file_type_;
   } else {
     path = location.full().path_;
     local_is_ready = true;
-    file_type = location.full().type_;
+    file_type = location.full().file_type_;
   }
 
   if (!path.empty() && path != fd_path_) {
@@ -108,7 +108,7 @@ Result<FileLoader::PrefixInfo> FileUploader::on_update_local_location(const Loca
 
     // Race: partial location could be already deleted. Just ignore such locations
     if (res_fd.is_error()) {
-      if (location.type_ == LocalFileLocation::Type::Partial) {
+      if (location.type() == LocalFileLocation::Type::Partial) {
         PrefixInfo info;
         info.size = local_size_;
         info.is_ready = local_is_ready_;
@@ -140,6 +140,9 @@ Result<FileLoader::PrefixInfo> FileUploader::on_update_local_location(const Loca
   }
 
   local_size_ = local_size;
+  if (expected_size_ < local_size_) {
+    expected_size_ = local_size_;
+  }
   local_is_ready_ = local_is_ready;
   file_type_ = file_type;
 
@@ -220,7 +223,8 @@ Result<std::pair<NetQueryPtr, bool>> FileUploader::start_part(Part part, int32 p
 
   NetQueryPtr net_query;
   if (big_flag_) {
-    auto query = telegram_api::upload_saveBigFilePart(file_id_, part.id, part_count, std::move(bytes));
+    auto query =
+        telegram_api::upload_saveBigFilePart(file_id_, part.id, local_is_ready_ ? part_count : -1, std::move(bytes));
     net_query = G()->net_query_creator().create(create_storer(query), DcId::main(), NetQuery::Type::Upload,
                                                 NetQuery::AuthFlag::On, NetQuery::GzipFlag::Off);
   } else {

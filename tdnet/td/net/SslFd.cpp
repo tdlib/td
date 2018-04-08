@@ -149,7 +149,7 @@ Result<SslFd> SslFd::init(SocketFd fd, CSlice host, CSlice cert_file, VerifyPeer
   // TODO(now): cipher list
   string cipher_list;
   if (SSL_CTX_set_cipher_list(ssl_ctx, cipher_list.empty() ? "DEFAULT" : cipher_list.c_str()) == 0) {
-    return create_openssl_error(-9, PSLICE("Failed to set cipher list \"%s\"", cipher_list.c_str()));
+    return create_openssl_error(-9, PSLICE() << "Failed to set cipher list \"" << cipher_list << '"');
   }
 
   auto ssl_handle = SSL_new(ssl_ctx);

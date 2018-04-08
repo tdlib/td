@@ -9,8 +9,6 @@
 #include "td/utils/common.h"
 #include "td/utils/Time.h"
 
-#include <memory>
-
 namespace td {
 namespace mtproto {
 class AuthKey {
@@ -81,7 +79,6 @@ class AuthKey {
 
  private:
   uint64 auth_key_id_ = 0;
-  // TODO(perf): std::shared_ptr
   string auth_key_;
   bool auth_flag_ = false;
   bool was_auth_flag_ = false;

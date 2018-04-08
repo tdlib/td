@@ -109,6 +109,58 @@ TEST(MessageEntities, hashtag) {
   check_hashtag(u8"#a\u2122", {"#a"});
 }
 
+static void check_cashtag(string str, std::vector<string> expected) {
+  auto result_slice = find_cashtags(str);
+  std::vector<string> result;
+  for (auto &it : result_slice) {
+    result.push_back(it.str());
+  }
+  if (result != expected) {
+    LOG(FATAL) << tag("text", str) << tag("got", format::as_array(result))
+               << tag("expected", format::as_array(expected));
+  }
+}
+
+TEST(MessageEntities, cashtag) {
+  check_cashtag("", {});
+  check_cashtag("$", {});
+  check_cashtag("$$", {});
+  check_cashtag("$$$", {});
+  check_cashtag("$a", {});
+  check_cashtag(" $a", {});
+  check_cashtag("$a ", {});
+  check_cashtag(" $я ", {});
+  check_cashtag("$ab", {});
+  check_cashtag("$abc", {});
+  check_cashtag("$", {});
+  check_cashtag("$A", {});
+  check_cashtag("$AB", {});
+  check_cashtag("$АBC", {});
+  check_cashtag("$АВС", {});
+  check_cashtag("$ABC", {"$ABC"});
+  check_cashtag("$ABCD", {"$ABCD"});
+  check_cashtag("$ABCDE", {"$ABCDE"});
+  check_cashtag("$ABCDEF", {"$ABCDEF"});
+  check_cashtag("$ABCDEFG", {"$ABCDEFG"});
+  check_cashtag("$ABCDEFGH", {"$ABCDEFGH"});
+  check_cashtag("$ABCDEFGHJ", {});
+  check_cashtag("$ABCDEFGH1", {});
+  check_cashtag(" $XYZ", {"$XYZ"});
+  check_cashtag("$XYZ ", {"$XYZ"});
+  check_cashtag(" $XYZ ", {"$XYZ"});
+  check_cashtag(" $$XYZ ", {});
+  check_cashtag(" $XYZ$ ", {});
+  check_cashtag(" $ABC1 ", {});
+  check_cashtag(" $1ABC ", {});
+  check_cashtag(" 1$ABC ", {});
+  check_cashtag(" А$ABC ", {});
+  check_cashtag("$ABC$DEF $GHI $KLM", {"$GHI", "$KLM"});
+  check_cashtag("$TEST", {"$TEST"});
+  check_cashtag(u8"$ABC\u2122", {"$ABC"});
+  check_cashtag(u8"\u2122$ABC", {"$ABC"});
+  check_cashtag(u8"\u2122$ABC\u2122", {"$ABC"});
+}
+
 static void check_is_email_address(string str, bool expected) {
   bool result = is_email_address(str);
   LOG_IF(FATAL, result != expected) << "Expected " << expected << " as result of is_email_address(" << str << ")";
@@ -123,11 +175,11 @@ TEST(MessageEntities, is_email_address) {
   check_is_email_address("A@a.a.a.ab", true);
   check_is_email_address("A@a.ab", true);
   check_is_email_address("Test@aa.aa.aa.aa", true);
-  check_is_email_address("Test@test.abc", true);
+  check_is_email_address("Test@test.abd", true);
   check_is_email_address("a@a.a.a.ab", true);
-  check_is_email_address("test@test.abc", true);
+  check_is_email_address("test@test.abd", true);
   check_is_email_address("test@test.com", true);
-  check_is_email_address("test.abc", false);
+  check_is_email_address("test.abd", false);
   check_is_email_address("a.ab", false);
   check_is_email_address("a.bc@d.ef", true);
 
@@ -331,7 +383,7 @@ TEST(MessageEntities, url) {
   check_url("1.0", {});
   check_url("www.🤙.tk", {"www.🤙.tk"});
   check_url("a.ab", {});
-  check_url("test.abc", {});
+  check_url("test.abd", {});
   check_url("ТеСт.Москва", {});
   check_url("ТеСт.МоСкВΑ", {});
   check_url("ТеСт.МоСкВа", {"ТеСт.МоСкВа"});
@@ -350,7 +402,7 @@ TEST(MessageEntities, url) {
   check_url("http://google_.com", {});
   check_url("http://google._com_", {});
   check_url("http://[2001:4860:0:2001::68]/", {});  // TODO
-  check_url("test.abc", {});
+  check_url("test.abd", {});
   check_url("/.b/..a    @.....@/. a.ba", {"a.ba"});
   check_url("bbbbbbbbbbbbbb.@.@", {});
   check_url("http://google.com/", {"http://google.com/"});

@@ -1,6 +1,28 @@
 cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
-project(TDLib VERSION 1.0.0 LANGUAGES CXX C)
+project(TDLib VERSION 1.2.0 LANGUAGES CXX C)
+
+# Prevent in-source build
+get_filename_component(TD_REAL_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" REALPATH)
+get_filename_component(TD_REAL_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}" REALPATH)
+
+if (TD_REAL_BINARY_DIR STREQUAL TD_REAL_SOURCE_DIR)
+  message("  Out-of-source build should be used to build TDLib.")
+  message("  You need to remove the files already created by CMake and")
+  message("  rerun CMake from a new directory:")
+  message("  rm -rf CMakeFiles CMakeCache.txt")
+  message("  mkdir build")
+  message("  cd build")
+  message("  cmake ..")
+  message(FATAL_ERROR "In-source build failed.")
+endif()
+
+option(TD_ENABLE_JNI "Use \"ON\" to enable JNI-compatible TDLib API.")
+option(TD_ENABLE_DOTNET "Use \"ON\" to enable generation of C++/CLI or C++/CX TDLib API bindings.")
+
+if (TD_ENABLE_DOTNET AND (CMAKE_VERSION VERSION_LESS "3.1.0"))
+  message(FATAL_ERROR "CMake 3.1.0 or higher is required. You are running version ${CMAKE_VERSION}.")
+endif()
 
 if (NOT DEFINED CMAKE_MODULE_PATH)
   set(CMAKE_MODULE_PATH "")
@@ -14,14 +36,26 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 enable_testing()
 
 if (POLICY CMP0069)
-  cmake_policy(SET CMP0069 NEW)
-  include(CheckIPOSupported)
-  check_ipo_supported(RESULT IPO_SUPPORTED)
-  if (IPO_SUPPORTED)
-    #set_property(DIRECTORY PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE) do not work?
-    string(REPLACE ";" " " CXX_FLAGS_IPO "${CMAKE_CXX_COMPILE_OPTIONS_IPO}")
-    message(STATUS "Use link time optimizations: ${CXX_FLAGS_IPO}")
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CXX_FLAGS_IPO}")
+  option(TD_ENABLE_LTO "Use \"ON\" to enable Link Time Optimization.")
+
+  if (TD_ENABLE_LTO)
+    cmake_policy(SET CMP0069 NEW)
+    include(CheckIPOSupported)
+    check_ipo_supported(RESULT IPO_SUPPORTED)
+    if (IPO_SUPPORTED)
+      # set_property(DIRECTORY PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE) do not work?
+      string(REPLACE ";" " " CXX_FLAGS_IPO "${CMAKE_CXX_COMPILE_OPTIONS_IPO}")
+      message(STATUS "Use link time optimization CXX options: ${CXX_FLAGS_IPO}")
+      set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CXX_FLAGS_IPO}")
+
+      string(REPLACE ";" " " C_FLAGS_IPO "${CMAKE_C_COMPILE_OPTIONS_IPO}")
+      message(STATUS "Use link time optimization C options: ${C_FLAGS_IPO}")
+      set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${C_FLAGS_IPO}")
+
+      string(REPLACE ";" " " LINK_FLAGS_IPO "${CMAKE_CXX_LINK_OPTIONS_IPO}")
+      message(STATUS "Use link time optimization linker options: ${LINK_FLAGS_IPO}")
+      set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} ${LINK_FLAGS_IPO}")
+    endif()
   endif()
 endif()
 
@@ -42,7 +76,6 @@ In FAST mode stack is unwinded only using frame pointers, which may fail. \
 In SAFE mode stack is unwinded using backtrace function from execinfo.h, which may be very slow. \
 By default both methods are used to achieve maximum speed and accuracy")
 
-# LIBRARIES
 if (EMSCRIPTEN)
   # use prebuilt zlib
   set(ZLIB_FOUND 1)
@@ -121,6 +154,7 @@ elseif (CLANG OR GCC)
   if (APPLE)
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-dead_strip,-x,-S")
   else()
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffunction-sections -fdata-sections")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffunction-sections -fdata-sections")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--gc-sections -Wl,--exclude-libs,ALL")
   endif()
@@ -151,37 +185,37 @@ endif()
 include(AddCXXCompilerFlag)
 if (NOT MSVC)
   add_cxx_compiler_flag("-Wall")
+  add_cxx_compiler_flag("-Wextra")
+  add_cxx_compiler_flag("-Wimplicit-fallthrough=2")
+  add_cxx_compiler_flag("-Wpointer-arith")
+  add_cxx_compiler_flag("-Wcast-qual")
+  add_cxx_compiler_flag("-Wsign-compare")
+  add_cxx_compiler_flag("-Wduplicated-branches")
+  add_cxx_compiler_flag("-Wduplicated-cond")
+  add_cxx_compiler_flag("-Walloc-zero")
+  add_cxx_compiler_flag("-Wlogical-op")
+  add_cxx_compiler_flag("-Wno-tautological-compare")
+  add_cxx_compiler_flag("-Wpointer-arith")
+  add_cxx_compiler_flag("-Wvla")
+  add_cxx_compiler_flag("-Wnon-virtual-dtor")
+  add_cxx_compiler_flag("-Wno-unused-parameter")
+  add_cxx_compiler_flag("-Wconversion")
+  add_cxx_compiler_flag("-Wno-sign-conversion")
+  add_cxx_compiler_flag("-Wc++14-compat-pedantic")
+  add_cxx_compiler_flag("-Qunused-arguments")
+  add_cxx_compiler_flag("-Wodr")
+  add_cxx_compiler_flag("-flto-odr-type-merging")
+
+#  add_cxx_compiler_flag("-Werror")
+
+#  add_cxx_compiler_flag("-Wcast-align")
+
+#std::int32_t <-> int and off_t <-> std::size_t/std::int64_t
+#  add_cxx_compiler_flag("-Wuseless-cast")
+
+#external headers like openssl
+#  add_cxx_compiler_flag("-Wzero-as-null-pointer-constant")
 endif()
-add_cxx_compiler_flag("-Wextra")
-add_cxx_compiler_flag("-Wimplicit-fallthrough=2")
-add_cxx_compiler_flag("-Wpointer-arith")
-add_cxx_compiler_flag("-Wcast-qual")
-add_cxx_compiler_flag("-Wsign-compare")
-add_cxx_compiler_flag("-Wduplicated-branches")
-add_cxx_compiler_flag("-Wduplicated-cond")
-add_cxx_compiler_flag("-Walloc-zero")
-add_cxx_compiler_flag("-Wlogical-op")
-add_cxx_compiler_flag("-Wno-tautological-compare")
-add_cxx_compiler_flag("-Wpointer-arith")
-add_cxx_compiler_flag("-Wvla")
-add_cxx_compiler_flag("-Wnon-virtual-dtor")
-add_cxx_compiler_flag("-Wno-unused-parameter")
-add_cxx_compiler_flag("-Wconversion")
-add_cxx_compiler_flag("-Wno-sign-conversion")
-add_cxx_compiler_flag("-Wc++14-compat-pedantic")
-add_cxx_compiler_flag("-Qunused-arguments")
-add_cxx_compiler_flag("-Wodr")
-add_cxx_compiler_flag("-flto-odr-type-merging")
-
-#add_cxx_compiler_flag("-Werror")
-
-#add_cxx_compiler_flag("-Wcast-align")
-
-# std::int32_t <-> int and off_t <-> std::size_t/std::int64_t
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wuseless-cast")
-
-# external headers like openssl
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wzero-as-null-pointer-constant")
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem /usr/include/c++/v1")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
@@ -197,7 +231,17 @@ add_subdirectory(tdutils)
 add_subdirectory(td/generate)
 
 if (NOT CMAKE_CROSSCOMPILING)
-  add_custom_target(prepare_cross_compiling DEPENDS tl_generate_common tdmime_auto)
+  add_custom_target(prepare_cross_compiling DEPENDS tl_generate_common tdmime_auto tl_generate_json)
+  if (TD_ENABLE_DOTNET)
+    add_custom_target(remove_cpp_documentation
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+      COMMAND remove_documentation ${TL_TD_AUTO} td/telegram/Client.h td/telegram/Log.h td/tl/TlObject.h
+      COMMENT "Remove C++ documentation from sources"
+      DEPENDS remove_documentation tl_generate_common generate_dotnet_api ${TL_TD_AUTO} td/telegram/Client.h td/telegram/Log.h td/tl/TlObject.h
+    )
+
+    add_dependencies(prepare_cross_compiling generate_dotnet_api remove_cpp_documentation)
+  endif()
 endif()
 
 if (NOT OPENSSL_FOUND)
@@ -240,7 +284,7 @@ endif()
 #SOURCE SETS
 
 set_source_files_properties(${TL_TD_AUTO} PROPERTIES GENERATED TRUE)
-if (TD_API_JAVA_PACKAGE)
+if (TD_ENABLE_JNI)
   set(TL_JNI_OBJECT
     td/tl/tl_jni_object.cpp
     td/tl/tl_jni_object.h
@@ -268,7 +312,14 @@ set(TL_C_SCHEME_SOURCE
   ${TL_C_AUTO}
 )
 
+set_source_files_properties(${TL_DOTNET_AUTO} PROPERTIES GENERATED TRUE)
+set(TL_DOTNET_SCHEME_SOURCE
+  ${TL_DOTNET_AUTO}
+  td/tl/tl_dotnet_object.h
+)
+
 set(TDLIB_SOURCE
+  td/mtproto/AuthData.cpp
   td/mtproto/crypto.cpp
   td/mtproto/Handshake.cpp
   td/mtproto/HandshakeActor.cpp
@@ -292,6 +343,7 @@ set(TDLIB_SOURCE
   td/telegram/ConfigShared.cpp
   td/telegram/Contact.cpp
   td/telegram/ContactsManager.cpp
+  td/telegram/DelayDispatcher.cpp
   td/telegram/DeviceTokenManager.cpp
   td/telegram/DhCache.cpp
   td/telegram/DialogDb.cpp
@@ -395,6 +447,7 @@ set(TDLIB_SOURCE
   td/telegram/ConfigShared.h
   td/telegram/Contact.h
   td/telegram/ContactsManager.h
+  td/telegram/DelayDispatcher.h
   td/telegram/DeviceTokenManager.h
   td/telegram/DhCache.h
   td/telegram/DhConfig.h
@@ -487,6 +540,7 @@ set(TDLIB_SOURCE
 
   td/telegram/AnimationsManager.hpp
   td/telegram/AudiosManager.hpp
+  td/telegram/AuthManager.hpp
   td/telegram/DocumentsManager.hpp
   td/telegram/files/FileId.hpp
   td/telegram/files/FileManager.hpp
@@ -545,10 +599,25 @@ endif()
 add_library(tdcore STATIC ${TDLIB_SOURCE})
 target_include_directories(tdcore PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDES}>)
 target_include_directories(tdcore SYSTEM PRIVATE ${OPENSSL_INCLUDE_DIR})
-target_link_libraries(tdcore PUBLIC tdactor tdutils tdnet tddb PRIVATE ${OPENSSL_CRYPTO_LIBRARY})
+target_link_libraries(tdcore PUBLIC tdactor tdutils tdnet tddb PRIVATE ${OPENSSL_CRYPTO_LIBRARY} ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
+
+if (TD_ENABLE_JNI AND NOT ANDROID) # jni is available by default on Android
+  if (NOT JNI_FOUND)
+    find_package(JNI REQUIRED)
+  endif()
+  message(STATUS "Found JNI: ${JNI_INCLUDE_DIRS} ${JNI_LIBRARIES}")
+  target_include_directories(tdcore PUBLIC ${JAVA_INCLUDE_PATH} ${JAVA_INCLUDE_PATH2})
+  target_link_libraries(tdcore PUBLIC ${JAVA_JVM_LIBRARY})
+endif()
 
 if (NOT CMAKE_CROSSCOMPILING)
   add_dependencies(tdcore tl_generate_common)
+  if (TD_ENABLE_JNI)
+    add_dependencies(tdcore td_generate_java_api)
+  endif()
+  if (TD_ENABLE_DOTNET)
+    add_dependencies(tdcore remove_cpp_documentation)
+  endif()
 endif()
 
 add_library(tdclient td/telegram/Client.cpp td/telegram/Client.h td/telegram/Log.cpp td/telegram/Log.h)
@@ -557,6 +626,37 @@ target_include_directories(tdclient PUBLIC
   $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDES}>
 )
 target_link_libraries(tdclient PRIVATE tdcore)
+
+if (TD_ENABLE_JNI AND NOT ANDROID) # jni is available by default on Android
+  target_include_directories(tdclient PUBLIC ${JAVA_INCLUDE_PATH} ${JAVA_INCLUDE_PATH2})
+  target_link_libraries(tdclient PUBLIC ${JAVA_JVM_LIBRARY})
+endif()
+
+if (TD_ENABLE_DOTNET)
+  add_library(tddotnet SHARED
+    td/telegram/ClientDotNet.cpp
+    td/telegram/LogDotNet.cpp
+    ${TL_DOTNET_SCHEME_SOURCE}
+  )
+  set(VCPKG_APPLOCAL_LIBRARY_DEPS ON)
+  set_target_properties(tddotnet PROPERTIES OUTPUT_NAME Telegram.Td)
+  target_link_libraries(tddotnet PRIVATE tdclient tdutils)
+  target_include_directories(tddotnet PUBLIC
+    $<BUILD_INTERFACE:${TL_TD_AUTO_INCLUDES}>
+  )
+  if (NOT CMAKE_CROSSCOMPILING)
+    add_dependencies(tddotnet generate_dotnet_api)
+  endif()
+
+  target_compile_options(tddotnet PRIVATE "/doc")
+  if ("${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsStore")
+    set_target_properties(tddotnet PROPERTIES VS_WINRT_COMPONENT "true")
+    target_compile_options(tddotnet PUBLIC "/ZW")
+  else()
+    set_target_properties(tddotnet PROPERTIES COMPILE_FLAGS "/GR /clr")
+    target_compile_options(tddotnet PUBLIC "/EHa")
+  endif()
+endif()
 
 # tdc - TDLib interface in pure c.
 add_library(tdc STATIC ${TL_C_SCHEME_SOURCE} td/telegram/td_c_client.cpp td/telegram/td_c_client.h)
@@ -575,6 +675,9 @@ target_include_directories(tdjson_private PUBLIC
 target_link_libraries(tdjson_private PUBLIC tdclient tdutils)
 if (NOT CMAKE_CROSSCOMPILING)
   add_dependencies(tdjson_private tl_generate_common tl_generate_json)
+  if (TD_ENABLE_DOTNET)
+    add_dependencies(tdjson_private remove_cpp_documentation)
+  endif()
 endif()
 
 set(TD_JSON_HEADERS td/telegram/td_json_client.h td/telegram/td_log.h)
@@ -585,7 +688,9 @@ include(GenerateExportHeader)
 add_library(tdjson SHARED ${TD_JSON_SOURCE} ${TD_JSON_HEADERS})
 target_link_libraries(tdjson PRIVATE tdjson_private)
 generate_export_header(tdjson EXPORT_FILE_NAME ${CMAKE_CURRENT_BINARY_DIR}/td/telegram/tdjson_export.h)
-target_include_directories(tdjson PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
+target_include_directories(tdjson PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 if (APPLE)
   set_target_properties(tdjson PROPERTIES LINK_FLAGS "-Wl,-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/tdclientjson_export_list")
 endif()
@@ -593,13 +698,26 @@ endif()
 add_library(tdjson_static STATIC ${TD_JSON_SOURCE} ${TD_JSON_HEADERS})
 target_link_libraries(tdjson_static PRIVATE tdjson_private)
 target_compile_definitions(tdjson_static PUBLIC TDJSON_STATIC_DEFINE)
-target_include_directories(tdjson_static PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
+target_include_directories(tdjson_static PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
+set(BIGOBJ)
 if (WIN32 OR CYGWIN)
   if (MSVC)
-    target_compile_options(tdcore PUBLIC "/bigobj")
+    set(BIGOBJ "/bigobj")
   elseif (GCC)
-    target_compile_options(tdcore PUBLIC "-Wa,-mbig-obj")
+    set(BIGOBJ "-Wa,-mbig-obj")
+  endif()
+endif()
+if (BIGOBJ)
+  target_compile_options(tdc PUBLIC ${BIGOBJ})
+  target_compile_options(tdcore PUBLIC ${BIGOBJ})
+  target_compile_options(tdclient PUBLIC ${BIGOBJ})
+  target_compile_options(tdjson PUBLIC ${BIGOBJ})
+  target_compile_options(tdjson_static PUBLIC ${BIGOBJ})
+  if (TD_ENABLE_DOTNET)
+    target_compile_options(tddotnet PUBLIC "/bigobj")
   endif()
 endif()
 
@@ -625,7 +743,7 @@ if (NOT CMAKE_CROSSCOMPILING)
     target_include_directories(tg_cli SYSTEM PRIVATE ${READLINE_INCLUDE_DIR})
     target_compile_definitions(tg_cli PRIVATE -DUSE_READLINE=1)
   endif()
-  target_link_libraries(tg_cli PRIVATE memprof tdcore tdtl)
+  target_link_libraries(tg_cli PRIVATE memprof tdclient tdcore tdtl)
   add_dependencies(tg_cli tl_generate_json)
 endif()
 
@@ -643,7 +761,7 @@ add_library(Td::TdStatic ALIAS TdStatic)
 add_library(Td::TdJson ALIAS TdJson)
 add_library(Td::TdJsonStatic ALIAS TdJsonStatic)
 
-install(TARGETS tdjson TdJson tdjson_static tdjson_private tdclient tdcore TdJsonStatic TdStatic EXPORT TdTargets
+install(TARGETS tdjson TdJson tdjson_static TdJsonStatic tdjson_private tdclient tdcore TdStatic EXPORT TdTargets
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION bin
@@ -660,6 +778,9 @@ install(FILES ${TD_JSON_HEADERS} ${CMAKE_CURRENT_BINARY_DIR}/td/telegram/tdjson_
 install(FILES td/telegram/Client.h td/telegram/Log.h DESTINATION include/td/telegram)
 install(FILES td/tl/TlObject.h DESTINATION include/td/tl)
 install(FILES ${TL_TD_AUTO_INCLUDES}/td/telegram/td_api.h ${TL_TD_AUTO_INCLUDES}/td/telegram/td_api.hpp DESTINATION include/td/telegram)
+if (TD_ENABLE_JNI)
+  install(FILES td/tl/tl_jni_object.h DESTINATION include/td/tl)
+endif()
 
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file("TdConfigVersion.cmake"

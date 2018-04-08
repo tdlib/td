@@ -22,8 +22,6 @@
 #include "td/utils/misc.h"
 #include "td/utils/Status.h"
 
-#include <algorithm>
-
 namespace td {
 
 VoiceNotesManager::VoiceNotesManager(Td *td) : td_(td) {
@@ -44,7 +42,7 @@ tl_object_ptr<td_api::voiceNote> VoiceNotesManager::get_voice_note_object(FileId
   CHECK(voice_note != nullptr);
   voice_note->is_changed = false;
   return make_tl_object<td_api::voiceNote>(voice_note->duration, voice_note->waveform, voice_note->mime_type,
-                                           td_->file_manager_->get_file_object(voice_note->file_id));
+                                           td_->file_manager_->get_file_object(file_id));
 }
 
 FileId VoiceNotesManager::on_get_voice_note(std::unique_ptr<VoiceNote> new_voice_note, bool replace) {
@@ -136,7 +134,7 @@ void VoiceNotesManager::create_voice_note(FileId file_id, string mime_type, int3
   auto v = std::make_unique<VoiceNote>();
   v->file_id = file_id;
   v->mime_type = std::move(mime_type);
-  v->duration = std::max(duration, 0);
+  v->duration = max(duration, 0);
   v->waveform = std::move(waveform);
   on_get_voice_note(std::move(v), replace);
 }
@@ -169,17 +167,16 @@ SecretInputMedia VoiceNotesManager::get_secret_input_media(FileId voice_file_id,
 }
 
 tl_object_ptr<telegram_api::InputMedia> VoiceNotesManager::get_input_media(
-    FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file, const string &caption) const {
+    FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) const {
   auto file_view = td_->file_manager_->get_file_view(file_id);
   if (file_view.is_encrypted()) {
     return nullptr;
   }
   if (file_view.has_remote_location() && !file_view.remote_location().is_web()) {
-    return make_tl_object<telegram_api::inputMediaDocument>(0, file_view.remote_location().as_input_document(), caption,
-                                                            0);
+    return make_tl_object<telegram_api::inputMediaDocument>(0, file_view.remote_location().as_input_document(), 0);
   }
   if (file_view.has_url()) {
-    return make_tl_object<telegram_api::inputMediaDocumentExternal>(0, file_view.url(), caption, 0);
+    return make_tl_object<telegram_api::inputMediaDocumentExternal>(0, file_view.url(), 0);
   }
   CHECK(!file_view.has_remote_location());
 
@@ -199,7 +196,7 @@ tl_object_ptr<telegram_api::InputMedia> VoiceNotesManager::get_input_media(
       mime_type = "audio/ogg";
     }
     return make_tl_object<telegram_api::inputMediaUploadedDocument>(
-        0, false /*ignored*/, std::move(input_file), nullptr, mime_type, std::move(attributes), caption,
+        0, false /*ignored*/, std::move(input_file), nullptr, mime_type, std::move(attributes),
         vector<tl_object_ptr<telegram_api::InputDocument>>(), 0);
   }
 

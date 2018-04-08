@@ -264,7 +264,7 @@ class SharedObjectPool {
   };
   friend class Deleter;
 
-  auto deleter() {
+  Deleter deleter() {
     return Deleter(this);
   }
 

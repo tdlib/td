@@ -42,8 +42,7 @@ class AnimationsManager : public Actor {
 
   tl_object_ptr<telegram_api::InputMedia> get_input_media(FileId file_id,
                                                           tl_object_ptr<telegram_api::InputFile> input_file,
-                                                          tl_object_ptr<telegram_api::InputFile> input_thumbnail,
-                                                          const string &caption) const;
+                                                          tl_object_ptr<telegram_api::InputFile> input_thumbnail) const;
 
   SecretInputMedia get_secret_input_media(FileId animation_file_id,
                                           tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
@@ -112,6 +111,8 @@ class AnimationsManager : public Actor {
   void on_load_saved_animations_finished(vector<FileId> &&saved_animation_ids, bool from_database = false);
 
   void send_update_saved_animations(bool from_database = false);
+
+  void save_saved_animations_to_database();
 
   void tear_down() override;
 

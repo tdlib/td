@@ -6,13 +6,14 @@
 //
 #include "td/telegram/net/PublicRsaKeyShared.h"
 
-#include <algorithm>
-
 #include "td/utils/logging.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
+#include <algorithm>
+
 namespace td {
+
 PublicRsaKeyShared::PublicRsaKeyShared(DcId dc_id) : dc_id_(dc_id) {
   if (!dc_id_.is_empty()) {
     return;
@@ -137,7 +138,8 @@ RSA *PublicRsaKeyShared::get_rsa_locked(int64 fingerprint) {
 
 void PublicRsaKeyShared::notify() {
   auto lock = rw_mutex_.lock_read();
-  auto it = remove_if(listeners_.begin(), listeners_.end(), [&](auto &listener) { return !listener->notify(); });
+  auto it = std::remove_if(listeners_.begin(), listeners_.end(), [&](auto &listener) { return !listener->notify(); });
   listeners_.erase(it, listeners_.end());
 }
+
 }  // namespace td

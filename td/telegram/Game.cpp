@@ -83,14 +83,13 @@ UserId Game::get_bot_user_id() const {
   return bot_user_id_;
 }
 
-void Game::set_message_text(string text, vector<MessageEntity> &&entities) {
+void Game::set_message_text(FormattedText &&text) {
   text_ = std::move(text);
-  entities_ = std::move(entities);
 }
 
 tl_object_ptr<td_api::game> Game::get_game_object(const Td *td) const {
   return make_tl_object<td_api::game>(
-      id_, short_name_, title_, text_, get_text_entities_object(entities_), description_,
+      id_, short_name_, title_, get_formatted_text_object(text_), description_,
       get_photo_object(td->file_manager_.get(), &photo_),
       td->animations_manager_->get_animation_object(animation_file_id_, "get_game_object"));
 }
@@ -105,8 +104,7 @@ tl_object_ptr<telegram_api::inputMediaGame> Game::get_input_media_game(const Td 
 bool operator==(const Game &lhs, const Game &rhs) {
   return lhs.id_ == rhs.id_ && lhs.access_hash_ == rhs.access_hash_ && lhs.bot_user_id_ == rhs.bot_user_id_ &&
          lhs.short_name_ == rhs.short_name_ && lhs.title_ == rhs.title_ && lhs.description_ == rhs.description_ &&
-         lhs.photo_ == rhs.photo_ && lhs.animation_file_id_ == rhs.animation_file_id_ && lhs.text_ == rhs.text_ &&
-         lhs.entities_ == rhs.entities_;
+         lhs.photo_ == rhs.photo_ && lhs.animation_file_id_ == rhs.animation_file_id_ && lhs.text_ == rhs.text_;
 }
 
 bool operator!=(const Game &lhs, const Game &rhs) {

@@ -87,7 +87,7 @@ class FileDownloadGenerateActor : public FileGenerateActor {
       auto file_view = G()->td().get_actor_unsafe()->file_manager_->get_file_view(file_id);
       if (file_view.has_local_location()) {
         auto location = file_view.local_location();
-        location.type_ = file_type;
+        location.file_type_ = file_type;
         callback->on_ok(location);
       } else {
         LOG(ERROR) << "Expected to have local location";
@@ -132,19 +132,19 @@ class FileExternalGenerateActor : public FileGenerateActor {
   ActorShared<> parent_;
 
   void start_up() override {
-    if (local_.type_ == LocalFileLocation::Type::Full) {
+    if (local_.type() == LocalFileLocation::Type::Full) {
       callback_->on_ok(local_.full());
       callback_.reset();
       return stop();
     }
 
-    if (local_.type_ == LocalFileLocation::Type::Partial) {
+    if (local_.type() == LocalFileLocation::Type::Partial) {
       const auto &partial = local_.partial();
       path_ = partial.path_;
       LOG(INFO) << "Unlink partially generated file at " << path_;
       unlink(path_).ignore();
     } else {
-      auto r_file_path = open_temp_file(generate_location_.type_);
+      auto r_file_path = open_temp_file(generate_location_.file_type_);
       if (r_file_path.is_error()) {
         return check_status(r_file_path.move_as_error());
       }
@@ -165,18 +165,18 @@ class FileExternalGenerateActor : public FileGenerateActor {
     if (local_prefix_size < 0) {
       return Status::Error(1, "Invalid local prefix size");
     }
-    callback_->on_partial_generate(PartialLocalFileLocation{generate_location_.type_, path_, 1, local_prefix_size, ""},
-                                   expected_size);
+    callback_->on_partial_generate(
+        PartialLocalFileLocation{generate_location_.file_type_, path_, 1, local_prefix_size, ""}, expected_size);
     return Status::OK();
   }
 
   Status do_file_generate_finish(Status status) {
     TRY_STATUS(std::move(status));
 
-    auto dir = get_files_dir(generate_location_.type_);
+    auto dir = get_files_dir(generate_location_.file_type_);
 
     TRY_RESULT(perm_path, create_from_temp(path_, dir, name_));
-    callback_->on_ok(FullLocalFileLocation(generate_location_.type_, std::move(perm_path), 0));
+    callback_->on_ok(FullLocalFileLocation(generate_location_.file_type_, std::move(perm_path), 0));
     callback_.reset();
     stop();
     return Status::OK();
@@ -223,8 +223,8 @@ void FileGenerateManager::generate_file(uint64 query_id, const FullGenerateFileL
 
   auto &query = it_flag.first->second;
   if (conversion.copy().truncate(file_id_query.size()) == file_id_query) {
-    auto file_id = FileId(to_integer<int32>(conversion.substr(file_id_query.size())));
-    query.worker_ = create_actor<FileDownloadGenerateActor>("FileDownloadGenerateActor", generate_location.type_,
+    auto file_id = FileId(to_integer<int32>(conversion.substr(file_id_query.size())), 0);
+    query.worker_ = create_actor<FileDownloadGenerateActor>("FileDownloadGenerateActor", generate_location.file_type_,
                                                             file_id, std::move(callback), std::move(parent));
   } else {
     query.worker_ = create_actor<FileExternalGenerateActor>("FileExternalGenerationActor", query_id, generate_location,

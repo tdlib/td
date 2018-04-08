@@ -5,6 +5,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/AuthManager.hpp"
 
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -18,13 +19,15 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/UpdatesManager.h"
 
+#include "td/telegram/logevent/LogEvent.h"
+
+#include "td/actor/PromiseFuture.h"
+
 #include "td/utils/buffer.h"
 #include "td/utils/crypto.h"
 #include "td/utils/logging.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Time.h"
-
-#include <algorithm>
 
 namespace td {
 
@@ -34,8 +37,7 @@ void SendCodeHelper::on_sent_code(telegram_api::object_ptr<telegram_api::auth_se
   phone_code_hash_ = sent_code->phone_code_hash_;
   sent_code_info_ = get_authentication_code_info(std::move(sent_code->type_));
   next_code_info_ = get_authentication_code_info(std::move(sent_code->next_type_));
-  next_code_timeout_ = static_cast<int32>(Time::now()) +
-                       ((sent_code->flags_ & SENT_CODE_FLAG_HAS_TIMEOUT) != 0 ? sent_code->timeout_ : 0);
+  next_code_timestamp_ = Timestamp::in((sent_code->flags_ & SENT_CODE_FLAG_HAS_TIMEOUT) != 0 ? sent_code->timeout_ : 0);
 }
 
 td_api::object_ptr<td_api::authorizationStateWaitCode> SendCodeHelper::get_authorization_state_wait_code() const {
@@ -44,8 +46,9 @@ td_api::object_ptr<td_api::authorizationStateWaitCode> SendCodeHelper::get_autho
 
 td_api::object_ptr<td_api::authenticationCodeInfo> SendCodeHelper::get_authentication_code_info_object() const {
   return make_tl_object<td_api::authenticationCodeInfo>(
-      get_authentication_code_type_object(sent_code_info_), get_authentication_code_type_object(next_code_info_),
-      std::max(next_code_timeout_ - static_cast<int32>(Time::now()), 0));
+      phone_number_, get_authentication_code_type_object(sent_code_info_),
+      get_authentication_code_type_object(next_code_info_),
+      max(static_cast<int32>(next_code_timestamp_.in() + 1 - 1e-9), 0));
 }
 
 Result<telegram_api::auth_resendCode> SendCodeHelper::resend_code() {
@@ -53,8 +56,8 @@ Result<telegram_api::auth_resendCode> SendCodeHelper::resend_code() {
     return Status::Error(8, "Authentication code can't be resend");
   }
   sent_code_info_ = next_code_info_;
-  next_code_info_ = AuthenticationCodeInfo();
-  next_code_timeout_ = 0;
+  next_code_info_ = {};
+  next_code_timestamp_ = {};
   return telegram_api::auth_resendCode(phone_number_, phone_code_hash_);
 }
 
@@ -313,11 +316,23 @@ AuthManager::AuthManager(int32 api_id, const string &api_hash, ActorShared<> par
     if (is_bot_str == "true") {
       is_bot_ = true;
     }
-    update_state(State::Ok);
+    auto my_id = ContactsManager::load_my_id();
+    if (my_id.is_valid()) {
+      // just in case
+      G()->shared_config().set_option_integer("my_id", my_id.get());
+      update_state(State::Ok);
+    } else {
+      LOG(ERROR) << "Restore unknown my_id";
+      ContactsManager::send_get_me_query(
+          G()->td().get_actor_unsafe(),
+          PromiseCreator::lambda([this](Result<Unit> result) { update_state(State::Ok); }));
+    }
   } else if (auth_str == "logout") {
     update_state(State::LoggingOut);
   } else {
-    update_state(State::WaitPhoneNumber);
+    if (!load_state()) {
+      update_state(State::WaitPhoneNumber);
+    }
   }
 }
 
@@ -334,6 +349,14 @@ bool AuthManager::is_bot() const {
   return is_authorized() && is_bot_;
 }
 
+void AuthManager::set_is_bot(bool is_bot) {
+  if (!is_bot_ && is_bot && api_id_ == 23818) {
+    LOG(ERROR) << "Fix is_bot to " << is_bot;
+    G()->td_db()->get_binlog_pmc()->set("auth_is_bot", "true");
+    is_bot_ = true;
+  }
+}
+
 bool AuthManager::is_authorized() const {
   return state_ == State::Ok;
 }
@@ -347,7 +370,8 @@ tl_object_ptr<td_api::AuthorizationState> AuthManager::get_authorization_state_o
     case State::WaitPhoneNumber:
       return make_tl_object<td_api::authorizationStateWaitPhoneNumber>();
     case State::WaitPassword:
-      return make_tl_object<td_api::authorizationStateWaitPassword>(hint_, has_recovery_, email_address_pattern_);
+      return make_tl_object<td_api::authorizationStateWaitPassword>(
+          wait_password_state_.hint_, wait_password_state_.has_recovery_, wait_password_state_.email_address_pattern_);
     case State::LoggingOut:
       return make_tl_object<td_api::authorizationStateLoggingOut>();
     case State::Closing:
@@ -360,7 +384,11 @@ tl_object_ptr<td_api::AuthorizationState> AuthManager::get_authorization_state_o
 }
 
 void AuthManager::get_state(uint64 query_id) {
-  send_closure(G()->td(), &Td::send_result, query_id, get_authorization_state_object(state_));
+  if (state_ == State::None) {
+    pending_get_authorization_state_requests_.push_back(query_id);
+  } else {
+    send_closure(G()->td(), &Td::send_result, query_id, get_authorization_state_object(state_));
+  }
 }
 
 void AuthManager::check_bot_token(uint64 query_id, string bot_token) {
@@ -480,7 +508,7 @@ void AuthManager::check_password(uint64 query_id, string password) {
     return on_query_error(query_id, Status::Error(8, "checkAuthenticationPassword unexpected"));
   }
   BufferSlice buf(32);
-  password = current_salt_ + password + current_salt_;
+  password = wait_password_state_.current_salt_ + password + wait_password_state_.current_salt_;
   sha256(password, buf.as_slice());
 
   on_new_query(query_id);
@@ -612,16 +640,17 @@ void AuthManager::on_get_password_result(NetQueryPtr &result) {
     return on_query_error(r_password.move_as_error());
   }
   auto password = r_password.move_as_ok();
+  wait_password_state_ = WaitPasswordState();
   if (password->get_id() == telegram_api::account_noPassword::ID) {
     auto no_password = move_tl_object_as<telegram_api::account_noPassword>(password);
-    new_salt_ = no_password->new_salt_.as_slice().str();
+    wait_password_state_.new_salt_ = no_password->new_salt_.as_slice().str();
   } else {
     CHECK(password->get_id() == telegram_api::account_password::ID);
     auto password_info = move_tl_object_as<telegram_api::account_password>(password);
-    current_salt_ = password_info->current_salt_.as_slice().str();
-    new_salt_ = password_info->new_salt_.as_slice().str();
-    hint_ = password_info->hint_;
-    has_recovery_ = password_info->has_recovery_;
+    wait_password_state_.current_salt_ = password_info->current_salt_.as_slice().str();
+    wait_password_state_.new_salt_ = password_info->new_salt_.as_slice().str();
+    wait_password_state_.hint_ = password_info->hint_;
+    wait_password_state_.has_recovery_ = password_info->has_recovery_;
   }
   update_state(State::WaitPassword);
   on_query_ok();
@@ -634,7 +663,7 @@ void AuthManager::on_request_password_recovery_result(NetQueryPtr &result) {
   }
   auto email_address_pattern = r_email_address_pattern.move_as_ok();
   CHECK(email_address_pattern->get_id() == telegram_api::auth_passwordRecovery::ID);
-  email_address_pattern_ = email_address_pattern->email_pattern_;
+  wait_password_state_.email_address_pattern_ = email_address_pattern->email_pattern_;
   update_state(State::WaitPassword, true);
   on_query_ok();
 }
@@ -710,8 +739,9 @@ void AuthManager::on_authorization(tl_object_ptr<telegram_api::auth_authorizatio
     G()->td_db()->get_binlog_pmc()->set("auth_is_bot", "true");
   }
   G()->td_db()->get_binlog_pmc()->set("auth", "ok");
-  update_state(State::Ok);
+  state_ = State::Ok;
   td->contacts_manager_->on_get_user(std::move(auth->user_), true);
+  update_state(State::Ok, true);
   if (!td->contacts_manager_->get_my_id("on_authorization").is_valid()) {
     LOG(ERROR) << "Server doesn't send proper authorization";
     if (query_id_ != 0) {
@@ -793,13 +823,75 @@ void AuthManager::on_result(NetQueryPtr result) {
   }
 }
 
-void AuthManager::update_state(State new_state, bool force) {
+void AuthManager::update_state(State new_state, bool force, bool should_save_state) {
   if (state_ == new_state && !force) {
     return;
   }
   state_ = new_state;
+  if (should_save_state) {
+    save_state();
+  }
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateAuthorizationState>(get_authorization_state_object(state_)));
+
+  if (!pending_get_authorization_state_requests_.empty()) {
+    auto query_ids = std::move(pending_get_authorization_state_requests_);
+    for (auto query_id : query_ids) {
+      send_closure(G()->td(), &Td::send_result, query_id, get_authorization_state_object(state_));
+    }
+  }
+}
+
+bool AuthManager::load_state() {
+  auto data = G()->td_db()->get_binlog_pmc()->get("auth_state");
+  DbState db_state;
+  auto status = log_event_parse(db_state, data);
+  if (status.is_error()) {
+    LOG(INFO) << "Ignore auth_state: " << status;
+    return false;
+  }
+  if (db_state.api_id_ != api_id_ || db_state.api_hash_ != api_hash_) {
+    LOG(INFO) << "Ignore auth_state: api_id or api_hash changed";
+    return false;
+  }
+  if (!db_state.state_timestamp_.is_in_past()) {
+    LOG(INFO) << "Ignore auth_state: timestamp in future";
+    return false;
+  }
+  if (Timestamp::at(db_state.state_timestamp_.at() + 5 * 60).is_in_past()) {
+    LOG(INFO) << "Ignore auth_state: expired " << db_state.state_timestamp_.in();
+    return false;
+  }
+
+  LOG(INFO) << "Load auth_state from db: " << tag("state", static_cast<int32>(db_state.state_));
+  if (db_state.state_ == State::WaitCode) {
+    send_code_helper_ = std::move(db_state.send_code_helper_);
+  } else if (db_state.state_ == State::WaitPassword) {
+    wait_password_state_ = std::move(db_state.wait_password_state_);
+  } else {
+    UNREACHABLE();
+  }
+  update_state(db_state.state_, false, false);
+  return true;
+}
+
+void AuthManager::save_state() {
+  if (state_ != State::WaitCode && state_ != State::WaitPassword) {
+    if (state_ != State::Closing) {
+      G()->td_db()->get_binlog_pmc()->erase("auth_state");
+    }
+    return;
+  }
+
+  DbState db_state;
+  if (state_ == State::WaitCode) {
+    db_state = DbState::wait_code(api_id_, api_hash_, send_code_helper_);
+  } else if (state_ == State::WaitPassword) {
+    db_state = DbState::wait_password(api_id_, api_hash_, wait_password_state_);
+  } else {
+    UNREACHABLE();
+  }
+  G()->td_db()->get_binlog_pmc()->set("auth_state", log_event_store(db_state).as_slice().str());
 }
 
 }  // namespace td

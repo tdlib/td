@@ -12,7 +12,7 @@
 #if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
 
 #if !TD_WINDOWS
-#include <poll.h>  // for pollfd, poll, POLLIN
+#include <poll.h>
 #include <sched.h>
 #endif
 

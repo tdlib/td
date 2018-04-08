@@ -22,13 +22,14 @@ void VideosManager::store_video(FileId file_id, T &storer) const {
   const Video *video = it->second.get();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(video->has_stickers);
+  STORE_FLAG(video->supports_streaming);
   END_STORE_FLAGS();
   store(video->file_name, storer);
   store(video->mime_type, storer);
   store(video->duration, storer);
   store(video->dimensions, storer);
   store(video->thumbnail, storer);
-  store(video->file_id, storer);
+  store(file_id, storer);
   if (video->has_stickers) {
     store(video->sticker_file_ids, storer);
   }
@@ -39,6 +40,7 @@ FileId VideosManager::parse_video(T &parser) {
   auto video = make_unique<Video>();
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(video->has_stickers);
+  PARSE_FLAG(video->supports_streaming);
   END_PARSE_FLAGS();
   parse(video->file_name, parser);
   parse(video->mime_type, parser);

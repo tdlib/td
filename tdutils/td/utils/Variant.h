@@ -233,6 +233,10 @@ class Variant {
     return get<offset<T>()>();
   }
 
+  int32 get_offset() const {
+    return offset_;
+  }
+
  private:
   union {
     int64 align_;

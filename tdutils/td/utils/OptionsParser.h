@@ -20,6 +20,7 @@
 #endif
 
 namespace td {
+
 class OptionsParser {
  public:
   class Option {
@@ -145,4 +146,5 @@ class OptionsParser {
   std::vector<Option> options_;
   std::string description_;
 };
+
 }  // namespace td

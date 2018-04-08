@@ -176,31 +176,31 @@ class FileDb : public FileDbInterface {
 
   void clear_file_data(Id id, const FileData &file_data) override {
     string remote_key;
-    if (file_data.remote_.type_ == RemoteFileLocation::Type::Full) {
+    if (file_data.remote_.type() == RemoteFileLocation::Type::Full) {
       remote_key = as_key(file_data.remote_.full());
     }
     string local_key;
-    if (file_data.local_.type_ == LocalFileLocation::Type::Full) {
+    if (file_data.local_.type() == LocalFileLocation::Type::Full) {
       local_key = as_key(file_data.local_.full());
     }
     string generate_key;
-    if (file_data.generate_.type_ == GenerateFileLocation::Type::Full) {
-      generate_key = as_key(file_data.generate_.full_);
+    if (file_data.generate_ != nullptr) {
+      generate_key = as_key(*file_data.generate_);
     }
     send_closure(file_db_actor_, &FileDbActor::clear_file_data, id, remote_key, local_key, generate_key);
   }
   void set_file_data(Id id, const FileData &file_data, bool new_remote, bool new_local, bool new_generate) override {
     string remote_key;
-    if (file_data.remote_.type_ == RemoteFileLocation::Type::Full && new_remote) {
+    if (file_data.remote_.type() == RemoteFileLocation::Type::Full && new_remote) {
       remote_key = as_key(file_data.remote_.full());
     }
     string local_key;
-    if (file_data.local_.type_ == LocalFileLocation::Type::Full && new_local) {
+    if (file_data.local_.type() == LocalFileLocation::Type::Full && new_local) {
       local_key = as_key(file_data.local_.full());
     }
     string generate_key;
-    if (file_data.generate_.type_ == GenerateFileLocation::Type::Full && new_generate) {
-      generate_key = as_key(file_data.generate_.full_);
+    if (file_data.generate_ != nullptr && new_generate) {
+      generate_key = as_key(*file_data.generate_);
     }
     LOG(DEBUG) << "SAVE " << id << " -> " << file_data << " "
                << tag("remote", format::as_hex_dump<4>(Slice(remote_key)))
@@ -226,12 +226,12 @@ class FileDb : public FileDbInterface {
     TRY_RESULT(id, get_id(pmc, key));
 
     string data_str;
-    int attempts_count = 0;
+    int attempt_count = 0;
     while (true) {
-      if (attempts_count > 5) {
+      if (attempt_count > 5) {
         LOG(FATAL) << "cycle in files db?";
       }
-      attempts_count++;
+      attempt_count++;
 
       data_str = pmc.get(PSTRING() << "file" << id);
       auto data_slice = Slice(data_str);

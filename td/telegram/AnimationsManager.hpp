@@ -26,7 +26,7 @@ void AnimationsManager::store_animation(FileId file_id, T &storer) const {
   store(animation->file_name, storer);
   store(animation->mime_type, storer);
   store(animation->thumbnail, storer);
-  store(animation->file_id, storer);
+  store(file_id, storer);
 }
 
 template <class T>

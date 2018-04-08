@@ -26,7 +26,7 @@ void AudiosManager::store_audio(FileId file_id, T &storer) const {
   store(audio->title, storer);
   store(audio->performer, storer);
   store(audio->thumbnail, storer);
-  store(audio->file_id, storer);
+  store(file_id, storer);
 }
 
 template <class T>

@@ -14,7 +14,7 @@ class NodeX : public td::MpscLinkQueueImpl::Node {
  public:
   explicit NodeX(int value) : value_(value) {
   }
-  auto to_mpsc_link_queue_node() {
+  td::MpscLinkQueueImpl::Node *to_mpsc_link_queue_node() {
     return static_cast<td::MpscLinkQueueImpl::Node *>(this);
   }
   static NodeX *from_mpsc_link_queue_node(td::MpscLinkQueueImpl::Node *node) {
