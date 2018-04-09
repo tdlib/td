@@ -773,15 +773,10 @@ class CliClient final : public Actor {
   }
 
   tl_object_ptr<td_api::NotificationSettingsScope> get_notification_settings_scope(Slice scope) const {
-    if (scope == "users" || scope == "privateChats") {
-      return make_tl_object<td_api::notificationSettingsScopePrivateChats>();
-    } else if (scope == "chats" || scope == "groups" || scope == "groupChats") {
-      return make_tl_object<td_api::notificationSettingsScopeBasicGroupChats>();
-    } else if (scope == "all" || scope == "dialogs") {
-      return make_tl_object<td_api::notificationSettingsScopeAllChats>();
-    } else {
-      return make_tl_object<td_api::notificationSettingsScopeChat>(as_chat_id(scope));
+    if (scope == "chats" || scope == "groups" || scope == "channels" || as_bool(scope.str())) {
+      return make_tl_object<td_api::notificationSettingsScopeGroupChats>();
     }
+    return make_tl_object<td_api::notificationSettingsScopePrivateChats>();
   }
 
   static tl_object_ptr<td_api::UserPrivacySetting> get_user_privacy_setting(MutableSlice setting) {
@@ -2878,9 +2873,26 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::readAllChatMentions>(as_chat_id(chat_id)));
     } else if (op == "dpp") {
       send_request(make_tl_object<td_api::deleteProfilePhoto>(to_integer<int64>(args)));
-    } else if (op == "gns") {
-      send_request(make_tl_object<td_api::getNotificationSettings>(get_notification_settings_scope(args)));
-    } else if (op == "sns") {
+    } else if (op == "gsns") {
+      send_request(make_tl_object<td_api::getScopeNotificationSettings>(get_notification_settings_scope(args)));
+    } else if (op == "scns") {
+      string chat_id;
+      string settings;
+
+      std::tie(chat_id, settings) = split(args);
+
+      string mute_for;
+      string sound;
+      string show_previews;
+
+      std::tie(mute_for, settings) = split(settings, ',');
+      std::tie(sound, show_previews) = split(settings, ',');
+
+      send_request(make_tl_object<td_api::setChatNotificationSettings>(
+          as_chat_id(chat_id),
+          make_tl_object<td_api::chatNotificationSettings>(mute_for.empty(), to_integer<int32>(mute_for), sound.empty(),
+                                                           sound, show_previews.empty(), as_bool(show_previews))));
+    } else if (op == "ssns") {
       string scope;
       string settings;
 
@@ -2893,9 +2905,9 @@ class CliClient final : public Actor {
       std::tie(mute_for, settings) = split(settings, ',');
       std::tie(sound, show_previews) = split(settings, ',');
 
-      send_request(make_tl_object<td_api::setNotificationSettings>(
-          get_notification_settings_scope(scope),
-          make_tl_object<td_api::notificationSettings>(to_integer<int32>(mute_for), sound, as_bool(show_previews))));
+      send_request(make_tl_object<td_api::setScopeNotificationSettings>(
+          get_notification_settings_scope(scope), make_tl_object<td_api::scopeNotificationSettings>(
+                                                      to_integer<int32>(mute_for), sound, as_bool(show_previews))));
     } else if (op == "rans") {
       send_request(make_tl_object<td_api::resetAllNotificationSettings>());
     } else if (op == "gcrss") {

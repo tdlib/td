@@ -482,23 +482,24 @@ messages total_count:int32 messages:vector<message> = Messages;
 foundMessages messages:vector<message> next_from_search_id:int64 = FoundMessages;
 
 
-//@class NotificationSettingsScope @description Describes the types of chats for which notification settings are applied
+//@class NotificationSettingsScope @description Describes the types of chats for which scope notification settings are applied
 
-//@description Notification settings applied to a particular chat @chat_id Chat identifier
-notificationSettingsScopeChat chat_id:int53 = NotificationSettingsScope;
-
-//@description Notification settings applied to all private chats
+//@description Notification settings applied to all private and secret chats when corresponding chat setting has a default value
 notificationSettingsScopePrivateChats = NotificationSettingsScope;
 
-//@description Notification settings applied to all basic groups and channels. (Supergroups have no common settings)
-notificationSettingsScopeBasicGroupChats = NotificationSettingsScope;
-
-//@description Notification settings applied to all chats
-notificationSettingsScopeAllChats = NotificationSettingsScope;
+//@description Notification settings applied to all basic groups, supergroups and channels when corresponding chat setting has a default value
+notificationSettingsScopeGroupChats = NotificationSettingsScope;
 
 
-//@description Contains information about notification settings for a chat or several chats @mute_for Time left before notifications will be unmuted, in seconds @sound An audio file name for notification sounds; only applies to iOS applications @show_preview True, if message content should be displayed in notifications
-notificationSettings mute_for:int32 sound:string show_preview:Bool = NotificationSettings;
+//@description Contains information about notification settings for a chat
+//@use_default_mute_for If true, mute_for is ignored and value from a surrounding scope is used instead @mute_for Time left before notifications will be unmuted, in seconds
+//@use_default_sound If true, sound is ignored and value from a surrounding scope is used instead @sound An audio file name for notification sounds; only applies to iOS applications
+//@use_default_show_preview If true, show_preview is ignored and value from a surrounding scope is used instead @show_preview True, if message content should be displayed in notifications
+chatNotificationSettings use_default_mute_for:Bool mute_for:int32 use_default_sound:Bool sound:string use_default_show_preview:Bool show_preview:Bool = ChatNotificationSettings;
+
+//@description Contains information about notification settings for several chats @mute_for Time left before notifications will be unmuted, in seconds
+//@sound An audio file name for notification sounds; only applies to iOS applications @show_preview True, if message content should be displayed in notifications
+scopeNotificationSettings mute_for:int32 sound:string show_preview:Bool = ScopeNotificationSettings;
 
 
 //@description Contains information about a message draft @reply_to_message_id Identifier of the message to reply to; 0 if none @input_message_text Content of the message draft; this should always be of type inputMessageText
@@ -537,7 +538,7 @@ chatTypeSecret secret_chat_id:int32 user_id:int32 = ChatType;
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null
 //@client_data Contains client-specific data associated with the chat. (For example, the chat position or local chat notification settings can be stored here.) Persistent if a message database is used
-chat id:int53 type:ChatType title:string photo:chatPhoto last_message:message order:int64 is_pinned:Bool can_be_reported:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:notificationSettings reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
+chat id:int53 type:ChatType title:string photo:chatPhoto last_message:message order:int64 is_pinned:Bool can_be_reported:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:chatNotificationSettings reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
 
 //@description Represents a list of chats @chat_ids List of chat identifiers
 chats chat_ids:vector<int53> = Chats;
@@ -1904,8 +1905,11 @@ updateChatReadOutbox chat_id:int53 last_read_outbox_message_id:int53 = Update;
 //@description The chat unread_mention_count has changed @chat_id Chat identifier @unread_mention_count The number of unread mention messages left in the chat
 updateChatUnreadMentionCount chat_id:int53 unread_mention_count:int32 = Update;
 
-//@description Notification settings for some chats were updated @scope Types of chats for which notification settings were updated @notification_settings The new notification settings
-updateNotificationSettings scope:NotificationSettingsScope notification_settings:notificationSettings = Update;
+//@description Notification settings for a chat were changed @chat_id Chat identifier @notification_settings The new notification settings
+updateChatNotificationSettings chat_id:int53 notification_settings:chatNotificationSettings = Update;
+
+//@description Notification settings for some chats scope were updated @scope Types of chats for which notification settings were updated @notification_settings The new notification settings
+updateScopeNotificationSettings scope:NotificationSettingsScope notification_settings:scopeNotificationSettings = Update;
 
 //@description The default chat reply markup was changed. Can occur because new messages with reply markup were received or because an old reply markup was hidden by the user
 //@chat_id Chat identifier @reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
@@ -2450,6 +2454,9 @@ setChatPhoto chat_id:int53 photo:InputFile = Ok;
 //@description Changes the draft message in a chat @chat_id Chat identifier @draft_message New draft message; may be null
 setChatDraftMessage chat_id:int53 draft_message:draftMessage = Ok;
 
+//@description Changes notification settings of a chat @chat_id Chat identifier @notification_settings The new notification settings for the chat
+setChatNotificationSettings chat_id:int53 notification_settings:chatNotificationSettings = Ok;
+
 //@description Changes the pinned state of a chat. You can pin up to GetOption("pinned_chat_count_max") non-secret chats and the same number of secret chats @chat_id Chat identifier @is_pinned New value of is_pinned
 toggleChatIsPinned chat_id:int53 is_pinned:Bool = Ok;
 
@@ -2476,6 +2483,16 @@ searchChatMembers chat_id:int53 query:string limit:int32 = ChatMembers;
 
 //@description Returns a list of users who are administrators of the chat @chat_id Chat identifier
 getChatAdministrators chat_id:int53 = Users;
+
+
+//@description Returns the notification settings for a given scope @scope Scope for which to return the notification settings information
+getScopeNotificationSettings scope:NotificationSettingsScope = ScopeNotificationSettings;
+
+//@description Changes notification settings for a given scope @scope Scope for which to change the notification settings @notification_settings The new notification settings for the given scope
+setScopeNotificationSettings scope:NotificationSettingsScope notification_settings:scopeNotificationSettings = Ok;
+
+//@description Resets all notification settings to their default values. By default, all chats are unmuted, the sound is set to "default" and message previews are shown
+resetAllNotificationSettings = Ok;
 
 
 //@description Changes the order of pinned chats @chat_ids The new list of pinned chats
@@ -2667,17 +2684,6 @@ getWebPagePreview text:formattedText = WebPage;
 
 //@description Returns an instant view version of a web page if available. Returns a 404 error if the web page has no instant view page @url The web page URL @force_full If true, the full instant view for the web page will be returned
 getWebPageInstantView url:string force_full:Bool = WebPageInstantView;
-
-
-//@description Returns the notification settings for a given scope @scope Scope for which to return the notification settings information
-getNotificationSettings scope:NotificationSettingsScope = NotificationSettings;
-
-//@description Changes notification settings for a given scope @scope Scope for which to change the notification settings
-//@notification_settings The new notification settings for the given scope
-setNotificationSettings scope:NotificationSettingsScope notification_settings:notificationSettings = Ok;
-
-//@description Resets all notification settings to their default values. By default, the only muted chats are supergroups, the sound is set to "default" and message previews are shown
-resetAllNotificationSettings = Ok;
 
 
 //@description Uploads a new profile photo for the current user. If something changes, updateUser will be sent @photo Profile photo to set. inputFileId and inputFileRemote may still be unsupported

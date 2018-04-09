@@ -707,9 +707,11 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::removeFavoriteSticker &request);
 
-  void on_request(uint64 id, const td_api::getNotificationSettings &request);
+  void on_request(uint64 id, const td_api::getScopeNotificationSettings &request);
 
-  void on_request(uint64 id, td_api::setNotificationSettings &request);
+  void on_request(uint64 id, td_api::setChatNotificationSettings &request);
+
+  void on_request(uint64 id, td_api::setScopeNotificationSettings &request);
 
   void on_request(uint64 id, const td_api::resetAllNotificationSettings &request);
 

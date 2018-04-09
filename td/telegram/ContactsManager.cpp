@@ -6265,7 +6265,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   }
 
   on_update_user_links(user_id, std::move(user_full->link_->my_link_), std::move(user_full->link_->foreign_link_));
-  td_->messages_manager_->on_update_notify_settings(DialogId(user_id).get(), std::move(user_full->notify_settings_));
+  td_->messages_manager_->on_update_dialog_notify_settings(DialogId(user_id), std::move(user_full->notify_settings_));
 
   UserFull *user = &users_full_[user_id];
   user->expires_at = Time::now() + USER_FULL_EXPIRE_TIME;
@@ -6438,7 +6438,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     }
 
     on_get_chat_participants(std::move(chat_full->participants_));
-    td_->messages_manager_->on_update_notify_settings(DialogId(chat_id).get(), std::move(chat_full->notify_settings_));
+    td_->messages_manager_->on_update_dialog_notify_settings(DialogId(chat_id), std::move(chat_full->notify_settings_));
 
     update_chat_full(chat, chat_id);
   } else {
@@ -6450,8 +6450,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       return;
     }
 
-    td_->messages_manager_->on_update_notify_settings(DialogId(channel_id).get(),
-                                                      std::move(channel_full->notify_settings_));
+    td_->messages_manager_->on_update_dialog_notify_settings(DialogId(channel_id),
+                                                             std::move(channel_full->notify_settings_));
 
     // Ignoring channel_full->photo
 

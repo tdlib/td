@@ -183,18 +183,10 @@ auth.exportedAuthorization#df969c2d id:int bytes:bytes = auth.ExportedAuthorizat
 inputNotifyPeer#b8bc5b0c peer:InputPeer = InputNotifyPeer;
 inputNotifyUsers#193b4417 = InputNotifyPeer;
 inputNotifyChats#4a95e84e = InputNotifyPeer;
-inputNotifyAll#a429b886 = InputNotifyPeer;
 
-inputPeerNotifyEventsEmpty#f03064d8 = InputPeerNotifyEvents;
-inputPeerNotifyEventsAll#e86a2c74 = InputPeerNotifyEvents;
+inputPeerNotifySettings#9c3d198e flags:# show_previews:flags.0?Bool silent:flags.1?Bool mute_until:flags.2?int sound:flags.3?string = InputPeerNotifySettings;
 
-inputPeerNotifySettings#38935eb2 flags:# show_previews:flags.0?true silent:flags.1?true mute_until:int sound:string = InputPeerNotifySettings;
-
-peerNotifyEventsEmpty#add53cb3 = PeerNotifyEvents;
-peerNotifyEventsAll#6d1ded88 = PeerNotifyEvents;
-
-peerNotifySettingsEmpty#70a68512 = PeerNotifySettings;
-peerNotifySettings#9acda4c0 flags:# show_previews:flags.0?true silent:flags.1?true mute_until:int sound:string = PeerNotifySettings;
+peerNotifySettings#af509d20 flags:# show_previews:flags.0?Bool silent:flags.1?Bool mute_until:flags.2?int sound:flags.3?string = PeerNotifySettings;
 
 peerSettings#818426cd flags:# report_spam:flags.0?true = PeerSettings;
 
@@ -395,7 +387,6 @@ help.support#17c6b5f6 phone_number:string user:User = help.Support;
 notifyPeer#9fd40bd8 peer:Peer = NotifyPeer;
 notifyUsers#b4c83b4c = NotifyPeer;
 notifyChats#c007cec3 = NotifyPeer;
-notifyAll#74d07c60 = NotifyPeer;
 
 sendMessageTypingAction#16bf744e = SendMessageAction;
 sendMessageCancelAction#fd5ec8f5 = SendMessageAction;

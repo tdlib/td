@@ -1479,9 +1479,25 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelAvailabl
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNotifySettings> update, bool /*force_apply*/) {
   CHECK(update != nullptr);
-  td_->messages_manager_->on_update_notify_settings(
-      td_->messages_manager_->get_notification_settings_scope(std::move(update->peer_)),
-      std::move(update->notify_settings_));
+  switch (update->peer_->get_id()) {
+    case telegram_api::notifyPeer::ID: {
+      DialogId dialog_id(static_cast<const telegram_api::notifyPeer *>(update->peer_.get())->peer_);
+      if (dialog_id.is_valid()) {
+        td_->messages_manager_->on_update_dialog_notify_settings(dialog_id, std::move(update->notify_settings_));
+      } else {
+        LOG(ERROR) << "Receive wrong " << to_string(update);
+      }
+      break;
+    }
+    case telegram_api::notifyUsers::ID:
+      return td_->messages_manager_->on_update_scope_notify_settings(NotificationSettingsScope::Private,
+                                                                     std::move(update->notify_settings_));
+    case telegram_api::notifyChats::ID:
+      return td_->messages_manager_->on_update_scope_notify_settings(NotificationSettingsScope::Group,
+                                                                     std::move(update->notify_settings_));
+    default:
+      UNREACHABLE();
+  }
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateWebPage> update, bool force_apply) {

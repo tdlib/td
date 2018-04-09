@@ -2690,22 +2690,22 @@ class GetUserProfilePhotosRequest : public RequestActor<> {
   }
 };
 
-class GetNotificationSettingsRequest : public RequestActor<> {
+class GetScopeNotificationSettingsRequest : public RequestActor<> {
   NotificationSettingsScope scope_;
 
-  const NotificationSettings *notification_settings_ = nullptr;
+  const ScopeNotificationSettings *notification_settings_ = nullptr;
 
   void do_run(Promise<Unit> &&promise) override {
-    notification_settings_ = td->messages_manager_->get_notification_settings(scope_, std::move(promise));
+    notification_settings_ = td->messages_manager_->get_scope_notification_settings(scope_, std::move(promise));
   }
 
   void do_send_result() override {
     CHECK(notification_settings_ != nullptr);
-    send_result(td->messages_manager_->get_notification_settings_object(notification_settings_));
+    send_result(td->messages_manager_->get_scope_notification_settings_object(notification_settings_));
   }
 
  public:
-  GetNotificationSettingsRequest(ActorShared<Td> td, uint64 request_id, NotificationSettingsScope scope)
+  GetScopeNotificationSettingsRequest(ActorShared<Td> td, uint64 request_id, NotificationSettingsScope scope)
       : RequestActor(std::move(td), request_id), scope_(scope) {
   }
 };
@@ -3878,6 +3878,7 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
     return send_error_raw(id, 400, "Request is empty");
   }
 
+  VLOG(td_requests) << "Receive request " << id << ": " << to_string(function);
   switch (state_) {
     case State::WaitParameters: {
       switch (function->get_id()) {
@@ -3934,7 +3935,6 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
       break;
   }
 
-  VLOG(td_requests) << "Receive request " << id << ": " << to_string(function);
   downcast_call(*function, [this, id](auto &request) { this->on_request(id, request); });
 }
 
@@ -6534,10 +6534,13 @@ void Td::on_request(uint64 id, td_api::removeSavedAnimation &request) {
   CREATE_REQUEST(RemoveSavedAnimationRequest, std::move(request.animation_));
 }
 
-void Td::on_request(uint64 id, const td_api::getNotificationSettings &request) {
+void Td::on_request(uint64 id, const td_api::getScopeNotificationSettings &request) {
   CHECK_AUTH();
   CHECK_IS_USER();
-  CREATE_REQUEST(GetNotificationSettingsRequest, messages_manager_->get_notification_settings_scope(request.scope_));
+  if (request.scope_ == nullptr) {
+    return send_error_raw(id, 400, "Scope must not be empty");
+  }
+  CREATE_REQUEST(GetScopeNotificationSettingsRequest, MessagesManager::get_notification_settings_scope(request.scope_));
 }
 
 void Td::on_request(uint64 id, const td_api::getChatReportSpamState &request) {
@@ -6558,12 +6561,21 @@ void Td::on_request(uint64 id, td_api::reportChat &request) {
   CREATE_REQUEST(ReportChatRequest, request.chat_id_, std::move(request.reason_), request.message_ids_);
 }
 
-void Td::on_request(uint64 id, td_api::setNotificationSettings &request) {
+void Td::on_request(uint64 id, td_api::setChatNotificationSettings &request) {
   CHECK_AUTH();
   CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.notification_settings_->sound_);
-  answer_ok_query(id, messages_manager_->set_notification_settings(
-                          messages_manager_->get_notification_settings_scope(request.scope_),
+  answer_ok_query(id, messages_manager_->set_dialog_notification_settings(DialogId(request.chat_id_),
+                                                                          std::move(request.notification_settings_)));
+}
+
+void Td::on_request(uint64 id, td_api::setScopeNotificationSettings &request) {
+  CHECK_AUTH();
+  CHECK_IS_USER();
+  if (request.scope_ == nullptr) {
+    return send_error_raw(id, 400, "Scope must not be empty");
+  }
+  answer_ok_query(id, messages_manager_->set_scope_notification_settings(
+                          MessagesManager::get_notification_settings_scope(request.scope_),
                           std::move(request.notification_settings_)));
 }
 
