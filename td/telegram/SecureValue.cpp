@@ -436,7 +436,7 @@ Result<std::pair<FileId, SecureFileCredentials>> decrypt_secure_file(FileManager
                                                                      const secure_storage::Secret &master_secret,
                                                                      const EncryptedSecureFile &secure_file) {
   if (!secure_file.file_id.is_valid()) {
-    return std::make_pair(secure_file.file_id, SecureFileCredentials{});
+    return std::make_pair(secure_file.file_id, SecureFileCredentials());
   }
   TRY_RESULT(hash, secure_storage::ValueHash::create(secure_file.file_hash));
   TRY_RESULT(encrypted_secret, secure_storage::EncryptedSecret::create(secure_file.encrypted_secret));
@@ -520,15 +520,15 @@ EncryptedSecureFile encrypt_secure_file(FileManager *file_manager, const secure_
                                         FileId file, string &to_hash) {
   auto file_view = file_manager->get_file_view(file);
   if (file_view.empty()) {
-    return {};
+    return EncryptedSecureFile();
   }
   if (!file_view.encryption_key().is_secure()) {
     LOG(ERROR) << "File has no encryption key";
-    return {};
+    return EncryptedSecureFile();
   }
   if (!file_view.encryption_key().has_value_hash()) {
     LOG(ERROR) << "File has no hash";
-    return {};
+    return EncryptedSecureFile();
   }
   auto value_hash = file_view.encryption_key().value_hash();
   auto secret = file_view.encryption_key().secret();
@@ -641,29 +641,29 @@ JsonScope &operator+(JsonValueScope &scope, const SecureValueCredentials &creden
 Slice secure_value_type_as_slice(SecureValueType type) {
   switch (type) {
     case SecureValueType::PersonalDetails:
-      return "personal_details";
+      return Slice("personal_details");
     case SecureValueType::Passport:
-      return "passport";
+      return Slice("passport");
     case SecureValueType::DriverLicense:
-      return "driver_license";
+      return Slice("driver_license");
     case SecureValueType::IdentityCard:
-      return "identity_card";
+      return Slice("identity_card");
     case SecureValueType::Address:
-      return "address";
+      return Slice("address");
     case SecureValueType::UtilityBill:
-      return "utility_bill";
+      return Slice("utility_bill");
     case SecureValueType::BankStatement:
-      return "bank_statement";
+      return Slice("bank_statement");
     case SecureValueType::RentalAgreement:
-      return "rental_agreement";
+      return Slice("rental_agreement");
     case SecureValueType::PhoneNumber:
-      return "phone";
+      return Slice("phone");
     case SecureValueType::EmailAddress:
-      return "email";
+      return Slice("email");
     default:
     case SecureValueType::None:
       UNREACHABLE();
-      return "none";
+      return Slice("none");
   }
 }
 

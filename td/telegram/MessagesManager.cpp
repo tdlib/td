@@ -4336,6 +4336,7 @@ void parse(ScopeNotificationSettings &notification_settings, ParserT &parser) {
   PARSE_FLAG(silent_send_message_ignored);
   PARSE_FLAG(notification_settings.is_synchronized);
   END_PARSE_FLAGS();
+  (void)silent_send_message_ignored;
   if (is_muted) {
     parse(notification_settings.mute_until, parser);
   }

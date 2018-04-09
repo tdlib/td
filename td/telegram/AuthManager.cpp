@@ -197,19 +197,6 @@ void PhoneNumberManager::set_phone_number(uint64 query_id, string phone_number, 
   if (phone_number.empty()) {
     return on_query_error(query_id, Status::Error(8, "Phone number can't be empty"));
   }
-  auto with_send_code = [&](auto c) {
-    switch (this->type_) {
-      case Type::ChangePhone:
-        return c(send_code_helper_.send_change_phone_code(phone_number, allow_flash_call, is_current_phone_number));
-      case Type::VerifyPhone:
-        return c(send_code_helper_.send_verify_phone_code(phone_number, allow_flash_call, is_current_phone_number));
-      case Type::ConfirmPhone:
-        return c(send_code_helper_.send_confirm_phone_code(phone_number, allow_flash_call, is_current_phone_number));
-      default:
-        UNREACHABLE();
-        return c(send_code_helper_.send_change_phone_code(phone_number, allow_flash_call, is_current_phone_number));
-    }
-  };
 
   auto process_send_code = [&](auto r_send_code) {
     if (r_send_code.is_error()) {
@@ -221,7 +208,19 @@ void PhoneNumberManager::set_phone_number(uint64 query_id, string phone_number, 
     start_net_query(NetQueryType::SendCode, G()->net_query_creator().create(create_storer(r_send_code.move_as_ok())));
   };
 
-  with_send_code(process_send_code);
+  switch (type_) {
+    case Type::ChangePhone:
+      return process_send_code(
+          send_code_helper_.send_change_phone_code(phone_number, allow_flash_call, is_current_phone_number));
+    case Type::VerifyPhone:
+      return process_send_code(
+          send_code_helper_.send_verify_phone_code(phone_number, allow_flash_call, is_current_phone_number));
+    case Type::ConfirmPhone:
+      return process_send_code(
+          send_code_helper_.send_confirm_phone_code(phone_number, allow_flash_call, is_current_phone_number));
+    default:
+      UNREACHABLE();
+  }
 }
 
 void PhoneNumberManager::resend_authentication_code(uint64 query_id) {
@@ -246,29 +245,23 @@ void PhoneNumberManager::check_code(uint64 query_id, string code) {
     return on_query_error(query_id, Status::Error(8, "checkAuthenticationCode unexpected"));
   }
 
-  auto with_api_object = [&](auto c) {
-    switch (type_) {
-      case Type::ChangePhone:
-        return c(telegram_api::account_changePhone(send_code_helper_.phone_number().str(),
-                                                   send_code_helper_.phone_code_hash().str(), code));
-      case Type::ConfirmPhone:
-        return c(telegram_api::account_confirmPhone(send_code_helper_.phone_code_hash().str(), code));
-      case Type::VerifyPhone:
-        return c(telegram_api::account_verifyPhone(send_code_helper_.phone_number().str(),
-                                                   send_code_helper_.phone_code_hash().str(), code));
-      default:
-        UNREACHABLE();
-        return c(telegram_api::account_changePhone(send_code_helper_.phone_number().str(),
-                                                   send_code_helper_.phone_code_hash().str(), code));
-    }
-  };
-
   on_new_query(query_id);
   auto send_new_query = [&](auto q) {
     start_net_query(NetQueryType::CheckCode, G()->net_query_creator().create(create_storer(q)));
   };
 
-  with_api_object(send_new_query);
+  switch (type_) {
+    case Type::ChangePhone:
+      return send_new_query(telegram_api::account_changePhone(send_code_helper_.phone_number().str(),
+                                                              send_code_helper_.phone_code_hash().str(), code));
+    case Type::ConfirmPhone:
+      return send_new_query(telegram_api::account_confirmPhone(send_code_helper_.phone_code_hash().str(), code));
+    case Type::VerifyPhone:
+      return send_new_query(telegram_api::account_verifyPhone(send_code_helper_.phone_number().str(),
+                                                              send_code_helper_.phone_code_hash().str(), code));
+    default:
+      UNREACHABLE();
+  }
 }
 
 void PhoneNumberManager::on_new_query(uint64 query_id) {
@@ -311,20 +304,6 @@ void PhoneNumberManager::start_net_query(NetQueryType net_query_type, NetQueryPt
 }
 
 void PhoneNumberManager::on_check_code_result(NetQueryPtr &result) {
-  auto with_result = [&](auto c) {
-    switch (type_) {
-      case Type::ChangePhone:
-        return c(fetch_result<telegram_api::account_changePhone>(result->ok()));
-      case Type::VerifyPhone:
-        return c(fetch_result<telegram_api::account_verifyPhone>(result->ok()));
-      case Type::ConfirmPhone:
-        return c(fetch_result<telegram_api::account_confirmPhone>(result->ok()));
-      default:
-        UNREACHABLE();
-        return c(fetch_result<telegram_api::account_changePhone>(result->ok()));
-    }
-  };
-
   auto process_result = [&](auto result) {
     if (result.is_error()) {
       return on_query_error(result.move_as_error());
@@ -333,7 +312,16 @@ void PhoneNumberManager::on_check_code_result(NetQueryPtr &result) {
     on_query_ok();
   };
 
-  with_result(process_result);
+  switch (type_) {
+    case Type::ChangePhone:
+      return process_result(fetch_result<telegram_api::account_changePhone>(result->ok()));
+    case Type::VerifyPhone:
+      return process_result(fetch_result<telegram_api::account_verifyPhone>(result->ok()));
+    case Type::ConfirmPhone:
+      return process_result(fetch_result<telegram_api::account_confirmPhone>(result->ok()));
+    default:
+      UNREACHABLE();
+  }
 }
 
 void PhoneNumberManager::on_send_code_result(NetQueryPtr &result) {
