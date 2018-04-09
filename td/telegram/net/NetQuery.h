@@ -392,6 +392,12 @@ Result<typename T::ReturnType> fetch_result(NetQueryPtr query) {
   return fetch_result<T>(buffer);
 }
 
+template <class T>
+Result<typename T::ReturnType> fetch_result(Result<NetQueryPtr> r_query) {
+  TRY_RESULT(query, std::move(r_query));
+  return fetch_result<T>(std::move(query));
+}
+
 inline void NetQueryCallback::on_result(NetQueryPtr query) {
   on_result_resendable(std::move(query), Auto());
 }

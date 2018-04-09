@@ -56,6 +56,13 @@ class PasswordManager : public NetQueryCallback {
   void set_recovery_email_address(string password, string new_recovery_email_address, Promise<State> promise);
   void get_recovery_email_address(string password, Promise<tl_object_ptr<td_api::recoveryEmailAddress>> promise);
 
+  string last_verified_email_address_;
+  void send_email_address_verification_code(
+      string email, Promise<td_api::object_ptr<td_api::emailAddressAuthenticationCodeInfo>> promise);
+  void resend_email_address_verification_code(
+      Promise<td_api::object_ptr<td_api::emailAddressAuthenticationCodeInfo>> promise);
+  void check_email_address_verification_code(string code, Promise<td_api::object_ptr<td_api::ok>> promise);
+
   void request_password_recovery(Promise<tl_object_ptr<td_api::emailAddressAuthenticationCodeInfo>> promise);
   void recover_password(string code, Promise<State> promise);
 

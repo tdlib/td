@@ -552,10 +552,7 @@ void SecureManager::do_send_passport_authorization_form(int32 authorization_form
   auto query = G()->net_query_creator().create(create_storer(td_query));
   auto new_promise =
       PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_net_query_ptr) mutable {
-        if (r_net_query_ptr.is_error()) {
-          return promise.set_error(r_net_query_ptr.move_as_error());
-        }
-        auto r_result = fetch_result<telegram_api::account_acceptAuthorization>(r_net_query_ptr.move_as_ok());
+        auto r_result = fetch_result<telegram_api::account_acceptAuthorization>(std::move(r_net_query_ptr));
         if (r_result.is_error()) {
           return promise.set_error(r_result.move_as_error());
         }

@@ -1114,8 +1114,14 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::sendPhoneNumberVerificationCode>(args, false, false));
     } else if (op == "cpnvc" || op == "CheckPhoneNumberVerificationCode") {
       send_request(make_tl_object<td_api::checkPhoneNumberVerificationCode>(args));
-    } else if (op == "rpnvc" || op == "ResendPhoneNumverVerificationCode") {
+    } else if (op == "rpnvc" || op == "ResendPhoneNumberVerificationCode") {
       send_request(make_tl_object<td_api::resendPhoneNumberVerificationCode>());
+    } else if (op == "seavc" || op == "SendEmailAddressVerificationCode") {
+      send_request(make_tl_object<td_api::sendEmailAddressVerificationCode>(args));
+    } else if (op == "ceavc" || op == "CheckEmailAddressVerificationCode") {
+      send_request(make_tl_object<td_api::checkEmailAddressVerificationCode>(args));
+    } else if (op == "reavc" || op == "ResendEmailAddressVerificationCode") {
+      send_request(make_tl_object<td_api::resendEmailAddressVerificationCode>());
     } else if (op == "srea" || op == "SetRecoveryEmailAddress") {
       string password;
       string recovery_email_address;

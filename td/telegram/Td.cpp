@@ -6891,20 +6891,25 @@ void Td::on_request(uint64 id, td_api::sendEmailAddressVerificationCode &request
   CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.email_address_);
-  LOG(FATAL) << "TODO";
+  CREATE_REQUEST_PROMISE(promise);
+  send_closure(password_manager_, &PasswordManager::send_email_address_verification_code, request.email_address_,
+               std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::resendEmailAddressVerificationCode &request) {
   CHECK_AUTH();
   CHECK_IS_USER();
-  LOG(FATAL) << "TODO";
+  CREATE_REQUEST_PROMISE(promise);
+  send_closure(password_manager_, &PasswordManager::resend_email_address_verification_code, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::checkEmailAddressVerificationCode &request) {
   CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.code_);
-  LOG(FATAL) << "TODO";
+  CREATE_REQUEST_PROMISE(promise);
+  send_closure(password_manager_, &PasswordManager::check_email_address_verification_code, request.code_,
+               std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getPassportAuthorizationForm &request) {
