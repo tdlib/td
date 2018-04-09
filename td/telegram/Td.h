@@ -35,7 +35,7 @@ class AudiosManager;
 class AuthManager;
 class CallManager;
 class CallbackQueriesManager;
-class ChangePhoneNumberManager;
+class PhoneNumberManager;
 class ConfigManager;
 class ContactsManager;
 class DeviceTokenManager;
@@ -126,8 +126,6 @@ class Td final : public NetQueryCallback {
   ActorOwn<AnimationsManager> animations_manager_actor_;
   std::unique_ptr<AuthManager> auth_manager_;
   ActorOwn<AuthManager> auth_manager_actor_;
-  std::unique_ptr<ChangePhoneNumberManager> change_phone_number_manager_;
-  ActorOwn<ChangePhoneNumberManager> change_phone_number_manager_actor_;
   std::unique_ptr<ContactsManager> contacts_manager_;
   ActorOwn<ContactsManager> contacts_manager_actor_;
   std::unique_ptr<FileManager> file_manager_;
@@ -143,6 +141,8 @@ class Td final : public NetQueryCallback {
   std::unique_ptr<WebPagesManager> web_pages_manager_;
   ActorOwn<WebPagesManager> web_pages_manager_actor_;
 
+  ActorOwn<PhoneNumberManager> change_phone_number_manager_;
+  ActorOwn<PhoneNumberManager> verify_phone_number_manager_;
   ActorOwn<CallManager> call_manager_;
   ActorOwn<ConfigManager> config_manager_;
   ActorOwn<DeviceTokenManager> device_token_manager_;
@@ -248,10 +248,10 @@ class Td final : public NetQueryCallback {
   void on_alarm_timeout(int64 alarm_id);
 
   template <class T>
-  friend class RequestActor;              // uses send_result/send_error
-  friend class TestQuery;                 // uses send_result/send_error
-  friend class AuthManager;               // uses send_result/send_error
-  friend class ChangePhoneNumberManager;  // uses send_result/send_error
+  friend class RequestActor;        // uses send_result/send_error
+  friend class TestQuery;           // uses send_result/send_error
+  friend class AuthManager;         // uses send_result/send_error
+  friend class PhoneNumberManager;  // uses send_result/send_error
 
   void add_handler(uint64 id, std::shared_ptr<ResultHandler> handler);
   std::shared_ptr<ResultHandler> extract_handler(uint64 id);

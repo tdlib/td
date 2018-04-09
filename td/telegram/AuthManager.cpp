@@ -88,6 +88,27 @@ Result<telegram_api::account_sendChangePhoneCode> SendCodeHelper::send_change_ph
   return telegram_api::account_sendChangePhoneCode(flags, false /*ignored*/, phone_number_, is_current_phone_number);
 }
 
+Result<telegram_api::account_sendVerifyPhoneCode> SendCodeHelper::send_verify_phone_code(Slice phone_number,
+                                                                                         bool allow_flash_call,
+                                                                                         bool is_current_phone_number) {
+  phone_number_ = phone_number.str();
+  int32 flags = 0;
+  if (allow_flash_call) {
+    flags |= AUTH_SEND_CODE_FLAG_ALLOW_FLASH_CALL;
+  }
+  return telegram_api::account_sendVerifyPhoneCode(flags, false /*ignored*/, phone_number_, is_current_phone_number);
+}
+
+Result<telegram_api::account_sendConfirmPhoneCode> SendCodeHelper::send_confirm_phone_code(
+    Slice phone_number, bool allow_flash_call, bool is_current_phone_number) {
+  phone_number_ = phone_number.str();
+  int32 flags = 0;
+  if (allow_flash_call) {
+    flags |= AUTH_SEND_CODE_FLAG_ALLOW_FLASH_CALL;
+  }
+  return telegram_api::account_sendConfirmPhoneCode(flags, false /*ignored*/, phone_number_, is_current_phone_number);
+}
+
 SendCodeHelper::AuthenticationCodeInfo SendCodeHelper::get_authentication_code_info(
     tl_object_ptr<telegram_api::auth_CodeType> &&code_type_ptr) {
   if (code_type_ptr == nullptr) {
@@ -152,8 +173,8 @@ tl_object_ptr<td_api::AuthenticationCodeType> SendCodeHelper::get_authentication
   }
 }
 
-// ChangePhoneNumberManager
-void ChangePhoneNumberManager::get_state(uint64 query_id) {
+// PhoneNumberManager
+void PhoneNumberManager::get_state(uint64 query_id) {
   tl_object_ptr<td_api::Object> obj;
   switch (state_) {
     case State::Ok:
@@ -167,24 +188,40 @@ void ChangePhoneNumberManager::get_state(uint64 query_id) {
   send_closure(G()->td(), &Td::send_result, query_id, std::move(obj));
 }
 
-ChangePhoneNumberManager::ChangePhoneNumberManager(ActorShared<> parent) : parent_(std::move(parent)) {
+PhoneNumberManager::PhoneNumberManager(PhoneNumberManager::Type type, ActorShared<> parent)
+    : type_(type), parent_(std::move(parent)) {
 }
-void ChangePhoneNumberManager::change_phone_number(uint64 query_id, string phone_number, bool allow_flash_call,
-                                                   bool is_current_phone_number) {
+
+void PhoneNumberManager::set_phone_number(uint64 query_id, string phone_number, bool allow_flash_call,
+                                          bool is_current_phone_number) {
   if (phone_number.empty()) {
     return on_query_error(query_id, Status::Error(8, "Phone number can't be empty"));
   }
-  auto r_send_code = send_code_helper_.send_change_phone_code(phone_number, allow_flash_call, is_current_phone_number);
-  if (r_send_code.is_error()) {
-    return on_query_error(query_id, r_send_code.move_as_error());
-  }
+  auto with_send_code = [&](auto c) {
+    switch (this->type_) {
+      case Type::ChangePhone:
+        return c(send_code_helper_.send_change_phone_code(phone_number, allow_flash_call, is_current_phone_number));
+      case Type::VerifyPhone:
+        return c(send_code_helper_.send_verify_phone_code(phone_number, allow_flash_call, is_current_phone_number));
+      case Type::ConfirmPhone:
+        return c(send_code_helper_.send_confirm_phone_code(phone_number, allow_flash_call, is_current_phone_number));
+    }
+  };
 
-  on_new_query(query_id);
+  auto process_send_code = [&](auto r_send_code) {
+    if (r_send_code.is_error()) {
+      return on_query_error(query_id, r_send_code.move_as_error());
+    }
 
-  start_net_query(NetQueryType::SendCode, G()->net_query_creator().create(create_storer(r_send_code.move_as_ok())));
+    on_new_query(query_id);
+
+    start_net_query(NetQueryType::SendCode, G()->net_query_creator().create(create_storer(r_send_code.move_as_ok())));
+  };
+
+  with_send_code(process_send_code);
 }
 
-void ChangePhoneNumberManager::resend_authentication_code(uint64 query_id) {
+void PhoneNumberManager::resend_authentication_code(uint64 query_id) {
   if (state_ != State::WaitCode) {
     return on_query_error(query_id, Status::Error(8, "resendAuthenticationCode unexpected"));
   }
@@ -201,18 +238,33 @@ void ChangePhoneNumberManager::resend_authentication_code(uint64 query_id) {
                                                   NetQuery::Type::Common, NetQuery::AuthFlag::Off));
 }
 
-void ChangePhoneNumberManager::check_code(uint64 query_id, string code) {
+void PhoneNumberManager::check_code(uint64 query_id, string code) {
   if (state_ != State::WaitCode) {
     return on_query_error(query_id, Status::Error(8, "checkAuthenticationCode unexpected"));
   }
 
+  auto with_api_object = [&](auto c) {
+    switch (type_) {
+      case Type::ChangePhone:
+        return c(telegram_api::account_changePhone(send_code_helper_.phone_number().str(),
+                                                   send_code_helper_.phone_code_hash().str(), code));
+      case Type::ConfirmPhone:
+        return c(telegram_api::account_confirmPhone(send_code_helper_.phone_code_hash().str(), code));
+      case Type::VerifyPhone:
+        return c(telegram_api::account_verifyPhone(send_code_helper_.phone_number().str(),
+                                                   send_code_helper_.phone_code_hash().str(), code));
+    }
+  };
+
   on_new_query(query_id);
-  start_net_query(NetQueryType::ChangePhone,
-                  G()->net_query_creator().create(create_storer(telegram_api::account_changePhone(
-                      send_code_helper_.phone_number().str(), send_code_helper_.phone_code_hash().str(), code))));
+  auto send_new_query = [&](auto q) {
+    start_net_query(NetQueryType::CheckCode, G()->net_query_creator().create(create_storer(q)));
+  };
+
+  with_api_object(send_new_query);
 }
 
-void ChangePhoneNumberManager::on_new_query(uint64 query_id) {
+void PhoneNumberManager::on_new_query(uint64 query_id) {
   if (query_id_ != 0) {
     on_query_error(Status::Error(9, "Another authorization query has started"));
   }
@@ -222,7 +274,7 @@ void ChangePhoneNumberManager::on_new_query(uint64 query_id) {
   // TODO: cancel older net_query
 }
 
-void ChangePhoneNumberManager::on_query_error(Status status) {
+void PhoneNumberManager::on_query_error(Status status) {
   CHECK(query_id_ != 0);
   auto id = query_id_;
   query_id_ = 0;
@@ -231,11 +283,11 @@ void ChangePhoneNumberManager::on_query_error(Status status) {
   on_query_error(id, std::move(status));
 }
 
-void ChangePhoneNumberManager::on_query_error(uint64 id, Status status) {
+void PhoneNumberManager::on_query_error(uint64 id, Status status) {
   send_closure(G()->td(), &Td::send_error, id, std::move(status));
 }
 
-void ChangePhoneNumberManager::on_query_ok() {
+void PhoneNumberManager::on_query_ok() {
   CHECK(query_id_ != 0);
   auto id = query_id_;
   net_query_id_ = 0;
@@ -244,24 +296,47 @@ void ChangePhoneNumberManager::on_query_ok() {
   get_state(id);
 }
 
-void ChangePhoneNumberManager::start_net_query(NetQueryType net_query_type, NetQueryPtr net_query) {
+void PhoneNumberManager::start_net_query(NetQueryType net_query_type, NetQueryPtr net_query) {
   // TODO: cancel old net_query?
   net_query_type_ = net_query_type;
   net_query_id_ = net_query->id();
   G()->net_query_dispatcher().dispatch_with_callback(std::move(net_query), actor_shared(this));
 }
 
-void ChangePhoneNumberManager::on_change_phone_result(NetQueryPtr &result) {
-  auto r_change_phone = fetch_result<telegram_api::account_changePhone>(result->ok());
-  if (r_change_phone.is_error()) {
-    return on_query_error(r_change_phone.move_as_error());
-  }
-  state_ = State::Ok;
-  on_query_ok();
+void PhoneNumberManager::on_check_code_result(NetQueryPtr &result) {
+  auto with_result = [&](auto c) {
+    switch (type_) {
+      case Type::ChangePhone:
+        return c(fetch_result<telegram_api::account_changePhone>(result->ok()));
+      case Type::VerifyPhone:
+        return c(fetch_result<telegram_api::account_verifyPhone>(result->ok()));
+      case Type::ConfirmPhone:
+        return c(fetch_result<telegram_api::account_confirmPhone>(result->ok()));
+    }
+  };
+
+  auto process_result = [&](auto result) {
+    if (result.is_error()) {
+      return on_query_error(result.move_as_error());
+    }
+    state_ = State::Ok;
+    on_query_ok();
+  };
+
+  with_result(process_result);
 }
 
-void ChangePhoneNumberManager::on_send_code_result(NetQueryPtr &result) {
-  auto r_sent_code = fetch_result<telegram_api::account_sendChangePhoneCode>(result->ok());
+void PhoneNumberManager::on_send_code_result(NetQueryPtr &result) {
+  auto r_sent_code = [&] {
+    switch (type_) {
+      case Type::ChangePhone:
+        return fetch_result<telegram_api::account_sendChangePhoneCode>(result->ok());
+      case Type::VerifyPhone:
+        return fetch_result<telegram_api::account_sendVerifyPhoneCode>(result->ok());
+      case Type::ConfirmPhone:
+        return fetch_result<telegram_api::account_sendConfirmPhoneCode>(result->ok());
+    }
+  }();
   if (r_sent_code.is_error()) {
     return on_query_error(r_sent_code.move_as_error());
   }
@@ -275,7 +350,7 @@ void ChangePhoneNumberManager::on_send_code_result(NetQueryPtr &result) {
   on_query_ok();
 }
 
-void ChangePhoneNumberManager::on_result(NetQueryPtr result) {
+void PhoneNumberManager::on_result(NetQueryPtr result) {
   SCOPE_EXIT {
     result->clear();
   };
@@ -298,13 +373,13 @@ void ChangePhoneNumberManager::on_result(NetQueryPtr result) {
     case NetQueryType::SendCode:
       on_send_code_result(result);
       break;
-    case NetQueryType::ChangePhone:
-      on_change_phone_result(result);
+    case NetQueryType::CheckCode:
+      on_check_code_result(result);
       break;
   }
 }
 
-void ChangePhoneNumberManager::tear_down() {
+void PhoneNumberManager::tear_down() {
   parent_.reset();
 }
 

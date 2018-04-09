@@ -4174,8 +4174,6 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "AudiosManager was cleared " << timer;
       auth_manager_.reset();
       LOG(DEBUG) << "AuthManager was cleared " << timer;
-      change_phone_number_manager_.reset();
-      LOG(DEBUG) << "ChangePhoneNumberManager was cleared " << timer;
       contacts_manager_.reset();
       LOG(DEBUG) << "ContactsManager was cleared " << timer;
       documents_manager_.reset();
@@ -4294,6 +4292,10 @@ void Td::clear() {
   LOG(DEBUG) << "Requests was answered " << timer;
 
   // close all pure actors
+  change_phone_number_manager_.reset();
+  LOG(DEBUG) << "ChangePhoneNumberManager was cleared " << timer;
+  verify_phone_number_manager_.reset();
+  LOG(DEBUG) << "ChangePhoneNumberManager was cleared " << timer;
   call_manager_.reset();
   LOG(DEBUG) << "CallManager was cleared " << timer;
   config_manager_.reset();
@@ -4325,8 +4327,6 @@ void Td::clear() {
   LOG(DEBUG) << "AnimationsManager actor was cleared " << timer;
   auth_manager_actor_.reset();
   LOG(DEBUG) << "AuthManager actor was cleared " << timer;
-  change_phone_number_manager_actor_.reset();
-  LOG(DEBUG) << "ChangePhoneNumberManager actor was cleared " << timer;
   contacts_manager_actor_.reset();
   LOG(DEBUG) << "ContactsManager actor was cleared " << timer;
   file_manager_actor_.reset();
@@ -4530,8 +4530,6 @@ Status Td::init(DbKey key) {
   animations_manager_ = std::make_unique<AnimationsManager>(this, create_reference());
   animations_manager_actor_ = register_actor("AnimationsManager", animations_manager_.get());
   G()->set_animations_manager(animations_manager_actor_.get());
-  change_phone_number_manager_ = std::make_unique<ChangePhoneNumberManager>(create_reference());
-  change_phone_number_manager_actor_ = register_actor("ChangePhoneNumberManager", change_phone_number_manager_.get());
   contacts_manager_ = std::make_unique<ContactsManager>(this, create_reference());
   contacts_manager_actor_ = register_actor("ContactsManager", contacts_manager_.get());
   G()->set_contacts_manager(contacts_manager_actor_.get());
@@ -4550,6 +4548,10 @@ Status Td::init(DbKey key) {
   web_pages_manager_actor_ = register_actor("WebPagesManager", web_pages_manager_.get());
   G()->set_web_pages_manager(web_pages_manager_actor_.get());
 
+  change_phone_number_manager_ = create_actor<PhoneNumberManager>(
+      "ChangePhoneNumberManager", PhoneNumberManager::Type::ChangePhone, create_reference());
+  verify_phone_number_manager_ = create_actor<PhoneNumberManager>(
+      "VerifyPhoneNumberManager", PhoneNumberManager::Type::VerifyPhone, create_reference());
   call_manager_ = create_actor<CallManager>("CallManager", create_reference());
   G()->set_call_manager(call_manager_.get());
   device_token_manager_ = create_actor<DeviceTokenManager>("DeviceTokenManager", create_reference());
@@ -5083,21 +5085,21 @@ void Td::on_request(uint64 id, td_api::changePhoneNumber &request) {
   CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.phone_number_);
-  change_phone_number_manager_->change_phone_number(id, std::move(request.phone_number_), request.allow_flash_call_,
-                                                    request.is_current_phone_number_);
+  send_closure(change_phone_number_manager_, &PhoneNumberManager::set_phone_number, id,
+               std::move(request.phone_number_), request.allow_flash_call_, request.is_current_phone_number_);
 }
 
 void Td::on_request(uint64 id, td_api::checkChangePhoneNumberCode &request) {
   CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.code_);
-  change_phone_number_manager_->check_code(id, std::move(request.code_));
+  send_closure(change_phone_number_manager_, &PhoneNumberManager::check_code, id, std::move(request.code_));
 }
 
 void Td::on_request(uint64 id, td_api::resendChangePhoneNumberCode &request) {
   CHECK_AUTH();
   CHECK_IS_USER();
-  change_phone_number_manager_->resend_authentication_code(id);
+  send_closure(change_phone_number_manager_, &PhoneNumberManager::resend_authentication_code, id);
 }
 
 void Td::on_request(uint64 id, const td_api::getActiveSessions &request) {
@@ -6868,20 +6870,21 @@ void Td::on_request(uint64 id, td_api::sendPhoneNumberVerificationCode &request)
   CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.phone_number_);
-  LOG(FATAL) << "TODO";
+  send_closure(verify_phone_number_manager_, &PhoneNumberManager::set_phone_number, id,
+               std::move(request.phone_number_), request.allow_flash_call_, request.is_current_phone_number_);
 }
 
 void Td::on_request(uint64 id, const td_api::resendPhoneNumberVerificationCode &request) {
   CHECK_AUTH();
   CHECK_IS_USER();
-  LOG(FATAL) << "TODO";
+  send_closure(verify_phone_number_manager_, &PhoneNumberManager::resend_authentication_code, id);
 }
 
 void Td::on_request(uint64 id, td_api::checkPhoneNumberVerificationCode &request) {
   CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.code_);
-  LOG(FATAL) << "TODO";
+  send_closure(verify_phone_number_manager_, &PhoneNumberManager::check_code, id, std::move(request.code_));
 }
 
 void Td::on_request(uint64 id, td_api::sendEmailAddressVerificationCode &request) {

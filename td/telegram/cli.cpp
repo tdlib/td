@@ -968,9 +968,11 @@ class CliClient final : public Actor {
     if (passport_data_type == "address" || passport_data_type == "a") {
       data = "cucumber lives here";
     } else if (passport_data_type == "email" || passport_data_type == "e") {
-      data = "{todo}";
+      data = file;
+      files.clear();
     } else if (passport_data_type == "phone" || passport_data_type == "p") {
-      data = "{todo}";
+      data = file;
+      files.clear();
     } else if (passport_data_type == "pd") {
       data = "{todo}";
     } else {
@@ -1108,6 +1110,12 @@ class CliClient final : public Actor {
       std::tie(id, types) = split(args);
       send_request(make_tl_object<td_api::sendPassportAuthorizationForm>(to_integer<int32>(id),
                                                                          as_passport_data_types(types), password));
+    } else if (op == "spnvc" || op == "SendPhoneNumberVerificationCode") {
+      send_request(make_tl_object<td_api::sendPhoneNumberVerificationCode>(args, false, false));
+    } else if (op == "cpnvc" || op == "CheckPhoneNumberVerificationCode") {
+      send_request(make_tl_object<td_api::checkPhoneNumberVerificationCode>(args));
+    } else if (op == "rpnvc" || op == "ResendPhoneNumverVerificationCode") {
+      send_request(make_tl_object<td_api::resendPhoneNumberVerificationCode>());
     } else if (op == "srea" || op == "SetRecoveryEmailAddress") {
       string password;
       string recovery_email_address;

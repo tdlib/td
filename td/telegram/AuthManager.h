@@ -24,10 +24,18 @@ class SendCodeHelper {
   td_api::object_ptr<td_api::authorizationStateWaitCode> get_authorization_state_wait_code() const;
   td_api::object_ptr<td_api::authenticationCodeInfo> get_authentication_code_info_object() const;
   Result<telegram_api::auth_resendCode> resend_code();
+
   Result<telegram_api::auth_sendCode> send_code(Slice phone_number, bool allow_flash_call, bool is_current_phone_number,
                                                 int32 api_id, const string &api_hash);
+
   Result<telegram_api::account_sendChangePhoneCode> send_change_phone_code(Slice phone_number, bool allow_flash_call,
                                                                            bool is_current_phone_number);
+
+  Result<telegram_api::account_sendVerifyPhoneCode> send_verify_phone_code(Slice phone_number, bool allow_flash_call,
+                                                                           bool is_current_phone_number);
+
+  Result<telegram_api::account_sendConfirmPhoneCode> send_confirm_phone_code(Slice phone_number, bool allow_flash_call,
+                                                                             bool is_current_phone_number);
 
   Slice phone_number() const {
     return phone_number_;
@@ -85,18 +93,22 @@ class SendCodeHelper {
       const AuthenticationCodeInfo &authentication_code_info);
 };
 
-class ChangePhoneNumberManager : public NetActor {
+class PhoneNumberManager : public NetActor {
  public:
-  explicit ChangePhoneNumberManager(ActorShared<> parent);
+  enum class Type { ChangePhone, VerifyPhone, ConfirmPhone };
+  explicit PhoneNumberManager(Type type, ActorShared<> parent);
   void get_state(uint64 query_id);
 
-  void change_phone_number(uint64 query_id, string phone_number, bool allow_flash_call, bool is_current_phone_number);
+  void set_phone_number(uint64 query_id, string phone_number, bool allow_flash_call, bool is_current_phone_number);
+
   void resend_authentication_code(uint64 query_id);
   void check_code(uint64 query_id, string code);
 
  private:
+  Type type_;
+
   enum class State { Ok, WaitCode } state_ = State::Ok;
-  enum class NetQueryType { None, SendCode, ChangePhone };
+  enum class NetQueryType { None, SendCode, CheckCode };
 
   ActorShared<> parent_;
   uint64 query_id_ = 0;
@@ -111,7 +123,7 @@ class ChangePhoneNumberManager : public NetActor {
   void on_query_ok();
   void start_net_query(NetQueryType net_query_type, NetQueryPtr net_query);
 
-  void on_change_phone_result(NetQueryPtr &result);
+  void on_check_code_result(NetQueryPtr &result);
   void on_send_code_result(NetQueryPtr &result);
   void on_result(NetQueryPtr result) override;
   void tear_down() override;
