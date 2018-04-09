@@ -237,22 +237,26 @@ void PasswordManager::send_email_address_verification_code(
   last_verified_email_address_ = email;
   auto query =
       G()->net_query_creator().create(create_storer(telegram_api::account_sendVerifyEmailCode(std::move(email))));
-  send_with_promise(
-      std::move(query), PromiseCreator::lambda([actor_id = actor_id(this),
-                                                promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
-        auto r_result = fetch_result<telegram_api::account_sendVerifyEmailCode>(std::move(r_query));
-        if (r_result.is_error()) {
-          return promise.set_error(r_result.move_as_error());
-        }
-        auto result = r_result.move_as_ok();
-        return promise.set_value(make_tl_object<td_api::emailAddressAuthenticationCodeInfo>(result->email_pattern_));
-      }));
+  send_with_promise(std::move(query), PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
+                                                                 Result<NetQueryPtr> r_query) mutable {
+                      auto r_result = fetch_result<telegram_api::account_sendVerifyEmailCode>(std::move(r_query));
+                      if (r_result.is_error()) {
+                        return promise.set_error(r_result.move_as_error());
+                      }
+                      auto result = r_result.move_as_ok();
+                      if (result->length_ < 0 || result->length_ >= 100) {
+                        LOG(ERROR) << "Receive wrong code length " << result->length_;
+                        result->length_ = 0;
+                      }
+                      return promise.set_value(make_tl_object<td_api::emailAddressAuthenticationCodeInfo>(
+                          result->email_pattern_, result->length_));
+                    }));
 }
 
 void PasswordManager::resend_email_address_verification_code(
     Promise<td_api::object_ptr<td_api::emailAddressAuthenticationCodeInfo>> promise) {
   if (last_verified_email_address_.empty()) {
-    return promise.set_error(Status::Error(400, "No verification phone was sent"));
+    return promise.set_error(Status::Error(400, "No email address verification was sent"));
   }
   send_email_address_verification_code(last_verified_email_address_, std::move(promise));
 }
@@ -260,7 +264,7 @@ void PasswordManager::resend_email_address_verification_code(
 void PasswordManager::check_email_address_verification_code(string code,
                                                             Promise<td_api::object_ptr<td_api::ok>> promise) {
   if (last_verified_email_address_.empty()) {
-    return promise.set_error(Status::Error(400, "No verification phone was sent"));
+    return promise.set_error(Status::Error(400, "No email address verification was sent"));
   }
   auto query = G()->net_query_creator().create(
       create_storer(telegram_api::account_verifyEmail(last_verified_email_address_, std::move(code))));
@@ -275,7 +279,7 @@ void PasswordManager::check_email_address_verification_code(string code,
 }
 
 void PasswordManager::request_password_recovery(
-    Promise<tl_object_ptr<td_api::emailAddressAuthenticationCodeInfo>> promise) {
+    Promise<td_api::object_ptr<td_api::emailAddressAuthenticationCodeInfo>> promise) {
   send_with_promise(
       G()->net_query_creator().create(create_storer(telegram_api::auth_requestPasswordRecovery())),
       PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
@@ -284,7 +288,7 @@ void PasswordManager::request_password_recovery(
           return promise.set_error(r_result.move_as_error());
         }
         auto result = r_result.move_as_ok();
-        return promise.set_value(make_tl_object<td_api::emailAddressAuthenticationCodeInfo>(result->email_pattern_));
+        return promise.set_value(make_tl_object<td_api::emailAddressAuthenticationCodeInfo>(result->email_pattern_, 0));
       }));
 }
 

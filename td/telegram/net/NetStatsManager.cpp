@@ -12,6 +12,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/StateManager.h"
+#include "td/telegram/Version.h"
 
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"

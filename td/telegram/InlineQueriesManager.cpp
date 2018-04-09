@@ -371,7 +371,7 @@ bool InlineQueriesManager::register_inline_message_content(
       message_content = make_unique<MessageVenue>(
           Venue(inline_message_venue->geo_, std::move(inline_message_venue->title_),
                 std::move(inline_message_venue->address_), std::move(inline_message_venue->provider_),
-                std::move(inline_message_venue->venue_id_)));
+                std::move(inline_message_venue->venue_id_), std::move(inline_message_venue->venue_type_)));
       reply_markup = std::move(inline_message_venue->reply_markup_);
       break;
     }
@@ -1074,7 +1074,8 @@ tl_object_ptr<td_api::location> copy(const td_api::location &obj) {
 
 template <>
 tl_object_ptr<td_api::venue> copy(const td_api::venue &obj) {
-  return make_tl_object<td_api::venue>(copy(obj.location_), obj.title_, obj.address_, obj.provider_, obj.id_);
+  return make_tl_object<td_api::venue>(copy(obj.location_), obj.title_, obj.address_, obj.provider_, obj.id_,
+                                       obj.type_);
 }
 
 template <>
@@ -1492,16 +1493,17 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
             auto inline_message_venue =
                 static_cast<const telegram_api::botInlineMessageMediaVenue *>(result->send_message_.get());
             Venue v(inline_message_venue->geo_, inline_message_venue->title_, inline_message_venue->address_,
-                    inline_message_venue->provider_, inline_message_venue->venue_id_);
+                    inline_message_venue->provider_, inline_message_venue->venue_id_,
+                    inline_message_venue->venue_type_);
             venue->venue_ = v.get_venue_object();
           } else if (result->send_message_->get_id() == telegram_api::botInlineMessageMediaGeo::ID) {
             auto inline_message_geo =
                 static_cast<const telegram_api::botInlineMessageMediaGeo *>(result->send_message_.get());
             Venue v(inline_message_geo->geo_, std::move(result->title_), std::move(result->description_), string(),
-                    string());
+                    string(), string());
             venue->venue_ = v.get_venue_object();
           } else {
-            Venue v(nullptr, std::move(result->title_), std::move(result->description_), string(), string());
+            Venue v(nullptr, std::move(result->title_), std::move(result->description_), string(), string(), string());
             venue->venue_ = v.get_venue_object();
           }
           venue->thumbnail_ = register_thumbnail(std::move(result->thumb_));

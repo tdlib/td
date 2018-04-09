@@ -108,20 +108,22 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Location &locatio
 }
 
 Venue::Venue(const tl_object_ptr<telegram_api::GeoPoint> &geo_point_ptr, string title, string address, string provider,
-             string id)
+             string id, string type)
     : location_(geo_point_ptr)
     , title_(std::move(title))
     , address_(std::move(address))
     , provider_(std::move(provider))
-    , id_(std::move(id)) {
+    , id_(std::move(id))
+    , type_(std::move(type)) {
 }
 
-Venue::Venue(Location location, string title, string address, string provider, string id)
+Venue::Venue(Location location, string title, string address, string provider, string id, string type)
     : location_(location)
     , title_(std::move(title))
     , address_(std::move(address))
     , provider_(std::move(provider))
-    , id_(std::move(id)) {
+    , id_(std::move(id))
+    , type_(std::move(type)) {
 }
 
 Venue::Venue(const tl_object_ptr<td_api::venue> &venue)
@@ -129,7 +131,8 @@ Venue::Venue(const tl_object_ptr<td_api::venue> &venue)
     , title_(venue->title_)
     , address_(venue->address_)
     , provider_(venue->provider_)
-    , id_(venue->id_) {
+    , id_(venue->id_)
+    , type_(venue->type_) {
 }
 
 bool Venue::empty() const {
@@ -137,12 +140,12 @@ bool Venue::empty() const {
 }
 
 tl_object_ptr<td_api::venue> Venue::get_venue_object() const {
-  return make_tl_object<td_api::venue>(location_.get_location_object(), title_, address_, provider_, id_);
+  return make_tl_object<td_api::venue>(location_.get_location_object(), title_, address_, provider_, id_, type_);
 }
 
 tl_object_ptr<telegram_api::inputMediaVenue> Venue::get_input_media_venue() const {
   return make_tl_object<telegram_api::inputMediaVenue>(location_.get_input_geo_point(), title_, address_, provider_,
-                                                       id_, "");
+                                                       id_, type_);
 }
 
 SecretInputMedia Venue::get_secret_input_media_venue() const {
@@ -154,12 +157,12 @@ SecretInputMedia Venue::get_secret_input_media_venue() const {
 tl_object_ptr<telegram_api::inputBotInlineMessageMediaVenue> Venue::get_input_bot_inline_message_media_venue(
     int32 flags, tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup) const {
   return make_tl_object<telegram_api::inputBotInlineMessageMediaVenue>(
-      flags, location_.get_input_geo_point(), title_, address_, provider_, id_, std::move(reply_markup));
+      flags, location_.get_input_geo_point(), title_, address_, provider_, id_, type_, std::move(reply_markup));
 }
 
 bool operator==(const Venue &lhs, const Venue &rhs) {
   return lhs.location_ == rhs.location_ && lhs.title_ == rhs.title_ && lhs.address_ == rhs.address_ &&
-         lhs.provider_ == rhs.provider_ && lhs.id_ == rhs.id_;
+         lhs.provider_ == rhs.provider_ && lhs.id_ == rhs.id_ && lhs.type_ == rhs.type_;
 }
 
 bool operator!=(const Venue &lhs, const Venue &rhs) {
@@ -169,7 +172,7 @@ bool operator!=(const Venue &lhs, const Venue &rhs) {
 StringBuilder &operator<<(StringBuilder &string_builder, const Venue &venue) {
   return string_builder << "Venue[location = " << venue.location_ << ", title = " << venue.title_
                         << ", address = " << venue.address_ << ", provider = " << venue.provider_
-                        << ", id = " << venue.id_ << "]";
+                        << ", id = " << venue.id_ << ", type = " << venue.type_ << "]";
 }
 
 }  // namespace td

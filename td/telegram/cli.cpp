@@ -2577,15 +2577,17 @@ class CliClient final : public Actor {
       string address;
       string provider;
       string venue_id;
+      string venue_type;
       std::tie(chat_id, args) = split(args);
       std::tie(latitude, args) = split(args);
       std::tie(longitude, args) = split(args);
       std::tie(title, args) = split(args);
       std::tie(address, args) = split(args);
-      std::tie(provider, venue_id) = split(args);
+      std::tie(provider, args) = split(args);
+      std::tie(venue_id, venue_type) = split(args);
 
       send_message(chat_id, make_tl_object<td_api::inputMessageVenue>(make_tl_object<td_api::venue>(
-                                as_location(latitude, longitude), title, address, provider, venue_id)));
+                                as_location(latitude, longitude), title, address, provider, venue_id, venue_type)));
     } else if (op == "test") {
       send_request(make_tl_object<td_api::testNetwork>());
     } else if (op == "alarm") {

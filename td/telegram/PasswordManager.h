@@ -63,7 +63,7 @@ class PasswordManager : public NetQueryCallback {
       Promise<td_api::object_ptr<td_api::emailAddressAuthenticationCodeInfo>> promise);
   void check_email_address_verification_code(string code, Promise<td_api::object_ptr<td_api::ok>> promise);
 
-  void request_password_recovery(Promise<tl_object_ptr<td_api::emailAddressAuthenticationCodeInfo>> promise);
+  void request_password_recovery(Promise<td_api::object_ptr<td_api::emailAddressAuthenticationCodeInfo>> promise);
   void recover_password(string code, Promise<State> promise);
 
   void get_secure_secret(string password, optional<int64> hash, Promise<secure_storage::Secret> promise);

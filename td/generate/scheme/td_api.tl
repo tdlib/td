@@ -59,8 +59,8 @@ authenticationCodeTypeFlashCall pattern:string = AuthenticationCodeType;
 //@description Information about the authentication code that was sent @phone_number A phone number that is being authenticated @type Describes the way the code was sent to the user @next_type Describes the way the next code will be sent to the user; may be null @timeout Timeout before the code should be re-sent, in seconds
 authenticationCodeInfo phone_number:string type:AuthenticationCodeType next_type:AuthenticationCodeType timeout:int32 = AuthenticationCodeInfo;
 
-//@description Information about the email address authentication code that was sent @email_address_pattern Pattern of the email address to which an authentication code was sent
-emailAddressAuthenticationCodeInfo email_address_pattern:string = EmailAddressAuthenticationCodeInfo;
+//@description Information about the email address authentication code that was sent @email_address_pattern Pattern of the email address to which an authentication code was sent @length Length of the code; 0 if unknown
+emailAddressAuthenticationCodeInfo email_address_pattern:string length:int32 = EmailAddressAuthenticationCodeInfo;
 
 
 //@class AuthorizationState @description Represents the current authorization state of the client
@@ -221,8 +221,8 @@ contact phone_number:string first_name:string last_name:string user_id:int32 = C
 location latitude:double longitude:double = Location;
 
 //@description Describes a venue @location Venue location; as defined by the sender @title Venue name; as defined by the sender @address Venue address; as defined by the sender @provider Provider of the venue database; as defined by the sender. Currently only "foursquare" needs to be supported
-//@id Identifier of the venue in the provider database; as defined by the sender
-venue location:location title:string address:string provider:string id:string = Venue;
+//@id Identifier of the venue in the provider database; as defined by the sender @type Type of the venue in the provider database; as defined by the sender
+venue location:location title:string address:string provider:string id:string type:string = Venue;
 
 //@description Describes a game @id Game ID @short_name Game short name. To share a game use the URL https://t.me/{bot_username}?game={game_short_name} @title Game title @text Game text, usually containing scoreboards for a game
 //@param_description Game description @photo Game photo @animation Game animation; may be null

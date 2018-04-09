@@ -31,6 +31,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TopDialogManager.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/Version.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/format.h"

@@ -49,6 +49,7 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TopDialogManager.h"
 #include "td/telegram/UpdatesManager.h"
+#include "td/telegram/Version.h"
 #include "td/telegram/VideoNotesManager.h"
 #include "td/telegram/VideoNotesManager.hpp"
 #include "td/telegram/VideosManager.h"
@@ -14684,6 +14685,9 @@ Result<Venue> MessagesManager::process_input_message_venue(
   if (!clean_input_string(venue->id_)) {
     return Status::Error(400, "Venue identifier must be encoded in UTF-8");
   }
+  if (!clean_input_string(venue->type_)) {
+    return Status::Error(400, "Venue type must be encoded in UTF-8");
+  }
 
   Venue result(venue);
   if (result.empty()) {
@@ -21209,10 +21213,10 @@ unique_ptr<MessageContent> MessagesManager::get_secret_message_content(
         message_venue->venue_id_.clear();
       }
 
-      auto m =
-          make_unique<MessageVenue>(Venue(Location(message_venue->lat_, message_venue->long_),
-                                          std::move(message_venue->title_), std::move(message_venue->address_),
-                                          std::move(message_venue->provider_), std::move(message_venue->venue_id_)));
+      auto m = make_unique<MessageVenue>(Venue(Location(message_venue->lat_, message_venue->long_),
+                                               std::move(message_venue->title_), std::move(message_venue->address_),
+                                               std::move(message_venue->provider_), std::move(message_venue->venue_id_),
+                                               string()));
       if (m->venue.empty()) {
         is_media_empty = true;
         break;
@@ -21373,9 +21377,10 @@ unique_ptr<MessageContent> MessagesManager::get_message_content(FormattedText me
     case telegram_api::messageMediaVenue::ID: {
       auto message_venue = move_tl_object_as<telegram_api::messageMediaVenue>(media);
 
-      auto m = make_unique<MessageVenue>(Venue(message_venue->geo_, std::move(message_venue->title_),
-                                               std::move(message_venue->address_), std::move(message_venue->provider_),
-                                               std::move(message_venue->venue_id_)));
+      auto m =
+          make_unique<MessageVenue>(Venue(message_venue->geo_, std::move(message_venue->title_),
+                                          std::move(message_venue->address_), std::move(message_venue->provider_),
+                                          std::move(message_venue->venue_id_), std::move(message_venue->venue_type_)));
       if (m->venue.empty()) {
         break;
       }

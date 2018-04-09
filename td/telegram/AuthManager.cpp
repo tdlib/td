@@ -205,6 +205,9 @@ void PhoneNumberManager::set_phone_number(uint64 query_id, string phone_number, 
         return c(send_code_helper_.send_verify_phone_code(phone_number, allow_flash_call, is_current_phone_number));
       case Type::ConfirmPhone:
         return c(send_code_helper_.send_confirm_phone_code(phone_number, allow_flash_call, is_current_phone_number));
+      default:
+        UNREACHABLE();
+        return c(send_code_helper_.send_change_phone_code(phone_number, allow_flash_call, is_current_phone_number));
     }
   };
 
@@ -252,6 +255,10 @@ void PhoneNumberManager::check_code(uint64 query_id, string code) {
         return c(telegram_api::account_confirmPhone(send_code_helper_.phone_code_hash().str(), code));
       case Type::VerifyPhone:
         return c(telegram_api::account_verifyPhone(send_code_helper_.phone_number().str(),
+                                                   send_code_helper_.phone_code_hash().str(), code));
+      default:
+        UNREACHABLE();
+        return c(telegram_api::account_changePhone(send_code_helper_.phone_number().str(),
                                                    send_code_helper_.phone_code_hash().str(), code));
     }
   };
@@ -312,6 +319,9 @@ void PhoneNumberManager::on_check_code_result(NetQueryPtr &result) {
         return c(fetch_result<telegram_api::account_verifyPhone>(result->ok()));
       case Type::ConfirmPhone:
         return c(fetch_result<telegram_api::account_confirmPhone>(result->ok()));
+      default:
+        UNREACHABLE();
+        return c(fetch_result<telegram_api::account_changePhone>(result->ok()));
     }
   };
 
@@ -335,6 +345,9 @@ void PhoneNumberManager::on_send_code_result(NetQueryPtr &result) {
         return fetch_result<telegram_api::account_sendVerifyPhoneCode>(result->ok());
       case Type::ConfirmPhone:
         return fetch_result<telegram_api::account_sendConfirmPhoneCode>(result->ok());
+      default:
+        UNREACHABLE();
+        return fetch_result<telegram_api::account_sendChangePhoneCode>(result->ok());
     }
   }();
   if (r_sent_code.is_error()) {

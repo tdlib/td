@@ -15,6 +15,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/telegram/SecretInputMedia.h"
+#include "td/telegram/Version.h"
 
 namespace td {
 
@@ -89,6 +90,7 @@ class Venue {
   string address_;
   string provider_;
   string id_;
+  string type_;
 
   friend bool operator==(const Venue &lhs, const Venue &rhs);
   friend bool operator!=(const Venue &lhs, const Venue &rhs);
@@ -99,9 +101,9 @@ class Venue {
   Venue() = default;
 
   Venue(const tl_object_ptr<telegram_api::GeoPoint> &geo_point_ptr, string title, string address, string provider,
-        string id);
+        string id, string type);
 
-  Venue(Location location, string title, string address, string provider, string id);
+  Venue(Location location, string title, string address, string provider, string id, string type);
 
   explicit Venue(const tl_object_ptr<td_api::venue> &venue);
 
@@ -125,6 +127,7 @@ class Venue {
     store(address_, storer);
     store(provider_, storer);
     store(id_, storer);
+    store(type_, storer);
   }
 
   template <class ParserT>
@@ -135,6 +138,9 @@ class Venue {
     parse(address_, parser);
     parse(provider_, parser);
     parse(id_, parser);
+    if (parser.version() >= static_cast<int32>(Version::AddVenueType)) {
+      parse(type_, parser);
+    }
   }
 };
 

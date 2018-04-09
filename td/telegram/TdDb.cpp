@@ -11,6 +11,7 @@
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesDb.h"
 #include "td/telegram/TdParameters.h"
+#include "td/telegram/Version.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/MultiPromise.h"
