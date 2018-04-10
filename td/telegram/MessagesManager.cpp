@@ -23776,13 +23776,13 @@ void MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Mes
   Message *m = add_message_to_dialog(d, std::move(last_database_message), false, &need_update, &need_update_dialog_pos,
                                      "add_dialog_last_database_message");
   if (m != nullptr) {
-    set_dialog_last_message_id(d, message_id, "add_new_dialog");
-    send_update_chat_last_message(d, "add_new_dialog");
+    set_dialog_last_message_id(d, message_id, "add_dialog_last_database_message");
+    send_update_chat_last_message(d, "add_dialog_last_database_message");
   }
 
   if (need_update_dialog_pos) {
     LOG(ERROR) << "Update pos in " << d->dialog_id;
-    update_dialog_pos(d, false, "add_new_dialog");
+    update_dialog_pos(d, false, "add_dialog_last_database_message");
   }
 }
 
