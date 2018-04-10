@@ -322,7 +322,7 @@ td_api::object_ptr<td_api::encryptedPassportData> get_encrypted_passport_data_ob
   return td_api::make_object<td_api::encryptedPassportData>(
       get_passport_data_type_object(value.type), is_plain ? string() : value.data.data,
       get_encrypted_files_object(file_manager, value.files), is_plain ? value.data.data : string(),
-      get_encrypted_file_object(file_manager, value.selfie));
+      value.selfie.file_id.is_valid() ? get_encrypted_file_object(file_manager, value.selfie) : nullptr);
 }
 
 telegram_api::object_ptr<telegram_api::inputSecureValue> get_input_secure_value_object(
