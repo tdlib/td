@@ -303,8 +303,9 @@ R narrow_cast(const A &a) {
   static_assert(std::is_integral<AT>::value, "expected integral type to cast from");
 
   auto r = R(a);
-  CHECK(A(r) == a);
-  CHECK((detail::is_same_signedness<RT, AT>::value) || ((static_cast<RT>(r) < RT{}) == (static_cast<AT>(a) < AT{})));
+  CHECK(A(r) == a) << static_cast<AT>(a) << " " << static_cast<RT>(r);
+  CHECK((detail::is_same_signedness<RT, AT>::value) || ((static_cast<RT>(r) < RT{}) == (static_cast<AT>(a) < AT{})))
+      << static_cast<AT>(a) << " " << static_cast<RT>(r);
 
   return r;
 }
