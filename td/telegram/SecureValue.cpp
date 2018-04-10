@@ -122,7 +122,7 @@ td_api::object_ptr<td_api::PassportDataType> get_passport_data_type_object(Secur
   }
 }
 
-td_api::object_ptr<telegram_api::SecureValueType> get_secure_value_type_telegram_object(SecureValueType type) {
+td_api::object_ptr<telegram_api::SecureValueType> get_secure_value_type_object(SecureValueType type) {
   switch (type) {
     case SecureValueType::PersonalDetails:
       return telegram_api::make_object<telegram_api::secureValueTypePersonalDetails>();
@@ -223,6 +223,7 @@ telegram_api::object_ptr<telegram_api::InputSecureFile> get_input_secure_file_ob
 }
 
 td_api::object_ptr<td_api::file> get_encrypted_file_object(FileManager *file_manager, const EncryptedSecureFile &file) {
+  CHECK(file.file_id.is_valid());
   auto file_view = file_manager->get_file_view(file.file_id);
   auto file_id = file_manager->register_remote(
       FullRemoteFileLocation(FileType::SecureRaw, file_view.remote_location().get_id(),
@@ -245,7 +246,6 @@ vector<telegram_api::object_ptr<telegram_api::InputSecureFile>> get_input_secure
   for (size_t i = 0; i < files.size(); i++) {
     res[i] = get_input_secure_file_object(file_manager, files[i], input_files[i]);
   }
-  LOG(ERROR) << res.size();
   return res;
 }
 
@@ -350,7 +350,7 @@ telegram_api::object_ptr<telegram_api::inputSecureValue> get_input_secure_value_
     CHECK(selfie);
   }
   return telegram_api::make_object<telegram_api::inputSecureValue>(
-      flags, get_secure_value_type_telegram_object(value.type), is_plain ? nullptr : get_secure_data_object(value.data),
+      flags, get_secure_value_type_object(value.type), is_plain ? nullptr : get_secure_data_object(value.data),
       get_input_secure_files_object(file_manager, value.files, input_files), std::move(plain_data),
       has_selfie ? get_input_secure_file_object(file_manager, value.selfie, *selfie) : nullptr);
 }
@@ -413,6 +413,7 @@ Result<SecureValue> get_secure_value(FileManager *file_manager,
   }
   return res;
 }
+
 td_api::object_ptr<td_api::passportData> get_passport_data_object(FileManager *file_manager, const SecureValue &value) {
   std::vector<td_api::object_ptr<td_api::file>> files;
   files = transform(value.files, [&](FileId id) { return file_manager->get_file_object(id, true); });
@@ -436,7 +437,7 @@ Result<std::pair<FileId, SecureFileCredentials>> decrypt_secure_file(FileManager
                                                                      const secure_storage::Secret &master_secret,
                                                                      const EncryptedSecureFile &secure_file) {
   if (!secure_file.file_id.is_valid()) {
-    return std::make_pair(secure_file.file_id, SecureFileCredentials());
+    return std::make_pair(FileId(), SecureFileCredentials());
   }
   TRY_RESULT(hash, secure_storage::ValueHash::create(secure_file.file_hash));
   TRY_RESULT(encrypted_secret, secure_storage::EncryptedSecret::create(secure_file.encrypted_secret));
@@ -509,9 +510,12 @@ Result<vector<SecureValueWithCredentials>> decrypt_encrypted_secure_values(
   vector<SecureValueWithCredentials> result;
   result.reserve(encrypted_secure_values.size());
   for (auto &encrypted_secure_value : encrypted_secure_values) {
-    TRY_RESULT(secure_value_with_credentials,
-               decrypt_encrypted_secure_value(file_manager, secret, encrypted_secure_value));
-    result.push_back(std::move(secure_value_with_credentials));
+    auto r_secure_value_with_credentials = decrypt_encrypted_secure_value(file_manager, secret, encrypted_secure_value);
+    if (r_secure_value_with_credentials.is_ok()) {
+      result.push_back(r_secure_value_with_credentials.move_as_ok());
+    } else {
+      LOG(ERROR) << "Cannot decrypt secure value: " << r_secure_value_with_credentials.error();
+    }
   }
   return std::move(result);
 }
@@ -584,56 +588,38 @@ EncryptedSecureValue encrypt_secure_value(FileManager *file_manager, const secur
   return res;
 }
 
-template <class T>
-class AsJsonable : public Jsonable {
- public:
-  explicit AsJsonable(const T &value) : value_(value) {
-  }
-  void store(JsonValueScope *scope) const {
-    *scope + value_;
-  }
-
- private:
-  const T &value_;
-};
-
-template <class T>
-auto as_jsonable(const T &value) {
-  return AsJsonable<T>(value);
-}
-
-JsonScope &operator+(JsonValueScope &scope, const SecureDataCredentials &credentials) {
+JsonScope &to_json(JsonValueScope &scope, const SecureDataCredentials &credentials) {
   auto object = scope.enter_object();
   object << ctie("data_hash", base64_encode(credentials.hash));
   object << ctie("secret", base64_encode(credentials.secret));
   return scope;
 }
 
-JsonScope &operator+(JsonValueScope &scope, const SecureFileCredentials &credentials) {
+JsonScope &to_json(JsonValueScope &scope, const SecureFileCredentials &credentials) {
   auto object = scope.enter_object();
   object << ctie("file_hash", base64_encode(credentials.hash));
   object << ctie("secret", base64_encode(credentials.secret));
   return scope;
 }
 
-JsonScope &operator+(JsonValueScope &scope, const vector<SecureFileCredentials> &files) {
+JsonScope &to_json(JsonValueScope &scope, const vector<SecureFileCredentials> &files) {
   auto arr = scope.enter_array();
   for (auto &file : files) {
-    arr << as_jsonable(file);
+    arr << ToJson(file);
   }
   return scope;
 }
 
-JsonScope &operator+(JsonValueScope &scope, const SecureValueCredentials &credentials) {
+JsonScope &to_json(JsonValueScope &scope, const SecureValueCredentials &credentials) {
   auto object = scope.enter_object();
   if (credentials.data) {
-    object << ctie("data", as_jsonable(credentials.data.value()));
+    object << ctie("data", ToJson(credentials.data.value()));
   }
   if (!credentials.files.empty()) {
-    object << ctie("files", as_jsonable(credentials.files));
+    object << ctie("files", ToJson(credentials.files));
   }
   if (credentials.selfie) {
-    object << ctie("selfie", as_jsonable(credentials.selfie.value()));
+    object << ctie("selfie", ToJson(credentials.selfie.value()));
   }
   return scope;
 }
@@ -667,26 +653,25 @@ Slice secure_value_type_as_slice(SecureValueType type) {
   }
 }
 
-JsonScope &operator+(JsonValueScope &scope, const std::vector<SecureValueCredentials> &credentials) {
+JsonScope &to_json(JsonValueScope &scope, const std::vector<SecureValueCredentials> &credentials) {
   auto object = scope.enter_object();
   for (auto &c : credentials) {
-    object << ctie(secure_value_type_as_slice(c.type), as_jsonable(c));
+    object << ctie(secure_value_type_as_slice(c.type), ToJson(c));
   }
   return scope;
 }
 
-JsonScope &operator+(JsonValueScope &scope,
-                     const std::tuple<const std::vector<SecureValueCredentials> &, const Slice &> &credentials) {
+JsonScope &to_json(JsonValueScope &scope,
+                   const std::tuple<const std::vector<SecureValueCredentials> &, const Slice &> &credentials) {
   auto object = scope.enter_object();
-  object << ctie("secure_data", as_jsonable(std::get<0>(credentials)));
+  object << ctie("secure_data", ToJson(std::get<0>(credentials)));
   object << ctie("payload", std::get<1>(credentials));
   return scope;
 }
 
 Result<EncryptedSecureCredentials> encrypted_credentials(std::vector<SecureValueCredentials> &credentials,
                                                          Slice payload, Slice public_key) {
-  auto encoded_credentials = json_encode<std::string>(as_jsonable(ctie(credentials, payload)));
-  LOG(ERROR) << encoded_credentials;
+  auto encoded_credentials = json_encode<std::string>(ToJson(ctie(credentials, payload)));
 
   auto secret = secure_storage::Secret::create_new();
   auto encrypted_value = secure_storage::encrypt_value(secret, encoded_credentials).move_as_ok();

@@ -20,28 +20,6 @@
 #include <type_traits>
 
 namespace td {
-template <class T>
-class ToJsonImpl : public Jsonable {
- public:
-  explicit ToJsonImpl(const T &value) : value_(value) {
-  }
-  void store(JsonValueScope *scope) const {
-    to_json(*scope, value_);
-  }
-
- private:
-  const T &value_;
-};
-
-template <class T>
-auto ToJson(const T &value) {
-  return ToJsonImpl<T>(value);
-}
-
-template <class T>
-void to_json(JsonValueScope &jv, const T &value) {
-  jv << value;
-}
 
 struct JsonInt64 {
   int64 value;

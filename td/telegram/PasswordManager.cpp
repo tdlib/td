@@ -363,7 +363,13 @@ void PasswordManager::do_update_password_settings(UpdateSettings update_settings
     }
   }
 
-  if (!state.has_password || (update_settings.update_password && update_settings.new_password.empty())) {
+  // Has no password and not setting one.
+  if (!update_settings.update_password && !state.has_password) {
+    update_settings.update_secure_secret = false;
+  }
+
+  // Setting an empty password
+  if (update_settings.update_password && update_settings.new_password.empty()) {
     update_settings.update_secure_secret = false;
   }
 

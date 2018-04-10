@@ -57,7 +57,7 @@ void GetSecureValue::loop() {
 
 void GetSecureValue::start_up() {
   std::vector<telegram_api::object_ptr<telegram_api::SecureValueType>> vec;
-  vec.push_back(get_secure_value_type_telegram_object(type_));
+  vec.push_back(get_secure_value_type_object(type_));
 
   auto query = G()->net_query_creator().create(create_storer(telegram_api::account_getSecureValue(std::move(vec))));
 
@@ -534,8 +534,8 @@ void SecureManager::do_send_passport_authorization_form(int32 authorization_form
   }
   std::vector<telegram_api::object_ptr<telegram_api::secureValueHash>> hashes;
   for (auto &c : credentials) {
-    hashes.push_back(telegram_api::make_object<telegram_api::secureValueHash>(
-        get_secure_value_type_telegram_object(c.type), BufferSlice(c.hash)));
+    hashes.push_back(telegram_api::make_object<telegram_api::secureValueHash>(get_secure_value_type_object(c.type),
+                                                                              BufferSlice(c.hash)));
   }
 
   auto r_encrypted_credentials = encrypted_credentials(credentials, it->second.payload, it->second.public_key);

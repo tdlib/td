@@ -740,6 +740,29 @@ StrT json_encode(const ValT &val) {
   return StrT(slice.begin(), slice.size());
 }
 
+template <class T>
+class ToJsonImpl : public Jsonable {
+ public:
+  explicit ToJsonImpl(const T &value) : value_(value) {
+  }
+  void store(JsonValueScope *scope) const {
+    to_json(*scope, value_);
+  }
+
+ private:
+  const T &value_;
+};
+
+template <class T>
+auto ToJson(const T &value) {
+  return ToJsonImpl<T>(value);
+}
+
+template <class T>
+void to_json(JsonValueScope &jv, const T &value) {
+  jv << value;
+}
+
 bool has_json_object_field(JsonObject &object, Slice name);
 
 Result<JsonValue> get_json_object_field(JsonObject &object, Slice name, JsonValue::Type type,

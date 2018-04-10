@@ -46,7 +46,7 @@ vector<SecureValueType> get_secure_value_types_td_api(
     vector<tl_object_ptr<td_api::PassportDataType>> &&secure_value_types);
 
 td_api::object_ptr<td_api::PassportDataType> get_passport_data_type_object(SecureValueType type);
-td_api::object_ptr<telegram_api::SecureValueType> get_secure_value_type_telegram_object(SecureValueType type);
+td_api::object_ptr<telegram_api::SecureValueType> get_secure_value_type_object(SecureValueType type);
 
 vector<td_api::object_ptr<td_api::PassportDataType>> get_passport_data_types_object(
     const vector<SecureValueType> &types);
