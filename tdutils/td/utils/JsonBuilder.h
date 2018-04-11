@@ -375,19 +375,23 @@ class JsonObjectScope : public JsonScope {
   }
   template <class S, class T>
   JsonObjectScope &operator<<(std::tuple<S, T> key_value) {
-    return *this << std::pair<S, T>(std::get<0>(key_value), std::get<1>(key_value));
+    return (*this)(std::get<0>(key_value), std::get<1>(key_value));
   }
   template <class S, class T>
   JsonObjectScope &operator<<(std::pair<S, T> key_value) {
+    return (*this)(key_value.first, key_value.second);
+  }
+  template <class S, class T>
+  JsonObjectScope &operator()(S &&key, T &&value) {
     CHECK(is_active());
     if (is_first_) {
       *sb_ << ",";
     } else {
       is_first_ = true;
     }
-    jb_->enter_value() << key_value.first;
+    jb_->enter_value() << key;
     *sb_ << ":";
-    jb_->enter_value() << key_value.second;
+    jb_->enter_value() << key;
     return *this;
   }
   JsonObjectScope &operator<<(const JsonRaw &key_value) {
@@ -761,6 +765,24 @@ auto ToJson(const T &value) {
 template <class T>
 void to_json(JsonValueScope &jv, const T &value) {
   jv << value;
+}
+
+template <class F>
+class JsonObjectImpl : Jsonable {
+ public:
+  JsonObjectImpl(F &&f) : f_(std::forward<F>(f)) {
+  }
+  void store(JsonValueScope *scope) const {
+    auto object = scope->enter_object();
+    f_(object);
+  }
+
+ private:
+  F f_;
+};
+template <class F>
+auto json_object(F &&f) {
+  return JsonObjectImpl<F>(std::forward<F>(f));
 }
 
 bool has_json_object_field(JsonObject &object, Slice name);

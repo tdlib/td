@@ -203,8 +203,13 @@ void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> devi
           Slice auth_;
         };
 
-        token = json_encode<string>(
-            JsonWebPushToken(device_token->endpoint_, device_token->p256dh_base64url_, device_token->auth_base64url_));
+        token = json_encode<string>(json_object([&device_token](auto &o) {
+          o("endpoint", device_token->endpoint_);
+          o("keys", json_object([&device_token](auto &o) {
+              o("pb256df", device_token->p256dh_base64url_);
+              o("auth", device_token->auth_base64url_);
+            }));
+        }));
       }
       token_type = TokenType::WEB_PUSH;
       break;
