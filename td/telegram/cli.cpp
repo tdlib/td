@@ -952,28 +952,30 @@ class CliClient final : public Actor {
     return transform(full_split(types, delimiter), [](Slice str) { return as_passport_data_type(str); });
   }
 
-  static tl_object_ptr<td_api::inputPassportData> as_input_passport_data(string passport_data_type, string file) {
+  static tl_object_ptr<td_api::InputPassportData> as_input_passport_data(string passport_data_type, string arg) {
     vector<td_api::object_ptr<td_api::InputFile>> files;
-    LOG(ERROR) << "FILE " << file;
-    if (!file.empty()) {
-      files.push_back(make_tl_object<td_api::inputFileLocal>(file));
+    if (!arg.empty()) {
+      files.push_back(make_tl_object<td_api::inputFileLocal>(arg));
     }
-    auto data_type = as_passport_data_type(passport_data_type);
-    string data;
     if (passport_data_type == "address" || passport_data_type == "a") {
-      data = "cucumber lives here";
+      return make_tl_object<td_api::inputPassportDataAddress>(
+          make_tl_object<td_api::address>("US", "CA", "Los Angeles", "Washington", "", "90001"));
     } else if (passport_data_type == "email" || passport_data_type == "e") {
-      data = file;
-      files.clear();
+      return make_tl_object<td_api::inputPassportDataEmailAddress>(arg);
     } else if (passport_data_type == "phone" || passport_data_type == "p") {
-      data = file;
-      files.clear();
+      return make_tl_object<td_api::inputPassportDataPhoneNumber>(arg);
     } else if (passport_data_type == "pd") {
-      data = "{todo}";
-    } else {
-      data = "I am cucumber";
+      return make_tl_object<td_api::inputPassportDataPersonalDetails>(make_tl_object<td_api::personalDetails>(
+          "Mike", "Towers", make_tl_object<td_api::date>(29, 2, 1999), "male", "US"));
+    } else if (passport_data_type == "driver_license" || passport_data_type == "dl") {
+      return make_tl_object<td_api::inputPassportDataDriverLicense>(make_tl_object<td_api::inputIdentityDocument>(
+          "1234567890", make_tl_object<td_api::date>(1, 3, 2029), std::move(files), nullptr));
+    } else if (passport_data_type == "rental_aggrement" || passport_data_type == "ra") {
+      return make_tl_object<td_api::inputPassportDataRentalAgreement>(std::move(files));
     }
-    return make_tl_object<td_api::inputPassportData>(std::move(data_type), std::move(data), std::move(files), nullptr);
+
+    LOG(ERROR) << "Unsupported passport data type " << passport_data_type;
+    return nullptr;
   }
 
   static td_api::object_ptr<td_api::Object> execute(tl_object_ptr<td_api::Function> f) {
@@ -1143,10 +1145,10 @@ class CliClient final : public Actor {
     } else if (op == "spd") {
       string password;
       string passport_data_type;
-      string file;
+      string arg;
       std::tie(password, args) = split(args);
-      std::tie(passport_data_type, file) = split(args);
-      send_request(make_tl_object<td_api::setPassportData>(as_input_passport_data(passport_data_type, file), password));
+      std::tie(passport_data_type, arg) = split(args);
+      send_request(make_tl_object<td_api::setPassportData>(as_input_passport_data(passport_data_type, arg), password));
     } else if (op == "pdu" || op == "processDcUpdate") {
       string dc_id;
       string ip_port;

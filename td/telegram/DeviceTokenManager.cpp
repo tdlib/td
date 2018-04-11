@@ -175,7 +175,7 @@ void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> devi
         token = json_encode<string>(json_object([&device_token](auto &o) {
           o("endpoint", device_token->endpoint_);
           o("keys", json_object([&device_token](auto &o) {
-              o("pb256dh", device_token->p256dh_base64url_);
+              o("p256dh", device_token->p256dh_base64url_);
               o("auth", device_token->auth_base64url_);
             }));
         }));

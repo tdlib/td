@@ -1777,8 +1777,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotShippingQuer
                make_tl_object<td_api::updateNewShippingQuery>(
                    update->query_id_, td_->contacts_manager_->get_user_id_object(user_id, "updateNewShippingQuery"),
                    update->payload_.as_slice().str(),
-                   get_shipping_address_object(get_shipping_address(
-                       std::move(update->shipping_address_)))));  // TODO use convert_shipping_address
+                   get_address_object(get_address(std::move(update->shipping_address_)))));  // TODO use convert_address
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateBotPrecheckoutQuery> update, bool /*force_apply*/) {

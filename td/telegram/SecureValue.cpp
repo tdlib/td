@@ -8,6 +8,8 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileManager.h"
+#include "td/telegram/misc.h"
+#include "td/telegram/Payments.h"
 
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -392,45 +394,360 @@ td_api::object_ptr<td_api::encryptedCredentials> get_encrypted_credentials_objec
                                                            credentials.encrypted_secret);
 }
 
-Result<SecureValue> get_secure_value(FileManager *file_manager,
-                                     td_api::object_ptr<td_api::inputPassportData> &&input_passport_data) {
-  if (input_passport_data == nullptr) {
-    return Status::Error(400, "InputPassportData must not be empty");
+static string lpad0(string str, size_t size) {
+  if (str.size() >= size) {
+    return str;
+  }
+  return string(size - str.size(), '0') + str;
+}
+
+// TODO tests
+static Status check_date(int32 day, int32 month, int32 year) {
+  if (day < 1 || day > 31) {
+    return Status::Error(400, "Wrong day number specified");
+  }
+  if (month < 1 || month > 12) {
+    return Status::Error(400, "Wrong month number specified");
+  }
+  if (year < 1 || year > 9999) {
+    return Status::Error(400, "Wrong year number specified");
   }
 
-  SecureValue res;
-  res.type = get_secure_value_type_td_api(std::move(input_passport_data->type_));
-  res.data = std::move(input_passport_data->data_);
-  for (auto &file : input_passport_data->files_) {
-    TRY_RESULT(file_id, file_manager->get_input_file_id(FileType::Secure, std::move(file), DialogId(), false, false,
-                                                        false, true));
-    res.files.push_back(file_id);
+  bool is_leap = month == 2 && (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0));
+  const int32 days_in_month[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+  if (day > days_in_month[month - 1] + static_cast<int32>(is_leap)) {
+    return Status::Error(400, "Wrong day in month number specified");
   }
-  if (input_passport_data->selfie_) {
-    TRY_RESULT(file_id, file_manager->get_input_file_id(FileType::Secure, std::move(input_passport_data->selfie_),
-                                                        DialogId(), false, false, false, true));
+
+  return Status::OK();
+}
+
+static Result<string> get_date(td_api::object_ptr<td_api::date> &&date) {
+  if (date == nullptr) {
+    return Status::Error(400, "Date must not be empty");
+  }
+  TRY_STATUS(check_date(date->day_, date->month_, date->year_));
+
+  return PSTRING() << lpad0(to_string(date->day_), 2) << '.' << lpad0(to_string(date->month_), 2) << '.'
+                   << lpad0(to_string(date->year_), 4);
+}
+
+static Result<td_api::object_ptr<td_api::date>> get_date_object(Slice date) {
+  if (date.size() != 10u) {
+    return Status::Error(400, "Date has wrong size");
+  }
+  auto parts = full_split(date, '.');
+  if (parts.size() != 3 || parts[0].size() != 2 || parts[1].size() != 2 || parts[2].size() != 4) {
+    return Status::Error(400, "Date has wrong parts");
+  }
+  TRY_RESULT(day, to_integer_safe<int32>(parts[0]));
+  TRY_RESULT(month, to_integer_safe<int32>(parts[1]));
+  TRY_RESULT(year, to_integer_safe<int32>(parts[2]));
+  TRY_STATUS(check_date(day, month, year));
+
+  return td_api::make_object<td_api::date>(day, month, year);
+}
+
+static Status check_first_name(string &first_name) {
+  if (!clean_input_string(first_name)) {
+    return Status::Error(400, "First name must be encoded in UTF-8");
+  }
+  return Status::OK();
+}
+
+static Status check_last_name(string &last_name) {
+  if (!clean_input_string(last_name)) {
+    return Status::Error(400, "Last name must be encoded in UTF-8");
+  }
+  return Status::OK();
+}
+
+static Status check_gender(string &gender) {
+  if (gender != "male" && gender != "female") {
+    return Status::Error(400, "Unsupported gender specified");
+  }
+  return Status::OK();
+}
+
+static Result<string> get_personal_details(td_api::object_ptr<td_api::personalDetails> &&personal_details) {
+  if (personal_details == nullptr) {
+    return Status::Error(400, "Personal details must not be empty");
+  }
+  TRY_STATUS(check_first_name(personal_details->first_name_));
+  TRY_STATUS(check_last_name(personal_details->last_name_));
+  TRY_RESULT(birthdate, get_date(std::move(personal_details->birthdate_)));
+  TRY_STATUS(check_gender(personal_details->gender_));
+  TRY_STATUS(check_country_code(personal_details->country_code_));
+
+  return json_encode<std::string>(json_object([&](auto &o) {
+    o("first_name", personal_details->first_name_);
+    o("last_name", personal_details->last_name_);
+    o("birth_date", birthdate);
+    o("gender", personal_details->gender_);
+    o("country_code", personal_details->country_code_);
+  }));
+}
+
+static Result<td_api::object_ptr<td_api::personalDetails>> get_personal_details_object(Slice personal_details) {
+  auto personal_details_copy = personal_details.str();
+  auto r_value = json_decode(personal_details_copy);
+  if (r_value.is_error()) {
+    return Status::Error(400, "Can't parse personal details JSON object");
+  }
+
+  auto value = r_value.move_as_ok();
+  if (value.type() != JsonValue::Type::Object) {
+    return Status::Error(400, "Personal details should be an Object");
+  }
+
+  auto &object = value.get_object();
+  TRY_RESULT(first_name, get_json_object_string_field(object, "first_name", true));
+  TRY_RESULT(last_name, get_json_object_string_field(object, "last_name", true));
+  TRY_RESULT(birthdate, get_json_object_string_field(object, "birth_date", true));
+  TRY_RESULT(gender, get_json_object_string_field(object, "gender", true));
+  TRY_RESULT(country_code, get_json_object_string_field(object, "country_code", true));
+
+  TRY_STATUS(check_first_name(first_name));
+  TRY_STATUS(check_last_name(last_name));
+  TRY_RESULT(date, get_date_object(birthdate));
+  TRY_STATUS(check_gender(gender));
+  TRY_STATUS(check_country_code(country_code));
+
+  return td_api::make_object<td_api::personalDetails>(std::move(first_name), std::move(last_name), std::move(date),
+                                                      std::move(gender), std::move(country_code));
+}
+
+static Status check_document_number(string &number) {
+  if (!clean_input_string(number)) {
+    return Status::Error(400, "Document number must be encoded in UTF-8");
+  }
+  return Status::OK();
+}
+
+static Result<FileId> get_secure_file(FileManager *file_manager, td_api::object_ptr<td_api::InputFile> &&file) {
+  return file_manager->get_input_file_id(FileType::Secure, std::move(file), DialogId(), false, false, false, true);
+}
+
+static Result<vector<FileId>> get_secure_files(FileManager *file_manager,
+                                               vector<td_api::object_ptr<td_api::InputFile>> &&files) {
+  vector<FileId> result;
+  for (auto &file : files) {
+    TRY_RESULT(file_id, get_secure_file(file_manager, std::move(file)));
+    result.push_back(file_id);
+  }
+  return result;
+}
+
+static Result<SecureValue> get_identity_document(
+    SecureValueType type, FileManager *file_manager,
+    td_api::object_ptr<td_api::inputIdentityDocument> &&identity_document) {
+  if (identity_document == nullptr) {
+    return Status::Error(400, "Identity document must not be empty");
+  }
+  TRY_STATUS(check_document_number(identity_document->number_));
+  TRY_RESULT(date, get_date(std::move(identity_document->expiry_date_)));
+  TRY_RESULT(files, get_secure_files(file_manager, std::move(identity_document->files_)));
+
+  SecureValue res;
+  res.type = type;
+  res.data = json_encode<std::string>(json_object([&](auto &o) {
+    o("document_no", identity_document->number_);
+    o("expiry_date", date);
+  }));
+
+  res.files = std::move(files);
+  if (identity_document->selfie_ != nullptr) {
+    TRY_RESULT(file_id, get_secure_file(file_manager, std::move(identity_document->selfie_)));
     res.selfie = file_id;
   }
   return res;
 }
 
-td_api::object_ptr<td_api::passportData> get_passport_data_object(FileManager *file_manager, const SecureValue &value) {
-  std::vector<td_api::object_ptr<td_api::file>> files;
-  files = transform(value.files, [&](FileId id) { return file_manager->get_file_object(id, true); });
+static Result<td_api::object_ptr<td_api::identityDocument>> get_identity_document_object(FileManager *file_manager,
+                                                                                         const SecureValue &value) {
+  auto files = transform(value.files, [file_manager](FileId id) { return file_manager->get_file_object(id); });
 
   td_api::object_ptr<td_api::file> selfie;
   if (value.selfie.is_valid()) {
-    selfie = file_manager->get_file_object(value.selfie, true);
+    selfie = file_manager->get_file_object(value.selfie);
   }
 
-  return td_api::make_object<td_api::passportData>(get_passport_data_type_object(value.type), value.data,
-                                                   std::move(files), std::move(selfie));
+  auto data_copy = value.data;
+  auto r_value = json_decode(data_copy);
+  if (r_value.is_error()) {
+    return Status::Error(400, "Can't parse identity document JSON object");
+  }
+
+  auto json_value = r_value.move_as_ok();
+  if (json_value.type() != JsonValue::Type::Object) {
+    return Status::Error(400, "Identity document should be an Object");
+  }
+
+  auto &object = json_value.get_object();
+  TRY_RESULT(number, get_json_object_string_field(object, "document_no", true));
+  TRY_RESULT(expiry_date, get_json_object_string_field(object, "expiry_date", true));
+
+  TRY_STATUS(check_document_number(number));
+  TRY_RESULT(date, get_date_object(expiry_date));
+
+  return td_api::make_object<td_api::identityDocument>(std::move(number), std::move(date), std::move(files),
+                                                       std::move(selfie));
+}
+
+static Status check_phone_number(string &phone_number) {
+  if (!clean_input_string(phone_number)) {
+    return Status::Error(400, "Phone number must be encoded in UTF-8");
+  }
+  return Status::OK();
+}
+
+static Status check_email_address(string &email_address) {
+  if (!clean_input_string(email_address)) {
+    return Status::Error(400, "Email address must be encoded in UTF-8");
+  }
+  return Status::OK();
+}
+
+Result<SecureValue> get_secure_value(FileManager *file_manager,
+                                     td_api::object_ptr<td_api::InputPassportData> &&input_passport_data) {
+  if (input_passport_data == nullptr) {
+    return Status::Error(400, "InputPassportData must not be empty");
+  }
+
+  SecureValue res;
+  switch (input_passport_data->get_id()) {
+    case td_api::inputPassportDataPersonalDetails::ID: {
+      auto input = td_api::move_object_as<td_api::inputPassportDataPersonalDetails>(input_passport_data);
+      res.type = SecureValueType::PersonalDetails;
+      TRY_RESULT(personal_details, get_personal_details(std::move(input->personal_details_)));
+      res.data = std::move(personal_details);
+      break;
+    }
+    case td_api::inputPassportDataPassport::ID: {
+      auto input = td_api::move_object_as<td_api::inputPassportDataPassport>(input_passport_data);
+      return get_identity_document(SecureValueType::Passport, file_manager, std::move(input->passport_));
+    }
+    case td_api::inputPassportDataDriverLicense::ID: {
+      auto input = td_api::move_object_as<td_api::inputPassportDataDriverLicense>(input_passport_data);
+      return get_identity_document(SecureValueType::DriverLicense, file_manager, std::move(input->driver_license_));
+    }
+    case td_api::inputPassportDataIdentityCard::ID: {
+      auto input = td_api::move_object_as<td_api::inputPassportDataIdentityCard>(input_passport_data);
+      return get_identity_document(SecureValueType::IdentityCard, file_manager, std::move(input->identity_card_));
+    }
+    case td_api::inputPassportDataAddress::ID: {
+      auto input = td_api::move_object_as<td_api::inputPassportDataAddress>(input_passport_data);
+      res.type = SecureValueType::Address;
+      TRY_RESULT(address, get_address(std::move(input->address_)));
+      res.data = address_to_json(address);
+      break;
+    }
+    case td_api::inputPassportDataUtilityBill::ID: {
+      auto input = td_api::move_object_as<td_api::inputPassportDataUtilityBill>(input_passport_data);
+      res.type = SecureValueType::UtilityBill;
+      TRY_RESULT(files, get_secure_files(file_manager, std::move(input->files_)));
+      res.files = std::move(files);
+      break;
+    }
+    case td_api::inputPassportDataBankStatement::ID: {
+      auto input = td_api::move_object_as<td_api::inputPassportDataBankStatement>(input_passport_data);
+      res.type = SecureValueType::BankStatement;
+      TRY_RESULT(files, get_secure_files(file_manager, std::move(input->files_)));
+      res.files = std::move(files);
+      break;
+    }
+    case td_api::inputPassportDataRentalAgreement::ID: {
+      auto input = td_api::move_object_as<td_api::inputPassportDataRentalAgreement>(input_passport_data);
+      res.type = SecureValueType::RentalAgreement;
+      TRY_RESULT(files, get_secure_files(file_manager, std::move(input->files_)));
+      res.files = std::move(files);
+      break;
+    }
+    case td_api::inputPassportDataPhoneNumber::ID: {
+      auto input = td_api::move_object_as<td_api::inputPassportDataPhoneNumber>(input_passport_data);
+      res.type = SecureValueType::PhoneNumber;
+      TRY_STATUS(check_phone_number(input->phone_number_));
+      res.data = std::move(input->phone_number_);
+      break;
+    }
+    case td_api::inputPassportDataEmailAddress::ID: {
+      auto input = td_api::move_object_as<td_api::inputPassportDataEmailAddress>(input_passport_data);
+      res.type = SecureValueType::EmailAddress;
+      TRY_STATUS(check_email_address(input->email_address_));
+      res.data = std::move(input->email_address_);
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+  return res;
+}
+
+Result<td_api::object_ptr<td_api::PassportData>> get_passport_data_object(FileManager *file_manager,
+                                                                          const SecureValue &value) {
+  switch (value.type) {
+    case SecureValueType::PersonalDetails: {
+      TRY_RESULT(personal_details, get_personal_details_object(value.data));
+      return td_api::make_object<td_api::passportDataPersonalDetails>(std::move(personal_details));
+    }
+    case SecureValueType::Passport: {
+      TRY_RESULT(passport, get_identity_document_object(file_manager, value));
+      return td_api::make_object<td_api::passportDataPassport>(std::move(passport));
+    }
+    case SecureValueType::DriverLicense: {
+      TRY_RESULT(driver_license, get_identity_document_object(file_manager, value));
+      return td_api::make_object<td_api::passportDataDriverLicense>(std::move(driver_license));
+    }
+    case SecureValueType::IdentityCard: {
+      TRY_RESULT(identity_card, get_identity_document_object(file_manager, value));
+      return td_api::make_object<td_api::passportDataIdentityCard>(std::move(identity_card));
+    }
+    case SecureValueType::Address: {
+      TRY_RESULT(address, address_from_json(value.data));
+      return td_api::make_object<td_api::passportDataAddress>(get_address_object(address));
+    }
+    case SecureValueType::UtilityBill:
+    case SecureValueType::BankStatement:
+    case SecureValueType::RentalAgreement: {
+      auto files = transform(value.files, [file_manager](FileId id) { return file_manager->get_file_object(id); });
+      if (value.type == SecureValueType::UtilityBill) {
+        return td_api::make_object<td_api::passportDataUtilityBill>(std::move(files));
+      }
+      if (value.type == SecureValueType::BankStatement) {
+        return td_api::make_object<td_api::passportDataBankStatement>(std::move(files));
+      }
+      if (value.type == SecureValueType::RentalAgreement) {
+        return td_api::make_object<td_api::passportDataRentalAgreement>(std::move(files));
+      }
+      UNREACHABLE();
+      break;
+    }
+    case SecureValueType::PhoneNumber:
+      return td_api::make_object<td_api::passportDataPhoneNumber>(value.data);
+    case SecureValueType::EmailAddress:
+      return td_api::make_object<td_api::passportDataEmailAddress>(value.data);
+    case SecureValueType::None:
+    default:
+      UNREACHABLE();
+      return Status::Error(400, "Wrong value type");
+  }
 }
 
 td_api::object_ptr<td_api::allPassportData> get_all_passport_data_object(FileManager *file_manager,
-                                                                         const vector<SecureValue> &value) {
-  return td_api::make_object<td_api::allPassportData>(transform(
-      value, [file_manager](const SecureValue &value) { return get_passport_data_object(file_manager, value); }));
+                                                                         const vector<SecureValue> &values) {
+  vector<td_api::object_ptr<td_api::PassportData>> result;
+  result.reserve(values.size());
+  for (auto &value : values) {
+    auto r_obj = get_passport_data_object(file_manager, value);
+    if (r_obj.is_error()) {
+      LOG(ERROR) << "Can't get passport data object: " << r_obj.error();
+      continue;
+    }
+
+    result.push_back(r_obj.move_as_ok());
+  }
+
+  return td_api::make_object<td_api::allPassportData>(std::move(result));
 }
 
 Result<std::pair<FileId, SecureFileCredentials>> decrypt_secure_file(FileManager *file_manager,
@@ -588,21 +905,21 @@ EncryptedSecureValue encrypt_secure_value(FileManager *file_manager, const secur
   return res;
 }
 
-auto as_jsonable(const SecureDataCredentials &credentials) {
+static auto as_jsonable(const SecureDataCredentials &credentials) {
   return json_object([&credentials](auto &o) {
     o("data_hash", base64_encode(credentials.hash));
     o("secret", base64_encode(credentials.secret));
   });
 }
 
-auto as_jsonable(const SecureFileCredentials &credentials) {
+static auto as_jsonable(const SecureFileCredentials &credentials) {
   return json_object([&credentials](auto &o) {
     o("file_hash", base64_encode(credentials.hash));
     o("secret", base64_encode(credentials.secret));
   });
 }
 
-auto as_jsonable(const vector<SecureFileCredentials> &files) {
+static auto as_jsonable(const vector<SecureFileCredentials> &files) {
   return json_array([&files](auto &arr) {
     for (auto &file : files) {
       arr(as_jsonable(file));
@@ -610,7 +927,7 @@ auto as_jsonable(const vector<SecureFileCredentials> &files) {
   });
 }
 
-Slice secure_value_type_as_slice(SecureValueType type) {
+static Slice secure_value_type_as_slice(SecureValueType type) {
   switch (type) {
     case SecureValueType::PersonalDetails:
       return Slice("personal_details");
@@ -629,7 +946,7 @@ Slice secure_value_type_as_slice(SecureValueType type) {
     case SecureValueType::RentalAgreement:
       return Slice("rental_agreement");
     case SecureValueType::PhoneNumber:
-      return Slice("phone");
+      return Slice("phone_number");
     case SecureValueType::EmailAddress:
       return Slice("email");
     default:
@@ -639,10 +956,14 @@ Slice secure_value_type_as_slice(SecureValueType type) {
   }
 }
 
-auto credentials_as_jsonable(std::vector<SecureValueCredentials> &credentials, Slice payload) {
+static auto credentials_as_jsonable(std::vector<SecureValueCredentials> &credentials, Slice payload) {
   return json_object([&credentials, &payload](auto &o) {
     o("secure_data", json_object([&credentials](auto &o) {
         for (auto &c : credentials) {
+          if (c.type == SecureValueType::PhoneNumber || c.type == SecureValueType::EmailAddress) {
+            continue;
+          }
+
           o(secure_value_type_as_slice(c.type), json_object([&credentials = c](auto &o) {
               if (credentials.data) {
                 o("data", as_jsonable(credentials.data.value()));
@@ -673,4 +994,5 @@ Result<EncryptedSecureCredentials> encrypted_credentials(std::vector<SecureValue
   res.encrypted_secret = encrypted_secret.as_slice().str();
   return res;
 }
+
 }  // namespace td

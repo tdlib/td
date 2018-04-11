@@ -59,23 +59,23 @@ void parse(Invoice &invoice, ParserT &parser) {
 }
 
 template <class StorerT>
-void store(const ShippingAddress &shipping_address, StorerT &storer) {
-  store(shipping_address.country_code, storer);
-  store(shipping_address.state, storer);
-  store(shipping_address.city, storer);
-  store(shipping_address.street_line1, storer);
-  store(shipping_address.street_line2, storer);
-  store(shipping_address.postal_code, storer);
+void store(const Address &address, StorerT &storer) {
+  store(address.country_code, storer);
+  store(address.state, storer);
+  store(address.city, storer);
+  store(address.street_line1, storer);
+  store(address.street_line2, storer);
+  store(address.postal_code, storer);
 }
 
 template <class ParserT>
-void parse(ShippingAddress &shipping_address, ParserT &parser) {
-  parse(shipping_address.country_code, parser);
-  parse(shipping_address.state, parser);
-  parse(shipping_address.city, parser);
-  parse(shipping_address.street_line1, parser);
-  parse(shipping_address.street_line2, parser);
-  parse(shipping_address.postal_code, parser);
+void parse(Address &address, ParserT &parser) {
+  parse(address.country_code, parser);
+  parse(address.state, parser);
+  parse(address.city, parser);
+  parse(address.street_line1, parser);
+  parse(address.street_line2, parser);
+  parse(address.postal_code, parser);
 }
 
 template <class StorerT>
@@ -126,7 +126,7 @@ void parse(OrderInfo &order_info, ParserT &parser) {
     parse(order_info.email_address, parser);
   }
   if (has_shipping_address) {
-    order_info.shipping_address = make_unique<ShippingAddress>();
+    order_info.shipping_address = make_unique<Address>();
     parse(*order_info.shipping_address, parser);
   }
 }

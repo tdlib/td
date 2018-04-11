@@ -745,6 +745,10 @@ webPageInstantView page_blocks:vector<PageBlock> is_full:Bool = WebPageInstantVi
 webPage url:string display_url:string type:string site_name:string title:string description:string photo:photo embed_url:string embed_type:string embed_width:int32 embed_height:int32 duration:int32 author:string animation:animation audio:audio document:document sticker:sticker video:video video_note:videoNote voice_note:voiceNote has_instant_view:Bool = WebPage;
 
 
+//@description Describes an address @country_code A two-letter ISO 3166-1 alpha-2 country code @state State, if applicable @city City @street_line1 First line of the address @street_line2 Second line of the address @postal_code Address postal code
+address country_code:string state:string city:string street_line1:string street_line2:string postal_code:string = Address;
+
+
 //@description Portion of the price of a product (e.g., "delivery cost", "tax amount") @label Label for this portion of the product price @amount Currency amount in minimal quantity of the currency
 labeledPricePart label:string amount:int53 = LabeledPricePart;
 
@@ -754,11 +758,8 @@ labeledPricePart label:string amount:int53 = LabeledPricePart;
 //@send_email_address_to_provider True, if the user's email address will be sent to the provider @is_flexible True, if the total price depends on the shipping method
 invoice currency:string price_parts:vector<labeledPricePart> is_test:Bool need_name:Bool need_phone_number:Bool need_email_address:Bool need_shipping_address:Bool send_phone_number_to_provider:Bool send_email_address_to_provider:Bool is_flexible:Bool = Invoice;
 
-//@description Describes a shipping address @country_code Two-letter ISO 3166-1 alpha-2 country code @state State, if applicable @city City @street_line1 First line of the address @street_line2 Second line of the address @postal_code Address postal code
-shippingAddress country_code:string state:string city:string street_line1:string street_line2:string postal_code:string = ShippingAddress;
-
 //@description Order information @name Name of the user @phone_number Phone number of the user @email_address Email address of the user @shipping_address Shipping address for this order; may be null
-orderInfo name:string phone_number:string email_address:string shipping_address:shippingAddress = OrderInfo;
+orderInfo name:string phone_number:string email_address:string shipping_address:address = OrderInfo;
 
 //@description One shipping option @id Shipping option identifier @title Option title @price_parts A list of objects used to calculate the total shipping costs
 shippingOption id:string title:string price_parts:vector<labeledPricePart> = ShippingOption;
@@ -831,18 +832,92 @@ passportDataTypePhoneNumber = PassportDataType;
 passportDataTypeEmailAddress = PassportDataType;
 
 
-//@description Contains information about a Telegram Passport data @type Telegram Passport data type @data TODO data should be typed @files List of attached files with a document @selfie Selfie with the document
-passportData type:PassportDataType data:string files:vector<file> selfie:file = PassportData;
+//@description Represents a date according to Gregorian calendar @day A day of a month, 1-31 @month A month, 1-12 @year A year, 1-9999
+date day:int32 month:int32 year:int32 = Date;
 
-//@description Contains information about a Telegram Passport data to save @type Telegram Passport data type @data TODO data should be typed @files List of attached files with a document @selfie Selfie with the document
-inputPassportData type:PassportDataType data:string files:vector<InputFile> selfie:InputFile = InputPassportData;
+//@description Contains user's personal details @first_name First name of the user @last_name Last name of the user @birthdate Birthdate of the user
+//@gender Gender of the user, "male" or "female" @country_code A two-letter ISO 3166-1 alpha-2 country code for the user's country
+personalDetails first_name:string last_name:string birthdate:date gender:string country_code:string = PersonalDetails;
 
-//@description Contains information about all filled Telegram Passport data @data All filled Telegram Passport data
-allPassportData data:vector<passportData> = AllPassportData;
+//@description An identity document @number Document's number @expiry_date Document's expiry date @files List of files with the document images @selfie Selfie with the document; may be null
+identityDocument number:string expiry_date:date files:vector<file> selfie:file = IdentityDocument;
+
+//@description An identity document to save @number Document's number @expiry_date Document's expiry date @files List of files with the document images @selfie Selfie with the document, if available
+inputIdentityDocument number:string expiry_date:date files:vector<InputFile> selfie:InputFile = InputIdentityDocument;
+
+
+//@class PassportData @description Contains information about a Telegram Passport data
+
+//@description The Telegram Passport data contains a user's personal details @personal_details Personal details of the user
+passportDataPersonalDetails personal_details:personalDetails = PassportData;
+
+//@description The Telegram Passport data contains a user's passport @passport The passport
+passportDataPassport passport:identityDocument = PassportData;
+
+//@description The Telegram Passport data contains a user's driver license @driver_license The driver license
+passportDataDriverLicense driver_license:identityDocument = PassportData;
+
+//@description The Telegram Passport data contains a user's identity card @identity_card The identity card
+passportDataIdentityCard identity_card:identityDocument = PassportData;
+
+//@description The Telegram Passport data contains a user's address @address The address
+passportDataAddress address:address = PassportData;
+
+//@description The Telegram Passport data contains a user's utility bill @files List of files with the utility bill
+passportDataUtilityBill files:vector<file> = PassportData;
+
+//@description The Telegram Passport data contains a user's bank statement @files List of files with the bank statement
+passportDataBankStatement files:vector<file> = PassportData;
+
+//@description The Telegram Passport data contains a user's rental agreement @files List of files with the rental agreement
+passportDataRentalAgreement files:vector<file> = PassportData;
+
+//@description The Telegram Passport data contains a user's phone number @phone_number The phone number
+passportDataPhoneNumber phone_number:string = PassportData;
+
+//@description The Telegram Passport data contains a user's email address @email_address The email address
+passportDataEmailAddress email_address:string = PassportData;
+
+
+//@class InputPassportData @description Contains information about a Telegram Passport data to save
+
+//@description The Telegram Passport data to save contains a user's personal details @personal_details Personal details of the user
+inputPassportDataPersonalDetails personal_details:personalDetails = InputPassportData;
+
+//@description The Telegram Passport data to save contains a user's passport @passport The passport to save
+inputPassportDataPassport passport:inputIdentityDocument = InputPassportData;
+
+//@description The Telegram Passport data to save contains a user's driver license @driver_license The driver license to save
+inputPassportDataDriverLicense driver_license:inputIdentityDocument = InputPassportData;
+
+//@description The Telegram Passport data to save contains a user's identity card @identity_card The identity card to save
+inputPassportDataIdentityCard identity_card:inputIdentityDocument = InputPassportData;
+
+//@description The Telegram Passport data to save contains a user's address @address The address
+inputPassportDataAddress address:address = InputPassportData;
+
+//@description The Telegram Passport data to save contains a user's utility bill @files List of files with the utility bill
+inputPassportDataUtilityBill files:vector<InputFile> = InputPassportData;
+
+//@description The Telegram Passport data to save contains a user's bank statement @files List of files with the bank statement
+inputPassportDataBankStatement files:vector<InputFile> = InputPassportData;
+
+//@description The Telegram Passport data to save contains a user's rental agreement @files List of files with the rental agreement
+inputPassportDataRentalAgreement files:vector<InputFile> = InputPassportData;
+
+//@description The Telegram Passport data to save contains a user's phone number @phone_number The phone number
+inputPassportDataPhoneNumber phone_number:string = InputPassportData;
+
+//@description The Telegram Passport data to save contains a user's email address @email_address The email address
+inputPassportDataEmailAddress email_address:string = InputPassportData;
+
+
+//@description Contains information about all saved Telegram Passport data @data All saved Telegram Passport data
+allPassportData data:vector<PassportData> = AllPassportData;
 
 
 //@description Contains information about requested Telegram Passport authorization form @id Authorization form unique identifier @data Available data @is_selfie_required True, if selfie is required with a document @privacy_policy_url URL with the service privacy policy
-passportAuthorizationForm id:int32 data:vector<passportData> is_selfie_required:Bool privacy_policy_url:string = PassportAuthorizationForm;
+passportAuthorizationForm id:int32 data:vector<PassportData> is_selfie_required:Bool privacy_policy_url:string = PassportAuthorizationForm;
 
 
 //@description Contains an encrypted Telegram Passport data credentials @data The encrypted credentials @hash The decrypted data hash @secret Encrypted by service public key secret for data decryption
@@ -2011,7 +2086,7 @@ updateNewCallbackQuery id:int64 sender_user_id:int32 chat_id:int53 message_id:in
 updateNewInlineCallbackQuery id:int64 sender_user_id:int32 inline_message_id:string chat_instance:int64 payload:CallbackQueryPayload = Update;
 
 //@description A new incoming shipping query; for bots only. Only for invoices with flexible price @id Unique query identifier @sender_user_id Identifier of the user who sent the query @invoice_payload Invoice payload @shipping_address User shipping address
-updateNewShippingQuery id:int64 sender_user_id:int32 invoice_payload:string shipping_address:shippingAddress = Update;
+updateNewShippingQuery id:int64 sender_user_id:int32 invoice_payload:string shipping_address:address = Update;
 
 //@description A new incoming pre-checkout query; for bots only. Contains full information about a checkout @id Unique query identifier @sender_user_id Identifier of the user who sent the query @currency Currency for the product price @total_amount Total price for the product, in the minimal quantity of the currency
 //@invoice_payload Invoice payload @shipping_option_id Identifier of a shipping option chosen by the user; may be empty if not applicable @order_info Information about the order; may be null
@@ -2894,7 +2969,7 @@ getPassportData type:PassportDataType password:string = PassportData;
 getAllPassportData password:string = AllPassportData;
 
 //@description Sets Telegram Passport data @data Input Telegram Passport data @password Password of the current user
-setPassportData data:inputPassportData password:string = PassportData;
+setPassportData data:InputPassportData password:string = PassportData;
 
 //@description Deletes Telegram Passport data @type Data type
 deletePassportData type:PassportDataType = Ok;

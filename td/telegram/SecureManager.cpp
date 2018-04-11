@@ -386,28 +386,28 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
     std::vector<TdApiSecureValue> values;
     auto types = get_secure_value_types(std::move(authorization_form_->required_types_));
     for (auto type : types) {
-      optional<EncryptedSecureValue> encrypted_secure_value;
       for (auto &value : authorization_form_->values_) {
         auto value_type = get_secure_value_type(std::move(value->type_));
         if (value_type != type) {
           continue;
         }
-        encrypted_secure_value = get_encrypted_secure_value(file_manager, std::move(value));
+
+        auto r_secure_value = decrypt_encrypted_secure_value(
+            file_manager, *secret_, get_encrypted_secure_value(file_manager, std::move(value)));
+        if (r_secure_value.is_error()) {
+          LOG(ERROR) << "Failed to decrypt secure value: " << r_secure_value.error();
+          break;
+        }
+
+        auto r_passport_data = get_passport_data_object(file_manager, std::move(r_secure_value.move_as_ok().value));
+        if (r_passport_data.is_error()) {
+          LOG(ERROR) << "Failed to get passport data object: " << r_passport_data.error();
+          break;
+        }
+
+        values.push_back(r_passport_data.move_as_ok());
         break;
       }
-
-      SecureValue secure_value;
-      secure_value.type = type;
-      if (encrypted_secure_value) {
-        auto r_secure_value =
-            decrypt_encrypted_secure_value(file_manager, *secret_, std::move(*encrypted_secure_value));
-        if (r_secure_value.is_ok()) {
-          secure_value = r_secure_value.move_as_ok().value;
-        } else {
-          LOG(ERROR) << "Failed to decrypt secure value: " << r_secure_value.error();
-        }
-      }
-      values.push_back(get_passport_data_object(file_manager, std::move(secure_value)));
     }
     promise_.set_value(make_tl_object<td_api::passportAuthorizationForm>(authorization_form_id_, std::move(values),
                                                                          authorization_form_->selfie_required_,
@@ -426,7 +426,12 @@ void SecureManager::get_secure_value(std::string password, SecureValueType type,
           return promise.set_error(r_secure_value.move_as_error());
         }
         auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
-        promise.set_value(get_passport_data_object(file_manager, r_secure_value.move_as_ok().value));
+        auto r_passport_data = get_passport_data_object(file_manager, r_secure_value.move_as_ok().value);
+        if (r_passport_data.is_error()) {
+          LOG(ERROR) << "Failed to get passport data object: " << r_passport_data.error();
+          return promise.set_value(nullptr);
+        }
+        promise.set_value(r_passport_data.move_as_ok());
       });
   do_get_secure_value(std::move(password), type, std::move(new_promise));
 }
@@ -453,7 +458,12 @@ void SecureManager::set_secure_value(string password, SecureValue secure_value, 
           return promise.set_error(r_secure_value.move_as_error());
         }
         auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
-        promise.set_value(get_passport_data_object(file_manager, r_secure_value.move_as_ok().value));
+        auto r_passport_data = get_passport_data_object(file_manager, r_secure_value.move_as_ok().value);
+        if (r_passport_data.is_error()) {
+          LOG(ERROR) << "Failed to get passport data object: " << r_passport_data.error();
+          return promise.set_error(Status::Error(500, "Failed to get passport data object"));
+        }
+        promise.set_value(r_passport_data.move_as_ok());
       });
   set_secure_value_queries_[type] = create_actor<SetSecureValue>("SetSecureValue", actor_shared(), std::move(password),
                                                                  std::move(secure_value), std::move(new_promise));

@@ -174,18 +174,16 @@ static tl_object_ptr<td_api::paymentsProviderStripe> convert_payment_provider(
   return nullptr;
 }
 
-static tl_object_ptr<td_api::shippingAddress> convert_shipping_address(
-    tl_object_ptr<telegram_api::postAddress> address) {
+static tl_object_ptr<td_api::address> convert_address(tl_object_ptr<telegram_api::postAddress> address) {
   if (address == nullptr) {
     return nullptr;
   }
-  return make_tl_object<td_api::shippingAddress>(std::move(address->country_iso2_), std::move(address->state_),
-                                                 std::move(address->city_), std::move(address->street_line1_),
-                                                 std::move(address->street_line2_), std::move(address->post_code_));
+  return make_tl_object<td_api::address>(std::move(address->country_iso2_), std::move(address->state_),
+                                         std::move(address->city_), std::move(address->street_line1_),
+                                         std::move(address->street_line2_), std::move(address->post_code_));
 }
 
-static tl_object_ptr<telegram_api::postAddress> convert_shipping_address(
-    tl_object_ptr<td_api::shippingAddress> address) {
+static tl_object_ptr<telegram_api::postAddress> convert_address(tl_object_ptr<td_api::address> address) {
   if (address == nullptr) {
     return nullptr;
   }
@@ -201,7 +199,7 @@ static tl_object_ptr<td_api::orderInfo> convert_order_info(
   }
   return make_tl_object<td_api::orderInfo>(std::move(order_info->name_), std::move(order_info->phone_),
                                            std::move(order_info->email_),
-                                           convert_shipping_address(std::move(order_info->shipping_address_)));
+                                           convert_address(std::move(order_info->shipping_address_)));
 }
 
 static tl_object_ptr<td_api::labeledPricePart> convert_labeled_price(
@@ -240,7 +238,7 @@ static tl_object_ptr<telegram_api::paymentRequestedInfo> convert_order_info(
   }
   return make_tl_object<telegram_api::paymentRequestedInfo>(
       flags, std::move(order_info->name_), std::move(order_info->phone_number_), std::move(order_info->email_address_),
-      convert_shipping_address(std::move(order_info->shipping_address_)));
+      convert_address(std::move(order_info->shipping_address_)));
 }
 
 static tl_object_ptr<td_api::savedCredentials> convert_saved_credentials(
@@ -525,41 +523,141 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Invoice &invoice)
                         << invoice.currency << " with price parts " << format::as_array(invoice.price_parts) << "]";
 }
 
-bool operator==(const ShippingAddress &lhs, const ShippingAddress &rhs) {
+bool operator==(const Address &lhs, const Address &rhs) {
   return lhs.country_code == rhs.country_code && lhs.state == rhs.state && lhs.city == rhs.city &&
          lhs.street_line1 == rhs.street_line1 && lhs.street_line2 == rhs.street_line2 &&
          lhs.postal_code == rhs.postal_code;
 }
 
-bool operator!=(const ShippingAddress &lhs, const ShippingAddress &rhs) {
+bool operator!=(const Address &lhs, const Address &rhs) {
   return !(lhs == rhs);
 }
 
-StringBuilder &operator<<(StringBuilder &string_builder, const ShippingAddress &shipping_address) {
-  return string_builder << "[Address " << tag("country_code", shipping_address.country_code)
-                        << tag("state", shipping_address.state) << tag("city", shipping_address.city)
-                        << tag("street_line1", shipping_address.street_line1)
-                        << tag("street_line2", shipping_address.street_line2)
-                        << tag("postal_code", shipping_address.postal_code) << "]";
+StringBuilder &operator<<(StringBuilder &string_builder, const Address &address) {
+  return string_builder << "[Address " << tag("country_code", address.country_code) << tag("state", address.state)
+                        << tag("city", address.city) << tag("street_line1", address.street_line1)
+                        << tag("street_line2", address.street_line2) << tag("postal_code", address.postal_code) << "]";
 }
 
-unique_ptr<ShippingAddress> get_shipping_address(tl_object_ptr<telegram_api::postAddress> address) {
+unique_ptr<Address> get_address(tl_object_ptr<telegram_api::postAddress> &&address) {
   if (address == nullptr) {
     return nullptr;
   }
-  return make_unique<ShippingAddress>(std::move(address->country_iso2_), std::move(address->state_),
-                                      std::move(address->city_), std::move(address->street_line1_),
-                                      std::move(address->street_line2_), std::move(address->post_code_));
+  return make_unique<Address>(std::move(address->country_iso2_), std::move(address->state_), std::move(address->city_),
+                              std::move(address->street_line1_), std::move(address->street_line2_),
+                              std::move(address->post_code_));
 }
 
-tl_object_ptr<td_api::shippingAddress> get_shipping_address_object(
-    const unique_ptr<ShippingAddress> &shipping_address) {
-  if (shipping_address == nullptr) {
+static bool is_capital_alpha(char c) {
+  return 'A' <= c && c <= 'Z';
+}
+
+Status check_country_code(string &country_code) {
+  if (!clean_input_string(country_code)) {
+    return Status::Error(400, "Country code must be encoded in UTF-8");
+  }
+  if (country_code.size() != 2 || !is_capital_alpha(country_code[0]) || !is_capital_alpha(country_code[1])) {
+    return Status::Error(400, "Wrong country code specified");
+  }
+  return Status::OK();
+}
+
+static Status check_state(string &state) {
+  if (!clean_input_string(state)) {
+    return Status::Error(400, "State must be encoded in UTF-8");
+  }
+  return Status::OK();
+}
+
+static Status check_city(string &city) {
+  if (!clean_input_string(city)) {
+    return Status::Error(400, "City must be encoded in UTF-8");
+  }
+  return Status::OK();
+}
+
+static Status check_street_line(string &street_line) {
+  if (!clean_input_string(street_line)) {
+    return Status::Error(400, "Street line must be encoded in UTF-8");
+  }
+  return Status::OK();
+}
+
+static Status check_postal_code(string &postal_code) {
+  if (!clean_input_string(postal_code)) {
+    return Status::Error(400, "Postal code must be encoded in UTF-8");
+  }
+  return Status::OK();
+}
+
+Result<Address> get_address(td_api::object_ptr<td_api::address> &&address) {
+  if (address == nullptr) {
+    return Status::Error(400, "Address must not be empty");
+  }
+  TRY_STATUS(check_country_code(address->country_code_));
+  TRY_STATUS(check_state(address->state_));
+  TRY_STATUS(check_city(address->city_));
+  TRY_STATUS(check_street_line(address->street_line1_));
+  TRY_STATUS(check_street_line(address->street_line2_));
+  TRY_STATUS(check_postal_code(address->postal_code_));
+
+  return Address(std::move(address->country_code_), std::move(address->state_), std::move(address->city_),
+                 std::move(address->street_line1_), std::move(address->street_line2_),
+                 std::move(address->postal_code_));
+}
+
+tl_object_ptr<td_api::address> get_address_object(const unique_ptr<Address> &address) {
+  if (address == nullptr) {
     return nullptr;
   }
-  return make_tl_object<td_api::shippingAddress>(shipping_address->country_code, shipping_address->state,
-                                                 shipping_address->city, shipping_address->street_line1,
-                                                 shipping_address->street_line2, shipping_address->postal_code);
+  return get_address_object(*address);
+}
+
+tl_object_ptr<td_api::address> get_address_object(const Address &address) {
+  return make_tl_object<td_api::address>(address.country_code, address.state, address.city, address.street_line1,
+                                         address.street_line2, address.postal_code);
+}
+
+string address_to_json(const Address &address) {
+  return json_encode<std::string>(json_object([&](auto &o) {
+    o("country_code", address.country_code);
+    o("state", address.state);
+    o("city", address.city);
+    o("street_line1", address.street_line1);
+    o("street_line2", address.street_line2);
+    o("postal_code", address.postal_code);
+  }));
+}
+
+Result<Address> address_from_json(Slice json) {
+  auto json_copy = json.str();
+  auto r_value = json_decode(json_copy);
+  if (r_value.is_error()) {
+    return Status::Error(400, "Can't parse address JSON object");
+  }
+
+  auto value = r_value.move_as_ok();
+  if (value.type() != JsonValue::Type::Object) {
+    return Status::Error(400, "Address should be an Object");
+  }
+
+  auto &object = value.get_object();
+  TRY_RESULT(country_code, get_json_object_string_field(object, "country_code", true));
+  TRY_RESULT(state, get_json_object_string_field(object, "state", true));
+  TRY_RESULT(city, get_json_object_string_field(object, "city", true));
+  TRY_RESULT(street_line1, get_json_object_string_field(object, "street_line1", true));
+  TRY_RESULT(street_line2, get_json_object_string_field(object, "street_line2", true));
+  TRY_RESULT(postal_code, get_json_object_string_field(object, "postal_code", true));
+
+  TRY_STATUS(check_country_code(country_code));
+  TRY_STATUS(check_state(state));
+  TRY_STATUS(check_city(city));
+  TRY_STATUS(check_street_line(street_line1));
+  TRY_STATUS(check_street_line(street_line2));
+  TRY_STATUS(check_postal_code(postal_code));
+
+  return Address(std::move(country_code), std::move(state), std::move(city), std::move(street_line1),
+                 std::move(street_line2), std::move(postal_code));
 }
 
 bool operator==(const OrderInfo &lhs, const OrderInfo &rhs) {
@@ -587,8 +685,7 @@ unique_ptr<OrderInfo> get_order_info(tl_object_ptr<telegram_api::paymentRequeste
     return nullptr;
   }
   return make_unique<OrderInfo>(std::move(order_info->name_), std::move(order_info->phone_),
-                                std::move(order_info->email_),
-                                get_shipping_address(std::move(order_info->shipping_address_)));
+                                std::move(order_info->email_), get_address(std::move(order_info->shipping_address_)));
 }
 
 tl_object_ptr<td_api::orderInfo> get_order_info_object(const unique_ptr<OrderInfo> &order_info) {
@@ -596,7 +693,7 @@ tl_object_ptr<td_api::orderInfo> get_order_info_object(const unique_ptr<OrderInf
     return nullptr;
   }
   return make_tl_object<td_api::orderInfo>(order_info->name, order_info->phone_number, order_info->email_address,
-                                           get_shipping_address_object(order_info->shipping_address));
+                                           get_address_object(order_info->shipping_address));
 }
 
 bool operator==(const ShippingOption &lhs, const ShippingOption &rhs) {

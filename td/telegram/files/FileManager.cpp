@@ -1976,14 +1976,15 @@ Result<FileId> FileManager::get_input_thumbnail_file_id(const tl_object_ptr<td_a
 Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr<td_api::InputFile> &file,
                                               DialogId owner_dialog_id, bool allow_zero, bool is_encrypted,
                                               bool get_by_hash, bool is_secure) {
-  if (is_encrypted) {
-    get_by_hash = false;
-  }
   if (!file) {
     if (allow_zero) {
       return FileId();
     }
     return Status::Error(6, "InputFile not specified");
+  }
+
+  if (is_encrypted || is_secure) {
+    get_by_hash = false;
   }
 
   auto new_type = is_encrypted ? FileType::Encrypted : (is_secure ? FileType::Secure : type);

@@ -26,7 +26,7 @@
 
 namespace td {
 
-using TdApiSecureValue = td_api::object_ptr<td_api::passportData>;
+using TdApiSecureValue = td_api::object_ptr<td_api::PassportData>;
 using TdApiAllSecureValues = td_api::object_ptr<td_api::allPassportData>;
 using TdApiAuthorizationForm = td_api::object_ptr<td_api::passportAuthorizationForm>;
 

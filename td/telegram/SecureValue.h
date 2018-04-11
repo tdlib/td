@@ -172,12 +172,13 @@ struct SecureValueWithCredentials {
 };
 
 Result<SecureValue> get_secure_value(FileManager *file_manager,
-                                     td_api::object_ptr<td_api::inputPassportData> &&input_passport_data);
+                                     td_api::object_ptr<td_api::InputPassportData> &&input_passport_data);
 
-td_api::object_ptr<td_api::passportData> get_passport_data_object(FileManager *file_manager, const SecureValue &value);
+Result<td_api::object_ptr<td_api::PassportData>> get_passport_data_object(FileManager *file_manager,
+                                                                          const SecureValue &value);
 
 td_api::object_ptr<td_api::allPassportData> get_all_passport_data_object(FileManager *file_manager,
-                                                                         const vector<SecureValue> &value);
+                                                                         const vector<SecureValue> &values);
 
 Result<std::pair<FileId, SecureFileCredentials>> decrypt_secure_file(FileManager *file_manager,
                                                                      const secure_storage::Secret &secret,

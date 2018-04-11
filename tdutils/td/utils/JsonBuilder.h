@@ -774,7 +774,7 @@ void to_json(JsonValueScope &jv, const T &value) {
 template <class F>
 class JsonObjectImpl : Jsonable {
  public:
-  JsonObjectImpl(F &&f) : f_(std::forward<F>(f)) {
+  explicit JsonObjectImpl(F &&f) : f_(std::forward<F>(f)) {
   }
   void store(JsonValueScope *scope) const {
     auto object = scope->enter_object();
@@ -792,7 +792,7 @@ auto json_object(F &&f) {
 template <class F>
 class JsonArrayImpl : Jsonable {
  public:
-  JsonArrayImpl(F &&f) : f_(std::forward<F>(f)) {
+  explicit JsonArrayImpl(F &&f) : f_(std::forward<F>(f)) {
   }
   void store(JsonValueScope *scope) const {
     auto array = scope->enter_array();
@@ -802,6 +802,7 @@ class JsonArrayImpl : Jsonable {
  private:
   F f_;
 };
+
 template <class F>
 auto json_array(F &&f) {
   return JsonArrayImpl<F>(std::forward<F>(f));

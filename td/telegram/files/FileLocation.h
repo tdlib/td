@@ -371,8 +371,7 @@ struct PhotoRemoteFileLocation {
 
 inline StringBuilder &operator<<(StringBuilder &string_builder, const PhotoRemoteFileLocation &location) {
   return string_builder << "[id = " << location.id_ << ", access_hash = " << location.access_hash_
-                        << ", volume_id = " << location.volume_id_ << ", secret = " << location.secret_
-                        << ", local_id = " << location.local_id_ << "]";
+                        << ", volume_id = " << location.volume_id_ << ", local_id = " << location.local_id_ << "]";
 }
 
 struct WebRemoteFileLocation {
