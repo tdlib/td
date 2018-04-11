@@ -18,6 +18,7 @@
 #include "td/utils/Time.h"
 
 namespace td {
+
 class SendCodeHelper {
  public:
   void on_sent_code(telegram_api::object_ptr<telegram_api::auth_sentCode> sent_code);
@@ -96,7 +97,7 @@ class SendCodeHelper {
 class PhoneNumberManager : public NetActor {
  public:
   enum class Type { ChangePhone, VerifyPhone, ConfirmPhone };
-  explicit PhoneNumberManager(Type type, ActorShared<> parent);
+  PhoneNumberManager(Type type, ActorShared<> parent);
   void get_state(uint64 query_id);
 
   void set_phone_number(uint64 query_id, string phone_number, bool allow_flash_call, bool is_current_phone_number);

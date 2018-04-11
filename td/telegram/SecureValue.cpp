@@ -23,8 +23,6 @@
 #include "td/utils/misc.h"
 #include "td/utils/overloaded.h"
 
-#include <tuple>
-
 namespace td {
 
 SecureValueType get_secure_value_type(const tl_object_ptr<telegram_api::SecureValueType> &secure_value_type) {

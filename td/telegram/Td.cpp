@@ -74,7 +74,6 @@
 #include "td/utils/format.h"
 #include "td/utils/MimeType.h"
 #include "td/utils/misc.h"
-#include "td/utils/overloaded.h"
 #include "td/utils/PathView.h"
 #include "td/utils/port/path.h"
 #include "td/utils/Random.h"
