@@ -172,41 +172,10 @@ void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> devi
       }
 
       if (!device_token->endpoint_.empty()) {
-        class JsonKeys : public Jsonable {
-         public:
-          JsonKeys(Slice p256dh, Slice auth) : p256dh_(p256dh), auth_(auth) {
-          }
-          void store(JsonValueScope *scope) const {
-            auto object = scope->enter_object();
-            object << ctie("p256dh", p256dh_);
-            object << ctie("auth", auth_);
-          }
-
-         private:
-          Slice p256dh_;
-          Slice auth_;
-        };
-        class JsonWebPushToken : public Jsonable {
-         public:
-          JsonWebPushToken(Slice endpoint, Slice p256dh, Slice auth)
-              : endpoint_(endpoint), p256dh_(p256dh), auth_(auth) {
-          }
-          void store(JsonValueScope *scope) const {
-            auto object = scope->enter_object();
-            object << ctie("endpoint", endpoint_);
-            object << ctie("keys", JsonKeys(p256dh_, auth_));
-          }
-
-         private:
-          Slice endpoint_;
-          Slice p256dh_;
-          Slice auth_;
-        };
-
         token = json_encode<string>(json_object([&device_token](auto &o) {
           o("endpoint", device_token->endpoint_);
           o("keys", json_object([&device_token](auto &o) {
-              o("pb256df", device_token->p256dh_base64url_);
+              o("pb256dh", device_token->p256dh_base64url_);
               o("auth", device_token->auth_base64url_);
             }));
         }));
