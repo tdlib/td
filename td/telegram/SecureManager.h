@@ -127,6 +127,7 @@ class SecureManager : public NetQueryCallback {
   void get_secure_value(std::string password, SecureValueType type, Promise<TdApiSecureValue> promise);
   void get_all_secure_values(std::string password, Promise<TdApiAllSecureValues> promise);
   void set_secure_value(string password, SecureValue secure_value, Promise<TdApiSecureValue> promise);
+  void delete_secure_value(SecureValueType type, Promise<Unit> promise);
 
   void get_passport_authorization_form(string password, UserId bot_user_id, string scope, string public_key,
                                        string payload, Promise<TdApiAuthorizationForm> promise);

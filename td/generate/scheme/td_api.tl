@@ -916,8 +916,10 @@ inputPassportDataEmailAddress email_address:string = InputPassportData;
 allPassportData data:vector<PassportData> = AllPassportData;
 
 
-//@description Contains information about requested Telegram Passport authorization form @id Authorization form unique identifier @data Available data @is_selfie_required True, if selfie is required with a document @privacy_policy_url URL with the service privacy policy
-passportAuthorizationForm id:int32 data:vector<PassportData> is_selfie_required:Bool privacy_policy_url:string = PassportAuthorizationForm;
+//@description Contains information about requested Telegram Passport authorization form @id Authorization form unique identifier
+//@required_types Types required to complete the form. If there are more than one identity document or address proof, then any of them can be chosen
+//@data Already available data @is_selfie_required True, if selfie is required with an identity document @privacy_policy_url URL with the service privacy policy; can be empty
+passportAuthorizationForm id:int32 required_types:vector<PassportDataType> data:vector<PassportData> is_selfie_required:Bool privacy_policy_url:string = PassportAuthorizationForm;
 
 
 //@description Contains an encrypted Telegram Passport data credentials @data The encrypted credentials @hash The decrypted data hash @secret Encrypted by service public key secret for data decryption

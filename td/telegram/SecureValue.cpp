@@ -27,7 +27,7 @@
 
 namespace td {
 
-SecureValueType get_secure_value_type(tl_object_ptr<telegram_api::SecureValueType> &&secure_value_type) {
+SecureValueType get_secure_value_type(const tl_object_ptr<telegram_api::SecureValueType> &secure_value_type) {
   CHECK(secure_value_type != nullptr);
   switch (secure_value_type->get_id()) {
     case telegram_api::secureValueTypePersonalDetails::ID:
@@ -56,7 +56,7 @@ SecureValueType get_secure_value_type(tl_object_ptr<telegram_api::SecureValueTyp
   }
 }
 
-SecureValueType get_secure_value_type_td_api(tl_object_ptr<td_api::PassportDataType> &&passport_data_type) {
+SecureValueType get_secure_value_type_td_api(const tl_object_ptr<td_api::PassportDataType> &passport_data_type) {
   CHECK(passport_data_type != nullptr);
   switch (passport_data_type->get_id()) {
     case td_api::passportDataTypePersonalDetails::ID:
@@ -86,13 +86,13 @@ SecureValueType get_secure_value_type_td_api(tl_object_ptr<td_api::PassportDataT
 }
 
 vector<SecureValueType> get_secure_value_types(
-    vector<tl_object_ptr<telegram_api::SecureValueType>> &&secure_value_types) {
-  return transform(std::move(secure_value_types), get_secure_value_type);
+    const vector<tl_object_ptr<telegram_api::SecureValueType>> &secure_value_types) {
+  return transform(secure_value_types, get_secure_value_type);
 }
 
 vector<SecureValueType> get_secure_value_types_td_api(
-    vector<tl_object_ptr<td_api::PassportDataType>> &&secure_value_types) {
-  return transform(std::move(secure_value_types), get_secure_value_type_td_api);
+    const vector<tl_object_ptr<td_api::PassportDataType>> &secure_value_types) {
+  return transform(secure_value_types, get_secure_value_type_td_api);
 }
 
 td_api::object_ptr<td_api::PassportDataType> get_passport_data_type_object(SecureValueType type) {
@@ -285,7 +285,7 @@ EncryptedSecureValue get_encrypted_secure_value(FileManager *file_manager,
                                                 tl_object_ptr<telegram_api::secureValue> &&secure_value) {
   EncryptedSecureValue result;
   CHECK(secure_value != nullptr);
-  result.type = get_secure_value_type(std::move(secure_value->type_));
+  result.type = get_secure_value_type(secure_value->type_);
   if (secure_value->plain_data_ != nullptr) {
     switch (secure_value->plain_data_->get_id()) {
       case telegram_api::securePlainPhone::ID:

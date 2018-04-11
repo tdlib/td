@@ -6,6 +6,7 @@
 //
 #include "td/telegram/SecureManager.h"
 
+#include "td/telegram/ContactsManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
@@ -382,18 +383,27 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
     if (!secret_ || !authorization_form_) {
       return;
     }
+
+    G()->td().get_actor_unsafe()->contacts_manager_->on_get_users(std::move(authorization_form_->users_));
+
     auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
     std::vector<TdApiSecureValue> values;
-    auto types = get_secure_value_types(std::move(authorization_form_->required_types_));
+    bool is_selfie_required =
+        (authorization_form_->flags_ & telegram_api::account_authorizationForm::SELFIE_REQUIRED_MASK) != 0;
+    auto types = get_secure_value_types(authorization_form_->required_types_);
     for (auto type : types) {
       for (auto &value : authorization_form_->values_) {
-        auto value_type = get_secure_value_type(std::move(value->type_));
+        if (value == nullptr) {
+          continue;
+        }
+        auto value_type = get_secure_value_type(value->type_);
         if (value_type != type) {
           continue;
         }
 
         auto r_secure_value = decrypt_encrypted_secure_value(
             file_manager, *secret_, get_encrypted_secure_value(file_manager, std::move(value)));
+        value = nullptr;
         if (r_secure_value.is_error()) {
           LOG(ERROR) << "Failed to decrypt secure value: " << r_secure_value.error();
           break;
@@ -409,9 +419,9 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
         break;
       }
     }
-    promise_.set_value(make_tl_object<td_api::passportAuthorizationForm>(authorization_form_id_, std::move(values),
-                                                                         authorization_form_->selfie_required_,
-                                                                         authorization_form_->privacy_policy_url_));
+    promise_.set_value(make_tl_object<td_api::passportAuthorizationForm>(
+        authorization_form_id_, get_passport_data_types_object(types), std::move(values), is_selfie_required,
+        authorization_form_->privacy_policy_url_));
     stop();
   }
 };
@@ -467,6 +477,10 @@ void SecureManager::set_secure_value(string password, SecureValue secure_value, 
       });
   set_secure_value_queries_[type] = create_actor<SetSecureValue>("SetSecureValue", actor_shared(), std::move(password),
                                                                  std::move(secure_value), std::move(new_promise));
+}
+
+void SecureManager::delete_secure_value(SecureValueType type, Promise<Unit> promise) {
+  // TODO
 }
 
 void SecureManager::get_passport_authorization_form(string password, UserId bot_user_id, string scope,

@@ -37,13 +37,13 @@ enum class SecureValueType {
   EmailAddress
 };
 
-SecureValueType get_secure_value_type(tl_object_ptr<telegram_api::SecureValueType> &&secure_value_type);
-SecureValueType get_secure_value_type_td_api(tl_object_ptr<td_api::PassportDataType> &&passport_data_type);
+SecureValueType get_secure_value_type(const tl_object_ptr<telegram_api::SecureValueType> &secure_value_type);
+SecureValueType get_secure_value_type_td_api(const tl_object_ptr<td_api::PassportDataType> &passport_data_type);
 
 vector<SecureValueType> get_secure_value_types(
-    vector<tl_object_ptr<telegram_api::SecureValueType>> &&secure_value_types);
+    const vector<tl_object_ptr<telegram_api::SecureValueType>> &secure_value_types);
 vector<SecureValueType> get_secure_value_types_td_api(
-    vector<tl_object_ptr<td_api::PassportDataType>> &&secure_value_types);
+    const vector<tl_object_ptr<td_api::PassportDataType>> &secure_value_types);
 
 td_api::object_ptr<td_api::PassportDataType> get_passport_data_type_object(SecureValueType type);
 td_api::object_ptr<telegram_api::SecureValueType> get_secure_value_type_object(SecureValueType type);

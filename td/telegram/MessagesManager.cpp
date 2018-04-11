@@ -21828,7 +21828,7 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
     case telegram_api::messageActionSecureValuesSent::ID: {
       LOG_IF(ERROR, td_->auth_manager_->is_bot()) << "Receive MessageActionSecureValuesSent";
       auto secure_values = move_tl_object_as<telegram_api::messageActionSecureValuesSent>(action);
-      return make_unique<MessagePassportDataSent>(get_secure_value_types(std::move(secure_values->types_)));
+      return make_unique<MessagePassportDataSent>(get_secure_value_types(secure_values->types_));
     }
     case telegram_api::messageActionSecureValuesSentMe::ID: {
       LOG_IF(ERROR, !td_->auth_manager_->is_bot()) << "Receive MessageActionSecureValuesSentMe";

@@ -5375,12 +5375,10 @@ void Td::on_request(uint64 id, td_api::getTopChats &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE(promise);
   if (request.category_ == nullptr) {
-    promise.set_error(Status::Error(400, "Top chat category should not be empty"));
-    return;
+    return promise.set_error(Status::Error(400, "Top chat category should not be empty"));
   }
   if (request.limit_ <= 0) {
-    promise.set_error(Status::Error(400, "Limit must be positive"));
-    return;
+    return promise.set_error(Status::Error(400, "Limit must be positive"));
   }
   auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<vector<DialogId>> result) mutable {
     if (result.is_error()) {
@@ -6847,7 +6845,7 @@ void Td::on_request(uint64 id, td_api::getPassportData &request) {
   }
   CREATE_REQUEST_PROMISE(promise);
   send_closure(secure_manager_, &SecureManager::get_secure_value, std::move(request.password_),
-               get_secure_value_type_td_api(std::move(request.type_)), std::move(promise));
+               get_secure_value_type_td_api(request.type_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getAllPassportData &request) {
@@ -6875,7 +6873,19 @@ void Td::on_request(uint64 id, td_api::setPassportData &request) {
 void Td::on_request(uint64 id, const td_api::deletePassportData &request) {
   CHECK_AUTH();
   CHECK_IS_USER();
-  LOG(FATAL) << "TODO";
+  if (request.type_ == nullptr) {
+    return send_error_raw(id, 400, "Type must not be empty");
+  }
+  CREATE_REQUEST_PROMISE(promise);
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<> result) mutable {
+    if (result.is_error()) {
+      promise.set_error(result.move_as_error());
+    } else {
+      promise.set_value(make_tl_object<td_api::ok>());
+    }
+  });
+  send_closure(secure_manager_, &SecureManager::delete_secure_value, get_secure_value_type_td_api(request.type_),
+               std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, td_api::sendPhoneNumberVerificationCode &request) {
@@ -6935,15 +6945,25 @@ void Td::on_request(uint64 id, td_api::getPassportAuthorizationForm &request) {
   if (!bot_user_id.is_valid()) {
     return send_error_raw(id, 400, "Bot user identifier invalid");
   }
+  if (request.payload_.empty()) {
+    return send_error_raw(id, 400, "Payload must be non-empty");
+  }
   CREATE_REQUEST_PROMISE(promise);
-  send_closure(secure_manager_, &SecureManager::get_passport_authorization_form, request.password_, bot_user_id,
-               request.scope_, request.public_key_, request.payload_, std::move(promise));
+  send_closure(secure_manager_, &SecureManager::get_passport_authorization_form, std::move(request.password_),
+               bot_user_id, std::move(request.scope_), std::move(request.public_key_), std::move(request.payload_),
+               std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::sendPassportAuthorizationForm &request) {
   CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.password_);
+  for (auto &type : request.types_) {
+    if (type == nullptr) {
+      return send_error_raw(id, 400, "Type must not be empty");
+    }
+  }
+
   CREATE_REQUEST_PROMISE(promise);
   auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<> result) mutable {
     if (result.is_error()) {
@@ -6953,8 +6973,7 @@ void Td::on_request(uint64 id, td_api::sendPassportAuthorizationForm &request) {
     }
   });
   send_closure(secure_manager_, &SecureManager::send_passport_authorization_form, request.password_,
-               request.autorization_form_id_, get_secure_value_types_td_api(std::move(request.types_)),
-               std::move(query_promise));
+               request.autorization_form_id_, get_secure_value_types_td_api(request.types_), std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getSupportUser &request) {
