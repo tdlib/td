@@ -4703,6 +4703,27 @@ void Td::answer_ok_query(uint64 id, Status status) {
   }
 }
 
+template <class T>
+Promise<T> Td::create_request_promise(uint64 id) {
+  return PromiseCreator::lambda([id = id, actor_id = actor_id(this)](Result<T> r_state) {
+    if (r_state.is_error()) {
+      send_closure(actor_id, &Td::send_error, id, r_state.move_as_error());
+    } else {
+      send_closure(actor_id, &Td::send_result, id, r_state.move_as_ok());
+    }
+  });
+}
+
+Promise<Unit> Td::create_ok_request_promise(uint64 id) {
+  return PromiseCreator::lambda([id = id, actor_id = actor_id(this)](Result<> result) mutable {
+    if (result.is_error()) {
+      send_closure(actor_id, &Td::send_error, id, result.move_as_error());
+    } else {
+      send_closure(actor_id, &Td::send_result, id, td_api::make_object<td_api::ok>());
+    }
+  });
+}
+
 #define CLEAN_INPUT_STRING(field_name)                                  \
   if (!clean_input_string(field_name)) {                                \
     return send_error_raw(id, 400, "Strings must be encoded in UTF-8"); \
@@ -4730,6 +4751,9 @@ void Td::answer_ok_query(uint64 id, Status status) {
   *request_actors_.get(slot_id) = create_actor<name>(#name, actor_shared(this, slot_id), id, __VA_ARGS__);
 #define CREATE_REQUEST_PROMISE(name) \
   auto name = create_request_promise<std::decay_t<decltype(request)>::ReturnType>(id);
+#define CREATE_OK_REQUEST_PROMISE(name)                                                                                \
+  static_assert(std::is_same<std::decay_t<decltype(request)>::ReturnType, td_api::object_ptr<td_api::ok>>::value, ""); \
+  auto name = create_ok_request_promise(id);
 
 Status Td::fix_parameters(TdParameters &parameters) {
   if (parameters.database_directory.empty()) {
@@ -4872,15 +4896,8 @@ void Td::on_request(uint64 id, const td_api::checkDatabaseEncryptionKey &request
 }
 
 void Td::on_request(uint64 id, td_api::setDatabaseEncryptionKey &request) {
-  CREATE_REQUEST_PROMISE(promise);
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(make_tl_object<td_api::ok>());
-    }
-  });
-  G()->td_db()->get_binlog()->change_key(as_db_key(std::move(request.new_encryption_key_)), std::move(query_promise));
+  CREATE_OK_REQUEST_PROMISE(promise);
+  G()->td_db()->get_binlog()->change_key(as_db_key(std::move(request.new_encryption_key_)), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getAuthorizationState &request) {
@@ -5013,23 +5030,15 @@ void Td::on_request(uint64 id, td_api::createTemporaryPassword &request) {
 }
 
 void Td::on_request(uint64 id, td_api::processDcUpdate &request) {
-  CREATE_REQUEST_PROMISE(promise);
   CLEAN_INPUT_STRING(request.dc_);
   CLEAN_INPUT_STRING(request.addr_);
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(make_tl_object<td_api::ok>());
-    }
-  });
+  CREATE_OK_REQUEST_PROMISE(promise);
   auto dc_id_raw = to_integer<int32>(request.dc_);
   if (!DcId::is_valid(dc_id_raw)) {
-    promise.set_error(Status::Error("Invalid dc id"));
-    return;
+    return promise.set_error(Status::Error("Invalid dc id"));
   }
   send_closure(G()->connection_creator(), &ConnectionCreator::on_dc_update, DcId::internal(dc_id_raw), request.addr_,
-               std::move(query_promise));
+               std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::registerDevice &request) {
@@ -5038,7 +5047,6 @@ void Td::on_request(uint64 id, td_api::registerDevice &request) {
   if (request.device_token_ == nullptr) {
     return send_error_raw(id, 400, "Device token should not be empty");
   }
-
   CREATE_REQUEST_PROMISE(promise);
   send_closure(device_token_manager_, &DeviceTokenManager::register_device, std::move(request.device_token_),
                std::move(request.other_user_ids_), std::move(promise));
@@ -5307,13 +5315,12 @@ void Td::on_request(uint64 id, td_api::getNetworkStatistics &request) {
 }
 
 void Td::on_request(uint64 id, td_api::resetNetworkStatistics &request) {
-  CREATE_REQUEST_PROMISE(promise);
+  CREATE_OK_REQUEST_PROMISE(promise);
   send_closure(net_stats_manager_, &NetStatsManager::reset_network_stats);
-  promise.set_value(make_tl_object<td_api::ok>());
+  promise.set_value(Unit());
 }
 
 void Td::on_request(uint64 id, td_api::addNetworkStatistics &request) {
-  CREATE_REQUEST_PROMISE(promise);
   if (request.entry_ == nullptr) {
     return send_error_raw(id, 400, "Network statistics entry should not be empty");
   }
@@ -5365,9 +5372,9 @@ void Td::on_request(uint64 id, td_api::addNetworkStatistics &request) {
 }
 
 void Td::on_request(uint64 id, td_api::setNetworkType &request) {
-  CREATE_REQUEST_PROMISE(promise);
+  CREATE_OK_REQUEST_PROMISE(promise);
   send_closure(state_manager_, &StateManager::on_network, from_td_api(request.type_));
-  promise.set_value(make_tl_object<td_api::ok>());
+  promise.set_value(Unit());
 }
 
 void Td::on_request(uint64 id, td_api::getTopChats &request) {
@@ -5880,66 +5887,38 @@ void Td::on_request(uint64 id, td_api::createCall &request) {
 void Td::on_request(uint64 id, td_api::discardCall &request) {
   CHECK_AUTH();
   CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE(promise);
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(make_tl_object<td_api::ok>());
-    }
-  });
+  CREATE_OK_REQUEST_PROMISE(promise);
   send_closure(G()->call_manager(), &CallManager::discard_call, CallId(request.call_id_), request.is_disconnected_,
-               request.duration_, request.connection_id_, std::move(query_promise));
+               request.duration_, request.connection_id_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::acceptCall &request) {
   CHECK_AUTH();
   CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE(promise);
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(make_tl_object<td_api::ok>());
-    }
-  });
+  CREATE_OK_REQUEST_PROMISE(promise);
   if (!request.protocol_) {
-    return query_promise.set_error(Status::Error(5, "Call protocol must not be empty"));
+    return promise.set_error(Status::Error(5, "Call protocol must not be empty"));
   }
   send_closure(G()->call_manager(), &CallManager::accept_call, CallId(request.call_id_),
-               CallProtocol::from_td_api(*request.protocol_), std::move(query_promise));
+               CallProtocol::from_td_api(*request.protocol_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::sendCallRating &request) {
   CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.comment_);
-  CREATE_REQUEST_PROMISE(promise);
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(make_tl_object<td_api::ok>());
-    }
-  });
+  CREATE_OK_REQUEST_PROMISE(promise);
   send_closure(G()->call_manager(), &CallManager::rate_call, CallId(request.call_id_), request.rating_,
-               std::move(request.comment_), std::move(query_promise));
+               std::move(request.comment_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::sendCallDebugInformation &request) {
   CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.debug_information_);
-  CREATE_REQUEST_PROMISE(promise);
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(make_tl_object<td_api::ok>());
-    }
-  });
+  CREATE_OK_REQUEST_PROMISE(promise);
   send_closure(G()->call_manager(), &CallManager::send_call_debug_information, CallId(request.call_id_),
-               std::move(request.debug_information_), std::move(query_promise));
+               std::move(request.debug_information_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::upgradeBasicGroupChatToSupergroupChat &request) {
@@ -6104,16 +6083,9 @@ void Td::on_request(uint64 id, const td_api::cancelUploadFile &request) {
 
 void Td::on_request(uint64 id, const td_api::setFileGenerationProgress &request) {
   CHECK_AUTH();
-  CREATE_REQUEST_PROMISE(promise);
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(make_tl_object<td_api::ok>());
-    }
-  });
+  CREATE_OK_REQUEST_PROMISE(promise);
   send_closure(file_manager_actor_, &FileManager::external_file_generate_progress, request.generation_id_,
-               request.expected_size_, request.local_prefix_size_, std::move(query_promise));
+               request.expected_size_, request.local_prefix_size_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::finishFileGeneration &request) {
@@ -6123,30 +6095,15 @@ void Td::on_request(uint64 id, td_api::finishFileGeneration &request) {
     CLEAN_INPUT_STRING(request.error_->message_);
     status = Status::Error(request.error_->code_, request.error_->message_);
   }
-  CREATE_REQUEST_PROMISE(promise);
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(make_tl_object<td_api::ok>());
-    }
-  });
+  CREATE_OK_REQUEST_PROMISE(promise);
   send_closure(file_manager_actor_, &FileManager::external_file_generate_finish, request.generation_id_,
-               std::move(status), std::move(query_promise));
+               std::move(status), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteFile &request) {
   CHECK_AUTH();
-  CREATE_REQUEST_PROMISE(promise);
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(make_tl_object<td_api::ok>());
-    }
-  });
-
-  send_closure(file_manager_actor_, &FileManager::delete_file, FileId(request.file_id_, 0), std::move(query_promise),
+  CREATE_OK_REQUEST_PROMISE(promise);
+  send_closure(file_manager_actor_, &FileManager::delete_file, FileId(request.file_id_, 0), std::move(promise),
                "td_api::deleteFile");
 }
 
@@ -6340,16 +6297,9 @@ void Td::on_request(uint64 id, const td_api::deleteSupergroup &request) {
 
 void Td::on_request(uint64 id, td_api::closeSecretChat &request) {
   CHECK_AUTH();
-  CREATE_REQUEST_PROMISE(promise);
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(make_tl_object<td_api::ok>());
-    }
-  });
+  CREATE_OK_REQUEST_PROMISE(promise);
   send_closure(secret_chats_manager_, &SecretChatsManager::cancel_chat, SecretChatId(request.secret_chat_id_),
-               std::move(query_promise));
+               std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getStickers &request) {
@@ -6876,16 +6826,9 @@ void Td::on_request(uint64 id, const td_api::deletePassportData &request) {
   if (request.type_ == nullptr) {
     return send_error_raw(id, 400, "Type must not be empty");
   }
-  CREATE_REQUEST_PROMISE(promise);
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(make_tl_object<td_api::ok>());
-    }
-  });
+  CREATE_OK_REQUEST_PROMISE(promise);
   send_closure(secure_manager_, &SecureManager::delete_secure_value, get_secure_value_type_td_api(request.type_),
-               std::move(query_promise));
+               std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::sendPhoneNumberVerificationCode &request) {
@@ -6964,16 +6907,9 @@ void Td::on_request(uint64 id, td_api::sendPassportAuthorizationForm &request) {
     }
   }
 
-  CREATE_REQUEST_PROMISE(promise);
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(make_tl_object<td_api::ok>());
-    }
-  });
+  CREATE_OK_REQUEST_PROMISE(promise);
   send_closure(secure_manager_, &SecureManager::send_passport_authorization_form, request.password_,
-               request.autorization_form_id_, get_secure_value_types_td_api(request.types_), std::move(query_promise));
+               request.autorization_form_id_, get_secure_value_types_td_api(request.types_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getSupportUser &request) {
@@ -7049,15 +6985,8 @@ void Td::on_request(uint64 id, td_api::removeRecentHashtag &request) {
   CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.hashtag_);
-  CREATE_REQUEST_PROMISE(promise);
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<> result) mutable {
-    if (result.is_error()) {
-      promise.set_error(result.move_as_error());
-    } else {
-      promise.set_value(make_tl_object<td_api::ok>());
-    }
-  });
-  send_closure(hashtag_hints_, &HashtagHints::remove_hashtag, std::move(request.hashtag_), std::move(query_promise));
+  CREATE_OK_REQUEST_PROMISE(promise);
+  send_closure(hashtag_hints_, &HashtagHints::remove_hashtag, std::move(request.hashtag_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getCountryCode &request) {
@@ -7087,9 +7016,9 @@ void Td::on_request(uint64 id, const td_api::getProxy &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::setProxy &request) {
-  CREATE_REQUEST_PROMISE(promise);
+  CREATE_OK_REQUEST_PROMISE(promise);
   send_closure(G()->connection_creator(), &ConnectionCreator::set_proxy, Proxy::from_td_api(request.proxy_));
-  promise.set_value(make_tl_object<td_api::ok>());
+  promise.set_value(Unit());
 }
 
 void Td::on_request(uint64 id, const td_api::getTextEntities &request) {
@@ -7222,6 +7151,7 @@ void Td::on_request(uint64 id, td_api::testCallVectorStringObject &request) {
 #undef CREATE_NO_ARGS_REQUEST
 #undef CREATE_REQUEST
 #undef CREATE_REQUEST_PROMISE
+#undef CREATE_OK_REQUEST_PROMISE
 
 constexpr const char *Td::TDLIB_VERSION;
 
