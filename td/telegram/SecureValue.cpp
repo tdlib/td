@@ -588,40 +588,26 @@ EncryptedSecureValue encrypt_secure_value(FileManager *file_manager, const secur
   return res;
 }
 
-JsonScope &to_json(JsonValueScope &scope, const SecureDataCredentials &credentials) {
-  auto object = scope.enter_object();
-  object << ctie("data_hash", base64_encode(credentials.hash));
-  object << ctie("secret", base64_encode(credentials.secret));
-  return scope;
+auto as_jsonable(const SecureDataCredentials &credentials) {
+  return json_object([&credentials](auto &o) {
+    o("data_hash", base64_encode(credentials.hash));
+    o("secret", base64_encode(credentials.secret));
+  });
 }
 
-JsonScope &to_json(JsonValueScope &scope, const SecureFileCredentials &credentials) {
-  auto object = scope.enter_object();
-  object << ctie("file_hash", base64_encode(credentials.hash));
-  object << ctie("secret", base64_encode(credentials.secret));
-  return scope;
+auto as_jsonable(const SecureFileCredentials &credentials) {
+  return json_object([&credentials](auto &o) {
+    o("file_hash", base64_encode(credentials.hash));
+    o("secret", base64_encode(credentials.secret));
+  });
 }
 
-JsonScope &to_json(JsonValueScope &scope, const vector<SecureFileCredentials> &files) {
-  auto arr = scope.enter_array();
-  for (auto &file : files) {
-    arr << ToJson(file);
-  }
-  return scope;
-}
-
-JsonScope &to_json(JsonValueScope &scope, const SecureValueCredentials &credentials) {
-  auto object = scope.enter_object();
-  if (credentials.data) {
-    object << ctie("data", ToJson(credentials.data.value()));
-  }
-  if (!credentials.files.empty()) {
-    object << ctie("files", ToJson(credentials.files));
-  }
-  if (credentials.selfie) {
-    object << ctie("selfie", ToJson(credentials.selfie.value()));
-  }
-  return scope;
+auto as_jsonable(const vector<SecureFileCredentials> &files) {
+  return json_array([&files](auto &arr) {
+    for (auto &file : files) {
+      arr(as_jsonable(file));
+    }
+  });
 }
 
 Slice secure_value_type_as_slice(SecureValueType type) {
@@ -653,25 +639,30 @@ Slice secure_value_type_as_slice(SecureValueType type) {
   }
 }
 
-JsonScope &to_json(JsonValueScope &scope, const std::vector<SecureValueCredentials> &credentials) {
-  auto object = scope.enter_object();
-  for (auto &c : credentials) {
-    object << ctie(secure_value_type_as_slice(c.type), ToJson(c));
-  }
-  return scope;
-}
-
-JsonScope &to_json(JsonValueScope &scope,
-                   const std::tuple<const std::vector<SecureValueCredentials> &, const Slice &> &credentials) {
-  auto object = scope.enter_object();
-  object << ctie("secure_data", ToJson(std::get<0>(credentials)));
-  object << ctie("payload", std::get<1>(credentials));
-  return scope;
+auto credentials_as_jsonable(std::vector<SecureValueCredentials> &credentials, Slice payload) {
+  return json_object([&credentials, &payload](auto &o) {
+    o("secure_data", json_object([&credentials](auto &o) {
+        for (auto &c : credentials) {
+          o(secure_value_type_as_slice(c.type), json_object([&credentials = c](auto &o) {
+              if (credentials.data) {
+                o("data", as_jsonable(credentials.data.value()));
+              }
+              if (!credentials.files.empty()) {
+                o("files", as_jsonable(credentials.files));
+              }
+              if (credentials.selfie) {
+                o("selfie", as_jsonable(credentials.selfie.value()));
+              }
+            }));
+        }
+      }));
+    o("payload", payload);
+  });
 }
 
 Result<EncryptedSecureCredentials> encrypted_credentials(std::vector<SecureValueCredentials> &credentials,
                                                          Slice payload, Slice public_key) {
-  auto encoded_credentials = json_encode<std::string>(ToJson(ctie(credentials, payload)));
+  auto encoded_credentials = json_encode<std::string>(credentials_as_jsonable(credentials, payload));
 
   auto secret = secure_storage::Secret::create_new();
   auto encrypted_value = secure_storage::encrypt_value(secret, encoded_credentials).move_as_ok();
