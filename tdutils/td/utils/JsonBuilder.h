@@ -342,6 +342,10 @@ class JsonArrayScope : public JsonScope {
   }
   template <class T>
   JsonArrayScope &operator<<(const T &x) {
+    return (*this)(x);
+  }
+  template <class T>
+  JsonArrayScope &operator()(const T &x) {
     enter_value() << x;
     return *this;
   }
@@ -391,7 +395,7 @@ class JsonObjectScope : public JsonScope {
     }
     jb_->enter_value() << key;
     *sb_ << ":";
-    jb_->enter_value() << key;
+    jb_->enter_value() << value;
     return *this;
   }
   JsonObjectScope &operator<<(const JsonRaw &key_value) {
@@ -783,6 +787,33 @@ class JsonObjectImpl : Jsonable {
 template <class F>
 auto json_object(F &&f) {
   return JsonObjectImpl<F>(std::forward<F>(f));
+}
+
+template <class F>
+class JsonArrayImpl : Jsonable {
+ public:
+  JsonArrayImpl(F &&f) : f_(std::forward<F>(f)) {
+  }
+  void store(JsonValueScope *scope) const {
+    auto array = scope->enter_array();
+    f_(array);
+  }
+
+ private:
+  F f_;
+};
+template <class F>
+auto json_array(F &&f) {
+  return JsonArrayImpl<F>(std::forward<F>(f));
+}
+
+template <class A, class F>
+auto json_array(const A &a, F &&f) {
+  return json_array([&a, &f](auto &arr) {
+    for (auto &x : a) {
+      arr(f(x));
+    }
+  });
 }
 
 bool has_json_object_field(JsonObject &object, Slice name);
