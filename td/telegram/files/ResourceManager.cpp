@@ -164,7 +164,7 @@ void ResourceManager::add_node(NodeId node_id, int8 priority) {
     to_xload_.insert(it, std::make_pair(priority, node_id));
   } else {
     auto it = std::find_if(to_xload_.begin(), to_xload_.end(), [&](auto &x) { return x.first < -priority; });
-    to_xload_.insert(it, std::make_pair(-priority, node_id));
+    to_xload_.insert(it, std::make_pair(narrow_cast<int8>(-priority), node_id));
   }
 }
 bool ResourceManager::remove_node(NodeId node_id) {

@@ -50,7 +50,7 @@ string base64_encode(Slice input) {
 static unsigned char char_to_value[256];
 static void init_base64_table() {
   static bool is_inited = []() {
-    std::fill(std::begin(char_to_value), std::end(char_to_value), 64);
+    std::fill(std::begin(char_to_value), std::end(char_to_value), static_cast<unsigned char>(64));
     for (unsigned char i = 0; i < 64; i++) {
       char_to_value[static_cast<size_t>(symbols64[i])] = i;
     }
