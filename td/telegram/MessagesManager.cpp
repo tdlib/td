@@ -23440,7 +23440,8 @@ MessageId MessagesManager::get_message_id_by_random_id(Dialog *d, int64 random_i
         Message *m = on_get_message_from_database(d->dialog_id, d, r_value.ok());
         if (m != nullptr) {
           CHECK(m->random_id == random_id);
-          CHECK(d->random_id_to_message_id[random_id] == m->message_id);
+          CHECK(d->random_id_to_message_id[random_id] == m->message_id)
+              << random_id << " " << d->random_id_to_message_id[random_id] << " " << m->message_id;
           return m->message_id;
         }
       }

@@ -462,7 +462,8 @@ class GetDeepLinkInfoQuery : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::deepLinkInfo>> promise_;
 
  public:
-  explicit GetDeepLinkInfoQuery(Promise<td_api::object_ptr<td_api::deepLinkInfo>> &&promise) : promise_(std::move(promise)) {
+  explicit GetDeepLinkInfoQuery(Promise<td_api::object_ptr<td_api::deepLinkInfo>> &&promise)
+      : promise_(std::move(promise)) {
   }
 
   void send(Slice link) {
@@ -478,8 +479,8 @@ class GetDeepLinkInfoQuery : public Td::ResultHandler {
       pos++;
     }
     link.truncate(pos);
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::help_getDeepLinkInfo(link.str())), DcId::main(),
-                                               NetQuery::Type::Common, NetQuery::AuthFlag::Off));
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::help_getDeepLinkInfo(link.str())),
+                                               DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -506,7 +507,8 @@ class GetDeepLinkInfoQuery : public Td::ResultHandler {
           entities.clear();
         }
         FormattedText text{std::move(info->message_), std::move(entities)};
-        return promise_.set_value(td_api::make_object<td_api::deepLinkInfo>(get_formatted_text_object(text), need_update));
+        return promise_.set_value(
+            td_api::make_object<td_api::deepLinkInfo>(get_formatted_text_object(text), need_update));
       }
       default:
         UNREACHABLE();
