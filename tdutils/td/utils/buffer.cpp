@@ -8,7 +8,15 @@
 
 #include "td/utils/port/thread_local.h"
 
+#include <cstddef>
 #include <new>
+
+// fixes https://bugs.llvm.org/show_bug.cgi?id=33723 for clang >= 3.6 + c++11 + libc++
+#if TD_CLANG && _LIBCPP_VERSION
+#define TD_OFFSETOF __builtin_offsetof
+#else
+#define TD_OFFSETOF offsetof
+#endif
 
 namespace td {
 
@@ -76,7 +84,7 @@ BufferAllocator::ReaderPtr BufferAllocator::create_reader(const ReaderPtr &raw) 
 void BufferAllocator::dec_ref_cnt(BufferRaw *ptr) {
   int left = ptr->ref_cnt_.fetch_sub(1, std::memory_order_acq_rel);
   if (left == 1) {
-    auto buf_size = max(sizeof(BufferRaw), offsetof(BufferRaw, data_) + ptr->data_size_);
+    auto buf_size = max(sizeof(BufferRaw), TD_OFFSETOF(BufferRaw, data_) + ptr->data_size_);
     buffer_mem -= buf_size;
     ptr->~BufferRaw();
     delete[] ptr;
@@ -86,7 +94,7 @@ void BufferAllocator::dec_ref_cnt(BufferRaw *ptr) {
 BufferRaw *BufferAllocator::create_buffer_raw(size_t size) {
   size = (size + 7) & -8;
 
-  auto buf_size = offsetof(BufferRaw, data_) + size;
+  auto buf_size = TD_OFFSETOF(BufferRaw, data_) + size;
   if (buf_size < sizeof(BufferRaw)) {
     buf_size = sizeof(BufferRaw);
   }
