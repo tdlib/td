@@ -9419,7 +9419,7 @@ void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *message) {
       message->content = make_unique<MessageExpiredVideo>();
       break;
     default:
-      UNREACHABLE();
+      CHECK(false) << d->dialog_id << " " << message->ttl << " " << message->content->get_id();
   }
   message->ttl = 0;
   message->ttl_expires_at = 0;
