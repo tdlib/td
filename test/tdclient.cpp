@@ -242,7 +242,7 @@ class DoAuthentication : public Task {
       default:
         CHECK(false) << "Unexpected authorization state " << to_string(authorization_state);
     }
-    send_query(std::move(function), [this](auto res) { CHECK(res->get_id() == td_api::ok::ID) << to_string(res); });
+    send_query(std::move(function), [](auto res) { CHECK(res->get_id() == td_api::ok::ID) << to_string(res); });
   }
   void on_authorization_ready() {
     LOG(INFO) << "GOT AUTHORIZED";

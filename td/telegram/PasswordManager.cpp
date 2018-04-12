@@ -94,15 +94,14 @@ void PasswordManager::do_get_secure_secret(bool recursive, string password, opti
           return promise.set_error(Status::Error(400, "Failed to get secure secret"));
         }
 
-        auto new_promise =
-            PromiseCreator::lambda([recursive, password, hash = std::move(hash), promise = std::move(promise),
-                                    actor_id = actor_id](Result<bool> r_ok) mutable {
-              if (r_ok.is_error()) {
-                return promise.set_error(r_ok.move_as_error());
-              }
-              send_closure(actor_id, &PasswordManager::do_get_secure_secret, false, std::move(password),
-                           std::move(hash), std::move(promise));
-            });
+        auto new_promise = PromiseCreator::lambda([password, hash = std::move(hash), promise = std::move(promise),
+                                                   actor_id = actor_id](Result<bool> r_ok) mutable {
+          if (r_ok.is_error()) {
+            return promise.set_error(r_ok.move_as_error());
+          }
+          send_closure(actor_id, &PasswordManager::do_get_secure_secret, false, std::move(password), std::move(hash),
+                       std::move(promise));
+        });
 
         UpdateSettings update_settings;
         update_settings.current_password = password;

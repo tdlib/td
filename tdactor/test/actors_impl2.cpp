@@ -199,7 +199,6 @@ TEST(Actor2, locker_stress) {
   std::atomic<int> begin{0};
   std::atomic<int> ready{0};
   std::atomic<int> check{0};
-  std::atomic<int> finish{0};
   std::vector<td::thread> threads;
   for (size_t i = 0; i < threads_n; i++) {
     threads.push_back(td::thread([&, id = i] {
