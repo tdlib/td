@@ -465,6 +465,12 @@ Result<BufferSlice> rsa_encrypt_pkcs1_oaep(Slice public_key, Slice data) {
     return Status::Error("Wrong key type, expected RSA");
   }
 
+#if OPENSSL_VERSION_NUMBER < 0x10000000L
+  RSA *rsa = pkey->pkey.rsa;
+  int outlen = RSA_size(rsa);
+  BufferSlice res(outlen);
+  if (RSA_public_encrypt(narrow_cast<int>(data.size()), const_cast<unsigned char *>(data.ubegin()), res.as_slice().ubegin(), rsa, RSA_PKCS1_OAEP_PADDING) != outlen) {
+#else
   EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(pkey, nullptr);
   if (!ctx) {
     return Status::Error("Cannot create EVP_PKEY_CTX");
@@ -486,6 +492,7 @@ Result<BufferSlice> rsa_encrypt_pkcs1_oaep(Slice public_key, Slice data) {
   }
   BufferSlice res(outlen);
   if (EVP_PKEY_encrypt(ctx, res.as_slice().ubegin(), &outlen, data.ubegin(), data.size()) <= 0) {
+#endif
     return Status::Error("Cannot encrypt");
   }
   return std::move(res);
@@ -509,6 +516,16 @@ Result<BufferSlice> rsa_decrypt_pkcs1_oaep(Slice private_key, Slice data) {
     return Status::Error("Wrong key type, expected RSA");
   }
 
+#if OPENSSL_VERSION_NUMBER < 0x10000000L
+  RSA *rsa = pkey->pkey.rsa;
+  size_t outlen = RSA_size(rsa);
+  BufferSlice res(outlen);
+  auto inlen = RSA_private_decrypt(narrow_cast<int>(data.size()), const_cast<unsigned char *>(data.ubegin()), res.as_slice().ubegin(), rsa, RSA_PKCS1_OAEP_PADDING);
+  if (inlen == -1) {
+    return Status::Error("Cannot decrypt");
+  }
+  res.truncate(inlen);
+#else
   EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(pkey, nullptr);
   if (!ctx) {
     return Status::Error("Cannot create EVP_PKEY_CTX");
@@ -532,6 +549,7 @@ Result<BufferSlice> rsa_decrypt_pkcs1_oaep(Slice private_key, Slice data) {
   if (EVP_PKEY_decrypt(ctx, res.as_slice().ubegin(), &outlen, data.ubegin(), data.size()) <= 0) {
     return Status::Error("Cannot decrypt");
   }
+#endif
   return std::move(res);
 }
 
