@@ -19362,7 +19362,8 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
   }
 
   auto new_message_id = MessageId(old_message_id.get() - MessageId::TYPE_YET_UNSENT + MessageId::TYPE_LOCAL);
-  if (get_message_force(d, new_message_id) != nullptr || d->deleted_message_ids.count(new_message_id)) {
+  if (get_message_force(d, new_message_id) != nullptr || d->deleted_message_ids.count(new_message_id) ||
+      new_message_id.get() <= d->last_clear_history_message_id.get()) {
     new_message_id = get_next_local_message_id(d);
   }
 
