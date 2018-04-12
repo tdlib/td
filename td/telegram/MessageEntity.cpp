@@ -1860,7 +1860,7 @@ vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manag
           LOG(ERROR) << "Receive invalid " << user_id << " in MentionName from " << source;
           continue;
         }
-        if (!contacts_manager->have_user(user_id)) {
+        if (contacts_manager == nullptr || !contacts_manager->have_user(user_id)) {
           LOG(ERROR) << "Receive unknown " << user_id << " in MentionName from " << source;
           continue;
         }

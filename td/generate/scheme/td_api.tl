@@ -1899,6 +1899,10 @@ count count:int32 = Count;
 text text:string = Text;
 
 
+//@description Contains information about a tg:// deep link @text Text to be shown to the user @need_update_application True, if user should be asked to update the application
+deepLinkInfo text:formattedText need_update_application:Bool = DeepLinkInfo;
+
+
 //@class TextParseMode @description Describes the way the text should be parsed for TextEntities
 
 //@description The text should be parsed in markdown-style
@@ -3045,6 +3049,9 @@ getInviteText = Text;
 
 //@description Returns the terms of service. Can be called before authorization
 getTermsOfService = Text;
+
+//@description Returns information about a tg:// deep link. Returns a 404 error for unknown links. Can be called before authorization @link The link
+getDeepLinkInfo link:string = DeepLinkInfo;
 
 
 //@description Sets the proxy server for network requests. Can be called before authorization @proxy Proxy server to use. Specify null to remove the proxy server

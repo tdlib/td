@@ -1605,6 +1605,8 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::getInviteText>());
     } else if (op == "gtos") {
       send_request(make_tl_object<td_api::getTermsOfService>());
+    } else if (op == "gdli") {
+      send_request(make_tl_object<td_api::getDeepLinkInfo>(args));
     } else if (op == "tme") {
       send_request(make_tl_object<td_api::getRecentlyVisitedTMeUrls>(args));
     } else if (op == "bu") {
