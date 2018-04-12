@@ -16,6 +16,7 @@
 #include <cerrno>
 #include <cstring>
 #include <new>
+#include <type_traits>
 #include <utility>
 
 #define TRY_STATUS(status)               \
@@ -327,7 +328,7 @@ class Result {
  public:
   Result() : status_(Status::Error()) {
   }
-  template <class S>
+  template <class S, std::enable_if_t<!std::is_same<std::decay_t<S>, Result>::value, int> = 0>
   Result(S &&x) : status_(), value_(std::forward<S>(x)) {
   }
   Result(Status &&status) : status_(std::move(status)) {
