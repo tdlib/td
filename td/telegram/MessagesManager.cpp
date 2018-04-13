@@ -23657,25 +23657,25 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   }
 
   if (message_id.is_valid()) {
+    if ((message_id.is_server() || dialog_id.get_type() == DialogType::SecretChat) &&
+        !d->last_new_message_id.is_valid()) {
+      LOG(ERROR) << "Bugfixing wrong last_new_message_id to " << message_id << " in " << dialog_id;
+      // must be called before set_dialog_first_database_message_id and set_dialog_last_database_message_id
+      set_dialog_last_new_message_id(d, message_id, "add_new_dialog 1");
+    }
     if (!d->first_database_message_id.is_valid() || d->first_database_message_id.get() > message_id.get()) {
       LOG(ERROR) << "Bugfixing wrong first_database_message_id from " << d->first_database_message_id << " to "
                  << message_id << " in " << dialog_id;
-      set_dialog_first_database_message_id(d, message_id, "add_new_dialog");
+      set_dialog_first_database_message_id(d, message_id, "add_new_dialog 2");
     }
-    set_dialog_last_database_message_id(d, message_id, "add_new_dialog");
-    if ((message_id.is_server() || dialog_id.get_type() == DialogType::SecretChat) &&
-        !d->last_new_message_id.is_valid()) {
-      // is it even possible?
-      LOG(ERROR) << "Bugfixing wrong last_new_message_id to " << message_id << " in " << dialog_id;
-      set_dialog_last_new_message_id(d, message_id, "add_new_dialog");
-    }
+    set_dialog_last_database_message_id(d, message_id, "add_new_dialog 3");
   } else if (d->first_database_message_id.is_valid()) {
     // ensure that first_database_message_id <= last_database_message_id
     if (d->first_database_message_id.get() <= d->last_new_message_id.get()) {
-      set_dialog_last_database_message_id(d, d->last_new_message_id, "add_new_dialog 2");
+      set_dialog_last_database_message_id(d, d->last_new_message_id, "add_new_dialog 4");
     } else {
       // can't fix last_database_message_id, drop first_database_message_id; it shouldn't happen anyway
-      set_dialog_first_database_message_id(d, MessageId(), "add_new_dialog 2");
+      set_dialog_first_database_message_id(d, MessageId(), "add_new_dialog 5");
     }
   }
 
