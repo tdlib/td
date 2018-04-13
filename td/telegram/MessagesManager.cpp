@@ -22673,7 +22673,7 @@ void MessagesManager::attach_message_to_previous(Dialog *d, MessageId message_id
   CHECK(message->message_id == message_id);
   CHECK(message->have_previous) << d->dialog_id << " " << message_id << " " << source;
   --it;
-  CHECK(*it != nullptr);
+  CHECK(*it != nullptr) << d->dialog_id << " " << message_id << " " << source;
   LOG(INFO) << "Attach " << message_id << " to the previous " << (*it)->message_id;
   if ((*it)->have_next) {
     message->have_next = true;
@@ -22690,7 +22690,7 @@ void MessagesManager::attach_message_to_next(Dialog *d, MessageId message_id, co
   CHECK(message->message_id == message_id);
   CHECK(message->have_next) << d->dialog_id << " " << message_id << " " << source;
   ++it;
-  CHECK(*it != nullptr);
+  CHECK(*it != nullptr) << d->dialog_id << " " << message_id << " " << source;
   LOG(INFO) << "Attach " << message_id << " to the next " << (*it)->message_id;
   if ((*it)->have_previous) {
     message->have_previous = true;
