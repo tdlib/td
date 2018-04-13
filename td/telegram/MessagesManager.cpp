@@ -15663,6 +15663,14 @@ bool MessagesManager::is_message_auto_read(DialogId dialog_id, bool is_outgoing,
   }
 }
 
+void MessagesManager::add_formatted_text_dependencies(Dependencies &dependencies, const FormattedText &text) {
+  for (auto &entity : text.entities) {
+    if (entity.user_id.is_valid()) {
+      dependencies.user_ids.insert(entity.user_id);
+    }
+  }
+}
+
 void MessagesManager::add_message_dependencies(Dependencies &dependencies, DialogId dialog_id, const Message *m) {
   dependencies.user_ids.insert(m->sender_user_id);
   dependencies.user_ids.insert(m->via_bot_user_id);
@@ -15679,11 +15687,7 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, Dialo
   switch (m->content->get_id()) {
     case MessageText::ID: {
       auto content = static_cast<const MessageText *>(m->content.get());
-      for (auto &entity : content->text.entities) {
-        if (entity.user_id.is_valid()) {
-          dependencies.user_ids.insert(entity.user_id);
-        }
-      }
+      add_formatted_text_dependencies(dependencies, content->text);
       dependencies.web_page_ids.insert(content->web_page_id);
       break;
     }
@@ -15701,12 +15705,7 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, Dialo
     case MessageGame::ID: {
       auto content = static_cast<const MessageGame *>(m->content.get());
       dependencies.user_ids.insert(content->game.get_bot_user_id());
-      const FormattedText &formatted_text = content->game.get_message_text();
-      for (auto &entity : formatted_text.entities) {
-        if (entity.user_id.is_valid()) {
-          dependencies.user_ids.insert(entity.user_id);
-        }
-      }
+      add_formatted_text_dependencies(dependencies, content->game.get_message_text());
       break;
     }
     case MessageInvoice::ID:
@@ -15796,12 +15795,7 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, Dialo
       UNREACHABLE();
       break;
   }
-  auto caption = get_message_content_caption(m->content.get());
-  for (auto &entity : caption.entities) {
-    if (entity.user_id.is_valid()) {
-      dependencies.user_ids.insert(entity.user_id);
-    }
-  }
+  add_formatted_text_dependencies(dependencies, get_message_content_caption(m->content.get()));
 }
 
 void MessagesManager::add_dialog_dependencies(Dependencies &dependencies, DialogId dialog_id) {
@@ -24101,6 +24095,9 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
   add_dialog_dependencies(dependencies, dialog_id);
   if (d->messages != nullptr) {
     add_message_dependencies(dependencies, dialog_id, d->messages.get());
+  }
+  if (d->draft_message != nullptr) {
+    add_formatted_text_dependencies(dependencies, d->draft_message->input_message_text.text);
   }
   resolve_dependencies_force(dependencies);
 

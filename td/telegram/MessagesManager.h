@@ -2581,9 +2581,11 @@ class MessagesManager : public Actor {
 
   static void dump_debug_message_op(const Dialog *d, int priority = 0);
 
-  void add_message_dependencies(Dependencies &dependencies, DialogId dialog_id, const Message *m);
+  static void add_formatted_text_dependencies(Dependencies &dependencies, const FormattedText &text);
 
-  void add_dialog_dependencies(Dependencies &dependencies, DialogId dialog_id);
+  static void add_message_dependencies(Dependencies &dependencies, DialogId dialog_id, const Message *m);
+
+  static void add_dialog_dependencies(Dependencies &dependencies, DialogId dialog_id);
 
   void resolve_dependencies_force(const Dependencies &dependencies);
 
