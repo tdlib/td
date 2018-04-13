@@ -188,8 +188,7 @@ class SecretChatActor : public NetQueryCallback {
       storer.store_int(ttl);
       storer.store_int(my_layer);
       //for future usage
-      BEGIN_STORE_FLAGS();
-      END_STORE_FLAGS();
+      storer.store_int(0);
     }
 
     template <class ParserT>
@@ -201,8 +200,8 @@ class SecretChatActor : public NetQueryCallback {
         his_layer &= ~HAS_FLAGS;
         my_layer = parser.fetch_int();
         // for future usage
-        BEGIN_PARSE_FLAGS();
-        END_PARSE_FLAGS();
+        int32 flags = parser.fetch_int();
+        CHECK(flags == 0);
       }
     }
 

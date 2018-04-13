@@ -39,9 +39,10 @@
   flag = ((flags_parse >> bit_offset_parse) & 1) != 0; \
   bit_offset_parse++
 
-#define END_PARSE_FLAGS()       \
-  CHECK(bit_offset_parse < 31); \
-  CHECK((flags_parse & ~((1 << bit_offset_parse) - 1)) == 0) << flags_parse << " " << bit_offset_parse;
+#define END_PARSE_FLAGS()                                    \
+  CHECK(bit_offset_parse < 31);                              \
+  CHECK((flags_parse & ~((1 << bit_offset_parse) - 1)) == 0) \
+      << flags_parse << " " << bit_offset_parse << " " << parser.version();
 
 namespace td {
 template <class StorerT>

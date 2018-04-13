@@ -1222,7 +1222,7 @@ class FileData {
     PARSE_FLAG(has_owner_dialog_id);
     PARSE_FLAG(has_expected_size);
     PARSE_FLAG(encryption_key_is_secure);
-    END_PARSE_FLAGS();
+    // END_PARSE_FLAGS();
 
     if (has_owner_dialog_id) {
       parse(owner_dialog_id_, parser);
