@@ -72,8 +72,8 @@ struct AesCtrEncryptionEvent {
   template <class StorerT>
   void store(StorerT &storer) const {
     using td::store;
-    int32 flags = 0;
-    store(flags, storer);
+    BEGIN_STORE_FLAGS();
+    END_STORE_FLAGS();
     store(key_salt_, storer);
     store(iv_, storer);
     store(key_hash_, storer);
@@ -81,9 +81,8 @@ struct AesCtrEncryptionEvent {
   template <class ParserT>
   void parse(ParserT &&parser) {
     using td::parse;
-    int32 flags;
-    parse(flags, parser);
-    CHECK(flags == 0);
+    BEGIN_PARSE_FLAGS();
+    END_PARSE_FLAGS_GENERIC();
     parse(key_salt_, parser);
     parse(iv_, parser);
     parse(key_hash_, parser);

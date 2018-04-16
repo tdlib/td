@@ -44,6 +44,10 @@
   CHECK((flags_parse & ~((1 << bit_offset_parse) - 1)) == 0) \
       << flags_parse << " " << bit_offset_parse << " " << parser.version();
 
+#define END_PARSE_FLAGS_GENERIC() \
+  CHECK(bit_offset_parse < 31);   \
+  CHECK((flags_parse & ~((1 << bit_offset_parse) - 1)) == 0) << flags_parse << " " << bit_offset_parse;
+
 namespace td {
 template <class StorerT>
 void store(bool x, StorerT &storer) {
