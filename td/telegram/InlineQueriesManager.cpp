@@ -386,7 +386,8 @@ bool InlineQueriesManager::register_inline_message_content(
     case telegram_api::botInlineMessageMediaAuto::ID: {
       auto input_message_media_auto = move_tl_object_as<telegram_api::botInlineMessageMediaAuto>(inline_message);
       auto caption = td_->messages_manager_->get_message_text(input_message_media_auto->message_,
-                                                              std::move(input_message_media_auto->entities_), 0);
+                                                              std::move(input_message_media_auto->entities_), 0,
+                                                              "register_inline_message_content");
       reply_markup = std::move(input_message_media_auto->reply_markup_);
 
       if (allowed_media_content_id == td_api::inputMessageAnimation::ID) {

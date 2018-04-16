@@ -5461,7 +5461,8 @@ MessagesManager::Dialog *MessagesManager::get_service_notifications_dialog() {
 void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api::updateServiceNotification> &&update) {
   int32 ttl = 0;
   auto content = get_message_content(
-      get_message_text(std::move(update->message_), std::move(update->entities_), update->inbox_date_),
+      get_message_text(std::move(update->message_), std::move(update->entities_), update->inbox_date_,
+                       "on_update_service_notification"),
       std::move(update->media_),
       td_->auth_manager_->is_bot() ? DialogId() : get_service_notifications_dialog()->dialog_id, false, UserId(), &ttl);
   bool is_content_secret = is_secret_message_content(ttl, content->get_id());
@@ -10075,7 +10076,8 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       }
       message_info.content = get_message_content(
           get_message_text(std::move(message->message_), std::move(message->entities_),
-                           message_info.forward_header ? message_info.forward_header->date_ : message_info.date),
+                           message_info.forward_header ? message_info.forward_header->date_ : message_info.date,
+                           "parse_telegram_api_message"),
           std::move(message->media_), message_info.dialog_id, is_content_read, message_info.via_bot_user_id,
           &message_info.ttl);
       message_info.reply_markup =
@@ -10619,7 +10621,8 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
   auto message_text = static_cast<const MessageText *>(m->content.get());
 
   auto new_content = get_message_content(
-      get_message_text(message_text->text.text, std::move(entities), m->forward_info ? m->forward_info->date : m->date),
+      get_message_text(message_text->text.text, std::move(entities), m->forward_info ? m->forward_info->date : m->date,
+                       "on_update_sent_text_message"),
       std::move(message_media), dialog_id, true /*likely ignored*/, UserId() /*likely ignored*/, nullptr /*ignored*/);
   if (new_content->get_id() != MessageText::ID) {
     LOG(ERROR) << "Text message content has changed to " << new_content->get_id();
@@ -20933,13 +20936,13 @@ FormattedText MessagesManager::get_secret_media_caption(string &&message_text, s
 
 FormattedText MessagesManager::get_message_text(string message_text,
                                                 vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,
-                                                int32 send_date) const {
-  auto entities = get_message_entities(td_->contacts_manager_.get(), std::move(server_entities), "get_message_text");
+                                                int32 send_date, const char *source) const {
+  auto entities = get_message_entities(td_->contacts_manager_.get(), std::move(server_entities), source);
   auto status = fix_formatted_text(message_text, entities, true, true, true, false);
   if (status.is_error()) {
     if (send_date == 0 || send_date > 1497000000) {  // approximate fix date
-      LOG(ERROR) << "Receive error " << status << " while parsing message content \"" << message_text << "\" sent at "
-                 << send_date << " with entities " << format::as_array(entities);
+      LOG(ERROR) << "Receive error " << status << " while parsing message from " << source << " with content \""
+                 << message_text << "\" sent at " << send_date << " with entities " << format::as_array(entities);
     }
     if (!clean_input_string(message_text)) {
       message_text.clear();
