@@ -835,14 +835,14 @@ passportDataTypeEmailAddress = PassportDataType;
 //@description Represents a date according to Gregorian calendar @day A day of a month, 1-31 @month A month, 1-12 @year A year, 1-9999
 date day:int32 month:int32 year:int32 = Date;
 
-//@description Contains user's personal details @first_name First name of the user @last_name Last name of the user @birthdate Birthdate of the user
+//@description Contains user's personal details @first_name First name of the user; 1-255 characters @last_name Last name of the user; 1-255 characters @birthdate Birthdate of the user
 //@gender Gender of the user, "male" or "female" @country_code A two-letter ISO 3166-1 alpha-2 country code for the user's country
 personalDetails first_name:string last_name:string birthdate:date gender:string country_code:string = PersonalDetails;
 
-//@description An identity document @number Document's number @expiry_date Document's expiry date @files List of files with the document images @selfie Selfie with the document; may be null
+//@description An identity document @number Document's number; 1-24 characters @expiry_date Document's expiry date; may be null @files List of files with the document images @selfie Selfie with the document; may be null
 identityDocument number:string expiry_date:date files:vector<file> selfie:file = IdentityDocument;
 
-//@description An identity document to save @number Document's number @expiry_date Document's expiry date @files List of files with the document images @selfie Selfie with the document, if available
+//@description An identity document to save @number Document's number @expiry_date Document's expiry date, if available @files List of files with the document images @selfie Selfie with the document, if available
 inputIdentityDocument number:string expiry_date:date files:vector<InputFile> selfie:InputFile = InputIdentityDocument;
 
 

@@ -59,7 +59,7 @@ void DeviceTokenManager::TokenInfo::parse(ParserT &parser) {
   PARSE_FLAG(is_unregister);
   PARSE_FLAG(is_register);
   PARSE_FLAG(is_app_sandbox);
-  END_PARSE_FLAGS();
+  // END_PARSE_FLAGS();
   CHECK(is_sync + is_unregister + is_register == 1);
   if (is_sync) {
     state = State::Sync;

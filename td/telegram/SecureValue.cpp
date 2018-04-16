@@ -422,7 +422,7 @@ static Status check_date(int32 day, int32 month, int32 year) {
 
 static Result<string> get_date(td_api::object_ptr<td_api::date> &&date) {
   if (date == nullptr) {
-    return Status::Error(400, "Date must not be empty");
+    return string();
   }
   TRY_STATUS(check_date(date->day_, date->month_, date->year_));
 
@@ -431,6 +431,9 @@ static Result<string> get_date(td_api::object_ptr<td_api::date> &&date) {
 }
 
 static Result<td_api::object_ptr<td_api::date>> get_date_object(Slice date) {
+  if (date.empty()) {
+    return nullptr;
+  }
   if (date.size() != 10u) {
     return Status::Error(400, "Date has wrong size");
   }
@@ -450,12 +453,24 @@ static Status check_first_name(string &first_name) {
   if (!clean_input_string(first_name)) {
     return Status::Error(400, "First name must be encoded in UTF-8");
   }
+  if (first_name.empty()) {
+    return Status::Error(400, "First name must not be empty");
+  }
+  if (utf8_length(first_name) > 255) {
+    return Status::Error(400, "First name is too long");
+  }
   return Status::OK();
 }
 
 static Status check_last_name(string &last_name) {
   if (!clean_input_string(last_name)) {
     return Status::Error(400, "Last name must be encoded in UTF-8");
+  }
+  if (last_name.empty()) {
+    return Status::Error(400, "Last name must not be empty");
+  }
+  if (utf8_length(last_name) > 255) {
+    return Status::Error(400, "Last name is too long");
   }
   return Status::OK();
 }
@@ -474,6 +489,9 @@ static Result<string> get_personal_details(td_api::object_ptr<td_api::personalDe
   TRY_STATUS(check_first_name(personal_details->first_name_));
   TRY_STATUS(check_last_name(personal_details->last_name_));
   TRY_RESULT(birthdate, get_date(std::move(personal_details->birthdate_)));
+  if (birthdate.empty()) {
+    return Status::Error(400, "Birthdate must not be empty");
+  }
   TRY_STATUS(check_gender(personal_details->gender_));
   TRY_STATUS(check_country_code(personal_details->country_code_));
 
@@ -502,6 +520,9 @@ static Result<td_api::object_ptr<td_api::personalDetails>> get_personal_details_
   TRY_RESULT(first_name, get_json_object_string_field(object, "first_name", true));
   TRY_RESULT(last_name, get_json_object_string_field(object, "last_name", true));
   TRY_RESULT(birthdate, get_json_object_string_field(object, "birth_date", true));
+  if (birthdate.empty()) {
+    return Status::Error(400, "Birthdate must not be empty");
+  }
   TRY_RESULT(gender, get_json_object_string_field(object, "gender", true));
   TRY_RESULT(country_code, get_json_object_string_field(object, "country_code", true));
 
@@ -518,6 +539,12 @@ static Result<td_api::object_ptr<td_api::personalDetails>> get_personal_details_
 static Status check_document_number(string &number) {
   if (!clean_input_string(number)) {
     return Status::Error(400, "Document number must be encoded in UTF-8");
+  }
+  if (number.empty()) {
+    return Status::Error(400, "Document number must not be empty");
+  }
+  if (utf8_length(number) > 24) {
+    return Status::Error(400, "Document number is too long");
   }
   return Status::OK();
 }
