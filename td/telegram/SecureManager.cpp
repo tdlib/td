@@ -488,11 +488,36 @@ void SecureManager::get_passport_authorization_form(string password, UserId bot_
                                                     Promise<TdApiAuthorizationForm> promise) {
   refcnt_++;
   auto authorization_form_id = ++authorization_form_id_;
-  authorization_forms_[authorization_form_id] = AuthorizationForm{bot_user_id, scope, public_key, payload};
+  authorization_forms_[authorization_form_id] =
+      AuthorizationForm{bot_user_id, scope, public_key, payload, false, false};
+  auto new_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), authorization_form_id, promise = std::move(promise)](
+                                 Result<TdApiAuthorizationForm> r_authorization_form) mutable {
+        send_closure(actor_id, &SecureManager::on_get_passport_authorization_form, authorization_form_id,
+                     std::move(promise), std::move(r_authorization_form));
+      });
   create_actor<GetPassportAuthorizationForm>("GetPassportAuthorizationForm", actor_shared(), std::move(password),
                                              authorization_form_id, bot_user_id, std::move(scope),
-                                             std::move(public_key), std::move(promise))
+                                             std::move(public_key), std::move(new_promise))
       .release();
+}
+
+void SecureManager::on_get_passport_authorization_form(int32 authorization_form_id,
+                                                       Promise<TdApiAuthorizationForm> promise,
+                                                       Result<TdApiAuthorizationForm> r_authorization_form) {
+  auto it = authorization_forms_.find(authorization_form_id);
+  CHECK(it != authorization_forms_.end());
+  CHECK(it->second.is_received == false);
+  if (r_authorization_form.is_error()) {
+    authorization_forms_.erase(it);
+    return promise.set_error(r_authorization_form.move_as_error());
+  }
+  it->second.is_received = true;
+
+  auto authorization_form = r_authorization_form.move_as_ok();
+  CHECK(authorization_form != nullptr);
+  it->second.is_selfie_required = authorization_form->is_selfie_required_;
+  promise.set_value(std::move(authorization_form));
 }
 
 void SecureManager::send_passport_authorization_form(string password, int32 authorization_form_id,
@@ -501,8 +526,11 @@ void SecureManager::send_passport_authorization_form(string password, int32 auth
   if (it == authorization_forms_.end()) {
     return promise.set_error(Status::Error(400, "Unknown authorization_form_id"));
   }
+  if (!it->second.is_received) {
+    return promise.set_error(Status::Error(400, "Authorization form isn't received yet"));
+  }
   if (types.empty()) {
-    return promise.set_error(Status::Error(400, "Empty types"));
+    return promise.set_error(Status::Error(400, "Types must be non-empty"));
   }
 
   struct JoinPromise {
@@ -562,7 +590,8 @@ void SecureManager::do_send_passport_authorization_form(int32 authorization_form
                                                                               BufferSlice(c.hash)));
   }
 
-  auto r_encrypted_credentials = encrypted_credentials(credentials, it->second.payload, it->second.public_key);
+  auto r_encrypted_credentials =
+      get_encrypted_credentials(credentials, it->second.payload, it->second.is_selfie_required, it->second.public_key);
   if (r_encrypted_credentials.is_error()) {
     return promise.set_error(r_encrypted_credentials.move_as_error());
   }

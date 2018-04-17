@@ -144,6 +144,8 @@ class SecureManager : public NetQueryCallback {
     string scope;
     string public_key;
     string payload;
+    bool is_selfie_required;
+    bool is_received;
   };
 
   std::map<int32, AuthorizationForm> authorization_forms_;
@@ -153,6 +155,8 @@ class SecureManager : public NetQueryCallback {
   void hangup_shared() override;
   void dec_refcnt();
   void do_get_secure_value(std::string password, SecureValueType type, Promise<SecureValueWithCredentials> promise);
+  void on_get_passport_authorization_form(int32 authorization_form_id, Promise<TdApiAuthorizationForm> promise,
+                                          Result<TdApiAuthorizationForm> r_authorization_form);
   void do_send_passport_authorization_form(int32 authorization_form_id, vector<SecureValueCredentials> credentials,
                                            Promise<> promise);
 

@@ -981,22 +981,22 @@ static Slice secure_value_type_as_slice(SecureValueType type) {
   }
 }
 
-static auto credentials_as_jsonable(std::vector<SecureValueCredentials> &credentials, Slice payload) {
-  return json_object([&credentials, &payload](auto &o) {
-    o("secure_data", json_object([&credentials](auto &o) {
+static auto credentials_as_jsonable(std::vector<SecureValueCredentials> &credentials, Slice payload, bool with_selfie) {
+  return json_object([&credentials, &payload, with_selfie](auto &o) {
+    o("secure_data", json_object([&credentials, with_selfie](auto &o) {
         for (auto &c : credentials) {
           if (c.type == SecureValueType::PhoneNumber || c.type == SecureValueType::EmailAddress) {
             continue;
           }
 
-          o(secure_value_type_as_slice(c.type), json_object([&credentials = c](auto &o) {
+          o(secure_value_type_as_slice(c.type), json_object([&credentials = c, with_selfie](auto &o) {
               if (credentials.data) {
                 o("data", as_jsonable(credentials.data.value()));
               }
               if (!credentials.files.empty()) {
                 o("files", as_jsonable(credentials.files));
               }
-              if (credentials.selfie) {
+              if (credentials.selfie && with_selfie) {
                 o("selfie", as_jsonable(credentials.selfie.value()));
               }
             }));
@@ -1006,9 +1006,9 @@ static auto credentials_as_jsonable(std::vector<SecureValueCredentials> &credent
   });
 }
 
-Result<EncryptedSecureCredentials> encrypted_credentials(std::vector<SecureValueCredentials> &credentials,
-                                                         Slice payload, Slice public_key) {
-  auto encoded_credentials = json_encode<std::string>(credentials_as_jsonable(credentials, payload));
+Result<EncryptedSecureCredentials> get_encrypted_credentials(std::vector<SecureValueCredentials> &credentials,
+                                                             Slice payload, bool with_selfie, Slice public_key) {
+  auto encoded_credentials = json_encode<std::string>(credentials_as_jsonable(credentials, payload, with_selfie));
 
   auto secret = secure_storage::Secret::create_new();
   auto encrypted_value = secure_storage::encrypt_value(secret, encoded_credentials).move_as_ok();
