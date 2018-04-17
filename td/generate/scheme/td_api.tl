@@ -926,20 +926,23 @@ passportAuthorizationForm id:int32 required_types:vector<PassportDataType> data:
 encryptedCredentials data:bytes hash:bytes secret:bytes = EncryptedCredentials;
 
 
-//@description Contains information about an encrypted Telegram Passport data @type Telegram Passport data type @data Encrypted data about the user @files List of attached files @value Unencrypted data, phone number or email address @selfie Selfie with the document
+//@description Contains information about an encrypted Telegram Passport data @type Telegram Passport data type @data Encrypted JSON-encoded data about the user @files List of attached files @value Unencrypted data, phone number or email address @selfie Selfie with the document
 encryptedPassportData type:PassportDataType data:bytes files:vector<file> value:string selfie:file = EncryptedPassportData;
 
 
 //@class PassportDataError @description Contains description of an error in a Telegram Passport data; for bots only
 
-//@description Some field value contains an error @type Data type @field_name Field name @hash Current field value hash @message Error message
-passportDataErrorField type:PassportDataType field_name:string hash:bytes message:string = PassportDataError;
+//@description A field of data contains an error. The error is considered resolved when the field's value changes @type Telegram Passport data type @field_name Field name @data_hash Current data hash @message Error message
+passportDataErrorDataField type:PassportDataType field_name:string data_hash:bytes message:string = PassportDataError;
 
-//@description Some files contain an error @type Data type @hashes Hashes of files with an error @message Error message
-passportDataErrorFiles type:PassportDataType hashes:vector<bytes> message:string = PassportDataError;
+//@description A file contains an error. The error is considered resolved when the file changes @type Telegram Passport data type @file_hash Hash of the file with an error @message Error message
+passportDataErrorFile type:PassportDataType file_hash:bytes message:string = PassportDataError;
 
-//@description Selfie contains an error @type Data type @hash Current selfie hash @message Error message
-passportDataErrorSelfie type:PassportDataType hash:bytes message:string = PassportDataError;
+//@description A list of attached files contains an error. The error is considered resolved when the file list changes @type Telegram Passport data type @file_hashes Hashes of all files @message Error message
+passportDataErrorFiles type:PassportDataType file_hashes:vector<bytes> message:string = PassportDataError;
+
+//@description A selfie contains an error. The error is considered resolved when the file with the selfie changes @type Telegram Passport data type @file_hash Current file with the selfie hash @message Error message
+passportDataErrorSelfie type:PassportDataType file_hash:bytes message:string = PassportDataError;
 
 
 //@class MessageContent @description Contains the content of a message

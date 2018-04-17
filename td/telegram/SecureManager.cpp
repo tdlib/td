@@ -524,8 +524,8 @@ void SecureManager::set_secure_value_errors(Td *td, tl_object_ptr<telegram_api::
       return promise.set_error(Status::Error(400, "Error must be non-empty"));
     }
     switch (error_ptr->get_id()) {
-      case td_api::passportDataErrorField::ID: {
-        auto error = td_api::move_object_as<td_api::passportDataErrorField>(error_ptr);
+      case td_api::passportDataErrorDataField::ID: {
+        auto error = td_api::move_object_as<td_api::passportDataErrorDataField>(error_ptr);
         if (error->type_ == nullptr) {
           return promise.set_error(Status::Error(400, "Type must be non-empty"));
         }
@@ -538,7 +538,21 @@ void SecureManager::set_secure_value_errors(Td *td, tl_object_ptr<telegram_api::
 
         auto type = get_secure_value_type_object(get_secure_value_type_td_api(error->type_));
         input_errors.push_back(make_tl_object<telegram_api::secureValueErrorData>(
-            std::move(type), BufferSlice(error->hash_), error->field_name_, error->message_));
+            std::move(type), BufferSlice(error->data_hash_), error->field_name_, error->message_));
+        break;
+      }
+      case td_api::passportDataErrorFile::ID: {
+        auto error = td_api::move_object_as<td_api::passportDataErrorFile>(error_ptr);
+        if (error->type_ == nullptr) {
+          return promise.set_error(Status::Error(400, "Type must be non-empty"));
+        }
+        if (!clean_input_string(error->message_)) {
+          return promise.set_error(Status::Error(400, "Error message must be encoded in UTF-8"));
+        }
+
+        auto type = get_secure_value_type_object(get_secure_value_type_td_api(error->type_));
+        input_errors.push_back(make_tl_object<telegram_api::secureValueErrorFile>(
+            std::move(type), BufferSlice(error->file_hash_), error->message_));
         break;
       }
       case td_api::passportDataErrorFiles::ID: {
@@ -549,14 +563,14 @@ void SecureManager::set_secure_value_errors(Td *td, tl_object_ptr<telegram_api::
         if (!clean_input_string(error->message_)) {
           return promise.set_error(Status::Error(400, "Error message must be encoded in UTF-8"));
         }
-        if (error->hashes_.empty()) {
+        if (error->file_hashes_.empty()) {
           return promise.set_error(Status::Error(400, "Error hashes must be non-empty"));
         }
 
         auto type = get_secure_value_type_object(get_secure_value_type_td_api(error->type_));
-        auto hashes = transform(error->hashes_, [](Slice hash) { return BufferSlice(hash); });
-        input_errors.push_back(
-            make_tl_object<telegram_api::secureValueErrorFiles>(std::move(type), std::move(hashes), error->message_));
+        auto file_hashes = transform(error->file_hashes_, [](Slice hash) { return BufferSlice(hash); });
+        input_errors.push_back(make_tl_object<telegram_api::secureValueErrorFiles>(
+            std::move(type), std::move(file_hashes), error->message_));
         break;
       }
       case td_api::passportDataErrorSelfie::ID: {
@@ -570,7 +584,7 @@ void SecureManager::set_secure_value_errors(Td *td, tl_object_ptr<telegram_api::
 
         auto type = get_secure_value_type_object(get_secure_value_type_td_api(error->type_));
         input_errors.push_back(make_tl_object<telegram_api::secureValueErrorSelfie>(
-            std::move(type), BufferSlice(error->hash_), error->message_));
+            std::move(type), BufferSlice(error->file_hash_), error->message_));
         break;
       }
       default:
