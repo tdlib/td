@@ -9,6 +9,7 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Td.h"
@@ -21,6 +22,35 @@
 #include <mutex>
 
 namespace td {
+
+class SetSecureValueErrorsQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SetSecureValueErrorsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(tl_object_ptr<telegram_api::InputUser> input_user,
+            vector<tl_object_ptr<telegram_api::SecureValueError>> input_errors) {
+    send_query(G()->net_query_creator().create(
+        create_storer(telegram_api::account_setSecureValueErrors(std::move(input_user), std::move(input_errors)))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::account_setSecureValueErrors>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    bool ptr = result_ptr.move_as_ok();
+    LOG(DEBUG) << "Receive result for SetSecureValueErrorsQuery " << ptr;
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
 
 GetSecureValue::GetSecureValue(ActorShared<> parent, std::string password, SecureValueType type,
                                Promise<SecureValueWithCredentials> promise)
@@ -481,6 +511,74 @@ void SecureManager::set_secure_value(string password, SecureValue secure_value, 
 
 void SecureManager::delete_secure_value(SecureValueType type, Promise<Unit> promise) {
   // TODO
+}
+
+void SecureManager::set_secure_value_errors(Td *td, tl_object_ptr<telegram_api::InputUser> input_user,
+                                            vector<tl_object_ptr<td_api::PassportDataError>> errors,
+                                            Promise<Unit> promise) {
+  CHECK(td != nullptr);
+  CHECK(input_user != nullptr);
+  vector<tl_object_ptr<telegram_api::SecureValueError>> input_errors;
+  for (auto &error_ptr : errors) {
+    if (error_ptr == nullptr) {
+      return promise.set_error(Status::Error(400, "Error must be non-empty"));
+    }
+    switch (error_ptr->get_id()) {
+      case td_api::passportDataErrorField::ID: {
+        auto error = td_api::move_object_as<td_api::passportDataErrorField>(error_ptr);
+        if (error->type_ == nullptr) {
+          return promise.set_error(Status::Error(400, "Type must be non-empty"));
+        }
+        if (!clean_input_string(error->message_)) {
+          return promise.set_error(Status::Error(400, "Error message must be encoded in UTF-8"));
+        }
+        if (!clean_input_string(error->field_name_)) {
+          return promise.set_error(Status::Error(400, "Field name must be encoded in UTF-8"));
+        }
+
+        auto type = get_secure_value_type_object(get_secure_value_type_td_api(error->type_));
+        input_errors.push_back(make_tl_object<telegram_api::secureValueErrorData>(
+            std::move(type), BufferSlice(error->hash_), error->field_name_, error->message_));
+        break;
+      }
+      case td_api::passportDataErrorFiles::ID: {
+        auto error = td_api::move_object_as<td_api::passportDataErrorFiles>(error_ptr);
+        if (error->type_ == nullptr) {
+          return promise.set_error(Status::Error(400, "Type must be non-empty"));
+        }
+        if (!clean_input_string(error->message_)) {
+          return promise.set_error(Status::Error(400, "Error message must be encoded in UTF-8"));
+        }
+        if (error->hashes_.empty()) {
+          return promise.set_error(Status::Error(400, "Error hashes must be non-empty"));
+        }
+
+        auto type = get_secure_value_type_object(get_secure_value_type_td_api(error->type_));
+        auto hashes = transform(error->hashes_, [](Slice hash) { return BufferSlice(hash); });
+        input_errors.push_back(
+            make_tl_object<telegram_api::secureValueErrorFiles>(std::move(type), std::move(hashes), error->message_));
+        break;
+      }
+      case td_api::passportDataErrorSelfie::ID: {
+        auto error = td_api::move_object_as<td_api::passportDataErrorSelfie>(error_ptr);
+        if (error->type_ == nullptr) {
+          return promise.set_error(Status::Error(400, "Type must be non-empty"));
+        }
+        if (!clean_input_string(error->message_)) {
+          return promise.set_error(Status::Error(400, "Error message must be encoded in UTF-8"));
+        }
+
+        auto type = get_secure_value_type_object(get_secure_value_type_td_api(error->type_));
+        input_errors.push_back(make_tl_object<telegram_api::secureValueErrorSelfie>(
+            std::move(type), BufferSlice(error->hash_), error->message_));
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
+  td->create_handler<SetSecureValueErrorsQuery>(std::move(promise))
+      ->send(std::move(input_user), std::move(input_errors));
 }
 
 void SecureManager::get_passport_authorization_form(string password, UserId bot_user_id, string scope,

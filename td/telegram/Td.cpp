@@ -6892,6 +6892,19 @@ void Td::on_request(uint64 id, const td_api::deletePassportData &request) {
                std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::setPassportDataErrors &request) {
+  CHECK_AUTH();
+  CHECK_IS_BOT();
+  UserId user_id(request.user_id_);
+  auto input_user = contacts_manager_->get_input_user(user_id);
+  if (input_user == nullptr) {
+    return send_error_raw(id, 400, "User not found");
+  }
+  CREATE_OK_REQUEST_PROMISE(promise);
+  send_closure(secure_manager_, &SecureManager::set_secure_value_errors, this, std::move(input_user),
+               std::move(request.errors_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::sendPhoneNumberVerificationCode &request) {
   CHECK_AUTH();
   CHECK_IS_USER();

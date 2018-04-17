@@ -753,6 +753,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::deletePassportData &request);
 
+  void on_request(uint64 id, td_api::setPassportDataErrors &request);
+
   void on_request(uint64 id, td_api::sendPhoneNumberVerificationCode &request);
 
   void on_request(uint64 id, const td_api::resendPhoneNumberVerificationCode &request);

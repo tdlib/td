@@ -229,6 +229,10 @@ class TlWriterCCommon : public tl::TL_writer {
              "#ifdef __cplusplus\n"
              "extern \"C\" {\n"
              "#endif\n"
+             "struct TdBytes {\n"
+             "  unsigned char *data;\n"
+             "  int len;\n"
+             "};\n"
              "#define TDC_VECTOR(tdc_type_name,tdc_type) \\\n"
              "   struct TdVector ## tdc_type_name { \\\n"
              "     int len;\\\n"
@@ -238,6 +242,7 @@ class TlWriterCCommon : public tl::TL_writer {
              "TDC_VECTOR(Int,int)\n"
              "TDC_VECTOR(Long,long long)\n"
              "TDC_VECTOR(String,char *)\n"
+             "TDC_VECTOR(Bytes,TdBytes)\n"
              "struct TdStackStorerMethods {\n"
              "  void (*pack_string)(const char *s);\n"
              "  void (*pack_bytes)(const unsigned char *s, int len);\n"
@@ -259,10 +264,6 @@ class TlWriterCCommon : public tl::TL_writer {
              "  void (*get_arr_field)(int idx);\n"
              "  int (*get_arr_size)(void);\n"
              "  int (*is_nil)(void);\n"
-             "};\n"
-             "struct TdBytes {\n"
-             "  unsigned char *data;\n"
-             "  int len;\n"
              "};\n";
     }
     if (is_header_ == -1) {

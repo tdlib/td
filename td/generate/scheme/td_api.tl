@@ -930,6 +930,18 @@ encryptedCredentials data:bytes hash:bytes secret:bytes = EncryptedCredentials;
 encryptedPassportData type:PassportDataType data:bytes files:vector<file> value:string selfie:file = EncryptedPassportData;
 
 
+//@class PassportDataError @description Contains description of an error in a Telegram Passport data; for bots only
+
+//@description Some field value contains an error @type Data type @field_name Field name @hash Current field value hash @message Error message
+passportDataErrorField type:PassportDataType field_name:string hash:bytes message:string = PassportDataError;
+
+//@description Some files contain an error @type Data type @hashes Hashes of files with an error @message Error message
+passportDataErrorFiles type:PassportDataType hashes:vector<bytes> message:string = PassportDataError;
+
+//@description Selfie contains an error @type Data type @hash Current selfie hash @message Error message
+passportDataErrorSelfie type:PassportDataType hash:bytes message:string = PassportDataError;
+
+
 //@class MessageContent @description Contains the content of a message
 
 //@description A text message @text Text of the message @web_page A preview of the web page that's mentioned in the text; may be null
@@ -2979,6 +2991,9 @@ setPassportData data:InputPassportData password:string = PassportData;
 
 //@description Deletes Telegram Passport data @type Data type
 deletePassportData type:PassportDataType = Ok;
+
+//@description Informs a user that some Telegram Passport data contains errors; for bots only. The user will not be able to resend data, until the errors are fixed @user_id User identifier @errors The errors
+setPassportDataErrors user_id:int32 errors:vector<PassportDataError> = Ok;
 
 
 //@description Sends phone number verification code for Telegram Passport
