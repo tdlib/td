@@ -463,7 +463,7 @@ authorization#7bf2e6f6 hash:long flags:int device_model:string platform:string s
 account.authorizations#1250abde authorizations:Vector<Authorization> = account.Authorizations;
 
 account.noPassword#5ea182f6 new_salt:bytes new_secure_salt:bytes secure_random:bytes email_unconfirmed_pattern:string = account.Password;
-account.password#d06c5fc3 current_salt:bytes new_salt:bytes new_secure_salt:bytes secure_random:bytes hint:string has_recovery:Bool email_unconfirmed_pattern:string = account.Password;
+account.password#ca39b447 flags:# has_recovery:flags.0?true has_secure_values:flags.1?true current_salt:bytes new_salt:bytes new_secure_salt:bytes secure_random:bytes hint:string email_unconfirmed_pattern:string = account.Password;
 
 account.passwordSettings#7bd9c3f1 email:string secure_salt:bytes secure_secret:bytes secure_secret_id:long = account.PasswordSettings;
 
@@ -883,7 +883,6 @@ initConnection#c7481da6 {X:Type} api_id:int device_model:string system_version:s
 invokeWithLayer#da9b0d0d {X:Type} layer:int query:!X = X;
 invokeWithoutUpdates#bf9459b7 {X:Type} query:!X = X;
 
-auth.checkPhone#6fe51dfb phone_number:string = auth.CheckedPhone;
 auth.sendCode#86aef0ec flags:# allow_flashcall:flags.0?true phone_number:string current_number:flags.0?Bool api_id:int api_hash:string = auth.SentCode;
 auth.signUp#1b067634 phone_number:string phone_code_hash:string phone_code:string first_name:string last_name:string = auth.Authorization;
 auth.signIn#bcd51581 phone_number:string phone_code_hash:string phone_code:string = auth.Authorization;
@@ -935,7 +934,6 @@ account.getAllSecureValues#b288bc7d = Vector<SecureValue>;
 account.getSecureValue#73665bc2 types:Vector<SecureValueType> = Vector<SecureValue>;
 account.saveSecureValue#899fe31d value:InputSecureValue secure_secret_id:long = SecureValue;
 account.deleteSecureValue#b880bc4b types:Vector<SecureValueType> = Bool;
-account.setSecureValueErrors#d0093ce4 user_id:InputUser errors:Vector<SecureValueError> = Bool;
 account.getAuthorizationForm#b86ba8e1 bot_id:int scope:string public_key:string = account.AuthorizationForm;
 account.acceptAuthorization#e7027c94 bot_id:int scope:string public_key:string value_hashes:Vector<SecureValueHash> credentials:SecureCredentialsEncrypted = Bool;
 account.sendVerifyPhoneCode#823380b4 flags:# allow_flashcall:flags.0?true phone_number:string current_number:flags.0?Bool = auth.SentCode;
@@ -945,6 +943,7 @@ account.verifyEmail#ecba39db email:string code:string = Bool;
 
 users.getUsers#d91a548 id:Vector<InputUser> = Vector<User>;
 users.getFullUser#ca30a5b1 id:InputUser = UserFull;
+users.setSecureValueErrors#90c894b5 id:InputUser errors:Vector<SecureValueError> = Bool;
 
 contacts.getStatuses#c4a353ee = Vector<ContactStatus>;
 contacts.getContacts#c023849f hash:int = contacts.Contacts;

@@ -84,6 +84,7 @@ class PasswordManager : public NetQueryCallback {
     bool has_password = false;
     string password_hint;
     bool has_recovery_email_address = false;
+    bool has_secure_values = false;
     string unconfirmed_recovery_email_address_pattern = "";
 
     string current_salt;
@@ -93,7 +94,7 @@ class PasswordManager : public NetQueryCallback {
 
     State as_td_api() const {
       return td_api::make_object<td_api::passwordState>(has_password, password_hint, has_recovery_email_address,
-                                                        unconfirmed_recovery_email_address_pattern);
+                                                        has_secure_values, unconfirmed_recovery_email_address_pattern);
     }
   };
 

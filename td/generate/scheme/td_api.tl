@@ -95,8 +95,8 @@ authorizationStateClosing = AuthorizationState;
 authorizationStateClosed = AuthorizationState;
 
 
-//@description Represents the current state of 2-step verification @has_password True if a 2-step verification password has been set up @password_hint Hint for the password; can be empty @has_recovery_email_address True if a recovery email has been set up @unconfirmed_recovery_email_address_pattern Pattern of the email address to which a confirmation email was sent
-passwordState has_password:Bool password_hint:string has_recovery_email_address:Bool unconfirmed_recovery_email_address_pattern:string = PasswordState;
+//@description Represents the current state of 2-step verification @has_password True if a 2-step verification password has been set up @password_hint Hint for the password; can be empty @has_recovery_email_address True if a recovery email has been set up @has_passport_data True if some Telegram Passport data has been saved @unconfirmed_recovery_email_address_pattern Pattern of the email address to which a confirmation email was sent
+passwordState has_password:Bool password_hint:string has_recovery_email_address:Bool has_passport_data:Bool unconfirmed_recovery_email_address_pattern:string = PasswordState;
 
 //@description Contains information about the current recovery email address @recovery_email_address Recovery email address
 recoveryEmailAddress recovery_email_address:string = RecoveryEmailAddress;
@@ -916,10 +916,29 @@ inputPassportDataEmailAddress email_address:string = InputPassportData;
 allPassportData data:vector<PassportData> = AllPassportData;
 
 
+//@class PassportDataErrorSource @description Contains description of an error in a Telegram Passport data; for bots only
+
+//@description A field of data contains an error. The error is considered resolved when the field's value changes @field_name Field name
+passportDataErrorSourceDataField field_name:string = PassportDataErrorSource;
+
+//@description A file contains an error. The error is considered resolved when the file changes
+passportDataErrorSourceFile = PassportDataErrorSource;
+
+//@description A list of attached files contains an error. The error is considered resolved when the file list changes
+passportDataErrorSourceFiles = PassportDataErrorSource;
+
+//@description A selfie contains an error. The error is considered resolved when the file with the selfie changes
+passportDataErrorSourceSelfie = PassportDataErrorSource;
+
+
+//@description Contains description of an error in a Telegram Passport data @type Telegram Passport data type with the error @message Error message @source Error source
+passportDataError type:PassportDataType message:string source:PassportDataErrorSource = PassportDataError;
+
+
 //@description Contains information about requested Telegram Passport authorization form @id Authorization form unique identifier
 //@required_types Types required to complete the form. If there are more than one identity document or address proof, then any of them can be chosen
-//@data Already available data @is_selfie_required True, if selfie is required with an identity document @privacy_policy_url URL with the service privacy policy; can be empty
-passportAuthorizationForm id:int32 required_types:vector<PassportDataType> data:vector<PassportData> is_selfie_required:Bool privacy_policy_url:string = PassportAuthorizationForm;
+//@data Already available data @errors Errors in already available data @is_selfie_required True, if selfie is required with an identity document @privacy_policy_url URL with the service privacy policy; can be empty
+passportAuthorizationForm id:int32 required_types:vector<PassportDataType> data:vector<PassportData> errors:vector<passportDataError> is_selfie_required:Bool privacy_policy_url:string = PassportAuthorizationForm;
 
 
 //@description Contains an encrypted Telegram Passport data credentials @data The encrypted credentials @hash The decrypted data hash @secret Encrypted by service public key secret for data decryption
@@ -938,7 +957,7 @@ inputPassportDataErrorSourceDataField field_name:string data_hash:bytes = InputP
 //@description A file contains an error. The error is considered resolved when the file changes @file_hash Hash of the file with an error
 inputPassportDataErrorSourceFile file_hash:bytes = InputPassportDataErrorSource;
 
-//@description A list of attached files contains an error. The error is considered resolved when the file list changes @type Telegram Passport data type @file_hashes Hashes of all files
+//@description A list of attached files contains an error. The error is considered resolved when the file list changes @file_hashes Hashes of all files
 inputPassportDataErrorSourceFiles file_hashes:vector<bytes> = InputPassportDataErrorSource;
 
 //@description A selfie contains an error. The error is considered resolved when the file with the selfie changes @file_hash Current file with the selfie hash

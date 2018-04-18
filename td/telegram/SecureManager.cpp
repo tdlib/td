@@ -33,11 +33,11 @@ class SetSecureValueErrorsQuery : public Td::ResultHandler {
   void send(tl_object_ptr<telegram_api::InputUser> input_user,
             vector<tl_object_ptr<telegram_api::SecureValueError>> input_errors) {
     send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::account_setSecureValueErrors(std::move(input_user), std::move(input_errors)))));
+        create_storer(telegram_api::users_setSecureValueErrors(std::move(input_user), std::move(input_errors)))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
-    auto result_ptr = fetch_result<telegram_api::account_setSecureValueErrors>(packet);
+    auto result_ptr = fetch_result<telegram_api::users_setSecureValueErrors>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
     }
@@ -449,9 +449,60 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
         break;
       }
     }
+
+    vector<td_api::object_ptr<td_api::passportDataError>> errors;
+    for (auto &error_ptr : authorization_form_->errors_) {
+      CHECK(error_ptr != nullptr);
+      SecureValueType type = SecureValueType::None;
+      td_api::object_ptr<td_api::PassportDataErrorSource> source;
+      string message;
+      switch (error_ptr->get_id()) {
+        case telegram_api::secureValueErrorData::ID: {
+          auto error = move_tl_object_as<telegram_api::secureValueErrorData>(error_ptr);
+          type = get_secure_value_type(error->type_);
+          message = std::move(error->text_);
+          string field_name = get_secure_value_data_field_name(type, error->field_);
+          if (field_name.empty()) {
+            break;
+          }
+          source = td_api::make_object<td_api::passportDataErrorSourceDataField>(std::move(field_name));
+          break;
+        }
+        case telegram_api::secureValueErrorFile::ID: {
+          auto error = move_tl_object_as<telegram_api::secureValueErrorFile>(error_ptr);
+          type = get_secure_value_type(error->type_);
+          message = std::move(error->text_);
+          source = td_api::make_object<td_api::passportDataErrorSourceFile>();
+          break;
+        }
+        case telegram_api::secureValueErrorFiles::ID: {
+          auto error = move_tl_object_as<telegram_api::secureValueErrorFiles>(error_ptr);
+          type = get_secure_value_type(error->type_);
+          message = std::move(error->text_);
+          source = td_api::make_object<td_api::passportDataErrorSourceFiles>();
+          break;
+        }
+        case telegram_api::secureValueErrorSelfie::ID: {
+          auto error = move_tl_object_as<telegram_api::secureValueErrorSelfie>(error_ptr);
+          type = get_secure_value_type(error->type_);
+          message = std::move(error->text_);
+          source = td_api::make_object<td_api::passportDataErrorSourceSelfie>();
+          break;
+        }
+        default:
+          UNREACHABLE();
+      }
+      if (source == nullptr) {
+        continue;
+      }
+
+      errors.push_back(td_api::make_object<td_api::passportDataError>(get_passport_data_type_object(type), message,
+                                                                      std::move(source)));
+    }
+
     promise_.set_value(make_tl_object<td_api::passportAuthorizationForm>(
-        authorization_form_id_, get_passport_data_types_object(types), std::move(values), is_selfie_required,
-        authorization_form_->privacy_policy_url_));
+        authorization_form_id_, get_passport_data_types_object(types), std::move(values), std::move(errors),
+        is_selfie_required, authorization_form_->privacy_policy_url_));
     stop();
   }
 };

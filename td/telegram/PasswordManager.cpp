@@ -447,6 +447,7 @@ void PasswordManager::do_get_state(Promise<PasswordState> promise) {
                         state.new_secure_salt = no_password->new_secure_salt_.as_slice().str();
                         secure_random = no_password->secure_random_.as_slice().str();
                         state.has_recovery_email_address = false;
+                        state.has_secure_values = false;
                         state.unconfirmed_recovery_email_address_pattern = no_password->email_unconfirmed_pattern_;
                       } else if (result->get_id() == telegram_api::account_password::ID) {
                         auto password = move_tl_object_as<telegram_api::account_password>(result);
@@ -456,7 +457,11 @@ void PasswordManager::do_get_state(Promise<PasswordState> promise) {
                         state.new_salt = password->new_salt_.as_slice().str();
                         state.new_secure_salt = password->new_secure_salt_.as_slice().str();
                         secure_random = password->secure_random_.as_slice().str();
-                        state.has_recovery_email_address = password->has_recovery_;
+                        state.has_recovery_email_address =
+                            (password->flags_ & telegram_api::account_password::HAS_RECOVERY_MASK) != 0;
+                        state.has_secure_values =
+                            (password->flags_ & telegram_api::account_password::HAS_SECURE_VALUES_MASK) != 0;
+                        ;
                         state.unconfirmed_recovery_email_address_pattern = password->email_unconfirmed_pattern_;
                       } else {
                         UNREACHABLE();

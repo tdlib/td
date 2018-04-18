@@ -25,6 +25,36 @@
 
 namespace td {
 
+StringBuilder &operator<<(StringBuilder &string_builder, const SecureValueType &type) {
+  switch (type) {
+    case SecureValueType::PersonalDetails:
+      return string_builder << "PersonalDetails";
+    case SecureValueType::Passport:
+      return string_builder << "Passport";
+    case SecureValueType::DriverLicense:
+      return string_builder << "DriverLicense";
+    case SecureValueType::IdentityCard:
+      return string_builder << "IdentityCard";
+    case SecureValueType::Address:
+      return string_builder << "Address";
+    case SecureValueType::UtilityBill:
+      return string_builder << "UtilityBill";
+    case SecureValueType::BankStatement:
+      return string_builder << "BankStatement";
+    case SecureValueType::RentalAgreement:
+      return string_builder << "RentalAgreement";
+    case SecureValueType::PhoneNumber:
+      return string_builder << "PhoneNumber";
+    case SecureValueType::EmailAddress:
+      return string_builder << "EmailAddress";
+    case SecureValueType::None:
+      return string_builder << "None";
+    default:
+      UNREACHABLE();
+      return string_builder;
+  }
+}
+
 SecureValueType get_secure_value_type(const tl_object_ptr<telegram_api::SecureValueType> &secure_value_type) {
   CHECK(secure_value_type != nullptr);
   switch (secure_value_type->get_id()) {
@@ -83,14 +113,29 @@ SecureValueType get_secure_value_type_td_api(const tl_object_ptr<td_api::Passpor
   }
 }
 
+static vector<SecureValueType> unique_types(vector<SecureValueType> types) {
+  size_t size = types.size();
+  for (size_t i = 0; i < size; i++) {
+    for (size_t j = 0; j < i; j++) {
+      if (types[i] == types[j]) {
+        LOG(ERROR) << "Have duplicate Passport Data type " << types[i] << " at positions " << i << " and " << j;
+        types[i--] = types[--size];
+        break;
+      }
+    }
+  }
+  types.resize(size);
+  return types;
+}
+
 vector<SecureValueType> get_secure_value_types(
     const vector<tl_object_ptr<telegram_api::SecureValueType>> &secure_value_types) {
-  return transform(secure_value_types, get_secure_value_type);
+  return unique_types(transform(secure_value_types, get_secure_value_type));
 }
 
 vector<SecureValueType> get_secure_value_types_td_api(
     const vector<tl_object_ptr<td_api::PassportDataType>> &secure_value_types) {
-  return transform(secure_value_types, get_secure_value_type_td_api);
+  return unique_types(transform(secure_value_types, get_secure_value_type_td_api));
 }
 
 td_api::object_ptr<td_api::PassportDataType> get_passport_data_type_object(SecureValueType type) {
@@ -154,6 +199,51 @@ td_api::object_ptr<telegram_api::SecureValueType> get_secure_value_type_object(S
 vector<td_api::object_ptr<td_api::PassportDataType>> get_passport_data_types_object(
     const vector<SecureValueType> &types) {
   return transform(types, get_passport_data_type_object);
+}
+
+string get_secure_value_data_field_name(SecureValueType type, string field_name) {
+  switch (type) {
+    case SecureValueType::PersonalDetails:
+      if (field_name == "first_name" || field_name == "last_name" || field_name == "gender" ||
+          field_name == "country_code") {
+        return field_name;
+      }
+      if (field_name == "birth_date") {
+        return "birthdate";
+      }
+      break;
+    case SecureValueType::Passport:
+    case SecureValueType::DriverLicense:
+    case SecureValueType::IdentityCard:
+      if (field_name == "expiry_date") {
+        return field_name;
+      }
+      if (field_name == "document_no") {
+        return "number";
+      }
+      break;
+    case SecureValueType::Address:
+      if (field_name == "state" || field_name == "city" || field_name == "street_line1" ||
+          field_name == "street_line2" || field_name == "country_code") {
+        return field_name;
+      }
+      if (field_name == "post_code") {
+        return "postal_code";
+      }
+      break;
+    case SecureValueType::UtilityBill:
+    case SecureValueType::BankStatement:
+    case SecureValueType::RentalAgreement:
+    case SecureValueType::PhoneNumber:
+    case SecureValueType::EmailAddress:
+      break;
+    case SecureValueType::None:
+    default:
+      UNREACHABLE();
+      break;
+  }
+  LOG(ERROR) << "Receive error about unknown field \"" << field_name << "\" in type " << type;
+  return string();
 }
 
 bool operator==(const EncryptedSecureFile &lhs, const EncryptedSecureFile &rhs) {

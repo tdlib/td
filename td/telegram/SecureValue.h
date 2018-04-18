@@ -23,7 +23,7 @@ namespace td {
 
 class FileManager;
 
-enum class SecureValueType {
+enum class SecureValueType : int32 {
   None,
   PersonalDetails,
   Passport,
@@ -36,6 +36,8 @@ enum class SecureValueType {
   PhoneNumber,
   EmailAddress
 };
+
+StringBuilder &operator<<(StringBuilder &string_builder, const SecureValueType &type);
 
 SecureValueType get_secure_value_type(const tl_object_ptr<telegram_api::SecureValueType> &secure_value_type);
 SecureValueType get_secure_value_type_td_api(const tl_object_ptr<td_api::PassportDataType> &passport_data_type);
@@ -50,6 +52,8 @@ td_api::object_ptr<telegram_api::SecureValueType> get_secure_value_type_object(S
 
 vector<td_api::object_ptr<td_api::PassportDataType>> get_passport_data_types_object(
     const vector<SecureValueType> &types);
+
+string get_secure_value_data_field_name(SecureValueType type, string field_name);
 
 struct EncryptedSecureFile {
   FileId file_id;
