@@ -247,7 +247,8 @@ string get_secure_value_data_field_name(SecureValueType type, string field_name)
 }
 
 bool operator==(const EncryptedSecureFile &lhs, const EncryptedSecureFile &rhs) {
-  return lhs.file_id == rhs.file_id && lhs.file_hash == rhs.file_hash && lhs.encrypted_secret == rhs.encrypted_secret;
+  return lhs.file_id == rhs.file_id && lhs.date == rhs.date && lhs.file_hash == rhs.file_hash &&
+         lhs.encrypted_secret == rhs.encrypted_secret;
 }
 
 bool operator!=(const EncryptedSecureFile &lhs, const EncryptedSecureFile &rhs) {
@@ -271,6 +272,11 @@ EncryptedSecureFile get_encrypted_secure_file(FileManager *file_manager,
       result.file_id = file_manager->register_remote(
           FullRemoteFileLocation(FileType::Secure, secure_file->id_, secure_file->access_hash_, DcId::internal(dc_id)),
           FileLocationSource::FromServer, {}, 0, 0, "");
+      result.date = secure_file->date_;
+      if (result.date < 0) {
+        LOG(ERROR) << "Receive wrong date " << result.date;
+        result.date = 0;
+      }
       result.encrypted_secret = secure_file->secret_.as_slice().str();
       result.file_hash = secure_file->file_hash_.as_slice().str();
       break;
@@ -865,9 +871,9 @@ td_api::object_ptr<td_api::allPassportData> get_all_passport_data_object(FileMan
   return td_api::make_object<td_api::allPassportData>(std::move(result));
 }
 
-Result<std::pair<FileId, SecureFileCredentials>> decrypt_secure_file(FileManager *file_manager,
-                                                                     const secure_storage::Secret &master_secret,
-                                                                     const EncryptedSecureFile &secure_file) {
+static Result<std::pair<FileId, SecureFileCredentials>> decrypt_secure_file(FileManager *file_manager,
+                                                                            const secure_storage::Secret &master_secret,
+                                                                            const EncryptedSecureFile &secure_file) {
   if (!secure_file.file_id.is_valid()) {
     return std::make_pair(FileId(), SecureFileCredentials());
   }
@@ -880,7 +886,7 @@ Result<std::pair<FileId, SecureFileCredentials>> decrypt_secure_file(FileManager
   return std::make_pair(secure_file.file_id, SecureFileCredentials{secret.as_slice().str(), hash.as_slice().str()});
 }
 
-Result<std::pair<vector<FileId>, vector<SecureFileCredentials>>> decrypt_secure_files(
+static Result<std::pair<vector<FileId>, vector<SecureFileCredentials>>> decrypt_secure_files(
     FileManager *file_manager, const secure_storage::Secret &secret, const vector<EncryptedSecureFile> &secure_files) {
   vector<FileId> res;
   vector<SecureFileCredentials> credentials;
@@ -894,8 +900,8 @@ Result<std::pair<vector<FileId>, vector<SecureFileCredentials>>> decrypt_secure_
   return std::make_pair(std::move(res), std::move(credentials));
 }
 
-Result<std::pair<string, SecureDataCredentials>> decrypt_secure_data(const secure_storage::Secret &master_secret,
-                                                                     const EncryptedSecureData &secure_data) {
+static Result<std::pair<string, SecureDataCredentials>> decrypt_secure_data(const secure_storage::Secret &master_secret,
+                                                                            const EncryptedSecureData &secure_data) {
   TRY_RESULT(hash, secure_storage::ValueHash::create(secure_data.hash));
   TRY_RESULT(encrypted_secret, secure_storage::EncryptedSecret::create(secure_data.encrypted_secret));
   TRY_RESULT(secret, encrypted_secret.decrypt(PSLICE() << master_secret.as_slice() << hash.as_slice()));
@@ -903,9 +909,8 @@ Result<std::pair<string, SecureDataCredentials>> decrypt_secure_data(const secur
   return std::make_pair(value.as_slice().str(), SecureDataCredentials{secret.as_slice().str(), hash.as_slice().str()});
 }
 
-Result<SecureValueWithCredentials> decrypt_encrypted_secure_value(FileManager *file_manager,
-                                                                  const secure_storage::Secret &secret,
-                                                                  const EncryptedSecureValue &encrypted_secure_value) {
+Result<SecureValueWithCredentials> decrypt_secure_value(FileManager *file_manager, const secure_storage::Secret &secret,
+                                                        const EncryptedSecureValue &encrypted_secure_value) {
   SecureValue res;
   SecureValueCredentials res_credentials;
   res.type = encrypted_secure_value.type;
@@ -936,13 +941,13 @@ Result<SecureValueWithCredentials> decrypt_encrypted_secure_value(FileManager *f
   return SecureValueWithCredentials{std::move(res), std::move(res_credentials)};
 }
 
-Result<vector<SecureValueWithCredentials>> decrypt_encrypted_secure_values(
+Result<vector<SecureValueWithCredentials>> decrypt_secure_values(
     FileManager *file_manager, const secure_storage::Secret &secret,
     const vector<EncryptedSecureValue> &encrypted_secure_values) {
   vector<SecureValueWithCredentials> result;
   result.reserve(encrypted_secure_values.size());
   for (auto &encrypted_secure_value : encrypted_secure_values) {
-    auto r_secure_value_with_credentials = decrypt_encrypted_secure_value(file_manager, secret, encrypted_secure_value);
+    auto r_secure_value_with_credentials = decrypt_secure_value(file_manager, secret, encrypted_secure_value);
     if (r_secure_value_with_credentials.is_ok()) {
       result.push_back(r_secure_value_with_credentials.move_as_ok());
     } else {
@@ -952,8 +957,8 @@ Result<vector<SecureValueWithCredentials>> decrypt_encrypted_secure_values(
   return std::move(result);
 }
 
-EncryptedSecureFile encrypt_secure_file(FileManager *file_manager, const secure_storage::Secret &master_secret,
-                                        FileId file, string &to_hash) {
+static EncryptedSecureFile encrypt_secure_file(FileManager *file_manager, const secure_storage::Secret &master_secret,
+                                               FileId file, string &to_hash) {
   auto file_view = file_manager->get_file_view(file);
   if (file_view.empty()) {
     return EncryptedSecureFile();
@@ -978,14 +983,15 @@ EncryptedSecureFile encrypt_secure_file(FileManager *file_manager, const secure_
   return res;
 }
 
-vector<EncryptedSecureFile> encrypt_secure_files(FileManager *file_manager, const secure_storage::Secret &master_secret,
-                                                 vector<FileId> files, string &to_hash) {
+static vector<EncryptedSecureFile> encrypt_secure_files(FileManager *file_manager,
+                                                        const secure_storage::Secret &master_secret,
+                                                        vector<FileId> files, string &to_hash) {
   return transform(files,
                    [&](auto file_id) { return encrypt_secure_file(file_manager, master_secret, file_id, to_hash); });
 }
 
-EncryptedSecureData encrypt_secure_data(const secure_storage::Secret &master_secret, Slice data, string &to_hash) {
-  namespace ss = secure_storage;
+static EncryptedSecureData encrypt_secure_data(const secure_storage::Secret &master_secret, Slice data,
+                                               string &to_hash) {
   auto secret = secure_storage::Secret::create_new();
   auto encrypted = encrypt_value(secret, data).move_as_ok();
   EncryptedSecureData res;

@@ -78,7 +78,7 @@ void GetSecureValue::loop() {
   }
 
   auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
-  auto r_secure_value = decrypt_encrypted_secure_value(file_manager, *secret_, *encrypted_secure_value_);
+  auto r_secure_value = decrypt_secure_value(file_manager, *secret_, *encrypted_secure_value_);
   if (r_secure_value.is_error()) {
     return on_error(r_secure_value.move_as_error());
   }
@@ -144,7 +144,7 @@ void GetAllSecureValues::loop() {
   }
 
   auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
-  auto r_secure_values = decrypt_encrypted_secure_values(file_manager, *secret_, *encrypted_secure_values_);
+  auto r_secure_values = decrypt_secure_values(file_manager, *secret_, *encrypted_secure_values_);
   if (r_secure_values.is_error()) {
     return on_error(r_secure_values.move_as_error());
   }
@@ -329,7 +329,7 @@ void SetSecureValue::on_result(NetQueryPtr query) {
   if (secure_value_.selfie.is_valid()) {
     merge(file_manager, secure_value_.selfie, encrypted_secure_value.selfie);
   }
-  auto r_secure_value = decrypt_encrypted_secure_value(file_manager, *secret_, encrypted_secure_value);
+  auto r_secure_value = decrypt_secure_value(file_manager, *secret_, encrypted_secure_value);
   if (r_secure_value.is_error()) {
     return on_error(r_secure_value.move_as_error());
   }
@@ -431,8 +431,8 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
           continue;
         }
 
-        auto r_secure_value = decrypt_encrypted_secure_value(
-            file_manager, *secret_, get_encrypted_secure_value(file_manager, std::move(value)));
+        auto r_secure_value =
+            decrypt_secure_value(file_manager, *secret_, get_encrypted_secure_value(file_manager, std::move(value)));
         value = nullptr;
         if (r_secure_value.is_error()) {
           LOG(ERROR) << "Failed to decrypt secure value: " << r_secure_value.error();

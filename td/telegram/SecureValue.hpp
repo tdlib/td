@@ -17,6 +17,7 @@ namespace td {
 template <class StorerT>
 void store(EncryptedSecureFile file, StorerT &storer) {
   store(file.file_id, storer);
+  store(file.date, storer);
   store(file.file_hash, storer);
   store(file.encrypted_secret, storer);
 }
@@ -24,6 +25,7 @@ void store(EncryptedSecureFile file, StorerT &storer) {
 template <class ParserT>
 void parse(EncryptedSecureFile &file, ParserT &parser) {
   parse(file.file_id, parser);
+  parse(file.date, parser);
   parse(file.file_hash, parser);
   parse(file.encrypted_secret, parser);
 }

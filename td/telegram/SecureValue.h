@@ -57,6 +57,7 @@ string get_secure_value_data_field_name(SecureValueType type, string field_name)
 
 struct EncryptedSecureFile {
   FileId file_id;
+  int32 date = 0;
   string file_hash;
   string encrypted_secret;
 };
@@ -184,25 +185,12 @@ Result<td_api::object_ptr<td_api::PassportData>> get_passport_data_object(FileMa
 td_api::object_ptr<td_api::allPassportData> get_all_passport_data_object(FileManager *file_manager,
                                                                          const vector<SecureValue> &values);
 
-Result<std::pair<FileId, SecureFileCredentials>> decrypt_secure_file(FileManager *file_manager,
-                                                                     const secure_storage::Secret &secret,
-                                                                     const EncryptedSecureFile &secure_file);
-Result<std::pair<vector<FileId>, vector<SecureFileCredentials>>> decrypt_secure_files(
-    FileManager *file_manager, const secure_storage::Secret &secret, const vector<EncryptedSecureFile> &secure_file);
-Result<std::pair<string, SecureDataCredentials>> decrypt_secure_data(const secure_storage::Secret &secret,
-                                                                     const EncryptedSecureData &secure_data);
-Result<SecureValueWithCredentials> decrypt_encrypted_secure_value(FileManager *file_manager,
-                                                                  const secure_storage::Secret &secret,
-                                                                  const EncryptedSecureValue &encrypted_secure_value);
-Result<vector<SecureValueWithCredentials>> decrypt_encrypted_secure_values(
+Result<SecureValueWithCredentials> decrypt_secure_value(FileManager *file_manager, const secure_storage::Secret &secret,
+                                                        const EncryptedSecureValue &encrypted_secure_value);
+Result<vector<SecureValueWithCredentials>> decrypt_secure_values(
     FileManager *file_manager, const secure_storage::Secret &secret,
     const vector<EncryptedSecureValue> &encrypted_secure_values);
 
-EncryptedSecureFile encrypt_secure_file(FileManager *file_manager, const secure_storage::Secret &master_secret,
-                                        FileId file, string &to_hash);
-vector<EncryptedSecureFile> encrypt_secure_files(FileManager *file_manager, const secure_storage::Secret &master_secret,
-                                                 vector<FileId> files, string &to_hash);
-EncryptedSecureData encrypt_secure_data(const secure_storage::Secret &master_secret, Slice data, string &to_hash);
 EncryptedSecureValue encrypt_secure_value(FileManager *file_manager, const secure_storage::Secret &master_secret,
                                           const SecureValue &secure_value);
 
