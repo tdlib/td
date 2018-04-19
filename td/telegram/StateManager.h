@@ -114,8 +114,8 @@ class StateManager final : public Actor {
   void inc_connect();
   void dec_connect();
 
-  enum Flags { OnlineFlag = 1, StateFlag = 2, NetworkFlag = 4 };
-  void notify_flags(int32 flags);
+  enum class Flag : int32 { Online, State, Network };
+  void notify_flag(Flag flag);
 
   void start_up() override;
   void loop() override;

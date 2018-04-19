@@ -112,7 +112,7 @@ class UpdatesManager : public Actor {
 
   class State {
    public:
-    enum class Type {
+    enum class Type : int32 {
       General,
       RunningGetUpdatesState,
       RunningGetDifference,

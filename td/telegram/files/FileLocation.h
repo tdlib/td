@@ -157,7 +157,7 @@ constexpr int32 file_type_size = static_cast<int32>(FileType::Size);
 extern const char *file_type_name[file_type_size];
 
 struct FileEncryptionKey {
-  enum class Type { None, Secret, Secure };
+  enum class Type : int32 { None, Secret, Secure };
   FileEncryptionKey() = default;
   FileEncryptionKey(Slice key, Slice iv) : key_iv_(key.size() + iv.size(), '\0'), type_(Type::Secret) {
     if (key.size() != 32 || iv.size() != 32) {
@@ -459,7 +459,7 @@ class FullRemoteFileLocation {
   static constexpr int32 WEB_LOCATION_FLAG = 1 << 24;
   bool web_location_flag_{false};
   DcId dc_id_;
-  enum class LocationType { Web, Photo, Common, None };
+  enum class LocationType : int32 { Web, Photo, Common, None };
   Variant<WebRemoteFileLocation, PhotoRemoteFileLocation, CommonRemoteFileLocation> variant_;
 
   LocationType location_type() const {

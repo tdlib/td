@@ -32,7 +32,7 @@ class DocumentsManager {
  public:
   explicit DocumentsManager(Td *td);
 
-  enum class DocumentType { Unknown, Animation, Audio, General, Sticker, Video, VideoNote, VoiceNote };
+  enum class DocumentType : int32 { Unknown, Animation, Audio, General, Sticker, Video, VideoNote, VoiceNote };
 
   class RemoteDocument {
    public:

@@ -368,7 +368,7 @@ class FileManager : public FileLoadManager::Callback {
   class Query {
    public:
     FileId file_id_;
-    enum Type { UploadByHash, Upload, Download, SetContent, Generate } type_;
+    enum Type : int32 { UploadByHash, Upload, Download, SetContent, Generate } type_;
   };
   struct FileIdInfo {
     FileNodeId node_id_{0};

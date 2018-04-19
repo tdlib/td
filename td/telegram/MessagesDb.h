@@ -22,7 +22,7 @@
 
 namespace td {
 // append only before Size
-enum class SearchMessagesFilter {
+enum class SearchMessagesFilter : int32 {
   Empty,
   Animation,
   Audio,

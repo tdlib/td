@@ -8,6 +8,6 @@
 
 namespace td {
 
-enum class AccessRights { Read, Edit, Write };
+enum class AccessRights : int32 { Read, Edit, Write };
 
 }  // namespace td

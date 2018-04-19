@@ -91,7 +91,7 @@ class SetSecureValue : public NetQueryCallback {
   class UploadCallback;
   std::shared_ptr<UploadCallback> upload_callback_;
 
-  enum class State { WaitSecret, WaitSetValue } state_ = State::WaitSecret;
+  enum class State : int32 { WaitSecret, WaitSetValue } state_ = State::WaitSecret;
 
   class UploadCallback : public FileManager::UploadCallback {
    public:

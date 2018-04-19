@@ -94,7 +94,7 @@ class Session final
   // Just re-ask answer_id each time we get information about it.
   // Thought mtproto::Connection must ensure delivery of such query
 
-  enum class Mode { Tcp, Http } mode_ = Mode::Tcp;
+  enum class Mode : int8 { Tcp, Http } mode_ = Mode::Tcp;
   bool is_main_;
   bool is_cdn_;
   bool was_on_network_ = false;
@@ -120,7 +120,7 @@ class Session final
   struct ConnectionInfo {
     int8 connection_id;
     Mode mode;
-    enum class State { Empty, Connecting, Ready } state = State::Empty;
+    enum class State : int8 { Empty, Connecting, Ready } state = State::Empty;
     mtproto::AuthKeyHandshake handshake;
     mtproto::AuthKeyHandshake tmp_handshake;
     unique_ptr<mtproto::SessionConnection> connection;

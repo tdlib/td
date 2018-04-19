@@ -96,7 +96,7 @@ class SendCodeHelper {
 
 class PhoneNumberManager : public NetActor {
  public:
-  enum class Type { ChangePhone, VerifyPhone, ConfirmPhone };
+  enum class Type : int32 { ChangePhone, VerifyPhone, ConfirmPhone };
   PhoneNumberManager(Type type, ActorShared<> parent);
   void get_state(uint64 query_id);
 
@@ -108,8 +108,8 @@ class PhoneNumberManager : public NetActor {
  private:
   Type type_;
 
-  enum class State { Ok, WaitCode } state_ = State::Ok;
-  enum class NetQueryType { None, SendCode, CheckCode };
+  enum class State : int32 { Ok, WaitCode } state_ = State::Ok;
+  enum class NetQueryType : int32 { None, SendCode, CheckCode };
 
   ActorShared<> parent_;
   uint64 query_id_ = 0;
@@ -173,7 +173,7 @@ class AuthManager : public NetActor {
     LoggingOut,
     Closing
   } state_ = State::None;
-  enum class NetQueryType {
+  enum class NetQueryType : int32 {
     None,
     SignIn,
     SignUp,

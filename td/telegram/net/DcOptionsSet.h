@@ -26,7 +26,7 @@ class DcOptionsSet {
     double ok_at{-1000};
     double error_at{-1001};
     double check_at{-1002};
-    enum State { Ok, Error, Checking };
+    enum State : int32 { Ok, Error, Checking };
 
     void on_ok() {
       ok_at = Time::now_cached();
@@ -63,7 +63,7 @@ class DcOptionsSet {
   void reset();
 
  private:
-  enum class State { Error, Ok, Checking };
+  enum class State : int32 { Error, Ok, Checking };
 
   struct OptionStat {
     Stat tcp_stat;

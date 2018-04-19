@@ -230,7 +230,7 @@ class Td final : public NetQueryCallback {
   bool destroy_flag_ = false;
   int close_flag_ = 0;
 
-  enum class State { WaitParameters, Decrypt, Run, Close } state_ = State::WaitParameters;
+  enum class State : int32 { WaitParameters, Decrypt, Run, Close } state_ = State::WaitParameters;
   EncryptionInfo encryption_info_;
 
   vector<std::pair<uint64, std::shared_ptr<ResultHandler>>> result_handlers_;

@@ -52,7 +52,7 @@ class DialogParticipantStatus {
                                                   CAN_SEND_ANIMATIONS | CAN_SEND_GAMES | CAN_USE_INLINE_BOTS |
                                                   CAN_ADD_WEB_PAGE_PREVIEWS;
 
-  enum class Type { Creator, Administrator, Member, Restricted, Left, Banned };
+  enum class Type : int32 { Creator, Administrator, Member, Restricted, Left, Banned };
   // all fields are logically const, but should be updated in update_restrictions()
   mutable Type type_;
   mutable uint32 flags_;
@@ -239,7 +239,7 @@ struct DialogParticipant {
 };
 
 class ChannelParticipantsFilter {
-  enum { Recent, Administrators, Search, Restricted, Banned, Bots } type;
+  enum class Type : int32 { Recent, Administrators, Search, Restricted, Banned, Bots } type;
   string query;
 
  public:
@@ -248,7 +248,7 @@ class ChannelParticipantsFilter {
   tl_object_ptr<telegram_api::ChannelParticipantsFilter> get_input_channel_participants_filter() const;
 
   bool is_administrators() const {
-    return type == Administrators;
+    return type == Type::Administrators;
   }
 };
 

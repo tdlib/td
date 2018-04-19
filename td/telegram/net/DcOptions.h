@@ -21,7 +21,7 @@
 namespace td {
 class DcOption {
   // do not forget to update PrintFlags
-  enum Flags { IPv6 = 1, MediaOnly = 2, ObfuscatedTcpOnly = 4, Cdn = 8, Static = 16 };
+  enum Flags : int32 { IPv6 = 1, MediaOnly = 2, ObfuscatedTcpOnly = 4, Cdn = 8, Static = 16 };
 
   int32 flags = 0;
   DcId dc_id;

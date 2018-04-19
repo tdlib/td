@@ -71,7 +71,7 @@ class DcId {
   }
 
  private:
-  enum { Empty = 0, MainDc = -1, Invalid = -2 };
+  enum : int32 { Empty = 0, MainDc = -1, Invalid = -2 };
   int32 dc_id_{Empty};
   bool is_external_{false};
 

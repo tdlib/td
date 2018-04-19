@@ -95,7 +95,7 @@ class FileLoader : public FileLoaderActor {
   }
 
  private:
-  enum { CommonQueryKey = 2 };
+  static constexpr uint8 COMMON_QUERY_KEY = 2;
   bool stop_flag_ = false;
   ActorShared<ResourceManager> resource_manager_;
   ResourceState resource_state_;

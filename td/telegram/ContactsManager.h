@@ -51,9 +51,9 @@ struct BotData {
   bool need_location;
 };
 
-enum class ChannelType { Broadcast, Megagroup, Unknown };
+enum class ChannelType : uint8 { Broadcast, Megagroup, Unknown };
 
-enum class CheckDialogUsernameResult { Ok, Invalid, Occupied, PublicDialogsTooMuch, PublicGroupsUnavailable };
+enum class CheckDialogUsernameResult : uint8 { Ok, Invalid, Occupied, PublicDialogsTooMuch, PublicGroupsUnavailable };
 
 class ContactsManager : public Actor {
  public:

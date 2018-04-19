@@ -123,7 +123,7 @@ Status FileLoader::do_loop() {
   }
   for (auto &query : check_info.queries) {
     G()->net_query_dispatcher().dispatch_with_callback(
-        std::move(query), actor_shared(this, UniqueId::next(UniqueId::Type::Default, CommonQueryKey)));
+        std::move(query), actor_shared(this, UniqueId::next(UniqueId::Type::Default, COMMON_QUERY_KEY)));
   }
   if (check_info.need_check) {
     parts_manager_.set_need_check();
@@ -209,7 +209,7 @@ void FileLoader::on_result(NetQueryPtr query) {
   if (id == blocking_id_) {
     blocking_id_ = 0;
   }
-  if (UniqueId::extract_key(id) == CommonQueryKey) {
+  if (UniqueId::extract_key(id) == COMMON_QUERY_KEY) {
     on_common_query(std::move(query));
     return loop();
   }

@@ -56,10 +56,10 @@ void FileHashUploader::loop() {
 }
 
 Status FileHashUploader::loop_impl() {
-  if (state_ == CalcSha) {
+  if (state_ == State::CalcSha) {
     TRY_STATUS(loop_sha());
   }
-  if (state_ == NetRequest) {
+  if (state_ == State::NetRequest) {
     // messages.getDocumentByHash#338e2464 sha256:bytes size:int mime_type:string = Document;
     auto hash = BufferSlice(32);
     sha256_final(&sha256_state_, hash.as_slice());
@@ -69,7 +69,7 @@ Status FileHashUploader::loop_impl() {
     LOG(INFO) << "Send getDocumentByHash request: " << to_string(query);
     auto ptr = G()->net_query_creator().create(create_storer(query));
     G()->net_query_dispatcher().dispatch_with_callback(std::move(ptr), actor_shared(this));
-    state_ = WaitNetResult;
+    state_ = State::WaitNetResult;
   }
   return Status::OK();
 }
@@ -102,7 +102,7 @@ Status FileHashUploader::loop_sha() {
   size_left_ -= narrow_cast<int64>(read_size);
   CHECK(size_left_ >= 0);
   if (size_left_ == 0) {
-    state_ = NetRequest;
+    state_ = State::NetRequest;
     return Status::OK();
   }
   return Status::OK();

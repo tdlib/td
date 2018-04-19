@@ -23,7 +23,7 @@
 #include <utility>
 
 namespace td {
-enum class TopDialogCategory { Correspondent, BotPM, BotInline, Group, Channel, Call, Size };
+enum class TopDialogCategory : int32 { Correspondent, BotPM, BotInline, Group, Channel, Call, Size };
 
 inline TopDialogCategory top_dialog_category_from_td_api(const td_api::TopChatCategory &category) {
   switch (category.get_id()) {
@@ -65,7 +65,7 @@ class TopDialogManager : public NetQueryCallback {
 
   bool is_active_{false};
   bool was_first_sync_{false};
-  enum class SyncState { None, Pending, Ok };
+  enum class SyncState : int32 { None, Pending, Ok };
   SyncState db_sync_state_ = SyncState::None;
   Timestamp first_unsync_change_;
   SyncState server_sync_state_ = SyncState::None;

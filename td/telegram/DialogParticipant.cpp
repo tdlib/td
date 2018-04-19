@@ -374,17 +374,17 @@ DialogParticipantStatus get_dialog_participant_status(
 tl_object_ptr<telegram_api::ChannelParticipantsFilter>
 ChannelParticipantsFilter::get_input_channel_participants_filter() const {
   switch (type) {
-    case Recent:
+    case Type::Recent:
       return make_tl_object<telegram_api::channelParticipantsRecent>();
-    case Administrators:
+    case Type::Administrators:
       return make_tl_object<telegram_api::channelParticipantsAdmins>();
-    case Search:
+    case Type::Search:
       return make_tl_object<telegram_api::channelParticipantsSearch>(query);
-    case Restricted:
+    case Type::Restricted:
       return make_tl_object<telegram_api::channelParticipantsBanned>(query);
-    case Banned:
+    case Type::Banned:
       return make_tl_object<telegram_api::channelParticipantsKicked>(query);
-    case Bots:
+    case Type::Bots:
       return make_tl_object<telegram_api::channelParticipantsBots>();
     default:
       UNREACHABLE();
@@ -394,34 +394,34 @@ ChannelParticipantsFilter::get_input_channel_participants_filter() const {
 
 ChannelParticipantsFilter::ChannelParticipantsFilter(const tl_object_ptr<td_api::SupergroupMembersFilter> &filter) {
   if (filter == nullptr) {
-    type = Recent;
+    type = Type::Recent;
     return;
   }
   switch (filter->get_id()) {
     case td_api::supergroupMembersFilterRecent::ID:
-      type = Recent;
+      type = Type::Recent;
       return;
     case td_api::supergroupMembersFilterAdministrators::ID:
-      type = Administrators;
+      type = Type::Administrators;
       return;
     case td_api::supergroupMembersFilterSearch::ID:
-      type = Search;
+      type = Type::Search;
       query = static_cast<const td_api::supergroupMembersFilterSearch *>(filter.get())->query_;
       return;
     case td_api::supergroupMembersFilterRestricted::ID:
-      type = Restricted;
+      type = Type::Restricted;
       query = static_cast<const td_api::supergroupMembersFilterRestricted *>(filter.get())->query_;
       return;
     case td_api::supergroupMembersFilterBanned::ID:
-      type = Banned;
+      type = Type::Banned;
       query = static_cast<const td_api::supergroupMembersFilterBanned *>(filter.get())->query_;
       return;
     case td_api::supergroupMembersFilterBots::ID:
-      type = Bots;
+      type = Type::Bots;
       return;
     default:
       UNREACHABLE();
-      type = Recent;
+      type = Type::Recent;
   }
 }
 

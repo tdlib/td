@@ -705,7 +705,7 @@ class DialogNotificationSettings {
   }
 };
 
-enum class NotificationSettingsScope { Private, Group };
+enum class NotificationSettingsScope : int32 { Private, Group };
 
 class ScopeNotificationSettings {
  public:
@@ -2663,7 +2663,7 @@ class MessagesManager : public Actor {
   KHeap<double> ttl_heap_;
   Slot ttl_slot_;
 
-  enum YieldType { None, Ttl, TtlDb };  // None must be first
+  enum YieldType : int32 { None, Ttl, TtlDb };  // None must be first
   int32 ttl_db_expire_from_;
   int32 ttl_db_expire_till_;
   bool ttl_db_has_query_;

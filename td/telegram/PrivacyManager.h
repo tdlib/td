@@ -67,7 +67,7 @@ class PrivacyManager : public NetQueryCallback {
     }
 
    private:
-    enum class Type {
+    enum class Type : int32 {
       AllowContacts,
       AllowAll,
       AllowUsers,

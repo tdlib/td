@@ -136,8 +136,8 @@ class SecretChatActor : public NetQueryCallback {
   void binlog_replay_finish();
 
  private:
-  enum class State { Empty, SendRequest, SendAccept, WaitRequestResponse, WaitAcceptResponse, Ready, Closed };
-  enum { MAX_RESEND_COUNT = 1000 };
+  enum class State : int32 { Empty, SendRequest, SendAccept, WaitRequestResponse, WaitAcceptResponse, Ready, Closed };
+  static constexpr int32 MAX_RESEND_COUNT = 1000;
 
   // We have git state that should be shynchronized with db.
   // It is splitted into several parts because:
@@ -198,7 +198,7 @@ class SecretChatActor : public NetQueryCallback {
       ttl = parser.fetch_int();
       bool has_flags = (his_layer & HAS_FLAGS) != 0;
       if (has_flags) {
-        his_layer &= ~HAS_FLAGS;
+        his_layer &= static_cast<int32>(~HAS_FLAGS);
         my_layer = parser.fetch_int();
         // for future usage
         BEGIN_PARSE_FLAGS();
@@ -206,7 +206,7 @@ class SecretChatActor : public NetQueryCallback {
       }
     }
 
-    enum { HAS_FLAGS = 1 << 31 };
+    static constexpr uint32 HAS_FLAGS = 1u << 31;
   };
 
   // PfsAction
@@ -576,7 +576,7 @@ class SecretChatActor : public NetQueryCallback {
   int32 last_read_history_date_ = -1;
   Promise<Unit> read_history_promise_;
 
-  enum SendFlag {
+  enum SendFlag : int32 {
     None = 0,
     External = 1,
     Push = 2,

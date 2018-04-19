@@ -47,7 +47,7 @@ class NetQuery : public ListNode {
   NetQuery() = default;
 
   enum class State : int8 { Empty, Query, OK, Error };
-  enum class Type { Common, Upload, Download, DownloadSmall };
+  enum class Type : int8 { Common, Upload, Download, DownloadSmall };
   enum class AuthFlag : int8 { Off, On };
   enum class GzipFlag : int8 { Off, On };
   enum Error : int32 { Resend = 202, Cancelled = 203, ResendInvokeAfter = 204 };

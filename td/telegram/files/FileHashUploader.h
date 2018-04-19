@@ -60,7 +60,7 @@ class FileHashUploader : public FileLoaderActor {
 
   ActorShared<ResourceManager> resource_manager_;
 
-  enum { CalcSha, NetRequest, WaitNetResult } state_ = CalcSha;
+  enum class State : int32 { CalcSha, NetRequest, WaitNetResult } state_ = State::CalcSha;
   bool stop_flag_ = false;
   Sha256State sha256_state_;
 

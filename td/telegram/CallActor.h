@@ -51,7 +51,7 @@ struct CallConnection {
 };
 
 struct CallState {
-  enum class Type { Empty, Pending, ExchangingKey, Ready, HangingUp, Discarded, Error } type{Type::Empty};
+  enum class Type : int32 { Empty, Pending, ExchangingKey, Ready, HangingUp, Discarded, Error } type{Type::Empty};
 
   CallProtocol protocol;
   std::vector<CallConnection> connections;
@@ -97,7 +97,7 @@ class CallActor : public NetQueryCallback {
   int32 duration_{0};
   int64 connection_id_{0};
 
-  enum class State {
+  enum class State : int32 {
     Empty,
     SendRequestQuery,
     WaitRequestResult,

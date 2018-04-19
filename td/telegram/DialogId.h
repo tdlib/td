@@ -21,7 +21,7 @@
 
 namespace td {
 
-enum class DialogType { None, User, Chat, Channel, SecretChat };
+enum class DialogType : int32 { None, User, Chat, Channel, SecretChat };
 
 class DialogId {
   static constexpr int64 MIN_SECRET_ID = -2002147483648ll;

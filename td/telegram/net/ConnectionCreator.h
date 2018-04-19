@@ -98,7 +98,7 @@ class Proxy {
     return password_;
   }
 
-  enum class Type { None, Socks5 };
+  enum class Type : int32 { None, Socks5 };
   Type type() const {
     return type_;
   }

@@ -47,7 +47,7 @@ class DeviceTokenManager : public NetQueryCallback {
     SIZE
   };
   struct TokenInfo {
-    enum class State { Sync, Unregister, Register };
+    enum class State : int32 { Sync, Unregister, Register };
     State state = State::Sync;
     string token;
     uint64 net_query_id = 0;

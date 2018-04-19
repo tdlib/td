@@ -20,7 +20,7 @@
 namespace td {
 class ResourceManager : public Actor {
  public:
-  enum class Mode { Baseline, Greedy };
+  enum class Mode : int32 { Baseline, Greedy };
   explicit ResourceManager(Mode mode) : mode_(mode) {
   }
   // use through ActorShared
