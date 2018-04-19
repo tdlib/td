@@ -52,16 +52,23 @@ Status Wget::try_init() {
   HttpHeaderCreator hc;
   hc.init_get(url.query_);
   bool was_host = false;
+  bool was_accept_encoding = false;
   for (auto &header : headers_) {
-    if (header.first == "Host") {  // TODO: lowercase
+    auto header_lower = to_lower(header.first);
+    if (header_lower == "host") {
       was_host = true;
+    }
+    if (header_lower == "accept-encoding") {
+      was_accept_encoding = true;
     }
     hc.add_header(header.first, header.second);
   }
   if (!was_host) {
     hc.add_header("Host", url.host_);
   }
-  hc.add_header("Accept-Encoding", "gzip, deflate");
+  if (!was_accept_encoding) {
+    hc.add_header("Accept-Encoding", "gzip, deflate");
+  }
 
   send_closure(connection_, &HttpOutboundConnection::write_next, BufferSlice(hc.finish().ok()));
   send_closure(connection_, &HttpOutboundConnection::write_ok);
@@ -89,7 +96,7 @@ void Wget::on_ok(HttpQueryPtr http_query_ptr) {
   CHECK(promise_);
   if (http_query_ptr->code_ == 302 && ttl_ > 0) {
     LOG(DEBUG) << *http_query_ptr;
-    input_url_ = http_query_ptr->header("location").str();
+    input_url_ = http_query_ptr->get_header("location").str();
     LOG(DEBUG) << input_url_;
     ttl_--;
     connection_.reset();
@@ -98,7 +105,7 @@ void Wget::on_ok(HttpQueryPtr http_query_ptr) {
     promise_.set_value(std::move(http_query_ptr));
     stop();
   } else {
-    on_error(Status::Error(PSLICE() << "http error: " << http_query_ptr->code_));
+    on_error(Status::Error(PSLICE() << "HTTP error: " << http_query_ptr->code_));
   }
 }
 

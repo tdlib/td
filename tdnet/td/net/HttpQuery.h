@@ -33,11 +33,11 @@ class HttpQuery {
   std::vector<HttpFile> files_;
   MutableSlice content_;
 
-  Slice header(Slice key) const;
+  Slice get_header(Slice key) const;
 
-  MutableSlice arg(Slice key) const;
+  MutableSlice get_arg(Slice key) const;
 
-  std::vector<std::pair<string, string>> string_args() const;
+  std::vector<std::pair<string, string>> get_args() const;
 
   int get_retry_after() const;
 };

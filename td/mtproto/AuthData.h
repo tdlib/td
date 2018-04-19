@@ -148,7 +148,7 @@ class AuthData {
     tmp_auth_key_.set_auth_flag(true);
   }
 
-  Slice header() {
+  Slice get_header() {
     if (use_pfs()) {
       return tmp_auth_key_.need_header() ? Slice(header_) : Slice();
     } else {
