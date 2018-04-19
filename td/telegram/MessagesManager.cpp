@@ -84,17 +84,6 @@
 
 namespace td {
 
-class NetActorOnce : public NetActor {
-  void hangup() override {
-    on_error(0, Status::Error(500, "Request aborted"));
-    stop();
-  }
-
-  void on_result_finish() override {
-    stop();
-  }
-};
-
 void dummyUpdate::store(TlStorerToString &s, const char *field_name) const {
   s.store_class_begin(field_name, "dummyUpdate");
   s.store_class_end();

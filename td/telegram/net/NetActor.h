@@ -39,4 +39,15 @@ class NetActor : public NetQueryCallback {
   Td *td;
 };
 
+class NetActorOnce : public NetActor {
+  void hangup() override {
+    on_error(0, Status::Error(500, "Request aborted"));
+    stop();
+  }
+
+  void on_result_finish() override {
+    stop();
+  }
+};
+
 }  // namespace td
