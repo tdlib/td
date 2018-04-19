@@ -21,12 +21,14 @@ void NetQuery::on_net_write(size_t size) {
   }
   G()->get_net_stats_file_callbacks().at(file_type_)->on_write(size);
 }
+
 void NetQuery::on_net_read(size_t size) {
   if (file_type_ == -1) {
     return;
   }
   G()->get_net_stats_file_callbacks().at(file_type_)->on_read(size);
 }
+
 int32 NetQuery::tl_magic(const BufferSlice &buffer_slice) {
   auto slice = buffer_slice.as_slice();
   if (slice.size() < 4) {

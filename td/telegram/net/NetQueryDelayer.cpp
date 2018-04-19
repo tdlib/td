@@ -16,6 +16,7 @@
 #include "td/utils/Status.h"
 
 namespace td {
+
 void NetQueryDelayer::delay(NetQueryPtr query) {
   query->debug("try delay");
   query->is_ready();
@@ -116,4 +117,5 @@ void NetQueryDelayer::tear_down() {
     G()->net_query_dispatcher().dispatch(std::move(query_slot.query_));
   });
 }
+
 }  // namespace td

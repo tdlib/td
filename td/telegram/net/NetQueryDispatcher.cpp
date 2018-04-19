@@ -26,16 +26,23 @@
 #include "td/utils/Slice.h"
 
 namespace td {
+
+void NetQueryDispatcher::complete_net_query(NetQueryPtr net_query) {
+  auto callback = net_query->move_callback();
+  if (callback.empty()) {
+    net_query->debug("sent to td (no callback)");
+    send_closure(G()->td(), &NetQueryCallback::on_result, std::move(net_query));
+  } else {
+    net_query->debug("sent to callback", true);
+    send_closure(std::move(callback), &NetQueryCallback::on_result, std::move(net_query));
+  }
+}
+
 void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
   net_query->debug("dispatch");
   if (stop_flag_.load(std::memory_order_relaxed)) {
-    // Set error to avoid warning
-    // No need to send result somewhere, it probably will be ignored anyway
     net_query->set_error(Status::Error(500, "Internal Server Error: closing"));
-    net_query->clear();
-    net_query.reset();
-    // G()->net_query_creator().release(std::move(net_query));
-    return;
+    return complete_net_query(std::move(net_query));
   }
 
   if (net_query->is_ready()) {
@@ -67,15 +74,7 @@ void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
   }
 
   if (net_query->is_ready()) {
-    auto callback = net_query->move_callback();
-    if (callback.empty()) {
-      net_query->debug("sent to td (no callback)");
-      send_closure(G()->td(), &NetQueryCallback::on_result, std::move(net_query));
-    } else {
-      net_query->debug("sent to callback", true);
-      send_closure(std::move(callback), &NetQueryCallback::on_result, std::move(net_query));
-    }
-    return;
+    return complete_net_query(std::move(net_query));
   }
 
   if (net_query->dispatch_ttl > 0) {

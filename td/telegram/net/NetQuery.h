@@ -244,9 +244,11 @@ class NetQuery : public ListNode {
     debug_cnt_++;
     VLOG(net_query) << *this << " " << tag("debug", debug_str_);
   }
+
   void set_callback(ActorShared<NetQueryCallback> callback) {
     callback_ = std::move(callback);
   }
+
   ActorShared<NetQueryCallback> move_callback() {
     return std::move(callback_);
   }

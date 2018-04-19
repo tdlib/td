@@ -616,9 +616,11 @@ void ConfigManager::on_result(NetQueryPtr res) {
   config_sent_cnt_--;
   auto r_config = fetch_result<telegram_api::help_getConfig>(std::move(res));
   if (r_config.is_error()) {
-    LOG(ERROR) << "TODO: getConfig failed: " << r_config.error();
-    expire_ = Timestamp::in(60.0);  // try again in a minute
-    set_timeout_in(expire_.in());
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "TODO: getConfig failed: " << r_config.error();
+      expire_ = Timestamp::in(60.0);  // try again in a minute
+      set_timeout_in(expire_.in());
+    }
   } else {
     on_dc_options_update(DcOptions());
     process_config(r_config.move_as_ok());

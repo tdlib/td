@@ -13,6 +13,7 @@
 #include "td/utils/Container.h"
 
 namespace td {
+
 class NetQueryDelayer : public Actor {
  public:
   explicit NetQueryDelayer(ActorShared<> parent) : parent_(std::move(parent)) {
@@ -32,4 +33,5 @@ class NetQueryDelayer : public Actor {
 
   void tear_down() override;
 };
+
 }  // namespace td

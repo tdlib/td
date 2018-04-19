@@ -30,6 +30,7 @@ class PublicRsaKeyWatchdog;
 }  // namespace td
 
 namespace td {
+
 // Not just dispatcher.
 class NetQueryDispatcher {
  public:
@@ -83,6 +84,9 @@ class NetQueryDispatcher {
   static int32 get_session_count();
   static bool get_use_pfs();
 
+  static void complete_net_query(NetQueryPtr net_query);
+
   void try_fix_migrate(NetQueryPtr &net_query);
 };
+
 }  // namespace td
