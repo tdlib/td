@@ -23,6 +23,96 @@
 
 namespace td {
 
+class GetSecureValue : public NetQueryCallback {
+ public:
+  GetSecureValue(ActorShared<> parent, std::string password, SecureValueType type,
+                 Promise<SecureValueWithCredentials> promise);
+
+ private:
+  ActorShared<> parent_;
+  string password_;
+  SecureValueType type_;
+  Promise<SecureValueWithCredentials> promise_;
+  optional<EncryptedSecureValue> encrypted_secure_value_;
+  optional<secure_storage::Secret> secret_;
+
+  void on_error(Status status);
+  void on_secret(Result<secure_storage::Secret> r_secret, bool dummy);
+  void loop() override;
+  void start_up() override;
+
+  void on_result(NetQueryPtr query) override;
+};
+
+class GetAllSecureValues : public NetQueryCallback {
+ public:
+  GetAllSecureValues(ActorShared<> parent, std::string password, Promise<TdApiAllSecureValues> promise);
+
+ private:
+  ActorShared<> parent_;
+  string password_;
+  Promise<TdApiAllSecureValues> promise_;
+  optional<vector<EncryptedSecureValue>> encrypted_secure_values_;
+  optional<secure_storage::Secret> secret_;
+
+  void on_error(Status status);
+  void on_secret(Result<secure_storage::Secret> r_secret, bool dummy);
+  void loop() override;
+  void start_up() override;
+
+  void on_result(NetQueryPtr query) override;
+};
+
+class SetSecureValue : public NetQueryCallback {
+ public:
+  SetSecureValue(ActorShared<> parent, string password, SecureValue secure_value,
+                 Promise<SecureValueWithCredentials> promise);
+
+ private:
+  ActorShared<> parent_;
+  string password_;
+  SecureValue secure_value_;
+  Promise<SecureValueWithCredentials> promise_;
+  optional<secure_storage::Secret> secret_;
+
+  size_t files_left_to_upload_ = 0;
+  vector<SecureInputFile> to_upload_;
+  optional<SecureInputFile> selfie_;
+
+  class UploadCallback;
+  std::shared_ptr<UploadCallback> upload_callback_;
+
+  enum class State : int32 { WaitSecret, WaitSetValue } state_ = State::WaitSecret;
+
+  class UploadCallback : public FileManager::UploadCallback {
+   public:
+    explicit UploadCallback(ActorId<SetSecureValue> actor_id);
+
+   private:
+    ActorId<SetSecureValue> actor_id_;
+    void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) override;
+    void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) override;
+    void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) override;
+    void on_upload_error(FileId file_id, Status error) override;
+  };
+
+  void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file);
+  void on_upload_error(FileId file_id, Status error);
+
+  void on_error(Status status);
+
+  void on_secret(Result<secure_storage::Secret> r_secret, bool x);
+
+  void start_up() override;
+  void tear_down() override;
+
+  void loop() override;
+  void on_result(NetQueryPtr query) override;
+
+  void start_upload(FileManager *file_manager, FileId file_id, SecureInputFile &info);
+  void merge(FileManager *file_manager, FileId file_id, EncryptedSecureFile &encrypted_file);
+};
+
 class SetSecureValueErrorsQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -87,10 +177,10 @@ void GetSecureValue::loop() {
 }
 
 void GetSecureValue::start_up() {
-  std::vector<telegram_api::object_ptr<telegram_api::SecureValueType>> vec;
-  vec.push_back(get_secure_value_type_object(type_));
+  std::vector<telegram_api::object_ptr<telegram_api::SecureValueType>> types;
+  types.push_back(get_input_secure_value_type(type_));
 
-  auto query = G()->net_query_creator().create(create_storer(telegram_api::account_getSecureValue(std::move(vec))));
+  auto query = G()->net_query_creator().create(create_storer(telegram_api::account_getSecureValue(std::move(types))));
 
   G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
 
@@ -349,6 +439,36 @@ void SetSecureValue::merge(FileManager *file_manager, FileId file_id, EncryptedS
   LOG_IF(ERROR, status.is_error()) << status.error();
 }
 
+class DeleteSecureValue : public NetQueryCallback {
+ public:
+  DeleteSecureValue(ActorShared<> parent, SecureValueType type, Promise<Unit> promise)
+      : parent_(std::move(parent)), type_(std::move(type)), promise_(std::move(promise)) {
+  }
+
+ private:
+  ActorShared<> parent_;
+  SecureValueType type_;
+  Promise<Unit> promise_;
+
+  void start_up() override {
+    std::vector<telegram_api::object_ptr<telegram_api::SecureValueType>> types;
+    types.push_back(get_input_secure_value_type(type_));
+    auto query =
+        G()->net_query_creator().create(create_storer(telegram_api::account_deleteSecureValue(std::move(types))));
+    G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
+  }
+
+  void on_result(NetQueryPtr query) override {
+    auto r_result = fetch_result<telegram_api::account_deleteSecureValue>(std::move(query));
+    if (r_result.is_error()) {
+      promise_.set_error(r_result.move_as_error());
+    } else {
+      promise_.set_value(Unit());
+    }
+    stop();
+  }
+};
+
 class GetPassportAuthorizationForm : public NetQueryCallback {
  public:
   GetPassportAuthorizationForm(ActorShared<> parent, string password, int32 authorization_form_id, UserId bot_user_id,
@@ -561,7 +681,20 @@ void SecureManager::set_secure_value(string password, SecureValue secure_value, 
 }
 
 void SecureManager::delete_secure_value(SecureValueType type, Promise<Unit> promise) {
-  // TODO
+  refcnt_++;
+  auto new_promise = PromiseCreator::lambda(
+      [actor_id = actor_id(this), type, promise = std::move(promise)](Result<Unit> result) mutable {
+        send_closure(actor_id, &SecureManager::on_delete_secure_value, type, std::move(promise), std::move(result));
+      });
+  create_actor<DeleteSecureValue>("DeleteSecureValue", actor_shared(), type, std::move(new_promise)).release();
+}
+
+void SecureManager::on_delete_secure_value(SecureValueType type, Promise<Unit> promise, Result<Unit> result) {
+  if (result.is_error()) {
+    return promise.set_error(result.move_as_error());
+  }
+
+  promise.set_value(Unit());
 }
 
 void SecureManager::set_secure_value_errors(Td *td, tl_object_ptr<telegram_api::InputUser> input_user,
@@ -584,7 +717,7 @@ void SecureManager::set_secure_value_errors(Td *td, tl_object_ptr<telegram_api::
       return promise.set_error(Status::Error(400, "Error source must be non-empty"));
     }
 
-    auto type = get_secure_value_type_object(get_secure_value_type_td_api(error->type_));
+    auto type = get_input_secure_value_type(get_secure_value_type_td_api(error->type_));
     switch (error->source_->get_id()) {
       case td_api::inputPassportDataErrorSourceDataField::ID: {
         auto source = td_api::move_object_as<td_api::inputPassportDataErrorSourceDataField>(error->source_);
@@ -729,7 +862,7 @@ void SecureManager::do_send_passport_authorization_form(int32 authorization_form
   }
   std::vector<telegram_api::object_ptr<telegram_api::secureValueHash>> hashes;
   for (auto &c : credentials) {
-    hashes.push_back(telegram_api::make_object<telegram_api::secureValueHash>(get_secure_value_type_object(c.type),
+    hashes.push_back(telegram_api::make_object<telegram_api::secureValueHash>(get_input_secure_value_type(c.type),
                                                                               BufferSlice(c.hash)));
   }
 

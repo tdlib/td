@@ -167,7 +167,7 @@ td_api::object_ptr<td_api::PassportDataType> get_passport_data_type_object(Secur
   }
 }
 
-td_api::object_ptr<telegram_api::SecureValueType> get_secure_value_type_object(SecureValueType type) {
+td_api::object_ptr<telegram_api::SecureValueType> get_input_secure_value_type(SecureValueType type) {
   switch (type) {
     case SecureValueType::PersonalDetails:
       return telegram_api::make_object<telegram_api::secureValueTypePersonalDetails>();
@@ -446,7 +446,7 @@ telegram_api::object_ptr<telegram_api::inputSecureValue> get_input_secure_value_
     CHECK(selfie);
   }
   return telegram_api::make_object<telegram_api::inputSecureValue>(
-      flags, get_secure_value_type_object(value.type), is_plain ? nullptr : get_secure_data_object(value.data),
+      flags, get_input_secure_value_type(value.type), is_plain ? nullptr : get_secure_data_object(value.data),
       get_input_secure_files_object(file_manager, value.files, input_files), std::move(plain_data),
       has_selfie ? get_input_secure_file_object(file_manager, value.selfie, *selfie) : nullptr);
 }
