@@ -10410,7 +10410,8 @@ void MessagesManager::set_dialog_last_database_message_id(Dialog *d, MessageId l
 }
 
 void MessagesManager::set_dialog_last_new_message_id(Dialog *d, MessageId last_new_message_id, const char *source) {
-  CHECK(last_new_message_id.get() > d->last_new_message_id.get());
+  CHECK(last_new_message_id.get() > d->last_new_message_id.get())
+      << last_new_message_id << " " << d->last_new_message_id << " " << source;
   CHECK(d->dialog_id.get_type() == DialogType::SecretChat || last_new_message_id.is_server());
   if (!d->last_new_message_id.is_valid()) {
     delete_all_dialog_messages_from_database(d->dialog_id, MessageId::max(), "set_dialog_last_new_message_id");
@@ -24084,7 +24085,8 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
 
   loaded_dialogs_.insert(dialog_id);
 
-  log_event_parse(*d, value.as_slice()).ensure();
+  auto status = log_event_parse(*d, value.as_slice());
+  CHECK(status.is_ok()) << format::as_hex_dump<4>(value.as_slice());
   CHECK(dialog_id == d->dialog_id);
 
   Dependencies dependencies;
@@ -24373,7 +24375,7 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
         dump_debug_message_op(d, 2);
       }
     } else {
-      set_dialog_last_new_message_id(d, last_full_message_id.get_message_id(),
+      set_dialog_last_new_message_id(d, last_message_id,
                                      "on_get_channel_dialog 40");  // skip updates about some messages
     }
   }
