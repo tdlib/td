@@ -6,6 +6,8 @@
 //
 #include "td/net/HttpQuery.h"
 
+#include "td/utils/misc.h"
+
 #include <algorithm>
 
 namespace td {
@@ -28,6 +30,19 @@ std::vector<std::pair<string, string>> HttpQuery::string_args() const {
     res.push_back(std::make_pair(it.first.str(), it.second.str()));
   }
   return res;
+}
+
+int HttpQuery::get_retry_after() const {
+  auto value = header("retry-after");
+  if (value.empty()) {
+    return 0;
+  }
+  auto r_retry_after = to_integer_safe<int>(value);
+  if (r_retry_after.is_error()) {
+    return 0;
+  }
+
+  return td::max(0, r_retry_after.ok());
 }
 
 StringBuilder &operator<<(StringBuilder &sb, const HttpQuery &q) {

@@ -38,6 +38,8 @@ class HttpQuery {
   MutableSlice arg(Slice key) const;
 
   std::vector<std::pair<string, string>> string_args() const;
+
+  int get_retry_after() const;
 };
 
 using HttpQueryPtr = std::unique_ptr<HttpQuery>;
