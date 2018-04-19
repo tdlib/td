@@ -375,4 +375,10 @@ void PrivacyManager::send_with_promise(NetQueryPtr query, Promise<NetQueryPtr> p
   G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, id));
 }
 
+void PrivacyManager::hangup() {
+  container_.for_each(
+      [](auto id, Promise<NetQueryPtr> &promise) { promise.set_error(Status::Error(500, "Request aborted")); });
+  stop();
+}
+
 }  // namespace td

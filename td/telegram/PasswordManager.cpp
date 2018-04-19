@@ -84,14 +84,14 @@ void PasswordManager::do_get_secure_secret(bool recursive, string password, opti
         }
         auto state = r_state.move_as_ok();
         if (!state.state.has_password) {
-          return promise.set_error(Status::Error(400, "2fa is off"));
+          return promise.set_error(Status::Error(400, "2-step verification is disabled"));
         }
         if (state.private_state.secret) {
           send_closure(actor_id, &PasswordManager::cache_secret, state.private_state.secret.value().clone());
           return promise.set_value(std::move(state.private_state.secret.value()));
         }
         if (!recursive) {
-          return promise.set_error(Status::Error(400, "Failed to get secure secret"));
+          return promise.set_error(Status::Error(400, "Failed to get Telegram Passport secret"));
         }
 
         auto new_promise = PromiseCreator::lambda([password, hash = std::move(hash), promise = std::move(promise),
@@ -340,6 +340,7 @@ BufferSlice create_salt(Slice server_salt) {
   return new_salt;
 }
 }  // namespace
+
 void PasswordManager::do_update_password_settings(UpdateSettings update_settings, PasswordFullState full_state,
                                                   Promise<bool> promise) {
   auto state = std::move(full_state.state);
@@ -476,6 +477,7 @@ void PasswordManager::do_get_state(Promise<PasswordState> promise) {
                       promise.set_value(std::move(state));
                     }));
 }
+
 void PasswordManager::cache_secret(secure_storage::Secret secret) {
   LOG(ERROR) << "CACHE";
   secret_ = std::move(secret);
@@ -485,6 +487,7 @@ void PasswordManager::on_result(NetQueryPtr query) {
   auto token = get_link_token();
   container_.extract(token).set_value(std::move(query));
 }
+
 void PasswordManager::send_with_promise(NetQueryPtr query, Promise<NetQueryPtr> promise) {
   auto id = container_.create(std::move(promise));
   G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, id));
@@ -492,6 +495,12 @@ void PasswordManager::send_with_promise(NetQueryPtr query, Promise<NetQueryPtr> 
 
 void PasswordManager::start_up() {
   temp_password_state_ = get_temp_password_state_sync();
+}
+
+void PasswordManager::hangup() {
+  container_.for_each(
+      [](auto id, Promise<NetQueryPtr> &promise) { promise.set_error(Status::Error(500, "Request aborted")); });
+  stop();
 }
 
 }  // namespace td

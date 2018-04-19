@@ -635,6 +635,12 @@ void CallActor::send_with_promise(NetQueryPtr query, Promise<NetQueryPtr> promis
   G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this, id));
 }
 
+void CallActor::hangup() {
+  container_.for_each(
+      [](auto id, Promise<NetQueryPtr> &promise) { promise.set_error(Status::Error(500, "Request aborted")); });
+  stop();
+}
+
 vector<string> CallActor::get_emojis_fingerprint(const string &key, const string &g_a) {
   string str = key + g_a;
   unsigned char sha256_buf[32];

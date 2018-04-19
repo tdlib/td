@@ -966,7 +966,7 @@ class CliClient final : public Actor {
       return make_tl_object<td_api::inputPassportDataPhoneNumber>(arg);
     } else if (passport_data_type == "pd") {
       return make_tl_object<td_api::inputPassportDataPersonalDetails>(make_tl_object<td_api::personalDetails>(
-          "Mike", "Towers", make_tl_object<td_api::date>(29, 2, 1999), "male", "US"));
+          "Mike", "Towers", make_tl_object<td_api::date>(29, 2, 2000), "male", "US"));
     } else if (passport_data_type == "driver_license" || passport_data_type == "dl") {
       return make_tl_object<td_api::inputPassportDataDriverLicense>(make_tl_object<td_api::inputIdentityDocument>(
           "1234567890", make_tl_object<td_api::date>(1, 3, 2029), std::move(files), nullptr));
@@ -1149,6 +1149,9 @@ class CliClient final : public Actor {
       std::tie(password, args) = split(args);
       std::tie(passport_data_type, arg) = split(args);
       send_request(make_tl_object<td_api::setPassportData>(as_input_passport_data(passport_data_type, arg), password));
+    } else if (op == "dpd") {
+      string passport_data_type = args;
+      send_request(make_tl_object<td_api::deletePassportData>(as_passport_data_type(passport_data_type)));
     } else if (op == "pdu" || op == "processDcUpdate") {
       string dc_id;
       string ip_port;

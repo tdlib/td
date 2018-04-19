@@ -26,6 +26,7 @@
 #include <memory>
 
 namespace td {
+
 struct CallProtocol {
   bool udp_p2p{true};
   bool udp_reflector{true};
@@ -169,7 +170,9 @@ class CallActor : public NetQueryCallback {
   void send_with_promise(NetQueryPtr query, Promise<NetQueryPtr> promise);
 
   void timeout_expired() override;
+  void hangup() override;
 
   void on_error(Status status);
 };
+
 }  // namespace td

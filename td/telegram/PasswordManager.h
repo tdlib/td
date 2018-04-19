@@ -140,6 +140,7 @@ class PasswordManager : public NetQueryCallback {
   void on_result(NetQueryPtr query) override;
 
   void start_up() override;
+  void hangup() override;
 
   Container<Promise<NetQueryPtr>> container_;
   void send_with_promise(NetQueryPtr query, Promise<NetQueryPtr> promise);

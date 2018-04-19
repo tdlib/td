@@ -153,9 +153,10 @@ void GetSecureValue::on_error(Status status) {
 }
 
 void GetSecureValue::on_secret(Result<secure_storage::Secret> r_secret, bool dummy) {
-  LOG_IF(ERROR, r_secret.is_error()) << r_secret.error();
-  LOG_IF(ERROR, r_secret.is_ok()) << r_secret.ok().get_hash();
   if (r_secret.is_error()) {
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Receive error instead of secret: " << r_secret.error();
+    }
     return on_error(r_secret.move_as_error());
   }
   secret_ = r_secret.move_as_ok();
@@ -202,7 +203,6 @@ void GetSecureValue::on_result(NetQueryPtr query) {
   if (result.size() != 1) {
     return on_error(Status::Error(PSLICE() << "Expected vector of size 1 got " << result.size()));
   }
-  LOG(ERROR) << to_string(result[0]);
   encrypted_secure_value_ =
       get_encrypted_secure_value(G()->td().get_actor_unsafe()->file_manager_.get(), std::move(result[0]));
   loop();
@@ -219,9 +219,10 @@ void GetAllSecureValues::on_error(Status status) {
 }
 
 void GetAllSecureValues::on_secret(Result<secure_storage::Secret> r_secret, bool dummy) {
-  LOG_IF(ERROR, r_secret.is_error()) << r_secret.error();
-  LOG_IF(ERROR, r_secret.is_ok()) << r_secret.ok().get_hash();
   if (r_secret.is_error()) {
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Receive error instead of secret: " << r_secret.error();
+    }
     return on_error(r_secret.move_as_error());
   }
   secret_ = r_secret.move_as_ok();
@@ -321,9 +322,10 @@ void SetSecureValue::on_error(Status status) {
 }
 
 void SetSecureValue::on_secret(Result<secure_storage::Secret> r_secret, bool x) {
-  LOG_IF(ERROR, r_secret.is_error()) << r_secret.error();
-  LOG_IF(ERROR, r_secret.is_ok()) << r_secret.ok().get_hash();
   if (r_secret.is_error()) {
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Receive error instead of secret: " << r_secret.error();
+    }
     return on_error(r_secret.move_as_error());
   }
   secret_ = r_secret.move_as_ok();
@@ -386,7 +388,6 @@ void SetSecureValue::loop() {
         file_manager, encrypt_secure_value(file_manager, *secret_, secure_value_), to_upload_, selfie_);
     auto save_secure_value =
         telegram_api::account_saveSecureValue(std::move(input_secure_value), secret_.value().get_hash());
-    LOG(ERROR) << to_string(save_secure_value);
     auto query = G()->net_query_creator().create(create_storer(save_secure_value));
 
     G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
@@ -407,7 +408,6 @@ void SetSecureValue::on_result(NetQueryPtr query) {
     return on_error(r_result.move_as_error());
   }
   auto result = r_result.move_as_ok();
-  LOG(ERROR) << to_string(result);
   auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
   auto encrypted_secure_value = get_encrypted_secure_value(file_manager, std::move(result));
   if (secure_value_.files.size() != encrypted_secure_value.files.size()) {
@@ -432,7 +432,7 @@ void SetSecureValue::merge(FileManager *file_manager, FileId file_id, EncryptedS
   CHECK(!file_view.empty());
   CHECK(file_view.encryption_key().has_value_hash());
   if (file_view.encryption_key().value_hash().as_slice() != encrypted_file.file_hash) {
-    LOG(ERROR) << "hash mismatch";
+    LOG(ERROR) << "Hash mismatch";
     return;
   }
   auto status = file_manager->merge(encrypted_file.file_id, file_id);
@@ -494,9 +494,10 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
   telegram_api::object_ptr<telegram_api::account_authorizationForm> authorization_form_;
 
   void on_secret(Result<secure_storage::Secret> r_secret, bool dummy) {
-    LOG_IF(ERROR, r_secret.is_error()) << r_secret.error();
-    LOG_IF(ERROR, r_secret.is_ok()) << r_secret.ok().get_hash();
     if (r_secret.is_error()) {
+      if (!G()->close_flag()) {
+        LOG(ERROR) << "Receive error instead of secret: " << r_secret.error();
+      }
       return on_error(r_secret.move_as_error());
     }
     secret_ = r_secret.move_as_ok();
@@ -831,9 +832,7 @@ void SecureManager::send_passport_authorization_form(string password, int32 auth
                           }
                           join->credentials_.push_back(r_secure_value.move_as_ok().credentials);
                           join->wait_cnt_--;
-                          LOG(ERROR) << tag("wait_cnt", join->wait_cnt_);
                           if (join->wait_cnt_ == 0) {
-                            LOG(ERROR) << "set promise";
                             join->promise_.set_value(std::move(join->credentials_));
                           }
                         }));
@@ -841,7 +840,6 @@ void SecureManager::send_passport_authorization_form(string password, int32 auth
   join->promise_ =
       PromiseCreator::lambda([promise = std::move(promise), actor_id = actor_id(this),
                               authorization_form_id](Result<vector<SecureValueCredentials>> r_credentials) mutable {
-        LOG(ERROR) << "on promise";
         if (r_credentials.is_error()) {
           return promise.set_error(r_credentials.move_as_error());
         }
@@ -852,7 +850,6 @@ void SecureManager::send_passport_authorization_form(string password, int32 auth
 
 void SecureManager::do_send_passport_authorization_form(int32 authorization_form_id,
                                                         vector<SecureValueCredentials> credentials, Promise<> promise) {
-  LOG(ERROR) << "do_send_passport_authorization_form";
   auto it = authorization_forms_.find(authorization_form_id);
   if (it == authorization_forms_.end()) {
     return promise.set_error(Status::Error(400, "Unknown authorization_form_id"));
@@ -875,7 +872,6 @@ void SecureManager::do_send_passport_authorization_form(int32 authorization_form
   auto td_query = telegram_api::account_acceptAuthorization(
       it->second.bot_user_id.get(), it->second.scope, it->second.public_key, std::move(hashes),
       get_secure_credentials_encrypted_object(r_encrypted_credentials.move_as_ok()));
-  LOG(ERROR) << to_string(td_query);
   auto query = G()->net_query_creator().create(create_storer(td_query));
   auto new_promise =
       PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_net_query_ptr) mutable {
@@ -889,6 +885,8 @@ void SecureManager::do_send_passport_authorization_form(int32 authorization_form
 }
 
 void SecureManager::hangup() {
+  container_.for_each(
+      [](auto id, Promise<NetQueryPtr> &promise) { promise.set_error(Status::Error(500, "Request aborted")); });
   dec_refcnt();
 }
 
