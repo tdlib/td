@@ -799,6 +799,10 @@ paymentResult success:Bool verification_url:string = PaymentResult;
 paymentReceipt date:int32 payments_provider_user_id:int32 invoice:invoice order_info:orderInfo shipping_option:shippingOption credentials_title:string = PaymentReceipt;
 
 
+//@description File with the date it was uploaded @file The file @date Point in time (Unix timestamp) when the file was uploaded
+datedFile file:file date:int32 = DatedFile;
+
+
 //@class PassportDataType @description Contains type of a Telegram Passport data
 
 //@description The Telegram Passport data contains a user's personal details
@@ -840,7 +844,7 @@ date day:int32 month:int32 year:int32 = Date;
 personalDetails first_name:string last_name:string birthdate:date gender:string country_code:string = PersonalDetails;
 
 //@description An identity document @number Document's number; 1-24 characters @expiry_date Document's expiry date; may be null @files List of files with the document images @selfie Selfie with the document; may be null
-identityDocument number:string expiry_date:date files:vector<file> selfie:file = IdentityDocument;
+identityDocument number:string expiry_date:date files:vector<datedFile> selfie:datedFile = IdentityDocument;
 
 //@description An identity document to save @number Document's number @expiry_date Document's expiry date, if available @files List of files with the document images @selfie Selfie with the document, if available
 inputIdentityDocument number:string expiry_date:date files:vector<InputFile> selfie:InputFile = InputIdentityDocument;
@@ -864,13 +868,13 @@ passportDataIdentityCard identity_card:identityDocument = PassportData;
 passportDataAddress address:address = PassportData;
 
 //@description The Telegram Passport data contains a user's utility bill @files List of files with the utility bill
-passportDataUtilityBill files:vector<file> = PassportData;
+passportDataUtilityBill files:vector<datedFile> = PassportData;
 
 //@description The Telegram Passport data contains a user's bank statement @files List of files with the bank statement
-passportDataBankStatement files:vector<file> = PassportData;
+passportDataBankStatement files:vector<datedFile> = PassportData;
 
 //@description The Telegram Passport data contains a user's rental agreement @files List of files with the rental agreement
-passportDataRentalAgreement files:vector<file> = PassportData;
+passportDataRentalAgreement files:vector<datedFile> = PassportData;
 
 //@description The Telegram Passport data contains a user's phone number @phone_number The phone number
 passportDataPhoneNumber phone_number:string = PassportData;
@@ -946,7 +950,7 @@ encryptedCredentials data:bytes hash:bytes secret:bytes = EncryptedCredentials;
 
 
 //@description Contains information about an encrypted Telegram Passport data @type Telegram Passport data type @data Encrypted JSON-encoded data about the user @files List of attached files @value Unencrypted data, phone number or email address @selfie Selfie with the document
-encryptedPassportData type:PassportDataType data:bytes files:vector<file> value:string selfie:file = EncryptedPassportData;
+encryptedPassportData type:PassportDataType data:bytes files:vector<datedFile> value:string selfie:datedFile = EncryptedPassportData;
 
 
 //@class InputPassportDataErrorSource @description Contains description of an error in a Telegram Passport data; for bots only

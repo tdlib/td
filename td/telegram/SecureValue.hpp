@@ -15,17 +15,27 @@
 namespace td {
 
 template <class StorerT>
-void store(EncryptedSecureFile file, StorerT &storer) {
+void store(DatedFile file, StorerT &storer) {
   store(file.file_id, storer);
   store(file.date, storer);
+}
+
+template <class ParserT>
+void parse(DatedFile &file, ParserT &parser) {
+  parse(file.file_id, parser);
+  parse(file.date, parser);
+}
+
+template <class StorerT>
+void store(EncryptedSecureFile file, StorerT &storer) {
+  store(file.file, storer);
   store(file.file_hash, storer);
   store(file.encrypted_secret, storer);
 }
 
 template <class ParserT>
 void parse(EncryptedSecureFile &file, ParserT &parser) {
-  parse(file.file_id, parser);
-  parse(file.date, parser);
+  parse(file.file, parser);
   parse(file.file_hash, parser);
   parse(file.encrypted_secret, parser);
 }
@@ -62,7 +72,7 @@ template <class StorerT>
 void store(const EncryptedSecureValue &value, StorerT &storer) {
   bool has_data_hash = !value.data.hash.empty();
   bool has_files = !value.files.empty();
-  bool has_selfie = value.selfie.file_id.is_valid();
+  bool has_selfie = value.selfie.file.file_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_data_hash);
   STORE_FLAG(has_files);

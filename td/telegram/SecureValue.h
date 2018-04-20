@@ -55,9 +55,16 @@ vector<td_api::object_ptr<td_api::PassportDataType>> get_passport_data_types_obj
 
 string get_secure_value_data_field_name(SecureValueType type, string field_name);
 
-struct EncryptedSecureFile {
+struct DatedFile {
   FileId file_id;
   int32 date = 0;
+};
+
+bool operator==(const DatedFile &lhs, const DatedFile &rhs);
+bool operator!=(const DatedFile &lhs, const DatedFile &rhs);
+
+struct EncryptedSecureFile {
+  DatedFile file;
   string file_hash;
   string encrypted_secret;
 };
@@ -78,11 +85,6 @@ struct SecureInputFile {
 telegram_api::object_ptr<telegram_api::InputSecureFile> get_input_secure_file_object(FileManager *file_manager,
                                                                                      const EncryptedSecureFile &file,
                                                                                      SecureInputFile &input_file);
-
-td_api::object_ptr<td_api::file> get_encrypted_file_object(FileManager *file_manager, const EncryptedSecureFile &file);
-
-vector<td_api::object_ptr<td_api::file>> get_encrypted_files_object(FileManager *file_manager,
-                                                                    const vector<EncryptedSecureFile> &files);
 
 vector<telegram_api::object_ptr<telegram_api::InputSecureFile>> get_input_secure_files_object(
     FileManager *file_manager, const vector<EncryptedSecureFile> &file, vector<SecureInputFile> &input_files);
@@ -167,8 +169,8 @@ class SecureValue {
  public:
   SecureValueType type = SecureValueType::None;
   string data;
-  vector<FileId> files;
-  FileId selfie;
+  vector<DatedFile> files;
+  DatedFile selfie;
 };
 
 struct SecureValueWithCredentials {

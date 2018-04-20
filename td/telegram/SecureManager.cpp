@@ -339,33 +339,34 @@ void SetSecureValue::start_up() {
                }));
   auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
 
-  // Remove duplicated files
+  // Remove duplicate files
+  FileId selfie_file_id;
+  if (secure_value_.selfie.file_id.is_valid()) {
+    selfie_file_id = file_manager->get_file_view(secure_value_.selfie.file_id).file_id();
+  }
   for (auto it = secure_value_.files.begin(); it != secure_value_.files.end();) {
-    bool is_duplicate = false;
+    auto file_id = file_manager->get_file_view(it->file_id).file_id();
+    bool is_duplicate = file_id == selfie_file_id;
     for (auto pit = secure_value_.files.begin(); pit != it; pit++) {
-      if (file_manager->get_file_view(*it).file_id() == file_manager->get_file_view(*pit).file_id()) {
+      if (file_id == file_manager->get_file_view(pit->file_id).file_id()) {
         is_duplicate = true;
         break;
       }
     }
-    if (secure_value_.selfie.is_valid() &&
-        file_manager->get_file_view(*it).file_id() == file_manager->get_file_view(secure_value_.selfie).file_id()) {
-      is_duplicate = true;
-    }
     if (is_duplicate) {
       it = secure_value_.files.erase(it);
     } else {
-      it++;
+      ++it;
     }
   }
 
   to_upload_.resize(secure_value_.files.size());
   upload_callback_ = std::make_shared<UploadCallback>(actor_id(this));
   for (size_t i = 0; i < to_upload_.size(); i++) {
-    start_upload(file_manager, secure_value_.files[i], to_upload_[i]);
+    start_upload(file_manager, secure_value_.files[i].file_id, to_upload_[i]);
   }
-  if (selfie_) {
-    start_upload(file_manager, secure_value_.selfie, selfie_.value());
+  if (secure_value_.selfie.file_id.is_valid()) {
+    start_upload(file_manager, secure_value_.selfie.file_id, selfie_.value());
   }
 }
 
@@ -414,10 +415,10 @@ void SetSecureValue::on_result(NetQueryPtr query) {
     return on_error(Status::Error("Different files count"));
   }
   for (size_t i = 0; i < secure_value_.files.size(); i++) {
-    merge(file_manager, secure_value_.files[i], encrypted_secure_value.files[i]);
+    merge(file_manager, secure_value_.files[i].file_id, encrypted_secure_value.files[i]);
   }
-  if (secure_value_.selfie.is_valid()) {
-    merge(file_manager, secure_value_.selfie, encrypted_secure_value.selfie);
+  if (secure_value_.selfie.file_id.is_valid()) {
+    merge(file_manager, secure_value_.selfie.file_id, encrypted_secure_value.selfie);
   }
   auto r_secure_value = decrypt_secure_value(file_manager, *secret_, encrypted_secure_value);
   if (r_secure_value.is_error()) {
@@ -435,7 +436,7 @@ void SetSecureValue::merge(FileManager *file_manager, FileId file_id, EncryptedS
     LOG(ERROR) << "Hash mismatch";
     return;
   }
-  auto status = file_manager->merge(encrypted_file.file_id, file_id);
+  auto status = file_manager->merge(encrypted_file.file.file_id, file_id);
   LOG_IF(ERROR, status.is_error()) << status.error();
 }
 

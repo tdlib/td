@@ -8,6 +8,7 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileManager.h"
+#include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/Payments.h"
 
@@ -246,9 +247,16 @@ string get_secure_value_data_field_name(SecureValueType type, string field_name)
   return string();
 }
 
+bool operator==(const DatedFile &lhs, const DatedFile &rhs) {
+  return lhs.file_id == rhs.file_id && lhs.date == rhs.date;
+}
+
+bool operator!=(const DatedFile &lhs, const DatedFile &rhs) {
+  return !(lhs == rhs);
+}
+
 bool operator==(const EncryptedSecureFile &lhs, const EncryptedSecureFile &rhs) {
-  return lhs.file_id == rhs.file_id && lhs.date == rhs.date && lhs.file_hash == rhs.file_hash &&
-         lhs.encrypted_secret == rhs.encrypted_secret;
+  return lhs.file == rhs.file && lhs.file_hash == rhs.file_hash && lhs.encrypted_secret == rhs.encrypted_secret;
 }
 
 bool operator!=(const EncryptedSecureFile &lhs, const EncryptedSecureFile &rhs) {
@@ -269,13 +277,13 @@ EncryptedSecureFile get_encrypted_secure_file(FileManager *file_manager,
         LOG(ERROR) << "Wrong dc_id = " << dc_id;
         break;
       }
-      result.file_id = file_manager->register_remote(
+      result.file.file_id = file_manager->register_remote(
           FullRemoteFileLocation(FileType::Secure, secure_file->id_, secure_file->access_hash_, DcId::internal(dc_id)),
           FileLocationSource::FromServer, {}, 0, 0, "");
-      result.date = secure_file->date_;
-      if (result.date < 0) {
-        LOG(ERROR) << "Receive wrong date " << result.date;
-        result.date = 0;
+      result.file.date = secure_file->date_;
+      if (result.file.date < 0) {
+        LOG(ERROR) << "Receive wrong date " << result.file.date;
+        result.file.date = 0;
       }
       result.encrypted_secret = secure_file->secret_.as_slice().str();
       result.file_hash = secure_file->file_hash_.as_slice().str();
@@ -293,7 +301,7 @@ vector<EncryptedSecureFile> get_encrypted_secure_files(FileManager *file_manager
   results.reserve(secure_files.size());
   for (auto &secure_file : secure_files) {
     auto result = get_encrypted_secure_file(file_manager, std::move(secure_file));
-    if (result.file_id.is_valid()) {
+    if (result.file.file_id.is_valid()) {
       results.push_back(std::move(result));
     }
   }
@@ -303,11 +311,11 @@ vector<EncryptedSecureFile> get_encrypted_secure_files(FileManager *file_manager
 telegram_api::object_ptr<telegram_api::InputSecureFile> get_input_secure_file_object(FileManager *file_manager,
                                                                                      const EncryptedSecureFile &file,
                                                                                      SecureInputFile &input_file) {
-  CHECK(file_manager->get_file_view(file.file_id).file_id() ==
+  CHECK(file_manager->get_file_view(file.file.file_id).file_id() ==
         file_manager->get_file_view(input_file.file_id).file_id());
   auto res = std::move(input_file.input_file);
   if (res == nullptr) {
-    return file_manager->get_file_view(file.file_id).remote_location().as_input_secure_file();
+    return file_manager->get_file_view(file.file.file_id).remote_location().as_input_secure_file();
   }
   telegram_api::downcast_call(*res, overloaded(
                                         [&](telegram_api::inputSecureFileUploaded &uploaded) {
@@ -318,20 +326,27 @@ telegram_api::object_ptr<telegram_api::InputSecureFile> get_input_secure_file_ob
   return res;
 }
 
-td_api::object_ptr<td_api::file> get_encrypted_file_object(FileManager *file_manager, const EncryptedSecureFile &file) {
-  CHECK(file.file_id.is_valid());
-  auto file_view = file_manager->get_file_view(file.file_id);
-  auto file_id = file_manager->register_remote(
+static td_api::object_ptr<td_api::datedFile> get_dated_file_object(FileManager *file_manager, DatedFile file) {
+  return td_api::make_object<td_api::datedFile>(file_manager->get_file_object(file.file_id), file.date);
+}
+
+static td_api::object_ptr<td_api::datedFile> get_dated_file_object(FileManager *file_manager,
+                                                                   const EncryptedSecureFile &file) {
+  DatedFile dated_file = file.file;
+  auto file_id = dated_file.file_id;
+  CHECK(file_id.is_valid());
+  auto file_view = file_manager->get_file_view(file_id);
+  dated_file.file_id = file_manager->register_remote(
       FullRemoteFileLocation(FileType::SecureRaw, file_view.remote_location().get_id(),
                              file_view.remote_location().get_access_hash(), file_view.remote_location().get_dc_id()),
       FileLocationSource::FromServer, {}, 0, 0, "");
-  return file_manager->get_file_object(file_id);
+  return get_dated_file_object(file_manager, dated_file);
 }
 
-vector<td_api::object_ptr<td_api::file>> get_encrypted_files_object(FileManager *file_manager,
-                                                                    const vector<EncryptedSecureFile> &files) {
+static vector<td_api::object_ptr<td_api::datedFile>> get_dated_files_object(FileManager *file_manager,
+                                                                            const vector<EncryptedSecureFile> &files) {
   return transform(
-      files, [file_manager](const EncryptedSecureFile &file) { return get_encrypted_file_object(file_manager, file); });
+      files, [file_manager](const EncryptedSecureFile &file) { return get_dated_file_object(file_manager, file); });
 }
 
 vector<telegram_api::object_ptr<telegram_api::InputSecureFile>> get_input_secure_files_object(
@@ -417,15 +432,15 @@ td_api::object_ptr<td_api::encryptedPassportData> get_encrypted_passport_data_ob
   bool is_plain = value.data.hash.empty();
   return td_api::make_object<td_api::encryptedPassportData>(
       get_passport_data_type_object(value.type), is_plain ? string() : value.data.data,
-      get_encrypted_files_object(file_manager, value.files), is_plain ? value.data.data : string(),
-      value.selfie.file_id.is_valid() ? get_encrypted_file_object(file_manager, value.selfie) : nullptr);
+      get_dated_files_object(file_manager, value.files), is_plain ? value.data.data : string(),
+      value.selfie.file.file_id.is_valid() ? get_dated_file_object(file_manager, value.selfie) : nullptr);
 }
 
 telegram_api::object_ptr<telegram_api::inputSecureValue> get_input_secure_value_object(
     FileManager *file_manager, const EncryptedSecureValue &value, std::vector<SecureInputFile> &input_files,
     optional<SecureInputFile> &selfie) {
   bool is_plain = value.type == SecureValueType::PhoneNumber || value.type == SecureValueType::EmailAddress;
-  bool has_selfie = value.selfie.file_id.is_valid();
+  bool has_selfie = value.selfie.file.file_id.is_valid();
   int32 flags = 0;
   tl_object_ptr<telegram_api::SecurePlainData> plain_data;
   if (is_plain) {
@@ -645,16 +660,21 @@ static Status check_document_number(string &number) {
   return Status::OK();
 }
 
-static Result<FileId> get_secure_file(FileManager *file_manager, td_api::object_ptr<td_api::InputFile> &&file) {
-  return file_manager->get_input_file_id(FileType::Secure, std::move(file), DialogId(), false, false, false, true);
+static Result<DatedFile> get_secure_file(FileManager *file_manager, td_api::object_ptr<td_api::InputFile> &&file) {
+  TRY_RESULT(file_id,
+             file_manager->get_input_file_id(FileType::Secure, std::move(file), DialogId(), false, false, false, true));
+  DatedFile result;
+  result.file_id = file_id;
+  result.date = G()->unix_time();
+  return std::move(result);
 }
 
-static Result<vector<FileId>> get_secure_files(FileManager *file_manager,
-                                               vector<td_api::object_ptr<td_api::InputFile>> &&files) {
-  vector<FileId> result;
+static Result<vector<DatedFile>> get_secure_files(FileManager *file_manager,
+                                                  vector<td_api::object_ptr<td_api::InputFile>> &&files) {
+  vector<DatedFile> result;
   for (auto &file : files) {
-    TRY_RESULT(file_id, get_secure_file(file_manager, std::move(file)));
-    result.push_back(file_id);
+    TRY_RESULT(dated_file, get_secure_file(file_manager, std::move(file)));
+    result.push_back(std::move(dated_file));
   }
   return result;
 }
@@ -678,19 +698,21 @@ static Result<SecureValue> get_identity_document(
 
   res.files = std::move(files);
   if (identity_document->selfie_ != nullptr) {
-    TRY_RESULT(file_id, get_secure_file(file_manager, std::move(identity_document->selfie_)));
-    res.selfie = file_id;
+    TRY_RESULT(file, get_secure_file(file_manager, std::move(identity_document->selfie_)));
+    res.selfie = file;
   }
   return res;
 }
 
 static Result<td_api::object_ptr<td_api::identityDocument>> get_identity_document_object(FileManager *file_manager,
                                                                                          const SecureValue &value) {
-  auto files = transform(value.files, [file_manager](FileId id) { return file_manager->get_file_object(id); });
+  auto files = transform(value.files, [file_manager](const DatedFile &dated_file) {
+    return get_dated_file_object(file_manager, dated_file);
+  });
 
-  td_api::object_ptr<td_api::file> selfie;
-  if (value.selfie.is_valid()) {
-    selfie = file_manager->get_file_object(value.selfie);
+  td_api::object_ptr<td_api::datedFile> selfie;
+  if (value.selfie.file_id.is_valid()) {
+    selfie = get_dated_file_object(file_manager, value.selfie);
   }
 
   auto data_copy = value.data;
@@ -830,7 +852,8 @@ Result<td_api::object_ptr<td_api::PassportData>> get_passport_data_object(FileMa
     case SecureValueType::UtilityBill:
     case SecureValueType::BankStatement:
     case SecureValueType::RentalAgreement: {
-      auto files = transform(value.files, [file_manager](FileId id) { return file_manager->get_file_object(id); });
+      auto files = transform(
+          value.files, [file_manager](const DatedFile &file) { return get_dated_file_object(file_manager, file); });
       if (value.type == SecureValueType::UtilityBill) {
         return td_api::make_object<td_api::passportDataUtilityBill>(std::move(files));
       }
@@ -871,33 +894,33 @@ td_api::object_ptr<td_api::allPassportData> get_all_passport_data_object(FileMan
   return td_api::make_object<td_api::allPassportData>(std::move(result));
 }
 
-static Result<std::pair<FileId, SecureFileCredentials>> decrypt_secure_file(FileManager *file_manager,
-                                                                            const secure_storage::Secret &master_secret,
-                                                                            const EncryptedSecureFile &secure_file) {
-  if (!secure_file.file_id.is_valid()) {
-    return std::make_pair(FileId(), SecureFileCredentials());
+static Result<std::pair<DatedFile, SecureFileCredentials>> decrypt_secure_file(
+    FileManager *file_manager, const secure_storage::Secret &master_secret, const EncryptedSecureFile &secure_file) {
+  if (!secure_file.file.file_id.is_valid()) {
+    return std::make_pair(DatedFile(), SecureFileCredentials());
   }
   TRY_RESULT(hash, secure_storage::ValueHash::create(secure_file.file_hash));
   TRY_RESULT(encrypted_secret, secure_storage::EncryptedSecret::create(secure_file.encrypted_secret));
   TRY_RESULT(secret, encrypted_secret.decrypt(PSLICE() << master_secret.as_slice() << hash.as_slice()));
   FileEncryptionKey key{secret};
   key.set_value_hash(hash);
-  file_manager->set_encryption_key(secure_file.file_id, std::move(key));
-  return std::make_pair(secure_file.file_id, SecureFileCredentials{secret.as_slice().str(), hash.as_slice().str()});
+  file_manager->set_encryption_key(secure_file.file.file_id, std::move(key));
+  return std::make_pair(secure_file.file, SecureFileCredentials{secret.as_slice().str(), hash.as_slice().str()});
 }
 
-static Result<std::pair<vector<FileId>, vector<SecureFileCredentials>>> decrypt_secure_files(
+static Result<std::pair<vector<DatedFile>, vector<SecureFileCredentials>>> decrypt_secure_files(
     FileManager *file_manager, const secure_storage::Secret &secret, const vector<EncryptedSecureFile> &secure_files) {
-  vector<FileId> res;
+  vector<DatedFile> result;
   vector<SecureFileCredentials> credentials;
-  res.reserve(secure_files.size());
+  result.reserve(secure_files.size());
+  credentials.reserve(secure_files.size());
   for (auto &file : secure_files) {
     TRY_RESULT(decrypted_file, decrypt_secure_file(file_manager, secret, file));
-    res.push_back(decrypted_file.first);
-    credentials.push_back(decrypted_file.second);
+    result.push_back(std::move(decrypted_file.first));
+    credentials.push_back(std::move(decrypted_file.second));
   }
 
-  return std::make_pair(std::move(res), std::move(credentials));
+  return std::make_pair(std::move(result), std::move(credentials));
 }
 
 static Result<std::pair<string, SecureDataCredentials>> decrypt_secure_data(const secure_storage::Secret &master_secret,
@@ -932,7 +955,7 @@ Result<SecureValueWithCredentials> decrypt_secure_value(FileManager *file_manage
       res_credentials.files = std::move(files.second);
       TRY_RESULT(selfie, decrypt_secure_file(file_manager, secret, encrypted_secure_value.selfie));
       res.selfie = std::move(selfie.first);
-      if (res.selfie.is_valid()) {
+      if (res.selfie.file_id.is_valid()) {
         res_credentials.selfie = std::move(selfie.second);
       }
       break;
@@ -958,8 +981,8 @@ Result<vector<SecureValueWithCredentials>> decrypt_secure_values(
 }
 
 static EncryptedSecureFile encrypt_secure_file(FileManager *file_manager, const secure_storage::Secret &master_secret,
-                                               FileId file, string &to_hash) {
-  auto file_view = file_manager->get_file_view(file);
+                                               DatedFile file, string &to_hash) {
+  auto file_view = file_manager->get_file_view(file.file_id);
   if (file_view.empty()) {
     return EncryptedSecureFile();
   }
@@ -974,7 +997,7 @@ static EncryptedSecureFile encrypt_secure_file(FileManager *file_manager, const 
   auto value_hash = file_view.encryption_key().value_hash();
   auto secret = file_view.encryption_key().secret();
   EncryptedSecureFile res;
-  res.file_id = file;
+  res.file = file;
   res.file_hash = value_hash.as_slice().str();
   res.encrypted_secret = secret.encrypt(PSLICE() << master_secret.as_slice() << value_hash.as_slice()).as_slice().str();
 
@@ -985,9 +1008,9 @@ static EncryptedSecureFile encrypt_secure_file(FileManager *file_manager, const 
 
 static vector<EncryptedSecureFile> encrypt_secure_files(FileManager *file_manager,
                                                         const secure_storage::Secret &master_secret,
-                                                        vector<FileId> files, string &to_hash) {
-  return transform(files,
-                   [&](auto file_id) { return encrypt_secure_file(file_manager, master_secret, file_id, to_hash); });
+                                                        vector<DatedFile> files, string &to_hash) {
+  return transform(
+      files, [&](auto dated_file) { return encrypt_secure_file(file_manager, master_secret, dated_file, to_hash); });
 }
 
 static EncryptedSecureData encrypt_secure_data(const secure_storage::Secret &master_secret, Slice data,
