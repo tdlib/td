@@ -1883,7 +1883,8 @@ class GetWebPageInstantViewRequest : public RequestActor<> {
   WebPageId web_page_id_;
 
   void do_run(Promise<Unit> &&promise) override {
-    web_page_id_ = td->web_pages_manager_->get_web_page_instant_view(url_, force_full_, std::move(promise));
+    web_page_id_ =
+        td->web_pages_manager_->get_web_page_instant_view(url_, force_full_, get_tries() < 3, std::move(promise));
   }
 
   void do_send_result() override {

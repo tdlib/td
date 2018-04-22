@@ -1733,10 +1733,16 @@ tl_object_ptr<td_api::webPage> WebPagesManager::get_web_page_preview_result(int6
   return get_web_page_object(web_page_id);
 }
 
-WebPageId WebPagesManager::get_web_page_instant_view(const string &url, bool force_full, Promise<Unit> &&promise) {
+WebPageId WebPagesManager::get_web_page_instant_view(const string &url, bool force_full, bool force,
+                                                     Promise<Unit> &&promise) {
   LOG(INFO) << "Trying to get web page instant view for the url \"" << url << '"';
   auto it = url_to_web_page_id_.find(url);
   if (it != url_to_web_page_id_.end()) {
+    if (it->second == WebPageId() && !force) {
+      // ignore negative caching
+      reload_web_page_by_url(url, std::move(promise));
+      return WebPageId();
+    }
     return get_web_page_instant_view(it->second, force_full, std::move(promise));
   }
 
