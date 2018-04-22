@@ -5888,7 +5888,8 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, UserId user_id,
       return;
     }
 
-    if (!need_cancel_user_dialog_action(it->action_id, message_content_id)) {
+    if (!td_->contacts_manager_->is_user_bot(user_id) &&
+        !need_cancel_user_dialog_action(it->action_id, message_content_id)) {
       return;
     }
 
