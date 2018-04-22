@@ -1932,6 +1932,8 @@ class MessagesManager : public Actor {
 
   void process_channel_update(tl_object_ptr<telegram_api::Update> &&update);
 
+  void on_message_edited(FullMessageId full_message_id);
+
   void delete_messages_from_updates(const vector<MessageId> &message_ids);
 
   void delete_dialog_messages_from_updates(DialogId dialog_id, const vector<MessageId> &message_ids);
@@ -2165,8 +2167,6 @@ class MessagesManager : public Actor {
 
   void send_update_message_content(DialogId dialog_id, MessageId message_id, const MessageContent *content,
                                    int32 message_date, bool is_content_secret, const char *source) const;
-
-  void send_update_message_edited(FullMessageId full_message_id);
 
   void send_update_message_edited(DialogId dialog_id, const Message *m);
 

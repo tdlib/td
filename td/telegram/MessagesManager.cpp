@@ -6117,9 +6117,7 @@ void MessagesManager::process_update(tl_object_ptr<telegram_api::Update> &&updat
           on_get_message(std::move(move_tl_object_as<telegram_api::updateEditMessage>(update)->message_), false, false,
                          false, false, "updateEditMessage");
       LOG(INFO) << "Process updateEditMessage";
-      if (full_message_id != FullMessageId() && td_->auth_manager_->is_bot()) {
-        send_update_message_edited(full_message_id);
-      }
+      on_message_edited(full_message_id);
       break;
     }
     case telegram_api::updateDeleteMessages::ID: {
@@ -6191,13 +6189,29 @@ void MessagesManager::process_channel_update(tl_object_ptr<telegram_api::Update>
           on_get_message(std::move(move_tl_object_as<telegram_api::updateEditChannelMessage>(update)->message_), false,
                          true, false, false, "updateEditChannelMessage");
       LOG(INFO) << "Process updateEditChannelMessage";
-      if (full_message_id != FullMessageId() && td_->auth_manager_->is_bot()) {
-        send_update_message_edited(full_message_id);
-      }
+      on_message_edited(full_message_id);
       break;
     }
     default:
       UNREACHABLE();
+  }
+}
+
+void MessagesManager::on_message_edited(FullMessageId full_message_id) {
+  if (full_message_id == FullMessageId()) {
+    return;
+  }
+
+  auto dialog_id = full_message_id.get_dialog_id();
+  Message *m = get_message(full_message_id);
+  CHECK(m != nullptr);
+  if (td_->auth_manager_->is_bot()) {
+    send_update_message_edited(dialog_id, m);
+  } else {
+    if (m->forward_info == nullptr &&
+        (m->is_outgoing || dialog_id == DialogId(td_->contacts_manager_->get_my_id("on_message_edited")))) {
+      update_used_hashtags(dialog_id, m);
+    }
   }
 }
 
@@ -18692,10 +18706,6 @@ void MessagesManager::send_update_message_content(DialogId dialog_id, MessageId 
       G()->td(), &Td::send_update,
       make_tl_object<td_api::updateMessageContent>(
           dialog_id.get(), message_id.get(), get_message_content_object(content, message_date, is_content_secret)));
-}
-
-void MessagesManager::send_update_message_edited(FullMessageId full_message_id) {
-  return send_update_message_edited(full_message_id.get_dialog_id(), get_message(full_message_id));
 }
 
 void MessagesManager::send_update_message_edited(DialogId dialog_id, const Message *m) {
