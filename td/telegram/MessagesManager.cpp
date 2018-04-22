@@ -15405,6 +15405,17 @@ MessageId MessagesManager::get_reply_to_message_id(Dialog *d, MessageId message_
   return message_id;
 }
 
+FormattedText MessagesManager::get_message_content_text(const MessageContent *content) {
+  switch (content->get_id()) {
+    case MessageAnimation::ID:
+      return static_cast<const MessageText *>(content)->text;
+    case MessageGame::ID:
+      return static_cast<const MessageGame *>(content)->game.get_message_text();
+    default:
+      return get_message_content_caption(content);
+  }
+}
+
 FormattedText MessagesManager::get_message_content_caption(const MessageContent *content) {
   switch (content->get_id()) {
     case MessageAnimation::ID:
@@ -15699,7 +15710,6 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, Dialo
   switch (m->content->get_id()) {
     case MessageText::ID: {
       auto content = static_cast<const MessageText *>(m->content.get());
-      add_formatted_text_dependencies(dependencies, content->text);
       dependencies.web_page_ids.insert(content->web_page_id);
       break;
     }
@@ -15717,7 +15727,6 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, Dialo
     case MessageGame::ID: {
       auto content = static_cast<const MessageGame *>(m->content.get());
       dependencies.user_ids.insert(content->game.get_bot_user_id());
-      add_formatted_text_dependencies(dependencies, content->game.get_message_text());
       break;
     }
     case MessageInvoice::ID:
@@ -15807,7 +15816,7 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, Dialo
       UNREACHABLE();
       break;
   }
-  add_formatted_text_dependencies(dependencies, get_message_content_caption(m->content.get()));
+  add_formatted_text_dependencies(dependencies, get_message_content_text(m->content.get()));
 }
 
 void MessagesManager::add_dialog_dependencies(Dependencies &dependencies, DialogId dialog_id) {

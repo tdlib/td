@@ -2387,6 +2387,8 @@ class MessagesManager : public Actor {
   tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content, int32 message_date,
                                                                    bool is_content_secret) const;
 
+  static FormattedText get_message_content_text(const MessageContent *content);
+
   static FormattedText get_message_content_caption(const MessageContent *content);
 
   int32 get_message_content_duration(const MessageContent *content) const;
