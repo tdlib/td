@@ -329,7 +329,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
       VLOG(connections) << "Send to promise " << tag("connection", client.ready_connections.back().first.get());
       it->set_value(std::move(client.ready_connections.back().first));
       client.ready_connections.pop_back();
-      it++;
+      ++it;
     }
     client.queries.erase(begin, it);
   }

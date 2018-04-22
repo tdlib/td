@@ -782,9 +782,9 @@ class QueueBenchmark : public td::Benchmark {
       std::fprintf(stderr, "Too big queries_n\n");
       std::exit(0);
     }
-    for (int it = 0; it < queries_n; it++) {
+    for (int query = 0; query < queries_n; query++) {
       for (int i = 0; i < connections_n; i++) {
-        server.put((static_cast<td::int64>(i) << 24) + it);
+        server.put((static_cast<td::int64>(i) << 24) + query);
       }
       for (int i = 0; i < connections_n; i++) {
         qvalue_t value = client.get();

@@ -102,7 +102,7 @@ void FileStats::apply_dialog_limit(int32 limit) {
   bool other_flag = false;
   for (auto it = stat_by_owner_dialog_id.begin(); it != stat_by_owner_dialog_id.end();) {
     if (all_dialogs.count(it->first)) {
-      it++;
+      ++it;
     } else {
       for (size_t i = 0; i < file_type_size; i++) {
         other_stats[i].size += it->second[i].size;

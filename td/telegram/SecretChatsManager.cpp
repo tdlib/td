@@ -545,7 +545,7 @@ void SecretChatsManager::flush_pending_chat_updates() {
   auto it = pending_chat_updates_.begin();
   while (it != pending_chat_updates_.end() && (it->first.is_in_past() || is_online_)) {
     do_update_chat(std::move(it->second));
-    it++;
+    ++it;
   }
   if (it != pending_chat_updates_.end()) {
     set_timeout_at(it->first.at());

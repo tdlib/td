@@ -73,13 +73,13 @@ uint64 pq_factorize(uint64 pq) {
     return 1;
   }
   uint64 g = 0;
-  for (int i = 0, it = 0; i < 3 || it < 1000; i++) {
+  for (int i = 0, iter = 0; i < 3 || iter < 1000; i++) {
     uint64 q = Random::fast(17, 32) % (pq - 1);
     uint64 x = Random::fast_uint64() % (pq - 1) + 1;
     uint64 y = x;
     int lim = 1 << (min(5, i) + 18);
     for (int j = 1; j < lim; j++) {
-      it++;
+      iter++;
       uint64 a = x;
       uint64 b = x;
       uint64 c = q;
@@ -168,14 +168,14 @@ static int pq_factorize_big(Slice pq_str, string *p_str, string *q_str) {
   BigNum pq = BigNum::from_binary(pq_str);
 
   bool found = false;
-  for (int i = 0, it = 0; !found && (i < 3 || it < 1000); i++) {
+  for (int i = 0, iter = 0; !found && (i < 3 || iter < 1000); i++) {
     int32 t = Random::fast(17, 32);
     a.set_value(Random::fast_uint32());
     b = a;
 
     int32 lim = 1 << (i + 23);
     for (int j = 1; j < lim; j++) {
-      it++;
+      iter++;
       BigNum::mod_mul(a, a, a, pq, context);
       a += t;
       if (BigNum::compare(a, pq) >= 0) {

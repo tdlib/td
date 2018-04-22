@@ -421,7 +421,7 @@ void Session::on_closed(Status status) {
         it = sent_queries_.erase(it);
       } else {
         mark_as_unknown(it->first, &it->second);
-        it++;
+        ++it;
       }
     } else {
       ++it;

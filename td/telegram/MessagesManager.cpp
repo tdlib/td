@@ -25324,7 +25324,7 @@ void MessagesManager::suffix_load_query_ready(DialogId dialog_id) {
   auto *m = get_message_force(d, d->suffix_load_first_message_id_);
   auto ready_it = std::partition(d->suffix_load_queries_.begin(), d->suffix_load_queries_.end(),
                                  [&](auto &value) { return !(d->suffix_load_done_ || value.second(m)); });
-  for (auto it = ready_it; it != d->suffix_load_queries_.end(); it++) {
+  for (auto it = ready_it; it != d->suffix_load_queries_.end(); ++it) {
     it->first.set_value(Unit());
   }
   d->suffix_load_queries_.erase(ready_it, d->suffix_load_queries_.end());

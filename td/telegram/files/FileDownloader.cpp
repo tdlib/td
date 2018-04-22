@@ -391,7 +391,7 @@ Result<FileLoader::CheckInfo> FileDownloader::check_loop(int64 checked_prefix_si
     search_info.offset = checked_prefix_size;
     auto it = hash_info_.upper_bound(search_info);
     if (it != hash_info_.begin()) {
-      it--;
+      --it;
     }
     if (it != hash_info_.end() && it->offset <= checked_prefix_size &&
         it->offset + narrow_cast<int64>(it->size) > checked_prefix_size) {
