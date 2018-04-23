@@ -2240,4 +2240,6 @@ void SecretChatActor::on_promise_error(Status error, string desc) {
   LOG(FATAL) << "Failed: " << tag("promise", desc) << error;
 }
 
+constexpr int32 SecretChatActor::MAX_RESEND_COUNT;
+
 }  // namespace td
