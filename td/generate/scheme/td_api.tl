@@ -846,7 +846,7 @@ personalDetails first_name:string last_name:string birthdate:date gender:string 
 //@description An identity document @number Document's number; 1-24 characters @expiry_date Document's expiry date; may be null @files List of files with the document images @selfie Selfie with the document; may be null
 identityDocument number:string expiry_date:date files:vector<datedFile> selfie:datedFile = IdentityDocument;
 
-//@description An identity document to save @number Document's number @expiry_date Document's expiry date, if available @files List of files with the document images @selfie Selfie with the document, if available
+//@description An identity document to save @number Document's number @expiry_date Document's expiry date, if available @files List of files with the document images; must be non-empty @selfie Selfie with the document, if available
 inputIdentityDocument number:string expiry_date:date files:vector<InputFile> selfie:InputFile = InputIdentityDocument;
 
 

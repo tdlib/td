@@ -18,6 +18,7 @@
 #include "td/net/HttpQuery.h"
 #include "td/net/HttpReader.h"
 
+#include "td/utils/base64.h"
 #include "td/utils/buffer.h"
 #include "td/utils/BufferedFd.h"
 #include "td/utils/FileLog.h"
@@ -448,9 +449,28 @@ class CliClient final : public Actor {
     return make_tl_object<td_api::inputFileLocal>(trim(std::move(path)));
   }
 
+  static tl_object_ptr<td_api::InputFile> as_remote_file(string id) {
+    return make_tl_object<td_api::inputFileRemote>(trim(std::move(id)));
+  }
+
   static tl_object_ptr<td_api::InputFile> as_generated_file(string original_path, string conversion,
                                                             int32 expected_size = 0) {
     return make_tl_object<td_api::inputFileGenerated>(trim(original_path), trim(conversion), expected_size);
+  }
+
+  static tl_object_ptr<td_api::InputFile> as_input_file(string str) {
+    if ((str.size() >= 20 && is_base64(str)) || begins_with(str, "http")) {
+      return as_remote_file(str);
+    }
+    auto r_id = to_integer_safe<int32>(trim(str));
+    if (r_id.is_ok()) {
+      return as_input_file_id(str);
+    }
+    if (str.find(';') < str.size()) {
+      auto res = split(str, ';');
+      return as_generated_file(res.first, res.second);
+    }
+    return as_local_file(str);
   }
 
   static tl_object_ptr<td_api::location> as_location(string latitude, string longitude) {
@@ -945,6 +965,15 @@ class CliClient final : public Actor {
     if (passport_data_type == "pd") {
       return make_tl_object<td_api::passportDataTypePersonalDetails>();
     }
+    if (passport_data_type == "dl") {
+      return make_tl_object<td_api::passportDataTypeDriverLicense>();
+    }
+    if (passport_data_type == "ic") {
+      return make_tl_object<td_api::passportDataTypeIdentityCard>();
+    }
+    if (passport_data_type == "ra") {
+      return make_tl_object<td_api::passportDataTypeRentalAgreement>();
+    }
     return make_tl_object<td_api::passportDataTypePassport>();
   }
 
@@ -952,10 +981,20 @@ class CliClient final : public Actor {
     return transform(full_split(types, delimiter), [](Slice str) { return as_passport_data_type(str); });
   }
 
-  static tl_object_ptr<td_api::InputPassportData> as_input_passport_data(string passport_data_type, string arg) {
-    vector<td_api::object_ptr<td_api::InputFile>> files;
+  static tl_object_ptr<td_api::InputPassportData> as_input_passport_data(string passport_data_type, string arg,
+                                                                         bool with_selfie) {
+    vector<td_api::object_ptr<td_api::InputFile>> input_files;
+    td_api::object_ptr<td_api::InputFile> selfie;
     if (!arg.empty()) {
-      files.push_back(make_tl_object<td_api::inputFileLocal>(arg));
+      auto files = full_split(arg);
+      CHECK(!files.empty());
+      if (with_selfie) {
+        selfie = as_input_file(files.back());
+        files.pop_back();
+      }
+      for (auto file : files) {
+        input_files.push_back(as_input_file(file));
+      }
     }
     if (passport_data_type == "address" || passport_data_type == "a") {
       return make_tl_object<td_api::inputPassportDataAddress>(
@@ -969,9 +1008,12 @@ class CliClient final : public Actor {
           "Mike", "Towers", make_tl_object<td_api::date>(29, 2, 2000), "male", "US"));
     } else if (passport_data_type == "driver_license" || passport_data_type == "dl") {
       return make_tl_object<td_api::inputPassportDataDriverLicense>(make_tl_object<td_api::inputIdentityDocument>(
-          "1234567890", make_tl_object<td_api::date>(1, 3, 2029), std::move(files), nullptr));
+          "1234567890", make_tl_object<td_api::date>(1, 3, 2029), std::move(input_files), std::move(selfie)));
+    } else if (passport_data_type == "identity_card" || passport_data_type == "ic") {
+      return make_tl_object<td_api::inputPassportDataIdentityCard>(make_tl_object<td_api::inputIdentityDocument>(
+          "1234567890", nullptr, std::move(input_files), std::move(selfie)));
     } else if (passport_data_type == "rental_aggrement" || passport_data_type == "ra") {
-      return make_tl_object<td_api::inputPassportDataRentalAgreement>(std::move(files));
+      return make_tl_object<td_api::inputPassportDataRentalAgreement>(std::move(input_files));
     }
 
     LOG(ERROR) << "Unsupported passport data type " << passport_data_type;
@@ -1142,13 +1184,14 @@ class CliClient final : public Actor {
     } else if (op == "gapd") {
       string password = args;
       send_request(make_tl_object<td_api::getAllPassportData>(password));
-    } else if (op == "spd") {
+    } else if (op == "spd" || op == "spds") {
       string password;
       string passport_data_type;
       string arg;
       std::tie(password, args) = split(args);
       std::tie(passport_data_type, arg) = split(args);
-      send_request(make_tl_object<td_api::setPassportData>(as_input_passport_data(passport_data_type, arg), password));
+      send_request(make_tl_object<td_api::setPassportData>(
+          as_input_passport_data(passport_data_type, arg, op == "spds"), password));
     } else if (op == "dpd") {
       string passport_data_type = args;
       send_request(make_tl_object<td_api::deletePassportData>(as_passport_data_type(passport_data_type)));
@@ -2321,16 +2364,15 @@ class CliClient final : public Actor {
       string url;
       std::tie(chat_id, url) = split(args);
 
-      send_message(chat_id, make_tl_object<td_api::inputMessageAnimation>(
-                                td_api::make_object<td_api::inputFileGenerated>(url, "#url#", 0), nullptr, 0, 0, 0,
-                                as_caption("")));
+      send_message(chat_id, make_tl_object<td_api::inputMessageAnimation>(as_generated_file(url, "#url#"), nullptr, 0,
+                                                                          0, 0, as_caption("")));
     } else if (op == "sanurl2") {
       string chat_id;
       string url;
       std::tie(chat_id, url) = split(args);
 
-      send_message(chat_id, make_tl_object<td_api::inputMessageAnimation>(
-                                td_api::make_object<td_api::inputFileRemote>(url), nullptr, 0, 0, 0, as_caption("")));
+      send_message(chat_id, make_tl_object<td_api::inputMessageAnimation>(as_remote_file(url), nullptr, 0, 0, 0,
+                                                                          as_caption("")));
     } else if (op == "sau") {
       string chat_id;
       string audio_path;
