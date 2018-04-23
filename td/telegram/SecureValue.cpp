@@ -24,6 +24,8 @@
 #include "td/utils/misc.h"
 #include "td/utils/overloaded.h"
 
+#include <limits>
+
 namespace td {
 
 StringBuilder &operator<<(StringBuilder &string_builder, const SecureValueType &type) {
@@ -541,6 +543,18 @@ static Result<string> get_date(td_api::object_ptr<td_api::date> &&date) {
                    << lpad0(to_string(date->year_), 4);
 }
 
+static Result<int32> to_int32(Slice str) {
+  CHECK(str.size() <= static_cast<size_t>(std::numeric_limits<int32>::digits10));
+  int32 integer_value = 0;
+  for (auto c : str) {
+    if (!is_digit(c)) {
+      return Status::Error(PSLICE() << "Can't parse \"" << str << "\" as number");
+    }
+    integer_value = integer_value * 10 + c - '0';
+  }
+  return integer_value;
+}
+
 static Result<td_api::object_ptr<td_api::date>> get_date_object(Slice date) {
   if (date.empty()) {
     return nullptr;
@@ -552,9 +566,9 @@ static Result<td_api::object_ptr<td_api::date>> get_date_object(Slice date) {
   if (parts.size() != 3 || parts[0].size() != 2 || parts[1].size() != 2 || parts[2].size() != 4) {
     return Status::Error(400, "Date has wrong parts");
   }
-  TRY_RESULT(day, to_integer_safe<int32>(parts[0]));
-  TRY_RESULT(month, to_integer_safe<int32>(parts[1]));
-  TRY_RESULT(year, to_integer_safe<int32>(parts[2]));
+  TRY_RESULT(day, to_int32(parts[0]));
+  TRY_RESULT(month, to_int32(parts[1]));
+  TRY_RESULT(year, to_int32(parts[2]));
   TRY_STATUS(check_date(day, month, year));
 
   return td_api::make_object<td_api::date>(day, month, year);

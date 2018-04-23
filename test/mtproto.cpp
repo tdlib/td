@@ -41,7 +41,11 @@ TEST(Mtproto, config) {
   {
     auto guard = sched.get_current_guard();
     get_simple_config_azure(PromiseCreator::lambda([&](Result<SimpleConfig> r_simple_config) {
-      LOG(ERROR) << to_string(r_simple_config.ok());
+      if (r_simple_config.is_ok()) {
+        LOG(ERROR) << to_string(r_simple_config.ok());
+      } else {
+        LOG(ERROR) << r_simple_config.error();
+      }
       if (--cnt == 0) {
         Scheduler::instance()->finish();
       }
@@ -49,7 +53,11 @@ TEST(Mtproto, config) {
         .release();
 
     get_simple_config_google_app(PromiseCreator::lambda([&](Result<SimpleConfig> r_simple_config) {
-      LOG(ERROR) << to_string(r_simple_config.ok());
+      if (r_simple_config.is_ok()) {
+        LOG(ERROR) << to_string(r_simple_config.ok());
+      } else {
+        LOG(ERROR) << r_simple_config.error();
+      }
       if (--cnt == 0) {
         Scheduler::instance()->finish();
       }
@@ -57,7 +65,11 @@ TEST(Mtproto, config) {
         .release();
 
     get_simple_config_google_dns(PromiseCreator::lambda([&](Result<SimpleConfig> r_simple_config) {
-      LOG(ERROR) << to_string(r_simple_config.ok());
+      if (r_simple_config.is_ok()) {
+        LOG(ERROR) << to_string(r_simple_config.ok());
+      } else {
+        LOG(ERROR) << r_simple_config.error();
+      }
       if (--cnt == 0) {
         Scheduler::instance()->finish();
       }

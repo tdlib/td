@@ -3016,7 +3016,7 @@ getPassportData type:PassportDataType password:string = PassportData;
 //@description Returns all filled Telegram Passport data @password Password of the current user
 getAllPassportData password:string = AllPassportData;
 
-//@description Sets Telegram Passport data @data Input Telegram Passport data @password Password of the current user
+//@description Sets Telegram Passport data. May return an error with a message "PHONE_VERIFICATION_NEEDED" or "EMAIL_VERIFICATION_NEEDED" if the set phone number or the set email address must be verified first @data Input Telegram Passport data @password Password of the current user
 setPassportData data:InputPassportData password:string = PassportData;
 
 //@description Deletes Telegram Passport data @type Data type
@@ -3095,7 +3095,7 @@ getInviteText = Text;
 //@description Returns the terms of service. Can be called before authorization
 getTermsOfService = Text;
 
-//@description Returns information about a tg:// deep link. Returns a 404 error for unknown links. Can be called before authorization @link The link
+//@description Returns information about a tg:// deep link. Use "tg://need_update_for_some_feature" or "tg:some_unsupported_feature" for testing. Returns a 404 error for unknown links. Can be called before authorization @link The link
 getDeepLinkInfo link:string = DeepLinkInfo;
 
 
