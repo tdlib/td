@@ -210,7 +210,7 @@ Status SqliteDb::change_key(CSlice path, const DbKey &new_db_key, const DbKey &o
   }
 
   TRY_RESULT(new_db, open_with_key(path, new_db_key));
-  CHECK(new_db.user_version().ok() == user_version);
+  CHECK(new_db.user_version().ok() == user_version) << new_db.user_version().ok() << " " << user_version;
   return Status::OK();
 }
 Status SqliteDb::destroy(Slice path) {
