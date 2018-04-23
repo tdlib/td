@@ -138,7 +138,11 @@ class SetSecureValueErrorsQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    promise_.set_error(std::move(status));
+    if (status.code() != 0) {
+      promise_.set_error(std::move(status));
+    } else {
+      promise_.set_error(Status::Error(400, status.message()));
+    }
   }
 };
 
@@ -148,7 +152,11 @@ GetSecureValue::GetSecureValue(ActorShared<> parent, std::string password, Secur
 }
 
 void GetSecureValue::on_error(Status status) {
-  promise_.set_error(std::move(status));
+  if (status.code() != 0) {
+    promise_.set_error(std::move(status));
+  } else {
+    promise_.set_error(Status::Error(400, status.message()));
+  }
   stop();
 }
 
@@ -214,7 +222,11 @@ GetAllSecureValues::GetAllSecureValues(ActorShared<> parent, std::string passwor
 }
 
 void GetAllSecureValues::on_error(Status status) {
-  promise_.set_error(std::move(status));
+  if (status.code() != 0) {
+    promise_.set_error(std::move(status));
+  } else {
+    promise_.set_error(Status::Error(400, status.message()));
+  }
   stop();
 }
 
@@ -317,7 +329,11 @@ void SetSecureValue::on_upload_error(FileId file_id, Status error) {
 }
 
 void SetSecureValue::on_error(Status status) {
-  promise_.set_error(std::move(status));
+  if (status.code() != 0) {
+    promise_.set_error(std::move(status));
+  } else {
+    promise_.set_error(Status::Error(400, status.message()));
+  }
   stop();
 }
 
@@ -506,7 +522,11 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
   }
 
   void on_error(Status status) {
-    promise_.set_error(std::move(status));
+    if (status.code() != 0) {
+      promise_.set_error(std::move(status));
+    } else {
+      promise_.set_error(Status::Error(400, status.message()));
+    }
     stop();
   }
 
