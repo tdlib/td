@@ -479,7 +479,6 @@ void PasswordManager::do_get_state(Promise<PasswordState> promise) {
 }
 
 void PasswordManager::cache_secret(secure_storage::Secret secret) {
-  LOG(ERROR) << "CACHE";
   secret_ = std::move(secret);
 }
 

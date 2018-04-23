@@ -1096,7 +1096,7 @@ class CliClient final : public Actor {
       string scope = query.get_arg("scope").str();
       string public_key = query.get_arg("public_key").str();
       string payload = query.get_arg("payload").str();
-      LOG(ERROR) << query.get_arg("callback_url");
+      LOG(INFO) << "Callback URL:" << query.get_arg("callback_url");
       send_request(make_tl_object<td_api::getPassportAuthorizationForm>(to_integer<int32>(bot_id), scope, public_key,
                                                                         payload, password));
     } else if (op == "spaf") {

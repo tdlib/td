@@ -118,7 +118,7 @@ Result<FileLoader::PrefixInfo> FileUploader::on_update_local_location(const Loca
     file_fd_path.first.close();
     auto new_path = std::move(file_fd_path.second);
     TRY_RESULT(hash, secure_storage::encrypt_file(encryption_key_.secret(), path, new_path));
-    LOG(ERROR) << "ENCRYPT " << path << " " << new_path;
+    LOG(INFO) << "ENCRYPT " << path << " " << new_path;
     callback_->on_hash(hash.as_slice().str());
     path = new_path;
     is_temp = true;
@@ -177,7 +177,7 @@ Result<FileLoader::PrefixInfo> FileUploader::on_update_local_location(const Loca
 Status FileUploader::on_ok(int64 size) {
   fd_.close();
   if (is_temp_) {
-    LOG(ERROR) << "UNLINK " << fd_path_;
+    LOG(INFO) << "UNLINK " << fd_path_;
     unlink(fd_path_).ignore();
   }
   return Status::OK();
@@ -185,7 +185,7 @@ Status FileUploader::on_ok(int64 size) {
 void FileUploader::on_error(Status status) {
   fd_.close();
   if (is_temp_) {
-    LOG(ERROR) << "UNLINK " << fd_path_;
+    LOG(INFO) << "UNLINK " << fd_path_;
     unlink(fd_path_).ignore();
   }
   callback_->on_error(std::move(status));
