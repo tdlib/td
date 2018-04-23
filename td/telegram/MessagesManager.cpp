@@ -15407,7 +15407,7 @@ MessageId MessagesManager::get_reply_to_message_id(Dialog *d, MessageId message_
 
 FormattedText MessagesManager::get_message_content_text(const MessageContent *content) {
   switch (content->get_id()) {
-    case MessageAnimation::ID:
+    case MessageText::ID:
       return static_cast<const MessageText *>(content)->text;
     case MessageGame::ID:
       return static_cast<const MessageGame *>(content)->game.get_message_text();
@@ -22367,7 +22367,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
           td_->stickers_manager_->add_recent_sticker_by_id(false, get_message_content_file_id(message->content.get()));
         }
         break;
-      case MessageText::ID:
+      default:
         update_used_hashtags(dialog_id, message.get());
         break;
     }
@@ -24636,14 +24636,17 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
 
 void MessagesManager::update_used_hashtags(DialogId dialog_id, const Message *m) {
   CHECK(m != nullptr);
-  if (m->via_bot_user_id.is_valid() || m->content->get_id() != MessageText::ID) {
+  if (m->via_bot_user_id.is_valid()) {
     return;
   }
-  auto message_text = static_cast<const MessageText *>(m->content.get());
-  const unsigned char *ptr = Slice(message_text->text.text).ubegin();
-  const unsigned char *end = Slice(message_text->text.text).uend();
+  auto text = get_message_content_text(m->content.get());
+  if (text.text.empty()) {
+    return;
+  }
+  const unsigned char *ptr = Slice(text.text).ubegin();
+  const unsigned char *end = Slice(text.text).uend();
   int32 utf16_pos = 0;
-  for (auto &entity : message_text->text.entities) {
+  for (auto &entity : text.entities) {
     if (entity.type != MessageEntity::Type::Hashtag) {
       continue;
     }
