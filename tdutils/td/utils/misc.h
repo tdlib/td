@@ -276,6 +276,8 @@ T clamp(T value, T min_value, T max_value) {
   return value;
 }
 
+Result<string> hex_decode(Slice hex);
+
 // run-time checked narrowing cast (type conversion):
 
 namespace detail {

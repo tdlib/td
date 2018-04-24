@@ -75,4 +75,20 @@ double to_double(Slice str) {
   return result;
 }
 
+Result<string> hex_decode(Slice hex) {
+  if (hex.size() % 2 != 0) {
+    return Status::Error("Wrong hex string length");
+  }
+  string result(hex.size() / 2, '\0');
+  for (size_t i = 0; i < result.size(); i++) {
+    int high = hex_to_int(hex[i + i]);
+    int low = hex_to_int(hex[i + i + 1]);
+    if (high == 16 || low == 16) {
+      return Status::Error("Wrong hex string");
+    }
+    result[i] = static_cast<char>(high * 16 + low);  // TODO implementation-defined
+  }
+  return std::move(result);
+}
+
 }  // namespace td

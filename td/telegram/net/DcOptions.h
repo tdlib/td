@@ -22,107 +22,125 @@ namespace td {
 
 class DcOption {
   // do not forget to update PrintFlags
-  enum Flags : int32 { IPv6 = 1, MediaOnly = 2, ObfuscatedTcpOnly = 4, Cdn = 8, Static = 16 };
+  enum Flags : int32 { IPv6 = 1, MediaOnly = 2, ObfuscatedTcpOnly = 4, Cdn = 8, Static = 16, HasSecret = 32 };
 
-  int32 flags = 0;
-  DcId dc_id;
-  IPAddress ip_address;
+  int32 flags_ = 0;
+  DcId dc_id_;
+  IPAddress ip_address_;
+  string secret_;
 
   struct PrintFlags {
     int32 flags;
   };
 
   bool is_ipv6() const {
-    return (flags & Flags::IPv6) != 0;
+    return (flags_ & Flags::IPv6) != 0;
   }
 
  public:
   DcOption() = default;
 
   DcOption(DcId dc_id, const IPAddress &ip_address)
-      : flags(ip_address.is_ipv4() ? 0 : IPv6), dc_id(dc_id), ip_address(ip_address) {
+      : flags_(ip_address.is_ipv4() ? 0 : IPv6), dc_id_(dc_id), ip_address_(ip_address) {
   }
 
   explicit DcOption(const telegram_api::dcOption &option) {
     auto ip = option.ip_address_;
     auto port = option.port_;
-    flags = 0;
+    flags_ = 0;
     if (!DcId::is_valid(option.id_)) {
-      dc_id = DcId::invalid();
+      dc_id_ = DcId::invalid();
       return;
     }
 
     if (option.cdn_) {
-      dc_id = DcId::external(option.id_);
-      flags |= Flags::Cdn;
+      dc_id_ = DcId::external(option.id_);
+      flags_ |= Flags::Cdn;
     } else {
-      dc_id = DcId::internal(option.id_);
+      dc_id_ = DcId::internal(option.id_);
     }
     if (option.ipv6_) {
-      flags |= Flags::IPv6;
+      flags_ |= Flags::IPv6;
     }
     if (option.media_only_) {
-      flags |= Flags::MediaOnly;
+      flags_ |= Flags::MediaOnly;
     }
     if (option.tcpo_only_) {
-      flags |= Flags::ObfuscatedTcpOnly;
+      flags_ |= Flags::ObfuscatedTcpOnly;
     }
     if (option.static_) {
-      flags |= Flags::Static;
+      flags_ |= Flags::Static;
+    }
+    if (!option.secret_.empty()) {
+      flags_ |= Flags::HasSecret;
+      if (option.secret_.size() != 16u) {
+        return;
+      }
+      secret_ = option.secret_.as_slice().str();
     }
     init_ip_address(ip, port);
   }
 
   DcOption(DcId new_dc_id, const telegram_api::ipPort &ip_port) {
-    dc_id = new_dc_id;
+    dc_id_ = new_dc_id;
     init_ip_address(IPAddress::ipv4_to_str(ip_port.ipv4_), ip_port.port_);
   }
 
   DcId get_dc_id() const {
-    return dc_id;
+    return dc_id_;
   }
 
   const IPAddress &get_ip_address() const {
-    return ip_address;
+    return ip_address_;
   }
 
   bool is_media_only() const {
-    return (flags & Flags::MediaOnly) != 0;
+    return (flags_ & Flags::MediaOnly) != 0;
   }
 
   bool is_obfuscated_tcp_only() const {
-    return (flags & Flags::ObfuscatedTcpOnly) != 0;
+    return (flags_ & Flags::ObfuscatedTcpOnly) != 0;
   }
 
   bool is_static() const {
-    return (flags & Flags::Static) != 0;
+    return (flags_ & Flags::Static) != 0;
   }
 
   bool is_valid() const {
-    return ip_address.is_valid() && dc_id.is_exact();
+    return ip_address_.is_valid() && dc_id_.is_exact();
+  }
+
+  Slice get_secret() const {
+    return secret_;
   }
 
   template <class StorerT>
   void store(StorerT &storer) const {
-    storer.store_int(flags);
-    storer.store_int(dc_id.get_raw_id());
-    CHECK(ip_address.is_valid());
-    storer.store_string(ip_address.get_ip_str());
-    storer.store_int(ip_address.get_port());
+    storer.store_int(flags_);
+    storer.store_int(dc_id_.get_raw_id());
+    CHECK(ip_address_.is_valid());
+    storer.store_string(ip_address_.get_ip_str());
+    storer.store_int(ip_address_.get_port());
+    if ((flags_ & Flags::HasSecret) != 0) {
+      storer.store_string(secret_);
+    }
   }
 
   template <class ParserT>
   void parse(ParserT &parser) {
-    flags = parser.fetch_int();
+    flags_ = parser.fetch_int();
     auto raw_dc_id = parser.fetch_int();
-    if (flags & Flags::Cdn) {
-      dc_id = DcId::external(raw_dc_id);
+    if ((flags_ & Flags::Cdn) != 0) {
+      dc_id_ = DcId::external(raw_dc_id);
     } else {
-      dc_id = DcId::internal(raw_dc_id);
+      dc_id_ = DcId::internal(raw_dc_id);
     }
     auto ip = parser.template fetch_string<std::string>();
     auto port = parser.fetch_int();
     init_ip_address(ip, port);
+    if ((flags_ & Flags::HasSecret) != 0) {
+      secret_ = parser.template fetch_string<std::string>();
+    }
   }
 
   friend bool operator==(const DcOption &lhs, const DcOption &rhs);
@@ -134,15 +152,16 @@ class DcOption {
  private:
   void init_ip_address(CSlice ip, int32 port) {
     if (is_ipv6()) {
-      ip_address.init_ipv6_port(ip, port).ignore();
+      ip_address_.init_ipv6_port(ip, port).ignore();
     } else {
-      ip_address.init_ipv4_port(ip, port).ignore();
+      ip_address_.init_ipv4_port(ip, port).ignore();
     }
   }
 };
 
 inline bool operator==(const DcOption &lhs, const DcOption &rhs) {
-  return lhs.dc_id == rhs.dc_id && lhs.ip_address == rhs.ip_address && lhs.flags == rhs.flags;
+  return lhs.dc_id_ == rhs.dc_id_ && lhs.ip_address_ == rhs.ip_address_ && lhs.flags_ == rhs.flags_ &&
+         lhs.secret_ == rhs.secret_;
 }
 
 inline StringBuilder &operator<<(StringBuilder &sb, const DcOption::PrintFlags &flags) {
@@ -161,13 +180,17 @@ inline StringBuilder &operator<<(StringBuilder &sb, const DcOption::PrintFlags &
   if ((flags.flags & DcOption::Flags::Static) != 0) {
     sb << "(Static)";
   }
+  if ((flags.flags & DcOption::Flags::HasSecret) != 0) {
+    sb << "(HasSecret)";
+  }
   return sb;
 }
 
 inline StringBuilder &operator<<(StringBuilder &sb, const DcOption &dc_option) {
-  return sb << tag("DcOption", format::concat(dc_option.dc_id, tag("ip", dc_option.ip_address.get_ip_str()),
-                                              tag("port", dc_option.ip_address.get_port()),
-                                              tag("flags", DcOption::PrintFlags{dc_option.flags})));
+  return sb << tag("DcOption", format::concat(dc_option.dc_id_, tag("ip", dc_option.ip_address_.get_ip_str()),
+                                              tag("port", dc_option.ip_address_.get_port()),
+                                              tag("secret_len", dc_option.secret_.size()),
+                                              tag("flags", DcOption::PrintFlags{dc_option.flags_})));
 }
 
 class DcOptions {

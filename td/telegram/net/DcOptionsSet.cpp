@@ -60,6 +60,10 @@ Result<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_connection(DcId dc_id, b
       LOG(DEBUG) << "Skip media only option";
       continue;
     }
+    if (!option.get_secret().empty()) {
+      LOG(DEBUG) << "Skip options with secret";
+      continue;  // TODO secret support
+    }
 
     ConnectionInfo info;
     info.option = &option;
