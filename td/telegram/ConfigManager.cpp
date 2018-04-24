@@ -477,7 +477,7 @@ class ConfigRecoverer : public Actor {
       auto promise = PromiseCreator::lambda([actor_id = actor_shared(this)](Result<SimpleConfig> r_simple_config) {
         send_closure(actor_id, &ConfigRecoverer::on_simple_config, std::move(r_simple_config), false);
       });
-      auto get_dimple_config = [&]() {
+      auto get_simple_config = [&]() {
         switch (simple_config_turn_ % 3) {
           case 0:
             return get_simple_config_azure;
@@ -488,7 +488,7 @@ class ConfigRecoverer : public Actor {
             return get_simple_config_google_dns;
         }
       }();
-      simple_config_query_ = get_dimple_config(std::move(promise), G()->is_test_dc(), G()->get_gc_scheduler_id());
+      simple_config_query_ = get_simple_config(std::move(promise), G()->is_test_dc(), G()->get_gc_scheduler_id());
       simple_config_turn_++;
     }
 

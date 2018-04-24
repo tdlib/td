@@ -16,6 +16,7 @@
 #include <map>
 
 namespace td {
+
 class DcOptionsSet {
  public:
   void add_dc_options(DcOptions dc_options);
@@ -102,4 +103,5 @@ class DcOptionsSet {
   void init_option_stat(DcOptionInfo *option_info);
   OptionStat *get_option_stat(const DcOptionInfo *option_info);
 };
+
 }  // namespace td

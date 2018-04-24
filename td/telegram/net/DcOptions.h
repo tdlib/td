@@ -19,6 +19,7 @@
 #include "td/utils/tl_helpers.h"
 
 namespace td {
+
 class DcOption {
   // do not forget to update PrintFlags
   enum Flags : int32 { IPv6 = 1, MediaOnly = 2, ObfuscatedTcpOnly = 4, Cdn = 8, Static = 16 };
@@ -201,7 +202,9 @@ class DcOptions {
 
   std::vector<DcOption> dc_options;
 };
+
 inline StringBuilder &operator<<(StringBuilder &sb, const DcOptions &dc_options) {
   return sb << "DcOptions" << format::as_array(dc_options.dc_options);
 }
+
 };  // namespace td

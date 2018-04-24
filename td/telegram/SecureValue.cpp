@@ -958,6 +958,14 @@ Result<SecureValueWithCredentials> decrypt_secure_value(FileManager *file_manage
     case SecureValueType::PhoneNumber:
       res.data = encrypted_secure_value.data.data;
       break;
+    case SecureValueType::UtilityBill:
+    case SecureValueType::BankStatement:
+    case SecureValueType::RentalAgreement: {
+      TRY_RESULT(files, decrypt_secure_files(file_manager, secret, encrypted_secure_value.files));
+      res.files = std::move(files.first);
+      res_credentials.files = std::move(files.second);
+      break;
+    }
     default: {
       TRY_RESULT(data, decrypt_secure_data(secret, encrypted_secure_value.data));
       res.data = std::move(data.first);
@@ -1051,6 +1059,14 @@ EncryptedSecureValue encrypt_secure_value(FileManager *file_manager, const secur
       res.data = EncryptedSecureData{secure_value.data, "", ""};
       res.hash = secure_storage::calc_value_hash(secure_value.data).as_slice().str();
       break;
+    case SecureValueType::UtilityBill:
+    case SecureValueType::BankStatement:
+    case SecureValueType::RentalAgreement: {
+      string to_hash;
+      res.files = encrypt_secure_files(file_manager, master_secret, secure_value.files, to_hash);
+      res.hash = secure_storage::calc_value_hash(to_hash).as_slice().str();
+      break;
+    }
     default: {
       string to_hash;
       res.data = encrypt_secure_data(master_secret, secure_value.data, to_hash);

@@ -9,6 +9,7 @@
 #include "td/telegram/Global.h"
 
 namespace td {
+
 ListNode net_query_list_;
 
 int32 NetQuery::get_my_id() {

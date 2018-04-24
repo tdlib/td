@@ -21,15 +21,12 @@
 #include <mutex>
 
 namespace td {
+
 class NetQueryDelayer;
-class DataCenter;
 class DcAuthManager;
 class SessionMultiProxy;
 class PublicRsaKeyShared;
 class PublicRsaKeyWatchdog;
-}  // namespace td
-
-namespace td {
 
 // Not just dispatcher.
 class NetQueryDispatcher {

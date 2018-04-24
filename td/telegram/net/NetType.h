@@ -11,6 +11,7 @@
 #include "td/utils/logging.h"
 
 namespace td {
+
 enum class NetType : int8 { Other, Wifi, Mobile, MobileRoaming, Size, None, Unknown };
 
 inline NetType from_td_api(tl_object_ptr<td_api::NetworkType> &net_type) {

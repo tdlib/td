@@ -22,6 +22,7 @@
 #include <map>
 
 namespace td {
+
 class TempAuthKeyWatchdog : public NetQueryCallback {
   class RegisteredAuthKeyImpl {
    public:
@@ -124,4 +125,5 @@ class TempAuthKeyWatchdog : public NetQueryCallback {
     try_sync();
   }
 };
+
 }  // namespace td

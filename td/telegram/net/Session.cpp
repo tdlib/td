@@ -199,7 +199,7 @@ void Session::connection_online_update(bool force) {
 void Session::send(NetQueryPtr &&query) {
   last_activity_timestamp_ = Time::now();
 
-  query->debug("Session: received from DataCenter");
+  query->debug("Session: received from SessionProxy");
   query->set_session_id(auth_data_.session_id_);
   VLOG(net_query) << "got query " << query;
   if (query->update_is_ready()) {

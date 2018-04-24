@@ -14,6 +14,7 @@
 #include "td/utils/Storer.h"
 
 namespace td {
+
 class NetQueryCreator {
  public:
   using Ptr = NetQueryPtr;
@@ -51,4 +52,5 @@ class NetQueryCreator {
  private:
   ObjectPool<NetQuery> object_pool_;
 };
+
 }  // namespace td

@@ -13,7 +13,9 @@
 #include <memory>
 
 namespace td {
+
 class Session;
+
 class SessionProxy : public Actor {
  public:
   friend class SessionCallback;
@@ -49,4 +51,5 @@ class SessionProxy : public Actor {
   void start_up() override;
   void tear_down() override;
 };
+
 }  // namespace td

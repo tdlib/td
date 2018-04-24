@@ -14,6 +14,7 @@
 #include <memory>
 
 namespace td {
+
 class SessionProxy;
 
 class SessionMultiProxy : public Actor {
@@ -50,4 +51,5 @@ class SessionMultiProxy : public Actor {
 
   void update_auth_state();
 };
+
 }  // namespace td

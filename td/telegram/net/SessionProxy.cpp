@@ -17,6 +17,7 @@
 #include <functional>
 
 namespace td {
+
 namespace mtproto {
 class RawConnection;
 }  // namespace mtproto
@@ -179,4 +180,5 @@ void SessionProxy::on_tmp_auth_key_updated(mtproto::AuthKey auth_key) {
   LOG(WARNING) << "tmp_auth_key " << auth_key.id() << ": " << state;
   tmp_auth_key_ = std::move(auth_key);
 }
+
 }  // namespace td

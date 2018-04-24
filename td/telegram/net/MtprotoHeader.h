@@ -10,6 +10,7 @@
 #include "td/utils/Slice.h"
 
 namespace td {
+
 class MtprotoHeader {
  public:
   struct Options {

@@ -9,6 +9,7 @@
 #include "td/utils/Gzip.h"
 
 namespace td {
+
 NetQueryCreator::Ptr NetQueryCreator::create(uint64 id, const Storer &storer, DcId dc_id, NetQuery::Type type,
                                              NetQuery::AuthFlag auth_flag, NetQuery::GzipFlag gzip_flag,
                                              double total_timeout_limit) {
@@ -37,4 +38,5 @@ NetQueryCreator::Ptr NetQueryCreator::create(uint64 id, const Storer &storer, Dc
   query->total_timeout_limit = total_timeout_limit;
   return query;
 }
+
 }  // namespace td
