@@ -104,6 +104,7 @@ class SetSecureValue : public NetQueryCallback {
   void on_secret(Result<secure_storage::Secret> r_secret, bool x);
 
   void start_up() override;
+  void hangup() override;
   void tear_down() override;
 
   void loop() override;
@@ -290,7 +291,8 @@ SetSecureValue::UploadCallback::UploadCallback(ActorId<SetSecureValue> actor_id)
 }
 
 void SetSecureValue::UploadCallback::on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) {
-  send_closure(actor_id_, &SetSecureValue::on_upload_ok, file_id, nullptr);
+  CHECK(input_file == nullptr);
+  send_closure_later(actor_id_, &SetSecureValue::on_upload_ok, file_id, nullptr);
 }
 void SetSecureValue::UploadCallback::on_upload_encrypted_ok(
     FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) {
@@ -298,10 +300,10 @@ void SetSecureValue::UploadCallback::on_upload_encrypted_ok(
 }
 void SetSecureValue::UploadCallback::on_upload_secure_ok(FileId file_id,
                                                          tl_object_ptr<telegram_api::InputSecureFile> input_file) {
-  send_closure(actor_id_, &SetSecureValue::on_upload_ok, file_id, std::move(input_file));
+  send_closure_later(actor_id_, &SetSecureValue::on_upload_ok, file_id, std::move(input_file));
 }
 void SetSecureValue::UploadCallback::on_upload_error(FileId file_id, Status error) {
-  send_closure(actor_id_, &SetSecureValue::on_upload_error, file_id, std::move(error));
+  send_closure_later(actor_id_, &SetSecureValue::on_upload_error, file_id, std::move(error));
 }
 
 void SetSecureValue::on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) {
@@ -324,6 +326,7 @@ void SetSecureValue::on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::In
   files_left_to_upload_--;
   return loop();
 }
+
 void SetSecureValue::on_upload_error(FileId file_id, Status error) {
   return on_error(std::move(error));
 }
@@ -359,6 +362,7 @@ void SetSecureValue::start_up() {
   FileId selfie_file_id;
   if (secure_value_.selfie.file_id.is_valid()) {
     selfie_file_id = file_manager->get_file_view(secure_value_.selfie.file_id).file_id();
+    selfie_ = SecureInputFile();
   }
   for (auto it = secure_value_.files.begin(); it != secure_value_.files.end();) {
     auto file_id = file_manager->get_file_view(it->file_id).file_id();
@@ -375,13 +379,18 @@ void SetSecureValue::start_up() {
       ++it;
     }
   }
+  if (selfie_ && secure_value_.files.empty()) {
+    secure_value_.files.push_back(std::move(secure_value_.selfie));
+    selfie_ = optional<SecureInputFile>();
+    secure_value_.selfie = DatedFile();
+  }
 
   to_upload_.resize(secure_value_.files.size());
   upload_callback_ = std::make_shared<UploadCallback>(actor_id(this));
   for (size_t i = 0; i < to_upload_.size(); i++) {
     start_upload(file_manager, secure_value_.files[i].file_id, to_upload_[i]);
   }
-  if (secure_value_.selfie.file_id.is_valid()) {
+  if (selfie_) {
     start_upload(file_manager, secure_value_.selfie.file_id, selfie_.value());
   }
 }
@@ -412,10 +421,17 @@ void SetSecureValue::loop() {
   }
 }
 
+void SetSecureValue::hangup() {
+  on_error(Status::Error(406, "Request aborted"));
+}
+
 void SetSecureValue::tear_down() {
   auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
   for (auto &file_info : to_upload_) {
     file_manager->upload(file_info.file_id, nullptr, 0, 0);
+  }
+  if (selfie_) {
+    file_manager->upload(selfie_.value().file_id, nullptr, 0, 0);
   }
 }
 

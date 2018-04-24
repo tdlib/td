@@ -1406,8 +1406,10 @@ void FileManager::delete_file(FileId file_id, Promise<Unit> promise, const char 
 }
 
 void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> callback, int32 new_priority) {
+  LOG(INFO) << "Download file " << file_id << " with priority " << new_priority;
   auto node = get_sync_file_node(file_id);
   if (!node) {
+    LOG(INFO) << "File " << file_id << " not found";
     if (callback) {
       callback->on_download_error(file_id, Status::Error("File not found"));
     }
@@ -1419,6 +1421,7 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
     if (status.is_error()) {
       LOG(WARNING) << "Need to redownload file " << file_id << ": " << status.error();
     } else {
+      LOG(INFO) << "File " << file_id << " is already downloaded";
       if (callback) {
         callback->on_download_ok(file_id);
       }
@@ -1433,6 +1436,7 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
 
   FileView file_view(node);
   if (!file_view.can_download_from_server() && !file_view.can_generate()) {
+    LOG(INFO) << "File " << file_id << " can't be downloaded";
     if (callback) {
       callback->on_download_error(file_id, Status::Error("Can't download or generate file"));
     }
@@ -1441,10 +1445,13 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
 
   if (new_priority == -1) {
     if (node->is_download_started_) {
+      LOG(INFO) << "File " << file_id << " is being downloaded";
       return;
     }
     new_priority = 0;
   }
+
+  LOG(INFO) << "Change download priority of file " << file_id << " to " << new_priority;
 
   auto *file_info = get_file_id_info(file_id);
   CHECK(new_priority == 0 || callback);
@@ -1509,8 +1516,9 @@ void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std:
 
   auto node = get_sync_file_node(file_id);
   if (!node) {
+    LOG(INFO) << "File " << file_id << " not found";
     if (callback) {
-      callback->on_upload_error(file_id, Status::Error("Wrong file id to upload"));
+      callback->on_upload_error(file_id, Status::Error("File not found"));
     }
     return;
   }
@@ -1520,6 +1528,7 @@ void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std:
   FileView file_view(node);
   if (file_view.has_remote_location() && file_view.get_type() != FileType::Thumbnail &&
       file_view.get_type() != FileType::EncryptedThumbnail) {
+    LOG(INFO) << "File " << file_id << " is already uploaded";
     if (callback) {
       callback->on_upload_ok(file_id, nullptr);
     }
@@ -1534,12 +1543,14 @@ void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std:
   }
 
   if (!file_view.has_local_location() && !file_view.has_generate_location()) {
+    LOG(INFO) << "File " << file_id << " can't be uploaded";
     if (callback) {
       callback->on_upload_error(file_id, Status::Error("Need full local (or generate) location for upload"));
     }
     return;
   }
 
+  LOG(INFO) << "Change upload priority of file " << file_id << " to " << new_priority;
   auto *file_info = get_file_id_info(file_id);
   CHECK(new_priority == 0 || callback);
   file_info->upload_order_ = upload_order;
