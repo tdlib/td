@@ -21494,7 +21494,7 @@ unique_ptr<MessageContent> MessagesManager::dup_message_content(DialogId dialog_
     if (to_secret && !file_view.is_encrypted_secret()) {
       auto download_file_id = file_manager->dup_file_id(file_id);
       file_id = file_manager
-                    ->register_generate(FileType::Encrypted, FileLocationSource::FromServer, "",
+                    ->register_generate(FileType::Encrypted, FileLocationSource::FromServer, file_view.suggested_name(),
                                         PSTRING() << "#file_id#" << download_file_id.get(), dialog_id, file_view.size())
                     .ok();
     }

@@ -958,7 +958,7 @@ inline bool operator!=(const FullLocalFileLocation &lhs, const FullLocalFileLoca
 }
 
 inline StringBuilder &operator<<(StringBuilder &sb, const FullLocalFileLocation &location) {
-  return sb << tag("path", location.path_);
+  return sb << "[" << file_type_name[static_cast<int32>(location.file_type_)] << "] at \"" << location.path_ << '"';
 }
 
 class LocalFileLocation {

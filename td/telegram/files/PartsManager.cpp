@@ -17,7 +17,7 @@ namespace td {
 /*** PartsManager ***/
 
 namespace {
-int64 calc_parts_count(int64 size, int64 part_size) {
+int64 calc_part_count(int64 size, int64 part_size) {
   CHECK(part_size != 0);
   return (size + part_size - 1) / part_size;
 }
@@ -39,7 +39,7 @@ Status PartsManager::init_no_size(size_t part_size, const std::vector<int> &read
     part_size_ = part_size;
   } else {
     part_size_ = 32 * (1 << 10);
-    while (use_part_count_limit_ && calc_parts_count(expected_size_, part_size_) > MAX_PART_COUNT) {
+    while (use_part_count_limit_ && calc_part_count(expected_size_, part_size_) > MAX_PART_COUNT) {
       part_size_ *= 2;
       CHECK(part_size_ <= MAX_PART_SIZE);
     }
@@ -79,22 +79,22 @@ Status PartsManager::init(int64 size, int64 expected_size, bool is_size_final, s
 
   if (part_size != 0) {
     part_size_ = part_size;
-    if (use_part_count_limit_ && calc_parts_count(expected_size_, part_size_) > MAX_PART_COUNT) {
+    if (use_part_count_limit_ && calc_part_count(expected_size_, part_size_) > MAX_PART_COUNT) {
       return Status::Error("FILE_UPLOAD_RESTART");
     }
   } else {
     // TODO choose part_size_ depending on size
     part_size_ = 64 * (1 << 10);
-    while (use_part_count_limit && calc_parts_count(expected_size_, part_size_) > MAX_PART_COUNT) {
+    while (use_part_count_limit && calc_part_count(expected_size_, part_size_) > MAX_PART_COUNT) {
       part_size_ *= 2;
       CHECK(part_size_ <= MAX_PART_SIZE);
     }
   }
   CHECK(1 <= size_) << tag("size_", size_);
-  CHECK(!use_part_count_limit || calc_parts_count(expected_size_, part_size_) <= MAX_PART_COUNT)
+  CHECK(!use_part_count_limit || calc_part_count(expected_size_, part_size_) <= MAX_PART_COUNT)
       << tag("size_", size_) << tag("expected_size", size_) << tag("is_size_final", is_size_final)
       << tag("part_size_", part_size_) << tag("ready_parts", ready_parts.size());
-  part_count_ = static_cast<int>(calc_parts_count(size_, part_size_));
+  part_count_ = static_cast<int>(calc_part_count(size_, part_size_));
 
   init_common(ready_parts);
   return Status::OK();
@@ -172,7 +172,7 @@ Status PartsManager::set_known_prefix(size_t size, bool is_ready) {
 
   CHECK(static_cast<size_t>(part_count_) == part_status_.size());
   if (is_ready) {
-    part_count_ = static_cast<int>(calc_parts_count(size, part_size_));
+    part_count_ = static_cast<int>(calc_part_count(size, part_size_));
 
     size_ = narrow_cast<int64>(size);
     unknown_size_flag_ = false;
@@ -182,7 +182,7 @@ Status PartsManager::set_known_prefix(size_t size, bool is_ready) {
   CHECK(static_cast<size_t>(part_count_) >= part_status_.size())
       << size << " " << is_ready << " " << part_count_ << " " << part_size_ << " " << part_status_.size();
   part_status_.resize(part_count_);
-  if (use_part_count_limit_ && calc_parts_count(expected_size_, part_size_) > MAX_PART_COUNT) {
+  if (use_part_count_limit_ && calc_part_count(expected_size_, part_size_) > MAX_PART_COUNT) {
     return Status::Error("FILE_UPLOAD_RESTART");
   }
   return Status::OK();

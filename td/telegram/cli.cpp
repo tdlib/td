@@ -2026,7 +2026,7 @@ class CliClient final : public Actor {
       }
     } else if (op == "cdf") {
       send_request(make_tl_object<td_api::cancelDownloadFile>(as_file_id(args), true));
-    } else if (op == "uf") {
+    } else if (op == "uf" || op == "ufs" || op == "ufse" || op == "ufsr") {
       string file_path;
       string priority;
       std::tie(file_path, priority) = split(args);
@@ -2034,18 +2034,19 @@ class CliClient final : public Actor {
         priority = "1";
       }
 
-      send_request(make_tl_object<td_api::uploadFile>(as_local_file(file_path), make_tl_object<td_api::fileTypePhoto>(),
-                                                      to_integer<int32>(priority)));
-    } else if (op == "ufs") {
-      string file_path;
-      string priority;
-      std::tie(file_path, priority) = split(args);
-      if (priority.empty()) {
-        priority = "1";
+      td_api::object_ptr<td_api::FileType> type = make_tl_object<td_api::fileTypePhoto>();
+      if (op == "ufs") {
+        type = make_tl_object<td_api::fileTypeSecret>();
+      }
+      if (op == "ufse") {
+        type = make_tl_object<td_api::fileTypeSecureEncrypted>();
+      }
+      if (op == "ufsr") {
+        type = make_tl_object<td_api::fileTypeSecure>();
       }
 
-      send_request(make_tl_object<td_api::uploadFile>(
-          as_local_file(file_path), make_tl_object<td_api::fileTypeSecret>(), to_integer<int32>(priority)));
+      send_request(
+          make_tl_object<td_api::uploadFile>(as_local_file(file_path), std::move(type), to_integer<int32>(priority)));
     } else if (op == "ufg") {
       string file_path;
       string conversion;

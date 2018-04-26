@@ -313,6 +313,10 @@ vector<EncryptedSecureFile> get_encrypted_secure_files(FileManager *file_manager
 telegram_api::object_ptr<telegram_api::InputSecureFile> get_input_secure_file_object(FileManager *file_manager,
                                                                                      const EncryptedSecureFile &file,
                                                                                      SecureInputFile &input_file) {
+  if (!file.file.file_id.is_valid()) {
+    LOG(ERROR) << "Receive invalid EncryptedSecureFile";
+    return nullptr;
+  }
   CHECK(file_manager->get_file_view(file.file.file_id).file_id() ==
         file_manager->get_file_view(input_file.file_id).file_id());
   auto res = std::move(input_file.input_file);
@@ -354,12 +358,15 @@ static vector<td_api::object_ptr<td_api::datedFile>> get_dated_files_object(File
 vector<telegram_api::object_ptr<telegram_api::InputSecureFile>> get_input_secure_files_object(
     FileManager *file_manager, const vector<EncryptedSecureFile> &files, vector<SecureInputFile> &input_files) {
   CHECK(files.size() == input_files.size());
-  vector<telegram_api::object_ptr<telegram_api::InputSecureFile>> res;
-  res.resize(files.size());
+  vector<telegram_api::object_ptr<telegram_api::InputSecureFile>> results;
+  results.reserve(files.size());
   for (size_t i = 0; i < files.size(); i++) {
-    res[i] = get_input_secure_file_object(file_manager, files[i], input_files[i]);
+    auto result = get_input_secure_file_object(file_manager, files[i], input_files[i]);
+    if (result != nullptr) {
+      results.push_back(std::move(result));
+    }
   }
-  return res;
+  return results;
 }
 
 bool operator==(const EncryptedSecureData &lhs, const EncryptedSecureData &rhs) {
@@ -1009,11 +1016,11 @@ static EncryptedSecureFile encrypt_secure_file(FileManager *file_manager, const 
     return EncryptedSecureFile();
   }
   if (!file_view.encryption_key().is_secure()) {
-    LOG(ERROR) << "File has no encryption key";
+    LOG(ERROR) << "File " << file.file_id << " has no encryption key";
     return EncryptedSecureFile();
   }
   if (!file_view.encryption_key().has_value_hash()) {
-    LOG(ERROR) << "File has no hash";
+    LOG(ERROR) << "File " << file.file_id << " has no hash";
     return EncryptedSecureFile();
   }
   auto value_hash = file_view.encryption_key().value_hash();
@@ -1033,6 +1040,17 @@ static vector<EncryptedSecureFile> encrypt_secure_files(FileManager *file_manage
                                                         vector<DatedFile> files, string &to_hash) {
   return transform(
       files, [&](auto dated_file) { return encrypt_secure_file(file_manager, master_secret, dated_file, to_hash); });
+  /*
+  vector<EncryptedSecureFile> result;
+  result.reserve(files.size());
+  for (auto &file : files) {
+    auto encrypted_secure_file = encrypt_secure_file(file_manager, master_secret, file, to_hash);
+    if (encrypted_secure_file.file.file_id.is_valid()) {
+      result.push_back(std::move(encrypted_secure_file));
+    }
+  }
+  return result;
+*/
 }
 
 static EncryptedSecureData encrypt_secure_data(const secure_storage::Secret &master_secret, Slice data,

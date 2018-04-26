@@ -110,7 +110,7 @@ class SetSecureValue : public NetQueryCallback {
   void loop() override;
   void on_result(NetQueryPtr query) override;
 
-  void start_upload(FileManager *file_manager, FileId file_id, SecureInputFile &info);
+  void start_upload(FileManager *file_manager, FileId &file_id, SecureInputFile &info);
   void merge(FileManager *file_manager, FileId file_id, EncryptedSecureFile &encrypted_file);
 };
 
@@ -395,7 +395,16 @@ void SetSecureValue::start_up() {
   }
 }
 
-void SetSecureValue::start_upload(FileManager *file_manager, FileId file_id, SecureInputFile &info) {
+void SetSecureValue::start_upload(FileManager *file_manager, FileId &file_id, SecureInputFile &info) {
+  auto file_view = file_manager->get_file_view(file_id);
+  if (!file_view.is_encrypted_secure()) {
+    auto download_file_id = file_manager->dup_file_id(file_id);
+    file_id = file_manager
+                  ->register_generate(FileType::Secure, FileLocationSource::FromServer, file_view.suggested_name(),
+                                      PSTRING() << "#file_id#" << download_file_id.get(), DialogId(), file_view.size())
+                  .ok();
+  }
+
   info.file_id = file_manager->dup_file_id(file_id);
   file_manager->upload(info.file_id, upload_callback_, 1, 0);
   files_left_to_upload_++;
@@ -444,12 +453,12 @@ void SetSecureValue::on_result(NetQueryPtr query) {
   auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
   auto encrypted_secure_value = get_encrypted_secure_value(file_manager, std::move(result));
   if (secure_value_.files.size() != encrypted_secure_value.files.size()) {
-    return on_error(Status::Error("Different files count"));
+    return on_error(Status::Error(500, "Different file count"));
   }
   for (size_t i = 0; i < secure_value_.files.size(); i++) {
     merge(file_manager, secure_value_.files[i].file_id, encrypted_secure_value.files[i]);
   }
-  if (secure_value_.selfie.file_id.is_valid()) {
+  if (secure_value_.selfie.file_id.is_valid() && encrypted_secure_value.selfie.file.file_id.is_valid()) {
     merge(file_manager, secure_value_.selfie.file_id, encrypted_secure_value.selfie);
   }
   auto r_secure_value = decrypt_secure_value(file_manager, *secret_, encrypted_secure_value);
