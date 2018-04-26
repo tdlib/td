@@ -219,7 +219,9 @@ class TlStorerToString {
     static const char *hex = "0123456789ABCDEF";
 
     store_field_begin(name);
-    result.append("bytes { ");
+    result.append("bytes [");
+    store_long(static_cast<int64>(value.size()));
+    result.append("] { ");
     for (size_t i = 0; i < value.size(); i++) {
       int b = value[static_cast<int>(i)] & 0xff;
       result += hex[b >> 4];
