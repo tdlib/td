@@ -38,6 +38,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const SecureValueType &
       return string_builder << "DriverLicense";
     case SecureValueType::IdentityCard:
       return string_builder << "IdentityCard";
+    case SecureValueType::InternalPassport:
+      return string_builder << "InternalPassport";
     case SecureValueType::Address:
       return string_builder << "Address";
     case SecureValueType::UtilityBill:
@@ -46,6 +48,10 @@ StringBuilder &operator<<(StringBuilder &string_builder, const SecureValueType &
       return string_builder << "BankStatement";
     case SecureValueType::RentalAgreement:
       return string_builder << "RentalAgreement";
+    case SecureValueType::PassportRegistration:
+      return string_builder << "PassportRegistration";
+    case SecureValueType::TemporaryRegistration:
+      return string_builder << "TemporaryRegistration";
     case SecureValueType::PhoneNumber:
       return string_builder << "PhoneNumber";
     case SecureValueType::EmailAddress:
@@ -69,6 +75,8 @@ SecureValueType get_secure_value_type(const tl_object_ptr<telegram_api::SecureVa
       return SecureValueType::DriverLicense;
     case telegram_api::secureValueTypeIdentityCard::ID:
       return SecureValueType::IdentityCard;
+    case telegram_api::secureValueTypeInternalPassport::ID:
+      return SecureValueType::InternalPassport;
     case telegram_api::secureValueTypeAddress::ID:
       return SecureValueType::Address;
     case telegram_api::secureValueTypeUtilityBill::ID:
@@ -77,6 +85,10 @@ SecureValueType get_secure_value_type(const tl_object_ptr<telegram_api::SecureVa
       return SecureValueType::BankStatement;
     case telegram_api::secureValueTypeRentalAgreement::ID:
       return SecureValueType::RentalAgreement;
+    case telegram_api::secureValueTypePassportRegistration::ID:
+      return SecureValueType::PassportRegistration;
+    case telegram_api::secureValueTypeTemporaryRegistration::ID:
+      return SecureValueType::TemporaryRegistration;
     case telegram_api::secureValueTypePhone::ID:
       return SecureValueType::PhoneNumber;
     case telegram_api::secureValueTypeEmail::ID:
@@ -98,6 +110,8 @@ SecureValueType get_secure_value_type_td_api(const tl_object_ptr<td_api::Passpor
       return SecureValueType::DriverLicense;
     case td_api::passportDataTypeIdentityCard::ID:
       return SecureValueType::IdentityCard;
+    case td_api::passportDataTypeInternalPassport::ID:
+      return SecureValueType::InternalPassport;
     case td_api::passportDataTypeAddress::ID:
       return SecureValueType::Address;
     case td_api::passportDataTypeUtilityBill::ID:
@@ -106,6 +120,10 @@ SecureValueType get_secure_value_type_td_api(const tl_object_ptr<td_api::Passpor
       return SecureValueType::BankStatement;
     case td_api::passportDataTypeRentalAgreement::ID:
       return SecureValueType::RentalAgreement;
+    case td_api::passportDataTypePassportRegistration::ID:
+      return SecureValueType::PassportRegistration;
+    case td_api::passportDataTypeTemporaryRegistration::ID:
+      return SecureValueType::TemporaryRegistration;
     case td_api::passportDataTypePhoneNumber::ID:
       return SecureValueType::PhoneNumber;
     case td_api::passportDataTypeEmailAddress::ID:
@@ -151,6 +169,8 @@ td_api::object_ptr<td_api::PassportDataType> get_passport_data_type_object(Secur
       return td_api::make_object<td_api::passportDataTypeDriverLicense>();
     case SecureValueType::IdentityCard:
       return td_api::make_object<td_api::passportDataTypeIdentityCard>();
+    case SecureValueType::InternalPassport:
+      return td_api::make_object<td_api::passportDataTypeInternalPassport>();
     case SecureValueType::Address:
       return td_api::make_object<td_api::passportDataTypeAddress>();
     case SecureValueType::UtilityBill:
@@ -159,6 +179,10 @@ td_api::object_ptr<td_api::PassportDataType> get_passport_data_type_object(Secur
       return td_api::make_object<td_api::passportDataTypeBankStatement>();
     case SecureValueType::RentalAgreement:
       return td_api::make_object<td_api::passportDataTypeRentalAgreement>();
+    case SecureValueType::PassportRegistration:
+      return td_api::make_object<td_api::passportDataTypePassportRegistration>();
+    case SecureValueType::TemporaryRegistration:
+      return td_api::make_object<td_api::passportDataTypeTemporaryRegistration>();
     case SecureValueType::PhoneNumber:
       return td_api::make_object<td_api::passportDataTypePhoneNumber>();
     case SecureValueType::EmailAddress:
@@ -180,6 +204,8 @@ td_api::object_ptr<telegram_api::SecureValueType> get_input_secure_value_type(Se
       return telegram_api::make_object<telegram_api::secureValueTypeDriverLicense>();
     case SecureValueType::IdentityCard:
       return telegram_api::make_object<telegram_api::secureValueTypeIdentityCard>();
+    case SecureValueType::InternalPassport:
+      return telegram_api::make_object<telegram_api::secureValueTypeInternalPassport>();
     case SecureValueType::Address:
       return telegram_api::make_object<telegram_api::secureValueTypeAddress>();
     case SecureValueType::UtilityBill:
@@ -188,6 +214,10 @@ td_api::object_ptr<telegram_api::SecureValueType> get_input_secure_value_type(Se
       return telegram_api::make_object<telegram_api::secureValueTypeBankStatement>();
     case SecureValueType::RentalAgreement:
       return telegram_api::make_object<telegram_api::secureValueTypeRentalAgreement>();
+    case SecureValueType::PassportRegistration:
+      return telegram_api::make_object<telegram_api::secureValueTypePassportRegistration>();
+    case SecureValueType::TemporaryRegistration:
+      return telegram_api::make_object<telegram_api::secureValueTypeTemporaryRegistration>();
     case SecureValueType::PhoneNumber:
       return telegram_api::make_object<telegram_api::secureValueTypePhone>();
     case SecureValueType::EmailAddress:
@@ -208,7 +238,7 @@ string get_secure_value_data_field_name(SecureValueType type, string field_name)
   switch (type) {
     case SecureValueType::PersonalDetails:
       if (field_name == "first_name" || field_name == "last_name" || field_name == "gender" ||
-          field_name == "country_code") {
+          field_name == "country_code" || field_name == "residence_country_code") {
         return field_name;
       }
       if (field_name == "birth_date") {
@@ -218,6 +248,7 @@ string get_secure_value_data_field_name(SecureValueType type, string field_name)
     case SecureValueType::Passport:
     case SecureValueType::DriverLicense:
     case SecureValueType::IdentityCard:
+    case SecureValueType::InternalPassport:
       if (field_name == "expiry_date") {
         return field_name;
       }
@@ -237,6 +268,8 @@ string get_secure_value_data_field_name(SecureValueType type, string field_name)
     case SecureValueType::UtilityBill:
     case SecureValueType::BankStatement:
     case SecureValueType::RentalAgreement:
+    case SecureValueType::PassportRegistration:
+    case SecureValueType::TemporaryRegistration:
     case SecureValueType::PhoneNumber:
     case SecureValueType::EmailAddress:
       break;
@@ -392,11 +425,47 @@ telegram_api::object_ptr<telegram_api::secureData> get_secure_data_object(const 
 }
 
 bool operator==(const EncryptedSecureValue &lhs, const EncryptedSecureValue &rhs) {
-  return lhs.type == rhs.type && lhs.data == rhs.data && lhs.files == rhs.files && lhs.selfie == rhs.selfie;
+  return lhs.type == rhs.type && lhs.data == rhs.data && lhs.files == rhs.files && lhs.front_side == rhs.front_side &&
+         lhs.reverse_side == rhs.reverse_side && lhs.selfie == rhs.selfie;
 }
 
 bool operator!=(const EncryptedSecureValue &lhs, const EncryptedSecureValue &rhs) {
   return !(lhs == rhs);
+}
+
+static bool check_encrypted_secure_value(const EncryptedSecureValue &value) {
+  bool has_encrypted_data = !value.data.hash.empty();
+  bool has_plain_data = !has_encrypted_data && !value.data.data.empty();
+  bool has_files = !value.files.empty();
+  bool has_front_side = value.front_side.file.file_id.is_valid();
+  bool has_reverse_side = value.reverse_side.file.file_id.is_valid();
+  bool has_selfie = value.selfie.file.file_id.is_valid();
+  switch (value.type) {
+    case SecureValueType::PersonalDetails:
+    case SecureValueType::Address:
+      return has_encrypted_data && !has_files && !has_front_side && !has_reverse_side && !has_selfie;
+    case SecureValueType::Passport:
+    case SecureValueType::InternalPassport:
+      return has_encrypted_data && !has_files && has_front_side && !has_reverse_side;
+    case SecureValueType::DriverLicense:
+    case SecureValueType::IdentityCard:
+      return has_encrypted_data && !has_files && has_front_side && has_reverse_side;
+    case SecureValueType::UtilityBill:
+    case SecureValueType::BankStatement:
+    case SecureValueType::RentalAgreement:
+    case SecureValueType::PassportRegistration:
+    case SecureValueType::TemporaryRegistration:
+      return !has_encrypted_data && !has_plain_data && has_files && !has_front_side && !has_reverse_side && !has_selfie;
+    case SecureValueType::PhoneNumber:
+      return has_plain_data && !has_files && !has_front_side && !has_reverse_side && !has_selfie;
+    case SecureValueType::EmailAddress:
+      return has_plain_data && !has_files && !has_front_side && !has_reverse_side && !has_selfie;
+    case SecureValueType::None:
+      return false;
+    default:
+      UNREACHABLE();
+      return false;
+  }
 }
 
 EncryptedSecureValue get_encrypted_secure_value(FileManager *file_manager,
@@ -422,18 +491,34 @@ EncryptedSecureValue get_encrypted_secure_value(FileManager *file_manager,
     result.data = get_encrypted_secure_data(std::move(secure_value->data_));
   }
   result.files = get_encrypted_secure_files(file_manager, std::move(secure_value->files_));
+  if (secure_value->front_side_ != nullptr) {
+    result.front_side = get_encrypted_secure_file(file_manager, std::move(secure_value->front_side_));
+  }
+  if (secure_value->reverse_side_ != nullptr) {
+    result.reverse_side = get_encrypted_secure_file(file_manager, std::move(secure_value->reverse_side_));
+  }
   if (secure_value->selfie_ != nullptr) {
     result.selfie = get_encrypted_secure_file(file_manager, std::move(secure_value->selfie_));
   }
   result.hash = secure_value->hash_.as_slice().str();
+  if (!check_encrypted_secure_value(result)) {
+    LOG(ERROR) << "Receive invalid encrypted secure value of type " << result.type;
+    return EncryptedSecureValue();
+  }
   return result;
 }
 
 vector<EncryptedSecureValue> get_encrypted_secure_values(
     FileManager *file_manager, vector<tl_object_ptr<telegram_api::secureValue>> &&secure_values) {
-  return transform(std::move(secure_values), [file_manager](tl_object_ptr<telegram_api::secureValue> &&secure_value) {
-    return get_encrypted_secure_value(file_manager, std::move(secure_value));
-  });
+  vector<EncryptedSecureValue> results;
+  results.reserve(secure_values.size());
+  for (auto &secure_value : secure_values) {
+    auto result = get_encrypted_secure_value(file_manager, std::move(secure_value));
+    if (result.type != SecureValueType::None) {
+      results.push_back(std::move(result));
+    }
+  }
+  return results;
 }
 
 td_api::object_ptr<td_api::encryptedPassportData> get_encrypted_passport_data_object(
@@ -441,14 +526,18 @@ td_api::object_ptr<td_api::encryptedPassportData> get_encrypted_passport_data_ob
   bool is_plain = value.data.hash.empty();
   return td_api::make_object<td_api::encryptedPassportData>(
       get_passport_data_type_object(value.type), is_plain ? string() : value.data.data,
-      get_dated_files_object(file_manager, value.files), is_plain ? value.data.data : string(),
-      value.selfie.file.file_id.is_valid() ? get_dated_file_object(file_manager, value.selfie) : nullptr);
+      value.front_side.file.file_id.is_valid() ? get_dated_file_object(file_manager, value.front_side) : nullptr,
+      value.reverse_side.file.file_id.is_valid() ? get_dated_file_object(file_manager, value.reverse_side) : nullptr,
+      value.selfie.file.file_id.is_valid() ? get_dated_file_object(file_manager, value.selfie) : nullptr,
+      get_dated_files_object(file_manager, value.files), is_plain ? value.data.data : string());
 }
 
 telegram_api::object_ptr<telegram_api::inputSecureValue> get_input_secure_value_object(
     FileManager *file_manager, const EncryptedSecureValue &value, std::vector<SecureInputFile> &input_files,
-    optional<SecureInputFile> &selfie) {
+    optional<SecureInputFile> &front_side, optional<SecureInputFile> &reverse_side, optional<SecureInputFile> &selfie) {
   bool is_plain = value.type == SecureValueType::PhoneNumber || value.type == SecureValueType::EmailAddress;
+  bool has_front_side = value.front_side.file.file_id.is_valid();
+  bool has_reverse_side = value.reverse_side.file.file_id.is_valid();
   bool has_selfie = value.selfie.file.file_id.is_valid();
   int32 flags = 0;
   tl_object_ptr<telegram_api::SecurePlainData> plain_data;
@@ -465,14 +554,24 @@ telegram_api::object_ptr<telegram_api::inputSecureValue> get_input_secure_value_
   if (!value.files.empty()) {
     flags |= telegram_api::inputSecureValue::FILES_MASK;
   }
+  if (has_front_side) {
+    flags |= telegram_api::inputSecureValue::FRONT_SIDE_MASK;
+    CHECK(front_side);
+  }
+  if (has_reverse_side) {
+    flags |= telegram_api::inputSecureValue::REVERSE_SIDE_MASK;
+    CHECK(reverse_side);
+  }
   if (has_selfie) {
     flags |= telegram_api::inputSecureValue::SELFIE_MASK;
     CHECK(selfie);
   }
   return telegram_api::make_object<telegram_api::inputSecureValue>(
       flags, get_input_secure_value_type(value.type), is_plain ? nullptr : get_secure_data_object(value.data),
-      get_input_secure_files_object(file_manager, value.files, input_files), std::move(plain_data),
-      has_selfie ? get_input_secure_file_object(file_manager, value.selfie, *selfie) : nullptr);
+      has_front_side ? get_input_secure_file_object(file_manager, value.front_side, *front_side) : nullptr,
+      has_reverse_side ? get_input_secure_file_object(file_manager, value.reverse_side, *reverse_side) : nullptr,
+      has_selfie ? get_input_secure_file_object(file_manager, value.selfie, *selfie) : nullptr,
+      get_input_secure_files_object(file_manager, value.files, input_files), std::move(plain_data));
 }
 
 vector<td_api::object_ptr<td_api::encryptedPassportData>> get_encrypted_passport_data_object(
@@ -626,6 +725,7 @@ static Result<string> get_personal_details(td_api::object_ptr<td_api::personalDe
   }
   TRY_STATUS(check_gender(personal_details->gender_));
   TRY_STATUS(check_country_code(personal_details->country_code_));
+  TRY_STATUS(check_country_code(personal_details->residence_country_code_));
 
   return json_encode<std::string>(json_object([&](auto &o) {
     o("first_name", personal_details->first_name_);
@@ -633,6 +733,7 @@ static Result<string> get_personal_details(td_api::object_ptr<td_api::personalDe
     o("birth_date", birthdate);
     o("gender", personal_details->gender_);
     o("country_code", personal_details->country_code_);
+    o("residence_country_code", personal_details->residence_country_code_);
   }));
 }
 
@@ -657,15 +758,18 @@ static Result<td_api::object_ptr<td_api::personalDetails>> get_personal_details_
   }
   TRY_RESULT(gender, get_json_object_string_field(object, "gender", true));
   TRY_RESULT(country_code, get_json_object_string_field(object, "country_code", true));
+  TRY_RESULT(residence_country_code, get_json_object_string_field(object, "residence_country_code", true));
 
   TRY_STATUS(check_first_name(first_name));
   TRY_STATUS(check_last_name(last_name));
   TRY_RESULT(date, get_date_object(birthdate));
   TRY_STATUS(check_gender(gender));
   TRY_STATUS(check_country_code(country_code));
+  TRY_STATUS(check_country_code(residence_country_code));
 
   return td_api::make_object<td_api::personalDetails>(std::move(first_name), std::move(last_name), std::move(date),
-                                                      std::move(gender), std::move(country_code));
+                                                      std::move(gender), std::move(country_code),
+                                                      std::move(residence_country_code));
 }
 
 static Status check_document_number(string &number) {
@@ -700,15 +804,14 @@ static Result<vector<DatedFile>> get_secure_files(FileManager *file_manager,
   return result;
 }
 
-static Result<SecureValue> get_identity_document(
-    SecureValueType type, FileManager *file_manager,
-    td_api::object_ptr<td_api::inputIdentityDocument> &&identity_document) {
+static Result<SecureValue> get_identity_document(SecureValueType type, FileManager *file_manager,
+                                                 td_api::object_ptr<td_api::inputIdentityDocument> &&identity_document,
+                                                 bool need_reverse_side) {
   if (identity_document == nullptr) {
     return Status::Error(400, "Identity document must not be empty");
   }
   TRY_STATUS(check_document_number(identity_document->number_));
   TRY_RESULT(date, get_date(std::move(identity_document->expiry_date_)));
-  TRY_RESULT(files, get_secure_files(file_manager, std::move(identity_document->files_)));
 
   SecureValue res;
   res.type = type;
@@ -717,21 +820,45 @@ static Result<SecureValue> get_identity_document(
     o("expiry_date", date);
   }));
 
-  res.files = std::move(files);
+  if (identity_document->front_side_ == nullptr) {
+    return Status::Error(400, "Document's front side is required");
+  }
+  if (identity_document->reverse_side_ == nullptr) {
+    if (need_reverse_side) {
+      return Status::Error(400, "Document's reverse side is required");
+    }
+  } else {
+    if (!need_reverse_side) {
+      return Status::Error(400, "Document shouldn't have a reverse side");
+    }
+  }
+
+  TRY_RESULT(front_side, get_secure_file(file_manager, std::move(identity_document->front_side_)));
+  res.front_side = front_side;
+  if (identity_document->reverse_side_ != nullptr) {
+    TRY_RESULT(reverse_side, get_secure_file(file_manager, std::move(identity_document->reverse_side_)));
+    res.reverse_side = reverse_side;
+  }
   if (identity_document->selfie_ != nullptr) {
-    TRY_RESULT(file, get_secure_file(file_manager, std::move(identity_document->selfie_)));
-    res.selfie = file;
+    TRY_RESULT(selfie, get_secure_file(file_manager, std::move(identity_document->selfie_)));
+    res.selfie = selfie;
   }
   return res;
 }
 
 static Result<td_api::object_ptr<td_api::identityDocument>> get_identity_document_object(FileManager *file_manager,
                                                                                          const SecureValue &value) {
-  auto files = transform(value.files, [file_manager](const DatedFile &dated_file) {
-    return get_dated_file_object(file_manager, dated_file);
-  });
+  CHECK(value.files.empty());
 
+  td_api::object_ptr<td_api::datedFile> front_side;
+  td_api::object_ptr<td_api::datedFile> reverse_side;
   td_api::object_ptr<td_api::datedFile> selfie;
+  if (value.front_side.file_id.is_valid()) {
+    front_side = get_dated_file_object(file_manager, value.front_side);
+  }
+  if (value.reverse_side.file_id.is_valid()) {
+    reverse_side = get_dated_file_object(file_manager, value.reverse_side);
+  }
   if (value.selfie.file_id.is_valid()) {
     selfie = get_dated_file_object(file_manager, value.selfie);
   }
@@ -754,8 +881,8 @@ static Result<td_api::object_ptr<td_api::identityDocument>> get_identity_documen
   TRY_STATUS(check_document_number(number));
   TRY_RESULT(date, get_date_object(expiry_date));
 
-  return td_api::make_object<td_api::identityDocument>(std::move(number), std::move(date), std::move(files),
-                                                       std::move(selfie));
+  return td_api::make_object<td_api::identityDocument>(std::move(number), std::move(date), std::move(front_side),
+                                                       std::move(reverse_side), std::move(selfie));
 }
 
 static Status check_phone_number(string &phone_number) {
@@ -789,15 +916,21 @@ Result<SecureValue> get_secure_value(FileManager *file_manager,
     }
     case td_api::inputPassportDataPassport::ID: {
       auto input = td_api::move_object_as<td_api::inputPassportDataPassport>(input_passport_data);
-      return get_identity_document(SecureValueType::Passport, file_manager, std::move(input->passport_));
+      return get_identity_document(SecureValueType::Passport, file_manager, std::move(input->passport_), false);
     }
     case td_api::inputPassportDataDriverLicense::ID: {
       auto input = td_api::move_object_as<td_api::inputPassportDataDriverLicense>(input_passport_data);
-      return get_identity_document(SecureValueType::DriverLicense, file_manager, std::move(input->driver_license_));
+      return get_identity_document(SecureValueType::DriverLicense, file_manager, std::move(input->driver_license_),
+                                   true);
     }
     case td_api::inputPassportDataIdentityCard::ID: {
       auto input = td_api::move_object_as<td_api::inputPassportDataIdentityCard>(input_passport_data);
-      return get_identity_document(SecureValueType::IdentityCard, file_manager, std::move(input->identity_card_));
+      return get_identity_document(SecureValueType::IdentityCard, file_manager, std::move(input->identity_card_), true);
+    }
+    case td_api::inputPassportDataInternalPassport::ID: {
+      auto input = td_api::move_object_as<td_api::inputPassportDataInternalPassport>(input_passport_data);
+      return get_identity_document(SecureValueType::InternalPassport, file_manager,
+                                   std::move(input->internal_passport_), false);
     }
     case td_api::inputPassportDataAddress::ID: {
       auto input = td_api::move_object_as<td_api::inputPassportDataAddress>(input_passport_data);
@@ -823,6 +956,20 @@ Result<SecureValue> get_secure_value(FileManager *file_manager,
     case td_api::inputPassportDataRentalAgreement::ID: {
       auto input = td_api::move_object_as<td_api::inputPassportDataRentalAgreement>(input_passport_data);
       res.type = SecureValueType::RentalAgreement;
+      TRY_RESULT(files, get_secure_files(file_manager, std::move(input->files_)));
+      res.files = std::move(files);
+      break;
+    }
+    case td_api::inputPassportDataPassportRegistration::ID: {
+      auto input = td_api::move_object_as<td_api::inputPassportDataPassportRegistration>(input_passport_data);
+      res.type = SecureValueType::PassportRegistration;
+      TRY_RESULT(files, get_secure_files(file_manager, std::move(input->files_)));
+      res.files = std::move(files);
+      break;
+    }
+    case td_api::inputPassportDataTemporaryRegistration::ID: {
+      auto input = td_api::move_object_as<td_api::inputPassportDataTemporaryRegistration>(input_passport_data);
+      res.type = SecureValueType::TemporaryRegistration;
       TRY_RESULT(files, get_secure_files(file_manager, std::move(input->files_)));
       res.files = std::move(files);
       break;
@@ -866,13 +1013,19 @@ Result<td_api::object_ptr<td_api::PassportData>> get_passport_data_object(FileMa
       TRY_RESULT(identity_card, get_identity_document_object(file_manager, value));
       return td_api::make_object<td_api::passportDataIdentityCard>(std::move(identity_card));
     }
+    case SecureValueType::InternalPassport: {
+      TRY_RESULT(internal_passport, get_identity_document_object(file_manager, value));
+      return td_api::make_object<td_api::passportDataInternalPassport>(std::move(internal_passport));
+    }
     case SecureValueType::Address: {
       TRY_RESULT(address, address_from_json(value.data));
       return td_api::make_object<td_api::passportDataAddress>(get_address_object(address));
     }
     case SecureValueType::UtilityBill:
     case SecureValueType::BankStatement:
-    case SecureValueType::RentalAgreement: {
+    case SecureValueType::RentalAgreement:
+    case SecureValueType::PassportRegistration:
+    case SecureValueType::TemporaryRegistration: {
       auto files = transform(
           value.files, [file_manager](const DatedFile &file) { return get_dated_file_object(file_manager, file); });
       if (value.type == SecureValueType::UtilityBill) {
@@ -883,6 +1036,12 @@ Result<td_api::object_ptr<td_api::PassportData>> get_passport_data_object(FileMa
       }
       if (value.type == SecureValueType::RentalAgreement) {
         return td_api::make_object<td_api::passportDataRentalAgreement>(std::move(files));
+      }
+      if (value.type == SecureValueType::PassportRegistration) {
+        return td_api::make_object<td_api::passportDataPassportRegistration>(std::move(files));
+      }
+      if (value.type == SecureValueType::TemporaryRegistration) {
+        return td_api::make_object<td_api::passportDataTemporaryRegistration>(std::move(files));
       }
       UNREACHABLE();
       break;
@@ -961,13 +1120,17 @@ Result<SecureValueWithCredentials> decrypt_secure_value(FileManager *file_manage
   res_credentials.type = res.type;
   res_credentials.hash = encrypted_secure_value.hash;
   switch (encrypted_secure_value.type) {
+    case SecureValueType::None:
+      return Status::Error("Receive invalid Telegram Passport data");
     case SecureValueType::EmailAddress:
     case SecureValueType::PhoneNumber:
       res.data = encrypted_secure_value.data.data;
       break;
     case SecureValueType::UtilityBill:
     case SecureValueType::BankStatement:
-    case SecureValueType::RentalAgreement: {
+    case SecureValueType::RentalAgreement:
+    case SecureValueType::PassportRegistration:
+    case SecureValueType::TemporaryRegistration: {
       TRY_RESULT(files, decrypt_secure_files(file_manager, secret, encrypted_secure_value.files));
       res.files = std::move(files.first);
       res_credentials.files = std::move(files.second);
@@ -979,9 +1142,17 @@ Result<SecureValueWithCredentials> decrypt_secure_value(FileManager *file_manage
       if (!res.data.empty()) {
         res_credentials.data = std::move(data.second);
       }
-      TRY_RESULT(files, decrypt_secure_files(file_manager, secret, encrypted_secure_value.files));
-      res.files = std::move(files.first);
-      res_credentials.files = std::move(files.second);
+      CHECK(encrypted_secure_value.files.empty());
+      TRY_RESULT(front_side, decrypt_secure_file(file_manager, secret, encrypted_secure_value.front_side));
+      res.front_side = std::move(front_side.first);
+      if (res.front_side.file_id.is_valid()) {
+        res_credentials.front_side = std::move(front_side.second);
+      }
+      TRY_RESULT(reverse_side, decrypt_secure_file(file_manager, secret, encrypted_secure_value.reverse_side));
+      res.reverse_side = std::move(reverse_side.first);
+      if (res.reverse_side.file_id.is_valid()) {
+        res_credentials.reverse_side = std::move(reverse_side.second);
+      }
       TRY_RESULT(selfie, decrypt_secure_file(file_manager, secret, encrypted_secure_value.selfie));
       res.selfie = std::move(selfie.first);
       if (res.selfie.file_id.is_valid()) {
@@ -1079,7 +1250,9 @@ EncryptedSecureValue encrypt_secure_value(FileManager *file_manager, const secur
       break;
     case SecureValueType::UtilityBill:
     case SecureValueType::BankStatement:
-    case SecureValueType::RentalAgreement: {
+    case SecureValueType::RentalAgreement:
+    case SecureValueType::PassportRegistration:
+    case SecureValueType::TemporaryRegistration: {
       string to_hash;
       res.files = encrypt_secure_files(file_manager, master_secret, secure_value.files, to_hash);
       res.hash = secure_storage::calc_value_hash(to_hash).as_slice().str();
@@ -1088,7 +1261,9 @@ EncryptedSecureValue encrypt_secure_value(FileManager *file_manager, const secur
     default: {
       string to_hash;
       res.data = encrypt_secure_data(master_secret, secure_value.data, to_hash);
-      res.files = encrypt_secure_files(file_manager, master_secret, secure_value.files, to_hash);
+      CHECK(secure_value.files.empty());
+      res.front_side = encrypt_secure_file(file_manager, master_secret, secure_value.front_side, to_hash);
+      res.reverse_side = encrypt_secure_file(file_manager, master_secret, secure_value.reverse_side, to_hash);
       res.selfie = encrypt_secure_file(file_manager, master_secret, secure_value.selfie, to_hash);
       res.hash = secure_storage::calc_value_hash(to_hash).as_slice().str();
       break;
@@ -1129,6 +1304,8 @@ static Slice secure_value_type_as_slice(SecureValueType type) {
       return Slice("driver_license");
     case SecureValueType::IdentityCard:
       return Slice("identity_card");
+    case SecureValueType::InternalPassport:
+      return Slice("internal_passport");
     case SecureValueType::Address:
       return Slice("address");
     case SecureValueType::UtilityBill:
@@ -1137,6 +1314,10 @@ static Slice secure_value_type_as_slice(SecureValueType type) {
       return Slice("bank_statement");
     case SecureValueType::RentalAgreement:
       return Slice("rental_agreement");
+    case SecureValueType::PassportRegistration:
+      return Slice("passport_registration");
+    case SecureValueType::TemporaryRegistration:
+      return Slice("temporary_registration");
     case SecureValueType::PhoneNumber:
       return Slice("phone_number");
     case SecureValueType::EmailAddress:
@@ -1162,6 +1343,12 @@ static auto credentials_as_jsonable(std::vector<SecureValueCredentials> &credent
               }
               if (!credentials.files.empty()) {
                 o("files", as_jsonable(credentials.files));
+              }
+              if (credentials.front_side) {
+                o("front_side", as_jsonable(credentials.front_side.value()));
+              }
+              if (credentials.reverse_side) {
+                o("reverse_side", as_jsonable(credentials.reverse_side.value()));
               }
               if (credentials.selfie && with_selfie) {
                 o("selfie", as_jsonable(credentials.selfie.value()));

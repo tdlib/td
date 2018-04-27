@@ -968,11 +968,20 @@ class CliClient final : public Actor {
     if (passport_data_type == "dl") {
       return make_tl_object<td_api::passportDataTypeDriverLicense>();
     }
+    if (passport_data_type == "ip") {
+      return make_tl_object<td_api::passportDataTypeInternalPassport>();
+    }
     if (passport_data_type == "ic") {
       return make_tl_object<td_api::passportDataTypeIdentityCard>();
     }
     if (passport_data_type == "ra") {
       return make_tl_object<td_api::passportDataTypeRentalAgreement>();
+    }
+    if (passport_data_type == "pr") {
+      return make_tl_object<td_api::passportDataTypePassportRegistration>();
+    }
+    if (passport_data_type == "tr") {
+      return make_tl_object<td_api::passportDataTypeTemporaryRegistration>();
     }
     return make_tl_object<td_api::passportDataTypePassport>();
   }
@@ -1005,13 +1014,23 @@ class CliClient final : public Actor {
       return make_tl_object<td_api::inputPassportDataPhoneNumber>(arg);
     } else if (passport_data_type == "pd") {
       return make_tl_object<td_api::inputPassportDataPersonalDetails>(make_tl_object<td_api::personalDetails>(
-          "Mike", "Towers", make_tl_object<td_api::date>(29, 2, 2000), "male", "US"));
+          "Mike", "Towers", make_tl_object<td_api::date>(29, 2, 2000), "male", "US", "GB"));
     } else if (passport_data_type == "driver_license" || passport_data_type == "dl") {
-      return make_tl_object<td_api::inputPassportDataDriverLicense>(make_tl_object<td_api::inputIdentityDocument>(
-          "1234567890", make_tl_object<td_api::date>(1, 3, 2029), std::move(input_files), std::move(selfie)));
+      if (input_files.size() == 2) {
+        return make_tl_object<td_api::inputPassportDataDriverLicense>(make_tl_object<td_api::inputIdentityDocument>(
+            "1234567890", make_tl_object<td_api::date>(1, 3, 2029), std::move(input_files[0]),
+            std::move(input_files[1]), std::move(selfie)));
+      }
     } else if (passport_data_type == "identity_card" || passport_data_type == "ic") {
-      return make_tl_object<td_api::inputPassportDataIdentityCard>(make_tl_object<td_api::inputIdentityDocument>(
-          "1234567890", nullptr, std::move(input_files), std::move(selfie)));
+      if (input_files.size() == 2) {
+        return make_tl_object<td_api::inputPassportDataIdentityCard>(make_tl_object<td_api::inputIdentityDocument>(
+            "1234567890", nullptr, std::move(input_files[0]), std::move(input_files[1]), std::move(selfie)));
+      }
+    } else if (passport_data_type == "internal_passport" || passport_data_type == "ip") {
+      if (input_files.size() == 1) {
+        return make_tl_object<td_api::inputPassportDataInternalPassport>(make_tl_object<td_api::inputIdentityDocument>(
+            "1234567890", nullptr, std::move(input_files[0]), nullptr, std::move(selfie)));
+      }
     } else if (passport_data_type == "rental_aggrement" || passport_data_type == "ra") {
       return make_tl_object<td_api::inputPassportDataRentalAgreement>(std::move(input_files));
     }

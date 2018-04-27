@@ -72,10 +72,14 @@ template <class StorerT>
 void store(const EncryptedSecureValue &value, StorerT &storer) {
   bool has_data_hash = !value.data.hash.empty();
   bool has_files = !value.files.empty();
+  bool has_front_side = value.front_side.file.file_id.is_valid();
+  bool has_reverse_side = value.reverse_side.file.file_id.is_valid();
   bool has_selfie = value.selfie.file.file_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_data_hash);
   STORE_FLAG(has_files);
+  STORE_FLAG(has_front_side);
+  STORE_FLAG(has_reverse_side);
   STORE_FLAG(has_selfie);
   END_STORE_FLAGS();
   store(value.type, storer);
@@ -87,6 +91,12 @@ void store(const EncryptedSecureValue &value, StorerT &storer) {
   if (has_files) {
     store(value.files, storer);
   }
+  if (has_front_side) {
+    store(value.front_side, storer);
+  }
+  if (has_reverse_side) {
+    store(value.reverse_side, storer);
+  }
   if (has_selfie) {
     store(value.selfie, storer);
   }
@@ -96,10 +106,14 @@ template <class ParserT>
 void parse(EncryptedSecureValue &value, ParserT &parser) {
   bool has_data_hash;
   bool has_files;
+  bool has_front_side;
+  bool has_reverse_side;
   bool has_selfie;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_data_hash);
   PARSE_FLAG(has_files);
+  PARSE_FLAG(has_front_side);
+  PARSE_FLAG(has_reverse_side);
   PARSE_FLAG(has_selfie);
   END_PARSE_FLAGS();
   parse(value.type, parser);
@@ -110,6 +124,12 @@ void parse(EncryptedSecureValue &value, ParserT &parser) {
   }
   if (has_files) {
     parse(value.files, parser);
+  }
+  if (has_front_side) {
+    parse(value.front_side, parser);
+  }
+  if (has_reverse_side) {
+    parse(value.reverse_side, parser);
   }
   if (has_selfie) {
     parse(value.selfie, parser);

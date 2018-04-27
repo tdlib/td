@@ -817,6 +817,9 @@ passportDataTypeDriverLicense = PassportDataType;
 //@description The Telegram Passport data contains a user's identity card
 passportDataTypeIdentityCard = PassportDataType;
 
+//@description The Telegram Passport data contains a user's internal passport
+passportDataTypeInternalPassport = PassportDataType;
+
 //@description The Telegram Passport data contains a user's address
 passportDataTypeAddress = PassportDataType;
 
@@ -829,6 +832,12 @@ passportDataTypeBankStatement = PassportDataType;
 //@description The Telegram Passport data contains a user's rental agreement
 passportDataTypeRentalAgreement = PassportDataType;
 
+//@description The Telegram Passport data contains a user's passport registration
+passportDataTypePassportRegistration = PassportDataType;
+
+//@description The Telegram Passport data contains a user's temporary registration
+passportDataTypeTemporaryRegistration = PassportDataType;
+
 //@description The Telegram Passport data contains a user's phone number
 passportDataTypePhoneNumber = PassportDataType;
 
@@ -840,14 +849,16 @@ passportDataTypeEmailAddress = PassportDataType;
 date day:int32 month:int32 year:int32 = Date;
 
 //@description Contains user's personal details @first_name First name of the user; 1-255 characters @last_name Last name of the user; 1-255 characters @birthdate Birthdate of the user
-//@gender Gender of the user, "male" or "female" @country_code A two-letter ISO 3166-1 alpha-2 country code for the user's country
-personalDetails first_name:string last_name:string birthdate:date gender:string country_code:string = PersonalDetails;
+//@gender Gender of the user, "male" or "female" @country_code A two-letter ISO 3166-1 alpha-2 country code for the user's country @residence_country_code A two-letter ISO 3166-1 alpha-2 country code for the user's residence country
+personalDetails first_name:string last_name:string birthdate:date gender:string country_code:string residence_country_code:string = PersonalDetails;
 
-//@description An identity document @number Document's number; 1-24 characters @expiry_date Document's expiry date; may be null @files List of files with the document images @selfie Selfie with the document; may be null
-identityDocument number:string expiry_date:date files:vector<datedFile> selfie:datedFile = IdentityDocument;
+//@description An identity document @number Document's number; 1-24 characters @expiry_date Document's expiry date; may be null @front_side Document's front side
+//@reverse_side Document's reverse side, only for driver license and identity card @selfie Selfie with the document; may be null
+identityDocument number:string expiry_date:date front_side:datedFile reverse_side:datedFile selfie:datedFile = IdentityDocument;
 
-//@description An identity document to save @number Document's number @expiry_date Document's expiry date, if available @files List of files with the document images; must be non-empty @selfie Selfie with the document, if available
-inputIdentityDocument number:string expiry_date:date files:vector<InputFile> selfie:InputFile = InputIdentityDocument;
+//@description An identity document to save @number Document's number @expiry_date Document's expiry date, if available @front_side Document's front side
+//@reverse_side Document's reverse side, only for driver license and identity card @selfie Selfie with the document, if available
+inputIdentityDocument number:string expiry_date:date front_side:InputFile reverse_side:InputFile selfie:InputFile = InputIdentityDocument;
 
 
 //@class PassportData @description Contains information about a Telegram Passport data
@@ -864,6 +875,9 @@ passportDataDriverLicense driver_license:identityDocument = PassportData;
 //@description The Telegram Passport data contains a user's identity card @identity_card The identity card
 passportDataIdentityCard identity_card:identityDocument = PassportData;
 
+//@description The Telegram Passport data contains a user's internal passport @internal_passport The internal passport
+passportDataInternalPassport internal_passport:identityDocument = PassportData;
+
 //@description The Telegram Passport data contains a user's address @address The address
 passportDataAddress address:address = PassportData;
 
@@ -875,6 +889,12 @@ passportDataBankStatement files:vector<datedFile> = PassportData;
 
 //@description The Telegram Passport data contains a user's rental agreement @files List of files with the rental agreement
 passportDataRentalAgreement files:vector<datedFile> = PassportData;
+
+//@description The Telegram Passport data contains a user's passport registration @files List of files with the passport registration
+passportDataPassportRegistration files:vector<datedFile> = PassportData;
+
+//@description The Telegram Passport data contains a user's temporary registration @files List of files with the temporary registration
+passportDataTemporaryRegistration files:vector<datedFile> = PassportData;
 
 //@description The Telegram Passport data contains a user's phone number @phone_number The phone number
 passportDataPhoneNumber phone_number:string = PassportData;
@@ -897,6 +917,9 @@ inputPassportDataDriverLicense driver_license:inputIdentityDocument = InputPassp
 //@description The Telegram Passport data to save contains a user's identity card @identity_card The identity card to save
 inputPassportDataIdentityCard identity_card:inputIdentityDocument = InputPassportData;
 
+//@description The Telegram Passport data to save contains a user's internal passport @internal_passport The internal passport to save
+inputPassportDataInternalPassport internal_passport:inputIdentityDocument = InputPassportData;
+
 //@description The Telegram Passport data to save contains a user's address @address The address
 inputPassportDataAddress address:address = InputPassportData;
 
@@ -908,6 +931,12 @@ inputPassportDataBankStatement files:vector<InputFile> = InputPassportData;
 
 //@description The Telegram Passport data to save contains a user's rental agreement @files List of files with the rental agreement
 inputPassportDataRentalAgreement files:vector<InputFile> = InputPassportData;
+
+//@description The Telegram Passport data to save contains a user's passport registration @files List of files with the passport registration
+inputPassportDataPassportRegistration files:vector<InputFile> = InputPassportData;
+
+//@description The Telegram Passport data to save contains a user's temporary registration @files List of files with the temporary registration
+inputPassportDataTemporaryRegistration files:vector<InputFile> = InputPassportData;
 
 //@description The Telegram Passport data to save contains a user's phone number @phone_number The phone number
 inputPassportDataPhoneNumber phone_number:string = InputPassportData;
@@ -925,14 +954,20 @@ allPassportData data:vector<PassportData> = AllPassportData;
 //@description A field of data contains an error. The error is considered resolved when the field's value changes @field_name Field name
 passportDataErrorSourceDataField field_name:string = PassportDataErrorSource;
 
+//@description A document front side contains an error. The error is considered resolved when the file with the front side changes
+passportDataErrorSourceFrontSide = PassportDataErrorSource;
+
+//@description A document reverse side contains an error. The error is considered resolved when the file with the reverse side changes
+passportDataErrorSourceReverseSide = PassportDataErrorSource;
+
+//@description A selfie contains an error. The error is considered resolved when the file with the selfie changes
+passportDataErrorSourceSelfie = PassportDataErrorSource;
+
 //@description A file contains an error. The error is considered resolved when the file changes
 passportDataErrorSourceFile = PassportDataErrorSource;
 
 //@description A list of attached files contains an error. The error is considered resolved when the file list changes
 passportDataErrorSourceFiles = PassportDataErrorSource;
-
-//@description A selfie contains an error. The error is considered resolved when the file with the selfie changes
-passportDataErrorSourceSelfie = PassportDataErrorSource;
 
 
 //@description Contains description of an error in a Telegram Passport data @type Telegram Passport data type with the error @message Error message @source Error source
@@ -949,8 +984,8 @@ passportAuthorizationForm id:int32 required_types:vector<PassportDataType> data:
 encryptedCredentials data:bytes hash:bytes secret:bytes = EncryptedCredentials;
 
 
-//@description Contains information about an encrypted Telegram Passport data @type Telegram Passport data type @data Encrypted JSON-encoded data about the user @files List of attached files @value Unencrypted data, phone number or email address @selfie Selfie with the document
-encryptedPassportData type:PassportDataType data:bytes files:vector<datedFile> value:string selfie:datedFile = EncryptedPassportData;
+//@description Contains information about an encrypted Telegram Passport data @type Telegram Passport data type @data Encrypted JSON-encoded data about the user @front_side Identity document's front side @reverse_side Identity document's reverse side; may be null @selfie Selfie with the document; may be null @files List of attached files @value Unencrypted data, phone number or email address
+encryptedPassportData type:PassportDataType data:bytes front_side:datedFile reverse_side:datedFile selfie:datedFile files:vector<datedFile> value:string = EncryptedPassportData;
 
 
 //@class InputPassportDataErrorSource @description Contains description of an error in a Telegram Passport data; for bots only
@@ -958,14 +993,20 @@ encryptedPassportData type:PassportDataType data:bytes files:vector<datedFile> v
 //@description A field of data contains an error. The error is considered resolved when the field's value changes @field_name Field name @data_hash Current data hash
 inputPassportDataErrorSourceDataField field_name:string data_hash:bytes = InputPassportDataErrorSource;
 
+//@description A document front side contains an error. The error is considered resolved when the file with the document front side changes @file_hash Current hash of a file with the front side
+inputPassportDataErrorSourceFrontSide file_hash:bytes = InputPassportDataErrorSource;
+
+//@description A document reverse side contains an error. The error is considered resolved when the file with the document reverse side changes @file_hash Current hash of a file with the reverse side
+inputPassportDataErrorSourceReverseSide file_hash:bytes = InputPassportDataErrorSource;
+
+//@description A selfie contains an error. The error is considered resolved when the file with the selfie changes @file_hash Current hash of a file with the selfie
+inputPassportDataErrorSourceSelfie file_hash:bytes = InputPassportDataErrorSource;
+
 //@description A file contains an error. The error is considered resolved when the file changes @file_hash Hash of the file with an error
 inputPassportDataErrorSourceFile file_hash:bytes = InputPassportDataErrorSource;
 
 //@description A list of attached files contains an error. The error is considered resolved when the file list changes @file_hashes Hashes of all files
 inputPassportDataErrorSourceFiles file_hashes:vector<bytes> = InputPassportDataErrorSource;
-
-//@description A selfie contains an error. The error is considered resolved when the file with the selfie changes @file_hash Current file with the selfie hash
-inputPassportDataErrorSourceSelfie file_hash:bytes = InputPassportDataErrorSource;
 
 
 //@description Contains description of an error in a Telegram Passport data; for bots only @type Telegram Passport data type with the error @message Error message @source Error source

@@ -29,10 +29,13 @@ enum class SecureValueType : int32 {
   Passport,
   DriverLicense,
   IdentityCard,
+  InternalPassport,
   Address,
   UtilityBill,
   BankStatement,
   RentalAgreement,
+  PassportRegistration,
+  TemporaryRegistration,
   PhoneNumber,
   EmailAddress
 };
@@ -106,6 +109,8 @@ struct EncryptedSecureValue {
   SecureValueType type = SecureValueType::None;
   EncryptedSecureData data;
   vector<EncryptedSecureFile> files;
+  EncryptedSecureFile front_side;
+  EncryptedSecureFile reverse_side;
   EncryptedSecureFile selfie;
   string hash;  // memory only
 };
@@ -123,7 +128,7 @@ td_api::object_ptr<td_api::encryptedPassportData> get_encrypted_passport_data_ob
                                                                                      const EncryptedSecureValue &value);
 telegram_api::object_ptr<telegram_api::inputSecureValue> get_input_secure_value_object(
     FileManager *file_manager, const EncryptedSecureValue &value, vector<SecureInputFile> &input_files,
-    optional<SecureInputFile> &selfie);
+    optional<SecureInputFile> &front_side, optional<SecureInputFile> &reverse_side, optional<SecureInputFile> &selfie);
 
 vector<td_api::object_ptr<td_api::encryptedPassportData>> get_encrypted_passport_data_object(
     FileManager *file_manager, const vector<EncryptedSecureValue> &values);
@@ -159,6 +164,8 @@ struct SecureValueCredentials {
   string hash;
   optional<SecureDataCredentials> data;
   std::vector<SecureFileCredentials> files;
+  optional<SecureFileCredentials> front_side;
+  optional<SecureFileCredentials> reverse_side;
   optional<SecureFileCredentials> selfie;
 };
 
@@ -170,6 +177,8 @@ class SecureValue {
   SecureValueType type = SecureValueType::None;
   string data;
   vector<DatedFile> files;
+  DatedFile front_side;
+  DatedFile reverse_side;
   DatedFile selfie;
 };
 
