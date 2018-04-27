@@ -2103,7 +2103,7 @@ class MessagesManager : public Actor {
 
   bool is_allowed_useless_update(const tl_object_ptr<telegram_api::Update> &update) const;
 
-  bool is_message_auto_read(DialogId dialog_id, bool is_outgoing, bool only_content) const;
+  bool is_message_auto_read(DialogId dialog_id, bool is_outgoing) const;
 
   void fail_send_message(FullMessageId full_message_id, int error_code, const string &error_message);
 

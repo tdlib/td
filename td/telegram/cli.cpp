@@ -2243,7 +2243,7 @@ class CliClient final : public Actor {
 
       std::tie(chat_id, args) = split(args);
       std::tie(user_id, message) = split(args);
-      if (op == "smr") {
+      if (op == "almr") {
         std::tie(reply_to_message_id, message) = split(message);
       }
 

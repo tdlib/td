@@ -10075,7 +10075,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       message_info.flags = message->flags_;
       fix_message_info_dialog_id(message_info);
       bool is_content_read = (message->flags_ & MESSAGE_FLAG_HAS_UNREAD_CONTENT) == 0;
-      if (is_message_auto_read(message_info.dialog_id, (message->flags_ & MESSAGE_FLAG_IS_OUT) != 0, true)) {
+      if (is_message_auto_read(message_info.dialog_id, (message->flags_ & MESSAGE_FLAG_IS_OUT) != 0)) {
         is_content_read = true;
       }
       message_info.content = get_message_content(
@@ -15654,7 +15654,7 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, unique_ptr<M
   }
 }
 
-bool MessagesManager::is_message_auto_read(DialogId dialog_id, bool is_outgoing, bool only_content) const {
+bool MessagesManager::is_message_auto_read(DialogId dialog_id, bool is_outgoing) const {
   switch (dialog_id.get_type()) {
     case DialogType::User: {
       auto user_id = dialog_id.get_user_id();
@@ -15669,13 +15669,8 @@ bool MessagesManager::is_message_auto_read(DialogId dialog_id, bool is_outgoing,
     case DialogType::Chat:
       // TODO auto_read message content and messages sent to group with bots only
       return false;
-    case DialogType::Channel: {
-      if (only_content) {
-        return false;
-      }
-      auto channel_type = td_->contacts_manager_->get_channel_type(dialog_id.get_channel_id());
-      return channel_type != ChannelType::Megagroup;
-    }
+    case DialogType::Channel:
+      return is_outgoing && is_broadcast_channel(dialog_id);
     case DialogType::SecretChat:
       return false;
     case DialogType::None:
@@ -18530,6 +18525,14 @@ Result<MessageId> MessagesManager::add_local_message(
   auto result =
       add_message_to_dialog(d, std::move(m), true, &need_update, &need_update_dialog_pos, "add local message");
   CHECK(result != nullptr);
+
+  if (is_message_auto_read(dialog_id, result->is_outgoing)) {
+    if (result->is_outgoing) {
+      read_history_outbox(dialog_id, message_id);
+    } else {
+      read_history_inbox(dialog_id, message_id, 0, "add_local_message");
+    }
+  }
 
   if (message_content.clear_draft) {
     update_dialog_draft_message(d, nullptr, false, !need_update_dialog_pos);
