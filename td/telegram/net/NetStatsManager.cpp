@@ -56,7 +56,10 @@ void NetStatsManager::init() {
     }
   };
 
-  for_each_stat([&](NetStatsInfo &stat, size_t id, CSlice name, FileType) {
+  for_each_stat([&](NetStatsInfo &stat, size_t id, CSlice name, FileType file_type) {
+    if (file_type == FileType::SecureRaw) {
+      id++;
+    }
     stat.key = "net_stats_" + name.str();
     stat.stats.set_callback(std::make_unique<NetStatsInternalCallback>(actor_id(this), id));
   });
@@ -107,6 +110,10 @@ void NetStatsManager::get_network_stats(bool current, Promise<NetworkStats> prom
         entry.is_call = true;
         result.entries.push_back(std::move(entry));
       } else if (file_type != FileType::None) {
+        if (file_type == FileType::SecureRaw) {
+          return;
+        }
+
         if (total_files.read_size != 0) {
           entry.rx = static_cast<int64>(static_cast<double>(total.read_size) *
                                         (static_cast<double>(entry.rx) / static_cast<double>(total_files.read_size)));
@@ -182,7 +189,11 @@ void NetStatsManager::add_network_stats_impl(NetStatsInfo &info, const NetworkSt
 }
 
 void NetStatsManager::start_up() {
-  for_each_stat([&](NetStatsInfo &info, size_t id, CSlice name, FileType) {
+  for_each_stat([&](NetStatsInfo &info, size_t id, CSlice name, FileType file_type) {
+    if (file_type == FileType::SecureRaw) {
+      return;
+    }
+
     for (size_t net_type_i = 0; net_type_i < net_type_size(); net_type_i++) {
       auto net_type = NetType(net_type_i);
       auto key = PSTRING() << info.key << "#" << net_type_string(net_type);
@@ -237,7 +248,9 @@ std::shared_ptr<NetStatsCallback> NetStatsManager::get_media_stats_callback() co
 }
 
 std::vector<std::shared_ptr<NetStatsCallback>> NetStatsManager::get_file_stats_callbacks() const {
-  return transform(files_stats_, [](auto &stat) { return stat.stats.get_callback(); });
+  auto result = transform(files_stats_, [](auto &stat) { return stat.stats.get_callback(); });
+  result[static_cast<int32>(FileType::SecureRaw)] = result[static_cast<int32>(FileType::Secure)];
+  return result;
 }
 
 void NetStatsManager::update(NetStatsInfo &info, bool force_save) {

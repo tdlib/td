@@ -138,10 +138,10 @@ Result<string> search_file(CSlice dir, CSlice name, int64 expected_size) {
   return res;
 }
 
-const char *file_type_name[file_type_size] = {"thumbnails", "profile_photos", "photos",        "voice",
-                                              "videos",     "documents",      "secret",        "temp",
-                                              "stickers",   "music",          "animations",    "secret_thumbnails",
-                                              "wallpapers", "video_notes",    "passport_temp", "passport"};
+const char *file_type_name[file_type_size] = {"thumbnails", "profile_photos", "photos",     "voice",
+                                              "videos",     "documents",      "secret",     "temp",
+                                              "stickers",   "music",          "animations", "secret_thumbnails",
+                                              "wallpapers", "video_notes",    "passport",   "passport"};
 
 string get_file_base_dir(const FileDirType &file_dir_type) {
   switch (file_dir_type) {

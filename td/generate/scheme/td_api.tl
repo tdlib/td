@@ -1804,9 +1804,6 @@ fileTypeSecretThumbnail = FileType;
 //@description The file is a file from Secure storage used for storing Telegram Passport files
 fileTypeSecure = FileType;
 
-//@description The file is an encrypted file from Secure storage used for storing Telegram Passport files; for bots only
-fileTypeSecureEncrypted = FileType;
-
 //@description The file is a sticker
 fileTypeSticker = FileType;
 

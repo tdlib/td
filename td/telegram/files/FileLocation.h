@@ -83,8 +83,6 @@ inline FileType from_td_api(const td_api::FileType &file_type) {
       return FileType::VideoNote;
     case td_api::fileTypeSecure::ID:
       return FileType::Secure;
-    case td_api::fileTypeSecureEncrypted::ID:
-      return FileType::SecureRaw;
     case td_api::fileTypeNone::ID:
       return FileType::None;
     default:
@@ -126,7 +124,8 @@ inline tl_object_ptr<td_api::FileType> as_td_api(FileType file_type) {
     case FileType::Secure:
       return make_tl_object<td_api::fileTypeSecure>();
     case FileType::SecureRaw:
-      return make_tl_object<td_api::fileTypeSecureEncrypted>();
+      UNREACHABLE();
+      return make_tl_object<td_api::fileTypeSecure>();
     case FileType::None:
       return make_tl_object<td_api::fileTypeNone>();
     default:

@@ -38,7 +38,7 @@ void CallManager::update_call(Update call) {
 
   auto actor = get_call_actor(info.call_id);
   if (actor.empty()) {
-    LOG(WARNING) << "Drop update: " << to_string(call);
+    LOG(INFO) << "Drop update: " << to_string(call);
   }
   send_closure(actor, &CallActor::update_call, std::move(call->phone_call_));
 }

@@ -1732,6 +1732,7 @@ class CliClient final : public Actor {
       types.push_back(make_tl_object<td_api::fileTypeAudio>());
       types.push_back(make_tl_object<td_api::fileTypeAnimation>());
       types.push_back(make_tl_object<td_api::fileTypeVideoNote>());
+      types.push_back(make_tl_object<td_api::fileTypeSecure>());
       send_request(make_tl_object<td_api::optimizeStorage>(0, -1, -1, 0, std::move(types), as_chat_ids(args, ','),
                                                            as_chat_ids(""), 20));
     } else if (op == "network") {
@@ -2026,7 +2027,7 @@ class CliClient final : public Actor {
       }
     } else if (op == "cdf") {
       send_request(make_tl_object<td_api::cancelDownloadFile>(as_file_id(args), true));
-    } else if (op == "uf" || op == "ufs" || op == "ufse" || op == "ufsr") {
+    } else if (op == "uf" || op == "ufs" || op == "ufse") {
       string file_path;
       string priority;
       std::tie(file_path, priority) = split(args);
@@ -2039,9 +2040,6 @@ class CliClient final : public Actor {
         type = make_tl_object<td_api::fileTypeSecret>();
       }
       if (op == "ufse") {
-        type = make_tl_object<td_api::fileTypeSecureEncrypted>();
-      }
-      if (op == "ufsr") {
         type = make_tl_object<td_api::fileTypeSecure>();
       }
 

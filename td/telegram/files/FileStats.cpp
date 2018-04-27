@@ -122,14 +122,30 @@ void FileStats::apply_dialog_limit(int32 limit) {
 tl_object_ptr<td_api::storageStatisticsByChat> as_td_api(DialogId dialog_id,
                                                          const FileStats::StatByType &stat_by_type) {
   auto stats = make_tl_object<td_api::storageStatisticsByChat>(dialog_id.get(), 0, 0, Auto());
+  int64 secure_raw_size = 0;
+  int32 secure_raw_cnt = 0;
   for (size_t i = 0; i < file_type_size; i++) {
-    if (stat_by_type[i].size == 0) {
+    FileType file_type = static_cast<FileType>(i);
+    auto size = stat_by_type[i].size;
+    auto cnt = stat_by_type[i].cnt;
+
+    if (file_type == FileType::SecureRaw) {
+      secure_raw_size = size;
+      secure_raw_cnt = cnt;
       continue;
     }
-    stats->size_ += stat_by_type[i].size;
-    stats->count_ += stat_by_type[i].cnt;
-    stats->by_file_type_.push_back(make_tl_object<td_api::storageStatisticsByFileType>(
-        as_td_api(FileType(i)), stat_by_type[i].size, stat_by_type[i].cnt));
+    if (file_type == FileType::Secure) {
+      size += secure_raw_size;
+      cnt += secure_raw_cnt;
+    }
+    if (size == 0) {
+      continue;
+    }
+
+    stats->size_ += size;
+    stats->count_ += cnt;
+    stats->by_file_type_.push_back(
+        make_tl_object<td_api::storageStatisticsByFileType>(as_td_api(file_type), size, cnt));
   }
   return stats;
 }
