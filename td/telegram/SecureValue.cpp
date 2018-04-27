@@ -1329,8 +1329,9 @@ static Slice secure_value_type_as_slice(SecureValueType type) {
   }
 }
 
-static auto credentials_as_jsonable(std::vector<SecureValueCredentials> &credentials, Slice payload, bool with_selfie) {
-  return json_object([&credentials, &payload, with_selfie](auto &o) {
+static auto credentials_as_jsonable(const std::vector<SecureValueCredentials> &credentials, Slice payload,
+                                    bool with_selfie) {
+  return json_object([&credentials, payload, with_selfie](auto &o) {
     o("secure_data", json_object([&credentials, with_selfie](auto &o) {
         for (auto &c : credentials) {
           if (c.type == SecureValueType::PhoneNumber || c.type == SecureValueType::EmailAddress) {
@@ -1360,7 +1361,7 @@ static auto credentials_as_jsonable(std::vector<SecureValueCredentials> &credent
   });
 }
 
-Result<EncryptedSecureCredentials> get_encrypted_credentials(std::vector<SecureValueCredentials> &credentials,
+Result<EncryptedSecureCredentials> get_encrypted_credentials(const std::vector<SecureValueCredentials> &credentials,
                                                              Slice payload, bool with_selfie, Slice public_key) {
   auto encoded_credentials = json_encode<std::string>(credentials_as_jsonable(credentials, payload, with_selfie));
 

@@ -1139,7 +1139,7 @@ class CliClient final : public Actor {
         recovery_email_address = "";
       }
       send_request(make_tl_object<td_api::setPassword>(password, new_password, new_hint, true, recovery_email_address));
-    } else if (op == "gpaf" || op == "secureid") {
+    } else if (op == "gpafhttp") {
       string password;
       std::tie(password, args) = split(args);
       ChainBufferWriter writer;
@@ -1158,6 +1158,32 @@ class CliClient final : public Actor {
       string public_key = query.get_arg("public_key").str();
       string payload = query.get_arg("payload").str();
       LOG(INFO) << "Callback URL:" << query.get_arg("callback_url");
+      send_request(make_tl_object<td_api::getPassportAuthorizationForm>(to_integer<int32>(bot_id), scope, public_key,
+                                                                        payload, password));
+    } else if (op == "gpaf") {
+      string password;
+      string bot_id;
+      string scope;
+      string public_key =
+          "-----BEGIN PUBLIC KEY-----\n"
+          "MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAzmgKr0fPP4rB/TsNEweC\n"
+          "hoG3ntUxuBTmHsFBW6CpABGdaTmKZSjAI/cTofhBgtRQIOdX0YRGHHHhwyLf49Wv\n"
+          "9l+XexbJOa0lTsJSNMj8Y/9sZbqUl5ur8ZOTM0sxbXC0XKexu1tM9YavH+Lbrobk\n"
+          "jt0+cmo/zEYZWNtLVihnR2IDv+7tSgiDoFWi/koAUdfJ1VMw+hReUaLg3vE9CmPK\n"
+          "tQiTy+NvmrYaBPb75I0Jz3Lrz1+mZSjLKO25iT84RIsxarBDd8iYh2avWkCmvtiR\n"
+          "Lcif8wLxi2QWC1rZoCA3Ip+Hg9J9vxHlzl6xT01WjUStMhfwrUW6QBpur7FJ+aKM\n"
+          "oaMoHieFNCG4qIkWVEHHSsUpLum4SYuEnyNH3tkjbrdldZanCvanGq+TZyX0buRt\n"
+          "4zk7FGcu8iulUkAP/o/WZM0HKinFN/vuzNVA8iqcO/BBhewhzpqmmTMnWmAO8WPP\n"
+          "DJMABRtXJnVuPh1CI5pValzomLJM4/YvnJGppzI1QiHHNA9JtxVmj2xf8jaXa1LJ\n"
+          "WUNJK+RvUWkRUxpWiKQQO9FAyTPLRtDQGN9eUeDR1U0jqRk/gNT8smHGN6I4H+NR\n"
+          "3X3/1lMfcm1dvk654ql8mxjCA54IpTPr/icUMc7cSzyIiQ7Tp9PZTl1gHh281ZWf\n"
+          "P7d2+fuJMlkjtM7oAwf+tI8CAwEAAQ==\n"
+          "-----END PUBLIC KEY-----";
+      string payload;
+
+      std::tie(password, args) = split(args);
+      std::tie(bot_id, args) = split(args);
+      std::tie(scope, payload) = split(args);
       send_request(make_tl_object<td_api::getPassportAuthorizationForm>(to_integer<int32>(bot_id), scope, public_key,
                                                                         payload, password));
     } else if (op == "spaf") {

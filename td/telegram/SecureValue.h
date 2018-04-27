@@ -169,7 +169,7 @@ struct SecureValueCredentials {
   optional<SecureFileCredentials> selfie;
 };
 
-Result<EncryptedSecureCredentials> get_encrypted_credentials(std::vector<SecureValueCredentials> &credentials,
+Result<EncryptedSecureCredentials> get_encrypted_credentials(const std::vector<SecureValueCredentials> &credentials,
                                                              Slice payload, bool with_selfie, Slice public_key);
 
 class SecureValue {

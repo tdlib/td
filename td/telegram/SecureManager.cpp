@@ -627,6 +627,7 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
       return on_error(r_result.move_as_error());
     }
     authorization_form_ = r_result.move_as_ok();
+    LOG(INFO) << "Receive " << to_string(authorization_form_);
     loop();
   }
 
