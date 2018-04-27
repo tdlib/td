@@ -3033,6 +3033,18 @@ class CliClient final : public Actor {
           make_tl_object<td_api::proxySocks5>(server, to_integer<int32>(port), user, password)));
     } else if (op == "gproxy") {
       send_request(make_tl_object<td_api::getProxy>());
+    } else if (op == "touch") {
+      auto r_fd = FileFd::open(args, FileFd::Read | FileFd::Write);
+      if (r_fd.is_error()) {
+        LOG(ERROR) << r_fd.error();
+        return;
+      }
+
+      auto fd = r_fd.move_as_ok();
+      auto size = fd.get_size();
+      fd.write("a").ignore();
+      fd.seek(size).ignore();
+      fd.truncate_to_current_position(size).ignore();
     } else if (op == "SetVerbosity") {
       td::Log::set_verbosity_level(to_integer<int>(args));
     } else if (op == "q" || op == "Quit") {
