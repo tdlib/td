@@ -15156,7 +15156,7 @@ MessagesManager::Message *MessagesManager::get_message_to_send(Dialog *d, Messag
 
   bool need_update = false;
   CHECK(have_input_peer(dialog_id, AccessRights::Read));
-  auto result = add_message_to_dialog(d, std::move(m), false, &need_update, need_update_dialog_pos, "send message");
+  auto result = add_message_to_dialog(d, std::move(m), true, &need_update, need_update_dialog_pos, "send message");
   CHECK(result != nullptr);
   return result;
 }
@@ -19390,7 +19390,7 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
   message->have_next = true;
 
   bool need_update = false;
-  Message *m = add_message_to_dialog(dialog_id, std::move(message), false, &need_update, &need_update_dialog_pos,
+  Message *m = add_message_to_dialog(dialog_id, std::move(message), true, &need_update, &need_update_dialog_pos,
                                      "fail_send_message");
   CHECK(m != nullptr) << "Failed to add failed to send " << new_message_id << " to " << dialog_id << " due to "
                       << debug_add_message_to_dialog_fail_reason;
@@ -21942,7 +21942,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   if (from_update) {
     CHECK(message->have_next);
     CHECK(message->have_previous);
-    CHECK(!message_id.is_yet_unsent());
     if (message_id.get() <= d->last_new_message_id.get() && d->dialog_id.get_type() != DialogType::Channel) {
       if (!G()->parameters().use_message_db) {
         LOG(ERROR) << "New " << message_id << " in " << dialog_id << " from " << source
@@ -21952,8 +21951,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
-  if (!from_update && message_id.is_server() && d->last_new_message_id != MessageId() &&
-      message_id.get() > d->last_new_message_id.get()) {
+  if (!from_update && ((message_id.is_server() && d->last_new_message_id != MessageId() &&
+                        message_id.get() > d->last_new_message_id.get()) ||
+                       (message_id.is_local() && d->last_database_message_id != MessageId() &&
+                        message_id.get() > d->last_database_message_id.get()))) {
     if (!message->from_database) {
       LOG(ERROR) << "Ignore " << message_id << " in " << dialog_id << " received not through update from " << source
                  << ". Last new is " << d->last_new_message_id << ", "
@@ -22171,8 +22172,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     *need_update_dialog_pos = false;
   }
 
-  if (from_update && message_id.get() > d->last_new_message_id.get()) {
-    CHECK(!message_id.is_yet_unsent());
+  if (from_update && message_id.get() > d->last_new_message_id.get() && !message_id.is_yet_unsent()) {
     if (d->dialog_id.get_type() == DialogType::SecretChat || message_id.is_server()) {
       // can delete messages, therefore must be called before message attaching/adding
       set_dialog_last_new_message_id(d, message_id, "add_message_to_dialog");
@@ -22334,7 +22334,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     on_dialog_updated(dialog_id, "update_has_contact_registered_message");
   }
 
-  if (from_update && dialog_id.get_type() == DialogType::Channel) {
+  if (from_update && message_id.is_server() && dialog_id.get_type() == DialogType::Channel) {
     int32 new_participant_count = 0;
     switch (message_content_id) {
       case MessageChatAddUsers::ID:
@@ -22357,8 +22357,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
                                                                    message->sender_user_id == my_user_id);
     }
   }
-  if (!td_->auth_manager_->is_bot() && (from_update || message_id.is_yet_unsent()) &&
-      message->forward_info == nullptr && (message->is_outgoing || dialog_id == my_dialog_id)) {
+  if (!td_->auth_manager_->is_bot() && from_update && message->forward_info == nullptr &&
+      (message->is_outgoing || dialog_id == my_dialog_id)) {
     switch (message_content_id) {
       case MessageAnimation::ID:
         if (dialog_id.get_type() != DialogType::SecretChat) {
@@ -22375,8 +22375,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         break;
     }
   }
-  if (!td_->auth_manager_->is_bot() && from_update && (message->is_outgoing || dialog_id == my_dialog_id) &&
-      dialog_id.get_type() != DialogType::SecretChat) {
+  if (!td_->auth_manager_->is_bot() && from_update && message_id.is_server() &&
+      (message->is_outgoing || dialog_id == my_dialog_id) && dialog_id.get_type() != DialogType::SecretChat) {
     if (message->via_bot_user_id.is_valid() && message->forward_info == nullptr) {
       // forwarded game messages can't be distinguished from sent via bot game messages, so increase rating anyway
       send_closure(G()->top_dialog_manager(), &TopDialogManager::on_dialog_used, TopDialogCategory::BotInline,
@@ -24698,7 +24698,7 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
   bool need_update = false;
   bool need_update_dialog_pos = false;
   auto result_message =
-      add_message_to_dialog(d, std::move(m), false, &need_update, &need_update_dialog_pos, "resend message");
+      add_message_to_dialog(d, std::move(m), true, &need_update, &need_update_dialog_pos, "resend message");
   CHECK(result_message != nullptr);
   // CHECK(need_update_dialog_pos == true);
 
@@ -24898,7 +24898,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         vector<Message *> forwarded_messages;
         for (auto &m : messages) {
           message_random_ids_.insert(m->random_id);
-          forwarded_messages.push_back(add_message_to_dialog(to_dialog, std::move(m), false, &need_update,
+          forwarded_messages.push_back(add_message_to_dialog(to_dialog, std::move(m), true, &need_update,
                                                              &need_update_dialog_pos, "forward message again"));
           send_update_new_message(to_dialog, forwarded_messages.back());
         }
