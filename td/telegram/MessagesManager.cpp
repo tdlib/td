@@ -32,6 +32,7 @@
 #include "td/telegram/HashtagHints.h"
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/logevent/LogEventHelper.h"
 #include "td/telegram/MessageEntity.hpp"
 #include "td/telegram/MessagesDb.h"
 #include "td/telegram/misc.h"
@@ -8134,16 +8135,8 @@ void MessagesManager::delete_messages_from_server(DialogId dialog_id, vector<Mes
         BinlogHelper::add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteMessagesFromServer, storer);
   }
 
-  if (logevent_id != 0) {
-    auto new_promise = PromiseCreator::lambda([logevent_id, promise = std::move(promise)](Result<Unit> result) mutable {
-      if (!G()->close_flag()) {
-        BinlogHelper::erase(G()->td_db()->get_binlog(), logevent_id);
-      }
-
-      promise.set_result(std::move(result));
-    });
-    promise = std::move(new_promise);
-  }
+  auto new_promise = get_erase_logevent_promise(logevent_id, std::move(promise));
+  promise = std::move(new_promise);  // to prevent self-move
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
@@ -8280,16 +8273,8 @@ void MessagesManager::delete_dialog_history_from_server(DialogId dialog_id, Mess
         BinlogHelper::add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteDialogHistoryFromServer, storer);
   }
 
-  if (logevent_id != 0) {
-    auto new_promise = PromiseCreator::lambda([logevent_id, promise = std::move(promise)](Result<Unit> result) mutable {
-      if (!G()->close_flag()) {
-        BinlogHelper::erase(G()->td_db()->get_binlog(), logevent_id);
-      }
-
-      promise.set_result(std::move(result));
-    });
-    promise = std::move(new_promise);
-  }
+  auto new_promise = get_erase_logevent_promise(logevent_id, std::move(promise));
+  promise = std::move(new_promise);  // to prevent self-move
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
@@ -8487,18 +8472,8 @@ void MessagesManager::delete_all_channel_messages_from_user_on_server(ChannelId 
                                     LogEvent::HandlerType::DeleteAllChannelMessagesFromUserOnServer, storer);
   }
 
-  if (logevent_id != 0) {
-    auto new_promise = PromiseCreator::lambda([logevent_id, promise = std::move(promise)](Result<Unit> result) mutable {
-      if (!G()->close_flag()) {
-        BinlogHelper::erase(G()->td_db()->get_binlog(), logevent_id);
-      }
-
-      promise.set_result(std::move(result));
-    });
-    promise = std::move(new_promise);
-  }
-
-  td_->create_handler<DeleteUserHistoryQuery>(std::move(promise))->send(channel_id, user_id);
+  td_->create_handler<DeleteUserHistoryQuery>(get_erase_logevent_promise(logevent_id, std::move(promise)))
+      ->send(channel_id, user_id);
 }
 
 void MessagesManager::unload_dialog(DialogId dialog_id) {
@@ -8699,18 +8674,9 @@ void MessagesManager::read_all_dialog_mentions_on_server(DialogId dialog_id, uin
         BinlogHelper::add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ReadAllDialogMentionsOnServer, storer);
   }
 
-  if (logevent_id != 0) {
-    auto new_promise = PromiseCreator::lambda([logevent_id, promise = std::move(promise)](Result<Unit> result) mutable {
-      if (!G()->close_flag()) {
-        BinlogHelper::erase(G()->td_db()->get_binlog(), logevent_id);
-      }
-
-      promise.set_result(std::move(result));
-    });
-    promise = std::move(new_promise);
-  }
-
-  td_->create_handler<ReadAllMentionsQuery>(std::move(promise))->send(dialog_id);
+  LOG(INFO) << "Read all mentions on server in " << dialog_id;
+  td_->create_handler<ReadAllMentionsQuery>(get_erase_logevent_promise(logevent_id, std::move(promise)))
+      ->send(dialog_id);
 }
 
 void MessagesManager::read_message_content_from_updates(MessageId message_id) {
@@ -12391,16 +12357,7 @@ void MessagesManager::toggle_dialog_is_pinned_on_server(DialogId dialog_id, bool
         BinlogHelper::add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ToggleDialogIsPinnedOnServer, storer);
   }
 
-  Promise<> promise;
-  if (logevent_id != 0) {
-    promise = PromiseCreator::lambda([logevent_id](Result<Unit> result) mutable {
-      if (!G()->close_flag()) {
-        BinlogHelper::erase(G()->td_db()->get_binlog(), logevent_id);
-      }
-    });
-  }
-
-  td_->create_handler<ToggleDialogPinQuery>(std::move(promise))->send(dialog_id, is_pinned);
+  td_->create_handler<ToggleDialogPinQuery>(get_erase_logevent_promise(logevent_id))->send(dialog_id, is_pinned);
 }
 
 Status MessagesManager::set_pinned_dialogs(vector<DialogId> dialog_ids) {
@@ -12498,16 +12455,7 @@ void MessagesManager::reorder_pinned_dialogs_on_server(const vector<DialogId> &d
         BinlogHelper::add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ReorderPinnedDialogsOnServer, storer);
   }
 
-  Promise<> promise;
-  if (logevent_id != 0) {
-    promise = PromiseCreator::lambda([logevent_id](Result<Unit> result) mutable {
-      if (!G()->close_flag()) {
-        BinlogHelper::erase(G()->td_db()->get_binlog(), logevent_id);
-      }
-    });
-  }
-
-  td_->create_handler<ReorderPinnedDialogsQuery>(std::move(promise))->send(dialog_ids);
+  td_->create_handler<ReorderPinnedDialogsQuery>(get_erase_logevent_promise(logevent_id))->send(dialog_ids);
 }
 
 Status MessagesManager::toggle_dialog_silent_send_message(DialogId dialog_id, bool silent_send_message) {
@@ -12941,15 +12889,7 @@ void MessagesManager::read_message_contents_on_server(DialogId dialog_id, vector
         BinlogHelper::add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ReadMessageContentsOnServer, storer);
   }
 
-  Promise<> promise;
-  if (logevent_id != 0) {
-    promise = PromiseCreator::lambda([logevent_id](Result<Unit> result) mutable {
-      if (!G()->close_flag()) {
-        BinlogHelper::erase(G()->td_db()->get_binlog(), logevent_id);
-      }
-    });
-  }
-
+  auto promise = get_erase_logevent_promise(logevent_id);
   switch (dialog_id.get_type()) {
     case DialogType::User:
     case DialogType::Chat:
@@ -13358,17 +13298,8 @@ void MessagesManager::update_scope_notification_settings_on_server(NotificationS
                                     LogEvent::HandlerType::UpdateScopeNotificationSettingsOnServer, storer);
   }
 
-  Promise<> promise;
-  if (logevent_id != 0) {
-    promise = PromiseCreator::lambda([logevent_id](Result<Unit> result) mutable {
-      if (!G()->close_flag()) {
-        BinlogHelper::erase(G()->td_db()->get_binlog(), logevent_id);
-      }
-    });
-  }
-
   LOG(INFO) << "Update " << scope << " notification settings on server with logevent " << logevent_id;
-  td_->create_handler<UpdateScopeNotifySettingsQuery>(std::move(promise))
+  td_->create_handler<UpdateScopeNotifySettingsQuery>(get_erase_logevent_promise(logevent_id))
       ->send(scope, *get_scope_notification_settings(scope));
 }
 
@@ -13409,17 +13340,8 @@ void MessagesManager::reset_all_notification_settings_on_server(uint64 logevent_
                                     LogEvent::HandlerType::ResetAllNotificationSettingsOnServer, storer);
   }
 
-  Promise<> promise;
-  if (logevent_id != 0) {
-    promise = PromiseCreator::lambda([logevent_id](Result<Unit> result) mutable {
-      if (!G()->close_flag()) {
-        BinlogHelper::erase(G()->td_db()->get_binlog(), logevent_id);
-      }
-    });
-  }
-
   LOG(INFO) << "Reset all notification settings";
-  td_->create_handler<ResetNotifySettingsQuery>(std::move(promise))->send();
+  td_->create_handler<ResetNotifySettingsQuery>(get_erase_logevent_promise(logevent_id))->send();
 }
 
 unique_ptr<DraftMessage> MessagesManager::get_draft_message(
@@ -13640,15 +13562,7 @@ void MessagesManager::read_history_on_server(DialogId dialog_id, MessageId max_m
     logevent_id = BinlogHelper::add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ReadHistoryOnServer, storer);
   }
 
-  Promise<> promise;
-  if (logevent_id != 0) {
-    promise = PromiseCreator::lambda([logevent_id](Result<Unit> result) mutable {
-      if (!G()->close_flag()) {
-        BinlogHelper::erase(G()->td_db()->get_binlog(), logevent_id);
-      }
-    });
-  }
-
+  auto promise = get_erase_logevent_promise(logevent_id);
   switch (dialog_id.get_type()) {
     case DialogType::User:
     case DialogType::Chat:
@@ -18297,15 +18211,6 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
     logevent_id = BinlogHelper::add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ForwardMessages, storer);
   }
 
-  Promise<> promise;
-  if (logevent_id != 0) {
-    promise = PromiseCreator::lambda([logevent_id](Result<Unit> result) mutable {
-      if (!G()->close_flag()) {
-        BinlogHelper::erase(G()->td_db()->get_binlog(), logevent_id);
-      }
-    });
-  }
-
   int32 flags = 0;
   if (messages[0]->disable_notification) {
     flags |= SEND_MESSAGE_FLAG_DISABLE_NOTIFICATION;
@@ -18322,8 +18227,8 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
 
   vector<int64> random_ids =
       transform(messages, [this, to_dialog_id](const Message *m) { return begin_send_message(to_dialog_id, m); });
-  send_closure(td_->create_net_actor<ForwardMessagesActor>(std::move(promise)), &ForwardMessagesActor::send, flags,
-               to_dialog_id, from_dialog_id, message_ids, std::move(random_ids),
+  send_closure(td_->create_net_actor<ForwardMessagesActor>(get_erase_logevent_promise(logevent_id)),
+               &ForwardMessagesActor::send, flags, to_dialog_id, from_dialog_id, message_ids, std::move(random_ids),
                get_sequence_dispatcher_id(to_dialog_id, -1));
 }
 
@@ -18631,18 +18536,9 @@ void MessagesManager::do_send_screenshot_taken_notification_message(DialogId dia
     logevent_id = save_send_screenshot_taken_notification_message_logevent(dialog_id, m);
   }
 
-  Promise<> promise;
-  if (logevent_id != 0) {
-    promise = PromiseCreator::lambda([logevent_id](Result<Unit> result) mutable {
-      LOG(INFO) << "Erase logevent_id " << logevent_id;
-      if (!G()->close_flag()) {
-        BinlogHelper::erase(G()->td_db()->get_binlog(), logevent_id);
-      }
-    });
-  }
-
   int64 random_id = begin_send_message(dialog_id, m);
-  td_->create_handler<SendScreenshotNotificationQuery>(std::move(promise))->send(dialog_id, random_id);
+  td_->create_handler<SendScreenshotNotificationQuery>(get_erase_logevent_promise(logevent_id))
+      ->send(dialog_id, random_id);
 }
 
 Result<MessageId> MessagesManager::add_local_message(

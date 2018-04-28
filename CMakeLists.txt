@@ -484,6 +484,7 @@ set(TDLIB_SOURCE
   td/telegram/InlineQueriesManager.h
   td/telegram/Location.h
   td/telegram/logevent/LogEvent.h
+  td/telegram/logevent/LogEventHelper.h
   td/telegram/logevent/SecretChatEvent.h
   td/telegram/MessageEntity.h
   td/telegram/MessageId.h
