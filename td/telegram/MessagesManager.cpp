@@ -3030,9 +3030,13 @@ class UpdateDialogNotifySettingsQuery : public Td::ResultHandler {
 };
 
 class UpdateScopeNotifySettingsQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
   NotificationSettingsScope scope_;
 
  public:
+  explicit UpdateScopeNotifySettingsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
   void send(NotificationSettingsScope scope, const ScopeNotificationSettings &new_settings) {
     auto input_notify_peer = td->messages_manager_->get_input_notify_peer(scope);
     CHECK(input_notify_peer != nullptr);
@@ -3063,16 +3067,19 @@ class UpdateScopeNotifySettingsQuery : public Td::ResultHandler {
     if (!result) {
       return on_error(id, Status::Error(400, "Receive false as result"));
     }
+
+    promise_.set_value(Unit());
   }
 
   void on_error(uint64 id, Status status) override {
     LOG(INFO) << "Receive error for set notification settings: " << status;
-    status.ignore();
 
     if (!td->auth_manager_->is_bot()) {
       // trying to repair notification settings for this scope
       td->create_handler<GetScopeNotifySettingsQuery>(Promise<>())->send(scope_);
     }
+
+    promise_.set_error(std::move(status));
   }
 };
 
@@ -12508,13 +12515,13 @@ Status MessagesManager::toggle_dialog_silent_send_message(DialogId dialog_id, bo
   }
 
   if (update_dialog_silent_send_message(d, silent_send_message)) {
-    save_dialog_notification_settings_on_server(dialog_id, false);
+    update_dialog_notification_settings_on_server(dialog_id, false);
   }
 
   return Status::OK();
 }
 
-class MessagesManager::SaveDialogNotificationSettingsOnServerLogEvent {
+class MessagesManager::UpdateDialogNotificationSettingsOnServerLogEvent {
  public:
   DialogId dialog_id_;
 
@@ -12529,23 +12536,23 @@ class MessagesManager::SaveDialogNotificationSettingsOnServerLogEvent {
   }
 };
 
-void MessagesManager::save_dialog_notification_settings_on_server(DialogId dialog_id, bool from_binlog) {
+void MessagesManager::update_dialog_notification_settings_on_server(DialogId dialog_id, bool from_binlog) {
   auto d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
   if (!from_binlog && G()->parameters().use_message_db) {
     LOG(INFO) << "Save notification settings of " << dialog_id << " to binlog";
-    SaveDialogNotificationSettingsOnServerLogEvent logevent;
+    UpdateDialogNotificationSettingsOnServerLogEvent logevent;
     logevent.dialog_id_ = dialog_id;
-    auto storer = LogEventStorerImpl<SaveDialogNotificationSettingsOnServerLogEvent>(logevent);
+    auto storer = LogEventStorerImpl<UpdateDialogNotificationSettingsOnServerLogEvent>(logevent);
     if (d->save_notification_settings_logevent_id == 0) {
       d->save_notification_settings_logevent_id = BinlogHelper::add(
-          G()->td_db()->get_binlog(), LogEvent::HandlerType::SaveDialogNotificationSettingsOnServer, storer);
+          G()->td_db()->get_binlog(), LogEvent::HandlerType::UpdateDialogNotificationSettingsOnServer, storer);
       LOG(INFO) << "Add notification settings logevent " << d->save_notification_settings_logevent_id;
     } else {
       auto new_logevent_id =
           BinlogHelper::rewrite(G()->td_db()->get_binlog(), d->save_notification_settings_logevent_id,
-                                LogEvent::HandlerType::SaveDialogNotificationSettingsOnServer, storer);
+                                LogEvent::HandlerType::UpdateDialogNotificationSettingsOnServer, storer);
       LOG(INFO) << "Rewrite notification settings logevent " << d->save_notification_settings_logevent_id << " with "
                 << new_logevent_id;
     }
@@ -12558,7 +12565,7 @@ void MessagesManager::save_dialog_notification_settings_on_server(DialogId dialo
         [actor_id = actor_id(this), dialog_id,
          generation = d->save_notification_settings_logevent_id_generation](Result<Unit> result) mutable {
           if (!G()->close_flag()) {
-            send_closure(actor_id, &MessagesManager::on_saved_dialog_notification_settings, dialog_id, generation);
+            send_closure(actor_id, &MessagesManager::on_updated_dialog_notification_settings, dialog_id, generation);
           }
         });
   }
@@ -12567,7 +12574,7 @@ void MessagesManager::save_dialog_notification_settings_on_server(DialogId dialo
   td_->create_handler<UpdateDialogNotifySettingsQuery>(std::move(promise))->send(dialog_id, d->notification_settings);
 }
 
-void MessagesManager::on_saved_dialog_notification_settings(DialogId dialog_id, uint64 generation) {
+void MessagesManager::on_updated_dialog_notification_settings(DialogId dialog_id, uint64 generation) {
   auto d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   LOG(INFO) << "Saved notification settings in " << dialog_id << " with logevent "
@@ -13283,7 +13290,7 @@ Status MessagesManager::set_dialog_notification_settings(
       std::move(notification_settings->sound_), notification_settings->use_default_show_preview_,
       notification_settings->show_preview_, current_settings->silent_send_message);
   if (update_dialog_notification_settings(dialog_id, current_settings, new_settings)) {
-    save_dialog_notification_settings_on_server(dialog_id, false);
+    update_dialog_notification_settings_on_server(dialog_id, false);
   }
   return Status::OK();
 }
@@ -13313,9 +13320,49 @@ Status MessagesManager::set_scope_notification_settings(
                                          notification_settings->show_preview_);
 
   if (update_scope_notification_settings(scope, get_scope_notification_settings(scope), new_settings)) {
-    td_->create_handler<UpdateScopeNotifySettingsQuery>()->send(scope, new_settings);
+    update_scope_notification_settings_on_server(scope, 0);
   }
   return Status::OK();
+}
+
+class MessagesManager::UpdateScopeNotificationSettingsOnServerLogEvent {
+ public:
+  NotificationSettingsScope scope_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(scope_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(scope_, parser);
+  }
+};
+
+void MessagesManager::update_scope_notification_settings_on_server(NotificationSettingsScope scope,
+                                                                   uint64 logevent_id) {
+  if (logevent_id == 0) {
+    UpdateScopeNotificationSettingsOnServerLogEvent logevent;
+    logevent.scope_ = scope;
+
+    auto storer = LogEventStorerImpl<UpdateScopeNotificationSettingsOnServerLogEvent>(logevent);
+    logevent_id = BinlogHelper::add(G()->td_db()->get_binlog(),
+                                    LogEvent::HandlerType::UpdateScopeNotificationSettingsOnServer, storer);
+  }
+
+  Promise<> promise;
+  if (logevent_id != 0) {
+    promise = PromiseCreator::lambda([logevent_id](Result<Unit> result) mutable {
+      if (!G()->close_flag()) {
+        BinlogHelper::erase(G()->td_db()->get_binlog(), logevent_id);
+      }
+    });
+  }
+
+  LOG(INFO) << "Update " << scope << " notification settings on server with logevent " << logevent_id;
+  td_->create_handler<UpdateScopeNotifySettingsQuery>(std::move(promise))
+      ->send(scope, *get_scope_notification_settings(scope));
 }
 
 void MessagesManager::reset_all_notification_settings() {
@@ -25223,13 +25270,13 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         save_dialog_draft_message_on_server(dialog_id);
         break;
       }
-      case LogEvent::HandlerType::SaveDialogNotificationSettingsOnServer: {
+      case LogEvent::HandlerType::UpdateDialogNotificationSettingsOnServer: {
         if (!G()->parameters().use_message_db) {
           BinlogHelper::erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
 
-        SaveDialogNotificationSettingsOnServerLogEvent log_event;
+        UpdateDialogNotificationSettingsOnServerLogEvent log_event;
         log_event_parse(log_event, event.data_).ensure();
 
         auto dialog_id = log_event.dialog_id_;
@@ -25240,7 +25287,14 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
         d->save_notification_settings_logevent_id = event.id_;
 
-        save_dialog_notification_settings_on_server(dialog_id, true);
+        update_dialog_notification_settings_on_server(dialog_id, true);
+        break;
+      }
+      case LogEvent::HandlerType::UpdateScopeNotificationSettingsOnServer: {
+        UpdateScopeNotificationSettingsOnServerLogEvent log_event;
+        log_event_parse(log_event, event.data_).ensure();
+
+        update_scope_notification_settings_on_server(log_event.scope_, event.id_);
         break;
       }
       case LogEvent::HandlerType::GetChannelDifference: {

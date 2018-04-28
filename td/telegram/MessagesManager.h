@@ -1839,7 +1839,8 @@ class MessagesManager : public Actor {
   class ReadMessageContentsOnServerLogEvent;
   class ReorderPinnedDialogsOnServerLogEvent;
   class SaveDialogDraftMessageOnServerLogEvent;
-  class SaveDialogNotificationSettingsOnServerLogEvent;
+  class UpdateDialogNotificationSettingsOnServerLogEvent;
+  class UpdateScopeNotificationSettingsOnServerLogEvent;
   class SendBotStartMessageLogEvent;
   class SendInlineQueryResultMessageLogEvent;
   class SendMessageLogEvent;
@@ -2482,9 +2483,11 @@ class MessagesManager : public Actor {
 
   void on_saved_dialog_draft_message(DialogId dialog_id, uint64 generation);
 
-  void save_dialog_notification_settings_on_server(DialogId dialog_id, bool from_binlog);
+  void update_dialog_notification_settings_on_server(DialogId dialog_id, bool from_binlog);
 
-  void on_saved_dialog_notification_settings(DialogId dialog_id, uint64 generation);
+  void update_scope_notification_settings_on_server(NotificationSettingsScope scope, uint64 logevent_id);
+
+  void on_updated_dialog_notification_settings(DialogId dialog_id, uint64 generation);
 
   int64 get_next_pinned_dialog_order();
 

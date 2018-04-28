@@ -82,7 +82,8 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::ToggleDialogIsPinnedOnServer:
       case LogEvent::HandlerType::ReorderPinnedDialogsOnServer:
       case LogEvent::HandlerType::SaveDialogDraftMessageOnServer:
-      case LogEvent::HandlerType::SaveDialogNotificationSettingsOnServer:
+      case LogEvent::HandlerType::UpdateDialogNotificationSettingsOnServer:
+      case LogEvent::HandlerType::UpdateScopeNotificationSettingsOnServer:
       case LogEvent::HandlerType::GetChannelDifference:
         events.to_messages_manager.push_back(event.clone());
         break;
