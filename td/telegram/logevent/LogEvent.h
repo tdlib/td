@@ -85,6 +85,7 @@ class LogEvent {
     SaveDialogDraftMessageOnServer = 0x10e,
     UpdateDialogNotificationSettingsOnServer = 0x10f,
     UpdateScopeNotificationSettingsOnServer = 0x110,
+    ResetAllNotificationSettingsOnServer = 0x111,
     GetChannelDifference = 0x140,
     ConfigPmcMagic = 0x1f18,
     BinlogPmcMagic = 0x4327

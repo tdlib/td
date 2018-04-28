@@ -3084,7 +3084,12 @@ class UpdateScopeNotifySettingsQuery : public Td::ResultHandler {
 };
 
 class ResetNotifySettingsQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
  public:
+  explicit ResetNotifySettingsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
   void send() {
     send_query(G()->net_query_creator().create(create_storer(telegram_api::account_resetNotifySettings())));
   }
@@ -3099,11 +3104,13 @@ class ResetNotifySettingsQuery : public Td::ResultHandler {
     if (!result) {
       return on_error(id, Status::Error(400, "Receive false as result"));
     }
+
+    promise_.set_value(Unit());
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(WARNING) << "Receive error for reset notification settings: " << status;
-    status.ignore();
+    LOG(ERROR) << "Receive error for reset notification settings: " << status;
+    promise_.set_error(std::move(status));
   }
 };
 
@@ -13380,7 +13387,39 @@ void MessagesManager::reset_all_notification_settings() {
     Dialog *d = dialog.second.get();
     update_dialog_notification_settings(d->dialog_id, &d->notification_settings, new_dialog_settings);
   }
-  td_->create_handler<ResetNotifySettingsQuery>()->send();
+  reset_all_notification_settings_on_server(0);
+}
+
+class MessagesManager::ResetAllNotificationSettingsOnServerLogEvent {
+ public:
+  template <class StorerT>
+  void store(StorerT &storer) const {
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+  }
+};
+
+void MessagesManager::reset_all_notification_settings_on_server(uint64 logevent_id) {
+  if (logevent_id == 0) {
+    ResetAllNotificationSettingsOnServerLogEvent logevent;
+    auto storer = LogEventStorerImpl<ResetAllNotificationSettingsOnServerLogEvent>(logevent);
+    logevent_id = BinlogHelper::add(G()->td_db()->get_binlog(),
+                                    LogEvent::HandlerType::ResetAllNotificationSettingsOnServer, storer);
+  }
+
+  Promise<> promise;
+  if (logevent_id != 0) {
+    promise = PromiseCreator::lambda([logevent_id](Result<Unit> result) mutable {
+      if (!G()->close_flag()) {
+        BinlogHelper::erase(G()->td_db()->get_binlog(), logevent_id);
+      }
+    });
+  }
+
+  LOG(INFO) << "Reset all notification settings";
+  td_->create_handler<ResetNotifySettingsQuery>(std::move(promise))->send();
 }
 
 unique_ptr<DraftMessage> MessagesManager::get_draft_message(
@@ -25295,6 +25334,13 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.data_).ensure();
 
         update_scope_notification_settings_on_server(log_event.scope_, event.id_);
+        break;
+      }
+      case LogEvent::HandlerType::ResetAllNotificationSettingsOnServer: {
+        ResetAllNotificationSettingsOnServerLogEvent log_event;
+        log_event_parse(log_event, event.data_).ensure();
+
+        reset_all_notification_settings_on_server(event.id_);
         break;
       }
       case LogEvent::HandlerType::GetChannelDifference: {
