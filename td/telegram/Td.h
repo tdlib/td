@@ -547,6 +547,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::toggleChatIsPinned &request);
 
+  void on_request(uint64 id, const td_api::toggleChatDefaultDisableNotification &request);
+
   void on_request(uint64 id, const td_api::setPinnedChats &request);
 
   void on_request(uint64 id, td_api::setChatClientData &request);

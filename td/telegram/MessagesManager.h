@@ -1223,6 +1223,8 @@ class MessagesManager : public Actor {
 
   Status toggle_dialog_is_pinned(DialogId dialog_id, bool is_pinned) TD_WARN_UNUSED_RESULT;
 
+  Status toggle_dialog_silent_send_message(DialogId dialog_id, bool silent_send_message) TD_WARN_UNUSED_RESULT;
+
   Status set_pinned_dialogs(vector<DialogId> dialog_ids) TD_WARN_UNUSED_RESULT;
 
   Status set_dialog_client_data(DialogId dialog_id, string &&client_data) TD_WARN_UNUSED_RESULT;
@@ -1577,6 +1579,8 @@ class MessagesManager : public Actor {
     unique_ptr<DraftMessage> draft_message;
     uint64 save_draft_message_logevent_id = 0;
     uint64 save_draft_message_logevent_id_generation = 0;
+    uint64 save_notification_settings_logevent_id = 0;
+    uint64 save_notification_settings_logevent_id_generation = 0;
 
     MessageId
         last_read_all_mentions_message_id;  // all mentions with a message id not greater than it are implicitly read
@@ -1835,6 +1839,7 @@ class MessagesManager : public Actor {
   class ReadMessageContentsOnServerLogEvent;
   class ReorderPinnedDialogsOnServerLogEvent;
   class SaveDialogDraftMessageOnServerLogEvent;
+  class SaveDialogNotificationSettingsOnServerLogEvent;
   class SendBotStartMessageLogEvent;
   class SendInlineQueryResultMessageLogEvent;
   class SendMessageLogEvent;
@@ -2251,6 +2256,8 @@ class MessagesManager : public Actor {
 
   void on_scope_unmute(NotificationSettingsScope scope);
 
+  bool update_dialog_silent_send_message(Dialog *d, bool silent_send_message);
+
   void on_send_dialog_action_timeout(DialogId dialog_id);
 
   void on_active_dialog_action_timeout(DialogId dialog_id);
@@ -2474,6 +2481,10 @@ class MessagesManager : public Actor {
   void save_dialog_draft_message_on_server(DialogId dialog_id);
 
   void on_saved_dialog_draft_message(DialogId dialog_id, uint64 generation);
+
+  void save_dialog_notification_settings_on_server(DialogId dialog_id, bool from_binlog);
+
+  void on_saved_dialog_notification_settings(DialogId dialog_id, uint64 generation);
 
   int64 get_next_pinned_dialog_order();
 

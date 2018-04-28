@@ -530,6 +530,7 @@ chatTypeSecret secret_chat_id:int32 user_id:int32 = ChatType;
 //@order Descending parameter by which chats are sorted in the main chat list. If the order number of two chats is the same, they must be sorted in descending order by ID. If 0, the position of the chat in the list is undetermined
 //@is_pinned True, if the chat is pinned
 //@can_be_reported True, if the chat can be reported to Telegram moderators through reportChat
+//@default_disable_notification Default value of disable_notification parameter, used when a message is sent to the chat
 //@unread_count Number of unread messages in the chat
 //@last_read_inbox_message_id Identifier of the last read incoming message
 //@last_read_outbox_message_id Identifier of the last read outgoing message
@@ -538,7 +539,7 @@ chatTypeSecret secret_chat_id:int32 user_id:int32 = ChatType;
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null
 //@client_data Contains client-specific data associated with the chat. (For example, the chat position or local chat notification settings can be stored here.) Persistent if a message database is used
-chat id:int53 type:ChatType title:string photo:chatPhoto last_message:message order:int64 is_pinned:Bool can_be_reported:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:chatNotificationSettings reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
+chat id:int53 type:ChatType title:string photo:chatPhoto last_message:message order:int64 is_pinned:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:chatNotificationSettings reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
 
 //@description Represents a list of chats @chat_ids List of chat identifiers
 chats chat_ids:vector<int53> = Chats;
@@ -2057,6 +2058,9 @@ updateChatOrder chat_id:int53 order:int64 = Update;
 //@description A chat was pinned or unpinned @chat_id Chat identifier @is_pinned New value of is_pinned @order New value of the chat order
 updateChatIsPinned chat_id:int53 is_pinned:Bool order:int64 = Update;
 
+//@description A value of default disable_notification parameter, used when a message is sent to the chat, was changed @chat_id Chat identifier @default_disable_notification The new default_disable_notification value
+updateChatDefaultDisableNotification chat_id:int53 default_disable_notification:Bool = Update;
+
 //@description Incoming messages were read or number of unread messages has been changed @chat_id Chat identifier @last_read_inbox_message_id Identifier of the last read incoming message @unread_count The number of unread messages left in the chat
 updateChatReadInbox chat_id:int53 last_read_inbox_message_id:int53 unread_count:int32 = Update;
 
@@ -2620,6 +2624,9 @@ setChatNotificationSettings chat_id:int53 notification_settings:chatNotification
 
 //@description Changes the pinned state of a chat. You can pin up to GetOption("pinned_chat_count_max") non-secret chats and the same number of secret chats @chat_id Chat identifier @is_pinned New value of is_pinned
 toggleChatIsPinned chat_id:int53 is_pinned:Bool = Ok;
+
+//@description Changes the value of default disable_notification parameter, used when a message is sent to a chat @chat_id Chat identifier @default_disable_notification New value of default_disable_notification
+toggleChatDefaultDisableNotification chat_id:int53 default_disable_notification:Bool = Ok;
 
 //@description Changes client data associated with a chat @chat_id Chat identifier @client_data New value of client_data
 setChatClientData chat_id:int53 client_data:string = Ok;

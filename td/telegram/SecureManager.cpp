@@ -8,6 +8,7 @@
 
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
+#include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/misc.h"

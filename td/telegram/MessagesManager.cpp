@@ -2969,9 +2969,13 @@ class GetScopeNotifySettingsQuery : public Td::ResultHandler {
 };
 
 class UpdateDialogNotifySettingsQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
   DialogId dialog_id_;
 
  public:
+  explicit UpdateDialogNotifySettingsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
   void send(DialogId dialog_id, const DialogNotificationSettings &new_settings) {
     auto input_notify_peer = td->messages_manager_->get_input_notify_peer(dialog_id);
     if (input_notify_peer == nullptr) {
@@ -3007,18 +3011,21 @@ class UpdateDialogNotifySettingsQuery : public Td::ResultHandler {
     if (!result) {
       return on_error(id, Status::Error(400, "Receive false as result"));
     }
+
+    promise_.set_value(Unit());
   }
 
   void on_error(uint64 id, Status status) override {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "UpdateDialogNotifySettingsQuery")) {
       LOG(INFO) << "Receive error for set chat notification settings: " << status;
-      status.ignore();
     }
 
     if (!td->auth_manager_->is_bot() && td->messages_manager_->get_input_notify_peer(dialog_id_) != nullptr) {
       // trying to repair notification settings for this dialog
       td->create_handler<GetDialogNotifySettingsQuery>(Promise<>())->send(dialog_id_);
     }
+
+    promise_.set_error(std::move(status));
   }
 };
 
@@ -6267,8 +6274,10 @@ bool MessagesManager::update_dialog_notification_settings(DialogId dialog_id,
                      current_settings->use_default_mute_until != new_settings.use_default_mute_until ||
                      current_settings->use_default_sound != new_settings.use_default_sound ||
                      current_settings->use_default_show_preview != new_settings.use_default_show_preview;
-  bool is_changed = need_update || current_settings->is_synchronized != new_settings.is_synchronized ||
-                    current_settings->silent_send_message != new_settings.silent_send_message ||
+  bool need_update_default_disable_notification =
+      current_settings->silent_send_message != new_settings.silent_send_message;
+  bool is_changed = need_update || need_update_default_disable_notification ||
+                    current_settings->is_synchronized != new_settings.is_synchronized ||
                     current_settings->is_use_default_fixed != new_settings.is_use_default_fixed;
 
   if (is_changed) {
@@ -6286,6 +6295,11 @@ bool MessagesManager::update_dialog_notification_settings(DialogId dialog_id,
       send_closure(G()->td(), &Td::send_update,
                    make_tl_object<td_api::updateChatNotificationSettings>(
                        dialog_id.get(), get_chat_notification_settings_object(current_settings)));
+    }
+    if (need_update_default_disable_notification) {
+      send_closure(G()->td(), &Td::send_update,
+                   make_tl_object<td_api::updateChatDefaultDisableNotification>(dialog_id.get(),
+                                                                                current_settings->silent_send_message));
     }
   }
   return is_changed;
@@ -6474,6 +6488,24 @@ void MessagesManager::on_update_scope_notify_settings(
   }
 
   update_scope_notification_settings(scope, get_scope_notification_settings(scope), notification_settings);
+}
+
+bool MessagesManager::update_dialog_silent_send_message(Dialog *d, bool silent_send_message) {
+  CHECK(d != nullptr);
+  LOG_IF(WARNING, !d->notification_settings.is_synchronized)
+      << "Have unknown notification settings in " << d->dialog_id;
+  if (d->notification_settings.silent_send_message == silent_send_message) {
+    return false;
+  }
+
+  LOG(INFO) << "Update silent send message in " << d->dialog_id << " to " << silent_send_message;
+  d->notification_settings.silent_send_message = silent_send_message;
+
+  on_dialog_updated(d->dialog_id, "update_dialog_silent_send_message");
+
+  send_closure(G()->td(), &Td::send_update,
+               make_tl_object<td_api::updateChatDefaultDisableNotification>(d->dialog_id.get(), silent_send_message));
+  return true;
 }
 
 bool MessagesManager::get_dialog_report_spam_state(DialogId dialog_id, Promise<Unit> &&promise) {
@@ -12464,6 +12496,90 @@ void MessagesManager::reorder_pinned_dialogs_on_server(const vector<DialogId> &d
   td_->create_handler<ReorderPinnedDialogsQuery>(std::move(promise))->send(dialog_ids);
 }
 
+Status MessagesManager::toggle_dialog_silent_send_message(DialogId dialog_id, bool silent_send_message) {
+  CHECK(!td_->auth_manager_->is_bot());
+
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    return Status::Error(6, "Chat not found");
+  }
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return Status::Error(6, "Can't access the chat");
+  }
+
+  if (update_dialog_silent_send_message(d, silent_send_message)) {
+    save_dialog_notification_settings_on_server(dialog_id, false);
+  }
+
+  return Status::OK();
+}
+
+class MessagesManager::SaveDialogNotificationSettingsOnServerLogEvent {
+ public:
+  DialogId dialog_id_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(dialog_id_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(dialog_id_, parser);
+  }
+};
+
+void MessagesManager::save_dialog_notification_settings_on_server(DialogId dialog_id, bool from_binlog) {
+  auto d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+
+  if (!from_binlog && G()->parameters().use_message_db) {
+    LOG(INFO) << "Save notification settings of " << dialog_id << " to binlog";
+    SaveDialogNotificationSettingsOnServerLogEvent logevent;
+    logevent.dialog_id_ = dialog_id;
+    auto storer = LogEventStorerImpl<SaveDialogNotificationSettingsOnServerLogEvent>(logevent);
+    if (d->save_notification_settings_logevent_id == 0) {
+      d->save_notification_settings_logevent_id = BinlogHelper::add(
+          G()->td_db()->get_binlog(), LogEvent::HandlerType::SaveDialogNotificationSettingsOnServer, storer);
+      LOG(INFO) << "Add notification settings logevent " << d->save_notification_settings_logevent_id;
+    } else {
+      auto new_logevent_id =
+          BinlogHelper::rewrite(G()->td_db()->get_binlog(), d->save_notification_settings_logevent_id,
+                                LogEvent::HandlerType::SaveDialogNotificationSettingsOnServer, storer);
+      LOG(INFO) << "Rewrite notification settings logevent " << d->save_notification_settings_logevent_id << " with "
+                << new_logevent_id;
+    }
+    d->save_notification_settings_logevent_id_generation++;
+  }
+
+  Promise<> promise;
+  if (d->save_notification_settings_logevent_id != 0) {
+    promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), dialog_id,
+         generation = d->save_notification_settings_logevent_id_generation](Result<Unit> result) mutable {
+          if (!G()->close_flag()) {
+            send_closure(actor_id, &MessagesManager::on_saved_dialog_notification_settings, dialog_id, generation);
+          }
+        });
+  }
+
+  // TODO do not send two queries simultaneously or use SequenceDispatcher
+  td_->create_handler<UpdateDialogNotifySettingsQuery>(std::move(promise))->send(dialog_id, d->notification_settings);
+}
+
+void MessagesManager::on_saved_dialog_notification_settings(DialogId dialog_id, uint64 generation) {
+  auto d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+  LOG(INFO) << "Saved notification settings in " << dialog_id << " with logevent "
+            << d->save_notification_settings_logevent_id;
+  if (d->save_notification_settings_logevent_id_generation == generation) {
+    CHECK(d->save_notification_settings_logevent_id != 0);
+    LOG(INFO) << "Delete notification settings logevent " << d->save_notification_settings_logevent_id;
+    BinlogHelper::erase(G()->td_db()->get_binlog(), d->save_notification_settings_logevent_id);
+    d->save_notification_settings_logevent_id = 0;
+  }
+}
+
 Status MessagesManager::set_dialog_client_data(DialogId dialog_id, string &&client_data) {
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
@@ -12994,8 +13110,9 @@ tl_object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *d) {
       get_chat_photo_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
       get_message_object(d->dialog_id, get_message(d, d->last_message_id)),
       DialogDate(d->order, d->dialog_id) <= last_dialog_date_ ? d->order : 0, d->pinned_order != DEFAULT_ORDER,
-      can_report_dialog(d->dialog_id), d->server_unread_count + d->local_unread_count,
-      d->last_read_inbox_message_id.get(), d->last_read_outbox_message_id.get(), d->unread_mention_count,
+      can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
+      d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
+      d->last_read_outbox_message_id.get(), d->unread_mention_count,
       get_chat_notification_settings_object(&d->notification_settings), d->reply_markup_message_id.get(),
       get_draft_message_object(d->draft_message), d->client_data);
 }
@@ -13166,7 +13283,7 @@ Status MessagesManager::set_dialog_notification_settings(
       std::move(notification_settings->sound_), notification_settings->use_default_show_preview_,
       notification_settings->show_preview_, current_settings->silent_send_message);
   if (update_dialog_notification_settings(dialog_id, current_settings, new_settings)) {
-    td_->create_handler<UpdateDialogNotifySettingsQuery>()->send(dialog_id, new_settings);
+    save_dialog_notification_settings_on_server(dialog_id, false);
   }
   return Status::OK();
 }
@@ -15122,7 +15239,7 @@ MessagesManager::Message *MessagesManager::get_message_to_send(Dialog *d, Messag
   m->content = std::move(content);
   m->forward_info = std::move(forward_info);
 
-  if (td_->auth_manager_->is_bot()) {
+  if (td_->auth_manager_->is_bot() || disable_notification) {
     m->disable_notification = disable_notification;
   } else {
     auto notification_settings = get_dialog_notification_settings(dialog_id, true);
@@ -25104,6 +25221,26 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         d->save_draft_message_logevent_id = event.id_;
 
         save_dialog_draft_message_on_server(dialog_id);
+        break;
+      }
+      case LogEvent::HandlerType::SaveDialogNotificationSettingsOnServer: {
+        if (!G()->parameters().use_message_db) {
+          BinlogHelper::erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        SaveDialogNotificationSettingsOnServerLogEvent log_event;
+        log_event_parse(log_event, event.data_).ensure();
+
+        auto dialog_id = log_event.dialog_id_;
+        Dialog *d = get_dialog_force(dialog_id);
+        if (d == nullptr || !have_input_peer(dialog_id, AccessRights::Read)) {
+          BinlogHelper::erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+        d->save_notification_settings_logevent_id = event.id_;
+
+        save_dialog_notification_settings_on_server(dialog_id, true);
         break;
       }
       case LogEvent::HandlerType::GetChannelDifference: {

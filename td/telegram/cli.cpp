@@ -2194,6 +2194,12 @@ class CliClient final : public Actor {
       string is_pinned;
       std::tie(chat_id, is_pinned) = split(args);
       send_request(make_tl_object<td_api::toggleChatIsPinned>(as_chat_id(chat_id), as_bool(is_pinned)));
+    } else if (op == "tcddn") {
+      string chat_id;
+      string default_disable_notification;
+      std::tie(chat_id, default_disable_notification) = split(args);
+      send_request(make_tl_object<td_api::toggleChatDefaultDisableNotification>(as_chat_id(chat_id),
+                                                                                as_bool(default_disable_notification)));
     } else if (op == "spchats") {
       vector<string> chat_ids_str = full_split(args, ' ');
       vector<int64> chat_ids;

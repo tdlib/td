@@ -83,6 +83,7 @@ class LogEvent {
     ToggleDialogIsPinnedOnServer = 0x10c,
     ReorderPinnedDialogsOnServer = 0x10d,
     SaveDialogDraftMessageOnServer = 0x10e,
+    SaveDialogNotificationSettingsOnServer = 0x10f,
     GetChannelDifference = 0x140,
     ConfigPmcMagic = 0x1f18,
     BinlogPmcMagic = 0x4327
