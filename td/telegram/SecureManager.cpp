@@ -7,6 +7,7 @@
 #include "td/telegram/SecureManager.h"
 
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
@@ -15,9 +16,10 @@
 #include "td/telegram/Td.h"
 
 #include "td/utils/buffer.h"
-#include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/optional.h"
+#include "td/utils/Slice.h"
 
 #include <mutex>
 

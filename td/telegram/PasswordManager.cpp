@@ -462,7 +462,6 @@ void PasswordManager::do_get_state(Promise<PasswordState> promise) {
                             (password->flags_ & telegram_api::account_password::HAS_RECOVERY_MASK) != 0;
                         state.has_secure_values =
                             (password->flags_ & telegram_api::account_password::HAS_SECURE_VALUES_MASK) != 0;
-                        ;
                         state.unconfirmed_recovery_email_address_pattern = password->email_unconfirmed_pattern_;
                       } else {
                         UNREACHABLE();

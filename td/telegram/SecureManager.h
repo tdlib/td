@@ -8,8 +8,6 @@
 
 #include "td/actor/actor.h"
 
-#include "td/telegram/files/FileId.h"
-#include "td/telegram/files/FileManager.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/SecureValue.h"
 #include "td/telegram/UserId.h"
@@ -18,7 +16,6 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/Container.h"
-#include "td/utils/optional.h"
 #include "td/utils/Status.h"
 
 #include <map>

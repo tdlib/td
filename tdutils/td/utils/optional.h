@@ -8,6 +8,7 @@
 
 #include "td/utils/Status.h"
 
+#include <type_traits>
 #include <utility>
 
 namespace td {

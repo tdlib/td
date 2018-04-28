@@ -16,6 +16,7 @@
 #include "td/utils/optional.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
+#include "td/utils/StringBuilder.h"
 
 #include <utility>
 
