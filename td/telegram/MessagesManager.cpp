@@ -6571,6 +6571,45 @@ void MessagesManager::change_dialog_report_spam_state(DialogId dialog_id, bool i
     return promise.set_error(Status::Error(3, "Can't update chat report spam state"));
   }
 
+  d->can_report_spam = false;
+  on_dialog_updated(dialog_id, "change_dialog_report_spam_state");
+
+  change_dialog_report_spam_state_on_server(dialog_id, is_spam_dialog, 0, std::move(promise));
+}
+
+class MessagesManager::ChangeDialogReportSpamStateOnServerLogEvent {
+ public:
+  DialogId dialog_id_;
+  bool is_spam_dialog_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(dialog_id_, storer);
+    td::store(is_spam_dialog_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(dialog_id_, parser);
+    td::parse(is_spam_dialog_, parser);
+  }
+};
+
+void MessagesManager::change_dialog_report_spam_state_on_server(DialogId dialog_id, bool is_spam_dialog,
+                                                                uint64 logevent_id, Promise<Unit> &&promise) {
+  if (logevent_id == 0 && G()->parameters().use_message_db) {
+    ChangeDialogReportSpamStateOnServerLogEvent logevent;
+    logevent.dialog_id_ = dialog_id;
+    logevent.is_spam_dialog_ = is_spam_dialog;
+
+    auto storer = LogEventStorerImpl<ChangeDialogReportSpamStateOnServerLogEvent>(logevent);
+    logevent_id = BinlogHelper::add(G()->td_db()->get_binlog(),
+                                    LogEvent::HandlerType::ChangeDialogReportSpamStateOnServer, storer);
+  }
+
+  auto new_promise = get_erase_logevent_promise(logevent_id, std::move(promise));
+  promise = std::move(new_promise);  // to prevent self-move
+
   switch (dialog_id.get_type()) {
     case DialogType::User:
     case DialogType::Chat:
@@ -6580,8 +6619,6 @@ void MessagesManager::change_dialog_report_spam_state(DialogId dialog_id, bool i
       if (is_spam_dialog) {
         return td_->create_handler<ReportEncryptedSpamQuery>(std::move(promise))->send(dialog_id);
       } else {
-        d->can_report_spam = false;
-        on_dialog_updated(dialog_id, "change_dialog_report_spam_state");
         promise.set_value(Unit());
         return;
       }
@@ -25237,6 +25274,25 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         log_event_parse(log_event, event.data_).ensure();
 
         reset_all_notification_settings_on_server(event.id_);
+        break;
+      }
+      case LogEvent::HandlerType::ChangeDialogReportSpamStateOnServer: {
+        if (!G()->parameters().use_message_db) {
+          BinlogHelper::erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        ChangeDialogReportSpamStateOnServerLogEvent log_event;
+        log_event_parse(log_event, event.data_).ensure();
+
+        auto dialog_id = log_event.dialog_id_;
+        Dialog *d = get_dialog_force(dialog_id);
+        if (d == nullptr || !have_input_peer(dialog_id, AccessRights::Read)) {
+          BinlogHelper::erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        change_dialog_report_spam_state_on_server(dialog_id, log_event.is_spam_dialog_, event.id_, Promise<Unit>());
         break;
       }
       case LogEvent::HandlerType::GetChannelDifference: {

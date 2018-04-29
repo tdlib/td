@@ -1842,6 +1842,7 @@ class MessagesManager : public Actor {
   class UpdateDialogNotificationSettingsOnServerLogEvent;
   class UpdateScopeNotificationSettingsOnServerLogEvent;
   class ResetAllNotificationSettingsOnServerLogEvent;
+  class ChangeDialogReportSpamStateOnServerLogEvent;
   class SendBotStartMessageLogEvent;
   class SendInlineQueryResultMessageLogEvent;
   class SendMessageLogEvent;
@@ -2491,6 +2492,9 @@ class MessagesManager : public Actor {
   void update_scope_notification_settings_on_server(NotificationSettingsScope scope, uint64 logevent_id);
 
   void reset_all_notification_settings_on_server(uint64 logevent_id);
+
+  void change_dialog_report_spam_state_on_server(DialogId dialog_id, bool is_spam_dialog, uint64 logevent_id,
+                                                 Promise<Unit> &&promise);
 
   int64 get_next_pinned_dialog_order();
 
