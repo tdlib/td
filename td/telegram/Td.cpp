@@ -71,6 +71,7 @@
 #include "td/mtproto/utils.h"  // for create_storer, fetch_result, etc, TODO
 
 #include "td/utils/buffer.h"
+#include "td/utils/filesystem.h"
 #include "td/utils/format.h"
 #include "td/utils/MimeType.h"
 #include "td/utils/misc.h"
@@ -7129,6 +7130,11 @@ void Td::on_request(uint64 id, const td_api::getFileExtension &request) {
   send_closure(actor_id(this), &Td::send_result, id, do_static_request(request));
 }
 
+void Td::on_request(uint64 id, const td_api::cleanFileName &request) {
+  // don't check authorization state
+  send_closure(actor_id(this), &Td::send_result, id, do_static_request(request));
+}
+
 template <class T>
 td_api::object_ptr<td_api::Object> Td::do_static_request(const T &request) {
   return make_error(400, "Function can't be executed synchronously");
@@ -7177,6 +7183,11 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getFileMi
 td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getFileExtension &request) {
   // don't check MIME type UTF-8 correctness
   return make_tl_object<td_api::text>(MimeType::to_extension(request.mime_type_));
+}
+
+td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::cleanFileName &request) {
+  // don't check file name UTF-8 correctness
+  return make_tl_object<td_api::text>(clean_filename(request.file_name_));
 }
 
 // test

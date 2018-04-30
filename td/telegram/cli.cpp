@@ -2168,6 +2168,8 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::getFileMimeType>(trim(args)));
     } else if (op == "gfe") {
       send_request(make_tl_object<td_api::getFileExtension>(trim(args)));
+    } else if (op == "cfn") {
+      send_request(make_tl_object<td_api::cleanFileName>(args));
     } else {
       op_not_found_count++;
     }
