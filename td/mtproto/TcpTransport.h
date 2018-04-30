@@ -95,7 +95,7 @@ class OldTransport : public IStreamTransport {
     return 4;
   }
   TransportType get_type() const override {
-    return TransportType::Tcp;
+    return TransportType{TransportType::Tcp, 0, ""};
   }
 
  private:
@@ -106,7 +106,8 @@ class OldTransport : public IStreamTransport {
 
 class ObfuscatedTransport : public IStreamTransport {
  public:
-  ObfuscatedTransport() = default;
+  explicit ObfuscatedTransport(int16 dc_id, std::string secret) : dc_id_(dc_id), secret_(std::move(secret)) {
+  }
   Result<size_t> read_next(BufferSlice *message, uint32 *quick_ack) override TD_WARN_UNUSED_RESULT {
     aes_ctr_byte_flow_.wakeup();
     return impl_.read_from_stream(byte_flow_sink_.get_output(), message, quick_ack);
@@ -138,11 +139,13 @@ class ObfuscatedTransport : public IStreamTransport {
   }
 
   TransportType get_type() const override {
-    return TransportType::ObfuscatedTcp;
+    return TransportType{TransportType::ObfuscatedTcp, dc_id_, secret_};
   }
 
  private:
   TransportImpl impl_;
+  int16 dc_id_;
+  std::string secret_;
   AesCtrByteFlow aes_ctr_byte_flow_;
   ByteFlowSink byte_flow_sink_;
   ChainBufferReader *input_;

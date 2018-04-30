@@ -12,6 +12,8 @@
 #include "td/telegram/net/DcOptionsSet.h"
 #include "td/telegram/StateManager.h"
 
+#include "td/mtproto/IStreamTransport.h"
+
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
 #include "td/actor/SignalSlot.h"
@@ -241,8 +243,9 @@ class ConnectionCreator : public Actor {
     StateManager::ConnectionToken connection_token;
     std::unique_ptr<detail::StatsCallback> stats_callback;
   };
-  void client_create_raw_connection(Result<ConnectionData> r_connection_data, bool check_mode, bool use_http,
-                                    size_t hash, string debug_str, uint32 network_generation);
+  void client_create_raw_connection(Result<ConnectionData> r_connection_data, bool check_mode,
+                                    mtproto::TransportType transport_type, size_t hash, string debug_str,
+                                    uint32 network_generation);
   void client_add_connection(size_t hash, Result<std::unique_ptr<mtproto::RawConnection>> r_raw_connection,
                              bool check_flag);
   void client_set_timeout_at(ClientInfo &client, double wakeup_at);

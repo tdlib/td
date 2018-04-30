@@ -894,7 +894,8 @@ void Session::connection_open_finish(ConnectionInfo *info,
     return;
   }
 
-  Mode expected_mode = raw_connection->get_transport_type() == mtproto::TransportType::Http ? Mode::Http : Mode::Tcp;
+  Mode expected_mode =
+      raw_connection->get_transport_type().type == mtproto::TransportType::Http ? Mode::Http : Mode::Tcp;
   if (mode_ != expected_mode) {
     LOG(INFO) << "Change mode " << mode_ << "--->" << expected_mode;
     mode_ = expected_mode;

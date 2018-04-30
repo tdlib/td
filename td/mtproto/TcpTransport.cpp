@@ -154,14 +154,29 @@ void ObfuscatedTransport::init(ChainBufferReader *input, ChainBufferWriter *outp
   // TODO: It is actually IntermediateTransport::init_output_stream, so it will work only with
   // TransportImpl==IntermediateTransport
   as<uint32>(header_slice.begin() + 56) = 0xeeeeeeee;
+  if (dc_id_ != 0) {
+    as<int16>(header_slice.begin() + 60) = dc_id_;
+  }
 
   string rheader = header;
   std::reverse(rheader.begin(), rheader.end());
-  aes_ctr_byte_flow_.init(as<UInt256>(rheader.data() + 8), as<UInt128>(rheader.data() + 8 + 32));
+  auto key = as<UInt256>(rheader.data() + 8);
+  auto fix_key = [&](UInt256 &key) {
+    if (secret_.size() == 16) {
+      Sha256State state;
+      sha256_init(&state);
+      sha256_update(as_slice(key), &state);
+      sha256_update(secret_, &state);
+      sha256_final(&state, as_slice(key));
+    }
+  };
+  fix_key(key);
+  aes_ctr_byte_flow_.init(key, as<UInt128>(rheader.data() + 8 + 32));
   aes_ctr_byte_flow_.set_input(input_);
   aes_ctr_byte_flow_ >> byte_flow_sink_;
 
   output_key_ = as<UInt256>(header.data() + 8);
+  fix_key(output_key_);
   output_state_.init(output_key_, as<UInt128>(header.data() + 8 + 32));
   output_->append(header_slice.substr(0, 56));
   output_state_.encrypt(header_slice, header_slice);

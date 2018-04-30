@@ -14,9 +14,9 @@
 namespace td {
 namespace mtproto {
 std::unique_ptr<IStreamTransport> create_transport(TransportType type) {
-  switch (type) {
+  switch (type.type) {
     case TransportType::ObfuscatedTcp:
-      return std::make_unique<tcp::ObfuscatedTransport>();
+      return std::make_unique<tcp::ObfuscatedTransport>(type.dc_id, std::move(type.secret));
     case TransportType::Tcp:
       return std::make_unique<tcp::OldTransport>();
     case TransportType::Http:

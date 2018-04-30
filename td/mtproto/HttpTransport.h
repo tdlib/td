@@ -34,7 +34,7 @@ class Transport : public IStreamTransport {
 
   size_t max_prepend_size() const override;
   TransportType get_type() const override {
-    return TransportType::Http;
+    return {TransportType::Http, 0, ""};
   }
 
  private:

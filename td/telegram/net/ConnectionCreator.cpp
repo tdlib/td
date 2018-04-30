@@ -290,8 +290,8 @@ void ConnectionCreator::request_raw_connection_by_ip(IPAddress ip_address,
   if (r_socket_fd.is_error()) {
     return promise.set_error(r_socket_fd.move_as_error());
   }
-  auto raw_connection = std::make_unique<mtproto::RawConnection>(r_socket_fd.move_as_ok(),
-                                                                 mtproto::TransportType::ObfuscatedTcp, nullptr);
+  auto raw_connection = std::make_unique<mtproto::RawConnection>(
+      r_socket_fd.move_as_ok(), mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, 0, ""}, nullptr);
   raw_connection->extra_ = network_generation_;
   promise.set_value(std::move(raw_connection));
 }
@@ -370,7 +370,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
 
     // Create new RawConnection
     DcOptionsSet::Stat *stat{nullptr};
-    bool use_http{false};
+    mtproto::TransportType transport_type;
     string debug_str;
 
     IPAddress mtproto_ip;
@@ -379,7 +379,15 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
     auto r_socket_fd = [&, dc_id = client.dc_id, allow_media_only = client.allow_media_only]() -> Result<SocketFd> {
       TRY_RESULT(info, dc_options_set_.find_connection(dc_id, allow_media_only, use_socks5));
       stat = info.stat;
-      use_http = info.use_http;
+      if (info.use_http) {
+        transport_type = {mtproto::TransportType::Http, 0, ""};
+      } else {
+        int16 raw_dc_id = narrow_cast<int16>(dc_id.get_raw_id());
+        if (info.option->is_media_only()) {
+          raw_dc_id = -raw_dc_id;
+        }
+        transport_type = {mtproto::TransportType::ObfuscatedTcp, raw_dc_id, info.option->get_secret().str()};
+      }
       check_mode |= info.should_check;
 
       if (use_socks5) {
@@ -420,10 +428,10 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
     }
 
     auto promise = PromiseCreator::lambda(
-        [actor_id = actor_id(this), check_mode, use_http, hash = client.hash, debug_str,
+        [actor_id = actor_id(this), check_mode, transport_type, hash = client.hash, debug_str,
          network_generation = network_generation_](Result<ConnectionData> r_connection_data) mutable {
           send_closure(std::move(actor_id), &ConnectionCreator::client_create_raw_connection,
-                       std::move(r_connection_data), check_mode, use_http, hash, debug_str, network_generation);
+                       std::move(r_connection_data), check_mode, transport_type, hash, debug_str, network_generation);
         });
 
     auto stats_callback = std::make_unique<detail::StatsCallback>(
@@ -476,8 +484,8 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
 }
 
 void ConnectionCreator::client_create_raw_connection(Result<ConnectionData> r_connection_data, bool check_mode,
-                                                     bool use_http, size_t hash, string debug_str,
-                                                     uint32 network_generation) {
+                                                     mtproto::TransportType transport_type, size_t hash,
+                                                     string debug_str, uint32 network_generation) {
   auto promise = PromiseCreator::lambda([actor_id = actor_id(this), hash, check_mode,
                                          debug_str](Result<std::unique_ptr<mtproto::RawConnection>> result) mutable {
     VLOG(connections) << "Ready " << debug_str << " " << tag("checked", check_mode) << tag("ok", result.is_ok());
@@ -490,9 +498,7 @@ void ConnectionCreator::client_create_raw_connection(Result<ConnectionData> r_co
 
   auto connection_data = r_connection_data.move_as_ok();
   auto raw_connection = std::make_unique<mtproto::RawConnection>(
-      std::move(connection_data.socket_fd),
-      use_http ? mtproto::TransportType::Http : mtproto::TransportType::ObfuscatedTcp,
-      std::move(connection_data.stats_callback));
+      std::move(connection_data.socket_fd), std::move(transport_type), std::move(connection_data.stats_callback));
   raw_connection->set_connection_token(std::move(connection_data.connection_token));
 
   raw_connection->extra_ = network_generation;

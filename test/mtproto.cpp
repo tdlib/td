@@ -107,7 +107,7 @@ class TestPingActor : public Actor {
 
   void start_up() override {
     ping_connection_ = std::make_unique<mtproto::PingConnection>(std::make_unique<mtproto::RawConnection>(
-        SocketFd::open(ip_address_).move_as_ok(), mtproto::TransportType::Tcp, nullptr));
+        SocketFd::open(ip_address_).move_as_ok(), mtproto::TransportType{mtproto::TransportType::Tcp, 0, ""}, nullptr));
 
     ping_connection_->get_pollable().set_observer(this);
     subscribe(ping_connection_->get_pollable());
@@ -209,8 +209,9 @@ class HandshakeTestActor : public Actor {
   }
   void loop() override {
     if (!wait_for_raw_connection_ && !raw_connection_) {
-      raw_connection_ = std::make_unique<mtproto::RawConnection>(SocketFd::open(get_default_ip_address()).move_as_ok(),
-                                                                 mtproto::TransportType::Tcp, nullptr);
+      raw_connection_ =
+          std::make_unique<mtproto::RawConnection>(SocketFd::open(get_default_ip_address()).move_as_ok(),
+                                                   mtproto::TransportType{mtproto::TransportType::Tcp, 0, ""}, nullptr);
     }
     if (!wait_for_handshake_ && !handshake_) {
       handshake_ = std::make_unique<AuthKeyHandshake>(0);
