@@ -6164,15 +6164,16 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
   }
 
   bool have_read_access = have_input_peer_channel(c, AccessRights::Read);
+  bool is_member = c->status.is_member();
   if (c->had_read_access && !have_read_access) {
     send_closure_later(G()->messages_manager(), &MessagesManager::delete_dialog, DialogId(channel_id));
-  } else if (c->was_member != c->status.is_member()) {
+  } else if (!from_database && c->was_member != is_member) {
     DialogId dialog_id(channel_id);
     send_closure_later(G()->messages_manager(), &MessagesManager::force_create_dialog, dialog_id, "update channel",
                        true);
   }
   c->had_read_access = have_read_access;
-  c->was_member = c->status.is_member();
+  c->was_member = is_member;
 }
 
 void ContactsManager::update_secret_chat(SecretChat *c, SecretChatId secret_chat_id, bool from_binlog,

@@ -23900,6 +23900,8 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     get_history_from_the_end(dialog_id, true, false, Auto());
   }
 
+  update_dialog_pos(d, false, "fix_new_dialog");
+
   LOG(INFO) << "Loaded " << dialog_id << " with last new " << d->last_new_message_id << ", first database "
             << d->first_database_message_id << ", last database " << d->last_database_message_id << ", last "
             << d->last_message_id;
@@ -24141,6 +24143,11 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
         unread_message_muted_count_ += unread_count;
       }
       send_update_unread_message_count(d->dialog_id, true, source);
+    }
+
+    if (d->dialog_id.get_type() == DialogType::Channel && d->order == DEFAULT_ORDER) {
+      LOG(INFO) << "Reload ChannelFull for " << d->dialog_id << " to repair unread message counts";
+      td_->contacts_manager_->get_channel_full(d->dialog_id.get_channel_id(), Auto());
     }
   }
 
