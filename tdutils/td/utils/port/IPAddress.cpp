@@ -182,16 +182,15 @@ Status IPAddress::init_sockaddr(sockaddr *addr, socklen_t len) {
   if (addr->sa_family == AF_INET6) {
     CHECK(len == sizeof(ipv6_addr_));
     std::memcpy(&ipv6_addr_, reinterpret_cast<sockaddr_in6 *>(addr), sizeof(ipv6_addr_));
-    LOG(INFO) << "Have ipv6 address " << get_ip_str() << " with port " << get_port();
   } else if (addr->sa_family == AF_INET) {
     CHECK(len == sizeof(ipv4_addr_));
     std::memcpy(&ipv4_addr_, reinterpret_cast<sockaddr_in *>(addr), sizeof(ipv4_addr_));
-    LOG(INFO) << "Have ipv4 address " << get_ip_str() << " with port " << get_port();
   } else {
     return Status::Error(PSLICE() << "Unknown " << tag("sa_family", addr->sa_family));
   }
 
   is_valid_ = true;
+  LOG(INFO) << "Have address " << get_ip_str() << " with port " << get_port();
   return Status::OK();
 }
 
@@ -256,19 +255,15 @@ Slice IPAddress::get_ip_str() const {
     return Slice("0.0.0.0");
   }
 
-  const void *addr;
   switch (get_address_family()) {
     case AF_INET6:
-      addr = &ipv6_addr_.sin6_addr;
-      break;
+      return ::td::get_ip_str(AF_INET6, &ipv6_addr_.sin6_addr);
     case AF_INET:
-      addr = &ipv4_addr_.sin_addr;
-      break;
+      return ::td::get_ip_str(AF_INET, &ipv4_addr_.sin_addr);
     default:
       UNREACHABLE();
       return Slice();
   }
-  return ::td::get_ip_str(get_address_family(), addr);
 }
 
 int IPAddress::get_port() const {
