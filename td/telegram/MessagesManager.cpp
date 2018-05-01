@@ -8781,12 +8781,12 @@ bool MessagesManager::read_message_content(Dialog *d, Message *m, bool is_local_
   return false;
 }
 
-int32 MessagesManager::calc_new_unread_count(Dialog *d, MessageId max_message_id, MessageType type,
-                                             int32 hint_unread_count) {
-  if (d->is_empty) {
-    return 0;
-  }
+int32 MessagesManager::calc_new_unread_count_from_last_unread(Dialog *d, MessageId max_message_id, MessageType type) {
+  return -1;
+}
 
+int32 MessagesManager::calc_new_unread_count_from_the_end(Dialog *d, MessageId max_message_id, MessageType type,
+                                                          int32 hint_unread_count) {
   int32 unread_count = 0;
   MessagesConstIterator it(d, MessageId::max());
   while (*it != nullptr && (*it)->message_id.get() > max_message_id.get()) {
@@ -8819,6 +8819,27 @@ int32 MessagesManager::calc_new_unread_count(Dialog *d, MessageId max_message_id
   }
 
   return unread_count;
+}
+
+int32 MessagesManager::calc_new_unread_count(Dialog *d, MessageId max_message_id, MessageType type,
+                                             int32 hint_unread_count) {
+  if (d->is_empty) {
+    return 0;
+  }
+
+  if (!d->last_read_inbox_message_id.is_valid()) {
+    return calc_new_unread_count_from_the_end(d, max_message_id, type, hint_unread_count);
+  }
+
+  if (!d->last_message_id.is_valid() ||
+      (d->last_message_id.get() - max_message_id.get() > max_message_id.get() - d->last_read_inbox_message_id.get())) {
+    int32 unread_count = calc_new_unread_count_from_last_unread(d, max_message_id, type);
+    return unread_count >= 0 ? unread_count
+                             : calc_new_unread_count_from_the_end(d, max_message_id, type, hint_unread_count);
+  } else {
+    int32 unread_count = calc_new_unread_count_from_the_end(d, max_message_id, type, hint_unread_count);
+    return unread_count >= 0 ? unread_count : calc_new_unread_count_from_last_unread(d, max_message_id, type);
+  }
 }
 
 void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_message_id, int32 unread_count,
