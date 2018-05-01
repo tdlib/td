@@ -58,6 +58,8 @@ class ServerMessageId {
   }
 };
 
+enum class MessageType : int32 { None, Server, Local, YetUnsent };
+
 class MessageId {
   int64 id = 0;
 
@@ -99,6 +101,23 @@ class MessageId {
 
   int64 get() const {
     return id;
+  }
+
+  MessageType get_type() const {
+    if (id <= 0 || id > max().get()) {
+      return MessageType::None;
+    }
+    if ((id & FULL_TYPE_MASK) == 0) {
+      return MessageType::Server;
+    }
+    switch (id & TYPE_MASK) {
+      case TYPE_YET_UNSENT:
+        return MessageType::YetUnsent;
+      case TYPE_LOCAL:
+        return MessageType::Local;
+      default:
+        return MessageType::None;
+    }
   }
 
   bool is_yet_unsent() const {

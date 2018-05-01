@@ -2080,6 +2080,8 @@ class MessagesManager : public Actor {
 
   void read_message_contents_on_server(DialogId dialog_id, vector<MessageId> message_ids, uint64 logevent_id);
 
+  static int32 calc_new_unread_count(Dialog *d, MessageId max_message_id, MessageType type, int32 hint_unread_count);
+
   void read_history_inbox(DialogId dialog_id, MessageId max_message_id, int32 unread_count, const char *source);
 
   void read_history_outbox(DialogId dialog_id, MessageId max_message_id, int32 read_date = -1);

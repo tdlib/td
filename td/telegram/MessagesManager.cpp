@@ -8781,6 +8781,46 @@ bool MessagesManager::read_message_content(Dialog *d, Message *m, bool is_local_
   return false;
 }
 
+int32 MessagesManager::calc_new_unread_count(Dialog *d, MessageId max_message_id, MessageType type,
+                                             int32 hint_unread_count) {
+  if (d->is_empty) {
+    return 0;
+  }
+
+  int32 unread_count = 0;
+  MessagesConstIterator it(d, MessageId::max());
+  while (*it != nullptr && (*it)->message_id.get() > max_message_id.get()) {
+    if (!(*it)->is_outgoing && (*it)->message_id.get_type() == type) {
+      unread_count++;
+    }
+    --it;
+  }
+
+  bool is_count_exact = d->last_message_id.is_valid() && *it != nullptr;
+  if (hint_unread_count >= 0) {
+    if (is_count_exact) {
+      if (hint_unread_count == unread_count) {
+        return hint_unread_count;
+      }
+    } else {
+      if (hint_unread_count >= unread_count) {
+        return hint_unread_count;
+      }
+    }
+
+    // hint_unread_count is definitely wrong, ignore it
+    LOG(ERROR) << "Receive hint_unread_count = " << hint_unread_count << ", but found " << unread_count
+               << " unread messages in " << d->dialog_id;
+  }
+
+  if (!is_count_exact) {
+    // unread count is likely to be calculated wrong, so ignore it
+    // return -1;
+  }
+
+  return unread_count;
+}
+
 void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_message_id, int32 unread_count,
                                          const char *source) {
   if (td_->auth_manager_->is_bot()) {
@@ -8838,29 +8878,20 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
           }));
     }
 
-    int32 local_unread_count = 0;
-    int32 server_unread_count = 0;
-    if (dialog_id != DialogId(td_->contacts_manager_->get_my_id("read_history_inbox"))) {
-      MessagesConstIterator it(d, MessageId::max());
-      while (*it != nullptr && (*it)->message_id.get() > max_message_id.get()) {
-        if (!(*it)->is_outgoing) {
-          if ((*it)->message_id.is_server()) {
-            server_unread_count++;
-          } else {
-            CHECK((*it)->message_id.is_local());
-            local_unread_count++;
-          }
-        }
-        --it;
-      }
+    bool is_saved_messages = dialog_id == DialogId(td_->contacts_manager_->get_my_id("read_history_inbox"));
+    int32 server_unread_count =
+        is_saved_messages ? 0 : calc_new_unread_count(d, max_message_id, MessageType::Server, unread_count);
+    int32 local_unread_count = d->local_unread_count == 0 || is_saved_messages
+                                   ? 0
+                                   : calc_new_unread_count(d, max_message_id, MessageType::Local, -1);
+
+    if (server_unread_count < 0) {
+      // TODO repair server unread count
+      server_unread_count = unread_count >= 0 ? unread_count : d->server_unread_count;
     }
-    if (unread_count >= 0) {
-      if (unread_count < server_unread_count) {
-        LOG(ERROR) << "Receive unread_count = " << unread_count << ", but have at least " << server_unread_count
-                   << " unread messages in " << dialog_id;
-      } else {
-        server_unread_count = unread_count;
-      }
+    if (local_unread_count < 0) {
+      // TODO repair local unread count
+      local_unread_count = d->local_unread_count;
     }
 
     set_dialog_last_read_inbox_message_id(d, max_message_id, server_unread_count, local_unread_count, true, source);
@@ -10943,8 +10974,7 @@ void MessagesManager::on_get_dialogs(vector<tl_object_ptr<telegram_api::dialog>>
       update_dialog_pos(d, false, "on_get_dialogs");
     }
 
-    if (!G()->parameters().use_message_db || is_new ||
-        (!d->is_last_read_inbox_message_id_inited && read_inbox_max_message_id.is_valid())) {
+    if (!G()->parameters().use_message_db || is_new || !d->is_last_read_inbox_message_id_inited) {
       if (d->server_unread_count != dialog->unread_count_ ||
           d->last_read_inbox_message_id.get() < read_inbox_max_message_id.get()) {
         set_dialog_last_read_inbox_message_id(d, read_inbox_max_message_id, dialog->unread_count_,
@@ -10952,8 +10982,7 @@ void MessagesManager::on_get_dialogs(vector<tl_object_ptr<telegram_api::dialog>>
       }
     }
 
-    if (!G()->parameters().use_message_db || is_new ||
-        (!d->is_last_read_outbox_message_id_inited && read_outbox_max_message_id.is_valid())) {
+    if (!G()->parameters().use_message_db || is_new || !d->is_last_read_outbox_message_id_inited) {
       if (d->last_read_outbox_message_id.get() < read_outbox_max_message_id.get()) {
         set_dialog_last_read_outbox_message_id(d, read_outbox_max_message_id);
       }
