@@ -4713,6 +4713,9 @@ void Td::send_update(tl_object_ptr<td_api::Update> &&object) {
     case td_api::updateTrendingStickerSets::ID:
       VLOG(td_requests) << "Sending update: updateTrendingStickerSets { ... }";
       break;
+    case td_api::updateChatReadInbox::ID * 0:
+      LOG(ERROR) << "Sending update: " << oneline(to_string(object));
+      break;
     default:
       VLOG(td_requests) << "Sending update: " << to_string(object);
   }

@@ -1610,6 +1610,7 @@ class MessagesManager : public Actor {
 
     bool is_last_read_inbox_message_id_inited = false;
     bool is_last_read_outbox_message_id_inited = false;
+    bool need_repair_server_unread_count = false;
 
     bool increment_view_counter = false;
 

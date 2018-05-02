@@ -4431,6 +4431,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   STORE_FLAG(is_last_message_deleted_locally);
   STORE_FLAG(has_contact_registered_message);
   STORE_FLAG(has_last_database_message_id);
+  STORE_FLAG(need_repair_server_unread_count);
   END_STORE_FLAGS();
 
   store(dialog_id, storer);  // must be stored at offset 4
@@ -4530,6 +4531,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   PARSE_FLAG(is_last_message_deleted_locally);
   PARSE_FLAG(has_contact_registered_message);
   PARSE_FLAG(has_last_database_message_id);
+  PARSE_FLAG(need_repair_server_unread_count);
   END_PARSE_FLAGS();
 
   parse(dialog_id, parser);  // must be stored at offset 4
@@ -8782,7 +8784,24 @@ bool MessagesManager::read_message_content(Dialog *d, Message *m, bool is_local_
 }
 
 int32 MessagesManager::calc_new_unread_count_from_last_unread(Dialog *d, MessageId max_message_id, MessageType type) {
-  return -1;
+  MessagesConstIterator it(d, max_message_id);
+  if (*it == nullptr || (*it)->message_id != max_message_id) {
+    return -1;
+  }
+
+  int32 unread_count = type == MessageType::Server ? d->server_unread_count : d->local_unread_count;
+  while (*it != nullptr && (*it)->message_id.get() > d->last_read_inbox_message_id.get()) {
+    if (!(*it)->is_outgoing && (*it)->message_id.get_type() == type) {
+      unread_count--;
+    }
+    --it;
+  }
+  if (*it == nullptr || (*it)->message_id != d->last_read_inbox_message_id) {
+    return -1;
+  }
+
+  LOG(INFO) << "Found " << unread_count << " unread messages in " << d->dialog_id << " from last unread message";
+  return unread_count;
 }
 
 int32 MessagesManager::calc_new_unread_count_from_the_end(Dialog *d, MessageId max_message_id, MessageType type,
@@ -8815,9 +8834,10 @@ int32 MessagesManager::calc_new_unread_count_from_the_end(Dialog *d, MessageId m
 
   if (!is_count_exact) {
     // unread count is likely to be calculated wrong, so ignore it
-    // return -1;
+    return -1;
   }
 
+  LOG(INFO) << "Found " << unread_count << " unread messages in " << d->dialog_id << " from the end";
   return unread_count;
 }
 
@@ -8907,8 +8927,12 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
                                    : calc_new_unread_count(d, max_message_id, MessageType::Local, -1);
 
     if (server_unread_count < 0) {
-      // TODO repair server unread count
       server_unread_count = unread_count >= 0 ? unread_count : d->server_unread_count;
+      if (dialog_id.get_type() != DialogType::SecretChat && have_input_peer(dialog_id, AccessRights::Read)) {
+        LOG(INFO) << "Repair server unread count in " << d->dialog_id << " from " << server_unread_count;
+        d->need_repair_server_unread_count = true;
+        send_get_dialog_query(dialog_id, Auto());
+      }
     }
     if (local_unread_count < 0) {
       // TODO repair local unread count
@@ -10995,11 +11019,16 @@ void MessagesManager::on_get_dialogs(vector<tl_object_ptr<telegram_api::dialog>>
       update_dialog_pos(d, false, "on_get_dialogs");
     }
 
-    if (!G()->parameters().use_message_db || is_new || !d->is_last_read_inbox_message_id_inited) {
+    if (!G()->parameters().use_message_db || is_new || !d->is_last_read_inbox_message_id_inited ||
+        d->need_repair_server_unread_count) {
       if (d->server_unread_count != dialog->unread_count_ ||
           d->last_read_inbox_message_id.get() < read_inbox_max_message_id.get()) {
         set_dialog_last_read_inbox_message_id(d, read_inbox_max_message_id, dialog->unread_count_,
                                               d->local_unread_count, true, "on_get_dialogs");
+      }
+      if (d->need_repair_server_unread_count) {
+        d->need_repair_server_unread_count = false;
+        on_dialog_updated(dialog_id, "repair dialog server unread count");
       }
     }
 
@@ -23948,6 +23977,12 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   if (need_get_history && !td_->auth_manager_->is_bot() && have_input_peer(dialog_id, AccessRights::Read) &&
       d->order != DEFAULT_ORDER) {
     get_history_from_the_end(dialog_id, true, false, Auto());
+  }
+
+  if (d->need_repair_server_unread_count && have_input_peer(dialog_id, AccessRights::Read)) {
+    LOG(INFO) << "Repair server unread count in " << d->dialog_id << " from " << d->server_unread_count;
+    CHECK(dialog_id.get_type() != DialogType::SecretChat);
+    send_get_dialog_query(dialog_id, Auto());
   }
 
   update_dialog_pos(d, false, "fix_new_dialog");
