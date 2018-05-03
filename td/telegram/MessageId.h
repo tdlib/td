@@ -140,6 +140,11 @@ class MessageId {
     return ServerMessageId(narrow_cast<int32>(id >> SERVER_ID_SHIFT));
   }
 
+  // returns greatest server message id not bigger than this message id
+  MessageId get_prev_server_message_id() const {
+    return MessageId(id & ~FULL_TYPE_MASK);
+  }
+
   // returns smallest server message id not less than this message id
   MessageId get_next_server_message_id() const {
     return MessageId((id + FULL_TYPE_MASK) & ~FULL_TYPE_MASK);

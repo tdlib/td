@@ -8862,6 +8862,16 @@ int32 MessagesManager::calc_new_unread_count(Dialog *d, MessageId max_message_id
   }
 }
 
+void MessagesManager::repair_server_unread_count(DialogId dialog_id, int32 unread_count) {
+  LOG(INFO) << "Repair server unread count in " << dialog_id << " from " << unread_count;
+  create_actor<SleepActor>("RepairServerUnreadCountSleepActor", 0.5,
+                           PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Result<Unit> result) {
+                             send_closure(actor_id, &MessagesManager::send_get_dialog_query, dialog_id,
+                                          Promise<Unit>());
+                           }))
+      .release();
+}
+
 void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_message_id, int32 unread_count,
                                          const char *source) {
   if (td_->auth_manager_->is_bot()) {
@@ -8929,9 +8939,8 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
     if (server_unread_count < 0) {
       server_unread_count = unread_count >= 0 ? unread_count : d->server_unread_count;
       if (dialog_id.get_type() != DialogType::SecretChat && have_input_peer(dialog_id, AccessRights::Read)) {
-        LOG(INFO) << "Repair server unread count in " << d->dialog_id << " from " << server_unread_count;
         d->need_repair_server_unread_count = true;
-        send_get_dialog_query(dialog_id, Auto());
+        repair_server_unread_count(dialog_id, server_unread_count);
       }
     }
     if (local_unread_count < 0) {
@@ -11021,14 +11030,16 @@ void MessagesManager::on_get_dialogs(vector<tl_object_ptr<telegram_api::dialog>>
 
     if (!G()->parameters().use_message_db || is_new || !d->is_last_read_inbox_message_id_inited ||
         d->need_repair_server_unread_count) {
+      if (d->need_repair_server_unread_count) {
+        LOG(INFO) << "Repaired server unread count in " << dialog_id << " from " << d->last_read_inbox_message_id << "/"
+                  << d->server_unread_count << " to " << read_inbox_max_message_id << "/" << dialog->unread_count_;
+        d->need_repair_server_unread_count = false;
+        on_dialog_updated(dialog_id, "repair dialog server unread count");
+      }
       if (d->server_unread_count != dialog->unread_count_ ||
           d->last_read_inbox_message_id.get() < read_inbox_max_message_id.get()) {
         set_dialog_last_read_inbox_message_id(d, read_inbox_max_message_id, dialog->unread_count_,
                                               d->local_unread_count, true, "on_get_dialogs");
-      }
-      if (d->need_repair_server_unread_count) {
-        d->need_repair_server_unread_count = false;
-        on_dialog_updated(dialog_id, "repair dialog server unread count");
       }
     }
 
@@ -12866,8 +12877,8 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
 
   bool need_read = force_read || d->is_opened;
   bool is_secret = dialog_id.get_type() == DialogType::SecretChat;
-  MessageId max_incoming_message_id;
-  MessageId max_message_id;
+  MessageId max_incoming_message_id;  // max remotely available viewed incoming message_id
+  MessageId max_message_id;           // max server or local viewed message_id
   vector<MessageId> read_content_message_ids;
   for (auto message_id : message_ids) {
     auto message = get_message_force(d, message_id);
@@ -12905,42 +12916,23 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
   }
 
   if (need_read && max_message_id.get() > d->last_read_inbox_message_id.get()) {
-    MessageId last_read_message_id = d->last_message_id;
-    if (!last_read_message_id.is_valid() || last_read_message_id.is_yet_unsent()) {
-      if (max_message_id.get() <= d->last_new_message_id.get()) {
-        last_read_message_id = d->last_new_message_id;
-      } else {
-        last_read_message_id = max_message_id;
+    MessageId last_read_message_id = max_message_id;
+
+    if (dialog_id.get_type() != DialogType::SecretChat) {
+      if (last_read_message_id.get_prev_server_message_id().get() >
+          d->last_read_inbox_message_id.get_prev_server_message_id().get()) {
+        bool allow_error =
+            max_incoming_message_id.get() <= d->last_read_inbox_message_id.get_prev_server_message_id().get();
+        read_history_on_server(d->dialog_id, last_read_message_id.get_prev_server_message_id(), allow_error, 0);
+      }
+    } else {
+      if (last_read_message_id.get() > d->last_read_inbox_message_id.get()) {
+        bool allow_error = max_incoming_message_id.get() <= d->last_read_inbox_message_id.get();
+        read_history_on_server(d->dialog_id, last_read_message_id, allow_error, 0);
       }
     }
+
     read_history_inbox(d->dialog_id, last_read_message_id, -1, "view_messages");
-
-    if (d->last_new_message_id.is_valid()) {
-      if (!d->is_last_read_inbox_message_id_inited) {
-        // don't know last read inbox message, read history on the server just in case
-        read_history_on_server(d->dialog_id, d->last_new_message_id, true, 0);
-      } else {
-        if (max_incoming_message_id.get() <= d->last_read_inbox_message_id.get()) {
-          MessagesConstIterator p(d, d->last_message_id);
-          while (*p != nullptr && ((*p)->is_outgoing || !((*p)->message_id.is_server() || is_secret)) &&
-                 (*p)->message_id.get() > d->last_read_inbox_message_id.get()) {
-            --p;
-          }
-          if (*p != nullptr && !(*p)->is_outgoing && ((*p)->message_id.is_server() || is_secret)) {
-            max_incoming_message_id = (*p)->message_id;
-          }
-        }
-
-        if (max_incoming_message_id.get() > d->last_read_inbox_message_id.get()) {
-          LOG_IF(ERROR, d->server_unread_count + d->local_unread_count == 0) << "Nave no unread messages";
-          read_history_on_server(d->dialog_id, d->last_new_message_id, false,
-                                 0);  // TODO can read messages only up to max_incoming_message_id
-        } else {
-          // can't find last incoming message, read history on the server just in case
-          read_history_on_server(d->dialog_id, d->last_new_message_id, true, 0);
-        }
-      }
-    }
   }
 
   return Status::OK();
@@ -23980,9 +23972,8 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   }
 
   if (d->need_repair_server_unread_count && have_input_peer(dialog_id, AccessRights::Read)) {
-    LOG(INFO) << "Repair server unread count in " << d->dialog_id << " from " << d->server_unread_count;
     CHECK(dialog_id.get_type() != DialogType::SecretChat);
-    send_get_dialog_query(dialog_id, Auto());
+    repair_server_unread_count(dialog_id, d->server_unread_count);
   }
 
   update_dialog_pos(d, false, "fix_new_dialog");

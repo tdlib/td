@@ -404,7 +404,7 @@ class CliClient final : public Actor {
   static int64 as_message_id(Slice str) {
     str = trim(str);
     if (!str.empty() && str.back() == 's') {
-      return to_integer<int32>(str) << 20;
+      return to_integer<int64>(str) << 20;
     }
     return to_integer<int64>(str);
   }
