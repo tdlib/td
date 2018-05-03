@@ -1300,15 +1300,13 @@ class ReadHistoryQuery : public Td::ResultHandler {
 class ReadChannelHistoryQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
-  bool allow_error_;
 
  public:
   explicit ReadChannelHistoryQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(ChannelId channel_id, MessageId max_message_id, bool allow_error) {
+  void send(ChannelId channel_id, MessageId max_message_id) {
     channel_id_ = channel_id;
-    allow_error_ = allow_error;
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
 
@@ -1321,9 +1319,6 @@ class ReadChannelHistoryQuery : public Td::ResultHandler {
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
     }
-
-    bool result = result_ptr.ok();
-    LOG_IF(ERROR, !result && !allow_error_) << "Read history failed";
 
     promise_.set_value(Unit());
   }
@@ -12877,8 +12872,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
 
   bool need_read = force_read || d->is_opened;
   bool is_secret = dialog_id.get_type() == DialogType::SecretChat;
-  MessageId max_incoming_message_id;  // max remotely available viewed incoming message_id
-  MessageId max_message_id;           // max server or local viewed message_id
+  MessageId max_message_id;  // max server or local viewed message_id
   vector<MessageId> read_content_message_ids;
   for (auto message_id : message_ids) {
     auto message = get_message_force(d, message_id);
@@ -12887,13 +12881,8 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
         d->pending_viewed_message_ids.insert(message_id);
       }
 
-      if (!message_id.is_yet_unsent() && message_id.get() > max_incoming_message_id.get()) {
-        if (!message->is_outgoing && (message_id.is_server() || is_secret)) {
-          max_incoming_message_id = message_id;
-        }
-        if (message_id.get() > max_message_id.get()) {
-          max_message_id = message_id;
-        }
+      if (!message_id.is_yet_unsent() && message_id.get() > max_message_id.get()) {
+        max_message_id = message_id;
       }
 
       if (need_read) {
@@ -12921,14 +12910,11 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
     if (dialog_id.get_type() != DialogType::SecretChat) {
       if (last_read_message_id.get_prev_server_message_id().get() >
           d->last_read_inbox_message_id.get_prev_server_message_id().get()) {
-        bool allow_error =
-            max_incoming_message_id.get() <= d->last_read_inbox_message_id.get_prev_server_message_id().get();
-        read_history_on_server(d->dialog_id, last_read_message_id.get_prev_server_message_id(), allow_error, 0);
+        read_history_on_server(d->dialog_id, last_read_message_id.get_prev_server_message_id(), 0);
       }
     } else {
       if (last_read_message_id.get() > d->last_read_inbox_message_id.get()) {
-        bool allow_error = max_incoming_message_id.get() <= d->last_read_inbox_message_id.get();
-        read_history_on_server(d->dialog_id, last_read_message_id, allow_error, 0);
+        read_history_on_server(d->dialog_id, last_read_message_id, 0);
       }
     }
 
@@ -13654,8 +13640,7 @@ class MessagesManager::ReadHistoryOnServerLogEvent {
   }
 };
 
-void MessagesManager::read_history_on_server(DialogId dialog_id, MessageId max_message_id, bool allow_error,
-                                             uint64 logevent_id) {
+void MessagesManager::read_history_on_server(DialogId dialog_id, MessageId max_message_id, uint64 logevent_id) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
@@ -13678,7 +13663,7 @@ void MessagesManager::read_history_on_server(DialogId dialog_id, MessageId max_m
       break;
     case DialogType::Channel: {
       auto channel_id = dialog_id.get_channel_id();
-      td_->create_handler<ReadChannelHistoryQuery>(std::move(promise))->send(channel_id, max_message_id, allow_error);
+      td_->create_handler<ReadChannelHistoryQuery>(std::move(promise))->send(channel_id, max_message_id);
       break;
     }
     case DialogType::SecretChat: {
@@ -25221,7 +25206,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
 
-        read_history_on_server(dialog_id, log_event.max_message_id_, true, event.id_);
+        read_history_on_server(dialog_id, log_event.max_message_id_, event.id_);
         break;
       }
       case LogEvent::HandlerType::ReadMessageContentsOnServer: {

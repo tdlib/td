@@ -2094,7 +2094,7 @@ class MessagesManager : public Actor {
 
   void read_history_outbox(DialogId dialog_id, MessageId max_message_id, int32 read_date = -1);
 
-  void read_history_on_server(DialogId dialog_id, MessageId max_message_id, bool allow_error, uint64 logevent_id);
+  void read_history_on_server(DialogId dialog_id, MessageId max_message_id, uint64 logevent_id);
 
   void read_secret_chat_outbox_inner(DialogId dialog_id, int32 up_to_date, int32 read_date);
 
