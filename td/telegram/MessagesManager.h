@@ -1581,6 +1581,8 @@ class MessagesManager : public Actor {
     uint64 save_draft_message_logevent_id_generation = 0;
     uint64 save_notification_settings_logevent_id = 0;
     uint64 save_notification_settings_logevent_id_generation = 0;
+    uint64 read_history_logevent_id = 0;
+    uint64 read_history_logevent_id_generation = 0;
 
     MessageId
         last_read_all_mentions_message_id;  // all mentions with a message id not greater than it are implicitly read
@@ -1875,6 +1877,7 @@ class MessagesManager : public Actor {
 
   static constexpr int32 MAX_MESSAGE_VIEW_DELAY = 1;  // seconds
   static constexpr int32 MIN_SAVE_DRAFT_DELAY = 1;    // seconds
+  static constexpr int32 MIN_READ_HISTORY_DELAY = 3;  // seconds
   static constexpr int32 MAX_SAVE_DIALOG_DELAY = 0;   // seconds
   static constexpr int32 DIALOG_UNLOAD_DELAY = 60;    // seconds
 
@@ -2094,7 +2097,11 @@ class MessagesManager : public Actor {
 
   void read_history_outbox(DialogId dialog_id, MessageId max_message_id, int32 read_date = -1);
 
-  void read_history_on_server(DialogId dialog_id, MessageId max_message_id, uint64 logevent_id);
+  void read_history_on_server(Dialog *d, MessageId max_message_id);
+
+  void read_history_on_server_impl(DialogId dialog_id, MessageId max_message_id);
+
+  void on_read_history_finished(DialogId dialog_id, uint64 generation);
 
   void read_secret_chat_outbox_inner(DialogId dialog_id, int32 up_to_date, int32 read_date);
 
@@ -2556,6 +2563,8 @@ class MessagesManager : public Actor {
 
   static void on_pending_draft_message_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
 
+  static void on_pending_read_history_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
+
   static void on_pending_updated_dialog_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
 
   static void on_pending_unload_dialog_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
@@ -2825,6 +2834,7 @@ class MessagesManager : public Actor {
   MultiTimeout channel_get_difference_retry_timeout_;
   MultiTimeout pending_message_views_timeout_;
   MultiTimeout pending_draft_message_timeout_;
+  MultiTimeout pending_read_history_timeout_;
   MultiTimeout pending_updated_dialog_timeout_;
   MultiTimeout pending_unload_dialog_timeout_;
   MultiTimeout dialog_unmute_timeout_;
