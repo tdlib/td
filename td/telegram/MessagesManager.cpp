@@ -10974,6 +10974,11 @@ void MessagesManager::on_get_dialogs(vector<tl_object_ptr<telegram_api::dialog>>
     bool is_new = d->last_new_message_id == MessageId();
 
     on_update_dialog_notify_settings(dialog_id, std::move(dialog->notify_settings_));
+    if (!d->notification_settings.is_synchronized) {
+      LOG(ERROR) << "Failed to synchronize settings in " << dialog_id;
+      d->notification_settings.is_synchronized = true;
+      on_dialog_updated(dialog_id, "set notification_settings.is_synchronized");
+    }
 
     if (dialog->unread_count_ < 0) {
       LOG(ERROR) << "Receive " << dialog->unread_count_ << " as number of unread messages in " << dialog_id;
@@ -11049,11 +11054,19 @@ void MessagesManager::on_get_dialogs(vector<tl_object_ptr<telegram_api::dialog>>
         set_dialog_last_read_inbox_message_id(d, read_inbox_max_message_id, dialog->unread_count_,
                                               d->local_unread_count, true, "on_get_dialogs");
       }
+      if (!d->is_last_read_inbox_message_id_inited) {
+        d->is_last_read_inbox_message_id_inited = true;
+        on_dialog_updated(dialog_id, "set is_last_read_inbox_message_id_inited");
+      }
     }
 
     if (!G()->parameters().use_message_db || is_new || !d->is_last_read_outbox_message_id_inited) {
       if (d->last_read_outbox_message_id.get() < read_outbox_max_message_id.get()) {
         set_dialog_last_read_outbox_message_id(d, read_outbox_max_message_id);
+      }
+      if (!d->is_last_read_outbox_message_id_inited) {
+        d->is_last_read_outbox_message_id_inited = true;
+        on_dialog_updated(dialog_id, "set is_last_read_outbox_message_id_inited");
       }
     }
 
@@ -12688,6 +12701,11 @@ Status MessagesManager::set_dialog_client_data(DialogId dialog_id, string &&clie
   return Status::OK();
 }
 
+bool MessagesManager::is_dialog_inited(const Dialog *d) {
+  return d != nullptr && d->notification_settings.is_synchronized && d->is_last_read_inbox_message_id_inited &&
+         d->is_last_read_outbox_message_id_inited;
+}
+
 void MessagesManager::create_dialog(DialogId dialog_id, bool force, Promise<Unit> &&promise) {
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     if (!have_dialog_info_force(dialog_id)) {
@@ -12702,7 +12720,7 @@ void MessagesManager::create_dialog(DialogId dialog_id, bool force, Promise<Unit
     force_create_dialog(dialog_id, "create dialog");
   } else {
     const Dialog *d = get_dialog_force(dialog_id);
-    if (d == nullptr || !d->notification_settings.is_synchronized) {
+    if (!is_dialog_inited(d)) {
       return send_get_dialog_query(dialog_id, std::move(promise));
     }
   }
@@ -13163,7 +13181,7 @@ tl_object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *d) {
       //   preload_older_messages(d, d->last_new_message_id);
       // }
     }
-    if (!d->notification_settings.is_synchronized && d->dialog_id.get_type() != DialogType::SecretChat &&
+    if (!is_dialog_inited(d) && d->dialog_id.get_type() != DialogType::SecretChat &&
         have_input_peer(d->dialog_id, AccessRights::Read)) {
       // asynchronously get dialog from the server
       send_get_dialog_query(d->dialog_id, Auto());
@@ -13672,8 +13690,8 @@ void MessagesManager::read_history_on_server(Dialog *d, MessageId max_message_id
 
     auto storer = LogEventStorerImpl<ReadHistoryOnServerLogEvent>(logevent);
     if (d->read_history_logevent_id == 0) {
-      d->read_history_logevent_id = BinlogHelper::add(
-          G()->td_db()->get_binlog(), LogEvent::HandlerType::ReadHistoryOnServer, storer);
+      d->read_history_logevent_id =
+          BinlogHelper::add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ReadHistoryOnServer, storer);
       LOG(INFO) << "Add read history logevent " << d->read_history_logevent_id;
     } else {
       auto new_logevent_id = BinlogHelper::rewrite(G()->td_db()->get_binlog(), d->read_history_logevent_id,
@@ -13683,7 +13701,8 @@ void MessagesManager::read_history_on_server(Dialog *d, MessageId max_message_id
     d->read_history_logevent_id_generation++;
   }
 
-  pending_read_history_timeout_.set_timeout_in(dialog_id.get(), d->is_opened && dialog_id.get_type() != DialogType::SecretChat ? MIN_READ_HISTORY_DELAY : 0);
+  pending_read_history_timeout_.set_timeout_in(
+      dialog_id.get(), d->is_opened && dialog_id.get_type() != DialogType::SecretChat ? MIN_READ_HISTORY_DELAY : 0);
 }
 
 void MessagesManager::read_history_on_server_impl(DialogId dialog_id, MessageId max_message_id) {
@@ -13700,9 +13719,9 @@ void MessagesManager::read_history_on_server_impl(DialogId dialog_id, MessageId 
 
   Promise<> promise;
   if (d->read_history_logevent_id != 0) {
-    promise = PromiseCreator::lambda(
-        [actor_id = actor_id(this), dialog_id,
-         generation = d->read_history_logevent_id_generation](Result<Unit> result) mutable {
+    promise =
+        PromiseCreator::lambda([actor_id = actor_id(this), dialog_id,
+                                generation = d->read_history_logevent_id_generation](Result<Unit> result) mutable {
           if (!G()->close_flag()) {
             send_closure(actor_id, &MessagesManager::on_read_history_finished, dialog_id, generation);
           }
@@ -19861,7 +19880,7 @@ DialogId MessagesManager::search_public_dialog(const string &username_to_search,
         force_create_dialog(dialog_id, "search public dialog");
       } else {
         const Dialog *d = get_dialog_force(dialog_id);
-        if (d == nullptr || !d->notification_settings.is_synchronized) {
+        if (!is_dialog_inited(d)) {
           send_get_dialog_query(dialog_id, std::move(promise));
           return DialogId();
         }
@@ -23739,7 +23758,7 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
     update_dialog_pos(d, false, "force_create_dialog");
 
     if (have_input_peer(dialog_id, AccessRights::Read)) {
-      if (dialog_id.get_type() != DialogType::SecretChat && !d->notification_settings.is_synchronized) {
+      if (dialog_id.get_type() != DialogType::SecretChat && !is_dialog_inited(d)) {
         // asynchronously preload information about the dialog
         send_get_dialog_query(dialog_id, Auto());
       }
@@ -23819,6 +23838,8 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
 
       d->have_full_history = true;
       d->need_restore_reply_markup = false;
+      d->is_last_read_inbox_message_id_inited = true;
+      d->is_last_read_outbox_message_id_inited = true;
       d->notification_settings.is_synchronized = true;
       d->know_can_report_spam = true;
       if (!is_loaded_from_database) {
