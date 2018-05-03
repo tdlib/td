@@ -18946,7 +18946,7 @@ void MessagesManager::send_update_new_message(Dialog *d, const Message *m, bool 
     auto promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = d->dialog_id](Result<Unit> result) {
       send_closure(actor_id, &MessagesManager::flush_pending_update_new_messages, dialog_id);
     });
-    send_get_dialog_query(settings_dialog_id, std::move(promise));  // TODO use GetNotifySettingsQuery when possible
+    send_get_dialog_notification_settings_query(settings_dialog_id, std::move(promise));
     return;
   }
 
