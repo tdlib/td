@@ -1334,26 +1334,26 @@ static auto credentials_as_jsonable(const std::vector<SecureValueCredentials> &c
                                     bool with_selfie) {
   return json_object([&credentials, payload, with_selfie](auto &o) {
     o("secure_data", json_object([&credentials, with_selfie](auto &o) {
-        for (auto &c : credentials) {
-          if (c.type == SecureValueType::PhoneNumber || c.type == SecureValueType::EmailAddress) {
+        for (auto &cred : credentials) {
+          if (cred.type == SecureValueType::PhoneNumber || cred.type == SecureValueType::EmailAddress) {
             continue;
           }
 
-          o(secure_value_type_as_slice(c.type), json_object([&credentials = c, with_selfie](auto &o) {
-              if (credentials.data) {
-                o("data", as_jsonable(credentials.data.value()));
+          o(secure_value_type_as_slice(cred.type), json_object([&cred, with_selfie](auto &o) {
+              if (cred.data) {
+                o("data", as_jsonable(cred.data.value()));
               }
-              if (!credentials.files.empty()) {
-                o("files", as_jsonable(credentials.files));
+              if (!cred.files.empty()) {
+                o("files", as_jsonable(cred.files));
               }
-              if (credentials.front_side) {
-                o("front_side", as_jsonable(credentials.front_side.value()));
+              if (cred.front_side) {
+                o("front_side", as_jsonable(cred.front_side.value()));
               }
-              if (credentials.reverse_side) {
-                o("reverse_side", as_jsonable(credentials.reverse_side.value()));
+              if (cred.reverse_side) {
+                o("reverse_side", as_jsonable(cred.reverse_side.value()));
               }
-              if (credentials.selfie && with_selfie) {
-                o("selfie", as_jsonable(credentials.selfie.value()));
+              if (cred.selfie && with_selfie) {
+                o("selfie", as_jsonable(cred.selfie.value()));
               }
             }));
         }

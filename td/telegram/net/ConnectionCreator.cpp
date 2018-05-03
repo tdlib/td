@@ -382,10 +382,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
       if (info.use_http) {
         transport_type = {mtproto::TransportType::Http, 0, ""};
       } else {
-        int16 raw_dc_id = narrow_cast<int16>(dc_id.get_raw_id());
-        if (info.option->is_media_only()) {
-          raw_dc_id = -raw_dc_id;
-        }
+        int16 raw_dc_id = narrow_cast<int16>(info.option->is_media_only() ? -dc_id.get_raw_id() : dc_id.get_raw_id());
         transport_type = {mtproto::TransportType::ObfuscatedTcp, raw_dc_id, info.option->get_secret().str()};
       }
       check_mode |= info.should_check;
