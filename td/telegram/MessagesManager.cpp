@@ -148,20 +148,20 @@ class GetDialogQuery : public Td::ResultHandler {
         std::move(result->dialogs_), -1, std::move(result->messages_),
         PromiseCreator::lambda([td = td, dialog_id = dialog_id_](Result<> result) {
           if (result.is_ok()) {
-            td->messages_manager_->on_get_dialog_success(dialog_id);
+            td->messages_manager_->on_get_dialog_query_finished(dialog_id, Status::OK());
           } else {
             if (G()->close_flag()) {
               return;
             }
             td->messages_manager_->on_get_dialog_error(dialog_id, result.error(), "OnGetDialogs");
-            td->messages_manager_->on_get_dialog_fail(dialog_id, result.move_as_error());
+            td->messages_manager_->on_get_dialog_query_finished(dialog_id, result.move_as_error());
           }
         }));
   }
 
   void on_error(uint64 id, Status status) override {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetDialogQuery");
-    td->messages_manager_->on_get_dialog_fail(dialog_id_, std::move(status));
+    td->messages_manager_->on_get_dialog_query_finished(dialog_id_, std::move(status));
   }
 };
 
@@ -2898,13 +2898,9 @@ class DeleteChannelMessagesQuery : public Td::ResultHandler {
 };
 
 class GetDialogNotifySettingsQuery : public Td::ResultHandler {
-  Promise<Unit> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit GetDialogNotifySettingsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
   void send(DialogId dialog_id) {
     dialog_id_ = dialog_id;
     auto input_notify_peer = td->messages_manager_->get_input_notify_peer(dialog_id);
@@ -2921,13 +2917,12 @@ class GetDialogNotifySettingsQuery : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     td->messages_manager_->on_update_dialog_notify_settings(dialog_id_, std::move(ptr));
-
-    promise_.set_value(Unit());
+    td->messages_manager_->on_get_dialog_notification_settings_query_finished(dialog_id_, Status::OK());
   }
 
   void on_error(uint64 id, Status status) override {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetDialogNotifySettingsQuery");
-    promise_.set_error(std::move(status));
+    td->messages_manager_->on_get_dialog_notification_settings_query_finished(dialog_id_, std::move(status));
   }
 };
 
@@ -3018,7 +3013,7 @@ class UpdateDialogNotifySettingsQuery : public Td::ResultHandler {
 
     if (!td->auth_manager_->is_bot() && td->messages_manager_->get_input_notify_peer(dialog_id_) != nullptr) {
       // trying to repair notification settings for this dialog
-      td->create_handler<GetDialogNotifySettingsQuery>(Promise<>())->send(dialog_id_);
+      td->messages_manager_->send_get_dialog_notification_settings_query(dialog_id_, Promise<>());
     }
 
     promise_.set_error(std::move(status));
@@ -19902,6 +19897,36 @@ DialogId MessagesManager::search_public_dialog(const string &username_to_search,
   return DialogId();
 }
 
+void MessagesManager::send_get_dialog_notification_settings_query(DialogId dialog_id, Promise<Unit> &&promise) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+  auto &promises = get_dialog_notification_settings_queries_[dialog_id];
+  promises.push_back(std::move(promise));
+  if (promises.size() != 1) {
+    // query has already been sent, just wait for the result
+    return;
+  }
+
+  td_->create_handler<GetDialogNotifySettingsQuery>()->send(dialog_id);
+}
+
+void MessagesManager::on_get_dialog_notification_settings_query_finished(DialogId dialog_id, Status &&status) {
+  auto it = get_dialog_notification_settings_queries_.find(dialog_id);
+  CHECK(it != get_dialog_notification_settings_queries_.end());
+  CHECK(it->second.size() > 0);
+  auto promises = std::move(it->second);
+  get_dialog_notification_settings_queries_.erase(it);
+
+  for (auto &promise : promises) {
+    if (status.is_ok()) {
+      promise.set_value(Unit());
+    } else {
+      promise.set_error(status.clone());
+    }
+  }
+}
+
 void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
     return;
@@ -19916,7 +19941,7 @@ void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&
   td_->create_handler<GetDialogQuery>()->send(dialog_id);
 }
 
-void MessagesManager::on_get_dialog_success(DialogId dialog_id) {
+void MessagesManager::on_get_dialog_query_finished(DialogId dialog_id, Status &&status) {
   auto it = get_dialog_queries_.find(dialog_id);
   CHECK(it != get_dialog_queries_.end());
   CHECK(it->second.size() > 0);
@@ -19924,19 +19949,11 @@ void MessagesManager::on_get_dialog_success(DialogId dialog_id) {
   get_dialog_queries_.erase(it);
 
   for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
-}
-
-void MessagesManager::on_get_dialog_fail(DialogId dialog_id, Status &&error) {
-  auto it = get_dialog_queries_.find(dialog_id);
-  CHECK(it != get_dialog_queries_.end());
-  CHECK(it->second.size() > 0);
-  auto promises = std::move(it->second);
-  get_dialog_queries_.erase(it);
-
-  for (auto &promise : promises) {
-    promise.set_error(error.clone());
+    if (status.is_ok()) {
+      promise.set_value(Unit());
+    } else {
+      promise.set_error(status.clone());
+    }
   }
 }
 
@@ -23905,7 +23922,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       d->notification_settings.is_use_default_fixed = true;
       on_dialog_updated(d->dialog_id, "reget notification settings");
     } else {
-      td_->create_handler<GetDialogNotifySettingsQuery>(Promise<Unit>())->send(dialog_id);
+      send_get_dialog_notification_settings_query(dialog_id, Promise<>());
     }
   }
   if (d->notification_settings.use_default_mute_until || d->notification_settings.mute_until <= G()->unix_time()) {

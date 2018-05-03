@@ -1395,9 +1395,11 @@ class MessagesManager : public Actor {
 
   void force_create_dialog(DialogId dialog_id, const char *source, bool force_update_dialog_pos = false);
 
-  void on_get_dialog_success(DialogId dialog_id);
+  void send_get_dialog_notification_settings_query(DialogId dialog_id, Promise<Unit> &&promise);
 
-  void on_get_dialog_fail(DialogId dialog_id, Status &&error);
+  void on_get_dialog_notification_settings_query_finished(DialogId dialog_id, Status &&status);
+
+  void on_get_dialog_query_finished(DialogId dialog_id, Status &&status);
 
   void on_binlog_events(vector<BinlogEvent> &&events);
 
@@ -2781,6 +2783,8 @@ class MessagesManager : public Actor {
   std::unordered_map<int64, tl_object_ptr<td_api::chatEvents>> chat_events_;  // random_id -> chat events
 
   std::unordered_map<int64, tl_object_ptr<td_api::gameHighScores>> game_high_scores_;  // random_id -> high scores
+
+  std::unordered_map<DialogId, vector<Promise<Unit>>, DialogIdHash> get_dialog_notification_settings_queries_;
 
   std::unordered_map<DialogId, vector<Promise<Unit>>, DialogIdHash> get_dialog_queries_;
 
