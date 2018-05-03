@@ -58,10 +58,10 @@ std::unordered_map<string, string> ConfigShared::get_options() const {
   return config_pmc_->get_all();
 }
 
-bool ConfigShared::get_option_boolean(Slice name) const {
+bool ConfigShared::get_option_boolean(Slice name, bool default_value) const {
   auto value = get_option(name);
   if (value.empty()) {
-    return false;
+    return default_value;
   }
   if (value == "Btrue") {
     return true;
@@ -70,7 +70,7 @@ bool ConfigShared::get_option_boolean(Slice name) const {
     return false;
   }
   LOG(ERROR) << "Found \"" << value << "\" instead of boolean option";
-  return false;
+  return default_value;
 }
 
 int32 ConfigShared::get_option_integer(Slice name, int32 default_value) const {

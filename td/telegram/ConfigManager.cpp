@@ -359,7 +359,7 @@ class ConfigRecoverer : public Actor {
     if (r_dc_options.is_ok()) {
       simple_config_ = r_dc_options.move_as_ok();
       VLOG(config_recoverer) << "Got SimpleConfig " << simple_config_;
-      simple_config_expire_at_ = Time::now_cached() + Random::fast(20 * 60, 30 * 60);
+      simple_config_expire_at_ = get_config_expire_time();
       simple_config_at_ = Time::now_cached();
       for (size_t i = 1; i < simple_config_.dc_options.size(); i++) {
         std::swap(simple_config_.dc_options[i], simple_config_.dc_options[Random::fast(0, static_cast<int>(i))]);
@@ -367,7 +367,7 @@ class ConfigRecoverer : public Actor {
     } else {
       VLOG(config_recoverer) << "Get SimpleConfig error " << r_dc_options.error();
       simple_config_ = DcOptions();
-      simple_config_expire_at_ = Time::now_cached() + Random::fast(15, 30);
+      simple_config_expire_at_ = get_failed_config_expire_time();
     }
     update_dc_options();
     loop();
@@ -378,14 +378,26 @@ class ConfigRecoverer : public Actor {
     if (r_full_config.is_ok()) {
       full_config_ = r_full_config.move_as_ok();
       VLOG(config_recoverer) << "Got FullConfig " << to_string(full_config_);
-      full_config_expire_at_ = Time::now() + Random::fast(20 * 60, 30 * 60);
+      full_config_expire_at_ = get_config_expire_time();
       send_closure(G()->connection_creator(), &ConnectionCreator::on_dc_options, DcOptions(full_config_->dc_options_));
     } else {
       VLOG(config_recoverer) << "Get FullConfig error " << r_full_config.error();
       full_config_ = FullConfig();
-      full_config_expire_at_ = Time::now() + Random::fast(15, 30);
+      full_config_expire_at_ = get_failed_config_expire_time();
     }
     loop();
+  }
+
+  bool expect_blocking() const {
+    return G()->shared_config().get_option_boolean("expect_blocking", true);
+  }
+
+  double get_config_expire_time() const {
+    return Time::now() + (expect_blocking() ? Random::fast(2 * 60, 3 * 60) : Random::fast(20 * 60, 30 * 60));
+  }
+
+  double get_failed_config_expire_time() const {
+    return Time::now() + (expect_blocking() ? Random::fast(5, 7) : Random::fast(15, 30));
   }
 
   bool is_connecting_{false};
@@ -437,7 +449,7 @@ class ConfigRecoverer : public Actor {
   }
 
   double max_connecting_delay() const {
-    return 20;
+    return expect_blocking() ? 5 : 20;
   }
   void loop() override {
     if (close_flag_) {
@@ -470,7 +482,8 @@ class ConfigRecoverer : public Actor {
     bool has_dc_options = !dc_options_.dc_options.empty();
     bool is_valid_full_config = !check_timeout(Timestamp::at(full_config_expire_at_));
     bool need_full_config = has_connecting_problem && has_dc_options && !is_valid_full_config &&
-                            full_config_query_.empty() && check_timeout(Timestamp::at(dc_options_at_ + 10));
+                            full_config_query_.empty() &&
+                            check_timeout(Timestamp::at(dc_options_at_ + (expect_blocking() ? 5 : 10)));
     if (need_simple_config) {
       ref_cnt_++;
       VLOG(config_recoverer) << "ASK SIMPLE CONFIG";
@@ -687,6 +700,10 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   shared_config.set_option_integer("basic_group_size_max", config->chat_size_max_);
   shared_config.set_option_integer("supergroup_size_max", config->megagroup_size_max_);
   shared_config.set_option_integer("pinned_chat_count_max", config->pinned_dialogs_count_max_);
+  if (is_from_main_dc || !shared_config.have_option("expect_blocking")) {
+    shared_config.set_option_integer("expect_blocking",
+                                     (config->flags_ & telegram_api::config::BLOCKED_MODE_MASK) != 0);
+  }
   if (is_from_main_dc || !shared_config.have_option("t_me_url")) {
     shared_config.set_option_string("t_me_url", config->me_url_prefix_);
   }

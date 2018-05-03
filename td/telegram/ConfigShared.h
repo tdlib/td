@@ -39,7 +39,7 @@ class ConfigShared {
   std::unordered_map<string, string> get_options(Slice prefix) const;
   std::unordered_map<string, string> get_options() const;
 
-  bool get_option_boolean(Slice name) const;
+  bool get_option_boolean(Slice name, bool default_value = false) const;
   int32 get_option_integer(Slice name, int32 default_value = 0) const;
 
   tl_object_ptr<td_api::OptionValue> get_option_value(Slice value) const;
