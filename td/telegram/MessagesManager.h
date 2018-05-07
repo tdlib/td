@@ -1897,7 +1897,7 @@ class MessagesManager : public Actor {
 
   static constexpr bool DROP_UPDATES = false;
 
-  static bool MessagesManager::is_dialog_inited(const Dialog *d);
+  static bool is_dialog_inited(const Dialog *d);
 
   void open_dialog(Dialog *d);
 

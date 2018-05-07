@@ -19,7 +19,7 @@ namespace td {
 
 Promise<Unit> get_erase_logevent_promise(uint64 logevent_id, Promise<Unit> promise = Promise<Unit>()) {
   if (logevent_id == 0) {
-    return std::move(promise);
+    return promise;
   }
 
   return PromiseCreator::lambda([logevent_id, promise = std::move(promise)](Result<Unit> result) mutable {
