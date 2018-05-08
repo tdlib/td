@@ -3062,9 +3062,13 @@ class CliClient final : public Actor {
       std::tie(server, args) = split(args);
       std::tie(port, args) = split(args);
       std::tie(user, password) = split(args);
-
-      send_request(make_tl_object<td_api::setProxy>(
-          make_tl_object<td_api::proxySocks5>(server, to_integer<int32>(port), user, password)));
+      if (!user.empty() && password.empty()) {
+        send_request(make_tl_object<td_api::setProxy>(
+            make_tl_object<td_api::proxyMtproto>(server, to_integer<int32>(port), user)));
+      } else {
+        send_request(make_tl_object<td_api::setProxy>(
+            make_tl_object<td_api::proxySocks5>(server, to_integer<int32>(port), user, password)));
+      }
     } else if (op == "gproxy") {
       send_request(make_tl_object<td_api::getProxy>());
     } else if (op == "touch") {

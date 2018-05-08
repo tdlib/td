@@ -52,6 +52,8 @@ class Proxy {
         return make_tl_object<td_api::proxyEmpty>();
       case Type::Socks5:
         return make_tl_object<td_api::proxySocks5>(server_, port_, user_, password_);
+      case Type::Mtproto:
+        return make_tl_object<td_api::proxyMtproto>(server_, port_, secret_);
     }
     UNREACHABLE();
     return nullptr;
@@ -69,6 +71,10 @@ class Proxy {
         auto &socks5_proxy = static_cast<const td_api::proxySocks5 &>(*proxy);
         return Proxy::socks5(socks5_proxy.server_, socks5_proxy.port_, socks5_proxy.username_, socks5_proxy.password_);
       }
+      case td_api::proxyMtproto::ID: {
+        auto &mtproto_proxy = static_cast<const td_api::proxyMtproto &>(*proxy);
+        return Proxy::mtproto(mtproto_proxy.server_, mtproto_proxy.port_, mtproto_proxy.secret_);
+      }
     }
     UNREACHABLE();
     return Proxy();
@@ -81,6 +87,15 @@ class Proxy {
     proxy.port_ = std::move(port);
     proxy.user_ = std::move(user);
     proxy.password_ = std::move(password);
+    return proxy;
+  }
+
+  static Proxy mtproto(string server, int32 port, string secret) {
+    Proxy proxy;
+    proxy.type_ = Type::Mtproto;
+    proxy.server_ = std::move(server);
+    proxy.port_ = std::move(port);
+    proxy.secret_ = std::move(secret);
     return proxy;
   }
 
@@ -100,7 +115,11 @@ class Proxy {
     return password_;
   }
 
-  enum class Type : int32 { None, Socks5 };
+  CSlice secret() const {
+    return secret_;
+  }
+
+  enum class Type : int32 { None, Socks5, Mtproto };
   Type type() const {
     return type_;
   }
@@ -117,11 +136,12 @@ class Proxy {
   int32 port_ = 0;
   string user_;
   string password_;
+  string secret_;
 };
 
 inline bool operator==(const Proxy &lhs, const Proxy &rhs) {
   return lhs.type() == rhs.type() && lhs.server() == rhs.server() && lhs.port() == rhs.port() &&
-         lhs.user() == rhs.user() && lhs.password() == rhs.password();
+         lhs.user() == rhs.user() && lhs.password() == rhs.password() && lhs.secret() == rhs.secret();
 }
 
 inline bool operator!=(const Proxy &lhs, const Proxy &rhs) {

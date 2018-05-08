@@ -49,10 +49,14 @@ class StatsCallback final : public mtproto::RawConnection::StatsCallback {
   }
 
   void on_pong() final {
-    send_lambda(connection_creator_, [stat = option_stat_] { stat->on_ok(); });
+    if (option_stat_) {
+      send_lambda(connection_creator_, [stat = option_stat_] { stat->on_ok(); });
+    }
   }
   void on_error() final {
-    send_lambda(connection_creator_, [stat = option_stat_] { stat->on_error(); });
+    if (option_stat_) {
+      send_lambda(connection_creator_, [stat = option_stat_] { stat->on_error(); });
+    }
   }
 
   void on_mtproto_error() final {
@@ -150,6 +154,10 @@ void Proxy::parse(T &parser) {
     parse(port_, parser);
     parse(user_, parser);
     parse(password_, parser);
+  } else if (type_ == Proxy::Type::Mtproto) {
+    parse(server_, parser);
+    parse(port_, parser);
+    parse(secret_, parser);
   } else {
     CHECK(type_ == Proxy::Type::None);
   }
@@ -164,6 +172,10 @@ void Proxy::store(T &storer) const {
     store(port_, storer);
     store(user_, storer);
     store(password_, storer);
+  } else if (type_ == Proxy::Type::Mtproto) {
+    store(server_, storer);
+    store(port_, storer);
+    store(secret_, storer);
   } else {
     CHECK(type_ == Proxy::Type::None);
   }
@@ -304,8 +316,11 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
   if (close_flag_) {
     return;
   }
-  bool use_socks5 = proxy_.type() == Proxy::Type::Socks5;
-  if (use_socks5 && !proxy_ip_address_.is_valid()) {
+  auto proxy_type = proxy_.type();
+  bool use_proxy = proxy_type != Proxy::Type::None;
+  bool use_socks5_proxy = proxy_type == Proxy::Type::Socks5;
+  bool use_mtproto_proxy = proxy_type == Proxy::Type::Mtproto;
+  if (use_proxy && !proxy_ip_address_.is_valid()) {
     return;
   }
 
@@ -335,7 +350,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
   }
 
   // Main loop. Create new connections till needed
-  bool check_mode = client.checking_connections != 0;
+  bool check_mode = client.checking_connections != 0 && !use_proxy;
   while (true) {
     // Check if we need new connections
     if (client.queries.empty()) {
@@ -377,7 +392,18 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
 
     // sync part
     auto r_socket_fd = [&, dc_id = client.dc_id, allow_media_only = client.allow_media_only]() -> Result<SocketFd> {
-      TRY_RESULT(info, dc_options_set_.find_connection(dc_id, allow_media_only, use_socks5));
+      if (use_mtproto_proxy) {
+        TRY_RESULT(info, dc_options_set_.find_connection(dc_id, allow_media_only, use_proxy));
+        stat = nullptr;
+        int16 raw_dc_id = narrow_cast<int16>(info.option->is_media_only() ? -dc_id.get_raw_id() : dc_id.get_raw_id());
+        transport_type = {mtproto::TransportType::ObfuscatedTcp, raw_dc_id, proxy_.secret().str()};
+
+        debug_str = PSTRING() << "Mtproto " << proxy_ip_address_ << " to DC" << raw_dc_id;
+        LOG(INFO) << "Create: " << debug_str;
+        return SocketFd::open(proxy_ip_address_);
+      }
+
+      TRY_RESULT(info, dc_options_set_.find_connection(dc_id, allow_media_only, use_proxy));
       stat = info.stat;
       if (info.use_http) {
         transport_type = {mtproto::TransportType::Http, 0, ""};
@@ -387,16 +413,14 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
       }
       check_mode |= info.should_check;
 
-      if (use_socks5) {
+      if (use_socks5_proxy) {
         mtproto_ip = info.option->get_ip_address();
-        IPAddress socks5_ip;
-        TRY_STATUS(socks5_ip.init_host_port(proxy_.server(), proxy_.port()));
-        debug_str = PSTRING() << "Sock5 " << socks5_ip << " --> " << info.option->get_ip_address() << " " << dc_id
-                              << (info.use_http ? " HTTP" : "");
+        debug_str = PSTRING() << "Sock5 " << proxy_ip_address_ << " --> " << mtproto_ip << " " << dc_id;
         LOG(INFO) << "Create: " << debug_str;
-        return SocketFd::open(socks5_ip);
+        return SocketFd::open(proxy_ip_address_);
       } else {
-        debug_str = PSTRING() << info.option->get_ip_address() << " " << dc_id << (info.use_http ? " HTTP" : "");
+        debug_str = PSTRING() << info.option->get_ip_address() << " " << dc_id << (info.use_http ? " HTTP" : "")
+                              << (info.option->is_media_only() ? " MEDIA" : "");
         LOG(INFO) << "Create: " << debug_str;
         return SocketFd::open(info.option->get_ip_address());
       }
@@ -413,14 +437,16 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
     IPAddress debug_ip;
     auto debug_ip_status = debug_ip.init_socket_address(socket_fd);
     if (debug_ip_status.is_ok()) {
-      debug_str = PSTRING() << debug_str << debug_ip;
+      debug_str = PSTRING() << debug_str << " from " << debug_ip;
     } else {
       LOG(ERROR) << debug_ip_status;
     }
 
     client.pending_connections++;
     if (check_mode) {
-      stat->on_check();
+      if (stat) {
+        stat->on_check();
+      }
       client.checking_connections++;
     }
 
@@ -434,7 +460,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
     auto stats_callback = std::make_unique<detail::StatsCallback>(
         client.is_media ? media_net_stats_callback_ : common_net_stats_callback_, actor_id(this), client.hash, stat);
 
-    if (use_socks5) {
+    if (use_socks5_proxy) {
       class Callback : public Socks5::Callback {
        public:
         explicit Callback(Promise<ConnectionData> promise, std::unique_ptr<detail::StatsCallback> stats_callback)
@@ -675,7 +701,7 @@ void ConnectionCreator::loop() {
   if (!network_flag_) {
     return;
   }
-  if (proxy_.type() != Proxy::Type::Socks5) {
+  if (proxy_.type() == Proxy::Type::None) {
     return;
   }
   if (resolve_proxy_query_token_ != 0) {
@@ -702,11 +728,12 @@ void ConnectionCreator::on_proxy_resolved(Result<IPAddress> r_ip_address, bool d
   }
   resolve_proxy_query_token_ = 0;
   if (r_ip_address.is_error()) {
-    resolve_proxy_timestamp_ = Timestamp::in(5 * 60);
+    resolve_proxy_timestamp_ = Timestamp::in(1 * 60);
     return;
   }
   proxy_ip_address_ = r_ip_address.move_as_ok();
-  resolve_proxy_timestamp_ = Timestamp::in(29 * 60);
+  proxy_ip_address_.set_port(proxy_.port());
+  resolve_proxy_timestamp_ = Timestamp::in(5 * 60);
   for (auto &client : clients_) {
     client_loop(client.second);
   }

@@ -6,7 +6,6 @@
 //
 #include "td/net/Socks5.h"
 
-#include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/Fd.h"
@@ -183,7 +182,7 @@ Status Socks5::wait_ip_address_response() {
   }
   it.advance(1, c_slice);
   if (c != '\0') {
-    return Status::Error(PSLICE() << tag("code", c));
+    return Status::Error(PSLICE() << "Receive error code " << static_cast<int32>(c) << " from server");
   }
   it.advance(1, c_slice);
   if (c != '\0') {

@@ -2001,6 +2001,9 @@ proxyEmpty = Proxy;
 //@description A SOCKS5 proxy server @server Proxy server IP address @port Proxy server port @username Username for logging in @password Password for logging in
 proxySocks5 server:string port:int32 username:string password:string = Proxy;
 
+//@description An MTProro proxy server @server Proxy server IP address @port Proxy server port @secret Server's secret
+proxyMtproto server:string port:int32 secret:string = Proxy;
+
 
 //@description Describes a sticker that should be added to a sticker set @png_sticker PNG image with the sticker; must be up to 512 kB in size and fit in a 512x512 square @emojis Emoji corresponding to the sticker @mask_position For masks, position where the mask should be placed; may be null
 inputSticker png_sticker:InputFile emojis:string mask_position:maskPosition = InputSticker;

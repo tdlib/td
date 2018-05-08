@@ -28,11 +28,9 @@ class HeaderStorer {
     // system_lang_code:string lang_pack:string lang_code:string proxy:flags.0?InputClientProxy query:!X = X;
     store(static_cast<int32>(0x785188b8), storer);
     int32 flags = 0;
-    /*
-    if (!is_anonymous && proxy.type() == Proxy::Type::Mtproto) {
+    if (!is_anonymous && options.proxy.type() == Proxy::Type::Mtproto) {
       flags |= 1 << 0;
     }
-    */
     store(flags, storer);
     store(options.api_id, storer);
     if (is_anonymous) {
@@ -47,7 +45,10 @@ class HeaderStorer {
     store(string(), storer);
     store(string(), storer);
     if ((flags & 1) != 0) {
-      // TODO
+      // inputClientProxy#75588b3f address:string port:int = InputClientProxy;
+      store(static_cast<int32>(0x75588b3f), storer);
+      store(Slice(options.proxy.server()), storer);
+      store(options.proxy.port(), storer);
     }
   }
 
