@@ -1401,6 +1401,10 @@ class MessagesManager : public Actor {
 
   void on_get_dialog_query_finished(DialogId dialog_id, Status &&status);
 
+  void on_get_promoted_dialog_id(tl_object_ptr<telegram_api::Peer> peer,
+                                 vector<tl_object_ptr<telegram_api::User>> users,
+                                 vector<tl_object_ptr<telegram_api::Chat>> chats);
+
   void on_binlog_events(vector<BinlogEvent> &&events);
 
   void get_payment_form(FullMessageId full_message_id, Promise<tl_object_ptr<td_api::paymentForm>> &&promise);
@@ -2218,6 +2222,8 @@ class MessagesManager : public Actor {
 
   void send_update_chat_unread_mention_count(const Dialog *d);
 
+  void send_update_promoted_chat() const;
+
   tl_object_ptr<td_api::message> get_message_object(DialogId dialog_id, const Message *message) const;
 
   static tl_object_ptr<td_api::messages> get_messages_object(int32 total_count,
@@ -2597,6 +2603,8 @@ class MessagesManager : public Actor {
   void on_upload_dialog_photo(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file);
   void on_upload_dialog_photo_error(FileId file_id, Status status);
 
+  void set_promoted_dialog_id(DialogId dialog_id);
+
   static uint64 get_sequence_dispatcher_id(DialogId dialog_id, int32 message_content_type);
 
   Dialog *get_service_notifications_dialog();
@@ -2883,6 +2891,8 @@ class MessagesManager : public Actor {
   std::unordered_map<uint64, std::map<int64, Promise<Message *>>> yet_unsent_media_queues_;
 
   std::unordered_map<DialogId, NetQueryRef, DialogIdHash> set_typing_query_;
+
+  DialogId promoted_dialog_id_;
 
   Td *td_;
   ActorShared<> parent_;

@@ -10,6 +10,7 @@
 
 #include "td/telegram/net/DcOptions.h"
 #include "td/telegram/net/DcOptionsSet.h"
+#include "td/telegram/net/NetQuery.h"
 #include "td/telegram/StateManager.h"
 
 #include "td/mtproto/IStreamTransport.h"
@@ -148,7 +149,7 @@ inline bool operator!=(const Proxy &lhs, const Proxy &rhs) {
   return !(lhs == rhs);
 }
 
-class ConnectionCreator : public Actor {
+class ConnectionCreator : public NetQueryCallback {
  public:
   explicit ConnectionCreator(ActorShared<> parent);
   ConnectionCreator(ConnectionCreator &&other);
@@ -179,6 +180,9 @@ class ConnectionCreator : public Actor {
   IPAddress proxy_ip_address_;
   Timestamp resolve_proxy_timestamp_;
   uint64 resolve_proxy_query_token_{0};
+
+  uint64 get_proxy_info_query_token_{0};
+  Timestamp get_proxy_info_timestamp_;
 
   struct ClientInfo {
     class Backoff {
@@ -233,10 +237,10 @@ class ConnectionCreator : public Actor {
   int ref_cnt_{0};
   ActorShared<ConnectionCreator> create_reference(int64 token);
   bool close_flag_{false};
-  int64 current_token_ = 0;
+  uint64 current_token_ = 0;
   std::map<int64, ActorShared<>> children_;
 
-  int64 next_token() {
+  uint64 next_token() {
     return ++current_token_;
   }
   void set_proxy_impl(Proxy proxy, bool from_db);
@@ -245,6 +249,8 @@ class ConnectionCreator : public Actor {
   void hangup_shared() override;
   void hangup() override;
   void loop() override;
+
+  void on_result(NetQueryPtr query) override;
 
   void save_dc_options();
   Result<SocketFd> do_request_connection(DcId dc_id, bool allow_media_only);
@@ -269,6 +275,10 @@ class ConnectionCreator : public Actor {
   void client_add_connection(size_t hash, Result<std::unique_ptr<mtproto::RawConnection>> r_raw_connection,
                              bool check_flag);
   void client_set_timeout_at(ClientInfo &client, double wakeup_at);
+
+  void on_get_proxy_info(telegram_api::object_ptr<telegram_api::help_ProxyData> proxy_data_ptr);
+
+  void schedule_get_proxy_info(int32 expires);
 
   void on_proxy_resolved(Result<IPAddress> ip_address, bool dummy);
 

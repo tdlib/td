@@ -2083,7 +2083,7 @@ updateScopeNotificationSettings scope:NotificationSettingsScope notification_set
 //@chat_id Chat identifier @reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 updateChatReplyMarkup chat_id:int53 reply_markup_message_id:int53 = Update;
 
-//@description A draft has changed. Be aware that the update may come in the currently opened chat but with old content of the draft. If the user has changed the content of the draft, this update shouldn't be applied @chat_id Chat identifier @draft_message The new draft message; may be null @order New value of the chat order
+//@description A chat draft has changed. Be aware that the update may come in the currently opened chat but with old content of the draft. If the user has changed the content of the draft, this update shouldn't be applied @chat_id Chat identifier @draft_message The new draft message; may be null @order New value of the chat order
 updateChatDraftMessage chat_id:int53 draft_message:draftMessage order:int64 = Update;
 
 //@description Some messages were deleted @chat_id Chat identifier @message_ids Identifiers of the deleted messages
@@ -2093,6 +2093,9 @@ updateDeleteMessages chat_id:int53 message_ids:vector<int53> is_permanent:Bool f
 
 //@description User activity in the chat has changed @chat_id Chat identifier @user_id Identifier of a user performing an action @action The action description
 updateUserChatAction chat_id:int53 user_id:int32 action:ChatAction = Update;
+
+//@description A promoted by enabled proxy chat has changed @chat_id Identifier of the promoted chat or 0 if none
+updatePromotedChat chat_id:int53 = Update;
 
 //@description The user went online or offline @user_id User identifier @status New status of the user
 updateUserStatus user_id:int32 status:UserStatus = Update;

@@ -30,6 +30,7 @@
 #include <utility>
 
 namespace td {
+
 class AnimationsManager;
 class AudiosManager;
 class AuthManager;

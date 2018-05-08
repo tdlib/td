@@ -4700,46 +4700,6 @@ MessagesManager::MessagesManager(Td *td, ActorShared<> parent) : td_(td), parent
   active_dialog_action_timeout_.set_callback_data(static_cast<void *>(this));
 
   sequence_dispatcher_ = create_actor<MultiSequenceDispatcher>("multi sequence dispatcher");
-
-  if (G()->parameters().use_message_db) {
-    auto last_database_server_dialog_date_string = G()->td_db()->get_binlog_pmc()->get("last_server_dialog_date");
-    if (!last_database_server_dialog_date_string.empty()) {
-      string order_str;
-      string dialog_id_str;
-      std::tie(order_str, dialog_id_str) = split(last_database_server_dialog_date_string);
-
-      auto r_order = to_integer_safe<int64>(order_str);
-      auto r_dialog_id = to_integer_safe<int64>(dialog_id_str);
-      if (r_order.is_error() || r_dialog_id.is_error()) {
-        LOG(ERROR) << "Can't parse " << last_database_server_dialog_date_string;
-      } else {
-        last_database_server_dialog_date_ = DialogDate(r_order.ok(), DialogId(r_dialog_id.ok()));
-      }
-    }
-    LOG(INFO) << "Load last_database_server_dialog_date_ = " << last_database_server_dialog_date_;
-
-    auto unread_message_count_string = G()->td_db()->get_binlog_pmc()->get("unread_message_count");
-    if (!unread_message_count_string.empty()) {
-      string total_count;
-      string muted_count;
-      std::tie(total_count, muted_count) = split(unread_message_count_string);
-
-      auto r_total_count = to_integer_safe<int32>(total_count);
-      auto r_muted_count = to_integer_safe<int32>(muted_count);
-      if (r_total_count.is_error() || r_muted_count.is_error()) {
-        LOG(ERROR) << "Can't parse " << unread_message_count_string;
-      } else {
-        unread_message_total_count_ = r_total_count.ok();
-        unread_message_muted_count_ = r_muted_count.ok();
-        is_unread_count_inited_ = true;
-        send_update_unread_message_count(DialogId(), true, "load unread_message_count");
-      }
-    }
-    LOG(INFO) << "Load last_database_server_dialog_date_ = " << last_database_server_dialog_date_;
-  } else {
-    G()->td_db()->get_binlog_pmc()->erase("last_server_dialog_date");
-    G()->td_db()->get_binlog_pmc()->erase("unread_message_count");
-  }
 }
 
 MessagesManager::~MessagesManager() = default;
@@ -9597,6 +9557,70 @@ void MessagesManager::tear_down() {
 
 void MessagesManager::start_up() {
   always_wait_for_mailbox();
+
+  if (G()->parameters().use_message_db) {
+    auto last_database_server_dialog_date_string = G()->td_db()->get_binlog_pmc()->get("last_server_dialog_date");
+    if (!last_database_server_dialog_date_string.empty()) {
+      string order_str;
+      string dialog_id_str;
+      std::tie(order_str, dialog_id_str) = split(last_database_server_dialog_date_string);
+
+      auto r_order = to_integer_safe<int64>(order_str);
+      auto r_dialog_id = to_integer_safe<int64>(dialog_id_str);
+      if (r_order.is_error() || r_dialog_id.is_error()) {
+        LOG(ERROR) << "Can't parse " << last_database_server_dialog_date_string;
+      } else {
+        last_database_server_dialog_date_ = DialogDate(r_order.ok(), DialogId(r_dialog_id.ok()));
+      }
+    }
+    LOG(INFO) << "Load last_database_server_dialog_date_ = " << last_database_server_dialog_date_;
+
+    auto unread_message_count_string = G()->td_db()->get_binlog_pmc()->get("unread_message_count");
+    if (!unread_message_count_string.empty()) {
+      string total_count;
+      string muted_count;
+      std::tie(total_count, muted_count) = split(unread_message_count_string);
+
+      auto r_total_count = to_integer_safe<int32>(total_count);
+      auto r_muted_count = to_integer_safe<int32>(muted_count);
+      if (r_total_count.is_error() || r_muted_count.is_error()) {
+        LOG(ERROR) << "Can't parse " << unread_message_count_string;
+      } else {
+        unread_message_total_count_ = r_total_count.ok();
+        unread_message_muted_count_ = r_muted_count.ok();
+        is_unread_count_inited_ = true;
+        send_update_unread_message_count(DialogId(), true, "load unread_message_count");
+      }
+    }
+    LOG(INFO) << "Load last_database_server_dialog_date_ = " << last_database_server_dialog_date_;
+
+    auto promoted_dialog_id_string = G()->td_db()->get_binlog_pmc()->get("promoted_dialog_id");
+    if (!promoted_dialog_id_string.empty()) {
+      auto r_dialog_id = to_integer_safe<int64>(promoted_dialog_id_string);
+      if (r_dialog_id.is_error()) {
+        LOG(ERROR) << "Can't parse " << promoted_dialog_id_string;
+      } else {
+        promoted_dialog_id_ = DialogId(r_dialog_id.ok());
+        if (!promoted_dialog_id_.is_valid()) {
+          LOG(ERROR) << "Have invalid chat ID " << promoted_dialog_id_string;
+          promoted_dialog_id_ = DialogId();
+        } else {
+          Dialog *d = get_dialog_force(promoted_dialog_id_);
+          if (d == nullptr) {
+            LOG(ERROR) << "Can't load " << promoted_dialog_id_;
+            promoted_dialog_id_ = DialogId();
+          }
+        }
+      }
+    }
+    if (promoted_dialog_id_.is_valid()) {
+      send_update_promoted_chat();
+    }
+  } else {
+    G()->td_db()->get_binlog_pmc()->erase("last_server_dialog_date");
+    G()->td_db()->get_binlog_pmc()->erase("unread_message_count");
+    G()->td_db()->get_binlog_pmc()->erase("promoted_dialog_id");
+  }
 
   if (G()->parameters().use_message_db) {
     ttl_db_loop_start(G()->server_time());
@@ -19120,6 +19144,13 @@ void MessagesManager::send_update_chat_unread_mention_count(const Dialog *d) {
   }
 }
 
+void MessagesManager::send_update_promoted_chat() const {
+  if (!td_->auth_manager_->is_bot()) {
+    LOG(INFO) << "Update promoted chat to " << promoted_dialog_id_;
+    send_closure(G()->td(), &Td::send_update, make_tl_object<td_api::updatePromotedChat>(promoted_dialog_id_.get()));
+  }
+}
+
 void MessagesManager::on_send_message_get_quick_ack(int64 random_id) {
   auto it = being_sent_messages_.find(random_id);
   if (it == being_sent_messages_.end()) {
@@ -25814,6 +25845,43 @@ void MessagesManager::get_payment_receipt(FullMessageId full_message_id,
   }
 
   td::get_payment_receipt(message_id.get_server_message_id(), std::move(promise));
+}
+
+void MessagesManager::on_get_promoted_dialog_id(tl_object_ptr<telegram_api::Peer> peer,
+                                                vector<tl_object_ptr<telegram_api::User>> users,
+                                                vector<tl_object_ptr<telegram_api::Chat>> chats) {
+  if (peer == nullptr) {
+    set_promoted_dialog_id(DialogId());
+    return;
+  }
+
+  td_->contacts_manager_->on_get_users(std::move(users));
+  td_->contacts_manager_->on_get_chats(std::move(chats));
+
+  set_promoted_dialog_id(DialogId(peer));
+}
+
+void MessagesManager::set_promoted_dialog_id(DialogId dialog_id) {
+  if (promoted_dialog_id_ == dialog_id) {
+    return;
+  }
+
+  promoted_dialog_id_ = dialog_id;
+  if (dialog_id.is_valid()) {
+    force_create_dialog(dialog_id, "set_promoted_dialog_id");
+    /*
+    Dialog *d = get_dialog(dialog_id);
+    CHECK(d != nullptr);
+    update_dialog_pos(d, false, "set_promoted_dialog_id");
+    */
+  }
+
+  if (G()->parameters().use_message_db) {
+    G()->td_db()->get_binlog_pmc()->set("promoted_dialog_id", to_string(promoted_dialog_id_.get()));
+    LOG(INFO) << "Save promoted " << promoted_dialog_id_;
+  }
+
+  send_update_promoted_chat();
 }
 
 }  // namespace td

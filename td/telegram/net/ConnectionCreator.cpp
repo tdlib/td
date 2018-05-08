@@ -6,9 +6,14 @@
 //
 #include "td/telegram/net/ConnectionCreator.h"
 
+#include "td/telegram/telegram_api.h"
+
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/MessagesManager.h"
+#include "td/telegram/net/MtprotoHeader.h"
+#include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/StateManager.h"
 
 #include "td/mtproto/IStreamTransport.h"
@@ -216,15 +221,24 @@ void ConnectionCreator::set_proxy(Proxy proxy) {
 }
 
 void ConnectionCreator::set_proxy_impl(Proxy proxy, bool from_db) {
+  auto have_proxy = proxy.type() != Proxy::Type::None;
   if (proxy_ == proxy) {
+    if (!have_proxy) {
+      on_get_proxy_info(make_tl_object<telegram_api::help_proxyDataEmpty>(0));
+    }
     return;
   }
 
   proxy_ = std::move(proxy);
-  send_closure(G()->state_manager(), &StateManager::on_proxy, proxy_.type() != Proxy::Type::None);
+  G()->mtproto_header().set_proxy(proxy_);
+  send_closure(G()->state_manager(), &StateManager::on_proxy, have_proxy);
 
   if (!from_db) {
-    G()->td_db()->get_binlog_pmc()->set("proxy", log_event_store(proxy_).as_slice().str());
+    if (have_proxy) {
+      G()->td_db()->get_binlog_pmc()->set("proxy", log_event_store(proxy_).as_slice().str());
+    } else {
+      G()->td_db()->get_binlog_pmc()->erase("proxy");
+    }
     for (auto &child : children_) {
       child.second.reset();
     }
@@ -233,6 +247,14 @@ void ConnectionCreator::set_proxy_impl(Proxy proxy, bool from_db) {
   resolve_proxy_query_token_ = 0;
   resolve_proxy_timestamp_ = Timestamp();
   proxy_ip_address_ = IPAddress();
+
+  get_proxy_info_query_token_ = 0;
+  get_proxy_info_timestamp_ = Timestamp();
+  if (!have_proxy || !from_db) {
+    on_get_proxy_info(make_tl_object<telegram_api::help_proxyDataEmpty>(0));
+  } else {
+    schedule_get_proxy_info(0);
+  }
 }
 
 void ConnectionCreator::get_proxy(Promise<Proxy> promise) {
@@ -246,6 +268,7 @@ void ConnectionCreator::on_network(bool network_flag, uint32 network_generation)
   if (network_flag_) {
     resolve_proxy_query_token_ = 0;
     resolve_proxy_timestamp_ = Timestamp();
+    get_proxy_info_timestamp_ = Timestamp();
     for (auto &client : clients_) {
       client.second.backoff.clear();
       client.second.flood_control.clear_events();
@@ -258,6 +281,7 @@ void ConnectionCreator::on_network(bool network_flag, uint32 network_generation)
     }
   }
 }
+
 void ConnectionCreator::on_online(bool online_flag) {
   online_flag_ = online_flag;
   if (online_flag_) {
@@ -597,19 +621,20 @@ void ConnectionCreator::on_dc_update(DcId dc_id, string ip_port, Promise<> promi
 void ConnectionCreator::start_up() {
   class StateCallback : public StateManager::Callback {
    public:
-    explicit StateCallback(ActorId<ConnectionCreator> session) : session_(std::move(session)) {
+    explicit StateCallback(ActorId<ConnectionCreator> connection_creator)
+        : connection_creator_(std::move(connection_creator)) {
     }
     bool on_network(NetType network_type, uint32 generation) override {
-      send_closure(session_, &ConnectionCreator::on_network, network_type != NetType::None, generation);
-      return session_.is_alive();
+      send_closure(connection_creator_, &ConnectionCreator::on_network, network_type != NetType::None, generation);
+      return connection_creator_.is_alive();
     }
     bool on_online(bool online_flag) override {
-      send_closure(session_, &ConnectionCreator::on_online, online_flag);
-      return session_.is_alive();
+      send_closure(connection_creator_, &ConnectionCreator::on_online, online_flag);
+      return connection_creator_.is_alive();
     }
 
    private:
-    ActorId<ConnectionCreator> session_;
+    ActorId<ConnectionCreator> connection_creator_;
   };
   send_closure(G()->state_manager(), &StateManager::add_callback, make_unique<StateCallback>(actor_id(this)));
 
@@ -622,15 +647,15 @@ void ConnectionCreator::start_up() {
     on_dc_options(std::move(dc_options));
   }
 
+  Proxy proxy;
   auto log_event_proxy = G()->td_db()->get_binlog_pmc()->get("proxy");
   if (!log_event_proxy.empty()) {
-    Proxy proxy;
     log_event_parse(proxy, log_event_proxy).ensure();
-    set_proxy_impl(std::move(proxy), true);
   }
+  set_proxy_impl(std::move(proxy), true);
 
   get_host_by_name_actor_ =
-      create_actor_on_scheduler<GetHostByNameActor>("GetHostByNameActor", G()->get_gc_scheduler_id(), 29 * 60, 0);
+      create_actor_on_scheduler<GetHostByNameActor>("GetHostByNameActor", G()->get_gc_scheduler_id(), 5 * 60 - 1, 0);
 
   ref_cnt_guard_ = create_reference(-1);
 
@@ -703,38 +728,121 @@ void ConnectionCreator::loop() {
   if (!network_flag_) {
     return;
   }
-  if (proxy_.type() == Proxy::Type::None) {
-    return;
+
+  Timestamp timeout;
+  if (proxy_.type() == Proxy::Type::Mtproto) {
+    if (get_proxy_info_timestamp_.is_in_past()) {
+      if (get_proxy_info_query_token_ == 0) {
+        get_proxy_info_query_token_ = next_token();
+        auto query = G()->net_query_creator().create(create_storer(telegram_api::help_getProxyData()));
+        G()->net_query_dispatcher().dispatch_with_callback(std::move(query),
+                                                           actor_shared(this, get_proxy_info_query_token_));
+      }
+    } else {
+      CHECK(get_proxy_info_query_token_ == 0);
+      timeout.relax(get_proxy_info_timestamp_);
+    }
   }
-  if (resolve_proxy_query_token_ != 0) {
-    return;
+
+  if (proxy_.type() != Proxy::Type::None) {
+    if (resolve_proxy_timestamp_.is_in_past()) {
+      if (resolve_proxy_query_token_ == 0) {
+        resolve_proxy_query_token_ = next_token();
+        send_closure(
+            get_host_by_name_actor_, &GetHostByNameActor::run, proxy_.server().str(), proxy_.port(),
+            PromiseCreator::lambda([actor_id = create_reference(resolve_proxy_query_token_)](Result<IPAddress> result) {
+              send_closure(std::move(actor_id), &ConnectionCreator::on_proxy_resolved, std::move(result), false);
+            }));
+      }
+    } else {
+      CHECK(resolve_proxy_query_token_ == 0);
+      timeout.relax(resolve_proxy_timestamp_);
+    }
   }
-  if (resolve_proxy_timestamp_ && !resolve_proxy_timestamp_.is_in_past()) {
-    set_timeout_at(resolve_proxy_timestamp_.at());
-    return;
+
+  if (timeout) {
+    set_timeout_at(timeout.at());
   }
-  resolve_proxy_query_token_ = next_token();
-  send_closure(
-      get_host_by_name_actor_, &GetHostByNameActor::run, proxy_.server().str(), proxy_.port(),
-      PromiseCreator::lambda([actor_id = create_reference(resolve_proxy_query_token_)](Result<IPAddress> result) {
-        send_closure(std::move(actor_id), &ConnectionCreator::on_proxy_resolved, std::move(result), false);
-      }));
 }
 
-void ConnectionCreator::on_proxy_resolved(Result<IPAddress> r_ip_address, bool dummy) {
+void ConnectionCreator::on_result(NetQueryPtr query) {
+  if (get_link_token() != get_proxy_info_query_token_) {
+    return;
+  }
+
   SCOPE_EXIT {
     loop();
   };
+
+  get_proxy_info_query_token_ = 0;
+  auto res = fetch_result<telegram_api::help_getProxyData>(std::move(query));
+  if (res.is_error()) {
+    if (G()->close_flag()) {
+      return;
+    }
+    LOG(ERROR) << "Receive error for getProxyData: " << res.error();
+    return schedule_get_proxy_info(60);
+  }
+  on_get_proxy_info(res.move_as_ok());
+}
+
+void ConnectionCreator::on_get_proxy_info(telegram_api::object_ptr<telegram_api::help_ProxyData> proxy_data_ptr) {
+  CHECK(proxy_data_ptr != nullptr);
+  LOG(INFO) << "Receive " << to_string(proxy_data_ptr);
+  int32 expires = 0;
+  switch (proxy_data_ptr->get_id()) {
+    case telegram_api::help_proxyDataEmpty::ID: {
+      auto proxy = telegram_api::move_object_as<telegram_api::help_proxyDataEmpty>(proxy_data_ptr);
+      expires = proxy->expires_;
+      send_closure(G()->messages_manager(), &MessagesManager::on_get_promoted_dialog_id, nullptr,
+                   vector<tl_object_ptr<telegram_api::User>>(), vector<tl_object_ptr<telegram_api::Chat>>());
+      break;
+    }
+    case telegram_api::help_proxyDataPromo::ID: {
+      auto proxy = telegram_api::move_object_as<telegram_api::help_proxyDataPromo>(proxy_data_ptr);
+      expires = proxy->expires_;
+      send_closure(G()->messages_manager(), &MessagesManager::on_get_promoted_dialog_id, std::move(proxy->peer_),
+                   std::move(proxy->users_), std::move(proxy->chats_));
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+  if (expires != 0) {
+    expires -= G()->unix_time();
+  }
+  schedule_get_proxy_info(expires);
+}
+
+void ConnectionCreator::schedule_get_proxy_info(int32 expires) {
+  if (expires < 0) {
+    LOG(ERROR) << "Receive wrong expires: " << expires;
+    expires = 0;
+  }
+  if (expires != 0 && expires < 60) {
+    expires = 60;
+  }
+  if (expires > 86400) {
+    expires = 86400;
+  }
+  get_proxy_info_timestamp_ = Timestamp::in(expires);
+}
+
+void ConnectionCreator::on_proxy_resolved(Result<IPAddress> r_ip_address, bool dummy) {
   if (get_link_token() != resolve_proxy_query_token_) {
     return;
   }
+
+  SCOPE_EXIT {
+    loop();
+  };
+
   resolve_proxy_query_token_ = 0;
   if (r_ip_address.is_error()) {
     resolve_proxy_timestamp_ = Timestamp::in(1 * 60);
     return;
   }
   proxy_ip_address_ = r_ip_address.move_as_ok();
-  proxy_ip_address_.set_port(proxy_.port());
   resolve_proxy_timestamp_ = Timestamp::in(5 * 60);
   for (auto &client : clients_) {
     client_loop(client.second);

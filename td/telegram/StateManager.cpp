@@ -14,6 +14,7 @@
 #include "td/utils/Time.h"
 
 namespace td {
+
 void StateManager::inc_connect() {
   auto &cnt = get_link_token() == 1 ? connect_cnt_ : connect_proxy_cnt_;
   cnt++;
@@ -48,6 +49,7 @@ void StateManager::on_synchronized(bool is_synchronized) {
 void StateManager::on_network(NetType new_network_type) {
   do_on_network(new_network_type, true /*inc_generation*/);
 }
+
 void StateManager::do_on_network(NetType new_network_type, bool inc_generation) {
   bool new_network_flag = new_network_type != NetType::None;
   if (network_flag_ != new_network_flag) {
@@ -176,4 +178,5 @@ void StateManager::loop() {
     has_timestamp_ = false;
   }
 }
+
 }  // namespace td

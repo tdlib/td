@@ -221,7 +221,7 @@ class Global : public ActorContext {
   ActorId<TempAuthKeyWatchdog> temp_auth_key_watchdog() const;
   void set_temp_auth_key_watchdog(ActorOwn<TempAuthKeyWatchdog> actor);
 
-  const MtprotoHeader &mtproto_header() const;
+  MtprotoHeader &mtproto_header();
   void set_mtproto_header(std::unique_ptr<MtprotoHeader> mtproto_header);
 
   const TdParameters &parameters() const {

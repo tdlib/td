@@ -24,8 +24,13 @@ class MtprotoHeader {
     Proxy proxy;
   };
 
-  explicit MtprotoHeader(const Options &options)
-      : default_header_(gen_header(options, false)), anonymous_header_(gen_header(options, true)) {
+  explicit MtprotoHeader(const Options &options) : options_(options) {
+    gen_headers();
+  }
+
+  void set_proxy(Proxy proxy) {
+    options_.proxy = proxy;
+    default_header_ = gen_header(options_, false);
   }
 
   Slice get_default_header() const {
@@ -36,8 +41,14 @@ class MtprotoHeader {
   }
 
  private:
+  Options options_;
   string default_header_;
   string anonymous_header_;
+
+  void gen_headers() {
+    default_header_ = gen_header(options_, false);
+    anonymous_header_ = gen_header(options_, true);
+  }
 
   static string gen_header(const Options &options, bool is_anonymous);
 };

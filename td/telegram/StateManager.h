@@ -14,6 +14,7 @@
 #include "td/utils/common.h"
 
 namespace td {
+
 class StateManager final : public Actor {
  public:
   enum class State : int32 { WaitingForNetwork, ConnectingToProxy, Connecting, Updating, Ready, Empty };
@@ -131,4 +132,5 @@ class StateManager final : public Actor {
     return ConnectionToken(std::move(actor));
   }
 };
+
 }  // namespace td

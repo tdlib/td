@@ -304,6 +304,7 @@ Status TdDb::init_sqlite(int32 scheduler_id, const TdParameters &parameters, DbK
   if (dialog_db_was_created) {
     binlog_pmc.erase("unread_message_count");
     binlog_pmc.erase("last_server_dialog_date");
+    binlog_pmc.erase("promoted_dialog_id");
   }
   if (db_version == 0) {
     binlog_pmc.erase_by_prefix("top_dialogs");

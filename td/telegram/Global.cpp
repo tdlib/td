@@ -51,7 +51,7 @@ void Global::set_temp_auth_key_watchdog(ActorOwn<TempAuthKeyWatchdog> actor) {
   temp_auth_key_watchdog_ = std::move(actor);
 }
 
-const MtprotoHeader &Global::mtproto_header() const {
+MtprotoHeader &Global::mtproto_header() {
   return *mtproto_header_;
 }
 void Global::set_mtproto_header(std::unique_ptr<MtprotoHeader> mtproto_header) {
