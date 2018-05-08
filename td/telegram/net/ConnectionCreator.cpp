@@ -20,6 +20,7 @@
 
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Time.h"
@@ -396,7 +397,8 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
         TRY_RESULT(info, dc_options_set_.find_connection(dc_id, allow_media_only, use_proxy));
         stat = nullptr;
         int16 raw_dc_id = narrow_cast<int16>(info.option->is_media_only() ? -dc_id.get_raw_id() : dc_id.get_raw_id());
-        transport_type = {mtproto::TransportType::ObfuscatedTcp, raw_dc_id, proxy_.secret().str()};
+        TRY_RESULT(secret, hex_decode(proxy_.secret()));
+        transport_type = {mtproto::TransportType::ObfuscatedTcp, raw_dc_id, std::move(secret)};
 
         debug_str = PSTRING() << "Mtproto " << proxy_ip_address_ << " to DC" << raw_dc_id;
         LOG(INFO) << "Create: " << debug_str;
