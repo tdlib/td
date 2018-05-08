@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include "td/telegram/net/ConnectionCreator.h"
+
 #include "td/utils/common.h"
 #include "td/utils/Slice.h"
 
@@ -19,6 +21,7 @@ class MtprotoHeader {
     string device_model;
     string system_version;
     string application_version;
+    Proxy proxy;
   };
 
   explicit MtprotoHeader(const Options &options)

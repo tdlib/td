@@ -4942,6 +4942,7 @@ Status Td::set_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters
     options.application_version += ", TDLib ";
     options.application_version += TDLIB_VERSION;
   }
+  options.proxy = Proxy();
   G()->set_mtproto_header(std::make_unique<MtprotoHeader>(options));
 
   state_ = State::Decrypt;

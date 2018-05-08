@@ -24,9 +24,16 @@ class HeaderStorer {
     // invokeWithLayer#da9b0d0d {X:Type} layer:int query:!X = X;
     store(static_cast<int32>(0xda9b0d0d), storer);
     store(LAYER, storer);
-    // initConnection#c7481da6 {X:Type} api_id:int device_model:string system_version:string app_version:string
-    // system_lang_code:string lang_pack:string lang_code:string query:!X = X;
-    store(static_cast<int32>(0xc7481da6), storer);
+    // initConnection#785188b8 {X:Type} flags:# api_id:int device_model:string system_version:string app_version:string
+    // system_lang_code:string lang_pack:string lang_code:string proxy:flags.0?InputClientProxy query:!X = X;
+    store(static_cast<int32>(0x785188b8), storer);
+    int32 flags = 0;
+    /*
+    if (!is_anonymous && proxy.type() == Proxy::Type::Mtproto) {
+      flags |= 1 << 0;
+    }
+    */
+    store(flags, storer);
     store(options.api_id, storer);
     if (is_anonymous) {
       store(Slice("n/a"), storer);
@@ -39,6 +46,9 @@ class HeaderStorer {
     store(options.system_language_code, storer);
     store(string(), storer);
     store(string(), storer);
+    if ((flags & 1) != 0) {
+      // TODO
+    }
   }
 
  private:
