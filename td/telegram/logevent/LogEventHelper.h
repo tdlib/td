@@ -17,7 +17,7 @@
 
 namespace td {
 
-Promise<Unit> get_erase_logevent_promise(uint64 logevent_id, Promise<Unit> promise = Promise<Unit>()) {
+inline Promise<Unit> get_erase_logevent_promise(uint64 logevent_id, Promise<Unit> promise = Promise<Unit>()) {
   if (logevent_id == 0) {
     return promise;
   }

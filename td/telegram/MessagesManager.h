@@ -2631,7 +2631,9 @@ class MessagesManager : public Actor {
   void load_calls_db_state();
   void save_calls_db_state();
 
-  static constexpr bool is_debug_message_op_enabled();
+  static constexpr bool is_debug_message_op_enabled() {
+    return !LOG_IS_STRIPPED(ERROR) && false;
+  }
 
   static void dump_debug_message_op(const Dialog *d, int priority = 0);
 

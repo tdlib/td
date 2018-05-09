@@ -4260,7 +4260,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
 }
 
 template <class StorerT>
-void store(const DialogNotificationSettings &notification_settings, StorerT &storer) {
+static void store(const DialogNotificationSettings &notification_settings, StorerT &storer) {
   bool is_muted = !notification_settings.use_default_mute_until && notification_settings.mute_until != 0 &&
                   notification_settings.mute_until > G()->unix_time();
   bool has_sound = !notification_settings.use_default_sound && notification_settings.sound != "default";
@@ -4284,7 +4284,7 @@ void store(const DialogNotificationSettings &notification_settings, StorerT &sto
 }
 
 template <class ParserT>
-void parse(DialogNotificationSettings &notification_settings, ParserT &parser) {
+static void parse(DialogNotificationSettings &notification_settings, ParserT &parser) {
   bool is_muted;
   bool has_sound;
   BEGIN_PARSE_FLAGS();
@@ -4307,7 +4307,7 @@ void parse(DialogNotificationSettings &notification_settings, ParserT &parser) {
 }
 
 template <class StorerT>
-void store(const ScopeNotificationSettings &notification_settings, StorerT &storer) {
+static void store(const ScopeNotificationSettings &notification_settings, StorerT &storer) {
   bool is_muted = notification_settings.mute_until != 0 && notification_settings.mute_until > G()->unix_time();
   bool has_sound = notification_settings.sound != "default";
   BEGIN_STORE_FLAGS();
@@ -4326,7 +4326,7 @@ void store(const ScopeNotificationSettings &notification_settings, StorerT &stor
 }
 
 template <class ParserT>
-void parse(ScopeNotificationSettings &notification_settings, ParserT &parser) {
+static void parse(ScopeNotificationSettings &notification_settings, ParserT &parser) {
   bool is_muted;
   bool has_sound;
   bool silent_send_message_ignored;
@@ -4347,7 +4347,7 @@ void parse(ScopeNotificationSettings &notification_settings, ParserT &parser) {
 }
 
 template <class StorerT>
-void store(const InputMessageText &input_message_text, StorerT &storer) {
+static void store(const InputMessageText &input_message_text, StorerT &storer) {
   BEGIN_STORE_FLAGS();
   STORE_FLAG(input_message_text.disable_web_page_preview);
   STORE_FLAG(input_message_text.clear_draft);
@@ -4356,7 +4356,7 @@ void store(const InputMessageText &input_message_text, StorerT &storer) {
 }
 
 template <class ParserT>
-void parse(InputMessageText &input_message_text, ParserT &parser) {
+static void parse(InputMessageText &input_message_text, ParserT &parser) {
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(input_message_text.disable_web_page_preview);
   PARSE_FLAG(input_message_text.clear_draft);
@@ -4365,14 +4365,14 @@ void parse(InputMessageText &input_message_text, ParserT &parser) {
 }
 
 template <class StorerT>
-void store(const DraftMessage &draft_message, StorerT &storer) {
+static void store(const DraftMessage &draft_message, StorerT &storer) {
   store(draft_message.date, storer);
   store(draft_message.reply_to_message_id, storer);
   store(draft_message.input_message_text, storer);
 }
 
 template <class ParserT>
-void parse(DraftMessage &draft_message, ParserT &parser) {
+static void parse(DraftMessage &draft_message, ParserT &parser) {
   parse(draft_message.date, parser);
   parse(draft_message.reply_to_message_id, parser);
   parse(draft_message.input_message_text, parser);
@@ -4601,7 +4601,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
 }
 
 template <class StorerT>
-void store(const CallsDbState &state, StorerT &storer) {
+static void store(const CallsDbState &state, StorerT &storer) {
   store(static_cast<int32>(state.first_calls_database_message_id_by_index.size()), storer);
   for (auto first_message_id : state.first_calls_database_message_id_by_index) {
     store(first_message_id, storer);
@@ -4613,7 +4613,7 @@ void store(const CallsDbState &state, StorerT &storer) {
 }
 
 template <class ParserT>
-void parse(CallsDbState &state, ParserT &parser) {
+static void parse(CallsDbState &state, ParserT &parser) {
   int32 size;
   parse(size, parser);
   CHECK(static_cast<size_t>(size) <= state.first_calls_database_message_id_by_index.size())
@@ -11129,10 +11129,6 @@ void MessagesManager::on_get_dialogs(vector<tl_object_ptr<telegram_api::dialog>>
     }
   }
   promise.set_value(Unit());
-}
-
-constexpr bool MessagesManager::is_debug_message_op_enabled() {
-  return !LOG_IS_STRIPPED(ERROR) && false;
 }
 
 void MessagesManager::dump_debug_message_op(const Dialog *d, int priority) {
