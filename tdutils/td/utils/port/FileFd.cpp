@@ -345,7 +345,7 @@ Status FileFd::lock(FileFd::LockFlags flags, int32 max_tries) {
 
     lock.l_whence = SEEK_SET;
     if (fcntl(get_native_fd(), F_SETLK, &lock) == -1) {
-      if (errno == EAGAIN && --max_tries > 0) {
+      if (errno == EAGAIN) {
 #elif TD_PORT_WINDOWS
     OVERLAPPED overlapped;
     std::memset(&overlapped, 0, sizeof(overlapped));
@@ -363,10 +363,14 @@ Status FileFd::lock(FileFd::LockFlags flags, int32 max_tries) {
     }
 
     if (!result) {
-      if (GetLastError() == ERROR_LOCK_VIOLATION && --max_tries > 0) {
+      if (GetLastError() == ERROR_LOCK_VIOLATION) {
 #endif
-        usleep_for(100000);
-        continue;
+        if (--max_tries > 0) {
+          usleep_for(100000);
+          continue;
+        }
+
+        return OS_ERROR("Can't lock file because it is already in use; check for another program instance running");
       }
 
       return OS_ERROR("Can't lock file");
