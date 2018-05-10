@@ -14827,7 +14827,7 @@ void MessagesManager::load_messages(DialogId dialog_id, MessageId from_message_i
   } else {
     // get history around some server or local message
     int32 messages_to_load = max(MAX_GET_HISTORY, limit);
-    int32 max_add = messages_to_load - limit;
+    int32 max_add = max(messages_to_load - limit - 2, 0);
     offset -= max_add;
     limit = MAX_GET_HISTORY;
   }
