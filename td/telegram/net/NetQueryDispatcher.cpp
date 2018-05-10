@@ -221,6 +221,19 @@ void NetQueryDispatcher::update_use_pfs() {
     }
   }
 }
+
+void NetQueryDispatcher::update_mtproto_header() {
+  std::lock_guard<std::mutex> guard(main_dc_id_mutex_);
+  for (size_t i = 1; i < MAX_DC_COUNT; i++) {
+    if (is_dc_inited(narrow_cast<int32>(i))) {
+      send_closure_later(dcs_[i - 1].main_session_, &SessionMultiProxy::update_mtproto_header);
+      send_closure_later(dcs_[i - 1].upload_session_, &SessionMultiProxy::update_mtproto_header);
+      send_closure_later(dcs_[i - 1].download_session_, &SessionMultiProxy::update_mtproto_header);
+      send_closure_later(dcs_[i - 1].download_small_session_, &SessionMultiProxy::update_mtproto_header);
+    }
+  }
+}
+
 void NetQueryDispatcher::update_valid_dc(DcId dc_id) {
   wait_dc_init(dc_id, true);
 }

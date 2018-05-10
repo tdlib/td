@@ -32,6 +32,7 @@ class SessionMultiProxy : public Actor {
   void update_session_count(int32 session_count);
   void update_use_pfs(bool use_pfs);
   void update_options(int32 session_count, bool use_pfs);
+  void update_mtproto_header();
 
  private:
   size_t pos_ = 0;

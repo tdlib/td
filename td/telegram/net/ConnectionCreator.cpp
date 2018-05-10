@@ -229,8 +229,13 @@ void ConnectionCreator::set_proxy_impl(Proxy proxy, bool from_db) {
     return;
   }
 
+  if (proxy_.type() == Proxy::Type::Mtproto || proxy.type() == Proxy::Type::Mtproto) {
+    G()->mtproto_header().set_proxy(proxy);
+    G()->net_query_dispatcher().update_mtproto_header();
+  }
+
   proxy_ = std::move(proxy);
-  G()->mtproto_header().set_proxy(proxy_);
+
   send_closure(G()->state_manager(), &StateManager::on_proxy, have_proxy);
 
   if (!from_db) {

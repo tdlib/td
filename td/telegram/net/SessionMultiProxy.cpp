@@ -87,6 +87,10 @@ void SessionMultiProxy::update_options(int32 session_count, bool use_pfs) {
   }
 }
 
+void SessionMultiProxy::update_mtproto_header() {
+  init();
+}
+
 void SessionMultiProxy::start_up() {
   init();
 }
