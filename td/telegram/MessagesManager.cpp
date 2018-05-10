@@ -24270,11 +24270,14 @@ void MessagesManager::update_dialog_pos(Dialog *d, bool remove_from_dialog_list,
         }
       }
     }
-    if (new_order == DEFAULT_ORDER && !d->is_empty) {
+    if (d->dialog_id != promoted_dialog_id_ && new_order == DEFAULT_ORDER && !d->is_empty) {
       // if there is no known messages in the dialog, just leave it where it is
       LOG(INFO) << "There is no known messages in the dialog";
       return;
     }
+  }
+  if (new_order == DEFAULT_ORDER && d->dialog_id == promoted_dialog_id_) {
+    new_order = static_cast<int64>(2147483647) << 32;
   }
 
   if (set_dialog_order(d, new_order, need_send_update_chat_order)) {
@@ -25879,14 +25882,20 @@ void MessagesManager::set_promoted_dialog_id(DialogId dialog_id) {
     return;
   }
 
-  promoted_dialog_id_ = dialog_id;
+  if (promoted_dialog_id_.is_valid()) {
+    Dialog *d = get_dialog(promoted_dialog_id_);
+    CHECK(d != nullptr);
+    promoted_dialog_id_ = DialogId();
+    update_dialog_pos(d, false, "delete_promoted_dialog_id");
+  }
+
   if (dialog_id.is_valid()) {
     force_create_dialog(dialog_id, "set_promoted_dialog_id");
-    /*
+
     Dialog *d = get_dialog(dialog_id);
     CHECK(d != nullptr);
+    promoted_dialog_id_ = dialog_id;
     update_dialog_pos(d, false, "set_promoted_dialog_id");
-    */
   }
 
   if (G()->parameters().use_message_db) {
