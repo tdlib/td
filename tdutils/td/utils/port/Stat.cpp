@@ -56,6 +56,19 @@ struct TimeNsec {
   }
 };
 
+// remove libc compatibility hacks if any: we have our own hacks
+#ifdef st_atimespec
+#undef st_atimespec
+#endif
+
+#ifdef st_atimensec
+#undef st_atimensec
+#endif
+
+#ifdef st_atime_nsec
+#undef st_atime_nsec
+#endif
+
 template <class T>
 struct TimeNsec<T, void_t<char, decltype(T::st_atimespec), decltype(T::st_mtimespec)>> {
   static std::pair<decltype(decltype(T::st_atimespec)::tv_nsec), decltype(decltype(T::st_mtimespec)::tv_nsec)> get(
@@ -75,6 +88,13 @@ template <class T>
 struct TimeNsec<T, void_t<int, decltype(T::st_atim), decltype(T::st_mtim)>> {
   static std::pair<decltype(decltype(T::st_atim)::tv_nsec), decltype(decltype(T::st_mtim)::tv_nsec)> get(const T &s) {
     return {s.st_atim.tv_nsec, s.st_mtim.tv_nsec};
+  }
+};
+
+template <class T>
+struct TimeNsec<T, void_t<long, decltype(T::st_atime_nsec), decltype(T::st_mtime_nsec)>> {
+  static std::pair<decltype(T::st_atime_nsec), decltype(T::st_mtime_nsec)> get(const T &s) {
+    return {s.st_atime_nsec, s.st_mtime_nsec};
   }
 };
 
