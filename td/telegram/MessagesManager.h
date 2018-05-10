@@ -2101,6 +2101,8 @@ class MessagesManager : public Actor {
 
   void repair_server_unread_count(DialogId dialog_id, int32 unread_count);
 
+  void repair_channel_server_unread_count(Dialog *d);
+
   void read_history_inbox(DialogId dialog_id, MessageId max_message_id, int32 unread_count, const char *source);
 
   void read_history_outbox(DialogId dialog_id, MessageId max_message_id, int32 read_date = -1);

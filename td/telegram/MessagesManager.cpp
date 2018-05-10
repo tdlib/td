@@ -8835,6 +8835,19 @@ void MessagesManager::repair_server_unread_count(DialogId dialog_id, int32 unrea
       .release();
 }
 
+void MessagesManager::repair_channel_server_unread_count(Dialog *d) {
+  CHECK(d != nullptr);
+  CHECK(d->dialog_id.get_type() == DialogType::Channel);
+
+  if (d->last_read_inbox_message_id.get() >= d->last_new_message_id.get()) {
+    // all messages are already read
+    return;
+  }
+
+  LOG(INFO) << "Reload ChannelFull for " << d->dialog_id << " to repair unread message counts";
+  td_->contacts_manager_->get_channel_full(d->dialog_id.get_channel_id(), Auto());
+}
+
 void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_message_id, int32 unread_count,
                                          const char *source) {
   if (td_->auth_manager_->is_bot()) {
@@ -24338,8 +24351,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
     }
 
     if (d->dialog_id.get_type() == DialogType::Channel && d->order == DEFAULT_ORDER) {
-      LOG(INFO) << "Reload ChannelFull for " << d->dialog_id << " to repair unread message counts";
-      td_->contacts_manager_->get_channel_full(d->dialog_id.get_channel_id(), Auto());
+      repair_channel_server_unread_count(d);
     }
   }
 
@@ -24633,6 +24645,10 @@ void MessagesManager::process_get_channel_difference_updates(
     }
   }
 
+  // if last message is pretty old, we might have missed the update
+  bool need_repair_unread_count =
+      !new_messages.empty() && get_message_date(new_messages.back()) < G()->unix_time() - 2 * 86400;
+
   for (auto &message : new_messages) {
     on_get_message(std::move(message), true, true, true, true, "get channel difference");
   }
@@ -24653,6 +24669,10 @@ void MessagesManager::process_get_channel_difference_updates(
     }
   }
   CHECK(!running_get_channel_difference(dialog_id)) << '"' << active_get_channel_differencies_[dialog_id] << '"';
+
+  if (need_repair_unread_count) {
+    repair_channel_server_unread_count(get_dialog(dialog_id));
+  }
 }
 
 void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_message_id,
@@ -24965,9 +24985,6 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
 
     on_get_dialogs(std::move(res.dialogs), res.total_count, std::move(res.messages), std::move(res.promise));
   }
-
-  // to repair unread message counts
-  td_->contacts_manager_->get_channel_full(dialog_id.get_channel_id(), Auto());
 
   // TODO resend some messages
 }
