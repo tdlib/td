@@ -88,8 +88,6 @@ inline String^ string_from_unmanaged(const std::string &from) {
 
 #elif TD_CLI
 
-#include <msclr\marshal_cppstd.h>
-
 #define REF_NEW gcnew
 #define CLRCALL __clrcall
 
@@ -118,14 +116,27 @@ inline std::int64_t Increment(std::int64_t %value) {
 }
 
 inline std::string string_to_unmanaged(String^ str) {
-  if (!str) {
+  if (!str || str->Length == 0) {
     return std::string();
   }
-  return msclr::interop::marshal_as<std::string>(str);
+
+  Array<System::Byte>^ bytes = System::Text::Encoding::UTF8->GetBytes(str);
+  cli::pin_ptr<System::Byte> pinned_ptr = &bytes[0];
+  std::string result(reinterpret_cast<const char *>(&pinned_ptr[0]), bytes->Length);
+  return result;
 }
 
 inline String^ string_from_unmanaged(const std::string &from) {
-  return msclr::interop::marshal_as<String^>(from);
+  if (from.empty()) {
+    return String::Empty;
+  }
+
+  Array<System::Byte>^ bytes = REF_NEW Vector<System::Byte>(static_cast<ArrayIndexType>(from.size()));
+  cli::pin_ptr<System::Byte> pinned_ptr = &bytes[0];
+  for (size_t i = 0; i < from.size(); ++i) {
+    pinned_ptr[i] = from[i];
+  }
+  return System::Text::Encoding::UTF8->GetString(bytes);
 }
 
 } // namespace CxCli
