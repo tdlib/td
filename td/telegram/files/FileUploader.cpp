@@ -36,6 +36,9 @@ FileUploader::FileUploader(const LocalFileLocation &local, const RemoteFileLocat
     iv_ = encryption_key_.mutable_iv();
     generate_iv_ = encryption_key_.iv_slice().str();
   }
+  if (remote_.type() == RemoteFileLocation::Type::Partial && encryption_key_.is_secure()) {
+    remote_ = RemoteFileLocation{};
+  }
 }
 
 Result<FileLoader::FileInfo> FileUploader::init() {
