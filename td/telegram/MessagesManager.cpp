@@ -19948,6 +19948,10 @@ void MessagesManager::send_get_dialog_notification_settings_query(DialogId dialo
     return;
   }
 
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access the chat"));
+  }
+
   td_->create_handler<GetDialogNotifySettingsQuery>()->send(dialog_id);
 }
 
