@@ -376,7 +376,8 @@ class TlWriterDotNet : public TL_writer {
       } else {
         ss << ", ";
       }
-      ss << (gen_field_type(it) == "Array<byte>^" ? "Bytes" : "") << "FromUnmanaged(from." << gen_native_field_name(it.name) << ")";
+      bool need_bytes = gen_field_type(it) == "Array<byte>^" || gen_field_type(it) == "Array<Array<byte>^>^";
+      ss << (need_bytes ? "Bytes" : "") << "FromUnmanaged(from." << gen_native_field_name(it.name) << ")";
     }
     ss << ");\n}\n";
   }
