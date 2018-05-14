@@ -262,6 +262,7 @@ void ConnectionCreator::add_proxy(string server, int32 port, bool enable,
     proxies_.emplace(proxy_id, std::move(new_proxy));
     G()->td_db()->get_binlog_pmc()->set(get_proxy_database_key(proxy_id),
                                         log_event_store(proxies_[proxy_id]).as_slice().str());
+    return proxy_id;
   }();
   if (enable) {
     enable_proxy_impl(proxy_id);
