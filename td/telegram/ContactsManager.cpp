@@ -6021,8 +6021,9 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     }
   }
   if (u->is_status_changed && user_id != get_my_id("update_user")) {
-    if (u->was_online >= G()->unix_time_cached()) {
-      auto left_time = u->was_online - G()->server_time_cached() + 2.0;
+    auto left_time = u->was_online - G()->server_time_cached();
+    if (left_time >= 0 && left_time < 30 * 86400) {
+      left_time += 2.0;  // to guarantee expiration
       LOG(DEBUG) << "Set online timeout for " << user_id << " in " << left_time;
       user_online_timeout_.set_timeout_in(user_id.get(), left_time);
     } else {
