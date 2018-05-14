@@ -47,40 +47,6 @@ namespace td {
 
 class Proxy {
  public:
-  tl_object_ptr<td_api::Proxy> as_td_api() const {
-    switch (type_) {
-      case Type::None:
-        return make_tl_object<td_api::proxyEmpty>();
-      case Type::Socks5:
-        return make_tl_object<td_api::proxySocks5>(server_, port_, user_, password_);
-      case Type::Mtproto:
-        return make_tl_object<td_api::proxyMtproto>(server_, port_, secret_);
-    }
-    UNREACHABLE();
-    return nullptr;
-  }
-
-  static Proxy from_td_api(const tl_object_ptr<td_api::Proxy> &proxy) {
-    if (proxy == nullptr) {
-      return Proxy();
-    }
-
-    switch (proxy->get_id()) {
-      case td_api::proxyEmpty::ID:
-        return Proxy();
-      case td_api::proxySocks5::ID: {
-        auto &socks5_proxy = static_cast<const td_api::proxySocks5 &>(*proxy);
-        return Proxy::socks5(socks5_proxy.server_, socks5_proxy.port_, socks5_proxy.username_, socks5_proxy.password_);
-      }
-      case td_api::proxyMtproto::ID: {
-        auto &mtproto_proxy = static_cast<const td_api::proxyMtproto &>(*proxy);
-        return Proxy::mtproto(mtproto_proxy.server_, mtproto_proxy.port_, mtproto_proxy.secret_);
-      }
-    }
-    UNREACHABLE();
-    return Proxy();
-  }
-
   static Proxy socks5(string server, int32 port, string user, string password) {
     Proxy proxy;
     proxy.type_ = Type::Socks5;
@@ -165,8 +131,13 @@ class ConnectionCreator : public NetQueryCallback {
   void set_net_stats_callback(std::shared_ptr<NetStatsCallback> common_callback,
                               std::shared_ptr<NetStatsCallback> media_callback);
 
-  void set_proxy(Proxy proxy);
-  void get_proxy(Promise<Proxy> promise);
+  void add_proxy(string server, int32 port, bool enable, td_api::object_ptr<td_api::ProxyType> proxy_type,
+                 Promise<td_api::object_ptr<td_api::proxy>> promise);
+  void enable_proxy(int32 proxy_id, Promise<Unit> promise);
+  void disable_proxy(Promise<Unit> promise);
+  void remove_proxy(int32 proxy_id, Promise<Unit> promise);
+  void get_proxies(Promise<td_api::object_ptr<td_api::proxies>> promise);
+  void ping_proxy(int32 proxy_id, Promise<double> promise);
 
  private:
   ActorShared<> parent_;
@@ -174,8 +145,12 @@ class ConnectionCreator : public NetQueryCallback {
   bool network_flag_ = false;
   uint32 network_generation_ = 0;
   bool online_flag_ = false;
+  bool is_inited_ = false;
 
-  Proxy proxy_;
+  std::map<int32, Proxy> proxies_;
+  std::map<int32, int32> proxy_last_used_date_;
+  int32 max_proxy_id_ = 0;
+  int32 active_proxy_id_ = 0;
   ActorOwn<GetHostByNameActor> get_host_by_name_actor_;
   IPAddress proxy_ip_address_;
   Timestamp resolve_proxy_timestamp_;
@@ -243,7 +218,13 @@ class ConnectionCreator : public NetQueryCallback {
   uint64 next_token() {
     return ++current_token_;
   }
-  void set_proxy_impl(Proxy proxy, bool from_db);
+
+  void enable_proxy_impl(int32 proxy_id);
+  void disable_proxy_impl();
+  void on_proxy_changed(bool from_db);
+  static string get_proxy_database_key(int32 proxy_id);
+  static string get_proxy_used_database_key(int32 proxy_id);
+  td_api::object_ptr<td_api::proxy> get_proxy_object(int32 proxy_id) const;
 
   void start_up() override;
   void hangup_shared() override;

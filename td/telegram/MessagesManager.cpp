@@ -25903,7 +25903,11 @@ void MessagesManager::set_promoted_dialog_id(DialogId dialog_id) {
   }
 
   if (G()->parameters().use_message_db) {
-    G()->td_db()->get_binlog_pmc()->set("promoted_dialog_id", to_string(promoted_dialog_id_.get()));
+    if (promoted_dialog_id_.is_valid()) {
+      G()->td_db()->get_binlog_pmc()->set("promoted_dialog_id", to_string(promoted_dialog_id_.get()));
+    } else {
+      G()->td_db()->get_binlog_pmc()->erase("promoted_dialog_id");
+    }
     LOG(INFO) << "Save promoted " << promoted_dialog_id_;
   }
 

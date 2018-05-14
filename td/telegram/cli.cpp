@@ -437,10 +437,6 @@ class CliClient final : public Actor {
     return to_integer<int32>(trim(std::move(str)));
   }
 
-  static int32 as_call_id(string str) {
-    return to_integer<int32>(trim(std::move(str)));
-  }
-
   static td_api::object_ptr<td_api::InputFile> as_input_file_id(string str) {
     return make_tl_object<td_api::inputFileId>(as_file_id(str));
   }
@@ -471,6 +467,14 @@ class CliClient final : public Actor {
       return as_generated_file(res.first, res.second);
     }
     return as_local_file(str);
+  }
+
+  static int32 as_call_id(string str) {
+    return to_integer<int32>(trim(std::move(str)));
+  }
+
+  static int32 as_proxy_id(string str) {
+    return to_integer<int32>(trim(std::move(str)));
   }
 
   static tl_object_ptr<td_api::location> as_location(string latitude, string longitude) {
@@ -3052,9 +3056,13 @@ class CliClient final : public Actor {
                                                                 as_message_ids(message_ids)));
     } else if (op == "gdiff") {
       send_request(make_tl_object<td_api::testGetDifference>());
-    } else if (op == "cproxy") {
-      send_request(make_tl_object<td_api::setProxy>(make_tl_object<td_api::proxyEmpty>()));
-    } else if (op == "sproxy") {
+    } else if (op == "dproxy") {
+      send_request(make_tl_object<td_api::disableProxy>());
+    } else if (op == "eproxy") {
+      send_request(make_tl_object<td_api::enableProxy>(as_proxy_id(args)));
+    } else if (op == "rproxy") {
+      send_request(make_tl_object<td_api::removeProxy>(as_proxy_id(args)));
+    } else if (op == "aproxy" || op == "aeproxy") {
       string server;
       string port;
       string user;
@@ -3062,15 +3070,17 @@ class CliClient final : public Actor {
       std::tie(server, args) = split(args);
       std::tie(port, args) = split(args);
       std::tie(user, password) = split(args);
+      td_api::object_ptr<td_api::ProxyType> type;
       if (!user.empty() && password.empty()) {
-        send_request(make_tl_object<td_api::setProxy>(
-            make_tl_object<td_api::proxyMtproto>(server, to_integer<int32>(port), user)));
+        type = make_tl_object<td_api::proxyTypeMtproto>(user);
       } else {
-        send_request(make_tl_object<td_api::setProxy>(
-            make_tl_object<td_api::proxySocks5>(server, to_integer<int32>(port), user, password)));
+        type = make_tl_object<td_api::proxyTypeSocks5>(user, password);
       }
-    } else if (op == "gproxy") {
-      send_request(make_tl_object<td_api::getProxy>());
+      send_request(make_tl_object<td_api::addProxy>(server, to_integer<int32>(port), op == "aeproxy", std::move(type)));
+    } else if (op == "gproxy" || op == "gproxies") {
+      send_request(make_tl_object<td_api::getProxies>());
+    } else if (op == "pproxy") {
+      send_request(make_tl_object<td_api::pingProxy>(as_proxy_id(args)));
     } else if (op == "touch") {
       auto r_fd = FileFd::open(args, FileFd::Read | FileFd::Write);
       if (r_fd.is_error()) {
@@ -3083,7 +3093,7 @@ class CliClient final : public Actor {
       fd.write("a").ignore();
       fd.seek(size).ignore();
       fd.truncate_to_current_position(size).ignore();
-    } else if (op == "SetVerbosity") {
+    } else if (op == "SetVerbosity" || op == "SV") {
       td::Log::set_verbosity_level(to_integer<int>(args));
     } else if (op == "q" || op == "Quit") {
       quit();

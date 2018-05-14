@@ -37,6 +37,7 @@
 namespace td {
 
 namespace detail {
+
 class GenAuthKeyActor : public Actor {
  public:
   GenAuthKeyActor(std::unique_ptr<mtproto::AuthKeyHandshake> handshake,
@@ -83,13 +84,16 @@ class GenAuthKeyActor : public Actor {
       handshake_promise_.set_value(std::move(handshake_));
       return;
     }
+
     auto raw_connection = r_raw_connection.move_as_ok();
+    VLOG(dc) << "Receive raw connection " << raw_connection.get();
     network_generation_ = raw_connection->extra_;
     child_ = create_actor_on_scheduler<mtproto::HandshakeActor>(
         "HandshakeActor", G()->get_slow_net_scheduler_id(), std::move(handshake_), std::move(raw_connection),
         std::move(context_), 10, std::move(connection_promise_), std::move(handshake_promise_));
   }
 };
+
 }  // namespace detail
 
 Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data, bool is_main,
@@ -178,7 +182,7 @@ void Session::connection_online_update(bool force) {
     return;
   }
   connection_online_flag_ = new_connection_online_flag;
-  LOG(INFO) << "Set connection_online " << connection_online_flag_;
+  VLOG(dc) << "Set connection_online " << connection_online_flag_;
   if (is_main_) {
     if (main_connection_.connection) {
       main_connection_.connection->set_online(connection_online_flag_);
@@ -847,9 +851,10 @@ void Session::connection_open(ConnectionInfo *info, bool ask_info) {
       });
 
   if (cached_connection_) {
-    LOG(INFO) << "Reuse cached connection";
+    VLOG(dc) << "Reuse cached connection";
     promise.set_value(std::move(cached_connection_));
   } else {
+    VLOG(dc) << "Request new connection";
     callback_->request_raw_connection(std::move(promise));
   }
 
@@ -857,7 +862,7 @@ void Session::connection_open(ConnectionInfo *info, bool ask_info) {
 }
 
 void Session::connection_add(std::unique_ptr<mtproto::RawConnection> raw_connection) {
-  LOG(INFO) << "Cache connection";
+  VLOG(dc) << "Cache connection " << raw_connection.get();
   cached_connection_ = std::move(raw_connection);
   cached_connection_timestamp_ = Time::now();
 }
@@ -875,10 +880,10 @@ void Session::connection_check_mode(ConnectionInfo *info) {
 void Session::connection_open_finish(ConnectionInfo *info,
                                      Result<std::unique_ptr<mtproto::RawConnection>> r_raw_connection) {
   if (close_flag_ || info->state != ConnectionInfo::State::Connecting) {
+    VLOG(dc) << "Ignore raw connection while closing";
     return;
   }
   current_info_ = info;
-  // Create new connection
   if (r_raw_connection.is_error()) {
     LOG(WARNING) << "Failed to open socket: " << r_raw_connection.error();
     info->state = ConnectionInfo::State::Empty;
@@ -887,6 +892,7 @@ void Session::connection_open_finish(ConnectionInfo *info,
   }
 
   auto raw_connection = r_raw_connection.move_as_ok();
+  VLOG(dc) << "Receive raw connection " << raw_connection.get();
   if (raw_connection->extra_ != network_generation_) {
     LOG(WARNING) << "Got RawConnection with old network_generation";
     info->state = ConnectionInfo::State::Empty;
@@ -897,10 +903,10 @@ void Session::connection_open_finish(ConnectionInfo *info,
   Mode expected_mode =
       raw_connection->get_transport_type().type == mtproto::TransportType::Http ? Mode::Http : Mode::Tcp;
   if (mode_ != expected_mode) {
-    LOG(INFO) << "Change mode " << mode_ << "--->" << expected_mode;
+    VLOG(dc) << "Change mode " << mode_ << "--->" << expected_mode;
     mode_ = expected_mode;
     if (info->connection_id == 1 && mode_ != Mode::Http) {
-      LOG(WARNING) << "Got tcp connection, for long poll connection";
+      LOG(WARNING) << "Got tcp connection for long poll connection";
       connection_add(std::move(raw_connection));
       info->state = ConnectionInfo::State::Empty;
       yield();

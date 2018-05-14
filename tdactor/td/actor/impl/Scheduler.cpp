@@ -409,7 +409,7 @@ void Scheduler::set_actor_timeout_in(ActorInfo *actor_info, double timeout) {
 
 void Scheduler::set_actor_timeout_at(ActorInfo *actor_info, double timeout_at) {
   HeapNode *heap_node = actor_info->get_heap_node();
-  VLOG(actor) << "set actor " << *actor_info << " " << tag("timeout", timeout_at) << timeout_at - Time::now_cached();
+  VLOG(actor) << "Set actor " << *actor_info << " timeout in " << timeout_at - Time::now_cached();
   if (heap_node->in_heap()) {
     timeout_queue_.fix(timeout_at, heap_node);
   } else {

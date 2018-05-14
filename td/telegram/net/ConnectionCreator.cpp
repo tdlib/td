@@ -32,6 +32,7 @@
 #include "td/utils/tl_helpers.h"
 
 #include <algorithm>
+#include <utility>
 
 namespace td {
 
@@ -215,35 +216,143 @@ void ConnectionCreator::set_net_stats_callback(std::shared_ptr<NetStatsCallback>
   media_net_stats_callback_ = std::move(media_callback);
 }
 
-void ConnectionCreator::set_proxy(Proxy proxy) {
-  set_proxy_impl(std::move(proxy), false);
-  loop();
+void ConnectionCreator::add_proxy(string server, int32 port, bool enable,
+                                  td_api::object_ptr<td_api::ProxyType> proxy_type,
+                                  Promise<td_api::object_ptr<td_api::proxy>> promise) {
+  if (proxy_type == nullptr) {
+    return promise.set_error(Status::Error(400, "Proxy type should not be empty"));
+  }
+  if (server.empty()) {
+    return promise.set_error(Status::Error(400, "Server name can't be empty"));
+  }
+  if (port <= 0 || port > 65535) {
+    return promise.set_error(Status::Error(400, "Wrong port number"));
+  }
+
+  Proxy new_proxy;
+  switch (proxy_type->get_id()) {
+    case td_api::proxyTypeSocks5::ID: {
+      auto type = td_api::move_object_as<td_api::proxyTypeSocks5>(proxy_type);
+      new_proxy = Proxy::socks5(server, port, type->username_, type->password_);
+      break;
+    }
+    case td_api::proxyTypeMtproto::ID: {
+      auto type = td_api::move_object_as<td_api::proxyTypeMtproto>(proxy_type);
+      if (type->secret_.size() != 32 || hex_decode(type->secret_).is_error()) {
+        return promise.set_error(Status::Error(400, "Wrong server secret"));
+      }
+      new_proxy = Proxy::mtproto(server, port, type->secret_);
+      break;
+    }
+    default:
+      UNREACHABLE();
+  }
+
+  auto proxy_id = [&] {
+    for (auto &proxy : proxies_) {
+      if (proxy.second == new_proxy) {
+        return proxy.first;
+      }
+    }
+
+    CHECK(max_proxy_id_ >= 2);
+    auto proxy_id = max_proxy_id_++;
+    G()->td_db()->get_binlog_pmc()->set("proxy_max_id", to_string(max_proxy_id_));
+    CHECK(proxies_.count(proxy_id) == 0);
+    proxies_.emplace(proxy_id, std::move(new_proxy));
+    G()->td_db()->get_binlog_pmc()->set(get_proxy_database_key(proxy_id),
+                                        log_event_store(proxies_[proxy_id]).as_slice().str());
+  }();
+  if (enable) {
+    enable_proxy_impl(proxy_id);
+  }
+  promise.set_value(get_proxy_object(proxy_id));
 }
 
-void ConnectionCreator::set_proxy_impl(Proxy proxy, bool from_db) {
-  auto have_proxy = proxy.type() != Proxy::Type::None;
-  if (proxy_ == proxy) {
-    if (!have_proxy) {
-      on_get_proxy_info(make_tl_object<telegram_api::help_proxyDataEmpty>(0));
-    }
+void ConnectionCreator::enable_proxy(int32 proxy_id, Promise<Unit> promise) {
+  if (proxies_.count(proxy_id) == 0) {
+    return promise.set_error(Status::Error(400, "Unknown proxy identifier"));
+  }
+
+  enable_proxy_impl(proxy_id);
+  promise.set_value(Unit());
+}
+
+void ConnectionCreator::disable_proxy(Promise<Unit> promise) {
+  disable_proxy_impl();
+  promise.set_value(Unit());
+}
+
+void ConnectionCreator::remove_proxy(int32 proxy_id, Promise<Unit> promise) {
+  if (proxies_.count(proxy_id) == 0) {
+    return promise.set_error(Status::Error(400, "Unknown proxy identifier"));
+  }
+
+  if (proxy_id == active_proxy_id_) {
+    disable_proxy_impl();
+  }
+
+  proxies_.erase(proxy_id);
+
+  G()->td_db()->get_binlog_pmc()->erase(get_proxy_database_key(proxy_id));
+  G()->td_db()->get_binlog_pmc()->erase(get_proxy_used_database_key(proxy_id));
+  promise.set_value(Unit());
+}
+
+void ConnectionCreator::get_proxies(Promise<td_api::object_ptr<td_api::proxies>> promise) {
+  promise.set_value(td_api::make_object<td_api::proxies>(
+      transform(proxies_, [this](const std::pair<int32, Proxy> &proxy) { return get_proxy_object(proxy.first); })));
+}
+
+void ConnectionCreator::ping_proxy(int32 proxy_id, Promise<double> promise) {
+  if (proxies_.count(proxy_id) == 0) {
+    return promise.set_error(Status::Error(400, "Unknown proxy identifier"));
+  }
+
+  // TODO ping
+  promise.set_value(0.0);
+}
+
+void ConnectionCreator::enable_proxy_impl(int32 proxy_id) {
+  CHECK(proxies_.count(proxy_id) == 1);
+  if (proxy_id == active_proxy_id_) {
     return;
   }
 
-  if (proxy_.type() == Proxy::Type::Mtproto || proxy.type() == Proxy::Type::Mtproto) {
-    G()->mtproto_header().set_proxy(proxy);
+  if ((active_proxy_id_ != 0 && proxies_[active_proxy_id_].type() == Proxy::Type::Mtproto) ||
+      proxies_[proxy_id].type() == Proxy::Type::Mtproto) {
+    G()->mtproto_header().set_proxy(proxies_[proxy_id]);
     G()->net_query_dispatcher().update_mtproto_header();
   }
 
-  proxy_ = std::move(proxy);
+  active_proxy_id_ = proxy_id;
+  G()->td_db()->get_binlog_pmc()->set("proxy_active_id", to_string(proxy_id));
 
-  send_closure(G()->state_manager(), &StateManager::on_proxy, have_proxy);
+  on_proxy_changed(false);
+}
+
+void ConnectionCreator::disable_proxy_impl() {
+  if (active_proxy_id_ == 0) {
+    on_get_proxy_info(make_tl_object<telegram_api::help_proxyDataEmpty>(0));
+    return;
+  }
+  CHECK(proxies_.count(active_proxy_id_) == 1);
+
+  if (proxies_[active_proxy_id_].type() == Proxy::Type::Mtproto) {
+    G()->mtproto_header().set_proxy(Proxy());
+    G()->net_query_dispatcher().update_mtproto_header();
+  }
+
+  active_proxy_id_ = 0;
+  G()->td_db()->get_binlog_pmc()->erase("proxy_active_id");
+
+  on_proxy_changed(false);
+}
+
+void ConnectionCreator::on_proxy_changed(bool from_db) {
+  send_closure(G()->state_manager(), &StateManager::on_proxy, active_proxy_id_ != 0);
 
   if (!from_db) {
-    if (have_proxy) {
-      G()->td_db()->get_binlog_pmc()->set("proxy", log_event_store(proxy_).as_slice().str());
-    } else {
-      G()->td_db()->get_binlog_pmc()->erase("proxy");
-    }
     for (auto &child : children_) {
       child.second.reset();
     }
@@ -255,15 +364,47 @@ void ConnectionCreator::set_proxy_impl(Proxy proxy, bool from_db) {
 
   get_proxy_info_query_token_ = 0;
   get_proxy_info_timestamp_ = Timestamp();
-  if (!have_proxy || !from_db) {
+  if (active_proxy_id_ == 0 || !from_db) {
     on_get_proxy_info(make_tl_object<telegram_api::help_proxyDataEmpty>(0));
   } else {
     schedule_get_proxy_info(0);
   }
+
+  loop();
 }
 
-void ConnectionCreator::get_proxy(Promise<Proxy> promise) {
-  promise.set_value(Proxy(proxy_));
+string ConnectionCreator::get_proxy_database_key(int32 proxy_id) {
+  CHECK(proxy_id > 0);
+  if (proxy_id == 1) {
+    return "proxy";
+  }
+  return PSTRING() << "proxy" << proxy_id;
+}
+
+string ConnectionCreator::get_proxy_used_database_key(int32 proxy_id) {
+  CHECK(proxy_id > 0);
+  return PSTRING() << "proxy_used" << proxy_id;
+}
+
+td_api::object_ptr<td_api::proxy> ConnectionCreator::get_proxy_object(int32 proxy_id) const {
+  auto it = proxies_.find(proxy_id);
+  CHECK(it != proxies_.end());
+  const Proxy &proxy = it->second;
+  td_api::object_ptr<td_api::ProxyType> type;
+  switch (proxy.type()) {
+    case Proxy::Type::Socks5:
+      type = make_tl_object<td_api::proxyTypeSocks5>(proxy.user().str(), proxy.password().str());
+      break;
+    case Proxy::Type::Mtproto:
+      type = make_tl_object<td_api::proxyTypeMtproto>(proxy.secret().str());
+      break;
+    default:
+      UNREACHABLE();
+  }
+  auto last_used_date_it = proxy_last_used_date_.find(proxy_id);
+  auto last_used_date = last_used_date_it == proxy_last_used_date_.end() ? 0 : last_used_date_it->second;
+  return make_tl_object<td_api::proxy>(proxy_id, proxy.server().str(), proxy.port(), last_used_date,
+                                       proxy_id == active_proxy_id_, std::move(type));
 }
 
 void ConnectionCreator::on_network(bool network_flag, uint32 network_generation) {
@@ -319,7 +460,7 @@ void ConnectionCreator::request_raw_connection(DcId dc_id, bool allow_media_only
     CHECK(client.allow_media_only == allow_media_only);
     CHECK(client.is_media == is_media);
   }
-  VLOG(connections) << tag("client", format::as_hex(client.hash)) << " " << dc_id << " "
+  VLOG(connections) << "Request connection for " << tag("client", format::as_hex(client.hash)) << " to " << dc_id << " "
                     << tag("allow_media_only", allow_media_only);
   client.queries.push_back(std::move(promise));
 
@@ -346,8 +487,10 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
   if (close_flag_) {
     return;
   }
-  auto proxy_type = proxy_.type();
-  bool use_proxy = proxy_type != Proxy::Type::None;
+
+  Proxy *proxy = active_proxy_id_ == 0 ? nullptr : &proxies_[active_proxy_id_];
+  auto proxy_type = proxy == nullptr ? Proxy::Type::None : proxy->type();
+  bool use_proxy = proxy != nullptr;
   bool use_socks5_proxy = proxy_type == Proxy::Type::Socks5;
   bool use_mtproto_proxy = proxy_type == Proxy::Type::Mtproto;
   if (use_proxy && !proxy_ip_address_.is_valid()) {
@@ -426,7 +569,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
         TRY_RESULT(info, dc_options_set_.find_connection(dc_id, allow_media_only, use_proxy));
         stat = nullptr;
         int16 raw_dc_id = narrow_cast<int16>(info.option->is_media_only() ? -dc_id.get_raw_id() : dc_id.get_raw_id());
-        TRY_RESULT(secret, hex_decode(proxy_.secret()));
+        TRY_RESULT(secret, hex_decode(proxy->secret()));
         transport_type = {mtproto::TransportType::ObfuscatedTcp, raw_dc_id, std::move(secret)};
 
         debug_str = PSTRING() << "Mtproto " << proxy_ip_address_ << " to DC" << raw_dc_id;
@@ -526,7 +669,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
       LOG(INFO) << "Start socks5: " << debug_str;
       auto token = next_token();
       children_[token] = create_actor<Socks5>(
-          "Socks5", std::move(socket_fd), mtproto_ip, proxy_.user().str(), proxy_.password().str(),
+          "Socks5", std::move(socket_fd), mtproto_ip, proxy->user().str(), proxy->password().str(),
           std::make_unique<Callback>(std::move(promise), std::move(stats_callback)), create_reference(token));
     } else {
       ConnectionData data;
@@ -542,7 +685,8 @@ void ConnectionCreator::client_create_raw_connection(Result<ConnectionData> r_co
                                                      string debug_str, uint32 network_generation) {
   auto promise = PromiseCreator::lambda([actor_id = actor_id(this), hash, check_mode,
                                          debug_str](Result<std::unique_ptr<mtproto::RawConnection>> result) mutable {
-    VLOG(connections) << "Ready " << debug_str << " " << tag("checked", check_mode) << tag("ok", result.is_ok());
+    VLOG(connections) << "Ready connection " << (check_mode ? "(" : "(un") << "checked) "
+                      << (result.is_ok() ? result.ok().get() : nullptr) << " " << debug_str;
     send_closure(std::move(actor_id), &ConnectionCreator::client_add_connection, hash, std::move(result), check_mode);
   });
 
@@ -588,6 +732,7 @@ void ConnectionCreator::client_add_connection(size_t hash,
     client.checking_connections--;
   }
   if (r_raw_connection.is_ok()) {
+    VLOG(connections) << "Add ready connection " << r_raw_connection.ok().get() << " for " << tag("client", hash);
     client.backoff.clear();
     client.ready_connections.push_back(std::make_pair(r_raw_connection.move_as_ok(), Time::now_cached()));
   }
@@ -652,18 +797,59 @@ void ConnectionCreator::start_up() {
     on_dc_options(std::move(dc_options));
   }
 
-  Proxy proxy;
-  auto log_event_proxy = G()->td_db()->get_binlog_pmc()->get("proxy");
-  if (!log_event_proxy.empty()) {
-    log_event_parse(proxy, log_event_proxy).ensure();
+  auto proxy_info = G()->td_db()->get_binlog_pmc()->prefix_get("proxy");
+  auto it = proxy_info.find("proxy_max_id");
+  if (it != proxy_info.end()) {
+    max_proxy_id_ = to_integer<int32>(it->second);
+    proxy_info.erase(it);
   }
-  set_proxy_impl(std::move(proxy), true);
+  it = proxy_info.find("proxy_active_id");
+  if (it != proxy_info.end()) {
+    active_proxy_id_ = to_integer<int32>(it->second);
+    proxy_info.erase(it);
+  }
+
+  for (auto &info : proxy_info) {
+    if (begins_with(info.first, "proxy_used")) {
+      int32 proxy_id = to_integer_safe<int32>(Slice(info.first).substr(10)).move_as_ok();
+      int32 last_used = to_integer_safe<int32>(info.second).move_as_ok();
+      proxy_last_used_date_[proxy_id] = last_used;
+    } else {
+      int32 proxy_id = info.first == "proxy" ? 1 : to_integer_safe<int32>(Slice(info.first).substr(5)).move_as_ok();
+      CHECK(proxies_.count(proxy_id) == 0);
+      log_event_parse(proxies_[proxy_id], info.second).ensure();
+    }
+  }
+
+  if (max_proxy_id_ == 0) {
+    // legacy one-proxy version
+    max_proxy_id_ = 2;
+    if (!proxies_.empty()) {
+      CHECK(proxies_.begin()->first == 1);
+      active_proxy_id_ = 1;
+      G()->td_db()->get_binlog_pmc()->set("proxy_active_id", "1");
+    }
+    G()->td_db()->get_binlog_pmc()->set("proxy_max_id", "2");
+  } else if (max_proxy_id_ < 2) {
+    LOG(ERROR) << "Found wrong max_proxy_id = " << max_proxy_id_;
+    max_proxy_id_ = 2;
+  }
+
+  if (active_proxy_id_ != 0) {
+    if (proxies_[active_proxy_id_].type() == Proxy::Type::Mtproto) {
+      G()->mtproto_header().set_proxy(proxies_[active_proxy_id_]);
+      G()->net_query_dispatcher().update_mtproto_header();
+    }
+
+    on_proxy_changed(true);
+  }
 
   get_host_by_name_actor_ =
       create_actor_on_scheduler<GetHostByNameActor>("GetHostByNameActor", G()->get_gc_scheduler_id(), 5 * 60 - 1, 0);
 
   ref_cnt_guard_ = create_reference(-1);
 
+  is_inited_ = true;
   loop();
 }
 
@@ -730,12 +916,15 @@ DcOptions ConnectionCreator::get_default_dc_options(bool is_test) {
 }
 
 void ConnectionCreator::loop() {
+  if (!is_inited_) {
+    return;
+  }
   if (!network_flag_) {
     return;
   }
 
   Timestamp timeout;
-  if (proxy_.type() == Proxy::Type::Mtproto) {
+  if (active_proxy_id_ != 0 && proxies_[active_proxy_id_].type() == Proxy::Type::Mtproto) {
     if (get_proxy_info_timestamp_.is_in_past()) {
       if (get_proxy_info_query_token_ == 0) {
         get_proxy_info_query_token_ = next_token();
@@ -749,12 +938,13 @@ void ConnectionCreator::loop() {
     }
   }
 
-  if (proxy_.type() != Proxy::Type::None) {
+  if (active_proxy_id_ != 0) {
     if (resolve_proxy_timestamp_.is_in_past()) {
       if (resolve_proxy_query_token_ == 0) {
         resolve_proxy_query_token_ = next_token();
+        const Proxy &proxy = proxies_[active_proxy_id_];
         send_closure(
-            get_host_by_name_actor_, &GetHostByNameActor::run, proxy_.server().str(), proxy_.port(),
+            get_host_by_name_actor_, &GetHostByNameActor::run, proxy.server().str(), proxy.port(),
             PromiseCreator::lambda([actor_id = create_reference(resolve_proxy_query_token_)](Result<IPAddress> result) {
               send_closure(std::move(actor_id), &ConnectionCreator::on_proxy_resolved, std::move(result), false);
             }));

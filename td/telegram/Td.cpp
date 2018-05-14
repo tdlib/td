@@ -7096,22 +7096,43 @@ void Td::on_request(uint64 id, td_api::getDeepLinkInfo &request) {
   create_handler<GetDeepLinkInfoQuery>(std::move(promise))->send(request.link_);
 }
 
-void Td::on_request(uint64 id, const td_api::getProxy &request) {
+void Td::on_request(uint64 id, td_api::addProxy &request) {
+  CLEAN_INPUT_STRING(request.server_);
   CREATE_REQUEST_PROMISE(promise);
-  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<Proxy> result) mutable {
+  send_closure(G()->connection_creator(), &ConnectionCreator::add_proxy, std::move(request.server_), request.port_,
+               request.enable_, std::move(request.type_), std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::enableProxy &request) {
+  CREATE_OK_REQUEST_PROMISE(promise);
+  send_closure(G()->connection_creator(), &ConnectionCreator::enable_proxy, request.proxy_id_, std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::disableProxy &request) {
+  CREATE_OK_REQUEST_PROMISE(promise);
+  send_closure(G()->connection_creator(), &ConnectionCreator::disable_proxy, std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::removeProxy &request) {
+  CREATE_OK_REQUEST_PROMISE(promise);
+  send_closure(G()->connection_creator(), &ConnectionCreator::remove_proxy, request.proxy_id_, std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::getProxies &request) {
+  CREATE_REQUEST_PROMISE(promise);
+  send_closure(G()->connection_creator(), &ConnectionCreator::get_proxies, std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::pingProxy &request) {
+  CREATE_REQUEST_PROMISE(promise);
+  auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<double> result) mutable {
     if (result.is_error()) {
       promise.set_error(result.move_as_error());
     } else {
-      promise.set_value(result.move_as_ok().as_td_api());
+      promise.set_value(make_tl_object<td_api::seconds>(result.move_as_ok()));
     }
   });
-  send_closure(G()->connection_creator(), &ConnectionCreator::get_proxy, std::move(query_promise));
-}
-
-void Td::on_request(uint64 id, const td_api::setProxy &request) {
-  CREATE_OK_REQUEST_PROMISE(promise);
-  send_closure(G()->connection_creator(), &ConnectionCreator::set_proxy, Proxy::from_td_api(request.proxy_));
-  promise.set_value(Unit());
+  send_closure(G()->connection_creator(), &ConnectionCreator::ping_proxy, request.proxy_id_, std::move(query_promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getTextEntities &request) {

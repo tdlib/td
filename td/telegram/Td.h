@@ -800,9 +800,17 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::getDeepLinkInfo &request);
 
-  void on_request(uint64 id, const td_api::getProxy &request);
+  void on_request(uint64 id, td_api::addProxy &request);
 
-  void on_request(uint64 id, const td_api::setProxy &request);
+  void on_request(uint64 id, const td_api::enableProxy &request);
+
+  void on_request(uint64 id, const td_api::disableProxy &request);
+
+  void on_request(uint64 id, const td_api::removeProxy &request);
+
+  void on_request(uint64 id, const td_api::getProxies &request);
+
+  void on_request(uint64 id, const td_api::pingProxy &request);
 
   void on_request(uint64 id, const td_api::getTextEntities &request);
 

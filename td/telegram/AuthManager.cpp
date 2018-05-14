@@ -926,6 +926,9 @@ void AuthManager::update_state(State new_state, bool force, bool should_save_sta
 
 bool AuthManager::load_state() {
   auto data = G()->td_db()->get_binlog_pmc()->get("auth_state");
+  if (data.empty()) {
+    return false;
+  }
   DbState db_state;
   auto status = log_event_parse(db_state, data);
   if (status.is_error()) {
