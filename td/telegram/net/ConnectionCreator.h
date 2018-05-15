@@ -27,6 +27,7 @@
 #include "td/utils/port/SocketFd.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
+#include "td/utils/StringBuilder.h"
 #include "td/utils/Time.h"
 
 #include <map>
@@ -115,6 +116,8 @@ inline bool operator==(const Proxy &lhs, const Proxy &rhs) {
 inline bool operator!=(const Proxy &lhs, const Proxy &rhs) {
   return !(lhs == rhs);
 }
+
+StringBuilder &operator<<(StringBuilder &string_builder, const Proxy &proxy);
 
 class ConnectionCreator : public NetQueryCallback {
  public:

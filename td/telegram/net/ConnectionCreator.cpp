@@ -190,6 +190,20 @@ void Proxy::store(T &storer) const {
   }
 }
 
+StringBuilder &operator<<(StringBuilder &string_builder, const Proxy &proxy) {
+  switch (proxy.type()) {
+    case Proxy::Type::Socks5:
+      return string_builder << "ProxySocks5 " << proxy.server() << ":" << proxy.port();
+    case Proxy::Type::Mtproto:
+      return string_builder << "ProxyMtproto " << proxy.server() << ":" << proxy.port() << "/" << proxy.secret();
+    case Proxy::Type::None:
+      return string_builder << "ProxyEmpty";
+    default:
+      UNREACHABLE();
+      return string_builder;
+  }
+}
+
 ConnectionCreator::ClientInfo::ClientInfo() {
   flood_control.add_limit(1, 1);
   flood_control.add_limit(4, 2);
@@ -850,6 +864,14 @@ void ConnectionCreator::start_up() {
       int32 proxy_id = info.first == "proxy" ? 1 : to_integer_safe<int32>(Slice(info.first).substr(5)).move_as_ok();
       CHECK(proxies_.count(proxy_id) == 0);
       log_event_parse(proxies_[proxy_id], info.second).ensure();
+      if (proxies_[proxy_id].type() == Proxy::Type::None) {
+        LOG_IF(ERROR, proxy_id != 1) << "Have empty proxy " << proxy_id;
+        proxies_.erase(proxy_id);
+        if (active_proxy_id_ == proxy_id) {
+          active_proxy_id_ = 0;
+          G()->td_db()->get_binlog_pmc()->erase("proxy_active_id");
+        }
+      }
     }
   }
 
