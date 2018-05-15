@@ -31,6 +31,7 @@
 
 #include <map>
 #include <memory>
+#include <unordered_map>
 #include <utility>
 
 namespace td {
@@ -121,8 +122,10 @@ class ConnectionCreator : public NetQueryCallback {
   ConnectionCreator(ConnectionCreator &&other);
   ConnectionCreator &operator=(ConnectionCreator &&other);
   ~ConnectionCreator() override;
+
   void on_dc_options(DcOptions new_dc_options);
   void on_dc_update(DcId dc_id, string ip_port, Promise<> promise);
+  void on_pong(size_t hash);
   void on_mtproto_error(size_t hash);
   void request_raw_connection(DcId dc_id, bool allow_media_only, bool is_media,
                               Promise<std::unique_ptr<mtproto::RawConnection>> promise, size_t hash = 0);
@@ -147,8 +150,10 @@ class ConnectionCreator : public NetQueryCallback {
   bool online_flag_ = false;
   bool is_inited_ = false;
 
+  static constexpr int32 MAX_PROXY_LAST_USED_SAVE_DELAY = 60;
   std::map<int32, Proxy> proxies_;
-  std::map<int32, int32> proxy_last_used_date_;
+  std::unordered_map<int32, int32> proxy_last_used_date_;
+  std::unordered_map<int32, int32> proxy_last_used_saved_date_;
   int32 max_proxy_id_ = 0;
   int32 active_proxy_id_ = 0;
   ActorOwn<GetHostByNameActor> get_host_by_name_actor_;
@@ -224,6 +229,7 @@ class ConnectionCreator : public NetQueryCallback {
   void on_proxy_changed(bool from_db);
   static string get_proxy_database_key(int32 proxy_id);
   static string get_proxy_used_database_key(int32 proxy_id);
+  void save_proxy_last_used_date(int32 delay);
   td_api::object_ptr<td_api::proxy> get_proxy_object(int32 proxy_id) const;
 
   void start_up() override;

@@ -59,7 +59,9 @@ class StatsCallback final : public mtproto::RawConnection::StatsCallback {
     if (option_stat_) {
       send_lambda(connection_creator_, [stat = option_stat_] { stat->on_ok(); });
     }
+    send_closure(connection_creator_, &ConnectionCreator::on_pong, hash_);
   }
+
   void on_error() final {
     if (option_stat_) {
       send_lambda(connection_creator_, [stat = option_stat_] { stat->on_error(); });
@@ -280,6 +282,7 @@ void ConnectionCreator::enable_proxy(int32 proxy_id, Promise<Unit> promise) {
 }
 
 void ConnectionCreator::disable_proxy(Promise<Unit> promise) {
+  save_proxy_last_used_date(0);
   disable_proxy_impl();
   promise.set_value(Unit());
 }
@@ -325,6 +328,7 @@ void ConnectionCreator::enable_proxy_impl(int32 proxy_id) {
     G()->mtproto_header().set_proxy(proxies_[proxy_id]);
     G()->net_query_dispatcher().update_mtproto_header();
   }
+  save_proxy_last_used_date(0);
 
   active_proxy_id_ = proxy_id;
   G()->td_db()->get_binlog_pmc()->set("proxy_active_id", to_string(proxy_id));
@@ -387,6 +391,24 @@ string ConnectionCreator::get_proxy_used_database_key(int32 proxy_id) {
   return PSTRING() << "proxy_used" << proxy_id;
 }
 
+void ConnectionCreator::save_proxy_last_used_date(int32 delay) {
+  if (active_proxy_id_ == 0) {
+    return;
+  }
+
+  LOG(ERROR) << "Save proxy last used date " << delay;
+  CHECK(delay >= 0);
+  int32 date = proxy_last_used_date_[active_proxy_id_];
+  int32 &saved_date = proxy_last_used_saved_date_[active_proxy_id_];
+  if (date <= saved_date + delay) {
+    return;
+  }
+  LOG(ERROR) << "Save proxy last used date " << date;
+
+  saved_date = date;
+  G()->td_db()->get_binlog_pmc()->set(get_proxy_used_database_key(active_proxy_id_), to_string(date));
+}
+
 td_api::object_ptr<td_api::proxy> ConnectionCreator::get_proxy_object(int32 proxy_id) const {
   auto it = proxies_.find(proxy_id);
   CHECK(it != proxies_.end());
@@ -436,6 +458,17 @@ void ConnectionCreator::on_online(bool online_flag) {
       client.second.backoff.clear();
       client.second.flood_control_online.clear_events();
       client_loop(client.second);
+    }
+  }
+}
+
+void ConnectionCreator::on_pong(size_t hash) {
+  if (active_proxy_id_ != 0) {
+    auto now = G()->unix_time();
+    int32 &last_used = proxy_last_used_date_[active_proxy_id_];
+    if (now > last_used) {
+      last_used = now;
+      save_proxy_last_used_date(MAX_PROXY_LAST_USED_SAVE_DELAY);
     }
   }
 }
@@ -566,10 +599,11 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
 
     // sync part
     auto r_socket_fd = [&, dc_id = client.dc_id, allow_media_only = client.allow_media_only]() -> Result<SocketFd> {
+      TRY_RESULT(info, dc_options_set_.find_connection(dc_id, allow_media_only, use_proxy));
+      stat = info.stat;
+      int16 raw_dc_id = narrow_cast<int16>(info.option->is_media_only() ? -dc_id.get_raw_id() : dc_id.get_raw_id());
+
       if (use_mtproto_proxy) {
-        TRY_RESULT(info, dc_options_set_.find_connection(dc_id, allow_media_only, use_proxy));
-        stat = nullptr;
-        int16 raw_dc_id = narrow_cast<int16>(info.option->is_media_only() ? -dc_id.get_raw_id() : dc_id.get_raw_id());
         TRY_RESULT(secret, hex_decode(proxy->secret()));
         transport_type = {mtproto::TransportType::ObfuscatedTcp, raw_dc_id, std::move(secret)};
 
@@ -578,19 +612,16 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
         return SocketFd::open(proxy_ip_address_);
       }
 
-      TRY_RESULT(info, dc_options_set_.find_connection(dc_id, allow_media_only, use_proxy));
-      stat = info.stat;
       if (info.use_http) {
         transport_type = {mtproto::TransportType::Http, 0, ""};
       } else {
-        int16 raw_dc_id = narrow_cast<int16>(info.option->is_media_only() ? -dc_id.get_raw_id() : dc_id.get_raw_id());
         transport_type = {mtproto::TransportType::ObfuscatedTcp, raw_dc_id, info.option->get_secret().str()};
       }
       check_mode |= info.should_check;
 
       if (use_socks5_proxy) {
         mtproto_ip = info.option->get_ip_address();
-        debug_str = PSTRING() << "Sock5 " << proxy_ip_address_ << " --> " << mtproto_ip << " " << dc_id;
+        debug_str = PSTRING() << "Socks5 " << proxy_ip_address_ << " --> " << mtproto_ip << " " << dc_id;
         LOG(INFO) << "Create: " << debug_str;
         return SocketFd::open(proxy_ip_address_);
       } else {
@@ -815,6 +846,7 @@ void ConnectionCreator::start_up() {
       int32 proxy_id = to_integer_safe<int32>(Slice(info.first).substr(10)).move_as_ok();
       int32 last_used = to_integer_safe<int32>(info.second).move_as_ok();
       proxy_last_used_date_[proxy_id] = last_used;
+      proxy_last_used_saved_date_[proxy_id] = last_used;
     } else {
       int32 proxy_id = info.first == "proxy" ? 1 : to_integer_safe<int32>(Slice(info.first).substr(5)).move_as_ok();
       CHECK(proxies_.count(proxy_id) == 0);
@@ -870,6 +902,7 @@ ActorShared<ConnectionCreator> ConnectionCreator::create_reference(int64 token) 
 
 void ConnectionCreator::hangup() {
   close_flag_ = true;
+  save_proxy_last_used_date(0);
   ref_cnt_guard_.reset();
   for (auto &child : children_) {
     child.second.reset();
