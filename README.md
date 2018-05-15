@@ -66,7 +66,7 @@ cmake --build .
 
 <a name="macos"></a>
 #### macOS
-* Install the latest Xcode command line tools.
+* Install the latest Xcode command line tools, for example, via `xcode-select --install`.
 * Install other dependencies, for example, using [Homebrew](https://brew.sh):
 ```
 brew install gperf cmake openssl

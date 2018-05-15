@@ -7,7 +7,7 @@ If you need only a macOS build, take a look at our build instructions for [macOS
 For example of usage take a look at our [Swift example](https://github.com/tdlib/td/tree/master/example/swift).
 
 To compile `TDLib` you will need to:
-* Install the latest Xcode command line tools.
+* Install the latest Xcode command line tools, for example, via `xcode-select --install`.
 * Install other build dependencies, for example, using [Homebrew](https://brew.sh):
 ```
 brew install gperf cmake
