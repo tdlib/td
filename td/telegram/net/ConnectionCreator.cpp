@@ -396,14 +396,13 @@ void ConnectionCreator::save_proxy_last_used_date(int32 delay) {
     return;
   }
 
-  LOG(ERROR) << "Save proxy last used date " << delay;
   CHECK(delay >= 0);
   int32 date = proxy_last_used_date_[active_proxy_id_];
   int32 &saved_date = proxy_last_used_saved_date_[active_proxy_id_];
   if (date <= saved_date + delay) {
     return;
   }
-  LOG(ERROR) << "Save proxy last used date " << date;
+  LOG(DEBUG) << "Save proxy last used date " << date;
 
   saved_date = date;
   G()->td_db()->get_binlog_pmc()->set(get_proxy_used_database_key(active_proxy_id_), to_string(date));
