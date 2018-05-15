@@ -1365,6 +1365,7 @@ static auto credentials_as_jsonable(const std::vector<SecureValueCredentials> &c
 Result<EncryptedSecureCredentials> get_encrypted_credentials(const std::vector<SecureValueCredentials> &credentials,
                                                              Slice payload, bool with_selfie, Slice public_key) {
   auto encoded_credentials = json_encode<std::string>(credentials_as_jsonable(credentials, payload, with_selfie));
+  LOG(INFO) << "Created credentials " << encoded_credentials;
 
   auto secret = secure_storage::Secret::create_new();
   auto encrypted_value = secure_storage::encrypt_value(secret, encoded_credentials).move_as_ok();

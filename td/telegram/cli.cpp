@@ -3090,6 +3090,7 @@ class CliClient final : public Actor {
 
       auto fd = r_fd.move_as_ok();
       auto size = fd.get_size();
+      fd.seek(size).ignore();
       fd.write("a").ignore();
       fd.seek(size).ignore();
       fd.truncate_to_current_position(size).ignore();
