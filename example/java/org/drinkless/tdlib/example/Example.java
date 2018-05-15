@@ -485,13 +485,11 @@ public final class Example {
                     }
                     break;
                 }
-                case TdApi.UpdateNotificationSettings.CONSTRUCTOR: {
-                    TdApi.UpdateNotificationSettings update = (TdApi.UpdateNotificationSettings) object;
-                    if (update.scope instanceof TdApi.NotificationSettingsScopeChat) {
-                        TdApi.Chat chat = chats.get(((TdApi.NotificationSettingsScopeChat) update.scope).chatId);
-                        synchronized (chat) {
-                            chat.notificationSettings = update.notificationSettings;
-                        }
+                case TdApi.UpdateChatNotificationSettings.CONSTRUCTOR: {
+                    TdApi.UpdateChatNotificationSettings update = (TdApi.UpdateChatNotificationSettings) object;
+                    TdApi.Chat chat = chats.get(update.chatId);
+                    synchronized (chat) {
+                        chat.notificationSettings = update.notificationSettings;
                     }
                     break;
                 }
