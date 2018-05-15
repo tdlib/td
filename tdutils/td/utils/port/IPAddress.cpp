@@ -143,6 +143,14 @@ Status IPAddress::init_host_port(CSlice host, int port) {
 }
 
 Status IPAddress::init_host_port(CSlice host, CSlice port) {
+  if (host.empty()) {
+    return Status::Error("Host is empty");
+  }
+#if TD_WINDOWS
+  if (host == "..localmachine") {
+    return Status::Error("Host is invalid");
+  }
+#endif
   addrinfo hints;
   addrinfo *info = nullptr;
   std::memset(&hints, 0, sizeof(hints));
