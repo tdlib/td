@@ -3929,6 +3929,85 @@ bool Td::is_online() const {
   return is_online_;
 }
 
+bool Td::is_authentication_request(int32 id) {
+  switch (id) {
+    case td_api::setTdlibParameters::ID:
+    case td_api::checkDatabaseEncryptionKey::ID:
+    case td_api::setDatabaseEncryptionKey::ID:
+    case td_api::getAuthorizationState::ID:
+    case td_api::setAuthenticationPhoneNumber::ID:
+    case td_api::resendAuthenticationCode::ID:
+    case td_api::checkAuthenticationCode::ID:
+    case td_api::checkAuthenticationPassword::ID:
+    case td_api::requestAuthenticationPasswordRecovery::ID:
+    case td_api::recoverAuthenticationPassword::ID:
+    case td_api::logOut::ID:
+    case td_api::close::ID:
+    case td_api::destroy::ID:
+    case td_api::checkAuthenticationBotToken::ID:
+      return true;
+    default:
+      return false;
+  }
+}
+
+bool Td::is_synchronous_request(int32 id) {
+  switch (id) {
+    case td_api::getTextEntities::ID:
+    case td_api::parseTextEntities::ID:
+    case td_api::getFileMimeType::ID:
+    case td_api::getFileExtension::ID:
+    case td_api::cleanFileName::ID:
+      return true;
+    default:
+      return false;
+  }
+}
+
+bool Td::is_preinitialization_request(int32 id) {
+  switch (id) {
+    case td_api::setAlarm::ID:
+    case td_api::testUseUpdate::ID:
+    case td_api::testUseError::ID:
+    case td_api::testCallEmpty::ID:
+    case td_api::testSquareInt::ID:
+    case td_api::testCallString::ID:
+    case td_api::testCallBytes::ID:
+    case td_api::testCallVectorInt::ID:
+    case td_api::testCallVectorIntObject::ID:
+    case td_api::testCallVectorString::ID:
+    case td_api::testCallVectorStringObject::ID:
+      return true;
+    default:
+      return false;
+  }
+}
+
+bool Td::is_preauthentication_request(int32 id) {
+  switch (id) {
+    case td_api::processDcUpdate::ID:
+    case td_api::getOption::ID:
+    case td_api::setOption::ID:
+    case td_api::setNetworkType::ID:
+    case td_api::getNetworkStatistics::ID:
+    case td_api::addNetworkStatistics::ID:
+    case td_api::resetNetworkStatistics::ID:
+    case td_api::getCountryCode::ID:
+    case td_api::getTermsOfService::ID:
+    case td_api::getDeepLinkInfo::ID:
+    case td_api::addProxy::ID:
+    case td_api::enableProxy::ID:
+    case td_api::disableProxy::ID:
+    case td_api::removeProxy::ID:
+    case td_api::getProxies::ID:
+    case td_api::pingProxy::ID:
+    case td_api::testNetwork::ID:
+      return true;
+    default:
+      return false;
+  }
+}
+
 void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
   request_set_.insert(id);
 
@@ -3942,9 +4021,10 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
   }
 
   VLOG(td_requests) << "Receive request " << id << ": " << to_string(function);
+  int32 function_id = function->get_id();
   switch (state_) {
     case State::WaitParameters: {
-      switch (function->get_id()) {
+      switch (function_id) {
         case td_api::getAuthorizationState::ID:
           return send_closure(actor_id(this), &Td::send_result, id,
                               td_api::make_object<td_api::authorizationStateWaitTdlibParameters>());
@@ -3952,13 +4032,20 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
           return answer_ok_query(
               id, set_parameters(std::move(move_tl_object_as<td_api::setTdlibParameters>(function)->parameters_)));
         default:
+          if (is_synchronous_request(function_id) || is_preinitialization_request(function_id)) {
+            break;
+          }
+          if (is_preauthentication_request(function_id)) {
+            // pending_preauthentication_requests_.emplace_back(id, std::move(function));
+            // return;
+          }
           return send_error_raw(id, 401, "Initialization parameters are needed");
       }
       break;
     }
     case State::Decrypt: {
       string encryption_key;
-      switch (function->get_id()) {
+      switch (function_id) {
         case td_api::getAuthorizationState::ID:
           return send_closure(
               actor_id(this), &Td::send_result, id,
@@ -3978,12 +4065,19 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
         case td_api::destroy::ID:
           return destroy();
         default:
+          if (is_synchronous_request(function_id) || is_preinitialization_request(function_id)) {
+            break;
+          }
+          if (is_preauthentication_request(function_id)) {
+            // pending_preauthentication_requests_.emplace_back(id, std::move(function));
+            // return;
+          }
           return send_error_raw(id, 401, "Database encryption key is needed");
       }
       return answer_ok_query(id, init(as_db_key(encryption_key)));
     }
     case State::Close: {
-      if (function->get_id() == td_api::getAuthorizationState::ID) {
+      if (function_id == td_api::getAuthorizationState::ID) {
         if (close_flag_ == 5) {
           return send_closure(actor_id(this), &Td::send_result, id,
                               td_api::make_object<td_api::authorizationStateClosed>());
@@ -3991,6 +4085,9 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
           return send_closure(actor_id(this), &Td::send_result, id,
                               td_api::make_object<td_api::authorizationStateClosing>());
         }
+      }
+      if (is_synchronous_request(function_id)) {
+        break;
       }
       return send_error_raw(id, 401, "Unauthorized");
     }
@@ -4185,6 +4282,9 @@ void Td::start_up() {
     auto symbol = check_endianness_raw[static_cast<size_t>(c)];
     LOG_IF(FATAL, symbol != c) << "TDLib requires little-endian platform";
   }
+
+  alarm_timeout_.set_callback(on_alarm_timeout_callback);
+  alarm_timeout_.set_callback_data(static_cast<void *>(this));
 
   CHECK(state_ == State::WaitParameters);
   send_update(td_api::make_object<td_api::updateAuthorizationState>(
@@ -4909,10 +5009,6 @@ Status Td::set_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters
   VLOG(td_init) << "Check binlog encryption...";
   TRY_RESULT(encryption_info, TdDb::check_encryption(parameters_));
   encryption_info_ = std::move(encryption_info);
-
-  VLOG(td_init) << "Init alarm multitimeout...";
-  alarm_timeout_.set_callback(on_alarm_timeout_callback);
-  alarm_timeout_.set_callback_data(static_cast<void *>(this));
 
   VLOG(td_init) << "Create Global";
   set_context(std::make_shared<Global>());
@@ -7136,27 +7232,22 @@ void Td::on_request(uint64 id, const td_api::pingProxy &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::getTextEntities &request) {
-  // don't check authorization state
   send_closure(actor_id(this), &Td::send_result, id, do_static_request(request));
 }
 
 void Td::on_request(uint64 id, td_api::parseTextEntities &request) {
-  // don't check authorization state
   send_closure(actor_id(this), &Td::send_result, id, do_static_request(request));
 }
 
 void Td::on_request(uint64 id, const td_api::getFileMimeType &request) {
-  // don't check authorization state
   send_closure(actor_id(this), &Td::send_result, id, do_static_request(request));
 }
 
 void Td::on_request(uint64 id, const td_api::getFileExtension &request) {
-  // don't check authorization state
   send_closure(actor_id(this), &Td::send_result, id, do_static_request(request));
 }
 
 void Td::on_request(uint64 id, const td_api::cleanFileName &request) {
-  // don't check authorization state
   send_closure(actor_id(this), &Td::send_result, id, do_static_request(request));
 }
 

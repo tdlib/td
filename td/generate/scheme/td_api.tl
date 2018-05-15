@@ -3143,7 +3143,7 @@ sendCustomRequest method:string parameters:string = CustomRequestResult;
 answerCustomQuery custom_query_id:int64 data:string = Ok;
 
 
-//@description Succeeds after a specified amount of time has passed. Can be called before authorization @seconds Number of seconds before the function returns
+//@description Succeeds after a specified amount of time has passed. Can be called before authorization. Can be called before initialization @seconds Number of seconds before the function returns
 setAlarm seconds:double = Ok;
 
 
@@ -3160,7 +3160,7 @@ getTermsOfService = Text;
 getDeepLinkInfo link:string = DeepLinkInfo;
 
 
-//@description Adds a proxy server for network requests. Can be called before authorization. Can be called before initialization @server Proxy server IP address @port Proxy server port @enable True, if the proxy should be enabled @type Type of a proxy
+//@description Adds a proxy server for network requests. Can be called before authorization @server Proxy server IP address @port Proxy server port @enable True, if the proxy should be enabled @type Type of a proxy
 addProxy server:string port:int32 enable:Bool type:ProxyType = Proxy;
 
 //@description Enables a proxy. Only one proxy can be enabled at a time. Can be called before authorization @proxy_id The proxy identifier

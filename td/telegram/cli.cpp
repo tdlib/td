@@ -669,6 +669,14 @@ class CliClient final : public Actor {
     td_ = create_actor<ClientActor>("ClientActor2", make_td_callback());
     ready_to_stop_ = false;
 
+    for (int i = 0; i < 4; i++) {
+      send_closure_later(td_, &ClientActor::request, std::numeric_limits<uint64>::max(),
+                         td_api::make_object<td_api::setAlarm>(0.001 + 1000 * (i / 2)));
+    }
+
+    send_request(td_api::make_object<td_api::getTextEntities>(
+        "@telegram /test_command https://telegram.org telegram.me @gif @test"));
+
     auto bad_parameters = td_api::make_object<td_api::tdlibParameters>();
     bad_parameters->database_directory_ = "/..";
     bad_parameters->api_id_ = api_id_;
@@ -687,11 +695,6 @@ class CliClient final : public Actor {
     parameters->application_version_ = "tg_cli";
     send_request(td_api::make_object<td_api::setTdlibParameters>(std::move(parameters)));
     send_request(td_api::make_object<td_api::checkDatabaseEncryptionKey>());
-
-    for (int i = 0; i < 4; i++) {
-      send_closure_later(td_, &ClientActor::request, std::numeric_limits<uint64>::max(),
-                         td_api::make_object<td_api::setAlarm>(0.001 + 1000 * (i / 2)));
-    }
   }
 
   void init() {

@@ -245,6 +245,8 @@ class Td final : public NetQueryCallback {
   std::unordered_map<int64, uint64> pending_alarms_;
   MultiTimeout alarm_timeout_;
 
+  vector<std::pair<uint64, td_api::object_ptr<td_api::Function>>> pending_preauthentication_requests_;
+
   static void on_alarm_timeout_callback(void *td_ptr, int64 alarm_id);
   void on_alarm_timeout(int64 alarm_id);
 
@@ -282,6 +284,14 @@ class Td final : public NetQueryCallback {
   Promise<T> create_request_promise(uint64 id);
 
   Promise<Unit> create_ok_request_promise(uint64 id);
+
+  static bool is_authentication_request(int32 id);
+
+  static bool is_synchronous_request(int32 id);
+
+  static bool is_preinitialization_request(int32 id);
+
+  static bool is_preauthentication_request(int32 id);
 
   template <class T>
   void on_request(uint64 id, const T &request) = delete;
