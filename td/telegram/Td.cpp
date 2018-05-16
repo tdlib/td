@@ -4095,6 +4095,11 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
       break;
   }
 
+  if ((auth_manager_ == nullptr || !auth_manager_->is_authorized()) && !is_preauthentication_request(function_id) &&
+      !is_preinitialization_request(function_id) && !is_synchronous_request(function_id) &&
+      !is_authentication_request(function_id)) {
+    return send_error_raw(id, 401, "Unauthorized");
+  }
   downcast_call(*function, [this, id](auto &request) { this->on_request(id, request); });
 }
 
@@ -4941,10 +4946,6 @@ Promise<Unit> Td::create_ok_request_promise(uint64 id) {
   if (!clean_input_string(field_name)) {                                \
     return send_error_raw(id, 400, "Strings must be encoded in UTF-8"); \
   }
-#define CHECK_AUTH()                                \
-  if (!auth_manager_->is_authorized()) {            \
-    return send_error_raw(id, 401, "Unauthorized"); \
-  }
 #define CHECK_IS_BOT()                                              \
   if (!auth_manager_->is_bot()) {                                   \
     return send_error_raw(id, 400, "Only bots can use the method"); \
@@ -5169,14 +5170,12 @@ void Td::on_request(uint64 id, td_api::checkAuthenticationBotToken &request) {
 }
 
 void Td::on_request(uint64 id, td_api::getPasswordState &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE(promise);
   send_closure(password_manager_, &PasswordManager::get_state, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setPassword &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.old_password_);
   CLEAN_INPUT_STRING(request.new_password_);
@@ -5189,7 +5188,6 @@ void Td::on_request(uint64 id, td_api::setPassword &request) {
 }
 
 void Td::on_request(uint64 id, td_api::setRecoveryEmailAddress &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.password_);
   CLEAN_INPUT_STRING(request.new_recovery_email_address_);
@@ -5199,7 +5197,6 @@ void Td::on_request(uint64 id, td_api::setRecoveryEmailAddress &request) {
 }
 
 void Td::on_request(uint64 id, td_api::getRecoveryEmailAddress &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.password_);
   CREATE_REQUEST_PROMISE(promise);
@@ -5208,14 +5205,12 @@ void Td::on_request(uint64 id, td_api::getRecoveryEmailAddress &request) {
 }
 
 void Td::on_request(uint64 id, td_api::requestPasswordRecovery &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE(promise);
   send_closure(password_manager_, &PasswordManager::request_password_recovery, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::recoverPassword &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.recovery_code_);
   CREATE_REQUEST_PROMISE(promise);
@@ -5224,14 +5219,12 @@ void Td::on_request(uint64 id, td_api::recoverPassword &request) {
 }
 
 void Td::on_request(uint64 id, td_api::getTemporaryPasswordState &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE(promise);
   send_closure(password_manager_, &PasswordManager::get_temp_password_state, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::createTemporaryPassword &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.password_);
   CREATE_REQUEST_PROMISE(promise);
@@ -5252,7 +5245,6 @@ void Td::on_request(uint64 id, td_api::processDcUpdate &request) {
 }
 
 void Td::on_request(uint64 id, td_api::registerDevice &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   if (request.device_token_ == nullptr) {
     return send_error_raw(id, 400, "Device token should not be empty");
@@ -5263,14 +5255,12 @@ void Td::on_request(uint64 id, td_api::registerDevice &request) {
 }
 
 void Td::on_request(uint64 id, td_api::getUserPrivacySettingRules &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE(promise);
   send_closure(privacy_manager_, &PrivacyManager::get_privacy, std::move(request.setting_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setUserPrivacySettingRules &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE(promise);
   send_closure(privacy_manager_, &PrivacyManager::set_privacy, std::move(request.setting_), std::move(request.rules_),
@@ -5278,13 +5268,11 @@ void Td::on_request(uint64 id, td_api::setUserPrivacySettingRules &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::getAccountTtl &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(GetAccountTtlRequest);
 }
 
 void Td::on_request(uint64 id, const td_api::setAccountTtl &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   if (request.ttl_ == nullptr) {
     return send_error_raw(id, 400, "New account TTL should not be empty");
@@ -5293,14 +5281,12 @@ void Td::on_request(uint64 id, const td_api::setAccountTtl &request) {
 }
 
 void Td::on_request(uint64 id, td_api::deleteAccount &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.reason_);
   send_closure(auth_manager_actor_, &AuthManager::delete_account, id, request.reason_);
 }
 
 void Td::on_request(uint64 id, td_api::changePhoneNumber &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.phone_number_);
   send_closure(change_phone_number_manager_, &PhoneNumberManager::set_phone_number, id,
@@ -5308,131 +5294,107 @@ void Td::on_request(uint64 id, td_api::changePhoneNumber &request) {
 }
 
 void Td::on_request(uint64 id, td_api::checkChangePhoneNumberCode &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.code_);
   send_closure(change_phone_number_manager_, &PhoneNumberManager::check_code, id, std::move(request.code_));
 }
 
 void Td::on_request(uint64 id, td_api::resendChangePhoneNumberCode &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   send_closure(change_phone_number_manager_, &PhoneNumberManager::resend_authentication_code, id);
 }
 
 void Td::on_request(uint64 id, const td_api::getActiveSessions &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(GetActiveSessionsRequest);
 }
 
 void Td::on_request(uint64 id, const td_api::terminateSession &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(TerminateSessionRequest, request.session_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::terminateAllOtherSessions &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(TerminateAllOtherSessionsRequest);
 }
 
 void Td::on_request(uint64 id, const td_api::getConnectedWebsites &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(GetConnectedWebsitesRequest);
 }
 
 void Td::on_request(uint64 id, const td_api::disconnectWebsite &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(DisconnectWebsiteRequest, request.website_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::disconnectAllWebsites &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(DisconnectAllWebsitesRequest);
 }
 
 void Td::on_request(uint64 id, const td_api::getMe &request) {
-  CHECK_AUTH();
   CREATE_NO_ARGS_REQUEST(GetMeRequest);
 }
 
 void Td::on_request(uint64 id, const td_api::getUser &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(GetUserRequest, request.user_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::getUserFullInfo &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(GetUserFullInfoRequest, request.user_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::getBasicGroup &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(GetGroupRequest, request.basic_group_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::getBasicGroupFullInfo &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(GetGroupFullInfoRequest, request.basic_group_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::getSupergroup &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(GetSupergroupRequest, request.supergroup_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::getSupergroupFullInfo &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(GetSupergroupFullInfoRequest, request.supergroup_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::getSecretChat &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(GetSecretChatRequest, request.secret_chat_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::getChat &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(GetChatRequest, request.chat_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::getMessage &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(GetMessageRequest, request.chat_id_, request.message_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::getRepliedMessage &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(GetRepliedMessageRequest, request.chat_id_, request.message_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::getChatPinnedMessage &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(GetChatPinnedMessageRequest, request.chat_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::getMessages &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(GetMessagesRequest, request.chat_id_, request.message_ids_);
 }
 
 void Td::on_request(uint64 id, const td_api::getPublicMessageLink &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(GetPublicMessageLinkRequest, request.chat_id_, request.message_id_, request.for_album_);
 }
 
 void Td::on_request(uint64 id, const td_api::getFile &request) {
-  CHECK_AUTH();
   send_closure(actor_id(this), &Td::send_result, id, file_manager_->get_file_object(FileId(request.file_id_, 0)));
 }
 
 void Td::on_request(uint64 id, td_api::getRemoteFile &request) {
-  CHECK_AUTH();
   CLEAN_INPUT_STRING(request.remote_file_id_);
   auto r_file_id = file_manager_->from_persistent_id(
       request.remote_file_id_, request.file_type_ == nullptr ? FileType::Temp : from_td_api(*request.file_type_));
@@ -5445,7 +5407,6 @@ void Td::on_request(uint64 id, td_api::getRemoteFile &request) {
 }
 
 void Td::on_request(uint64 id, td_api::getStorageStatistics &request) {
-  CHECK_AUTH();
   CREATE_REQUEST_PROMISE(promise);
   auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<FileStats> result) mutable {
     if (result.is_error()) {
@@ -5458,7 +5419,6 @@ void Td::on_request(uint64 id, td_api::getStorageStatistics &request) {
 }
 
 void Td::on_request(uint64 id, td_api::getStorageStatisticsFast &request) {
-  CHECK_AUTH();
   CREATE_REQUEST_PROMISE(promise);
   auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<FileStatsFast> result) mutable {
     if (result.is_error()) {
@@ -5471,7 +5431,6 @@ void Td::on_request(uint64 id, td_api::getStorageStatisticsFast &request) {
 }
 
 void Td::on_request(uint64 id, td_api::optimizeStorage &request) {
-  CHECK_AUTH();
   std::vector<FileType> file_types;
   for (auto &file_type : request.file_types_) {
     if (file_type == nullptr) {
@@ -5588,7 +5547,6 @@ void Td::on_request(uint64 id, td_api::setNetworkType &request) {
 }
 
 void Td::on_request(uint64 id, td_api::getTopChats &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE(promise);
   if (request.category_ == nullptr) {
@@ -5609,7 +5567,6 @@ void Td::on_request(uint64 id, td_api::getTopChats &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::removeTopChat &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   if (request.category_ == nullptr) {
     return send_error_raw(id, 400, "Top chat category should not be empty");
@@ -5622,90 +5579,76 @@ void Td::on_request(uint64 id, const td_api::removeTopChat &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::getChats &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(GetChatsRequest, request.offset_order_, request.offset_chat_id_, request.limit_);
 }
 
 void Td::on_request(uint64 id, td_api::searchPublicChat &request) {
-  CHECK_AUTH();
   CLEAN_INPUT_STRING(request.username_);
   CREATE_REQUEST(SearchPublicChatRequest, request.username_);
 }
 
 void Td::on_request(uint64 id, td_api::searchPublicChats &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
   CREATE_REQUEST(SearchPublicChatsRequest, request.query_);
 }
 
 void Td::on_request(uint64 id, td_api::searchChats &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
   CREATE_REQUEST(SearchChatsRequest, request.query_, request.limit_);
 }
 
 void Td::on_request(uint64 id, td_api::searchChatsOnServer &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
   CREATE_REQUEST(SearchChatsOnServerRequest, request.query_, request.limit_);
 }
 
 void Td::on_request(uint64 id, const td_api::getGroupsInCommon &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(GetGroupsInCommonRequest, request.user_id_, request.offset_chat_id_, request.limit_);
 }
 
 void Td::on_request(uint64 id, td_api::checkChatUsername &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.username_);
   CREATE_REQUEST(CheckChatUsernameRequest, request.chat_id_, std::move(request.username_));
 }
 
 void Td::on_request(uint64 id, const td_api::getCreatedPublicChats &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(GetCreatedPublicChatsRequest);
 }
 
 void Td::on_request(uint64 id, const td_api::addRecentlyFoundChat &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   answer_ok_query(id, messages_manager_->add_recently_found_dialog(DialogId(request.chat_id_)));
 }
 
 void Td::on_request(uint64 id, const td_api::removeRecentlyFoundChat &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   answer_ok_query(id, messages_manager_->remove_recently_found_dialog(DialogId(request.chat_id_)));
 }
 
 void Td::on_request(uint64 id, const td_api::clearRecentlyFoundChats &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   messages_manager_->clear_recently_found_dialogs();
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
 }
 
 void Td::on_request(uint64 id, const td_api::openChat &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   answer_ok_query(id, messages_manager_->open_dialog(DialogId(request.chat_id_)));
 }
 
 void Td::on_request(uint64 id, const td_api::closeChat &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   answer_ok_query(id, messages_manager_->close_dialog(DialogId(request.chat_id_)));
 }
 
 void Td::on_request(uint64 id, const td_api::viewMessages &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   answer_ok_query(
       id, messages_manager_->view_messages(
@@ -5713,27 +5656,23 @@ void Td::on_request(uint64 id, const td_api::viewMessages &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::openMessageContent &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   answer_ok_query(
       id, messages_manager_->open_message_content({DialogId(request.chat_id_), MessageId(request.message_id_)}));
 }
 
 void Td::on_request(uint64 id, const td_api::getChatHistory &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(GetChatHistoryRequest, request.chat_id_, request.from_message_id_, request.offset_, request.limit_,
                  request.only_local_);
 }
 
 void Td::on_request(uint64 id, const td_api::deleteChatHistory &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(DeleteChatHistoryRequest, request.chat_id_, request.remove_from_chat_list_);
 }
 
 void Td::on_request(uint64 id, td_api::searchChatMessages &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
   CREATE_REQUEST(SearchChatMessagesRequest, request.chat_id_, std::move(request.query_), request.sender_user_id_,
@@ -5741,7 +5680,6 @@ void Td::on_request(uint64 id, td_api::searchChatMessages &request) {
 }
 
 void Td::on_request(uint64 id, td_api::searchSecretMessages &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
   CREATE_REQUEST(OfflineSearchMessagesRequest, request.chat_id_, std::move(request.query_), request.from_search_id_,
@@ -5749,7 +5687,6 @@ void Td::on_request(uint64 id, td_api::searchSecretMessages &request) {
 }
 
 void Td::on_request(uint64 id, td_api::searchMessages &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
   CREATE_REQUEST(SearchMessagesRequest, std::move(request.query_), request.offset_date_, request.offset_chat_id_,
@@ -5757,48 +5694,39 @@ void Td::on_request(uint64 id, td_api::searchMessages &request) {
 }
 
 void Td::on_request(uint64 id, td_api::searchCallMessages &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(SearchCallMessagesRequest, request.from_message_id_, request.limit_, request.only_missed_);
 }
 
 void Td::on_request(uint64 id, const td_api::searchChatRecentLocationMessages &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(SearchChatRecentLocationMessagesRequest, request.chat_id_, request.limit_);
 }
 
 void Td::on_request(uint64 id, const td_api::getActiveLiveLocationMessages &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(GetActiveLiveLocationMessagesRequest);
 }
 
 void Td::on_request(uint64 id, const td_api::getChatMessageByDate &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(GetChatMessageByDateRequest, request.chat_id_, request.date_);
 }
 
 void Td::on_request(uint64 id, const td_api::deleteMessages &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(DeleteMessagesRequest, request.chat_id_, request.message_ids_, request.revoke_);
 }
 
 void Td::on_request(uint64 id, const td_api::deleteChatMessagesFromUser &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(DeleteChatMessagesFromUserRequest, request.chat_id_, request.user_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::readAllChatMentions &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(ReadAllChatMentionsRequest, request.chat_id_);
 }
 
 void Td::on_request(uint64 id, td_api::sendMessage &request) {
-  CHECK_AUTH();
-
   DialogId dialog_id(request.chat_id_);
   auto r_new_message_id = messages_manager_->send_message(
       dialog_id, MessageId(request.reply_to_message_id_), request.disable_notification_, request.from_background_,
@@ -5813,8 +5741,6 @@ void Td::on_request(uint64 id, td_api::sendMessage &request) {
 }
 
 void Td::on_request(uint64 id, td_api::sendMessageAlbum &request) {
-  CHECK_AUTH();
-
   DialogId dialog_id(request.chat_id_);
   auto r_message_ids = messages_manager_->send_message_group(dialog_id, MessageId(request.reply_to_message_id_),
                                                              request.disable_notification_, request.from_background_,
@@ -5828,7 +5754,6 @@ void Td::on_request(uint64 id, td_api::sendMessageAlbum &request) {
 }
 
 void Td::on_request(uint64 id, td_api::sendBotStartMessage &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.parameter_);
 
@@ -5845,7 +5770,6 @@ void Td::on_request(uint64 id, td_api::sendBotStartMessage &request) {
 }
 
 void Td::on_request(uint64 id, td_api::sendInlineQueryResultMessage &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.result_id_);
 
@@ -5863,8 +5787,6 @@ void Td::on_request(uint64 id, td_api::sendInlineQueryResultMessage &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::sendChatSetTtlMessage &request) {
-  CHECK_AUTH();
-
   DialogId dialog_id(request.chat_id_);
   auto r_new_message_id = messages_manager_->send_dialog_set_ttl_message(dialog_id, request.ttl_);
   if (r_new_message_id.is_error()) {
@@ -5877,7 +5799,6 @@ void Td::on_request(uint64 id, const td_api::sendChatSetTtlMessage &request) {
 }
 
 void Td::on_request(uint64 id, td_api::addLocalMessage &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
 
   DialogId dialog_id(request.chat_id_);
@@ -5894,32 +5815,27 @@ void Td::on_request(uint64 id, td_api::addLocalMessage &request) {
 }
 
 void Td::on_request(uint64 id, td_api::editMessageText &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(EditMessageTextRequest, request.chat_id_, request.message_id_, std::move(request.reply_markup_),
                  std::move(request.input_message_content_));
 }
 
 void Td::on_request(uint64 id, td_api::editMessageLiveLocation &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(EditMessageLiveLocationRequest, request.chat_id_, request.message_id_,
                  std::move(request.reply_markup_), std::move(request.location_));
 }
 
 void Td::on_request(uint64 id, td_api::editMessageCaption &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(EditMessageCaptionRequest, request.chat_id_, request.message_id_, std::move(request.reply_markup_),
                  std::move(request.caption_));
 }
 
 void Td::on_request(uint64 id, td_api::editMessageReplyMarkup &request) {
-  CHECK_AUTH();
   CHECK_IS_BOT();
   CREATE_REQUEST(EditMessageReplyMarkupRequest, request.chat_id_, request.message_id_,
                  std::move(request.reply_markup_));
 }
 
 void Td::on_request(uint64 id, td_api::editInlineMessageText &request) {
-  CHECK_AUTH();
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.inline_message_id_);
   CREATE_REQUEST(EditInlineMessageTextRequest, std::move(request.inline_message_id_), std::move(request.reply_markup_),
@@ -5927,7 +5843,6 @@ void Td::on_request(uint64 id, td_api::editInlineMessageText &request) {
 }
 
 void Td::on_request(uint64 id, td_api::editInlineMessageLiveLocation &request) {
-  CHECK_AUTH();
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.inline_message_id_);
   CREATE_REQUEST(EditInlineMessageLiveLocationRequest, std::move(request.inline_message_id_),
@@ -5935,7 +5850,6 @@ void Td::on_request(uint64 id, td_api::editInlineMessageLiveLocation &request) {
 }
 
 void Td::on_request(uint64 id, td_api::editInlineMessageCaption &request) {
-  CHECK_AUTH();
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.inline_message_id_);
   CREATE_REQUEST(EditInlineMessageCaptionRequest, std::move(request.inline_message_id_),
@@ -5943,7 +5857,6 @@ void Td::on_request(uint64 id, td_api::editInlineMessageCaption &request) {
 }
 
 void Td::on_request(uint64 id, td_api::editInlineMessageReplyMarkup &request) {
-  CHECK_AUTH();
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.inline_message_id_);
   CREATE_REQUEST(EditInlineMessageReplyMarkupRequest, std::move(request.inline_message_id_),
@@ -5951,14 +5864,12 @@ void Td::on_request(uint64 id, td_api::editInlineMessageReplyMarkup &request) {
 }
 
 void Td::on_request(uint64 id, td_api::setGameScore &request) {
-  CHECK_AUTH();
   CHECK_IS_BOT();
   CREATE_REQUEST(SetGameScoreRequest, request.chat_id_, request.message_id_, request.edit_message_, request.user_id_,
                  request.score_, request.force_);
 }
 
 void Td::on_request(uint64 id, td_api::setInlineGameScore &request) {
-  CHECK_AUTH();
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.inline_message_id_);
   CREATE_REQUEST(SetInlineGameScoreRequest, std::move(request.inline_message_id_), request.edit_message_,
@@ -5966,39 +5877,32 @@ void Td::on_request(uint64 id, td_api::setInlineGameScore &request) {
 }
 
 void Td::on_request(uint64 id, td_api::getGameHighScores &request) {
-  CHECK_AUTH();
   CHECK_IS_BOT();
   CREATE_REQUEST(GetGameHighScoresRequest, request.chat_id_, request.message_id_, request.user_id_);
 }
 
 void Td::on_request(uint64 id, td_api::getInlineGameHighScores &request) {
-  CHECK_AUTH();
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.inline_message_id_);
   CREATE_REQUEST(GetInlineGameHighScoresRequest, std::move(request.inline_message_id_), request.user_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::deleteChatReplyMarkup &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   answer_ok_query(
       id, messages_manager_->delete_dialog_reply_markup(DialogId(request.chat_id_), MessageId(request.message_id_)));
 }
 
 void Td::on_request(uint64 id, td_api::sendChatAction &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(SendChatActionRequest, request.chat_id_, std::move(request.action_));
 }
 
 void Td::on_request(uint64 id, td_api::sendChatScreenshotTakenNotification &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   answer_ok_query(id, messages_manager_->send_screenshot_taken_notification_message(DialogId(request.chat_id_)));
 }
 
 void Td::on_request(uint64 id, const td_api::forwardMessages &request) {
-  CHECK_AUTH();
-
   DialogId dialog_id(request.chat_id_);
   auto r_message_ids = messages_manager_->forward_messages(
       dialog_id, DialogId(request.from_chat_id_), MessagesManager::get_message_ids(request.message_ids_),
@@ -6012,47 +5916,39 @@ void Td::on_request(uint64 id, const td_api::forwardMessages &request) {
 }
 
 void Td::on_request(uint64 id, td_api::getWebPagePreview &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(GetWebPagePreviewRequest, std::move(request.text_));
 }
 
 void Td::on_request(uint64 id, td_api::getWebPageInstantView &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.url_);
   CREATE_REQUEST(GetWebPageInstantViewRequest, std::move(request.url_), request.force_full_);
 }
 
 void Td::on_request(uint64 id, const td_api::createPrivateChat &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(CreateChatRequest, DialogId(UserId(request.user_id_)), request.force_);
 }
 
 void Td::on_request(uint64 id, const td_api::createBasicGroupChat &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(CreateChatRequest, DialogId(ChatId(request.basic_group_id_)), request.force_);
 }
 
 void Td::on_request(uint64 id, const td_api::createSupergroupChat &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(CreateChatRequest, DialogId(ChannelId(request.supergroup_id_)), request.force_);
 }
 
 void Td::on_request(uint64 id, td_api::createSecretChat &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(CreateChatRequest, DialogId(SecretChatId(request.secret_chat_id_)), true);
 }
 
 void Td::on_request(uint64 id, td_api::createNewBasicGroupChat &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.title_);
   CREATE_REQUEST(CreateNewGroupChatRequest, request.user_ids_, std::move(request.title_));
 }
 
 void Td::on_request(uint64 id, td_api::createNewSupergroupChat &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.title_);
   CLEAN_INPUT_STRING(request.description_);
@@ -6060,12 +5956,10 @@ void Td::on_request(uint64 id, td_api::createNewSupergroupChat &request) {
                  std::move(request.description_));
 }
 void Td::on_request(uint64 id, td_api::createNewSecretChat &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(CreateNewSecretChatRequest, request.user_id_);
 }
 
 void Td::on_request(uint64 id, td_api::createCall &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE(promise);
   auto query_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<CallId> result) mutable {
@@ -6095,7 +5989,6 @@ void Td::on_request(uint64 id, td_api::createCall &request) {
 }
 
 void Td::on_request(uint64 id, td_api::discardCall &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE(promise);
   send_closure(G()->call_manager(), &CallManager::discard_call, CallId(request.call_id_), request.is_disconnected_,
@@ -6103,7 +5996,6 @@ void Td::on_request(uint64 id, td_api::discardCall &request) {
 }
 
 void Td::on_request(uint64 id, td_api::acceptCall &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE(promise);
   if (!request.protocol_) {
@@ -6114,7 +6006,6 @@ void Td::on_request(uint64 id, td_api::acceptCall &request) {
 }
 
 void Td::on_request(uint64 id, td_api::sendCallRating &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.comment_);
   CREATE_OK_REQUEST_PROMISE(promise);
@@ -6123,7 +6014,6 @@ void Td::on_request(uint64 id, td_api::sendCallRating &request) {
 }
 
 void Td::on_request(uint64 id, td_api::sendCallDebugInformation &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.debug_information_);
   CREATE_OK_REQUEST_PROMISE(promise);
@@ -6132,109 +6022,91 @@ void Td::on_request(uint64 id, td_api::sendCallDebugInformation &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::upgradeBasicGroupChatToSupergroupChat &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(UpgradeGroupChatToSupergroupChatRequest, request.chat_id_);
 }
 
 void Td::on_request(uint64 id, td_api::setChatTitle &request) {
-  CHECK_AUTH();
   CLEAN_INPUT_STRING(request.title_);
   CREATE_REQUEST(SetChatTitleRequest, request.chat_id_, std::move(request.title_));
 }
 
 void Td::on_request(uint64 id, td_api::setChatPhoto &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(SetChatPhotoRequest, request.chat_id_, std::move(request.photo_));
 }
 
 void Td::on_request(uint64 id, td_api::setChatDraftMessage &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   answer_ok_query(
       id, messages_manager_->set_dialog_draft_message(DialogId(request.chat_id_), std::move(request.draft_message_)));
 }
 
 void Td::on_request(uint64 id, const td_api::toggleChatIsPinned &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   answer_ok_query(id, messages_manager_->toggle_dialog_is_pinned(DialogId(request.chat_id_), request.is_pinned_));
 }
 
 void Td::on_request(uint64 id, const td_api::toggleChatDefaultDisableNotification &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   answer_ok_query(id, messages_manager_->toggle_dialog_silent_send_message(DialogId(request.chat_id_),
                                                                            request.default_disable_notification_));
 }
 
 void Td::on_request(uint64 id, const td_api::setPinnedChats &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   answer_ok_query(id, messages_manager_->set_pinned_dialogs(
                           transform(request.chat_ids_, [](int64 chat_id) { return DialogId(chat_id); })));
 }
 
 void Td::on_request(uint64 id, td_api::setChatClientData &request) {
-  CHECK_AUTH();
   answer_ok_query(
       id, messages_manager_->set_dialog_client_data(DialogId(request.chat_id_), std::move(request.client_data_)));
 }
 
 void Td::on_request(uint64 id, const td_api::addChatMember &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(AddChatMemberRequest, request.chat_id_, request.user_id_, request.forward_limit_);
 }
 
 void Td::on_request(uint64 id, const td_api::addChatMembers &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(AddChatMembersRequest, request.chat_id_, request.user_ids_);
 }
 
 void Td::on_request(uint64 id, td_api::setChatMemberStatus &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(SetChatMemberStatusRequest, request.chat_id_, request.user_id_, std::move(request.status_));
 }
 
 void Td::on_request(uint64 id, const td_api::getChatMember &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(GetChatMemberRequest, request.chat_id_, request.user_id_);
 }
 
 void Td::on_request(uint64 id, td_api::searchChatMembers &request) {
-  CHECK_AUTH();
   CLEAN_INPUT_STRING(request.query_);
   CREATE_REQUEST(SearchChatMembersRequest, request.chat_id_, std::move(request.query_), request.limit_);
 }
 
 void Td::on_request(uint64 id, td_api::getChatAdministrators &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(GetChatAdministratorsRequest, request.chat_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::generateChatInviteLink &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(GenerateChatInviteLinkRequest, request.chat_id_);
 }
 
 void Td::on_request(uint64 id, td_api::checkChatInviteLink &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.invite_link_);
   CREATE_REQUEST(CheckChatInviteLinkRequest, request.invite_link_);
 }
 
 void Td::on_request(uint64 id, td_api::joinChatByInviteLink &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.invite_link_);
   CREATE_REQUEST(JoinChatByInviteLinkRequest, request.invite_link_);
 }
 
 void Td::on_request(uint64 id, td_api::getChatEventLog &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
   CREATE_REQUEST(GetChatEventLogRequest, request.chat_id_, std::move(request.query_), request.from_event_id_,
@@ -6242,8 +6114,6 @@ void Td::on_request(uint64 id, td_api::getChatEventLog &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::downloadFile &request) {
-  CHECK_AUTH();
-
   auto priority = request.priority_;
   if (!(1 <= priority && priority <= 32)) {
     return send_error_raw(id, 5, "Download priority must be in [1;32] range");
@@ -6259,16 +6129,12 @@ void Td::on_request(uint64 id, const td_api::downloadFile &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::cancelDownloadFile &request) {
-  CHECK_AUTH();
-
   file_manager_->download(FileId(request.file_id_, 0), nullptr, request.only_if_pending_ ? -1 : 0);
 
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
 }
 
 void Td::on_request(uint64 id, td_api::uploadFile &request) {
-  CHECK_AUTH();
-
   auto priority = request.priority_;
   if (!(1 <= priority && priority <= 32)) {
     return send_error_raw(id, 5, "Upload priority must be in [1;32] range");
@@ -6291,22 +6157,18 @@ void Td::on_request(uint64 id, td_api::uploadFile &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::cancelUploadFile &request) {
-  CHECK_AUTH();
-
   file_manager_->upload(FileId(request.file_id_, 0), nullptr, 0, 0);
 
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
 }
 
 void Td::on_request(uint64 id, const td_api::setFileGenerationProgress &request) {
-  CHECK_AUTH();
   CREATE_OK_REQUEST_PROMISE(promise);
   send_closure(file_manager_actor_, &FileManager::external_file_generate_progress, request.generation_id_,
                request.expected_size_, request.local_prefix_size_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::finishFileGeneration &request) {
-  CHECK_AUTH();
   Status status;
   if (request.error_ != nullptr) {
     CLEAN_INPUT_STRING(request.error_->message_);
@@ -6318,32 +6180,27 @@ void Td::on_request(uint64 id, td_api::finishFileGeneration &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::deleteFile &request) {
-  CHECK_AUTH();
   CREATE_OK_REQUEST_PROMISE(promise);
   send_closure(file_manager_actor_, &FileManager::delete_file, FileId(request.file_id_, 0), std::move(promise),
                "td_api::deleteFile");
 }
 
 void Td::on_request(uint64 id, const td_api::blockUser &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   answer_ok_query(id, contacts_manager_->block_user(UserId(request.user_id_)));
 }
 
 void Td::on_request(uint64 id, const td_api::unblockUser &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   answer_ok_query(id, contacts_manager_->unblock_user(UserId(request.user_id_)));
 }
 
 void Td::on_request(uint64 id, const td_api::getBlockedUsers &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(GetBlockedUsersRequest, request.offset_, request.limit_);
 }
 
 void Td::on_request(uint64 id, td_api::importContacts &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   for (auto &contact : request.contacts_) {
     if (contact == nullptr) {
@@ -6357,26 +6214,22 @@ void Td::on_request(uint64 id, td_api::importContacts &request) {
 }
 
 void Td::on_request(uint64 id, td_api::searchContacts &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
   CREATE_REQUEST(SearchContactsRequest, request.query_, request.limit_);
 }
 
 void Td::on_request(uint64 id, td_api::removeContacts &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(RemoveContactsRequest, std::move(request.user_ids_));
 }
 
 void Td::on_request(uint64 id, const td_api::getImportedContactCount &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(GetImportedContactCountRequest);
 }
 
 void Td::on_request(uint64 id, td_api::changeImportedContacts &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   for (auto &contact : request.contacts_) {
     if (contact == nullptr) {
@@ -6390,19 +6243,16 @@ void Td::on_request(uint64 id, td_api::changeImportedContacts &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::clearImportedContacts &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(ClearImportedContactsRequest);
 }
 
 void Td::on_request(uint64 id, const td_api::getRecentInlineBots &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(GetRecentInlineBotsRequest);
 }
 
 void Td::on_request(uint64 id, td_api::setName &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.first_name_);
   CLEAN_INPUT_STRING(request.last_name_);
@@ -6410,203 +6260,170 @@ void Td::on_request(uint64 id, td_api::setName &request) {
 }
 
 void Td::on_request(uint64 id, td_api::setBio &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.bio_);
   CREATE_REQUEST(SetBioRequest, std::move(request.bio_));
 }
 
 void Td::on_request(uint64 id, td_api::setUsername &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.username_);
   CREATE_REQUEST(SetUsernameRequest, std::move(request.username_));
 }
 
 void Td::on_request(uint64 id, td_api::setProfilePhoto &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(SetProfilePhotoRequest, std::move(request.photo_));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteProfilePhoto &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(DeleteProfilePhotoRequest, request.profile_photo_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::getUserProfilePhotos &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(GetUserProfilePhotosRequest, request.user_id_, request.offset_, request.limit_);
 }
 
 void Td::on_request(uint64 id, const td_api::toggleBasicGroupAdministrators &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(ToggleGroupAdministratorsRequest, request.basic_group_id_, request.everyone_is_administrator_);
 }
 
 void Td::on_request(uint64 id, td_api::setSupergroupUsername &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.username_);
   CREATE_REQUEST(SetSupergroupUsernameRequest, request.supergroup_id_, std::move(request.username_));
 }
 
 void Td::on_request(uint64 id, const td_api::setSupergroupStickerSet &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(SetSupergroupStickerSetRequest, request.supergroup_id_, request.sticker_set_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::toggleSupergroupInvites &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(ToggleSupergroupInvitesRequest, request.supergroup_id_, request.anyone_can_invite_);
 }
 
 void Td::on_request(uint64 id, const td_api::toggleSupergroupSignMessages &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(ToggleSupergroupSignMessagesRequest, request.supergroup_id_, request.sign_messages_);
 }
 
 void Td::on_request(uint64 id, const td_api::toggleSupergroupIsAllHistoryAvailable &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(ToggleSupergroupIsAllHistoryAvailableRequest, request.supergroup_id_,
                  request.is_all_history_available_);
 }
 
 void Td::on_request(uint64 id, td_api::setSupergroupDescription &request) {
-  CHECK_AUTH();
   CLEAN_INPUT_STRING(request.description_);
   CREATE_REQUEST(SetSupergroupDescriptionRequest, request.supergroup_id_, std::move(request.description_));
 }
 
 void Td::on_request(uint64 id, const td_api::pinSupergroupMessage &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(PinSupergroupMessageRequest, request.supergroup_id_, request.message_id_,
                  request.disable_notification_);
 }
 
 void Td::on_request(uint64 id, const td_api::unpinSupergroupMessage &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(UnpinSupergroupMessageRequest, request.supergroup_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::reportSupergroupSpam &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(ReportSupergroupSpamRequest, request.supergroup_id_, request.user_id_, request.message_ids_);
 }
 
 void Td::on_request(uint64 id, td_api::getSupergroupMembers &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(GetSupergroupMembersRequest, request.supergroup_id_, std::move(request.filter_), request.offset_,
                  request.limit_);
 }
 
 void Td::on_request(uint64 id, const td_api::deleteSupergroup &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(DeleteSupergroupRequest, request.supergroup_id_);
 }
 
 void Td::on_request(uint64 id, td_api::closeSecretChat &request) {
-  CHECK_AUTH();
   CREATE_OK_REQUEST_PROMISE(promise);
   send_closure(secret_chats_manager_, &SecretChatsManager::cancel_chat, SecretChatId(request.secret_chat_id_),
                std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getStickers &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.emoji_);
   CREATE_REQUEST(GetStickersRequest, std::move(request.emoji_), request.limit_);
 }
 
 void Td::on_request(uint64 id, td_api::searchStickers &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.emoji_);
   CREATE_REQUEST(SearchStickersRequest, std::move(request.emoji_), request.limit_);
 }
 
 void Td::on_request(uint64 id, const td_api::getInstalledStickerSets &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(GetInstalledStickerSetsRequest, request.is_masks_);
 }
 
 void Td::on_request(uint64 id, const td_api::getArchivedStickerSets &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(GetArchivedStickerSetsRequest, request.is_masks_, request.offset_sticker_set_id_, request.limit_);
 }
 
 void Td::on_request(uint64 id, const td_api::getTrendingStickerSets &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(GetTrendingStickerSetsRequest);
 }
 
 void Td::on_request(uint64 id, const td_api::getAttachedStickerSets &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(GetAttachedStickerSetsRequest, request.file_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::getStickerSet &request) {
-  CHECK_AUTH();
   CREATE_REQUEST(GetStickerSetRequest, request.set_id_);
 }
 
 void Td::on_request(uint64 id, td_api::searchStickerSet &request) {
-  CHECK_AUTH();
   CLEAN_INPUT_STRING(request.name_);
   CREATE_REQUEST(SearchStickerSetRequest, std::move(request.name_));
 }
 
 void Td::on_request(uint64 id, td_api::searchInstalledStickerSets &request) {
-  CHECK_AUTH();
   CLEAN_INPUT_STRING(request.query_);
   CREATE_REQUEST(SearchInstalledStickerSetsRequest, request.is_masks_, std::move(request.query_), request.limit_);
 }
 
 void Td::on_request(uint64 id, td_api::searchStickerSets &request) {
-  CHECK_AUTH();
   CLEAN_INPUT_STRING(request.query_);
   CREATE_REQUEST(SearchStickerSetsRequest, std::move(request.query_));
 }
 
 void Td::on_request(uint64 id, const td_api::changeStickerSet &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(ChangeStickerSetRequest, request.set_id_, request.is_installed_, request.is_archived_);
 }
 
 void Td::on_request(uint64 id, const td_api::viewTrendingStickerSets &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   stickers_manager_->view_featured_sticker_sets(request.sticker_set_ids_);
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
 }
 
 void Td::on_request(uint64 id, td_api::reorderInstalledStickerSets &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(ReorderInstalledStickerSetsRequest, request.is_masks_, std::move(request.sticker_set_ids_));
 }
 
 void Td::on_request(uint64 id, td_api::uploadStickerFile &request) {
-  CHECK_AUTH();
   CHECK_IS_BOT();
   CREATE_REQUEST(UploadStickerFileRequest, request.user_id_, std::move(request.png_sticker_));
 }
 
 void Td::on_request(uint64 id, td_api::createNewStickerSet &request) {
-  CHECK_AUTH();
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.title_);
   CLEAN_INPUT_STRING(request.name_);
@@ -6615,92 +6432,77 @@ void Td::on_request(uint64 id, td_api::createNewStickerSet &request) {
 }
 
 void Td::on_request(uint64 id, td_api::addStickerToSet &request) {
-  CHECK_AUTH();
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.name_);
   CREATE_REQUEST(AddStickerToSetRequest, request.user_id_, std::move(request.name_), std::move(request.sticker_));
 }
 
 void Td::on_request(uint64 id, td_api::setStickerPositionInSet &request) {
-  CHECK_AUTH();
   CHECK_IS_BOT();
   CREATE_REQUEST(SetStickerPositionInSetRequest, std::move(request.sticker_), request.position_);
 }
 
 void Td::on_request(uint64 id, td_api::removeStickerFromSet &request) {
-  CHECK_AUTH();
   CHECK_IS_BOT();
   CREATE_REQUEST(RemoveStickerFromSetRequest, std::move(request.sticker_));
 }
 
 void Td::on_request(uint64 id, const td_api::getRecentStickers &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(GetRecentStickersRequest, request.is_attached_);
 }
 
 void Td::on_request(uint64 id, td_api::addRecentSticker &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(AddRecentStickerRequest, request.is_attached_, std::move(request.sticker_));
 }
 
 void Td::on_request(uint64 id, td_api::removeRecentSticker &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(RemoveRecentStickerRequest, request.is_attached_, std::move(request.sticker_));
 }
 
 void Td::on_request(uint64 id, td_api::clearRecentStickers &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(ClearRecentStickersRequest, request.is_attached_);
 }
 
 void Td::on_request(uint64 id, const td_api::getFavoriteStickers &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(GetFavoriteStickersRequest);
 }
 
 void Td::on_request(uint64 id, td_api::addFavoriteSticker &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(AddFavoriteStickerRequest, std::move(request.sticker_));
 }
 
 void Td::on_request(uint64 id, td_api::removeFavoriteSticker &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(RemoveFavoriteStickerRequest, std::move(request.sticker_));
 }
 
 void Td::on_request(uint64 id, td_api::getStickerEmojis &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(GetStickerEmojisRequest, std::move(request.sticker_));
 }
 
 void Td::on_request(uint64 id, const td_api::getSavedAnimations &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(GetSavedAnimationsRequest);
 }
 
 void Td::on_request(uint64 id, td_api::addSavedAnimation &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(AddSavedAnimationRequest, std::move(request.animation_));
 }
 
 void Td::on_request(uint64 id, td_api::removeSavedAnimation &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(RemoveSavedAnimationRequest, std::move(request.animation_));
 }
 
 void Td::on_request(uint64 id, const td_api::getScopeNotificationSettings &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   if (request.scope_ == nullptr) {
     return send_error_raw(id, 400, "Scope must not be empty");
@@ -6709,32 +6511,27 @@ void Td::on_request(uint64 id, const td_api::getScopeNotificationSettings &reque
 }
 
 void Td::on_request(uint64 id, const td_api::getChatReportSpamState &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(GetChatReportSpamStateRequest, request.chat_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::changeChatReportSpamState &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(ChangeChatReportSpamStateRequest, request.chat_id_, request.is_spam_chat_);
 }
 
 void Td::on_request(uint64 id, td_api::reportChat &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(ReportChatRequest, request.chat_id_, std::move(request.reason_), request.message_ids_);
 }
 
 void Td::on_request(uint64 id, td_api::setChatNotificationSettings &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   answer_ok_query(id, messages_manager_->set_dialog_notification_settings(DialogId(request.chat_id_),
                                                                           std::move(request.notification_settings_)));
 }
 
 void Td::on_request(uint64 id, td_api::setScopeNotificationSettings &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   if (request.scope_ == nullptr) {
     return send_error_raw(id, 400, "Scope must not be empty");
@@ -6745,7 +6542,6 @@ void Td::on_request(uint64 id, td_api::setScopeNotificationSettings &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::resetAllNotificationSettings &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   messages_manager_->reset_all_notification_settings();
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
@@ -6905,7 +6701,6 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
 }
 
 void Td::on_request(uint64 id, td_api::getInlineQueryResults &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);
   CLEAN_INPUT_STRING(request.offset_);
@@ -6914,7 +6709,6 @@ void Td::on_request(uint64 id, td_api::getInlineQueryResults &request) {
 }
 
 void Td::on_request(uint64 id, td_api::answerInlineQuery &request) {
-  CHECK_AUTH();
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.next_offset_);
   CLEAN_INPUT_STRING(request.switch_pm_text_);
@@ -6925,13 +6719,11 @@ void Td::on_request(uint64 id, td_api::answerInlineQuery &request) {
 }
 
 void Td::on_request(uint64 id, td_api::getCallbackQueryAnswer &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(GetCallbackQueryAnswerRequest, request.chat_id_, request.message_id_, std::move(request.payload_));
 }
 
 void Td::on_request(uint64 id, td_api::answerCallbackQuery &request) {
-  CHECK_AUTH();
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.text_);
   CLEAN_INPUT_STRING(request.url_);
@@ -6940,7 +6732,6 @@ void Td::on_request(uint64 id, td_api::answerCallbackQuery &request) {
 }
 
 void Td::on_request(uint64 id, td_api::answerShippingQuery &request) {
-  CHECK_AUTH();
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.error_message_);
   CREATE_REQUEST(AnswerShippingQueryRequest, request.shipping_query_id_, std::move(request.shipping_options_),
@@ -6948,27 +6739,23 @@ void Td::on_request(uint64 id, td_api::answerShippingQuery &request) {
 }
 
 void Td::on_request(uint64 id, td_api::answerPreCheckoutQuery &request) {
-  CHECK_AUTH();
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.error_message_);
   CREATE_REQUEST(AnswerPreCheckoutQueryRequest, request.pre_checkout_query_id_, std::move(request.error_message_));
 }
 
 void Td::on_request(uint64 id, const td_api::getPaymentForm &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(GetPaymentFormRequest, request.chat_id_, request.message_id_);
 }
 
 void Td::on_request(uint64 id, td_api::validateOrderInfo &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(ValidateOrderInfoRequest, request.chat_id_, request.message_id_, std::move(request.order_info_),
                  request.allow_save_);
 }
 
 void Td::on_request(uint64 id, td_api::sendPaymentForm &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.order_info_id_);
   CLEAN_INPUT_STRING(request.shipping_option_id_);
@@ -6980,31 +6767,26 @@ void Td::on_request(uint64 id, td_api::sendPaymentForm &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::getPaymentReceipt &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST(GetPaymentReceiptRequest, request.chat_id_, request.message_id_);
 }
 
 void Td::on_request(uint64 id, const td_api::getSavedOrderInfo &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(GetSavedOrderInfoRequest);
 }
 
 void Td::on_request(uint64 id, const td_api::deleteSavedOrderInfo &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(DeleteSavedOrderInfoRequest);
 }
 
 void Td::on_request(uint64 id, const td_api::deleteSavedCredentials &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(DeleteSavedCredentialsRequest);
 }
 
 void Td::on_request(uint64 id, td_api::getPassportData &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.password_);
   if (request.type_ == nullptr) {
@@ -7016,7 +6798,6 @@ void Td::on_request(uint64 id, td_api::getPassportData &request) {
 }
 
 void Td::on_request(uint64 id, td_api::getAllPassportData &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.password_);
   CREATE_REQUEST_PROMISE(promise);
@@ -7025,7 +6806,6 @@ void Td::on_request(uint64 id, td_api::getAllPassportData &request) {
 }
 
 void Td::on_request(uint64 id, td_api::setPassportData &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.password_);
   CREATE_REQUEST_PROMISE(promise);
@@ -7038,7 +6818,6 @@ void Td::on_request(uint64 id, td_api::setPassportData &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::deletePassportData &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   if (request.type_ == nullptr) {
     return send_error_raw(id, 400, "Type must not be empty");
@@ -7049,7 +6828,6 @@ void Td::on_request(uint64 id, const td_api::deletePassportData &request) {
 }
 
 void Td::on_request(uint64 id, td_api::setPassportDataErrors &request) {
-  CHECK_AUTH();
   CHECK_IS_BOT();
   UserId user_id(request.user_id_);
   auto input_user = contacts_manager_->get_input_user(user_id);
@@ -7062,7 +6840,6 @@ void Td::on_request(uint64 id, td_api::setPassportDataErrors &request) {
 }
 
 void Td::on_request(uint64 id, td_api::sendPhoneNumberVerificationCode &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.phone_number_);
   send_closure(verify_phone_number_manager_, &PhoneNumberManager::set_phone_number, id,
@@ -7070,20 +6847,17 @@ void Td::on_request(uint64 id, td_api::sendPhoneNumberVerificationCode &request)
 }
 
 void Td::on_request(uint64 id, const td_api::resendPhoneNumberVerificationCode &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   send_closure(verify_phone_number_manager_, &PhoneNumberManager::resend_authentication_code, id);
 }
 
 void Td::on_request(uint64 id, td_api::checkPhoneNumberVerificationCode &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.code_);
   send_closure(verify_phone_number_manager_, &PhoneNumberManager::check_code, id, std::move(request.code_));
 }
 
 void Td::on_request(uint64 id, td_api::sendEmailAddressVerificationCode &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.email_address_);
   CREATE_REQUEST_PROMISE(promise);
@@ -7092,14 +6866,12 @@ void Td::on_request(uint64 id, td_api::sendEmailAddressVerificationCode &request
 }
 
 void Td::on_request(uint64 id, const td_api::resendEmailAddressVerificationCode &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE(promise);
   send_closure(password_manager_, &PasswordManager::resend_email_address_verification_code, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::checkEmailAddressVerificationCode &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.code_);
   CREATE_REQUEST_PROMISE(promise);
@@ -7108,7 +6880,6 @@ void Td::on_request(uint64 id, td_api::checkEmailAddressVerificationCode &reques
 }
 
 void Td::on_request(uint64 id, td_api::getPassportAuthorizationForm &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.password_);
   CLEAN_INPUT_STRING(request.public_key_);
@@ -7128,7 +6899,6 @@ void Td::on_request(uint64 id, td_api::getPassportAuthorizationForm &request) {
 }
 
 void Td::on_request(uint64 id, td_api::sendPassportAuthorizationForm &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.password_);
   for (auto &type : request.types_) {
@@ -7143,26 +6913,22 @@ void Td::on_request(uint64 id, td_api::sendPassportAuthorizationForm &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::getSupportUser &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(GetSupportUserRequest);
 }
 
 void Td::on_request(uint64 id, const td_api::getWallpapers &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(GetWallpapersRequest);
 }
 
 void Td::on_request(uint64 id, td_api::getRecentlyVisitedTMeUrls &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.referrer_);
   CREATE_REQUEST(GetRecentlyVisitedTMeUrlsRequest, std::move(request.referrer_));
 }
 
 void Td::on_request(uint64 id, td_api::setBotUpdatesStatus &request) {
-  CHECK_AUTH();
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.error_message_);
   create_handler<SetBotUpdatesStatusQuery>()->send(request.pending_update_count_, request.error_message_);
@@ -7170,7 +6936,6 @@ void Td::on_request(uint64 id, td_api::setBotUpdatesStatus &request) {
 }
 
 void Td::on_request(uint64 id, td_api::sendCustomRequest &request) {
-  CHECK_AUTH();
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.method_);
   CLEAN_INPUT_STRING(request.parameters_);
@@ -7178,7 +6943,6 @@ void Td::on_request(uint64 id, td_api::sendCustomRequest &request) {
 }
 
 void Td::on_request(uint64 id, td_api::answerCustomQuery &request) {
-  CHECK_AUTH();
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.data_);
   CREATE_REQUEST(AnswerCustomQueryRequest, request.custom_query_id_, std::move(request.data_));
@@ -7195,7 +6959,6 @@ void Td::on_request(uint64 id, const td_api::setAlarm &request) {
 }
 
 void Td::on_request(uint64 id, td_api::searchHashtags &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.prefix_);
   CREATE_REQUEST_PROMISE(promise);
@@ -7212,7 +6975,6 @@ void Td::on_request(uint64 id, td_api::searchHashtags &request) {
 }
 
 void Td::on_request(uint64 id, td_api::removeRecentHashtag &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.hashtag_);
   CREATE_OK_REQUEST_PROMISE(promise);
@@ -7224,7 +6986,6 @@ void Td::on_request(uint64 id, const td_api::getCountryCode &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::getInviteText &request) {
-  CHECK_AUTH();
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(GetInviteTextRequest);
 }
@@ -7359,7 +7120,6 @@ void Td::on_request(uint64 id, td_api::testNetwork &request) {
 }
 
 void Td::on_request(uint64 id, td_api::testGetDifference &request) {
-  CHECK_AUTH();
   updates_manager_->get_difference("testGetDifference");
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
 }
@@ -7407,7 +7167,6 @@ void Td::on_request(uint64 id, td_api::testCallVectorStringObject &request) {
 }
 
 #undef CLEAN_INPUT_STRING
-#undef CHECK_AUTH
 #undef CHECK_IS_BOT
 #undef CHECK_IS_USER
 #undef CREATE_NO_ARGS_REQUEST
