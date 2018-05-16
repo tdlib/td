@@ -247,6 +247,9 @@ class Td final : public NetQueryCallback {
 
   vector<std::pair<uint64, td_api::object_ptr<td_api::Function>>> pending_preauthentication_requests_;
 
+  template <class T>
+  void complete_pending_preauthentication_requests(const T &func);
+
   static void on_alarm_timeout_callback(void *td_ptr, int64 alarm_id);
   void on_alarm_timeout(int64 alarm_id);
 

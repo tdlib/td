@@ -677,6 +677,16 @@ class CliClient final : public Actor {
     send_request(td_api::make_object<td_api::getTextEntities>(
         "@telegram /test_command https://telegram.org telegram.me @gif @test"));
 
+    send_request(td_api::make_object<td_api::getOption>("use_pfs"));
+    send_request(td_api::make_object<td_api::setOption>(
+        "use_pfs", td_api::make_object<td_api::optionValueBoolean>(std::time(nullptr) / 86400 % 2 == 0)));
+    send_request(td_api::make_object<td_api::setOption>("use_storage_optimizer",
+                                                        td_api::make_object<td_api::optionValueBoolean>(false)));
+
+    send_request(td_api::make_object<td_api::setNetworkType>(td_api::make_object<td_api::networkTypeWiFi>()));
+    send_request(td_api::make_object<td_api::getNetworkStatistics>());
+    send_request(td_api::make_object<td_api::getCountryCode>());
+
     auto bad_parameters = td_api::make_object<td_api::tdlibParameters>();
     bad_parameters->database_directory_ = "/..";
     bad_parameters->api_id_ = api_id_;

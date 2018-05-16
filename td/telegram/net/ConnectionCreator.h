@@ -252,6 +252,8 @@ class ConnectionCreator : public NetQueryCallback {
   void on_network(bool network_flag, uint32 network_generation);
   void on_online(bool online_flag);
 
+  static void update_mtproto_header(const Proxy &proxy);
+
   void client_wakeup(size_t hash);
   void client_loop(ClientInfo &client);
   struct ConnectionData {

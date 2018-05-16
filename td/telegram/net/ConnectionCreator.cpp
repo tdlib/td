@@ -339,8 +339,7 @@ void ConnectionCreator::enable_proxy_impl(int32 proxy_id) {
 
   if ((active_proxy_id_ != 0 && proxies_[active_proxy_id_].type() == Proxy::Type::Mtproto) ||
       proxies_[proxy_id].type() == Proxy::Type::Mtproto) {
-    G()->mtproto_header().set_proxy(proxies_[proxy_id]);
-    G()->net_query_dispatcher().update_mtproto_header();
+    update_mtproto_header(proxies_[proxy_id]);
   }
   save_proxy_last_used_date(0);
 
@@ -358,8 +357,7 @@ void ConnectionCreator::disable_proxy_impl() {
   CHECK(proxies_.count(active_proxy_id_) == 1);
 
   if (proxies_[active_proxy_id_].type() == Proxy::Type::Mtproto) {
-    G()->mtproto_header().set_proxy(Proxy());
-    G()->net_query_dispatcher().update_mtproto_header();
+    update_mtproto_header(Proxy());
   }
 
   active_proxy_id_ = 0;
@@ -813,6 +811,15 @@ void ConnectionCreator::on_dc_update(DcId dc_id, string ip_port, Promise<> promi
   }());
 }
 
+void ConnectionCreator::update_mtproto_header(const Proxy &proxy) {
+  if (G()->have_mtproto_header()) {
+    G()->mtproto_header().set_proxy(proxy);
+  }
+  if (G()->have_net_query_dispatcher()) {
+    G()->net_query_dispatcher().update_mtproto_header();
+  }
+}
+
 void ConnectionCreator::start_up() {
   class StateCallback : public StateManager::Callback {
    public:
@@ -891,8 +898,7 @@ void ConnectionCreator::start_up() {
 
   if (active_proxy_id_ != 0) {
     if (proxies_[active_proxy_id_].type() == Proxy::Type::Mtproto) {
-      G()->mtproto_header().set_proxy(proxies_[active_proxy_id_]);
-      G()->net_query_dispatcher().update_mtproto_header();
+      update_mtproto_header(proxies_[active_proxy_id_]);
     }
 
     on_proxy_changed(true);

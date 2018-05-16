@@ -94,6 +94,10 @@ class Global : public ActorContext {
     return *net_query_dispatcher_;
   }
 
+  bool have_net_query_dispatcher() const {
+    return net_query_dispatcher_ != nullptr;
+  }
+
   void set_shared_config(std::unique_ptr<ConfigShared> shared_config);
 
   ConfigShared &shared_config() {
@@ -223,6 +227,9 @@ class Global : public ActorContext {
 
   MtprotoHeader &mtproto_header();
   void set_mtproto_header(std::unique_ptr<MtprotoHeader> mtproto_header);
+  bool have_mtproto_header() const {
+    return mtproto_header_ != nullptr;
+  }
 
   const TdParameters &parameters() const {
     return parameters_;

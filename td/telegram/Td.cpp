@@ -4037,7 +4037,7 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
           }
           if (is_preauthentication_request(function_id)) {
             pending_preauthentication_requests_.emplace_back(id, std::move(function));
-            // return;
+            return;
           }
           return send_error_raw(id, 401, "Initialization parameters are needed");
       }
@@ -4070,7 +4070,7 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
           }
           if (is_preauthentication_request(function_id)) {
             pending_preauthentication_requests_.emplace_back(id, std::move(function));
-            // return;
+            return;
           }
           return send_error_raw(id, 401, "Database encryption key is needed");
       }
@@ -4586,6 +4586,16 @@ class Td::UploadFileCallback : public FileManager::UploadCallback {
 
 int VERBOSITY_NAME(td_init) = VERBOSITY_NAME(DEBUG) + 3;
 
+template <class T>
+void Td::complete_pending_preauthentication_requests(const T &func) {
+  for (auto &request : pending_preauthentication_requests_) {
+    if (request.second != nullptr && func(request.second->get_id())) {
+      downcast_call(*request.second, [this, id = request.first](auto &request) { this->on_request(id, request); });
+      request.second = nullptr;
+    }
+  }
+}
+
 Status Td::init(DbKey key) {
   auto current_scheduler_id = Scheduler::instance()->sched_id();
   auto scheduler_count = Scheduler::instance()->sched_count();
@@ -4631,6 +4641,25 @@ Status Td::init(DbKey key) {
 
     G()->set_connection_creator(std::move(connection_creator));
     net_stats_manager_ = std::move(net_stats_manager);
+
+    complete_pending_preauthentication_requests([](int32 id) {
+      switch (id) {
+        case td_api::processDcUpdate::ID:
+        case td_api::setNetworkType::ID:
+        case td_api::getNetworkStatistics::ID:
+        case td_api::addNetworkStatistics::ID:
+        case td_api::resetNetworkStatistics::ID:
+        case td_api::addProxy::ID:
+        case td_api::enableProxy::ID:
+        case td_api::disableProxy::ID:
+        case td_api::removeProxy::ID:
+        case td_api::getProxies::ID:
+        case td_api::pingProxy::ID:
+          return true;
+        default:
+          return false;
+      }
+    });
   }
 
   VLOG(td_init) << "Create TempAuthKeyWatchdog";
@@ -4652,6 +4681,16 @@ Status Td::init(DbKey key) {
       std::make_unique<ConfigShared>(G()->td_db()->get_config_pmc(), std::make_unique<ConfigSharedCallback>()));
   config_manager_ = create_actor<ConfigManager>("ConfigManager", create_reference());
   G()->set_config_manager(config_manager_.get());
+
+  complete_pending_preauthentication_requests([](int32 id) {
+    switch (id) {
+      case td_api::getOption::ID:
+      case td_api::setOption::ID:
+        return true;
+      default:
+        return false;
+    }
+  });
 
   VLOG(td_init) << "Create NetQueryDispatcher";
   auto net_query_dispatcher = std::make_unique<NetQueryDispatcher>([&] { return create_reference(); });
@@ -4796,6 +4835,8 @@ Status Td::init(DbKey key) {
   } else {
     updates_manager_->get_difference("init");
   }
+
+  complete_pending_preauthentication_requests([](int32 id) { return true; });
 
   state_ = State::Run;
   return Status::OK();
