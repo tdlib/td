@@ -262,6 +262,8 @@ class Td final : public NetQueryCallback {
   void clear_handlers();
   // void destroy_handler(ResultHandler *handler);
 
+  void clear_requests();
+
   static bool is_internal_config_option(Slice name);
 
   void on_config_option_updated(const string &name);

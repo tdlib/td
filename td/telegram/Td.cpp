@@ -4036,7 +4036,7 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
             break;
           }
           if (is_preauthentication_request(function_id)) {
-            // pending_preauthentication_requests_.emplace_back(id, std::move(function));
+            pending_preauthentication_requests_.emplace_back(id, std::move(function));
             // return;
           }
           return send_error_raw(id, 401, "Initialization parameters are needed");
@@ -4069,7 +4069,7 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
             break;
           }
           if (is_preauthentication_request(function_id)) {
-            // pending_preauthentication_requests_.emplace_back(id, std::move(function));
+            pending_preauthentication_requests_.emplace_back(id, std::move(function));
             // return;
           }
           return send_error_raw(id, 401, "Database encryption key is needed");
@@ -4409,6 +4409,23 @@ void Td::clear_handlers() {
   result_handlers_.clear();
 }
 
+void Td::clear_requests() {
+  while (!pending_alarms_.empty()) {
+    auto it = pending_alarms_.begin();
+    auto alarm_id = it->first;
+    pending_alarms_.erase(it);
+    alarm_timeout_.cancel_timeout(alarm_id);
+  }
+  while (!request_set_.empty()) {
+    uint64 id = *request_set_.begin();
+    if (destroy_flag_) {
+      send_error_impl(id, make_error(401, "Unauthorized"));
+    } else {
+      send_error_impl(id, make_error(500, "Internal Server Error: closing"));
+    }
+  }
+}
+
 void Td::clear() {
   if (close_flag_ >= 2) {
     return;
@@ -4433,20 +4450,7 @@ void Td::clear() {
   LOG(DEBUG) << "NetQueryDispatcher was stopped " << timer;
   state_manager_.reset();
   LOG(DEBUG) << "StateManager was cleared " << timer;
-  while (!pending_alarms_.empty()) {
-    auto it = pending_alarms_.begin();
-    auto alarm_id = it->first;
-    pending_alarms_.erase(it);
-    alarm_timeout_.cancel_timeout(alarm_id);
-  }
-  while (!request_set_.empty()) {
-    uint64 id = *request_set_.begin();
-    if (destroy_flag_) {
-      send_error_impl(id, make_error(401, "Unauthorized"));
-    } else {
-      send_error_impl(id, make_error(500, "Internal Server Error: closing"));
-    }
-  }
+  clear_requests();
   if (is_online_) {
     is_online_ = false;
     alarm_timeout_.cancel_timeout(ONLINE_ALARM_ID);
@@ -4520,9 +4524,11 @@ void Td::close_impl(bool destroy_flag) {
     return;
   }
   if (state_ == State::WaitParameters) {
+    clear_requests();
     return on_closed();
   }
   if (state_ == State::Decrypt) {
+    clear_requests();
     if (destroy_flag) {
       TdDb::destroy(parameters_);
     }
