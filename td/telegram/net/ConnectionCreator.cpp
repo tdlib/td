@@ -609,7 +609,8 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
     IPAddress mtproto_ip;
 
     // sync part
-    auto r_socket_fd = [&, dc_id = client.dc_id, allow_media_only = client.allow_media_only]() -> Result<SocketFd> {
+    auto allow_media_only = client.allow_media_only;
+    auto r_socket_fd = [&, dc_id = client.dc_id]() -> Result<SocketFd> {
       TRY_RESULT(info, dc_options_set_.find_connection(dc_id, allow_media_only, use_proxy));
       stat = info.stat;
       int16 raw_dc_id = narrow_cast<int16>(info.option->is_media_only() ? -dc_id.get_raw_id() : dc_id.get_raw_id());
