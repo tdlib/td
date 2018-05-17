@@ -46,6 +46,8 @@ class StringBuilder {
     return *this << Slice(str);
   }
 
+  StringBuilder &operator<<(const wchar_t *str) = delete;
+
   StringBuilder &operator<<(Slice slice) {
     if (unlikely(end_ptr_ < current_ptr_)) {
       return on_error();
