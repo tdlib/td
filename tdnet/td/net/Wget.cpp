@@ -95,7 +95,9 @@ void Wget::on_connection_error(Status error) {
 
 void Wget::on_ok(HttpQueryPtr http_query_ptr) {
   CHECK(promise_);
-  if (http_query_ptr->code_ == 302 && ttl_ > 0) {
+  if ((http_query_ptr->code_ == 301 || http_query_ptr->code_ == 302 || http_query_ptr->code_ == 307 ||
+       http_query_ptr->code_ == 308) &&
+      ttl_ > 0) {
     LOG(DEBUG) << *http_query_ptr;
     input_url_ = http_query_ptr->get_header("location").str();
     LOG(DEBUG) << input_url_;
