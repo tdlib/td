@@ -91,4 +91,32 @@ Result<string> hex_decode(Slice hex) {
   return std::move(result);
 }
 
+static bool is_url_char(char c) {
+  return is_alnum(c) || c == '-' || c == '.' || c == '_' || c == '~';
+}
+
+string url_encode(Slice str) {
+  size_t length = 3 * str.size();
+  for (auto c : str) {
+    length -= 2 * is_url_char(c);
+  }
+  if (length == str.size()) {
+    return str.str();
+  }
+  string result;
+  result.reserve(length);
+  for (auto c : str) {
+    if (is_url_char(c)) {
+      result += c;
+    } else {
+      auto ch = static_cast<unsigned char>(c);
+      result += '%';
+      result += "0123456789ABCDEF"[ch / 16];
+      result += "0123456789ABCDEF"[ch % 16];
+    }
+  }
+  CHECK(result.size() == length);
+  return result;
+}
+
 }  // namespace td

@@ -3092,6 +3092,8 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::addProxy>(server, to_integer<int32>(port), op == "aeproxy", std::move(type)));
     } else if (op == "gproxy" || op == "gproxies") {
       send_request(make_tl_object<td_api::getProxies>());
+    } else if (op == "gproxyl" || op == "gpl") {
+      send_request(make_tl_object<td_api::getProxyLink>(as_proxy_id(args)));
     } else if (op == "pproxy") {
       send_request(make_tl_object<td_api::pingProxy>(as_proxy_id(args)));
     } else if (op == "touch") {

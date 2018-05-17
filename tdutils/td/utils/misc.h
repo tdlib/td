@@ -278,6 +278,8 @@ T clamp(T value, T min_value, T max_value) {
 
 Result<string> hex_decode(Slice hex);
 
+string url_encode(Slice str);
+
 // run-time checked narrowing cast (type conversion):
 
 namespace detail {

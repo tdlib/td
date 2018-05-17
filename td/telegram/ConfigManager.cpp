@@ -705,7 +705,13 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
                                      (config->flags_ & telegram_api::config::BLOCKED_MODE_MASK) != 0);
   }
   if (is_from_main_dc || !shared_config.have_option("t_me_url")) {
-    shared_config.set_option_string("t_me_url", config->me_url_prefix_);
+    auto url = config->me_url_prefix_;
+    if (!url.empty()) {
+      if (url.back() != '/') {
+        url.push_back('/');
+      }
+      shared_config.set_option_string("t_me_url", url);
+    }
   }
   if (is_from_main_dc) {
     if ((config->flags_ & telegram_api::config::TMP_SESSIONS_MASK) != 0) {

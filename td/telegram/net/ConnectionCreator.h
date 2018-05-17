@@ -143,6 +143,7 @@ class ConnectionCreator : public NetQueryCallback {
   void disable_proxy(Promise<Unit> promise);
   void remove_proxy(int32 proxy_id, Promise<Unit> promise);
   void get_proxies(Promise<td_api::object_ptr<td_api::proxies>> promise);
+  void get_proxy_link(int32 proxy_id, Promise<string> promise);
   void ping_proxy(int32 proxy_id, Promise<double> promise);
 
  private:

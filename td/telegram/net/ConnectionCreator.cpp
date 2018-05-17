@@ -9,6 +9,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/telegram/ConfigManager.h"
+#include "td/telegram/ConfigShared.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesManager.h"
@@ -320,6 +321,43 @@ void ConnectionCreator::remove_proxy(int32 proxy_id, Promise<Unit> promise) {
 void ConnectionCreator::get_proxies(Promise<td_api::object_ptr<td_api::proxies>> promise) {
   promise.set_value(td_api::make_object<td_api::proxies>(
       transform(proxies_, [this](const std::pair<int32, Proxy> &proxy) { return get_proxy_object(proxy.first); })));
+}
+
+void ConnectionCreator::get_proxy_link(int32 proxy_id, Promise<string> promise) {
+  if (proxies_.count(proxy_id) == 0) {
+    return promise.set_error(Status::Error(400, "Unknown proxy identifier"));
+  }
+
+  auto &proxy = proxies_[proxy_id];
+  string url = G()->shared_config().get_option_string("t_me_url", "https://t.me/");
+  bool is_socks = false;
+  switch (proxy.type()) {
+    case Proxy::Type::Socks5:
+      url += "socks";
+      is_socks = true;
+      break;
+    case Proxy::Type::Mtproto:
+      url += "proxy";
+      break;
+    default:
+      UNREACHABLE();
+  }
+  url += "?server=";
+  url += url_encode(proxy.server());
+  url += "&port=";
+  url += to_string(proxy.port());
+  if (is_socks) {
+    if (!proxy.user().empty() || !proxy.password().empty()) {
+      url += "&user=";
+      url += url_encode(proxy.user());
+      url += "&pass=";
+      url += url_encode(proxy.password());
+    }
+  } else {
+    url += "&secret=";
+    url += url_encode(proxy.secret());
+  }
+  promise.set_value(std::move(url));
 }
 
 void ConnectionCreator::ping_proxy(int32 proxy_id, Promise<double> promise) {

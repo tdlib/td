@@ -16,6 +16,7 @@
 #include <unordered_map>
 
 namespace td {
+
 class ConfigShared {
  public:
   class Callback {
@@ -41,6 +42,7 @@ class ConfigShared {
 
   bool get_option_boolean(Slice name, bool default_value = false) const;
   int32 get_option_integer(Slice name, int32 default_value = 0) const;
+  string get_option_string(Slice name, string default_value = "") const;
 
   tl_object_ptr<td_api::OptionValue> get_option_value(Slice value) const;
 
@@ -53,4 +55,5 @@ class ConfigShared {
 
   void on_option_updated(Slice name);
 };
+
 }  // namespace td

@@ -2138,7 +2138,7 @@ updateFile file:file = Update;
 //@generation_id Unique identifier for the generation process
 //@original_path The path to a file from which a new file is generated; may be empty
 //@destination_path The path to a file that should be created and where the new file should be generated
-//@conversion String specifying the conversion applied to the original file. If conversion is "#url#" than original_path contains a HTTP/HTTPS URL of a file, which should be downloaded by the client
+//@conversion String specifying the conversion applied to the original file. If conversion is "#url#" than original_path contains an HTTP/HTTPS URL of a file, which should be downloaded by the client
 updateFileGenerationStart generation_id:int64 original_path:string destination_path:string conversion:string = Update;
 
 //@description File generation is no longer needed @generation_id Unique identifier for the generation process
@@ -3160,22 +3160,25 @@ getTermsOfService = Text;
 getDeepLinkInfo link:string = DeepLinkInfo;
 
 
-//@description Adds a proxy server for network requests. Can be called before authorization @server Proxy server IP address @port Proxy server port @enable True, if the proxy should be enabled @type Type of a proxy
+//@description Adds a proxy server for network requests. Can be called before authorization @server Proxy server IP address @port Proxy server port @enable True, if the proxy should be enabled @type Type of the proxy
 addProxy server:string port:int32 enable:Bool type:ProxyType = Proxy;
 
-//@description Enables a proxy. Only one proxy can be enabled at a time. Can be called before authorization @proxy_id The proxy identifier
+//@description Enables a proxy. Only one proxy can be enabled at a time. Can be called before authorization @proxy_id Proxy identifier
 enableProxy proxy_id:int32 = Ok;
 
 //@description Disables currently enabled proxy. Can be called before authorization
 disableProxy = Ok;
 
-//@description Removes a proxy server. Can be called before authorization @proxy_id The proxy identifier
+//@description Removes a proxy server. Can be called before authorization @proxy_id Proxy identifier
 removeProxy proxy_id:int32 = Ok;
 
 //@description Returns list of proxies that are currently set up. Can be called before authorization
 getProxies = Proxies;
 
-//@description Computes time needed to receive a response from a Telegram server through the proxy. Can be called before authorization @proxy_id The proxy identifier
+//@description Returns an HTTPS link, which can be used to add the proxy. Available only for SOCKS5 and MTProto proxies. Can be called before authorization @proxy_id Proxy identifier
+getProxyLink proxy_id:int32 = Text;
+
+//@description Computes time needed to receive a response from a Telegram server through the proxy. Can be called before authorization @proxy_id Proxy identifier
 pingProxy proxy_id:int32 = Seconds;
 
 

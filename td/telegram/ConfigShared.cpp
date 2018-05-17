@@ -12,6 +12,7 @@
 #include "td/utils/misc.h"
 
 namespace td {
+
 ConfigShared::ConfigShared(BinlogPmcPtr config_pmc, unique_ptr<Callback> callback)
     : config_pmc_(config_pmc), callback_(std::move(callback)) {
   for (auto key_value : config_pmc_->get_all()) {
@@ -85,6 +86,18 @@ int32 ConfigShared::get_option_integer(Slice name, int32 default_value) const {
   return to_integer<int32>(str_value.substr(1));
 }
 
+string ConfigShared::get_option_string(Slice name, string default_value) const {
+  auto str_value = get_option(name);
+  if (str_value.empty()) {
+    return default_value;
+  }
+  if (str_value[0] != 'S') {
+    LOG(ERROR) << "Found \"" << str_value << "\" instead of string option";
+    return default_value;
+  }
+  return str_value.substr(1);
+}
+
 tl_object_ptr<td_api::OptionValue> ConfigShared::get_option_value(Slice value) const {
   return get_option_value_object(get_option(value));
 }
@@ -123,4 +136,5 @@ tl_object_ptr<td_api::OptionValue> ConfigShared::get_option_value_object(Slice v
 void ConfigShared::on_option_updated(Slice name) {
   callback_->on_option_updated(name.str());
 }
+
 }  // namespace td
