@@ -159,7 +159,11 @@ Status IPAddress::init_host_port(CSlice host, CSlice port) {
   LOG(INFO) << "Try to init IP address of " << host << " with port " << port;
   auto s = getaddrinfo(host.c_str(), port.c_str(), &hints, &info);
   if (s != 0) {
-    return Status::Error(PSLICE() << "getaddrinfo: " << gai_strerror(s));
+#if TD_WINDOWS
+    return OS_SOCKET_ERROR("Failed to resolve host");
+#else
+    return Status::Error(PSLICE() << "Failed to resolve host: " << gai_strerror(s));
+#endif
   }
   SCOPE_EXIT {
     freeaddrinfo(info);
