@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/telegram/net/DcOptions.h"
 #include "td/telegram/net/DcOptionsSet.h"
@@ -22,7 +23,6 @@
 #include "td/net/NetStats.h"
 
 #include "td/utils/FloodControlStrict.h"
-#include "td/utils/logging.h"
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/port/SocketFd.h"
 #include "td/utils/Slice.h"
