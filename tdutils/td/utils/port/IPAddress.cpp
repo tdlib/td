@@ -12,8 +12,11 @@
 #include "td/utils/port/SocketFd.h"
 #include "td/utils/port/thread_local.h"
 #include "td/utils/ScopeGuard.h"
+#include "td/utils/utf8.h"
 
-#if !TD_WINDOWS
+#if TD_WINDOWS
+#include "td/utils/port/wstring_convert.h"
+#else
 #include <netdb.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
@@ -24,6 +27,44 @@
 #include <cstring>
 
 namespace td {
+
+static bool is_ascii_host_char(char c) {
+  return is_alnum(c) || c == '-';
+}
+
+static bool is_ascii_host(Slice host) {
+  for (auto c : host) {
+    // ':' and '@' are not allowed in a host name anyway, so we can skip them
+    if (!is_ascii_host_char(c) && c != '.' && c != ':' && c != '@') {
+      return false;
+    }
+  }
+  return true;
+}
+
+Result<string> idn_to_ascii(CSlice host) {
+  if (is_ascii_host(host)) {
+    return to_lower(host);
+  }
+  if (!check_utf8(host)) {
+    return Status::Error("Host name must be encoded in UTF-8");
+  }
+
+#if TD_WINDOWS
+  TRY_RESULT(whost, to_wstring(host));
+  wchar_t punycode[256];
+  int result_length = IdnToAscii(IDN_ALLOW_UNASSIGNED, whost.c_str(), whost.size(), punycode, 255);
+  if (result_length == 0) {
+    return Status::Error("Host can't be punycoded");
+  }
+
+  TRY_RESULT(idn_host, from_wstring(punycode, result_length));
+  return idn_host;
+#else
+  // TODO
+  return Status::Error("Internationalized Domain Names are not supported");
+#endif
+}
 
 IPAddress::IPAddress() : is_valid_(false) {
 }
@@ -84,12 +125,14 @@ IPAddress IPAddress::get_any_addr() const {
   }
   return res;
 }
+
 void IPAddress::init_ipv4_any() {
   is_valid_ = true;
   ipv4_addr_.sin_family = AF_INET;
   ipv4_addr_.sin_addr.s_addr = INADDR_ANY;
   ipv4_addr_.sin_port = 0;
 }
+
 void IPAddress::init_ipv6_any() {
   is_valid_ = true;
   ipv6_addr_.sin6_family = AF_INET6;
@@ -151,18 +194,21 @@ Status IPAddress::init_host_port(CSlice host, CSlice port) {
     return Status::Error("Host is invalid");
   }
 #endif
+  TRY_RESULT(ascii_host, idn_to_ascii(host));
+  host = ascii_host;
+
   addrinfo hints;
   addrinfo *info = nullptr;
   std::memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_INET;  // TODO AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
   LOG(INFO) << "Try to init IP address of " << host << " with port " << port;
-  auto s = getaddrinfo(host.c_str(), port.c_str(), &hints, &info);
-  if (s != 0) {
+  auto err = getaddrinfo(host.c_str(), port.c_str(), &hints, &info);
+  if (err != 0) {
 #if TD_WINDOWS
     return OS_SOCKET_ERROR("Failed to resolve host");
 #else
-    return Status::Error(PSLICE() << "Failed to resolve host: " << gai_strerror(s));
+    return Status::Error(PSLICE() << "Failed to resolve host: " << gai_strerror(err));
 #endif
   }
   SCOPE_EXIT {

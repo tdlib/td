@@ -10,6 +10,7 @@
 #include "td/utils/misc.h"
 #include "td/utils/port/EventFd.h"
 #include "td/utils/port/FileFd.h"
+#include "td/utils/port/IPAddress.h"
 #include "td/utils/port/path.h"
 #include "td/utils/port/sleep.h"
 #include "td/utils/port/Stat.h"
@@ -259,4 +260,41 @@ TEST(Misc, get_url_query_file_name) {
     test_get_url_query_file_name_one("/", suffix, "a123asadas");
     test_get_url_query_file_name_one("/", suffix, "\\a\\1\\2\\3\\a\\s\\a\\das");
   }
+}
+
+static void test_idn_to_ascii_one(string host, string result) {
+  if (result != idn_to_ascii(host).ok()) {
+    LOG(ERROR) << "Failed to convert " << host << " to " << result << ", got \"" << idn_to_ascii(host).ok() << "\"";
+  }
+}
+
+TEST(Misc, idn_to_ascii) {
+  test_idn_to_ascii_one("::::::::::::::::::::::::::::::::::::::@/", "::::::::::::::::::::::::::::::::::::::@/");
+  test_idn_to_ascii_one("%30", "%30");
+  test_idn_to_ascii_one("%30", "%30");
+  test_idn_to_ascii_one("127.0.0.1", "127.0.0.1");
+  test_idn_to_ascii_one("fe80::", "fe80::");
+  test_idn_to_ascii_one("fe80:0:0:0:200:f8ff:fe21:67cf", "fe80:0:0:0:200:f8ff:fe21:67cf");
+  test_idn_to_ascii_one("2001:0db8:11a3:09d7:1f34:8a2e:07a0:765d", "2001:0db8:11a3:09d7:1f34:8a2e:07a0:765d");
+  test_idn_to_ascii_one("::ffff:192.0.2.1", "::ffff:192.0.2.1");
+  test_idn_to_ascii_one("ABCDEF", "abcdef");
+  test_idn_to_ascii_one("abcdef", "abcdef");
+  test_idn_to_ascii_one("abæcdöef", "xn--abcdef-qua4k");
+  test_idn_to_ascii_one("schön", "xn--schn-7qa");
+  test_idn_to_ascii_one("ยจฆฟคฏข", "xn--22cdfh1b8fsa");
+  test_idn_to_ascii_one("☺", "xn--74h");
+  test_idn_to_ascii_one("правда", "xn--80aafi6cg");
+  test_idn_to_ascii_one("büücher", "xn--bcher-kvaa");
+  test_idn_to_ascii_one("BüüCHER", "xn--bcher-kvaa");
+  test_idn_to_ascii_one("bücüher", "xn--bcher-kvab");
+  test_idn_to_ascii_one("bücherü", "xn--bcher-kvae");
+  test_idn_to_ascii_one("ýbücher", "xn--bcher-kvaf");
+  test_idn_to_ascii_one("übücher", "xn--bcher-jvab");
+  test_idn_to_ascii_one("bücher.tld", "xn--bcher-kva.tld");
+  test_idn_to_ascii_one("кто.рф", "xn--j1ail.xn--p1ai");
+  test_idn_to_ascii_one("wіkіреdіа.org", "xn--wkd-8cdx9d7hbd.org");
+  test_idn_to_ascii_one("cnwin2k8中国.avol.com", "xn--cnwin2k8-sd0mx14e.avol.com");
+  test_idn_to_ascii_one("win-2k12r2-addc.阿伯测阿伯测ad.hai.com", "win-2k12r2-addc.xn--ad-tl3ca3569aba8944eca.hai.com");
+  test_idn_to_ascii_one("✌️.ws", "xn--7bi.ws");
+  test_idn_to_ascii_one("⛧", "xn--59h");
 }

@@ -19,7 +19,11 @@
 #endif
 
 namespace td {
+
+Result<string> idn_to_ascii(CSlice host);
+
 class SocketFd;
+
 class IPAddress {
  public:
   IPAddress();
