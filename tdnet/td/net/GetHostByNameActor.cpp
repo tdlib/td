@@ -10,6 +10,7 @@
 #include "td/utils/Time.h"
 
 namespace td {
+
 GetHostByNameActor::GetHostByNameActor(int32 ok_timeout, int32 error_timeout)
     : ok_timeout_(ok_timeout), error_timeout_(error_timeout) {
 }
@@ -45,4 +46,5 @@ Result<td::IPAddress> GetHostByNameActor::load_ip(string host, int port) {
     return std::move(status);
   }
 }
+
 }  // namespace td

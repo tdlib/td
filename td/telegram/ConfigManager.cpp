@@ -243,7 +243,6 @@ ActorOwn<> get_full_config(DcId dc_id, IPAddress ip_address, Promise<FullConfig>
     }
     double get_server_time_difference() override {
       return G()->get_server_time_difference();
-      //return server_time_difference_;
     }
     void add_auth_key_listener(unique_ptr<Listener> listener) override {
       if (listener->notify()) {
@@ -267,8 +266,6 @@ ActorOwn<> get_full_config(DcId dc_id, IPAddress ip_address, Promise<FullConfig>
    private:
     DcId dc_id_;
     std::shared_ptr<PublicRsaKeyShared> public_rsa_key_ = std::make_shared<PublicRsaKeyShared>(DcId::empty());
-    bool has_server_time_difference_ = false;
-    double server_time_difference_ = 0;
 
     std::vector<std::unique_ptr<Listener>> auth_key_listeners_;
     void notify() {
@@ -277,10 +274,10 @@ ActorOwn<> get_full_config(DcId dc_id, IPAddress ip_address, Promise<FullConfig>
       auth_key_listeners_.erase(it, auth_key_listeners_.end());
     }
 
-    string auth_key_key() {
+    string auth_key_key() const {
       return PSTRING() << "config_recovery_auth" << dc_id().get_raw_id();
     }
-    string future_salts_key() {
+    string future_salts_key() const {
       return PSTRING() << "config_recovery_salt" << dc_id().get_raw_id();
     }
   };
