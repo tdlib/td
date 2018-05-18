@@ -31,7 +31,7 @@ class UsableFacet : public Facet {
 };
 }  // namespace detail
 
-Result<std::wstring> to_wstring(Slice slice) {
+Result<std::wstring> to_wstring(CSlice slice) {
   // TODO(perf): optimize
   std::wstring_convert<detail::UsableFacet<std::codecvt_utf8_utf16<wchar_t>>> converter;
   auto res = converter.from_bytes(slice.begin(), slice.end());

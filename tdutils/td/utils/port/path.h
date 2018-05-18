@@ -212,11 +212,12 @@ Status walk_path_dir(const std::wstring &dir_name, Func &&func) {
 
 template <class Func>
 Status walk_path(CSlice path, Func &&func) {
+  TRY_RESULT(wpath, to_wstring(path));
   Slice path_slice = path;
   while (!path_slice.empty() && (path_slice.back() == '/' || path_slice.back() == '\\')) {
     path_slice.remove_suffix(1);
+    wpath.pop_back();
   }
-  TRY_RESULT(wpath, to_wstring(path_slice));
   return detail::walk_path_dir(wpath.c_str(), func);
 }
 

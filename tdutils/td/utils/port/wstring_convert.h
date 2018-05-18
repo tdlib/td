@@ -18,7 +18,7 @@
 
 namespace td {
 
-Result<std::wstring> to_wstring(Slice slice);
+Result<std::wstring> to_wstring(CSlice slice);
 
 Result<string> from_wstring(const std::wstring &str);
 
