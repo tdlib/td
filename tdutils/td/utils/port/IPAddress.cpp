@@ -41,6 +41,89 @@ static bool is_ascii_host(Slice host) {
   return true;
 }
 
+#if !TD_WINDOWS
+static void punycode(string &result, Slice part) {
+  vector<uint32> codes;
+  codes.reserve(utf8_length(part));
+  uint32 processed = 0;
+  auto begin = part.ubegin();
+  auto end = part.uend();
+  while (begin != end) {
+    uint32 code;
+    begin = next_utf8_unsafe(begin, &code);
+    if (code <= 127u) {
+      result += to_lower(static_cast<char>(code));
+      processed++;
+    }
+    codes.push_back(code);
+  }
+
+  if (processed > 0) {
+    result += '-';
+  }
+
+  uint32 n = 127;
+  uint32 delta = 0;
+  int bias = -72;
+  bool is_first = true;
+  while (processed < codes.size()) {
+    // choose lowest not processed code
+    uint32 next_n = 0x110000;
+    for (auto code : codes) {
+      if (code > n && code < next_n) {
+        next_n = code;
+      }
+    }
+    delta += (next_n - n - 1) * (processed + 1);
+
+    for (auto code : codes) {
+      if (code < next_n) {
+        delta++;
+      }
+
+      if (code == next_n) {
+        // found next symbol, encode delta
+        int left = static_cast<int>(delta);
+        while (true) {
+          bias += 36;
+          auto t = clamp(bias, 1, 26);
+          if (left < t) {
+            result += static_cast<char>(left + 'a');
+            break;
+          }
+
+          left -= t;
+          auto digit = t + left % (36 - t);
+          result += static_cast<char>(digit < 26 ? digit + 'a' : digit - 26 + '0');
+          left /= 36 - t;
+        }
+        processed++;
+
+        // update bias
+        if (is_first) {
+          delta /= 700;
+          is_first = false;
+        } else {
+          delta /= 2;
+        }
+        delta += delta / processed;
+
+        bias = 0;
+        while (delta > 35 * 13) {
+          delta /= 35;
+          bias -= 36;
+        }
+        bias -= static_cast<int>(36 * delta / (delta + 38));
+        delta = 0;
+      }
+    }
+
+    delta++;
+    n = next_n;
+  }
+}
+#endif
+
 Result<string> idn_to_ascii(CSlice host) {
   if (is_ascii_host(host)) {
     return to_lower(host);
@@ -49,10 +132,15 @@ Result<string> idn_to_ascii(CSlice host) {
     return Status::Error("Host name must be encoded in UTF-8");
   }
 
+  const int MAX_DNS_NAME_LENGTH = 255;
+  if (host.size() >= MAX_DNS_NAME_LENGTH * 4) {  // upper bound, 4 characters per symbol
+    return Status::Error("Host name is too long");
+  }
+
 #if TD_WINDOWS
   TRY_RESULT(whost, to_wstring(host));
-  wchar_t punycode[256];
-  int result_length = IdnToAscii(IDN_ALLOW_UNASSIGNED, whost.c_str(), whost.size(), punycode, 255);
+  wchar_t punycode[MAX_DNS_NAME_LENGTH + 1];
+  int result_length = IdnToAscii(IDN_ALLOW_UNASSIGNED, whost.c_str(), whost.size(), punycode, MAX_DNS_NAME_LENGTH);
   if (result_length == 0) {
     return Status::Error("Host can't be converted to ASCII");
   }
@@ -60,8 +148,24 @@ Result<string> idn_to_ascii(CSlice host) {
   TRY_RESULT(idn_host, from_wstring(punycode, result_length));
   return idn_host;
 #else
-  // TODO
-  return Status::Error("Internationalized Domain Names are not supported");
+  auto parts = full_split(Slice(host), '.');
+  bool is_first = true;
+  string result;
+  for (auto part : parts) {
+    if (!is_first) {
+      result += '.';
+    }
+    if (is_ascii_host(part)) {
+      result.append(part.data(), part.size());
+    } else {
+      // TODO nameprep should be applied first, but punycode is better than nothing.
+      // It is better to use libidn/ICU here if available
+      result += "xn--";
+      punycode(result, part);
+    }
+    is_first = false;
+  }
+  return result;
 #endif
 }
 
