@@ -472,7 +472,7 @@ messageSendingStateFailed = MessageSendingState;
 
 
 //@description Describes a message
-//@id Unique message identifier
+//@id Message identifier unique to the chat it belongs to.
 //@sender_user_id Identifier of the user who sent the message; 0 if unknown. It is unknown for channel posts
 //@chat_id Chat identifier
 //@sending_state Information about the sending state of the message; may be null
