@@ -32,7 +32,7 @@ ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfig> promise, bool is_t
 
 using FullConfig = tl_object_ptr<telegram_api::config>;
 
-ActorOwn<> get_full_config(IPAddress ip_address, Promise<FullConfig> promise);
+ActorOwn<> get_full_config(DcId dc_id, IPAddress ip_address, Promise<FullConfig> promise);
 
 class ConfigRecoverer;
 class ConfigManager : public NetQueryCallback {
