@@ -29,13 +29,12 @@
 namespace td {
 
 static bool is_ascii_host_char(char c) {
-  return is_alnum(c) || c == '-';
+  return static_cast<unsigned char>(c) <= 127;
 }
 
 static bool is_ascii_host(Slice host) {
   for (auto c : host) {
-    // ':' and '@' are not allowed in a host name anyway, so we can skip them
-    if (!is_ascii_host_char(c) && c != '.' && c != ':' && c != '@') {
+    if (!is_ascii_host_char(c)) {
       return false;
     }
   }
@@ -55,7 +54,7 @@ Result<string> idn_to_ascii(CSlice host) {
   wchar_t punycode[256];
   int result_length = IdnToAscii(IDN_ALLOW_UNASSIGNED, whost.c_str(), whost.size(), punycode, 255);
   if (result_length == 0) {
-    return Status::Error("Host can't be punycoded");
+    return Status::Error("Host can't be converted to ASCII");
   }
 
   TRY_RESULT(idn_host, from_wstring(punycode, result_length));
