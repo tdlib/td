@@ -21,6 +21,7 @@
 #include <limits>
 
 namespace td {
+
 Wget::Wget(Promise<HttpQueryPtr> promise, string url, std::vector<std::pair<string, string>> headers, int32 timeout_in,
            int32 ttl, SslFd::VerifyPeer verify_peer)
     : promise_(std::move(promise))
@@ -34,6 +35,8 @@ Wget::Wget(Promise<HttpQueryPtr> promise, string url, std::vector<std::pair<stri
 Status Wget::try_init() {
   string input_url = input_url_;
   TRY_RESULT(url, parse_url(MutableSlice(input_url)));
+  TRY_RESULT(ascii_host, idn_to_ascii(url.host_));
+  url.host_ = std::move(ascii_host);
 
   IPAddress addr;
   TRY_STATUS(addr.init_host_port(url.host_, url.port_));
@@ -133,4 +136,5 @@ void Wget::tear_down() {
     on_error(Status::Error("Cancelled"));
   }
 }
+
 }  // namespace td
