@@ -19,6 +19,7 @@
 #include "td/utils/Slice.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tests.h"
+#include "td/utils/utf8.h"
 
 #include <atomic>
 #include <clocale>
@@ -270,7 +271,7 @@ static void test_idn_to_ascii_one(string host, string result) {
 
 TEST(Misc, idn_to_ascii) {
   test_idn_to_ascii_one("::::::::::::::::::::::::::::::::::::::@/", "::::::::::::::::::::::::::::::::::::::@/");
-  test_idn_to_ascii_one("%30", "%30");
+  test_idn_to_ascii_one("", "");
   test_idn_to_ascii_one("%30", "%30");
   test_idn_to_ascii_one("127.0.0.1", "127.0.0.1");
   test_idn_to_ascii_one("fe80::", "fe80::");
@@ -297,4 +298,38 @@ TEST(Misc, idn_to_ascii) {
   test_idn_to_ascii_one("win-2k12r2-addc.阿伯测阿伯测ad.hai.com", "win-2k12r2-addc.xn--ad-tl3ca3569aba8944eca.hai.com");
   test_idn_to_ascii_one("✌️.ws", "xn--7bi.ws");
   test_idn_to_ascii_one("⛧", "xn--59h");
+  ASSERT_TRUE(idn_to_ascii("\xc0").is_error());
 }
+
+#if TD_WINDOWS
+static void test_to_wstring_one(string str) {
+  ASSERT_STREQ(str, from_wstring(to_wstring(str).ok()).ok());
+}
+
+TEST(Misc, to_wstring) {
+  test_to_wstring_one("");
+  for (int i = 0; i < 10; i++) {
+    test_to_wstring_one("test");
+    test_to_wstring_one("тест");
+  }
+  string str;
+  for (uint32 i = 0; i <= 0xD7FF; i++) {
+    append_utf8_character(str, i);
+  }
+  for (uint32 i = 0xE000; i <= 0x10FFFF; i++) {
+    append_utf8_character(str, i);
+  }
+  test_to_wstring_one(str);
+  ASSERT_TRUE(to_wstring("\xc0").is_error());
+  auto emoji = to_wstring("🏟").ok();
+  ASSERT_TRUE(from_wstring(emoji).ok() == "🏟");
+  ASSERT_TRUE(emoji.size() == 2);
+  auto emoji2 = emoji;
+  emoji[0] = emoji[1];
+  emoji2[1] = emoji2[0];
+  ASSERT_TRUE(from_wstring(emoji).is_error());
+  ASSERT_TRUE(from_wstring(emoji2).is_error());
+  emoji2[0] = emoji[0];
+  ASSERT_TRUE(from_wstring(emoji2).is_error());
+}
+#endif

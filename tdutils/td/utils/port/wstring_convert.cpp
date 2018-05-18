@@ -10,44 +10,96 @@ char disable_linker_warning_about_empty_file_wstring_convert_cpp TD_UNUSED;
 
 #if TD_PORT_WINDOWS
 
-#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
+#include "td/utils/utf8.h"
 
-#include "td/utils/port/wstring_convert.h"
-
-#include <codecvt>
-#include <locale>
-#include <utility>
+#include <cwchar>
 
 namespace td {
 
-namespace detail {
-template <class Facet>
-class UsableFacet : public Facet {
- public:
-  template <class... Args>
-  explicit UsableFacet(Args &&... args) : Facet(std::forward<Args>(args)...) {
-  }
-  ~UsableFacet() = default;
-};
-}  // namespace detail
-
 Result<std::wstring> to_wstring(CSlice slice) {
-  // TODO(perf): optimize
-  std::wstring_convert<detail::UsableFacet<std::codecvt_utf8_utf16<wchar_t>>> converter;
-  auto res = converter.from_bytes(slice.begin(), slice.end());
-  if (converter.converted() != slice.size()) {
+  if (!check_utf8(slice)) {
     return Status::Error("Wrong encoding");
   }
-  return res;
+
+  size_t wstring_len = 0;
+  for (auto c : slice) {
+    wstring_len += ((c & 0xc0) != 0x80) + ((c & 0xf8) == 0xf0);
+  }
+
+  std::wstring result(wstring_len, static_cast<wchar_t>(0));
+  if (wstring_len) {
+    wchar_t *res = &result[0];
+    for (size_t i = 0; i < slice.size();) {
+      unsigned int a = static_cast<unsigned char>(slice[i++]);
+      if (a >= 0x80) {
+        unsigned int b = static_cast<unsigned char>(slice[i++]);
+        if (a >= 0xe0) {
+          unsigned int c = static_cast<unsigned char>(slice[i++]);
+          if (a >= 0xf0) {
+            unsigned int d = static_cast<unsigned char>(slice[i++]);
+            unsigned int val = ((a & 0x07) << 18) + ((b & 0x3f) << 12) + ((c & 0x3f) << 6) + (d & 0x3f) - 0x10000;
+            *res++ = static_cast<wchar_t>(0xD800 + (val >> 10));
+            *res++ = static_cast<wchar_t>(0xDC00 + (val & 0x3ff));
+          } else {
+            *res++ = static_cast<wchar_t>(((a & 0x0f) << 12) + ((b & 0x3f) << 6) + (c & 0x3f));
+          }
+        } else {
+          *res++ = static_cast<wchar_t>(((a & 0x1f) << 6) + (b & 0x3f));
+        }
+      } else {
+        *res++ = static_cast<wchar_t>(a);
+      }
+    }
+    CHECK(res == &result[0] + wstring_len);
+  }
+  return result;
 }
 
 Result<string> from_wstring(const wchar_t *begin, size_t size) {
-  std::wstring_convert<detail::UsableFacet<std::codecvt_utf8_utf16<wchar_t>>> converter;
-  auto res = converter.to_bytes(begin, begin + size);
-  if (converter.converted() != size) {
-    return Status::Error("Wrong encoding");
+  size_t result_len = 0;
+  for (size_t i = 0; i < size; i++) {
+    unsigned int cur = begin[i];
+    if ((cur & 0xF800) == 0xD800) {
+      if (i < size) {
+        unsigned int next = begin[++i];
+        if ((next & 0xFC00) == 0xDC00 && (cur & 0x400) == 0) {
+          result_len += 4;
+          continue;
+        }
+      }
+
+      return Status::Error("Wrong encoding");
+    }
+    result_len += 1 + (cur >= 0x80) + (cur >= 0x800);
   }
-  return res;
+
+  std::string result(result_len, '\0');
+  if (result_len) {
+    char *res = &result[0];
+    for (size_t i = 0; i < size; i++) {
+      unsigned int cur = begin[i];
+      // TODO conversion unsigned int -> signed char is implementation defined
+      if (cur <= 0x7f) {
+        *res++ = static_cast<char>(cur);
+      } else if (cur <= 0x7ff) {
+        *res++ = static_cast<char>(0xc0 | (cur >> 6));
+        *res++ = static_cast<char>(0x80 | (cur & 0x3f));
+      } else if ((cur & 0xF800) != 0xD800) {
+        *res++ = static_cast<char>(0xe0 | (cur >> 12));
+        *res++ = static_cast<char>(0x80 | ((cur >> 6) & 0x3f));
+        *res++ = static_cast<char>(0x80 | (cur & 0x3f));
+      } else {
+        unsigned int next = begin[++i];
+        unsigned int val = ((cur - 0xD800) << 10) + next - 0xDC00 + 0x10000;
+
+        *res++ = static_cast<char>(0xf0 | (val >> 18));
+        *res++ = static_cast<char>(0x80 | ((val >> 12) & 0x3f));
+        *res++ = static_cast<char>(0x80 | ((val >> 6) & 0x3f));
+        *res++ = static_cast<char>(0x80 | (val & 0x3f));
+      }
+    }
+  }
+  return result;
 }
 
 Result<string> from_wstring(const std::wstring &str) {
@@ -55,7 +107,7 @@ Result<string> from_wstring(const std::wstring &str) {
 }
 
 Result<string> from_wstring(const wchar_t *begin) {
-  return from_wstring(begin, wcslen(begin));
+  return from_wstring(begin, std::wcslen(begin));
 }
 
 }  // namespace td
