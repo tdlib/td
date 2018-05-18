@@ -276,6 +276,18 @@ class ConnectionCreator : public NetQueryCallback {
   void on_proxy_resolved(Result<IPAddress> ip_address, bool dummy);
 
   static DcOptions get_default_dc_options(bool is_test);
+
+  struct FindConnectionExtra {
+    DcOptionsSet::Stat *stat{nullptr};
+    mtproto::TransportType transport_type;
+    string debug_str;
+    IPAddress mtproto_ip;
+    bool check_mode{false};
+  };
+  class ProxyInfo;
+  Result<SocketFd> find_connection(ProxyInfo &proxy, DcId dc_id, bool allow_media_only, FindConnectionExtra &extra);
+  void ping_proxy_resolved(int32 proxy_id, IPAddress ip_address, Promise<double> promise);
+  void ping_proxy_socket_fd(SocketFd socket_fd, mtproto::TransportType transport_type, Promise<double> promise);
 };
 
 }  // namespace td
