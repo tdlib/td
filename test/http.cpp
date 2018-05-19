@@ -129,7 +129,7 @@ TEST(Http, reader) {
   return;
 #endif
   clear_thread_locals();
-  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(INFO));
+  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   auto start_mem = BufferAllocator::get_buffer_mem();
   {
     auto input_writer = ChainBufferWriter::create_empty();

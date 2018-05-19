@@ -16,6 +16,7 @@
 
 int main(int argc, char **argv) {
   // TODO port OptionsParser to Windows
+  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   for (int i = 1; i < argc; i++) {
     if (!std::strcmp(argv[i], "--filter")) {
       CHECK(i + 1 < argc);

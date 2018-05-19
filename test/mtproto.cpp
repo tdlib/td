@@ -127,7 +127,7 @@ class TestPingActor : public Actor {
       return stop();
     }
     if (ping_connection_->was_pong()) {
-      LOG(ERROR) << "GOT PONG";
+      LOG(INFO) << "GOT PONG";
       return stop();
     }
   }

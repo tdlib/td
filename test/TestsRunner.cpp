@@ -52,7 +52,7 @@ static FileLog file_log;
 static TsLog ts_log(&file_log);
 
 void TestsRunner::init(string dir) {
-  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(WARNING));
+  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   chdir(dir).ensure();
   LOG(WARNING) << "Redirect log into " << tag("file", dir + TD_DIR_SLASH + "log.txt");
   if (file_log.init("log.txt", std::numeric_limits<int64>::max())) {

@@ -405,7 +405,7 @@ TEST(Actors, send_to_dead) {
 }
 
 TEST(Actors, main_simple) {
-  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
+  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
 
   ConcurrentScheduler sched;
   int threads_n = 3;
@@ -420,7 +420,7 @@ TEST(Actors, main_simple) {
 }
 
 TEST(Actors, main) {
-  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
+  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
 
   ConcurrentScheduler sched;
   int threads_n = 9;
@@ -448,7 +448,7 @@ class DoAfterStop : public Actor {
 };
 
 TEST(Actors, do_after_stop) {
-  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
+  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
 
   ConcurrentScheduler sched;
   int threads_n = 0;

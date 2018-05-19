@@ -39,9 +39,9 @@ TEST(MessageEntities, mention) {
   check_mention("@abcdefghijklmnopqrstuvwxyz123456", {"@abcdefghijklmnopqrstuvwxyz123456"});
   check_mention("@abcdefghijklmnopqrstuvwxyz1234567", {});
   check_mention("нет@mention", {});
-  check_mention("@ya @gif @wiki @vid @bing @pic @bold @imdb @coub @like @vote @giff @cap ya cap @y @yar @bingg @bin",
-                {"@ya", "@gif", "@wiki", "@vid", "@bing", "@pic", "@bold", "@imdb", "@coub", "@like", "@vote", "@giff",
-                 "@cap", "@bingg"});
+  check_mention(
+      "@ya @gif @wiki @vid @bing @pic @bold @imdb @coub @like @vote @giff @cap ya cap @y @yar @bingg @bin",
+      {"@ya", "@gif", "@wiki", "@vid", "@bing", "@pic", "@bold", "@imdb", "@coub", "@like", "@vote", "@bingg"});
 };
 
 static void check_bot_command(string str, std::vector<string> expected) {

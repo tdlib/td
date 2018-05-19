@@ -234,7 +234,7 @@ class BaselineKV {
 };
 
 TEST(DB, key_value) {
-  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(INFO));
+  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   std::vector<std::string> keys;
   std::vector<std::string> values;
 
@@ -409,7 +409,7 @@ TEST(DB, persistent_key_value) {
   using KeyValue = BinlogKeyValue<ConcurrentBinlog>;
   // using KeyValue = PersistentKeyValue;
   // using KeyValue = SqliteKV;
-  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(WARNING));
+  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   std::vector<std::string> keys;
   std::vector<std::string> values;
   CSlice name = "test_pmc";
