@@ -157,7 +157,7 @@ class PingActor : public Actor {
 
 class ConnectionCreator::ProxyInfo {
  public:
-  explicit ProxyInfo(Proxy *proxy, IPAddress ip_address) : proxy_(proxy), ip_address_(std::move(ip_address)) {
+  ProxyInfo(Proxy *proxy, IPAddress ip_address) : proxy_(proxy), ip_address_(std::move(ip_address)) {
   }
   bool use_proxy() const {
     return proxy_ != nullptr;
@@ -171,11 +171,11 @@ class ConnectionCreator::ProxyInfo {
   bool use_mtproto_proxy() const {
     return proxy_type() == Proxy::Type::Mtproto;
   }
-  Proxy &proxy() {
+  const Proxy &proxy() const {
     CHECK(use_proxy());
     return *proxy_;
   }
-  IPAddress &ip_address() {
+  const IPAddress &ip_address() const {
     return ip_address_;
   }
 
@@ -394,12 +394,12 @@ void ConnectionCreator::ping_proxy(int32 proxy_id, Promise<double> promise) {
   if (it == proxies_.end()) {
     return promise.set_error(Status::Error(400, "Unknown proxy identifier"));
   }
-  Proxy &proxy = it->second;
+  const Proxy &proxy = it->second;
   send_closure(get_host_by_name_actor_, &GetHostByNameActor::run, proxy.server().str(), proxy.port(),
                PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise),
                                        proxy_id](Result<IPAddress> result) mutable {
                  if (result.is_error()) {
-                   return promise.set_error(result.move_as_error());
+                   return promise.set_error(Status::Error(400, result.error().message()));
                  }
                  send_closure(actor_id, &ConnectionCreator::ping_proxy_resolved, proxy_id, result.move_as_ok(),
                               std::move(promise));
@@ -416,7 +416,7 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
   FindConnectionExtra extra;
   auto r_socket_fd = find_connection(proxy, main_dc_id, false, extra);
   if (r_socket_fd.is_error()) {
-    return promise.set_error(r_socket_fd.move_as_error());
+    return promise.set_error(Status::Error(400, r_socket_fd.error().message()));
   }
   auto socket_fd = r_socket_fd.move_as_ok();
 
@@ -424,7 +424,7 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
       PromiseCreator::lambda([promise = std::move(promise), actor_id = actor_id(this),
                               transport_type = std::move(extra.transport_type)](Result<SocketFd> r_socket_fd) mutable {
         if (r_socket_fd.is_error()) {
-          return promise.set_error(r_socket_fd.move_as_error());
+          return promise.set_error(Status::Error(400, r_socket_fd.error().message()));
         }
         send_closure(actor_id, &ConnectionCreator::ping_proxy_socket_fd, r_socket_fd.move_as_ok(),
                      std::move(transport_type), std::move(promise));
@@ -446,9 +446,10 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
     };
     LOG(INFO) << "Start socks5: " << extra.debug_str;
     auto token = next_token();
-    children_[token] = create_actor<Socks5>(
-        "Socks5", std::move(socket_fd), extra.mtproto_ip, proxy.proxy().user().str(), proxy.proxy().password().str(),
-        std::make_unique<Callback>(std::move(socket_fd_promise)), create_reference(token));
+    children_[token] = {
+        false, create_actor<Socks5>("Socks5", std::move(socket_fd), extra.mtproto_ip, proxy.proxy().user().str(),
+                                    proxy.proxy().password().str(),
+                                    std::make_unique<Callback>(std::move(socket_fd_promise)), create_reference(token))};
   } else {
     socket_fd_promise.set_value(std::move(socket_fd));
   }
@@ -459,16 +460,17 @@ void ConnectionCreator::ping_proxy_socket_fd(SocketFd socket_fd, mtproto::Transp
   auto token = next_token();
   auto raw_connection =
       std::make_unique<mtproto::RawConnection>(std::move(socket_fd), std::move(transport_type), nullptr);
-  children_[token] = create_actor<detail::PingActor>(
-      "PingActor", std::move(raw_connection),
-      PromiseCreator::lambda([start = Time::now(), promise = std::move(promise)](
-                                 Result<std::unique_ptr<mtproto::RawConnection>> result) mutable {
-        if (result.is_error()) {
-          return promise.set_error(result.move_as_error());
-        }
-        promise.set_value(Time::now() - start);
-      }),
-      create_reference(token));
+  children_[token] = {false,
+                      create_actor<detail::PingActor>(
+                          "PingActor", std::move(raw_connection),
+                          PromiseCreator::lambda([start = Time::now(), promise = std::move(promise)](
+                                                     Result<std::unique_ptr<mtproto::RawConnection>> result) mutable {
+                            if (result.is_error()) {
+                              return promise.set_error(Status::Error(400, result.error().message()));
+                            }
+                            promise.set_value(Time::now() - start);
+                          }),
+                          create_reference(token))};
 }
 
 void ConnectionCreator::enable_proxy_impl(int32 proxy_id) {
@@ -511,7 +513,9 @@ void ConnectionCreator::on_proxy_changed(bool from_db) {
 
   if (!from_db) {
     for (auto &child : children_) {
-      child.second.reset();
+      if (child.second.first) {
+        child.second.second.reset();
+      }
     }
   }
 
@@ -664,7 +668,7 @@ void ConnectionCreator::request_raw_connection_by_ip(IPAddress ip_address,
   promise.set_value(std::move(raw_connection));
 }
 
-Result<SocketFd> ConnectionCreator::find_connection(ConnectionCreator::ProxyInfo &proxy, DcId dc_id,
+Result<SocketFd> ConnectionCreator::find_connection(const ConnectionCreator::ProxyInfo &proxy, DcId dc_id,
                                                     bool allow_media_only, FindConnectionExtra &extra) {
   TRY_RESULT(info, dc_options_set_.find_connection(dc_id, allow_media_only, proxy.use_proxy()));
   extra.stat = info.stat;
@@ -777,7 +781,6 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
     }
 
     // Create new RawConnection
-    //TODO
     // sync part
     FindConnectionExtra extra;
     auto r_socket_fd = find_connection(proxy, client.dc_id, client.allow_media_only, extra);
@@ -853,9 +856,11 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
       };
       LOG(INFO) << "Start socks5: " << extra.debug_str;
       auto token = next_token();
-      children_[token] = create_actor<Socks5>(
-          "Socks5", std::move(socket_fd), extra.mtproto_ip, proxy.proxy().user().str(), proxy.proxy().password().str(),
-          std::make_unique<Callback>(std::move(promise), std::move(stats_callback)), create_reference(token));
+      children_[token] = {
+          true, create_actor<Socks5>("Socks5", std::move(socket_fd), extra.mtproto_ip, proxy.proxy().user().str(),
+                                     proxy.proxy().password().str(),
+                                     std::make_unique<Callback>(std::move(promise), std::move(stats_callback)),
+                                     create_reference(token))};
     } else {
       ConnectionData data;
       data.socket_fd = std::move(socket_fd);
@@ -890,8 +895,8 @@ void ConnectionCreator::client_create_raw_connection(Result<ConnectionData> r_co
   if (check_mode) {
     VLOG(connections) << "Start check: " << debug_str;
     auto token = next_token();
-    children_[token] = create_actor<detail::PingActor>("PingActor", std::move(raw_connection), std::move(promise),
-                                                       create_reference(token));
+    children_[token] = {true, create_actor<detail::PingActor>("PingActor", std::move(raw_connection),
+                                                              std::move(promise), create_reference(token))};
   } else {
     promise.set_value(std::move(raw_connection));
   }
@@ -1074,7 +1079,7 @@ void ConnectionCreator::hangup() {
   save_proxy_last_used_date(0);
   ref_cnt_guard_.reset();
   for (auto &child : children_) {
-    child.second.reset();
+    child.second.second.reset();
   }
 }
 

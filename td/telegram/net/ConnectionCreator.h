@@ -222,7 +222,7 @@ class ConnectionCreator : public NetQueryCallback {
   ActorShared<ConnectionCreator> create_reference(int64 token);
   bool close_flag_{false};
   uint64 current_token_ = 0;
-  std::map<int64, ActorShared<>> children_;
+  std::map<int64, std::pair<bool, ActorShared<>>> children_;
 
   uint64 next_token() {
     return ++current_token_;
@@ -285,7 +285,8 @@ class ConnectionCreator : public NetQueryCallback {
     bool check_mode{false};
   };
   class ProxyInfo;
-  Result<SocketFd> find_connection(ProxyInfo &proxy, DcId dc_id, bool allow_media_only, FindConnectionExtra &extra);
+  Result<SocketFd> find_connection(const ProxyInfo &proxy, DcId dc_id, bool allow_media_only,
+                                   FindConnectionExtra &extra);
   void ping_proxy_resolved(int32 proxy_id, IPAddress ip_address, Promise<double> promise);
   void ping_proxy_socket_fd(SocketFd socket_fd, mtproto::TransportType transport_type, Promise<double> promise);
 };
