@@ -129,7 +129,7 @@ Status Fd::duplicate(const Fd &from, Fd &to) {
   CHECK(!from.empty());
   CHECK(!to.empty());
   if (dup2(from.get_native_fd(), to.get_native_fd()) == -1) {
-    return OS_ERROR("dup2 failed");
+    return OS_ERROR("Failed to duplicate file descriptor");
   }
   return Status::OK();
 }
@@ -611,7 +611,7 @@ class Fd::FdImpl {
     if (last_error == ERROR_IO_PENDING) {
       return;
     }
-    on_error(OS_SOCKET_ERROR("ConnectEx failed"), Fd::Flag::Read);
+    on_error(OS_SOCKET_ERROR("Failed to connect"), Fd::Flag::Read);
   }
 
   // for EventFd
@@ -741,7 +741,7 @@ class Fd::FdImpl {
     DWORD bytes_read;
     auto status = GetOverlappedResult(get_io_handle(), &read_overlapped_, &bytes_read, false);
     if (status == 0) {
-      return on_error(OS_ERROR("ReadFile failed"), Fd::Flag::Read);
+      return on_error(OS_ERROR("Failed to read from file"), Fd::Flag::Read);
     }
 
     VLOG(fd) << "Read " << tag("fd", get_io_handle()) << tag("size", bytes_read);
@@ -757,7 +757,7 @@ class Fd::FdImpl {
     DWORD bytes_written;
     auto status = GetOverlappedResult(get_io_handle(), &write_overlapped_, &bytes_written, false);
     if (status == 0) {
-      return on_error(OS_ERROR("WriteFile failed"), Fd::Flag::Write);
+      return on_error(OS_ERROR("Failed to write to file"), Fd::Flag::Write);
     }
     if (bytes_written != 0) {
       VLOG(fd) << "Write " << tag("fd", get_io_handle()) << tag("size", bytes_written);
@@ -771,7 +771,7 @@ class Fd::FdImpl {
     DWORD bytes_read;
     auto status = GetOverlappedResult(get_io_handle(), &read_overlapped_, &bytes_read, false);
     if (status == 0) {
-      return on_error(OS_ERROR("AcceptEx failed"), Fd::Flag::Write);
+      return on_error(OS_ERROR("Failed to accept connection"), Fd::Flag::Write);
     }
     accepted_.push_back(Fd::create_socket_fd(accept_socket_));
     accept_socket_ = INVALID_SOCKET;
@@ -784,7 +784,7 @@ class Fd::FdImpl {
     VLOG(fd) << "on_connect_ready";
     auto status = GetOverlappedResult(get_io_handle(), &read_overlapped_, &bytes_read, false);
     if (status == 0) {
-      return on_error(OS_ERROR("ConnectEx failed"), Fd::Flag::Write);
+      return on_error(OS_ERROR("Failed to connect"), Fd::Flag::Write);
     }
     connected_ = true;
     VLOG(fd) << "connected = true";
@@ -816,7 +816,7 @@ class Fd::FdImpl {
       async_read_flag_ = true;
       return;
     }
-    on_error(OS_ERROR("ReadFile failed"), Fd::Flag::Read);
+    on_error(OS_ERROR("Failed to read from file"), Fd::Flag::Read);
   }
 
   void try_start_write() {
@@ -841,7 +841,7 @@ class Fd::FdImpl {
       return;
     }
     CHECK(WaitForSingleObject(write_event_, 0) != WAIT_OBJECT_0);
-    on_error(OS_ERROR("WriteFile failed"), Fd::Flag::Write);
+    on_error(OS_ERROR("Failed to write to file"), Fd::Flag::Write);
   }
 
   void try_start_accept() {
@@ -867,7 +867,7 @@ class Fd::FdImpl {
       async_read_flag_ = true;
       return;
     }
-    on_error(OS_SOCKET_ERROR("AcceptExFailed"), Fd::Flag::Read);
+    on_error(OS_SOCKET_ERROR("Failed to accept connection"), Fd::Flag::Read);
   }
 
   void loop() {
