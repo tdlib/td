@@ -274,9 +274,9 @@ Status FileLoader::try_on_part_query(Part part, NetQueryPtr query) {
   TRY_RESULT(size, process_part(part, std::move(query)));
   VLOG(files) << "Ok part " << tag("id", part.id) << tag("size", part.size);
   resource_state_.stop_use(static_cast<int64>(part.size));
-  auto old_ready_prefix_count = parts_manager_.get_ready_prefix_count();
+  auto old_ready_prefix_count = parts_manager_.get_unchecked_ready_prefix_count();
   TRY_STATUS(parts_manager_.on_part_ok(part.id, part.size, size));
-  auto new_ready_prefix_count = parts_manager_.get_ready_prefix_count();
+  auto new_ready_prefix_count = parts_manager_.get_unchecked_ready_prefix_count();
   debug_total_parts_++;
   if (old_ready_prefix_count == new_ready_prefix_count) {
     debug_bad_parts_.push_back(part.id);

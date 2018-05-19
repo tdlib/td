@@ -129,13 +129,17 @@ void PartsManager::update_first_not_ready_part() {
   }
 }
 
-int32 PartsManager::get_ready_prefix_count() {
+int32 PartsManager::get_unchecked_ready_prefix_count() {
   update_first_not_ready_part();
-  auto res = first_not_ready_part_;
+  return first_not_ready_part_;
+}
+
+int32 PartsManager::get_ready_prefix_count() {
+  auto res = get_unchecked_ready_prefix_count();
   if (need_check_) {
     auto checked_parts = narrow_cast<int32>(checked_prefix_size_ / part_size_);
     if (checked_parts < res) {
-      res = checked_parts;
+      return checked_parts;
     }
   }
   return res;

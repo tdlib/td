@@ -42,6 +42,7 @@ class PartsManager {
   int64 get_ready_size() const;
   size_t get_part_size() const;
   int32 get_part_count() const;
+  int32 get_unchecked_ready_prefix_count();
   int32 get_ready_prefix_count();
 
  private:
