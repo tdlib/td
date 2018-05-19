@@ -67,13 +67,13 @@ CSlice ClientJson::store_string(std::string str) {
 }
 
 void ClientJson::send(Slice request) {
-  auto status = [&] {
-    TRY_RESULT(client_request, to_request(request));
-    client_.send(std::move(client_request));
-    return Status::OK();
-  }();
+  auto r_request = to_request(request);
+  if (r_request.is_error()) {
+    LOG(ERROR) << "Failed to parse " << tag("request", format::escaped(request)) << " " << r_request.error();
+    return;
+  }
 
-  LOG_IF(ERROR, status.is_error()) << "Failed to parse " << tag("request", format::escaped(request)) << " " << status;
+  client_.send(r_request.move_as_ok());
 }
 
 CSlice ClientJson::receive(double timeout) {
