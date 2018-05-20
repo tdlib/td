@@ -24,12 +24,11 @@ Result<Client::Request> ClientJson::to_request(Slice request) {
   if (json_value.type() != JsonValue::Type::Object) {
     return Status::Error("Expected an Object");
   }
-  TRY_RESULT(extra_field, get_json_object_field(json_value.get_object(), "@extra", JsonValue::Type::Null, true));
   std::uint64_t extra_id = extra_id_.fetch_add(1, std::memory_order_relaxed);
-  auto extra_str = json_encode<string>(extra_field);
-  if (!extra_str.empty()) {
+  if (has_json_object_field(json_value.get_object(), "@extra")) {
     std::lock_guard<std::mutex> guard(mutex_);
-    extra_[extra_id] = std::move(extra_str);
+    extra_[extra_id] = json_encode<string>(
+        get_json_object_field(json_value.get_object(), "@extra", JsonValue::Type::Null).move_as_ok());
   }
 
   td_api::object_ptr<td_api::Function> func;
