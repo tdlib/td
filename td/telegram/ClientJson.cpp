@@ -22,7 +22,7 @@ Result<Client::Request> ClientJson::to_request(Slice request) {
   auto request_str = request.str();
   TRY_RESULT(json_value, json_decode(request_str));
   if (json_value.type() != JsonValue::Type::Object) {
-    return Status::Error("Expected an object");
+    return Status::Error("Expected an Object");
   }
   TRY_RESULT(extra_field, get_json_object_field(json_value.get_object(), "@extra", JsonValue::Type::Null, true));
   std::uint64_t extra_id = extra_id_.fetch_add(1, std::memory_order_relaxed);

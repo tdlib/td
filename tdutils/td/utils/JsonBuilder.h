@@ -653,18 +653,18 @@ class JsonValue : public Jsonable {
 
 inline StringBuilder &operator<<(StringBuilder &sb, JsonValue::Type type) {
   switch (type) {
-    case JsonValue::Type::Object:
-      return sb << "JsonObject";
-    case JsonValue::Type::Boolean:
-      return sb << "JsonBoolean";
     case JsonValue::Type::Null:
-      return sb << "JsonNull";
+      return sb << "Null";
     case JsonValue::Type::Number:
-      return sb << "JsonNumber";
-    case JsonValue::Type::Array:
-      return sb << "JsonArray";
+      return sb << "Number";
+    case JsonValue::Type::Boolean:
+      return sb << "Boolean";
     case JsonValue::Type::String:
-      return sb << "JsonString";
+      return sb << "String";
+    case JsonValue::Type::Array:
+      return sb << "Array";
+    case JsonValue::Type::Object:
+      return sb << "Object";
     default:
       UNREACHABLE();
       return sb;
