@@ -2323,7 +2323,7 @@ class EditMessageActor : public NetActorOnce {
 
     auto query = G()->net_query_creator().create(create_storer(telegram_api::messages_editMessage(
         flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), message_id.get_server_message_id().get(),
-        message, std::move(reply_markup), std::move(entities), std::move(input_geo_point))));
+        message, nullptr, std::move(reply_markup), std::move(entities), std::move(input_geo_point))));
 
     query->debug("send to MessagesManager::MultiSequenceDispatcher");
     send_closure(td->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
@@ -2388,7 +2388,7 @@ class EditInlineMessageQuery : public Td::ResultHandler {
     auto dc_id = DcId::internal(input_bot_inline_message_id->dc_id_);
     send_query(G()->net_query_creator().create(
         create_storer(telegram_api::messages_editInlineBotMessage(
-            flags, false /*ignored*/, false /*ignored*/, std::move(input_bot_inline_message_id), message,
+            flags, false /*ignored*/, false /*ignored*/, std::move(input_bot_inline_message_id), message, nullptr,
             std::move(reply_markup), std::move(entities), std::move(input_geo_point))),
         dc_id));
   }
