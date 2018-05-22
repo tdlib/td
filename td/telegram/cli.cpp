@@ -665,33 +665,39 @@ class CliClient final : public Actor {
     close_flag_ = false;
     ready_to_stop_ = false;
 
-    td_ = create_actor<ClientActor>("ClientActor1", make_td_callback());
+    bool test_init = false;
+
+    if (test_init) {
+      td_ = create_actor<ClientActor>("ClientActor1", make_td_callback());
+    }
     td_ = create_actor<ClientActor>("ClientActor2", make_td_callback());
     ready_to_stop_ = false;
 
-    for (int i = 0; i < 4; i++) {
-      send_closure_later(td_, &ClientActor::request, std::numeric_limits<uint64>::max(),
-                         td_api::make_object<td_api::setAlarm>(0.001 + 1000 * (i / 2)));
+    if (test_init) {
+      for (int i = 0; i < 4; i++) {
+        send_closure_later(td_, &ClientActor::request, std::numeric_limits<uint64>::max(),
+                           td_api::make_object<td_api::setAlarm>(0.001 + 1000 * (i / 2)));
+      }
+
+      send_request(td_api::make_object<td_api::getTextEntities>(
+          "@telegram /test_command https://telegram.org telegram.me @gif @test"));
+
+      send_request(td_api::make_object<td_api::getOption>("use_pfs"));
+      send_request(td_api::make_object<td_api::setOption>(
+          "use_pfs", td_api::make_object<td_api::optionValueBoolean>(std::time(nullptr) / 86400 % 2 == 0)));
+      send_request(td_api::make_object<td_api::setOption>("use_storage_optimizer",
+                                                          td_api::make_object<td_api::optionValueBoolean>(false)));
+
+      send_request(td_api::make_object<td_api::setNetworkType>(td_api::make_object<td_api::networkTypeWiFi>()));
+      send_request(td_api::make_object<td_api::getNetworkStatistics>());
+      send_request(td_api::make_object<td_api::getCountryCode>());
+
+      auto bad_parameters = td_api::make_object<td_api::tdlibParameters>();
+      bad_parameters->database_directory_ = "/..";
+      bad_parameters->api_id_ = api_id_;
+      bad_parameters->api_hash_ = api_hash_;
+      send_request(td_api::make_object<td_api::setTdlibParameters>(std::move(bad_parameters)));
     }
-
-    send_request(td_api::make_object<td_api::getTextEntities>(
-        "@telegram /test_command https://telegram.org telegram.me @gif @test"));
-
-    send_request(td_api::make_object<td_api::getOption>("use_pfs"));
-    send_request(td_api::make_object<td_api::setOption>(
-        "use_pfs", td_api::make_object<td_api::optionValueBoolean>(std::time(nullptr) / 86400 % 2 == 0)));
-    send_request(td_api::make_object<td_api::setOption>("use_storage_optimizer",
-                                                        td_api::make_object<td_api::optionValueBoolean>(false)));
-
-    send_request(td_api::make_object<td_api::setNetworkType>(td_api::make_object<td_api::networkTypeWiFi>()));
-    send_request(td_api::make_object<td_api::getNetworkStatistics>());
-    send_request(td_api::make_object<td_api::getCountryCode>());
-
-    auto bad_parameters = td_api::make_object<td_api::tdlibParameters>();
-    bad_parameters->database_directory_ = "/..";
-    bad_parameters->api_id_ = api_id_;
-    bad_parameters->api_hash_ = api_hash_;
-    send_request(td_api::make_object<td_api::setTdlibParameters>(std::move(bad_parameters)));
 
     auto parameters = td_api::make_object<td_api::tdlibParameters>();
     parameters->use_test_dc_ = use_test_dc_;

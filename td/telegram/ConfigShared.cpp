@@ -133,8 +133,8 @@ tl_object_ptr<td_api::OptionValue> ConfigShared::get_option_value_object(Slice v
   return make_tl_object<td_api::optionValueString>(value.str());
 }
 
-void ConfigShared::on_option_updated(Slice name) {
-  callback_->on_option_updated(name.str());
+void ConfigShared::on_option_updated(Slice name) const {
+  callback_->on_option_updated(name.str(), get_option(name));
 }
 
 }  // namespace td

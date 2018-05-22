@@ -20,6 +20,7 @@ class MtprotoHeader {
     string system_language_code;
     string device_model;
     string system_version;
+    bool is_emulator = false;
     string application_version;
     Proxy proxy;
   };
@@ -30,6 +31,11 @@ class MtprotoHeader {
 
   void set_proxy(Proxy proxy) {
     options_.proxy = proxy;
+    default_header_ = gen_header(options_, false);
+  }
+
+  void set_is_emulator(bool is_emulator) {
+    options_.is_emulator = is_emulator;
     default_header_ = gen_header(options_, false);
   }
 

@@ -4212,8 +4212,7 @@ void Td::on_config_option_updated(const string &name) {
     return;
   }
   if (name == "auth") {
-    on_authorization_lost();
-    return;
+    return on_authorization_lost();
   } else if (name == "saved_animations_limit") {
     return animations_manager_->on_update_saved_animations_limit(G()->shared_config().get_option_integer(name));
   } else if (name == "recent_stickers_limit") {
@@ -4675,7 +4674,18 @@ Status Td::init(DbKey key) {
   VLOG(td_init) << "Create ConfigManager and ConfigShared";
   class ConfigSharedCallback : public ConfigShared::Callback {
    public:
-    void on_option_updated(const string &name) override {
+    void on_option_updated(const string &name, const string &value) override {
+      if (name == "is_emulator" && !G()->close_flag()) {
+        // it should be applied immediately, because it affects MtprotoHeader
+        if (G()->have_mtproto_header()) {
+          // can't use G()->shared_config(), because it may be not created yet
+          G()->mtproto_header().set_is_emulator(value == "Btrue");
+        }
+        if (G()->have_net_query_dispatcher()) {
+          G()->net_query_dispatcher().update_mtproto_header();
+        }
+      }
+
       send_closure(G()->td(), &Td::on_config_option_updated, name);
     }
   };
@@ -5087,6 +5097,7 @@ Status Td::set_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters
     options.application_version += ", TDLib ";
     options.application_version += TDLIB_VERSION;
   }
+  options.is_emulator = false;
   options.proxy = Proxy();
   G()->set_mtproto_header(std::make_unique<MtprotoHeader>(options));
 
@@ -6621,6 +6632,11 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
   switch (request.name_[0]) {
     case 'd':
       if (set_boolean_option("disable_contact_registered_notifications")) {
+        return;
+      }
+      break;
+    case 'i':
+      if (set_boolean_option("is_emulator")) {
         return;
       }
       break;

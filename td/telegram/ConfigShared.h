@@ -25,7 +25,7 @@ class ConfigShared {
     Callback(const Callback &) = delete;
     Callback &operator=(const Callback &) = delete;
     virtual ~Callback() = default;
-    virtual void on_option_updated(const string &name) = 0;
+    virtual void on_option_updated(const string &name, const string &value) = 0;
   };
 
   ConfigShared(BinlogPmcPtr config_pmc, unique_ptr<Callback> callback);
@@ -53,7 +53,7 @@ class ConfigShared {
   bool set_option(Slice name, Slice value);
   static tl_object_ptr<td_api::OptionValue> get_option_value_object(Slice value);
 
-  void on_option_updated(Slice name);
+  void on_option_updated(Slice name) const;
 };
 
 }  // namespace td
