@@ -2128,7 +2128,9 @@ updateBasicGroupFullInfo basic_group_id:int32 basic_group_full_info:basicGroupFu
 //@description Some data from supergroupFullInfo has been changed @supergroup_id Identifier of the supergroup or channel @supergroup_full_info New full information about the supergroup
 updateSupergroupFullInfo supergroup_id:int32 supergroup_full_info:supergroupFullInfo = Update;
 
-//@description Service notification from the server. Upon receiving this the client must show a popup with the content of the notification @type Notification type @content Notification content
+//@description Service notification from the server. Upon receiving this the client must show a popup with the content of the notification
+//@type Notification type. If type begins with "AUTH_KEY_DROP_", then two buttons "Cancel" and "Log out" should be shown under notification; if user presses the second, all local data should be destroyed using Destroy method
+//@content Notification content
 updateServiceNotification type:string content:MessageContent = Update;
 
 //@description Information about a file was updated @file New data about the file
