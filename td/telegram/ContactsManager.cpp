@@ -6781,8 +6781,6 @@ void ContactsManager::on_update_user_links(UserId user_id, tl_object_ptr<telegra
 }
 
 void ContactsManager::on_update_user_links(User *u, UserId user_id, LinkState outbound, LinkState inbound) {
-  LOG(DEBUG) << "Update " << user_id << " links from (" << u->outbound << ", " << u->inbound << ") to (" << outbound
-             << ", " << inbound << ")";
   UserId my_id = get_my_id("on_update_user_links");
   if (user_id == my_id) {
     if (outbound == LinkState::None && !td_->auth_manager_->is_bot()) {
@@ -6791,6 +6789,8 @@ void ContactsManager::on_update_user_links(User *u, UserId user_id, LinkState ou
     inbound = outbound;
   }
 
+  LOG(DEBUG) << "Update " << user_id << " links from (" << u->outbound << ", " << u->inbound << ") to (" << outbound
+             << ", " << inbound << ")";
   bool need_send_update = false;
   if (outbound != u->outbound && outbound != LinkState::Unknown) {
     need_send_update |= outbound != LinkState::None || u->outbound != LinkState::Unknown;

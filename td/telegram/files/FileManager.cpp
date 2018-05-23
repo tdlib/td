@@ -10,7 +10,6 @@
 
 #include "td/telegram/files/FileLoaderUtils.h"
 #include "td/telegram/files/FileLocation.h"
-#include "td/telegram/files/FileUploader.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/Td.h"
@@ -2309,7 +2308,7 @@ void FileManager::on_error(QueryId query_id, Status status) {
     return;
   }
 
-  if (query.type_ == Query::UploadByHash) {
+  if (query.type_ == Query::UploadByHash && !G()->close_flag()) {
     LOG(INFO) << "Upload By Hash failed: " << status << ", restart upload";
     node->get_by_hash_ = false;
     run_upload(node, {});
@@ -2322,7 +2321,7 @@ void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type,
   SCOPE_EXIT {
     try_flush_node(node);
   };
-  if (status.code() != 1) {
+  if (status.code() != 1 && !G()->close_flag()) {
     LOG(WARNING) << "Failed to upload/download/generate file: " << status << ". Query type = " << type
                  << ". File type is " << file_type_name[static_cast<int32>(FileView(node).get_type())];
     if (status.code() == 0) {
@@ -2421,6 +2420,12 @@ void FileManager::hangup() {
   file_db_.reset();
   file_generate_manager_.reset();
   file_load_manager_.reset();
+  while (!queries_container_.empty()) {
+    auto ids = queries_container_.ids();
+    for (auto id : ids) {
+      on_error(id, Status::Error(500, "Internal Server Error: closing"));
+    }
+  }
   stop();
 }
 

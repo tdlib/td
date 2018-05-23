@@ -39,7 +39,7 @@ class GetSecureValue : public NetQueryCallback {
   optional<EncryptedSecureValue> encrypted_secure_value_;
   optional<secure_storage::Secret> secret_;
 
-  void on_error(Status status);
+  void on_error(Status error);
   void on_secret(Result<secure_storage::Secret> r_secret, bool dummy);
   void loop() override;
   void start_up() override;
@@ -58,7 +58,7 @@ class GetAllSecureValues : public NetQueryCallback {
   optional<vector<EncryptedSecureValue>> encrypted_secure_values_;
   optional<secure_storage::Secret> secret_;
 
-  void on_error(Status status);
+  void on_error(Status error);
   void on_secret(Result<secure_storage::Secret> r_secret, bool dummy);
   void loop() override;
   void start_up() override;
@@ -98,13 +98,13 @@ class SetSecureValue : public NetQueryCallback {
     void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) override;
     void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) override;
     void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) override;
-    void on_upload_error(FileId file_id, Status error) override;
+    void on_upload_error(FileId file_id, Status status) override;
   };
 
   void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file);
-  void on_upload_error(FileId file_id, Status error);
+  void on_upload_error(FileId file_id, Status status);
 
-  void on_error(Status status);
+  void on_error(Status error);
 
   void on_secret(Result<secure_storage::Secret> r_secret, bool x);
 
@@ -157,11 +157,11 @@ GetSecureValue::GetSecureValue(ActorShared<> parent, std::string password, Secur
     : parent_(std::move(parent)), password_(std::move(password)), type_(type), promise_(std::move(promise)) {
 }
 
-void GetSecureValue::on_error(Status status) {
-  if (status.code() != 0) {
-    promise_.set_error(std::move(status));
+void GetSecureValue::on_error(Status error) {
+  if (error.code() != 0) {
+    promise_.set_error(std::move(error));
   } else {
-    promise_.set_error(Status::Error(400, status.message()));
+    promise_.set_error(Status::Error(400, error.message()));
   }
   stop();
 }
@@ -230,11 +230,11 @@ GetAllSecureValues::GetAllSecureValues(ActorShared<> parent, std::string passwor
     : parent_(std::move(parent)), password_(std::move(password)), promise_(std::move(promise)) {
 }
 
-void GetAllSecureValues::on_error(Status status) {
-  if (status.code() != 0) {
-    promise_.set_error(std::move(status));
+void GetAllSecureValues::on_error(Status error) {
+  if (error.code() != 0) {
+    promise_.set_error(std::move(error));
   } else {
-    promise_.set_error(Status::Error(400, status.message()));
+    promise_.set_error(Status::Error(400, error.message()));
   }
   stop();
 }
@@ -302,14 +302,17 @@ void SetSecureValue::UploadCallback::on_upload_ok(FileId file_id, tl_object_ptr<
   CHECK(input_file == nullptr);
   send_closure_later(actor_id_, &SetSecureValue::on_upload_ok, file_id, nullptr);
 }
+
 void SetSecureValue::UploadCallback::on_upload_encrypted_ok(
     FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) {
   UNREACHABLE();
 }
+
 void SetSecureValue::UploadCallback::on_upload_secure_ok(FileId file_id,
                                                          tl_object_ptr<telegram_api::InputSecureFile> input_file) {
   send_closure_later(actor_id_, &SetSecureValue::on_upload_ok, file_id, std::move(input_file));
 }
+
 void SetSecureValue::UploadCallback::on_upload_error(FileId file_id, Status error) {
   send_closure_later(actor_id_, &SetSecureValue::on_upload_error, file_id, std::move(error));
 }
@@ -337,18 +340,18 @@ void SetSecureValue::on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::In
   info.input_file = std::move(input_file);
   CHECK(files_left_to_upload_ != 0);
   files_left_to_upload_--;
-  return loop();
+  loop();
 }
 
 void SetSecureValue::on_upload_error(FileId file_id, Status error) {
-  return on_error(std::move(error));
+  on_error(std::move(error));
 }
 
-void SetSecureValue::on_error(Status status) {
-  if (status.code() != 0) {
-    promise_.set_error(std::move(status));
+void SetSecureValue::on_error(Status error) {
+  if (error.code() != 0) {
+    promise_.set_error(std::move(error));
   } else {
-    promise_.set_error(Status::Error(400, status.message()));
+    promise_.set_error(Status::Error(400, error.message()));
   }
   stop();
 }
@@ -603,11 +606,11 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
     loop();
   }
 
-  void on_error(Status status) {
-    if (status.code() != 0) {
-      promise_.set_error(std::move(status));
+  void on_error(Status error) {
+    if (error.code() != 0) {
+      promise_.set_error(std::move(error));
     } else {
-      promise_.set_error(Status::Error(400, status.message()));
+      promise_.set_error(Status::Error(400, error.message()));
     }
     stop();
   }

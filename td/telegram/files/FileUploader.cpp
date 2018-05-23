@@ -185,6 +185,7 @@ Status FileUploader::on_ok(int64 size) {
   }
   return Status::OK();
 }
+
 void FileUploader::on_error(Status status) {
   fd_.close();
   if (is_temp_) {

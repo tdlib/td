@@ -266,11 +266,8 @@ void FileLoadManager::hangup_shared() {
 }
 
 void FileLoadManager::loop() {
-  if (stop_flag_) {
-    if (nodes_container_.empty()) {
-      stop();
-    }
-    return;
+  if (stop_flag_ && nodes_container_.empty()) {
+    stop();
   }
 }
 
