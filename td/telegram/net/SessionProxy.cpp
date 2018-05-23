@@ -140,14 +140,21 @@ void SessionProxy::open_session(bool force) {
     return;
   }
   CHECK(session_.empty());
+  auto dc_id = auth_data_->dc_id();
   string name = PSTRING() << "Session" << get_name().substr(Slice("SessionProxy").size());
-  string hash_string = PSTRING() << name << " " << auth_data_->dc_id().get_raw_id() << " " << allow_media_only_;
+  string hash_string = PSTRING() << name << " " << dc_id.get_raw_id() << " " << allow_media_only_;
   auto hash = std::hash<std::string>()(hash_string);
-  session_ =
-      create_actor<Session>(name,
-                            make_unique<SessionCallback>(actor_shared(this, session_generation_), auth_data_->dc_id(),
-                                                         allow_media_only_, is_media_, hash),
-                            auth_data_, is_main_, use_pfs_, is_cdn_, tmp_auth_key_);
+  int32 int_dc_id = dc_id.get_raw_id();
+  if (G()->is_test_dc()) {
+    int_dc_id += 10000;
+  }
+  if (is_media_) {
+    int_dc_id = -int_dc_id;
+  }
+  session_ = create_actor<Session>(
+      name,
+      make_unique<SessionCallback>(actor_shared(this, session_generation_), dc_id, allow_media_only_, is_media_, hash),
+      auth_data_, int_dc_id, is_main_, use_pfs_, is_cdn_, tmp_auth_key_);
 }
 
 void SessionProxy::update_auth_state() {

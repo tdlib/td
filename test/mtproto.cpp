@@ -144,6 +144,10 @@ static IPAddress get_default_ip_address() {
   return ip_address;
 }
 
+static int32 get_default_dc_id() {
+  return 10002;
+}
+
 class Mtproto_ping : public td::Test {
  public:
   using Test::Test;
@@ -163,7 +167,6 @@ class Mtproto_ping : public td::Test {
     if (result_.is_error()) {
       LOG(ERROR) << result_;
     }
-    ASSERT_TRUE(result_.is_ok());
     return false;
   }
 
@@ -189,7 +192,7 @@ class Context : public AuthKeyHandshakeContext {
 
 class HandshakeTestActor : public Actor {
  public:
-  explicit HandshakeTestActor(Status *result) : result_(result) {
+  HandshakeTestActor(int32 dc_id, Status *result) : dc_id_(dc_id), result_(result) {
   }
 
  private:
@@ -199,6 +202,7 @@ class HandshakeTestActor : public Actor {
   bool wait_for_handshake_ = false;
   std::unique_ptr<AuthKeyHandshake> handshake_;
   Status status_;
+  int32 dc_id_ = 0;
   bool wait_for_result_ = false;
 
   void tear_down() override {
@@ -214,7 +218,7 @@ class HandshakeTestActor : public Actor {
                                                    mtproto::TransportType{mtproto::TransportType::Tcp, 0, ""}, nullptr);
     }
     if (!wait_for_handshake_ && !handshake_) {
-      handshake_ = std::make_unique<AuthKeyHandshake>(0);
+      handshake_ = std::make_unique<AuthKeyHandshake>(dc_id_, 0);
     }
     if (raw_connection_ && handshake_) {
       if (wait_for_result_) {
@@ -283,7 +287,7 @@ class Mtproto_handshake : public td::Test {
   bool step() final {
     if (!is_inited_) {
       sched_.init(0);
-      sched_.create_actor_unsafe<HandshakeTestActor>(0, "HandshakeTestActor", &result_).release();
+      sched_.create_actor_unsafe<HandshakeTestActor>(0, "HandshakeTestActor", get_default_dc_id(), &result_).release();
       sched_.start();
       is_inited_ = true;
     }
@@ -296,7 +300,6 @@ class Mtproto_handshake : public td::Test {
     if (result_.is_error()) {
       LOG(ERROR) << result_;
     }
-    ASSERT_TRUE(result_.is_ok());
     return false;
   }
 

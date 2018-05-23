@@ -82,13 +82,13 @@ Status AuthKeyHandshake::on_res_pq(Slice message, Callback *connection, PublicRs
   Result<size_t> r_data_size = 0;
   switch (mode_) {
     case Mode::Main:
-      r_data_size = fill_data_with_hash(data_with_hash,
-                                        mtproto_api::p_q_inner_data(res_pq->pq_, p, q, nonce, server_nonce, new_nonce));
+      r_data_size = fill_data_with_hash(
+          data_with_hash, mtproto_api::p_q_inner_data_dc(res_pq->pq_, p, q, nonce, server_nonce, new_nonce, dc_id_));
       break;
     case Mode::Temp:
       r_data_size = fill_data_with_hash(
           data_with_hash,
-          mtproto_api::p_q_inner_data_temp(res_pq->pq_, p, q, nonce, server_nonce, new_nonce, expire_in_));
+          mtproto_api::p_q_inner_data_temp_dc(res_pq->pq_, p, q, nonce, server_nonce, new_nonce, dc_id_, expire_in_));
       expire_at_ = Time::now() + expire_in_;
       break;
     case Mode::Unknown:

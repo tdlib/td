@@ -96,8 +96,9 @@ class GenAuthKeyActor : public Actor {
 
 }  // namespace detail
 
-Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data, bool is_main,
-                 bool use_pfs, bool is_cdn, const mtproto::AuthKey &tmp_auth_key) {
+Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data, int32 dc_id,
+                 bool is_main, bool use_pfs, bool is_cdn, const mtproto::AuthKey &tmp_auth_key)
+    : dc_id_(dc_id), is_main_(is_main), is_cdn_(is_cdn) {
   VLOG(dc) << "Start connection";
 
   shared_auth_data_ = std::move(shared_auth_data);
@@ -118,8 +119,6 @@ Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> 
   main_connection_.connection_id = 0;
   long_poll_connection_.connection_id = 1;
 
-  is_main_ = is_main;
-  is_cdn_ = is_cdn;
   if (is_cdn) {
     auth_data_.set_header(G()->mtproto_header().get_anonymous_header().str());
   } else {
@@ -331,11 +330,11 @@ Status Session::on_pong() {
   constexpr int MAX_QUERY_TIMEOUT = 60;
   constexpr int MIN_CONNECTION_ACTIVE = 60;
   if (current_info_ == &main_connection_ &&
-      Timestamp::at(current_info_->created_at_ + MIN_CONNECTION_ACTIVE).is_in_past()) {
+      Timestamp::at(current_info_->created_at + MIN_CONNECTION_ACTIVE).is_in_past()) {
     Status status;
     if (!unknown_queries_.empty()) {
       status = Status::Error(PSLICE() << "No state info for " << unknown_queries_.size() << " queries for "
-                                      << format::as_time(Time::now_cached() - current_info_->created_at_));
+                                      << format::as_time(Time::now_cached() - current_info_->created_at));
     }
     if (!sent_queries_list_.empty()) {
       for (auto it = sent_queries_list_.prev; it != &sent_queries_list_; it = it->prev) {
@@ -940,7 +939,7 @@ void Session::connection_open_finish(ConnectionInfo *info,
   subscribe(info->connection->get_pollable());
   info->mode = mode_;
   info->state = ConnectionInfo::State::Ready;
-  info->created_at_ = Time::now_cached();
+  info->created_at = Time::now_cached();
   info->wakeup_at = Time::now_cached() + 10;
   if (unknown_queries_.size() > 1024) {
     on_session_failed(Status::Error("Too much queries with unknown state"));
@@ -1060,7 +1059,7 @@ void Session::create_gen_auth_key_actor(HandshakeId handshake_id) {
   info.flag_ = true;
   bool is_main = handshake_id == MainAuthKeyHandshake;
   if (!info.handshake_) {
-    info.handshake_ = std::make_unique<mtproto::AuthKeyHandshake>(is_main && !is_cdn_ ? 0 : 24 * 60 * 60);
+    info.handshake_ = std::make_unique<mtproto::AuthKeyHandshake>(dc_id_, is_main && !is_cdn_ ? 0 : 24 * 60 * 60);
   }
   class AuthKeyHandshakeContext : public mtproto::AuthKeyHandshakeContext {
    public:

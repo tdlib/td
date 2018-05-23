@@ -48,7 +48,8 @@ class AuthKeyHandshake {
   bool is_ready_for_finish();
   void on_finish();
 
-  explicit AuthKeyHandshake(int32 expire_in = 0) {
+  AuthKeyHandshake(int32 dc_id, int32 expire_in) {
+    dc_id_ = dc_id;
     if (expire_in == 0) {
       mode_ = Mode::Main;
     } else {
@@ -76,6 +77,7 @@ class AuthKeyHandshake {
   using State = enum { Start, ResPQ, ServerDHParams, DHGenResponse, Finish };
   State state_ = Start;
   Mode mode_ = Mode::Unknown;
+  int32 dc_id_;
   int32 expire_in_;
   double expire_at_ = 0;
 

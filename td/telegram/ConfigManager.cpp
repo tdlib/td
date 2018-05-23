@@ -293,7 +293,11 @@ ActorOwn<> get_full_config(DcId dc_id, IPAddress ip_address, Promise<FullConfig>
       auto session_callback = std::make_unique<SessionCallback>(actor_shared(this, 1), std::move(ip_address_));
 
       auto auth_data = std::make_shared<SimpleAuthData>(dc_id_);
-      session_ = create_actor<Session>("ConfigSession", std::move(session_callback), std::move(auth_data),
+      int32 int_dc_id = dc_id_.get_raw_id();
+      if (G()->is_test_dc()) {
+        int_dc_id += 10000;
+      }
+      session_ = create_actor<Session>("ConfigSession", std::move(session_callback), std::move(auth_data), int_dc_id,
                                        false /*is_main*/, true /*use_pfs*/, false /*is_cdn*/, mtproto::AuthKey());
       auto query = G()->net_query_creator().create(create_storer(telegram_api::help_getConfig()), DcId::empty(),
                                                    NetQuery::Type::Common, NetQuery::AuthFlag::Off,
