@@ -4850,6 +4850,11 @@ void MessagesManager::update_message_count_by_index(Dialog *d, int diff, const M
   auto index_mask = get_message_index_mask(d->dialog_id, m);
   index_mask &= ~search_messages_filter_index_mask(
       SearchMessagesFilter::UnreadMention);  // unread mention count has been already manually updated
+
+  update_message_count_by_index(d, diff, index_mask);
+}
+
+void MessagesManager::update_message_count_by_index(Dialog *d, int diff, int32 index_mask) {
   if (index_mask == 0) {
     return;
   }
@@ -16949,6 +16954,7 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
+  CHECK(message_id.is_yet_unsent());
   Message *m = get_message(d, message_id);
   if (m == nullptr) {
     // message has already been deleted by the user or sent to inaccessible channel
@@ -16966,7 +16972,7 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
   auto content = get_message_content(get_message_content_caption(m->content.get()), std::move(media), dialog_id, false,
                                      UserId(), nullptr);
 
-  update_message_content(dialog_id, m, m->content, std::move(content), true, true);
+  update_message_content(dialog_id, m, std::move(content), true, true);
 
   auto input_media = get_input_media(m->content.get(), nullptr, nullptr, m->ttl);
   Status result;
@@ -22406,10 +22412,17 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         message->have_next = false;
       }
       if (!message->from_database) {
+        const int32 INDEX_MASK_MASK = ~search_messages_filter_index_mask(SearchMessagesFilter::UnreadMention);
+        auto old_index_mask = get_message_index_mask(dialog_id, v->get()) & INDEX_MASK_MASK;
         bool was_deleted = delete_active_live_location(dialog_id, v->get());
         update_message(d, *v, std::move(message), true, need_update_dialog_pos);
+        auto new_index_mask = get_message_index_mask(dialog_id, v->get()) & INDEX_MASK_MASK;
         if (was_deleted) {
           try_add_active_live_location(dialog_id, v->get());
+        }
+        if (old_index_mask != new_index_mask) {
+          update_message_count_by_index(d, -1, old_index_mask & ~new_index_mask);
+          update_message_count_by_index(d, +1, new_index_mask & ~old_index_mask);
         }
       }
       return v->get();
@@ -23238,7 +23251,7 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
     attach_message_to_next(d, message_id, "update_message");
   }
 
-  if (update_message_content(dialog_id, old_message.get(), old_message->content, std::move(new_message->content),
+  if (update_message_content(dialog_id, old_message.get(), std::move(new_message->content),
                              need_send_update_message_content,
                              message_id.is_yet_unsent() && new_message->edit_date == 0)) {
     is_changed = true;
@@ -23290,11 +23303,11 @@ bool MessagesManager::need_message_text_changed_warning(const Message *old_messa
 }
 
 bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_message,
-                                             unique_ptr<MessageContent> &old_content,
                                              unique_ptr<MessageContent> new_content,
                                              bool need_send_update_message_content, bool need_merge_files) {
   bool is_content_changed = false;
   bool need_update = false;
+  unique_ptr<MessageContent> &old_content = old_message->content;
   int32 old_content_type = old_content->get_id();
   int32 new_content_type = new_content->get_id();
   const bool can_delete_old_document = old_message->message_id.is_yet_unsent() && false;

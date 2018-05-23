@@ -2158,6 +2158,8 @@ class MessagesManager : public Actor {
 
   void update_message_count_by_index(Dialog *d, int diff, const Message *m);
 
+  void update_message_count_by_index(Dialog *d, int diff, int32 index_mask);
+
   int32 get_message_index_mask(DialogId dialog_id, const Message *m) const;
 
   int32 get_message_content_index_mask(const MessageContent *content, bool is_secret, bool is_outgoing) const;
@@ -2191,9 +2193,8 @@ class MessagesManager : public Actor {
   bool need_message_text_changed_warning(const Message *old_message, const MessageText *old_content,
                                          const MessageText *new_content);
 
-  bool update_message_content(DialogId dialog_id, Message *old_message, unique_ptr<MessageContent> &old_content,
-                              unique_ptr<MessageContent> new_content, bool need_send_update_message_content,
-                              bool need_merge_files);
+  bool update_message_content(DialogId dialog_id, Message *old_message, unique_ptr<MessageContent> new_content,
+                              bool need_send_update_message_content, bool need_merge_files);
 
   void send_update_new_message(Dialog *d, const Message *m, bool force = false);
 
