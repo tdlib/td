@@ -16966,7 +16966,7 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
   auto content = get_message_content(get_message_content_caption(m->content.get()), std::move(media), dialog_id, false,
                                      UserId(), nullptr);
 
-  update_message_content(dialog_id, m, m->content, std::move(content), true);
+  update_message_content(dialog_id, m, m->content, std::move(content), true, true);
 
   auto input_media = get_input_media(m->content.get(), nullptr, nullptr, m->ttl);
   Status result;
@@ -23239,7 +23239,8 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
   }
 
   if (update_message_content(dialog_id, old_message.get(), old_message->content, std::move(new_message->content),
-                             need_send_update_message_content)) {
+                             need_send_update_message_content,
+                             message_id.is_yet_unsent() && new_message->edit_date == 0)) {
     is_changed = true;
   }
   // TODO update can be send only if the message has already been returned to the user
@@ -23291,12 +23292,12 @@ bool MessagesManager::need_message_text_changed_warning(const Message *old_messa
 bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_message,
                                              unique_ptr<MessageContent> &old_content,
                                              unique_ptr<MessageContent> new_content,
-                                             bool need_send_update_message_content) {
+                                             bool need_send_update_message_content, bool need_merge_files) {
   bool is_content_changed = false;
   bool need_update = false;
   int32 old_content_type = old_content->get_id();
   int32 new_content_type = new_content->get_id();
-  bool can_delete_old_document = old_message->message_id.is_yet_unsent() && false;
+  const bool can_delete_old_document = old_message->message_id.is_yet_unsent() && false;
 
   if (old_content_type != new_content_type) {
     need_update = true;
@@ -23382,7 +23383,9 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
       case MessageAnimation::ID: {
         auto old_ = static_cast<const MessageAnimation *>(old_content.get());
         auto new_ = static_cast<const MessageAnimation *>(new_content.get());
-        if (td_->animations_manager_->merge_animations(new_->file_id, old_->file_id, can_delete_old_document)) {
+        if (new_->file_id != old_->file_id &&
+            (!need_merge_files ||
+             td_->animations_manager_->merge_animations(new_->file_id, old_->file_id, can_delete_old_document))) {
           need_update = true;
         }
         if (old_->caption != new_->caption) {
@@ -23393,7 +23396,9 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
       case MessageAudio::ID: {
         auto old_ = static_cast<const MessageAudio *>(old_content.get());
         auto new_ = static_cast<const MessageAudio *>(new_content.get());
-        if (td_->audios_manager_->merge_audios(new_->file_id, old_->file_id, can_delete_old_document)) {
+        if (new_->file_id != old_->file_id &&
+            (!need_merge_files ||
+             td_->audios_manager_->merge_audios(new_->file_id, old_->file_id, can_delete_old_document))) {
           need_update = true;
         }
         if (old_->caption != new_->caption) {
@@ -23412,7 +23417,9 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
       case MessageDocument::ID: {
         auto old_ = static_cast<const MessageDocument *>(old_content.get());
         auto new_ = static_cast<const MessageDocument *>(new_content.get());
-        if (td_->documents_manager_->merge_documents(new_->file_id, old_->file_id, can_delete_old_document)) {
+        if (new_->file_id != old_->file_id &&
+            (!need_merge_files ||
+             td_->documents_manager_->merge_documents(new_->file_id, old_->file_id, can_delete_old_document))) {
           need_update = true;
         }
         if (old_->caption != new_->caption) {
@@ -23480,18 +23487,21 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
               new_photo->photos.push_back(old_photo->photos[0]);
             }
             new_photo->photos.push_back(old_photo->photos.back());
-            FileId old_file_id = old_photo->photos.back().file_id;
-            FileView old_file_view = td_->file_manager_->get_file_view(old_file_id);
-            FileId new_file_id = new_photo->photos[0].file_id;
-            FileView new_file_view = td_->file_manager_->get_file_view(new_file_id);
-            if (!old_file_view.has_remote_location()) {
-              CHECK(new_file_view.has_remote_location());
-              CHECK(!new_file_view.remote_location().is_web());
-              FileId file_id = td_->file_manager_->register_remote(
-                  FullRemoteFileLocation(FileType::Photo, new_file_view.remote_location().get_id(),
-                                         new_file_view.remote_location().get_access_hash(), 0, 0, 0, DcId::invalid()),
-                  FileLocationSource::FromServer, dialog_id, old_photo->photos.back().size, 0, "");
-              LOG_STATUS(td_->file_manager_->merge(file_id, old_file_id));
+
+            if (need_merge_files) {
+              FileId old_file_id = old_photo->photos.back().file_id;
+              FileView old_file_view = td_->file_manager_->get_file_view(old_file_id);
+              FileId new_file_id = new_photo->photos[0].file_id;
+              FileView new_file_view = td_->file_manager_->get_file_view(new_file_id);
+              if (!old_file_view.has_remote_location()) {
+                CHECK(new_file_view.has_remote_location());
+                CHECK(!new_file_view.remote_location().is_web());
+                FileId file_id = td_->file_manager_->register_remote(
+                    FullRemoteFileLocation(FileType::Photo, new_file_view.remote_location().get_id(),
+                                           new_file_view.remote_location().get_access_hash(), 0, 0, 0, DcId::invalid()),
+                    FileLocationSource::FromServer, dialog_id, old_photo->photos.back().size, 0, "");
+                LOG_STATUS(td_->file_manager_->merge(file_id, old_file_id));
+              }
             }
           }
           if ((old_photo->photos.size() == 1 + new_photo->photos.size() ||
@@ -23513,7 +23523,9 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
       case MessageSticker::ID: {
         auto old_ = static_cast<const MessageSticker *>(old_content.get());
         auto new_ = static_cast<const MessageSticker *>(new_content.get());
-        if (td_->stickers_manager_->merge_stickers(new_->file_id, old_->file_id, can_delete_old_document)) {
+        if (new_->file_id != old_->file_id &&
+            (!need_merge_files ||
+             td_->stickers_manager_->merge_stickers(new_->file_id, old_->file_id, can_delete_old_document))) {
           need_update = true;
         }
         break;
@@ -23529,7 +23541,9 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
       case MessageVideo::ID: {
         auto old_ = static_cast<const MessageVideo *>(old_content.get());
         auto new_ = static_cast<const MessageVideo *>(new_content.get());
-        if (td_->videos_manager_->merge_videos(new_->file_id, old_->file_id, can_delete_old_document)) {
+        if (new_->file_id != old_->file_id &&
+            (!need_merge_files ||
+             td_->videos_manager_->merge_videos(new_->file_id, old_->file_id, can_delete_old_document))) {
           need_update = true;
         }
         if (old_->caption != new_->caption) {
@@ -23540,7 +23554,9 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
       case MessageVideoNote::ID: {
         auto old_ = static_cast<const MessageVideoNote *>(old_content.get());
         auto new_ = static_cast<const MessageVideoNote *>(new_content.get());
-        if (td_->video_notes_manager_->merge_video_notes(new_->file_id, old_->file_id, can_delete_old_document)) {
+        if (new_->file_id != old_->file_id &&
+            (!need_merge_files ||
+             td_->video_notes_manager_->merge_video_notes(new_->file_id, old_->file_id, can_delete_old_document))) {
           need_update = true;
         }
         if (old_->is_viewed != new_->is_viewed) {
@@ -23551,7 +23567,9 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
       case MessageVoiceNote::ID: {
         auto old_ = static_cast<const MessageVoiceNote *>(old_content.get());
         auto new_ = static_cast<const MessageVoiceNote *>(new_content.get());
-        if (td_->voice_notes_manager_->merge_voice_notes(new_->file_id, old_->file_id, can_delete_old_document)) {
+        if (new_->file_id != old_->file_id &&
+            (!need_merge_files ||
+             td_->voice_notes_manager_->merge_voice_notes(new_->file_id, old_->file_id, can_delete_old_document))) {
           need_update = true;
         }
         if (old_->caption != new_->caption) {
