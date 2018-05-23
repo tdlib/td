@@ -509,7 +509,8 @@ void ConnectionCreator::disable_proxy_impl() {
 }
 
 void ConnectionCreator::on_proxy_changed(bool from_db) {
-  send_closure(G()->state_manager(), &StateManager::on_proxy, active_proxy_id_ != 0);
+  send_closure(G()->state_manager(), &StateManager::on_proxy,
+               active_proxy_id_ != 0 && proxies_[active_proxy_id_].type() == Proxy::Type::Socks5);
 
   if (!from_db) {
     for (auto &child : children_) {
