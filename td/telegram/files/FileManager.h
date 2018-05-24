@@ -415,6 +415,8 @@ class FileManager : public FileLoadManager::Callback {
 
   Container<Query> queries_container_;
 
+  bool is_closed_ = false;
+
   std::set<std::string> bad_paths_;
 
   FileId next_file_id();

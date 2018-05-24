@@ -2068,6 +2068,10 @@ FileManager::FileNodeId FileManager::next_file_node_id() {
 }
 
 void FileManager::on_start_download(QueryId query_id) {
+  if (is_closed_) {
+    return;
+  }
+
   auto query = queries_container_.get(query_id);
   CHECK(query != nullptr);
 
@@ -2086,6 +2090,10 @@ void FileManager::on_start_download(QueryId query_id) {
 
 void FileManager::on_partial_download(QueryId query_id, const PartialLocalFileLocation &partial_local,
                                       int64 ready_size) {
+  if (is_closed_) {
+    return;
+  }
+
   auto query = queries_container_.get(query_id);
   CHECK(query != nullptr);
 
@@ -2103,6 +2111,10 @@ void FileManager::on_partial_download(QueryId query_id, const PartialLocalFileLo
 }
 
 void FileManager::on_hash(QueryId query_id, string hash) {
+  if (is_closed_) {
+    return;
+  }
+
   auto query = queries_container_.get(query_id);
   CHECK(query != nullptr);
 
@@ -2121,6 +2133,10 @@ void FileManager::on_hash(QueryId query_id, string hash) {
 
 void FileManager::on_partial_upload(QueryId query_id, const PartialRemoteFileLocation &partial_remote,
                                     int64 ready_size) {
+  if (is_closed_) {
+    return;
+  }
+
   auto query = queries_container_.get(query_id);
   CHECK(query != nullptr);
 
@@ -2136,7 +2152,12 @@ void FileManager::on_partial_upload(QueryId query_id, const PartialRemoteFileLoc
   file_node->set_remote_location(RemoteFileLocation(partial_remote), FileLocationSource::None, ready_size);
   try_flush_node(file_node);
 }
+
 void FileManager::on_download_ok(QueryId query_id, const FullLocalFileLocation &local, int64 size) {
+  if (is_closed_) {
+    return;
+  }
+
   auto file_id = finish_query(query_id).first.file_id_;
   LOG(INFO) << "ON DOWNLOAD OK file " << file_id << " of size " << size;
   auto r_new_file_id = register_local(local, DialogId(), size);
@@ -2147,8 +2168,13 @@ void FileManager::on_download_ok(QueryId query_id, const FullLocalFileLocation &
     LOG_STATUS(merge(r_new_file_id.ok(), file_id));
   }
 }
+
 void FileManager::on_upload_ok(QueryId query_id, FileType file_type, const PartialRemoteFileLocation &partial_remote,
                                int64 size) {
+  if (is_closed_) {
+    return;
+  }
+
   CHECK(partial_remote.ready_part_count_ == partial_remote.part_count_);
   auto some_file_id = finish_query(query_id).first.file_id_;
   LOG(INFO) << "ON UPLOAD OK file " << some_file_id << " of size " << size;
@@ -2220,6 +2246,10 @@ void FileManager::on_upload_ok(QueryId query_id, FileType file_type, const Parti
 }
 
 void FileManager::on_upload_full_ok(QueryId query_id, const FullRemoteFileLocation &remote) {
+  if (is_closed_) {
+    return;
+  }
+
   LOG(INFO) << "ON UPLOAD OK";
   auto file_id = finish_query(query_id).first.file_id_;
   auto new_file_id = register_remote(remote, FileLocationSource::FromServer, DialogId(), 0, 0, "");
@@ -2228,6 +2258,10 @@ void FileManager::on_upload_full_ok(QueryId query_id, const FullRemoteFileLocati
 
 void FileManager::on_partial_generate(QueryId query_id, const PartialLocalFileLocation &partial_local,
                                       int32 expected_size) {
+  if (is_closed_) {
+    return;
+  }
+
   LOG(INFO) << "on_parital_generate: " << partial_local.path_ << " " << partial_local.ready_part_count_;
   auto query = queries_container_.get(query_id);
   CHECK(query != nullptr);
@@ -2256,7 +2290,12 @@ void FileManager::on_partial_generate(QueryId query_id, const PartialLocalFileLo
 
   try_flush_node(file_node);
 }
+
 void FileManager::on_generate_ok(QueryId query_id, const FullLocalFileLocation &local) {
+  if (is_closed_) {
+    return;
+  }
+
   LOG(INFO) << "on_ok_generate: " << local;
   Query query;
   bool was_active;
@@ -2299,6 +2338,10 @@ void FileManager::on_generate_ok(QueryId query_id, const FullLocalFileLocation &
 }
 
 void FileManager::on_error(QueryId query_id, Status status) {
+  if (is_closed_) {
+    return;
+  }
+
   Query query;
   bool was_active;
   std::tie(query, was_active) = finish_query(query_id);
@@ -2426,6 +2469,7 @@ void FileManager::hangup() {
       on_error(id, Status::Error(500, "Internal Server Error: closing"));
     }
   }
+  is_closed_ = true;
   stop();
 }
 
