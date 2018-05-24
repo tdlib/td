@@ -41,17 +41,17 @@ TEST(Mtproto, config) {
     auto guard = sched.get_current_guard();
 
     auto run = [&](auto &func, bool is_test) {
-      cnt++;
-      auto promise = PromiseCreator::lambda([&](Result<SimpleConfig> r_simple_config) {
+      auto promise = PromiseCreator::lambda([&, num = cnt](Result<SimpleConfig> r_simple_config) {
         if (r_simple_config.is_ok()) {
-          LOG(ERROR) << to_string(r_simple_config.ok());
+          LOG(ERROR) << num << " " << to_string(r_simple_config.ok());
         } else {
-          LOG(ERROR) << r_simple_config.error();
+          LOG(ERROR) << num << " " << r_simple_config.error();
         }
         if (--cnt == 0) {
           Scheduler::instance()->finish();
         }
       });
+      cnt++;
       func(std::move(promise), is_test, -1).release();
     };
 
@@ -178,13 +178,13 @@ class HandshakeTestActor : public Actor {
   }
 
  private:
+  int32 dc_id_ = 0;
   Status *result_;
   bool wait_for_raw_connection_ = false;
   std::unique_ptr<RawConnection> raw_connection_;
   bool wait_for_handshake_ = false;
   std::unique_ptr<AuthKeyHandshake> handshake_;
   Status status_;
-  int32 dc_id_ = 0;
   bool wait_for_result_ = false;
 
   void tear_down() override {

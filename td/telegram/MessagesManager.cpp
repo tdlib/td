@@ -18952,8 +18952,8 @@ void MessagesManager::send_update_new_message(Dialog *d, const Message *m, bool 
   }
   bool have_settings = true;
   DialogId settings_dialog_id;
+  Dialog *settings_dialog = nullptr;
   if (!disable_notification) {
-    Dialog *settings_dialog;
     if (!m->contains_mention || !m->sender_user_id.is_valid()) {
       // use notification settings from the dialog
       settings_dialog_id = d->dialog_id;
@@ -18985,7 +18985,11 @@ void MessagesManager::send_update_new_message(Dialog *d, const Message *m, bool 
     auto promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = d->dialog_id](Result<Unit> result) {
       send_closure(actor_id, &MessagesManager::flush_pending_update_new_messages, dialog_id);
     });
-    send_get_dialog_notification_settings_query(settings_dialog_id, std::move(promise));
+    if (settings_dialog != nullptr) {
+      send_get_dialog_notification_settings_query(settings_dialog_id, std::move(promise));
+    } else {
+      send_get_dialog_query(settings_dialog_id, std::move(promise));
+    }
     return;
   }
 
@@ -19944,18 +19948,18 @@ DialogId MessagesManager::search_public_dialog(const string &username_to_search,
 }
 
 void MessagesManager::send_get_dialog_notification_settings_query(DialogId dialog_id, Promise<Unit> &&promise) {
-  if (td_->auth_manager_->is_bot()) {
-    return;
+  if (td_->auth_manager_->is_bot() || dialog_id.get_type() != DialogType::SecretChat) {
+    return promise.set_error(Status::Error(500, "Wrong getDialogNotificationSettings query"));
   }
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access the chat"));
+  }
+
   auto &promises = get_dialog_notification_settings_queries_[dialog_id];
   promises.push_back(std::move(promise));
   if (promises.size() != 1) {
     // query has already been sent, just wait for the result
     return;
-  }
-
-  if (!have_input_peer(dialog_id, AccessRights::Read)) {
-    return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
 
   td_->create_handler<GetDialogNotifySettingsQuery>()->send(dialog_id);
@@ -19978,9 +19982,13 @@ void MessagesManager::on_get_dialog_notification_settings_query_finished(DialogI
 }
 
 void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise) {
-  if (td_->auth_manager_->is_bot()) {
-    return;
+  if (td_->auth_manager_->is_bot() || dialog_id.get_type() != DialogType::SecretChat) {
+    return promise.set_error(Status::Error(500, "Wrong getDialog query"));
   }
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(400, "Can't access the chat"));
+  }
+
   auto &promises = get_dialog_queries_[dialog_id];
   promises.push_back(std::move(promise));
   if (promises.size() != 1) {
