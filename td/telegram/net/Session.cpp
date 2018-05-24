@@ -112,7 +112,8 @@ Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> 
   uint64 session_id = 0;
   Random::secure_bytes(reinterpret_cast<uint8 *>(&session_id), sizeof(session_id));
   auth_data_.session_id_ = session_id;
-  LOG(WARNING) << "Generate new session_id " << session_id << " for auth key " << auth_data_.get_auth_key().id();
+  LOG(WARNING) << "Generate new session_id " << session_id << " for " << (use_pfs ? "temp " : "")
+               << (is_cdn ? "CDN " : "") << "auth key " << auth_data_.get_auth_key().id() << " for DC" << dc_id;
 
   callback_ = std::shared_ptr<Callback>(callback.release());
 
