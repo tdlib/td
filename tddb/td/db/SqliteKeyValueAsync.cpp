@@ -12,6 +12,7 @@
 #include <unordered_map>
 
 namespace td {
+
 class SqliteKeyValueAsync : public SqliteKeyValueAsyncInterface {
  public:
   explicit SqliteKeyValueAsync(std::shared_ptr<SqliteKeyValueSafe> kv_safe, int32 scheduler_id = -1) {
@@ -133,6 +134,7 @@ class SqliteKeyValueAsync : public SqliteKeyValueAsyncInterface {
   };
   ActorOwn<Impl> impl_;
 };
+
 std::unique_ptr<SqliteKeyValueAsyncInterface> create_sqlite_key_value_async(std::shared_ptr<SqliteKeyValueSafe> kv,
                                                                             int32 scheduler_id) {
   return std::make_unique<SqliteKeyValueAsync>(std::move(kv), scheduler_id);

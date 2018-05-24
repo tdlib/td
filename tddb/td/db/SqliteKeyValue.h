@@ -17,6 +17,7 @@
 #include <unordered_map>
 
 namespace td {
+
 class SqliteKeyValue {
  public:
   static Status drop(SqliteDb &connection, Slice kv_name) TD_WARN_UNUSED_RESULT {
@@ -218,4 +219,5 @@ class SqliteKeyValue {
     return string{};
   }
 };
+
 }  // namespace td

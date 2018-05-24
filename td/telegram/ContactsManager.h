@@ -1078,6 +1078,7 @@ class ContactsManager : public Actor {
   MultiPromiseActor load_imported_contact_users_multipromise_;
   vector<Contact> all_imported_contacts_;
   bool are_imported_contacts_changing_ = false;
+  bool need_clear_imported_contacts_ = false;
 
   vector<Contact> next_all_imported_contacts_;
   vector<size_t> imported_contacts_unique_id_;

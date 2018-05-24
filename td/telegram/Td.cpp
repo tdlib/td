@@ -2426,14 +2426,13 @@ class ChangeImportedContactsRequest : public RequestActor<> {
   }
 };
 
-class ClearImportedContactsRequest : public RequestActor<> {
+class ClearImportedContactsRequest : public RequestOnceActor {
   void do_run(Promise<Unit> &&promise) override {
     td->contacts_manager_->clear_imported_contacts(std::move(promise));
   }
 
  public:
-  ClearImportedContactsRequest(ActorShared<Td> td, uint64 request_id) : RequestActor(std::move(td), request_id) {
-    set_tries(3);  // load_contacts + clear
+  ClearImportedContactsRequest(ActorShared<Td> td, uint64 request_id) : RequestOnceActor(std::move(td), request_id) {
   }
 };
 

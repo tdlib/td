@@ -3501,7 +3501,7 @@ int32 ContactsManager::get_imported_contact_count(Promise<Unit> &&promise) {
   reload_contacts(false);
 
   promise.set_value(Unit());
-  return saved_contact_count_ + static_cast<int32>(contacts_hints_.size());
+  return saved_contact_count_;
 }
 
 void ContactsManager::load_imported_contacts(Promise<Unit> &&promise) {
@@ -3533,6 +3533,10 @@ void ContactsManager::load_imported_contacts(Promise<Unit> &&promise) {
 
 void ContactsManager::on_load_imported_contacts_from_database(string value) {
   CHECK(!are_imported_contacts_loaded_);
+  if (need_clear_imported_contacts_) {
+    need_clear_imported_contacts_ = false;
+    value.clear();
+  }
   if (value.empty()) {
     CHECK(all_imported_contacts_.empty());
   } else {
@@ -3565,6 +3569,10 @@ void ContactsManager::on_load_imported_contacts_finished() {
     get_user_id_object(contact.get_user_id(), "on_load_imported_contacts_finished");  // to ensure updateUser
   }
 
+  if (need_clear_imported_contacts_) {
+    need_clear_imported_contacts_ = false;
+    all_imported_contacts_.clear();
+  }
   are_imported_contacts_loaded_ = true;
   auto promises = std::move(load_imported_contacts_queries_);
   load_imported_contacts_queries_.clear();
@@ -3588,6 +3596,15 @@ std::pair<vector<UserId>, vector<int32>> ContactsManager::change_imported_contac
             << " contacts with random_id = " << random_id;
   if (random_id != 0) {
     // request has already been sent before
+    if (need_clear_imported_contacts_) {
+      need_clear_imported_contacts_ = false;
+      all_imported_contacts_.clear();
+      if (G()->parameters().use_chat_info_db) {
+        G()->td_db()->get_sqlite_pmc()->erase("user_imported_contacts", Auto());
+      }
+      reload_contacts(true);
+    }
+
     CHECK(are_imported_contacts_changing_);
     are_imported_contacts_changing_ = false;
 
@@ -3697,12 +3714,7 @@ void ContactsManager::on_clear_imported_contacts(vector<Contact> &&contacts, vec
 void ContactsManager::clear_imported_contacts(Promise<Unit> &&promise) {
   LOG(INFO) << "Delete imported contacts";
 
-  if (!are_contacts_loaded_ || saved_contact_count_ == -1) {
-    load_contacts(std::move(promise));
-    return;
-  }
-
-  if (contacts_hints_.size() == 0 && saved_contact_count_ == 0) {
+  if (saved_contact_count_ == 0) {
     promise.set_value(Unit());
     return;
   }
@@ -3711,6 +3723,7 @@ void ContactsManager::clear_imported_contacts(Promise<Unit> &&promise) {
 }
 
 void ContactsManager::on_update_contacts_reset() {
+  /*
   UserId my_id = get_my_id("on_update_contacts_reset");
   for (auto &p : users_) {
     UserId user_id = p.first;
@@ -3729,8 +3742,30 @@ void ContactsManager::on_update_contacts_reset() {
       }
     }
   }
+  */
 
   saved_contact_count_ = 0;
+  if (G()->parameters().use_chat_info_db) {
+    G()->td_db()->get_binlog_pmc()->set("saved_contact_count", "0");
+    G()->td_db()->get_sqlite_pmc()->erase("user_imported_contacts", Auto());
+  }
+  if (!are_imported_contacts_loaded_) {
+    CHECK(all_imported_contacts_.empty());
+    if (load_imported_contacts_queries_.empty()) {
+      LOG(INFO) << "Imported contacts was never loaded, just clear them";
+    } else {
+      LOG(INFO) << "Imported contacts are being loaded, clear them also when they will be loaded";
+      need_clear_imported_contacts_ = true;
+    }
+  } else {
+    if (!are_imported_contacts_changing_) {
+      LOG(INFO) << "Imported contacts was loaded, but aren't changing now, just clear them";
+      all_imported_contacts_.clear();
+    } else {
+      LOG(INFO) << "Imported contacts are changing now, clear them also after they will be loaded";
+      need_clear_imported_contacts_ = true;
+    }
+  }
   reload_contacts(true);
 }
 

@@ -2769,7 +2769,7 @@ getImportedContactCount = Count;
 //-Query result depends on the result of the previous query, so only one query is possible at the same time @contacts The new list of contacts
 changeImportedContacts contacts:vector<contact> = ImportedContacts;
 
-//@description Clears all imported contacts
+//@description Clears all imported contacts, contacts list remains unchanged
 clearImportedContacts = Ok;
 
 
