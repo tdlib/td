@@ -14,8 +14,10 @@ vector#1cb5c415 {t:Type} # [ t ] = Vector t;
 
 error#c4b9f9bb code:int text:string = Error;
 
-ipPort ipv4:int port:int = IpPort;
-help.configSimple#d997c3c5 date:int expires:int dc_id:int ip_port_list:Vector<ipPort> = help.ConfigSimple;
+ipPort#d433ad73 ipv4:int port:int = IpPort;
+ipPortSecret#37982646 ipv4:int port:int secret:bytes = IpPort;
+accessPointRule#4679b65f phone_prefix_rules:string dc_id:int ips:vector<IpPort> = AccessPointRule;
+help.configSimple#5a592a6c date:int expires:int rules:vector<AccessPointRule> = help.ConfigSimple;
 
 ---functions---
 
@@ -1093,7 +1095,7 @@ help.saveAppLog#6f02f748 events:Vector<InputAppEvent> = Bool;
 help.getInviteText#4d392343 = help.InviteText;
 help.getSupport#9cdf08cd = help.Support;
 help.getAppChangelog#9010ef6f prev_app_version:string = Updates;
-help.getTermsOfService#350170f3 = help.TermsOfService;
+help.getTermsOfService#fa796a44 country_iso2:string lang_code:string = help.TermsOfService;
 help.setBotUpdatesStatus#ec22cfcd pending_updates_count:int message:string = Bool;
 help.getCdnConfig#52029342 = CdnConfig;
 help.getRecentMeUrls#3dc0f114 referer:string = help.RecentMeUrls;

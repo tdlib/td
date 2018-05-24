@@ -4933,6 +4933,9 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   if (flags & USER_FLAG_IS_ME) {
     set_my_id(user_id);
     td_->auth_manager_->set_is_bot(is_bot);
+    if (!is_bot) {
+      G()->shared_config().set_option_string("my_phone_number", user->phone_);
+    }
   } else {
     /*
     if (!(flags & USER_FLAG_HAS_ACCESS_HASH) && !(flags & USER_FLAG_IS_DELETED) &&

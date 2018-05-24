@@ -24,11 +24,9 @@ using SimpleConfig = tl_object_ptr<telegram_api::help_configSimple>;
 
 Result<SimpleConfig> decode_config(Slice input);
 
-ActorOwn<> get_simple_config_azure(Promise<SimpleConfig> promise, bool is_test = false, int32 scheduler_id = -1);
+ActorOwn<> get_simple_config_azure(Promise<SimpleConfig> promise, bool is_test, int32 scheduler_id);
 
-ActorOwn<> get_simple_config_google_app(Promise<SimpleConfig> promise, bool is_test = false, int32 scheduler_id = -1);
-
-ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfig> promise, bool is_test = false, int32 scheduler_id = -1);
+ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfig> promise, bool is_test, int32 scheduler_id);
 
 using FullConfig = tl_object_ptr<telegram_api::config>;
 

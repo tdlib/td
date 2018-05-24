@@ -81,9 +81,28 @@ class DcOption {
     init_ip_address(ip, port);
   }
 
-  DcOption(DcId new_dc_id, const telegram_api::ipPort &ip_port) {
+  DcOption(DcId new_dc_id, const telegram_api::IpPort &ip_port_ref) {
+    switch (ip_port_ref.get_id()) {
+      case telegram_api::ipPort::ID: {
+        auto &ip_port = static_cast<const telegram_api::ipPort &>(ip_port_ref);
+        init_ip_address(IPAddress::ipv4_to_str(ip_port.ipv4_), ip_port.port_);
+        break;
+      }
+      case telegram_api::ipPortSecret::ID: {
+        auto &ip_port = static_cast<const telegram_api::ipPortSecret &>(ip_port_ref);
+        if (ip_port.secret_.size() != 16u) {
+          return;
+        }
+        flags_ |= Flags::HasSecret;
+        secret_ = ip_port.secret_.as_slice().str();
+        init_ip_address(IPAddress::ipv4_to_str(ip_port.ipv4_), ip_port.port_);
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+    flags_ |= Flags::ObfuscatedTcpOnly;
     dc_id_ = new_dc_id;
-    init_ip_address(IPAddress::ipv4_to_str(ip_port.ipv4_), ip_port.port_);
   }
 
   DcId get_dc_id() const {
@@ -204,15 +223,7 @@ class DcOptions {
       }
     }
   }
-  explicit DcOptions(const telegram_api::help_configSimple &config_simple) {
-    auto dc_id = DcId::is_valid(config_simple.dc_id_) ? DcId::internal(config_simple.dc_id_) : DcId();
-    for (auto &ip_port : config_simple.ip_port_list_) {
-      DcOption option(dc_id, *ip_port);
-      if (option.is_valid()) {
-        dc_options.push_back(std::move(option));
-      }
-    }
-  }
+
   template <class StorerT>
   void store(StorerT &storer) const {
     ::td::store(dc_options, storer);

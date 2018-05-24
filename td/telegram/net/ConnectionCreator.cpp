@@ -671,6 +671,7 @@ void ConnectionCreator::request_raw_connection_by_ip(IPAddress ip_address,
 
 Result<SocketFd> ConnectionCreator::find_connection(const ConnectionCreator::ProxyInfo &proxy, DcId dc_id,
                                                     bool allow_media_only, FindConnectionExtra &extra) {
+  extra.debug_str = PSTRING() << "Failed to find valid IP for " << dc_id;
   TRY_RESULT(info, dc_options_set_.find_connection(dc_id, allow_media_only, proxy.use_proxy()));
   extra.stat = info.stat;
   int32 int_dc_id = dc_id.get_raw_id();
@@ -680,10 +681,11 @@ Result<SocketFd> ConnectionCreator::find_connection(const ConnectionCreator::Pro
   int16 raw_dc_id = narrow_cast<int16>(info.option->is_media_only() ? -int_dc_id : int_dc_id);
 
   if (proxy.use_mtproto_proxy()) {
+    extra.debug_str = PSTRING() << "Mtproto " << proxy.ip_address() << " to DC" << raw_dc_id;
+
     TRY_RESULT(secret, hex_decode(proxy.proxy().secret()));
     extra.transport_type = {mtproto::TransportType::ObfuscatedTcp, raw_dc_id, std::move(secret)};
 
-    extra.debug_str = PSTRING() << "Mtproto " << proxy.ip_address() << " to DC" << raw_dc_id;
     LOG(INFO) << "Create: " << extra.debug_str;
     return SocketFd::open(proxy.ip_address());
   }
@@ -787,7 +789,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
     auto r_socket_fd = find_connection(proxy, client.dc_id, client.allow_media_only, extra);
     check_mode |= extra.check_mode;
     if (r_socket_fd.is_error()) {
-      LOG(WARNING) << r_socket_fd.error();
+      LOG(WARNING) << extra.debug_str << ": " << r_socket_fd.error();
       if (extra.stat) {
         extra.stat->on_error();  // TODO: different kind of error
       }

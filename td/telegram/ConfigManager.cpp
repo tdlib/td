@@ -124,13 +124,9 @@ static ActorOwn<> get_simple_config_impl(Promise<SimpleConfig> promise, int32 sc
 }
 
 ActorOwn<> get_simple_config_azure(Promise<SimpleConfig> promise, bool is_test, int32 scheduler_id) {
-  string url = PSTRING() << "https://software-download.microsoft.com/" << (is_test ? "test" : "prod") << "/config.txt";
+  string url = PSTRING() << "https://software-download.microsoft.com/" << (is_test ? "test" : "prod")
+                         << "v2/config.txt";
   return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "tcdnb.azureedge.net");
-}
-
-ActorOwn<> get_simple_config_google_app(Promise<SimpleConfig> promise, bool is_test, int32 scheduler_id) {
-  string url = PSTRING() << "https://www.google.com/" << (is_test ? "test/" : "");
-  return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "dns-telegram.appspot.com");
 }
 
 ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfig> promise, bool is_test, int32 scheduler_id) {
@@ -171,7 +167,7 @@ ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfig> promise, bool is_t
           return decode_config(data);
         }());
       }),
-      PSTRING() << "https://google.com/resolve?name=" << (is_test ? "t" : "") << "ap.stel.com&type=16",
+      PSTRING() << "https://www.google.com/resolve?name=" << (is_test ? "t" : "") << "apv2.stel.com&type=16",
       std::vector<std::pair<string, string>>({{"Host", "dns.google.com"}}), 10 /*timeout*/, 3 /*ttl*/,
       SslFd::VerifyPeer::Off));
 #endif
@@ -370,25 +366,54 @@ class ConfigRecoverer : public Actor {
     loop();
   }
 
+  static bool check_phone_number_rules(Slice phone_number, Slice rules) {
+    bool found = false;
+    for (auto prefix : full_split(rules, ',')) {
+      if (prefix.empty()) {
+        found = true;
+      } else if (prefix[0] == '+' && begins_with(phone_number, prefix.substr(1))) {
+        found = true;
+      } else if (prefix[0] == '-' && begins_with(phone_number, prefix.substr(1))) {
+        return false;
+      } else {
+        LOG(ERROR) << "Invalid prefix rule " << prefix;
+      }
+    }
+    return found;
+  }
+
   void on_simple_config(Result<SimpleConfig> r_simple_config, bool dummy) {
     simple_config_query_.reset();
-    auto r_dc_options = [&]() -> Result<DcOptions> {
-      if (r_simple_config.is_error()) {
-        return r_simple_config.move_as_error();
-      }
-      return DcOptions(*r_simple_config.ok());
-    }();
     dc_options_i_ = 0;
-    if (r_dc_options.is_ok()) {
-      simple_config_ = r_dc_options.move_as_ok();
-      VLOG(config_recoverer) << "Got SimpleConfig " << simple_config_;
+    if (r_simple_config.is_ok()) {
+      auto config = r_simple_config.move_as_ok();
+      LOG(ERROR) << to_string(config);
+      if (config->expires_ >= G()->unix_time()) {
+        string phone_number = G()->shared_config().get_option_string("my_phone_number");
+        simple_config_.dc_options.clear();
+
+        for (auto &rule : config->rules_) {
+          if (check_phone_number_rules(phone_number, rule->phone_prefix_rules_) && DcId::is_valid(rule->dc_id_)) {
+            DcId dc_id = DcId::internal(rule->dc_id_);
+            for (auto &ip_port : rule->ips_) {
+              DcOption option(dc_id, *ip_port);
+              if (option.is_valid()) {
+                simple_config_.dc_options.push_back(std::move(option));
+              }
+            }
+          }
+        }
+        VLOG(config_recoverer) << "Got SimpleConfig " << simple_config_;
+        LOG(ERROR) << "Got SimpleConfig " << simple_config_;
+      }
+
       simple_config_expire_at_ = get_config_expire_time();
       simple_config_at_ = Time::now_cached();
       for (size_t i = 1; i < simple_config_.dc_options.size(); i++) {
         std::swap(simple_config_.dc_options[i], simple_config_.dc_options[Random::fast(0, static_cast<int>(i))]);
       }
     } else {
-      VLOG(config_recoverer) << "Get SimpleConfig error " << r_dc_options.error();
+      VLOG(config_recoverer) << "Get SimpleConfig error " << r_simple_config.error();
       simple_config_ = DcOptions();
       simple_config_expire_at_ = get_failed_config_expire_time();
     }
@@ -515,10 +540,9 @@ class ConfigRecoverer : public Actor {
       });
       auto get_simple_config = [&]() {
         switch (simple_config_turn_ % 3) {
-          case 0:
-            return get_simple_config_azure;
           case 1:
-            return get_simple_config_google_app;
+            return get_simple_config_azure;
+          case 0:
           case 2:
           default:
             return get_simple_config_google_dns;

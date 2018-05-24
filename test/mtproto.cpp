@@ -31,67 +31,49 @@ REGISTER_TESTS(mtproto);
 using namespace td;
 using namespace mtproto;
 
-#if !TD_WINDOWS && !TD_EMSCRIPTEN  // TODO
 TEST(Mtproto, config) {
   ConcurrentScheduler sched;
   int threads_n = 0;
   sched.init(threads_n);
 
-  int cnt = 3;
+  int cnt = 1;
   {
     auto guard = sched.get_current_guard();
-    get_simple_config_azure(PromiseCreator::lambda([&](Result<SimpleConfig> r_simple_config) {
-      if (r_simple_config.is_ok()) {
-        LOG(ERROR) << to_string(r_simple_config.ok());
-      } else {
-        LOG(ERROR) << r_simple_config.error();
-      }
-      if (--cnt == 0) {
-        Scheduler::instance()->finish();
-      }
-    }))
-        .release();
 
-    get_simple_config_google_app(PromiseCreator::lambda([&](Result<SimpleConfig> r_simple_config) {
-      if (r_simple_config.is_ok()) {
-        LOG(ERROR) << to_string(r_simple_config.ok());
-      } else {
-        LOG(ERROR) << r_simple_config.error();
-      }
-      if (--cnt == 0) {
-        Scheduler::instance()->finish();
-      }
-    }))
-        .release();
+    auto run = [&](auto &func, bool is_test) {
+      cnt++;
+      auto promise = PromiseCreator::lambda([&](Result<SimpleConfig> r_simple_config) {
+        if (r_simple_config.is_ok()) {
+          LOG(ERROR) << to_string(r_simple_config.ok());
+        } else {
+          LOG(ERROR) << r_simple_config.error();
+        }
+        if (--cnt == 0) {
+          Scheduler::instance()->finish();
+        }
+      });
+      func(std::move(promise), is_test, -1).release();
+    };
 
-    get_simple_config_google_dns(PromiseCreator::lambda([&](Result<SimpleConfig> r_simple_config) {
-      if (r_simple_config.is_ok()) {
-        LOG(ERROR) << to_string(r_simple_config.ok());
-      } else {
-        LOG(ERROR) << r_simple_config.error();
-      }
-      if (--cnt == 0) {
-        Scheduler::instance()->finish();
-      }
-    }))
-        .release();
+    run(get_simple_config_azure, false);
+    run(get_simple_config_google_dns, false);
+    run(get_simple_config_azure, true);
+    run(get_simple_config_google_dns, true);
   }
+  cnt--;
   sched.start();
   while (sched.run_main(10)) {
     // empty;
   }
   sched.finish();
 }
-#endif
 
 TEST(Mtproto, encrypted_config) {
   string data =
-      "   LQ2 \b\n\tru6xVXpHHckW4eQWK0X3uThupVOor5sXT8t298IjDksYeUseQTOIrnUqiQj7o"
-      "+ZgPfhnfe+lfcQA+naax9akgllimjlJtL5riTf3O7iqZSnJ614qmCucxqqVTbXk/"
-      "hY2KaJTtsMqk7cShJjM3aQ4DD40h2InTaG7uyVO2q7K0GMUTeY3AM0Rt1lUjKHLD"
-      "g4RwjTzZaG8TwfgL/mZ7jsvgTTTATPWKUo7SmxQ9Hsj+07NMGqr6JKZS6aiU1Knz"
-      "VGCZ3OJEyRYocktN4HjaLpkguilaHWlVM2UNFUd5a+ajfLIiiKlH0FRC3XZ12CND"
-      "Y+NBjv0I57N2O4fBfswTlA==  ";
+      "   hO//tt \b\n\tiwPVovorKtIYtQ8y2ik7CqfJiJ4pJOCLRa4fBmNPixuRPXnBFF/3mTAAZoSyHq4SNylGHz0Cv1/"
+      "FnWWdEV+BPJeOTk+ARHcNkuJBt0CqnfcVCoDOpKqGyq0U31s2MOpQvHgAG+Tlpg02syuH0E4dCGRw5CbJPARiynteb9y5fT5x/"
+      "kmdp6BMR5tWQSQF0liH16zLh8BDSIdiMsikdcwnAvBwdNhRqQBqGx9MTh62MDmlebjtczE9Gz0z5cscUO2yhzGdphgIy6SP+"
+      "bwaqLWYF0XdPGjKLMUEJW+rou6fbL1t/EUXPtU0XmQAnO0Fh86h+AqDMOe30N4qKrPQ==   ";
   auto config = decode_config(data).move_as_ok();
 }
 
