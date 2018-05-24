@@ -43,7 +43,7 @@ TEST(Mtproto, config) {
     auto run = [&](auto &func, bool is_test) {
       auto promise = PromiseCreator::lambda([&, num = cnt](Result<SimpleConfig> r_simple_config) {
         if (r_simple_config.is_ok()) {
-          LOG(ERROR) << num << " " << to_string(r_simple_config.ok());
+          LOG(WARNING) << num << " " << to_string(r_simple_config.ok());
         } else {
           LOG(ERROR) << num << " " << r_simple_config.error();
         }

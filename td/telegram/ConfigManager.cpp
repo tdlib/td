@@ -367,6 +367,10 @@ class ConfigRecoverer : public Actor {
   }
 
   static bool check_phone_number_rules(Slice phone_number, Slice rules) {
+    if (rules.empty() || phone_number.empty()) {
+      return true;
+    }
+
     bool found = false;
     for (auto prefix : full_split(rules, ',')) {
       if (prefix.empty()) {
