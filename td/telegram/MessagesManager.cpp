@@ -19948,7 +19948,7 @@ DialogId MessagesManager::search_public_dialog(const string &username_to_search,
 }
 
 void MessagesManager::send_get_dialog_notification_settings_query(DialogId dialog_id, Promise<Unit> &&promise) {
-  if (td_->auth_manager_->is_bot() || dialog_id.get_type() != DialogType::SecretChat) {
+  if (td_->auth_manager_->is_bot() || dialog_id.get_type() == DialogType::SecretChat) {
     return promise.set_error(Status::Error(500, "Wrong getDialogNotificationSettings query"));
   }
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
@@ -19982,7 +19982,7 @@ void MessagesManager::on_get_dialog_notification_settings_query_finished(DialogI
 }
 
 void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise) {
-  if (td_->auth_manager_->is_bot() || dialog_id.get_type() != DialogType::SecretChat) {
+  if (td_->auth_manager_->is_bot() || dialog_id.get_type() == DialogType::SecretChat) {
     return promise.set_error(Status::Error(500, "Wrong getDialog query"));
   }
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
