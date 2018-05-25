@@ -440,9 +440,9 @@ class GetTermsOfServiceQuery : public Td::ResultHandler {
   explicit GetTermsOfServiceQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send() {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::help_getTermsOfService()), DcId::main(),
-                                               NetQuery::Type::Common, NetQuery::AuthFlag::Off));
+  void send(const string &country_code) {
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::help_getTermsOfService(country_code)),
+                                               DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -3838,6 +3838,8 @@ class GetInviteTextRequest : public RequestActor<string> {
 };
 
 class GetTermsOfServiceRequest : public RequestActor<string> {
+  string country_code_;
+
   string text_;
 
   void do_run(Promise<string> &&promise) override {
@@ -3846,7 +3848,7 @@ class GetTermsOfServiceRequest : public RequestActor<string> {
       return;
     }
 
-    td->create_handler<GetTermsOfServiceQuery>(std::move(promise))->send();
+    td->create_handler<GetTermsOfServiceQuery>(std::move(promise))->send(country_code_);
   }
 
   void do_set_result(string &&result) override {
@@ -3858,7 +3860,8 @@ class GetTermsOfServiceRequest : public RequestActor<string> {
   }
 
  public:
-  GetTermsOfServiceRequest(ActorShared<Td> td, uint64 request_id) : RequestActor(std::move(td), request_id) {
+  GetTermsOfServiceRequest(ActorShared<Td> td, uint64 request_id, string country_code)
+      : RequestActor(std::move(td), request_id), country_code_(country_code) {
   }
 };
 
@@ -7006,8 +7009,9 @@ void Td::on_request(uint64 id, const td_api::getInviteText &request) {
   CREATE_NO_ARGS_REQUEST(GetInviteTextRequest);
 }
 
-void Td::on_request(uint64 id, const td_api::getTermsOfService &request) {
-  CREATE_NO_ARGS_REQUEST(GetTermsOfServiceRequest);
+void Td::on_request(uint64 id, td_api::getTermsOfService &request) {
+  CLEAN_INPUT_STRING(request.country_code_);
+  CREATE_REQUEST(GetTermsOfServiceRequest, std::move(request.country_code_));
 }
 
 void Td::on_request(uint64 id, td_api::getDeepLinkInfo &request) {

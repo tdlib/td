@@ -3155,8 +3155,8 @@ getCountryCode = Text;
 //@description Returns the default text for invitation messages to be used as a placeholder when the current user invites friends to Telegram
 getInviteText = Text;
 
-//@description Returns the terms of service. Can be called before authorization
-getTermsOfService = Text;
+//@description Returns the terms of service. Can be called before authorization @country_code A two-letter ISO 3166-1 alpha-2 country code of user's country
+getTermsOfService country_code:string = Text;
 
 //@description Returns information about a tg:// deep link. Use "tg://need_update_for_some_feature" or "tg:some_unsupported_feature" for testing. Returns a 404 error for unknown links. Can be called before authorization @link The link
 getDeepLinkInfo link:string = DeepLinkInfo;

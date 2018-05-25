@@ -811,7 +811,7 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::getInviteText &request);
 
-  void on_request(uint64 id, const td_api::getTermsOfService &request);
+  void on_request(uint64 id, td_api::getTermsOfService &request);
 
   void on_request(uint64 id, td_api::getDeepLinkInfo &request);
 

@@ -1718,7 +1718,7 @@ class CliClient final : public Actor {
     } else if (op == "git") {
       send_request(make_tl_object<td_api::getInviteText>());
     } else if (op == "gtos") {
-      send_request(make_tl_object<td_api::getTermsOfService>());
+      send_request(make_tl_object<td_api::getTermsOfService>(args));
     } else if (op == "gdli") {
       send_request(make_tl_object<td_api::getDeepLinkInfo>(args));
     } else if (op == "tme") {
