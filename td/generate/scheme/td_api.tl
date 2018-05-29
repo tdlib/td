@@ -2390,7 +2390,7 @@ getGroupsInCommon user_id:int32 offset_chat_id:int53 limit:int32 = Chats;
 //@description Returns messages in a chat. The messages are returned in a reverse chronological order (i.e., in order of decreasing message_id).
 //-For optimal performance the number of returned messages is chosen by the library. This is an offline request if only_local is true
 //@chat_id Chat identifier
-//@from_message_id Identifier of the message starting from which history must be fetched; use 0 to get results from the beginning (i.e., from oldest to newest)
+//@from_message_id Identifier of the message starting from which history must be fetched; use 0 to get results from the last message
 //@offset Specify 0 to get results from exactly the from_message_id or a negative offset to get the specified message and some newer messages
 //@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. If the offset is negative, the limit must be greater than -offset. Fewer messages may be returned than specified by the limit, even if the end of the message history has not been reached
 //@only_local If true, returns only messages that are available locally without sending network requests
@@ -2404,7 +2404,7 @@ deleteChatHistory chat_id:int53 remove_from_chat_list:Bool = Ok;
 //@chat_id Identifier of the chat in which to search messages
 //@query Query to search for
 //@sender_user_id If not 0, only messages sent by the specified user will be returned. Not supported in secret chats
-//@from_message_id Identifier of the message starting from which history must be fetched; use 0 to get results from the beginning
+//@from_message_id Identifier of the message starting from which history must be fetched; use 0 to get results from the last message
 //@offset Specify 0 to get results from exactly the from_message_id or a negative offset to get the specified message and some newer messages
 //@limit The maximum number of messages to be returned; must be positive and can't be greater than 100. If the offset is negative, the limit must be greater than -offset. Fewer messages may be returned than specified by the limit, even if the end of the message history has not been reached
 //@filter Filter for message content in the search results
@@ -2413,7 +2413,7 @@ searchChatMessages chat_id:int53 query:string sender_user_id:int32 from_message_
 //@description Searches for messages in all chats except secret chats. Returns the results in reverse chronological order (i.e., in order of decreasing (date, chat_id, message_id)).
 //-For optimal performance the number of returned messages is chosen by the library
 //@query Query to search for
-//@offset_date The date of the message starting from which the results should be fetched. Use 0 or any date in the future to get results from the beginning
+//@offset_date The date of the message starting from which the results should be fetched. Use 0 or any date in the future to get results from the last message
 //@offset_chat_id The chat identifier of the last found message, or 0 for the first request
 //@offset_message_id The message identifier of the last found message, or 0 for the first request
 //@limit The maximum number of messages to be returned, up to 100. Fewer messages may be returned than specified by the limit, even if the end of the message history has not been reached
@@ -2421,13 +2421,13 @@ searchMessages query:string offset_date:int32 offset_chat_id:int53 offset_messag
 
 //@description Searches for messages in secret chats. Returns the results in reverse chronological order. For optimal performance the number of returned messages is chosen by the library
 //@chat_id Identifier of the chat in which to search. Specify 0 to search in all secret chats @query Query to search for. If empty, searchChatMessages should be used instead
-//@from_search_id The identifier from the result of a previous request, use 0 to get results from the beginning
+//@from_search_id The identifier from the result of a previous request, use 0 to get results from the last message
 //@limit Maximum number of messages to be returned; up to 100. Fewer messages may be returned than specified by the limit, even if the end of the message history has not been reached
 //@filter A filter for the content of messages in the search results
 searchSecretMessages chat_id:int53 query:string from_search_id:int64 limit:int32 filter:SearchMessagesFilter = FoundMessages;
 
 //@description Searches for call messages. Returns the results in reverse chronological order (i. e., in order of decreasing message_id). For optimal performance the number of returned messages is chosen by the library
-//@from_message_id Identifier of the message from which to search; use 0 to get results from the beginning
+//@from_message_id Identifier of the message from which to search; use 0 to get results from the last message
 //@limit The maximum number of messages to be returned; up to 100. Fewer messages may be returned than specified by the limit, even if the end of the message history has not been reached @only_missed If true, returns only messages with missed calls
 searchCallMessages from_message_id:int53 limit:int32 only_missed:Bool = Messages;
 
