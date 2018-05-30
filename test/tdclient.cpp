@@ -834,4 +834,5 @@ class Tdclient_login : public td::Test {
   Status result_;
 };
 Tdclient_login Tdclient_login("Tdclient_login");
+
 };  // namespace td
