@@ -21,6 +21,7 @@
 #include "td/utils/port/Stat.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Slice.h"
+#include "td/utils/port/path.h"
 
 #include <tuple>
 
@@ -117,6 +118,7 @@ Status FileDownloader::on_ok(int64 size) {
     string tmp_path;
     std::tie(std::ignore, tmp_path) = std::move(file_path);
     TRY_STATUS(secure_storage::decrypt_file(encryption_key_.secret(), encryption_key_.value_hash(), path_, tmp_path));
+    unlink(path_).ignore();
     path_ = std::move(tmp_path);
     TRY_RESULT(path_stat, stat(path_));
     size = path_stat.size_;
