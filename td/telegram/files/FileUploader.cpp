@@ -123,7 +123,6 @@ Result<FileLoader::PrefixInfo> FileUploader::on_update_local_location(const Loca
     TRY_RESULT(hash, secure_storage::encrypt_file(encryption_key_.secret(), path, new_path));
     LOG(INFO) << "ENCRYPT " << path << " " << new_path;
     callback_->on_hash(hash.as_slice().str());
-    unlink(path).ignore();
     path = new_path;
     is_temp = true;
   }
