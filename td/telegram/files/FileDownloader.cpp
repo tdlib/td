@@ -300,7 +300,7 @@ Result<size_t> FileDownloader::process_part(Part part, NetQueryPtr net_query) {
   if (encryption_key_.is_secret()) {
     padded_size = (part.size + 15) & ~15;
   }
-  LOG(INFO) << "Got " << bytes.size() << " padded_size=" << padded_size;
+  LOG(INFO) << "Got " << bytes.size() << " bytes, padded_size = " << padded_size << " for " << path_;
   if (bytes.size() > padded_size) {
     return Status::Error("Part size is more than requested");
   }

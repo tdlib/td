@@ -242,6 +242,9 @@ struct FileEncryptionKey {
   bool empty() const {
     return key_iv_.empty();
   }
+  size_t size() const {
+    return key_iv_.size();
+  }
 
   template <class StorerT>
   void store(StorerT &storer) const {
@@ -253,12 +256,17 @@ struct FileEncryptionKey {
     if (key_iv_.empty()) {
       type_ = Type::None;
     } else {
+      if (type_ == Type::Secure) {
+        if (key_iv_.size() != 64) {
+          LOG(ERROR) << "Have wrong key size " << key_iv_.size();
+        }
+      }
       type_ = type;
     }
   }
 
   string key_iv_;  // TODO wrong alignment is possible
-  Type type_;
+  Type type_ = Type::None;
 };
 
 inline bool operator==(const FileEncryptionKey &lhs, const FileEncryptionKey &rhs) {
@@ -267,6 +275,16 @@ inline bool operator==(const FileEncryptionKey &lhs, const FileEncryptionKey &rh
 
 inline bool operator!=(const FileEncryptionKey &lhs, const FileEncryptionKey &rhs) {
   return !(lhs == rhs);
+}
+
+inline StringBuilder &operator<<(StringBuilder &string_builder, const FileEncryptionKey &key) {
+  if (key.is_secret()) {
+    return string_builder << "SecretKey{" << key.size() << "}";
+  }
+  if (key.is_secret()) {
+    return string_builder << "SecureKey{" << key.size() << "}";
+  }
+  return string_builder << "NoKey{}";
 }
 
 struct EmptyRemoteFileLocation {
@@ -1247,9 +1265,11 @@ class FileData {
                           parser);
   }
 };
+
 inline StringBuilder &operator<<(StringBuilder &sb, const FileData &file_data) {
   sb << "[" << tag("remote_name", file_data.remote_name_) << " " << file_data.owner_dialog_id_ << " "
-     << tag("size", file_data.size_) << tag("expected_size", file_data.expected_size_);
+     << tag("size", file_data.size_) << tag("expected_size", file_data.expected_size_) << " "
+     << file_data.encryption_key_;
   if (!file_data.url_.empty()) {
     sb << tag("url", file_data.url_);
   }

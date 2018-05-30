@@ -14,6 +14,7 @@
 #include "td/utils/logging.h"
 
 namespace td {
+
 FileLoadManager::FileLoadManager(ActorShared<Callback> callback, ActorShared<> parent)
     : callback_(std::move(callback)), parent_(std::move(parent)) {
 }

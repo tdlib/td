@@ -1505,6 +1505,8 @@ void FileManager::run_download(FileNodePtr node) {
   QueryId id = queries_container_.create(Query{file_id, Query::Download});
   node->download_id_ = id;
   node->is_download_started_ = false;
+  LOG(DEBUG) << "Run download of file " << file_id << " of size " << node->size_ << " from " << node->remote_.full()
+             << " with suggested name " << node->suggested_name() << " and encyption key " << node->encryption_key_;
   send_closure(file_load_manager_, &FileLoadManager::download, id, node->remote_.full(), node->local_, node->size_,
                node->suggested_name(), node->encryption_key_, node->can_search_locally_, priority);
 }
@@ -2077,6 +2079,7 @@ void FileManager::on_start_download(QueryId query_id) {
 
   auto file_id = query->file_id_;
   auto file_node = get_file_node(file_id);
+  LOG(DEBUG) << "Reseive on_start_download for file " << file_id;
   if (!file_node) {
     return;
   }
@@ -2099,6 +2102,7 @@ void FileManager::on_partial_download(QueryId query_id, const PartialLocalFileLo
 
   auto file_id = query->file_id_;
   auto file_node = get_file_node(file_id);
+  LOG(DEBUG) << "Reseive on_parial_download for file " << file_id;
   if (!file_node) {
     return;
   }
@@ -2121,6 +2125,7 @@ void FileManager::on_hash(QueryId query_id, string hash) {
   auto file_id = query->file_id_;
 
   auto file_node = get_file_node(file_id);
+  LOG(DEBUG) << "Reseive on_hash for file " << file_id;
   if (!file_node) {
     return;
   }
@@ -2142,6 +2147,7 @@ void FileManager::on_partial_upload(QueryId query_id, const PartialRemoteFileLoc
 
   auto file_id = query->file_id_;
   auto file_node = get_file_node(file_id);
+  LOG(DEBUG) << "Reseive on_partial_upload for file " << file_id;
   if (!file_node) {
     return;
   }
@@ -2250,8 +2256,8 @@ void FileManager::on_upload_full_ok(QueryId query_id, const FullRemoteFileLocati
     return;
   }
 
-  LOG(INFO) << "ON UPLOAD OK";
   auto file_id = finish_query(query_id).first.file_id_;
+  LOG(INFO) << "ON UPLOAD FULL OK for file " << file_id;
   auto new_file_id = register_remote(remote, FileLocationSource::FromServer, DialogId(), 0, 0, "");
   LOG_STATUS(merge(new_file_id, file_id));
 }
@@ -2262,12 +2268,13 @@ void FileManager::on_partial_generate(QueryId query_id, const PartialLocalFileLo
     return;
   }
 
-  LOG(INFO) << "on_parital_generate: " << partial_local.path_ << " " << partial_local.ready_part_count_;
   auto query = queries_container_.get(query_id);
   CHECK(query != nullptr);
 
   auto file_id = query->file_id_;
   auto file_node = get_file_node(file_id);
+  LOG(DEBUG) << "Receive on_parital_generate for file " << file_id << ": " << partial_local.path_ << " "
+             << partial_local.ready_part_count_;
   if (!file_node) {
     return;
   }
@@ -2296,12 +2303,12 @@ void FileManager::on_generate_ok(QueryId query_id, const FullLocalFileLocation &
     return;
   }
 
-  LOG(INFO) << "on_ok_generate: " << local;
   Query query;
   bool was_active;
   std::tie(query, was_active) = finish_query(query_id);
   auto generate_file_id = query.file_id_;
 
+  LOG(INFO) << "Receive on_generate_ok for file " << generate_file_id << ": " << local;
   auto file_node = get_file_node(generate_file_id);
   if (!file_node) {
     return;
