@@ -1786,6 +1786,11 @@ class CliClient final : public Actor {
           as_chat_ids(exclude_chat_ids, ','), to_integer<int32>(chat_ids_limit)));
     } else if (op == "clean_storage_default") {
       send_request(make_tl_object<td_api::optimizeStorage>());
+    } else if (op == "clean_photos") {
+      std::vector<tl_object_ptr<td_api::FileType>> types;
+      types.push_back(make_tl_object<td_api::fileTypePhoto>());
+      send_request(
+          make_tl_object<td_api::optimizeStorage>(0, 0, 0, 0, std::move(types), as_chat_ids(""), as_chat_ids(""), 20));
     } else if (op == "clean_storage") {
       std::vector<tl_object_ptr<td_api::FileType>> types;
       types.push_back(make_tl_object<td_api::fileTypeThumbnail>());

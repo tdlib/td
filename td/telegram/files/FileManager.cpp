@@ -2079,7 +2079,7 @@ void FileManager::on_start_download(QueryId query_id) {
 
   auto file_id = query->file_id_;
   auto file_node = get_file_node(file_id);
-  LOG(DEBUG) << "Reseive on_start_download for file " << file_id;
+  LOG(DEBUG) << "Receive on_start_download for file " << file_id;
   if (!file_node) {
     return;
   }
@@ -2102,7 +2102,7 @@ void FileManager::on_partial_download(QueryId query_id, const PartialLocalFileLo
 
   auto file_id = query->file_id_;
   auto file_node = get_file_node(file_id);
-  LOG(DEBUG) << "Reseive on_parial_download for file " << file_id;
+  LOG(DEBUG) << "Receive on_parial_download for file " << file_id;
   if (!file_node) {
     return;
   }
@@ -2125,7 +2125,7 @@ void FileManager::on_hash(QueryId query_id, string hash) {
   auto file_id = query->file_id_;
 
   auto file_node = get_file_node(file_id);
-  LOG(DEBUG) << "Reseive on_hash for file " << file_id;
+  LOG(DEBUG) << "Receive on_hash for file " << file_id;
   if (!file_node) {
     return;
   }
@@ -2147,7 +2147,7 @@ void FileManager::on_partial_upload(QueryId query_id, const PartialRemoteFileLoc
 
   auto file_id = query->file_id_;
   auto file_node = get_file_node(file_id);
-  LOG(DEBUG) << "Reseive on_partial_upload for file " << file_id;
+  LOG(DEBUG) << "Receive on_partial_upload for file " << file_id;
   if (!file_node) {
     return;
   }
