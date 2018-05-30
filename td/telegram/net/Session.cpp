@@ -78,6 +78,15 @@ class GenAuthKeyActor : public Actor {
         }));
   }
 
+  void hangup() override {
+    if (connection_promise_) {
+      connection_promise_.set_error(Status::Error(1, "Cancelled"));
+    }
+    if (handshake_promise_) {
+      handshake_promise_.set_error(Status::Error(1, "Cancelled"));
+    }
+  }
+
   void on_connection(Result<std::unique_ptr<mtproto::RawConnection>> r_raw_connection, bool dummy) {
     if (r_raw_connection.is_error()) {
       connection_promise_.set_error(r_raw_connection.move_as_error());
@@ -1082,8 +1091,8 @@ void Session::create_gen_auth_key_actor(HandshakeId handshake_id) {
       "GenAuthKey", std::move(info.handshake_),
       std::make_unique<AuthKeyHandshakeContext>(DhCache::instance(), shared_auth_data_->public_rsa_key()),
       PromiseCreator::lambda([self = actor_id(this)](Result<std::unique_ptr<mtproto::RawConnection>> r_connection) {
-        if (r_connection.is_error() && r_connection.error().code() != 1) {
-          LOG(WARNING) << r_connection.error();
+        if (r_connection.is_error()) {
+          LOG_IF(WARNING, r_connection.error().code() != 1) << r_connection.error();
           return;
         }
         send_closure(self, &Session::connection_add, r_connection.move_as_ok());

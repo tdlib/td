@@ -39,6 +39,10 @@ class HandshakeActor : public Actor {
   void tear_down() override {
     finish(Status::OK());
   }
+  void hangup() override {
+    finish(Status::Error(1, "Cancelled"));
+    stop();
+  }
   void timeout_expired() override {
     finish(Status::Error("Timeout expired"));
     stop();
