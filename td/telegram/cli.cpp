@@ -275,10 +275,10 @@ class CliClient final : public Actor {
     }
   }
 
-  std::unordered_map<string, int32> username_to_supergroup_id;
+  std::unordered_map<string, int32> username_to_supergroup_id_;
   void register_supergroup(const td_api::supergroup &supergroup) {
     if (!supergroup.username_.empty()) {
-      username_to_supergroup_id[to_lower(supergroup.username_)] = supergroup.id_;
+      username_to_supergroup_id_[to_lower(supergroup.username_)] = supergroup.id_;
     }
   }
 
@@ -291,10 +291,10 @@ class CliClient final : public Actor {
     }
   }
 
-  int64 get_history_chat_id = 0;
-  int64 search_chat_id = 0;
+  int64 get_history_chat_id_ = 0;
+  int64 search_chat_id_ = 0;
   void on_get_messages(const td_api::messages &messages) {
-    if (get_history_chat_id != 0) {
+    if (get_history_chat_id_ != 0) {
       int64 last_message_id = 0;
       for (auto &m : messages.messages_) {
         // LOG(PLAIN) << to_string(m);
@@ -305,20 +305,20 @@ class CliClient final : public Actor {
       }
 
       if (last_message_id > 0) {
-        send_request(make_tl_object<td_api::getChatHistory>(get_history_chat_id, last_message_id, 0, 100, false));
+        send_request(make_tl_object<td_api::getChatHistory>(get_history_chat_id_, last_message_id, 0, 100, false));
       } else {
-        get_history_chat_id = 0;
+        get_history_chat_id_ = 0;
       }
     }
-    if (search_chat_id != 0) {
+    if (search_chat_id_ != 0) {
       if (!messages.messages_.empty()) {
         auto last_message_id = messages.messages_.back()->id_;
         LOG(ERROR) << (last_message_id >> 20);
         send_request(
-            make_tl_object<td_api::searchChatMessages>(search_chat_id, "", 0, last_message_id, 0, 100,
+            make_tl_object<td_api::searchChatMessages>(search_chat_id_, "", 0, last_message_id, 0, 100,
                                                        make_tl_object<td_api::searchMessagesFilterPhotoAndVideo>()));
       } else {
-        search_chat_id = 0;
+        search_chat_id_ = 0;
       }
     }
   }
@@ -327,6 +327,18 @@ class CliClient final : public Actor {
     if (message.sending_state_ != nullptr &&
         message.sending_state_->get_id() == td_api::messageSendingStatePending::ID) {
       // send_request(make_tl_object<td_api::deleteMessages>(message.chat_id_, vector<int64>{message.id_}, true));
+    }
+  }
+
+  void on_get_file(const td_api::file &file) {
+    if (being_downloaded_files_.count(file.id_) && !file.local_->is_downloading_active_) {
+      double elapsed_time = Time::now() - being_downloaded_files_[file.id_];
+      being_downloaded_files_.erase(file.id_);
+      if (file.local_->is_downloading_completed_) {
+        LOG(ERROR) << "File " << file.id_ << " was downloaded in " << elapsed_time;
+      } else {
+        LOG(ERROR) << "File " << file.id_ << " has failed to download in " << elapsed_time;
+      }
     }
   }
 
@@ -339,7 +351,7 @@ class CliClient final : public Actor {
     int32 size = 0;
   };
 
-  vector<FileGeneration> pending_file_generations;
+  vector<FileGeneration> pending_file_generations_;
 
   void on_file_generation_start(const td_api::updateFileGenerationStart &update) {
     FileGeneration file_generation;
@@ -368,7 +380,7 @@ class CliClient final : public Actor {
       if (file_generation.part_size <= 0) {
         file_generation.part_size = file_generation.size;
       }
-      pending_file_generations.push_back(std::move(file_generation));
+      pending_file_generations_.push_back(std::move(file_generation));
       timeout_expired();
     } else {
       send_request(make_tl_object<td_api::finishFileGeneration>(
@@ -383,8 +395,8 @@ class CliClient final : public Actor {
       if (it != username_to_user_id_.end()) {
         return it->second;
       }
-      auto it2 = username_to_supergroup_id.find(to_lower(str.substr(1)));
-      if (it2 != username_to_supergroup_id.end()) {
+      auto it2 = username_to_supergroup_id_.find(to_lower(str.substr(1)));
+      if (it2 != username_to_supergroup_id_.end()) {
         auto supergroup_id = it2->second;
         return static_cast<int64>(-1000'000'000'000ll) - supergroup_id;
       }
@@ -583,6 +595,12 @@ class CliClient final : public Actor {
         }
         break;
       }
+      case td_api::file::ID:
+        on_get_file(*static_cast<const td_api::file *>(result.get()));
+        break;
+      case td_api::updateFile::ID:
+        on_get_file(*static_cast<const td_api::updateFile *>(result.get())->file_);
+        break;
     }
   }
 
@@ -1481,15 +1499,15 @@ class CliClient final : public Actor {
                                                             op == "ghl"));
       }
     } else if (op == "ghf") {
-      get_history_chat_id = as_chat_id(args);
+      get_history_chat_id_ = as_chat_id(args);
 
-      send_request(make_tl_object<td_api::getChatHistory>(get_history_chat_id, std::numeric_limits<int64>::max(), 0,
+      send_request(make_tl_object<td_api::getChatHistory>(get_history_chat_id_, std::numeric_limits<int64>::max(), 0,
                                                           100, false));
     } else if (op == "spvf") {
-      search_chat_id = as_chat_id(args);
+      search_chat_id_ = as_chat_id(args);
 
       send_request(make_tl_object<td_api::searchChatMessages>(
-          search_chat_id, "", 0, 0, 0, 100, make_tl_object<td_api::searchMessagesFilterPhotoAndVideo>()));
+          search_chat_id_, "", 0, 0, 0, 100, make_tl_object<td_api::searchMessagesFilterPhotoAndVideo>()));
     } else if (op == "Search") {
       string from_date;
       string limit;
@@ -2084,14 +2102,18 @@ class CliClient final : public Actor {
     } else if (op == "grf") {
       send_request(make_tl_object<td_api::getRemoteFile>(args, nullptr));
     } else if (op == "df" || op == "DownloadFile") {
-      string file_id;
+      string file_id_str;
       string priority;
-      std::tie(file_id, priority) = split(args);
+      std::tie(file_id_str, priority) = split(args);
       if (priority.empty()) {
         priority = "1";
       }
 
-      send_request(make_tl_object<td_api::downloadFile>(as_file_id(file_id), to_integer<int32>(priority)));
+      auto file_id = as_file_id(file_id_str);
+      if (being_downloaded_files_.count(file_id) == 0) {
+        being_downloaded_files_[file_id] = Time::now();
+      }
+      send_request(make_tl_object<td_api::downloadFile>(file_id, to_integer<int32>(priority)));
     } else if (op == "dff") {
       string file_id;
       string priority;
@@ -2104,7 +2126,7 @@ class CliClient final : public Actor {
         send_request(make_tl_object<td_api::downloadFile>(i, to_integer<int32>(priority)));
       }
     } else if (op == "cdf") {
-      send_request(make_tl_object<td_api::cancelDownloadFile>(as_file_id(args), true));
+      send_request(make_tl_object<td_api::cancelDownloadFile>(as_file_id(args), false));
     } else if (op == "uf" || op == "ufs" || op == "ufse") {
       string file_path;
       string priority;
@@ -3193,7 +3215,7 @@ class CliClient final : public Actor {
       return;
     }
 
-    for (auto it = pending_file_generations.begin(); it != pending_file_generations.end();) {
+    for (auto it = pending_file_generations_.begin(); it != pending_file_generations_.end();) {
       auto left_size = it->size - it->local_size;
       CHECK(left_size > 0);
       if (it->part_size > left_size) {
@@ -3207,7 +3229,7 @@ class CliClient final : public Actor {
       if (it->local_size == it->size) {
         send_request(make_tl_object<td_api::setFileGenerationProgress>(it->id, it->size, it->size));
         send_request(make_tl_object<td_api::finishFileGeneration>(it->id, nullptr));
-        it = pending_file_generations.erase(it);
+        it = pending_file_generations_.erase(it);
       } else {
         send_request(
             make_tl_object<td_api::setFileGenerationProgress>(it->id, (it->size + it->local_size) / 2, it->local_size));
@@ -3215,7 +3237,7 @@ class CliClient final : public Actor {
       }
     }
 
-    if (!pending_file_generations.empty()) {
+    if (!pending_file_generations_.empty()) {
       set_timeout_in(0.01);
     }
   }
@@ -3230,6 +3252,8 @@ class CliClient final : public Actor {
   void add_cmd(string cmd) {
     cmd_queue_.push(std::move(cmd));
   }
+
+  std::unordered_map<int32, double> being_downloaded_files_;
 
   int32 my_id_ = 0;
 
