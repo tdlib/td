@@ -149,19 +149,18 @@ Status NetQueryDispatcher::wait_dc_init(DcId dc_id, bool force) {
     int32 upload_session_count = raw_dc_id != 2 && raw_dc_id != 4 ? 8 : 4;
     int32 download_session_count = 1;
     int32 download_small_session_count = 1;
-    dc.main_session_ = create_actor<SessionMultiProxy>(PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":main",
-                                                       session_count, auth_data, raw_dc_id == main_dc_id_,
-                                                       use_pfs || (session_count > 1), false, false, is_cdn);
+    dc.main_session_ =
+        create_actor<SessionMultiProxy>(PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":main", session_count,
+                                        auth_data, raw_dc_id == main_dc_id_, use_pfs, false, false, is_cdn);
     dc.upload_session_ = create_actor_on_scheduler<SessionMultiProxy>(
         PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":upload", slow_net_scheduler_id, upload_session_count,
         auth_data, false, use_pfs, false, true, is_cdn);
     dc.download_session_ = create_actor_on_scheduler<SessionMultiProxy>(
         PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":download", slow_net_scheduler_id, download_session_count,
-        auth_data, false, use_pfs || (download_session_count > 1), true, true, is_cdn);
+        auth_data, false, use_pfs, true, true, is_cdn);
     dc.download_small_session_ = create_actor_on_scheduler<SessionMultiProxy>(
         PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":download_small", slow_net_scheduler_id,
-        download_small_session_count, auth_data, false, use_pfs || (download_small_session_count > 1), true, true,
-        is_cdn);
+        download_small_session_count, auth_data, false, use_pfs, true, true, is_cdn);
     dc.is_inited_ = true;
     if (dc_id.is_internal()) {
       send_closure_later(dc_auth_manager_, &DcAuthManager::add_dc, std::move(auth_data));
@@ -205,19 +204,20 @@ void NetQueryDispatcher::update_session_count() {
   bool use_pfs = get_use_pfs();
   for (size_t i = 1; i < MAX_DC_COUNT; i++) {
     if (is_dc_inited(narrow_cast<int32>(i))) {
-      send_closure_later(dcs_[i - 1].main_session_, &SessionMultiProxy::update_options, session_count,
-                         use_pfs || (session_count > 1));
+      send_closure_later(dcs_[i - 1].main_session_, &SessionMultiProxy::update_options, session_count, use_pfs);
+      send_closure_later(dcs_[i - 1].upload_session_, &SessionMultiProxy::update_use_pfs, use_pfs);
+      send_closure_later(dcs_[i - 1].download_session_, &SessionMultiProxy::update_use_pfs, use_pfs);
+      send_closure_later(dcs_[i - 1].download_small_session_, &SessionMultiProxy::update_use_pfs, use_pfs);
     }
   }
 }
 
 void NetQueryDispatcher::update_use_pfs() {
   std::lock_guard<std::mutex> guard(main_dc_id_mutex_);
-  int32 session_count = get_session_count();
   bool use_pfs = get_use_pfs();
   for (size_t i = 1; i < MAX_DC_COUNT; i++) {
     if (is_dc_inited(narrow_cast<int32>(i))) {
-      send_closure_later(dcs_[i - 1].main_session_, &SessionMultiProxy::update_use_pfs, use_pfs || (session_count > 1));
+      send_closure_later(dcs_[i - 1].main_session_, &SessionMultiProxy::update_use_pfs, use_pfs);
       send_closure_later(dcs_[i - 1].upload_session_, &SessionMultiProxy::update_use_pfs, use_pfs);
       send_closure_later(dcs_[i - 1].download_session_, &SessionMultiProxy::update_use_pfs, use_pfs);
       send_closure_later(dcs_[i - 1].download_small_session_, &SessionMultiProxy::update_use_pfs, use_pfs);
@@ -249,7 +249,7 @@ int32 NetQueryDispatcher::get_session_count() {
 }
 
 bool NetQueryDispatcher::get_use_pfs() {
-  return G()->shared_config().get_option_boolean("use_pfs");
+  return G()->shared_config().get_option_boolean("use_pfs") || get_session_count() > 1;
 }
 
 NetQueryDispatcher::NetQueryDispatcher(std::function<ActorShared<>()> create_reference) {
