@@ -61,7 +61,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Dimensions &dimen
 
 static FileId register_photo(FileManager *file_manager, FileType file_type, int64 id, int64 access_hash,
                              tl_object_ptr<telegram_api::FileLocation> &&location_ptr, DialogId owner_dialog_id,
-                             int32 file_size) {
+                             int32 file_size, bool is_webp = false) {
   int32 location_id = location_ptr->get_id();
   DcId dc_id;
   int32 local_id;
@@ -93,9 +93,11 @@ static FileId register_photo(FileManager *file_manager, FileType file_type, int6
       break;
   }
 
-  LOG(DEBUG) << "Receive photo of type " << static_cast<int8>(file_type) << " in [" << dc_id << "," << volume_id << ","
-             << local_id << "]. Id: (" << id << ", " << access_hash << ")";
-  auto suggested_name = PSTRING() << static_cast<uint64>(volume_id) << "_" << static_cast<uint64>(local_id) << ".jpg";
+  LOG(DEBUG) << "Receive " << (is_webp ? "webp" : "jpeg") << " photo of type " << static_cast<int8>(file_type)
+             << " in [" << dc_id << "," << volume_id << "," << local_id << "]. Id: (" << id << ", " << access_hash
+             << ")";
+  auto suggested_name = PSTRING() << static_cast<uint64>(volume_id) << "_" << static_cast<uint64>(local_id)
+                                  << (is_webp ? ".webp" : ".jpg");
   return file_manager->register_remote(
       FullRemoteFileLocation(file_type, id, access_hash, local_id, volume_id, secret, dc_id),
       FileLocationSource::FromServer, owner_dialog_id, file_size, 0, std::move(suggested_name));
@@ -235,7 +237,7 @@ PhotoSize get_thumbnail_photo_size(FileManager *file_manager, BufferSlice bytes,
 }
 
 PhotoSize get_photo_size(FileManager *file_manager, FileType file_type, int64 id, int64 access_hash,
-                         DialogId owner_dialog_id, tl_object_ptr<telegram_api::PhotoSize> &&size_ptr) {
+                         DialogId owner_dialog_id, tl_object_ptr<telegram_api::PhotoSize> &&size_ptr, bool is_webp) {
   tl_object_ptr<telegram_api::FileLocation> location_ptr;
   string type;
 
@@ -275,8 +277,8 @@ PhotoSize get_photo_size(FileManager *file_manager, FileType file_type, int64 id
       break;
   }
 
-  res.file_id =
-      register_photo(file_manager, file_type, id, access_hash, std::move(location_ptr), owner_dialog_id, res.size);
+  res.file_id = register_photo(file_manager, file_type, id, access_hash, std::move(location_ptr), owner_dialog_id,
+                               res.size, is_webp);
 
   if (!content.empty()) {
     file_manager->set_content(res.file_id, std::move(content));
@@ -468,7 +470,7 @@ Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::photo> &&
 
   for (auto &size_ptr : photo->sizes_) {
     res.photos.push_back(get_photo_size(file_manager, FileType::Photo, photo->id_, photo->access_hash_, owner_dialog_id,
-                                        std::move(size_ptr)));
+                                        std::move(size_ptr), false));
   }
 
   return res;

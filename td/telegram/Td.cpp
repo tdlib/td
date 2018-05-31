@@ -178,8 +178,8 @@ class GetWallpapersQuery : public Td::ResultHandler {
           vector<tl_object_ptr<td_api::photoSize>> sizes;
           sizes.reserve(wallpaper->sizes_.size());
           for (auto &size_ptr : wallpaper->sizes_) {
-            auto photo_size =
-                get_photo_size(td->file_manager_.get(), FileType::Wallpaper, 0, 0, DialogId(), std::move(size_ptr));
+            auto photo_size = get_photo_size(td->file_manager_.get(), FileType::Wallpaper, 0, 0, DialogId(),
+                                             std::move(size_ptr), false);
             sizes.push_back(get_photo_size_object(td->file_manager_.get(), &photo_size));
           }
           sort_photo_sizes(sizes);

@@ -973,6 +973,14 @@ FileId StickersManager::on_get_sticker(std::unique_ptr<Sticker> new_sticker, boo
   return file_id;
 }
 
+bool StickersManager::has_webp_thumbnail(const tl_object_ptr<telegram_api::documentAttributeSticker> &sticker) {
+  if (sticker == nullptr) {
+    return false;
+  }
+
+  return get_sticker_set_id(sticker->stickerset_) != 0;
+}
+
 std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<telegram_api::Document> &&document_ptr,
                                                                   bool from_message) {
   int32 document_constructor_id = document_ptr->get_id();
@@ -1014,8 +1022,8 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<
       FullRemoteFileLocation(FileType::Sticker, document_id, document->access_hash_, DcId::internal(document->dc_id_)),
       FileLocationSource::FromServer, DialogId(), document->size_, 0, to_string(document_id) + ".webp");
 
-  PhotoSize thumbnail =
-      get_photo_size(td_->file_manager_.get(), FileType::Thumbnail, 0, 0, DialogId(), std::move(document->thumb_));
+  PhotoSize thumbnail = get_photo_size(td_->file_manager_.get(), FileType::Thumbnail, 0, 0, DialogId(),
+                                       std::move(document->thumb_), has_webp_thumbnail(sticker));
 
   create_sticker(sticker_id, std::move(thumbnail), dimensions, from_message, std::move(sticker), nullptr);
   return {document_id, sticker_id};
@@ -1057,6 +1065,23 @@ const StickersManager::StickerSet *StickersManager::get_sticker_set(int64 sticke
   }
 
   return sticker_set->second.get();
+}
+
+int64 StickersManager::get_sticker_set_id(const tl_object_ptr<telegram_api::InputStickerSet> &set_ptr) {
+  CHECK(set_ptr != nullptr);
+  switch (set_ptr->get_id()) {
+    case telegram_api::inputStickerSetEmpty::ID:
+      return 0;
+    case telegram_api::inputStickerSetID::ID:
+      return static_cast<const telegram_api::inputStickerSetID *>(set_ptr.get())->id_;
+    case telegram_api::inputStickerSetShortName::ID:
+      LOG(ERROR) << "Receive sticker set by its short name";
+      return search_sticker_set(static_cast<const telegram_api::inputStickerSetShortName *>(set_ptr.get())->short_name_,
+                                Auto());
+    default:
+      UNREACHABLE();
+      return 0;
+  }
 }
 
 int64 StickersManager::add_sticker_set(tl_object_ptr<telegram_api::InputStickerSet> &&set_ptr) {

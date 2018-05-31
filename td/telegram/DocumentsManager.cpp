@@ -128,6 +128,7 @@ std::pair<DocumentsManager::DocumentType, FileId> DocumentsManager::on_get_docum
   FileType file_type = FileType::Document;
   Slice default_extension;
   bool supports_streaming = false;
+  bool has_webp_thumbnail = false;
   if (type_attributes == 1 || default_document_type != DocumentType::General) {  // not a general document
     if (animated != nullptr || default_document_type == DocumentType::Animation) {
       document_type = DocumentType::Animation;
@@ -155,6 +156,7 @@ std::pair<DocumentsManager::DocumentType, FileId> DocumentsManager::on_get_docum
       default_extension = "webp";
       owner_dialog_id = DialogId();
       file_name.clear();
+      has_webp_thumbnail = td_->stickers_manager_->has_webp_thumbnail(sticker);
     } else if (video != nullptr || default_document_type == DocumentType::Video ||
                default_document_type == DocumentType::VideoNote) {
       bool is_video_note = default_document_type == DocumentType::VideoNote;
@@ -202,7 +204,7 @@ std::pair<DocumentsManager::DocumentType, FileId> DocumentsManager::on_get_docum
 
     if (document_type != DocumentType::VoiceNote) {
       thumbnail = get_photo_size(td_->file_manager_.get(), FileType::Thumbnail, 0, 0, owner_dialog_id,
-                                 std::move(document->thumb_));
+                                 std::move(document->thumb_), has_webp_thumbnail);
     }
   } else if (remote_document.secret_file != nullptr) {
     CHECK(remote_document.secret_document != nullptr);

@@ -71,6 +71,10 @@ class StickersManager : public Actor {
 
   vector<int64> get_installed_sticker_sets(bool is_masks, Promise<Unit> &&promise);
 
+  bool has_webp_thumbnail(const tl_object_ptr<telegram_api::documentAttributeSticker> &sticker);
+
+  int64 get_sticker_set_id(const tl_object_ptr<telegram_api::InputStickerSet> &set_ptr);
+
   int64 add_sticker_set(tl_object_ptr<telegram_api::InputStickerSet> &&set_ptr);
 
   int64 get_sticker_set(int64 set_id, Promise<Unit> &&promise);
