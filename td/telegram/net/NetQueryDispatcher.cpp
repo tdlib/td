@@ -146,19 +146,22 @@ Status NetQueryDispatcher::wait_dc_init(DcId dc_id, bool force) {
     int32 slow_net_scheduler_id = G()->get_slow_net_scheduler_id();
 
     auto raw_dc_id = dc_id.get_raw_id();
+    int32 upload_session_count = raw_dc_id != 2 && raw_dc_id != 4 ? 8 : 4;
+    int32 download_session_count = 1;
+    int32 download_small_session_count = 1;
     dc.main_session_ = create_actor<SessionMultiProxy>(PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":main",
                                                        session_count, auth_data, raw_dc_id == main_dc_id_,
                                                        use_pfs || (session_count > 1), false, false, is_cdn);
     dc.upload_session_ = create_actor_on_scheduler<SessionMultiProxy>(
-        PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":upload", slow_net_scheduler_id,
-        raw_dc_id != 2 && raw_dc_id != 4 ? 8 : 4, auth_data, false, use_pfs || (session_count > 1), false, true,
-        is_cdn);
+        PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":upload", slow_net_scheduler_id, upload_session_count,
+        auth_data, false, use_pfs, false, true, is_cdn);
     dc.download_session_ = create_actor_on_scheduler<SessionMultiProxy>(
-        PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":download", slow_net_scheduler_id, 1, auth_data, false,
-        use_pfs, true, true, is_cdn);
+        PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":download", slow_net_scheduler_id, download_session_count,
+        auth_data, false, use_pfs || (download_session_count > 1), true, true, is_cdn);
     dc.download_small_session_ = create_actor_on_scheduler<SessionMultiProxy>(
-        PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":download_small", slow_net_scheduler_id, 1, auth_data, false,
-        use_pfs, true, true, is_cdn);
+        PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":download_small", slow_net_scheduler_id,
+        download_small_session_count, auth_data, false, use_pfs || (download_small_session_count > 1), true, true,
+        is_cdn);
     dc.is_inited_ = true;
     if (dc_id.is_internal()) {
       send_closure_later(dc_auth_manager_, &DcAuthManager::add_dc, std::move(auth_data));

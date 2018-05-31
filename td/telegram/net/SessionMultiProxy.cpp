@@ -96,7 +96,7 @@ void SessionMultiProxy::start_up() {
 }
 
 bool SessionMultiProxy::get_pfs_flag() const {
-  return (!allow_media_only_ && use_pfs_);  // pfs is not supported in media only DCs
+  return use_pfs_;
 }
 
 void SessionMultiProxy::init() {
