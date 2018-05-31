@@ -469,6 +469,11 @@ class CliClient final : public Actor {
     return as_local_file(str);
   }
 
+  static tl_object_ptr<td_api::inputThumbnail> as_input_thumbnail(tl_object_ptr<td_api::InputFile> input_file,
+                                                                  int32 width = 0, int32 height = 0) {
+    return td_api::make_object<td_api::inputThumbnail>(std::move(input_file), width, height);
+  }
+
   static int32 as_call_id(string str) {
     return to_integer<int32>(trim(std::move(str)));
   }
@@ -2510,8 +2515,7 @@ class CliClient final : public Actor {
       std::tie(chat_id, args) = split(args);
       std::tie(document_path, thumbnail_path) = split(args);
       send_message(chat_id, make_tl_object<td_api::inputMessageDocument>(
-                                as_local_file(document_path),
-                                make_tl_object<td_api::inputThumbnail>(as_local_file(thumbnail_path), 0, 0),
+                                as_local_file(document_path), as_input_thumbnail(as_local_file(thumbnail_path)),
                                 as_caption("test caption")));
     } else if (op == "sdg") {
       string chat_id;
@@ -2532,8 +2536,7 @@ class CliClient final : public Actor {
       std::tie(thumbnail_path, thumbnail_conversion) = split(args);
       send_message(chat_id, make_tl_object<td_api::inputMessageDocument>(
                                 as_local_file(document_path),
-                                make_tl_object<td_api::inputThumbnail>(
-                                    as_generated_file(thumbnail_path, thumbnail_conversion), 0, 0),
+                                as_input_thumbnail(as_generated_file(thumbnail_path, thumbnail_conversion)),
                                 as_caption("test caption")));
     } else if (op == "sdgtg") {
       string chat_id;
@@ -2547,8 +2550,7 @@ class CliClient final : public Actor {
       std::tie(thumbnail_path, thumbnail_conversion) = split(args);
       send_message(chat_id, make_tl_object<td_api::inputMessageDocument>(
                                 as_generated_file(document_path, document_conversion),
-                                make_tl_object<td_api::inputThumbnail>(
-                                    as_generated_file(thumbnail_path, thumbnail_conversion), 0, 0),
+                                as_input_thumbnail(as_generated_file(thumbnail_path, thumbnail_conversion)),
                                 as_caption("test caption")));
     } else if (op == "sdid") {
       string chat_id;
@@ -2624,8 +2626,7 @@ class CliClient final : public Actor {
       std::tie(photo_path, thumbnail_path) = split(args);
 
       send_message(chat_id, make_tl_object<td_api::inputMessagePhoto>(
-                                as_local_file(photo_path),
-                                make_tl_object<td_api::inputThumbnail>(as_local_file(thumbnail_path), 90, 89),
+                                as_local_file(photo_path), as_input_thumbnail(as_local_file(thumbnail_path), 90, 89),
                                 vector<int32>(), 0, 0, as_caption(""), 0));
     } else if (op == "sptg") {
       string chat_id;
@@ -2638,8 +2639,7 @@ class CliClient final : public Actor {
 
       send_message(chat_id, make_tl_object<td_api::inputMessagePhoto>(
                                 as_local_file(photo_path),
-                                make_tl_object<td_api::inputThumbnail>(
-                                    as_generated_file(thumbnail_path, thumbnail_conversion), 90, 89),
+                                as_input_thumbnail(as_generated_file(thumbnail_path, thumbnail_conversion), 90, 89),
                                 vector<int32>(), 0, 0, as_caption(""), 0));
     } else if (op == "spgtg") {
       string chat_id;
@@ -2655,8 +2655,7 @@ class CliClient final : public Actor {
 
       send_message(chat_id, make_tl_object<td_api::inputMessagePhoto>(
                                 as_generated_file(photo_path, conversion),
-                                make_tl_object<td_api::inputThumbnail>(
-                                    as_generated_file(thumbnail_path, thumbnail_conversion), 90, 89),
+                                as_input_thumbnail(as_generated_file(thumbnail_path, thumbnail_conversion), 90, 89),
                                 vector<int32>(), 0, 0, as_caption(""), 0));
     } else if (op == "spid") {
       string chat_id;
@@ -2670,6 +2669,15 @@ class CliClient final : public Actor {
       std::tie(chat_id, sticker_path) = split(args);
 
       send_message(chat_id, make_tl_object<td_api::inputMessageSticker>(as_local_file(sticker_path), nullptr, 0, 0));
+    } else if (op == "sstt") {
+      string chat_id;
+      string sticker_path;
+      string thumbnail_path;
+      std::tie(chat_id, args) = split(args);
+      std::tie(sticker_path, thumbnail_path) = split(args);
+
+      send_message(chat_id, make_tl_object<td_api::inputMessageSticker>(
+                                as_local_file(sticker_path), as_input_thumbnail(as_local_file(thumbnail_path)), 0, 0));
     } else if (op == "ssid") {
       string chat_id;
       string file_id;
