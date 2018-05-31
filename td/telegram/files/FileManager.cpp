@@ -961,6 +961,8 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
 
   FileNodePtr nodes[] = {x_node, y_node, x_node};
   FileNodeId node_ids[] = {get_file_id_info(x_file_id)->node_id_, get_file_id_info(y_file_id)->node_id_};
+  int trusted_by_source =
+      static_cast<int>(static_cast<int8>(x_node->remote_source_) < static_cast<int8>(y_node->remote_source_));
 
   int local_i = merge_choose(x_node->local_, y_node->local_);
   int remote_i = merge_choose(x_node->remote_, static_cast<int8>(x_node->remote_source_), y_node->remote_,
@@ -987,6 +989,17 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
       encryption_key_i = remote_i;
     } else {
       return Status::Error("Can't merge files. Different encryption keys");
+    }
+  }
+  if (trusted_by_source == 0) {  // if new is more trusted
+    if (remote_name_i == 2) {
+      remote_name_i = 0;
+    }
+    if (url_i == 2) {
+      url_i = 0;
+    }
+    if (expected_size_i == 2) {
+      expected_size_i = 0;
     }
   }
 
