@@ -85,6 +85,7 @@ class GenAuthKeyActor : public Actor {
     if (handshake_promise_) {
       handshake_promise_.set_error(Status::Error(1, "Cancelled"));
     }
+    stop();
   }
 
   void on_connection(Result<std::unique_ptr<mtproto::RawConnection>> r_raw_connection, bool dummy) {
