@@ -568,7 +568,7 @@ void AuthManager::check_code(uint64 query_id, string code, string first_name, st
   }
 
   on_new_query(query_id);
-  if (send_code_helper_.phone_registered()) {
+  if (send_code_helper_.phone_registered() || first_name.empty()) {
     start_net_query(NetQueryType::SignIn,
                     G()->net_query_creator().create(
                         create_storer(telegram_api::auth_signIn(send_code_helper_.phone_number().str(),
