@@ -8832,10 +8832,10 @@ int32 MessagesManager::calc_new_unread_count(Dialog *d, MessageId max_message_id
 
 void MessagesManager::repair_server_unread_count(DialogId dialog_id, int32 unread_count) {
   LOG(INFO) << "Repair server unread count in " << dialog_id << " from " << unread_count;
-  create_actor<SleepActor>("RepairServerUnreadCountSleepActor", 0.5,
+  create_actor<SleepActor>("RepairServerUnreadCountSleepActor", 0.2,
                            PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Result<Unit> result) {
-                             send_closure(actor_id, &MessagesManager::send_get_dialog_query, dialog_id,
-                                          Promise<Unit>());
+                             send_closure(actor_id, &MessagesManager::send_get_dialog_query, dialog_id, Promise<Unit>(),
+                                          0);
                            }))
       .release();
 }
@@ -19981,7 +19981,22 @@ void MessagesManager::on_get_dialog_notification_settings_query_finished(DialogI
   }
 }
 
-void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise) {
+class MessagesManager::GetDialogFromServerLogEvent {
+ public:
+  DialogId dialog_id_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(dialog_id_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(dialog_id_, parser);
+  }
+};
+
+void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise, uint64 logevent_id) {
   if (td_->auth_manager_->is_bot() || dialog_id.get_type() == DialogType::SecretChat) {
     return promise.set_error(Status::Error(500, "Wrong getDialog query"));
   }
@@ -19996,6 +20011,18 @@ void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&
     return;
   }
 
+  if (logevent_id == 0 && G()->parameters().use_message_db) {
+    GetDialogFromServerLogEvent logevent;
+    logevent.dialog_id_ = dialog_id;
+
+    auto storer = LogEventStorerImpl<GetDialogFromServerLogEvent>(logevent);
+    logevent_id = BinlogHelper::add(G()->td_db()->get_binlog(), LogEvent::HandlerType::GetDialogFromServer, storer);
+  }
+  if (logevent_id != 0) {
+    get_dialog_query_logevent_id_[dialog_id] = logevent_id;
+  }
+
+  LOG(INFO) << "Send get " << dialog_id << " query";
   td_->create_handler<GetDialogQuery>()->send(dialog_id);
 }
 
@@ -20005,6 +20032,12 @@ void MessagesManager::on_get_dialog_query_finished(DialogId dialog_id, Status &&
   CHECK(it->second.size() > 0);
   auto promises = std::move(it->second);
   get_dialog_queries_.erase(it);
+
+  auto logevent_it = get_dialog_query_logevent_id_.find(dialog_id);
+  if (logevent_it != get_dialog_query_logevent_id_.end()) {
+    BinlogHelper::erase(G()->td_db()->get_binlog(), logevent_it->second);
+    get_dialog_query_logevent_id_.erase(logevent_it);
+  }
 
   for (auto &promise : promises) {
     if (status.is_ok()) {
@@ -25561,6 +25594,30 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
 
         change_dialog_report_spam_state_on_server(dialog_id, log_event.is_spam_dialog_, event.id_, Promise<Unit>());
+        break;
+      }
+      case LogEvent::HandlerType::GetDialogFromServer: {
+        if (!G()->parameters().use_message_db) {
+          BinlogHelper::erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        GetDialogFromServerLogEvent log_event;
+        log_event_parse(log_event, event.data_).ensure();
+
+        auto dialog_id = log_event.dialog_id_;
+        Dependencies dependencies;
+        add_dialog_dependencies(dependencies, dialog_id);
+        resolve_dependencies_force(dependencies);
+
+        get_dialog_force(dialog_id);  // load it if exists
+
+        if (!have_input_peer(dialog_id, AccessRights::Read)) {
+          BinlogHelper::erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        send_get_dialog_query(dialog_id, Promise<Unit>(), event.id_);
         break;
       }
       case LogEvent::HandlerType::GetChannelDifference: {

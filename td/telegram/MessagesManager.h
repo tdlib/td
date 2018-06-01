@@ -1857,6 +1857,7 @@ class MessagesManager : public Actor {
   class SendMessageLogEvent;
   class SendScreenshotTakenNotificationMessageLogEvent;
   class ToggleDialogIsPinnedOnServerLogEvent;
+  class GetDialogFromServerLogEvent;
 
   static constexpr size_t MAX_GROUPED_MESSAGES = 10;               // server side limit
   static constexpr int32 MAX_GET_DIALOGS = 100;                    // server side limit
@@ -2334,7 +2335,7 @@ class MessagesManager : public Actor {
 
   void on_get_dialogs_from_database(vector<BufferSlice> &&dialogs, Promise<Unit> &&promise);
 
-  void send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise);
+  void send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise, uint64 logevent_id = 0);
 
   void send_search_public_dialogs_query(const string &query, Promise<Unit> &&promise);
 
@@ -2801,6 +2802,7 @@ class MessagesManager : public Actor {
   std::unordered_map<DialogId, vector<Promise<Unit>>, DialogIdHash> get_dialog_notification_settings_queries_;
 
   std::unordered_map<DialogId, vector<Promise<Unit>>, DialogIdHash> get_dialog_queries_;
+  std::unordered_map<DialogId, uint64, DialogIdHash> get_dialog_query_logevent_id_;
 
   std::unordered_map<FullMessageId, int32, FullMessageIdHash> replied_by_yet_unsent_messages_;
 
