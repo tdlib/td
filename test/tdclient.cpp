@@ -833,6 +833,6 @@ class Tdclient_login : public td::Test {
   ConcurrentScheduler sched_;
   Status result_;
 };
-Tdclient_login Tdclient_login("Tdclient_login");
+//Tdclient_login Tdclient_login("Tdclient_login");
 
 };  // namespace td
