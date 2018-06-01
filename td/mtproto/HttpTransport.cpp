@@ -52,9 +52,7 @@ void Transport::write(BufferWriter &&message, bool quick_ack) {
   hc.set_keep_alive();
   hc.set_content_size(message.size());
   auto r_head = hc.finish();
-  if (r_head.is_error()) {
-    UNREACHABLE();
-  }
+  CHECK(r_head.is_ok());
   Slice src = r_head.ok();
   MutableSlice dst = message.prepare_prepend();
   CHECK(dst.size() >= src.size()) << dst.size() << " >= " << src.size();

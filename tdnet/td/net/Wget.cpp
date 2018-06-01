@@ -38,21 +38,6 @@ Status Wget::try_init() {
   TRY_RESULT(ascii_host, idn_to_ascii(url.host_));
   url.host_ = std::move(ascii_host);
 
-  IPAddress addr;
-  TRY_STATUS(addr.init_host_port(url.host_, url.port_));
-
-  TRY_RESULT(fd, SocketFd::open(addr));
-  if (url.protocol_ == HttpUrl::Protocol::HTTP) {
-    connection_ =
-        create_actor<HttpOutboundConnection>("Connect", std::move(fd), std::numeric_limits<std::size_t>::max(), 0, 0,
-                                             ActorOwn<HttpOutboundConnection::Callback>(actor_id(this)));
-  } else {
-    TRY_RESULT(ssl_fd, SslFd::init(std::move(fd), url.host_, CSlice() /* certificate */, verify_peer_));
-    connection_ =
-        create_actor<HttpOutboundConnection>("Connect", std::move(ssl_fd), std::numeric_limits<std::size_t>::max(), 0,
-                                             0, ActorOwn<HttpOutboundConnection::Callback>(actor_id(this)));
-  }
-
   HttpHeaderCreator hc;
   hc.init_get(url.query_);
   bool was_host = false;
@@ -73,8 +58,24 @@ Status Wget::try_init() {
   if (!was_accept_encoding) {
     hc.add_header("Accept-Encoding", "gzip, deflate");
   }
+  TRY_RESULT(header, hc.finish());
 
-  send_closure(connection_, &HttpOutboundConnection::write_next, BufferSlice(hc.finish().ok()));
+  IPAddress addr;
+  TRY_STATUS(addr.init_host_port(url.host_, url.port_));
+
+  TRY_RESULT(fd, SocketFd::open(addr));
+  if (url.protocol_ == HttpUrl::Protocol::HTTP) {
+    connection_ =
+        create_actor<HttpOutboundConnection>("Connect", std::move(fd), std::numeric_limits<std::size_t>::max(), 0, 0,
+                                             ActorOwn<HttpOutboundConnection::Callback>(actor_id(this)));
+  } else {
+    TRY_RESULT(ssl_fd, SslFd::init(std::move(fd), url.host_, CSlice() /* certificate */, verify_peer_));
+    connection_ =
+        create_actor<HttpOutboundConnection>("Connect", std::move(ssl_fd), std::numeric_limits<std::size_t>::max(), 0,
+                                             0, ActorOwn<HttpOutboundConnection::Callback>(actor_id(this)));
+  }
+
+  send_closure(connection_, &HttpOutboundConnection::write_next, BufferSlice(header));
   send_closure(connection_, &HttpOutboundConnection::write_ok);
   return Status::OK();
 }
