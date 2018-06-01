@@ -109,7 +109,7 @@ class Manager final : public Actor {
 };
 
 void test_workers(int threads_n, int workers_n, int queries_n, int query_size) {
-  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
+  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
 
   ConcurrentScheduler sched;
   sched.init(threads_n);

@@ -91,7 +91,7 @@ class XReceiver final : public Actor {
 };
 
 TEST(Actors, simple_pass_event_arguments) {
-  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
+  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   Scheduler scheduler;
   scheduler.init();
 
@@ -198,7 +198,7 @@ class PrintChar final : public Actor {
 // Yield must add actor to the end of queue
 //
 TEST(Actors, simple_hand_yield) {
-  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
+  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   Scheduler scheduler;
   scheduler.init();
   sb.clear();
@@ -352,7 +352,7 @@ class MasterActor : public MsgActor {
 }  // namespace
 
 TEST(Actors, call_after_destruct) {
-  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
+  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   Scheduler scheduler;
   scheduler.init();
   {
