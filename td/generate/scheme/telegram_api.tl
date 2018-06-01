@@ -176,7 +176,7 @@ geoPoint#2049d70c long:double lat:double = GeoPoint;
 
 auth.checkedPhone#811ea28e phone_registered:Bool = auth.CheckedPhone;
 
-auth.sentCode#5e002502 flags:# phone_registered:flags.0?true type:auth.SentCodeType phone_code_hash:string next_type:flags.1?auth.CodeType timeout:flags.2?int = auth.SentCode;
+auth.sentCode#38faab5f flags:# phone_registered:flags.0?true type:auth.SentCodeType phone_code_hash:string next_type:flags.1?auth.CodeType timeout:flags.2?int terms_of_service:flags.3?help.TermsOfService = auth.SentCode;
 
 auth.authorization#cd050916 flags:# tmp_sessions:flags.0?int user:User = auth.Authorization;
 
@@ -557,7 +557,7 @@ channels.channelParticipantsNotModified#f0173fe9 = channels.ChannelParticipants;
 
 channels.channelParticipant#d0d9b163 participant:ChannelParticipant users:Vector<User> = channels.ChannelParticipant;
 
-help.termsOfService#f1ee3e90 text:string = help.TermsOfService;
+help.termsOfService#780a0310 flags:# popup:flags.0?true id:DataJSON text:string entities:Vector<MessageEntity> min_age_confirm:flags.1?int = help.TermsOfService;
 
 foundGif#162ecc1f url:string thumb_url:string content_url:string content_type:string w:int h:int = FoundGif;
 foundGifCached#9c750409 url:string photo:Photo document:Document = FoundGif;
@@ -721,6 +721,8 @@ webDocumentNoProxy#f9c8bcc6 url:string size:int mime_type:string attributes:Vect
 inputWebDocument#9bed434d url:string size:int mime_type:string attributes:Vector<DocumentAttribute> = InputWebDocument;
 
 inputWebFileLocation#c239d686 url:string access_hash:long = InputWebFileLocation;
+inputWebFileGeoPointLocation#66275a62 geo_point:InputGeoPoint w:int h:int zoom:int scale:int = InputWebFileLocation;
+inputWebFileGeoMessageLocation#553f32eb peer:InputPeer msg_id:int w:int h:int zoom:int scale:int = InputWebFileLocation;
 
 upload.webFile#21e753bc size:int mime_type:string file_type:storage.FileType mtime:int bytes:bytes = upload.WebFile;
 
@@ -839,6 +841,9 @@ inputClientProxy#75588b3f address:string port:int = InputClientProxy;
 
 help.proxyDataEmpty#e09e1fb8 expires:int = help.ProxyData;
 help.proxyDataPromo#2bf7ee23 expires:int peer:Peer chats:Vector<Chat> users:Vector<User> = help.ProxyData;
+
+help.termsOfServiceUpdateEmpty#e3309f7f expires:int = help.TermsOfServiceUpdate;
+help.termsOfServiceUpdate#28ecf961 expires:int terms_of_service:help.TermsOfService = help.TermsOfServiceUpdate;
 
 inputSecureFileUploaded#3334b0f0 id:long parts:int md5_checksum:string file_hash:bytes secret:bytes = InputSecureFile;
 inputSecureFile#5367e5be id:long access_hash:long = InputSecureFile;
@@ -1095,11 +1100,12 @@ help.saveAppLog#6f02f748 events:Vector<InputAppEvent> = Bool;
 help.getInviteText#4d392343 = help.InviteText;
 help.getSupport#9cdf08cd = help.Support;
 help.getAppChangelog#9010ef6f prev_app_version:string = Updates;
-help.getTermsOfService#8e59b7e7 country_iso2:string = help.TermsOfService;
 help.setBotUpdatesStatus#ec22cfcd pending_updates_count:int message:string = Bool;
 help.getCdnConfig#52029342 = CdnConfig;
 help.getRecentMeUrls#3dc0f114 referer:string = help.RecentMeUrls;
 help.getProxyData#3d7758e1 = help.ProxyData;
+help.getTermsOfServiceUpdate#2ca51fd1 = help.TermsOfServiceUpdate;
+help.acceptTermsOfService#ee72f79a id:DataJSON = Bool;
 help.getDeepLinkInfo#3fedc75f path:string = help.DeepLinkInfo;
 
 channels.readHistory#cc104937 channel:InputChannel max_id:int = Bool;

@@ -433,32 +433,6 @@ class GetInviteTextQuery : public Td::ResultHandler {
   }
 };
 
-class GetTermsOfServiceQuery : public Td::ResultHandler {
-  Promise<string> promise_;
-
- public:
-  explicit GetTermsOfServiceQuery(Promise<string> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(const string &country_code) {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::help_getTermsOfService(country_code)),
-                                               DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
-  }
-
-  void on_result(uint64 id, BufferSlice packet) override {
-    auto result_ptr = fetch_result<telegram_api::help_getTermsOfService>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
-    }
-
-    promise_.set_value(std::move(result_ptr.ok()->text_));
-  }
-
-  void on_error(uint64 id, Status status) override {
-    promise_.set_error(std::move(status));
-  }
-};
-
 class GetDeepLinkInfoQuery : public Td::ResultHandler {
   Promise<td_api::object_ptr<td_api::deepLinkInfo>> promise_;
 
@@ -3837,34 +3811,6 @@ class GetInviteTextRequest : public RequestActor<string> {
   }
 };
 
-class GetTermsOfServiceRequest : public RequestActor<string> {
-  string country_code_;
-
-  string text_;
-
-  void do_run(Promise<string> &&promise) override {
-    if (get_tries() < 2) {
-      promise.set_value(std::move(text_));
-      return;
-    }
-
-    td->create_handler<GetTermsOfServiceQuery>(std::move(promise))->send(country_code_);
-  }
-
-  void do_set_result(string &&result) override {
-    text_ = std::move(result);
-  }
-
-  void do_send_result() override {
-    send_result(make_tl_object<td_api::text>(text_));
-  }
-
- public:
-  GetTermsOfServiceRequest(ActorShared<Td> td, uint64 request_id, string country_code)
-      : RequestActor(std::move(td), request_id), country_code_(country_code) {
-  }
-};
-
 /** Td **/
 Td::Td(std::unique_ptr<TdCallback> callback) : callback_(std::move(callback)) {
 }
@@ -7011,7 +6957,7 @@ void Td::on_request(uint64 id, const td_api::getInviteText &request) {
 
 void Td::on_request(uint64 id, td_api::getTermsOfService &request) {
   CLEAN_INPUT_STRING(request.country_code_);
-  CREATE_REQUEST(GetTermsOfServiceRequest, std::move(request.country_code_));
+  send_error_raw(id, 500, "Unsupported");
 }
 
 void Td::on_request(uint64 id, td_api::getDeepLinkInfo &request) {
