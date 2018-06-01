@@ -331,13 +331,17 @@ class CliClient final : public Actor {
   }
 
   void on_get_file(const td_api::file &file) {
-    if (being_downloaded_files_.count(file.id_) && !file.local_->is_downloading_active_) {
+    if (being_downloaded_files_.count(file.id_) == 0 && file.local_->is_downloading_active_) {
+      being_downloaded_files_[file.id_] = Time::now();
+    }
+
+    if (being_downloaded_files_.count(file.id_) != 0 && !file.local_->is_downloading_active_) {
       double elapsed_time = Time::now() - being_downloaded_files_[file.id_];
       being_downloaded_files_.erase(file.id_);
       if (file.local_->is_downloading_completed_) {
-        LOG(ERROR) << "File " << file.id_ << " was downloaded in " << elapsed_time;
+        LOG(ERROR) << "File " << file.id_ << " was downloaded in " << elapsed_time << " seconds";
       } else {
-        LOG(ERROR) << "File " << file.id_ << " has failed to download in " << elapsed_time;
+        LOG(ERROR) << "File " << file.id_ << " has failed to download in " << elapsed_time << " seconds";
       }
     }
   }
@@ -2110,9 +2114,6 @@ class CliClient final : public Actor {
       }
 
       auto file_id = as_file_id(file_id_str);
-      if (being_downloaded_files_.count(file_id) == 0) {
-        being_downloaded_files_[file_id] = Time::now();
-      }
       send_request(make_tl_object<td_api::downloadFile>(file_id, to_integer<int32>(priority)));
     } else if (op == "dff") {
       string file_id;
@@ -2580,6 +2581,12 @@ class CliClient final : public Actor {
       std::tie(chat_id, file_id) = split(args);
       send_message(chat_id,
                    make_tl_object<td_api::inputMessageDocument>(as_input_file_id(file_id), nullptr, as_caption("")));
+    } else if (op == "sdurl") {
+      string chat_id;
+      string url;
+      std::tie(chat_id, url) = split(args);
+
+      send_message(chat_id, make_tl_object<td_api::inputMessageDocument>(as_remote_file(url), nullptr, as_caption("")));
     } else if (op == "sg") {
       string chat_id;
       string bot_user_id;
