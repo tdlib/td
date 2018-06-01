@@ -147,8 +147,8 @@ Status NetQueryDispatcher::wait_dc_init(DcId dc_id, bool force) {
 
     auto raw_dc_id = dc_id.get_raw_id();
     int32 upload_session_count = raw_dc_id != 2 && raw_dc_id != 4 ? 8 : 4;
-    int32 download_session_count = 1;
-    int32 download_small_session_count = 1;
+    int32 download_session_count = 2;
+    int32 download_small_session_count = 2;
     dc.main_session_ =
         create_actor<SessionMultiProxy>(PSLICE() << "SessionMultiProxy:" << raw_dc_id << ":main", session_count,
                                         auth_data, raw_dc_id == main_dc_id_, use_pfs, false, false, is_cdn);
