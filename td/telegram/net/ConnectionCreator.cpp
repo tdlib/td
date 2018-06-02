@@ -390,6 +390,17 @@ void ConnectionCreator::get_proxy_link(int32 proxy_id, Promise<string> promise) 
 }
 
 void ConnectionCreator::ping_proxy(int32 proxy_id, Promise<double> promise) {
+  if (proxy_id == 0) {
+    ProxyInfo proxy{nullptr, IPAddress()};
+    auto main_dc_id = G()->net_query_dispatcher().main_dc_id();
+    FindConnectionExtra extra;
+    auto r_socket_fd = find_connection(proxy, main_dc_id, false, extra);
+    if (r_socket_fd.is_error()) {
+      return promise.set_error(Status::Error(400, r_socket_fd.error().message()));
+    }
+    return ping_proxy_socket_fd(r_socket_fd.move_as_ok(), extra.transport_type, std::move(promise));
+  }
+
   auto it = proxies_.find(proxy_id);
   if (it == proxies_.end()) {
     return promise.set_error(Status::Error(400, "Unknown proxy identifier"));
