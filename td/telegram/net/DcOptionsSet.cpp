@@ -43,7 +43,7 @@ DcOptions DcOptionsSet::get_dc_options() const {
   return result;
 }
 
-Result<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_connection(DcId dc_id, bool allow_media_only, bool use_static) {
+vector<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_all_connections(DcId dc_id, bool allow_media_only, bool use_static) {
   std::vector<ConnectionInfo> options;
   std::vector<ConnectionInfo> static_options;
 
@@ -97,6 +97,12 @@ Result<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_connection(DcId dc_id, b
                   options.end());
   }
 
+  return options;
+}
+
+Result<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_connection(DcId dc_id, bool allow_media_only, bool use_static) {
+  auto options = find_all_connections(dc_id, allow_media_only, use_static);
+
   if (options.empty()) {
     return Status::Error(PSLICE() << "No such connection: " << tag("dc_id", dc_id)
                                   << tag("allow_media_only", allow_media_only) << tag("use_static", use_static));
@@ -116,12 +122,12 @@ Result<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_connection(DcId dc_id, b
     if (a_state != b_state) {
       return a_state < b_state;
     }
-    if (a_state == Stat::Ok) {
+    if (a_state == Stat::State::Ok) {
       if (a_option.order == b_option.order) {
         return a_option.use_http < b_option.use_http;
       }
       return a_option.order < b_option.order;
-    } else if (a_state == Stat::Error) {
+    } else if (a_state == Stat::State::Error) {
       return a.error_at < b.error_at;
     }
     return a_option.order < b_option.order;

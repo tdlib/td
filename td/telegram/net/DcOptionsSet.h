@@ -27,7 +27,7 @@ class DcOptionsSet {
     double ok_at{-1000};
     double error_at{-1001};
     double check_at{-1002};
-    enum State : int32 { Ok, Error, Checking };
+    enum class State : int32 { Ok, Error, Checking };
 
     void on_ok() {
       ok_at = Time::now_cached();
@@ -39,16 +39,16 @@ class DcOptionsSet {
       check_at = Time::now_cached();
     }
     bool is_ok() const {
-      return state() == Ok;
+      return state() == State::Ok;
     }
     State state() const {
       if (ok_at > error_at && ok_at > check_at) {
-        return Ok;
+        return State::Ok;
       }
       if (check_at > ok_at && check_at > error_at) {
-        return Checking;
+        return State::Checking;
       }
-      return Error;
+      return State::Error;
     }
   };
 
@@ -59,6 +59,8 @@ class DcOptionsSet {
     bool should_check{false};
     Stat *stat{nullptr};
   };
+
+  vector<ConnectionInfo> find_all_connections(DcId dc_id, bool allow_media_only, bool use_static);
 
   Result<ConnectionInfo> find_connection(DcId dc_id, bool allow_media_only, bool use_static);
   void reset();
