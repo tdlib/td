@@ -148,7 +148,7 @@ void SessionProxy::open_session(bool force) {
   if (G()->is_test_dc()) {
     int_dc_id += 10000;
   }
-  if (is_media_) {
+  if (allow_media_only_ && !is_cdn_) {
     int_dc_id = -int_dc_id;
   }
   session_ = create_actor<Session>(

@@ -680,42 +680,53 @@ void ConnectionCreator::request_raw_connection_by_ip(IPAddress ip_address,
   promise.set_value(std::move(raw_connection));
 }
 
-Result<SocketFd> ConnectionCreator::find_connection(const ConnectionCreator::ProxyInfo &proxy, DcId dc_id,
-                                                    bool allow_media_only, FindConnectionExtra &extra) {
-  extra.debug_str = PSTRING() << "Failed to find valid IP for " << dc_id;
-  TRY_RESULT(info, dc_options_set_.find_connection(dc_id, allow_media_only, proxy.use_proxy()));
-  extra.stat = info.stat;
-  int32 int_dc_id = dc_id.get_raw_id();
+Result<mtproto::TransportType> ConnectionCreator::get_transport_type(const ProxyInfo &proxy,
+                                                                     const DcOptionsSet::ConnectionInfo &info) {
+  int32 int_dc_id = info.option->get_dc_id().get_raw_id();
   if (G()->is_test_dc()) {
     int_dc_id += 10000;
   }
   int16 raw_dc_id = narrow_cast<int16>(info.option->is_media_only() ? -int_dc_id : int_dc_id);
 
   if (proxy.use_mtproto_proxy()) {
-    extra.debug_str = PSTRING() << "Mtproto " << proxy.ip_address() << " to DC" << raw_dc_id;
-
     TRY_RESULT(secret, hex_decode(proxy.proxy().secret()));
-    extra.transport_type = {mtproto::TransportType::ObfuscatedTcp, raw_dc_id, std::move(secret)};
+    return mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, raw_dc_id, std::move(secret)};
+  }
+
+  if (info.use_http) {
+    return mtproto::TransportType{mtproto::TransportType::Http, 0, ""};
+  } else {
+    return mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, raw_dc_id, info.option->get_secret().str()};
+  }
+}
+
+Result<SocketFd> ConnectionCreator::find_connection(const ProxyInfo &proxy, DcId dc_id, bool allow_media_only,
+                                                    FindConnectionExtra &extra) {
+  extra.debug_str = PSTRING() << "Failed to find valid IP for " << dc_id;
+  TRY_RESULT(info, dc_options_set_.find_connection(dc_id, allow_media_only, proxy.use_proxy()));
+  extra.stat = info.stat;
+  TRY_RESULT(transport_type, get_transport_type(proxy, info));
+  extra.transport_type = std::move(transport_type);
+
+  extra.debug_str = PSTRING() << " to " << (info.option->is_media_only() ? " MEDIA" : "") << dc_id
+                              << (info.use_http ? " over HTTP" : "");
+
+  if (proxy.use_mtproto_proxy()) {
+    extra.debug_str = PSTRING() << "Mtproto " << proxy.ip_address() << extra.debug_str;
 
     LOG(INFO) << "Create: " << extra.debug_str;
     return SocketFd::open(proxy.ip_address());
   }
 
-  if (info.use_http) {
-    extra.transport_type = {mtproto::TransportType::Http, 0, ""};
-  } else {
-    extra.transport_type = {mtproto::TransportType::ObfuscatedTcp, raw_dc_id, info.option->get_secret().str()};
-  }
   extra.check_mode |= info.should_check;
 
   if (proxy.use_socks5_proxy()) {
     extra.mtproto_ip = info.option->get_ip_address();
-    extra.debug_str = PSTRING() << "Socks5 " << proxy.ip_address() << " --> " << extra.mtproto_ip << " " << dc_id;
+    extra.debug_str = PSTRING() << "Socks5 " << proxy.ip_address() << " --> " << extra.mtproto_ip << extra.debug_str;
     LOG(INFO) << "Create: " << extra.debug_str;
     return SocketFd::open(proxy.ip_address());
   } else {
-    extra.debug_str = PSTRING() << info.option->get_ip_address() << " " << dc_id << (info.use_http ? " HTTP" : "")
-                                << (info.option->is_media_only() ? " MEDIA" : "");
+    extra.debug_str = PSTRING() << info.option->get_ip_address() << extra.debug_str;
     LOG(INFO) << "Create: " << extra.debug_str;
     return SocketFd::open(info.option->get_ip_address());
   }

@@ -285,9 +285,15 @@ class ConnectionCreator : public NetQueryCallback {
     bool check_mode{false};
   };
   class ProxyInfo;
+
+  static Result<mtproto::TransportType> get_transport_type(const ProxyInfo &proxy,
+                                                           const DcOptionsSet::ConnectionInfo &info);
+
   Result<SocketFd> find_connection(const ProxyInfo &proxy, DcId dc_id, bool allow_media_only,
                                    FindConnectionExtra &extra);
+
   void ping_proxy_resolved(int32 proxy_id, IPAddress ip_address, Promise<double> promise);
+
   void ping_proxy_socket_fd(SocketFd socket_fd, mtproto::TransportType transport_type, Promise<double> promise);
 };
 
