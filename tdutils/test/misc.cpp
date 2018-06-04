@@ -244,6 +244,34 @@ TEST(Misc, to_double) {
   test_to_double();
 }
 
+TEST(Misc, print_int) {
+  ASSERT_STREQ("-9223372036854775808", PSLICE() << -9223372036854775807 - 1);
+  ASSERT_STREQ("-2147483649", PSLICE() << -2147483649ll);
+  ASSERT_STREQ("-2147483648", PSLICE() << -2147483647 - 1);
+  ASSERT_STREQ("-2147483647", PSLICE() << -2147483647);
+  ASSERT_STREQ("-123456789", PSLICE() << -123456789);
+  ASSERT_STREQ("-1", PSLICE() << -1);
+  ASSERT_STREQ("0", PSLICE() << 0);
+  ASSERT_STREQ("1", PSLICE() << 1);
+  ASSERT_STREQ("9", PSLICE() << 9);
+  ASSERT_STREQ("10", PSLICE() << 10);
+  ASSERT_STREQ("2147483647", PSLICE() << 2147483647);
+  ASSERT_STREQ("2147483648", PSLICE() << 2147483648ll);
+  ASSERT_STREQ("2147483649", PSLICE() << 2147483649ll);
+  ASSERT_STREQ("9223372036854775807", PSLICE() << 9223372036854775807ll);
+}
+
+TEST(Misc, print_uint) {
+  ASSERT_STREQ("0", PSLICE() << 0u);
+  ASSERT_STREQ("1", PSLICE() << 1u);
+  ASSERT_STREQ("9", PSLICE() << 9u);
+  ASSERT_STREQ("10", PSLICE() << 10u);
+  ASSERT_STREQ("2147483647", PSLICE() << 2147483647u);
+  ASSERT_STREQ("2147483648", PSLICE() << 2147483648u);
+  ASSERT_STREQ("2147483649", PSLICE() << 2147483649u);
+  ASSERT_STREQ("9223372036854775807", PSLICE() << 9223372036854775807u);
+}
+
 static void test_get_url_query_file_name_one(const char *prefix, const char *suffix, const char *file_name) {
   auto path = string(prefix) + string(file_name) + string(suffix);
   ASSERT_STREQ(file_name, get_url_query_file_name(path));
