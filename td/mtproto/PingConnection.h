@@ -20,9 +20,11 @@
 
 namespace td {
 namespace mtproto {
+
 class PingConnection : private RawConnection::Callback {
  public:
-  explicit PingConnection(std::unique_ptr<RawConnection> raw_connection) : raw_connection_(std::move(raw_connection)) {
+  PingConnection(std::unique_ptr<RawConnection> raw_connection, size_t ping_count)
+      : raw_connection_(std::move(raw_connection)), ping_count_(ping_count) {
   }
 
   Fd &get_pollable() {
@@ -43,11 +45,17 @@ class PingConnection : private RawConnection::Callback {
       Random::secure_bytes(nonce.raw, sizeof(nonce));
       raw_connection_->send_no_crypto(PacketStorer<NoCryptoImpl>(1, create_storer(mtproto_api::req_pq_multi(nonce))));
       was_ping_ = true;
+      if (ping_count_ == 1) {
+        start_time_ = Time::now();
+      }
     }
     return raw_connection_->flush(AuthKey(), *this);
   }
   bool was_pong() const {
-    return was_pong_;
+    return finish_time_ > 0;
+  }
+  double rtt() const {
+    return finish_time_ - start_time_;
   }
 
   Status on_raw_packet(const PacketInfo &packet_info, BufferSlice packet) override {
@@ -56,14 +64,23 @@ class PingConnection : private RawConnection::Callback {
     }
     packet.confirm_read(12);
     // TODO: fetch_result
-    was_pong_ = true;
-    return Status::OK();
+
+    if (--ping_count_ > 0) {
+      was_ping_ = false;
+      return flush();
+    } else {
+      finish_time_ = Time::now();
+      return Status::OK();
+    }
   }
 
  private:
   std::unique_ptr<RawConnection> raw_connection_;
+  size_t ping_count_ = 1;
+  double start_time_ = 0.0;
+  double finish_time_ = 0.0;
   bool was_ping_ = false;
-  bool was_pong_ = false;
 };
+
 }  // namespace mtproto
 }  // namespace td

@@ -85,19 +85,17 @@ class PingActor : public Actor {
   PingActor(std::unique_ptr<mtproto::RawConnection> raw_connection,
             Promise<std::unique_ptr<mtproto::RawConnection>> promise, ActorShared<> parent)
       : promise_(std::move(promise)), parent_(std::move(parent)) {
-    ping_connection_ = std::make_unique<mtproto::PingConnection>(std::move(raw_connection));
+    ping_connection_ = std::make_unique<mtproto::PingConnection>(std::move(raw_connection), 2);
   }
 
  private:
   std::unique_ptr<mtproto::PingConnection> ping_connection_;
   Promise<std::unique_ptr<mtproto::RawConnection>> promise_;
   ActorShared<> parent_;
-  double start_at_;
 
   void start_up() override {
     ping_connection_->get_pollable().set_observer(this);
     subscribe(ping_connection_->get_pollable());
-    start_at_ = Time::now();
     set_timeout_in(10);
     yield();
   }
@@ -144,7 +142,7 @@ class PingActor : public Actor {
         raw_connection->close();
         promise_.set_error(std::move(status));
       } else {
-        raw_connection->rtt_ = Time::now() - start_at_;
+        raw_connection->rtt_ = ping_connection_->rtt();
         if (raw_connection->stats_callback()) {
           raw_connection->stats_callback()->on_pong();
         }

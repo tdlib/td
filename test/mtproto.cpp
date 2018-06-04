@@ -88,8 +88,10 @@ class TestPingActor : public Actor {
   Status *result_;
 
   void start_up() override {
-    ping_connection_ = std::make_unique<mtproto::PingConnection>(std::make_unique<mtproto::RawConnection>(
-        SocketFd::open(ip_address_).move_as_ok(), mtproto::TransportType{mtproto::TransportType::Tcp, 0, ""}, nullptr));
+    ping_connection_ = std::make_unique<mtproto::PingConnection>(
+        std::make_unique<mtproto::RawConnection>(SocketFd::open(ip_address_).move_as_ok(),
+                                                 mtproto::TransportType{mtproto::TransportType::Tcp, 0, ""}, nullptr),
+        3);
 
     ping_connection_->get_pollable().set_observer(this);
     subscribe(ping_connection_->get_pollable());
