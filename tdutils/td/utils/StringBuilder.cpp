@@ -10,17 +10,62 @@
 #include "td/utils/port/thread_local.h"
 
 #include <cstdio>
+#include <limits>
 #include <locale>
 #include <sstream>
+#include <utility>
 
 namespace td {
 
-// TODO: optimize
+template <class T>
+static char *print_uint(char *current_ptr, T x) {
+  if (x < 100) {
+    if (x < 10) {
+      *current_ptr++ = static_cast<char>('0' + x);
+    } else {
+      *current_ptr++ = static_cast<char>('0' + x / 10);
+      *current_ptr++ = static_cast<char>('0' + x % 10);
+    }
+    return current_ptr;
+  }
+
+  auto begin_ptr = current_ptr;
+  do {
+    *current_ptr++ = static_cast<char>('0' + x % 10);
+    x /= 10;
+  } while (x > 0);
+
+  auto end_ptr = current_ptr - 1;
+  while (begin_ptr < end_ptr) {
+    std::swap(*begin_ptr++, *end_ptr--);
+  }
+
+  return current_ptr;
+}
+
+template <class T>
+static char *print_int(char *current_ptr, T x) {
+  if (x < 0) {
+    if (x == std::numeric_limits<T>::min()) {
+      std::stringstream ss;
+      ss << x;
+      auto len = narrow_cast<int>(static_cast<std::streamoff>(ss.tellp()));
+      ss.read(current_ptr, len);
+      return current_ptr + len;
+    }
+
+    *current_ptr++ = '-';
+    x = -x;
+  }
+
+  return print_uint(current_ptr, x);
+}
+
 StringBuilder &StringBuilder::operator<<(int x) {
   if (unlikely(end_ptr_ < current_ptr_)) {
     return on_error();
   }
-  current_ptr_ += std::snprintf(current_ptr_, reserved_size, "%d", x);
+  current_ptr_ = print_int(current_ptr_, x);
   return *this;
 }
 
@@ -28,7 +73,7 @@ StringBuilder &StringBuilder::operator<<(unsigned int x) {
   if (unlikely(end_ptr_ < current_ptr_)) {
     return on_error();
   }
-  current_ptr_ += std::snprintf(current_ptr_, reserved_size, "%u", x);
+  current_ptr_ = print_uint(current_ptr_, x);
   return *this;
 }
 
@@ -36,7 +81,7 @@ StringBuilder &StringBuilder::operator<<(long int x) {
   if (unlikely(end_ptr_ < current_ptr_)) {
     return on_error();
   }
-  current_ptr_ += std::snprintf(current_ptr_, reserved_size, "%ld", x);
+  current_ptr_ = print_int(current_ptr_, x);
   return *this;
 }
 
@@ -44,7 +89,7 @@ StringBuilder &StringBuilder::operator<<(long unsigned int x) {
   if (unlikely(end_ptr_ < current_ptr_)) {
     return on_error();
   }
-  current_ptr_ += std::snprintf(current_ptr_, reserved_size, "%lu", x);
+  current_ptr_ = print_uint(current_ptr_, x);
   return *this;
 }
 
@@ -52,7 +97,7 @@ StringBuilder &StringBuilder::operator<<(long long int x) {
   if (unlikely(end_ptr_ < current_ptr_)) {
     return on_error();
   }
-  current_ptr_ += std::snprintf(current_ptr_, reserved_size, "%lld", x);
+  current_ptr_ = print_int(current_ptr_, x);
   return *this;
 }
 
@@ -60,7 +105,7 @@ StringBuilder &StringBuilder::operator<<(long long unsigned int x) {
   if (unlikely(end_ptr_ < current_ptr_)) {
     return on_error();
   }
-  current_ptr_ += std::snprintf(current_ptr_, reserved_size, "%llu", x);
+  current_ptr_ = print_uint(current_ptr_, x);
   return *this;
 }
 

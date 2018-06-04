@@ -57,26 +57,26 @@ Logger::Logger(LogInterface &log, int log_level, Slice file_name, int line_num, 
 
   auto thread_id = get_thread_id();
 
-  (*this) << '[';
+  sb_ << '[';
   if (log_level < 10) {
-    (*this) << ' ';
+    sb_ << ' ';
   }
-  (*this) << log_level << "][t";
+  sb_ << log_level << "][t";
   if (thread_id < 10) {
-    (*this) << ' ';
+    sb_ << ' ';
   }
-  (*this) << thread_id << "][" << StringBuilder::FixedDouble(Clocks::system(), 9) << "][" << file_name << ':'
-          << line_num << ']';
+  sb_ << thread_id << "][" << StringBuilder::FixedDouble(Clocks::system(), 9) << "][" << file_name << ':' << line_num
+      << ']';
   if (tag_ != nullptr && *tag_) {
-    (*this) << "[#" << Slice(tag_) << "]";
+    sb_ << "[#" << Slice(tag_) << ']';
   }
   if (tag2_ != nullptr && *tag2_) {
-    (*this) << "[!" << Slice(tag2_) << "]";
+    sb_ << "[!" << Slice(tag2_) << ']';
   }
   if (!comment.empty()) {
-    (*this) << "[&" << comment << "]";
+    sb_ << "[&" << comment << ']';
   }
-  (*this) << "\t";
+  sb_ << '\t';
 }
 
 Logger::~Logger() {
