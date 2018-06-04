@@ -195,7 +195,7 @@ TEST(MpmcQueue, multi_thread) {
     CHECK(all[i].from == i / qn);
     CHECK(all[i].value == i % qn + 1);
   }
-  LOG(ERROR) << "Undeleted pointers: " << q.hazard_pointers_to_delele_size_unsafe();
+  LOG(INFO) << "Undeleted pointers: " << q.hazard_pointers_to_delele_size_unsafe();
   CHECK(q.hazard_pointers_to_delele_size_unsafe() <= (n + m + 1) * (n + m + 1));
   for (size_t id = 0; id < n + m + 1; id++) {
     q.gc(id);
