@@ -451,7 +451,7 @@ void Session::on_session_created(uint64 unique_id, uint64 first_id) {
   // send updatesTooLong to force getDifference
   LOG(INFO) << "new_session_created " << unique_id << " " << first_id;
   if (is_main_) {
-    LOG(INFO) << "Sending updatesTooLong to force getDifference";
+    LOG(DEBUG) << "Sending updatesTooLong to force getDifference";
     telegram_api::updatesTooLong too_long_;
     auto storer = create_storer(too_long_);
     BufferSlice packet(storer.size());
@@ -624,7 +624,7 @@ Status Session::on_message_result_ok(uint64 id, BufferSlice packet, size_t origi
   }
   auth_data_.on_api_response();
   Query *query_ptr = &it->second;
-  VLOG(net_query) << "return query result " << query_ptr->query;
+  VLOG(net_query) << "Return query result " << query_ptr->query;
 
   cleanup_container(id, query_ptr);
   mark_as_known(id, query_ptr);
@@ -1196,7 +1196,7 @@ void Session::loop() {
   double wakeup_in = 0;
   if (wakeup_at != 0) {
     wakeup_in = wakeup_at - Time::now_cached();
-    LOG(INFO) << "Wakeup After " << wakeup_in;
+    LOG(DEBUG) << "Wakeup after " << wakeup_in;
     set_timeout_at(wakeup_at);
   }
   // TODO: write proper condition..

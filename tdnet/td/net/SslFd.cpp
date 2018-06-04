@@ -193,7 +193,6 @@ Result<size_t> SslFd::process_ssl_error(int ret, int *mask) {
 #else
   auto openssl_errno = errno;
   int error = SSL_get_error(ssl_handle_, ret);
-  LOG(INFO) << "SSL ERROR: " << ret << " " << error;
   switch (error) {
     case SSL_ERROR_NONE:
       LOG(ERROR) << "SSL_get_error returned no error";

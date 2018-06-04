@@ -109,7 +109,7 @@ void HttpConnectionBase::loop() {
       on_error(Status::Error(res.error().public_message()));
     } else if (res.ok() == 0) {
       state_ = State::Write;
-      LOG(INFO) << "Send query to handler";
+      LOG(DEBUG) << "Send query to handler";
       live_event();
       on_query(std::move(current_query_));
     } else {
@@ -138,7 +138,7 @@ void HttpConnectionBase::loop() {
     state_ = State::Close;
   }
   if (can_close(stream_connection_)) {
-    LOG(INFO) << "Can close the connection";
+    LOG(DEBUG) << "Can close the connection";
     state_ = State::Close;
   }
   if (state_ == State::Close) {

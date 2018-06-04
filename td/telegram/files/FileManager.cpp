@@ -33,7 +33,7 @@
 
 namespace td {
 
-static int VERBOSITY_NAME(update_file) = VERBOSITY_NAME(INFO);
+static int VERBOSITY_NAME(update_file) = VERBOSITY_NAME(DEBUG);
 
 FileNode *FileNodePtr::operator->() const {
   return get();
