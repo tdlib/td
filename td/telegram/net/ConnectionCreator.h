@@ -222,7 +222,14 @@ class ConnectionCreator : public NetQueryCallback {
   ActorShared<ConnectionCreator> create_reference(int64 token);
   bool close_flag_{false};
   uint64 current_token_ = 0;
-  std::map<int64, std::pair<bool, ActorShared<>>> children_;
+  std::map<uint64, std::pair<bool, ActorShared<>>> children_;
+
+  struct PingMainDcRequest {
+    Promise<double> promise;
+    size_t left_queries = 0;
+    Result<double> result;
+  };
+  std::map<uint64, PingMainDcRequest> ping_main_dc_requests_;
 
   uint64 next_token() {
     return ++current_token_;
@@ -295,6 +302,8 @@ class ConnectionCreator : public NetQueryCallback {
   void ping_proxy_resolved(int32 proxy_id, IPAddress ip_address, Promise<double> promise);
 
   void ping_proxy_socket_fd(SocketFd socket_fd, mtproto::TransportType transport_type, Promise<double> promise);
+
+  void on_ping_main_dc_result(uint64 token, Result<double> result);
 };
 
 }  // namespace td
