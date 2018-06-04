@@ -33,10 +33,6 @@ class DcOption {
     int32 flags;
   };
 
-  bool is_ipv6() const {
-    return (flags_ & Flags::IPv6) != 0;
-  }
-
  public:
   DcOption() = default;
 
@@ -111,6 +107,10 @@ class DcOption {
 
   const IPAddress &get_ip_address() const {
     return ip_address_;
+  }
+
+  bool is_ipv6() const {
+    return (flags_ & Flags::IPv6) != 0;
   }
 
   bool is_media_only() const {

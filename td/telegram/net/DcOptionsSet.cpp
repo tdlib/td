@@ -43,7 +43,8 @@ DcOptions DcOptionsSet::get_dc_options() const {
   return result;
 }
 
-vector<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_all_connections(DcId dc_id, bool allow_media_only, bool use_static) {
+vector<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_all_connections(DcId dc_id, bool allow_media_only,
+                                                                        bool use_static) {
   std::vector<ConnectionInfo> options;
   std::vector<ConnectionInfo> static_options;
 
@@ -85,6 +86,12 @@ vector<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_all_connections(DcId dc_
   if (use_static) {
     if (!static_options.empty()) {
       options = std::move(static_options);
+    } else {
+      bool have_ipv4 = std::any_of(options.begin(), options.end(), [](auto &v) { return !v.option->is_ipv6(); });
+      if (have_ipv4) {
+        options.erase(std::remove_if(options.begin(), options.end(), [](auto &v) { return v.option->is_ipv6(); }),
+                      options.end());
+      }
     }
   } else {
     if (options.empty()) {
