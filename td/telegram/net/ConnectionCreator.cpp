@@ -508,17 +508,18 @@ void ConnectionCreator::ping_proxy_socket_fd(SocketFd socket_fd, mtproto::Transp
   auto token = next_token();
   auto raw_connection =
       std::make_unique<mtproto::RawConnection>(std::move(socket_fd), std::move(transport_type), nullptr);
-  children_[token] = {false,
-                      create_actor<detail::PingActor>(
-                          "PingActor", std::move(raw_connection),
-                          PromiseCreator::lambda([start = Time::now(), promise = std::move(promise)](
-                                                     Result<std::unique_ptr<mtproto::RawConnection>> result) mutable {
-                            if (result.is_error()) {
-                              return promise.set_error(Status::Error(400, result.error().message()));
-                            }
-                            promise.set_value(Time::now() - start);
-                          }),
-                          create_reference(token))};
+  children_[token] = {
+      false, create_actor<detail::PingActor>(
+                 "PingActor", std::move(raw_connection),
+                 PromiseCreator::lambda(
+                     [promise = std::move(promise)](Result<std::unique_ptr<mtproto::RawConnection>> result) mutable {
+                       if (result.is_error()) {
+                         return promise.set_error(Status::Error(400, result.error().message()));
+                       }
+                       auto ping_time = result.ok()->rtt_;
+                       promise.set_value(std::move(ping_time));
+                     }),
+                 create_reference(token))};
 }
 
 void ConnectionCreator::enable_proxy_impl(int32 proxy_id) {
