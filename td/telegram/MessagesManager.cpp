@@ -19712,7 +19712,7 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
   message->have_next = true;
 
   bool need_update = false;
-  Message *m = add_message_to_dialog(dialog_id, std::move(message), true, &need_update, &need_update_dialog_pos,
+  Message *m = add_message_to_dialog(dialog_id, std::move(message), false, &need_update, &need_update_dialog_pos,
                                      "fail_send_message");
   CHECK(m != nullptr) << "Failed to add failed to send " << new_message_id << " to " << dialog_id << " due to "
                       << debug_add_message_to_dialog_fail_reason;
@@ -22339,7 +22339,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   if (!from_update && ((message_id.is_server() && d->last_new_message_id != MessageId() &&
                         message_id.get() > d->last_new_message_id.get()) ||
                        (message_id.is_local() && d->last_database_message_id != MessageId() &&
-                        message_id.get() > d->last_database_message_id.get()))) {
+                        message_id.get() > d->last_database_message_id.get() && !message->is_failed_to_send))) {
     if (!message->from_database) {
       LOG(ERROR) << "Ignore " << message_id << " in " << dialog_id << " received not through update from " << source
                  << ". Last new is " << d->last_new_message_id << ", "
