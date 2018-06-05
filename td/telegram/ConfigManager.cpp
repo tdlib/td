@@ -36,6 +36,7 @@
 #include "td/utils/port/Clocks.h"
 #include "td/utils/Random.h"
 #include "td/utils/Time.h"
+#include "td/utils/tl_helpers.h"
 #include "td/utils/tl_parsers.h"
 
 #include <algorithm>

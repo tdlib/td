@@ -10,6 +10,7 @@ char disable_linker_warning_about_empty_file_wstring_convert_cpp TD_UNUSED;
 
 #if TD_PORT_WINDOWS
 
+#include "td/utils/logging.h"
 #include "td/utils/utf8.h"
 
 #include <cwchar>
