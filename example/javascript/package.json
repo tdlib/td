@@ -1,0 +1,17 @@
+{
+  "name": "tdlib-js-example",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "main": "example.js",
+  "scripts": {
+    "start": "node example.js"
+  },
+  "engines": {
+    "node": ">= 9.0.0"
+  },
+  "dependencies": {
+    "ffi-napi": "^2.4.3",
+    "ref-napi": "^1.4.0"
+  }
+}
