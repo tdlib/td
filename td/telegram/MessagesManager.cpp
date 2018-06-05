@@ -15911,31 +15911,26 @@ vector<FileId> MessagesManager::get_message_file_ids(const Message *message) con
   }
 }
 
+void MessagesManager::cancel_upload_message_content_files(const MessageContent *content) {
+  auto file_id = get_message_content_file_id(content);
+  if (being_uploaded_files_.erase(file_id)) {
+    LOG(INFO) << "Cancel upload file " << file_id;
+    td_->file_manager_->upload(file_id, nullptr, 0, 0);
+  }
+  file_id = get_message_content_thumbnail_file_id(content);
+  if (being_uploaded_thumbnails_.erase(file_id)) {
+    LOG(INFO) << "Cancel upload thumbnail file " << file_id;
+    td_->file_manager_->upload(file_id, nullptr, 0, 0);
+  }
+}
+
 void MessagesManager::cancel_send_message_query(DialogId dialog_id, unique_ptr<Message> &m) {
   CHECK(m != nullptr);
   CHECK(m->content != nullptr);
   CHECK(m->message_id.is_yet_unsent());
   LOG(INFO) << "Cancel send message query for " << m->message_id;
 
-  auto file_id = get_message_content_file_id(m->content.get());
-  if (file_id.is_valid()) {
-    auto it = being_uploaded_files_.find(file_id);
-    if (it != being_uploaded_files_.end()) {
-      LOG(INFO) << "Cancel upload file " << file_id << " for " << m->message_id;
-      td_->file_manager_->upload(file_id, nullptr, 0, 0);
-      being_uploaded_files_.erase(it);
-    }
-  }
-
-  auto thumbnail_file_id = get_message_content_thumbnail_file_id(m->content.get());
-  if (thumbnail_file_id.is_valid()) {
-    auto it = being_uploaded_thumbnails_.find(thumbnail_file_id);
-    if (it != being_uploaded_thumbnails_.end()) {
-      LOG(INFO) << "Cancel upload thumbnail file " << thumbnail_file_id << " for " << m->message_id;
-      td_->file_manager_->upload(thumbnail_file_id, nullptr, 0, 0);
-      being_uploaded_thumbnails_.erase(it);
-    }
-  }
+  cancel_upload_message_content_files(m->content.get());
 
   if (!m->send_query_ref.empty()) {
     LOG(INFO) << "Cancel send query for " << m->message_id;

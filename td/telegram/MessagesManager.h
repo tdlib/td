@@ -2443,6 +2443,8 @@ class MessagesManager : public Actor {
 
   vector<FileId> get_message_file_ids(const Message *message) const;
 
+  void cancel_upload_message_content_files(const MessageContent *content);
+
   void cancel_send_message_query(DialogId dialog_id, unique_ptr<Message> &m);
 
   static int32 get_message_flags(const Message *m);
