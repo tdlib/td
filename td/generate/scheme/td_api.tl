@@ -3180,7 +3180,7 @@ getProxies = Proxies;
 //@description Returns an HTTPS link, which can be used to add the proxy. Available only for SOCKS5 and MTProto proxies. Can be called before authorization @proxy_id Proxy identifier
 getProxyLink proxy_id:int32 = Text;
 
-//@description Computes time needed to receive a response from a Telegram server through the proxy. Can be called before authorization @proxy_id Proxy identifier
+//@description Computes time needed to receive a response from a Telegram server through the proxy. Can be called before authorization @proxy_id Proxy identifier. Use 0 to ping a Telegram server without a proxy
 pingProxy proxy_id:int32 = Seconds;
 
 
