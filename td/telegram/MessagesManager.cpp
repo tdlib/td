@@ -8509,7 +8509,7 @@ void MessagesManager::unload_dialog(DialogId dialog_id) {
   }
 
   if (left_to_unload > 0) {
-    LOG(INFO) << "Need to unload " << left_to_unload << " messages more in " << dialog_id;
+    LOG(DEBUG) << "Need to unload " << left_to_unload << " messages more in " << dialog_id;
     pending_unload_dialog_timeout_.add_timeout_in(d->dialog_id.get(), DIALOG_UNLOAD_DELAY);
   }
 }
@@ -11283,11 +11283,11 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
                                      m->have_previous, m->have_next, source);
   }
 
-  LOG(INFO) << "Deleting " << full_message_id << " with have_previous = " << m->have_previous
-            << " and have_next = " << m->have_next << " from " << source;
-
   bool need_get_history = false;
   if (!only_from_memory) {
+    LOG(INFO) << "Deleting " << full_message_id << " with have_previous = " << m->have_previous
+              << " and have_next = " << m->have_next << " from " << source;
+
     delete_message_from_database(d, message_id, m, is_permanently_deleted);
 
     delete_active_live_location(d->dialog_id, m);
