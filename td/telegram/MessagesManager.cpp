@@ -22666,7 +22666,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     *need_update_dialog_pos = true;
   }
   if (auto_attach && !message_id.is_yet_unsent() && message_id.get() >= d->last_new_message_id.get() &&
-      (d->last_new_message_id.is_valid() || (message_id.is_local() && message_id.get() >= d->last_message_id.get()))) {
+      (d->last_new_message_id.is_valid() ||
+       (message_id.is_local() && d->last_message_id.is_valid() &&
+        (message_id.get() >= d->last_message_id.get() ||
+         (d->last_database_message_id.is_valid() && message_id.get() > d->last_database_message_id.get()))))) {
     CHECK(message_id.get() <= d->last_message_id.get());
     if (message_id.get() > d->last_database_message_id.get()) {
       set_dialog_last_database_message_id(d, message_id, "add_message_to_dialog");
