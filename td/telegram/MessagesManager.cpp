@@ -23359,7 +23359,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
 
     old_message->is_content_secret = is_secret_message_content(old_message->ttl, new_content->get_id());
 
-    if (old_file_id.is_valid()) {
+    if (need_merge_files && old_file_id.is_valid()) {
       auto new_file_id = get_message_content_file_id(new_content.get());
       if (new_file_id.is_valid()) {
         FileView old_file_view = td_->file_manager_->get_file_view(old_file_id);
