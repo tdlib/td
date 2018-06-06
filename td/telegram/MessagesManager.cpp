@@ -23351,17 +23351,15 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
   int32 new_content_type = new_content->get_id();
   const bool can_delete_old_document = old_message->message_id.is_yet_unsent() && false;
 
+  auto old_file_id = get_message_content_file_id(old_content.get());
+  bool need_finish_upload = old_file_id.is_valid() && old_message->message_id.is_yet_unsent();
   if (old_content_type != new_content_type) {
     need_update = true;
     LOG(INFO) << "Message content has changed its type from " << old_content_type << " to " << new_content_type;
 
     old_message->is_content_secret = is_secret_message_content(old_message->ttl, new_content->get_id());
 
-    auto old_file_id = get_message_content_file_id(old_content.get());
     if (old_file_id.is_valid()) {
-      // cancel file upload of the main file to allow next upload with the same file to succeed
-      td_->file_manager_->upload(old_file_id, nullptr, 0, 0);
-
       auto new_file_id = get_message_content_file_id(new_content.get());
       if (new_file_id.is_valid()) {
         FileView old_file_view = td_->file_manager_->get_file_view(old_file_id);
@@ -23789,7 +23787,6 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
         auto old_ = static_cast<const MessagePassportDataReceived *>(old_content.get());
         auto new_ = static_cast<const MessagePassportDataReceived *>(new_content.get());
         if (old_->values != new_->values) {
-          // FIXME merge files?
           need_update = true;
         }
         if (old_->credentials != new_->credentials) {
@@ -23803,6 +23800,11 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
         UNREACHABLE();
         break;
     }
+  }
+  if (need_finish_upload) {
+    // the file is likely to be already merged with a server file, but if not we need to
+    // cancel file upload of the main file to allow next upload with the same file to succeed
+    td_->file_manager_->upload(old_file_id, nullptr, 0, 0);
   }
 
   if (is_content_changed || need_update) {
