@@ -41,8 +41,10 @@ void SendCodeHelper::on_sent_code(telegram_api::object_ptr<telegram_api::auth_se
   next_code_timestamp_ = Timestamp::in((sent_code->flags_ & SENT_CODE_FLAG_HAS_TIMEOUT) != 0 ? sent_code->timeout_ : 0);
 }
 
-td_api::object_ptr<td_api::authorizationStateWaitCode> SendCodeHelper::get_authorization_state_wait_code() const {
-  return make_tl_object<td_api::authorizationStateWaitCode>(phone_registered_, get_authentication_code_info_object());
+td_api::object_ptr<td_api::authorizationStateWaitCode> SendCodeHelper::get_authorization_state_wait_code(
+    const TermsOfService &terms_of_service) const {
+  return make_tl_object<td_api::authorizationStateWaitCode>(
+      phone_registered_, terms_of_service.get_terms_of_service_object(), get_authentication_code_info_object());
 }
 
 td_api::object_ptr<td_api::authenticationCodeInfo> SendCodeHelper::get_authentication_code_info_object() const {
@@ -448,7 +450,7 @@ tl_object_ptr<td_api::AuthorizationState> AuthManager::get_authorization_state_o
     case State::Ok:
       return make_tl_object<td_api::authorizationStateReady>();
     case State::WaitCode:
-      return send_code_helper_.get_authorization_state_wait_code();
+      return send_code_helper_.get_authorization_state_wait_code(terms_of_service_);
     case State::WaitPhoneNumber:
       return make_tl_object<td_api::authorizationStateWaitPhoneNumber>();
     case State::WaitPassword:
@@ -527,6 +529,7 @@ void AuthManager::set_phone_number(uint64 query_id, string phone_number, bool al
       send_code_helper_.send_code(phone_number, allow_flash_call, is_current_phone_number, api_id_, api_hash_);
   if (r_send_code.is_error()) {
     send_code_helper_ = SendCodeHelper();
+    terms_of_service_ = TermsOfService();
     r_send_code =
         send_code_helper_.send_code(phone_number, allow_flash_call, is_current_phone_number, api_id_, api_hash_);
     if (r_send_code.is_error()) {
@@ -562,10 +565,6 @@ void AuthManager::check_code(uint64 query_id, string code, string first_name, st
   if (state_ != State::WaitCode) {
     return on_query_error(query_id, Status::Error(8, "checkAuthenticationCode unexpected"));
   }
-  first_name = clean_name(first_name, MAX_NAME_LENGTH);
-  if (!send_code_helper_.phone_registered() && first_name.empty()) {
-    return on_query_error(query_id, Status::Error(8, "First name can't be empty"));
-  }
 
   on_new_query(query_id);
   if (send_code_helper_.phone_registered() || first_name.empty()) {
@@ -575,6 +574,11 @@ void AuthManager::check_code(uint64 query_id, string code, string first_name, st
                                                                 send_code_helper_.phone_code_hash().str(), code)),
                         DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
   } else {
+    first_name = clean_name(first_name, MAX_NAME_LENGTH);
+    if (first_name.empty()) {
+      return on_query_error(Status::Error(8, "First name can't be empty"));
+    }
+
     last_name = clean_name(last_name, MAX_NAME_LENGTH);
     start_net_query(
         NetQueryType::SignUp,
@@ -709,6 +713,8 @@ void AuthManager::on_send_code_result(NetQueryPtr &result) {
   auto sent_code = r_sent_code.move_as_ok();
 
   LOG(INFO) << "Receive " << to_string(sent_code);
+
+  terms_of_service_ = TermsOfService(std::move(sent_code->terms_of_service_));
 
   send_code_helper_.on_sent_code(std::move(sent_code));
 
@@ -864,6 +870,7 @@ void AuthManager::on_result(NetQueryPtr result) {
         if (query_id_ != 0) {
           if (state_ == State::WaitPhoneNumber) {
             send_code_helper_ = SendCodeHelper();
+            terms_of_service_ = TermsOfService();
           }
           on_query_error(std::move(result->error()));
         }
@@ -951,6 +958,7 @@ bool AuthManager::load_state() {
   LOG(INFO) << "Load auth_state from db: " << tag("state", static_cast<int32>(db_state.state_));
   if (db_state.state_ == State::WaitCode) {
     send_code_helper_ = std::move(db_state.send_code_helper_);
+    terms_of_service_ = std::move(db_state.terms_of_service_);
   } else if (db_state.state_ == State::WaitPassword) {
     wait_password_state_ = std::move(db_state.wait_password_state_);
   } else {
@@ -970,7 +978,7 @@ void AuthManager::save_state() {
 
   DbState db_state;
   if (state_ == State::WaitCode) {
-    db_state = DbState::wait_code(api_id_, api_hash_, send_code_helper_);
+    db_state = DbState::wait_code(api_id_, api_hash_, send_code_helper_, terms_of_service_);
   } else if (state_ == State::WaitPassword) {
     db_state = DbState::wait_password(api_id_, api_hash_, wait_password_state_);
   } else {

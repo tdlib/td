@@ -11,6 +11,7 @@
 #include "td/utils/tl_helpers.h"
 
 namespace td {
+
 template <class T>
 void SendCodeHelper::AuthenticationCodeInfo::store(T &storer) const {
   using td::store;
@@ -18,6 +19,7 @@ void SendCodeHelper::AuthenticationCodeInfo::store(T &storer) const {
   store(length, storer);
   store(pattern, storer);
 }
+
 template <class T>
 void SendCodeHelper::AuthenticationCodeInfo::parse(T &parser) {
   using td::parse;
@@ -47,6 +49,7 @@ void SendCodeHelper::parse(T &parser) {
   parse(next_code_info_, parser);
   parse(next_code_timestamp_, parser);
 }
+
 template <class T>
 void AuthManager::WaitPasswordState::store(T &storer) const {
   using td::store;
@@ -70,10 +73,18 @@ void AuthManager::WaitPasswordState::parse(T &parser) {
 template <class T>
 void AuthManager::DbState::store(T &storer) const {
   using td::store;
+  bool has_terms_of_service = !terms_of_service_.get_id().empty();
+  BEGIN_STORE_FLAGS();
+  STORE_FLAG(has_terms_of_service);
+  END_STORE_FLAGS();
   store(state_, storer);
   store(api_id_, storer);
   store(api_hash_, storer);
   store(state_timestamp_, storer);
+
+  if (has_terms_of_service) {
+    store(terms_of_service_, storer);
+  }
 
   if (state_ == State::WaitCode) {
     store(send_code_helper_, storer);
@@ -83,20 +94,35 @@ void AuthManager::DbState::store(T &storer) const {
     UNREACHABLE();
   }
 }
+
 template <class T>
 void AuthManager::DbState::parse(T &parser) {
   using td::parse;
+  bool has_terms_of_service = false;
+  if (parser.version() >= static_cast<int32>(Version::AddTermsOfService)) {
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(has_terms_of_service);
+    END_PARSE_FLAGS();
+  }
   parse(state_, parser);
   parse(api_id_, parser);
   parse(api_hash_, parser);
   parse(state_timestamp_, parser);
 
+  if (has_terms_of_service) {
+    parse(terms_of_service_, parser);
+  }
+
   if (state_ == State::WaitCode) {
     parse(send_code_helper_, parser);
+    if (parser.version() < static_cast<int32>(Version::AddTermsOfService)) {
+      parser.set_error("Have no terms of service");
+    }
   } else if (state_ == State::WaitPassword) {
     parse(wait_password_state_, parser);
   } else {
     parser.set_error(PSTRING() << "Unexpected " << tag("state", static_cast<int32>(state_)));
   }
 }
+
 }  // namespace td

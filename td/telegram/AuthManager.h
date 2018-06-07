@@ -8,6 +8,7 @@
 
 #include "td/telegram/net/NetActor.h"
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/TermsOfService.h"
 
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -22,7 +23,8 @@ namespace td {
 class SendCodeHelper {
  public:
   void on_sent_code(telegram_api::object_ptr<telegram_api::auth_sentCode> sent_code);
-  td_api::object_ptr<td_api::authorizationStateWaitCode> get_authorization_state_wait_code() const;
+  td_api::object_ptr<td_api::authorizationStateWaitCode> get_authorization_state_wait_code(
+      const TermsOfService &terms_of_service) const;
   td_api::object_ptr<td_api::authenticationCodeInfo> get_authentication_code_info_object() const;
   Result<telegram_api::auth_resendCode> resend_code();
 
@@ -209,16 +211,19 @@ class AuthManager : public NetActor {
 
     // WaitCode
     SendCodeHelper send_code_helper_;
+    TermsOfService terms_of_service_;
 
-    //WaitPassword
+    // WaitPassword
     WaitPasswordState wait_password_state_;
 
-    static DbState wait_code(int32 api_id, string api_hash, SendCodeHelper send_code_helper) {
+    static DbState wait_code(int32 api_id, string api_hash, SendCodeHelper send_code_helper,
+                             TermsOfService terms_of_service) {
       DbState state;
       state.state_ = State::WaitCode;
       state.api_id_ = api_id;
       state.api_hash_ = api_hash;
       state.send_code_helper_ = std::move(send_code_helper);
+      state.terms_of_service_ = std::move(terms_of_service);
       state.state_timestamp_ = Timestamp::now();
       return state;
     }
@@ -251,6 +256,7 @@ class AuthManager : public NetActor {
 
   // State::WaitCode
   SendCodeHelper send_code_helper_;
+  TermsOfService terms_of_service_;
 
   // for bots
   string bot_token_;

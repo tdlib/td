@@ -63,6 +63,20 @@ authenticationCodeInfo phone_number:string type:AuthenticationCodeType next_type
 emailAddressAuthenticationCodeInfo email_address_pattern:string length:int32 = EmailAddressAuthenticationCodeInfo;
 
 
+//@description Represents a part of the text that needs to be formatted in some unusual way @offset Offset of the entity in UTF-16 code points @length Length of the entity, in UTF-16 code points @type Type of the entity
+textEntity offset:int32 length:int32 type:TextEntityType = TextEntity;
+
+//@description Contains a list of text entities @entities List of text entities
+textEntities entities:vector<textEntity> = TextEntities;
+
+//@description A text with some entities @text The text @entities Entities contained in the text
+formattedText text:string entities:vector<textEntity> = FormattedText;
+
+
+//@description Contains Telegram terms of service @text Text of the terms of service @min_user_age Mininum age of a user which can accept the terms; 0 if any @show_popup True, if a blocking popup with terms of services should be shown to the user
+termsOfService text:formattedText min_user_age:int32 show_popup:Bool = TermsOfService;
+
+
 //@class AuthorizationState @description Represents the current authorization state of the client
 
 //@description TDLib needs TdlibParameters for initialization
@@ -74,8 +88,8 @@ authorizationStateWaitEncryptionKey is_encrypted:Bool = AuthorizationState;
 //@description TDLib needs the user's phone number to authorize
 authorizationStateWaitPhoneNumber = AuthorizationState;
 
-//@description TDLib needs the user's authentication code to finalize authorization @is_registered True, if the user is already registered @code_info Information about the authorization code that was sent
-authorizationStateWaitCode is_registered:Bool code_info:authenticationCodeInfo = AuthorizationState;
+//@description TDLib needs the user's authentication code to finalize authorization @is_registered True, if the user is already registered @terms_of_service Telegram terms of service, which should be accepted before user can continue registration; may be null @code_info Information about the authorization code that was sent
+authorizationStateWaitCode is_registered:Bool terms_of_service:termsOfService code_info:authenticationCodeInfo = AuthorizationState;
 
 //@description The user has been authorized, but needs to enter a password to start using the application @password_hint Hint for the password; can be empty @has_recovery_email_address True if a recovery email address has been set up
 //@recovery_email_address_pattern Pattern of the email address to which the recovery email was sent; empty until a recovery email has been sent
@@ -171,16 +185,6 @@ maskPointChin = MaskPoint;
 //@y_shift Shift by Y-axis measured in heights of the mask scaled to the face size, from top to bottom. (For example, 1.0 will place the mask just below the default mask position)
 //@scale Mask scaling coefficient. (For example, 2.0 means a doubled size)
 maskPosition point:MaskPoint x_shift:double y_shift:double scale:double = MaskPosition;
-
-
-//@description Represents a part of the text that needs to be formatted in some unusual way @offset Offset of the entity in UTF-16 code points @length Length of the entity, in UTF-16 code points @type Type of the entity
-textEntity offset:int32 length:int32 type:TextEntityType = TextEntity;
-
-//@description Contains a list of text entities @entities List of text entities
-textEntities entities:vector<textEntity> = TextEntities;
-
-//@description A text with some entities @text The text @entities Entities contained in the text
-formattedText text:string entities:vector<textEntity> = FormattedText;
 
 
 //@description Describes an animation file. The animation must be encoded in GIF or MPEG4 format @duration Duration of the animation, in seconds; as defined by the sender @width Width of the animation @height Height of the animation
@@ -2176,6 +2180,9 @@ updateSavedAnimations animation_ids:vector<int32> = Update;
 //@description The connection state has changed @state The new connection state
 updateConnectionState state:ConnectionState = Update;
 
+//@description A new terms of service should be accepted by the user @terms_of_service_id Terms of service identifier @terms_of_service The new terms of service
+updateTermsOfService terms_of_service_id:string terms_of_service:termsOfService = Update;
+
 //@description A new incoming inline query; for bots only @id Unique query identifier @sender_user_id Identifier of the user who sent the query @user_location User location, provided by the client; may be null @query Text of the query @offset Offset of the first entry to return
 updateNewInlineQuery id:int64 sender_user_id:int32 user_location:location query:string offset:string = Update;
 
@@ -3138,6 +3145,10 @@ setStickerPositionInSet sticker:InputFile position:int32 = Ok;
 removeStickerFromSet sticker:InputFile = Ok;
 
 
+//@description Accepts Telegram terms of services @terms_of_service_id Terms of service identifier
+acceptTermsOfService terms_of_service_id:string = Ok;
+
+
 //@description Sends a custom request; for bots only @method The method name @parameters JSON-serialized method parameters
 sendCustomRequest method:string parameters:string = CustomRequestResult;
 
@@ -3154,9 +3165,6 @@ getCountryCode = Text;
 
 //@description Returns the default text for invitation messages to be used as a placeholder when the current user invites friends to Telegram
 getInviteText = Text;
-
-//@description Returns the terms of service. Can be called before authorization @country_code A two-letter ISO 3166-1 alpha-2 country code of user's country
-getTermsOfService country_code:string = Text;
 
 //@description Returns information about a tg:// deep link. Use "tg://need_update_for_some_feature" or "tg:some_unsupported_feature" for testing. Returns a 404 error for unknown links. Can be called before authorization @link The link
 getDeepLinkInfo link:string = DeepLinkInfo;

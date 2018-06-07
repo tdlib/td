@@ -23539,7 +23539,6 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
             new_photo->photos.push_back(old_photo->photos.back());
 
             if (need_merge_files) {
-              FileId old_file_id = old_photo->photos.back().file_id;
               FileView old_file_view = td_->file_manager_->get_file_view(old_file_id);
               FileId new_file_id = new_photo->photos[0].file_id;
               FileView new_file_view = td_->file_manager_->get_file_view(new_file_id);
@@ -23808,7 +23807,6 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
   }
 
   if (is_content_changed || need_update) {
-    auto old_file_id = get_message_content_file_id(old_content.get());
     old_content = std::move(new_content);
     update_message_content_file_id_remote(old_content.get(), old_file_id);
   } else {

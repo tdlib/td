@@ -3941,7 +3941,6 @@ bool Td::is_preauthentication_request(int32 id) {
     case td_api::addNetworkStatistics::ID:
     case td_api::resetNetworkStatistics::ID:
     case td_api::getCountryCode::ID:
-    case td_api::getTermsOfService::ID:
     case td_api::getDeepLinkInfo::ID:
     case td_api::addProxy::ID:
     case td_api::enableProxy::ID:
@@ -6946,6 +6945,13 @@ void Td::on_request(uint64 id, td_api::removeRecentHashtag &request) {
   send_closure(hashtag_hints_, &HashtagHints::remove_hashtag, std::move(request.hashtag_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::acceptTermsOfService &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.terms_of_service_id_);
+  CREATE_OK_REQUEST_PROMISE(promise);
+  accept_terms_of_service(this, std::move(request.terms_of_service_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::getCountryCode &request) {
   CREATE_NO_ARGS_REQUEST(GetCountryCodeRequest);
 }
@@ -6953,11 +6959,6 @@ void Td::on_request(uint64 id, const td_api::getCountryCode &request) {
 void Td::on_request(uint64 id, const td_api::getInviteText &request) {
   CHECK_IS_USER();
   CREATE_NO_ARGS_REQUEST(GetInviteTextRequest);
-}
-
-void Td::on_request(uint64 id, td_api::getTermsOfService &request) {
-  CLEAN_INPUT_STRING(request.country_code_);
-  send_error_raw(id, 500, "Unsupported");
 }
 
 void Td::on_request(uint64 id, td_api::getDeepLinkInfo &request) {

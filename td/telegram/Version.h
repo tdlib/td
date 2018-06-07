@@ -24,6 +24,7 @@ enum class Version : int32 {
   AddMessageInvoiceProviderData,
   AddCaptionEntities,
   AddVenueType,
+  AddTermsOfService,
   Next
 };
 
