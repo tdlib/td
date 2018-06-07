@@ -843,6 +843,7 @@ void AuthManager::on_authorization(tl_object_ptr<telegram_api::auth_authorizatio
   }
   td->updates_manager_->get_difference("on_authorization");
   td->on_online_updated(true, true);
+  td->schedule_get_terms_of_service(0);
   send_closure(G()->config_manager(), &ConfigManager::request_config);
   if (query_id_ != 0) {
     on_query_ok();

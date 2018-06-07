@@ -3831,6 +3831,13 @@ void Td::on_alarm_timeout(int64 alarm_id) {
     alarm_timeout_.set_timeout_in(PING_SERVER_ALARM_ID, PING_SERVER_TIMEOUT + Random::fast(0, PING_SERVER_TIMEOUT / 5));
     return;
   }
+  if (alarm_id == TERMS_OF_SERVICE_ALARM_ID && !close_flag_) {
+    get_terms_of_service(
+        this, PromiseCreator::lambda([actor_id = actor_id(this)](Result<std::pair<int32, TermsOfService>> result) {
+          send_closure(actor_id, &Td::on_get_terms_of_service, std::move(result), false);
+        }));
+    return;
+  }
   auto it = pending_alarms_.find(alarm_id);
   CHECK(it != pending_alarms_.end());
   uint64 request_id = it->second;
@@ -3863,6 +3870,30 @@ void Td::on_update_status_success(bool is_online) {
       update_status_query_ = NetQueryRef();
     }
     contacts_manager_->set_my_online_status(is_online_, true, false);
+  }
+}
+
+void Td::on_get_terms_of_service(Result<std::pair<int32, TermsOfService>> result, bool dummy) {
+  int32 expires_in = 0;
+  if (result.is_error()) {
+    expires_in = Random::fast(10, 60);
+  } else {
+    auto terms = std::move(result.ok().second);
+    if (terms.get_id().empty()) {
+      expires_in = min(max(result.ok().first, G()->unix_time() + 60) - G()->unix_time(), 86400);
+    } else {
+      send_update(
+          make_tl_object<td_api::updateTermsOfService>(terms.get_id().str(), terms.get_terms_of_service_object()));
+    }
+  }
+  if (expires_in > 0) {
+    schedule_get_terms_of_service(expires_in);
+  }
+}
+
+void Td::schedule_get_terms_of_service(int32 expires_in) {
+  if (!close_flag_) {
+    alarm_timeout_.set_timeout_in(TERMS_OF_SERVICE_ALARM_ID, expires_in);
   }
 }
 
@@ -4407,6 +4438,7 @@ void Td::clear() {
     alarm_timeout_.cancel_timeout(ONLINE_ALARM_ID);
   }
   alarm_timeout_.cancel_timeout(PING_SERVER_ALARM_ID);
+  alarm_timeout_.cancel_timeout(TERMS_OF_SERVICE_ALARM_ID);
   LOG(DEBUG) << "Requests was answered " << timer;
 
   // close all pure actors
@@ -4797,6 +4829,7 @@ Status Td::init(DbKey key) {
     create_handler<GetNearestDcQuery>(Promise<string>())->send();
   } else {
     updates_manager_->get_difference("init");
+    schedule_get_terms_of_service(0);
   }
 
   complete_pending_preauthentication_requests([](int32 id) { return true; });

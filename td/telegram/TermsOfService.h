@@ -17,6 +17,8 @@
 #include "td/utils/common.h"
 #include "td/utils/tl_helpers.h"
 
+#include <utility>
+
 namespace td {
 
 class Td;
@@ -64,6 +66,8 @@ class TermsOfService {
     parse(min_user_age_, parser);
   }
 };
+
+void get_terms_of_service(Td *td, Promise<std::pair<int32, TermsOfService>> promise);
 
 void accept_terms_of_service(Td *td, string &&terms_of_service_id, Promise<Unit> &&promise);
 

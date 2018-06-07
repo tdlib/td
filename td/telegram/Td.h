@@ -11,6 +11,7 @@
 #include "td/telegram/TdCallback.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TdParameters.h"
+#include "td/telegram/TermsOfService.h"
 
 #include "td/telegram/td_api.h"
 
@@ -91,6 +92,8 @@ class Td final : public NetQueryCallback {
   void update_qts(int32 qts);
 
   void force_get_difference();
+
+  void schedule_get_terms_of_service(int32 expires_in);
 
   void on_result(NetQueryPtr query) override;
   void on_connection_state_changed(StateManager::State new_state);
@@ -201,6 +204,7 @@ class Td final : public NetQueryCallback {
   static constexpr int32 ONLINE_TIMEOUT = 240;
   static constexpr int64 PING_SERVER_ALARM_ID = -1;
   static constexpr int32 PING_SERVER_TIMEOUT = 300;
+  static constexpr int64 TERMS_OF_SERVICE_ALARM_ID = -2;
 
   void send_result(uint64 id, tl_object_ptr<td_api::Object> object);
   void send_error(uint64 id, Status error);
@@ -252,6 +256,8 @@ class Td final : public NetQueryCallback {
 
   static void on_alarm_timeout_callback(void *td_ptr, int64 alarm_id);
   void on_alarm_timeout(int64 alarm_id);
+
+  void on_get_terms_of_service(Result<std::pair<int32, TermsOfService>> result, bool dummy);
 
   template <class T>
   friend class RequestActor;        // uses send_result/send_error

@@ -16,6 +16,46 @@
 
 namespace td {
 
+class GetTermsOfServiceUpdateQuery : public Td::ResultHandler {
+  Promise<std::pair<int32, TermsOfService>> promise_;
+
+ public:
+  explicit GetTermsOfServiceUpdateQuery(Promise<std::pair<int32, TermsOfService>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::help_getTermsOfServiceUpdate())));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::help_getTermsOfServiceUpdate>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    switch (result->get_id()) {
+      case telegram_api::help_termsOfServiceUpdateEmpty::ID: {
+        auto update = move_tl_object_as<telegram_api::help_termsOfServiceUpdateEmpty>(result);
+        promise_.set_value(std::make_pair(update->expires_, TermsOfService()));
+        break;
+      }
+      case telegram_api::help_termsOfServiceUpdate::ID: {
+        auto update = move_tl_object_as<telegram_api::help_termsOfServiceUpdate>(result);
+        promise_.set_value(std::make_pair(update->expires_, TermsOfService(std::move(update->terms_of_service_))));
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
 class AcceptTermsOfServiceQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -67,6 +107,10 @@ TermsOfService::TermsOfService(telegram_api::object_ptr<telegram_api::help_terms
   min_user_age_ =
       ((terms->flags_ & telegram_api::help_termsOfService::MIN_AGE_CONFIRM_MASK) != 0 ? terms->min_age_confirm_ : 0);
   show_popup_ = (terms->flags_ & telegram_api::help_termsOfService::POPUP_MASK) != 0;
+}
+
+void get_terms_of_service(Td *td, Promise<std::pair<int32, TermsOfService>> promise) {
+  td->create_handler<GetTermsOfServiceUpdateQuery>(std::move(promise))->send();
 }
 
 void accept_terms_of_service(Td *td, string &&terms_of_service_id, Promise<Unit> &&promise) {
