@@ -344,7 +344,6 @@ void Binlog::do_event(BinlogEvent &&event) {
         update_write_encryption();
         //LOG(INFO) << format::cond(state_ == State::Run, "Run", "Reindex") << ": init encryption";
       }
-      return;
     }
   }
 

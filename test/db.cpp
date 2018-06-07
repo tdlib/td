@@ -34,6 +34,22 @@ static typename ContainerT::value_type &rand_elem(ContainerT &cont) {
   return cont[Random::fast(0, static_cast<int>(cont.size()) - 1)];
 }
 
+TEST(DB, binlog_encryption_bug) {
+  CSlice binlog_name = "test_binlog";
+  Binlog::destroy(binlog_name).ignore();
+
+  auto cucumber = DbKey::password("cucumber");
+  auto empty = DbKey::empty();
+  {
+    Binlog binlog;
+    binlog.init(binlog_name.str(), [&](const BinlogEvent &x) {}, cucumber).ensure();
+  }
+  {
+    Binlog binlog;
+    binlog.init(binlog_name.str(), [&](const BinlogEvent &x) {}, cucumber).ensure();
+  }
+}
+
 TEST(DB, binlog_encryption) {
   CSlice binlog_name = "test_binlog";
   Binlog::destroy(binlog_name).ignore();

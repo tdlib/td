@@ -32,8 +32,8 @@ void BinlogEventsProcessor::do_event(BinlogEvent &&event) {
       total_raw_events_size_ += static_cast<int64>(event.raw_event_.size());
       events_[pos] = std::move(event);
     }
-  } else if (event.type_ == BinlogEvent::ServiceTypes::Empty) {
-    // just skip this event
+  } else if (event.type_ < 0) {
+    // just skip service events
   } else {
     CHECK(ids_.empty() || ids_.back() < fixed_id);
     last_id_ = event.id_;
