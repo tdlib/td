@@ -55,9 +55,6 @@ class FileLoadManager final : public Actor {
   void update_local_file_location(QueryId id, const LocalFileLocation &local);
   void get_content(const FullLocalFileLocation &local_location, Promise<BufferSlice> promise);
 
-  // just stops actor and all queries. no callbacks will be called
-  void close();
-
  private:
   struct Node {
     QueryId query_id_;
@@ -78,6 +75,7 @@ class FileLoadManager final : public Actor {
 
   void start_up() override;
   void loop() override;
+  void hangup() override;
   void hangup_shared() override;
 
   void close_node(NodeId node_id);

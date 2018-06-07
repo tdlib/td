@@ -154,7 +154,7 @@ void FileLoadManager::update_local_file_location(QueryId id, const LocalFileLoca
   }
   send_closure(node->loader_, &FileLoaderActor::update_local_file_location, local);
 }
-void FileLoadManager::close() {
+void FileLoadManager::hangup() {
   nodes_container_.for_each([](auto id, auto &node) { node.loader_.reset(); });
   stop_flag_ = true;
   loop();

@@ -463,8 +463,6 @@ void FileManager::init_actor() {
       "FileGenerateManager", G()->get_slow_net_scheduler_id(), context_->create_reference());
 }
 FileManager::~FileManager() {
-  // NB: As FileLoadManager callback is just "this" pointer, this event must be processed immediately.
-  send_closure(std::move(file_load_manager_), &FileLoadManager::close);
 }
 
 string FileManager::fix_file_extension(Slice file_name, Slice file_type, Slice file_extension) {
