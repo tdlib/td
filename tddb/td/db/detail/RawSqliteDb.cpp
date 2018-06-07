@@ -11,6 +11,7 @@
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/path.h"
+#include "td/utils/port/Stat.h"
 
 namespace td {
 namespace detail {
@@ -18,8 +19,14 @@ Status RawSqliteDb::last_error(sqlite3 *db) {
   return Status::Error(Slice(sqlite3_errmsg(db)));
 }
 Status RawSqliteDb::destroy(Slice path) {
-  with_db_path(path, [](auto path) { unlink(path).ignore(); });
-  return Status::OK();
+  Status error;
+  with_db_path(path, [&](auto path) {
+    unlink(path).ignore();
+    if (!stat(path).is_error()) {
+      error = Status::Error(PSLICE() << "Failed to delete " << tag("path", path));
+    }
+  });
+  return error;
 }
 Status RawSqliteDb::last_error() {
   //If database was corrupted, try to delete it.

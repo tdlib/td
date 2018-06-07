@@ -51,7 +51,7 @@ Status SqliteDb::init(CSlice path, bool *was_created) {
   // from older database
   bool is_db_exists = stat(path).is_ok();
   if (!is_db_exists) {
-    destroy(path).ignore();
+    TRY_STATUS(destroy(path));
   }
 
   if (was_created != nullptr) {
@@ -178,7 +178,7 @@ Status SqliteDb::change_key(CSlice path, const DbKey &new_db_key, const DbKey &o
     // Encrypt
     PerfWarningTimer timer("Encrypt sqlite database", 0.1);
     auto tmp_path = path.str() + ".ecnrypted";
-    unlink(tmp_path).ignore();
+    TRY_STATUS(destroy(tmp_path));
 
     // make shure that database is not empty
     TRY_STATUS(db.exec("CREATE TABLE IF NOT EXISTS encryption_dummy_table(id INT PRIMARY KEY)"));
@@ -194,7 +194,7 @@ Status SqliteDb::change_key(CSlice path, const DbKey &new_db_key, const DbKey &o
     // Dectypt
     PerfWarningTimer timer("Decrypt sqlite database", 0.1);
     auto tmp_path = path.str() + ".ecnrypted";
-    unlink(tmp_path).ignore();
+    TRY_STATUS(destroy(tmp_path));
 
     //NB: not really safe
     TRY_STATUS(db.exec(PSLICE() << "ATTACH DATABASE '" << tmp_path << "' AS decrypted KEY ''"));
