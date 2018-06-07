@@ -175,7 +175,6 @@ Status SqliteDb::change_key(CSlice path, const DbKey &new_db_key, const DbKey &o
   auto new_key = db_key_to_sqlcipher_key(new_db_key);
   if (old_db_key.is_empty() && !new_db_key.is_empty()) {
     LOG(DEBUG) << "ENCRYPT";
-    // Encrypt
     PerfWarningTimer timer("Encrypt sqlite database", 0.1);
     auto tmp_path = path.str() + ".ecnrypted";
     TRY_STATUS(destroy(tmp_path));
@@ -191,7 +190,6 @@ Status SqliteDb::change_key(CSlice path, const DbKey &new_db_key, const DbKey &o
     TRY_STATUS(rename(tmp_path, path));
   } else if (!old_db_key.is_empty() && new_db_key.is_empty()) {
     LOG(DEBUG) << "DECRYPT";
-    // Dectypt
     PerfWarningTimer timer("Decrypt sqlite database", 0.1);
     auto tmp_path = path.str() + ".ecnrypted";
     TRY_STATUS(destroy(tmp_path));
