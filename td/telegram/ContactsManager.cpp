@@ -2904,10 +2904,17 @@ tl_object_ptr<telegram_api::inputEncryptedChat> ContactsManager::get_input_encry
   return make_tl_object<telegram_api::inputEncryptedChat>(secret_chat_id.get(), sc->access_hash);
 }
 
-const DialogPhoto *ContactsManager::get_user_dialog_photo(UserId user_id) const {
+const DialogPhoto *ContactsManager::get_user_dialog_photo(UserId user_id) {
   auto u = get_user(user_id);
   if (u == nullptr) {
     return nullptr;
+  }
+
+  auto it = pending_user_photos_.find(user_id);
+  if (it != pending_user_photos_.end()) {
+    do_update_user_photo(u, user_id, std::move(it->second));
+    pending_user_photos_.erase(it);
+    update_user(u, user_id);
   }
   return &u->photo;
 }
@@ -2928,7 +2935,7 @@ const DialogPhoto *ContactsManager::get_channel_dialog_photo(ChannelId channel_i
   return &c->photo;
 }
 
-const DialogPhoto *ContactsManager::get_secret_chat_dialog_photo(SecretChatId secret_chat_id) const {
+const DialogPhoto *ContactsManager::get_secret_chat_dialog_photo(SecretChatId secret_chat_id) {
   auto c = get_secret_chat(secret_chat_id);
   if (c == nullptr) {
     return nullptr;
@@ -6669,8 +6676,31 @@ void ContactsManager::on_update_user_photo(UserId user_id, tl_object_ptr<telegra
 }
 
 void ContactsManager::on_update_user_photo(User *u, UserId user_id,
-                                           tl_object_ptr<telegram_api::UserProfilePhoto> &&photo_ptr) {
-  ProfilePhoto new_photo = get_profile_photo(td_->file_manager_.get(), std::move(photo_ptr));
+                                           tl_object_ptr<telegram_api::UserProfilePhoto> &&photo) {
+  if (td_->auth_manager_->is_bot() && !G()->parameters().use_file_db && !u->is_photo_inited) {
+    bool is_empty = photo == nullptr || photo->get_id() == telegram_api::userProfilePhotoEmpty::ID;
+    pending_user_photos_[user_id] = std::move(photo);
+
+    UserFull *user_full = get_user_full(user_id);
+    if (user_full != nullptr) {
+      user_full->photos.clear();
+      if (is_empty) {
+        user_full->photo_count = 0;
+      } else {
+        user_full->photo_count = -1;
+      }
+      user_full->photos_offset = user_full->photo_count;
+    }
+    return;
+  }
+
+  do_update_user_photo(u, user_id, std::move(photo));
+}
+
+void ContactsManager::do_update_user_photo(User *u, UserId user_id,
+                                           tl_object_ptr<telegram_api::UserProfilePhoto> &&photo) {
+  u->is_photo_inited = true;
+  ProfilePhoto new_photo = get_profile_photo(td_->file_manager_.get(), std::move(photo));
 
   if (new_photo != u->photo) {
     u->photo = new_photo;

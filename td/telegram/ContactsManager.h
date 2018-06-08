@@ -85,10 +85,10 @@ class ContactsManager : public Actor {
                                                                            AccessRights access_rights) const;
   bool have_input_encrypted_peer(SecretChatId secret_chat_id, AccessRights access_rights) const;
 
-  const DialogPhoto *get_user_dialog_photo(UserId user_id) const;
+  const DialogPhoto *get_user_dialog_photo(UserId user_id);
   const DialogPhoto *get_chat_dialog_photo(ChatId chat_id) const;
   const DialogPhoto *get_channel_dialog_photo(ChannelId channel_id) const;
-  const DialogPhoto *get_secret_chat_dialog_photo(SecretChatId secret_chat_id) const;
+  const DialogPhoto *get_secret_chat_dialog_photo(SecretChatId secret_chat_id);
 
   string get_user_title(UserId user_id) const;
   string get_chat_title(ChatId chat_id) const;
@@ -465,6 +465,8 @@ class ContactsManager : public Actor {
     bool is_inline_bot = false;
     bool need_location_bot = false;
 
+    bool is_photo_inited = false;
+
     bool is_name_changed = true;
     bool is_username_changed = true;
     bool is_photo_changed = true;
@@ -819,9 +821,11 @@ class ContactsManager : public Actor {
 
   void on_update_user_name(User *u, UserId user_id, string &&first_name, string &&last_name, string &&username);
   void on_update_user_phone_number(User *u, UserId user_id, string &&phone_number);
-  void on_update_user_photo(User *u, UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo_ptr);
+  void on_update_user_photo(User *u, UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo);
   void on_update_user_online(User *u, UserId user_id, tl_object_ptr<telegram_api::UserStatus> &&status);
   void on_update_user_links(User *u, UserId user_id, LinkState outbound, LinkState inbound);
+
+  void do_update_user_photo(User *u, UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo);
 
   void on_update_user_full_is_blocked(UserFull *user_full, UserId user_id, bool is_blocked);
   bool on_update_user_full_bot_info(UserFull *user_full, UserId user_id, int32 bot_info_version,
@@ -1013,6 +1017,7 @@ class ContactsManager : public Actor {
   std::unordered_map<UserId, User, UserIdHash> users_;
   std::unordered_map<UserId, UserFull, UserIdHash> users_full_;
   mutable std::unordered_set<UserId, UserIdHash> unknown_users_;
+  std::unordered_map<UserId, tl_object_ptr<telegram_api::UserProfilePhoto>, UserIdHash> pending_user_photos_;
 
   std::unordered_map<ChatId, Chat, ChatIdHash> chats_;
   std::unordered_map<ChatId, ChatFull, ChatIdHash> chats_full_;
