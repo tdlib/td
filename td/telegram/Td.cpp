@@ -6981,7 +6981,14 @@ void Td::on_request(uint64 id, td_api::removeRecentHashtag &request) {
 void Td::on_request(uint64 id, td_api::acceptTermsOfService &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.terms_of_service_id_);
-  CREATE_OK_REQUEST_PROMISE(promise);
+  auto promise = PromiseCreator::lambda([id = id, actor_id = actor_id(this)](Result<> result) mutable {
+    if (result.is_error()) {
+      send_closure(actor_id, &Td::send_error, id, result.move_as_error());
+    } else {
+      send_closure(actor_id, &Td::send_result, id, td_api::make_object<td_api::ok>());
+      send_closure(actor_id, &Td::schedule_get_terms_of_service, 0);
+    }
+  });
   accept_terms_of_service(this, std::move(request.terms_of_service_id_), std::move(promise));
 }
 
