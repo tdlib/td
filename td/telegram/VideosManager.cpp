@@ -195,7 +195,7 @@ SecretInputMedia VideosManager::get_secret_input_media(FileId video_file_id,
   CHECK(video != nullptr);
   auto file_view = td_->file_manager_->get_file_view(video_file_id);
   auto &encryption_key = file_view.encryption_key();
-  if (encryption_key.empty()) {
+  if (!file_view.is_encrypted_secret() || encryption_key.empty()) {
     return SecretInputMedia{};
   }
   if (file_view.has_remote_location()) {

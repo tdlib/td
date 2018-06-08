@@ -595,7 +595,7 @@ SecretInputMedia photo_get_secret_input_media(FileManager *file_manager, const P
   }
   auto file_view = file_manager->get_file_view(file_id);
   auto &encryption_key = file_view.encryption_key();
-  if (encryption_key.empty()) {
+  if (!file_view.is_encrypted_secret() || encryption_key.empty()) {
     return {};
   }
   if (file_view.has_remote_location()) {

@@ -426,7 +426,7 @@ const DocumentsManager::Document *DocumentsManager::get_document(FileId file_id)
 bool DocumentsManager::has_input_media(FileId file_id, FileId thumbnail_file_id, bool is_secret) const {
   auto file_view = td_->file_manager_->get_file_view(file_id);
   if (is_secret) {
-    if (file_view.encryption_key().empty() || !file_view.has_remote_location()) {
+    if (!file_view.is_encrypted_secret() || file_view.encryption_key().empty() || !file_view.has_remote_location()) {
       return false;
     }
 
@@ -446,7 +446,7 @@ SecretInputMedia DocumentsManager::get_secret_input_media(FileId document_file_i
   CHECK(document != nullptr);
   auto file_view = td_->file_manager_->get_file_view(document_file_id);
   auto &encryption_key = file_view.encryption_key();
-  if (encryption_key.empty()) {
+  if (!file_view.is_encrypted_secret() || encryption_key.empty()) {
     return SecretInputMedia{};
   }
   if (file_view.has_remote_location()) {
