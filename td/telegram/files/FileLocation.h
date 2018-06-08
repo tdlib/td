@@ -166,7 +166,7 @@ struct FileEncryptionKey {
     }
     CHECK(key_iv_.size() == 64);
     MutableSlice(key_iv_).copy_from(key);
-    MutableSlice(key_iv_).remove_suffix(key.size()).copy_from(iv);
+    MutableSlice(key_iv_).substr(key.size()).copy_from(iv);
   }
 
   explicit FileEncryptionKey(const secure_storage::Secret &secret) : type_(Type::Secure) {
