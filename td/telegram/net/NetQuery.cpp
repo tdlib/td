@@ -38,6 +38,21 @@ int32 NetQuery::tl_magic(const BufferSlice &buffer_slice) {
   return as<int32>(slice.begin());
 }
 
+void NetQuery::set_error(Status status, string source) {
+  if (status.code() == Error::Resend || status.code() == Error::Cancelled ||
+      status.code() == Error::ResendInvokeAfter) {
+    return set_error_impl(Status::Error(200, PSLICE() << status), std::move(source));
+  }
+
+  if (status.message() == "INPUT_METHOD_INVALID") {
+    LOG(ERROR) << "Receive INPUT_METHOD_INVALID for query " << format::as_hex_dump<4>(Slice(query_.as_slice()));
+  }
+  if (status.message() == "BOT_METHOD_INVALID") {
+    LOG(ERROR) << "Receive BOT_METHOD_INVALID for query " << format::as_hex(tl_constructor());
+  }
+  set_error_impl(std::move(status), std::move(source));
+}
+
 void dump_pending_network_queries() {
   auto n = NetQueryCounter::get_count();
   LOG(WARNING) << tag("pending net queries", n);

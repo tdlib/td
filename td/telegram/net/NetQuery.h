@@ -133,13 +133,7 @@ class NetQuery : public ListNode {
   void on_net_write(size_t size);
   void on_net_read(size_t size);
 
-  void set_error(Status status, string source = "") {
-    if (status.code() == Error::Resend || status.code() == Error::Cancelled ||
-        status.code() == Error::ResendInvokeAfter) {
-      return set_error_impl(Status::Error(200, PSLICE() << status), std::move(source));
-    }
-    set_error_impl(std::move(status), source);
-  }
+  void set_error(Status status, string source = "");
 
   void set_error_resend() {
     set_error_impl(Status::Error<Error::Resend>());
