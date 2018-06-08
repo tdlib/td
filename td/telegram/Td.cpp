@@ -3892,7 +3892,7 @@ void Td::on_get_terms_of_service(Result<std::pair<int32, TermsOfService>> result
 }
 
 void Td::schedule_get_terms_of_service(int32 expires_in) {
-  if (!close_flag_) {
+  if (!close_flag_ && !auth_manager_->is_bot()) {
     alarm_timeout_.set_timeout_in(TERMS_OF_SERVICE_ALARM_ID, expires_in);
   }
 }
