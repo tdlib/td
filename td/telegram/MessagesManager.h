@@ -1622,6 +1622,8 @@ class MessagesManager : public Actor {
 
     bool increment_view_counter = false;
 
+    bool is_update_new_chat_sent = false;
+
     int32 pts = 0;                                                     // for channels only
     std::multimap<int32, PendingPtsUpdate> postponed_channel_updates;  // for channels only
     int32 retry_get_difference_timeout = 1;                            // for channels only
@@ -2211,7 +2213,7 @@ class MessagesManager : public Actor {
   void send_update_delete_messages(DialogId dialog_id, vector<int64> &&message_ids, bool is_permanent,
                                    bool from_cache) const;
 
-  void send_update_chat(Dialog *d);
+  void send_update_new_chat(Dialog *d);
 
   void send_update_chat_draft_message(const Dialog *d);
 
