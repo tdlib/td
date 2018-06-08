@@ -6449,6 +6449,10 @@ void MessagesManager::on_scope_unmute(NotificationSettingsScope scope) {
 
 void MessagesManager::on_update_dialog_notify_settings(
     DialogId dialog_id, tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   LOG(INFO) << "Receive notification settings for " << dialog_id << ": " << to_string(peer_notify_settings);
 
   const DialogNotificationSettings notification_settings =
@@ -6466,6 +6470,10 @@ void MessagesManager::on_update_dialog_notify_settings(
 
 void MessagesManager::on_update_scope_notify_settings(
     NotificationSettingsScope scope, tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   const ScopeNotificationSettings notification_settings =
       get_scope_notification_settings(std::move(peer_notify_settings));
   if (!notification_settings.is_synchronized) {
