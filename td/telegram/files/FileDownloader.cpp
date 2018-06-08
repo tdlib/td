@@ -38,7 +38,7 @@ FileDownloader::FileDownloader(const FullRemoteFileLocation &remote, const Local
     , callback_(std::move(callback))
     , is_small_(is_small)
     , search_file_(search_file) {
-  if (!encryption_key.is_secret()) {
+  if (encryption_key.is_secret()) {
     set_ordered_flag(true);
   }
 }
