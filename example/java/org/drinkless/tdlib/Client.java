@@ -18,14 +18,16 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public final class Client implements Runnable {
     /**
      * Interface for handler for results of queries to TDLib and incoming updates from TDLib.
+     *
+     * @param <T> The result type
      */
-    public interface ResultHandler {
+    public interface ResultHandler<T extends TdApi.Object> {
         /**
          * Callback called on result of query to TDLib or incoming update from TDLib.
          *
          * @param object Result of query or update of type TdApi.Update about new events.
          */
-        void onResult(TdApi.Object object);
+        void onResult(T object);
     }
 
     /**
