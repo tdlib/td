@@ -2530,7 +2530,7 @@ void ContactsManager::User::parse(ParserT &parser) {
   if (has_language_code) {
     parse(language_code, parser);
   }
-  if (first_name.empty()) {
+  if (first_name.empty() && last_name.empty()) {
     first_name = phone_number;
   }
 }
@@ -6618,7 +6618,7 @@ void ContactsManager::on_update_user_name(UserId user_id, string &&first_name, s
 
 void ContactsManager::on_update_user_name(User *u, UserId user_id, string &&first_name, string &&last_name,
                                           string &&username) {
-  if (first_name.empty()) {
+  if (first_name.empty() && last_name.empty()) {
     first_name = u->phone_number;
   }
   if (u->first_name != first_name || u->last_name != last_name) {
