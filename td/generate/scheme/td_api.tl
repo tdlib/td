@@ -2180,7 +2180,7 @@ updateSavedAnimations animation_ids:vector<int32> = Update;
 //@description The connection state has changed @state The new connection state
 updateConnectionState state:ConnectionState = Update;
 
-//@description A new terms of service should be accepted by the user @terms_of_service_id Terms of service identifier @terms_of_service The new terms of service
+//@description A new terms of service should be accepted by the user. If the terms of service are declined, then deleteAccount method should be called with "Decline ToS update" reason @terms_of_service_id Terms of service identifier @terms_of_service The new terms of service
 updateTermsOfService terms_of_service_id:string terms_of_service:termsOfService = Update;
 
 //@description A new incoming inline query; for bots only @id Unique query identifier @sender_user_id Identifier of the user who sent the query @user_location User location, provided by the client; may be null @query Text of the query @offset Offset of the first entry to return
