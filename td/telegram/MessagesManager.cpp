@@ -9620,32 +9620,40 @@ void MessagesManager::start_up() {
     }
     LOG(INFO) << "Load last_database_server_dialog_date_ = " << last_database_server_dialog_date_;
 
-    auto promoted_dialog_id_string = G()->td_db()->get_binlog_pmc()->get("promoted_dialog_id");
-    if (!promoted_dialog_id_string.empty()) {
-      auto r_dialog_id = to_integer_safe<int64>(promoted_dialog_id_string);
+    auto sponsored_dialog_id_string = G()->td_db()->get_binlog_pmc()->get("sponsored_dialog_id");
+    if (sponsored_dialog_id_string.empty()) {
+      sponsored_dialog_id_string = G()->td_db()->get_binlog_pmc()->get("promoted_dialog_id");
+      if (!sponsored_dialog_id_string.empty()) {
+        G()->td_db()->get_binlog_pmc()->erase("promoted_dialog_id");
+        G()->td_db()->get_binlog_pmc()->set("sponsored_dialog_id", sponsored_dialog_id_string);
+      }
+    }
+    if (!sponsored_dialog_id_string.empty()) {
+      auto r_dialog_id = to_integer_safe<int64>(sponsored_dialog_id_string);
       if (r_dialog_id.is_error()) {
-        LOG(ERROR) << "Can't parse " << promoted_dialog_id_string;
+        LOG(ERROR) << "Can't parse " << sponsored_dialog_id_string;
       } else {
-        promoted_dialog_id_ = DialogId(r_dialog_id.ok());
-        if (!promoted_dialog_id_.is_valid()) {
-          LOG(ERROR) << "Have invalid chat ID " << promoted_dialog_id_string;
-          promoted_dialog_id_ = DialogId();
+        sponsored_dialog_id_ = DialogId(r_dialog_id.ok());
+        if (!sponsored_dialog_id_.is_valid()) {
+          LOG(ERROR) << "Have invalid chat ID " << sponsored_dialog_id_string;
+          sponsored_dialog_id_ = DialogId();
         } else {
-          Dialog *d = get_dialog_force(promoted_dialog_id_);
+          Dialog *d = get_dialog_force(sponsored_dialog_id_);
           if (d == nullptr) {
-            LOG(ERROR) << "Can't load " << promoted_dialog_id_;
-            promoted_dialog_id_ = DialogId();
+            LOG(ERROR) << "Can't load " << sponsored_dialog_id_;
+            sponsored_dialog_id_ = DialogId();
           }
         }
       }
     }
-    if (promoted_dialog_id_.is_valid()) {
-      send_update_promoted_chat();
+    if (sponsored_dialog_id_.is_valid()) {
+      send_update_sponsored_chat();
     }
   } else {
     G()->td_db()->get_binlog_pmc()->erase("last_server_dialog_date");
     G()->td_db()->get_binlog_pmc()->erase("unread_message_count");
     G()->td_db()->get_binlog_pmc()->erase("promoted_dialog_id");
+    G()->td_db()->get_binlog_pmc()->erase("sponsored_dialog_id");
   }
 
   if (G()->parameters().use_message_db) {
@@ -19165,10 +19173,10 @@ void MessagesManager::send_update_chat_unread_mention_count(const Dialog *d) {
   }
 }
 
-void MessagesManager::send_update_promoted_chat() const {
+void MessagesManager::send_update_sponsored_chat() const {
   if (!td_->auth_manager_->is_bot()) {
-    LOG(INFO) << "Update promoted chat to " << promoted_dialog_id_;
-    send_closure(G()->td(), &Td::send_update, make_tl_object<td_api::updatePromotedChat>(promoted_dialog_id_.get()));
+    LOG(INFO) << "Update sponsored chat to " << sponsored_dialog_id_;
+    send_closure(G()->td(), &Td::send_update, make_tl_object<td_api::updatePromotedChat>(sponsored_dialog_id_.get()));
   }
 }
 
@@ -24354,13 +24362,13 @@ void MessagesManager::update_dialog_pos(Dialog *d, bool remove_from_dialog_list,
         }
       }
     }
-    if (d->dialog_id != promoted_dialog_id_ && new_order == DEFAULT_ORDER && !d->is_empty) {
+    if (d->dialog_id != sponsored_dialog_id_ && new_order == DEFAULT_ORDER && !d->is_empty) {
       // if there is no known messages in the dialog, just leave it where it is
       LOG(INFO) << "There is no known messages in the dialog";
       return;
     }
   }
-  if (new_order == DEFAULT_ORDER && d->dialog_id == promoted_dialog_id_) {
+  if (new_order == DEFAULT_ORDER && d->dialog_id == sponsored_dialog_id_) {
     new_order = static_cast<int64>(2147483647) << 32;
   }
 
@@ -25971,51 +25979,51 @@ void MessagesManager::get_payment_receipt(FullMessageId full_message_id,
   td::get_payment_receipt(message_id.get_server_message_id(), std::move(promise));
 }
 
-void MessagesManager::on_get_promoted_dialog_id(tl_object_ptr<telegram_api::Peer> peer,
-                                                vector<tl_object_ptr<telegram_api::User>> users,
-                                                vector<tl_object_ptr<telegram_api::Chat>> chats) {
+void MessagesManager::on_get_sponsored_dialog_id(tl_object_ptr<telegram_api::Peer> peer,
+                                                 vector<tl_object_ptr<telegram_api::User>> users,
+                                                 vector<tl_object_ptr<telegram_api::Chat>> chats) {
   if (peer == nullptr) {
-    set_promoted_dialog_id(DialogId());
+    set_sponsored_dialog_id(DialogId());
     return;
   }
 
   td_->contacts_manager_->on_get_users(std::move(users));
   td_->contacts_manager_->on_get_chats(std::move(chats));
 
-  set_promoted_dialog_id(DialogId(peer));
+  set_sponsored_dialog_id(DialogId(peer));
 }
 
-void MessagesManager::set_promoted_dialog_id(DialogId dialog_id) {
-  if (promoted_dialog_id_ == dialog_id) {
+void MessagesManager::set_sponsored_dialog_id(DialogId dialog_id) {
+  if (sponsored_dialog_id_ == dialog_id) {
     return;
   }
 
-  if (promoted_dialog_id_.is_valid()) {
-    Dialog *d = get_dialog(promoted_dialog_id_);
+  if (sponsored_dialog_id_.is_valid()) {
+    Dialog *d = get_dialog(sponsored_dialog_id_);
     CHECK(d != nullptr);
-    promoted_dialog_id_ = DialogId();
-    update_dialog_pos(d, false, "delete_promoted_dialog_id");
+    sponsored_dialog_id_ = DialogId();
+    update_dialog_pos(d, false, "delete_sponsored_dialog_id");
   }
 
   if (dialog_id.is_valid()) {
-    force_create_dialog(dialog_id, "set_promoted_dialog_id");
+    force_create_dialog(dialog_id, "set_sponsored_dialog_id");
 
     Dialog *d = get_dialog(dialog_id);
     CHECK(d != nullptr);
-    promoted_dialog_id_ = dialog_id;
-    update_dialog_pos(d, false, "set_promoted_dialog_id");
+    sponsored_dialog_id_ = dialog_id;
+    update_dialog_pos(d, false, "set_sponsored_dialog_id");
   }
 
   if (G()->parameters().use_message_db) {
-    if (promoted_dialog_id_.is_valid()) {
-      G()->td_db()->get_binlog_pmc()->set("promoted_dialog_id", to_string(promoted_dialog_id_.get()));
+    if (sponsored_dialog_id_.is_valid()) {
+      G()->td_db()->get_binlog_pmc()->set("sponsored_dialog_id", to_string(sponsored_dialog_id_.get()));
     } else {
-      G()->td_db()->get_binlog_pmc()->erase("promoted_dialog_id");
+      G()->td_db()->get_binlog_pmc()->erase("sponsored_dialog_id");
     }
-    LOG(INFO) << "Save promoted " << promoted_dialog_id_;
+    LOG(INFO) << "Save sponsored " << sponsored_dialog_id_;
   }
 
-  send_update_promoted_chat();
+  send_update_sponsored_chat();
 }
 
 }  // namespace td

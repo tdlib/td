@@ -1401,9 +1401,9 @@ class MessagesManager : public Actor {
 
   void on_get_dialog_query_finished(DialogId dialog_id, Status &&status);
 
-  void on_get_promoted_dialog_id(tl_object_ptr<telegram_api::Peer> peer,
-                                 vector<tl_object_ptr<telegram_api::User>> users,
-                                 vector<tl_object_ptr<telegram_api::Chat>> chats);
+  void on_get_sponsored_dialog_id(tl_object_ptr<telegram_api::Peer> peer,
+                                  vector<tl_object_ptr<telegram_api::User>> users,
+                                  vector<tl_object_ptr<telegram_api::Chat>> chats);
 
   void on_binlog_events(vector<BinlogEvent> &&events);
 
@@ -2229,7 +2229,7 @@ class MessagesManager : public Actor {
 
   void send_update_chat_unread_mention_count(const Dialog *d);
 
-  void send_update_promoted_chat() const;
+  void send_update_sponsored_chat() const;
 
   tl_object_ptr<td_api::message> get_message_object(DialogId dialog_id, const Message *message) const;
 
@@ -2612,7 +2612,7 @@ class MessagesManager : public Actor {
   void on_upload_dialog_photo(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file);
   void on_upload_dialog_photo_error(FileId file_id, Status status);
 
-  void set_promoted_dialog_id(DialogId dialog_id);
+  void set_sponsored_dialog_id(DialogId dialog_id);
 
   static uint64 get_sequence_dispatcher_id(DialogId dialog_id, int32 message_content_type);
 
@@ -2904,7 +2904,7 @@ class MessagesManager : public Actor {
 
   std::unordered_map<DialogId, NetQueryRef, DialogIdHash> set_typing_query_;
 
-  DialogId promoted_dialog_id_;
+  DialogId sponsored_dialog_id_;
 
   Td *td_;
   ActorShared<> parent_;
