@@ -3826,18 +3826,24 @@ void Td::on_alarm_timeout(int64 alarm_id) {
     on_online_updated(false, true);
     return;
   }
-  if (alarm_id == PING_SERVER_ALARM_ID && updates_manager_ != nullptr) {
-    updates_manager_->ping_server();
-    alarm_timeout_.set_timeout_in(PING_SERVER_ALARM_ID, PING_SERVER_TIMEOUT + Random::fast(0, PING_SERVER_TIMEOUT / 5));
+  if (alarm_id == PING_SERVER_ALARM_ID) {
+    if (!close_flag_ && updates_manager_ != nullptr) {
+      updates_manager_->ping_server();
+      alarm_timeout_.set_timeout_in(PING_SERVER_ALARM_ID,
+                                    PING_SERVER_TIMEOUT + Random::fast(0, PING_SERVER_TIMEOUT / 5));
+    }
     return;
   }
-  if (alarm_id == TERMS_OF_SERVICE_ALARM_ID && !close_flag_) {
-    get_terms_of_service(
-        this, PromiseCreator::lambda([actor_id = actor_id(this)](Result<std::pair<int32, TermsOfService>> result) {
-          send_closure(actor_id, &Td::on_get_terms_of_service, std::move(result), false);
-        }));
+  if (alarm_id == TERMS_OF_SERVICE_ALARM_ID) {
+    if (!close_flag_) {
+      get_terms_of_service(
+          this, PromiseCreator::lambda([actor_id = actor_id(this)](Result<std::pair<int32, TermsOfService>> result) {
+            send_closure(actor_id, &Td::on_get_terms_of_service, std::move(result), false);
+          }));
+    }
     return;
   }
+
   auto it = pending_alarms_.find(alarm_id);
   CHECK(it != pending_alarms_.end());
   uint64 request_id = it->second;
@@ -4413,6 +4419,7 @@ void Td::clear() {
     return;
   }
 
+  LOG(INFO) << "Clear Td";
   close_flag_ = 2;
 
   Timer timer;
