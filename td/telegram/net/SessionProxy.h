@@ -25,6 +25,7 @@ class SessionProxy : public Actor {
 
   void send(NetQueryPtr query);
   void update_main_flag(bool is_main);
+  void update_mtproto_header();
 
  private:
   std::shared_ptr<AuthDataShared> auth_data_;
@@ -34,6 +35,7 @@ class SessionProxy : public Actor {
   bool is_media_;
   bool use_pfs_;
   mtproto::AuthKey tmp_auth_key_;
+  std::vector<mtproto::ServerSalt> server_salts_;
   bool need_wait_for_key_;
   bool is_cdn_;
   ActorOwn<Session> session_;
@@ -47,6 +49,7 @@ class SessionProxy : public Actor {
 
   void update_auth_state();
   void on_tmp_auth_key_updated(mtproto::AuthKey auth_key);
+  void on_server_salt_updated(std::vector<mtproto::ServerSalt> server_salts);
 
   void start_up() override;
   void tear_down() override;

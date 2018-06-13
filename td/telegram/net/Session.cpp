@@ -107,7 +107,8 @@ class GenAuthKeyActor : public Actor {
 }  // namespace detail
 
 Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data, int32 dc_id,
-                 bool is_main, bool use_pfs, bool is_cdn, const mtproto::AuthKey &tmp_auth_key)
+                 bool is_main, bool use_pfs, bool is_cdn, const mtproto::AuthKey &tmp_auth_key,
+                 std::vector<mtproto::ServerSalt> server_salts)
     : dc_id_(dc_id), is_main_(is_main), is_cdn_(is_cdn) {
   VLOG(dc) << "Start connection";
 
@@ -118,6 +119,7 @@ Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> 
   auth_data_.set_future_salts(shared_auth_data_->get_future_salts(), Time::now());
   if (use_pfs && !tmp_auth_key.empty()) {
     auth_data_.set_tmp_auth_key(tmp_auth_key);
+    auth_data_.set_future_salts(std::move(server_salts), Time::now());
   }
   uint64 session_id = 0;
   Random::secure_bytes(reinterpret_cast<uint8 *>(&session_id), sizeof(session_id));
@@ -376,6 +378,7 @@ void Session::on_tmp_auth_key_updated() {
 
 void Session::on_server_salt_updated() {
   if (auth_data_.use_pfs()) {
+    callback_->on_server_salt_updated(auth_data_.get_future_salts());
     return;
   }
   shared_auth_data_->set_future_salts(auth_data_.get_future_salts());

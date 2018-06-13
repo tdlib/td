@@ -47,6 +47,10 @@ class SessionCallback : public Session::Callback {
     send_closure(parent_, &SessionProxy::on_tmp_auth_key_updated, std::move(auth_key));
   }
 
+  void on_server_salt_updated(std::vector<mtproto::ServerSalt> server_salts) override {
+    send_closure(parent_, &SessionProxy::on_server_salt_updated, std::move(server_salts));
+  }
+
  private:
   ActorShared<SessionProxy> parent_;
   DcId dc_id_;
@@ -128,6 +132,11 @@ void SessionProxy::on_failed() {
   open_session();
 }
 
+void SessionProxy::update_mtproto_header() {
+  close_session();
+  open_session();
+}
+
 void SessionProxy::on_closed() {
 }
 
@@ -154,7 +163,7 @@ void SessionProxy::open_session(bool force) {
   session_ = create_actor<Session>(
       name,
       make_unique<SessionCallback>(actor_shared(this, session_generation_), dc_id, allow_media_only_, is_media_, hash),
-      auth_data_, int_dc_id, is_main_, use_pfs_, is_cdn_, tmp_auth_key_);
+      auth_data_, int_dc_id, is_main_, use_pfs_, is_cdn_, tmp_auth_key_, server_salts_);
 }
 
 void SessionProxy::update_auth_state() {
@@ -186,6 +195,9 @@ void SessionProxy::on_tmp_auth_key_updated(mtproto::AuthKey auth_key) {
   }
   LOG(WARNING) << "tmp_auth_key " << auth_key.id() << ": " << state;
   tmp_auth_key_ = std::move(auth_key);
+}
+void SessionProxy::on_server_salt_updated(std::vector<mtproto::ServerSalt> server_salts) {
+  server_salts_ = std::move(server_salts);
 }
 
 }  // namespace td

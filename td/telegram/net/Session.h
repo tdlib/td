@@ -56,11 +56,14 @@ class Session final
     virtual void on_closed() = 0;
     virtual void request_raw_connection(Promise<std::unique_ptr<mtproto::RawConnection>>) = 0;
     virtual void on_tmp_auth_key_updated(mtproto::AuthKey auth_key) = 0;
+    virtual void on_server_salt_updated(std::vector<mtproto::ServerSalt> server_salts) {
+    }
     // one still have to call close after on_closed
   };
 
   Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data, int32 dc_id, bool is_main,
-          bool use_pfs, bool is_cdn, const mtproto::AuthKey &tmp_auth_key);
+          bool use_pfs, bool is_cdn, const mtproto::AuthKey &tmp_auth_key,
+          std::vector<mtproto::ServerSalt> server_salts);
   void send(NetQueryPtr &&query);
   void on_network(bool network_flag, uint32 network_generation);
   void on_online(bool online_flag);
