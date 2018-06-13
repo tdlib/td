@@ -42,6 +42,13 @@ class PromiseInterface {
       set_error(result.move_as_error());
     }
   }
+  virtual bool is_cancellable() const {
+    return false;
+  }
+  virtual bool is_cancelled() const {
+    return false;
+  }
+
   virtual void start_migrate(int32 sched_id) {
   }
   virtual void finish_migrate() {
@@ -110,6 +117,18 @@ class Promise {
     }
     promise_->finish_migrate();
   }
+  bool is_cancellable() const {
+    if (!promise_) {
+      return false;
+    }
+    return promise_->is_cancellable();
+  }
+  bool is_cancelled() const {
+    if (!promise_) {
+      return false;
+    }
+    return promise_->is_cancelled();
+  }
   std::unique_ptr<PromiseInterface<T>> release() {
     return std::move(promise_);
   }
@@ -168,6 +187,42 @@ Promise<T> &Promise<T>::operator=(SafePromise<T> &&other) {
   *this = other.release();
   return *this;
 }
+
+class CancellationToken {
+ public:
+  explicit CancellationToken(bool init = false) {
+    if (init) {
+      ptr_ = std::make_shared<std::atomic<bool>>(false);
+    }
+  }
+  CancellationToken(const CancellationToken &other) = default;
+  CancellationToken &operator=(const CancellationToken &other) {
+    cancel();
+    ptr_ = other.ptr_;
+    return *this;
+  }
+  CancellationToken(CancellationToken &&other) = default;
+  CancellationToken &operator=(CancellationToken &&other) {
+    cancel();
+    ptr_ = std::move(other.ptr_);
+    return *this;
+  }
+  ~CancellationToken() {
+    cancel();
+  }
+  bool is_canceled() const {
+    return !ptr_ || *ptr_;
+  }
+  void cancel() {
+    if (ptr_) {
+      ptr_->store(true, std::memory_order_relaxed);
+      ptr_.reset();
+    }
+  }
+
+ private:
+  std::shared_ptr<std::atomic<bool>> ptr_;
+};
 
 namespace detail {
 
@@ -238,6 +293,25 @@ struct DropResult<Result<T>> {
 
 template <class T>
 using drop_result_t = typename DropResult<T>::type;
+
+template <class PromiseT>
+class CancellablePromise : public PromiseT {
+ public:
+  template <class... ArgsT>
+  CancellablePromise(CancellationToken cancellation_token, ArgsT &&... args)
+      : PromiseT(std::forward<ArgsT>(args)...), cancellation_token_(std::move(cancellation_token)) {
+  }
+  virtual bool is_cancellable() const {
+    return true;
+    ;
+  }
+  virtual bool is_cancelled() const {
+    return cancellation_token_.is_canceled();
+  }
+
+ private:
+  CancellationToken cancellation_token_;
+};
 
 template <class ValueT, class FunctionOkT, class FunctionFailT>
 class LambdaPromise : public PromiseInterface<ValueT> {
@@ -547,6 +621,13 @@ class PromiseCreator {
   static Promise<ArgT> lambda(OkT &&ok, FailT &&fail) {
     return Promise<ArgT>(std::make_unique<detail::LambdaPromise<ArgT, std::decay_t<OkT>, std::decay_t<FailT>>>(
         std::forward<OkT>(ok), std::forward<FailT>(fail), false));
+  }
+
+  template <class OkT, class ArgT = detail::drop_result_t<detail::get_arg_t<OkT>>>
+  static auto cancellable_lambda(CancellationToken cancellation_token, OkT &&ok) {
+    return Promise<ArgT>(
+        std::make_unique<detail::CancellablePromise<detail::LambdaPromise<ArgT, std::decay_t<OkT>, Ignore>>>(
+            std::move(cancellation_token), std::forward<OkT>(ok), Ignore(), true));
   }
 
   static Promise<> event(EventFull &&ok) {

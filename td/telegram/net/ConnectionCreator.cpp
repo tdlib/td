@@ -800,9 +800,11 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
     auto begin = client.queries.begin();
     auto it = begin;
     while (it != client.queries.end() && !client.ready_connections.empty()) {
-      VLOG(connections) << "Send to promise " << tag("connection", client.ready_connections.back().first.get());
-      it->set_value(std::move(client.ready_connections.back().first));
-      client.ready_connections.pop_back();
+      if (!it->is_cancelled()) {
+        VLOG(connections) << "Send to promise " << tag("connection", client.ready_connections.back().first.get());
+        it->set_value(std::move(client.ready_connections.back().first));
+        client.ready_connections.pop_back();
+      }
       ++it;
     }
     client.queries.erase(begin, it);

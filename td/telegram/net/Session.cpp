@@ -65,6 +65,7 @@ class GenAuthKeyActor : public Actor {
   Promise<std::unique_ptr<mtproto::RawConnection>> connection_promise_;
   Promise<std::unique_ptr<mtproto::AuthKeyHandshake>> handshake_promise_;
   std::shared_ptr<Session::Callback> callback_;
+  CancellationToken cancellation_token_{true};
 
   ActorOwn<mtproto::HandshakeActor> child_;
 
@@ -72,7 +73,8 @@ class GenAuthKeyActor : public Actor {
     // Bug in Android clang and MSVC
     // std::tuple<Result<int>> b(std::forward_as_tuple(Result<int>()));
 
-    callback_->request_raw_connection(PromiseCreator::lambda(
+    callback_->request_raw_connection(PromiseCreator::cancellable_lambda(
+        cancellation_token_,
         [actor_id = actor_id(this)](Result<std::unique_ptr<mtproto::RawConnection>> r_raw_connection) {
           send_closure(actor_id, &GenAuthKeyActor::on_connection, std::move(r_raw_connection), false);
         }));
@@ -857,8 +859,10 @@ void Session::connection_open(ConnectionInfo *info, bool ask_info) {
   info->ask_info = ask_info;
 
   info->state = ConnectionInfo::State::Connecting;
+  info->cancellation_token_ = CancellationToken{true};
   // NB: rely on constant location of info
-  auto promise = PromiseCreator::lambda(
+  auto promise = PromiseCreator::cancellable_lambda(
+      info->cancellation_token_,
       [actor_id = actor_id(this), info = info](Result<std::unique_ptr<mtproto::RawConnection>> res) {
         send_closure(actor_id, &Session::connection_open_finish, info, std::move(res));
       });

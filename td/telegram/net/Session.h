@@ -125,6 +125,7 @@ class Session final
     int8 connection_id;
     Mode mode;
     enum class State : int8 { Empty, Connecting, Ready } state = State::Empty;
+    CancellationToken cancellation_token_;
     unique_ptr<mtproto::SessionConnection> connection;
     bool ask_info;
     double wakeup_at = 0;
