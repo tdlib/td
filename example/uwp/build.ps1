@@ -9,7 +9,7 @@ $ErrorActionPreference = "Stop"
 $vcpkg_root = Resolve-Path $vcpkg_root
 
 $vcpkg_cmake="${vcpkg_root}\scripts\buildsystems\vcpkg.cmake"
-$arch_list = @( "x86", "x64", "arm" )
+$arch_list = @( "x86", "x64", "ARM" )
 if ($arch) {
   $arch_list = @(, $arch)
 }
