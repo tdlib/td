@@ -6,7 +6,3 @@ auto/
 db_backup
 *.pyc
 docs/
-/.vs/td/v15/Browse.VC.opendb
-/.vs/td/v15/Browse.VC.db
-/.vs/slnx.sqlite
-/.vs/ProjectSettings.json
