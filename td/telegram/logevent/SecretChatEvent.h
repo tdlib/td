@@ -205,6 +205,10 @@ class InboundSecretMessage : public LogEventHelper<InboundSecretMessage, SecretC
   int32 my_out_seq_no = -1;
   int32 his_in_seq_no = -1;
 
+  int32 his_layer() const {
+    return decrypted_message_layer->layer_;
+  }
+
   EncryptedFileLocation file;
 
   bool has_encrypted_file;
@@ -291,6 +295,10 @@ class OutboundSecretMessage : public LogEventHelper<OutboundSecretMessage, Secre
   int32 my_in_seq_no = -1;
   int32 my_out_seq_no = -1;
   int32 his_in_seq_no = -1;
+
+  int32 his_layer() const {
+    return -1;
+  }
 
   bool is_sent = false;
   bool is_service = false;

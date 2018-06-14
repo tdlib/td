@@ -903,7 +903,7 @@ Status SecretChatActor::do_inbound_message_encrypted(std::unique_ptr<logevent::I
   return status;
 }
 
-Status SecretChatActor::check_seq_no(int in_seq_no, int out_seq_no) {
+Status SecretChatActor::check_seq_no(int in_seq_no, int out_seq_no, int32 his_layer) {
   if (in_seq_no < 0) {
     return Status::OK();
   }
@@ -924,6 +924,9 @@ Status SecretChatActor::check_seq_no(int in_seq_no, int out_seq_no) {
   if (seq_no_state_.my_out_seq_no < in_seq_no) {
     return Status::Error("in_seq_no is bigger than seq_no_state_.my_out_seq_no");
   }
+  if (his_layer < seq_no_state_.his_layer) {
+    return Status::Error("his_layer is not monotonic");
+  }
 
   return Status::OK();
 }
@@ -935,7 +938,7 @@ Status SecretChatActor::do_inbound_message_decrypted_unchecked(
   };
   auto in_seq_no = message->decrypted_message_layer->in_seq_no_;
   auto out_seq_no = message->decrypted_message_layer->out_seq_no_;
-  auto status = check_seq_no(in_seq_no, out_seq_no);
+  auto status = check_seq_no(in_seq_no, out_seq_no, message->his_layer());
   if (status.is_error() && status.code() != 2 /* not gap found */) {
     message->qts_ack.set_value(Unit());
     if (message->logevent_id()) {
@@ -1135,6 +1138,11 @@ void SecretChatActor::update_seq_no_state(const T &new_seq_no_state) {
     LOG(INFO) << "my_in_seq_no: " << seq_no_state_.my_in_seq_no << "--->" << new_seq_no_state.my_in_seq_no;
     seq_no_state_.my_in_seq_no = new_seq_no_state.my_in_seq_no;
     seq_no_state_.my_out_seq_no = new_seq_no_state.my_out_seq_no;
+
+    auto new_his_layer = new_seq_no_state.his_layer();
+    if (new_his_layer != -1) {
+      seq_no_state_.his_layer = new_his_layer;
+    }
 
     if (seq_no_state_.his_in_seq_no != new_seq_no_state.his_in_seq_no) {
       seq_no_state_.his_in_seq_no = new_seq_no_state.his_in_seq_no;

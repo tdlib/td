@@ -149,6 +149,7 @@ class SecretChatActor : public NetQueryCallback {
     int32 my_in_seq_no = 0;
     int32 my_out_seq_no = 0;
     int32 his_in_seq_no = 0;
+    int32 his_layer = 0;
 
     int32 resend_end_seq_no = -1;
 
@@ -157,11 +158,12 @@ class SecretChatActor : public NetQueryCallback {
     }
     template <class StorerT>
     void store(StorerT &storer) const {
-      storer.store_int(message_id);
+      storer.store_int(message_id | HAS_LAYER);
       storer.store_int(my_in_seq_no);
       storer.store_int(my_out_seq_no);
       storer.store_int(his_in_seq_no);
       storer.store_int(resend_end_seq_no);
+      storer.store_int(his_layer);
     }
 
     template <class ParserT>
@@ -171,7 +173,14 @@ class SecretChatActor : public NetQueryCallback {
       my_out_seq_no = parser.fetch_int();
       his_in_seq_no = parser.fetch_int();
       resend_end_seq_no = parser.fetch_int();
+
+      bool has_layer = (message_id & HAS_LAYER) != 0;
+      if (has_layer) {
+        message_id &= static_cast<int32>(~HAS_LAYER);
+        his_layer = parser.fetch_int();
+      }
     }
+    static constexpr uint32 HAS_LAYER = 1u << 31;
   };
 
   struct ConfigState {
@@ -516,7 +525,7 @@ class SecretChatActor : public NetQueryCallback {
   bool seq_no_state_changed_ = false;
   int32 last_binlog_message_id_ = -1;
 
-  Status check_seq_no(int in_seq_no, int out_seq_no) TD_WARN_UNUSED_RESULT;
+  Status check_seq_no(int in_seq_no, int out_seq_no, int32 his_layer) TD_WARN_UNUSED_RESULT;
   void on_his_in_seq_no_updated();
 
   void on_seq_no_state_changed();
