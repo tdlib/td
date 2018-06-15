@@ -73,7 +73,8 @@ class HandshakeConnection
     }
     packet.confirm_read(12);
 
-    TRY_STATUS(handshake_->on_message(packet.as_slice(), this, context_.get()));
+    auto fixed_packet_size = packet.size() & ~3;  // remove some padded data
+    TRY_STATUS(handshake_->on_message(packet.as_slice().truncate(fixed_packet_size), this, context_.get()));
     return Status::OK();
   }
 };
