@@ -33,6 +33,7 @@ class Transport : public IStreamTransport {
   }
 
   size_t max_prepend_size() const override;
+  size_t max_append_size() const override;
   TransportType get_type() const override {
     return {TransportType::Http, 0, ""};
   }

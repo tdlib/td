@@ -288,7 +288,7 @@ void ConnectionCreator::add_proxy(string server, int32 port, bool enable,
     }
     case td_api::proxyTypeMtproto::ID: {
       auto type = td_api::move_object_as<td_api::proxyTypeMtproto>(proxy_type);
-      if (type->secret_.size() != 32 || hex_decode(type->secret_).is_error()) {
+      if ((type->secret_.size() != 32 && type->secret_.size() != 34) || hex_decode(type->secret_).is_error()) {
         return promise.set_error(Status::Error(400, "Wrong server secret"));
       }
       new_proxy = Proxy::mtproto(server, port, type->secret_);

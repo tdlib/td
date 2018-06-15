@@ -27,7 +27,8 @@ void RawConnection::send_crypto(const Storer &storer, int64 session_id, int64 sa
   info.salt = salt;
   info.session_id = session_id;
 
-  auto packet = BufferWriter{mtproto::Transport::write(storer, auth_key, &info), transport_->max_prepend_size(), 0};
+  auto packet = BufferWriter{mtproto::Transport::write(storer, auth_key, &info), transport_->max_prepend_size(),
+                             transport_->max_append_size()};
   mtproto::Transport::write(storer, auth_key, &info, packet.as_slice());
 
   bool use_quick_ack = false;
@@ -47,8 +48,8 @@ uint64 RawConnection::send_no_crypto(const Storer &storer) {
   mtproto::PacketInfo info;
 
   info.no_crypto_flag = true;
-  auto packet =
-      BufferWriter{mtproto::Transport::write(storer, mtproto::AuthKey(), &info), transport_->max_prepend_size(), 0};
+  auto packet = BufferWriter{mtproto::Transport::write(storer, mtproto::AuthKey(), &info),
+                             transport_->max_prepend_size(), transport_->max_append_size()};
   mtproto::Transport::write(storer, mtproto::AuthKey(), &info, packet.as_slice());
   LOG(INFO) << "Send handshake packet: " << format::as_hex_dump<4>(packet.as_slice());
   transport_->write(std::move(packet), false);

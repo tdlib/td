@@ -30,6 +30,7 @@ class IStreamTransport {
   virtual bool can_write() const = 0;
   virtual void init(ChainBufferReader *input, ChainBufferWriter *output) = 0;
   virtual size_t max_prepend_size() const = 0;
+  virtual size_t max_append_size() const = 0;
   virtual TransportType get_type() const = 0;
 };
 

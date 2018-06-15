@@ -56,12 +56,20 @@ class AbridgedTransport : public ITransport {
 
 class IntermediateTransport : ITransport {
  public:
+  explicit IntermediateTransport(bool with_padding) : with_padding_(with_padding) {
+  }
   size_t read_from_stream(ChainBufferReader *stream, BufferSlice *message, uint32 *quick_ack) override;
   void write_prepare_inplace(BufferWriter *message, bool quick_ack) override;
   void init_output_stream(ChainBufferWriter *stream) override;
   bool support_quick_ack() const override {
     return true;
   }
+  bool with_padding() const {
+    return with_padding_;
+  }
+
+ private:
+  bool with_padding_;
 };
 
 using TransportImpl = IntermediateTransport;
@@ -94,12 +102,17 @@ class OldTransport : public IStreamTransport {
   size_t max_prepend_size() const override {
     return 4;
   }
+
+  size_t max_append_size() const override {
+    return 15;
+  }
+
   TransportType get_type() const override {
     return TransportType{TransportType::Tcp, 0, ""};
   }
 
  private:
-  TransportImpl impl_;
+  TransportImpl impl_{false};
   ChainBufferReader *input_;
   ChainBufferWriter *output_;
 };
@@ -138,14 +151,18 @@ class ObfuscatedTransport : public IStreamTransport {
     return 4;
   }
 
+  size_t max_append_size() const override {
+    return 15;
+  }
+
   TransportType get_type() const override {
     return TransportType{TransportType::ObfuscatedTcp, dc_id_, secret_};
   }
 
  private:
-  TransportImpl impl_;
   int16 dc_id_;
   std::string secret_;
+  TransportImpl impl_{secret_.size() >= 17};
   AesCtrByteFlow aes_ctr_byte_flow_;
   ByteFlowSink byte_flow_sink_;
   ChainBufferReader *input_;

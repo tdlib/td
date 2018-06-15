@@ -74,6 +74,10 @@ size_t Transport::max_prepend_size() const {
   return MAX_PREPEND_SIZE;
 }
 
+size_t Transport::max_append_size() const {
+  return 0;
+}
+
 }  // namespace http
 }  // namespace mtproto
 }  // namespace td

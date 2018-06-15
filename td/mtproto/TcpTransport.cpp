@@ -58,11 +58,20 @@ void IntermediateTransport::write_prepare_inplace(BufferWriter *message, bool qu
   CHECK(prepend.size() >= prepend_size);
   message->confirm_prepend(prepend_size);
 
-  as<uint32>(message->as_slice().begin()) = static_cast<uint32>(size);
+  size_t append_size = 0;
+  if (with_padding()) {
+    append_size = static_cast<uint32>(Random::secure_int32()) % 16;
+    MutableSlice append = message->prepare_append().truncate(append_size);
+    CHECK(append.size() == append_size);
+    Random::secure_bytes(append);
+    message->confirm_append(append.size());
+  }
+
+  as<uint32>(message->as_slice().begin()) = static_cast<uint32>(size + append_size);
 }
 
 void IntermediateTransport::init_output_stream(ChainBufferWriter *stream) {
-  const uint32 magic = 0xeeeeeeee;
+  const uint32 magic = with_padding() ? 0xdddddddd : 0xeeeeeeee;
   stream->append(Slice(reinterpret_cast<const char *>(&magic), 4));
 }
 
@@ -153,7 +162,7 @@ void ObfuscatedTransport::init(ChainBufferReader *input, ChainBufferWriter *outp
   }
   // TODO: It is actually IntermediateTransport::init_output_stream, so it will work only with
   // TransportImpl==IntermediateTransport
-  as<uint32>(header_slice.begin() + 56) = 0xeeeeeeee;
+  as<uint32>(header_slice.begin() + 56) = impl_.with_padding() ? 0xdddddddd : 0xeeeeeeee;
   if (dc_id_ != 0) {
     as<int16>(header_slice.begin() + 60) = dc_id_;
   }
@@ -161,6 +170,9 @@ void ObfuscatedTransport::init(ChainBufferReader *input, ChainBufferWriter *outp
   string rheader = header;
   std::reverse(rheader.begin(), rheader.end());
   auto key = as<UInt256>(rheader.data() + 8);
+  if (secret_.size() == 17) {
+    secret_ = secret_.substr(1);
+  }
   auto fix_key = [&](UInt256 &key) {
     if (secret_.size() == 16) {
       Sha256State state;
