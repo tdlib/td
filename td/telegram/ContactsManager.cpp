@@ -2948,7 +2948,13 @@ string ContactsManager::get_user_title(UserId user_id) const {
   if (u == nullptr) {
     return string();
   }
-  return u->last_name.empty() ? u->first_name : u->first_name + " " + u->last_name;
+  if (u->last_name.empty()) {
+    return u->first_name;
+  }
+  if (u->first_name.empty()) {
+    return u->last_name;
+  }
+  return PSTRING() << u->first_name << ' ' << u->last_name;
 }
 
 string ContactsManager::get_chat_title(ChatId chat_id) const {
