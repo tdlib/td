@@ -2893,11 +2893,15 @@ class CliClient final : public Actor {
                                                            nullptr, vector<int32>()));
     } else if (op == "dcm") {
       string chat_id;
-      string user_id;
+      string user_id_str;
 
-      std::tie(chat_id, user_id) = split(args);
-      send_request(make_tl_object<td_api::setChatMemberStatus>(as_chat_id(chat_id), as_user_id(user_id),
-                                                               make_tl_object<td_api::chatMemberStatusBanned>()));
+      std::tie(chat_id, user_id_str) = split(args);
+      auto user_id = as_user_id(user_id_str);
+      td_api::object_ptr<td_api::ChatMemberStatus> status = make_tl_object<td_api::chatMemberStatusBanned>();
+      if (user_id == my_id_) {
+        status = make_tl_object<td_api::chatMemberStatusLeft>();
+      }
+      send_request(make_tl_object<td_api::setChatMemberStatus>(as_chat_id(chat_id), user_id, std::move(status)));
     } else if (op == "sn") {
       string first_name;
       string last_name;

@@ -1872,6 +1872,7 @@ class MessagesManager : public Actor {
   static constexpr int32 MAX_RECENT_FOUND_DIALOGS = 20;        // some reasonable value
   static constexpr size_t MAX_CAPTION_LENGTH = 200;            // server side limit
   static constexpr size_t MAX_NAME_LENGTH = 255;               // server side limit for title and description
+  static constexpr int64 SPONSORED_DIALOG_ORDER = static_cast<int64>(2147483647) << 32;
   static constexpr int32 MIN_PINNED_DIALOG_DATE = 2147000000;  // some big date
   static constexpr int32 MAX_PRIVATE_MESSAGE_TTL = 60;         // server side limit
 
@@ -2229,7 +2230,7 @@ class MessagesManager : public Actor {
 
   void send_update_chat_unread_mention_count(const Dialog *d);
 
-  void send_update_sponsored_chat() const;
+  void send_update_chat_is_sponsored(const Dialog *d) const;
 
   tl_object_ptr<td_api::message> get_message_object(DialogId dialog_id, const Message *message) const;
 

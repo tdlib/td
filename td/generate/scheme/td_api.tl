@@ -533,6 +533,7 @@ chatTypeSecret secret_chat_id:int32 user_id:int32 = ChatType;
 //@last_message Last message in the chat; may be null
 //@order Descending parameter by which chats are sorted in the main chat list. If the order number of two chats is the same, they must be sorted in descending order by ID. If 0, the position of the chat in the list is undetermined
 //@is_pinned True, if the chat is pinned
+//@is_sponsored True, if the chat is sponsored by enabled proxy
 //@can_be_reported True, if the chat can be reported to Telegram moderators through reportChat
 //@default_disable_notification Default value of disable_notification parameter, used when a message is sent to the chat
 //@unread_count Number of unread messages in the chat
@@ -543,7 +544,7 @@ chatTypeSecret secret_chat_id:int32 user_id:int32 = ChatType;
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null
 //@client_data Contains client-specific data associated with the chat. (For example, the chat position or local chat notification settings can be stored here.) Persistent if a message database is used
-chat id:int53 type:ChatType title:string photo:chatPhoto last_message:message order:int64 is_pinned:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:chatNotificationSettings reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
+chat id:int53 type:ChatType title:string photo:chatPhoto last_message:message order:int64 is_pinned:Bool is_sponsored:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:chatNotificationSettings reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
 
 //@description Represents a list of chats @chat_ids List of chat identifiers
 chats chat_ids:vector<int53> = Chats;
@@ -2072,6 +2073,9 @@ updateChatOrder chat_id:int53 order:int64 = Update;
 //@description A chat was pinned or unpinned @chat_id Chat identifier @is_pinned New value of is_pinned @order New value of the chat order
 updateChatIsPinned chat_id:int53 is_pinned:Bool order:int64 = Update;
 
+//@description A chat is_sponsored field has changed @chat_id Chat identifier @is_sponsored New value of is_sponsored @order New value of chat order
+updateChatIsSponsored chat_id:int53 is_sponsored:Bool order:int64 = Update;
+
 //@description A value of default disable_notification parameter, used when a message is sent to the chat, was changed @chat_id Chat identifier @default_disable_notification The new default_disable_notification value
 updateChatDefaultDisableNotification chat_id:int53 default_disable_notification:Bool = Update;
 
@@ -2104,9 +2108,6 @@ updateDeleteMessages chat_id:int53 message_ids:vector<int53> is_permanent:Bool f
 
 //@description User activity in the chat has changed @chat_id Chat identifier @user_id Identifier of a user performing an action @action The action description
 updateUserChatAction chat_id:int53 user_id:int32 action:ChatAction = Update;
-
-//@description A promoted by enabled proxy chat has changed @chat_id Identifier of the promoted chat or 0 if none
-updatePromotedChat chat_id:int53 = Update;
 
 //@description The user went online or offline @user_id User identifier @status New status of the user
 updateUserStatus user_id:int32 status:UserStatus = Update;
