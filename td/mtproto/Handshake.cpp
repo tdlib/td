@@ -56,7 +56,7 @@ Result<size_t> AuthKeyHandshake::fill_data_with_hash(uint8 *data_with_hash, cons
 }
 
 Status AuthKeyHandshake::on_res_pq(Slice message, Callback *connection, PublicRsaKeyInterface *public_rsa_key) {
-  TRY_RESULT(res_pq, fetch_result<mtproto_api::req_pq_multi>(message));
+  TRY_RESULT(res_pq, fetch_result<mtproto_api::req_pq_multi>(message, false));
   if (res_pq->nonce_ != nonce) {
     return Status::Error("Nonce mismatch");
   }
@@ -116,7 +116,7 @@ Status AuthKeyHandshake::on_res_pq(Slice message, Callback *connection, PublicRs
 }
 
 Status AuthKeyHandshake::on_server_dh_params(Slice message, Callback *connection, DhCallback *dh_callback) {
-  TRY_RESULT(server_dh_params, fetch_result<mtproto_api::req_DH_params>(message));
+  TRY_RESULT(server_dh_params, fetch_result<mtproto_api::req_DH_params>(message, false));
   switch (server_dh_params->get_id()) {
     case mtproto_api::server_DH_params_ok::ID:
       break;
@@ -215,7 +215,7 @@ Status AuthKeyHandshake::on_server_dh_params(Slice message, Callback *connection
 }
 
 Status AuthKeyHandshake::on_dh_gen_response(Slice message, Callback *connection) {
-  TRY_RESULT(answer, fetch_result<mtproto_api::set_client_DH_params>(message));
+  TRY_RESULT(answer, fetch_result<mtproto_api::set_client_DH_params>(message, false));
   switch (answer->get_id()) {
     case mtproto_api::dh_gen_ok::ID:
       state_ = Finish;
