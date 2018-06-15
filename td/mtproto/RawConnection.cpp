@@ -64,6 +64,12 @@ Status RawConnection::flush_read(const AuthKey &auth_key, Callback &callback) {
     BufferSlice packet;
     uint32 quick_ack = 0;
     TRY_RESULT(wait_size, transport_->read_next(&packet, &quick_ack));
+    if (!is_aligned_pointer<4>(packet.as_slice().ubegin())) {
+      BufferSlice new_packet(packet.size());
+      new_packet.as_slice().copy_from(packet.as_slice());
+      packet = std::move(new_packet);
+    }
+    CHECK(is_aligned_pointer<4>(packet.as_slice().ubegin()));
     if (wait_size != 0) {
       break;
     }
