@@ -119,7 +119,8 @@ class OldTransport : public IStreamTransport {
 
 class ObfuscatedTransport : public IStreamTransport {
  public:
-  ObfuscatedTransport(int16 dc_id, std::string secret) : dc_id_(dc_id), secret_(std::move(secret)) {
+  ObfuscatedTransport(int16 dc_id, std::string secret)
+      : dc_id_(dc_id), secret_(std::move(secret)), impl_(secret_.size() >= 17) {
   }
   Result<size_t> read_next(BufferSlice *message, uint32 *quick_ack) override TD_WARN_UNUSED_RESULT {
     aes_ctr_byte_flow_.wakeup();
@@ -162,7 +163,7 @@ class ObfuscatedTransport : public IStreamTransport {
  private:
   int16 dc_id_;
   std::string secret_;
-  TransportImpl impl_{secret_.size() >= 17};
+  TransportImpl impl_;
   AesCtrByteFlow aes_ctr_byte_flow_;
   ByteFlowSink byte_flow_sink_;
   ChainBufferReader *input_;

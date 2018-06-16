@@ -18,6 +18,7 @@
 
 namespace td {
 namespace mtproto {
+
 template <class Object, class ObjectStorer>
 class ObjectImpl {
  public:
@@ -329,5 +330,6 @@ class CryptoImpl {
   uint64 message_id_;
   int32 seq_no_;
 };
+
 }  // namespace mtproto
 }  // namespace td

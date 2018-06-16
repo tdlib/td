@@ -279,6 +279,16 @@ void ConnectionCreator::add_proxy(string server, int32 port, bool enable,
     return promise.set_error(Status::Error(400, "Wrong port number"));
   }
 
+  auto is_secret_supported = [](Slice secret) {
+    if (secret.size() == 32) {
+      return true;
+    }
+    if (secret.size() == 34) {
+      return begins_with(secret, "dd");
+    }
+    return false;
+  };
+
   Proxy new_proxy;
   switch (proxy_type->get_id()) {
     case td_api::proxyTypeSocks5::ID: {
@@ -288,8 +298,11 @@ void ConnectionCreator::add_proxy(string server, int32 port, bool enable,
     }
     case td_api::proxyTypeMtproto::ID: {
       auto type = td_api::move_object_as<td_api::proxyTypeMtproto>(proxy_type);
-      if ((type->secret_.size() != 32 && type->secret_.size() != 34) || hex_decode(type->secret_).is_error()) {
-        return promise.set_error(Status::Error(400, "Wrong server secret"));
+      if (hex_decode(type->secret_).is_error()) {
+        return promise.set_error(Status::Error(400, "Wrong secret"));
+      }
+      if (!is_secret_supported(type->secret_)) {
+        return promise.set_error(Status::Error(400, "Unsupported secret"));
       }
       new_proxy = Proxy::mtproto(server, port, type->secret_);
       break;
