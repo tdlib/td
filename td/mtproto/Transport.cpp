@@ -285,29 +285,41 @@ Result<uint64> Transport::read_auth_key_id(Slice message) {
   return as<uint64>(message.begin());
 }
 
-Status Transport::read(MutableSlice message, const AuthKey &auth_key, PacketInfo *info, MutableSlice *data,
-                       int32 *error_code) {
-  if (message.size() < 8) {
-    if (message.size() >= 4) {
-      *error_code = as<int32>(message.begin());
-      return Status::OK();
+Result<Transport::ReadResult> Transport::read(MutableSlice message, const AuthKey &auth_key, PacketInfo *info) {
+  if (message.size() < 16) {
+    if (message.size() < 4) {
+      return Status::Error(PSLICE() << "Invalid mtproto message: smaller than 4 bytes [size=" << message.size() << "]");
     }
-    return Status::Error(PSLICE() << "Invalid mtproto message: smaller than 8 bytes [size=" << message.size() << "]");
+
+    auto code = as<int32>(message.begin());
+    if (code == 0) {
+      return ReadResult::make_nop();
+    } else if (code == -1) {
+      if (message.size() >= 8) {
+        return ReadResult::make_quick_ack(as<uint32>(message.begin() + 4));
+      }
+    } else {
+      return ReadResult::make_error(code);
+    }
+    return Status::Error(PSLICE() << "Invalid small mtproto message");
   }
+
   info->auth_key_id = as<int64>(message.begin());
   info->no_crypto_flag = info->auth_key_id == 0;
+  MutableSlice data;
   if (info->type == PacketInfo::EndToEnd) {
-    return read_e2e_crypto(message, auth_key, info, data);
+    TRY_STATUS(read_e2e_crypto(message, auth_key, info, &data));
   }
   if (info->no_crypto_flag) {
-    return read_no_crypto(message, info, data);
+    TRY_STATUS(read_no_crypto(message, info, &data));
   } else {
     if (auth_key.empty()) {
       return Status::Error("Failed to decrypt mtproto message: auth key is empty");
     }
-    return read_crypto(message, auth_key, info, data);
+    TRY_STATUS(read_crypto(message, auth_key, info, &data));
   }
-}
+  return ReadResult::make_packet(data);
+}  // namespace mtproto
 
 size_t Transport::write(const Storer &storer, const AuthKey &auth_key, PacketInfo *info, MutableSlice dest) {
   if (info->type == PacketInfo::EndToEnd) {

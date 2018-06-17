@@ -805,7 +805,7 @@ Result<std::tuple<uint64, BufferSlice, int32>> SecretChatActor::decrypt(BufferSl
 
   BufferSlice encrypted_message_copy;
   int32 mtproto_version = -1;
-  int32 error_code = 0;
+  Result<mtproto::Transport::ReadResult> r_read_result;
   for (size_t i = 0; i < versions.size(); i++) {
     bool is_last = i + 1 == versions.size();
     encrypted_message_copy = encrypted_message.copy();
@@ -817,19 +817,31 @@ Result<std::tuple<uint64, BufferSlice, int32>> SecretChatActor::decrypt(BufferSl
     mtproto_version = versions[i];
     info.version = mtproto_version;
     info.is_creator = auth_state_.x == 0;
-    auto status = mtproto::Transport::read(data, *auth_key, &info, &data, &error_code);
-    if (is_last) {
-      TRY_STATUS(std::move(status));
-    } else if (status.is_error()) {
-      LOG(WARNING) << tag("mtproto", mtproto_version) << " decryption failed " << status;
+    r_read_result = mtproto::Transport::read(data, *auth_key, &info);
+    if (!is_last && r_read_result.is_error()) {
+      LOG(WARNING) << tag("mtproto", mtproto_version) << " decryption failed " << r_read_result.error();
       continue;
     }
     break;
   }
-
-  if (error_code) {
-    return Status::Error(PSLICE() << "Got mtproto error code: " << error_code);
+  TRY_RESULT(read_result, std::move(r_read_result));
+  switch (read_result.type()) {
+    case mtproto::Transport::ReadResult::Quickack: {
+      return Status::Error("Got quickack instead of a message");
+    }
+    case mtproto::Transport::ReadResult::Error: {
+      return Status::Error(PSLICE() << "Got mtproto error code instead of a message: " << read_result.error());
+    }
+    case mtproto::Transport::ReadResult::Nop: {
+      return Status::Error("Got nop instead of a message");
+      break;
+    }
+    case mtproto::Transport::ReadResult::Packet: {
+      data = read_result.packet();
+      break;
+    }
   }
+
   auto len = as<int32>(data.begin());
   data = data.substr(4, len);
   if (!is_aligned_pointer<4>(data.data())) {
