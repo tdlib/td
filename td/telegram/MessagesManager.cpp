@@ -20011,15 +20011,25 @@ class MessagesManager::GetDialogFromServerLogEvent {
 
 void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise, uint64 logevent_id) {
   if (td_->auth_manager_->is_bot() || dialog_id.get_type() == DialogType::SecretChat) {
+    if (logevent_id != 0) {
+      BinlogHelper::erase(G()->td_db()->get_binlog(), logevent_id);
+    }
     return promise.set_error(Status::Error(500, "Wrong getDialog query"));
   }
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    if (logevent_id != 0) {
+      BinlogHelper::erase(G()->td_db()->get_binlog(), logevent_id);
+    }
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
 
   auto &promises = get_dialog_queries_[dialog_id];
   promises.push_back(std::move(promise));
   if (promises.size() != 1) {
+    if (logevent_id != 0) {
+      LOG(ERROR) << "Duplicate getDialog query for " << dialog_id;
+      BinlogHelper::erase(G()->td_db()->get_binlog(), logevent_id);
+    }
     // query has already been sent, just wait for the result
     return;
   }
