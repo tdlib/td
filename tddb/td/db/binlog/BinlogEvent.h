@@ -80,7 +80,7 @@ struct BinlogEvent {
   Status init(BufferSlice &&raw_event, bool check_crc = true) TD_WARN_UNUSED_RESULT;
 
   static BufferSlice create_raw(uint64 id, int32 type, int32 flags, const Storer &storer);
-  std::string public_to_string() {
+  std::string public_to_string() const {
     return PSTRING() << "LogEvent[" << tag("id", format::as_hex(id_)) << tag("type", type_) << tag("flags", flags_)
                      << tag("data", data_.size()) << "]";
   }

@@ -319,7 +319,7 @@ Result<Transport::ReadResult> Transport::read(MutableSlice message, const AuthKe
     TRY_STATUS(read_crypto(message, auth_key, info, &data));
   }
   return ReadResult::make_packet(data);
-}  // namespace mtproto
+}
 
 size_t Transport::write(const Storer &storer, const AuthKey &auth_key, PacketInfo *info, MutableSlice dest) {
   if (info->type == PacketInfo::EndToEnd) {

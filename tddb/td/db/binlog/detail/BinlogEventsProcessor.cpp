@@ -12,6 +12,7 @@
 
 namespace td {
 namespace detail {
+
 void BinlogEventsProcessor::do_event(BinlogEvent &&event) {
   offset_ = event.offset_;
   auto fixed_id = event.id_ * 2;
@@ -66,5 +67,6 @@ void BinlogEventsProcessor::compactify() {
   empty_events_ = 0;
   CHECK(ids_.size() == events_.size());
 }
+
 }  // namespace detail
 }  // namespace td
