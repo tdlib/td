@@ -18,7 +18,7 @@ void BinlogEventsProcessor::do_event(BinlogEvent &&event) {
   if ((event.flags_ & BinlogEvent::Flags::Rewrite) && !ids_.empty() && ids_.back() >= fixed_id) {
     auto it = std::lower_bound(ids_.begin(), ids_.end(), fixed_id);
     if (it == ids_.end() || *it != fixed_id) {
-      LOG(FATAL) << "Ignore rewrite logevent";
+      LOG(FATAL) << "Ignore rewrite logevent " << event.public_to_string();
       return;
     }
     auto pos = it - ids_.begin();
