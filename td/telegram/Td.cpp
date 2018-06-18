@@ -1282,6 +1282,31 @@ class EditMessageLiveLocationRequest : public RequestOnceActor {
   }
 };
 
+class EditMessageMediaRequest : public RequestOnceActor {
+  FullMessageId full_message_id_;
+  tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
+  tl_object_ptr<td_api::InputMessageContent> input_message_content_;
+
+  void do_run(Promise<Unit> &&promise) override {
+    td->messages_manager_->edit_message_media(full_message_id_, std::move(reply_markup_),
+                                              std::move(input_message_content_), std::move(promise));
+  }
+
+  void do_send_result() override {
+    send_result(td->messages_manager_->get_message_object(full_message_id_));
+  }
+
+ public:
+  EditMessageMediaRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id,
+                          tl_object_ptr<td_api::ReplyMarkup> reply_markup,
+                          tl_object_ptr<td_api::InputMessageContent> input_message_content)
+      : RequestOnceActor(std::move(td), request_id)
+      , full_message_id_(DialogId(dialog_id), MessageId(message_id))
+      , reply_markup_(std::move(reply_markup))
+      , input_message_content_(std::move(input_message_content)) {
+  }
+};
+
 class EditMessageCaptionRequest : public RequestOnceActor {
   FullMessageId full_message_id_;
   tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
@@ -1367,6 +1392,27 @@ class EditInlineMessageLiveLocationRequest : public RequestOnceActor {
       , inline_message_id_(std::move(inline_message_id))
       , reply_markup_(std::move(reply_markup))
       , location_(std::move(location)) {
+  }
+};
+
+class EditInlineMessageMediaRequest : public RequestOnceActor {
+  string inline_message_id_;
+  tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
+  tl_object_ptr<td_api::InputMessageContent> input_message_content_;
+
+  void do_run(Promise<Unit> &&promise) override {
+    td->messages_manager_->edit_inline_message_media(inline_message_id_, std::move(reply_markup_),
+                                                     std::move(input_message_content_), std::move(promise));
+  }
+
+ public:
+  EditInlineMessageMediaRequest(ActorShared<Td> td, uint64 request_id, string inline_message_id,
+                                tl_object_ptr<td_api::ReplyMarkup> reply_markup,
+                                tl_object_ptr<td_api::InputMessageContent> input_message_content)
+      : RequestOnceActor(std::move(td), request_id)
+      , inline_message_id_(std::move(inline_message_id))
+      , reply_markup_(std::move(reply_markup))
+      , input_message_content_(std::move(input_message_content)) {
   }
 };
 
@@ -5823,6 +5869,11 @@ void Td::on_request(uint64 id, td_api::editMessageLiveLocation &request) {
                  std::move(request.reply_markup_), std::move(request.location_));
 }
 
+void Td::on_request(uint64 id, td_api::editMessageMedia &request) {
+  CREATE_REQUEST(EditMessageMediaRequest, request.chat_id_, request.message_id_, std::move(request.reply_markup_),
+                 std::move(request.input_message_content_));
+}
+
 void Td::on_request(uint64 id, td_api::editMessageCaption &request) {
   CREATE_REQUEST(EditMessageCaptionRequest, request.chat_id_, request.message_id_, std::move(request.reply_markup_),
                  std::move(request.caption_));
@@ -5846,6 +5897,13 @@ void Td::on_request(uint64 id, td_api::editInlineMessageLiveLocation &request) {
   CLEAN_INPUT_STRING(request.inline_message_id_);
   CREATE_REQUEST(EditInlineMessageLiveLocationRequest, std::move(request.inline_message_id_),
                  std::move(request.reply_markup_), std::move(request.location_));
+}
+
+void Td::on_request(uint64 id, td_api::editInlineMessageMedia &request) {
+  CHECK_IS_BOT();
+  CLEAN_INPUT_STRING(request.inline_message_id_);
+  CREATE_REQUEST(EditInlineMessageMediaRequest, std::move(request.inline_message_id_), std::move(request.reply_markup_),
+                 std::move(request.input_message_content_));
 }
 
 void Td::on_request(uint64 id, td_api::editInlineMessageCaption &request) {

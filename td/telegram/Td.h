@@ -503,6 +503,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::editMessageLiveLocation &request);
 
+  void on_request(uint64 id, td_api::editMessageMedia &request);
+
   void on_request(uint64 id, td_api::editMessageCaption &request);
 
   void on_request(uint64 id, td_api::editMessageReplyMarkup &request);
@@ -510,6 +512,8 @@ class Td final : public NetQueryCallback {
   void on_request(uint64 id, td_api::editInlineMessageText &request);
 
   void on_request(uint64 id, td_api::editInlineMessageLiveLocation &request);
+
+  void on_request(uint64 id, td_api::editInlineMessageMedia &request);
 
   void on_request(uint64 id, td_api::editInlineMessageCaption &request);
 

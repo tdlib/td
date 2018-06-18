@@ -1109,6 +1109,9 @@ class MessagesManager : public Actor {
   void edit_message_live_location(FullMessageId full_message_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                   tl_object_ptr<td_api::location> &&input_location, Promise<Unit> &&promise);
 
+  void edit_message_media(FullMessageId full_message_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
+                          tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Promise<Unit> &&promise);
+
   void edit_message_caption(FullMessageId full_message_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                             tl_object_ptr<td_api::formattedText> &&input_caption, Promise<Unit> &&promise);
 
@@ -1122,6 +1125,10 @@ class MessagesManager : public Actor {
   void edit_inline_message_live_location(const string &inline_message_id,
                                          tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                          tl_object_ptr<td_api::location> &&input_location, Promise<Unit> &&promise);
+
+  void edit_inline_message_media(const string &inline_message_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
+                                 tl_object_ptr<td_api::InputMessageContent> &&input_message_content,
+                                 Promise<Unit> &&promise);
 
   void edit_inline_message_caption(const string &inline_message_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                    tl_object_ptr<td_api::formattedText> &&input_caption, Promise<Unit> &&promise);
@@ -1541,6 +1548,11 @@ class MessagesManager : public Actor {
 
     unique_ptr<ReplyMarkup> reply_markup;
 
+    unique_ptr<MessageContent> edited_content;
+    unique_ptr<ReplyMarkup> edited_reply_markup;
+    uint64 edit_generation = 0;
+    Promise<Unit> edit_promise;
+
     unique_ptr<Message> left;
     unique_ptr<Message> right;
 
@@ -1942,6 +1954,11 @@ class MessagesManager : public Actor {
 
   bool can_report_dialog(DialogId dialog_id) const;
 
+  void cancel_edit_message_media(DialogId dialog_id, Message *m);
+
+  void on_message_media_edited(DialogId dialog_id, MessageId message_id, FileId file_id, FileId thumbnail_file_id,
+                               uint64 generation, Result<Unit> &&result);
+
   MessageId get_persistent_message_id(const Dialog *d, MessageId message_id) const;
 
   static MessageId get_replied_message_id(const Message *m);
@@ -2145,6 +2162,8 @@ class MessagesManager : public Actor {
   bool is_message_auto_read(DialogId dialog_id, bool is_outgoing) const;
 
   void fail_send_message(FullMessageId full_message_id, int error_code, const string &error_message);
+
+  void fail_edit_message_media(FullMessageId full_message_id, Status &&error);
 
   void on_dialog_updated(DialogId dialog_id, const char *source);
 
@@ -2838,6 +2857,8 @@ class MessagesManager : public Actor {
   // uint32 preloaded_dialogs_ = 0;  // TODO remove variable
 
   int64 current_pinned_dialog_order_ = DEFAULT_ORDER;
+
+  uint64 current_message_edit_generation_ = 0;
 
   std::set<DialogDate> ordered_dialogs_;
   std::set<DialogDate> ordered_server_dialogs_;
