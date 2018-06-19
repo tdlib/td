@@ -13804,8 +13804,8 @@ void MessagesManager::read_history_on_server(Dialog *d, MessageId max_message_id
     d->read_history_logevent_id_generation++;
   }
 
-  pending_read_history_timeout_.set_timeout_in(
-      dialog_id.get(), d->is_opened && dialog_id.get_type() != DialogType::SecretChat ? MIN_READ_HISTORY_DELAY : 0);
+  bool need_delay = d->is_opened && dialog_id.get_type() != DialogType::SecretChat && d->server_unread_count > 0;
+  pending_read_history_timeout_.set_timeout_in(dialog_id.get(), need_delay ? MIN_READ_HISTORY_DELAY : 0);
 }
 
 void MessagesManager::read_history_on_server_impl(DialogId dialog_id, MessageId max_message_id) {
