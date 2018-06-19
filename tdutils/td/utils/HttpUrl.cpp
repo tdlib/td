@@ -29,11 +29,11 @@ string HttpUrl::get_url() const {
     result += userinfo_;
     result += '@';
   }
-  if (is_ipv6) {
+  if (is_ipv6_) {
     result += '[';
   }
   result += host_;
-  if (is_ipv6) {
+  if (is_ipv6_) {
     result += ']';
   }
   if (specified_port_ > 0) {

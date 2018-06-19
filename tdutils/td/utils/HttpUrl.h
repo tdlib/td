@@ -18,7 +18,7 @@ class HttpUrl {
   enum class Protocol { HTTP, HTTPS } protocol_;
   string userinfo_;
   string host_;
-  bool is_ipv6;
+  bool is_ipv6_;
   int specified_port_;
   int port_;
   string query_;

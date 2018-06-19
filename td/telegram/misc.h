@@ -7,6 +7,8 @@
 #pragma once
 
 #include "td/utils/common.h"
+#include "td/utils/Slice.h"
+#include "td/utils/Status.h"
 
 namespace td {
 
@@ -30,5 +32,8 @@ int32 get_vector_hash(const vector<uint32> &numbers) TD_WARN_UNUSED_RESULT;
 
 // returns emoji corresponding to the specified number
 string get_emoji_fingerprint(uint64 num);
+
+// checks whether url is a valid tg or HTTP(S) URL and returns its in a canonical form
+Result<string> check_url(MutableSlice url);
 
 }  // namespace td

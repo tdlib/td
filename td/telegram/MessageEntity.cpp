@@ -9,7 +9,6 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/misc.h"
 
-#include "td/utils/HttpUrl.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/unicode.h"
@@ -1329,10 +1328,10 @@ Result<vector<MessageEntity>> parse_markdown(string &text) {
           if (user_id.is_valid()) {
             entities.emplace_back(utf16_offset, utf16_entity_length, user_id);
           } else {
-            auto r_http_url = parse_url(url);
-            if (r_http_url.is_ok() && url.find('.') != string::npos) {
+            auto r_url = check_url(url);
+            if (r_url.is_ok()) {
               entities.emplace_back(MessageEntity::Type::TextUrl, utf16_offset, utf16_entity_length,
-                                    r_http_url.ok().get_url());
+                                    r_url.move_as_ok());
             }
           }
           break;
@@ -1585,10 +1584,9 @@ Result<vector<MessageEntity>> parse_html(string &text) {
         if (user_id.is_valid()) {
           entities.emplace_back(utf16_offset, utf16_entity_length, user_id);
         } else {
-          auto r_http_url = parse_url(url);
-          if (r_http_url.is_ok() && url.find('.') != string::npos) {
-            entities.emplace_back(MessageEntity::Type::TextUrl, utf16_offset, utf16_entity_length,
-                                  r_http_url.ok().get_url());
+          auto r_url = check_url(url);
+          if (r_url.is_ok()) {
+            entities.emplace_back(MessageEntity::Type::TextUrl, utf16_offset, utf16_entity_length, r_url.move_as_ok());
           }
         }
       } else if (tag_name == "pre") {
@@ -1746,12 +1744,11 @@ Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contac
         if (!clean_input_string(entity_text_url->url_)) {
           return Status::Error(400, "MessageEntityTextUrl.url must be encoded in UTF-8");
         }
-        auto r_http_url = parse_url(entity_text_url->url_);
-        if (r_http_url.is_error()) {
-          return Status::Error(400, PSTRING() << "Wrong message entity: " << r_http_url.error().message());
+        auto r_url = check_url(entity_text_url->url_);
+        if (r_url.is_error()) {
+          return Status::Error(400, PSTRING() << "Wrong message entity: " << r_url.error().message());
         }
-        entities.emplace_back(MessageEntity::Type::TextUrl, entity->offset_, entity->length_,
-                              r_http_url.ok().get_url());
+        entities.emplace_back(MessageEntity::Type::TextUrl, entity->offset_, entity->length_, r_url.move_as_ok());
         break;
       }
       case td_api::textEntityTypeMentionName::ID: {
@@ -1843,14 +1840,14 @@ vector<MessageEntity> get_message_entities(const ContactsManager *contacts_manag
       case telegram_api::messageEntityTextUrl::ID: {
         // TODO const telegram_api::messageEntityTextUrl *
         auto entity_text_url = static_cast<telegram_api::messageEntityTextUrl *>(entity.get());
-        auto r_http_url = parse_url(entity_text_url->url_);
-        if (r_http_url.is_error()) {
-          LOG(ERROR) << "Wrong URL entity: \"" << entity_text_url->url_ << "\": " << r_http_url.error().message()
-                     << " from " << source;
+        auto r_url = check_url(entity_text_url->url_);
+        if (r_url.is_error()) {
+          LOG(ERROR) << "Wrong URL entity: \"" << entity_text_url->url_ << "\": " << r_url.error().message() << " from "
+                     << source;
           continue;
         }
         entities.emplace_back(MessageEntity::Type::TextUrl, entity_text_url->offset_, entity_text_url->length_,
-                              r_http_url.ok().get_url());
+                              r_url.move_as_ok());
         break;
       }
       case telegram_api::messageEntityMentionName::ID: {
@@ -1947,13 +1944,13 @@ vector<MessageEntity> get_message_entities(vector<tl_object_ptr<secret_api::Mess
           LOG(WARNING) << "Wrong URL entity: \"" << entity_text_url->url_ << '"';
           continue;
         }
-        auto r_http_url = parse_url(entity_text_url->url_);
-        if (r_http_url.is_error()) {
-          LOG(WARNING) << "Wrong URL entity: \"" << entity_text_url->url_ << "\": " << r_http_url.error().message();
+        auto r_url = check_url(entity_text_url->url_);
+        if (r_url.is_error()) {
+          LOG(WARNING) << "Wrong URL entity: \"" << entity_text_url->url_ << "\": " << r_url.error().message();
           continue;
         }
         entities.emplace_back(MessageEntity::Type::TextUrl, entity_text_url->offset_, entity_text_url->length_,
-                              r_http_url.ok().get_url());
+                              r_url.move_as_ok());
         break;
       }
       case secret_api::messageEntityMentionName::ID:

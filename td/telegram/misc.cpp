@@ -7,6 +7,7 @@
 #include "td/telegram/misc.h"
 
 #include "td/utils/common.h"
+#include "td/utils/HttpUrl.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
@@ -272,6 +273,34 @@ string get_emoji_fingerprint(uint64 num) {
       u8"\U0001f537"};
 
   return emojis[(num & 0x7FFFFFFFFFFFFFFF) % emojis.size()].str();
+}
+
+Result<string> check_url(MutableSlice url) {
+  bool is_tg = false;
+  if (begins_with(url, "tg://")) {
+    url.remove_prefix(5);
+    is_tg = true;
+  } else if (begins_with(url, "tg:")) {
+    url.remove_prefix(3);
+    is_tg = true;
+  } else {
+    is_tg = false;
+  }
+  TRY_RESULT(http_url, parse_url(url));
+  if (is_tg) {
+    if (begins_with(url, "http://") || http_url.protocol_ == HttpUrl::Protocol::HTTPS || !http_url.userinfo_.empty() || http_url.specified_port_ != 0 || http_url.is_ipv6_) {
+      return Status::Error("Wrong tg URL");
+    }
+
+    auto result = http_url.get_url();
+    CHECK(begins_with(result, "http://"));
+    return PSTRING() << "tg" << Slice(result).substr(4);
+  }
+
+  if (url.find('.') == string::npos) {
+    return Status::Error("Wrong HTTP URL");
+  }
+  return http_url.get_url();
 }
 
 }  // namespace td

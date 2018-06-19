@@ -13,7 +13,6 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/format.h"
-#include "td/utils/HttpUrl.h"
 #include "td/utils/logging.h"
 
 namespace td {
@@ -363,8 +362,8 @@ static Result<InlineKeyboardButton> get_inline_keyboard_button(tl_object_ptr<td_
   switch (button_type_id) {
     case td_api::inlineKeyboardButtonTypeUrl::ID: {
       current_button.type = InlineKeyboardButton::Type::Url;
-      TRY_RESULT(http_url, parse_url(static_cast<td_api::inlineKeyboardButtonTypeUrl *>(button->type_.get())->url_));
-      current_button.data = http_url.get_url();
+      TRY_RESULT(url, check_url(static_cast<td_api::inlineKeyboardButtonTypeUrl *>(button->type_.get())->url_));
+      current_button.data = std::move(url);
       if (!clean_input_string(current_button.data)) {
         return Status::Error(400, "Inline keyboard button url must be encoded in UTF-8");
       }

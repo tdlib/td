@@ -582,7 +582,7 @@ keyboardButton text:string type:KeyboardButtonType = KeyboardButton;
 
 //@class InlineKeyboardButtonType @description Describes the type of an inline keyboard button
 
-//@description A button that opens a specified URL @url URL to open
+//@description A button that opens a specified URL @url HTTP or tg:// URL to open
 inlineKeyboardButtonTypeUrl url:string = InlineKeyboardButtonType;
 
 //@description A button that sends a special callback query to a bot @data Data to be sent to the bot via a callback query
@@ -1179,7 +1179,7 @@ textEntityTypePre = TextEntityType;
 //@description Text that must be formatted as if inside pre, and code HTML tags @language Programming language of the code; as defined by the sender
 textEntityTypePreCode language:string = TextEntityType;
 
-//@description A text description shown instead of a raw URL @url URL to be opened when the link is clicked
+//@description A text description shown instead of a raw URL @url HTTP or tg:// URL to be opened when the link is clicked
 textEntityTypeTextUrl url:string = TextEntityType;
 
 //@description A text shows instead of a raw mention of the user (e.g., when the user has no username) @user_id Identifier of the mentioned user
