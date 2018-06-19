@@ -288,13 +288,17 @@ Result<string> check_url(MutableSlice url) {
   }
   TRY_RESULT(http_url, parse_url(url));
   if (is_tg) {
-    if (begins_with(url, "http://") || http_url.protocol_ == HttpUrl::Protocol::HTTPS || !http_url.userinfo_.empty() || http_url.specified_port_ != 0 || http_url.is_ipv6_) {
+    if (begins_with(url, "http://") || http_url.protocol_ == HttpUrl::Protocol::HTTPS || !http_url.userinfo_.empty() ||
+        http_url.specified_port_ != 0 || http_url.is_ipv6_) {
       return Status::Error("Wrong tg URL");
     }
 
-    auto result = http_url.get_url();
-    CHECK(begins_with(result, "http://"));
-    return PSTRING() << "tg" << Slice(result).substr(4);
+    Slice query(http_url.query_);
+    CHECK(query[0] == '/');
+    if (query[1] == '?') {
+      query.remove_prefix(1);
+    }
+    return PSTRING() << "tg://" << http_url.host_ << query;
   }
 
   if (url.find('.') == string::npos) {
