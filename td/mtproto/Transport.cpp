@@ -309,8 +309,7 @@ Result<Transport::ReadResult> Transport::read(MutableSlice message, const AuthKe
   MutableSlice data;
   if (info->type == PacketInfo::EndToEnd) {
     TRY_STATUS(read_e2e_crypto(message, auth_key, info, &data));
-  }
-  if (info->no_crypto_flag) {
+  } else if (info->no_crypto_flag) {
     TRY_STATUS(read_no_crypto(message, info, &data));
   } else {
     if (auth_key.empty()) {
