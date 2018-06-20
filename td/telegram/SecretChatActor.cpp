@@ -352,6 +352,7 @@ void SecretChatActor::send_message_action(tl_object_ptr<secret_api::SendMessageA
   set_typing_query_ = net_query.get_weak();
   context_->send_net_query(std::move(net_query), actor_shared(this), false);
 }
+
 void SecretChatActor::send_read_history(int32 date, Promise<> promise) {
   if (close_flag_) {
     promise.set_error(Status::Error(400, "Chat is closed"));

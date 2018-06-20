@@ -1591,6 +1591,7 @@ class MessagesManager : public Actor {
     int32 local_unread_count = 0;
     int32 unread_mention_count = 0;
     MessageId last_read_inbox_message_id;
+    int32 last_read_inbox_message_date = 0;  // secret chats only
     MessageId last_read_outbox_message_id;
     MessageId reply_markup_message_id;
     DialogNotificationSettings notification_settings;
@@ -1859,6 +1860,7 @@ class MessagesManager : public Actor {
   class GetChannelDifferenceLogEvent;
   class ReadAllDialogMentionsOnServerLogEvent;
   class ReadHistoryOnServerLogEvent;
+  class ReadHistoryInSecretChatLogEvent;
   class ReadMessageContentsOnServerLogEvent;
   class ReorderPinnedDialogsOnServerLogEvent;
   class SaveDialogDraftMessageOnServerLogEvent;

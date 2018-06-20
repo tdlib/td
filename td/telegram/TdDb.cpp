@@ -88,6 +88,7 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::ChangeDialogReportSpamStateOnServer:
       case LogEvent::HandlerType::GetDialogFromServer:
       case LogEvent::HandlerType::GetChannelDifference:
+      case LogEvent::HandlerType::ReadHistoryInSecretChat:
         events.to_messages_manager.push_back(event.clone());
         break;
       case LogEvent::HandlerType::BinlogPmcMagic:

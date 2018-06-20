@@ -13778,6 +13778,24 @@ class MessagesManager::ReadHistoryOnServerLogEvent {
   }
 };
 
+class MessagesManager::ReadHistoryInSecretChatLogEvent {
+ public:
+  DialogId dialog_id_;
+  int32 max_date_ = 0;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(dialog_id_, storer);
+    td::store(max_date_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(dialog_id_, parser);
+    td::parse(max_date_, parser);
+  }
+};
+
 void MessagesManager::read_history_on_server(Dialog *d, MessageId max_message_id) {
   if (td_->auth_manager_->is_bot()) {
     return;
@@ -13786,7 +13804,32 @@ void MessagesManager::read_history_on_server(Dialog *d, MessageId max_message_id
   auto dialog_id = d->dialog_id;
   LOG(INFO) << "Read history in " << dialog_id << " on server up to " << max_message_id;
 
-  if (G()->parameters().use_message_db) {
+  bool is_secret = dialog_id.get_type() == DialogType::SecretChat;
+  if (is_secret) {
+    auto *m = get_message_force(d, max_message_id);
+    if (m == nullptr) {
+      LOG(ERROR) << "Failed to read history in " << dialog_id << " up to " << max_message_id;
+      return;
+    }
+
+    ReadHistoryInSecretChatLogEvent logevent;
+    logevent.dialog_id_ = dialog_id;
+    logevent.max_date_ = m->date;
+
+    d->last_read_inbox_message_date = m->date;
+
+    auto storer = LogEventStorerImpl<ReadHistoryInSecretChatLogEvent>(logevent);
+    if (d->read_history_logevent_id == 0) {
+      d->read_history_logevent_id =
+          BinlogHelper::add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ReadHistoryInSecretChat, storer);
+      LOG(INFO) << "Add read history logevent " << d->read_history_logevent_id;
+    } else {
+      auto new_logevent_id = BinlogHelper::rewrite(G()->td_db()->get_binlog(), d->read_history_logevent_id,
+                                                   LogEvent::HandlerType::ReadHistoryInSecretChat, storer);
+      LOG(INFO) << "Rewrite read history logevent " << d->read_history_logevent_id << " with " << new_logevent_id;
+    }
+    d->read_history_logevent_id_generation++;
+  } else if (G()->parameters().use_message_db) {
     ReadHistoryOnServerLogEvent logevent;
     logevent.dialog_id_ = dialog_id;
     logevent.max_message_id_ = max_message_id;
@@ -13804,7 +13847,7 @@ void MessagesManager::read_history_on_server(Dialog *d, MessageId max_message_id
     d->read_history_logevent_id_generation++;
   }
 
-  bool need_delay = d->is_opened && dialog_id.get_type() != DialogType::SecretChat && d->server_unread_count > 0;
+  bool need_delay = d->is_opened && !is_secret && d->server_unread_count > 0;
   pending_read_history_timeout_.set_timeout_in(dialog_id.get(), need_delay ? MIN_READ_HISTORY_DELAY : 0);
 }
 
@@ -13844,11 +13887,17 @@ void MessagesManager::read_history_on_server_impl(DialogId dialog_id, MessageId 
     }
     case DialogType::SecretChat: {
       auto secret_chat_id = dialog_id.get_secret_chat_id();
+      auto date = d->last_read_inbox_message_date;
       auto *message = get_message_force(d, max_message_id);
-      if (message != nullptr) {
-        send_closure(G()->secret_chats_manager(), &SecretChatsManager::send_read_history, secret_chat_id, message->date,
-                     std::move(promise));
+      if (message != nullptr && message->date > date) {
+        date = message->date;
       }
+      if (date == 0) {
+        LOG(ERROR) << "Don't know last read inbox message date in " << dialog_id;
+        break;
+      }
+      send_closure(G()->secret_chats_manager(), &SecretChatsManager::send_read_history, secret_chat_id, date,
+                   std::move(promise));
       break;
     }
     case DialogType::None:
@@ -25760,6 +25809,34 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         d->read_history_logevent_id_generation++;
 
         read_history_on_server_impl(dialog_id, log_event.max_message_id_);
+        break;
+      }
+      case LogEvent::HandlerType::ReadHistoryInSecretChat: {
+        ReadHistoryInSecretChatLogEvent log_event;
+        log_event_parse(log_event, event.data_).ensure();
+
+        auto dialog_id = log_event.dialog_id_;
+        CHECK(dialog_id.get_type() == DialogType::SecretChat);
+        if (!td_->contacts_manager_->have_secret_chat_force(dialog_id.get_secret_chat_id())) {
+          LOG(ERROR) << "Have no info about " << dialog_id;
+          BinlogHelper::erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+        force_create_dialog(dialog_id, "ReadHistoryInSecretChatLogEvent");
+        Dialog *d = get_dialog(dialog_id);
+        if (d == nullptr || !have_input_peer(dialog_id, AccessRights::Read)) {
+          BinlogHelper::erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+        if (d->read_history_logevent_id != 0) {
+          // we need only latest read history event
+          BinlogHelper::erase(G()->td_db()->get_binlog(), d->read_history_logevent_id);
+        }
+        d->read_history_logevent_id = event.id_;
+        d->read_history_logevent_id_generation++;
+        d->last_read_inbox_message_date = log_event.max_date_;
+
+        read_history_on_server_impl(dialog_id, MessageId());
         break;
       }
       case LogEvent::HandlerType::ReadMessageContentsOnServer: {
