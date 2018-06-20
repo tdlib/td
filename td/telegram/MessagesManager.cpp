@@ -8960,15 +8960,7 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
         << ". Possible only for deleted incoming message. " << td_->updates_manager_->get_state();
 
     if (dialog_id.get_type() == DialogType::SecretChat) {
-      // TODO: protect with logevent
-      suffix_load_till_message_id(
-          d, d->last_read_inbox_message_id,
-          PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, from_message_id = max_message_id,
-                                  till_message_id = d->last_read_inbox_message_id,
-                                  timestamp = Time::now()](Result<Unit>) {
-            send_closure(actor_id, &MessagesManager::ttl_read_history_inbox, dialog_id, from_message_id,
-                         till_message_id, timestamp);
-          }));
+      ttl_read_history(d, false, max_message_id, d->last_read_inbox_message_id, Time::now());
     }
 
     bool is_saved_messages = dialog_id == DialogId(td_->contacts_manager_->get_my_id("read_history_inbox"));
@@ -9033,14 +9025,7 @@ void MessagesManager::read_history_outbox(DialogId dialog_id, MessageId max_mess
       } else if (read_date < server_time) {
         read_time = read_date;
       }
-      // TODO: protect with logevent
-      suffix_load_till_message_id(
-          d, d->last_read_outbox_message_id,
-          PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, from_message_id = max_message_id,
-                                  till_message_id = d->last_read_outbox_message_id, read_time](Result<Unit>) {
-            send_closure(actor_id, &MessagesManager::ttl_read_history_outbox, dialog_id, from_message_id,
-                         till_message_id, read_time);
-          }));
+      ttl_read_history(d, true, max_message_id, d->last_read_outbox_message_id, read_time);
     }
 
     set_dialog_last_read_outbox_message_id(d, max_message_id);
@@ -9468,27 +9453,26 @@ int32 MessagesManager::get_message_date(const tl_object_ptr<telegram_api::Messag
   }
 }
 
-void MessagesManager::ttl_read_history_inbox(DialogId dialog_id, MessageId from_message_id, MessageId till_message_id,
-                                             double timestamp) {
-  auto *d = get_dialog(dialog_id);
-  CHECK(d != nullptr);
-  auto now = Time::now();
-  for (auto it = MessagesIterator(d, from_message_id); *it && (*it)->message_id.get() >= till_message_id.get(); --it) {
-    auto *message = *it;
-    if (!message->is_outgoing && !message->message_id.is_yet_unsent()) {
-      ttl_on_view(d, message, timestamp, now);
-    }
-  }
+void MessagesManager::ttl_read_history(Dialog *d, bool is_outgoing, MessageId from_message_id,
+                                       MessageId till_message_id, double view_date) {
+  // TODO: protect with logevent
+  suffix_load_till_message_id(d, till_message_id,
+                              PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = d->dialog_id, is_outgoing,
+                                                      from_message_id, till_message_id, view_date](Result<Unit>) {
+                                send_closure(actor_id, &MessagesManager::ttl_read_history_impl, dialog_id, is_outgoing,
+                                             from_message_id, till_message_id, view_date);
+                              }));
 }
-void MessagesManager::ttl_read_history_outbox(DialogId dialog_id, MessageId from_message_id, MessageId till_message_id,
-                                              double timestamp) {
+
+void MessagesManager::ttl_read_history_impl(DialogId dialog_id, bool is_outgoing, MessageId from_message_id,
+                                            MessageId till_message_id, double view_date) {
   auto *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   auto now = Time::now();
   for (auto it = MessagesIterator(d, from_message_id); *it && (*it)->message_id.get() >= till_message_id.get(); --it) {
     auto *message = *it;
-    if (message->is_outgoing && !message->message_id.is_yet_unsent()) {
-      ttl_on_view(d, message, timestamp, now);
+    if (message->is_outgoing == is_outgoing && !message->message_id.is_yet_unsent()) {
+      ttl_on_view(d, message, view_date, now);
     }
   }
 }

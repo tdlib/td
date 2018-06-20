@@ -2479,10 +2479,10 @@ class MessagesManager : public Actor {
   tl_object_ptr<td_api::MessageForwardInfo> get_message_forward_info_object(
       const unique_ptr<MessageForwardInfo> &forward_info) const;
 
-  void ttl_read_history_inbox(DialogId dialog_id, MessageId from_message_id, MessageId till_message_id,
-                              double timestamp);
-  void ttl_read_history_outbox(DialogId dialog_id, MessageId from_message_id, MessageId till_message_id,
-                               double timestamp);
+  void ttl_read_history(Dialog *d, bool is_outgoing, MessageId from_message_id, MessageId till_message_id,
+                        double view_date);
+  void ttl_read_history_impl(DialogId dialog_id, bool is_outgoing, MessageId from_message_id, MessageId till_message_id,
+                             double view_date);
   void ttl_on_view(const Dialog *d, Message *message, double view_date, double now);
   bool ttl_on_open(Dialog *d, Message *message, double now, bool is_local_read);
   void ttl_register_message(DialogId dialog_id, const Message *message, double now);
