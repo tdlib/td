@@ -49,6 +49,9 @@ void SequenceDispatcher::check_timeout(Data &data) {
   data.query_->total_timeout += data.total_timeout_;
   data.total_timeout_ = 0;
   if (data.query_->total_timeout > data.query_->total_timeout_limit) {
+    LOG(WARNING) << "Fail " << data.query_ << " to " << data.query_->source_ << " because total_timeout "
+                 << data.query_->total_timeout << " is greater than total_timeout_limit "
+                 << data.query_->total_timeout_limit;
     data.query_->set_error(Status::Error(
         429, PSLICE() << "Too Many Requests: retry after " << static_cast<int32>(data.last_timeout_ + 0.999)));
     data.state_ = State::Dummy;
