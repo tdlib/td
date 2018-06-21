@@ -461,6 +461,8 @@ class FutureActor final : public Actor {
   enum State { Waiting, Ready };
 
  public:
+  static constexpr int Hangup = 426487;
+
   FutureActor() = default;
 
   FutureActor(const FutureActor &other) = delete;
@@ -534,7 +536,7 @@ class FutureActor final : public Actor {
   }
 
   void hangup() override {
-    set_error(Status::Hangup());
+    set_error(Status::Error<Hangup>());
   }
 
   void start_up() override {

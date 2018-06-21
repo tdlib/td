@@ -85,10 +85,7 @@ class Status {
   Status() = default;
 
   bool operator==(const Status &other) const {
-    if (get_info().static_flag) {
-      return ptr_ == other.ptr_;
-    }
-    return false;
+    return ptr_ == other.ptr_;
   }
 
   Status clone() const TD_WARN_UNUSED_RESULT {
@@ -133,16 +130,6 @@ class Status {
   template <int Code>
   static Status Error() {
     static Status status(true, ErrorType::general, Code, "");
-    return status.clone_static();
-  }
-
-  static Status InvalidId() TD_WARN_UNUSED_RESULT {
-    static Status status(true, ErrorType::general, 0, "Invalid Id");
-    return status.clone_static();
-  }
-
-  static Status Hangup() TD_WARN_UNUSED_RESULT {
-    static Status status(true, ErrorType::general, 0, "Hangup");
     return status.clone_static();
   }
 

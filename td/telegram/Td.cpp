@@ -532,7 +532,7 @@ class RequestActor : public Actor {
   void raw_event(const Event::Raw &event) override {
     if (future_.is_error()) {
       auto error = future_.move_as_error();
-      if (error == Status::Hangup()) {
+      if (error == Status::Error<FutureActor<T>::Hangup>()) {
         // dropping query due to lost authorization or lost promise
         // td may be already closed, so we should check is auth_manager_ is empty
         bool is_authorized = td->auth_manager_ && td->auth_manager_->is_authorized();
