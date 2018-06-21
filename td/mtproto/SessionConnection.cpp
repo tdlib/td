@@ -712,6 +712,8 @@ Result<uint64> SessionConnection::send_query(BufferSlice buffer, bool gzip_flag,
     send_before(Time::now_cached() + QUERY_DELAY);
   }
   to_send_.push_back(Query{message_id, seq_no, std::move(buffer), gzip_flag, invoke_after_id, use_quick_ack});
+  VLOG(mtproto) << "Invoke query " << message_id << " of size " << to_send_.back().packet.size() << " with seq_no "
+                << seq_no << " after " << invoke_after_id << (use_quick_ack ? " with quick ack" : "");
 
   return message_id;
 }
