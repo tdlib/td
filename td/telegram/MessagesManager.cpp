@@ -10629,6 +10629,10 @@ void MessagesManager::set_dialog_last_message_id(Dialog *d, MessageId last_messa
   LOG(INFO) << "Set " << d->dialog_id << " last message to " << last_message_id << " from " << source;
   d->last_message_id = last_message_id;
 
+  if (!last_message_id.is_valid()) {
+    d->suffix_load_first_message_id_ = MessageId();
+    d->suffix_load_done_ = false;
+  }
   if (last_message_id.is_valid() && d->delete_last_message_date != 0) {
     d->delete_last_message_date = 0;
     d->deleted_last_message_id = MessageId();
@@ -11249,11 +11253,12 @@ bool MessagesManager::can_unload_message(const Dialog *d, const Message *m) cons
   // don't want to unload messages to which there are replies in yet unsent messages
   // don't want to unload messages with pending web pages
   // can't unload from memory last dialog, last database messages, yet unsent messages, being edited media messages and active live locations
+  // can't unload messages in dialog with active suffix load query
   FullMessageId full_message_id{d->dialog_id, m->message_id};
   return !d->is_opened && m->message_id != d->last_message_id && m->message_id != d->last_database_message_id &&
          !m->message_id.is_yet_unsent() && active_live_location_full_message_ids_.count(full_message_id) == 0 &&
          replied_by_yet_unsent_messages_.count(full_message_id) == 0 && m->edited_content == nullptr &&
-         waiting_for_web_page_messages_.count(full_message_id) == 0;
+         waiting_for_web_page_messages_.count(full_message_id) == 0 && d->suffix_load_queries_.empty();
 }
 
 void MessagesManager::unload_message(Dialog *d, MessageId message_id) {
@@ -11396,6 +11401,10 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     } else {
       set_dialog_first_database_message_id(d, MessageId(), "do_delete_message");
     }
+  }
+  if (only_from_memory && message_id.get() >= d->suffix_load_first_message_id_.get()) {
+    d->suffix_load_first_message_id_ = MessageId();
+    d->suffix_load_done_ = false;
   }
 
   if (m->have_previous && (only_from_memory || !m->have_next)) {
@@ -26195,45 +26204,42 @@ void MessagesManager::suffix_load_loop(Dialog *d) {
   }
   CHECK(!d->suffix_load_done_);
 
-  // Send db query
-  LOG(INFO) << "suffix_load send query " << d->dialog_id;
-  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = d->dialog_id](Result<Unit> result) {
+  auto dialog_id = d->dialog_id;
+  auto from_message_id = d->suffix_load_first_message_id_;
+  LOG(INFO) << "Send suffix load query in " << dialog_id << " from " << from_message_id;
+  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Result<Unit> result) {
     send_closure(actor_id, &MessagesManager::suffix_load_query_ready, dialog_id);
   });
-  d->suffix_load_query_message_id_ = d->suffix_load_first_message_id_;
-  if (d->suffix_load_first_message_id_.is_valid()) {
-    get_history(d->dialog_id, d->suffix_load_first_message_id_, -1, 100, true, true, std::move(promise));
-  } else {
-    get_history_from_the_end(d->dialog_id, true, true, std::move(promise));
-  }
   d->suffix_load_has_query_ = true;
+  d->suffix_load_query_message_id_ = from_message_id;
+  if (from_message_id.is_valid()) {
+    get_history(dialog_id, from_message_id, -1, 100, true, true, std::move(promise));
+  } else {
+    get_history_from_the_end(dialog_id, true, true, std::move(promise));
+  }
 }
 
 void MessagesManager::suffix_load_update_first_message_id(Dialog *d) {
-  // Update first_message_id
   if (!d->suffix_load_first_message_id_.is_valid()) {
+    if (!d->last_message_id.is_valid()) {
+      return;
+    }
+
     d->suffix_load_first_message_id_ = d->last_message_id;
   }
-  if (!d->suffix_load_first_message_id_.is_valid() && !d->suffix_load_was_query_) {
-    return;
-  }
-  auto it = d->suffix_load_first_message_id_.is_valid() ? MessagesConstIterator(d, d->suffix_load_first_message_id_)
-                                                        : MessagesConstIterator(d, MessageId::max());
-  while (*it && (*it)->have_previous) {
+  auto it = MessagesConstIterator(d, d->suffix_load_first_message_id_);
+  CHECK(*it != nullptr);
+  CHECK((*it)->message_id == d->suffix_load_first_message_id_);
+  while ((*it)->have_previous) {
     --it;
   }
-  if (*it) {
-    d->suffix_load_first_message_id_ = (*it)->message_id;
-  } else {
-    d->suffix_load_first_message_id_ = MessageId();
-  }
+  d->suffix_load_first_message_id_ = (*it)->message_id;
 }
 
 void MessagesManager::suffix_load_query_ready(DialogId dialog_id) {
-  LOG(INFO) << "suffix_load_query_ready " << dialog_id;
+  LOG(INFO) << "Finished suffix load query in " << dialog_id;
   auto *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
-  d->suffix_load_was_query_ = true;
   suffix_load_update_first_message_id(d);
   if (d->suffix_load_first_message_id_ == d->suffix_load_query_message_id_) {
     LOG(INFO) << "suffix_load done " << dialog_id;
@@ -26266,14 +26272,14 @@ void MessagesManager::suffix_load_add_query(Dialog *d,
 }
 
 void MessagesManager::suffix_load_till_date(Dialog *d, int32 date, Promise<> promise) {
-  LOG(INFO) << "suffix_load_till_date " << d->dialog_id << tag("date", date);
-  auto condition = [date](const Message *m) { return m && m->date < date; };
+  LOG(INFO) << "Load suffix of " << d->dialog_id << " till date " << date;
+  auto condition = [date](const Message *m) { return m != nullptr && m->date < date; };
   suffix_load_add_query(d, std::make_pair(std::move(promise), std::move(condition)));
 }
 
 void MessagesManager::suffix_load_till_message_id(Dialog *d, MessageId message_id, Promise<> promise) {
-  LOG(INFO) << "suffix_load_till_message_id " << d->dialog_id << " " << message_id;
-  auto condition = [message_id](const Message *m) { return m && m->message_id.get() < message_id.get(); };
+  LOG(INFO) << "Load suffix of " << d->dialog_id << " till " << message_id;
+  auto condition = [message_id](const Message *m) { return m != nullptr && m->message_id.get() < message_id.get(); };
   suffix_load_add_query(d, std::make_pair(std::move(promise), std::move(condition)));
 }
 

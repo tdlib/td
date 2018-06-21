@@ -1655,12 +1655,12 @@ class MessagesManager : public Actor {
     string client_data;
 
     // Load from newest to oldest message
-    MessageId suffix_load_first_message_id_;
+    MessageId suffix_load_first_message_id_;  // identifier of some message such all suffix messages in range
+                                              // [suffix_load_first_message_id_, last_message_id] are loaded
     MessageId suffix_load_query_message_id_;
     std::vector<std::pair<Promise<>, std::function<bool(const Message *)>>> suffix_load_queries_;
     bool suffix_load_done_ = false;
     bool suffix_load_has_query_ = false;
-    bool suffix_load_was_query_ = false;
 
     std::unordered_set<MessageId, MessageIdHash> pending_viewed_message_ids;
 
