@@ -50,6 +50,9 @@ void NetQuery::set_error(Status status, string source) {
   if (status.message() == "BOT_METHOD_INVALID") {
     LOG(ERROR) << "Receive BOT_METHOD_INVALID for query " << format::as_hex(tl_constructor());
   }
+  if (status.message() == "MSG_WAIT_FAILED" && status.code() != 400) {
+    status = Status::Error(400, "MSG_WAIT_FAILED");
+  }
   set_error_impl(std::move(status), std::move(source));
 }
 
