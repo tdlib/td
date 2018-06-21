@@ -9471,14 +9471,15 @@ void MessagesManager::ttl_read_history_impl(DialogId dialog_id, bool is_outgoing
   auto now = Time::now();
   for (auto it = MessagesIterator(d, from_message_id); *it && (*it)->message_id.get() >= till_message_id.get(); --it) {
     auto *message = *it;
-    if (message->is_outgoing == is_outgoing && !message->message_id.is_yet_unsent()) {
+    if (message->is_outgoing == is_outgoing) {
       ttl_on_view(d, message, view_date, now);
     }
   }
 }
 
 void MessagesManager::ttl_on_view(const Dialog *d, Message *message, double view_date, double now) {
-  if (message->ttl > 0 && message->ttl_expires_at == 0 && !message->is_content_secret) {
+  if (message->ttl > 0 && message->ttl_expires_at == 0 && !message->message_id.is_yet_unsent() &&
+      !message->is_failed_to_send && !message->is_content_secret) {
     message->ttl_expires_at = message->ttl + view_date;
     ttl_register_message(d->dialog_id, message, now);
     on_message_changed(d, message, "ttl_on_view");
@@ -10064,7 +10065,7 @@ void MessagesManager::open_secret_message(SecretChatId secret_chat_id, int64 ran
   }
   Message *m = get_message(d, message_id);
   CHECK(m != nullptr);
-  if (message_id.is_yet_unsent() || !m->is_outgoing) {
+  if (message_id.is_yet_unsent() || m->is_failed_to_send || !m->is_outgoing) {
     LOG(ERROR) << "Peer has opened wrong " << message_id << " in " << dialog_id;
     return;
   }
