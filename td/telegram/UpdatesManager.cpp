@@ -289,8 +289,8 @@ Promise<> UpdatesManager::set_pts(int32 pts, const char *source) {
     return result;
   }
   Promise<> result;
-  if (pts > get_pts() || (0 < pts && pts < get_pts() - 999999)) {  // pts can only go up or drop cardinally
-    if (pts < get_pts() - 999999) {
+  if (pts > get_pts() || (0 < pts && pts < get_pts() - 399999)) {  // pts can only go up or drop cardinally
+    if (pts < get_pts() - 399999) {
       LOG(WARNING) << "Pts decreases from " << get_pts() << " to " << pts << " from " << source << ". " << get_state();
     } else {
       LOG(INFO) << "Update pts from " << get_pts() << " to " << pts << " from " << source;
