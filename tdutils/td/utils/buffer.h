@@ -33,7 +33,7 @@ struct BufferRaw {
   std::atomic<bool> has_writer_;
   bool was_reader_;
 
-  alignas(4) char data_[1];
+  alignas(4) unsigned char data_[1];
 };
 
 class BufferAllocator {
@@ -174,8 +174,8 @@ class BufferSlice {
 
   BufferSlice from_slice(Slice slice) const {
     auto res = BufferSlice(BufferAllocator::create_reader(buffer_));
-    res.begin_ = slice.begin() - buffer_->data_;
-    res.end_ = slice.end() - buffer_->data_;
+    res.begin_ = static_cast<size_t>(slice.ubegin() - buffer_->data_);
+    res.end_ = static_cast<size_t>(slice.uend() - buffer_->data_);
     CHECK(buffer_->begin_ <= res.begin_);
     CHECK(res.begin_ <= res.end_);
     CHECK(res.end_ <= buffer_->end_.load(std::memory_order_relaxed));
