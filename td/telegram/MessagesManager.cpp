@@ -19918,9 +19918,15 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
         }
         // TODO add check to send_message
       } else if (error.message() == "USER_IS_BOT") {
-        error_code = 403;
-        error_message = "Bot can't send messages to bots";
-        // TODO move check to send_message
+        if (td_->auth_manager_->is_bot() && dialog_id.get_type() == DialogType::User) {
+          error_code = 403;
+          if (td_->contacts_manager_->is_user_bot(dialog_id.get_user_id())) {
+            error_message = "Bot can't send messages to bots";
+          } else {
+            error_message = "Bot can't send messages to the user";
+          }
+          // TODO move check to send_message
+        }
       } else if (error.message() == "PEER_ID_INVALID") {
         error_code = 403;
         if (td_->auth_manager_->is_bot()) {
