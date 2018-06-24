@@ -40,7 +40,7 @@ class PathView {
   }
 
   Slice parent_dir() const {
-    return Slice(path_.begin(), last_slash_ + 1);
+    return path_.substr(0, last_slash_ + 1);
   }
 
   Slice extension() const {
@@ -51,7 +51,7 @@ class PathView {
   }
 
   Slice without_extension() const {
-    return Slice(path_.begin(), last_dot_);
+    return path_.substr(0, last_dot_);
   }
 
   Slice file_stem() const {

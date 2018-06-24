@@ -2058,7 +2058,7 @@ Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionTypi
 
 // Perfect Forward Secrecy
 void SecretChatActor::on_outbound_action(secret_api::decryptedMessageActionRequestKey &request_key) {
-  CHECK(pfs_state_.state == PfsState::WaitSendRequest || pfs_state_.state == PfsState::SendRequest);
+  CHECK(pfs_state_.state == PfsState::WaitSendRequest || pfs_state_.state == PfsState::SendRequest) << pfs_state_;
   pfs_state_.state = PfsState::WaitRequestResponse;
   on_pfs_state_changed();
 }

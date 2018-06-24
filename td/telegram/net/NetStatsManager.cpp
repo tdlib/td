@@ -42,7 +42,7 @@ static void parse(NetStatsData &net_stats, T &parser) {
 }
 
 void NetStatsManager::init() {
-  CHECK(!empty());
+  CHECK(!empty()) << G()->close_flag();
   class NetStatsInternalCallback : public NetStats::Callback {
    public:
     NetStatsInternalCallback(ActorId<NetStatsManager> parent, size_t id) : parent_(std::move(parent)), id_(id) {
