@@ -193,7 +193,7 @@ Status AuthKeyHandshake::on_server_dh_params(Slice message, Callback *connection
   string encrypted_data_str(encrypted_data_size_with_pad, 0);
   MutableSlice encrypted_data = encrypted_data_str;
   as<int32>(encrypted_data.begin() + 20) = data.get_id();
-  tl_store_unsafe(data, encrypted_data.begin() + 20 + 4);
+  tl_store_unsafe(data, encrypted_data.ubegin() + 20 + 4);
   sha1(Slice(encrypted_data.ubegin() + 20, data_size), encrypted_data.ubegin());
   Random::secure_bytes(encrypted_data.ubegin() + encrypted_data_size,
                        encrypted_data_size_with_pad - encrypted_data_size);

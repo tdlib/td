@@ -86,11 +86,10 @@ class TLObjectStorer : public Storer {
     return size_;
   }
   size_t store(uint8 *ptr) const override {
-    char *p = reinterpret_cast<char *>(ptr);
-    TlStorerUnsafe storer(p);
+    TlStorerUnsafe storer(ptr);
     storer.store_binary(object_.get_id());
     object_.store(storer);
-    return storer.get_buf() - p;
+    return static_cast<size_t>(storer.get_buf() - ptr);
   }
 };
 

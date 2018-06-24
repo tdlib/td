@@ -1293,7 +1293,7 @@ string as_key(const T &object) {
 
   BufferSlice key_buffer{calc_length.get_length()};
   auto key = key_buffer.as_slice();
-  TlStorerUnsafe storer(key.begin());
+  TlStorerUnsafe storer(key.ubegin());
   storer.store_int(T::KEY_MAGIC);
   object.as_key().store(storer);
   return key.str();

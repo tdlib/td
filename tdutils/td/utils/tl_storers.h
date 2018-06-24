@@ -17,11 +17,11 @@
 namespace td {
 
 class TlStorerUnsafe {
-  char *buf;
+  unsigned char *buf_;
 
  public:
-  explicit TlStorerUnsafe(char *buf) : buf(buf) {
-    CHECK(is_aligned_pointer<4>(buf));
+  explicit TlStorerUnsafe(unsigned char *buf) : buf_(buf) {
+    CHECK(is_aligned_pointer<4>(buf_));
   }
 
   TlStorerUnsafe(const TlStorerUnsafe &other) = delete;
@@ -29,13 +29,13 @@ class TlStorerUnsafe {
 
   template <class T>
   void store_binary(const T &x) {
-    std::memcpy(buf, reinterpret_cast<const unsigned char *>(&x), sizeof(T));
-    buf += sizeof(T);
+    std::memcpy(buf_, reinterpret_cast<const unsigned char *>(&x), sizeof(T));
+    buf_ += sizeof(T);
   }
 
   void store_int(int32 x) {
-    *reinterpret_cast<int32 *>(buf) = x;
-    buf += sizeof(int32);
+    *reinterpret_cast<int32 *>(buf_) = x;
+    buf_ += sizeof(int32);
   }
 
   void store_long(int64 x) {
@@ -43,45 +43,45 @@ class TlStorerUnsafe {
   }
 
   void store_slice(Slice slice) {
-    std::memcpy(buf, slice.begin(), slice.size());
-    buf += slice.size();
+    std::memcpy(buf_, slice.begin(), slice.size());
+    buf_ += slice.size();
   }
   void store_storer(const Storer &storer) {
-    size_t size = storer.store(reinterpret_cast<unsigned char *>(buf));
-    buf += size;
+    size_t size = storer.store(buf_);
+    buf_ += size;
   }
 
   template <class T>
   void store_string(const T &str) {
     size_t len = str.size();
     if (len < 254) {
-      *buf++ = static_cast<char>(len);
+      *buf_++ = static_cast<unsigned char>(len);
       len++;
     } else if (len < (1 << 24)) {
-      *buf++ = static_cast<char>(static_cast<unsigned char>(254));
-      *buf++ = static_cast<char>(len & 255);
-      *buf++ = static_cast<char>((len >> 8) & 255);
-      *buf++ = static_cast<char>(len >> 16);
+      *buf_++ = static_cast<unsigned char>(254);
+      *buf_++ = static_cast<unsigned char>(len & 255);
+      *buf_++ = static_cast<unsigned char>((len >> 8) & 255);
+      *buf_++ = static_cast<unsigned char>(len >> 16);
     } else {
       LOG(FATAL) << "String size " << len << " is too big to be stored";
     }
-    std::memcpy(buf, str.data(), str.size());
-    buf += str.size();
+    std::memcpy(buf_, str.data(), str.size());
+    buf_ += str.size();
 
     switch (len & 3) {
       case 1:
-        *buf++ = '\0';
+        *buf_++ = 0;
       // fallthrough
       case 2:
-        *buf++ = '\0';
+        *buf_++ = 0;
       // fallthrough
       case 3:
-        *buf++ = '\0';
+        *buf_++ = 0;
     }
   }
 
-  char *get_buf() const {
-    return buf;
+  unsigned char *get_buf() const {
+    return buf_;
   }
 };
 
@@ -272,12 +272,11 @@ size_t tl_calc_length(const T &data) {
   return storer_calc_length.get_length();
 }
 
-template <class T, class CharT>
-size_t tl_store_unsafe(const T &data, CharT *dst) {
-  char *start = reinterpret_cast<char *>(dst);
-  TlStorerUnsafe storer_unsafe(start);
+template <class T>
+size_t tl_store_unsafe(const T &data, unsigned char *dst) {
+  TlStorerUnsafe storer_unsafe(dst);
   data.store(storer_unsafe);
-  return storer_unsafe.get_buf() - start;
+  return static_cast<size_t>(storer_unsafe.get_buf() - dst);
 }
 
 }  // namespace td

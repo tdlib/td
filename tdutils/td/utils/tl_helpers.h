@@ -187,12 +187,12 @@ string serialize(const T &object) {
   if (!is_aligned_pointer<4>(key.data())) {
     auto ptr = StackAllocator::alloc(length);
     MutableSlice data = ptr.as_slice();
-    TlStorerUnsafe storer(data.begin());
+    TlStorerUnsafe storer(data.ubegin());
     store(object, storer);
     key.assign(data.begin(), data.size());
   } else {
     MutableSlice data = key;
-    TlStorerUnsafe storer(data.begin());
+    TlStorerUnsafe storer(data.ubegin());
     store(object, storer);
   }
   return key;

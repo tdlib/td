@@ -297,7 +297,7 @@ Status fix_file_remote_location_key_bug(SqliteDb &db) {
   kv.init_with_connection(db.clone(), "files").ensure();
   auto ptr = StackAllocator::alloc(4);
   MutableSlice prefix = ptr.as_slice();
-  TlStorerUnsafe(prefix.begin()).store_int(OLD_KEY_MAGIC);
+  TlStorerUnsafe(prefix.ubegin()).store_int(OLD_KEY_MAGIC);
   kv.get_by_prefix(prefix, [&](Slice key, Slice value) {
     CHECK(TlParser(key).fetch_int() == OLD_KEY_MAGIC);
     auto remote_str = PSTRING() << key.substr(4, 4) << Slice("\0\0\0\0") << key.substr(8);

@@ -57,11 +57,10 @@ class BinlogKeyValue : public KeyValueSyncInterface {
       store(storer);
       return storer.get_length();
     }
-    size_t store(uint8 *ptr_x) const override {
-      auto ptr = reinterpret_cast<char *>(ptr_x);
+    size_t store(uint8 *ptr) const override {
       TlStorerUnsafe storer(ptr);
       store(storer);
-      return storer.get_buf() - ptr;
+      return static_cast<size_t>(storer.get_buf() - ptr);
     }
   };
 

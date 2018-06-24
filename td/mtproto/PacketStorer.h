@@ -29,10 +29,9 @@ class PacketStorer
   }
 
   size_t store(uint8 *ptr) const override {
-    char *start = reinterpret_cast<char *>(ptr);
-    TlStorerUnsafe storer(start);
+    TlStorerUnsafe storer(ptr);
     this->do_store(storer);
-    return storer.get_buf() - start;
+    return static_cast<size_t>(storer.get_buf() - ptr);
   }
 
   using Impl::Impl;

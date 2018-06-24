@@ -2407,7 +2407,7 @@ string StickersManager::get_sticker_set_database_value(const StickerSet *s, bool
 
   LOG(DEBUG) << "Sticker set " << s->id << " serialized size is " << value.size();
 
-  LogEventStorerUnsafe storer_unsafe(value.begin());
+  LogEventStorerUnsafe storer_unsafe(value.ubegin());
   store_sticker_set(s, with_stickers, storer_unsafe);
 
   return value.str();

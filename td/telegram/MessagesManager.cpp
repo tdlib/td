@@ -4856,7 +4856,7 @@ BufferSlice MessagesManager::get_dialog_database_value(const Dialog *d) {
   BufferSlice value_buffer{storer_calc_length.get_length()};
   auto value = value_buffer.as_slice();
 
-  LogEventStorerUnsafe storer_unsafe(value.begin());
+  LogEventStorerUnsafe storer_unsafe(value.ubegin());
   store(*d, storer_unsafe);
   return value_buffer;
 }
