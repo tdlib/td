@@ -337,9 +337,7 @@ std::string TD_TL_writer_java::gen_get_id(const std::string &class_name, std::in
          ";\n\n"
          "        @Override\n"
          "        public int getConstructor() {\n"
-         "            return " +
-         int_to_string(id) +
-         ";\n"
+         "            return this.CONSTRUCTOR;\n"
          "        }\n";
 }
 
