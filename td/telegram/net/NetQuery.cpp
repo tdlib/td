@@ -44,7 +44,7 @@ void NetQuery::set_error(Status status, string source) {
     return set_error_impl(Status::Error(200, PSLICE() << status), std::move(source));
   }
 
-  if (status.message() == "INPUT_METHOD_INVALID") {
+  if (begins_with(status.message(), "INPUT_METHOD_INVALID")) {
     LOG(ERROR) << "Receive INPUT_METHOD_INVALID for query " << format::as_hex_dump<4>(Slice(query_.as_slice()));
   }
   if (status.message() == "BOT_METHOD_INVALID") {
