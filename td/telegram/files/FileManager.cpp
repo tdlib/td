@@ -8,6 +8,7 @@
 
 #include "td/telegram/telegram_api.h"
 
+#include "td/telegram/ConfigShared.h"
 #include "td/telegram/files/FileLoaderUtils.h"
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/Global.h"
@@ -1335,6 +1336,10 @@ bool FileManager::set_encryption_key(FileId file_id, FileEncryptionKey key) {
 }
 
 bool FileManager::set_content(FileId file_id, BufferSlice bytes) {
+  if (G()->shared_config().get_option_boolean("ignore_inline_thumbnails")) {
+    return false;
+  }
+
   auto node = get_sync_file_node(file_id);
   if (!node) {
     return false;
