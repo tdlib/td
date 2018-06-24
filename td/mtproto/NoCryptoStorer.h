@@ -16,7 +16,7 @@ class NoCryptoImpl {
  public:
   NoCryptoImpl(uint64 message_id, const Storer &data, bool need_pad = true) : message_id_(message_id), data_(data) {
     if (need_pad) {
-      auto pad_size = -static_cast<int>(data_.size()) & 15;
+      size_t pad_size = -static_cast<int>(data_.size()) & 15;
       pad_size += 16 * (static_cast<size_t>(Random::secure_int32()) % 16);
       pad_.resize(pad_size);
       Random::secure_bytes(pad_);
