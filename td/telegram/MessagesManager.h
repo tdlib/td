@@ -997,9 +997,11 @@ class MessagesManager : public Actor {
 
   void on_update_dialog_draft_message(DialogId dialog_id, tl_object_ptr<telegram_api::DraftMessage> &&draft_message);
 
-  void on_update_dialog_pinned(DialogId dialog_id, bool is_pinned);
+  void on_update_dialog_is_pinned(DialogId dialog_id, bool is_pinned);
 
   void on_update_pinned_dialogs();
+
+  void on_update_dialog_is_marked_as_unread(DialogId dialog_id, bool is_marked_as_unread);
 
   void on_update_service_notification(tl_object_ptr<telegram_api::updateServiceNotification> &&update);
 
@@ -2215,8 +2217,10 @@ class MessagesManager : public Actor {
   void update_message(Dialog *d, unique_ptr<Message> &old_message, unique_ptr<Message> new_message,
                       bool need_send_update_message_content, bool *need_update_dialog_pos);
 
-  bool need_message_text_changed_warning(const Message *old_message, const MessageText *old_content,
-                                         const MessageText *new_content);
+  static bool need_message_text_changed_warning(const Message *old_message, const MessageText *old_content,
+                                                const MessageText *new_content);
+
+  static int64 choose_location_access_hash(const Location &first, const Location &second);
 
   bool update_message_content(DialogId dialog_id, Message *old_message, unique_ptr<MessageContent> new_content,
                               bool need_send_update_message_content, bool need_merge_files);

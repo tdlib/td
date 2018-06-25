@@ -226,6 +226,7 @@ Result<std::pair<NetQueryPtr, bool>> FileDownloader::start_part(Part part, int32
 
   NetQueryPtr net_query;
   if (!use_cdn_) {
+    DcId dc_id = remote_.is_web() ? G()->get_webfile_dc_id() : remote_.get_dc_id();
     net_query = G()->net_query_creator().create(
         UniqueId::next(UniqueId::Type::Default, static_cast<uint8>(QueryType::Default)),
         remote_.is_web()
@@ -233,7 +234,7 @@ Result<std::pair<NetQueryPtr, bool>> FileDownloader::start_part(Part part, int32
                                                             static_cast<int32>(part.offset), static_cast<int32>(size)))
             : create_storer(telegram_api::upload_getFile(remote_.as_input_file_location(),
                                                          static_cast<int32>(part.offset), static_cast<int32>(size))),
-        remote_.get_dc_id(), is_small_ ? NetQuery::Type::DownloadSmall : NetQuery::Type::Download);
+        dc_id, is_small_ ? NetQuery::Type::DownloadSmall : NetQuery::Type::Download);
   } else {
     if (remote_.is_web()) {
       return Status::Error("Can't download web file from CDN");
@@ -378,6 +379,7 @@ Status FileDownloader::process_check_query(NetQueryPtr net_query) {
   add_hash_info(file_hashes);
   return Status::OK();
 }
+
 Result<FileLoader::CheckInfo> FileDownloader::check_loop(int64 checked_prefix_size, int64 ready_prefix_size,
                                                          bool is_ready) {
   if (!need_check_) {
@@ -443,6 +445,7 @@ Result<FileLoader::CheckInfo> FileDownloader::check_loop(int64 checked_prefix_si
   info.checked_prefix_size = checked_prefix_size;
   return std::move(info);
 }
+
 void FileDownloader::add_hash_info(const std::vector<telegram_api::object_ptr<telegram_api::fileHash>> &hashes) {
   for (auto &hash : hashes) {
     //LOG(ERROR) << "ADD HASH " << hash->offset_ << "->" << hash->limit_;

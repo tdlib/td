@@ -377,9 +377,9 @@ bool InlineQueriesManager::register_inline_message_content(
     }
     case telegram_api::botInlineMessageMediaContact::ID: {
       auto inline_message_contact = move_tl_object_as<telegram_api::botInlineMessageMediaContact>(inline_message);
-      message_content = make_unique<MessageContact>(Contact(inline_message_contact->phone_number_,
-                                                            inline_message_contact->first_name_,
-                                                            inline_message_contact->last_name_, 0));
+      message_content = make_unique<MessageContact>(
+          Contact(std::move(inline_message_contact->phone_number_), std::move(inline_message_contact->first_name_),
+                  std::move(inline_message_contact->last_name_), std::move(inline_message_contact->vcard_), 0));
       reply_markup = std::move(inline_message_contact->reply_markup_);
       break;
     }
@@ -1065,7 +1065,7 @@ tl_object_ptr<td_api::voiceNote> copy(const td_api::voiceNote &obj) {
 
 template <>
 tl_object_ptr<td_api::contact> copy(const td_api::contact &obj) {
-  return make_tl_object<td_api::contact>(obj.phone_number_, obj.first_name_, obj.last_name_, obj.user_id_);
+  return make_tl_object<td_api::contact>(obj.phone_number_, obj.first_name_, obj.last_name_, obj.vcard_, obj.user_id_);
 }
 
 template <>
@@ -1453,10 +1453,10 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
             auto inline_message_contact =
                 static_cast<const telegram_api::botInlineMessageMediaContact *>(result->send_message_.get());
             Contact c(inline_message_contact->phone_number_, inline_message_contact->first_name_,
-                      inline_message_contact->last_name_, 0);
+                      inline_message_contact->last_name_, inline_message_contact->vcard_, 0);
             contact->contact_ = c.get_contact_object();
           } else {
-            Contact c(std::move(result->description_), std::move(result->title_), string(), 0);
+            Contact c(std::move(result->description_), std::move(result->title_), string(), string(), 0);
             contact->contact_ = c.get_contact_object();
           }
           contact->thumbnail_ = register_thumbnail(std::move(result->thumb_));
@@ -1477,7 +1477,7 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
             location->location_ = l.get_location_object();
           } else {
             auto coordinates = split(Slice(result->description_));
-            Location l(to_double(coordinates.first), to_double(coordinates.second));
+            Location l(to_double(coordinates.first), to_double(coordinates.second), 0);
             location->location_ = l.get_location_object();
           }
           location->thumbnail_ = register_thumbnail(std::move(result->thumb_));

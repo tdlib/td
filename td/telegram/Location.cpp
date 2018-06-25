@@ -17,20 +17,21 @@
 
 namespace td {
 
-void Location::init(double latitude, double longitude) {
+void Location::init(double latitude, double longitude, int64 access_hash) {
   if (std::isfinite(latitude) && std::isfinite(longitude) && std::abs(latitude) <= 90 && std::abs(longitude) <= 180) {
     is_empty_ = false;
     latitude_ = latitude;
     longitude_ = longitude;
+    access_hash_ = access_hash;
   }
 }
 
-Location::Location(double latitude, double longitude) {
-  init(latitude, longitude);
+Location::Location(double latitude, double longitude, int64 access_hash) {
+  init(latitude, longitude, access_hash);
 }
 
 Location::Location(const tl_object_ptr<secret_api::decryptedMessageMediaGeoPoint> &geo_point)
-    : Location(geo_point->lat_, geo_point->long_) {
+    : Location(geo_point->lat_, geo_point->long_, 0) {
 }
 
 Location::Location(const tl_object_ptr<telegram_api::GeoPoint> &geo_point_ptr) {
@@ -42,7 +43,7 @@ Location::Location(const tl_object_ptr<telegram_api::GeoPoint> &geo_point_ptr) {
       break;
     case telegram_api::geoPoint::ID: {
       auto geo_point = static_cast<const telegram_api::geoPoint *>(geo_point_ptr.get());
-      init(geo_point->lat_, geo_point->long_);
+      init(geo_point->lat_, geo_point->long_, geo_point->access_hash_);
       break;
     }
     default:
@@ -56,7 +57,7 @@ Location::Location(const tl_object_ptr<td_api::location> &location) {
     return;
   }
 
-  init(location->latitude_, location->longitude_);
+  init(location->latitude_, location->longitude_, 0);
 }
 
 bool Location::empty() const {
@@ -137,6 +138,10 @@ Venue::Venue(const tl_object_ptr<td_api::venue> &venue)
 
 bool Venue::empty() const {
   return location_.empty();
+}
+
+const Location &Venue::location() const {
+  return location_;
 }
 
 tl_object_ptr<td_api::venue> Venue::get_venue_object() const {

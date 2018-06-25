@@ -23,6 +23,7 @@
 #include <memory>
 
 namespace td {
+
 class PublicRsaKeyWatchdog : public NetActor {
  public:
   explicit PublicRsaKeyWatchdog(ActorShared<> parent);
@@ -43,4 +44,5 @@ class PublicRsaKeyWatchdog : public NetActor {
   void sync(BufferSlice cdn_config_serialized);
   void sync_key(std::shared_ptr<PublicRsaKeyShared> &key);
 };
+
 }  // namespace td

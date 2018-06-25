@@ -306,11 +306,6 @@ PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_t
   switch (web_document_ptr->get_id()) {
     case telegram_api::webDocument::ID: {
       auto web_document = move_tl_object_as<telegram_api::webDocument>(web_document_ptr);
-      if (!DcId::is_valid(web_document->dc_id_)) {
-        LOG(ERROR) << "Wrong dc_id = " << web_document->dc_id_;
-        return {};
-      }
-
       auto r_http_url = parse_url(web_document->url_);
       if (r_http_url.is_error()) {
         LOG(ERROR) << "Can't parse URL " << web_document->url_;
@@ -318,11 +313,9 @@ PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_t
       }
       auto http_url = r_http_url.move_as_ok();
       auto url = http_url.get_url();
-      file_id = file_manager->register_remote(
-          FullRemoteFileLocation(file_type, url, web_document->access_hash_, DcId::internal(web_document->dc_id_)),
-          FileLocationSource::FromServer, owner_dialog_id, 0, web_document->size_,
-          get_url_query_file_name(http_url.query_));
-
+      file_id = file_manager->register_remote(FullRemoteFileLocation(file_type, url, web_document->access_hash_),
+                                              FileLocationSource::FromServer, owner_dialog_id, 0, web_document->size_,
+                                              get_url_query_file_name(http_url.query_));
       size = web_document->size_;
       attributes = std::move(web_document->attributes_);
       break;

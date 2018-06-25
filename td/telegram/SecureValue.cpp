@@ -376,6 +376,10 @@ static td_api::object_ptr<td_api::datedFile> get_dated_file_object(FileManager *
   auto file_id = dated_file.file_id;
   CHECK(file_id.is_valid());
   auto file_view = file_manager->get_file_view(file_id);
+  if (!file_view.has_remote_location() || file_view.remote_location().is_web()) {
+    LOG(ERROR) << "Have wrong file in get_dated_file_object";
+    return nullptr;
+  }
   dated_file.file_id = file_manager->register_remote(
       FullRemoteFileLocation(FileType::SecureRaw, file_view.remote_location().get_id(),
                              file_view.remote_location().get_access_hash(), file_view.remote_location().get_dc_id()),

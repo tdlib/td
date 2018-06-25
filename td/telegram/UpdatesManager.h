@@ -227,6 +227,7 @@ class UpdatesManager : public Actor {
 
   void on_update(tl_object_ptr<telegram_api::updateDialogPinned> update, bool /*force_apply*/);
   void on_update(tl_object_ptr<telegram_api::updatePinnedDialogs> update, bool /*force_apply*/);
+  void on_update(tl_object_ptr<telegram_api::updateDialogUnreadMark> update, bool /*force_apply*/);
 
   void on_update(tl_object_ptr<telegram_api::updateBotInlineQuery> update, bool /*force_apply*/);
   void on_update(tl_object_ptr<telegram_api::updateBotInlineSend> update, bool /*force_apply*/);

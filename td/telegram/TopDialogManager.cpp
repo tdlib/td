@@ -323,6 +323,10 @@ void TopDialogManager::on_result(NetQueryPtr net_query) {
   if (top_peers_parent->get_id() == telegram_api::contacts_topPeersNotModified::ID) {
     return;
   }
+  if (top_peers_parent->get_id() == telegram_api::contacts_topPeersDisabled::ID) {
+    // FIXME
+    return;
+  }
 
   CHECK(top_peers_parent->get_id() == telegram_api::contacts_topPeers::ID);
   auto top_peers = move_tl_object_as<telegram_api::contacts_topPeers>(std::move(top_peers_parent));

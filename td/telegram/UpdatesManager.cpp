@@ -1676,12 +1676,17 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDraftMessage> u
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDialogPinned> update, bool /*force_apply*/) {
-  td_->messages_manager_->on_update_dialog_pinned(
+  td_->messages_manager_->on_update_dialog_is_pinned(
       DialogId(update->peer_), (update->flags_ & telegram_api::updateDialogPinned::PINNED_MASK) != 0);
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updatePinnedDialogs> update, bool /*force_apply*/) {
   td_->messages_manager_->on_update_pinned_dialogs();  // TODO use update->order_
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDialogUnreadMark> update, bool /*force_apply*/) {
+  td_->messages_manager_->on_update_dialog_is_marked_as_unread(
+      DialogId(update->peer_), (update->flags_ & telegram_api::updateDialogUnreadMark::UNREAD_MASK) != 0);
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDcOptions> update, bool /*force_apply*/) {

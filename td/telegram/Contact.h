@@ -25,6 +25,7 @@ class Contact {
   string phone_number_;
   string first_name_;
   string last_name_;
+  string vcard_;
   UserId user_id_;
 
   friend bool operator==(const Contact &lhs, const Contact &rhs);
@@ -38,7 +39,7 @@ class Contact {
  public:
   Contact() = default;
 
-  Contact(string phone_number, string first_name, string last_name, int32 user_id);
+  Contact(string phone_number, string first_name, string last_name, string vcard, int32 user_id);
 
   void set_user_id(UserId user_id);
 
@@ -54,26 +55,65 @@ class Contact {
 
   tl_object_ptr<telegram_api::inputPhoneContact> get_input_phone_contact(int64 client_id) const;
 
-  // TODO very strange function
   tl_object_ptr<telegram_api::inputBotInlineMessageMediaContact> get_input_bot_inline_message_media_contact(
       int32 flags, tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup) const;
 
   template <class StorerT>
   void store(StorerT &storer) const {
     using td::store;
+    bool has_first_name = !first_name_.empty();
+    bool has_last_name = !last_name_.empty();
+    bool has_vcard = !vcard_.empty();
+    bool has_user_id = user_id_.is_valid();
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(has_first_name);
+    STORE_FLAG(has_last_name);
+    STORE_FLAG(has_vcard);
+    STORE_FLAG(has_user_id);
+    END_STORE_FLAGS();
     store(phone_number_, storer);
-    store(first_name_, storer);
-    store(last_name_, storer);
-    store(user_id_, storer);
+    if (has_first_name) {
+      store(first_name_, storer);
+    }
+    if (has_last_name) {
+      store(last_name_, storer);
+    }
+    if (has_vcard) {
+      store(vcard_, storer);
+    }
+    if (has_user_id) {
+      store(user_id_, storer);
+    }
   }
 
   template <class ParserT>
   void parse(ParserT &parser) {
     using td::parse;
+    bool has_first_name = true;
+    bool has_last_name = true;
+    bool has_vcard = false;
+    bool has_user_id = true;
+    if (parser.version() >= static_cast<int32>(Version::AddContactVcard)) {
+      BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(has_first_name);
+      PARSE_FLAG(has_last_name);
+      PARSE_FLAG(has_vcard);
+      PARSE_FLAG(has_user_id);
+      END_PARSE_FLAGS();
+    }
     parse(phone_number_, parser);
-    parse(first_name_, parser);
-    parse(last_name_, parser);
-    parse(user_id_, parser);
+    if (has_first_name) {
+      parse(first_name_, parser);
+    }
+    if (has_last_name) {
+      parse(last_name_, parser);
+    }
+    if (has_vcard) {
+      parse(vcard_, parser);
+    }
+    if (has_user_id) {
+      parse(user_id_, parser);
+    }
   }
 };
 

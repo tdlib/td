@@ -286,7 +286,7 @@ Result<uint64> Transport::read_auth_key_id(Slice message) {
 }
 
 Result<Transport::ReadResult> Transport::read(MutableSlice message, const AuthKey &auth_key, PacketInfo *info) {
-  if (message.size() < 16) {
+  if (message.size() < 12) {
     if (message.size() < 4) {
       return Status::Error(PSLICE() << "Invalid mtproto message: smaller than 4 bytes [size=" << message.size() << "]");
     }
@@ -294,14 +294,11 @@ Result<Transport::ReadResult> Transport::read(MutableSlice message, const AuthKe
     auto code = as<int32>(message.begin());
     if (code == 0) {
       return ReadResult::make_nop();
-    } else if (code == -1) {
-      if (message.size() >= 8) {
-        return ReadResult::make_quick_ack(as<uint32>(message.begin() + 4));
-      }
+    } else if (code == -1 && message.size() >= 8) {
+      return ReadResult::make_quick_ack(as<uint32>(message.begin() + 4));
     } else {
       return ReadResult::make_error(code);
     }
-    return Status::Error(PSLICE() << "Invalid small mtproto message");
   }
 
   info->auth_key_id = as<int64>(message.begin());

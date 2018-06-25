@@ -25,6 +25,7 @@ enum class Version : int32 {
   AddCaptionEntities,
   AddVenueType,
   AddTermsOfService,
+  AddContactVcard,
   Next
 };
 

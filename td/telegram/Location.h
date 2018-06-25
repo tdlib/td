@@ -23,18 +23,19 @@ class Location {
   bool is_empty_ = true;
   double latitude_ = 0.0;
   double longitude_ = 0.0;
+  int64 access_hash_ = 0;
 
   friend bool operator==(const Location &lhs, const Location &rhs);
   friend bool operator!=(const Location &lhs, const Location &rhs);
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const Location &location);
 
-  void init(double latitude, double longitude);
+  void init(double latitude, double longitude, int64 access_hash);
 
  public:
   Location() = default;
 
-  Location(double latitude, double longitude);
+  Location(double latitude, double longitude, int64 access_hash);
 
   explicit Location(const tl_object_ptr<secret_api::decryptedMessageMediaGeoPoint> &geo_point);
 
@@ -53,29 +54,49 @@ class Location {
   double get_latitude() const {
     return latitude_;
   }
+
   double get_longitude() const {
     return longitude_;
   }
+
+  int64 get_access_hash() const {
+    return access_hash_;
+  }
+
+  void set_access_hash(int64 access_hash) {
+    access_hash_ = access_hash;
+  }
+
   SecretInputMedia get_secret_input_media_geo_point() const;
 
   template <class StorerT>
   void store(StorerT &storer) const {
     using td::store;
+    bool has_access_hash = access_hash_ != 0;
     BEGIN_STORE_FLAGS();
     STORE_FLAG(is_empty_);
+    STORE_FLAG(has_access_hash);
     END_STORE_FLAGS();
     store(latitude_, storer);
     store(longitude_, storer);
+    if (has_access_hash) {
+      store(access_hash_, storer);
+    }
   }
 
   template <class ParserT>
   void parse(ParserT &parser) {
     using td::parse;
+    bool has_access_hash;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(is_empty_);
+    PARSE_FLAG(has_access_hash);
     END_PARSE_FLAGS();
     parse(latitude_, parser);
     parse(longitude_, parser);
+    if (has_access_hash) {
+      parse(access_hash_, parser);
+    }
   }
 };
 
@@ -108,6 +129,12 @@ class Venue {
   explicit Venue(const tl_object_ptr<td_api::venue> &venue);
 
   bool empty() const;
+
+  const Location &location() const;
+
+  void set_access_hash(int64 access_hash) {
+    location_.set_access_hash(access_hash);
+  }
 
   tl_object_ptr<td_api::venue> get_venue_object() const;
 

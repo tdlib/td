@@ -5,7 +5,6 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/telegram/MessagesManager.h"
-
 #include "td/telegram/secret_api.hpp"
 #include "td/telegram/td_api.hpp"
 #include "td/telegram/telegram_api.h"
@@ -491,7 +490,7 @@ class GetDialogListQuery : public NetActorOnce {
 
     int32 flags = telegram_api::messages_getDialogs::EXCLUDE_PINNED_MASK;
     auto query = G()->net_query_creator().create(create_storer(telegram_api::messages_getDialogs(
-        flags, false /*ignored*/, offset_date, offset_message_id.get(), std::move(input_peer), limit)));
+        flags, false /*ignored*/, offset_date, offset_message_id.get(), std::move(input_peer), limit, 0)));
     send_closure(td->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
                  std::move(query), actor_shared(this), sequence_id);
   }
@@ -504,22 +503,29 @@ class GetDialogListQuery : public NetActorOnce {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetDialogListQuery " << to_string(ptr);
-    int32 constructor_id = ptr->get_id();
-    auto promise = PromiseCreator::lambda(
-        [promise = std::move(promise_)](Result<> result) mutable { promise.set_result(std::move(result)); });
-    if (constructor_id == telegram_api::messages_dialogs::ID) {
-      auto dialogs = move_tl_object_as<telegram_api::messages_dialogs>(ptr);
-      td->contacts_manager_->on_get_chats(std::move(dialogs->chats_));
-      td->contacts_manager_->on_get_users(std::move(dialogs->users_));
-      td->messages_manager_->on_get_dialogs(std::move(dialogs->dialogs_), narrow_cast<int32>(dialogs->dialogs_.size()),
-                                            std::move(dialogs->messages_), std::move(promise));
-    } else {
-      CHECK(constructor_id == telegram_api::messages_dialogsSlice::ID);
-      auto dialogs = move_tl_object_as<telegram_api::messages_dialogsSlice>(ptr);
-      td->contacts_manager_->on_get_chats(std::move(dialogs->chats_));
-      td->contacts_manager_->on_get_users(std::move(dialogs->users_));
-      td->messages_manager_->on_get_dialogs(std::move(dialogs->dialogs_), max(dialogs->count_, 0),
-                                            std::move(dialogs->messages_), std::move(promise));
+    switch (ptr->get_id()) {
+      case telegram_api::messages_dialogs::ID: {
+        auto dialogs = move_tl_object_as<telegram_api::messages_dialogs>(ptr);
+        td->contacts_manager_->on_get_chats(std::move(dialogs->chats_));
+        td->contacts_manager_->on_get_users(std::move(dialogs->users_));
+        td->messages_manager_->on_get_dialogs(std::move(dialogs->dialogs_),
+                                              narrow_cast<int32>(dialogs->dialogs_.size()),
+                                              std::move(dialogs->messages_), std::move(promise_));
+        break;
+      }
+      case telegram_api::messages_dialogsSlice::ID: {
+        auto dialogs = move_tl_object_as<telegram_api::messages_dialogsSlice>(ptr);
+        td->contacts_manager_->on_get_chats(std::move(dialogs->chats_));
+        td->contacts_manager_->on_get_users(std::move(dialogs->users_));
+        td->messages_manager_->on_get_dialogs(std::move(dialogs->dialogs_), max(dialogs->count_, 0),
+                                              std::move(dialogs->messages_), std::move(promise_));
+        break;
+      }
+      case telegram_api::messages_dialogsNotModified::ID:
+        LOG(ERROR) << "Receive " << to_string(ptr);
+        return on_error(id, Status::Error(500, "Receive wrong server response messages.dialogsNotModified"));
+      default:
+        UNREACHABLE();
     }
   }
 
@@ -914,7 +920,7 @@ class ToggleDialogPinQuery : public Td::ResultHandler {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ToggleDialogPinQuery")) {
       LOG(ERROR) << "Receive error for ToggleDialogPinQuery: " << status;
     }
-    td->messages_manager_->on_update_dialog_pinned(dialog_id_, !is_pinned_);
+    td->messages_manager_->on_update_dialog_is_pinned(dialog_id_, !is_pinned_);
     promise_.set_error(std::move(status));
   }
 };
@@ -15166,8 +15172,11 @@ Result<Contact> MessagesManager::process_input_message_contact(
   if (!clean_input_string(contact->last_name_)) {
     return Status::Error(400, "Last name must be encoded in UTF-8");
   }
+  if (!clean_input_string(contact->vcard_)) {
+    return Status::Error(400, "vCard must be encoded in UTF-8");
+  }
 
-  return Contact(contact->phone_number_, contact->first_name_, contact->last_name_, contact->user_id_);
+  return Contact(contact->phone_number_, contact->first_name_, contact->last_name_, contact->vcard_, contact->user_id_);
 }
 
 Result<Game> MessagesManager::process_input_message_game(
@@ -20128,11 +20137,12 @@ bool MessagesManager::update_dialog_draft_message(Dialog *d, unique_ptr<DraftMes
   return false;
 }
 
-void MessagesManager::on_update_dialog_pinned(DialogId dialog_id, bool is_pinned) {
+void MessagesManager::on_update_dialog_is_pinned(DialogId dialog_id, bool is_pinned) {
   if (!dialog_id.is_valid()) {
-    LOG(ERROR) << "Receive pinn of invalid " << dialog_id;
+    LOG(ERROR) << "Receive pin of invalid " << dialog_id;
     return;
   }
+
   auto d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     LOG(WARNING) << "Can't apply updateDialogPinned with " << dialog_id;
@@ -20145,13 +20155,34 @@ void MessagesManager::on_update_dialog_pinned(DialogId dialog_id, bool is_pinned
     return;
   }
   set_dialog_is_pinned(d, is_pinned);
-  update_dialog_pos(d, false, "on_update_dialog_pinned");
+  update_dialog_pos(d, false, "on_update_dialog_is_pinned");
 }
 
 void MessagesManager::on_update_pinned_dialogs() {
   // TODO logevent + promise
   send_closure(td_->create_net_actor<GetPinnedDialogsQuery>(Promise<>()), &GetPinnedDialogsQuery::send,
                get_sequence_dispatcher_id(DialogId(), -1));
+}
+
+void MessagesManager::on_update_dialog_is_marked_as_unread(DialogId dialog_id, bool is_marked_as_unread) {
+  if (!dialog_id.is_valid()) {
+    LOG(ERROR) << "Receive marking as unread of invalid " << dialog_id;
+    return;
+  }
+
+  auto d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    // nothing to do
+    return;
+  }
+  /*
+  FIXME
+  if (is_marked_as_unread == d->is_marked_as_unread) {
+    return;
+  }
+
+  set_dialog_is_marked_as_unread(d, is_marked_as_unread);
+  */
 }
 
 void MessagesManager::on_create_new_dialog_success(int64 random_id, tl_object_ptr<telegram_api::Updates> &&updates,
@@ -21974,7 +22005,7 @@ unique_ptr<MessageContent> MessagesManager::get_secret_message_content(
         message_venue->venue_id_.clear();
       }
 
-      auto m = make_unique<MessageVenue>(Venue(Location(message_venue->lat_, message_venue->long_),
+      auto m = make_unique<MessageVenue>(Venue(Location(message_venue->lat_, message_venue->long_, 0),
                                                std::move(message_venue->title_), std::move(message_venue->address_),
                                                std::move(message_venue->provider_), std::move(message_venue->venue_id_),
                                                string()));
@@ -21996,8 +22027,9 @@ unique_ptr<MessageContent> MessagesManager::get_secret_message_content(
       if (!clean_input_string(message_contact->last_name_)) {
         message_contact->last_name_.clear();
       }
-      return make_unique<MessageContact>(Contact(message_contact->phone_number_, message_contact->first_name_,
-                                                 message_contact->last_name_, message_contact->user_id_));
+      return make_unique<MessageContact>(
+          Contact(std::move(message_contact->phone_number_), std::move(message_contact->first_name_),
+                  std::move(message_contact->last_name_), string(), message_contact->user_id_));
     }
     case secret_api::decryptedMessageMediaWebPage::ID: {
       auto media_web_page = move_tl_object_as<secret_api::decryptedMessageMediaWebPage>(media);
@@ -22154,8 +22186,9 @@ unique_ptr<MessageContent> MessagesManager::get_message_content(FormattedText me
         td_->contacts_manager_->get_user_id_object(UserId(message_contact->user_id_),
                                                    "messageMediaContact");  // to ensure updateUser
       }
-      return make_unique<MessageContact>(Contact(message_contact->phone_number_, message_contact->first_name_,
-                                                 message_contact->last_name_, message_contact->user_id_));
+      return make_unique<MessageContact>(Contact(
+          std::move(message_contact->phone_number_), std::move(message_contact->first_name_),
+          std::move(message_contact->last_name_), std::move(message_contact->vcard_), message_contact->user_id_));
     }
     case telegram_api::messageMediaDocument::ID: {
       auto message_document = move_tl_object_as<telegram_api::messageMediaDocument>(media);
@@ -23706,6 +23739,13 @@ bool MessagesManager::need_message_text_changed_warning(const Message *old_messa
   return true;
 }
 
+int64 MessagesManager::choose_location_access_hash(const Location &first, const Location &second) {
+  if (second.get_access_hash() != 0) {
+    return second.get_access_hash();
+  }
+  return first.get_access_hash();
+}
+
 bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_message,
                                              unique_ptr<MessageContent> new_content,
                                              bool need_send_update_message_content, bool need_merge_files) {
@@ -23717,6 +23757,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
   const bool can_delete_old_document = old_message->message_id.is_yet_unsent() && false;
 
   auto old_file_id = get_message_content_file_id(old_content.get());
+  int64 location_access_hash = 0;
   bool need_finish_upload = old_file_id.is_valid() && need_merge_files;
   if (old_content_type != new_content_type) {
     need_update = true;
@@ -23873,6 +23914,10 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
         if (old_->period != new_->period) {
           need_update = true;
         }
+        if (old_->location.get_access_hash() != new_->location.get_access_hash()) {
+          is_content_changed = true;
+          location_access_hash = choose_location_access_hash(old_->location, new_->location);
+        }
         break;
       }
       case MessageLocation::ID: {
@@ -23880,6 +23925,10 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
         auto new_ = static_cast<const MessageLocation *>(new_content.get());
         if (old_->location != new_->location) {
           need_update = true;
+        }
+        if (old_->location.get_access_hash() != new_->location.get_access_hash()) {
+          is_content_changed = true;
+          location_access_hash = choose_location_access_hash(old_->location, new_->location);
         }
         break;
       }
@@ -23949,6 +23998,10 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
         auto new_ = static_cast<const MessageVenue *>(new_content.get());
         if (old_->venue != new_->venue) {
           need_update = true;
+        }
+        if (old_->venue.location().get_access_hash() != new_->venue.location().get_access_hash()) {
+          is_content_changed = true;
+          location_access_hash = choose_location_access_hash(old_->venue.location(), new_->venue.location());
         }
         break;
       }
@@ -24176,6 +24229,21 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
     update_message_content_file_id_remote(old_content.get(), old_file_id);
   } else {
     update_message_content_file_id_remote(old_content.get(), get_message_content_file_id(new_content.get()));
+  }
+  if (location_access_hash != 0) {
+    switch (old_content->get_id()) {
+      case MessageLiveLocation::ID:
+        static_cast<MessageLiveLocation *>(old_content.get())->location.set_access_hash(location_access_hash);
+        break;
+      case MessageLocation::ID:
+        static_cast<MessageLocation *>(old_content.get())->location.set_access_hash(location_access_hash);
+        break;
+      case MessageVenue::ID:
+        static_cast<MessageVenue *>(old_content.get())->venue.set_access_hash(location_access_hash);
+        break;
+      default:
+        UNREACHABLE();
+    }
   }
   if (is_content_changed && !need_update) {
     LOG(INFO) << "Content of " << old_message->message_id << " in " << dialog_id << " has changed";

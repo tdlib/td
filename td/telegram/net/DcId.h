@@ -9,6 +9,8 @@
 #include "td/utils/logging.h"
 #include "td/utils/StringBuilder.h"
 
+#include <tuple>
+
 namespace td {
 
 class DcId {
@@ -66,7 +68,7 @@ class DcId {
     return dc_id_ == other.dc_id_ && is_external_ == other.is_external_;
   }
   bool operator<(DcId other) const {
-    return dc_id_ < other.dc_id_;
+    return std::tie(dc_id_, is_external_) < std::tie(other.dc_id_, other.is_external_);
   }
   bool operator!=(DcId other) const {
     return !(*this == other);

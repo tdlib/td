@@ -4234,7 +4234,8 @@ bool Td::is_internal_config_option(Slice name) {
   return name == "call_ring_timeout_ms" || name == "call_receive_timeout_ms" || name == "channels_read_media_period" ||
          name == "edit_time_limit" || name == "revoke_pm_inbox" || name == "revoke_time_limit" ||
          name == "revoke_pm_time_limit" || name == "rating_e_decay" || name == "saved_animations_limit" ||
-         name == "recent_stickers_limit" || name == "expect_blocking" || name == "my_phone_number" || name == "auth";
+         name == "recent_stickers_limit" || name == "expect_blocking" || name == "my_phone_number" ||
+         name == "webfile_dc_id" || name == "auth";
 }
 
 void Td::on_config_option_updated(const string &name) {

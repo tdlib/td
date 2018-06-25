@@ -603,6 +603,7 @@ class FullRemoteFileLocation {
   }
 
   DcId get_dc_id() const {
+    CHECK(!is_web());
     return dc_id_;
   }
   int64 get_access_hash() const {
@@ -722,10 +723,10 @@ class FullRemoteFileLocation {
       : file_type_(file_type), dc_id_(dc_id), variant_(CommonRemoteFileLocation{id, access_hash}) {
     CHECK(is_common());
   }
-  FullRemoteFileLocation(FileType file_type, string url, int64 access_hash, DcId dc_id)
+  FullRemoteFileLocation(FileType file_type, string url, int64 access_hash)
       : file_type_(file_type)
       , web_location_flag_{true}
-      , dc_id_(dc_id)
+      , dc_id_()
       , variant_(WebRemoteFileLocation{std::move(url), access_hash}) {
     CHECK(is_web());
     CHECK(!web().url_.empty());
@@ -777,9 +778,12 @@ class FullRemoteFileLocation {
 
 inline StringBuilder &operator<<(StringBuilder &string_builder,
                                  const FullRemoteFileLocation &full_remote_file_location) {
-  string_builder << "[" << file_type_name[static_cast<int32>(full_remote_file_location.file_type_)] << ", "
-                 << full_remote_file_location.get_dc_id() << ", location = ";
+  string_builder << "[" << file_type_name[static_cast<int32>(full_remote_file_location.file_type_)];
+  if (!full_remote_file_location.is_web()) {
+    string_builder << ", " << full_remote_file_location.get_dc_id();
+  }
 
+  string_builder << ", location = ";
   if (full_remote_file_location.is_web()) {
     string_builder << full_remote_file_location.web();
   } else if (full_remote_file_location.is_photo()) {

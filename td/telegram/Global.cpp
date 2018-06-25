@@ -96,9 +96,25 @@ void Global::update_server_time_difference(double diff) {
   }
 }
 
+DcId Global::get_webfile_dc_id() const {
+  int32 dc_id = shared_config_->get_option_integer("webfile_dc_id");
+  if (!DcId::is_valid(dc_id)) {
+    if (is_test_dc()) {
+      dc_id = 2;
+    } else {
+      dc_id = 4;
+    }
+
+    CHECK(DcId::is_valid(dc_id));
+  }
+
+  return DcId::internal(dc_id);
+}
+
 void Global::set_net_query_dispatcher(std::unique_ptr<NetQueryDispatcher> net_query_dispatcher) {
   net_query_dispatcher_ = std::move(net_query_dispatcher);
 }
+
 void Global::set_shared_config(std::unique_ptr<ConfigShared> shared_config) {
   shared_config_ = std::move(shared_config);
 }

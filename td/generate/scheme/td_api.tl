@@ -218,8 +218,8 @@ videoNote duration:int32 length:int32 thumbnail:photoSize video:file = VideoNote
 //@waveform A waveform representation of the voice note in 5-bit format @mime_type MIME type of the file; as defined by the sender @voice File containing the voice note
 voiceNote duration:int32 waveform:bytes mime_type:string voice:file = VoiceNote;
 
-//@description Describes a user contact @phone_number Phone number of the user @first_name First name of the user; 1-255 characters in length @last_name Last name of the user @user_id Identifier of the user, if known; otherwise 0
-contact phone_number:string first_name:string last_name:string user_id:int32 = Contact;
+//@description Describes a user contact @phone_number Phone number of the user @first_name First name of the user; 1-255 characters in length @last_name Last name of the user @vcard Additional data about the user in a form of vCard; 0-2048 bytes in length @user_id Identifier of the user, if known; otherwise 0
+contact phone_number:string first_name:string last_name:string vcard:string user_id:int32 = Contact;
 
 //@description Describes a location on planet Earth @latitude Latitude of the location in degrees; as defined by the sender @longitude Longitude of the location, in degrees; as defined by the sender
 location latitude:double longitude:double = Location;
@@ -2769,7 +2769,7 @@ unblockUser user_id:int32 = Ok;
 getBlockedUsers offset:int32 limit:int32 = Users;
 
 
-//@description Adds new contacts or edits existing contacts; contacts' user identifiers are ignored @contacts The list of contacts to import or edit
+//@description Adds new contacts or edits existing contacts; contacts' user identifiers are ignored @contacts The list of contacts to import or edit, contact's vCard are ignored and are not imported
 importContacts contacts:vector<contact> = ImportedContacts;
 
 //@description Searches for the specified query in the first names, last names and usernames of the known user contacts @query Query to search for; can be empty to return all contacts @limit Maximum number of users to be returned
@@ -2782,7 +2782,7 @@ removeContacts user_ids:vector<int32> = Ok;
 getImportedContactCount = Count;
 
 //@description Changes imported contacts using the list of current user contacts saved on the device. Imports newly added contacts and, if at least the file database is enabled, deletes recently deleted contacts.
-//-Query result depends on the result of the previous query, so only one query is possible at the same time @contacts The new list of contacts
+//-Query result depends on the result of the previous query, so only one query is possible at the same time @contacts The new list of contacts, contact's vCard are ignored and are not imported
 changeImportedContacts contacts:vector<contact> = ImportedContacts;
 
 //@description Clears all imported contacts, contacts list remains unchanged

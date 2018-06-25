@@ -397,11 +397,15 @@ bool FileView::can_download_from_server() const {
   if (remote_location().file_type_ == FileType::Encrypted && encryption_key().empty()) {
     return false;
   }
+  if (remote_location().is_web()) {
+    return true;
+  }
   if (remote_location().get_dc_id().is_empty()) {
     return false;
   }
   return true;
 }
+
 bool FileView::can_generate() const {
   return has_generate_location();
 }
@@ -952,8 +956,8 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   }
 
   if (x_node->remote_.type() == RemoteFileLocation::Type::Full &&
-      y_node->remote_.type() == RemoteFileLocation::Type::Full &&
-      x_node->remote_.full().get_dc_id() != y_node->remote_.full().get_dc_id()) {
+      y_node->remote_.type() == RemoteFileLocation::Type::Full && !x_node->remote_.full().is_web() &&
+      !y_node->remote_.full().is_web() && x_node->remote_.full().get_dc_id() != y_node->remote_.full().get_dc_id()) {
     LOG(ERROR) << "File remote location was changed from " << y_node->remote_.full() << " to "
                << x_node->remote_.full();
   }

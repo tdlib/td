@@ -3469,7 +3469,7 @@ std::pair<vector<UserId>, vector<int32>> ContactsManager::import_contacts(
   td_->create_handler<ImportContactsQuery>(std::move(promise))
       ->send(transform(contacts,
                        [](const tl_object_ptr<td_api::contact> &contact) {
-                         return Contact(contact->phone_number_, contact->first_name_, contact->last_name_, 0);
+                         return Contact(contact->phone_number_, contact->first_name_, contact->last_name_, string(), 0);
                        }),
              random_id);
   return {};
@@ -3645,7 +3645,7 @@ std::pair<vector<UserId>, vector<int32>> ContactsManager::change_imported_contac
 
   auto new_contacts = transform(std::move(contacts), [](tl_object_ptr<td_api::contact> &&contact) {
     return Contact(std::move(contact->phone_number_), std::move(contact->first_name_), std::move(contact->last_name_),
-                   0);
+                   string(), 0);
   });
 
   vector<size_t> new_contacts_unique_id(new_contacts.size());

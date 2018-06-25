@@ -244,7 +244,6 @@ std::pair<DocumentsManager::DocumentType, FileId> DocumentsManager::on_get_docum
         }
         auto http_url = r_http_url.move_as_ok();
 
-        dc_id = web_document->dc_id_;
         access_hash = web_document->access_hash_;
         url = http_url.get_url();
         file_name = get_url_query_file_name(http_url.query_);
@@ -273,7 +272,7 @@ std::pair<DocumentsManager::DocumentType, FileId> DocumentsManager::on_get_docum
   }
 
   LOG(DEBUG) << "Receive document with id = " << id << " of type " << static_cast<int32>(document_type);
-  if (!is_web_no_proxy && !DcId::is_valid(dc_id)) {
+  if (!is_web && !DcId::is_valid(dc_id)) {
     LOG(ERROR) << "Wrong dc_id = " << dc_id;
     return {DocumentType::Unknown, FileId()};
   }
@@ -297,9 +296,8 @@ std::pair<DocumentsManager::DocumentType, FileId> DocumentsManager::on_get_docum
       td_->file_manager_->set_encryption_key(file_id, std::move(encryption_key));
     }
   } else if (!is_web_no_proxy) {
-    file_id =
-        td_->file_manager_->register_remote(FullRemoteFileLocation(file_type, url, access_hash, DcId::internal(dc_id)),
-                                            FileLocationSource::FromServer, owner_dialog_id, 0, size, file_name);
+    file_id = td_->file_manager_->register_remote(FullRemoteFileLocation(file_type, url, access_hash),
+                                                  FileLocationSource::FromServer, owner_dialog_id, 0, size, file_name);
   } else {
     auto r_file_id = td_->file_manager_->from_persistent_id(url, file_type);
     if (r_file_id.is_error()) {

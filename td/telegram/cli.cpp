@@ -1413,7 +1413,7 @@ class CliClient final : public Actor {
         limit = 10000;
       }
       send_request(make_tl_object<td_api::searchContacts>("", limit));
-    } else if (op == "ImportContacts") {
+    } else if (op == "ImportContacts" || op == "cic") {
       vector<string> contacts_str = full_split(args, ';');
       vector<tl_object_ptr<td_api::contact>> contacts;
       for (auto c : contacts_str) {
@@ -1422,27 +1422,18 @@ class CliClient final : public Actor {
         string last_name;
         std::tie(phone_number, c) = split(c, ',');
         std::tie(first_name, last_name) = split(c, ',');
-        contacts.push_back(make_tl_object<td_api::contact>(phone_number, first_name, last_name, 0));
+        contacts.push_back(make_tl_object<td_api::contact>(phone_number, first_name, last_name, string(), 0));
       }
 
-      send_request(make_tl_object<td_api::importContacts>(std::move(contacts)));
+      if (op == "cic") {
+        send_request(make_tl_object<td_api::changeImportedContacts>(std::move(contacts)));
+      } else {
+        send_request(make_tl_object<td_api::importContacts>(std::move(contacts)));
+      }
     } else if (op == "RemoveContacts") {
       send_request(make_tl_object<td_api::removeContacts>(as_user_ids(args)));
     } else if (op == "gicc") {
       send_request(make_tl_object<td_api::getImportedContactCount>());
-    } else if (op == "cic") {
-      vector<string> contacts_str = full_split(args, ';');
-      vector<tl_object_ptr<td_api::contact>> contacts;
-      for (auto c : contacts_str) {
-        string phone_number;
-        string first_name;
-        string last_name;
-        std::tie(phone_number, c) = split(c, ',');
-        std::tie(first_name, last_name) = split(c, ',');
-        contacts.push_back(make_tl_object<td_api::contact>(phone_number, first_name, last_name, 0));
-      }
-
-      send_request(make_tl_object<td_api::changeImportedContacts>(std::move(contacts)));
     } else if (op == "ClearImportedContacts") {
       send_request(make_tl_object<td_api::clearImportedContacts>());
     } else {
@@ -2557,7 +2548,7 @@ class CliClient final : public Actor {
       std::tie(last_name, user_id) = split(args);
 
       send_message(chat_id, make_tl_object<td_api::inputMessageContact>(make_tl_object<td_api::contact>(
-                                phone_number, first_name, last_name, as_user_id(user_id))));
+                                phone_number, first_name, last_name, string(), as_user_id(user_id))));
     } else if (op == "sf") {
       string chat_id;
       string from_chat_id;

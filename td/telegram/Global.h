@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DhConfig.h"
+#include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/TdParameters.h"
@@ -249,6 +250,8 @@ class Global : public ActorContext {
   int32 get_slow_net_scheduler_id() const {
     return slow_net_scheduler_id_;
   }
+
+  DcId get_webfile_dc_id() const;
 
 #if !TD_HAVE_ATOMIC_SHARED_PTR
   std::mutex dh_config_mutex_;

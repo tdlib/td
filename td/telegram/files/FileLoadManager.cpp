@@ -7,6 +7,7 @@
 #include "td/telegram/files/FileLoadManager.h"
 
 #include "td/telegram/Global.h"
+#include "td/telegram/net/DcId.h"
 
 #include "td/utils/common.h"
 #include "td/utils/filesystem.h"
@@ -51,7 +52,8 @@ void FileLoadManager::download(QueryId id, const FullRemoteFileLocation &remote_
   bool is_small = size < 20 * 1024;
   node->loader_ = create_actor<FileDownloader>("Downloader", remote_location, local, size, std::move(name),
                                                encryption_key, is_small, search_file, std::move(callback));
-  auto &resource_manager = get_download_resource_manager(is_small, remote_location.get_dc_id());
+  DcId dc_id = remote_location.is_web() ? G()->get_webfile_dc_id() : remote_location.get_dc_id();
+  auto &resource_manager = get_download_resource_manager(is_small, dc_id);
   send_closure(resource_manager, &ResourceManager::register_worker,
                ActorShared<FileLoaderActor>(node->loader_.get(), static_cast<uint64>(-1)), priority);
   query_id_to_node_id_[id] = node_id;
