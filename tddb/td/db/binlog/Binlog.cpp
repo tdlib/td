@@ -485,7 +485,7 @@ Status Binlog::load_binlog(const Callback &callback, const Callback &debug_callb
 
   auto offset = processor_->offset();
   processor_->for_each([&](BinlogEvent &event) {
-    VLOG(binlog) << "Replay binlog event: " << event;
+    VLOG(binlog) << "Replay binlog event: " << event.public_to_string();
     if (callback) {
       callback(event);
     }
