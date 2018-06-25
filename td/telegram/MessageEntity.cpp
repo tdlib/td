@@ -1011,6 +1011,8 @@ vector<std::pair<Slice, bool>> find_urls(Slice str) {
   for (auto url : match_urls(str)) {
     if (is_email_address(url)) {
       result.emplace_back(url, true);
+    } else if (begins_with(url, "mailto:") && is_email_address(url.substr(7))) {
+      result.emplace_back(url.substr(7), true);
     } else {
       url = fix_url(url);
       if (!url.empty()) {

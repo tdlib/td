@@ -515,6 +515,7 @@ TEST(MessageEntities, url) {
   check_url("<http://www.ics.uci.edu/pub/ietf/uri/historical.html#WARNING>",
             {"http://www.ics.uci.edu/pub/ietf/uri/historical.html#WARNING"});
   check_url("Look :test@example.com", {":test@example.com"}, {});  // TODO {}, {"test@example.com"}
+  check_url("Look mailto:test@example.com", {}, {"test@example.com"});
   check_url("http://test.com#a", {"http://test.com#a"});
   check_url("http://test.com#", {"http://test.com#"});
   check_url("http://test.com?#", {"http://test.com?#"});
