@@ -5001,7 +5001,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   bool have_access_hash = (flags & USER_FLAG_HAS_ACCESS_HASH) != 0;
   bool is_received = (flags & USER_FLAG_IS_INACCESSIBLE) == 0;
 
-  User *u = add_user(user_id);
+  User *u = add_user(user_id, "on_get_user");
   if ((have_access_hash || u->access_hash == -1) && u->access_hash != user->access_hash_) {
     LOG(DEBUG) << "Access hash has changed for " << user_id << " from " << u->access_hash << " to "
                << user->access_hash_;
@@ -5175,8 +5175,8 @@ void ContactsManager::on_binlog_user_event(BinlogEvent &&event) {
 
   auto user_id = log_event.user_id;
   LOG(INFO) << "Add " << user_id << " from binlog";
-  User *u = add_user(user_id);
-  CHECK(u->first_name.empty());
+  User *u = add_user(user_id, "on_binlog_user_event");
+  CHECK(u->first_name.empty()) << user_id << " " << u->debug_source;
   *u = std::move(log_event.u);  // users come from binlog before all other events, so just add them
 
   u->logevent_id = event.id_;
@@ -5293,7 +5293,7 @@ void ContactsManager::on_load_user_from_database(UserId user_id, string value) {
   User *u = get_user(user_id);
   if (u == nullptr) {
     if (!value.empty()) {
-      u = add_user(user_id);
+      u = add_user(user_id, "on_load_user_from_database");
 
       log_event_parse(*u, value).ensure();
 
@@ -8109,9 +8109,13 @@ bool ContactsManager::get_user(UserId user_id, int left_tries, Promise<Unit> &&p
   return true;
 }
 
-ContactsManager::User *ContactsManager::add_user(UserId user_id) {
+ContactsManager::User *ContactsManager::add_user(UserId user_id, const char *source) {
   CHECK(user_id.is_valid());
-  return &users_[user_id];
+  User *u = &users_[user_id];
+  if (u->debug_source == nullptr) {
+    u->debug_source = source;
+  }
+  return u;
 }
 
 const ContactsManager::UserFull *ContactsManager::get_user_full(UserId user_id) const {

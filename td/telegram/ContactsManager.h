@@ -481,6 +481,8 @@ class ContactsManager : public Actor {
 
     uint64 logevent_id = 0;
 
+    const char *debug_source = nullptr;
+
     template <class StorerT>
     void store(StorerT &storer) const;
 
@@ -766,7 +768,7 @@ class ContactsManager : public Actor {
   User *get_user_force(UserId user_id);
   User *get_user_force_impl(UserId user_id);
 
-  User *add_user(UserId user_id);
+  User *add_user(UserId user_id, const char *source);
 
   const UserFull *get_user_full(UserId user_id) const;
   UserFull *get_user_full(UserId user_id);
