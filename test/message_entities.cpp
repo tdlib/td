@@ -360,7 +360,7 @@ TEST(MessageEntities, url) {
   check_url("http://a.0", {});
   check_url("http://a.a", {});
   check_url("google.com:1#ab c", {"google.com:1#ab"});
-  check_url("google.com:1#", {"google.com:1#"});
+  check_url("google.com:1#", {"google.com:1"});
   check_url("google.com:1#1", {"google.com:1#1"});
   check_url("google.com:00000001/abs", {"google.com:00000001/abs"});
   check_url("google.com:000000065535/abs", {"google.com:000000065535/abs"});
@@ -407,7 +407,8 @@ TEST(MessageEntities, url) {
   check_url("bbbbbbbbbbbbbb.@.@", {});
   check_url("http://google.com/", {"http://google.com/"});
   check_url("http://google.com?", {"http://google.com"});
-  check_url("http://google.com#", {"http://google.com#"});
+  check_url("http://google.com#", {"http://google.com"});
+  check_url("http://google.com##", {"http://google.com##"});
   check_url("http://google.com/?", {"http://google.com/"});
   check_url("https://www.google.com/ab,", {"https://www.google.com/ab"});
   check_url("@.", {});
@@ -469,7 +470,7 @@ TEST(MessageEntities, url) {
        "google.com/",
        "google.com/#",
        "google.com",
-       "google.com#"});
+       "google.com"});
   check_url("https://t.…", {});
   check_url("('http://telegram.org/a-b/?br=ie&lang=en',)", {"http://telegram.org/a-b/?br=ie&lang=en"});
   check_url("https://ai.telegram.org/bot%20bot/test-...", {"https://ai.telegram.org/bot%20bot/test-"});
@@ -517,7 +518,7 @@ TEST(MessageEntities, url) {
   check_url("Look :test@example.com", {":test@example.com"}, {});  // TODO {}, {"test@example.com"}
   check_url("Look mailto:test@example.com", {}, {"test@example.com"});
   check_url("http://test.com#a", {"http://test.com#a"});
-  check_url("http://test.com#", {"http://test.com#"});
+  check_url("http://test.com#", {"http://test.com"});
   check_url("http://test.com?#", {"http://test.com?#"});
   check_url("http://test.com/?#", {"http://test.com/?#"});
   check_url("https://t.me/abcdef…", {"https://t.me/abcdef"});
