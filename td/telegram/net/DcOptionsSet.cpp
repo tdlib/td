@@ -144,6 +144,7 @@ Result<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_connection(DcId dc_id, b
 }
 
 void DcOptionsSet::reset() {
+  options_.clear();
   ordered_options_.clear();
 }
 
