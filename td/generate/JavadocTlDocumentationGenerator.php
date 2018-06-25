@@ -208,7 +208,7 @@ EOT
 EOT
 );
         if ($may_be_null && $this->nullable_annotation && ($this->java_version >= 8 || substr($type_name, -1) != ']')) {
-            $this->addLineReplacement($full_line, "        public $this->nullable_annotation $type_name $field_name;".PHP_EOL);
+            $this->addLineReplacement($full_line, "        $this->nullable_annotation public $type_name $field_name;".PHP_EOL);
         }
     }
 
