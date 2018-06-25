@@ -10,9 +10,12 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/net/ConnectionCreator.h"
+#include "td/telegram/net/DcId.h"
 #include "td/telegram/net/DcOptions.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
+#include "td/telegram/net/NetType.h"
+#include "td/telegram/net/PublicRsaKeyShared.h"
 #include "td/telegram/net/Session.h"
 
 #if !TD_EMSCRIPTEN  //FIXME

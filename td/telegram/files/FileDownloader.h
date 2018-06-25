@@ -13,6 +13,7 @@
 
 #include "td/telegram/files/FileLoader.h"
 #include "td/telegram/files/FileLocation.h"
+#include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQuery.h"
 
 #include "td/utils/common.h"

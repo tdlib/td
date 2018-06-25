@@ -8,6 +8,7 @@
 
 #include "td/telegram/Global.h"
 #include "td/telegram/net/AuthDataShared.h"
+#include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQuery.h"
 
 #include "td/actor/actor.h"

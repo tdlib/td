@@ -8,6 +8,7 @@
 
 #include "td/telegram/Global.h"
 #include "td/telegram/net/ConnectionCreator.h"
+#include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/net/Session.h"
 

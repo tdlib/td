@@ -15,6 +15,8 @@
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Status.h"
 
+#include <atomic>
+#include <memory>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -303,7 +305,6 @@ class CancellablePromise : public PromiseT {
   }
   virtual bool is_cancellable() const {
     return true;
-    ;
   }
   virtual bool is_cancelled() const {
     return cancellation_token_.is_canceled();

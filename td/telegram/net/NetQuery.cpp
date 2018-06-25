@@ -8,6 +8,9 @@
 
 #include "td/telegram/Global.h"
 
+#include "td/utils/misc.h"
+#include "td/utils/Slice.h"
+
 namespace td {
 
 ListNode net_query_list_;

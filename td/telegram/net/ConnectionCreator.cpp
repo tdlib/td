@@ -15,6 +15,7 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
+#include "td/telegram/net/NetType.h"
 #include "td/telegram/StateManager.h"
 
 #include "td/mtproto/IStreamTransport.h"

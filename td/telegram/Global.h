@@ -57,6 +57,7 @@ class WebPagesManager;
 };  // namespace td
 
 namespace td {
+
 class Global : public ActorContext {
  public:
   Global();
@@ -348,4 +349,5 @@ inline Global *G() {
   CHECK(Scheduler::context());
   return static_cast<Global *>(Scheduler::context());
 }
+
 }  // namespace td

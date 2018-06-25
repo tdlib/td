@@ -9,6 +9,7 @@
 #include "td/telegram/net/DcAuthManager.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/net/NetQueryDelayer.h"
+#include "td/telegram/net/PublicRsaKeyShared.h"
 #include "td/telegram/net/PublicRsaKeyWatchdog.h"
 #include "td/telegram/net/SessionMultiProxy.h"
 

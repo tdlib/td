@@ -5,14 +5,6 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/telegram/MessagesManager.h"
-#include "td/telegram/secret_api.hpp"
-#include "td/telegram/td_api.hpp"
-#include "td/telegram/telegram_api.h"
-
-#include "td/actor/PromiseFuture.h"
-#include "td/actor/SleepActor.h"
-
-#include "td/db/binlog/BinlogHelper.h"
 
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AnimationsManager.hpp"
@@ -35,6 +27,7 @@
 #include "td/telegram/MessageEntity.hpp"
 #include "td/telegram/MessagesDb.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetActor.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/Payments.h"
@@ -58,6 +51,15 @@
 #include "td/telegram/VoiceNotesManager.hpp"
 #include "td/telegram/WebPageId.h"
 #include "td/telegram/WebPagesManager.h"
+
+#include "td/telegram/secret_api.hpp"
+#include "td/telegram/td_api.hpp"
+#include "td/telegram/telegram_api.h"
+
+#include "td/actor/PromiseFuture.h"
+#include "td/actor/SleepActor.h"
+
+#include "td/db/binlog/BinlogHelper.h"
 
 #include "td/utils/format.h"
 #include "td/utils/HttpUrl.h"

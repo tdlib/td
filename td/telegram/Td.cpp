@@ -9,11 +9,13 @@
 #include "td/db/binlog/BinlogEvent.h"
 
 #include "td/telegram/net/ConnectionCreator.h"
+#include "td/telegram/net/DcId.h"
 #include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/net/NetQueryDelayer.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/net/NetStatsManager.h"
+#include "td/telegram/net/NetType.h"
 #include "td/telegram/net/TempAuthKeyWatchdog.h"
 
 #include "td/telegram/AccessRights.h"

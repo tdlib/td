@@ -23,6 +23,7 @@
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/net/DcId.h"
 #include "td/telegram/StickersManager.hpp"
 #include "td/telegram/Td.h"
 

@@ -9,6 +9,7 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
+#include "td/telegram/net/DcId.h"
 #include "td/telegram/net/DcOptions.h"
 #include "td/telegram/net/DcOptionsSet.h"
 #include "td/telegram/net/NetQuery.h"

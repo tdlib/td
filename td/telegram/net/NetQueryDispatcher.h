@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/net/AuthDataShared.h"
+#include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQuery.h"
 
 #include "td/actor/actor.h"
@@ -23,11 +24,11 @@
 
 namespace td {
 
-class NetQueryDelayer;
 class DcAuthManager;
-class SessionMultiProxy;
+class NetQueryDelayer;
 class PublicRsaKeyShared;
 class PublicRsaKeyWatchdog;
+class SessionMultiProxy;
 
 // Not just dispatcher.
 class NetQueryDispatcher {

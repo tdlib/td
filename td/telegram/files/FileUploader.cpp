@@ -11,6 +11,7 @@
 #include "td/telegram/files/FileLoaderUtils.h"
 
 #include "td/telegram/Global.h"
+#include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 
 #include "td/utils/buffer.h"

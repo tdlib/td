@@ -19,6 +19,7 @@
 #include "td/net/Socks5.h"
 
 #include "td/telegram/ConfigManager.h"
+#include "td/telegram/net/DcId.h"
 #include "td/telegram/net/PublicRsaKeyShared.h"
 
 #include "td/utils/logging.h"
