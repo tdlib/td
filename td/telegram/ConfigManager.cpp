@@ -138,6 +138,7 @@ ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfig> promise, bool is_t
 #if TD_EMSCRIPTEN  // FIXME
   return ActorOwn<>();
 #else
+  auto name = G()->shared_config().get_option_string("dc_txt_domain_name", is_test ? "tapv2.stel.com" : "apv2.stel.com");
   return ActorOwn<>(create_actor_on_scheduler<Wget>(
       "Wget", scheduler_id,
       PromiseCreator::lambda([promise = std::move(promise)](Result<HttpQueryPtr> r_query) mutable {
@@ -171,7 +172,7 @@ ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfig> promise, bool is_t
           return decode_config(data);
         }());
       }),
-      PSTRING() << "https://www.google.com/resolve?name=" << (is_test ? "t" : "") << "apv2.stel.com&type=16",
+      PSTRING() << "https://www.google.com/resolve?name=" << url_encode(name) << "&type=16",
       std::vector<std::pair<string, string>>({{"Host", "dns.google.com"}}), 10 /*timeout*/, 3 /*ttl*/,
       SslFd::VerifyPeer::Off));
 #endif
@@ -759,6 +760,9 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
     shared_config.set_option_boolean("expect_blocking",
                                      (config->flags_ & telegram_api::config::BLOCKED_MODE_MASK) != 0);
   }
+  if (is_from_main_dc || !shared_config.have_option("dc_txt_domain_name")) {
+    shared_config.set_option_string("dc_txt_domain_name", config->dc_txt_domain_name_);
+  }
   if (is_from_main_dc || !shared_config.have_option("t_me_url")) {
     auto url = config->me_url_prefix_;
     if (!url.empty()) {
@@ -769,6 +773,7 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
     }
   }
   if (is_from_main_dc) {
+    shared_config.set_option_integer("webfile_dc_id", config->webfile_dc_id_);
     if ((config->flags_ & telegram_api::config::TMP_SESSIONS_MASK) != 0) {
       G()->shared_config().set_option_integer("session_count", config->tmp_sessions_);
     } else {
@@ -791,8 +796,6 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   shared_config.set_option_integer("call_connect_timeout_ms", config->call_connect_timeout_ms_);
   shared_config.set_option_integer("call_packet_timeout_ms", config->call_packet_timeout_ms_);
   shared_config.set_option_integer("call_receive_timeout_ms", config->call_receive_timeout_ms_);
-
-  shared_config.set_option_integer("webfile_dc_id", config->webfile_dc_id_);
 
   // delete outdated options
   shared_config.set_option_empty("chat_big_size");
