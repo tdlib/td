@@ -797,6 +797,9 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   shared_config.set_option_integer("call_packet_timeout_ms", config->call_packet_timeout_ms_);
   shared_config.set_option_integer("call_receive_timeout_ms", config->call_receive_timeout_ms_);
 
+  shared_config.set_option_integer("message_text_length_max", config->message_length_max_);
+  shared_config.set_option_integer("message_caption_length_max", config->caption_length_max_);
+
   // delete outdated options
   shared_config.set_option_empty("chat_big_size");
   shared_config.set_option_empty("group_size_max");
