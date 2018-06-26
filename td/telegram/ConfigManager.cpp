@@ -138,7 +138,8 @@ ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfig> promise, bool is_t
 #if TD_EMSCRIPTEN  // FIXME
   return ActorOwn<>();
 #else
-  auto name = G()->shared_config().get_option_string("dc_txt_domain_name", is_test ? "tapv2.stel.com" : "apv2.stel.com");
+  auto name =
+      G()->shared_config().get_option_string("dc_txt_domain_name", is_test ? "tapv2.stel.com" : "apv2.stel.com");
   return ActorOwn<>(create_actor_on_scheduler<Wget>(
       "Wget", scheduler_id,
       PromiseCreator::lambda([promise = std::move(promise)](Result<HttpQueryPtr> r_query) mutable {
@@ -799,6 +800,22 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
 
   shared_config.set_option_integer("message_text_length_max", config->message_length_max_);
   shared_config.set_option_integer("message_caption_length_max", config->caption_length_max_);
+
+  if (config->gif_search_username_.empty()) {
+    shared_config.set_option_empty("animation_search_bot_username");
+  } else {
+    shared_config.set_option_string("animation_search_bot_username", config->gif_search_username_);
+  }
+  if (config->venue_search_username_.empty()) {
+    shared_config.set_option_empty("venue_search_bot_username");
+  } else {
+    shared_config.set_option_string("venue_search_bot_username", config->venue_search_username_);
+  }
+  if (config->img_search_username_.empty()) {
+    shared_config.set_option_empty("photo_search_bot_username");
+  } else {
+    shared_config.set_option_string("photo_search_bot_username", config->img_search_username_);
+  }
 
   // delete outdated options
   shared_config.set_option_empty("chat_big_size");
