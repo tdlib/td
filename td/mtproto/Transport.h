@@ -5,6 +5,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
+
 #include "td/mtproto/utils.h"
 
 #include "td/utils/common.h"
@@ -234,5 +235,6 @@ class Transport {
   static void write_crypto_impl(int X, const Storer &storer, const AuthKey &auth_key, PacketInfo *info, HeaderT *header,
                                 size_t data_size);
 };
+
 }  // namespace mtproto
 }  // namespace td

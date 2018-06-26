@@ -176,7 +176,7 @@ class Status {
 
   void ensure_impl(CSlice file_name, int line) const {
     if (!is_ok()) {
-      LOG(FATAL) << "Unexpexted Status " << to_string() << " in file " << file_name << " at line " << line;
+      LOG(FATAL) << "Unexpected Status " << to_string() << " in file " << file_name << " at line " << line;
     }
   }
   void ensure_error_impl(CSlice file_name, int line) const {

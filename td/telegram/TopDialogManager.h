@@ -57,13 +57,23 @@ class TopDialogManager : public NetQueryCallback {
 
   void update_rating_e_decay();
 
+  void update_is_enabled(bool is_enabled);
+
  private:
   static constexpr size_t MAX_TOP_DIALOGS_LIMIT = 30;
-  static constexpr int32 SERVER_SYNC_DELAY = 86400;  // seconds
-  static constexpr int32 DB_SYNC_DELAY = 5;          // seconds
+  static constexpr int32 SERVER_SYNC_DELAY = 86400;      // seconds
+  static constexpr int32 SERVER_SYNC_RESEND_DELAY = 60;  // seconds
+  static constexpr int32 DB_SYNC_DELAY = 5;              // seconds
   ActorShared<> parent_;
 
   bool is_active_{false};
+  bool is_enabled_{true};
+  int32 rating_e_decay_ = 241920;
+
+  bool have_toggle_top_peers_query_ = false;
+  bool toggle_top_peers_query_is_enabled_ = false;
+  bool have_pending_toggle_top_peers_query_ = false;
+  bool pending_toggle_top_peers_query_ = false;
   bool was_first_sync_{false};
   enum class SyncState : int32 { None, Pending, Ok };
   SyncState db_sync_state_ = SyncState::None;
@@ -106,7 +116,8 @@ class TopDialogManager : public NetQueryCallback {
   double current_rating_add(double rating_timestamp) const;
   void normalize_rating();
 
-  int32 rating_e_decay_ = 241920;
+  bool set_is_enabled(bool is_enabled);
+  void send_toggle_top_peers(bool is_enabled);
 
   void do_get_top_dialogs(GetTopDialogsQuery &&query);
 
@@ -116,6 +127,8 @@ class TopDialogManager : public NetQueryCallback {
   void on_first_sync();
 
   void on_result(NetQueryPtr net_query) override;
+
+  void init();
 
   void start_up() override;
   void loop() override;

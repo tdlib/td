@@ -4262,9 +4262,13 @@ void Td::on_config_option_updated(const string &name) {
     send_closure(storage_manager_, &StorageManager::update_use_storage_optimizer);
   } else if (name == "rating_e_decay") {
     return send_closure(top_dialog_manager_, &TopDialogManager::update_rating_e_decay);
+  } else if (name == "disable_top_chats") {
+    send_closure(top_dialog_manager_, &TopDialogManager::update_is_enabled,
+                 !G()->shared_config().get_option_boolean(name));
   } else if (is_internal_config_option(name)) {
     return;
   }
+
   // send_closure was already used in the callback
   send_update(make_tl_object<td_api::updateOption>(name, G()->shared_config().get_option_value(name)));
 }
@@ -6680,6 +6684,9 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
   switch (request.name_[0]) {
     case 'd':
       if (set_boolean_option("disable_contact_registered_notifications")) {
+        return;
+      }
+      if (set_boolean_option("disable_top_chats")) {
         return;
       }
       break;
