@@ -11410,6 +11410,25 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     } else {
       set_dialog_first_database_message_id(d, MessageId(), "do_delete_message");
     }
+
+    if (message_id == d->suffix_load_first_message_id_) {
+      MessagesConstIterator it(d, message_id);
+      CHECK(*it == m);
+      if ((*it)->have_previous) {
+        --it;
+        if (*it != nullptr) {
+          d->suffix_load_first_message_id_ = (*it)->message_id;
+        } else {
+          LOG(ERROR) << "have_previous is true, but there is no previous for " << full_message_id << " from " << source;
+          dump_debug_message_op(d);
+          d->suffix_load_first_message_id_ = MessageId();
+          d->suffix_load_done_ = false;
+        }
+      } else {
+        d->suffix_load_first_message_id_ = MessageId();
+        d->suffix_load_done_ = false;
+      }
+    }
   }
   if (only_from_memory && message_id.get() >= d->suffix_load_first_message_id_.get()) {
     d->suffix_load_first_message_id_ = MessageId();
