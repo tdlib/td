@@ -89,11 +89,11 @@ int32 ConfigShared::get_option_integer(Slice name, int32 default_value) const {
 string ConfigShared::get_option_string(Slice name, string default_value) const {
   auto str_value = get_option(name);
   if (str_value.empty()) {
-    return std::move(default_value);
+    return default_value;
   }
   if (str_value[0] != 'S') {
     LOG(ERROR) << "Found \"" << str_value << "\" instead of string option";
-    return std::move(default_value);
+    return default_value;
   }
   return str_value.substr(1);
 }
