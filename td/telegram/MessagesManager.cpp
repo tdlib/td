@@ -14761,7 +14761,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
   Message *next_message = nullptr;
   Dependencies dependencies;
   bool is_first = true;
-  bool debug_have_full_history = d->have_full_history;
+  bool had_full_history = d->have_full_history;
   for (auto &message_slice : messages) {
     if (!d->first_database_message_id.is_valid() && !d->have_full_history) {
       break;
@@ -14836,14 +14836,11 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
       need_update_dialog_pos = true;
     }
     if (last_added_message_id.get() != d->last_database_message_id.get()) {
-      auto debug_last_database_message_id = d->last_database_message_id;
       set_dialog_last_database_message_id(d, last_added_message_id, "on_get_history_from_database");
       if (last_added_message_id.get() < d->first_database_message_id.get() ||
           !d->first_database_message_id.is_valid()) {
         CHECK(next_message != nullptr);
-        CHECK(d->have_full_history) << debug_have_full_history << " " << next_message->message_id << " "
-                                    << last_added_message_id << " " << d->first_database_message_id << " "
-                                    << debug_last_database_message_id;
+        CHECK(had_full_history);
         CHECK(next_message->message_id.get() <= d->last_database_message_id.get());
         LOG(ERROR) << "Fix first database message id in " << dialog_id << " from " << d->first_database_message_id
                    << " to " << next_message->message_id;
@@ -25788,6 +25785,12 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         DeleteMessageLogEvent log_event;
         log_event_parse(log_event, event.data_).ensure();
         log_event.id_ = event.id_;
+
+        Dialog *d = get_dialog_force(log_event.full_message_id_.get_dialog_id());
+        if (d != nullptr) {
+          d->deleted_message_ids.insert(log_event.full_message_id_.get_message_id());
+        }
+
         do_delete_message_logevent(log_event);
         break;
       }
@@ -25806,6 +25809,8 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           BinlogHelper::erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
+
+        d->deleted_message_ids.insert(log_event.message_ids_.begin(), log_event.message_ids_.end());
 
         delete_messages_from_server(dialog_id, std::move(log_event.message_ids_), log_event.revoke_, event.id_, Auto());
         break;
