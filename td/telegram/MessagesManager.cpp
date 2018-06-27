@@ -26341,8 +26341,9 @@ void MessagesManager::suffix_load_query_ready(DialogId dialog_id) {
   LOG(INFO) << "Finished suffix load query in " << dialog_id;
   auto *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
+  bool is_unchanged = d->suffix_load_first_message_id_ == d->suffix_load_query_message_id_;
   suffix_load_update_first_message_id(d);
-  if (d->suffix_load_first_message_id_ == d->suffix_load_query_message_id_) {
+  if (is_unchanged && d->suffix_load_first_message_id_ == d->suffix_load_query_message_id_) {
     LOG(INFO) << "suffix_load done " << dialog_id;
     d->suffix_load_done_ = true;
   }
