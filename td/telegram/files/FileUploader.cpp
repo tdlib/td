@@ -275,12 +275,13 @@ Result<size_t> FileUploader::process_part(Part part, NetQueryPtr net_query) {
   if (net_query->is_error()) {
     return std::move(net_query->error());
   }
-  Result<bool> result;
-  if (big_flag_) {
-    result = fetch_result<telegram_api::upload_saveBigFilePart>(net_query->ok());
-  } else {
-    result = fetch_result<telegram_api::upload_saveFilePart>(net_query->ok());
-  }
+  Result<bool> result = [&] {
+    if (big_flag_) {
+      return fetch_result<telegram_api::upload_saveBigFilePart>(net_query->ok());
+    } else {
+      return fetch_result<telegram_api::upload_saveFilePart>(net_query->ok());
+    }
+  }();
   if (result.is_error()) {
     return result.move_as_error();
   }

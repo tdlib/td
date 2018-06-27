@@ -7178,18 +7178,17 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::parseTextEntiti
     return make_error(400, "Parse mode must be non-empty");
   }
 
-  Result<vector<MessageEntity>> r_entities;
-  switch (request.parse_mode_->get_id()) {
-    case td_api::textParseModeHTML::ID:
-      r_entities = parse_html(request.text_);
-      break;
-    case td_api::textParseModeMarkdown::ID:
-      r_entities = parse_markdown(request.text_);
-      break;
-    default:
-      UNREACHABLE();
-      break;
-  }
+  auto r_entities = [&]() -> Result<vector<MessageEntity>> {
+    switch (request.parse_mode_->get_id()) {
+      case td_api::textParseModeHTML::ID:
+        return parse_html(request.text_);
+      case td_api::textParseModeMarkdown::ID:
+        return parse_markdown(request.text_);
+      default:
+        UNREACHABLE();
+        return Status::Error(500, "Unknown parse mode");
+    }
+  }();
   if (r_entities.is_error()) {
     return make_error(400, PSLICE() << "Can't parse entities: " << r_entities.error().message());
   }

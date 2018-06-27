@@ -610,19 +610,20 @@ Status HttpReader::parse_json_parameters(MutableSlice parameters) {
       return Status::Error(400, "Bad Request: can't parse object, ':' expected");
     }
     parser.skip_whitespaces();
-    Result<MutableSlice> r_value;
-    if (parser.peek_char() == '"') {
-      r_value = json_string_decode(parser);
-    } else {
-      const int32 DEFAULT_MAX_DEPTH = 100;
-      auto begin = parser.ptr();
-      auto result = do_json_skip(parser, DEFAULT_MAX_DEPTH);
-      if (result.is_ok()) {
-        r_value = MutableSlice(begin, parser.ptr());
+    auto r_value = [&]() -> Result<MutableSlice> {
+      if (parser.peek_char() == '"') {
+        return json_string_decode(parser);
       } else {
-        r_value = result.move_as_error();
+        const int32 DEFAULT_MAX_DEPTH = 100;
+        auto begin = parser.ptr();
+        auto result = do_json_skip(parser, DEFAULT_MAX_DEPTH);
+        if (result.is_ok()) {
+          return MutableSlice(begin, parser.ptr());
+        } else {
+          return result.move_as_error();
+        }
       }
-    }
+    }();
     if (r_value.is_error()) {
       return Status::Error(400,
                            string("Bad Request: can't parse parameter value: ") + r_value.error().message().c_str());

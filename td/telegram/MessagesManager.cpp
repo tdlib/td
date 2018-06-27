@@ -16427,7 +16427,7 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
 
   bool have_file = true;
   // TODO: send from secret chat to common
-  Result<FileId> r_file_id;
+  Result<FileId> r_file_id = Status::Error(500, "Have no file");
   tl_object_ptr<td_api::inputThumbnail> input_thumbnail;
   vector<FileId> sticker_file_ids;
   switch (message_type) {

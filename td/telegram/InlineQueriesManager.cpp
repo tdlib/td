@@ -489,7 +489,7 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
     int32 duration = 0;
 
     FileType file_type = FileType::Temp;
-    Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> r_inline_message;
+    Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> r_inline_message = Status::Error(500, "Uninited");
     switch (input_result->get_id()) {
       case td_api::inputInlineQueryResultAnimatedGif::ID: {
         auto animated_gif = move_tl_object_as<td_api::inputInlineQueryResultAnimatedGif>(input_result);

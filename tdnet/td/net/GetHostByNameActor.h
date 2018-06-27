@@ -23,6 +23,9 @@ class GetHostByNameActor final : public td::Actor {
   struct Value {
     Result<td::IPAddress> ip;
     double expire_at;
+
+    Value(Result<td::IPAddress> ip, double expire_at) : ip(std::move(ip)), expire_at(expire_at) {
+    }
   };
   std::unordered_map<string, Value> cache_;
   static constexpr int32 CACHE_TIME = 60 * 29;       // 29 minutes

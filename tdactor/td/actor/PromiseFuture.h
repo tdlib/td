@@ -517,7 +517,7 @@ class FutureActor final : public Actor {
 
  private:
   EventFull event_;
-  Result<T> result_;
+  Result<T> result_ = Status::Error(500, "Empty FutureActor");
   State state_;
 
   void set_value(T &&value) {
