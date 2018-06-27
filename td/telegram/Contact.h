@@ -8,6 +8,7 @@
 
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/UserId.h"
+#include "td/telegram/Version.h"
 
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
