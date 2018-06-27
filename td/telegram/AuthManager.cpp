@@ -91,7 +91,8 @@ Result<telegram_api::account_sendChangePhoneCode> SendCodeHelper::send_change_ph
   return telegram_api::account_sendChangePhoneCode(flags, false /*ignored*/, phone_number_, is_current_phone_number);
 }
 
-Result<telegram_api::account_sendVerifyPhoneCode> SendCodeHelper::send_verify_phone_code(Slice phone_number,
+Result<telegram_api::account_sendVerifyPhoneCode> SendCodeHelper::send_verify_phone_code(const string &hash,
+                                                                                         Slice phone_number,
                                                                                          bool allow_flash_call,
                                                                                          bool is_current_phone_number) {
   phone_number_ = phone_number.str();
@@ -99,7 +100,7 @@ Result<telegram_api::account_sendVerifyPhoneCode> SendCodeHelper::send_verify_ph
   if (allow_flash_call) {
     flags |= AUTH_SEND_CODE_FLAG_ALLOW_FLASH_CALL;
   }
-  return telegram_api::account_sendVerifyPhoneCode(flags, false /*ignored*/, phone_number_, is_current_phone_number);
+  return telegram_api::account_sendVerifyPhoneCode(flags, false /*ignored*/, hash, is_current_phone_number);
 }
 
 Result<telegram_api::account_sendConfirmPhoneCode> SendCodeHelper::send_confirm_phone_code(
@@ -216,12 +217,30 @@ void PhoneNumberManager::set_phone_number(uint64 query_id, string phone_number, 
     case Type::ChangePhone:
       return process_send_code_result(
           query_id, send_code_helper_.send_change_phone_code(phone_number, allow_flash_call, is_current_phone_number));
-    case Type::VerifyPhone:
-      return process_send_code_result(
-          query_id, send_code_helper_.send_verify_phone_code(phone_number, allow_flash_call, is_current_phone_number));
     case Type::ConfirmPhone:
       return process_send_code_result(
           query_id, send_code_helper_.send_confirm_phone_code(phone_number, allow_flash_call, is_current_phone_number));
+    case Type::VerifyPhone:
+    default:
+      UNREACHABLE();
+  }
+}
+
+void PhoneNumberManager::set_phone_number_and_hash(uint64 query_id, string hash, string phone_number,
+                                                   bool allow_flash_call, bool is_current_phone_number) {
+  if (phone_number.empty()) {
+    return on_query_error(query_id, Status::Error(8, "Phone number can't be empty"));
+  }
+  if (hash.empty()) {
+    return on_query_error(query_id, Status::Error(8, "Hash can't be empty"));
+  }
+
+  switch (type_) {
+    case Type::VerifyPhone:
+      return process_send_code_result(query_id, send_code_helper_.send_verify_phone_code(
+                                                    hash, phone_number, allow_flash_call, is_current_phone_number));
+    case Type::ChangePhone:
+    case Type::ConfirmPhone:
     default:
       UNREACHABLE();
   }
@@ -649,14 +668,14 @@ void AuthManager::logout(uint64 query_id) {
 }
 
 void AuthManager::delete_account(uint64 query_id, const string &reason) {
-  if (state_ != State::Ok) {
+  if (state_ != State::Ok && state_ != State::WaitPassword) {
     return on_query_error(query_id, Status::Error(8, "Need to log in first"));
   }
   on_new_query(query_id);
   LOG(INFO) << "Deleting account";
-  update_state(State::LoggingOut);
   start_net_query(NetQueryType::DeleteAccount,
-                  G()->net_query_creator().create(create_storer(telegram_api::account_deleteAccount(reason))));
+                  G()->net_query_creator().create(create_storer(telegram_api::account_deleteAccount(reason)),
+                                                  DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
 }
 
 void AuthManager::on_closing() {
@@ -807,13 +826,13 @@ void AuthManager::on_delete_account_result(NetQueryPtr &result) {
     status = std::move(result->error());
   }
   if (status.is_error() && status.error().message() != "USER_DEACTIVATED") {
-    update_state(State::Ok);
     LOG(WARNING) << "account.deleteAccount failed: " << status;
     // TODO handle some errors
     if (query_id_ != 0) {
       on_query_error(std::move(status));
     }
   } else {
+    update_state(State::LoggingOut);
     send_closure_later(G()->td(), &Td::destroy);
     if (query_id_ != 0) {
       on_query_ok();

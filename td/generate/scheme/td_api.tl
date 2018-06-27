@@ -3043,7 +3043,7 @@ setAccountTtl ttl:accountTtl = Ok;
 //@description Returns the period of inactivity after which the account of the current user will automatically be deleted
 getAccountTtl = AccountTtl;
 
-//@description Deletes the account of the current user, deleting all information associated with the user from the server. The phone number of the account can be used to create a new account @reason The reason why the account was deleted; optional
+//@description Deletes the account of the current user, deleting all information associated with the user from the server. The phone number of the account can be used to create a new account. Can be called before authorization when the current authorization state is authorizationStateWaitPassword @reason The reason why the account was deleted; optional
 deleteAccount reason:string = Ok;
 
 
@@ -3131,6 +3131,17 @@ getPassportAuthorizationForm bot_user_id:int32 scope:string public_key:string pa
 
 //@description Sends Telegram Passport authorization form, effectively sharing data with the service @autorization_form_id Authorization form identifier @types Types of Telegram Passport data chosen by user to complete the authorization form @password Password of the current user
 sendPassportAuthorizationForm autorization_form_id:int32 types:vector<PassportDataType> password:string = Ok;
+
+
+//@description Sends phone number comfirmation code. Should be called when user presses "https://t.me/confirmphone?phone=*******&hash=**********" or "tg://confirmphone?phone=*******&hash=**********" link @hash "Hash" parameter from the link
+//@phone_number "Phone" parameter from the link @allow_flash_call Pass true if the authentication code may be sent via flash call to the specified phone number @is_current_phone_number Pass true if the phone number is used on the current device. Ignored if allow_flash_call is false
+sendPhoneNumberConfirmationCode hash:string phone_number:string allow_flash_call:Bool is_current_phone_number:Bool = AuthenticationCodeInfo;
+
+//@description Resends phone number comfirmation code
+resendPhoneNumberConfirmationCode = AuthenticationCodeInfo;
+
+//@description Checks phone number comfirmation code @code The phone number confirmation code
+checkPhoneNumberConfirmationCode code:string = Ok;
 
 
 //@description Informs the server about the number of pending bot updates if they haven't been processed for a long time; for bots only @pending_update_count The number of pending updates @error_message The last error message

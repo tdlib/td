@@ -34,7 +34,8 @@ class SendCodeHelper {
   Result<telegram_api::account_sendChangePhoneCode> send_change_phone_code(Slice phone_number, bool allow_flash_call,
                                                                            bool is_current_phone_number);
 
-  Result<telegram_api::account_sendVerifyPhoneCode> send_verify_phone_code(Slice phone_number, bool allow_flash_call,
+  Result<telegram_api::account_sendVerifyPhoneCode> send_verify_phone_code(const string &hash, Slice phone_number,
+                                                                           bool allow_flash_call,
                                                                            bool is_current_phone_number);
 
   Result<telegram_api::account_sendConfirmPhoneCode> send_confirm_phone_code(Slice phone_number, bool allow_flash_call,
@@ -103,6 +104,8 @@ class PhoneNumberManager : public NetActor {
   void get_state(uint64 query_id);
 
   void set_phone_number(uint64 query_id, string phone_number, bool allow_flash_call, bool is_current_phone_number);
+  void set_phone_number_and_hash(uint64 query_id, string hash, string phone_number, bool allow_flash_call,
+                                 bool is_current_phone_number);
 
   void resend_authentication_code(uint64 query_id);
   void check_code(uint64 query_id, string code);

@@ -1266,6 +1266,12 @@ class CliClient final : public Actor {
       string recovery_email_address;
       std::tie(password, recovery_email_address) = split(args);
       send_request(make_tl_object<td_api::setRecoveryEmailAddress>(password, recovery_email_address));
+    } else if (op == "spncc") {
+      send_request(make_tl_object<td_api::sendPhoneNumberVerificationCode>(args, false, false));
+    } else if (op == "cpncc") {
+      send_request(make_tl_object<td_api::checkPhoneNumberVerificationCode>(args));
+    } else if (op == "rpncc") {
+      send_request(make_tl_object<td_api::resendPhoneNumberVerificationCode>());
     } else if (op == "rpr" || op == "RequestPasswordRecovery") {
       send_request(make_tl_object<td_api::requestPasswordRecovery>());
     } else if (op == "rp" || op == "RecoverPassword") {

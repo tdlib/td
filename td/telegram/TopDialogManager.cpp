@@ -515,7 +515,7 @@ void TopDialogManager::on_first_sync() {
 }
 
 void TopDialogManager::loop() {
-  if (!is_active_) {
+  if (!is_active_ || G()->close_flag()) {
     return;
   }
 

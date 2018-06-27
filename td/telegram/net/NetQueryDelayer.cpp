@@ -27,14 +27,10 @@ void NetQueryDelayer::delay(NetQueryPtr query) {
     // skip
   } else if (code == 420) {
     auto msg = query->error().message();
-    auto prefix = Slice("FLOOD_WAIT_");
-    if (msg.substr(0, prefix.size()) == prefix) {
-      timeout = to_integer<int>(msg.substr(prefix.size()));
-      if (timeout < 0) {
-        timeout = 0;
-      }
-      if (timeout > 24 * 60 * 60) {
-        timeout = 24 * 60 * 60;
+    for (auto prefix : {Slice("FLOOD_WAIT_"), Slice("2FA_CONFIRM_WAIT_"), Slice("TAKEOUT_INIT_DELAY_")}) {
+      if (begins_with(msg, prefix)) {
+        timeout = clamp(to_integer<int>(msg.substr(prefix.size())), 0, 14 * 24 * 60 * 60);
+        break;
       }
     }
   } else {

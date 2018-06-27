@@ -23,6 +23,7 @@
 #include "td/utils/Time.h"
 
 namespace td {
+
 StorageManager::StorageManager(ActorShared<> parent, int32 scheduler_id)
     : parent_(std::move(parent)), scheduler_id_(scheduler_id) {
 }

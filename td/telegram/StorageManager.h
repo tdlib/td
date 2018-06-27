@@ -21,6 +21,7 @@ class FileGcWorker;
 }  // namespace td
 
 namespace td {
+
 class StorageManager : public Actor {
  public:
   StorageManager(ActorShared<> parent, int32 scheduler_id);
@@ -79,4 +80,5 @@ class StorageManager : public Actor {
 
   void timeout_expired() override;
 };
+
 }  // namespace td

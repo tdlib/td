@@ -3974,6 +3974,7 @@ bool Td::is_authentication_request(int32 id) {
     case td_api::checkAuthenticationPassword::ID:
     case td_api::requestAuthenticationPasswordRecovery::ID:
     case td_api::recoverAuthenticationPassword::ID:
+    case td_api::deleteAccount::ID:
     case td_api::logOut::ID:
     case td_api::close::ID:
     case td_api::destroy::ID:
@@ -4502,14 +4503,14 @@ void Td::clear() {
   LOG(DEBUG) << "Requests was answered " << timer;
 
   // close all pure actors
-  change_phone_number_manager_.reset();
-  LOG(DEBUG) << "ChangePhoneNumberManager was cleared " << timer;
-  verify_phone_number_manager_.reset();
-  LOG(DEBUG) << "ChangePhoneNumberManager was cleared " << timer;
   call_manager_.reset();
   LOG(DEBUG) << "CallManager was cleared " << timer;
+  change_phone_number_manager_.reset();
+  LOG(DEBUG) << "ChangePhoneNumberManager was cleared " << timer;
   config_manager_.reset();
   LOG(DEBUG) << "ConfigManager was cleared " << timer;
+  confirm_phone_number_manager_.reset();
+  LOG(DEBUG) << "ConfirmPhoneNumberManager was cleared " << timer;
   device_token_manager_.reset();
   LOG(DEBUG) << "DeviceTokenManager was cleared " << timer;
   hashtag_hints_.reset();
@@ -4528,6 +4529,8 @@ void Td::clear() {
   LOG(DEBUG) << "StorageManager was cleared " << timer;
   top_dialog_manager_.reset();
   LOG(DEBUG) << "TopDialogManager was cleared " << timer;
+  verify_phone_number_manager_.reset();
+  LOG(DEBUG) << "VerifyPhoneNumberManager was cleared " << timer;
 
   G()->set_connection_creator(ActorOwn<ConnectionCreator>());
   LOG(DEBUG) << "ConnectionCreator was cleared " << timer;
@@ -4811,25 +4814,27 @@ Status Td::init(DbKey key) {
   web_pages_manager_actor_ = register_actor("WebPagesManager", web_pages_manager_.get());
   G()->set_web_pages_manager(web_pages_manager_actor_.get());
 
-  change_phone_number_manager_ = create_actor<PhoneNumberManager>(
-      "ChangePhoneNumberManager", PhoneNumberManager::Type::ChangePhone, create_reference());
-  verify_phone_number_manager_ = create_actor<PhoneNumberManager>(
-      "VerifyPhoneNumberManager", PhoneNumberManager::Type::VerifyPhone, create_reference());
   call_manager_ = create_actor<CallManager>("CallManager", create_reference());
   G()->set_call_manager(call_manager_.get());
+  change_phone_number_manager_ = create_actor<PhoneNumberManager>(
+      "ChangePhoneNumberManager", PhoneNumberManager::Type::ChangePhone, create_reference());
+  confirm_phone_number_manager_ = create_actor<PhoneNumberManager>(
+      "ConfirmPhoneNumberManager", PhoneNumberManager::Type::ConfirmPhone, create_reference());
   device_token_manager_ = create_actor<DeviceTokenManager>("DeviceTokenManager", create_reference());
   hashtag_hints_ = create_actor<HashtagHints>("HashtagHints", "text", create_reference());
   password_manager_ = create_actor<PasswordManager>("PasswordManager", create_reference());
   G()->set_password_manager(password_manager_.get());
   privacy_manager_ = create_actor<PrivacyManager>("PrivacyManager", create_reference());
-  secure_manager_ = create_actor<SecureManager>("SecureManager", create_reference());
   secret_chats_manager_ = create_actor<SecretChatsManager>("SecretChatsManager", create_reference());
   G()->set_secret_chats_manager(secret_chats_manager_.get());
+  secure_manager_ = create_actor<SecureManager>("SecureManager", create_reference());
   storage_manager_ = create_actor<StorageManager>("StorageManager", create_reference(),
                                                   min(current_scheduler_id + 2, scheduler_count - 1));
   G()->set_storage_manager(storage_manager_.get());
   top_dialog_manager_ = create_actor<TopDialogManager>("TopDialogManager", create_reference());
   G()->set_top_dialog_manager(top_dialog_manager_.get());
+  verify_phone_number_manager_ = create_actor<PhoneNumberManager>(
+      "VerifyPhoneNumberManager", PhoneNumberManager::Type::VerifyPhone, create_reference());
 
   VLOG(td_init) << "Send binlog events";
   for (auto &event : events.user_events) {
@@ -6985,6 +6990,26 @@ void Td::on_request(uint64 id, td_api::sendPassportAuthorizationForm &request) {
   CREATE_OK_REQUEST_PROMISE(promise);
   send_closure(secure_manager_, &SecureManager::send_passport_authorization_form, request.password_,
                request.autorization_form_id_, get_secure_value_types_td_api(request.types_), std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::sendPhoneNumberConfirmationCode &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.phone_number_);
+  CLEAN_INPUT_STRING(request.hash_);
+  send_closure(confirm_phone_number_manager_, &PhoneNumberManager::set_phone_number_and_hash, id,
+               std::move(request.hash_), std::move(request.phone_number_), request.allow_flash_call_,
+               request.is_current_phone_number_);
+}
+
+void Td::on_request(uint64 id, const td_api::resendPhoneNumberConfirmationCode &request) {
+  CHECK_IS_USER();
+  send_closure(confirm_phone_number_manager_, &PhoneNumberManager::resend_authentication_code, id);
+}
+
+void Td::on_request(uint64 id, td_api::checkPhoneNumberConfirmationCode &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.code_);
+  send_closure(confirm_phone_number_manager_, &PhoneNumberManager::check_code, id, std::move(request.code_));
 }
 
 void Td::on_request(uint64 id, const td_api::getSupportUser &request) {

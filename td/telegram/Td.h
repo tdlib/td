@@ -145,10 +145,10 @@ class Td final : public NetQueryCallback {
   std::unique_ptr<WebPagesManager> web_pages_manager_;
   ActorOwn<WebPagesManager> web_pages_manager_actor_;
 
-  ActorOwn<PhoneNumberManager> change_phone_number_manager_;
-  ActorOwn<PhoneNumberManager> verify_phone_number_manager_;
   ActorOwn<CallManager> call_manager_;
+  ActorOwn<PhoneNumberManager> change_phone_number_manager_;
   ActorOwn<ConfigManager> config_manager_;
+  ActorOwn<PhoneNumberManager> confirm_phone_number_manager_;
   ActorOwn<DeviceTokenManager> device_token_manager_;
   ActorOwn<HashtagHints> hashtag_hints_;
   ActorOwn<NetStatsManager> net_stats_manager_;
@@ -159,6 +159,7 @@ class Td final : public NetQueryCallback {
   ActorOwn<StateManager> state_manager_;
   ActorOwn<StorageManager> storage_manager_;
   ActorOwn<TopDialogManager> top_dialog_manager_;
+  ActorOwn<PhoneNumberManager> verify_phone_number_manager_;
 
   class ResultHandler : public std::enable_shared_from_this<ResultHandler> {
    public:
@@ -798,6 +799,12 @@ class Td final : public NetQueryCallback {
   void on_request(uint64 id, td_api::getPassportAuthorizationForm &request);
 
   void on_request(uint64 id, td_api::sendPassportAuthorizationForm &request);
+
+  void on_request(uint64 id, td_api::sendPhoneNumberConfirmationCode &request);
+
+  void on_request(uint64 id, const td_api::resendPhoneNumberConfirmationCode &request);
+
+  void on_request(uint64 id, td_api::checkPhoneNumberConfirmationCode &request);
 
   void on_request(uint64 id, const td_api::getSupportUser &request);
 
