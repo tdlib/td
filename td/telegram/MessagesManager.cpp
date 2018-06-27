@@ -26204,6 +26204,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
         d->save_draft_message_logevent_id = event.id_;
+        d->save_draft_message_logevent_id_generation++;
 
         save_dialog_draft_message_on_server(dialog_id);
         break;
@@ -26224,6 +26225,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           break;
         }
         d->save_notification_settings_logevent_id = event.id_;
+        d->save_notification_settings_logevent_id_generation++;
 
         update_dialog_notification_settings_on_server(dialog_id, true);
         break;
