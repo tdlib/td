@@ -94,7 +94,7 @@ Result<string> realpath(CSlice slice, bool ignore_access_denied) {
   string res;
   char *err = skip_eintr_cstr([&] { return ::realpath(slice.c_str(), full_path); });
   if (err != full_path) {
-    if (ignore_access_denied && errno == EACCES) {
+    if (ignore_access_denied && (errno == EACCES || errno == EPERM)) {
       res = slice.str();
     } else {
       return OS_ERROR(PSLICE() << "Realpath failed for \"" << slice << '"');
