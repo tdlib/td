@@ -2253,6 +2253,11 @@ class CliClient final : public Actor {
       string is_pinned;
       std::tie(chat_id, is_pinned) = split(args);
       send_request(make_tl_object<td_api::toggleChatIsPinned>(as_chat_id(chat_id), as_bool(is_pinned)));
+    } else if (op == "tcimar") {
+      string chat_id;
+      string is_marked_as_read;
+      std::tie(chat_id, is_marked_as_read) = split(args);
+      send_request(make_tl_object<td_api::toggleChatIsMarkedAsUnread>(as_chat_id(chat_id), as_bool(is_marked_as_read)));
     } else if (op == "tcddn") {
       string chat_id;
       string default_disable_notification;

@@ -1232,6 +1232,8 @@ class MessagesManager : public Actor {
 
   Status toggle_dialog_is_pinned(DialogId dialog_id, bool is_pinned) TD_WARN_UNUSED_RESULT;
 
+  Status toggle_dialog_is_marked_as_unread(DialogId dialog_id, bool is_marked_as_unread) TD_WARN_UNUSED_RESULT;
+
   Status toggle_dialog_silent_send_message(DialogId dialog_id, bool silent_send_message) TD_WARN_UNUSED_RESULT;
 
   Status set_pinned_dialogs(vector<DialogId> dialog_ids) TD_WARN_UNUSED_RESULT;
@@ -1634,6 +1636,7 @@ class MessagesManager : public Actor {
     bool is_last_read_inbox_message_id_inited = false;
     bool is_last_read_outbox_message_id_inited = false;
     bool need_repair_server_unread_count = false;
+    bool is_marked_as_unread = false;
 
     bool increment_view_counter = false;
 
@@ -1875,6 +1878,7 @@ class MessagesManager : public Actor {
   class SendMessageLogEvent;
   class SendScreenshotTakenNotificationMessageLogEvent;
   class ToggleDialogIsPinnedOnServerLogEvent;
+  class ToggleDialogIsMarkedAsUnreadOnServerLogEvent;
   class GetDialogFromServerLogEvent;
 
   static constexpr size_t MAX_GROUPED_MESSAGES = 10;               // server side limit
@@ -2293,7 +2297,11 @@ class MessagesManager : public Actor {
 
   void set_dialog_is_pinned(Dialog *d, bool is_pinned);
 
+  void set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_as_unread);
+
   void toggle_dialog_is_pinned_on_server(DialogId dialog_id, bool is_pinned, uint64 logevent_id);
+
+  void toggle_dialog_is_marked_as_unread_on_server(DialogId dialog_id, bool is_marked_as_unread, uint64 logevent_id);
 
   void reorder_pinned_dialogs_on_server(const vector<DialogId> &dialog_ids, uint64 logevent_id);
 

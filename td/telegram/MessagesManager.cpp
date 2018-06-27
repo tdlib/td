@@ -234,6 +234,32 @@ class GetDialogsQuery : public Td::ResultHandler {
   }
 };
 */
+class GetDialogUnreadMarksQuery : public Td::ResultHandler {
+ public:
+  void send() {
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_getDialogUnreadMarks())));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_getDialogUnreadMarks>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto results = result_ptr.move_as_ok();
+    for (auto &result : results) {
+      td->messages_manager_->on_update_dialog_is_marked_as_unread(DialogId(result), true);
+    }
+
+    G()->td_db()->get_binlog_pmc()->set("fetched_marks_as_unread", "1");
+  }
+
+  void on_error(uint64 id, Status status) override {
+    LOG(ERROR) << "Receive error for GetDialogUnreadMarksQuery: " << status;
+    status.ignore();
+  }
+};
+
 class GetMessagesQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -958,6 +984,54 @@ class ReorderPinnedDialogsQuery : public Td::ResultHandler {
   void on_error(uint64 id, Status status) override {
     LOG(ERROR) << "Receive error for ReorderPinnedDialogsQuery: " << status;
     td->messages_manager_->on_update_pinned_dialogs();
+    promise_.set_error(std::move(status));
+  }
+};
+
+class ToggleDialogUnreadMarkQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+  bool is_marked_as_unread_;
+
+ public:
+  explicit ToggleDialogUnreadMarkQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, bool is_marked_as_unread) {
+    dialog_id_ = dialog_id;
+    is_marked_as_unread_ = is_marked_as_unread;
+    auto input_peer = td->messages_manager_->get_input_dialog_peer(dialog_id, AccessRights::Read);
+    if (input_peer == nullptr) {
+      return;
+    }
+
+    int32 flags = 0;
+    if (is_marked_as_unread) {
+      flags |= telegram_api::messages_markDialogUnread::UNREAD_MASK;
+    }
+    send_query(G()->net_query_creator().create(
+        create_storer(telegram_api::messages_markDialogUnread(flags, false /*ignored*/, std::move(input_peer)))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_markDialogUnread>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.ok();
+    if (!result) {
+      on_error(id, Status::Error(400, "Toggle dialog mark failed"));
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ToggleDialogUnreadMarkQuery")) {
+      LOG(ERROR) << "Receive error for ToggleDialogUnreadMarkQuery: " << status;
+    }
+    td->messages_manager_->on_update_dialog_is_marked_as_unread(dialog_id_, !is_marked_as_unread_);
     promise_.set_error(std::move(status));
   }
 };
@@ -4461,6 +4535,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   STORE_FLAG(has_contact_registered_message);
   STORE_FLAG(has_last_database_message_id);
   STORE_FLAG(need_repair_server_unread_count);
+  STORE_FLAG(is_marked_as_unread);
   END_STORE_FLAGS();
 
   store(dialog_id, storer);  // must be stored at offset 4
@@ -4561,6 +4636,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   PARSE_FLAG(has_contact_registered_message);
   PARSE_FLAG(has_last_database_message_id);
   PARSE_FLAG(need_repair_server_unread_count);
+  PARSE_FLAG(is_marked_as_unread);
   END_PARSE_FLAGS();
 
   parse(dialog_id, parser);  // must be stored at offset 4
@@ -8991,6 +9067,10 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
     }
 
     set_dialog_last_read_inbox_message_id(d, max_message_id, server_unread_count, local_unread_count, true, source);
+
+    if (d->is_marked_as_unread) {
+      set_dialog_is_marked_as_unread(d, false);
+    }
   } else {
     LOG(INFO) << "Receive read inbox about unknown " << dialog_id << " from " << source;
   }
@@ -9692,6 +9772,12 @@ void MessagesManager::start_up() {
         }
       }
     }
+
+    if (!G()->td_db()->get_binlog_pmc()->isset("fetched_marks_as_unread") && !td_->auth_manager_->is_bot()) {
+      td_->create_handler<GetDialogUnreadMarksQuery>()->send();
+    }
+
+    ttl_db_loop_start(G()->server_time());
   } else {
     G()->td_db()->get_binlog_pmc()->erase("last_server_dialog_date");
     G()->td_db()->get_binlog_pmc()->erase("unread_message_count");
@@ -9699,9 +9785,6 @@ void MessagesManager::start_up() {
     G()->td_db()->get_binlog_pmc()->erase("sponsored_dialog_id");
   }
 
-  if (G()->parameters().use_message_db) {
-    ttl_db_loop_start(G()->server_time());
-  }
   load_calls_db_state();
 
   vector<NotificationSettingsScope> scopes{NotificationSettingsScope::Private, NotificationSettingsScope::Group};
@@ -11135,6 +11218,10 @@ void MessagesManager::on_get_dialogs(vector<tl_object_ptr<telegram_api::dialog>>
     if (is_pinned != was_pinned) {
       set_dialog_is_pinned(d, is_pinned);
       need_update_dialog_pos = false;
+    }
+    bool is_marked_as_unread = (dialog->flags_ & telegram_api::dialog::UNREAD_MARK_MASK) != 0;
+    if (is_marked_as_unread != d->is_marked_as_unread) {
+      set_dialog_is_marked_as_unread(d, is_marked_as_unread);
     }
 
     if (need_update_dialog_pos) {
@@ -12730,6 +12817,65 @@ void MessagesManager::reorder_pinned_dialogs_on_server(const vector<DialogId> &d
   td_->create_handler<ReorderPinnedDialogsQuery>(get_erase_logevent_promise(logevent_id))->send(dialog_ids);
 }
 
+Status MessagesManager::toggle_dialog_is_marked_as_unread(DialogId dialog_id, bool is_marked_as_unread) {
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    return Status::Error(6, "Chat not found");
+  }
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return Status::Error(6, "Can't access the chat");
+  }
+
+  if (is_marked_as_unread == d->is_marked_as_unread) {
+    return Status::OK();
+  }
+
+  set_dialog_is_marked_as_unread(d, is_marked_as_unread);
+
+  toggle_dialog_is_marked_as_unread_on_server(dialog_id, is_marked_as_unread, 0);
+  return Status::OK();
+}
+
+class MessagesManager::ToggleDialogIsMarkedAsUnreadOnServerLogEvent {
+ public:
+  DialogId dialog_id_;
+  bool is_marked_as_unread_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(is_marked_as_unread_);
+    END_STORE_FLAGS();
+
+    td::store(dialog_id_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(is_marked_as_unread_);
+    END_PARSE_FLAGS();
+
+    td::parse(dialog_id_, parser);
+  }
+};
+
+void MessagesManager::toggle_dialog_is_marked_as_unread_on_server(DialogId dialog_id, bool is_marked_as_unread,
+                                                                  uint64 logevent_id) {
+  if (logevent_id == 0 && G()->parameters().use_message_db) {
+    ToggleDialogIsMarkedAsUnreadOnServerLogEvent logevent;
+    logevent.dialog_id_ = dialog_id;
+    logevent.is_marked_as_unread_ = is_marked_as_unread;
+
+    auto storer = LogEventStorerImpl<ToggleDialogIsMarkedAsUnreadOnServerLogEvent>(logevent);
+    logevent_id = BinlogHelper::add(G()->td_db()->get_binlog(),
+                                    LogEvent::HandlerType::ToggleDialogIsMarkedAsUnreadOnServer, storer);
+  }
+
+  td_->create_handler<ToggleDialogUnreadMarkQuery>(get_erase_logevent_promise(logevent_id))
+      ->send(dialog_id, is_marked_as_unread);
+}
+
 Status MessagesManager::toggle_dialog_silent_send_message(DialogId dialog_id, bool silent_send_message) {
   CHECK(!td_->auth_manager_->is_bot());
 
@@ -13317,9 +13463,9 @@ tl_object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *d) {
       get_chat_photo_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
       get_message_object(d->dialog_id, get_message(d, d->last_message_id)),
       DialogDate(d->order, d->dialog_id) <= last_dialog_date_ ? d->order : 0, d->pinned_order != DEFAULT_ORDER,
-      d->order == SPONSORED_DIALOG_ORDER, can_report_dialog(d->dialog_id), d->notification_settings.silent_send_message,
-      d->server_unread_count + d->local_unread_count, d->last_read_inbox_message_id.get(),
-      d->last_read_outbox_message_id.get(), d->unread_mention_count,
+      d->is_marked_as_unread, d->order == SPONSORED_DIALOG_ORDER, can_report_dialog(d->dialog_id),
+      d->notification_settings.silent_send_message, d->server_unread_count + d->local_unread_count,
+      d->last_read_inbox_message_id.get(), d->last_read_outbox_message_id.get(), d->unread_mention_count,
       get_chat_notification_settings_object(&d->notification_settings), d->reply_markup_message_id.get(),
       get_draft_message_object(d->draft_message), d->client_data);
 }
@@ -20193,14 +20339,23 @@ void MessagesManager::on_update_dialog_is_marked_as_unread(DialogId dialog_id, b
     // nothing to do
     return;
   }
-  /*
-  FIXME
+
   if (is_marked_as_unread == d->is_marked_as_unread) {
     return;
   }
 
   set_dialog_is_marked_as_unread(d, is_marked_as_unread);
-  */
+}
+
+void MessagesManager::set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_as_unread) {
+  CHECK(d != nullptr);
+  d->is_marked_as_unread = is_marked_as_unread;
+  on_dialog_updated(d->dialog_id, "set_dialog_is_marked_as_unread");
+
+  LOG(INFO) << "Set " << d->dialog_id << " is marked as unread to " << is_marked_as_unread;
+  CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_is_marked_as_unread";
+  send_closure(G()->td(), &Td::send_update,
+               make_tl_object<td_api::updateChatIsMarkedAsUnread>(d->dialog_id.get(), is_marked_as_unread));
 }
 
 void MessagesManager::on_create_new_dialog_success(int64 random_id, tl_object_ptr<telegram_api::Updates> &&updates,
@@ -26012,6 +26167,25 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
 
         reorder_pinned_dialogs_on_server(dialog_ids, event.id_);
+        break;
+      }
+      case LogEvent::HandlerType::ToggleDialogIsMarkedAsUnreadOnServer: {
+        if (!G()->parameters().use_message_db) {
+          BinlogHelper::erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        ToggleDialogIsMarkedAsUnreadOnServerLogEvent log_event;
+        log_event_parse(log_event, event.data_).ensure();
+
+        auto dialog_id = log_event.dialog_id_;
+        Dialog *d = get_dialog_force(dialog_id);
+        if (d == nullptr || !have_input_peer(dialog_id, AccessRights::Read)) {
+          BinlogHelper::erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        toggle_dialog_is_marked_as_unread_on_server(dialog_id, log_event.is_marked_as_unread_, event.id_);
         break;
       }
       case LogEvent::HandlerType::SaveDialogDraftMessageOnServer: {

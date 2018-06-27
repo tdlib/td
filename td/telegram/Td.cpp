@@ -6115,6 +6115,12 @@ void Td::on_request(uint64 id, const td_api::toggleChatIsPinned &request) {
   answer_ok_query(id, messages_manager_->toggle_dialog_is_pinned(DialogId(request.chat_id_), request.is_pinned_));
 }
 
+void Td::on_request(uint64 id, const td_api::toggleChatIsMarkedAsUnread &request) {
+  CHECK_IS_USER();
+  answer_ok_query(id, messages_manager_->toggle_dialog_is_marked_as_unread(DialogId(request.chat_id_),
+                                                                           request.is_marked_as_unread_));
+}
+
 void Td::on_request(uint64 id, const td_api::toggleChatDefaultDisableNotification &request) {
   CHECK_IS_USER();
   answer_ok_query(id, messages_manager_->toggle_dialog_silent_send_message(DialogId(request.chat_id_),
