@@ -31,10 +31,13 @@ static uint64 binlog_rewrite(const BinlogT &binlog_ptr, uint64 logevent_id, int3
   return seq_no;
 }
 
+#define binlog_erase(...) binlog_erase_impl({__FILE__, __LINE__}, __VA_ARGS__)
+
 template <class BinlogT>
-static uint64 binlog_erase(const BinlogT &binlog_ptr, uint64 logevent_id, Promise<> promise = Promise<>()) {
+static uint64 binlog_erase_impl(BinlogDebugInfo info, const BinlogT &binlog_ptr, uint64 logevent_id,
+                                Promise<> promise = Promise<>()) {
   auto seq_no = binlog_ptr->next_id();
-  binlog_ptr->add_raw_event(seq_no,
+  binlog_ptr->add_raw_event(info, seq_no,
                             BinlogEvent::create_raw(logevent_id, BinlogEvent::ServiceTypes::Empty,
                                                     BinlogEvent::Flags::Rewrite, EmptyStorer()),
                             std::move(promise));

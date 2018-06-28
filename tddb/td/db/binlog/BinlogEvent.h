@@ -40,6 +40,20 @@ static constexpr size_t MIN_EVENT_SIZE = EVENT_HEADER_SIZE + EVENT_TAIL_SIZE;
 
 extern int32 VERBOSITY_NAME(binlog);
 
+struct BinlogDebugInfo {
+  BinlogDebugInfo() = default;
+  BinlogDebugInfo(const char *file, int line) : file(file), line(line) {
+  }
+  const char *file{""};
+  int line{0};
+};
+inline StringBuilder &operator<<(StringBuilder &sb, const BinlogDebugInfo &info) {
+  if (info.line == 0) {
+    return sb;
+  }
+  return sb << "[" << info.file << ":" << info.line << "]";
+}
+
 // TODO: smaller BinlogEvent
 struct BinlogEvent {
   int64 offset_;
@@ -53,6 +67,8 @@ struct BinlogEvent {
   uint32 crc32_;
 
   BufferSlice raw_event_;
+
+  BinlogDebugInfo debug_info_;
 
   enum ServiceTypes { Header = -1, Empty = -2, AesCtrEncryption = -3, NoEncryption = -4 };
   enum Flags { Rewrite = 1, Partial = 2 };
@@ -77,18 +93,23 @@ struct BinlogEvent {
   explicit BinlogEvent(BufferSlice &&raw_event) {
     init(std::move(raw_event), false).ensure();
   }
+  explicit BinlogEvent(BufferSlice &&raw_event, BinlogDebugInfo info) {
+    init(std::move(raw_event), false).ensure();
+    debug_info_ = info;
+  }
   Status init(BufferSlice &&raw_event, bool check_crc = true) TD_WARN_UNUSED_RESULT;
 
   static BufferSlice create_raw(uint64 id, int32 type, int32 flags, const Storer &storer);
   std::string public_to_string() const {
     return PSTRING() << "LogEvent[" << tag("id", format::as_hex(id_)) << tag("type", type_) << tag("flags", flags_)
-                     << tag("data", data_.size()) << "]";
+                     << tag("data", data_.size()) << "]" << debug_info_;
   }
 };
 
 inline StringBuilder &operator<<(StringBuilder &sb, const BinlogEvent &event) {
   return sb << "LogEvent[" << tag("id", format::as_hex(event.id_)) << tag("type", event.type_)
-            << tag("flags", event.flags_) << tag("data", format::as_hex_dump<4>(event.data_)) << "]";
+            << tag("flags", event.flags_) << tag("data", format::as_hex_dump<4>(event.data_)) << "]"
+            << event.debug_info_;
 }
 
 // Implementation

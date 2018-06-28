@@ -426,7 +426,7 @@ class FakeBinlog
   }
   void close_and_destroy_impl(Promise<> promise) override {
   }
-  void add_raw_event_impl(uint64 id, BufferSlice &&raw_event, Promise<> promise) override {
+  void add_raw_event_impl(uint64 id, BufferSlice &&raw_event, Promise<> promise, BinlogDebugInfo info) override {
     auto event = BinlogEvent(std::move(raw_event));
     LOG(INFO) << "ADD EVENT: " << event.id_ << " " << event;
     pending_events_.emplace_back();

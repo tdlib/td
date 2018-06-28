@@ -34,11 +34,12 @@ class BinlogActor : public Actor {
   struct Event {
     BufferSlice raw_event;
     Promise<> sync_promise;
+    BinlogDebugInfo debug_info;
   };
-  void add_raw_event(uint64 seq_no, BufferSlice &&raw_event, Promise<> &&promise) {
-    processor_.add(seq_no, Event{std::move(raw_event), std::move(promise)}, [&](uint64 id, Event &&event) {
+  void add_raw_event(uint64 seq_no, BufferSlice &&raw_event, Promise<> &&promise, BinlogDebugInfo info) {
+    processor_.add(seq_no, Event{std::move(raw_event), std::move(promise), info}, [&](uint64 id, Event &&event) {
       if (!event.raw_event.empty()) {
-        do_add_raw_event(std::move(event.raw_event));
+        do_add_raw_event(std::move(event.raw_event), event.debug_info);
       }
       do_lazy_sync(std::move(event.sync_promise));
     });
@@ -92,8 +93,8 @@ class BinlogActor : public Actor {
     }
   }
 
-  void do_add_raw_event(BufferSlice &&raw_event) {
-    binlog_->add_raw_event(std::move(raw_event));
+  void do_add_raw_event(BufferSlice &&raw_event, BinlogDebugInfo info) {
+    binlog_->add_raw_event(std::move(raw_event), info);
   }
 
   void try_flush() {
@@ -188,8 +189,8 @@ void ConcurrentBinlog::close_impl(Promise<> promise) {
 void ConcurrentBinlog::close_and_destroy_impl(Promise<> promise) {
   send_closure(std::move(binlog_actor_), &detail::BinlogActor::close_and_destroy, std::move(promise));
 }
-void ConcurrentBinlog::add_raw_event_impl(uint64 id, BufferSlice &&raw_event, Promise<> promise) {
-  send_closure(binlog_actor_, &detail::BinlogActor::add_raw_event, id, std::move(raw_event), std::move(promise));
+void ConcurrentBinlog::add_raw_event_impl(uint64 id, BufferSlice &&raw_event, Promise<> promise, BinlogDebugInfo info) {
+  send_closure(binlog_actor_, &detail::BinlogActor::add_raw_event, id, std::move(raw_event), std::move(promise), info);
 }
 void ConcurrentBinlog::force_sync(Promise<> promise) {
   send_closure(binlog_actor_, &detail::BinlogActor::force_sync, std::move(promise));

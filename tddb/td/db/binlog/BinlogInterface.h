@@ -30,11 +30,14 @@ class BinlogInterface {
   void close_and_destroy(Promise<> promise = {}) {
     close_and_destroy_impl(std::move(promise));
   }
+  void add_raw_event(BinlogDebugInfo info, uint64 id, BufferSlice &&raw_event, Promise<> promise = Promise<>()) {
+    add_raw_event_impl(id, std::move(raw_event), std::move(promise), info);
+  }
   void add_raw_event(uint64 id, BufferSlice &&raw_event, Promise<> promise = Promise<>()) {
-    add_raw_event_impl(id, std::move(raw_event), std::move(promise));
+    add_raw_event_impl(id, std::move(raw_event), std::move(promise), {});
   }
   void lazy_sync(Promise<> promise = Promise<>()) {
-    add_raw_event_impl(next_id(), BufferSlice(), std::move(promise));
+    add_raw_event_impl(next_id(), BufferSlice(), std::move(promise), {});
   }
   virtual void force_sync(Promise<> promise) = 0;
   virtual void force_flush() = 0;
@@ -46,6 +49,6 @@ class BinlogInterface {
  protected:
   virtual void close_impl(Promise<> promise) = 0;
   virtual void close_and_destroy_impl(Promise<> promise) = 0;
-  virtual void add_raw_event_impl(uint64 id, BufferSlice &&raw_event, Promise<> promise) = 0;
+  virtual void add_raw_event_impl(uint64 id, BufferSlice &&raw_event, Promise<> promise, BinlogDebugInfo info) = 0;
 };
 }  // namespace td

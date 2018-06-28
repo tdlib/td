@@ -59,7 +59,7 @@ class ConcurrentBinlog : public BinlogInterface {
   void init_impl(std::unique_ptr<Binlog> binlog, int scheduler_id);
   void close_impl(Promise<> promise) override;
   void close_and_destroy_impl(Promise<> promise) override;
-  void add_raw_event_impl(uint64 id, BufferSlice &&raw_event, Promise<> promise) override;
+  void add_raw_event_impl(uint64 id, BufferSlice &&raw_event, Promise<> promise, BinlogDebugInfo info) override;
 
   ActorOwn<detail::BinlogActor> binlog_actor_;
   string path_;
