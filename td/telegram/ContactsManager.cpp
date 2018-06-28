@@ -5154,9 +5154,9 @@ void ContactsManager::save_user(User *u, UserId user_id, bool from_binlog) {
       auto logevent = UserLogEvent(user_id, *u);
       auto storer = LogEventStorerImpl<UserLogEvent>(logevent);
       if (u->logevent_id == 0) {
-        u->logevent_id = BinlogHelper::add(G()->td_db()->get_binlog(), LogEvent::HandlerType::Users, storer);
+        u->logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::Users, storer);
       } else {
-        BinlogHelper::rewrite(G()->td_db()->get_binlog(), u->logevent_id, LogEvent::HandlerType::Users, storer);
+        binlog_rewrite(G()->td_db()->get_binlog(), u->logevent_id, LogEvent::HandlerType::Users, storer);
       }
     }
 
@@ -5166,7 +5166,7 @@ void ContactsManager::save_user(User *u, UserId user_id, bool from_binlog) {
 
 void ContactsManager::on_binlog_user_event(BinlogEvent &&event) {
   if (!G()->parameters().use_chat_info_db) {
-    BinlogHelper::erase(G()->td_db()->get_binlog(), event.id_);
+    binlog_erase(G()->td_db()->get_binlog(), event.id_);
     return;
   }
 
@@ -5242,7 +5242,7 @@ void ContactsManager::on_save_user_to_database(UserId user_id, bool success) {
   }
   if (u->is_saved && u->is_status_saved) {
     if (u->logevent_id != 0) {
-      BinlogHelper::erase(G()->td_db()->get_binlog(), u->logevent_id);
+      binlog_erase(G()->td_db()->get_binlog(), u->logevent_id);
       u->logevent_id = 0;
     }
   } else {
@@ -5308,7 +5308,7 @@ void ContactsManager::on_load_user_from_database(UserId user_id, string value) {
     if (value != new_value) {
       save_user_to_database_impl(u, user_id, std::move(new_value));
     } else if (u->logevent_id != 0) {
-      BinlogHelper::erase(G()->td_db()->get_binlog(), u->logevent_id);
+      binlog_erase(G()->td_db()->get_binlog(), u->logevent_id);
       u->logevent_id = 0;
     }
   }
@@ -5402,9 +5402,9 @@ void ContactsManager::save_chat(Chat *c, ChatId chat_id, bool from_binlog) {
       auto logevent = ChatLogEvent(chat_id, *c);
       auto storer = LogEventStorerImpl<ChatLogEvent>(logevent);
       if (c->logevent_id == 0) {
-        c->logevent_id = BinlogHelper::add(G()->td_db()->get_binlog(), LogEvent::HandlerType::Chats, storer);
+        c->logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::Chats, storer);
       } else {
-        BinlogHelper::rewrite(G()->td_db()->get_binlog(), c->logevent_id, LogEvent::HandlerType::Chats, storer);
+        binlog_rewrite(G()->td_db()->get_binlog(), c->logevent_id, LogEvent::HandlerType::Chats, storer);
       }
     }
 
@@ -5415,7 +5415,7 @@ void ContactsManager::save_chat(Chat *c, ChatId chat_id, bool from_binlog) {
 
 void ContactsManager::on_binlog_chat_event(BinlogEvent &&event) {
   if (!G()->parameters().use_chat_info_db) {
-    BinlogHelper::erase(G()->td_db()->get_binlog(), event.id_);
+    binlog_erase(G()->td_db()->get_binlog(), event.id_);
     return;
   }
 
@@ -5484,7 +5484,7 @@ void ContactsManager::on_save_chat_to_database(ChatId chat_id, bool success) {
   }
   if (c->is_saved) {
     if (c->logevent_id != 0) {
-      BinlogHelper::erase(G()->td_db()->get_binlog(), c->logevent_id);
+      binlog_erase(G()->td_db()->get_binlog(), c->logevent_id);
       c->logevent_id = 0;
     }
   } else {
@@ -5549,7 +5549,7 @@ void ContactsManager::on_load_chat_from_database(ChatId chat_id, string value) {
     if (value != new_value) {
       save_chat_to_database_impl(c, chat_id, std::move(new_value));
     } else if (c->logevent_id != 0) {
-      BinlogHelper::erase(G()->td_db()->get_binlog(), c->logevent_id);
+      binlog_erase(G()->td_db()->get_binlog(), c->logevent_id);
       c->logevent_id = 0;
     }
   }
@@ -5625,9 +5625,9 @@ void ContactsManager::save_channel(Channel *c, ChannelId channel_id, bool from_b
       auto logevent = ChannelLogEvent(channel_id, *c);
       auto storer = LogEventStorerImpl<ChannelLogEvent>(logevent);
       if (c->logevent_id == 0) {
-        c->logevent_id = BinlogHelper::add(G()->td_db()->get_binlog(), LogEvent::HandlerType::Channels, storer);
+        c->logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::Channels, storer);
       } else {
-        BinlogHelper::rewrite(G()->td_db()->get_binlog(), c->logevent_id, LogEvent::HandlerType::Channels, storer);
+        binlog_rewrite(G()->td_db()->get_binlog(), c->logevent_id, LogEvent::HandlerType::Channels, storer);
       }
     }
 
@@ -5638,7 +5638,7 @@ void ContactsManager::save_channel(Channel *c, ChannelId channel_id, bool from_b
 
 void ContactsManager::on_binlog_channel_event(BinlogEvent &&event) {
   if (!G()->parameters().use_chat_info_db) {
-    BinlogHelper::erase(G()->td_db()->get_binlog(), event.id_);
+    binlog_erase(G()->td_db()->get_binlog(), event.id_);
     return;
   }
 
@@ -5708,7 +5708,7 @@ void ContactsManager::on_save_channel_to_database(ChannelId channel_id, bool suc
   }
   if (c->is_saved) {
     if (c->logevent_id != 0) {
-      BinlogHelper::erase(G()->td_db()->get_binlog(), c->logevent_id);
+      binlog_erase(G()->td_db()->get_binlog(), c->logevent_id);
       c->logevent_id = 0;
     }
   } else {
@@ -5773,7 +5773,7 @@ void ContactsManager::on_load_channel_from_database(ChannelId channel_id, string
     if (value != new_value) {
       save_channel_to_database_impl(c, channel_id, std::move(new_value));
     } else if (c->logevent_id != 0) {
-      BinlogHelper::erase(G()->td_db()->get_binlog(), c->logevent_id);
+      binlog_erase(G()->td_db()->get_binlog(), c->logevent_id);
       c->logevent_id = 0;
     }
   }
@@ -5842,9 +5842,9 @@ void ContactsManager::save_secret_chat(SecretChat *c, SecretChatId secret_chat_i
       auto logevent = SecretChatLogEvent(secret_chat_id, *c);
       auto storer = LogEventStorerImpl<SecretChatLogEvent>(logevent);
       if (c->logevent_id == 0) {
-        c->logevent_id = BinlogHelper::add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SecretChatInfos, storer);
+        c->logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SecretChatInfos, storer);
       } else {
-        BinlogHelper::rewrite(G()->td_db()->get_binlog(), c->logevent_id, LogEvent::HandlerType::SecretChatInfos,
+        binlog_rewrite(G()->td_db()->get_binlog(), c->logevent_id, LogEvent::HandlerType::SecretChatInfos,
                               storer);
       }
     }
@@ -5856,7 +5856,7 @@ void ContactsManager::save_secret_chat(SecretChat *c, SecretChatId secret_chat_i
 
 void ContactsManager::on_binlog_secret_chat_event(BinlogEvent &&event) {
   if (!G()->parameters().use_chat_info_db) {
-    BinlogHelper::erase(G()->td_db()->get_binlog(), event.id_);
+    binlog_erase(G()->td_db()->get_binlog(), event.id_);
     return;
   }
 
@@ -5927,7 +5927,7 @@ void ContactsManager::on_save_secret_chat_to_database(SecretChatId secret_chat_i
   }
   if (c->is_saved) {
     if (c->logevent_id != 0) {
-      BinlogHelper::erase(G()->td_db()->get_binlog(), c->logevent_id);
+      binlog_erase(G()->td_db()->get_binlog(), c->logevent_id);
       c->logevent_id = 0;
     }
   } else {
@@ -5993,7 +5993,7 @@ void ContactsManager::on_load_secret_chat_from_database(SecretChatId secret_chat
     if (value != new_value) {
       save_secret_chat_to_database_impl(c, secret_chat_id, std::move(new_value));
     } else if (c->logevent_id != 0) {
-      BinlogHelper::erase(G()->td_db()->get_binlog(), c->logevent_id);
+      binlog_erase(G()->td_db()->get_binlog(), c->logevent_id);
       c->logevent_id = 0;
     }
   }

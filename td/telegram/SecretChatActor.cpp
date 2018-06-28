@@ -83,7 +83,7 @@ void SecretChatActor::create_chat(int32 user_id, int64 user_access_hash, int32 r
   event->user_access_hash = user_access_hash;
   event->random_id = random_id;
   event->set_logevent_id(
-      BinlogHelper::add(context_->binlog(), LogEvent::HandlerType::SecretChats, create_storer(*event)));
+      binlog_add(context_->binlog(), LogEvent::HandlerType::SecretChats, create_storer(*event)));
   do_create_chat_impl(std::move(event));
   promise.set_value(SecretChatId(random_id));
   loop();
@@ -699,17 +699,17 @@ void SecretChatActor::cancel_chat(Promise<> promise) {
 
   // TODO: It must be a transaction
   for (auto id : to_delete) {
-    BinlogHelper::erase(context_->binlog(), id);
+    binlog_erase(context_->binlog(), id);
   }
   if (create_logevent_id_ != 0) {
-    BinlogHelper::erase(context_->binlog(), create_logevent_id_);
+    binlog_erase(context_->binlog(), create_logevent_id_);
     create_logevent_id_ = 0;
   }
 
   auto event = std::make_unique<logevent::CloseSecretChat>();
   event->chat_id = auth_state_.id;
   event->set_logevent_id(
-      BinlogHelper::add(context_->binlog(), LogEvent::HandlerType::SecretChats, create_storer(*event)));
+      binlog_add(context_->binlog(), LogEvent::HandlerType::SecretChats, create_storer(*event)));
 
   auto on_sync = PromiseCreator::lambda(
       [actor_id = actor_id(this), event = std::move(event), promise = std::move(promise)](Result<Unit> result) mutable {
@@ -761,14 +761,14 @@ void SecretChatActor::do_create_chat_impl(std::unique_ptr<logevent::CreateSecret
   } else if (auth_state_.state == State::SendRequest) {
   } else if (auth_state_.state == State::WaitRequestResponse) {
   } else {
-    BinlogHelper::erase(context_->binlog(), create_logevent_id_);
+    binlog_erase(context_->binlog(), create_logevent_id_);
     create_logevent_id_ = 0;
   }
 }
 void SecretChatActor::on_discard_encryption_result(NetQueryPtr result) {
   CHECK(close_flag_);
   LOG(INFO) << "Got result for messages.discardEncryption";
-  BinlogHelper::erase(context_->binlog(), close_logevent_id_);
+  binlog_erase(context_->binlog(), close_logevent_id_);
   // skip flush
   stop();
 }
@@ -956,7 +956,7 @@ Status SecretChatActor::do_inbound_message_decrypted_unchecked(
     message->qts_ack.set_value(Unit());
     if (message->logevent_id()) {
       LOG(INFO) << "Erase binlog event: " << tag("logevent_id", message->logevent_id());
-      BinlogHelper::erase(context_->binlog(), message->logevent_id());
+      binlog_erase(context_->binlog(), message->logevent_id());
     }
     auto warning_message = PSTRING() << status << tag("seq_no_state_.my_in_seq_no", seq_no_state_.my_in_seq_no)
                                      << tag("seq_no_state_.my_out_seq_no", seq_no_state_.my_out_seq_no)
@@ -1087,7 +1087,7 @@ void SecretChatActor::do_outbound_message_impl(std::unique_ptr<logevent::Outboun
   auto logevent_id = state->message->logevent_id();
   if (logevent_id == 0) {
     logevent_id =
-        BinlogHelper::add(context_->binlog(), LogEvent::HandlerType::SecretChats, create_storer(*state->message));
+        binlog_add(context_->binlog(), LogEvent::HandlerType::SecretChats, create_storer(*state->message));
     LOG(INFO) << "Outbound secret message [save_logevent] start " << tag("logevent_id", logevent_id);
     context_->binlog()->force_sync(std::move(save_logevent_finish));
     state->message->set_logevent_id(logevent_id);
@@ -1175,7 +1175,7 @@ Status SecretChatActor::do_inbound_message_decrypted_pending(std::unique_ptr<log
 
   if (logevent_id == 0) {
     message->is_pending = true;
-    message->set_logevent_id(BinlogHelper::add(context_->binlog(), LogEvent::HandlerType::SecretChats,
+    message->set_logevent_id(binlog_add(context_->binlog(), LogEvent::HandlerType::SecretChats,
                                                create_storer(*message), std::move(qts_promise)));
     LOG(INFO) << "Inbound PENDING secret message [save_logevent] start (do not expect finish) "
               << tag("logevent_id", message->logevent_id());
@@ -1210,15 +1210,15 @@ Status SecretChatActor::do_inbound_message_decrypted(std::unique_ptr<logevent::I
   auto logevent_id = message->logevent_id();
   bool need_sync = false;
   if (logevent_id == 0) {
-    logevent_id = BinlogHelper::add(context_->binlog(), LogEvent::HandlerType::SecretChats, create_storer(*message));
+    logevent_id = binlog_add(context_->binlog(), LogEvent::HandlerType::SecretChats, create_storer(*message));
     LOG(INFO) << "Inbound secret message [save_logevent] start " << tag("logevent_id", logevent_id);
     need_sync = true;
   } else {
     if (message->is_pending) {
       message->is_pending = false;
       auto old_logevent_id = logevent_id;
-      logevent_id = BinlogHelper::add(context_->binlog(), LogEvent::HandlerType::SecretChats, create_storer(*message));
-      BinlogHelper::erase(context_->binlog(), old_logevent_id);
+      logevent_id = binlog_add(context_->binlog(), LogEvent::HandlerType::SecretChats, create_storer(*message));
+      binlog_erase(context_->binlog(), old_logevent_id);
       LOG(INFO) << "Inbound secret message [save_logevent] rewrite (after pending state) "
                 << tag("logevent_id", logevent_id) << tag("old_logevent_id", old_logevent_id);
       need_sync = true;
@@ -1422,7 +1422,7 @@ void SecretChatActor::inbound_loop(InboundMessageState *state, uint64 state_id) 
     return;
   }
   LOG(INFO) << "Inbound message [remove_logevent] start " << tag("logevent_id", state->logevent_id);
-  BinlogHelper::erase(context_->binlog(), state->logevent_id);
+  binlog_erase(context_->binlog(), state->logevent_id);
 
   inbound_message_states_.erase(state_id);
 }
@@ -1496,7 +1496,7 @@ void SecretChatActor::outbound_resend(uint64 state_id) {
   LOG(INFO) << "Oubound message [resend] " << tag("logevent_id", state->message->logevent_id())
             << tag("state_id", state_id);
 
-  BinlogHelper::rewrite(context_->binlog(), state->message->logevent_id(), LogEvent::HandlerType::SecretChats,
+  binlog_rewrite(context_->binlog(), state->message->logevent_id(), LogEvent::HandlerType::SecretChats,
                         create_storer(*state->message));
   auto send_message_start = PromiseCreator::lambda([actor_id = actor_id(this), state_id](Result<> result) {
     if (result.is_ok()) {
@@ -1535,7 +1535,7 @@ Status SecretChatActor::outbound_rewrite_with_empty(uint64 state_id) {
   state->message->is_external = false;
   state->message->is_service = true;
   state->message->file = logevent::EncryptedInputFile::from_input_encrypted_file(nullptr);
-  BinlogHelper::rewrite(context_->binlog(), state->message->logevent_id(), LogEvent::HandlerType::SecretChats,
+  binlog_rewrite(context_->binlog(), state->message->logevent_id(), LogEvent::HandlerType::SecretChats,
                         create_storer(*state->message));
   return Status::OK();
 }
@@ -1765,7 +1765,7 @@ void SecretChatActor::outbound_loop(OutboundMessageState *state, uint64 state_id
   }
   if (state->save_changes_finish_flag /*&& state->send_message_finish_flag*/ && state->ack_flag) {
     LOG(INFO) << "Outbound message [remove_logevent] start " << tag("logevent_id", state->message->logevent_id());
-    BinlogHelper::erase(context_->binlog(), state->message->logevent_id());
+    binlog_erase(context_->binlog(), state->message->logevent_id());
 
     random_id_to_outbound_message_state_token_.erase(state->message->random_id);
     LOG(INFO) << "Outbound message finish (lazy) " << tag("logevent_id", state->message->logevent_id());
@@ -1777,7 +1777,7 @@ void SecretChatActor::outbound_loop(OutboundMessageState *state, uint64 state_id
       !state->message->is_sent) {  // [rewrite_logevent]
     LOG(INFO) << "Outbound message [rewrite_logevent] start " << tag("logevent_id", state->message->logevent_id());
     state->message->is_sent = true;
-    BinlogHelper::rewrite(context_->binlog(), state->message->logevent_id(), LogEvent::HandlerType::SecretChats,
+    binlog_rewrite(context_->binlog(), state->message->logevent_id(), LogEvent::HandlerType::SecretChats,
                           create_storer(*state->message));
   }
 }
@@ -1836,7 +1836,7 @@ Status SecretChatActor::on_update_chat(telegram_api::encryptedChat &update) {
   }
   auth_state_.state = State::Ready;
   if (create_logevent_id_ != 0) {
-    BinlogHelper::erase(context_->binlog(), create_logevent_id_);
+    binlog_erase(context_->binlog(), create_logevent_id_);
     create_logevent_id_ = 0;
   }
 

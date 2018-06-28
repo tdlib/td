@@ -1412,7 +1412,7 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
       if (web_page_to_delete != nullptr) {
         if (web_page_to_delete->logevent_id != 0) {
           LOG(INFO) << "Erase " << web_page_id << " from binlog";
-          BinlogHelper::erase(G()->td_db()->get_binlog(), web_page_to_delete->logevent_id);
+          binlog_erase(G()->td_db()->get_binlog(), web_page_to_delete->logevent_id);
           web_page_to_delete->logevent_id = 0;
         }
         web_pages_.erase(web_page_id);
@@ -2636,9 +2636,9 @@ void WebPagesManager::save_web_page(WebPage *web_page, WebPageId web_page_id, bo
     WebPageLogEvent logevent(web_page_id, web_page);
     LogEventStorerImpl<WebPageLogEvent> storer(logevent);
     if (web_page->logevent_id == 0) {
-      web_page->logevent_id = BinlogHelper::add(G()->td_db()->get_binlog(), LogEvent::HandlerType::WebPages, storer);
+      web_page->logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::WebPages, storer);
     } else {
-      BinlogHelper::rewrite(G()->td_db()->get_binlog(), web_page->logevent_id, LogEvent::HandlerType::WebPages, storer);
+      binlog_rewrite(G()->td_db()->get_binlog(), web_page->logevent_id, LogEvent::HandlerType::WebPages, storer);
     }
   }
 
@@ -2657,7 +2657,7 @@ string WebPagesManager::get_web_page_url_database_key(const string &url) {
 
 void WebPagesManager::on_binlog_web_page_event(BinlogEvent &&event) {
   if (!G()->parameters().use_message_db) {
-    BinlogHelper::erase(G()->td_db()->get_binlog(), event.id_);
+    binlog_erase(G()->td_db()->get_binlog(), event.id_);
     return;
   }
 
@@ -2692,7 +2692,7 @@ void WebPagesManager::on_save_web_page_to_database(WebPageId web_page_id, bool s
     LOG(INFO) << "Successfully saved " << web_page_id << " to database";
     if (web_page->logevent_id != 0) {
       LOG(INFO) << "Erase " << web_page_id << " from binlog";
-      BinlogHelper::erase(G()->td_db()->get_binlog(), web_page->logevent_id);
+      binlog_erase(G()->td_db()->get_binlog(), web_page->logevent_id);
       web_page->logevent_id = 0;
     }
   }
