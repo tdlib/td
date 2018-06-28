@@ -82,8 +82,7 @@ void SecretChatActor::create_chat(int32 user_id, int64 user_access_hash, int32 r
   event->user_id = user_id;
   event->user_access_hash = user_access_hash;
   event->random_id = random_id;
-  event->set_logevent_id(
-      binlog_add(context_->binlog(), LogEvent::HandlerType::SecretChats, create_storer(*event)));
+  event->set_logevent_id(binlog_add(context_->binlog(), LogEvent::HandlerType::SecretChats, create_storer(*event)));
   do_create_chat_impl(std::move(event));
   promise.set_value(SecretChatId(random_id));
   loop();
@@ -708,8 +707,7 @@ void SecretChatActor::cancel_chat(Promise<> promise) {
 
   auto event = std::make_unique<logevent::CloseSecretChat>();
   event->chat_id = auth_state_.id;
-  event->set_logevent_id(
-      binlog_add(context_->binlog(), LogEvent::HandlerType::SecretChats, create_storer(*event)));
+  event->set_logevent_id(binlog_add(context_->binlog(), LogEvent::HandlerType::SecretChats, create_storer(*event)));
 
   auto on_sync = PromiseCreator::lambda(
       [actor_id = actor_id(this), event = std::move(event), promise = std::move(promise)](Result<Unit> result) mutable {
@@ -1087,8 +1085,7 @@ void SecretChatActor::do_outbound_message_impl(std::unique_ptr<logevent::Outboun
 
   auto logevent_id = state->message->logevent_id();
   if (logevent_id == 0) {
-    logevent_id =
-        binlog_add(context_->binlog(), LogEvent::HandlerType::SecretChats, create_storer(*state->message));
+    logevent_id = binlog_add(context_->binlog(), LogEvent::HandlerType::SecretChats, create_storer(*state->message));
     LOG(INFO) << "Outbound secret message [save_logevent] start " << tag("logevent_id", logevent_id);
     context_->binlog()->force_sync(std::move(save_logevent_finish));
     state->message->set_logevent_id(logevent_id);
@@ -1176,8 +1173,8 @@ Status SecretChatActor::do_inbound_message_decrypted_pending(std::unique_ptr<log
 
   if (logevent_id == 0) {
     message->is_pending = true;
-    message->set_logevent_id(binlog_add(context_->binlog(), LogEvent::HandlerType::SecretChats,
-                                               create_storer(*message), std::move(qts_promise)));
+    message->set_logevent_id(binlog_add(context_->binlog(), LogEvent::HandlerType::SecretChats, create_storer(*message),
+                                        std::move(qts_promise)));
     LOG(INFO) << "Inbound PENDING secret message [save_logevent] start (do not expect finish) "
               << tag("logevent_id", message->logevent_id());
   } else {
@@ -1498,7 +1495,7 @@ void SecretChatActor::outbound_resend(uint64 state_id) {
             << tag("state_id", state_id);
 
   binlog_rewrite(context_->binlog(), state->message->logevent_id(), LogEvent::HandlerType::SecretChats,
-                        create_storer(*state->message));
+                 create_storer(*state->message));
   auto send_message_start = PromiseCreator::lambda([actor_id = actor_id(this), state_id](Result<> result) {
     if (result.is_ok()) {
       send_closure(actor_id, &SecretChatActor::on_outbound_send_message_start, state_id);
@@ -1537,7 +1534,7 @@ Status SecretChatActor::outbound_rewrite_with_empty(uint64 state_id) {
   state->message->is_service = true;
   state->message->file = logevent::EncryptedInputFile::from_input_encrypted_file(nullptr);
   binlog_rewrite(context_->binlog(), state->message->logevent_id(), LogEvent::HandlerType::SecretChats,
-                        create_storer(*state->message));
+                 create_storer(*state->message));
   return Status::OK();
 }
 
@@ -1779,7 +1776,7 @@ void SecretChatActor::outbound_loop(OutboundMessageState *state, uint64 state_id
     LOG(INFO) << "Outbound message [rewrite_logevent] start " << tag("logevent_id", state->message->logevent_id());
     state->message->is_sent = true;
     binlog_rewrite(context_->binlog(), state->message->logevent_id(), LogEvent::HandlerType::SecretChats,
-                          create_storer(*state->message));
+                   create_storer(*state->message));
   }
 }
 

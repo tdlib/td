@@ -61,14 +61,18 @@ TEST(DB, binlog_encryption) {
   {
     Binlog binlog;
     binlog.init(binlog_name.str(), [](const BinlogEvent &x) {}).ensure();
-    binlog.add_raw_event(BinlogEvent::create_raw(binlog.next_id(), 1, 0, create_storer("AAAA")), BinlogDebugInfo{__FILE__, __LINE__});
-    binlog.add_raw_event(BinlogEvent::create_raw(binlog.next_id(), 1, 0, create_storer("BBBB")), BinlogDebugInfo{__FILE__, __LINE__});
-    binlog.add_raw_event(BinlogEvent::create_raw(binlog.next_id(), 1, 0, create_storer(long_data)), BinlogDebugInfo{__FILE__, __LINE__});
+    binlog.add_raw_event(BinlogEvent::create_raw(binlog.next_id(), 1, 0, create_storer("AAAA")),
+                         BinlogDebugInfo{__FILE__, __LINE__});
+    binlog.add_raw_event(BinlogEvent::create_raw(binlog.next_id(), 1, 0, create_storer("BBBB")),
+                         BinlogDebugInfo{__FILE__, __LINE__});
+    binlog.add_raw_event(BinlogEvent::create_raw(binlog.next_id(), 1, 0, create_storer(long_data)),
+                         BinlogDebugInfo{__FILE__, __LINE__});
     LOG(INFO) << "SET PASSWORD";
     binlog.change_key(cucumber);
     binlog.change_key(hello);
     LOG(INFO) << "OK";
-    binlog.add_raw_event(BinlogEvent::create_raw(binlog.next_id(), 1, 0, create_storer("CCCC")), BinlogDebugInfo{__FILE__, __LINE__});
+    binlog.add_raw_event(BinlogEvent::create_raw(binlog.next_id(), 1, 0, create_storer("CCCC")),
+                         BinlogDebugInfo{__FILE__, __LINE__});
     binlog.close().ensure();
   }
 

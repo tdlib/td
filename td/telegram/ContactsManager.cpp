@@ -5844,8 +5844,7 @@ void ContactsManager::save_secret_chat(SecretChat *c, SecretChatId secret_chat_i
       if (c->logevent_id == 0) {
         c->logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SecretChatInfos, storer);
       } else {
-        binlog_rewrite(G()->td_db()->get_binlog(), c->logevent_id, LogEvent::HandlerType::SecretChatInfos,
-                              storer);
+        binlog_rewrite(G()->td_db()->get_binlog(), c->logevent_id, LogEvent::HandlerType::SecretChatInfos, storer);
       }
     }
 
