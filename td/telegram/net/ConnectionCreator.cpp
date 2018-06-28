@@ -507,7 +507,7 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
     LOG(INFO) << "Start socks5: " << extra.debug_str;
     auto token = next_token();
     children_[token] = {
-        false, create_actor<Socks5>("Socks5", std::move(socket_fd), extra.mtproto_ip, proxy.proxy().user().str(),
+        false, create_actor<Socks5>("PingSocks5", std::move(socket_fd), extra.mtproto_ip, proxy.proxy().user().str(),
                                     proxy.proxy().password().str(),
                                     std::make_unique<Callback>(std::move(socket_fd_promise)), create_reference(token))};
   } else {
