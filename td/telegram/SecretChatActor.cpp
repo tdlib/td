@@ -767,6 +767,7 @@ void SecretChatActor::do_create_chat_impl(std::unique_ptr<logevent::CreateSecret
 }
 void SecretChatActor::on_discard_encryption_result(NetQueryPtr result) {
   CHECK(close_flag_);
+  CHECK(close_logevent_id_ != 0);
   LOG(INFO) << "Got result for messages.discardEncryption";
   binlog_erase(context_->binlog(), close_logevent_id_);
   // skip flush

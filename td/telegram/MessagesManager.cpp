@@ -20583,7 +20583,8 @@ void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&
     logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::GetDialogFromServer, storer);
   }
   if (logevent_id != 0) {
-    get_dialog_query_logevent_id_[dialog_id] = logevent_id;
+    auto result = get_dialog_query_logevent_id_.emplace(dialog_id, logevent_id);
+    CHECK(result.second);
   }
 
   LOG(INFO) << "Send get " << dialog_id << " query";
@@ -23619,7 +23620,7 @@ void MessagesManager::do_delete_message_logevent(const DeleteMessageLogEvent &lo
   Promise<Unit> db_promise;
   if (!logevent.file_ids_.empty()) {
     auto logevent_id = logevent.id_;
-    if (!logevent_id) {
+    if (logevent_id == 0) {
       auto storer = LogEventStorerImpl<DeleteMessageLogEvent>(logevent);
       logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteMessage, storer);
     }
