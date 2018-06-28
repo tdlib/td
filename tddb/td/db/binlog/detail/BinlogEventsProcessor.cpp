@@ -37,8 +37,8 @@ void BinlogEventsProcessor::do_event(BinlogEvent &&event) {
     // just skip service events
   } else {
     CHECK(ids_.empty() || ids_.back() < fixed_id)
-        << offset_ << " " << ids_.size() << " " << ids_.back() << " " << fixed_id << " " << event.id_ << " "
-        << total_events_ << " " << total_raw_events_size_;
+        << offset_ << " " << ids_.size() << " " << ids_.back() << " " << fixed_id << " " << event.public_to_string()
+        << " " << total_events_ << " " << total_raw_events_size_;
     last_id_ = event.id_;
     total_raw_events_size_ += static_cast<int64>(event.raw_event_.size());
     total_events_++;
