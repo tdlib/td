@@ -221,7 +221,7 @@ void SequenceDispatcher::tear_down() {
       continue;
     }
     data.state_ = State::Dummy;
-    data.query_->set_error(Status::Error(500, "Internal Server Error: closing"));
+    data.query_->set_error(Status::Error(500, "Request aborted"));
     do_finish(data);
   }
 }

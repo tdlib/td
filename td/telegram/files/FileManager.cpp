@@ -2493,7 +2493,7 @@ void FileManager::hangup() {
   while (!queries_container_.empty()) {
     auto ids = queries_container_.ids();
     for (auto id : ids) {
-      on_error(id, Status::Error(500, "Internal Server Error: closing"));
+      on_error(id, Status::Error(500, "Request aborted"));
     }
   }
   is_closed_ = true;

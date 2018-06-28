@@ -681,19 +681,6 @@ class GetAccountTtlRequest : public RequestActor<int32> {
   }
 };
 
-class SetAccountTtlRequest : public RequestOnceActor {
-  int32 account_ttl_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->set_account_ttl(account_ttl_, std::move(promise));
-  }
-
- public:
-  SetAccountTtlRequest(ActorShared<Td> td, uint64 request_id, int32 account_ttl)
-      : RequestOnceActor(std::move(td), request_id), account_ttl_(account_ttl) {
-  }
-};
-
 class GetActiveSessionsRequest : public RequestActor<tl_object_ptr<td_api::sessions>> {
   tl_object_ptr<td_api::sessions> sessions_;
 
@@ -720,30 +707,6 @@ class GetActiveSessionsRequest : public RequestActor<tl_object_ptr<td_api::sessi
   }
 };
 
-class TerminateSessionRequest : public RequestOnceActor {
-  int64 session_id_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->terminate_session(session_id_, std::move(promise));
-  }
-
- public:
-  TerminateSessionRequest(ActorShared<Td> td, uint64 request_id, int64 session_id)
-      : RequestOnceActor(std::move(td), request_id), session_id_(session_id) {
-  }
-};
-
-class TerminateAllOtherSessionsRequest : public RequestOnceActor {
-  void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->terminate_all_other_sessions(std::move(promise));
-  }
-
- public:
-  TerminateAllOtherSessionsRequest(ActorShared<Td> td, uint64 request_id)
-      : RequestOnceActor(std::move(td), request_id) {
-  }
-};
-
 class GetConnectedWebsitesRequest : public RequestActor<tl_object_ptr<td_api::connectedWebsites>> {
   tl_object_ptr<td_api::connectedWebsites> connected_websites_;
 
@@ -767,29 +730,6 @@ class GetConnectedWebsitesRequest : public RequestActor<tl_object_ptr<td_api::co
 
  public:
   GetConnectedWebsitesRequest(ActorShared<Td> td, uint64 request_id) : RequestActor(std::move(td), request_id) {
-  }
-};
-
-class DisconnectWebsiteRequest : public RequestOnceActor {
-  int64 website_id_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->disconnect_website(website_id_, std::move(promise));
-  }
-
- public:
-  DisconnectWebsiteRequest(ActorShared<Td> td, uint64 request_id, int64 website_id)
-      : RequestOnceActor(std::move(td), request_id), website_id_(website_id) {
-  }
-};
-
-class DisconnectAllWebsitesRequest : public RequestOnceActor {
-  void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->disconnect_all_websites(std::move(promise));
-  }
-
- public:
-  DisconnectAllWebsitesRequest(ActorShared<Td> td, uint64 request_id) : RequestOnceActor(std::move(td), request_id) {
   }
 };
 
@@ -1355,108 +1295,6 @@ class EditMessageReplyMarkupRequest : public RequestOnceActor {
   }
 };
 
-class EditInlineMessageTextRequest : public RequestOnceActor {
-  string inline_message_id_;
-  tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
-  tl_object_ptr<td_api::InputMessageContent> input_message_content_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->messages_manager_->edit_inline_message_text(inline_message_id_, std::move(reply_markup_),
-                                                    std::move(input_message_content_), std::move(promise));
-  }
-
- public:
-  EditInlineMessageTextRequest(ActorShared<Td> td, uint64 request_id, string inline_message_id,
-                               tl_object_ptr<td_api::ReplyMarkup> reply_markup,
-                               tl_object_ptr<td_api::InputMessageContent> input_message_content)
-      : RequestOnceActor(std::move(td), request_id)
-      , inline_message_id_(std::move(inline_message_id))
-      , reply_markup_(std::move(reply_markup))
-      , input_message_content_(std::move(input_message_content)) {
-  }
-};
-
-class EditInlineMessageLiveLocationRequest : public RequestOnceActor {
-  string inline_message_id_;
-  tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
-  tl_object_ptr<td_api::location> location_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->messages_manager_->edit_inline_message_live_location(inline_message_id_, std::move(reply_markup_),
-                                                             std::move(location_), std::move(promise));
-  }
-
- public:
-  EditInlineMessageLiveLocationRequest(ActorShared<Td> td, uint64 request_id, string inline_message_id,
-                                       tl_object_ptr<td_api::ReplyMarkup> reply_markup,
-                                       tl_object_ptr<td_api::location> location)
-      : RequestOnceActor(std::move(td), request_id)
-      , inline_message_id_(std::move(inline_message_id))
-      , reply_markup_(std::move(reply_markup))
-      , location_(std::move(location)) {
-  }
-};
-
-class EditInlineMessageMediaRequest : public RequestOnceActor {
-  string inline_message_id_;
-  tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
-  tl_object_ptr<td_api::InputMessageContent> input_message_content_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->messages_manager_->edit_inline_message_media(inline_message_id_, std::move(reply_markup_),
-                                                     std::move(input_message_content_), std::move(promise));
-  }
-
- public:
-  EditInlineMessageMediaRequest(ActorShared<Td> td, uint64 request_id, string inline_message_id,
-                                tl_object_ptr<td_api::ReplyMarkup> reply_markup,
-                                tl_object_ptr<td_api::InputMessageContent> input_message_content)
-      : RequestOnceActor(std::move(td), request_id)
-      , inline_message_id_(std::move(inline_message_id))
-      , reply_markup_(std::move(reply_markup))
-      , input_message_content_(std::move(input_message_content)) {
-  }
-};
-
-class EditInlineMessageCaptionRequest : public RequestOnceActor {
-  string inline_message_id_;
-  tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
-  tl_object_ptr<td_api::formattedText> caption_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->messages_manager_->edit_inline_message_caption(inline_message_id_, std::move(reply_markup_),
-                                                       std::move(caption_), std::move(promise));
-  }
-
- public:
-  EditInlineMessageCaptionRequest(ActorShared<Td> td, uint64 request_id, string inline_message_id,
-                                  tl_object_ptr<td_api::ReplyMarkup> reply_markup,
-                                  tl_object_ptr<td_api::formattedText> caption)
-      : RequestOnceActor(std::move(td), request_id)
-      , inline_message_id_(std::move(inline_message_id))
-      , reply_markup_(std::move(reply_markup))
-      , caption_(std::move(caption)) {
-  }
-};
-
-class EditInlineMessageReplyMarkupRequest : public RequestOnceActor {
-  string inline_message_id_;
-  tl_object_ptr<td_api::ReplyMarkup> reply_markup_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->messages_manager_->edit_inline_message_reply_markup(inline_message_id_, std::move(reply_markup_),
-                                                            std::move(promise));
-  }
-
- public:
-  EditInlineMessageReplyMarkupRequest(ActorShared<Td> td, uint64 request_id, string inline_message_id,
-                                      tl_object_ptr<td_api::ReplyMarkup> reply_markup)
-      : RequestOnceActor(std::move(td), request_id)
-      , inline_message_id_(std::move(inline_message_id))
-      , reply_markup_(std::move(reply_markup)) {
-  }
-};
-
 class SetGameScoreRequest : public RequestOnceActor {
   FullMessageId full_message_id_;
   bool edit_message_;
@@ -1478,30 +1316,6 @@ class SetGameScoreRequest : public RequestOnceActor {
                       int32 user_id, int32 score, bool force)
       : RequestOnceActor(std::move(td), request_id)
       , full_message_id_(DialogId(dialog_id), MessageId(message_id))
-      , edit_message_(edit_message)
-      , user_id_(user_id)
-      , score_(score)
-      , force_(force) {
-  }
-};
-
-class SetInlineGameScoreRequest : public RequestOnceActor {
-  string inline_message_id_;
-  bool edit_message_;
-  UserId user_id_;
-  int32 score_;
-  bool force_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->messages_manager_->set_inline_game_score(inline_message_id_, edit_message_, user_id_, score_, force_,
-                                                 std::move(promise));
-  }
-
- public:
-  SetInlineGameScoreRequest(ActorShared<Td> td, uint64 request_id, string inline_message_id, bool edit_message,
-                            int32 user_id, int32 score, bool force)
-      : RequestOnceActor(std::move(td), request_id)
-      , inline_message_id_(std::move(inline_message_id))
       , edit_message_(edit_message)
       , user_id_(user_id)
       , score_(score)
@@ -1557,21 +1371,6 @@ class GetInlineGameHighScoresRequest : public RequestOnceActor {
   }
 };
 
-class SendChatActionRequest : public RequestOnceActor {
-  DialogId dialog_id_;
-  tl_object_ptr<td_api::ChatAction> action_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->messages_manager_->send_dialog_action(dialog_id_, action_, std::move(promise));
-  }
-
- public:
-  SendChatActionRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id,
-                        tl_object_ptr<td_api::ChatAction> &&action)
-      : RequestOnceActor(std::move(td), request_id), dialog_id_(dialog_id), action_(std::move(action)) {
-  }
-};
-
 class GetChatHistoryRequest : public RequestActor<> {
   DialogId dialog_id_;
   MessageId from_message_id_;
@@ -1602,22 +1401,6 @@ class GetChatHistoryRequest : public RequestActor<> {
     if (!only_local_) {
       set_tries(4);
     }
-  }
-};
-
-class DeleteChatHistoryRequest : public RequestOnceActor {
-  DialogId dialog_id_;
-  bool remove_from_chat_list_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->messages_manager_->delete_dialog_history(dialog_id_, remove_from_chat_list_, std::move(promise));
-  }
-
- public:
-  DeleteChatHistoryRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, bool remove_from_chat_list)
-      : RequestOnceActor(std::move(td), request_id)
-      , dialog_id_(dialog_id)
-      , remove_from_chat_list_(remove_from_chat_list) {
   }
 };
 
@@ -1835,51 +1618,6 @@ class GetChatMessageByDateRequest : public RequestOnceActor {
   }
 };
 
-class DeleteMessagesRequest : public RequestOnceActor {
-  DialogId dialog_id_;
-  vector<MessageId> message_ids_;
-  bool revoke_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->messages_manager_->delete_messages(dialog_id_, message_ids_, revoke_, std::move(promise));
-  }
-
- public:
-  DeleteMessagesRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, vector<int64> message_ids, bool revoke)
-      : RequestOnceActor(std::move(td), request_id)
-      , dialog_id_(dialog_id)
-      , message_ids_(MessagesManager::get_message_ids(message_ids))
-      , revoke_(revoke) {
-  }
-};
-
-class DeleteChatMessagesFromUserRequest : public RequestOnceActor {
-  DialogId dialog_id_;
-  UserId user_id_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->messages_manager_->delete_dialog_messages_from_user(dialog_id_, user_id_, std::move(promise));
-  }
-
- public:
-  DeleteChatMessagesFromUserRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int32 user_id)
-      : RequestOnceActor(std::move(td), request_id), dialog_id_(dialog_id), user_id_(user_id) {
-  }
-};
-
-class ReadAllChatMentionsRequest : public RequestOnceActor {
-  DialogId dialog_id_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->messages_manager_->read_all_dialog_mentions(dialog_id_, std::move(promise));
-  }
-
- public:
-  ReadAllChatMentionsRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id)
-      : RequestOnceActor(std::move(td), request_id), dialog_id_(dialog_id) {
-  }
-};
-
 class GetWebPagePreviewRequest : public RequestOnceActor {
   td_api::object_ptr<td_api::formattedText> text_;
 
@@ -2046,89 +1784,6 @@ class UpgradeGroupChatToSupergroupChatRequest : public RequestActor<> {
  public:
   UpgradeGroupChatToSupergroupChatRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id)
       : RequestActor(std::move(td), request_id), dialog_id_(dialog_id) {
-  }
-};
-
-class SetChatPhotoRequest : public RequestOnceActor {
-  DialogId dialog_id_;
-  tl_object_ptr<td_api::InputFile> input_file_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->messages_manager_->set_dialog_photo(dialog_id_, input_file_, std::move(promise));
-  }
-
- public:
-  SetChatPhotoRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id,
-                      tl_object_ptr<td_api::InputFile> &&input_file)
-      : RequestOnceActor(std::move(td), request_id), dialog_id_(dialog_id), input_file_(std::move(input_file)) {
-  }
-};
-
-class SetChatTitleRequest : public RequestOnceActor {
-  DialogId dialog_id_;
-  string title_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->messages_manager_->set_dialog_title(dialog_id_, title_, std::move(promise));
-  }
-
- public:
-  SetChatTitleRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, string &&title)
-      : RequestOnceActor(std::move(td), request_id), dialog_id_(dialog_id), title_(std::move(title)) {
-  }
-};
-
-class AddChatMemberRequest : public RequestOnceActor {
-  DialogId dialog_id_;
-  UserId user_id_;
-  int32 forward_limit_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->messages_manager_->add_dialog_participant(dialog_id_, user_id_, forward_limit_, std::move(promise));
-  }
-
- public:
-  AddChatMemberRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int32 user_id, int32 forward_limit)
-      : RequestOnceActor(std::move(td), request_id)
-      , dialog_id_(dialog_id)
-      , user_id_(user_id)
-      , forward_limit_(forward_limit) {
-  }
-};
-
-class AddChatMembersRequest : public RequestOnceActor {
-  DialogId dialog_id_;
-  vector<UserId> user_ids_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->messages_manager_->add_dialog_participants(dialog_id_, user_ids_, std::move(promise));
-  }
-
- public:
-  AddChatMembersRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, const vector<int32> &user_ids)
-      : RequestOnceActor(std::move(td), request_id), dialog_id_(dialog_id) {
-    for (auto &user_id : user_ids) {
-      user_ids_.emplace_back(user_id);
-    }
-  }
-};
-
-class SetChatMemberStatusRequest : public RequestOnceActor {
-  DialogId dialog_id_;
-  UserId user_id_;
-  tl_object_ptr<td_api::ChatMemberStatus> status_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->messages_manager_->set_dialog_participant_status(dialog_id_, user_id_, status_, std::move(promise));
-  }
-
- public:
-  SetChatMemberStatusRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int32 user_id,
-                             tl_object_ptr<td_api::ChatMemberStatus> &&status)
-      : RequestOnceActor(std::move(td), request_id)
-      , dialog_id_(dialog_id)
-      , user_id_(user_id)
-      , status_(std::move(status)) {
   }
 };
 
@@ -2448,16 +2103,6 @@ class ChangeImportedContactsRequest : public RequestActor<> {
   }
 };
 
-class ClearImportedContactsRequest : public RequestOnceActor {
-  void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->clear_imported_contacts(std::move(promise));
-  }
-
- public:
-  ClearImportedContactsRequest(ActorShared<Td> td, uint64 request_id) : RequestOnceActor(std::move(td), request_id) {
-  }
-};
-
 class GetRecentInlineBotsRequest : public RequestActor<> {
   vector<UserId> user_ids_;
 
@@ -2471,229 +2116,6 @@ class GetRecentInlineBotsRequest : public RequestActor<> {
 
  public:
   GetRecentInlineBotsRequest(ActorShared<Td> td, uint64 request_id) : RequestActor(std::move(td), request_id) {
-  }
-};
-
-class SetNameRequest : public RequestOnceActor {
-  string first_name_;
-  string last_name_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->set_name(first_name_, last_name_, std::move(promise));
-  }
-
- public:
-  SetNameRequest(ActorShared<Td> td, uint64 request_id, string first_name, string last_name)
-      : RequestOnceActor(std::move(td), request_id)
-      , first_name_(std::move(first_name))
-      , last_name_(std::move(last_name)) {
-  }
-};
-
-class SetBioRequest : public RequestOnceActor {
-  string bio_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->set_bio(bio_, std::move(promise));
-  }
-
- public:
-  SetBioRequest(ActorShared<Td> td, uint64 request_id, string bio)
-      : RequestOnceActor(std::move(td), request_id), bio_(std::move(bio)) {
-  }
-};
-
-class SetUsernameRequest : public RequestOnceActor {
-  string username_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->set_username(username_, std::move(promise));
-  }
-
- public:
-  SetUsernameRequest(ActorShared<Td> td, uint64 request_id, string username)
-      : RequestOnceActor(std::move(td), request_id), username_(std::move(username)) {
-  }
-};
-
-class SetProfilePhotoRequest : public RequestOnceActor {
-  tl_object_ptr<td_api::InputFile> input_file_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->set_profile_photo(input_file_, std::move(promise));
-  }
-
- public:
-  SetProfilePhotoRequest(ActorShared<Td> td, uint64 request_id, tl_object_ptr<td_api::InputFile> &&input_file)
-      : RequestOnceActor(std::move(td), request_id), input_file_(std::move(input_file)) {
-  }
-};
-
-class DeleteProfilePhotoRequest : public RequestOnceActor {
-  int64 profile_photo_id_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->delete_profile_photo(profile_photo_id_, std::move(promise));
-  }
-
- public:
-  DeleteProfilePhotoRequest(ActorShared<Td> td, uint64 request_id, int64 profile_photo_id)
-      : RequestOnceActor(std::move(td), request_id), profile_photo_id_(profile_photo_id) {
-  }
-};
-
-class ToggleGroupAdministratorsRequest : public RequestOnceActor {
-  ChatId chat_id_;
-  bool everyone_is_administrator_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->toggle_chat_administrators(chat_id_, everyone_is_administrator_, std::move(promise));
-  }
-
- public:
-  ToggleGroupAdministratorsRequest(ActorShared<Td> td, uint64 request_id, int32 chat_id, bool everyone_is_administrator)
-      : RequestOnceActor(std::move(td), request_id)
-      , chat_id_(chat_id)
-      , everyone_is_administrator_(everyone_is_administrator) {
-  }
-};
-
-class SetSupergroupUsernameRequest : public RequestOnceActor {
-  ChannelId channel_id_;
-  string username_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->set_channel_username(channel_id_, username_, std::move(promise));
-  }
-
- public:
-  SetSupergroupUsernameRequest(ActorShared<Td> td, uint64 request_id, int32 channel_id, string username)
-      : RequestOnceActor(std::move(td), request_id), channel_id_(channel_id), username_(std::move(username)) {
-  }
-};
-
-class SetSupergroupStickerSetRequest : public RequestOnceActor {
-  ChannelId channel_id_;
-  int64 sticker_set_id_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->set_channel_sticker_set(channel_id_, sticker_set_id_, std::move(promise));
-  }
-
- public:
-  SetSupergroupStickerSetRequest(ActorShared<Td> td, uint64 request_id, int32 channel_id, int64 sticker_set_id)
-      : RequestOnceActor(std::move(td), request_id), channel_id_(channel_id), sticker_set_id_(sticker_set_id) {
-  }
-};
-
-class ToggleSupergroupInvitesRequest : public RequestOnceActor {
-  ChannelId channel_id_;
-  bool anyone_can_invite_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->toggle_channel_invites(channel_id_, anyone_can_invite_, std::move(promise));
-  }
-
- public:
-  ToggleSupergroupInvitesRequest(ActorShared<Td> td, uint64 request_id, int32 channel_id, bool anyone_can_invite)
-      : RequestOnceActor(std::move(td), request_id), channel_id_(channel_id), anyone_can_invite_(anyone_can_invite) {
-  }
-};
-
-class ToggleSupergroupSignMessagesRequest : public RequestOnceActor {
-  ChannelId channel_id_;
-  bool sign_messages_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->toggle_channel_sign_messages(channel_id_, sign_messages_, std::move(promise));
-  }
-
- public:
-  ToggleSupergroupSignMessagesRequest(ActorShared<Td> td, uint64 request_id, int32 channel_id, bool sign_messages)
-      : RequestOnceActor(std::move(td), request_id), channel_id_(channel_id), sign_messages_(sign_messages) {
-  }
-};
-
-class ToggleSupergroupIsAllHistoryAvailableRequest : public RequestOnceActor {
-  ChannelId channel_id_;
-  bool is_all_history_available_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->toggle_channel_is_all_history_available(channel_id_, is_all_history_available_,
-                                                                   std::move(promise));
-  }
-
- public:
-  ToggleSupergroupIsAllHistoryAvailableRequest(ActorShared<Td> td, uint64 request_id, int32 channel_id,
-                                               bool is_all_history_available)
-      : RequestOnceActor(std::move(td), request_id)
-      , channel_id_(channel_id)
-      , is_all_history_available_(is_all_history_available) {
-  }
-};
-
-class SetSupergroupDescriptionRequest : public RequestOnceActor {
-  ChannelId channel_id_;
-  string description_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->set_channel_description(channel_id_, description_, std::move(promise));
-  }
-
- public:
-  SetSupergroupDescriptionRequest(ActorShared<Td> td, uint64 request_id, int32 channel_id, string description)
-      : RequestOnceActor(std::move(td), request_id), channel_id_(channel_id), description_(std::move(description)) {
-  }
-};
-
-class PinSupergroupMessageRequest : public RequestOnceActor {
-  ChannelId channel_id_;
-  MessageId message_id_;
-  bool disable_notification_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->pin_channel_message(channel_id_, message_id_, disable_notification_, std::move(promise));
-  }
-
- public:
-  PinSupergroupMessageRequest(ActorShared<Td> td, uint64 request_id, int32 channel_id, int64 message_id,
-                              bool disable_notification)
-      : RequestOnceActor(std::move(td), request_id)
-      , channel_id_(channel_id)
-      , message_id_(message_id)
-      , disable_notification_(disable_notification) {
-  }
-};
-
-class UnpinSupergroupMessageRequest : public RequestOnceActor {
-  ChannelId channel_id_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->unpin_channel_message(channel_id_, std::move(promise));
-  }
-
- public:
-  UnpinSupergroupMessageRequest(ActorShared<Td> td, uint64 request_id, int32 channel_id)
-      : RequestOnceActor(std::move(td), request_id), channel_id_(channel_id) {
-  }
-};
-
-class ReportSupergroupSpamRequest : public RequestOnceActor {
-  ChannelId channel_id_;
-  UserId user_id_;
-  vector<MessageId> message_ids_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->report_channel_spam(channel_id_, user_id_, message_ids_, std::move(promise));
-  }
-
- public:
-  ReportSupergroupSpamRequest(ActorShared<Td> td, uint64 request_id, int32 channel_id, int32 user_id,
-                              const vector<int64> &message_ids)
-      : RequestOnceActor(std::move(td), request_id)
-      , channel_id_(channel_id)
-      , user_id_(user_id)
-      , message_ids_(MessagesManager::get_message_ids(message_ids)) {
   }
 };
 
@@ -2731,19 +2153,6 @@ class GetSupergroupMembersRequest : public RequestActor<> {
       , offset_(offset)
       , limit_(limit) {
     set_tries(3);
-  }
-};
-
-class DeleteSupergroupRequest : public RequestOnceActor {
-  ChannelId channel_id_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->contacts_manager_->delete_channel(channel_id_, std::move(promise));
-  }
-
- public:
-  DeleteSupergroupRequest(ActorShared<Td> td, uint64 request_id, int32 channel_id)
-      : RequestOnceActor(std::move(td), request_id), channel_id_(channel_id) {
   }
 };
 
@@ -2810,39 +2219,6 @@ class GetChatReportSpamStateRequest : public RequestActor<> {
  public:
   GetChatReportSpamStateRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id)
       : RequestActor(std::move(td), request_id), dialog_id_(dialog_id) {
-  }
-};
-
-class ChangeChatReportSpamStateRequest : public RequestOnceActor {
-  DialogId dialog_id_;
-  bool is_spam_dialog_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->messages_manager_->change_dialog_report_spam_state(dialog_id_, is_spam_dialog_, std::move(promise));
-  }
-
- public:
-  ChangeChatReportSpamStateRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, bool is_spam_dialog)
-      : RequestOnceActor(std::move(td), request_id), dialog_id_(dialog_id), is_spam_dialog_(is_spam_dialog) {
-  }
-};
-
-class ReportChatRequest : public RequestOnceActor {
-  DialogId dialog_id_;
-  tl_object_ptr<td_api::ChatReportReason> reason_;
-  vector<MessageId> message_ids_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->messages_manager_->report_dialog(dialog_id_, reason_, message_ids_, std::move(promise));
-  }
-
- public:
-  ReportChatRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id,
-                    tl_object_ptr<td_api::ChatReportReason> reason, const vector<int64> &message_ids)
-      : RequestOnceActor(std::move(td), request_id)
-      , dialog_id_(dialog_id)
-      , reason_(std::move(reason))
-      , message_ids_(MessagesManager::get_message_ids(message_ids)) {
   }
 };
 
@@ -3068,21 +2444,6 @@ class ChangeStickerSetRequest : public RequestOnceActor {
   }
 };
 
-class ReorderInstalledStickerSetsRequest : public RequestOnceActor {
-  bool is_masks_;
-  vector<int64> sticker_set_ids_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->stickers_manager_->reorder_installed_sticker_sets(is_masks_, sticker_set_ids_, std::move(promise));
-  }
-
- public:
-  ReorderInstalledStickerSetsRequest(ActorShared<Td> td, uint64 request_id, bool is_masks,
-                                     vector<int64> &&sticker_set_ids)
-      : RequestOnceActor(std::move(td), request_id), is_masks_(is_masks), sticker_set_ids_(std::move(sticker_set_ids)) {
-  }
-};
-
 class UploadStickerFileRequest : public RequestOnceActor {
   UserId user_id_;
   tl_object_ptr<td_api::InputFile> sticker_;
@@ -3160,34 +2521,6 @@ class AddStickerToSetRequest : public RequestOnceActor {
       , user_id_(user_id)
       , name_(std::move(name))
       , sticker_(std::move(sticker)) {
-  }
-};
-
-class SetStickerPositionInSetRequest : public RequestOnceActor {
-  tl_object_ptr<td_api::InputFile> sticker_;
-  int32 position_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->stickers_manager_->set_sticker_position_in_set(sticker_, position_, std::move(promise));
-  }
-
- public:
-  SetStickerPositionInSetRequest(ActorShared<Td> td, uint64 request_id, tl_object_ptr<td_api::InputFile> &&sticker,
-                                 int32 position)
-      : RequestOnceActor(std::move(td), request_id), sticker_(std::move(sticker)), position_(position) {
-  }
-};
-
-class RemoveStickerFromSetRequest : public RequestOnceActor {
-  tl_object_ptr<td_api::InputFile> sticker_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->stickers_manager_->remove_sticker_from_set(sticker_, std::move(promise));
-  }
-
- public:
-  RemoveStickerFromSetRequest(ActorShared<Td> td, uint64 request_id, tl_object_ptr<td_api::InputFile> &&sticker)
-      : RequestOnceActor(std::move(td), request_id), sticker_(std::move(sticker)) {
   }
 };
 
@@ -3397,36 +2730,6 @@ class GetInlineQueryResultsRequest : public RequestOnceActor {
   }
 };
 
-class AnswerInlineQueryRequest : public RequestOnceActor {
-  int64 inline_query_id_;
-  bool is_personal_;
-  vector<tl_object_ptr<td_api::InputInlineQueryResult>> results_;
-  int32 cache_time_;
-  string next_offset_;
-  string switch_pm_text_;
-  string switch_pm_parameter_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->inline_queries_manager_->answer_inline_query(inline_query_id_, is_personal_, std::move(results_), cache_time_,
-                                                     next_offset_, switch_pm_text_, switch_pm_parameter_,
-                                                     std::move(promise));
-  }
-
- public:
-  AnswerInlineQueryRequest(ActorShared<Td> td, uint64 request_id, int64 inline_query_id, bool is_personal,
-                           vector<tl_object_ptr<td_api::InputInlineQueryResult>> &&results, int32 cache_time,
-                           string next_offset, string switch_pm_text, string switch_pm_parameter)
-      : RequestOnceActor(std::move(td), request_id)
-      , inline_query_id_(inline_query_id)
-      , is_personal_(is_personal)
-      , results_(std::move(results))
-      , cache_time_(cache_time)
-      , next_offset_(std::move(next_offset))
-      , switch_pm_text_(std::move(switch_pm_text))
-      , switch_pm_parameter_(std::move(switch_pm_parameter)) {
-  }
-};
-
 class GetCallbackQueryAnswerRequest : public RequestOnceActor {
   FullMessageId full_message_id_;
   tl_object_ptr<td_api::CallbackQueryPayload> payload_;
@@ -3455,66 +2758,6 @@ class GetCallbackQueryAnswerRequest : public RequestOnceActor {
       , full_message_id_(DialogId(dialog_id), MessageId(message_id))
       , payload_(std::move(payload))
       , result_id_(0) {
-  }
-};
-
-class AnswerCallbackQueryRequest : public RequestOnceActor {
-  int64 callback_query_id_;
-  string text_;
-  bool show_alert_;
-  string url_;
-  int32 cache_time_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->callback_queries_manager_->answer_callback_query(callback_query_id_, text_, show_alert_, url_, cache_time_,
-                                                         std::move(promise));
-  }
-
- public:
-  AnswerCallbackQueryRequest(ActorShared<Td> td, uint64 request_id, int64 callback_query_id, string text,
-                             bool show_alert, string url, int32 cache_time)
-      : RequestOnceActor(std::move(td), request_id)
-      , callback_query_id_(callback_query_id)
-      , text_(std::move(text))
-      , show_alert_(show_alert)
-      , url_(std::move(url))
-      , cache_time_(cache_time) {
-  }
-};
-
-class AnswerShippingQueryRequest : public RequestOnceActor {
-  int64 shipping_query_id_;
-  vector<tl_object_ptr<td_api::shippingOption>> shipping_options_;
-  string error_message_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    answer_shipping_query(shipping_query_id_, std::move(shipping_options_), error_message_, std::move(promise));
-  }
-
- public:
-  AnswerShippingQueryRequest(ActorShared<Td> td, uint64 request_id, int64 shipping_query_id,
-                             vector<tl_object_ptr<td_api::shippingOption>> shipping_options, string error_message)
-      : RequestOnceActor(std::move(td), request_id)
-      , shipping_query_id_(shipping_query_id)
-      , shipping_options_(std::move(shipping_options))
-      , error_message_(std::move(error_message)) {
-  }
-};
-
-class AnswerPreCheckoutQueryRequest : public RequestOnceActor {
-  int64 pre_checkout_query_id_;
-  string error_message_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    answer_pre_checkout_query(pre_checkout_query_id_, error_message_, std::move(promise));
-  }
-
- public:
-  AnswerPreCheckoutQueryRequest(ActorShared<Td> td, uint64 request_id, int64 pre_checkout_query_id,
-                                string error_message)
-      : RequestOnceActor(std::move(td), request_id)
-      , pre_checkout_query_id_(pre_checkout_query_id)
-      , error_message_(std::move(error_message)) {
   }
 };
 
@@ -3675,26 +2918,6 @@ class GetSavedOrderInfoRequest : public RequestActor<tl_object_ptr<td_api::order
   }
 };
 
-class DeleteSavedOrderInfoRequest : public RequestOnceActor {
-  void do_run(Promise<Unit> &&promise) override {
-    delete_saved_order_info(std::move(promise));
-  }
-
- public:
-  DeleteSavedOrderInfoRequest(ActorShared<Td> td, uint64 request_id) : RequestOnceActor(std::move(td), request_id) {
-  }
-};
-
-class DeleteSavedCredentialsRequest : public RequestOnceActor {
-  void do_run(Promise<Unit> &&promise) override {
-    delete_saved_credentials(std::move(promise));
-  }
-
- public:
-  DeleteSavedCredentialsRequest(ActorShared<Td> td, uint64 request_id) : RequestOnceActor(std::move(td), request_id) {
-  }
-};
-
 class GetSupportUserRequest : public RequestActor<> {
   UserId user_id_;
 
@@ -3792,20 +3015,6 @@ class SendCustomRequestRequest : public RequestActor<string> {
  public:
   SendCustomRequestRequest(ActorShared<Td> td, uint64 request_id, string &&method, string &&parameters)
       : RequestActor(std::move(td), request_id), method_(method), parameters_(parameters) {
-  }
-};
-
-class AnswerCustomQueryRequest : public RequestOnceActor {
-  int64 custom_query_id_;
-  string data_;
-
-  void do_run(Promise<Unit> &&promise) override {
-    td->create_handler<AnswerCustomQueryQuery>(std::move(promise))->send(custom_query_id_, data_);
-  }
-
- public:
-  AnswerCustomQueryRequest(ActorShared<Td> td, uint64 request_id, int64 custom_query_id, string data)
-      : RequestOnceActor(std::move(td), request_id), custom_query_id_(custom_query_id), data_(std::move(data)) {
   }
 };
 
@@ -4463,7 +3672,7 @@ void Td::clear_requests() {
     if (destroy_flag_) {
       send_error_impl(id, make_error(401, "Unauthorized"));
     } else {
-      send_error_impl(id, make_error(500, "Internal Server Error: closing"));
+      send_error_impl(id, make_error(500, "Request aborted"));
     }
   }
 }
@@ -5333,7 +4542,8 @@ void Td::on_request(uint64 id, const td_api::setAccountTtl &request) {
   if (request.ttl_ == nullptr) {
     return send_error_raw(id, 400, "New account TTL should not be empty");
   }
-  CREATE_REQUEST(SetAccountTtlRequest, request.ttl_->days_);
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->set_account_ttl(request.ttl_->days_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::deleteAccount &request) {
@@ -5367,12 +4577,14 @@ void Td::on_request(uint64 id, const td_api::getActiveSessions &request) {
 
 void Td::on_request(uint64 id, const td_api::terminateSession &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(TerminateSessionRequest, request.session_id_);
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->terminate_session(request.session_id_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::terminateAllOtherSessions &request) {
   CHECK_IS_USER();
-  CREATE_NO_ARGS_REQUEST(TerminateAllOtherSessionsRequest);
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->terminate_all_other_sessions(std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getConnectedWebsites &request) {
@@ -5382,12 +4594,14 @@ void Td::on_request(uint64 id, const td_api::getConnectedWebsites &request) {
 
 void Td::on_request(uint64 id, const td_api::disconnectWebsite &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(DisconnectWebsiteRequest, request.website_id_);
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->disconnect_website(request.website_id_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::disconnectAllWebsites &request) {
   CHECK_IS_USER();
-  CREATE_NO_ARGS_REQUEST(DisconnectAllWebsitesRequest);
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->disconnect_all_websites(std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getMe &request) {
@@ -5725,7 +4939,9 @@ void Td::on_request(uint64 id, const td_api::getChatHistory &request) {
 
 void Td::on_request(uint64 id, const td_api::deleteChatHistory &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(DeleteChatHistoryRequest, request.chat_id_, request.remove_from_chat_list_);
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->delete_dialog_history(DialogId(request.chat_id_), request.remove_from_chat_list_,
+                                           std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::searchChatMessages &request) {
@@ -5769,17 +4985,22 @@ void Td::on_request(uint64 id, const td_api::getChatMessageByDate &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::deleteMessages &request) {
-  CREATE_REQUEST(DeleteMessagesRequest, request.chat_id_, request.message_ids_, request.revoke_);
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->delete_messages(DialogId(request.chat_id_), MessagesManager::get_message_ids(request.message_ids_),
+                                     request.revoke_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteChatMessagesFromUser &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(DeleteChatMessagesFromUserRequest, request.chat_id_, request.user_id_);
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->delete_dialog_messages_from_user(DialogId(request.chat_id_), UserId(request.user_id_),
+                                                      std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::readAllChatMentions &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(ReadAllChatMentionsRequest, request.chat_id_);
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->read_all_dialog_mentions(DialogId(request.chat_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::sendMessage &request) {
@@ -5899,36 +5120,43 @@ void Td::on_request(uint64 id, td_api::editMessageReplyMarkup &request) {
 void Td::on_request(uint64 id, td_api::editInlineMessageText &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.inline_message_id_);
-  CREATE_REQUEST(EditInlineMessageTextRequest, std::move(request.inline_message_id_), std::move(request.reply_markup_),
-                 std::move(request.input_message_content_));
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->edit_inline_message_text(std::move(request.inline_message_id_), std::move(request.reply_markup_),
+                                              std::move(request.input_message_content_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::editInlineMessageLiveLocation &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.inline_message_id_);
-  CREATE_REQUEST(EditInlineMessageLiveLocationRequest, std::move(request.inline_message_id_),
-                 std::move(request.reply_markup_), std::move(request.location_));
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->edit_inline_message_live_location(std::move(request.inline_message_id_),
+                                                       std::move(request.reply_markup_), std::move(request.location_),
+                                                       std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::editInlineMessageMedia &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.inline_message_id_);
-  CREATE_REQUEST(EditInlineMessageMediaRequest, std::move(request.inline_message_id_), std::move(request.reply_markup_),
-                 std::move(request.input_message_content_));
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->edit_inline_message_media(std::move(request.inline_message_id_), std::move(request.reply_markup_),
+                                               std::move(request.input_message_content_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::editInlineMessageCaption &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.inline_message_id_);
-  CREATE_REQUEST(EditInlineMessageCaptionRequest, std::move(request.inline_message_id_),
-                 std::move(request.reply_markup_), std::move(request.caption_));
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->edit_inline_message_caption(std::move(request.inline_message_id_),
+                                                 std::move(request.reply_markup_), std::move(request.caption_),
+                                                 std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::editInlineMessageReplyMarkup &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.inline_message_id_);
-  CREATE_REQUEST(EditInlineMessageReplyMarkupRequest, std::move(request.inline_message_id_),
-                 std::move(request.reply_markup_));
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->edit_inline_message_reply_markup(std::move(request.inline_message_id_),
+                                                      std::move(request.reply_markup_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setGameScore &request) {
@@ -5940,8 +5168,10 @@ void Td::on_request(uint64 id, td_api::setGameScore &request) {
 void Td::on_request(uint64 id, td_api::setInlineGameScore &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.inline_message_id_);
-  CREATE_REQUEST(SetInlineGameScoreRequest, std::move(request.inline_message_id_), request.edit_message_,
-                 request.user_id_, request.score_, request.force_);
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->set_inline_game_score(std::move(request.inline_message_id_), request.edit_message_,
+                                           UserId(request.user_id_), request.score_, request.force_,
+                                           std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getGameHighScores &request) {
@@ -5962,7 +5192,8 @@ void Td::on_request(uint64 id, const td_api::deleteChatReplyMarkup &request) {
 }
 
 void Td::on_request(uint64 id, td_api::sendChatAction &request) {
-  CREATE_REQUEST(SendChatActionRequest, request.chat_id_, std::move(request.action_));
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->send_dialog_action(DialogId(request.chat_id_), std::move(request.action_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::sendChatScreenshotTakenNotification &request) {
@@ -6096,11 +5327,13 @@ void Td::on_request(uint64 id, const td_api::upgradeBasicGroupChatToSupergroupCh
 
 void Td::on_request(uint64 id, td_api::setChatTitle &request) {
   CLEAN_INPUT_STRING(request.title_);
-  CREATE_REQUEST(SetChatTitleRequest, request.chat_id_, std::move(request.title_));
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->set_dialog_title(DialogId(request.chat_id_), request.title_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::setChatPhoto &request) {
-  CREATE_REQUEST(SetChatPhotoRequest, request.chat_id_, std::move(request.photo_));
+void Td::on_request(uint64 id, const td_api::setChatPhoto &request) {
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->set_dialog_photo(DialogId(request.chat_id_), request.photo_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setChatDraftMessage &request) {
@@ -6139,16 +5372,25 @@ void Td::on_request(uint64 id, td_api::setChatClientData &request) {
 
 void Td::on_request(uint64 id, const td_api::addChatMember &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(AddChatMemberRequest, request.chat_id_, request.user_id_, request.forward_limit_);
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->add_dialog_participant(DialogId(request.chat_id_), UserId(request.user_id_),
+                                            request.forward_limit_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::addChatMembers &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(AddChatMembersRequest, request.chat_id_, request.user_ids_);
+  CREATE_OK_REQUEST_PROMISE();
+  vector<UserId> user_ids;
+  for (auto &user_id : request.user_ids_) {
+    user_ids.emplace_back(user_id);
+  }
+  messages_manager_->add_dialog_participants(DialogId(request.chat_id_), user_ids, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setChatMemberStatus &request) {
-  CREATE_REQUEST(SetChatMemberStatusRequest, request.chat_id_, request.user_id_, std::move(request.status_));
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->set_dialog_participant_status(DialogId(request.chat_id_), UserId(request.user_id_),
+                                                   request.status_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getChatMember &request) {
@@ -6318,7 +5560,8 @@ void Td::on_request(uint64 id, td_api::changeImportedContacts &request) {
 
 void Td::on_request(uint64 id, const td_api::clearImportedContacts &request) {
   CHECK_IS_USER();
-  CREATE_NO_ARGS_REQUEST(ClearImportedContactsRequest);
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->clear_imported_contacts(std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getRecentInlineBots &request) {
@@ -6330,29 +5573,34 @@ void Td::on_request(uint64 id, td_api::setName &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.first_name_);
   CLEAN_INPUT_STRING(request.last_name_);
-  CREATE_REQUEST(SetNameRequest, std::move(request.first_name_), std::move(request.last_name_));
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->set_name(request.first_name_, request.last_name_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setBio &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.bio_);
-  CREATE_REQUEST(SetBioRequest, std::move(request.bio_));
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->set_bio(request.bio_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setUsername &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.username_);
-  CREATE_REQUEST(SetUsernameRequest, std::move(request.username_));
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->set_username(request.username_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setProfilePhoto &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(SetProfilePhotoRequest, std::move(request.photo_));
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->set_profile_photo(request.photo_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteProfilePhoto &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(DeleteProfilePhotoRequest, request.profile_photo_id_);
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->delete_profile_photo(request.profile_photo_id_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getUserProfilePhotos &request) {
@@ -6361,52 +5609,68 @@ void Td::on_request(uint64 id, const td_api::getUserProfilePhotos &request) {
 
 void Td::on_request(uint64 id, const td_api::toggleBasicGroupAdministrators &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(ToggleGroupAdministratorsRequest, request.basic_group_id_, request.everyone_is_administrator_);
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->toggle_chat_administrators(ChatId(request.basic_group_id_), request.everyone_is_administrator_,
+                                                std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setSupergroupUsername &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.username_);
-  CREATE_REQUEST(SetSupergroupUsernameRequest, request.supergroup_id_, std::move(request.username_));
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->set_channel_username(ChannelId(request.supergroup_id_), request.username_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::setSupergroupStickerSet &request) {
-  CREATE_REQUEST(SetSupergroupStickerSetRequest, request.supergroup_id_, request.sticker_set_id_);
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->set_channel_sticker_set(ChannelId(request.supergroup_id_), request.sticker_set_id_,
+                                             std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::toggleSupergroupInvites &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(ToggleSupergroupInvitesRequest, request.supergroup_id_, request.anyone_can_invite_);
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->toggle_channel_invites(ChannelId(request.supergroup_id_), request.anyone_can_invite_,
+                                            std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::toggleSupergroupSignMessages &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(ToggleSupergroupSignMessagesRequest, request.supergroup_id_, request.sign_messages_);
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->toggle_channel_sign_messages(ChannelId(request.supergroup_id_), request.sign_messages_,
+                                                  std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::toggleSupergroupIsAllHistoryAvailable &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(ToggleSupergroupIsAllHistoryAvailableRequest, request.supergroup_id_,
-                 request.is_all_history_available_);
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->toggle_channel_is_all_history_available(ChannelId(request.supergroup_id_),
+                                                             request.is_all_history_available_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setSupergroupDescription &request) {
   CLEAN_INPUT_STRING(request.description_);
-  CREATE_REQUEST(SetSupergroupDescriptionRequest, request.supergroup_id_, std::move(request.description_));
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->set_channel_description(ChannelId(request.supergroup_id_), request.description_,
+                                             std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::pinSupergroupMessage &request) {
-  CREATE_REQUEST(PinSupergroupMessageRequest, request.supergroup_id_, request.message_id_,
-                 request.disable_notification_);
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->pin_channel_message(ChannelId(request.supergroup_id_), MessageId(request.message_id_),
+                                         request.disable_notification_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::unpinSupergroupMessage &request) {
-  CREATE_REQUEST(UnpinSupergroupMessageRequest, request.supergroup_id_);
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->unpin_channel_message(ChannelId(request.supergroup_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::reportSupergroupSpam &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(ReportSupergroupSpamRequest, request.supergroup_id_, request.user_id_, request.message_ids_);
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->report_channel_spam(ChannelId(request.supergroup_id_), UserId(request.user_id_),
+                                         MessagesManager::get_message_ids(request.message_ids_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getSupergroupMembers &request) {
@@ -6416,7 +5680,8 @@ void Td::on_request(uint64 id, td_api::getSupergroupMembers &request) {
 
 void Td::on_request(uint64 id, const td_api::deleteSupergroup &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(DeleteSupergroupRequest, request.supergroup_id_);
+  CREATE_OK_REQUEST_PROMISE();
+  contacts_manager_->delete_channel(ChannelId(request.supergroup_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::closeSecretChat &request) {
@@ -6489,7 +5754,8 @@ void Td::on_request(uint64 id, const td_api::viewTrendingStickerSets &request) {
 
 void Td::on_request(uint64 id, td_api::reorderInstalledStickerSets &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(ReorderInstalledStickerSetsRequest, request.is_masks_, std::move(request.sticker_set_ids_));
+  CREATE_OK_REQUEST_PROMISE();
+  stickers_manager_->reorder_installed_sticker_sets(request.is_masks_, request.sticker_set_ids_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::uploadStickerFile &request) {
@@ -6513,12 +5779,14 @@ void Td::on_request(uint64 id, td_api::addStickerToSet &request) {
 
 void Td::on_request(uint64 id, td_api::setStickerPositionInSet &request) {
   CHECK_IS_BOT();
-  CREATE_REQUEST(SetStickerPositionInSetRequest, std::move(request.sticker_), request.position_);
+  CREATE_OK_REQUEST_PROMISE();
+  stickers_manager_->set_sticker_position_in_set(request.sticker_, request.position_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::removeStickerFromSet &request) {
   CHECK_IS_BOT();
-  CREATE_REQUEST(RemoveStickerFromSetRequest, std::move(request.sticker_));
+  CREATE_OK_REQUEST_PROMISE();
+  stickers_manager_->remove_sticker_from_set(request.sticker_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getRecentStickers &request) {
@@ -6591,12 +5859,16 @@ void Td::on_request(uint64 id, const td_api::getChatReportSpamState &request) {
 
 void Td::on_request(uint64 id, const td_api::changeChatReportSpamState &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(ChangeChatReportSpamStateRequest, request.chat_id_, request.is_spam_chat_);
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->change_dialog_report_spam_state(DialogId(request.chat_id_), request.is_spam_chat_,
+                                                     std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::reportChat &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST(ReportChatRequest, request.chat_id_, std::move(request.reason_), request.message_ids_);
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->report_dialog(DialogId(request.chat_id_), request.reason_,
+                                   MessagesManager::get_message_ids(request.message_ids_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setChatNotificationSettings &request) {
@@ -6798,9 +6070,10 @@ void Td::on_request(uint64 id, td_api::answerInlineQuery &request) {
   CLEAN_INPUT_STRING(request.next_offset_);
   CLEAN_INPUT_STRING(request.switch_pm_text_);
   CLEAN_INPUT_STRING(request.switch_pm_parameter_);
-  CREATE_REQUEST(AnswerInlineQueryRequest, request.inline_query_id_, request.is_personal_, std::move(request.results_),
-                 request.cache_time_, std::move(request.next_offset_), std::move(request.switch_pm_text_),
-                 std::move(request.switch_pm_parameter_));
+  CREATE_OK_REQUEST_PROMISE();
+  inline_queries_manager_->answer_inline_query(
+      request.inline_query_id_, request.is_personal_, std::move(request.results_), request.cache_time_,
+      request.next_offset_, request.switch_pm_text_, request.switch_pm_parameter_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getCallbackQueryAnswer &request) {
@@ -6812,21 +6085,24 @@ void Td::on_request(uint64 id, td_api::answerCallbackQuery &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.text_);
   CLEAN_INPUT_STRING(request.url_);
-  CREATE_REQUEST(AnswerCallbackQueryRequest, request.callback_query_id_, std::move(request.text_), request.show_alert_,
-                 std::move(request.url_), request.cache_time_);
+  CREATE_OK_REQUEST_PROMISE();
+  callback_queries_manager_->answer_callback_query(request.callback_query_id_, request.text_, request.show_alert_,
+                                                   request.url_, request.cache_time_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::answerShippingQuery &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.error_message_);
-  CREATE_REQUEST(AnswerShippingQueryRequest, request.shipping_query_id_, std::move(request.shipping_options_),
-                 std::move(request.error_message_));
+  CREATE_OK_REQUEST_PROMISE();
+  answer_shipping_query(request.shipping_query_id_, std::move(request.shipping_options_), request.error_message_,
+                        std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::answerPreCheckoutQuery &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.error_message_);
-  CREATE_REQUEST(AnswerPreCheckoutQueryRequest, request.pre_checkout_query_id_, std::move(request.error_message_));
+  CREATE_OK_REQUEST_PROMISE();
+  answer_pre_checkout_query(request.pre_checkout_query_id_, request.error_message_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::getPaymentForm &request) {
@@ -6863,12 +6139,14 @@ void Td::on_request(uint64 id, const td_api::getSavedOrderInfo &request) {
 
 void Td::on_request(uint64 id, const td_api::deleteSavedOrderInfo &request) {
   CHECK_IS_USER();
-  CREATE_NO_ARGS_REQUEST(DeleteSavedOrderInfoRequest);
+  CREATE_OK_REQUEST_PROMISE();
+  delete_saved_order_info(std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteSavedCredentials &request) {
   CHECK_IS_USER();
-  CREATE_NO_ARGS_REQUEST(DeleteSavedCredentialsRequest);
+  CREATE_OK_REQUEST_PROMISE();
+  delete_saved_credentials(std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getPassportData &request) {
@@ -7050,7 +6328,8 @@ void Td::on_request(uint64 id, td_api::sendCustomRequest &request) {
 void Td::on_request(uint64 id, td_api::answerCustomQuery &request) {
   CHECK_IS_BOT();
   CLEAN_INPUT_STRING(request.data_);
-  CREATE_REQUEST(AnswerCustomQueryRequest, request.custom_query_id_, std::move(request.data_));
+  CREATE_OK_REQUEST_PROMISE();
+  create_handler<AnswerCustomQueryQuery>(std::move(promise))->send(request.custom_query_id_, request.data_);
 }
 
 void Td::on_request(uint64 id, const td_api::setAlarm &request) {

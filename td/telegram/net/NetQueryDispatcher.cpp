@@ -42,7 +42,7 @@ void NetQueryDispatcher::complete_net_query(NetQueryPtr net_query) {
 void NetQueryDispatcher::dispatch(NetQueryPtr net_query) {
   net_query->debug("dispatch");
   if (stop_flag_.load(std::memory_order_relaxed)) {
-    net_query->set_error(Status::Error(500, "Internal Server Error: closing"));
+    net_query->set_error(Status::Error(500, "Request aborted"));
     return complete_net_query(std::move(net_query));
   }
 
