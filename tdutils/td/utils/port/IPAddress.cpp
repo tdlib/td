@@ -140,7 +140,8 @@ Result<string> idn_to_ascii(CSlice host) {
 #if TD_WINDOWS
   TRY_RESULT(whost, to_wstring(host));
   wchar_t punycode[MAX_DNS_NAME_LENGTH + 1];
-  int result_length = IdnToAscii(IDN_ALLOW_UNASSIGNED, whost.c_str(), whost.size(), punycode, MAX_DNS_NAME_LENGTH);
+  int result_length =
+      IdnToAscii(IDN_ALLOW_UNASSIGNED, whost.c_str(), narrow_cast<int>(whost.size()), punycode, MAX_DNS_NAME_LENGTH);
   if (result_length == 0) {
     return Status::Error("Host can't be converted to ASCII");
   }

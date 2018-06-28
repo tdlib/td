@@ -25714,6 +25714,7 @@ void MessagesManager::update_used_hashtags(DialogId dialog_id, const Message *m)
 
 MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog_id, unique_ptr<Message> &&m,
                                                                  uint64 logevent_id) {
+  CHECK(logevent_id != 0);
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     LOG(ERROR) << "Can't find " << dialog_id << " to resend a message";
@@ -25870,7 +25871,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
 
         auto dialog_id = log_event.dialog_id;
         auto m = std::move(log_event.m_out);
-        m->send_message_logevent_id = 0;
+        m->send_message_logevent_id = 0;  // to not allow event deletion by message deletion
 
         CHECK(m->content->get_id() == MessageScreenshotTaken::ID);
 
