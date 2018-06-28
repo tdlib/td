@@ -125,6 +125,7 @@ class BinlogReader {
       return size_;
     }
 
+    event->debug_info_ = BinlogDebugInfo{__FILE__, __LINE__};
     TRY_STATUS(event->init(input_->cut_head(size_).move_as_buffer_slice()));
     offset_ += size_;
     event->offset_ = offset_;
@@ -557,7 +558,8 @@ void Binlog::reset_encryption() {
   event.key_hash_ = event.generate_hash(key.as_slice());
 
   do_event(BinlogEvent(
-      BinlogEvent::create_raw(0, BinlogEvent::ServiceTypes::AesCtrEncryption, 0, create_default_storer(event))));
+      BinlogEvent::create_raw(0, BinlogEvent::ServiceTypes::AesCtrEncryption, 0, create_default_storer(event)),
+      BinlogDebugInfo{__FILE__, __LINE__}));
 }
 
 void Binlog::do_reindex() {

@@ -158,7 +158,7 @@ class BinlogKeyValue : public KeyValueSyncInterface {
   }
 
   void add_event(uint64 seq_no, BufferSlice &&event) {
-    binlog_->add_raw_event(seq_no, std::move(event));
+    binlog_->add_raw_event(BinlogDebugInfo{__FILE__, __LINE__}, seq_no, std::move(event));
   }
 
   bool isset(const string &key) override {
@@ -237,7 +237,7 @@ class BinlogKeyValue : public KeyValueSyncInterface {
 };
 template <>
 inline void BinlogKeyValue<Binlog>::add_event(uint64 seq_no, BufferSlice &&event) {
-  binlog_->add_raw_event(std::move(event));
+  binlog_->add_raw_event(std::move(event), BinlogDebugInfo{__FILE__, __LINE__});
 }
 template <>
 inline void BinlogKeyValue<Binlog>::force_sync(Promise<> &&promise) {

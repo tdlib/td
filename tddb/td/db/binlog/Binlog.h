@@ -67,9 +67,9 @@ class Binlog {
     return fd_.empty();
   }
 
-  void add_raw_event(BufferSlice &&raw_event) {
-    add_event(BinlogEvent(std::move(raw_event)));
-  }
+  //void add_raw_event(BufferSlice &&raw_event) {
+  //add_event(BinlogEvent(std::move(raw_event)));
+  //}
 
   void add_raw_event(BufferSlice &&raw_event, BinlogDebugInfo info) {
     add_event(BinlogEvent(std::move(raw_event), info));
