@@ -956,7 +956,7 @@ inputPassportDataEmailAddress email_address:string = InputPassportData;
 allPassportData data:vector<PassportData> = AllPassportData;
 
 
-//@class PassportDataErrorSource @description Contains description of an error in a Telegram Passport data; for bots only
+//@class PassportDataErrorSource @description Contains description of an error in a Telegram Passport data
 
 //@description A field of data contains an error. The error is considered resolved when the field's value changes @field_name Field name
 passportDataErrorSourceDataField field_name:string = PassportDataErrorSource;
@@ -991,7 +991,7 @@ passportAuthorizationForm id:int32 required_types:vector<PassportDataType> data:
 encryptedCredentials data:bytes hash:bytes secret:bytes = EncryptedCredentials;
 
 
-//@description Contains information about an encrypted Telegram Passport data @type Telegram Passport data type @data Encrypted JSON-encoded data about the user @front_side Identity document's front side @reverse_side Identity document's reverse side; may be null @selfie Selfie with the document; may be null @files List of attached files @value Unencrypted data, phone number or email address
+//@description Contains information about an encrypted Telegram Passport data; for bots only @type Telegram Passport data type @data Encrypted JSON-encoded data about the user @front_side Identity document's front side @reverse_side Identity document's reverse side; may be null @selfie Selfie with the document; may be null @files List of attached files @value Unencrypted data, phone number or email address
 encryptedPassportData type:PassportDataType data:bytes front_side:datedFile reverse_side:datedFile selfie:datedFile files:vector<datedFile> value:string = EncryptedPassportData;
 
 
