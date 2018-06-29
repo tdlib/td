@@ -1205,7 +1205,7 @@ string get_first_url(Slice text, const vector<MessageEntity> &entities) {
 }
 
 static UserId get_link_user_id(Slice url) {
-  auto lower_cased_url = to_lower(url);
+  string lower_cased_url = to_lower(url);
   url = lower_cased_url;
 
   Slice link_scheme("tg:");
@@ -1236,7 +1236,11 @@ static UserId get_link_user_id(Slice url) {
     Slice value;
     std::tie(key, value) = split(parameter, '=');
     if (key == Slice("id")) {
-      return UserId(to_integer<int32>(value));
+      auto r_user_id = to_integer_safe<int32>(value);
+      if (r_user_id.is_error()) {
+        return UserId();
+      }
+      return UserId(r_user_id.ok());
     }
   }
   return UserId();
