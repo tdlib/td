@@ -29,16 +29,17 @@ class IPAddress {
   IPAddress();
 
   bool is_valid() const;
-
-  const sockaddr *get_sockaddr() const;
-  size_t get_sockaddr_len() const;
-  int get_address_family() const;
-  Slice get_ip_str() const;
   bool is_ipv4() const;
-  uint32 get_ipv4() const;
-  Slice get_ipv6() const;
+  bool is_ipv6() const;
+
   int get_port() const;
   void set_port(int port);
+
+  uint32 get_ipv4() const;
+  Slice get_ipv6() const;
+  Slice get_ip_str() const;
+
+  static CSlice ipv4_to_str(int32 ipv4);
 
   IPAddress get_any_addr() const;
 
@@ -54,7 +55,10 @@ class IPAddress {
   friend bool operator==(const IPAddress &a, const IPAddress &b);
   friend bool operator<(const IPAddress &a, const IPAddress &b);
 
-  static CSlice ipv4_to_str(int32 ipv4);
+  // for internal usage only
+  const sockaddr *get_sockaddr() const;
+  size_t get_sockaddr_len() const;
+  int get_address_family() const;
 
  private:
   union {
