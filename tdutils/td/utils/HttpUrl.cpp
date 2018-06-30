@@ -130,6 +130,13 @@ Result<HttpUrl> parse_url(MutableSlice url, HttpUrl::Protocol default_protocol) 
   string host_str = to_lower(host);
   for (size_t i = 0; i < host_str.size(); i++) {
     char c = host_str[i];
+    if (is_ipv6) {
+      if (c == ':' || ('0' <= c && c <= '9') || ('a' <= c && c <= 'f') || c == '.') {
+        continue;
+      }
+      return Status::Error("Wrong IPv6 URL host");
+    }
+
     if (('a' <= c && c <= 'z') || c == '.' || ('0' <= c && c <= '9') || c == '-' || c == '_' || c == '!' || c == '$' ||
         c == ',' || c == '~' || c == '*' || c == '\'' || c == '(' || c == ')' || c == ';' || c == '&' || c == '+' ||
         c == '=') {
@@ -145,7 +152,9 @@ Result<HttpUrl> parse_url(MutableSlice url, HttpUrl::Protocol default_protocol) 
           continue;
         }
       }
+      return Status::Error("Wrong percent-encoded symbol in URL host");
     }
+
     // all other symbols aren't allowed
     unsigned char uc = static_cast<unsigned char>(c);
     if (uc >= 128) {
