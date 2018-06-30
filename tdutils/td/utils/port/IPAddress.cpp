@@ -309,8 +309,9 @@ Status IPAddress::init_host_port(CSlice host, CSlice port) {
   addrinfo hints;
   addrinfo *info = nullptr;
   std::memset(&hints, 0, sizeof(hints));
-  hints.ai_family = AF_INET;  // TODO AF_UNSPEC;
+  hints.ai_family = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
+  hints.ai_protocol = IPPROTO_TCP;
   LOG(INFO) << "Try to init IP address of " << host << " with port " << port;
   auto err = getaddrinfo(host.c_str(), port.c_str(), &hints, &info);
   if (err != 0) {
@@ -324,16 +325,21 @@ Status IPAddress::init_host_port(CSlice host, CSlice port) {
     freeaddrinfo(info);
   };
 
-  // prefer ipv4
-  addrinfo *best_info = info;
-  for (auto *ptr = info->ai_next; ptr != nullptr; ptr = ptr->ai_next) {
-    if (ptr->ai_socktype == AF_INET) {
+  addrinfo *best_info = nullptr;
+  for (auto *ptr = info; ptr != nullptr; ptr = ptr->ai_next) {
+    if (ptr->ai_family == AF_INET) {
+      // just use first IPv4 address
       best_info = ptr;
       break;
     }
+    if (ptr->ai_family == AF_INET6 && best_info == nullptr) {
+      // or first IPv6 address if there is no IPv4
+      best_info = ptr;
+    }
   }
-  // just use first address
-  CHECK(best_info != nullptr);
+  if (best_info == nullptr) {
+    return Status::Error("Failed to find IPv4/IPv6 address");
+  }
   return init_sockaddr(best_info->ai_addr, narrow_cast<socklen_t>(best_info->ai_addrlen));
 }
 
