@@ -8,10 +8,11 @@
 
 #include "td/utils/common.h"
 
-#include <cstring>
+#include <cstddef>
 #include <type_traits>
 
 namespace td {
+
 class Slice;
 
 class MutableSlice {
@@ -26,9 +27,7 @@ class MutableSlice {
   MutableSlice(unsigned char *s, size_t len);
   MutableSlice(string &s);
   template <class T>
-  explicit MutableSlice(T s, std::enable_if_t<std::is_same<char *, T>::value, private_tag> = {})
-      : MutableSlice(s, std::strlen(s)) {
-  }
+  explicit MutableSlice(T s, std::enable_if_t<std::is_same<char *, T>::value, private_tag> = {});
   MutableSlice(char *s, char *t);
   MutableSlice(unsigned char *s, unsigned char *t);
   template <size_t N>
@@ -74,13 +73,9 @@ class Slice {
   Slice(const unsigned char *s, size_t len);
   Slice(const string &s);
   template <class T>
-  explicit Slice(T s, std::enable_if_t<std::is_same<char *, std::remove_const_t<T>>::value, private_tag> = {})
-      : Slice(s, std::strlen(s)) {
-  }
+  explicit Slice(T s, std::enable_if_t<std::is_same<char *, std::remove_const_t<T>>::value, private_tag> = {});
   template <class T>
-  explicit Slice(T s, std::enable_if_t<std::is_same<const char *, std::remove_const_t<T>>::value, private_tag> = {})
-      : Slice(s, std::strlen(s)) {
-  }
+  explicit Slice(T s, std::enable_if_t<std::is_same<const char *, std::remove_const_t<T>>::value, private_tag> = {});
   Slice(const char *s, const char *t);
   Slice(const unsigned char *s, const unsigned char *t);
 

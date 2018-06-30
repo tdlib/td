@@ -13,8 +13,9 @@
 #include <cstring>
 
 namespace td {
+
 /*** MutableSlice ***/
-inline MutableSlice::MutableSlice() : MutableSlice(const_cast<char *>(""), static_cast<size_t>(0)) {
+inline MutableSlice::MutableSlice() : s_(const_cast<char *>("")), len_(0) {
 }
 
 inline MutableSlice::MutableSlice(char *s, size_t len) : s_(s), len_(len) {
@@ -25,7 +26,17 @@ inline MutableSlice::MutableSlice(unsigned char *s, size_t len) : s_(reinterpret
   CHECK(s_ != nullptr);
 }
 
-inline MutableSlice::MutableSlice(string &s) : MutableSlice(&s[0], s.size()) {
+inline MutableSlice::MutableSlice(string &s) : MutableSlice() {
+  if (!s.empty()) {
+    s_ = &s[0];
+    len_ = s.size();
+  }
+}
+
+template <class T>
+inline MutableSlice::MutableSlice(T s, std::enable_if_t<std::is_same<char *, T>::value, private_tag>) : s_(s) {
+  CHECK(s_ != nullptr);
+  len_ = std::strlen(s_);
 }
 
 inline MutableSlice::MutableSlice(char *s, char *t) : MutableSlice(s, t - s) {
@@ -131,10 +142,10 @@ inline char &MutableSlice::operator[](size_t i) {
 }
 
 /*** Slice ***/
-inline Slice::Slice() : Slice("", static_cast<size_t>(0)) {
+inline Slice::Slice() : s_(""), len_(0) {
 }
 
-inline Slice::Slice(const MutableSlice &other) : Slice(other.begin(), other.size()) {
+inline Slice::Slice(const MutableSlice &other) : s_(other.begin()), len_(other.size()) {
 }
 
 inline Slice::Slice(const char *s, size_t len) : s_(s), len_(len) {
@@ -145,13 +156,29 @@ inline Slice::Slice(const unsigned char *s, size_t len) : s_(reinterpret_cast<co
   CHECK(s_ != nullptr);
 }
 
-inline Slice::Slice(const string &s) : Slice(s.c_str(), s.size()) {
+inline Slice::Slice(const string &s) : s_(s.c_str()), len_(s.size()) {
 }
 
-inline Slice::Slice(const char *s, const char *t) : Slice(s, t - s) {
+template <class T>
+inline Slice::Slice(T s, std::enable_if_t<std::is_same<char *, std::remove_const_t<T>>::value, private_tag>) : s_(s) {
+  CHECK(s_ != nullptr);
+  len_ = std::strlen(s_);
 }
 
-inline Slice::Slice(const unsigned char *s, const unsigned char *t) : Slice(s, t - s) {
+template <class T>
+inline Slice::Slice(T s, std::enable_if_t<std::is_same<const char *, std::remove_const_t<T>>::value, private_tag>)
+    : s_(s) {
+  CHECK(s_ != nullptr);
+  len_ = std::strlen(s_);
+}
+
+inline Slice::Slice(const char *s, const char *t) : s_(s), len_(t - s) {
+  CHECK(s_ != nullptr);
+}
+
+inline Slice::Slice(const unsigned char *s, const unsigned char *t)
+    : s_(reinterpret_cast<const char *>(s)), len_(t - s) {
+  CHECK(s_ != nullptr);
 }
 
 inline size_t Slice::size() const {
