@@ -609,7 +609,7 @@ void Binlog::do_reindex() {
   auto finish_time = Clocks::monotonic();
   auto finish_size = fd_size_;
   auto finish_events = fd_events_;
-  CHECK(fd_size_ == file_size(path_));
+  CHECK(fd_size_ == file_size(path_)) << fd_size_ << ' ' << file_size(path_) << ' ' << fd_events_ << ' ' << path_;
 
   // TODO: print warning only if time or ratio is suspicious
   double ratio = static_cast<double>(start_size) / static_cast<double>(finish_size + 1);
