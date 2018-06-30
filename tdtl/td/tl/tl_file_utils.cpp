@@ -31,11 +31,13 @@ std::string get_file_contents(const std::string &file_name, const std::string &m
   std::size_t size = static_cast<std::size_t>(size_long);
 
   std::string result(size, ' ');
-  std::rewind(f);
-  std::size_t fread_res = std::fread(&result[0], size, 1, f);
-  if (size != 0 && fread_res != 1) {
-    std::fprintf(stderr, "Can't read file \"%s\"", file_name.c_str());
-    std::abort();
+  if (size != 0) {
+    std::rewind(f);
+    std::size_t fread_res = std::fread(&result[0], size, 1, f);
+    if (fread_res != 1) {
+      std::fprintf(stderr, "Can't read file \"%s\"", file_name.c_str());
+      std::abort();
+    }
   }
   std::fclose(f);
 
