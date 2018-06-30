@@ -53,7 +53,7 @@ TEST(Mtproto, config) {
         }
       });
       cnt++;
-      func(std::move(promise), is_test, -1).release();
+      func(std::move(promise), nullptr, is_test, -1).release();
     };
 
     run(get_simple_config_azure, false);

@@ -21,13 +21,17 @@
 
 namespace td {
 
+class ConfigShared;
+
 using SimpleConfig = tl_object_ptr<telegram_api::help_configSimple>;
 
 Result<SimpleConfig> decode_config(Slice input);
 
-ActorOwn<> get_simple_config_azure(Promise<SimpleConfig> promise, bool is_test, int32 scheduler_id);
+ActorOwn<> get_simple_config_azure(Promise<SimpleConfig> promise, const ConfigShared *shared_config, bool is_test,
+                                   int32 scheduler_id);
 
-ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfig> promise, bool is_test, int32 scheduler_id);
+ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfig> promise, const ConfigShared *shared_config, bool is_test,
+                                        int32 scheduler_id);
 
 using FullConfig = tl_object_ptr<telegram_api::config>;
 

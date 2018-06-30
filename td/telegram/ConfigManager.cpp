@@ -127,19 +127,23 @@ static ActorOwn<> get_simple_config_impl(Promise<SimpleConfig> promise, int32 sc
 #endif
 }
 
-ActorOwn<> get_simple_config_azure(Promise<SimpleConfig> promise, bool is_test, int32 scheduler_id) {
+ActorOwn<> get_simple_config_azure(Promise<SimpleConfig> promise, const ConfigShared *shared_config, bool is_test,
+                                   int32 scheduler_id) {
   string url = PSTRING() << "https://software-download.microsoft.com/" << (is_test ? "test" : "prod")
                          << "v2/config.txt";
   return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "tcdnb.azureedge.net");
 }
 
-ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfig> promise, bool is_test, int32 scheduler_id) {
+ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfig> promise, const ConfigShared *shared_config, bool is_test,
+                                        int32 scheduler_id) {
   VLOG(config_recoverer) << "Request simple config from Google DNS";
 #if TD_EMSCRIPTEN  // FIXME
   return ActorOwn<>();
 #else
-  auto name =
-      G()->shared_config().get_option_string("dc_txt_domain_name", is_test ? "tapv2.stel.com" : "apv2.stel.com");
+  string name = shared_config == nullptr ? string() : shared_config->get_option_string("dc_txt_domain_name");
+  if (name.empty()) {
+    name = is_test ? "tapv2.stel.com" : "apv2.stel.com";
+  }
   return ActorOwn<>(create_actor_on_scheduler<Wget>(
       "Wget", scheduler_id,
       PromiseCreator::lambda([promise = std::move(promise)](Result<HttpQueryPtr> r_query) mutable {
@@ -558,7 +562,8 @@ class ConfigRecoverer : public Actor {
             return get_simple_config_google_dns;
         }
       }();
-      simple_config_query_ = get_simple_config(std::move(promise), G()->is_test_dc(), G()->get_gc_scheduler_id());
+      simple_config_query_ =
+          get_simple_config(std::move(promise), &G()->shared_config(), G()->is_test_dc(), G()->get_gc_scheduler_id());
       simple_config_turn_++;
     }
 
