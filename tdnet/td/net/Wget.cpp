@@ -23,12 +23,13 @@
 namespace td {
 
 Wget::Wget(Promise<HttpQueryPtr> promise, string url, std::vector<std::pair<string, string>> headers, int32 timeout_in,
-           int32 ttl, SslFd::VerifyPeer verify_peer)
+           int32 ttl, bool prefer_ipv6, SslFd::VerifyPeer verify_peer)
     : promise_(std::move(promise))
     , input_url_(std::move(url))
     , headers_(std::move(headers))
     , timeout_in_(timeout_in)
     , ttl_(ttl)
+    , prefer_ipv6_(prefer_ipv6)
     , verify_peer_(verify_peer) {
 }
 
@@ -61,7 +62,7 @@ Status Wget::try_init() {
   TRY_RESULT(header, hc.finish());
 
   IPAddress addr;
-  TRY_STATUS(addr.init_host_port(url.host_, url.port_));
+  TRY_STATUS(addr.init_host_port(url.host_, url.port_, prefer_ipv6_));
 
   TRY_RESULT(fd, SocketFd::open(addr));
   if (url.protocol_ == HttpUrl::Protocol::HTTP) {

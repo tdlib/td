@@ -109,11 +109,14 @@ Result<SimpleConfig> decode_config(Slice input) {
   return std::move(config);
 }
 
-static ActorOwn<> get_simple_config_impl(Promise<SimpleConfig> promise, int32 scheduler_id, string url, string host) {
+static ActorOwn<> get_simple_config_impl(Promise<SimpleConfig> promise, int32 scheduler_id, string url, string host,
+                                         bool prefer_ipv6) {
   VLOG(config_recoverer) << "Request simple config from " << url;
 #if TD_EMSCRIPTEN  // FIXME
   return ActorOwn<>();
 #else
+  const int timeout = 10;
+  const int ttl = 3;
   return ActorOwn<>(create_actor_on_scheduler<Wget>(
       "Wget", scheduler_id,
       PromiseCreator::lambda([promise = std::move(promise)](Result<HttpQueryPtr> r_query) mutable {
@@ -122,7 +125,7 @@ static ActorOwn<> get_simple_config_impl(Promise<SimpleConfig> promise, int32 sc
           return decode_config(http_query->content_);
         }());
       }),
-      std::move(url), std::vector<std::pair<string, string>>({{"Host", std::move(host)}}), 10 /*timeout*/, 3 /*ttl*/,
+      std::move(url), std::vector<std::pair<string, string>>({{"Host", std::move(host)}}), timeout, ttl, prefer_ipv6,
       SslFd::VerifyPeer::Off));
 #endif
 }
@@ -131,7 +134,8 @@ ActorOwn<> get_simple_config_azure(Promise<SimpleConfig> promise, const ConfigSh
                                    int32 scheduler_id) {
   string url = PSTRING() << "https://software-download.microsoft.com/" << (is_test ? "test" : "prod")
                          << "v2/config.txt";
-  return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "tcdnb.azureedge.net");
+  const bool prefer_ipv6 = shared_config->get_option_boolean("prefer_ipv6");
+  return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "tcdnb.azureedge.net", prefer_ipv6);
 }
 
 ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfig> promise, const ConfigShared *shared_config, bool is_test,
@@ -141,6 +145,9 @@ ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfig> promise, const Con
   return ActorOwn<>();
 #else
   string name = shared_config == nullptr ? string() : shared_config->get_option_string("dc_txt_domain_name");
+  const int timeout = 10;
+  const int ttl = 3;
+  const bool prefer_ipv6 = shared_config->get_option_boolean("prefer_ipv6");
   if (name.empty()) {
     name = is_test ? "tapv2.stel.com" : "apv2.stel.com";
   }
@@ -178,7 +185,7 @@ ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfig> promise, const Con
         }());
       }),
       PSTRING() << "https://www.google.com/resolve?name=" << url_encode(name) << "&type=16",
-      std::vector<std::pair<string, string>>({{"Host", "dns.google.com"}}), 10 /*timeout*/, 3 /*ttl*/,
+      std::vector<std::pair<string, string>>({{"Host", "dns.google.com"}}), timeout, ttl, prefer_ipv6,
       SslFd::VerifyPeer::Off));
 #endif
 }

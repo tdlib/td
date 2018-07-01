@@ -22,7 +22,8 @@ namespace td {
 class Wget : public HttpOutboundConnection::Callback {
  public:
   explicit Wget(Promise<HttpQueryPtr> promise, string url, std::vector<std::pair<string, string>> headers = {},
-                int32 timeout_in = 10, int32 ttl = 3, SslFd::VerifyPeer verify_peer = SslFd::VerifyPeer::On);
+                int32 timeout_in = 10, int32 ttl = 3, bool prefer_ipv6 = false,
+                SslFd::VerifyPeer verify_peer = SslFd::VerifyPeer::On);
 
  private:
   Status try_init();
@@ -42,6 +43,7 @@ class Wget : public HttpOutboundConnection::Callback {
   std::vector<std::pair<string, string>> headers_;
   int32 timeout_in_;
   int32 ttl_;
+  bool prefer_ipv6_ = false;
   SslFd::VerifyPeer verify_peer_;
 };
 
