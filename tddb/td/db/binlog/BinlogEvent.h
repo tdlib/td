@@ -94,7 +94,7 @@ struct BinlogEvent {
   //explicit BinlogEvent(BufferSlice &&raw_event) {
   //init(std::move(raw_event), false).ensure();
   //}
-  explicit BinlogEvent(BufferSlice &&raw_event, BinlogDebugInfo info) {
+  BinlogEvent(BufferSlice &&raw_event, BinlogDebugInfo info) {
     debug_info_ = info;
     init(std::move(raw_event), false).ensure();
   }

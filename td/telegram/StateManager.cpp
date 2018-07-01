@@ -46,6 +46,10 @@ void StateManager::on_synchronized(bool is_synchronized) {
   }
 }
 
+void StateManager::on_network_updated() {
+  do_on_network(network_type_, true /*inc_generation*/);
+}
+
 void StateManager::on_network(NetType new_network_type) {
   do_on_network(new_network_type, true /*inc_generation*/);
 }

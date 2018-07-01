@@ -5998,6 +5998,12 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
         return send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
       }
       break;
+    case 'p':
+      if (set_boolean_option("prefer_ipv6")) {
+        send_closure(state_manager_, &StateManager::on_network_updated);
+        return;
+      }
+      break;
     case 's':
       if (set_integer_option("session_count", 0, 50)) {
         return;

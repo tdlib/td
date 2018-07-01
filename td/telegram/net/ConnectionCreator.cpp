@@ -411,7 +411,8 @@ void ConnectionCreator::ping_proxy(int32 proxy_id, Promise<double> promise) {
   if (proxy_id == 0) {
     ProxyInfo proxy{nullptr, IPAddress()};
     auto main_dc_id = G()->net_query_dispatcher().main_dc_id();
-    auto infos = dc_options_set_.find_all_connections(main_dc_id, false, false);
+    bool prefer_ipv6 = G()->shared_config().get_option_boolean("prefer_ipv6");
+    auto infos = dc_options_set_.find_all_connections(main_dc_id, false, false, prefer_ipv6);
     if (infos.empty()) {
       return promise.set_error(Status::Error(400, "Can't find valid DC address"));
     }
@@ -754,9 +755,10 @@ Result<mtproto::TransportType> ConnectionCreator::get_transport_type(const Proxy
 Result<SocketFd> ConnectionCreator::find_connection(const ProxyInfo &proxy, DcId dc_id, bool allow_media_only,
                                                     FindConnectionExtra &extra) {
   extra.debug_str = PSTRING() << "Failed to find valid IP for " << dc_id;
-  TRY_RESULT(info, dc_options_set_.find_connection(
-                       dc_id, allow_media_only,
-                       proxy.use_proxy() && proxy.use_socks5_proxy() && proxy.ip_address().is_ipv4()));
+  bool prefer_ipv6 =
+      G()->shared_config().get_option_boolean("prefer_ipv6") || (proxy.use_proxy() && proxy.ip_address().is_ipv6());
+  TRY_RESULT(info, dc_options_set_.find_connection(dc_id, allow_media_only,
+                                                   proxy.use_proxy() && proxy.use_socks5_proxy(), prefer_ipv6));
   extra.stat = info.stat;
   TRY_RESULT(transport_type, get_transport_type(proxy, info));
   extra.transport_type = std::move(transport_type);

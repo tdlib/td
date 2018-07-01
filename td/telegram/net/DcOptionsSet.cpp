@@ -44,9 +44,13 @@ DcOptions DcOptionsSet::get_dc_options() const {
 }
 
 vector<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_all_connections(DcId dc_id, bool allow_media_only,
-                                                                        bool use_static) {
+                                                                        bool use_static, bool prefer_ipv6) {
   std::vector<ConnectionInfo> options;
   std::vector<ConnectionInfo> static_options;
+
+  if (prefer_ipv6) {
+    use_static = false;
+  }
 
   for (auto &option_info : options_) {
     auto &option = option_info->option;
@@ -98,6 +102,15 @@ vector<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_all_connections(DcId dc_
       options = std::move(static_options);
     }
   }
+
+  if (prefer_ipv6) {
+    bool have_ipv6 = std::any_of(options.begin(), options.end(), [](auto &v) { return v.option->is_ipv6(); });
+    if (have_ipv6) {
+      options.erase(std::remove_if(options.begin(), options.end(), [](auto &v) { return !v.option->is_ipv6(); }),
+                    options.end());
+    }
+  }
+
   bool have_media_only = std::any_of(options.begin(), options.end(), [](auto &v) { return v.option->is_media_only(); });
   if (have_media_only) {
     options.erase(std::remove_if(options.begin(), options.end(), [](auto &v) { return !v.option->is_media_only(); }),
@@ -107,12 +120,14 @@ vector<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_all_connections(DcId dc_
   return options;
 }
 
-Result<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_connection(DcId dc_id, bool allow_media_only, bool use_static) {
-  auto options = find_all_connections(dc_id, allow_media_only, use_static);
+Result<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_connection(DcId dc_id, bool allow_media_only, bool use_static,
+                                                                   bool prefer_ipv6) {
+  auto options = find_all_connections(dc_id, allow_media_only, use_static, prefer_ipv6);
 
   if (options.empty()) {
     return Status::Error(PSLICE() << "No such connection: " << tag("dc_id", dc_id)
-                                  << tag("allow_media_only", allow_media_only) << tag("use_static", use_static));
+                                  << tag("allow_media_only", allow_media_only) << tag("use_static", use_static)
+                                  << tag("prefer_ipv6", prefer_ipv6));
   }
 
   auto last_error_at = std::min_element(options.begin(), options.end(),

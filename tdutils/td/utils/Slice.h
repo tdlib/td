@@ -11,10 +11,10 @@
 #include "td/utils/logging.h"
 
 #include <cstring>
+#include <type_traits>
 
 namespace td {
 
-/*** MutableSlice ***/
 inline MutableSlice::MutableSlice() : s_(const_cast<char *>("")), len_(0) {
 }
 
@@ -141,7 +141,6 @@ inline char &MutableSlice::operator[](size_t i) {
   return s_[i];
 }
 
-/*** Slice ***/
 inline Slice::Slice() : s_(""), len_(0) {
 }
 

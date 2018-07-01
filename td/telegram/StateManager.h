@@ -38,6 +38,8 @@ class StateManager final : public Actor {
 
   void on_synchronized(bool is_synchronized);
 
+  void on_network_updated();
+
   void on_network(NetType new_network_type);
 
   void on_online(bool is_online);
