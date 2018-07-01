@@ -455,7 +455,8 @@ void ConnectionCreator::ping_proxy(int32 proxy_id, Promise<double> promise) {
     return promise.set_error(Status::Error(400, "Unknown proxy identifier"));
   }
   const Proxy &proxy = it->second;
-  send_closure(get_host_by_name_actor_, &GetHostByNameActor::run, proxy.server().str(), proxy.port(),
+  bool prefer_ipv6 = G()->shared_config().get_option_boolean("prefer_ipv6");
+  send_closure(get_host_by_name_actor_, &GetHostByNameActor::run, proxy.server().str(), proxy.port(), prefer_ipv6,
                PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise),
                                        proxy_id](Result<IPAddress> result) mutable {
                  if (result.is_error()) {
@@ -1230,8 +1231,9 @@ void ConnectionCreator::loop() {
       if (resolve_proxy_query_token_ == 0) {
         resolve_proxy_query_token_ = next_token();
         const Proxy &proxy = proxies_[active_proxy_id_];
+        bool prefer_ipv6 = G()->shared_config().get_option_boolean("prefer_ipv6");
         send_closure(
-            get_host_by_name_actor_, &GetHostByNameActor::run, proxy.server().str(), proxy.port(),
+            get_host_by_name_actor_, &GetHostByNameActor::run, proxy.server().str(), proxy.port(), prefer_ipv6,
             PromiseCreator::lambda([actor_id = create_reference(resolve_proxy_query_token_)](Result<IPAddress> result) {
               send_closure(std::move(actor_id), &ConnectionCreator::on_proxy_resolved, std::move(result), false);
             }));

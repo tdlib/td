@@ -46,8 +46,8 @@ class IPAddress {
   Status init_ipv6_port(CSlice ipv6, int port) TD_WARN_UNUSED_RESULT;
   Status init_ipv6_as_ipv4_port(CSlice ipv4, int port) TD_WARN_UNUSED_RESULT;
   Status init_ipv4_port(CSlice ipv4, int port) TD_WARN_UNUSED_RESULT;
-  Status init_host_port(CSlice host, int port) TD_WARN_UNUSED_RESULT;
-  Status init_host_port(CSlice host, CSlice port) TD_WARN_UNUSED_RESULT;
+  Status init_host_port(CSlice host, int port, bool prefer_ipv6 = false) TD_WARN_UNUSED_RESULT;
+  Status init_host_port(CSlice host, CSlice port, bool prefer_ipv6 = false) TD_WARN_UNUSED_RESULT;
   Status init_host_port(CSlice host_port) TD_WARN_UNUSED_RESULT;
   Status init_socket_address(const SocketFd &socket_fd) TD_WARN_UNUSED_RESULT;
   Status init_peer_address(const SocketFd &socket_fd) TD_WARN_UNUSED_RESULT;

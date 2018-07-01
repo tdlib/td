@@ -17,7 +17,7 @@ namespace td {
 class GetHostByNameActor final : public td::Actor {
  public:
   explicit GetHostByNameActor(int32 ok_timeout = CACHE_TIME, int32 error_timeout = ERROR_CACHE_TIME);
-  void run(std::string host, int port, td::Promise<td::IPAddress> promise);
+  void run(std::string host, int port, bool prefer_ipv6, td::Promise<td::IPAddress> promise);
 
  private:
   struct Value {
@@ -27,12 +27,13 @@ class GetHostByNameActor final : public td::Actor {
     Value(Result<td::IPAddress> ip, double expire_at) : ip(std::move(ip)), expire_at(expire_at) {
     }
   };
-  std::unordered_map<string, Value> cache_;
+  std::unordered_map<string, Value> cache_[2];
   static constexpr int32 CACHE_TIME = 60 * 29;       // 29 minutes
   static constexpr int32 ERROR_CACHE_TIME = 60 * 5;  // 5 minutes
 
   int32 ok_timeout_;
   int32 error_timeout_;
-  Result<td::IPAddress> load_ip(string host, int port) TD_WARN_UNUSED_RESULT;
+
+  Result<td::IPAddress> load_ip(string host, int port, bool prefer_ipv6) TD_WARN_UNUSED_RESULT;
 };
 }  // namespace td

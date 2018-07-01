@@ -289,12 +289,12 @@ Status IPAddress::init_ipv4_port(CSlice ipv4, int port) {
   return Status::OK();
 }
 
-Status IPAddress::init_host_port(CSlice host, int port) {
+Status IPAddress::init_host_port(CSlice host, int port, bool prefer_ipv6) {
   auto str_port = to_string(port);
-  return init_host_port(host, str_port);
+  return init_host_port(host, str_port, prefer_ipv6);
 }
 
-Status IPAddress::init_host_port(CSlice host, CSlice port) {
+Status IPAddress::init_host_port(CSlice host, CSlice port, bool prefer_ipv6) {
   if (host.empty()) {
     return Status::Error("Host is empty");
   }
@@ -327,14 +327,19 @@ Status IPAddress::init_host_port(CSlice host, CSlice port) {
 
   addrinfo *best_info = nullptr;
   for (auto *ptr = info; ptr != nullptr; ptr = ptr->ai_next) {
-    if (ptr->ai_family == AF_INET) {
-      // just use first IPv4 address
+    if (ptr->ai_family == AF_INET && (!prefer_ipv6 || best_info == nullptr)) {
+      // just use first IPv4 address if there is no IPv6 and it isn't preferred
       best_info = ptr;
-      break;
+      if (!prefer_ipv6) {
+        break;
+      }
     }
-    if (ptr->ai_family == AF_INET6 && best_info == nullptr) {
-      // or first IPv6 address if there is no IPv4
+    if (ptr->ai_family == AF_INET6 && (prefer_ipv6 || best_info == nullptr)) {
+      // or first IPv6 address if there is no IPv4 and it isn't preferred
       best_info = ptr;
+      if (prefer_ipv6) {
+        break;
+      }
     }
   }
   if (best_info == nullptr) {
