@@ -134,7 +134,7 @@ ActorOwn<> get_simple_config_azure(Promise<SimpleConfig> promise, const ConfigSh
                                    int32 scheduler_id) {
   string url = PSTRING() << "https://software-download.microsoft.com/" << (is_test ? "test" : "prod")
                          << "v2/config.txt";
-  const bool prefer_ipv6 = shared_config->get_option_boolean("prefer_ipv6");
+  const bool prefer_ipv6 = shared_config == nullptr ? false : shared_config->get_option_boolean("prefer_ipv6");
   return get_simple_config_impl(std::move(promise), scheduler_id, std::move(url), "tcdnb.azureedge.net", prefer_ipv6);
 }
 
@@ -147,7 +147,7 @@ ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfig> promise, const Con
   string name = shared_config == nullptr ? string() : shared_config->get_option_string("dc_txt_domain_name");
   const int timeout = 10;
   const int ttl = 3;
-  const bool prefer_ipv6 = shared_config->get_option_boolean("prefer_ipv6");
+  const bool prefer_ipv6 = shared_config == nullptr ? false : shared_config->get_option_boolean("prefer_ipv6");
   if (name.empty()) {
     name = is_test ? "tapv2.stel.com" : "apv2.stel.com";
   }
