@@ -25298,7 +25298,7 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
   loaded_dialogs_.insert(dialog_id);
 
   auto status = log_event_parse(*d, value.as_slice());
-  CHECK(status.is_ok()) << format::as_hex_dump<4>(value.as_slice());
+  CHECK(status.is_ok()) << dialog_id << " " << format::as_hex_dump<4>(value.as_slice());
   CHECK(dialog_id == d->dialog_id);
 
   Dependencies dependencies;
