@@ -20700,7 +20700,7 @@ void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&
   promises.push_back(std::move(promise));
   if (promises.size() != 1) {
     if (logevent_id != 0) {
-      LOG(ERROR) << "Duplicate getDialog query for " << dialog_id;
+      LOG(INFO) << "Duplicate getDialog query for " << dialog_id;
       binlog_erase(G()->td_db()->get_binlog(), logevent_id);
     }
     // query has already been sent, just wait for the result
