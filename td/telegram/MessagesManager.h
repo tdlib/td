@@ -1926,6 +1926,10 @@ class MessagesManager : public Actor {
 
   static bool is_dialog_inited(const Dialog *d);
 
+  int32 get_dialog_mute_until(const Dialog *d) const;
+
+  bool is_dialog_muted(const Dialog *d) const;
+
   void open_dialog(Dialog *d);
 
   void close_dialog(Dialog *d);

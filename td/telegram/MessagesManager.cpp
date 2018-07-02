@@ -9176,9 +9176,7 @@ void MessagesManager::recalc_unread_count() {
         dialog_marked_count++;
       }
 
-      auto mute_until = d->notification_settings.use_default_mute_until ? get_scope_mute_until(dialog_id)
-                                                                        : d->notification_settings.mute_until;
-      if (mute_until != 0) {
+      if (is_dialog_muted(d)) {
         muted_count += unread_count;
         dialog_muted_count++;
         if (unread_count == 0 && d->is_marked_as_unread) {
@@ -9229,9 +9227,7 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
   int32 delta = new_unread_count - old_unread_count;
   if (delta != 0 && d->order != DEFAULT_ORDER && is_message_unread_count_inited_) {
     unread_message_total_count_ += delta;
-    auto mute_until = d->notification_settings.use_default_mute_until ? get_scope_mute_until(d->dialog_id)
-                                                                      : d->notification_settings.mute_until;
-    if (mute_until != 0) {
+    if (is_dialog_muted(d)) {
       unread_message_muted_count_ += delta;
     }
     send_update_unread_message_count(d->dialog_id, force_update, source);
@@ -9243,9 +9239,7 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
     } else {
       unread_dialog_total_count_ += delta;
     }
-    auto mute_until = d->notification_settings.use_default_mute_until ? get_scope_mute_until(d->dialog_id)
-                                                                      : d->notification_settings.mute_until;
-    if (mute_until != 0) {
+    if (is_dialog_muted(d)) {
       if (d->is_marked_as_unread) {
         unread_dialog_muted_marked_count_ -= delta;
       } else {
@@ -13058,6 +13052,16 @@ bool MessagesManager::is_dialog_inited(const Dialog *d) {
          d->is_last_read_outbox_message_id_inited;
 }
 
+int32 MessagesManager::get_dialog_mute_until(const Dialog *d) const {
+  CHECK(d != nullptr);
+  return d->notification_settings.use_default_mute_until ? get_scope_mute_until(d->dialog_id)
+                                                         : d->notification_settings.mute_until;
+}
+
+bool MessagesManager::is_dialog_muted(const Dialog *d) const {
+  return get_dialog_mute_until(d) != 0;
+}
+
 void MessagesManager::create_dialog(DialogId dialog_id, bool force, Promise<Unit> &&promise) {
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     if (!have_dialog_info_force(dialog_id)) {
@@ -13589,8 +13593,7 @@ std::pair<bool, int32> MessagesManager::get_dialog_mute_until(DialogId dialog_id
     return {false, get_scope_mute_until(dialog_id)};
   }
 
-  return {true, d->notification_settings.use_default_mute_until ? get_scope_mute_until(dialog_id)
-                                                                : d->notification_settings.mute_until};
+  return {true, get_dialog_mute_until(d)};
 }
 
 NotificationSettingsScope MessagesManager::get_dialog_notification_setting_scope(DialogId dialog_id) {
@@ -20477,11 +20480,9 @@ void MessagesManager::set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_a
   if (d->server_unread_count + d->local_unread_count == 0 && d->order != DEFAULT_ORDER &&
       is_dialog_unread_count_inited_) {
     int32 delta = d->is_marked_as_unread ? 1 : -1;
-    auto mute_until = d->notification_settings.use_default_mute_until ? get_scope_mute_until(d->dialog_id)
-                                                                      : d->notification_settings.mute_until;
     unread_dialog_total_count_ += delta;
     unread_dialog_marked_count_ += delta;
-    if (mute_until != 0) {
+    if (is_dialog_muted(d)) {
       unread_dialog_muted_count_ += delta;
       unread_dialog_muted_marked_count_ += delta;
     }
@@ -25159,9 +25160,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
       }
 
       unread_message_total_count_ += unread_count;
-      auto mute_until = d->notification_settings.use_default_mute_until ? get_scope_mute_until(d->dialog_id)
-                                                                        : d->notification_settings.mute_until;
-      if (mute_until != 0) {
+      if (is_dialog_muted(d)) {
         unread_message_muted_count_ += unread_count;
       }
       send_update_unread_message_count(d->dialog_id, true, source);
@@ -25180,9 +25179,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
       if (unread_count == 0 && d->is_marked_as_unread) {
         unread_dialog_marked_count_ += delta;
       }
-      auto mute_until = d->notification_settings.use_default_mute_until ? get_scope_mute_until(d->dialog_id)
-                                                                        : d->notification_settings.mute_until;
-      if (mute_until != 0) {
+      if (is_dialog_muted(d)) {
         unread_dialog_muted_count_ += delta;
         if (unread_count == 0 && d->is_marked_as_unread) {
           unread_dialog_muted_marked_count_ += delta;
