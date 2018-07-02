@@ -20,8 +20,10 @@ class MtprotoHeader {
     string system_language_code;
     string device_model;
     string system_version;
-    bool is_emulator = false;
     string application_version;
+    string language_pack;
+    string language_code;
+    bool is_emulator = false;
     Proxy proxy;
   };
 
@@ -34,9 +36,34 @@ class MtprotoHeader {
     default_header_ = gen_header(options_, false);
   }
 
-  void set_is_emulator(bool is_emulator) {
+  bool set_is_emulator(bool is_emulator) {
+    if (options_.is_emulator == is_emulator) {
+      return false;
+    }
+
     options_.is_emulator = is_emulator;
     default_header_ = gen_header(options_, false);
+    return true;
+  }
+
+  bool set_language_pack(string language_pack) {
+    if (options_.language_pack == language_pack) {
+      return false;
+    }
+
+    options_.language_pack = std::move(language_pack);
+    default_header_ = gen_header(options_, false);
+    return true;
+  }
+
+  bool set_language_code(string language_code) {
+    if (options_.language_code == language_code) {
+      return false;
+    }
+
+    options_.language_code = std::move(language_code);
+    default_header_ = gen_header(options_, false);
+    return true;
   }
 
   Slice get_default_header() const {

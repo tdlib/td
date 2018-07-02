@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/TdCallback.h"
@@ -37,7 +38,6 @@ class AudiosManager;
 class AuthManager;
 class CallManager;
 class CallbackQueriesManager;
-class PhoneNumberManager;
 class ConfigManager;
 class ContactsManager;
 class DeviceTokenManager;
@@ -48,6 +48,7 @@ class HashtagHints;
 class MessagesManager;
 class NetStatsManager;
 class PasswordManager;
+class PhoneNumberManager;
 class PrivacyManager;
 class SecureManager;
 class SecretChatsManager;
@@ -222,6 +223,8 @@ class Td final : public NetQueryCallback {
   void on_closed();
 
   void dec_stop_cnt();
+
+  MtprotoHeader::Options options_;
 
   TdParameters parameters_;
 

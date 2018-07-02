@@ -3475,6 +3475,18 @@ void Td::on_config_option_updated(const string &name) {
   } else if (name == "disable_top_chats") {
     send_closure(top_dialog_manager_, &TopDialogManager::update_is_enabled,
                  !G()->shared_config().get_option_boolean(name));
+  } else if (name == "is_emulator") {
+    if (G()->mtproto_header().set_is_emulator(G()->shared_config().get_option_boolean(name))) {
+      G()->net_query_dispatcher().update_mtproto_header();
+    }
+  } else if (name == "language_pack") {
+    if (G()->mtproto_header().set_language_pack(G()->shared_config().get_option_string(name))) {
+      G()->net_query_dispatcher().update_mtproto_header();
+    }
+  } else if (name == "language_code") {
+    if (G()->mtproto_header().set_language_code(G()->shared_config().get_option_string(name))) {
+      G()->net_query_dispatcher().update_mtproto_header();
+    }
   } else if (is_internal_config_option(name)) {
     return;
   }
@@ -3926,17 +3938,6 @@ Status Td::init(DbKey key) {
   class ConfigSharedCallback : public ConfigShared::Callback {
    public:
     void on_option_updated(const string &name, const string &value) override {
-      if (name == "is_emulator" && !G()->close_flag()) {
-        // it should be applied immediately, because it affects MtprotoHeader
-        if (G()->have_mtproto_header()) {
-          // can't use G()->shared_config(), because it may be not created yet
-          G()->mtproto_header().set_is_emulator(value == "Btrue");
-        }
-        if (G()->have_net_query_dispatcher()) {
-          G()->net_query_dispatcher().update_mtproto_header();
-        }
-      }
-
       send_closure(G()->td(), &Td::on_config_option_updated, name);
     }
   };
@@ -3958,6 +3959,12 @@ Status Td::init(DbKey key) {
         return false;
     }
   });
+
+  options_.language_pack = G()->shared_config().get_option_string("language_pack");
+  options_.language_code = G()->shared_config().get_option_string("language_code");
+  options_.is_emulator = G()->shared_config().get_option_boolean("is_emulator");
+  // options_.proxy = Proxy();
+  G()->set_mtproto_header(std::make_unique<MtprotoHeader>(options_));
 
   VLOG(td_init) << "Create NetQueryDispatcher";
   auto net_query_dispatcher = std::make_unique<NetQueryDispatcher>([&] { return create_reference(); });
@@ -4327,32 +4334,32 @@ Status Td::set_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters
   inc_request_actor_refcnt();  // guard
   inc_actor_refcnt();          // guard
 
-  VLOG(td_init) << "Create MtprotoHeader";
-  MtprotoHeader::Options options;
-  options.api_id = parameters->api_id_;
-  options.system_language_code = trim(parameters->system_language_code_);
-  options.device_model = trim(parameters->device_model_);
-  options.system_version = trim(parameters->system_version_);
-  options.application_version = trim(parameters->application_version_);
-  if (options.system_language_code.empty()) {
+  VLOG(td_init) << "Create MtprotoHeader::Options";
+  options_.api_id = parameters->api_id_;
+  options_.system_language_code = trim(parameters->system_language_code_);
+  options_.device_model = trim(parameters->device_model_);
+  options_.system_version = trim(parameters->system_version_);
+  options_.application_version = trim(parameters->application_version_);
+  if (options_.system_language_code.empty()) {
     return Status::Error(400, "System language code must be non-empty");
   }
-  if (options.device_model.empty()) {
+  if (options_.device_model.empty()) {
     return Status::Error(400, "Device model must be non-empty");
   }
-  if (options.system_version.empty()) {
+  if (options_.system_version.empty()) {
     return Status::Error(400, "System version must be non-empty");
   }
-  if (options.application_version.empty()) {
+  if (options_.application_version.empty()) {
     return Status::Error(400, "Application version must be non-empty");
   }
-  if (options.api_id != 21724) {
-    options.application_version += ", TDLib ";
-    options.application_version += TDLIB_VERSION;
+  if (options_.api_id != 21724) {
+    options_.application_version += ", TDLib ";
+    options_.application_version += TDLIB_VERSION;
   }
-  options.is_emulator = false;
-  options.proxy = Proxy();
-  G()->set_mtproto_header(std::make_unique<MtprotoHeader>(options));
+  options_.language_pack = "";
+  options_.language_code = "";
+  options_.is_emulator = false;
+  options_.proxy = Proxy();
 
   state_ = State::Decrypt;
   VLOG(td_init) << "Send authorizationStateWaitEncryptionKey";
@@ -5963,6 +5970,25 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
     return false;
   };
 
+  auto set_string_option = [&](Slice name) {
+    if (request.name_ == name) {
+      if (value_constructor_id != td_api::optionValueString::ID &&
+          value_constructor_id != td_api::optionValueEmpty::ID) {
+        send_error_raw(id, 3, PSLICE() << "Option \"" << name << "\" must have string value");
+        return true;
+      }
+      if (value_constructor_id == td_api::optionValueEmpty::ID) {
+        G()->shared_config().set_option_empty(name);
+      } else {
+        G()->shared_config().set_option_string(name,
+                                               static_cast<td_api::optionValueString *>(request.value_.get())->value_);
+      }
+      send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
+      return true;
+    }
+    return false;
+  };
+
   switch (request.name_[0]) {
     case 'd':
       if (set_boolean_option("disable_contact_registered_notifications")) {
@@ -5977,6 +6003,14 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
         return;
       }
       if (set_boolean_option("is_emulator")) {
+        return;
+      }
+      break;
+    case 'l':
+      if (set_string_option("language_pack")) {
+        return;
+      }
+      if (set_string_option("language_code")) {
         return;
       }
       break;

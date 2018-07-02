@@ -11,6 +11,7 @@
 namespace td {
 
 namespace {
+
 class HeaderStorer {
  public:
   HeaderStorer(const MtprotoHeader::Options &options, bool is_anonymous)
@@ -60,6 +61,7 @@ class HeaderStorer {
   const MtprotoHeader::Options &options;
   bool is_anonymous;
 };
+
 }  // namespace
 
 string MtprotoHeader::gen_header(const MtprotoHeader::Options &options, bool is_anonymous) {
