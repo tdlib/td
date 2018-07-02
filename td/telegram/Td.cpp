@@ -3447,7 +3447,7 @@ bool Td::is_internal_config_option(Slice name) {
          name == "edit_time_limit" || name == "revoke_pm_inbox" || name == "revoke_time_limit" ||
          name == "revoke_pm_time_limit" || name == "rating_e_decay" || name == "saved_animations_limit" ||
          name == "recent_stickers_limit" || name == "expect_blocking" || name == "dc_txt_domain_name" ||
-         name == "my_phone_number" || name == "webfile_dc_id" || name == "auth";
+         name == "my_phone_number" || name == "webfile_dc_id" || name == "language_pack_version" || name == "auth";
 }
 
 void Td::on_config_option_updated(const string &name) {
@@ -3487,6 +3487,9 @@ void Td::on_config_option_updated(const string &name) {
     if (G()->mtproto_header().set_language_code(G()->shared_config().get_option_string(name))) {
       G()->net_query_dispatcher().update_mtproto_header();
     }
+  } else if (name == "language_pack_version") {
+    // TODO update language_pack
+    return;
   } else if (is_internal_config_option(name)) {
     return;
   }

@@ -792,6 +792,13 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
     } else {
       G()->shared_config().set_option_empty("session_count");
     }
+    if ((config->flags_ & telegram_api::config::SUGGESTED_LANG_CODE_MASK) != 0) {
+      G()->shared_config().set_option_string("suggested_language_code", config->suggested_lang_code_);
+      G()->shared_config().set_option_integer("language_pack_version", config->lang_pack_version_);
+    } else {
+      G()->shared_config().set_option_empty("suggested_language_code");
+      G()->shared_config().set_option_empty("language_pack_version");
+    }
   }
 
   if (is_from_main_dc) {
