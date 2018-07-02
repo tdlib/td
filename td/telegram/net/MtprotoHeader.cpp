@@ -47,8 +47,17 @@ class HeaderStorer {
     }
     store(options.application_version, storer);
     store(options.system_language_code, storer);
-    store(string(), storer);
-    store(string(), storer);
+    if (is_anonymous || options.language_pack.empty()) {
+      store(Slice(), storer);
+      store(Slice(), storer);
+    } else {
+      store(options.language_pack, storer);
+      if (options.language_code.empty()) {
+        store(Slice("en"), storer);
+      } else {
+        store(options.language_code, storer);
+      }
+    }
     if (have_proxy) {
       // inputClientProxy#75588b3f address:string port:int = InputClientProxy;
       store(static_cast<int32>(0x75588b3f), storer);
