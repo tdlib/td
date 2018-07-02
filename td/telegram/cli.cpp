@@ -118,24 +118,24 @@ static void reactivate_readline() {
 }
 
 static char *command_generator(const char *text, int state) {
-  static vector<CSlice> commands{"GetContacts",
-                                 "GetChats",
-                                 "GetHistory",
-                                 "SetVerbosity",
-                                 "SendVideo",
-                                 "SearchDocument",
-                                 "GetChatMember",
-                                 "GetSupergroupAdministrators",
-                                 "GetSupergroupBanned",
-                                 "GetSupergroupMembers",
-                                 "GetFile",
-                                 "DownloadFile",
-                                 "CancelDownloadFile",
-                                 "ImportContacts",
-                                 "RemoveContacts",
-                                 "DumpNetQueries",
-                                 "CreateSecretChat",
-                                 "CreateNewSecretChat"};
+  static const vector<CSlice> commands{"GetContacts",
+                                       "GetChats",
+                                       "GetHistory",
+                                       "SetVerbosity",
+                                       "SendVideo",
+                                       "SearchDocument",
+                                       "GetChatMember",
+                                       "GetSupergroupAdministrators",
+                                       "GetSupergroupBanned",
+                                       "GetSupergroupMembers",
+                                       "GetFile",
+                                       "DownloadFile",
+                                       "CancelDownloadFile",
+                                       "ImportContacts",
+                                       "RemoveContacts",
+                                       "DumpNetQueries",
+                                       "CreateSecretChat",
+                                       "CreateNewSecretChat"};
   static size_t cmd_i;
   if (state == 0) {
     cmd_i = 0;
