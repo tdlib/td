@@ -15,6 +15,7 @@
 
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DocumentsManager.h"
@@ -792,6 +793,9 @@ class StickersManager::UploadStickerFileCallback : public FileManager::UploadCal
 
 StickersManager::StickersManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   upload_sticker_file_callback_ = std::make_shared<UploadStickerFileCallback>();
+
+  on_update_recent_stickers_limit(G()->shared_config().get_option_integer("recent_stickers_limit", 200));
+  on_update_favorite_stickers_limit(G()->shared_config().get_option_integer("favorite_stickers_limit", 5));
 }
 
 void StickersManager::tear_down() {
