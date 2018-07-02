@@ -3443,11 +3443,30 @@ void Td::on_result(NetQueryPtr query) {
 }
 
 bool Td::is_internal_config_option(Slice name) {
-  return name == "call_ring_timeout_ms" || name == "call_receive_timeout_ms" || name == "channels_read_media_period" ||
-         name == "edit_time_limit" || name == "revoke_pm_inbox" || name == "revoke_time_limit" ||
-         name == "revoke_pm_time_limit" || name == "rating_e_decay" || name == "saved_animations_limit" ||
-         name == "recent_stickers_limit" || name == "expect_blocking" || name == "dc_txt_domain_name" ||
-         name == "my_phone_number" || name == "webfile_dc_id" || name == "language_pack_version" || name == "auth";
+  switch (name[0]) {
+    case 'a':
+      return name == "auth";
+    case 'c':
+      return name == "call_ring_timeout_ms" || name == "call_receive_timeout_ms" ||
+             name == "channels_read_media_period";
+    case 'd':
+      return name == "dc_txt_domain_name";
+    case 'e':
+      return name == "edit_time_limit" || name == "expect_blocking";
+    case 'l':
+      return name == "language_pack_version";
+    case 'm':
+      return name == "my_phone_number";
+    case 'r':
+      return name == "revoke_pm_inbox" || name == "revoke_time_limit" || name == "revoke_pm_time_limit" ||
+             name == "rating_e_decay" || name == "recent_stickers_limit";
+    case 's':
+      return name == "saved_animations_limit";
+    case 'w':
+      return name == "webfile_dc_id";
+    default:
+      return false;
+  }
 }
 
 void Td::on_config_option_updated(const string &name) {
