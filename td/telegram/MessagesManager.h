@@ -2252,6 +2252,8 @@ class MessagesManager : public Actor {
 
   void send_update_unread_message_count(DialogId dialog_id, bool force, const char *source);
 
+  void send_update_unread_chat_count(DialogId dialog_id, bool force, const char *source);
+
   void send_update_chat_read_inbox(const Dialog *d, bool force, const char *source);
 
   void send_update_chat_read_outbox(const Dialog *d);
@@ -2269,7 +2271,7 @@ class MessagesManager : public Actor {
 
   vector<DialogId> get_peers_dialog_ids(vector<tl_object_ptr<telegram_api::Peer>> &&peers);
 
-  void recalc_unread_message_count();
+  void recalc_unread_count();
 
   void set_dialog_last_read_inbox_message_id(Dialog *d, MessageId message_id, int32 server_unread_count,
                                              int32 local_unread_count, bool force_update, const char *source);
@@ -2862,12 +2864,16 @@ class MessagesManager : public Actor {
   ScopeNotificationSettings chats_notification_settings_;
 
   bool have_postponed_unread_message_count_update_ = false;
-  bool is_unread_count_inited_ = false;
+  bool have_postponed_unread_chat_count_update_ = false;
+  bool is_message_unread_count_inited_ = false;
+  bool is_dialog_unread_count_inited_ = false;
   bool need_unread_count_recalc_ = true;
   int32 unread_message_total_count_ = 0;
   int32 unread_message_muted_count_ = 0;
-
-  // uint32 preloaded_dialogs_ = 0;  // TODO remove variable
+  int32 unread_dialog_total_count_ = 0;
+  int32 unread_dialog_muted_count_ = 0;
+  int32 unread_dialog_marked_count_ = 0;
+  int32 unread_dialog_muted_marked_count_ = 0;
 
   int64 current_pinned_dialog_order_ = DEFAULT_ORDER;
 

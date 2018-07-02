@@ -2164,6 +2164,11 @@ updateUserPrivacySettingRules setting:UserPrivacySetting rules:userPrivacySettin
 //@description Number of unread messages has changed. This update is sent only if a message database is used @unread_count Total number of unread messages @unread_unmuted_count Total number of unread messages in unmuted chats
 updateUnreadMessageCount unread_count:int32 unread_unmuted_count:int32 = Update;
 
+//@description Number of unread chats, i.e. with unread messages or marked as unread, has changed. This update is sent only if a message database is used
+//@unread_count Total number of unread chats @unread_unmuted_count Total number of unread unmuted chats
+//@marked_as_unread_count Total number of chats marked as unread @marked_as_unread_unmuted_count Total number of unmuted chats marked as unread
+updateUnreadChatCount unread_count:int32 unread_unmuted_count:int32 marked_as_unread_count:int32 marked_as_unread_unmuted_count:int32 = Update;
+
 //@description An option changed its value @name The option name @value The new option value
 updateOption name:string value:OptionValue = Update;
 
