@@ -109,12 +109,12 @@ ActorOwn<ActorT> Scheduler::register_actor_impl(Slice name, ActorT *actor_ptr, A
 
   ActorId<ActorT> actor_id = weak_info->actor_id(actor_ptr);
   if (sched_id != sched_id_) {
-    send(actor_id, Event::start(), ActorSendType::LaterWeak);
+    send<ActorSendType::LaterWeak>(actor_id, Event::start());
     do_migrate_actor(actor_info, sched_id);
   } else {
     pending_actors_list_.put(weak_info->get_list_node());
     if (!ActorTraits<ActorT>::is_lite) {
-      send(actor_id, Event::start(), ActorSendType::LaterWeak);
+      send<ActorSendType::LaterWeak>(actor_id, Event::start());
     }
   }
 
@@ -184,9 +184,8 @@ inline void Scheduler::inc_wait_generation() {
   wait_generation_++;
 }
 
-template <class RunFuncT, class EventFuncT>
-void Scheduler::send_impl(const ActorId<> &actor_id, ActorSendType send_type, const RunFuncT &run_func,
-                          const EventFuncT &event_func) {
+template <ActorSendType send_type, class RunFuncT, class EventFuncT>
+void Scheduler::send_impl(const ActorId<> &actor_id, const RunFuncT &run_func, const EventFuncT &event_func) {
   CHECK(has_guard_);
   ActorInfo *actor_info = actor_id.get_actor_info();
   if (unlikely(actor_info == nullptr || close_flag_)) {
@@ -220,38 +219,39 @@ void Scheduler::send_impl(const ActorId<> &actor_id, ActorSendType send_type, co
   }
 }
 
-template <class EventT>
-void Scheduler::send_lambda(ActorRef actor_ref, EventT &&lambda, ActorSendType send_type) {
-  return send_impl(actor_ref.get(), send_type,
-                   [&](ActorInfo *actor_info) {
-                     event_context_ptr_->link_token = actor_ref.token();
-                     lambda();
-                   },
-                   [&]() {
-                     auto event = Event::lambda(std::forward<EventT>(lambda));
-                     event.set_link_token(actor_ref.token());
-                     return std::move(event);
-                   });
+template <ActorSendType send_type, class EventT>
+void Scheduler::send_lambda(ActorRef actor_ref, EventT &&lambda) {
+  return send_impl<send_type>(actor_ref.get(),
+                              [&](ActorInfo *actor_info) {
+                                event_context_ptr_->link_token = actor_ref.token();
+                                lambda();
+                              },
+                              [&]() {
+                                auto event = Event::lambda(std::forward<EventT>(lambda));
+                                event.set_link_token(actor_ref.token());
+                                return std::move(event);
+                              });
 }
 
-template <class EventT>
-void Scheduler::send_closure(ActorRef actor_ref, EventT &&closure, ActorSendType send_type) {
-  return send_impl(actor_ref.get(), send_type,
-                   [&](ActorInfo *actor_info) {
-                     event_context_ptr_->link_token = actor_ref.token();
-                     closure.run(static_cast<typename EventT::ActorType *>(actor_info->get_actor_unsafe()));
-                   },
-                   [&]() {
-                     auto event = Event::immediate_closure(std::forward<EventT>(closure));
-                     event.set_link_token(actor_ref.token());
-                     return std::move(event);
-                   });
+template <ActorSendType send_type, class EventT>
+void Scheduler::send_closure(ActorRef actor_ref, EventT &&closure) {
+  return send_impl<send_type>(actor_ref.get(),
+                              [&](ActorInfo *actor_info) {
+                                event_context_ptr_->link_token = actor_ref.token();
+                                closure.run(static_cast<typename EventT::ActorType *>(actor_info->get_actor_unsafe()));
+                              },
+                              [&]() {
+                                auto event = Event::immediate_closure(std::forward<EventT>(closure));
+                                event.set_link_token(actor_ref.token());
+                                return std::move(event);
+                              });
 }
 
-inline void Scheduler::send(ActorRef actor_ref, Event &&event, ActorSendType send_type) {
+template <ActorSendType send_type>
+void Scheduler::send(ActorRef actor_ref, Event &&event) {
   event.set_link_token(actor_ref.token());
-  return send_impl(actor_ref.get(), send_type, [&](ActorInfo *actor_info) { do_event(actor_info, std::move(event)); },
-                   [&]() { return std::move(event); });
+  return send_impl<send_type>(actor_ref.get(), [&](ActorInfo *actor_info) { do_event(actor_info, std::move(event)); },
+                              [&]() { return std::move(event); });
 }
 
 inline void Scheduler::subscribe(const Fd &fd, Fd::Flags flags) {
@@ -270,7 +270,7 @@ inline void Scheduler::yield_actor(Actor *actor) {
   yield_actor(actor->get_info());
 }
 inline void Scheduler::yield_actor(ActorInfo *actor_info) {
-  send(actor_info->actor_id(), Event::yield(), ActorSendType::LaterWeak);
+  send<ActorSendType::LaterWeak>(actor_info->actor_id(), Event::yield());
 }
 
 inline void Scheduler::stop_actor(Actor *actor) {
