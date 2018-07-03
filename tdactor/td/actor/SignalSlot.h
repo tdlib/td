@@ -9,7 +9,9 @@
 #include "td/actor/actor.h"
 
 namespace td {
+
 class Slot;
+
 class Signal {
  public:
   void emit();
@@ -20,6 +22,7 @@ class Signal {
  private:
   ActorId<Slot> slot_id_;
 };
+
 class Slot final : public Actor {
  public:
   Slot() = default;
@@ -101,6 +104,7 @@ class Slot final : public Actor {
     signal();
   }
 };
+
 inline void Signal::emit() {
   send_closure(slot_id_, &Slot::signal);
 }

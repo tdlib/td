@@ -22,6 +22,7 @@
 #include <utility>
 
 namespace td {
+
 template <class T = Unit>
 class PromiseInterface {
  public:
@@ -651,4 +652,5 @@ class PromiseCreator {
     return Promise<T>(std::make_unique<PromiseActor<T>>(std::move(from)));
   }
 };
+
 }  // namespace td

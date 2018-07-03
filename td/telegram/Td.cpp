@@ -40,6 +40,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/HashtagHints.h"
 #include "td/telegram/InlineQueriesManager.h"
+#include "td/telegram/LanguagePackManager.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
@@ -3229,6 +3230,8 @@ bool Td::is_preinitialization_request(int32 id) {
 bool Td::is_preauthentication_request(int32 id) {
   switch (id) {
     case td_api::processDcUpdate::ID:
+    case td_api::getLanguagePack::ID:
+    case td_api::getLanguagePackStrings::ID:
     case td_api::getOption::ID:
     case td_api::setOption::ID:
     case td_api::setNetworkType::ID:
@@ -3758,6 +3761,8 @@ void Td::clear() {
   LOG(DEBUG) << "DeviceTokenManager was cleared " << timer;
   hashtag_hints_.reset();
   LOG(DEBUG) << "HashtagHints was cleared " << timer;
+  language_pack_manager_.reset();
+  LOG(DEBUG) << "LanguagePackManager was cleared " << timer;
   net_stats_manager_.reset();
   LOG(DEBUG) << "NetStatsManager was cleared " << timer;
   password_manager_.reset();
@@ -4060,6 +4065,7 @@ Status Td::init(DbKey key) {
       "ConfirmPhoneNumberManager", PhoneNumberManager::Type::ConfirmPhone, create_reference());
   device_token_manager_ = create_actor<DeviceTokenManager>("DeviceTokenManager", create_reference());
   hashtag_hints_ = create_actor<HashtagHints>("HashtagHints", "text", create_reference());
+  language_pack_manager_ = create_actor<LanguagePackManager>("LanguagePackManager", create_reference());
   password_manager_ = create_actor<PasswordManager>("PasswordManager", create_reference());
   G()->set_password_manager(password_manager_.get());
   privacy_manager_ = create_actor<PrivacyManager>("PrivacyManager", create_reference());
@@ -5920,6 +5926,23 @@ void Td::on_request(uint64 id, const td_api::resetAllNotificationSettings &reque
   CHECK_IS_USER();
   messages_manager_->reset_all_notification_settings();
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
+}
+
+void Td::on_request(uint64 id, const td_api::getLanguagePack &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  send_closure(language_pack_manager_, &LanguagePackManager::get_languages, std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::getLanguagePackStrings &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.language_code_);
+  for (auto &key : request.keys_) {
+    CLEAN_INPUT_STRING(key);
+  }
+  CREATE_REQUEST_PROMISE();
+  send_closure(language_pack_manager_, &LanguagePackManager::get_language_pack_strings,
+               std::move(request.language_code_), std::move(request.keys_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getOption &request) {

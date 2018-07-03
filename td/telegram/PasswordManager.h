@@ -50,13 +50,13 @@ class PasswordManager : public NetQueryCallback {
 
   explicit PasswordManager(ActorShared<> parent) : parent_(std::move(parent)) {
   }
+
   void get_state(Promise<State> promise);
   void set_password(string current_password, string new_password, string new_hint, bool set_recovery_email_address,
                     string recovery_email_address, Promise<State> promise);
   void set_recovery_email_address(string password, string new_recovery_email_address, Promise<State> promise);
   void get_recovery_email_address(string password, Promise<tl_object_ptr<td_api::recoveryEmailAddress>> promise);
 
-  string last_verified_email_address_;
   void send_email_address_verification_code(
       string email, Promise<td_api::object_ptr<td_api::emailAddressAuthenticationCodeInfo>> promise);
   void resend_email_address_verification_code(
@@ -124,6 +124,8 @@ class PasswordManager : public NetQueryCallback {
   optional<secure_storage::Secret> secret_;
   TempPasswordState temp_password_state_;
   Promise<TempState> create_temp_password_promise_;
+
+  string last_verified_email_address_;
 
   void update_password_settings(UpdateSettings update_settings, Promise<State> promise);
   void do_update_password_settings(UpdateSettings update_settings, PasswordFullState full_state, Promise<bool> promise);

@@ -45,6 +45,7 @@ class DocumentsManager;
 class FileManager;
 class InlineQueriesManager;
 class HashtagHints;
+class LanguagePackManager;
 class MessagesManager;
 class NetStatsManager;
 class PasswordManager;
@@ -152,6 +153,7 @@ class Td final : public NetQueryCallback {
   ActorOwn<PhoneNumberManager> confirm_phone_number_manager_;
   ActorOwn<DeviceTokenManager> device_token_manager_;
   ActorOwn<HashtagHints> hashtag_hints_;
+  ActorOwn<LanguagePackManager> language_pack_manager_;
   ActorOwn<NetStatsManager> net_stats_manager_;
   ActorOwn<PasswordManager> password_manager_;
   ActorOwn<PrivacyManager> privacy_manager_;
@@ -748,6 +750,10 @@ class Td final : public NetQueryCallback {
   void on_request(uint64 id, const td_api::changeChatReportSpamState &request);
 
   void on_request(uint64 id, td_api::reportChat &request);
+
+  void on_request(uint64 id, const td_api::getLanguagePack &request);
+
+  void on_request(uint64 id, td_api::getLanguagePackStrings &request);
 
   void on_request(uint64 id, td_api::getOption &request);
 

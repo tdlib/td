@@ -15,6 +15,7 @@
 #include <set>
 
 namespace td {
+
 class Timeout final : public Actor {
  public:
   using Data = void *;

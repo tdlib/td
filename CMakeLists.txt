@@ -370,6 +370,7 @@ set(TDLIB_SOURCE
   td/telegram/Global.cpp
   td/telegram/HashtagHints.cpp
   td/telegram/InlineQueriesManager.cpp
+  td/telegram/LanguagePackManager.cpp
   td/telegram/Location.cpp
   td/telegram/MessageEntity.cpp
   td/telegram/MessagesDb.cpp
@@ -483,6 +484,7 @@ set(TDLIB_SOURCE
   td/telegram/Global.h
   td/telegram/HashtagHints.h
   td/telegram/InlineQueriesManager.h
+  td/telegram/LanguagePackManager.h
   td/telegram/Location.h
   td/telegram/logevent/LogEvent.h
   td/telegram/logevent/LogEventHelper.h

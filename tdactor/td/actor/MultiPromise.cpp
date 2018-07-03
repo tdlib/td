@@ -7,6 +7,7 @@
 #include "td/actor/MultiPromise.h"
 
 namespace td {
+
 void MultiPromiseActor::add_promise(Promise<Unit> &&promise) {
   promises_.emplace_back(std::move(promise));
 }
@@ -87,4 +88,5 @@ MultiPromiseActorSafe::~MultiPromiseActorSafe() {
     register_existing_actor(std::move(multi_promise_)).release();
   }
 }
+
 }  // namespace td

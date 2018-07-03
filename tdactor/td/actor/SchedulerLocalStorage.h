@@ -14,6 +14,7 @@
 #include <functional>
 
 namespace td {
+
 template <class T>
 class SchedulerLocalStorage {
  public:
