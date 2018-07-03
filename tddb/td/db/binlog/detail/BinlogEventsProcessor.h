@@ -20,6 +20,8 @@ class BinlogEventsProcessor {
   template <class CallbackT>
   void for_each(CallbackT &&callback) {
     for (size_t i = 0; i < ids_.size(); i++) {
+      CHECK(i == 0 || ids_[i - 1] < ids_[i]) << ids_[i - 1] << " " << events_[i - 1].public_to_string() << " "
+                                             << ids_[i] << " " << events_[i].public_to_string();
       if ((ids_[i] & 1) == 0) {
         callback(events_[i]);
       }
