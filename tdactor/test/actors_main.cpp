@@ -128,7 +128,9 @@ class QueryActor final : public Actor {
       query.result = slow_pow_mod_uint32(x, p);
       callback_->on_result(std::move(query));
     } else {
-      auto future = send_promise(rand_elem(workers_), Random::fast(0, 3) == 0 ? 0 : Send::later, &Worker::query, x, p);
+      auto future =
+          send_promise(rand_elem(workers_), Random::fast(0, 3) == 0 ? ActorSendType::Immediate : ActorSendType::Later,
+                       &Worker::query, x, p);
       if (future.is_ready()) {
         query.result = future.move_as_ok();
         callback_->on_result(std::move(query));
@@ -302,7 +304,8 @@ class SimpleActor final : public Actor {
     }
     q_++;
     p_ = Random::fast(0, 1) ? 1 : 10000;
-    auto future = send_promise(worker_, Random::fast(0, 3) == 0 ? 0 : Send::later, &Worker::query, q_, p_);
+    auto future = send_promise(worker_, Random::fast(0, 3) == 0 ? ActorSendType::Immediate : ActorSendType::Later,
+                               &Worker::query, q_, p_);
     if (future.is_ready()) {
       auto result = future.move_as_ok();
       CHECK(result == fast_pow_mod_uint32(q_, p_));

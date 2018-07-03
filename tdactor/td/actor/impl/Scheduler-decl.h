@@ -33,12 +33,7 @@ namespace td {
 
 class ActorInfo;
 
-struct Send {
-  using Flags = uint32;
-  static const Flags immediate = 0x001;
-  static const Flags later = 0x002;
-  static const Flags later_weak = 0x004;
-};
+enum class ActorSendType { Immediate, Later, LaterWeak };
 
 class Scheduler;
 class SchedulerGuard {
@@ -99,12 +94,12 @@ class Scheduler {
   void send_to_other_scheduler(int32 sched_id, const ActorId<> &actor_id, Event &&event);
 
   template <class EventT>
-  void send_lambda(ActorRef actor_ref, EventT &&lambda, Send::Flags flags = 0);
+  void send_lambda(ActorRef actor_ref, EventT &&lambda, ActorSendType send_type);
 
   template <class EventT>
-  void send_closure(ActorRef actor_ref, EventT &&closure, Send::Flags flags = 0);
+  void send_closure(ActorRef actor_ref, EventT &&closure, ActorSendType send_type);
 
-  void send(ActorRef actor_ref, Event &&event, Send::Flags flags = 0);
+  void send(ActorRef actor_ref, Event &&event, ActorSendType send_type);
 
   void hack(const ActorId<> &actor_id, Event &&event) {
     actor_id.get_actor_unsafe()->raw_event(event.data);
@@ -183,7 +178,8 @@ class Scheduler {
   void flush_mailbox(ActorInfo *actor_info, const RunFuncT &run_func, const EventFuncT &event_func);
 
   template <class RunFuncT, class EventFuncT>
-  void send_impl(const ActorId<> &actor_id, Send::Flags flags, const RunFuncT &run_func, const EventFuncT &event_func);
+  void send_impl(const ActorId<> &actor_id, ActorSendType send_type, const RunFuncT &run_func,
+                 const EventFuncT &event_func);
 
   void inc_wait_generation();
 
@@ -266,7 +262,8 @@ void send_closure(ActorIdT &&actor_id, FunctionT function, ArgsT &&... args) {
   static_assert(std::is_base_of<FunctionClassT, ActorT>::value, "unsafe send_closure");
 
   Scheduler::instance()->send_closure(std::forward<ActorIdT>(actor_id),
-                                      create_immediate_closure(function, std::forward<ArgsT>(args)...));
+                                      create_immediate_closure(function, std::forward<ArgsT>(args)...),
+                                      ActorSendType::Immediate);
 }
 
 template <class ActorIdT, class FunctionT, class... ArgsT>
@@ -276,22 +273,22 @@ void send_closure_later(ActorIdT &&actor_id, FunctionT function, ArgsT &&... arg
   static_assert(std::is_base_of<FunctionClassT, ActorT>::value, "unsafe send_closure");
 
   Scheduler::instance()->send(std::forward<ActorIdT>(actor_id),
-                              Event::delayed_closure(function, std::forward<ArgsT>(args)...), Send::later);
+                              Event::delayed_closure(function, std::forward<ArgsT>(args)...), ActorSendType::Later);
 }
 
 template <class... ArgsT>
 void send_lambda(ActorRef actor_ref, ArgsT &&... args) {
-  Scheduler::instance()->send_lambda(actor_ref, std::forward<ArgsT>(args)...);
+  Scheduler::instance()->send_lambda(actor_ref, std::forward<ArgsT>(args)..., ActorSendType::Immediate);
 }
 
 template <class... ArgsT>
 void send_event(ActorRef actor_ref, ArgsT &&... args) {
-  Scheduler::instance()->send(actor_ref, std::forward<ArgsT>(args)...);
+  Scheduler::instance()->send(actor_ref, std::forward<ArgsT>(args)..., ActorSendType::Immediate);
 }
 
 template <class... ArgsT>
 void send_event_later(ActorRef actor_ref, ArgsT &&... args) {
-  Scheduler::instance()->send(actor_ref, std::forward<ArgsT>(args)..., Send::later);
+  Scheduler::instance()->send(actor_ref, std::forward<ArgsT>(args)..., ActorSendType::Later);
 }
 
 void yield_scheduler();

@@ -469,7 +469,7 @@ double Scheduler::run_timeout() {
     HeapNode *node = timeout_queue_.pop();
     ActorInfo *actor_info = ActorInfo::from_heap_node(node);
     inc_wait_generation();
-    send(actor_info->actor_id(), Event::timeout(), Send::immediate);
+    send(actor_info->actor_id(), Event::timeout(), ActorSendType::Immediate);
   }
   if (timeout_queue_.empty()) {
     return 10000;

@@ -599,11 +599,11 @@ class PromiseFuture {
 };
 
 template <class T, class ActorAT, class ActorBT, class ResultT, class... DestArgsT, class... ArgsT>
-FutureActor<T> send_promise(ActorId<ActorAT> actor_id, Send::Flags flags,
+FutureActor<T> send_promise(ActorId<ActorAT> actor_id, ActorSendType send_type,
                             ResultT (ActorBT::*func)(PromiseActor<T> &&, DestArgsT...), ArgsT &&... args) {
   PromiseFuture<T> pf;
   ::td::Scheduler::instance()->send_closure(
-      std::move(actor_id), create_immediate_closure(func, pf.move_promise(), std::forward<ArgsT>(args)...), flags);
+      std::move(actor_id), create_immediate_closure(func, pf.move_promise(), std::forward<ArgsT>(args)...), send_type);
   return pf.move_future();
 }
 

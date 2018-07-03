@@ -109,12 +109,12 @@ ActorOwn<ActorT> Scheduler::register_actor_impl(Slice name, ActorT *actor_ptr, A
 
   ActorId<ActorT> actor_id = weak_info->actor_id(actor_ptr);
   if (sched_id != sched_id_) {
-    send(actor_id, Event::start(), Send::later_weak);
+    send(actor_id, Event::start(), ActorSendType::LaterWeak);
     do_migrate_actor(actor_info, sched_id);
   } else {
     pending_actors_list_.put(weak_info->get_list_node());
     if (!ActorTraits<ActorT>::is_lite) {
-      send(actor_id, Event::start(), Send::later_weak);
+      send(actor_id, Event::start(), ActorSendType::LaterWeak);
     }
   }
 
@@ -185,7 +185,7 @@ inline void Scheduler::inc_wait_generation() {
 }
 
 template <class RunFuncT, class EventFuncT>
-void Scheduler::send_impl(const ActorId<> &actor_id, Send::Flags flags, const RunFuncT &run_func,
+void Scheduler::send_impl(const ActorId<> &actor_id, ActorSendType send_type, const RunFuncT &run_func,
                           const EventFuncT &event_func) {
   CHECK(has_guard_);
   ActorInfo *actor_info = actor_id.get_actor_info();
@@ -200,7 +200,7 @@ void Scheduler::send_impl(const ActorId<> &actor_id, Send::Flags flags, const Ru
   std::tie(actor_sched_id, is_migrating) = actor_info->migrate_dest_flag_atomic();
   bool on_current_sched = !is_migrating && sched_id_ == actor_sched_id;
 
-  if (likely(!(flags & Send::later) && !(flags & Send::later_weak) && on_current_sched && !actor_info->is_running() &&
+  if (likely(send_type == ActorSendType::Immediate && on_current_sched && !actor_info->is_running() &&
              !actor_info->must_wait(wait_generation_))) {  // run immediately
     if (likely(actor_info->mailbox_.empty())) {
       EventGuard guard(this, actor_info);
@@ -211,7 +211,7 @@ void Scheduler::send_impl(const ActorId<> &actor_id, Send::Flags flags, const Ru
   } else {
     if (on_current_sched) {
       add_to_mailbox(actor_info, event_func());
-      if (flags & Send::later) {
+      if (send_type == ActorSendType::Later) {
         actor_info->set_wait_generation(wait_generation_);
       }
     } else {
@@ -221,8 +221,8 @@ void Scheduler::send_impl(const ActorId<> &actor_id, Send::Flags flags, const Ru
 }
 
 template <class EventT>
-void Scheduler::send_lambda(ActorRef actor_ref, EventT &&lambda, Send::Flags flags) {
-  return send_impl(actor_ref.get(), flags,
+void Scheduler::send_lambda(ActorRef actor_ref, EventT &&lambda, ActorSendType send_type) {
+  return send_impl(actor_ref.get(), send_type,
                    [&](ActorInfo *actor_info) {
                      event_context_ptr_->link_token = actor_ref.token();
                      lambda();
@@ -235,8 +235,8 @@ void Scheduler::send_lambda(ActorRef actor_ref, EventT &&lambda, Send::Flags fla
 }
 
 template <class EventT>
-void Scheduler::send_closure(ActorRef actor_ref, EventT &&closure, Send::Flags flags) {
-  return send_impl(actor_ref.get(), flags,
+void Scheduler::send_closure(ActorRef actor_ref, EventT &&closure, ActorSendType send_type) {
+  return send_impl(actor_ref.get(), send_type,
                    [&](ActorInfo *actor_info) {
                      event_context_ptr_->link_token = actor_ref.token();
                      closure.run(static_cast<typename EventT::ActorType *>(actor_info->get_actor_unsafe()));
@@ -248,9 +248,9 @@ void Scheduler::send_closure(ActorRef actor_ref, EventT &&closure, Send::Flags f
                    });
 }
 
-inline void Scheduler::send(ActorRef actor_ref, Event &&event, Send::Flags flags) {
+inline void Scheduler::send(ActorRef actor_ref, Event &&event, ActorSendType send_type) {
   event.set_link_token(actor_ref.token());
-  return send_impl(actor_ref.get(), flags, [&](ActorInfo *actor_info) { do_event(actor_info, std::move(event)); },
+  return send_impl(actor_ref.get(), send_type, [&](ActorInfo *actor_info) { do_event(actor_info, std::move(event)); },
                    [&]() { return std::move(event); });
 }
 
@@ -270,7 +270,7 @@ inline void Scheduler::yield_actor(Actor *actor) {
   yield_actor(actor->get_info());
 }
 inline void Scheduler::yield_actor(ActorInfo *actor_info) {
-  send(actor_info->actor_id(), Event::yield(), Send::later_weak);
+  send(actor_info->actor_id(), Event::yield(), ActorSendType::LaterWeak);
 }
 
 inline void Scheduler::stop_actor(Actor *actor) {
