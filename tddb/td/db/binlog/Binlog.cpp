@@ -94,8 +94,9 @@ class BinlogReader {
   BinlogReader() = default;
   explicit BinlogReader(ChainBufferReader *input) : input_(input) {
   }
-  void set_input(ChainBufferReader *input) {
+  void set_input(ChainBufferReader *input, bool encrypted) {
     input_ = input;
+    encrypted_ = encrypted;
   }
 
   int64 offset() {
@@ -118,6 +119,11 @@ class BinlogReader {
       if (size_ < MIN_EVENT_SIZE) {
         return Status::Error(PSLICE() << "Too small event " << tag("size", size_));
       }
+      if (size_ % 4 != 0) {
+        LOG(FATAL) << "Event of " << tag("size", size_) << " at " << tag("offset", offset()) << " "
+                   << tag("encrypted", encrypted_)
+                   << format::as_hex_dump<4>(Slice(input_->prepare_read().truncate(20)));
+      }
       state_ = ReadEvent;
     }
 
@@ -138,6 +144,7 @@ class BinlogReader {
   enum { ReadLength, ReadEvent } state_ = ReadLength;
   size_t size_{0};
   int64 offset_{0};
+  bool encrypted_{false};
 };
 }  // namespace detail
 
@@ -201,6 +208,10 @@ Status Binlog::init(string path, const Callback &callback, DbKey db_key, DbKey o
 }
 
 void Binlog::add_event(BinlogEvent &&event) {
+  if (event.size_ % 4 != 0) {
+    LOG(FATAL) << "Trying to add event with bad size " << event.public_to_string();
+  }
+
   if (!events_buffer_) {
     do_add_event(std::move(event));
   } else {
@@ -396,7 +407,7 @@ void Binlog::update_read_encryption() {
   CHECK(binlog_reader_ptr_);
   switch (encryption_type_) {
     case EncryptionType::None: {
-      binlog_reader_ptr_->set_input(&buffer_reader_);
+      binlog_reader_ptr_->set_input(&buffer_reader_, false);
       byte_flow_flag_ = false;
       break;
     }
@@ -407,7 +418,7 @@ void Binlog::update_read_encryption() {
       byte_flow_sink_ = ByteFlowSink();
       byte_flow_source_ >> aes_xcode_byte_flow_ >> byte_flow_sink_;
       byte_flow_flag_ = true;
-      binlog_reader_ptr_->set_input(byte_flow_sink_.get_output());
+      binlog_reader_ptr_->set_input(byte_flow_sink_.get_output(), true);
       break;
     }
   }
