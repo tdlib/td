@@ -54,7 +54,7 @@
 // If delay is needed, just std::forward data to temporary storage, and std::move them when call is executed.
 //
 //
-// create_immediate_closure(&Actor::func, arg1, arg2, ..., argn).run(actor)
+// create_immediate_closure(&ActorT::func, arg1, arg2, ..., argn).run(actor)
 // to_delayed_closure(std::move(immediate)).run(actor)
 
 namespace td {

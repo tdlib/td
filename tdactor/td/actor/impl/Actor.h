@@ -19,6 +19,7 @@
 #include <utility>
 
 namespace td {
+
 inline Actor::Actor(Actor &&other) {
   CHECK(info_.empty());
   info_ = std::move(other.info_);

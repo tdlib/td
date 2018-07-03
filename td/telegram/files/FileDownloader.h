@@ -8,9 +8,6 @@
 
 #include "td/telegram/telegram_api.h"
 
-#include "td/actor/actor.h"
-#include "td/actor/PromiseFuture.h"
-
 #include "td/telegram/files/FileLoader.h"
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/net/DcId.h"

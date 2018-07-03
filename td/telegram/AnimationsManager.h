@@ -10,6 +10,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/actor/actor.h"
+#include "td/actor/PromiseFuture.h"
 
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/Photo.h"

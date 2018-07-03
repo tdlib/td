@@ -13,6 +13,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/actor/actor.h"
+#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/Slice.h"

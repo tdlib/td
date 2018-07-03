@@ -15,6 +15,7 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/Container.h"
+#include "td/utils/Status.h"
 
 namespace td {
 

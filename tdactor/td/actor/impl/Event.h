@@ -241,7 +241,9 @@ class Event {
     }
   }
 };
+
 inline StringBuilder &operator<<(StringBuilder &sb, const Event &e) {
   return sb << tag("Event", static_cast<int32>(e.type));
 }
+
 }  // namespace td

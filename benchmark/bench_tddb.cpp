@@ -9,6 +9,9 @@
 #include "td/telegram/MessagesDb.h"
 #include "td/telegram/UserId.h"
 
+#include "td/actor/actor.h"
+#include "td/actor/PromiseFuture.h"
+
 #include "td/utils/benchmark.h"
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"

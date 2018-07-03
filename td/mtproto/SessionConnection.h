@@ -10,8 +10,6 @@
 #include "td/mtproto/RawConnection.h"
 #include "td/mtproto/utils.h"
 
-#include "td/actor/actor.h"
-
 #include "td/utils/buffer.h"
 #include "td/utils/format.h"
 #include "td/utils/Named.h"
@@ -47,6 +45,7 @@ class msg_new_detailed_info;
 }  // namespace mtproto_api
 
 namespace mtproto {
+
 class AuthData;
 struct PacketInfo;
 
@@ -249,5 +248,6 @@ class SessionConnection
   Status on_raw_packet(const td::mtproto::PacketInfo &info, BufferSlice packet) override;
   Status on_quick_ack(uint64 quick_ack_token) override;
 };
+
 }  // namespace mtproto
 }  // namespace td

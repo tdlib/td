@@ -24,12 +24,13 @@
 #include <utility>
 
 namespace td {
-/*** ActorInfo ***/
+
 inline StringBuilder &operator<<(StringBuilder &sb, const ActorInfo &info) {
   sb << info.get_name() << ":" << const_cast<void *>(static_cast<const void *>(&info)) << ":"
      << const_cast<void *>(static_cast<const void *>(info.get_context()));
   return sb;
 }
+
 inline void ActorInfo::init(int32 sched_id, Slice name, ObjectPool<ActorInfo>::OwnerPtr &&this_ptr, Actor *actor_ptr,
                             Deleter deleter, bool is_lite) {
   CHECK(!is_running());
@@ -198,4 +199,5 @@ inline const ListNode *ActorInfo::get_list_node() const {
 inline ActorInfo *ActorInfo::from_list_node(ListNode *node) {
   return static_cast<ActorInfo *>(node);
 }
+
 }  // namespace td

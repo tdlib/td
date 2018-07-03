@@ -30,7 +30,9 @@
 #include <utility>
 
 namespace td {
+
 class ActorInfo;
+
 struct Send {
   using Flags = uint32;
   static const Flags immediate = 0x001;

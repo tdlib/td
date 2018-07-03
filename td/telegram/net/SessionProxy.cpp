@@ -12,6 +12,8 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/net/Session.h"
 
+#include "td/actor/PromiseFuture.h"
+
 #include "td/utils/logging.h"
 #include "td/utils/Slice.h"
 

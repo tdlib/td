@@ -12,8 +12,10 @@
 #include <type_traits>
 
 namespace td {
-class ActorInfo;
+
 class Actor;
+class ActorInfo;
+
 template <class ActorType = Actor>
 class ActorId {
  public:
@@ -166,4 +168,5 @@ class ActorRef {
   ActorId<> actor_id_;
   uint64 token_ = 0;
 };
+
 }  // namespace td

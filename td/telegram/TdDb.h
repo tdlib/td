@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include "td/actor/PromiseFuture.h"
+
 #include "td/db/binlog/Binlog.h"
 #include "td/db/binlog/BinlogEvent.h"
 #include "td/db/binlog/ConcurrentBinlog.h"

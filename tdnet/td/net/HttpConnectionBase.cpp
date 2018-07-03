@@ -6,8 +6,6 @@
 //
 #include "td/net/HttpConnectionBase.h"
 
-#include "td/actor/actor.h"
-
 #include "td/net/HttpHeaderCreator.h"
 
 #include "td/utils/logging.h"
@@ -149,5 +147,6 @@ void HttpConnectionBase::loop() {
     return stop();
   }
 }
+
 }  // namespace detail
 }  // namespace td

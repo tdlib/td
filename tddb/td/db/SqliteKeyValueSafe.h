@@ -9,6 +9,8 @@
 #include "td/db/SqliteConnectionSafe.h"
 #include "td/db/SqliteKeyValue.h"
 
+#include "td/actor/SchedulerLocalStorage.h"
+
 #include <memory>
 
 namespace td {

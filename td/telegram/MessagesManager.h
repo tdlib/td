@@ -10,6 +10,7 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
+#include "td/actor/actor.h"
 #include "td/actor/MultiPromise.h"
 #include "td/actor/PromiseFuture.h"
 #include "td/actor/SignalSlot.h"

@@ -13,7 +13,6 @@
 #include "td/telegram/TdParameters.h"
 #include "td/telegram/Version.h"
 
-#include "td/actor/actor.h"
 #include "td/actor/MultiPromise.h"
 
 #include "td/db/BinlogKeyValue.h"

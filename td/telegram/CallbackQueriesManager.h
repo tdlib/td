@@ -13,6 +13,8 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/UserId.h"
 
+#include "td/actor/PromiseFuture.h"
+
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 

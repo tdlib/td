@@ -125,8 +125,8 @@ void invoke_tuple_impl(std::tuple<Args...> &&tuple, IntSeq<S...>) {
   invoke(std::forward<Args>(std::get<S>(tuple))...);
 }
 
-template <class Actor, class F, class... Args, std::size_t... S>
-void mem_call_tuple_impl(Actor *actor, F &func, std::tuple<Args...> &&tuple, IntSeq<S...>) {
+template <class ActorT, class F, class... Args, std::size_t... S>
+void mem_call_tuple_impl(ActorT *actor, F &func, std::tuple<Args...> &&tuple, IntSeq<S...>) {
   (actor->*func)(std::forward<Args>(std::get<S>(tuple))...);
 }
 
@@ -160,8 +160,8 @@ void invoke_tuple(std::tuple<Args...> &&tuple) {
   detail::invoke_tuple_impl(std::move(tuple), detail::IntRange<sizeof...(Args)>());
 }
 
-template <class Actor, class F, class... Args>
-void mem_call_tuple(Actor *actor, F &func, std::tuple<Args...> &&tuple) {
+template <class ActorT, class F, class... Args>
+void mem_call_tuple(ActorT *actor, F &func, std::tuple<Args...> &&tuple) {
   detail::mem_call_tuple_impl(actor, func, std::move(tuple), detail::IntRange<sizeof...(Args)>());
 }
 

@@ -6,6 +6,7 @@
 //
 #include "td/utils/tests.h"
 
+#include "td/actor/actor.h"
 #include "td/actor/Timeout.h"
 
 using namespace td;

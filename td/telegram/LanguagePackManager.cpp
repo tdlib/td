@@ -11,6 +11,7 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"

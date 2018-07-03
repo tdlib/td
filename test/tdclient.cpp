@@ -6,6 +6,7 @@
 //
 #include "data.h"
 
+#include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
 
 #include "td/telegram/ClientActor.h"

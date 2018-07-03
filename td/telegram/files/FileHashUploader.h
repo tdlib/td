@@ -10,6 +10,8 @@
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/ResourceManager.h"
 
+#include "td/actor/actor.h"
+
 #include "td/utils/BufferedFd.h"
 #include "td/utils/crypto.h"
 #include "td/utils/port/FileFd.h"

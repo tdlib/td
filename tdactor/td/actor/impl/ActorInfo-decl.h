@@ -116,4 +116,5 @@ class ActorInfo
 };
 
 StringBuilder &operator<<(StringBuilder &sb, const ActorInfo &info);
+
 }  // namespace td

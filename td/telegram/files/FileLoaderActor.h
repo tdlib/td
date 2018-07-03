@@ -9,6 +9,8 @@
 #include "td/telegram/files/ResourceState.h"
 #include "td/telegram/net/NetQuery.h"
 
+#include "td/actor/actor.h"
+
 namespace td {
 
 class LocalFileLocation;

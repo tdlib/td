@@ -11,6 +11,7 @@
 
 #include "td/actor/actor.h"
 #include "td/actor/MultiPromise.h"
+#include "td/actor/PromiseFuture.h"
 #include "td/actor/Timeout.h"
 
 #include "td/telegram/DialogId.h"

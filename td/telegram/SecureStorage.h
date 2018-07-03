@@ -13,8 +13,6 @@
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
-#include "td/actor/actor.h"
-
 namespace td {
 // Types
 // Password

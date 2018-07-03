@@ -13,7 +13,6 @@
 #include "td/telegram/net/TempAuthKeyWatchdog.h"
 #include "td/telegram/TdDb.h"
 
-#include "td/actor/MultiPromise.h"
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/format.h"

@@ -8,6 +8,8 @@
 
 #include "td/telegram/Td.h"
 
+#include "td/actor/actor.h"
+
 #include "td/utils/crypto.h"
 #include "td/utils/logging.h"
 #include "td/utils/MpscPollableQueue.h"
