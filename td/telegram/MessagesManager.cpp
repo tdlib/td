@@ -25298,7 +25298,29 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
   loaded_dialogs_.insert(dialog_id);
 
   auto status = log_event_parse(*d, value.as_slice());
-  CHECK(status.is_ok()) << dialog_id << " " << format::as_hex_dump<4>(value.as_slice());
+  if (status.is_error() || !d->dialog_id.is_valid()) {
+    // can't happen unless database is broken, but has been seen in the wild
+    // if dialog_id is invalid, we can't repair the dialog
+    CHECK(dialog_id.is_valid()) << "Can't repair " << dialog_id << " " << d->dialog_id << " "
+                                << format::as_hex_dump<4>(value.as_slice());
+
+    LOG(ERROR) << "Repair broken " << dialog_id << " " << format::as_hex_dump<4>(value.as_slice());
+
+    // just clean all known data about the dialog
+    d = make_unique<Dialog>();
+    std::fill(d->message_count_by_index.begin(), d->message_count_by_index.end(), -1);
+    d->dialog_id = dialog_id;
+
+    // and try to reget it from the server if possible
+    have_dialog_info_force(dialog_id);
+    if (have_input_peer(dialog_id, AccessRights::Read)) {
+      if (dialog_id.get_type() != DialogType::SecretChat) {
+        send_get_dialog_query(dialog_id, Auto());
+      }
+    } else {
+      LOG(ERROR) << "Have no info about " << dialog_id << " to repair it";
+    }
+  }
   CHECK(dialog_id == d->dialog_id);
 
   Dependencies dependencies;
