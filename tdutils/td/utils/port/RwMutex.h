@@ -17,6 +17,7 @@
 #endif
 
 namespace td {
+
 class RwMutex {
  public:
   RwMutex() {

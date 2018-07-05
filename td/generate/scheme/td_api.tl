@@ -1661,7 +1661,7 @@ languagePackStringValue key:string value:string = LanguagePackString;
 //@few_value Value for few objects @many_value Value for many objects @other_value Default value
 languagePackStringPluralized key:string zero_value:string one_value:string two_value:string few_value:string many_value:string other_value:string = LanguagePackString;
 
-//@description A deleted language pack string @key String key
+//@description A deleted language pack string, the value should be taken from a built-in english language pack @key String key
 languagePackStringDeleted key:string = LanguagePackString;
 
 
