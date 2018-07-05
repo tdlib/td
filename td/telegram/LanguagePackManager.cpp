@@ -265,6 +265,8 @@ void LanguagePackManager::on_get_language_pack_strings(
           case telegram_api::langPackString::ID: {
             auto str = static_cast<telegram_api::langPackString *>(result.get());
             language->ordinary_strings_[str->key_] = std::move(str->value_);
+            language->pluralized_strings_.erase(str->key_);
+            language->deleted_strings_.erase(str->key_);
             break;
           }
           case telegram_api::langPackStringPluralized::ID: {
@@ -272,10 +274,14 @@ void LanguagePackManager::on_get_language_pack_strings(
             language->pluralized_strings_[str->key_] = PluralizedString{
                 std::move(str->zero_value_), std::move(str->one_value_),  std::move(str->two_value_),
                 std::move(str->few_value_),  std::move(str->many_value_), std::move(str->other_value_)};
+            language->ordinary_strings_.erase(str->key_);
+            language->deleted_strings_.erase(str->key_);
             break;
           }
           case telegram_api::langPackStringDeleted::ID: {
             auto str = static_cast<const telegram_api::langPackStringDeleted *>(result.get());
+            language->ordinary_strings_.erase(str->key_);
+            language->pluralized_strings_.erase(str->key_);
             language->deleted_strings_.insert(std::move(str->key_));
             break;
           }
