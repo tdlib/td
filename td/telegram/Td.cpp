@@ -3502,15 +3502,17 @@ void Td::on_config_option_updated(const string &name) {
       G()->net_query_dispatcher().update_mtproto_header();
     }
   } else if (name == "language_pack") {
+    send_closure(language_pack_manager_, &LanguagePackManager::on_language_pack_changed);
     if (G()->mtproto_header().set_language_pack(G()->shared_config().get_option_string(name))) {
       G()->net_query_dispatcher().update_mtproto_header();
     }
   } else if (name == "language_code") {
+    send_closure(language_pack_manager_, &LanguagePackManager::on_language_code_changed);
     if (G()->mtproto_header().set_language_code(G()->shared_config().get_option_string(name))) {
       G()->net_query_dispatcher().update_mtproto_header();
     }
   } else if (name == "language_pack_version") {
-    // TODO update language_pack
+    send_closure(language_pack_manager_, &LanguagePackManager::on_language_pack_version_changed);
     return;
   } else if (is_internal_config_option(name)) {
     return;

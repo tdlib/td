@@ -6,6 +6,7 @@
 //
 #include "td/telegram/LanguagePackManager.h"
 
+#include "td/telegram/ConfigShared.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
@@ -17,6 +18,53 @@
 #include "td/telegram/telegram_api.h"
 
 namespace td {
+
+void LanguagePackManager::start_up() {
+  language_pack_ = G()->shared_config().get_option_string("language_pack");
+  language_code_ = G()->shared_config().get_option_string("language_code");
+  language_pack_version_ = G()->shared_config().get_option_integer("language_pack_version", -1);
+  LOG(INFO) << "Use language pack " << language_pack_ << " with language " << language_code_ << " of version "
+            << language_pack_version_;
+}
+
+void LanguagePackManager::on_language_pack_changed() {
+  auto new_language_pack = G()->shared_config().get_option_string("language_pack");
+  if (new_language_pack == language_pack_) {
+    return;
+  }
+
+  language_pack_ = std::move(new_language_pack);
+  inc_generation();
+}
+
+void LanguagePackManager::on_language_code_changed() {
+  auto new_language_code = G()->shared_config().get_option_string("language_code");
+  if (new_language_code == language_code_) {
+    return;
+  }
+
+  language_code_ = std::move(new_language_code);
+  inc_generation();
+}
+
+void LanguagePackManager::on_language_pack_version_changed() {
+  auto new_language_pack_version = G()->shared_config().get_option_integer("language_pack_version");
+  if (new_language_pack_version == language_pack_version_) {
+    return;
+  }
+  if (language_pack_version_ == -1) {
+    return;
+  }
+
+  // TODO update language pack
+  language_pack_version_ = new_language_pack_version;
+}
+
+void LanguagePackManager::inc_generation() {
+  generation_++;
+  G()->shared_config().set_option_empty("language_pack_version");
+  language_pack_version_ = -1;
+}
 
 void LanguagePackManager::get_languages(Promise<td_api::object_ptr<td_api::languagePack>> promise) {
   auto request_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {

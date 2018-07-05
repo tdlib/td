@@ -24,6 +24,12 @@ class LanguagePackManager : public NetQueryCallback {
   explicit LanguagePackManager(ActorShared<> parent) : parent_(std::move(parent)) {
   }
 
+  void on_language_pack_changed();
+
+  void on_language_code_changed();
+
+  void on_language_pack_version_changed();
+
   void get_languages(Promise<td_api::object_ptr<td_api::languagePack>> promise);
 
   void get_language_pack_strings(string language_code, vector<string> keys,
@@ -34,12 +40,18 @@ class LanguagePackManager : public NetQueryCallback {
 
   string language_pack_;
   string language_code_;
+  uint32 generation_ = 0;
+
+  int32 language_pack_version_ = -1;
+
+  void inc_generation();
 
   void on_get_language_pack_strings(Result<vector<tl_object_ptr<telegram_api::LangPackString>>> r_result, bool ia_all,
                                     Promise<td_api::object_ptr<td_api::languagePackStrings>> promise);
 
   void on_result(NetQueryPtr query) override;
 
+  void start_up() override;
   void hangup() override;
 
   Container<Promise<NetQueryPtr>> container_;
