@@ -13306,6 +13306,9 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
       }
     }
   }
+  if (need_read && d->is_marked_as_unread) {
+    set_dialog_is_marked_as_unread(d, false);
+  }
 
   return Status::OK();
 }
