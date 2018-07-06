@@ -52,7 +52,7 @@ class LanguagePackManager : public NetQueryCallback {
 
   struct Language {
     std::mutex mutex_;  // TODO RwMutex
-    std::atomic<int32> version_ = -1;
+    std::atomic<int32> version_{-1};
     std::unordered_map<string, string> ordinary_strings_;
     std::unordered_map<string, PluralizedString> pluralized_strings_;
     std::unordered_set<string> deleted_strings_;
