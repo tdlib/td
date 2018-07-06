@@ -743,8 +743,10 @@ std::pair<uint64, BufferSlice> SessionConnection::encrypted_bind(int64 perm_key,
 
   mtproto_api::bind_auth_key_inner object(nonce, temp_key, perm_key, auth_data_->session_id_, expire_at);
   auto object_storer = create_storer(object);
-  auto object_packet = BufferWriter{object_storer.size(), 0, 0};
-  object_storer.store(object_packet.as_slice().ubegin());
+  auto size = object_storer.size();
+  auto object_packet = BufferWriter{size, 0, 0};
+  auto real_size = object_storer.store(object_packet.as_slice().ubegin());
+  CHECK(size == real_size);
 
   Query query{auth_data_->next_message_id(Time::now_cached()), 0, object_packet.as_buffer_slice(), false, 0, false};
   PacketStorer<QueryImpl> query_storer(query, Slice());

@@ -461,7 +461,8 @@ void Session::on_session_created(uint64 unique_id, uint64 first_id) {
     telegram_api::updatesTooLong too_long_;
     auto storer = create_storer(too_long_);
     BufferSlice packet(storer.size());
-    storer.store(packet.as_slice().ubegin());
+    auto real_size = storer.store(packet.as_slice().ubegin());
+    CHECK(real_size == packet.size());
     return_query(G()->net_query_creator().create_result(0, std::move(packet)));
   }
 

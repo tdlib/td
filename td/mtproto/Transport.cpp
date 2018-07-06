@@ -194,14 +194,16 @@ size_t Transport::write_no_crypto(const Storer &storer, PacketInfo *info, Mutabl
   }
   auto &header = as<NoCryptoHeader>(dest.begin());
   header.auth_key_id = 0;
-  storer.store(header.data);
+  auto real_size = storer.store(header.data);
+  CHECK(real_size == storer.size());
   return size;
 }
 
 template <class HeaderT>
 void Transport::write_crypto_impl(int X, const Storer &storer, const AuthKey &auth_key, PacketInfo *info,
                                   HeaderT *header, size_t data_size) {
-  storer.store(header->data);
+  auto real_data_size = storer.store(header->data);
+  CHECK(real_data_size == data_size);
   VLOG(raw_mtproto) << "SEND" << format::as_hex_dump<4>(Slice(header->data, data_size));
   // LOG(ERROR) << "SEND" << format::as_hex_dump<4>(Slice(header->data, data_size)) << info->version;
 

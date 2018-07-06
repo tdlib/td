@@ -867,7 +867,8 @@ class Master : public Actor {
     config.version_ = 12;
     auto storer = TLObjectStorer<my_api::messages_dhConfig>(config);
     BufferSlice answer(storer.size());
-    storer.store(answer.as_slice().ubegin());
+    auto real_size = storer.store(answer.as_slice().ubegin());
+    CHECK(real_size == answer.size());
     net_query->set_ok(std::move(answer));
     send_closure(std::move(callback), &NetQueryCallback::on_result, std::move(net_query));
   }
@@ -891,7 +892,8 @@ class Master : public Actor {
     my_api::encryptedChat encrypted_chat(123, 321, 0, 1, 2, BufferSlice(), request_encryption.key_fingerprint_);
     auto storer = TLObjectStorer<my_api::encryptedChat>(encrypted_chat);
     BufferSlice answer(storer.size());
-    storer.store(answer.as_slice().ubegin());
+    auto real_size = storer.store(answer.as_slice().ubegin());
+    CHECK(real_size == answer.size());
     net_query->set_ok(std::move(answer));
     send_closure(std::move(callback), &NetQueryCallback::on_result, std::move(net_query));
     send_closure(alice_, &SecretChatProxy::start_test);
@@ -935,7 +937,8 @@ class Master : public Actor {
     sent_message.date_ = 0;
     auto storer = TLObjectStorer<my_api::messages_sentEncryptedMessage>(sent_message);
     BufferSlice answer(storer.size());
-    storer.store(answer.as_slice().ubegin());
+    auto real_size = storer.store(answer.as_slice().ubegin());
+    CHECK(real_size == answer.size());
     net_query->set_ok(std::move(answer));
     send_closure(std::move(callback), &NetQueryCallback::on_result, std::move(net_query));
 

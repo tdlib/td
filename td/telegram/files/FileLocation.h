@@ -1300,6 +1300,7 @@ string as_key(const T &object) {
   TlStorerUnsafe storer(key.ubegin());
   storer.store_int(T::KEY_MAGIC);
   object.as_key().store(storer);
+  CHECK(storer.get_buf() == key.uend());
   return key.str();
 }
 

@@ -189,11 +189,13 @@ string serialize(const T &object) {
     MutableSlice data = ptr.as_slice();
     TlStorerUnsafe storer(data.ubegin());
     store(object, storer);
+    CHECK(storer.get_buf() == data.uend());
     key.assign(data.begin(), data.size());
   } else {
     MutableSlice data = key;
     TlStorerUnsafe storer(data.ubegin());
     store(object, storer);
+    CHECK(storer.get_buf() == data.uend());
   }
   return key;
 }

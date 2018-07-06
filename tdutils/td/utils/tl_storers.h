@@ -273,6 +273,9 @@ size_t tl_calc_length(const T &data) {
 }
 
 template <class T>
+size_t tl_store_unsafe(const T &data, unsigned char *dst) TD_WARN_UNUSED_RESULT;
+
+template <class T>
 size_t tl_store_unsafe(const T &data, unsigned char *dst) {
   TlStorerUnsafe storer_unsafe(dst);
   data.store(storer_unsafe);

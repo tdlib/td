@@ -50,7 +50,8 @@ Result<size_t> AuthKeyHandshake::fill_data_with_hash(uint8 *data_with_hash, cons
     return Status::Error("Too big data");
   }
   as<int32>(data_ptr) = data.get_id();
-  tl_store_unsafe(data, data_ptr + 4);
+  auto real_size = tl_store_unsafe(data, data_ptr + 4);
+  CHECK(real_size == data_size);
   sha1(Slice(data_ptr, data_size + 4), data_with_hash);
   return data_size + 20 + 4;
 }
@@ -193,7 +194,8 @@ Status AuthKeyHandshake::on_server_dh_params(Slice message, Callback *connection
   string encrypted_data_str(encrypted_data_size_with_pad, 0);
   MutableSlice encrypted_data = encrypted_data_str;
   as<int32>(encrypted_data.begin() + 20) = data.get_id();
-  tl_store_unsafe(data, encrypted_data.ubegin() + 20 + 4);
+  auto real_size = tl_store_unsafe(data, encrypted_data.ubegin() + 20 + 4);
+  CHECK(real_size + 4 == data_size);
   sha1(Slice(encrypted_data.ubegin() + 20, data_size), encrypted_data.ubegin());
   Random::secure_bytes(encrypted_data.ubegin() + encrypted_data_size,
                        encrypted_data_size_with_pad - encrypted_data_size);
@@ -230,8 +232,10 @@ Status AuthKeyHandshake::on_dh_gen_response(Slice message, Callback *connection)
   return Status::OK();
 }
 void AuthKeyHandshake::send(Callback *connection, const Storer &storer) {
-  auto writer = BufferWriter{storer.size(), 0, 0};
-  storer.store(writer.as_slice().ubegin());
+  auto size = storer.size();
+  auto writer = BufferWriter{size, 0, 0};
+  auto real_size = storer.store(writer.as_slice().ubegin());
+  CHECK(real_size == size);
   last_query_ = writer.as_buffer_slice();
   return do_send(connection, create_storer(last_query_.as_slice()));
 }

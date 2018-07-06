@@ -14,7 +14,8 @@ NetQueryCreator::Ptr NetQueryCreator::create(uint64 id, const Storer &storer, Dc
                                              NetQuery::AuthFlag auth_flag, NetQuery::GzipFlag gzip_flag,
                                              double total_timeout_limit) {
   BufferSlice slice(storer.size());
-  storer.store(slice.as_slice().ubegin());
+  auto real_size = storer.store(slice.as_slice().ubegin());
+  CHECK(real_size == slice.size());
 
   // TODO: magic constant
   if (slice.size() < (1 << 8)) {
