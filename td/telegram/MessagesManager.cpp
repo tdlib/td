@@ -5821,6 +5821,9 @@ void MessagesManager::on_update_message_views(FullMessageId full_message_id, int
   Message *m = get_message_force(d, message_id);
   if (m == nullptr) {
     LOG(INFO) << "Ignore updateMessageViews about unknown " << full_message_id;
+    if (message_id.get() > d->last_new_message_id.get() && dialog_id.get_type() == DialogType::Channel) {
+      get_channel_difference(dialog_id, d->pts, true, "on_update_message_views");
+    }
     return;
   }
 
@@ -8874,6 +8877,7 @@ void MessagesManager::read_message_content_from_updates(MessageId message_id) {
 }
 
 void MessagesManager::read_channel_message_content_from_updates(Dialog *d, MessageId message_id) {
+  CHECK(d != nullptr);
   if (!message_id.is_valid() || !message_id.is_server()) {
     LOG(ERROR) << "Incoming update tries to read content of " << message_id << " in " << d->dialog_id;
     return;
@@ -8882,6 +8886,8 @@ void MessagesManager::read_channel_message_content_from_updates(Dialog *d, Messa
   Message *m = get_message_force(d, message_id);
   if (m != nullptr) {
     read_message_content(d, m, false, "read_channel_message_content_from_updates");
+  } else if (message_id.get() > d->last_new_message_id.get()) {
+    get_channel_difference(d->dialog_id, d->pts, true, "read_channel_message_content_from_updates");
   }
 }
 
