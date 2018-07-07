@@ -1165,6 +1165,10 @@ static vector<MessageEntity> merge_entities(vector<MessageEntity> old_entities, 
   return result;
 }
 
+static bool is_plain_domain(Slice url) {
+  return url.find('/') >= url.size() && url.find('?') >= url.size() && url.find('#') >= url.size();
+}
+
 string get_first_url(Slice text, const vector<MessageEntity> &entities) {
   for (auto &entity : entities) {
     switch (entity.type) {
@@ -1174,8 +1178,13 @@ string get_first_url(Slice text, const vector<MessageEntity> &entities) {
         break;
       case MessageEntity::Type::BotCommand:
         break;
-      case MessageEntity::Type::Url:
-        return utf8_utf16_substr(text, entity.offset, entity.length).str();
+      case MessageEntity::Type::Url: {
+        Slice url = utf8_utf16_substr(text, entity.offset, entity.length);
+        if (begins_with(url, "tg:") || is_plain_domain(url)) {
+          continue;
+        }
+        return url.str();
+      }
       case MessageEntity::Type::EmailAddress:
         break;
       case MessageEntity::Type::Bold:
@@ -1189,6 +1198,9 @@ string get_first_url(Slice text, const vector<MessageEntity> &entities) {
       case MessageEntity::Type::PreCode:
         break;
       case MessageEntity::Type::TextUrl:
+        if (begins_with(entity.argument, "tg:")) {
+          continue;
+        }
         return entity.argument;
       case MessageEntity::Type::MentionName:
         break;
