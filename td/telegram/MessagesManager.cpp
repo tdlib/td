@@ -17905,7 +17905,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
   if (m->had_reply_markup) {
     return false;
   }
-  if (!is_bot && m->reply_markup != nullptr) {
+  if (!is_bot && only_reply_markup) {
     return false;
   }
   if (m->reply_markup != nullptr && m->reply_markup->type != ReplyMarkup::Type::InlineKeyboard) {
@@ -17978,7 +17978,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
     case MessageVoiceNote::ID:
       return true;
     case MessageLiveLocation::ID: {
-      if (td_->auth_manager_->is_bot() && only_reply_markup) {
+      if (is_bot && only_reply_markup) {
         // there is no caption to edit, but bot can edit inline reply_markup
         return true;
       }
@@ -17990,7 +17990,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
     case MessageVenue::ID:
     case MessageVideoNote::ID:
       // there is no caption to edit, but bot can edit inline reply_markup
-      return td_->auth_manager_->is_bot() && only_reply_markup;
+      return is_bot && only_reply_markup;
     case MessageInvoice::ID:
     case MessageUnsupported::ID:
     case MessageChatCreate::ID:
