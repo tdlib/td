@@ -235,7 +235,7 @@ std::enable_if_t<std::is_unsigned<T>::value, T> to_integer(Slice str) {
 template <class T>
 Result<T> to_integer_safe(Slice str) {
   auto res = to_integer<T>(str);
-  if (to_string(res) != str) {
+  if ((PSLICE() << res) != str) {
     return Status::Error(PSLICE() << "Can't parse \"" << str << "\" as number");
   }
   return res;

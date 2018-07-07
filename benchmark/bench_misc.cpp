@@ -219,7 +219,7 @@ class CreateFileBench : public Benchmark {
   }
   void run(int n) override {
     for (int i = 0; i < n; i++) {
-      FileFd::open("A/" + to_string(i), FileFd::Flags::Write | FileFd::Flags::Create).move_as_ok().close();
+      FileFd::open(PSLICE() << "A/" << i, FileFd::Flags::Write | FileFd::Flags::Create).move_as_ok().close();
     }
   }
   void tear_down() override {
@@ -232,6 +232,7 @@ class CreateFileBench : public Benchmark {
     });
   }
 };
+
 class WalkPathBench : public Benchmark {
   string get_description() const override {
     return "walk_path";
@@ -239,7 +240,7 @@ class WalkPathBench : public Benchmark {
   void start_up_n(int n) override {
     mkdir("A").ensure();
     for (int i = 0; i < n; i++) {
-      FileFd::open("A/" + to_string(i), FileFd::Flags::Write | FileFd::Flags::Create).move_as_ok().close();
+      FileFd::open(PSLICE() << "A/" << i, FileFd::Flags::Write | FileFd::Flags::Create).move_as_ok().close();
     }
   }
   void run(int n) override {

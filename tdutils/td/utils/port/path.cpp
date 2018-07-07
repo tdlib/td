@@ -54,7 +54,7 @@ Status mkpath(CSlice path, int32 mode) {
   Status last_error = Status::OK();
   for (size_t i = 1; i < path.size(); i++) {
     if (path[i] == TD_DIR_SLASH) {
-      last_error = mkdir(path.substr(0, i).str(), mode);
+      last_error = mkdir(PSLICE() << path.substr(0, i), mode);
       if (last_error.is_error() && first_error.is_ok()) {
         first_error = last_error.clone();
       }

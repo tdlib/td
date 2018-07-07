@@ -59,7 +59,7 @@ void FileLog::append(CSlice cslice, int log_level) {
   }
 
   if (size_ > rotate_threshold_) {
-    auto status = rename(path_, path_ + ".old");
+    auto status = rename(path_, PSLICE() << path_ << ".old");
     if (status.is_error()) {
       process_fatal_error(status.message());
     }

@@ -200,7 +200,7 @@ class SeqKvBench : public td::Benchmark {
   td::SeqKeyValue kv;
   void run(int n) override {
     for (int i = 0; i < n; i++) {
-      kv.set(td::to_string(i % 10), td::to_string(i));
+      kv.set(PSLICE() << i % 10, PSLICE() << i);
     }
   }
 };

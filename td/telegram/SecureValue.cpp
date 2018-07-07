@@ -316,7 +316,7 @@ EncryptedSecureFile get_encrypted_secure_file(FileManager *file_manager,
       }
       result.file.file_id = file_manager->register_remote(
           FullRemoteFileLocation(FileType::Secure, secure_file->id_, secure_file->access_hash_, DcId::internal(dc_id)),
-          FileLocationSource::FromServer, DialogId(), 0, secure_file->size_, to_string(secure_file->id_) + ".jpg");
+          FileLocationSource::FromServer, DialogId(), 0, secure_file->size_, PSTRING() << secure_file->id_ << ".jpg");
       result.file.date = secure_file->date_;
       if (result.file.date < 0) {
         LOG(ERROR) << "Receive wrong date " << result.file.date;

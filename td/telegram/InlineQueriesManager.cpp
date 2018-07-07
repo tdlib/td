@@ -645,7 +645,7 @@ void InlineQueriesManager::answer_inline_query(int64 inline_query_id, bool is_pe
         type = "geo";
         id = std::move(location->id_);
         title = std::move(location->title_);
-        description = to_string(location->location_->latitude_) + " " + to_string(location->location_->longitude_);
+        description = PSTRING() << location->location_->latitude_ << ' ' << location->location_->longitude_;
         thumbnail_url = std::move(location->thumbnail_url_);
         // duration = location->live_period_;
         if (!thumbnail_url.empty()) {

@@ -109,7 +109,7 @@ Status AuthKeyHandshake::on_res_pq(Slice message, Callback *connection, PublicRs
 
   // req_DH_params#d712e4be nonce:int128 server_nonce:int128 p:string q:string public_key_fingerprint:long
   // encrypted_data:string = Server_DH_Params
-  mtproto_api::req_DH_params req_dh_params(nonce, server_nonce, p, q, rsa_fingerprint, std::move(encrypted_data));
+  mtproto_api::req_DH_params req_dh_params(nonce, server_nonce, p, q, rsa_fingerprint, encrypted_data);
 
   send(connection, create_storer(req_dh_params));
   state_ = ServerDHParams;
@@ -202,7 +202,7 @@ Status AuthKeyHandshake::on_server_dh_params(Slice message, Callback *connection
   tmp_KDF(server_nonce, new_nonce, &tmp_aes_key, &tmp_aes_iv);
   aes_ige_encrypt(tmp_aes_key, &tmp_aes_iv, encrypted_data, encrypted_data);
 
-  mtproto_api::set_client_DH_params set_client_dh_params(nonce, server_nonce, std::move(encrypted_data_str));
+  mtproto_api::set_client_DH_params set_client_dh_params(nonce, server_nonce, encrypted_data);
   send(connection, create_storer(set_client_dh_params));
 
   auth_key = AuthKey(dh_auth_key_id(auth_key_str), std::move(auth_key_str));

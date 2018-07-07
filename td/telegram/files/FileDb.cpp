@@ -86,7 +86,7 @@ class FileDb : public FileDbInterface {
         current_pmc_id_ = id;
       }
 
-      pmc.erase("file" + to_string(id));
+      pmc.erase(PSTRING() << "file" << id);
       LOG(DEBUG) << "ERASE " << format::as_hex_dump<4>(Slice(PSLICE() << "file" << to_string(id)));
 
       if (!remote_key.empty()) {
@@ -114,7 +114,7 @@ class FileDb : public FileDbInterface {
         current_pmc_id_ = id;
       }
 
-      pmc.set("file" + to_string(id), file_data);
+      pmc.set(PSTRING() << "file" << id, file_data);
 
       if (!remote_key.empty()) {
         pmc.set(remote_key, to_string(id));
@@ -162,7 +162,7 @@ class FileDb : public FileDbInterface {
     }
 
     void do_store_file_data_ref(Id id, Id new_id) {
-      file_pmc().set("file" + to_string(id), "@@" + to_string(new_id));
+      file_pmc().set(PSTRING() << "file" << id, PSTRING() << "@@" << new_id);
     }
   };
 

@@ -117,7 +117,7 @@ void test_workers(int threads_n, int workers_n, int queries_n, int query_size) {
   std::vector<ActorId<PowerWorker>> workers;
   for (int i = 0; i < workers_n; i++) {
     int thread_id = threads_n ? i % (threads_n - 1) + 2 : 0;
-    workers.push_back(sched.create_actor_unsafe<PowerWorker>(thread_id, "worker" + to_string(i)).release());
+    workers.push_back(sched.create_actor_unsafe<PowerWorker>(thread_id, PSLICE() << "worker" << i).release());
   }
   sched.create_actor_unsafe<Manager>(threads_n ? 1 : 0, "manager", queries_n, query_size, std::move(workers)).release();
 

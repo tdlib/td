@@ -139,8 +139,8 @@ int64 StorageManager::get_db_size() {
   };
 
   G()->td_db()->with_db_path([&](CSlice path) { add_path(path).ignore(); });
-  add_path(G()->parameters().database_directory + "log").ignore();
-  add_path(G()->parameters().database_directory + "log.old").ignore();
+  add_path(PSLICE() << G()->parameters().database_directory << "log").ignore();
+  add_path(PSLICE() << G()->parameters().database_directory << "log.old").ignore();
   return size;
 }
 

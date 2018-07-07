@@ -70,7 +70,7 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
     if (state_ != ReadHeaders) {
       flow_source_.wakeup();
       if (flow_sink_.is_ready() && flow_sink_.status().is_error()) {
-        return Status::Error(400, "Bad Request: " + flow_sink_.status().message().str());
+        return Status::Error(400, PSLICE() << "Bad Request: " << flow_sink_.status().message());
       }
       need_size = flow_source_.get_need_size();
       if (need_size == 0) {
@@ -603,7 +603,7 @@ Status HttpReader::parse_json_parameters(MutableSlice parameters) {
     }
     auto r_key = json_string_decode(parser);
     if (r_key.is_error()) {
-      return Status::Error(400, string("Bad Request: can't parse parameter name: ") + r_key.error().message().c_str());
+      return Status::Error(400, PSLICE() << "Bad Request: can't parse parameter name: " << r_key.error().message());
     }
     parser.skip_whitespaces();
     if (!parser.try_skip(':')) {
@@ -625,8 +625,7 @@ Status HttpReader::parse_json_parameters(MutableSlice parameters) {
       }
     }();
     if (r_value.is_error()) {
-      return Status::Error(400,
-                           string("Bad Request: can't parse parameter value: ") + r_value.error().message().c_str());
+      return Status::Error(400, PSLICE() << "Bad Request: can't parse parameter value: " << r_value.error().message());
     }
     query_->args_.emplace_back(r_key.move_as_ok(), r_value.move_as_ok());
 
@@ -808,7 +807,7 @@ void HttpReader::delete_temp_file(CSlice file_name) {
   if (parent.size() >= prefix_length + 7 &&
       parent.substr(parent.size() - prefix_length - 7, prefix_length) == TEMP_DIRECTORY_PREFIX) {
     LOG(DEBUG) << "Unlink temporary directory " << parent;
-    rmdir(Slice(parent.data(), parent.size() - 1).str()).ignore();
+    rmdir(PSLICE() << Slice(parent.data(), parent.size() - 1)).ignore();
   }
 }
 

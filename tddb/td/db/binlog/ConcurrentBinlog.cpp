@@ -179,8 +179,8 @@ Result<BinlogInfo> ConcurrentBinlog::init(string path, const Callback &callback,
 void ConcurrentBinlog::init_impl(std::unique_ptr<Binlog> binlog, int32 scheduler_id) {
   path_ = binlog->get_path().str();
   last_id_ = binlog->peek_next_id();
-  binlog_actor_ =
-      create_actor_on_scheduler<detail::BinlogActor>("Binlog " + path_, scheduler_id, std::move(binlog), last_id_);
+  binlog_actor_ = create_actor_on_scheduler<detail::BinlogActor>(PSLICE() << "Binlog " << path_, scheduler_id,
+                                                                 std::move(binlog), last_id_);
 }
 
 void ConcurrentBinlog::close_impl(Promise<> promise) {

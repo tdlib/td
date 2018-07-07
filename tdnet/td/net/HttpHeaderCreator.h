@@ -45,7 +45,7 @@ class HttpHeaderCreator {
     add_header("Content-Type", type);
   }
   void set_content_size(size_t size) {
-    add_header("Content-Length", to_string(size));
+    add_header("Content-Length", PSLICE() << size);
   }
   void set_keep_alive() {
     add_header("Connection", "keep-alive");

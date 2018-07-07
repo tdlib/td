@@ -1025,7 +1025,7 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<
   int64 document_id = document->id_;
   FileId sticker_id = td_->file_manager_->register_remote(
       FullRemoteFileLocation(FileType::Sticker, document_id, document->access_hash_, DcId::internal(document->dc_id_)),
-      FileLocationSource::FromServer, DialogId(), document->size_, 0, to_string(document_id) + ".webp");
+      FileLocationSource::FromServer, DialogId(), document->size_, 0, PSTRING() << document_id << ".webp");
 
   PhotoSize thumbnail = get_photo_size(td_->file_manager_.get(), FileType::Thumbnail, 0, 0, DialogId(),
                                        std::move(document->thumb_), has_webp_thumbnail(sticker));
@@ -1471,7 +1471,7 @@ int64 StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::stickerSet
       s->is_changed = true;
 
       if (installed_sticker_sets_hints_[s->is_masks].has_key(set_id)) {
-        installed_sticker_sets_hints_[s->is_masks].add(set_id, s->title + " " + s->short_name);
+        installed_sticker_sets_hints_[s->is_masks].add(set_id, PSLICE() << s->title << ' ' << s->short_name);
       }
     }
     if (s->short_name != set->short_name_) {
@@ -1482,7 +1482,7 @@ int64 StickersManager::on_get_sticker_set(tl_object_ptr<telegram_api::stickerSet
       s->is_changed = true;
 
       if (installed_sticker_sets_hints_[s->is_masks].has_key(set_id)) {
-        installed_sticker_sets_hints_[s->is_masks].add(set_id, s->title + " " + s->short_name);
+        installed_sticker_sets_hints_[s->is_masks].add(set_id, PSLICE() << s->title << ' ' << s->short_name);
       }
     }
 
@@ -2267,8 +2267,8 @@ void StickersManager::on_update_sticker_set(StickerSet *sticker_set, bool is_ins
     need_update_installed_sticker_sets_[sticker_set->is_masks] = true;
 
     if (is_added) {
-      installed_sticker_sets_hints_[sticker_set->is_masks].add(sticker_set->id,
-                                                               sticker_set->title + " " + sticker_set->short_name);
+      installed_sticker_sets_hints_[sticker_set->is_masks].add(
+          sticker_set->id, PSLICE() << sticker_set->title << ' ' << sticker_set->short_name);
       sticker_set_ids.insert(sticker_set_ids.begin(), sticker_set->id);
     } else {
       installed_sticker_sets_hints_[sticker_set->is_masks].remove(sticker_set->id);
@@ -2396,11 +2396,11 @@ void StickersManager::on_load_installed_sticker_sets_finished(bool is_masks, vec
 }
 
 string StickersManager::get_sticker_set_database_key(int64 set_id) {
-  return "ss" + to_string(set_id);
+  return PSTRING() << "ss" << set_id;
 }
 
 string StickersManager::get_full_sticker_set_database_key(int64 set_id) {
-  return "ssf" + to_string(set_id);
+  return PSTRING() << "ssf" << set_id;
 }
 
 string StickersManager::get_sticker_set_database_value(const StickerSet *s, bool with_stickers) {

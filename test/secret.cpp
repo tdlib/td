@@ -616,7 +616,7 @@ class Master : public Actor {
       parent_ = parent.get();
       parent_token_ = parent.token();
       actor_ = create_actor<SecretChatActor>(
-          "SecretChat " + name_, 123,
+          PSLICE() << "SecretChat " << name_, 123,
           std::make_unique<FakeSecretChatContext>(binlog_, key_value_, close_flag_, std::move(parent)), true);
       on_binlog_replay_finish();
     }
@@ -698,7 +698,7 @@ class Master : public Actor {
       key_value_->external_init_finish(binlog_);
 
       actor_ = create_actor<SecretChatActor>(
-          "SecretChat " + name_, 123,
+          PSLICE() << "SecretChat " << name_, 123,
           std::make_unique<FakeSecretChatContext>(binlog_, key_value_, close_flag_,
                                                   ActorShared<Master>(parent_, parent_token_)),
           true);

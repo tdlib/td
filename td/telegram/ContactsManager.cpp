@@ -5185,7 +5185,7 @@ void ContactsManager::on_binlog_user_event(BinlogEvent &&event) {
 }
 
 string ContactsManager::get_user_database_key(UserId user_id) {
-  return "us" + to_string(user_id.get());
+  return PSTRING() << "us" << user_id.get();
 }
 
 string ContactsManager::get_user_database_value(const User *u) {
@@ -5434,7 +5434,7 @@ void ContactsManager::on_binlog_chat_event(BinlogEvent &&event) {
 }
 
 string ContactsManager::get_chat_database_key(ChatId chat_id) {
-  return "gr" + to_string(chat_id.get());
+  return PSTRING() << "gr" << chat_id.get();
 }
 
 string ContactsManager::get_chat_database_value(const Chat *c) {
@@ -5657,7 +5657,7 @@ void ContactsManager::on_binlog_channel_event(BinlogEvent &&event) {
 }
 
 string ContactsManager::get_channel_database_key(ChannelId channel_id) {
-  return "ch" + to_string(channel_id.get());
+  return PSTRING() << "ch" << channel_id.get();
 }
 
 string ContactsManager::get_channel_database_value(const Channel *c) {
@@ -5874,7 +5874,7 @@ void ContactsManager::on_binlog_secret_chat_event(BinlogEvent &&event) {
 }
 
 string ContactsManager::get_secret_chat_database_key(SecretChatId secret_chat_id) {
-  return "sc" + to_string(secret_chat_id.get());
+  return PSTRING() << "sc" << secret_chat_id.get();
 }
 
 string ContactsManager::get_secret_chat_database_value(const SecretChat *c) {

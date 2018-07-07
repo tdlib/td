@@ -1854,7 +1854,7 @@ Result<FileId> FileManager::from_persistent_id(CSlice persistent_id, FileType fi
 
   auto r_binary = base64url_decode(persistent_id);
   if (r_binary.is_error()) {
-    return Status::Error(10, "Wrong remote file id specified: " + r_binary.error().message().str());
+    return Status::Error(10, PSLICE() << "Wrong remote file id specified: " << r_binary.error().message());
   }
   auto binary = r_binary.move_as_ok();
   if (binary.empty()) {

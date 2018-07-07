@@ -1773,7 +1773,7 @@ WebPageId WebPagesManager::get_web_page_instant_view(WebPageId web_page_id, bool
 }
 
 string WebPagesManager::get_web_page_instant_view_database_key(WebPageId web_page_id) {
-  return "wpiv" + to_string(web_page_id.get());
+  return PSTRING() << "wpiv" << web_page_id.get();
 }
 
 void WebPagesManager::load_web_page_instant_view(WebPageId web_page_id, bool force_full, Promise<Unit> &&promise) {
@@ -2675,7 +2675,7 @@ void WebPagesManager::on_binlog_web_page_event(BinlogEvent &&event) {
 }
 
 string WebPagesManager::get_web_page_database_key(WebPageId web_page_id) {
-  return "wp" + to_string(web_page_id.get());
+  return PSTRING() << "wp" << web_page_id.get();
 }
 
 void WebPagesManager::on_save_web_page_to_database(WebPageId web_page_id, bool success) {

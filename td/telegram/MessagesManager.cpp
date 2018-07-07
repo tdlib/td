@@ -25246,8 +25246,8 @@ void MessagesManager::update_last_dialog_date() {
   }
 
   if (G()->parameters().use_message_db && last_database_server_dialog_date_ < last_server_dialog_date_) {
-    auto last_server_dialog_date_string = to_string(last_server_dialog_date_.get_order()) + " " +
-                                          to_string(last_server_dialog_date_.get_dialog_id().get());
+    auto last_server_dialog_date_string = PSTRING() << last_server_dialog_date_.get_order() << ' '
+                                                    << last_server_dialog_date_.get_dialog_id().get();
     G()->td_db()->get_binlog_pmc()->set("last_server_dialog_date", last_server_dialog_date_string);
     LOG(INFO) << "Save last server dialog date " << last_server_dialog_date_string;
     last_database_server_dialog_date_ = last_server_dialog_date_;
@@ -25385,7 +25385,7 @@ void MessagesManager::load_notification_settings() {
 string MessagesManager::get_channel_pts_key(DialogId dialog_id) {
   CHECK(dialog_id.get_type() == DialogType::Channel);
   auto channel_id = dialog_id.get_channel_id();
-  return "ch.p" + to_string(channel_id.get());
+  return PSTRING() << "ch.p" << channel_id.get();
 }
 
 int32 MessagesManager::load_channel_pts(DialogId dialog_id) const {

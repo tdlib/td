@@ -435,7 +435,7 @@ void Session::on_closed(Status status) {
         VLOG(net_query) << "resend query (on_disconnected, no ack) " << query;
         query->set_message_id(0);
         query->cancel_slot_.clear_event();
-        query->set_error(Status::Error(500, "Session failed: " + status.message().str()),
+        query->set_error(Status::Error(500, PSLICE() << "Session failed: " << status.message()),
                          current_info_->connection->get_name().str());
         return_query(std::move(query));
         it = sent_queries_.erase(it);
