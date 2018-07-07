@@ -9741,8 +9741,11 @@ void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *message) {
     case MessageVideo::ID:
       message->content = make_unique<MessageExpiredVideo>();
       break;
+    case MessageUnsupported::ID:
+      // can happen if message content file id is broken
+      break;
     default:
-      CHECK(false) << d->dialog_id << " " << message->ttl << " " << message->content->get_id();
+      UNREACHABLE();
   }
   message->ttl = 0;
   message->ttl_expires_at = 0;
