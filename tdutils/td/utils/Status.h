@@ -311,7 +311,7 @@ class Status {
 template <class T = Unit>
 class Result {
  public:
-  Result() : status_(Status::Error()) {
+  Result() : status_(Status::Error<1>()) {
   }
   template <class S, std::enable_if_t<!std::is_same<std::decay_t<S>, Result>::value, int> = 0>
   Result(S &&x) : status_(), value_(std::forward<S>(x)) {
@@ -326,7 +326,7 @@ class Result {
       new (&value_) T(std::move(other.value_));
       other.value_.~T();
     }
-    other.status_ = Status::Error();
+    other.status_ = Status::Error<2>();
   }
   Result &operator=(Result &&other) {
     if (status_.is_ok()) {
@@ -344,7 +344,7 @@ class Result {
       other.value_.~T();
     }
     status_ = std::move(other.status_);
-    other.status_ = Status::Error();
+    other.status_ = Status::Error<3>();
     return *this;
   }
   ~Result() {
@@ -375,7 +375,7 @@ class Result {
   Status move_as_error() TD_WARN_UNUSED_RESULT {
     CHECK(status_.is_error());
     SCOPE_EXIT {
-      status_ = Status::Error();
+      status_ = Status::Error<4>();
     };
     return std::move(status_);
   }
