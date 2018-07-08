@@ -86,7 +86,7 @@ cmake -DCMAKE_BUILD_TYPE=Release -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl/ ..
 cd <path to vcpkg>
 .\vcpkg.exe install openssl:x64-windows openssl:x86-windows zlib:x64-windows zlib:x86-windows
 ```
-* Download and install [cmake](https://cmake.org/download/); choose "Add CMake to the system PATH" option while installing.
+* Download and install [CMake](https://cmake.org/download/); choose "Add CMake to the system PATH" option while installing.
 * Build `TDLib` with CMake as explained in [building](#building), but instead of `cmake -DCMAKE_BUILD_TYPE=Release ..` use
 ```
 cmake -DCMAKE_TOOLCHAIN_FILE=<path to vcpkg>\scripts\buildsystems\vcpkg.cmake ..
