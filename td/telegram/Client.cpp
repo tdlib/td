@@ -59,6 +59,10 @@ class Client::Impl final {
     return {0, nullptr};
   }
 
+  Impl(const Impl &) = delete;
+  Impl &operator=(const Impl &) = delete;
+  Impl(Impl &&) = delete;
+  Impl &operator=(Impl &&) = delete;
   ~Impl() {
     {
       auto guard = scheduler_->get_current_guard();
@@ -223,6 +227,10 @@ class Client::Impl final : ObserverBase {
     return {0, nullptr};
   }
 
+  Impl(const Impl &) = delete;
+  Impl &operator=(const Impl &) = delete;
+  Impl(Impl &&) = delete;
+  Impl &operator=(Impl &&) = delete;
   ~Impl() {
     input_queue_->writer_put({0, nullptr});
     scheduler_thread_.join();
