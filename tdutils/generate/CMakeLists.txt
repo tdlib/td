@@ -19,7 +19,7 @@ add_custom_target(tdmime_auto DEPENDS ${TDMIME_SOURCE})
 if (NOT CMAKE_CROSSCOMPILING)
   find_program(GPERF_EXECUTABLE gperf)
   if (NOT GPERF_EXECUTABLE)
-    message(FATAL_ERROR "Could NOT find gperf. Path to gperf needs to be specified manually, i.e. 'cmake -DGPERF_EXECUTABLE:FILEPATH=\"<path to gperf executable>\" .')")
+    message(FATAL_ERROR "Could NOT find gperf. Add path to gperf executable to PATH environment variable or specify it manually using GPERF_EXECUTABLE option, i. e. 'cmake -DGPERF_EXECUTABLE:FILEPATH=\"<path to gperf executable>\"'.")
   endif()
 
   set(GPERF_FILES

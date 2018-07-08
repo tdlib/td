@@ -5,11 +5,12 @@ This is an example of building TDLib with `C++/CLI` support and an example of TD
 ## Building TDLib
 
 * Download and install Microsoft Visual Studio 2015 or later.
-* Download and install [CMake](https://cmake.org/download/).
+* Download and install [CMake](https://cmake.org/download/); choose "Add CMake to the system PATH" option while installing.
 * Install [vcpkg](https://github.com/Microsoft/vcpkg#quick-start) or update it to the latest version using `vcpkg update` and following received instructions.
 * Install `zlib` and `openssl` for using `vcpkg`:
 ```
-C:\src\vcpkg> .\vcpkg.exe install openssl:x64-windows openssl:x86-windows zlib:x64-windows zlib:x86-windows
+cd <path to vcpkg>
+.\vcpkg.exe install openssl:x64-windows openssl:x86-windows zlib:x64-windows zlib:x86-windows
 ```
 * (Optional. For XML documentation generation.) Download [PHP](https://windows.php.net/download#php-7.2). Add the path to php.exe to the PATH environment variable.
 * Download and install [gperf](https://sourceforge.net/projects/gnuwin32/files/gperf/3.0.1/). Add the path to gperf.exe to the PATH environment variable.
@@ -18,7 +19,7 @@ C:\src\vcpkg> .\vcpkg.exe install openssl:x64-windows openssl:x86-windows zlib:x
 cd <path to TDLib sources>/example/csharp
 mkdir build
 cd build
-cmake -DTD_ENABLE_DOTNET=ON -DCMAKE_TOOLCHAIN_FILE=C:\src\vcpkg\scripts\buildsystems\vcpkg.cmake ../../..
+cmake -DTD_ENABLE_DOTNET=ON -DCMAKE_TOOLCHAIN_FILE=<path to vcpkg>\scripts\buildsystems\vcpkg.cmake ../../..
 cmake --build . --config Release
 cmake --build . --config Debug
 ```

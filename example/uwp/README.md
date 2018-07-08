@@ -9,15 +9,16 @@ This is an example of building TDLib SDK for Universal Windows Platform and an e
 * Install [vcpkg](https://github.com/Microsoft/vcpkg#quick-start) or update it to the latest version using `vcpkg update` and following received instructions.
 * Install `zlib` and `openssl` for all UWP architectures using `vcpkg`:
 ```
-C:\src\vcpkg> .\vcpkg.exe install openssl:arm-uwp openssl:x64-uwp openssl:x86-uwp zlib:arm-uwp zlib:x64-uwp zlib:x86-uwp
+cd <path to vcpkg>
+.\vcpkg.exe install openssl:arm-uwp openssl:x64-uwp openssl:x86-uwp zlib:arm-uwp zlib:x64-uwp zlib:x86-uwp
 ```
 * (Optional. For XML documentation generation.) Download [PHP](https://windows.php.net/download#php-7.2). Add the path to php.exe to the PATH environment variable.
 * Download and install [gperf](https://sourceforge.net/projects/gnuwin32/files/gperf/3.0.1/). Add the path to gperf.exe to the PATH environment variable.
 * Download and install [7-Zip](http://www.7-zip.org/download.html) archiver, which is used by the `build.ps1` script to create a Telegram.Td.UWP Visual Studio Extension. Add the path to 7z.exe to the PATH environment variable.
   Alternatively `build.ps1` supports compressing using [WinRAR](https://en.wikipedia.org/wiki/WinRAR) with option `-compress winrar` and compressing using [zip](http://gnuwin32.sourceforge.net/packages/zip.htm) with `-compress zip`.
-* Build `TDLib` using provided `build.ps1` script (TDLib should be built 6 times for multiple platforms in Debug and Release configurations, so it make take few hours). Pass path to vcpkg.exe as `-vcpkg-root` argument:
+* Build `TDLib` using provided `build.ps1` script (TDLib should be built 6 times for multiple platforms in Debug and Release configurations, so it make take few hours). Pass path to vcpkg.exe as `-vcpkg-root` argument, for example:
 ```
-powershell -ExecutionPolicy ByPass .\build.ps1 -vcpkg_root C:\src\vcpkg
+powershell -ExecutionPolicy ByPass .\build.ps1 -vcpkg_root C:\vcpkg
 ```
 If you need to restart the build from scratch, call `.\build.ps1 -mode clean` first.
 * Install Visual Studio Extension "TDLib for Universal Windows Platform" located at `build-uwp\vsix\tdlib.vsix`, which was created on the previous step by `build.ps1` script.

@@ -78,15 +78,18 @@ cmake -DCMAKE_BUILD_TYPE=Release -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl/ ..
 
 <a name="windows"></a>
 #### Windows
+* Download and install Microsoft Visual Studio 2015 or later.
 * Download and install [gperf](https://sourceforge.net/projects/gnuwin32/files/gperf/3.0.1/). Add the path to gperf.exe to the PATH environment variable.
 * Install [vcpkg](https://github.com/Microsoft/vcpkg#quick-start).
 * Run the following commands to install `TDLib` dependencies using vcpkg:
 ```
-C:\src\vcpkg> .\vcpkg.exe install openssl:x64-windows openssl:x86-windows zlib:x64-windows zlib:x86-windows
+cd <path to vcpkg>
+.\vcpkg.exe install openssl:x64-windows openssl:x86-windows zlib:x64-windows zlib:x86-windows
 ```
+* Download and install [cmake](https://cmake.org/download/); choose "Add CMake to the system PATH" option while installing.
 * Build `TDLib` with CMake as explained in [building](#building), but instead of `cmake -DCMAKE_BUILD_TYPE=Release ..` use
 ```
-cmake -DCMAKE_TOOLCHAIN_FILE=C:\src\vcpkg\scripts\buildsystems\vcpkg.cmake ..
+cmake -DCMAKE_TOOLCHAIN_FILE=<path to vcpkg>\scripts\buildsystems\vcpkg.cmake ..
 ```
 
 To build 64-bit `TDLib` using MSVC, you will need to additionally specify parameter `-A x64` to CMake.
