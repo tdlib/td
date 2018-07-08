@@ -58,26 +58,6 @@ class PromiseInterface {
   }
 };
 
-template <class T = Unit>
-class FutureInterface {
- public:
-  FutureInterface() = default;
-  FutureInterface(const FutureInterface &) = delete;
-  FutureInterface &operator=(const FutureInterface &) = delete;
-  FutureInterface(FutureInterface &&) = default;
-  FutureInterface &operator=(FutureInterface &&) = default;
-  virtual ~FutureInterface() = default;
-  virtual bool is_ready() = 0;
-  virtual bool is_ok() = 0;
-  virtual bool is_error() = 0;
-  virtual const T &ok() = 0;
-  virtual T move_as_ok() = 0;
-  virtual const Status &error() = 0;
-  virtual Status move_as_error() TD_WARN_UNUSED_RESULT = 0;
-  virtual const Result<T> &result() = 0;
-  virtual Result<T> move_as_result() TD_WARN_UNUSED_RESULT = 0;
-};
-
 template <class T>
 class SafePromise;
 
