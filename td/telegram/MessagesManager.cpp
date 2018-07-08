@@ -5048,7 +5048,8 @@ int32 MessagesManager::get_message_content_index_mask(const MessageContent *cont
              search_messages_filter_index_mask(SearchMessagesFilter::PhotoAndVideo);
     case MessageText::ID:
       for (auto &entity : static_cast<const MessageText *>(content)->text.entities) {
-        if (entity.type == MessageEntity::Type::Url || entity.type == MessageEntity::Type::EmailAddress) {
+        if (entity.type == MessageEntity::Type::Url || entity.type == MessageEntity::Type::EmailAddress ||
+            entity.type == MessageEntity::Type::TextUrl) {
           return search_messages_filter_index_mask(SearchMessagesFilter::Url);
         }
       }
