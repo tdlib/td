@@ -5647,8 +5647,8 @@ void ContactsManager::on_binlog_channel_event(BinlogEvent &&event) {
 
   auto channel_id = log_event.channel_id;
   LOG(INFO) << "Add " << channel_id << " from binlog";
-  Channel *c = add_channel(channel_id);
-  CHECK(c->status.is_banned());
+  Channel *c = add_channel(channel_id, "on_binlog_channel_event");
+  CHECK(c->status.is_banned()) << channel_id << " " << c->debug_source;
   *c = std::move(log_event.c);  // channels come from binlog before all other events, so just add them
 
   c->logevent_id = event.id_;
@@ -5759,7 +5759,7 @@ void ContactsManager::on_load_channel_from_database(ChannelId channel_id, string
   Channel *c = get_channel(channel_id);
   if (c == nullptr) {
     if (!value.empty()) {
-      c = add_channel(channel_id);
+      c = add_channel(channel_id, "on_load_channel_from_database");
 
       log_event_parse(*c, value).ensure();
 
@@ -8552,9 +8552,13 @@ ContactsManager::Channel *ContactsManager::get_channel(ChannelId channel_id) {
   }
 }
 
-ContactsManager::Channel *ContactsManager::add_channel(ChannelId channel_id) {
+ContactsManager::Channel *ContactsManager::add_channel(ChannelId channel_id, const char *source) {
   CHECK(channel_id.is_valid());
-  return &channels_[channel_id];
+  Channel *c = &channels_[channel_id];
+  if (c->debug_source == nullptr) {
+    c->debug_source = source;
+  }
+  return c;
 }
 
 bool ContactsManager::get_channel(ChannelId channel_id, int left_tries, Promise<Unit> &&promise) {
@@ -9123,7 +9127,7 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat) {
             LOG(ERROR) << "Receive invalid " << migrated_to_channel_id << " in " << debug_str;
           } else {
             // temporarily create the channel
-            Channel *c = add_channel(migrated_to_channel_id);
+            Channel *c = add_channel(migrated_to_channel_id, "on_chat_update");
             c->access_hash = input_channel->access_hash_;
             c->title = chat.title_;
             c->status = DialogParticipantStatus::Left();
@@ -9284,7 +9288,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel) {
     return;
   }
 
-  Channel *c = add_channel(channel_id);
+  Channel *c = add_channel(channel_id, "on_channel");
   if (c->status.is_banned()) {  // possibly uninited channel
     min_channels_.erase(channel_id);
   }
@@ -9338,7 +9342,7 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel) {
     return;
   }
 
-  Channel *c = add_channel(channel_id);
+  Channel *c = add_channel(channel_id, "on_channel_forbidden");
   if (c->status.is_banned()) {  // possibly uninited channel
     min_channels_.erase(channel_id);
   }

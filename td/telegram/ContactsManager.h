@@ -600,6 +600,8 @@ class ContactsManager : public Actor {
     bool is_being_saved = false;  // is current channel being saved to the database
     uint64 logevent_id = 0;
 
+    const char *debug_source = nullptr;
+
     template <class StorerT>
     void store(StorerT &storer) const;
 
@@ -791,7 +793,7 @@ class ContactsManager : public Actor {
   Channel *get_channel(ChannelId channel_id);
   Channel *get_channel_force(ChannelId channel_id);
 
-  Channel *add_channel(ChannelId channel_id);
+  Channel *add_channel(ChannelId channel_id, const char *source);
 
   const ChannelFull *get_channel_full(ChannelId channel_id) const;
   ChannelFull *get_channel_full(ChannelId channel_id);
