@@ -13,7 +13,6 @@
 #include "td/utils/crypto.h"
 #include "td/utils/logging.h"
 #include "td/utils/MpscPollableQueue.h"
-#include "td/utils/Observer.h"
 #include "td/utils/port/Fd.h"
 #include "td/utils/port/Poll.h"
 #include "td/utils/port/thread.h"
@@ -197,7 +196,7 @@ class TdProxy : public Actor {
 };
 
 /*** Client::Impl ***/
-class Client::Impl final : ObserverBase {
+class Client::Impl final {
  public:
   Impl() {
     init();
@@ -243,7 +242,6 @@ class Client::Impl final : ObserverBase {
   std::shared_ptr<ConcurrentScheduler> scheduler_;
   int output_queue_ready_cnt_{0};
   thread scheduler_thread_;
-  bool notify_flag_{false};
 
   void init() {
     input_queue_ = std::make_shared<InputQueue>();
@@ -263,12 +261,7 @@ class Client::Impl final : ObserverBase {
 
     poll_.init();
     auto &event_fd = output_queue_->reader_get_event_fd();
-    event_fd.get_fd().set_observer(this);
     poll_.subscribe(event_fd.get_fd(), Fd::Read);
-  }
-
-  void notify() override {
-    notify_flag_ = true;
   }
 };
 #endif
