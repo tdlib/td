@@ -121,9 +121,9 @@ class BinlogReader {
         return Status::Error(PSLICE() << "Too small event " << tag("size", size_));
       }
       if (size_ % 4 != 0) {
-        return Status::Error(-2, PSLICE() << "Event of size " << size_ << " at offset " << offset() << " out of " << expected_size_ << ' '
-                   << tag("is_encrypted", is_encrypted_)
-                   << format::as_hex_dump<4>(Slice(input_->prepare_read().truncate(28))));
+        return Status::Error(-2, PSLICE() << "Event of size " << size_ << " at offset " << offset() << " out of "
+                                          << expected_size_ << ' ' << tag("is_encrypted", is_encrypted_)
+                                          << format::as_hex_dump<4>(Slice(input_->prepare_read().truncate(28))));
       }
       state_ = ReadEvent;
     }
@@ -305,7 +305,12 @@ void Binlog::do_event(BinlogEvent &&event) {
   fd_size_ += event.raw_event_.size();
 
   if (state_ == State::Run || state_ == State::Reindex) {
-    VLOG(binlog) << "Write binlog event: " << format::cond(state_ == State::Reindex, "[reindex] ") << event;
+    VLOG(binlog) << "Write binlog event: " << format::cond(state_ == State::Reindex, "[reindex] ");
+    auto validate_status = event.validate();
+    if (validate_status.is_error()) {
+      LOG(FATAL) << "Failed to validate binlog event " << validate_status << " "
+                 << format::as_hex_dump<4>(Slice(event.raw_event_.as_slice().truncate(28)));
+    }
     switch (encryption_type_) {
       case EncryptionType::None: {
         buffer_writer_.append(event.raw_event_.clone());

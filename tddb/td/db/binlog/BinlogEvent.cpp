@@ -28,11 +28,23 @@ Status BinlogEvent::init(BufferSlice &&raw_event, bool check_crc) {
     auto calculated_crc = crc32(raw_event.as_slice().truncate(size_ - EVENT_TAIL_SIZE));
     if (calculated_crc != crc32_) {
       return Status::Error(PSLICE() << "crc mismatch " << tag("actual", format::as_hex(calculated_crc))
-                                    << tag("expected", format::as_hex(crc32_)));
+                                    << tag("expected", format::as_hex(crc32_)) << public_to_string());
     }
   }
   raw_event_ = std::move(raw_event);
   return Status::OK();
+}
+
+Status BinlogEvent::validate() const {
+  BinlogEvent event;
+  if (raw_event_.size() < 4) {
+    return Status::Error("Too small event");
+  }
+  uint32 size = TlParser(raw_event_.as_slice().truncate(4)).fetch_int();
+  if (size_ != size) {
+    return Status::Error(PSLICE() << "Size of event changed: " << tag("was", size_) << tag("now", size));
+  }
+  return event.init(raw_event_.clone(), true);
 }
 
 }  // namespace td

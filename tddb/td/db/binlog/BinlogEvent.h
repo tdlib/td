@@ -106,6 +106,8 @@ struct BinlogEvent {
     return PSTRING() << "LogEvent[" << tag("id", format::as_hex(id_)) << tag("type", type_) << tag("flags", flags_)
                      << tag("data", data_.size()) << "]" << debug_info_;
   }
+
+  Status validate() const;
 };
 
 inline StringBuilder &operator<<(StringBuilder &sb, const BinlogEvent &event) {
