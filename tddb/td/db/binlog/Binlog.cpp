@@ -121,9 +121,9 @@ class BinlogReader {
         return Status::Error(PSLICE() << "Too small event " << tag("size", size_));
       }
       if (size_ % 4 != 0) {
-        LOG(FATAL) << "Event of size " << size_ << " at offset " << offset() << " out of " << expected_size_ << ' '
+        return Status::Error(-2, PSLICE() << "Event of size " << size_ << " at offset " << offset() << " out of " << expected_size_ << ' '
                    << tag("is_encrypted", is_encrypted_)
-                   << format::as_hex_dump<4>(Slice(input_->prepare_read().truncate(28)));
+                   << format::as_hex_dump<4>(Slice(input_->prepare_read().truncate(28))));
       }
       state_ = ReadEvent;
     }
@@ -464,6 +464,11 @@ Status Binlog::load_binlog(const Callback &callback, const Callback &debug_callb
     BinlogEvent event;
     auto r_need_size = reader.read_next(&event);
     if (r_need_size.is_error()) {
+      if (r_need_size.error().code() == -2) {
+        fd_.seek(reader.offset()).ensure();
+        fd_.truncate_to_current_position(reader.offset()).ensure();
+        LOG(FATAL) << r_need_size.error();
+      }
       LOG(ERROR) << r_need_size.error();
       break;
     }
