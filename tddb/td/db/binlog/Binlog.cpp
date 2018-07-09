@@ -94,12 +94,13 @@ class BinlogReader {
   BinlogReader() = default;
   explicit BinlogReader(ChainBufferReader *input) : input_(input) {
   }
-  void set_input(ChainBufferReader *input, bool encrypted) {
+  void set_input(ChainBufferReader *input, bool is_encrypted, int64 expected_size) {
     input_ = input;
-    encrypted_ = encrypted;
+    is_encrypted_ = is_encrypted;
+    expected_size_ = expected_size;
   }
 
-  int64 offset() {
+  int64 offset() const {
     return offset_;
   }
   Result<size_t> read_next(BinlogEvent *event) {
@@ -120,9 +121,9 @@ class BinlogReader {
         return Status::Error(PSLICE() << "Too small event " << tag("size", size_));
       }
       if (size_ % 4 != 0) {
-        LOG(FATAL) << "Event of " << tag("size", size_) << " at " << tag("offset", offset()) << " "
-                   << tag("encrypted", encrypted_)
-                   << format::as_hex_dump<4>(Slice(input_->prepare_read().truncate(20)));
+        LOG(FATAL) << "Event of size " << size_ << " at offset " << offset() << " out of " << expected_size_ << ' '
+                   << tag("is_encrypted", is_encrypted_)
+                   << format::as_hex_dump<4>(Slice(input_->prepare_read().truncate(28)));
       }
       state_ = ReadEvent;
     }
@@ -144,7 +145,8 @@ class BinlogReader {
   enum { ReadLength, ReadEvent } state_ = ReadLength;
   size_t size_{0};
   int64 offset_{0};
-  bool encrypted_{false};
+  int64 expected_size_{0};
+  bool is_encrypted_{false};
 };
 }  // namespace detail
 
@@ -407,7 +409,7 @@ void Binlog::update_read_encryption() {
   CHECK(binlog_reader_ptr_);
   switch (encryption_type_) {
     case EncryptionType::None: {
-      binlog_reader_ptr_->set_input(&buffer_reader_, false);
+      binlog_reader_ptr_->set_input(&buffer_reader_, false, fd_.get_size());
       byte_flow_flag_ = false;
       break;
     }
@@ -418,7 +420,7 @@ void Binlog::update_read_encryption() {
       byte_flow_sink_ = ByteFlowSink();
       byte_flow_source_ >> aes_xcode_byte_flow_ >> byte_flow_sink_;
       byte_flow_flag_ = true;
-      binlog_reader_ptr_->set_input(byte_flow_sink_.get_output(), true);
+      binlog_reader_ptr_->set_input(byte_flow_sink_.get_output(), true, fd_.get_size());
       break;
     }
   }
