@@ -15235,9 +15235,10 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
 
   bool can_delete = true;
   auto dialog_type = dialog_id.get_type();
+  auto is_bot = td_->auth_manager_->is_bot();
   if (dialog_type == DialogType::Channel) {
     auto dialog_status = td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id());
-    can_delete = can_delete_channel_message(dialog_status, message, td_->auth_manager_->is_bot());
+    can_delete = can_delete_channel_message(dialog_status, message, is_bot);
   }
 
   DialogId my_dialog_id(td_->contacts_manager_->get_my_id("get_message_object"));
@@ -15269,7 +15270,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   }
   return make_tl_object<td_api::message>(
       message->message_id.get(), td_->contacts_manager_->get_user_id_object(message->sender_user_id, "sender_user_id"),
-      dialog_id.get(), std::move(sending_state), is_outgoing, can_edit_message(dialog_id, message, false, true),
+      dialog_id.get(), std::move(sending_state), is_outgoing, can_edit_message(dialog_id, message, false, is_bot),
       can_forward_message(dialog_id, message), can_delete_for_self, can_delete_for_all_users, message->is_channel_post,
       message->contains_unread_mention, message->date, message->edit_date,
       get_message_forward_info_object(message->forward_info), message->reply_to_message_id.get(), message->ttl,
@@ -17913,9 +17914,6 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
 
   bool is_bot = td_->auth_manager_->is_bot();
   if (m->had_reply_markup) {
-    return false;
-  }
-  if (!is_bot && only_reply_markup) {
     return false;
   }
   if (m->reply_markup != nullptr && m->reply_markup->type != ReplyMarkup::Type::InlineKeyboard) {
