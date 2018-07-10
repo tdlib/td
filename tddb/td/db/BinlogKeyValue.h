@@ -80,8 +80,7 @@ class BinlogKeyValue : public KeyValueSyncInterface {
                              [&](const BinlogEvent &binlog_event) {
                                Event event;
                                event.parse(TlParser(binlog_event.data_));
-                               map_.emplace(std::make_pair(event.key.str(),
-                                                           std::make_pair(event.value.str(), binlog_event.id_)));
+                               map_.emplace(event.key.str(), std::make_pair(event.value.str(), binlog_event.id_));
                              },
                              std::move(db_key), DbKey::empty(), scheduler_id));
     return Status::OK();
@@ -102,7 +101,7 @@ class BinlogKeyValue : public KeyValueSyncInterface {
   void external_init_handle(const BinlogEvent &binlog_event) {
     Event event;
     event.parse(TlParser(binlog_event.data_));
-    map_.emplace(std::make_pair(event.key.str(), std::make_pair(event.value.str(), binlog_event.id_)));
+    map_.emplace(event.key.str(), std::make_pair(event.value.str(), binlog_event.id_));
   }
 
   void external_init_finish(std::shared_ptr<BinlogT> binlog) {
