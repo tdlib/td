@@ -307,8 +307,7 @@ void PasswordManager::update_password_settings(UpdateSettings update_settings, P
   auto result_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), promise = std::move(promise)](Result<bool> r_update_settings) mutable {
         if (r_update_settings.is_error()) {
-          promise.set_error(r_update_settings.move_as_error());
-          return;
+          return promise.set_error(r_update_settings.move_as_error());
         }
         if (!r_update_settings.ok()) {
           promise.set_error(Status::Error(5, "account_updatePasswordSettings returned false"));
@@ -323,8 +322,7 @@ void PasswordManager::update_password_settings(UpdateSettings update_settings, P
       PromiseCreator::lambda([=, actor_id = actor_id(this), result_promise = std::move(result_promise),
                               update_settings = std::move(update_settings)](Result<PasswordFullState> r_state) mutable {
         if (r_state.is_error()) {
-          result_promise.set_error(r_state.move_as_error());
-          return;
+          return result_promise.set_error(r_state.move_as_error());
         }
         send_closure(actor_id, &PasswordManager::do_update_password_settings, std::move(update_settings),
                      r_state.move_as_ok(), std::move(result_promise));
@@ -420,8 +418,7 @@ void PasswordManager::do_update_password_settings(UpdateSettings update_settings
 void PasswordManager::get_state(Promise<State> promise) {
   do_get_state(PromiseCreator::lambda([promise = std::move(promise)](Result<PasswordState> r_state) mutable {
     if (r_state.is_error()) {
-      promise.set_error(r_state.move_as_error());
-      return;
+      return promise.set_error(r_state.move_as_error());
     }
     promise.set_value(r_state.move_as_ok().as_td_api());
   }));

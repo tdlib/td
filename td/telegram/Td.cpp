@@ -4706,8 +4706,7 @@ void Td::on_request(uint64 id, td_api::getRemoteFile &request) {
   auto r_file_id = file_manager_->from_persistent_id(
       request.remote_file_id_, request.file_type_ == nullptr ? FileType::Temp : from_td_api(*request.file_type_));
   if (r_file_id.is_error()) {
-    auto error = r_file_id.move_as_error();
-    send_closure(actor_id(this), &Td::send_error, id, std::move(error));
+    send_closure(actor_id(this), &Td::send_error, id, r_file_id.move_as_error());
   } else {
     send_closure(actor_id(this), &Td::send_result, id, file_manager_->get_file_object(r_file_id.ok()));
   }

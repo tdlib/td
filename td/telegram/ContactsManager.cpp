@@ -3190,7 +3190,7 @@ void ContactsManager::check_dialog_username(DialogId dialog_id, const string &us
       if (error.message() == "USERNAME_INVALID") {
         return promise.set_value(CheckDialogUsernameResult::Invalid);
       }
-      promise.set_error(std::move(error));
+      return promise.set_error(std::move(error));
     }
 
     promise.set_value(result.ok() ? CheckDialogUsernameResult::Ok : CheckDialogUsernameResult::Occupied);
