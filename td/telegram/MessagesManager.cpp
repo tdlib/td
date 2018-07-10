@@ -15096,11 +15096,15 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
       need_update_dialog_pos = true;
     }
     if (last_added_message_id.get() != d->last_database_message_id.get()) {
+      auto debug_last_database_message_id = d->last_database_message_id;
       set_dialog_last_database_message_id(d, last_added_message_id, "on_get_history_from_database");
       if (last_added_message_id.get() < d->first_database_message_id.get() ||
           !d->first_database_message_id.is_valid()) {
         CHECK(next_message != nullptr);
-        CHECK(had_full_history);
+        CHECK(had_full_history || d->have_full_history)
+            << had_full_history << " " << d->have_full_history << " " << next_message->message_id << " "
+            << last_added_message_id << " " << d->first_database_message_id << " " << debug_last_database_message_id;
+        ;
         CHECK(next_message->message_id.get() <= d->last_database_message_id.get());
         LOG(ERROR) << "Fix first database message id in " << dialog_id << " from " << d->first_database_message_id
                    << " to " << next_message->message_id;
