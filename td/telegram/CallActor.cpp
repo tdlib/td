@@ -228,15 +228,18 @@ void CallActor::on_set_debug_query_result(NetQueryPtr net_query) {
 // Requests
 //phone.discardCall#78d413a6 peer:InputPhoneCall duration:int reason:PhoneCallDiscardReason connection_id:long = Updates;
 void CallActor::update_call(tl_object_ptr<telegram_api::PhoneCall> call) {
+  LOG(INFO) << "Receive " << to_string(call);
   Status status;
   downcast_call(*call, [&](auto &call) { status = this->do_update_call(call); });
   if (status.is_error()) {
+    LOG(INFO) << "Receive error " << status << ", while handling update " << to_string(call);
     on_error(std::move(status));
   }
   loop();
 }
 
 void CallActor::update_call_inner(tl_object_ptr<telegram_api::phone_phoneCall> call) {
+  LOG(INFO) << "Update call with " << to_string(call);
   send_closure(G()->contacts_manager(), &ContactsManager::on_get_users, std::move(call->users_));
   update_call(std::move(call->phone_call_));
 }
@@ -252,10 +255,12 @@ Status CallActor::do_update_call(telegram_api::phoneCallWaiting &call) {
   }
 
   if (state_ == State::WaitAcceptResult) {
+    LOG(DEBUG) << "Do updata call to Waiting";
     call_state_.type = CallState::Type::ExchangingKey;
     call_state_need_flush_ = true;
     cancel_timeout();
   } else {
+    LOG(DEBUG) << "Do updata call to Waiting";
     if ((call.flags_ & telegram_api::phoneCallWaiting::RECEIVE_DATE_MASK) != 0) {
       call_state_.is_received = true;
       call_state_need_flush_ = true;
@@ -285,6 +290,7 @@ Status CallActor::do_update_call(telegram_api::phoneCallRequested &call) {
   if (state_ != State::Empty) {
     return Status::Error(500, PSLICE() << "Drop unexpected " << to_string(call));
   }
+  LOG(DEBUG) << "Do updata call to Requested";
   call_id_ = call.id_;
   call_access_hash_ = call.access_hash_;
   call_admin_id_ = call.admin_id_;
@@ -316,6 +322,7 @@ Status CallActor::do_update_call(telegram_api::phoneCallAccepted &call) {
     return Status::Error(500, PSLICE() << "Drop unexpected " << to_string(call));
   }
 
+  LOG(DEBUG) << "Do updata call to Accepted";
   dh_handshake_.set_g_a(call.g_b_.as_slice());
   TRY_STATUS(dh_handshake_.run_checks(DhCache::instance()));
   std::tie(call_state_.key_fingerprint, call_state_.key) = dh_handshake_.gen_key();
@@ -332,6 +339,7 @@ Status CallActor::do_update_call(telegram_api::phoneCall &call) {
     return Status::Error(500, PSLICE() << "Drop unexpected " << to_string(call));
   }
 
+  LOG(DEBUG) << "Do updata call to Ready from state " << static_cast<int32>(state_);
   if (state_ == State::WaitAcceptResult) {
     dh_handshake_.set_g_a(call.g_a_or_b_.as_slice());
     TRY_STATUS(dh_handshake_.run_checks(DhCache::instance()));
@@ -357,6 +365,7 @@ Status CallActor::do_update_call(telegram_api::phoneCall &call) {
 
 //phoneCallDiscarded#50ca4de1 flags:# need_rating:flags.2?true need_debug:flags.3?true id:long reason:flags.0?PhoneCallDiscardReason duration:flags.1?int = PhoneCall;
 Status CallActor::do_update_call(telegram_api::phoneCallDiscarded &call) {
+  LOG(DEBUG) << "Do updata call to Discarded";
   state_ = State::Discarded;
 
   auto reason = get_call_discard_reason(call.reason_);
@@ -374,6 +383,7 @@ Status CallActor::do_update_call(telegram_api::phoneCallDiscarded &call) {
 
 bool CallActor::load_dh_config() {
   if (dh_config_ready_) {
+    LOG(DEBUG) << "Dh config is ready";
     return true;
   }
   if (!dh_config_query_sent_) {
@@ -382,6 +392,7 @@ bool CallActor::load_dh_config() {
       send_closure(actor_id, &CallActor::on_dh_config, std::move(dh_config), false);
     }));
   }
+  LOG(INFO) << "Dh config is not loaded";
   return false;
 }
 
@@ -460,6 +471,7 @@ void CallActor::on_received_query_result(NetQueryPtr net_query) {
 
 //phone.requestCall#5b95b3d4 user_id:InputUser random_id:int g_a_hash:bytes protocol:PhoneCallProtocol = phone.PhoneCall;
 void CallActor::try_send_request_query() {
+  LOG(INFO) << "Try send request query";
   if (!load_dh_config()) {
     return;
   }
@@ -487,10 +499,12 @@ void CallActor::on_request_query_result(NetQueryPtr net_query) {
 
 //phone.acceptCall#3bd2b4a0 peer:InputPhoneCall g_b:bytes protocol:PhoneCallProtocol = phone.PhoneCall;
 void CallActor::try_send_accept_query() {
+  LOG(INFO) << "Try send accept query";
   if (!load_dh_config()) {
     return;
   }
   if (!is_accepted_) {
+    LOG(DEBUG) << "Call is not accepted";
     return;
   }
   dh_handshake_.set_config(dh_config_->g, dh_config_->prime);
@@ -513,6 +527,7 @@ void CallActor::on_accept_query_result(NetQueryPtr net_query) {
 
 //phone.confirmCall#2efe1722 peer:InputPhoneCall g_a:bytes key_fingerprint:long protocol:PhoneCallProtocol = phone.PhoneCall;
 void CallActor::try_send_confirm_query() {
+  LOG(INFO) << "Try send confirm query";
   if (!load_dh_config()) {
     return;
   }
@@ -534,6 +549,7 @@ void CallActor::on_confirm_query_result(NetQueryPtr net_query) {
 }
 
 void CallActor::try_send_discard_query() {
+  LOG(INFO) << "Try send discard query";
   if (call_id_ == 0) {
     state_ = State::Discarded;
     yield();
@@ -591,6 +607,7 @@ void CallActor::on_get_call_config_result(NetQueryPtr net_query) {
 }
 
 void CallActor::loop() {
+  LOG(DEBUG) << "Enter loop for call " << call_id_ << " in state " << static_cast<int32>(state_) << '/' << static_cast<int32>(call_state_.type);
   flush_call_state();
   switch (state_) {
     case State::SendRequestQuery:
