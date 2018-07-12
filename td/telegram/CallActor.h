@@ -126,6 +126,8 @@ class CallActor : public NetQueryCallback {
   bool call_state_need_flush_{false};
   bool call_state_has_config_{false};
 
+  NetQueryRef request_query_ref_;
+
   tl_object_ptr<telegram_api::inputPhoneCall> get_input_phone_call();
   bool load_dh_config();
   void on_dh_config(Result<std::shared_ptr<DhConfig>> r_dh_config, bool dummy);
@@ -152,6 +154,8 @@ class CallActor : public NetQueryCallback {
 
   void try_send_discard_query();
   void on_discard_query_result(NetQueryPtr net_query);
+
+  void on_call_discarded(CallDiscardReason reason, bool need_rating, bool need_debug);
 
   void on_set_rating_query_result(NetQueryPtr net_query);
   void on_set_debug_query_result(NetQueryPtr net_query);

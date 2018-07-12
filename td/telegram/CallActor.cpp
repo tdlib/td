@@ -135,6 +135,11 @@ void CallActor::discard_call(bool is_disconnected, int32 duration, int64 connect
     return;
   }
 
+  if (state_ == State::WaitRequestResult && !request_query_ref_.empty()) {
+    LOG(INFO) << "Cancel request call query";
+    cancel_query(request_query_ref_);
+  }
+
   switch (call_state_.type) {
     case CallState::Type::Empty:
     case CallState::Type::Pending:
@@ -366,19 +371,22 @@ Status CallActor::do_update_call(telegram_api::phoneCall &call) {
 //phoneCallDiscarded#50ca4de1 flags:# need_rating:flags.2?true need_debug:flags.3?true id:long reason:flags.0?PhoneCallDiscardReason duration:flags.1?int = PhoneCall;
 Status CallActor::do_update_call(telegram_api::phoneCallDiscarded &call) {
   LOG(DEBUG) << "Do update call to Discarded";
+  on_call_discarded(get_call_discard_reason(call.reason_), call.need_rating_, call.need_debug_);
+  return Status::OK();
+}
+
+void CallActor::on_call_discarded(CallDiscardReason reason, bool need_rating, bool need_debug) {
   state_ = State::Discarded;
 
-  auto reason = get_call_discard_reason(call.reason_);
   if (call_state_.discard_reason == CallDiscardReason::Empty || reason != CallDiscardReason::Empty) {
     call_state_.discard_reason = reason;
   }
   if (call_state_.type != CallState::Type::Error) {
-    call_state_.need_rating = call.need_rating_;
-    call_state_.need_debug_information = call.need_debug_;
+    call_state_.need_rating = need_rating;
+    call_state_.need_debug_information = need_debug;
     call_state_.type = CallState::Type::Discarded;
     call_state_need_flush_ = true;
   }
-  return Status::OK();
 }
 
 bool CallActor::load_dh_config() {
@@ -398,7 +406,12 @@ bool CallActor::load_dh_config() {
 
 void CallActor::on_error(Status status) {
   CHECK(status.is_error());
+  LOG(INFO) << "Receive error " << status;
 
+  if (state_ == State::WaitRequestResult && !request_query_ref_.empty()) {
+    LOG(INFO) << "Cancel request call query";
+    cancel_query(request_query_ref_);
+  }
   if (state_ == State::WaitDiscardResult || state_ == State::Discarded) {
     state_ = State::Discarded;
   } else {
@@ -482,11 +495,15 @@ void CallActor::try_send_request_query() {
                                                   call_state_.protocol.as_telegram_api());
   auto query = G()->net_query_creator().create(create_storer(tl_query));
   state_ = State::WaitRequestResult;
+  int32 call_receive_timeout_ms = G()->shared_config().get_option_integer("call_receive_timeout_ms", 20000);
+  double timeout = call_receive_timeout_ms * 0.001;
+  LOG(INFO) << "Set call timeout to " << timeout;
+  set_timeout_in(timeout);
+  query->total_timeout_limit = timeout;
+  request_query_ref_ = query.get_weak();
   send_with_promise(std::move(query), PromiseCreator::lambda([actor_id = actor_id(this)](NetQueryPtr net_query) {
                       send_closure(actor_id, &CallActor::on_request_query_result, std::move(net_query));
                     }));
-  int32 call_receive_timeout_ms = G()->shared_config().get_option_integer("call_receive_timeout_ms", 20000);
-  set_timeout_in(call_receive_timeout_ms * 0.001);
 }
 
 void CallActor::on_request_query_result(NetQueryPtr net_query) {
@@ -549,12 +566,13 @@ void CallActor::on_confirm_query_result(NetQueryPtr net_query) {
 }
 
 void CallActor::try_send_discard_query() {
-  LOG(INFO) << "Try send discard query";
   if (call_id_ == 0) {
-    state_ = State::Discarded;
+    LOG(INFO) << "Failed to send discard query, because call_id_ is unknown";
+    on_call_discarded(CallDiscardReason::Missed, false, false);
     yield();
     return;
   }
+  LOG(INFO) << "Trying to send discard query";
   auto tl_query =
       telegram_api::phone_discardCall(get_input_phone_call(), duration_,
                                       get_input_phone_call_discard_reason(call_state_.discard_reason), connection_id_);
@@ -607,7 +625,8 @@ void CallActor::on_get_call_config_result(NetQueryPtr net_query) {
 }
 
 void CallActor::loop() {
-  LOG(DEBUG) << "Enter loop for call " << call_id_ << " in state " << static_cast<int32>(state_) << '/' << static_cast<int32>(call_state_.type);
+  LOG(DEBUG) << "Enter loop for call " << call_id_ << " in state " << static_cast<int32>(state_) << '/'
+             << static_cast<int32>(call_state_.type);
   flush_call_state();
   switch (state_) {
     case State::SendRequestQuery:
