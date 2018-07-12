@@ -255,12 +255,12 @@ Status CallActor::do_update_call(telegram_api::phoneCallWaiting &call) {
   }
 
   if (state_ == State::WaitAcceptResult) {
-    LOG(DEBUG) << "Do updata call to Waiting";
+    LOG(DEBUG) << "Do update call to Waiting";
     call_state_.type = CallState::Type::ExchangingKey;
     call_state_need_flush_ = true;
     cancel_timeout();
   } else {
-    LOG(DEBUG) << "Do updata call to Waiting";
+    LOG(DEBUG) << "Do update call to Waiting";
     if ((call.flags_ & telegram_api::phoneCallWaiting::RECEIVE_DATE_MASK) != 0) {
       call_state_.is_received = true;
       call_state_need_flush_ = true;
@@ -290,7 +290,7 @@ Status CallActor::do_update_call(telegram_api::phoneCallRequested &call) {
   if (state_ != State::Empty) {
     return Status::Error(500, PSLICE() << "Drop unexpected " << to_string(call));
   }
-  LOG(DEBUG) << "Do updata call to Requested";
+  LOG(DEBUG) << "Do update call to Requested";
   call_id_ = call.id_;
   call_access_hash_ = call.access_hash_;
   call_admin_id_ = call.admin_id_;
@@ -322,7 +322,7 @@ Status CallActor::do_update_call(telegram_api::phoneCallAccepted &call) {
     return Status::Error(500, PSLICE() << "Drop unexpected " << to_string(call));
   }
 
-  LOG(DEBUG) << "Do updata call to Accepted";
+  LOG(DEBUG) << "Do update call to Accepted";
   dh_handshake_.set_g_a(call.g_b_.as_slice());
   TRY_STATUS(dh_handshake_.run_checks(DhCache::instance()));
   std::tie(call_state_.key_fingerprint, call_state_.key) = dh_handshake_.gen_key();
@@ -339,7 +339,7 @@ Status CallActor::do_update_call(telegram_api::phoneCall &call) {
     return Status::Error(500, PSLICE() << "Drop unexpected " << to_string(call));
   }
 
-  LOG(DEBUG) << "Do updata call to Ready from state " << static_cast<int32>(state_);
+  LOG(DEBUG) << "Do update call to Ready from state " << static_cast<int32>(state_);
   if (state_ == State::WaitAcceptResult) {
     dh_handshake_.set_g_a(call.g_a_or_b_.as_slice());
     TRY_STATUS(dh_handshake_.run_checks(DhCache::instance()));
@@ -365,7 +365,7 @@ Status CallActor::do_update_call(telegram_api::phoneCall &call) {
 
 //phoneCallDiscarded#50ca4de1 flags:# need_rating:flags.2?true need_debug:flags.3?true id:long reason:flags.0?PhoneCallDiscardReason duration:flags.1?int = PhoneCall;
 Status CallActor::do_update_call(telegram_api::phoneCallDiscarded &call) {
-  LOG(DEBUG) << "Do updata call to Discarded";
+  LOG(DEBUG) << "Do update call to Discarded";
   state_ = State::Discarded;
 
   auto reason = get_call_discard_reason(call.reason_);
