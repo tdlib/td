@@ -3995,6 +3995,13 @@ Status Td::init(DbKey key) {
   // options_.proxy = Proxy();
   G()->set_mtproto_header(std::make_unique<MtprotoHeader>(options_));
 
+  if (!G()->shared_config().have_option("message_text_length_max")) {
+    G()->shared_config().set_option_integer("message_text_length_max", 4096);
+  }
+  if (!G()->shared_config().have_option("message_caption_length_max")) {
+    G()->shared_config().set_option_integer("message_caption_length_max", 200);
+  }
+
   VLOG(td_init) << "Create NetQueryDispatcher";
   auto net_query_dispatcher = std::make_unique<NetQueryDispatcher>([&] { return create_reference(); });
   G()->set_net_query_dispatcher(std::move(net_query_dispatcher));
