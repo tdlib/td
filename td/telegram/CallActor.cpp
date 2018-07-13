@@ -226,12 +226,7 @@ void CallActor::on_set_debug_query_result(NetQueryPtr net_query) {
   call_state_.need_debug_information = false;
 }
 
-//Updates
-//phoneCallEmpty#5366c915 id:long = PhoneCall;
-//phoneCallWaiting#1b8f4ad1 flags:# id:long access_hash:long date:int admin_id:int participant_id:int protocol:PhoneCallProtocol receive_date:flags.0?int = PhoneCall;
-
 // Requests
-//phone.discardCall#78d413a6 peer:InputPhoneCall duration:int reason:PhoneCallDiscardReason connection_id:long = Updates;
 void CallActor::update_call(tl_object_ptr<telegram_api::PhoneCall> call) {
   LOG(INFO) << "Receive " << to_string(call);
   Status status;
@@ -261,9 +256,7 @@ Status CallActor::do_update_call(telegram_api::phoneCallWaiting &call) {
 
   if (state_ == State::WaitAcceptResult) {
     LOG(DEBUG) << "Do update call to Waiting";
-    call_state_.type = CallState::Type::ExchangingKey;
-    call_state_need_flush_ = true;
-    cancel_timeout();
+    on_begin_exchanging_key();
   } else {
     LOG(DEBUG) << "Do update call to Waiting";
     if ((call.flags_ & telegram_api::phoneCallWaiting::RECEIVE_DATE_MASK) != 0) {
@@ -332,10 +325,17 @@ Status CallActor::do_update_call(telegram_api::phoneCallAccepted &call) {
   TRY_STATUS(dh_handshake_.run_checks(DhCache::instance()));
   std::tie(call_state_.key_fingerprint, call_state_.key) = dh_handshake_.gen_key();
   state_ = State::SendConfirmQuery;
+  on_begin_exchanging_key();
+  return Status::OK();
+}
+
+void CallActor::on_begin_exchanging_key() {
   call_state_.type = CallState::Type::ExchangingKey;
   call_state_need_flush_ = true;
-  cancel_timeout();
-  return Status::OK();
+  int32 call_receive_timeout_ms = G()->shared_config().get_option_integer("call_receive_timeout_ms", 20000);
+  double timeout = call_receive_timeout_ms * 0.001;
+  LOG(INFO) << "Set call timeout to " << timeout;
+  set_timeout_in(timeout);
 }
 
 //phoneCall#ffe6ab67 id:long access_hash:long date:int admin_id:int participant_id:int g_a_or_b:bytes key_fingerprint:long protocol:PhoneCallProtocol connection:PhoneConnection alternative_connections:Vector<PhoneConnection> start_date:int = PhoneCall;
@@ -343,6 +343,7 @@ Status CallActor::do_update_call(telegram_api::phoneCall &call) {
   if (state_ != State::WaitAcceptResult && state_ != State::WaitConfirmResult) {
     return Status::Error(500, PSLICE() << "Drop unexpected " << to_string(call));
   }
+  cancel_timeout();
 
   LOG(DEBUG) << "Do update call to Ready from state " << static_cast<int32>(state_);
   if (state_ == State::WaitAcceptResult) {

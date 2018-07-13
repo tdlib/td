@@ -155,6 +155,8 @@ class CallActor : public NetQueryCallback {
   void try_send_discard_query();
   void on_discard_query_result(NetQueryPtr net_query);
 
+  void on_begin_exchanging_key();
+
   void on_call_discarded(CallDiscardReason reason, bool need_rating, bool need_debug);
 
   void on_set_rating_query_result(NetQueryPtr net_query);
