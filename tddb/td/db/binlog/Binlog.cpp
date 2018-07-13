@@ -100,6 +100,10 @@ class BinlogReader {
     expected_size_ = expected_size;
   }
 
+  ChainBufferReader *input() {
+    return input_;
+  }
+
   int64 offset() const {
     return offset_;
   }
@@ -462,7 +466,6 @@ Status Binlog::load_binlog(const Callback &callback, const Callback &debug_callb
 
   update_read_encryption();
 
-  bool ready_flag = false;
   fd_.update_flags(Fd::Flag::Read);
   info_.wrong_password = false;
   while (true) {
@@ -492,18 +495,16 @@ Status Binlog::load_binlog(const Callback &callback, const Callback &debug_callb
           return Status::OK();
         }
       }
-      ready_flag = false;
     } else {
       // TODO(now): fix bug
-      if (ready_flag) {
-        break;
-      }
       TRY_STATUS(fd_.flush_read(max(need_size, static_cast<size_t>(4096))));
       buffer_reader_.sync_with_writer();
       if (byte_flow_flag_) {
         byte_flow_source_.wakeup();
       }
-      ready_flag = true;
+      if (reader.input()->size() < need_size) {
+        break;
+      }
     }
   }
 
