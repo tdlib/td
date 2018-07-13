@@ -496,7 +496,6 @@ Status Binlog::load_binlog(const Callback &callback, const Callback &debug_callb
         }
       }
     } else {
-      // TODO(now): fix bug
       TRY_STATUS(fd_.flush_read(max(need_size, static_cast<size_t>(4096))));
       buffer_reader_.sync_with_writer();
       if (byte_flow_flag_) {
@@ -635,7 +634,6 @@ void Binlog::do_reindex() {
   auto finish_events = fd_events_;
   CHECK(fd_size_ == file_size(path_)) << fd_size_ << ' ' << file_size(path_) << ' ' << fd_events_ << ' ' << path_;
 
-  // TODO: print warning only if time or ratio is suspicious
   double ratio = static_cast<double>(start_size) / static_cast<double>(finish_size + 1);
   LOG(INFO) << "regenerate index " << tag("name", path_) << tag("time", format::as_time(finish_time - start_time))
             << tag("before_size", format::as_size(start_size)) << tag("after_size", format::as_size(finish_size))
