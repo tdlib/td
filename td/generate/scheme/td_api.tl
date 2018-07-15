@@ -73,7 +73,7 @@ textEntities entities:vector<textEntity> = TextEntities;
 formattedText text:string entities:vector<textEntity> = FormattedText;
 
 
-//@description Contains Telegram terms of service @text Text of the terms of service @min_user_age Mininum age of a user which can accept the terms; 0 if any @show_popup True, if a blocking popup with terms of services should be shown to the user
+//@description Contains Telegram terms of service @text Text of the terms of service @min_user_age Mininum age of a user to be able to accept the terms; 0 if any @show_popup True, if a blocking popup with terms of service must be shown to the user
 termsOfService text:formattedText min_user_age:int32 show_popup:Bool = TermsOfService;
 
 
@@ -486,23 +486,23 @@ messages total_count:int32 messages:vector<message> = Messages;
 foundMessages messages:vector<message> next_from_search_id:int64 = FoundMessages;
 
 
-//@class NotificationSettingsScope @description Describes the types of chats for which scope notification settings are applied
+//@class NotificationSettingsScope @description Describes the types of chats to which notification settings are applied
 
-//@description Notification settings applied to all private and secret chats when corresponding chat setting has a default value
+//@description Notification settings applied to all private and secret chats when the corresponding chat setting has a default value
 notificationSettingsScopePrivateChats = NotificationSettingsScope;
 
-//@description Notification settings applied to all basic groups, supergroups and channels when corresponding chat setting has a default value
+//@description Notification settings applied to all basic groups, supergroups and channels when the corresponding chat setting has a default value
 notificationSettingsScopeGroupChats = NotificationSettingsScope;
 
 
 //@description Contains information about notification settings for a chat
-//@use_default_mute_for If true, mute_for is ignored and value from a surrounding scope is used instead @mute_for Time left before notifications will be unmuted, in seconds
-//@use_default_sound If true, sound is ignored and value from a surrounding scope is used instead @sound An audio file name for notification sounds; only applies to iOS applications
-//@use_default_show_preview If true, show_preview is ignored and value from a surrounding scope is used instead @show_preview True, if message content should be displayed in notifications
+//@use_default_mute_for If true, mute_for is ignored and the value for the relevant type of chat is used instead @mute_for Time left before notifications will be unmuted, in seconds
+//@use_default_sound If true, sound is ignored and the value for the relevant type of chat is used instead @sound The name of an audio file to be used for notification sounds; only applies to iOS applications
+//@use_default_show_preview If true, show_preview is ignored and the value for the relevant type of chat is used instead @show_preview True, if message content should be displayed in notifications
 chatNotificationSettings use_default_mute_for:Bool mute_for:int32 use_default_sound:Bool sound:string use_default_show_preview:Bool show_preview:Bool = ChatNotificationSettings;
 
 //@description Contains information about notification settings for several chats @mute_for Time left before notifications will be unmuted, in seconds
-//@sound An audio file name for notification sounds; only applies to iOS applications @show_preview True, if message content should be displayed in notifications
+//@sound The name of an audio file to be used for notification sounds; only applies to iOS applications @show_preview True, if message content should be displayed in notifications
 scopeNotificationSettings mute_for:int32 sound:string show_preview:Bool = ScopeNotificationSettings;
 
 
@@ -534,9 +534,9 @@ chatTypeSecret secret_chat_id:int32 user_id:int32 = ChatType;
 //@order Descending parameter by which chats are sorted in the main chat list. If the order number of two chats is the same, they must be sorted in descending order by ID. If 0, the position of the chat in the list is undetermined
 //@is_pinned True, if the chat is pinned
 //@is_marked_as_unread True, if the chat is marked as unread
-//@is_sponsored True, if the chat is sponsored by enabled proxy
+//@is_sponsored True, if the chat is sponsored by the user's MTProxy server
 //@can_be_reported True, if the chat can be reported to Telegram moderators through reportChat
-//@default_disable_notification Default value of disable_notification parameter, used when a message is sent to the chat
+//@default_disable_notification Default value of the disable_notification parameter, used when a message is sent to the chat
 //@unread_count Number of unread messages in the chat
 //@last_read_inbox_message_id Identifier of the last read incoming message
 //@last_read_outbox_message_id Identifier of the last read outgoing message
@@ -852,19 +852,19 @@ passportDataTypePhoneNumber = PassportDataType;
 passportDataTypeEmailAddress = PassportDataType;
 
 
-//@description Represents a date according to Gregorian calendar @day A day of a month, 1-31 @month A month, 1-12 @year A year, 1-9999
+//@description Represents a date according to the Gregorian calendar @day Day of the month, 1-31 @month Month, 1-12 @year Year, 1-9999
 date day:int32 month:int32 year:int32 = Date;
 
-//@description Contains user's personal details @first_name First name of the user; 1-255 characters @last_name Last name of the user; 1-255 characters @birthdate Birthdate of the user
+//@description Contains the user's personal details @first_name First name of the user; 1-255 characters @last_name Last name of the user; 1-255 characters @birthdate Birthdate of the user
 //@gender Gender of the user, "male" or "female" @country_code A two-letter ISO 3166-1 alpha-2 country code for the user's country @residence_country_code A two-letter ISO 3166-1 alpha-2 country code for the user's residence country
 personalDetails first_name:string last_name:string birthdate:date gender:string country_code:string residence_country_code:string = PersonalDetails;
 
-//@description An identity document @number Document's number; 1-24 characters @expiry_date Document's expiry date; may be null @front_side Document's front side
-//@reverse_side Document's reverse side, only for driver license and identity card @selfie Selfie with the document; may be null
+//@description An identity document @number Document number; 1-24 characters @expiry_date Document expiry date; may be null @front_side Front side of the document
+//@reverse_side Reverse side of the document; only for driver license and identity card @selfie Selfie with the document; may be null
 identityDocument number:string expiry_date:date front_side:datedFile reverse_side:datedFile selfie:datedFile = IdentityDocument;
 
-//@description An identity document to save @number Document's number @expiry_date Document's expiry date, if available @front_side Document's front side
-//@reverse_side Document's reverse side, only for driver license and identity card @selfie Selfie with the document, if available
+//@description An identity document to be saved @number Document number; 1-24 characters @expiry_date Document expiry date, if available @front_side Front side of the document
+//@reverse_side Reverse side of the document; only for driver license and identity card @selfie Selfie with the document, if available
 inputIdentityDocument number:string expiry_date:date front_side:InputFile reverse_side:InputFile selfie:InputFile = InputIdentityDocument;
 
 
@@ -910,45 +910,45 @@ passportDataPhoneNumber phone_number:string = PassportData;
 passportDataEmailAddress email_address:string = PassportData;
 
 
-//@class InputPassportData @description Contains information about a Telegram Passport data to save
+//@class InputPassportData @description Contains information about a Telegram Passport data to be saved
 
-//@description The Telegram Passport data to save contains a user's personal details @personal_details Personal details of the user
+//@description The Telegram Passport data to be saved contains a user's personal details @personal_details Personal details of the user
 inputPassportDataPersonalDetails personal_details:personalDetails = InputPassportData;
 
-//@description The Telegram Passport data to save contains a user's passport @passport The passport to save
+//@description The Telegram Passport data to be saved contains a user's passport @passport The passport to be saved
 inputPassportDataPassport passport:inputIdentityDocument = InputPassportData;
 
-//@description The Telegram Passport data to save contains a user's driver license @driver_license The driver license to save
+//@description The Telegram Passport data to be saved contains a user's driver license @driver_license The driver license to be saved
 inputPassportDataDriverLicense driver_license:inputIdentityDocument = InputPassportData;
 
-//@description The Telegram Passport data to save contains a user's identity card @identity_card The identity card to save
+//@description The Telegram Passport data to be saved contains a user's identity card @identity_card The identity card to be saved
 inputPassportDataIdentityCard identity_card:inputIdentityDocument = InputPassportData;
 
-//@description The Telegram Passport data to save contains a user's internal passport @internal_passport The internal passport to save
+//@description The Telegram Passport data to be saved contains a user's internal passport @internal_passport The internal passport to be saved
 inputPassportDataInternalPassport internal_passport:inputIdentityDocument = InputPassportData;
 
-//@description The Telegram Passport data to save contains a user's address @address The address
+//@description The Telegram Passport data to be saved contains a user's address @address The address
 inputPassportDataAddress address:address = InputPassportData;
 
-//@description The Telegram Passport data to save contains a user's utility bill @files List of files with the utility bill
+//@description The Telegram Passport data to be saved contains a user's utility bill @files List of files with the utility bill
 inputPassportDataUtilityBill files:vector<InputFile> = InputPassportData;
 
-//@description The Telegram Passport data to save contains a user's bank statement @files List of files with the bank statement
+//@description The Telegram Passport data to be saved contains a user's bank statement @files List of files with the bank statement
 inputPassportDataBankStatement files:vector<InputFile> = InputPassportData;
 
-//@description The Telegram Passport data to save contains a user's rental agreement @files List of files with the rental agreement
+//@description The Telegram Passport data to be saved contains a user's rental agreement @files List of files with the rental agreement
 inputPassportDataRentalAgreement files:vector<InputFile> = InputPassportData;
 
-//@description The Telegram Passport data to save contains a user's passport registration @files List of files with the passport registration
+//@description The Telegram Passport data to be saved contains a user's passport registration @files List of files with the passport registration
 inputPassportDataPassportRegistration files:vector<InputFile> = InputPassportData;
 
-//@description The Telegram Passport data to save contains a user's temporary registration @files List of files with the temporary registration
+//@description The Telegram Passport data to be saved contains a user's temporary registration @files List of files with the temporary registration
 inputPassportDataTemporaryRegistration files:vector<InputFile> = InputPassportData;
 
-//@description The Telegram Passport data to save contains a user's phone number @phone_number The phone number
+//@description The Telegram Passport data to be saved contains a user's phone number @phone_number The phone number
 inputPassportDataPhoneNumber phone_number:string = InputPassportData;
 
-//@description The Telegram Passport data to save contains a user's email address @email_address The email address
+//@description The Telegram Passport data to be saved contains a user's email address @email_address The email address
 inputPassportDataEmailAddress email_address:string = InputPassportData;
 
 
@@ -956,67 +956,67 @@ inputPassportDataEmailAddress email_address:string = InputPassportData;
 allPassportData data:vector<PassportData> = AllPassportData;
 
 
-//@class PassportDataErrorSource @description Contains description of an error in a Telegram Passport data
+//@class PassportDataErrorSource @description Contains the description of an error in a Telegram Passport data
 
-//@description A field of data contains an error. The error is considered resolved when the field's value changes @field_name Field name
+//@description One of the data fields contains an error. The error will be considered resolved when the value of the field changes @field_name Field name
 passportDataErrorSourceDataField field_name:string = PassportDataErrorSource;
 
-//@description A document front side contains an error. The error is considered resolved when the file with the front side changes
+//@description The front side of the document contains an error. The error will be considered resolved when the file with the front side changes
 passportDataErrorSourceFrontSide = PassportDataErrorSource;
 
-//@description A document reverse side contains an error. The error is considered resolved when the file with the reverse side changes
+//@description The reverse side of the document contains an error. The error will be considered resolved when the file with the reverse side changes
 passportDataErrorSourceReverseSide = PassportDataErrorSource;
 
-//@description A selfie contains an error. The error is considered resolved when the file with the selfie changes
+//@description The selfie with the document contains an error. The error will be considered resolved when the file with the selfie changes
 passportDataErrorSourceSelfie = PassportDataErrorSource;
 
-//@description A file contains an error. The error is considered resolved when the file changes
+//@description The file contains an error. The error will be considered resolved when the file changes
 passportDataErrorSourceFile = PassportDataErrorSource;
 
-//@description A list of attached files contains an error. The error is considered resolved when the file list changes
+//@description The list of attached files contains an error. The error will be considered resolved when the list of files changes
 passportDataErrorSourceFiles = PassportDataErrorSource;
 
 
-//@description Contains description of an error in a Telegram Passport data @type Telegram Passport data type with the error @message Error message @source Error source
+//@description Contains the description of an error in Telegram Passport data @type Type of the Telegram Passport data which has the error @message Error message @source Error source
 passportDataError type:PassportDataType message:string source:PassportDataErrorSource = PassportDataError;
 
 
-//@description Contains information about requested Telegram Passport authorization form @id Authorization form unique identifier
-//@required_types Types required to complete the form. If there are more than one identity document or address proof, then any of them can be chosen
-//@data Already available data @errors Errors in already available data @is_selfie_required True, if selfie is required with an identity document @privacy_policy_url URL with the service privacy policy; can be empty
+//@description Contains information about a Telegram Passport authorization form that was requested @id Unique identifier of the authorization form
+//@required_types Data types that need to be provided to complete the form. If the user has more than one identity document or proof of address document, any one of each can be chosen
+//@data Already available data @errors Errors in the data that is already available @is_selfie_required True, if a selfie is required with the identity document @privacy_policy_url URL for the privacy policy of the service; can be empty
 passportAuthorizationForm id:int32 required_types:vector<PassportDataType> data:vector<PassportData> errors:vector<passportDataError> is_selfie_required:Bool privacy_policy_url:string = PassportAuthorizationForm;
 
 
-//@description Contains an encrypted Telegram Passport data credentials @data The encrypted credentials @hash The decrypted data hash @secret Encrypted by service public key secret for data decryption
+//@description Contains encrypted Telegram Passport data credentials @data The encrypted credentials @hash The decrypted data hash @secret Secret for data decryption, encrypted with service's public key 
 encryptedCredentials data:bytes hash:bytes secret:bytes = EncryptedCredentials;
 
 
-//@description Contains information about an encrypted Telegram Passport data; for bots only @type Telegram Passport data type @data Encrypted JSON-encoded data about the user @front_side Identity document's front side @reverse_side Identity document's reverse side; may be null @selfie Selfie with the document; may be null @files List of attached files @value Unencrypted data, phone number or email address
+//@description Contains information about encrypted Telegram Passport data; for bots only @type Type of Telegram Passport data @data Encrypted JSON-encoded data about the user @front_side The front side of an identity document @reverse_side The reverse side of an identity document; may be null @selfie Selfie with the document; may be null @files List of attached files @value Unencrypted data, phone number or email address
 encryptedPassportData type:PassportDataType data:bytes front_side:datedFile reverse_side:datedFile selfie:datedFile files:vector<datedFile> value:string = EncryptedPassportData;
 
 
-//@class InputPassportDataErrorSource @description Contains description of an error in a Telegram Passport data; for bots only
+//@class InputPassportDataErrorSource @description Contains the description of an error in Telegram Passport data; for bots only
 
-//@description A field of data contains an error. The error is considered resolved when the field's value changes @field_name Field name @data_hash Current data hash
+//@description A data field contains an error. The error is considered resolved when the field's value changes @field_name Field name @data_hash Current data hash
 inputPassportDataErrorSourceDataField field_name:string data_hash:bytes = InputPassportDataErrorSource;
 
-//@description A document front side contains an error. The error is considered resolved when the file with the document front side changes @file_hash Current hash of a file with the front side
+//@description The front side of the document contains an error. The error is considered resolved when the file with the document front side changes @file_hash Current hash of the file containing the front side
 inputPassportDataErrorSourceFrontSide file_hash:bytes = InputPassportDataErrorSource;
 
-//@description A document reverse side contains an error. The error is considered resolved when the file with the document reverse side changes @file_hash Current hash of a file with the reverse side
+//@description The reverse side of the document contains an error. The error is considered resolved when the file with the document reverse side changes @file_hash Current hash of the file containing the reverse side
 inputPassportDataErrorSourceReverseSide file_hash:bytes = InputPassportDataErrorSource;
 
-//@description A selfie contains an error. The error is considered resolved when the file with the selfie changes @file_hash Current hash of a file with the selfie
+//@description The selfie contains an error. The error is considered resolved when the file with the selfie changes @file_hash Current hash of the file containing the selfie
 inputPassportDataErrorSourceSelfie file_hash:bytes = InputPassportDataErrorSource;
 
-//@description A file contains an error. The error is considered resolved when the file changes @file_hash Hash of the file with an error
+//@description The file contains an error. The error is considered resolved when the file changes @file_hash Hash of the file with an error
 inputPassportDataErrorSourceFile file_hash:bytes = InputPassportDataErrorSource;
 
-//@description A list of attached files contains an error. The error is considered resolved when the file list changes @file_hashes Hashes of all files
+//@description The list of attached files contains an error. The error is considered resolved when the file list changes @file_hashes Hashes of all files
 inputPassportDataErrorSourceFiles file_hashes:vector<bytes> = InputPassportDataErrorSource;
 
 
-//@description Contains description of an error in a Telegram Passport data; for bots only @type Telegram Passport data type with the error @message Error message @source Error source
+//@description Contains the description of an error in Telegram Passport data; for bots only @type Type of Telegram Passport data that has the error @message Error message @source Error source
 inputPassportDataError type:PassportDataType message:string source:InputPassportDataErrorSource = InputPassportDataError;
 
 
@@ -1135,7 +1135,7 @@ messageContactRegistered = MessageContent;
 //@description The current user has connected a website by logging in using Telegram Login Widget on it @domain_name Domain name of the connected website
 messageWebsiteConnected domain_name:string = MessageContent;
 
-//@description Telegram Passport data has been sent @types List of types of sent data
+//@description Telegram Passport data has been sent @types List of data types sent
 messagePassportDataSent types:vector<PassportDataType> = MessageContent;
 
 //@description Telegram Passport data has been received; for bots only @data List of received Telegram Passport data @credentials Encrypted data credentials
@@ -2008,7 +2008,7 @@ count count:int32 = Count;
 //@description Contains some text @text Text
 text text:string = Text;
 
-//@description Contains a value representing number of seconds @seconds Number of seconds
+//@description Contains a value representing a number of seconds @seconds Number of seconds
 seconds seconds:double = Seconds;
 
 
@@ -2030,11 +2030,11 @@ textParseModeHTML = TextParseMode;
 //@description A SOCKS5 proxy server @username Username for logging in; may be empty @password Password for logging in; may be empty
 proxyTypeSocks5 username:string password:string = ProxyType;
 
-//@description An MTProto proxy server @secret Proxy's secret in hexadecimal encoding
+//@description An MTProto proxy server @secret The proxy's secret in hexadecimal encoding
 proxyTypeMtproto secret:string = ProxyType;
 
 
-//@description Contains information about a proxy server @id Unique proxy identifier @server Proxy server IP address @port Proxy server port @last_used_date Point in time (Unix timestamp) when the proxy was last used; 0 if never @is_enabled True, if the proxy is enabled now @type Type of a proxy
+//@description Contains information about a proxy server @id Unique identifier of the proxy @server Proxy server IP address @port Proxy server port @last_used_date Point in time (Unix timestamp) when the proxy was last used; 0 if never @is_enabled True, if the proxy is enabled now @type Type of the proxy
 proxy id:int32 server:string port:int32 last_used_date:int32 is_enabled:Bool type:ProxyType = Proxy;
 
 //@description Represents a list of proxy servers @proxies List of proxy servers
@@ -2100,10 +2100,10 @@ updateChatIsPinned chat_id:int53 is_pinned:Bool order:int64 = Update;
 //@description A chat was marked as unread or was read @chat_id Chat identifier @is_marked_as_unread New value of is_marked_as_unread
 updateChatIsMarkedAsUnread chat_id:int53 is_marked_as_unread:Bool = Update;
 
-//@description A chat is_sponsored field has changed @chat_id Chat identifier @is_sponsored New value of is_sponsored @order New value of chat order
+//@description A chat's is_sponsored field has changed @chat_id Chat identifier @is_sponsored New value of is_sponsored @order New value of chat order
 updateChatIsSponsored chat_id:int53 is_sponsored:Bool order:int64 = Update;
 
-//@description A value of default disable_notification parameter, used when a message is sent to the chat, was changed @chat_id Chat identifier @default_disable_notification The new default_disable_notification value
+//@description The value of the default disable_notification parameter, used when a message is sent to the chat, was changed @chat_id Chat identifier @default_disable_notification The new default_disable_notification value
 updateChatDefaultDisableNotification chat_id:int53 default_disable_notification:Bool = Update;
 
 //@description Incoming messages were read or number of unread messages has been changed @chat_id Chat identifier @last_read_inbox_message_id Identifier of the last read incoming message @unread_count The number of unread messages left in the chat
@@ -2213,7 +2213,7 @@ updateSavedAnimations animation_ids:vector<int32> = Update;
 //@description The connection state has changed @state The new connection state
 updateConnectionState state:ConnectionState = Update;
 
-//@description A new terms of service should be accepted by the user. If the terms of service are declined, then deleteAccount method should be called with "Decline ToS update" reason @terms_of_service_id Terms of service identifier @terms_of_service The new terms of service
+//@description New terms of service must be accepted by the user. If the terms of service are declined, then the deleteAccount method should be called with the reason "Decline ToS update" @terms_of_service_id Identifier of the terms of service @terms_of_service The new terms of service
 updateTermsOfService terms_of_service_id:string terms_of_service:termsOfService = Update;
 
 //@description A new incoming inline query; for bots only @id Unique query identifier @sender_user_id Identifier of the user who sent the query @user_location User location, provided by the client; may be null @query Text of the query @offset Offset of the first entry to return
@@ -2519,7 +2519,7 @@ sendChatSetTtlMessage chat_id:int53 ttl:int32 = Message;
 //@description Sends a notification about a screenshot taken in a chat. Supported only in private and secret chats @chat_id Chat identifier
 sendChatScreenshotTakenNotification chat_id:int53 = Ok;
 
-//@description Adds a local message to a chat. The message is persistent across application restarts only if the message database is used. Returns the added message @chat_id Target chat @sender_user_id Identifier of the user who will be shown as message sender; may be 0 for channel posts
+//@description Adds a local message to a chat. The message is persistent across application restarts only if the message database is used. Returns the added message @chat_id Target chat @sender_user_id Identifier of the user who will be shown as the sender of the message; may be 0 for channel posts
 //@reply_to_message_id Identifier of the message to reply to or 0 @disable_notification Pass true to disable notification for the message @input_message_content The content of the message to be added
 addLocalMessage chat_id:int53 sender_user_id:int32 reply_to_message_id:int53 disable_notification:Bool input_message_content:InputMessageContent = Message;
 
@@ -2579,7 +2579,7 @@ getFileMimeType file_name:string = Text;
 //@description Returns the extension of a file, guessed by its MIME type. Returns an empty string on failure. This is an offline method. Can be called before authorization. Can be called synchronously @mime_type The MIME type of the file
 getFileExtension mime_type:string = Text;
 
-//@description Removes potentially dangerous characters from a file name. File name encoding supposed to be UTF-8. Returns an empty string on failure. This is an offline method. Can be called before authorization. Can be called synchronously @file_name The name of the file or path to the file
+//@description Removes potentially dangerous characters from the name of a file. The encoding of the file name is supposed to be UTF-8. Returns an empty string on failure. This is an offline method. Can be called before authorization. Can be called synchronously @file_name File name or path to the file
 cleanFileName file_name:string = Text;
 
 
@@ -2685,7 +2685,7 @@ setChatPhoto chat_id:int53 photo:InputFile = Ok;
 //@description Changes the draft message in a chat @chat_id Chat identifier @draft_message New draft message; may be null
 setChatDraftMessage chat_id:int53 draft_message:draftMessage = Ok;
 
-//@description Changes notification settings of a chat @chat_id Chat identifier @notification_settings The new notification settings for the chat
+//@description Changes the notification settings of a chat @chat_id Chat identifier @notification_settings New notification settings for the chat
 setChatNotificationSettings chat_id:int53 notification_settings:chatNotificationSettings = Ok;
 
 //@description Changes the pinned state of a chat. You can pin up to GetOption("pinned_chat_count_max") non-secret chats and the same number of secret chats @chat_id Chat identifier @is_pinned New value of is_pinned
@@ -2694,7 +2694,7 @@ toggleChatIsPinned chat_id:int53 is_pinned:Bool = Ok;
 //@description Changes the marked as unread state of a chat @chat_id Chat identifier @is_marked_as_unread New value of is_marked_as_unread
 toggleChatIsMarkedAsUnread chat_id:int53 is_marked_as_unread:Bool = Ok;
 
-//@description Changes the value of default disable_notification parameter, used when a message is sent to a chat @chat_id Chat identifier @default_disable_notification New value of default_disable_notification
+//@description Changes the value of the default disable_notification parameter, used when a message is sent to a chat @chat_id Chat identifier @default_disable_notification New value of default_disable_notification
 toggleChatDefaultDisableNotification chat_id:int53 default_disable_notification:Bool = Ok;
 
 //@description Changes client data associated with a chat @chat_id Chat identifier @client_data New value of client_data
@@ -2722,10 +2722,10 @@ searchChatMembers chat_id:int53 query:string limit:int32 = ChatMembers;
 getChatAdministrators chat_id:int53 = Users;
 
 
-//@description Returns the notification settings for a given scope @scope Scope for which to return the notification settings information
+//@description Returns the notification settings for chats of a given type @scope Types of chats for which to return the notification settings information
 getScopeNotificationSettings scope:NotificationSettingsScope = ScopeNotificationSettings;
 
-//@description Changes notification settings for a given scope @scope Scope for which to change the notification settings @notification_settings The new notification settings for the given scope
+//@description Changes notification settings for chats of a given type @scope Types of chats for which to change the notification settings @notification_settings The new notification settings for the given scope
 setScopeNotificationSettings scope:NotificationSettingsScope notification_settings:scopeNotificationSettings = Ok;
 
 //@description Resets all notification settings to their default values. By default, all chats are unmuted, the sound is set to "default" and message previews are shown
@@ -3131,58 +3131,58 @@ addNetworkStatistics entry:NetworkStatisticsEntry = Ok;
 resetNetworkStatistics = Ok;
 
 
-//@description Returns filled Telegram Passport data @type Data type @password Password of the current user
+//@description Returns the available Telegram Passport data @type Data type @password Password of the current user
 getPassportData type:PassportDataType password:string = PassportData;
 
-//@description Returns all filled Telegram Passport data @password Password of the current user
+//@description Returns all available Telegram Passport data @password Password of the current user
 getAllPassportData password:string = AllPassportData;
 
-//@description Sets Telegram Passport data. May return an error with a message "PHONE_VERIFICATION_NEEDED" or "EMAIL_VERIFICATION_NEEDED" if the set phone number or the set email address must be verified first @data Input Telegram Passport data @password Password of the current user
+//@description Sets Telegram Passport data. May return an error with a message "PHONE_VERIFICATION_NEEDED" or "EMAIL_VERIFICATION_NEEDED" if the chosen phone number or the chosen email address must be verified first @data Input Telegram Passport data @password Password of the current user
 setPassportData data:InputPassportData password:string = PassportData;
 
 //@description Deletes Telegram Passport data @type Data type
 deletePassportData type:PassportDataType = Ok;
 
-//@description Informs a user that some Telegram Passport data contains errors; for bots only. The user will not be able to resend data, until the errors are fixed @user_id User identifier @errors The errors
+//@description Informs a user that some of the Telegram Passport data contains errors; for bots only. The user will not be able to resend data, until the errors are fixed @user_id User identifier @errors The errors
 setPassportDataErrors user_id:int32 errors:vector<inputPassportDataError> = Ok;
 
 
-//@description Sends phone number verification code for Telegram Passport
+//@description Sends a code to verify a phone number to be added to a user's Telegram Passport
 //@phone_number The phone number of the user, in international format @allow_flash_call Pass true if the authentication code may be sent via flash call to the specified phone number @is_current_phone_number Pass true if the phone number is used on the current device. Ignored if allow_flash_call is false
 sendPhoneNumberVerificationCode phone_number:string allow_flash_call:Bool is_current_phone_number:Bool = AuthenticationCodeInfo;
 
-//@description Resends phone number verification code for Telegram Passport
+//@description Re-sends the code to verify a phone number to be added to a user's Telegram Passport
 resendPhoneNumberVerificationCode = AuthenticationCodeInfo;
 
-//@description Checks phone number verification code for Telegram Passport @code The verification code
+//@description Checks the phone number verification code for Telegram Passport @code Verification code
 checkPhoneNumberVerificationCode code:string = Ok;
 
 
-//@description Sends email address verification code for Telegram Passport @email_address The email address
+//@description Sends a code to verify an email address to be added to a user's Telegram Passport @email_address Email address
 sendEmailAddressVerificationCode email_address:string = EmailAddressAuthenticationCodeInfo;
 
-//@description Resends email address verification code for Telegram Passport
+//@description Re-sends the code to verify an email address to be added to a user's Telegram Passport
 resendEmailAddressVerificationCode = EmailAddressAuthenticationCodeInfo;
 
-//@description Checks email address verification code for Telegram Passport @code The verification code
+//@description Checks the email address verification code for Telegram Passport @code Verification code
 checkEmailAddressVerificationCode code:string = Ok;
 
 
-//@description Returns Telegram Passport authorization form for sharing data with a service @bot_user_id Service's bot user identifier @scope Telegram Passport data types requested by the service @public_key Service's public_key @payload Authorization form payload provided by the service @password Password of the current user
+//@description Returns a Telegram Passport authorization form for sharing data with a service @bot_user_id User identified of the service's bot @scope Telegram Passport data types requested by the service @public_key Service's public_key @payload Authorization form payload provided by the service @password Password of the current user
 getPassportAuthorizationForm bot_user_id:int32 scope:string public_key:string payload:string password:string = PassportAuthorizationForm;
 
-//@description Sends Telegram Passport authorization form, effectively sharing data with the service @autorization_form_id Authorization form identifier @types Types of Telegram Passport data chosen by user to complete the authorization form @password Password of the current user
+//@description Sends a Telegram Passport authorization form, effectively sharing data with the service @autorization_form_id Authorization form identifier @types Types of Telegram Passport data chosen by user to complete the authorization form @password Password of the current user
 sendPassportAuthorizationForm autorization_form_id:int32 types:vector<PassportDataType> password:string = Ok;
 
 
-//@description Sends phone number comfirmation code. Should be called when user presses "https://t.me/confirmphone?phone=*******&hash=**********" or "tg://confirmphone?phone=*******&hash=**********" link @hash Value of the "hash" parameter from the link
+//@description Sends phone number confirmation code. Should be called when user presses "https://t.me/confirmphone?phone=*******&hash=**********" or "tg://confirmphone?phone=*******&hash=**********" link @hash Value of the "hash" parameter from the link
 //@phone_number Value of the "phone" parameter from the link @allow_flash_call Pass true if the authentication code may be sent via flash call to the specified phone number @is_current_phone_number Pass true if the phone number is used on the current device. Ignored if allow_flash_call is false
 sendPhoneNumberConfirmationCode hash:string phone_number:string allow_flash_call:Bool is_current_phone_number:Bool = AuthenticationCodeInfo;
 
-//@description Resends phone number comfirmation code
+//@description Resends phone number confirmation code
 resendPhoneNumberConfirmationCode = AuthenticationCodeInfo;
 
-//@description Checks phone number comfirmation code @code The phone number confirmation code
+//@description Checks phone number confirmation code @code The phone number confirmation code
 checkPhoneNumberConfirmationCode code:string = Ok;
 
 
@@ -3232,13 +3232,13 @@ getInviteText = Text;
 getDeepLinkInfo link:string = DeepLinkInfo;
 
 
-//@description Adds a proxy server for network requests. Can be called before authorization @server Proxy server IP address @port Proxy server port @enable True, if the proxy should be enabled @type Type of the proxy
+//@description Adds a proxy server for network requests. Can be called before authorization @server Proxy server IP address @port Proxy server port @enable True, if the proxy should be enabled @type Proxy type
 addProxy server:string port:int32 enable:Bool type:ProxyType = Proxy;
 
 //@description Enables a proxy. Only one proxy can be enabled at a time. Can be called before authorization @proxy_id Proxy identifier
 enableProxy proxy_id:int32 = Ok;
 
-//@description Disables currently enabled proxy. Can be called before authorization
+//@description Disables the currently enabled proxy. Can be called before authorization
 disableProxy = Ok;
 
 //@description Removes a proxy server. Can be called before authorization @proxy_id Proxy identifier
@@ -3247,10 +3247,10 @@ removeProxy proxy_id:int32 = Ok;
 //@description Returns list of proxies that are currently set up. Can be called before authorization
 getProxies = Proxies;
 
-//@description Returns an HTTPS link, which can be used to add the proxy. Available only for SOCKS5 and MTProto proxies. Can be called before authorization @proxy_id Proxy identifier
+//@description Returns an HTTPS link, which can be used to add a proxy. Available only for SOCKS5 and MTProto proxies. Can be called before authorization @proxy_id Proxy identifier
 getProxyLink proxy_id:int32 = Text;
 
-//@description Computes time needed to receive a response from a Telegram server through the proxy. Can be called before authorization @proxy_id Proxy identifier. Use 0 to ping a Telegram server without a proxy
+//@description Computes time needed to receive a response from a Telegram server through a proxy. Can be called before authorization @proxy_id Proxy identifier. Use 0 to ping a Telegram server without a proxy
 pingProxy proxy_id:int32 = Seconds;
 
 
