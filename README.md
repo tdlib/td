@@ -71,7 +71,7 @@ cmake --build .
 ```
 brew install gperf cmake openssl
 ```
-* Build `TDLib` with CMake as explained in [building](#building). You may need to manually specify path to the installed OpenSSL to CMake, e.g.,
+* Build `TDLib` with CMake as explained in [building](#building). You will likely need to manually specify path to the installed OpenSSL to CMake, e.g.,
 ```
 cmake -DCMAKE_BUILD_TYPE=Release -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl/ ..
 ```
