@@ -9756,6 +9756,7 @@ void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *message) {
       // can happen if message content file id is broken
       break;
     default:
+      CHECK(false) << d->dialog_id << " " << message->ttl << " " << message->content->get_id();
       UNREACHABLE();
   }
   message->ttl = 0;
