@@ -152,6 +152,14 @@ class BinlogReader {
   int64 expected_size_{0};
   bool is_encrypted_{false};
 };
+
+static int64 file_size(CSlice path) {
+  auto r_stat = stat(path);
+  if (r_stat.is_error()) {
+    return 0;
+  }
+  return r_stat.ok().size_;
+}
 }  // namespace detail
 
 bool Binlog::IGNORE_ERASE_HACK = false;
@@ -370,11 +378,13 @@ void Binlog::do_event(BinlogEvent &&event) {
   if (state_ != State::Reindex) {
     auto status = processor_->add_event(std::move(event));
     if (status.is_error()) {
+      auto old_size = detail::file_size(path_);
       if (state_ == State::Load) {
         fd_.seek(fd_size_).ensure();
         fd_.truncate_to_current_position(fd_size_).ensure();
       }
-      LOG(FATAL) << status << " " << tag("state", static_cast<int32>(state_));
+      LOG(FATAL) << "Truncate binlog \"" << path_ << "\" in state " << static_cast<int32>(state_) << " from size "
+                 << old_size << " to size " << fd_size_ << " due to error: " << status;
     }
   }
 
@@ -480,9 +490,11 @@ Status Binlog::load_binlog(const Callback &callback, const Callback &debug_callb
     auto r_need_size = reader.read_next(&event);
     if (r_need_size.is_error()) {
       if (r_need_size.error().code() == -2) {
+        auto old_size = detail::file_size(path_);
         fd_.seek(reader.offset()).ensure();
         fd_.truncate_to_current_position(reader.offset()).ensure();
-        LOG(FATAL) << r_need_size.error();
+        LOG(FATAL) << "Truncate binlog \"" << path_ << "\" from size " << old_size << " to size " << reader.offset()
+                   << " due to error: " << r_need_size.error();
       }
       LOG(ERROR) << r_need_size.error();
       break;
@@ -545,14 +557,6 @@ Status Binlog::load_binlog(const Callback &callback, const Callback &debug_callb
   return Status::OK();
 }
 
-static int64 file_size(CSlice path) {
-  auto r_stat = stat(path);
-  if (r_stat.is_error()) {
-    return 0;
-  }
-  return r_stat.ok().size_;
-}
-
 void Binlog::update_encryption(Slice key, Slice iv) {
   MutableSlice(aes_ctr_key_.raw, sizeof(aes_ctr_key_.raw)).copy_from(key);
   UInt128 aes_ctr_iv;
@@ -602,7 +606,7 @@ void Binlog::do_reindex() {
   };
 
   auto start_time = Clocks::monotonic();
-  auto start_size = file_size(path_);
+  auto start_size = detail::file_size(path_);
   auto start_events = fd_events_;
 
   string new_path = path_ + ".new";
@@ -639,7 +643,8 @@ void Binlog::do_reindex() {
   auto finish_time = Clocks::monotonic();
   auto finish_size = fd_size_;
   auto finish_events = fd_events_;
-  CHECK(fd_size_ == file_size(path_)) << fd_size_ << ' ' << file_size(path_) << ' ' << fd_events_ << ' ' << path_;
+  CHECK(fd_size_ == detail::file_size(path_))
+      << fd_size_ << ' ' << detail::file_size(path_) << ' ' << fd_events_ << ' ' << path_;
 
   double ratio = static_cast<double>(start_size) / static_cast<double>(finish_size + 1);
   LOG(INFO) << "regenerate index " << tag("name", path_) << tag("time", format::as_time(finish_time - start_time))
