@@ -15,8 +15,8 @@ namespace td {
 namespace detail {
 class BinlogEventsProcessor {
  public:
-  void add_event(BinlogEvent &&event) {
-    do_event(std::move(event));
+  Status add_event(BinlogEvent &&event) TD_WARN_UNUSED_RESULT {
+    return do_event(std::move(event));
   }
 
   template <class CallbackT>
@@ -50,7 +50,7 @@ class BinlogEventsProcessor {
   int64 offset_{0};
   int64 total_raw_events_size_{0};
 
-  void do_event(BinlogEvent &&event);
+  Status do_event(BinlogEvent &&event);
   void compactify();
 };
 }  // namespace detail

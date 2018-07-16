@@ -448,7 +448,7 @@ class FakeBinlog
       auto event = std::move(pending.event);
       if (!event.empty()) {
         LOG(INFO) << "SAVE EVENT: " << event.id_ << " " << event;
-        events_processor_.add_event(std::move(event));
+        events_processor_.add_event(std::move(event)).ensure();
       }
       append(promises, std::move(pending.promises_));
     }

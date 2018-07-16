@@ -13,14 +13,13 @@
 namespace td {
 namespace detail {
 
-void BinlogEventsProcessor::do_event(BinlogEvent &&event) {
+Status BinlogEventsProcessor::do_event(BinlogEvent &&event) {
   offset_ = event.offset_;
   auto fixed_id = event.id_ * 2;
   if ((event.flags_ & BinlogEvent::Flags::Rewrite) && !ids_.empty() && ids_.back() >= fixed_id) {
     auto it = std::lower_bound(ids_.begin(), ids_.end(), fixed_id);
     if (it == ids_.end() || *it != fixed_id) {
-      LOG(FATAL) << "Ignore rewrite logevent " << event.public_to_string();
-      return;
+      return Status::Error(PSLICE() << "Ignore rewrite logevent " << event.public_to_string());
     }
     auto pos = it - ids_.begin();
     total_raw_events_size_ -= static_cast<int64>(events_[pos].raw_event_.size());
@@ -36,9 +35,11 @@ void BinlogEventsProcessor::do_event(BinlogEvent &&event) {
   } else if (event.type_ < 0) {
     // just skip service events
   } else {
-    CHECK(ids_.empty() || ids_.back() < fixed_id)
-        << offset_ << " " << ids_.size() << " " << ids_.back() << " " << fixed_id << " " << event.public_to_string()
-        << " " << total_events_ << " " << total_raw_events_size_;
+    if (!(ids_.empty() || ids_.back() < fixed_id)) {
+      return Status::Error(PSLICE() << offset_ << " " << ids_.size() << " " << ids_.back() << " " << fixed_id << " "
+                                    << event.public_to_string() << " " << total_events_ << " "
+                                    << total_raw_events_size_);
+    }
     last_id_ = event.id_;
     total_raw_events_size_ += static_cast<int64>(event.raw_event_.size());
     total_events_++;
@@ -49,6 +50,7 @@ void BinlogEventsProcessor::do_event(BinlogEvent &&event) {
   if (total_events_ > 10 && empty_events_ * 4 > total_events_ * 3) {
     compactify();
   }
+  return Status::OK();
 }
 
 void BinlogEventsProcessor::compactify() {

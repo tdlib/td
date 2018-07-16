@@ -305,9 +305,6 @@ Status Binlog::destroy(Slice path) {
 }
 
 void Binlog::do_event(BinlogEvent &&event) {
-  fd_events_++;
-  fd_size_ += event.raw_event_.size();
-
   if (state_ == State::Run || state_ == State::Reindex) {
     VLOG(binlog) << "Write binlog event: " << format::cond(state_ == State::Reindex, "[reindex] ");
     auto validate_status = event.validate();
@@ -371,8 +368,18 @@ void Binlog::do_event(BinlogEvent &&event) {
   }
 
   if (state_ != State::Reindex) {
-    processor_->add_event(std::move(event));
+    auto status = processor_->add_event(std::move(event));
+    if (status.is_error()) {
+      if (state_ == State::Load) {
+        fd_.seek(fd_size_).ensure();
+        fd_.truncate_to_current_position(fd_size_).ensure();
+      }
+      LOG(FATAL) << status << " " << tag("state", static_cast<int32>(state_));
+    }
   }
+
+  fd_events_++;
+  fd_size_ += event.raw_event_.size();
 }
 
 void Binlog::sync() {
