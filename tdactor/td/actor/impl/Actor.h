@@ -115,7 +115,8 @@ inline ActorId<> Actor::actor_id() {
 }
 template <class SelfT>
 ActorId<SelfT> Actor::actor_id(SelfT *self) {
-  CHECK(static_cast<Actor *>(self) == this);
+  CHECK(static_cast<Actor *>(self) == this)
+      << self << " " << static_cast<Actor *>(self) << " " << this << " " << empty();
   return ActorId<SelfT>(info_.get_weak());
 }
 
@@ -124,7 +125,8 @@ inline ActorShared<> Actor::actor_shared() {
 }
 template <class SelfT>
 ActorShared<SelfT> Actor::actor_shared(SelfT *self, uint64 id) {
-  CHECK(static_cast<Actor *>(self) == this);
+  CHECK(static_cast<Actor *>(self) == this)
+      << self << " " << static_cast<Actor *>(self) << " " << this << " " << empty();
   return ActorShared<SelfT>(actor_id(self), id);
 }
 
