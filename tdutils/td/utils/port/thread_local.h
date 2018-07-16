@@ -27,10 +27,6 @@ namespace td {
 #endif
 // clang-format on
 
-inline constexpr size_t max_thread_count() {
-  return 256;
-}
-
 // If raw_ptr is not nullptr, allocate T as in std::make_unique<T>(args...) and store pointer into raw_ptr
 template <class T, class P, class... ArgsT>
 bool init_thread_local(P &raw_ptr, ArgsT &&... args);

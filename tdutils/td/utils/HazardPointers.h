@@ -126,6 +126,7 @@ class HazardPointers {
   }
 
   std::atomic<T *> &get_hazard_ptr(size_t thread_id, size_t pos) {
+    CHECK(thread_id < threads_.size());
     return threads_[thread_id].hazard[pos];
   }
 };

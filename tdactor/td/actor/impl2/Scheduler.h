@@ -780,6 +780,16 @@ class SchedulerContext
 
 #if !TD_THREAD_UNSUPPORTED
 class Scheduler {
+  static constexpr int32 max_thread_count() {
+    return 256;
+  }
+
+  static int32 get_thread_id() {
+    auto thread_id = ::td::get_thread_id();
+    CHECK(thread_id < max_thread_count());
+    return thread_id;
+  }
+
  public:
   Scheduler(std::shared_ptr<SchedulerGroupInfo> scheduler_group_info, SchedulerId id, size_t cpu_threads_count)
       : scheduler_group_info_(std::move(scheduler_group_info)), cpu_threads_(cpu_threads_count) {
