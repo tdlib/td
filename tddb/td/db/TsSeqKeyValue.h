@@ -15,6 +15,7 @@
 #include <utility>
 
 namespace td {
+
 class TsSeqKeyValue {
  public:
   using SeqNo = SeqKeyValue::SeqNo;
@@ -68,4 +69,5 @@ class TsSeqKeyValue {
   RwMutex rw_mutex_;
   SeqKeyValue kv_;
 };
+
 }  // namespace td

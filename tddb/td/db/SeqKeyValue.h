@@ -11,6 +11,7 @@
 #include <unordered_map>
 
 namespace td {
+
 class SeqKeyValue {
  public:
   using SeqNo = uint64;
@@ -51,7 +52,7 @@ class SeqKeyValue {
   }
 
   template <class F>
-  void foreach (const F &f) {
+  void foreach(const F &f) {
     for (auto &it : map_) {
       f(it.first, it.second);
     }
@@ -75,4 +76,5 @@ class SeqKeyValue {
     return ++current_id_;
   }
 };
+
 }  // namespace td

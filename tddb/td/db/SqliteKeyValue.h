@@ -82,9 +82,6 @@ class SqliteKeyValue {
   void close() {
     clear();
   }
-  void close_silent() {
-    clear();
-  }
   static Status destroy(Slice name) {
     return SqliteDb::destroy(name);
   }

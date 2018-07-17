@@ -55,7 +55,7 @@ DerivePointerAlignment: true
 DisableFormat:   false
 ExperimentalAutoDetectBinPacking: false
 FixNamespaceComments: true
-# ForEachMacros: [ foreach, Q_FOREACH, BOOST_FOREACH ]
+ForEachMacros: [ Q_FOREACH_THIS_LIST_MUST_BE_NON_EMPTY ]
 IndentCaseLabels: true
 IndentPPDirectives: None
 IndentWidth:     2
