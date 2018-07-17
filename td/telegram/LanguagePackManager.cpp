@@ -13,6 +13,7 @@
 #include "td/telegram/Td.h"
 
 #include "td/utils/logging.h"
+#include "td/utils/Status.h"
 
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -49,7 +50,7 @@ void LanguagePackManager::on_language_code_changed() {
 
 void LanguagePackManager::on_language_pack_version_changed(int32 new_version) {
   Language *language = get_language(language_pack_, language_code_);
-  auto version = language == nullptr ? -1 : language->version_;
+  int32 version = language == nullptr ? static_cast<int32>(-1) : language->version_.load();
   if (version == -1) {
     return;
   }
@@ -102,7 +103,7 @@ void LanguagePackManager::on_update_language_pack(tl_object_ptr<telegram_api::la
   }
 
   Language *language = get_language(language_pack_, language_code_);
-  auto version = language == nullptr ? -1 : language->version_;
+  int32 version = language == nullptr ? static_cast<int32>(-1) : language->version_.load();
   if (difference->version_ <= version) {
     LOG(INFO) << "Skip applying already applied updates";
     return;
