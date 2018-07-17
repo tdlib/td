@@ -1231,6 +1231,8 @@ class MessagesManager : public Actor {
   Status set_dialog_draft_message(DialogId dialog_id,
                                   tl_object_ptr<td_api::draftMessage> &&draft_message) TD_WARN_UNUSED_RESULT;
 
+  void clear_all_draft_messages(Promise<Unit> &&promise);
+
   Status toggle_dialog_is_pinned(DialogId dialog_id, bool is_pinned) TD_WARN_UNUSED_RESULT;
 
   Status toggle_dialog_is_marked_as_unread(DialogId dialog_id, bool is_marked_as_unread) TD_WARN_UNUSED_RESULT;

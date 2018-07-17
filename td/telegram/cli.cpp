@@ -2256,6 +2256,8 @@ class CliClient final : public Actor {
             make_tl_object<td_api::inputMessageText>(as_formatted_text(message, std::move(entities)), true, false));
       }
       send_request(make_tl_object<td_api::setChatDraftMessage>(as_chat_id(chat_id), std::move(draft_message)));
+    } else if (op == "cadm") {
+      send_request(make_tl_object<td_api::clearAllDraftMessages>());
     } else if (op == "tcip") {
       string chat_id;
       string is_pinned;
@@ -3157,6 +3159,8 @@ class CliClient final : public Actor {
         reason = make_tl_object<td_api::chatReportReasonViolence>();
       } else if (reason_str == "porno") {
         reason = make_tl_object<td_api::chatReportReasonPornography>();
+      } else if (reason_str == "copyright") {
+        reason = make_tl_object<td_api::chatReportReasonCopyright>();
       } else {
         reason = make_tl_object<td_api::chatReportReasonCustom>(reason_str);
       }

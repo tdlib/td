@@ -1838,6 +1838,9 @@ chatReportReasonViolence = ChatReportReason;
 //@description The chat contains pornographic messages
 chatReportReasonPornography = ChatReportReason;
 
+//@description The chat contains copyrighted content
+chatReportReasonCopyright = ChatReportReason;
+
 //@description A custom reason provided by the user @text Report text
 chatReportReasonCustom text:string = ChatReportReason;
 
@@ -2723,6 +2726,10 @@ searchChatMembers chat_id:int53 query:string limit:int32 = ChatMembers;
 
 //@description Returns a list of users who are administrators of the chat @chat_id Chat identifier
 getChatAdministrators chat_id:int53 = Users;
+
+
+//@description Clears draft messages in all chats
+clearAllDraftMessages = Ok;
 
 
 //@description Returns the notification settings for chats of a given type @scope Types of chats for which to return the notification settings information

@@ -5473,6 +5473,12 @@ void Td::on_request(uint64 id, td_api::getChatEventLog &request) {
                  request.limit_, std::move(request.filters_), std::move(request.user_ids_));
 }
 
+void Td::on_request(uint64 id, const td_api::clearAllDraftMessages &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->clear_all_draft_messages(std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::downloadFile &request) {
   auto priority = request.priority_;
   if (!(1 <= priority && priority <= 32)) {

@@ -905,6 +905,39 @@ class SaveDraftMessageQuery : public Td::ResultHandler {
   }
 };
 
+class ClearAllDraftsQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit ClearAllDraftsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_clearAllDrafts())));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_clearAllDrafts>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.move_as_ok();
+    if (!result) {
+      LOG(INFO) << "Receive false for clearAllDrafts";
+    } else {
+      LOG(INFO) << "All draft messages has been cleared";
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    LOG(ERROR) << "Receive error for ClearAllDraftsQuery: " << status;
+    promise_.set_error(std::move(status));
+  }
+};
+
 class ToggleDialogPinQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -6806,6 +6839,9 @@ void MessagesManager::report_dialog(DialogId dialog_id, const tl_object_ptr<td_a
       break;
     case td_api::chatReportReasonPornography::ID:
       report_reason = make_tl_object<telegram_api::inputReportReasonPornography>();
+      break;
+    case td_api::chatReportReasonCopyright::ID:
+      report_reason = make_tl_object<telegram_api::inputReportReasonCopyright>();
       break;
     case td_api::chatReportReasonCustom::ID: {
       auto other_reason = static_cast<const td_api::chatReportReasonCustom *>(reason.get());
@@ -12723,6 +12759,16 @@ void MessagesManager::on_saved_dialog_draft_message(DialogId dialog_id, uint64 g
     binlog_erase(G()->td_db()->get_binlog(), d->save_draft_message_logevent_id);
     d->save_draft_message_logevent_id = 0;
   }
+}
+
+void MessagesManager::clear_all_draft_messages(Promise<Unit> &&promise) {
+  for (auto &dialog : dialogs_) {
+    Dialog *d = dialog.second.get();
+    if (d->dialog_id.get_type() == DialogType::SecretChat) {
+      update_dialog_draft_message(d, nullptr, false, true);
+    }
+  }
+  td_->create_handler<ClearAllDraftsQuery>(std::move(promise))->send();
 }
 
 int32 MessagesManager::get_pinned_dialogs_limit() {
