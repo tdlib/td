@@ -7,8 +7,6 @@ set(TDACTOR_SOURCE
   td/actor/MultiPromise.cpp
   td/actor/Timeout.cpp
 
-  td/actor/impl2/Scheduler.cpp
-
   td/actor/impl/Actor-decl.h
   td/actor/impl/Actor.h
   td/actor/impl/ActorId-decl.h
@@ -29,16 +27,9 @@ set(TDACTOR_SOURCE
   td/actor/SleepActor.h
   td/actor/Timeout.h
   td/actor/actor.h
-
-  td/actor/impl2/ActorLocker.h
-  td/actor/impl2/ActorSignals.h
-  td/actor/impl2/ActorState.h
-  td/actor/impl2/Scheduler.h
-  td/actor/impl2/SchedulerId.h
 )
 
 set(TDACTOR_TEST_SOURCE
-  ${CMAKE_CURRENT_SOURCE_DIR}/test/actors_impl2.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/actors_main.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/actors_simple.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/actors_workers.cpp
