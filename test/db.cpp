@@ -136,7 +136,7 @@ TEST(DB, sqlite_encryption) {
     auto db = SqliteDb::open_with_key(path, empty).move_as_ok();
     db.set_user_version(123);
     auto kv = SqliteKeyValue();
-    kv.init_with_connection(db.clone(), "kv");
+    kv.init_with_connection(db.clone(), "kv").ensure();
     kv.set("a", "b");
   }
   SqliteDb::open_with_key(path, cucumber).ensure_error();  // key was set...
@@ -147,7 +147,7 @@ TEST(DB, sqlite_encryption) {
   {
     auto db = SqliteDb::open_with_key(path, cucumber).move_as_ok();
     auto kv = SqliteKeyValue();
-    kv.init_with_connection(db.clone(), "kv");
+    kv.init_with_connection(db.clone(), "kv").ensure();
     CHECK(kv.get("a") == "b");
     CHECK(db.user_version().ok() == 123);
   }
@@ -159,7 +159,7 @@ TEST(DB, sqlite_encryption) {
   {
     auto db = SqliteDb::open_with_key(path, tomato).move_as_ok();
     auto kv = SqliteKeyValue();
-    kv.init_with_connection(db.clone(), "kv");
+    kv.init_with_connection(db.clone(), "kv").ensure();
     CHECK(kv.get("a") == "b");
     CHECK(db.user_version().ok() == 123);
   }
@@ -170,7 +170,7 @@ TEST(DB, sqlite_encryption) {
   {
     auto db = SqliteDb::open_with_key(path, empty).move_as_ok();
     auto kv = SqliteKeyValue();
-    kv.init_with_connection(db.clone(), "kv");
+    kv.init_with_connection(db.clone(), "kv").ensure();
     CHECK(kv.get("a") == "b");
     CHECK(db.user_version().ok() == 123);
   }
