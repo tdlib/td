@@ -987,7 +987,7 @@ passportDataError type:PassportDataType message:string source:PassportDataErrorS
 passportAuthorizationForm id:int32 required_types:vector<PassportDataType> data:vector<PassportData> errors:vector<passportDataError> is_selfie_required:Bool privacy_policy_url:string = PassportAuthorizationForm;
 
 
-//@description Contains encrypted Telegram Passport data credentials @data The encrypted credentials @hash The decrypted data hash @secret Secret for data decryption, encrypted with service's public key 
+//@description Contains encrypted Telegram Passport data credentials @data The encrypted credentials @hash The decrypted data hash @secret Secret for data decryption, encrypted with service's public key
 encryptedCredentials data:bytes hash:bytes secret:bytes = EncryptedCredentials;
 
 

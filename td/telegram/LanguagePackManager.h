@@ -15,12 +15,12 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/Container.h"
-#include "td/utils/Status.h"
 
 #include <atomic>
 #include <mutex>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 
 namespace td {
 
@@ -53,7 +53,7 @@ class LanguagePackManager : public NetQueryCallback {
   };
 
   struct Language {
-    std::mutex mutex_;  // TODO RwMutex
+    std::mutex mutex_;
     std::atomic<int32> version_{-1};
     bool has_get_difference_query_ = false;
     std::unordered_map<string, string> ordinary_strings_;

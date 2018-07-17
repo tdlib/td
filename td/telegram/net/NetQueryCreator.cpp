@@ -7,6 +7,7 @@
 #include "td/telegram/net/NetQueryCreator.h"
 
 #include "td/utils/Gzip.h"
+#include "td/utils/logging.h"
 
 namespace td {
 

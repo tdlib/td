@@ -7,6 +7,7 @@
 #include "td/db/binlog/detail/BinlogEventsProcessor.h"
 
 #include "td/utils/logging.h"
+#include "td/utils/Status.h"
 
 #include <algorithm>
 
