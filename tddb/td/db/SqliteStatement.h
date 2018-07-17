@@ -77,4 +77,5 @@ class SqliteStatement {
 
   Status last_error();
 };
+
 }  // namespace td

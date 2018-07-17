@@ -42,7 +42,7 @@ class SqliteKeyValue {
     return is_created;
   }
 
-  Status init_with_connection(SqliteDb connection, string kv_name) {
+  Status init_with_connection(SqliteDb connection, string kv_name) TD_WARN_UNUSED_RESULT {
     db_ = std::move(connection);
     kv_name_ = std::move(kv_name);
     TRY_STATUS(init(db_, kv_name_));
@@ -82,7 +82,7 @@ class SqliteKeyValue {
   void close() {
     clear();
   }
-  static Status destroy(Slice name) {
+  static Status destroy(Slice name) TD_WARN_UNUSED_RESULT {
     return SqliteDb::destroy(name);
   }
   void close_and_destroy() {
@@ -122,10 +122,10 @@ class SqliteKeyValue {
     return data;
   }
 
-  Status begin_transaction() {
+  Status begin_transaction() TD_WARN_UNUSED_RESULT {
     return db_.begin_transaction();
   }
-  Status commit_transaction() {
+  Status commit_transaction() TD_WARN_UNUSED_RESULT {
     return db_.commit_transaction();
   }
 

@@ -200,4 +200,5 @@ void SqliteStatement::StmtDeleter::operator()(sqlite3_stmt *stmt) {
 Status SqliteStatement::last_error() {
   return db_->last_error();
 }
+
 }  // namespace td
