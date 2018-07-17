@@ -19,6 +19,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/InlineQueriesManager.h"
+#include "td/telegram/LanguagePackManager.h"
 #include "td/telegram/Location.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
@@ -1816,12 +1817,16 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateContactsReset> 
   td_->contacts_manager_->on_update_contacts_reset();
 }
 
-// unsupported updates
-
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateLangPackTooLong> update, bool /*force_apply*/) {
+  send_closure(G()->language_pack_manager(), &LanguagePackManager::on_language_pack_version_changed,
+               std::numeric_limits<int32>::max());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateLangPack> update, bool /*force_apply*/) {
+  send_closure(G()->language_pack_manager(), &LanguagePackManager::on_update_language_pack,
+               std::move(update->difference_));
 }
+
+// unsupported updates
 
 }  // namespace td

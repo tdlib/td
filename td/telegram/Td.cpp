@@ -3512,7 +3512,7 @@ void Td::on_config_option_updated(const string &name) {
       G()->net_query_dispatcher().update_mtproto_header();
     }
   } else if (name == "language_pack_version") {
-    send_closure(language_pack_manager_, &LanguagePackManager::on_language_pack_version_changed);
+    send_closure(language_pack_manager_, &LanguagePackManager::on_language_pack_version_changed, -1);
     return;
   } else if (is_internal_config_option(name)) {
     return;
@@ -4075,6 +4075,7 @@ Status Td::init(DbKey key) {
   device_token_manager_ = create_actor<DeviceTokenManager>("DeviceTokenManager", create_reference());
   hashtag_hints_ = create_actor<HashtagHints>("HashtagHints", "text", create_reference());
   language_pack_manager_ = create_actor<LanguagePackManager>("LanguagePackManager", create_reference());
+  G()->set_language_pack_manager(language_pack_manager_.get());
   password_manager_ = create_actor<PasswordManager>("PasswordManager", create_reference());
   G()->set_password_manager(password_manager_.get());
   privacy_manager_ = create_actor<PrivacyManager>("PrivacyManager", create_reference());

@@ -2210,6 +2210,9 @@ updateFavoriteStickers sticker_ids:vector<int32> = Update;
 //@description The list of saved animations was updated @animation_ids The new list of file identifiers of saved animations
 updateSavedAnimations animation_ids:vector<int32> = Update;
 
+//@description Some language pack strings was updated @language_pack Changed language pack @language_code Code of the language, which was updated @strings List of changed language pack strings
+updateLanguagePack language_pack:string language_code:string strings:vector<LanguagePackString> = Update;
+
 //@description The connection state has changed @state The new connection state
 updateConnectionState state:ConnectionState = Update;
 

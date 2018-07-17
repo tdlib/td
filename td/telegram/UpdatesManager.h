@@ -267,10 +267,10 @@ class UpdatesManager : public Actor {
 
   void on_update(tl_object_ptr<telegram_api::updateContactsReset> update, bool /*force_apply*/);
 
-  // unsupported updates
-
   void on_update(tl_object_ptr<telegram_api::updateLangPackTooLong> update, bool /*force_apply*/);
   void on_update(tl_object_ptr<telegram_api::updateLangPack> update, bool /*force_apply*/);
+
+  // unsupported updates
 };
 
 }  // namespace td

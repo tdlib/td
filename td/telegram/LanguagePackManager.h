@@ -33,12 +33,14 @@ class LanguagePackManager : public NetQueryCallback {
 
   void on_language_code_changed();
 
-  void on_language_pack_version_changed();
+  void on_language_pack_version_changed(int32 new_version);
 
   void get_languages(Promise<td_api::object_ptr<td_api::languagePack>> promise);
 
   void get_language_pack_strings(string language_code, vector<string> keys,
                                  Promise<td_api::object_ptr<td_api::languagePackStrings>> promise);
+
+  void on_update_language_pack(tl_object_ptr<telegram_api::langPackDifference> difference);
 
  private:
   struct PluralizedString {
@@ -53,6 +55,7 @@ class LanguagePackManager : public NetQueryCallback {
   struct Language {
     std::mutex mutex_;  // TODO RwMutex
     std::atomic<int32> version_{-1};
+    bool has_get_difference_query_ = false;
     std::unordered_map<string, string> ordinary_strings_;
     std::unordered_map<string, PluralizedString> pluralized_strings_;
     std::unordered_set<string> deleted_strings_;
@@ -68,8 +71,6 @@ class LanguagePackManager : public NetQueryCallback {
   string language_pack_;
   string language_code_;
   uint32 generation_ = 0;
-
-  int32 language_pack_version_ = -1;
 
   static std::mutex language_packs_mutex_;
   static std::unordered_map<string, std::unique_ptr<LanguagePack>> language_packs_;
@@ -93,9 +94,11 @@ class LanguagePackManager : public NetQueryCallback {
 
   void inc_generation();
 
-  void on_get_language_pack_strings(string language_pack, string language_code, int32 version, vector<string> keys,
-                                    vector<tl_object_ptr<telegram_api::LangPackString>> results,
+  void on_get_language_pack_strings(string language_pack, string language_code, int32 version, bool is_diff,
+                                    vector<string> keys, vector<tl_object_ptr<telegram_api::LangPackString>> results,
                                     Promise<td_api::object_ptr<td_api::languagePackStrings>> promise);
+
+  void on_failed_get_difference(string language_pack, string language_code);
 
   void on_result(NetQueryPtr query) override;
 

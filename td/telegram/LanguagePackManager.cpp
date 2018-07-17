@@ -10,6 +10,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
+#include "td/telegram/Td.h"
 
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -22,9 +23,9 @@ namespace td {
 void LanguagePackManager::start_up() {
   language_pack_ = G()->shared_config().get_option_string("language_pack");
   language_code_ = G()->shared_config().get_option_string("language_code");
-  language_pack_version_ = G()->shared_config().get_option_integer("language_pack_version", -1);
-  LOG(INFO) << "Use language pack " << language_pack_ << " with language " << language_code_ << " of version "
-            << language_pack_version_;
+  LOG(INFO) << "Use language pack " << language_pack_ << " with language " << language_code_;
+
+  // TODO load language_pack_version from database
 }
 
 void LanguagePackManager::on_language_pack_changed() {
@@ -47,23 +48,81 @@ void LanguagePackManager::on_language_code_changed() {
   inc_generation();
 }
 
-void LanguagePackManager::on_language_pack_version_changed() {
-  auto new_language_pack_version = G()->shared_config().get_option_integer("language_pack_version");
-  if (new_language_pack_version == language_pack_version_) {
-    return;
-  }
-  if (language_pack_version_ == -1) {
+void LanguagePackManager::on_language_pack_version_changed(int32 new_version) {
+  Language *language = get_language(language_pack_, language_code_);
+  auto version = language == nullptr ? -1 : language->version_;
+  if (version == -1) {
     return;
   }
 
-  // TODO update language pack
-  language_pack_version_ = new_language_pack_version;
+  auto new_language_pack_version =
+      new_version >= 0 ? new_version : G()->shared_config().get_option_integer("language_pack_version", -1);
+  if (new_language_pack_version <= version) {
+    return;
+  }
+
+  std::lock_guard<std::mutex> lock(language->mutex_);
+  if (language->has_get_difference_query_) {
+    return;
+  }
+
+  language->has_get_difference_query_ = true;
+  auto request_promise =
+      PromiseCreator::lambda([actor_id = actor_id(this), language_pack = language_pack_, language_code = language_code_,
+                              from_version = version](Result<NetQueryPtr> r_query) mutable {
+        auto r_result = fetch_result<telegram_api::langpack_getDifference>(std::move(r_query));
+        if (r_result.is_error()) {
+          send_closure(actor_id, &LanguagePackManager::on_failed_get_difference, std::move(language_pack),
+                       std::move(language_code));
+          return;
+        }
+
+        auto result = r_result.move_as_ok();
+        LOG(INFO) << "Receive language pack difference for language " << result->lang_code_ << " from version "
+                  << result->from_version_ << " with version " << result->version_ << " of size "
+                  << result->strings_.size();
+        LOG_IF(ERROR, result->lang_code_ != language_code)
+            << "Receive strings for " << result->lang_code_ << " instead of " << language_code;
+        LOG_IF(ERROR, result->from_version_ != from_version)
+            << "Receive strings from " << result->from_version_ << " instead of " << from_version;
+        send_closure(actor_id, &LanguagePackManager::on_get_language_pack_strings, std::move(language_pack),
+                     std::move(language_code), result->version_, true, vector<string>(), std::move(result->strings_),
+                     Promise<td_api::object_ptr<td_api::languagePackStrings>>());
+      });
+  send_with_promise(G()->net_query_creator().create(create_storer(telegram_api::langpack_getDifference(version))),
+                    std::move(request_promise));
+}
+
+void LanguagePackManager::on_update_language_pack(tl_object_ptr<telegram_api::langPackDifference> difference) {
+  LOG(INFO) << "Receive update language pack difference for language " << difference->lang_code_ << " from version "
+            << difference->from_version_ << " with version " << difference->version_ << " of size "
+            << difference->strings_.size();
+  if (difference->lang_code_ != language_code_) {
+    LOG(WARNING) << "Ignore difference for language " << difference->lang_code_;
+    return;
+  }
+
+  Language *language = get_language(language_pack_, language_code_);
+  auto version = language == nullptr ? -1 : language->version_;
+  if (difference->version_ <= version) {
+    LOG(INFO) << "Skip applying already applied updates";
+    return;
+  }
+  if (version == -1 || version < difference->from_version_) {
+    LOG(INFO) << "Can't apply difference";
+    return on_language_pack_version_changed(difference->version_);
+  }
+
+  on_get_language_pack_strings(language_pack_, std::move(difference->lang_code_), difference->version_, true,
+                               vector<string>(), std::move(difference->strings_),
+                               Promise<td_api::object_ptr<td_api::languagePackStrings>>());
 }
 
 void LanguagePackManager::inc_generation() {
   generation_++;
   G()->shared_config().set_option_empty("language_pack_version");
-  language_pack_version_ = -1;
+
+  // TODO preload language and load language_pack_version from database
 }
 
 LanguagePackManager::Language *LanguagePackManager::get_language(const string &language_pack,
@@ -221,7 +280,7 @@ void LanguagePackManager::get_language_pack_strings(string language_code, vector
               << "Receive strings for " << result->lang_code_ << " instead of " << language_code;
           LOG_IF(ERROR, result->from_version_ != 0) << "Receive lang pack from version " << result->from_version_;
           send_closure(actor_id, &LanguagePackManager::on_get_language_pack_strings, std::move(language_pack),
-                       std::move(language_code), result->version_, vector<string>(), std::move(result->strings_),
+                       std::move(language_code), result->version_, false, vector<string>(), std::move(result->strings_),
                        std::move(promise));
         });
     send_with_promise(G()->net_query_creator().create(create_storer(telegram_api::langpack_getLangPack(language_code))),
@@ -236,7 +295,7 @@ void LanguagePackManager::get_language_pack_strings(string language_code, vector
           }
 
           send_closure(actor_id, &LanguagePackManager::on_get_language_pack_strings, std::move(language_pack),
-                       std::move(language_code), -1, std::move(keys), r_result.move_as_ok(), std::move(promise));
+                       std::move(language_code), -1, false, std::move(keys), r_result.move_as_ok(), std::move(promise));
         });
     send_with_promise(G()->net_query_creator().create(
                           create_storer(telegram_api::langpack_getStrings(language_code, std::move(keys)))),
@@ -245,10 +304,11 @@ void LanguagePackManager::get_language_pack_strings(string language_code, vector
 }
 
 void LanguagePackManager::on_get_language_pack_strings(
-    string language_pack, string language_code, int32 version, vector<string> keys,
+    string language_pack, string language_code, int32 version, bool is_diff, vector<string> keys,
     vector<tl_object_ptr<telegram_api::LangPackString>> results,
     Promise<td_api::object_ptr<td_api::languagePackStrings>> promise) {
   Language *language = get_language(language_pack, language_code);
+  bool is_version_changed = false;
   if (language == nullptr || (language->version_ < version || !keys.empty())) {
     if (language == nullptr) {
       language = add_language(language_pack, language_code);
@@ -256,9 +316,13 @@ void LanguagePackManager::on_get_language_pack_strings(
     }
     std::lock_guard<std::mutex> lock(language->mutex_);
     if (language->version_ < version || !keys.empty()) {
-      if (language->version_ < version) {
+      vector<td_api::object_ptr<td_api::LanguagePackString>> strings;
+      if (language->version_ < version && !(is_diff && language->version_ == -1)) {
+        LOG(INFO) << "Set language " << language_code << " version to " << version;
         language->version_ = version;
+        is_version_changed = true;
       }
+
       for (auto &result : results) {
         CHECK(result != nullptr);
         switch (result->get_id()) {
@@ -267,6 +331,9 @@ void LanguagePackManager::on_get_language_pack_strings(
             language->ordinary_strings_[str->key_] = std::move(str->value_);
             language->pluralized_strings_.erase(str->key_);
             language->deleted_strings_.erase(str->key_);
+            if (is_diff) {
+              strings.push_back(get_language_pack_string_object(*language->ordinary_strings_.find(str->key_)));
+            }
             break;
           }
           case telegram_api::langPackStringPluralized::ID: {
@@ -276,6 +343,9 @@ void LanguagePackManager::on_get_language_pack_strings(
                 std::move(str->few_value_),  std::move(str->many_value_), std::move(str->other_value_)};
             language->ordinary_strings_.erase(str->key_);
             language->deleted_strings_.erase(str->key_);
+            if (is_diff) {
+              strings.push_back(get_language_pack_string_object(*language->pluralized_strings_.find(str->key_)));
+            }
             break;
           }
           case telegram_api::langPackStringDeleted::ID: {
@@ -283,6 +353,9 @@ void LanguagePackManager::on_get_language_pack_strings(
             language->ordinary_strings_.erase(str->key_);
             language->pluralized_strings_.erase(str->key_);
             language->deleted_strings_.insert(std::move(str->key_));
+            if (is_diff) {
+              strings.push_back(get_language_pack_string_object(str->key_));
+            }
             break;
           }
           default:
@@ -294,14 +367,48 @@ void LanguagePackManager::on_get_language_pack_strings(
         if (!language_has_string_unsafe(language, key)) {
           LOG(ERROR) << "Doesn't receive key " << key << " from server";
           language->deleted_strings_.insert(key);
+          if (is_diff) {
+            strings.push_back(get_language_pack_string_object(key));
+          }
         }
+      }
+
+      if (is_diff) {
+        // do we need to send update to all client instances?
+        send_closure(G()->td(), &Td::send_update,
+                     td_api::make_object<td_api::updateLanguagePack>(language_pack, language_code, std::move(strings)));
       }
 
       // TODO save language
     }
   }
+  if (is_diff) {
+    CHECK(language != nullptr);
+    std::lock_guard<std::mutex> lock(language->mutex_);
+    if (language->has_get_difference_query_) {
+      language->has_get_difference_query_ = false;
+      is_version_changed = true;
+    }
+  }
+  if (is_version_changed && language_pack == language_pack_ && language_code == language_code_) {
+    send_closure_later(actor_id(this), &LanguagePackManager::on_language_pack_version_changed, -1);
+  }
 
-  promise.set_value(get_language_pack_strings_object(language, keys));
+  if (promise) {
+    promise.set_value(get_language_pack_strings_object(language, keys));
+  }
+}
+
+void LanguagePackManager::on_failed_get_difference(string language_pack, string language_code) {
+  Language *language = get_language(language_pack, language_code);
+  CHECK(language != nullptr);
+  std::lock_guard<std::mutex> lock(language->mutex_);
+  if (language->has_get_difference_query_) {
+    language->has_get_difference_query_ = false;
+    if (language_pack == language_pack_ && language_code == language_code_) {
+      send_closure_later(actor_id(this), &LanguagePackManager::on_language_pack_version_changed, -1);
+    }
+  }
 }
 
 void LanguagePackManager::on_result(NetQueryPtr query) {

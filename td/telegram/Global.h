@@ -41,6 +41,7 @@ class ConfigManager;
 class ConnectionCreator;
 class ContactsManager;
 class FileManager;
+class LanguagePackManager;
 class MtprotoHeader;
 class MessagesManager;
 class NetQueryDispatcher;
@@ -158,6 +159,12 @@ class Global : public ActorContext {
   }
   void set_file_manager(ActorId<FileManager> file_manager) {
     file_manager_ = std::move(file_manager);
+  }
+  ActorId<LanguagePackManager> language_pack_manager() const {
+    return language_pack_manager_;
+  }
+  void set_language_pack_manager(ActorId<LanguagePackManager> language_pack_manager) {
+    language_pack_manager_ = language_pack_manager;
   }
   ActorId<MessagesManager> messages_manager() const {
     return messages_manager_;
@@ -309,6 +316,7 @@ class Global : public ActorContext {
   ActorId<ContactsManager> contacts_manager_;
   ActorId<FileManager> file_manager_;
   ActorId<MessagesManager> messages_manager_;
+  ActorId<LanguagePackManager> language_pack_manager_;
   ActorId<PasswordManager> password_manager_;
   ActorId<SecretChatsManager> secret_chats_manager_;
   ActorId<CallManager> call_manager_;
