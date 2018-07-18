@@ -7,8 +7,6 @@
 #pragma once
 
 #include "td/db/KeyValueSyncInterface.h"
-#include "td/db/Pmc.h"
-#include "td/db/SqliteDb.h"
 
 #include "td/utils/logging.h"
 #include "td/utils/Status.h"
@@ -17,6 +15,7 @@
 #include <memory>
 
 namespace td {
+
 class SecretChatDb {
  public:
   SecretChatDb(std::shared_ptr<KeyValueSyncInterface> pmc, int32 chat_id);

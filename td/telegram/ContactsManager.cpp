@@ -14,6 +14,7 @@
 #include "td/actor/SleepActor.h"
 
 #include "td/db/binlog/BinlogHelper.h"
+#include "td/db/SqliteKeyValueAsync.h"
 
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ConfigShared.h"

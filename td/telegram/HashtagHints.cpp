@@ -7,6 +7,7 @@
 #include "td/telegram/HashtagHints.h"
 
 #include "td/db/Pmc.h"
+#include "td/db/SqliteKeyValueAsync.h"
 #include "td/telegram/Global.h"
 
 #include "td/utils/logging.h"

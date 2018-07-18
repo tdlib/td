@@ -16,6 +16,9 @@
 #include "td/actor/MultiPromise.h"
 
 #include "td/db/BinlogKeyValue.h"
+#include "td/db/SqliteKeyValue.h"
+#include "td/db/SqliteKeyValueAsync.h"
+#include "td/db/SqliteKeyValueSafe.h"
 
 #include "td/utils/logging.h"
 #include "td/utils/port/path.h"
@@ -144,7 +147,7 @@ BinlogPmcPtr TdDb::get_config_pmc() {
   return config_pmc_.get();
 }
 
-BigPmcPtr TdDb::get_sqlite_sync_pmc() {
+SqliteKeyValue *TdDb::get_sqlite_sync_pmc() {
   CHECK(common_kv_safe_);
   return &common_kv_safe_->get();
 }

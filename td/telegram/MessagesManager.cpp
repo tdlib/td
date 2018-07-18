@@ -60,6 +60,7 @@
 #include "td/actor/SleepActor.h"
 
 #include "td/db/binlog/BinlogHelper.h"
+#include "td/db/SqliteKeyValueAsync.h"
 
 #include "td/utils/format.h"
 #include "td/utils/HttpUrl.h"

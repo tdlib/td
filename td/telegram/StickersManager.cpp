@@ -10,9 +10,6 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
-#include "td/actor/MultiPromise.h"
-#include "td/actor/PromiseFuture.h"
-
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ConfigShared.h"
@@ -27,6 +24,11 @@
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/StickersManager.hpp"
 #include "td/telegram/Td.h"
+
+#include "td/actor/MultiPromise.h"
+#include "td/actor/PromiseFuture.h"
+
+#include "td/db/SqliteKeyValueAsync.h"
 
 #include "td/utils/format.h"
 #include "td/utils/logging.h"

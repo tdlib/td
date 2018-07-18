@@ -6,8 +6,6 @@
 //
 #include "td/telegram/AnimationsManager.h"
 
-#include "td/actor/PromiseFuture.h"
-
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DocumentsManager.h"
@@ -20,6 +18,10 @@
 #include "td/telegram/secret_api.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+
+#include "td/actor/PromiseFuture.h"
+
+#include "td/db/SqliteKeyValueAsync.h"
 
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"

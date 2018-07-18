@@ -9,10 +9,6 @@
 #include "td/telegram/secret_api.h"
 #include "td/telegram/telegram_api.hpp"
 
-#include "td/actor/PromiseFuture.h"
-
-#include "td/db/binlog/BinlogHelper.h"
-
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AnimationsManager.hpp"
 #include "td/telegram/AudiosManager.h"
@@ -39,6 +35,11 @@
 #include "td/telegram/VideosManager.hpp"
 #include "td/telegram/VoiceNotesManager.h"
 #include "td/telegram/VoiceNotesManager.hpp"
+
+#include "td/actor/PromiseFuture.h"
+
+#include "td/db/binlog/BinlogHelper.h"
+#include "td/db/SqliteKeyValueAsync.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"

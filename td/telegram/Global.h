@@ -17,10 +17,6 @@
 #include "td/actor/PromiseFuture.h"
 #include "td/actor/SchedulerLocalStorage.h"
 
-#include "td/db/binlog/ConcurrentBinlog.h"
-#include "td/db/BinlogKeyValue.h"
-#include "td/db/Pmc.h"
-
 #include "td/net/NetStats.h"
 
 #include "td/utils/common.h"
