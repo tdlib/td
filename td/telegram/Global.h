@@ -51,7 +51,7 @@ class TempAuthKeyWatchdog;
 class TopDialogManager;
 class UpdatesManager;
 class WebPagesManager;
-};  // namespace td
+}  // namespace td
 
 namespace td {
 

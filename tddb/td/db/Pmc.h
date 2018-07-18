@@ -17,4 +17,4 @@ using BinlogPmcBase = BinlogKeyValue<ConcurrentBinlog>;
 using BinlogPmc = std::shared_ptr<BinlogPmcBase>;
 using BinlogPmcPtr = BinlogPmcBase *;
 
-};  // namespace td
+}  // namespace td

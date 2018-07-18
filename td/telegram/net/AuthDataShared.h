@@ -75,4 +75,4 @@ class AuthDataShared {
                                                 std::shared_ptr<Guard> guard);
 };
 
-};  // namespace td
+}  // namespace td

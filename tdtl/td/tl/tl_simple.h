@@ -46,7 +46,7 @@ struct Type {
 
   // type == Vector
   const Type *vector_value_type{nullptr};
-};  // namespace simple
+};
 
 struct Arg {
   const Type *type;

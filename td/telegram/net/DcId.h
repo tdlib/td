@@ -103,4 +103,4 @@ inline StringBuilder &operator<<(StringBuilder &sb, const DcId &dc_id) {
   return sb;
 }
 
-};  // namespace td
+}  // namespace td

@@ -34,7 +34,7 @@ namespace detail {
 class BinlogReader;
 class BinlogEventsProcessor;
 class BinlogEventsBuffer;
-};  // namespace detail
+}  // namespace detail
 
 class Binlog {
  public:

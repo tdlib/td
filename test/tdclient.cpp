@@ -836,4 +836,4 @@ class Tdclient_login : public td::Test {
 };
 //Tdclient_login Tdclient_login("Tdclient_login");
 
-};  // namespace td
+}  // namespace td

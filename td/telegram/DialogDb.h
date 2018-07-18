@@ -65,4 +65,4 @@ std::shared_ptr<DialogDbSyncSafeInterface> create_dialog_db_sync(
 
 std::shared_ptr<DialogDbAsyncInterface> create_dialog_db_async(std::shared_ptr<DialogDbSyncSafeInterface> sync_db,
                                                                int32 scheduler_id);
-};  // namespace td
+}  // namespace td

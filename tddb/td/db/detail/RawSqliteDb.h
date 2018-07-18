@@ -14,6 +14,7 @@ struct sqlite3;
 
 namespace td {
 namespace detail {
+
 class RawSqliteDb {
  public:
   RawSqliteDb(sqlite3 *db, std::string path) : db_(db), path_(std::move(path)) {
@@ -47,5 +48,6 @@ class RawSqliteDb {
   sqlite3 *db_;
   std::string path_;
 };
-};  // namespace detail
+
+}  // namespace detail
 }  // namespace td
