@@ -21,11 +21,22 @@
 namespace td {
 
 void LanguagePackManager::start_up() {
+  std::lock_guard<std::mutex> lock(language_packs_mutex_);
+  manager_count_++;
   language_pack_ = G()->shared_config().get_option_string("language_pack");
   language_code_ = G()->shared_config().get_option_string("language_code");
   LOG(INFO) << "Use language pack " << language_pack_ << " with language " << language_code_;
 
   // TODO load language_pack_version from database
+}
+
+void LanguagePackManager::tear_down() {
+  std::lock_guard<std::mutex> lock(language_packs_mutex_);
+  manager_count_--;
+  if (manager_count_ == 0) {
+    LOG(INFO) << "Clear language packs";
+    language_packs_.clear();
+  }
 }
 
 void LanguagePackManager::on_language_pack_changed() {
@@ -427,6 +438,7 @@ void LanguagePackManager::hangup() {
   stop();
 }
 
+int32 LanguagePackManager::manager_count_ = 0;
 std::mutex LanguagePackManager::language_packs_mutex_;
 std::unordered_map<string, std::unique_ptr<LanguagePackManager::LanguagePack>> LanguagePackManager::language_packs_;
 

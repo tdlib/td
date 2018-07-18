@@ -72,6 +72,8 @@ class LanguagePackManager : public NetQueryCallback {
   string language_code_;
   uint32 generation_ = 0;
 
+  static int32 manager_count_;
+
   static std::mutex language_packs_mutex_;
   static std::unordered_map<string, std::unique_ptr<LanguagePack>> language_packs_;
 
@@ -104,6 +106,7 @@ class LanguagePackManager : public NetQueryCallback {
 
   void start_up() override;
   void hangup() override;
+  void tear_down() override;
 
   Container<Promise<NetQueryPtr>> container_;
   void send_with_promise(NetQueryPtr query, Promise<NetQueryPtr> promise);
