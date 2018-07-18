@@ -812,43 +812,43 @@ datedFile file:file date:int32 = DatedFile;
 
 //@class PassportDataType @description Contains type of a Telegram Passport data
 
-//@description The Telegram Passport data contains a user's personal details
+//@description A Telegram Passport data fragment containing the user's personal details
 passportDataTypePersonalDetails = PassportDataType;
 
-//@description The Telegram Passport data contains a user's passport
+//@description A Telegram Passport data fragment containing the user's passport
 passportDataTypePassport = PassportDataType;
 
-//@description The Telegram Passport data contains a user's driver license
+//@description A Telegram Passport data fragment containing the user's driver license
 passportDataTypeDriverLicense = PassportDataType;
 
-//@description The Telegram Passport data contains a user's identity card
+//@description A Telegram Passport data fragment containing the user's identity card
 passportDataTypeIdentityCard = PassportDataType;
 
-//@description The Telegram Passport data contains a user's internal passport
+//@description A Telegram Passport data fragment containing the user's internal passport
 passportDataTypeInternalPassport = PassportDataType;
 
-//@description The Telegram Passport data contains a user's address
+//@description A Telegram Passport data fragment containing the user's address
 passportDataTypeAddress = PassportDataType;
 
-//@description The Telegram Passport data contains a user's utility bill
+//@description A Telegram Passport data fragment containing the user's utility bill
 passportDataTypeUtilityBill = PassportDataType;
 
-//@description The Telegram Passport data contains a user's bank statement
+//@description A Telegram Passport data fragment containing the user's bank statement
 passportDataTypeBankStatement = PassportDataType;
 
-//@description The Telegram Passport data contains a user's rental agreement
+//@description A Telegram Passport data fragment containing the user's rental agreement
 passportDataTypeRentalAgreement = PassportDataType;
 
-//@description The Telegram Passport data contains a user's passport registration
+//@description A Telegram Passport data fragment containing the user's passport registration
 passportDataTypePassportRegistration = PassportDataType;
 
-//@description The Telegram Passport data contains a user's temporary registration
+//@description A Telegram Passport data fragment containing the user's temporary registration
 passportDataTypeTemporaryRegistration = PassportDataType;
 
-//@description The Telegram Passport data contains a user's phone number
+//@description A Telegram Passport data fragment containing a user's phone number
 passportDataTypePhoneNumber = PassportDataType;
 
-//@description The Telegram Passport data contains a user's email address
+//@description A Telegram Passport data fragment containing a user's email address
 passportDataTypeEmailAddress = PassportDataType;
 
 
@@ -870,85 +870,85 @@ inputIdentityDocument number:string expiry_date:date front_side:InputFile revers
 
 //@class PassportData @description Contains information about a Telegram Passport data
 
-//@description The Telegram Passport data contains a user's personal details @personal_details Personal details of the user
+//@description A Telegram Passport data fragment containing the user's personal details @personal_details Personal details of the user
 passportDataPersonalDetails personal_details:personalDetails = PassportData;
 
-//@description The Telegram Passport data contains a user's passport @passport The passport
+//@description A Telegram Passport data fragment containing the user's passport @passport Passport
 passportDataPassport passport:identityDocument = PassportData;
 
-//@description The Telegram Passport data contains a user's driver license @driver_license The driver license
+//@description A Telegram Passport data fragment containing the user's driver license @driver_license Driver license
 passportDataDriverLicense driver_license:identityDocument = PassportData;
 
-//@description The Telegram Passport data contains a user's identity card @identity_card The identity card
+//@description A Telegram Passport data fragment containing the user's identity card @identity_card Identity card
 passportDataIdentityCard identity_card:identityDocument = PassportData;
 
-//@description The Telegram Passport data contains a user's internal passport @internal_passport The internal passport
+//@description A Telegram Passport data fragment containing the user's internal passport @internal_passport Internal passport
 passportDataInternalPassport internal_passport:identityDocument = PassportData;
 
-//@description The Telegram Passport data contains a user's address @address The address
+//@description A Telegram Passport data fragment containing the user's address @address Address
 passportDataAddress address:address = PassportData;
 
-//@description The Telegram Passport data contains a user's utility bill @files List of files with the utility bill
+//@description A Telegram Passport data fragment containing the user's utility bill @files List of files with the utility bill
 passportDataUtilityBill files:vector<datedFile> = PassportData;
 
-//@description The Telegram Passport data contains a user's bank statement @files List of files with the bank statement
+//@description A Telegram Passport data fragment containing the user's bank statement @files List of files with the bank statement
 passportDataBankStatement files:vector<datedFile> = PassportData;
 
-//@description The Telegram Passport data contains a user's rental agreement @files List of files with the rental agreement
+//@description A Telegram Passport data fragment containing the user's rental agreement @files List of files with the rental agreement
 passportDataRentalAgreement files:vector<datedFile> = PassportData;
 
-//@description The Telegram Passport data contains a user's passport registration @files List of files with the passport registration
+//@description A Telegram Passport data fragment containing the user's passport registration pages @files List of files with the passport registration pages
 passportDataPassportRegistration files:vector<datedFile> = PassportData;
 
-//@description The Telegram Passport data contains a user's temporary registration @files List of files with the temporary registration
+//@description A Telegram Passport data fragment containing the user's temporary registration @files List of files with the temporary registration
 passportDataTemporaryRegistration files:vector<datedFile> = PassportData;
 
-//@description The Telegram Passport data contains a user's phone number @phone_number The phone number
+//@description A Telegram Passport data fragment containing the user's phone number @phone_number Phone number
 passportDataPhoneNumber phone_number:string = PassportData;
 
-//@description The Telegram Passport data contains a user's email address @email_address The email address
+//@description A Telegram Passport data fragment containing the user's email address @email_address Email address
 passportDataEmailAddress email_address:string = PassportData;
 
 
 //@class InputPassportData @description Contains information about a Telegram Passport data to be saved
 
-//@description The Telegram Passport data to be saved contains a user's personal details @personal_details Personal details of the user
+//@description A Telegram Passport fragment to be saved containing the user's personal details @personal_details Personal details of the user
 inputPassportDataPersonalDetails personal_details:personalDetails = InputPassportData;
 
-//@description The Telegram Passport data to be saved contains a user's passport @passport The passport to be saved
+//@description A Telegram Passport fragment to be saved containing the user's passport @passport The passport to be saved
 inputPassportDataPassport passport:inputIdentityDocument = InputPassportData;
 
-//@description The Telegram Passport data to be saved contains a user's driver license @driver_license The driver license to be saved
+//@description A Telegram Passport fragment to be saved containing the user's driver license @driver_license The driver license to be saved
 inputPassportDataDriverLicense driver_license:inputIdentityDocument = InputPassportData;
 
-//@description The Telegram Passport data to be saved contains a user's identity card @identity_card The identity card to be saved
+//@description A Telegram Passport fragment to be saved containing the user's identity card @identity_card The identity card to be saved
 inputPassportDataIdentityCard identity_card:inputIdentityDocument = InputPassportData;
 
-//@description The Telegram Passport data to be saved contains a user's internal passport @internal_passport The internal passport to be saved
+//@description A Telegram Passport fragment to be saved containing the user's internal passport @internal_passport The internal passport to be saved
 inputPassportDataInternalPassport internal_passport:inputIdentityDocument = InputPassportData;
 
-//@description The Telegram Passport data to be saved contains a user's address @address The address
+//@description A Telegram Passport fragment to be saved containing the user's address @address The address to be saved
 inputPassportDataAddress address:address = InputPassportData;
 
-//@description The Telegram Passport data to be saved contains a user's utility bill @files List of files with the utility bill
+//@description A Telegram Passport fragment to be saved containing the user's utility bill @files List of files with the utility bill
 inputPassportDataUtilityBill files:vector<InputFile> = InputPassportData;
 
-//@description The Telegram Passport data to be saved contains a user's bank statement @files List of files with the bank statement
+//@description A Telegram Passport fragment to be saved containing the user's bank statement @files List of files with the bank statement
 inputPassportDataBankStatement files:vector<InputFile> = InputPassportData;
 
-//@description The Telegram Passport data to be saved contains a user's rental agreement @files List of files with the rental agreement
+//@description A Telegram Passport fragment to be saved containing the user's rental agreement @files List of files with the rental agreement
 inputPassportDataRentalAgreement files:vector<InputFile> = InputPassportData;
 
-//@description The Telegram Passport data to be saved contains a user's passport registration @files List of files with the passport registration
+//@description A Telegram Passport fragment to be saved containing the user's passport registration @files List of files with the passport registration
 inputPassportDataPassportRegistration files:vector<InputFile> = InputPassportData;
 
-//@description The Telegram Passport data to be saved contains a user's temporary registration @files List of files with the temporary registration
+//@description A Telegram Passport fragment to be saved containing the user's temporary registration @files List of files with the temporary registration
 inputPassportDataTemporaryRegistration files:vector<InputFile> = InputPassportData;
 
-//@description The Telegram Passport data to be saved contains a user's phone number @phone_number The phone number
+//@description A Telegram Passport fragment to be saved containing the user's phone number @phone_number The phone number to be saved
 inputPassportDataPhoneNumber phone_number:string = InputPassportData;
 
-//@description The Telegram Passport data to be saved contains a user's email address @email_address The email address
+//@description A Telegram Passport fragment to be saved containing the user's email address @email_address The email address to be saved
 inputPassportDataEmailAddress email_address:string = InputPassportData;
 
 
@@ -2121,7 +2121,7 @@ updateChatUnreadMentionCount chat_id:int53 unread_mention_count:int32 = Update;
 //@description Notification settings for a chat were changed @chat_id Chat identifier @notification_settings The new notification settings
 updateChatNotificationSettings chat_id:int53 notification_settings:chatNotificationSettings = Update;
 
-//@description Notification settings for some chats scope were updated @scope Types of chats for which notification settings were updated @notification_settings The new notification settings
+//@description Notification settings for some type of chats were updated @scope Types of chats for which notification settings were updated @notification_settings The new notification settings
 updateScopeNotificationSettings scope:NotificationSettingsScope notification_settings:scopeNotificationSettings = Update;
 
 //@description The default chat reply markup was changed. Can occur because new messages with reply markup were received or because an old reply markup was hidden by the user
@@ -2540,19 +2540,19 @@ deleteChatMessagesFromUser chat_id:int53 user_id:int32 = Ok;
 //@chat_id The chat the message belongs to @message_id Identifier of the message @reply_markup The new message reply markup; for bots only @input_message_content New text content of the message. Should be of type InputMessageText
 editMessageText chat_id:int53 message_id:int53 reply_markup:ReplyMarkup input_message_content:InputMessageContent = Message;
 
-//@description Edits the message content of a live location. Messages can be edited for a limited period of time specified in the live location. Returns the edited message after the edit is completed server-side
+//@description Edits the message content of a live location. Messages can be edited for a limited period of time specified in the live location. Returns the edited message after the edit is completed on the server side
 //@chat_id The chat the message belongs to @message_id Identifier of the message @reply_markup The new message reply markup; for bots only @location New location content of the message; may be null. Pass null to stop sharing the live location
 editMessageLiveLocation chat_id:int53 message_id:int53 reply_markup:ReplyMarkup location:location = Message;
 
-//@description Edits the message content of an animation, an audio, a document, a photo or a video. A message media can't be edited if the message is self-destructed or to self-destructed message. A message in a message album can be edited only to a photo or a video. Returns the edited message after the edit is completed server-side
+//@description Edits the content of a message with an animation, an audio, a document, a photo or a video. The media in the message can't be replaced if the message was set to self-destruct. Media can't be replaced by self-destructing media. Media in an album can be edited only to contain a photo or a video. Returns the edited message after the edit is completed on the server side
 //@chat_id The chat the message belongs to @message_id Identifier of the message @reply_markup The new message reply markup; for bots only @input_message_content New content of the message. Must be one of the following types: InputMessageAnimation, InputMessageAudio, InputMessageDocument, InputMessagePhoto or InputMessageVideo
 editMessageMedia chat_id:int53 message_id:int53 reply_markup:ReplyMarkup input_message_content:InputMessageContent = Message;
 
-//@description Edits the message content caption. Returns the edited message after the edit is completed server-side
+//@description Edits the message content caption. Returns the edited message after the edit is completed on the server side
 //@chat_id The chat the message belongs to @message_id Identifier of the message @reply_markup The new message reply markup; for bots only @caption New message content caption; 0-GetOption("message_caption_length_max") characters
 editMessageCaption chat_id:int53 message_id:int53 reply_markup:ReplyMarkup caption:formattedText = Message;
 
-//@description Edits the message reply markup; for bots only. Returns the edited message after the edit is completed server-side
+//@description Edits the message reply markup; for bots only. Returns the edited message after the edit is completed on the server side
 //@chat_id The chat the message belongs to @message_id Identifier of the message @reply_markup The new message reply markup
 editMessageReplyMarkup chat_id:int53 message_id:int53 reply_markup:ReplyMarkup = Message;
 
@@ -2562,7 +2562,7 @@ editInlineMessageText inline_message_id:string reply_markup:ReplyMarkup input_me
 //@description Edits the content of a live location in an inline message sent via a bot; for bots only @inline_message_id Inline message identifier @reply_markup The new message reply markup @location New location content of the message; may be null. Pass null to stop sharing the live location
 editInlineMessageLiveLocation inline_message_id:string reply_markup:ReplyMarkup location:location = Ok;
 
-//@description Edits the message content of an animation, an audio, a document, a photo or a video in an inline message sent via a bot; for bots only @inline_message_id Inline message identifier
+//@description Edits the content of a message with an animation, an audio, a document, a photo or a video in an inline message sent via a bot; for bots only @inline_message_id Inline message identifier
 //@reply_markup The new message reply markup; for bots only @input_message_content New content of the message. Must be one of the following types: InputMessageAnimation, InputMessageAudio, InputMessageDocument, InputMessagePhoto or InputMessageVideo
 editInlineMessageMedia inline_message_id:string reply_markup:ReplyMarkup input_message_content:InputMessageContent = Ok;
 
