@@ -7302,6 +7302,10 @@ void MessagesManager::after_get_difference() {
     td_->stickers_manager_->get_favorite_stickers(Auto());
   }
 
+  if (!G()->td_db()->get_binlog_pmc()->isset("fetched_marks_as_unread") && !td_->auth_manager_->is_bot()) {
+    td_->create_handler<GetDialogUnreadMarksQuery>()->send();
+  }
+
   load_notification_settings();
 
   // TODO move to ContactsManager or delete after users will become persistent
@@ -9907,10 +9911,6 @@ void MessagesManager::start_up() {
           }
         }
       }
-    }
-
-    if (!G()->td_db()->get_binlog_pmc()->isset("fetched_marks_as_unread") && !td_->auth_manager_->is_bot()) {
-      td_->create_handler<GetDialogUnreadMarksQuery>()->send();
     }
 
     ttl_db_loop_start(G()->server_time());

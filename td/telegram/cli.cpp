@@ -1154,7 +1154,7 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::checkAuthenticationCode>(code, first_name, last_name));
     } else if (op == "cap") {
       send_request(make_tl_object<td_api::checkAuthenticationPassword>(args));
-    } else if (op == "cab") {
+    } else if (op == "cab" || op == "cabt") {
       send_request(make_tl_object<td_api::checkAuthenticationBotToken>(args));
     } else if (op == "rapr") {
       send_request(make_tl_object<td_api::requestAuthenticationPasswordRecovery>());
