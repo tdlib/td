@@ -232,7 +232,7 @@ Result<MutableSlice> json_string_decode(Parser &parser) {
           } else if (num < 0x800) {
             *cur_dest++ = static_cast<char>(0xc0 + (num >> 6));
             *cur_dest++ = static_cast<char>(0x80 + (num & 63));
-          } else if (num < 0xffff) {
+          } else if (num <= 0xffff) {
             *cur_dest++ = static_cast<char>(0xe0 + (num >> 12));
             *cur_dest++ = static_cast<char>(0x80 + ((num >> 6) & 63));
             *cur_dest++ = static_cast<char>(0x80 + (num & 63));
