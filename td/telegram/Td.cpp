@@ -1619,6 +1619,34 @@ class GetChatMessageByDateRequest : public RequestOnceActor {
   }
 };
 
+class GetChatMessageCountRequest : public RequestActor<> {
+  DialogId dialog_id_;
+  tl_object_ptr<td_api::SearchMessagesFilter> filter_;
+  bool return_local_;
+  int64 random_id_;
+
+  int32 result_ = 0;
+
+  void do_run(Promise<Unit> &&promise) override {
+    result_ = td->messages_manager_->get_dialog_message_count(dialog_id_, filter_, return_local_, random_id_,
+                                                              std::move(promise));
+  }
+
+  void do_send_result() override {
+    send_result(td_api::make_object<td_api::count>(result_));
+  }
+
+ public:
+  GetChatMessageCountRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id,
+                             tl_object_ptr<td_api::SearchMessagesFilter> filter, bool return_local)
+      : RequestActor(std::move(td), request_id)
+      , dialog_id_(dialog_id)
+      , filter_(std::move(filter))
+      , return_local_(return_local)
+      , random_id_(0) {
+  }
+};
+
 class GetWebPagePreviewRequest : public RequestOnceActor {
   td_api::object_ptr<td_api::formattedText> text_;
 
@@ -5026,6 +5054,11 @@ void Td::on_request(uint64 id, const td_api::getActiveLiveLocationMessages &requ
 
 void Td::on_request(uint64 id, const td_api::getChatMessageByDate &request) {
   CREATE_REQUEST(GetChatMessageByDateRequest, request.chat_id_, request.date_);
+}
+
+void Td::on_request(uint64 id, td_api::getChatMessageCount &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST(GetChatMessageCountRequest, request.chat_id_, std::move(request.filter_), request.return_local_);
 }
 
 void Td::on_request(uint64 id, const td_api::deleteMessages &request) {

@@ -890,7 +890,7 @@ class CliClient final : public Actor {
     if (filter == "vo" || filter == "voice") {
       return make_tl_object<td_api::searchMessagesFilterVoiceNote>();
     }
-    if (filter == "pvo") {
+    if (filter == "pvi") {
       return make_tl_object<td_api::searchMessagesFilterPhotoAndVideo>();
     }
     if (filter == "u" || filter == "url") {
@@ -899,10 +899,10 @@ class CliClient final : public Actor {
     if (filter == "cp" || filter == "chatphoto") {
       return make_tl_object<td_api::searchMessagesFilterChatPhoto>();
     }
-    if (filter == "vc" || filter == "call") {
+    if (filter == "c" || filter == "call") {
       return make_tl_object<td_api::searchMessagesFilterCall>();
     }
-    if (filter == "mvc" || filter == "missedcall") {
+    if (filter == "mc" || filter == "missedcall") {
       return make_tl_object<td_api::searchMessagesFilterMissedCall>();
     }
     if (filter == "vn" || filter == "videonote") {
@@ -1673,6 +1673,16 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::searchChatMessages>(
           as_chat_id(chat_id), query, 0, as_message_id(offset_message_id), 0, to_integer<int32>(limit),
           make_tl_object<td_api::searchMessagesFilterChatPhoto>()));
+    } else if (op == "gcmc") {
+      string chat_id;
+      string filter;
+      string return_local;
+
+      std::tie(chat_id, args) = split(args);
+      std::tie(filter, return_local) = split(args);
+
+      send_request(make_tl_object<td_api::getChatMessageCount>(as_chat_id(chat_id), get_search_messages_filter(filter),
+                                                               as_bool(return_local)));
     } else if (op == "gup" || op == "GetUserPhotos") {
       string user_id;
       string offset;

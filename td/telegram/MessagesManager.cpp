@@ -15000,6 +15000,68 @@ tl_object_ptr<td_api::message> MessagesManager::get_dialog_message_by_date_objec
   return get_message_object(full_message_id);
 }
 
+int32 MessagesManager::get_dialog_message_count(DialogId dialog_id,
+                                                const tl_object_ptr<td_api::SearchMessagesFilter> &filter,
+                                                bool return_local, int64 &random_id, Promise<Unit> &&promise) {
+  if (random_id != 0) {
+    // request has already been sent before
+    auto it = found_dialog_messages_.find(random_id);
+    CHECK(it != found_dialog_messages_.end());
+    auto result = std::move(it->second);
+    found_dialog_messages_.erase(it);
+    promise.set_value(Unit());
+    return result.first;
+  }
+
+  LOG(INFO) << "Get " << (return_local ? "local " : "") << "number of messages in " << dialog_id << " filtered by "
+            << to_string(filter);
+
+  const Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    promise.set_error(Status::Error(6, "Chat not found"));
+    return -1;
+  }
+
+  auto filter_type = get_search_messages_filter(filter);
+  if (filter_type == SearchMessagesFilter::Empty) {
+    promise.set_error(Status::Error(6, "SearchMessagesFilterEmpty is not supported"));
+    return -1;
+  }
+
+  auto dialog_type = dialog_id.get_type();
+  int32 message_count = d->message_count_by_index[search_messages_filter_index(filter_type)];
+  if (message_count == -1) {
+    if (filter_type == SearchMessagesFilter::UnreadMention) {
+      message_count = d->unread_mention_count;
+    }
+  }
+  if (message_count != -1 || return_local || dialog_type == DialogType::SecretChat) {
+    promise.set_value(Unit());
+    return message_count;
+  }
+
+  LOG(INFO) << "Get number of messages in " << dialog_id << " filtered by " << to_string(filter) << " from the server";
+
+  do {
+    random_id = Random::secure_int64();
+  } while (random_id == 0 || found_dialog_messages_.find(random_id) != found_dialog_messages_.end());
+  found_dialog_messages_[random_id];  // reserve place for result
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+    case DialogType::Chat:
+    case DialogType::Channel:
+      td_->create_handler<SearchMessagesQuery>(std::move(promise))
+          ->send(dialog_id, "", UserId(), nullptr, MessageId(), 0, 1, filter_type, random_id);
+      break;
+    case DialogType::None:
+    case DialogType::SecretChat:
+    default:
+      UNREACHABLE();
+  }
+  return -1;
+}
+
 void MessagesManager::preload_newer_messages(const Dialog *d, MessageId max_message_id) {
   if (td_->auth_manager_->is_bot()) {
     return;

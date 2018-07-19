@@ -2486,6 +2486,9 @@ getActiveLiveLocationMessages = Messages;
 //@description Returns the last message sent in a chat no later than the specified date @chat_id Chat identifier @date Point in time (Unix timestamp) relative to which to search for messages
 getChatMessageByDate chat_id:int53 date:int32 = Message;
 
+//@description Returns approximate number of messages of the specified type in the chat @chat_id Identifier of the chat in which to count messages @filter Filter for message content; searchMessagesFilterEmpty is unsupported in this function @return_local If true, returns count that is available locally without sending network requests, returning -1 if the number of messages is unknown
+getChatMessageCount chat_id:int53 filter:SearchMessagesFilter return_local:Bool = Count;
+
 
 //@description Returns a public HTTPS link to a message. Available only for messages in public supergroups and channels
 //@chat_id Identifier of the chat to which the message belongs

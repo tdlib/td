@@ -487,6 +487,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::getChatMessageByDate &request);
 
+  void on_request(uint64 id, td_api::getChatMessageCount &request);
+
   void on_request(uint64 id, const td_api::deleteMessages &request);
 
   void on_request(uint64 id, const td_api::deleteChatMessagesFromUser &request);

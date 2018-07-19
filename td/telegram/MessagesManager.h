@@ -1324,6 +1324,9 @@ class MessagesManager : public Actor {
 
   void on_get_dialog_message_by_date_fail(int64 random_id);
 
+  int32 get_dialog_message_count(DialogId dialog_id, const tl_object_ptr<td_api::SearchMessagesFilter> &filter,
+                                 bool return_local, int64 &random_id, Promise<Unit> &&promise);
+
   tl_object_ptr<td_api::message> get_dialog_message_by_date_object(int64 random_id);
 
   tl_object_ptr<td_api::message> get_message_object(FullMessageId full_message_id);
