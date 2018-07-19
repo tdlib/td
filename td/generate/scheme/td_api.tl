@@ -2731,8 +2731,8 @@ searchChatMembers chat_id:int53 query:string limit:int32 = ChatMembers;
 getChatAdministrators chat_id:int53 = Users;
 
 
-//@description Clears draft messages in all chats
-clearAllDraftMessages = Ok;
+//@description Clears draft messages in all chats @exclude_secret_chats If true, local draft messages in secret chats will not be cleared
+clearAllDraftMessages exclude_secret_chats:Bool = Ok;
 
 
 //@description Returns the notification settings for chats of a given type @scope Types of chats for which to return the notification settings information

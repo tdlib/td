@@ -12762,11 +12762,13 @@ void MessagesManager::on_saved_dialog_draft_message(DialogId dialog_id, uint64 g
   }
 }
 
-void MessagesManager::clear_all_draft_messages(Promise<Unit> &&promise) {
-  for (auto &dialog : dialogs_) {
-    Dialog *d = dialog.second.get();
-    if (d->dialog_id.get_type() == DialogType::SecretChat) {
-      update_dialog_draft_message(d, nullptr, false, true);
+void MessagesManager::clear_all_draft_messages(bool exclude_secret_chats, Promise<Unit> &&promise) {
+  if (!exclude_secret_chats) {
+    for (auto &dialog : dialogs_) {
+      Dialog *d = dialog.second.get();
+      if (d->dialog_id.get_type() == DialogType::SecretChat) {
+        update_dialog_draft_message(d, nullptr, false, true);
+      }
     }
   }
   td_->create_handler<ClearAllDraftsQuery>(std::move(promise))->send();

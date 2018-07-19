@@ -5509,7 +5509,7 @@ void Td::on_request(uint64 id, td_api::getChatEventLog &request) {
 void Td::on_request(uint64 id, const td_api::clearAllDraftMessages &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->clear_all_draft_messages(std::move(promise));
+  messages_manager_->clear_all_draft_messages(request.exclude_secret_chats_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::downloadFile &request) {
