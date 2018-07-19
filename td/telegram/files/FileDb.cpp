@@ -11,6 +11,7 @@
 
 #include "td/actor/actor.h"
 
+#include "td/db/SqliteKeyValue.h"
 #include "td/db/SqliteKeyValueSafe.h"
 
 #include "td/utils/format.h"

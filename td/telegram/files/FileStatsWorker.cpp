@@ -11,6 +11,8 @@
 #include "td/telegram/files/FileLoaderUtils.h"
 #include "td/telegram/Global.h"
 
+#include "td/db/SqliteKeyValue.h"
+
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/PathView.h"
