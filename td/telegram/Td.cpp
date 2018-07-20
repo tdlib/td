@@ -6,8 +6,6 @@
 //
 #include "td/telegram/Td.h"
 
-#include "td/db/binlog/BinlogEvent.h"
-
 #include "td/telegram/net/ConnectionCreator.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/MtprotoHeader.h"
@@ -70,6 +68,8 @@
 
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
+
+#include "td/db/binlog/BinlogEvent.h"
 
 #include "td/mtproto/utils.h"  // for create_storer, fetch_result, etc, TODO
 
@@ -1850,12 +1850,13 @@ class SearchChatMembersRequest : public RequestActor<> {
   DialogId dialog_id_;
   string query_;
   int32 limit_;
+  DialogParticipantsFilter filter_;
   int64 random_id_ = 0;
 
   std::pair<int32, vector<DialogParticipant>> participants_;
 
   void do_run(Promise<Unit> &&promise) override {
-    participants_ = td->messages_manager_->search_dialog_participants(dialog_id_, query_, limit_, random_id_,
+    participants_ = td->messages_manager_->search_dialog_participants(dialog_id_, query_, limit_, filter_, random_id_,
                                                                       get_tries() < 3, std::move(promise));
   }
 
@@ -1871,8 +1872,13 @@ class SearchChatMembersRequest : public RequestActor<> {
   }
 
  public:
-  SearchChatMembersRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, string &&query, int32 limit)
-      : RequestActor(std::move(td), request_id), dialog_id_(dialog_id), query_(std::move(query)), limit_(limit) {
+  SearchChatMembersRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, string &&query, int32 limit,
+                           DialogParticipantsFilter filter)
+      : RequestActor(std::move(td), request_id)
+      , dialog_id_(dialog_id)
+      , query_(std::move(query))
+      , limit_(limit)
+      , filter_(filter) {
     set_tries(3);
   }
 };
@@ -2158,8 +2164,8 @@ class GetSupergroupMembersRequest : public RequestActor<> {
   std::pair<int32, vector<DialogParticipant>> participants_;
 
   void do_run(Promise<Unit> &&promise) override {
-    participants_ = td->contacts_manager_->get_channel_participants(channel_id_, filter_, offset_, limit_, random_id_,
-                                                                    get_tries() < 3, std::move(promise));
+    participants_ = td->contacts_manager_->get_channel_participants(channel_id_, filter_, string(), offset_, limit_, -1,
+                                                                    random_id_, get_tries() < 3, std::move(promise));
   }
 
   void do_send_result() override {
@@ -5476,7 +5482,8 @@ void Td::on_request(uint64 id, const td_api::getChatMember &request) {
 
 void Td::on_request(uint64 id, td_api::searchChatMembers &request) {
   CLEAN_INPUT_STRING(request.query_);
-  CREATE_REQUEST(SearchChatMembersRequest, request.chat_id_, std::move(request.query_), request.limit_);
+  CREATE_REQUEST(SearchChatMembersRequest, request.chat_id_, std::move(request.query_), request.limit_,
+                 get_dialog_participants_filter(request.filter_));
 }
 
 void Td::on_request(uint64 id, td_api::getChatAdministrators &request) {

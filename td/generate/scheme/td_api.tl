@@ -340,6 +340,24 @@ chatMember user_id:int32 inviter_user_id:int32 joined_chat_date:int32 status:Cha
 chatMembers total_count:int32 members:vector<chatMember> = ChatMembers;
 
 
+//@class ChatMembersFilter @description Specifies the kind of chat members to return in searchChatMembers
+
+//@description Returns the creator and administrators
+chatMembersFilterAdministrators = ChatMembersFilter;
+
+//@description Returns all chat members, including restricted chat members
+chatMembersFilterMembers = ChatMembersFilter;
+
+//@description Returns users under certain restrictions in the chat; can be used only by administrators in a supergroup
+chatMembersFilterRestricted = ChatMembersFilter;
+
+//@description Returns users banned from the chat; can be used only by administrators in a supergroup or in a channel
+chatMembersFilterBanned = ChatMembersFilter;
+
+//@description Returns bot members of the chat
+chatMembersFilterBots = ChatMembersFilter;
+
+
 //@class SupergroupMembersFilter @description Specifies the kind of chat members to return in getSupergroupMembers
 
 //@description Returns recently active users in reverse chronological order
@@ -2724,8 +2742,8 @@ setChatMemberStatus chat_id:int53 user_id:int32 status:ChatMemberStatus = Ok;
 //@description Returns information about a single member of a chat @chat_id Chat identifier @user_id User identifier
 getChatMember chat_id:int53 user_id:int32 = ChatMember;
 
-//@description Searches for a specified query in the first name, last name and username of the members of a specified chat. Requires administrator rights in channels @chat_id Chat identifier @query Query to search for @limit The maximum number of users to be returned
-searchChatMembers chat_id:int53 query:string limit:int32 = ChatMembers;
+//@description Searches for a specified query in the first name, last name and username of the members of a specified chat. Requires administrator rights in channels @chat_id Chat identifier @query Query to search for @limit The maximum number of users to be returned The type of users to return. By default, chatMembersFilterMembers
+searchChatMembers chat_id:int53 query:string limit:int32 filter:ChatMembersFilter = ChatMembers;
 
 //@description Returns a list of users who are administrators of the chat @chat_id Chat identifier
 getChatAdministrators chat_id:int53 = Users;

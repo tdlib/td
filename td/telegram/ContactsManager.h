@@ -377,14 +377,16 @@ class ContactsManager : public Actor {
   DialogParticipant get_chat_participant(ChatId chat_id, UserId user_id, bool force, Promise<Unit> &&promise);
 
   std::pair<int32, vector<DialogParticipant>> search_chat_participants(ChatId chat_id, const string &query, int32 limit,
-                                                                       bool force, Promise<Unit> &&promise);
+                                                                       DialogParticipantsFilter filter, bool force,
+                                                                       Promise<Unit> &&promise);
 
   DialogParticipant get_channel_participant(ChannelId channel_id, UserId user_id, int64 &random_id, bool force,
                                             Promise<Unit> &&promise);
 
   std::pair<int32, vector<DialogParticipant>> get_channel_participants(
-      ChannelId channel_id, const tl_object_ptr<td_api::SupergroupMembersFilter> &filter, int32 offset, int32 limit,
-      int64 &random_id, bool force, Promise<Unit> &&promise);
+      ChannelId channel_id, const tl_object_ptr<td_api::SupergroupMembersFilter> &filter,
+      const string &additional_query, int32 offset, int32 limit, int32 additional_limit, int64 &random_id, bool force,
+      Promise<Unit> &&promise);
 
   DialogParticipant get_dialog_participant(ChannelId channel_id,
                                            tl_object_ptr<telegram_api::ChannelParticipant> &&participant_ptr) const;

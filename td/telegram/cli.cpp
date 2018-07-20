@@ -923,6 +923,30 @@ class CliClient final : public Actor {
     return nullptr;
   }
 
+  static tl_object_ptr<td_api::ChatMembersFilter> get_chat_members_filter(MutableSlice filter) {
+    filter = trim(filter);
+    to_lower_inplace(filter);
+    if (filter == "a" || filter == "admin" || filter == "administrators") {
+      return make_tl_object<td_api::chatMembersFilterAdministrators>();
+    }
+    if (filter == "b" || filter == "banned") {
+      return make_tl_object<td_api::chatMembersFilterBanned>();
+    }
+    if (filter == "bot" || filter == "bots") {
+      return make_tl_object<td_api::chatMembersFilterBots>();
+    }
+    if (filter == "m" || filter == "members") {
+      return make_tl_object<td_api::chatMembersFilterMembers>();
+    }
+    if (filter == "r" || filter == "rest" || filter == "restricted") {
+      return make_tl_object<td_api::chatMembersFilterRestricted>();
+    }
+    if (!filter.empty()) {
+      LOG(ERROR) << "Unsupported chat member filter " << filter;
+    }
+    return nullptr;
+  }
+
   tl_object_ptr<td_api::TopChatCategory> get_top_chat_category(MutableSlice category) {
     category = trim(category);
     to_lower_inplace(category);
@@ -1969,10 +1993,13 @@ class CliClient final : public Actor {
       string chat_id;
       string limit;
       string query;
+      string filter;
 
       std::tie(chat_id, args) = split(args);
-      std::tie(limit, query) = split(args);
-      send_request(make_tl_object<td_api::searchChatMembers>(as_chat_id(chat_id), query, to_integer<int32>(limit)));
+      std::tie(limit, args) = split(args);
+      std::tie(query, filter) = split(args);
+      send_request(make_tl_object<td_api::searchChatMembers>(as_chat_id(chat_id), query, to_integer<int32>(limit),
+                                                             get_chat_members_filter(filter)));
     } else if (op == "gcm") {
       string chat_id;
       string user_id;

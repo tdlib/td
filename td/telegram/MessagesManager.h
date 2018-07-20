@@ -1171,7 +1171,8 @@ class MessagesManager : public Actor {
                                            Promise<Unit> &&promise);
 
   std::pair<int32, vector<DialogParticipant>> search_dialog_participants(DialogId dialog_id, const string &query,
-                                                                         int32 limit, int64 &random_id, bool force,
+                                                                         int32 limit, DialogParticipantsFilter filter,
+                                                                         int64 &random_id, bool force,
                                                                          Promise<Unit> &&promise);
 
   vector<UserId> get_dialog_administrators(DialogId dialog_id, int left_tries, Promise<Unit> &&promise);
@@ -2397,7 +2398,8 @@ class MessagesManager : public Actor {
   void update_dialogs_hints_rating(const Dialog *d);
 
   std::pair<int32, vector<DialogParticipant>> search_private_chat_participants(UserId my_user_id, UserId peer_user_id,
-                                                                               const string &query, int32 limit) const;
+                                                                               const string &query, int32 limit,
+                                                                               DialogParticipantsFilter filter) const;
 
   static unique_ptr<Message> *find_message(unique_ptr<Message> *v, MessageId message_id);
   static const unique_ptr<Message> *find_message(const unique_ptr<Message> *v, MessageId message_id);

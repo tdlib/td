@@ -425,4 +425,25 @@ ChannelParticipantsFilter::ChannelParticipantsFilter(const tl_object_ptr<td_api:
   }
 }
 
+DialogParticipantsFilter get_dialog_participants_filter(const tl_object_ptr<td_api::ChatMembersFilter> &filter) {
+  if (filter == nullptr) {
+    return DialogParticipantsFilter::Members;
+  }
+  switch (filter->get_id()) {
+    case td_api::chatMembersFilterAdministrators::ID:
+      return DialogParticipantsFilter::Administrators;
+    case td_api::chatMembersFilterMembers::ID:
+      return DialogParticipantsFilter::Members;
+    case td_api::chatMembersFilterRestricted::ID:
+      return DialogParticipantsFilter::Restricted;
+    case td_api::chatMembersFilterBanned::ID:
+      return DialogParticipantsFilter::Banned;
+    case td_api::chatMembersFilterBots::ID:
+      return DialogParticipantsFilter::Bots;
+    default:
+      UNREACHABLE();
+      return DialogParticipantsFilter::Members;
+  }
+}
+
 }  // namespace td

@@ -8816,6 +8816,7 @@ DialogParticipant ContactsManager::get_chat_participant(ChatId chat_id, UserId u
 
 std::pair<int32, vector<DialogParticipant>> ContactsManager::search_chat_participants(ChatId chat_id,
                                                                                       const string &query, int32 limit,
+                                                                                      DialogParticipantsFilter filter,
                                                                                       bool force,
                                                                                       Promise<Unit> &&promise) {
   if (limit < 0) {
@@ -8835,7 +8836,31 @@ std::pair<int32, vector<DialogParticipant>> ContactsManager::search_chat_partici
     return {};
   }
 
-  auto user_ids = transform(chat_full->participants, [](const auto &participant) { return participant.user_id; });
+  auto is_dialog_participant_suitable = [this](const DialogParticipant &participant, DialogParticipantsFilter filter) {
+    switch (filter) {
+      case DialogParticipantsFilter::Administrators:
+        return participant.status.is_administrator();
+      case DialogParticipantsFilter::Members:
+        return participant.status.is_member();  // should be always true
+      case DialogParticipantsFilter::Restricted:
+        return participant.status.is_restricted();  // should be always false
+      case DialogParticipantsFilter::Banned:
+        return participant.status.is_banned();  // should be always false
+      case DialogParticipantsFilter::Bots:
+        return is_user_bot(participant.user_id);
+      default:
+        UNREACHABLE();
+        return false;
+    }
+  };
+
+  vector<UserId> user_ids;
+  for (auto &participant : chat_full->participants) {
+    if (is_dialog_participant_suitable(participant, filter)) {
+      user_ids.push_back(participant.user_id);
+    }
+  }
+
   int32 total_count;
   std::tie(total_count, user_ids) = search_among_users(user_ids, query, limit);
   return {total_count, transform(user_ids, [&](UserId user_id) { return *get_chat_participant(chat_full, user_id); })};
@@ -8902,8 +8927,8 @@ DialogParticipant ContactsManager::get_channel_participant(ChannelId channel_id,
 }
 
 std::pair<int32, vector<DialogParticipant>> ContactsManager::get_channel_participants(
-    ChannelId channel_id, const tl_object_ptr<td_api::SupergroupMembersFilter> &filter, int32 offset, int32 limit,
-    int64 &random_id, bool force, Promise<Unit> &&promise) {
+    ChannelId channel_id, const tl_object_ptr<td_api::SupergroupMembersFilter> &filter, const string &additional_query,
+    int32 offset, int32 limit, int32 additional_limit, int64 &random_id, bool force, Promise<Unit> &&promise) {
   if (random_id != 0) {
     // request has already been sent before
     auto it = received_channel_participants_.find(random_id);
@@ -8911,6 +8936,25 @@ std::pair<int32, vector<DialogParticipant>> ContactsManager::get_channel_partici
     auto result = std::move(it->second);
     received_channel_participants_.erase(it);
     promise.set_value(Unit());
+
+    if (additional_query.empty()) {
+      return result;
+    }
+
+    auto user_ids = transform(result.second, [](const auto &participant) { return participant.user_id; });
+    std::pair<int32, vector<UserId>> result_user_ids = search_among_users(user_ids, additional_query, additional_limit);
+
+    result.first = result_user_ids.first;
+    std::unordered_set<UserId, UserIdHash> result_user_ids_set(result_user_ids.second.begin(),
+                                                               result_user_ids.second.end());
+    auto all_participants = std::move(result.second);
+    result.second.clear();
+    for (auto &participant : all_participants) {
+      if (result_user_ids_set.count(participant.user_id)) {
+        result.second.push_back(std::move(participant));
+        result_user_ids_set.erase(participant.user_id);
+      }
+    }
     return result;
   }
 

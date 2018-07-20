@@ -21562,11 +21562,33 @@ DialogParticipant MessagesManager::get_dialog_participant(DialogId dialog_id, Us
   return DialogParticipant();
 }
 
-std::pair<int32, vector<DialogParticipant>> MessagesManager::search_private_chat_participants(UserId my_user_id,
-                                                                                              UserId peer_user_id,
-                                                                                              const string &query,
-                                                                                              int32 limit) const {
-  auto result = td_->contacts_manager_->search_among_users({my_user_id, peer_user_id}, query, limit);
+std::pair<int32, vector<DialogParticipant>> MessagesManager::search_private_chat_participants(
+    UserId my_user_id, UserId peer_user_id, const string &query, int32 limit, DialogParticipantsFilter filter) const {
+  vector<UserId> user_ids;
+  switch (filter) {
+    case DialogParticipantsFilter::Administrators:
+      break;
+    case DialogParticipantsFilter::Members:
+      user_ids.push_back(my_user_id);
+      user_ids.push_back(peer_user_id);
+      break;
+    case DialogParticipantsFilter::Restricted:
+      break;
+    case DialogParticipantsFilter::Banned:
+      break;
+    case DialogParticipantsFilter::Bots:
+      if (td_->auth_manager_->is_bot()) {
+        user_ids.push_back(my_user_id);
+      }
+      if (td_->contacts_manager_->is_user_bot(peer_user_id)) {
+        user_ids.push_back(peer_user_id);
+      }
+      break;
+    default:
+      UNREACHABLE();
+  }
+
+  auto result = td_->contacts_manager_->search_among_users(user_ids, query, limit);
   return {result.first, transform(result.second, [&](UserId user_id) {
             return DialogParticipant(user_id, user_id == my_user_id ? peer_user_id : my_user_id, 0,
                                      DialogParticipantStatus::Member());
@@ -21574,7 +21596,8 @@ std::pair<int32, vector<DialogParticipant>> MessagesManager::search_private_chat
 }
 
 std::pair<int32, vector<DialogParticipant>> MessagesManager::search_dialog_participants(
-    DialogId dialog_id, const string &query, int32 limit, int64 &random_id, bool force, Promise<Unit> &&promise) {
+    DialogId dialog_id, const string &query, int32 limit, DialogParticipantsFilter filter, int64 &random_id, bool force,
+    Promise<Unit> &&promise) {
   LOG(INFO) << "Receive SearchChatMembers request to search for " << query << " in " << dialog_id;
   if (!have_dialog_force(dialog_id)) {
     promise.set_error(Status::Error(3, "Chat not found"));
@@ -21589,19 +21612,49 @@ std::pair<int32, vector<DialogParticipant>> MessagesManager::search_dialog_parti
     case DialogType::User:
       promise.set_value(Unit());
       return search_private_chat_participants(td_->contacts_manager_->get_my_id("search_dialog_participants"),
-                                              dialog_id.get_user_id(), query, limit);
+                                              dialog_id.get_user_id(), query, limit, filter);
     case DialogType::Chat:
-      return td_->contacts_manager_->search_chat_participants(dialog_id.get_chat_id(), query, limit, force,
+      return td_->contacts_manager_->search_chat_participants(dialog_id.get_chat_id(), query, limit, filter, force,
                                                               std::move(promise));
-    case DialogType::Channel:
-      return td_->contacts_manager_->get_channel_participants(
-          dialog_id.get_channel_id(), td_api::make_object<td_api::supergroupMembersFilterSearch>(query), 0, limit,
-          random_id, force, std::move(promise));
+    case DialogType::Channel: {
+      tl_object_ptr<td_api::SupergroupMembersFilter> request_filter;
+      string additional_query;
+      int32 additional_limit = 0;
+      switch (filter) {
+        case DialogParticipantsFilter::Administrators:
+          request_filter = td_api::make_object<td_api::supergroupMembersFilterAdministrators>();
+          additional_query = query;
+          additional_limit = limit;
+          limit = 100;
+          break;
+        case DialogParticipantsFilter::Members:
+          request_filter = td_api::make_object<td_api::supergroupMembersFilterSearch>(query);
+          break;
+        case DialogParticipantsFilter::Restricted:
+          request_filter = td_api::make_object<td_api::supergroupMembersFilterRestricted>(query);
+          break;
+        case DialogParticipantsFilter::Banned:
+          request_filter = td_api::make_object<td_api::supergroupMembersFilterBanned>(query);
+          break;
+        case DialogParticipantsFilter::Bots:
+          request_filter = td_api::make_object<td_api::supergroupMembersFilterBots>();
+          additional_query = query;
+          additional_limit = limit;
+          limit = 100;
+          break;
+        default:
+          UNREACHABLE();
+      }
+
+      return td_->contacts_manager_->get_channel_participants(dialog_id.get_channel_id(), request_filter,
+                                                              additional_query, 0, limit, additional_limit, random_id,
+                                                              force, std::move(promise));
+    }
     case DialogType::SecretChat: {
       promise.set_value(Unit());
       auto peer_user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
       return search_private_chat_participants(td_->contacts_manager_->get_my_id("search_dialog_participants"),
-                                              peer_user_id, query, limit);
+                                              peer_user_id, query, limit, filter);
     }
     case DialogType::None:
     default:

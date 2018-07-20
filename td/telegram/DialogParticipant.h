@@ -252,6 +252,10 @@ class ChannelParticipantsFilter {
   }
 };
 
+enum class DialogParticipantsFilter : int32 { Administrators, Members, Restricted, Banned, Bots };
+
+DialogParticipantsFilter get_dialog_participants_filter(const tl_object_ptr<td_api::ChatMembersFilter> &filter);
+
 DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api::ChatMemberStatus> &status);
 
 DialogParticipantStatus get_dialog_participant_status(
