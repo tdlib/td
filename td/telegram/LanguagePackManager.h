@@ -66,21 +66,28 @@ class LanguagePackManager : public NetQueryCallback {
     std::unordered_map<string, std::unique_ptr<Language>> languages_;
   };
 
+  struct LanguageDatabase {
+    std::mutex mutex_;
+    string path_;
+    std::unordered_map<string, std::unique_ptr<LanguagePack>> language_packs_;
+  };
+
   ActorShared<> parent_;
 
   string language_pack_;
   string language_code_;
+  LanguageDatabase *database_;
   uint32 generation_ = 0;
 
   static int32 manager_count_;
 
-  static std::mutex language_packs_mutex_;
-  static std::unordered_map<string, std::unique_ptr<LanguagePack>> language_packs_;
+  static std::mutex language_database_mutex_;
+  static std::unordered_map<string, std::unique_ptr<LanguageDatabase>> language_databases_;
 
-  static Language *get_language(const string &language_pack, const string &language_code);
+  static Language *get_language(LanguageDatabase *database, const string &language_pack, const string &language_code);
   static Language *get_language(LanguagePack *language_pack, const string &language_code);
 
-  static Language *add_language(const string &language_pack, const string &language_code);
+  static Language *add_language(LanguageDatabase *database, const string &language_pack, const string &language_code);
 
   static bool language_has_string_unsafe(Language *language, const string &key);
   static bool language_has_strings(Language *language, const vector<string> &keys);

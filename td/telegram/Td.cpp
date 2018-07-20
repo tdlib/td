@@ -6107,6 +6107,9 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
       }
       break;
     case 'l':
+      if (set_string_option("language_database_path")) {
+        return;
+      }
       if (set_string_option("language_pack")) {
         return;
       }

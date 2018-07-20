@@ -223,4 +223,5 @@ Result<SqliteStatement> SqliteDb::get_statement(CSlice statement) {
   }
   return SqliteStatement(stmt, raw_);
 }
+
 }  // namespace td

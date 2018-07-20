@@ -21,21 +21,33 @@
 namespace td {
 
 void LanguagePackManager::start_up() {
-  std::lock_guard<std::mutex> lock(language_packs_mutex_);
+  std::lock_guard<std::mutex> lock(language_database_mutex_);
   manager_count_++;
   language_pack_ = G()->shared_config().get_option_string("language_pack");
   language_code_ = G()->shared_config().get_option_string("language_code");
-  LOG(INFO) << "Use language pack " << language_pack_ << " with language " << language_code_;
+
+  string database_path = G()->shared_config().get_option_string("language_database_path");
+  auto it = language_databases_.find(database_path);
+  if (it == language_databases_.end()) {
+    it = language_databases_.emplace(database_path, make_unique<LanguageDatabase>()).first;
+    it->second->path_ = std::move(database_path);
+
+    // TODO open database
+  }
+  database_ = it->second.get();
 
   // TODO load language_pack_version from database
+  LOG(INFO) << "Use language pack " << language_pack_ << " with language " << language_code_ << " with database "
+            << database_->path_;
 }
 
 void LanguagePackManager::tear_down() {
-  std::lock_guard<std::mutex> lock(language_packs_mutex_);
+  std::lock_guard<std::mutex> lock(language_database_mutex_);
   manager_count_--;
   if (manager_count_ == 0) {
-    LOG(INFO) << "Clear language packs";
-    language_packs_.clear();
+    // can't clear language packs, because the may be accessed later using synchronous requests
+    // LOG(INFO) << "Clear language packs";
+    // language_databases_.clear();
   }
 }
 
@@ -60,7 +72,7 @@ void LanguagePackManager::on_language_code_changed() {
 }
 
 void LanguagePackManager::on_language_pack_version_changed(int32 new_version) {
-  Language *language = get_language(language_pack_, language_code_);
+  Language *language = get_language(database_, language_pack_, language_code_);
   int32 version = language == nullptr ? static_cast<int32>(-1) : language->version_.load();
   if (version == -1) {
     return;
@@ -113,7 +125,7 @@ void LanguagePackManager::on_update_language_pack(tl_object_ptr<telegram_api::la
     return;
   }
 
-  Language *language = get_language(language_pack_, language_code_);
+  Language *language = get_language(database_, language_pack_, language_code_);
   int32 version = language == nullptr ? static_cast<int32>(-1) : language->version_.load();
   if (difference->version_ <= version) {
     LOG(INFO) << "Skip applying already applied updates";
@@ -136,11 +148,12 @@ void LanguagePackManager::inc_generation() {
   // TODO preload language and load language_pack_version from database
 }
 
-LanguagePackManager::Language *LanguagePackManager::get_language(const string &language_pack,
+LanguagePackManager::Language *LanguagePackManager::get_language(LanguageDatabase *database,
+                                                                 const string &language_pack,
                                                                  const string &language_code) {
-  std::unique_lock<std::mutex> lock(language_packs_mutex_);
-  auto it = language_packs_.find(language_pack);
-  if (it == language_packs_.end()) {
+  std::unique_lock<std::mutex> lock(database->mutex_);
+  auto it = database->language_packs_.find(language_pack);
+  if (it == database->language_packs_.end()) {
     return nullptr;
   }
   LanguagePack *pack = it->second.get();
@@ -159,12 +172,13 @@ LanguagePackManager::Language *LanguagePackManager::get_language(LanguagePack *l
   return it->second.get();
 }
 
-LanguagePackManager::Language *LanguagePackManager::add_language(const string &language_pack,
+LanguagePackManager::Language *LanguagePackManager::add_language(LanguageDatabase *database,
+                                                                 const string &language_pack,
                                                                  const string &language_code) {
-  std::lock_guard<std::mutex> packs_lock(language_packs_mutex_);
-  auto pack_it = language_packs_.find(language_pack);
-  if (pack_it == language_packs_.end()) {
-    pack_it = language_packs_.emplace(language_pack, make_unique<LanguagePack>()).first;
+  std::lock_guard<std::mutex> packs_lock(database->mutex_);
+  auto pack_it = database->language_packs_.find(language_pack);
+  if (pack_it == database->language_packs_.end()) {
+    pack_it = database->language_packs_.emplace(language_pack, make_unique<LanguagePack>()).first;
   }
   LanguagePack *pack = pack_it->second.get();
 
@@ -269,7 +283,7 @@ void LanguagePackManager::get_languages(Promise<td_api::object_ptr<td_api::langu
 
 void LanguagePackManager::get_language_pack_strings(string language_code, vector<string> keys,
                                                     Promise<td_api::object_ptr<td_api::languagePackStrings>> promise) {
-  Language *language = get_language(language_pack_, language_code);
+  Language *language = get_language(database_, language_pack_, language_code);
   if (language_has_strings(language, keys)) {
     return promise.set_value(get_language_pack_strings_object(language, keys));
   }
@@ -318,11 +332,11 @@ void LanguagePackManager::on_get_language_pack_strings(
     string language_pack, string language_code, int32 version, bool is_diff, vector<string> keys,
     vector<tl_object_ptr<telegram_api::LangPackString>> results,
     Promise<td_api::object_ptr<td_api::languagePackStrings>> promise) {
-  Language *language = get_language(language_pack, language_code);
+  Language *language = get_language(database_, language_pack, language_code);
   bool is_version_changed = false;
   if (language == nullptr || (language->version_ < version || !keys.empty())) {
     if (language == nullptr) {
-      language = add_language(language_pack, language_code);
+      language = add_language(database_, language_pack, language_code);
       CHECK(language != nullptr);
     }
     std::lock_guard<std::mutex> lock(language->mutex_);
@@ -411,7 +425,7 @@ void LanguagePackManager::on_get_language_pack_strings(
 }
 
 void LanguagePackManager::on_failed_get_difference(string language_pack, string language_code) {
-  Language *language = get_language(language_pack, language_code);
+  Language *language = get_language(database_, language_pack, language_code);
   CHECK(language != nullptr);
   std::lock_guard<std::mutex> lock(language->mutex_);
   if (language->has_get_difference_query_) {
@@ -439,7 +453,8 @@ void LanguagePackManager::hangup() {
 }
 
 int32 LanguagePackManager::manager_count_ = 0;
-std::mutex LanguagePackManager::language_packs_mutex_;
-std::unordered_map<string, std::unique_ptr<LanguagePackManager::LanguagePack>> LanguagePackManager::language_packs_;
+std::mutex LanguagePackManager::language_database_mutex_;
+std::unordered_map<string, std::unique_ptr<LanguagePackManager::LanguageDatabase>>
+    LanguagePackManager::language_databases_;
 
 }  // namespace td
