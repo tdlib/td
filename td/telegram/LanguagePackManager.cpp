@@ -12,13 +12,35 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/Td.h"
 
-#include "td/utils/logging.h"
-#include "td/utils/Status.h"
-
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
+#include "td/db/SqliteKeyValue.h"
+
+#include "td/utils/logging.h"
+#include "td/utils/Status.h"
+
 namespace td {
+
+struct LanguagePackManager::LanguageDatabase {
+  std::mutex mutex_;
+  string path_;
+  SqliteKeyValue kv_;
+  std::unordered_map<string, std::unique_ptr<LanguagePack>> language_packs_;
+};
+
+LanguagePackManager::~LanguagePackManager() = default;
+
+static Result<SqliteKeyValue> open_database(const string &path) {
+  TRY_RESULT(db, SqliteDb::open_with_key(path, DbKey::empty()));
+  TRY_STATUS(db.exec("PRAGMA synchronous=NORMAL"));
+  TRY_STATUS(db.exec("PRAGMA temp_store=MEMORY"));
+  TRY_STATUS(db.exec("PRAGMA encoding=\"UTF-8\""));
+  TRY_STATUS(db.exec("PRAGMA journal_mode=WAL"));
+  SqliteKeyValue kv;
+  TRY_STATUS(kv.init_with_connection(std::move(db), "lang"));
+  return std::move(kv);
+}
 
 void LanguagePackManager::start_up() {
   std::lock_guard<std::mutex> lock(language_database_mutex_);
@@ -29,10 +51,22 @@ void LanguagePackManager::start_up() {
   string database_path = G()->shared_config().get_option_string("language_database_path");
   auto it = language_databases_.find(database_path);
   if (it == language_databases_.end()) {
-    it = language_databases_.emplace(database_path, make_unique<LanguageDatabase>()).first;
-    it->second->path_ = std::move(database_path);
+    SqliteKeyValue kv;
+    if (!database_path.empty()) {
+      auto r_kv = open_database(database_path);
+      if (r_kv.is_error()) {
+        LOG(ERROR) << "Can't open language database " << database_path << ": " << r_kv.error();
+        database_path = string();
+        it = language_databases_.find(database_path);
+      } else {
+        kv = r_kv.move_as_ok();
+      }
+    }
 
-    // TODO open database
+    if (it == language_databases_.end()) {
+      it = language_databases_.emplace(database_path, make_unique<LanguageDatabase>()).first;
+      it->second->path_ = std::move(database_path);
+    }
   }
   database_ = it->second.get();
 

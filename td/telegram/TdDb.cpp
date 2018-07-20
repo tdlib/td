@@ -25,7 +25,9 @@
 #include "td/utils/Random.h"
 
 namespace td {
+
 namespace {
+
 std::string get_binlog_path(const TdParameters &parameters) {
   return PSTRING() << parameters.database_directory << "td" << (parameters.use_test_dc ? "_test" : "") << ".binlog";
 }
@@ -434,4 +436,5 @@ void TdDb::with_db_path(std::function<void(CSlice)> callback) {
   SqliteDb::with_db_path(sqlite_path(), callback);
   callback(binlog_path());
 }
+
 }  // namespace td

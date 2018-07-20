@@ -15,6 +15,7 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/Container.h"
+#include "td/utils/Status.h"
 
 #include <atomic>
 #include <mutex>
@@ -28,6 +29,11 @@ class LanguagePackManager : public NetQueryCallback {
  public:
   explicit LanguagePackManager(ActorShared<> parent) : parent_(std::move(parent)) {
   }
+  LanguagePackManager(const LanguagePackManager &) = delete;
+  LanguagePackManager &operator=(const LanguagePackManager &) = delete;
+  LanguagePackManager(LanguagePackManager &&) = delete;
+  LanguagePackManager &operator=(LanguagePackManager &&) = delete;
+  ~LanguagePackManager() override;
 
   void on_language_pack_changed();
 
@@ -66,11 +72,7 @@ class LanguagePackManager : public NetQueryCallback {
     std::unordered_map<string, std::unique_ptr<Language>> languages_;
   };
 
-  struct LanguageDatabase {
-    std::mutex mutex_;
-    string path_;
-    std::unordered_map<string, std::unique_ptr<LanguagePack>> language_packs_;
-  };
+  struct LanguageDatabase;
 
   ActorShared<> parent_;
 

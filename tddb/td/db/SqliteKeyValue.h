@@ -184,6 +184,9 @@ class SqliteKeyValue {
     }
   }
 
+  bool empty() const {
+    return db_.empty();
+  }
   void clear() {
     *this = SqliteKeyValue();
   }
