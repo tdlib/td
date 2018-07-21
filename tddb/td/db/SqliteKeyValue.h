@@ -46,7 +46,6 @@ class SqliteKeyValue {
     db_ = std::move(connection);
     kv_name_ = std::move(kv_name);
     TRY_STATUS(init(db_, kv_name_));
-    TRY_STATUS(db_.exec(PSLICE() << "CREATE TABLE IF NOT EXISTS " << kv_name_ << " (k BLOB PRIMARY KEY, v BLOB)"));
 
     TRY_RESULT(set_stmt, db_.get_statement(PSLICE() << "REPLACE INTO " << kv_name_ << " (k, v) VALUES (?1, ?2)"));
     set_stmt_ = std::move(set_stmt);
@@ -86,7 +85,7 @@ class SqliteKeyValue {
     return SqliteDb::destroy(name);
   }
   void close_and_destroy() {
-    db_.exec(PSLICE() << "DROP TABLE IF EXISTS " << kv_name_).ensure();
+    drop(db_, kv_name_).ensure();
     auto name = std::move(name_);
     clear();
     if (!name.empty()) {
