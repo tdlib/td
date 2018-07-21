@@ -10,6 +10,7 @@
 #include "td/utils/Slice.h"
 
 namespace td {
+
 class DbKey {
  public:
   enum Type { Empty, RawKey, Password };
@@ -49,4 +50,5 @@ class DbKey {
   Type type_{Empty};
   string data_;
 };
+
 }  // namespace td

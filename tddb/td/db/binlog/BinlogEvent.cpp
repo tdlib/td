@@ -6,9 +6,13 @@
 //
 #include "td/db/binlog/BinlogEvent.h"
 
+#include "td/utils/crypto.h"
+#include "td/utils/misc.h"
 #include "td/utils/tl_parsers.h"
+#include "td/utils/tl_storers.h"
 
 namespace td {
+
 int32 VERBOSITY_NAME(binlog) = VERBOSITY_NAME(DEBUG) + 8;
 
 Status BinlogEvent::init(BufferSlice &&raw_event, bool check_crc) {
@@ -45,6 +49,25 @@ Status BinlogEvent::validate() const {
     return Status::Error(PSLICE() << "Size of event changed: " << tag("was", size_) << tag("now", size));
   }
   return event.init(raw_event_.clone(), true);
+}
+
+BufferSlice BinlogEvent::create_raw(uint64 id, int32 type, int32 flags, const Storer &storer) {
+  auto raw_event = BufferSlice{storer.size() + MIN_EVENT_SIZE};
+
+  TlStorerUnsafe tl_storer(raw_event.as_slice().ubegin());
+  tl_storer.store_int(narrow_cast<int32>(raw_event.size()));
+  tl_storer.store_long(id);
+  tl_storer.store_int(type);
+  tl_storer.store_int(flags);
+  tl_storer.store_long(0);
+
+  CHECK(tl_storer.get_buf() == raw_event.as_slice().ubegin() + EVENT_HEADER_SIZE);
+  tl_storer.store_storer(storer);
+
+  CHECK(tl_storer.get_buf() == raw_event.as_slice().uend() - EVENT_TAIL_SIZE);
+  tl_storer.store_int(::td::crc32(raw_event.as_slice().truncate(raw_event.size() - EVENT_TAIL_SIZE)));
+
+  return raw_event;
 }
 
 }  // namespace td

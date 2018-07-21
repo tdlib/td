@@ -29,6 +29,7 @@
 #include <utility>
 
 namespace td {
+
 template <class BinlogT>
 class BinlogKeyValue : public KeyValueSyncInterface {
  public:
@@ -234,17 +235,21 @@ class BinlogKeyValue : public KeyValueSyncInterface {
   RwMutex rw_mutex_;
   int32 magic_ = magic;
 };
+
 template <>
 inline void BinlogKeyValue<Binlog>::add_event(uint64 seq_no, BufferSlice &&event) {
   binlog_->add_raw_event(std::move(event), BinlogDebugInfo{__FILE__, __LINE__});
 }
+
 template <>
 inline void BinlogKeyValue<Binlog>::force_sync(Promise<> &&promise) {
   binlog_->sync();
   promise.set_value(Unit());
 }
+
 template <>
 inline void BinlogKeyValue<Binlog>::lazy_sync(Promise<> &&promise) {
   force_sync(std::move(promise));
 }
+
 }  // namespace td
