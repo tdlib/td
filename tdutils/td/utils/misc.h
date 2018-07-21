@@ -296,23 +296,34 @@ template <class T>
 struct safe_undeflying_type<T, std::enable_if_t<std::is_enum<T>::value>> {
   using type = std::underlying_type_t<T>;
 };
+
+class NarrowCast {
+  const char *file_;
+  int line_;
+
+ public:
+  NarrowCast(const char *file, int line) : file_(file), line_(line) {
+  }
+
+  template <class R, class A>
+  R cast(const A &a) {
+    using RT = typename safe_undeflying_type<R>::type;
+    using AT = typename safe_undeflying_type<A>::type;
+
+    static_assert(std::is_integral<RT>::value, "expected integral type to cast to");
+    static_assert(std::is_integral<AT>::value, "expected integral type to cast from");
+
+    auto r = R(a);
+    CHECK(A(r) == a) << static_cast<AT>(a) << " " << static_cast<RT>(r) << " " << file_ << " " << line_;
+    CHECK((is_same_signedness<RT, AT>::value) || ((static_cast<RT>(r) < RT{}) == (static_cast<AT>(a) < AT{})))
+        << static_cast<AT>(a) << " " << static_cast<RT>(r) << " " << file_ << " " << line_;
+
+    return r;
+  }
+};
 }  // namespace detail
 
-template <class R, class A>
-R narrow_cast(const A &a) {
-  using RT = typename detail::safe_undeflying_type<R>::type;
-  using AT = typename detail::safe_undeflying_type<A>::type;
-
-  static_assert(std::is_integral<RT>::value, "expected integral type to cast to");
-  static_assert(std::is_integral<AT>::value, "expected integral type to cast from");
-
-  auto r = R(a);
-  CHECK(A(r) == a) << static_cast<AT>(a) << " " << static_cast<RT>(r);
-  CHECK((detail::is_same_signedness<RT, AT>::value) || ((static_cast<RT>(r) < RT{}) == (static_cast<AT>(a) < AT{})))
-      << static_cast<AT>(a) << " " << static_cast<RT>(r);
-
-  return r;
-}
+#define narrow_cast detail::NarrowCast(__FILE__, __LINE__).cast
 
 template <class R, class A>
 Result<R> narrow_cast_safe(const A &a) {
