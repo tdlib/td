@@ -17,7 +17,6 @@
 #include "td/utils/Container.h"
 #include "td/utils/Status.h"
 
-#include <atomic>
 #include <mutex>
 #include <unordered_map>
 #include <unordered_set>
@@ -49,29 +48,9 @@ class LanguagePackManager : public NetQueryCallback {
   void on_update_language_pack(tl_object_ptr<telegram_api::langPackDifference> difference);
 
  private:
-  struct PluralizedString {
-    string zero_value_;
-    string one_value_;
-    string two_value_;
-    string few_value_;
-    string many_value_;
-    string other_value_;
-  };
-
-  struct Language {
-    std::mutex mutex_;
-    std::atomic<int32> version_{-1};
-    bool has_get_difference_query_ = false;
-    std::unordered_map<string, string> ordinary_strings_;
-    std::unordered_map<string, PluralizedString> pluralized_strings_;
-    std::unordered_set<string> deleted_strings_;
-  };
-
-  struct LanguagePack {
-    std::mutex mutex_;
-    std::unordered_map<string, std::unique_ptr<Language>> languages_;
-  };
-
+  struct PluralizedString;
+  struct Language;
+  struct LanguagePack;
   struct LanguageDatabase;
 
   ActorShared<> parent_;

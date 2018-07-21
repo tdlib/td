@@ -15,31 +15,55 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
+#include "td/db/SqliteDb.h"
 #include "td/db/SqliteKeyValue.h"
 
 #include "td/utils/logging.h"
 #include "td/utils/Status.h"
 
+#include <atomic>
+
 namespace td {
+
+struct LanguagePackManager::PluralizedString {
+  string zero_value_;
+  string one_value_;
+  string two_value_;
+  string few_value_;
+  string many_value_;
+  string other_value_;
+};
+
+struct LanguagePackManager::Language {
+  std::mutex mutex_;
+  std::atomic<int32> version_{-1};
+  bool has_get_difference_query_ = false;
+  std::unordered_map<string, string> ordinary_strings_;
+  std::unordered_map<string, PluralizedString> pluralized_strings_;
+  std::unordered_set<string> deleted_strings_;
+};
+
+struct LanguagePackManager::LanguagePack {
+  std::mutex mutex_;
+  std::unordered_map<string, std::unique_ptr<Language>> languages_;
+};
 
 struct LanguagePackManager::LanguageDatabase {
   std::mutex mutex_;
   string path_;
-  SqliteKeyValue kv_;
+  SqliteDb database_;
   std::unordered_map<string, std::unique_ptr<LanguagePack>> language_packs_;
 };
 
 LanguagePackManager::~LanguagePackManager() = default;
 
-static Result<SqliteKeyValue> open_database(const string &path) {
-  TRY_RESULT(db, SqliteDb::open_with_key(path, DbKey::empty()));
-  TRY_STATUS(db.exec("PRAGMA synchronous=NORMAL"));
-  TRY_STATUS(db.exec("PRAGMA temp_store=MEMORY"));
-  TRY_STATUS(db.exec("PRAGMA encoding=\"UTF-8\""));
-  TRY_STATUS(db.exec("PRAGMA journal_mode=WAL"));
-  SqliteKeyValue kv;
-  TRY_STATUS(kv.init_with_connection(std::move(db), "lang"));
-  return std::move(kv);
+static Result<SqliteDb> open_database(const string &path) {
+  TRY_RESULT(database, SqliteDb::open_with_key(path, DbKey::empty()));
+  TRY_STATUS(database.exec("PRAGMA synchronous=NORMAL"));
+  TRY_STATUS(database.exec("PRAGMA temp_store=MEMORY"));
+  TRY_STATUS(database.exec("PRAGMA encoding=\"UTF-8\""));
+  TRY_STATUS(database.exec("PRAGMA journal_mode=WAL"));
+  return std::move(database);
 }
 
 void LanguagePackManager::start_up() {
@@ -51,21 +75,22 @@ void LanguagePackManager::start_up() {
   string database_path = G()->shared_config().get_option_string("language_database_path");
   auto it = language_databases_.find(database_path);
   if (it == language_databases_.end()) {
-    SqliteKeyValue kv;
+    SqliteDb database;
     if (!database_path.empty()) {
-      auto r_kv = open_database(database_path);
-      if (r_kv.is_error()) {
-        LOG(ERROR) << "Can't open language database " << database_path << ": " << r_kv.error();
+      auto r_database = open_database(database_path);
+      if (r_database.is_error()) {
+        LOG(ERROR) << "Can't open language database " << database_path << ": " << r_database.error();
         database_path = string();
         it = language_databases_.find(database_path);
       } else {
-        kv = r_kv.move_as_ok();
+        database = r_database.move_as_ok();
       }
     }
 
     if (it == language_databases_.end()) {
       it = language_databases_.emplace(database_path, make_unique<LanguageDatabase>()).first;
       it->second->path_ = std::move(database_path);
+      it->second->database_ = std::move(database);
     }
   }
   database_ = it->second.get();
