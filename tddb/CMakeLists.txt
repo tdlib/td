@@ -10,6 +10,7 @@ set(TDDB_SOURCE
 
   td/db/SqliteDb.cpp
   td/db/SqliteStatement.cpp
+  td/db/SqliteKeyValue.cpp
   td/db/SqliteKeyValueAsync.cpp
 
   td/db/detail/RawSqliteDb.cpp
