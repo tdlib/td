@@ -217,18 +217,7 @@ class Client::Impl final {
     SCOPE_EXIT {
       receive_lock_.exchange(false);
     };
-    if (output_queue_ready_cnt_ == 0) {
-      output_queue_ready_cnt_ = output_queue_->reader_wait_nonblock();
-    }
-    if (output_queue_ready_cnt_ > 0) {
-      output_queue_ready_cnt_--;
-      return output_queue_->reader_get_unsafe();
-    }
-    if (timeout != 0) {
-      poll_.run(static_cast<int>(timeout * 1000));
-      return receive(0);
-    }
-    return {0, nullptr};
+    return receive_unlocked(timeout);
   }
 
   Impl(const Impl &) = delete;
@@ -268,6 +257,21 @@ class Client::Impl final {
     poll_.init();
     auto &event_fd = output_queue_->reader_get_event_fd();
     poll_.subscribe(event_fd.get_fd(), Fd::Read);
+  }
+
+  Response receive_unlocked(double timeout) {
+    if (output_queue_ready_cnt_ == 0) {
+      output_queue_ready_cnt_ = output_queue_->reader_wait_nonblock();
+    }
+    if (output_queue_ready_cnt_ > 0) {
+      output_queue_ready_cnt_--;
+      return output_queue_->reader_get_unsafe();
+    }
+    if (timeout != 0) {
+      poll_.run(static_cast<int>(timeout * 1000));
+      return receive_unlocked(0);
+    }
+    return {0, nullptr};
   }
 };
 #endif
