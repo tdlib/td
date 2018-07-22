@@ -15,6 +15,7 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/Container.h"
+#include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
 #include <mutex>
@@ -87,6 +88,10 @@ class LanguagePackManager : public NetQueryCallback {
                                                                                           const vector<string> &keys);
 
   void inc_generation();
+
+  bool is_valid_key(Slice key);
+
+  void add_strings_to_database(Language *language, int32 new_version, vector<std::pair<string, string>> strings);
 
   void on_get_language_pack_strings(string language_pack, string language_code, int32 version, bool is_diff,
                                     vector<string> keys, vector<tl_object_ptr<telegram_api::LangPackString>> results,
