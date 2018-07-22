@@ -16,6 +16,7 @@
 #include "td/utils/port/Fd.h"
 #include "td/utils/port/Poll.h"
 #include "td/utils/port/thread.h"
+#include "td/utils/ScopeGuard.h"
 
 #include <deque>
 
