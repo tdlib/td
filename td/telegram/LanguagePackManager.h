@@ -34,6 +34,10 @@ class LanguagePackManager : public NetQueryCallback {
   LanguagePackManager &operator=(LanguagePackManager &&) = delete;
   ~LanguagePackManager() override;
 
+  static bool check_language_pack_name(Slice name);
+
+  static bool check_language_code_name(Slice name);
+
   void on_language_pack_changed();
 
   void on_language_code_changed();

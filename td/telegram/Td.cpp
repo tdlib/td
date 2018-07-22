@@ -6070,7 +6070,7 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
     return false;
   };
 
-  auto set_string_option = [&](Slice name) {
+  auto set_string_option = [&](Slice name, auto check_value) {
     if (request.name_ == name) {
       if (value_constructor_id != td_api::optionValueString::ID &&
           value_constructor_id != td_api::optionValueEmpty::ID) {
@@ -6080,8 +6080,17 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
       if (value_constructor_id == td_api::optionValueEmpty::ID) {
         G()->shared_config().set_option_empty(name);
       } else {
-        G()->shared_config().set_option_string(name,
-                                               static_cast<td_api::optionValueString *>(request.value_.get())->value_);
+        const string &value = static_cast<td_api::optionValueString *>(request.value_.get())->value_;
+        if (value.empty()) {
+          G()->shared_config().set_option_empty(name);
+        } else {
+          if (check_value(value)) {
+            G()->shared_config().set_option_string(name, value);
+          } else {
+            send_error_raw(id, 3, PSLICE() << "Option \"" << name << "\" can't have specified value");
+            return true;
+          }
+        }
       }
       send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
       return true;
@@ -6107,13 +6116,13 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
       }
       break;
     case 'l':
-      if (set_string_option("language_database_path")) {
+      if (set_string_option("language_database_path", [](Slice value) { return true; })) {
         return;
       }
-      if (set_string_option("language_pack")) {
+      if (set_string_option("language_pack", LanguagePackManager::check_language_pack_name)) {
         return;
       }
-      if (set_string_option("language_code")) {
+      if (set_string_option("language_code", LanguagePackManager::check_language_code_name)) {
         return;
       }
       break;

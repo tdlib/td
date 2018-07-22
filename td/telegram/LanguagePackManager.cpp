@@ -19,6 +19,7 @@
 #include "td/db/SqliteKeyValue.h"
 
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/Status.h"
 
 #include <atomic>
@@ -41,6 +42,7 @@ struct LanguagePackManager::Language {
   std::unordered_map<string, string> ordinary_strings_;
   std::unordered_map<string, PluralizedString> pluralized_strings_;
   std::unordered_set<string> deleted_strings_;
+  SqliteKeyValue kv_;  // usages should be guarded by database_->mutex_
 };
 
 struct LanguagePackManager::LanguagePack {
@@ -57,6 +59,24 @@ struct LanguagePackManager::LanguageDatabase {
 
 LanguagePackManager::~LanguagePackManager() = default;
 
+bool LanguagePackManager::check_language_pack_name(Slice name) {
+  for (auto c : name) {
+    if (c != '_' && !is_alpha(c)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool LanguagePackManager::check_language_code_name(Slice name) {
+  for (auto c : name) {
+    if (!is_alpha(c)) {
+      return false;
+    }
+  }
+  return name.size() == 2 || name.empty();
+}
+
 static Result<SqliteDb> open_database(const string &path) {
   TRY_RESULT(database, SqliteDb::open_with_key(path, DbKey::empty()));
   TRY_STATUS(database.exec("PRAGMA synchronous=NORMAL"));
@@ -71,6 +91,8 @@ void LanguagePackManager::start_up() {
   manager_count_++;
   language_pack_ = G()->shared_config().get_option_string("language_pack");
   language_code_ = G()->shared_config().get_option_string("language_code");
+  CHECK(check_language_pack_name(language_pack_));
+  CHECK(check_language_code_name(language_code_));
 
   string database_path = G()->shared_config().get_option_string("language_database_path");
   auto it = language_databases_.find(database_path);
@@ -117,6 +139,7 @@ void LanguagePackManager::on_language_pack_changed() {
   }
 
   language_pack_ = std::move(new_language_pack);
+  CHECK(check_language_pack_name(language_pack_));
   inc_generation();
 }
 
@@ -127,6 +150,7 @@ void LanguagePackManager::on_language_code_changed() {
   }
 
   language_code_ = std::move(new_language_code);
+  CHECK(check_language_code_name(language_code_));
   inc_generation();
 }
 
@@ -231,6 +255,10 @@ LanguagePackManager::Language *LanguagePackManager::get_language(LanguagePack *l
   return it->second.get();
 }
 
+static string get_database_table_name(const string &language_pack, const string &language_code) {
+  return PSTRING() << language_pack << "_" << language_code;
+}
+
 LanguagePackManager::Language *LanguagePackManager::add_language(LanguageDatabase *database,
                                                                  const string &language_pack,
                                                                  const string &language_code) {
@@ -245,6 +273,9 @@ LanguagePackManager::Language *LanguagePackManager::add_language(LanguageDatabas
   auto code_it = pack->languages_.find(language_code);
   if (code_it == pack->languages_.end()) {
     code_it = pack->languages_.emplace(language_code, make_unique<Language>()).first;
+    code_it->second->kv_
+        .init_with_connection(database->database_.clone(), get_database_table_name(language_pack, language_code))
+        .ensure();
   }
   return code_it->second.get();
 }
