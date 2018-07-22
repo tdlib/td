@@ -24,6 +24,9 @@ Result<bool> SqliteKeyValue::init(string path) {
 }
 
 Status SqliteKeyValue::init_with_connection(SqliteDb connection, string table_name) {
+  auto init_guard = ScopeExit() + [&]() {
+    clear();
+  };
   db_ = std::move(connection);
   table_name_ = std::move(table_name);
   TRY_STATUS(init(db_, table_name_));
@@ -35,6 +38,7 @@ Status SqliteKeyValue::init_with_connection(SqliteDb connection, string table_na
   TRY_RESULT(erase_stmt, db_.get_statement(PSLICE() << "DELETE FROM " << table_name_ << " WHERE k = ?1"));
   erase_stmt_ = std::move(erase_stmt);
   TRY_RESULT(get_all_stmt, db_.get_statement(PSLICE() << "SELECT k, v FROM " << table_name_ << ""));
+  get_all_stmt_ = std::move(get_all_stmt);
 
   TRY_RESULT(erase_by_prefix_stmt,
              db_.get_statement(PSLICE() << "DELETE FROM " << table_name_ << " WHERE ?1 <= k AND k < ?2"));
@@ -52,7 +56,7 @@ Status SqliteKeyValue::init_with_connection(SqliteDb connection, string table_na
              db_.get_statement(PSLICE() << "SELECT k, v FROM " << table_name_ << " WHERE ?1 <= k"));
   get_by_prefix_rare_stmt_ = std::move(get_by_prefix_rare_stmt);
 
-  get_all_stmt_ = std::move(get_all_stmt);
+  init_guard.dismiss();
   return Status::OK();
 }
 
