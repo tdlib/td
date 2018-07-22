@@ -212,6 +212,11 @@ class Client::Impl final {
   }
 
   Response receive(double timeout) {
+    auto is_locked = receive_lock_.exchange(true);
+    CHECK(!is_locked);
+    SCOPE_EXIT {
+      receive_lock_.exchange(false);
+    };
     if (output_queue_ready_cnt_ == 0) {
       output_queue_ready_cnt_ = output_queue_->reader_wait_nonblock();
     }
@@ -242,6 +247,7 @@ class Client::Impl final {
   std::shared_ptr<ConcurrentScheduler> scheduler_;
   int output_queue_ready_cnt_{0};
   thread scheduler_thread_;
+  std::atomic<bool> receive_lock_{false};
 
   void init() {
     input_queue_ = std::make_shared<InputQueue>();
