@@ -383,8 +383,8 @@ void Binlog::do_event(BinlogEvent &&event) {
         fd_.seek(fd_size_).ensure();
         fd_.truncate_to_current_position(fd_size_).ensure();
       }
-      LOG(FATAL) << "Truncate binlog \"" << path_ << "\" in state " << static_cast<int32>(state_) << " from size "
-                 << old_size << " to size " << fd_size_ << " due to error: " << status;
+      LOG(FATAL) << "Truncate binlog \"" << path_ << "\" from size " << old_size << " to size " << fd_size_
+                 << " in state " << static_cast<int32>(state_) << " due to error: " << status;
     }
   }
 
