@@ -8523,10 +8523,8 @@ void MessagesManager::delete_dialog_history_from_server(DialogId dialog_id, Mess
           ->send(dialog_id.get_channel_id(), max_message_id, allow_error);
       break;
     case DialogType::SecretChat:
-      // TODO: use promise
       send_closure(G()->secret_chats_manager(), &SecretChatsManager::delete_all_messages,
-                   dialog_id.get_secret_chat_id(), Promise<>());
-      promise.set_value(Unit());
+                   dialog_id.get_secret_chat_id(), std::move(promise));
       break;
     case DialogType::None:
     default:

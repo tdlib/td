@@ -275,11 +275,12 @@ class InboundSecretMessage : public LogEventHelper<InboundSecretMessage, SecretC
   }
 
   StringBuilder &print(StringBuilder &sb) const override {
-    return sb << "[Logevent InboundSecretMessage " << tag("id", logevent_id())
-              << tag("auth_key_id", format::as_hex(auth_key_id)) << tag("message_id", message_id)
-              << tag("my_in_seq_no", my_in_seq_no) << tag("my_out_seq_no", my_out_seq_no)
-              << tag("his_in_seq_no", his_in_seq_no) << tag("message", to_string(decrypted_message_layer))
-              << tag("is_pending", is_pending) << format::cond(has_encrypted_file, tag("file", file)) << "]";
+    return sb << "[Logevent InboundSecretMessage " << tag("id", logevent_id()) << tag("qts", qts)
+              << tag("chat_id", chat_id) << tag("date", date) << tag("auth_key_id", format::as_hex(auth_key_id))
+              << tag("message_id", message_id) << tag("my_in_seq_no", my_in_seq_no)
+              << tag("my_out_seq_no", my_out_seq_no) << tag("his_in_seq_no", his_in_seq_no)
+              << tag("message", to_string(decrypted_message_layer)) << tag("is_pending", is_pending)
+              << format::cond(has_encrypted_file, tag("file", file)) << "]";
   }
 };
 
@@ -376,11 +377,11 @@ class OutboundSecretMessage : public LogEventHelper<OutboundSecretMessage, Secre
   }
 
   StringBuilder &print(StringBuilder &sb) const override {
-    return sb << "[Logevent OutboundSecretMessage " << tag("id", logevent_id()) << tag("is_sent", is_sent)
-              << tag("is_service", is_service) << tag("is_rewritable", is_rewritable) << tag("is_external", is_external)
-              << tag("message_id", message_id) << tag("random_id", random_id) << tag("my_in_seq_no", my_in_seq_no)
-              << tag("my_out_seq_no", my_out_seq_no) << tag("his_in_seq_no", his_in_seq_no) << tag("file", file)
-              << tag("action", to_string(action)) << "]";
+    return sb << "[Logevent OutboundSecretMessage " << tag("id", logevent_id()) << tag("chat_id", chat_id)
+              << tag("is_sent", is_sent) << tag("is_service", is_service) << tag("is_rewritable", is_rewritable)
+              << tag("is_external", is_external) << tag("message_id", message_id) << tag("random_id", random_id)
+              << tag("my_in_seq_no", my_in_seq_no) << tag("my_out_seq_no", my_out_seq_no)
+              << tag("his_in_seq_no", his_in_seq_no) << tag("file", file) << tag("action", to_string(action)) << "]";
   }
 };
 
@@ -430,7 +431,8 @@ class CreateSecretChat : public LogEventHelper<CreateSecretChat, SecretChatEvent
   }
 
   StringBuilder &print(StringBuilder &sb) const override {
-    return sb << "[Logevent CreateSecretChat " << tag("id", logevent_id()) << tag("chat_id", random_id) << "]";
+    return sb << "[Logevent CreateSecretChat " << tag("id", logevent_id()) << tag("chat_id", random_id)
+              << tag("user_id", user_id) << "]";
   }
 };
 

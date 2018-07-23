@@ -36,9 +36,11 @@
 #define G GLOBAL_SHOULD_NOT_BE_USED_HERE
 
 namespace td {
+
 inline TLObjectStorer<secret_api::Object> create_storer(const secret_api::Object &object) {
   return TLObjectStorer<secret_api::Object>(object);
 }
+
 class SecretImpl {
  public:
   explicit SecretImpl(const Storer &data) : data(data) {
@@ -52,6 +54,7 @@ class SecretImpl {
  private:
   const Storer &data;
 };
+
 SecretChatActor::SecretChatActor(int32 id, std::unique_ptr<Context> context, bool can_be_empty)
     : context_(std::move(context)), can_be_empty_(can_be_empty) {
   auth_state_.id = id;
@@ -87,8 +90,13 @@ void SecretChatActor::create_chat(int32 user_id, int64 user_access_hash, int32 r
   promise.set_value(SecretChatId(random_id));
   loop();
 }
+
 void SecretChatActor::on_result_resendable(NetQueryPtr net_query, Promise<NetQueryPtr> promise) {
-  LOG(INFO) << "on_result_resendable: " << net_query;
+  LOG(INFO) << "on_result_resendable: " << net_query << " " << close_flag_;
+  if (context_->close_flag()) {
+    return;
+  }
+
   auto key = UniqueId::extract_key(net_query->id());
   if (close_flag_) {
     if (key == static_cast<uint8>(QueryType::DiscardEncryption)) {
@@ -103,7 +111,8 @@ void SecretChatActor::on_result_resendable(NetQueryPtr net_query, Promise<NetQue
       case static_cast<uint8>(QueryType::EncryptedChat):
         return on_update_chat(std::move(net_query));
       case static_cast<uint8>(QueryType::Message):
-        return on_outbound_send_message_result(std::move(net_query), std::move(promise)), Status::OK();
+        on_outbound_send_message_result(std::move(net_query), std::move(promise));
+        return Status::OK();
       case static_cast<uint8>(QueryType::ReadHistory):
         return on_read_history(std::move(net_query));
       case static_cast<uint8>(QueryType::Ignore):
@@ -114,18 +123,21 @@ void SecretChatActor::on_result_resendable(NetQueryPtr net_query, Promise<NetQue
 
   loop();
 }
+
 void SecretChatActor::replay_close_chat(std::unique_ptr<logevent::CloseSecretChat> event) {
   if (close_flag_) {
     return;
   }
   do_close_chat_impl(std::move(event));
 }
+
 void SecretChatActor::replay_create_chat(std::unique_ptr<logevent::CreateSecretChat> event) {
   if (close_flag_) {
     return;
   }
   do_create_chat_impl(std::move(event));
 }
+
 void SecretChatActor::add_inbound_message(std::unique_ptr<logevent::InboundSecretMessage> message) {
   SCOPE_EXIT {
     if (message) {

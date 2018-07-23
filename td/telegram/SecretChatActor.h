@@ -43,9 +43,7 @@
 
 namespace td {
 class BinlogInterface;
-class DhCache;
 class NetQueryCreator;
-class SequenceDispatcher;
 
 class SecretChatActor : public NetQueryCallback {
  public:
