@@ -1741,6 +1741,17 @@ class CliClient final : public Actor {
 
       std::tie(language_code, keys) = split(args);
       send_request(make_tl_object<td_api::getLanguagePackStrings>(language_code, full_split(keys)));
+    } else if (op == "glpss") {
+      string language_database_path;
+      string language_pack;
+      string language_code;
+      string key;
+
+      std::tie(language_database_path, args) = split(args);
+      std::tie(language_pack, args) = split(args);
+      std::tie(language_code, key) = split(args);
+      send_request(
+          make_tl_object<td_api::getLanguagePackString>(language_database_path, language_pack, language_code, key));
     } else if (op == "go") {
       send_request(make_tl_object<td_api::getOption>(args));
     } else if (op == "sob") {

@@ -49,6 +49,10 @@ class LanguagePackManager : public NetQueryCallback {
   void get_language_pack_strings(string language_code, vector<string> keys,
                                  Promise<td_api::object_ptr<td_api::languagePackStrings>> promise);
 
+  static td_api::object_ptr<td_api::Object> get_language_pack_string(const string &database_path,
+                                                                     const string &language_pack,
+                                                                     const string &language_code, const string &key);
+
   void on_update_language_pack(tl_object_ptr<telegram_api::langPackDifference> difference);
 
  private:
@@ -68,6 +72,8 @@ class LanguagePackManager : public NetQueryCallback {
   static std::mutex language_database_mutex_;
   static std::unordered_map<string, std::unique_ptr<LanguageDatabase>> language_databases_;
 
+  static LanguageDatabase *add_language_database(const string &path);
+
   static Language *get_language(LanguageDatabase *database, const string &language_pack, const string &language_code);
   static Language *get_language(LanguagePack *language_pack, const string &language_code);
 
@@ -84,6 +90,9 @@ class LanguagePackManager : public NetQueryCallback {
   static td_api::object_ptr<td_api::LanguagePackString> get_language_pack_string_object(
       const std::pair<string, PluralizedString> &str);
   static td_api::object_ptr<td_api::LanguagePackString> get_language_pack_string_object(const string &str);
+
+  static td_api::object_ptr<td_api::LanguagePackString> get_language_pack_string_object(Language *language,
+                                                                                        const string &key);
 
   static td_api::object_ptr<td_api::languagePackStrings> get_language_pack_strings_object(Language *language,
                                                                                           const vector<string> &keys);

@@ -871,6 +871,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::cleanFileName &request);
 
+  void on_request(uint64 id, const td_api::getLanguagePackString &request);
+
   // test
   void on_request(uint64 id, td_api::testNetwork &request);
   void on_request(uint64 id, td_api::testGetDifference &request);
@@ -892,6 +894,7 @@ class Td final : public NetQueryCallback {
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getFileMimeType &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getFileExtension &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::cleanFileName &request);
+  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getLanguagePackString &request);
 
   Status init(DbKey key) TD_WARN_UNUSED_RESULT;
   void clear();

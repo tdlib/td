@@ -102,6 +102,29 @@ static int32 load_database_language_version(SqliteKeyValue *kv) {
   return to_integer<int32>(str_version);
 }
 
+LanguagePackManager::LanguageDatabase *LanguagePackManager::add_language_database(const string &path) {
+  auto it = language_databases_.find(path);
+  if (it != language_databases_.end()) {
+    return it->second.get();
+  }
+
+  SqliteDb database;
+  if (!path.empty()) {
+    auto r_database = open_database(path);
+    if (r_database.is_error()) {
+      LOG(ERROR) << "Can't open language database " << path << ": " << r_database.error();
+      return add_language_database(string());
+    }
+
+    database = r_database.move_as_ok();
+  }
+
+  it = language_databases_.emplace(path, make_unique<LanguageDatabase>()).first;
+  it->second->path_ = std::move(path);
+  it->second->database_ = std::move(database);
+  return it->second.get();
+}
+
 void LanguagePackManager::start_up() {
   std::lock_guard<std::mutex> lock(language_database_mutex_);
   manager_count_++;
@@ -110,29 +133,7 @@ void LanguagePackManager::start_up() {
   CHECK(check_language_pack_name(language_pack_));
   CHECK(check_language_code_name(language_code_));
 
-  string database_path = G()->shared_config().get_option_string("language_database_path");
-  auto it = language_databases_.find(database_path);
-  if (it == language_databases_.end()) {
-    SqliteDb database;
-    if (!database_path.empty()) {
-      auto r_database = open_database(database_path);
-      if (r_database.is_error()) {
-        LOG(ERROR) << "Can't open language database " << database_path << ": " << r_database.error();
-        database_path = string();
-        it = language_databases_.find(database_path);
-      } else {
-        database = r_database.move_as_ok();
-      }
-    }
-
-    if (it == language_databases_.end()) {
-      it = language_databases_.emplace(database_path, make_unique<LanguageDatabase>()).first;
-      it->second->path_ = std::move(database_path);
-      it->second->database_ = std::move(database);
-    }
-  }
-  database_ = it->second.get();
-
+  database_ = add_language_database(G()->shared_config().get_option_string("language_database_path"));
   auto language = add_language(database_, language_pack_, language_code_);
 
   LOG(INFO) << "Use language pack " << language_pack_ << " with language " << language_code_ << " of version "
@@ -412,6 +413,21 @@ td_api::object_ptr<td_api::LanguagePackString> LanguagePackManager::get_language
   return td_api::make_object<td_api::languagePackStringDeleted>(str);
 }
 
+td_api::object_ptr<td_api::LanguagePackString> LanguagePackManager::get_language_pack_string_object(Language *language,
+                                                                                                    const string &key) {
+  CHECK(language != nullptr);
+  auto ordinary_it = language->ordinary_strings_.find(key);
+  if (ordinary_it != language->ordinary_strings_.end()) {
+    return get_language_pack_string_object(*ordinary_it);
+  }
+  auto pluralized_it = language->pluralized_strings_.find(key);
+  if (pluralized_it != language->pluralized_strings_.end()) {
+    return get_language_pack_string_object(*pluralized_it);
+  }
+  LOG_IF(ERROR, !language->is_full_ && language->deleted_strings_.count(key) == 0) << "Have no string for key " << key;
+  return get_language_pack_string_object(key);
+}
+
 td_api::object_ptr<td_api::languagePackStrings> LanguagePackManager::get_language_pack_strings_object(
     Language *language, const vector<string> &keys) {
   CHECK(language != nullptr);
@@ -427,19 +443,7 @@ td_api::object_ptr<td_api::languagePackStrings> LanguagePackManager::get_languag
     }
   } else {
     for (auto &key : keys) {
-      auto ordinary_it = language->ordinary_strings_.find(key);
-      if (ordinary_it != language->ordinary_strings_.end()) {
-        strings.push_back(get_language_pack_string_object(*ordinary_it));
-        continue;
-      }
-      auto pluralized_it = language->pluralized_strings_.find(key);
-      if (pluralized_it != language->pluralized_strings_.end()) {
-        strings.push_back(get_language_pack_string_object(*pluralized_it));
-        continue;
-      }
-      LOG_IF(ERROR, !language->is_full_ && language->deleted_strings_.count(key) == 0)
-          << "Have no string for key " << key;
-      strings.push_back(get_language_pack_string_object(key));
+      strings.push_back(get_language_pack_string_object(language, key));
     }
   }
 
@@ -523,6 +527,37 @@ void LanguagePackManager::get_language_pack_strings(string language_code, vector
                           create_storer(telegram_api::langpack_getStrings(language_code, std::move(keys)))),
                       std::move(request_promise));
   }
+}
+
+td_api::object_ptr<td_api::Object> LanguagePackManager::get_language_pack_string(const string &database_path,
+                                                                                 const string &language_pack,
+                                                                                 const string &language_code,
+                                                                                 const string &key) {
+  if (!check_language_pack_name(language_pack) || language_pack.empty()) {
+    return td_api::make_object<td_api::error>(400, "Language pack is invalid");
+  }
+  if (!check_language_code_name(language_code) || language_code.empty()) {
+    return td_api::make_object<td_api::error>(400, "Language code is invalid");
+  }
+  if (!is_valid_key(key)) {
+    return td_api::make_object<td_api::error>(400, "Key is invalid");
+  }
+
+  std::unique_lock<std::mutex> language_databases_lock(language_database_mutex_);
+  LanguageDatabase *database = add_language_database(database_path);
+  CHECK(database != nullptr);
+  language_databases_lock.unlock();
+
+  Language *language = add_language(database, language_pack, language_code);
+  vector<string> keys{key};
+  if (language_has_strings(language, keys)) {
+    std::lock_guard<std::mutex> lock(language->mutex_);
+    return get_language_pack_string_object(language, key);
+  }
+  if (!database->database_.empty() && load_language_strings(database, language, keys)) {
+    return get_language_pack_string_object(language, key);
+  }
+  return td_api::make_object<td_api::error>(404, "Not Found");
 }
 
 bool LanguagePackManager::is_valid_key(Slice key) {

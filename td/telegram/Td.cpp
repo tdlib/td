@@ -3236,6 +3236,7 @@ bool Td::is_synchronous_request(int32 id) {
     case td_api::getFileMimeType::ID:
     case td_api::getFileExtension::ID:
     case td_api::cleanFileName::ID:
+    case td_api::getLanguagePackString::ID:
       return true;
     default:
       return false;
@@ -6618,6 +6619,10 @@ void Td::on_request(uint64 id, const td_api::cleanFileName &request) {
   send_closure(actor_id(this), &Td::send_result, id, do_static_request(request));
 }
 
+void Td::on_request(uint64 id, const td_api::getLanguagePackString &request) {
+  send_closure(actor_id(this), &Td::send_result, id, do_static_request(request));
+}
+
 template <class T>
 td_api::object_ptr<td_api::Object> Td::do_static_request(const T &request) {
   return make_error(400, "Function can't be executed synchronously");
@@ -6670,6 +6675,11 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getFileEx
 td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::cleanFileName &request) {
   // don't check file name UTF-8 correctness
   return make_tl_object<td_api::text>(clean_filename(request.file_name_));
+}
+
+td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getLanguagePackString &request) {
+  return LanguagePackManager::get_language_pack_string(request.language_database_path_, request.language_pack_,
+                                                       request.language_code_, request.key_);
 }
 
 // test

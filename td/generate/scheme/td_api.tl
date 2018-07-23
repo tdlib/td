@@ -2609,6 +2609,9 @@ getFileExtension mime_type:string = Text;
 //@description Removes potentially dangerous characters from the name of a file. The encoding of the file name is supposed to be UTF-8. Returns an empty string on failure. This is an offline method. Can be called before authorization. Can be called synchronously @file_name File name or path to the file
 cleanFileName file_name:string = Text;
 
+//@description Returns a string stored in a local database from specified language pack and language by its key. Returns a 404 error if the string is not found. This is an offline method. Can be called before authorization. Can be called synchronously @language_database_path Path to a language database in which strings are stored @language_pack Language pack of string to return @language_code Language code of string to return @key Language pack key of string to return
+getLanguagePackString language_database_path:string language_pack:string language_code:string key:string = LanguagePackString;
+
 
 //@description Sends an inline query to a bot and returns its results. Returns an error with code 502 if the bot fails to answer the query before the query timeout expires @bot_user_id The identifier of the target bot
 //@chat_id Identifier of the chat, where the query was sent @user_location Location of the user, only if needed @query Text of the query @offset Offset of the first entry to return
