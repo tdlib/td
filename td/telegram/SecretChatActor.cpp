@@ -1264,6 +1264,11 @@ Status SecretChatActor::do_inbound_message_decrypted(std::unique_ptr<logevent::I
         old->flags_, old->random_id_, old->ttl_, std::move(old->message_), std::move(old->media_),
         std::move(old->entities_), std::move(old->via_bot_name_), old->reply_to_random_id_, 0);
   }
+  if (message->decrypted_message_layer->message_->get_id() == secret_api::decryptedMessageService8::ID) {
+    auto old = move_tl_object_as<secret_api::decryptedMessageService8>(message->decrypted_message_layer->message_);
+    message->decrypted_message_layer->message_ =
+        secret_api::make_object<secret_api::decryptedMessageService>(old->random_id_, std::move(old->action_));
+  }
 
   // NB: message is invalid after this 'move_as'
   // Send update through context_
@@ -1654,6 +1659,9 @@ void SecretChatActor::on_outbound_send_message_result(NetQueryPtr query, Promise
 void SecretChatActor::on_outbound_send_message_error(uint64 state_id, Status error,
                                                      Promise<NetQueryPtr> resend_promise) {
   if (close_flag_) {
+    return;
+  }
+  if (context_->close_flag()) {
     return;
   }
   auto *state = outbound_message_states_.get(state_id);
@@ -2252,8 +2260,7 @@ void SecretChatActor::request_new_key() {
 
 void SecretChatActor::on_promise_error(Status error, string desc) {
   if (context_->close_flag()) {
-    // ignore
-    LOG(ERROR) << "IGNORE";
+    LOG(DEBUG) << "Ignore " << tag("promise", desc) << error;
     return;
   }
   LOG(FATAL) << "Failed: " << tag("promise", desc) << error;
