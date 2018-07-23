@@ -20,7 +20,6 @@
 
 #include <mutex>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 
 namespace td {
@@ -62,8 +61,7 @@ class LanguagePackManager : public NetQueryCallback {
 
   string language_pack_;
   string language_code_;
-  LanguageDatabase *database_;
-  uint32 generation_ = 0;
+  LanguageDatabase *database_ = nullptr;
 
   static int32 manager_count_;
 
@@ -78,6 +76,9 @@ class LanguagePackManager : public NetQueryCallback {
   static bool language_has_string_unsafe(Language *language, const string &key);
   static bool language_has_strings(Language *language, const vector<string> &keys);
 
+  static void load_language_string_unsafe(Language *language, const string &key, string &value);
+  static bool load_language_strings(LanguageDatabase *database, Language *language, const vector<string> &keys);
+
   static td_api::object_ptr<td_api::LanguagePackString> get_language_pack_string_object(
       const std::pair<string, string> &str);
   static td_api::object_ptr<td_api::LanguagePackString> get_language_pack_string_object(
@@ -89,9 +90,9 @@ class LanguagePackManager : public NetQueryCallback {
 
   void inc_generation();
 
-  bool is_valid_key(Slice key);
+  static bool is_valid_key(Slice key);
 
-  void add_strings_to_database(Language *language, int32 new_version, vector<std::pair<string, string>> strings);
+  void save_strings_to_database(Language *language, int32 new_version, vector<std::pair<string, string>> strings);
 
   void on_get_language_pack_strings(string language_pack, string language_code, int32 version, bool is_diff,
                                     vector<string> keys, vector<tl_object_ptr<telegram_api::LangPackString>> results,

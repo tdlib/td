@@ -18,6 +18,7 @@
 #include "td/utils/port/thread.h"
 #include "td/utils/ScopeGuard.h"
 
+#include <atomic>
 #include <deque>
 
 namespace td {

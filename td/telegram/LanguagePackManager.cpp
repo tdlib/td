@@ -23,6 +23,7 @@
 #include "td/utils/Status.h"
 
 #include <atomic>
+#include <unordered_set>
 #include <utility>
 
 namespace td {
@@ -39,6 +40,7 @@ struct LanguagePackManager::PluralizedString {
 struct LanguagePackManager::Language {
   std::mutex mutex_;
   std::atomic<int32> version_{-1};
+  bool is_full_ = false;
   bool has_get_difference_query_ = false;
   std::unordered_map<string, string> ordinary_strings_;
   std::unordered_map<string, PluralizedString> pluralized_strings_;
@@ -88,6 +90,10 @@ static Result<SqliteDb> open_database(const string &path) {
 }
 
 static int32 load_database_language_version(SqliteKeyValue *kv) {
+  CHECK(kv != nullptr);
+  if (kv->empty()) {
+    return -1;
+  }
   string str_version = kv->get("!version");
   if (str_version.empty()) {
     return -1;
@@ -127,9 +133,10 @@ void LanguagePackManager::start_up() {
   }
   database_ = it->second.get();
 
-  // TODO load language_pack_version from database
-  LOG(INFO) << "Use language pack " << language_pack_ << " with language " << language_code_ << " with database "
-            << database_->path_;
+  auto language = add_language(database_, language_pack_, language_code_);
+
+  LOG(INFO) << "Use language pack " << language_pack_ << " with language " << language_code_ << " of version "
+            << language->version_.load() << " with database \"" << database_->path_ << '"';
 }
 
 void LanguagePackManager::tear_down() {
@@ -235,10 +242,7 @@ void LanguagePackManager::on_update_language_pack(tl_object_ptr<telegram_api::la
 }
 
 void LanguagePackManager::inc_generation() {
-  generation_++;
   G()->shared_config().set_option_empty("language_pack_version");
-
-  // TODO preload language and load language_pack_version from database
 }
 
 LanguagePackManager::Language *LanguagePackManager::get_language(LanguageDatabase *database,
@@ -282,10 +286,14 @@ LanguagePackManager::Language *LanguagePackManager::add_language(LanguageDatabas
   std::lock_guard<std::mutex> languages_lock(pack->mutex_);
   auto code_it = pack->languages_.find(language_code);
   if (code_it == pack->languages_.end()) {
-    code_it = pack->languages_.emplace(language_code, make_unique<Language>()).first;
-    code_it->second->kv_
-        .init_with_connection(database->database_.clone(), get_database_table_name(language_pack, language_code))
-        .ensure();
+    auto language = make_unique<Language>();
+    if (!database->database_.empty()) {
+      language->kv_
+          .init_with_connection(database->database_.clone(), get_database_table_name(language_pack, language_code))
+          .ensure();
+      language->version_ = load_database_language_version(&language->kv_);
+    }
+    code_it = pack->languages_.emplace(language_code, std::move(language)).first;
   }
   return code_it->second.get();
 }
@@ -301,12 +309,88 @@ bool LanguagePackManager::language_has_strings(Language *language, const vector<
   }
 
   std::lock_guard<std::mutex> lock(language->mutex_);
+  if (language->is_full_) {
+    return true;
+  }
   if (keys.empty()) {
-    return language->version_ != -1;
+    return language->version_ != -1 && language->is_full_;
   }
   for (auto &key : keys) {
     if (!language_has_string_unsafe(language, key)) {
       return false;
+    }
+  }
+  return true;
+}
+
+void LanguagePackManager::load_language_string_unsafe(Language *language, const string &key, string &value) {
+  CHECK(is_valid_key(key));
+  if (value.empty() || value == "3") {
+    if (!language->is_full_) {
+      language->deleted_strings_.insert(key);
+    }
+    return;
+  }
+
+  if (value[0] == '1') {
+    language->ordinary_strings_.emplace(key, value.substr(1));
+    return;
+  }
+
+  CHECK(value[0] == '2');
+  auto all = full_split(Slice(value).substr(1), '\x00');
+  CHECK(all.size() == 6);
+  language->pluralized_strings_.emplace(
+      key, PluralizedString{all[0].str(), all[1].str(), all[2].str(), all[3].str(), all[4].str(), all[5].str()});
+}
+
+bool LanguagePackManager::load_language_strings(LanguageDatabase *database, Language *language,
+                                                const vector<string> &keys) {
+  if (language == nullptr) {
+    return false;
+  }
+
+  std::lock_guard<std::mutex> database_lock(database->mutex_);
+  std::lock_guard<std::mutex> language_lock(language->mutex_);
+  if (language->is_full_) {
+    // was already loaded
+    return true;
+  }
+  if (language->kv_.empty()) {
+    return false;
+  }
+  if (keys.empty()) {
+    if (language->version_ == -1) {
+      // there is nothing to load
+      return false;
+    }
+
+    auto all_strings = language->kv_.get_all();
+    for (auto &str : all_strings) {
+      if (str.first == "!version") {
+        CHECK(to_integer<int32>(str.second) == language->version_);
+        continue;
+      }
+
+      if (!language_has_string_unsafe(language, str.first)) {
+        load_language_string_unsafe(language, str.first, str.second);
+      }
+    }
+    language->is_full_ = true;
+    language->deleted_strings_.clear();
+    return true;
+  }
+  for (auto &key : keys) {
+    if (!language_has_string_unsafe(language, key)) {
+      auto value = language->kv_.get(key);
+      if (value.empty()) {
+        if (language->version_ == -1) {
+          return false;
+        }
+
+        // have full language in the database, so this string is just deleted
+      }
+      load_language_string_unsafe(language, key, value);
     }
   }
   return true;
@@ -353,7 +437,8 @@ td_api::object_ptr<td_api::languagePackStrings> LanguagePackManager::get_languag
         strings.push_back(get_language_pack_string_object(*pluralized_it));
         continue;
       }
-      LOG_IF(ERROR, language->deleted_strings_.count(key) == 0) << "Have no string for key " << key;
+      LOG_IF(ERROR, !language->is_full_ && language->deleted_strings_.count(key) == 0)
+          << "Have no string for key " << key;
       strings.push_back(get_language_pack_string_object(key));
     }
   }
@@ -383,9 +468,21 @@ void LanguagePackManager::get_languages(Promise<td_api::object_ptr<td_api::langu
 
 void LanguagePackManager::get_language_pack_strings(string language_code, vector<string> keys,
                                                     Promise<td_api::object_ptr<td_api::languagePackStrings>> promise) {
+  for (auto &key : keys) {
+    if (!is_valid_key(key)) {
+      return promise.set_error(Status::Error(400, "Invalid key name"));
+    }
+  }
+
   Language *language = get_language(database_, language_pack_, language_code);
   if (language_has_strings(language, keys)) {
     return promise.set_value(get_language_pack_strings_object(language, keys));
+  }
+  if (!database_->database_.empty()) {
+    language = add_language(database_, language_pack_, language_code);
+    if (load_language_strings(database_, language, keys)) {
+      return promise.set_value(get_language_pack_strings_object(language, keys));
+    }
   }
 
   if (keys.empty()) {
@@ -437,14 +534,17 @@ bool LanguagePackManager::is_valid_key(Slice key) {
   return !key.empty();
 }
 
-void LanguagePackManager::add_strings_to_database(Language *language, int32 new_version,
-                                                  vector<std::pair<string, string>> strings) {
+void LanguagePackManager::save_strings_to_database(Language *language, int32 new_version,
+                                                   vector<std::pair<string, string>> strings) {
   if (new_version == -1 && strings.empty()) {
     return;
   }
 
   std::lock_guard<std::mutex> lock(database_->mutex_);
   auto kv = &language->kv_;
+  if (kv->empty()) {
+    return;
+  }
   auto old_version = load_database_language_version(kv);
   if (old_version >= new_version && (old_version != -1 || new_version != -1)) {
     return;
@@ -457,7 +557,11 @@ void LanguagePackManager::add_strings_to_database(Language *language, int32 new_
       continue;
     }
 
-    kv->set(str.first, str.second);
+    if (language->is_full_ && str.second == "3") {
+      kv->erase(str.first);
+    } else {
+      kv->set(str.first, str.second);
+    }
   }
   if (old_version != new_version) {
     kv->set("!version", to_string(new_version));
@@ -537,7 +641,7 @@ void LanguagePackManager::on_get_language_pack_strings(
             if (is_diff) {
               strings.push_back(get_language_pack_string_object(str->key_));
             }
-            database_strings.emplace_back(str->key_, "");
+            database_strings.emplace_back(str->key_, "3");
             break;
           }
           default:
@@ -545,14 +649,16 @@ void LanguagePackManager::on_get_language_pack_strings(
             break;
         }
       }
-      for (auto &key : keys) {
-        if (!language_has_string_unsafe(language, key)) {
-          LOG(ERROR) << "Doesn't receive key " << key << " from server";
-          language->deleted_strings_.insert(key);
-          if (is_diff) {
-            strings.push_back(get_language_pack_string_object(key));
+      if (!language->is_full_) {
+        for (auto &key : keys) {
+          if (!language_has_string_unsafe(language, key)) {
+            LOG(ERROR) << "Doesn't receive key " << key << " from server";
+            language->deleted_strings_.insert(key);
+            if (is_diff) {
+              strings.push_back(get_language_pack_string_object(key));
+            }
+            database_strings.emplace_back(key, "3");
           }
-          database_strings.emplace_back(key, "");
         }
       }
 
@@ -561,10 +667,16 @@ void LanguagePackManager::on_get_language_pack_strings(
         send_closure(G()->td(), &Td::send_update,
                      td_api::make_object<td_api::updateLanguagePack>(language_pack, language_code, std::move(strings)));
       }
+
+      if (keys.empty() && !is_diff) {
+        CHECK(new_database_version >= 0);
+        language->is_full_ = true;
+        language->deleted_strings_.clear();
+      }
     }
   }
 
-  add_strings_to_database(language, new_database_version, std::move(database_strings));
+  save_strings_to_database(language, new_database_version, std::move(database_strings));
 
   if (is_diff) {
     CHECK(language != nullptr);
