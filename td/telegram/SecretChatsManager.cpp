@@ -318,12 +318,13 @@ void SecretChatsManager::binlog_replay_finish() {
 }
 
 void SecretChatsManager::replay_inbound_message(std::unique_ptr<logevent::InboundSecretMessage> message) {
-  LOG(INFO) << "Process inbound secret message " << tag("qts", message->qts);
+  LOG(INFO) << "Replay inbound secret message in chat " << message->chat_id << " with qts " << message->qts;
   auto actor = get_chat_actor(message->chat_id);
   send_closure_later(actor, &SecretChatActor::replay_inbound_message, std::move(message));
 }
+
 void SecretChatsManager::add_inbound_message(std::unique_ptr<logevent::InboundSecretMessage> message) {
-  LOG(INFO) << "Process inbound secret message " << tag("qts", message->qts);
+  LOG(INFO) << "Process inbound secret message in chat " << message->chat_id << " with qts " << message->qts;
   message->qts_ack = add_qts(message->qts);
 
   auto actor = get_chat_actor(message->chat_id);
@@ -331,19 +332,22 @@ void SecretChatsManager::add_inbound_message(std::unique_ptr<logevent::InboundSe
 }
 
 void SecretChatsManager::replay_close_chat(std::unique_ptr<logevent::CloseSecretChat> message) {
-  LOG(INFO) << "Process close secret chat " << tag("id", message->chat_id);
+  LOG(INFO) << "Replay close secret chat " << message->chat_id;
 
   auto actor = get_chat_actor(message->chat_id);
   send_closure_later(actor, &SecretChatActor::replay_close_chat, std::move(message));
 }
+
 void SecretChatsManager::replay_create_chat(std::unique_ptr<logevent::CreateSecretChat> message) {
-  LOG(INFO) << "Process create secret chat " << tag("id", message->random_id);
+  LOG(INFO) << "Replay create secret chat " << message->random_id;
 
   auto actor = create_chat_actor(message->random_id);
   send_closure_later(actor, &SecretChatActor::replay_create_chat, std::move(message));
 }
 
 void SecretChatsManager::replay_outbound_message(std::unique_ptr<logevent::OutboundSecretMessage> message) {
+  LOG(INFO) << "Replay oubound secret message in chat " << message->chat_id;
+
   auto actor = get_chat_actor(message->chat_id);
   send_closure_later(actor, &SecretChatActor::replay_outbound_message, std::move(message));
 }
