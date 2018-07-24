@@ -585,7 +585,7 @@ void LanguagePackManager::save_strings_to_database(Language *language, int32 new
     return;
   }
 
-  kv->begin_transaction();
+  kv->begin_transaction().ensure();
   for (auto str : strings) {
     if (!is_valid_key(str.first)) {
       LOG(ERROR) << "Have invalid key \"" << str.first << '"';
@@ -601,7 +601,7 @@ void LanguagePackManager::save_strings_to_database(Language *language, int32 new
   if (old_version != new_version) {
     kv->set("!version", to_string(new_version));
   }
-  kv->commit_transaction();
+  kv->commit_transaction().ensure();
 }
 
 void LanguagePackManager::on_get_language_pack_strings(
