@@ -3178,16 +3178,9 @@ class UpdateScopeNotifySettingsQuery : public Td::ResultHandler {
   void send(NotificationSettingsScope scope, const ScopeNotificationSettings &new_settings) {
     auto input_notify_peer = td->messages_manager_->get_input_notify_peer(scope);
     CHECK(input_notify_peer != nullptr);
-    int32 flags = 0;
-    if (new_settings.mute_until != 0) {
-      flags |= telegram_api::inputPeerNotifySettings::MUTE_UNTIL_MASK;
-    }
-    if (new_settings.sound != "default") {
-      flags |= telegram_api::inputPeerNotifySettings::SOUND_MASK;
-    }
-    if (new_settings.show_preview) {
-      flags |= telegram_api::inputPeerNotifySettings::SHOW_PREVIEWS_MASK;
-    }
+    int32 flags = telegram_api::inputPeerNotifySettings::MUTE_UNTIL_MASK |
+                  telegram_api::inputPeerNotifySettings::SOUND_MASK |
+                  telegram_api::inputPeerNotifySettings::SHOW_PREVIEWS_MASK;
     send_query(G()->net_query_creator().create(create_storer(telegram_api::account_updateNotifySettings(
         std::move(input_notify_peer),
         make_tl_object<telegram_api::inputPeerNotifySettings>(flags, new_settings.show_preview, false,
