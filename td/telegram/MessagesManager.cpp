@@ -12153,6 +12153,9 @@ vector<DialogId> MessagesManager::sort_dialogs_by_order(const vector<DialogId> &
     std::partial_sort(dialog_dates.begin(), dialog_dates.begin() + limit, dialog_dates.end());
     dialog_dates.resize(limit, MAX_DIALOG_DATE);
   }
+  while (!dialog_dates.empty() && dialog_dates.back().get_order() == DEFAULT_ORDER) {
+    dialog_dates.pop_back();
+  }
   return transform(dialog_dates, [](auto dialog_date) { return dialog_date.get_dialog_id(); });
 }
 
