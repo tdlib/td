@@ -171,13 +171,13 @@ void SecretChatsManager::send_open_message(SecretChatId secret_chat_id, int64 ra
 
 void SecretChatsManager::delete_messages(SecretChatId secret_chat_id, vector<int64> random_ids, Promise<> promise) {
   auto actor = get_chat_actor(secret_chat_id.get());
-  auto safe_promise = SafePromise<>(std::move(promise), Status::Error(400, "Can't find secret chat"));
+  auto safe_promise = SafePromise<>(std::move(promise), Unit());
   send_closure(actor, &SecretChatActor::delete_messages, std::move(random_ids), std::move(safe_promise));
 }
 
 void SecretChatsManager::delete_all_messages(SecretChatId secret_chat_id, Promise<> promise) {
   auto actor = get_chat_actor(secret_chat_id.get());
-  auto safe_promise = SafePromise<>(std::move(promise), Status::Error(400, "Can't find secret chat"));
+  auto safe_promise = SafePromise<>(std::move(promise), Unit());
   send_closure(actor, &SecretChatActor::delete_all_messages, std::move(safe_promise));
 }
 
