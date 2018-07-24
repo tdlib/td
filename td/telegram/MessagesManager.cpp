@@ -8231,8 +8231,9 @@ bool MessagesManager::can_revoke_message(DialogId dialog_id, const Message *m) c
     case DialogType::Channel:
       return true;  // any server message that can be deleted will be deleted for all participants
     case DialogType::SecretChat:
-      return !is_service_message_content(
-          m->content->get_id());  // all non-service messages will be deleted for everyone
+      // all non-service messages will be deleted for everyone if secret chat is active
+      return td_->contacts_manager_->get_secret_chat_state(dialog_id.get_secret_chat_id()) == SecretChatState::Active &&
+             !is_service_message_content(m->content->get_id());
     case DialogType::None:
     default:
       UNREACHABLE();
