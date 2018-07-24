@@ -125,9 +125,6 @@ void SecretChatActor::on_result_resendable(NetQueryPtr net_query, Promise<NetQue
 }
 
 void SecretChatActor::replay_close_chat(std::unique_ptr<logevent::CloseSecretChat> event) {
-  if (close_flag_) {
-    return;
-  }
   do_close_chat_impl(std::move(event));
 }
 
@@ -740,7 +737,8 @@ void SecretChatActor::do_close_chat_impl(std::unique_ptr<logevent::CloseSecretCh
   close_flag_ = true;
   close_logevent_id_ = event->logevent_id();
   LOG(INFO) << "Send messages.discardEncryption";
-  context_->secret_chat_db()->erase_value(auth_state_);
+  auth_state_.state = State::Closed;
+  context_->secret_chat_db()->set_value(auth_state_);
   context_->secret_chat_db()->erase_value(config_state_);
   context_->secret_chat_db()->erase_value(pfs_state_);
   context_->secret_chat_db()->erase_value(seq_no_state_);
@@ -749,7 +747,6 @@ void SecretChatActor::do_close_chat_impl(std::unique_ptr<logevent::CloseSecretCh
       UniqueId::next(UniqueId::Type::Default, static_cast<uint8>(QueryType::DiscardEncryption)),
       create_storer(tl_query));
 
-  auth_state_.state = State::Closed;
   send_update_secret_chat();
 
   context_->send_net_query(std::move(query), actor_shared(this), true);
@@ -778,7 +775,11 @@ void SecretChatActor::do_create_chat_impl(std::unique_ptr<logevent::CreateSecret
 void SecretChatActor::on_discard_encryption_result(NetQueryPtr result) {
   CHECK(close_flag_);
   CHECK(close_logevent_id_ != 0);
+  if (context_->close_flag()) {
+    return;
+  }
   LOG(INFO) << "Got result for messages.discardEncryption";
+  context_->secret_chat_db()->erase_value(auth_state_);
   binlog_erase(context_->binlog(), close_logevent_id_);
   // skip flush
   stop();
@@ -1474,9 +1475,6 @@ NetQueryPtr SecretChatActor::create_net_query(const logevent::OutboundSecretMess
 }
 
 void SecretChatActor::on_outbound_send_message_start(uint64 state_id) {
-  if (close_flag_) {
-    return;
-  }
   auto *state = outbound_message_states_.get(state_id);
   if (state == nullptr) {
     LOG(INFO) << "Outbound message [send_message] start ignored (unknown state_id) " << tag("state_id", state_id);
@@ -1914,6 +1912,9 @@ void SecretChatActor::start_up() {
   if (!can_be_empty_ && auth_state_.state == State::Empty) {
     LOG(WARNING) << "Close Secret chat because it is empty";
     return stop();
+  }
+  if (auth_state_.state == State::Closed) {
+    close_flag_ = true;
   }
   auto r_seq_no_state = context_->secret_chat_db()->get_value<SeqNoState>();
   if (r_seq_no_state.is_ok()) {
