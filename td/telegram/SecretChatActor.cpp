@@ -983,6 +983,12 @@ Status SecretChatActor::do_inbound_message_decrypted_unchecked(
     return status;
   }
 
+  if (message->decrypted_message_layer->message_->get_id() == secret_api::decryptedMessageService8::ID) {
+    auto old = move_tl_object_as<secret_api::decryptedMessageService8>(message->decrypted_message_layer->message_);
+    message->decrypted_message_layer->message_ =
+        secret_api::make_object<secret_api::decryptedMessageService>(old->random_id_, std::move(old->action_));
+  }
+
   // Process ActionResend.
   if (message->decrypted_message_layer->message_->get_id() == secret_api::decryptedMessageService::ID) {
     auto *decrypted_message_service =
