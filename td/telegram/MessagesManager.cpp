@@ -8818,6 +8818,9 @@ void MessagesManager::delete_dialog(DialogId dialog_id) {
     d->have_full_history = false;
     d->need_restore_reply_markup = true;
   }
+  if (remove_recently_found_dialog_internal(dialog_id)) {
+    save_recently_found_dialogs();
+  }
 
   close_dialog(d);
 }
