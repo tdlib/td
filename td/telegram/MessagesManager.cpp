@@ -8814,6 +8814,7 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
 }
 
 void MessagesManager::delete_dialog(DialogId dialog_id) {
+  LOG(INFO) << "Delete " << dialog_id;
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     return;
@@ -25161,8 +25162,10 @@ void MessagesManager::update_dialogs_hints_rating(const Dialog *d) {
     return;
   }
   if (d->order == DEFAULT_ORDER) {
+    LOG(INFO) << "Remove " << d->dialog_id << " from chats search";
     dialogs_hints_.remove(-d->dialog_id.get());
   } else {
+    LOG(INFO) << "Change position of " << d->dialog_id << " in chats search";
     dialogs_hints_.set_rating(-d->dialog_id.get(), -d->order);
   }
 }
