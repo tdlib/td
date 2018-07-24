@@ -16,7 +16,6 @@
 #include "td/utils/port/Fd.h"
 #include "td/utils/port/Poll.h"
 #include "td/utils/port/thread.h"
-#include "td/utils/ScopeGuard.h"
 
 #include <atomic>
 #include <deque>
@@ -216,10 +215,10 @@ class Client::Impl final {
   Response receive(double timeout) {
     auto is_locked = receive_lock_.exchange(true);
     CHECK(!is_locked);
-    SCOPE_EXIT {
-      receive_lock_.exchange(false);
-    };
-    return receive_unlocked(timeout);
+    auto response = receive_unlocked(timeout);
+    is_locked = receive_lock_.exchange(false);
+    CHECK(is_locked);
+    return response;
   }
 
   Impl(const Impl &) = delete;
