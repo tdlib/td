@@ -9716,14 +9716,15 @@ void MessagesManager::ttl_register_message(DialogId dialog_id, const Message *me
   ttl_update_timeout(now);
 }
 
-void MessagesManager::ttl_unregister_message(DialogId dialog_id, const Message *message, double now) {
+void MessagesManager::ttl_unregister_message(DialogId dialog_id, const Message *message, double now,
+                                             const char *source) {
   if (message->ttl_expires_at == 0) {
     return;
   }
 
   TtlNode ttl_node(dialog_id, message->message_id);
   auto it = ttl_nodes_.find(ttl_node);
-  CHECK(it != ttl_nodes_.end());
+  CHECK(it != ttl_nodes_.end()) << dialog_id << " " << message->message_id << " " << source << " " << G()->close_flag();
   auto *heap_node = it->as_heap_node();
   if (heap_node->in_heap()) {
     ttl_heap_.erase(heap_node);
@@ -9770,7 +9771,7 @@ void MessagesManager::on_message_ttl_expired(Dialog *d, Message *message) {
   CHECK(message != nullptr);
   CHECK(message->ttl > 0);
   CHECK(d->dialog_id.get_type() != DialogType::SecretChat);
-  ttl_unregister_message(d->dialog_id, message, Time::now());
+  ttl_unregister_message(d->dialog_id, message, Time::now(), "on_message_ttl_expired");
   on_message_ttl_expired_impl(d, message);
   send_update_message_content(d->dialog_id, message->message_id, message->content.get(), message->date,
                               message->is_content_secret, "on_message_ttl_expired");
@@ -11761,7 +11762,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     default:
       UNREACHABLE();
   }
-  ttl_unregister_message(d->dialog_id, result.get(), Time::now());
+  ttl_unregister_message(d->dialog_id, result.get(), Time::now(), "do_delete_message");
 
   return result;
 }
@@ -11808,7 +11809,7 @@ void MessagesManager::do_delete_all_dialog_messages(Dialog *d, unique_ptr<Messag
     default:
       UNREACHABLE();
   }
-  ttl_unregister_message(d->dialog_id, m.get(), Time::now());
+  ttl_unregister_message(d->dialog_id, m.get(), Time::now(), "do_delete_all_dialog_messages");
 
   m = nullptr;
 }

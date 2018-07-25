@@ -2516,7 +2516,7 @@ class MessagesManager : public Actor {
   void ttl_on_view(const Dialog *d, Message *message, double view_date, double now);
   bool ttl_on_open(Dialog *d, Message *message, double now, bool is_local_read);
   void ttl_register_message(DialogId dialog_id, const Message *message, double now);
-  void ttl_unregister_message(DialogId dialog_id, const Message *message, double now);
+  void ttl_unregister_message(DialogId dialog_id, const Message *message, double now, const char *source);
   void ttl_loop(double now);
   void ttl_update_timeout(double now);
 
