@@ -407,6 +407,10 @@ void SecretChatActor::send_open_message(int64 random_id, Promise<> promise) {
 }
 
 void SecretChatActor::delete_message(int64 random_id, Promise<> promise) {
+  if (auth_state_.state == State::Closed) {
+    promise.set_value(Unit());
+    return;
+  }
   if (close_flag_) {
     promise.set_error(Status::Error(400, "Chat is closed"));
     return;
@@ -419,6 +423,10 @@ void SecretChatActor::delete_message(int64 random_id, Promise<> promise) {
 }
 
 void SecretChatActor::delete_messages(std::vector<int64> random_ids, Promise<> promise) {
+  if (auth_state_.state == State::Closed) {
+    promise.set_value(Unit());
+    return;
+  }
   if (close_flag_) {
     promise.set_error(Status::Error(400, "Chat is closed"));
     return;
@@ -431,6 +439,10 @@ void SecretChatActor::delete_messages(std::vector<int64> random_ids, Promise<> p
               std::move(promise));
 }
 void SecretChatActor::delete_all_messages(Promise<> promise) {
+  if (auth_state_.state == State::Closed) {
+    promise.set_value(Unit());
+    return;
+  }
   if (close_flag_) {
     promise.set_error(Status::Error(400, "Chat is closed"));
     return;
@@ -695,7 +707,7 @@ void SecretChatActor::on_fatal_error(Status status) {
 
 void SecretChatActor::cancel_chat(Promise<> promise) {
   if (close_flag_) {
-    promise.set_error(Status::Error(400, "Chat is already closing"));
+    promise.set_value(Unit());
     return;
   }
   close_flag_ = true;
