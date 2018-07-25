@@ -48,7 +48,7 @@ class TimedStat {
 
   void update(double &now) {
     if (now < next_timestamp_) {
-      CHECK(now >= next_timestamp_ * (1 - 1e-14)) << now << " " << next_timestamp_;
+      // CHECK(now >= next_timestamp_ * (1 - 1e-14)) << now << " " << next_timestamp_;
       now = next_timestamp_;
     }
     if (duration_ == 0) {
