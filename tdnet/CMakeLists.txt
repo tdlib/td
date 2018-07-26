@@ -14,6 +14,7 @@ set(TDNET_SOURCE
   td/net/HttpFile.cpp
   td/net/HttpInboundConnection.cpp
   td/net/HttpOutboundConnection.cpp
+  td/net/HttpProxy.cpp
   td/net/HttpQuery.cpp
   td/net/HttpReader.cpp
   td/net/Socks5.cpp
@@ -30,6 +31,7 @@ set(TDNET_SOURCE
   td/net/HttpHeaderCreator.h
   td/net/HttpInboundConnection.h
   td/net/HttpOutboundConnection.h
+  td/net/HttpProxy.h
   td/net/HttpQuery.h
   td/net/HttpReader.h
   td/net/NetStats.h

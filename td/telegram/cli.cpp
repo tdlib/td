@@ -3244,7 +3244,11 @@ class CliClient final : public Actor {
       if (!user.empty() && password.empty()) {
         type = make_tl_object<td_api::proxyTypeMtproto>(user);
       } else {
-        type = make_tl_object<td_api::proxyTypeSocks5>(user, password);
+        if (port == "80") {
+          type = make_tl_object<td_api::proxyTypeHttp>(user, password);
+        } else {
+          type = make_tl_object<td_api::proxyTypeSocks5>(user, password);
+        }
       }
       send_request(make_tl_object<td_api::addProxy>(server, to_integer<int32>(port), op == "aeproxy", std::move(type)));
     } else if (op == "gproxy" || op == "gproxies") {

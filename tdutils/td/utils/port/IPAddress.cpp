@@ -405,7 +405,7 @@ Status IPAddress::init_peer_address(const SocketFd &socket_fd) {
 }
 
 static CSlice get_ip_str(int family, const void *addr) {
-  const int buf_size = INET6_ADDRSTRLEN;  //, INET_ADDRSTRLEN;
+  const int buf_size = INET6_ADDRSTRLEN;
   static TD_THREAD_LOCAL char *buf;
   init_thread_local<char[]>(buf, buf_size);
 

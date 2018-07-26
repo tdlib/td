@@ -12,26 +12,15 @@
 
 namespace td {
 
-class Socks5 : public TransparentProxy {
+class HttpProxy : public TransparentProxy {
  public:
   using TransparentProxy::TransparentProxy;
 
  private:
-  enum class State {
-    SendGreeting,
-    WaitGreetingResponse,
-    WaitPasswordResponse,
-    WaitIpAddressResponse
-  } state_ = State::SendGreeting;
+  enum class State { SendConnect, WaitConnectResponse } state_ = State::SendConnect;
 
-  void send_greeting();
-  Status wait_greeting_response();
-  Status send_username_password();
-
-  Status wait_password_response();
-
-  void send_ip_address();
-  Status wait_ip_address_response();
+  void send_connect();
+  Status wait_connect_response();
 
   Status loop_impl() override;
 };

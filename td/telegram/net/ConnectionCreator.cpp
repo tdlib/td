@@ -23,6 +23,7 @@
 #include "td/mtproto/RawConnection.h"
 
 #include "td/net/GetHostByNameActor.h"
+#include "td/net/HttpProxy.h"
 #include "td/net/Socks5.h"
 #include "td/net/TransparentProxy.h"
 
@@ -174,6 +175,9 @@ class ConnectionCreator::ProxyInfo {
   bool use_socks5_proxy() const {
     return proxy_type() == Proxy::Type::Socks5;
   }
+  bool use_http_proxy() const {
+    return proxy_type() == Proxy::Type::Http;
+  }
   bool use_mtproto_proxy() const {
     return proxy_type() == Proxy::Type::Mtproto;
   }
@@ -194,7 +198,7 @@ template <class T>
 void Proxy::parse(T &parser) {
   using td::parse;
   parse(type_, parser);
-  if (type_ == Proxy::Type::Socks5) {
+  if (type_ == Proxy::Type::Socks5 || type_ == Proxy::Type::Http) {
     parse(server_, parser);
     parse(port_, parser);
     parse(user_, parser);
@@ -212,7 +216,7 @@ template <class T>
 void Proxy::store(T &storer) const {
   using td::store;
   store(type_, storer);
-  if (type_ == Proxy::Type::Socks5) {
+  if (type_ == Proxy::Type::Socks5 || type_ == Proxy::Type::Http) {
     store(server_, storer);
     store(port_, storer);
     store(user_, storer);
@@ -230,6 +234,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Proxy &proxy) {
   switch (proxy.type()) {
     case Proxy::Type::Socks5:
       return string_builder << "ProxySocks5 " << proxy.server() << ":" << proxy.port();
+    case Proxy::Type::Http:
+      return string_builder << "ProxyHttp " << proxy.server() << ":" << proxy.port();
     case Proxy::Type::Mtproto:
       return string_builder << "ProxyMtproto " << proxy.server() << ":" << proxy.port() << "/" << proxy.secret();
     case Proxy::Type::None:
@@ -296,6 +302,11 @@ void ConnectionCreator::add_proxy(string server, int32 port, bool enable,
     case td_api::proxyTypeSocks5::ID: {
       auto type = td_api::move_object_as<td_api::proxyTypeSocks5>(proxy_type);
       new_proxy = Proxy::socks5(server, port, type->username_, type->password_);
+      break;
+    }
+    case td_api::proxyTypeHttp::ID: {
+      auto type = td_api::move_object_as<td_api::proxyTypeHttp>(proxy_type);
+      new_proxy = Proxy::http(server, port, type->username_, type->password_);
       break;
     }
     case td_api::proxyTypeMtproto::ID: {
@@ -384,6 +395,8 @@ void ConnectionCreator::get_proxy_link(int32 proxy_id, Promise<string> promise) 
       url += "socks";
       is_socks = true;
       break;
+    case Proxy::Type::Http:
+      return promise.set_error(Status::Error(400, "HTTP proxy can't have public link"));
     case Proxy::Type::Mtproto:
       url += "proxy";
       break;
@@ -493,7 +506,7 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
                      std::move(transport_type), std::move(promise));
       });
   CHECK(proxy.use_proxy());
-  if (proxy.use_socks5_proxy()) {
+  if (proxy.use_socks5_proxy() || proxy.use_http_proxy()) {
     class Callback : public TransparentProxy::Callback {
      public:
       explicit Callback(Promise<SocketFd> promise) : promise_(std::move(promise)) {
@@ -507,12 +520,19 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
      private:
       Promise<SocketFd> promise_;
     };
-    LOG(INFO) << "Start socks5: " << extra.debug_str;
+    LOG(INFO) << "Start ping proxy: " << extra.debug_str;
     auto token = next_token();
-    children_[token] = {
-        false, create_actor<Socks5>("PingSocks5", std::move(socket_fd), extra.mtproto_ip, proxy.proxy().user().str(),
-                                    proxy.proxy().password().str(),
-                                    std::make_unique<Callback>(std::move(socket_fd_promise)), create_reference(token))};
+    if (proxy.use_socks5_proxy()) {
+      children_[token] = {false, create_actor<Socks5>("PingSocks5", std::move(socket_fd), extra.mtproto_ip,
+                                                      proxy.proxy().user().str(), proxy.proxy().password().str(),
+                                                      std::make_unique<Callback>(std::move(socket_fd_promise)),
+                                                      create_reference(token))};
+    } else {
+      children_[token] = {false, create_actor<HttpProxy>("PingHttpProxy", std::move(socket_fd), extra.mtproto_ip,
+                                                         proxy.proxy().user().str(), proxy.proxy().password().str(),
+                                                         std::make_unique<Callback>(std::move(socket_fd_promise)),
+                                                         create_reference(token))};
+    }
   } else {
     socket_fd_promise.set_value(std::move(socket_fd));
   }
@@ -574,7 +594,7 @@ void ConnectionCreator::disable_proxy_impl() {
 
 void ConnectionCreator::on_proxy_changed(bool from_db) {
   send_closure(G()->state_manager(), &StateManager::on_proxy,
-               active_proxy_id_ != 0 && proxies_[active_proxy_id_].type() == Proxy::Type::Socks5);
+               active_proxy_id_ != 0 && proxies_[active_proxy_id_].type() != Proxy::Type::Mtproto);
 
   if (!from_db) {
     for (auto &child : children_) {
@@ -637,6 +657,9 @@ td_api::object_ptr<td_api::proxy> ConnectionCreator::get_proxy_object(int32 prox
   switch (proxy.type()) {
     case Proxy::Type::Socks5:
       type = make_tl_object<td_api::proxyTypeSocks5>(proxy.user().str(), proxy.password().str());
+      break;
+    case Proxy::Type::Http:
+      type = make_tl_object<td_api::proxyTypeHttp>(proxy.user().str(), proxy.password().str());
       break;
     case Proxy::Type::Mtproto:
       type = make_tl_object<td_api::proxyTypeMtproto>(proxy.secret().str());
@@ -776,9 +799,10 @@ Result<SocketFd> ConnectionCreator::find_connection(const ProxyInfo &proxy, DcId
 
   extra.check_mode |= info.should_check;
 
-  if (proxy.use_socks5_proxy()) {
+  if (proxy.use_socks5_proxy() || proxy.use_http_proxy()) {
     extra.mtproto_ip = info.option->get_ip_address();
-    extra.debug_str = PSTRING() << "Socks5 " << proxy.ip_address() << " --> " << extra.mtproto_ip << extra.debug_str;
+    extra.debug_str = PSTRING() << (proxy.use_socks5_proxy() ? "Socks5 " : "HTTP ") << proxy.ip_address() << " --> "
+                                << extra.mtproto_ip << extra.debug_str;
     LOG(INFO) << "Create: " << extra.debug_str;
     return SocketFd::open(proxy.ip_address());
   } else {
@@ -905,7 +929,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
         client.is_media ? media_net_stats_callback_ : common_net_stats_callback_, actor_id(this), client.hash,
         extra.stat);
 
-    if (proxy.use_socks5_proxy()) {
+    if (proxy.use_socks5_proxy() || proxy.use_http_proxy()) {
       class Callback : public TransparentProxy::Callback {
        public:
         explicit Callback(Promise<ConnectionData> promise, std::unique_ptr<detail::StatsCallback> stats_callback)
@@ -937,13 +961,21 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
         bool was_connected_{false};
         std::unique_ptr<detail::StatsCallback> stats_callback_;
       };
-      LOG(INFO) << "Start socks5: " << extra.debug_str;
+      LOG(INFO) << "Start " << (proxy.use_socks5_proxy() ? "Socks5" : "HTTP") << ": " << extra.debug_str;
       auto token = next_token();
-      children_[token] = {
-          true, create_actor<Socks5>("Socks5", std::move(socket_fd), extra.mtproto_ip, proxy.proxy().user().str(),
-                                     proxy.proxy().password().str(),
-                                     std::make_unique<Callback>(std::move(promise), std::move(stats_callback)),
-                                     create_reference(token))};
+      if (proxy.use_socks5_proxy()) {
+        children_[token] = {
+            true, create_actor<Socks5>("Socks5", std::move(socket_fd), extra.mtproto_ip, proxy.proxy().user().str(),
+                                       proxy.proxy().password().str(),
+                                       std::make_unique<Callback>(std::move(promise), std::move(stats_callback)),
+                                       create_reference(token))};
+      } else {
+        children_[token] = {
+            true, create_actor<HttpProxy>("HttpProxy", std::move(socket_fd), extra.mtproto_ip,
+                                          proxy.proxy().user().str(), proxy.proxy().password().str(),
+                                          std::make_unique<Callback>(std::move(promise), std::move(stats_callback)),
+                                          create_reference(token))};
+      }
     } else {
       ConnectionData data;
       data.socket_fd = std::move(socket_fd);

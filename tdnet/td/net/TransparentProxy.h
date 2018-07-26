@@ -31,8 +31,8 @@ class TransparentProxy : public Actor {
     virtual void on_connected() = 0;
   };
 
-  TransparentProxy(SocketFd socket_fd, IPAddress ip_address, string username, string password, std::unique_ptr<Callback> callback,
-         ActorShared<> parent);
+  TransparentProxy(SocketFd socket_fd, IPAddress ip_address, string username, string password,
+                   std::unique_ptr<Callback> callback, ActorShared<> parent);
 
  protected:
   BufferedFd<SocketFd> fd_;

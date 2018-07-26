@@ -60,6 +60,16 @@ class Proxy {
     return proxy;
   }
 
+  static Proxy http(string server, int32 port, string user, string password) {
+    Proxy proxy;
+    proxy.type_ = Type::Http;
+    proxy.server_ = std::move(server);
+    proxy.port_ = std::move(port);
+    proxy.user_ = std::move(user);
+    proxy.password_ = std::move(password);
+    return proxy;
+  }
+
   static Proxy mtproto(string server, int32 port, string secret) {
     Proxy proxy;
     proxy.type_ = Type::Mtproto;
@@ -89,7 +99,7 @@ class Proxy {
     return secret_;
   }
 
-  enum class Type : int32 { None, Socks5, Mtproto };
+  enum class Type : int32 { None, Socks5, Mtproto, Http };
   Type type() const {
     return type_;
   }

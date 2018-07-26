@@ -44,7 +44,6 @@ Status Socks5::wait_greeting_response() {
   }
   auto authentication_method = slice[1];
   if (authentication_method == '\0') {
-    state_ = State::SendIpAddress;
     send_ip_address();
     return Status::OK();
   }
@@ -90,14 +89,12 @@ Status Socks5::wait_password_response() {
     return Status::Error("Wrong username or password");
   }
 
-  state_ = State::SendIpAddress;
   send_ip_address();
   return Status::OK();
 }
 
 void Socks5::send_ip_address() {
   VLOG(proxy) << "Send IP address";
-  CHECK(state_ == State::SendIpAddress);
   callback_->on_connected();
   string request;
   request += '\x05';
@@ -182,8 +179,7 @@ Status Socks5::loop_impl() {
     case State::WaitIpAddressResponse:
       TRY_STATUS(wait_ip_address_response());
       break;
-    case State::SendIpAddress:
-    case State::Stop:
+    default:
       UNREACHABLE();
   }
   return Status::OK();
