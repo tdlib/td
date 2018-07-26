@@ -17,6 +17,7 @@
 #include "td/mtproto/RawConnection.h"
 
 #include "td/net/Socks5.h"
+#include "td/net/TransparentProxy.h"
 
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/net/DcId.h"
@@ -302,7 +303,7 @@ class Socks5TestActor : public Actor {
       send_closure(actor_id, &Socks5TestActor::on_result, std::move(res), false);
     });
 
-    class Callback : public Socks5::Callback {
+    class Callback : public TransparentProxy::Callback {
      public:
       explicit Callback(Promise<SocketFd> promise) : promise_(std::move(promise)) {
       }

@@ -19,6 +19,7 @@ set(TDNET_SOURCE
   td/net/Socks5.cpp
   td/net/SslFd.cpp
   td/net/TcpListener.cpp
+  td/net/TransparentProxy.cpp
   td/net/Wget.cpp
 
   td/net/GetHostByNameActor.h
@@ -35,6 +36,7 @@ set(TDNET_SOURCE
   td/net/Socks5.h
   td/net/SslFd.h
   td/net/TcpListener.h
+  td/net/TransparentProxy.h
   td/net/Wget.h
 )
 

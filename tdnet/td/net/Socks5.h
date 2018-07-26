@@ -6,45 +6,17 @@
 //
 #pragma once
 
-#include "td/actor/actor.h"
+#include "td/net/TransparentProxy.h"
 
-#include "td/utils/BufferedFd.h"
-#include "td/utils/common.h"
-#include "td/utils/port/IPAddress.h"
-#include "td/utils/port/SocketFd.h"
 #include "td/utils/Status.h"
 
 namespace td {
 
-class Socks5 : public Actor {
+class Socks5 : public TransparentProxy {
  public:
-  class Callback {
-   public:
-    Callback() = default;
-    Callback(const Callback &) = delete;
-    Callback &operator=(const Callback &) = delete;
-    virtual ~Callback() = default;
-
-    virtual void set_result(Result<SocketFd>) = 0;
-    virtual void on_connected() = 0;
-  };
-
-  Socks5(SocketFd socket_fd, IPAddress ip_address, string username, string password, std::unique_ptr<Callback> callback,
-         ActorShared<> parent);
+  using TransparentProxy::TransparentProxy;
 
  private:
-  BufferedFd<SocketFd> fd_;
-  IPAddress ip_address_;
-  string username_;
-  string password_;
-  std::unique_ptr<Callback> callback_;
-  ActorShared<> parent_;
-
-  void on_error(Status status);
-  void tear_down() override;
-  void start_up() override;
-  void hangup() override;
-
   enum class State {
     SendGreeting,
     WaitGreetingResponse,
@@ -63,8 +35,7 @@ class Socks5 : public Actor {
   void send_ip_address();
   Status wait_ip_address_response();
 
-  void loop() override;
-  void timeout_expired() override;
+  Status loop_impl() override;
 };
 
 }  // namespace td

@@ -24,6 +24,7 @@
 
 #include "td/net/GetHostByNameActor.h"
 #include "td/net/Socks5.h"
+#include "td/net/TransparentProxy.h"
 
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
@@ -493,7 +494,7 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
       });
   CHECK(proxy.use_proxy());
   if (proxy.use_socks5_proxy()) {
-    class Callback : public Socks5::Callback {
+    class Callback : public TransparentProxy::Callback {
      public:
       explicit Callback(Promise<SocketFd> promise) : promise_(std::move(promise)) {
       }
@@ -905,7 +906,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
         extra.stat);
 
     if (proxy.use_socks5_proxy()) {
-      class Callback : public Socks5::Callback {
+      class Callback : public TransparentProxy::Callback {
        public:
         explicit Callback(Promise<ConnectionData> promise, std::unique_ptr<detail::StatsCallback> stats_callback)
             : promise_(std::move(promise)), stats_callback_(std::move(stats_callback)) {
