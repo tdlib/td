@@ -158,8 +158,8 @@ class ConnectionCreator : public NetQueryCallback {
   void set_net_stats_callback(std::shared_ptr<NetStatsCallback> common_callback,
                               std::shared_ptr<NetStatsCallback> media_callback);
 
-  void add_proxy(string server, int32 port, bool enable, td_api::object_ptr<td_api::ProxyType> proxy_type,
-                 Promise<td_api::object_ptr<td_api::proxy>> promise);
+  void add_proxy(int32 old_proxy_id, string server, int32 port, bool enable,
+                 td_api::object_ptr<td_api::ProxyType> proxy_type, Promise<td_api::object_ptr<td_api::proxy>> promise);
   void enable_proxy(int32 proxy_id, Promise<Unit> promise);
   void disable_proxy(Promise<Unit> promise);
   void remove_proxy(int32 proxy_id, Promise<Unit> promise);

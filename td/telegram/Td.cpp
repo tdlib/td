@@ -3276,6 +3276,7 @@ bool Td::is_preauthentication_request(int32 id) {
     case td_api::getCountryCode::ID:
     case td_api::getDeepLinkInfo::ID:
     case td_api::addProxy::ID:
+    case td_api::editProxy::ID:
     case td_api::enableProxy::ID:
     case td_api::disableProxy::ID:
     case td_api::removeProxy::ID:
@@ -3981,6 +3982,7 @@ Status Td::init(DbKey key) {
         case td_api::addNetworkStatistics::ID:
         case td_api::resetNetworkStatistics::ID:
         case td_api::addProxy::ID:
+        case td_api::editProxy::ID:
         case td_api::enableProxy::ID:
         case td_api::disableProxy::ID:
         case td_api::removeProxy::ID:
@@ -6550,8 +6552,18 @@ void Td::on_request(uint64 id, td_api::getDeepLinkInfo &request) {
 void Td::on_request(uint64 id, td_api::addProxy &request) {
   CLEAN_INPUT_STRING(request.server_);
   CREATE_REQUEST_PROMISE();
-  send_closure(G()->connection_creator(), &ConnectionCreator::add_proxy, std::move(request.server_), request.port_,
+  send_closure(G()->connection_creator(), &ConnectionCreator::add_proxy, -1, std::move(request.server_), request.port_,
                request.enable_, std::move(request.type_), std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::editProxy &request) {
+  if (request.proxy_id_ < 0) {
+    return send_error_raw(id, 400, "Proxy identifier invalid");
+  }
+  CLEAN_INPUT_STRING(request.server_);
+  CREATE_REQUEST_PROMISE();
+  send_closure(G()->connection_creator(), &ConnectionCreator::add_proxy, request.proxy_id_, std::move(request.server_),
+               request.port_, request.enable_, std::move(request.type_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::enableProxy &request) {

@@ -3272,6 +3272,9 @@ getDeepLinkInfo link:string = DeepLinkInfo;
 //@description Adds a proxy server for network requests. Can be called before authorization @server Proxy server IP address @port Proxy server port @enable True, if the proxy should be enabled @type Proxy type
 addProxy server:string port:int32 enable:Bool type:ProxyType = Proxy;
 
+//@description Edits an existing proxy server for network requests. Can be called before authorization @proxy_id Proxy identifier @server Proxy server IP address @port Proxy server port @enable True, if the proxy should be enabled @type Proxy type
+editProxy proxy_id:int32 server:string port:int32 enable:Bool type:ProxyType = Proxy;
+
 //@description Enables a proxy. Only one proxy can be enabled at a time. Can be called before authorization @proxy_id Proxy identifier
 enableProxy proxy_id:int32 = Ok;
 

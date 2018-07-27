@@ -849,6 +849,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::addProxy &request);
 
+  void on_request(uint64 id, td_api::editProxy &request);
+
   void on_request(uint64 id, const td_api::enableProxy &request);
 
   void on_request(uint64 id, const td_api::disableProxy &request);

@@ -280,7 +280,7 @@ void ConnectionCreator::set_net_stats_callback(std::shared_ptr<NetStatsCallback>
   media_net_stats_callback_ = std::move(media_callback);
 }
 
-void ConnectionCreator::add_proxy(string server, int32 port, bool enable,
+void ConnectionCreator::add_proxy(int32 old_proxy_id, string server, int32 port, bool enable,
                                   td_api::object_ptr<td_api::ProxyType> proxy_type,
                                   Promise<td_api::object_ptr<td_api::proxy>> promise) {
   if (proxy_type == nullptr) {
@@ -333,6 +333,27 @@ void ConnectionCreator::add_proxy(string server, int32 port, bool enable,
     default:
       UNREACHABLE();
   }
+  if (old_proxy_id >= 0) {
+    if (proxies_.count(old_proxy_id) == 0) {
+      return promise.set_error(Status::Error(400, "Proxy not found"));
+    }
+    auto &old_proxy = proxies_[old_proxy_id];
+    if (old_proxy == new_proxy) {
+      if (enable) {
+        enable_proxy_impl(old_proxy_id);
+      }
+      return promise.set_value(get_proxy_object(old_proxy_id));
+    }
+    if (old_proxy_id == active_proxy_id_) {
+      enable = true;
+      disable_proxy_impl();
+    }
+
+    proxies_.erase(old_proxy_id);
+    G()->td_db()->get_binlog_pmc()->erase(get_proxy_used_database_key(old_proxy_id));
+    proxy_last_used_date_.erase(old_proxy_id);
+    proxy_last_used_saved_date_.erase(old_proxy_id);
+  }
 
   auto proxy_id = [&] {
     for (auto &proxy : proxies_) {
@@ -341,9 +362,12 @@ void ConnectionCreator::add_proxy(string server, int32 port, bool enable,
       }
     }
 
-    CHECK(max_proxy_id_ >= 2);
-    auto proxy_id = max_proxy_id_++;
-    G()->td_db()->get_binlog_pmc()->set("proxy_max_id", to_string(max_proxy_id_));
+    int32 proxy_id = old_proxy_id;
+    if (proxy_id < 0) {
+      CHECK(max_proxy_id_ >= 2);
+      proxy_id = max_proxy_id_++;
+      G()->td_db()->get_binlog_pmc()->set("proxy_max_id", to_string(max_proxy_id_));
+    }
     CHECK(proxies_.count(proxy_id) == 0);
     proxies_.emplace(proxy_id, std::move(new_proxy));
     G()->td_db()->get_binlog_pmc()->set(get_proxy_database_key(proxy_id),

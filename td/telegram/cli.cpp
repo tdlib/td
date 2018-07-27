@@ -3232,25 +3232,36 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::enableProxy>(as_proxy_id(args)));
     } else if (op == "rproxy") {
       send_request(make_tl_object<td_api::removeProxy>(as_proxy_id(args)));
-    } else if (op == "aproxy" || op == "aeproxy" || op == "aeproxytcp") {
+    } else if (op == "aproxy" || op == "aeproxy" || op == "aeproxytcp" || op == "editproxy" || op == "editeproxy" ||
+               op == "editeproxytcp") {
+      string proxy_id;
       string server;
       string port;
       string user;
       string password;
+      if (op[0] == 'e') {
+        std::tie(proxy_id, args) = split(args);
+      }
       std::tie(server, args) = split(args);
       std::tie(port, args) = split(args);
       std::tie(user, password) = split(args);
+      bool enable = op != "aproxy" && op != "editproxy";
       td_api::object_ptr<td_api::ProxyType> type;
       if (!user.empty() && password.empty()) {
         type = make_tl_object<td_api::proxyTypeMtproto>(user);
       } else {
         if (port == "80") {
-          type = make_tl_object<td_api::proxyTypeHttp>(user, password, op != "aeproxytcp");
+          type = make_tl_object<td_api::proxyTypeHttp>(user, password, op.back() != 'p');
         } else {
           type = make_tl_object<td_api::proxyTypeSocks5>(user, password);
         }
       }
-      send_request(make_tl_object<td_api::addProxy>(server, to_integer<int32>(port), op == "aeproxy", std::move(type)));
+      if (op[0] == 'e') {
+        send_request(make_tl_object<td_api::editProxy>(as_proxy_id(proxy_id), server, to_integer<int32>(port), enable,
+                                                       std::move(type)));
+      } else {
+        send_request(make_tl_object<td_api::addProxy>(server, to_integer<int32>(port), enable, std::move(type)));
+      }
     } else if (op == "gproxy" || op == "gproxies") {
       send_request(make_tl_object<td_api::getProxies>());
     } else if (op == "gproxyl" || op == "gpl") {
