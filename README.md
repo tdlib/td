@@ -51,7 +51,7 @@ all available `TDLib` [methods](https://core.telegram.org/tdlib/docs/classtd_1_1
 <a name="building"></a>
 ## Building
 
-Install all `TDLib` dependencies as described in [Installing dependencies](#installing-dependencies).
+Install all `TDLib` [dependencies](#dependencies) as described in [Installing dependencies](#installing-dependencies).
 Then enter directory containing `TDLib` sources and compile them using CMake:
 
 ```
@@ -67,7 +67,7 @@ cmake --build .
 <a name="macos"></a>
 #### macOS
 * Install the latest Xcode command line tools, for example, via `xcode-select --install`.
-* Install other dependencies, for example, using [Homebrew](https://brew.sh):
+* Install other [dependencies](#dependencies), for example, using [Homebrew](https://brew.sh):
 ```
 brew install gperf cmake openssl
 ```
@@ -97,7 +97,7 @@ To build `TDLib` in Release mode using MSVC, you will need to additionally speci
 
 <a name="linux"></a>
 #### Linux
-* Install all dependencies using your package manager.
+* Install all [dependencies](#dependencies) using your package manager.
 
 <a name="using-cxx"></a>
 ## Using in CMake C++ projects
