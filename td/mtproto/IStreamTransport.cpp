@@ -20,7 +20,7 @@ std::unique_ptr<IStreamTransport> create_transport(TransportType type) {
     case TransportType::Tcp:
       return std::make_unique<tcp::OldTransport>();
     case TransportType::Http:
-      return std::make_unique<http::Transport>();
+      return std::make_unique<http::Transport>(type.secret);
   }
   UNREACHABLE();
 }

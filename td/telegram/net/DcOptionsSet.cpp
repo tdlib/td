@@ -44,7 +44,8 @@ DcOptions DcOptionsSet::get_dc_options() const {
 }
 
 vector<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_all_connections(DcId dc_id, bool allow_media_only,
-                                                                        bool use_static, bool prefer_ipv6) {
+                                                                        bool use_static, bool prefer_ipv6,
+                                                                        bool only_http) {
   std::vector<ConnectionInfo> options;
   std::vector<ConnectionInfo> static_options;
 
@@ -72,18 +73,22 @@ vector<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_all_connections(DcId dc_
 
     OptionStat *option_stat = get_option_stat(option_info.get());
 
-    info.use_http = false;
-    info.stat = &option_stat->tcp_stat;
-    if (option.is_static()) {
-      static_options.push_back(info);
-    } else {
-      options.push_back(info);
+    if (!only_http) {
+      info.use_http = false;
+      info.stat = &option_stat->tcp_stat;
+      if (option.is_static()) {
+        static_options.push_back(info);
+      } else {
+        options.push_back(info);
+      }
     }
 
-    if (!option.is_obfuscated_tcp_only() && !option.is_static() && false) {  // TODO fix HTTP-mode and enable it
-      info.use_http = true;
-      info.stat = &option_stat->http_stat;
-      options.push_back(info);
+    if (only_http) {
+      if (!option.is_obfuscated_tcp_only() && !option.is_static()) {
+        info.use_http = true;
+        info.stat = &option_stat->http_stat;
+        options.push_back(info);
+      }
     }
   }
 
@@ -121,8 +126,8 @@ vector<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_all_connections(DcId dc_
 }
 
 Result<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_connection(DcId dc_id, bool allow_media_only, bool use_static,
-                                                                   bool prefer_ipv6) {
-  auto options = find_all_connections(dc_id, allow_media_only, use_static, prefer_ipv6);
+                                                                   bool prefer_ipv6, bool only_http) {
+  auto options = find_all_connections(dc_id, allow_media_only, use_static, prefer_ipv6, only_http);
 
   if (options.empty()) {
     return Status::Error(PSLICE() << "No such connection: " << tag("dc_id", dc_id)

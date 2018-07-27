@@ -18,8 +18,12 @@
 namespace td {
 namespace mtproto {
 namespace http {
+
 class Transport : public IStreamTransport {
  public:
+  explicit Transport(string secret) : secret_(std::move(secret)) {
+  }
+
   Result<size_t> read_next(BufferSlice *message, uint32 *quick_ack) override TD_WARN_UNUSED_RESULT;
   bool support_quick_ack() const override {
     return false;
@@ -35,16 +39,15 @@ class Transport : public IStreamTransport {
   size_t max_prepend_size() const override;
   size_t max_append_size() const override;
   TransportType get_type() const override {
-    return {TransportType::Http, 0, ""};
+    return {TransportType::Http, 0, secret_};
   }
 
  private:
+  string secret_;
   HttpReader reader_;
   HttpQuery http_query_;
   ChainBufferWriter *output_;
   enum { Write, Read } turn_ = Write;
-
-  enum { MAX_PREPEND_SIZE = 96 };
 };
 
 }  // namespace http

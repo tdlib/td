@@ -2051,8 +2051,8 @@ textParseModeHTML = TextParseMode;
 //@description A SOCKS5 proxy server @username Username for logging in; may be empty @password Password for logging in; may be empty
 proxyTypeSocks5 username:string password:string = ProxyType;
 
-//@description A HTTP transparent proxy server @username Username for logging in; may be empty @password Password for logging in; may be empty
-proxyTypeHttp username:string password:string = ProxyType;
+//@description A HTTP transparent proxy server @username Username for logging in; may be empty @password Password for logging in; may be empty @http_only Pass true, if the proxy supports only HTTP requests and doesn't support transparent TCP connections via HTTP CONNECT method
+proxyTypeHttp username:string password:string http_only:Bool = ProxyType;
 
 //@description An MTProto proxy server @secret The proxy's secret in hexadecimal encoding
 proxyTypeMtproto secret:string = ProxyType;

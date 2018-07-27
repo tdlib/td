@@ -3232,7 +3232,7 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::enableProxy>(as_proxy_id(args)));
     } else if (op == "rproxy") {
       send_request(make_tl_object<td_api::removeProxy>(as_proxy_id(args)));
-    } else if (op == "aproxy" || op == "aeproxy") {
+    } else if (op == "aproxy" || op == "aeproxy" || op == "aeproxytcp") {
       string server;
       string port;
       string user;
@@ -3245,7 +3245,7 @@ class CliClient final : public Actor {
         type = make_tl_object<td_api::proxyTypeMtproto>(user);
       } else {
         if (port == "80") {
-          type = make_tl_object<td_api::proxyTypeHttp>(user, password);
+          type = make_tl_object<td_api::proxyTypeHttp>(user, password, op != "aeproxytcp");
         } else {
           type = make_tl_object<td_api::proxyTypeSocks5>(user, password);
         }

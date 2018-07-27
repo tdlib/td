@@ -27,6 +27,7 @@
 #include "td/net/Socks5.h"
 #include "td/net/TransparentProxy.h"
 
+#include "td/utils/base64.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -175,8 +176,11 @@ class ConnectionCreator::ProxyInfo {
   bool use_socks5_proxy() const {
     return proxy_type() == Proxy::Type::Socks5;
   }
-  bool use_http_proxy() const {
-    return proxy_type() == Proxy::Type::Http;
+  bool use_http_tcp_proxy() const {
+    return proxy_type() == Proxy::Type::HttpTcp;
+  }
+  bool use_http_caching_proxy() const {
+    return proxy_type() == Proxy::Type::HttpCaching;
   }
   bool use_mtproto_proxy() const {
     return proxy_type() == Proxy::Type::Mtproto;
@@ -198,7 +202,7 @@ template <class T>
 void Proxy::parse(T &parser) {
   using td::parse;
   parse(type_, parser);
-  if (type_ == Proxy::Type::Socks5 || type_ == Proxy::Type::Http) {
+  if (type_ == Proxy::Type::Socks5 || type_ == Proxy::Type::HttpTcp || type_ == Proxy::Type::HttpCaching) {
     parse(server_, parser);
     parse(port_, parser);
     parse(user_, parser);
@@ -216,7 +220,7 @@ template <class T>
 void Proxy::store(T &storer) const {
   using td::store;
   store(type_, storer);
-  if (type_ == Proxy::Type::Socks5 || type_ == Proxy::Type::Http) {
+  if (type_ == Proxy::Type::Socks5 || type_ == Proxy::Type::HttpTcp || type_ == Proxy::Type::HttpCaching) {
     store(server_, storer);
     store(port_, storer);
     store(user_, storer);
@@ -234,8 +238,10 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Proxy &proxy) {
   switch (proxy.type()) {
     case Proxy::Type::Socks5:
       return string_builder << "ProxySocks5 " << proxy.server() << ":" << proxy.port();
-    case Proxy::Type::Http:
-      return string_builder << "ProxyHttp " << proxy.server() << ":" << proxy.port();
+    case Proxy::Type::HttpTcp:
+      return string_builder << "ProxyHttpTcp " << proxy.server() << ":" << proxy.port();
+    case Proxy::Type::HttpCaching:
+      return string_builder << "ProxyHttpCaching " << proxy.server() << ":" << proxy.port();
     case Proxy::Type::Mtproto:
       return string_builder << "ProxyMtproto " << proxy.server() << ":" << proxy.port() << "/" << proxy.secret();
     case Proxy::Type::None:
@@ -306,7 +312,11 @@ void ConnectionCreator::add_proxy(string server, int32 port, bool enable,
     }
     case td_api::proxyTypeHttp::ID: {
       auto type = td_api::move_object_as<td_api::proxyTypeHttp>(proxy_type);
-      new_proxy = Proxy::http(server, port, type->username_, type->password_);
+      if (type->http_only_) {
+        new_proxy = Proxy::http_caching(server, port, type->username_, type->password_);
+      } else {
+        new_proxy = Proxy::http_tcp(server, port, type->username_, type->password_);
+      }
       break;
     }
     case td_api::proxyTypeMtproto::ID: {
@@ -395,7 +405,8 @@ void ConnectionCreator::get_proxy_link(int32 proxy_id, Promise<string> promise) 
       url += "socks";
       is_socks = true;
       break;
-    case Proxy::Type::Http:
+    case Proxy::Type::HttpTcp:
+    case Proxy::Type::HttpCaching:
       return promise.set_error(Status::Error(400, "HTTP proxy can't have public link"));
     case Proxy::Type::Mtproto:
       url += "proxy";
@@ -426,7 +437,7 @@ void ConnectionCreator::ping_proxy(int32 proxy_id, Promise<double> promise) {
     ProxyInfo proxy{nullptr, IPAddress()};
     auto main_dc_id = G()->net_query_dispatcher().main_dc_id();
     bool prefer_ipv6 = G()->shared_config().get_option_boolean("prefer_ipv6");
-    auto infos = dc_options_set_.find_all_connections(main_dc_id, false, false, prefer_ipv6);
+    auto infos = dc_options_set_.find_all_connections(main_dc_id, false, false, prefer_ipv6, false);
     if (infos.empty()) {
       return promise.set_error(Status::Error(400, "Can't find valid DC address"));
     }
@@ -506,7 +517,7 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
                      std::move(transport_type), std::move(promise));
       });
   CHECK(proxy.use_proxy());
-  if (proxy.use_socks5_proxy() || proxy.use_http_proxy()) {
+  if (proxy.use_socks5_proxy() || proxy.use_http_tcp_proxy()) {
     class Callback : public TransparentProxy::Callback {
      public:
       explicit Callback(Promise<SocketFd> promise) : promise_(std::move(promise)) {
@@ -604,6 +615,7 @@ void ConnectionCreator::on_proxy_changed(bool from_db) {
     }
   }
 
+  VLOG(connections) << "Drop proxy IP address " << proxy_ip_address_;
   resolve_proxy_query_token_ = 0;
   resolve_proxy_timestamp_ = Timestamp();
   proxy_ip_address_ = IPAddress();
@@ -658,8 +670,11 @@ td_api::object_ptr<td_api::proxy> ConnectionCreator::get_proxy_object(int32 prox
     case Proxy::Type::Socks5:
       type = make_tl_object<td_api::proxyTypeSocks5>(proxy.user().str(), proxy.password().str());
       break;
-    case Proxy::Type::Http:
-      type = make_tl_object<td_api::proxyTypeHttp>(proxy.user().str(), proxy.password().str());
+    case Proxy::Type::HttpTcp:
+      type = make_tl_object<td_api::proxyTypeHttp>(proxy.user().str(), proxy.password().str(), false);
+      break;
+    case Proxy::Type::HttpCaching:
+      type = make_tl_object<td_api::proxyTypeHttp>(proxy.user().str(), proxy.password().str(), true);
       break;
     case Proxy::Type::Mtproto:
       type = make_tl_object<td_api::proxyTypeMtproto>(proxy.secret().str());
@@ -674,13 +689,17 @@ td_api::object_ptr<td_api::proxy> ConnectionCreator::get_proxy_object(int32 prox
 }
 
 void ConnectionCreator::on_network(bool network_flag, uint32 network_generation) {
+  VLOG(connections) << "Receive network flag " << network_flag << " with generation " << network_generation;
   network_flag_ = network_flag;
   auto old_generation = network_generation_;
   network_generation_ = network_generation;
   if (network_flag_) {
-    resolve_proxy_query_token_ = 0;
-    resolve_proxy_timestamp_ = Timestamp();
-    get_proxy_info_timestamp_ = Timestamp();
+    if (old_generation != network_generation_) {
+      VLOG(connections) << "Set proxy query token to 0: " << old_generation << " " << network_generation_;
+      resolve_proxy_query_token_ = 0;
+      resolve_proxy_timestamp_ = Timestamp();
+      get_proxy_info_timestamp_ = Timestamp();
+    }
     for (auto &client : clients_) {
       client.second.backoff.clear();
       client.second.flood_control.clear_events();
@@ -695,6 +714,7 @@ void ConnectionCreator::on_network(bool network_flag, uint32 network_generation)
 }
 
 void ConnectionCreator::on_online(bool online_flag) {
+  VLOG(connections) << "Receive online flag " << online_flag;
   online_flag_ = online_flag;
   if (online_flag_) {
     for (auto &client : clients_) {
@@ -768,6 +788,16 @@ Result<mtproto::TransportType> ConnectionCreator::get_transport_type(const Proxy
     TRY_RESULT(secret, hex_decode(proxy.proxy().secret()));
     return mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, raw_dc_id, std::move(secret)};
   }
+  if (proxy.use_http_caching_proxy()) {
+    CHECK(info.option != nullptr);
+    string proxy_authorization;
+    if (!proxy.proxy().user().empty() || !proxy.proxy().password().empty()) {
+      proxy_authorization =
+          "|basic " + td::base64_encode(PSLICE() << proxy.proxy().user() << ':' << proxy.proxy().password());
+    }
+    return mtproto::TransportType{mtproto::TransportType::Http, 0,
+                                  PSTRING() << info.option->get_ip_address().get_ip_str() << proxy_authorization};
+  }
 
   if (info.use_http) {
     return mtproto::TransportType{mtproto::TransportType::Http, 0, ""};
@@ -781,8 +811,9 @@ Result<SocketFd> ConnectionCreator::find_connection(const ProxyInfo &proxy, DcId
   extra.debug_str = PSTRING() << "Failed to find valid IP for " << dc_id;
   bool prefer_ipv6 =
       G()->shared_config().get_option_boolean("prefer_ipv6") || (proxy.use_proxy() && proxy.ip_address().is_ipv6());
-  TRY_RESULT(info, dc_options_set_.find_connection(dc_id, allow_media_only,
-                                                   proxy.use_proxy() && proxy.use_socks5_proxy(), prefer_ipv6));
+  bool only_http = proxy.use_http_caching_proxy();
+  TRY_RESULT(info, dc_options_set_.find_connection(
+                       dc_id, allow_media_only, proxy.use_proxy() && proxy.use_socks5_proxy(), prefer_ipv6, only_http));
   extra.stat = info.stat;
   TRY_RESULT(transport_type, get_transport_type(proxy, info));
   extra.transport_type = std::move(transport_type);
@@ -799,7 +830,7 @@ Result<SocketFd> ConnectionCreator::find_connection(const ProxyInfo &proxy, DcId
 
   extra.check_mode |= info.should_check;
 
-  if (proxy.use_socks5_proxy() || proxy.use_http_proxy()) {
+  if (proxy.use_proxy()) {
     extra.mtproto_ip = info.option->get_ip_address();
     extra.debug_str = PSTRING() << (proxy.use_socks5_proxy() ? "Socks5 " : "HTTP ") << proxy.ip_address() << " --> "
                                 << extra.mtproto_ip << extra.debug_str;
@@ -815,14 +846,17 @@ Result<SocketFd> ConnectionCreator::find_connection(const ProxyInfo &proxy, DcId
 void ConnectionCreator::client_loop(ClientInfo &client) {
   CHECK(client.hash != 0);
   if (!network_flag_) {
+    VLOG(connections) << "Exit client_loop, because there is no network";
     return;
   }
   if (close_flag_) {
+    VLOG(connections) << "Exit client_loop, because of closing";
     return;
   }
 
   ProxyInfo proxy{active_proxy_id_ == 0 ? nullptr : &proxies_[active_proxy_id_], proxy_ip_address_};
   if (proxy.use_proxy() && !proxy.ip_address().is_valid()) {
+    VLOG(connections) << "Exit client_loop, because there is no valid IP address for proxy: " << proxy.ip_address();
     return;
   }
 
@@ -929,7 +963,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
         client.is_media ? media_net_stats_callback_ : common_net_stats_callback_, actor_id(this), client.hash,
         extra.stat);
 
-    if (proxy.use_socks5_proxy() || proxy.use_http_proxy()) {
+    if (proxy.use_socks5_proxy() || proxy.use_http_tcp_proxy()) {
       class Callback : public TransparentProxy::Callback {
        public:
         explicit Callback(Promise<ConnectionData> promise, std::unique_ptr<detail::StatsCallback> stats_callback)
@@ -1267,6 +1301,7 @@ void ConnectionCreator::loop() {
         resolve_proxy_query_token_ = next_token();
         const Proxy &proxy = proxies_[active_proxy_id_];
         bool prefer_ipv6 = G()->shared_config().get_option_boolean("prefer_ipv6");
+        VLOG(connections) << "Resolve IP address " << resolve_proxy_query_token_ << " of " << proxy.server();
         send_closure(
             get_host_by_name_actor_, &GetHostByNameActor::run, proxy.server().str(), proxy.port(), prefer_ipv6,
             PromiseCreator::lambda([actor_id = create_reference(resolve_proxy_query_token_)](Result<IPAddress> result) {
@@ -1349,6 +1384,8 @@ void ConnectionCreator::schedule_get_proxy_info(int32 expires) {
 
 void ConnectionCreator::on_proxy_resolved(Result<IPAddress> r_ip_address, bool dummy) {
   if (get_link_token() != resolve_proxy_query_token_) {
+    VLOG(connections) << "Ignore unneeded proxy IP address " << get_link_token() << ", expected "
+                      << resolve_proxy_query_token_;
     return;
   }
 
@@ -1358,10 +1395,12 @@ void ConnectionCreator::on_proxy_resolved(Result<IPAddress> r_ip_address, bool d
 
   resolve_proxy_query_token_ = 0;
   if (r_ip_address.is_error()) {
+    VLOG(connections) << "Receive error for resolving proxy IP address: " << r_ip_address.error();
     resolve_proxy_timestamp_ = Timestamp::in(1 * 60);
     return;
   }
   proxy_ip_address_ = r_ip_address.move_as_ok();
+  VLOG(connections) << "Set proxy IP address to " << proxy_ip_address_;
   resolve_proxy_timestamp_ = Timestamp::in(5 * 60);
   for (auto &client : clients_) {
     client_loop(client.second);

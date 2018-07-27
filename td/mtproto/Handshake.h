@@ -15,14 +15,18 @@
 #include "td/utils/Status.h"
 
 namespace td {
+
 class Storer;
+
 namespace mtproto {
+
 class AuthKeyHandshakeContext {
  public:
   virtual ~AuthKeyHandshakeContext() = default;
   virtual DhCallback *get_dh_callback() = 0;
   virtual PublicRsaKeyInterface *get_public_rsa_key_interface() = 0;
 };
+
 class AuthKeyHandshake {
  public:
   class Callback {
@@ -100,5 +104,6 @@ class AuthKeyHandshake {
   Status on_server_dh_params(Slice message, Callback *connection, DhCallback *dh_callback) TD_WARN_UNUSED_RESULT;
   Status on_dh_gen_response(Slice message, Callback *connection) TD_WARN_UNUSED_RESULT;
 };
+
 }  // namespace mtproto
 }  // namespace td

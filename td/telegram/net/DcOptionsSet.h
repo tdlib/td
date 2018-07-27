@@ -61,9 +61,11 @@ class DcOptionsSet {
     Stat *stat{nullptr};
   };
 
-  vector<ConnectionInfo> find_all_connections(DcId dc_id, bool allow_media_only, bool use_static, bool prefer_ipv6);
+  vector<ConnectionInfo> find_all_connections(DcId dc_id, bool allow_media_only, bool use_static, bool prefer_ipv6,
+                                              bool only_http);
 
-  Result<ConnectionInfo> find_connection(DcId dc_id, bool allow_media_only, bool use_static, bool prefer_ipv6);
+  Result<ConnectionInfo> find_connection(DcId dc_id, bool allow_media_only, bool use_static, bool prefer_ipv6,
+                                         bool only_http);
   void reset();
 
  private:

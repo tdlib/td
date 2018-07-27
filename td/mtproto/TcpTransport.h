@@ -19,6 +19,7 @@
 namespace td {
 namespace mtproto {
 namespace tcp {
+
 class ITransport {
   // Writes packet into message.
   // Returns 0 if everything is ok, and [expected_size] otherwise.
