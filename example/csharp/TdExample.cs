@@ -28,7 +28,7 @@ namespace TdExample
         private static volatile AutoResetEvent _gotAuthorization = new AutoResetEvent(false);
 
         private static readonly string _newLine = Environment.NewLine;
-        private static readonly string _commandsLine = "Enter command (gc <chatId> - GetChat, me - GetMe, sm <chatId> <message> - SendMessage, lo - LogOut, q - Quit): ";
+        private static readonly string _commandsLine = "Enter command (gc <chatId> - GetChat, me - GetMe, sm <chatId> <message> - SendMessage, lo - LogOut, r - Restart, q - Quit): ";
         private static volatile string _currentPrompt = null;
 
         private static Td.Client CreateTdClient()
@@ -123,6 +123,7 @@ namespace TdExample
             else if (_authorizationState is TdApi.AuthorizationStateClosed)
             {
                 Print("Closed");
+                _client.Dispose(); // _client is closed and native resources can be disposed now
                 if (!_quiting)
                 {
                     _client = CreateTdClient(); // recreate _client after previous has closed
@@ -171,6 +172,10 @@ namespace TdExample
                     case "lo":
                         _haveAuthorization = false;
                         _client.Send(new TdApi.LogOut(), _defaultHandler);
+                        break;
+                    case "r":
+                        _haveAuthorization = false;
+                        _client.Send(new TdApi.Close(), _defaultHandler);
                         break;
                     case "q":
                         _quiting = true;
