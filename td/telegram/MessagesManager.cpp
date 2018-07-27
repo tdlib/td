@@ -7475,8 +7475,9 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
           << d->last_message_id << " " << d->last_new_message_id << " " << d->have_full_history << " "
           << prev_last_new_message_id << " " << prev_first_database_message_id << " " << prev_last_database_message_id
           << " " << prev_last_message_id << " " << prev_have_full_history << " " << d->debug_last_new_message_id << " "
-          << d->debug_first_database_message_id << " " << d->debug_last_database_message_id;
-
+          << d->debug_first_database_message_id << " " << d->debug_last_database_message_id << " " << from_message_id
+          << " " << offset << " " << limit << " " << messages.size() << " " << last_received_message_id << " "
+          << d->debug_set_dialog_last_database_message_id;
       CHECK(d->first_database_message_id.is_valid());
       {
         MessagesConstIterator it(d, d->first_database_message_id);
@@ -7514,7 +7515,9 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
         << d->last_new_message_id << " " << d->have_full_history << " " << prev_last_new_message_id << " "
         << prev_first_database_message_id << " " << prev_last_database_message_id << " " << prev_last_message_id << " "
         << prev_have_full_history << " " << d->debug_last_new_message_id << " " << d->debug_first_database_message_id
-        << " " << d->debug_last_database_message_id;
+        << " " << d->debug_last_database_message_id << " " << from_message_id << " " << offset << " " << limit << " "
+        << messages.size() << " " << last_received_message_id << " " << d->debug_set_dialog_last_database_message_id;
+
     CHECK(d->last_database_message_id.is_valid());
 
     for (auto &first_message_id : d->first_database_message_id_by_index) {
