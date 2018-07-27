@@ -800,8 +800,8 @@ void SessionConnection::flush_packet() {
   if (mode_ == Mode::HttpLongPoll) {
     max_delay = HTTP_MAX_DELAY;
     max_after = HTTP_MAX_AFTER;
-    max_wait = min(http_max_wait(),
-                   static_cast<int>(1000 * max(0.1, ping_disconnect_delay() + last_pong_at_ - Time::now_cached() - 1)));
+    auto time_to_disconnect = ping_disconnect_delay() + last_pong_at_ - Time::now_cached();
+    max_wait = min(http_max_wait(), static_cast<int>(1000 * max(0.1, time_to_disconnect - rtt())));
   } else if (mode_ == Mode::Http) {
     max_delay = HTTP_MAX_DELAY;
     max_after = HTTP_MAX_AFTER;

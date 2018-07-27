@@ -125,7 +125,7 @@ class SessionConnection
   bool online_flag_ = false;
 
   int rtt() const {
-    return max(2, static_cast<int>(raw_connection_->rtt_ * 1.5));
+    return max(2, static_cast<int>(raw_connection_->rtt_ * 1.5 + 1));
   }
 
   int32 ping_disconnect_delay() const {
