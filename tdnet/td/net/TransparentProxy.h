@@ -10,6 +10,7 @@
 
 #include "td/utils/BufferedFd.h"
 #include "td/utils/common.h"
+#include "td/utils/logging.h"
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/port/SocketFd.h"
 #include "td/utils/Status.h"

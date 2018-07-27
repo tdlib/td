@@ -8,7 +8,6 @@
 
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
-#include "td/utils/port/Fd.h"
 #include "td/utils/Slice.h"
 
 namespace td {
