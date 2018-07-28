@@ -19546,7 +19546,7 @@ Result<MessageId> MessagesManager::add_local_message(
   bool need_update_dialog_pos = false;
   auto result =
       add_message_to_dialog(d, std::move(m), true, &need_update, &need_update_dialog_pos, "add local message");
-  CHECK(result != nullptr);
+  CHECK(result != nullptr) << message_id << " " << debug_add_message_to_dialog_fail_reason;
 
   if (is_message_auto_read(dialog_id, result->is_outgoing)) {
     if (result->is_outgoing) {
