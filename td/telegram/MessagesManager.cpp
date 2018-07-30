@@ -13669,7 +13669,7 @@ std::pair<bool, int32> MessagesManager::get_dialog_mute_until(DialogId dialog_id
     return {false, get_scope_mute_until(dialog_id)};
   }
 
-  return {true, get_dialog_mute_until(d)};
+  return {d->notification_settings.is_use_default_fixed, get_dialog_mute_until(d)};
 }
 
 NotificationSettingsScope MessagesManager::get_dialog_notification_setting_scope(DialogId dialog_id) {
