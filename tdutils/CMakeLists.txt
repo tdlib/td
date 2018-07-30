@@ -79,6 +79,7 @@ set(TDUTILS_SOURCE
   td/utils/Time.cpp
   td/utils/Timer.cpp
   td/utils/tl_parsers.cpp
+  td/utils/translit.cpp
   td/utils/unicode.cpp
   td/utils/utf8.cpp
 
@@ -183,6 +184,7 @@ set(TDUTILS_SOURCE
   td/utils/tl_helpers.h
   td/utils/tl_parsers.h
   td/utils/tl_storers.h
+  td/utils/translit.h
   td/utils/type_traits.h
   td/utils/unicode.h
   td/utils/utf8.h

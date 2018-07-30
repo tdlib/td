@@ -20,6 +20,7 @@
 #include "td/utils/Slice.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tests.h"
+#include "td/utils/translit.h"
 #include "td/utils/utf8.h"
 
 #include <atomic>
@@ -364,3 +365,26 @@ TEST(Misc, to_wstring) {
   ASSERT_TRUE(from_wstring(emoji2).is_error());
 }
 #endif
+
+static void test_translit(string word, vector<string> result) {
+  ASSERT_EQ(result, get_word_transliterations(word));
+}
+
+TEST(Misc, translit) {
+  test_translit("word", {"word", "ворд"});
+  test_translit("", {});
+  test_translit("ььььььььь", {"ььььььььь"});
+  test_translit("крыло", {"krylo", "крыло"});
+  test_translit("krylo", {"krylo", "крило"});
+  test_translit("crylo", {"crylo", "крило"});
+  test_translit("cheiia", {"cheiia", "кхеииа", "чейия"});
+  test_translit("cheii", {"cheii", "кхеии", "чейи", "чейий", "чейия"});
+  test_translit("s", {"s", "с", "ш", "щ"});
+  test_translit("y", {"e", "y", "е", "и", "ю", "я"});
+  test_translit("j", {"e", "j", "е", "й", "ю", "я"});
+  test_translit("yo", {"e", "yo", "е", "ио"});
+  test_translit("artjom", {"artem", "artjom", "артем", "артйом"});
+  test_translit("artyom", {"artem", "artyom", "артем", "артиом"});
+  test_translit("arty", {"arte", "arty", "арте", "арти", "артю", "артя"});
+  test_translit("льи", {"li", "lia", "ly", "льи"});
+}
