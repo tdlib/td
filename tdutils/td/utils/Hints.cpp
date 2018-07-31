@@ -55,6 +55,7 @@ vector<string> Hints::get_words(Slice name) {
       }
     } else {
       in_word = true;
+      code = remove_diacritics(code);
       append_utf8_character(word, code);
     }
   }

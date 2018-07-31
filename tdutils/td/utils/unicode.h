@@ -25,4 +25,9 @@ uint32 prepare_search_character(uint32 code);
  */
 uint32 unicode_to_lower(uint32 code);
 
+/**
+ * Removes diacritics from a unicode character.
+ */
+uint32 remove_diacritics(uint32 code);
+
 }  // namespace td
