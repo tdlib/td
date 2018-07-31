@@ -1831,8 +1831,11 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
       }
     }
 
+    LOG(INFO) << "Have " << recent_sticker_ids_[0] << " recent and " << favorite_sticker_ids_.size()
+              << " favorite stickers";
     for (const auto &sticker_id : prepend_sticker_ids) {
       const Sticker *s = get_sticker(sticker_id);
+      LOG(INFO) << "Have prepend sticker " << sticker_id << " from set " << s->set_id;
       if (s->set_id != 0 && std::find(sets_to_load.begin(), sets_to_load.end(), s->set_id) == sets_to_load.end()) {
         const StickerSet *sticker_set = get_sticker_set(s->set_id);
         if (sticker_set == nullptr || !sticker_set->is_loaded) {
@@ -1891,6 +1894,7 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
 
       auto it = sticker_set->emoji_stickers_map_.find(emoji);
       if (it != sticker_set->emoji_stickers_map_.end()) {
+        LOG(INFO) << "Add " << it->second.size() << " stickers from set " << sticker_set_id;
         append(result, it->second);
       }
     }
@@ -1901,6 +1905,7 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
     const size_t MAX_RECENT_STICKERS = 5;
     for (size_t i = 0; i < prepend_sticker_ids.size(); i++) {
       if (sorted.size() == MAX_RECENT_STICKERS && i < recent_stickers_size) {
+        LOG(INFO) << "Skip recent sticker " << prepend_sticker_ids[i];
         continue;
       }
 
@@ -1908,11 +1913,13 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
       bool is_good = false;
       auto it = std::find(result.begin(), result.end(), sticker_id);
       if (it != result.end()) {
+        LOG(INFO) << "Found prepend sticker " << sticker_id << " in installed packs";
         *it = FileId();
         is_good = true;
       } else {
         const Sticker *s = get_sticker(sticker_id);
         if (remove_emoji_modifiers(s->alt) == emoji) {
+          LOG(INFO) << "Found prepend sticker " << sticker_id << " main emoji matches";
           is_good = true;
         } else if (s->set_id != 0) {
           const StickerSet *sticker_set = get_sticker_set(s->set_id);
@@ -1920,6 +1927,7 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
             auto map_it = sticker_set->emoji_stickers_map_.find(emoji);
             if (map_it != sticker_set->emoji_stickers_map_.end()) {
               if (std::find(map_it->second.begin(), map_it->second.end(), sticker_id) != map_it->second.end()) {
+                LOG(INFO) << "Found prepend sticker " << sticker_id << " has matching emoji";
                 is_good = true;
               }
             }
@@ -1937,6 +1945,7 @@ vector<FileId> StickersManager::get_stickers(string emoji, int32 limit, bool for
     if (sorted.size() != limit_size_t) {
       for (const auto &sticker_id : result) {
         if (sticker_id.is_valid()) {
+          LOG(INFO) << "Add sticker " << sticker_id << " from installed sticker set";
           sorted.push_back(sticker_id);
           if (sorted.size() == limit_size_t) {
             break;
