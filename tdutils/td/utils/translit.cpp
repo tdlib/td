@@ -24,9 +24,9 @@ static const std::unordered_map<uint32, string> &get_en_to_ru_simple_rules() {
 
 static const std::vector<std::pair<string, string>> &get_en_to_ru_complex_rules() {
   static const std::vector<std::pair<string, string>> rules{
-      {"ch", "ч"}, {"ei", "ей"}, {"ey", "ей"}, {"ia", "ия"}, {"iy", "ий"},  {"jo", "е"},
-      {"ju", "ю"}, {"ja", "я"},  {"kh", "х"},  {"sh", "ш"},  {"shch", "щ"}, {"sch", "щ"},
-      {"ts", "ц"}, {"yo", "е"},  {"yu", "ю"},  {"ya", "я"},  {"zh", "ж"}};
+      {"ch", "ч"}, {"ei", "ей"}, {"ey", "ей"}, {"ia", "ия"},  {"iy", "ий"}, {"jo", "е"},
+      {"ju", "ю"}, {"ja", "я"},  {"kh", "х"},  {"shch", "щ"}, {"sh", "ш"},  {"sch", "щ"},
+      {"ts", "ц"}, {"yo", "е"},  {"yu", "ю"},  {"ya", "я"},   {"zh", "ж"}};
   return rules;
 }
 
