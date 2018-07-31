@@ -42,10 +42,13 @@ static jint Client_nativeClientReceive(JNIEnv *env, jclass clazz, jlong client_i
                                        jdouble timeout) {
   auto client = get_client(client_id);
   jsize events_size = env->GetArrayLength(ids);  // ids and events size must be of equal size
+  if (events_size == 0) {
+    return 0;
+  }
   jsize result_size = 0;
 
   auto response = client->receive(timeout);
-  while (response.object && result_size < events_size) {
+  while (response.object) {
     jlong result_id = static_cast<jlong>(response.id);
     env->SetLongArrayRegion(ids, result_size, 1, &result_id);
 
@@ -55,6 +58,10 @@ static jint Client_nativeClientReceive(JNIEnv *env, jclass clazz, jlong client_i
     env->DeleteLocalRef(object);
 
     result_size++;
+    if (result_size == events_size) {
+      break;
+    }
+
     response = client->receive(0);
   }
   return result_size;
