@@ -366,8 +366,8 @@ TEST(Misc, to_wstring) {
 }
 #endif
 
-static void test_translit(string word, vector<string> result) {
-  ASSERT_EQ(result, get_word_transliterations(word));
+static void test_translit(string word, vector<string> result, bool allow_partial = true) {
+  ASSERT_EQ(result, get_word_transliterations(word, allow_partial));
 }
 
 TEST(Misc, translit) {
@@ -387,4 +387,6 @@ TEST(Misc, translit) {
   test_translit("artyom", {"artem", "artyom", "артем", "артиом"});
   test_translit("arty", {"arte", "arty", "арте", "арти", "артю", "артя"});
   test_translit("льи", {"li", "lia", "ly", "льи"});
+  test_translit("y", {"y", "и"}, false);
+  test_translit("yo", {"e", "yo", "е", "ио"}, false);
 }

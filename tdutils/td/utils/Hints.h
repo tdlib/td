@@ -43,10 +43,19 @@ class Hints {
 
  private:
   std::map<string, vector<KeyT>> word_to_keys_;
+  std::map<string, vector<KeyT>> translit_word_to_keys_;
   std::unordered_map<KeyT, string> key_to_name_;
   std::unordered_map<KeyT, RatingT> key_to_rating_;
 
+  static void add_word(const string &word, KeyT key, std::map<string, vector<KeyT>> &word_to_keys);
+  static void delete_word(const string &word, KeyT key, std::map<string, vector<KeyT>> &word_to_keys);
+
+  static vector<string> fix_words(vector<string> words);
+
   static vector<string> get_words(Slice name);
+
+  static void add_search_results(vector<KeyT> &results, const string &word,
+                                 const std::map<string, vector<KeyT>> &word_to_keys);
 
   vector<KeyT> search_word(const string &word) const;
 

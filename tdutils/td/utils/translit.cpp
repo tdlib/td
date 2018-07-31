@@ -46,7 +46,7 @@ static const std::vector<std::pair<string, string>> &get_ru_to_en_complex_rules(
   return rules;
 }
 
-void add_word_transliterations(vector<string> &result, Slice word,
+void add_word_transliterations(vector<string> &result, Slice word, bool allow_partial,
                                const std::unordered_map<uint32, string> &simple_rules,
                                const std::vector<std::pair<string, string>> &complex_rules) {
   string s;
@@ -78,7 +78,7 @@ void add_word_transliterations(vector<string> &result, Slice word,
         s.append(rule.second);
         break;
       }
-      if (begins_with(rule.first, suffix)) {
+      if (allow_partial && begins_with(rule.first, suffix)) {
         result.push_back(s + rule.second);
       }
     }
@@ -100,11 +100,11 @@ void add_word_transliterations(vector<string> &result, Slice word,
   }
 }
 
-vector<string> get_word_transliterations(Slice word) {
+vector<string> get_word_transliterations(Slice word, bool allow_partial) {
   vector<string> result;
 
-  add_word_transliterations(result, word, get_en_to_ru_simple_rules(), get_en_to_ru_complex_rules());
-  add_word_transliterations(result, word, get_ru_to_en_simple_rules(), get_ru_to_en_complex_rules());
+  add_word_transliterations(result, word, allow_partial, get_en_to_ru_simple_rules(), get_en_to_ru_complex_rules());
+  add_word_transliterations(result, word, allow_partial, get_ru_to_en_simple_rules(), get_ru_to_en_complex_rules());
 
   std::sort(result.begin(), result.end());
   result.erase(std::unique(result.begin(), result.end()), result.end());
