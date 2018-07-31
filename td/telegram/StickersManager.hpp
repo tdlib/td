@@ -225,7 +225,10 @@ void StickersManager::parse_sticker_set(StickerSet *sticker_set, T &parser) {
         vector<string> emojis;
         parse(emojis, parser);
         for (auto &emoji : emojis) {
-          sticker_set->emoji_stickers_map_[remove_emoji_modifiers(emoji)].push_back(sticker_id);
+          auto &sticker_ids = sticker_set->emoji_stickers_map_[remove_emoji_modifiers(emoji)];
+          if (sticker_ids.empty() || sticker_ids.back() != sticker_id) {
+            sticker_ids.push_back(sticker_id);
+          }
         }
         sticker_set->sticker_emojis_map_[sticker_id] = std::move(emojis);
       }

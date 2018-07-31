@@ -1638,7 +1638,12 @@ void StickersManager::on_get_messages_sticker_set(int64 sticker_set_id,
       stickers.push_back(it->second);
       s->sticker_emojis_map_[it->second].push_back(pack->emoticon_);
     }
-    s->emoji_stickers_map_.emplace(remove_emoji_modifiers(pack->emoticon_), std::move(stickers));
+    auto &sticker_ids = s->emoji_stickers_map_[remove_emoji_modifiers(pack->emoticon_)];
+    for (auto sticker_id : stickers) {
+      if (std::find(sticker_ids.begin(), sticker_ids.end(), sticker_id) == sticker_ids.end()) {
+        sticker_ids.push_back(sticker_id);
+      }
+    }
   }
 
   update_sticker_set(s);
