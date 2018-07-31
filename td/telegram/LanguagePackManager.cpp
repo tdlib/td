@@ -73,11 +73,11 @@ bool LanguagePackManager::check_language_pack_name(Slice name) {
 
 bool LanguagePackManager::check_language_code_name(Slice name) {
   for (auto c : name) {
-    if (!is_alpha(c)) {
+    if (c != '-' && !is_alpha(c)) {
       return false;
     }
   }
-  return name.size() == 2 || name.empty();
+  return name.size() >= 2 || name.empty();
 }
 
 static Result<SqliteDb> open_database(const string &path) {
@@ -271,7 +271,7 @@ LanguagePackManager::Language *LanguagePackManager::get_language(LanguagePack *l
 }
 
 static string get_database_table_name(const string &language_pack, const string &language_code) {
-  return PSTRING() << "kv_" << language_pack << "_" << language_code;
+  return PSTRING() << "\"kv_" << language_pack << '_' << language_code << '"';
 }
 
 LanguagePackManager::Language *LanguagePackManager::add_language(LanguageDatabase *database,
