@@ -1098,8 +1098,8 @@ class ContactsManager : public Actor {
   vector<UserId> imported_contact_user_ids_;  // result of change_imported_contacts
   vector<int32> unimported_contact_invites_;  // result of change_imported_contacts
 
-  MultiTimeout user_online_timeout_;
-  MultiTimeout channel_unban_timeout_;
+  MultiTimeout user_online_timeout_{"UserOnlineTimeout"};
+  MultiTimeout channel_unban_timeout_{"ChannelUnbanTimeout"};
 
   class OnChatUpdate;
 };

@@ -253,7 +253,7 @@ class Td final : public NetQueryCallback {
 
   int64 alarm_id_ = 1;
   std::unordered_map<int64, uint64> pending_alarms_;
-  MultiTimeout alarm_timeout_;
+  MultiTimeout alarm_timeout_{"AlarmTimeout"};
 
   vector<std::pair<uint64, td_api::object_ptr<td_api::Function>>> pending_preauthentication_requests_;
 

@@ -241,7 +241,7 @@ class WebPagesManager : public Actor {
 
   std::unordered_map<string, WebPageId> url_to_web_page_id_;
 
-  MultiTimeout pending_web_pages_timeout_;
+  MultiTimeout pending_web_pages_timeout_{"PendingWebPagesTimeout"};
 };
 
 }  // namespace td

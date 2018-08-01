@@ -2914,16 +2914,16 @@ class MessagesManager : public Actor {
   std::unordered_map<DialogId, string, DialogIdHash> active_get_channel_differencies_;
   std::unordered_map<DialogId, uint64, DialogIdHash> get_channel_difference_to_logevent_id_;
 
-  MultiTimeout channel_get_difference_timeout_;
-  MultiTimeout channel_get_difference_retry_timeout_;
-  MultiTimeout pending_message_views_timeout_;
-  MultiTimeout pending_draft_message_timeout_;
-  MultiTimeout pending_read_history_timeout_;
-  MultiTimeout pending_updated_dialog_timeout_;
-  MultiTimeout pending_unload_dialog_timeout_;
-  MultiTimeout dialog_unmute_timeout_;
-  MultiTimeout pending_send_dialog_action_timeout_;
-  MultiTimeout active_dialog_action_timeout_;
+  MultiTimeout channel_get_difference_timeout_{"ChannelGetDifferenceTimeout"};
+  MultiTimeout channel_get_difference_retry_timeout_{"ChannelGetDifferenceRetryTimeout"};
+  MultiTimeout pending_message_views_timeout_{"PendingMessageViewsTimeout"};
+  MultiTimeout pending_draft_message_timeout_{"PendingDraftMessageTimeout"};
+  MultiTimeout pending_read_history_timeout_{"PendingReadHistoryTimeout"};
+  MultiTimeout pending_updated_dialog_timeout_{"PendingUpdatedDialogTimeout"};
+  MultiTimeout pending_unload_dialog_timeout_{"PendingUnloadDialogTimeout"};
+  MultiTimeout dialog_unmute_timeout_{"DialogUnmuteTimeout"};
+  MultiTimeout pending_send_dialog_action_timeout_{"PendingSendDialogActionTimeout"};
+  MultiTimeout active_dialog_action_timeout_{"ActiveDialogActionTimeout"};
 
   Hints dialogs_hints_;  // search dialogs by title and username
 

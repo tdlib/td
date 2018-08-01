@@ -83,8 +83,8 @@ class MultiTimeout final : public Actor {
  public:
   using Data = void *;
   using Callback = void (*)(Data, int64);
-  MultiTimeout() {
-    register_actor("MultiTimeout", this).release();
+  explicit MultiTimeout(Slice name) {
+    register_actor(name, this).release();
   }
 
   void set_callback(Callback callback) {
