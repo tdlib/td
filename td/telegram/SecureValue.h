@@ -44,17 +44,17 @@ enum class SecureValueType : int32 {
 StringBuilder &operator<<(StringBuilder &string_builder, const SecureValueType &type);
 
 SecureValueType get_secure_value_type(const tl_object_ptr<telegram_api::SecureValueType> &secure_value_type);
-SecureValueType get_secure_value_type_td_api(const tl_object_ptr<td_api::PassportDataType> &passport_data_type);
+SecureValueType get_secure_value_type_td_api(const tl_object_ptr<td_api::PassportElementType> &passport_element_type);
 
 vector<SecureValueType> get_secure_value_types(
     const vector<tl_object_ptr<telegram_api::SecureValueType>> &secure_value_types);
 vector<SecureValueType> get_secure_value_types_td_api(
-    const vector<tl_object_ptr<td_api::PassportDataType>> &secure_value_types);
+    const vector<tl_object_ptr<td_api::PassportElementType>> &secure_value_types);
 
-td_api::object_ptr<td_api::PassportDataType> get_passport_data_type_object(SecureValueType type);
+td_api::object_ptr<td_api::PassportElementType> get_passport_element_type_object(SecureValueType type);
 td_api::object_ptr<telegram_api::SecureValueType> get_input_secure_value_type(SecureValueType type);
 
-vector<td_api::object_ptr<td_api::PassportDataType>> get_passport_data_types_object(
+vector<td_api::object_ptr<td_api::PassportElementType>> get_passport_element_types_object(
     const vector<SecureValueType> &types);
 
 string get_secure_value_data_field_name(SecureValueType type, string field_name);
@@ -125,13 +125,13 @@ EncryptedSecureValue get_encrypted_secure_value(FileManager *file_manager,
 vector<EncryptedSecureValue> get_encrypted_secure_values(
     FileManager *file_manager, vector<tl_object_ptr<telegram_api::secureValue>> &&secure_values);
 
-td_api::object_ptr<td_api::encryptedPassportData> get_encrypted_passport_data_object(FileManager *file_manager,
-                                                                                     const EncryptedSecureValue &value);
+td_api::object_ptr<td_api::encryptedPassportElement> get_encrypted_passport_element_object(
+    FileManager *file_manager, const EncryptedSecureValue &value);
 telegram_api::object_ptr<telegram_api::inputSecureValue> get_input_secure_value_object(
     FileManager *file_manager, const EncryptedSecureValue &value, vector<SecureInputFile> &input_files,
     optional<SecureInputFile> &front_side, optional<SecureInputFile> &reverse_side, optional<SecureInputFile> &selfie);
 
-vector<td_api::object_ptr<td_api::encryptedPassportData>> get_encrypted_passport_data_object(
+vector<td_api::object_ptr<td_api::encryptedPassportElement>> get_encrypted_passport_element_object(
     FileManager *file_manager, const vector<EncryptedSecureValue> &values);
 
 struct EncryptedSecureCredentials {
@@ -189,13 +189,13 @@ struct SecureValueWithCredentials {
 };
 
 Result<SecureValue> get_secure_value(FileManager *file_manager,
-                                     td_api::object_ptr<td_api::InputPassportData> &&input_passport_data);
+                                     td_api::object_ptr<td_api::InputPassportElement> &&input_passport_element);
 
-Result<td_api::object_ptr<td_api::PassportData>> get_passport_data_object(FileManager *file_manager,
-                                                                          const SecureValue &value);
+Result<td_api::object_ptr<td_api::PassportElement>> get_passport_element_object(FileManager *file_manager,
+                                                                                const SecureValue &value);
 
-td_api::object_ptr<td_api::allPassportData> get_all_passport_data_object(FileManager *file_manager,
-                                                                         const vector<SecureValue> &values);
+td_api::object_ptr<td_api::passportElements> get_passport_elements_object(FileManager *file_manager,
+                                                                          const vector<SecureValue> &values);
 
 Result<SecureValueWithCredentials> decrypt_secure_value(FileManager *file_manager, const secure_storage::Secret &secret,
                                                         const EncryptedSecureValue &encrypted_secure_value);

@@ -9557,12 +9557,12 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
     }
     case MessagePassportDataSent::ID: {
       const MessagePassportDataSent *m = static_cast<const MessagePassportDataSent *>(content);
-      return make_tl_object<td_api::messagePassportDataSent>(get_passport_data_types_object(m->types));
+      return make_tl_object<td_api::messagePassportDataSent>(get_passport_element_types_object(m->types));
     }
     case MessagePassportDataReceived::ID: {
       const MessagePassportDataReceived *m = static_cast<const MessagePassportDataReceived *>(content);
       return make_tl_object<td_api::messagePassportDataReceived>(
-          get_encrypted_passport_data_object(td_->file_manager_.get(), m->values),
+          get_encrypted_passport_element_object(td_->file_manager_.get(), m->values),
           get_encrypted_credentials_object(m->credentials));
     }
     default:

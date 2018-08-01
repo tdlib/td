@@ -6304,7 +6304,7 @@ void Td::on_request(uint64 id, const td_api::deleteSavedCredentials &request) {
   delete_saved_credentials(std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::getPassportData &request) {
+void Td::on_request(uint64 id, td_api::getPassportElement &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.password_);
   if (request.type_ == nullptr) {
@@ -6315,7 +6315,7 @@ void Td::on_request(uint64 id, td_api::getPassportData &request) {
                get_secure_value_type_td_api(request.type_), std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::getAllPassportData &request) {
+void Td::on_request(uint64 id, td_api::getAllPassportElements &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.password_);
   CREATE_REQUEST_PROMISE();
@@ -6323,11 +6323,11 @@ void Td::on_request(uint64 id, td_api::getAllPassportData &request) {
                std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::setPassportData &request) {
+void Td::on_request(uint64 id, td_api::setPassportElement &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.password_);
   CREATE_REQUEST_PROMISE();
-  auto r_secure_value = get_secure_value(file_manager_.get(), std::move(request.data_));
+  auto r_secure_value = get_secure_value(file_manager_.get(), std::move(request.element_));
   if (r_secure_value.is_error()) {
     return promise.set_error(r_secure_value.move_as_error());
   }
@@ -6335,7 +6335,7 @@ void Td::on_request(uint64 id, td_api::setPassportData &request) {
                r_secure_value.move_as_ok(), std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::deletePassportData &request) {
+void Td::on_request(uint64 id, const td_api::deletePassportElement &request) {
   CHECK_IS_USER();
   if (request.type_ == nullptr) {
     return send_error_raw(id, 400, "Type must not be empty");
@@ -6345,7 +6345,7 @@ void Td::on_request(uint64 id, const td_api::deletePassportData &request) {
                std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::setPassportDataErrors &request) {
+void Td::on_request(uint64 id, td_api::setPassportElementErrors &request) {
   CHECK_IS_BOT();
   UserId user_id(request.user_id_);
   auto input_user = contacts_manager_->get_input_user(user_id);

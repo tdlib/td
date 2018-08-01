@@ -101,34 +101,34 @@ SecureValueType get_secure_value_type(const tl_object_ptr<telegram_api::SecureVa
   }
 }
 
-SecureValueType get_secure_value_type_td_api(const tl_object_ptr<td_api::PassportDataType> &passport_data_type) {
-  CHECK(passport_data_type != nullptr);
-  switch (passport_data_type->get_id()) {
-    case td_api::passportDataTypePersonalDetails::ID:
+SecureValueType get_secure_value_type_td_api(const tl_object_ptr<td_api::PassportElementType> &passport_element_type) {
+  CHECK(passport_element_type != nullptr);
+  switch (passport_element_type->get_id()) {
+    case td_api::passportElementTypePersonalDetails::ID:
       return SecureValueType::PersonalDetails;
-    case td_api::passportDataTypePassport::ID:
+    case td_api::passportElementTypePassport::ID:
       return SecureValueType::Passport;
-    case td_api::passportDataTypeDriverLicense::ID:
+    case td_api::passportElementTypeDriverLicense::ID:
       return SecureValueType::DriverLicense;
-    case td_api::passportDataTypeIdentityCard::ID:
+    case td_api::passportElementTypeIdentityCard::ID:
       return SecureValueType::IdentityCard;
-    case td_api::passportDataTypeInternalPassport::ID:
+    case td_api::passportElementTypeInternalPassport::ID:
       return SecureValueType::InternalPassport;
-    case td_api::passportDataTypeAddress::ID:
+    case td_api::passportElementTypeAddress::ID:
       return SecureValueType::Address;
-    case td_api::passportDataTypeUtilityBill::ID:
+    case td_api::passportElementTypeUtilityBill::ID:
       return SecureValueType::UtilityBill;
-    case td_api::passportDataTypeBankStatement::ID:
+    case td_api::passportElementTypeBankStatement::ID:
       return SecureValueType::BankStatement;
-    case td_api::passportDataTypeRentalAgreement::ID:
+    case td_api::passportElementTypeRentalAgreement::ID:
       return SecureValueType::RentalAgreement;
-    case td_api::passportDataTypePassportRegistration::ID:
+    case td_api::passportElementTypePassportRegistration::ID:
       return SecureValueType::PassportRegistration;
-    case td_api::passportDataTypeTemporaryRegistration::ID:
+    case td_api::passportElementTypeTemporaryRegistration::ID:
       return SecureValueType::TemporaryRegistration;
-    case td_api::passportDataTypePhoneNumber::ID:
+    case td_api::passportElementTypePhoneNumber::ID:
       return SecureValueType::PhoneNumber;
-    case td_api::passportDataTypeEmailAddress::ID:
+    case td_api::passportElementTypeEmailAddress::ID:
       return SecureValueType::EmailAddress;
     default:
       UNREACHABLE();
@@ -141,7 +141,7 @@ static vector<SecureValueType> unique_types(vector<SecureValueType> types) {
   for (size_t i = 0; i < size; i++) {
     for (size_t j = 0; j < i; j++) {
       if (types[i] == types[j]) {
-        LOG(ERROR) << "Have duplicate Passport Data type " << types[i] << " at positions " << i << " and " << j;
+        LOG(ERROR) << "Have duplicate passport element type " << types[i] << " at positions " << i << " and " << j;
         types[i--] = types[--size];
         break;
       }
@@ -157,38 +157,38 @@ vector<SecureValueType> get_secure_value_types(
 }
 
 vector<SecureValueType> get_secure_value_types_td_api(
-    const vector<tl_object_ptr<td_api::PassportDataType>> &secure_value_types) {
+    const vector<tl_object_ptr<td_api::PassportElementType>> &secure_value_types) {
   return unique_types(transform(secure_value_types, get_secure_value_type_td_api));
 }
 
-td_api::object_ptr<td_api::PassportDataType> get_passport_data_type_object(SecureValueType type) {
+td_api::object_ptr<td_api::PassportElementType> get_passport_element_type_object(SecureValueType type) {
   switch (type) {
     case SecureValueType::PersonalDetails:
-      return td_api::make_object<td_api::passportDataTypePersonalDetails>();
+      return td_api::make_object<td_api::passportElementTypePersonalDetails>();
     case SecureValueType::Passport:
-      return td_api::make_object<td_api::passportDataTypePassport>();
+      return td_api::make_object<td_api::passportElementTypePassport>();
     case SecureValueType::DriverLicense:
-      return td_api::make_object<td_api::passportDataTypeDriverLicense>();
+      return td_api::make_object<td_api::passportElementTypeDriverLicense>();
     case SecureValueType::IdentityCard:
-      return td_api::make_object<td_api::passportDataTypeIdentityCard>();
+      return td_api::make_object<td_api::passportElementTypeIdentityCard>();
     case SecureValueType::InternalPassport:
-      return td_api::make_object<td_api::passportDataTypeInternalPassport>();
+      return td_api::make_object<td_api::passportElementTypeInternalPassport>();
     case SecureValueType::Address:
-      return td_api::make_object<td_api::passportDataTypeAddress>();
+      return td_api::make_object<td_api::passportElementTypeAddress>();
     case SecureValueType::UtilityBill:
-      return td_api::make_object<td_api::passportDataTypeUtilityBill>();
+      return td_api::make_object<td_api::passportElementTypeUtilityBill>();
     case SecureValueType::BankStatement:
-      return td_api::make_object<td_api::passportDataTypeBankStatement>();
+      return td_api::make_object<td_api::passportElementTypeBankStatement>();
     case SecureValueType::RentalAgreement:
-      return td_api::make_object<td_api::passportDataTypeRentalAgreement>();
+      return td_api::make_object<td_api::passportElementTypeRentalAgreement>();
     case SecureValueType::PassportRegistration:
-      return td_api::make_object<td_api::passportDataTypePassportRegistration>();
+      return td_api::make_object<td_api::passportElementTypePassportRegistration>();
     case SecureValueType::TemporaryRegistration:
-      return td_api::make_object<td_api::passportDataTypeTemporaryRegistration>();
+      return td_api::make_object<td_api::passportElementTypeTemporaryRegistration>();
     case SecureValueType::PhoneNumber:
-      return td_api::make_object<td_api::passportDataTypePhoneNumber>();
+      return td_api::make_object<td_api::passportElementTypePhoneNumber>();
     case SecureValueType::EmailAddress:
-      return td_api::make_object<td_api::passportDataTypeEmailAddress>();
+      return td_api::make_object<td_api::passportElementTypeEmailAddress>();
     case SecureValueType::None:
     default:
       UNREACHABLE();
@@ -231,9 +231,9 @@ td_api::object_ptr<telegram_api::SecureValueType> get_input_secure_value_type(Se
   }
 }
 
-vector<td_api::object_ptr<td_api::PassportDataType>> get_passport_data_types_object(
+vector<td_api::object_ptr<td_api::PassportElementType>> get_passport_element_types_object(
     const vector<SecureValueType> &types) {
-  return transform(types, get_passport_data_type_object);
+  return transform(types, get_passport_element_type_object);
 }
 
 string get_secure_value_data_field_name(SecureValueType type, string field_name) {
@@ -528,11 +528,11 @@ vector<EncryptedSecureValue> get_encrypted_secure_values(
   return results;
 }
 
-td_api::object_ptr<td_api::encryptedPassportData> get_encrypted_passport_data_object(
+td_api::object_ptr<td_api::encryptedPassportElement> get_encrypted_passport_element_object(
     FileManager *file_manager, const EncryptedSecureValue &value) {
   bool is_plain = value.data.hash.empty();
-  return td_api::make_object<td_api::encryptedPassportData>(
-      get_passport_data_type_object(value.type), is_plain ? string() : value.data.data,
+  return td_api::make_object<td_api::encryptedPassportElement>(
+      get_passport_element_type_object(value.type), is_plain ? string() : value.data.data,
       value.front_side.file.file_id.is_valid() ? get_dated_file_object(file_manager, value.front_side) : nullptr,
       value.reverse_side.file.file_id.is_valid() ? get_dated_file_object(file_manager, value.reverse_side) : nullptr,
       value.selfie.file.file_id.is_valid() ? get_dated_file_object(file_manager, value.selfie) : nullptr,
@@ -581,10 +581,10 @@ telegram_api::object_ptr<telegram_api::inputSecureValue> get_input_secure_value_
       get_input_secure_files_object(file_manager, value.files, input_files), std::move(plain_data));
 }
 
-vector<td_api::object_ptr<td_api::encryptedPassportData>> get_encrypted_passport_data_object(
+vector<td_api::object_ptr<td_api::encryptedPassportElement>> get_encrypted_passport_element_object(
     FileManager *file_manager, const vector<EncryptedSecureValue> &values) {
   return transform(values, [file_manager](const EncryptedSecureValue &value) {
-    return get_encrypted_passport_data_object(file_manager, value);
+    return get_encrypted_passport_element_object(file_manager, value);
   });
 }
 
@@ -907,89 +907,89 @@ static Status check_email_address(string &email_address) {
 }
 
 Result<SecureValue> get_secure_value(FileManager *file_manager,
-                                     td_api::object_ptr<td_api::InputPassportData> &&input_passport_data) {
-  if (input_passport_data == nullptr) {
-    return Status::Error(400, "InputPassportData must not be empty");
+                                     td_api::object_ptr<td_api::InputPassportElement> &&input_passport_element) {
+  if (input_passport_element == nullptr) {
+    return Status::Error(400, "InputPassportElement must not be empty");
   }
 
   SecureValue res;
-  switch (input_passport_data->get_id()) {
-    case td_api::inputPassportDataPersonalDetails::ID: {
-      auto input = td_api::move_object_as<td_api::inputPassportDataPersonalDetails>(input_passport_data);
+  switch (input_passport_element->get_id()) {
+    case td_api::inputPassportElementPersonalDetails::ID: {
+      auto input = td_api::move_object_as<td_api::inputPassportElementPersonalDetails>(input_passport_element);
       res.type = SecureValueType::PersonalDetails;
       TRY_RESULT(personal_details, get_personal_details(std::move(input->personal_details_)));
       res.data = std::move(personal_details);
       break;
     }
-    case td_api::inputPassportDataPassport::ID: {
-      auto input = td_api::move_object_as<td_api::inputPassportDataPassport>(input_passport_data);
+    case td_api::inputPassportElementPassport::ID: {
+      auto input = td_api::move_object_as<td_api::inputPassportElementPassport>(input_passport_element);
       return get_identity_document(SecureValueType::Passport, file_manager, std::move(input->passport_), false);
     }
-    case td_api::inputPassportDataDriverLicense::ID: {
-      auto input = td_api::move_object_as<td_api::inputPassportDataDriverLicense>(input_passport_data);
+    case td_api::inputPassportElementDriverLicense::ID: {
+      auto input = td_api::move_object_as<td_api::inputPassportElementDriverLicense>(input_passport_element);
       return get_identity_document(SecureValueType::DriverLicense, file_manager, std::move(input->driver_license_),
                                    true);
     }
-    case td_api::inputPassportDataIdentityCard::ID: {
-      auto input = td_api::move_object_as<td_api::inputPassportDataIdentityCard>(input_passport_data);
+    case td_api::inputPassportElementIdentityCard::ID: {
+      auto input = td_api::move_object_as<td_api::inputPassportElementIdentityCard>(input_passport_element);
       return get_identity_document(SecureValueType::IdentityCard, file_manager, std::move(input->identity_card_), true);
     }
-    case td_api::inputPassportDataInternalPassport::ID: {
-      auto input = td_api::move_object_as<td_api::inputPassportDataInternalPassport>(input_passport_data);
+    case td_api::inputPassportElementInternalPassport::ID: {
+      auto input = td_api::move_object_as<td_api::inputPassportElementInternalPassport>(input_passport_element);
       return get_identity_document(SecureValueType::InternalPassport, file_manager,
                                    std::move(input->internal_passport_), false);
     }
-    case td_api::inputPassportDataAddress::ID: {
-      auto input = td_api::move_object_as<td_api::inputPassportDataAddress>(input_passport_data);
+    case td_api::inputPassportElementAddress::ID: {
+      auto input = td_api::move_object_as<td_api::inputPassportElementAddress>(input_passport_element);
       res.type = SecureValueType::Address;
       TRY_RESULT(address, get_address(std::move(input->address_)));
       res.data = address_to_json(address);
       break;
     }
-    case td_api::inputPassportDataUtilityBill::ID: {
-      auto input = td_api::move_object_as<td_api::inputPassportDataUtilityBill>(input_passport_data);
+    case td_api::inputPassportElementUtilityBill::ID: {
+      auto input = td_api::move_object_as<td_api::inputPassportElementUtilityBill>(input_passport_element);
       res.type = SecureValueType::UtilityBill;
       TRY_RESULT(files, get_secure_files(file_manager, std::move(input->files_)));
       res.files = std::move(files);
       break;
     }
-    case td_api::inputPassportDataBankStatement::ID: {
-      auto input = td_api::move_object_as<td_api::inputPassportDataBankStatement>(input_passport_data);
+    case td_api::inputPassportElementBankStatement::ID: {
+      auto input = td_api::move_object_as<td_api::inputPassportElementBankStatement>(input_passport_element);
       res.type = SecureValueType::BankStatement;
       TRY_RESULT(files, get_secure_files(file_manager, std::move(input->files_)));
       res.files = std::move(files);
       break;
     }
-    case td_api::inputPassportDataRentalAgreement::ID: {
-      auto input = td_api::move_object_as<td_api::inputPassportDataRentalAgreement>(input_passport_data);
+    case td_api::inputPassportElementRentalAgreement::ID: {
+      auto input = td_api::move_object_as<td_api::inputPassportElementRentalAgreement>(input_passport_element);
       res.type = SecureValueType::RentalAgreement;
       TRY_RESULT(files, get_secure_files(file_manager, std::move(input->files_)));
       res.files = std::move(files);
       break;
     }
-    case td_api::inputPassportDataPassportRegistration::ID: {
-      auto input = td_api::move_object_as<td_api::inputPassportDataPassportRegistration>(input_passport_data);
+    case td_api::inputPassportElementPassportRegistration::ID: {
+      auto input = td_api::move_object_as<td_api::inputPassportElementPassportRegistration>(input_passport_element);
       res.type = SecureValueType::PassportRegistration;
       TRY_RESULT(files, get_secure_files(file_manager, std::move(input->files_)));
       res.files = std::move(files);
       break;
     }
-    case td_api::inputPassportDataTemporaryRegistration::ID: {
-      auto input = td_api::move_object_as<td_api::inputPassportDataTemporaryRegistration>(input_passport_data);
+    case td_api::inputPassportElementTemporaryRegistration::ID: {
+      auto input = td_api::move_object_as<td_api::inputPassportElementTemporaryRegistration>(input_passport_element);
       res.type = SecureValueType::TemporaryRegistration;
       TRY_RESULT(files, get_secure_files(file_manager, std::move(input->files_)));
       res.files = std::move(files);
       break;
     }
-    case td_api::inputPassportDataPhoneNumber::ID: {
-      auto input = td_api::move_object_as<td_api::inputPassportDataPhoneNumber>(input_passport_data);
+    case td_api::inputPassportElementPhoneNumber::ID: {
+      auto input = td_api::move_object_as<td_api::inputPassportElementPhoneNumber>(input_passport_element);
       res.type = SecureValueType::PhoneNumber;
       TRY_STATUS(check_phone_number(input->phone_number_));
       res.data = std::move(input->phone_number_);
       break;
     }
-    case td_api::inputPassportDataEmailAddress::ID: {
-      auto input = td_api::move_object_as<td_api::inputPassportDataEmailAddress>(input_passport_data);
+    case td_api::inputPassportElementEmailAddress::ID: {
+      auto input = td_api::move_object_as<td_api::inputPassportElementEmailAddress>(input_passport_element);
       res.type = SecureValueType::EmailAddress;
       TRY_STATUS(check_email_address(input->email_address_));
       res.data = std::move(input->email_address_);
@@ -1001,32 +1001,32 @@ Result<SecureValue> get_secure_value(FileManager *file_manager,
   return res;
 }
 
-Result<td_api::object_ptr<td_api::PassportData>> get_passport_data_object(FileManager *file_manager,
-                                                                          const SecureValue &value) {
+Result<td_api::object_ptr<td_api::PassportElement>> get_passport_element_object(FileManager *file_manager,
+                                                                                const SecureValue &value) {
   switch (value.type) {
     case SecureValueType::PersonalDetails: {
       TRY_RESULT(personal_details, get_personal_details_object(value.data));
-      return td_api::make_object<td_api::passportDataPersonalDetails>(std::move(personal_details));
+      return td_api::make_object<td_api::passportElementPersonalDetails>(std::move(personal_details));
     }
     case SecureValueType::Passport: {
       TRY_RESULT(passport, get_identity_document_object(file_manager, value));
-      return td_api::make_object<td_api::passportDataPassport>(std::move(passport));
+      return td_api::make_object<td_api::passportElementPassport>(std::move(passport));
     }
     case SecureValueType::DriverLicense: {
       TRY_RESULT(driver_license, get_identity_document_object(file_manager, value));
-      return td_api::make_object<td_api::passportDataDriverLicense>(std::move(driver_license));
+      return td_api::make_object<td_api::passportElementDriverLicense>(std::move(driver_license));
     }
     case SecureValueType::IdentityCard: {
       TRY_RESULT(identity_card, get_identity_document_object(file_manager, value));
-      return td_api::make_object<td_api::passportDataIdentityCard>(std::move(identity_card));
+      return td_api::make_object<td_api::passportElementIdentityCard>(std::move(identity_card));
     }
     case SecureValueType::InternalPassport: {
       TRY_RESULT(internal_passport, get_identity_document_object(file_manager, value));
-      return td_api::make_object<td_api::passportDataInternalPassport>(std::move(internal_passport));
+      return td_api::make_object<td_api::passportElementInternalPassport>(std::move(internal_passport));
     }
     case SecureValueType::Address: {
       TRY_RESULT(address, address_from_json(value.data));
-      return td_api::make_object<td_api::passportDataAddress>(get_address_object(address));
+      return td_api::make_object<td_api::passportElementAddress>(get_address_object(address));
     }
     case SecureValueType::UtilityBill:
     case SecureValueType::BankStatement:
@@ -1036,27 +1036,27 @@ Result<td_api::object_ptr<td_api::PassportData>> get_passport_data_object(FileMa
       auto files = transform(
           value.files, [file_manager](const DatedFile &file) { return get_dated_file_object(file_manager, file); });
       if (value.type == SecureValueType::UtilityBill) {
-        return td_api::make_object<td_api::passportDataUtilityBill>(std::move(files));
+        return td_api::make_object<td_api::passportElementUtilityBill>(std::move(files));
       }
       if (value.type == SecureValueType::BankStatement) {
-        return td_api::make_object<td_api::passportDataBankStatement>(std::move(files));
+        return td_api::make_object<td_api::passportElementBankStatement>(std::move(files));
       }
       if (value.type == SecureValueType::RentalAgreement) {
-        return td_api::make_object<td_api::passportDataRentalAgreement>(std::move(files));
+        return td_api::make_object<td_api::passportElementRentalAgreement>(std::move(files));
       }
       if (value.type == SecureValueType::PassportRegistration) {
-        return td_api::make_object<td_api::passportDataPassportRegistration>(std::move(files));
+        return td_api::make_object<td_api::passportElementPassportRegistration>(std::move(files));
       }
       if (value.type == SecureValueType::TemporaryRegistration) {
-        return td_api::make_object<td_api::passportDataTemporaryRegistration>(std::move(files));
+        return td_api::make_object<td_api::passportElementTemporaryRegistration>(std::move(files));
       }
       UNREACHABLE();
       break;
     }
     case SecureValueType::PhoneNumber:
-      return td_api::make_object<td_api::passportDataPhoneNumber>(value.data);
+      return td_api::make_object<td_api::passportElementPhoneNumber>(value.data);
     case SecureValueType::EmailAddress:
-      return td_api::make_object<td_api::passportDataEmailAddress>(value.data);
+      return td_api::make_object<td_api::passportElementEmailAddress>(value.data);
     case SecureValueType::None:
     default:
       UNREACHABLE();
@@ -1064,21 +1064,21 @@ Result<td_api::object_ptr<td_api::PassportData>> get_passport_data_object(FileMa
   }
 }
 
-td_api::object_ptr<td_api::allPassportData> get_all_passport_data_object(FileManager *file_manager,
-                                                                         const vector<SecureValue> &values) {
-  vector<td_api::object_ptr<td_api::PassportData>> result;
+td_api::object_ptr<td_api::passportElements> get_passport_elements_object(FileManager *file_manager,
+                                                                          const vector<SecureValue> &values) {
+  vector<td_api::object_ptr<td_api::PassportElement>> result;
   result.reserve(values.size());
   for (auto &value : values) {
-    auto r_obj = get_passport_data_object(file_manager, value);
+    auto r_obj = get_passport_element_object(file_manager, value);
     if (r_obj.is_error()) {
-      LOG(ERROR) << "Can't get passport data object: " << r_obj.error();
+      LOG(ERROR) << "Can't get passport element object: " << r_obj.error();
       continue;
     }
 
     result.push_back(r_obj.move_as_ok());
   }
 
-  return td_api::make_object<td_api::allPassportData>(std::move(result));
+  return td_api::make_object<td_api::passportElements>(std::move(result));
 }
 
 static Result<std::pair<DatedFile, SecureFileCredentials>> decrypt_secure_file(
@@ -1128,7 +1128,7 @@ Result<SecureValueWithCredentials> decrypt_secure_value(FileManager *file_manage
   res_credentials.hash = encrypted_secure_value.hash;
   switch (encrypted_secure_value.type) {
     case SecureValueType::None:
-      return Status::Error("Receive invalid Telegram Passport data");
+      return Status::Error("Receive invalid Telegram Passport element");
     case SecureValueType::EmailAddress:
     case SecureValueType::PhoneNumber:
       res.data = encrypted_secure_value.data.data;

@@ -49,12 +49,12 @@ class GetSecureValue : public NetQueryCallback {
 
 class GetAllSecureValues : public NetQueryCallback {
  public:
-  GetAllSecureValues(ActorShared<> parent, std::string password, Promise<TdApiAllSecureValues> promise);
+  GetAllSecureValues(ActorShared<> parent, std::string password, Promise<TdApiSecureValues> promise);
 
  private:
   ActorShared<> parent_;
   string password_;
-  Promise<TdApiAllSecureValues> promise_;
+  Promise<TdApiSecureValues> promise_;
   optional<vector<EncryptedSecureValue>> encrypted_secure_values_;
   optional<secure_storage::Secret> secret_;
 
@@ -225,8 +225,7 @@ void GetSecureValue::on_result(NetQueryPtr query) {
   loop();
 }
 
-GetAllSecureValues::GetAllSecureValues(ActorShared<> parent, std::string password,
-                                       Promise<TdApiAllSecureValues> promise)
+GetAllSecureValues::GetAllSecureValues(ActorShared<> parent, std::string password, Promise<TdApiSecureValues> promise)
     : parent_(std::move(parent)), password_(std::move(password)), promise_(std::move(promise)) {
 }
 
@@ -262,7 +261,7 @@ void GetAllSecureValues::loop() {
   }
   auto secure_values = transform(r_secure_values.move_as_ok(),
                                  [](SecureValueWithCredentials &&value) { return std::move(value.value); });
-  promise_.set_result(get_all_passport_data_object(file_manager, std::move(secure_values)));
+  promise_.set_result(get_passport_elements_object(file_manager, std::move(secure_values)));
   stop();
 }
 
@@ -504,7 +503,7 @@ void SetSecureValue::on_result(NetQueryPtr query) {
   auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
   auto encrypted_secure_value = get_encrypted_secure_value(file_manager, std::move(result));
   if (encrypted_secure_value.type == SecureValueType::None) {
-    return on_error(Status::Error(500, "Receive invalid Telegram Passport data"));
+    return on_error(Status::Error(500, "Receive invalid Telegram Passport element"));
   }
   if (secure_value_.files.size() != encrypted_secure_value.files.size()) {
     return on_error(Status::Error(500, "Different file count"));
@@ -667,22 +666,23 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
           break;
         }
 
-        auto r_passport_data = get_passport_data_object(file_manager, std::move(r_secure_value.move_as_ok().value));
-        if (r_passport_data.is_error()) {
-          LOG(ERROR) << "Failed to get passport data object: " << r_passport_data.error();
+        auto r_passport_element =
+            get_passport_element_object(file_manager, std::move(r_secure_value.move_as_ok().value));
+        if (r_passport_element.is_error()) {
+          LOG(ERROR) << "Failed to get passport element object: " << r_passport_element.error();
           break;
         }
 
-        values.push_back(r_passport_data.move_as_ok());
+        values.push_back(r_passport_element.move_as_ok());
         break;
       }
     }
 
-    vector<td_api::object_ptr<td_api::passportDataError>> errors;
+    vector<td_api::object_ptr<td_api::passportElementError>> errors;
     for (auto &error_ptr : authorization_form_->errors_) {
       CHECK(error_ptr != nullptr);
       SecureValueType type = SecureValueType::None;
-      td_api::object_ptr<td_api::PassportDataErrorSource> source;
+      td_api::object_ptr<td_api::PassportElementErrorSource> source;
       string message;
       switch (error_ptr->get_id()) {
         case telegram_api::secureValueErrorData::ID: {
@@ -693,42 +693,42 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
           if (field_name.empty()) {
             break;
           }
-          source = td_api::make_object<td_api::passportDataErrorSourceDataField>(std::move(field_name));
+          source = td_api::make_object<td_api::passportElementErrorSourceDataField>(std::move(field_name));
           break;
         }
         case telegram_api::secureValueErrorFile::ID: {
           auto error = move_tl_object_as<telegram_api::secureValueErrorFile>(error_ptr);
           type = get_secure_value_type(error->type_);
           message = std::move(error->text_);
-          source = td_api::make_object<td_api::passportDataErrorSourceFile>();
+          source = td_api::make_object<td_api::passportElementErrorSourceFile>();
           break;
         }
         case telegram_api::secureValueErrorFiles::ID: {
           auto error = move_tl_object_as<telegram_api::secureValueErrorFiles>(error_ptr);
           type = get_secure_value_type(error->type_);
           message = std::move(error->text_);
-          source = td_api::make_object<td_api::passportDataErrorSourceFiles>();
+          source = td_api::make_object<td_api::passportElementErrorSourceFiles>();
           break;
         }
         case telegram_api::secureValueErrorFrontSide::ID: {
           auto error = move_tl_object_as<telegram_api::secureValueErrorFrontSide>(error_ptr);
           type = get_secure_value_type(error->type_);
           message = std::move(error->text_);
-          source = td_api::make_object<td_api::passportDataErrorSourceFrontSide>();
+          source = td_api::make_object<td_api::passportElementErrorSourceFrontSide>();
           break;
         }
         case telegram_api::secureValueErrorReverseSide::ID: {
           auto error = move_tl_object_as<telegram_api::secureValueErrorReverseSide>(error_ptr);
           type = get_secure_value_type(error->type_);
           message = std::move(error->text_);
-          source = td_api::make_object<td_api::passportDataErrorSourceReverseSide>();
+          source = td_api::make_object<td_api::passportElementErrorSourceReverseSide>();
           break;
         }
         case telegram_api::secureValueErrorSelfie::ID: {
           auto error = move_tl_object_as<telegram_api::secureValueErrorSelfie>(error_ptr);
           type = get_secure_value_type(error->type_);
           message = std::move(error->text_);
-          source = td_api::make_object<td_api::passportDataErrorSourceSelfie>();
+          source = td_api::make_object<td_api::passportElementErrorSourceSelfie>();
           break;
         }
         default:
@@ -738,12 +738,12 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
         continue;
       }
 
-      errors.push_back(td_api::make_object<td_api::passportDataError>(get_passport_data_type_object(type), message,
-                                                                      std::move(source)));
+      errors.push_back(td_api::make_object<td_api::passportElementError>(get_passport_element_type_object(type),
+                                                                         message, std::move(source)));
     }
 
     promise_.set_value(make_tl_object<td_api::passportAuthorizationForm>(
-        authorization_form_id_, get_passport_data_types_object(types), std::move(values), std::move(errors),
+        authorization_form_id_, get_passport_element_types_object(types), std::move(values), std::move(errors),
         is_selfie_required, authorization_form_->privacy_policy_url_));
     stop();
   }
@@ -759,12 +759,12 @@ void SecureManager::get_secure_value(std::string password, SecureValueType type,
           return promise.set_error(r_secure_value.move_as_error());
         }
         auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
-        auto r_passport_data = get_passport_data_object(file_manager, r_secure_value.move_as_ok().value);
-        if (r_passport_data.is_error()) {
-          LOG(ERROR) << "Failed to get passport data object: " << r_passport_data.error();
+        auto r_passport_element = get_passport_element_object(file_manager, r_secure_value.move_as_ok().value);
+        if (r_passport_element.is_error()) {
+          LOG(ERROR) << "Failed to get passport element object: " << r_passport_element.error();
           return promise.set_value(nullptr);
         }
-        promise.set_value(r_passport_data.move_as_ok());
+        promise.set_value(r_passport_element.move_as_ok());
       });
   do_get_secure_value(std::move(password), type, std::move(new_promise));
 }
@@ -776,7 +776,7 @@ void SecureManager::do_get_secure_value(std::string password, SecureValueType ty
       .release();
 }
 
-void SecureManager::get_all_secure_values(std::string password, Promise<TdApiAllSecureValues> promise) {
+void SecureManager::get_all_secure_values(std::string password, Promise<TdApiSecureValues> promise) {
   refcnt_++;
   create_actor<GetAllSecureValues>("GetAllSecureValues", actor_shared(), std::move(password), std::move(promise))
       .release();
@@ -791,12 +791,12 @@ void SecureManager::set_secure_value(string password, SecureValue secure_value, 
           return promise.set_error(r_secure_value.move_as_error());
         }
         auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
-        auto r_passport_data = get_passport_data_object(file_manager, r_secure_value.move_as_ok().value);
-        if (r_passport_data.is_error()) {
-          LOG(ERROR) << "Failed to get passport data object: " << r_passport_data.error();
-          return promise.set_error(Status::Error(500, "Failed to get passport data object"));
+        auto r_passport_element = get_passport_element_object(file_manager, r_secure_value.move_as_ok().value);
+        if (r_passport_element.is_error()) {
+          LOG(ERROR) << "Failed to get passport element object: " << r_passport_element.error();
+          return promise.set_error(Status::Error(500, "Failed to get passport element object"));
         }
-        promise.set_value(r_passport_data.move_as_ok());
+        promise.set_value(r_passport_element.move_as_ok());
       });
   set_secure_value_queries_[type] = create_actor<SetSecureValue>("SetSecureValue", actor_shared(), std::move(password),
                                                                  std::move(secure_value), std::move(new_promise));
@@ -820,7 +820,7 @@ void SecureManager::on_delete_secure_value(SecureValueType type, Promise<Unit> p
 }
 
 void SecureManager::set_secure_value_errors(Td *td, tl_object_ptr<telegram_api::InputUser> input_user,
-                                            vector<tl_object_ptr<td_api::inputPassportDataError>> errors,
+                                            vector<tl_object_ptr<td_api::inputPassportElementError>> errors,
                                             Promise<Unit> promise) {
   CHECK(td != nullptr);
   CHECK(input_user != nullptr);
@@ -841,8 +841,8 @@ void SecureManager::set_secure_value_errors(Td *td, tl_object_ptr<telegram_api::
 
     auto type = get_input_secure_value_type(get_secure_value_type_td_api(error->type_));
     switch (error->source_->get_id()) {
-      case td_api::inputPassportDataErrorSourceDataField::ID: {
-        auto source = td_api::move_object_as<td_api::inputPassportDataErrorSourceDataField>(error->source_);
+      case td_api::inputPassportElementErrorSourceDataField::ID: {
+        auto source = td_api::move_object_as<td_api::inputPassportElementErrorSourceDataField>(error->source_);
         if (!clean_input_string(source->field_name_)) {
           return promise.set_error(Status::Error(400, "Field name must be encoded in UTF-8"));
         }
@@ -851,32 +851,32 @@ void SecureManager::set_secure_value_errors(Td *td, tl_object_ptr<telegram_api::
             std::move(type), BufferSlice(source->data_hash_), source->field_name_, error->message_));
         break;
       }
-      case td_api::inputPassportDataErrorSourceFrontSide::ID: {
-        auto source = td_api::move_object_as<td_api::inputPassportDataErrorSourceFrontSide>(error->source_);
+      case td_api::inputPassportElementErrorSourceFrontSide::ID: {
+        auto source = td_api::move_object_as<td_api::inputPassportElementErrorSourceFrontSide>(error->source_);
         input_errors.push_back(make_tl_object<telegram_api::secureValueErrorFrontSide>(
             std::move(type), BufferSlice(source->file_hash_), error->message_));
         break;
       }
-      case td_api::inputPassportDataErrorSourceReverseSide::ID: {
-        auto source = td_api::move_object_as<td_api::inputPassportDataErrorSourceReverseSide>(error->source_);
+      case td_api::inputPassportElementErrorSourceReverseSide::ID: {
+        auto source = td_api::move_object_as<td_api::inputPassportElementErrorSourceReverseSide>(error->source_);
         input_errors.push_back(make_tl_object<telegram_api::secureValueErrorReverseSide>(
             std::move(type), BufferSlice(source->file_hash_), error->message_));
         break;
       }
-      case td_api::inputPassportDataErrorSourceSelfie::ID: {
-        auto source = td_api::move_object_as<td_api::inputPassportDataErrorSourceSelfie>(error->source_);
+      case td_api::inputPassportElementErrorSourceSelfie::ID: {
+        auto source = td_api::move_object_as<td_api::inputPassportElementErrorSourceSelfie>(error->source_);
         input_errors.push_back(make_tl_object<telegram_api::secureValueErrorSelfie>(
             std::move(type), BufferSlice(source->file_hash_), error->message_));
         break;
       }
-      case td_api::inputPassportDataErrorSourceFile::ID: {
-        auto source = td_api::move_object_as<td_api::inputPassportDataErrorSourceFile>(error->source_);
+      case td_api::inputPassportElementErrorSourceFile::ID: {
+        auto source = td_api::move_object_as<td_api::inputPassportElementErrorSourceFile>(error->source_);
         input_errors.push_back(make_tl_object<telegram_api::secureValueErrorFile>(
             std::move(type), BufferSlice(source->file_hash_), error->message_));
         break;
       }
-      case td_api::inputPassportDataErrorSourceFiles::ID: {
-        auto source = td_api::move_object_as<td_api::inputPassportDataErrorSourceFiles>(error->source_);
+      case td_api::inputPassportElementErrorSourceFiles::ID: {
+        auto source = td_api::move_object_as<td_api::inputPassportElementErrorSourceFiles>(error->source_);
         if (source->file_hashes_.empty()) {
           return promise.set_error(Status::Error(400, "Error hashes must be non-empty"));
         }

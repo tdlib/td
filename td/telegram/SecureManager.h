@@ -26,8 +26,8 @@ namespace td {
 
 class Td;
 
-using TdApiSecureValue = td_api::object_ptr<td_api::PassportData>;
-using TdApiAllSecureValues = td_api::object_ptr<td_api::allPassportData>;
+using TdApiSecureValue = td_api::object_ptr<td_api::PassportElement>;
+using TdApiSecureValues = td_api::object_ptr<td_api::passportElements>;
 using TdApiAuthorizationForm = td_api::object_ptr<td_api::passportAuthorizationForm>;
 
 class SecureManager : public NetQueryCallback {
@@ -35,11 +35,11 @@ class SecureManager : public NetQueryCallback {
   explicit SecureManager(ActorShared<> parent);
 
   void get_secure_value(std::string password, SecureValueType type, Promise<TdApiSecureValue> promise);
-  void get_all_secure_values(std::string password, Promise<TdApiAllSecureValues> promise);
+  void get_all_secure_values(std::string password, Promise<TdApiSecureValues> promise);
   void set_secure_value(string password, SecureValue secure_value, Promise<TdApiSecureValue> promise);
   void delete_secure_value(SecureValueType type, Promise<Unit> promise);
   void set_secure_value_errors(Td *td, tl_object_ptr<telegram_api::InputUser> input_user,
-                               vector<tl_object_ptr<td_api::inputPassportDataError>> errors, Promise<Unit> promise);
+                               vector<tl_object_ptr<td_api::inputPassportElementError>> errors, Promise<Unit> promise);
 
   void get_passport_authorization_form(string password, UserId bot_user_id, string scope, string public_key,
                                        string payload, Promise<TdApiAuthorizationForm> promise);

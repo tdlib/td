@@ -789,15 +789,15 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::deleteSavedCredentials &request);
 
-  void on_request(uint64 id, td_api::getPassportData &request);
+  void on_request(uint64 id, td_api::getPassportElement &request);
 
-  void on_request(uint64 id, td_api::getAllPassportData &request);
+  void on_request(uint64 id, td_api::getAllPassportElements &request);
 
-  void on_request(uint64 id, td_api::setPassportData &request);
+  void on_request(uint64 id, td_api::setPassportElement &request);
 
-  void on_request(uint64 id, const td_api::deletePassportData &request);
+  void on_request(uint64 id, const td_api::deletePassportElement &request);
 
-  void on_request(uint64 id, td_api::setPassportDataErrors &request);
+  void on_request(uint64 id, td_api::setPassportElementErrors &request);
 
   void on_request(uint64 id, td_api::sendPhoneNumberVerificationCode &request);
 
