@@ -4709,6 +4709,12 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   if (has_first_database_message_id_by_index) {
     int32 size;
     parse(size, parser);
+    if (size < 0) {
+      // the logevent is broken
+      // it should be impossible, but has happenned at least ones
+      parser.set_error("Wrong first_database_message_id_by_index table size");
+      return;
+    }
     CHECK(static_cast<size_t>(size) <= first_database_message_id_by_index.size())
         << size << " " << first_database_message_id_by_index.size();
     for (int32 i = 0; i < size; i++) {
