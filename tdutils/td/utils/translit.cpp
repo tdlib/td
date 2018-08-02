@@ -9,6 +9,7 @@
 #include "td/utils/misc.h"
 #include "td/utils/utf8.h"
 
+#include <algorithm>
 #include <unordered_map>
 #include <utility>
 
