@@ -394,11 +394,11 @@ void md5(Slice input, MutableSlice output) {
   CHECK(result == output.ubegin());
 }
 
-void pbkdf2_sha256(Slice password, Slice salt, int iteration_count, MutableSlice dest) {
-  CHECK(dest.size() == 256 / 8) << dest.size();
-  CHECK(iteration_count > 0);
-  auto evp_md = EVP_sha256();
+static void pbkdf2_impl(Slice password, Slice salt, int iteration_count, MutableSlice dest, const EVP_MD *evp_md) {
   CHECK(evp_md != nullptr);
+  int hash_size = EVP_MD_size(evp_md);
+  CHECK(dest.size() == static_cast<size_t>(hash_size));
+  CHECK(iteration_count > 0);
 #if OPENSSL_VERSION_NUMBER < 0x10000000L
   HMAC_CTX ctx;
   HMAC_CTX_init(&ctx);
@@ -411,13 +411,13 @@ void pbkdf2_sha256(Slice password, Slice salt, int iteration_count, MutableSlice
   HMAC_CTX_cleanup(&ctx);
 
   if (iteration_count > 1) {
-    unsigned char buf[32];
+    unsigned char buf[hash_size];
     std::copy(dest.ubegin(), dest.uend(), buf);
     for (int iter = 1; iter < iteration_count; iter++) {
-      if (HMAC(evp_md, password.data(), password_len, buf, 32, buf, nullptr) == nullptr) {
+      if (HMAC(evp_md, password.data(), password_len, buf, hash_size, buf, nullptr) == nullptr) {
         LOG(FATAL) << "Failed to HMAC";
       }
-      for (int i = 0; i < 32; i++) {
+      for (int i = 0; i < hash_size; i++) {
         dest[i] ^= buf[i];
       }
     }
@@ -428,6 +428,14 @@ void pbkdf2_sha256(Slice password, Slice salt, int iteration_count, MutableSlice
                               dest.ubegin());
   LOG_IF(FATAL, err != 1);
 #endif
+}
+
+void pbkdf2_sha256(Slice password, Slice salt, int iteration_count, MutableSlice dest) {
+  pbkdf2_impl(password, salt, iteration_count, dest, EVP_sha256());
+}
+
+void pbkdf2_sha512(Slice password, Slice salt, int iteration_count, MutableSlice dest) {
+  pbkdf2_impl(password, salt, iteration_count, dest, EVP_sha512());
 }
 
 void hmac_sha256(Slice key, Slice message, MutableSlice dest) {
