@@ -4711,7 +4711,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
     parse(size, parser);
     if (size < 0) {
       // the logevent is broken
-      // it should be impossible, but has happenned at least ones
+      // it should be impossible, but has happenned at least once
       parser.set_error("Wrong first_database_message_id_by_index table size");
       return;
     }
