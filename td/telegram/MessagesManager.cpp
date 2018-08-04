@@ -10234,7 +10234,7 @@ void MessagesManager::delete_secret_messages(SecretChatId secret_chat_id, std::v
 
   vector<MessageId> to_delete_message_ids;
   for (auto &random_id : random_ids) {
-    auto message_id = get_message_id_by_random_id(d, random_id);
+    auto message_id = get_message_id_by_random_id(d, random_id, "delete_secret_messages");
     if (!message_id.is_valid()) {
       continue;
     }
@@ -10305,7 +10305,7 @@ void MessagesManager::open_secret_message(SecretChatId secret_chat_id, int64 ran
     return;
   }
 
-  auto message_id = get_message_id_by_random_id(d, random_id);
+  auto message_id = get_message_id_by_random_id(d, random_id, "open_secret_message");
   if (!message_id.is_valid()) {
     return;
   }
@@ -10351,8 +10351,8 @@ void MessagesManager::on_get_secret_message(SecretChatId secret_chat_id, UserId 
 
   int32 flags = MESSAGE_FLAG_HAS_UNREAD_CONTENT | MESSAGE_FLAG_HAS_FROM_ID;
   if ((message->flags_ & secret_api::decryptedMessage::REPLY_TO_RANDOM_ID_MASK) != 0) {
-    message_info.reply_to_message_id =
-        get_message_id_by_random_id(get_dialog(message_info.dialog_id), message->reply_to_random_id_);
+    message_info.reply_to_message_id = get_message_id_by_random_id(
+        get_dialog(message_info.dialog_id), message->reply_to_random_id_, "on_get_secret_message");
     if (message_info.reply_to_message_id.is_valid()) {
       flags |= MESSAGE_FLAG_IS_REPLY;
     }
@@ -10481,7 +10481,7 @@ void MessagesManager::finish_add_secret_message(unique_ptr<PendingSecretMessage>
   auto d = get_dialog(pending_secret_message->message_info.dialog_id);
   CHECK(d != nullptr);
   auto random_id = pending_secret_message->message_info.random_id;
-  auto message_id = get_message_id_by_random_id(d, random_id);
+  auto message_id = get_message_id_by_random_id(d, random_id, "finish_add_secret_message");
   if (message_id.is_valid()) {
     if (message_id != pending_secret_message->message_info.message_id) {
       LOG(WARNING) << "Ignore duplicate " << pending_secret_message->message_info.message_id
@@ -19564,7 +19564,7 @@ Result<MessageId> MessagesManager::add_local_message(
   bool need_update_dialog_pos = false;
   auto result =
       add_message_to_dialog(d, std::move(m), true, &need_update, &need_update_dialog_pos, "add local message");
-  CHECK(result != nullptr) << message_id << " " << debug_add_message_to_dialog_fail_reason;
+  CHECK(result != nullptr) << message_id << " " << debug_add_message_to_dialog_fail_reason_;
 
   if (is_message_auto_read(dialog_id, result->is_outgoing)) {
     if (result->is_outgoing) {
@@ -20495,7 +20495,7 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
   Message *m = add_message_to_dialog(dialog_id, std::move(message), false, &need_update, &need_update_dialog_pos,
                                      "fail_send_message");
   CHECK(m != nullptr) << "Failed to add failed to send " << new_message_id << " to " << dialog_id << " due to "
-                      << debug_add_message_to_dialog_fail_reason;
+                      << debug_add_message_to_dialog_fail_reason_;
 
   LOG(INFO) << "Send updateMessageSendFailed for " << full_message_id;
   d->yet_unsent_message_id_to_persistent_message_id.emplace(old_message_id, m->message_id);
@@ -23168,7 +23168,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(DialogId dialog
   MessageId message_id = message->message_id;
   if (!message_id.is_valid()) {
     LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " from " << source;
-    debug_add_message_to_dialog_fail_reason = "invalid message id";
+    debug_add_message_to_dialog_fail_reason_ = "invalid message id";
     return nullptr;
   }
 
@@ -23191,18 +23191,19 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   CHECK(need_update != nullptr);
   CHECK(need_update_dialog_pos != nullptr);
   CHECK(source != nullptr);
+  debug_add_message_to_dialog_fail_reason_ = "success";
 
   DialogId dialog_id = d->dialog_id;
   MessageId message_id = message->message_id;
 
   if (d->deleted_message_ids.count(message_id)) {
     LOG(INFO) << "Skip adding deleted " << message_id << " to " << dialog_id << " from " << source;
-    debug_add_message_to_dialog_fail_reason = "adding deleted message";
+    debug_add_message_to_dialog_fail_reason_ = "adding deleted message";
     return nullptr;
   }
   if (message_id.get() <= d->last_clear_history_message_id.get()) {
     LOG(INFO) << "Skip adding cleared " << message_id << " to " << dialog_id << " from " << source;
-    debug_add_message_to_dialog_fail_reason = "cleared full history";
+    debug_add_message_to_dialog_fail_reason_ = "cleared full history";
     return nullptr;
   }
   if (d->deleted_message_ids.count(message->reply_to_message_id)) {
@@ -23219,7 +23220,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   if (!message_id.is_valid()) {
     LOG(ERROR) << "Receive " << message_id << " in " << dialog_id << " from " << source;
     CHECK(!message->from_database);
-    debug_add_message_to_dialog_fail_reason = "invalid message id";
+    debug_add_message_to_dialog_fail_reason_ = "invalid message id";
     return nullptr;
   }
 
@@ -23261,7 +23262,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     } else {
       LOG(INFO) << "Ignore " << message_id << " in " << dialog_id << " received not through update from " << source;
     }
-    debug_add_message_to_dialog_fail_reason = "too new message not from update";
+    debug_add_message_to_dialog_fail_reason_ = "too new message not from update";
     return nullptr;
   }
   if ((message_id.is_server() || (message_id.is_local() && dialog_id.get_type() == DialogType::SecretChat)) &&
@@ -23270,7 +23271,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     if (message->from_database) {
       delete_message_from_database(d, message_id, message.get(), true);
     }
-    debug_add_message_to_dialog_fail_reason = "ignore unavailable message";
+    debug_add_message_to_dialog_fail_reason_ = "ignore unavailable message";
     return nullptr;
   }
 
@@ -23310,7 +23311,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     LOG(INFO) << "Process MessageChatDeleteHistory in " << message_id << " in " << dialog_id << " with date "
               << message->date << " from " << source;
     CHECK(!message->from_database);
-    debug_add_message_to_dialog_fail_reason = "skip adding MessageChatDeleteHistory";
+    debug_add_message_to_dialog_fail_reason_ = "skip adding MessageChatDeleteHistory";
     return nullptr;
   }
 
@@ -23411,7 +23412,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       if (d->dialog_id.get_type() == DialogType::SecretChat) {
         LOG(INFO) << "Can't add " << message_id << " with expired TTL to " << dialog_id << " from " << source;
         delete_message_from_database(d, message_id, message.get(), true);
-        debug_add_message_to_dialog_fail_reason = "delete expired by TTL message";
+        debug_add_message_to_dialog_fail_reason_ = "delete expired by TTL message";
         return nullptr;
       } else {
         on_message_ttl_expired_impl(d, message.get());
@@ -24803,7 +24804,7 @@ MessagesManager::Dialog *MessagesManager::get_dialog_by_message_id(MessageId mes
   return get_dialog(it->second);
 }
 
-MessageId MessagesManager::get_message_id_by_random_id(Dialog *d, int64 random_id) {
+MessageId MessagesManager::get_message_id_by_random_id(Dialog *d, int64 random_id, const char *source) {
   CHECK(d != nullptr);
   CHECK(d->dialog_id.get_type() == DialogType::SecretChat);
   if (random_id == 0) {
@@ -24814,13 +24815,17 @@ MessageId MessagesManager::get_message_id_by_random_id(Dialog *d, int64 random_i
     if (G()->parameters().use_message_db) {
       auto r_value = G()->td_db()->get_messages_db_sync()->get_message_by_random_id(d->dialog_id, random_id);
       if (r_value.is_ok()) {
+        debug_add_message_to_dialog_fail_reason_ = "not called";
         Message *m = on_get_message_from_database(d->dialog_id, d, r_value.ok());
         if (m != nullptr) {
           CHECK(m->random_id == random_id)
               << random_id << " " << m->random_id << " " << d->random_id_to_message_id[random_id] << " "
-              << d->random_id_to_message_id[m->random_id] << " " << m->message_id;
+              << d->random_id_to_message_id[m->random_id] << " " << m->message_id << " " << source << " "
+              << m->from_database << " " << debug_add_message_to_dialog_fail_reason_;
           CHECK(d->random_id_to_message_id[random_id] == m->message_id)
-              << random_id << " " << d->random_id_to_message_id[random_id] << " " << m->message_id;
+              << source << " " << random_id << " " << d->random_id_to_message_id[random_id] << " " << m->message_id
+              << " " << m->is_failed_to_send << " " << m->is_outgoing << " " << m->from_database << " "
+              << get_message(d, m->message_id) << " " << m << " " << debug_add_message_to_dialog_fail_reason_;
           return m->message_id;
         }
       }
