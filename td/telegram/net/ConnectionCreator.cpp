@@ -212,7 +212,7 @@ void Proxy::parse(T &parser) {
     parse(port_, parser);
     parse(secret_, parser);
   } else {
-    CHECK(type_ == Proxy::Type::None);
+    CHECK(type_ == Proxy::Type::None) << static_cast<int32>(type_);
   }
 }
 
