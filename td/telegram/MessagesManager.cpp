@@ -8024,7 +8024,7 @@ bool MessagesManager::can_have_message_content_caption(int32 content_type) {
 
 string MessagesManager::get_search_text(const Message *m) {
   if (m->is_content_secret) {
-    return "";
+    return string();
   }
   switch (m->content->get_id()) {
     case MessageText::ID: {
@@ -8051,7 +8051,7 @@ string MessagesManager::get_search_text(const Message *m) {
     }
     case MessagePhoto::ID: {
       auto photo = static_cast<const MessagePhoto *>(m->content.get());
-      return PSTRING() << photo->caption.text;
+      return photo->caption.text;
     }
     case MessageVideo::ID: {
       auto video = static_cast<const MessageVideo *>(m->content.get());
@@ -8090,10 +8090,10 @@ string MessagesManager::get_search_text(const Message *m) {
     case MessageWebsiteConnected::ID:
     case MessagePassportDataSent::ID:
     case MessagePassportDataReceived::ID:
-      return "";
+      return string();
     default:
       UNREACHABLE();
-      return "";
+      return string();
   }
 }
 
@@ -9802,8 +9802,20 @@ void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *message) {
     case MessageUnsupported::ID:
       // can happen if message content file id is broken
       break;
+    case MessageExpiredPhoto::ID:
+    case MessageExpiredVideo::ID:
+      // can happen if message content has been reget from somewhere
+      break;
+    case MessageAnimation::ID:
+    case MessageAudio::ID:
+    case MessageDocument::ID:
+    case MessageSticker::ID:
+    case MessageVideoNote::ID:
+    case MessageVoiceNote::ID:
+      // can happen if server will send a document with a wrong content
+      message->content = make_unique<MessageExpiredVideo>();
+      break;
     default:
-      CHECK(false) << d->dialog_id << " " << message->ttl << " " << message->content->get_id();
       UNREACHABLE();
   }
   message->ttl = 0;
