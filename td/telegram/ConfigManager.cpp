@@ -372,7 +372,19 @@ class ConfigRecoverer : public Actor {
     loop();
   }
   void on_online(bool is_online) {
+    if (is_online_ == is_online) {
+      return;
+    }
+
     is_online_ = is_online;
+    if (is_online) {
+      if (simple_config_.dc_options.empty()) {
+        simple_config_expire_at_ = 0;
+      }
+      if (full_config_ == nullptr) {
+        full_config_expire_at_ = 0;
+      }
+    }
     loop();
   }
   void on_connecting(bool is_connecting) {
@@ -462,11 +474,15 @@ class ConfigRecoverer : public Actor {
   }
 
   double get_config_expire_time() const {
-    return Time::now() + (expect_blocking() ? Random::fast(2 * 60, 3 * 60) : Random::fast(20 * 60, 30 * 60));
+    auto offline_delay = is_online_ ? 0 : 5 * 60;
+    auto expire_time = expect_blocking() ? Random::fast(2 * 60, 3 * 60) : Random::fast(20 * 60, 30 * 60);
+    return Time::now() + offline_delay + expire_time;
   }
 
   double get_failed_config_expire_time() const {
-    return Time::now() + (expect_blocking() ? Random::fast(5, 7) : Random::fast(15, 30));
+    auto offline_delay = is_online_ ? 0 : 5 * 60;
+    auto expire_time = expect_blocking() ? Random::fast(5, 7) : Random::fast(15, 30);
+    return Time::now() + offline_delay + expire_time;
   }
 
   bool is_connecting_{false};
@@ -479,7 +495,7 @@ class ConfigRecoverer : public Actor {
   uint32 network_generation_{0};
 
   DcOptions simple_config_;
-  double simple_config_expire_at_{-1};
+  double simple_config_expire_at_{0};
   double simple_config_at_{0};
   ActorOwn<> simple_config_query_;
 
