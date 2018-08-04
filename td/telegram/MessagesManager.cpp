@@ -20430,9 +20430,10 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
 
 MessageId MessagesManager::get_next_message_id(Dialog *d, int32 type) {
   CHECK(d != nullptr);
-  int64 last = std::max({d->last_message_id.get(), d->last_new_message_id.get(), d->last_database_message_id.get(),
-                         d->last_assigned_message_id.get(), d->last_clear_history_message_id.get(),
-                         d->deleted_last_message_id.get(), d->max_unavailable_message_id.get()});
+  int64 last =
+      std::max({d->last_message_id.get(), d->last_new_message_id.get(), d->last_database_message_id.get(),
+                d->last_assigned_message_id.get(), d->last_clear_history_message_id.get(),
+                d->deleted_last_message_id.get(), d->max_unavailable_message_id.get(), d->max_added_message_id.get()});
   if (last < d->last_read_inbox_message_id.get() &&
       d->last_read_inbox_message_id.get() < d->last_new_message_id.get() + MessageId::FULL_TYPE_MASK) {
     last = d->last_read_inbox_message_id.get();
@@ -23379,6 +23380,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     } else {
       v = &(*v)->left;
     }
+  }
+
+  if (message->message_id.get() > d->max_added_message_id.get()) {
+    d->max_added_message_id = message->message_id;
   }
 
   if (d->have_full_history && !message->from_database && !from_update && !message_id.is_local() &&

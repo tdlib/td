@@ -1626,6 +1626,8 @@ class MessagesManager : public Actor {
     int32 delete_last_message_date = 0;
     MessageId deleted_last_message_id;
 
+    MessageId max_added_message_id;
+
     bool has_contact_registered_message = false;
 
     bool is_last_message_deleted_locally = false;
