@@ -1088,7 +1088,8 @@ static Result<std::pair<DatedFile, SecureFileCredentials>> decrypt_secure_file(
   }
   TRY_RESULT(hash, secure_storage::ValueHash::create(secure_file.file_hash));
   TRY_RESULT(encrypted_secret, secure_storage::EncryptedSecret::create(secure_file.encrypted_secret));
-  TRY_RESULT(secret, encrypted_secret.decrypt(PSLICE() << master_secret.as_slice() << hash.as_slice()));
+  TRY_RESULT(secret, encrypted_secret.decrypt(PSLICE() << master_secret.as_slice() << hash.as_slice(), "",
+                                              secure_storage::EnryptionAlgorithm::Sha512));
   FileEncryptionKey key{secret};
   key.set_value_hash(hash);
   file_manager->set_encryption_key(secure_file.file.file_id, std::move(key));
@@ -1114,7 +1115,8 @@ static Result<std::pair<string, SecureDataCredentials>> decrypt_secure_data(cons
                                                                             const EncryptedSecureData &secure_data) {
   TRY_RESULT(hash, secure_storage::ValueHash::create(secure_data.hash));
   TRY_RESULT(encrypted_secret, secure_storage::EncryptedSecret::create(secure_data.encrypted_secret));
-  TRY_RESULT(secret, encrypted_secret.decrypt(PSLICE() << master_secret.as_slice() << hash.as_slice()));
+  TRY_RESULT(secret, encrypted_secret.decrypt(PSLICE() << master_secret.as_slice() << hash.as_slice(), "",
+                                              secure_storage::EnryptionAlgorithm::Sha512));
   TRY_RESULT(value, secure_storage::decrypt_value(secret, hash, secure_data.data));
   return std::make_pair(value.as_slice().str(), SecureDataCredentials{secret.as_slice().str(), hash.as_slice().str()});
 }
@@ -1206,7 +1208,11 @@ static EncryptedSecureFile encrypt_secure_file(FileManager *file_manager, const 
   EncryptedSecureFile res;
   res.file = file;
   res.file_hash = value_hash.as_slice().str();
-  res.encrypted_secret = secret.encrypt(PSLICE() << master_secret.as_slice() << value_hash.as_slice()).as_slice().str();
+  res.encrypted_secret = secret
+                             .encrypt(PSLICE() << master_secret.as_slice() << value_hash.as_slice(), "",
+                                      secure_storage::EnryptionAlgorithm::Sha512)
+                             .as_slice()
+                             .str();
 
   to_hash.append(res.file_hash);
   to_hash.append(secret.as_slice().str());
@@ -1236,8 +1242,11 @@ static EncryptedSecureData encrypt_secure_data(const secure_storage::Secret &mas
   auto secret = secure_storage::Secret::create_new();
   auto encrypted = encrypt_value(secret, data).move_as_ok();
   EncryptedSecureData res;
-  res.encrypted_secret =
-      secret.encrypt(PSLICE() << master_secret.as_slice() << encrypted.hash.as_slice()).as_slice().str();
+  res.encrypted_secret = secret
+                             .encrypt(PSLICE() << master_secret.as_slice() << encrypted.hash.as_slice(), "",
+                                      secure_storage::EnryptionAlgorithm::Sha512)
+                             .as_slice()
+                             .str();
   res.data = encrypted.data.as_slice().str();
   res.hash = encrypted.hash.as_slice().str();
   to_hash.append(res.hash);

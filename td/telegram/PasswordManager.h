@@ -9,16 +9,18 @@
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/SecureStorage.h"
 
+#include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
+
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/Container.h"
 #include "td/utils/logging.h"
 #include "td/utils/optional.h"
+#include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/tl_helpers.h"
-
-#include "td/telegram/td_api.h"
 
 namespace td {
 
@@ -54,6 +56,8 @@ class PasswordManager : public NetQueryCallback {
   explicit PasswordManager(ActorShared<> parent) : parent_(std::move(parent)) {
   }
 
+  static BufferSlice calc_password_hash(Slice password, Slice client_salt, Slice server_salt);
+
   void get_state(Promise<State> promise);
   void set_password(string current_password, string new_password, string new_hint, bool set_recovery_email_address,
                     string recovery_email_address, Promise<State> promise);
@@ -88,10 +92,12 @@ class PasswordManager : public NetQueryCallback {
     string password_hint;
     bool has_recovery_email_address = false;
     bool has_secure_values = false;
-    string unconfirmed_recovery_email_address_pattern = "";
+    string unconfirmed_recovery_email_address_pattern;
 
-    string current_salt;
-    string new_salt;
+    string current_client_salt;
+    string current_server_salt;
+    string new_client_salt;
+    string new_server_salt;
 
     string new_secure_salt;
 
@@ -129,6 +135,11 @@ class PasswordManager : public NetQueryCallback {
   Promise<TempState> create_temp_password_promise_;
 
   string last_verified_email_address_;
+
+  static Result<secure_storage::Secret> decrypt_secure_secret(
+      Slice password, tl_object_ptr<telegram_api::SecurePasswordKdfAlgo> algo_ptr, Slice secret, int64 secret_id);
+
+  BufferSlice calc_password_hash(Slice password, const PasswordState &state) const;
 
   void update_password_settings(UpdateSettings update_settings, Promise<State> promise);
   void do_update_password_settings(UpdateSettings update_settings, PasswordFullState full_state, Promise<bool> promise);

@@ -18,11 +18,11 @@ TEST(SecureStorage, secret) {
   using namespace td::secure_storage;
   auto secret = Secret::create_new();
   std::string key = "cucumber";
-  auto encrypted_secret = secret.encrypt(key);
+  auto encrypted_secret = secret.encrypt(key, "", secure_storage::EnryptionAlgorithm::Sha512);
   ASSERT_TRUE(encrypted_secret.as_slice() != secret.as_slice());
-  auto decrypted_secret = encrypted_secret.decrypt(key).ok();
+  auto decrypted_secret = encrypted_secret.decrypt(key, "", secure_storage::EnryptionAlgorithm::Sha512).ok();
   ASSERT_TRUE(secret.as_slice() == decrypted_secret.as_slice());
-  ASSERT_TRUE(encrypted_secret.decrypt("notcucumber").is_error());
+  ASSERT_TRUE(encrypted_secret.decrypt("notcucumber", "", secure_storage::EnryptionAlgorithm::Sha512).is_error());
 }
 
 TEST(SecureStorage, simple) {
@@ -38,10 +38,11 @@ TEST(SecureStorage, simple) {
     auto full_value_view = ConcatDataView(prefix_view, value_view);
     auto hash = calc_value_hash(full_value_view).move_as_ok();
 
-    Encryptor encryptor(calc_aes_cbc_state(PSLICE() << value_secret.as_slice() << hash.as_slice()), full_value_view);
+    Encryptor encryptor(calc_aes_cbc_state_sha512(PSLICE() << value_secret.as_slice() << hash.as_slice()),
+                        full_value_view);
     auto encrypted_value = encryptor.pread(0, encryptor.size()).move_as_ok();
 
-    Decryptor decryptor(calc_aes_cbc_state(PSLICE() << value_secret.as_slice() << hash.as_slice()));
+    Decryptor decryptor(calc_aes_cbc_state_sha512(PSLICE() << value_secret.as_slice() << hash.as_slice()));
     auto res = decryptor.append(encrypted_value.copy()).move_as_ok();
     auto decrypted_hash = decryptor.finish().ok();
     ASSERT_TRUE(decrypted_hash.as_slice() == hash.as_slice());

@@ -1323,7 +1323,7 @@ class CliClient final : public Actor {
       std::tie(password, args) = split(args);
       std::tie(passport_element_type, arg) = split(args);
       send_request(make_tl_object<td_api::setPassportElement>(
-          as_input_passport_element(passport_element_type, arg, op == "spds"), password));
+          as_input_passport_element(passport_element_type, arg, op == "spes"), password));
     } else if (op == "dpe") {
       string passport_element_type = args;
       send_request(make_tl_object<td_api::deletePassportElement>(as_passport_element_type(passport_element_type)));

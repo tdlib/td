@@ -24,15 +24,27 @@ Result<ValueHash> ValueHash::create(Slice data) {
   return ValueHash{hash};
 }
 
-AesCbcState calc_aes_cbc_state(Slice seed) {
+static AesCbcState calc_aes_cbc_state_hash(Slice hash) {
+  CHECK(hash.size() == 64);
+  UInt256 key;
+  as_slice(key).copy_from(hash.substr(0, 32));
+  UInt128 iv;
+  as_slice(iv).copy_from(hash.substr(32, 16));
+  return AesCbcState{key, iv};
+}
+
+AesCbcState calc_aes_cbc_state_pbkdf2(Slice secret, Slice salt) {
+  UInt<512> hash;
+  auto hash_slice = as_slice(hash);
+  pbkdf2_sha512(secret, salt, 100000, hash_slice);
+  return calc_aes_cbc_state_hash(hash_slice);
+}
+
+AesCbcState calc_aes_cbc_state_sha512(Slice seed) {
   UInt<512> hash;
   auto hash_slice = as_slice(hash);
   sha512(seed, hash_slice);
-  UInt256 key;
-  as_slice(key).copy_from(hash_slice.substr(0, 32));
-  UInt128 iv;
-  as_slice(iv).copy_from(hash_slice.substr(32, 16));
-  return AesCbcState{key, iv};
+  return calc_aes_cbc_state_hash(hash_slice);
 }
 
 template <class F>
@@ -89,9 +101,11 @@ Result<BufferSlice> FileDataView::pread(int64 offset, int64 size) {
 
 BufferSliceDataView::BufferSliceDataView(BufferSlice buffer_slice) : buffer_slice_(std::move(buffer_slice)) {
 }
+
 int64 BufferSliceDataView::size() const {
   return narrow_cast<int64>(buffer_slice_.size());
 }
+
 Result<BufferSlice> BufferSliceDataView::pread(int64 offset, int64 size) {
   auto end_offset = size + offset;
   if (this->size() < end_offset) {
@@ -102,9 +116,11 @@ Result<BufferSlice> BufferSliceDataView::pread(int64 offset, int64 size) {
 
 ConcatDataView::ConcatDataView(DataView &left, DataView &right) : left_(left), right_(right) {
 }
+
 int64 ConcatDataView::size() const {
   return left_.size() + right_.size();
 }
+
 Result<BufferSlice> ConcatDataView::pread(int64 offset, int64 size) {
   auto end_offset = size + offset;
   if (this->size() < end_offset) {
@@ -136,23 +152,20 @@ Result<BufferSlice> ConcatDataView::pread(int64 offset, int64 size) {
   return std::move(res);
 }
 
-// Password
 Password::Password(std::string password) : password_(std::move(password)) {
 }
+
 Slice Password::as_slice() const {
   return password_;
 }
 
-// Secret
-namespace {
-uint8 secret_checksum(Slice secret) {
+static uint8 secret_checksum(Slice secret) {
   uint32 sum = 0;
   for (uint8 c : secret) {
     sum += c;
   }
   return static_cast<uint8>((255 + 239 - sum % 255) % 255);
 }
-}  // namespace
 
 Result<Secret> Secret::create(Slice secret) {
   if (secret.size() != 32) {
@@ -194,8 +207,19 @@ Secret Secret::clone() const {
   return {secret_, hash_};
 }
 
-EncryptedSecret Secret::encrypt(Slice key) {
-  auto aes_cbc_state = calc_aes_cbc_state(key);
+EncryptedSecret Secret::encrypt(Slice key, Slice salt, EnryptionAlgorithm algorithm) {
+  auto aes_cbc_state = [&]() {
+    switch (algorithm) {
+      case EnryptionAlgorithm::Sha512:
+        return calc_aes_cbc_state_sha512(PSLICE() << salt << key << salt);
+      case EnryptionAlgorithm::Pbkdf2:
+        return calc_aes_cbc_state_pbkdf2(key, salt);
+      default:
+        UNREACHABLE();
+        return AesCbcState(UInt256(), UInt128());
+    }
+  }();
+
   UInt256 res;
   aes_cbc_state.encrypt(as_slice(), td::as_slice(res));
   return EncryptedSecret::create(td::as_slice(res)).move_as_ok();
@@ -204,7 +228,6 @@ EncryptedSecret Secret::encrypt(Slice key) {
 Secret::Secret(UInt256 secret, int64 hash) : secret_(secret), hash_(hash) {
 }
 
-//EncryptedSecret
 Result<EncryptedSecret> EncryptedSecret::create(Slice encrypted_secret) {
   if (encrypted_secret.size() != 32) {
     return Status::Error("Wrong encrypted secret size");
@@ -213,8 +236,20 @@ Result<EncryptedSecret> EncryptedSecret::create(Slice encrypted_secret) {
   td::as_slice(res).copy_from(encrypted_secret);
   return EncryptedSecret{res};
 }
-Result<Secret> EncryptedSecret::decrypt(Slice key) {
-  auto aes_cbc_state = calc_aes_cbc_state(key);
+
+Result<Secret> EncryptedSecret::decrypt(Slice key, Slice salt, EnryptionAlgorithm algorithm) {
+  auto aes_cbc_state = [&]() {
+    switch (algorithm) {
+      case EnryptionAlgorithm::Sha512:
+        return calc_aes_cbc_state_sha512(PSLICE() << salt << key << salt);
+      case EnryptionAlgorithm::Pbkdf2:
+        return calc_aes_cbc_state_pbkdf2(key, salt);
+      default:
+        UNREACHABLE();
+        return AesCbcState(UInt256(), UInt128());
+    }
+  }();
+
   UInt256 res;
   aes_cbc_state.decrypt(td::as_slice(encrypted_secret_), td::as_slice(res));
   return Secret::create(td::as_slice(res));
@@ -227,10 +262,10 @@ Slice EncryptedSecret::as_slice() const {
 EncryptedSecret::EncryptedSecret(UInt256 encrypted_secret) : encrypted_secret_(encrypted_secret) {
 }
 
-// Decryption
 Decryptor::Decryptor(AesCbcState aes_cbc_state) : aes_cbc_state_(std::move(aes_cbc_state)) {
   sha256_init(&sha256_state_);
 }
+
 Result<BufferSlice> Decryptor::append(BufferSlice data) {
   if (data.empty()) {
     return BufferSlice();
@@ -251,6 +286,7 @@ Result<BufferSlice> Decryptor::append(BufferSlice data) {
   }
   return std::move(data);
 }
+
 Result<ValueHash> Decryptor::finish() {
   if (!skipped_prefix_) {
     return Status::Error("No data was given");
@@ -263,7 +299,6 @@ Result<ValueHash> Decryptor::finish() {
   return ValueHash{res};
 }
 
-// Encryptor
 Encryptor::Encryptor(AesCbcState aes_cbc_state, DataView &data_view)
     : aes_cbc_state_(std::move(aes_cbc_state)), data_view_(data_view) {
 }
@@ -292,14 +327,14 @@ Result<EncryptedValue> encrypt_value(const Secret &secret, Slice data) {
 
   TRY_RESULT(hash, calc_value_hash(full_view));
 
-  auto aes_cbc_state = calc_aes_cbc_state(PSLICE() << secret.as_slice() << hash.as_slice());
+  auto aes_cbc_state = calc_aes_cbc_state_sha512(PSLICE() << secret.as_slice() << hash.as_slice());
   Encryptor encryptor(aes_cbc_state, full_view);
   TRY_RESULT(encrypted_data, encryptor.pread(0, encryptor.size()));
   return EncryptedValue{std::move(encrypted_data), std::move(hash)};
 }
 
 Result<BufferSlice> decrypt_value(const Secret &secret, const ValueHash &hash, Slice data) {
-  auto aes_cbc_state = calc_aes_cbc_state(PSLICE() << secret.as_slice() << hash.as_slice());
+  auto aes_cbc_state = calc_aes_cbc_state_sha512(PSLICE() << secret.as_slice() << hash.as_slice());
   Decryptor decryptor(aes_cbc_state);
   TRY_RESULT(decrypted_value, decryptor.append(BufferSlice(data)));
   TRY_RESULT(got_hash, decryptor.finish());
@@ -321,7 +356,7 @@ Result<ValueHash> encrypt_file(const Secret &secret, std::string src, std::strin
 
   TRY_RESULT(hash, calc_value_hash(full_view));
 
-  auto aes_cbc_state = calc_aes_cbc_state(PSLICE() << secret.as_slice() << hash.as_slice());
+  auto aes_cbc_state = calc_aes_cbc_state_sha512(PSLICE() << secret.as_slice() << hash.as_slice());
   Encryptor encryptor(aes_cbc_state, full_view);
   TRY_STATUS(
       data_view_for_each(encryptor, [&dest_file](BufferSlice bytes) { return dest_file.write(bytes.as_slice()); }));
@@ -335,7 +370,7 @@ Status decrypt_file(const Secret &secret, const ValueHash &hash, std::string src
 
   auto src_file_view = FileDataView(src_file, src_file_size);
 
-  auto aes_cbc_state = calc_aes_cbc_state(PSLICE() << secret.as_slice() << hash.as_slice());
+  auto aes_cbc_state = calc_aes_cbc_state_sha512(PSLICE() << secret.as_slice() << hash.as_slice());
   Decryptor decryptor(aes_cbc_state);
   TRY_STATUS(data_view_for_each(src_file_view, [&decryptor, &dest_file](BufferSlice bytes) {
     TRY_RESULT(decrypted_bytes, decryptor.append(std::move(bytes)));
@@ -351,5 +386,6 @@ Status decrypt_file(const Secret &secret, const ValueHash &hash, std::string src
 
   return Status::OK();
 }
+
 }  // namespace secure_storage
 }  // namespace td

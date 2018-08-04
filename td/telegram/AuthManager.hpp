@@ -57,8 +57,8 @@ void SendCodeHelper::parse(T &parser) {
 template <class T>
 void AuthManager::WaitPasswordState::store(T &storer) const {
   using td::store;
-  store(current_salt_, storer);
-  store(new_salt_, storer);
+  store(current_client_salt_, storer);
+  store(current_server_salt_, storer);
   store(hint_, storer);
   store(has_recovery_, storer);
   store(email_address_pattern_, storer);
@@ -67,8 +67,8 @@ void AuthManager::WaitPasswordState::store(T &storer) const {
 template <class T>
 void AuthManager::WaitPasswordState::parse(T &parser) {
   using td::parse;
-  parse(current_salt_, parser);
-  parse(new_salt_, parser);
+  parse(current_client_salt_, parser);
+  parse(current_server_salt_, parser);
   parse(hint_, parser);
   parse(has_recovery_, parser);
   parse(email_address_pattern_, parser);
@@ -78,8 +78,10 @@ template <class T>
 void AuthManager::DbState::store(T &storer) const {
   using td::store;
   bool has_terms_of_service = !terms_of_service_.get_id().empty();
+  bool is_pbkdf2_supported = true;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_terms_of_service);
+  STORE_FLAG(is_pbkdf2_supported);
   END_STORE_FLAGS();
   store(state_, storer);
   store(api_id_, storer);
@@ -103,9 +105,11 @@ template <class T>
 void AuthManager::DbState::parse(T &parser) {
   using td::parse;
   bool has_terms_of_service = false;
+  bool is_pbkdf2_supported = false;
   if (parser.version() >= static_cast<int32>(Version::AddTermsOfService)) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_terms_of_service);
+    PARSE_FLAG(is_pbkdf2_supported);
     END_PARSE_FLAGS();
   }
   parse(state_, parser);
@@ -120,9 +124,12 @@ void AuthManager::DbState::parse(T &parser) {
   if (state_ == State::WaitCode) {
     parse(send_code_helper_, parser);
     if (parser.version() < static_cast<int32>(Version::AddTermsOfService)) {
-      parser.set_error("Have no terms of service");
+      return parser.set_error("Have no terms of service");
     }
   } else if (state_ == State::WaitPassword) {
+    if (!is_pbkdf2_supported) {
+      return parser.set_error("Need PBKDF2 support");
+    }
     parse(wait_password_state_, parser);
   } else {
     parser.set_error(PSTRING() << "Unexpected " << tag("state", static_cast<int32>(state_)));

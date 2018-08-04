@@ -859,7 +859,6 @@ Result<std::tuple<uint64, BufferSlice, int32>> SecretChatActor::decrypt(BufferSl
     }
     case mtproto::Transport::ReadResult::Nop: {
       return Status::Error("Got nop instead of a message");
-      break;
     }
     case mtproto::Transport::ReadResult::Packet: {
       data = read_result.packet();

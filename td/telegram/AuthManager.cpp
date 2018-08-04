@@ -14,13 +14,13 @@
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
+#include "td/telegram/PasswordManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UpdatesManager.h"
-
-#include "td/telegram/logevent/LogEvent.h"
 
 #include "td/actor/PromiseFuture.h"
 
@@ -613,13 +613,13 @@ void AuthManager::check_password(uint64 query_id, string password) {
   if (state_ != State::WaitPassword) {
     return on_query_error(query_id, Status::Error(8, "checkAuthenticationPassword unexpected"));
   }
-  BufferSlice buf(32);
-  password = wait_password_state_.current_salt_ + password + wait_password_state_.current_salt_;
-  sha256(password, buf.as_slice());
+
+  auto hash = PasswordManager::calc_password_hash(password, wait_password_state_.current_client_salt_,
+                                                  wait_password_state_.current_server_salt_);
 
   on_new_query(query_id);
   start_net_query(NetQueryType::CheckPassword,
-                  G()->net_query_creator().create(create_storer(telegram_api::auth_checkPassword(std::move(buf))),
+                  G()->net_query_creator().create(create_storer(telegram_api::auth_checkPassword(std::move(hash))),
                                                   DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
 }
 
@@ -748,18 +748,30 @@ void AuthManager::on_get_password_result(NetQueryPtr &result) {
     return on_query_error(r_password.move_as_error());
   }
   auto password = r_password.move_as_ok();
+
   wait_password_state_ = WaitPasswordState();
-  if (password->get_id() == telegram_api::account_noPassword::ID) {
-    auto no_password = move_tl_object_as<telegram_api::account_noPassword>(password);
-    wait_password_state_.new_salt_ = no_password->new_salt_.as_slice().str();
+  if (password->current_algo_ != nullptr) {
+    switch (password->current_algo_->get_id()) {
+      case telegram_api::passwordKdfAlgoUnknown::ID:
+        // TODO we need to abort authorization somehow
+        break;
+      case telegram_api::passwordKdfAlgoSHA256SHA256PBKDF2HMACSHA512iter100000::ID: {
+        auto algo = move_tl_object_as<telegram_api::passwordKdfAlgoSHA256SHA256PBKDF2HMACSHA512iter100000>(
+            password->current_algo_);
+        wait_password_state_.current_client_salt_ = algo->salt1_.as_slice().str();
+        wait_password_state_.current_server_salt_ = algo->salt2_.as_slice().str();
+        wait_password_state_.hint_ = std::move(password->hint_);
+        wait_password_state_.has_recovery_ =
+            (password->flags_ & telegram_api::account_password::HAS_RECOVERY_MASK) != 0;
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
   } else {
-    CHECK(password->get_id() == telegram_api::account_password::ID);
-    auto password_info = move_tl_object_as<telegram_api::account_password>(password);
-    wait_password_state_.current_salt_ = password_info->current_salt_.as_slice().str();
-    wait_password_state_.new_salt_ = password_info->new_salt_.as_slice().str();
-    wait_password_state_.hint_ = password_info->hint_;
-    wait_password_state_.has_recovery_ = password_info->has_recovery_;
+    // TODO we need to resend auth_signIn instead of going to WaitPassword state
   }
+
   update_state(State::WaitPassword);
   on_query_ok();
 }
@@ -771,7 +783,7 @@ void AuthManager::on_request_password_recovery_result(NetQueryPtr &result) {
   }
   auto email_address_pattern = r_email_address_pattern.move_as_ok();
   CHECK(email_address_pattern->get_id() == telegram_api::auth_passwordRecovery::ID);
-  wait_password_state_.email_address_pattern_ = email_address_pattern->email_pattern_;
+  wait_password_state_.email_address_pattern_ = std::move(email_address_pattern->email_pattern_);
   update_state(State::WaitPassword, true);
   on_query_ok();
 }

@@ -35,7 +35,6 @@ namespace td {
 //   do_encrypt :: RandomPrefix -> Value -> AesCbcState -> EncryptedValue // async
 //   encrypt :: (ValueSecret, RandomPrefix, Value) -> (EncryptedValue, ValueHash)
 //
-//
 // To decrypt data:
 //   ValueSecret, ValueHash, EncryptedValue
 //   do_decrypt :: EncryptedValue -> AesCbcState -> (RandomPrefix, Value, ValueHash) // async
@@ -102,7 +101,8 @@ class ConcatDataView : public DataView {
   DataView &right_;
 };
 
-AesCbcState calc_aes_cbc_state(Slice seed);
+AesCbcState calc_aes_cbc_state_pbkdf2(Slice secret, Slice salt);
+AesCbcState calc_aes_cbc_state_sha512(Slice seed);
 Result<ValueHash> calc_value_hash(DataView &data_view);
 ValueHash calc_value_hash(Slice data);
 BufferSlice gen_random_prefix(int64 data_size);
@@ -118,13 +118,15 @@ class Password {
 
 class EncryptedSecret;
 
+enum class EnryptionAlgorithm : int32 { Sha512, Pbkdf2 };
+
 class Secret {
  public:
   static Result<Secret> create(Slice secret);
   static Secret create_new();
 
   Slice as_slice() const;
-  EncryptedSecret encrypt(Slice key);
+  EncryptedSecret encrypt(Slice key, Slice salt, EnryptionAlgorithm algorithm);
 
   int64 get_hash() const;
   Secret clone() const;
@@ -142,7 +144,7 @@ class Secret {
 class EncryptedSecret {
  public:
   static Result<EncryptedSecret> create(Slice encrypted_secret);
-  Result<Secret> decrypt(Slice key);
+  Result<Secret> decrypt(Slice key, Slice salt, EnryptionAlgorithm algorithm);
   Slice as_slice() const;
 
  private:
