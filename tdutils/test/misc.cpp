@@ -21,6 +21,7 @@
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tests.h"
 #include "td/utils/translit.h"
+#include "td/utils/unicode.h"
 #include "td/utils/utf8.h"
 
 #include <atomic>
@@ -389,4 +390,17 @@ TEST(Misc, translit) {
   test_translit("льи", {"li", "lia", "ly", "льи"});
   test_translit("y", {"y", "и"}, false);
   test_translit("yo", {"e", "yo", "е", "ио"}, false);
+}
+
+static void test_unicode(uint32 (*func)(uint32)) {
+  for (uint32 i = 0; i <= 0x110000; i++) {
+    auto res = func(i);
+    CHECK(0 <= res && res <= 0x10ffff);
+  }
+}
+
+TEST(Misc, unicode) {
+  test_unicode(prepare_search_character);
+  test_unicode(unicode_to_lower);
+  test_unicode(remove_diacritics);
 }
