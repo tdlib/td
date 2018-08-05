@@ -394,7 +394,7 @@ void AnimationsManager::reload_saved_animations(bool force) {
       (next_saved_animations_load_time_ < Time::now() || force)) {
     LOG_IF(INFO, force) << "Reload saved animations";
     next_saved_animations_load_time_ = -1;
-    td_->create_handler<GetSavedGifsQuery>()->send(get_saved_animations_hash());
+    td_->create_handler<GetSavedGifsQuery>()->send(get_saved_animations_hash("reload_saved_animations"));
   }
 }
 
@@ -497,8 +497,9 @@ void AnimationsManager::on_get_saved_animations(
 
   on_load_saved_animations_finished(std::move(saved_animation_ids));
 
-  LOG_IF(ERROR, get_saved_animations_hash() != saved_animations->hash_)
-      << "Saved animations hash mismatch: " << saved_animations->hash_ << " vs " << get_saved_animations_hash();
+  LOG_IF(ERROR, get_saved_animations_hash("on_get_saved_animations") != saved_animations->hash_)
+      << "Saved animations hash mismatch: " << saved_animations->hash_ << " vs "
+      << get_saved_animations_hash("on_get_saved_animations 2");
 }
 
 void AnimationsManager::on_get_saved_animations_failed(Status error) {
@@ -511,7 +512,7 @@ void AnimationsManager::on_get_saved_animations_failed(Status error) {
   }
 }
 
-int32 AnimationsManager::get_saved_animations_hash() const {
+int32 AnimationsManager::get_saved_animations_hash(const char *source) const {
   vector<uint32> numbers;
   numbers.reserve(saved_animation_ids_.size() * 2);
   for (auto animation_id : saved_animation_ids_) {
@@ -519,7 +520,7 @@ int32 AnimationsManager::get_saved_animations_hash() const {
     CHECK(animation != nullptr);
     auto file_view = td_->file_manager_->get_file_view(animation_id);
     CHECK(file_view.has_remote_location());
-    CHECK(file_view.remote_location().is_document());
+    CHECK(file_view.remote_location().is_document()) << source << " " << file_view.remote_location();
     auto id = static_cast<uint64>(file_view.remote_location().get_id());
     numbers.push_back(static_cast<uint32>(id >> 32));
     numbers.push_back(static_cast<uint32>(id & 0xFFFFFFFF));
