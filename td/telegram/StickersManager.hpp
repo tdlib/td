@@ -12,6 +12,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/Photo.hpp"
 
+#include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/tl_helpers.h"
@@ -61,7 +62,9 @@ FileId StickersManager::parse_sticker(bool in_sticker_set, T &parser) {
   PARSE_FLAG(in_sticker_set_stored);
   END_PARSE_FLAGS();
   CHECK(in_sticker_set_stored == in_sticker_set)
-      << in_sticker_set << " " << in_sticker_set_stored << " " << parser.version();
+      << in_sticker_set << " " << in_sticker_set_stored << " " << parser.version() << " " << sticker->is_mask << " "
+      << has_sticker_set_access_hash << " "
+      << format::as_hex_dump<4>(parser.fetch_string_raw<Slice>(parser.get_left_len()));
   if (!in_sticker_set) {
     parse(sticker->set_id, parser);
     if (has_sticker_set_access_hash) {
