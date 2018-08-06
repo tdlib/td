@@ -718,12 +718,11 @@ void ConnectionCreator::on_network(bool network_flag, uint32 network_generation)
   auto old_generation = network_generation_;
   network_generation_ = network_generation;
   if (network_flag_) {
-    if (old_generation != network_generation_) {
-      VLOG(connections) << "Set proxy query token to 0: " << old_generation << " " << network_generation_;
-      resolve_proxy_query_token_ = 0;
-      resolve_proxy_timestamp_ = Timestamp();
-      get_proxy_info_timestamp_ = Timestamp();
-    }
+    VLOG(connections) << "Set proxy query token to 0: " << old_generation << " " << network_generation_;
+    resolve_proxy_query_token_ = 0;
+    resolve_proxy_timestamp_ = Timestamp();
+    get_proxy_info_timestamp_ = Timestamp();
+
     for (auto &client : clients_) {
       client.second.backoff.clear();
       client.second.flood_control.clear_events();
@@ -1300,6 +1299,9 @@ void ConnectionCreator::loop() {
   if (!is_inited_) {
     return;
   }
+  if (G()->close_flag()) {
+    return;
+  }
   if (!network_flag_) {
     return;
   }
@@ -1344,13 +1346,13 @@ void ConnectionCreator::loop() {
 }
 
 void ConnectionCreator::on_result(NetQueryPtr query) {
-  if (get_link_token() != get_proxy_info_query_token_) {
-    return;
-  }
-
   SCOPE_EXIT {
     loop();
   };
+
+  if (get_link_token() != get_proxy_info_query_token_) {
+    return;
+  }
 
   get_proxy_info_query_token_ = 0;
   auto res = fetch_result<telegram_api::help_getProxyData>(std::move(query));
@@ -1407,15 +1409,15 @@ void ConnectionCreator::schedule_get_proxy_info(int32 expires) {
 }
 
 void ConnectionCreator::on_proxy_resolved(Result<IPAddress> r_ip_address, bool dummy) {
+  SCOPE_EXIT {
+    loop();
+  };
+
   if (get_link_token() != resolve_proxy_query_token_) {
     VLOG(connections) << "Ignore unneeded proxy IP address " << get_link_token() << ", expected "
                       << resolve_proxy_query_token_;
     return;
   }
-
-  SCOPE_EXIT {
-    loop();
-  };
 
   resolve_proxy_query_token_ = 0;
   if (r_ip_address.is_error()) {
