@@ -20,7 +20,7 @@ PublicRsaKeyShared::PublicRsaKeyShared(DcId dc_id) : dc_id_(dc_id) {
   }
   auto add_pem = [this](CSlice pem) {
     auto r_rsa = RSA::from_pem(pem);
-    CHECK(r_rsa.is_ok()) << r_rsa.error();
+    CHECK(r_rsa.is_ok()) << r_rsa.error() << " " << pem;
 
     if (r_rsa.is_ok()) {
       this->add_rsa(r_rsa.move_as_ok());
