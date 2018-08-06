@@ -64,6 +64,7 @@ class LanguagePackManager : public NetQueryCallback {
  private:
   struct PluralizedString;
   struct Language;
+  struct LanguageInfo;
   struct LanguagePack;
   struct LanguageDatabase;
 

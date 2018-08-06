@@ -50,8 +50,15 @@ struct LanguagePackManager::Language {
   SqliteKeyValue kv_;  // usages should be guarded by database_->mutex_
 };
 
+struct LanguagePackManager::LanguageInfo {
+  string name;
+  string native_name;
+};
+
 struct LanguagePackManager::LanguagePack {
   std::mutex mutex_;
+  SqliteKeyValue pack_kv_;  // usages should be guarded by database_->mutex_
+  std::unordered_map<string, LanguageInfo> language_infos_;
   std::unordered_map<string, std::unique_ptr<Language>> languages_;
 };
 
@@ -290,7 +297,18 @@ LanguagePackManager::Language *LanguagePackManager::add_language(LanguageDatabas
   std::lock_guard<std::mutex> packs_lock(database->mutex_);
   auto pack_it = database->language_packs_.find(language_pack);
   if (pack_it == database->language_packs_.end()) {
-    pack_it = database->language_packs_.emplace(language_pack, make_unique<LanguagePack>()).first;
+    auto pack = make_unique<LanguagePack>();
+    if (!database->database_.empty()) {
+      pack->pack_kv_.init_with_connection(database->database_.clone(), get_database_table_name(language_pack, "0"))
+          .ensure();
+      for (auto &lang : pack->pack_kv_.get_all()) {
+        auto names = split(lang.second, '\x00');
+        auto &info = pack->language_infos_[lang.first];
+        info.name = std::move(names.first);
+        info.native_name = std::move(names.second);
+      }
+    }
+    pack_it = database->language_packs_.emplace(language_pack, std::move(pack)).first;
   }
   LanguagePack *pack = pack_it->second.get();
 
@@ -461,21 +479,32 @@ td_api::object_ptr<td_api::languagePackStrings> LanguagePackManager::get_languag
 }
 
 void LanguagePackManager::get_languages(Promise<td_api::object_ptr<td_api::languagePack>> promise) {
-  auto request_promise = PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
-    auto r_result = fetch_result<telegram_api::langpack_getLanguages>(std::move(r_query));
-    if (r_result.is_error()) {
-      return promise.set_error(r_result.move_as_error());
-    }
+  auto results = make_tl_object<td_api::languagePack>();
 
-    auto languages = r_result.move_as_ok();
-    auto results = make_tl_object<td_api::languagePack>();
-    results->languages_.reserve(languages.size());
-    for (auto &language : languages) {
+  std::lock_guard<std::mutex> packs_lock(database_->mutex_);
+  auto pack_it = database_->language_packs_.find(language_pack_);
+  if (pack_it != database_->language_packs_.end()) {
+    LanguagePack *pack = pack_it->second.get();
+    for (auto &info : pack->language_infos_) {
       results->languages_.push_back(
-          make_tl_object<td_api::languageInfo>(language->lang_code_, language->name_, language->native_name_));
+          make_tl_object<td_api::languageInfo>(info.first, info.second.name, info.second.native_name));
     }
-    promise.set_value(std::move(results));
-  });
+  }
+
+  auto request_promise = PromiseCreator::lambda(
+      [results = std::move(results), promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
+        auto r_result = fetch_result<telegram_api::langpack_getLanguages>(std::move(r_query));
+        if (r_result.is_error()) {
+          return promise.set_error(r_result.move_as_error());
+        }
+
+        auto languages = r_result.move_as_ok();
+        for (auto &language : languages) {
+          results->languages_.push_back(
+              make_tl_object<td_api::languageInfo>(language->lang_code_, language->name_, language->native_name_));
+        }
+        promise.set_value(std::move(results));
+      });
   send_with_promise(G()->net_query_creator().create(create_storer(telegram_api::langpack_getLanguages())),
                     std::move(request_promise));
 }
@@ -804,14 +833,29 @@ void LanguagePackManager::set_custom_language(string language_code, string langu
     }
   }
 
-  // TODO atomic replace using "ALTER TABLE new_X RENAME TO X";
+  // TODO atomic replace
   do_delete_language(language_code).ensure();
   on_get_language_pack_strings(language_pack_, language_code, 1, false, vector<string>(), std::move(server_strings),
                                Auto());
+  std::lock_guard<std::mutex> packs_lock(database_->mutex_);
+  auto pack_it = database_->language_packs_.find(language_pack_);
+  CHECK(pack_it != database_->language_packs_.end());
+  LanguagePack *pack = pack_it->second.get();
+  auto &info = pack->language_infos_[language_code];
+  info.name = language_name;
+  info.native_name = language_native_name;
+  pack->pack_kv_.set(language_code, PSLICE() << language_name << '\x00' << language_native_name);
+
   promise.set_value(Unit());
 }
 
 void LanguagePackManager::delete_language(string language_code, Promise<Unit> &&promise) {
+  if (!check_language_code_name(language_code)) {
+    return promise.set_error(Status::Error(400, "Language code name is invalid"));
+  }
+  if (language_code.empty()) {
+    return promise.set_error(Status::Error(400, "Language code name is empty"));
+  }
   if (language_code_ == language_code) {
     return promise.set_error(Status::Error(400, "Currently used language can't be deleted"));
   }
@@ -825,26 +869,38 @@ void LanguagePackManager::delete_language(string language_code, Promise<Unit> &&
 }
 
 Status LanguagePackManager::do_delete_language(string language_code) {
+  add_language(database_, language_pack_, language_code);
+
   std::lock_guard<std::mutex> packs_lock(database_->mutex_);
   auto pack_it = database_->language_packs_.find(language_pack_);
-  if (pack_it == database_->language_packs_.end()) {
-    return Status::OK();
-  }
+  CHECK(pack_it != database_->language_packs_.end());
   LanguagePack *pack = pack_it->second.get();
 
   std::lock_guard<std::mutex> languages_lock(pack->mutex_);
   auto code_it = pack->languages_.find(language_code);
-  if (code_it == pack->languages_.end()) {
-    return Status::OK();
-  }
+  CHECK(code_it != pack->languages_.end());
   auto language = code_it->second.get();
   if (language->has_get_difference_query_) {
     return Status::Error(400, "Language can't be deleted now, try again later");
   }
   if (!language->kv_.empty()) {
     language->kv_.drop().ignore();
+    CHECK(language->kv_.empty());
   }
-  pack->languages_.erase(language_code);
+  std::lock_guard<std::mutex> language_lock(language->mutex_);
+  language->version_ = -1;
+  language->is_full_ = false;
+  language->ordinary_strings_.clear();
+  language->pluralized_strings_.clear();
+  language->deleted_strings_.clear();
+
+  if (is_custom_language_code(language_code)) {
+    if (!pack->pack_kv_.empty()) {
+      pack->pack_kv_.erase(language_code);
+    }
+    pack->language_infos_.erase(language_code);
+  }
+
   return Status::OK();
 }
 
