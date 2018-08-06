@@ -9,10 +9,12 @@
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/Td.h"
 
 #include "td/telegram/td_api.h"
+#include "td/telegram/td_api.hpp"
 #include "td/telegram/telegram_api.h"
 
 #include "td/db/SqliteDb.h"
@@ -77,7 +79,11 @@ bool LanguagePackManager::check_language_code_name(Slice name) {
       return false;
     }
   }
-  return name.size() >= 2 || name.empty();
+  return true;
+}
+
+bool LanguagePackManager::is_custom_language_code(Slice language_code) {
+  return !language_code.empty() && language_code[0] == 'X';
 }
 
 static Result<SqliteDb> open_database(const string &path) {
@@ -173,6 +179,10 @@ void LanguagePackManager::on_language_code_changed() {
 }
 
 void LanguagePackManager::on_language_pack_version_changed(int32 new_version) {
+  if (is_custom_language_code(language_code_)) {
+    return;
+  }
+
   Language *language = get_language(database_, language_pack_, language_code_);
   int32 version = language == nullptr ? static_cast<int32>(-1) : language->version_.load();
   if (version == -1) {
@@ -698,9 +708,9 @@ void LanguagePackManager::on_get_language_pack_strings(
       }
 
       if (is_diff) {
-        // do we need to send update to all client instances?
-        send_closure(G()->td(), &Td::send_update,
-                     td_api::make_object<td_api::updateLanguagePack>(language_pack, language_code, std::move(strings)));
+        send_closure(
+            G()->td(), &Td::send_update,
+            td_api::make_object<td_api::updateLanguagePackStrings>(language_pack, language_code, std::move(strings)));
       }
 
       if (keys.empty() && !is_diff) {
@@ -740,6 +750,102 @@ void LanguagePackManager::on_failed_get_difference(string language_pack, string 
       send_closure_later(actor_id(this), &LanguagePackManager::on_language_pack_version_changed, -1);
     }
   }
+}
+
+void LanguagePackManager::set_custom_language(string language_code, string language_name, string language_native_name,
+                                              vector<tl_object_ptr<td_api::LanguagePackString>> strings,
+                                              Promise<Unit> &&promise) {
+  if (!is_custom_language_code(language_code)) {
+    return promise.set_error(Status::Error(400, "Custom language code must begin with 'X'"));
+  }
+  if (!check_language_code_name(language_code)) {
+    return promise.set_error(Status::Error(400, "Language code name must contain only letters and hyphen"));
+  }
+
+  vector<tl_object_ptr<telegram_api::LangPackString>> server_strings;
+  for (auto &str : strings) {
+    if (str == nullptr) {
+      return promise.set_error(Status::Error(400, "Language strings must not be null"));
+    }
+    string key;
+    downcast_call(*str, [&key](auto &value) { key = std::move(value.key_); });
+    if (!is_valid_key(key)) {
+      return promise.set_error(Status::Error(400, "Key is invalid"));
+    }
+    switch (str->get_id()) {
+      case td_api::languagePackStringValue::ID: {
+        auto value = static_cast<td_api::languagePackStringValue *>(str.get());
+        if (!clean_input_string(value->value_)) {
+          return promise.set_error(Status::Error(400, "Strings must be encoded in UTF-8"));
+        }
+        server_strings.push_back(
+            make_tl_object<telegram_api::langPackString>(std::move(key), std::move(value->value_)));
+        break;
+      }
+      case td_api::languagePackStringPluralized::ID: {
+        auto value = static_cast<td_api::languagePackStringPluralized *>(str.get());
+        if (!clean_input_string(value->zero_value_) || !clean_input_string(value->one_value_) ||
+            !clean_input_string(value->two_value_) || !clean_input_string(value->few_value_) ||
+            !clean_input_string(value->many_value_) || !clean_input_string(value->other_value_)) {
+          return promise.set_error(Status::Error(400, "Strings must be encoded in UTF-8"));
+        }
+        server_strings.push_back(make_tl_object<telegram_api::langPackStringPluralized>(
+            31, std::move(key), std::move(value->zero_value_), std::move(value->one_value_),
+            std::move(value->two_value_), std::move(value->few_value_), std::move(value->many_value_),
+            std::move(value->other_value_)));
+        break;
+      }
+      case td_api::languagePackStringDeleted::ID:
+        // there is no reason to save deleted strings in a custom language pack to database
+        break;
+      default:
+        UNREACHABLE();
+        break;
+    }
+  }
+
+  // TODO atomic replace using "ALTER TABLE new_X RENAME TO X";
+  do_delete_language(language_code).ensure();
+  on_get_language_pack_strings(language_pack_, language_code, 1, false, vector<string>(), std::move(server_strings),
+                               Auto());
+  promise.set_value(Unit());
+}
+
+void LanguagePackManager::delete_language(string language_code, Promise<Unit> &&promise) {
+  if (language_code_ == language_code) {
+    return promise.set_error(Status::Error(400, "Currently used language can't be deleted"));
+  }
+
+  auto status = do_delete_language(language_code);
+  if (status.is_error()) {
+    promise.set_error(std::move(status));
+  } else {
+    promise.set_value(Unit());
+  }
+}
+
+Status LanguagePackManager::do_delete_language(string language_code) {
+  std::lock_guard<std::mutex> packs_lock(database_->mutex_);
+  auto pack_it = database_->language_packs_.find(language_pack_);
+  if (pack_it == database_->language_packs_.end()) {
+    return Status::OK();
+  }
+  LanguagePack *pack = pack_it->second.get();
+
+  std::lock_guard<std::mutex> languages_lock(pack->mutex_);
+  auto code_it = pack->languages_.find(language_code);
+  if (code_it == pack->languages_.end()) {
+    return Status::OK();
+  }
+  auto language = code_it->second.get();
+  if (language->has_get_difference_query_) {
+    return Status::Error(400, "Language can't be deleted now, try again later");
+  }
+  if (!language->kv_.empty()) {
+    language->kv_.drop().ignore();
+  }
+  pack->languages_.erase(language_code);
+  return Status::OK();
 }
 
 void LanguagePackManager::on_result(NetQueryPtr query) {

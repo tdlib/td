@@ -1735,8 +1735,8 @@ class CliClient final : public Actor {
 
       std::tie(chat_id, message_id) = split(args);
       send_request(make_tl_object<td_api::deleteChatReplyMarkup>(as_chat_id(chat_id), as_message_id(message_id)));
-    } else if (op == "glp") {
-      send_request(make_tl_object<td_api::getLanguagePack>());
+    } else if (op == "glpi") {
+      send_request(make_tl_object<td_api::getLanguagePackInfo>());
     } else if (op == "glps") {
       string language_code;
       string keys;
@@ -1754,6 +1754,26 @@ class CliClient final : public Actor {
       std::tie(language_code, key) = split(args);
       send_request(
           make_tl_object<td_api::getLanguagePackString>(language_database_path, language_pack, language_code, key));
+    } else if (op == "scl") {
+      string language_code;
+      string name;
+      string native_name;
+      string key;
+
+      std::tie(language_code, args) = split(args);
+      std::tie(name, args) = split(args);
+      std::tie(native_name, key) = split(args);
+
+      vector<tl_object_ptr<td_api::LanguagePackString>> strings;
+      strings.push_back(make_tl_object<td_api::languagePackStringValue>(key, "Ordinary value"));
+      strings.push_back(make_tl_object<td_api::languagePackStringPluralized>("Plu", "Zero", string("One\0One", 7), "Two", "Few",
+                                                                             "Many", "Other"));
+      strings.push_back(make_tl_object<td_api::languagePackStringDeleted>("DELETED"));
+
+      send_request(make_tl_object<td_api::setCustomLanguage>(
+          make_tl_object<td_api::languageInfo>(language_code, name, native_name), std::move(strings)));
+    } else if (op == "dl") {
+      send_request(make_tl_object<td_api::deleteLanguage>(args));
     } else if (op == "go") {
       send_request(make_tl_object<td_api::getOption>(args));
     } else if (op == "sob") {

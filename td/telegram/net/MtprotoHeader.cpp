@@ -6,6 +6,8 @@
 //
 #include "td/telegram/net/MtprotoHeader.h"
 
+#include "td/telegram/LanguagePackManager.h"
+
 #include "td/utils/tl_helpers.h"
 
 namespace td {
@@ -47,7 +49,8 @@ class HeaderStorer {
     }
     store(options.application_version, storer);
     store(options.system_language_code, storer);
-    if (is_anonymous || options.language_pack.empty()) {
+    if (is_anonymous || options.language_pack.empty() ||
+        LanguagePackManager::is_custom_language_code(options.language_code)) {
       store(Slice(), storer);
       store(Slice(), storer);
     } else {

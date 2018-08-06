@@ -3265,8 +3265,10 @@ bool Td::is_preinitialization_request(int32 id) {
 bool Td::is_preauthentication_request(int32 id) {
   switch (id) {
     case td_api::processDcUpdate::ID:
-    case td_api::getLanguagePack::ID:
+    case td_api::getLanguagePackInfo::ID:
     case td_api::getLanguagePackStrings::ID:
+    case td_api::setCustomLanguage::ID:
+    case td_api::deleteLanguage::ID:
     case td_api::getOption::ID:
     case td_api::setOption::ID:
     case td_api::setNetworkType::ID:
@@ -5986,7 +5988,7 @@ void Td::on_request(uint64 id, const td_api::resetAllNotificationSettings &reque
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
 }
 
-void Td::on_request(uint64 id, const td_api::getLanguagePack &request) {
+void Td::on_request(uint64 id, const td_api::getLanguagePackInfo &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   send_closure(language_pack_manager_, &LanguagePackManager::get_languages, std::move(promise));
@@ -6001,6 +6003,28 @@ void Td::on_request(uint64 id, td_api::getLanguagePackStrings &request) {
   CREATE_REQUEST_PROMISE();
   send_closure(language_pack_manager_, &LanguagePackManager::get_language_pack_strings,
                std::move(request.language_code_), std::move(request.keys_), std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::setCustomLanguage &request) {
+  CHECK_IS_USER();
+  if (request.info_ == nullptr) {
+    return send_error_raw(id, 400, "Language info must not be empty");
+  }
+  CLEAN_INPUT_STRING(request.info_->code_);
+  CLEAN_INPUT_STRING(request.info_->name_);
+  CLEAN_INPUT_STRING(request.info_->native_name_);
+  CREATE_OK_REQUEST_PROMISE();
+  send_closure(language_pack_manager_, &LanguagePackManager::set_custom_language, std::move(request.info_->code_),
+               std::move(request.info_->name_), std::move(request.info_->native_name_), std::move(request.strings_),
+               std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::deleteLanguage &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.language_code_);
+  CREATE_OK_REQUEST_PROMISE();
+  send_closure(language_pack_manager_, &LanguagePackManager::delete_language, std::move(request.language_code_),
+               std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getOption &request) {

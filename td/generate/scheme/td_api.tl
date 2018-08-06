@@ -2235,7 +2235,7 @@ updateFavoriteStickers sticker_ids:vector<int32> = Update;
 updateSavedAnimations animation_ids:vector<int32> = Update;
 
 //@description Some language pack strings was updated @language_pack Changed language pack @language_code Code of the language, which was updated @strings List of changed language pack strings
-updateLanguagePack language_pack:string language_code:string strings:vector<LanguagePackString> = Update;
+updateLanguagePackStrings language_pack:string language_code:string strings:vector<LanguagePackString> = Update;
 
 //@description The connection state has changed @state The new connection state
 updateConnectionState state:ConnectionState = Update;
@@ -3085,11 +3085,17 @@ getSupportUser = User;
 getWallpapers = Wallpapers;
 
 
-//@description Returns information about used language pack
-getLanguagePack = LanguagePack;
+//@description Returns information about the used language pack
+getLanguagePackInfo = LanguagePack;
 
-//@description Returns strings from used language pack on specified language by their keys @language_code Language code of strings to return @keys Language pack keys of strings to return; may be empty to get all available strings
+//@description Returns strings from a language in the used language pack by their keys @language_code Language code of strings to return @keys Language pack keys of strings to return; may be empty to get all available strings
 getLanguagePackStrings language_code:string keys:vector<string> = LanguagePackStrings;
+
+//@description Adds or changes a custom language to the used language pack @info Information about the language. Language code should start with 'X' @strings New language pack strings
+setCustomLanguage info:languageInfo strings:vector<LanguagePackString> = Ok;
+
+//@description Deletes all information about a language in the used language pack. Currently used language can't be deleted @language_code Language code of a language to delete
+deleteLanguage language_code:string = Ok;
 
 
 //@description Registers the currently used device for receiving push notifications @device_token Device token @other_user_ids List of at most 100 user identifiers of other users currently using the client

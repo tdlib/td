@@ -755,9 +755,13 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::reportChat &request);
 
-  void on_request(uint64 id, const td_api::getLanguagePack &request);
+  void on_request(uint64 id, const td_api::getLanguagePackInfo &request);
 
   void on_request(uint64 id, td_api::getLanguagePackStrings &request);
+
+  void on_request(uint64 id, td_api::setCustomLanguage &request);
+
+  void on_request(uint64 id, td_api::deleteLanguage &request);
 
   void on_request(uint64 id, td_api::getOption &request);
 

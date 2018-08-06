@@ -37,6 +37,8 @@ class LanguagePackManager : public NetQueryCallback {
 
   static bool check_language_code_name(Slice name);
 
+  static bool is_custom_language_code(Slice language_code);
+
   void on_language_pack_changed();
 
   void on_language_code_changed();
@@ -53,6 +55,11 @@ class LanguagePackManager : public NetQueryCallback {
                                                                      const string &language_code, const string &key);
 
   void on_update_language_pack(tl_object_ptr<telegram_api::langPackDifference> difference);
+
+  void set_custom_language(string language_code, string language_name, string language_native_name,
+                           vector<tl_object_ptr<td_api::LanguagePackString>> strings, Promise<Unit> &&promise);
+
+  void delete_language(string language_code, Promise<Unit> &&promise);
 
  private:
   struct PluralizedString;
@@ -107,6 +114,8 @@ class LanguagePackManager : public NetQueryCallback {
                                     Promise<td_api::object_ptr<td_api::languagePackStrings>> promise);
 
   void on_failed_get_difference(string language_pack, string language_code);
+
+  Status do_delete_language(string language_code);
 
   void on_result(NetQueryPtr query) override;
 

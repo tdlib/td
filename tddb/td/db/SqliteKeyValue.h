@@ -42,14 +42,10 @@ class SqliteKeyValue {
   }
 
   void close() {
-    clear();
+    *this = SqliteKeyValue();
   }
 
-  static Status destroy(Slice path) TD_WARN_UNUSED_RESULT {
-    return SqliteDb::destroy(path);
-  }
-
-  void close_and_destroy();
+  Status drop();
 
   SeqNo set(Slice key, Slice value);
 
@@ -102,10 +98,6 @@ class SqliteKeyValue {
       callback(stmt->view_blob(0), stmt->view_blob(1));
       stmt->step().ensure();
     }
-  }
-
-  void clear() {
-    *this = SqliteKeyValue();
   }
 
  private:
