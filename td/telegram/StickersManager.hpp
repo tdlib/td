@@ -64,7 +64,7 @@ FileId StickersManager::parse_sticker(bool in_sticker_set, T &parser) {
   CHECK(in_sticker_set_stored == in_sticker_set)
       << in_sticker_set << " " << in_sticker_set_stored << " " << parser.version() << " " << sticker->is_mask << " "
       << has_sticker_set_access_hash << " "
-      << format::as_hex_dump<4>(parser.fetch_string_raw<Slice>(parser.get_left_len()));
+      << format::as_hex_dump<4>(parser.template fetch_string_raw<Slice>(parser.get_left_len()));
   if (!in_sticker_set) {
     parse(sticker->set_id, parser);
     if (has_sticker_set_access_hash) {
