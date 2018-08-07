@@ -1913,12 +1913,6 @@ Status SecretChatActor::on_read_history(NetQueryPtr query) {
   return Status::OK();
 }
 
-// DH CONFIG
-// messages.dhConfigNotModified#c0e24635 random:bytes = messages.DhConfig;
-// messages.dhConfig#2c221edd g:int p:bytes version:int random:bytes = messages.DhConfig;
-//---functions---
-// messages.getDhConfig#26cf8950 version:int random_length:int = messages.DhConfig;
-
 void SecretChatActor::start_up() {
   LOG(INFO) << "SecretChatActor: start_up";
   // auto start = Time::now();
@@ -1983,15 +1977,17 @@ Status SecretChatActor::on_dh_config(NetQueryPtr query) {
   auth_state_.handshake.set_config(auth_state_.dh_config.g, auth_state_.dh_config.prime);
   return Status::OK();
 }
+
 void SecretChatActor::on_dh_config(telegram_api::messages_dhConfigNotModified &dh_not_modified) {
-  // TODO: use random_
+  Random::add_seed(dh_not_modified.random_.as_slice());
 }
+
 void SecretChatActor::on_dh_config(telegram_api::messages_dhConfig &dh) {
   auto dh_config = std::make_shared<DhConfig>();
   dh_config->version = dh.version_;
   dh_config->prime = dh.p_.as_slice().str();
   dh_config->g = dh.g_;
-  // TODO: use random_
+  Random::add_seed(dh.random_.as_slice());
   auth_state_.dh_config = *dh_config;
   context_->set_dh_config(dh_config);
 }

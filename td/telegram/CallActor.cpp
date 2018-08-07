@@ -457,8 +457,12 @@ void CallActor::do_load_dh_config(Promise<std::shared_ptr<DhConfig>> promise) {
                           dh_config->version = dh->version_;
                           dh_config->prime = dh->p_.as_slice().str();
                           dh_config->g = dh->g_;
+                          Random::add_seed(dh->random_.as_slice());
                           G()->set_dh_config(dh_config);
                           return std::move(dh_config);
+                        } else if (new_dh_config->get_id() == telegram_api::messages_dhConfigNotModified::ID) {
+                          auto dh = move_tl_object_as<telegram_api::messages_dhConfigNotModified>(new_dh_config);
+                          Random::add_seed(dh->random_.as_slice());
                         }
                         if (old_dh_config) {
                           return std::move(old_dh_config);
