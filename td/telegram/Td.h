@@ -267,9 +267,9 @@ class Td final : public NetQueryCallback {
 
   template <class T>
   friend class RequestActor;        // uses send_result/send_error
-  friend class TestQuery;           // uses send_result/send_error
-  friend class AuthManager;         // uses send_result/send_error
-  friend class PhoneNumberManager;  // uses send_result/send_error
+  friend class TestQuery;           // uses send_result/send_error, TODO pass Promise<>
+  friend class AuthManager;         // uses send_result/send_error, TODO pass Promise<>
+  friend class PhoneNumberManager;  // uses send_result/send_error, TODO pass Promise<>
 
   void add_handler(uint64 id, std::shared_ptr<ResultHandler> handler);
   std::shared_ptr<ResultHandler> extract_handler(uint64 id);
