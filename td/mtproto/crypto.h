@@ -55,6 +55,7 @@ class DhCallback {
   virtual void add_good_prime(Slice prime_str) const = 0;
   virtual void add_bad_prime(Slice prime_str) const = 0;
 };
+
 class DhHandshake {
  public:
   void set_config(int32 g_int, Slice prime_str);
@@ -71,6 +72,11 @@ class DhHandshake {
   string get_g_b() const;
   string get_g_b_hash() const;
   Status run_checks(DhCallback *callback) TD_WARN_UNUSED_RESULT;
+
+  BigNum get_g() const;
+  BigNum get_p() const;
+  BigNum get_b() const;
+  BigNum get_g_ab();
 
   std::pair<int64, string> gen_key();
 
@@ -157,4 +163,5 @@ int64 dh_auth_key_id(const string &auth_key);
 void KDF(const string &auth_key, const UInt128 &msg_key, int X, UInt256 *aes_key, UInt256 *aes_iv);
 void tmp_KDF(const UInt128 &server_nonce, const UInt256 &new_nonce, UInt256 *tmp_aes_key, UInt256 *tmp_aes_iv);
 void KDF2(Slice auth_key, const UInt128 &msg_key, int X, UInt256 *aes_key, UInt256 *aes_iv);
+
 }  // namespace td

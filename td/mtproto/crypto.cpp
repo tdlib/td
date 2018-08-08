@@ -318,11 +318,30 @@ Status DhHandshake::run_checks(DhCallback *callback) {
   return dh_check(prime_str_, prime_, g_int_, g_a_, g_b_, ctx_, callback);
 }
 
-std::pair<int64, string> DhHandshake::gen_key() {
+BigNum DhHandshake::get_g() const {
+  CHECK(has_config_);
+  return g_;
+}
+
+BigNum DhHandshake::get_p() const {
+  CHECK(has_config_);
+  return prime_;
+}
+
+BigNum DhHandshake::get_b() const {
+  CHECK(has_config_);
+  return b_;
+}
+
+BigNum DhHandshake::get_g_ab() {
   CHECK(has_g_a_ && has_config_);
   BigNum g_ab;
   BigNum::mod_exp(g_ab, g_a_, b_, prime_, ctx_);
-  string key = g_ab.to_binary(2048 / 8);
+  return g_ab;
+}
+
+std::pair<int64, string> DhHandshake::gen_key() {
+  string key = get_g_ab().to_binary(2048 / 8);
   auto key_id = calc_key_id(key);
   return std::pair<int64, string>(key_id, std::move(key));
 }
