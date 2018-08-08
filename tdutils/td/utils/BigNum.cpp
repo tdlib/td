@@ -220,6 +220,11 @@ void BigNum::mod_mul(BigNum &r, BigNum &a, BigNum &b, const BigNum &m, BigNumCon
   LOG_IF(FATAL, result != 1);
 }
 
+void BigNum::mod_inv(BigNum &r, BigNum &a, const BigNum &m, BigNumContext &context) {
+  BIGNUM *result = BN_mod_inverse(r.impl_->big_num, a.impl_->big_num, m.impl_->big_num, context.impl_->big_num_context);
+  LOG_IF(FATAL, result == nullptr);
+}
+
 void BigNum::div(BigNum *quotient, BigNum *remainder, const BigNum &dividend, const BigNum &divisor,
                  BigNumContext &context) {
   auto q = quotient == nullptr ? nullptr : quotient->impl_->big_num;
