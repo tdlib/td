@@ -254,5 +254,9 @@ int BigNum::compare(const BigNum &a, const BigNum &b) {
   return BN_cmp(a.impl_->big_num, b.impl_->big_num);
 }
 
+StringBuilder &operator<<(StringBuilder &sb, const BigNum &bn) {
+  return sb << bn.to_decimal();
+}
+
 }  // namespace td
 #endif
