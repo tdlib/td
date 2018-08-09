@@ -64,6 +64,10 @@ void sha256(Slice data, MutableSlice output);
 
 void sha512(Slice data, MutableSlice output);
 
+string sha256(Slice data) TD_WARN_UNUSED_RESULT;
+
+string sha512(Slice data) TD_WARN_UNUSED_RESULT;
+
 struct Sha256StateImpl;
 
 struct Sha256State {

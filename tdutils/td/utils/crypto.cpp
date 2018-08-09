@@ -359,6 +359,18 @@ void sha512(Slice data, MutableSlice output) {
   CHECK(result == output.ubegin());
 }
 
+string sha256(Slice data) {
+  string result(32, '\0');
+  sha256(data, result);
+  return result;
+}
+
+string sha512(Slice data) {
+  string result(64, '\0');
+  sha512(data, result);
+  return result;
+}
+
 struct Sha256StateImpl {
   SHA256_CTX ctx;
 };
