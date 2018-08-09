@@ -85,10 +85,12 @@ BigNum BigNum::from_binary(Slice str) {
   return BigNum(make_unique<Impl>(BN_bin2bn(str.ubegin(), narrow_cast<int>(str.size()), nullptr)));
 }
 
-BigNum BigNum::from_decimal(CSlice str) {
+Result<BigNum> BigNum::from_decimal(CSlice str) {
   BigNum result;
-  int err = BN_dec2bn(&result.impl_->big_num, str.c_str());
-  LOG_IF(FATAL, err == 0);
+  int res = BN_dec2bn(&result.impl_->big_num, str.c_str());
+  if (res == 0 || static_cast<size_t>(res) != str.size()) {
+    return Status::Error(PSLICE() << "Failed to parse \"" << str << "\" as BigNum");
+  }
   return result;
 }
 

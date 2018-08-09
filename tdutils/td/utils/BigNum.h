@@ -11,6 +11,7 @@
 #if TD_HAVE_OPENSSL
 
 #include "td/utils/Slice.h"
+#include "td/utils/Status.h"
 
 namespace td {
 
@@ -41,7 +42,7 @@ class BigNum {
 
   static BigNum from_binary(Slice str);
 
-  static BigNum from_decimal(CSlice str);
+  static Result<BigNum> from_decimal(CSlice str);
 
   static BigNum from_raw(void *openssl_big_num);
 

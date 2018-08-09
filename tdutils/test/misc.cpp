@@ -5,6 +5,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/utils/base64.h"
+#include "td/utils/BigNum.h"
 #include "td/utils/HttpUrl.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -403,4 +404,18 @@ TEST(Misc, unicode) {
   test_unicode(prepare_search_character);
   test_unicode(unicode_to_lower);
   test_unicode(remove_diacritics);
+}
+
+TEST(BigNum, from_decimal) {
+  ASSERT_TRUE(BigNum::from_decimal("").is_error());
+  ASSERT_TRUE(BigNum::from_decimal("a").is_error());
+  ASSERT_TRUE(BigNum::from_decimal("123a").is_error());
+  ASSERT_TRUE(BigNum::from_decimal("-123a").is_error());
+  // ASSERT_TRUE(BigNum::from_decimal("-").is_error());
+  ASSERT_TRUE(BigNum::from_decimal("123").is_ok());
+  ASSERT_TRUE(BigNum::from_decimal("-123").is_ok());
+  ASSERT_TRUE(BigNum::from_decimal("0").is_ok());
+  ASSERT_TRUE(BigNum::from_decimal("-0").is_ok());
+  ASSERT_TRUE(BigNum::from_decimal("-999999999999999999999999999999999999999999999999").is_ok());
+  ASSERT_TRUE(BigNum::from_decimal("999999999999999999999999999999999999999999999999").is_ok());
 }
