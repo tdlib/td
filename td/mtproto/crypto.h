@@ -60,6 +60,8 @@ class DhHandshake {
  public:
   void set_config(int32 g_int, Slice prime_str);
 
+  static Status check_config(int32 g_int, Slice prime_str, DhCallback *callback);
+
   bool has_config() const {
     return has_config_;
   }
@@ -133,6 +135,8 @@ class DhHandshake {
   }
 
  private:
+  static Status check_config(Slice prime_str, const BigNum &prime, int32 g_int, BigNumContext &ctx,
+                             DhCallback *callback) TD_WARN_UNUSED_RESULT;
   static Status dh_check(Slice prime_str, const BigNum &prime, int32 g_int, const BigNum &g_a, const BigNum &g_b,
                          BigNumContext &ctx, DhCallback *callback) TD_WARN_UNUSED_RESULT;
 
