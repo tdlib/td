@@ -73,7 +73,7 @@ class DhHandshake {
   string get_g_a() const;
   string get_g_b() const;
   string get_g_b_hash() const;
-  Status run_checks(DhCallback *callback) TD_WARN_UNUSED_RESULT;
+  Status run_checks(bool skip_config_check, DhCallback *callback) TD_WARN_UNUSED_RESULT;
 
   BigNum get_g() const;
   BigNum get_p() const;
@@ -137,8 +137,8 @@ class DhHandshake {
  private:
   static Status check_config(Slice prime_str, const BigNum &prime, int32 g_int, BigNumContext &ctx,
                              DhCallback *callback) TD_WARN_UNUSED_RESULT;
-  static Status dh_check(Slice prime_str, const BigNum &prime, int32 g_int, const BigNum &g_a, const BigNum &g_b,
-                         BigNumContext &ctx, DhCallback *callback) TD_WARN_UNUSED_RESULT;
+
+  static Status dh_check(const BigNum &prime, const BigNum &g_a, const BigNum &g_b) TD_WARN_UNUSED_RESULT;
 
   string prime_str_;
   BigNum prime_;

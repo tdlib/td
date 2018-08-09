@@ -322,7 +322,7 @@ Status CallActor::do_update_call(telegram_api::phoneCallAccepted &call) {
 
   LOG(DEBUG) << "Do update call to Accepted";
   dh_handshake_.set_g_a(call.g_b_.as_slice());
-  TRY_STATUS(dh_handshake_.run_checks(DhCache::instance()));
+  TRY_STATUS(dh_handshake_.run_checks(true, DhCache::instance()));
   std::tie(call_state_.key_fingerprint, call_state_.key) = dh_handshake_.gen_key();
   state_ = State::SendConfirmQuery;
   on_begin_exchanging_key();
@@ -348,7 +348,7 @@ Status CallActor::do_update_call(telegram_api::phoneCall &call) {
   LOG(DEBUG) << "Do update call to Ready from state " << static_cast<int32>(state_);
   if (state_ == State::WaitAcceptResult) {
     dh_handshake_.set_g_a(call.g_a_or_b_.as_slice());
-    TRY_STATUS(dh_handshake_.run_checks(DhCache::instance()));
+    TRY_STATUS(dh_handshake_.run_checks(true, DhCache::instance()));
     std::tie(call_state_.key_fingerprint, call_state_.key) = dh_handshake_.gen_key();
   }
   if (call_state_.key_fingerprint != call.key_fingerprint_) {
@@ -430,8 +430,14 @@ void CallActor::on_dh_config(Result<std::shared_ptr<DhConfig>> r_dh_config, bool
   if (r_dh_config.is_error()) {
     return on_error(r_dh_config.move_as_error());
   }
-  dh_config_ready_ = true;
+
   dh_config_ = r_dh_config.move_as_ok();
+  auto check_result = DhHandshake::check_config(dh_config_->g, dh_config_->prime, DhCache::instance());
+  if (check_result.is_error()) {
+    return on_error(std::move(check_result));
+  }
+
+  dh_config_ready_ = true;
   yield();
 }
 

@@ -574,7 +574,7 @@ Status SecretChatActor::run_auth() {
       if (!auth_state_.handshake.has_config()) {
         return Status::OK();
       }
-      TRY_STATUS(auth_state_.handshake.run_checks(context_->dh_callback()));
+      TRY_STATUS(auth_state_.handshake.run_checks(true, context_->dh_callback()));
       auto id_and_key = auth_state_.handshake.gen_key();
       pfs_state_.auth_key = mtproto::AuthKey(id_and_key.first, std::move(id_and_key.second));
       calc_key_hash();
@@ -1859,7 +1859,7 @@ Status SecretChatActor::on_update_chat(telegram_api::encryptedChat &update) {
   TRY_STATUS(save_common_info(update));
   if (auth_state_.state == State::WaitRequestResponse) {
     auth_state_.handshake.set_g_a(update.g_a_or_b_.as_slice());
-    TRY_STATUS(auth_state_.handshake.run_checks(context_->dh_callback()));
+    TRY_STATUS(auth_state_.handshake.run_checks(true, context_->dh_callback()));
     auto id_and_key = auth_state_.handshake.gen_key();
     pfs_state_.auth_key = mtproto::AuthKey(id_and_key.first, std::move(id_and_key.second));
     calc_key_hash();
@@ -1974,6 +1974,7 @@ Status SecretChatActor::on_dh_config(NetQueryPtr query) {
   LOG(INFO) << "Got dh config";
   TRY_RESULT(config, fetch_result<telegram_api::messages_getDhConfig>(std::move(query)));
   downcast_call(*config, [&](auto &obj) { this->on_dh_config(obj); });
+  TRY_STATUS(DhHandshake::check_config(auth_state_.dh_config.g, auth_state_.dh_config.prime, context_->dh_callback()));
   auth_state_.handshake.set_config(auth_state_.dh_config.g, auth_state_.dh_config.prime);
   return Status::OK();
 }
@@ -2147,7 +2148,7 @@ Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionRequ
   pfs_state_.exchange_id = request_key.exchange_id_;
   pfs_state_.handshake.set_config(auth_state_.dh_config.g, auth_state_.dh_config.prime);
   pfs_state_.handshake.set_g_a(request_key.g_a_.as_slice());
-  TRY_STATUS(pfs_state_.handshake.run_checks(context_->dh_callback()));
+  TRY_STATUS(pfs_state_.handshake.run_checks(true, context_->dh_callback()));
   auto id_and_key = pfs_state_.handshake.gen_key();
 
   pfs_state_.other_auth_key = mtproto::AuthKey(id_and_key.first, std::move(id_and_key.second));
@@ -2167,7 +2168,7 @@ Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionAcce
     return Status::Error("AcceptKey: exchange_id mismatch");
   }
   pfs_state_.handshake.set_g_a(accept_key.g_b_.as_slice());
-  TRY_STATUS(pfs_state_.handshake.run_checks(context_->dh_callback()));
+  TRY_STATUS(pfs_state_.handshake.run_checks(true, context_->dh_callback()));
   auto id_and_key = pfs_state_.handshake.gen_key();
   if (static_cast<int64>(id_and_key.first) != accept_key.key_fingerprint_) {
     return Status::Error("AcceptKey: key_fingerprint mismatch");

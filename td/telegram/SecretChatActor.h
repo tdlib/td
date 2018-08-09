@@ -137,7 +137,7 @@ class SecretChatActor : public NetQueryCallback {
   enum class State : int32 { Empty, SendRequest, SendAccept, WaitRequestResponse, WaitAcceptResponse, Ready, Closed };
   static constexpr int32 MAX_RESEND_COUNT = 1000;
 
-  // We have git state that should be shynchronized with db.
+  // We have git state that should be synchronized with db.
   // It is splitted into several parts because:
   // 1. Some parts are BIG (auth_key, for example) and are rarely updated.
   // 2. Other are frequently updated, so probably should be as small as possible.

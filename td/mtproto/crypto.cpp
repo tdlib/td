@@ -208,10 +208,7 @@ Status DhHandshake::check_config(Slice prime_str, const BigNum &prime, int32 g_i
   return Status::OK();
 }
 
-Status DhHandshake::dh_check(Slice prime_str, const BigNum &prime, int32 g_int, const BigNum &g_a, const BigNum &g_b,
-                             BigNumContext &ctx, DhCallback *callback) {
-  TRY_STATUS(check_config(prime_str, prime, g_int, ctx, callback));
-
+Status DhHandshake::dh_check(const BigNum &prime, const BigNum &g_a, const BigNum &g_b) {
   // IMPORTANT: Apart from the conditions on the Diffie-Hellman prime dh_prime and generator g, both sides are
   // to check that g, g_a and g_b are greater than 1 and less than dh_prime - 1.
   // We recommend checking that g_a and g_b are between 2^{2048-64} and dh_prime - 2^{2048-64} as well.
@@ -305,14 +302,18 @@ string DhHandshake::get_g_b_hash() const {
   return g_b_hash;
 }
 
-Status DhHandshake::run_checks(DhCallback *callback) {
+Status DhHandshake::run_checks(bool skip_config_check, DhCallback *callback) {
   CHECK(has_g_a_ && has_config_);
 
   if (has_g_a_hash_ && !ok_g_a_hash_) {
     return Status::Error("g_a_hash mismatch");
   }
 
-  return dh_check(prime_str_, prime_, g_int_, g_a_, g_b_, ctx_, callback);
+  if (!skip_config_check) {
+    TRY_STATUS(check_config(prime_str_, prime_, g_int_, ctx_, callback));
+  }
+
+  return dh_check(prime_, g_a_, g_b_);
 }
 
 BigNum DhHandshake::get_g() const {
@@ -354,7 +355,7 @@ Status dh_handshake(int g_int, Slice prime_str, Slice g_a_str, string *g_b_str, 
   DhHandshake handshake;
   handshake.set_config(g_int, prime_str);
   handshake.set_g_a(g_a_str);
-  TRY_STATUS(handshake.run_checks(callback));
+  TRY_STATUS(handshake.run_checks(false, callback));
   *g_b_str = handshake.get_g_b();
   *g_ab_str = handshake.gen_key().second;
   return Status::OK();

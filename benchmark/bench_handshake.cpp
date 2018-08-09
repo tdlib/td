@@ -54,13 +54,14 @@ class HandshakeBench : public Benchmark {
     DhHandshake a;
     DhHandshake b;
     auto prime = base64url_decode(prime_base64).move_as_ok();
+    DhHandshake::check_config(g, prime, &dh_callback).ensure();
     for (int i = 0; i < n; i += 2) {
       a.set_config(g, prime);
       b.set_config(g, prime);
       b.set_g_a(a.get_g_b());
       a.set_g_a(b.get_g_b());
-      a.run_checks(&dh_callback).ensure();
-      b.run_checks(&dh_callback).ensure();
+      a.run_checks(true, &dh_callback).ensure();
+      b.run_checks(true, &dh_callback).ensure();
       auto a_key = a.gen_key();
       auto b_key = b.gen_key();
       CHECK(a_key.first == b_key.first);
