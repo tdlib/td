@@ -614,8 +614,10 @@ void AuthManager::check_password(uint64 query_id, string password) {
     return on_query_error(query_id, Status::Error(8, "checkAuthenticationPassword unexpected"));
   }
 
-  auto hash = PasswordManager::calc_password_hash(password, wait_password_state_.current_client_salt_,
-                                                  wait_password_state_.current_server_salt_);
+  auto hash = PasswordManager::get_input_check_password(password, wait_password_state_.current_client_salt_,
+                                                        wait_password_state_.current_server_salt_,
+                                                        wait_password_state_.srp_g_, wait_password_state_.srp_p_,
+                                                        wait_password_state_.srp_B_, wait_password_state_.srp_id_);
 
   on_new_query(query_id);
   start_net_query(NetQueryType::CheckPassword,
@@ -755,11 +757,15 @@ void AuthManager::on_get_password_result(NetQueryPtr &result) {
       case telegram_api::passwordKdfAlgoUnknown::ID:
         // TODO we need to abort authorization somehow
         break;
-      case telegram_api::passwordKdfAlgoSHA256SHA256PBKDF2HMACSHA512iter100000::ID: {
-        auto algo = move_tl_object_as<telegram_api::passwordKdfAlgoSHA256SHA256PBKDF2HMACSHA512iter100000>(
+      case telegram_api::passwordKdfAlgoSHA256SHA256PBKDF2HMACSHA512iter100000SHA256ModPow::ID: {
+        auto algo = move_tl_object_as<telegram_api::passwordKdfAlgoSHA256SHA256PBKDF2HMACSHA512iter100000SHA256ModPow>(
             password->current_algo_);
         wait_password_state_.current_client_salt_ = algo->salt1_.as_slice().str();
         wait_password_state_.current_server_salt_ = algo->salt2_.as_slice().str();
+        wait_password_state_.srp_g_ = algo->g_;
+        wait_password_state_.srp_p_ = algo->p_.as_slice().str();
+        wait_password_state_.srp_B_ = password->srp_B_.as_slice().str();
+        wait_password_state_.srp_id_ = password->srp_id_;
         wait_password_state_.hint_ = std::move(password->hint_);
         wait_password_state_.has_recovery_ =
             (password->flags_ & telegram_api::account_password::HAS_RECOVERY_MASK) != 0;

@@ -56,7 +56,9 @@ class PasswordManager : public NetQueryCallback {
   explicit PasswordManager(ActorShared<> parent) : parent_(std::move(parent)) {
   }
 
-  static BufferSlice calc_password_hash(Slice password, Slice client_salt, Slice server_salt);
+  static tl_object_ptr<telegram_api::InputCheckPasswordSRP> get_input_check_password(Slice password, Slice client_salt,
+                                                                                     Slice server_salt, int32 g,
+                                                                                     Slice p, Slice B, int64 id);
 
   void get_state(Promise<State> promise);
   void set_password(string current_password, string new_password, string new_hint, bool set_recovery_email_address,
@@ -96,8 +98,14 @@ class PasswordManager : public NetQueryCallback {
 
     string current_client_salt;
     string current_server_salt;
+    int32 current_srp_g;
+    string current_srp_p;
+    string current_srp_B;
+    int64 current_srp_id;
     string new_client_salt;
     string new_server_salt;
+    int32 new_srp_g;
+    string new_srp_p;
 
     string new_secure_salt;
 
@@ -139,7 +147,13 @@ class PasswordManager : public NetQueryCallback {
   static Result<secure_storage::Secret> decrypt_secure_secret(
       Slice password, tl_object_ptr<telegram_api::SecurePasswordKdfAlgo> algo_ptr, Slice secret, int64 secret_id);
 
-  BufferSlice calc_password_hash(Slice password, const PasswordState &state) const;
+  static BufferSlice calc_password_hash(Slice password, Slice client_salt, Slice server_salt);
+
+  static Result<BufferSlice> calc_password_srp_hash(Slice password, Slice client_salt, Slice server_salt, int32 g,
+                                                    Slice p);
+
+  tl_object_ptr<telegram_api::InputCheckPasswordSRP> get_input_check_password(Slice password,
+                                                                              const PasswordState &state) const;
 
   void update_password_settings(UpdateSettings update_settings, Promise<State> promise);
   void do_update_password_settings(UpdateSettings update_settings, PasswordFullState full_state, Promise<bool> promise);

@@ -198,6 +198,10 @@ class AuthManager : public NetActor {
   struct WaitPasswordState {
     string current_client_salt_;
     string current_server_salt_;
+    int32 srp_g_ = 0;
+    string srp_p_;
+    string srp_B_;
+    int64 srp_id_ = 0;
     string hint_;
     bool has_recovery_ = false;
     string email_address_pattern_;

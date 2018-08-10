@@ -1766,8 +1766,8 @@ class CliClient final : public Actor {
 
       vector<tl_object_ptr<td_api::LanguagePackString>> strings;
       strings.push_back(make_tl_object<td_api::languagePackStringValue>(key, "Ordinary value"));
-      strings.push_back(make_tl_object<td_api::languagePackStringPluralized>("Plu", "Zero", string("One\0One", 7), "Two", "Few",
-                                                                             "Many", "Other"));
+      strings.push_back(make_tl_object<td_api::languagePackStringPluralized>("Plu", "Zero", string("One\0One", 7),
+                                                                             "Two", "Few", "Many", "Other"));
       strings.push_back(make_tl_object<td_api::languagePackStringDeleted>("DELETED"));
 
       send_request(make_tl_object<td_api::setCustomLanguage>(
