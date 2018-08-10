@@ -510,7 +510,7 @@ EncryptedSecureValue get_encrypted_secure_value(FileManager *file_manager,
   if (secure_value->selfie_ != nullptr) {
     result.selfie = get_encrypted_secure_file(file_manager, std::move(secure_value->selfie_));
   }
-  result.translations = get_encrypted_secure_files(file_manager, std::move(secure_value->translations_));
+  result.translations = get_encrypted_secure_files(file_manager, std::move(secure_value->translation_));
   result.hash = secure_value->hash_.as_slice().str();
   if (!check_encrypted_secure_value(result)) {
     LOG(ERROR) << "Receive invalid encrypted secure value of type " << result.type;
@@ -580,7 +580,7 @@ telegram_api::object_ptr<telegram_api::inputSecureValue> get_input_secure_value_
     CHECK(selfie);
   }
   if (!value.translations.empty()) {
-    flags |= telegram_api::inputSecureValue::TRANSLATIONS_MASK;
+    flags |= telegram_api::inputSecureValue::TRANSLATION_MASK;
   }
   return telegram_api::make_object<telegram_api::inputSecureValue>(
       flags, get_input_secure_value_type(value.type), is_plain ? nullptr : get_secure_data_object(value.data),
