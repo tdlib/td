@@ -878,12 +878,12 @@ date day:int32 month:int32 year:int32 = Date;
 personalDetails first_name:string middle_name:string last_name:string birthdate:date gender:string country_code:string residence_country_code:string = PersonalDetails;
 
 //@description An identity document @number Document number; 1-24 characters @expiry_date Document expiry date; may be null @front_side Front side of the document
-//@reverse_side Reverse side of the document; only for driver license and identity card @selfie Selfie with the document; may be null @translations List of files with the document translation
-identityDocument number:string expiry_date:date front_side:datedFile reverse_side:datedFile selfie:datedFile translations:vector<datedFile> = IdentityDocument;
+//@reverse_side Reverse side of the document; only for driver license and identity card @selfie Selfie with the document; may be null @translation List of files with the document translation
+identityDocument number:string expiry_date:date front_side:datedFile reverse_side:datedFile selfie:datedFile translation:vector<datedFile> = IdentityDocument;
 
 //@description An identity document to be saved @number Document number; 1-24 characters @expiry_date Document expiry date, if available @front_side Front side of the document
-//@reverse_side Reverse side of the document; only for driver license and identity card @selfie Selfie with the document, if available @translations List of files with the document translation
-inputIdentityDocument number:string expiry_date:date front_side:InputFile reverse_side:InputFile selfie:InputFile translations:vector<InputFile> = InputIdentityDocument;
+//@reverse_side Reverse side of the document; only for driver license and identity card @selfie Selfie with the document, if available @translation List of files with the document translation
+inputIdentityDocument number:string expiry_date:date front_side:InputFile reverse_side:InputFile selfie:InputFile translation:vector<InputFile> = InputIdentityDocument;
 
 
 //@class PassportElement @description Contains information about a Telegram Passport element
@@ -991,11 +991,11 @@ passportElementErrorSourceReverseSide = PassportElementErrorSource;
 //@description The selfie with the document contains an error. The error will be considered resolved when the file with the selfie changes
 passportElementErrorSourceSelfie = PassportElementErrorSource;
 
-//@description The translation of the document contains an error. The error will be considered resolved when the file with the translation changes
-passportElementErrorSourceTranslation = PassportElementErrorSource;
+//@description One of files with the translation of the document contains an error. The error will be considered resolved when the file changes
+passportElementErrorSourceTranslationFile = PassportElementErrorSource;
 
-//@description The list of translations of the document contains an error. The error will be considered resolved when the list of translations changes
-passportElementErrorSourceTranslations = PassportElementErrorSource;
+//@description The translation of the document contains an error. The error will be considered resolved when the list of translation files changes
+passportElementErrorSourceTranslationFiles = PassportElementErrorSource;
 
 //@description The file contains an error. The error will be considered resolved when the file changes
 passportElementErrorSourceFile = PassportElementErrorSource;
@@ -1019,8 +1019,8 @@ passportAuthorizationForm id:int32 required_types:vector<PassportElementType> el
 encryptedCredentials data:bytes hash:bytes secret:bytes = EncryptedCredentials;
 
 
-//@description Contains information about encrypted Telegram Passport element; for bots only @type Type of Telegram Passport element @data Encrypted JSON-encoded data about the user @front_side The front side of an identity document @reverse_side The reverse side of an identity document; may be null @selfie Selfie with the document; may be null @translations List of files with the document translation @files List of attached files @value Unencrypted data, phone number or email address @hash Hash of the whole element
-encryptedPassportElement type:PassportElementType data:bytes front_side:datedFile reverse_side:datedFile selfie:datedFile translations:vector<datedFile> files:vector<datedFile> value:string hash:string = EncryptedPassportElement;
+//@description Contains information about encrypted Telegram Passport element; for bots only @type Type of Telegram Passport element @data Encrypted JSON-encoded data about the user @front_side The front side of an identity document @reverse_side The reverse side of an identity document; may be null @selfie Selfie with the document; may be null @translation List of files with the document translation @files List of attached files @value Unencrypted data, phone number or email address @hash Hash of the whole element
+encryptedPassportElement type:PassportElementType data:bytes front_side:datedFile reverse_side:datedFile selfie:datedFile translation:vector<datedFile> files:vector<datedFile> value:string hash:string = EncryptedPassportElement;
 
 
 //@class InputPassportElementErrorSource @description Contains the description of an error in Telegram Passport element; for bots only
@@ -1040,11 +1040,11 @@ inputPassportElementErrorSourceReverseSide file_hash:bytes = InputPassportElemen
 //@description The selfie contains an error. The error is considered resolved when the file with the selfie changes @file_hash Current hash of the file containing the selfie
 inputPassportElementErrorSourceSelfie file_hash:bytes = InputPassportElementErrorSource;
 
-//@description The translation contains an error. The error is considered resolved when the file with the translation changes @file_hash Current hash of the file containing the translation
-inputPassportElementErrorSourceTranslation file_hash:bytes = InputPassportElementErrorSource;
+//@description One of files with the translation of the document contains an error. The error is considered resolved when the file with the translation changes @file_hash Current hash of the file containing the translation
+inputPassportElementErrorSourceTranslationFile file_hash:bytes = InputPassportElementErrorSource;
 
-//@description The list of translation files contains an error. The error is considered resolved when the file list changes @file_hashes Current hashes of all files with the translation
-inputPassportElementErrorSourceTranslations file_hashes:vector<bytes> = InputPassportElementErrorSource;
+//@description The translation of the document contains an error. The error is considered resolved when the file list changes @file_hashes Current hashes of all files with the translation
+inputPassportElementErrorSourceTranslationFiles file_hashes:vector<bytes> = InputPassportElementErrorSource;
 
 //@description The file contains an error. The error is considered resolved when the file changes @file_hash Current hash of the file with an error
 inputPassportElementErrorSourceFile file_hash:bytes = InputPassportElementErrorSource;

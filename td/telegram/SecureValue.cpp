@@ -874,8 +874,8 @@ static Result<SecureValue> get_identity_document(SecureValueType type, FileManag
     TRY_RESULT(selfie, get_secure_file(file_manager, std::move(identity_document->selfie_)));
     res.selfie = std::move(selfie);
   }
-  if (!identity_document->translations_.empty()) {
-    TRY_RESULT(translations, get_secure_files(file_manager, std::move(identity_document->translations_)));
+  if (!identity_document->translation_.empty()) {
+    TRY_RESULT(translations, get_secure_files(file_manager, std::move(identity_document->translation_)));
     res.translations = std::move(translations);
   }
   return res;
@@ -1406,7 +1406,7 @@ static auto credentials_as_jsonable(const std::vector<SecureValueCredentials> &c
                 o("selfie", as_jsonable(cred.selfie.value()));
               }
               if (!cred.translations.empty() && with_translations) {
-                o("translations", as_jsonable(cred.translations));
+                o("translation", as_jsonable(cred.translations));
               }
             }));
         }

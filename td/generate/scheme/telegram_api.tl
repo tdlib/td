@@ -886,8 +886,8 @@ secureValueErrorSelfie#e537ced6 type:SecureValueType file_hash:bytes text:string
 secureValueErrorFile#7a700873 type:SecureValueType file_hash:bytes text:string = SecureValueError;
 secureValueErrorFiles#666220e9 type:SecureValueType file_hash:Vector<bytes> text:string = SecureValueError;
 secureValueError#869d758f type:SecureValueType hash:bytes text:string = SecureValueError;
-secureValueErrorTranslation#5fbc1134 type:SecureValueType file_hash:bytes text:string = SecureValueError;
-secureValueErrorTranslations#781e629b type:SecureValueType file_hash:Vector<bytes> text:string = SecureValueError;
+secureValueErrorTranslationFile#a1144770 type:SecureValueType file_hash:bytes text:string = SecureValueError;
+secureValueErrorTranslationFiles#34636dd8 type:SecureValueType file_hash:Vector<bytes> text:string = SecureValueError;
 
 secureCredentialsEncrypted#33f0ea47 data:bytes hash:bytes secret:bytes = SecureCredentialsEncrypted;
 

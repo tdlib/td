@@ -791,18 +791,18 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
           source = td_api::make_object<td_api::passportElementErrorSourceSelfie>();
           break;
         }
-        case telegram_api::secureValueErrorTranslation::ID: {
-          auto error = move_tl_object_as<telegram_api::secureValueErrorTranslation>(error_ptr);
+        case telegram_api::secureValueErrorTranslationFile::ID: {
+          auto error = move_tl_object_as<telegram_api::secureValueErrorTranslationFile>(error_ptr);
           type = get_secure_value_type(error->type_);
           message = std::move(error->text_);
-          source = td_api::make_object<td_api::passportElementErrorSourceTranslation>();
+          source = td_api::make_object<td_api::passportElementErrorSourceTranslationFile>();
           break;
         }
-        case telegram_api::secureValueErrorTranslations::ID: {
-          auto error = move_tl_object_as<telegram_api::secureValueErrorTranslations>(error_ptr);
+        case telegram_api::secureValueErrorTranslationFiles::ID: {
+          auto error = move_tl_object_as<telegram_api::secureValueErrorTranslationFiles>(error_ptr);
           type = get_secure_value_type(error->type_);
           message = std::move(error->text_);
-          source = td_api::make_object<td_api::passportElementErrorSourceTranslations>();
+          source = td_api::make_object<td_api::passportElementErrorSourceTranslationFiles>();
           break;
         }
         default:
@@ -949,19 +949,19 @@ void SecureManager::set_secure_value_errors(Td *td, tl_object_ptr<telegram_api::
             std::move(type), BufferSlice(source->file_hash_), error->message_));
         break;
       }
-      case td_api::inputPassportElementErrorSourceTranslation::ID: {
-        auto source = td_api::move_object_as<td_api::inputPassportElementErrorSourceTranslation>(error->source_);
-        input_errors.push_back(make_tl_object<telegram_api::secureValueErrorTranslation>(
+      case td_api::inputPassportElementErrorSourceTranslationFile::ID: {
+        auto source = td_api::move_object_as<td_api::inputPassportElementErrorSourceTranslationFile>(error->source_);
+        input_errors.push_back(make_tl_object<telegram_api::secureValueErrorTranslationFile>(
             std::move(type), BufferSlice(source->file_hash_), error->message_));
         break;
       }
-      case td_api::inputPassportElementErrorSourceTranslations::ID: {
-        auto source = td_api::move_object_as<td_api::inputPassportElementErrorSourceTranslations>(error->source_);
+      case td_api::inputPassportElementErrorSourceTranslationFiles::ID: {
+        auto source = td_api::move_object_as<td_api::inputPassportElementErrorSourceTranslationFiles>(error->source_);
         if (source->file_hashes_.empty()) {
           return promise.set_error(Status::Error(400, "File hashes must be non-empty"));
         }
         auto file_hashes = transform(source->file_hashes_, [](Slice hash) { return BufferSlice(hash); });
-        input_errors.push_back(make_tl_object<telegram_api::secureValueErrorTranslations>(
+        input_errors.push_back(make_tl_object<telegram_api::secureValueErrorTranslationFiles>(
             std::move(type), std::move(file_hashes), error->message_));
         break;
       }
