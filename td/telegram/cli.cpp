@@ -1093,23 +1093,34 @@ class CliClient final : public Actor {
       return make_tl_object<td_api::inputPassportElementPhoneNumber>(arg);
     } else if (passport_element_type == "pd") {
       return make_tl_object<td_api::inputPassportElementPersonalDetails>(make_tl_object<td_api::personalDetails>(
-          "Mike", "Towers", make_tl_object<td_api::date>(29, 2, 2000), "male", "US", "GB"));
+          "Mike", "Jr", "Towers", make_tl_object<td_api::date>(29, 2, 2000), "male", "US", "GB"));
     } else if (passport_element_type == "driver_license" || passport_element_type == "dl") {
-      if (input_files.size() == 2) {
+      if (input_files.size() >= 2) {
+        auto front_side = std::move(input_files[0]);
+        input_files.erase(input_files.begin());
+        auto reverse_side = std::move(input_files[0]);
+        input_files.erase(input_files.begin());
         return make_tl_object<td_api::inputPassportElementDriverLicense>(make_tl_object<td_api::inputIdentityDocument>(
-            "1234567890", make_tl_object<td_api::date>(1, 3, 2029), std::move(input_files[0]),
-            std::move(input_files[1]), std::move(selfie)));
+            "1234567890", make_tl_object<td_api::date>(1, 3, 2029), std::move(front_side), std::move(reverse_side),
+            std::move(selfie), std::move(input_files)));
       }
     } else if (passport_element_type == "identity_card" || passport_element_type == "ic") {
-      if (input_files.size() == 2) {
+      if (input_files.size() >= 2) {
+        auto front_side = std::move(input_files[0]);
+        input_files.erase(input_files.begin());
+        auto reverse_side = std::move(input_files[0]);
+        input_files.erase(input_files.begin());
         return make_tl_object<td_api::inputPassportElementIdentityCard>(make_tl_object<td_api::inputIdentityDocument>(
-            "1234567890", nullptr, std::move(input_files[0]), std::move(input_files[1]), std::move(selfie)));
+            "1234567890", nullptr, std::move(front_side), std::move(reverse_side), std::move(selfie),
+            std::move(input_files)));
       }
     } else if (passport_element_type == "internal_passport" || passport_element_type == "ip") {
-      if (input_files.size() == 1) {
+      if (input_files.size() >= 1) {
+        auto front_side = std::move(input_files[0]);
+        input_files.erase(input_files.begin());
         return make_tl_object<td_api::inputPassportElementInternalPassport>(
-            make_tl_object<td_api::inputIdentityDocument>("1234567890", nullptr, std::move(input_files[0]), nullptr,
-                                                          std::move(selfie)));
+            make_tl_object<td_api::inputIdentityDocument>("1234567890", nullptr, std::move(front_side), nullptr,
+                                                          std::move(selfie), std::move(input_files)));
       }
     } else if (passport_element_type == "rental_aggrement" || passport_element_type == "ra") {
       return make_tl_object<td_api::inputPassportElementRentalAgreement>(std::move(input_files));

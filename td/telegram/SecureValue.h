@@ -113,7 +113,8 @@ struct EncryptedSecureValue {
   EncryptedSecureFile front_side;
   EncryptedSecureFile reverse_side;
   EncryptedSecureFile selfie;
-  string hash;  // memory only
+  vector<EncryptedSecureFile> translations;
+  string hash;
 };
 
 bool operator==(const EncryptedSecureValue &lhs, const EncryptedSecureValue &rhs);
@@ -128,8 +129,9 @@ vector<EncryptedSecureValue> get_encrypted_secure_values(
 td_api::object_ptr<td_api::encryptedPassportElement> get_encrypted_passport_element_object(
     FileManager *file_manager, const EncryptedSecureValue &value);
 telegram_api::object_ptr<telegram_api::inputSecureValue> get_input_secure_value_object(
-    FileManager *file_manager, const EncryptedSecureValue &value, vector<SecureInputFile> &input_files,
-    optional<SecureInputFile> &front_side, optional<SecureInputFile> &reverse_side, optional<SecureInputFile> &selfie);
+    FileManager *file_manager, const EncryptedSecureValue &value, vector<SecureInputFile> &files,
+    optional<SecureInputFile> &front_side, optional<SecureInputFile> &reverse_side, optional<SecureInputFile> &selfie,
+    vector<SecureInputFile> &translations);
 
 vector<td_api::object_ptr<td_api::encryptedPassportElement>> get_encrypted_passport_element_object(
     FileManager *file_manager, const vector<EncryptedSecureValue> &values);
@@ -168,10 +170,12 @@ struct SecureValueCredentials {
   optional<SecureFileCredentials> front_side;
   optional<SecureFileCredentials> reverse_side;
   optional<SecureFileCredentials> selfie;
+  std::vector<SecureFileCredentials> translations;
 };
 
 Result<EncryptedSecureCredentials> get_encrypted_credentials(const std::vector<SecureValueCredentials> &credentials,
-                                                             Slice payload, bool with_selfie, Slice public_key);
+                                                             Slice payload, bool with_selfie, bool with_translations,
+                                                             Slice public_key);
 
 class SecureValue {
  public:
@@ -181,6 +185,7 @@ class SecureValue {
   DatedFile front_side;
   DatedFile reverse_side;
   DatedFile selfie;
+  vector<DatedFile> translations;
 };
 
 struct SecureValueWithCredentials {

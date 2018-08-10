@@ -79,7 +79,8 @@ class SetSecureValue : public NetQueryCallback {
   optional<secure_storage::Secret> secret_;
 
   size_t files_left_to_upload_ = 0;
-  vector<SecureInputFile> to_upload_;
+  vector<SecureInputFile> files_to_upload_;
+  vector<SecureInputFile> translations_to_upload_;
   optional<SecureInputFile> front_side_;
   optional<SecureInputFile> reverse_side_;
   optional<SecureInputFile> selfie_;
@@ -318,7 +319,13 @@ void SetSecureValue::UploadCallback::on_upload_error(FileId file_id, Status erro
 
 void SetSecureValue::on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) {
   SecureInputFile *info_ptr = nullptr;
-  for (auto &info : to_upload_) {
+  for (auto &info : files_to_upload_) {
+    if (info.file_id == file_id) {
+      info_ptr = &info;
+      break;
+    }
+  }
+  for (auto &info : translations_to_upload_) {
     if (info.file_id == file_id) {
       info_ptr = &info;
       break;
@@ -398,6 +405,8 @@ void SetSecureValue::start_up() {
       return on_error(Status::Error(400, "Reverse side and selfie must be different"));
     }
   }
+
+  CHECK(secure_value_.files.empty() || secure_value_.translations.empty());
   if (!secure_value_.files.empty()) {
     CHECK(!front_side_file_id.is_valid());
     CHECK(!reverse_side_file_id.is_valid());
@@ -418,11 +427,33 @@ void SetSecureValue::start_up() {
       }
     }
   }
+  if (!secure_value_.translations.empty()) {
+    for (auto it = secure_value_.translations.begin(); it != secure_value_.translations.end();) {
+      auto file_id = file_manager->get_file_view(it->file_id).file_id();
+      bool is_duplicate = file_id == front_side_file_id || file_id == reverse_side_file_id || file_id == selfie_file_id;
+      for (auto pit = secure_value_.translations.begin(); pit != it; pit++) {
+        if (file_id == file_manager->get_file_view(pit->file_id).file_id()) {
+          is_duplicate = true;
+          break;
+        }
+      }
+      if (is_duplicate) {
+        it = secure_value_.translations.erase(it);
+      } else {
+        ++it;
+      }
+    }
+  }
 
-  to_upload_.resize(secure_value_.files.size());
   upload_callback_ = std::make_shared<UploadCallback>(actor_id(this));
-  for (size_t i = 0; i < to_upload_.size(); i++) {
-    start_upload(file_manager, secure_value_.files[i].file_id, to_upload_[i]);
+
+  files_to_upload_.resize(secure_value_.files.size());
+  for (size_t i = 0; i < files_to_upload_.size(); i++) {
+    start_upload(file_manager, secure_value_.files[i].file_id, files_to_upload_[i]);
+  }
+  translations_to_upload_.resize(secure_value_.translations.size());
+  for (size_t i = 0; i < translations_to_upload_.size(); i++) {
+    start_upload(file_manager, secure_value_.translations[i].file_id, translations_to_upload_[i]);
   }
   if (front_side_) {
     start_upload(file_manager, secure_value_.front_side.file_id, front_side_.value());
@@ -461,7 +492,7 @@ void SetSecureValue::loop() {
     auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
     auto input_secure_value =
         get_input_secure_value_object(file_manager, encrypt_secure_value(file_manager, *secret_, secure_value_),
-                                      to_upload_, front_side_, reverse_side_, selfie_);
+                                      files_to_upload_, front_side_, reverse_side_, selfie_, translations_to_upload_);
     auto save_secure_value =
         telegram_api::account_saveSecureValue(std::move(input_secure_value), secret_.value().get_hash());
     auto query = G()->net_query_creator().create(create_storer(save_secure_value));
@@ -480,7 +511,10 @@ void SetSecureValue::tear_down() {
   if (file_manager == nullptr) {
     return;
   }
-  for (auto &file_info : to_upload_) {
+  for (auto &file_info : files_to_upload_) {
+    file_manager->upload(file_info.file_id, nullptr, 0, 0);
+  }
+  for (auto &file_info : translations_to_upload_) {
     file_manager->upload(file_info.file_id, nullptr, 0, 0);
   }
   if (front_side_) {
@@ -519,6 +553,9 @@ void SetSecureValue::on_result(NetQueryPtr query) {
   }
   if (secure_value_.selfie.file_id.is_valid() && encrypted_secure_value.selfie.file.file_id.is_valid()) {
     merge(file_manager, secure_value_.selfie.file_id, encrypted_secure_value.selfie);
+  }
+  for (size_t i = 0; i < secure_value_.translations.size(); i++) {
+    merge(file_manager, secure_value_.translations[i].file_id, encrypted_secure_value.translations[i]);
   }
   auto r_secure_value = decrypt_secure_value(file_manager, *secret_, encrypted_secure_value);
   if (r_secure_value.is_error()) {
@@ -647,7 +684,26 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
     std::vector<TdApiSecureValue> values;
     bool is_selfie_required =
         (authorization_form_->flags_ & telegram_api::account_authorizationForm::SELFIE_REQUIRED_MASK) != 0;
-    auto types = get_secure_value_types(authorization_form_->required_types_);
+    bool is_translation_required =
+        (authorization_form_->flags_ & telegram_api::account_authorizationForm::TRANSLATION_REQUIRED_MASK) != 0;
+    vector<SecureValueType> types;
+    for (auto &type_ptr : authorization_form_->required_types_) {
+      CHECK(type_ptr != nullptr);
+      switch (type_ptr->get_id()) {
+        case telegram_api::secureRequiredType::ID: {
+          auto type = move_tl_object_as<telegram_api::secureRequiredType>(type_ptr);
+          types.push_back(get_secure_value_type(type->type_));
+          break;
+        }
+        case telegram_api::secureRequiredTypeOneOf::ID: {
+          auto type = move_tl_object_as<telegram_api::secureRequiredTypeOneOf>(type_ptr);
+          append(types, get_secure_value_types(type->types_));
+          break;
+        }
+        default:
+          UNREACHABLE();
+      }
+    }
     for (auto type : types) {
       for (auto &value : authorization_form_->values_) {
         if (value == nullptr) {
@@ -685,6 +741,13 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
       td_api::object_ptr<td_api::PassportElementErrorSource> source;
       string message;
       switch (error_ptr->get_id()) {
+        case telegram_api::secureValueError::ID: {
+          auto error = move_tl_object_as<telegram_api::secureValueError>(error_ptr);
+          type = get_secure_value_type(error->type_);
+          message = std::move(error->text_);
+          source = td_api::make_object<td_api::passportElementErrorSourceUnspecified>();
+          break;
+        }
         case telegram_api::secureValueErrorData::ID: {
           auto error = move_tl_object_as<telegram_api::secureValueErrorData>(error_ptr);
           type = get_secure_value_type(error->type_);
@@ -731,6 +794,20 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
           source = td_api::make_object<td_api::passportElementErrorSourceSelfie>();
           break;
         }
+        case telegram_api::secureValueErrorTranslation::ID: {
+          auto error = move_tl_object_as<telegram_api::secureValueErrorTranslation>(error_ptr);
+          type = get_secure_value_type(error->type_);
+          message = std::move(error->text_);
+          source = td_api::make_object<td_api::passportElementErrorSourceTranslation>();
+          break;
+        }
+        case telegram_api::secureValueErrorTranslations::ID: {
+          auto error = move_tl_object_as<telegram_api::secureValueErrorTranslations>(error_ptr);
+          type = get_secure_value_type(error->type_);
+          message = std::move(error->text_);
+          source = td_api::make_object<td_api::passportElementErrorSourceTranslations>();
+          break;
+        }
         default:
           UNREACHABLE();
       }
@@ -744,7 +821,7 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
 
     promise_.set_value(make_tl_object<td_api::passportAuthorizationForm>(
         authorization_form_id_, get_passport_element_types_object(types), std::move(values), std::move(errors),
-        is_selfie_required, authorization_form_->privacy_policy_url_));
+        is_selfie_required, is_translation_required, authorization_form_->privacy_policy_url_));
     stop();
   }
 };
@@ -841,6 +918,12 @@ void SecureManager::set_secure_value_errors(Td *td, tl_object_ptr<telegram_api::
 
     auto type = get_input_secure_value_type(get_secure_value_type_td_api(error->type_));
     switch (error->source_->get_id()) {
+      case td_api::inputPassportElementErrorSourceUnspecified::ID: {
+        auto source = td_api::move_object_as<td_api::inputPassportElementErrorSourceUnspecified>(error->source_);
+        input_errors.push_back(make_tl_object<telegram_api::secureValueError>(
+            std::move(type), BufferSlice(source->element_hash_), error->message_));
+        break;
+      }
       case td_api::inputPassportElementErrorSourceDataField::ID: {
         auto source = td_api::move_object_as<td_api::inputPassportElementErrorSourceDataField>(error->source_);
         if (!clean_input_string(source->field_name_)) {
@@ -869,6 +952,22 @@ void SecureManager::set_secure_value_errors(Td *td, tl_object_ptr<telegram_api::
             std::move(type), BufferSlice(source->file_hash_), error->message_));
         break;
       }
+      case td_api::inputPassportElementErrorSourceTranslation::ID: {
+        auto source = td_api::move_object_as<td_api::inputPassportElementErrorSourceTranslation>(error->source_);
+        input_errors.push_back(make_tl_object<telegram_api::secureValueErrorTranslation>(
+            std::move(type), BufferSlice(source->file_hash_), error->message_));
+        break;
+      }
+      case td_api::inputPassportElementErrorSourceTranslations::ID: {
+        auto source = td_api::move_object_as<td_api::inputPassportElementErrorSourceTranslations>(error->source_);
+        if (source->file_hashes_.empty()) {
+          return promise.set_error(Status::Error(400, "File hashes must be non-empty"));
+        }
+        auto file_hashes = transform(source->file_hashes_, [](Slice hash) { return BufferSlice(hash); });
+        input_errors.push_back(make_tl_object<telegram_api::secureValueErrorTranslations>(
+            std::move(type), std::move(file_hashes), error->message_));
+        break;
+      }
       case td_api::inputPassportElementErrorSourceFile::ID: {
         auto source = td_api::move_object_as<td_api::inputPassportElementErrorSourceFile>(error->source_);
         input_errors.push_back(make_tl_object<telegram_api::secureValueErrorFile>(
@@ -878,7 +977,7 @@ void SecureManager::set_secure_value_errors(Td *td, tl_object_ptr<telegram_api::
       case td_api::inputPassportElementErrorSourceFiles::ID: {
         auto source = td_api::move_object_as<td_api::inputPassportElementErrorSourceFiles>(error->source_);
         if (source->file_hashes_.empty()) {
-          return promise.set_error(Status::Error(400, "Error hashes must be non-empty"));
+          return promise.set_error(Status::Error(400, "File hashes must be non-empty"));
         }
         auto file_hashes = transform(source->file_hashes_, [](Slice hash) { return BufferSlice(hash); });
         input_errors.push_back(make_tl_object<telegram_api::secureValueErrorFiles>(
@@ -927,6 +1026,7 @@ void SecureManager::on_get_passport_authorization_form(int32 authorization_form_
   auto authorization_form = r_authorization_form.move_as_ok();
   CHECK(authorization_form != nullptr);
   it->second.is_selfie_required = authorization_form->is_selfie_required_;
+  it->second.is_translation_required = authorization_form->is_translation_required_;
   promise.set_value(std::move(authorization_form));
 }
 
@@ -997,7 +1097,8 @@ void SecureManager::do_send_passport_authorization_form(int32 authorization_form
   }
 
   auto r_encrypted_credentials =
-      get_encrypted_credentials(credentials, it->second.payload, it->second.is_selfie_required, it->second.public_key);
+      get_encrypted_credentials(credentials, it->second.payload, it->second.is_selfie_required,
+                                it->second.is_translation_required, it->second.public_key);
   if (r_encrypted_credentials.is_error()) {
     return promise.set_error(r_encrypted_credentials.move_as_error());
   }

@@ -57,6 +57,7 @@ class SecureManager : public NetQueryCallback {
     string public_key;
     string payload;
     bool is_selfie_required;
+    bool is_translation_required;
     bool is_received;
   };
 
