@@ -9,6 +9,7 @@
 #include "td/utils/format.h"
 #include "td/utils/Gzip.h"
 #include "td/utils/logging.h"
+#include "td/utils/Slice.h"
 
 namespace td {
 

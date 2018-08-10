@@ -14,6 +14,7 @@
 
 #include "td/mtproto/crypto.h"
 
+#include "td/utils/BigNum.h"
 #include "td/utils/buffer.h"
 #include "td/utils/crypto.h"
 #include "td/utils/format.h"
