@@ -396,7 +396,7 @@ TEST(Misc, translit) {
 static void test_unicode(uint32 (*func)(uint32)) {
   for (uint32 i = 0; i <= 0x110000; i++) {
     auto res = func(i);
-    CHECK(0 <= res && res <= 0x10ffff);
+    CHECK(res <= 0x10ffff);
   }
 }
 

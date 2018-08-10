@@ -998,7 +998,7 @@ void SecureManager::get_passport_authorization_form(string password, UserId bot_
   refcnt_++;
   auto authorization_form_id = ++authorization_form_id_;
   authorization_forms_[authorization_form_id] =
-      AuthorizationForm{bot_user_id, scope, public_key, payload, false, false};
+      AuthorizationForm{bot_user_id, scope, public_key, payload, false, false, false};
   auto new_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), authorization_form_id, promise = std::move(promise)](
                                  Result<TdApiAuthorizationForm> r_authorization_form) mutable {
