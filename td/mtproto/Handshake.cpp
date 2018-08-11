@@ -171,8 +171,6 @@ Status AuthKeyHandshake::on_server_dh_params(Slice message, Callback *connection
     return Status::Error("SHA1 mismatch");
   }
 
-  // server_DH_inner_data#b5890dba nonce:int128 server_nonce:int128 g:int dh_prime:string g_a:string server_time:int =
-  // Server_DH_inner_data;
   if (dh_inner_data.nonce_ != nonce) {
     return Status::Error("Nonce mismatch");
   }
@@ -182,10 +180,12 @@ Status AuthKeyHandshake::on_server_dh_params(Slice message, Callback *connection
 
   server_time_diff = dh_inner_data.server_time_ - Time::now();
 
-  string g_b;
-  string auth_key_str;
-  TRY_STATUS(
-      dh_handshake(dh_inner_data.g_, dh_inner_data.dh_prime_, dh_inner_data.g_a_, &g_b, &auth_key_str, dh_callback));
+  DhHandshake handshake;
+  handshake.set_config(dh_inner_data.g_, dh_inner_data.dh_prime_);
+  handshake.set_g_a(dh_inner_data.g_a_);
+  TRY_STATUS(handshake.run_checks(false, dh_callback));
+  string g_b = handshake.get_g_b();
+  auto auth_key_params = handshake.gen_key();
 
   mtproto_api::client_DH_inner_data data(nonce, server_nonce, 0, g_b);
   size_t data_size = 4 + tl_calc_length(data);
@@ -205,7 +205,7 @@ Status AuthKeyHandshake::on_server_dh_params(Slice message, Callback *connection
   mtproto_api::set_client_DH_params set_client_dh_params(nonce, server_nonce, encrypted_data);
   send(connection, create_storer(set_client_dh_params));
 
-  auth_key = AuthKey(dh_auth_key_id(auth_key_str), std::move(auth_key_str));
+  auth_key = AuthKey(auth_key_params.first, std::move(auth_key_params.second));
   if (mode_ == Mode::Temp) {
     auth_key.set_expire_at(expire_at_);
   }
@@ -231,6 +231,7 @@ Status AuthKeyHandshake::on_dh_gen_response(Slice message, Callback *connection)
   }
   return Status::OK();
 }
+
 void AuthKeyHandshake::send(Callback *connection, const Storer &storer) {
   auto size = storer.size();
   auto writer = BufferWriter{size, 0, 0};
@@ -239,6 +240,7 @@ void AuthKeyHandshake::send(Callback *connection, const Storer &storer) {
   last_query_ = writer.as_buffer_slice();
   return do_send(connection, create_storer(last_query_.as_slice()));
 }
+
 void AuthKeyHandshake::do_send(Callback *connection, const Storer &storer) {
   return connection->send_no_crypto(storer);
 }

@@ -158,11 +158,6 @@ class DhHandshake {
   BigNumContext ctx_;
 };
 
-// TODO: remove this legacy functions
-Status dh_handshake(int g_int, Slice prime_str, Slice g_a_str, string *g_b_str, string *g_ab_str,
-                    DhCallback *callback) TD_WARN_UNUSED_RESULT;
-int64 dh_auth_key_id(const string &auth_key);
-
 /*** KDF ***/
 void KDF(const string &auth_key, const UInt128 &msg_key, int X, UInt256 *aes_key, UInt256 *aes_iv);
 void tmp_KDF(const UInt128 &server_nonce, const UInt256 &new_nonce, UInt256 *tmp_aes_key, UInt256 *tmp_aes_iv);

@@ -241,12 +241,6 @@ Status DhHandshake::dh_check(const BigNum &prime, const BigNum &g_a, const BigNu
   return Status::OK();
 }
 
-int64 dh_auth_key_id(const string &auth_key) {
-  UInt<160> auth_key_sha1;
-  sha1(auth_key, auth_key_sha1.raw);
-  return as<int64>(auth_key_sha1.raw + 12);
-}
-
 void DhHandshake::set_config(int32 g_int, Slice prime_str) {
   has_config_ = true;
   prime_ = BigNum::from_binary(prime_str);
@@ -348,17 +342,6 @@ int64 DhHandshake::calc_key_id(const string &auth_key) {
   UInt<160> auth_key_sha1;
   sha1(auth_key, auth_key_sha1.raw);
   return as<int64>(auth_key_sha1.raw + 12);
-}
-
-Status dh_handshake(int g_int, Slice prime_str, Slice g_a_str, string *g_b_str, string *g_ab_str,
-                    DhCallback *callback) {
-  DhHandshake handshake;
-  handshake.set_config(g_int, prime_str);
-  handshake.set_g_a(g_a_str);
-  TRY_STATUS(handshake.run_checks(false, callback));
-  *g_b_str = handshake.get_g_b();
-  *g_ab_str = handshake.gen_key().second;
-  return Status::OK();
 }
 
 /*** KDF ***/
