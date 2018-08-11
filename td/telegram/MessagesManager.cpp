@@ -19719,6 +19719,10 @@ void MessagesManager::send_update_new_message(Dialog *d, const Message *m, bool 
     auto promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = d->dialog_id](Result<Unit> result) {
       send_closure(actor_id, &MessagesManager::flush_pending_update_new_messages, dialog_id);
     });
+    if (settings_dialog == nullptr && have_input_peer(settings_dialog_id, AccessRights::Read)) {
+      force_create_dialog(settings_dialog_id, "send update new message");
+      settings_dialog = get_dialog(settings_dialog_id);
+    }
     if (settings_dialog != nullptr) {
       send_get_dialog_notification_settings_query(settings_dialog_id, std::move(promise));
     } else {
