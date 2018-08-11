@@ -8169,6 +8169,11 @@ bool MessagesManager::can_forward_message(DialogId from_dialog_id, const Message
   }
 
   auto content_id = m->content->get_id();
+  if (content_id == MessageText::ID) {
+    auto *text = static_cast<const MessageText *>(m->content.get());
+    return !text->text.text.empty();  // text can't be empty in the new message
+  }
+
   return !is_service_message_content(content_id) && content_id != MessageUnsupported::ID &&
          content_id != MessageExpiredPhoto::ID && content_id != MessageExpiredVideo::ID;
 }
