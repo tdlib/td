@@ -721,6 +721,9 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
         default:
           UNREACHABLE();
       }
+      if (!required_type.empty()) {
+        required_types.push_back(required_type);
+      }
     }
 
     std::vector<TdApiSecureValue> values;
