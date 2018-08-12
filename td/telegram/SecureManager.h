@@ -60,6 +60,7 @@ class SecureManager : public NetQueryCallback {
     string public_key;
     string payload;
     bool is_received;
+    std::unordered_map<SecureValueType, SuitableSecureValue> options;
   };
 
   std::unordered_map<int32, AuthorizationForm> authorization_forms_;
@@ -69,8 +70,10 @@ class SecureManager : public NetQueryCallback {
   void hangup_shared() override;
   void dec_refcnt();
   void on_delete_secure_value(SecureValueType type, Promise<Unit> promise, Result<Unit> result);
-  void on_get_passport_authorization_form(int32 authorization_form_id, Promise<TdApiAuthorizationForm> promise,
-                                          Result<TdApiAuthorizationForm> r_authorization_form);
+  void on_get_passport_authorization_form(
+      int32 authorization_form_id, Promise<TdApiAuthorizationForm> promise,
+      Result<std::pair<std::unordered_map<SecureValueType, SuitableSecureValue>, TdApiAuthorizationForm>>
+          r_authorization_form);
 
   void on_result(NetQueryPtr query) override;
   Container<Promise<NetQueryPtr>> container_;
