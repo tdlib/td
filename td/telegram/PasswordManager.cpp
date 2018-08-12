@@ -39,17 +39,20 @@ static void hash_sha256(Slice data, Slice salt, MutableSlice dest) {
 }
 
 BufferSlice PasswordManager::calc_password_hash(Slice password, Slice client_salt, Slice server_salt) {
+  LOG(INFO) << "Begin password hash calculation";
   BufferSlice buf(32);
   hash_sha256(password, client_salt, buf.as_slice());
   hash_sha256(buf.as_slice(), server_salt, buf.as_slice());
   BufferSlice hash(64);
   pbkdf2_sha512(buf.as_slice(), client_salt, 100000, hash.as_slice());
   hash_sha256(hash.as_slice(), server_salt, buf.as_slice());
+  LOG(INFO) << "End password hash calculation";
   return buf;
 }
 
 Result<BufferSlice> PasswordManager::calc_password_srp_hash(Slice password, Slice client_salt, Slice server_salt,
                                                             int32 g, Slice p) {
+  LOG(INFO) << "Begin password SRP hash calculation";
   TRY_STATUS(DhHandshake::check_config(g, p, DhCache::instance()));
 
   auto hash = calc_password_hash(password, client_salt, server_salt);
@@ -62,7 +65,9 @@ Result<BufferSlice> PasswordManager::calc_password_srp_hash(Slice password, Slic
   BigNum v_bn;
   BigNum::mod_exp(v_bn, g_bn, x_bn, p_bn, ctx);
 
-  return BufferSlice(v_bn.to_binary(256));
+  BufferSlice result(v_bn.to_binary(256));
+  LOG(INFO) << "End password SRP hash calculation";
+  return result;
 }
 
 tl_object_ptr<telegram_api::InputCheckPasswordSRP> PasswordManager::get_input_check_password(
@@ -84,6 +89,7 @@ tl_object_ptr<telegram_api::InputCheckPasswordSRP> PasswordManager::get_input_ch
     return make_tl_object<telegram_api::inputCheckPasswordEmpty>();
   }
 
+  LOG(INFO) << "Begin input password SRP hash calculation";
   BigNum g_bn;
   g_bn.set_value(g);
   auto g_padded = g_bn.to_binary(256);
@@ -130,6 +136,7 @@ tl_object_ptr<telegram_api::InputCheckPasswordSRP> PasswordManager::get_input_ch
   }
   auto M = sha256(PSLICE() << h1 << sha256(client_salt) << sha256(server_salt) << A << B << K);
 
+  LOG(INFO) << "End input password SRP hash calculation";
   return make_tl_object<telegram_api::inputCheckPasswordSRP>(id, BufferSlice(A), BufferSlice(M));
 }
 
@@ -157,6 +164,7 @@ void PasswordManager::set_password(string current_password, string new_password,
 
   update_password_settings(std::move(update_settings), std::move(promise));
 }
+
 void PasswordManager::set_recovery_email_address(string password, string new_recovery_email_address,
                                                  Promise<State> promise) {
   UpdateSettings update_settings;
@@ -469,8 +477,20 @@ static BufferSlice create_salt(Slice salt_prefix) {
 
 void PasswordManager::do_update_password_settings(UpdateSettings update_settings, PasswordFullState full_state,
                                                   Promise<bool> promise) {
-  auto state = std::move(full_state.state);
-  auto private_state = std::move(full_state.private_state);
+  // PasswordState has already been used to get PasswordPrivateState and need to be reget
+  do_get_state(PromiseCreator::lambda([actor_id = actor_id(this), update_settings = std::move(update_settings),
+                                       private_state = std::move(full_state.private_state),
+                                       promise = std::move(promise)](Result<PasswordState> r_state) mutable {
+    if (r_state.is_error()) {
+      return promise.set_error(r_state.move_as_error());
+    }
+    send_closure(actor_id, &PasswordManager::do_update_password_settings_impl, std::move(update_settings),
+                 r_state.move_as_ok(), std::move(private_state), std::move(promise));
+  }));
+}
+
+void PasswordManager::do_update_password_settings_impl(UpdateSettings update_settings, PasswordState state,
+                                                       PasswordPrivateState private_state, Promise<bool> promise) {
   auto new_settings = make_tl_object<telegram_api::account_passwordInputSettings>();
   if (update_settings.update_password) {
     new_settings->flags_ |= telegram_api::account_passwordInputSettings::NEW_PASSWORD_HASH_MASK;

@@ -158,6 +158,8 @@ class PasswordManager : public NetQueryCallback {
 
   void update_password_settings(UpdateSettings update_settings, Promise<State> promise);
   void do_update_password_settings(UpdateSettings update_settings, PasswordFullState full_state, Promise<bool> promise);
+  void do_update_password_settings_impl(UpdateSettings update_settings, PasswordState state,
+                                        PasswordPrivateState private_state, Promise<bool> promise);
   void do_get_state(Promise<PasswordState> promise);
   void get_full_state(string password, Promise<PasswordFullState> promise);
   void do_get_secure_secret(bool recursive, string passwod, optional<int64>, Promise<secure_storage::Secret> promise);
