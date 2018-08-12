@@ -584,6 +584,7 @@ void AuthManager::check_code(uint64 query_id, string code, string first_name, st
     return on_query_error(query_id, Status::Error(8, "checkAuthenticationCode unexpected"));
   }
 
+  code_ = code;
   on_new_query(query_id);
   if (send_code_helper_.phone_registered() || first_name.empty()) {
     start_net_query(NetQueryType::SignIn,
@@ -748,13 +749,13 @@ void AuthManager::on_get_password_result(NetQueryPtr &result) {
     return on_query_error(r_password.move_as_error());
   }
   auto password = r_password.move_as_ok();
+  LOG(INFO) << "Receive password info: " << to_string(password);
 
   wait_password_state_ = WaitPasswordState();
   if (password->current_algo_ != nullptr) {
     switch (password->current_algo_->get_id()) {
       case telegram_api::passwordKdfAlgoUnknown::ID:
-        // TODO we need to abort authorization somehow
-        break;
+        return on_query_error(Status::Error(400, "Application update is needed to log in"));
       case telegram_api::passwordKdfAlgoSHA256SHA256PBKDF2HMACSHA512iter100000SHA256ModPow::ID: {
         auto algo = move_tl_object_as<telegram_api::passwordKdfAlgoSHA256SHA256PBKDF2HMACSHA512iter100000SHA256ModPow>(
             password->current_algo_);
@@ -773,7 +774,12 @@ void AuthManager::on_get_password_result(NetQueryPtr &result) {
         UNREACHABLE();
     }
   } else {
-    // TODO we need to resend auth_signIn instead of going to WaitPassword state
+    start_net_query(NetQueryType::SignIn,
+                    G()->net_query_creator().create(
+                        create_storer(telegram_api::auth_signIn(send_code_helper_.phone_number().str(),
+                                                                send_code_helper_.phone_code_hash().str(), code_)),
+                        DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
+    return;
   }
 
   update_state(State::WaitPassword);

@@ -6482,6 +6482,7 @@ void ContactsManager::on_get_chats(vector<tl_object_ptr<telegram_api::Chat>> &&c
 }
 
 void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_full_ptr) {
+  LOG(INFO) << "Receive " << to_string(chat_full_ptr);
   if (chat_full_ptr->get_id() == telegram_api::chatFull::ID) {
     auto chat_full = move_tl_object_as<telegram_api::chatFull>(chat_full_ptr);
     ChatId chat_id(chat_full->id_);
