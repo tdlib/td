@@ -1093,7 +1093,8 @@ class CliClient final : public Actor {
       return make_tl_object<td_api::inputPassportElementPhoneNumber>(arg);
     } else if (passport_element_type == "pd") {
       return make_tl_object<td_api::inputPassportElementPersonalDetails>(make_tl_object<td_api::personalDetails>(
-          "Mike", "Jr", "Towers", make_tl_object<td_api::date>(29, 2, 2000), "male", "US", "GB"));
+          "Mike", "Jr", "Towers", u8"Mike\u2708", u8"Jr\u26fd", u8"Towers\u2757",
+          make_tl_object<td_api::date>(29, 2, 2000), "male", "US", "GB"));
     } else if (passport_element_type == "driver_license" || passport_element_type == "dl") {
       if (input_files.size() >= 2) {
         auto front_side = std::move(input_files[0]);

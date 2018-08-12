@@ -873,9 +873,11 @@ passportElementTypeEmailAddress = PassportElementType;
 //@description Represents a date according to the Gregorian calendar @day Day of the month, 1-31 @month Month, 1-12 @year Year, 1-9999
 date day:int32 month:int32 year:int32 = Date;
 
-//@description Contains the user's personal details @first_name First name of the user; 1-255 characters @middle_name Middle name of the user; 0-255 characters @last_name Last name of the user; 1-255 characters @birthdate Birthdate of the user
-//@gender Gender of the user, "male" or "female" @country_code A two-letter ISO 3166-1 alpha-2 country code for the user's country @residence_country_code A two-letter ISO 3166-1 alpha-2 country code for the user's residence country
-personalDetails first_name:string middle_name:string last_name:string birthdate:date gender:string country_code:string residence_country_code:string = PersonalDetails;
+//@description Contains the user's personal details
+//@first_name First name of the user written in English; 1-255 characters @middle_name Middle name of the user written in English; 0-255 characters @last_name Last name of the user written in English; 1-255 characters
+//@native_first_name Native first name of the user; 1-255 characters @native_middle_name Native middle name of the user; 0-255 characters @native_last_name Native last name of the user; 1-255 characters
+//@birthdate Birthdate of the user @gender Gender of the user, "male" or "female" @country_code A two-letter ISO 3166-1 alpha-2 country code for the user's country @residence_country_code A two-letter ISO 3166-1 alpha-2 country code for the user's residence country
+personalDetails first_name:string middle_name:string last_name:string native_first_name:string native_middle_name:string native_last_name:string birthdate:date gender:string country_code:string residence_country_code:string = PersonalDetails;
 
 //@description An identity document @number Document number; 1-24 characters @expiry_date Document expiry date; may be null @front_side Front side of the document
 //@reverse_side Reverse side of the document; only for driver license and identity card @selfie Selfie with the document; may be null @translation List of files with the document translation

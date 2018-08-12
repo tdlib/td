@@ -272,6 +272,15 @@ string get_secure_value_data_field_name(SecureValueType type, string field_name)
           field_name == "gender" || field_name == "country_code" || field_name == "residence_country_code") {
         return field_name;
       }
+      if (field_name == "first_name_native") {
+        return "native_first_name";
+      }
+      if (field_name == "middle_name_native") {
+        return "native_middle_name";
+      }
+      if (field_name == "last_name_native") {
+        return "native_last_name";
+      }
       if (field_name == "birth_date") {
         return "birthdate";
       }
@@ -726,38 +735,12 @@ static Result<td_api::object_ptr<td_api::date>> get_date_object(Slice date) {
   return td_api::make_object<td_api::date>(day, month, year);
 }
 
-static Status check_first_name(string &first_name) {
-  if (!clean_input_string(first_name)) {
-    return Status::Error(400, "First name must be encoded in UTF-8");
+static Status check_name(string &name) {
+  if (!clean_input_string(name)) {
+    return Status::Error(400, "Name must be encoded in UTF-8");
   }
-  if (first_name.empty()) {
-    return Status::Error(400, "First name must not be empty");
-  }
-  if (utf8_length(first_name) > 255) {
-    return Status::Error(400, "First name is too long");
-  }
-  return Status::OK();
-}
-
-static Status check_middle_name(string &middle_name) {
-  if (!clean_input_string(middle_name)) {
-    return Status::Error(400, "Middle name must be encoded in UTF-8");
-  }
-  if (utf8_length(middle_name) > 255) {
-    return Status::Error(400, "Middle name is too long");
-  }
-  return Status::OK();
-}
-
-static Status check_last_name(string &last_name) {
-  if (!clean_input_string(last_name)) {
-    return Status::Error(400, "Last name must be encoded in UTF-8");
-  }
-  if (last_name.empty()) {
-    return Status::Error(400, "Last name must not be empty");
-  }
-  if (utf8_length(last_name) > 255) {
-    return Status::Error(400, "Last name is too long");
+  if (utf8_length(name) > 255) {
+    return Status::Error(400, "Name is too long");
   }
   return Status::OK();
 }
@@ -773,9 +756,12 @@ static Result<string> get_personal_details(td_api::object_ptr<td_api::personalDe
   if (personal_details == nullptr) {
     return Status::Error(400, "Personal details must not be empty");
   }
-  TRY_STATUS(check_first_name(personal_details->first_name_));
-  TRY_STATUS(check_middle_name(personal_details->middle_name_));
-  TRY_STATUS(check_last_name(personal_details->last_name_));
+  TRY_STATUS(check_name(personal_details->first_name_));
+  TRY_STATUS(check_name(personal_details->middle_name_));
+  TRY_STATUS(check_name(personal_details->last_name_));
+  TRY_STATUS(check_name(personal_details->native_first_name_));
+  TRY_STATUS(check_name(personal_details->native_middle_name_));
+  TRY_STATUS(check_name(personal_details->native_last_name_));
   TRY_RESULT(birthdate, get_date(std::move(personal_details->birthdate_)));
   if (birthdate.empty()) {
     return Status::Error(400, "Birthdate must not be empty");
@@ -788,6 +774,9 @@ static Result<string> get_personal_details(td_api::object_ptr<td_api::personalDe
     o("first_name", personal_details->first_name_);
     o("middle_name", personal_details->middle_name_);
     o("last_name", personal_details->last_name_);
+    o("first_name_native", personal_details->native_first_name_);
+    o("middle_name_native", personal_details->native_middle_name_);
+    o("last_name_native", personal_details->native_last_name_);
     o("birth_date", birthdate);
     o("gender", personal_details->gender_);
     o("country_code", personal_details->country_code_);
@@ -811,6 +800,9 @@ static Result<td_api::object_ptr<td_api::personalDetails>> get_personal_details_
   TRY_RESULT(first_name, get_json_object_string_field(object, "first_name", true));
   TRY_RESULT(middle_name, get_json_object_string_field(object, "middle_name", true));
   TRY_RESULT(last_name, get_json_object_string_field(object, "last_name", true));
+  TRY_RESULT(native_first_name, get_json_object_string_field(object, "first_name_native", true));
+  TRY_RESULT(native_middle_name, get_json_object_string_field(object, "middle_name_native", true));
+  TRY_RESULT(native_last_name, get_json_object_string_field(object, "last_name_native", true));
   TRY_RESULT(birthdate, get_json_object_string_field(object, "birth_date", true));
   if (birthdate.empty()) {
     return Status::Error(400, "Birthdate must not be empty");
@@ -819,17 +811,21 @@ static Result<td_api::object_ptr<td_api::personalDetails>> get_personal_details_
   TRY_RESULT(country_code, get_json_object_string_field(object, "country_code", true));
   TRY_RESULT(residence_country_code, get_json_object_string_field(object, "residence_country_code", true));
 
-  TRY_STATUS(check_first_name(first_name));
-  TRY_STATUS(check_middle_name(middle_name));
-  TRY_STATUS(check_last_name(last_name));
+  TRY_STATUS(check_name(first_name));
+  TRY_STATUS(check_name(middle_name));
+  TRY_STATUS(check_name(last_name));
+  TRY_STATUS(check_name(native_first_name));
+  TRY_STATUS(check_name(native_middle_name));
+  TRY_STATUS(check_name(native_last_name));
   TRY_RESULT(date, get_date_object(birthdate));
   TRY_STATUS(check_gender(gender));
   TRY_STATUS(check_country_code(country_code));
   TRY_STATUS(check_country_code(residence_country_code));
 
-  return td_api::make_object<td_api::personalDetails>(std::move(first_name), std::move(middle_name),
-                                                      std::move(last_name), std::move(date), std::move(gender),
-                                                      std::move(country_code), std::move(residence_country_code));
+  return td_api::make_object<td_api::personalDetails>(
+      std::move(first_name), std::move(middle_name), std::move(last_name), std::move(native_first_name),
+      std::move(native_middle_name), std::move(native_last_name), std::move(date), std::move(gender),
+      std::move(country_code), std::move(residence_country_code));
 }
 
 static Status check_document_number(string &number) {
