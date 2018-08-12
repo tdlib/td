@@ -19,8 +19,8 @@
 #include "td/utils/Container.h"
 #include "td/utils/Status.h"
 
-#include <map>
 #include <memory>
+#include <unordered_map>
 
 namespace td {
 
@@ -41,6 +41,8 @@ class SecureManager : public NetQueryCallback {
   void set_secure_value_errors(Td *td, tl_object_ptr<telegram_api::InputUser> input_user,
                                vector<tl_object_ptr<td_api::inputPassportElementError>> errors, Promise<Unit> promise);
 
+  void on_get_secure_value(SecureValueWithCredentials value);
+
   void get_passport_authorization_form(string password, UserId bot_user_id, string scope, string public_key,
                                        string payload, Promise<TdApiAuthorizationForm> promise);
   void send_passport_authorization_form(string password, int32 authorization_form_id,
@@ -49,7 +51,8 @@ class SecureManager : public NetQueryCallback {
  private:
   ActorShared<> parent_;
   int32 refcnt_{1};
-  std::map<SecureValueType, ActorOwn<>> set_secure_value_queries_;
+  std::unordered_map<SecureValueType, ActorOwn<>> set_secure_value_queries_;
+  std::unordered_map<SecureValueType, SecureValueWithCredentials> secure_value_cache_;
 
   struct AuthorizationForm {
     UserId bot_user_id;
@@ -59,13 +62,14 @@ class SecureManager : public NetQueryCallback {
     bool is_received;
   };
 
-  std::map<int32, AuthorizationForm> authorization_forms_;
-  int32 authorization_form_id_{0};
+  std::unordered_map<int32, AuthorizationForm> authorization_forms_;
+  int32 max_authorization_form_id_{0};
 
   void hangup() override;
   void hangup_shared() override;
   void dec_refcnt();
-  void do_get_secure_value(std::string password, SecureValueType type, Promise<SecureValueWithCredentials> promise);
+  void do_get_secure_value(std::string password, SecureValueType type, bool allow_from_cache,
+                           Promise<SecureValueWithCredentials> promise);
   void on_delete_secure_value(SecureValueType type, Promise<Unit> promise, Result<Unit> result);
   void on_get_passport_authorization_form(int32 authorization_form_id, Promise<TdApiAuthorizationForm> promise,
                                           Result<TdApiAuthorizationForm> r_authorization_form);

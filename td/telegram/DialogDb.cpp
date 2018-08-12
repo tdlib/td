@@ -212,7 +212,7 @@ class DialogDbAsync : public DialogDbAsyncInterface {
       do_flush();
       sync_db_safe_.reset();
       sync_db_ = nullptr;
-      promise.set_result(Unit());
+      promise.set_value(Unit());
       stop();
     }
 
