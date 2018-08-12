@@ -742,6 +742,8 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
           break;
         }
 
+        send_closure(parent_, &SecureManager::on_get_secure_value, r_secure_value.ok());
+
         auto r_passport_element =
             get_passport_element_object(file_manager, std::move(r_secure_value.move_as_ok().value));
         if (r_passport_element.is_error()) {
@@ -867,18 +869,9 @@ void SecureManager::get_secure_value(std::string password, SecureValueType type,
         }
         promise.set_value(r_passport_element.move_as_ok());
       });
-  do_get_secure_value(std::move(password), type, false, std::move(new_promise));
-}
-
-void SecureManager::do_get_secure_value(std::string password, SecureValueType type, bool allow_from_cache,
-                                        Promise<SecureValueWithCredentials> promise) {
-  if (allow_from_cache && secure_value_cache_.count(type)) {
-    // TODO check password?
-    return promise.set_value(SecureValueWithCredentials(secure_value_cache_[type]));
-  }
 
   refcnt_++;
-  create_actor<GetSecureValue>("GetSecureValue", actor_shared(this), std::move(password), type, std::move(promise))
+  create_actor<GetSecureValue>("GetSecureValue", actor_shared(this), std::move(password), type, std::move(new_promise))
       .release();
 }
 
@@ -1062,8 +1055,8 @@ void SecureManager::on_get_passport_authorization_form(int32 authorization_form_
   promise.set_value(std::move(authorization_form));
 }
 
-void SecureManager::send_passport_authorization_form(string password, int32 authorization_form_id,
-                                                     std::vector<SecureValueType> types, Promise<> promise) {
+void SecureManager::send_passport_authorization_form(int32 authorization_form_id, std::vector<SecureValueType> types,
+                                                     Promise<> promise) {
   auto it = authorization_forms_.find(authorization_form_id);
   if (it == authorization_forms_.end()) {
     return promise.set_error(Status::Error(400, "Unknown authorization_form_id"));
@@ -1075,50 +1068,16 @@ void SecureManager::send_passport_authorization_form(string password, int32 auth
     return promise.set_error(Status::Error(400, "Types must be non-empty"));
   }
 
-  struct JoinPromise {
-    Promise<std::vector<SecureValueCredentials>> promise_;
-    std::vector<SecureValueCredentials> credentials_;
-    int wait_cnt_{0};
-  };
-
-  auto join = std::make_shared<JoinPromise>();
+  std::vector<SecureValueCredentials> credentials;
+  credentials.reserve(types.size());
   for (auto type : types) {
-    join->wait_cnt_++;
-    send_closure_later(actor_id(this), &SecureManager::do_get_secure_value, password, type, true,
-                       PromiseCreator::lambda([join](Result<SecureValueWithCredentials> r_secure_value) {
-                         if (!join->promise_) {
-                           return;
-                         }
-                         if (r_secure_value.is_error()) {
-                           return join->promise_.set_error(r_secure_value.move_as_error());
-                         }
-                         join->credentials_.push_back(r_secure_value.move_as_ok().credentials);
-                         join->wait_cnt_--;
-                         if (join->wait_cnt_ == 0) {
-                           join->promise_.set_value(std::move(join->credentials_));
-                         }
-                       }));
+    auto value_it = secure_value_cache_.find(type);
+    if (value_it == secure_value_cache_.end()) {
+      return promise.set_error(Status::Error(400, "Passport Element with the specified type is not found"));
+    }
+    credentials.push_back(value_it->second.credentials);
   }
-  join->promise_ =
-      PromiseCreator::lambda([promise = std::move(promise), actor_id = actor_id(this),
-                              authorization_form_id](Result<vector<SecureValueCredentials>> r_credentials) mutable {
-        if (r_credentials.is_error()) {
-          return promise.set_error(r_credentials.move_as_error());
-        }
-        send_closure(actor_id, &SecureManager::do_send_passport_authorization_form, authorization_form_id,
-                     r_credentials.move_as_ok(), std::move(promise));
-      });
-}
 
-void SecureManager::do_send_passport_authorization_form(int32 authorization_form_id,
-                                                        vector<SecureValueCredentials> credentials, Promise<> promise) {
-  auto it = authorization_forms_.find(authorization_form_id);
-  if (it == authorization_forms_.end()) {
-    return promise.set_error(Status::Error(400, "Unknown authorization_form_id"));
-  }
-  if (credentials.empty()) {
-    return promise.set_error(Status::Error(400, "Empty types"));
-  }
   std::vector<telegram_api::object_ptr<telegram_api::secureValueHash>> hashes;
   for (auto &c : credentials) {
     hashes.push_back(telegram_api::make_object<telegram_api::secureValueHash>(get_input_secure_value_type(c.type),

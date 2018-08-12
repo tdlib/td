@@ -6442,7 +6442,6 @@ void Td::on_request(uint64 id, td_api::getPassportAuthorizationForm &request) {
 
 void Td::on_request(uint64 id, td_api::sendPassportAuthorizationForm &request) {
   CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.password_);
   for (auto &type : request.types_) {
     if (type == nullptr) {
       return send_error_raw(id, 400, "Type must not be empty");
@@ -6450,8 +6449,8 @@ void Td::on_request(uint64 id, td_api::sendPassportAuthorizationForm &request) {
   }
 
   CREATE_OK_REQUEST_PROMISE();
-  send_closure(secure_manager_, &SecureManager::send_passport_authorization_form, request.password_,
-               request.autorization_form_id_, get_secure_value_types_td_api(request.types_), std::move(promise));
+  send_closure(secure_manager_, &SecureManager::send_passport_authorization_form, request.autorization_form_id_,
+               get_secure_value_types_td_api(request.types_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::sendPhoneNumberConfirmationCode &request) {

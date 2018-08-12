@@ -45,8 +45,8 @@ class SecureManager : public NetQueryCallback {
 
   void get_passport_authorization_form(string password, UserId bot_user_id, string scope, string public_key,
                                        string payload, Promise<TdApiAuthorizationForm> promise);
-  void send_passport_authorization_form(string password, int32 authorization_form_id,
-                                        std::vector<SecureValueType> types, Promise<> promise);
+  void send_passport_authorization_form(int32 authorization_form_id, std::vector<SecureValueType> types,
+                                        Promise<> promise);
 
  private:
   ActorShared<> parent_;
@@ -68,13 +68,9 @@ class SecureManager : public NetQueryCallback {
   void hangup() override;
   void hangup_shared() override;
   void dec_refcnt();
-  void do_get_secure_value(std::string password, SecureValueType type, bool allow_from_cache,
-                           Promise<SecureValueWithCredentials> promise);
   void on_delete_secure_value(SecureValueType type, Promise<Unit> promise, Result<Unit> result);
   void on_get_passport_authorization_form(int32 authorization_form_id, Promise<TdApiAuthorizationForm> promise,
                                           Result<TdApiAuthorizationForm> r_authorization_form);
-  void do_send_passport_authorization_form(int32 authorization_form_id, vector<SecureValueCredentials> credentials,
-                                           Promise<> promise);
 
   void on_result(NetQueryPtr query) override;
   Container<Promise<NetQueryPtr>> container_;

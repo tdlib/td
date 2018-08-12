@@ -1278,13 +1278,11 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::getPassportAuthorizationForm>(to_integer<int32>(bot_id), scope, public_key,
                                                                         payload, password));
     } else if (op == "spaf") {
-      string password;
       string id;
       string types;
-      std::tie(password, args) = split(args);
       std::tie(id, types) = split(args);
       send_request(make_tl_object<td_api::sendPassportAuthorizationForm>(to_integer<int32>(id),
-                                                                         as_passport_element_types(types), password));
+                                                                         as_passport_element_types(types)));
     } else if (op == "spnvc" || op == "SendPhoneNumberVerificationCode") {
       send_request(make_tl_object<td_api::sendPhoneNumberVerificationCode>(args, false, false));
     } else if (op == "cpnvc" || op == "CheckPhoneNumberVerificationCode") {
