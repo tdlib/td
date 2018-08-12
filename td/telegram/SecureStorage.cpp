@@ -30,10 +30,12 @@ static AesCbcState calc_aes_cbc_state_hash(Slice hash) {
   as_slice(key).copy_from(hash.substr(0, 32));
   UInt128 iv;
   as_slice(iv).copy_from(hash.substr(32, 16));
+  LOG(INFO) << "End AES CBC state calculation";
   return AesCbcState{key, iv};
 }
 
 AesCbcState calc_aes_cbc_state_pbkdf2(Slice secret, Slice salt) {
+  LOG(INFO) << "Begin AES CBC state calculation";
   UInt<512> hash;
   auto hash_slice = as_slice(hash);
   pbkdf2_sha512(secret, salt, 100000, hash_slice);
@@ -41,6 +43,7 @@ AesCbcState calc_aes_cbc_state_pbkdf2(Slice secret, Slice salt) {
 }
 
 AesCbcState calc_aes_cbc_state_sha512(Slice seed) {
+  LOG(INFO) << "Begin AES CBC state calculation";
   UInt<512> hash;
   auto hash_slice = as_slice(hash);
   sha512(seed, hash_slice);

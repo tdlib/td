@@ -332,6 +332,12 @@ Result<secure_storage::Secret> PasswordManager::decrypt_secure_secret(
 }
 
 void PasswordManager::do_get_full_state(string password, PasswordState state, Promise<PasswordFullState> promise) {
+  if (!state.has_password) {
+    PasswordFullState result;
+    result.state = std::move(state);
+    return promise.set_value(std::move(result));
+  }
+
   auto hash = get_input_check_password(password, state);
   send_with_promise(
       G()->net_query_creator().create(create_storer(telegram_api::account_getPasswordSettings(std::move(hash)))),
@@ -339,6 +345,7 @@ void PasswordManager::do_get_full_state(string password, PasswordState state, Pr
           [promise = std::move(promise), state = std::move(state), password](Result<NetQueryPtr> r_query) mutable {
             promise.set_result([&]() -> Result<PasswordFullState> {
               TRY_RESULT(result, fetch_result<telegram_api::account_getPasswordSettings>(std::move(r_query)));
+              LOG(INFO) << "Receive password settings: " << to_string(result);
               PasswordPrivateState private_state;
               private_state.email = std::move(result->email_);
 
@@ -580,6 +587,7 @@ void PasswordManager::do_get_state(Promise<PasswordState> promise) {
           return promise.set_error(r_result.move_as_error());
         }
         auto password = r_result.move_as_ok();
+        LOG(INFO) << "Receive password info: " << to_string(password);
         Random::add_seed(password->secure_random_.as_slice());
 
         PasswordState state;
