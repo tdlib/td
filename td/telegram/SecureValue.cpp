@@ -136,7 +136,7 @@ SecureValueType get_secure_value_type_td_api(const tl_object_ptr<td_api::Passpor
   }
 }
 
-static vector<SecureValueType> unique_types(vector<SecureValueType> types) {
+vector<SecureValueType> unique_secure_value_types(vector<SecureValueType> types) {
   size_t size = types.size();
   for (size_t i = 0; i < size; i++) {
     for (size_t j = 0; j < i; j++) {
@@ -153,12 +153,12 @@ static vector<SecureValueType> unique_types(vector<SecureValueType> types) {
 
 vector<SecureValueType> get_secure_value_types(
     const vector<tl_object_ptr<telegram_api::SecureValueType>> &secure_value_types) {
-  return unique_types(transform(secure_value_types, get_secure_value_type));
+  return unique_secure_value_types(transform(secure_value_types, get_secure_value_type));
 }
 
 vector<SecureValueType> get_secure_value_types_td_api(
     const vector<tl_object_ptr<td_api::PassportElementType>> &secure_value_types) {
-  return unique_types(transform(secure_value_types, get_secure_value_type_td_api));
+  return unique_secure_value_types(transform(secure_value_types, get_secure_value_type_td_api));
 }
 
 td_api::object_ptr<td_api::PassportElementType> get_passport_element_type_object(SecureValueType type) {
@@ -234,6 +234,35 @@ td_api::object_ptr<telegram_api::SecureValueType> get_input_secure_value_type(Se
 vector<td_api::object_ptr<td_api::PassportElementType>> get_passport_element_types_object(
     const vector<SecureValueType> &types) {
   return transform(types, get_passport_element_type_object);
+}
+
+SuitableSecureValue get_suitable_secure_value(
+    const tl_object_ptr<telegram_api::secureRequiredType> &secure_required_type) {
+  SuitableSecureValue result;
+  result.type = get_secure_value_type(secure_required_type->type_);
+  auto flags = secure_required_type->flags_;
+  result.is_selfie_required = (flags & telegram_api::secureRequiredType::SELFIE_REQUIRED_MASK) != 0;
+  result.is_translation_required = (flags & telegram_api::secureRequiredType::TRANSLATION_REQUIRED_MASK) != 0;
+  result.is_native_name_required = (flags & telegram_api::secureRequiredType::NATIVE_NAMES_MASK) != 0;
+  return result;
+}
+
+td_api::object_ptr<td_api::passportSuitableElement> get_passport_suitable_element_object(
+    const SuitableSecureValue &element) {
+  return td_api::make_object<td_api::passportSuitableElement>(
+      get_passport_element_type_object(element.type), element.is_selfie_required, element.is_translation_required,
+      element.is_native_name_required);
+}
+
+td_api::object_ptr<td_api::passportRequiredElement> get_passport_required_element_object(
+    const vector<SuitableSecureValue> &required_element) {
+  return td_api::make_object<td_api::passportRequiredElement>(
+      transform(required_element, get_passport_suitable_element_object));
+}
+
+vector<td_api::object_ptr<td_api::passportRequiredElement>> get_passport_required_elements_object(
+    const vector<vector<SuitableSecureValue>> &required_elements) {
+  return transform(required_elements, get_passport_required_element_object);
 }
 
 string get_secure_value_data_field_name(SecureValueType type, string field_name) {
@@ -1380,16 +1409,15 @@ static Slice secure_value_type_as_slice(SecureValueType type) {
   }
 }
 
-static auto credentials_as_jsonable(const std::vector<SecureValueCredentials> &credentials, Slice payload,
-                                    bool with_selfie, bool with_translations) {
-  return json_object([&credentials, payload, with_selfie, with_translations](auto &o) {
-    o("secure_data", json_object([&credentials, with_selfie, with_translations](auto &o) {
+static auto credentials_as_jsonable(const std::vector<SecureValueCredentials> &credentials, Slice payload) {
+  return json_object([&credentials, payload](auto &o) {
+    o("secure_data", json_object([&credentials](auto &o) {
         for (auto &cred : credentials) {
           if (cred.type == SecureValueType::PhoneNumber || cred.type == SecureValueType::EmailAddress) {
             continue;
           }
 
-          o(secure_value_type_as_slice(cred.type), json_object([&cred, with_selfie, with_translations](auto &o) {
+          o(secure_value_type_as_slice(cred.type), json_object([&cred](auto &o) {
               if (cred.data) {
                 o("data", as_jsonable(cred.data.value()));
               }
@@ -1402,10 +1430,10 @@ static auto credentials_as_jsonable(const std::vector<SecureValueCredentials> &c
               if (cred.reverse_side) {
                 o("reverse_side", as_jsonable(cred.reverse_side.value()));
               }
-              if (cred.selfie && with_selfie) {
+              if (cred.selfie) {
                 o("selfie", as_jsonable(cred.selfie.value()));
               }
-              if (!cred.translations.empty() && with_translations) {
+              if (!cred.translations.empty()) {
                 o("translation", as_jsonable(cred.translations));
               }
             }));
@@ -1416,10 +1444,8 @@ static auto credentials_as_jsonable(const std::vector<SecureValueCredentials> &c
 }
 
 Result<EncryptedSecureCredentials> get_encrypted_credentials(const std::vector<SecureValueCredentials> &credentials,
-                                                             Slice payload, bool with_selfie, bool with_translations,
-                                                             Slice public_key) {
-  auto encoded_credentials =
-      json_encode<std::string>(credentials_as_jsonable(credentials, payload, with_selfie, with_translations));
+                                                             Slice payload, Slice public_key) {
+  auto encoded_credentials = json_encode<std::string>(credentials_as_jsonable(credentials, payload));
   LOG(INFO) << "Created credentials " << encoded_credentials;
 
   auto secret = secure_storage::Secret::create_new();

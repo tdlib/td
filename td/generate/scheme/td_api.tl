@@ -1008,11 +1008,17 @@ passportElementErrorSourceFiles = PassportElementErrorSource;
 passportElementError type:PassportElementType message:string source:PassportElementErrorSource = PassportElementError;
 
 
+//@description Contains information about a Telegram Passport element that was requested by a service @type Type of the element @is_selfie_required True, if a selfie is required with the identity document
+//@is_translation_required True, if a translation is required with the identity document @is_native_name_required True, if a native name is required with the personal details
+passportSuitableElement type:PassportElementType is_selfie_required:Bool is_translation_required:Bool is_native_name_required:Bool = PassportSuitableElement;
+
+//@description Contains description of required Telegram Passport element that was requested by a service @suitable_elements List of Telegram Passport elements any of which is enough to provide
+passportRequiredElement suitable_elements:vector<passportSuitableElement> = PassportRequiredElement;
+
 //@description Contains information about a Telegram Passport authorization form that was requested @id Unique identifier of the authorization form
 //@required_types Telegram Passport element types that need to be provided to complete the form. If the user has more than one identity document or proof of address document, any one of each can be chosen
-//@elements Already available Telegram Passport elements @errors Errors in the elements that is already available @is_selfie_required True, if a selfie is required with the identity document
-//@is_translation_required True, if a translation is required with the identity document @privacy_policy_url URL for the privacy policy of the service; can be empty
-passportAuthorizationForm id:int32 required_types:vector<PassportElementType> elements:vector<PassportElement> errors:vector<passportElementError> is_selfie_required:Bool is_translation_required:Bool privacy_policy_url:string = PassportAuthorizationForm;
+//@elements Already available Telegram Passport elements @errors Errors in the elements that is already available @privacy_policy_url URL for the privacy policy of the service; can be empty
+passportAuthorizationForm id:int32 required_elements:vector<passportRequiredElement> elements:vector<PassportElement> errors:vector<passportElementError> privacy_policy_url:string = PassportAuthorizationForm;
 
 
 //@description Contains encrypted Telegram Passport data credentials @data The encrypted credentials @hash The decrypted data hash @secret Secret for data decryption, encrypted with service's public key

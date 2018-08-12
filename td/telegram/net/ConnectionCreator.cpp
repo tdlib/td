@@ -841,7 +841,7 @@ Result<SocketFd> ConnectionCreator::find_connection(const ProxyInfo &proxy, DcId
   TRY_RESULT(transport_type, get_transport_type(proxy, info));
   extra.transport_type = std::move(transport_type);
 
-  extra.debug_str = PSTRING() << " to " << (info.option->is_media_only() ? " MEDIA" : "") << dc_id
+  extra.debug_str = PSTRING() << " to " << (info.option->is_media_only() ? "MEDIA " : "") << dc_id
                               << (info.use_http ? " over HTTP" : "");
 
   if (proxy.use_mtproto_proxy()) {

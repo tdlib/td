@@ -43,6 +43,8 @@ enum class SecureValueType : int32 {
 
 StringBuilder &operator<<(StringBuilder &string_builder, const SecureValueType &type);
 
+vector<SecureValueType> unique_secure_value_types(vector<SecureValueType> types);
+
 SecureValueType get_secure_value_type(const tl_object_ptr<telegram_api::SecureValueType> &secure_value_type);
 SecureValueType get_secure_value_type_td_api(const tl_object_ptr<td_api::PassportElementType> &passport_element_type);
 
@@ -56,6 +58,25 @@ td_api::object_ptr<telegram_api::SecureValueType> get_input_secure_value_type(Se
 
 vector<td_api::object_ptr<td_api::PassportElementType>> get_passport_element_types_object(
     const vector<SecureValueType> &types);
+
+struct SuitableSecureValue {
+  SecureValueType type;
+  bool is_selfie_required;
+  bool is_translation_required;
+  bool is_native_name_required;
+};
+
+SuitableSecureValue get_suitable_secure_value(
+    const tl_object_ptr<telegram_api::secureRequiredType> &secure_required_type);
+
+td_api::object_ptr<td_api::passportSuitableElement> get_passport_suitable_element_object(
+    const SuitableSecureValue &required_element);
+
+td_api::object_ptr<td_api::passportRequiredElement> get_passport_required_element_object(
+    const vector<SuitableSecureValue> &required_element);
+
+vector<td_api::object_ptr<td_api::passportRequiredElement>> get_passport_required_elements_object(
+    const vector<vector<SuitableSecureValue>> &required_elements);
 
 string get_secure_value_data_field_name(SecureValueType type, string field_name);
 
@@ -174,8 +195,7 @@ struct SecureValueCredentials {
 };
 
 Result<EncryptedSecureCredentials> get_encrypted_credentials(const std::vector<SecureValueCredentials> &credentials,
-                                                             Slice payload, bool with_selfie, bool with_translations,
-                                                             Slice public_key);
+                                                             Slice payload, Slice public_key);
 
 class SecureValue {
  public:
