@@ -39,8 +39,6 @@ class IPAddress {
   Slice get_ipv6() const;
   Slice get_ip_str() const;
 
-  static CSlice ipv4_to_str(int32 ipv4);
-
   IPAddress get_any_addr() const;
 
   Status init_ipv6_port(CSlice ipv6, int port) TD_WARN_UNUSED_RESULT;
@@ -59,21 +57,24 @@ class IPAddress {
   const sockaddr *get_sockaddr() const;
   size_t get_sockaddr_len() const;
   int get_address_family() const;
+  static CSlice ipv4_to_str(int32 ipv4);
+  Status init_sockaddr(sockaddr *addr);
+  Status init_sockaddr(sockaddr *addr, socklen_t len) TD_WARN_UNUSED_RESULT;
 
  private:
   union {
-    sockaddr_storage addr_;
     sockaddr sockaddr_;
     sockaddr_in ipv4_addr_;
     sockaddr_in6 ipv6_addr_;
   };
+  socklen_t storage_size() {
+    return sizeof(ipv6_addr_);
+  }
   bool is_valid_;
 
-  Status init_sockaddr(sockaddr *addr, socklen_t len) TD_WARN_UNUSED_RESULT;
   void init_ipv4_any();
   void init_ipv6_any();
 };
-
 StringBuilder &operator<<(StringBuilder &builder, const IPAddress &address);
 
 }  // namespace td

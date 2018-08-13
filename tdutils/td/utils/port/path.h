@@ -43,6 +43,7 @@ Result<string> realpath(CSlice slice, bool ignore_access_denied = false) TD_WARN
 Status chdir(CSlice dir) TD_WARN_UNUSED_RESULT;
 Status rmdir(CSlice dir) TD_WARN_UNUSED_RESULT;
 Status unlink(CSlice path) TD_WARN_UNUSED_RESULT;
+Status rmrf(CSlice path) TD_WARN_UNUSED_RESULT;
 Status set_temporary_dir(CSlice dir) TD_WARN_UNUSED_RESULT;
 CSlice get_temporary_dir();
 Result<std::pair<FileFd, string>> mkstemp(CSlice dir) TD_WARN_UNUSED_RESULT;
@@ -119,12 +120,13 @@ Status walk_path_dir(string &path, DIR *subdir, Func &&func) {
 
 template <class Func>
 Status walk_path_dir(string &path, FileFd fd, Func &&func) {
-  auto *subdir = fdopendir(fd.get_fd().move_as_native_fd());
+  auto native_fd = fd.move_as_native_fd();
+  auto *subdir = fdopendir(native_fd.fd());
   if (subdir == nullptr) {
     auto error = OS_ERROR("fdopendir");
-    fd.close();
     return error;
   }
+  native_fd.release();
   return walk_path_dir(path, subdir, std::forward<Func>(func));
 }
 

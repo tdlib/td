@@ -35,37 +35,46 @@ void Epoll::clear() {
 
   close(epoll_fd);
   epoll_fd = -1;
+
+  for (auto *list_node = list_root.next; list_node != &list_root;) {
+    auto pollable_fd = PollableFd::from_list_node(list_node);
+    list_node = list_node->next;
+  }
 }
 
-void Epoll::subscribe(const Fd &fd, Fd::Flags flags) {
+void Epoll::subscribe(PollableFd fd, PollFlags flags) {
   epoll_event event;
   event.events = EPOLLHUP | EPOLLERR | EPOLLET;
 #ifdef EPOLLRDHUP
   event.events |= EPOLLRDHUP;
 #endif
-  if (flags & Fd::Read) {
+  if (flags.can_read()) {
     event.events |= EPOLLIN;
   }
-  if (flags & Fd::Write) {
+  if (flags.can_write()) {
     event.events |= EPOLLOUT;
   }
-  auto native_fd = fd.get_native_fd();
-  event.data.fd = native_fd;
+  auto native_fd = fd.native_fd().fd();
+  auto *list_node = fd.release_as_list_node();
+  list_root.put(list_node);
+  event.data.ptr = list_node;
+
   int err = epoll_ctl(epoll_fd, EPOLL_CTL_ADD, native_fd, &event);
   auto epoll_ctl_errno = errno;
   LOG_IF(FATAL, err == -1) << Status::PosixError(epoll_ctl_errno, "epoll_ctl ADD failed") << ", epoll_fd = " << epoll_fd
                            << ", fd = " << native_fd;
 }
 
-void Epoll::unsubscribe(const Fd &fd) {
-  auto native_fd = fd.get_native_fd();
+void Epoll::unsubscribe(PollableFdRef fd_ref) {
+  auto fd = fd_ref.lock();
+  auto native_fd = fd.native_fd().fd();
   int err = epoll_ctl(epoll_fd, EPOLL_CTL_DEL, native_fd, nullptr);
   auto epoll_ctl_errno = errno;
   LOG_IF(FATAL, err == -1) << Status::PosixError(epoll_ctl_errno, "epoll_ctl DEL failed") << ", epoll_fd = " << epoll_fd
                            << ", fd = " << native_fd;
 }
 
-void Epoll::unsubscribe_before_close(const Fd &fd) {
+void Epoll::unsubscribe_before_close(PollableFdRef fd) {
   unsubscribe(fd);
 }
 
@@ -76,15 +85,15 @@ void Epoll::run(int timeout_ms) {
       << Status::PosixError(epoll_wait_errno, "epoll_wait failed");
 
   for (int i = 0; i < ready_n; i++) {
-    Fd::Flags flags = 0;
+    PollFlags flags;
     epoll_event *event = &events[i];
     if (event->events & EPOLLIN) {
       event->events &= ~EPOLLIN;
-      flags |= Fd::Read;
+      flags = flags | PollFlags::Read();
     }
     if (event->events & EPOLLOUT) {
       event->events &= ~EPOLLOUT;
-      flags |= Fd::Write;
+      flags = flags | PollFlags::Write();
     }
 #ifdef EPOLLRDHUP
     if (event->events & EPOLLRDHUP) {
@@ -95,17 +104,19 @@ void Epoll::run(int timeout_ms) {
 #endif
     if (event->events & EPOLLHUP) {
       event->events &= ~EPOLLHUP;
-      flags |= Fd::Close;
+      flags = flags | PollFlags::Close();
     }
     if (event->events & EPOLLERR) {
       event->events &= ~EPOLLERR;
-      flags |= Fd::Error;
+      flags = flags | PollFlags::Error();
     }
     if (event->events) {
       LOG(FATAL) << "Unsupported epoll events: " << event->events;
     }
-    // LOG(DEBUG) << "Epoll event " << tag("fd", event->data.fd) << tag("flags", format::as_binary(flags));
-    Fd(event->data.fd, Fd::Mode::Reference).update_flags_notify(flags);
+    //LOG(DEBUG) << "Epoll event " << tag("fd", event->data.fd) << tag("flags", format::as_binary(flags));
+    auto pollable_fd = PollableFd::from_list_node(static_cast<ListNode *>(event->data.ptr));
+    pollable_fd.add_flags(flags);
+    pollable_fd.release_as_list_node();
   }
 }
 }  // namespace detail

@@ -170,7 +170,7 @@ Status update_atime(CSlice path) {
   SCOPE_EXIT {
     file.close();
   };
-  return detail::update_atime(file.get_native_fd());
+  return detail::update_atime(file.get_native_fd().fd());
 }
 
 Result<Stat> stat(CSlice path) {

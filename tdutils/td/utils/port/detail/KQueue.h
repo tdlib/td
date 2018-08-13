@@ -34,22 +34,27 @@ class KQueue final : public PollBase {
 
   void clear() override;
 
-  void subscribe(const Fd &fd, Fd::Flags flags) override;
+  void subscribe(PollableFd fd, PollFlags flags) override;
 
-  void unsubscribe(const Fd &fd) override;
+  void unsubscribe(PollableFdRef fd) override;
 
-  void unsubscribe_before_close(const Fd &fd) override;
+  void unsubscribe_before_close(PollableFdRef fd) override;
 
   void run(int timeout_ms) override;
+
+  static bool is_edge_triggered() {
+    return true;
+  }
 
  private:
   vector<struct kevent> events;
   int changes_n;
   int kq;
+  ListNode list_root;
 
   int update(int nevents, const timespec *timeout, bool may_fail = false);
 
-  void invalidate(const Fd &fd);
+  void invalidate(int native_fd);
 
   void flush_changes(bool may_fail = false);
 

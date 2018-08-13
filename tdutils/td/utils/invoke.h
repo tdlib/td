@@ -116,18 +116,18 @@ auto invoke(F &&f,
 }
 
 template <class F, class... Args, std::size_t... S>
-void call_tuple_impl(F &func, std::tuple<Args...> &&tuple, IntSeq<S...>) {
-  func(std::forward<Args>(std::get<S>(tuple))...);
+auto call_tuple_impl(F &func, std::tuple<Args...> &&tuple, IntSeq<S...>) {
+  return func(std::forward<Args>(std::get<S>(tuple))...);
 }
 
 template <class... Args, std::size_t... S>
-void invoke_tuple_impl(std::tuple<Args...> &&tuple, IntSeq<S...>) {
-  invoke(std::forward<Args>(std::get<S>(tuple))...);
+auto invoke_tuple_impl(std::tuple<Args...> &&tuple, IntSeq<S...>) {
+  return invoke(std::forward<Args>(std::get<S>(tuple))...);
 }
 
 template <class ActorT, class F, class... Args, std::size_t... S>
-void mem_call_tuple_impl(ActorT *actor, F &func, std::tuple<Args...> &&tuple, IntSeq<S...>) {
-  (actor->*func)(std::forward<Args>(std::get<S>(tuple))...);
+auto mem_call_tuple_impl(ActorT *actor, std::tuple<F, Args...> &&tuple, IntSeq<0, S...>) {
+  return (actor->*std::get<0>(tuple))(std::forward<Args>(std::get<S>(tuple))...);
 }
 
 template <class F, class... Args, std::size_t... S>
@@ -151,18 +151,18 @@ class LogicAnd {
 };
 
 template <class F, class... Args>
-void call_tuple(F &func, std::tuple<Args...> &&tuple) {
-  detail::call_tuple_impl(func, std::move(tuple), detail::IntRange<sizeof...(Args)>());
+auto call_tuple(F &func, std::tuple<Args...> &&tuple) {
+  return detail::call_tuple_impl(func, std::move(tuple), detail::IntRange<sizeof...(Args)>());
 }
 
 template <class... Args>
-void invoke_tuple(std::tuple<Args...> &&tuple) {
-  detail::invoke_tuple_impl(std::move(tuple), detail::IntRange<sizeof...(Args)>());
+auto invoke_tuple(std::tuple<Args...> &&tuple) {
+  return detail::invoke_tuple_impl(std::move(tuple), detail::IntRange<sizeof...(Args)>());
 }
 
-template <class ActorT, class F, class... Args>
-void mem_call_tuple(ActorT *actor, F &func, std::tuple<Args...> &&tuple) {
-  detail::mem_call_tuple_impl(actor, func, std::move(tuple), detail::IntRange<sizeof...(Args)>());
+template <class ActorT, class... Args>
+auto mem_call_tuple(ActorT *actor, std::tuple<Args...> &&tuple) {
+  return detail::mem_call_tuple_impl(actor, std::move(tuple), detail::IntRange<sizeof...(Args)>());
 }
 
 template <class F, class... Args>
@@ -173,6 +173,38 @@ void tuple_for_each(std::tuple<Args...> &tuple, const F &func) {
 template <class F, class... Args>
 void tuple_for_each(const std::tuple<Args...> &tuple, const F &func) {
   detail::tuple_for_each_impl(tuple, func, detail::IntRange<sizeof...(Args)>());
+}
+
+template <size_t N, class Arg, std::enable_if_t<N == 0> = 0>
+auto &&get_nth_argument(Arg &&arg) {
+  return std::forward<Arg>(arg);
+}
+
+template <size_t N, class Arg, class... Args, std::enable_if_t<N == 0, int> = 0>
+auto &&get_nth_argument(Arg &&arg, Args &&... args) {
+  return std::forward<Arg>(arg);
+}
+
+template <size_t N, class Arg, class... Args, std::enable_if_t<N != 0, int> = 0>
+auto &&get_nth_argument(Arg &&arg, Args &&... args) {
+  return get_nth_argument<N - 1>(std::forward<Args &&>(args)...);
+}
+
+template <class... Args>
+auto &&get_last_argument(Args &&... args) {
+  return get_nth_argument<sizeof...(Args) - 1>(std::forward<Args &&>(args)...);
+}
+
+namespace detail {
+template <class F, class... Args, std::size_t... S>
+auto call_n_arguments_impl(IntSeq<S...>, F &&f, Args &&... args) {
+  return f(get_nth_argument<S>(std::forward<Args>(args)...)...);
+}
+}  // namespace detail
+
+template <size_t N, class F, class... Args>
+auto call_n_arguments(F &&f, Args &&... args) {
+  return detail::call_n_arguments_impl(detail::IntRange<N>(), f, std::forward<Args>(args)...);
 }
 
 }  // namespace td

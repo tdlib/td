@@ -43,6 +43,10 @@ void KQueue::clear() {
   events.clear();
   close(kq);
   kq = -1;
+  for (auto *list_node = list_root.next; list_node != &list_root;) {
+    auto pollable_fd = PollableFd::from_list_node(list_node);
+    list_node = list_node->next;
+  }
 }
 
 int KQueue::update(int nevents, const timespec *timeout, bool may_fail) {
@@ -85,18 +89,21 @@ void KQueue::add_change(std::uintptr_t ident, int16 filter, uint16 flags, uint32
   changes_n++;
 }
 
-void KQueue::subscribe(const Fd &fd, Fd::Flags flags) {
-  if (flags & Fd::Read) {
-    add_change(fd.get_native_fd(), EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, nullptr);
+void KQueue::subscribe(PollableFd fd, PollFlags flags) {
+  auto native_fd = fd.native_fd().fd();
+  auto list_node = fd.release_as_list_node();
+  list_root.put(list_node);
+  if (flags.can_read()) {
+    add_change(native_fd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, list_node);
   }
-  if (flags & Fd::Write) {
-    add_change(fd.get_native_fd(), EVFILT_WRITE, EV_ADD | EV_CLEAR, 0, 0, nullptr);
+  if (flags.can_write()) {
+    add_change(native_fd, EVFILT_WRITE, EV_ADD | EV_CLEAR, 0, 0, list_node);
   }
 }
 
-void KQueue::invalidate(const Fd &fd) {
+void KQueue::invalidate(int native_fd) {
   for (int i = 0; i < changes_n; i++) {
-    if (events[i].ident == static_cast<std::uintptr_t>(fd.get_native_fd())) {
+    if (events[i].ident == static_cast<std::uintptr_t>(native_fd)) {
       changes_n--;
       std::swap(events[i], events[changes_n]);
       i--;
@@ -104,17 +111,21 @@ void KQueue::invalidate(const Fd &fd) {
   }
 }
 
-void KQueue::unsubscribe(const Fd &fd) {
+void KQueue::unsubscribe(PollableFdRef fd_ref) {
+  auto pollable_fd = fd_ref.lock();
+  auto native_fd = pollable_fd.native_fd().fd();
+
   // invalidate(fd);
   flush_changes();
-  add_change(fd.get_native_fd(), EVFILT_READ, EV_DELETE, 0, 0, nullptr);
+  add_change(native_fd, EVFILT_READ, EV_DELETE, 0, 0, nullptr);
   flush_changes(true);
-  add_change(fd.get_native_fd(), EVFILT_WRITE, EV_DELETE, 0, 0, nullptr);
+  add_change(native_fd, EVFILT_WRITE, EV_DELETE, 0, 0, nullptr);
   flush_changes(true);
 }
 
-void KQueue::unsubscribe_before_close(const Fd &fd) {
-  invalidate(fd);
+void KQueue::unsubscribe_before_close(PollableFdRef fd_ref) {
+  auto pollable_fd = fd_ref.lock();
+  invalidate(pollable_fd.native_fd().fd());
 
   // just to avoid O(changes_n ^ 2)
   if (changes_n != 0) {
@@ -136,22 +147,24 @@ void KQueue::run(int timeout_ms) {
   int n = update(static_cast<int>(events.size()), timeout_ptr);
   for (int i = 0; i < n; i++) {
     struct kevent *event = &events[i];
-    Fd::Flags flags = 0;
+    PollFlags flags;
     if (event->filter == EVFILT_WRITE) {
-      flags |= Fd::Write;
+      flags.add_flags(PollFlags::Write());
     }
     if (event->filter == EVFILT_READ) {
-      flags |= Fd::Read;
+      flags.add_flags(PollFlags::Read());
     }
     if (event->flags & EV_EOF) {
-      flags |= Fd::Close;
+      flags.add_flags(PollFlags::Close());
     }
     if (event->fflags & EV_ERROR) {
       LOG(FATAL) << "EV_ERROR in kqueue is not supported";
     }
     VLOG(fd) << "Event [fd:" << event->ident << "] [filter:" << event->filter << "] [udata: " << event->udata << "]";
     // LOG(WARNING) << "event->ident = " << event->ident << "event->filter = " << event->filter;
-    Fd(static_cast<int>(event->ident), Fd::Mode::Reference).update_flags_notify(flags);
+    auto pollable_fd = PollableFd::from_list_node(static_cast<ListNode *>(event->udata));
+    pollable_fd.add_flags(flags);
+    pollable_fd.release_as_list_node();
   }
 }
 }  // namespace detail

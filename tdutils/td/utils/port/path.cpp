@@ -66,6 +66,16 @@ Status mkpath(CSlice path, int32 mode) {
   return Status::OK();
 }
 
+Status rmrf(CSlice path) {
+  return walk_path(path, [&](CSlice path, bool is_dir) {
+    if (is_dir) {
+      return rmdir(path);
+    } else {
+      return unlink(path);
+    }
+  });
+}
+
 #if TD_PORT_POSIX
 
 Status mkdir(CSlice dir, int32 mode) {

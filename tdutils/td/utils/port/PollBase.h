@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/utils/port/Fd.h"
+#include "td/utils/port/detail/PollableFd.h"
 
 namespace td {
 class PollBase {
@@ -19,9 +20,9 @@ class PollBase {
   virtual ~PollBase() = default;
   virtual void init() = 0;
   virtual void clear() = 0;
-  virtual void subscribe(const Fd &fd, Fd::Flags flags) = 0;
-  virtual void unsubscribe(const Fd &fd) = 0;
-  virtual void unsubscribe_before_close(const Fd &fd) = 0;
+  virtual void subscribe(PollableFd fd, PollFlags flags) = 0;
+  virtual void unsubscribe(PollableFdRef fd) = 0;
+  virtual void unsubscribe_before_close(PollableFdRef fd) = 0;
   virtual void run(int timeout_ms) = 0;
 };
 }  // namespace td

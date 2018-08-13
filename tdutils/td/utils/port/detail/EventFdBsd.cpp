@@ -12,6 +12,7 @@ char disable_linker_warning_about_empty_file_event_fd_bsd_cpp TD_UNUSED;
 
 #include "td/utils/logging.h"
 #include "td/utils/Slice.h"
+#include "td/utils/port/SocketFd.h"
 
 #include <fcntl.h>
 #include <sys/socket.h>
@@ -36,11 +37,13 @@ void EventFdBsd::init() {
 #endif
   LOG_IF(FATAL, err == -1) << Status::PosixError(socketpair_errno, "socketpair failed");
 
-  detail::set_native_socket_is_blocking(fds[0], false).ensure();
-  detail::set_native_socket_is_blocking(fds[1], false).ensure();
+  auto fd_a = NativeFd(fds[0]);
+  auto fd_b = NativeFd(fds[1]);
+  detail::set_native_socket_is_blocking(fd_a, false).ensure();
+  detail::set_native_socket_is_blocking(fd_b, false).ensure();
 
-  in_ = Fd(fds[0], Fd::Mode::Owner);
-  out_ = Fd(fds[1], Fd::Mode::Owner);
+  in_ = SocketFd::from_native_fd(std::move(fd_a)).move_as_ok();
+  out_ = SocketFd::from_native_fd(std::move(fd_b)).move_as_ok();
 }
 
 bool EventFdBsd::empty() {
@@ -56,12 +59,8 @@ Status EventFdBsd::get_pending_error() {
   return Status::OK();
 }
 
-const Fd &EventFdBsd::get_fd() const {
-  return out_;
-}
-
-Fd &EventFdBsd::get_fd() {
-  return out_;
+PollableFdInfo &EventFdBsd::get_poll_info() {
+  return out_.get_poll_info();
 }
 
 void EventFdBsd::release() {
@@ -77,7 +76,7 @@ void EventFdBsd::release() {
 }
 
 void EventFdBsd::acquire() {
-  out_.update_flags(Fd::Read);
+  out_.get_poll_info().add_flags(PollFlags::Read());
   while (can_read(out_)) {
     uint8 value[1024];
     auto result = out_.read(MutableSlice(value, sizeof(value)));

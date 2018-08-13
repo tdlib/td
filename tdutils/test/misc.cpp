@@ -9,6 +9,7 @@
 #include "td/utils/HttpUrl.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/invoke.h"
 #include "td/utils/port/EventFd.h"
 #include "td/utils/port/FileFd.h"
 #include "td/utils/port/IPAddress.h"
@@ -123,6 +124,21 @@ TEST(Misc, errno_tls_bug) {
     }
   }
 #endif
+}
+
+TEST(Misc, get_last_argument) {
+  auto a = std::make_unique<int>(5);
+  ASSERT_EQ(*get_last_argument(std::move(a)), 5);
+  ASSERT_EQ(*get_last_argument(1, 2, 3, 4, a), 5);
+  ASSERT_EQ(*get_last_argument(a), 5);
+  auto b = get_last_argument(1, 2, 3, std::move(a));
+  ASSERT_TRUE(!a);
+  ASSERT_EQ(*b, 5);
+}
+
+TEST(Misc, call_n_arguments) {
+  auto f = [](int, int) {};
+  call_n_arguments<2>(f, 1, 3, 4);
 }
 
 TEST(Misc, base64) {

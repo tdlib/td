@@ -11,21 +11,28 @@
 #include "td/utils/common.h"
 #include "td/utils/port/Fd.h"
 #include "td/utils/port/Stat.h"
+#include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
 namespace td {
+namespace detail {
+class FileFdImpl;
+}
 
 class FileFd {
  public:
-  FileFd() = default;
+  FileFd();
+  FileFd(FileFd &&);
+  FileFd &operator=(FileFd &&);
+  ~FileFd();
+  FileFd(const FileFd &) = delete;
+  FileFd &operator=(const FileFd &) = delete;
 
   enum Flags : int32 { Write = 1, Read = 2, Truncate = 4, Create = 8, Append = 16, CreateNew = 32 };
 
-  const Fd &get_fd() const;
-  Fd &get_fd();
-
   static Result<FileFd> open(CSlice filepath, int32 flags, int32 mode = 0600) TD_WARN_UNUSED_RESULT;
+  static Result<FileFd> from_native_fd(NativeFd fd) TD_WARN_UNUSED_RESULT;
 
   Result<size_t> write(Slice slice) TD_WARN_UNUSED_RESULT;
   Result<size_t> read(MutableSlice slice) TD_WARN_UNUSED_RESULT;
@@ -36,11 +43,10 @@ class FileFd {
   enum class LockFlags { Write, Read, Unlock };
   Status lock(LockFlags flags, int32 max_tries = 1) TD_WARN_UNUSED_RESULT;
 
+  PollableFdInfo &get_poll_info();
+  const PollableFdInfo &get_poll_info() const;
   void close();
   bool empty() const;
-
-  int32 get_flags() const;
-  void update_flags(Fd::Flags mask);
 
   int64 get_size();
 
@@ -52,12 +58,13 @@ class FileFd {
 
   Status truncate_to_current_position(int64 current_position) TD_WARN_UNUSED_RESULT;
 
-#if TD_PORT_POSIX
-  int get_native_fd() const;
-#endif
+  const NativeFd &get_native_fd() const;
+  NativeFd move_as_native_fd();
 
  private:
-  Fd fd_;
+  std::unique_ptr<detail::FileFdImpl> impl_;
+
+  FileFd(std::unique_ptr<detail::FileFdImpl> impl);
 };
 
 }  // namespace td

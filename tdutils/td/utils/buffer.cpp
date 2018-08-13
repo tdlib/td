@@ -110,4 +110,77 @@ BufferRaw *BufferAllocator::create_buffer_raw(size_t size) {
   buffer_raw->was_reader_ = false;
   return buffer_raw;
 }
+void BufferBuilder::append(BufferSlice slice) {
+  if (append_inplace(slice.as_slice())) {
+    return;
+  }
+  append_slow(std::move(slice));
+}
+void BufferBuilder::append(Slice slice) {
+  if (append_inplace(slice)) {
+    return;
+  }
+  append_slow(BufferSlice(slice));
+}
+
+void BufferBuilder::prepend(BufferSlice slice) {
+  if (prepend_inplace(slice.as_slice())) {
+    return;
+  }
+  prepend_slow(std::move(slice));
+}
+void BufferBuilder::prepend(Slice slice) {
+  if (prepend_inplace(slice)) {
+    return;
+  }
+  prepend_slow(BufferSlice(slice));
+}
+
+BufferSlice BufferBuilder::extract() {
+  if (to_append_.empty() && to_prepend_.empty()) {
+    return buffer_writer_.as_buffer_slice();
+  }
+  size_t total_size = 0;
+  for_each([&](auto &&slice) { total_size += slice.size(); });
+  BufferWriter writer(0, 0, total_size);
+  for_each([&](auto &&slice) {
+    writer.prepare_append().truncate(slice.size()).copy_from(slice.as_slice());
+    writer.confirm_append(slice.size());
+  });
+  *this = {};
+  return writer.as_buffer_slice();
+}
+
+bool BufferBuilder::append_inplace(Slice slice) {
+  if (!to_append_.empty()) {
+    return false;
+  }
+  auto dest = buffer_writer_.prepare_append();
+  if (dest.size() < slice.size()) {
+    return false;
+  }
+  dest.remove_suffix(dest.size() - slice.size());
+  dest.copy_from(slice);
+  buffer_writer_.confirm_append(slice.size());
+  return true;
+}
+void BufferBuilder::append_slow(BufferSlice slice) {
+  to_append_.push_back(std::move(slice));
+}
+bool BufferBuilder::prepend_inplace(Slice slice) {
+  if (!to_prepend_.empty()) {
+    return false;
+  }
+  auto dest = buffer_writer_.prepare_prepend();
+  if (dest.size() < slice.size()) {
+    return false;
+  }
+  dest.remove_prefix(dest.size() - slice.size());
+  dest.copy_from(slice);
+  buffer_writer_.confirm_prepend(slice.size());
+  return true;
+}
+void BufferBuilder::prepend_slow(BufferSlice slice) {
+  to_prepend_.push_back(std::move(slice));
+}
 }  // namespace td

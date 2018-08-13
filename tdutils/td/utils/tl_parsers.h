@@ -37,11 +37,6 @@ class TlParser {
 
  public:
   explicit TlParser(Slice slice) {
-    if (slice.size() % sizeof(int32) != 0) {
-      set_error("Wrong length");
-      return;
-    }
-
     data_len = left_len = slice.size();
     if (is_aligned_pointer<4>(slice.begin())) {
       data = slice.ubegin();
@@ -51,7 +46,7 @@ class TlParser {
         buf = &small_data_array[0];
       } else {
         LOG(ERROR) << "Unexpected big unaligned data pointer of length " << slice.size() << " at " << slice.begin();
-        data_buf = make_unique<int32[]>(data_len / sizeof(int32));
+        data_buf = make_unique<int32[]>(1 + data_len / sizeof(int32));
         buf = data_buf.get();
       }
       std::memcpy(static_cast<void *>(buf), static_cast<const void *>(slice.begin()), slice.size());
@@ -91,7 +86,8 @@ class TlParser {
   }
 
   int32 fetch_int_unsafe() {
-    int32 result = *reinterpret_cast<const int32 *>(data);
+    int32 result;
+    std::memcpy(reinterpret_cast<unsigned char *>(&result), data, sizeof(int32));
     data += sizeof(int32);
     return result;
   }
@@ -136,7 +132,7 @@ class TlParser {
   template <class T>
   T fetch_binary() {
     static_assert(sizeof(T) <= sizeof(empty_data), "too big fetch_binary");
-    static_assert(sizeof(T) % sizeof(int32) == 0, "wrong call to fetch_binary");
+    //static_assert(sizeof(T) % sizeof(int32) == 0, "wrong call to fetch_binary");
     check_len(sizeof(T));
     return fetch_binary_unsafe<T>();
   }
@@ -165,7 +161,7 @@ class TlParser {
 
   template <class T>
   T fetch_string_raw(const size_t size) {
-    CHECK(size % sizeof(int32) == 0);
+    //CHECK(size % sizeof(int32) == 0);
     check_len(size);
     const char *result = reinterpret_cast<const char *>(data);
     data += size;

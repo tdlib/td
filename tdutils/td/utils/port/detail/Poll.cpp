@@ -25,31 +25,37 @@ void Poll::clear() {
   pollfds_.clear();
 }
 
-void Poll::subscribe(const Fd &fd, Fd::Flags flags) {
-  unsubscribe(fd);
+void Poll::subscribe(PollableFd fd, PollFlags flags) {
+  unsubscribe(fd.ref());
   struct pollfd pollfd;
-  pollfd.fd = fd.get_native_fd();
+  pollfd.fd = fd.native_fd().fd();
   pollfd.events = 0;
-  if (flags & Fd::Read) {
+  if (flags.can_read()) {
     pollfd.events |= POLLIN;
   }
-  if (flags & Fd::Write) {
+  if (flags.can_write()) {
     pollfd.events |= POLLOUT;
   }
   pollfd.revents = 0;
   pollfds_.push_back(pollfd);
+  fds_.push_back(std::move(fd));
 }
 
-void Poll::unsubscribe(const Fd &fd) {
+void Poll::unsubscribe(PollableFdRef fd_ref) {
+  auto fd = fd_ref.lock();
+  SCOPE_EXIT {
+    fd.release_as_list_node();
+  };
   for (auto it = pollfds_.begin(); it != pollfds_.end(); ++it) {
-    if (it->fd == fd.get_native_fd()) {
+    if (it->fd == fd.native_fd().fd()) {
       pollfds_.erase(it);
+      fds_.erase(fds_.begin() + (it - pollfds_.begin()));
       return;
     }
   }
 }
 
-void Poll::unsubscribe_before_close(const Fd &fd) {
+void Poll::unsubscribe_before_close(PollableFdRef fd) {
   unsubscribe(fd);
 }
 
@@ -58,23 +64,26 @@ void Poll::run(int timeout_ms) {
   auto poll_errno = errno;
   LOG_IF(FATAL, err == -1 && poll_errno != EINTR) << Status::PosixError(poll_errno, "poll failed");
 
-  for (auto &pollfd : pollfds_) {
-    Fd::Flags flags = 0;
+  for (size_t i = 0; i < pollfds_.size(); i++) {
+    auto &pollfd = pollfds_[i];
+    auto &fd = fds_[i];
+
+    PollFlags flags;
     if (pollfd.revents & POLLIN) {
       pollfd.revents &= ~POLLIN;
-      flags |= Fd::Read;
+      flags = flags | PollFlags::Read();
     }
     if (pollfd.revents & POLLOUT) {
       pollfd.revents &= ~POLLOUT;
-      flags |= Fd::Write;
+      flags = flags | PollFlags::Write();
     }
     if (pollfd.revents & POLLHUP) {
       pollfd.revents &= ~POLLHUP;
-      flags |= Fd::Close;
+      flags = flags | PollFlags::Close();
     }
     if (pollfd.revents & POLLERR) {
       pollfd.revents &= ~POLLERR;
-      flags |= Fd::Error;
+      flags = flags | PollFlags::Error();
     }
     if (pollfd.revents & POLLNVAL) {
       LOG(FATAL) << "Unexpected POLLNVAL " << tag("fd", pollfd.fd);
@@ -82,7 +91,7 @@ void Poll::run(int timeout_ms) {
     if (pollfd.revents) {
       LOG(FATAL) << "Unsupported poll events: " << pollfd.revents;
     }
-    Fd(pollfd.fd, Fd::Mode::Reference).update_flags_notify(flags);
+    fd.add_flags(flags);
   }
 }
 

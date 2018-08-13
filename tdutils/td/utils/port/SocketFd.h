@@ -8,50 +8,65 @@
 
 #include "td/utils/port/config.h"
 
-#include "td/utils/port/Fd.h"
+#include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/IPAddress.h"
-#include "td/utils/Slice.h"
+
 #include "td/utils/Status.h"
 
 namespace td {
 
+namespace detail {
+class SocketFdImpl;
+class SocketFdImplDeleter {
+ public:
+  void operator()(SocketFdImpl *impl);
+};
+class EventFdBsd;
+}  // namespace detail
 class SocketFd {
  public:
-  SocketFd() = default;
+  SocketFd();
   SocketFd(const SocketFd &) = delete;
   SocketFd &operator=(const SocketFd &) = delete;
-  SocketFd(SocketFd &&) = default;
-  SocketFd &operator=(SocketFd &&) = default;
+  SocketFd(SocketFd &&);
+  SocketFd &operator=(SocketFd &&);
+  ~SocketFd();
 
   static Result<SocketFd> open(const IPAddress &address) TD_WARN_UNUSED_RESULT;
 
-  const Fd &get_fd() const;
-  Fd &get_fd();
-
-  int32 get_flags() const;
+  PollableFdInfo &get_poll_info();
+  const PollableFdInfo &get_poll_info() const;
 
   Status get_pending_error() TD_WARN_UNUSED_RESULT;
 
   Result<size_t> write(Slice slice) TD_WARN_UNUSED_RESULT;
   Result<size_t> read(MutableSlice slice) TD_WARN_UNUSED_RESULT;
 
+  Result<size_t> write_message(Slice slice) TD_WARN_UNUSED_RESULT;
+  Result<size_t> read_message(MutableSlice slice) TD_WARN_UNUSED_RESULT;
+
+  const NativeFd &get_native_fd() const;
+  static Result<SocketFd> from_native_fd(NativeFd fd);
+
   void close();
   bool empty() const;
 
  private:
-  Fd fd_;
+  std::unique_ptr<detail::SocketFdImpl, detail::SocketFdImplDeleter> impl_;
+
+  PollableFdInfo &poll_info();
 
   friend class ServerSocketFd;
+  friend class detail::EventFdBsd;
 
-  Status init(const IPAddress &address) TD_WARN_UNUSED_RESULT;
-
-#if TD_PORT_POSIX
-  static Result<SocketFd> from_native_fd(int fd);
-#endif
-#if TD_PORT_WINDOWS
-  explicit SocketFd(Fd fd) : fd_(std::move(fd)) {
-  }
-#endif
+  explicit SocketFd(std::unique_ptr<detail::SocketFdImpl> impl);
 };
+
+namespace detail {
+Status set_native_socket_is_blocking(const NativeFd &fd, bool is_blocking);
+#if TD_PORT_POSIX
+Status get_socket_pending_error(const NativeFd &fd);
+#endif
+}  // namespace detail
 
 }  // namespace td

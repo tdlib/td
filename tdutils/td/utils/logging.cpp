@@ -7,7 +7,7 @@
 #include "td/utils/logging.h"
 
 #include "td/utils/port/Clocks.h"
-#include "td/utils/port/Fd.h"
+#include "td/utils/port/FileFd.h"
 #include "td/utils/port/thread_local.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Time.h"
@@ -27,7 +27,6 @@
 
 namespace td {
 
-int VERBOSITY_NAME(level) = VERBOSITY_NAME(DEBUG) + 1;
 int VERBOSITY_NAME(net_query) = VERBOSITY_NAME(INFO);
 int VERBOSITY_NAME(td_requests) = VERBOSITY_NAME(INFO);
 int VERBOSITY_NAME(dc) = VERBOSITY_NAME(DEBUG) + 2;
@@ -39,55 +38,79 @@ int VERBOSITY_NAME(actor) = VERBOSITY_NAME(DEBUG) + 10;
 int VERBOSITY_NAME(buffer) = VERBOSITY_NAME(DEBUG) + 10;
 int VERBOSITY_NAME(sqlite) = VERBOSITY_NAME(DEBUG) + 10;
 
+LogOptions log_options;
+
 TD_THREAD_LOCAL const char *Logger::tag_ = nullptr;
 TD_THREAD_LOCAL const char *Logger::tag2_ = nullptr;
 
-Logger::Logger(LogInterface &log, int log_level, Slice file_name, int line_num, Slice comment, bool simple_mode)
-    : Logger(log, log_level, simple_mode) {
-  if (simple_mode) {
+Logger::Logger(LogInterface &log, const LogOptions &options, int log_level, Slice file_name, int line_num,
+               Slice comment)
+    : Logger(log, options, log_level) {
+  if (!options_.add_info) {
     return;
   }
 
-  auto last_slash_ = static_cast<int32>(file_name.size()) - 1;
-  while (last_slash_ >= 0 && file_name[last_slash_] != '/' && file_name[last_slash_] != '\\') {
-    last_slash_--;
-  }
-  file_name = file_name.substr(last_slash_ + 1);
-
-  auto thread_id = get_thread_id();
-
+  // log level
   sb_ << '[';
   if (log_level < 10) {
     sb_ << ' ';
   }
-  sb_ << log_level << "][t";
+  sb_ << log_level << "]";
+
+  // thread id
+  auto thread_id = get_thread_id();
+  sb_ << "[t";
   if (thread_id < 10) {
     sb_ << ' ';
   }
-  sb_ << thread_id << "][" << StringBuilder::FixedDouble(Clocks::system(), 9) << "][" << file_name << ':' << line_num
-      << ']';
+  sb_ << thread_id << "]";
+
+  // timestamp
+  sb_ << "[" << StringBuilder::FixedDouble(Clocks::system(), 9) << "]";
+
+  // file : line
+  if (!file_name.empty()) {
+    auto last_slash_ = static_cast<int32>(file_name.size()) - 1;
+    while (last_slash_ >= 0 && file_name[last_slash_] != '/' && file_name[last_slash_] != '\\') {
+      last_slash_--;
+    }
+    file_name = file_name.substr(last_slash_ + 1);
+    sb_ << "[" << file_name << ':' << line_num << ']';
+  }
+
+  // context from tag_
   if (tag_ != nullptr && *tag_) {
     sb_ << "[#" << Slice(tag_) << ']';
   }
+
+  // context from tag2_
   if (tag2_ != nullptr && *tag2_) {
     sb_ << "[!" << Slice(tag2_) << ']';
   }
+
+  // comment (e.g. condition in LOG_IF)
   if (!comment.empty()) {
     sb_ << "[&" << comment << ']';
   }
+
   sb_ << '\t';
 }
 
 Logger::~Logger() {
-  if (!simple_mode_) {
+  if (options_.fix_newlines) {
     sb_ << '\n';
     auto slice = as_cslice();
     if (slice.back() != '\n') {
       slice.back() = '\n';
     }
+    while (slice.size() > 1 && slice[slice.size() - 2] == '\n') {
+      slice.back() = 0;
+      slice = MutableCSlice(slice.begin(), slice.begin() + slice.size() - 1);
+    }
+    log_.append(slice, log_level_);
+  } else {
+    log_.append(as_cslice(), log_level_);
   }
-
-  log_.append(as_cslice(), log_level_);
 }
 
 TsCerr::TsCerr() {
@@ -96,8 +119,14 @@ TsCerr::TsCerr() {
 TsCerr::~TsCerr() {
   exitCritical();
 }
+namespace {
+FileFd &Stderr() {
+  static FileFd res = FileFd::from_native_fd(NativeFd(2, true)).move_as_ok();
+  return res;
+}
+}  // namespace
 TsCerr &TsCerr::operator<<(Slice slice) {
-  auto &fd = Fd::Stderr();
+  auto &fd = Stderr();
   if (fd.empty()) {
     return *this;
   }

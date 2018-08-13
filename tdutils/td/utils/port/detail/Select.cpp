@@ -29,12 +29,12 @@ void Select::clear() {
   fds_.clear();
 }
 
-void Select::subscribe(const Fd &fd, Fd::Flags flags) {
-  int native_fd = fd.get_native_fd();
+void Select::subscribe(PollableFd fd, PollFlags flags) {
+  int native_fd = fd.native_fd().fd();
   for (auto &it : fds_) {
-    CHECK(it.fd_ref.get_native_fd() != native_fd);
+    CHECK(it.fd.native_fd().fd() != native_fd);
   }
-  fds_.push_back(FdInfo{Fd(native_fd, Fd::Mode::Reference), flags});
+  fds_.push_back(FdInfo{std::move(fd), flags});
   CHECK(0 <= native_fd && native_fd < FD_SETSIZE) << native_fd << " " << FD_SETSIZE;
   FD_SET(native_fd, &all_fd_);
   if (native_fd > max_fd_) {
@@ -42,8 +42,11 @@ void Select::subscribe(const Fd &fd, Fd::Flags flags) {
   }
 }
 
-void Select::unsubscribe(const Fd &fd) {
-  int native_fd = fd.get_native_fd();
+void Select::unsubscribe(PollableFdRef fd) {
+  auto fd_locked = fd.lock();
+  int native_fd = fd_locked.native_fd().fd();
+  fd_locked.release_as_list_node();
+
   CHECK(0 <= native_fd && native_fd < FD_SETSIZE) << native_fd << " " << FD_SETSIZE;
   FD_CLR(native_fd, &all_fd_);
   FD_CLR(native_fd, &read_fd_);
@@ -53,7 +56,7 @@ void Select::unsubscribe(const Fd &fd) {
     max_fd_--;
   }
   for (auto it = fds_.begin(); it != fds_.end();) {
-    if (it->fd_ref.get_native_fd() == native_fd) {
+    if (it->fd.native_fd().fd() == native_fd) {
       std::swap(*it, fds_.back());
       fds_.pop_back();
       break;
@@ -63,7 +66,7 @@ void Select::unsubscribe(const Fd &fd) {
   }
 }
 
-void Select::unsubscribe_before_close(const Fd &fd) {
+void Select::unsubscribe_before_close(PollableFdRef fd) {
   unsubscribe(fd);
 }
 
@@ -79,14 +82,14 @@ void Select::run(int timeout_ms) {
   }
 
   for (auto &it : fds_) {
-    int native_fd = it.fd_ref.get_native_fd();
-    Fd::Flags fd_flags = it.fd_ref.get_flags();
-    if ((it.flags & Fd::Write) && !(fd_flags & Fd::Write)) {
+    int native_fd = it.fd.native_fd().fd();
+    PollFlags fd_flags = it.fd.get_flags_unsafe();  // concurrent calls are UB
+    if (it.flags.can_write() && !fd_flags.can_write()) {
       FD_SET(native_fd, &write_fd_);
     } else {
       FD_CLR(native_fd, &write_fd_);
     }
-    if ((it.flags & Fd::Read) && !(fd_flags & Fd::Read)) {
+    if (it.flags.can_read() && !fd_flags.can_read()) {
       FD_SET(native_fd, &read_fd_);
     } else {
       FD_CLR(native_fd, &read_fd_);
@@ -96,20 +99,18 @@ void Select::run(int timeout_ms) {
 
   select(max_fd_ + 1, &read_fd_, &write_fd_, &except_fd_, timeout_ptr);
   for (auto &it : fds_) {
-    int native_fd = it.fd_ref.get_native_fd();
-    Fd::Flags flags = 0;
+    int native_fd = it.fd.native_fd().fd();
+    PollFlags flags;
     if (FD_ISSET(native_fd, &read_fd_)) {
-      flags |= Fd::Read;
+      flags = flags | PollFlags::Read();
     }
     if (FD_ISSET(native_fd, &write_fd_)) {
-      flags |= Fd::Write;
+      flags = flags | PollFlags::Write();
     }
     if (FD_ISSET(native_fd, &except_fd_)) {
-      flags |= Fd::Error;
+      flags = flags | PollFlags::Error();
     }
-    if (flags != 0) {
-      it.fd_ref.update_flags_notify(flags);
-    }
+    it.fd.add_flags(flags);
   }
 }
 

@@ -11,7 +11,6 @@
 #ifdef TD_POLL_SELECT
 
 #include "td/utils/common.h"
-#include "td/utils/port/Fd.h"
 #include "td/utils/port/PollBase.h"
 
 #include <sys/select.h>
@@ -32,18 +31,22 @@ class Select final : public PollBase {
 
   void clear() override;
 
-  void subscribe(const Fd &fd, Fd::Flags flags) override;
+  void subscribe(PollableFd fd, PollFlags flags) override;
 
-  void unsubscribe(const Fd &fd) override;
+  void unsubscribe(PollableFdRef fd) override;
 
-  void unsubscribe_before_close(const Fd &fd) override;
+  void unsubscribe_before_close(PollableFdRef fd) override;
 
   void run(int timeout_ms) override;
 
+  static bool is_edge_triggered() {
+    return false;
+  }
+
  private:
   struct FdInfo {
-    Fd fd_ref;
-    Fd::Flags flags;
+    PollableFd fd;
+    PollFlags flags;
   };
   vector<FdInfo> fds_;
   fd_set all_fd_;

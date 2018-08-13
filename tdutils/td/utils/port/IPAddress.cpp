@@ -184,7 +184,7 @@ const sockaddr *IPAddress::get_sockaddr() const {
 
 size_t IPAddress::get_sockaddr_len() const {
   CHECK(is_valid());
-  switch (addr_.ss_family) {
+  switch (sockaddr_.sa_family) {
     case AF_INET6:
       return sizeof(ipv6_addr_);
     case AF_INET:
@@ -210,7 +210,7 @@ bool IPAddress::is_ipv6() const {
 uint32 IPAddress::get_ipv4() const {
   CHECK(is_valid());
   CHECK(is_ipv4());
-  return ipv4_addr_.sin_addr.s_addr;
+  return ntohl(ipv4_addr_.sin_addr.s_addr);
 }
 
 Slice IPAddress::get_ipv6() const {
@@ -356,30 +356,36 @@ Status IPAddress::init_host_port(CSlice host_port) {
   return init_host_port(host_port.substr(0, pos).str(), host_port.substr(pos + 1).str());
 }
 
+Status IPAddress::init_sockaddr(sockaddr *addr) {
+  if (addr->sa_family == AF_INET6) {
+    return init_sockaddr(addr, sizeof(ipv6_addr_));
+  } else if (addr->sa_family == AF_INET) {
+    return init_sockaddr(addr, sizeof(ipv4_addr_));
+  } else {
+    return init_sockaddr(addr, 0);
+  }
+}
 Status IPAddress::init_sockaddr(sockaddr *addr, socklen_t len) {
   if (addr->sa_family == AF_INET6) {
     CHECK(len == sizeof(ipv6_addr_));
     std::memcpy(&ipv6_addr_, reinterpret_cast<sockaddr_in6 *>(addr), sizeof(ipv6_addr_));
+    LOG(DEBUG) << "Have ipv6 address " << get_ip_str() << " with port " << get_port();
   } else if (addr->sa_family == AF_INET) {
     CHECK(len == sizeof(ipv4_addr_));
     std::memcpy(&ipv4_addr_, reinterpret_cast<sockaddr_in *>(addr), sizeof(ipv4_addr_));
+    LOG(DEBUG) << "Have ipv4 address " << get_ip_str() << " with port " << get_port();
   } else {
     return Status::Error(PSLICE() << "Unknown " << tag("sa_family", addr->sa_family));
   }
 
   is_valid_ = true;
-  LOG(INFO) << "Have address " << get_ip_str() << " with port " << get_port();
   return Status::OK();
 }
 
 Status IPAddress::init_socket_address(const SocketFd &socket_fd) {
   is_valid_ = false;
-#if TD_WINDOWS
-  auto fd = socket_fd.get_fd().get_native_socket();
-#else
-  auto fd = socket_fd.get_fd().get_native_fd();
-#endif
-  socklen_t len = sizeof(addr_);
+  auto fd = socket_fd.get_native_fd().socket();
+  socklen_t len = storage_size();
   int ret = getsockname(fd, &sockaddr_, &len);
   if (ret != 0) {
     return OS_SOCKET_ERROR("Failed to get socket address");
@@ -390,12 +396,8 @@ Status IPAddress::init_socket_address(const SocketFd &socket_fd) {
 
 Status IPAddress::init_peer_address(const SocketFd &socket_fd) {
   is_valid_ = false;
-#if TD_WINDOWS
-  auto fd = socket_fd.get_fd().get_native_socket();
-#else
-  auto fd = socket_fd.get_fd().get_native_fd();
-#endif
-  socklen_t len = sizeof(addr_);
+  auto fd = socket_fd.get_native_fd().socket();
+  socklen_t len = storage_size();
   int ret = getpeername(fd, &sockaddr_, &len);
   if (ret != 0) {
     return OS_SOCKET_ERROR("Failed to get peer socket address");

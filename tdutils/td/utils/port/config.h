@@ -43,4 +43,8 @@
   #define TD_THREAD_STL 1
 #endif
 
+#if TD_LINUX
+  #define TD_HAS_MMSG 1
+#endif
+
 // clang-format on

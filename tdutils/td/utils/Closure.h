@@ -68,17 +68,16 @@ class ImmediateClosure {
   friend Delayed;
   using ActorType = ActorT;
 
-  void run(ActorT *actor) {
-    mem_call_tuple(actor, func, std::move(args));
+  auto run(ActorT *actor) {
+    return mem_call_tuple(actor, std::move(args));
   }
 
   // no &&. just save references as references.
-  explicit ImmediateClosure(FunctionT func, ArgsT... args) : func(func), args(std::forward<ArgsT>(args)...) {
+  explicit ImmediateClosure(FunctionT func, ArgsT... args) : args(func, std::forward<ArgsT>(args)...) {
   }
 
  private:
-  FunctionT func;
-  std::tuple<ArgsT...> args;
+  std::tuple<FunctionT, ArgsT...> args;
 };
 
 template <class ActorT, class ResultT, class... DestArgsT, class... SrcArgsT>
@@ -94,36 +93,34 @@ class DelayedClosure {
   using ActorType = ActorT;
   using Delayed = DelayedClosure<ActorT, FunctionT, ArgsT...>;
 
-  void run(ActorT *actor) {
-    mem_call_tuple(actor, func, std::move(args));
+  auto run(ActorT *actor) {
+    return mem_call_tuple(actor, std::move(args));
   }
 
   DelayedClosure clone() const {
     return do_clone(*this);
   }
 
-  explicit DelayedClosure(ImmediateClosure<ActorT, FunctionT, ArgsT...> &&other)
-      : func(std::move(other.func)), args(std::move(other.args)) {
+  explicit DelayedClosure(ImmediateClosure<ActorT, FunctionT, ArgsT...> &&other) : args(std::move(other.args)) {
   }
 
-  explicit DelayedClosure(FunctionT func, ArgsT... args) : func(func), args(std::forward<ArgsT>(args)...) {
+  explicit DelayedClosure(FunctionT func, ArgsT... args) : args(func, std::forward<ArgsT>(args)...) {
   }
 
-  template <class F>
-  void for_each(const F &f) {
-    tuple_for_each(args, f);
-  }
+  //template <class F>
+  //void for_each(const F &f) {
+  //tuple_for_each(args, f);
+  //}
 
  private:
-  using ArgsStorageT = std::tuple<typename std::decay<ArgsT>::type...>;
+  using ArgsStorageT = std::tuple<FunctionT, typename std::decay<ArgsT>::type...>;
 
-  FunctionT func;
   ArgsStorageT args;
 
   template <class FromActorT, class FromFunctionT, class... FromArgsT>
   explicit DelayedClosure(const DelayedClosure<FromActorT, FromFunctionT, FromArgsT...> &other,
                           std::enable_if_t<LogicAnd<std::is_copy_constructible<FromArgsT>::value...>::value, int> = 0)
-      : func(other.func), args(other.args) {
+      : args(other.args) {
   }
 
   template <class FromActorT, class FromFunctionT, class... FromArgsT>

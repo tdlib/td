@@ -30,9 +30,11 @@
 #include "td/utils/StringBuilder.h"
 
 #include <atomic>
+#include <cstdlib>
+#include <iostream>
 #include <type_traits>
 
-#define PSTR_IMPL() ::td::Logger(::td::NullLog().ref(), 0, true)
+#define PSTR_IMPL() ::td::Logger(::td::NullLog().ref(), ::td::LogOptions::plain(), 0)
 #define PSLICE() ::td::detail::Slicify() & PSTR_IMPL()
 #define PSTRING() ::td::detail::Stringify() & PSTR_IMPL()
 #define PSLICE_SAFE() ::td::detail::SlicifySafe() & PSTR_IMPL()
@@ -40,8 +42,8 @@
 
 #define VERBOSITY_NAME(x) verbosity_##x
 
-#define GET_VERBOSITY_LEVEL() (::td::VERBOSITY_NAME(level))
-#define SET_VERBOSITY_LEVEL(new_level) (::td::VERBOSITY_NAME(level) = (new_level))
+#define GET_VERBOSITY_LEVEL() (::td::log_options.level)
+#define SET_VERBOSITY_LEVEL(new_level) (::td::log_options.level = (new_level))
 
 #ifndef STRIP_LOG
 #define STRIP_LOG VERBOSITY_NAME(DEBUG)
@@ -49,14 +51,15 @@
 #define LOG_IS_STRIPPED(strip_level) \
   (std::integral_constant<int, VERBOSITY_NAME(strip_level)>() > std::integral_constant<int, STRIP_LOG>())
 
-#define LOGGER(level, comment)                                                           \
-  ::td::Logger(*::td::log_interface, VERBOSITY_NAME(level), __FILE__, __LINE__, comment, \
-               VERBOSITY_NAME(level) == VERBOSITY_NAME(PLAIN))
+#define LOGGER(interface, options, level, comment) ::td::Logger(interface, options, level, __FILE__, __LINE__, comment)
 
-#define LOG_IMPL(strip_level, level, condition, comment)                                        \
-  LOG_IS_STRIPPED(strip_level) || VERBOSITY_NAME(level) > GET_VERBOSITY_LEVEL() || !(condition) \
-      ? (void)0                                                                                 \
-      : ::td::detail::Voidify() & LOGGER(level, comment)
+#define LOG_IMPL_FULL(interface, options, strip_level, runtime_level, condition, comment) \
+  LOG_IS_STRIPPED(strip_level) || runtime_level > options.level || !(condition)           \
+      ? (void)0                                                                           \
+      : ::td::detail::Voidify() & LOGGER(interface, options, runtime_level, comment)
+
+#define LOG_IMPL(strip_level, level, condition, comment) \
+  LOG_IMPL_FULL(*::td::log_interface, ::td::log_options, strip_level, VERBOSITY_NAME(level), condition, comment)
 
 #define LOG(level) LOG_IMPL(level, level, true, ::td::Slice())
 #define LOG_IF(level, condition) LOG_IMPL(level, level, condition, #condition)
@@ -81,6 +84,7 @@ inline bool no_return_func() {
 #ifdef CHECK
   #undef CHECK
 #endif
+#define DUMMY_CHECK(condition) LOG_IF(NEVER, !(condition))
 #ifdef TD_DEBUG
   #if TD_MSVC
     #define CHECK(condition)            \
@@ -90,7 +94,12 @@ inline bool no_return_func() {
     #define CHECK(condition) LOG_IMPL(FATAL, FATAL, !(condition) && no_return_func(), #condition)
   #endif
 #else
-  #define CHECK(condition) LOG_IF(NEVER, !(condition))
+  #define CHECK DUMMY_CHECK
+#endif
+#if NDEBUG
+#define DCHECK DUMMY_CHECK
+#else
+#define DCHECK CHECK
 #endif
 // clang-format on
 
@@ -107,7 +116,6 @@ constexpr int VERBOSITY_NAME(DEBUG) = 4;
 constexpr int VERBOSITY_NAME(NEVER) = 1024;
 
 namespace td {
-extern int VERBOSITY_NAME(level);
 // TODO Not part of utils. Should be in some separate file
 extern int VERBOSITY_NAME(mtproto);
 extern int VERBOSITY_NAME(raw_mtproto);
@@ -120,6 +128,18 @@ extern int VERBOSITY_NAME(buffer);
 extern int VERBOSITY_NAME(files);
 extern int VERBOSITY_NAME(sqlite);
 
+struct LogOptions {
+  int level{VERBOSITY_NAME(DEBUG) + 1};
+  bool fix_newlines{true};
+  bool add_info{true};
+
+  static constexpr LogOptions plain() {
+    return {0, false, false};
+  }
+};
+
+extern LogOptions log_options;
+
 class LogInterface {
  public:
   LogInterface() = default;
@@ -128,13 +148,19 @@ class LogInterface {
   LogInterface(LogInterface &&) = delete;
   LogInterface &operator=(LogInterface &&) = delete;
   virtual ~LogInterface() = default;
-  virtual void append(CSlice slice, int log_level_) = 0;
-  virtual void rotate() = 0;
+  virtual void append(CSlice slice) {
+    append(slice, -1);
+  }
+  virtual void append(CSlice slice, int /*log_level_*/) {
+    append(slice);
+  }
+  virtual void rotate() {
+  }
 };
 
 class NullLog : public LogInterface {
  public:
-  void append(CSlice slice, int log_level_) override {
+  void append(CSlice /*slice*/, int /*log_level_*/) override {
   }
   void rotate() override {
   }
@@ -179,15 +205,15 @@ class TsCerr {
 class Logger {
  public:
   static const int BUFFER_SIZE = 128 * 1024;
-  Logger(LogInterface &log, int log_level, bool simple_mode = false)
+  Logger(LogInterface &log, const LogOptions &options, int log_level)
       : buffer_(StackAllocator::alloc(BUFFER_SIZE))
       , log_(log)
-      , log_level_(log_level)
       , sb_(buffer_.as_slice())
-      , simple_mode_(simple_mode) {
+      , options_(options)
+      , log_level_(log_level) {
   }
 
-  Logger(LogInterface &log, int log_level, Slice file_name, int line_num, Slice comment, bool simple_mode);
+  Logger(LogInterface &log, const LogOptions &options, int log_level, Slice file_name, int line_num, Slice comment);
 
   template <class T>
   Logger &operator<<(const T &other) {
@@ -213,9 +239,9 @@ class Logger {
  private:
   decltype(StackAllocator::alloc(0)) buffer_;
   LogInterface &log_;
-  int log_level_;
   StringBuilder sb_;
-  bool simple_mode_;
+  const LogOptions &options_;
+  int log_level_;
 };
 
 namespace detail {
@@ -273,6 +299,7 @@ class TsLog : public LogInterface {
     lock_.clear(std::memory_order_release);
   }
 };
+
 }  // namespace td
 
 #include "td/utils/Slice.h"

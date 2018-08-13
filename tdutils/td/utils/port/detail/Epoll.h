@@ -32,17 +32,22 @@ class Epoll final : public PollBase {
 
   void clear() override;
 
-  void subscribe(const Fd &fd, Fd::Flags flags) override;
+  void subscribe(PollableFd fd, PollFlags flags) override;
 
-  void unsubscribe(const Fd &fd) override;
+  void unsubscribe(PollableFdRef fd) override;
 
-  void unsubscribe_before_close(const Fd &fd) override;
+  void unsubscribe_before_close(PollableFdRef fd) override;
 
   void run(int timeout_ms) override;
+
+  static bool is_edge_triggered() {
+    return true;
+  }
 
  private:
   int epoll_fd = -1;
   vector<struct epoll_event> events;
+  ListNode list_root;
 };
 
 }  // namespace detail

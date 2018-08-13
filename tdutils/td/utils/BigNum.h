@@ -43,7 +43,12 @@ class BigNum {
 
   static BigNum from_binary(Slice str);
 
+  // Available only if OpenSSL >= 1.1.0
+  static BigNum from_le_binary(Slice str);
+
   static Result<BigNum> from_decimal(CSlice str);
+
+  static BigNum from_hex(CSlice str);
 
   static BigNum from_raw(void *openssl_big_num);
 
@@ -67,6 +72,9 @@ class BigNum {
 
   string to_binary(int exact_size = -1) const;
 
+  // Available only if OpenSSL >= 1.1.0
+  string to_le_binary(int exact_size = -1) const;
+
   string to_decimal() const;
 
   void operator+=(uint32 value);
@@ -87,9 +95,13 @@ class BigNum {
 
   static void mul(BigNum &r, BigNum &a, BigNum &b, BigNumContext &context);
 
+  static void mod_add(BigNum &r, BigNum &a, BigNum &b, const BigNum &m, BigNumContext &context);
+
+  static void mod_sub(BigNum &r, BigNum &a, BigNum &b, const BigNum &m, BigNumContext &context);
+
   static void mod_mul(BigNum &r, BigNum &a, BigNum &b, const BigNum &m, BigNumContext &context);
 
-  static void mod_inv(BigNum &r, BigNum &a, const BigNum &m, BigNumContext &context);
+  static void mod_inverse(BigNum &r, BigNum &a, const BigNum &m, BigNumContext &context);
 
   static void div(BigNum *quotient, BigNum *remainder, const BigNum &dividend, const BigNum &divisor,
                   BigNumContext &context);

@@ -28,6 +28,16 @@ class Random {
 
   // distribution is not uniform, min and max are included
   static int fast(int min, int max);
+
+  class Xorshift128plus {
+   public:
+    Xorshift128plus(uint32 seed);
+    Xorshift128plus(uint64 seed_a, uint64 seed_b);
+    uint64 operator()();
+
+   private:
+    uint64 seed_[2];
+  };
 };
 
 }  // namespace td

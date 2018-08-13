@@ -20,9 +20,7 @@ struct overload<F> : public F {
 };
 
 template <class F, class... Fs>
-struct overload<F, Fs...>
-    : public overload<F>
-    , overload<Fs...> {
+struct overload<F, Fs...> : public overload<F>, overload<Fs...> {
   overload(F f, Fs... fs) : overload<F>(f), overload<Fs...>(fs...) {
   }
   using overload<F>::operator();

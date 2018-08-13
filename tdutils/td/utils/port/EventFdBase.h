@@ -7,7 +7,7 @@
 #pragma once
 
 #include "td/utils/common.h"
-#include "td/utils/port/Fd.h"
+#include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/Status.h"
 
 namespace td {
@@ -23,8 +23,7 @@ class EventFdBase {
   virtual void init() = 0;
   virtual bool empty() = 0;
   virtual void close() = 0;
-  virtual const Fd &get_fd() const = 0;
-  virtual Fd &get_fd() = 0;
+  virtual PollableFdInfo &get_poll_info() = 0;
   virtual Status get_pending_error() TD_WARN_UNUSED_RESULT = 0;
   virtual void release() = 0;
   virtual void acquire() = 0;

@@ -14,35 +14,36 @@ namespace td {
 namespace detail {
 
 void EventFdWindows::init() {
-  fd_ = Fd::create_event_fd();
+  event_ = NativeFd(CreateEventW(nullptr, true, false, nullptr));
 }
 
 bool EventFdWindows::empty() {
-  return fd_.empty();
+  return !event_;
 }
 
 void EventFdWindows::close() {
-  fd_.close();
+  event_.close();
 }
 
 Status EventFdWindows::get_pending_error() {
   return Status::OK();
 }
 
-const Fd &EventFdWindows::get_fd() const {
-  return fd_;
-}
-
-Fd &EventFdWindows::get_fd() {
-  return fd_;
+PollableFdInfo &EventFdWindows::get_poll_info() {
+  UNREACHABLE();
 }
 
 void EventFdWindows::release() {
-  fd_.release();
+  SetEvent(event_.io_handle());
 }
 
 void EventFdWindows::acquire() {
-  fd_.acquire();
+  ResetEvent(event_.io_handle());
+}
+
+void EventFdWindows::wait(int timeout_ms) {
+  WaitForSingleObject(event_.io_handle(), timeout_ms);
+  ResetEvent(event_.io_handle());
 }
 
 }  // namespace detail

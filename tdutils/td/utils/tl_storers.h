@@ -34,8 +34,7 @@ class TlStorerUnsafe {
   }
 
   void store_int(int32 x) {
-    *reinterpret_cast<int32 *>(buf_) = x;
-    buf_ += sizeof(int32);
+    store_binary<int32>(x);
   }
 
   void store_long(int64 x) {

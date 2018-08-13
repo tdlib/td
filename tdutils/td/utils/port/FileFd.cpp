@@ -18,6 +18,8 @@
 #include "td/utils/port/sleep.h"
 #include "td/utils/StringBuilder.h"
 
+#include "td/utils/port/detail/PollableFd.h"
+
 #include <cstring>
 
 #if TD_PORT_POSIX
@@ -77,12 +79,19 @@ StringBuilder &operator<<(StringBuilder &sb, const PrintFlags &print_flags) {
 
 }  // namespace
 
-const Fd &FileFd::get_fd() const {
-  return fd_;
-}
+namespace detail {
+class FileFdImpl {
+ public:
+  PollableFdInfo info;
+};
+}  // namespace detail
 
-Fd &FileFd::get_fd() {
-  return fd_;
+FileFd::FileFd() = default;
+FileFd::FileFd(FileFd &&) = default;
+FileFd &FileFd::operator=(FileFd &&) = default;
+FileFd::~FileFd() = default;
+
+FileFd::FileFd(std::unique_ptr<detail::FileFdImpl> impl) : impl_(std::move(impl)) {
 }
 
 Result<FileFd> FileFd::open(CSlice filepath, int32 flags, int32 mode) {
@@ -126,8 +135,7 @@ Result<FileFd> FileFd::open(CSlice filepath, int32 flags, int32 mode) {
     return OS_ERROR(PSLICE() << "File \"" << filepath << "\" can't be " << PrintFlags{flags});
   }
 
-  FileFd result;
-  result.fd_ = Fd(native_fd, Fd::Mode::Owner);
+  return from_native_fd(NativeFd(native_fd));
 #elif TD_PORT_WINDOWS
   // TODO: support modes
   auto r_filepath = to_wstring(filepath);
@@ -173,27 +181,30 @@ Result<FileFd> FileFd::open(CSlice filepath, int32 flags, int32 mode) {
   if (handle == INVALID_HANDLE_VALUE) {
     return OS_ERROR(PSLICE() << "File \"" << filepath << "\" can't be " << PrintFlags{flags});
   }
+  auto native_fd = NativeFd(handle);
   if (flags & Append) {
     LARGE_INTEGER offset;
     offset.QuadPart = 0;
     auto set_pointer_res = SetFilePointerEx(handle, offset, nullptr, FILE_END);
     if (!set_pointer_res) {
       auto res = OS_ERROR(PSLICE() << "Failed to seek to the end of file \"" << filepath << "\"");
-      CloseHandle(handle);
       return res;
     }
   }
-  FileFd result;
-  result.fd_ = Fd::create_file_fd(handle);
+  return from_native_fd(std::move(native_fd));
 #endif
-  result.fd_.update_flags(Fd::Flag::Write);
-  return std::move(result);
+}
+
+Result<FileFd> FileFd::from_native_fd(NativeFd native_fd) {
+  auto impl = std::make_unique<detail::FileFdImpl>();
+  impl->info.set_native_fd(std::move(native_fd));
+  impl->info.add_flags(PollFlags::Write());
+  return FileFd(std::move(impl));
 }
 
 Result<size_t> FileFd::write(Slice slice) {
 #if TD_PORT_POSIX
-  CHECK(!fd_.empty());
-  int native_fd = get_native_fd();
+  auto native_fd = get_native_fd().fd();
   auto write_res = skip_eintr([&] { return ::write(native_fd, slice.begin(), slice.size()); });
   if (write_res >= 0) {
     return narrow_cast<size_t>(write_res);
@@ -210,20 +221,25 @@ Result<size_t> FileFd::write(Slice slice) {
   }
   return std::move(error);
 #elif TD_PORT_WINDOWS
-  return fd_.write(slice);
+  auto native_fd = get_native_fd().io_handle();
+  DWORD bytes_written = 0;
+  auto res = WriteFile(native_fd, slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_written, nullptr);
+  if (!res) {
+    return OS_ERROR("Failed to write_sync");
+  }
+  return bytes_written;
 #endif
 }
 
 Result<size_t> FileFd::read(MutableSlice slice) {
 #if TD_PORT_POSIX
-  CHECK(!fd_.empty());
-  int native_fd = get_native_fd();
+  auto native_fd = get_native_fd().fd();
   auto read_res = skip_eintr([&] { return ::read(native_fd, slice.begin(), slice.size()); });
   auto read_errno = errno;
 
   if (read_res >= 0) {
     if (narrow_cast<size_t>(read_res) < slice.size()) {
-      fd_.clear_flags(Read);
+      get_poll_info().clear_flags(PollFlags::Read());
     }
     return static_cast<size_t>(read_res);
   }
@@ -238,7 +254,16 @@ Result<size_t> FileFd::read(MutableSlice slice) {
   }
   return std::move(error);
 #elif TD_PORT_WINDOWS
-  return fd_.read(slice);
+  auto native_fd = get_native_fd().io_handle();
+  DWORD bytes_read = 0;
+  auto res = ReadFile(native_fd, slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_read, nullptr);
+  if (!res) {
+    return OS_ERROR("Failed to read_sync");
+  }
+  if (bytes_read == 0) {
+    get_poll_info().clear_flags(PollFlags::Read());
+  }
+  return bytes_read;
 #endif
 }
 
@@ -247,9 +272,8 @@ Result<size_t> FileFd::pwrite(Slice slice, int64 offset) {
     return Status::Error("Offset must be non-negative");
   }
 #if TD_PORT_POSIX
+  auto native_fd = get_native_fd().fd();
   TRY_RESULT(offset_off_t, narrow_cast_safe<off_t>(offset));
-  CHECK(!fd_.empty());
-  int native_fd = get_native_fd();
   auto pwrite_res = skip_eintr([&] { return ::pwrite(native_fd, slice.begin(), slice.size(), offset_off_t); });
   if (pwrite_res >= 0) {
     return narrow_cast<size_t>(pwrite_res);
@@ -267,13 +291,13 @@ Result<size_t> FileFd::pwrite(Slice slice, int64 offset) {
   }
   return std::move(error);
 #elif TD_PORT_WINDOWS
+  auto native_fd = get_native_fd().io_handle();
   DWORD bytes_written = 0;
   OVERLAPPED overlapped;
   std::memset(&overlapped, 0, sizeof(overlapped));
   overlapped.Offset = static_cast<DWORD>(offset);
   overlapped.OffsetHigh = static_cast<DWORD>(offset >> 32);
-  auto res =
-      WriteFile(fd_.get_io_handle(), slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_written, &overlapped);
+  auto res = WriteFile(native_fd, slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_written, &overlapped);
   if (!res) {
     return OS_ERROR("Failed to pwrite");
   }
@@ -286,9 +310,8 @@ Result<size_t> FileFd::pread(MutableSlice slice, int64 offset) {
     return Status::Error("Offset must be non-negative");
   }
 #if TD_PORT_POSIX
+  auto native_fd = get_native_fd().fd();
   TRY_RESULT(offset_off_t, narrow_cast_safe<off_t>(offset));
-  CHECK(!fd_.empty());
-  int native_fd = get_native_fd();
   auto pread_res = skip_eintr([&] { return ::pread(native_fd, slice.begin(), slice.size(), offset_off_t); });
   if (pread_res >= 0) {
     return narrow_cast<size_t>(pread_res);
@@ -306,12 +329,13 @@ Result<size_t> FileFd::pread(MutableSlice slice, int64 offset) {
   }
   return std::move(error);
 #elif TD_PORT_WINDOWS
+  auto native_fd = get_native_fd().io_handle();
   DWORD bytes_read = 0;
   OVERLAPPED overlapped;
   std::memset(&overlapped, 0, sizeof(overlapped));
   overlapped.Offset = static_cast<DWORD>(offset);
   overlapped.OffsetHigh = static_cast<DWORD>(offset >> 32);
-  auto res = ReadFile(fd_.get_io_handle(), slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_read, &overlapped);
+  auto res = ReadFile(native_fd, slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_read, &overlapped);
   if (!res) {
     return OS_ERROR("Failed to pread");
   }
@@ -323,7 +347,11 @@ Status FileFd::lock(FileFd::LockFlags flags, int32 max_tries) {
   if (max_tries <= 0) {
     return Status::Error(0, "Can't lock file: wrong max_tries");
   }
-
+#if TD_PORT_POSIX
+  auto native_fd = get_native_fd().fd();
+#elif TD_PORT_WINDOWS
+  auto native_fd = get_native_fd().io_handle();
+#endif
   while (true) {
 #if TD_PORT_POSIX
     struct flock lock;
@@ -344,7 +372,7 @@ Status FileFd::lock(FileFd::LockFlags flags, int32 max_tries) {
     }());
 
     lock.l_whence = SEEK_SET;
-    if (fcntl(get_native_fd(), F_SETLK, &lock) == -1) {
+    if (fcntl(native_fd, F_SETLK, &lock) == -1) {
       if (errno == EAGAIN) {
 #elif TD_PORT_WINDOWS
     OVERLAPPED overlapped;
@@ -352,14 +380,14 @@ Status FileFd::lock(FileFd::LockFlags flags, int32 max_tries) {
 
     BOOL result;
     if (flags == LockFlags::Unlock) {
-      result = UnlockFileEx(fd_.get_io_handle(), 0, MAXDWORD, MAXDWORD, &overlapped);
+      result = UnlockFileEx(native_fd, 0, MAXDWORD, MAXDWORD, &overlapped);
     } else {
       DWORD dw_flags = LOCKFILE_FAIL_IMMEDIATELY;
       if (flags == LockFlags::Write) {
         dw_flags |= LOCKFILE_EXCLUSIVE_LOCK;
       }
 
-      result = LockFileEx(fd_.get_io_handle(), dw_flags, 0, MAXDWORD, MAXDWORD, &overlapped);
+      result = LockFileEx(native_fd, dw_flags, 0, MAXDWORD, MAXDWORD, &overlapped);
     }
 
     if (!result) {
@@ -380,25 +408,21 @@ Status FileFd::lock(FileFd::LockFlags flags, int32 max_tries) {
 }
 
 void FileFd::close() {
-  fd_.close();
+  impl_.reset();
 }
 
 bool FileFd::empty() const {
-  return fd_.empty();
+  return !impl_;
 }
 
-#if TD_PORT_POSIX
-int FileFd::get_native_fd() const {
-  return fd_.get_native_fd();
-}
-#endif
-
-int32 FileFd::get_flags() const {
-  return fd_.get_flags();
+const NativeFd &FileFd::get_native_fd() const {
+  return get_poll_info().native_fd();
 }
 
-void FileFd::update_flags(Fd::Flags mask) {
-  fd_.update_flags(mask);
+NativeFd FileFd::move_as_native_fd() {
+  auto res = get_poll_info().move_as_native_fd();
+  impl_.reset();
+  return res;
 }
 
 int64 FileFd::get_size() {
@@ -415,12 +439,13 @@ static uint64 filetime_to_unix_time_nsec(LONGLONG filetime) {
 Stat FileFd::stat() {
   CHECK(!empty());
 #if TD_PORT_POSIX
-  return detail::fstat(get_native_fd());
+  return detail::fstat(get_native_fd().fd());
 #elif TD_PORT_WINDOWS
   Stat res;
 
   FILE_BASIC_INFO basic_info;
-  auto status = GetFileInformationByHandleEx(fd_.get_io_handle(), FileBasicInfo, &basic_info, sizeof(basic_info));
+  auto status =
+      GetFileInformationByHandleEx(get_native_fd().io_handle(), FileBasicInfo, &basic_info, sizeof(basic_info));
   if (!status) {
     auto error = OS_ERROR("Stat failed");
     LOG(FATAL) << error;
@@ -431,7 +456,8 @@ Stat FileFd::stat() {
   res.is_reg_ = true;
 
   FILE_STANDARD_INFO standard_info;
-  status = GetFileInformationByHandleEx(fd_.get_io_handle(), FileStandardInfo, &standard_info, sizeof(standard_info));
+  status = GetFileInformationByHandleEx(get_native_fd().io_handle(), FileStandardInfo, &standard_info,
+                                        sizeof(standard_info));
   if (!status) {
     auto error = OS_ERROR("Stat failed");
     LOG(FATAL) << error;
@@ -445,9 +471,9 @@ Stat FileFd::stat() {
 Status FileFd::sync() {
   CHECK(!empty());
 #if TD_PORT_POSIX
-  if (fsync(fd_.get_native_fd()) != 0) {
+  if (fsync(get_native_fd().fd()) != 0) {
 #elif TD_PORT_WINDOWS
-  if (FlushFileBuffers(fd_.get_io_handle()) == 0) {
+  if (FlushFileBuffers(get_native_fd().io_handle()) == 0) {
 #endif
     return OS_ERROR("Sync failed");
   }
@@ -458,11 +484,11 @@ Status FileFd::seek(int64 position) {
   CHECK(!empty());
 #if TD_PORT_POSIX
   TRY_RESULT(position_off_t, narrow_cast_safe<off_t>(position));
-  if (skip_eintr([&] { return ::lseek(fd_.get_native_fd(), position_off_t, SEEK_SET); }) < 0) {
+  if (skip_eintr([&] { return ::lseek(get_native_fd().fd(), position_off_t, SEEK_SET); }) < 0) {
 #elif TD_PORT_WINDOWS
   LARGE_INTEGER offset;
   offset.QuadPart = position;
-  if (SetFilePointerEx(fd_.get_io_handle(), offset, nullptr, FILE_BEGIN) == 0) {
+  if (SetFilePointerEx(get_native_fd().io_handle(), offset, nullptr, FILE_BEGIN) == 0) {
 #endif
     return OS_ERROR("Seek failed");
   }
@@ -473,13 +499,19 @@ Status FileFd::truncate_to_current_position(int64 current_position) {
   CHECK(!empty());
 #if TD_PORT_POSIX
   TRY_RESULT(current_position_off_t, narrow_cast_safe<off_t>(current_position));
-  if (skip_eintr([&] { return ::ftruncate(fd_.get_native_fd(), current_position_off_t); }) < 0) {
+  if (skip_eintr([&] { return ::ftruncate(get_native_fd().fd(), current_position_off_t); }) < 0) {
 #elif TD_PORT_WINDOWS
-  if (SetEndOfFile(fd_.get_io_handle()) == 0) {
+  if (SetEndOfFile(get_native_fd().io_handle()) == 0) {
 #endif
     return OS_ERROR("Truncate failed");
   }
   return Status::OK();
+}
+PollableFdInfo &FileFd::get_poll_info() {
+  return impl_->info;
+}
+const PollableFdInfo &FileFd::get_poll_info() const {
+  return impl_->info;
 }
 
 }  // namespace td

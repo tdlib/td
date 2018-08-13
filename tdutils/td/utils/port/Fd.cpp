@@ -5,6 +5,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/utils/port/Fd.h"
+#if 0
 
 #include "td/utils/common.h"
 #include "td/utils/format.h"
@@ -47,6 +48,45 @@ Fd::Info &Fd::InfoSet::get_info(int32 id) {
 }
 Fd::InfoSet Fd::fd_info_set_;
 
+bool Fd::FlagsSet::write_flags(Flags flags) {
+  if (!flags) {
+    return false;
+  }
+  auto old_flags = to_write_.fetch_or(flags, std::memory_order_relaxed);
+  return (flags & ~old_flags) != 0;
+}
+bool Fd::FlagsSet::write_flags_local(Flags flags) {
+  auto old_flags = flags_;
+  flags_ |= flags;
+  return flags_ != old_flags;
+}
+bool Fd::FlagsSet::flush() const {
+  if (to_write_.load(std::memory_order_relaxed) == 0) {
+    return false;
+  }
+  Flags to_write = to_write_.exchange(0, std::memory_order_relaxed);
+  auto old_flags = flags_;
+  flags_ |= to_write;
+  if (flags_ & Close) {
+    flags_ &= ~Write;
+  }
+  return flags_ != old_flags;
+}
+Fd::Flags Fd::FlagsSet::read_flags() const {
+  flush();
+  return flags_;
+}
+Fd::Flags Fd::FlagsSet::read_flags_local() const {
+  return flags_;
+}
+void Fd::FlagsSet::clear_flags(Flags flags) {
+  flags_ &= ~flags;
+}
+void Fd::FlagsSet::clear() {
+  to_write_ = 0;
+  flags_ = 0;
+}
+
 // TODO(bug) if constuctor call tries to output something to the LOG it will fail, because log is not initialized
 Fd Fd::stderr_(2, Mode::Reference);
 Fd Fd::stdout_(1, Mode::Reference);
@@ -70,7 +110,7 @@ Fd::Fd(int fd, Mode mode) : mode_(mode), fd_(fd) {
     info->refcnt.store(1, std::memory_order_relaxed);
     CHECK(mode_ != Mode::Reference);
     CHECK(info->observer == nullptr);
-    info->flags = 0;
+    info->flags.clear();
     info->observer = nullptr;
   } else {
     CHECK(mode_ == Mode::Reference) << tag("fd", fd_);
@@ -209,66 +249,62 @@ void Fd::clear_info() {
 
   auto *info = get_info();
   int old_ref_cnt = info->refcnt.load(std::memory_order_relaxed);
-  CHECK(old_ref_cnt == 1);
-  info->flags = 0;
+  CHECK(old_ref_cnt == 1) << old_ref_cnt;
+  info->flags.clear();
   info->observer = nullptr;
   info->refcnt.store(0, std::memory_order_release);
 }
 
-void Fd::update_flags_notify(Flags flags) {
-  update_flags_inner(flags, true);
+void Fd::after_notify() {
+  get_info()->flags.flush();
+}
+
+void Fd::update_flags_notify(Flags new_flags) {
+  auto *info = get_info();
+  auto &flags = info->flags;
+  if (!flags.write_flags(new_flags)) {
+    return;
+  }
+  VLOG(fd) << "Add flags " << tag("fd", fd_) << tag("to", format::as_binary(new_flags));
+  auto observer = info->observer;
+  if (observer == nullptr) {
+    return;
+  }
+
+  observer->notify();
 }
 
 void Fd::update_flags(Flags flags) {
-  update_flags_inner(flags, false);
-}
-
-void Fd::update_flags_inner(int32 new_flags, bool notify_flag) {
-  if (new_flags & Error) {
-    new_flags |= Error;
-    new_flags |= Close;
-  }
-  auto *info = get_info();
-  int32 &flags = info->flags;
-  int32 old_flags = flags;
-  flags |= new_flags;
-  if (new_flags & Close) {
-    // TODO: ???
-    flags &= ~Write;
-  }
-  if (flags != old_flags) {
-    VLOG(fd) << "Update flags " << tag("fd", fd_) << tag("from", format::as_binary(old_flags))
-             << tag("to", format::as_binary(flags));
-  }
-  if (flags != old_flags && notify_flag) {
-    auto observer = info->observer;
-    if (observer != nullptr) {
-      observer->notify();
-    }
-  }
+  get_info()->flags.write_flags_local(flags);
 }
 
 Fd::Flags Fd::get_flags() const {
-  return get_info()->flags;
+  return get_info()->flags.read_flags();
+}
+Fd::Flags Fd::get_flags_local() const {
+  return get_info()->flags.read_flags_local();
 }
 
 void Fd::clear_flags(Flags flags) {
-  get_info()->flags &= ~flags;
+  get_info()->flags.clear_flags(flags);
 }
 
 bool Fd::has_pending_error() const {
   return (get_flags() & Fd::Flag::Error) != 0;
+}
+bool Fd::has_pending_error_local() const {
+  return (get_flags_local() & Fd::Flag::Error) != 0;
 }
 
 Status Fd::get_pending_error() {
   if (!has_pending_error()) {
     return Status::OK();
   }
-  clear_flags(Fd::Error);
   int error = 0;
   socklen_t errlen = sizeof(error);
   if (getsockopt(fd_, SOL_SOCKET, SO_ERROR, static_cast<void *>(&error), &errlen) == 0) {
     if (error == 0) {
+      clear_flags(Fd::Error);
       return Status::OK();
     }
     return Status::PosixError(error, PSLICE() << "Error on socket [fd_ = " << fd_ << "]");
@@ -331,6 +367,9 @@ Result<size_t> Fd::write(Slice slice) {
 }
 
 Result<size_t> Fd::read(MutableSlice slice) {
+  if (has_pending_error()) {
+    return get_pending_error();
+  }
   int native_fd = get_native_fd();
   CHECK(slice.size() > 0);
   auto read_res = skip_eintr([&] { return ::read(native_fd, slice.begin(), slice.size()); });
@@ -427,35 +466,23 @@ class Fd::FdImpl {
   }
 
   void update_flags_inner(int32 new_flags, bool notify_flag) {
-    if (new_flags & Fd::Error) {
-      new_flags |= Fd::Error;
-      new_flags |= Fd::Close;
+    if (!flags_.write_flags_local(new_flags)) {
+      return;
     }
-    int32 old_flags = flags_;
-    flags_ |= new_flags;
-    if (new_flags & Fd::Close) {
-      // TODO: ???
-      flags_ &= ~Fd::Write;
-      internal_flags_ &= ~Fd::Write;
+    VLOG(fd) << "Add flags " << tag("fd", get_io_handle()) << tag("to", format::as_binary(new_flags));
+    auto observer = observer_;
+    if (!notify_flag || observer == nullptr) {
+      return;
     }
-    if (flags_ != old_flags) {
-      VLOG(fd) << "Update flags " << tag("fd", get_io_handle()) << tag("from", format::as_binary(old_flags))
-               << tag("to", format::as_binary(flags_));
-    }
-    if (flags_ != old_flags && notify_flag) {
-      auto observer = get_observer();
-      if (observer != nullptr) {
-        observer->notify();
-      }
-    }
+    observer->notify();
   }
 
   int32 get_flags() const {
-    return flags_;
+    return flags_.read_flags_local();
   }
 
   void clear_flags(Fd::Flags mask) {
-    flags_ &= ~mask;
+    flags_.clear_flags(mask);
   }
 
   Status get_pending_error() {
@@ -688,7 +715,7 @@ class Fd::FdImpl {
   bool async_mode_ = false;
 
   ObserverBase *observer_ = nullptr;
-  Fd::Flags flags_ = Fd::Flag::Write;
+  Fd::FlagsSet flags_;
   Status pending_error_;
   Fd::Flags internal_flags_ = Fd::Flag::Write | Fd::Flag::Read;
 
@@ -712,6 +739,7 @@ class Fd::FdImpl {
   ChainBufferReader output_reader_ = output_writer_.extract_reader();
 
   void init() {
+    flags_.write_flags_local(Fd::Write);
     if (async_mode_) {
       if (type_ != Fd::Type::EventFd) {
         write_event_ = CreateEventW(nullptr, true, false, nullptr);
@@ -932,6 +960,9 @@ Fd &Fd::get_fd() {
 }
 
 Result<size_t> Fd::read(MutableSlice slice) {
+  if (has_pending_error()) {
+    return get_pending_error();
+  }
   return impl_->read(slice);
 }
 
@@ -1102,3 +1133,4 @@ Status set_native_socket_is_blocking(SOCKET fd, bool is_blocking) {
 }  // namespace detail
 
 }  // namespace td
+#endif

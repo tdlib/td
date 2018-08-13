@@ -13,20 +13,28 @@
 #include "td/utils/Status.h"
 
 namespace td {
+namespace detail {
+class ServerSocketFdImpl;
+class ServerSocketFdImplDeleter {
+ public:
+  void operator()(ServerSocketFdImpl *impl);
+};
+}  // namespace detail
 
 class ServerSocketFd {
  public:
-  ServerSocketFd() = default;
+  ServerSocketFd();
   ServerSocketFd(const ServerSocketFd &) = delete;
   ServerSocketFd &operator=(const ServerSocketFd &) = delete;
-  ServerSocketFd(ServerSocketFd &&) = default;
-  ServerSocketFd &operator=(ServerSocketFd &&) = default;
+  ServerSocketFd(ServerSocketFd &&);
+  ServerSocketFd &operator=(ServerSocketFd &&);
+  ~ServerSocketFd();
 
   static Result<ServerSocketFd> open(int32 port, CSlice addr = CSlice("0.0.0.0")) TD_WARN_UNUSED_RESULT;
 
-  const Fd &get_fd() const;
-  Fd &get_fd();
-  int32 get_flags() const;
+  PollableFdInfo &get_poll_info();
+  const PollableFdInfo &get_poll_info() const;
+
   Status get_pending_error() TD_WARN_UNUSED_RESULT;
 
   Result<SocketFd> accept() TD_WARN_UNUSED_RESULT;
@@ -34,10 +42,10 @@ class ServerSocketFd {
   void close();
   bool empty() const;
 
+  const NativeFd &get_native_fd() const;
+
  private:
-  Fd fd_;
-
-  Status init(int32 port, CSlice addr) TD_WARN_UNUSED_RESULT;
+  std::unique_ptr<detail::ServerSocketFdImpl, detail::ServerSocketFdImplDeleter> impl_;
+  explicit ServerSocketFd(std::unique_ptr<detail::ServerSocketFdImpl> impl);
 };
-
 }  // namespace td

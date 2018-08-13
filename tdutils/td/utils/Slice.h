@@ -280,6 +280,14 @@ inline bool operator!=(const Slice &a, const Slice &b) {
   return !(a == b);
 }
 
+inline bool operator<(const Slice &a, const Slice &b) {
+  auto x = std::memcmp(a.data(), b.data(), std::min(a.size(), b.size()));
+  if (x == 0) {
+    return a.size() < b.size();
+  }
+  return x < 0;
+}
+
 inline MutableCSlice::MutableCSlice(char *s, char *t) : MutableSlice(s, t) {
   CHECK(*t == '\0');
 }

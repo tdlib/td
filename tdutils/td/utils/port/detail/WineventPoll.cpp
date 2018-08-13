@@ -22,73 +22,91 @@ char disable_linker_warning_about_empty_file_wineventpoll_cpp TD_UNUSED;
 
 namespace td {
 namespace detail {
-
-void WineventPoll::init() {
+IOCP::~IOCP() {
   clear();
 }
 
-void WineventPoll::clear() {
-  fds_.clear();
-}
-
-void WineventPoll::subscribe(const Fd &fd, Fd::Flags flags) {
-  for (auto &it : fds_) {
-    if (it.fd_ref.get_key() == fd.get_key()) {
-      it.flags = flags;
-      return;
+void IOCP::loop() {
+  IOCP::Guard guard(this);
+  while (true) {
+    DWORD bytes = 0;
+    ULONG_PTR key = 0;
+    OVERLAPPED *overlapped = nullptr;
+    bool ok = GetQueuedCompletionStatus(iocp_handle_.io_handle(), &bytes, &key, &overlapped, 1000);
+    if (bytes || key || overlapped) {
+      LOG(ERROR) << "Got iocp " << bytes << " " << key << " " << overlapped;
     }
-  }
-  fds_.push_back({fd.clone(), flags});
-}
-
-void WineventPoll::unsubscribe(const Fd &fd) {
-  for (auto it = fds_.begin(); it != fds_.end(); ++it) {
-    if (it->fd_ref.get_key() == fd.get_key()) {
-      std::swap(*it, fds_.back());
-      fds_.pop_back();
-      return;
-    }
-  }
-}
-
-void WineventPoll::unsubscribe_before_close(const Fd &fd) {
-  unsubscribe(fd);
-}
-
-void WineventPoll::run(int timeout_ms) {
-  vector<std::pair<size_t, Fd::Flag>> events_desc;
-  vector<HANDLE> events;
-  for (size_t i = 0; i < fds_.size(); i++) {
-    auto &fd_info = fds_[i];
-    if (fd_info.flags & Fd::Flag::Write) {
-      events_desc.emplace_back(i, Fd::Flag::Write);
-      events.push_back(fd_info.fd_ref.get_write_event());
-    }
-    if (fd_info.flags & Fd::Flag::Read) {
-      events_desc.emplace_back(i, Fd::Flag::Read);
-      events.push_back(fd_info.fd_ref.get_read_event());
-    }
-  }
-  if (events.empty()) {
-    usleep_for(timeout_ms * 1000);
-    return;
-  }
-
-  auto status = WaitForMultipleObjects(narrow_cast<DWORD>(events.size()), events.data(), false, timeout_ms);
-  if (status == WAIT_FAILED) {
-    auto error = OS_ERROR("WaitForMultipleObjects failed");
-    LOG(FATAL) << events.size() << " " << timeout_ms << " " << error;
-  }
-  for (size_t i = 0; i < events.size(); i++) {
-    if (WaitForSingleObject(events[i], 0) == WAIT_OBJECT_0) {
-      auto &fd = fds_[events_desc[i].first].fd_ref;
-      if (events_desc[i].second == Fd::Flag::Read) {
-        fd.on_read_event();
-      } else {
-        fd.on_write_event();
+    if (ok) {
+      auto callback = reinterpret_cast<IOCP::Callback *>(key);
+      if (callback == nullptr) {
+        LOG(ERROR) << "Interrupt IOCP loop";
+        return;
+      }
+      callback->on_iocp(bytes, overlapped);
+    } else {
+      if (overlapped != nullptr) {
+        auto error = OS_ERROR("from iocp");
+        auto callback = reinterpret_cast<IOCP::Callback *>(key);
+        CHECK(callback != nullptr);
+        callback->on_iocp(std::move(error), overlapped);
       }
     }
   }
+}
+
+void IOCP::interrupt_loop() {
+  post(0, nullptr, nullptr);
+}
+
+void IOCP::init() {
+  CHECK(!iocp_handle_);
+  auto res = CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0);
+  if (res == nullptr) {
+    auto error = OS_ERROR("Iocp creation failed");
+    LOG(FATAL) << error;
+  }
+  iocp_handle_ = NativeFd(res);
+}
+
+void IOCP::clear() {
+  iocp_handle_.close();
+}
+
+void IOCP::subscribe(const NativeFd &native_fd, Callback *callback) {
+  CHECK(iocp_handle_);
+  auto iocp_handle =
+      CreateIoCompletionPort(native_fd.io_handle(), iocp_handle_.io_handle(), reinterpret_cast<ULONG_PTR>(callback), 0);
+  if (iocp_handle == INVALID_HANDLE_VALUE) {
+    auto error = OS_ERROR("CreateIoCompletionPort");
+    LOG(FATAL) << error;
+  }
+  CHECK(iocp_handle == iocp_handle_.io_handle()) << iocp_handle << " " << iocp_handle_.io_handle();
+}
+
+void IOCP::post(size_t size, Callback *callback, OVERLAPPED *overlapped) {
+  PostQueuedCompletionStatus(iocp_handle_.io_handle(), DWORD(size), reinterpret_cast<ULONG_PTR>(callback), overlapped);
+}
+
+void WineventPoll::init() {
+}
+
+void WineventPoll::clear() {
+}
+
+void WineventPoll::subscribe(PollableFd fd, PollFlags flags) {
+  fd.release_as_list_node();
+}
+
+void WineventPoll::unsubscribe(PollableFdRef fd) {
+  fd.lock();
+}
+
+void WineventPoll::unsubscribe_before_close(PollableFdRef fd) {
+  unsubscribe(std::move(fd));
+}
+
+void WineventPoll::run(int timeout_ms) {
+  UNREACHABLE();
 }
 
 }  // namespace detail

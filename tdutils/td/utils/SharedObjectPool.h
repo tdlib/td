@@ -38,9 +38,7 @@ class AtomicRefCnt {
 };
 
 template <class DataT, class DeleterT>
-class SharedPtrRaw
-    : public DeleterT
-    , private MpscLinkQueueImpl::Node {
+class SharedPtrRaw : public DeleterT, private MpscLinkQueueImpl::Node {
  public:
   explicit SharedPtrRaw(DeleterT deleter) : DeleterT(std::move(deleter)), ref_cnt_{0}, option_magic_(Magic) {
   }
@@ -97,12 +95,16 @@ class SharedPtr {
     reset();
   }
   explicit SharedPtr(Raw *raw) : raw_(raw) {
-    raw_->inc();
+    if (raw_) {
+      raw_->inc();
+    }
   }
   SharedPtr(const SharedPtr &other) : SharedPtr(other.raw_) {
   }
   SharedPtr &operator=(const SharedPtr &other) {
-    other.raw_->inc();
+    if (other.raw_) {
+      other.raw_->inc();
+    }
     reset(other.raw_);
     return *this;
   }
@@ -159,6 +161,9 @@ class SharedPtr {
     auto raw = std::make_unique<Raw>(std::forward<D>(d));
     raw->init_data(std::forward<ArgsT>(args)...);
     return SharedPtr<T, DeleterT>(raw.release());
+  }
+  bool operator==(const SharedPtr<T, DeleterT> &other) const {
+    return raw_ == other.raw_;
   }
 
  private:
