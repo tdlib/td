@@ -56,7 +56,7 @@ StringBuilder &operator<<(StringBuilder &sb, const Ext &ext) {
 }
 }  // namespace
 
-Result<std::pair<FileFd, string>> open_temp_file(const FileType &file_type) {
+Result<std::pair<FileFd, string>> open_temp_file(FileType file_type) {
   auto pmc = G()->td_db()->get_binlog_pmc();
   // TODO: CAS?
   int32 file_id = to_integer<int32>(pmc->get("tmp_file_id"));
@@ -138,6 +138,24 @@ Result<string> search_file(CSlice dir, CSlice name, int64 expected_size) {
   return res;
 }
 
+Result<FullLocalFileLocation> save_file_bytes(FileType type, BufferSlice bytes, CSlice file_name) {
+  TRY_RESULT(fd_path, open_temp_file(type));
+  FileFd fd = std::move(fd_path.first);
+  string path = std::move(fd_path.second);
+
+  TRY_RESULT(size, fd.write(bytes.as_slice()));
+  fd.close();
+
+  if (size != bytes.size()) {
+    return Status::Error("Failed to write bytes to the file");
+  }
+
+  auto dir = get_files_dir(type);
+  TRY_RESULT(perm_path, create_from_temp(path, dir, file_name));
+
+  return FullLocalFileLocation(type, std::move(perm_path), 0);
+}
+
 const char *file_type_name[file_type_size] = {"thumbnails", "profile_photos", "photos",     "voice",
                                               "videos",     "documents",      "secret",     "temp",
                                               "stickers",   "music",          "animations", "secret_thumbnails",
@@ -155,13 +173,13 @@ string get_file_base_dir(const FileDirType &file_dir_type) {
   }
 }
 
-string get_files_base_dir(const FileType &file_type) {
+string get_files_base_dir(FileType file_type) {
   return get_file_base_dir(get_file_dir_type(file_type));
 }
-string get_files_temp_dir(const FileType &file_type) {
+string get_files_temp_dir(FileType file_type) {
   return get_files_base_dir(file_type) + "temp" + TD_DIR_SLASH;
 }
-string get_files_dir(const FileType &file_type) {
+string get_files_dir(FileType file_type) {
   return get_files_base_dir(file_type) + file_type_name[static_cast<int32>(file_type)] + TD_DIR_SLASH;
 }
 

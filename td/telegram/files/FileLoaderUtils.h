@@ -6,6 +6,9 @@
 //
 #pragma once
 
+#include "td/telegram/files/FileLocation.h"
+
+#include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/port/FileFd.h"
 #include "td/utils/Slice.h"
@@ -14,12 +17,19 @@
 #include <utility>
 
 namespace td {
-enum class FileType : int8;
 
-Result<std::pair<FileFd, string>> open_temp_file(const FileType &file_type) TD_WARN_UNUSED_RESULT;
+Result<std::pair<FileFd, string>> open_temp_file(FileType file_type) TD_WARN_UNUSED_RESULT;
+
 Result<string> create_from_temp(CSlice temp_path, CSlice dir, CSlice name) TD_WARN_UNUSED_RESULT;
+
 Result<string> search_file(CSlice dir, CSlice name, int64 expected_size) TD_WARN_UNUSED_RESULT;
-string get_files_base_dir(const FileType &file_type);
-string get_files_temp_dir(const FileType &file_type);
-string get_files_dir(const FileType &file_type);
+
+Result<FullLocalFileLocation> save_file_bytes(FileType type, BufferSlice bytes, CSlice file_name);
+
+string get_files_base_dir(FileType file_type);
+
+string get_files_temp_dir(FileType file_type);
+
+string get_files_dir(FileType file_type);
+
 }  // namespace td

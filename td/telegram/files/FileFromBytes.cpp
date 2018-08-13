@@ -7,12 +7,9 @@
 #include "td/telegram/files/FileFromBytes.h"
 
 #include "td/telegram/files/FileLoaderUtils.h"
-#include "td/telegram/Global.h"
 
 #include "td/utils/common.h"
 #include "td/utils/misc.h"
-
-#include <tuple>
 
 namespace td {
 
@@ -21,30 +18,13 @@ FileFromBytes::FileFromBytes(FileType type, BufferSlice bytes, string name, std:
 }
 
 void FileFromBytes::wakeup() {
-  auto r_fd_path = open_temp_file(type_);
-  if (r_fd_path.is_error()) {
-    return callback_->on_error(r_fd_path.move_as_error());
+  int64 size = narrow_cast<int64>(bytes_.size());
+  auto r_result = save_file_bytes(type_, std::move(bytes_), std::move(name_));
+  if (r_result.is_error()) {
+    callback_->on_error(r_result.move_as_error());
+  } else {
+    callback_->on_ok(r_result.ok(), size);
   }
-  FileFd fd;
-  string path;
-  std::tie(fd, path) = r_fd_path.move_as_ok();
-
-  auto r_size = fd.write(bytes_.as_slice());
-  if (r_size.is_error()) {
-    return callback_->on_error(r_size.move_as_error());
-  }
-  fd.close();
-  auto size = r_size.ok();
-  if (size != bytes_.size()) {
-    return callback_->on_error(Status::Error("Failed to write bytes to the file"));
-  }
-
-  auto dir = get_files_dir(type_);
-  auto r_perm_path = create_from_temp(path, dir, name_);
-  if (r_perm_path.is_error()) {
-    return callback_->on_error(r_perm_path.move_as_error());
-  }
-  callback_->on_ok(FullLocalFileLocation(type_, r_perm_path.move_as_ok(), 0), narrow_cast<int64>(bytes_.size()));
 }
 
 }  // namespace td
