@@ -28,6 +28,7 @@
 #include <atomic>
 #include <memory>
 #include <mutex>
+#include <unordered_map>
 
 namespace td {
 class AnimationsManager;
@@ -301,6 +302,10 @@ class Global : public ActorContext {
     net_stats_file_callbacks_ = std::move(callbacks);
   }
 
+  int64 get_location_access_hash(double latitude, double longitude);
+
+  void add_location_access_hash(double latitude, double longitude, int64 access_hash);
+
  private:
   std::shared_ptr<DhConfig> dh_config_;
 
@@ -345,6 +350,10 @@ class Global : public ActorContext {
   std::unique_ptr<ConfigShared> shared_config_;
 
   int32 my_id_ = 0;  // hack
+
+  static int64 get_location_key(double latitude, double longitude);
+
+  std::unordered_map<int64, int64> location_access_hashes_;
 
   void do_close(Promise<> on_finish, bool destroy_flag);
 };

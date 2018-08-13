@@ -152,7 +152,6 @@ class MapDownloadGenerateActor : public FileGenerateActor {
     TRY_RESULT(width, to_integer_safe<int32>(parts[5]));
     TRY_RESULT(height, to_integer_safe<int32>(parts[6]));
     TRY_RESULT(scale, to_integer_safe<int32>(parts[7]));
-    int64 access_hash = 0;
 
     if (zoom < 13 || zoom > 20) {
       return Status::Error("Wrong zoom");
@@ -171,12 +170,13 @@ class MapDownloadGenerateActor : public FileGenerateActor {
       return Status::Error("Wrong scale");
     }
 
-    file_name_ = PSTRING() << "map_" << zoom << "_" << x << "_" << y << ".jpg";
+    file_name_ = PSTRING() << "map_" << zoom << "_" << x << "_" << y << ".png";
 
     const double PI = 3.14159265358979323846;
     double longitude = (x + 0.1) * 360.0 / size - 180;
     double latitude = 90 - 360 * std::atan(std::exp(((y + 0.1) / size - 0.5) * 2 * PI)) / PI;
 
+    int64 access_hash = G()->get_location_access_hash(latitude, longitude);
     return make_tl_object<telegram_api::inputWebFileGeoPointLocation>(
         make_tl_object<telegram_api::inputGeoPoint>(latitude, longitude), access_hash, width, height, zoom, scale);
   }

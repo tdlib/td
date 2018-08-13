@@ -21,6 +21,8 @@
 #include "td/utils/port/Clocks.h"
 #include "td/utils/tl_helpers.h"
 
+#include <cmath>
+
 namespace td {
 
 Global::Global() = default;
@@ -118,6 +120,39 @@ void Global::set_net_query_dispatcher(std::unique_ptr<NetQueryDispatcher> net_qu
 
 void Global::set_shared_config(std::unique_ptr<ConfigShared> shared_config) {
   shared_config_ = std::move(shared_config);
+}
+
+int64 Global::get_location_key(double latitude, double longitude) {
+  const double PI = 3.14159265358979323846;
+  latitude *= PI / 180;
+  longitude *= PI / 180;
+
+  int64 key = 0;
+  if (latitude < 0) {
+    latitude = -latitude;
+    key = 65536;
+  }
+
+  double f = std::tan(PI / 4 - latitude / 2);
+  key += static_cast<int64>(f * std::cos(longitude) * 128) * 256;
+  key += static_cast<int64>(f * std::sin(longitude) * 128);
+  return key;
+}
+
+int64 Global::get_location_access_hash(double latitude, double longitude) {
+  auto it = location_access_hashes_.find(get_location_key(latitude, longitude));
+  if (it == location_access_hashes_.end()) {
+    return 0;
+  }
+  return it->second;
+}
+
+void Global::add_location_access_hash(double latitude, double longitude, int64 access_hash) {
+  if (access_hash == 0) {
+    return;
+  }
+
+  location_access_hashes_[get_location_key(latitude, longitude)] = access_hash;
 }
 
 }  // namespace td

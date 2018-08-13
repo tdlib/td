@@ -6,6 +6,7 @@
 //
 #include "td/telegram/Location.h"
 
+#include "td/telegram/Global.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -23,6 +24,7 @@ void Location::init(double latitude, double longitude, int64 access_hash) {
     latitude_ = latitude;
     longitude_ = longitude;
     access_hash_ = access_hash;
+    G()->add_location_access_hash(latitude_, longitude_, access_hash_);
   }
 }
 

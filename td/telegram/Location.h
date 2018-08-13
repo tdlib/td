@@ -6,16 +6,17 @@
 //
 #pragma once
 
-#include "td/utils/common.h"
-#include "td/utils/StringBuilder.h"
-#include "td/utils/tl_helpers.h"
+#include "td/telegram/Global.h"
+#include "td/telegram/SecretInputMedia.h"
+#include "td/telegram/Version.h"
 
 #include "td/telegram/secret_api.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
-#include "td/telegram/SecretInputMedia.h"
-#include "td/telegram/Version.h"
+#include "td/utils/common.h"
+#include "td/utils/StringBuilder.h"
+#include "td/utils/tl_helpers.h"
 
 namespace td {
 
@@ -98,6 +99,7 @@ class Location {
     parse(longitude_, parser);
     if (has_access_hash) {
       parse(access_hash_, parser);
+      G()->add_location_access_hash(latitude_, longitude_, access_hash_);
     }
   }
 };
