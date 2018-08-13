@@ -28,6 +28,7 @@
 #include "td/utils/tl_helpers.h"
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
 #include <tuple>
 #include <utility>
@@ -168,7 +169,8 @@ void FileNode::set_upload_priority(int8 priority) {
 }
 
 void FileNode::set_generate_priority(int8 download_priority, int8 upload_priority) {
-  if ((download_priority_ == 0) != (download_priority == 0) || (upload_priority_ == 0) != (upload_priority == 0)) {
+  if ((generate_download_priority_ == 0) != (download_priority == 0) ||
+      (generate_upload_priority_ == 0) != (upload_priority == 0)) {
     VLOG(update_file) << "File " << main_file_id_ << " has changed generate priority to " << download_priority << "/"
                       << upload_priority;
     on_info_changed();
@@ -561,7 +563,7 @@ Status FileManager::check_local_location(FullLocalFileLocation &location, int64 
     return Status::Error(PSLICE() << "File \"" << location.path_ << "\" was modified");
   }
   if ((location.file_type_ == FileType::Thumbnail || location.file_type_ == FileType::EncryptedThumbnail) &&
-      size >= MAX_THUMBNAIL_SIZE) {
+      size >= MAX_THUMBNAIL_SIZE && !begins_with(PathView(location.path_).file_name(), "map")) {
     return Status::Error(PSLICE() << "File \"" << location.path_ << "\" is too big for thumbnail "
                                   << tag("size", format::as_size(size)));
   }
@@ -2056,6 +2058,38 @@ Result<FileId> FileManager::get_input_file_id(FileType type, const tl_object_ptr
   }();
 
   return check_input_file_id(type, std::move(r_file_id), is_encrypted, allow_zero, is_secure);
+}
+
+Result<FileId> FileManager::get_map_thumbnail_file_id(Location location, int32 zoom, int32 width, int32 height,
+                                                      int32 scale, DialogId owner_dialog_id) {
+  if (!location.is_valid_map_point()) {
+    return Status::Error(6, "Invalid location specified");
+  }
+  if (zoom < 13 || zoom > 20) {
+    return Status::Error(6, "Wrong zoom");
+  }
+  if (width < 16 || width > 1024) {
+    return Status::Error(6, "Wrong width");
+  }
+  if (height < 16 || height > 1024) {
+    return Status::Error(6, "Wrong height");
+  }
+  if (scale < 1 || scale > 3) {
+    return Status::Error(6, "Wrong scale");
+  }
+
+  const double PI = 3.14159265358979323846;
+  double sin_latitude = std::sin(location.get_latitude() * PI / 180);
+  int32 size = 256 * (1 << zoom);
+  int32 x = static_cast<int32>((location.get_longitude() + 180) / 360 * size);
+  int32 y = static_cast<int32>((0.5 - std::log((1 + sin_latitude) / (1 - sin_latitude)) / (4 * PI)) * size);
+  x = clamp(x, 0, size - 1);  // just in case
+  y = clamp(y, 0, size - 1);  // just in case
+
+  string conversion = PSTRING() << "#map#" << zoom << "#" << x << "#" << y << "#" << width << "#" << height << "#"
+                                << scale << "#";
+  return register_generate(FileType::Thumbnail, FileLocationSource::FromUser, string(), std::move(conversion),
+                           owner_dialog_id, 0);
 }
 
 vector<tl_object_ptr<telegram_api::InputDocument>> FileManager::get_input_documents(const vector<FileId> &file_ids) {

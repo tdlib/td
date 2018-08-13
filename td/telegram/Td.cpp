@@ -5988,6 +5988,21 @@ void Td::on_request(uint64 id, const td_api::resetAllNotificationSettings &reque
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
 }
 
+void Td::on_request(uint64 id, const td_api::getMapThumbnailFile &request) {
+  DialogId dialog_id(request.chat_id_);
+  if (!messages_manager_->have_dialog_force(dialog_id)) {
+    dialog_id = DialogId();
+  }
+
+  auto r_file_id = file_manager_->get_map_thumbnail_file_id(Location(request.location_), request.zoom_, request.width_,
+                                                            request.height_, request.scale_, dialog_id);
+  if (r_file_id.is_error()) {
+    send_closure(actor_id(this), &Td::send_error, id, r_file_id.move_as_error());
+  } else {
+    send_closure(actor_id(this), &Td::send_result, id, file_manager_->get_file_object(r_file_id.ok()));
+  }
+}
+
 void Td::on_request(uint64 id, const td_api::getLanguagePackInfo &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

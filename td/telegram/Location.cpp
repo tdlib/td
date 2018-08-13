@@ -64,6 +64,11 @@ bool Location::empty() const {
   return is_empty_;
 }
 
+bool Location::is_valid_map_point() const {
+  const double MAX_VALID_MAP_LATITUDE = 85.05112877;
+  return !empty() && std::abs(latitude_) <= MAX_VALID_MAP_LATITUDE;
+}
+
 tl_object_ptr<td_api::location> Location::get_location_object() const {
   if (empty()) {
     return nullptr;

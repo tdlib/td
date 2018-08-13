@@ -45,6 +45,8 @@ class Location {
 
   bool empty() const;
 
+  bool is_valid_map_point() const;
+
   tl_object_ptr<td_api::location> get_location_object() const;
 
   tl_object_ptr<telegram_api::InputGeoPoint> get_input_geo_point() const;

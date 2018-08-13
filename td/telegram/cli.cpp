@@ -2195,6 +2195,24 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::getFile>(as_file_id(args)));
     } else if (op == "grf") {
       send_request(make_tl_object<td_api::getRemoteFile>(args, nullptr));
+    } else if (op == "gmtf") {
+      string latitude;
+      string longitude;
+      string zoom;
+      string width;
+      string height;
+      string scale;
+      string chat_id;
+      std::tie(latitude, args) = split(args);
+      std::tie(longitude, args) = split(args);
+      std::tie(zoom, args) = split(args);
+      std::tie(width, args) = split(args);
+      std::tie(height, args) = split(args);
+      std::tie(scale, chat_id) = split(args);
+
+      send_request(make_tl_object<td_api::getMapThumbnailFile>(
+          as_location(latitude, longitude), to_integer<int32>(zoom), to_integer<int32>(width),
+          to_integer<int32>(height), to_integer<int32>(scale), as_chat_id(chat_id)));
     } else if (op == "df" || op == "DownloadFile") {
       string file_id_str;
       string priority;

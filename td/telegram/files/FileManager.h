@@ -16,6 +16,7 @@
 #include "td/telegram/files/FileLoadManager.h"
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileStats.h"
+#include "td/telegram/Location.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
@@ -349,6 +350,9 @@ class FileManager : public FileLoadManager::Callback {
   Result<FileId> get_input_file_id(FileType type, const tl_object_ptr<td_api::InputFile> &file,
                                    DialogId owner_dialog_id, bool allow_zero, bool is_encrypted,
                                    bool get_by_hash = false, bool is_secure = false) TD_WARN_UNUSED_RESULT;
+
+  Result<FileId> get_map_thumbnail_file_id(Location location, int32 zoom, int32 width, int32 height, int32 scale,
+                                           DialogId owner_dialog_id) TD_WARN_UNUSED_RESULT;
 
   vector<tl_object_ptr<telegram_api::InputDocument>> get_input_documents(const vector<FileId> &file_ids);
 
