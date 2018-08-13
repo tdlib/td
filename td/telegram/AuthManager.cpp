@@ -613,15 +613,12 @@ void AuthManager::check_password(uint64 query_id, string password) {
     return on_query_error(query_id, Status::Error(8, "checkAuthenticationPassword unexpected"));
   }
 
-  auto hash = PasswordManager::get_input_check_password(password, wait_password_state_.current_client_salt_,
-                                                        wait_password_state_.current_server_salt_,
-                                                        wait_password_state_.srp_g_, wait_password_state_.srp_p_,
-                                                        wait_password_state_.srp_B_, wait_password_state_.srp_id_);
-
+  LOG(INFO) << "Have SRP id " << wait_password_state_.srp_id_;
   on_new_query(query_id);
-  start_net_query(NetQueryType::CheckPassword,
-                  G()->net_query_creator().create(create_storer(telegram_api::auth_checkPassword(std::move(hash))),
-                                                  DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
+  password_ = std::move(password);
+  start_net_query(NetQueryType::GetPassword,
+                  G()->net_query_creator().create(create_storer(telegram_api::account_getPassword()), DcId::main(),
+                                                  NetQuery::Type::Common, NetQuery::AuthFlag::Off));
 }
 
 void AuthManager::request_password_recovery(uint64 query_id) {
@@ -782,8 +779,20 @@ void AuthManager::on_get_password_result(NetQueryPtr &result) {
     return;
   }
 
-  update_state(State::WaitPassword);
-  on_query_ok();
+  if (state_ == State::WaitPassword) {
+    LOG(INFO) << "Have SRP id " << wait_password_state_.srp_id_;
+    auto hash = PasswordManager::get_input_check_password(password_, wait_password_state_.current_client_salt_,
+                                                          wait_password_state_.current_server_salt_,
+                                                          wait_password_state_.srp_g_, wait_password_state_.srp_p_,
+                                                          wait_password_state_.srp_B_, wait_password_state_.srp_id_);
+
+    start_net_query(NetQueryType::CheckPassword,
+                    G()->net_query_creator().create(create_storer(telegram_api::auth_checkPassword(std::move(hash))),
+                                                    DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
+  } else {
+    update_state(State::WaitPassword);
+    on_query_ok();
+  }
 }
 
 void AuthManager::on_request_password_recovery_result(NetQueryPtr &result) {
@@ -869,6 +878,8 @@ void AuthManager::on_authorization(tl_object_ptr<telegram_api::auth_authorizatio
     G()->td_db()->get_binlog_pmc()->set("auth_is_bot", "true");
   }
   G()->td_db()->get_binlog_pmc()->set("auth", "ok");
+  code_.clear();
+  password_.clear();
   state_ = State::Ok;
   td->contacts_manager_->on_get_user(std::move(auth->user_), true);
   update_state(State::Ok, true);

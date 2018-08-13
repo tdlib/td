@@ -266,6 +266,7 @@ class AuthManager : public NetActor {
   // State::WaitCode
   SendCodeHelper send_code_helper_;
   string code_;
+  string password_;
   TermsOfService terms_of_service_;
 
   // for bots
