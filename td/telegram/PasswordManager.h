@@ -76,7 +76,7 @@ class PasswordManager : public NetQueryCallback {
   void request_password_recovery(Promise<td_api::object_ptr<td_api::emailAddressAuthenticationCodeInfo>> promise);
   void recover_password(string code, Promise<State> promise);
 
-  void get_secure_secret(string password, optional<int64> hash, Promise<secure_storage::Secret> promise);
+  void get_secure_secret(string password, Promise<secure_storage::Secret> promise);
 
   void get_temp_password_state(Promise<TempState> promise) /*const*/;
   void create_temp_password(string password, int32 timeout, Promise<TempState> promise);
@@ -162,7 +162,7 @@ class PasswordManager : public NetQueryCallback {
                                         PasswordPrivateState private_state, Promise<bool> promise);
   void do_get_state(Promise<PasswordState> promise);
   void get_full_state(string password, Promise<PasswordFullState> promise);
-  void do_get_secure_secret(bool recursive, string passwod, optional<int64>, Promise<secure_storage::Secret> promise);
+  void do_get_secure_secret(bool recursive, string passwod, Promise<secure_storage::Secret> promise);
   void do_get_full_state(string password, PasswordState state, Promise<PasswordFullState> promise);
   void cache_secret(secure_storage::Secret secret);
 

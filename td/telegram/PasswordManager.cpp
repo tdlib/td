@@ -175,49 +175,47 @@ void PasswordManager::set_recovery_email_address(string password, string new_rec
   update_password_settings(std::move(update_settings), std::move(promise));
 }
 
-void PasswordManager::get_secure_secret(string password, optional<int64> hash,
-                                        Promise<secure_storage::Secret> promise) {
-  return do_get_secure_secret(true, std::move(password), std::move(hash), std::move(promise));
+void PasswordManager::get_secure_secret(string password, Promise<secure_storage::Secret> promise) {
+  return do_get_secure_secret(true, std::move(password), std::move(promise));
 }
 
-void PasswordManager::do_get_secure_secret(bool recursive, string password, optional<int64> hash,
-                                           Promise<secure_storage::Secret> promise) {
-  if (secret_ && (!hash || secret_.value().get_hash() == hash.value())) {
+void PasswordManager::do_get_secure_secret(bool recursive, string password, Promise<secure_storage::Secret> promise) {
+  if (secret_) {
     return promise.set_value(secret_.value().clone());
   }
-  get_full_state(
-      password, PromiseCreator::lambda([password, recursive, hash = std::move(hash), promise = std::move(promise),
-                                        actor_id = actor_id(this)](Result<PasswordFullState> r_state) mutable {
-        if (r_state.is_error()) {
-          return promise.set_error(r_state.move_as_error());
-        }
-        auto state = r_state.move_as_ok();
-        if (!state.state.has_password) {
-          return promise.set_error(Status::Error(400, "2-step verification is disabled"));
-        }
-        if (state.private_state.secret) {
-          send_closure(actor_id, &PasswordManager::cache_secret, state.private_state.secret.value().clone());
-          return promise.set_value(std::move(state.private_state.secret.value()));
-        }
-        if (!recursive) {
-          return promise.set_error(Status::Error(400, "Failed to get Telegram Passport secret"));
-        }
+  get_full_state(password,
+                 PromiseCreator::lambda([password, recursive, promise = std::move(promise),
+                                         actor_id = actor_id(this)](Result<PasswordFullState> r_state) mutable {
+                   if (r_state.is_error()) {
+                     return promise.set_error(r_state.move_as_error());
+                   }
+                   auto state = r_state.move_as_ok();
+                   if (!state.state.has_password) {
+                     return promise.set_error(Status::Error(400, "2-step verification is disabled"));
+                   }
+                   if (state.private_state.secret) {
+                     send_closure(actor_id, &PasswordManager::cache_secret, state.private_state.secret.value().clone());
+                     return promise.set_value(std::move(state.private_state.secret.value()));
+                   }
+                   if (!recursive) {
+                     return promise.set_error(Status::Error(400, "Failed to get Telegram Passport secret"));
+                   }
 
-        auto new_promise = PromiseCreator::lambda([password, hash = std::move(hash), promise = std::move(promise),
-                                                   actor_id = actor_id](Result<bool> r_ok) mutable {
-          if (r_ok.is_error()) {
-            return promise.set_error(r_ok.move_as_error());
-          }
-          send_closure(actor_id, &PasswordManager::do_get_secure_secret, false, std::move(password), std::move(hash),
-                       std::move(promise));
-        });
+                   auto new_promise = PromiseCreator::lambda(
+                       [password, promise = std::move(promise), actor_id = actor_id](Result<bool> r_ok) mutable {
+                         if (r_ok.is_error()) {
+                           return promise.set_error(r_ok.move_as_error());
+                         }
+                         send_closure(actor_id, &PasswordManager::do_get_secure_secret, false, std::move(password),
+                                      std::move(promise));
+                       });
 
-        UpdateSettings update_settings;
-        update_settings.current_password = password;
-        update_settings.update_secure_secret = true;
-        send_closure(actor_id, &PasswordManager::do_update_password_settings, std::move(update_settings),
-                     std::move(state), std::move(new_promise));
-      }));
+                   UpdateSettings update_settings;
+                   update_settings.current_password = password;
+                   update_settings.update_secure_secret = true;
+                   send_closure(actor_id, &PasswordManager::do_update_password_settings, std::move(update_settings),
+                                std::move(state), std::move(new_promise));
+                 }));
 }
 
 void PasswordManager::get_temp_password_state(Promise<TempState> promise) /*const*/ {

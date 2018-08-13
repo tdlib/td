@@ -201,7 +201,7 @@ void GetSecureValue::start_up() {
 
   G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
 
-  send_closure(G()->password_manager(), &PasswordManager::get_secure_secret, password_, optional<int64>(),
+  send_closure(G()->password_manager(), &PasswordManager::get_secure_secret, password_,
                PromiseCreator::lambda([actor_id = actor_id(this)](Result<secure_storage::Secret> r_secret) {
                  send_closure(actor_id, &GetSecureValue::on_secret, std::move(r_secret), true);
                }));
@@ -278,7 +278,7 @@ void GetAllSecureValues::start_up() {
 
   G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
 
-  send_closure(G()->password_manager(), &PasswordManager::get_secure_secret, password_, optional<int64>(),
+  send_closure(G()->password_manager(), &PasswordManager::get_secure_secret, password_,
                PromiseCreator::lambda([actor_id = actor_id(this)](Result<secure_storage::Secret> r_secret) {
                  send_closure(actor_id, &GetAllSecureValues::on_secret, std::move(r_secret), true);
                }));
@@ -381,7 +381,7 @@ void SetSecureValue::on_secret(Result<secure_storage::Secret> r_secret, bool x) 
 }
 
 void SetSecureValue::start_up() {
-  send_closure(G()->password_manager(), &PasswordManager::get_secure_secret, password_, optional<int64>(),
+  send_closure(G()->password_manager(), &PasswordManager::get_secure_secret, password_,
                PromiseCreator::lambda([actor_id = actor_id(this)](Result<secure_storage::Secret> r_secret) {
                  send_closure(actor_id, &SetSecureValue::on_secret, std::move(r_secret), true);
                }));
@@ -669,7 +669,7 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
     auto query = G()->net_query_creator().create(create_storer(account_get_authorization_form));
     G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
 
-    send_closure(G()->password_manager(), &PasswordManager::get_secure_secret, password_, optional<int64>(),
+    send_closure(G()->password_manager(), &PasswordManager::get_secure_secret, password_,
                  PromiseCreator::lambda([actor_id = actor_id(this)](Result<secure_storage::Secret> r_secret) {
                    send_closure(actor_id, &GetPassportAuthorizationForm::on_secret, std::move(r_secret), true);
                  }));
