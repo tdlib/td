@@ -423,7 +423,8 @@ static void pbkdf2_impl(Slice password, Slice salt, int iteration_count, Mutable
   HMAC_CTX_cleanup(&ctx);
 
   if (iteration_count > 1) {
-    unsigned char buf[hash_size];
+    CHECK(hash_size <= 64)
+    unsigned char buf[64];
     std::copy(dest.ubegin(), dest.uend(), buf);
     for (int iter = 1; iter < iteration_count; iter++) {
       if (HMAC(evp_md, password.data(), password_len, buf, hash_size, buf, nullptr) == nullptr) {
