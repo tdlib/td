@@ -223,7 +223,7 @@ class MapDownloadGenerateActor : public FileGenerateActor {
     stop();
   }
 
-  void hangup_shared() {
+  void hangup_shared() override {
     on_error(Status::Error(1, "Cancelled"));
   }
 };
