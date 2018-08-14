@@ -67,7 +67,7 @@ Result<BufferSlice> PasswordManager::calc_password_srp_hash(Slice password, Slic
 
   BufferSlice result(v_bn.to_binary(256));
   LOG(INFO) << "End password SRP hash calculation";
-  return result;
+  return std::move(result);
 }
 
 tl_object_ptr<telegram_api::InputCheckPasswordSRP> PasswordManager::get_input_check_password(

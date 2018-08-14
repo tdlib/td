@@ -627,7 +627,7 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
   GetPassportAuthorizationForm(
       ActorShared<SecureManager> parent, string password, int32 authorization_form_id, UserId bot_user_id, string scope,
       string public_key,
-      Promise<std::pair<std::unordered_map<SecureValueType, SuitableSecureValue>, TdApiAuthorizationForm>> promise)
+      Promise<std::pair<std::map<SecureValueType, SuitableSecureValue>, TdApiAuthorizationForm>> promise)
       : parent_(std::move(parent))
       , password_(std::move(password))
       , authorization_form_id_(authorization_form_id)
@@ -644,7 +644,7 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
   UserId bot_user_id_;
   string scope_;
   string public_key_;
-  Promise<std::pair<std::unordered_map<SecureValueType, SuitableSecureValue>, TdApiAuthorizationForm>> promise_;
+  Promise<std::pair<std::map<SecureValueType, SuitableSecureValue>, TdApiAuthorizationForm>> promise_;
   optional<secure_storage::Secret> secret_;
   telegram_api::object_ptr<telegram_api::account_authorizationForm> authorization_form_;
 
@@ -699,7 +699,7 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
 
     auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
     vector<vector<SuitableSecureValue>> required_types;
-    std::unordered_map<SecureValueType, SuitableSecureValue> all_types;
+    std::map<SecureValueType, SuitableSecureValue> all_types;
     for (auto &type_ptr : authorization_form_->required_types_) {
       CHECK(type_ptr != nullptr);
       vector<SuitableSecureValue> required_type;
@@ -1044,7 +1044,7 @@ void SecureManager::get_passport_authorization_form(string password, UserId bot_
   form.is_received = false;
   auto new_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), authorization_form_id, promise = std::move(promise)](
-          Result<std::pair<std::unordered_map<SecureValueType, SuitableSecureValue>, TdApiAuthorizationForm>>
+          Result<std::pair<std::map<SecureValueType, SuitableSecureValue>, TdApiAuthorizationForm>>
               r_authorization_form) mutable {
         send_closure(actor_id, &SecureManager::on_get_passport_authorization_form, authorization_form_id,
                      std::move(promise), std::move(r_authorization_form));
@@ -1057,7 +1057,7 @@ void SecureManager::get_passport_authorization_form(string password, UserId bot_
 
 void SecureManager::on_get_passport_authorization_form(
     int32 authorization_form_id, Promise<TdApiAuthorizationForm> promise,
-    Result<std::pair<std::unordered_map<SecureValueType, SuitableSecureValue>, TdApiAuthorizationForm>>
+    Result<std::pair<std::map<SecureValueType, SuitableSecureValue>, TdApiAuthorizationForm>>
         r_authorization_form) {
   auto it = authorization_forms_.find(authorization_form_id);
   CHECK(it != authorization_forms_.end());
