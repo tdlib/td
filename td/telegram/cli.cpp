@@ -1123,8 +1123,13 @@ class CliClient final : public Actor {
             make_tl_object<td_api::inputIdentityDocument>("1234567890", nullptr, std::move(front_side), nullptr,
                                                           std::move(selfie), std::move(input_files)));
       }
-    } else if (passport_element_type == "rental_aggrement" || passport_element_type == "ra") {
-      return make_tl_object<td_api::inputPassportElementRentalAgreement>(std::move(input_files));
+    } else if (passport_element_type == "rental_agreement" || passport_element_type == "ra") {
+      vector<td_api::object_ptr<td_api::InputFile>> translation;
+      if (selfie != nullptr) {
+        translation.push_back(std::move(selfie));
+      }
+      return make_tl_object<td_api::inputPassportElementRentalAgreement>(
+          make_tl_object<td_api::inputPersonalDocument>(std::move(input_files), std::move(translation)));
     }
 
     LOG(ERROR) << "Unsupported passport element type " << passport_element_type;

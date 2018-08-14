@@ -409,6 +409,11 @@ static td_api::object_ptr<td_api::datedFile> get_dated_file_object(FileManager *
   return td_api::make_object<td_api::datedFile>(file_manager->get_file_object(file.file_id), file.date);
 }
 
+static vector<td_api::object_ptr<td_api::datedFile>> get_dated_files_object(FileManager *file_manager,
+                                                                            const vector<DatedFile> &files) {
+  return transform(files, [file_manager](const DatedFile &file) { return get_dated_file_object(file_manager, file); });
+}
+
 static td_api::object_ptr<td_api::datedFile> get_dated_file_object(FileManager *file_manager,
                                                                    const EncryptedSecureFile &file) {
   DatedFile dated_file = file.file;
@@ -502,8 +507,7 @@ static bool check_encrypted_secure_value(const EncryptedSecureValue &value) {
     case SecureValueType::RentalAgreement:
     case SecureValueType::PassportRegistration:
     case SecureValueType::TemporaryRegistration:
-      return !has_encrypted_data && !has_plain_data && has_files && !has_front_side && !has_reverse_side &&
-             !has_selfie && !has_translations;
+      return !has_encrypted_data && !has_plain_data && has_files && !has_front_side && !has_reverse_side && !has_selfie;
     case SecureValueType::PhoneNumber:
       return has_plain_data && !has_files && !has_front_side && !has_reverse_side && !has_selfie && !has_translations;
     case SecureValueType::EmailAddress:
@@ -941,11 +945,37 @@ static Result<td_api::object_ptr<td_api::identityDocument>> get_identity_documen
   TRY_STATUS(check_document_number(number));
   TRY_RESULT(date, get_date_object(expiry_date));
 
-  auto translations = transform(
-      value.translations, [file_manager](const DatedFile &file) { return get_dated_file_object(file_manager, file); });
+  auto translations = get_dated_files_object(file_manager, value.translations);
   return td_api::make_object<td_api::identityDocument>(std::move(number), std::move(date), std::move(front_side),
                                                        std::move(reverse_side), std::move(selfie),
                                                        std::move(translations));
+}
+
+static Result<SecureValue> get_personal_document(
+    SecureValueType type, FileManager *file_manager,
+    td_api::object_ptr<td_api::inputPersonalDocument> &&personal_document) {
+  if (personal_document == nullptr) {
+    return Status::Error(400, "Personal document must not be empty");
+  }
+
+  SecureValue res;
+  res.type = type;
+  if (personal_document->files_.empty()) {
+    return Status::Error(400, "Document's files are required");
+  }
+  TRY_RESULT(files, get_secure_files(file_manager, std::move(personal_document->files_)));
+  res.files = std::move(files);
+  if (!personal_document->translation_.empty()) {
+    TRY_RESULT(translations, get_secure_files(file_manager, std::move(personal_document->translation_)));
+    res.translations = std::move(translations);
+  }
+  return res;
+}
+
+static td_api::object_ptr<td_api::personalDocument> get_personal_document_object(FileManager *file_manager,
+                                                                                 const SecureValue &value) {
+  return td_api::make_object<td_api::personalDocument>(get_dated_files_object(file_manager, value.files),
+                                                       get_dated_files_object(file_manager, value.translations));
 }
 
 static Status check_phone_number(string &phone_number) {
@@ -1004,38 +1034,25 @@ Result<SecureValue> get_secure_value(FileManager *file_manager,
     }
     case td_api::inputPassportElementUtilityBill::ID: {
       auto input = td_api::move_object_as<td_api::inputPassportElementUtilityBill>(input_passport_element);
-      res.type = SecureValueType::UtilityBill;
-      TRY_RESULT(files, get_secure_files(file_manager, std::move(input->files_)));
-      res.files = std::move(files);
-      break;
+      return get_personal_document(SecureValueType::UtilityBill, file_manager, std::move(input->utility_bill_));
     }
     case td_api::inputPassportElementBankStatement::ID: {
       auto input = td_api::move_object_as<td_api::inputPassportElementBankStatement>(input_passport_element);
-      res.type = SecureValueType::BankStatement;
-      TRY_RESULT(files, get_secure_files(file_manager, std::move(input->files_)));
-      res.files = std::move(files);
-      break;
+      return get_personal_document(SecureValueType::BankStatement, file_manager, std::move(input->bank_statement_));
     }
     case td_api::inputPassportElementRentalAgreement::ID: {
       auto input = td_api::move_object_as<td_api::inputPassportElementRentalAgreement>(input_passport_element);
-      res.type = SecureValueType::RentalAgreement;
-      TRY_RESULT(files, get_secure_files(file_manager, std::move(input->files_)));
-      res.files = std::move(files);
-      break;
+      return get_personal_document(SecureValueType::RentalAgreement, file_manager, std::move(input->rental_agreement_));
     }
     case td_api::inputPassportElementPassportRegistration::ID: {
       auto input = td_api::move_object_as<td_api::inputPassportElementPassportRegistration>(input_passport_element);
-      res.type = SecureValueType::PassportRegistration;
-      TRY_RESULT(files, get_secure_files(file_manager, std::move(input->files_)));
-      res.files = std::move(files);
-      break;
+      return get_personal_document(SecureValueType::PassportRegistration, file_manager,
+                                   std::move(input->passport_registration_));
     }
     case td_api::inputPassportElementTemporaryRegistration::ID: {
       auto input = td_api::move_object_as<td_api::inputPassportElementTemporaryRegistration>(input_passport_element);
-      res.type = SecureValueType::TemporaryRegistration;
-      TRY_RESULT(files, get_secure_files(file_manager, std::move(input->files_)));
-      res.files = std::move(files);
-      break;
+      return get_personal_document(SecureValueType::TemporaryRegistration, file_manager,
+                                   std::move(input->temporary_registration_));
     }
     case td_api::inputPassportElementPhoneNumber::ID: {
       auto input = td_api::move_object_as<td_api::inputPassportElementPhoneNumber>(input_passport_element);
@@ -1089,22 +1106,21 @@ Result<td_api::object_ptr<td_api::PassportElement>> get_passport_element_object(
     case SecureValueType::RentalAgreement:
     case SecureValueType::PassportRegistration:
     case SecureValueType::TemporaryRegistration: {
-      auto files = transform(
-          value.files, [file_manager](const DatedFile &file) { return get_dated_file_object(file_manager, file); });
+      auto document = get_personal_document_object(file_manager, value);
       if (value.type == SecureValueType::UtilityBill) {
-        return td_api::make_object<td_api::passportElementUtilityBill>(std::move(files));
+        return td_api::make_object<td_api::passportElementUtilityBill>(std::move(document));
       }
       if (value.type == SecureValueType::BankStatement) {
-        return td_api::make_object<td_api::passportElementBankStatement>(std::move(files));
+        return td_api::make_object<td_api::passportElementBankStatement>(std::move(document));
       }
       if (value.type == SecureValueType::RentalAgreement) {
-        return td_api::make_object<td_api::passportElementRentalAgreement>(std::move(files));
+        return td_api::make_object<td_api::passportElementRentalAgreement>(std::move(document));
       }
       if (value.type == SecureValueType::PassportRegistration) {
-        return td_api::make_object<td_api::passportElementPassportRegistration>(std::move(files));
+        return td_api::make_object<td_api::passportElementPassportRegistration>(std::move(document));
       }
       if (value.type == SecureValueType::TemporaryRegistration) {
-        return td_api::make_object<td_api::passportElementTemporaryRegistration>(std::move(files));
+        return td_api::make_object<td_api::passportElementTemporaryRegistration>(std::move(document));
       }
       UNREACHABLE();
       break;
@@ -1199,6 +1215,9 @@ Result<SecureValueWithCredentials> decrypt_secure_value(FileManager *file_manage
       TRY_RESULT(files, decrypt_secure_files(file_manager, secret, encrypted_secure_value.files));
       res.files = std::move(files.first);
       res_credentials.files = std::move(files.second);
+      TRY_RESULT(translations, decrypt_secure_files(file_manager, secret, encrypted_secure_value.translations));
+      res.translations = std::move(translations.first);
+      res_credentials.translations = std::move(translations.second);
       break;
     }
     default: {
@@ -1330,6 +1349,7 @@ EncryptedSecureValue encrypt_secure_value(FileManager *file_manager, const secur
     case SecureValueType::TemporaryRegistration: {
       string to_hash;
       res.files = encrypt_secure_files(file_manager, master_secret, secure_value.files, to_hash);
+      res.translations = encrypt_secure_files(file_manager, master_secret, secure_value.translations, to_hash);
       res.hash = secure_storage::calc_value_hash(to_hash).as_slice().str();
       break;
     }
