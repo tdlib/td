@@ -1024,8 +1024,8 @@ passportSuitableElement type:PassportElementType is_selfie_required:Bool is_tran
 passportRequiredElement suitable_elements:vector<passportSuitableElement> = PassportRequiredElement;
 
 //@description Contains information about a Telegram Passport authorization form that was requested @id Unique identifier of the authorization form
-//@required_types Telegram Passport element types that need to be provided to complete the form. If the user has more than one identity document or proof of address document, any one of each can be chosen
-//@elements Already available Telegram Passport elements @errors Errors in the elements that is already available @privacy_policy_url URL for the privacy policy of the service; can be empty
+//@required_elements Information about Telegram Passport elements that need to be provided to complete the form @elements Already available Telegram Passport elements
+//@errors Errors in the elements that is already available @privacy_policy_url URL for the privacy policy of the service; can be empty
 passportAuthorizationForm id:int32 required_elements:vector<passportRequiredElement> elements:vector<PassportElement> errors:vector<passportElementError> privacy_policy_url:string = PassportAuthorizationForm;
 
 
