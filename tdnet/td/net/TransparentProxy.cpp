@@ -35,8 +35,7 @@ void TransparentProxy::on_error(Status status) {
 
 void TransparentProxy::tear_down() {
   VLOG(proxy) << "Finish to connect to proxy";
-  unsubscribe(fd_.get_fd());
-  fd_.get_fd().set_observer(nullptr);
+  unsubscribe(fd_.get_poll_info().get_pollable_fd_ref());
   if (callback_) {
     if (!fd_.input_buffer().empty()) {
       LOG(ERROR) << "Have " << fd_.input_buffer().size() << " unread bytes";
@@ -54,8 +53,7 @@ void TransparentProxy::hangup() {
 
 void TransparentProxy::start_up() {
   VLOG(proxy) << "Begin to connect to proxy";
-  fd_.get_fd().set_observer(this);
-  subscribe(fd_.get_fd());
+  subscribe(fd_.get_poll_info().extract_pollable_fd(this));
   set_timeout_in(10);
   if (can_write(fd_)) {
     loop();

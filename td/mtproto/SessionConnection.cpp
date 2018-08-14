@@ -667,8 +667,8 @@ SessionConnection::SessionConnection(Mode mode, std::unique_ptr<RawConnection> r
   created_at_ = Time::now();
 }
 
-Fd &SessionConnection::get_pollable() {
-  return raw_connection_->get_pollable();
+PollableFdInfo &SessionConnection::get_poll_info() {
+  return raw_connection_->get_poll_info();
 }
 
 Status SessionConnection::init() {

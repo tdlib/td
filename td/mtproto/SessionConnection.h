@@ -69,7 +69,7 @@ class SessionConnection
   SessionConnection(Mode mode, std::unique_ptr<RawConnection> raw_connection, AuthData *auth_data,
                     DhCallback *dh_callback);
 
-  Fd &get_pollable();
+  PollableFdInfo &get_poll_info();
 
   // Interface
   Result<uint64> TD_WARN_UNUSED_RESULT send_query(BufferSlice buffer, bool gzip_flag, int64 message_id = 0,

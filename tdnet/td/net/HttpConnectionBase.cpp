@@ -41,8 +41,7 @@ void HttpConnectionBase::live_event() {
 }
 
 void HttpConnectionBase::start_up() {
-  fd_.get_fd().set_observer(this);
-  subscribe(fd_.get_fd());
+  subscribe(fd_.get_poll_info().extract_pollable_fd(this));
   reader_.init(read_sink_.get_output(), max_post_size_, max_files_);
   if (state_ == State::Read) {
     current_query_ = make_unique<HttpQuery>();
@@ -51,7 +50,7 @@ void HttpConnectionBase::start_up() {
   yield();
 }
 void HttpConnectionBase::tear_down() {
-  unsubscribe_before_close(fd_.get_fd());
+  unsubscribe_before_close(fd_.get_poll_info().get_pollable_fd_ref());
   fd_.close();
 }
 
@@ -141,7 +140,7 @@ void HttpConnectionBase::loop() {
   }
 
   Status pending_error;
-  if (fd_.get_fd().has_pending_error()) {
+  if (fd_.get_poll_info().get_flags().has_pending_error()) {
     pending_error = fd_.get_pending_error();
   }
   if (pending_error.is_ok() && write_sink_.status().is_error()) {

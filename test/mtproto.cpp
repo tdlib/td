@@ -95,13 +95,12 @@ class TestPingActor : public Actor {
                                                  mtproto::TransportType{mtproto::TransportType::Tcp, 0, ""}, nullptr),
         3);
 
-    ping_connection_->get_pollable().set_observer(this);
-    subscribe(ping_connection_->get_pollable());
+    subscribe(ping_connection_->get_poll_info().extract_pollable_fd(this));
     set_timeout_in(10);
     yield();
   }
   void tear_down() override {
-    unsubscribe_before_close(ping_connection_->get_pollable());
+    unsubscribe_before_close(ping_connection_->get_poll_info().get_pollable_fd_ref());
     ping_connection_->close();
     Scheduler::instance()->finish();
   }

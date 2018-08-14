@@ -254,16 +254,16 @@ void Scheduler::send(ActorRef actor_ref, Event &&event) {
                               [&]() { return std::move(event); });
 }
 
-inline void Scheduler::subscribe(const Fd &fd, Fd::Flags flags) {
-  poll_.subscribe(fd, flags);
+inline void Scheduler::subscribe(PollableFd fd, PollFlags flags) {
+  poll_.subscribe(std::move(fd), flags);
 }
 
-inline void Scheduler::unsubscribe(const Fd &fd) {
-  poll_.unsubscribe(fd);
+inline void Scheduler::unsubscribe(PollableFdRef fd) {
+  poll_.unsubscribe(std::move(fd));
 }
 
-inline void Scheduler::unsubscribe_before_close(const Fd &fd) {
-  poll_.unsubscribe_before_close(fd);
+inline void Scheduler::unsubscribe_before_close(PollableFdRef fd) {
+  poll_.unsubscribe_before_close(std::move(fd));
 }
 
 inline void Scheduler::yield_actor(Actor *actor) {
@@ -353,16 +353,16 @@ inline void Scheduler::run(double timeout) {
 }
 
 /*** Interface to current scheduler ***/
-inline void subscribe(const Fd &fd, Fd::Flags flags) {
-  Scheduler::instance()->subscribe(fd, flags);
+inline void subscribe(PollableFd fd, PollFlags flags) {
+  Scheduler::instance()->subscribe(std::move(fd), flags);
 }
 
-inline void unsubscribe(const Fd &fd) {
-  Scheduler::instance()->unsubscribe(fd);
+inline void unsubscribe(PollableFdRef fd) {
+  Scheduler::instance()->unsubscribe(std::move(fd));
 }
 
-inline void unsubscribe_before_close(const Fd &fd) {
-  Scheduler::instance()->unsubscribe_before_close(fd);
+inline void unsubscribe_before_close(PollableFdRef fd) {
+  Scheduler::instance()->unsubscribe_before_close(std::move(fd));
 }
 
 template <class ActorT, class... Args>

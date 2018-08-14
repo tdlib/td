@@ -86,7 +86,7 @@ class MpscPollableQueue {
     while ((res = reader_wait_nonblock()) == 0) {
       // TODO: reader_flush?
       pollfd fd;
-      fd.fd = reader_get_event_fd().get_fd().get_native_fd();
+      fd.fd = reader_get_event_fd().get_poll_info().native_fd().fd();
       fd.events = POLLIN;
       poll(&fd, 1, -1);
     }

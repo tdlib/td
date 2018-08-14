@@ -85,7 +85,7 @@ Status FileHashUploader::loop_sha() {
   }
   resource_state_.start_use(limit);
 
-  fd_.update_flags(Fd::Flag::Read);
+  fd_.get_poll_info().add_flags(PollFlags::Read());
   TRY_RESULT(read_size, fd_.flush_read(static_cast<size_t>(limit)));
   if (read_size != static_cast<size_t>(limit)) {
     return Status::Error("unexpected end of file");

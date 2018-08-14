@@ -127,8 +127,7 @@ class TdProxy : public Actor {
 
   void start_up() override {
     auto &fd = input_queue_->reader_get_event_fd();
-    fd.get_fd().set_observer(this);
-    ::td::subscribe(fd.get_fd(), Fd::Read);
+    ::td::subscribe(fd.get_poll_info().extract_pollable_fd(this), PollFlags::Read());
 
     class Callback : public TdCallback {
      public:
@@ -190,8 +189,7 @@ class TdProxy : public Actor {
 
   void tear_down() override {
     auto &fd = input_queue_->reader_get_event_fd();
-    ::td::unsubscribe(fd.get_fd());
-    fd.get_fd().set_observer(nullptr);
+    ::td::unsubscribe(fd.get_poll_info().get_pollable_fd_ref());
   }
 };
 
@@ -227,6 +225,8 @@ class Client::Impl final {
   ~Impl() {
     input_queue_->writer_put({0, nullptr});
     scheduler_thread_.join();
+    auto &event_fd = output_queue_->reader_get_event_fd();
+    poll_.unsubscribe(event_fd.get_poll_info().get_pollable_fd_ref());
   }
 
  private:
@@ -256,7 +256,7 @@ class Client::Impl final {
 
     poll_.init();
     auto &event_fd = output_queue_->reader_get_event_fd();
-    poll_.subscribe(event_fd.get_fd(), Fd::Read);
+    poll_.subscribe(event_fd.get_poll_info().extract_pollable_fd(nullptr), PollFlags::Read());
   }
 
   Response receive_unlocked(double timeout) {

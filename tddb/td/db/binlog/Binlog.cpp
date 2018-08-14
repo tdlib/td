@@ -483,7 +483,7 @@ Status Binlog::load_binlog(const Callback &callback, const Callback &debug_callb
 
   update_read_encryption();
 
-  fd_.update_flags(Fd::Flag::Read);
+  fd_.get_poll_info().add_flags(PollFlags::Read());
   info_.wrong_password = false;
   while (true) {
     BinlogEvent event;

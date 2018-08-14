@@ -392,7 +392,7 @@ void Session::on_server_time_difference_updated() {
 }
 
 void Session::on_before_close() {
-  unsubscribe_before_close(current_info_->connection->get_pollable());
+  unsubscribe_before_close(current_info_->connection->get_poll_info().get_pollable_fd_ref());
 }
 
 void Session::on_closed(Status status) {
@@ -955,8 +955,7 @@ void Session::connection_open_finish(ConnectionInfo *info,
     info->connection->set_online(connection_online_flag_);
   }
   info->connection->set_name(name);
-  info->connection->get_pollable().set_observer(this);
-  subscribe(info->connection->get_pollable());
+  subscribe(info->connection->get_poll_info().extract_pollable_fd(this));
   info->mode = mode_;
   info->state = ConnectionInfo::State::Ready;
   info->created_at = Time::now_cached();

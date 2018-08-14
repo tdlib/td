@@ -26,14 +26,13 @@ void TcpListener::start_up() {
     return;
   }
   server_fd_ = r_socket.move_as_ok();
-  server_fd_.get_fd().set_observer(this);
-  subscribe(server_fd_.get_fd());
+  subscribe(server_fd_.get_poll_info().extract_pollable_fd(this));
 }
 
 void TcpListener::tear_down() {
   LOG(ERROR) << "TcpListener closed";
   if (!server_fd_.empty()) {
-    unsubscribe_before_close(server_fd_.get_fd());
+    unsubscribe_before_close(server_fd_.get_poll_info().get_pollable_fd_ref());
     server_fd_.close();
   }
 }

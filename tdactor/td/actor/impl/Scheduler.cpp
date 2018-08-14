@@ -58,8 +58,7 @@ void Scheduler::ServiceActor::start_up() {
   }
   auto &fd = inbound_->reader_get_event_fd();
 
-  fd.get_fd().set_observer(this);
-  ::td::subscribe(fd.get_fd(), Fd::Read);
+  ::td::subscribe(fd.get_poll_info().extract_pollable_fd(this), PollFlags::Read());
   yield();
 #endif
 }
@@ -184,7 +183,7 @@ void Scheduler::init(int32 id, std::vector<std::shared_ptr<MpscPollableQueue<Eve
 
 #if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
   event_fd_.init();
-  subscribe(event_fd_.get_fd(), Fd::Read);
+  subscribe(event_fd_.get_poll_info().extract_pollable_fd(nullptr), PollFlags::Read());
 #endif
 
   if (!outbound.empty()) {
@@ -426,7 +425,7 @@ void Scheduler::run_poll(double timeout) {
   poll_.run(static_cast<int32>(timeout * 1000 + 1));
 
 #if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
-  if (can_read(event_fd_.get_fd())) {
+  if (event_fd_.get_poll_info().get_flags().can_read()) {
     std::atomic_thread_fence(std::memory_order_acquire);
     event_fd_.acquire();
   }

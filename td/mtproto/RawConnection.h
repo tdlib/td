@@ -63,8 +63,8 @@ class RawConnection {
                    uint64 quick_ack_token = 0);
   uint64 send_no_crypto(const Storer &storer);
 
-  Fd &get_pollable() {
-    return socket_fd_.get_fd();
+  PollableFdInfo &get_poll_info() {
+    return socket_fd_.get_poll_info();
   }
   StatsCallback *stats_callback() {
     return stats_callback_.get();

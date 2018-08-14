@@ -32,8 +32,8 @@ class HandshakeConnection
     handshake_->resume(this);
   }
 
-  Fd &get_pollable() {
-    return raw_connection_->get_pollable();
+  PollableFdInfo &get_poll_info() {
+    return raw_connection_->get_poll_info();
   }
 
   std::unique_ptr<RawConnection> move_as_raw_connection() {

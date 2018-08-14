@@ -264,7 +264,7 @@ class CliClient final : public Actor {
   }
 
   void update_users(const td_api::users &users) {
-    Logger log{*log_interface, VERBOSITY_NAME(PLAIN)};
+    Logger log{*log_interface, LogOptions::plain(), VERBOSITY_NAME(PLAIN)};
     for (auto &user_id : users.user_ids_) {
       if (user_id == 0) {
         continue;

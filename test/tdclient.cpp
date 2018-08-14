@@ -41,16 +41,6 @@ static void check_td_error(T &result) {
   CHECK(result->get_id() != td_api::error::ID) << to_string(result);
 }
 
-static void rmrf(CSlice path) {
-  td::walk_path(path, [](CSlice path, bool is_dir) {
-    if (is_dir) {
-      td::rmdir(path).ignore();
-    } else {
-      td::unlink(path).ignore();
-    }
-  });
-}
-
 class TestClient : public Actor {
  public:
   explicit TestClient(string name) : name_(std::move(name)) {
@@ -143,7 +133,7 @@ class TestClient : public Actor {
   }
 
   void start_up() override {
-    rmrf(name_);
+    rmrf(name_).ignore();
     set_context(std::make_shared<td::ActorContext>());
     set_tag(name_);
     LOG(INFO) << "START UP!";

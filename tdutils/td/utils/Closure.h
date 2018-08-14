@@ -107,10 +107,10 @@ class DelayedClosure {
   explicit DelayedClosure(FunctionT func, ArgsT... args) : args(func, std::forward<ArgsT>(args)...) {
   }
 
-  //template <class F>
-  //void for_each(const F &f) {
-  //tuple_for_each(args, f);
-  //}
+  template <class F>
+  void for_each(const F &f) {
+    tuple_for_each(args, f);
+  }
 
  private:
   using ArgsStorageT = std::tuple<FunctionT, typename std::decay<ArgsT>::type...>;
