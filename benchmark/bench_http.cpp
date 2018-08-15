@@ -27,9 +27,9 @@ class HttpClient : public HttpOutboundConnection::Callback {
     addr.init_ipv4_port("127.0.0.1", 8082).ensure();
     auto fd = SocketFd::open(addr);
     CHECK(fd.is_ok()) << fd.error();
-    connection_ =
-        create_actor<HttpOutboundConnection>("Connect", fd.move_as_ok(), std::numeric_limits<size_t>::max(), 0, 0,
-                                             ActorOwn<HttpOutboundConnection::Callback>(actor_id(this)));
+    connection_ = create_actor<HttpOutboundConnection>("Connect", fd.move_as_ok(), SslStream{},
+                                                       std::numeric_limits<size_t>::max(), 0, 0,
+                                                       ActorOwn<HttpOutboundConnection::Callback>(actor_id(this)));
     yield();
     cnt_ = 100000;
     counter++;

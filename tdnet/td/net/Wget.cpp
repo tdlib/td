@@ -8,7 +8,7 @@
 
 #include "td/net/HttpHeaderCreator.h"
 #include "td/net/HttpOutboundConnection.h"
-#include "td/net/SslFd.h"
+#include "td/net/SslStream.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/HttpUrl.h"
@@ -23,7 +23,7 @@
 namespace td {
 
 Wget::Wget(Promise<HttpQueryPtr> promise, string url, std::vector<std::pair<string, string>> headers, int32 timeout_in,
-           int32 ttl, bool prefer_ipv6, SslFd::VerifyPeer verify_peer)
+           int32 ttl, bool prefer_ipv6, SslStream::VerifyPeer verify_peer)
     : promise_(std::move(promise))
     , input_url_(std::move(url))
     , headers_(std::move(headers))
@@ -66,14 +66,15 @@ Status Wget::try_init() {
 
   TRY_RESULT(fd, SocketFd::open(addr));
   if (url.protocol_ == HttpUrl::Protocol::HTTP) {
-    connection_ =
-        create_actor<HttpOutboundConnection>("Connect", std::move(fd), std::numeric_limits<std::size_t>::max(), 0, 0,
-                                             ActorOwn<HttpOutboundConnection::Callback>(actor_id(this)));
+    connection_ = create_actor<HttpOutboundConnection>("Connect", std::move(fd), SslStream{},
+                                                       std::numeric_limits<std::size_t>::max(), 0, 0,
+                                                       ActorOwn<HttpOutboundConnection::Callback>(actor_id(this)));
   } else {
-    TRY_RESULT(ssl_fd, SslFd::init(std::move(fd), url.host_, CSlice() /* certificate */, verify_peer_));
-    connection_ =
-        create_actor<HttpOutboundConnection>("Connect", std::move(ssl_fd), std::numeric_limits<std::size_t>::max(), 0,
-                                             0, ActorOwn<HttpOutboundConnection::Callback>(actor_id(this)));
+    LOG(ERROR) << "HTTPS";
+    TRY_RESULT(ssl_stream, SslStream::create(url.host_, CSlice() /* certificate */, verify_peer_));
+    connection_ = create_actor<HttpOutboundConnection>("Connect", std::move(fd), std::move(ssl_stream),
+                                                       std::numeric_limits<std::size_t>::max(), 0, 0,
+                                                       ActorOwn<HttpOutboundConnection::Callback>(actor_id(this)));
   }
 
   send_closure(connection_, &HttpOutboundConnection::write_next, BufferSlice(header));

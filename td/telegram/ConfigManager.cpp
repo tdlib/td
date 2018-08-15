@@ -20,7 +20,7 @@
 
 #if !TD_EMSCRIPTEN  //FIXME
 #include "td/net/HttpQuery.h"
-#include "td/net/SslFd.h"
+#include "td/net/SslStream.h"
 #include "td/net/Wget.h"
 #endif
 
@@ -126,7 +126,7 @@ static ActorOwn<> get_simple_config_impl(Promise<SimpleConfig> promise, int32 sc
         }());
       }),
       std::move(url), std::vector<std::pair<string, string>>({{"Host", std::move(host)}}), timeout, ttl, prefer_ipv6,
-      SslFd::VerifyPeer::Off));
+      SslStream::VerifyPeer::Off));
 #endif
 }
 
@@ -186,7 +186,7 @@ ActorOwn<> get_simple_config_google_dns(Promise<SimpleConfig> promise, const Con
       }),
       PSTRING() << "https://www.google.com/resolve?name=" << url_encode(name) << "&type=16",
       std::vector<std::pair<string, string>>({{"Host", "dns.google.com"}}), timeout, ttl, prefer_ipv6,
-      SslFd::VerifyPeer::Off));
+      SslStream::VerifyPeer::Off));
 #endif
 }
 

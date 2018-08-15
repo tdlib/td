@@ -22,10 +22,10 @@ class HttpOutboundConnection final : public detail::HttpConnectionBase {
     virtual void handle(HttpQueryPtr query) = 0;
     virtual void on_connection_error(Status error) = 0;  // TODO rename to on_error
   };
-  template <class FdT>
-  HttpOutboundConnection(FdT fd, size_t max_post_size, size_t max_files, int32 idle_timeout,
+  HttpOutboundConnection(SocketFd fd, SslStream ssl_stream, size_t max_post_size, size_t max_files, int32 idle_timeout,
                          ActorShared<Callback> callback)
-      : HttpConnectionBase(HttpConnectionBase::State::Write, std::move(fd), max_post_size, max_files, idle_timeout)
+      : HttpConnectionBase(HttpConnectionBase::State::Write, std::move(fd), std::move(ssl_stream), max_post_size,
+                           max_files, idle_timeout)
       , callback_(std::move(callback)) {
   }
   // Inherited interface

@@ -18,7 +18,7 @@
 #include <string>
 
 int main(int argc, char *argv[]) {
-  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(INFO));
+  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(DEBUG));
   td::VERBOSITY_NAME(fd) = VERBOSITY_NAME(INFO);
 
   std::string url = (argc > 1 ? argv[1] : "https://telegram.org");
