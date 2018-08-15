@@ -7,6 +7,7 @@
 #include "td/net/SslStream.h"
 
 #include "td/utils/logging.h"
+#include "td/utils/port/wstring_convert.h"
 #include "td/utils/StackAllocator.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
@@ -16,10 +17,15 @@
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/ssl.h>
+#include <openssl/x509.h>
 #include <openssl/x509v3.h>
 
 #include <map>
 #include <mutex>
+
+#if TD_PORT_WINDOWS
+#include <wincrypt.h>
+#endif
 
 namespace td {
 
@@ -71,10 +77,13 @@ int strm_create(BIO *b) {
   BIO_set_init(b, 1);
   return 1;
 }
+
 int strm_destroy(BIO *b) {
   return 1;
 }
+
 int strm_read(BIO *b, char *buf, int len);
+
 int strm_write(BIO *b, const char *buf, int len);
 
 long strm_ctrl(BIO *b, int cmd, long num, void *ptr) {
@@ -103,6 +112,7 @@ BIO_METHOD *BIO_s_sslstream() {
   }();
   return result;
 }
+
 int verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
   if (!preverify_ok) {
     char buf[256];
@@ -161,6 +171,7 @@ void do_ssl_shutdown(SSL *ssl_handle) {
   SSL_shutdown(ssl_handle);
   openssl_clear_errors("After SSL_shutdown");
 }
+
 }  // namespace
 
 class SslStreamImpl {
@@ -218,7 +229,43 @@ class SslStreamImpl {
     SSL_CTX_set_mode(ssl_ctx, SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER | SSL_MODE_ENABLE_PARTIAL_WRITE);
 
     if (cert_file.empty()) {
+#if TD_PORT_WINDOWS
+      // TODO thread-local SSL_CTX cache
+      LOG(DEBUG) << "Begin to load system store";
+      auto flags = CERT_STORE_OPEN_EXISTING_FLAG | CERT_STORE_READONLY_FLAG | CERT_SYSTEM_STORE_CURRENT_USER;
+      HCERTSTORE system_store =
+          CertOpenStore(CERT_STORE_PROV_SYSTEM_W, X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, HCRYPTPROV_LEGACY(), flags,
+                        static_cast<const void *>(to_wstring("ROOT").ok().c_str()));
+
+      if (system_store) {
+        X509_STORE *store = X509_STORE_new();
+
+        for (PCCERT_CONTEXT cert_context = CertEnumCertificatesInStore(system_store, nullptr); cert_context != nullptr;
+             cert_context = CertEnumCertificatesInStore(system_store, cert_context)) {
+          const unsigned char *in = cert_context->pbCertEncoded;
+          X509 *x509 = d2i_X509(nullptr, &in, static_cast<long>(cert_context->cbCertEncoded));
+          if (x509 != nullptr) {
+            if (X509_STORE_add_cert(store, x509) != 1) {
+              LOG(ERROR) << "Failed to add certificate";
+            }
+
+            X509_free(x509);
+          } else {
+            LOG(ERROR) << "Failed to load X09 certificate";
+          }
+        }
+
+        CertCloseStore(system_store, 0);
+
+        SSL_CTX_set_cert_store(ssl_ctx, store);
+        LOG(DEBUG) << "End to load system store";
+      } else {
+        LOG(ERROR) << "Failed to open system certificate store";
+      }
+
+#else
       SSL_CTX_set_default_verify_paths(ssl_ctx);
+#endif
     } else {
       if (SSL_CTX_load_verify_locations(ssl_ctx, cert_file.c_str(), nullptr) == 0) {
         return create_openssl_error(-8, "Failed to set custom cert file");
@@ -474,4 +521,5 @@ size_t SslStream::flow_read(MutableSlice slice) {
 size_t SslStream::flow_write(Slice slice) {
   return impl_->flow_write(slice);
 }
+
 }  // namespace td

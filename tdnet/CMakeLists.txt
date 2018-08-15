@@ -50,6 +50,10 @@ target_include_directories(tdnet PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE
 target_include_directories(tdnet SYSTEM PUBLIC $<BUILD_INTERFACE:${OPENSSL_INCLUDE_DIR}>)
 target_link_libraries(tdnet PUBLIC tdutils tdactor ${OPENSSL_LIBRARIES} PRIVATE ${CMAKE_DL_LIBS} ${ZLIB_LIBRARIES})
 
+if (WIN32)
+  target_link_libraries(tdnet PRIVATE Crypt32)
+endif()
+
 install(TARGETS tdnet EXPORT TdTargets
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
