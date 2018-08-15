@@ -8,6 +8,7 @@
 
 #include "td/utils/logging.h"
 #include "td/utils/StackAllocator.h"
+#include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/Time.h"
 #include "td/utils/misc.h"
@@ -25,58 +26,58 @@ namespace td {
 namespace detail {
 namespace {
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
-void* BIO_get_data(BIO* b) {
+void *BIO_get_data(BIO *b) {
   return b->ptr;
 }
-void BIO_set_data(BIO* b, void* ptr) {
+void BIO_set_data(BIO *b, void *ptr) {
   b->ptr = ptr;
 }
-void BIO_set_init(BIO* b, int init) {
+void BIO_set_init(BIO *b, int init) {
   b->init = init;
 }
 
 int BIO_get_new_index() {
   return 0;
 }
-BIO_METHOD* BIO_meth_new(int type, const char* name) {
+BIO_METHOD *BIO_meth_new(int type, const char *name) {
   auto res = new BIO_METHOD();
   memset(res, 0, sizeof(*res));
   return res;
 }
 
-int BIO_meth_set_write(BIO_METHOD* biom, int (*bwrite)(BIO*, const char*, int)) {
+int BIO_meth_set_write(BIO_METHOD *biom, int (*bwrite)(BIO *, const char *, int)) {
   biom->bwrite = bwrite;
   return 1;
 }
-int BIO_meth_set_read(BIO_METHOD* biom, int (*bread)(BIO*, char*, int)) {
+int BIO_meth_set_read(BIO_METHOD *biom, int (*bread)(BIO *, char *, int)) {
   biom->bread = bread;
   return 1;
 }
-int BIO_meth_set_ctrl(BIO_METHOD* biom, long (*ctrl)(BIO*, int, long, void*)) {
+int BIO_meth_set_ctrl(BIO_METHOD *biom, long (*ctrl)(BIO *, int, long, void *)) {
   biom->ctrl = ctrl;
   return 1;
 }
-int BIO_meth_set_create(BIO_METHOD* biom, int (*create)(BIO*)) {
+int BIO_meth_set_create(BIO_METHOD *biom, int (*create)(BIO *)) {
   biom->create = create;
   return 1;
 }
-int BIO_meth_set_destroy(BIO_METHOD* biom, int (*destroy)(BIO*)) {
+int BIO_meth_set_destroy(BIO_METHOD *biom, int (*destroy)(BIO *)) {
   biom->destroy = destroy;
   return 1;
 }
 #endif
 
-int strm_create(BIO* b) {
+int strm_create(BIO *b) {
   BIO_set_init(b, 1);
   return 1;
 }
-int strm_destroy(BIO* b) {
+int strm_destroy(BIO *b) {
   return 1;
 }
-int strm_read(BIO* b, char* buf, int len);
-int strm_write(BIO* b, const char* buf, int len);
+int strm_read(BIO *b, char *buf, int len);
+int strm_write(BIO *b, const char *buf, int len);
 
-long strm_ctrl(BIO* b, int cmd, long num, void* ptr) {
+long strm_ctrl(BIO *b, int cmd, long num, void *ptr) {
   switch (cmd) {
     case BIO_CTRL_FLUSH:
       return 1;
@@ -90,9 +91,9 @@ long strm_ctrl(BIO* b, int cmd, long num, void* ptr) {
   return 1;
 }
 
-BIO_METHOD* BIO_s_sslstream() {
-  static BIO_METHOD* res = [] {
-    BIO_METHOD* res = BIO_meth_new(BIO_get_new_index(), "td::SslStream helper bio");
+BIO_METHOD *BIO_s_sslstream() {
+  static BIO_METHOD *result = [] {
+    BIO_METHOD *res = BIO_meth_new(BIO_get_new_index(), "td::SslStream helper bio");
     BIO_meth_set_write(res, strm_write);
     BIO_meth_set_read(res, strm_read);
     BIO_meth_set_create(res, strm_create);
@@ -100,9 +101,9 @@ BIO_METHOD* BIO_s_sslstream() {
     BIO_meth_set_ctrl(res, strm_ctrl);
     return res;
   }();
-  return res;
+  return result;
 }
-int verify_callback(int preverify_ok, X509_STORE_CTX* ctx) {
+int verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
   if (!preverify_ok) {
     char buf[256];
     X509_NAME_oneline(X509_get_subject_name(X509_STORE_CTX_get_current_cert(ctx)), buf, 256);
@@ -116,7 +117,7 @@ int verify_callback(int preverify_ok, X509_STORE_CTX* ctx) {
     {
       std::lock_guard<std::mutex> lock(warning_mutex);
       static std::map<std::string, double> next_warning_time;
-      double& next = next_warning_time[warning];
+      double &next = next_warning_time[warning];
       if (next <= now) {
         next = now + 300;  // one warning per 5 minutes
         LOG(WARNING) << warning;
@@ -144,10 +145,14 @@ void openssl_clear_errors(Slice from) {
   if (ERR_peek_error() != 0) {
     LOG(ERROR) << from << ": " << create_openssl_error(0, "Unprocessed OPENSSL_ERROR");
   }
+#if TD_PORT_WINDOWS  // TODO move to utils
+  WSASetLastError(0);
+#else
   errno = 0;
+#endif
 }
 
-void do_ssl_shutdown(SSL* ssl_handle) {
+void do_ssl_shutdown(SSL *ssl_handle) {
   if (!SSL_is_init_finished(ssl_handle)) {
     return;
   }
@@ -246,7 +251,7 @@ class SslStreamImpl {
     };
 
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
-    X509_VERIFY_PARAM* param = SSL_get0_param(ssl_handle);
+    X509_VERIFY_PARAM *param = SSL_get0_param(ssl_handle);
     /* Enable automatic hostname checks */
     // TODO: X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS
     X509_VERIFY_PARAM_set_hostflags(param, 0);
@@ -255,7 +260,7 @@ class SslStreamImpl {
 #warning DANGEROUS! HTTPS HOST WILL NOT BE CHECKED. INSTALL OPENSSL >= 1.0.2 OR IMPLEMENT HTTPS HOST CHECK MANUALLY
 #endif
 
-    auto* bio = BIO_new(BIO_s_sslstream());
+    auto *bio = BIO_new(BIO_s_sslstream());
     BIO_set_data(bio, this);
     SSL_set_bio(ssl_handle, bio, bio);
 
@@ -275,10 +280,10 @@ class SslStreamImpl {
     return Status::OK();
   }
 
-  ByteFlowInterface& read_byte_flow() {
+  ByteFlowInterface &read_byte_flow() {
     return read_flow_;
   }
-  ByteFlowInterface& write_byte_flow() {
+  ByteFlowInterface &write_byte_flow() {
     return write_flow_;
   }
   size_t flow_read(MutableSlice slice) {
@@ -291,9 +296,9 @@ class SslStreamImpl {
  private:
   static constexpr int VERIFY_DEPTH = 10;
 
-  SSL* ssl_handle_ = nullptr;
-  SSL_CTX* ssl_ctx_ = nullptr;
-  BIO* bio_ = nullptr;
+  SSL *ssl_handle_ = nullptr;
+  SSL_CTX *ssl_ctx_ = nullptr;
+  BIO *bio_ = nullptr;
 
   friend class SslReadByteFlow;
   friend class SslWriteByteFlow;
@@ -318,7 +323,7 @@ class SslStreamImpl {
 
   class SslReadByteFlow : public ByteFlowBase {
    public:
-    SslReadByteFlow(SslStreamImpl* stream) : stream_(stream) {
+    SslReadByteFlow(SslStreamImpl *stream) : stream_(stream) {
     }
     void loop() override {
       bool was_append = false;
@@ -345,12 +350,12 @@ class SslStreamImpl {
     }
 
    private:
-    SslStreamImpl* stream_;
+    SslStreamImpl *stream_;
   };
 
   class SslWriteByteFlow : public ByteFlowBase {
    public:
-    SslWriteByteFlow(SslStreamImpl* stream) : stream_(stream) {
+    SslWriteByteFlow(SslStreamImpl *stream) : stream_(stream) {
     }
     void loop() override {
       while (!input_->empty()) {
@@ -378,7 +383,7 @@ class SslStreamImpl {
     }
 
    private:
-    SslStreamImpl* stream_;
+    SslStreamImpl *stream_;
     bool output_updated_{false};
   };
 
@@ -386,7 +391,7 @@ class SslStreamImpl {
   SslWriteByteFlow write_flow_{this};
 
   Result<size_t> process_ssl_error(int ret) {
-    auto openssl_errno = errno;
+    auto os_error = OS_ERROR("SSL_ERROR_SYSCALL");
     int error = SSL_get_error(ssl_handle_, ret);
     switch (error) {
       case SSL_ERROR_NONE:
@@ -409,14 +414,13 @@ class SslStreamImpl {
       case SSL_ERROR_SYSCALL:
         LOG(DEBUG) << "SSL_ERROR_SYSCALL";
         if (ERR_peek_error() == 0) {
-          if (openssl_errno != 0) {
-            CHECK(openssl_errno != EAGAIN);
-            return Status::PosixError(openssl_errno, "SSL_ERROR_SYSCALL");
+          if (os_error.code() != 0) {
+            return std::move(os_error);
           } else {
             return 0;
           }
         }
-      /* fall through */
+        /* fall through */
       default:
         LOG(DEBUG) << "SSL_ERROR Default";
         return create_openssl_error(1, "SSL error ");
@@ -425,8 +429,8 @@ class SslStreamImpl {
 };
 
 namespace {
-int strm_read(BIO* b, char* buf, int len) {
-  auto* stream = reinterpret_cast<SslStreamImpl*>(BIO_get_data(b));
+int strm_read(BIO *b, char *buf, int len) {
+  auto *stream = reinterpret_cast<SslStreamImpl *>(BIO_get_data(b));
   CHECK(stream);
   BIO_clear_retry_flags(b);
   int res = narrow_cast<int>(stream->flow_read(MutableSlice(buf, len)));
@@ -436,8 +440,8 @@ int strm_read(BIO* b, char* buf, int len) {
   }
   return res;
 }
-int strm_write(BIO* b, const char* buf, int len) {
-  auto* stream = reinterpret_cast<SslStreamImpl*>(BIO_get_data(b));
+int strm_write(BIO *b, const char *buf, int len) {
+  auto *stream = reinterpret_cast<SslStreamImpl *>(BIO_get_data(b));
   CHECK(stream);
   BIO_clear_retry_flags(b);
   return narrow_cast<int>(stream->flow_write(Slice(buf, len)));
@@ -447,8 +451,8 @@ int strm_write(BIO* b, const char* buf, int len) {
 }  // namespace detail
 
 SslStream::SslStream() = default;
-SslStream::SslStream(SslStream&&) = default;
-SslStream& SslStream::operator=(SslStream&&) = default;
+SslStream::SslStream(SslStream &&) = default;
+SslStream &SslStream::operator=(SslStream &&) = default;
 SslStream::~SslStream() = default;
 
 Result<SslStream> SslStream::create(CSlice host, CSlice cert_file, VerifyPeer verify_peer) {
@@ -458,10 +462,10 @@ Result<SslStream> SslStream::create(CSlice host, CSlice cert_file, VerifyPeer ve
 }
 SslStream::SslStream(std::unique_ptr<detail::SslStreamImpl> impl) : impl_(std::move(impl)) {
 }
-ByteFlowInterface& SslStream::read_byte_flow() {
+ByteFlowInterface &SslStream::read_byte_flow() {
   return impl_->read_byte_flow();
 }
-ByteFlowInterface& SslStream::write_byte_flow() {
+ByteFlowInterface &SslStream::write_byte_flow() {
   return impl_->write_byte_flow();
 }
 size_t SslStream::flow_read(MutableSlice slice) {
