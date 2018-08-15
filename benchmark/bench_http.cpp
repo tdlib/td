@@ -8,6 +8,7 @@
 
 #include "td/net/HttpOutboundConnection.h"
 #include "td/net/HttpQuery.h"
+#include "td/net/SslStream.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"

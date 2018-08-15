@@ -247,7 +247,7 @@ class ByteFlowSink : public ByteFlowInterface {
 class ByteFlowMoveSink : public ByteFlowInterface {
  public:
   ByteFlowMoveSink() = default;
-  ByteFlowMoveSink(ChainBufferWriter *output) {
+  explicit ByteFlowMoveSink(ChainBufferWriter *output) {
     set_output(output);
   }
   void set_input(ChainBufferReader *input) final {

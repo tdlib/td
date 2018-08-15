@@ -1057,8 +1057,7 @@ void SecureManager::get_passport_authorization_form(string password, UserId bot_
 
 void SecureManager::on_get_passport_authorization_form(
     int32 authorization_form_id, Promise<TdApiAuthorizationForm> promise,
-    Result<std::pair<std::map<SecureValueType, SuitableSecureValue>, TdApiAuthorizationForm>>
-        r_authorization_form) {
+    Result<std::pair<std::map<SecureValueType, SuitableSecureValue>, TdApiAuthorizationForm>> r_authorization_form) {
   auto it = authorization_forms_.find(authorization_form_id);
   CHECK(it != authorization_forms_.end());
   CHECK(it->second.is_received == false);

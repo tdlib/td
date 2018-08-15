@@ -7,6 +7,7 @@
 #include "td/telegram/files/FileGenerateManager.h"
 
 #include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileLoaderUtils.h"

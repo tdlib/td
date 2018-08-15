@@ -22,6 +22,7 @@
 #include <map>
 #include <memory>
 #include <unordered_map>
+#include <utility>
 
 namespace td {
 
@@ -73,8 +74,7 @@ class SecureManager : public NetQueryCallback {
   void on_delete_secure_value(SecureValueType type, Promise<Unit> promise, Result<Unit> result);
   void on_get_passport_authorization_form(
       int32 authorization_form_id, Promise<TdApiAuthorizationForm> promise,
-      Result<std::pair<std::map<SecureValueType, SuitableSecureValue>, TdApiAuthorizationForm>>
-          r_authorization_form);
+      Result<std::pair<std::map<SecureValueType, SuitableSecureValue>, TdApiAuthorizationForm>> r_authorization_form);
 
   void on_result(NetQueryPtr query) override;
   Container<Promise<NetQueryPtr>> container_;

@@ -7,12 +7,12 @@
 #include "td/net/SslStream.h"
 
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/port/wstring_convert.h"
 #include "td/utils/StackAllocator.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/Time.h"
-#include "td/utils/misc.h"
 
 #include <openssl/err.h>
 #include <openssl/evp.h>
@@ -20,6 +20,7 @@
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 
+#include <cstring>
 #include <map>
 #include <mutex>
 
@@ -47,7 +48,7 @@ int BIO_get_new_index() {
 }
 BIO_METHOD *BIO_meth_new(int type, const char *name) {
   auto res = new BIO_METHOD();
-  memset(res, 0, sizeof(*res));
+  std::memset(res, 0, sizeof(*res));
   return res;
 }
 
@@ -308,7 +309,7 @@ class SslStreamImpl {
 #endif
 
     auto *bio = BIO_new(BIO_s_sslstream());
-    BIO_set_data(bio, this);
+    BIO_set_data(bio, static_cast<void *>(this));
     SSL_set_bio(ssl_handle, bio, bio);
 
 #if OPENSSL_VERSION_NUMBER >= 0x0090806fL && !defined(OPENSSL_NO_TLSEXT)
@@ -370,7 +371,7 @@ class SslStreamImpl {
 
   class SslReadByteFlow : public ByteFlowBase {
    public:
-    SslReadByteFlow(SslStreamImpl *stream) : stream_(stream) {
+    explicit SslReadByteFlow(SslStreamImpl *stream) : stream_(stream) {
     }
     void loop() override {
       bool was_append = false;
@@ -393,7 +394,7 @@ class SslStreamImpl {
     }
 
     size_t read(MutableSlice data) {
-      return input_->advance(std::min(data.size(), input_->size()), data);
+      return input_->advance(min(data.size(), input_->size()), data);
     }
 
    private:
@@ -402,7 +403,7 @@ class SslStreamImpl {
 
   class SslWriteByteFlow : public ByteFlowBase {
    public:
-    SslWriteByteFlow(SslStreamImpl *stream) : stream_(stream) {
+    explicit SslWriteByteFlow(SslStreamImpl *stream) : stream_(stream) {
     }
     void loop() override {
       while (!input_->empty()) {
@@ -477,8 +478,8 @@ class SslStreamImpl {
 
 namespace {
 int strm_read(BIO *b, char *buf, int len) {
-  auto *stream = reinterpret_cast<SslStreamImpl *>(BIO_get_data(b));
-  CHECK(stream);
+  auto *stream = static_cast<SslStreamImpl *>(BIO_get_data(b));
+  CHECK(stream != nullptr);
   BIO_clear_retry_flags(b);
   int res = narrow_cast<int>(stream->flow_read(MutableSlice(buf, len)));
   if (res == 0) {
@@ -488,8 +489,8 @@ int strm_read(BIO *b, char *buf, int len) {
   return res;
 }
 int strm_write(BIO *b, const char *buf, int len) {
-  auto *stream = reinterpret_cast<SslStreamImpl *>(BIO_get_data(b));
-  CHECK(stream);
+  auto *stream = static_cast<SslStreamImpl *>(BIO_get_data(b));
+  CHECK(stream != nullptr);
   BIO_clear_retry_flags(b);
   return narrow_cast<int>(stream->flow_write(Slice(buf, len)));
 }

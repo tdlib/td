@@ -6,10 +6,7 @@
 //
 #pragma once
 
-#include "td/utils/BufferedFd.h"
 #include "td/utils/ByteFlow.h"
-#include "td/utils/port/Fd.h"
-#include "td/utils/port/SocketFd.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
@@ -43,7 +40,7 @@ class SslStream {
  private:
   std::unique_ptr<detail::SslStreamImpl> impl_;
 
-  SslStream(std::unique_ptr<detail::SslStreamImpl> impl);
+  explicit SslStream(std::unique_ptr<detail::SslStreamImpl> impl);
 };
 
 }  // namespace td

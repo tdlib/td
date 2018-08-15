@@ -14,8 +14,8 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/BufferedFd.h"
+#include "td/utils/ByteFlow.h"
 #include "td/utils/port/SocketFd.h"
-#include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
 namespace td {

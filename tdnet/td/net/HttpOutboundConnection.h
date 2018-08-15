@@ -10,7 +10,9 @@
 
 #include "td/net/HttpConnectionBase.h"
 #include "td/net/HttpQuery.h"
+#include "td/net/SslStream.h"
 
+#include "td/utils/port/SocketFd.h"
 #include "td/utils/Status.h"
 
 namespace td {
