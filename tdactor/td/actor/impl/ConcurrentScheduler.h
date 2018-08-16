@@ -20,6 +20,12 @@
 
 namespace td {
 
+#if TD_PORT_WINDOWS
+namespace detail {
+class IOCP;
+}
+#endif
+
 class ConcurrentScheduler : private Scheduler::Callback {
  public:
   void init(int32 threads_n);
@@ -79,6 +85,10 @@ class ConcurrentScheduler : private Scheduler::Callback {
   std::vector<std::function<void()>> at_finish_;
 #if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
   std::vector<thread> threads_;
+#endif
+#if TD_PORT_WINDOWS
+  std::unique_ptr<IOCP> iocp_;
+  td::thread iocp_thread_;
 #endif
 
   void on_finish() override {

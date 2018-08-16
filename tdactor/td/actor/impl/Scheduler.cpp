@@ -436,7 +436,13 @@ void Scheduler::set_actor_timeout_at(ActorInfo *actor_info, double timeout_at) {
 void Scheduler::run_poll(double timeout) {
   // LOG(DEBUG) << "run poll [timeout:" << format::as_time(timeout) << "]";
   // we can't wait for less than 1ms
-  poll_.run(static_cast<int32>(timeout * 1000 + 1));
+  int timeout_ms = static_cast<int32>(timeout * 1000 + 1);
+#if TD_PORT_WINDOWS
+  CHECK(inbound_queue_);
+  inbound_queue_->reader_get_event_fd().wait(timeout_ms);
+#elif TD_PORT_POSIX
+  poll_.run(timeout_ms);
+#endif
 }
 
 void Scheduler::run_mailbox() {

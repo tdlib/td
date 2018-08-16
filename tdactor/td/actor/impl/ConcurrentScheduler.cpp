@@ -55,6 +55,11 @@ void ConcurrentScheduler::init(int32 threads_n) {
     sched->init(i, outbound, static_cast<Scheduler::Callback *>(this));
   }
 
+#if TD_PORT_WINDOWS
+  iocp_ = std::make_unique<IOCP>();
+  iocp_->init();
+#endif
+
   state_ = State::Start;
 }
 
@@ -75,12 +80,19 @@ void ConcurrentScheduler::start() {
     auto &sched = schedulers_[i];
     threads_.push_back(td::thread([&, tid = i]() {
       set_thread_id(static_cast<int32>(tid));
+#if TD_PORT_WINDOWS
+      td::detail::IOCP::Guard iocp_guard(iocp_.get());
+#endif
       while (!is_finished()) {
         sched->run(10);
       }
     }));
   }
 #endif
+#if TD_PORT_WINDOWS
+  iocp_thread_ = td::thread([&iocp_] { iocp_->loop(); });
+#endif
+
   state_ = State::Run;
 }
 
@@ -89,6 +101,9 @@ bool ConcurrentScheduler::run_main(double timeout) {
   // run main scheduler in same thread
   auto &main_sched = schedulers_[0];
   if (!is_finished()) {
+#if TD_PORT_WINDOWS
+    td::detail::IOCP::Guard iocp_guard(iocp_.get());
+#endif
     main_sched->run(timeout);
   }
   return !is_finished();
@@ -99,12 +114,25 @@ void ConcurrentScheduler::finish() {
   if (!is_finished()) {
     on_finish();
   }
+#if TD_PORT_WINDOWS
+  SCOPE_EXIT {
+    iocp_->clear();
+  };
+  td::detail::IOCP::Guard iocp_guard(iocp_.get());
+#endif
+
 #if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
   for (auto &thread : threads_) {
     thread.join();
   }
   threads_.clear();
 #endif
+
+#if TD_PORT_WINDOWS
+  iocp_->interrupt_loop();
+  iocp_thread_.join();
+#endif
+
   schedulers_.clear();
   for (auto &f : at_finish_) {
     f();
