@@ -64,7 +64,7 @@ set(TDUTILS_SOURCE
   td/utils/buffer.cpp
   td/utils/BufferedUdp.cpp
   td/utils/crypto.cpp
-  #td/utils/FileLog.cpp
+  td/utils/FileLog.cpp
   td/utils/filesystem.cpp
   td/utils/find_boundary.cpp
   td/utils/Gzip.cpp
@@ -141,7 +141,7 @@ set(TDUTILS_SOURCE
   td/utils/crypto.h
   td/utils/Enumerator.h
   td/utils/Destructor.h
-  #td/utils/FileLog.h
+  td/utils/FileLog.h
   td/utils/filesystem.h
   td/utils/find_boundary.h
   td/utils/FloodControlFast.h

@@ -620,3 +620,39 @@ TEST(Actors, always_wait_for_mailbox) {
   }
   scheduler.finish();
 }
+
+TEST(Actors, send_from_other_threads) {
+  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
+  ConcurrentScheduler scheduler;
+  scheduler.init(1);
+  int thread_n = 10;
+  class Listener : public Actor {
+   public:
+    Listener(int cnt) : cnt_(cnt) {
+    }
+    void dec() {
+      if (--cnt_ == 0) {
+        Scheduler::instance()->finish();
+      }
+    }
+
+   private:
+    int cnt_;
+  };
+
+  auto A = scheduler.create_actor_unsafe<Listener>(1, "A", thread_n).release();
+  scheduler.start();
+  std::vector<td::thread> threads(thread_n);
+  for (auto &thread : threads) {
+    thread = td::thread([&A, &scheduler] {
+      auto guard = scheduler.get_send_guard();
+      send_closure(A, &Listener::dec);
+    });
+  }
+  while (scheduler.run_main(10)) {
+  }
+  for (auto &thread : threads) {
+    thread.join();
+  }
+  scheduler.finish();
+}

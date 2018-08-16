@@ -58,6 +58,9 @@ class EventGuard {
 inline SchedulerGuard Scheduler::get_guard() {
   return SchedulerGuard(this);
 }
+inline SchedulerGuard Scheduler::get_const_guard() {
+  return SchedulerGuard(this, false);
+}
 
 inline void Scheduler::init() {
   init(0, {}, nullptr);
@@ -92,6 +95,7 @@ ActorOwn<ActorT> Scheduler::register_actor(Slice name, unique_ptr<ActorT> actor_
 
 template <class ActorT>
 ActorOwn<ActorT> Scheduler::register_actor_impl(Slice name, ActorT *actor_ptr, Actor::Deleter deleter, int32 sched_id) {
+  CHECK(has_guard_);
   if (sched_id == -1) {
     sched_id = sched_id_;
   }
@@ -186,7 +190,7 @@ inline void Scheduler::inc_wait_generation() {
 
 template <ActorSendType send_type, class RunFuncT, class EventFuncT>
 void Scheduler::send_impl(const ActorId<> &actor_id, const RunFuncT &run_func, const EventFuncT &event_func) {
-  CHECK(has_guard_);
+  //CHECK(has_guard_ || );
   ActorInfo *actor_info = actor_id.get_actor_info();
   if (unlikely(actor_info == nullptr || close_flag_)) {
     // LOG(ERROR) << "Invalid actor id";
@@ -198,6 +202,7 @@ void Scheduler::send_impl(const ActorId<> &actor_id, const RunFuncT &run_func, c
   bool is_migrating;
   std::tie(actor_sched_id, is_migrating) = actor_info->migrate_dest_flag_atomic();
   bool on_current_sched = !is_migrating && sched_id_ == actor_sched_id;
+  CHECK(has_guard_ || !on_current_sched);
 
   if (likely(send_type == ActorSendType::Immediate && on_current_sched && !actor_info->is_running() &&
              !actor_info->must_wait(wait_generation_))) {  // run immediately
@@ -332,7 +337,7 @@ inline void Scheduler::yield() {
 inline void Scheduler::wakeup() {
   std::atomic_thread_fence(std::memory_order_release);
 #if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
-  event_fd_.release();
+  inbound_queue_->writer_put({});
 #endif
 }
 

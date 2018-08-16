@@ -34,6 +34,10 @@ class ConcurrentScheduler : private Scheduler::Callback {
     return schedulers_[0]->get_guard();
   }
 
+  SchedulerGuard get_send_guard() {
+    return schedulers_[0]->get_const_guard();
+  }
+
   void test_one_thread_run();
 
   bool is_finished() {

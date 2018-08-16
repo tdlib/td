@@ -38,7 +38,7 @@ enum class ActorSendType { Immediate, Later, LaterWeak };
 class Scheduler;
 class SchedulerGuard {
  public:
-  explicit SchedulerGuard(Scheduler *scheduler);
+  explicit SchedulerGuard(Scheduler *scheduler, bool lock = true);
   ~SchedulerGuard();
   SchedulerGuard(const SchedulerGuard &other) = delete;
   SchedulerGuard &operator=(const SchedulerGuard &other) = delete;
@@ -47,6 +47,7 @@ class SchedulerGuard {
 
  private:
   MovableValue<bool> is_valid_ = true;
+  bool is_locked_;
   Scheduler *scheduler_;
   ActorContext *save_context_;
   Scheduler *save_scheduler_;
@@ -137,6 +138,7 @@ class Scheduler {
   static void on_context_updated();
 
   SchedulerGuard get_guard();
+  SchedulerGuard get_const_guard();
 
  private:
   static void set_scheduler(Scheduler *scheduler);
@@ -148,7 +150,9 @@ class Scheduler {
 
    private:
     std::shared_ptr<MpscPollableQueue<EventFull>> inbound_;
+    bool subscribed_{false};
     void loop() override;
+    void tear_down() override;
   };
   friend class ServiceActor;
 
@@ -205,9 +209,6 @@ class Scheduler {
 
   std::map<ActorInfo *, std::vector<Event>> pending_events_;
 
-#if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
-  EventFd event_fd_;
-#endif
   ServiceActor service_actor_;
   Poll poll_;
 

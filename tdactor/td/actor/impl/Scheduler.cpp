@@ -57,8 +57,8 @@ void Scheduler::ServiceActor::start_up() {
     return;
   }
   auto &fd = inbound_->reader_get_event_fd();
-
   ::td::subscribe(fd.get_poll_info().extract_pollable_fd(this), PollFlags::Read());
+  subscribed_ = true;
   yield();
 #endif
 }
@@ -72,7 +72,11 @@ void Scheduler::ServiceActor::loop() {
   while (ready_n-- > 0) {
     EventFull event = queue->reader_get_unsafe();
     if (event.actor_id().empty()) {
-      Scheduler::instance()->register_migrated_actor(static_cast<ActorInfo *>(event.data().data.ptr));
+      if (event.data().empty()) {
+        yield_scheduler();
+      } else {
+        Scheduler::instance()->register_migrated_actor(static_cast<ActorInfo *>(event.data().data.ptr));
+      }
     } else {
       VLOG(actor) << "Receive " << event.data();
       finish_migrate(event.data());
@@ -83,10 +87,29 @@ void Scheduler::ServiceActor::loop() {
   yield();
 }
 
+void Scheduler::ServiceActor::tear_down() {
+  if (!subscribed_) {
+    return;
+  }
+#if TD_THREAD_UNSUPPORTED || TD_EVENTFD_UNSUPPORTED
+  CHECK(!inbound_);
+#else
+  if (!inbound_) {
+    return;
+  }
+  auto &fd = inbound_->reader_get_event_fd();
+  ::td::unsubscribe(fd.get_poll_info().get_pollable_fd_ref());
+  subscribed_ = false;
+#endif
+}
+
 /*** SchedlerGuard ***/
-SchedulerGuard::SchedulerGuard(Scheduler *scheduler) : scheduler_(scheduler) {
-  CHECK(!scheduler_->has_guard_);
-  scheduler_->has_guard_ = true;
+SchedulerGuard::SchedulerGuard(Scheduler *scheduler, bool lock) : scheduler_(scheduler) {
+  if (lock) {
+    CHECK(!scheduler_->has_guard_);
+    scheduler_->has_guard_ = true;
+  }
+  is_locked_ = lock;
   save_scheduler_ = Scheduler::instance();
   Scheduler::set_scheduler(scheduler_);
 
@@ -101,8 +124,10 @@ SchedulerGuard::~SchedulerGuard() {
   if (is_valid_.get()) {
     std::swap(save_context_, scheduler_->context());
     Scheduler::set_scheduler(save_scheduler_);
-    CHECK(scheduler_->has_guard_);
-    scheduler_->has_guard_ = false;
+    if (is_locked_) {
+      CHECK(scheduler_->has_guard_);
+      scheduler_->has_guard_ = false;
+    }
     LOG_TAG = save_tag_;
   }
 }
@@ -181,11 +206,6 @@ void Scheduler::init(int32 id, std::vector<std::shared_ptr<MpscPollableQueue<Eve
 
   poll_.init();
 
-#if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
-  event_fd_.init();
-  subscribe(event_fd_.get_poll_info().extract_pollable_fd(nullptr), PollFlags::Read());
-#endif
-
   if (!outbound.empty()) {
     inbound_queue_ = std::move(outbound[id]);
   }
@@ -218,12 +238,6 @@ void Scheduler::clear() {
   LOG_IF(FATAL, !ready_actors_list_.empty()) << ActorInfo::from_list_node(ready_actors_list_.next)->get_name();
   CHECK(ready_actors_list_.empty());
   poll_.clear();
-
-#if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
-  if (!event_fd_.empty()) {
-    event_fd_.close();
-  }
-#endif
 
   if (callback_) {
     // can't move lambda with unique_ptr inside into std::function
@@ -423,13 +437,6 @@ void Scheduler::run_poll(double timeout) {
   // LOG(DEBUG) << "run poll [timeout:" << format::as_time(timeout) << "]";
   // we can't wait for less than 1ms
   poll_.run(static_cast<int32>(timeout * 1000 + 1));
-
-#if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
-  if (event_fd_.get_poll_info().get_flags().can_read()) {
-    std::atomic_thread_fence(std::memory_order_acquire);
-    event_fd_.acquire();
-  }
-#endif
 }
 
 void Scheduler::run_mailbox() {

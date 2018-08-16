@@ -33,10 +33,25 @@ void ConcurrentScheduler::init(int32 threads_n) {
 #endif
   }
 
-  schedulers_.resize(threads_n);
-  for (int32 i = 0; i < threads_n; i++) {
+  // +1 for extra scheduler for IOCP and send_closure from unrelated threads
+  // It will know about other schedulers
+  // Other schedulers will have no idea about its existance
+  int extra_scheduler = 1;
+#if TD_THREAD_UNSUPPORTED || TD_EVENTFD_UNSUPPORTED
+  extra_scheduler = 0;
+#endif
+
+  schedulers_.resize(threads_n + extra_scheduler);
+  for (int32 i = 0; i < threads_n + extra_scheduler; i++) {
     auto &sched = schedulers_[i];
     sched = make_unique<Scheduler>();
+
+    if (i >= threads_n) {
+      auto queue = std::make_shared<MpscPollableQueue<EventFull>>();
+      queue->init();
+      outbound.push_back(std::move(queue));
+    }
+
     sched->init(i, outbound, static_cast<Scheduler::Callback *>(this));
   }
 
