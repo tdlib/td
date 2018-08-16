@@ -118,8 +118,7 @@ static void reactivate_readline() {
 }
 
 static char *command_generator(const char *text, int state) {
-  static const vector<CSlice> commands{"GetContacts",
-                                       "GetChats",
+  static const vector<CSlice> commands{"GetChats",
                                        "GetHistory",
                                        "SetVerbosity",
                                        "SendVideo",
@@ -1454,12 +1453,12 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::checkChangePhoneNumberCode>(args));
     } else if (op == "rcpc" || op == "ResendChangePhoneCode") {
       send_request(make_tl_object<td_api::resendChangePhoneNumberCode>());
-    } else if (op == "GetContacts") {
-      auto limit = to_integer<int32>(args);
-      if (limit == 0) {
-        limit = 10000;
+    } else if (op == "gco") {
+      if (args.empty()) {
+        send_request(make_tl_object<td_api::getContacts>());
+      } else {
+        send_request(make_tl_object<td_api::searchContacts>("", to_integer<int32>(args)));
       }
-      send_request(make_tl_object<td_api::searchContacts>("", limit));
     } else if (op == "ImportContacts" || op == "cic") {
       vector<string> contacts_str = full_split(args, ';');
       vector<tl_object_ptr<td_api::contact>> contacts;
@@ -3049,6 +3048,10 @@ class CliClient final : public Actor {
       std::tie(chat_id, limit) = split(args);
       send_request(make_tl_object<td_api::getChatEventLog>(as_chat_id(chat_id), "", 0, to_integer<int32>(limit),
                                                            nullptr, vector<int32>()));
+    } else if (op == "join") {
+      send_request(make_tl_object<td_api::joinChat>(as_chat_id(args)));
+    } else if (op == "leave") {
+      send_request(make_tl_object<td_api::leaveChat>(as_chat_id(args)));
     } else if (op == "dcm") {
       string chat_id;
       string user_id_str;

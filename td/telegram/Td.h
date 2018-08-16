@@ -589,6 +589,10 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::setChatClientData &request);
 
+  void on_request(uint64 id, const td_api::joinChat &request);
+
+  void on_request(uint64 id, const td_api::leaveChat &request);
+
   void on_request(uint64 id, const td_api::addChatMember &request);
 
   void on_request(uint64 id, const td_api::addChatMembers &request);
@@ -632,6 +636,8 @@ class Td final : public NetQueryCallback {
   void on_request(uint64 id, const td_api::getBlockedUsers &request);
 
   void on_request(uint64 id, td_api::importContacts &request);
+
+  void on_request(uint64 id, const td_api::getContacts &request);
 
   void on_request(uint64 id, td_api::searchContacts &request);
 

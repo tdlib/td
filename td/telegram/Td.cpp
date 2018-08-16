@@ -5458,6 +5458,20 @@ void Td::on_request(uint64 id, td_api::setChatClientData &request) {
       id, messages_manager_->set_dialog_client_data(DialogId(request.chat_id_), std::move(request.client_data_)));
 }
 
+void Td::on_request(uint64 id, const td_api::joinChat &request) {
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->set_dialog_participant_status(DialogId(request.chat_id_), contacts_manager_->get_my_id("joinChat"),
+                                                   td_api::make_object<td_api::chatMemberStatusMember>(),
+                                                   std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::leaveChat &request) {
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->set_dialog_participant_status(
+      DialogId(request.chat_id_), contacts_manager_->get_my_id("leaveChat"),
+      td_api::make_object<td_api::chatMemberStatusLeft>(), std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::addChatMember &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
@@ -5622,6 +5636,11 @@ void Td::on_request(uint64 id, td_api::importContacts &request) {
     CLEAN_INPUT_STRING(contact->last_name_);
   }
   CREATE_REQUEST(ImportContactsRequest, std::move(request.contacts_));
+}
+
+void Td::on_request(uint64 id, const td_api::getContacts &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST(SearchContactsRequest, string(), 1000000);
 }
 
 void Td::on_request(uint64 id, td_api::searchContacts &request) {

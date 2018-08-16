@@ -2766,6 +2766,12 @@ toggleChatDefaultDisableNotification chat_id:int53 default_disable_notification:
 //@description Changes client data associated with a chat @chat_id Chat identifier @client_data New value of client_data
 setChatClientData chat_id:int53 client_data:string = Ok;
 
+//@description Adds current user as a new member to a chat. Private and secret chats can't be joined using this method @chat_id Chat identifier
+joinChat chat_id:int53 = Ok;
+
+//@description Removes current user from chat members. Private and secret chats can't be left using this method @chat_id Chat identifier
+leaveChat chat_id:int53 = Ok;
+
 //@description Adds a new member to a chat. Members can't be added to private or secret chats. Members will not be added until the chat state has been synchronized with the server
 //@chat_id Chat identifier @user_id Identifier of the user @forward_limit The number of earlier messages from the chat to be forwarded to the new member; up to 300. Ignored for supergroups and channels
 addChatMember chat_id:int53 user_id:int32 forward_limit:int32 = Ok;
@@ -2876,6 +2882,9 @@ getBlockedUsers offset:int32 limit:int32 = Users;
 
 //@description Adds new contacts or edits existing contacts; contacts' user identifiers are ignored @contacts The list of contacts to import or edit, contact's vCard are ignored and are not imported
 importContacts contacts:vector<contact> = ImportedContacts;
+
+//@description Returns all user contacts
+getContacts = Users;
 
 //@description Searches for the specified query in the first names, last names and usernames of the known user contacts @query Query to search for; can be empty to return all contacts @limit Maximum number of users to be returned
 searchContacts query:string limit:int32 = Users;
