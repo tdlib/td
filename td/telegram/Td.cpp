@@ -3322,7 +3322,7 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
             pending_preauthentication_requests_.emplace_back(id, std::move(function));
             return;
           }
-          return send_error_raw(id, 401, "Initialization parameters are needed");
+          return send_error_raw(id, 401, "Initialization parameters are needed: call setTdlibParameters first");
       }
       break;
     }
@@ -3355,7 +3355,7 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
             pending_preauthentication_requests_.emplace_back(id, std::move(function));
             return;
           }
-          return send_error_raw(id, 401, "Database encryption key is needed");
+          return send_error_raw(id, 401, "Database encryption key is needed: call checkDatabaseEncryptionKey first");
       }
       return answer_ok_query(id, init(as_db_key(encryption_key)));
     }

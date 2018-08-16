@@ -2337,7 +2337,7 @@ void FileManager::on_partial_generate(QueryId query_id, const PartialLocalFileLo
   }
   file_node->set_local_location(LocalFileLocation(partial_local), 0);
   // TODO check for size and local_size, abort generation if needed
-  if (expected_size != 0) {
+  if (expected_size > 0) {
     file_node->set_expected_size(expected_size);
   }
   if (!file_node->generate_was_update_) {
