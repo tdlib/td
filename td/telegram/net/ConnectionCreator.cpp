@@ -41,7 +41,7 @@
 
 namespace td {
 
-static int VERBOSITY_NAME(connections) = VERBOSITY_NAME(DEBUG) - 2;
+static int VERBOSITY_NAME(connections) = VERBOSITY_NAME(DEBUG) + 8;
 
 namespace detail {
 
