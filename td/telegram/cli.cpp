@@ -644,7 +644,7 @@ class CliClient final : public Actor {
 #ifdef USE_READLINE
   FileFd stdin_;
 #else
-  using StreamConnection = BufferedFd<Fd>;
+  using StreamConnection = BufferedFd<FileFd>;
   StreamConnection stdin_;
 #endif
   static CliClient *instance_;
@@ -752,7 +752,7 @@ class CliClient final : public Actor {
       explicit StdinReader(ActorShared<CliClient> parent) : parent_(std::move(parent)) {
       }
       void start_up() override {
-        stdin_ = &Fd::Stdin();
+        stdin_ = &Stdin();
         set_timeout_in(0.001);
       }
       void timeout_expired() override {
@@ -769,7 +769,7 @@ class CliClient final : public Actor {
       }
 
      private:
-      Fd *stdin_ = nullptr;
+      FileFd *stdin_ = nullptr;
       string data_;
       ActorShared<CliClient> parent_;
       void process() {
