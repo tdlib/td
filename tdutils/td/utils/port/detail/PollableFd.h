@@ -286,6 +286,7 @@ class PollableFdInfo : private ListNode {
   }
 
   void unlock() {
+    clear_observer();
     lock_.clear(std::memory_order_release);
     as_list_node()->remove();
   }
