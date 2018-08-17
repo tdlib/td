@@ -195,7 +195,8 @@ struct SecureValueCredentials {
 };
 
 Result<EncryptedSecureCredentials> get_encrypted_credentials(const std::vector<SecureValueCredentials> &credentials,
-                                                             Slice payload, Slice public_key);
+                                                             Slice nonce, Slice public_key,
+                                                             bool rename_payload_to_nonce);
 
 class SecureValue {
  public:

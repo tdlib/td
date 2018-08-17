@@ -1032,7 +1032,7 @@ void SecureManager::set_secure_value_errors(Td *td, tl_object_ptr<telegram_api::
 }
 
 void SecureManager::get_passport_authorization_form(string password, UserId bot_user_id, string scope,
-                                                    string public_key, string payload,
+                                                    string public_key, string nonce,
                                                     Promise<TdApiAuthorizationForm> promise) {
   refcnt_++;
   auto authorization_form_id = ++max_authorization_form_id_;
@@ -1040,7 +1040,7 @@ void SecureManager::get_passport_authorization_form(string password, UserId bot_
   form.bot_user_id = bot_user_id;
   form.scope = scope;
   form.public_key = public_key;
-  form.payload = payload;
+  form.nonce = nonce;
   form.is_received = false;
   auto new_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), authorization_form_id, promise = std::move(promise)](
@@ -1113,7 +1113,9 @@ void SecureManager::send_passport_authorization_form(int32 authorization_form_id
     }
   }
 
-  auto r_encrypted_credentials = get_encrypted_credentials(credentials, it->second.payload, it->second.public_key);
+  auto r_encrypted_credentials =
+      get_encrypted_credentials(credentials, it->second.nonce, it->second.public_key,
+                                it->second.scope[0] == '{' && it->second.scope.back() == '}');
   if (r_encrypted_credentials.is_error()) {
     return promise.set_error(r_encrypted_credentials.move_as_error());
   }

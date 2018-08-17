@@ -3253,8 +3253,8 @@ resendEmailAddressVerificationCode = EmailAddressAuthenticationCodeInfo;
 checkEmailAddressVerificationCode code:string = Ok;
 
 
-//@description Returns a Telegram Passport authorization form for sharing data with a service @bot_user_id User identified of the service's bot @scope Telegram Passport element types requested by the service @public_key Service's public_key @payload Authorization form payload provided by the service @password Password of the current user
-getPassportAuthorizationForm bot_user_id:int32 scope:string public_key:string payload:string password:string = PassportAuthorizationForm;
+//@description Returns a Telegram Passport authorization form for sharing data with a service @bot_user_id User identified of the service's bot @scope Telegram Passport element types requested by the service @public_key Service's public_key @nonce Authorization form nonce provided by the service @password Password of the current user
+getPassportAuthorizationForm bot_user_id:int32 scope:string public_key:string nonce:string password:string = PassportAuthorizationForm;
 
 //@description Sends a Telegram Passport authorization form, effectively sharing data with the service @autorization_form_id Authorization form identifier @types Types of Telegram Passport elements chosen by user to complete the authorization form
 sendPassportAuthorizationForm autorization_form_id:int32 types:vector<PassportElementType> = Ok;

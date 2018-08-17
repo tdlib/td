@@ -6460,17 +6460,17 @@ void Td::on_request(uint64 id, td_api::getPassportAuthorizationForm &request) {
   CLEAN_INPUT_STRING(request.password_);
   CLEAN_INPUT_STRING(request.public_key_);
   CLEAN_INPUT_STRING(request.scope_);
-  CLEAN_INPUT_STRING(request.payload_);
+  CLEAN_INPUT_STRING(request.nonce_);
   UserId bot_user_id(request.bot_user_id_);
   if (!bot_user_id.is_valid()) {
     return send_error_raw(id, 400, "Bot user identifier invalid");
   }
-  if (request.payload_.empty()) {
-    return send_error_raw(id, 400, "Payload must be non-empty");
+  if (request.nonce_.empty()) {
+    return send_error_raw(id, 400, "Nonce must be non-empty");
   }
   CREATE_REQUEST_PROMISE();
   send_closure(secure_manager_, &SecureManager::get_passport_authorization_form, std::move(request.password_),
-               bot_user_id, std::move(request.scope_), std::move(request.public_key_), std::move(request.payload_),
+               bot_user_id, std::move(request.scope_), std::move(request.public_key_), std::move(request.nonce_),
                std::move(promise));
 }
 

@@ -1425,8 +1425,9 @@ static Slice secure_value_type_as_slice(SecureValueType type) {
   }
 }
 
-static auto credentials_as_jsonable(const std::vector<SecureValueCredentials> &credentials, Slice payload) {
-  return json_object([&credentials, payload](auto &o) {
+static auto credentials_as_jsonable(const std::vector<SecureValueCredentials> &credentials, Slice nonce,
+                                    bool rename_payload_to_nonce) {
+  return json_object([&credentials, nonce, rename_payload_to_nonce](auto &o) {
     o("secure_data", json_object([&credentials](auto &o) {
         for (auto &cred : credentials) {
           if (cred.type == SecureValueType::PhoneNumber || cred.type == SecureValueType::EmailAddress) {
@@ -1455,13 +1456,15 @@ static auto credentials_as_jsonable(const std::vector<SecureValueCredentials> &c
             }));
         }
       }));
-    o("payload", payload);
+    o(rename_payload_to_nonce ? "nonce" : "payload", nonce);
   });
 }
 
 Result<EncryptedSecureCredentials> get_encrypted_credentials(const std::vector<SecureValueCredentials> &credentials,
-                                                             Slice payload, Slice public_key) {
-  auto encoded_credentials = json_encode<std::string>(credentials_as_jsonable(credentials, payload));
+                                                             Slice nonce, Slice public_key,
+                                                             bool rename_payload_to_nonce) {
+  auto encoded_credentials =
+      json_encode<std::string>(credentials_as_jsonable(credentials, nonce, rename_payload_to_nonce));
   LOG(INFO) << "Created credentials " << encoded_credentials;
 
   auto secret = secure_storage::Secret::create_new();

@@ -46,7 +46,7 @@ class SecureManager : public NetQueryCallback {
   void on_get_secure_value(SecureValueWithCredentials value);
 
   void get_passport_authorization_form(string password, UserId bot_user_id, string scope, string public_key,
-                                       string payload, Promise<TdApiAuthorizationForm> promise);
+                                       string nonce, Promise<TdApiAuthorizationForm> promise);
   void send_passport_authorization_form(int32 authorization_form_id, std::vector<SecureValueType> types,
                                         Promise<> promise);
 
@@ -60,7 +60,7 @@ class SecureManager : public NetQueryCallback {
     UserId bot_user_id;
     string scope;
     string public_key;
-    string payload;
+    string nonce;
     bool is_received;
     std::map<SecureValueType, SuitableSecureValue> options;
   };
