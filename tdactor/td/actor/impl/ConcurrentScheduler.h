@@ -41,7 +41,7 @@ class ConcurrentScheduler : private Scheduler::Callback {
   }
 
   SchedulerGuard get_send_guard() {
-    return schedulers_[0]->get_const_guard();
+    return schedulers_.back()->get_const_guard();
   }
 
   void test_one_thread_run();
@@ -87,7 +87,7 @@ class ConcurrentScheduler : private Scheduler::Callback {
   std::vector<thread> threads_;
 #endif
 #if TD_PORT_WINDOWS
-  std::unique_ptr<IOCP> iocp_;
+  std::unique_ptr<detail::IOCP> iocp_;
   td::thread iocp_thread_;
 #endif
 

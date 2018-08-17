@@ -121,7 +121,13 @@ TsCerr::~TsCerr() {
 }
 namespace {
 FileFd &Stderr() {
-  static FileFd res = FileFd::from_native_fd(NativeFd(2, true)).move_as_ok();
+  static FileFd res = FileFd::from_native_fd(NativeFd(
+#if TD_PORT_POSIX
+    2
+#elif TD_PORT_WINDOWS
+    GetStdHandle(STD_ERROR_HANDLE)
+#endif
+    , true)).move_as_ok();
   return res;
 }
 }  // namespace

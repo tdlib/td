@@ -56,7 +56,7 @@ void ConcurrentScheduler::init(int32 threads_n) {
   }
 
 #if TD_PORT_WINDOWS
-  iocp_ = std::make_unique<IOCP>();
+  iocp_ = std::make_unique<detail::IOCP>();
   iocp_->init();
 #endif
 
@@ -90,7 +90,10 @@ void ConcurrentScheduler::start() {
   }
 #endif
 #if TD_PORT_WINDOWS
-  iocp_thread_ = td::thread([&iocp_] { iocp_->loop(); });
+  iocp_thread_ = td::thread([this] { 
+    auto guard = this->get_send_guard();
+    this->iocp_->loop(); 
+  });
 #endif
 
   state_ = State::Run;

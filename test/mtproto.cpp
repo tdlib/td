@@ -166,7 +166,7 @@ class Mtproto_ping : public td::Test {
 };
 Mtproto_ping mtproto_ping("Mtproto_ping");
 
-class Context : public AuthKeyHandshakeContext {
+class HandshakeContext : public AuthKeyHandshakeContext {
  public:
   DhCallback *get_dh_callback() override {
     return nullptr;
@@ -226,7 +226,7 @@ class HandshakeTestActor : public Actor {
 
       wait_for_result_ = true;
       create_actor<HandshakeActor>(
-          "HandshakeActor", std::move(handshake_), std::move(raw_connection_), std::make_unique<Context>(), 10.0,
+          "HandshakeActor", std::move(handshake_), std::move(raw_connection_), std::make_unique<HandshakeContext>(), 10.0,
           PromiseCreator::lambda([self = actor_id(this)](Result<std::unique_ptr<RawConnection>> raw_connection) {
             send_closure(self, &HandshakeTestActor::got_connection, std::move(raw_connection), 1);
           }),

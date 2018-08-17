@@ -56,9 +56,11 @@ void Scheduler::ServiceActor::start_up() {
   if (!inbound_) {
     return;
   }
+#if !TD_PORT_WINDOWS
   auto &fd = inbound_->reader_get_event_fd();
   ::td::subscribe(fd.get_poll_info().extract_pollable_fd(this), PollFlags::Read());
   subscribed_ = true;
+#endif
   yield();
 #endif
 }
@@ -440,6 +442,7 @@ void Scheduler::run_poll(double timeout) {
 #if TD_PORT_WINDOWS
   CHECK(inbound_queue_);
   inbound_queue_->reader_get_event_fd().wait(timeout_ms);
+  service_actor_.notify();
 #elif TD_PORT_POSIX
   poll_.run(timeout_ms);
 #endif

@@ -313,6 +313,8 @@ Status Binlog::destroy(Slice path) {
 }
 
 void Binlog::do_event(BinlogEvent &&event) {
+  auto event_size = event.raw_event_.size();
+
   if (state_ == State::Run || state_ == State::Reindex) {
     VLOG(binlog) << "Write binlog event: " << format::cond(state_ == State::Reindex, "[reindex] ");
     auto validate_status = event.validate();
@@ -389,7 +391,7 @@ void Binlog::do_event(BinlogEvent &&event) {
   }
 
   fd_events_++;
-  fd_size_ += event.raw_event_.size();
+  fd_size_ += event_size;
 }
 
 void Binlog::sync() {
