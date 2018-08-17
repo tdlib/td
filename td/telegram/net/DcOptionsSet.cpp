@@ -84,7 +84,7 @@ vector<DcOptionsSet::ConnectionInfo> DcOptionsSet::find_all_connections(DcId dc_
     }
 
     if (only_http) {
-      if (!option.is_obfuscated_tcp_only() && !option.is_static()) {
+      if (!option.is_obfuscated_tcp_only() && !option.is_static() && (prefer_ipv6 || !option.is_ipv6())) {
         info.use_http = true;
         info.stat = &option_stat->http_stat;
         options.push_back(info);

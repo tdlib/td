@@ -70,6 +70,7 @@ void Transport::write(BufferWriter &&message, bool quick_ack) {
   auto r_head = hc.finish();
   CHECK(r_head.is_ok());
   Slice src = r_head.ok();
+  // LOG(DEBUG) << src;
   MutableSlice dst = message.prepare_prepend();
   CHECK(dst.size() >= src.size()) << dst.size() << " >= " << src.size();
   std::memcpy(dst.end() - src.size(), src.begin(), src.size());

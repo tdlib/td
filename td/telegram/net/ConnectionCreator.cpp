@@ -631,7 +631,8 @@ void ConnectionCreator::disable_proxy_impl() {
 
 void ConnectionCreator::on_proxy_changed(bool from_db) {
   send_closure(G()->state_manager(), &StateManager::on_proxy,
-               active_proxy_id_ != 0 && proxies_[active_proxy_id_].type() != Proxy::Type::Mtproto);
+               active_proxy_id_ != 0 && proxies_[active_proxy_id_].type() != Proxy::Type::Mtproto &&
+                   proxies_[active_proxy_id_].type() != Proxy::Type::HttpCaching);
 
   if (!from_db) {
     for (auto &child : children_) {
@@ -989,6 +990,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
         extra.stat);
 
     if (proxy.use_socks5_proxy() || proxy.use_http_tcp_proxy()) {
+      VLOG(connections) << "client_loop: create new transparent proxy connection " << extra.debug_str;
       class Callback : public TransparentProxy::Callback {
        public:
         explicit Callback(Promise<ConnectionData> promise, std::unique_ptr<detail::StatsCallback> stats_callback)
@@ -1036,6 +1038,8 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
                                           create_reference(token))};
       }
     } else {
+      VLOG(connections) << "client_loop: create new direct connection " << extra.debug_str;
+
       ConnectionData data;
       data.socket_fd = std::move(socket_fd);
       data.stats_callback = std::move(stats_callback);

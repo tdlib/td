@@ -666,6 +666,7 @@ Status HttpReader::parse_head(MutableSlice head) {
     query_->code_ = to_integer<int32>(parser.read_till(' '));
     parser.skip(' ');
     query_->reason_ = parser.read_till('\r');
+    LOG(DEBUG) << "Receive HTTP response " << query_->code_ << " " << query_->reason_;
   } else {
     auto url_version = parser.read_till('\r');
     auto space_pos = url_version.rfind(' ');
