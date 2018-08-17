@@ -111,7 +111,6 @@ extern int VERBOSITY_NAME(level);
 // TODO Not part of utils. Should be in some separate file
 extern int VERBOSITY_NAME(mtproto);
 extern int VERBOSITY_NAME(raw_mtproto);
-extern int VERBOSITY_NAME(connections);
 extern int VERBOSITY_NAME(dc);
 extern int VERBOSITY_NAME(fd);
 extern int VERBOSITY_NAME(net_query);

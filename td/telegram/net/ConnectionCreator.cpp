@@ -41,6 +41,8 @@
 
 namespace td {
 
+static int VERBOSITY_NAME(connections) = VERBOSITY_NAME(DEBUG) - 2;
+
 namespace detail {
 
 class StatsCallback final : public mtproto::RawConnection::StatsCallback {
@@ -855,8 +857,8 @@ Result<SocketFd> ConnectionCreator::find_connection(const ProxyInfo &proxy, DcId
 
   if (proxy.use_proxy()) {
     extra.mtproto_ip = info.option->get_ip_address();
-    extra.debug_str = PSTRING() << (proxy.use_socks5_proxy() ? "Socks5 " : "HTTP ") << proxy.ip_address() << " --> "
-                                << extra.mtproto_ip << extra.debug_str;
+    extra.debug_str = PSTRING() << (proxy.use_socks5_proxy() ? "Socks5" : (only_http ? "HTTP_ONLY" : "HTTP_TCP")) << ' '
+                                << proxy.ip_address() << " --> " << extra.mtproto_ip << extra.debug_str;
     LOG(INFO) << "Create: " << extra.debug_str;
     return SocketFd::open(proxy.ip_address());
   } else {
