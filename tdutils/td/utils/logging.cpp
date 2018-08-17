@@ -7,7 +7,7 @@
 #include "td/utils/logging.h"
 
 #include "td/utils/port/Clocks.h"
-#include "td/utils/port/FileFd.h"
+#include "td/utils/port/StdStreams.h"
 #include "td/utils/port/thread_local.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Time.h"
@@ -119,18 +119,6 @@ TsCerr::TsCerr() {
 TsCerr::~TsCerr() {
   exitCritical();
 }
-namespace {
-FileFd &Stderr() {
-  static FileFd res = FileFd::from_native_fd(NativeFd(
-#if TD_PORT_POSIX
-    2
-#elif TD_PORT_WINDOWS
-    GetStdHandle(STD_ERROR_HANDLE)
-#endif
-    , true)).move_as_ok();
-  return res;
-}
-}  // namespace
 TsCerr &TsCerr::operator<<(Slice slice) {
   auto &fd = Stderr();
   if (fd.empty()) {

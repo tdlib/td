@@ -30,6 +30,7 @@
 #include "td/utils/port/FileFd.h"
 #include "td/utils/port/signals.h"
 #include "td/utils/port/Stat.h"
+#include "td/utils/port/StdStreams.h"
 #include "td/utils/port/thread_local.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Slice.h"
@@ -183,6 +184,9 @@ class CliLog : public LogInterface {
   void append(CSlice slice, int log_level) override {
 #ifdef USE_READLINE
     deactivate_readline();
+    SCOPE_EXIT {
+      reactivate_readline();
+    };
 #endif
     if (log_level == VERBOSITY_NAME(PLAIN)) {
 #if TD_WINDOWS
@@ -193,9 +197,6 @@ class CliLog : public LogInterface {
     } else {
       default_log_interface->append(slice, log_level);
     }
-#ifdef USE_READLINE
-    reactivate_readline();
-#endif
   }
   void rotate() override {
   }
@@ -634,13 +635,14 @@ class CliClient final : public Actor {
 #if TD_WINDOWS
     stdin_reader_.reset();
 #else
+    unsubscribe(stdin_.get_poll_info().get_pollable_fd_ref());
     is_stdin_reader_stopped_ = true;
 #endif
     yield();
   }
 
 #ifdef USE_READLINE
-  Fd stdin_;
+  FileFd stdin_;
 #else
   using StreamConnection = BufferedFd<Fd>;
   StreamConnection stdin_;
@@ -787,19 +789,18 @@ class CliClient final : public Actor {
     };
     stdin_reader_ = create_actor_on_scheduler<StdinReader>("stdin_reader", stdin_id, actor_shared(this, 1));
 #else
-    Fd::Stdin().set_is_blocking(false).ensure();
+    detail::set_native_socket_is_blocking(Stdin().get_native_fd(), false).ensure();
 #ifdef USE_READLINE
     deactivate_readline();
     rl_callback_handler_install(prompt, cb_linehandler);
     rl_attempted_completion_function = tg_cli_completion;
     reactivate_readline();
 
-    stdin_ = Fd::Stdin().clone();
+    stdin_ = std::move(Stdin());
 #else
-    stdin_ = StreamConnection(Fd::Stdin().clone());
+    stdin_ = StreamConnection(std::move(Stdin()));
 #endif
-    stdin_.get_fd().set_observer(this);
-    subscribe(stdin_, Fd::Read);
+    subscribe(stdin_.get_poll_info().extract_pollable_fd(this), PollFlags::Read());
 #endif
 
     if (get_chat_list_) {
@@ -3405,7 +3406,7 @@ class CliClient final : public Actor {
 #ifdef USE_READLINE
     if (can_read(stdin_)) {
       rl_callback_read_char();
-      stdin_.get_fd().clear_flags(Fd::Read);
+      stdin_.get_poll_info().clear_flags(PollFlags::Read());
     }
 #else
     auto r = stdin_.flush_read();

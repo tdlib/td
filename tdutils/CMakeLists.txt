@@ -42,6 +42,7 @@ set(TDUTILS_SOURCE
   td/utils/port/sleep.cpp
   td/utils/port/SocketFd.cpp
   td/utils/port/Stat.cpp
+  td/utils/port/StdStreams.cpp
   td/utils/port/thread_local.cpp
   td/utils/port/wstring_convert.cpp
 
@@ -104,6 +105,7 @@ set(TDUTILS_SOURCE
   td/utils/port/sleep.h
   td/utils/port/SocketFd.h
   td/utils/port/Stat.h
+  td/utils/port/StdStreams.h
   td/utils/port/thread.h
   td/utils/port/thread_local.h
   td/utils/port/UdpSocketFd.h
