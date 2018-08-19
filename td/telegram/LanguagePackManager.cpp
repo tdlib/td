@@ -379,18 +379,20 @@ bool LanguagePackManager::load_language_strings(LanguageDatabase *database, Lang
     return false;
   }
 
+  LOG(DEBUG) << "Begin to load a language from database";
   std::lock_guard<std::mutex> database_lock(database->mutex_);
   std::lock_guard<std::mutex> language_lock(language->mutex_);
   if (language->is_full_) {
-    // was already loaded
+    LOG(DEBUG) << "The language was already loaded";
     return true;
   }
   if (language->kv_.empty()) {
+    LOG(DEBUG) << "The language has no database";
     return false;
   }
   if (keys.empty()) {
     if (language->version_ == -1) {
-      // there is nothing to load
+      LOG(DEBUG) << "There is nothing to load";
       return false;
     }
 
@@ -402,6 +404,7 @@ bool LanguagePackManager::load_language_strings(LanguageDatabase *database, Lang
       }
 
       if (!language_has_string_unsafe(language, str.first)) {
+        LOG(DEBUG) << "Load string with key " << str.first << " from database";
         load_language_string_unsafe(language, str.first, str.second);
       }
     }
@@ -414,11 +417,13 @@ bool LanguagePackManager::load_language_strings(LanguageDatabase *database, Lang
       auto value = language->kv_.get(key);
       if (value.empty()) {
         if (language->version_ == -1) {
+          LOG(DEBUG) << "Have no string with key " << key << " in the database";
           return false;
         }
 
         // have full language in the database, so this string is just deleted
       }
+      LOG(DEBUG) << "Load string with key " << key << " from database";
       load_language_string_unsafe(language, key, value);
     }
   }
@@ -611,6 +616,7 @@ bool LanguagePackManager::is_valid_key(Slice key) {
 
 void LanguagePackManager::save_strings_to_database(Language *language, int32 new_version,
                                                    vector<std::pair<string, string>> strings) {
+  LOG(DEBUG) << "Save to database a language with new version " << new_version;
   if (new_version == -1 && strings.empty()) {
     return;
   }
@@ -618,10 +624,12 @@ void LanguagePackManager::save_strings_to_database(Language *language, int32 new
   std::lock_guard<std::mutex> lock(database_->mutex_);
   auto kv = &language->kv_;
   if (kv->empty()) {
+    LOG(DEBUG) << "There is no associated database key-value";
     return;
   }
   auto old_version = load_database_language_version(kv);
   if (old_version >= new_version && (old_version != -1 || new_version != -1)) {
+    LOG(DEBUG) << "Language version doesn't increased from " << old_version;
     return;
   }
 
@@ -637,8 +645,10 @@ void LanguagePackManager::save_strings_to_database(Language *language, int32 new
     } else {
       kv->set(str.first, str.second);
     }
+    LOG(DEBUG) << "Save language string with key " << str.first << " to database";
   }
   if (old_version != new_version) {
+    LOG(DEBUG) << "Set language version in database to " << new_version;
     kv->set("!version", to_string(new_version));
   }
   kv->commit_transaction().ensure();
@@ -887,6 +897,10 @@ Status LanguagePackManager::do_delete_language(string language_code) {
   if (!language->kv_.empty()) {
     language->kv_.drop().ignore();
     CHECK(language->kv_.empty());
+    CHECK(!database_->database_.empty());
+    language->kv_
+        .init_with_connection(database_->database_.clone(), get_database_table_name(language_pack_, language_code))
+        .ensure();
   }
   std::lock_guard<std::mutex> language_lock(language->mutex_);
   language->version_ = -1;
