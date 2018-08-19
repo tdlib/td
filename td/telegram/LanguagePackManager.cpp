@@ -505,7 +505,7 @@ void LanguagePackManager::get_languages(Promise<td_api::object_ptr<td_api::langu
         }
         promise.set_value(std::move(results));
       });
-  send_with_promise(G()->net_query_creator().create(create_storer(telegram_api::langpack_getLanguages())),
+  send_with_promise(G()->net_query_creator().create(create_storer(telegram_api::langpack_getLanguages(language_pack_))),
                     std::move(request_promise));
 }
 
@@ -548,7 +548,8 @@ void LanguagePackManager::get_language_pack_strings(string language_code, vector
                        std::move(language_code), result->version_, false, vector<string>(), std::move(result->strings_),
                        std::move(promise));
         });
-    send_with_promise(G()->net_query_creator().create(create_storer(telegram_api::langpack_getLangPack(language_code))),
+    send_with_promise(G()->net_query_creator().create(
+                          create_storer(telegram_api::langpack_getLangPack(language_pack_, language_code))),
                       std::move(request_promise));
   } else {
     auto request_promise =
@@ -562,8 +563,8 @@ void LanguagePackManager::get_language_pack_strings(string language_code, vector
           send_closure(actor_id, &LanguagePackManager::on_get_language_pack_strings, std::move(language_pack),
                        std::move(language_code), -1, false, std::move(keys), r_result.move_as_ok(), std::move(promise));
         });
-    send_with_promise(G()->net_query_creator().create(
-                          create_storer(telegram_api::langpack_getStrings(language_code, std::move(keys)))),
+    send_with_promise(G()->net_query_creator().create(create_storer(
+                          telegram_api::langpack_getStrings(language_pack_, language_code, std::move(keys)))),
                       std::move(request_promise));
   }
 }
