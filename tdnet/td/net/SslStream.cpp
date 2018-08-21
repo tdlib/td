@@ -252,7 +252,7 @@ class SslStreamImpl {
 
             X509_free(x509);
           } else {
-            LOG(ERROR) << "Failed to load X09 certificate";
+            LOG(ERROR) << "Failed to load X509 certificate";
           }
         }
 

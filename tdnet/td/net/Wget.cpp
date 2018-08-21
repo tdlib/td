@@ -70,7 +70,6 @@ Status Wget::try_init() {
                                                        std::numeric_limits<std::size_t>::max(), 0, 0,
                                                        ActorOwn<HttpOutboundConnection::Callback>(actor_id(this)));
   } else {
-    LOG(ERROR) << "HTTPS";
     TRY_RESULT(ssl_stream, SslStream::create(url.host_, CSlice() /* certificate */, verify_peer_));
     connection_ = create_actor<HttpOutboundConnection>("Connect", std::move(fd), std::move(ssl_stream),
                                                        std::numeric_limits<std::size_t>::max(), 0, 0,
