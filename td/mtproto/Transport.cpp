@@ -204,8 +204,8 @@ void Transport::write_crypto_impl(int X, const Storer &storer, const AuthKey &au
                                   HeaderT *header, size_t data_size) {
   auto real_data_size = storer.store(header->data);
   CHECK(real_data_size == data_size);
-  VLOG(raw_mtproto) << "SEND" << format::as_hex_dump<4>(Slice(header->data, data_size));
-  // LOG(ERROR) << "SEND" << format::as_hex_dump<4>(Slice(header->data, data_size)) << info->version;
+  VLOG(raw_mtproto) << "Send packet of size " << data_size << " to session " << format::as_hex(info->session_id) << ":"
+                    << format::as_hex_dump<4>(Slice(header->data, data_size));
 
   size_t size = 0;
   if (info->version == 1) {

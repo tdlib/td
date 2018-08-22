@@ -506,8 +506,8 @@ Status SessionConnection::on_main_packet(const PacketInfo &info, Slice packet) {
     callback_->on_connected();
   }
 
-  VLOG(raw_mtproto) << "Got packet: [session_id:" << format::as_hex(info.session_id) << "] "
-                    << format::as_hex_dump<4>(packet);
+  VLOG(raw_mtproto) << "Got packet of size " << packet.size() << " from session " << format::as_hex(info.session_id)
+                    << ":" << format::as_hex_dump<4>(packet);
   if (info.no_crypto_flag) {
     return Status::Error("Unencrypted packet");
   }

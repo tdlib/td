@@ -149,7 +149,7 @@ void LanguagePackManager::start_up() {
   database_ = add_language_database(G()->shared_config().get_option_string("language_database_path"));
   auto language = add_language(database_, language_pack_, language_code_);
 
-  LOG(INFO) << "Use language pack " << language_pack_ << " with language " << language_code_ << " of version "
+  LOG(INFO) << "Use language pack \"" << language_pack_ << "\" with language \"" << language_code_ << "\" of version "
             << language->version_.load() << " with database \"" << database_->path_ << '"';
 }
 
