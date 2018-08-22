@@ -430,35 +430,53 @@ bool LanguagePackManager::load_language_strings(LanguageDatabase *database, Lang
   return true;
 }
 
-td_api::object_ptr<td_api::LanguagePackString> LanguagePackManager::get_language_pack_string_object(
+td_api::object_ptr<td_api::LanguagePackStringValue> LanguagePackManager::get_language_pack_string_value_object(
+    const string &value) {
+  return td_api::make_object<td_api::languagePackStringValueOrdinary>(value);
+}
+
+td_api::object_ptr<td_api::LanguagePackStringValue> LanguagePackManager::get_language_pack_string_value_object(
+    const PluralizedString &value) {
+  return td_api::make_object<td_api::languagePackStringValuePluralized>(
+      value.zero_value_, value.one_value_, value.two_value_, value.few_value_, value.many_value_, value.other_value_);
+}
+
+td_api::object_ptr<td_api::LanguagePackStringValue> LanguagePackManager::get_language_pack_string_value_object() {
+  return td_api::make_object<td_api::languagePackStringValueDeleted>();
+}
+
+td_api::object_ptr<td_api::languagePackString> LanguagePackManager::get_language_pack_string_object(
     const std::pair<string, string> &str) {
-  return td_api::make_object<td_api::languagePackStringValue>(str.first, str.second);
+  return td_api::make_object<td_api::languagePackString>(str.first, get_language_pack_string_value_object(str.second));
 }
 
-td_api::object_ptr<td_api::LanguagePackString> LanguagePackManager::get_language_pack_string_object(
+td_api::object_ptr<td_api::languagePackString> LanguagePackManager::get_language_pack_string_object(
     const std::pair<string, PluralizedString> &str) {
-  return td_api::make_object<td_api::languagePackStringPluralized>(
-      str.first, str.second.zero_value_, str.second.one_value_, str.second.two_value_, str.second.few_value_,
-      str.second.many_value_, str.second.other_value_);
+  return td_api::make_object<td_api::languagePackString>(str.first, get_language_pack_string_value_object(str.second));
 }
 
-td_api::object_ptr<td_api::LanguagePackString> LanguagePackManager::get_language_pack_string_object(const string &str) {
-  return td_api::make_object<td_api::languagePackStringDeleted>(str);
+td_api::object_ptr<td_api::languagePackString> LanguagePackManager::get_language_pack_string_object(const string &str) {
+  return td_api::make_object<td_api::languagePackString>(str, get_language_pack_string_value_object());
 }
 
-td_api::object_ptr<td_api::LanguagePackString> LanguagePackManager::get_language_pack_string_object(Language *language,
-                                                                                                    const string &key) {
+td_api::object_ptr<td_api::LanguagePackStringValue> LanguagePackManager::get_language_pack_string_value_object(
+    Language *language, const string &key) {
   CHECK(language != nullptr);
   auto ordinary_it = language->ordinary_strings_.find(key);
   if (ordinary_it != language->ordinary_strings_.end()) {
-    return get_language_pack_string_object(*ordinary_it);
+    return get_language_pack_string_value_object(ordinary_it->second);
   }
   auto pluralized_it = language->pluralized_strings_.find(key);
   if (pluralized_it != language->pluralized_strings_.end()) {
-    return get_language_pack_string_object(*pluralized_it);
+    return get_language_pack_string_value_object(pluralized_it->second);
   }
   LOG_IF(ERROR, !language->is_full_ && language->deleted_strings_.count(key) == 0) << "Have no string for key " << key;
-  return get_language_pack_string_object(key);
+  return get_language_pack_string_value_object(key);
+}
+
+td_api::object_ptr<td_api::languagePackString> LanguagePackManager::get_language_pack_string_object(Language *language,
+                                                                                                    const string &key) {
+  return td_api::make_object<td_api::languagePackString>(key, get_language_pack_string_value_object(language, key));
 }
 
 td_api::object_ptr<td_api::languagePackStrings> LanguagePackManager::get_language_pack_strings_object(
@@ -466,7 +484,7 @@ td_api::object_ptr<td_api::languagePackStrings> LanguagePackManager::get_languag
   CHECK(language != nullptr);
 
   std::lock_guard<std::mutex> lock(language->mutex_);
-  vector<td_api::object_ptr<td_api::LanguagePackString>> strings;
+  vector<td_api::object_ptr<td_api::languagePackString>> strings;
   if (keys.empty()) {
     for (auto &str : language->ordinary_strings_) {
       strings.push_back(get_language_pack_string_object(str));
@@ -597,10 +615,10 @@ td_api::object_ptr<td_api::Object> LanguagePackManager::get_language_pack_string
   vector<string> keys{key};
   if (language_has_strings(language, keys)) {
     std::lock_guard<std::mutex> lock(language->mutex_);
-    return get_language_pack_string_object(language, key);
+    return get_language_pack_string_value_object(language, key);
   }
   if (!database->database_.empty() && load_language_strings(database, language, keys)) {
-    return get_language_pack_string_object(language, key);
+    return get_language_pack_string_value_object(language, key);
   }
   return td_api::make_object<td_api::error>(404, "Not Found");
 }
@@ -669,7 +687,7 @@ void LanguagePackManager::on_get_language_pack_strings(
     }
     std::lock_guard<std::mutex> lock(language->mutex_);
     if (language->version_ < version || !keys.empty()) {
-      vector<td_api::object_ptr<td_api::LanguagePackString>> strings;
+      vector<td_api::object_ptr<td_api::languagePackString>> strings;
       if (language->version_ < version && !(is_diff && language->version_ == -1)) {
         LOG(INFO) << "Set language " << language_code << " version to " << version;
         language->version_ = version;
@@ -793,26 +811,29 @@ void LanguagePackManager::on_failed_get_difference(string language_pack, string 
 }
 
 Result<tl_object_ptr<telegram_api::LangPackString>> LanguagePackManager::convert_to_telegram_api(
-    tl_object_ptr<td_api::LanguagePackString> &&str) {
+    tl_object_ptr<td_api::languagePackString> &&str) {
   if (str == nullptr) {
     return Status::Error(400, "Language strings must not be null");
   }
 
-  string key;
-  downcast_call(*str, [&key](auto &value) { key = std::move(value.key_); });
+  string key = std::move(str->key_);
   if (!is_valid_key(key)) {
     return Status::Error(400, "Key is invalid");
   }
-  switch (str->get_id()) {
-    case td_api::languagePackStringValue::ID: {
-      auto value = static_cast<td_api::languagePackStringValue *>(str.get());
+
+  if (str->value_ == nullptr) {
+    return make_tl_object<telegram_api::langPackStringDeleted>(std::move(key));
+  }
+  switch (str->value_->get_id()) {
+    case td_api::languagePackStringValueOrdinary::ID: {
+      auto value = static_cast<td_api::languagePackStringValueOrdinary *>(str->value_.get());
       if (!clean_input_string(value->value_)) {
         return Status::Error(400, "Strings must be encoded in UTF-8");
       }
       return make_tl_object<telegram_api::langPackString>(std::move(key), std::move(value->value_));
     }
-    case td_api::languagePackStringPluralized::ID: {
-      auto value = static_cast<td_api::languagePackStringPluralized *>(str.get());
+    case td_api::languagePackStringValuePluralized::ID: {
+      auto value = static_cast<td_api::languagePackStringValuePluralized *>(str->value_.get());
       if (!clean_input_string(value->zero_value_) || !clean_input_string(value->one_value_) ||
           !clean_input_string(value->two_value_) || !clean_input_string(value->few_value_) ||
           !clean_input_string(value->many_value_) || !clean_input_string(value->other_value_)) {
@@ -822,7 +843,7 @@ Result<tl_object_ptr<telegram_api::LangPackString>> LanguagePackManager::convert
           31, std::move(key), std::move(value->zero_value_), std::move(value->one_value_), std::move(value->two_value_),
           std::move(value->few_value_), std::move(value->many_value_), std::move(value->other_value_));
     }
-    case td_api::languagePackStringDeleted::ID:
+    case td_api::languagePackStringValueDeleted::ID:
       // there is no reason to save deleted strings in a custom language pack to database
       return make_tl_object<telegram_api::langPackStringDeleted>(std::move(key));
     default:
@@ -832,7 +853,7 @@ Result<tl_object_ptr<telegram_api::LangPackString>> LanguagePackManager::convert
 }
 
 void LanguagePackManager::set_custom_language(string language_code, string language_name, string language_native_name,
-                                              vector<tl_object_ptr<td_api::LanguagePackString>> strings,
+                                              vector<tl_object_ptr<td_api::languagePackString>> strings,
                                               Promise<Unit> &&promise) {
   if (!check_language_code_name(language_code)) {
     return promise.set_error(Status::Error(400, "Language code name must contain only letters and hyphen"));
@@ -869,7 +890,7 @@ void LanguagePackManager::set_custom_language(string language_code, string langu
 }
 
 void LanguagePackManager::set_custom_language_string(string language_code,
-                                                     tl_object_ptr<td_api::LanguagePackString> str,
+                                                     tl_object_ptr<td_api::languagePackString> str,
                                                      Promise<Unit> &&promise) {
   if (!check_language_code_name(language_code)) {
     return promise.set_error(Status::Error(400, "Language code name must contain only letters and hyphen"));
@@ -881,11 +902,11 @@ void LanguagePackManager::set_custom_language_string(string language_code,
   if (get_language(database_, language_pack_, language_code) == nullptr) {
     return promise.set_error(Status::Error(400, "Custom language not found"));
   }
-
-  string key;
-  if (str != nullptr) {
-    downcast_call(*str, [&key](auto &value) { key = value.key_; });
+  if (str == nullptr) {
+    return promise.set_error(Status::Error(400, "Language strings must not be null"));
   }
+
+  vector<string> keys{str->key_};
 
   auto r_str = convert_to_telegram_api(std::move(str));
   if (r_str.is_error()) {
@@ -895,7 +916,7 @@ void LanguagePackManager::set_custom_language_string(string language_code,
   vector<tl_object_ptr<telegram_api::LangPackString>> server_strings;
   server_strings.push_back(r_str.move_as_ok());
 
-  on_get_language_pack_strings(language_pack_, language_code, 1, true, {std::move(key)}, std::move(server_strings),
+  on_get_language_pack_strings(language_pack_, language_code, 1, true, std::move(keys), std::move(server_strings),
                                Auto());
   promise.set_value(Unit());
 }

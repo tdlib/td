@@ -58,9 +58,9 @@ class LanguagePackManager : public NetQueryCallback {
   void on_update_language_pack(tl_object_ptr<telegram_api::langPackDifference> difference);
 
   void set_custom_language(string language_code, string language_name, string language_native_name,
-                           vector<tl_object_ptr<td_api::LanguagePackString>> strings, Promise<Unit> &&promise);
+                           vector<tl_object_ptr<td_api::languagePackString>> strings, Promise<Unit> &&promise);
 
-  void set_custom_language_string(string language_code, tl_object_ptr<td_api::LanguagePackString> str,
+  void set_custom_language_string(string language_code, tl_object_ptr<td_api::languagePackString> str,
                                   Promise<Unit> &&promise);
 
   void delete_language(string language_code, Promise<Unit> &&promise);
@@ -96,20 +96,28 @@ class LanguagePackManager : public NetQueryCallback {
   static void load_language_string_unsafe(Language *language, const string &key, string &value);
   static bool load_language_strings(LanguageDatabase *database, Language *language, const vector<string> &keys);
 
-  static td_api::object_ptr<td_api::LanguagePackString> get_language_pack_string_object(
-      const std::pair<string, string> &str);
-  static td_api::object_ptr<td_api::LanguagePackString> get_language_pack_string_object(
-      const std::pair<string, PluralizedString> &str);
-  static td_api::object_ptr<td_api::LanguagePackString> get_language_pack_string_object(const string &str);
+  static td_api::object_ptr<td_api::LanguagePackStringValue> get_language_pack_string_value_object(const string &value);
+  static td_api::object_ptr<td_api::LanguagePackStringValue> get_language_pack_string_value_object(
+      const PluralizedString &value);
+  static td_api::object_ptr<td_api::LanguagePackStringValue> get_language_pack_string_value_object();
 
-  static td_api::object_ptr<td_api::LanguagePackString> get_language_pack_string_object(Language *language,
+  static td_api::object_ptr<td_api::languagePackString> get_language_pack_string_object(
+      const std::pair<string, string> &str);
+  static td_api::object_ptr<td_api::languagePackString> get_language_pack_string_object(
+      const std::pair<string, PluralizedString> &str);
+  static td_api::object_ptr<td_api::languagePackString> get_language_pack_string_object(const string &str);
+
+  static td_api::object_ptr<td_api::LanguagePackStringValue> get_language_pack_string_value_object(Language *language,
+                                                                                                   const string &key);
+
+  static td_api::object_ptr<td_api::languagePackString> get_language_pack_string_object(Language *language,
                                                                                         const string &key);
 
   static td_api::object_ptr<td_api::languagePackStrings> get_language_pack_strings_object(Language *language,
                                                                                           const vector<string> &keys);
 
   static Result<tl_object_ptr<telegram_api::LangPackString>> convert_to_telegram_api(
-      tl_object_ptr<td_api::LanguagePackString> &&str);
+      tl_object_ptr<td_api::languagePackString> &&str);
 
   void inc_generation();
 

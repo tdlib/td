@@ -1703,21 +1703,24 @@ chatEvents events:vector<chatEvent> = ChatEvents;
 chatEventLogFilters message_edits:Bool message_deletions:Bool message_pins:Bool member_joins:Bool member_leaves:Bool member_invites:Bool member_promotions:Bool member_restrictions:Bool info_changes:Bool setting_changes:Bool = ChatEventLogFilters;
 
 
-//@class LanguagePackString @description Represents one language pack string
+//@class LanguagePackStringValue @description Represents a value of language pack string
 
-//@description An ordinary language pack string @key String key @value String value
-languagePackStringValue key:string value:string = LanguagePackString;
+//@description An ordinary language pack string @value String value
+languagePackStringValueOrdinary value:string = LanguagePackStringValue;
 
-//@description A language pack string, which has different forms based on some quantity @key String key @zero_value Value for zero objects @one_value Value for one object @two_value Value for two objects
+//@description A language pack string, which has different forms based on some quantity @zero_value Value for zero objects @one_value Value for one object @two_value Value for two objects
 //@few_value Value for few objects @many_value Value for many objects @other_value Default value
-languagePackStringPluralized key:string zero_value:string one_value:string two_value:string few_value:string many_value:string other_value:string = LanguagePackString;
+languagePackStringValuePluralized zero_value:string one_value:string two_value:string few_value:string many_value:string other_value:string = LanguagePackStringValue;
 
-//@description A deleted language pack string, the value should be taken from a built-in english language pack @key String key
-languagePackStringDeleted key:string = LanguagePackString;
+//@description A deleted language pack string, the value should be taken from a built-in english language pack
+languagePackStringValueDeleted = LanguagePackStringValue;
 
+
+//@description Represents one language pack string @key String key @value String value
+languagePackString key:string value:LanguagePackStringValue = LanguagePackString;
 
 //@description Contains a list of language pack strings @strings A list of language pack strings
-languagePackStrings strings:vector<LanguagePackString> = LanguagePackStrings;
+languagePackStrings strings:vector<languagePackString> = LanguagePackStrings;
 
 //@description Contains information about a language @code Language code @name Language name @native_name Language native name
 languageInfo code:string name:string native_name:string = LanguageInfo;
@@ -2268,7 +2271,7 @@ updateFavoriteStickers sticker_ids:vector<int32> = Update;
 updateSavedAnimations animation_ids:vector<int32> = Update;
 
 //@description Some language pack strings was updated @language_pack Changed language pack @language_code Code of the language, which was updated @strings List of changed language pack strings
-updateLanguagePackStrings language_pack:string language_code:string strings:vector<LanguagePackString> = Update;
+updateLanguagePackStrings language_pack:string language_code:string strings:vector<languagePackString> = Update;
 
 //@description The connection state has changed @state The new connection state
 updateConnectionState state:ConnectionState = Update;
@@ -2646,7 +2649,7 @@ getFileExtension mime_type:string = Text;
 cleanFileName file_name:string = Text;
 
 //@description Returns a string stored in a local database from specified language pack and language by its key. Returns a 404 error if the string is not found. This is an offline method. Can be called before authorization. Can be called synchronously @language_database_path Path to a language database in which strings are stored @language_pack Language pack of string to return @language_code Language code of string to return @key Language pack key of string to return
-getLanguagePackString language_database_path:string language_pack:string language_code:string key:string = LanguagePackString;
+getLanguagePackString language_database_path:string language_pack:string language_code:string key:string = LanguagePackStringValue;
 
 
 //@description Sends an inline query to a bot and returns its results. Returns an error with code 502 if the bot fails to answer the query before the query timeout expires @bot_user_id The identifier of the target bot
@@ -3134,10 +3137,10 @@ getLanguagePackInfo = LanguagePack;
 getLanguagePackStrings language_code:string keys:vector<string> = LanguagePackStrings;
 
 //@description Adds or changes a custom language to the used language pack @info Information about the language. Language code must start with 'X' @strings New language pack strings
-setCustomLanguage info:languageInfo strings:vector<LanguagePackString> = Ok;
+setCustomLanguage info:languageInfo strings:vector<languagePackString> = Ok;
 
-//@description Sets new value for a string in a custom language in the used language pack @language_code The code of previously added custom language, must start with 'X' @string New language pack string
-setCustomLanguageString language_code:string string:LanguagePackString = Ok;
+//@description Sets new value for a string in a custom language in the used language pack @language_code The code of previously added custom language, must start with 'X' @new_string New language pack string
+setCustomLanguageString language_code:string new_string:languagePackString = Ok;
 
 //@description Deletes all information about a language in the used language pack. Currently used language can't be deleted @language_code Language code of a language to delete
 deleteLanguage language_code:string = Ok;

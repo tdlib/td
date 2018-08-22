@@ -6059,7 +6059,7 @@ void Td::on_request(uint64 id, td_api::setCustomLanguageString &request) {
   CLEAN_INPUT_STRING(request.language_code_);
   CREATE_OK_REQUEST_PROMISE();
   send_closure(language_pack_manager_, &LanguagePackManager::set_custom_language_string,
-               std::move(request.language_code_), std::move(request.string_), std::move(promise));
+               std::move(request.language_code_), std::move(request.new_string_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::deleteLanguage &request) {

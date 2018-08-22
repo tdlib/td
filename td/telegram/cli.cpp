@@ -1778,11 +1778,14 @@ class CliClient final : public Actor {
       std::tie(name, args) = split(args);
       std::tie(native_name, key) = split(args);
 
-      vector<tl_object_ptr<td_api::LanguagePackString>> strings;
-      strings.push_back(make_tl_object<td_api::languagePackStringValue>(key, "Ordinary value"));
-      strings.push_back(make_tl_object<td_api::languagePackStringPluralized>("Plu", "Zero", string("One\0One", 7),
-                                                                             "Two", "Few", "Many", "Other"));
-      strings.push_back(make_tl_object<td_api::languagePackStringDeleted>("DELETED"));
+      vector<tl_object_ptr<td_api::languagePackString>> strings;
+      strings.push_back(make_tl_object<td_api::languagePackString>(
+          key, make_tl_object<td_api::languagePackStringValueOrdinary>("Ordinary value")));
+      strings.push_back(make_tl_object<td_api::languagePackString>(
+          "Plu", make_tl_object<td_api::languagePackStringValuePluralized>("Zero", string("One\0One", 7), "Two", "Few",
+                                                                           "Many", "Other")));
+      strings.push_back(make_tl_object<td_api::languagePackString>(
+          "DELETED", make_tl_object<td_api::languagePackStringValueDeleted>()));
 
       send_request(make_tl_object<td_api::setCustomLanguage>(
           make_tl_object<td_api::languageInfo>(language_code, name, native_name), std::move(strings)));
@@ -1794,14 +1797,14 @@ class CliClient final : public Actor {
       std::tie(language_code, args) = split(args);
       std::tie(key, value) = split(args);
 
-      tl_object_ptr<td_api::LanguagePackString> str;
+      tl_object_ptr<td_api::languagePackString> str = make_tl_object<td_api::languagePackString>(key, nullptr);
       if (op == "sclsv") {
-        str = make_tl_object<td_api::languagePackStringValue>(key, value);
+        str->value_ = make_tl_object<td_api::languagePackStringValueOrdinary>(value);
       } else if (op == "sclsp") {
-        str = make_tl_object<td_api::languagePackStringPluralized>(key, value, string("One\0One", 7), "Two", "Few",
-                                                                   "Many", "Other");
+        str->value_ = make_tl_object<td_api::languagePackStringValuePluralized>(value, string("One\0One", 7), "Two",
+                                                                                "Few", "Many", "Other");
       } else {
-        str = make_tl_object<td_api::languagePackStringDeleted>(key);
+        str->value_ = make_tl_object<td_api::languagePackStringValueDeleted>();
       }
 
       send_request(make_tl_object<td_api::setCustomLanguageString>(language_code, std::move(str)));
