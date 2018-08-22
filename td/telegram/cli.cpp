@@ -1786,6 +1786,25 @@ class CliClient final : public Actor {
 
       send_request(make_tl_object<td_api::setCustomLanguage>(
           make_tl_object<td_api::languageInfo>(language_code, name, native_name), std::move(strings)));
+    } else if (op == "sclsv" || op == "sclsp" || op == "sclsd") {
+      string language_code;
+      string key;
+      string value;
+
+      std::tie(language_code, args) = split(args);
+      std::tie(key, value) = split(args);
+
+      tl_object_ptr<td_api::LanguagePackString> str;
+      if (op == "sclsv") {
+        str = make_tl_object<td_api::languagePackStringValue>(key, value);
+      } else if (op == "sclsp") {
+        str = make_tl_object<td_api::languagePackStringPluralized>(key, value, string("One\0One", 7), "Two", "Few",
+                                                                   "Many", "Other");
+      } else {
+        str = make_tl_object<td_api::languagePackStringDeleted>(key);
+      }
+
+      send_request(make_tl_object<td_api::setCustomLanguageString>(language_code, std::move(str)));
     } else if (op == "dl") {
       send_request(make_tl_object<td_api::deleteLanguage>(args));
     } else if (op == "go") {

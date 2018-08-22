@@ -3268,6 +3268,7 @@ bool Td::is_preauthentication_request(int32 id) {
     case td_api::getLanguagePackInfo::ID:
     case td_api::getLanguagePackStrings::ID:
     case td_api::setCustomLanguage::ID:
+    case td_api::setCustomLanguageString::ID:
     case td_api::deleteLanguage::ID:
     case td_api::getOption::ID:
     case td_api::setOption::ID:
@@ -6051,6 +6052,14 @@ void Td::on_request(uint64 id, td_api::setCustomLanguage &request) {
   send_closure(language_pack_manager_, &LanguagePackManager::set_custom_language, std::move(request.info_->code_),
                std::move(request.info_->name_), std::move(request.info_->native_name_), std::move(request.strings_),
                std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::setCustomLanguageString &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.language_code_);
+  CREATE_OK_REQUEST_PROMISE();
+  send_closure(language_pack_manager_, &LanguagePackManager::set_custom_language_string,
+               std::move(request.language_code_), std::move(request.string_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::deleteLanguage &request) {

@@ -628,7 +628,7 @@ void LanguagePackManager::save_strings_to_database(Language *language, int32 new
     return;
   }
   auto old_version = load_database_language_version(kv);
-  if (old_version >= new_version && (old_version != -1 || new_version != -1)) {
+  if (old_version > new_version || (old_version == new_version && strings.empty())) {
     LOG(DEBUG) << "Language version doesn't increased from " << old_version;
     return;
   }
@@ -662,7 +662,7 @@ void LanguagePackManager::on_get_language_pack_strings(
   bool is_version_changed = false;
   int32 new_database_version = -1;
   vector<std::pair<string, string>> database_strings;
-  if (language == nullptr || (language->version_ < version || !keys.empty())) {
+  if (language == nullptr || language->version_ < version || !keys.empty()) {
     if (language == nullptr) {
       language = add_language(database_, language_pack, language_code);
       CHECK(language != nullptr);
@@ -792,56 +792,62 @@ void LanguagePackManager::on_failed_get_difference(string language_pack, string 
   }
 }
 
+Result<tl_object_ptr<telegram_api::LangPackString>> LanguagePackManager::convert_to_telegram_api(
+    tl_object_ptr<td_api::LanguagePackString> &&str) {
+  if (str == nullptr) {
+    return Status::Error(400, "Language strings must not be null");
+  }
+
+  string key;
+  downcast_call(*str, [&key](auto &value) { key = std::move(value.key_); });
+  if (!is_valid_key(key)) {
+    return Status::Error(400, "Key is invalid");
+  }
+  switch (str->get_id()) {
+    case td_api::languagePackStringValue::ID: {
+      auto value = static_cast<td_api::languagePackStringValue *>(str.get());
+      if (!clean_input_string(value->value_)) {
+        return Status::Error(400, "Strings must be encoded in UTF-8");
+      }
+      return make_tl_object<telegram_api::langPackString>(std::move(key), std::move(value->value_));
+    }
+    case td_api::languagePackStringPluralized::ID: {
+      auto value = static_cast<td_api::languagePackStringPluralized *>(str.get());
+      if (!clean_input_string(value->zero_value_) || !clean_input_string(value->one_value_) ||
+          !clean_input_string(value->two_value_) || !clean_input_string(value->few_value_) ||
+          !clean_input_string(value->many_value_) || !clean_input_string(value->other_value_)) {
+        return Status::Error(400, "Strings must be encoded in UTF-8");
+      }
+      return make_tl_object<telegram_api::langPackStringPluralized>(
+          31, std::move(key), std::move(value->zero_value_), std::move(value->one_value_), std::move(value->two_value_),
+          std::move(value->few_value_), std::move(value->many_value_), std::move(value->other_value_));
+    }
+    case td_api::languagePackStringDeleted::ID:
+      // there is no reason to save deleted strings in a custom language pack to database
+      return make_tl_object<telegram_api::langPackStringDeleted>(std::move(key));
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
 void LanguagePackManager::set_custom_language(string language_code, string language_name, string language_native_name,
                                               vector<tl_object_ptr<td_api::LanguagePackString>> strings,
                                               Promise<Unit> &&promise) {
-  if (!is_custom_language_code(language_code)) {
-    return promise.set_error(Status::Error(400, "Custom language code must begin with 'X'"));
-  }
   if (!check_language_code_name(language_code)) {
     return promise.set_error(Status::Error(400, "Language code name must contain only letters and hyphen"));
+  }
+  if (!is_custom_language_code(language_code)) {
+    return promise.set_error(Status::Error(400, "Custom language code must begin with 'X'"));
   }
 
   vector<tl_object_ptr<telegram_api::LangPackString>> server_strings;
   for (auto &str : strings) {
-    if (str == nullptr) {
-      return promise.set_error(Status::Error(400, "Language strings must not be null"));
+    auto r_result = convert_to_telegram_api(std::move(str));
+    if (r_result.is_error()) {
+      return promise.set_error(r_result.move_as_error());
     }
-    string key;
-    downcast_call(*str, [&key](auto &value) { key = std::move(value.key_); });
-    if (!is_valid_key(key)) {
-      return promise.set_error(Status::Error(400, "Key is invalid"));
-    }
-    switch (str->get_id()) {
-      case td_api::languagePackStringValue::ID: {
-        auto value = static_cast<td_api::languagePackStringValue *>(str.get());
-        if (!clean_input_string(value->value_)) {
-          return promise.set_error(Status::Error(400, "Strings must be encoded in UTF-8"));
-        }
-        server_strings.push_back(
-            make_tl_object<telegram_api::langPackString>(std::move(key), std::move(value->value_)));
-        break;
-      }
-      case td_api::languagePackStringPluralized::ID: {
-        auto value = static_cast<td_api::languagePackStringPluralized *>(str.get());
-        if (!clean_input_string(value->zero_value_) || !clean_input_string(value->one_value_) ||
-            !clean_input_string(value->two_value_) || !clean_input_string(value->few_value_) ||
-            !clean_input_string(value->many_value_) || !clean_input_string(value->other_value_)) {
-          return promise.set_error(Status::Error(400, "Strings must be encoded in UTF-8"));
-        }
-        server_strings.push_back(make_tl_object<telegram_api::langPackStringPluralized>(
-            31, std::move(key), std::move(value->zero_value_), std::move(value->one_value_),
-            std::move(value->two_value_), std::move(value->few_value_), std::move(value->many_value_),
-            std::move(value->other_value_)));
-        break;
-      }
-      case td_api::languagePackStringDeleted::ID:
-        // there is no reason to save deleted strings in a custom language pack to database
-        break;
-      default:
-        UNREACHABLE();
-        break;
-    }
+    server_strings.push_back(r_result.move_as_ok());
   }
 
   // TODO atomic replace
@@ -855,8 +861,42 @@ void LanguagePackManager::set_custom_language(string language_code, string langu
   auto &info = pack->language_infos_[language_code];
   info.name = language_name;
   info.native_name = language_native_name;
-  pack->pack_kv_.set(language_code, PSLICE() << language_name << '\x00' << language_native_name);
+  if (!pack->pack_kv_.empty()) {
+    pack->pack_kv_.set(language_code, PSLICE() << language_name << '\x00' << language_native_name);
+  }
 
+  promise.set_value(Unit());
+}
+
+void LanguagePackManager::set_custom_language_string(string language_code,
+                                                     tl_object_ptr<td_api::LanguagePackString> str,
+                                                     Promise<Unit> &&promise) {
+  if (!check_language_code_name(language_code)) {
+    return promise.set_error(Status::Error(400, "Language code name must contain only letters and hyphen"));
+  }
+  if (!is_custom_language_code(language_code)) {
+    return promise.set_error(Status::Error(400, "Custom language code must begin with 'X'"));
+  }
+
+  if (get_language(database_, language_pack_, language_code) == nullptr) {
+    return promise.set_error(Status::Error(400, "Custom language not found"));
+  }
+
+  string key;
+  if (str != nullptr) {
+    downcast_call(*str, [&key](auto &value) { key = value.key_; });
+  }
+
+  auto r_str = convert_to_telegram_api(std::move(str));
+  if (r_str.is_error()) {
+    return promise.set_error(r_str.move_as_error());
+  }
+
+  vector<tl_object_ptr<telegram_api::LangPackString>> server_strings;
+  server_strings.push_back(r_str.move_as_ok());
+
+  on_get_language_pack_strings(language_pack_, language_code, 1, true, {std::move(key)}, std::move(server_strings),
+                               Auto());
   promise.set_value(Unit());
 }
 

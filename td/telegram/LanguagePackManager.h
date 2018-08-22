@@ -60,6 +60,9 @@ class LanguagePackManager : public NetQueryCallback {
   void set_custom_language(string language_code, string language_name, string language_native_name,
                            vector<tl_object_ptr<td_api::LanguagePackString>> strings, Promise<Unit> &&promise);
 
+  void set_custom_language_string(string language_code, tl_object_ptr<td_api::LanguagePackString> str,
+                                  Promise<Unit> &&promise);
+
   void delete_language(string language_code, Promise<Unit> &&promise);
 
  private:
@@ -104,6 +107,9 @@ class LanguagePackManager : public NetQueryCallback {
 
   static td_api::object_ptr<td_api::languagePackStrings> get_language_pack_strings_object(Language *language,
                                                                                           const vector<string> &keys);
+
+  static Result<tl_object_ptr<telegram_api::LangPackString>> convert_to_telegram_api(
+      tl_object_ptr<td_api::LanguagePackString> &&str);
 
   void inc_generation();
 

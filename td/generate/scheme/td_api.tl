@@ -3133,8 +3133,11 @@ getLanguagePackInfo = LanguagePack;
 //@description Returns strings from a language in the used language pack by their keys @language_code Language code of strings to return @keys Language pack keys of strings to return; may be empty to get all available strings
 getLanguagePackStrings language_code:string keys:vector<string> = LanguagePackStrings;
 
-//@description Adds or changes a custom language to the used language pack @info Information about the language. Language code should start with 'X' @strings New language pack strings
+//@description Adds or changes a custom language to the used language pack @info Information about the language. Language code must start with 'X' @strings New language pack strings
 setCustomLanguage info:languageInfo strings:vector<LanguagePackString> = Ok;
+
+//@description Sets new value for a string in a custom language in the used language pack @language_code The code of previously added custom language, must start with 'X' @string New language pack string
+setCustomLanguageString language_code:string string:LanguagePackString = Ok;
 
 //@description Deletes all information about a language in the used language pack. Currently used language can't be deleted @language_code Language code of a language to delete
 deleteLanguage language_code:string = Ok;

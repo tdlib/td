@@ -656,7 +656,7 @@ void AnimationsManager::remove_saved_animation(const tl_object_ptr<td_api::Input
   // TODO invokeAfter
   auto file_view = td_->file_manager_->get_file_view(file_id);
   CHECK(file_view.has_remote_location());
-  CHECK(file_view.remote_location().is_document());
+  CHECK(file_view.remote_location().is_document()) << file_view.remote_location();
   CHECK(!file_view.remote_location().is_web());
   td_->create_handler<SaveGifQuery>(std::move(promise))->send(file_view.remote_location().as_input_document(), true);
 
