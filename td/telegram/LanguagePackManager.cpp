@@ -215,6 +215,7 @@ void LanguagePackManager::on_language_pack_version_changed(int32 new_version) {
   Language *language = get_language(database_, language_pack_, language_code_);
   int32 version = language == nullptr ? static_cast<int32>(-1) : language->version_.load();
   if (version == -1) {
+    // TODO load language pack from the server
     return;
   }
 
@@ -283,6 +284,7 @@ void LanguagePackManager::on_update_language_pack(tl_object_ptr<telegram_api::la
 
 void LanguagePackManager::inc_generation() {
   G()->shared_config().set_option_empty("language_pack_version");
+  on_language_pack_version_changed(std::numeric_limits<int32>::max());
 }
 
 LanguagePackManager::Language *LanguagePackManager::get_language(LanguageDatabase *database,
