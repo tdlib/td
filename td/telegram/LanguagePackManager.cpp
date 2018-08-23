@@ -504,7 +504,7 @@ td_api::object_ptr<td_api::LanguagePackStringValue> LanguagePackManager::get_lan
     return get_language_pack_string_value_object(pluralized_it->second);
   }
   LOG_IF(ERROR, !language->is_full_ && language->deleted_strings_.count(key) == 0) << "Have no string for key " << key;
-  return get_language_pack_string_value_object(key);
+  return get_language_pack_string_value_object();
 }
 
 td_api::object_ptr<td_api::languagePackString> LanguagePackManager::get_language_pack_string_object(
