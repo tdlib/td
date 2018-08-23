@@ -1788,7 +1788,7 @@ class CliClient final : public Actor {
           "DELETED", make_tl_object<td_api::languagePackStringValueDeleted>()));
 
       send_request(make_tl_object<td_api::setCustomLanguage>(
-          make_tl_object<td_api::languageInfo>(language_code, name, native_name), std::move(strings)));
+          make_tl_object<td_api::languageInfo>(language_code, name, native_name, 3), std::move(strings)));
     } else if (op == "sclsv" || op == "sclsp" || op == "sclsd") {
       string language_code;
       string key;

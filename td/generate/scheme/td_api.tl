@@ -1722,8 +1722,8 @@ languagePackString key:string value:LanguagePackStringValue = LanguagePackString
 //@description Contains a list of language pack strings @strings A list of language pack strings
 languagePackStrings strings:vector<languagePackString> = LanguagePackStrings;
 
-//@description Contains information about a language @code Language code @name Language name @native_name Language native name
-languageInfo code:string name:string native_name:string = LanguageInfo;
+//@description Contains information about a language @code Language code @name Language name @native_name Language native name @local_key_count Total number of locally available non-deleted keys from the language
+languageInfo code:string name:string native_name:string key_count:int32 = LanguageInfo;
 
 //@description Contains information about a language pack @languages List of available languages
 languagePack languages:vector<languageInfo> = LanguagePack;
@@ -3136,7 +3136,7 @@ getLanguagePackInfo = LanguagePack;
 //@description Returns strings from a language in the used language pack by their keys @language_code Language code of strings to return @keys Language pack keys of strings to return; may be empty to get all available strings
 getLanguagePackStrings language_code:string keys:vector<string> = LanguagePackStrings;
 
-//@description Adds or changes a custom language to the used language pack @info Information about the language. Language code must start with 'X' @strings New language pack strings
+//@description Adds or changes a custom language to the used language pack @info Information about the language. Language code must start with 'X', consist only of English letters, digits and hyphens and be not longer than 64 characters @strings New language pack strings
 setCustomLanguage info:languageInfo strings:vector<languagePackString> = Ok;
 
 //@description Sets new value for a string in a custom language in the used language pack @language_code The code of previously added custom language, must start with 'X' @new_string New language pack string

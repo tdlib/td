@@ -24,6 +24,8 @@
 
 namespace td {
 
+class SqliteKeyValue;
+
 class LanguagePackManager : public NetQueryCallback {
  public:
   explicit LanguagePackManager(ActorShared<> parent) : parent_(std::move(parent)) {
@@ -90,7 +92,7 @@ class LanguagePackManager : public NetQueryCallback {
 
   static Language *add_language(LanguageDatabase *database, const string &language_pack, const string &language_code);
 
-  static bool language_has_string_unsafe(Language *language, const string &key);
+  static bool language_has_string_unsafe(const Language *language, const string &key);
   static bool language_has_strings(Language *language, const vector<string> &keys);
 
   static void load_language_string_unsafe(Language *language, const string &key, string &value);
@@ -107,10 +109,10 @@ class LanguagePackManager : public NetQueryCallback {
       const std::pair<string, PluralizedString> &str);
   static td_api::object_ptr<td_api::languagePackString> get_language_pack_string_object(const string &str);
 
-  static td_api::object_ptr<td_api::LanguagePackStringValue> get_language_pack_string_value_object(Language *language,
-                                                                                                   const string &key);
+  static td_api::object_ptr<td_api::LanguagePackStringValue> get_language_pack_string_value_object(
+      const Language *language, const string &key);
 
-  static td_api::object_ptr<td_api::languagePackString> get_language_pack_string_object(Language *language,
+  static td_api::object_ptr<td_api::languagePackString> get_language_pack_string_object(const Language *language,
                                                                                         const string &key);
 
   static td_api::object_ptr<td_api::languagePackStrings> get_language_pack_strings_object(Language *language,
@@ -123,13 +125,17 @@ class LanguagePackManager : public NetQueryCallback {
 
   static bool is_valid_key(Slice key);
 
-  void save_strings_to_database(Language *language, int32 new_version, vector<std::pair<string, string>> strings);
+  void save_strings_to_database(SqliteKeyValue *kv, int32 new_version, bool new_is_full, int32 new_key_count,
+                                vector<std::pair<string, string>> strings);
 
   void on_get_language_pack_strings(string language_pack, string language_code, int32 version, bool is_diff,
                                     vector<string> keys, vector<tl_object_ptr<telegram_api::LangPackString>> results,
                                     Promise<td_api::object_ptr<td_api::languagePackStrings>> promise);
 
   void on_failed_get_difference(string language_pack, string language_code);
+
+  void on_get_languages(vector<tl_object_ptr<telegram_api::langPackLanguage>> languages, string language_pack,
+                        Promise<td_api::object_ptr<td_api::languagePack>> promise);
 
   Status do_delete_language(string language_code);
 
