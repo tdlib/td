@@ -608,10 +608,9 @@ class CliClient final : public Actor {
   }
 
   void on_error(uint64 id, tl_object_ptr<td_api::error> error) {
-    auto current_verbosity_level = GET_VERBOSITY_LEVEL();
-    SET_VERBOSITY_LEVEL(VERBOSITY_NAME(INFO));
-    LOG(INFO) << "on_error [id=" << id << "] " << to_string(error);
-    SET_VERBOSITY_LEVEL(current_verbosity_level);
+    if (id > 0 && GET_VERBOSITY_LEVEL() < VERBOSITY_NAME(td_requests)) {
+      LOG(ERROR) << "on_error [id=" << id << "] " << to_string(error);
+    }
   }
 
   void on_closed() {
@@ -1288,6 +1287,8 @@ class CliClient final : public Actor {
       std::tie(id, types) = split(args);
       send_request(make_tl_object<td_api::sendPassportAuthorizationForm>(to_integer<int32>(id),
                                                                          as_passport_element_types(types)));
+    } else if (op == "gpcl") {
+      send_request(make_tl_object<td_api::getPreferredCountryLanguage>(args));
     } else if (op == "spnvc" || op == "SendPhoneNumberVerificationCode") {
       send_request(make_tl_object<td_api::sendPhoneNumberVerificationCode>(args, false, false));
     } else if (op == "cpnvc" || op == "CheckPhoneNumberVerificationCode") {

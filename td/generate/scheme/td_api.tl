@@ -1722,8 +1722,8 @@ languagePackString key:string value:LanguagePackStringValue = LanguagePackString
 //@description Contains a list of language pack strings @strings A list of language pack strings
 languagePackStrings strings:vector<languagePackString> = LanguagePackStrings;
 
-//@description Contains information about a language @code Language code @name Language name @native_name Language native name @local_key_count Total number of locally available non-deleted keys from the language
-languageInfo code:string name:string native_name:string key_count:int32 = LanguageInfo;
+//@description Contains information about a language @code Language code @name Language name @native_name Language native name @local_string_count Total number of locally available non-deleted strings from the language
+languageInfo code:string name:string native_name:string local_string_count:int32 = LanguageInfo;
 
 //@description Contains information about a language pack @languages List of available languages
 languagePack languages:vector<languageInfo> = LanguagePack;
@@ -3236,6 +3236,10 @@ deletePassportElement type:PassportElementType = Ok;
 
 //@description Informs a user that some of the Telegram Passport elements contain errors; for bots only. The user will not be able to resend the elements, until the errors are fixed @user_id User identifier @errors The errors
 setPassportElementErrors user_id:int32 errors:vector<inputPassportElementError> = Ok;
+
+
+//@description Returns an IETF language tag of the language preferred in the country, which should be used to fill native fields in Telegram Passport personal details. Returns a 404 error if unknown @country_code A two-letter ISO 3166-1 alpha-2 country code
+getPreferredCountryLanguage country_code:string = Text;
 
 
 //@description Sends a code to verify a phone number to be added to a user's Telegram Passport

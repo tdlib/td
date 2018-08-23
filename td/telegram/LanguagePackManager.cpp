@@ -573,7 +573,7 @@ void LanguagePackManager::on_get_languages(vector<tl_object_ptr<telegram_api::la
 
   for (auto &language_info : results->languages_) {
     auto language = add_language(database_, language_pack, language_info->code_);
-    language_info->key_count_ = language->key_count_;
+    language_info->local_string_count_ = language->key_count_;
   }
 
   promise.set_value(std::move(results));

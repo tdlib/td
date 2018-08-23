@@ -886,6 +886,60 @@ void SecureManager::get_secure_value(std::string password, SecureValueType type,
       .release();
 }
 
+class GetPassportConfig : public NetQueryCallback {
+ public:
+  GetPassportConfig(ActorShared<SecureManager> parent, string country_code,
+                    Promise<td_api::object_ptr<td_api::text>> promise)
+      : parent_(std::move(parent)), country_code_(std::move(country_code)), promise_(std::move(promise)) {
+  }
+
+ private:
+  ActorShared<SecureManager> parent_;
+  string country_code_;
+  Promise<td_api::object_ptr<td_api::text>> promise_;
+
+  void start_up() override {
+    auto query = G()->net_query_creator().create(create_storer(telegram_api::help_getPassportConfig(0)));
+    G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
+  }
+
+  void on_result(NetQueryPtr query) override {
+    auto r_result = fetch_result<telegram_api::help_getPassportConfig>(std::move(query));
+    if (r_result.is_error()) {
+      promise_.set_error(r_result.move_as_error());
+      stop();
+      return;
+    }
+
+    auto config = r_result.move_as_ok();
+    switch (config->get_id()) {
+      case telegram_api::help_passportConfigNotModified::ID:
+        promise_.set_error(Status::Error(500, "Wrong server response"));
+        break;
+      case telegram_api::help_passportConfig::ID: {
+        const string &data =
+            static_cast<const telegram_api::help_passportConfig *>(config.get())->countries_langs_->data_;
+        auto begin_pos = data.find((PSLICE() << '"' << country_code_ << "\":\"").c_str());
+        if (begin_pos == string::npos) {
+          promise_.set_value(nullptr);
+          break;
+        }
+
+        begin_pos += 4 + country_code_.size();
+        auto end_pos = data.find('"', begin_pos);
+        if (end_pos == string::npos) {
+          return promise_.set_error(Status::Error(500, "Wrong server response"));
+        }
+        promise_.set_value(td_api::make_object<td_api::text>(data.substr(begin_pos, end_pos - begin_pos)));
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+    stop();
+  }
+};
+
 void SecureManager::on_get_secure_value(SecureValueWithCredentials value) {
   auto type = value.value.type;
   secure_value_cache_[type] = std::move(value);
@@ -1133,6 +1187,15 @@ void SecureManager::send_passport_authorization_form(int32 authorization_form_id
         promise.set_value(Unit());
       });
   send_with_promise(std::move(query), std::move(new_promise));
+}
+
+void SecureManager::get_preferred_country_code(string country_code, Promise<td_api::object_ptr<td_api::text>> promise) {
+  refcnt_++;
+  for (auto &c : country_code) {
+    c = to_upper(c);
+  }
+  create_actor<GetPassportConfig>("GetPassportConfig", actor_shared(this), std::move(country_code), std::move(promise))
+      .release();
 }
 
 void SecureManager::hangup() {
