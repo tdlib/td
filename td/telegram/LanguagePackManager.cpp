@@ -169,10 +169,15 @@ void LanguagePackManager::start_up() {
   CHECK(check_language_code_name(language_code_));
 
   database_ = add_language_database(G()->shared_config().get_option_string("language_database_path"));
-  auto language = add_language(database_, language_pack_, language_code_);
+  if (!language_pack_.empty() && !language_code_.empty()) {
+    auto language = add_language(database_, language_pack_, language_code_);
+    if (!is_custom_language_code(language_code_) && language->version_ == -1) {
+      get_language_pack_strings(language_code_, vector<string>(), Auto());
+    }
 
-  LOG(INFO) << "Use language pack \"" << language_pack_ << "\" with language \"" << language_code_ << "\" of version "
-            << language->version_.load() << " with database \"" << database_->path_ << '"';
+    LOG(INFO) << "Use language pack \"" << language_pack_ << "\" with language \"" << language_code_ << "\" of version "
+              << language->version_.load() << " with database \"" << database_->path_ << '"';
+  }
 }
 
 void LanguagePackManager::tear_down() {
@@ -208,7 +213,7 @@ void LanguagePackManager::on_language_code_changed() {
 }
 
 void LanguagePackManager::on_language_pack_version_changed(int32 new_version) {
-  if (is_custom_language_code(language_code_)) {
+  if (is_custom_language_code(language_code_) || language_pack_.empty() || language_code_.empty()) {
     return;
   }
 
@@ -261,8 +266,16 @@ void LanguagePackManager::on_update_language_pack(tl_object_ptr<telegram_api::la
   LOG(INFO) << "Receive update language pack difference for language " << difference->lang_code_ << " from version "
             << difference->from_version_ << " with version " << difference->version_ << " of size "
             << difference->strings_.size();
+  if (language_pack_.empty()) {
+    LOG(WARNING) << "Ignore difference for language " << difference->lang_code_ << ", because language pack was unset";
+    return;
+  }
   if (difference->lang_code_ != language_code_) {
     LOG(WARNING) << "Ignore difference for language " << difference->lang_code_;
+    return;
+  }
+  if (is_custom_language_code(difference->lang_code_) || difference->lang_code_.empty()) {
+    LOG(ERROR) << "Ignore difference for language " << difference->lang_code_;
     return;
   }
 
@@ -535,6 +548,10 @@ td_api::object_ptr<td_api::languagePackStrings> LanguagePackManager::get_languag
 }
 
 void LanguagePackManager::get_languages(Promise<td_api::object_ptr<td_api::languagePack>> promise) {
+  if (language_pack_.empty()) {
+    return promise.set_error(Status::Error(400, "Option \"language_pack\" needs to be set first"));
+  }
+
   auto request_promise = PromiseCreator::lambda([actor_id = actor_id(this), language_pack = language_pack_,
                                                  promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
     auto r_result = fetch_result<telegram_api::langpack_getLanguages>(std::move(r_query));
@@ -572,6 +589,11 @@ void LanguagePackManager::on_get_languages(vector<tl_object_ptr<telegram_api::la
   }
 
   for (auto &language_info : results->languages_) {
+    if (!check_language_code_name(language_info->code_)) {
+      LOG(ERROR) << "Receive unsupported language code " << language_info->code_ << " from server";
+      continue;
+    }
+
     auto language = add_language(database_, language_pack, language_info->code_);
     language_info->local_string_count_ = language->key_count_;
   }
@@ -581,6 +603,12 @@ void LanguagePackManager::on_get_languages(vector<tl_object_ptr<telegram_api::la
 
 void LanguagePackManager::get_language_pack_strings(string language_code, vector<string> keys,
                                                     Promise<td_api::object_ptr<td_api::languagePackStrings>> promise) {
+  if (!check_language_code_name(language_code) || language_code.empty()) {
+    return promise.set_error(Status::Error(400, "Language code is invalid"));
+  }
+  if (language_pack_.empty()) {
+    return promise.set_error(Status::Error(400, "Option \"language_pack\" needs to be set first"));
+  }
   for (auto &key : keys) {
     if (!is_valid_key(key)) {
       return promise.set_error(Status::Error(400, "Invalid key name"));
@@ -593,6 +621,10 @@ void LanguagePackManager::get_language_pack_strings(string language_code, vector
   }
   if (load_language_strings(database_, language, keys)) {
     return promise.set_value(get_language_pack_strings_object(language, keys));
+  }
+
+  if (is_custom_language_code(language_code)) {
+    return promise.set_error(Status::Error(400, "Custom language pack not found"));
   }
 
   if (keys.empty()) {
@@ -1005,6 +1037,9 @@ Result<tl_object_ptr<telegram_api::LangPackString>> LanguagePackManager::convert
 void LanguagePackManager::set_custom_language(string language_code, string language_name, string language_native_name,
                                               vector<tl_object_ptr<td_api::languagePackString>> strings,
                                               Promise<Unit> &&promise) {
+  if (language_pack_.empty()) {
+    return promise.set_error(Status::Error(400, "Option \"language_pack\" needs to be set first"));
+  }
   if (!check_language_code_name(language_code)) {
     return promise.set_error(Status::Error(400, "Language code name must contain only letters and hyphen"));
   }
@@ -1042,6 +1077,9 @@ void LanguagePackManager::set_custom_language(string language_code, string langu
 void LanguagePackManager::set_custom_language_string(string language_code,
                                                      tl_object_ptr<td_api::languagePackString> str,
                                                      Promise<Unit> &&promise) {
+  if (language_pack_.empty()) {
+    return promise.set_error(Status::Error(400, "Option \"language_pack\" needs to be set first"));
+  }
   if (!check_language_code_name(language_code)) {
     return promise.set_error(Status::Error(400, "Language code name must contain only letters and hyphen"));
   }
@@ -1072,6 +1110,9 @@ void LanguagePackManager::set_custom_language_string(string language_code,
 }
 
 void LanguagePackManager::delete_language(string language_code, Promise<Unit> &&promise) {
+  if (language_pack_.empty()) {
+    return promise.set_error(Status::Error(400, "Option \"language_pack\" needs to be set first"));
+  }
   if (!check_language_code_name(language_code)) {
     return promise.set_error(Status::Error(400, "Language code name is invalid"));
   }
