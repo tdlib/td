@@ -2706,7 +2706,7 @@ std::pair<int32, vector<int64>> StickersManager::get_archived_sticker_sets(bool 
 void StickersManager::on_get_archived_sticker_sets(
     bool is_masks, vector<tl_object_ptr<telegram_api::StickerSetCovered>> &&sticker_sets, int32 total_count) {
   vector<int64> &sticker_set_ids = archived_sticker_set_ids_[is_masks];
-  if (sticker_set_ids.size() > 0 && sticker_set_ids.back() == 0) {
+  if (!sticker_set_ids.empty() && sticker_set_ids.back() == 0) {
     return;
   }
 

@@ -80,6 +80,12 @@ class LanguagePackManager : public NetQueryCallback {
   string language_code_;
   LanguageDatabase *database_ = nullptr;
 
+  struct PendingQueries {
+    vector<Promise<td_api::object_ptr<td_api::languagePackStrings>>> queries_;
+  };
+
+  std::unordered_map<string, std::unordered_map<string, PendingQueries>> get_all_language_pack_strings_queries_;
+
   static int32 manager_count_;
 
   static std::mutex language_database_mutex_;
@@ -131,6 +137,9 @@ class LanguagePackManager : public NetQueryCallback {
   void on_get_language_pack_strings(string language_pack, string language_code, int32 version, bool is_diff,
                                     vector<string> keys, vector<tl_object_ptr<telegram_api::LangPackString>> results,
                                     Promise<td_api::object_ptr<td_api::languagePackStrings>> promise);
+
+  void on_get_all_language_pack_strings(string language_pack, string language_code,
+                                        Result<td_api::object_ptr<td_api::languagePackStrings>> r_strings);
 
   void on_failed_get_difference(string language_pack, string language_code);
 

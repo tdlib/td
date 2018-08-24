@@ -7557,7 +7557,7 @@ void MessagesManager::on_get_public_dialogs_search_result(const string &query,
                                                           vector<tl_object_ptr<telegram_api::Peer>> &&peers) {
   auto it = search_public_dialogs_queries_.find(query);
   CHECK(it != search_public_dialogs_queries_.end());
-  CHECK(it->second.size() > 0);
+  CHECK(!it->second.empty());
   auto promises = std::move(it->second);
   search_public_dialogs_queries_.erase(it);
 
@@ -7572,7 +7572,7 @@ void MessagesManager::on_get_public_dialogs_search_result(const string &query,
 void MessagesManager::on_failed_public_dialogs_search(const string &query, Status &&error) {
   auto it = search_public_dialogs_queries_.find(query);
   CHECK(it != search_public_dialogs_queries_.end());
-  CHECK(it->second.size() > 0);
+  CHECK(!it->second.empty());
   auto promises = std::move(it->second);
   search_public_dialogs_queries_.erase(it);
 
@@ -12291,7 +12291,7 @@ vector<DialogId> MessagesManager::get_common_dialogs(UserId user_id, DialogId of
 void MessagesManager::on_get_common_dialogs(UserId user_id, vector<tl_object_ptr<telegram_api::Chat>> &&chats,
                                             int32 total_count) {
   auto &result = found_common_dialogs_[user_id];
-  if (result.size() > 0 && result.back() == DialogId()) {
+  if (!result.empty() && result.back() == DialogId()) {
     return;
   }
   for (auto &chat : chats) {
@@ -20821,7 +20821,7 @@ void MessagesManager::send_get_dialog_notification_settings_query(DialogId dialo
 void MessagesManager::on_get_dialog_notification_settings_query_finished(DialogId dialog_id, Status &&status) {
   auto it = get_dialog_notification_settings_queries_.find(dialog_id);
   CHECK(it != get_dialog_notification_settings_queries_.end());
-  CHECK(it->second.size() > 0);
+  CHECK(!it->second.empty());
   auto promises = std::move(it->second);
   get_dialog_notification_settings_queries_.erase(it);
 
@@ -20893,7 +20893,7 @@ void MessagesManager::send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&
 void MessagesManager::on_get_dialog_query_finished(DialogId dialog_id, Status &&status) {
   auto it = get_dialog_queries_.find(dialog_id);
   CHECK(it != get_dialog_queries_.end());
-  CHECK(it->second.size() > 0);
+  CHECK(!it->second.empty());
   auto promises = std::move(it->second);
   get_dialog_queries_.erase(it);
 
@@ -24476,7 +24476,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
         }
         if (old_photo->photos != new_photo->photos) {
           if ((old_photo->photos.size() == 1 || (old_photo->photos.size() == 2 && old_photo->photos[0].type == 't')) &&
-              old_photo->photos.back().type == 'i' && new_photo->photos.size() > 0) {
+              old_photo->photos.back().type == 'i' && !new_photo->photos.empty()) {
             // first time get info about sent photo
             if (old_photo->photos.size() == 2) {
               new_photo->photos.push_back(old_photo->photos[0]);

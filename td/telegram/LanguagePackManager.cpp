@@ -367,7 +367,7 @@ bool LanguagePackManager::language_has_strings(Language *language, const vector<
     return true;
   }
   if (keys.empty()) {
-    return language->version_ != -1 && language->is_full_;
+    return false;  // language is already checked to be not full
   }
   for (auto &key : keys) {
     if (!language_has_string_unsafe(language, key)) {
@@ -596,9 +596,22 @@ void LanguagePackManager::get_language_pack_strings(string language_code, vector
   }
 
   if (keys.empty()) {
+    auto &queries = get_all_language_pack_strings_queries_[language_pack_][language_code].queries_;
+    queries.push_back(std::move(promise));
+    if (queries.size() != 1) {
+      // send request only once
+      return;
+    }
+
+    auto result_promise =
+        PromiseCreator::lambda([actor_id = actor_id(this), language_pack = language_pack_, language_code](
+                                   Result<td_api::object_ptr<td_api::languagePackStrings>> r_strings) mutable {
+          send_closure(actor_id, &LanguagePackManager::on_get_all_language_pack_strings, language_pack, language_code,
+                       std::move(r_strings));
+        });
     auto request_promise =
         PromiseCreator::lambda([actor_id = actor_id(this), language_pack = language_pack_, language_code,
-                                promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
+                                promise = std::move(result_promise)](Result<NetQueryPtr> r_query) mutable {
           auto r_result = fetch_result<telegram_api::langpack_getLangPack>(std::move(r_query));
           if (r_result.is_error()) {
             return promise.set_error(r_result.move_as_error());
@@ -634,6 +647,76 @@ void LanguagePackManager::get_language_pack_strings(string language_code, vector
                           telegram_api::langpack_getStrings(language_pack_, language_code, std::move(keys)))),
                       std::move(request_promise));
   }
+}
+
+static td_api::object_ptr<td_api::LanguagePackStringValue> copy_language_pack_string_value(
+    const td_api::LanguagePackStringValue *value) {
+  switch (value->get_id()) {
+    case td_api::languagePackStringValueOrdinary::ID: {
+      auto old_value = static_cast<const td_api::languagePackStringValueOrdinary *>(value);
+      return make_tl_object<td_api::languagePackStringValueOrdinary>(old_value->value_);
+    }
+    case td_api::languagePackStringValuePluralized::ID: {
+      auto old_value = static_cast<const td_api::languagePackStringValuePluralized *>(value);
+      return make_tl_object<td_api::languagePackStringValuePluralized>(
+          std::move(old_value->zero_value_), std::move(old_value->one_value_), std::move(old_value->two_value_),
+          std::move(old_value->few_value_), std::move(old_value->many_value_), std::move(old_value->other_value_));
+    }
+    case td_api::languagePackStringValueDeleted::ID:
+      return make_tl_object<td_api::languagePackStringValueDeleted>();
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
+void LanguagePackManager::on_get_all_language_pack_strings(
+    string language_pack, string language_code, Result<td_api::object_ptr<td_api::languagePackStrings>> r_strings) {
+  auto &queries = get_all_language_pack_strings_queries_[language_pack][language_code].queries_;
+  auto promises = std::move(queries);
+  CHECK(!promises.empty());
+  auto it = get_all_language_pack_strings_queries_.find(language_pack);
+  it->second.erase(language_code);
+  if (it->second.empty()) {
+    get_all_language_pack_strings_queries_.erase(it);
+  }
+
+  if (r_strings.is_error()) {
+    for (auto &promise : promises) {
+      promise.set_error(r_strings.error().clone());
+    }
+    return;
+  }
+
+  auto strings = r_strings.move_as_ok();
+  size_t left_non_empty_promise_count = 0;
+  for (auto &promise : promises) {
+    if (promise) {
+      left_non_empty_promise_count++;
+    }
+  }
+  for (auto &promise : promises) {
+    if (promise) {
+      if (left_non_empty_promise_count == 1) {
+        LOG(INFO) << "Set last non-empty promise";
+        promise.set_value(std::move(strings));
+      } else {
+        LOG(INFO) << "Set non-empty promise";
+        vector<td_api::object_ptr<td_api::languagePackString>> strings_copy;
+        for (auto &result : strings->strings_) {
+          CHECK(result != nullptr);
+          strings_copy.push_back(td_api::make_object<td_api::languagePackString>(
+              result->key_, copy_language_pack_string_value(result->value_.get())));
+        }
+        promise.set_value(td_api::make_object<td_api::languagePackStrings>(std::move(strings_copy)));
+      }
+      left_non_empty_promise_count--;
+    } else {
+      LOG(INFO) << "Set empty promise";
+      promise.set_value(nullptr);
+    }
+  }
+  CHECK(left_non_empty_promise_count == 0);
 }
 
 td_api::object_ptr<td_api::Object> LanguagePackManager::get_language_pack_string(const string &database_path,
