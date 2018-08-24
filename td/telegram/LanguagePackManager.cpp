@@ -877,7 +877,7 @@ void LanguagePackManager::on_get_language_pack_strings(
             } else {
               it->second = std::move(str->value_);
             }
-            key_count_delta -= language->pluralized_strings_.erase(str->key_);
+            key_count_delta -= static_cast<int32>(language->pluralized_strings_.erase(str->key_));
             language->deleted_strings_.erase(str->key_);
             if (is_diff) {
               strings.push_back(get_language_pack_string_object(*it));
@@ -897,7 +897,7 @@ void LanguagePackManager::on_get_language_pack_strings(
             } else {
               it->second = std::move(value);
             }
-            key_count_delta -= language->ordinary_strings_.erase(str->key_);
+            key_count_delta -= static_cast<int32>(language->ordinary_strings_.erase(str->key_));
             language->deleted_strings_.erase(str->key_);
             if (is_diff) {
               strings.push_back(get_language_pack_string_object(*it));
@@ -910,8 +910,8 @@ void LanguagePackManager::on_get_language_pack_strings(
           }
           case telegram_api::langPackStringDeleted::ID: {
             auto str = static_cast<const telegram_api::langPackStringDeleted *>(result.get());
-            key_count_delta -= language->ordinary_strings_.erase(str->key_);
-            key_count_delta -= language->pluralized_strings_.erase(str->key_);
+            key_count_delta -= static_cast<int32>(language->ordinary_strings_.erase(str->key_));
+            key_count_delta -= static_cast<int32>(language->pluralized_strings_.erase(str->key_));
             language->deleted_strings_.insert(std::move(str->key_));
             if (is_diff) {
               strings.push_back(get_language_pack_string_object(str->key_));
