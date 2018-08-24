@@ -215,7 +215,7 @@ void LanguagePackManager::on_language_pack_version_changed(int32 new_version) {
   Language *language = get_language(database_, language_pack_, language_code_);
   int32 version = language == nullptr ? static_cast<int32>(-1) : language->version_.load();
   if (version == -1) {
-    // TODO load language pack from the server
+    get_language_pack_strings(language_code_, vector<string>(), Auto());
     return;
   }
 
