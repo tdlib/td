@@ -43,7 +43,9 @@ void Log::set_max_file_size(int64 max_file_size) {
 }
 
 void Log::set_verbosity_level(int new_verbosity_level) {
-  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(FATAL) + new_verbosity_level);
+  if (0 <= new_verbosity_level && new_verbosity_level <= 1024) {
+    SET_VERBOSITY_LEVEL(VERBOSITY_NAME(FATAL) + new_verbosity_level);
+  }
 }
 
 void Log::set_fatal_error_callback(FatalErrorCallbackPtr callback) {
