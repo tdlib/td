@@ -10654,6 +10654,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     LOG(ERROR) << "Receive wrong message out flag: me is " << my_id << ", message is from " << sender_user_id
                << ", flags = " << flags << " for " << message_id << " in " << dialog_id;
     //    }
+    is_outgoing = !is_outgoing;
   }
 
   MessageId reply_to_message_id = message_info.reply_to_message_id;
