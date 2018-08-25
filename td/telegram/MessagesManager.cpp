@@ -24904,6 +24904,13 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
   auto dialog_id = d->dialog_id;
   switch (dialog_id.get_type()) {
     case DialogType::User:
+      if (dialog_id.get_user_id() == td_->contacts_manager_->get_my_id("add_new_dialog")) {
+        d->last_read_inbox_message_id = MessageId::max();
+        d->is_last_read_inbox_message_id_inited = true;
+        d->last_read_outbox_message_id = MessageId::max();
+        d->is_last_read_outbox_message_id_inited = true;
+      }
+      break;
     case DialogType::Chat:
       break;
     case DialogType::Channel: {
