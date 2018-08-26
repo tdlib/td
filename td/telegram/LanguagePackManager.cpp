@@ -25,6 +25,7 @@
 #include "td/utils/Status.h"
 
 #include <atomic>
+#include <limits>
 #include <unordered_set>
 #include <utility>
 

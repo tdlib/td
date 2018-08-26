@@ -77,7 +77,6 @@ class Client::Impl final {
  private:
   std::deque<Response> responses_;
   std::vector<Request> requests_;
-  int output_queue_ready_cnt_{0};
   std::unique_ptr<ConcurrentScheduler> scheduler_;
   ActorOwn<Td> td_;
   bool closed_ = false;
@@ -87,7 +86,7 @@ class Client::Impl final {
     scheduler_->init(0);
     class Callback : public TdCallback {
      public:
-      Callback(Impl *client) : client_(client) {
+      explicit Callback(Impl *client) : client_(client) {
       }
       void on_result(std::uint64_t id, td_api::object_ptr<td_api::Object> result) override {
         client_->responses_.push_back({id, std::move(result)});

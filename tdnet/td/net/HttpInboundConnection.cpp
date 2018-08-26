@@ -6,6 +6,8 @@
 //
 #include "td/net/HttpInboundConnection.h"
 
+#include "td/net/SslStream.h"
+
 #include "td/utils/logging.h"
 
 namespace td {
