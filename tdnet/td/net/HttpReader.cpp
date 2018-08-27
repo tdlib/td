@@ -70,6 +70,7 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
     if (state_ != ReadHeaders) {
       flow_source_.wakeup();
       if (flow_sink_.is_ready() && flow_sink_.status().is_error()) {
+        clean_temporary_file();
         return Status::Error(400, PSLICE() << "Bad Request: " << flow_sink_.status().message());
       }
       need_size = flow_source_.get_need_size();
@@ -772,22 +773,24 @@ Status HttpReader::try_open_temp_file(Slice directory_name, CSlice desired_file_
 Status HttpReader::save_file_part(BufferSlice &&file_part) {
   file_size_ += narrow_cast<int64>(file_part.size());
   if (file_size_ > MAX_FILE_SIZE) {
-    string file_name = temp_file_name_;
-    close_temp_file();
-    delete_temp_file(file_name);
+    clean_temporary_file();
     return Status::Error(
-        413, PSLICE() << "Request Entity Too Large: file is too big to be uploaded " << tag("size", file_size_));
+        413, PSLICE() << "Request Entity Too Large: file of size " << file_size_ << " is too big to be uploaded");
   }
 
   LOG(DEBUG) << "Save file part of size " << file_part.size() << " to file " << temp_file_name_;
   auto result_written = temp_file_.write(file_part.as_slice());
   if (result_written.is_error() || result_written.ok() != file_part.size()) {
-    string file_name = temp_file_name_;
-    close_temp_file();
-    delete_temp_file(file_name);
+    clean_temporary_file();
     return Status::Error(500, "Internal server error: can't upload the file");
   }
   return Status::OK();
+}
+
+void HttpReader::clean_temporary_file() {
+  string file_name = temp_file_name_;
+  close_temp_file();
+  delete_temp_file(file_name);
 }
 
 void HttpReader::close_temp_file() {

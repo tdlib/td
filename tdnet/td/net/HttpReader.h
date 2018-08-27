@@ -96,6 +96,7 @@ class HttpReader {
   Status try_open_temp_file(Slice directory_name, CSlice desired_file_name) TD_WARN_UNUSED_RESULT;
   Status save_file_part(BufferSlice &&file_part) TD_WARN_UNUSED_RESULT;
   void close_temp_file();
+  void clean_temporary_file();
 
   static constexpr size_t MAX_CONTENT_SIZE = 150 << 20;           // Some reasonable limit
   static constexpr size_t MAX_TOTAL_PARAMETERS_LENGTH = 1 << 16;  // Some reasonable limit
