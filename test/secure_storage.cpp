@@ -32,10 +32,10 @@ TEST(SecureStorage, simple) {
   auto value_secret = Secret::create_new();
 
   {
-    auto value_view = BufferSliceDataView(value.copy());
+    BufferSliceDataView value_view(value.copy());
     BufferSlice prefix = gen_random_prefix(value_view.size());
-    auto prefix_view = BufferSliceDataView(std::move(prefix));
-    auto full_value_view = ConcatDataView(prefix_view, value_view);
+    BufferSliceDataView prefix_view(std::move(prefix));
+    ConcatDataView full_value_view(prefix_view, value_view);
     auto hash = calc_value_hash(full_value_view).move_as_ok();
 
     Encryptor encryptor(calc_aes_cbc_state_sha512(PSLICE() << value_secret.as_slice() << hash.as_slice()),

@@ -16,7 +16,6 @@ namespace td {
 class DcId {
  public:
   DcId() = default;
-  DcId(const DcId &other) = default;
 
   static bool is_valid(int32 dc_id) {
     return 1 <= dc_id && dc_id <= 1000;

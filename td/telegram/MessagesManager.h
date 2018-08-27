@@ -72,6 +72,12 @@ class MultiSequenceDispatcher;
 // Do not forget to update MessagesManager::update_message_content when one of the inheritors of this class changes
 class MessageContent {
  public:
+  MessageContent() = default;
+  MessageContent(const MessageContent &) = default;
+  MessageContent &operator=(const MessageContent &) = default;
+  MessageContent(MessageContent &&) = default;
+  MessageContent &operator=(MessageContent &&) = default;
+
   virtual int32 get_id() const = 0;
   virtual ~MessageContent() = default;
 };

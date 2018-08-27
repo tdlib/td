@@ -63,6 +63,12 @@ class ValueHash {
 
 class DataView {
  public:
+  DataView() = default;
+  DataView(const DataView &) = delete;
+  DataView &operator=(const DataView &) = delete;
+  DataView(DataView &&) = delete;
+  DataView &operator=(DataView &&) = delete;
+
   virtual int64 size() const = 0;
   virtual Result<BufferSlice> pread(int64 offset, int64 size) = 0;
   virtual ~DataView() = default;

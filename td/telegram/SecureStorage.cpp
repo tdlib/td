@@ -324,9 +324,9 @@ Result<BufferSlice> Encryptor::pread(int64 offset, int64 size) {
 }
 
 Result<EncryptedValue> encrypt_value(const Secret &secret, Slice data) {
-  auto random_prefix_view = BufferSliceDataView(gen_random_prefix(data.size()));
-  auto data_view = BufferSliceDataView(BufferSlice(data));
-  auto full_view = ConcatDataView(random_prefix_view, data_view);
+  BufferSliceDataView random_prefix_view{gen_random_prefix(data.size())};
+  BufferSliceDataView data_view{BufferSlice(data)};
+  ConcatDataView full_view{random_prefix_view, data_view};
 
   TRY_RESULT(hash, calc_value_hash(full_view));
 
@@ -353,9 +353,9 @@ Result<ValueHash> encrypt_file(const Secret &secret, std::string src, std::strin
   TRY_RESULT(dest_file, FileFd::open(dest, FileFd::Flags::Truncate | FileFd::Flags::Write | FileFd::Create));
   auto src_file_size = src_file.get_size();
 
-  auto random_prefix_view = BufferSliceDataView(gen_random_prefix(src_file_size));
-  auto data_view = FileDataView(src_file, src_file_size);
-  auto full_view = ConcatDataView(random_prefix_view, data_view);
+  BufferSliceDataView random_prefix_view(gen_random_prefix(src_file_size));
+  FileDataView data_view(src_file, src_file_size);
+  ConcatDataView full_view(random_prefix_view, data_view);
 
   TRY_RESULT(hash, calc_value_hash(full_view));
 
@@ -371,7 +371,7 @@ Status decrypt_file(const Secret &secret, const ValueHash &hash, std::string src
   TRY_RESULT(dest_file, FileFd::open(dest, FileFd::Flags::Truncate | FileFd::Flags::Write | FileFd::Create));
   auto src_file_size = src_file.get_size();
 
-  auto src_file_view = FileDataView(src_file, src_file_size);
+  FileDataView src_file_view(src_file, src_file_size);
 
   auto aes_cbc_state = calc_aes_cbc_state_sha512(PSLICE() << secret.as_slice() << hash.as_slice());
   Decryptor decryptor(aes_cbc_state);
