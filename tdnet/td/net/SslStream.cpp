@@ -140,15 +140,19 @@ int verify_callback(int preverify_ok, X509_STORE_CTX *ctx) {
 }
 
 Status create_openssl_error(int code, Slice message) {
-  const int buf_size = 1 << 12;
-  auto buf = StackAllocator::alloc(buf_size);
-  StringBuilder sb(buf.as_slice());
+  const int max_result_size = 1 << 12;
+  auto result = StackAllocator::alloc(max_result_size);
+  StringBuilder sb(result.as_slice());
 
   sb << message;
   while (unsigned long error_code = ERR_get_error()) {
-    sb << "{" << error_code << ", " << ERR_error_string(error_code, nullptr) << "}";
+    char error_buf[1024];
+    ERR_error_string_n(error_code, error_buf, sizeof(error_buf));
+    Slice error(error_buf, std::strlen(error_buf));
+    LOG_IF(ERROR, ends_with(error, "internal error")) << "OpenSSL internal error: " << error;
+    sb << "{" << error << "}";
   }
-  LOG_IF(ERROR, sb.is_error()) << "OPENSSL error buffer overflow";
+  LOG_IF(ERROR, sb.is_error()) << "OpenSSL error buffer overflow";
   return Status::Error(code, sb.as_cslice());
 }
 
