@@ -70,7 +70,9 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
     if (state_ != ReadHeaders) {
       flow_source_.wakeup();
       if (flow_sink_.is_ready() && flow_sink_.status().is_error()) {
-        clean_temporary_file();
+        if (!temp_file_.empty()) {
+          clean_temporary_file();
+        }
         return Status::Error(400, PSLICE() << "Bad Request: " << flow_sink_.status().message());
       }
       need_size = flow_source_.get_need_size();
