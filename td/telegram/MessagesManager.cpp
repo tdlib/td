@@ -22994,7 +22994,7 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
 
   switch (action->get_id()) {
     case telegram_api::messageActionEmpty::ID:
-      LOG(ERROR) << "Receive empty message action";
+      LOG(ERROR) << "Receive empty message action in " << owner_dialog_id;
       break;
     case telegram_api::messageActionChatCreate::ID: {
       auto chat_create = move_tl_object_as<telegram_api::messageActionChatCreate>(action);
@@ -23006,7 +23006,7 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
         if (user_id.is_valid()) {
           participant_user_ids.push_back(user_id);
         } else {
-          LOG(ERROR) << "Receive invalid " << user_id;
+          LOG(ERROR) << "Receive messageActionChatCreate with invalid " << user_id << " in " << owner_dialog_id;
         }
       }
 
@@ -23045,7 +23045,7 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
         if (user_id.is_valid()) {
           user_ids.push_back(user_id);
         } else {
-          LOG(ERROR) << "Receive invalid " << user_id;
+          LOG(ERROR) << "Receive messageActionChatAddUser with invalid " << user_id << " in " << owner_dialog_id;
         }
       }
 
@@ -23058,7 +23058,7 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
 
       UserId user_id(chat_delete_user->user_id_);
       if (!user_id.is_valid()) {
-        LOG(ERROR) << "Receive invalid " << user_id;
+        LOG(ERROR) << "Receive messageActionChatDeleteUser with invalid " << user_id << " in " << owner_dialog_id;
         break;
       }
 
@@ -23069,7 +23069,8 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
 
       ChannelId migrated_to_channel_id(chat_migrate_to->channel_id_);
       if (!migrated_to_channel_id.is_valid()) {
-        LOG(ERROR) << "Receive invalid " << migrated_to_channel_id;
+        LOG(ERROR) << "Receive messageActionChatMigrateTo with invalid " << migrated_to_channel_id << " in "
+                   << owner_dialog_id;
         break;
       }
 
@@ -23083,20 +23084,22 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
       auto channel_migrate_from = move_tl_object_as<telegram_api::messageActionChannelMigrateFrom>(action);
 
       ChatId chat_id(channel_migrate_from->chat_id_);
-      LOG_IF(ERROR, !chat_id.is_valid()) << "Receive invalid " << chat_id;
+      LOG_IF(ERROR, !chat_id.is_valid()) << "Receive messageActionChannelMigrateFrom with invalid " << chat_id << " in "
+                                         << owner_dialog_id;
 
       return make_unique<MessageChannelMigrateFrom>(std::move(channel_migrate_from->title_), chat_id);
     }
     case telegram_api::messageActionPinMessage::ID: {
       if (!reply_to_message_id.is_valid()) {
-        LOG(ERROR) << "Receive pinned message with " << reply_to_message_id;
+        LOG(ERROR) << "Receive pinned message with " << reply_to_message_id << " in " << owner_dialog_id;
         reply_to_message_id = MessageId();
       }
       return make_unique<MessagePinMessage>(reply_to_message_id);
     }
     case telegram_api::messageActionGameScore::ID: {
       if (!reply_to_message_id.is_valid()) {
-        LOG_IF(ERROR, !td_->auth_manager_->is_bot()) << "Receive game score with " << reply_to_message_id;
+        LOG_IF(ERROR, !td_->auth_manager_->is_bot())
+            << "Receive game score with " << reply_to_message_id << " in " << owner_dialog_id;
         reply_to_message_id = MessageId();
       }
       auto game_score = move_tl_object_as<telegram_api::messageActionGameScore>(action);
@@ -23109,9 +23112,9 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
       return make_unique<MessageCall>(phone_call->call_id_, duration, get_call_discard_reason(phone_call->reason_));
     }
     case telegram_api::messageActionPaymentSent::ID: {
-      LOG_IF(ERROR, td_->auth_manager_->is_bot()) << "Receive MessageActionPaymentSent";
+      LOG_IF(ERROR, td_->auth_manager_->is_bot()) << "Receive MessageActionPaymentSent in " << owner_dialog_id;
       if (!reply_to_message_id.is_valid()) {
-        LOG(ERROR) << "Receive succesful payment message with " << reply_to_message_id;
+        LOG(ERROR) << "Receive succesful payment message with " << reply_to_message_id << " in " << owner_dialog_id;
         reply_to_message_id = MessageId();
       }
       auto payment_sent = move_tl_object_as<telegram_api::messageActionPaymentSent>(action);
@@ -23119,9 +23122,9 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
                                                    payment_sent->total_amount_);
     }
     case telegram_api::messageActionPaymentSentMe::ID: {
-      LOG_IF(ERROR, !td_->auth_manager_->is_bot()) << "Receive MessageActionPaymentSentMe";
+      LOG_IF(ERROR, !td_->auth_manager_->is_bot()) << "Receive MessageActionPaymentSentMe in " << owner_dialog_id;
       if (!reply_to_message_id.is_valid()) {
-        LOG(ERROR) << "Receive succesful payment message with " << reply_to_message_id;
+        LOG(ERROR) << "Receive succesful payment message with " << reply_to_message_id << " in " << owner_dialog_id;
         reply_to_message_id = MessageId();
       }
       auto payment_sent = move_tl_object_as<telegram_api::messageActionPaymentSentMe>(action);
@@ -23146,12 +23149,12 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
       return make_unique<MessageWebsiteConnected>(std::move(bot_allowed->domain_));
     }
     case telegram_api::messageActionSecureValuesSent::ID: {
-      LOG_IF(ERROR, td_->auth_manager_->is_bot()) << "Receive MessageActionSecureValuesSent";
+      LOG_IF(ERROR, td_->auth_manager_->is_bot()) << "Receive MessageActionSecureValuesSent in " << owner_dialog_id;
       auto secure_values = move_tl_object_as<telegram_api::messageActionSecureValuesSent>(action);
       return make_unique<MessagePassportDataSent>(get_secure_value_types(secure_values->types_));
     }
     case telegram_api::messageActionSecureValuesSentMe::ID: {
-      LOG_IF(ERROR, !td_->auth_manager_->is_bot()) << "Receive MessageActionSecureValuesSentMe";
+      LOG_IF(ERROR, !td_->auth_manager_->is_bot()) << "Receive MessageActionSecureValuesSentMe in " << owner_dialog_id;
       auto secure_values = move_tl_object_as<telegram_api::messageActionSecureValuesSentMe>(action);
       return make_unique<MessagePassportDataReceived>(
           get_encrypted_secure_values(td_->file_manager_.get(), std::move(secure_values->values_)),
@@ -24103,7 +24106,9 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
   }
   if (old_message->forward_info == nullptr) {
     if (new_message->forward_info != nullptr) {
-      LOG(ERROR) << message_id << " in " << dialog_id << " has received forward info " << *new_message->forward_info;
+      LOG(ERROR) << message_id << " in " << dialog_id << " has received forward info " << *new_message->forward_info
+                 << ", really forwarded from " << old_message->debug_forward_from << ", message content type is "
+                 << old_message->content->get_id() << '/' << new_message->content->get_id();
     }
   } else {
     if (new_message->forward_info != nullptr) {
