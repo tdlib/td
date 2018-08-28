@@ -17144,12 +17144,15 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
 
       auto r_http_url = parse_url(input_message_invoice->photo_url_);
       if (r_http_url.is_error()) {
+        if (!input_message_invoice->photo_url_.empty()) {
+          LOG(INFO) << "Can't register url " << input_message_invoice->photo_url_;
+        }
         message_invoice->photo.id = -2;
       } else {
         auto url = r_http_url.ok().get_url();
         auto r_invoice_file_id = td_->file_manager_->from_persistent_id(url, FileType::Temp);
         if (r_invoice_file_id.is_error()) {
-          LOG(ERROR) << "Can't register url " << url;
+          LOG(INFO) << "Can't register url " << url;
           message_invoice->photo.id = -2;
         } else {
           auto invoice_file_id = r_invoice_file_id.move_as_ok();
@@ -24207,7 +24210,9 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
             << " to " << *new_message->reply_markup;
       } else {
         LOG(ERROR) << message_id << " in " << dialog_id << " sent by " << old_message->sender_user_id
-                   << " has lost reply markup " << *old_message->reply_markup;
+                   << " has lost reply markup " << *old_message->reply_markup
+                   << ". Old message: " << to_string(get_message_object(dialog_id, old_message.get()))
+                   << ". New message: " << to_string(get_message_object(dialog_id, new_message.get()));
       }
     }
   }

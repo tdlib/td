@@ -110,7 +110,7 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
           *source >> gzip_flow_;
           source = &gzip_flow_;
         } else {
-          LOG(ERROR) << "Unsupported " << tag("content-encoding", content_encoding_);
+          LOG(WARNING) << "Unsupported " << tag("content-encoding", content_encoding_);
           return Status::Error(415, "Unsupported Media Type: unsupported content-encoding");
         }
 
