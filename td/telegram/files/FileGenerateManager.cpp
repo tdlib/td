@@ -246,7 +246,12 @@ class FileExternalGenerateActor : public FileGenerateActor {
     check_status(do_file_generate_progress(expected_size, local_prefix_size), std::move(promise));
   }
   void file_generate_finish(Status status, Promise<> promise) override {
-    check_status(do_file_generate_finish(std::move(status)), std::move(promise));
+    if (status.is_error()) {
+      check_status(std::move(status));
+      return promise.set_value(Unit());
+    }
+
+    check_status(do_file_generate_finish(), std::move(promise));
   }
 
  private:
@@ -297,9 +302,7 @@ class FileExternalGenerateActor : public FileGenerateActor {
     return Status::OK();
   }
 
-  Status do_file_generate_finish(Status status) {
-    TRY_STATUS(std::move(status));
-
+  Status do_file_generate_finish() {
     auto dir = get_files_dir(generate_location_.file_type_);
 
     TRY_RESULT(perm_path, create_from_temp(path_, dir, name_));
