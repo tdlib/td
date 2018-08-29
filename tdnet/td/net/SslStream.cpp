@@ -149,10 +149,10 @@ Status create_openssl_error(int code, Slice message) {
     char error_buf[1024];
     ERR_error_string_n(error_code, error_buf, sizeof(error_buf));
     Slice error(error_buf, std::strlen(error_buf));
-    LOG_IF(ERROR, ends_with(error, "internal error")) << "OpenSSL internal error: " << error;
     sb << "{" << error << "}";
   }
   LOG_IF(ERROR, sb.is_error()) << "OpenSSL error buffer overflow";
+  LOG(DEBUG) << sb.as_cslice();
   return Status::Error(code, sb.as_cslice());
 }
 
