@@ -267,9 +267,15 @@ class SslStreamImpl {
       } else {
         LOG(ERROR) << "Failed to open system certificate store";
       }
-
 #else
-      SSL_CTX_set_default_verify_paths(ssl_ctx);
+      if (SSL_CTX_set_default_verify_paths(ssl_ctx) == 0) {
+        auto error = create_openssl_error(-8, "Failed to load default verify paths");
+        if (verify_peer == VerifyPeer::On) {
+          return error;
+        } else {
+          LOG(ERROR) << error;
+        }
+      }
 #endif
     } else {
       if (SSL_CTX_load_verify_locations(ssl_ctx, cert_file.c_str(), nullptr) == 0) {
