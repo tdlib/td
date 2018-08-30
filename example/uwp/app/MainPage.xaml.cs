@@ -27,11 +27,13 @@ namespace TdApp
             Items = new System.Collections.ObjectModel.ObservableCollection<string>();
             _handler = new MyClientResultHandler(this);
 
+            Td.Log.SetFilePath(Path.Combine(Windows.Storage.ApplicationData.Current.LocalFolder.Path, "log"));
+            Td.Log.SetVerbosityLevel(20);
+
             System.Threading.Tasks.Task.Run(() =>
             {
                 try
                 {
-                    Td.Log.SetFilePath(Path.Combine(Windows.Storage.ApplicationData.Current.LocalFolder.Path, "log"));
                     _client = Td.Client.Create(_handler);
                     var parameters = new TdApi.TdlibParameters();
                     parameters.DatabaseDirectory = Windows.Storage.ApplicationData.Current.LocalFolder.Path;
