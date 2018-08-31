@@ -1066,10 +1066,40 @@ void LanguagePackManager::set_custom_language(string language_code, string langu
   CHECK(pack_it != database_->language_packs_.end());
   LanguagePack *pack = pack_it->second.get();
   auto &info = pack->language_infos_[language_code];
-  info.name = language_name;
-  info.native_name = language_native_name;
+  info.name = std::move(language_name);
+  info.native_name = std::move(language_native_name);
   if (!pack->pack_kv_.empty()) {
-    pack->pack_kv_.set(language_code, PSLICE() << language_name << '\x00' << language_native_name);
+    pack->pack_kv_.set(language_code, PSLICE() << info.name << '\x00' << info.native_name);
+  }
+
+  promise.set_value(Unit());
+}
+
+void LanguagePackManager::edit_custom_language_info(string language_code, string language_name,
+                                                    string language_native_name, Promise<Unit> &&promise) {
+  if (language_pack_.empty()) {
+    return promise.set_error(Status::Error(400, "Option \"language_pack\" needs to be set first"));
+  }
+  if (!check_language_code_name(language_code)) {
+    return promise.set_error(Status::Error(400, "Language code name must contain only letters and hyphen"));
+  }
+  if (!is_custom_language_code(language_code)) {
+    return promise.set_error(Status::Error(400, "Custom language code must begin with 'X'"));
+  }
+
+  std::lock_guard<std::mutex> packs_lock(database_->mutex_);
+  auto pack_it = database_->language_packs_.find(language_pack_);
+  CHECK(pack_it != database_->language_packs_.end());
+  LanguagePack *pack = pack_it->second.get();
+  auto language_info_it = pack->language_infos_.find(language_code);
+  if (language_info_it == pack->language_infos_.end()) {
+    return promise.set_error(Status::Error(400, "Custom language pack is not found"));
+  }
+  auto &info = language_info_it->second;
+  info.name = std::move(language_name);
+  info.native_name = std::move(language_native_name);
+  if (!pack->pack_kv_.empty()) {
+    pack->pack_kv_.set(language_code, PSLICE() << info.name << '\x00' << info.native_name);
   }
 
   promise.set_value(Unit());

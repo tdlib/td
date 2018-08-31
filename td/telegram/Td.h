@@ -769,6 +769,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::setCustomLanguage &request);
 
+  void on_request(uint64 id, td_api::editCustomLanguageInfo &request);
+
   void on_request(uint64 id, td_api::setCustomLanguageString &request);
 
   void on_request(uint64 id, td_api::deleteLanguage &request);

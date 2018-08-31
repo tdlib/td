@@ -62,6 +62,9 @@ class LanguagePackManager : public NetQueryCallback {
   void set_custom_language(string language_code, string language_name, string language_native_name,
                            vector<tl_object_ptr<td_api::languagePackString>> strings, Promise<Unit> &&promise);
 
+  void edit_custom_language_info(string language_code, string language_name, string language_native_name,
+                                 Promise<Unit> &&promise);
+
   void set_custom_language_string(string language_code, tl_object_ptr<td_api::languagePackString> str,
                                   Promise<Unit> &&promise);
 

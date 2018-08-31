@@ -3139,6 +3139,9 @@ getLanguagePackStrings language_code:string keys:vector<string> = LanguagePackSt
 //@description Adds or changes a custom language to the used language pack @info Information about the language. Language code must start with 'X', consist only of English letters, digits and hyphens and be not longer than 64 characters @strings New language pack strings
 setCustomLanguage info:languageInfo strings:vector<languagePackString> = Ok;
 
+//@description Edits informatioan about a custom language @info New information about the custom language
+editCustomLanguageInfo info:languageInfo = Ok;
+
 //@description Sets new value for a string in a custom language in the used language pack @language_code The code of previously added custom language, must start with 'X' @new_string New language pack string
 setCustomLanguageString language_code:string new_string:languagePackString = Ok;
 
