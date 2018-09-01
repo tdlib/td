@@ -6190,8 +6190,8 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
     }
 
     if (old_pts + pts_count != new_pts) {
-      LOG(WARNING) << "Found a gap in the " << dialog_id << " with pts = " << old_pts << ". new_pts = " << new_pts
-                   << ", pts_count = " << pts_count << " in update from " << source;
+      LOG(INFO) << "Found a gap in the " << dialog_id << " with pts = " << old_pts << ". new_pts = " << new_pts
+                << ", pts_count = " << pts_count << " in update from " << source;
 
       if (pts_count > 0) {
         d->postponed_channel_updates.emplace(new_pts, PendingPtsUpdate(std::move(update), new_pts, pts_count));
