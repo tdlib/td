@@ -19,7 +19,7 @@ class tl_string_outputer : public tl_outputer {
  public:
   virtual void append(const std::string &str);
 
-  const std::string &get_result() const;
+  std::string get_result() const;
 };
 
 }  // namespace tl

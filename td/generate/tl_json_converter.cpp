@@ -209,7 +209,17 @@ void gen_json_converter_file(const tl::simple::Schema &schema, const std::string
 
   CHECK(!sb.is_error());
   buf.resize(sb.as_cslice().size());
+#if TD_WINDOWS
+  string new_file_content;
+  for (auto c : buf) {
+    if (c == '\n') {
+      new_file_content += '\r';
+    }
+    new_file_content += c;
+  }
+#else
   auto new_file_content = std::move(buf);
+#endif
   if (new_file_content != old_file_content.as_slice()) {
     write_file(file_name, new_file_content).ensure();
   }
