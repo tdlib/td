@@ -32,6 +32,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <mutex>
 #include <utility>
 
 namespace td {
@@ -611,6 +612,8 @@ void openssl_locking_function(int mode, int n, const char *file, int line) {
 
 void init_openssl_threads() {
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
+  static std::mutex init_mutex;
+  std::lock_guard<std::mutex> lock(init_mutex);
   if (CRYPTO_get_locking_callback() == nullptr) {
 #if OPENSSL_VERSION_NUMBER >= 0x10000000L
     CRYPTO_THREADID_set_callback(openssl_threadid_callback);
