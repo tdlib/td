@@ -109,7 +109,7 @@ authorizationStateClosing = AuthorizationState;
 authorizationStateClosed = AuthorizationState;
 
 
-//@description Represents the current state of 2-step verification @has_password True if a 2-step verification password has been set up @password_hint Hint for the password; can be empty @has_recovery_email_address True if a recovery email has been set up @has_passport_data True if some Telegram Passport elements has been saved @unconfirmed_recovery_email_address_pattern Pattern of the email address to which a confirmation email was sent
+//@description Represents the current state of 2-step verification @has_password True if a 2-step verification password is set @password_hint Hint for the password; can be empty @has_recovery_email_address True if a recovery email is set @has_passport_data True if some Telegram Passport elements were saved @unconfirmed_recovery_email_address_pattern Pattern of the email address to which the confirmation email was sent
 passwordState has_password:Bool password_hint:string has_recovery_email_address:Bool has_passport_data:Bool unconfirmed_recovery_email_address_pattern:string = PasswordState;
 
 //@description Contains information about the current recovery email address @recovery_email_address Recovery email address
@@ -828,7 +828,7 @@ paymentReceipt date:int32 payments_provider_user_id:int32 invoice:invoice order_
 datedFile file:file date:int32 = DatedFile;
 
 
-//@class PassportElementType @description Contains type of a Telegram Passport element
+//@class PassportElementType @description Contains the type of a Telegram Passport element
 
 //@description A Telegram Passport element containing the user's personal details
 passportElementTypePersonalDetails = PassportElementType;
@@ -857,16 +857,16 @@ passportElementTypeBankStatement = PassportElementType;
 //@description A Telegram Passport element containing the user's rental agreement
 passportElementTypeRentalAgreement = PassportElementType;
 
-//@description A Telegram Passport element containing the user's passport registration
+//@description A Telegram Passport element containing the registration page of the user's passport
 passportElementTypePassportRegistration = PassportElementType;
 
 //@description A Telegram Passport element containing the user's temporary registration
 passportElementTypeTemporaryRegistration = PassportElementType;
 
-//@description A Telegram Passport element containing a user's phone number
+//@description A Telegram Passport element containing the user's phone number
 passportElementTypePhoneNumber = PassportElementType;
 
-//@description A Telegram Passport element containing a user's email address
+//@description A Telegram Passport element containing the user's email address
 passportElementTypeEmailAddress = PassportElementType;
 
 
@@ -876,21 +876,21 @@ date day:int32 month:int32 year:int32 = Date;
 //@description Contains the user's personal details
 //@first_name First name of the user written in English; 1-255 characters @middle_name Middle name of the user written in English; 0-255 characters @last_name Last name of the user written in English; 1-255 characters
 //@native_first_name Native first name of the user; 1-255 characters @native_middle_name Native middle name of the user; 0-255 characters @native_last_name Native last name of the user; 1-255 characters
-//@birthdate Birthdate of the user @gender Gender of the user, "male" or "female" @country_code A two-letter ISO 3166-1 alpha-2 country code for the user's country @residence_country_code A two-letter ISO 3166-1 alpha-2 country code for the user's residence country
+//@birthdate Birthdate of the user @gender Gender of the user, "male" or "female" @country_code A two-letter ISO 3166-1 alpha-2 country code of the user's country @residence_country_code A two-letter ISO 3166-1 alpha-2 country code of the user's residence country
 personalDetails first_name:string middle_name:string last_name:string native_first_name:string native_middle_name:string native_last_name:string birthdate:date gender:string country_code:string residence_country_code:string = PersonalDetails;
 
 //@description An identity document @number Document number; 1-24 characters @expiry_date Document expiry date; may be null @front_side Front side of the document
-//@reverse_side Reverse side of the document; only for driver license and identity card @selfie Selfie with the document; may be null @translation List of files with the document translation
+//@reverse_side Reverse side of the document; only for driver license and identity card @selfie Selfie with the document; may be null @translation List of files containing a certified English translation of the document
 identityDocument number:string expiry_date:date front_side:datedFile reverse_side:datedFile selfie:datedFile translation:vector<datedFile> = IdentityDocument;
 
 //@description An identity document to be saved to Telegram Passport @number Document number; 1-24 characters @expiry_date Document expiry date, if available @front_side Front side of the document
-//@reverse_side Reverse side of the document; only for driver license and identity card @selfie Selfie with the document, if available @translation List of files with the document translation
+//@reverse_side Reverse side of the document; only for driver license and identity card @selfie Selfie with the document, if available @translation List of files containing a certified English translation of the document
 inputIdentityDocument number:string expiry_date:date front_side:InputFile reverse_side:InputFile selfie:InputFile translation:vector<InputFile> = InputIdentityDocument;
 
-//@description A personal document, containing some information about a user @files List of files with the document @translation List of files with the document translation
+//@description A personal document, containing some information about a user @files List of files containing the pages of the document @translation List of files containing a certified English translation of the document
 personalDocument files:vector<datedFile> translation:vector<datedFile> = PersonalDocument;
 
-//@description A personal document to be saved to Telegram Passport @files List of files with the document @translation List of files with the document translation
+//@description A personal document to be saved to Telegram Passport @files List of files containing the pages of the document @translation List of files containing a certified English translation of the document
 inputPersonalDocument files:vector<InputFile> translation:vector<InputFile> = InputPersonalDocument;
 
 
@@ -965,10 +965,10 @@ inputPassportElementBankStatement bank_statement:inputPersonalDocument = InputPa
 //@description A Telegram Passport element to be saved containing the user's rental agreement @rental_agreement The rental agreement to be saved
 inputPassportElementRentalAgreement rental_agreement:inputPersonalDocument = InputPassportElement;
 
-//@description A Telegram Passport element to be saved containing the user's passport registration @passport_registration The passport registration pages to be saved
+//@description A Telegram Passport element to be saved containing the user's passport registration @passport_registration The passport registration page to be saved
 inputPassportElementPassportRegistration passport_registration:inputPersonalDocument = InputPassportElement;
 
-//@description A Telegram Passport element to be saved containing the user's temporary registration @temporary_registration The temporary registration to be saved
+//@description A Telegram Passport element to be saved containing the user's temporary registration @temporary_registration The temporary registration document to be saved
 inputPassportElementTemporaryRegistration temporary_registration:inputPersonalDocument = InputPassportElement;
 
 //@description A Telegram Passport element to be saved containing the user's phone number @phone_number The phone number to be saved
@@ -984,7 +984,7 @@ passportElements elements:vector<PassportElement> = PassportElements;
 
 //@class PassportElementErrorSource @description Contains the description of an error in a Telegram Passport element
 
-//@description The element contains an error in an unspecified place. The error will be considered resolved when anything changes
+//@description The element contains an error in an unspecified place. The error will be considered resolved when new data is added
 passportElementErrorSourceUnspecified = PassportElementErrorSource;
 
 //@description One of the data fields contains an error. The error will be considered resolved when the value of the field changes @field_name Field name
@@ -1017,57 +1017,57 @@ passportElementError type:PassportElementType message:string source:PassportElem
 
 
 //@description Contains information about a Telegram Passport element that was requested by a service @type Type of the element @is_selfie_required True, if a selfie is required with the identity document
-//@is_translation_required True, if a translation is required with the document @is_native_name_required True, if a native name is required with the personal details
+//@is_translation_required True, if a certified English translation is required with the document @is_native_name_required True, if personal details must include the user's name in the language of their country of residence
 passportSuitableElement type:PassportElementType is_selfie_required:Bool is_translation_required:Bool is_native_name_required:Bool = PassportSuitableElement;
 
-//@description Contains description of required Telegram Passport element that was requested by a service @suitable_elements List of Telegram Passport elements any of which is enough to provide
+//@description Contains a description of the required Telegram Passport element that was requested by a service @suitable_elements List of Telegram Passport elements any of which is enough to provide
 passportRequiredElement suitable_elements:vector<passportSuitableElement> = PassportRequiredElement;
 
 //@description Contains information about a Telegram Passport authorization form that was requested @id Unique identifier of the authorization form
-//@required_elements Information about Telegram Passport elements that need to be provided to complete the form @elements Already available Telegram Passport elements
-//@errors Errors in the elements that is already available @privacy_policy_url URL for the privacy policy of the service; can be empty
+//@required_elements Information about the Telegram Passport elements that need to be provided to complete the form @elements Already available Telegram Passport elements
+//@errors Errors in the elements that are already available @privacy_policy_url URL for the privacy policy of the service; can be empty
 passportAuthorizationForm id:int32 required_elements:vector<passportRequiredElement> elements:vector<PassportElement> errors:vector<passportElementError> privacy_policy_url:string = PassportAuthorizationForm;
 
 
-//@description Contains encrypted Telegram Passport data credentials @data The encrypted credentials @hash The decrypted data hash @secret Secret for data decryption, encrypted with service's public key
+//@description Contains encrypted Telegram Passport data credentials @data The encrypted credentials @hash The decrypted data hash @secret Secret for data decryption, encrypted with the service's public key
 encryptedCredentials data:bytes hash:bytes secret:bytes = EncryptedCredentials;
 
 
-//@description Contains information about encrypted Telegram Passport element; for bots only @type Type of Telegram Passport element @data Encrypted JSON-encoded data about the user @front_side The front side of an identity document @reverse_side The reverse side of an identity document; may be null @selfie Selfie with the document; may be null @translation List of files with the document translation @files List of attached files @value Unencrypted data, phone number or email address @hash Hash of the whole element
+//@description Contains information about an encrypted Telegram Passport element; for bots only @type Type of Telegram Passport element @data Encrypted JSON-encoded data about the user @front_side The front side of an identity document @reverse_side The reverse side of an identity document; may be null @selfie Selfie with the document; may be null @translation List of files containing a certified English translation of the document @files List of attached files @value Unencrypted data, phone number or email address @hash Hash of the entire element
 encryptedPassportElement type:PassportElementType data:bytes front_side:datedFile reverse_side:datedFile selfie:datedFile translation:vector<datedFile> files:vector<datedFile> value:string hash:string = EncryptedPassportElement;
 
 
-//@class InputPassportElementErrorSource @description Contains the description of an error in Telegram Passport element; for bots only
+//@class InputPassportElementErrorSource @description Contains the description of an error in a Telegram Passport element; for bots only
 
-//@description The element contains an error in an unspecified place. The error will be considered resolved when new data is added @element_hash Current hash of the whole element
+//@description The element contains an error in an unspecified place. The error will be considered resolved when new data is added @element_hash Current hash of the entire element
 inputPassportElementErrorSourceUnspecified element_hash:bytes = InputPassportElementErrorSource;
 
 //@description A data field contains an error. The error is considered resolved when the field's value changes @field_name Field name @data_hash Current data hash
 inputPassportElementErrorSourceDataField field_name:string data_hash:bytes = InputPassportElementErrorSource;
 
-//@description The front side of the document contains an error. The error is considered resolved when the file with the document front side changes @file_hash Current hash of the file containing the front side
+//@description The front side of the document contains an error. The error is considered resolved when the file with the front side of the document changes @file_hash Current hash of the file containing the front side
 inputPassportElementErrorSourceFrontSide file_hash:bytes = InputPassportElementErrorSource;
 
-//@description The reverse side of the document contains an error. The error is considered resolved when the file with the document reverse side changes @file_hash Current hash of the file containing the reverse side
+//@description The reverse side of the document contains an error. The error is considered resolved when the file with the reverse side of the document changes @file_hash Current hash of the file containing the reverse side
 inputPassportElementErrorSourceReverseSide file_hash:bytes = InputPassportElementErrorSource;
 
 //@description The selfie contains an error. The error is considered resolved when the file with the selfie changes @file_hash Current hash of the file containing the selfie
 inputPassportElementErrorSourceSelfie file_hash:bytes = InputPassportElementErrorSource;
 
-//@description One of files with the translation of the document contains an error. The error is considered resolved when the file with the translation changes @file_hash Current hash of the file containing the translation
+//@description One of the files containing the translation of the document contains an error. The error is considered resolved when the file with the translation changes @file_hash Current hash of the file containing the translation
 inputPassportElementErrorSourceTranslationFile file_hash:bytes = InputPassportElementErrorSource;
 
-//@description The translation of the document contains an error. The error is considered resolved when the file list changes @file_hashes Current hashes of all files with the translation
+//@description The translation of the document contains an error. The error is considered resolved when the list of files changes @file_hashes Current hashes of all files with the translation
 inputPassportElementErrorSourceTranslationFiles file_hashes:vector<bytes> = InputPassportElementErrorSource;
 
-//@description The file contains an error. The error is considered resolved when the file changes @file_hash Current hash of the file with an error
+//@description The file contains an error. The error is considered resolved when the file changes @file_hash Current hash of the file which has the error
 inputPassportElementErrorSourceFile file_hash:bytes = InputPassportElementErrorSource;
 
 //@description The list of attached files contains an error. The error is considered resolved when the file list changes @file_hashes Current hashes of all attached files
 inputPassportElementErrorSourceFiles file_hashes:vector<bytes> = InputPassportElementErrorSource;
 
 
-//@description Contains the description of an error in Telegram Passport element; for bots only @type Type of Telegram Passport element that has the error @message Error message @source Error source
+//@description Contains the description of an error in a Telegram Passport element; for bots only @type Type of Telegram Passport element that has the error @message Error message @source Error source
 inputPassportElementError type:PassportElementType message:string source:InputPassportElementErrorSource = InputPassportElementError;
 
 
@@ -3225,19 +3225,19 @@ addNetworkStatistics entry:NetworkStatisticsEntry = Ok;
 resetNetworkStatistics = Ok;
 
 
-//@description Returns the available Telegram Passport element @type Telegram Passport element type @password Password of the current user
+//@description Returns one of the available Telegram Passport elements @type Telegram Passport element type @password Password of the current user
 getPassportElement type:PassportElementType password:string = PassportElement;
 
 //@description Returns all available Telegram Passport elements @password Password of the current user
 getAllPassportElements password:string = PassportElements;
 
-//@description Sets Telegram Passport element. May return an error with a message "PHONE_VERIFICATION_NEEDED" or "EMAIL_VERIFICATION_NEEDED" if the chosen phone number or the chosen email address must be verified first @element Input Telegram Passport element @password Password of the current user
+//@description Adds an element to the user's Telegram Passport. May return an error with a message "PHONE_VERIFICATION_NEEDED" or "EMAIL_VERIFICATION_NEEDED" if the chosen phone number or the chosen email address must be verified first @element Input Telegram Passport element @password Password of the current user
 setPassportElement element:InputPassportElement password:string = PassportElement;
 
-//@description Deletes Telegram Passport element @type Element type
+//@description Deletes a Telegram Passport element @type Element type
 deletePassportElement type:PassportElementType = Ok;
 
-//@description Informs a user that some of the Telegram Passport elements contain errors; for bots only. The user will not be able to resend the elements, until the errors are fixed @user_id User identifier @errors The errors
+//@description Informs the user that some of the elements in their Telegram Passport contain errors; for bots only. The user will not be able to resend the elements, until the errors are fixed @user_id User identifier @errors The errors
 setPassportElementErrors user_id:int32 errors:vector<inputPassportElementError> = Ok;
 
 
@@ -3266,7 +3266,7 @@ resendEmailAddressVerificationCode = EmailAddressAuthenticationCodeInfo;
 checkEmailAddressVerificationCode code:string = Ok;
 
 
-//@description Returns a Telegram Passport authorization form for sharing data with a service @bot_user_id User identified of the service's bot @scope Telegram Passport element types requested by the service @public_key Service's public_key @nonce Authorization form nonce provided by the service @password Password of the current user
+//@description Returns a Telegram Passport authorization form for sharing data with a service @bot_user_id User identifier of the service's bot @scope Telegram Passport element types requested by the service @public_key Service's public_key @nonce Authorization form nonce provided by the service @password Password of the current user
 getPassportAuthorizationForm bot_user_id:int32 scope:string public_key:string nonce:string password:string = PassportAuthorizationForm;
 
 //@description Sends a Telegram Passport authorization form, effectively sharing data with the service @autorization_form_id Authorization form identifier @types Types of Telegram Passport elements chosen by user to complete the authorization form
