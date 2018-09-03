@@ -100,13 +100,36 @@ auto CLRCALL FromUnmanaged(td::td_api::object_ptr<T> &from) -> decltype(FromUnma
   return FromUnmanaged(*from.get());
 }
 
+#if TD_CLI
+template <class ResT>
+ref class CallFromUnmanagedRes {
+public:
+  [System::ThreadStaticAttribute]
+  static property ResT res;
+};
+
+template <class ResT>
+struct CallFromUnmanaged {
+  template <class T>
+  void operator()(T &val) const {
+    CallFromUnmanagedRes<ResT>::res = FromUnmanaged(val);
+  }
+};
+#endif
+
 template <class ResT, class T>
 inline ResT DoFromUnmanaged(T &from) {
+#if TD_WINRT
   ResT res;
   downcast_call(from, [&](auto &from_downcasted) {
     res = FromUnmanaged(from_downcasted);
   });
   return res;
+#elif TD_CLI
+  CallFromUnmanaged<ResT> res;
+  downcast_call(from, res);
+  return CallFromUnmanagedRes<ResT>::res;
+#endif
 }
 
 inline BaseObject^ FromUnmanaged(td::td_api::Function &from) {
