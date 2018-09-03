@@ -213,7 +213,7 @@ EOT
   /// </summary>
 EOT;
         foreach ($known_fields as $name => $type) {
-            $full_doc .= '\r\n  /// <param name="'.$this->getParameterName($name, $class_name).'">'.$info[$name]."</param>";
+            $full_doc .= "\r\n  /// <param name=\"".$this->getParameterName($name, $class_name).'">'.$info[$name]."</param>";
         }
         $this->addDocumentation($full_constructor, $full_doc);
     }

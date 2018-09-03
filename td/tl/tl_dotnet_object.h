@@ -100,30 +100,21 @@ auto CLRCALL FromUnmanaged(td::td_api::object_ptr<T> &from) -> decltype(FromUnma
   return FromUnmanaged(*from.get());
 }
 
-template <class ResT>
-ref class CallFromUnmanagedRes {
-public:
-  static property ResT res;
-};
-
-template <class ResT>
-struct CallFromUnmanaged {
-  template <class T>
-  void operator()(T &val) const {
-    CallFromUnmanagedRes<ResT>::res = FromUnmanaged(val);
-  }
-};
+template <class ResT, class T>
+inline ResT DoFromUnmanaged(T &from) {
+  ResT res;
+  downcast_call(from, [&](auto &from_downcasted) {
+    res = FromUnmanaged(from_downcasted);
+  });
+  return res;
+}
 
 inline BaseObject^ FromUnmanaged(td::td_api::Function &from) {
-  CallFromUnmanaged<BaseObject^> res;
-  downcast_call(from, res);
-  return CallFromUnmanagedRes<BaseObject^>::res;
+  return DoFromUnmanaged<BaseObject^>(from);
 }
 
 inline BaseObject^ FromUnmanaged(td::td_api::Object &from) {
-  CallFromUnmanaged<BaseObject^> res;
-  downcast_call(from, res);
-  return CallFromUnmanagedRes<BaseObject^>::res;
+  return DoFromUnmanaged<BaseObject^>(from);
 }
 
 // to unmanaged

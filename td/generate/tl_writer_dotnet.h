@@ -527,9 +527,7 @@ class TlWriterDotNet : public TL_writer {
         return ss.str();
       }
       ss << "{\n";
-      ss << "  CallFromUnmanaged<" << class_name << "^> res;\n";
-      ss << "  downcast_call(from, res);\n";
-      ss << "  return CallFromUnmanagedRes<" << class_name << "^>::res;\n";
+      ss << "  return DoFromUnmanaged<" << class_name << "^>(from);\n";
       ss << "}\n";
     }
     return ss.str();
