@@ -11086,8 +11086,7 @@ void MessagesManager::try_restore_dialog_reply_markup(Dialog *d, const Message *
 void MessagesManager::on_update_sent_text_message(int64 random_id,
                                                   tl_object_ptr<telegram_api::MessageMedia> message_media,
                                                   vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities) {
-  CHECK(message_media != nullptr);
-  int32 message_media_id = message_media->get_id();
+  int32 message_media_id = message_media == nullptr ? telegram_api::messageMediaEmpty::ID : message_media->get_id();
   LOG_IF(ERROR, message_media_id != telegram_api::messageMediaWebPage::ID &&
                     message_media_id != telegram_api::messageMediaEmpty::ID)
       << "Receive non web-page media for text message: " << oneline(to_string(message_media));
