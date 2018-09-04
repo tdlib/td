@@ -1703,16 +1703,16 @@ chatEvents events:vector<chatEvent> = ChatEvents;
 chatEventLogFilters message_edits:Bool message_deletions:Bool message_pins:Bool member_joins:Bool member_leaves:Bool member_invites:Bool member_promotions:Bool member_restrictions:Bool info_changes:Bool setting_changes:Bool = ChatEventLogFilters;
 
 
-//@class LanguagePackStringValue @description Represents a value of language pack string
+//@class LanguagePackStringValue @description Represents the value of a string in a language pack
 
 //@description An ordinary language pack string @value String value
 languagePackStringValueOrdinary value:string = LanguagePackStringValue;
 
-//@description A language pack string, which has different forms based on some quantity @zero_value Value for zero objects @one_value Value for one object @two_value Value for two objects
+//@description A language pack string which has different forms based on the number of some object it mentions @zero_value Value for zero objects @one_value Value for one object @two_value Value for two objects
 //@few_value Value for few objects @many_value Value for many objects @other_value Default value
 languagePackStringValuePluralized zero_value:string one_value:string two_value:string few_value:string many_value:string other_value:string = LanguagePackStringValue;
 
-//@description A deleted language pack string, the value should be taken from a built-in english language pack
+//@description A deleted language pack string, the value should be taken from the built-in english language pack
 languagePackStringValueDeleted = LanguagePackStringValue;
 
 
@@ -1722,11 +1722,11 @@ languagePackString key:string value:LanguagePackStringValue = LanguagePackString
 //@description Contains a list of language pack strings @strings A list of language pack strings
 languagePackStrings strings:vector<languagePackString> = LanguagePackStrings;
 
-//@description Contains information about a language @code Language code @name Language name @native_name Language native name @local_string_count Total number of locally available non-deleted strings from the language
-languageInfo code:string name:string native_name:string local_string_count:int32 = LanguageInfo;
+//@description Contains information about a language pack @id Unique language pack identifier @name Language name @native_name Name of the language in that language @local_string_count Total number of non-deleted strings from the language pack available locally
+languagePackInfo id:string name:string native_name:string local_string_count:int32 = LanguagePackInfo;
 
-//@description Contains information about a language pack @languages List of available languages
-languagePack languages:vector<languageInfo> = LanguagePack;
+//@description Contains information about the current localization target @language_packs List of available language packs for this application
+localizationTargetInfo language_packs:vector<languagePackInfo> = LocalizationTargetInfo;
 
 
 //@class DeviceToken @description Represents a data needed to subscribe for push notifications. To use specific push notification service, you must specify the correct application platform and upload valid server authentication data at https://my.telegram.org
@@ -2270,8 +2270,8 @@ updateFavoriteStickers sticker_ids:vector<int32> = Update;
 //@description The list of saved animations was updated @animation_ids The new list of file identifiers of saved animations
 updateSavedAnimations animation_ids:vector<int32> = Update;
 
-//@description Some language pack strings was updated @language_pack Changed language pack @language_code Code of the language, which was updated @strings List of changed language pack strings
-updateLanguagePackStrings language_pack:string language_code:string strings:vector<languagePackString> = Update;
+//@description Some language pack strings have been updated @localization_target Localization target to which the language pack belongs @language_pack_id Identifier of the updated language pack @strings List of changed language pack strings
+updateLanguagePackStrings localization_target:string language_pack_id:string strings:vector<languagePackString> = Update;
 
 //@description The connection state has changed @state The new connection state
 updateConnectionState state:ConnectionState = Update;
@@ -2648,8 +2648,9 @@ getFileExtension mime_type:string = Text;
 //@description Removes potentially dangerous characters from the name of a file. The encoding of the file name is supposed to be UTF-8. Returns an empty string on failure. This is an offline method. Can be called before authorization. Can be called synchronously @file_name File name or path to the file
 cleanFileName file_name:string = Text;
 
-//@description Returns a string stored in a local database from specified language pack and language by its key. Returns a 404 error if the string is not found. This is an offline method. Can be called before authorization. Can be called synchronously @language_database_path Path to a language database in which strings are stored @language_pack Language pack of string to return @language_code Language code of string to return @key Language pack key of string to return
-getLanguagePackString language_database_path:string language_pack:string language_code:string key:string = LanguagePackStringValue;
+//@description Returns a string stored in the local database from the specified localization target and language pack by its key. Returns a 404 error if the string is not found. This is an offline method. Can be called before authorization. Can be called synchronously
+//@language_pack_database_path Path to the language pack database in which strings are stored @localization_target Localization target to which the language pack belongs @language_pack_id Language pack identifier @key Language pack key of the string to be returned
+getLanguagePackString language_pack_database_path:string localization_target:string language_pack_id:string key:string = LanguagePackStringValue;
 
 
 //@description Sends an inline query to a bot and returns its results. Returns an error with code 502 if the bot fails to answer the query before the query timeout expires @bot_user_id The identifier of the target bot
@@ -3130,23 +3131,23 @@ getSupportUser = User;
 getWallpapers = Wallpapers;
 
 
-//@description Returns information about the used language pack
-getLanguagePackInfo = LanguagePack;
+//@description Returns information about the current localization target
+getLocalizationTargetInfo = LocalizationTargetInfo;
 
-//@description Returns strings from a language in the used language pack by their keys @language_code Language code of strings to return @keys Language pack keys of strings to return; may be empty to get all available strings
-getLanguagePackStrings language_code:string keys:vector<string> = LanguagePackStrings;
+//@description Returns strings from a language pack in the current localization target by their keys @language_pack_id Language pack identifier of the strings to be returned @keys Language pack keys of the strings to be returned; leave empty to request all available strings
+getLanguagePackStrings language_pack_id:string keys:vector<string> = LanguagePackStrings;
 
-//@description Adds or changes a custom language to the used language pack @info Information about the language. Language code must start with 'X', consist only of English letters, digits and hyphens and be not longer than 64 characters @strings New language pack strings
-setCustomLanguage info:languageInfo strings:vector<languagePackString> = Ok;
+//@description Adds or changes a custom language pack to the current localization target @info Information about the language pack. Language pack ID must start with 'X', consist only of English letters, digits and hyphens, and must not exceed 64 characters @strings Strings of the new language pack
+setCustomLanguagePack info:languagePackInfo strings:vector<languagePackString> = Ok;
 
-//@description Edits informatioan about a custom language @info New information about the custom language
-editCustomLanguageInfo info:languageInfo = Ok;
+//@description Edits information about a custom language pack in the current localization target @info New information about the custom language pack
+editCustomLanguagePackInfo info:languagePackInfo = Ok;
 
-//@description Sets new value for a string in a custom language in the used language pack @language_code The code of previously added custom language, must start with 'X' @new_string New language pack string
-setCustomLanguageString language_code:string new_string:languagePackString = Ok;
+//@description Adds, edits or deletes a string in a custom language pack @language_pack_id Identifier of a previously added custom language pack in the current localization target @new_string New language pack string
+setCustomLanguagePackString language_pack_id:string new_string:languagePackString = Ok;
 
-//@description Deletes all information about a language in the used language pack. Currently used language can't be deleted @language_code Language code of a language to delete
-deleteLanguage language_code:string = Ok;
+//@description Deletes all information about a language pack in the current localization target. The language pack that is currently in use can't be deleted @language_pack_id Identifier of the language pack to delete
+deleteLanguagePack language_pack_id:string = Ok;
 
 
 //@description Registers the currently used device for receiving push notifications @device_token Device token @other_user_ids List of at most 100 user identifiers of other users currently using the client

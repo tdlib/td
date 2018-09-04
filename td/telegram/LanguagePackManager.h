@@ -48,7 +48,7 @@ class LanguagePackManager : public NetQueryCallback {
 
   void on_language_pack_version_changed(int32 new_version);
 
-  void get_languages(Promise<td_api::object_ptr<td_api::languagePack>> promise);
+  void get_languages(Promise<td_api::object_ptr<td_api::localizationTargetInfo>> promise);
 
   void get_language_pack_strings(string language_code, vector<string> keys,
                                  Promise<td_api::object_ptr<td_api::languagePackStrings>> promise);
@@ -147,7 +147,7 @@ class LanguagePackManager : public NetQueryCallback {
   void on_failed_get_difference(string language_pack, string language_code);
 
   void on_get_languages(vector<tl_object_ptr<telegram_api::langPackLanguage>> languages, string language_pack,
-                        Promise<td_api::object_ptr<td_api::languagePack>> promise);
+                        Promise<td_api::object_ptr<td_api::localizationTargetInfo>> promise);
 
   Status do_delete_language(string language_code);
 

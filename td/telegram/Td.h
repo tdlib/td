@@ -763,17 +763,17 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::getMapThumbnailFile &request);
 
-  void on_request(uint64 id, const td_api::getLanguagePackInfo &request);
+  void on_request(uint64 id, const td_api::getLocalizationTargetInfo &request);
 
   void on_request(uint64 id, td_api::getLanguagePackStrings &request);
 
-  void on_request(uint64 id, td_api::setCustomLanguage &request);
+  void on_request(uint64 id, td_api::setCustomLanguagePack &request);
 
-  void on_request(uint64 id, td_api::editCustomLanguageInfo &request);
+  void on_request(uint64 id, td_api::editCustomLanguagePackInfo &request);
 
-  void on_request(uint64 id, td_api::setCustomLanguageString &request);
+  void on_request(uint64 id, td_api::setCustomLanguagePackString &request);
 
-  void on_request(uint64 id, td_api::deleteLanguage &request);
+  void on_request(uint64 id, td_api::deleteLanguagePack &request);
 
   void on_request(uint64 id, td_api::getOption &request);
 

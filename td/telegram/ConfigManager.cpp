@@ -804,16 +804,16 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   if (is_from_main_dc) {
     shared_config.set_option_integer("webfile_dc_id", config->webfile_dc_id_);
     if ((config->flags_ & telegram_api::config::TMP_SESSIONS_MASK) != 0) {
-      G()->shared_config().set_option_integer("session_count", config->tmp_sessions_);
+      shared_config.set_option_integer("session_count", config->tmp_sessions_);
     } else {
-      G()->shared_config().set_option_empty("session_count");
+      shared_config.set_option_empty("session_count");
     }
     if ((config->flags_ & telegram_api::config::SUGGESTED_LANG_CODE_MASK) != 0) {
-      G()->shared_config().set_option_string("suggested_language_code", config->suggested_lang_code_);
-      G()->shared_config().set_option_integer("language_pack_version", config->lang_pack_version_);
+      shared_config.set_option_string("suggested_language_pack_id", config->suggested_lang_code_);
+      shared_config.set_option_integer("language_pack_version", config->lang_pack_version_);
     } else {
-      G()->shared_config().set_option_empty("suggested_language_code");
-      G()->shared_config().set_option_empty("language_pack_version");
+      shared_config.set_option_empty("suggested_language_pack_id");
+      shared_config.set_option_empty("language_pack_version");
     }
   }
 
@@ -853,6 +853,7 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   }
 
   // delete outdated options
+  shared_config.set_option_empty("suggested_language_code");
   shared_config.set_option_empty("chat_big_size");
   shared_config.set_option_empty("group_size_max");
   shared_config.set_option_empty("saved_gifs_limit");

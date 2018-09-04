@@ -3265,12 +3265,12 @@ bool Td::is_preinitialization_request(int32 id) {
 bool Td::is_preauthentication_request(int32 id) {
   switch (id) {
     case td_api::processDcUpdate::ID:
-    case td_api::getLanguagePackInfo::ID:
+    case td_api::getLocalizationTargetInfo::ID:
     case td_api::getLanguagePackStrings::ID:
-    case td_api::setCustomLanguage::ID:
-    case td_api::editCustomLanguageInfo::ID:
-    case td_api::setCustomLanguageString::ID:
-    case td_api::deleteLanguage::ID:
+    case td_api::setCustomLanguagePack::ID:
+    case td_api::editCustomLanguagePackInfo::ID:
+    case td_api::setCustomLanguagePackString::ID:
+    case td_api::deleteLanguagePack::ID:
     case td_api::getOption::ID:
     case td_api::setOption::ID:
     case td_api::setNetworkType::ID:
@@ -3541,12 +3541,12 @@ void Td::on_config_option_updated(const string &name) {
     if (G()->mtproto_header().set_is_emulator(G()->shared_config().get_option_boolean(name))) {
       G()->net_query_dispatcher().update_mtproto_header();
     }
-  } else if (name == "language_pack") {
+  } else if (name == "localization_target") {
     send_closure(language_pack_manager_, &LanguagePackManager::on_language_pack_changed);
     if (G()->mtproto_header().set_language_pack(G()->shared_config().get_option_string(name))) {
       G()->net_query_dispatcher().update_mtproto_header();
     }
-  } else if (name == "language_code") {
+  } else if (name == "language_pack_id") {
     send_closure(language_pack_manager_, &LanguagePackManager::on_language_code_changed);
     if (G()->mtproto_header().set_language_code(G()->shared_config().get_option_string(name))) {
       G()->net_query_dispatcher().update_mtproto_header();
@@ -4020,6 +4020,21 @@ Status Td::init(DbKey key) {
   config_manager_ = create_actor<ConfigManager>("ConfigManager", create_reference());
   G()->set_config_manager(config_manager_.get());
 
+  if (G()->shared_config().have_option("language_database_path")) {
+    G()->shared_config().set_option_string("language_pack_database_path",
+                                           G()->shared_config().get_option_string("language_database_path"));
+    G()->shared_config().set_option_empty("language_database_path");
+  }
+  if (G()->shared_config().have_option("language_pack")) {
+    G()->shared_config().set_option_string("localization_target",
+                                           G()->shared_config().get_option_string("language_pack"));
+    G()->shared_config().set_option_empty("language_pack");
+  }
+  if (G()->shared_config().have_option("language_code")) {
+    G()->shared_config().set_option_string("language_pack_id", G()->shared_config().get_option_string("language_code"));
+    G()->shared_config().set_option_empty("language_code");
+  }
+
   complete_pending_preauthentication_requests([](int32 id) {
     switch (id) {
       case td_api::getOption::ID:
@@ -4030,8 +4045,8 @@ Status Td::init(DbKey key) {
     }
   });
 
-  options_.language_pack = G()->shared_config().get_option_string("language_pack");
-  options_.language_code = G()->shared_config().get_option_string("language_code");
+  options_.language_pack = G()->shared_config().get_option_string("localization_target");
+  options_.language_code = G()->shared_config().get_option_string("language_pack_id");
   options_.is_emulator = G()->shared_config().get_option_boolean("is_emulator");
   // options_.proxy = Proxy();
   G()->set_mtproto_header(std::make_unique<MtprotoHeader>(options_));
@@ -6024,7 +6039,7 @@ void Td::on_request(uint64 id, const td_api::getMapThumbnailFile &request) {
   }
 }
 
-void Td::on_request(uint64 id, const td_api::getLanguagePackInfo &request) {
+void Td::on_request(uint64 id, const td_api::getLocalizationTargetInfo &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
   send_closure(language_pack_manager_, &LanguagePackManager::get_languages, std::move(promise));
@@ -6032,55 +6047,55 @@ void Td::on_request(uint64 id, const td_api::getLanguagePackInfo &request) {
 
 void Td::on_request(uint64 id, td_api::getLanguagePackStrings &request) {
   CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.language_code_);
+  CLEAN_INPUT_STRING(request.language_pack_id_);
   for (auto &key : request.keys_) {
     CLEAN_INPUT_STRING(key);
   }
   CREATE_REQUEST_PROMISE();
   send_closure(language_pack_manager_, &LanguagePackManager::get_language_pack_strings,
-               std::move(request.language_code_), std::move(request.keys_), std::move(promise));
+               std::move(request.language_pack_id_), std::move(request.keys_), std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::setCustomLanguage &request) {
+void Td::on_request(uint64 id, td_api::setCustomLanguagePack &request) {
   CHECK_IS_USER();
   if (request.info_ == nullptr) {
-    return send_error_raw(id, 400, "Language info must not be empty");
+    return send_error_raw(id, 400, "Language pack info must not be empty");
   }
-  CLEAN_INPUT_STRING(request.info_->code_);
+  CLEAN_INPUT_STRING(request.info_->id_);
   CLEAN_INPUT_STRING(request.info_->name_);
   CLEAN_INPUT_STRING(request.info_->native_name_);
   CREATE_OK_REQUEST_PROMISE();
-  send_closure(language_pack_manager_, &LanguagePackManager::set_custom_language, std::move(request.info_->code_),
+  send_closure(language_pack_manager_, &LanguagePackManager::set_custom_language, std::move(request.info_->id_),
                std::move(request.info_->name_), std::move(request.info_->native_name_), std::move(request.strings_),
                std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::editCustomLanguageInfo &request) {
+void Td::on_request(uint64 id, td_api::editCustomLanguagePackInfo &request) {
   CHECK_IS_USER();
   if (request.info_ == nullptr) {
-    return send_error_raw(id, 400, "Language info must not be empty");
+    return send_error_raw(id, 400, "Language pack info must not be empty");
   }
-  CLEAN_INPUT_STRING(request.info_->code_);
+  CLEAN_INPUT_STRING(request.info_->id_);
   CLEAN_INPUT_STRING(request.info_->name_);
   CLEAN_INPUT_STRING(request.info_->native_name_);
   CREATE_OK_REQUEST_PROMISE();
-  send_closure(language_pack_manager_, &LanguagePackManager::edit_custom_language_info, std::move(request.info_->code_),
+  send_closure(language_pack_manager_, &LanguagePackManager::edit_custom_language_info, std::move(request.info_->id_),
                std::move(request.info_->name_), std::move(request.info_->native_name_), std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::setCustomLanguageString &request) {
+void Td::on_request(uint64 id, td_api::setCustomLanguagePackString &request) {
   CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.language_code_);
+  CLEAN_INPUT_STRING(request.language_pack_id_);
   CREATE_OK_REQUEST_PROMISE();
   send_closure(language_pack_manager_, &LanguagePackManager::set_custom_language_string,
-               std::move(request.language_code_), std::move(request.new_string_), std::move(promise));
+               std::move(request.language_pack_id_), std::move(request.new_string_), std::move(promise));
 }
 
-void Td::on_request(uint64 id, td_api::deleteLanguage &request) {
+void Td::on_request(uint64 id, td_api::deleteLanguagePack &request) {
   CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.language_code_);
+  CLEAN_INPUT_STRING(request.language_pack_id_);
   CREATE_OK_REQUEST_PROMISE();
-  send_closure(language_pack_manager_, &LanguagePackManager::delete_language, std::move(request.language_code_),
+  send_closure(language_pack_manager_, &LanguagePackManager::delete_language, std::move(request.language_pack_id_),
                std::move(promise));
 }
 
@@ -6200,13 +6215,13 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
       }
       break;
     case 'l':
-      if (set_string_option("language_database_path", [](Slice value) { return true; })) {
+      if (set_string_option("language_pack_database_path", [](Slice value) { return true; })) {
         return;
       }
-      if (set_string_option("language_pack", LanguagePackManager::check_language_pack_name)) {
+      if (set_string_option("localization_target", LanguagePackManager::check_language_pack_name)) {
         return;
       }
-      if (set_string_option("language_code", LanguagePackManager::check_language_code_name)) {
+      if (set_string_option("language_pack_id", LanguagePackManager::check_language_code_name)) {
         return;
       }
       break;
@@ -6778,8 +6793,8 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::cleanFile
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getLanguagePackString &request) {
-  return LanguagePackManager::get_language_pack_string(request.language_database_path_, request.language_pack_,
-                                                       request.language_code_, request.key_);
+  return LanguagePackManager::get_language_pack_string(
+      request.language_pack_database_path_, request.localization_target_, request.language_pack_id_, request.key_);
 }
 
 // test

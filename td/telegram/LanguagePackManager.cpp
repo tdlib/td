@@ -130,7 +130,7 @@ static int32 load_database_language_key_count(SqliteKeyValue *kv) {
     for (auto &str : kv->get_all()) {
       key_count += str.first[0] != '!' && (str.second[0] == '1' || str.second[0] == '2');
     }
-    LOG(INFO) << "Set language key count in database to " << key_count;
+    LOG(INFO) << "Set language pack key count in database to " << key_count;
     kv->set("!key_count", to_string(key_count));
     return key_count;
   }
@@ -148,7 +148,7 @@ LanguagePackManager::LanguageDatabase *LanguagePackManager::add_language_databas
   if (!path.empty()) {
     auto r_database = open_database(path);
     if (r_database.is_error()) {
-      LOG(ERROR) << "Can't open language database " << path << ": " << r_database.error();
+      LOG(ERROR) << "Can't open language pack database " << path << ": " << r_database.error();
       return add_language_database(string());
     }
 
@@ -164,20 +164,20 @@ LanguagePackManager::LanguageDatabase *LanguagePackManager::add_language_databas
 void LanguagePackManager::start_up() {
   std::lock_guard<std::mutex> lock(language_database_mutex_);
   manager_count_++;
-  language_pack_ = G()->shared_config().get_option_string("language_pack");
-  language_code_ = G()->shared_config().get_option_string("language_code");
+  language_pack_ = G()->shared_config().get_option_string("localization_target");
+  language_code_ = G()->shared_config().get_option_string("language_pack_id");
   CHECK(check_language_pack_name(language_pack_));
   CHECK(check_language_code_name(language_code_));
 
-  database_ = add_language_database(G()->shared_config().get_option_string("language_database_path"));
+  database_ = add_language_database(G()->shared_config().get_option_string("language_pack_database_path"));
   if (!language_pack_.empty() && !language_code_.empty()) {
     auto language = add_language(database_, language_pack_, language_code_);
     if (!is_custom_language_code(language_code_) && language->version_ == -1) {
       get_language_pack_strings(language_code_, vector<string>(), Auto());
     }
 
-    LOG(INFO) << "Use language pack \"" << language_pack_ << "\" with language \"" << language_code_ << "\" of version "
-              << language->version_.load() << " with database \"" << database_->path_ << '"';
+    LOG(INFO) << "Use localization target \"" << language_pack_ << "\" with language pack \"" << language_code_
+              << "\" of version " << language->version_.load() << " with database \"" << database_->path_ << '"';
   }
 }
 
@@ -185,14 +185,14 @@ void LanguagePackManager::tear_down() {
   std::lock_guard<std::mutex> lock(language_database_mutex_);
   manager_count_--;
   if (manager_count_ == 0) {
-    // can't clear language packs, because the may be accessed later using synchronous requests
+    // can't clear language packs, because they may be accessed later using synchronous requests
     // LOG(INFO) << "Clear language packs";
     // language_databases_.clear();
   }
 }
 
 void LanguagePackManager::on_language_pack_changed() {
-  auto new_language_pack = G()->shared_config().get_option_string("language_pack");
+  auto new_language_pack = G()->shared_config().get_option_string("localization_target");
   if (new_language_pack == language_pack_) {
     return;
   }
@@ -203,7 +203,7 @@ void LanguagePackManager::on_language_pack_changed() {
 }
 
 void LanguagePackManager::on_language_code_changed() {
-  auto new_language_code = G()->shared_config().get_option_string("language_code");
+  auto new_language_code = G()->shared_config().get_option_string("language_pack_id");
   if (new_language_code == language_code_) {
     return;
   }
@@ -248,7 +248,7 @@ void LanguagePackManager::on_language_pack_version_changed(int32 new_version) {
         }
 
         auto result = r_result.move_as_ok();
-        LOG(INFO) << "Receive language pack difference for language " << result->lang_code_ << " from version "
+        LOG(INFO) << "Receive language pack difference for language pack " << result->lang_code_ << " from version "
                   << result->from_version_ << " with version " << result->version_ << " of size "
                   << result->strings_.size();
         LOG_IF(ERROR, result->lang_code_ != language_code)
@@ -264,30 +264,31 @@ void LanguagePackManager::on_language_pack_version_changed(int32 new_version) {
 }
 
 void LanguagePackManager::on_update_language_pack(tl_object_ptr<telegram_api::langPackDifference> difference) {
-  LOG(INFO) << "Receive update language pack difference for language " << difference->lang_code_ << " from version "
-            << difference->from_version_ << " with version " << difference->version_ << " of size "
+  LOG(INFO) << "Receive update language pack difference for language pack " << difference->lang_code_
+            << " from version " << difference->from_version_ << " with version " << difference->version_ << " of size "
             << difference->strings_.size();
   if (language_pack_.empty()) {
-    LOG(WARNING) << "Ignore difference for language " << difference->lang_code_ << ", because language pack was unset";
+    LOG(WARNING) << "Ignore difference for language pack " << difference->lang_code_
+                 << ", because used language pack was unset";
     return;
   }
   if (difference->lang_code_ != language_code_) {
-    LOG(WARNING) << "Ignore difference for language " << difference->lang_code_;
+    LOG(WARNING) << "Ignore difference for language pack " << difference->lang_code_;
     return;
   }
   if (is_custom_language_code(difference->lang_code_) || difference->lang_code_.empty()) {
-    LOG(ERROR) << "Ignore difference for language " << difference->lang_code_;
+    LOG(ERROR) << "Ignore difference for language pack " << difference->lang_code_;
     return;
   }
 
   Language *language = get_language(database_, language_pack_, language_code_);
   int32 version = language == nullptr ? static_cast<int32>(-1) : language->version_.load();
   if (difference->version_ <= version) {
-    LOG(INFO) << "Skip applying already applied updates";
+    LOG(INFO) << "Skip applying already applied language pack updates";
     return;
   }
   if (version == -1 || version < difference->from_version_) {
-    LOG(INFO) << "Can't apply difference";
+    LOG(INFO) << "Can't apply language pack difference";
     return on_language_pack_version_changed(difference->version_);
   }
 
@@ -421,17 +422,17 @@ bool LanguagePackManager::load_language_strings(LanguageDatabase *database, Lang
   std::lock_guard<std::mutex> database_lock(database->mutex_);
   std::lock_guard<std::mutex> language_lock(language->mutex_);
   if (language->is_full_) {
-    LOG(DEBUG) << "The language is full in memory";
+    LOG(DEBUG) << "The language pack is already full in memory";
     return true;
   }
   if (language->kv_.empty()) {
-    LOG(DEBUG) << "The language has no database";
+    LOG(DEBUG) << "The language pack has no database";
     return false;
   }
-  LOG(DEBUG) << "Begin to load a language from database";
+  LOG(DEBUG) << "Begin to load a language pack from database";
   if (keys.empty()) {
     if (language->version_ == -1 && language->was_loaded_full_) {
-      LOG(DEBUG) << "The language has already been loaded";
+      LOG(DEBUG) << "The language pack has already been loaded";
       return false;
     }
 
@@ -548,9 +549,9 @@ td_api::object_ptr<td_api::languagePackStrings> LanguagePackManager::get_languag
   return td_api::make_object<td_api::languagePackStrings>(std::move(strings));
 }
 
-void LanguagePackManager::get_languages(Promise<td_api::object_ptr<td_api::languagePack>> promise) {
+void LanguagePackManager::get_languages(Promise<td_api::object_ptr<td_api::localizationTargetInfo>> promise) {
   if (language_pack_.empty()) {
-    return promise.set_error(Status::Error(400, "Option \"language_pack\" needs to be set first"));
+    return promise.set_error(Status::Error(400, "Option \"localization_target\" needs to be set first"));
   }
 
   auto request_promise = PromiseCreator::lambda([actor_id = actor_id(this), language_pack = language_pack_,
@@ -569,8 +570,8 @@ void LanguagePackManager::get_languages(Promise<td_api::object_ptr<td_api::langu
 
 void LanguagePackManager::on_get_languages(vector<tl_object_ptr<telegram_api::langPackLanguage>> languages,
                                            string language_pack,
-                                           Promise<td_api::object_ptr<td_api::languagePack>> promise) {
-  auto results = make_tl_object<td_api::languagePack>();
+                                           Promise<td_api::object_ptr<td_api::localizationTargetInfo>> promise) {
+  auto results = td_api::make_object<td_api::localizationTargetInfo>();
 
   {
     std::lock_guard<std::mutex> packs_lock(database_->mutex_);
@@ -578,24 +579,24 @@ void LanguagePackManager::on_get_languages(vector<tl_object_ptr<telegram_api::la
     if (pack_it != database_->language_packs_.end()) {
       LanguagePack *pack = pack_it->second.get();
       for (auto &info : pack->language_infos_) {
-        results->languages_.push_back(
-            make_tl_object<td_api::languageInfo>(info.first, info.second.name, info.second.native_name, 0));
+        results->language_packs_.push_back(
+            make_tl_object<td_api::languagePackInfo>(info.first, info.second.name, info.second.native_name, 0));
       }
     }
   }
 
   for (auto &language : languages) {
-    results->languages_.push_back(
-        make_tl_object<td_api::languageInfo>(language->lang_code_, language->name_, language->native_name_, 0));
+    results->language_packs_.push_back(
+        make_tl_object<td_api::languagePackInfo>(language->lang_code_, language->name_, language->native_name_, 0));
   }
 
-  for (auto &language_info : results->languages_) {
-    if (!check_language_code_name(language_info->code_)) {
-      LOG(ERROR) << "Receive unsupported language code " << language_info->code_ << " from server";
+  for (auto &language_info : results->language_packs_) {
+    if (!check_language_code_name(language_info->id_)) {
+      LOG(ERROR) << "Receive unsupported language pack ID " << language_info->id_ << " from server";
       continue;
     }
 
-    auto language = add_language(database_, language_pack, language_info->code_);
+    auto language = add_language(database_, language_pack, language_info->id_);
     language_info->local_string_count_ = language->key_count_;
   }
 
@@ -605,10 +606,10 @@ void LanguagePackManager::on_get_languages(vector<tl_object_ptr<telegram_api::la
 void LanguagePackManager::get_language_pack_strings(string language_code, vector<string> keys,
                                                     Promise<td_api::object_ptr<td_api::languagePackStrings>> promise) {
   if (!check_language_code_name(language_code) || language_code.empty()) {
-    return promise.set_error(Status::Error(400, "Language code is invalid"));
+    return promise.set_error(Status::Error(400, "Language pack ID is invalid"));
   }
   if (language_pack_.empty()) {
-    return promise.set_error(Status::Error(400, "Option \"language_pack\" needs to be set first"));
+    return promise.set_error(Status::Error(400, "Option \"localization_target\" needs to be set first"));
   }
   for (auto &key : keys) {
     if (!is_valid_key(key)) {
@@ -651,12 +652,11 @@ void LanguagePackManager::get_language_pack_strings(string language_code, vector
           }
 
           auto result = r_result.move_as_ok();
-          LOG(INFO) << "Receive language pack for language " << result->lang_code_ << " from version "
-                    << result->from_version_ << " with version " << result->version_ << " of size "
-                    << result->strings_.size();
+          LOG(INFO) << "Receive language pack " << result->lang_code_ << " from version " << result->from_version_
+                    << " with version " << result->version_ << " of size " << result->strings_.size();
           LOG_IF(ERROR, result->lang_code_ != language_code)
               << "Receive strings for " << result->lang_code_ << " instead of " << language_code;
-          LOG_IF(ERROR, result->from_version_ != 0) << "Receive lang pack from version " << result->from_version_;
+          LOG_IF(ERROR, result->from_version_ != 0) << "Receive language pack from version " << result->from_version_;
           send_closure(actor_id, &LanguagePackManager::on_get_language_pack_strings, std::move(language_pack),
                        std::move(language_code), result->version_, false, vector<string>(), std::move(result->strings_),
                        std::move(promise));
@@ -731,10 +731,10 @@ void LanguagePackManager::on_get_all_language_pack_strings(
   for (auto &promise : promises) {
     if (promise) {
       if (left_non_empty_promise_count == 1) {
-        LOG(INFO) << "Set last non-empty promise";
+        LOG(DEBUG) << "Set last non-empty promise";
         promise.set_value(std::move(strings));
       } else {
-        LOG(INFO) << "Set non-empty promise";
+        LOG(DEBUG) << "Set non-empty promise";
         vector<td_api::object_ptr<td_api::languagePackString>> strings_copy;
         for (auto &result : strings->strings_) {
           CHECK(result != nullptr);
@@ -745,7 +745,7 @@ void LanguagePackManager::on_get_all_language_pack_strings(
       }
       left_non_empty_promise_count--;
     } else {
-      LOG(INFO) << "Set empty promise";
+      LOG(DEBUG) << "Set empty promise";
       promise.set_value(nullptr);
     }
   }
@@ -757,10 +757,10 @@ td_api::object_ptr<td_api::Object> LanguagePackManager::get_language_pack_string
                                                                                  const string &language_code,
                                                                                  const string &key) {
   if (!check_language_pack_name(language_pack) || language_pack.empty()) {
-    return td_api::make_object<td_api::error>(400, "Language pack is invalid");
+    return td_api::make_object<td_api::error>(400, "Localization target is invalid");
   }
   if (!check_language_code_name(language_code) || language_code.empty()) {
-    return td_api::make_object<td_api::error>(400, "Language code is invalid");
+    return td_api::make_object<td_api::error>(400, "Language pack ID is invalid");
   }
   if (!is_valid_key(key)) {
     return td_api::make_object<td_api::error>(400, "Key is invalid");
@@ -795,7 +795,7 @@ bool LanguagePackManager::is_valid_key(Slice key) {
 
 void LanguagePackManager::save_strings_to_database(SqliteKeyValue *kv, int32 new_version, bool new_is_full,
                                                    int32 new_key_count, vector<std::pair<string, string>> strings) {
-  LOG(DEBUG) << "Save to database a language with new version " << new_version << " and " << strings.size()
+  LOG(DEBUG) << "Save to database a language pack with new version " << new_version << " and " << strings.size()
              << " new strings";
   if (new_version == -1 && strings.empty()) {
     return;
@@ -809,7 +809,7 @@ void LanguagePackManager::save_strings_to_database(SqliteKeyValue *kv, int32 new
   }
   auto old_version = load_database_language_version(kv);
   if (old_version > new_version || (old_version == new_version && strings.empty())) {
-    LOG(DEBUG) << "Language version doesn't increased from " << old_version;
+    LOG(DEBUG) << "Language pack version doesn't increased from " << old_version;
     return;
   }
 
@@ -825,14 +825,14 @@ void LanguagePackManager::save_strings_to_database(SqliteKeyValue *kv, int32 new
     } else {
       kv->set(str.first, str.second);
     }
-    LOG(DEBUG) << "Save language string with key " << str.first << " to database";
+    LOG(DEBUG) << "Save language pack string with key " << str.first << " to database";
   }
   if (old_version != new_version) {
-    LOG(DEBUG) << "Set language version in database to " << new_version;
+    LOG(DEBUG) << "Set language pack version in database to " << new_version;
     kv->set("!version", to_string(new_version));
   }
   if (new_key_count != -1) {
-    LOG(DEBUG) << "Set language key count in database to " << new_key_count;
+    LOG(DEBUG) << "Set language pack key count in database to " << new_key_count;
     kv->set("!key_count", to_string(new_key_count));
   }
   kv->commit_transaction().ensure();
@@ -860,7 +860,7 @@ void LanguagePackManager::on_get_language_pack_strings(
     if (language->version_ < version || !keys.empty()) {
       vector<td_api::object_ptr<td_api::languagePackString>> strings;
       if (language->version_ < version && !(is_diff && language->version_ == -1)) {
-        LOG(INFO) << "Set language " << language_code << " version to " << version;
+        LOG(INFO) << "Set language pack " << language_code << " version to " << version;
         language->version_ = version;
         new_database_version = version;
         is_version_changed = true;
@@ -996,7 +996,7 @@ void LanguagePackManager::on_failed_get_difference(string language_pack, string 
 Result<tl_object_ptr<telegram_api::LangPackString>> LanguagePackManager::convert_to_telegram_api(
     tl_object_ptr<td_api::languagePackString> &&str) {
   if (str == nullptr) {
-    return Status::Error(400, "Language strings must not be null");
+    return Status::Error(400, "Language pack strings must not be null");
   }
 
   string key = std::move(str->key_);
@@ -1011,7 +1011,7 @@ Result<tl_object_ptr<telegram_api::LangPackString>> LanguagePackManager::convert
     case td_api::languagePackStringValueOrdinary::ID: {
       auto value = static_cast<td_api::languagePackStringValueOrdinary *>(str->value_.get());
       if (!clean_input_string(value->value_)) {
-        return Status::Error(400, "Strings must be encoded in UTF-8");
+        return Status::Error(400, "Language pack string value must be encoded in UTF-8");
       }
       return make_tl_object<telegram_api::langPackString>(std::move(key), std::move(value->value_));
     }
@@ -1020,7 +1020,7 @@ Result<tl_object_ptr<telegram_api::LangPackString>> LanguagePackManager::convert
       if (!clean_input_string(value->zero_value_) || !clean_input_string(value->one_value_) ||
           !clean_input_string(value->two_value_) || !clean_input_string(value->few_value_) ||
           !clean_input_string(value->many_value_) || !clean_input_string(value->other_value_)) {
-        return Status::Error(400, "Strings must be encoded in UTF-8");
+        return Status::Error(400, "Language pack string value must be encoded in UTF-8");
       }
       return make_tl_object<telegram_api::langPackStringPluralized>(
           31, std::move(key), std::move(value->zero_value_), std::move(value->one_value_), std::move(value->two_value_),
@@ -1039,13 +1039,13 @@ void LanguagePackManager::set_custom_language(string language_code, string langu
                                               vector<tl_object_ptr<td_api::languagePackString>> strings,
                                               Promise<Unit> &&promise) {
   if (language_pack_.empty()) {
-    return promise.set_error(Status::Error(400, "Option \"language_pack\" needs to be set first"));
+    return promise.set_error(Status::Error(400, "Option \"localization_target\" needs to be set first"));
   }
   if (!check_language_code_name(language_code)) {
-    return promise.set_error(Status::Error(400, "Language code name must contain only letters and hyphen"));
+    return promise.set_error(Status::Error(400, "Language pack ID must contain only letters, digits and hyphen"));
   }
   if (!is_custom_language_code(language_code)) {
-    return promise.set_error(Status::Error(400, "Custom language code must begin with 'X'"));
+    return promise.set_error(Status::Error(400, "Custom language pack ID must begin with 'X'"));
   }
 
   vector<tl_object_ptr<telegram_api::LangPackString>> server_strings;
@@ -1078,13 +1078,13 @@ void LanguagePackManager::set_custom_language(string language_code, string langu
 void LanguagePackManager::edit_custom_language_info(string language_code, string language_name,
                                                     string language_native_name, Promise<Unit> &&promise) {
   if (language_pack_.empty()) {
-    return promise.set_error(Status::Error(400, "Option \"language_pack\" needs to be set first"));
+    return promise.set_error(Status::Error(400, "Option \"localization_target\" needs to be set first"));
   }
   if (!check_language_code_name(language_code)) {
-    return promise.set_error(Status::Error(400, "Language code name must contain only letters and hyphen"));
+    return promise.set_error(Status::Error(400, "Language pack ID must contain only letters, digits and hyphen"));
   }
   if (!is_custom_language_code(language_code)) {
-    return promise.set_error(Status::Error(400, "Custom language code must begin with 'X'"));
+    return promise.set_error(Status::Error(400, "Custom language pack ID must begin with 'X'"));
   }
 
   std::lock_guard<std::mutex> packs_lock(database_->mutex_);
@@ -1109,20 +1109,20 @@ void LanguagePackManager::set_custom_language_string(string language_code,
                                                      tl_object_ptr<td_api::languagePackString> str,
                                                      Promise<Unit> &&promise) {
   if (language_pack_.empty()) {
-    return promise.set_error(Status::Error(400, "Option \"language_pack\" needs to be set first"));
+    return promise.set_error(Status::Error(400, "Option \"localization_target\" needs to be set first"));
   }
   if (!check_language_code_name(language_code)) {
-    return promise.set_error(Status::Error(400, "Language code name must contain only letters and hyphen"));
+    return promise.set_error(Status::Error(400, "Language pack ID must contain only letters, digits and hyphen"));
   }
   if (!is_custom_language_code(language_code)) {
-    return promise.set_error(Status::Error(400, "Custom language code must begin with 'X'"));
+    return promise.set_error(Status::Error(400, "Custom language pack ID must begin with 'X'"));
   }
 
   if (get_language(database_, language_pack_, language_code) == nullptr) {
-    return promise.set_error(Status::Error(400, "Custom language not found"));
+    return promise.set_error(Status::Error(400, "Custom language pack not found"));
   }
   if (str == nullptr) {
-    return promise.set_error(Status::Error(400, "Language strings must not be null"));
+    return promise.set_error(Status::Error(400, "Language pack strings must not be null"));
   }
 
   vector<string> keys{str->key_};
@@ -1142,16 +1142,16 @@ void LanguagePackManager::set_custom_language_string(string language_code,
 
 void LanguagePackManager::delete_language(string language_code, Promise<Unit> &&promise) {
   if (language_pack_.empty()) {
-    return promise.set_error(Status::Error(400, "Option \"language_pack\" needs to be set first"));
+    return promise.set_error(Status::Error(400, "Option \"localization_target\" needs to be set first"));
   }
   if (!check_language_code_name(language_code)) {
-    return promise.set_error(Status::Error(400, "Language code name is invalid"));
+    return promise.set_error(Status::Error(400, "Language pack ID is invalid"));
   }
   if (language_code.empty()) {
-    return promise.set_error(Status::Error(400, "Language code name is empty"));
+    return promise.set_error(Status::Error(400, "Language pack ID is empty"));
   }
   if (language_code_ == language_code) {
-    return promise.set_error(Status::Error(400, "Currently used language can't be deleted"));
+    return promise.set_error(Status::Error(400, "Currently used language pack can't be deleted"));
   }
 
   auto status = do_delete_language(language_code);
@@ -1175,7 +1175,7 @@ Status LanguagePackManager::do_delete_language(string language_code) {
   CHECK(code_it != pack->languages_.end());
   auto language = code_it->second.get();
   if (language->has_get_difference_query_) {
-    return Status::Error(400, "Language can't be deleted now, try again later");
+    return Status::Error(400, "Language pack can't be deleted now, try again later");
   }
   if (!language->kv_.empty()) {
     language->kv_.drop().ignore();

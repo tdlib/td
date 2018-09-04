@@ -1750,8 +1750,8 @@ class CliClient final : public Actor {
 
       std::tie(chat_id, message_id) = split(args);
       send_request(make_tl_object<td_api::deleteChatReplyMarkup>(as_chat_id(chat_id), as_message_id(message_id)));
-    } else if (op == "glpi") {
-      send_request(make_tl_object<td_api::getLanguagePackInfo>());
+    } else if (op == "glti") {
+      send_request(make_tl_object<td_api::getLocalizationTargetInfo>());
     } else if (op == "glps") {
       string language_code;
       string keys;
@@ -1769,7 +1769,7 @@ class CliClient final : public Actor {
       std::tie(language_code, key) = split(args);
       send_request(
           make_tl_object<td_api::getLanguagePackString>(language_database_path, language_pack, language_code, key));
-    } else if (op == "scl") {
+    } else if (op == "sclp") {
       string language_code;
       string name;
       string native_name;
@@ -1788,9 +1788,9 @@ class CliClient final : public Actor {
       strings.push_back(make_tl_object<td_api::languagePackString>(
           "DELETED", make_tl_object<td_api::languagePackStringValueDeleted>()));
 
-      send_request(make_tl_object<td_api::setCustomLanguage>(
-          make_tl_object<td_api::languageInfo>(language_code, name, native_name, 3), std::move(strings)));
-    } else if (op == "ecli") {
+      send_request(make_tl_object<td_api::setCustomLanguagePack>(
+          make_tl_object<td_api::languagePackInfo>(language_code, name, native_name, 3), std::move(strings)));
+    } else if (op == "eclpi") {
       string language_code;
       string name;
       string native_name;
@@ -1798,9 +1798,9 @@ class CliClient final : public Actor {
       std::tie(language_code, args) = split(args);
       std::tie(name, native_name) = split(args);
 
-      send_request(make_tl_object<td_api::editCustomLanguageInfo>(
-          make_tl_object<td_api::languageInfo>(language_code, name, native_name, 3)));
-    } else if (op == "sclsv" || op == "sclsp" || op == "sclsd") {
+      send_request(make_tl_object<td_api::editCustomLanguagePackInfo>(
+          make_tl_object<td_api::languagePackInfo>(language_code, name, native_name, 3)));
+    } else if (op == "sclpsv" || op == "sclpsp" || op == "sclpsd") {
       string language_code;
       string key;
       string value;
@@ -1818,9 +1818,9 @@ class CliClient final : public Actor {
         str->value_ = make_tl_object<td_api::languagePackStringValueDeleted>();
       }
 
-      send_request(make_tl_object<td_api::setCustomLanguageString>(language_code, std::move(str)));
-    } else if (op == "dl") {
-      send_request(make_tl_object<td_api::deleteLanguage>(args));
+      send_request(make_tl_object<td_api::setCustomLanguagePackString>(language_code, std::move(str)));
+    } else if (op == "dlp") {
+      send_request(make_tl_object<td_api::deleteLanguagePack>(args));
     } else if (op == "go") {
       send_request(make_tl_object<td_api::getOption>(args));
     } else if (op == "sob") {
