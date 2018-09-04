@@ -603,6 +603,9 @@ bool SessionConnection::must_flush_packet() {
   }
   // get_future_salt
   if (!has_salt) {
+    if (last_get_future_salt_at_ == 0) {
+      return true;
+    }
     auto get_future_salts_at = last_get_future_salt_at_ + 60;
     if (get_future_salts_at < Time::now_cached()) {
       return true;
@@ -811,7 +814,8 @@ void SessionConnection::flush_packet() {
   // future salts
   int future_salt_n = 0;
   if (mode_ != Mode::HttpLongPoll) {
-    if (auth_data_->need_future_salts(Time::now_cached()) && last_get_future_salt_at_ + 60 < Time::now_cached()) {
+    if (auth_data_->need_future_salts(Time::now_cached()) &&
+        (last_get_future_salt_at_ == 0 || last_get_future_salt_at_ + 60 < Time::now_cached())) {
       last_get_future_salt_at_ = Time::now_cached();
       future_salt_n = 64;
     }
