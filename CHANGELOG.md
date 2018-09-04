@@ -1,3 +1,149 @@
+Changes in 1.3.0:
+
+* Added a review of existing TDLib based [frameworks](https://github.com/tdlib/td/blob/master/example/README.md)
+  in different programming languages.
+* Added a [Getting started](https://core.telegram.org/tdlib/getting-started) guide describing the main TDLib concepts
+  and basic principles required for library usage.
+* When a chat is opened, only those messages that have been viewed are marked as read.
+* Improved the proxy settings API:
+  - A list of proxies is stored instead of just one proxy.
+  - New methods `addProxy`, `editProxy`, `enableProxy`, `disableProxy`, `removeProxy` and `getProxies` were added
+    instead of `setProxy` and `getProxy`.
+  - Added the method `pingProxy` which can be used to compute time needed to receive a response from a Telegram server
+    through a proxy or directly.
+  - Added support for MTProto proxy via class `proxyTypeMtproto`.
+  - Added support for HTTP proxy via class `proxyTypeHttp`.
+  - For each proxy last time it was used is remembered.
+  - Added the method `getProxyLink` which returns an HTTPS link that can be used to share a proxy with others.
+* Improved the notification settings API. Scope notification settings are now properly synchronized between all devices
+  and chat notification settings can be reset to their default values:
+  - The `notificationSettings` class was split into `chatNotificationSettings` and `scopeNotificationSettings`.
+  - Only two notification settings scopes are left: `notificationSettingsScopePrivateChats` which is responsible for
+    default notification settings for private and secret chats and `notificationSettingsScopeGroupChats` for all other
+    chats.
+  - `updateNotificationSettings` was split into `updateChatNotificationSettings` and `updateScopeNotificationSettings`.
+  - `setNotificationSettings` was split into `setChatNotificationSettings` and `setScopeNotificationSettings`.
+  - `getNotificationSettings` was replaced with `getScopeNotificationSettings`.
+* Added the field `filter` to the `searchChatMembers` method to support searching among administrators, bots,
+  restricted and banned members.
+* Added the ability to use synchronous requests and `setAlarm` before the library is initialized.
+* Added the ability to send requests that don't need authentication before the library is initialized. These requests
+  will be postponed and executed at the earliest opportunity. For example, `setNetworkType` can be used to disable the
+  network for TDLib before the library tries to use it; `addProxy` can be used to add a proxy before any network
+  activity; or `setOption("use_pfs")` can be used to guarantee that PFS is used for all requests.
+* Added support for tg:// links in `inlineKeyboardButtonTypeUrl` and `textEntityTypeTextUrl`.
+* Added the ability to call `deleteAccount` in the `authorizationStateWaitPassword` authorization state.
+* Added the ability to call `checkAuthenticationCode` with an empty `first_name` for unregistered users to check the
+  code validity.
+* Added the methods `editMessageMedia` and `editInlineMessageMedia` for editing media messages content.
+* Renamed the class `shippingAddress` to `address`.
+* Changed the return value of the `requestPasswordRecovery` method from `passwordRecoveryInfo` to
+  `emailAddressAuthenticationCodeInfo`.
+* Added support for sponsored channels promoted by MTProto-proxies:
+  - Added the field `is_sponsored` to the `chat` class.
+  - Added `updateChatIsSponsored`, sent when this field changes.
+* Added support for marking chats as unread:
+  - Added the field `is_marked_as_unread` to `chat`.
+  - Added the update `updateChatIsMarkedAsUnread`.
+  - Added the method `toggleChatIsMarkedAsUnread`.
+* Added support for a default value of `disable_notification`, used when a message is sent to the chat:
+  - Added the field `default_disable_notification` to `chat` class.
+  - Added the update `updateChatDefaultDisableNotification`.
+  - Added the method `toggleChatDefaultDisableNotification`.
+* Added the field `vcard` to the `contact` class.
+* Added the field `type` to `venue`, which contains a provider-specific type of the venue,
+* Added the update `updateUnreadChatCount`, enabled when the message database is used and sent when
+  the number of unread chats has changed.
+* Added the method `addLocalMessage` for adding a local message to a chat.
+* Added the method `getDeepLinkInfo`, which can return information about `tg://` links that are not supported by
+  the client.
+* Added support for language packs:
+  - Added the writable option `language_pack_database_path` which can be used to specify a path to a database
+    for storing language pack strings, so that this database can be shared between different accounts.
+    If not specified, language pack strings will be stored only in memory.
+    Changes to the option are applied only on the next TDLib launch.
+  - Added the writable option `localization_target` for setting up a name for the current localization target
+    (currently supported: "android", "android_x", "ios", "macos" and "tdesktop").
+  - Added the writable option `language_pack_id` for setting up an identifier of the currently used language pack from
+    the current localization target (a "language pack" represents the collection of strings that can be used to display
+    the interface of a particular application in a particular language).
+  - Added the class `LanguagePackStringValue` describing the possible values of a string from a language pack.
+  - Added the class `languagePackString` describing a string from a language pack.
+  - Added the class `languagePackStrings` containing a list of language pack strings.
+  - Added the class `languagePackInfo` containing information about a language pack from a localization target.
+  - Added the class `localizationTargetInfo` containing information about a localization target.
+  - Added the update `updateLanguagePackStrings` which is sent when some strings in a language pack have changed.
+  - Added the synchronous method `getLanguagePackString` which can be used to get a language pack string from
+    the local database.
+  - Added the method `getLocalizationTargetInfo` which returns information about the current localization target.
+  - Added the method `getLanguagePackStrings` which returns some or all strings from a language pack, possibly fetching
+    them from the server.
+  - Added the method `setCustomLanguagePack` for adding or editing a custom language pack.
+  - Added the method `editCustomLanguagePackInfo` for editing information about a custom language pack.
+  - Added the method `setCustomLanguagePackString` for adding, editing or deleting a string in a custom language pack.
+  - Added the method `deleteLanguagePack` for deleting a language pack from the database.
+  - Added the read-only option `suggested_language_pack_id` containing the identifier of the language pack,
+    suggested for the user by the server.
+* Added support for Telegram Passport:
+  - Added two new message contents `messagePassportDataSent` for ordinary users and `messagePassportDataReceived`
+    for bots containing information about Telegram Passport data shared with a bot.
+  - Added the new file type `fileTypeSecure`.
+  - Added the class `datedFile` containing information about a file along with the date it was uploaded.
+  - Added the helper classes `date`, `personalDetails`, `identityDocument`, `inputIdentityDocument`,
+    `personalDocument`, `inputPersonalDocument`, `passportElements`.
+  - Added the class `PassportElementType` describing all supported types of Telegram Passport elements.
+  - Added the class `PassportElement` containing information about a Telegram Passport element.
+  - Added the class `InputPassportElement` containing information about a Telegram Passport element to save.
+  - Added the classes `passportElementError` and `PassportElementErrorSource` describing an error in
+    a Telegram Passport element.
+  - Added the field `has_passport_data` to the `passwordState` class.
+  - Added the methods `getPassportElement`, `getAllPassportElements`, `setPassportElement`, `deletePassportElement`
+    for managing Telegram Passport elements.
+  - Added the methods `getPassportAuthorizationForm` and `sendPassportAuthorizationForm` used for sharing
+    Telegram Passport data with a service via a bot.
+  - Added the methods `sendPhoneNumberVerificationCode`, `resendPhoneNumberVerificationCode` and
+    `checkPhoneNumberVerificationCode` for verification of a phone number used for Telegram Passport.
+  - Added the methods `sendEmailAddressVerificationCode`, `resendEmailAddressVerificationCode` and
+    `checkEmailAddressVerificationCode` for verification of an email address used for Telegram Passport.
+  - Added the method `getPreferredCountryLanguage` returning a most popular language in a country.
+  - Added the classes `inputPassportElementError` and `InputPassportElementErrorSource` for bots describing an error in
+    a Telegram Passport element.
+  - Added the method `setPassportElementErrors` for bots.
+  - Added the class `encryptedPassportElement` and `encryptedCredentials` for bots describing
+    an encrypted Telegram Passport element.
+* Improved support for Telegram terms of service:
+  - Added the class `termsOfService`, containing information about the Telegram terms of service.
+  - Added the field `terms_of_service` to `authorizationStateWaitCode`.
+  - Added the update `updateTermsOfService` coming when new terms of service need to be accepted by the user.
+  - Added the method `acceptTermsOfService` for accepting terms of service.
+  - Removed the method `getTermsOfService`.
+* Added the method `getMapThumbnailFile` which can be used to register and download a map thumbnail file.
+* Added the methods `sendPhoneNumberConfirmationCode`, `resendPhoneNumberConfirmationCode` and
+  `checkPhoneNumberConfirmationCode` which can be used to prevent an account from being deleted.
+* Added the convenience methods `joinChat` and `leaveChat` which can be used instead of `setChatMemberStatus` to manage
+  the current user's membership in a chat.
+* Added the convenience method `getContacts` which can be used instead of `searchContacts` to get all contacts.
+* Added the synchronous method `cleanFileName` which removes potentially dangerous characters from a file name.
+* Added the method `getChatMessageCount` which can be used to get the number of shared media.
+* Added the writable option `ignore_inline_thumbnails` which can be used to prevent file thumbnails sent
+  by the server along with messages from being saved on the disk.
+* Added the writable option `prefer_ipv6` which can be used to prefer IPv6 connections over IPv4.
+* Added the writable option `disable_top_chats` which can be used to disable support for top chats.
+* Added the class `chatReportReasonCopyright` for reporting chats containing infringing content.
+* Added the method `clearAllDraftMessages` which can be used to delete all cloud drafts.
+* Added the read-only options `message_text_length_max` and `message_caption_length_max`.
+* Added the read-only options `animation_search_bot_username`, `photo_search_bot_username` and
+  `venue_search_bot_username` containing usernames of bots which can be used in inline mode for animations, photos and
+  venues search respectively.
+* Numerous optimizations and bug fixes:
+  - Fixed string encoding for C# binding.
+  - Fixed building TDLib SDK for Universal Windows Platform for ARM with MSVC 2017.
+  - Fixed the Swift example project.
+  - Fixed the syntax error in the Python example.
+  - Sticker thumbnails can now have `webp` extensions if they are more likely to be in webp format.
+
+-----------------------------------------------------------------------------------------------------------------------
+
 Changes in 1.2.0:
 
 * Added support for native .NET bindings through `C++/CLI` and `C++/CX`.
