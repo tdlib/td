@@ -203,7 +203,7 @@ class Td final : public NetQueryCallback {
   static td_api::object_ptr<td_api::Object> static_request(td_api::object_ptr<td_api::Function> function);
 
  private:
-  static constexpr const char *TDLIB_VERSION = "1.2.5";
+  static constexpr const char *TDLIB_VERSION = "1.3.0";
   static constexpr int64 ONLINE_ALARM_ID = 0;
   static constexpr int32 ONLINE_TIMEOUT = 240;
   static constexpr int64 PING_SERVER_ALARM_ID = -1;
