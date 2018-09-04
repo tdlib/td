@@ -140,7 +140,7 @@ Changes in 1.3.0:
   - Fixed building TDLib SDK for Universal Windows Platform for ARM with MSVC 2017.
   - Fixed the Swift example project.
   - Fixed the syntax error in the Python example.
-  - Sticker thumbnails can now have `webp` extensions if they are more likely to be in webp format.
+  - Sticker thumbnails can now have `webp` extensions if they are more likely to be in WEBP format.
 
 -----------------------------------------------------------------------------------------------------------------------
 
