@@ -1751,7 +1751,7 @@ class CliClient final : public Actor {
       std::tie(chat_id, message_id) = split(args);
       send_request(make_tl_object<td_api::deleteChatReplyMarkup>(as_chat_id(chat_id), as_message_id(message_id)));
     } else if (op == "glti") {
-      send_request(make_tl_object<td_api::getLocalizationTargetInfo>());
+      send_request(make_tl_object<td_api::getLocalizationTargetInfo>(as_bool(args)));
     } else if (op == "glps") {
       string language_code;
       string keys;

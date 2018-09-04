@@ -6042,7 +6042,7 @@ void Td::on_request(uint64 id, const td_api::getMapThumbnailFile &request) {
 void Td::on_request(uint64 id, const td_api::getLocalizationTargetInfo &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  send_closure(language_pack_manager_, &LanguagePackManager::get_languages, std::move(promise));
+  send_closure(language_pack_manager_, &LanguagePackManager::get_languages, request.only_local_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getLanguagePackStrings &request) {

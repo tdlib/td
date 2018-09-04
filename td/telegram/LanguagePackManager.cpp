@@ -26,6 +26,7 @@
 
 #include <atomic>
 #include <limits>
+#include <map>
 #include <unordered_set>
 #include <utility>
 
@@ -56,12 +57,17 @@ struct LanguagePackManager::Language {
 struct LanguagePackManager::LanguageInfo {
   string name;
   string native_name;
+
+  friend bool operator==(const LanguageInfo &lhs, const LanguageInfo &rhs) {
+    return lhs.name == rhs.name && lhs.native_name == rhs.native_name;
+  }
 };
 
 struct LanguagePackManager::LanguagePack {
   std::mutex mutex_;
-  SqliteKeyValue pack_kv_;  // usages should be guarded by database_->mutex_
-  std::unordered_map<string, LanguageInfo> language_infos_;
+  SqliteKeyValue pack_kv_;                                              // usages should be guarded by database_->mutex_
+  std::map<string, LanguageInfo> custom_language_pack_infos_;           // sorted by language_code
+  vector<std::pair<string, LanguageInfo>> server_language_pack_infos_;  // sorted by server
   std::unordered_map<string, std::unique_ptr<Language>> languages_;
 };
 
@@ -341,8 +347,24 @@ LanguagePackManager::Language *LanguagePackManager::add_language(LanguageDatabas
       pack->pack_kv_.init_with_connection(database->database_.clone(), get_database_table_name(language_pack, "0"))
           .ensure();
       for (auto &lang : pack->pack_kv_.get_all()) {
+        if (lang.first == "!server") {
+          auto all_infos = full_split(lang.second, '\x00');
+          if (all_infos.size() % 3 == 0) {
+            for (size_t i = 0; i < all_infos.size(); i += 3) {
+              LanguageInfo info;
+              info.name = std::move(all_infos[i + 1]);
+              info.native_name = std::move(all_infos[i + 2]);
+              pack->server_language_pack_infos_.emplace_back(std::move(all_infos[i]), std::move(info));
+            }
+          } else {
+            LOG(ERROR) << "Have wrong language pack info \"" << lang.second << "\" in the database";
+          }
+
+          continue;
+        }
+
         auto names = split(lang.second, '\x00');
-        auto &info = pack->language_infos_[lang.first];
+        auto &info = pack->custom_language_pack_infos_[lang.first];
         info.name = std::move(names.first);
         info.native_name = std::move(names.second);
       }
@@ -549,9 +571,15 @@ td_api::object_ptr<td_api::languagePackStrings> LanguagePackManager::get_languag
   return td_api::make_object<td_api::languagePackStrings>(std::move(strings));
 }
 
-void LanguagePackManager::get_languages(Promise<td_api::object_ptr<td_api::localizationTargetInfo>> promise) {
+void LanguagePackManager::get_languages(bool only_local,
+                                        Promise<td_api::object_ptr<td_api::localizationTargetInfo>> promise) {
   if (language_pack_.empty()) {
     return promise.set_error(Status::Error(400, "Option \"localization_target\" needs to be set first"));
+  }
+
+  if (only_local) {
+    return on_get_languages(vector<tl_object_ptr<telegram_api::langPackLanguage>>(), language_pack_, true,
+                            std::move(promise));
   }
 
   auto request_promise = PromiseCreator::lambda([actor_id = actor_id(this), language_pack = language_pack_,
@@ -562,14 +590,14 @@ void LanguagePackManager::get_languages(Promise<td_api::object_ptr<td_api::local
     }
 
     send_closure(actor_id, &LanguagePackManager::on_get_languages, r_result.move_as_ok(), std::move(language_pack),
-                 std::move(promise));
+                 false, std::move(promise));
   });
   send_with_promise(G()->net_query_creator().create(create_storer(telegram_api::langpack_getLanguages(language_pack_))),
                     std::move(request_promise));
 }
 
 void LanguagePackManager::on_get_languages(vector<tl_object_ptr<telegram_api::langPackLanguage>> languages,
-                                           string language_pack,
+                                           string language_pack, bool only_local,
                                            Promise<td_api::object_ptr<td_api::localizationTargetInfo>> promise) {
   auto results = td_api::make_object<td_api::localizationTargetInfo>();
 
@@ -578,28 +606,62 @@ void LanguagePackManager::on_get_languages(vector<tl_object_ptr<telegram_api::la
     auto pack_it = database_->language_packs_.find(language_pack);
     if (pack_it != database_->language_packs_.end()) {
       LanguagePack *pack = pack_it->second.get();
-      for (auto &info : pack->language_infos_) {
+      for (auto &info : pack->custom_language_pack_infos_) {
         results->language_packs_.push_back(
             make_tl_object<td_api::languagePackInfo>(info.first, info.second.name, info.second.native_name, 0));
+      }
+      if (only_local) {
+        for (auto &info : pack->server_language_pack_infos_) {
+          results->language_packs_.push_back(
+              make_tl_object<td_api::languagePackInfo>(info.first, info.second.name, info.second.native_name, 0));
+        }
       }
     }
   }
 
+  vector<std::pair<string, LanguageInfo>> all_server_infos;
   for (auto &language : languages) {
-    results->language_packs_.push_back(
-        make_tl_object<td_api::languagePackInfo>(language->lang_code_, language->name_, language->native_name_, 0));
-  }
-
-  for (auto &language_info : results->language_packs_) {
-    if (!check_language_code_name(language_info->id_)) {
-      LOG(ERROR) << "Receive unsupported language pack ID " << language_info->id_ << " from server";
+    if (!check_language_code_name(language->lang_code_)) {
+      LOG(ERROR) << "Receive unsupported language pack ID " << language->lang_code_ << " from server";
       continue;
     }
 
+    results->language_packs_.push_back(
+        make_tl_object<td_api::languagePackInfo>(language->lang_code_, language->name_, language->native_name_, 0));
+
+    LanguageInfo info;
+    info.name = std::move(language->name_);
+    info.native_name = std::move(language->native_name_);
+    all_server_infos.emplace_back(std::move(language->lang_code_), std::move(info));
+  }
+
+  for (auto &language_info : results->language_packs_) {
     auto language = add_language(database_, language_pack, language_info->id_);
     language_info->local_string_count_ = language->key_count_;
   }
 
+  if (!only_local) {
+    std::lock_guard<std::mutex> packs_lock(database_->mutex_);
+    auto pack_it = database_->language_packs_.find(language_pack);
+    if (pack_it != database_->language_packs_.end()) {
+      LanguagePack *pack = pack_it->second.get();
+      if (pack->server_language_pack_infos_ != all_server_infos) {
+        pack->server_language_pack_infos_ = std::move(all_server_infos);
+
+        if (!pack->pack_kv_.empty()) {
+          vector<string> all_strings;
+          all_strings.reserve(3 * pack->server_language_pack_infos_.size());
+          for (auto &info : pack->server_language_pack_infos_) {
+            all_strings.push_back(info.first);
+            all_strings.push_back(info.second.name);
+            all_strings.push_back(info.second.native_name);
+          }
+
+          pack->pack_kv_.set("!server", implode(all_strings, '\x00'));
+        }
+      }
+    }
+  }
   promise.set_value(std::move(results));
 }
 
@@ -1065,7 +1127,7 @@ void LanguagePackManager::set_custom_language(string language_code, string langu
   auto pack_it = database_->language_packs_.find(language_pack_);
   CHECK(pack_it != database_->language_packs_.end());
   LanguagePack *pack = pack_it->second.get();
-  auto &info = pack->language_infos_[language_code];
+  auto &info = pack->custom_language_pack_infos_[language_code];
   info.name = std::move(language_name);
   info.native_name = std::move(language_native_name);
   if (!pack->pack_kv_.empty()) {
@@ -1091,8 +1153,8 @@ void LanguagePackManager::edit_custom_language_info(string language_code, string
   auto pack_it = database_->language_packs_.find(language_pack_);
   CHECK(pack_it != database_->language_packs_.end());
   LanguagePack *pack = pack_it->second.get();
-  auto language_info_it = pack->language_infos_.find(language_code);
-  if (language_info_it == pack->language_infos_.end()) {
+  auto language_info_it = pack->custom_language_pack_infos_.find(language_code);
+  if (language_info_it == pack->custom_language_pack_infos_.end()) {
     return promise.set_error(Status::Error(400, "Custom language pack is not found"));
   }
   auto &info = language_info_it->second;
@@ -1197,7 +1259,7 @@ Status LanguagePackManager::do_delete_language(string language_code) {
     if (!pack->pack_kv_.empty()) {
       pack->pack_kv_.erase(language_code);
     }
-    pack->language_infos_.erase(language_code);
+    pack->custom_language_pack_infos_.erase(language_code);
   }
 
   return Status::OK();
