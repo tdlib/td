@@ -59,6 +59,13 @@ class Log {
   static void set_verbosity_level(int new_verbosity_level);
 
   /**
+   * Returns the verbosity level of the internal logging of TDLib.
+   *
+   * \return The verbosity level as set from set_verbosity_level, or the default value (5)
+   */
+  static int get_verbosity_level();
+
+  /**
    * A type of callback function that will be called when a fatal error happens.
    *
    * \param error_message Null-terminated string with a description of a happened fatal error.

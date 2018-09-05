@@ -54,6 +54,10 @@ void Log::set_verbosity_level(int new_verbosity_level) {
   }
 }
 
+int Log::get_verbosity_level() {
+  return GET_VERBOSITY_LEVEL();
+}
+
 void Log::set_fatal_error_callback(FatalErrorCallbackPtr callback) {
   std::lock_guard<std::mutex> lock(log_mutex);
   if (callback == nullptr) {
