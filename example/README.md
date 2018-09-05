@@ -45,13 +45,13 @@ You can also check out [example/python/tdjson_example.py](https://github.com/tdl
 <a name="javascript"></a>
 ## Using TDLib in JavaScript projects
 
-TDLib can be used from Node.JS through the [JSON](https://github.com/tdlib/td#using-json) interface.
+TDLib can be used from Node.js through the [JSON](https://github.com/tdlib/td#using-json) interface.
 
-Convenient Node.JS wrappers already exist for our JSON interface.
+Convenient Node.js wrappers already exist for our JSON interface.
 For example, take a look at [tdl](https://github.com/Bannerets/tdl), which provides a convenient, fully-asynchronous interface for interaction with TDLib and contains a bunch of examples.
 
-You can also see [node-tdlib](https://github.com/wfjsw/node-tdlib), [tglib](https://github.com/nodegin/tglib) and
-[Paper Plane](https://github.com/BlackSuited/paper-plane) for other examples of TDLib JSON interface integration with Node.js.
+You can also see [node-tdlib](https://github.com/wfjsw/node-tdlib), [tglib](https://github.com/nodegin/tglib),
+[Paper Plane](https://github.com/BlackSuited/paper-plane) and [example/javascript](https://github.com/tdlib/td/tree/master/example/javascript) for other examples of TDLib JSON interface integration with Node.js.
 
 TDLib also can be compiled to WebAssembly and used in a browser from JavaScript, but this functionality isn't production-ready yet. We will publish building and usage instructions later.
 

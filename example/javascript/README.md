@@ -1,7 +1,9 @@
+# TDLib JavaScript (Node.js) example
+
 #### Requirements
 
-- node.js v9.0.0+
-- libtdjson binary
+- Node.js v9.0.0+
+- [Prebuilt](https://github.com/tdlib/td#building) tdjson shared library
 
 #### Run
 
