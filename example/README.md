@@ -15,6 +15,8 @@ TDLib can be easily used from almost any language on any platform. Choose your p
 - [C++](#cxx)
 - [Swift](#swift)
 - [Objective-C](#objective-c)
+- [Rust](#rust)
+- [Erlang](#erlang)
 - [PHP](#php)
 - [Lua](#lua)
 - [Ruby](#ruby)
@@ -59,7 +61,7 @@ TDLib also can be compiled to WebAssembly and used in a browser from JavaScript,
 TDLib can be used from the Go programming language through the [JSON](https://github.com/tdlib/td#using-json) interface and Cgo, and can be linked either statically or dynamically.
 
 Convenient Go wrappers already exist for our JSON interface.
-For example, take a look at [go-tdlib](https://github.com/Arman92/go-tdlib), which provides a convenient TDLib client and a generator for TDLib API classes and contains many examples.
+For example, take a look at [go-tdlib](https://github.com/zelenin/go-tdlib) or [go-tdlib](https://github.com/Arman92/go-tdlib), which provide a convenient TDLib client, a generator for TDLib API classes and contain many examples.
 
 You can also see [go-tdjson](https://github.com/L11R/go-tdjson) for another example of TDLib JSON interface integration with Go and
 [example/go](https://github.com/tdlib/td/tree/master/example/go/main.go) for a proof of concept example of using the TDLib JSON interface from Go.
@@ -111,6 +113,20 @@ See [example/ios](https://github.com/tdlib/td/tree/master/example/ios) for an ex
 TDLib can be used from the Objective-C programming language through [JSON](https://github.com/tdlib/td#using-json) interface and can be linked statically or dynamically.
 
 See [example/ios](https://github.com/tdlib/td/tree/master/example/ios) for an example of building TDLib for iOS, watchOS, tvOS, and macOS.
+
+<a name="rust"></a>
+## Using TDLib in Rust projects
+
+TDLib can be used from the Rust programming language through the [JSON](https://github.com/tdlib/td#using-json) interface.
+
+See [rust-tdlib](https://github.com/lattenwald/rust-tdlib) for an example of TDLib Rust bindings.
+
+<a name="Erlang"></a>
+## Using TDLib in Erlang projects
+
+TDLib can be used from the Erlang programming language through the [JSON](https://github.com/tdlib/td#using-json) interface.
+
+See [erl-tdlib](https://github.com/lattenwald/erl-tdlib) for an example of TDLib Erlang bindings.
 
 <a name="php"></a>
 ## Using TDLib in PHP projects
