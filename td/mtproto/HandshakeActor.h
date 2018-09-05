@@ -12,7 +12,6 @@
 #include "td/utils/Status.h"
 
 namespace td {
-class DhCallback;
 namespace mtproto {
 class AuthKeyHandshake;
 class AuthKeyHandshakeContext;

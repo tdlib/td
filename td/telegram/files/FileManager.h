@@ -251,7 +251,6 @@ class FileView {
   ConstFileNodePtr node_{};
 };
 
-class Td;
 class FileManager : public FileLoadManager::Callback {
  public:
   class DownloadCallback {
