@@ -1,4 +1,4 @@
-#TDLib usage and build examples
+# TDLib usage and build examples
 
 This directory contains basic examples of TDLib usage from different programming languages and examples of library building for different platforms.
 If you are looking for documentation of all available TDLib methods, see the [td_api.tl](https://github.com/tdlib/td/blob/master/td/generate/scheme/td_api.tl) scheme or the
@@ -76,7 +76,7 @@ To use TDLib to create Android Java applications, use our [prebuilt library for 
 You can also see [JTDLib](https://github.com/ErnyTech/JTDLib) for another example of Java wrapper for TDLib.
 
 <a name="csharp"></a>
-## Using in C# projects
+## Using TDLib in C# projects
 
 TDLib provides a native [.NET](https://github.com/tdlib/td#using-dotnet) interface through `C++/CLI` and `C++/CX`.
 See [example/uwp](https://github.com/tdlib/td/tree/master/example/uwp) for an example of building TDLib SDK for the Universal Windows Platform and an example of its usage from C#.
@@ -129,7 +129,7 @@ See [tdlua](https://github.com/giuseppeM99/tdlua) or [tdlua](https://github.com/
 See also [tdbot](https://github.com/vysheng/tdbot), which makes all TDLib features available from Lua scripts.
 
 <a name="D"></a>
-## Using in D projects
+## Using TDLib in D projects
 
 TDLib can be used from the D programming language through the [JSON](https://github.com/tdlib/td#using-json) interface.
 
@@ -144,7 +144,7 @@ See [tdlib-ruby](https://github.com/centosadmin/tdlib-ruby) for examples of Ruby
 See [example/ruby](https://github.com/tdlib/td/tree/master/example/ruby) for an example of logging in to Telegram using TDLib and `tdlib-ruby` gem.
 
 <a name="Elixir"></a>
-## Using in Elixir projects
+## Using TDLib in Elixir projects
 
 TDLib can be used from the Elixir programming language.
 
