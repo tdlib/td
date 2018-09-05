@@ -851,19 +851,17 @@ Result<std::tuple<uint64, BufferSlice, int32>> SecretChatActor::decrypt(BufferSl
   }
   TRY_RESULT(read_result, std::move(r_read_result));
   switch (read_result.type()) {
-    case mtproto::Transport::ReadResult::Quickack: {
+    case mtproto::Transport::ReadResult::Quickack:
       return Status::Error("Got quickack instead of a message");
-    }
-    case mtproto::Transport::ReadResult::Error: {
+    case mtproto::Transport::ReadResult::Error:
       return Status::Error(PSLICE() << "Got mtproto error code instead of a message: " << read_result.error());
-    }
-    case mtproto::Transport::ReadResult::Nop: {
+    case mtproto::Transport::ReadResult::Nop:
       return Status::Error("Got nop instead of a message");
-    }
-    case mtproto::Transport::ReadResult::Packet: {
+    case mtproto::Transport::ReadResult::Packet:
       data = read_result.packet();
       break;
-    }
+    default:
+      UNREACHABLE();
   }
 
   auto len = as<int32>(data.begin());

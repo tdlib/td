@@ -106,6 +106,8 @@ Status RawConnection::flush_read(const AuthKey &auth_key, Callback &callback) {
       }
       case mtproto::Transport::ReadResult::Nop:
         break;
+      default:
+        UNREACHABLE();
     }
   }
 
