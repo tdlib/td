@@ -95,7 +95,7 @@ while True:
     event = td_receive()
     if event:
         # if client is closed, we need to destroy it and create new client
-        if event['@type'] is 'updateAuthorizationState' and event['authorization_state']['@type'] is 'authorizationStateClosed':
+        if event['@type'] == 'updateAuthorizationState' and event['authorization_state']['@type'] == 'authorizationStateClosed':
             break
 
         # handle an incoming update or an answer to a previously sent request
