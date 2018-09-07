@@ -104,7 +104,7 @@ class LanguagePackManager : public NetQueryCallback {
   static bool language_has_string_unsafe(const Language *language, const string &key);
   static bool language_has_strings(Language *language, const vector<string> &keys);
 
-  static void load_language_string_unsafe(Language *language, const string &key, string &value);
+  static void load_language_string_unsafe(Language *language, const string &key, const string &value);
   static bool load_language_strings(LanguageDatabase *database, Language *language, const vector<string> &keys);
 
   static td_api::object_ptr<td_api::LanguagePackStringValue> get_language_pack_string_value_object(const string &value);

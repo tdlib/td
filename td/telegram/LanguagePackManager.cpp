@@ -414,25 +414,26 @@ bool LanguagePackManager::language_has_strings(Language *language, const vector<
   return true;
 }
 
-void LanguagePackManager::load_language_string_unsafe(Language *language, const string &key, string &value) {
+void LanguagePackManager::load_language_string_unsafe(Language *language, const string &key, const string &value) {
   CHECK(is_valid_key(key));
-  if (value.empty() || value == "3") {
-    if (!language->is_full_) {
-      language->deleted_strings_.insert(key);
-    }
-    return;
-  }
-
   if (value[0] == '1') {
     language->ordinary_strings_.emplace(key, value.substr(1));
     return;
   }
 
-  CHECK(value[0] == '2');
-  auto all = full_split(Slice(value).substr(1), '\x00');
-  CHECK(all.size() == 6);
-  language->pluralized_strings_.emplace(
-      key, PluralizedString{all[0].str(), all[1].str(), all[2].str(), all[3].str(), all[4].str(), all[5].str()});
+  if (value[0] == '2') {
+    auto all = full_split(Slice(value).substr(1), '\x00');
+    if (all.size() == 6) {
+      language->pluralized_strings_.emplace(
+          key, PluralizedString{all[0].str(), all[1].str(), all[2].str(), all[3].str(), all[4].str(), all[5].str()});
+      return;
+    }
+  }
+
+  LOG_IF(ERROR, !value.empty() && value != "3") << "Have invalid value \"" << value << '"';
+  if (!language->is_full_) {
+    language->deleted_strings_.insert(key);
+  }
 }
 
 bool LanguagePackManager::load_language_strings(LanguageDatabase *database, Language *language,
