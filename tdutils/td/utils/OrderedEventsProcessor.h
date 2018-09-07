@@ -23,6 +23,18 @@ class OrderedEventsProcessor {
   explicit OrderedEventsProcessor(SeqNo offset) : offset_(offset), begin_(offset_), end_(offset_) {
   }
 
+  template <class FunctionT>
+  void clear(FunctionT &&function) {
+    for (auto &it : data_array_) {
+      if (it.second) {
+        function(std::move(it.first));
+      }
+    }
+    *this = OrderedEventsProcessor();
+  }
+  void clear() {
+    *this = OrderedEventsProcessor();
+  }
   template <class FromDataT, class FunctionT>
   void add(SeqNo seq_no, FromDataT &&data, FunctionT &&function) {
     CHECK(seq_no >= begin_) << seq_no << ">=" << begin_;  // or ignore?

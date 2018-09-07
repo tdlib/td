@@ -24,6 +24,8 @@ class DelayDispatcher : public Actor {
   void send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback);
   void send_with_callback_and_delay(NetQueryPtr query, ActorShared<NetQueryCallback> callback, double delay);
 
+  void close_silent();
+
  private:
   struct Query {
     NetQueryPtr net_query;
@@ -35,6 +37,7 @@ class DelayDispatcher : public Actor {
   double default_delay_;
 
   void loop() override;
+  void tear_down() override;
 };
 
 }  // namespace td

@@ -187,6 +187,8 @@ void FileLoader::tear_down() {
   for (auto &it : part_map_) {
     it.second.second.reset();  // cancel_query(it.second.second);
   }
+  ordered_parts_.clear([](auto &&part) { part.second->clear(); });
+  send_closure(std::move(delay_dispatcher_), &DelayDispatcher::close_silent);
 }
 void FileLoader::update_estimated_limit() {
   if (stop_flag_) {

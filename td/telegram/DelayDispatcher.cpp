@@ -44,4 +44,22 @@ void DelayDispatcher::loop() {
   set_timeout_at(wakeup_at_.at());
 }
 
+void DelayDispatcher::close_silent() {
+  while (!queue_.empty()) {
+    auto query = std::move(queue_.front());
+    queue_.pop();
+    query.net_query->clear();
+  }
+  stop();
+}
+
+void DelayDispatcher::tear_down() {
+  while (!queue_.empty()) {
+    auto query = std::move(queue_.front());
+    queue_.pop();
+    query.net_query->set_error(Status::Error(500, "Request aborted"));
+    send_closure(std::move(query.callback), &NetQueryCallback::on_result, std::move(query.net_query));
+  }
+}
+
 }  // namespace td
