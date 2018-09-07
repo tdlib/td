@@ -15215,7 +15215,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
       if (next_message != nullptr && !next_message->have_previous) {
         LOG(INFO) << "Fix have_previous for " << next_message->message_id;
         next_message->have_previous = true;
-        attach_message_to_previous(d, next_message->message_id, "on_get_history_from_database");
+        attach_message_to_previous(d, next_message->message_id, "on_get_history_from_database 1");
       }
 
       have_next = true;
@@ -15236,13 +15236,20 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
   if (from_the_end && last_added_message_id.is_valid()) {
     // CHECK(d->first_database_message_id.is_valid());
     // CHECK(last_added_message_id.get() >= d->first_database_message_id.get());
+    if ((had_full_history || d->have_full_history) && !d->last_new_message_id.is_valid() &&
+        (last_added_message_id.is_server() || d->dialog_id.get_type() == DialogType::SecretChat)) {
+      LOG(ERROR) << "Trying to hard fix " << d->dialog_id << " last new message to " << last_added_message_id
+                 << " from on_get_history_from_database 2";
+      d->last_new_message_id = last_added_message_id;
+      on_dialog_updated(d->dialog_id, "on_get_history_from_database 3");
+    }
     if (last_added_message_id.get() > d->last_message_id.get() && d->last_new_message_id.is_valid()) {
-      set_dialog_last_message_id(d, last_added_message_id, "on_get_history_from_database");
+      set_dialog_last_message_id(d, last_added_message_id, "on_get_history_from_database 4");
       need_update_dialog_pos = true;
     }
     if (last_added_message_id.get() != d->last_database_message_id.get()) {
       auto debug_last_database_message_id = d->last_database_message_id;
-      set_dialog_last_database_message_id(d, last_added_message_id, "on_get_history_from_database");
+      set_dialog_last_database_message_id(d, last_added_message_id, "on_get_history_from_database 5");
       if (last_added_message_id.get() < d->first_database_message_id.get() ||
           !d->first_database_message_id.is_valid()) {
         CHECK(next_message != nullptr);
@@ -15252,13 +15259,13 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
         CHECK(next_message->message_id.get() <= d->last_database_message_id.get());
         LOG(ERROR) << "Fix first database message id in " << dialog_id << " from " << d->first_database_message_id
                    << " to " << next_message->message_id;
-        set_dialog_first_database_message_id(d, next_message->message_id, "on_get_history_from_database");
+        set_dialog_first_database_message_id(d, next_message->message_id, "on_get_history_from_database 6");
       }
     }
   }
 
   if (need_update_dialog_pos) {
-    send_update_chat_last_message(d, "on_get_history_from_database");
+    send_update_chat_last_message(d, "on_get_history_from_database 7");
   }
 
   promise.set_value(Unit());
