@@ -831,6 +831,9 @@ static int merge_choose_remote_location(const RemoteFileLocation &x, int8 x_sour
   }
   // If access_hash changed use a newer one
   if (x.type() == RemoteFileLocation::Type::Full) {
+    if (x.full().is_web() != y.full().is_web()) {
+      return x.full().is_web();  // prefer non-web
+    }
     if (x.full().get_access_hash() != y.full().get_access_hash()) {
       return x_source < y_source;
     }
