@@ -11,6 +11,7 @@
 #ifdef TD_THREAD_PTHREAD
 
 #include "td/utils/common.h"
+#include "td/utils/Destructor.h"
 #include "td/utils/invoke.h"
 #include "td/utils/MovableValue.h"
 #include "td/utils/port/detail/ThreadIdGuard.h"

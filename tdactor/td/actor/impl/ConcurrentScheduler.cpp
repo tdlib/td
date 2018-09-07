@@ -14,6 +14,10 @@
 #include "td/utils/MpscPollableQueue.h"
 #include "td/utils/port/thread_local.h"
 
+#if TD_PORT_WINDOWS
+#include "td/utils/port/detail/WineventPoll.h"
+#endif
+
 #include <memory>
 
 namespace td {
@@ -24,19 +28,18 @@ void ConcurrentScheduler::init(int32 threads_n) {
 #endif
   threads_n++;
   std::vector<std::shared_ptr<MpscPollableQueue<EventFull>>> outbound(threads_n);
+#if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
   for (int32 i = 0; i < threads_n; i++) {
-#if TD_THREAD_UNSUPPORTED || TD_EVENTFD_UNSUPPORTED
-#else
     auto queue = std::make_shared<MpscPollableQueue<EventFull>>();
     queue->init();
     outbound[i] = queue;
-#endif
   }
+#endif
 
   // +1 for extra scheduler for IOCP and send_closure from unrelated threads
   // It will know about other schedulers
-  // Other schedulers will have no idea about its existance
-  int extra_scheduler = 1;
+  // Other schedulers will have no idea about its existence
+  int32 extra_scheduler = 1;
 #if TD_THREAD_UNSUPPORTED || TD_EVENTFD_UNSUPPORTED
   extra_scheduler = 0;
 #endif
@@ -46,11 +49,13 @@ void ConcurrentScheduler::init(int32 threads_n) {
     auto &sched = schedulers_[i];
     sched = make_unique<Scheduler>();
 
+#if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
     if (i >= threads_n) {
       auto queue = std::make_shared<MpscPollableQueue<EventFull>>();
       queue->init();
       outbound.push_back(std::move(queue));
     }
+#endif
 
     sched->init(i, outbound, static_cast<Scheduler::Callback *>(this));
   }
@@ -88,12 +93,12 @@ void ConcurrentScheduler::start() {
       }
     }));
   }
-#endif
 #if TD_PORT_WINDOWS
-  iocp_thread_ = td::thread([this] { 
+  iocp_thread_ = td::thread([this] {
     auto guard = this->get_send_guard();
-    this->iocp_->loop(); 
+    this->iocp_->loop();
   });
+#endif
 #endif
 
   state_ = State::Run;

@@ -31,7 +31,7 @@ class Random {
 
   class Xorshift128plus {
    public:
-    Xorshift128plus(uint32 seed);
+    explicit Xorshift128plus(uint64 seed);
     Xorshift128plus(uint64 seed_a, uint64 seed_b);
     uint64 operator()();
 

@@ -4,7 +4,12 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
+#pragma once
+
 #include "td/utils/common.h"
+
+#include <memory>
+#include <utility>
 
 namespace td {
 
@@ -43,4 +48,5 @@ template <class F>
 auto create_shared_destructor(F &&f) {
   return std::make_shared<LambdaDestructor<F>>(std::forward<F>(f));
 }
+
 }  // namespace td

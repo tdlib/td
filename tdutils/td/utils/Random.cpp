@@ -92,7 +92,7 @@ uint32 Random::fast_uint32() {
   if (!gen) {
     auto &rg = rand_device_helper;
     std::seed_seq seq{rg(), rg(), rg(), rg(), rg(), rg(), rg(), rg(), rg(), rg(), rg(), rg()};
-    init_thread_local<std::mt19937>(gen);
+    init_thread_local<std::mt19937>(gen, seq);
   }
   return static_cast<uint32>((*gen)());
 }
@@ -102,7 +102,7 @@ uint64 Random::fast_uint64() {
   if (!gen) {
     auto &rg = rand_device_helper;
     std::seed_seq seq{rg(), rg(), rg(), rg(), rg(), rg(), rg(), rg(), rg(), rg(), rg(), rg()};
-    init_thread_local<std::mt19937_64>(gen);
+    init_thread_local<std::mt19937_64>(gen, seq);
   }
   return static_cast<uint64>((*gen)());
 }
@@ -116,12 +116,13 @@ int Random::fast(int min, int max) {
   return static_cast<int>(min + fast_uint32() % (max - min + 1));  // TODO signed_cast
 }
 
-Random::Xorshift128plus::Xorshift128plus(uint32 seed) {
+Random::Xorshift128plus::Xorshift128plus(uint64 seed) {
   auto next = [&]() {
     // splitmix64
-    uint64_t z = (seed += UINT64_C(0x9E3779B97F4A7C15));
-    z = (z ^ (z >> 30)) * UINT64_C(0xBF58476D1CE4E5B9);
-    z = (z ^ (z >> 27)) * UINT64_C(0x94D049BB133111EB);
+    seed += static_cast<uint64>(0x9E3779B97F4A7C15);
+    uint64 z = seed;
+    z = (z ^ (z >> 30)) * static_cast<uint64>(0xBF58476D1CE4E5B9);
+    z = (z ^ (z >> 27)) * static_cast<uint64>(0x94D049BB133111EB);
     return z ^ (z >> 31);
   };
   seed_[0] = next();
@@ -134,11 +135,11 @@ Random::Xorshift128plus::Xorshift128plus(uint64 seed_a, uint64 seed_b) {
 }
 
 uint64 Random::Xorshift128plus::operator()() {
-  uint64_t x = seed_[0];
-  uint64_t const y = seed_[1];
+  uint64 x = seed_[0];
+  const uint64 y = seed_[1];
   seed_[0] = y;
-  x ^= x << 23;                              // a
-  seed_[1] = x ^ y ^ (x >> 17) ^ (y >> 26);  // b, c
+  x ^= x << 23;
+  seed_[1] = x ^ y ^ (x >> 17) ^ (y >> 26);
   return seed_[1] + y;
 }
 

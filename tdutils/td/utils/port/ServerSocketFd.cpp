@@ -29,13 +29,15 @@
 #include "td/utils/VectorQueue.h"
 #endif
 
+#include <cstring>
+
 namespace td {
 
 namespace detail {
 #if TD_PORT_WINDOWS
 class ServerSocketFdImpl : private IOCP::Callback {
  public:
-  ServerSocketFdImpl(NativeFd fd, int socket_family) : info(std::move(fd)), socket_family_(socket_family) {
+  ServerSocketFdImpl(NativeFd fd, int socket_family) : info_(std::move(fd)), socket_family_(socket_family) {
     VLOG(fd) << get_native_fd().io_handle() << " create ServerSocketFd";
     IOCP::get()->subscribe(get_native_fd(), this);
     notify_iocp_read();
@@ -44,14 +46,14 @@ class ServerSocketFdImpl : private IOCP::Callback {
     notify_iocp_close();
   }
   PollableFdInfo &get_poll_info() {
-    return info;
+    return info_;
   }
   const PollableFdInfo &get_poll_info() const {
-    return info;
+    return info_;
   }
 
   const NativeFd &get_native_fd() const {
-    return info.native_fd();
+    return info_.native_fd();
   }
 
   Result<SocketFd> accept() {
@@ -78,7 +80,7 @@ class ServerSocketFdImpl : private IOCP::Callback {
   }
 
  private:
-  PollableFdInfo info;
+  PollableFdInfo info_;
 
   SpinLock lock_;
   VectorQueue<SocketFd> accepted_;
@@ -98,7 +100,7 @@ class ServerSocketFdImpl : private IOCP::Callback {
 
   void on_close() {
     close_flag_ = true;
-    info.set_native_fd({});
+    info_.set_native_fd({});
   }
   void on_read() {
     VLOG(fd) << get_native_fd().io_handle() << " on_read";
@@ -133,7 +135,7 @@ class ServerSocketFdImpl : private IOCP::Callback {
     if (status == 0) {
       return true;
     }
-    auto last_error = GetLastError();
+    auto last_error = WSAGetLastError();
     if (last_error == ERROR_IO_PENDING) {
       return true;
     }
@@ -197,17 +199,17 @@ void ServerSocketFdImplDeleter::operator()(ServerSocketFdImpl *impl) {
 #elif TD_PORT_POSIX
 class ServerSocketFdImpl {
  public:
-  ServerSocketFdImpl(NativeFd fd) : info(std::move(fd)) {
+  explicit ServerSocketFdImpl(NativeFd fd) : info_(std::move(fd)) {
   }
   PollableFdInfo &get_poll_info() {
-    return info;
+    return info_;
   }
   const PollableFdInfo &get_poll_info() const {
-    return info;
+    return info_;
   }
 
   const NativeFd &get_native_fd() const {
-    return info.native_fd();
+    return info_.native_fd();
   }
   Result<SocketFd> accept() {
     sockaddr_storage addr;
@@ -260,7 +262,7 @@ class ServerSocketFdImpl {
   }
 
  private:
-  PollableFdInfo info;
+  PollableFdInfo info_;
 };
 void ServerSocketFdImplDeleter::operator()(ServerSocketFdImpl *impl) {
   delete impl;

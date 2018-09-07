@@ -12,7 +12,8 @@
 
 #include "td/utils/common.h"
 #include "td/utils/Context.h"
-#include "td/utils/port/Fd.h"
+#include "td/utils/port/detail/NativeFd.h"
+#include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/PollBase.h"
 #include "td/utils/port/thread.h"
 
@@ -70,8 +71,6 @@ class WineventPoll final : public PollBase {
   static bool is_edge_triggered() {
     return true;
   }
-
- private:
 };
 
 }  // namespace detail

@@ -22,7 +22,7 @@
 #include "td/utils/GzipByteFlow.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
-#include "td/utils/port/Fd.h"
+#include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/FileFd.h"
 #include "td/utils/port/path.h"
 #include "td/utils/port/thread_local.h"

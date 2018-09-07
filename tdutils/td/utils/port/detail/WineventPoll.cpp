@@ -13,9 +13,7 @@ char disable_linker_warning_about_empty_file_wineventpoll_cpp TD_UNUSED;
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
-#include "td/utils/port/Fd.h"
 #include "td/utils/port/PollBase.h"
-#include "td/utils/port/sleep.h"
 #include "td/utils/Status.h"
 
 #include <utility>
@@ -32,14 +30,14 @@ void IOCP::loop() {
     DWORD bytes = 0;
     ULONG_PTR key = 0;
     OVERLAPPED *overlapped = nullptr;
-    bool ok = GetQueuedCompletionStatus(iocp_handle_.io_handle(), &bytes, &key, &overlapped, 1000);
+    BOOL ok = GetQueuedCompletionStatus(iocp_handle_.io_handle(), &bytes, &key, &overlapped, 1000);
     if (bytes || key || overlapped) {
-      LOG(ERROR) << "Got iocp " << bytes << " " << key << " " << overlapped;
+      // LOG(ERROR) << "Got iocp " << bytes << " " << key << " " << overlapped;
     }
     if (ok) {
       auto callback = reinterpret_cast<IOCP::Callback *>(key);
       if (callback == nullptr) {
-        LOG(ERROR) << "Interrupt IOCP loop";
+        // LOG(ERROR) << "Interrupt IOCP loop";
         return;
       }
       callback->on_iocp(bytes, overlapped);

@@ -7,7 +7,6 @@
 #pragma once
 
 #include "td/utils/port/platform.h"
-//#include "td/utils/format.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -51,26 +50,26 @@ struct UInt {
 };
 
 template <size_t size>
-inline bool operator==(const UInt<size> &a, const UInt<size> &b) {
+bool operator==(const UInt<size> &a, const UInt<size> &b) {
   return std::memcmp(a.raw, b.raw, sizeof(a.raw)) == 0;
 }
 
 template <size_t size>
-inline td::UInt<size> operator^(const UInt<size> &a, const UInt<size> &b) {
+bool operator!=(const UInt<size> &a, const UInt<size> &b) {
+  return !(a == b);
+}
+
+template <size_t size>
+td::UInt<size> operator^(const UInt<size> &a, const UInt<size> &b) {
   td::UInt<size> res;
   for (size_t i = 0; i * 8 < size; i++) {
-    res.raw[i] = a.raw[i] ^ b.raw[i];
+    res.raw[i] = static_cast<uint8>(a.raw[i] ^ b.raw[i]);
   }
   return res;
 }
 
 template <size_t size>
-inline bool operator!=(const UInt<size> &a, const UInt<size> &b) {
-  return !(a == b);
-}
-
-template <size_t size>
-inline bool is_zero(const UInt<size> &a) {
+bool is_zero(const UInt<size> &a) {
   for (size_t i = 0; i * 8 < size; i++) {
     if (a.raw[i]) {
       return false;
@@ -80,15 +79,15 @@ inline bool is_zero(const UInt<size> &a) {
 }
 
 template <size_t size>
-inline int get_kth_bit(const UInt<size> &a, uint32 bit) {
+int get_kth_bit(const UInt<size> &a, uint32 bit) {
   uint8 b = a.raw[bit / 8];
   bit &= 7;
   return (b >> (7 - bit)) & 1;
 }
 
 template <size_t size>
-inline bool operator<(const UInt<size> &a, const UInt<size> &b) {
-  return memcmp(a.raw, b.raw, sizeof(a.raw)) < 0;
+bool operator<(const UInt<size> &a, const UInt<size> &b) {
+  return std::memcmp(a.raw, b.raw, sizeof(a.raw)) < 0;
 }
 
 using UInt128 = UInt<128>;

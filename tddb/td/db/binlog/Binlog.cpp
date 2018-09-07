@@ -14,7 +14,6 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/Clocks.h"
-#include "td/utils/port/Fd.h"
 #include "td/utils/port/path.h"
 #include "td/utils/port/Stat.h"
 #include "td/utils/Random.h"

@@ -5,13 +5,17 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
-#include "td/utils/Status.h"
+
+#include "td/utils/common.h"
+#include "td/utils/logging.h"
+
+#include <array>
 
 namespace td {
+
 namespace detail {
 template <class T, class InnerT>
 class SpanImpl {
- private:
   InnerT *data_{nullptr};
   size_t size_{0};
 
@@ -21,8 +25,6 @@ class SpanImpl {
   }
   SpanImpl(InnerT &data) : SpanImpl(&data, 1) {
   }
-  SpanImpl(const SpanImpl &other) = default;
-  SpanImpl &operator=(const SpanImpl &other) = default;
 
   template <class OtherInnerT>
   SpanImpl(const SpanImpl<T, OtherInnerT> &other) : SpanImpl(other.data(), other.size()) {
@@ -34,9 +36,9 @@ class SpanImpl {
   template <size_t N>
   SpanImpl(std::array<T, N> &arr) : SpanImpl(arr.data(), arr.size()) {
   }
-  SpanImpl(const std::vector<T> &v) : SpanImpl(v.data(), v.size()) {
+  SpanImpl(const vector<T> &v) : SpanImpl(v.data(), v.size()) {
   }
-  SpanImpl(std::vector<T> &v) : SpanImpl(v.data(), v.size()) {
+  SpanImpl(vector<T> &v) : SpanImpl(v.data(), v.size()) {
   }
 
   template <class OtherInnerT>
@@ -69,15 +71,17 @@ class SpanImpl {
     return *this;
   }
 
-  SpanImpl substr(size_t offset) {
+  SpanImpl substr(size_t offset) const {
     CHECK(offset <= size_);
     return SpanImpl(begin() + offset, size_ - offset);
   }
 };
 }  // namespace detail
+
 template <class T>
 using Span = detail::SpanImpl<T, const T>;
 
 template <class T>
 using MutableSpan = detail::SpanImpl<T, T>;
-};  // namespace td
+
+}  // namespace td

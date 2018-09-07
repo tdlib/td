@@ -11,8 +11,9 @@
 #ifdef TD_EVENTFD_WINDOWS
 
 #include "td/utils/common.h"
-#include "td/utils/port/EventFdBase.h"
+#include "td/utils/port/detail/NativeFd.h"
 #include "td/utils/port/detail/PollableFd.h"
+#include "td/utils/port/EventFdBase.h"
 #include "td/utils/Status.h"
 
 namespace td {

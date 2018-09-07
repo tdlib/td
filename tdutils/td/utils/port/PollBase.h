@@ -6,7 +6,6 @@
 //
 #pragma once
 
-#include "td/utils/port/Fd.h"
 #include "td/utils/port/detail/PollableFd.h"
 
 namespace td {

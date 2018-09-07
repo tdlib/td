@@ -175,11 +175,6 @@ void tuple_for_each(const std::tuple<Args...> &tuple, const F &func) {
   detail::tuple_for_each_impl(tuple, func, detail::IntRange<sizeof...(Args)>());
 }
 
-template <size_t N, class Arg, std::enable_if_t<N == 0> = 0>
-auto &&get_nth_argument(Arg &&arg) {
-  return std::forward<Arg>(arg);
-}
-
 template <size_t N, class Arg, class... Args, std::enable_if_t<N == 0, int> = 0>
 auto &&get_nth_argument(Arg &&arg, Args &&... args) {
   return std::forward<Arg>(arg);

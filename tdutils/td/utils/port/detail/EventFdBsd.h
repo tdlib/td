@@ -11,6 +11,7 @@
 #ifdef TD_EVENTFD_BSD
 
 #include "td/utils/common.h"
+#include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/EventFdBase.h"
 #include "td/utils/port/SocketFd.h"
 #include "td/utils/Status.h"

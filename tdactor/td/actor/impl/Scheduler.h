@@ -14,7 +14,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/MpscPollableQueue.h"
 #include "td/utils/ObjectPool.h"
-#include "td/utils/port/Fd.h"
+#include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/Slice.h"
 
 #include <atomic>
@@ -190,10 +190,8 @@ inline void Scheduler::inc_wait_generation() {
 
 template <ActorSendType send_type, class RunFuncT, class EventFuncT>
 void Scheduler::send_impl(const ActorId<> &actor_id, const RunFuncT &run_func, const EventFuncT &event_func) {
-  //CHECK(has_guard_ || );
   ActorInfo *actor_info = actor_id.get_actor_info();
   if (unlikely(actor_info == nullptr || close_flag_)) {
-    // LOG(ERROR) << "Invalid actor id";
     return;
   }
 

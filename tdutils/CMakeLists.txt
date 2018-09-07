@@ -44,6 +44,7 @@ set(TDUTILS_SOURCE
   td/utils/port/Stat.cpp
   td/utils/port/StdStreams.cpp
   td/utils/port/thread_local.cpp
+  td/utils/port/UdpSocketFd.cpp
   td/utils/port/wstring_convert.cpp
 
   td/utils/port/detail/Epoll.cpp
@@ -51,11 +52,11 @@ set(TDUTILS_SOURCE
   td/utils/port/detail/EventFdLinux.cpp
   td/utils/port/detail/EventFdWindows.cpp
   td/utils/port/detail/KQueue.cpp
+  td/utils/port/detail/NativeFd.cpp
   td/utils/port/detail/Poll.cpp
   td/utils/port/detail/PollableFd.cpp
   td/utils/port/detail/Select.cpp
   td/utils/port/detail/ThreadIdGuard.cpp
-  td/utils/port/UdpSocketFd.cpp
   td/utils/port/detail/WineventPoll.cpp
 
   ${TDMIME_AUTO}
@@ -117,7 +118,6 @@ set(TDUTILS_SOURCE
   td/utils/port/detail/EventFdWindows.h
   td/utils/port/detail/KQueue.h
   td/utils/port/detail/NativeFd.h
-  td/utils/port/detail/NativeFd.cpp
   td/utils/port/detail/Poll.h
   td/utils/port/detail/PollableFd.h
   td/utils/port/detail/Select.h
@@ -131,9 +131,9 @@ set(TDUTILS_SOURCE
   td/utils/benchmark.h
   td/utils/BigNum.h
   td/utils/buffer.h
-  td/utils/BufferedUdp.h
   td/utils/BufferedFd.h
   td/utils/BufferedReader.h
+  td/utils/BufferedUdp.h
   td/utils/ByteFlow.h
   td/utils/ChangesProcessor.h
   td/utils/Closure.h
@@ -141,8 +141,9 @@ set(TDUTILS_SOURCE
   td/utils/Container.h
   td/utils/Context.h
   td/utils/crypto.h
-  td/utils/Enumerator.h
+  td/utils/DecTree.h
   td/utils/Destructor.h
+  td/utils/Enumerator.h
   td/utils/FileLog.h
   td/utils/filesystem.h
   td/utils/find_boundary.h
@@ -209,12 +210,12 @@ set(TDUTILS_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/test/buffer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/crypto.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/Enumerator.cpp
-  #${CMAKE_CURRENT_SOURCE_DIR}/test/filesystem.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/test/filesystem.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/gzip.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/HazardPointers.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/heap.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/json.cpp
-  #${CMAKE_CURRENT_SOURCE_DIR}/test/misc.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/test/misc.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/MpmcQueue.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/MpmcWaiter.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/MpscLinkQueue.cpp

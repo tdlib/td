@@ -28,7 +28,6 @@ TEST(Buffer, buffer_builder) {
     builder.append(" B");
     ASSERT_EQ(builder.extract().as_slice(), "A hello B");
   }
-  //Slice slice(std::string());
   {
     std::string str = rand_string('a', 'z', 10000);
     auto splitted_str = rand_split(str);

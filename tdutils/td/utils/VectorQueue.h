@@ -5,15 +5,19 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
+
 #include "td/utils/Span.h"
+
+#include <utility>
 #include <vector>
 
 namespace td {
+
 template <class T>
 class VectorQueue {
  public:
   template <class S>
-  void push(S&& s) {
+  void push(S &&s) {
     vector_.push_back(std::forward<S>(s));
   }
   T pop() {
@@ -24,11 +28,11 @@ class VectorQueue {
     read_pos_ += n;
     try_shrink();
   }
-  T& front() {
+  T &front() {
     return vector_[read_pos_];
   }
-  T& back() {
-    vector_.back();
+  T &back() {
+    return vector_.back();
   }
   bool empty() const {
     return size() == 0;
@@ -36,10 +40,10 @@ class VectorQueue {
   size_t size() const {
     return vector_.size() - read_pos_;
   }
-  T* data() {
+  T *data() {
     return vector_.data() + read_pos_;
   }
-  const T* data() const {
+  const T *data() const {
     return vector_.data() + read_pos_;
   }
   Span<T> as_span() const {

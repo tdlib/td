@@ -15,10 +15,12 @@
 #include "td/utils/logging.h"
 #include "td/utils/Observer.h"
 #include "td/utils/port/FileFd.h"
+#include "td/utils/port/thread.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 
+#include <memory>
 #include <tuple>
 
 REGISTER_TESTS(actors_simple)
@@ -621,6 +623,7 @@ TEST(Actors, always_wait_for_mailbox) {
   scheduler.finish();
 }
 
+#if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
 TEST(Actors, send_from_other_threads) {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   ConcurrentScheduler scheduler;
@@ -628,7 +631,7 @@ TEST(Actors, send_from_other_threads) {
   int thread_n = 10;
   class Listener : public Actor {
    public:
-    Listener(int cnt) : cnt_(cnt) {
+    explicit Listener(int cnt) : cnt_(cnt) {
     }
     void dec() {
       if (--cnt_ == 0) {
@@ -656,3 +659,4 @@ TEST(Actors, send_from_other_threads) {
   }
   scheduler.finish();
 }
+#endif

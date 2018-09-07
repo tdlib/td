@@ -5,14 +5,14 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
-#include "td/utils/port/config.h"
-#include "td/utils/common.h"
 
+#include "td/utils/port/config.h"
+
+#include "td/utils/common.h"
 #include "td/utils/MovableValue.h"
+
 namespace td {
-class StringBuilder;
-}
-namespace td {
+
 class NativeFd {
  public:
 #if TD_PORT_POSIX
@@ -24,6 +24,7 @@ class NativeFd {
   NativeFd(NativeFd &&) = default;
   NativeFd &operator=(NativeFd &&) = default;
   explicit NativeFd(Raw raw);
+  NativeFd &operator=(const NativeFd &) = delete;
   NativeFd(Raw raw, bool nolog);
 #if TD_PORT_WINDOWS
   explicit NativeFd(SOCKET raw);
@@ -31,7 +32,7 @@ class NativeFd {
   ~NativeFd();
 
   explicit operator bool() const;
-  static constexpr Raw empty_raw();
+  static Raw empty_raw();
   Raw raw() const;
   Raw fd() const;
 #if TD_PORT_WINDOWS
@@ -52,5 +53,7 @@ class NativeFd {
 #endif
 };
 
+class StringBuilder;
 StringBuilder &operator<<(StringBuilder &sb, const NativeFd &fd);
+
 }  // namespace td

@@ -8,9 +8,9 @@
 
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/port/thread_local.h"
 #include "td/utils/Slice.h"
-#include "td/utils/misc.h"
 
 #include <atomic>
 #include <cstring>
@@ -638,7 +638,7 @@ class ChainBufferWriter {
   }
 
   // legacy
-  static ChainBufferWriter create_empty(size_t /*size*/ = 0) {
+  static ChainBufferWriter create_empty() {
     return ChainBufferWriter();
   }
 
@@ -764,6 +764,6 @@ class BufferBuilder {
   void append_slow(BufferSlice slice);
   bool prepend_inplace(Slice slice);
   void prepend_slow(BufferSlice slice);
-};  // namespace td
+};
 
 }  // namespace td

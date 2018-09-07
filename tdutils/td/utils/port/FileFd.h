@@ -9,9 +9,9 @@
 #include "td/utils/port/config.h"
 
 #include "td/utils/common.h"
-#include "td/utils/port/Fd.h"
-#include "td/utils/port/Stat.h"
+#include "td/utils/port/detail/NativeFd.h"
 #include "td/utils/port/detail/PollableFd.h"
+#include "td/utils/port/Stat.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
@@ -32,7 +32,7 @@ class FileFd {
   enum Flags : int32 { Write = 1, Read = 2, Truncate = 4, Create = 8, Append = 16, CreateNew = 32 };
 
   static Result<FileFd> open(CSlice filepath, int32 flags, int32 mode = 0600) TD_WARN_UNUSED_RESULT;
-  static Result<FileFd> from_native_fd(NativeFd fd) TD_WARN_UNUSED_RESULT;
+  static FileFd from_native_fd(NativeFd fd) TD_WARN_UNUSED_RESULT;
 
   Result<size_t> write(Slice slice) TD_WARN_UNUSED_RESULT;
   Result<size_t> read(MutableSlice slice) TD_WARN_UNUSED_RESULT;
@@ -64,7 +64,7 @@ class FileFd {
  private:
   std::unique_ptr<detail::FileFdImpl> impl_;
 
-  FileFd(std::unique_ptr<detail::FileFdImpl> impl);
+  explicit FileFd(std::unique_ptr<detail::FileFdImpl> impl);
 };
 
 }  // namespace td

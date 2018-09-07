@@ -11,6 +11,7 @@
 #ifdef TD_POLL_SELECT
 
 #include "td/utils/common.h"
+#include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/PollBase.h"
 
 #include <sys/select.h>

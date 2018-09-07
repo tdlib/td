@@ -15,10 +15,9 @@
 
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/sleep.h"
 #include "td/utils/StringBuilder.h"
-
-#include "td/utils/port/detail/PollableFd.h"
 
 #include <cstring>
 
@@ -134,7 +133,6 @@ Result<FileFd> FileFd::open(CSlice filepath, int32 flags, int32 mode) {
   if (native_fd < 0) {
     return OS_ERROR(PSLICE() << "File \"" << filepath << "\" can't be " << PrintFlags{flags});
   }
-
   return from_native_fd(NativeFd(native_fd));
 #elif TD_PORT_WINDOWS
   // TODO: support modes
@@ -187,15 +185,14 @@ Result<FileFd> FileFd::open(CSlice filepath, int32 flags, int32 mode) {
     offset.QuadPart = 0;
     auto set_pointer_res = SetFilePointerEx(handle, offset, nullptr, FILE_END);
     if (!set_pointer_res) {
-      auto res = OS_ERROR(PSLICE() << "Failed to seek to the end of file \"" << filepath << "\"");
-      return res;
+      return OS_ERROR(PSLICE() << "Failed to seek to the end of file \"" << filepath << "\"");
     }
   }
   return from_native_fd(std::move(native_fd));
 #endif
 }
 
-Result<FileFd> FileFd::from_native_fd(NativeFd native_fd) {
+FileFd FileFd::from_native_fd(NativeFd native_fd) {
   auto impl = std::make_unique<detail::FileFdImpl>();
   impl->info.set_native_fd(std::move(native_fd));
   impl->info.add_flags(PollFlags::Write());
@@ -508,9 +505,11 @@ Status FileFd::truncate_to_current_position(int64 current_position) {
   return Status::OK();
 }
 PollableFdInfo &FileFd::get_poll_info() {
+  CHECK(!empty());
   return impl_->info;
 }
 const PollableFdInfo &FileFd::get_poll_info() const {
+  CHECK(!empty());
   return impl_->info;
 }
 

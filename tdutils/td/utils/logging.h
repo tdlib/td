@@ -30,8 +30,6 @@
 #include "td/utils/StringBuilder.h"
 
 #include <atomic>
-#include <cstdlib>
-#include <iostream>
 #include <type_traits>
 
 #define PSTR_IMPL() ::td::Logger(::td::NullLog().ref(), ::td::LogOptions::plain(), 0)
@@ -81,10 +79,8 @@ inline bool no_return_func() {
 }
 
 // clang-format off
-#ifdef CHECK
-  #undef CHECK
-#endif
 #define DUMMY_CHECK(condition) LOG_IF(NEVER, !(condition))
+
 #ifdef TD_DEBUG
   #if TD_MSVC
     #define CHECK(condition)            \
@@ -96,10 +92,11 @@ inline bool no_return_func() {
 #else
   #define CHECK DUMMY_CHECK
 #endif
+
 #if NDEBUG
-#define DCHECK DUMMY_CHECK
+  #define DCHECK DUMMY_CHECK
 #else
-#define DCHECK CHECK
+  #define DCHECK CHECK
 #endif
 // clang-format on
 
@@ -134,7 +131,12 @@ struct LogOptions {
   bool add_info{true};
 
   static constexpr LogOptions plain() {
-    return {0, false, false};
+    return LogOptions{0, false, false};
+  }
+
+  constexpr LogOptions() = default;
+  constexpr LogOptions(int level, bool fix_newlines, bool add_info)
+      : level(level), fix_newlines(fix_newlines), add_info(add_info) {
   }
 };
 
@@ -151,7 +153,7 @@ class LogInterface {
   virtual void append(CSlice slice) {
     append(slice, -1);
   }
-  virtual void append(CSlice slice, int /*log_level_*/) {
+  virtual void append(CSlice slice, int /*log_level*/) {
     append(slice);
   }
   virtual void rotate() {
@@ -160,7 +162,7 @@ class LogInterface {
 
 class NullLog : public LogInterface {
  public:
-  void append(CSlice /*slice*/, int /*log_level_*/) override {
+  void append(CSlice /*slice*/, int /*log_level*/) override {
   }
   void rotate() override {
   }

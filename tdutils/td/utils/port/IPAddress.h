@@ -67,7 +67,7 @@ class IPAddress {
     sockaddr_in ipv4_addr_;
     sockaddr_in6 ipv6_addr_;
   };
-  socklen_t storage_size() {
+  static constexpr socklen_t storage_size() {
     return sizeof(ipv6_addr_);
   }
   bool is_valid_;

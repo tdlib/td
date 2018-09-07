@@ -9,6 +9,7 @@
 #include "td/utils/port/thread_local.h"
 
 namespace td {
+
 template <class Impl>
 class Context {
  public:

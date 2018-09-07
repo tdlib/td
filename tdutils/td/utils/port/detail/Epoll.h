@@ -11,7 +11,7 @@
 #ifdef TD_POLL_EPOLL
 
 #include "td/utils/common.h"
-#include "td/utils/port/Fd.h"
+#include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/PollBase.h"
 
 #include <sys/epoll.h>

@@ -281,7 +281,7 @@ inline bool operator!=(const Slice &a, const Slice &b) {
 }
 
 inline bool operator<(const Slice &a, const Slice &b) {
-  auto x = std::memcmp(a.data(), b.data(), std::min(a.size(), b.size()));
+  auto x = std::memcmp(a.data(), b.data(), td::min(a.size(), b.size()));
   if (x == 0) {
     return a.size() < b.size();
   }

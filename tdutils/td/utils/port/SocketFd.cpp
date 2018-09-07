@@ -7,8 +7,14 @@
 #include "td/utils/port/SocketFd.h"
 
 #include "td/utils/logging.h"
-
 #include "td/utils/misc.h"
+
+#if TD_PORT_WINDOWS
+#include "td/utils/buffer.h"
+#include "td/utils/port/detail/WineventPoll.h"
+#include "td/utils/SpinLock.h"
+#include "td/utils/VectorQueue.h"
+#endif
 
 #if TD_PORT_POSIX
 #include <arpa/inet.h>
@@ -20,19 +26,14 @@
 #include <unistd.h>
 #endif
 
-#if TD_PORT_WINDOWS
-#include "td/utils/buffer.h"
-#include "td/utils/port/detail/WineventPoll.h"
-#include "td/utils/SpinLock.h"
-#include "td/utils/VectorQueue.h"
-#endif
+#include <cstring>
 
 namespace td {
 namespace detail {
 #if TD_PORT_WINDOWS
 class SocketFdImpl : private IOCP::Callback {
  public:
-  SocketFdImpl(NativeFd native_fd) : info(std::move(native_fd)) {
+  explicit SocketFdImpl(NativeFd native_fd) : info(std::move(native_fd)) {
     VLOG(fd) << get_native_fd().io_handle() << " create from native_fd";
     get_poll_info().add_flags(PollFlags::Write());
     IOCP::get()->subscribe(get_native_fd(), this);
@@ -95,7 +96,6 @@ class SocketFdImpl : private IOCP::Callback {
     if (res == 0) {
       get_poll_info().clear_flags(PollFlags::Read());
     }
-    LOG(ERROR) << "GOT " << res;
     return res;
   }
   Status get_pending_error() {
@@ -138,7 +138,7 @@ class SocketFdImpl : private IOCP::Callback {
     if (status == 0) {
       return true;
     }
-    auto last_error = GetLastError();
+    auto last_error = WSAGetLastError();
     if (last_error == ERROR_IO_PENDING) {
       return true;
     }
@@ -271,7 +271,6 @@ class SocketFdImpl : private IOCP::Callback {
   }
   bool dec_refcnt() {
     if (--refcnt_ == 0) {
-      LOG(ERROR) << "DELETE";
       delete this;
       return true;
     }
@@ -318,7 +317,7 @@ static InitWSA init_wsa;
 class SocketFdImpl {
  public:
   PollableFdInfo info;
-  SocketFdImpl(NativeFd fd) : info(std::move(fd)) {
+  explicit SocketFdImpl(NativeFd fd) : info(std::move(fd)) {
   }
   PollableFdInfo &get_poll_info() {
     return info;

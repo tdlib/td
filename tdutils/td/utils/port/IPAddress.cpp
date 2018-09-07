@@ -369,16 +369,15 @@ Status IPAddress::init_sockaddr(sockaddr *addr, socklen_t len) {
   if (addr->sa_family == AF_INET6) {
     CHECK(len == sizeof(ipv6_addr_));
     std::memcpy(&ipv6_addr_, reinterpret_cast<sockaddr_in6 *>(addr), sizeof(ipv6_addr_));
-    LOG(DEBUG) << "Have ipv6 address " << get_ip_str() << " with port " << get_port();
   } else if (addr->sa_family == AF_INET) {
     CHECK(len == sizeof(ipv4_addr_));
     std::memcpy(&ipv4_addr_, reinterpret_cast<sockaddr_in *>(addr), sizeof(ipv4_addr_));
-    LOG(DEBUG) << "Have ipv4 address " << get_ip_str() << " with port " << get_port();
   } else {
     return Status::Error(PSLICE() << "Unknown " << tag("sa_family", addr->sa_family));
   }
 
   is_valid_ = true;
+  LOG(INFO) << "Have address " << get_ip_str() << " with port " << get_port();
   return Status::OK();
 }
 

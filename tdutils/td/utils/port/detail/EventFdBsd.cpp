@@ -11,8 +11,9 @@ char disable_linker_warning_about_empty_file_event_fd_bsd_cpp TD_UNUSED;
 #ifdef TD_EVENTFD_BSD
 
 #include "td/utils/logging.h"
-#include "td/utils/Slice.h"
+#include "td/utils/port/detail/NativeFd.h"
 #include "td/utils/port/SocketFd.h"
+#include "td/utils/Slice.h"
 
 #include <fcntl.h>
 #include <sys/socket.h>

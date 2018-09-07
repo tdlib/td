@@ -6,10 +6,16 @@
 //
 #include "td/utils/port/UdpSocketFd.h"
 
-#include "td/utils/port/SocketFd.h"
-#include "td/utils/logging.h"
+#include "td/utils/common.h"
 #include "td/utils/format.h"
+#include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/port/SocketFd.h"
+#include "td/utils/VectorQueue.h"
+
+#if TD_PORT_WINDOWS
+#include "td/utils/port/detail/WineventPoll.h"
+#endif
 
 #if TD_PORT_POSIX
 #include <arpa/inet.h>
@@ -25,11 +31,8 @@
 #endif
 #endif  // TD_PORT_POSIX
 
-#if TD_PORT_WINDOWS
-#include <Mswsock.h>
-#include "td/utils/port/Poll.h"
-#include "td/utils/VectorQueue.h"
-#endif
+#include <array>
+#include <cstring>
 
 namespace td {
 namespace detail {
@@ -64,7 +67,7 @@ class UdpSocketReceiveHelper {
     message.data.truncate(message_size);
     CHECK(message_size == message.data.size());
     if (message_size >= 1500) {
-      LOG(ERROR) << "received datagram of size " << message_size;
+      LOG(ERROR) << "Received datagram of size " << message_size;
     }
   }
 
@@ -94,7 +97,7 @@ class UdpSocketSendHelper {
 
 class UdpSocketFdImpl : private IOCP::Callback {
  public:
-  UdpSocketFdImpl(NativeFd fd) : info(std::move(fd)) {
+  explicit UdpSocketFdImpl(NativeFd fd) : info(std::move(fd)) {
     get_poll_info().add_flags(PollFlags::Write());
     IOCP::get()->subscribe(get_native_fd(), this);
     is_receive_active_ = true;
@@ -176,7 +179,7 @@ class UdpSocketFdImpl : private IOCP::Callback {
     if (status == 0) {
       return true;
     }
-    auto last_error = GetLastError();
+    auto last_error = WSAGetLastError();
     if (last_error == ERROR_IO_PENDING) {
       return true;
     }
@@ -296,7 +299,7 @@ class UdpSocketFdImpl : private IOCP::Callback {
     receive_buffer_.confirm_read((to_receive_.data.size() + 7) & ~7);
     {
       auto lock = lock_.lock();
-      LOG(ERROR) << format::escaped(to_receive_.data.as_slice());
+      // LOG(ERROR) << format::escaped(to_receive_.data.as_slice());
       receive_queue_.push(std::move(to_receive_));
     }
     get_poll_info().add_flags_from_poll(PollFlags::Read());
@@ -324,7 +327,6 @@ class UdpSocketFdImpl : private IOCP::Callback {
 
   bool dec_refcnt() {
     if (--refcnt_ == 0) {
-      LOG(ERROR) << "DELETE";
       delete this;
       return true;
     }
@@ -465,7 +467,7 @@ class UdpSocketSendHelper {
 
 class UdpSocketFdImpl {
  public:
-  UdpSocketFdImpl(NativeFd fd) : info(std::move(fd)) {
+  explicit UdpSocketFdImpl(NativeFd fd) : info(std::move(fd)) {
   }
   PollableFdInfo &get_poll_info() {
     return info;
@@ -581,11 +583,11 @@ class UdpSocketFdImpl {
       case EMSGSIZE:
       case EPERM:
         LOG(WARNING) << "Silently drop packet :( " << error;
-        //TODO: get errors from  MSG_ERRQUEUE  is possible
+        //TODO: get errors from MSG_ERRQUEUE is possible
         is_sent = true;
         return error;
 
-      // Some general problems, wich may be fixed in future
+      // Some general problems, which may be fixed in future
       case ENOMEM:
       case EDQUOT:
       case EFBIG:
@@ -658,7 +660,7 @@ class UdpSocketFdImpl {
     //};
     struct std::array<detail::UdpSocketSendHelper, 16> helpers;
     struct std::array<struct mmsghdr, 16> headers;
-    size_t to_send = std::min(messages.size(), headers.size());
+    size_t to_send = td::min(messages.size(), headers.size());
     for (size_t i = 0; i < to_send; i++) {
       helpers[i].to_native(messages[i], headers[i].msg_hdr);
       headers[i].msg_len = 0;
@@ -709,7 +711,7 @@ class UdpSocketFdImpl {
     //};
     struct std::array<detail::UdpSocketReceiveHelper, 16> helpers;
     struct std::array<struct mmsghdr, 16> headers;
-    size_t to_receive = std::min(messages.size(), headers.size());
+    size_t to_receive = td::min(messages.size(), headers.size());
     for (size_t i = 0; i < to_receive; i++) {
       helpers[i].to_native(messages[i], headers[i].msg_hdr);
       headers[i].msg_len = 0;
@@ -750,24 +752,6 @@ PollableFdInfo &UdpSocketFd::get_poll_info() {
 const PollableFdInfo &UdpSocketFd::get_poll_info() const {
   return impl_->get_poll_info();
 }
-
-//Result<UdpSocketFd> UdpSocketFd::from_native_fd(int fd) {
-//auto fd_guard = ScopeExit() + [fd]() { ::close(fd); };
-
-//TRY_STATUS(detail::set_native_socket_is_blocking(fd, false));
-
-//// TODO remove copypaste
-//int flags = 1;
-//setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char *>(&flags), sizeof(flags));
-//setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, reinterpret_cast<const char *>(&flags), sizeof(flags));
-//// TODO: SO_REUSEADDR, SO_KEEPALIVE, TCP_NODELAY, SO_SNDBUF, SO_RCVBUF, TCP_QUICKACK, SO_LINGER
-
-//fd_guard.dismiss();
-
-//UdpSocketFd socket;
-//socket.fd_ = Fd(fd, Fd::Mode::Owner);
-//return std::move(socket);
-//}
 
 Result<UdpSocketFd> UdpSocketFd::open(const IPAddress &address) {
   NativeFd native_fd{socket(address.get_address_family(), SOCK_DGRAM, IPPROTO_UDP)};

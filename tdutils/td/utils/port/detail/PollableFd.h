@@ -5,16 +5,17 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
-#include "td/utils/Status.h"
-#include "td/utils/List.h"
-#include "td/utils/Observer.h"
-#include "td/utils/MovableValue.h"
-#include "td/utils/SpinLock.h"
-#include "td/utils/format.h"
 
+#include "td/utils/format.h"
+#include "td/utils/List.h"
+#include "td/utils/MovableValue.h"
+#include "td/utils/Observer.h"
 #include "td/utils/port/detail/NativeFd.h"
+#include "td/utils/SpinLock.h"
+#include "td/utils/Status.h"
 
 #include <atomic>
+
 namespace td {
 class ObserverBase;
 
@@ -321,6 +322,7 @@ inline PollFlags PollableFd::get_flags_unsafe() const {
 inline const NativeFd &PollableFd::native_fd() const {
   return fd_info_->native_fd();
 }
+
 #if TD_PORT_POSIX
 template <class F>
 auto skip_eintr(F &&f) {

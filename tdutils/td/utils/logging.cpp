@@ -55,7 +55,7 @@ Logger::Logger(LogInterface &log, const LogOptions &options, int log_level, Slic
   if (log_level < 10) {
     sb_ << ' ';
   }
-  sb_ << log_level << "]";
+  sb_ << log_level << ']';
 
   // thread id
   auto thread_id = get_thread_id();
@@ -63,10 +63,10 @@ Logger::Logger(LogInterface &log, const LogOptions &options, int log_level, Slic
   if (thread_id < 10) {
     sb_ << ' ';
   }
-  sb_ << thread_id << "]";
+  sb_ << thread_id << ']';
 
   // timestamp
-  sb_ << "[" << StringBuilder::FixedDouble(Clocks::system(), 9) << "]";
+  sb_ << '[' << StringBuilder::FixedDouble(Clocks::system(), 9) << ']';
 
   // file : line
   if (!file_name.empty()) {
@@ -104,7 +104,7 @@ Logger::~Logger() {
       slice.back() = '\n';
     }
     while (slice.size() > 1 && slice[slice.size() - 2] == '\n') {
-      slice.back() = 0;
+      slice.back() = '\0';
       slice = MutableCSlice(slice.begin(), slice.begin() + slice.size() - 1);
     }
     log_.append(slice, log_level_);
