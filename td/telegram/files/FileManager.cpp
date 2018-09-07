@@ -813,7 +813,7 @@ Result<FileId> FileManager::register_file(FileData data, FileLocationSource file
 // 0 -- choose x
 // 1 -- choose y
 // 2 -- choose any
-static int merge_choose(const LocalFileLocation &x, const LocalFileLocation &y) {
+static int merge_choose_local_location(const LocalFileLocation &x, const LocalFileLocation &y) {
   int32 x_type = static_cast<int32>(x.type());
   int32 y_type = static_cast<int32>(y.type());
   if (x_type != y_type) {
@@ -822,7 +822,8 @@ static int merge_choose(const LocalFileLocation &x, const LocalFileLocation &y) 
   return 2;
 }
 
-static int merge_choose(const RemoteFileLocation &x, int8 x_source, const RemoteFileLocation &y, int8 y_source) {
+static int merge_choose_remote_location(const RemoteFileLocation &x, int8 x_source, const RemoteFileLocation &y,
+                                        int8 y_source) {
   int32 x_type = static_cast<int32>(x.type());
   int32 y_type = static_cast<int32>(y.type());
   if (x_type != y_type) {
@@ -836,7 +837,8 @@ static int merge_choose(const RemoteFileLocation &x, int8 x_source, const Remote
   }
   return 2;
 }
-static int merge_choose(const unique_ptr<FullGenerateFileLocation> &x, const unique_ptr<FullGenerateFileLocation> &y) {
+static int merge_choose_generate_location(const unique_ptr<FullGenerateFileLocation> &x,
+                                          const unique_ptr<FullGenerateFileLocation> &y) {
   int x_type = static_cast<int>(x != nullptr);
   int y_type = static_cast<int>(y != nullptr);
   if (x_type != y_type) {
@@ -969,10 +971,10 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   int trusted_by_source =
       static_cast<int>(static_cast<int8>(x_node->remote_source_) < static_cast<int8>(y_node->remote_source_));
 
-  int local_i = merge_choose(x_node->local_, y_node->local_);
-  int remote_i = merge_choose(x_node->remote_, static_cast<int8>(x_node->remote_source_), y_node->remote_,
-                              static_cast<int8>(y_node->remote_source_));
-  int generate_i = merge_choose(x_node->generate_, y_node->generate_);
+  int local_i = merge_choose_local_location(x_node->local_, y_node->local_);
+  int remote_i = merge_choose_remote_location(x_node->remote_, static_cast<int8>(x_node->remote_source_),
+                                              y_node->remote_, static_cast<int8>(y_node->remote_source_));
+  int generate_i = merge_choose_generate_location(x_node->generate_, y_node->generate_);
   int size_i = merge_choose_size(x_node->size_, y_node->size_);
   int expected_size_i = merge_choose_expected_size(x_node->expected_size_, y_node->expected_size_);
   int remote_name_i = merge_choose_name(x_node->remote_name_, y_node->remote_name_);
