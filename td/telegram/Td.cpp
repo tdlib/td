@@ -3495,7 +3495,7 @@ bool Td::is_internal_config_option(Slice name) {
     case 'd':
       return name == "dc_txt_domain_name";
     case 'e':
-      return name == "edit_time_limit" || name == "expect_blocking";
+      return name == "edit_time_limit";
     case 'l':
       return name == "language_pack_version";
     case 'm':
