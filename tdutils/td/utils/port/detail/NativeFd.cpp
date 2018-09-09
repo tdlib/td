@@ -67,6 +67,18 @@ NativeFd::Raw NativeFd::socket() const {
 }
 #endif
 
+Status NativeFd::set_is_blocking(bool is_blocking) const {
+#if TD_PORT_POSIX
+  if (fcntl(fd(), F_SETFL, is_blocking ? 0 : O_NONBLOCK) == -1) {
+#elif TD_PORT_WINDOWS
+  u_long mode = is_blocking;
+  if (ioctlsocket(socket(), FIONBIO, &mode) != 0) {
+#endif
+    return OS_SOCKET_ERROR("Failed to change socket flags");
+  }
+  return Status::OK();
+}
+
 void NativeFd::close() {
   if (!*this) {
     return;

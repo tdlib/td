@@ -119,8 +119,6 @@ class Fd {
   Result<size_t> write(Slice slice) TD_WARN_UNUSED_RESULT;
   Result<size_t> read(MutableSlice slice) TD_WARN_UNUSED_RESULT;
 
-  Status set_is_blocking(bool is_blocking);
-
 #if TD_PORT_POSIX
   void update_flags_notify(Flags flags);
   void clear_flags(Flags flags);

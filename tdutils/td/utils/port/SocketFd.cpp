@@ -433,18 +433,6 @@ void SocketFdImplDeleter::operator()(SocketFdImpl *impl) {
 
 #endif
 
-Status set_native_socket_is_blocking(const NativeFd &fd, bool is_blocking) {
-#if TD_PORT_POSIX
-  if (fcntl(fd.fd(), F_SETFL, is_blocking ? 0 : O_NONBLOCK) == -1) {
-#elif TD_PORT_WINDOWS
-  u_long mode = is_blocking;
-  if (ioctlsocket(fd.socket(), FIONBIO, &mode) != 0) {
-#endif
-    return OS_SOCKET_ERROR("Failed to change socket flags");
-  }
-  return Status::OK();
-}
-
 #if TD_PORT_POSIX
 Status get_socket_pending_error(const NativeFd &fd) {
   int error = 0;
@@ -470,7 +458,7 @@ SocketFd::~SocketFd() = default;
 SocketFd::SocketFd(std::unique_ptr<detail::SocketFdImpl> impl) : impl_(impl.release()) {
 }
 Result<SocketFd> SocketFd::from_native_fd(NativeFd fd) {
-  TRY_STATUS(detail::set_native_socket_is_blocking(fd, false));
+  TRY_STATUS(fd.set_is_blocking(false));
   auto sock = fd.socket();
 
   // TODO remove copypaste
@@ -492,10 +480,9 @@ Result<SocketFd> SocketFd::open(const IPAddress &address) {
   if (!native_fd) {
     return OS_SOCKET_ERROR("Failed to create a socket");
   }
+  TRY_STATUS(native_fd.set_is_blocking(false));
+
   auto sock = native_fd.socket();
-
-  TRY_STATUS(detail::set_native_socket_is_blocking(native_fd, false));
-
 #if TD_PORT_POSIX
   int flags = 1;
 #elif TD_PORT_WINDOWS

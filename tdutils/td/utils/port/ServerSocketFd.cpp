@@ -312,7 +312,7 @@ Result<ServerSocketFd> ServerSocketFd::open(int32 port, CSlice addr) {
     return OS_SOCKET_ERROR("Failed to create a socket");
   }
 
-  TRY_STATUS(detail::set_native_socket_is_blocking(fd, false));
+  TRY_STATUS(fd.set_is_blocking(false));
   auto sock = fd.socket();
 
   linger ling = {0, 0};

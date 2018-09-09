@@ -790,7 +790,7 @@ class CliClient final : public Actor {
     };
     stdin_reader_ = create_actor_on_scheduler<StdinReader>("stdin_reader", stdin_id, actor_shared(this, 1));
 #else
-    detail::set_native_socket_is_blocking(Stdin().get_native_fd(), false).ensure();
+    Stdin().get_native_fd().set_is_blocking(false).ensure();
 #ifdef USE_READLINE
     deactivate_readline();
     rl_callback_handler_install(prompt, cb_linehandler);

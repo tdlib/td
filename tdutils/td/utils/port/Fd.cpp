@@ -1078,10 +1078,6 @@ Status Fd::duplicate(const Fd &from, Fd &to) {
   return Status::Error("Not supported");
 }
 
-Status Fd::set_is_blocking(bool is_blocking) {
-  return detail::set_native_socket_is_blocking(get_native_socket(), is_blocking);
-}
-
 Fd::Fd(Type type, Mode mode, HANDLE handle) : mode_(mode), impl_(std::make_shared<FdImpl>(type, handle)) {
 }
 
@@ -1116,21 +1112,6 @@ class InitWSA {
 static InitWSA init_wsa;
 
 #endif
-
-namespace detail {
-#if TD_PORT_POSIX
-Status set_native_socket_is_blocking(int fd, bool is_blocking) {
-  if (fcntl(fd, F_SETFL, is_blocking ? 0 : O_NONBLOCK) == -1) {
-#elif TD_PORT_WINDOWS
-Status set_native_socket_is_blocking(SOCKET fd, bool is_blocking) {
-  u_long mode = is_blocking;
-  if (ioctlsocket(fd, FIONBIO, &mode) != 0) {
-#endif
-    return OS_SOCKET_ERROR("Failed to change socket flags");
-  }
-  return Status::OK();
-}
-}  // namespace detail
 
 }  // namespace td
 #endif

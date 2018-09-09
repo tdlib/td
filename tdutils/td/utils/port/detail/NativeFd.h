@@ -10,6 +10,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/MovableValue.h"
+#include "td/utils/Status.h"
 
 namespace td {
 
@@ -32,7 +33,9 @@ class NativeFd {
   ~NativeFd();
 
   explicit operator bool() const;
+
   static Raw empty_raw();
+
   Raw raw() const;
   Raw fd() const;
 #if TD_PORT_WINDOWS
@@ -41,6 +44,9 @@ class NativeFd {
 #elif TD_PORT_POSIX
   Raw socket() const;
 #endif
+
+  Status set_is_blocking(bool is_blocking) const;
+
   void close();
   Raw release();
 

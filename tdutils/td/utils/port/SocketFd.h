@@ -65,7 +65,6 @@ class SocketFd {
 };
 
 namespace detail {
-Status set_native_socket_is_blocking(const NativeFd &fd, bool is_blocking);
 #if TD_PORT_POSIX
 Status get_socket_pending_error(const NativeFd &fd);
 #endif
