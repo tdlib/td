@@ -222,8 +222,7 @@ class SocketFdImpl : private IOCP::Callback {
   }
 
   void on_error(Status status) {
-    VLOG(fd) << get_native_fd().io_handle() << " "
-             << "on error " << status;
+    VLOG(fd) << get_native_fd().io_handle() << " on error " << status;
     {
       auto lock = lock_.lock();
       pending_errors_.push(std::move(status));
@@ -431,9 +430,6 @@ void SocketFdImplDeleter::operator()(SocketFdImpl *impl) {
   delete impl;
 }
 
-#endif
-
-#if TD_PORT_POSIX
 Status get_socket_pending_error(const NativeFd &fd) {
   int error = 0;
   socklen_t errlen = sizeof(error);
@@ -447,39 +443,10 @@ Status get_socket_pending_error(const NativeFd &fd) {
   LOG(INFO) << "Can't load pending socket error: " << status;
   return status;
 }
+
 #endif
-}  // namespace detail
 
-SocketFd::SocketFd() = default;
-SocketFd::SocketFd(SocketFd &&) = default;
-SocketFd &SocketFd::operator=(SocketFd &&) = default;
-SocketFd::~SocketFd() = default;
-
-SocketFd::SocketFd(std::unique_ptr<detail::SocketFdImpl> impl) : impl_(impl.release()) {
-}
-Result<SocketFd> SocketFd::from_native_fd(NativeFd fd) {
-  TRY_STATUS(fd.set_is_blocking(false));
-  auto sock = fd.socket();
-
-  // TODO remove copypaste
-#if TD_PORT_POSIX
-  int flags = 1;
-#elif TD_PORT_WINDOWS
-  BOOL flags = TRUE;
-#endif
-  setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char *>(&flags), sizeof(flags));
-  setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, reinterpret_cast<const char *>(&flags), sizeof(flags));
-  setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<const char *>(&flags), sizeof(flags));
-  // TODO: SO_REUSEADDR, SO_KEEPALIVE, TCP_NODELAY, SO_SNDBUF, SO_RCVBUF, TCP_QUICKACK, SO_LINGER
-
-  return SocketFd(std::make_unique<detail::SocketFdImpl>(std::move(fd)));
-}
-
-Result<SocketFd> SocketFd::open(const IPAddress &address) {
-  NativeFd native_fd{socket(address.get_address_family(), SOCK_STREAM, 0)};
-  if (!native_fd) {
-    return OS_SOCKET_ERROR("Failed to create a socket");
-  }
+Status init_socket_options(NativeFd &native_fd) {
   TRY_STATUS(native_fd.set_is_blocking(false));
 
   auto sock = native_fd.socket();
@@ -493,8 +460,33 @@ Result<SocketFd> SocketFd::open(const IPAddress &address) {
   setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<const char *>(&flags), sizeof(flags));
   // TODO: SO_REUSEADDR, SO_KEEPALIVE, TCP_NODELAY, SO_SNDBUF, SO_RCVBUF, TCP_QUICKACK, SO_LINGER
 
+  return Status::OK();
+}
+
+}  // namespace detail
+
+SocketFd::SocketFd() = default;
+SocketFd::SocketFd(SocketFd &&) = default;
+SocketFd &SocketFd::operator=(SocketFd &&) = default;
+SocketFd::~SocketFd() = default;
+
+SocketFd::SocketFd(std::unique_ptr<detail::SocketFdImpl> impl) : impl_(impl.release()) {
+}
+
+Result<SocketFd> SocketFd::from_native_fd(NativeFd fd) {
+  TRY_STATUS(detail::init_socket_options(fd));
+  return SocketFd(std::make_unique<detail::SocketFdImpl>(std::move(fd)));
+}
+
+Result<SocketFd> SocketFd::open(const IPAddress &address) {
+  NativeFd native_fd{socket(address.get_address_family(), SOCK_STREAM, 0)};
+  if (!native_fd) {
+    return OS_SOCKET_ERROR("Failed to create a socket");
+  }
+  TRY_STATUS(detail::init_socket_options(native_fd));
+
 #if TD_PORT_POSIX
-  int e_connect = connect(sock, address.get_sockaddr(), static_cast<socklen_t>(address.get_sockaddr_len()));
+  int e_connect = connect(native_fd.fd(), address.get_sockaddr(), narrow_cast<socklen_t>(address.get_sockaddr_len()));
   if (e_connect == -1) {
     auto connect_errno = errno;
     if (connect_errno != EINPROGRESS) {
@@ -504,7 +496,7 @@ Result<SocketFd> SocketFd::open(const IPAddress &address) {
   return SocketFd(std::make_unique<detail::SocketFdImpl>(std::move(native_fd)));
 #elif TD_PORT_WINDOWS
   auto bind_addr = address.get_any_addr();
-  auto e_bind = bind(sock, bind_addr.get_sockaddr(), narrow_cast<int>(bind_addr.get_sockaddr_len()));
+  auto e_bind = bind(native_fd.socket(), bind_addr.get_sockaddr(), narrow_cast<int>(bind_addr.get_sockaddr_len()));
   if (e_bind != 0) {
     return OS_SOCKET_ERROR("Failed to bind a socket");
   }
