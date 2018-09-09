@@ -37,6 +37,7 @@ set(TDUTILS_SOURCE
   td/utils/port/FileFd.cpp
   td/utils/port/IPAddress.cpp
   td/utils/port/path.cpp
+  td/utils/port/PollFlags.cpp
   td/utils/port/ServerSocketFd.cpp
   td/utils/port/signals.cpp
   td/utils/port/sleep.cpp
@@ -54,7 +55,6 @@ set(TDUTILS_SOURCE
   td/utils/port/detail/KQueue.cpp
   td/utils/port/detail/NativeFd.cpp
   td/utils/port/detail/Poll.cpp
-  td/utils/port/detail/PollableFd.cpp
   td/utils/port/detail/Select.cpp
   td/utils/port/detail/ThreadIdGuard.cpp
   td/utils/port/detail/WineventPoll.cpp
@@ -100,6 +100,7 @@ set(TDUTILS_SOURCE
   td/utils/port/platform.h
   td/utils/port/Poll.h
   td/utils/port/PollBase.h
+  td/utils/port/PollFlags.h
   td/utils/port/RwMutex.h
   td/utils/port/ServerSocketFd.h
   td/utils/port/signals.h
