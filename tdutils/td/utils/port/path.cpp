@@ -77,7 +77,7 @@ Status rmrf(CSlice path) {
 #if TD_PORT_POSIX
 
 Status mkdir(CSlice dir, int32 mode) {
-  int mkdir_res = skip_eintr([&] { return ::mkdir(dir.c_str(), static_cast<mode_t>(mode)); });
+  int mkdir_res = detail::skip_eintr([&] { return ::mkdir(dir.c_str(), static_cast<mode_t>(mode)); });
   if (mkdir_res == 0) {
     return Status::OK();
   }
@@ -90,7 +90,7 @@ Status mkdir(CSlice dir, int32 mode) {
 }
 
 Status rename(CSlice from, CSlice to) {
-  int rename_res = skip_eintr([&] { return ::rename(from.c_str(), to.c_str()); });
+  int rename_res = detail::skip_eintr([&] { return ::rename(from.c_str(), to.c_str()); });
   if (rename_res < 0) {
     return OS_ERROR(PSLICE() << "Can't rename \"" << from << "\" to \"" << to << '\"');
   }
@@ -100,7 +100,7 @@ Status rename(CSlice from, CSlice to) {
 Result<string> realpath(CSlice slice, bool ignore_access_denied) {
   char full_path[PATH_MAX + 1];
   string res;
-  char *err = skip_eintr_cstr([&] { return ::realpath(slice.c_str(), full_path); });
+  char *err = detail::skip_eintr_cstr([&] { return ::realpath(slice.c_str(), full_path); });
   if (err != full_path) {
     if (ignore_access_denied && (errno == EACCES || errno == EPERM)) {
       res = slice.str();
@@ -122,7 +122,7 @@ Result<string> realpath(CSlice slice, bool ignore_access_denied) {
 }
 
 Status chdir(CSlice dir) {
-  int chdir_res = skip_eintr([&] { return ::chdir(dir.c_str()); });
+  int chdir_res = detail::skip_eintr([&] { return ::chdir(dir.c_str()); });
   if (chdir_res) {
     return OS_ERROR(PSLICE() << "Can't change directory to \"" << dir << '"');
   }
@@ -130,7 +130,7 @@ Status chdir(CSlice dir) {
 }
 
 Status rmdir(CSlice dir) {
-  int rmdir_res = skip_eintr([&] { return ::rmdir(dir.c_str()); });
+  int rmdir_res = detail::skip_eintr([&] { return ::rmdir(dir.c_str()); });
   if (rmdir_res) {
     return OS_ERROR(PSLICE() << "Can't delete directory \"" << dir << '"');
   }
@@ -138,7 +138,7 @@ Status rmdir(CSlice dir) {
 }
 
 Status unlink(CSlice path) {
-  int unlink_res = skip_eintr([&] { return ::unlink(path.c_str()); });
+  int unlink_res = detail::skip_eintr([&] { return ::unlink(path.c_str()); });
   if (unlink_res) {
     return OS_ERROR(PSLICE() << "Can't unlink \"" << path << '"');
   }
@@ -185,7 +185,7 @@ Result<std::pair<FileFd, string>> mkstemp(CSlice dir) {
   }
   file_pattern += "tmpXXXXXXXXXX";
 
-  int fd = skip_eintr([&] { return ::mkstemp(&file_pattern[0]); });
+  int fd = detail::skip_eintr([&] { return ::mkstemp(&file_pattern[0]); });
   if (fd == -1) {
     return OS_ERROR(PSLICE() << "Can't create temporary file \"" << file_pattern << '"');
   }
@@ -217,7 +217,7 @@ Result<string> mkdtemp(CSlice dir, Slice prefix) {
   dir_pattern.append(prefix.begin(), prefix.size());
   dir_pattern += "XXXXXX";
 
-  char *result = skip_eintr_cstr([&] { return ::mkdtemp(&dir_pattern[0]); });
+  char *result = detail::skip_eintr_cstr([&] { return ::mkdtemp(&dir_pattern[0]); });
   if (result == nullptr) {
     return OS_ERROR(PSLICE() << "Can't create temporary directory \"" << dir_pattern << '"');
   }

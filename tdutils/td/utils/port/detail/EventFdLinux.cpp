@@ -61,7 +61,7 @@ void EventFdLinux::release() {
   auto native_fd = impl_->info.native_fd().fd();
 
   auto result = [&]() -> Result<size_t> {
-    auto write_res = skip_eintr([&] { return ::write(native_fd, slice.begin(), slice.size()); });
+    auto write_res = detail::skip_eintr([&] { return ::write(native_fd, slice.begin(), slice.size()); });
     auto write_errno = errno;
     if (write_res >= 0) {
       return narrow_cast<size_t>(write_res);
@@ -84,7 +84,7 @@ void EventFdLinux::acquire() {
   auto native_fd = impl_->info.native_fd().fd();
   auto result = [&]() -> Result<size_t> {
     CHECK(slice.size() > 0);
-    auto read_res = skip_eintr([&] { return ::read(native_fd, slice.begin(), slice.size()); });
+    auto read_res = detail::skip_eintr([&] { return ::read(native_fd, slice.begin(), slice.size()); });
     auto read_errno = errno;
     if (read_res >= 0) {
       CHECK(read_res != 0);

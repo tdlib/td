@@ -503,7 +503,7 @@ class UdpSocketFdImpl {
     helper.to_native(message, message_header);
 
     auto native_fd = get_native_fd().fd();
-    auto recvmsg_res = skip_eintr([&] { return recvmsg(native_fd, &message_header, flags); });
+    auto recvmsg_res = detail::skip_eintr([&] { return recvmsg(native_fd, &message_header, flags); });
     auto recvmsg_errno = errno;
     if (recvmsg_res >= 0) {
       helper.from_native(message_header, recvmsg_res, message);
@@ -558,7 +558,7 @@ class UdpSocketFdImpl {
     helper.to_native(message, message_header);
 
     auto native_fd = get_native_fd().fd();
-    auto sendmsg_res = skip_eintr([&] { return sendmsg(native_fd, &message_header, 0); });
+    auto sendmsg_res = detail::skip_eintr([&] { return sendmsg(native_fd, &message_header, 0); });
     auto sendmsg_errno = errno;
     if (sendmsg_res >= 0) {
       is_sent = true;
@@ -668,7 +668,7 @@ class UdpSocketFdImpl {
 
     auto native_fd = get_native_fd().fd();
     auto sendmmsg_res =
-        skip_eintr([&] { return sendmmsg(native_fd, headers.data(), narrow_cast<unsigned int>(to_send), 0); });
+        detail::skip_eintr([&] { return sendmmsg(native_fd, headers.data(), narrow_cast<unsigned int>(to_send), 0); });
     auto sendmmsg_errno = errno;
     if (sendmmsg_res >= 0) {
       cnt = sendmmsg_res;
@@ -718,7 +718,7 @@ class UdpSocketFdImpl {
     }
 
     auto native_fd = get_native_fd().fd();
-    auto recvmmsg_res = skip_eintr(
+    auto recvmmsg_res = detail::skip_eintr(
         [&] { return recvmmsg(native_fd, headers.data(), narrow_cast<unsigned int>(to_receive), flags, nullptr); });
     auto recvmmsg_errno = errno;
     if (recvmmsg_res >= 0) {

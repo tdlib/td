@@ -316,7 +316,7 @@ Status Fd::get_pending_error() {
 
 Result<size_t> Fd::write_unsafe(Slice slice) {
   int native_fd = get_native_fd();
-  auto write_res = skip_eintr([&] { return ::write(native_fd, slice.begin(), slice.size()); });
+  auto write_res = detail::skip_eintr([&] { return ::write(native_fd, slice.begin(), slice.size()); });
   auto write_errno = errno;
   if (write_res >= 0) {
     return narrow_cast<size_t>(write_res);
@@ -326,7 +326,7 @@ Result<size_t> Fd::write_unsafe(Slice slice) {
 
 Result<size_t> Fd::write(Slice slice) {
   int native_fd = get_native_fd();
-  auto write_res = skip_eintr([&] { return ::write(native_fd, slice.begin(), slice.size()); });
+  auto write_res = detail::skip_eintr([&] { return ::write(native_fd, slice.begin(), slice.size()); });
   auto write_errno = errno;
   if (write_res >= 0) {
     return narrow_cast<size_t>(write_res);
@@ -372,7 +372,7 @@ Result<size_t> Fd::read(MutableSlice slice) {
   }
   int native_fd = get_native_fd();
   CHECK(slice.size() > 0);
-  auto read_res = skip_eintr([&] { return ::read(native_fd, slice.begin(), slice.size()); });
+  auto read_res = detail::skip_eintr([&] { return ::read(native_fd, slice.begin(), slice.size()); });
   auto read_errno = errno;
   if (read_res >= 0) {
     if (read_res == 0) {

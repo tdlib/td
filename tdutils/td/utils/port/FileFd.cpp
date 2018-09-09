@@ -129,7 +129,7 @@ Result<FileFd> FileFd::open(CSlice filepath, int32 flags, int32 mode) {
     native_flags |= O_APPEND;
   }
 
-  int native_fd = skip_eintr([&] { return ::open(filepath.c_str(), native_flags, static_cast<mode_t>(mode)); });
+  int native_fd = detail::skip_eintr([&] { return ::open(filepath.c_str(), native_flags, static_cast<mode_t>(mode)); });
   if (native_fd < 0) {
     return OS_ERROR(PSLICE() << "File \"" << filepath << "\" can't be " << PrintFlags{flags});
   }
@@ -202,7 +202,7 @@ FileFd FileFd::from_native_fd(NativeFd native_fd) {
 Result<size_t> FileFd::write(Slice slice) {
 #if TD_PORT_POSIX
   auto native_fd = get_native_fd().fd();
-  auto write_res = skip_eintr([&] { return ::write(native_fd, slice.begin(), slice.size()); });
+  auto write_res = detail::skip_eintr([&] { return ::write(native_fd, slice.begin(), slice.size()); });
   if (write_res >= 0) {
     return narrow_cast<size_t>(write_res);
   }
@@ -231,7 +231,7 @@ Result<size_t> FileFd::write(Slice slice) {
 Result<size_t> FileFd::read(MutableSlice slice) {
 #if TD_PORT_POSIX
   auto native_fd = get_native_fd().fd();
-  auto read_res = skip_eintr([&] { return ::read(native_fd, slice.begin(), slice.size()); });
+  auto read_res = detail::skip_eintr([&] { return ::read(native_fd, slice.begin(), slice.size()); });
   auto read_errno = errno;
 
   if (read_res >= 0) {
@@ -271,7 +271,7 @@ Result<size_t> FileFd::pwrite(Slice slice, int64 offset) {
 #if TD_PORT_POSIX
   auto native_fd = get_native_fd().fd();
   TRY_RESULT(offset_off_t, narrow_cast_safe<off_t>(offset));
-  auto pwrite_res = skip_eintr([&] { return ::pwrite(native_fd, slice.begin(), slice.size(), offset_off_t); });
+  auto pwrite_res = detail::skip_eintr([&] { return ::pwrite(native_fd, slice.begin(), slice.size(), offset_off_t); });
   if (pwrite_res >= 0) {
     return narrow_cast<size_t>(pwrite_res);
   }
@@ -309,7 +309,7 @@ Result<size_t> FileFd::pread(MutableSlice slice, int64 offset) {
 #if TD_PORT_POSIX
   auto native_fd = get_native_fd().fd();
   TRY_RESULT(offset_off_t, narrow_cast_safe<off_t>(offset));
-  auto pread_res = skip_eintr([&] { return ::pread(native_fd, slice.begin(), slice.size(), offset_off_t); });
+  auto pread_res = detail::skip_eintr([&] { return ::pread(native_fd, slice.begin(), slice.size(), offset_off_t); });
   if (pread_res >= 0) {
     return narrow_cast<size_t>(pread_res);
   }
@@ -481,7 +481,7 @@ Status FileFd::seek(int64 position) {
   CHECK(!empty());
 #if TD_PORT_POSIX
   TRY_RESULT(position_off_t, narrow_cast_safe<off_t>(position));
-  if (skip_eintr([&] { return ::lseek(get_native_fd().fd(), position_off_t, SEEK_SET); }) < 0) {
+  if (detail::skip_eintr([&] { return ::lseek(get_native_fd().fd(), position_off_t, SEEK_SET); }) < 0) {
 #elif TD_PORT_WINDOWS
   LARGE_INTEGER offset;
   offset.QuadPart = position;
@@ -496,7 +496,7 @@ Status FileFd::truncate_to_current_position(int64 current_position) {
   CHECK(!empty());
 #if TD_PORT_POSIX
   TRY_RESULT(current_position_off_t, narrow_cast_safe<off_t>(current_position));
-  if (skip_eintr([&] { return ::ftruncate(get_native_fd().fd(), current_position_off_t); }) < 0) {
+  if (detail::skip_eintr([&] { return ::ftruncate(get_native_fd().fd(), current_position_off_t); }) < 0) {
 #elif TD_PORT_WINDOWS
   if (SetEndOfFile(get_native_fd().io_handle()) == 0) {
 #endif
