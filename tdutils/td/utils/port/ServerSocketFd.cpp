@@ -93,7 +93,7 @@ class ServerSocketFdImpl : private IOCP::Callback {
   bool close_flag_{false};
   std::atomic<int> refcnt_{1};
   bool is_read_active_{false};
-  OVERLAPPED read_overlapped_;
+  WSAOVERLAPPED read_overlapped_;
 
   char close_overlapped_;
 
@@ -126,17 +126,14 @@ class ServerSocketFdImpl : private IOCP::Callback {
     accept_socket_ = NativeFd(socket(socket_family_, SOCK_STREAM, 0));
     std::memset(&read_overlapped_, 0, sizeof(read_overlapped_));
     VLOG(fd) << get_native_fd().io_handle() << " start accept";
-    auto status = AcceptEx(get_native_fd().socket(), accept_socket_.socket(), addr_buf_, 0, MAX_ADDR_SIZE,
+    BOOL status = AcceptEx(get_native_fd().socket(), accept_socket_.socket(), addr_buf_, 0, MAX_ADDR_SIZE,
                            MAX_ADDR_SIZE, nullptr, &read_overlapped_);
-    if (check_status(status, "Failed to accept connection")) {
+    if (status == TRUE || check_status("Failed to accept connection")) {
       inc_refcnt();
       is_read_active_ = true;
     }
   }
-  bool check_status(DWORD status, Slice message) {
-    if (status == 0) {
-      return true;
-    }
+  bool check_status(Slice message) {
     auto last_error = WSAGetLastError();
     if (last_error == ERROR_IO_PENDING) {
       return true;
@@ -164,7 +161,7 @@ class ServerSocketFdImpl : private IOCP::Callback {
     get_poll_info().add_flags_from_poll(PollFlags::Error());
   }
 
-  void on_iocp(Result<size_t> r_size, OVERLAPPED *overlapped) override {
+  void on_iocp(Result<size_t> r_size, WSAOVERLAPPED *overlapped) override {
     // called from other thread
     if (dec_refcnt() || close_flag_) {
       return;
@@ -180,7 +177,7 @@ class ServerSocketFdImpl : private IOCP::Callback {
       return on_read();
     }
 
-    if (overlapped == reinterpret_cast<OVERLAPPED *>(&close_overlapped_)) {
+    if (overlapped == reinterpret_cast<WSAOVERLAPPED *>(&close_overlapped_)) {
       return on_close();
     }
     UNREACHABLE();
@@ -192,7 +189,7 @@ class ServerSocketFdImpl : private IOCP::Callback {
   }
   void notify_iocp_close() {
     VLOG(fd) << get_native_fd().io_handle() << " notify_close";
-    IOCP::get()->post(0, this, reinterpret_cast<OVERLAPPED *>(&close_overlapped_));
+    IOCP::get()->post(0, this, reinterpret_cast<WSAOVERLAPPED *>(&close_overlapped_));
   }
 };
 void ServerSocketFdImplDeleter::operator()(ServerSocketFdImpl *impl) {

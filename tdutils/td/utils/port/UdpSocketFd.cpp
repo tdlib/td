@@ -162,7 +162,7 @@ class UdpSocketFdImpl : private IOCP::Callback {
   bool is_send_active_{false};
   bool is_send_waiting_{false};
   VectorQueue<UdpMessage> send_queue_;
-  OVERLAPPED send_overlapped_;
+  WSAOVERLAPPED send_overlapped_;
 
   bool is_receive_active_{false};
   VectorQueue<UdpMessage> receive_queue_;
@@ -174,14 +174,11 @@ class UdpSocketFdImpl : private IOCP::Callback {
   BufferSlice receive_buffer_;
 
   UdpMessage to_send_;
-  OVERLAPPED receive_overlapped_;
+  WSAOVERLAPPED receive_overlapped_;
 
   char close_overlapped_;
 
-  bool check_status(DWORD status, Slice message) {
-    if (status == 0) {
-      return true;
-    }
+  bool check_status(Slice message) {
     auto last_error = WSAGetLastError();
     if (last_error == ERROR_IO_PENDING) {
       return true;
@@ -214,7 +211,7 @@ class UdpSocketFdImpl : private IOCP::Callback {
     }
 
     auto status = WSARecvMsgPtr(get_native_fd().socket(), &receive_message_, nullptr, &receive_overlapped_, nullptr);
-    if (check_status(status, "receive")) {
+    if (status == 0 || check_status("WSARecvMsg failed")) {
       inc_refcnt();
       is_receive_active_ = true;
     }
@@ -236,13 +233,13 @@ class UdpSocketFdImpl : private IOCP::Callback {
     UdpSocketSendHelper send_helper;
     send_helper.to_native(to_send_, message);
     auto status = WSASendMsg(get_native_fd().socket(), &message, 0, nullptr, &send_overlapped_, nullptr);
-    if (check_status(status, "send")) {
+    if (status == 0 || check_status("WSASendMsg failed")) {
       inc_refcnt();
       is_send_active_ = true;
     }
   }
 
-  void on_iocp(Result<size_t> r_size, OVERLAPPED *overlapped) override {
+  void on_iocp(Result<size_t> r_size, WSAOVERLAPPED *overlapped) override {
     // called from other thread
     if (dec_refcnt() || close_flag_) {
       VLOG(fd) << "ignore iocp (file is closing)";
@@ -268,15 +265,14 @@ class UdpSocketFdImpl : private IOCP::Callback {
     if (overlapped == &receive_overlapped_) {
       return on_receive(size);
     }
-    if (overlapped == reinterpret_cast<OVERLAPPED *>(&close_overlapped_)) {
+    if (overlapped == reinterpret_cast<WSAOVERLAPPED *>(&close_overlapped_)) {
       return on_close();
     }
     UNREACHABLE();
   }
 
   void on_error(Status status) {
-    VLOG(fd) << get_native_fd().io_handle() << " "
-             << "on error " << status;
+    VLOG(fd) << get_native_fd().io_handle() << " on error " << status;
     {
       auto lock = lock_.lock();
       pending_errors_.push(std::move(status));
@@ -346,11 +342,11 @@ class UdpSocketFdImpl : private IOCP::Callback {
     IOCP::get()->post(0, this, nullptr);
   }
   void notify_iocp_close() {
-    IOCP::get()->post(0, this, reinterpret_cast<OVERLAPPED *>(&close_overlapped_));
+    IOCP::get()->post(0, this, reinterpret_cast<WSAOVERLAPPED *>(&close_overlapped_));
   }
   void notify_iocp_connected() {
     inc_refcnt();
-    IOCP::get()->post(0, this, reinterpret_cast<OVERLAPPED *>(&receive_overlapped_));
+    IOCP::get()->post(0, this, reinterpret_cast<WSAOVERLAPPED *>(&receive_overlapped_));
   }
 };
 

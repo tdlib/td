@@ -34,12 +34,12 @@ class IOCP final : public Context<IOCP> {
   class Callback {
    public:
     virtual ~Callback() = default;
-    virtual void on_iocp(Result<size_t> r_size, OVERLAPPED *overlapped) = 0;
+    virtual void on_iocp(Result<size_t> r_size, WSAOVERLAPPED *overlapped) = 0;
   };
 
   void init();
   void subscribe(const NativeFd &fd, Callback *callback);
-  void post(size_t size, Callback *callback, OVERLAPPED *overlapped);
+  void post(size_t size, Callback *callback, WSAOVERLAPPED *overlapped);
   void loop();
   void interrupt_loop();
   void clear();

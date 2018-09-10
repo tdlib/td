@@ -63,7 +63,7 @@ class SocketFdImpl : private IOCP::Callback {
     auto status = ConnectExPtr(get_native_fd().socket(), addr.get_sockaddr(), narrow_cast<int>(addr.get_sockaddr_len()),
                                nullptr, 0, nullptr, &read_overlapped_);
 
-    if (!check_status(status, "Failed to connect")) {
+    if (status == TRUE || !check_status("Failed to connect")) {
       is_read_active_ = false;
       dec_refcnt();
     }
@@ -131,21 +131,18 @@ class SocketFdImpl : private IOCP::Callback {
   bool is_read_active_{false};
   ChainBufferWriter input_writer_;
   ChainBufferReader input_reader_ = input_writer_.extract_reader();
-  OVERLAPPED read_overlapped_;
+  WSAOVERLAPPED read_overlapped_;
   VectorQueue<Status> pending_errors_;
 
   bool is_write_active_{false};
   std::atomic<bool> is_write_waiting_{false};
   ChainBufferWriter output_writer_;
   ChainBufferReader output_reader_ = output_writer_.extract_reader();
-  OVERLAPPED write_overlapped_;
+  WSAOVERLAPPED write_overlapped_;
 
   char close_overlapped_;
 
-  bool check_status(DWORD status, Slice message) {
-    if (status == 0) {
-      return true;
-    }
+  bool check_status(Slice message) {
     auto last_error = WSAGetLastError();
     if (last_error == ERROR_IO_PENDING) {
       return true;
@@ -162,9 +159,12 @@ class SocketFdImpl : private IOCP::Callback {
     }
     std::memset(&read_overlapped_, 0, sizeof(read_overlapped_));
     auto dest = input_writer_.prepare_append();
-    auto status =
-        ReadFile(get_native_fd().io_handle(), dest.data(), narrow_cast<DWORD>(dest.size()), nullptr, &read_overlapped_);
-    if (check_status(status, "Failed to read from connection")) {
+    WSABUF buf;
+    buf.len = narrow_cast<ULONG>(dest.size());
+    buf.buf = dest.data();
+    DWORD flags = 0;
+    int status = WSARecv(get_native_fd().socket(), &buf, 1, nullptr, &flags, &read_overlapped_, nullptr);
+    if (status == 0 || check_status("Failed to read from connection")) {
       inc_refcnt();
       is_read_active_ = true;
     }
@@ -189,15 +189,17 @@ class SocketFdImpl : private IOCP::Callback {
     }
     auto dest = output_reader_.prepare_read();
     std::memset(&write_overlapped_, 0, sizeof(write_overlapped_));
-    auto status = WriteFile(get_native_fd().io_handle(), dest.data(), narrow_cast<DWORD>(dest.size()), nullptr,
-                            &write_overlapped_);
-    if (check_status(status, "Failed to write to connection")) {
+    WSABUF buf;
+    buf.len = narrow_cast<ULONG>(dest.size());
+    buf.buf = const_cast<CHAR *>(dest.data());
+    int status = WSASend(get_native_fd().socket(), &buf, 1, nullptr, 0, &write_overlapped_, nullptr);
+    if (status == 0 || check_status("Failed to write to connection")) {
       inc_refcnt();
       is_write_active_ = true;
     }
   }
 
-  void on_iocp(Result<size_t> r_size, OVERLAPPED *overlapped) override {
+  void on_iocp(Result<size_t> r_size, WSAOVERLAPPED *overlapped) override {
     // called from other thread
     if (dec_refcnt() || close_flag_) {
       VLOG(fd) << "ignore iocp (file is closing)";
@@ -223,7 +225,7 @@ class SocketFdImpl : private IOCP::Callback {
     if (overlapped == &read_overlapped_) {
       return on_read(size);
     }
-    if (overlapped == reinterpret_cast<OVERLAPPED *>(&close_overlapped_)) {
+    if (overlapped == reinterpret_cast<WSAOVERLAPPED *>(&close_overlapped_)) {
       return on_close();
     }
     UNREACHABLE();
@@ -277,6 +279,7 @@ class SocketFdImpl : private IOCP::Callback {
     info.set_native_fd({});
   }
   bool dec_refcnt() {
+    VLOG(fd) << get_native_fd().io_handle() << " dec_refcnt from " << refcnt_;
     if (--refcnt_ == 0) {
       delete this;
       return true;
@@ -286,6 +289,7 @@ class SocketFdImpl : private IOCP::Callback {
   void inc_refcnt() {
     CHECK(refcnt_ != 0);
     refcnt_++;
+    VLOG(fd) << get_native_fd().io_handle() << " inc_refcnt to " << refcnt_;
   }
 
   void notify_iocp_write() {
@@ -293,11 +297,11 @@ class SocketFdImpl : private IOCP::Callback {
     IOCP::get()->post(0, this, nullptr);
   }
   void notify_iocp_close() {
-    IOCP::get()->post(0, this, reinterpret_cast<OVERLAPPED *>(&close_overlapped_));
+    IOCP::get()->post(0, this, reinterpret_cast<WSAOVERLAPPED *>(&close_overlapped_));
   }
   void notify_iocp_connected() {
     inc_refcnt();
-    IOCP::get()->post(0, this, reinterpret_cast<OVERLAPPED *>(&read_overlapped_));
+    IOCP::get()->post(0, this, &read_overlapped_);
   }
 };
 

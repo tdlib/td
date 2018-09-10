@@ -28,8 +28,9 @@ void IOCP::loop() {
   while (true) {
     DWORD bytes = 0;
     ULONG_PTR key = 0;
-    OVERLAPPED *overlapped = nullptr;
-    BOOL ok = GetQueuedCompletionStatus(iocp_handle_.io_handle(), &bytes, &key, &overlapped, 1000);
+    WSAOVERLAPPED *overlapped = nullptr;
+    BOOL ok = GetQueuedCompletionStatus(iocp_handle_.io_handle(), &bytes, &key,
+                                        reinterpret_cast<OVERLAPPED **>(&overlapped), 1000);
     if (bytes || key || overlapped) {
       // LOG(ERROR) << "Got iocp " << bytes << " " << key << " " << overlapped;
     }
@@ -80,8 +81,9 @@ void IOCP::subscribe(const NativeFd &native_fd, Callback *callback) {
   CHECK(iocp_handle == iocp_handle_.io_handle()) << iocp_handle << " " << iocp_handle_.io_handle();
 }
 
-void IOCP::post(size_t size, Callback *callback, OVERLAPPED *overlapped) {
-  PostQueuedCompletionStatus(iocp_handle_.io_handle(), DWORD(size), reinterpret_cast<ULONG_PTR>(callback), overlapped);
+void IOCP::post(size_t size, Callback *callback, WSAOVERLAPPED *overlapped) {
+  PostQueuedCompletionStatus(iocp_handle_.io_handle(), DWORD(size), reinterpret_cast<ULONG_PTR>(callback),
+                             reinterpret_cast<OVERLAPPED *>(overlapped));
 }
 
 void WineventPoll::init() {
