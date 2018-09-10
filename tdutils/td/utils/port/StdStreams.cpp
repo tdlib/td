@@ -53,7 +53,6 @@ class BufferedStdinImpl {
  public:
   BufferedStdinImpl() {
     file_fd_ = FileFd::from_native_fd(NativeFd(Stdin().get_native_fd().raw()));
-    file_fd_.get_native_fd().set_is_blocking(false);
     read_thread_ = td::thread([this] { this->read_loop(); });
   }
   ~BufferedStdinImpl() {
