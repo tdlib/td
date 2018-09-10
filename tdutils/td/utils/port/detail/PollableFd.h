@@ -62,6 +62,11 @@ inline PollableFd PollableFdRef::lock() {
 class PollableFdInfo : private ListNode {
  public:
   PollableFdInfo() = default;
+  PollableFdInfo(const PollableFdInfo &) = delete;
+  PollableFdInfo &operator=(const PollableFdInfo &) = delete;
+  PollableFdInfo(PollableFdInfo &&) = delete;
+  PollableFdInfo &operator=(PollableFdInfo &&) = delete;
+
   PollableFd extract_pollable_fd(ObserverBase *observer) {
     VLOG(fd) << native_fd() << " extract pollable fd " << tag("observer", observer);
     CHECK(!empty());
