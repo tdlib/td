@@ -127,7 +127,7 @@ class TdProxy : public Actor {
 
   void start_up() override {
     auto &fd = input_queue_->reader_get_event_fd();
-    ::td::subscribe(fd.get_poll_info().extract_pollable_fd(this), PollFlags::Read());
+    Scheduler::subscribe(fd.get_poll_info().extract_pollable_fd(this), PollFlags::Read());
 
     class Callback : public TdCallback {
      public:
@@ -189,7 +189,7 @@ class TdProxy : public Actor {
 
   void tear_down() override {
     auto &fd = input_queue_->reader_get_event_fd();
-    ::td::unsubscribe(fd.get_poll_info().get_pollable_fd_ref());
+    Scheduler::unsubscribe(fd.get_poll_info().get_pollable_fd_ref());
   }
 };
 

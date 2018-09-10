@@ -259,15 +259,15 @@ void Scheduler::send(ActorRef actor_ref, Event &&event) {
 }
 
 inline void Scheduler::subscribe(PollableFd fd, PollFlags flags) {
-  poll_.subscribe(std::move(fd), flags);
+  instance()->poll_.subscribe(std::move(fd), flags);
 }
 
 inline void Scheduler::unsubscribe(PollableFdRef fd) {
-  poll_.unsubscribe(std::move(fd));
+  instance()->poll_.unsubscribe(std::move(fd));
 }
 
 inline void Scheduler::unsubscribe_before_close(PollableFdRef fd) {
-  poll_.unsubscribe_before_close(std::move(fd));
+  instance()->poll_.unsubscribe_before_close(std::move(fd));
 }
 
 inline void Scheduler::yield_actor(Actor *actor) {
@@ -357,18 +357,6 @@ inline void Scheduler::run(double timeout) {
 }
 
 /*** Interface to current scheduler ***/
-inline void subscribe(PollableFd fd, PollFlags flags) {
-  Scheduler::instance()->subscribe(std::move(fd), flags);
-}
-
-inline void unsubscribe(PollableFdRef fd) {
-  Scheduler::instance()->unsubscribe(std::move(fd));
-}
-
-inline void unsubscribe_before_close(PollableFdRef fd) {
-  Scheduler::instance()->unsubscribe_before_close(std::move(fd));
-}
-
 template <class ActorT, class... Args>
 ActorOwn<ActorT> create_actor(Slice name, Args &&... args) {
   return Scheduler::instance()->create_actor<ActorT>(name, std::forward<Args>(args)...);

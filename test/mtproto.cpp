@@ -95,12 +95,12 @@ class TestPingActor : public Actor {
                                                  mtproto::TransportType{mtproto::TransportType::Tcp, 0, ""}, nullptr),
         3);
 
-    subscribe(ping_connection_->get_poll_info().extract_pollable_fd(this));
+    Scheduler::subscribe(ping_connection_->get_poll_info().extract_pollable_fd(this));
     set_timeout_in(10);
     yield();
   }
   void tear_down() override {
-    unsubscribe_before_close(ping_connection_->get_poll_info().get_pollable_fd_ref());
+    Scheduler::unsubscribe_before_close(ping_connection_->get_poll_info().get_pollable_fd_ref());
     ping_connection_->close();
     Scheduler::instance()->finish();
   }
@@ -226,8 +226,8 @@ class HandshakeTestActor : public Actor {
 
       wait_for_result_ = true;
       create_actor<HandshakeActor>(
-          "HandshakeActor", std::move(handshake_), std::move(raw_connection_), std::make_unique<HandshakeContext>(), 10.0,
-          PromiseCreator::lambda([self = actor_id(this)](Result<std::unique_ptr<RawConnection>> raw_connection) {
+          "HandshakeActor", std::move(handshake_), std::move(raw_connection_), std::make_unique<HandshakeContext>(),
+          10.0, PromiseCreator::lambda([self = actor_id(this)](Result<std::unique_ptr<RawConnection>> raw_connection) {
             send_closure(self, &HandshakeTestActor::got_connection, std::move(raw_connection), 1);
           }),
           PromiseCreator::lambda([self = actor_id(this)](Result<std::unique_ptr<AuthKeyHandshake>> handshake) {

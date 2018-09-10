@@ -32,7 +32,7 @@ void HandshakeActor::close() {
 }
 
 void HandshakeActor::start_up() {
-  subscribe(connection_->get_poll_info().extract_pollable_fd(this));
+  Scheduler::subscribe(connection_->get_poll_info().extract_pollable_fd(this));
   set_timeout_in(timeout_);
   yield();
 }
@@ -58,7 +58,7 @@ void HandshakeActor::return_connection(Status status) {
   if (status.is_error()) {
     status = Status::Error(status.code(), PSLICE() << status.message() << " : " << raw_connection->debug_str_);
   }
-  unsubscribe(raw_connection->get_poll_info().get_pollable_fd_ref());
+  Scheduler::unsubscribe(raw_connection->get_poll_info().get_pollable_fd_ref());
   if (raw_connection_promise_) {
     if (status.is_error()) {
       if (raw_connection->stats_callback()) {

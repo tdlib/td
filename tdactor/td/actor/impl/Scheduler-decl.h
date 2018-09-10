@@ -108,9 +108,9 @@ class Scheduler {
   }
   void before_tail_send(const ActorId<> &actor_id);
 
-  void subscribe(PollableFd fd, PollFlags flags = PollFlags::ReadWrite());
-  void unsubscribe(PollableFdRef fd);
-  void unsubscribe_before_close(PollableFdRef fd);
+  static void subscribe(PollableFd fd, PollFlags flags = PollFlags::ReadWrite());
+  static void unsubscribe(PollableFdRef fd);
+  static void unsubscribe_before_close(PollableFdRef fd);
 
   void yield_actor(Actor *actor);
   void stop_actor(Actor *actor);
@@ -240,10 +240,6 @@ class Scheduler {
 };
 
 /*** Interface to current scheduler ***/
-void subscribe(PollableFd fd, PollFlags flags = PollFlags::ReadWrite());
-void unsubscribe(PollableFdRef fd);
-void unsubscribe_before_close(PollableFdRef fd);
-
 template <class ActorT, class... Args>
 TD_WARN_UNUSED_RESULT ActorOwn<ActorT> create_actor(Slice name, Args &&... args);
 template <class ActorT, class... Args>

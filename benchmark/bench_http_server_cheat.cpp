@@ -39,7 +39,7 @@ class HelloWorld : public Actor {
   size_t write_pos_{0};
 
   void start_up() override {
-    subscribe(socket_fd_.get_poll_info().extract_pollable_fd(this));
+    Scheduler::subscribe(socket_fd_.get_poll_info().extract_pollable_fd(this));
     HttpHeaderCreator hc;
     Slice content = "hello world";
     //auto content = BufferSlice("hello world");
@@ -55,7 +55,7 @@ class HelloWorld : public Actor {
   void loop() override {
     auto status = do_loop();
     if (status.is_error()) {
-      unsubscribe(socket_fd_.get_poll_info().get_pollable_fd_ref());
+      Scheduler::unsubscribe(socket_fd_.get_poll_info().get_pollable_fd_ref());
       stop();
       LOG(ERROR) << "CLOSE: " << status;
     }

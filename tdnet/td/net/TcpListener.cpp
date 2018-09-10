@@ -10,7 +10,7 @@
 #include "td/utils/port/detail/PollableFd.h"
 
 namespace td {
-// TcpListener implementation
+
 TcpListener::TcpListener(int port, ActorShared<Callback> callback) : port_(port), callback_(std::move(callback)) {
 }
 
@@ -26,13 +26,13 @@ void TcpListener::start_up() {
     return;
   }
   server_fd_ = r_socket.move_as_ok();
-  subscribe(server_fd_.get_poll_info().extract_pollable_fd(this));
+  Scheduler::subscribe(server_fd_.get_poll_info().extract_pollable_fd(this));
 }
 
 void TcpListener::tear_down() {
   LOG(ERROR) << "TcpListener closed";
   if (!server_fd_.empty()) {
-    unsubscribe_before_close(server_fd_.get_poll_info().get_pollable_fd_ref());
+    Scheduler::unsubscribe_before_close(server_fd_.get_poll_info().get_pollable_fd_ref());
     server_fd_.close();
   }
 }

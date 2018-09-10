@@ -31,7 +31,7 @@ class HttpEchoConnection : public Actor {
   HttpReader reader_;
   HttpQuery query_;
   void start_up() override {
-    subscribe(fd_.get_poll_info().extract_pollable_fd(this));
+    Scheduler::subscribe(fd_.get_poll_info().extract_pollable_fd(this));
     reader_.init(&fd_.input_buffer(), 1024 * 1024, 0);
   }
 

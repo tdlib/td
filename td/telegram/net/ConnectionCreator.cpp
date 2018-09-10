@@ -100,7 +100,7 @@ class PingActor : public Actor {
   ActorShared<> parent_;
 
   void start_up() override {
-    subscribe(ping_connection_->get_poll_info().extract_pollable_fd(this));
+    Scheduler::subscribe(ping_connection_->get_poll_info().extract_pollable_fd(this));
     set_timeout_in(10);
     yield();
   }
@@ -137,7 +137,7 @@ class PingActor : public Actor {
       CHECK(!promise_);
       return;
     }
-    unsubscribe(raw_connection->get_poll_info().get_pollable_fd_ref());
+    Scheduler::unsubscribe(raw_connection->get_poll_info().get_pollable_fd_ref());
     if (promise_) {
       if (status.is_error()) {
         if (raw_connection->stats_callback()) {

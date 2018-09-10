@@ -41,7 +41,7 @@ void HttpConnectionBase::live_event() {
 }
 
 void HttpConnectionBase::start_up() {
-  subscribe(fd_.get_poll_info().extract_pollable_fd(this));
+  Scheduler::subscribe(fd_.get_poll_info().extract_pollable_fd(this));
   reader_.init(read_sink_.get_output(), max_post_size_, max_files_);
   if (state_ == State::Read) {
     current_query_ = make_unique<HttpQuery>();
@@ -50,7 +50,7 @@ void HttpConnectionBase::start_up() {
   yield();
 }
 void HttpConnectionBase::tear_down() {
-  unsubscribe_before_close(fd_.get_poll_info().get_pollable_fd_ref());
+  Scheduler::unsubscribe_before_close(fd_.get_poll_info().get_pollable_fd_ref());
   fd_.close();
 }
 

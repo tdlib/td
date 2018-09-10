@@ -634,7 +634,7 @@ class CliClient final : public Actor {
     close_flag_ = true;
     dump_memory_usage();
     td_.reset();
-    unsubscribe(stdin_.get_poll_info().get_pollable_fd_ref());
+    Scheduler::unsubscribe(stdin_.get_poll_info().get_pollable_fd_ref());
     is_stdin_reader_stopped_ = true;
     yield();
   }
@@ -748,7 +748,7 @@ class CliClient final : public Actor {
     rl_attempted_completion_function = tg_cli_completion;
     reactivate_readline();
 #endif
-    subscribe(stdin_.get_poll_info().extract_pollable_fd(this), PollFlags::Read());
+    Scheduler::subscribe(stdin_.get_poll_info().extract_pollable_fd(this), PollFlags::Read());
 
     if (get_chat_list_) {
       send_request(make_tl_object<td_api::getChats>(std::numeric_limits<int64>::max(), 0, 100));

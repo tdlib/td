@@ -58,7 +58,7 @@ void Scheduler::ServiceActor::start_up() {
   }
 #if !TD_PORT_WINDOWS
   auto &fd = inbound_->reader_get_event_fd();
-  ::td::subscribe(fd.get_poll_info().extract_pollable_fd(this), PollFlags::Read());
+  Scheduler::subscribe(fd.get_poll_info().extract_pollable_fd(this), PollFlags::Read());
   subscribed_ = true;
 #endif
   yield();
@@ -100,7 +100,7 @@ void Scheduler::ServiceActor::tear_down() {
     return;
   }
   auto &fd = inbound_->reader_get_event_fd();
-  ::td::unsubscribe(fd.get_poll_info().get_pollable_fd_ref());
+  Scheduler::unsubscribe(fd.get_poll_info().get_pollable_fd_ref());
   subscribed_ = false;
 #endif
 }
