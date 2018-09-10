@@ -12,6 +12,7 @@
 
 #if TD_PORT_POSIX
 #include <unistd.h>
+#include <fcntl.h>
 #endif
 
 namespace td {
