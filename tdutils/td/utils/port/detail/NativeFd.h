@@ -48,6 +48,8 @@ class NativeFd {
 
   Status set_is_blocking(bool is_blocking) const;
 
+  Status set_is_blocking_unsafe(bool is_blocking) const;  // may drop other Fd flags on non-Windows
+
   void close();
   Raw release();
 

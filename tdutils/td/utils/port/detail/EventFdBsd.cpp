@@ -41,8 +41,8 @@ void EventFdBsd::init() {
 
   auto fd_a = NativeFd(fds[0]);
   auto fd_b = NativeFd(fds[1]);
-  fd_a.set_is_blocking(false).ensure();
-  fd_b.set_is_blocking(false).ensure();
+  fd_a.set_is_blocking_unsafe(false).ensure();
+  fd_b.set_is_blocking_unsafe(false).ensure();
 
   in_ = SocketFd::from_native_fd(std::move(fd_a)).move_as_ok();
   out_ = SocketFd::from_native_fd(std::move(fd_b)).move_as_ok();

@@ -69,6 +69,23 @@ NativeFd::Raw NativeFd::socket() const {
 
 Status NativeFd::set_is_blocking(bool is_blocking) const {
 #if TD_PORT_POSIX
+  auto old_flags = fcntl(fd(), F_GETFL);
+  if (old_flags == -1) {
+    return OS_SOCKET_ERROR("Failed to get socket flags");
+  }
+  auto new_flags = is_blocking ? old_flags & ~O_NONBLOCK : old_flags | O_NONBLOCK;
+  if (new_flags != old_flags && fcntl(fd(), F_SETFL, new_flags) == -1) {
+    return OS_SOCKET_ERROR("Failed to set socket flags");
+  }
+
+  return Status::OK();
+#elif TD_PORT_WINDOWS
+  return set_is_blocking_unsafe(is_blocking);
+#endif
+}
+
+Status NativeFd::set_is_blocking_unsafe(bool is_blocking) const {
+#if TD_PORT_POSIX
   if (fcntl(fd(), F_SETFL, is_blocking ? 0 : O_NONBLOCK) == -1) {
 #elif TD_PORT_WINDOWS
   u_long mode = is_blocking;

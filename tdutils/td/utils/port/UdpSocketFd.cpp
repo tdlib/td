@@ -761,7 +761,7 @@ Result<UdpSocketFd> UdpSocketFd::open(const IPAddress &address) {
   if (!native_fd) {
     return OS_SOCKET_ERROR("Failed to create a socket");
   }
-  TRY_STATUS(native_fd.set_is_blocking(false));
+  TRY_STATUS(native_fd.set_is_blocking_unsafe(false));
 
   auto sock = native_fd.socket();
 #if TD_PORT_POSIX

@@ -19,19 +19,6 @@ Status Fd::duplicate(const Fd &from, Fd &to) {
   return Status::OK();
 }
 
-Status Fd::set_is_blocking(bool is_blocking) {
-  auto old_flags = fcntl(fd_, F_GETFL);
-  if (old_flags == -1) {
-    return OS_SOCKET_ERROR("Failed to get socket flags");
-  }
-  auto new_flags = is_blocking ? old_flags & ~O_NONBLOCK : old_flags | O_NONBLOCK;
-  if (new_flags != old_flags && fcntl(fd_, F_SETFL, new_flags) == -1) {
-    return OS_SOCKET_ERROR("Failed to set socket flags");
-  }
-
-  return Status::OK();
-}
-
 #endif
 
 #if TD_PORT_WINDOWS

@@ -455,7 +455,7 @@ Status get_socket_pending_error(const NativeFd &fd) {
 #endif
 
 Status init_socket_options(NativeFd &native_fd) {
-  TRY_STATUS(native_fd.set_is_blocking(false));
+  TRY_STATUS(native_fd.set_is_blocking_unsafe(false));
 
   auto sock = native_fd.socket();
 #if TD_PORT_POSIX
