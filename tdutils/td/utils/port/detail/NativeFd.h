@@ -50,6 +50,8 @@ class NativeFd {
 
   Status set_is_blocking_unsafe(bool is_blocking) const;  // may drop other Fd flags on non-Windows
 
+  Status duplicate(const NativeFd &to) const;
+
   void close();
   Raw release();
 

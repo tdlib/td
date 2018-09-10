@@ -8,19 +8,6 @@
 
 namespace td {
 
-#if TD_PORT_POSIX
-
-Status Fd::duplicate(const Fd &from, Fd &to) {
-  CHECK(!from.empty());
-  CHECK(!to.empty());
-  if (dup2(from.get_native_fd(), to.get_native_fd()) == -1) {
-    return OS_ERROR("Failed to duplicate file descriptor");
-  }
-  return Status::OK();
-}
-
-#endif
-
 #if TD_PORT_WINDOWS
 
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
@@ -59,10 +46,6 @@ Fd &Fd::Stdout() {
   return result;
 }
 #endif
-
-Status Fd::duplicate(const Fd &from, Fd &to) {
-  return Status::Error("Not supported");
-}
 
 #endif
 

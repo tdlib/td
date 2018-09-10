@@ -96,6 +96,19 @@ Status NativeFd::set_is_blocking_unsafe(bool is_blocking) const {
   return Status::OK();
 }
 
+Status NativeFd::duplicate(const NativeFd &to) const {
+#if TD_PORT_POSIX
+  CHECK(*this);
+  CHECK(to);
+  if (dup2(fd(), to.fd()) == -1) {
+    return OS_ERROR("Failed to duplicate file descriptor");
+  }
+  return Status::OK();
+#elif TD_PORT_WINDOWS
+  return Status::Error("Not supported");
+#endif
+}
+
 void NativeFd::close() {
   if (!*this) {
     return;
