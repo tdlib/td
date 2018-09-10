@@ -637,11 +637,6 @@ class ChainBufferWriter {
     init();
   }
 
-  // legacy
-  static ChainBufferWriter create_empty() {
-    return ChainBufferWriter();
-  }
-
   void init(size_t size = 0) {
     writer_ = BufferWriter(size);
     tail_ = ChainBufferNodeAllocator::create(writer_.as_buffer_slice(), true);

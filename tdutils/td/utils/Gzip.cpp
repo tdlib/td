@@ -140,7 +140,7 @@ Gzip::~Gzip() {
 BufferSlice gzdecode(Slice s) {
   Gzip gzip;
   gzip.init_decode().ensure();
-  auto message = ChainBufferWriter::create_empty();
+  ChainBufferWriter message;
   gzip.set_input(s);
   gzip.close_input();
   double k = 2;

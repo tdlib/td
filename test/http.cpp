@@ -133,7 +133,7 @@ TEST(Http, reader) {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   auto start_mem = BufferAllocator::get_buffer_mem();
   {
-    auto input_writer = ChainBufferWriter::create_empty();
+    td::ChainBufferWriter input_writer;
     auto input = input_writer.extract_reader();
     HttpReader reader;
     int max_post_size = 10000;
@@ -195,7 +195,7 @@ TEST(Http, gzip_bomb) {
 
   auto query = make_http_query("", false, true, 0.01, gzip_bomb_str);
   auto parts = rand_split(query);
-  auto input_writer = ChainBufferWriter::create_empty();
+  td::ChainBufferWriter input_writer;
   auto input = input_writer.extract_reader();
   HttpReader reader;
   HttpQuery q;
@@ -215,7 +215,7 @@ TEST(Http, gzip_bomb) {
 TEST(Http, aes_ctr_encode_decode_flow) {
   auto str = rand_string('a', 'z', 1000000);
   auto parts = rand_split(str);
-  auto input_writer = ChainBufferWriter::create_empty();
+  td::ChainBufferWriter input_writer;
   auto input = input_writer.extract_reader();
   ByteFlowSource source(&input);
   UInt256 key;
@@ -306,7 +306,7 @@ TEST(Http, aes_file_encryption) {
 TEST(Http, chunked_flow) {
   auto str = rand_string('a', 'z', 100);
   auto parts = rand_split(make_chunked(str));
-  auto input_writer = ChainBufferWriter::create_empty();
+  td::ChainBufferWriter input_writer;
   auto input = input_writer.extract_reader();
   ByteFlowSource source(&input);
   HttpChunkedByteFlow chunked_flow;
@@ -332,7 +332,7 @@ TEST(Http, chunked_flow_error) {
     auto new_str = make_chunked(str);
     new_str.resize(str.size() - d);
     auto parts = rand_split(new_str);
-    auto input_writer = ChainBufferWriter::create_empty();
+    td::ChainBufferWriter input_writer;
     auto input = input_writer.extract_reader();
     ByteFlowSource source(&input);
     HttpChunkedByteFlow chunked_flow;
@@ -354,7 +354,7 @@ TEST(Http, gzip_chunked_flow) {
   auto str = rand_string('a', 'z', 1000000);
   auto parts = rand_split(make_chunked(gzencode(str).as_slice().str()));
 
-  auto input_writer = ChainBufferWriter::create_empty();
+  td::ChainBufferWriter input_writer;
   auto input = input_writer.extract_reader();
   ByteFlowSource source(&input);
   HttpChunkedByteFlow chunked_flow;

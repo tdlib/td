@@ -46,7 +46,6 @@ class HttpReaderBench : public td::Benchmark {
   td::HttpReader http_reader_;
 
   void start_up() override {
-    writer_ = td::ChainBufferWriter::create_empty();
     reader_ = writer_.extract_reader();
     http_reader_.init(&reader_, 10000, 0);
   }
@@ -74,7 +73,6 @@ class BufferBench : public td::Benchmark {
   td::HttpReader http_reader_;
 
   void start_up() override {
-    writer_ = td::ChainBufferWriter::create_empty();
     reader_ = writer_.extract_reader();
   }
 };
@@ -105,7 +103,6 @@ class FindBoundaryBench : public td::Benchmark {
   td::HttpReader http_reader_;
 
   void start_up() override {
-    writer_ = td::ChainBufferWriter::create_empty();
     reader_ = writer_.extract_reader();
   }
 };
