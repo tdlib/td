@@ -44,9 +44,6 @@ class SocketFd {
   Result<size_t> write(Slice slice) TD_WARN_UNUSED_RESULT;
   Result<size_t> read(MutableSlice slice) TD_WARN_UNUSED_RESULT;
 
-  Result<size_t> write_message(Slice slice) TD_WARN_UNUSED_RESULT;
-  Result<size_t> read_message(MutableSlice slice) TD_WARN_UNUSED_RESULT;
-
   const NativeFd &get_native_fd() const;
   static Result<SocketFd> from_native_fd(NativeFd fd);
 

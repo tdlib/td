@@ -128,7 +128,7 @@ class ServerSocketFdImpl : private IOCP::Callback {
     VLOG(fd) << get_native_fd().io_handle() << " start accept";
     auto status = AcceptEx(get_native_fd().socket(), accept_socket_.socket(), addr_buf_, 0, MAX_ADDR_SIZE,
                            MAX_ADDR_SIZE, nullptr, &read_overlapped_);
-    if (check_status(status, "accent")) {
+    if (check_status(status, "Failed to accept connection")) {
       inc_refcnt();
       is_read_active_ = true;
     }

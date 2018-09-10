@@ -42,6 +42,7 @@ class SocketFdImpl : private IOCP::Callback {
     is_read_active_ = true;
     notify_iocp_connected();
   }
+
   SocketFdImpl(NativeFd native_fd, const IPAddress &addr) : info(std::move(native_fd)) {
     VLOG(fd) << get_native_fd().io_handle() << " create from native_fd and connect";
     get_poll_info().add_flags(PollFlags::Write());
@@ -62,14 +63,16 @@ class SocketFdImpl : private IOCP::Callback {
     auto status = ConnectExPtr(get_native_fd().socket(), addr.get_sockaddr(), narrow_cast<int>(addr.get_sockaddr_len()),
                                nullptr, 0, nullptr, &read_overlapped_);
 
-    if (!check_status(status, "connect")) {
+    if (!check_status(status, "Failed to connect")) {
       is_read_active_ = false;
       dec_refcnt();
     }
   }
+
   void close() {
     notify_iocp_close();
   }
+
   PollableFdInfo &get_poll_info() {
     return info;
   }
@@ -80,6 +83,7 @@ class SocketFdImpl : private IOCP::Callback {
   const NativeFd &get_native_fd() const {
     return info.native_fd();
   }
+
   Result<size_t> write(Slice data) {
     output_writer_.append(data);
     if (is_write_waiting_) {
@@ -89,6 +93,7 @@ class SocketFdImpl : private IOCP::Callback {
     }
     return data.size();
   }
+
   Result<size_t> read(MutableSlice slice) {
     if (get_poll_info().get_flags().has_pending_error()) {
       TRY_STATUS(get_pending_error());
@@ -100,6 +105,7 @@ class SocketFdImpl : private IOCP::Callback {
     }
     return res;
   }
+
   Status get_pending_error() {
     Status res;
     {
@@ -158,7 +164,7 @@ class SocketFdImpl : private IOCP::Callback {
     auto dest = input_writer_.prepare_append();
     auto status =
         ReadFile(get_native_fd().io_handle(), dest.data(), narrow_cast<DWORD>(dest.size()), nullptr, &read_overlapped_);
-    if (check_status(status, "read")) {
+    if (check_status(status, "Failed to read from connection")) {
       inc_refcnt();
       is_read_active_ = true;
     }
@@ -185,7 +191,7 @@ class SocketFdImpl : private IOCP::Callback {
     std::memset(&write_overlapped_, 0, sizeof(write_overlapped_));
     auto status = WriteFile(get_native_fd().io_handle(), dest.data(), narrow_cast<DWORD>(dest.size()), nullptr,
                             &write_overlapped_);
-    if (check_status(status, "write")) {
+    if (check_status(status, "Failed to write to connection")) {
       inc_refcnt();
       is_write_active_ = true;
     }

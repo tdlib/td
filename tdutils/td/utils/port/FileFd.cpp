@@ -222,10 +222,10 @@ Result<size_t> FileFd::write(Slice slice) {
   auto native_fd = get_native_fd().io_handle();
   DWORD bytes_written = 0;
   auto res = WriteFile(native_fd, slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_written, nullptr);
-  if (!res) {
-    return OS_ERROR("Failed to write_sync");
+  if (res) {
+    return bytes_written;
   }
-  return bytes_written;
+  return OS_ERROR(PSLICE() << "Write to [fd = " << native_fd << "] has failed");
 #endif
 }
 
@@ -255,13 +255,13 @@ Result<size_t> FileFd::read(MutableSlice slice) {
   auto native_fd = get_native_fd().io_handle();
   DWORD bytes_read = 0;
   auto res = ReadFile(native_fd, slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_read, nullptr);
-  if (!res) {
-    return OS_ERROR("Failed to read_sync");
+  if (res) {
+    if (bytes_read == 0) {
+      get_poll_info().clear_flags(PollFlags::Read());
+    }
+    return static_cast<size_t>(bytes_read);
   }
-  if (bytes_read == 0) {
-    get_poll_info().clear_flags(PollFlags::Read());
-  }
-  return bytes_read;
+  return OS_ERROR(PSLICE() << "Read from [fd = " << native_fd << "] has failed");
 #endif
 }
 
@@ -296,10 +296,10 @@ Result<size_t> FileFd::pwrite(Slice slice, int64 offset) {
   overlapped.Offset = static_cast<DWORD>(offset);
   overlapped.OffsetHigh = static_cast<DWORD>(offset >> 32);
   auto res = WriteFile(native_fd, slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_written, &overlapped);
-  if (!res) {
-    return OS_ERROR("Failed to pwrite");
+  if (res) {
+    return bytes_written;
   }
-  return bytes_written;
+  return OS_ERROR(PSLICE() << "Pwrite to [fd = " << native_fd << "] at [offset = " << offset << "] has failed");
 #endif
 }
 
@@ -334,10 +334,10 @@ Result<size_t> FileFd::pread(MutableSlice slice, int64 offset) {
   overlapped.Offset = static_cast<DWORD>(offset);
   overlapped.OffsetHigh = static_cast<DWORD>(offset >> 32);
   auto res = ReadFile(native_fd, slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_read, &overlapped);
-  if (!res) {
-    return OS_ERROR("Failed to pread");
+  if (res) {
+    return bytes_read;
   }
-  return bytes_read;
+  return OS_ERROR(PSLICE() << "Pread from [fd = " << native_fd << "] at [offset = " << offset << "] has failed");
 #endif
 }
 
