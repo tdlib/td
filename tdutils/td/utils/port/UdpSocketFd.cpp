@@ -10,11 +10,13 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/port/PollFlags.h"
 #include "td/utils/port/SocketFd.h"
 #include "td/utils/VectorQueue.h"
 
 #if TD_PORT_WINDOWS
 #include "td/utils/port/detail/WineventPoll.h"
+#include "td/utils/SpinLock.h"
 #endif
 
 #if TD_PORT_POSIX
@@ -32,6 +34,7 @@
 #endif  // TD_PORT_POSIX
 
 #include <array>
+#include <atomic>
 #include <cstring>
 
 namespace td {
@@ -97,21 +100,21 @@ class UdpSocketSendHelper {
 
 class UdpSocketFdImpl : private IOCP::Callback {
  public:
-  explicit UdpSocketFdImpl(NativeFd fd) : info(std::move(fd)) {
+  explicit UdpSocketFdImpl(NativeFd fd) : info_(std::move(fd)) {
     get_poll_info().add_flags(PollFlags::Write());
     IOCP::get()->subscribe(get_native_fd(), this);
     is_receive_active_ = true;
     notify_iocp_connected();
   }
   PollableFdInfo &get_poll_info() {
-    return info;
+    return info_;
   }
   const PollableFdInfo &get_poll_info() const {
-    return info;
+    return info_;
   }
 
   const NativeFd &get_native_fd() const {
-    return info.native_fd();
+    return info_.native_fd();
   }
 
   void close() {
@@ -149,7 +152,7 @@ class UdpSocketFdImpl : private IOCP::Callback {
   }
 
  private:
-  PollableFdInfo info;
+  PollableFdInfo info_;
   SpinLock lock_;
 
   std::atomic<int> refcnt_{1};
@@ -322,7 +325,7 @@ class UdpSocketFdImpl : private IOCP::Callback {
   void on_close() {
     VLOG(fd) << get_native_fd().io_handle() << " on close";
     close_flag_ = true;
-    info.set_native_fd({});
+    info_.set_native_fd({});
   }
 
   bool dec_refcnt() {
@@ -467,17 +470,17 @@ class UdpSocketSendHelper {
 
 class UdpSocketFdImpl {
  public:
-  explicit UdpSocketFdImpl(NativeFd fd) : info(std::move(fd)) {
+  explicit UdpSocketFdImpl(NativeFd fd) : info_(std::move(fd)) {
   }
   PollableFdInfo &get_poll_info() {
-    return info;
+    return info_;
   }
   const PollableFdInfo &get_poll_info() const {
-    return info;
+    return info_;
   }
 
   const NativeFd &get_native_fd() const {
-    return info.native_fd();
+    return info_.native_fd();
   }
   Status get_pending_error() {
     if (get_poll_info().get_flags().has_pending_error()) {
@@ -638,7 +641,7 @@ class UdpSocketFdImpl {
   }
 
  private:
-  PollableFdInfo info;
+  PollableFdInfo info_;
 
   Status send_messages_slow(Span<UdpSocketFd::OutboundMessage> messages, size_t &cnt) {
     cnt = 0;

@@ -10,6 +10,7 @@
 
 #include "td/utils/logging.h"
 #include "td/utils/port/IPAddress.h"
+#include "td/utils/port/PollFlags.h"
 
 #if TD_PORT_POSIX
 
@@ -29,6 +30,7 @@
 #include "td/utils/VectorQueue.h"
 #endif
 
+#include <atomic>
 #include <cstring>
 
 namespace td {

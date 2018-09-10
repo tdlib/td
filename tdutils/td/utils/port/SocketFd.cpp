@@ -8,6 +8,7 @@
 
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/port/PollFlags.h"
 
 #if TD_PORT_WINDOWS
 #include "td/utils/buffer.h"
@@ -26,6 +27,7 @@
 #include <unistd.h>
 #endif
 
+#include <atomic>
 #include <cstring>
 
 namespace td {

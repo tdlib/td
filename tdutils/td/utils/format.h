@@ -17,7 +17,7 @@
 namespace td {
 namespace format {
 /*** HexDump ***/
-template <std::size_t size, bool reversed = true>
+template <std::size_t size, bool is_reversed = true>
 struct HexDumpSize {
   const unsigned char *data;
 };
@@ -26,12 +26,12 @@ inline char hex_digit(int x) {
   return "0123456789abcdef"[x];
 }
 
-template <std::size_t size, bool reversed>
-StringBuilder &operator<<(StringBuilder &builder, const HexDumpSize<size, reversed> &dump) {
+template <std::size_t size, bool is_reversed>
+StringBuilder &operator<<(StringBuilder &builder, const HexDumpSize<size, is_reversed> &dump) {
   const unsigned char *ptr = dump.data;
   // TODO: append unsafe
   for (std::size_t i = 0; i < size; i++) {
-    int xy = ptr[reversed ? size - 1 - i : i];
+    int xy = ptr[is_reversed ? size - 1 - i : i];
     int x = xy >> 4;
     int y = xy & 15;
     builder << hex_digit(x) << hex_digit(y);

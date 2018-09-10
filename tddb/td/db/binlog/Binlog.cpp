@@ -15,6 +15,7 @@
 #include "td/utils/misc.h"
 #include "td/utils/port/Clocks.h"
 #include "td/utils/port/path.h"
+#include "td/utils/port/PollFlags.h"
 #include "td/utils/port/Stat.h"
 #include "td/utils/Random.h"
 #include "td/utils/ScopeGuard.h"

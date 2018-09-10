@@ -12,6 +12,7 @@ char disable_linker_warning_about_empty_file_event_fd_bsd_cpp TD_UNUSED;
 
 #include "td/utils/logging.h"
 #include "td/utils/port/detail/NativeFd.h"
+#include "td/utils/port/PollFlags.h"
 #include "td/utils/port/SocketFd.h"
 #include "td/utils/Slice.h"
 

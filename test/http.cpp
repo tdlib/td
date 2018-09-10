@@ -25,6 +25,7 @@
 #include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/FileFd.h"
 #include "td/utils/port/path.h"
+#include "td/utils/port/PollFlags.h"
 #include "td/utils/port/thread_local.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"

@@ -6,6 +6,8 @@
 //
 #include "td/utils/port/path.h"
 
+#include "td/utils/port/detail/PollableFd.h"
+
 #if TD_WINDOWS
 #include "td/utils/Random.h"
 #endif

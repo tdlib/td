@@ -64,10 +64,10 @@ class SocketFd {
   explicit SocketFd(std::unique_ptr<detail::SocketFdImpl> impl);
 };
 
-namespace detail {
 #if TD_PORT_POSIX
+namespace detail {
 Status get_socket_pending_error(const NativeFd &fd);
-#endif
 }  // namespace detail
+#endif
 
 }  // namespace td

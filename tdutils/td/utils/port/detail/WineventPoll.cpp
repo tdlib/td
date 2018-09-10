@@ -12,7 +12,6 @@ char disable_linker_warning_about_empty_file_wineventpoll_cpp TD_UNUSED;
 
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
-#include "td/utils/misc.h"
 #include "td/utils/port/PollBase.h"
 #include "td/utils/Status.h"
 

@@ -5,6 +5,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/utils/common.h"
+#include "td/utils/logging.h"
 #include "td/utils/port/FileFd.h"
 #include "td/utils/port/path.h"
 #include "td/utils/Slice.h"

@@ -8,12 +8,14 @@
 
 #include "td/utils/format.h"
 #include "td/utils/List.h"
+#include "td/utils/logging.h"
 #include "td/utils/Observer.h"
 #include "td/utils/port/detail/NativeFd.h"
 #include "td/utils/port/PollFlags.h"
 #include "td/utils/SpinLock.h"
 
 #include <atomic>
+#include <type_traits>
 
 namespace td {
 

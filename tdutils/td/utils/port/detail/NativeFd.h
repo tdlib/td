@@ -11,6 +11,7 @@
 #include "td/utils/common.h"
 #include "td/utils/MovableValue.h"
 #include "td/utils/Status.h"
+#include "td/utils/StringBuilder.h"
 
 namespace td {
 
@@ -59,7 +60,6 @@ class NativeFd {
 #endif
 };
 
-class StringBuilder;
 StringBuilder &operator<<(StringBuilder &sb, const NativeFd &fd);
 
 }  // namespace td

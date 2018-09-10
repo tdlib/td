@@ -18,8 +18,8 @@
 #include "td/utils/MimeType.h"
 #include "td/utils/misc.h"
 #include "td/utils/PathView.h"
-#include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/FileFd.h"
+#include "td/utils/port/PollFlags.h"
 #include "td/utils/Status.h"
 
 namespace td {

@@ -13,6 +13,7 @@
 #include "td/actor/Timeout.h"
 
 #include "td/utils/logging.h"
+#include "td/utils/MpscPollableQueue.h"
 #include "td/utils/Observer.h"
 #include "td/utils/port/FileFd.h"
 #include "td/utils/port/thread.h"
