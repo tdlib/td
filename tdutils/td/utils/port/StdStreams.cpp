@@ -55,6 +55,10 @@ class BufferedStdinImpl {
     file_fd_ = FileFd::from_native_fd(NativeFd(Stdin().get_native_fd().raw()));
     read_thread_ = td::thread([this] { this->read_loop(); });
   }
+  BufferedStdinImpl(const BufferedStdinImpl &) = delete;
+  BufferedStdinImpl &operator=(const BufferedStdinImpl &) = delete;
+  BufferedStdinImpl(BufferedStdinImpl &&) = delete;
+  BufferedStdinImpl &operator=(BufferedStdinImpl &&) = delete;
   ~BufferedStdinImpl() {
     file_fd_.move_as_native_fd().release();
   }
@@ -108,6 +112,10 @@ class BufferedStdinImpl {
     file_fd_ = FileFd::from_native_fd(NativeFd(Stdin().get_native_fd().raw()));
     file_fd_.get_native_fd().set_is_blocking(false);
   }
+  BufferedStdinImpl(const BufferedStdinImpl &) = delete;
+  BufferedStdinImpl &operator=(const BufferedStdinImpl &) = delete;
+  BufferedStdinImpl(BufferedStdinImpl &&) = delete;
+  BufferedStdinImpl &operator=(BufferedStdinImpl &&) = delete;
   ~BufferedStdinImpl() {
     file_fd_.move_as_native_fd().release();
   }
@@ -149,6 +157,7 @@ void BufferedStdinImplDeleter::operator()(BufferedStdinImpl *impl) {
 }
 }  // namespace detail
 #endif
+
 BufferedStdin::BufferedStdin() : impl_(std::make_unique<detail::BufferedStdinImpl>().release()) {
 }
 BufferedStdin::BufferedStdin(BufferedStdin &&) = default;

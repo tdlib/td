@@ -47,6 +47,7 @@
 #include <array>
 #include <atomic>
 #include <clocale>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>  // for strcmp
 #include <ctime>
@@ -3424,7 +3425,7 @@ class CliClient final : public Actor {
   int stdin_getc() {
     auto slice = stdin_.input_buffer().prepare_read();
     if (slice.empty()) {
-      return 0;
+      return EOF;
     }
     int res = slice[0];
     stdin_.input_buffer().confirm_read(1);
