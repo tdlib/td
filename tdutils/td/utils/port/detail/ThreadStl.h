@@ -43,6 +43,9 @@ class ThreadStl {
   void join() {
     thread_.join();
   }
+  void detach() {
+    thread_.detach();
+  }
 
   static unsigned hardware_concurrency() {
     return std::thread::hardware_concurrency();
