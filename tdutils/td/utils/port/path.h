@@ -50,7 +50,7 @@ Result<std::pair<FileFd, string>> mkstemp(CSlice dir) TD_WARN_UNUSED_RESULT;
 Result<string> mkdtemp(CSlice dir, Slice prefix) TD_WARN_UNUSED_RESULT;
 
 template <class Func>
-Status walk_path(CSlice path, Func &func) TD_WARN_UNUSED_RESULT;
+Status walk_path(CSlice path, Func &&func) TD_WARN_UNUSED_RESULT;
 
 #if TD_PORT_POSIX
 
@@ -221,7 +221,7 @@ Status walk_path(CSlice path, Func &&func) {
     path_slice.remove_suffix(1);
     wpath.pop_back();
   }
-  return detail::walk_path_dir(wpath.c_str(), func);
+  return detail::walk_path_dir(wpath.c_str(), std::forward<Func>(func));
 }
 
 #endif

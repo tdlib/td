@@ -16,6 +16,7 @@ using namespace td;
 TEST(Port, files) {
   CSlice main_dir = "test_dir";
   rmrf(main_dir).ignore();
+  ASSERT_TRUE(FileFd::open(main_dir, FileFd::Write).is_error());
   mkdir(main_dir).ensure();
   mkdir(PSLICE() << main_dir << TD_DIR_SLASH << "A").ensure();
   mkdir(PSLICE() << main_dir << TD_DIR_SLASH << "B").ensure();
@@ -24,6 +25,19 @@ TEST(Port, files) {
   std::string fd_path = PSTRING() << main_dir << TD_DIR_SLASH << "t.txt";
 
   auto fd = FileFd::open(fd_path, FileFd::Write | FileFd::CreateNew).move_as_ok();
+
+  int cnt = 0;
+  const int ITER_COUNT = 1000;
+  for (int i = 0; i < ITER_COUNT; i++) {
+    walk_path(main_dir, [&](CSlice name, bool is_directory) {
+      if (!is_directory) {
+        ASSERT_EQ(fd_path, name);
+      }
+      cnt++;
+    });
+  }
+  ASSERT_EQ(4 * ITER_COUNT, cnt);
+
   ASSERT_EQ(0u, fd.get_size());
   ASSERT_EQ(12u, fd.write("Hello world!").move_as_ok());
   ASSERT_EQ(4u, fd.pwrite("abcd", 1).move_as_ok());
