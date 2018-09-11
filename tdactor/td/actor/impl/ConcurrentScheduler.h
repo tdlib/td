@@ -13,18 +13,16 @@
 #include "td/utils/port/thread.h"
 #include "td/utils/Slice.h"
 
+#if TD_PORT_WINDOWS
+#include "td/utils/port/detail/Iocp.h"
+#endif
+
 #include <atomic>
 #include <functional>
 #include <mutex>
 #include <utility>
 
 namespace td {
-
-#if TD_PORT_WINDOWS
-namespace detail {
-class IOCP;
-}
-#endif
 
 class ConcurrentScheduler : private Scheduler::Callback {
  public:
@@ -87,7 +85,7 @@ class ConcurrentScheduler : private Scheduler::Callback {
   std::vector<thread> threads_;
 #endif
 #if TD_PORT_WINDOWS
-  std::unique_ptr<detail::IOCP> iocp_;
+  std::unique_ptr<detail::Iocp> iocp_;
   td::thread iocp_thread_;
 #endif
 

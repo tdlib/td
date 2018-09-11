@@ -11,43 +11,12 @@
 #ifdef TD_POLL_WINEVENT
 
 #include "td/utils/common.h"
-#include "td/utils/Context.h"
-#include "td/utils/port/detail/NativeFd.h"
 #include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/PollBase.h"
 #include "td/utils/port/PollFlags.h"
-#include "td/utils/port/thread.h"
-#include "td/utils/Status.h"
 
 namespace td {
 namespace detail {
-
-class IOCP final : public Context<IOCP> {
- public:
-  IOCP() = default;
-  IOCP(const IOCP &) = delete;
-  IOCP &operator=(const IOCP &) = delete;
-  IOCP(IOCP &&) = delete;
-  IOCP &operator=(IOCP &&) = delete;
-  ~IOCP();
-
-  class Callback {
-   public:
-    virtual ~Callback() = default;
-    virtual void on_iocp(Result<size_t> r_size, WSAOVERLAPPED *overlapped) = 0;
-  };
-
-  void init();
-  void subscribe(const NativeFd &fd, Callback *callback);
-  void post(size_t size, Callback *callback, WSAOVERLAPPED *overlapped);
-  void loop();
-  void interrupt_loop();
-  void clear();
-
- private:
-  NativeFd iocp_handle_;
-  std::vector<td::thread> workers_;
-};
 
 class WineventPoll final : public PollBase {
  public:

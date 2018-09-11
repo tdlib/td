@@ -14,10 +14,6 @@
 #include "td/utils/MpscPollableQueue.h"
 #include "td/utils/port/thread_local.h"
 
-#if TD_PORT_WINDOWS
-#include "td/utils/port/detail/WineventPoll.h"
-#endif
-
 #include <memory>
 
 namespace td {
@@ -61,7 +57,7 @@ void ConcurrentScheduler::init(int32 threads_n) {
   }
 
 #if TD_PORT_WINDOWS
-  iocp_ = std::make_unique<detail::IOCP>();
+  iocp_ = std::make_unique<detail::Iocp>();
   iocp_->init();
 #endif
 
@@ -86,7 +82,7 @@ void ConcurrentScheduler::start() {
     threads_.push_back(td::thread([&, tid = i]() {
       set_thread_id(static_cast<int32>(tid));
 #if TD_PORT_WINDOWS
-      td::detail::IOCP::Guard iocp_guard(iocp_.get());
+      td::detail::Iocp::Guard iocp_guard(iocp_.get());
 #endif
       while (!is_finished()) {
         sched->run(10);
@@ -110,7 +106,7 @@ bool ConcurrentScheduler::run_main(double timeout) {
   auto &main_sched = schedulers_[0];
   if (!is_finished()) {
 #if TD_PORT_WINDOWS
-    td::detail::IOCP::Guard iocp_guard(iocp_.get());
+    td::detail::Iocp::Guard iocp_guard(iocp_.get());
 #endif
     main_sched->run(timeout);
   }
@@ -126,7 +122,7 @@ void ConcurrentScheduler::finish() {
   SCOPE_EXIT {
     iocp_->clear();
   };
-  td::detail::IOCP::Guard iocp_guard(iocp_.get());
+  td::detail::Iocp::Guard iocp_guard(iocp_.get());
 #endif
 
 #if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED

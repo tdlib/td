@@ -15,7 +15,7 @@
 #include "td/utils/VectorQueue.h"
 
 #if TD_PORT_WINDOWS
-#include "td/utils/port/detail/WineventPoll.h"
+#include "td/utils/port/detail/Iocp.h"
 #include "td/utils/SpinLock.h"
 #endif
 
@@ -98,11 +98,11 @@ class UdpSocketSendHelper {
   WSABUF buf_;
 };
 
-class UdpSocketFdImpl : private IOCP::Callback {
+class UdpSocketFdImpl : private Iocp::Callback {
  public:
   explicit UdpSocketFdImpl(NativeFd fd) : info_(std::move(fd)) {
     get_poll_info().add_flags(PollFlags::Write());
-    IOCP::get()->subscribe(get_native_fd(), this);
+    Iocp::get()->subscribe(get_native_fd(), this);
     is_receive_active_ = true;
     notify_iocp_connected();
   }
@@ -339,14 +339,14 @@ class UdpSocketFdImpl : private IOCP::Callback {
 
   void notify_iocp_send() {
     inc_refcnt();
-    IOCP::get()->post(0, this, nullptr);
+    Iocp::get()->post(0, this, nullptr);
   }
   void notify_iocp_close() {
-    IOCP::get()->post(0, this, reinterpret_cast<WSAOVERLAPPED *>(&close_overlapped_));
+    Iocp::get()->post(0, this, reinterpret_cast<WSAOVERLAPPED *>(&close_overlapped_));
   }
   void notify_iocp_connected() {
     inc_refcnt();
-    IOCP::get()->post(0, this, reinterpret_cast<WSAOVERLAPPED *>(&receive_overlapped_));
+    Iocp::get()->post(0, this, reinterpret_cast<WSAOVERLAPPED *>(&receive_overlapped_));
   }
 };
 
