@@ -1,5 +1,6 @@
 #
-# Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2018
+# Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com),
+# Pellegrino Prevete (pellegrinoprevete@gmail.com)  2014-2018
 #
 # Distributed under the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -94,9 +95,46 @@ td_send({'@type': 'getAuthorizationState', '@extra': 1.01234})
 while True:
     event = td_receive()
     if event:
-        # if client is closed, we need to destroy it and create new client
-        if event['@type'] == 'updateAuthorizationState' and event['authorization_state']['@type'] == 'authorizationStateClosed':
+        # process authorization states
+        if event['@type'] == 'updateAuthorizationState'
+            auth_state = event['authorization_state']
+            
+            # if client is closed, we need to destroy it and create new client
+            if auth_state['@type'] == 'authorizationStateClosed':
             break
+
+            # set tdlib parameters
+            if auth_state['@type'] == 'authorizationStateWaitTdlibParameters':
+                td_send({'@type':"setTdlibParameters", "parameters":{
+                                                       "database_directory":"tdlib",
+                                                       "use_message_database":True,
+                                                       "use_secret_chats":True,
+                                                       "api_id":"your_api_id",
+                                                       "api_hash":"your_api_hash",
+                                                       "system_language_code":"en",
+                                                       "device_model":"Desktop",
+                                                       "system_version":"Linux",
+                                                       "application_version":"1.0",
+                                                       "enable_storage_optimizer":True}})
+
+            # set an encryption key for database to let know tdlib how to open the database
+            if auth_state['@type'] == 'authorizationStateWaitEncryptionKey':
+                td_send({"@type":"checkDatabaseEncryptionKey", "key":"my_key"})
+
+            # insert phone number for login
+            if auth_state['@type'] == "authorizationStateWaitPhoneNumber":
+                phone_number = input("Please insert your phone number: ")
+                td_send({"@type":"setAuthenticationPhoneNumber", "phone_number":phone_number})
+
+            # wait for authorization code
+            if auth_state['@type'] == 'authorizationStateWaitCode':
+                code = input("Please insert the authentication code you received: ")
+                td_send({"@type":"checkAuthenticationCode", "code":code})
+
+            # wait for password if present
+            if auth_state['@type'] == "authorizationStateWaitPassword":
+                password = input("Please insert your password: ")
+                td_send({"@type":"checkAuthenticationPassword", "password":password})
 
         # handle an incoming update or an answer to a previously sent request
         print(event)
