@@ -99,7 +99,7 @@ class SocketFdImpl : private Iocp::Callback {
       TRY_STATUS(get_pending_error());
     }
     input_reader_.sync_with_writer();
-    auto res = input_reader_.advance(min(slice.size(), input_reader_.size()), slice);
+    auto res = input_reader_.advance(td::min(slice.size(), input_reader_.size()), slice);
     if (res == 0) {
       get_poll_info().clear_flags(PollFlags::Read());
     }
@@ -254,6 +254,10 @@ class SocketFdImpl : private Iocp::Callback {
     VLOG(fd) << get_native_fd().socket() << " on read " << size;
     CHECK(is_read_active_);
     is_read_active_ = false;
+    if (size == 0) {
+      get_poll_info().add_flags_from_poll(PollFlags::Close());
+      return;
+    }
     input_writer_.confirm_append(size);
     get_poll_info().add_flags_from_poll(PollFlags::Read());
     loop_read();
