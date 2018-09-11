@@ -221,7 +221,8 @@ StringBuilder &operator<<(StringBuilder &sb, const SendMessageInfo &info) {
 
 class CliClient final : public Actor {
  public:
-  CliClient(ConcurrentScheduler *scheduler, bool use_test_dc, bool get_chat_list, bool disable_network, int32 api_id, string api_hash)
+  CliClient(ConcurrentScheduler *scheduler, bool use_test_dc, bool get_chat_list, bool disable_network, int32 api_id,
+            string api_hash)
       : scheduler_(scheduler)
       , use_test_dc_(use_test_dc)
       , get_chat_list_(get_chat_list)
@@ -3442,7 +3443,7 @@ class CliClient final : public Actor {
 
   int32 my_id_ = 0;
 
-  ConcurrentScheduler *scheduler_{ nullptr };
+  ConcurrentScheduler *scheduler_{nullptr};
 
   bool use_test_dc_ = false;
   ActorOwn<ClientActor> td_;
@@ -3512,7 +3513,7 @@ void main(int argc, char **argv) {
     if (x) {
       return x;
     }
-    return "";
+    return std::string();
   }(std::getenv("TD_API_HASH"));
   // TODO port OptionsParser to Windows
   for (int i = 1; i < argc; i++) {
@@ -3558,7 +3559,7 @@ void main(int argc, char **argv) {
     }
   }
 
-  if (api_id == 0 || api_hash == "") {
+  if (api_id == 0 || api_hash.empty()) {
     LOG(ERROR) << "You should provide some valid api_id and api_hash";
     return usage();
   }
@@ -3567,10 +3568,11 @@ void main(int argc, char **argv) {
 
   {
     ConcurrentScheduler scheduler;
-    scheduler.init(4);
+    scheduler.init(3);
 
     scheduler
-        .create_actor_unsafe<CliClient>(0, "CliClient", &scheduler, use_test_dc, get_chat_list, disable_network, api_id, api_hash)
+        .create_actor_unsafe<CliClient>(0, "CliClient", &scheduler, use_test_dc, get_chat_list, disable_network, api_id,
+                                        api_hash)
         .release();
 
     scheduler.start();
