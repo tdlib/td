@@ -16,7 +16,12 @@ namespace td {
 namespace detail {
 
 void EventFdWindows::init() {
-  event_ = NativeFd(CreateEventW(nullptr, true, false, nullptr));
+  auto handle = CreateEventW(nullptr, true, false, nullptr);
+  if (handle == nullptr) {
+    auto error = OS_ERROR("CreateEventW failed");
+    LOG(FATAL) << error;
+  }
+  event_ = NativeFd(handle);
 }
 
 bool EventFdWindows::empty() {
@@ -36,16 +41,25 @@ PollableFdInfo &EventFdWindows::get_poll_info() {
 }
 
 void EventFdWindows::release() {
-  SetEvent(event_.fd());
+  if (SetEvent(event_.fd()) == 0) {
+    auto error = OS_ERROR("SetEvent failed");
+    LOG(FATAL) << error;
+  }
 }
 
 void EventFdWindows::acquire() {
-  ResetEvent(event_.fd());
+  if (ResetEvent(event_.fd()) == 0) {
+    auto error = OS_ERROR("ResetEvent failed");
+    LOG(FATAL) << error;
+  }
 }
 
 void EventFdWindows::wait(int timeout_ms) {
   WaitForSingleObject(event_.fd(), timeout_ms);
-  ResetEvent(event_.fd());
+  if (ResetEvent(event_.fd()) == 0) {
+    auto error = OS_ERROR("ResetEvent failed");
+    LOG(FATAL) << error;
+  }
 }
 
 }  // namespace detail

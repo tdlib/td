@@ -69,7 +69,7 @@ void Iocp::subscribe(const NativeFd &native_fd, Callback *callback) {
   CHECK(iocp_handle_);
   auto iocp_handle =
       CreateIoCompletionPort(native_fd.fd(), iocp_handle_.fd(), reinterpret_cast<ULONG_PTR>(callback), 0);
-  if (iocp_handle == INVALID_HANDLE_VALUE) {
+  if (iocp_handle == nullptr) {
     auto error = OS_ERROR("CreateIoCompletionPort");
     LOG(FATAL) << error;
   }
@@ -77,8 +77,11 @@ void Iocp::subscribe(const NativeFd &native_fd, Callback *callback) {
 }
 
 void Iocp::post(size_t size, Callback *callback, WSAOVERLAPPED *overlapped) {
-  PostQueuedCompletionStatus(iocp_handle_.fd(), DWORD(size), reinterpret_cast<ULONG_PTR>(callback),
-                             reinterpret_cast<OVERLAPPED *>(overlapped));
+  if (PostQueuedCompletionStatus(iocp_handle_.fd(), DWORD(size), reinterpret_cast<ULONG_PTR>(callback),
+                                 reinterpret_cast<OVERLAPPED *>(overlapped)) == 0) {
+    auto error = OS_ERROR("IOCP post failed");
+    LOG(FATAL) << error;
+  }
 }
 
 }  // namespace detail
