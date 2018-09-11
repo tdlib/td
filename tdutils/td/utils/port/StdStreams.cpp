@@ -53,6 +53,7 @@ class BufferedStdinImpl {
  public:
   BufferedStdinImpl() {
     file_fd_ = FileFd::from_native_fd(NativeFd(Stdin().get_native_fd().raw()));
+    copy_file_fd_ = FileFd::from_native_fd(NativeFd(Stdin().get_native_fd().raw()));
     read_thread_ = td::thread([this] { this->read_loop(); });
   }
   BufferedStdinImpl(const BufferedStdinImpl &) = delete;
@@ -61,6 +62,7 @@ class BufferedStdinImpl {
   BufferedStdinImpl &operator=(BufferedStdinImpl &&) = delete;
   ~BufferedStdinImpl() {
     file_fd_.move_as_native_fd().release();
+    copy_file_fd_.move_as_native_fd().release();
   }
   void close() {
     close_flag_ = true;
@@ -78,12 +80,15 @@ class BufferedStdinImpl {
   }
 
   Result<size_t> flush_read(size_t max_read = std::numeric_limits<size_t>::max()) TD_WARN_UNUSED_RESULT {
+    file_fd_.get_poll_info().get_flags();
+    file_fd_.get_poll_info().clear_flags(PollFlags::Read());
     reader_.sync_with_writer();
     return reader_.size();
   }
 
  private:
   FileFd file_fd_;
+  FileFd copy_file_fd_;
   ChainBufferWriter writer_;
   ChainBufferReader reader_ = writer_.extract_reader();
   td::thread read_thread_;
@@ -93,7 +98,7 @@ class BufferedStdinImpl {
   void read_loop() {
     while (!close_flag_) {
       auto slice = writer_.prepare_append();
-      auto size = file_fd_.read(slice).move_as_ok();
+      auto size = copy_file_fd_.read(slice).move_as_ok();
       writer_.confirm_append(size);
       file_fd_.get_poll_info().add_flags_from_poll(td::PollFlags::Read());
     }
