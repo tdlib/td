@@ -221,8 +221,9 @@ StringBuilder &operator<<(StringBuilder &sb, const SendMessageInfo &info) {
 
 class CliClient final : public Actor {
  public:
-  CliClient(bool use_test_dc, bool get_chat_list, bool disable_network, int32 api_id, string api_hash)
-      : use_test_dc_(use_test_dc)
+  CliClient(ConcurrentScheduler *scheduler, bool use_test_dc, bool get_chat_list, bool disable_network, int32 api_id, string api_hash)
+      : scheduler_(scheduler)
+      , use_test_dc_(use_test_dc)
       , get_chat_list_(get_chat_list)
       , disable_network_(disable_network)
       , api_id_(api_id)
@@ -3412,6 +3413,11 @@ class CliClient final : public Actor {
     }
   }
 
+  void notify() override {
+    auto guard = scheduler_->get_send_guard();
+    send_event_later(actor_id(), Event::yield());
+  }
+
   void hangup_shared() override {
     CHECK(get_link_token() == 1);
     LOG(INFO) << "StdinReader stopped";
@@ -3435,6 +3441,8 @@ class CliClient final : public Actor {
   std::unordered_map<int32, double> being_downloaded_files_;
 
   int32 my_id_ = 0;
+
+  ConcurrentScheduler *scheduler_{ nullptr };
 
   bool use_test_dc_ = false;
   ActorOwn<ClientActor> td_;
@@ -3562,7 +3570,7 @@ void main(int argc, char **argv) {
     scheduler.init(4);
 
     scheduler
-        .create_actor_unsafe<CliClient>(0, "CliClient", use_test_dc, get_chat_list, disable_network, api_id, api_hash)
+        .create_actor_unsafe<CliClient>(0, "CliClient", &scheduler, use_test_dc, get_chat_list, disable_network, api_id, api_hash)
         .release();
 
     scheduler.start();
