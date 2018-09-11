@@ -210,7 +210,7 @@ bool IPAddress::is_ipv6() const {
 uint32 IPAddress::get_ipv4() const {
   CHECK(is_valid());
   CHECK(is_ipv4());
-  return ntohl(ipv4_addr_.sin_addr.s_addr);
+  return htonl(ipv4_addr_.sin_addr.s_addr);
 }
 
 Slice IPAddress::get_ipv6() const {

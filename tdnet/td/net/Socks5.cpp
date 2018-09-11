@@ -101,7 +101,7 @@ void Socks5::send_ip_address() {
   request += '\x00';
   if (ip_address_.is_ipv4()) {
     request += '\x01';
-    auto ipv4 = ip_address_.get_ipv4();
+    auto ipv4 = ntohl(ip_address_.get_ipv4());
     request += static_cast<char>(ipv4 & 255);
     request += static_cast<char>((ipv4 >> 8) & 255);
     request += static_cast<char>((ipv4 >> 16) & 255);
@@ -136,7 +136,7 @@ Status Socks5::wait_ip_address_response() {
   }
   it.advance(1, c_slice);
   if (c != '\0') {
-    return Status::Error("byte must be zero");
+    return Status::Error("Byte must be zero");
   }
   it.advance(1, c_slice);
   size_t total_size = 6;
