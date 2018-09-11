@@ -201,144 +201,85 @@ FileFd FileFd::from_native_fd(NativeFd native_fd) {
 }
 
 Result<size_t> FileFd::write(Slice slice) {
+  auto native_fd = get_native_fd().fd();
 #if TD_PORT_POSIX
-  auto native_fd = get_native_fd().fd();
-  auto write_res = detail::skip_eintr([&] { return ::write(native_fd, slice.begin(), slice.size()); });
-  if (write_res >= 0) {
-    return narrow_cast<size_t>(write_res);
-  }
-
-  auto write_errno = errno;
-  auto error = Status::PosixError(write_errno, PSLICE() << "Write to [fd = " << native_fd << "] has failed");
-  if (write_errno != EAGAIN
-#if EAGAIN != EWOULDBLOCK
-      && write_errno != EWOULDBLOCK
-#endif
-      && write_errno != EIO) {
-    LOG(ERROR) << error;
-  }
-  return std::move(error);
+  auto bytes_written = detail::skip_eintr([&] { return ::write(native_fd, slice.begin(), slice.size()); });
+  bool success = bytes_written >= 0;
 #elif TD_PORT_WINDOWS
-  auto native_fd = get_native_fd().fd();
   DWORD bytes_written = 0;
-  auto res = WriteFile(native_fd, slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_written, nullptr);
-  if (res) {
-    return bytes_written;
+  BOOL success = WriteFile(native_fd, slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_written, nullptr);
+#endif
+  if (success) {
+    return narrow_cast<size_t>(bytes_written);
   }
   return OS_ERROR(PSLICE() << "Write to [fd = " << native_fd << "] has failed");
-#endif
 }
 
 Result<size_t> FileFd::read(MutableSlice slice) {
+  auto native_fd = get_native_fd().fd();
 #if TD_PORT_POSIX
-  auto native_fd = get_native_fd().fd();
-  auto read_res = detail::skip_eintr([&] { return ::read(native_fd, slice.begin(), slice.size()); });
-  auto read_errno = errno;
-
-  if (read_res >= 0) {
-    if (narrow_cast<size_t>(read_res) < slice.size()) {
-      get_poll_info().clear_flags(PollFlags::Read());
-    }
-    return static_cast<size_t>(read_res);
-  }
-
-  auto error = Status::PosixError(read_errno, PSLICE() << "Read from [fd = " << native_fd << "] has failed");
-  if (read_errno != EAGAIN
-#if EAGAIN != EWOULDBLOCK
-      && read_errno != EWOULDBLOCK
-#endif
-      && read_errno != EIO) {
-    LOG(ERROR) << error;
-  }
-  return std::move(error);
+  auto bytes_read = detail::skip_eintr([&] { return ::read(native_fd, slice.begin(), slice.size()); });
+  bool success = bytes_read >= 0;
+  bool is_eof = narrow_cast<size_t>(bytes_read) < slice.size();
 #elif TD_PORT_WINDOWS
-  auto native_fd = get_native_fd().fd();
   DWORD bytes_read = 0;
-  auto res = ReadFile(native_fd, slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_read, nullptr);
-  if (res) {
-    if (bytes_read == 0) {
+  BOOL success = ReadFile(native_fd, slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_read, nullptr);
+  bool is_eof = bytes_read == 0;
+#endif
+  if (success) {
+    if (is_eof) {
       get_poll_info().clear_flags(PollFlags::Read());
     }
     return static_cast<size_t>(bytes_read);
   }
   return OS_ERROR(PSLICE() << "Read from [fd = " << native_fd << "] has failed");
-#endif
 }
 
 Result<size_t> FileFd::pwrite(Slice slice, int64 offset) {
   if (offset < 0) {
     return Status::Error("Offset must be non-negative");
   }
+  auto native_fd = get_native_fd().fd();
 #if TD_PORT_POSIX
-  auto native_fd = get_native_fd().fd();
   TRY_RESULT(offset_off_t, narrow_cast_safe<off_t>(offset));
-  auto pwrite_res = detail::skip_eintr([&] { return ::pwrite(native_fd, slice.begin(), slice.size(), offset_off_t); });
-  if (pwrite_res >= 0) {
-    return narrow_cast<size_t>(pwrite_res);
-  }
-
-  auto pwrite_errno = errno;
-  auto error = Status::PosixError(
-      pwrite_errno, PSLICE() << "Pwrite to [fd = " << native_fd << "] at [offset = " << offset << "] has failed");
-  if (pwrite_errno != EAGAIN
-#if EAGAIN != EWOULDBLOCK
-      && pwrite_errno != EWOULDBLOCK
-#endif
-      && pwrite_errno != EIO) {
-    LOG(ERROR) << error;
-  }
-  return std::move(error);
+  auto bytes_written =
+      detail::skip_eintr([&] { return ::pwrite(native_fd, slice.begin(), slice.size(), offset_off_t); });
+  bool success = bytes_written >= 0;
 #elif TD_PORT_WINDOWS
-  auto native_fd = get_native_fd().fd();
   DWORD bytes_written = 0;
   OVERLAPPED overlapped;
   std::memset(&overlapped, 0, sizeof(overlapped));
   overlapped.Offset = static_cast<DWORD>(offset);
   overlapped.OffsetHigh = static_cast<DWORD>(offset >> 32);
-  auto res = WriteFile(native_fd, slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_written, &overlapped);
-  if (res) {
-    return bytes_written;
+  BOOL success = WriteFile(native_fd, slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_written, &overlapped);
+#endif
+  if (success) {
+    return narrow_cast<size_t>(bytes_written);
   }
   return OS_ERROR(PSLICE() << "Pwrite to [fd = " << native_fd << "] at [offset = " << offset << "] has failed");
-#endif
 }
 
 Result<size_t> FileFd::pread(MutableSlice slice, int64 offset) {
   if (offset < 0) {
     return Status::Error("Offset must be non-negative");
   }
+  auto native_fd = get_native_fd().fd();
 #if TD_PORT_POSIX
-  auto native_fd = get_native_fd().fd();
   TRY_RESULT(offset_off_t, narrow_cast_safe<off_t>(offset));
-  auto pread_res = detail::skip_eintr([&] { return ::pread(native_fd, slice.begin(), slice.size(), offset_off_t); });
-  if (pread_res >= 0) {
-    return narrow_cast<size_t>(pread_res);
-  }
-
-  auto pread_errno = errno;
-  auto error = Status::PosixError(
-      pread_errno, PSLICE() << "Pread from [fd = " << native_fd << "] at [offset = " << offset << "] has failed");
-  if (pread_errno != EAGAIN
-#if EAGAIN != EWOULDBLOCK
-      && pread_errno != EWOULDBLOCK
-#endif
-      && pread_errno != EIO) {
-    LOG(ERROR) << error;
-  }
-  return std::move(error);
+  auto bytes_read = detail::skip_eintr([&] { return ::pread(native_fd, slice.begin(), slice.size(), offset_off_t); });
+  bool success = bytes_read >= 0;
 #elif TD_PORT_WINDOWS
-  auto native_fd = get_native_fd().fd();
   DWORD bytes_read = 0;
   OVERLAPPED overlapped;
   std::memset(&overlapped, 0, sizeof(overlapped));
   overlapped.Offset = static_cast<DWORD>(offset);
   overlapped.OffsetHigh = static_cast<DWORD>(offset >> 32);
-  auto res = ReadFile(native_fd, slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_read, &overlapped);
-  if (res) {
-    return bytes_read;
+  BOOL success = ReadFile(native_fd, slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_read, &overlapped);
+#endif
+  if (success) {
+    return narrow_cast<size_t>(bytes_read);
   }
   return OS_ERROR(PSLICE() << "Pread from [fd = " << native_fd << "] at [offset = " << offset << "] has failed");
-#endif
 }
 
 Status FileFd::lock(FileFd::LockFlags flags, int32 max_tries) {
