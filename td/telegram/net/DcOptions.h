@@ -81,7 +81,7 @@ class DcOption {
     switch (ip_port_ref.get_id()) {
       case telegram_api::ipPort::ID: {
         auto &ip_port = static_cast<const telegram_api::ipPort &>(ip_port_ref);
-        init_ip_address(IPAddress::ipv4_to_str(ip_port.ipv4_), ip_port.port_);
+        init_ip_address(IPAddress::ipv4_to_str(static_cast<uint32>(ip_port.ipv4_)), ip_port.port_);
         break;
       }
       case telegram_api::ipPortSecret::ID: {
@@ -91,7 +91,7 @@ class DcOption {
         }
         flags_ |= Flags::HasSecret;
         secret_ = ip_port.secret_.as_slice().str();
-        init_ip_address(IPAddress::ipv4_to_str(ip_port.ipv4_), ip_port.port_);
+        init_ip_address(IPAddress::ipv4_to_str(static_cast<uint32>(ip_port.ipv4_)), ip_port.port_);
         break;
       }
       default:

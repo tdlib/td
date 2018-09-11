@@ -57,7 +57,7 @@ class IPAddress {
   const sockaddr *get_sockaddr() const;
   size_t get_sockaddr_len() const;
   int get_address_family() const;
-  static CSlice ipv4_to_str(int32 ipv4);
+  static CSlice ipv4_to_str(uint32 ipv4);
   Status init_sockaddr(sockaddr *addr);
   Status init_sockaddr(sockaddr *addr, socklen_t len) TD_WARN_UNUSED_RESULT;
 

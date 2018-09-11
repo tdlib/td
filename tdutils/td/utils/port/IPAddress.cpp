@@ -424,9 +424,9 @@ static CSlice get_ip_str(int family, const void *addr) {
   }
 }
 
-CSlice IPAddress::ipv4_to_str(int32 ipv4) {
-  auto tmp_ipv4 = ntohl(ipv4);
-  return ::td::get_ip_str(AF_INET, &tmp_ipv4);
+CSlice IPAddress::ipv4_to_str(uint32 ipv4) {
+  ipv4 = ntohl(ipv4);
+  return ::td::get_ip_str(AF_INET, &ipv4);
 }
 
 Slice IPAddress::get_ip_str() const {
