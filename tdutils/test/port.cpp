@@ -29,12 +29,14 @@ TEST(Port, files) {
   int cnt = 0;
   const int ITER_COUNT = 1000;
   for (int i = 0; i < ITER_COUNT; i++) {
-    walk_path(main_dir, [&](CSlice name, bool is_directory) {
-      if (!is_directory) {
-        ASSERT_EQ(fd_path, name);
-      }
-      cnt++;
-    });
+    walk_path(main_dir,
+              [&](CSlice name, bool is_directory) {
+                if (!is_directory) {
+                  ASSERT_EQ(fd_path, name);
+                }
+                cnt++;
+              })
+        .ensure();
   }
   ASSERT_EQ(4 * ITER_COUNT, cnt);
 

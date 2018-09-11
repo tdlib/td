@@ -438,7 +438,7 @@ TEST(BigNum, from_decimal) {
 
 static void test_get_ipv4(uint32 ip) {
   td::IPAddress ip_address;
-  ip_address.init_ipv4_port(td::IPAddress::ipv4_to_str(ip), 80);
+  ip_address.init_ipv4_port(td::IPAddress::ipv4_to_str(ip), 80).ensure();
   ASSERT_EQ(ip_address.get_ipv4(), ip);
 }
 

@@ -98,25 +98,27 @@ Status scan_fs(CallbackT &&callback) {
       continue;
     }
     auto files_dir = get_files_dir(file_type);
-    td::walk_path(files_dir, [&](CSlice path, bool is_dir) {
-      if (is_dir) {
-        // TODO: skip subdirs
-        return;
-      }
-      auto r_stat = stat(path);
-      if (r_stat.is_error()) {
-        LOG(WARNING) << "Stat in files gc failed: " << r_stat.error();
-        return;
-      }
-      auto stat = r_stat.move_as_ok();
-      FsFileInfo info;
-      info.path = path.str();
-      info.size = stat.size_;
-      info.file_type = file_type;
-      info.atime_nsec = stat.atime_nsec_;
-      info.mtime_nsec = stat.mtime_nsec_;
-      callback(info);
-    });
+    td::walk_path(files_dir,
+                  [&](CSlice path, bool is_dir) {
+                    if (is_dir) {
+                      // TODO: skip subdirs
+                      return;
+                    }
+                    auto r_stat = stat(path);
+                    if (r_stat.is_error()) {
+                      LOG(WARNING) << "Stat in files gc failed: " << r_stat.error();
+                      return;
+                    }
+                    auto stat = r_stat.move_as_ok();
+                    FsFileInfo info;
+                    info.path = path.str();
+                    info.size = stat.size_;
+                    info.file_type = file_type;
+                    info.atime_nsec = stat.atime_nsec_;
+                    info.mtime_nsec = stat.mtime_nsec_;
+                    callback(info);
+                  })
+        .ignore();
   }
   return Status::OK();
 }
