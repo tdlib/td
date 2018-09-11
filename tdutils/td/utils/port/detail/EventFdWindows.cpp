@@ -36,16 +36,16 @@ PollableFdInfo &EventFdWindows::get_poll_info() {
 }
 
 void EventFdWindows::release() {
-  SetEvent(event_.io_handle());
+  SetEvent(event_.fd());
 }
 
 void EventFdWindows::acquire() {
-  ResetEvent(event_.io_handle());
+  ResetEvent(event_.fd());
 }
 
 void EventFdWindows::wait(int timeout_ms) {
-  WaitForSingleObject(event_.io_handle(), timeout_ms);
-  ResetEvent(event_.io_handle());
+  WaitForSingleObject(event_.fd(), timeout_ms);
+  ResetEvent(event_.fd());
 }
 
 }  // namespace detail

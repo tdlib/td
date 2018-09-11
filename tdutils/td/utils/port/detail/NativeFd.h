@@ -18,33 +18,30 @@ namespace td {
 class NativeFd {
  public:
 #if TD_PORT_POSIX
-  using Raw = int;
+  using Fd = int;
+  using Socket = int;
 #elif TD_PORT_WINDOWS
-  using Raw = HANDLE;
+  using Fd = HANDLE;
+  using Socket = SOCKET;
 #endif
   NativeFd() = default;
   NativeFd(NativeFd &&) = default;
   NativeFd &operator=(NativeFd &&) = default;
-  explicit NativeFd(Raw raw);
-  NativeFd &operator=(const NativeFd &) = delete;
-  NativeFd(Raw raw, bool nolog);
+  explicit NativeFd(Fd fd);
+  NativeFd(Fd fd, bool nolog);
 #if TD_PORT_WINDOWS
-  explicit NativeFd(SOCKET raw);
+  explicit NativeFd(Socket socket);
 #endif
+  NativeFd(const NativeFd &) = delete;
+  NativeFd &operator=(const NativeFd &) = delete;
   ~NativeFd();
 
   explicit operator bool() const;
 
-  static Raw empty_raw();
+  static Fd empty_fd();
 
-  Raw raw() const;
-  Raw fd() const;
-#if TD_PORT_WINDOWS
-  Raw io_handle() const;
-  SOCKET socket() const;
-#elif TD_PORT_POSIX
-  Raw socket() const;
-#endif
+  Fd fd() const;
+  Socket socket() const;
 
   Status set_is_blocking(bool is_blocking) const;
 
@@ -53,13 +50,13 @@ class NativeFd {
   Status duplicate(const NativeFd &to) const;
 
   void close();
-  Raw release();
+  Fd release();
 
  private:
 #if TD_PORT_POSIX
-  MovableValue<Raw, -1> fd_;
+  MovableValue<Fd, -1> fd_;
 #elif TD_PORT_WINDOWS
-  MovableValue<Raw, INVALID_HANDLE_VALUE> fd_;
+  MovableValue<Fd, INVALID_HANDLE_VALUE> fd_;
   bool is_socket_{false};
 #endif
 };

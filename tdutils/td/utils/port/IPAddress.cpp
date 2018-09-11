@@ -383,9 +383,9 @@ Status IPAddress::init_sockaddr(sockaddr *addr, socklen_t len) {
 
 Status IPAddress::init_socket_address(const SocketFd &socket_fd) {
   is_valid_ = false;
-  auto fd = socket_fd.get_native_fd().socket();
+  auto socket = socket_fd.get_native_fd().socket();
   socklen_t len = storage_size();
-  int ret = getsockname(fd, &sockaddr_, &len);
+  int ret = getsockname(socket, &sockaddr_, &len);
   if (ret != 0) {
     return OS_SOCKET_ERROR("Failed to get socket address");
   }
@@ -395,9 +395,9 @@ Status IPAddress::init_socket_address(const SocketFd &socket_fd) {
 
 Status IPAddress::init_peer_address(const SocketFd &socket_fd) {
   is_valid_ = false;
-  auto fd = socket_fd.get_native_fd().socket();
+  auto socket = socket_fd.get_native_fd().socket();
   socklen_t len = storage_size();
-  int ret = getpeername(fd, &sockaddr_, &len);
+  int ret = getpeername(socket, &sockaddr_, &len);
   if (ret != 0) {
     return OS_SOCKET_ERROR("Failed to get peer socket address");
   }

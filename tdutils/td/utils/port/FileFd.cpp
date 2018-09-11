@@ -219,7 +219,7 @@ Result<size_t> FileFd::write(Slice slice) {
   }
   return std::move(error);
 #elif TD_PORT_WINDOWS
-  auto native_fd = get_native_fd().io_handle();
+  auto native_fd = get_native_fd().fd();
   DWORD bytes_written = 0;
   auto res = WriteFile(native_fd, slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_written, nullptr);
   if (res) {
@@ -252,7 +252,7 @@ Result<size_t> FileFd::read(MutableSlice slice) {
   }
   return std::move(error);
 #elif TD_PORT_WINDOWS
-  auto native_fd = get_native_fd().io_handle();
+  auto native_fd = get_native_fd().fd();
   DWORD bytes_read = 0;
   auto res = ReadFile(native_fd, slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_read, nullptr);
   if (res) {
@@ -289,7 +289,7 @@ Result<size_t> FileFd::pwrite(Slice slice, int64 offset) {
   }
   return std::move(error);
 #elif TD_PORT_WINDOWS
-  auto native_fd = get_native_fd().io_handle();
+  auto native_fd = get_native_fd().fd();
   DWORD bytes_written = 0;
   OVERLAPPED overlapped;
   std::memset(&overlapped, 0, sizeof(overlapped));
@@ -327,7 +327,7 @@ Result<size_t> FileFd::pread(MutableSlice slice, int64 offset) {
   }
   return std::move(error);
 #elif TD_PORT_WINDOWS
-  auto native_fd = get_native_fd().io_handle();
+  auto native_fd = get_native_fd().fd();
   DWORD bytes_read = 0;
   OVERLAPPED overlapped;
   std::memset(&overlapped, 0, sizeof(overlapped));
@@ -348,7 +348,7 @@ Status FileFd::lock(FileFd::LockFlags flags, int32 max_tries) {
 #if TD_PORT_POSIX
   auto native_fd = get_native_fd().fd();
 #elif TD_PORT_WINDOWS
-  auto native_fd = get_native_fd().io_handle();
+  auto native_fd = get_native_fd().fd();
 #endif
   while (true) {
 #if TD_PORT_POSIX
@@ -442,8 +442,7 @@ Stat FileFd::stat() {
   Stat res;
 
   FILE_BASIC_INFO basic_info;
-  auto status =
-      GetFileInformationByHandleEx(get_native_fd().io_handle(), FileBasicInfo, &basic_info, sizeof(basic_info));
+  auto status = GetFileInformationByHandleEx(get_native_fd().fd(), FileBasicInfo, &basic_info, sizeof(basic_info));
   if (!status) {
     auto error = OS_ERROR("Stat failed");
     LOG(FATAL) << error;
@@ -454,8 +453,7 @@ Stat FileFd::stat() {
   res.is_reg_ = true;
 
   FILE_STANDARD_INFO standard_info;
-  status = GetFileInformationByHandleEx(get_native_fd().io_handle(), FileStandardInfo, &standard_info,
-                                        sizeof(standard_info));
+  status = GetFileInformationByHandleEx(get_native_fd().fd(), FileStandardInfo, &standard_info, sizeof(standard_info));
   if (!status) {
     auto error = OS_ERROR("Stat failed");
     LOG(FATAL) << error;
@@ -471,7 +469,7 @@ Status FileFd::sync() {
 #if TD_PORT_POSIX
   if (fsync(get_native_fd().fd()) != 0) {
 #elif TD_PORT_WINDOWS
-  if (FlushFileBuffers(get_native_fd().io_handle()) == 0) {
+  if (FlushFileBuffers(get_native_fd().fd()) == 0) {
 #endif
     return OS_ERROR("Sync failed");
   }
@@ -486,7 +484,7 @@ Status FileFd::seek(int64 position) {
 #elif TD_PORT_WINDOWS
   LARGE_INTEGER offset;
   offset.QuadPart = position;
-  if (SetFilePointerEx(get_native_fd().io_handle(), offset, nullptr, FILE_BEGIN) == 0) {
+  if (SetFilePointerEx(get_native_fd().fd(), offset, nullptr, FILE_BEGIN) == 0) {
 #endif
     return OS_ERROR("Seek failed");
   }
@@ -499,7 +497,7 @@ Status FileFd::truncate_to_current_position(int64 current_position) {
   TRY_RESULT(current_position_off_t, narrow_cast_safe<off_t>(current_position));
   if (detail::skip_eintr([&] { return ::ftruncate(get_native_fd().fd(), current_position_off_t); }) < 0) {
 #elif TD_PORT_WINDOWS
-  if (SetEndOfFile(get_native_fd().io_handle()) == 0) {
+  if (SetEndOfFile(get_native_fd().fd()) == 0) {
 #endif
     return OS_ERROR("Truncate failed");
   }

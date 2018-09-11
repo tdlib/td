@@ -213,7 +213,7 @@ class ServerSocketFdImpl {
   Result<SocketFd> accept() {
     sockaddr_storage addr;
     socklen_t addr_len = sizeof(addr);
-    int native_fd = get_native_fd().fd();
+    int native_fd = get_native_fd().socket();
     int r_fd = detail::skip_eintr([&] { return ::accept(native_fd, reinterpret_cast<sockaddr *>(&addr), &addr_len); });
     auto accept_errno = errno;
     if (r_fd >= 0) {

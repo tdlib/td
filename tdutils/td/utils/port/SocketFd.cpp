@@ -341,7 +341,7 @@ class SocketFdImpl {
     return info.native_fd();
   }
   Result<size_t> write(Slice slice) {
-    int native_fd = get_native_fd().fd();
+    int native_fd = get_native_fd().socket();
     auto write_res = detail::skip_eintr([&] { return ::write(native_fd, slice.begin(), slice.size()); });
     auto write_errno = errno;
     if (write_res >= 0) {
@@ -385,7 +385,7 @@ class SocketFdImpl {
     if (get_poll_info().get_flags().has_pending_error()) {
       TRY_STATUS(get_pending_error());
     }
-    int native_fd = get_native_fd().fd();
+    int native_fd = get_native_fd().socket();
     CHECK(slice.size() > 0);
     auto read_res = detail::skip_eintr([&] { return ::read(native_fd, slice.begin(), slice.size()); });
     auto read_errno = errno;
@@ -498,7 +498,7 @@ Result<SocketFd> SocketFd::open(const IPAddress &address) {
   TRY_STATUS(detail::init_socket_options(native_fd));
 
 #if TD_PORT_POSIX
-  int e_connect = connect(native_fd.fd(), address.get_sockaddr(), narrow_cast<socklen_t>(address.get_sockaddr_len()));
+  int e_connect = connect(native_fd.socket(), address.get_sockaddr(), narrow_cast<socklen_t>(address.get_sockaddr_len()));
   if (e_connect == -1) {
     auto connect_errno = errno;
     if (connect_errno != EINPROGRESS) {

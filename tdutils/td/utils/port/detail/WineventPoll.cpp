@@ -29,10 +29,10 @@ void IOCP::loop() {
     DWORD bytes = 0;
     ULONG_PTR key = 0;
     WSAOVERLAPPED *overlapped = nullptr;
-    BOOL ok = GetQueuedCompletionStatus(iocp_handle_.io_handle(), &bytes, &key,
-                                        reinterpret_cast<OVERLAPPED **>(&overlapped), 1000);
+    BOOL ok =
+        GetQueuedCompletionStatus(iocp_handle_.fd(), &bytes, &key, reinterpret_cast<OVERLAPPED **>(&overlapped), 1000);
     if (bytes || key || overlapped) {
-      // LOG(ERROR) << "Got iocp " << bytes << " " << key << " " << overlapped;
+      // LOG(ERROR) << "Got IOCP " << bytes << " " << key << " " << overlapped;
     }
     if (ok) {
       auto callback = reinterpret_cast<IOCP::Callback *>(key);
@@ -43,7 +43,7 @@ void IOCP::loop() {
       callback->on_iocp(bytes, overlapped);
     } else {
       if (overlapped != nullptr) {
-        auto error = OS_ERROR("from iocp");
+        auto error = OS_ERROR("Received from IOCP");
         auto callback = reinterpret_cast<IOCP::Callback *>(key);
         CHECK(callback != nullptr);
         callback->on_iocp(std::move(error), overlapped);
@@ -60,7 +60,7 @@ void IOCP::init() {
   CHECK(!iocp_handle_);
   auto res = CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0);
   if (res == nullptr) {
-    auto error = OS_ERROR("Iocp creation failed");
+    auto error = OS_ERROR("IOCP creation failed");
     LOG(FATAL) << error;
   }
   iocp_handle_ = NativeFd(res);
@@ -73,16 +73,16 @@ void IOCP::clear() {
 void IOCP::subscribe(const NativeFd &native_fd, Callback *callback) {
   CHECK(iocp_handle_);
   auto iocp_handle =
-      CreateIoCompletionPort(native_fd.io_handle(), iocp_handle_.io_handle(), reinterpret_cast<ULONG_PTR>(callback), 0);
+      CreateIoCompletionPort(native_fd.fd(), iocp_handle_.fd(), reinterpret_cast<ULONG_PTR>(callback), 0);
   if (iocp_handle == INVALID_HANDLE_VALUE) {
     auto error = OS_ERROR("CreateIoCompletionPort");
     LOG(FATAL) << error;
   }
-  CHECK(iocp_handle == iocp_handle_.io_handle()) << iocp_handle << " " << iocp_handle_.io_handle();
+  CHECK(iocp_handle == iocp_handle_.fd()) << iocp_handle << " " << iocp_handle_.fd();
 }
 
 void IOCP::post(size_t size, Callback *callback, WSAOVERLAPPED *overlapped) {
-  PostQueuedCompletionStatus(iocp_handle_.io_handle(), DWORD(size), reinterpret_cast<ULONG_PTR>(callback),
+  PostQueuedCompletionStatus(iocp_handle_.fd(), DWORD(size), reinterpret_cast<ULONG_PTR>(callback),
                              reinterpret_cast<OVERLAPPED *>(overlapped));
 }
 

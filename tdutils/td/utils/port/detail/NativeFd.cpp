@@ -11,21 +11,21 @@
 #include "td/utils/Status.h"
 
 #if TD_PORT_POSIX
-#include <unistd.h>
 #include <fcntl.h>
+#include <unistd.h>
 #endif
 
 namespace td {
 
-NativeFd::NativeFd(Raw raw) : fd_(raw) {
+NativeFd::NativeFd(Fd fd) : fd_(fd) {
   VLOG(fd) << *this << " create";
 }
 
-NativeFd::NativeFd(Raw raw, bool nolog) : fd_(raw) {
+NativeFd::NativeFd(Fd fd, bool nolog) : fd_(fd) {
 }
 
 #if TD_PORT_WINDOWS
-NativeFd::NativeFd(SOCKET raw) : fd_(reinterpret_cast<HANDLE>(raw)), is_socket_(true) {
+NativeFd::NativeFd(Socket socket) : fd_(reinterpret_cast<Fd>(socket)), is_socket_(true) {
   VLOG(fd) << *this << " create";
 }
 #endif
@@ -35,10 +35,10 @@ NativeFd::~NativeFd() {
 }
 
 NativeFd::operator bool() const {
-  return fd_.get() != empty_raw();
+  return fd_.get() != empty_fd();
 }
 
-NativeFd::Raw NativeFd::empty_raw() {
+NativeFd::Fd NativeFd::empty_fd() {
 #if TD_PORT_POSIX
   return -1;
 #elif TD_PORT_WINDOWS
@@ -46,27 +46,18 @@ NativeFd::Raw NativeFd::empty_raw() {
 #endif
 }
 
-NativeFd::Raw NativeFd::raw() const {
+NativeFd::Fd NativeFd::fd() const {
   return fd_.get();
 }
 
-NativeFd::Raw NativeFd::fd() const {
-  return raw();
-}
-
-#if TD_PORT_WINDOWS
-NativeFd::Raw NativeFd::io_handle() const {
-  return raw();
-}
-SOCKET NativeFd::socket() const {
+NativeFd::Socket NativeFd::socket() const {
+#if TD_PORT_POSIX
+  return fd();
+#elif TD_PORT_WINDOWS
   CHECK(is_socket_);
-  return reinterpret_cast<SOCKET>(fd_.get());
-}
-#elif TD_PORT_POSIX
-NativeFd::Raw NativeFd::socket() const {
-  return raw();
-}
+  return reinterpret_cast<Socket>(fd_.get());
 #endif
+}
 
 Status NativeFd::set_is_blocking(bool is_blocking) const {
 #if TD_PORT_POSIX
@@ -116,7 +107,7 @@ void NativeFd::close() {
   }
   VLOG(fd) << *this << " close";
 #if TD_PORT_WINDOWS
-  if (is_socket_ ? closesocket(socket()) : !CloseHandle(io_handle())) {
+  if (is_socket_ ? closesocket(socket()) : !CloseHandle(fd())) {
 #elif TD_PORT_POSIX
   if (::close(fd()) < 0) {
 #endif
@@ -126,7 +117,7 @@ void NativeFd::close() {
   fd_ = {};
 }
 
-NativeFd::Raw NativeFd::release() {
+NativeFd::Fd NativeFd::release() {
   VLOG(fd) << *this << " release";
   auto res = fd_.get();
   fd_ = {};
@@ -134,7 +125,7 @@ NativeFd::Raw NativeFd::release() {
 }
 
 StringBuilder &operator<<(StringBuilder &sb, const NativeFd &fd) {
-  return sb << tag("fd", fd.raw());
+  return sb << tag("fd", fd.fd());
 }
 
 }  // namespace td
