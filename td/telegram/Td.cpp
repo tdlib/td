@@ -3316,6 +3316,10 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
         case td_api::setTdlibParameters::ID:
           return answer_ok_query(
               id, set_parameters(std::move(move_tl_object_as<td_api::setTdlibParameters>(function)->parameters_)));
+        case td_api::close::ID:
+          return close();
+        case td_api::destroy::ID:
+          return destroy();
         default:
           if (is_synchronous_request(function_id) || is_preinitialization_request(function_id)) {
             break;
