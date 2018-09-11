@@ -40,7 +40,7 @@ namespace detail {
 class ServerSocketFdImpl : private Iocp::Callback {
  public:
   ServerSocketFdImpl(NativeFd fd, int socket_family) : info_(std::move(fd)), socket_family_(socket_family) {
-    VLOG(fd) << get_native_fd().socket() << " create ServerSocketFd";
+    VLOG(fd) << get_native_fd() << " create ServerSocketFd";
     Iocp::get()->subscribe(get_native_fd(), this);
     notify_iocp_read();
   }
@@ -105,11 +105,11 @@ class ServerSocketFdImpl : private Iocp::Callback {
     info_.set_native_fd({});
   }
   void on_read() {
-    VLOG(fd) << get_native_fd().socket() << " on_read";
+    VLOG(fd) << get_native_fd() << " on_read";
     if (is_read_active_) {
       is_read_active_ = false;
       auto r_socket = SocketFd::from_native_fd(std::move(accept_socket_));
-      VLOG(fd) << get_native_fd().socket() << " finish accept";
+      VLOG(fd) << get_native_fd() << " finish accept";
       if (r_socket.is_error()) {
         return on_error(r_socket.move_as_error());
       }
@@ -125,7 +125,7 @@ class ServerSocketFdImpl : private Iocp::Callback {
     CHECK(!is_read_active_);
     accept_socket_ = NativeFd(socket(socket_family_, SOCK_STREAM, 0));
     std::memset(&read_overlapped_, 0, sizeof(read_overlapped_));
-    VLOG(fd) << get_native_fd().socket() << " start accept";
+    VLOG(fd) << get_native_fd() << " start accept";
     BOOL status = AcceptEx(get_native_fd().socket(), accept_socket_.socket(), addr_buf_, 0, MAX_ADDR_SIZE,
                            MAX_ADDR_SIZE, nullptr, &read_overlapped_);
     if (status == TRUE || check_status("Failed to accept connection")) {
@@ -183,12 +183,12 @@ class ServerSocketFdImpl : private Iocp::Callback {
     UNREACHABLE();
   }
   void notify_iocp_read() {
-    VLOG(fd) << get_native_fd().socket() << " notify_read";
+    VLOG(fd) << get_native_fd() << " notify_read";
     inc_refcnt();
     Iocp::get()->post(0, this, nullptr);
   }
   void notify_iocp_close() {
-    VLOG(fd) << get_native_fd().socket() << " notify_close";
+    VLOG(fd) << get_native_fd() << " notify_close";
     Iocp::get()->post(0, this, reinterpret_cast<WSAOVERLAPPED *>(&close_overlapped_));
   }
 };

@@ -36,7 +36,7 @@ namespace detail {
 class SocketFdImpl : private Iocp::Callback {
  public:
   explicit SocketFdImpl(NativeFd native_fd) : info(std::move(native_fd)) {
-    VLOG(fd) << get_native_fd().socket() << " create from native_fd";
+    VLOG(fd) << get_native_fd() << " create from native_fd";
     get_poll_info().add_flags(PollFlags::Write());
     Iocp::get()->subscribe(get_native_fd(), this);
     is_read_active_ = true;
@@ -44,7 +44,7 @@ class SocketFdImpl : private Iocp::Callback {
   }
 
   SocketFdImpl(NativeFd native_fd, const IPAddress &addr) : info(std::move(native_fd)) {
-    VLOG(fd) << get_native_fd().socket() << " create from native_fd and connect";
+    VLOG(fd) << get_native_fd() << " create from native_fd and connect";
     get_poll_info().add_flags(PollFlags::Write());
     Iocp::get()->subscribe(get_native_fd(), this);
     LPFN_CONNECTEX ConnectExPtr = nullptr;
@@ -232,7 +232,7 @@ class SocketFdImpl : private Iocp::Callback {
   }
 
   void on_error(Status status) {
-    VLOG(fd) << get_native_fd().socket() << " on error " << status;
+    VLOG(fd) << get_native_fd() << " on error " << status;
     {
       auto lock = lock_.lock();
       pending_errors_.push(std::move(status));
@@ -241,7 +241,7 @@ class SocketFdImpl : private Iocp::Callback {
   }
 
   void on_connected() {
-    VLOG(fd) << get_native_fd().socket() << " on connected";
+    VLOG(fd) << get_native_fd() << " on connected";
     CHECK(!is_connected_);
     CHECK(is_read_active_);
     is_connected_ = true;
@@ -251,7 +251,7 @@ class SocketFdImpl : private Iocp::Callback {
   }
 
   void on_read(size_t size) {
-    VLOG(fd) << get_native_fd().socket() << " on read " << size;
+    VLOG(fd) << get_native_fd() << " on read " << size;
     CHECK(is_read_active_);
     is_read_active_ = false;
     if (size == 0) {
@@ -264,7 +264,7 @@ class SocketFdImpl : private Iocp::Callback {
   }
 
   void on_write(size_t size) {
-    VLOG(fd) << get_native_fd().socket() << " on write " << size;
+    VLOG(fd) << get_native_fd() << " on write " << size;
     if (size == 0) {
       if (is_write_active_) {
         return;
@@ -278,12 +278,12 @@ class SocketFdImpl : private Iocp::Callback {
   }
 
   void on_close() {
-    VLOG(fd) << get_native_fd().socket() << " on close";
+    VLOG(fd) << get_native_fd() << " on close";
     close_flag_ = true;
     info.set_native_fd({});
   }
   bool dec_refcnt() {
-    VLOG(fd) << get_native_fd().socket() << " dec_refcnt from " << refcnt_;
+    VLOG(fd) << get_native_fd() << " dec_refcnt from " << refcnt_;
     if (--refcnt_ == 0) {
       delete this;
       return true;
@@ -293,7 +293,7 @@ class SocketFdImpl : private Iocp::Callback {
   void inc_refcnt() {
     CHECK(refcnt_ != 0);
     refcnt_++;
-    VLOG(fd) << get_native_fd().socket() << " inc_refcnt to " << refcnt_;
+    VLOG(fd) << get_native_fd() << " inc_refcnt to " << refcnt_;
   }
 
   void notify_iocp_write() {

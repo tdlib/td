@@ -272,7 +272,7 @@ class UdpSocketFdImpl : private Iocp::Callback {
   }
 
   void on_error(Status status) {
-    VLOG(fd) << get_native_fd().socket() << " on error " << status;
+    VLOG(fd) << get_native_fd() << " on error " << status;
     {
       auto lock = lock_.lock();
       pending_errors_.push(std::move(status));
@@ -281,7 +281,7 @@ class UdpSocketFdImpl : private Iocp::Callback {
   }
 
   void on_connected() {
-    VLOG(fd) << get_native_fd().socket() << " on connected";
+    VLOG(fd) << get_native_fd() << " on connected";
     CHECK(!is_connected_);
     CHECK(is_receive_active_);
     is_connected_ = true;
@@ -291,7 +291,7 @@ class UdpSocketFdImpl : private Iocp::Callback {
   }
 
   void on_receive(size_t size) {
-    VLOG(fd) << get_native_fd().socket() << " on receive " << size;
+    VLOG(fd) << get_native_fd() << " on receive " << size;
     CHECK(is_receive_active_);
     is_receive_active_ = false;
     receive_helper_.from_native(receive_message_, size, to_receive_);
@@ -306,7 +306,7 @@ class UdpSocketFdImpl : private Iocp::Callback {
   }
 
   void on_send(size_t size) {
-    VLOG(fd) << get_native_fd().socket() << " on send " << size;
+    VLOG(fd) << get_native_fd() << " on send " << size;
     if (size == 0) {
       if (is_send_active_) {
         return;
@@ -319,7 +319,7 @@ class UdpSocketFdImpl : private Iocp::Callback {
   }
 
   void on_close() {
-    VLOG(fd) << get_native_fd().socket() << " on close";
+    VLOG(fd) << get_native_fd() << " on close";
     close_flag_ = true;
     info_.set_native_fd({});
   }
@@ -527,8 +527,7 @@ class UdpSocketFdImpl {
       return Status::OK();
     }
 
-    auto error =
-        Status::PosixError(recvmsg_errno, PSLICE() << "Receive from [fd=" << get_native_fd() << "] has failed");
+    auto error = Status::PosixError(recvmsg_errno, PSLICE() << "Receive from " << get_native_fd() << " has failed");
     switch (recvmsg_errno) {
       case EBADF:
       case EFAULT:
@@ -575,7 +574,7 @@ class UdpSocketFdImpl {
       return Status::OK();
     }
 
-    auto error = Status::PosixError(sendmsg_errno, PSLICE() << "Send from [fd=" << get_native_fd() << "] has failed");
+    auto error = Status::PosixError(sendmsg_errno, PSLICE() << "Send from " << get_native_fd() << " has failed");
     switch (sendmsg_errno) {
       // Still may send some other packets, but there is no point to resend this particular message
       case EACCES:

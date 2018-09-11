@@ -283,7 +283,6 @@ class OpenClose final : public Actor {
       auto r_file_fd = FileFd::open("server", FileFd::Read | FileFd::Create);
       CHECK(r_file_fd.is_ok()) << r_file_fd.error();
       auto file_fd = r_file_fd.move_as_ok();
-      // LOG(ERROR) << file_fd.get_native_fd();
       file_fd.get_poll_info().extract_pollable_fd(observer);
       file_fd.close();
       cnt_--;
