@@ -480,7 +480,20 @@ tl_object_ptr<td_api::photo> get_photo_object(FileManager *file_manager, const P
     photos.push_back(get_photo_size_object(file_manager, &photo_size));
   }
   sort_photo_sizes(photos);
-  return make_tl_object<td_api::photo>(photo->id, photo->has_stickers, std::move(photos));
+  return make_tl_object<td_api::photo>(photo->has_stickers, std::move(photos));
+}
+
+tl_object_ptr<td_api::userProfilePhoto> get_user_profile_photo_object(FileManager *file_manager, const Photo *photo) {
+  if (photo == nullptr || photo->id == -2) {
+    return nullptr;
+  }
+
+  vector<td_api::object_ptr<td_api::photoSize>> photos;
+  for (auto &photo_size : photo->photos) {
+    photos.push_back(get_photo_size_object(file_manager, &photo_size));
+  }
+  sort_photo_sizes(photos);
+  return make_tl_object<td_api::userProfilePhoto>(photo->id, photo->date, std::move(photos));
 }
 
 void photo_delete_thumbnail(Photo &photo) {

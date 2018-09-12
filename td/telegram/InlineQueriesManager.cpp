@@ -1042,7 +1042,7 @@ tl_object_ptr<td_api::document> copy(const td_api::document &obj) {
 
 template <>
 tl_object_ptr<td_api::photo> copy(const td_api::photo &obj) {
-  return make_tl_object<td_api::photo>(obj.id_, obj.has_stickers_, transform(obj.sizes_, copy_photo_size));
+  return make_tl_object<td_api::photo>(obj.has_stickers_, transform(obj.sizes_, copy_photo_size));
 }
 
 template <>

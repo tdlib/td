@@ -98,6 +98,7 @@ Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::photo> &&
 Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::encryptedFile> &&file,
                 tl_object_ptr<secret_api::decryptedMessageMediaPhoto> &&photo, DialogId owner_dialog_id);
 tl_object_ptr<td_api::photo> get_photo_object(FileManager *file_manager, const Photo *photo);
+tl_object_ptr<td_api::userProfilePhoto> get_user_profile_photo_object(FileManager *file_manager, const Photo *photo);
 
 void photo_delete_thumbnail(Photo &photo);
 

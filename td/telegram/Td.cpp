@@ -2203,11 +2203,9 @@ class GetUserProfilePhotosRequest : public RequestActor<> {
 
   void do_send_result() override {
     // TODO create function get_user_profile_photos_object
-    vector<tl_object_ptr<td_api::photo>> result;
-    result.reserve(photos.second.size());
-    for (auto photo : photos.second) {
-      result.push_back(get_photo_object(td->file_manager_.get(), photo));
-    }
+    auto result = transform(photos.second, [file_manager = td->file_manager_.get()](const Photo *photo) {
+      return get_user_profile_photo_object(file_manager, photo);
+    });
 
     send_result(make_tl_object<td_api::userProfilePhotos>(photos.first, std::move(result)));
   }

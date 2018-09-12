@@ -199,8 +199,8 @@ audio duration:int32 title:string performer:string file_name:string mime_type:st
 //@thumbnail Document thumbnail; as defined by the sender; may be null @document File containing the document
 document file_name:string mime_type:string thumbnail:photoSize document:file = Document;
 
-//@description Describes a photo @id Photo identifier; 0 for deleted photos @has_stickers True, if stickers were added to the photo @sizes Available variants of the photo, in different sizes
-photo id:int64 has_stickers:Bool sizes:vector<photoSize> = Photo;
+//@description Describes a photo @has_stickers True, if stickers were added to the photo @sizes Available variants of the photo, in different sizes
+photo has_stickers:Bool sizes:vector<photoSize> = Photo;
 
 //@description Describes a sticker @set_id The identifier of the sticker set to which the sticker belongs; 0 if none @width Sticker width; as defined by the sender @height Sticker height; as defined by the sender
 //@emoji Emoji corresponding to the sticker @is_mask True, if the sticker is a mask @mask_position Position where the mask should be placed; may be null @thumbnail Sticker thumbnail in WEBP or JPEG format; may be null @sticker File containing the sticker
@@ -288,8 +288,11 @@ user id:int32 first_name:string last_name:string username:string phone_number:st
 //@bio A short user bio @share_text For bots, the text that is included with the link when users share the bot @group_in_common_count Number of group chats where both the other user and the current user are a member; 0 for the current user @bot_info If the user is a bot, information about the bot; may be null
 userFullInfo is_blocked:Bool can_be_called:Bool has_private_calls:Bool bio:string share_text:string group_in_common_count:int32 bot_info:botInfo = UserFullInfo;
 
+//@description Contains full information about a user profile photo @id Unique user profile photo identifier @added_date Point in time (Unix timestamp) when the photo has been added @sizes Available variants of the user photo, in different sizes
+userProfilePhoto id:int64 added_date:int32 sizes:vector<photoSize> = UserProfilePhoto;
+
 //@description Contains part of the list of user photos @total_count Total number of user profile photos @photos A list of photos
-userProfilePhotos total_count:int32 photos:vector<photo> = UserProfilePhotos;
+userProfilePhotos total_count:int32 photos:vector<userProfilePhoto> = UserProfilePhotos;
 
 //@description Represents a list of users @total_count Approximate total count of users found @user_ids A list of user identifiers
 users total_count:int32 user_ids:vector<int32> = Users;
