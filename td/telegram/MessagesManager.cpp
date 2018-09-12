@@ -18342,9 +18342,9 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
   CHECK(m->edited_content != nullptr);
   if (result.is_ok()) {
     std::swap(m->content, m->edited_content);
-    update_message_content(dialog_id, m, std::move(m->edited_content),
-                           m->edited_content->get_id() == MessagePhoto::ID && m->content->get_id() == MessagePhoto::ID,
-                           true);
+    bool need_send_update_message_content =
+        m->edited_content->get_id() == MessagePhoto::ID && m->content->get_id() == MessagePhoto::ID;
+    update_message_content(dialog_id, m, std::move(m->edited_content), need_send_update_message_content, true);
   } else {
     auto error_message = result.error().message();
     if (thumbnail_file_id.is_valid()) {
@@ -24492,7 +24492,8 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
           need_update = true;
         }
         if (old_photo->photos != new_photo->photos) {
-          if ((old_photo->photos.size() == 1 || (old_photo->photos.size() == 2 && old_photo->photos[0].type == 't')) &&
+          if (need_merge_files &&
+              (old_photo->photos.size() == 1 || (old_photo->photos.size() == 2 && old_photo->photos[0].type == 't')) &&
               old_photo->photos.back().type == 'i' && !new_photo->photos.empty()) {
             // first time get info about sent photo
             if (old_photo->photos.size() == 2) {
@@ -24500,32 +24501,32 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
             }
             new_photo->photos.push_back(old_photo->photos.back());
 
-            if (need_merge_files) {
-              FileView old_file_view = td_->file_manager_->get_file_view(old_file_id);
-              FileId new_file_id = new_photo->photos[0].file_id;
-              FileView new_file_view = td_->file_manager_->get_file_view(new_file_id);
-              if (!old_file_view.has_remote_location()) {
-                CHECK(new_file_view.has_remote_location());
-                CHECK(!new_file_view.remote_location().is_web());
-                FileId file_id = td_->file_manager_->register_remote(
-                    FullRemoteFileLocation(FileType::Photo, new_file_view.remote_location().get_id(),
-                                           new_file_view.remote_location().get_access_hash(), 0, 0, 0, DcId::invalid()),
-                    FileLocationSource::FromServer, dialog_id, old_photo->photos.back().size, 0, "");
-                LOG_STATUS(td_->file_manager_->merge(file_id, old_file_id));
-              }
+            FileView old_file_view = td_->file_manager_->get_file_view(old_file_id);
+            FileId new_file_id = new_photo->photos[0].file_id;
+            FileView new_file_view = td_->file_manager_->get_file_view(new_file_id);
+            if (!old_file_view.has_remote_location()) {
+              CHECK(new_file_view.has_remote_location());
+              CHECK(!new_file_view.remote_location().is_web());
+              FileId file_id = td_->file_manager_->register_remote(
+                  FullRemoteFileLocation(FileType::Photo, new_file_view.remote_location().get_id(),
+                                         new_file_view.remote_location().get_access_hash(), 0, 0, 0, DcId::invalid()),
+                  FileLocationSource::FromServer, dialog_id, old_photo->photos.back().size, 0, "");
+              LOG_STATUS(td_->file_manager_->merge(file_id, old_file_id));
             }
           }
-          if ((old_photo->photos.size() == 1 + new_photo->photos.size() ||
-               (old_photo->photos.size() == 2 + new_photo->photos.size() &&
-                old_photo->photos[new_photo->photos.size()].type == 't')) &&
-              old_photo->photos.back().type == 'i') {
-            // get sent photo again
-            if (old_photo->photos.size() == 2 + new_photo->photos.size()) {
-              new_photo->photos.push_back(old_photo->photos[new_photo->photos.size()]);
-            }
+
+          // get sent photo again
+          auto new_photos_size = new_photo->photos.size();
+          auto old_photos_size = old_photo->photos.size();
+          if (old_photos_size == 2 + new_photos_size && old_photo->photos[new_photos_size].type == 't') {
+            new_photo->photos.push_back(old_photo->photos[new_photos_size]);
+          }
+          if (old_photos_size == 1 + new_photo->photos.size() && old_photo->photos.back().type == 'i') {
             new_photo->photos.push_back(old_photo->photos.back());
           }
           if (old_photo->photos != new_photo->photos) {
+            new_photo->photos.resize(
+                new_photos_size);  // return previous size, because we shouldn't add local photo sizes
             need_update = true;
           }
         }
