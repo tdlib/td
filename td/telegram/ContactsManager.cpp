@@ -1499,12 +1499,12 @@ class ImportDialogInviteLinkQuery : public Td::ResultHandler {
     }
 
     td->updates_manager_->on_get_updates(std::move(ptr));
-    td->contacts_manager_->invalidate_invite_link(invite_link_);
+    td->contacts_manager_->invalidate_invite_link_info(invite_link_);
     promise_.set_value(std::move(dialog_ids[0]));
   }
 
   void on_error(uint64 id, Status status) override {
-    td->contacts_manager_->invalidate_invite_link(invite_link_);
+    td->contacts_manager_->invalidate_invite_link_info(invite_link_);
     promise_.set_error(std::move(status));
   }
 };
@@ -1601,7 +1601,7 @@ class InviteToChannelQuery : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for inviteToChannel: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
-    td->contacts_manager_->invalidate_channel_full(channel_id_);
+    td->contacts_manager_->invalidate_channel_full(channel_id_, false);
 
     promise_.set_value(Unit());
   }
@@ -1638,7 +1638,7 @@ class EditChannelAdminQuery : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for editChannelAdmin: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
-    td->contacts_manager_->invalidate_channel_full(channel_id_);
+    td->contacts_manager_->invalidate_channel_full(channel_id_, false);
 
     promise_.set_value(Unit());
   }
@@ -1675,7 +1675,7 @@ class EditChannelBannedQuery : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for editChannelBanned: " << to_string(ptr);
     td->updates_manager_->on_get_updates(std::move(ptr));
-    td->contacts_manager_->invalidate_channel_full(channel_id_);
+    td->contacts_manager_->invalidate_channel_full(channel_id_, false);
 
     promise_.set_value(Unit());
   }
@@ -2402,7 +2402,7 @@ void ContactsManager::on_channel_unban_timeout(ChannelId channel_id) {
 
   LOG(INFO) << "Update " << channel_id << " status";
   c->is_status_changed = true;
-  invalidate_channel_full(channel_id);
+  invalidate_channel_full(channel_id, false);
   update_channel(c, channel_id);  // always call, because in case of failure we need to reactivate timeout
 }
 
@@ -7192,7 +7192,7 @@ void ContactsManager::speculative_add_channel_participants(ChannelId channel_id,
                                                            bool by_me) {
   if (by_me) {
     // Currently ignore all changes made by the current user, because they may be already counted
-    invalidate_channel_full(channel_id);  // just in case
+    invalidate_channel_full(channel_id, false);  // just in case
     return;
   }
 
@@ -7238,17 +7238,22 @@ void ContactsManager::speculative_add_channel_users(ChannelId channel_id, Dialog
   update_channel_full(channel_full, channel_id);
 }
 
-void ContactsManager::invalidate_channel_full(ChannelId channel_id) {
+void ContactsManager::invalidate_channel_full(ChannelId channel_id, bool drop_invite_link) {
   LOG(INFO) << "Invalidate channel full for " << channel_id;
   // drop channel full cache
-  // TODO at least need to invalidate channel invite link
   auto channel_full = get_channel_full(channel_id);
   if (channel_full != nullptr) {
     channel_full->expires_at = 0.0;
+    if (drop_invite_link) {
+      on_update_channel_full_invite_link(channel_full, nullptr);
+    }
+    update_channel_full(channel_full, channel_id);
+  } else if (drop_invite_link) {
+    auto it = channel_invite_links_.find(channel_id);
+    if (it != channel_invite_links_.end()) {
+      invalidate_invite_link_info(it->second);
+    }
   }
-
-  // channel_full->is_changed = true;
-  // update_channel_full(channel_full, channel_id);
 }
 
 void ContactsManager::on_get_chat_invite_link(ChatId chat_id,
@@ -7432,7 +7437,8 @@ bool ContactsManager::update_invite_link(string &invite_link,
   return false;
 }
 
-void ContactsManager::invalidate_invite_link(const string &invite_link) {
+void ContactsManager::invalidate_invite_link_info(const string &invite_link) {
+  LOG(INFO) << "Invalidate info about invite link " << invite_link;
   invite_link_infos_.erase(invite_link);
 }
 
@@ -7679,6 +7685,7 @@ void ContactsManager::on_update_chat_everyone_is_administrator(ChatId chat_id, b
 
 void ContactsManager::on_update_chat_left(Chat *c, ChatId chat_id, bool left, bool kicked) {
   if (c->left != left || c->kicked != kicked) {
+    bool drop_invite_link = c->left != left;
     c->left = left;
     c->kicked = kicked;
 
@@ -7687,6 +7694,12 @@ void ContactsManager::on_update_chat_left(Chat *c, ChatId chat_id, bool left, bo
       c->version = -1;
 
       invalidate_chat_full(chat_id);
+    }
+    if (drop_invite_link) {
+      auto it = chat_invite_links_.find(chat_id);
+      if (it != chat_invite_links_.end()) {
+        invalidate_invite_link_info(it->second);
+      }
     }
 
     c->need_send_update = true;
@@ -7825,6 +7838,10 @@ void ContactsManager::on_update_chat_full_participants(ChatFull *chat_full, Chat
 void ContactsManager::invalidate_chat_full(ChatId chat_id) {
   ChatFull *chat_full = get_chat_full(chat_id);
   if (chat_full == nullptr) {
+    auto it = chat_invite_links_.find(chat_id);
+    if (it != chat_invite_links_.end()) {
+      invalidate_invite_link_info(it->second);
+    }
     return;
   }
 
@@ -7859,10 +7876,12 @@ void ContactsManager::on_update_channel_title(Channel *c, ChannelId channel_id, 
 void ContactsManager::on_update_channel_status(Channel *c, ChannelId channel_id, DialogParticipantStatus &&status) {
   if (c->status != status) {
     LOG(INFO) << "Update " << channel_id << " status from " << c->status << " to " << status;
+    bool drop_invite_link =
+        c->status.is_administrator() != status.is_administrator() || c->status.is_member() != status.is_member();
     c->status = status;
     c->is_status_changed = true;
     c->need_send_update = true;
-    invalidate_channel_full(channel_id);
+    invalidate_channel_full(channel_id, drop_invite_link);
   }
 }
 
@@ -7886,7 +7905,7 @@ void ContactsManager::on_update_channel_username(Channel *c, ChannelId channel_i
   if (c->username != username) {
     if (c->username.empty() || username.empty()) {
       // moving channel from private to public can change availability of chat members
-      invalidate_channel_full(channel_id);
+      invalidate_channel_full(channel_id, true);
     }
 
     c->username = std::move(username);
@@ -9330,7 +9349,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel) {
         c->is_verified = is_verified;
 
         c->need_send_update = true;
-        invalidate_channel_full(channel_id);
+        invalidate_channel_full(channel_id, false);
       }
 
       update_channel(c, channel_id);
@@ -9375,7 +9394,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel) {
     c->restriction_reason = std::move(restriction_reason);
 
     c->need_send_update = true;
-    invalidate_channel_full(channel_id);
+    invalidate_channel_full(channel_id, false);
   }
 
   update_channel(c, channel_id);
@@ -9447,7 +9466,7 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel) {
     c->restriction_reason = std::move(restriction_reason);
 
     c->need_send_update = true;
-    invalidate_channel_full(channel_id);
+    invalidate_channel_full(channel_id, false);
   }
 
   update_channel(c, channel_id);

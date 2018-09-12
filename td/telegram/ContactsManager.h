@@ -172,7 +172,7 @@ class ContactsManager : public Actor {
 
   void speculative_add_channel_participants(ChannelId channel_id, int32 new_participant_count, bool by_me);
 
-  void invalidate_channel_full(ChannelId channel_id);
+  void invalidate_channel_full(ChannelId channel_id, bool drop_invite_link);
 
   bool on_get_channel_error(ChannelId channel_id, const Status &status, const string &source);
 
@@ -193,7 +193,7 @@ class ContactsManager : public Actor {
   void on_get_dialog_invite_link_info(const string &invite_link,
                                       tl_object_ptr<telegram_api::ChatInvite> &&chat_invite_ptr);
 
-  void invalidate_invite_link(const string &invite_link);
+  void invalidate_invite_link_info(const string &invite_link);
 
   void on_get_created_public_channels(vector<tl_object_ptr<telegram_api::Chat>> &&chats);
 
