@@ -17,9 +17,7 @@ TEST(Port, files) {
   CSlice main_dir = "test_dir";
   rmrf(main_dir).ignore();
   ASSERT_TRUE(FileFd::open(main_dir, FileFd::Write).is_error());
-  ASSERT_TRUE(walk_path(main_dir, [](CSlice name, bool is_directory) {
-              UNREACHABLE();
-            }).is_error());
+  ASSERT_TRUE(walk_path(main_dir, [](CSlice name, bool is_directory) { UNREACHABLE(); }).is_error());
   mkdir(main_dir).ensure();
   mkdir(PSLICE() << main_dir << TD_DIR_SLASH << "A").ensure();
   mkdir(PSLICE() << main_dir << TD_DIR_SLASH << "B").ensure();
@@ -37,11 +35,15 @@ TEST(Port, files) {
   const int ITER_COUNT = 1000;
   for (int i = 0; i < ITER_COUNT; i++) {
     walk_path(main_dir,
-              [&](CSlice name, bool is_directory) {
+              [&, ptr = std::make_unique<int>(2)](CSlice name, bool is_directory) mutable {
+                ASSERT_EQ(2, *ptr);
                 if (!is_directory) {
                   ASSERT_TRUE(name == fd_path || name == fd2_path);
                 }
                 cnt++;
+                if (cnt == 7) {
+                  ptr.reset();
+                }
               })
         .ensure();
   }
