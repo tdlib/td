@@ -709,6 +709,8 @@ class CliClient final : public Actor {
           "use_pfs", td_api::make_object<td_api::optionValueBoolean>(std::time(nullptr) / 86400 % 2 == 0)));
       send_request(td_api::make_object<td_api::setOption>("use_storage_optimizer",
                                                           td_api::make_object<td_api::optionValueBoolean>(false)));
+      send_request(
+          td_api::make_object<td_api::setOption>("online", td_api::make_object<td_api::optionValueBoolean>(true)));
 
       send_request(td_api::make_object<td_api::setNetworkType>(td_api::make_object<td_api::networkTypeWiFi>()));
       send_request(td_api::make_object<td_api::getNetworkStatistics>());

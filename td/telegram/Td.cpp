@@ -4172,6 +4172,13 @@ Status Td::init(DbKey key) {
     web_pages_manager_->on_binlog_web_page_event(std::move(event));
   }
 
+  if (is_online_) {
+    if (auth_manager_->is_bot()) {
+      send_closure(G()->state_manager(), &StateManager::on_online, false);
+    }
+    on_online_updated(true, true);
+  }
+
   // Send binlog events to managers
   //
   // 1. Actors must receive all binlog events before other queries.
@@ -6237,12 +6244,14 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
         }
         bool is_online = value_constructor_id == td_api::optionValueEmpty::ID ||
                          static_cast<const td_api::optionValueBoolean *>(request.value_.get())->value_;
-        if (!auth_manager_->is_bot()) {
+        if (auth_manager_ == nullptr || !auth_manager_->is_bot()) {
           send_closure(G()->state_manager(), &StateManager::on_online, is_online);
         }
         if (is_online != is_online_) {
           is_online_ = is_online;
-          on_online_updated(true, true);
+          if (auth_manager_ != nullptr) {  // postpone if there is no AuthManager yet
+            on_online_updated(true, true);
+          }
         }
         return send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
       }
