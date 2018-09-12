@@ -20,13 +20,11 @@
 
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"
-#include "td/utils/BufferedFd.h"
 #include "td/utils/FileLog.h"
 #include "td/utils/format.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
-#include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/FileFd.h"
 #include "td/utils/port/PollFlags.h"
 #include "td/utils/port/signals.h"
@@ -44,7 +42,6 @@
 #endif
 
 #include <algorithm>
-#include <array>
 #include <atomic>
 #include <clocale>
 #include <cstdio>

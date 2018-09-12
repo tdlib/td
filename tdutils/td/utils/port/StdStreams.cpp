@@ -6,7 +6,13 @@
 //
 #include "td/utils/port/StdStreams.h"
 
+#include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/port/detail/NativeFd.h"
+#include "td/utils/port/PollFlags.h"
+#include "td/utils/Slice.h"
+
+#include <atomic>
 
 namespace td {
 

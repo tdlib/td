@@ -32,6 +32,8 @@
 #include <string>
 #endif
 
+#include <utility>
+
 namespace td {
 
 Status mkdir(CSlice dir, int32 mode = 0700) TD_WARN_UNUSED_RESULT;
