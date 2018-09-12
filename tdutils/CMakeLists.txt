@@ -33,7 +33,6 @@ endif()
 
 set(TDUTILS_SOURCE
   td/utils/port/Clocks.cpp
-  #td/utils/port/Fd.cpp
   td/utils/port/FileFd.cpp
   td/utils/port/IPAddress.cpp
   td/utils/port/path.cpp
@@ -94,7 +93,6 @@ set(TDUTILS_SOURCE
   td/utils/port/CxCli.h
   td/utils/port/EventFd.h
   td/utils/port/EventFdBase.h
-  #td/utils/port/Fd.h
   td/utils/port/FileFd.h
   td/utils/port/IPAddress.h
   td/utils/port/path.h
