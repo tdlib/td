@@ -10,50 +10,60 @@
 
 namespace td {
 
-namespace {
-template <class T>
-FileFd create(T handle) {
-  return FileFd::from_native_fd(NativeFd(handle, true));
-}
-}  // namespace
-FileFd &Stdin() {
-  static FileFd res = create(
 #if TD_PORT_POSIX
-      0
-#elif TD_PORT_WINDOWS
-      GetStdHandle(STD_INPUT_HANDLE)
-#endif
-  );
-  return res;
-}
-FileFd &Stdout() {
-  static FileFd res = create(
-#if TD_PORT_POSIX
-      1
-#elif TD_PORT_WINDOWS
-      GetStdHandle(STD_OUTPUT_HANDLE)
-#endif
-  );
-  return res;
-}
-FileFd &Stderr() {
-  static FileFd res = create(
-#if TD_PORT_POSIX
-      2
-#elif TD_PORT_WINDOWS
-      GetStdHandle(STD_ERROR_HANDLE)
-#endif
-  );
-  return res;
+template <int id>
+static FileFd &get_file_fd() {
+  static FileFd result = FileFd::from_native_fd(NativeFd(id, true));
+  return result;
 }
 
-#if TD_WINDOWS
+FileFd &Stdin() {
+  return get_file_fd<0>();
+}
+FileFd &Stdout() {
+  return get_file_fd<1>();
+}
+FileFd &Stderr() {
+  return get_file_fd<2>();
+}
+#elif TD_PORT_WINDOWS
+template <DWORD id>
+static FileFd &get_file_fd() {
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
+  static auto handle = GetStdHandle(id);
+  LOG_IF(FATAL, handle == INVALID_HANDLE_VALUE) << "Failed to GetStdHandle " << id;
+  static FileFd result = FileFd::from_native_fd(NativeFd(handle, true));
+#else
+  static FileFd result;
+  result = FileFd();
+#endif
+  return result;
+}
+
+FileFd &Stdin() {
+  return get_file_fd<STD_INPUT_HANDLE>();
+}
+FileFd &Stdout() {
+  return get_file_fd<STD_OUTPUT_HANDLE>();
+}
+FileFd &Stderr() {
+  return get_file_fd<STD_ERROR_HANDLE>();
+}
+#endif
+
+#if TD_PORT_WINDOWS
 namespace detail {
 class BufferedStdinImpl {
  public:
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
   BufferedStdinImpl() : info_(NativeFd(GetStdHandle(STD_INPUT_HANDLE), true)) {
     read_thread_ = td::thread([this] { this->read_loop(); });
   }
+#else
+  BufferedStdinImpl() {
+    close();
+  }
+#endif
   BufferedStdinImpl(const BufferedStdinImpl &) = delete;
   BufferedStdinImpl &operator=(const BufferedStdinImpl &) = delete;
   BufferedStdinImpl(BufferedStdinImpl &&) = delete;
@@ -118,7 +128,7 @@ void BufferedStdinImplDeleter::operator()(BufferedStdinImpl *impl) {
   impl->close();
 }
 }  // namespace detail
-#else
+#elif TD_PORT_POSIX
 namespace detail {
 class BufferedStdinImpl {
  public:
