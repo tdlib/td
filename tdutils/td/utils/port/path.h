@@ -16,8 +16,6 @@
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
-#include <utility>
-
 #if TD_PORT_POSIX
 #include <limits.h>
 #include <dirent.h>
@@ -50,23 +48,23 @@ Result<std::pair<FileFd, string>> mkstemp(CSlice dir) TD_WARN_UNUSED_RESULT;
 Result<string> mkdtemp(CSlice dir, Slice prefix) TD_WARN_UNUSED_RESULT;
 
 template <class Func>
-Status walk_path(CSlice path, Func &&func) TD_WARN_UNUSED_RESULT;
+Status walk_path(CSlice path, const Func &func) TD_WARN_UNUSED_RESULT;
 
 #if TD_PORT_POSIX
 
 // TODO move details somewhere else
 namespace detail {
 template <class Func>
-Status walk_path_dir(string &path, FileFd fd, Func &&func) TD_WARN_UNUSED_RESULT;
+Status walk_path_dir(string &path, FileFd fd, const Func &func) TD_WARN_UNUSED_RESULT;
 template <class Func>
-Status walk_path_dir(string &path, Func &&func) TD_WARN_UNUSED_RESULT;
+Status walk_path_dir(string &path, const Func &func) TD_WARN_UNUSED_RESULT;
 template <class Func>
-Status walk_path_file(string &path, Func &&func) TD_WARN_UNUSED_RESULT;
+Status walk_path_file(string &path, const Func &func) TD_WARN_UNUSED_RESULT;
 template <class Func>
-Status walk_path(string &path, Func &&func) TD_WARN_UNUSED_RESULT;
+Status walk_path(string &path, const Func &func) TD_WARN_UNUSED_RESULT;
 
 template <class Func>
-Status walk_path_subdir(string &path, DIR *dir, Func &&func) {
+Status walk_path_subdir(string &path, DIR *dir, const Func &func) {
   while (true) {
     errno = 0;
     auto *entry = readdir(dir);
@@ -77,7 +75,7 @@ Status walk_path_subdir(string &path, DIR *dir, Func &&func) {
     if (entry == nullptr) {
       return Status::OK();
     }
-    Slice name = Slice(&*entry->d_name);
+    Slice name = Slice(static_cast<const char *>(entry->d_name));
     if (name == "." || name == "..") {
       continue;
     }
@@ -92,15 +90,15 @@ Status walk_path_subdir(string &path, DIR *dir, Func &&func) {
     Status status;
 #ifdef DT_DIR
     if (entry->d_type == DT_UNKNOWN) {
-      status = walk_path(path, std::forward<Func>(func));
+      status = walk_path(path, func);
     } else if (entry->d_type == DT_DIR) {
-      status = walk_path_dir(path, std::forward<Func>(func));
+      status = walk_path_dir(path, func);
     } else if (entry->d_type == DT_REG) {
-      status = walk_path_file(path, std::forward<Func>(func));
+      status = walk_path_file(path, func);
     }
 #else
 #warning "Slow walk_path"
-    status = walk_path(path, std::forward<Func>(func));
+    status = walk_path(path, func);
 #endif
     if (status.is_error()) {
       return status;
@@ -109,55 +107,54 @@ Status walk_path_subdir(string &path, DIR *dir, Func &&func) {
 }
 
 template <class Func>
-Status walk_path_dir(string &path, DIR *subdir, Func &&func) {
+Status walk_path_dir(string &path, DIR *subdir, const Func &func) {
   SCOPE_EXIT {
     closedir(subdir);
   };
-  TRY_STATUS(walk_path_subdir(path, subdir, std::forward<Func>(func)));
-  std::forward<Func>(func)(path, true);
+  TRY_STATUS(walk_path_subdir(path, subdir, func));
+  func(path, true);
   return Status::OK();
 }
 
 template <class Func>
-Status walk_path_dir(string &path, FileFd fd, Func &&func) {
+Status walk_path_dir(string &path, FileFd fd, const Func &func) {
   auto native_fd = fd.move_as_native_fd();
   auto *subdir = fdopendir(native_fd.fd());
   if (subdir == nullptr) {
-    auto error = OS_ERROR("fdopendir");
-    return error;
+    return OS_ERROR("fdopendir");
   }
   native_fd.release();
-  return walk_path_dir(path, subdir, std::forward<Func>(func));
+  return walk_path_dir(path, subdir, func);
 }
 
 template <class Func>
-Status walk_path_dir(string &path, Func &&func) {
+Status walk_path_dir(string &path, const Func &func) {
   auto *subdir = opendir(path.c_str());
   if (subdir == nullptr) {
     return OS_ERROR(PSLICE() << tag("opendir", path));
   }
-  return walk_path_dir(path, subdir, std::forward<Func>(func));
+  return walk_path_dir(path, subdir, func);
 }
 
 template <class Func>
-Status walk_path_file(string &path, Func &&func) {
-  std::forward<Func>(func)(path, false);
+Status walk_path_file(string &path, const Func &func) {
+  func(path, false);
   return Status::OK();
 }
 
 template <class Func>
-Status walk_path(string &path, Func &&func) {
+Status walk_path(string &path, const Func &func) {
   TRY_RESULT(fd, FileFd::open(path, FileFd::Read));
   auto stat = fd.stat();
   bool is_dir = stat.is_dir_;
   bool is_reg = stat.is_reg_;
   if (is_dir) {
-    return walk_path_dir(path, std::move(fd), std::forward<Func>(func));
+    return walk_path_dir(path, std::move(fd), func);
   }
 
   fd.close();
   if (is_reg) {
-    return walk_path_file(path, std::forward<Func>(func));
+    return walk_path_file(path, func);
   }
 
   return Status::OK();
@@ -165,11 +162,11 @@ Status walk_path(string &path, Func &&func) {
 }  // namespace detail
 
 template <class Func>
-Status walk_path(CSlice path, Func &&func) {
+Status walk_path(CSlice path, const Func &func) {
   string curr_path;
   curr_path.reserve(PATH_MAX + 10);
   curr_path = path.c_str();
-  return detail::walk_path(curr_path, std::forward<Func>(func));
+  return detail::walk_path(curr_path, func);
 }
 
 #endif
@@ -178,7 +175,7 @@ Status walk_path(CSlice path, Func &&func) {
 
 namespace detail {
 template <class Func>
-Status walk_path_dir(const std::wstring &dir_name, Func &&func) {
+Status walk_path_dir(const std::wstring &dir_name, const Func &func) {
   std::wstring name = dir_name + L"\\*";
 
   WIN32_FIND_DATA file_data;
@@ -196,7 +193,6 @@ Status walk_path_dir(const std::wstring &dir_name, Func &&func) {
     if (file_data.cFileName[0] != '.') {
       if ((file_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
         TRY_STATUS(walk_path_dir(full_name, func));
-        func(entry_name, true);
       } else {
         func(entry_name, false);
       }
@@ -205,23 +201,26 @@ Status walk_path_dir(const std::wstring &dir_name, Func &&func) {
     if (status == 0) {
       auto last_error = GetLastError();
       if (last_error == ERROR_NO_MORE_FILES) {
-        return Status::OK();
+        break;
       }
       return OS_ERROR("FindNextFileW");
     }
   }
+  TRY_RESULT(entry_name, from_wstring(dir_name));
+  func(entry_name, true);
+  return Status::OK();
 }
 }  // namespace detail
 
 template <class Func>
-Status walk_path(CSlice path, Func &&func) {
+Status walk_path(CSlice path, const Func &func) {
   TRY_RESULT(wpath, to_wstring(path));
   Slice path_slice = path;
   while (!path_slice.empty() && (path_slice.back() == '/' || path_slice.back() == '\\')) {
     path_slice.remove_suffix(1);
     wpath.pop_back();
   }
-  return detail::walk_path_dir(wpath.c_str(), std::forward<Func>(func));
+  return detail::walk_path_dir(wpath.c_str(), func);
 }
 
 #endif

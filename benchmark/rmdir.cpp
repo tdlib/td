@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
   auto status = td::walk_path(dir, [&](td::CSlice path, bool is_dir) {
     cnt++;
     LOG(INFO) << path << " " << is_dir;
-    // if (is_dir) {
+    //if (is_dir) {
     // td::rmdir(path);
     //} else {
     // td::unlink(path);

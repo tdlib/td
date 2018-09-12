@@ -223,13 +223,15 @@ class CreateFileBench : public Benchmark {
     }
   }
   void tear_down() override {
-    auto status = td::walk_path("A/", [&](CSlice path, bool is_dir) {
-      if (is_dir) {
-        rmdir(path).ignore();
-      } else {
-        unlink(path).ignore();
-      }
-    });
+    td::walk_path("A/",
+                  [&](CSlice path, bool is_dir) {
+                    if (is_dir) {
+                      rmdir(path).ignore();
+                    } else {
+                      unlink(path).ignore();
+                    }
+                  })
+        .ignore();
   }
 };
 
@@ -245,19 +247,23 @@ class WalkPathBench : public Benchmark {
   }
   void run(int n) override {
     int cnt = 0;
-    auto status = td::walk_path("A/", [&](CSlice path, bool is_dir) {
-      stat(path).ok();
-      cnt++;
-    });
+    td::walk_path("A/",
+                  [&](CSlice path, bool is_dir) {
+                    stat(path).ok();
+                    cnt++;
+                  })
+        .ignore();
   }
   void tear_down() override {
-    auto status = td::walk_path("A/", [&](CSlice path, bool is_dir) {
-      if (is_dir) {
-        rmdir(path).ignore();
-      } else {
-        unlink(path).ignore();
-      }
-    });
+    td::walk_path("A/",
+                  [&](CSlice path, bool is_dir) {
+                    if (is_dir) {
+                      rmdir(path).ignore();
+                    } else {
+                      unlink(path).ignore();
+                    }
+                  })
+        .ignore();
   }
 };
 

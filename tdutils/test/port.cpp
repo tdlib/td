@@ -17,14 +17,21 @@ TEST(Port, files) {
   CSlice main_dir = "test_dir";
   rmrf(main_dir).ignore();
   ASSERT_TRUE(FileFd::open(main_dir, FileFd::Write).is_error());
+  ASSERT_TRUE(walk_path(main_dir, [](CSlice name, bool is_directory) {
+              UNREACHABLE();
+            }).is_error());
   mkdir(main_dir).ensure();
   mkdir(PSLICE() << main_dir << TD_DIR_SLASH << "A").ensure();
   mkdir(PSLICE() << main_dir << TD_DIR_SLASH << "B").ensure();
+  mkdir(PSLICE() << main_dir << TD_DIR_SLASH << "B" << TD_DIR_SLASH << "D").ensure();
   mkdir(PSLICE() << main_dir << TD_DIR_SLASH << "C").ensure();
   ASSERT_TRUE(FileFd::open(main_dir, FileFd::Write).is_error());
   std::string fd_path = PSTRING() << main_dir << TD_DIR_SLASH << "t.txt";
+  std::string fd2_path = PSTRING() << main_dir << TD_DIR_SLASH << "C" << TD_DIR_SLASH << "t2.txt";
 
   auto fd = FileFd::open(fd_path, FileFd::Write | FileFd::CreateNew).move_as_ok();
+  auto fd2 = FileFd::open(fd2_path, FileFd::Write | FileFd::CreateNew).move_as_ok();
+  fd2.close();
 
   int cnt = 0;
   const int ITER_COUNT = 1000;
@@ -32,13 +39,13 @@ TEST(Port, files) {
     walk_path(main_dir,
               [&](CSlice name, bool is_directory) {
                 if (!is_directory) {
-                  ASSERT_EQ(fd_path, name);
+                  ASSERT_TRUE(name == fd_path || name == fd2_path);
                 }
                 cnt++;
               })
         .ensure();
   }
-  ASSERT_EQ(4 * ITER_COUNT, cnt);
+  ASSERT_EQ(7 * ITER_COUNT, cnt);
 
   ASSERT_EQ(0u, fd.get_size());
   ASSERT_EQ(12u, fd.write("Hello world!").move_as_ok());
