@@ -259,7 +259,7 @@ Result<size_t> FileFd::pwrite(Slice slice, int64 offset) {
   return OS_ERROR(PSLICE() << "Pwrite to [fd = " << native_fd << "] at [offset = " << offset << "] has failed");
 }
 
-Result<size_t> FileFd::pread(MutableSlice slice, int64 offset) {
+Result<size_t> FileFd::pread(MutableSlice slice, int64 offset) const {
   if (offset < 0) {
     return Status::Error("Offset must be non-negative");
   }
