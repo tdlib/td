@@ -35,11 +35,17 @@ static char buf2[BUF_SIZE];
 static StringBuilder sb(MutableSlice(buf, BUF_SIZE - 1));
 static StringBuilder sb2(MutableSlice(buf2, BUF_SIZE - 1));
 
+auto create_queue() {
+  auto res = std::make_shared<MpscPollableQueue<EventFull>>();
+  res->init();
+  return res;
+}
+
 TEST(Actors, SendLater) {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   sb.clear();
   Scheduler scheduler;
-  scheduler.init(0, {std::make_shared<MpscPollableQueue<EventFull>>()}, nullptr);
+  scheduler.init(0, {create_queue()}, nullptr);
 
   auto guard = scheduler.get_guard();
   class Worker : public Actor {
@@ -96,7 +102,7 @@ class XReceiver final : public Actor {
 TEST(Actors, simple_pass_event_arguments) {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   Scheduler scheduler;
-  scheduler.init(0, {std::make_shared<MpscPollableQueue<EventFull>>()}, nullptr);
+  scheduler.init(0, {create_queue()}, nullptr);
 
   auto guard = scheduler.get_guard();
   auto id = create_actor<XReceiver>("XR").release();
@@ -203,7 +209,7 @@ class PrintChar final : public Actor {
 TEST(Actors, simple_hand_yield) {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   Scheduler scheduler;
-  scheduler.init(0, {std::make_shared<MpscPollableQueue<EventFull>>()}, nullptr);
+  scheduler.init(0, {create_queue()}, nullptr);
   sb.clear();
   int cnt = 1000;
   {
@@ -356,7 +362,7 @@ class MasterActor : public MsgActor {
 TEST(Actors, call_after_destruct) {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   Scheduler scheduler;
-  scheduler.init(0, {std::make_shared<MpscPollableQueue<EventFull>>()}, nullptr);
+  scheduler.init(0, {create_queue()}, nullptr);
   {
     auto guard = scheduler.get_guard();
     create_actor<MasterActor>("Master").release();
