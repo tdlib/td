@@ -81,9 +81,9 @@ Status mkpath(CSlice path, int32 mode) {
 Status rmrf(CSlice path) {
   return walk_path(path, [](CSlice path, bool is_dir) {
     if (is_dir) {
-      return rmdir(path);
+      rmdir(path).ignore();
     } else {
-      return unlink(path);
+      unlink(path).ignore();
     }
   });
 }
