@@ -11,11 +11,6 @@
 
 #if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
 
-#if !TD_WINDOWS
-#include <poll.h>
-#include <sched.h>
-#endif
-
 #include <atomic>
 #include <type_traits>
 #include <utility>
@@ -393,18 +388,14 @@ class PollQueue : public QueueT {
     return res;
   }
 
-// Just example of usage
-#if !TD_WINDOWS
+  // Just an example of usage
   int reader_wait() {
     int res;
-
     while ((res = reader_wait_nonblock()) == 0) {
-      // TODO: reader_flush?
       reader_get_event_fd().wait(1000);
     }
     return res;
   }
-#endif
 
  private:
   EventFd event_fd_;

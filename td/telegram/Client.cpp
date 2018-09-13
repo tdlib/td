@@ -13,7 +13,6 @@
 #include "td/utils/crypto.h"
 #include "td/utils/logging.h"
 #include "td/utils/MpscPollableQueue.h"
-#include "td/utils/port/Poll.h"
 #include "td/utils/port/PollFlags.h"
 #include "td/utils/port/thread.h"
 

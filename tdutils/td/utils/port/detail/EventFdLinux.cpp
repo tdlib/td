@@ -17,8 +17,8 @@ char disable_linker_warning_about_empty_file_event_fd_linux_cpp TD_UNUSED;
 #include "td/utils/Slice.h"
 
 #include <sys/eventfd.h>
-#include <unistd.h>
 #include <poll.h>
+#include <unistd.h>
 
 namespace td {
 namespace detail {

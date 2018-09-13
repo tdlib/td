@@ -13,11 +13,6 @@
 
 #include "td/utils/SpinLock.h"
 
-#if !TD_WINDOWS
-#include <poll.h>
-#include <sched.h>
-#endif
-
 #include <utility>
 
 namespace td {
@@ -79,21 +74,14 @@ class MpscPollableQueue {
     }
   }
 
-// Just example of usage
-#if !TD_WINDOWS
+  // Just an example of usage
   int reader_wait() {
     int res;
-
     while ((res = reader_wait_nonblock()) == 0) {
-      // TODO: reader_flush?
-      pollfd fd;
-      fd.fd = reader_get_event_fd().get_poll_info().native_fd().fd();
-      fd.events = POLLIN;
-      poll(&fd, 1, -1);
+      reader_get_event_fd().wait(1000);
     }
     return res;
   }
-#endif
 
  private:
   SpinLock lock_;
