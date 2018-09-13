@@ -25547,7 +25547,7 @@ MessagesManager::Dialog *MessagesManager::get_dialog_force(DialogId dialog_id) {
 
   LOG(INFO) << "Try to load " << dialog_id << " from database";
   auto d = on_load_dialog_from_database(G()->td_db()->get_dialog_db_sync()->get_dialog(dialog_id));
-  CHECK(d == nullptr || d->dialog_id == dialog_id);
+  CHECK(d == nullptr || d->dialog_id == dialog_id) << d->dialog_id << " " << dialog_id;
   return d;
 }
 
