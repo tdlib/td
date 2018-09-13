@@ -6,14 +6,21 @@
 //
 #include "td/utils/port/path.h"
 
-#include "td/utils/port/detail/PollableFd.h"
+#include "td/utils/port/config.h"
 
-#if TD_WINDOWS
+#include "td/utils/format.h"
+#include "td/utils/logging.h"
+#include "td/utils/port/detail/PollableFd.h"
+#include "td/utils/ScopeGuard.h"
+
+#if TD_PORT_WINDOWS
+#include "td/utils/port/wstring_convert.h"
 #include "td/utils/Random.h"
 #endif
 
 #if TD_PORT_POSIX
 
+#include <dirent.h>
 #include <limits.h>
 #include <stdio.h>
 
@@ -32,7 +39,12 @@
 
 #endif
 
+#if TD_DARWIN
+#include <sys/syslimits.h>
+#endif
+
 #include <cstdlib>
+#include <string>
 
 namespace td {
 
@@ -226,6 +238,117 @@ Result<string> mkdtemp(CSlice dir, Slice prefix) {
   return result;
 }
 
+namespace detail {
+Status walk_path_dir(string &path, FileFd fd,
+                     const std::function<void(CSlice name, bool is_directory)> &func) TD_WARN_UNUSED_RESULT;
+
+Status walk_path_dir(string &path,
+                     const std::function<void(CSlice name, bool is_directory)> &func) TD_WARN_UNUSED_RESULT;
+
+Status walk_path_file(string &path,
+                      const std::function<void(CSlice name, bool is_directory)> &func) TD_WARN_UNUSED_RESULT;
+
+Status walk_path(string &path, const std::function<void(CSlice name, bool is_directory)> &func) TD_WARN_UNUSED_RESULT;
+
+Status walk_path_subdir(string &path, DIR *dir, const std::function<void(CSlice name, bool is_directory)> &func) {
+  while (true) {
+    errno = 0;
+    auto *entry = readdir(dir);
+    auto readdir_errno = errno;
+    if (readdir_errno) {
+      return Status::PosixError(readdir_errno, "readdir");
+    }
+    if (entry == nullptr) {
+      return Status::OK();
+    }
+    Slice name = Slice(static_cast<const char *>(entry->d_name));
+    if (name == "." || name == "..") {
+      continue;
+    }
+    auto size = path.size();
+    if (path.back() != TD_DIR_SLASH) {
+      path += TD_DIR_SLASH;
+    }
+    path.append(name.begin(), name.size());
+    SCOPE_EXIT {
+      path.resize(size);
+    };
+    Status status;
+#ifdef DT_DIR
+    if (entry->d_type == DT_UNKNOWN) {
+      status = walk_path(path, func);
+    } else if (entry->d_type == DT_DIR) {
+      status = walk_path_dir(path, func);
+    } else if (entry->d_type == DT_REG) {
+      status = walk_path_file(path, func);
+    }
+#else
+#warning "Slow walk_path"
+    status = walk_path(path, func);
+#endif
+    if (status.is_error()) {
+      return status;
+    }
+  }
+}
+
+Status walk_path_dir(string &path, DIR *subdir, const std::function<void(CSlice name, bool is_directory)> &func) {
+  SCOPE_EXIT {
+    closedir(subdir);
+  };
+  TRY_STATUS(walk_path_subdir(path, subdir, func));
+  func(path, true);
+  return Status::OK();
+}
+
+Status walk_path_dir(string &path, FileFd fd, const std::function<void(CSlice name, bool is_directory)> &func) {
+  auto native_fd = fd.move_as_native_fd();
+  auto *subdir = fdopendir(native_fd.fd());
+  if (subdir == nullptr) {
+    return OS_ERROR("fdopendir");
+  }
+  native_fd.release();
+  return walk_path_dir(path, subdir, func);
+}
+
+Status walk_path_dir(string &path, const std::function<void(CSlice name, bool is_directory)> &func) {
+  auto *subdir = opendir(path.c_str());
+  if (subdir == nullptr) {
+    return OS_ERROR(PSLICE() << tag("opendir", path));
+  }
+  return walk_path_dir(path, subdir, func);
+}
+
+Status walk_path_file(string &path, const std::function<void(CSlice name, bool is_directory)> &func) {
+  func(path, false);
+  return Status::OK();
+}
+
+Status walk_path(string &path, const std::function<void(CSlice name, bool is_directory)> &func) {
+  TRY_RESULT(fd, FileFd::open(path, FileFd::Read));
+  auto stat = fd.stat();
+  bool is_dir = stat.is_dir_;
+  bool is_reg = stat.is_reg_;
+  if (is_dir) {
+    return walk_path_dir(path, std::move(fd), func);
+  }
+
+  fd.close();
+  if (is_reg) {
+    return walk_path_file(path, func);
+  }
+
+  return Status::OK();
+}
+}  // namespace detail
+
+Status walk_path(CSlice path, const std::function<void(CSlice name, bool is_directory)> &func) {
+  string curr_path;
+  curr_path.reserve(PATH_MAX + 10);
+  curr_path = path.c_str();
+  return detail::walk_path(curr_path, func);
+}
+
 #endif
 
 #if TD_PORT_WINDOWS
@@ -386,6 +509,53 @@ Result<std::pair<FileFd, string>> mkstemp(CSlice dir) {
   }
 
   return Status::Error(PSLICE() << "Can't create temporary file \"" << file_pattern << '"');
+}
+
+static Status walk_path_dir(const std::wstring &dir_name,
+                            const std::function<void(CSlice name, bool is_directory)> &func) {
+  std::wstring name = dir_name + L"\\*";
+
+  WIN32_FIND_DATA file_data;
+  auto handle = FindFirstFileExW(name.c_str(), FindExInfoStandard, &file_data, FindExSearchNameMatch, nullptr, 0);
+  if (handle == INVALID_HANDLE_VALUE) {
+    return OS_ERROR(PSLICE() << "FindFirstFileEx" << tag("name", from_wstring(name).ok()));
+  }
+
+  SCOPE_EXIT {
+    FindClose(handle);
+  };
+  while (true) {
+    auto full_name = dir_name + L"\\" + file_data.cFileName;
+    TRY_RESULT(entry_name, from_wstring(full_name));
+    if (file_data.cFileName[0] != '.') {
+      if ((file_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
+        TRY_STATUS(walk_path_dir(full_name, func));
+      } else {
+        func(entry_name, false);
+      }
+    }
+    auto status = FindNextFileW(handle, &file_data);
+    if (status == 0) {
+      auto last_error = GetLastError();
+      if (last_error == ERROR_NO_MORE_FILES) {
+        break;
+      }
+      return OS_ERROR("FindNextFileW");
+    }
+  }
+  TRY_RESULT(entry_name, from_wstring(dir_name));
+  func(entry_name, true);
+  return Status::OK();
+}
+
+Status walk_path(CSlice path, const std::function<void(CSlice name, bool is_directory)> &func) {
+  TRY_RESULT(wpath, to_wstring(path));
+  Slice path_slice = path;
+  while (!path_slice.empty() && (path_slice.back() == '/' || path_slice.back() == '\\')) {
+    path_slice.remove_suffix(1);
+    wpath.pop_back();
+  }
+  return walk_path_dir(wpath, func);
 }
 
 #endif

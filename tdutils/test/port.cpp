@@ -35,15 +35,11 @@ TEST(Port, files) {
   const int ITER_COUNT = 1000;
   for (int i = 0; i < ITER_COUNT; i++) {
     walk_path(main_dir,
-              [&, ptr = std::make_unique<int>(2)](CSlice name, bool is_directory) mutable {
-                ASSERT_EQ(2, *ptr);
+              [&](CSlice name, bool is_directory) mutable {
                 if (!is_directory) {
                   ASSERT_TRUE(name == fd_path || name == fd2_path);
                 }
                 cnt++;
-                if (cnt == 7) {
-                  ptr.reset();
-                }
               })
         .ensure();
   }
