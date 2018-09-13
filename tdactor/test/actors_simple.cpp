@@ -35,7 +35,7 @@ static char buf2[BUF_SIZE];
 static StringBuilder sb(MutableSlice(buf, BUF_SIZE - 1));
 static StringBuilder sb2(MutableSlice(buf2, BUF_SIZE - 1));
 
-auto create_queue() {
+static auto create_queue() {
   auto res = std::make_shared<MpscPollableQueue<EventFull>>();
   res->init();
   return res;
