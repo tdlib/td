@@ -31,7 +31,9 @@ bool FileLog::init(string path, int64 rotate_threshold) {
 
   fd_.close();
   fd_ = r_fd.move_as_ok();
-  fd_.get_native_fd().duplicate(Stderr().get_native_fd()).ignore();
+  if (!Stderr().empty()) {
+    fd_.get_native_fd().duplicate(Stderr().get_native_fd()).ignore();
+  }
 
   path_ = std::move(path);
   size_ = fd_.get_size();
@@ -84,7 +86,9 @@ void FileLog::do_rotate() {
     process_fatal_error(r_fd.error().message());
   }
   fd_ = r_fd.move_as_ok();
-  fd_.get_native_fd().duplicate(Stderr().get_native_fd()).ignore();
+  if (!Stderr().empty()) {
+    fd_.get_native_fd().duplicate(Stderr().get_native_fd()).ignore();
+  }
   size_ = 0;
   SET_VERBOSITY_LEVEL(current_verbosity_level);
 }
