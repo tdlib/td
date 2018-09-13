@@ -41,6 +41,8 @@ class EventFdLinux final : public EventFdBase {
   void release() override;
 
   void acquire() override;
+
+  void wait(int timeout_ms) override;
 };
 
 }  // namespace detail

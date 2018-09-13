@@ -39,7 +39,7 @@ class EventFdWindows final : public EventFdBase {
 
   void acquire() override;
 
-  void wait(int timeout_ms);
+  void wait(int timeout_ms) override;
 };
 
 }  // namespace detail

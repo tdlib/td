@@ -18,6 +18,7 @@ char disable_linker_warning_about_empty_file_event_fd_linux_cpp TD_UNUSED;
 
 #include <sys/eventfd.h>
 #include <unistd.h>
+#include <poll.h>
 
 namespace td {
 namespace detail {
@@ -104,6 +105,13 @@ void EventFdLinux::acquire() {
   if (result.is_error()) {
     LOG(FATAL) << "EventFdLinux read failed: " << result.error();
   }
+}
+
+void EventFdLinux::wait(int timeout_ms) {
+  pollfd fd;
+  fd.fd = get_poll_info().native_fd().fd();
+  fd.events = POLLIN;
+  poll(&fd, 1, timeout_ms);
 }
 
 }  // namespace detail

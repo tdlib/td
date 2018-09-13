@@ -27,5 +27,6 @@ class EventFdBase {
   virtual Status get_pending_error() TD_WARN_UNUSED_RESULT = 0;
   virtual void release() = 0;
   virtual void acquire() = 0;
+  virtual void wait(int timeout_ms) = 0;
 };
 }  // namespace td
