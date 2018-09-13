@@ -52,20 +52,20 @@ void PollFlagsSet::clear() {
 }
 
 StringBuilder &operator<<(StringBuilder &sb, PollFlags flags) {
-  sb << "[";
+  sb << '[';
   if (flags.can_read()) {
-    sb << "R";
+    sb << 'R';
   }
   if (flags.can_write()) {
-    sb << "W";
+    sb << 'W';
   }
   if (flags.can_close()) {
-    sb << "C";
+    sb << 'C';
   }
   if (flags.has_pending_error()) {
-    sb << "E";
+    sb << 'E';
   }
-  return sb << "]";
+  return sb << ']';
 }
 
 }  // namespace td

@@ -1261,7 +1261,7 @@ void ConnectionCreator::hangup() {
 
 DcOptions ConnectionCreator::get_default_dc_options(bool is_test) {
   DcOptions res;
-  enum class HostType { IPv4, IPv6, Url };
+  enum class HostType : int32 { IPv4, IPv6, Url };
   auto add_ip_ports = [&res](int32 dc_id, const vector<string> &ips, const vector<int> &ports,
                              HostType type = HostType::IPv4) {
     IPAddress ip_address;

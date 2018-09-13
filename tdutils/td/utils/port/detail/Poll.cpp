@@ -13,6 +13,7 @@ char disable_linker_warning_about_empty_file_poll_cpp TD_UNUSED;
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/ScopeGuard.h"
 #include "td/utils/Status.h"
 
 namespace td {

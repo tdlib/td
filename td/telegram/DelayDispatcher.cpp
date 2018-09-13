@@ -9,6 +9,8 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 
+#include "td/utils/Status.h"
+
 namespace td {
 
 void DelayDispatcher::send_with_callback(NetQueryPtr query, ActorShared<NetQueryCallback> callback) {
