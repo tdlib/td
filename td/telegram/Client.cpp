@@ -225,12 +225,16 @@ class Client::Impl final {
   ~Impl() {
     input_queue_->writer_put({0, nullptr});
     scheduler_thread_.join();
+#if !TD_WINDOWS
     auto &event_fd = output_queue_->reader_get_event_fd();
     poll_.unsubscribe(event_fd.get_poll_info().get_pollable_fd_ref());
+#endif
   }
 
  private:
+#if !TD_WINDOWS
   Poll poll_;
+#endif
   std::shared_ptr<InputQueue> input_queue_;
   std::shared_ptr<OutputQueue> output_queue_;
   std::shared_ptr<ConcurrentScheduler> scheduler_;
@@ -254,9 +258,11 @@ class Client::Impl final {
       scheduler->finish();
     });
 
+#if !TD_WINDOWS
     poll_.init();
     auto &event_fd = output_queue_->reader_get_event_fd();
     poll_.subscribe(event_fd.get_poll_info().extract_pollable_fd(nullptr), PollFlags::Read());
+#endif
   }
 
   Response receive_unlocked(double timeout) {
@@ -268,7 +274,11 @@ class Client::Impl final {
       return output_queue_->reader_get_unsafe();
     }
     if (timeout != 0) {
+#if TD_WINDOWS
+      output_queue_->reader_get_event_fd().wait(static_cast<int>(timeout * 1000));
+#else
       poll_.run(static_cast<int>(timeout * 1000));
+#endif
       return receive_unlocked(0);
     }
     return {0, nullptr};
