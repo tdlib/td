@@ -163,7 +163,7 @@ class Client::Impl final {
       void on_error(std::uint64_t id, td_api::object_ptr<td_api::error> error) override {
         output_queue_->writer_put({id, std::move(error)});
       }
-      void on_closed() override {
+      ~Callback() {
         Scheduler::instance()->finish();
       }
 

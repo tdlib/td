@@ -81,7 +81,7 @@ class TestClient : public Actor {
       void on_error(uint64 id, tl_object_ptr<td_api::error> error) override {
         send_closure(client_, &TestClient::on_error, id, std::move(error));
       }
-      void on_closed() override {
+      ~TdCallbackImpl() {
         send_closure(client_, &TestClient::on_closed);
       }
 

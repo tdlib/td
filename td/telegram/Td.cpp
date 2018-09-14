@@ -3713,7 +3713,6 @@ void Td::on_closed() {
   close_flag_ = 5;
   send_update(
       td_api::make_object<td_api::updateAuthorizationState>(td_api::make_object<td_api::authorizationStateClosed>()));
-  callback_->on_closed();
   dec_stop_cnt();
 }
 
