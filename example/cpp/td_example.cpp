@@ -53,7 +53,7 @@ namespace td_api = td::td_api;
 class TdExample {
  public:
   TdExample() {
-    td::Log::set_verbosity_level(10);
+    td::Log::set_verbosity_level(1);
     client_ = std::make_unique<td::Client>();
   }
 
@@ -87,6 +87,9 @@ class TdExample {
               break;
             }
           }
+        } else if (action == "close") {
+          std::cerr << "Closing..." << std::endl;
+          send_query(td_api::make_object<td_api::close>(), {});
         } else if (action == "l") {
           std::cerr << "Logging out..." << std::endl;
           send_query(td_api::make_object<td_api::logOut>(), {});

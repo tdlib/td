@@ -29,11 +29,6 @@ class Client::Impl final {
   }
 
   void send(Request request) {
-    if (request.id == 0 || request.function == nullptr) {
-      LOG(ERROR) << "Drop wrong request " << request.id;
-      return;
-    }
-
     requests_.push_back(std::move(request));
   }
 
@@ -160,7 +155,7 @@ class Client::Impl final {
     scheduler_->init(3);
     class Callback : public TdCallback {
      public:
-      Callback(std::shared_ptr<OutputQueue> output_queue) : output_queue_(std::move(output_queue)) {
+      explicit Callback(std::shared_ptr<OutputQueue> output_queue) : output_queue_(std::move(output_queue)) {
       }
       void on_result(std::uint64_t id, td_api::object_ptr<td_api::Object> result) override {
         output_queue_->writer_put({id, std::move(result)});

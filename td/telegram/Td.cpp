@@ -3292,12 +3292,12 @@ bool Td::is_preauthentication_request(int32 id) {
 }
 
 void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
-  request_set_.insert(id);
-
   if (id == 0) {
-    LOG(ERROR) << "Receive request with id == 0";
-    return send_error_raw(id, 400, "Wrong request id == 0");
+    LOG(ERROR) << "Ignore request with id == 0: " << to_string(function);
+    return;
   }
+
+  request_set_.insert(id);
   if (function == nullptr) {
     LOG(ERROR) << "Receive empty request";
     return send_error_raw(id, 400, "Request is empty");
