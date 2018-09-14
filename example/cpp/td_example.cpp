@@ -65,7 +65,7 @@ class TdExample {
         process_response(client_->receive(10));
       } else {
         std::cerr << "Enter action [q] quit [u] check for updates and request results [c] show chats [m <id> <text>] "
-                     "send message [l] logout: "
+                     "send message [me] show self [l] logout: "
                   << std::endl;
         std::string line;
         std::getline(std::cin, line);
@@ -90,6 +90,10 @@ class TdExample {
         } else if (action == "close") {
           std::cerr << "Closing..." << std::endl;
           send_query(td_api::make_object<td_api::close>(), {});
+        } else if (action == "me") {
+          send_query(td_api::make_object<td_api::getMe>(),
+                     [this](Object object) { std::cerr << to_string(object) << std::endl; });
+
         } else if (action == "l") {
           std::cerr << "Logging out..." << std::endl;
           send_query(td_api::make_object<td_api::logOut>(), {});

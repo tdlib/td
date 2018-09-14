@@ -673,7 +673,7 @@ class CliClient final : public Actor {
       void on_error(uint64 id, tl_object_ptr<td_api::error> error) override {
         client_->on_error(id, std::move(error));
       }
-      ~TdCallbackImpl() {
+      ~TdCallbackImpl() override {
         client_->on_closed();
       }
 
