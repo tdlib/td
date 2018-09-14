@@ -108,63 +108,6 @@ class Client::Impl final {
 #else
 
 using OutputQueue = MpscPollableQueue<Client::Response>;
-class TdProxy : public Actor {
- public:
-  explicit TdProxy(std::shared_ptr<OutputQueue> output_queue) : output_queue_(std::move(output_queue)) {
-  }
-
-  void request(uint64 id, tl_object_ptr<td_api::Function> function) {
-    if (id == 0 && function == nullptr) {
-      was_hangup_ = true;
-      td_.reset();
-      return try_stop();
-    }
-    send_closure(td_, &Td::request, id, std::move(function));
-  }
-
- private:
-  std::shared_ptr<OutputQueue> output_queue_;
-  bool is_td_closed_ = false;
-  bool was_hangup_ = false;
-  ActorOwn<Td> td_;
-
-  void start_up() override {
-    class Callback : public TdCallback {
-     public:
-      Callback(ActorId<TdProxy> parent, std::shared_ptr<OutputQueue> output_queue)
-          : parent_(parent), output_queue_(std::move(output_queue)) {
-      }
-      void on_result(std::uint64_t id, td_api::object_ptr<td_api::Object> result) override {
-        output_queue_->writer_put({id, std::move(result)});
-      }
-      void on_error(std::uint64_t id, td_api::object_ptr<td_api::error> error) override {
-        output_queue_->writer_put({id, std::move(error)});
-      }
-      void on_closed() override {
-        send_closure(parent_, &TdProxy::on_closed);
-      }
-
-     private:
-      ActorId<TdProxy> parent_;
-      std::shared_ptr<OutputQueue> output_queue_;
-    };
-    td_ = create_actor<Td>("Td", make_unique<Callback>(actor_id(this), std::move(output_queue_)));
-    yield();
-  }
-
-  void on_closed() {
-    is_td_closed_ = true;
-    try_stop();
-  }
-
-  void try_stop() {
-    if (!is_td_closed_ || !was_hangup_) {
-      return;
-    }
-    Scheduler::instance()->finish();
-    stop();
-  }
-};
 
 /*** Client::Impl ***/
 class Client::Impl final {
@@ -180,7 +123,7 @@ class Client::Impl final {
     }
 
     auto guard = scheduler_->get_send_guard();
-    send_closure(td_proxy_, &TdProxy::request, request.id, std::move(request.function));
+    send_closure(td_, &Td::request, request.id, std::move(request.function));
   }
 
   Response receive(double timeout) {
@@ -198,7 +141,7 @@ class Client::Impl final {
   Impl &operator=(Impl &&) = delete;
   ~Impl() {
     auto guard = scheduler_->get_send_guard();
-    send_closure(td_proxy_, &TdProxy::request, 0, nullptr);
+    td_.reset();
     scheduler_thread_.join();
   }
 
@@ -208,14 +151,31 @@ class Client::Impl final {
   int output_queue_ready_cnt_{0};
   thread scheduler_thread_;
   std::atomic<bool> receive_lock_{false};
-  ActorId<TdProxy> td_proxy_;
+  ActorOwn<Td> td_;
 
   void init() {
     output_queue_ = std::make_shared<OutputQueue>();
     output_queue_->init();
     scheduler_ = std::make_shared<ConcurrentScheduler>();
     scheduler_->init(3);
-    td_proxy_ = scheduler_->create_actor_unsafe<TdProxy>(0, "TdProxy", output_queue_).release();
+    class Callback : public TdCallback {
+     public:
+      Callback(std::shared_ptr<OutputQueue> output_queue) : output_queue_(std::move(output_queue)) {
+      }
+      void on_result(std::uint64_t id, td_api::object_ptr<td_api::Object> result) override {
+        output_queue_->writer_put({id, std::move(result)});
+      }
+      void on_error(std::uint64_t id, td_api::object_ptr<td_api::error> error) override {
+        output_queue_->writer_put({id, std::move(error)});
+      }
+      void on_closed() override {
+        Scheduler::instance()->finish();
+      }
+
+     private:
+      std::shared_ptr<OutputQueue> output_queue_;
+    };
+    td_ = scheduler_->create_actor_unsafe<Td>(0, "Td", std::make_unique<Callback>(output_queue_));
     scheduler_->start();
 
     scheduler_thread_ = thread([scheduler = scheduler_] {

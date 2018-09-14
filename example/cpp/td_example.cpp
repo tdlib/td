@@ -53,7 +53,7 @@ namespace td_api = td::td_api;
 class TdExample {
  public:
   TdExample() {
-    td::Log::set_verbosity_level(1);
+    td::Log::set_verbosity_level(10);
     client_ = std::make_unique<td::Client>();
   }
 
