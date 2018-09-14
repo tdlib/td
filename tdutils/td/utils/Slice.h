@@ -34,7 +34,7 @@ inline MutableSlice::MutableSlice(string &s) : MutableSlice() {
 }
 
 template <class T>
-inline MutableSlice::MutableSlice(T s, std::enable_if_t<std::is_same<char *, T>::value, private_tag>) : s_(s) {
+MutableSlice::MutableSlice(T s, std::enable_if_t<std::is_same<char *, T>::value, private_tag>) : s_(s) {
   CHECK(s_ != nullptr);
   len_ = std::strlen(s_);
 }
@@ -159,13 +159,13 @@ inline Slice::Slice(const string &s) : s_(s.c_str()), len_(s.size()) {
 }
 
 template <class T>
-inline Slice::Slice(T s, std::enable_if_t<std::is_same<char *, std::remove_const_t<T>>::value, private_tag>) : s_(s) {
+Slice::Slice(T s, std::enable_if_t<std::is_same<char *, std::remove_const_t<T>>::value, private_tag>) : s_(s) {
   CHECK(s_ != nullptr);
   len_ = std::strlen(s_);
 }
 
 template <class T>
-inline Slice::Slice(T s, std::enable_if_t<std::is_same<const char *, std::remove_const_t<T>>::value, private_tag>)
+Slice::Slice(T s, std::enable_if_t<std::is_same<const char *, std::remove_const_t<T>>::value, private_tag>)
     : s_(s) {
   CHECK(s_ != nullptr);
   len_ = std::strlen(s_);

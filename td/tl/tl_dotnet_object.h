@@ -118,7 +118,7 @@ struct CallFromUnmanaged {
 #endif
 
 template <class ResT, class T>
-inline ResT DoFromUnmanaged(T &from) {
+ResT DoFromUnmanaged(T &from) {
 #if TD_WINRT
   ResT res;
   downcast_call(from, [&](auto &from_downcasted) {
