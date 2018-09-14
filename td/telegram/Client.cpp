@@ -173,7 +173,7 @@ class Client::Impl final {
     td_ = concurrent_scheduler_->create_actor_unsafe<Td>(0, "Td", std::make_unique<Callback>(output_queue_));
     concurrent_scheduler_->start();
 
-    scheduler_thread_ = thread([scheduler = concurrent_scheduler_] {
+    scheduler_thread_ = thread([concurrent_scheduler = concurrent_scheduler_] {
       while (concurrent_scheduler->run_main(10)) {
       }
       concurrent_scheduler->finish();
