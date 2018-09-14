@@ -34,7 +34,7 @@ class Client::Impl final {
 
   Response receive(double timeout) {
     if (!requests_.empty()) {
-      auto guard = scheduler_->get_current_guard();
+      auto guard = concurrent_scheduler_->get_current_guard();
       for (auto &request : requests_) {
         send_closure_later(td_, &Td::request, request.id, std::move(request.function));
       }
@@ -42,7 +42,7 @@ class Client::Impl final {
     }
 
     if (responses_.empty()) {
-      scheduler_->run_main(0);
+      concurrent_scheduler_->run_main(0);
     }
     if (!responses_.empty()) {
       auto result = std::move(responses_.front());
@@ -58,25 +58,25 @@ class Client::Impl final {
   Impl &operator=(Impl &&) = delete;
   ~Impl() {
     {
-      auto guard = scheduler_->get_current_guard();
+      auto guard = concurrent_scheduler_->get_current_guard();
       td_.reset();
     }
     while (!closed_) {
-      scheduler_->run_main(0);
+      concurrent_scheduler_->run_main(0);
     }
-    scheduler_.reset();
+    concurrent_scheduler_.reset();
   }
 
  private:
   std::deque<Response> responses_;
   std::vector<Request> requests_;
-  std::unique_ptr<ConcurrentScheduler> scheduler_;
+  std::unique_ptr<ConcurrentScheduler> concurrent_scheduler_;
   ActorOwn<Td> td_;
   bool closed_ = false;
 
   void init() {
-    scheduler_ = std::make_unique<ConcurrentScheduler>();
-    scheduler_->init(0);
+    concurrent_scheduler_ = std::make_unique<ConcurrentScheduler>();
+    concurrent_scheduler_->init(0);
     class Callback : public TdCallback {
      public:
       explicit Callback(Impl *client) : client_(client) {
@@ -95,8 +95,8 @@ class Client::Impl final {
      private:
       Impl *client_;
     };
-    td_ = scheduler_->create_actor_unsafe<Td>(0, "Td", make_unique<Callback>(this));
-    scheduler_->start();
+    td_ = concurrent_scheduler_->create_actor_unsafe<Td>(0, "Td", make_unique<Callback>(this));
+    concurrent_scheduler_->start();
   }
 };
 
@@ -117,7 +117,7 @@ class Client::Impl final {
       return;
     }
 
-    auto guard = scheduler_->get_send_guard();
+    auto guard = concurrent_scheduler_->get_send_guard();
     send_closure(td_, &Td::request, request.id, std::move(request.function));
   }
 
@@ -135,14 +135,14 @@ class Client::Impl final {
   Impl(Impl &&) = delete;
   Impl &operator=(Impl &&) = delete;
   ~Impl() {
-    auto guard = scheduler_->get_send_guard();
+    auto guard = concurrent_scheduler_->get_send_guard();
     td_.reset();
     scheduler_thread_.join();
   }
 
  private:
   std::shared_ptr<OutputQueue> output_queue_;
-  std::shared_ptr<ConcurrentScheduler> scheduler_;
+  std::shared_ptr<ConcurrentScheduler> concurrent_scheduler_;
   int output_queue_ready_cnt_{0};
   thread scheduler_thread_;
   std::atomic<bool> receive_lock_{false};
@@ -151,8 +151,8 @@ class Client::Impl final {
   void init() {
     output_queue_ = std::make_shared<OutputQueue>();
     output_queue_->init();
-    scheduler_ = std::make_shared<ConcurrentScheduler>();
-    scheduler_->init(3);
+    concurrent_scheduler_ = std::make_shared<ConcurrentScheduler>();
+    concurrent_scheduler_->init(3);
     class Callback : public TdCallback {
      public:
       explicit Callback(std::shared_ptr<OutputQueue> output_queue) : output_queue_(std::move(output_queue)) {
@@ -170,13 +170,13 @@ class Client::Impl final {
      private:
       std::shared_ptr<OutputQueue> output_queue_;
     };
-    td_ = scheduler_->create_actor_unsafe<Td>(0, "Td", std::make_unique<Callback>(output_queue_));
-    scheduler_->start();
+    td_ = concurrent_scheduler_->create_actor_unsafe<Td>(0, "Td", std::make_unique<Callback>(output_queue_));
+    concurrent_scheduler_->start();
 
-    scheduler_thread_ = thread([scheduler = scheduler_] {
-      while (scheduler->run_main(10)) {
+    scheduler_thread_ = thread([scheduler = concurrent_scheduler_] {
+      while (concurrent_scheduler->run_main(10)) {
       }
-      scheduler->finish();
+      concurrent_scheduler->finish();
     });
   }
 
