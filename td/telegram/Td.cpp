@@ -6207,10 +6207,10 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
 
   switch (request.name_[0]) {
     case 'd':
-      if (set_boolean_option("disable_contact_registered_notifications")) {
+      if (!auth_manager_->is_bot() && set_boolean_option("disable_contact_registered_notifications")) {
         return;
       }
-      if (set_boolean_option("disable_top_chats")) {
+      if (auth_manager_->is_authorized() && !auth_manager_->is_bot() && set_boolean_option("disable_top_chats")) {
         return;
       }
       break;
@@ -6223,13 +6223,16 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
       }
       break;
     case 'l':
-      if (set_string_option("language_pack_database_path", [](Slice value) { return true; })) {
+      if (!auth_manager_->is_bot() &&
+          set_string_option("language_pack_database_path", [](Slice value) { return true; })) {
         return;
       }
-      if (set_string_option("localization_target", LanguagePackManager::check_language_pack_name)) {
+      if (!auth_manager_->is_bot() &&
+          set_string_option("localization_target", LanguagePackManager::check_language_pack_name)) {
         return;
       }
-      if (set_string_option("language_pack_id", LanguagePackManager::check_language_code_name)) {
+      if (!auth_manager_->is_bot() &&
+          set_string_option("language_pack_id", LanguagePackManager::check_language_code_name)) {
         return;
       }
       break;
