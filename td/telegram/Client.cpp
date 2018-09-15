@@ -25,7 +25,33 @@ namespace td {
 class Client::Impl final {
  public:
   Impl() {
-    init();
+    concurrent_scheduler_ = std::make_unique<ConcurrentScheduler>();
+    concurrent_scheduler_->init(0);
+    class Callback : public TdCallback {
+     public:
+      explicit Callback(Impl *client) : client_(client) {
+      }
+      void on_result(std::uint64_t id, td_api::object_ptr<td_api::Object> result) override {
+        client_->responses_.push_back({id, std::move(result)});
+      }
+      void on_error(std::uint64_t id, td_api::object_ptr<td_api::error> error) override {
+        client_->responses_.push_back({id, std::move(error)});
+      }
+
+      Callback(const Callback &) = delete;
+      Callback &operator=(const Callback &) = delete;
+      Callback(Callback &&) = delete;
+      Callback &operator=(Callback &&) = delete;
+      ~Callback() override {
+        client_->closed_ = true;
+        Scheduler::instance()->yield();
+      }
+
+     private:
+      Impl *client_;
+    };
+    td_ = concurrent_scheduler_->create_actor_unsafe<Td>(0, "Td", make_unique<Callback>(this));
+    concurrent_scheduler_->start();
   }
 
   void send(Request request) {
@@ -73,31 +99,6 @@ class Client::Impl final {
   std::unique_ptr<ConcurrentScheduler> concurrent_scheduler_;
   ActorOwn<Td> td_;
   bool closed_ = false;
-
-  void init() {
-    concurrent_scheduler_ = std::make_unique<ConcurrentScheduler>();
-    concurrent_scheduler_->init(0);
-    class Callback : public TdCallback {
-     public:
-      explicit Callback(Impl *client) : client_(client) {
-      }
-      void on_result(std::uint64_t id, td_api::object_ptr<td_api::Object> result) override {
-        client_->responses_.push_back({id, std::move(result)});
-      }
-      void on_error(std::uint64_t id, td_api::object_ptr<td_api::error> error) override {
-        client_->responses_.push_back({id, std::move(error)});
-      }
-      void on_closed() override {
-        client_->closed_ = true;
-        Scheduler::instance()->yield();
-      }
-
-     private:
-      Impl *client_;
-    };
-    td_ = concurrent_scheduler_->create_actor_unsafe<Td>(0, "Td", make_unique<Callback>(this));
-    concurrent_scheduler_->start();
-  }
 };
 
 #else
@@ -108,7 +109,39 @@ using OutputQueue = MpscPollableQueue<Client::Response>;
 class Client::Impl final {
  public:
   Impl() {
-    init();
+    output_queue_ = std::make_shared<OutputQueue>();
+    output_queue_->init();
+    concurrent_scheduler_ = std::make_shared<ConcurrentScheduler>();
+    concurrent_scheduler_->init(3);
+    class Callback : public TdCallback {
+     public:
+      explicit Callback(std::shared_ptr<OutputQueue> output_queue) : output_queue_(std::move(output_queue)) {
+      }
+      void on_result(std::uint64_t id, td_api::object_ptr<td_api::Object> result) override {
+        output_queue_->writer_put({id, std::move(result)});
+      }
+      void on_error(std::uint64_t id, td_api::object_ptr<td_api::error> error) override {
+        output_queue_->writer_put({id, std::move(error)});
+      }
+      Callback(const Callback &) = delete;
+      Callback &operator=(const Callback &) = delete;
+      Callback(Callback &&) = delete;
+      Callback &operator=(Callback &&) = delete;
+      ~Callback() override {
+        Scheduler::instance()->finish();
+      }
+
+     private:
+      std::shared_ptr<OutputQueue> output_queue_;
+    };
+    td_ = concurrent_scheduler_->create_actor_unsafe<Td>(0, "Td", std::make_unique<Callback>(output_queue_));
+    concurrent_scheduler_->start();
+
+    scheduler_thread_ = thread([concurrent_scheduler = concurrent_scheduler_] {
+      while (concurrent_scheduler->run_main(10)) {
+      }
+      concurrent_scheduler->finish();
+    });
   }
 
   void send(Request request) {
@@ -147,38 +180,6 @@ class Client::Impl final {
   thread scheduler_thread_;
   std::atomic<bool> receive_lock_{false};
   ActorOwn<Td> td_;
-
-  void init() {
-    output_queue_ = std::make_shared<OutputQueue>();
-    output_queue_->init();
-    concurrent_scheduler_ = std::make_shared<ConcurrentScheduler>();
-    concurrent_scheduler_->init(3);
-    class Callback : public TdCallback {
-     public:
-      explicit Callback(std::shared_ptr<OutputQueue> output_queue) : output_queue_(std::move(output_queue)) {
-      }
-      void on_result(std::uint64_t id, td_api::object_ptr<td_api::Object> result) override {
-        output_queue_->writer_put({id, std::move(result)});
-      }
-      void on_error(std::uint64_t id, td_api::object_ptr<td_api::error> error) override {
-        output_queue_->writer_put({id, std::move(error)});
-      }
-      ~Callback() override {
-        Scheduler::instance()->finish();
-      }
-
-     private:
-      std::shared_ptr<OutputQueue> output_queue_;
-    };
-    td_ = concurrent_scheduler_->create_actor_unsafe<Td>(0, "Td", std::make_unique<Callback>(output_queue_));
-    concurrent_scheduler_->start();
-
-    scheduler_thread_ = thread([concurrent_scheduler = concurrent_scheduler_] {
-      while (concurrent_scheduler->run_main(10)) {
-      }
-      concurrent_scheduler->finish();
-    });
-  }
 
   Response receive_unlocked(double timeout) {
     if (output_queue_ready_cnt_ == 0) {

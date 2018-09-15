@@ -726,6 +726,10 @@ class CliClient final : public Actor {
       void on_error(uint64 id, tl_object_ptr<td_api::error> error) override {
         client_->on_error(generation_, id, std::move(error));
       }
+      TdCallbackImpl(const TdCallbackImpl &) = delete;
+      TdCallbackImpl &operator=(const TdCallbackImpl &) = delete;
+      TdCallbackImpl(TdCallbackImpl &&) = delete;
+      TdCallbackImpl &operator=(TdCallbackImpl &&) = delete;
       ~TdCallbackImpl() override {
         client_->on_closed(generation_);
       }
