@@ -393,6 +393,41 @@ class CliClient final : public Actor {
     }
   }
 
+  void on_update_autorization_state(const td_api::AuthorizationState &state) {
+    switch (state.get_id()) {
+      case td_api::authorizationStateWaitTdlibParameters::ID: {
+        auto parameters = td_api::make_object<td_api::tdlibParameters>();
+        parameters->use_test_dc_ = use_test_dc_;
+        parameters->use_message_database_ = true;
+        parameters->use_secret_chats_ = true;
+        parameters->api_id_ = api_id_;
+        parameters->api_hash_ = api_hash_;
+        parameters->system_language_code_ = "en";
+        parameters->device_model_ = "Desktop";
+        parameters->system_version_ = "Unknown";
+        parameters->application_version_ = "tg_cli";
+        send_request(td_api::make_object<td_api::setTdlibParameters>(std::move(parameters)));
+        break;
+      }
+      case td_api::authorizationStateWaitEncryptionKey::ID:
+        send_request(td_api::make_object<td_api::checkDatabaseEncryptionKey>());
+        break;
+      case td_api::authorizationStateReady::ID:
+        LOG(INFO) << "Logged in";
+        break;
+      case td_api::authorizationStateClosed::ID:
+        LOG(WARNING) << "TD closed";
+        // TODO only if count of created matches count of closed
+        td_.reset();
+        if (!close_flag_) {
+          create_td("ClientActor3");
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
   int64 as_chat_id(Slice str) const {
     str = trim(str);
     if (str[0] == '@') {
@@ -513,13 +548,13 @@ class CliClient final : public Actor {
     return transform(full_split(ids_string, delimiter), to_integer<T>);
   }
 
-  void on_result(uint64 id, tl_object_ptr<td_api::Object> result) {
+  void on_result(uint64 generation, uint64 id, tl_object_ptr<td_api::Object> result) {
     if (id > 0 && GET_VERBOSITY_LEVEL() < VERBOSITY_NAME(td_requests)) {
-      LOG(ERROR) << "on_result [id=" << id << "] " << to_string(result);
+      LOG(ERROR) << "on_result [" << generation << "][id=" << id << "] " << to_string(result);
     }
 
     auto as_json_str = json_encode<std::string>(ToJson(result));
-    // LOG(INFO) << "on_result [id=" << id << "] " << as_json_str;
+    // LOG(INFO) << "on_result [" << generation << "][id=" << id << "] " << as_json_str;
     auto copy_as_json_str = as_json_str;
     auto as_json_value = json_decode(copy_as_json_str).move_as_ok();
     td_api::object_ptr<td_api::Object> object;
@@ -527,7 +562,11 @@ class CliClient final : public Actor {
     CHECK(object != nullptr);
     auto as_json_str2 = json_encode<std::string>(ToJson(object));
     CHECK(as_json_str == as_json_str2) << "\n" << tag("a", as_json_str) << "\n" << tag("b", as_json_str2);
-    // LOG(INFO) << "on_result [id=" << id << "] " << as_json_str;
+    // LOG(INFO) << "on_result [" << generation << "][id=" << id << "] " << as_json_str;
+
+    if (generation != generation_) {
+      return;
+    }
 
     int32 result_id = result == nullptr ? 0 : result->get_id();
 
@@ -593,6 +632,10 @@ class CliClient final : public Actor {
       case td_api::updateFileGenerationStart::ID:
         on_file_generation_start(*static_cast<const td_api::updateFileGenerationStart *>(result.get()));
         break;
+      case td_api::updateAuthorizationState::ID:
+        on_update_autorization_state(
+            *(static_cast<const td_api::updateAuthorizationState *>(result.get())->authorization_state_));
+        break;
       case td_api::updateChatLastMessage::ID: {
         auto message = static_cast<const td_api::updateChatLastMessage *>(result.get())->last_message_.get();
         if (message != nullptr && message->content_->get_id() == td_api::messageText::ID) {
@@ -609,18 +652,21 @@ class CliClient final : public Actor {
     }
   }
 
-  void on_error(uint64 id, tl_object_ptr<td_api::error> error) {
+  void on_error(uint64 generation, uint64 id, tl_object_ptr<td_api::error> error) {
     if (id > 0 && GET_VERBOSITY_LEVEL() < VERBOSITY_NAME(td_requests)) {
-      LOG(ERROR) << "on_error [id=" << id << "] " << to_string(error);
+      LOG(ERROR) << "on_error [" << generation << "][id=" << id << "] " << to_string(error);
     }
   }
 
-  void on_closed() {
-    LOG(INFO) << "on_closed";
-    ready_to_stop_ = true;
-    if (close_flag_) {
-      yield();
-      return;
+  void on_closed(uint64 generation) {
+    LOG(WARNING) << "on_closed " << generation;
+    closed_td_++;
+    if (closed_td_ == generation_) {
+      LOG(WARNING) << "Ready to stop";
+      ready_to_stop_ = true;
+      if (close_flag_) {
+        yield();
+      }
     }
   }
 
@@ -662,40 +708,48 @@ class CliClient final : public Actor {
   }
 #endif
 
-  unique_ptr<TdCallback> make_td_callback() {
+  uint64 generation_ = 0;
+  uint64 closed_td_ = 0;
+  void create_td(Slice name) {
+    if (ready_to_stop_) {
+      return;
+    }
+
     class TdCallbackImpl : public TdCallback {
      public:
-      explicit TdCallbackImpl(CliClient *client) : client_(client) {
+      TdCallbackImpl(CliClient *client, uint64 generation) : client_(client), generation_(generation) {
+        LOG(WARNING) << "Creating new TD with generation " << generation;
       }
       void on_result(uint64 id, tl_object_ptr<td_api::Object> result) override {
-        client_->on_result(id, std::move(result));
+        client_->on_result(generation_, id, std::move(result));
       }
       void on_error(uint64 id, tl_object_ptr<td_api::error> error) override {
-        client_->on_error(id, std::move(error));
+        client_->on_error(generation_, id, std::move(error));
       }
       ~TdCallbackImpl() override {
-        client_->on_closed();
+        client_->on_closed(generation_);
       }
 
      private:
       CliClient *client_;
+      uint64 generation_;
     };
-    return make_unique<TdCallbackImpl>(this);
+
+    td_ = create_actor<ClientActor>(name, make_unique<TdCallbackImpl>(this, ++generation_));
   }
 
   void init_td() {
     close_flag_ = false;
     ready_to_stop_ = false;
+    generation_ = 0;
+    closed_td_ = 0;
+
+    create_td("ClientActor1");
 
     bool test_init = false;
-
     if (test_init) {
-      td_ = create_actor<ClientActor>("ClientActor1", make_td_callback());
-    }
-    td_ = create_actor<ClientActor>("ClientActor2", make_td_callback());
-    ready_to_stop_ = false;
+      create_td("ClientActor2");
 
-    if (test_init) {
       for (int i = 0; i < 4; i++) {
         send_closure_later(td_, &ClientActor::request, std::numeric_limits<uint64>::max(),
                            td_api::make_object<td_api::setAlarm>(0.001 + 1000 * (i / 2)));
@@ -722,19 +776,6 @@ class CliClient final : public Actor {
       bad_parameters->api_hash_ = api_hash_;
       send_request(td_api::make_object<td_api::setTdlibParameters>(std::move(bad_parameters)));
     }
-
-    auto parameters = td_api::make_object<td_api::tdlibParameters>();
-    parameters->use_test_dc_ = use_test_dc_;
-    parameters->use_message_database_ = true;
-    parameters->use_secret_chats_ = true;
-    parameters->api_id_ = api_id_;
-    parameters->api_hash_ = api_hash_;
-    parameters->system_language_code_ = "en";
-    parameters->device_model_ = "Desktop";
-    parameters->system_version_ = "Unknown";
-    parameters->application_version_ = "tg_cli";
-    send_request(td_api::make_object<td_api::setTdlibParameters>(std::move(parameters)));
-    send_request(td_api::make_object<td_api::checkDatabaseEncryptionKey>());
   }
 
   void init() {

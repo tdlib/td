@@ -117,6 +117,9 @@ class TempAuthKeyWatchdog : public NetQueryCallback {
   void on_result(NetQueryPtr query) final {
     run_sync_ = false;
     if (query->is_error()) {
+      if (G()->close_flag()) {
+        return;
+      }
       LOG(ERROR) << "auth_dropTempAuthKeys failed " << query->error();
       need_sync_ = true;
     } else {
