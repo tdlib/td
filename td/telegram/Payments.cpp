@@ -625,7 +625,7 @@ string address_to_json(const Address &address) {
     o("city", address.city);
     o("street_line1", address.street_line1);
     o("street_line2", address.street_line2);
-    o("postal_code", address.postal_code);
+    o("post_code", address.postal_code);
   }));
 }
 
@@ -647,7 +647,7 @@ Result<Address> address_from_json(Slice json) {
   TRY_RESULT(city, get_json_object_string_field(object, "city", true));
   TRY_RESULT(street_line1, get_json_object_string_field(object, "street_line1", true));
   TRY_RESULT(street_line2, get_json_object_string_field(object, "street_line2", true));
-  TRY_RESULT(postal_code, get_json_object_string_field(object, "postal_code", true));
+  TRY_RESULT(postal_code, get_json_object_string_field(object, "post_code", true));
 
   TRY_STATUS(check_country_code(country_code));
   TRY_STATUS(check_state(state));
