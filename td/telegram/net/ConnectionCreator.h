@@ -256,6 +256,7 @@ class ConnectionCreator : public NetQueryCallback {
     return ++current_token_;
   }
 
+  void set_active_proxy_id(int32 proxy_id, bool from_binlog = false);
   void enable_proxy_impl(int32 proxy_id);
   void disable_proxy_impl();
   void on_proxy_changed(bool from_db);

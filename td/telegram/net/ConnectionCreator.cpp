@@ -592,6 +592,22 @@ void ConnectionCreator::ping_proxy_socket_fd(SocketFd socket_fd, mtproto::Transp
                  create_reference(token))};
 }
 
+void ConnectionCreator::set_active_proxy_id(int32 proxy_id, bool from_binlog) {
+  active_proxy_id_ = proxy_id;
+  if (proxy_id == 0) {
+    G()->shared_config().set_option_empty("enabled_proxy_id");
+  } else {
+    G()->shared_config().set_option_string("enabled_proxy_id", to_string(proxy_id));
+  }
+  if (!from_binlog) {
+    if (proxy_id == 0) {
+      G()->td_db()->get_binlog_pmc()->erase("proxy_active_id");
+    } else {
+      G()->td_db()->get_binlog_pmc()->set("proxy_active_id", to_string(proxy_id));
+    }
+  }
+}
+
 void ConnectionCreator::enable_proxy_impl(int32 proxy_id) {
   CHECK(proxies_.count(proxy_id) == 1);
   if (proxy_id == active_proxy_id_) {
@@ -604,8 +620,7 @@ void ConnectionCreator::enable_proxy_impl(int32 proxy_id) {
   }
   save_proxy_last_used_date(0);
 
-  active_proxy_id_ = proxy_id;
-  G()->td_db()->get_binlog_pmc()->set("proxy_active_id", to_string(proxy_id));
+  set_active_proxy_id(proxy_id);
 
   on_proxy_changed(false);
 }
@@ -621,8 +636,7 @@ void ConnectionCreator::disable_proxy_impl() {
     update_mtproto_header(Proxy());
   }
 
-  active_proxy_id_ = 0;
-  G()->td_db()->get_binlog_pmc()->erase("proxy_active_id");
+  set_active_proxy_id(0);
 
   on_proxy_changed(false);
 }
@@ -1180,7 +1194,7 @@ void ConnectionCreator::start_up() {
   }
   it = proxy_info.find("proxy_active_id");
   if (it != proxy_info.end()) {
-    active_proxy_id_ = to_integer<int32>(it->second);
+    set_active_proxy_id(to_integer<int32>(it->second), true);
     proxy_info.erase(it);
   }
 
@@ -1198,8 +1212,7 @@ void ConnectionCreator::start_up() {
         LOG_IF(ERROR, proxy_id != 1) << "Have empty proxy " << proxy_id;
         proxies_.erase(proxy_id);
         if (active_proxy_id_ == proxy_id) {
-          active_proxy_id_ = 0;
-          G()->td_db()->get_binlog_pmc()->erase("proxy_active_id");
+          set_active_proxy_id(0);
         }
       }
     }
@@ -1210,8 +1223,7 @@ void ConnectionCreator::start_up() {
     max_proxy_id_ = 2;
     if (!proxies_.empty()) {
       CHECK(proxies_.begin()->first == 1);
-      active_proxy_id_ = 1;
-      G()->td_db()->get_binlog_pmc()->set("proxy_active_id", "1");
+      set_active_proxy_id(1);
     }
     G()->td_db()->get_binlog_pmc()->set("proxy_max_id", "2");
   } else if (max_proxy_id_ < 2) {
