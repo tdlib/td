@@ -3197,10 +3197,10 @@ changeChatReportSpamState chat_id:int53 is_spam_chat:Bool = Ok;
 reportChat chat_id:int53 reason:ChatReportReason message_ids:vector<int53> = Ok;
 
 
-//@description Returns storage usage statistics @chat_limit Maximum number of chats with the largest storage usage for which separate statistics should be returned. All other chats will be grouped in entries with chat_id == 0. If the chat info database is not used, the chat_limit is ignored and is always set to 0
+//@description Returns storage usage statistics. Can be called before authorization @chat_limit Maximum number of chats with the largest storage usage for which separate statistics should be returned. All other chats will be grouped in entries with chat_id == 0. If the chat info database is not used, the chat_limit is ignored and is always set to 0
 getStorageStatistics chat_limit:int32 = StorageStatistics;
 
-//@description Quickly returns approximate storage usage statistics
+//@description Quickly returns approximate storage usage statistics. Can be called before authorization
 getStorageStatisticsFast = StorageStatisticsFast;
 
 //@description Optimizes storage usage, i.e. deletes some files and returns new storage usage statistics. Secret thumbnails can't be deleted

@@ -3275,6 +3275,8 @@ bool Td::is_preauthentication_request(int32 id) {
     case td_api::getNetworkStatistics::ID:
     case td_api::addNetworkStatistics::ID:
     case td_api::resetNetworkStatistics::ID:
+    case td_api::getStorageStatistics::ID:
+    case td_api::getStorageStatisticsFast::ID:
     case td_api::getCountryCode::ID:
     case td_api::getDeepLinkInfo::ID:
     case td_api::addProxy::ID:

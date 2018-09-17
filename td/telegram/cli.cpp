@@ -759,6 +759,9 @@ class CliClient final : public Actor {
                            td_api::make_object<td_api::setAlarm>(0.001 + 1000 * (i / 2)));
       }
 
+      send_request(td_api::make_object<td_api::getStorageStatistics>(10));
+      send_request(td_api::make_object<td_api::getStorageStatisticsFast>());
+
       send_request(td_api::make_object<td_api::getTextEntities>(
           "@telegram /test_command https://telegram.org telegram.me @gif @test"));
 
