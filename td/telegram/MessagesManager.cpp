@@ -13207,7 +13207,7 @@ DialogId MessagesManager::create_new_group_chat(const vector<UserId> &user_ids, 
     return DialogId();
   }
 
-  auto new_title = clean_name(title, MAX_NAME_LENGTH);
+  auto new_title = clean_name(title, MAX_TITLE_LENGTH);
   if (new_title.empty()) {
     promise.set_error(Status::Error(3, "Title can't be empty"));
     return DialogId();
@@ -13255,7 +13255,7 @@ DialogId MessagesManager::create_new_channel_chat(const string &title, bool is_m
     return dialog_id;
   }
 
-  auto new_title = clean_name(title, MAX_NAME_LENGTH);
+  auto new_title = clean_name(title, MAX_TITLE_LENGTH);
   if (new_title.empty()) {
     promise.set_error(Status::Error(3, "Title can't be empty"));
     return DialogId();
@@ -13267,7 +13267,7 @@ DialogId MessagesManager::create_new_channel_chat(const string &title, bool is_m
   created_dialogs_[random_id];  // reserve place for result
 
   td_->create_handler<CreateChannelQuery>(std::move(promise))
-      ->send(new_title, is_megagroup, strip_empty_characters(description, MAX_NAME_LENGTH), random_id);
+      ->send(new_title, is_megagroup, strip_empty_characters(description, MAX_DESCRIPTION_LENGTH), random_id);
   return DialogId();
 }
 
@@ -21438,7 +21438,7 @@ void MessagesManager::set_dialog_title(DialogId dialog_id, const string &title, 
     return promise.set_error(Status::Error(3, "Chat not found"));
   }
 
-  auto new_title = clean_name(title, MAX_NAME_LENGTH);
+  auto new_title = clean_name(title, MAX_TITLE_LENGTH);
   if (new_title.empty()) {
     return promise.set_error(Status::Error(3, "Title can't be empty"));
   }

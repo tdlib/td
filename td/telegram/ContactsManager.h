@@ -680,9 +680,10 @@ class ContactsManager : public Actor {
   class ChannelLogEvent;
   class SecretChatLogEvent;
 
-  static constexpr int32 MAX_GET_PROFILE_PHOTOS = 100;  // server side limit
-  static constexpr size_t MAX_NAME_LENGTH = 255;        // server side limit for first/last name and title
-  static constexpr size_t MAX_BIO_LENGTH = 70;          // server side limit
+  static constexpr int32 MAX_GET_PROFILE_PHOTOS = 100;   // server side limit
+  static constexpr size_t MAX_NAME_LENGTH = 64;          // server side limit for first/last name
+  static constexpr size_t MAX_DESCRIPTION_LENGTH = 255;  // server side limit for channel description
+  static constexpr size_t MAX_BIO_LENGTH = 70;           // server side limit
 
   static constexpr int32 USER_FLAG_HAS_ACCESS_HASH = 1 << 0;
   static constexpr int32 USER_FLAG_HAS_FIRST_NAME = 1 << 1;

@@ -4046,7 +4046,7 @@ void ContactsManager::toggle_channel_is_all_history_available(ChannelId channel_
 
 void ContactsManager::set_channel_description(ChannelId channel_id, const string &description,
                                               Promise<Unit> &&promise) {
-  auto new_description = strip_empty_characters(description, MAX_NAME_LENGTH);
+  auto new_description = strip_empty_characters(description, MAX_DESCRIPTION_LENGTH);
   auto c = get_channel(channel_id);
   if (c == nullptr) {
     return promise.set_error(Status::Error(6, "Supergroup not found"));

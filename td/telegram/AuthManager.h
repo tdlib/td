@@ -169,7 +169,7 @@ class AuthManager : public NetActor {
   void on_closing();
 
  private:
-  static constexpr size_t MAX_NAME_LENGTH = 255;  // server side limit
+  static constexpr size_t MAX_NAME_LENGTH = 64;  // server side limit
 
   enum class State : int32 {
     None,

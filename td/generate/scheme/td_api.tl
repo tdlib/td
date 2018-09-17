@@ -2345,7 +2345,7 @@ setAuthenticationPhoneNumber phone_number:string allow_flash_call:Bool is_curren
 resendAuthenticationCode = Ok;
 
 //@description Checks the authentication code. Works only when the current authorization state is authorizationStateWaitCode @code The verification code received via SMS, Telegram message, phone call, or flash call
-//@first_name If the user is not yet registered, the first name of the user; 1-255 characters @last_name If the user is not yet registered; the last name of the user; optional; 0-255 characters
+//@first_name If the user is not yet registered, the first name of the user; 1-64 characters @last_name If the user is not yet registered; the last name of the user; optional; 0-64 characters
 checkAuthenticationCode code:string first_name:string last_name:string = Ok;
 
 //@description Checks the authentication password for correctness. Works only when the current authorization state is authorizationStateWaitPassword @password The password to check
@@ -2734,10 +2734,10 @@ createSupergroupChat supergroup_id:int32 force:Bool = Chat;
 //@description Returns an existing chat corresponding to a known secret chat @secret_chat_id Secret chat identifier
 createSecretChat secret_chat_id:int32 = Chat;
 
-//@description Creates a new basic group and sends a corresponding messageBasicGroupChatCreate. Returns the newly created chat @user_ids Identifiers of users to be added to the basic group @title Title of the new basic group; 1-255 characters
+//@description Creates a new basic group and sends a corresponding messageBasicGroupChatCreate. Returns the newly created chat @user_ids Identifiers of users to be added to the basic group @title Title of the new basic group; 1-128 characters
 createNewBasicGroupChat user_ids:vector<int32> title:string = Chat;
 
-//@description Creates a new supergroup or channel and sends a corresponding messageSupergroupChatCreate. Returns the newly created chat @title Title of the new chat; 1-255 characters @is_channel True, if a channel chat should be created @param_description Chat description; 0-255 characters
+//@description Creates a new supergroup or channel and sends a corresponding messageSupergroupChatCreate. Returns the newly created chat @title Title of the new chat; 1-128 characters @is_channel True, if a channel chat should be created @param_description Chat description; 0-255 characters
 createNewSupergroupChat title:string is_channel:Bool description:string = Chat;
 
 //@description Creates a new secret chat. Returns the newly created chat @user_id Identifier of the target user
@@ -2748,7 +2748,7 @@ upgradeBasicGroupChatToSupergroupChat chat_id:int53 = Chat;
 
 
 //@description Changes the chat title. Supported only for basic groups, supergroups and channels. Requires administrator rights in basic groups and the appropriate administrator rights in supergroups and channels. The title will not be changed until the request to the server has been completed
-//@chat_id Chat identifier @title New title of the chat; 1-255 characters
+//@chat_id Chat identifier @title New title of the chat; 1-128 characters
 setChatTitle chat_id:int53 title:string = Ok;
 
 //@description Changes the photo of a chat. Supported only for basic groups, supergroups and channels. Requires administrator rights in basic groups and the appropriate administrator rights in supergroups and channels. The photo will not be changed before request to the server has been completed
@@ -3015,7 +3015,7 @@ setProfilePhoto photo:InputFile = Ok;
 //@description Deletes a profile photo. If something changes, updateUser will be sent @profile_photo_id Identifier of the profile photo to delete
 deleteProfilePhoto profile_photo_id:int64 = Ok;
 
-//@description Changes the first and last name of the current user. If something changes, updateUser will be sent @first_name The new value of the first name for the user; 1-255 characters @last_name The new value of the optional last name for the user; 0-255 characters
+//@description Changes the first and last name of the current user. If something changes, updateUser will be sent @first_name The new value of the first name for the user; 1-64 characters @last_name The new value of the optional last name for the user; 0-64 characters
 setName first_name:string last_name:string = Ok;
 
 //@description Changes the bio of the current user @bio The new value of the user bio; 0-70 characters without line feeds

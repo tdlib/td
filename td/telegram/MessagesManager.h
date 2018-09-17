@@ -1910,7 +1910,8 @@ class MessagesManager : public Actor {
   static constexpr int32 MAX_CHANNEL_DIFFERENCE = 100;
   static constexpr int32 MAX_BOT_CHANNEL_DIFFERENCE = 100000;  // server side limit
   static constexpr int32 MAX_RECENT_FOUND_DIALOGS = 20;        // some reasonable value
-  static constexpr size_t MAX_NAME_LENGTH = 255;               // server side limit for title and description
+  static constexpr size_t MAX_TITLE_LENGTH = 128;              // server side limit for chat title
+  static constexpr size_t MAX_DESCRIPTION_LENGTH = 255;        // server side limit for chat description
   static constexpr int64 SPONSORED_DIALOG_ORDER = static_cast<int64>(2147483647) << 32;
   static constexpr int32 MIN_PINNED_DIALOG_DATE = 2147000000;  // some big date
   static constexpr int32 MAX_PRIVATE_MESSAGE_TTL = 60;         // server side limit
