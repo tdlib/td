@@ -724,12 +724,13 @@ static Result<td_api::object_ptr<td_api::date>> get_date_object(Slice date) {
   if (date.empty()) {
     return nullptr;
   }
-  if (date.size() != 10u) {
-    return Status::Error(400, "Date has wrong size");
+  if (date.size() > 10u || date.size() < 8u) {
+    return Status::Error(400, PSLICE() << "Date \"" << date << "\" has wrong length");
   }
   auto parts = full_split(date, '.');
-  if (parts.size() != 3 || parts[0].size() != 2 || parts[1].size() != 2 || parts[2].size() != 4) {
-    return Status::Error(400, "Date has wrong parts");
+  if (parts.size() != 3 || parts[0].size() > 2 || parts[1].size() > 2 || parts[2].size() != 4 || parts[0].empty() ||
+      parts[1].empty()) {
+    return Status::Error(400, PSLICE() << "Date \"" << date << "\" has wrong parts");
   }
   TRY_RESULT(day, to_int32(parts[0]));
   TRY_RESULT(month, to_int32(parts[1]));
