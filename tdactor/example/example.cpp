@@ -38,11 +38,11 @@ int main(void) {
   scheduler.init(4 /*threads_count*/);
   scheduler.start();
   {
-    auto guard = scheduler.get_current_guard();
+    auto guard = scheduler.get_main_guard();
     td::create_actor_on_scheduler<MainActor>("Main actor", 0).release();
   }
   while (!scheduler.is_finished()) {
-    scheduler.run_main(10);
+    scheduler.run_main(td::Timestamp::in(10));
   }
   scheduler.finish();
   return 0;

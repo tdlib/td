@@ -40,7 +40,7 @@ TEST(Mtproto, config) {
 
   int cnt = 1;
   {
-    auto guard = sched.get_current_guard();
+    auto guard = sched.get_main_guard();
 
     auto run = [&](auto &func, bool is_test) {
       auto promise = PromiseCreator::lambda([&, num = cnt](Result<SimpleConfig> r_simple_config) {

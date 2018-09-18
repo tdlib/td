@@ -21,6 +21,7 @@
 #include "td/utils/port/PollFlags.h"
 #include "td/utils/port/thread_local.h"
 #include "td/utils/Slice.h"
+#include "td/utils/Time.h"
 #include "td/utils/type_traits.h"
 
 #include <functional>
@@ -128,8 +129,8 @@ class Scheduler {
 
   void finish();
   void yield();
-  void run(double timeout);
-  void run_no_guard(double timeout);
+  void run(Timestamp timeout);
+  void run_no_guard(Timestamp timeout);
 
   void wakeup();
 
@@ -139,6 +140,8 @@ class Scheduler {
 
   SchedulerGuard get_guard();
   SchedulerGuard get_const_guard();
+
+  Timestamp get_timeout();
 
  private:
   static void set_scheduler(Scheduler *scheduler);
@@ -187,10 +190,10 @@ class Scheduler {
 
   void inc_wait_generation();
 
-  double run_timeout();
+  Timestamp run_timeout();
   void run_mailbox();
-  double run_events();
-  void run_poll(double timeout);
+  Timestamp run_events();
+  void run_poll(Timestamp timeout);
 
   template <class ActorT>
   ActorOwn<ActorT> register_actor_impl(Slice name, ActorT *actor_ptr, Actor::Deleter deleter, int32 sched_id);

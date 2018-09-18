@@ -34,7 +34,7 @@ class ConcurrentScheduler : private Scheduler::Callback {
   void wakeup() {
     schedulers_[0]->wakeup();
   }
-  SchedulerGuard get_current_guard() {
+  SchedulerGuard get_main_guard() {
     return schedulers_[0]->get_guard();
   }
 
@@ -50,7 +50,14 @@ class ConcurrentScheduler : private Scheduler::Callback {
 
   void start();
 
-  bool run_main(double timeout);
+  bool run_main(double timeout) {
+    return run_main(Timestamp::in(timeout));
+  }
+  bool run_main(Timestamp timeout);
+
+  Timestamp get_main_timeout();
+  static double emscripten_get_main_timeout();
+  static void emscripten_clear_main_timeout();
 
   void finish();
 

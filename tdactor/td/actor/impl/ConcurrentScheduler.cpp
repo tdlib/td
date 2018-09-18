@@ -67,7 +67,7 @@ void ConcurrentScheduler::init(int32 threads_n) {
 void ConcurrentScheduler::test_one_thread_run() {
   do {
     for (auto &sched : schedulers_) {
-      sched->run(0);
+      sched->run(Timestamp::now_cached());
     }
   } while (!is_finished_.load(std::memory_order_relaxed));
 }
@@ -85,7 +85,7 @@ void ConcurrentScheduler::start() {
       td::detail::Iocp::Guard iocp_guard(iocp_.get());
 #endif
       while (!is_finished()) {
-        sched->run(10);
+        sched->run(Timestamp::in(10));
       }
     }));
   }
@@ -99,8 +99,9 @@ void ConcurrentScheduler::start() {
 
   state_ = State::Run;
 }
+static TD_THREAD_LOCAL double emscripten_timeout;
 
-bool ConcurrentScheduler::run_main(double timeout) {
+bool ConcurrentScheduler::run_main(Timestamp timeout) {
   CHECK(state_ == State::Run);
   // run main scheduler in same thread
   auto &main_sched = schedulers_[0];
@@ -110,7 +111,23 @@ bool ConcurrentScheduler::run_main(double timeout) {
 #endif
     main_sched->run(timeout);
   }
+
+  // hack for emscripten
+  emscripten_timeout = get_main_timeout().at();
+
   return !is_finished();
+}
+
+Timestamp ConcurrentScheduler::get_main_timeout() {
+  CHECK(state_ == State::Run);
+  return schedulers_[0]->get_timeout();
+}
+
+double ConcurrentScheduler::emscripten_get_main_timeout() {
+  return Timestamp::at(emscripten_timeout).in();
+}
+void ConcurrentScheduler::emscripten_clear_main_timeout() {
+  emscripten_timeout = 0;
 }
 
 void ConcurrentScheduler::finish() {

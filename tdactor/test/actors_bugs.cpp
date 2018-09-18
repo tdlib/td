@@ -24,7 +24,7 @@ TEST(MultiTimeout, bug) {
   Data data;
 
   {
-    auto guard = sched.get_current_guard();
+    auto guard = sched.get_main_guard();
     multi_timeout = std::make_unique<MultiTimeout>("MultiTimeout");
     data.multi_timeout = multi_timeout.get();
     multi_timeout->set_callback([](void *void_data, int64 key) {

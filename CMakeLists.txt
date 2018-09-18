@@ -739,7 +739,7 @@ if (EMSCRIPTEN)
   set(TD_EMSCRIPTEN_SRC td/telegram/td_emscripten.cpp)
   add_executable(${TD_EMSCRIPTEN} ${TD_EMSCRIPTEN_SRC})
   target_include_directories(${TD_EMSCRIPTEN} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-  target_link_libraries(${TD_EMSCRIPTEN} PRIVATE tdjson_static)
+  target_link_libraries(${TD_EMSCRIPTEN} PRIVATE tdjson_static tdactor)
 endif()
 
 #EXECUTABLES

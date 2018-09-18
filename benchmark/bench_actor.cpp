@@ -247,7 +247,7 @@ class QueryBench : public td::Benchmark {
   void run(int n) override {
     // first actor is on main_thread
     {
-      auto guard = scheduler_->get_current_guard();
+      auto guard = scheduler_->get_main_guard();
       send_closure(server_, &ServerActor::run, n);
     }
     while (scheduler_->run_main(10)) {

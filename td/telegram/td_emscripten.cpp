@@ -9,6 +9,7 @@
 
 #include "td/telegram/td_json_client.h"
 #include "td/telegram/td_log.h"
+#include "td/actor/actor.h"
 
 #include <emscripten.h>
 
@@ -31,6 +32,9 @@ EMSCRIPTEN_KEEPALIVE void td_destroy(void *client) {
 }
 EMSCRIPTEN_KEEPALIVE void td_set_verbosity(int verbosity) {
   td_set_log_verbosity_level(verbosity);
+}
+EMSCRIPTEN_KEEPALIVE double td_get_timeout() {
+  return td::ConcurrentScheduler::emscripten_get_main_timeout();
 }
 }
 

@@ -435,10 +435,9 @@ void Scheduler::set_actor_timeout_at(ActorInfo *actor_info, double timeout_at) {
   }
 }
 
-void Scheduler::run_poll(double timeout) {
-  // LOG(DEBUG) << "run poll [timeout:" << format::as_time(timeout) << "]";
+void Scheduler::run_poll(Timestamp timeout) {
   // we can't wait for less than 1ms
-  int timeout_ms = static_cast<int32>(timeout * 1000 + 1);
+  int timeout_ms = static_cast<int32>(td::max(timeout.in(), 0.0) * 1000 + 1);
 #if TD_PORT_WINDOWS
   CHECK(inbound_queue_);
   inbound_queue_->reader_get_event_fd().wait(timeout_ms);
@@ -478,37 +477,37 @@ void Scheduler::run_mailbox() {
   //CHECK(cnt == actor_count_) << cnt << " vs " << actor_count_;
 }
 
-double Scheduler::run_timeout() {
+Timestamp Scheduler::run_timeout() {
   double now = Time::now();
+  //TODO: use Timestamp().is_in_past()
   while (!timeout_queue_.empty() && timeout_queue_.top_key() < now) {
     HeapNode *node = timeout_queue_.pop();
     ActorInfo *actor_info = ActorInfo::from_heap_node(node);
     inc_wait_generation();
     send<ActorSendType::Immediate>(actor_info->actor_id(), Event::timeout());
   }
-  if (timeout_queue_.empty()) {
-    return 10000;
-  }
-  double timeout = timeout_queue_.top_key() - now;
-  // LOG(DEBUG) << "Timeout [cnt:" << timeout_queue_.size() << "] in " << format::as_time(timeout);
-  return timeout;
+  return get_timeout();
 }
 
-void Scheduler::run_no_guard(double timeout) {
+void Scheduler::run_no_guard(Timestamp timeout) {
   CHECK(has_guard_);
   SCOPE_EXIT {
     yield_flag_ = false;
   };
 
-  double next_timeout = run_events();
-  if (next_timeout < timeout) {
-    timeout = next_timeout;
-  }
+  timeout.relax(run_events());
   if (yield_flag_) {
     return;
   }
   run_poll(timeout);
   run_events();
+}
+
+Timestamp Scheduler::get_timeout() {
+  if (timeout_queue_.empty()) {
+    return Timestamp::in(10000);
+  }
+  return Timestamp::at(timeout_queue_.top_key());
 }
 
 }  // namespace td

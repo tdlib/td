@@ -60,7 +60,7 @@ class Client::Impl final {
 
   Response receive(double timeout) {
     if (!requests_.empty()) {
-      auto guard = concurrent_scheduler_->get_current_guard();
+      auto guard = concurrent_scheduler_->get_main_guard();
       for (auto &request : requests_) {
         send_closure_later(td_, &Td::request, request.id, std::move(request.function));
       }
@@ -69,6 +69,8 @@ class Client::Impl final {
 
     if (responses_.empty()) {
       concurrent_scheduler_->run_main(0);
+    } else {
+      ConcurrentScheduler::emscripten_clear_main_timeout();
     }
     if (!responses_.empty()) {
       auto result = std::move(responses_.front());
@@ -84,7 +86,7 @@ class Client::Impl final {
   Impl &operator=(Impl &&) = delete;
   ~Impl() {
     {
-      auto guard = concurrent_scheduler_->get_current_guard();
+      auto guard = concurrent_scheduler_->get_main_guard();
       td_.reset();
     }
     while (!closed_) {

@@ -43,7 +43,7 @@ class MessagesDbBench : public Benchmark {
     scheduler_->start();
   }
   void run(int n) override {
-    auto guard = scheduler_->get_current_guard();
+    auto guard = scheduler_->get_main_guard();
     for (int i = 0; i < n; i += 20) {
       auto dialog_id = DialogId{UserId{Random::fast(1, 100)}};
       auto message_id_raw = Random::fast(1, 100000);
@@ -64,7 +64,7 @@ class MessagesDbBench : public Benchmark {
   void tear_down() override {
     scheduler_->run_main(0.1);
     {
-      auto guard = scheduler_->get_current_guard();
+      auto guard = scheduler_->get_main_guard();
       sql_connection_.reset();
       messages_db_sync_safe_.reset();
       messages_db_async_.reset();
@@ -85,7 +85,7 @@ class MessagesDbBench : public Benchmark {
     scheduler_ = std::make_unique<ConcurrentScheduler>();
     scheduler_->init(1);
 
-    auto guard = scheduler_->get_current_guard();
+    auto guard = scheduler_->get_main_guard();
 
     string sql_db_name = "testdb.sqlite";
     sql_connection_ = std::make_shared<SqliteConnectionSafe>(sql_db_name);

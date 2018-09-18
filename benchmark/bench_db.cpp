@@ -145,7 +145,7 @@ class SqliteKeyValueAsyncBench : public td::Benchmark {
     scheduler_->start();
   }
   void run(int n) override {
-    auto guard = scheduler_->get_current_guard();
+    auto guard = scheduler_->get_main_guard();
 
     for (int i = 0; i < n; i++) {
       auto key = td::to_string(i % 10);
@@ -156,7 +156,7 @@ class SqliteKeyValueAsyncBench : public td::Benchmark {
   void tear_down() override {
     scheduler_->run_main(0.1);
     {
-      auto guard = scheduler_->get_current_guard();
+      auto guard = scheduler_->get_main_guard();
       sqlite_kv_async_.reset();
       sqlite_kv_safe_.reset();
       sql_connection_->close_and_destroy();
@@ -176,7 +176,7 @@ class SqliteKeyValueAsyncBench : public td::Benchmark {
     scheduler_ = std::make_unique<td::ConcurrentScheduler>();
     scheduler_->init(1);
 
-    auto guard = scheduler_->get_current_guard();
+    auto guard = scheduler_->get_main_guard();
 
     td::string sql_db_name = "testdb.sqlite";
     td::SqliteDb::destroy(sql_db_name).ignore();

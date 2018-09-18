@@ -3623,7 +3623,7 @@ void main(int argc, char **argv) {
         .release();
 
     scheduler.start();
-    while (scheduler.run_main(100)) {
+    while (scheduler.run_main(td::Timestamp::in(100))) {
     }
     scheduler.finish();
   }

@@ -340,8 +340,8 @@ inline void Scheduler::wakeup() {
 #endif
 }
 
-inline double Scheduler::run_events() {
-  double res;
+inline Timestamp Scheduler::run_events() {
+  Timestamp res;
   VLOG(actor) << "run events " << sched_id_ << " " << tag("pending", pending_events_.size())
               << tag("actors", actor_count_);
   do {
@@ -351,7 +351,7 @@ inline double Scheduler::run_events() {
   return res;
 }
 
-inline void Scheduler::run(double timeout) {
+inline void Scheduler::run(Timestamp timeout) {
   auto guard = get_guard();
   run_no_guard(timeout);
 }
