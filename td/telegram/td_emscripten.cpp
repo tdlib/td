@@ -7,9 +7,10 @@
 // Just for testing.
 // Will be completly rewritten
 
+#include "td/actor/actor.h"
+
 #include "td/telegram/td_json_client.h"
 #include "td/telegram/td_log.h"
-#include "td/actor/actor.h"
 
 #include <emscripten.h>
 
