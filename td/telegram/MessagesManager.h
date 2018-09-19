@@ -1460,7 +1460,7 @@ class MessagesManager : public Actor {
     DialogId dialog_id;
     MessageId message_id;
     UserId sender_user_id;
-    int32 date;
+    int32 date = 0;
     int32 ttl = 0;
     int64 random_id = 0;
     tl_object_ptr<telegram_api::messageFwdHeader> forward_header;
@@ -1524,6 +1524,7 @@ class MessagesManager : public Actor {
     UserId sender_user_id;
     int32 date = 0;
     int32 edit_date = 0;
+    int32 send_date = 0;
 
     int64 random_id = 0;
 

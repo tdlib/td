@@ -4194,6 +4194,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_media_album_id = media_album_id != 0;
   bool has_forward_from =
       is_forwarded && (forward_info->from_dialog_id.is_valid() || forward_info->from_message_id.is_valid());
+  bool has_send_date = message_id.is_yet_unsent() && send_date != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -4223,6 +4224,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   STORE_FLAG(has_forward_from);
   STORE_FLAG(in_game_share);
   STORE_FLAG(is_content_secret);
+  STORE_FLAG(has_send_date);
   END_STORE_FLAGS();
 
   store(message_id, storer);
@@ -4232,6 +4234,9 @@ void MessagesManager::Message::store(StorerT &storer) const {
   store(date, storer);
   if (has_edit_date) {
     store(edit_date, storer);
+  }
+  if (has_send_date) {
+    store(send_date, storer);
   }
   if (has_random_id) {
     store(random_id, storer);
@@ -4302,6 +4307,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_forward_author_signature;
   bool has_media_album_id;
   bool has_forward_from;
+  bool has_send_date;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -4331,6 +4337,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   PARSE_FLAG(has_forward_from);
   PARSE_FLAG(in_game_share);
   PARSE_FLAG(is_content_secret);
+  PARSE_FLAG(has_send_date);
   END_PARSE_FLAGS();
 
   parse(message_id, parser);
@@ -4341,6 +4348,12 @@ void MessagesManager::Message::parse(ParserT &parser) {
   parse(date, parser);
   if (has_edit_date) {
     parse(edit_date, parser);
+  }
+  if (has_send_date) {
+    CHECK(message_id.is_yet_unsent());
+    parse(send_date, parser);
+  } else if (message_id.is_yet_unsent()) {
+    send_date = date;  // for backward compatibility
   }
   if (has_random_id) {
     parse(random_id, parser);
@@ -15979,6 +15992,7 @@ MessagesManager::Message *MessagesManager::get_message_to_send(Dialog *d, Messag
     m->sender_user_id = my_id;
   }
   m->date = G()->unix_time();
+  m->send_date = m->date;
   m->reply_to_message_id = reply_to_message_id;
   m->is_channel_post = is_channel_post;
   m->is_outgoing = dialog_id != DialogId(my_id);
@@ -26157,13 +26171,16 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
     return nullptr;
   }
 
+  auto now = G()->unix_time();
+
   m->message_id = get_next_yet_unsent_message_id(d);
   m->random_y = get_random_y(m->message_id);
-  m->date = G()->unix_time();
+  m->date = now;
   m->have_previous = true;
   m->have_next = true;
 
-  LOG(INFO) << "Continue to send " << m->message_id << " to " << dialog_id << " from binlog";
+  LOG(WARNING) << "Continue to send " << m->message_id << " to " << dialog_id << " initially sent at " << m->send_date
+               << " from binlog";
 
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     binlog_erase(G()->td_db()->get_binlog(), logevent_id);
@@ -26179,7 +26196,17 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
   CHECK(result_message != nullptr);
   // CHECK(need_update_dialog_pos == true);
 
+  send_update_new_message(d, result_message);
+  if (need_update_dialog_pos) {
+    send_update_chat_last_message(d, "on_resend_message");
+  }
+
   auto can_send_status = can_send_message(dialog_id);
+  const int32 MAX_RESEND_DELAY = 86400;
+  if (can_send_status.is_ok() && result_message->send_date < now - MAX_RESEND_DELAY) {
+    LOG(WARNING) << "Fail sending old message to " << dialog_id;
+    can_send_status = Status::Error(400, "Message is too old to be resent automatically");
+  }
   if (can_send_status.is_error()) {
     LOG(INFO) << "Can't resend a message to " << dialog_id << ": " << can_send_status.error();
 
@@ -26188,10 +26215,6 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
     return nullptr;
   }
 
-  send_update_new_message(d, result_message);
-  if (need_update_dialog_pos) {
-    send_update_chat_last_message(d, "on_resend_message");
-  }
   return result_message;
 }
 
