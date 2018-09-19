@@ -26179,8 +26179,8 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
   m->have_previous = true;
   m->have_next = true;
 
-  LOG(WARNING) << "Continue to send " << m->message_id << " to " << dialog_id << " initially sent at " << m->send_date
-               << " from binlog";
+  LOG(INFO) << "Continue to send " << m->message_id << " to " << dialog_id << " initially sent at " << m->send_date
+            << " from binlog";
 
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     binlog_erase(G()->td_db()->get_binlog(), logevent_id);
@@ -26202,9 +26202,7 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
   }
 
   auto can_send_status = can_send_message(dialog_id);
-  const int32 MAX_RESEND_DELAY = 86400;
   if (can_send_status.is_ok() && result_message->send_date < now - MAX_RESEND_DELAY) {
-    LOG(WARNING) << "Fail sending old message to " << dialog_id;
     can_send_status = Status::Error(400, "Message is too old to be resent automatically");
   }
   if (can_send_status.is_error()) {
@@ -26377,21 +26375,24 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           continue;
         }
+        auto now = G()->unix_time();
         for (auto &m : messages) {
           m->message_id = get_next_yet_unsent_message_id(to_dialog);
           m->random_y = get_random_y(m->message_id);
-          m->date = G()->unix_time();
+          m->date = now;
           m->content = dup_message_content(to_dialog_id, m->content.get(), true);
           m->have_previous = true;
           m->have_next = true;
         }
 
-        LOG(INFO) << "Continue to forward " << messages.size() << " messages to " << to_dialog_id << " from binlog";
-
-        if (!have_input_peer(from_dialog_id, AccessRights::Read) || can_send_message(to_dialog_id).is_error()) {
+        if (!have_input_peer(from_dialog_id, AccessRights::Read) || can_send_message(to_dialog_id).is_error() ||
+            messages.empty() || messages[0]->send_date < now - MAX_RESEND_DELAY) {
+          LOG(WARNING) << "Can't continue forwarding " << messages.size() << " message(s) to " << to_dialog_id;
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
         }
+
+        LOG(INFO) << "Continue to forward " << messages.size() << " message(s) to " << to_dialog_id << " from binlog";
 
         bool need_update = false;
         bool need_update_dialog_pos = false;

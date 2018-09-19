@@ -1938,6 +1938,8 @@ class MessagesManager : public Actor {
   static constexpr int32 MIN_LIVE_LOCATION_PERIOD = 60;     // seconds, server side limit
   static constexpr int32 MAX_LIVE_LOCATION_PERIOD = 86400;  // seconds, server side limit
 
+  static constexpr int32 MAX_RESEND_DELAY = 86400;  // seconds, some resonable limit
+
   static constexpr int32 MAX_PRELOADED_DIALOGS = 1000;
 
   static constexpr double DIALOG_ACTION_TIMEOUT = 5.5;
