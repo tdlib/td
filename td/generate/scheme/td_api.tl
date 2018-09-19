@@ -1002,14 +1002,14 @@ passportElementErrorSourceReverseSide = PassportElementErrorSource;
 //@description The selfie with the document contains an error. The error will be considered resolved when the file with the selfie changes
 passportElementErrorSourceSelfie = PassportElementErrorSource;
 
-//@description One of files with the translation of the document contains an error. The error will be considered resolved when the file changes
-passportElementErrorSourceTranslationFile = PassportElementErrorSource;
+//@description One of files with the translation of the document contains an error. The error will be considered resolved when the file changes @file_index Index of a file with the error
+passportElementErrorSourceTranslationFile file_index:int32 = PassportElementErrorSource;
 
 //@description The translation of the document contains an error. The error will be considered resolved when the list of translation files changes
 passportElementErrorSourceTranslationFiles = PassportElementErrorSource;
 
-//@description The file contains an error. The error will be considered resolved when the file changes
-passportElementErrorSourceFile = PassportElementErrorSource;
+//@description The file contains an error. The error will be considered resolved when the file changes @file_index Index of a file with the error
+passportElementErrorSourceFile file_index:int32 = PassportElementErrorSource;
 
 //@description The list of attached files contains an error. The error will be considered resolved when the list of files changes
 passportElementErrorSourceFiles = PassportElementErrorSource;

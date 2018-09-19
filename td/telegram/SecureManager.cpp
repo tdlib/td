@@ -690,6 +690,15 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
     loop();
   }
 
+  static int32 get_file_index(const vector<SecureFileCredentials> &file_credentials, Slice file_hash) {
+    for (size_t i = 0; i < file_credentials.size(); i++) {
+      if (file_credentials[i].hash == file_hash) {
+        return narrow_cast<int32>(i);
+      }
+    }
+    return -1;
+  }
+
   void loop() override {
     if (!secret_ || !authorization_form_) {
       return;
@@ -732,6 +741,7 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
     }
 
     std::vector<TdApiSecureValue> values;
+    std::map<SecureValueType, SecureValueCredentials> all_credentials;
     for (auto suitable_type : all_types) {
       auto type = suitable_type.first;
       for (auto &value : authorization_form_->values_) {
@@ -753,14 +763,15 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
 
         send_closure(parent_, &SecureManager::on_get_secure_value, r_secure_value.ok());
 
-        auto r_passport_element =
-            get_passport_element_object(file_manager, std::move(r_secure_value.move_as_ok().value));
+        auto secure_value = r_secure_value.move_as_ok();
+        auto r_passport_element = get_passport_element_object(file_manager, std::move(secure_value.value));
         if (r_passport_element.is_error()) {
           LOG(ERROR) << "Failed to get passport element object: " << r_passport_element.error();
           break;
         }
-
         values.push_back(r_passport_element.move_as_ok());
+        all_credentials.emplace(type, std::move(secure_value.credentials));
+
         break;
       }
     }
@@ -794,7 +805,12 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
           auto error = move_tl_object_as<telegram_api::secureValueErrorFile>(error_ptr);
           type = get_secure_value_type(error->type_);
           message = std::move(error->text_);
-          source = td_api::make_object<td_api::passportElementErrorSourceFile>();
+          int32 file_index = get_file_index(all_credentials[type].files, error->file_hash_.as_slice());
+          if (file_index == -1) {
+            LOG(ERROR) << "Can't find file with error";
+            break;
+          }
+          source = td_api::make_object<td_api::passportElementErrorSourceFile>(file_index);
           break;
         }
         case telegram_api::secureValueErrorFiles::ID: {
@@ -829,7 +845,12 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
           auto error = move_tl_object_as<telegram_api::secureValueErrorTranslationFile>(error_ptr);
           type = get_secure_value_type(error->type_);
           message = std::move(error->text_);
-          source = td_api::make_object<td_api::passportElementErrorSourceTranslationFile>();
+          int32 file_index = get_file_index(all_credentials[type].translations, error->file_hash_.as_slice());
+          if (file_index == -1) {
+            LOG(ERROR) << "Can't find translation file with error";
+            break;
+          }
+          source = td_api::make_object<td_api::passportElementErrorSourceTranslationFile>(file_index);
           break;
         }
         case telegram_api::secureValueErrorTranslationFiles::ID: {
