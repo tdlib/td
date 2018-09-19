@@ -2198,6 +2198,8 @@ class MessagesManager : public Actor {
 
   void fail_send_message(FullMessageId full_message_id, int error_code, const string &error_message);
 
+  void fail_send_message(FullMessageId full_message_id, Status error);
+
   void fail_edit_message_media(FullMessageId full_message_id, Status &&error);
 
   void on_dialog_updated(DialogId dialog_id, const char *source);

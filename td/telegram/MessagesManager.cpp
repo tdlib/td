@@ -6957,8 +6957,7 @@ void MessagesManager::on_upload_media(FileId file_id, tl_object_ptr<telegram_api
     // user has left the chat during upload of the file or lost his privileges
     LOG(INFO) << "Can't send a message to " << dialog_id << ": " << can_send_status.error();
 
-    int64 random_id = begin_send_message(dialog_id, m);
-    on_send_message_fail(random_id, can_send_status.move_as_error());
+    fail_send_message(full_message_id, can_send_status.move_as_error());
     return;
   }
 
@@ -7060,8 +7059,7 @@ void MessagesManager::on_upload_media_error(FileId file_id, Status status) {
   if (is_edit) {
     fail_edit_message_media(full_message_id, Status::Error(status.code() > 0 ? status.code() : 500, status.message()));
   } else {
-    fail_send_message(full_message_id, status.code() > 0 ? status.code() : 500,
-                      status.message().str());  // TODO CHECK that status has always a code
+    fail_send_message(full_message_id, std::move(status));
   }
 }
 
@@ -7105,8 +7103,7 @@ void MessagesManager::on_load_secret_thumbnail(FileId thumbnail_file_id, BufferS
     // secret chat was closed during load of the file
     LOG(INFO) << "Can't send a message to " << dialog_id << ": " << can_send_status.error();
 
-    int64 random_id = begin_send_message(dialog_id, m);
-    on_send_message_fail(random_id, can_send_status.move_as_error());
+    fail_send_message(full_message_id, can_send_status.move_as_error());
     return;
   }
 
@@ -7154,8 +7151,7 @@ void MessagesManager::on_upload_thumbnail(FileId thumbnail_file_id,
     // user has left the chat during upload of the thumbnail or lost his privileges
     LOG(INFO) << "Can't send a message to " << dialog_id << ": " << can_send_status.error();
 
-    int64 random_id = begin_send_message(dialog_id, m);
-    on_send_message_fail(random_id, can_send_status.move_as_error());
+    fail_send_message(full_message_id, can_send_status.move_as_error());
     return;
   }
 
@@ -20540,6 +20536,11 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
   }
 }
 
+void MessagesManager::fail_send_message(FullMessageId full_message_id, Status error) {
+  fail_send_message(full_message_id, error.code() > 0 ? error.code() : 500,
+                    error.message().str());  // TODO CHECK that status has always a code
+}
+
 void MessagesManager::fail_edit_message_media(FullMessageId full_message_id, Status &&error) {
   auto dialog_id = full_message_id.get_dialog_id();
   Dialog *d = get_dialog(dialog_id);
@@ -26208,8 +26209,7 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
   if (can_send_status.is_error()) {
     LOG(INFO) << "Can't resend a message to " << dialog_id << ": " << can_send_status.error();
 
-    int64 random_id = begin_send_message(dialog_id, result_message);
-    on_send_message_fail(random_id, can_send_status.move_as_error());
+    fail_send_message({dialog_id, result_message->message_id}, can_send_status.move_as_error());
     return nullptr;
   }
 
