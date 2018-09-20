@@ -3641,6 +3641,8 @@ void Td::start_up() {
   alarm_timeout_.set_callback_data(static_cast<void *>(this));
 
   CHECK(state_ == State::WaitParameters);
+  send_update(td_api::make_object<td_api::updateOption>("version",
+                                                        td_api::make_object<td_api::optionValueString>(TDLIB_VERSION)));
   send_update(td_api::make_object<td_api::updateAuthorizationState>(
       td_api::make_object<td_api::authorizationStateWaitTdlibParameters>()));
 }
@@ -4036,9 +4038,6 @@ Status Td::init(DbKey key) {
       send_closure(G()->td(), &Td::on_config_option_updated, name);
     }
   };
-  send_closure(
-      actor_id(this), &Td::send_update,
-      make_tl_object<td_api::updateOption>("version", make_tl_object<td_api::optionValueString>(TDLIB_VERSION)));
 
   G()->set_shared_config(
       std::make_unique<ConfigShared>(G()->td_db()->get_config_pmc(), std::make_unique<ConfigSharedCallback>()));
@@ -4568,7 +4567,40 @@ void Td::on_request(uint64 id, td_api::checkAuthenticationBotToken &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
-  return send_error_raw(id, 500, "Unimplemented");
+  vector<td_api::object_ptr<td_api::Update>> updates;
+
+  updates.push_back(td_api::make_object<td_api::updateOption>(
+      "version", td_api::make_object<td_api::optionValueString>(TDLIB_VERSION)));
+  updates.push_back(
+      td_api::make_object<td_api::updateOption>("online", make_tl_object<td_api::optionValueBoolean>(is_online_)));
+  for (auto &option : G()->shared_config().get_options()) {
+    if (!is_internal_config_option(option.first)) {
+      updates.push_back(td_api::make_object<td_api::updateOption>(
+          option.first, ConfigShared::get_option_value_object(option.second)));
+    }
+  }
+
+  auto state = auth_manager_->get_current_authorization_state_object();
+  if (state != nullptr) {
+    updates.push_back(td_api::make_object<td_api::updateAuthorizationState>(std::move(state)));
+  }
+
+  updates.push_back(td_api::make_object<td_api::updateConnectionState>(get_connection_state_object(connection_state_)));
+
+  /*
+  // TODO
+  updateUnreadMessageCount {
+  updateUnreadChatCount {
+  updateScopeNotificationSettings {
+  updateScopeNotificationSettings {
+  updateUser {
+  updateSecretChat {
+  updateNewChat {
+  updateChatLastMessage {
+  */
+
+  // send response synchronously to prevent "Request aborted"
+  send_result(id, td_api::make_object<td_api::updates>(std::move(updates)));
 }
 
 void Td::on_request(uint64 id, td_api::getPasswordState &request) {
@@ -6140,6 +6172,7 @@ void Td::on_request(uint64 id, td_api::getOption &request) {
 
   tl_object_ptr<td_api::OptionValue> option_value;
   switch (request.name_[0]) {
+    // all these options should be added to getCurrentState
     case 'o':
       if (request.name_ == "online") {
         option_value = make_tl_object<td_api::optionValueBoolean>(is_online_);

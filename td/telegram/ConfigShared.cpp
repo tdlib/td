@@ -98,8 +98,8 @@ string ConfigShared::get_option_string(Slice name, string default_value) const {
   return str_value.substr(1);
 }
 
-tl_object_ptr<td_api::OptionValue> ConfigShared::get_option_value(Slice value) const {
-  return get_option_value_object(get_option(value));
+tl_object_ptr<td_api::OptionValue> ConfigShared::get_option_value(Slice name) const {
+  return get_option_value_object(get_option(name));
 }
 
 bool ConfigShared::set_option(Slice name, Slice value) {

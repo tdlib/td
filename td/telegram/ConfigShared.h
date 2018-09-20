@@ -44,14 +44,15 @@ class ConfigShared {
   int32 get_option_integer(Slice name, int32 default_value = 0) const;
   string get_option_string(Slice name, string default_value = "") const;
 
-  tl_object_ptr<td_api::OptionValue> get_option_value(Slice value) const;
+  tl_object_ptr<td_api::OptionValue> get_option_value(Slice name) const;
+
+  static tl_object_ptr<td_api::OptionValue> get_option_value_object(Slice value);
 
  private:
   BinlogPmcPtr config_pmc_;
   unique_ptr<Callback> callback_;
 
   bool set_option(Slice name, Slice value);
-  static tl_object_ptr<td_api::OptionValue> get_option_value_object(Slice value);
 
   void on_option_updated(Slice name) const;
 };
