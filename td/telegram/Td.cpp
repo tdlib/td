@@ -6207,12 +6207,13 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
     return false;
   };
 
+  bool is_bot = auth_manager_ != nullptr && auth_manager_->is_authorized() && auth_manager_->is_bot();
   switch (request.name_[0]) {
     case 'd':
-      if (!auth_manager_->is_bot() && set_boolean_option("disable_contact_registered_notifications")) {
+      if (!is_bot && set_boolean_option("disable_contact_registered_notifications")) {
         return;
       }
-      if (auth_manager_->is_authorized() && !auth_manager_->is_bot() && set_boolean_option("disable_top_chats")) {
+      if (!is_bot && set_boolean_option("disable_top_chats")) {
         return;
       }
       break;
@@ -6225,16 +6226,13 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
       }
       break;
     case 'l':
-      if (!auth_manager_->is_bot() &&
-          set_string_option("language_pack_database_path", [](Slice value) { return true; })) {
+      if (!is_bot && set_string_option("language_pack_database_path", [](Slice value) { return true; })) {
         return;
       }
-      if (!auth_manager_->is_bot() &&
-          set_string_option("localization_target", LanguagePackManager::check_language_pack_name)) {
+      if (!is_bot && set_string_option("localization_target", LanguagePackManager::check_language_pack_name)) {
         return;
       }
-      if (!auth_manager_->is_bot() &&
-          set_string_option("language_pack_id", LanguagePackManager::check_language_code_name)) {
+      if (!is_bot && set_string_option("language_pack_id", LanguagePackManager::check_language_code_name)) {
         return;
       }
       break;
@@ -6246,7 +6244,7 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
         }
         bool is_online = value_constructor_id == td_api::optionValueEmpty::ID ||
                          static_cast<const td_api::optionValueBoolean *>(request.value_.get())->value_;
-        if (auth_manager_ == nullptr || !auth_manager_->is_bot()) {
+        if (!is_bot) {
           send_closure(G()->state_manager(), &StateManager::on_online, is_online);
         }
         if (is_online != is_online_) {
