@@ -665,14 +665,14 @@ void AnimationsManager::remove_saved_animation(const tl_object_ptr<td_api::Input
   send_update_saved_animations();
 }
 
+td_api::object_ptr<td_api::updateSavedAnimations> AnimationsManager::get_update_saved_animatoions_object() const {
+  return td_api::make_object<td_api::updateSavedAnimations>(
+      transform(saved_animation_ids_, [](FileId animation_id) { return animation_id.get(); }));
+}
+
 void AnimationsManager::send_update_saved_animations(bool from_database) {
   if (are_saved_animations_loaded_) {
-    vector<int32> animations;
-    animations.reserve(saved_animation_ids_.size());
-    for (auto animation_id : saved_animation_ids_) {
-      animations.push_back(animation_id.get());
-    }
-    send_closure(G()->td(), &Td::send_update, make_tl_object<td_api::updateSavedAnimations>(std::move(animations)));
+    send_closure(G()->td(), &Td::send_update, get_update_saved_animatoions_object());
 
     if (!from_database) {
       save_saved_animations_to_database();
@@ -692,6 +692,12 @@ string AnimationsManager::get_animation_search_text(FileId file_id) const {
   auto animation = get_animation(file_id);
   CHECK(animation != nullptr);
   return animation->file_name;
+}
+
+void AnimationsManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  if (are_saved_animations_loaded_) {
+    updates.push_back(get_update_saved_animatoions_object());
+  }
 }
 
 }  // namespace td

@@ -81,6 +81,8 @@ class AnimationsManager : public Actor {
 
   string get_animation_search_text(FileId file_id) const;
 
+  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
+
  private:
   class Animation {
    public:
@@ -110,6 +112,8 @@ class AnimationsManager : public Actor {
   void on_load_saved_animations_from_database(const string &value);
 
   void on_load_saved_animations_finished(vector<FileId> &&saved_animation_ids, bool from_database = false);
+
+  td_api::object_ptr<td_api::updateSavedAnimations> get_update_saved_animatoions_object() const;
 
   void send_update_saved_animations(bool from_database = false);
 

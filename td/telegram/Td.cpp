@@ -4587,19 +4587,23 @@ void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
 
   updates.push_back(td_api::make_object<td_api::updateConnectionState>(get_connection_state_object(connection_state_)));
 
-  contacts_manager_->get_current_state(updates);
+  if (auth_manager_->is_authorized()) {
+    contacts_manager_->get_current_state(updates);
 
-  stickers_manager_->get_current_state(updates);
+    animations_manager_->get_current_state(updates);
 
-  /*
-  // TODO
-  updateUnreadMessageCount {
-  updateUnreadChatCount {
-  updateScopeNotificationSettings {
-  updateScopeNotificationSettings {
-  updateNewChat {
-  updateChatLastMessage {
-  */
+    stickers_manager_->get_current_state(updates);
+
+    /*
+    // TODO
+    updateUnreadMessageCount {
+    updateUnreadChatCount {
+    updateScopeNotificationSettings {
+    updateScopeNotificationSettings {
+    updateNewChat {
+    updateChatLastMessage {
+    */
+  }
 
   // send response synchronously to prevent "Request aborted" or other changes of the current state
   send_result(id, td_api::make_object<td_api::updates>(std::move(updates)));
