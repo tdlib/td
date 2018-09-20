@@ -40,14 +40,14 @@ class StickersManager : public Actor {
  public:
   StickersManager(Td *td, ActorShared<> parent);
 
-  tl_object_ptr<td_api::sticker> get_sticker_object(FileId file_id);
+  tl_object_ptr<td_api::sticker> get_sticker_object(FileId file_id) const;
 
-  tl_object_ptr<td_api::stickers> get_stickers_object(const vector<FileId> &sticker_ids);
+  tl_object_ptr<td_api::stickers> get_stickers_object(const vector<FileId> &sticker_ids) const;
 
-  tl_object_ptr<td_api::stickerSet> get_sticker_set_object(int64 sticker_set_id);
+  tl_object_ptr<td_api::stickerSet> get_sticker_set_object(int64 sticker_set_id) const;
 
   tl_object_ptr<td_api::stickerSets> get_sticker_sets_object(int32 total_count, const vector<int64> &sticker_set_ids,
-                                                             size_t covers_limit);
+                                                             size_t covers_limit) const;
 
   tl_object_ptr<telegram_api::InputStickerSet> get_input_sticker_set(int64 sticker_set_id) const;
 
@@ -215,6 +215,8 @@ class StickersManager : public Actor {
 
   void on_find_sticker_sets_fail(const string &query, Status &&error);
 
+  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
+
  private:
   static constexpr int32 MAX_FEATURED_STICKER_SET_VIEW_DELAY = 5;
 
@@ -239,7 +241,7 @@ class StickersManager : public Actor {
     double y_shift = 0;
     double scale = 0;
 
-    bool is_changed = true;
+    mutable bool is_changed = true;
   };
 
   class StickerSet {
@@ -294,9 +296,9 @@ class StickersManager : public Actor {
 
   class UploadStickerFileCallback;
 
-  tl_object_ptr<td_api::MaskPoint> get_mask_point_object(int32 point);
+  static tl_object_ptr<td_api::MaskPoint> get_mask_point_object(int32 point);
 
-  tl_object_ptr<td_api::stickerSetInfo> get_sticker_set_info_object(int64 sticker_set_id, size_t covers_limit);
+  tl_object_ptr<td_api::stickerSetInfo> get_sticker_set_info_object(int64 sticker_set_id, size_t covers_limit) const;
 
   Sticker *get_sticker(FileId file_id);
   const Sticker *get_sticker(FileId file_id) const;
@@ -372,9 +374,15 @@ class StickersManager : public Actor {
   void on_load_recent_stickers_finished(bool is_attached, vector<FileId> &&recent_sticker_ids,
                                         bool from_database = false);
 
+  td_api::object_ptr<td_api::updateInstalledStickerSets> get_update_installed_sticker_sets_object(int is_mask) const;
+
   void send_update_installed_sticker_sets(bool from_database = false);
 
+  td_api::object_ptr<td_api::updateTrendingStickerSets> get_update_trending_sticker_sets_object() const;
+
   void send_update_featured_sticker_sets();
+
+  td_api::object_ptr<td_api::updateRecentStickers> get_update_recent_stickers_object(int is_attached) const;
 
   void send_update_recent_stickers(bool from_database = false);
 
@@ -395,6 +403,8 @@ class StickersManager : public Actor {
   void on_load_favorite_stickers_from_database(const string &value);
 
   void on_load_favorite_stickers_finished(vector<FileId> &&favorite_sticker_ids, bool from_database = false);
+
+  td_api::object_ptr<td_api::updateFavoriteStickers> get_update_favorite_stickers_object() const;
 
   void send_update_favorite_stickers(bool from_database = false);
 

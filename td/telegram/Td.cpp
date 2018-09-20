@@ -4589,6 +4589,8 @@ void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
 
   contacts_manager_->get_current_state(updates);
 
+  stickers_manager_->get_current_state(updates);
+
   /*
   // TODO
   updateUnreadMessageCount {

@@ -820,12 +820,14 @@ tl_object_ptr<td_api::MaskPoint> StickersManager::get_mask_point_object(int32 po
   }
 }
 
-tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_id) {
+tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_id) const {
   if (!file_id.is_valid()) {
     return nullptr;
   }
 
-  auto &sticker = stickers_[file_id];
+  auto it = stickers_.find(file_id);
+  CHECK(it != stickers_.end());
+  auto sticker = it->second.get();
   CHECK(sticker != nullptr);
   sticker->is_changed = false;
 
@@ -842,7 +844,7 @@ tl_object_ptr<td_api::sticker> StickersManager::get_sticker_object(FileId file_i
                                          td_->file_manager_->get_file_object(file_id));
 }
 
-tl_object_ptr<td_api::stickers> StickersManager::get_stickers_object(const vector<FileId> &sticker_ids) {
+tl_object_ptr<td_api::stickers> StickersManager::get_stickers_object(const vector<FileId> &sticker_ids) const {
   auto result = make_tl_object<td_api::stickers>();
   result->stickers_.reserve(sticker_ids.size());
   for (auto sticker_id : sticker_ids) {
@@ -851,7 +853,7 @@ tl_object_ptr<td_api::stickers> StickersManager::get_stickers_object(const vecto
   return result;
 }
 
-tl_object_ptr<td_api::stickerSet> StickersManager::get_sticker_set_object(int64 sticker_set_id) {
+tl_object_ptr<td_api::stickerSet> StickersManager::get_sticker_set_object(int64 sticker_set_id) const {
   const StickerSet *sticker_set = get_sticker_set(sticker_set_id);
   CHECK(sticker_set != nullptr);
   CHECK(sticker_set->was_loaded);
@@ -876,7 +878,7 @@ tl_object_ptr<td_api::stickerSet> StickersManager::get_sticker_set_object(int64 
 
 tl_object_ptr<td_api::stickerSets> StickersManager::get_sticker_sets_object(int32 total_count,
                                                                             const vector<int64> &sticker_set_ids,
-                                                                            size_t covers_limit) {
+                                                                            size_t covers_limit) const {
   vector<tl_object_ptr<td_api::stickerSetInfo>> result;
   result.reserve(sticker_set_ids.size());
   for (auto sticker_set_id : sticker_set_ids) {
@@ -897,7 +899,7 @@ tl_object_ptr<td_api::stickerSets> StickersManager::get_sticker_sets_object(int3
 }
 
 tl_object_ptr<td_api::stickerSetInfo> StickersManager::get_sticker_set_info_object(int64 sticker_set_id,
-                                                                                   size_t covers_limit) {
+                                                                                   size_t covers_limit) const {
   const StickerSet *sticker_set = get_sticker_set(sticker_set_id);
   CHECK(sticker_set != nullptr);
   CHECK(sticker_set->is_inited);
@@ -3491,15 +3493,19 @@ int32 StickersManager::get_featured_sticker_sets_hash() const {
   return get_vector_hash(numbers);
 }
 
+td_api::object_ptr<td_api::updateInstalledStickerSets> StickersManager::get_update_installed_sticker_sets_object(
+    int is_masks) const {
+  return td_api::make_object<td_api::updateInstalledStickerSets>(is_masks != 0,
+                                                                 vector<int64>(installed_sticker_set_ids_[is_masks]));
+}
+
 void StickersManager::send_update_installed_sticker_sets(bool from_database) {
   for (int is_masks = 0; is_masks < 2; is_masks++) {
     if (need_update_installed_sticker_sets_[is_masks]) {
       need_update_installed_sticker_sets_[is_masks] = false;
       if (are_installed_sticker_sets_loaded_[is_masks]) {
         installed_sticker_sets_hash_[is_masks] = get_sticker_sets_hash(installed_sticker_set_ids_[is_masks]);
-        send_closure(G()->td(), &Td::send_update,
-                     make_tl_object<td_api::updateInstalledStickerSets>(
-                         is_masks != 0, vector<int64>(installed_sticker_set_ids_[is_masks])));
+        send_closure(G()->td(), &Td::send_update, get_update_installed_sticker_sets_object(is_masks));
 
         if (G()->parameters().use_file_db && !from_database) {
           LOG(INFO) << "Save installed " << (is_masks ? "mask " : "") << "sticker sets to database";
@@ -3512,14 +3518,17 @@ void StickersManager::send_update_installed_sticker_sets(bool from_database) {
   }
 }
 
+td_api::object_ptr<td_api::updateTrendingStickerSets> StickersManager::get_update_trending_sticker_sets_object() const {
+  return td_api::make_object<td_api::updateTrendingStickerSets>(
+      get_sticker_sets_object(-1, featured_sticker_set_ids_, 5));
+}
+
 void StickersManager::send_update_featured_sticker_sets() {
   if (need_update_featured_sticker_sets_) {
     need_update_featured_sticker_sets_ = false;
     featured_sticker_sets_hash_ = get_featured_sticker_sets_hash();
 
-    send_closure(
-        G()->td(), &Td::send_update,
-        make_tl_object<td_api::updateTrendingStickerSets>(get_sticker_sets_object(-1, featured_sticker_set_ids_, 5)));
+    send_closure(G()->td(), &Td::send_update, get_update_trending_sticker_sets_object());
   }
 }
 
@@ -3823,19 +3832,20 @@ void StickersManager::clear_recent_stickers(bool is_attached, Promise<Unit> &&pr
   send_update_recent_stickers();
 }
 
+td_api::object_ptr<td_api::updateRecentStickers> StickersManager::get_update_recent_stickers_object(
+    int is_attached) const {
+  return td_api::make_object<td_api::updateRecentStickers>(
+      is_attached != 0,
+      transform(recent_sticker_ids_[is_attached], [](FileId sticker_id) { return sticker_id.get(); }));
+}
+
 void StickersManager::send_update_recent_stickers(bool from_database) {
   for (int is_attached = 0; is_attached < 2; is_attached++) {
     if (need_update_recent_stickers_[is_attached]) {
       need_update_recent_stickers_[is_attached] = false;
       if (are_recent_stickers_loaded_[is_attached]) {
         recent_stickers_hash_[is_attached] = get_recent_stickers_hash(recent_sticker_ids_[is_attached]);
-        vector<int32> stickers;
-        stickers.reserve(recent_sticker_ids_[is_attached].size());
-        for (auto sticker_id : recent_sticker_ids_[is_attached]) {
-          stickers.push_back(sticker_id.get());
-        }
-        send_closure(G()->td(), &Td::send_update,
-                     make_tl_object<td_api::updateRecentStickers>(is_attached != 0, std::move(stickers)));
+        send_closure(G()->td(), &Td::send_update, get_update_recent_stickers_object(is_attached));
 
         if (!from_database) {
           save_recent_stickers_to_database(is_attached != 0);
@@ -4144,14 +4154,14 @@ void StickersManager::remove_favorite_sticker(const tl_object_ptr<td_api::InputF
   send_update_favorite_stickers();
 }
 
+td_api::object_ptr<td_api::updateFavoriteStickers> StickersManager::get_update_favorite_stickers_object() const {
+  return make_tl_object<td_api::updateFavoriteStickers>(
+      transform(favorite_sticker_ids_, [](FileId sticker_id) { return sticker_id.get(); }));
+}
+
 void StickersManager::send_update_favorite_stickers(bool from_database) {
   if (are_favorite_stickers_loaded_) {
-    vector<int32> stickers;
-    stickers.reserve(favorite_sticker_ids_.size());
-    for (auto sticker_id : favorite_sticker_ids_) {
-      stickers.push_back(sticker_id.get());
-    }
-    send_closure(G()->td(), &Td::send_update, make_tl_object<td_api::updateFavoriteStickers>(std::move(stickers)));
+    send_closure(G()->td(), &Td::send_update, get_update_favorite_stickers_object());
 
     if (!from_database) {
       save_favorite_stickers_to_database();
@@ -4236,6 +4246,25 @@ string StickersManager::remove_emoji_modifiers(string emoji) {
     }
   }
   return emoji;
+}
+
+void StickersManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  for (int is_masks = 0; is_masks < 2; is_masks++) {
+    if (are_installed_sticker_sets_loaded_[is_masks]) {
+      updates.push_back(get_update_installed_sticker_sets_object(is_masks));
+    }
+  }
+  if (are_featured_sticker_sets_loaded_) {
+    updates.push_back(get_update_trending_sticker_sets_object());
+  }
+  for (int is_attached = 0; is_attached < 2; is_attached++) {
+    if (are_recent_stickers_loaded_[is_attached]) {
+      updates.push_back(get_update_recent_stickers_object(is_attached));
+    }
+  }
+  if (are_favorite_stickers_loaded_) {
+    updates.push_back(get_update_favorite_stickers_object());
+  }
 }
 
 }  // namespace td
