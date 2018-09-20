@@ -485,6 +485,14 @@ tl_object_ptr<td_api::AuthorizationState> AuthManager::get_authorization_state_o
   }
 }
 
+tl_object_ptr<td_api::AuthorizationState> AuthManager::get_current_authorization_state_object() const {
+  if (state_ == State::None) {
+    return nullptr;
+  } else {
+    return get_authorization_state_object(state_);
+  }
+}
+
 void AuthManager::get_state(uint64 query_id) {
   if (state_ == State::None) {
     pending_get_authorization_state_requests_.push_back(query_id);

@@ -168,6 +168,9 @@ class AuthManager : public NetActor {
 
   void on_closing();
 
+  // can return nullptr if state isn't initialized yet
+  tl_object_ptr<td_api::AuthorizationState> get_current_authorization_state_object() const;
+
  private:
   static constexpr size_t MAX_NAME_LENGTH = 64;  // server side limit
 

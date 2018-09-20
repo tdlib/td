@@ -3243,6 +3243,7 @@ bool Td::is_synchronous_request(int32 id) {
 
 bool Td::is_preinitialization_request(int32 id) {
   switch (id) {
+    case td_api::getCurrentState::ID:
     case td_api::setAlarm::ID:
     case td_api::testUseUpdate::ID:
     case td_api::testUseError::ID:
@@ -3293,6 +3294,27 @@ bool Td::is_preauthentication_request(int32 id) {
   }
 }
 
+td_api::object_ptr<td_api::AuthorizationState> Td::get_fake_authorization_state_object() const {
+  switch (state_) {
+    case State::WaitParameters:
+      return td_api::make_object<td_api::authorizationStateWaitTdlibParameters>();
+    case State::Decrypt:
+      return td_api::make_object<td_api::authorizationStateWaitEncryptionKey>(encryption_info_.is_encrypted);
+    case State::Run:
+      UNREACHABLE();
+      return nullptr;
+    case State::Close:
+      if (close_flag_ == 5) {
+        return td_api::make_object<td_api::authorizationStateClosed>();
+      } else {
+        return td_api::make_object<td_api::authorizationStateClosing>();
+      }
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
 void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
   if (id == 0) {
     LOG(ERROR) << "Ignore request with id == 0: " << to_string(function);
@@ -3307,21 +3329,37 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
 
   VLOG(td_requests) << "Receive request " << id << ": " << to_string(function);
   int32 function_id = function->get_id();
+  if (is_synchronous_request(function_id)) {
+    // send response synchronously
+    return send_result(id, static_request(std::move(function)));
+  }
+  if (state_ != State::Run) {
+    switch (function_id) {
+      case td_api::getAuthorizationState::ID:
+        // send response synchronously to prevent "Request aborted"
+        return send_result(id, get_fake_authorization_state_object());
+      case td_api::getCurrentState::ID: {
+        vector<td_api::object_ptr<td_api::Update>> updates;
+        updates.push_back(td_api::make_object<td_api::updateAuthorizationState>(get_fake_authorization_state_object()));
+        // send response synchronously to prevent "Request aborted"
+        return send_result(id, td_api::make_object<td_api::updates>(std::move(updates)));
+      }
+      case td_api::close::ID:
+        // need to send response synchronously before actual closing
+        send_result(id, td_api::make_object<td_api::ok>());
+        return close();
+      default:
+        break;
+    }
+  }
   switch (state_) {
     case State::WaitParameters: {
       switch (function_id) {
-        case td_api::getAuthorizationState::ID:
-          return send_closure(actor_id(this), &Td::send_result, id,
-                              td_api::make_object<td_api::authorizationStateWaitTdlibParameters>());
         case td_api::setTdlibParameters::ID:
           return answer_ok_query(
               id, set_parameters(std::move(move_tl_object_as<td_api::setTdlibParameters>(function)->parameters_)));
-        case td_api::close::ID:
-          return close();
-        case td_api::destroy::ID:
-          return destroy();
         default:
-          if (is_synchronous_request(function_id) || is_preinitialization_request(function_id)) {
+          if (is_preinitialization_request(function_id)) {
             break;
           }
           if (is_preauthentication_request(function_id)) {
@@ -3335,10 +3373,6 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
     case State::Decrypt: {
       string encryption_key;
       switch (function_id) {
-        case td_api::getAuthorizationState::ID:
-          return send_closure(
-              actor_id(this), &Td::send_result, id,
-              td_api::make_object<td_api::authorizationStateWaitEncryptionKey>(encryption_info_.is_encrypted));
         case td_api::checkDatabaseEncryptionKey::ID: {
           auto check_key = move_tl_object_as<td_api::checkDatabaseEncryptionKey>(function);
           encryption_key = std::move(check_key->encryption_key_);
@@ -3349,12 +3383,12 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
           encryption_key = std::move(set_key->new_encryption_key_);
           break;
         }
-        case td_api::close::ID:
-          return close();
         case td_api::destroy::ID:
+          // need to send response synchronously before actual destroying
+          send_result(id, td_api::make_object<td_api::ok>());
           return destroy();
         default:
-          if (is_synchronous_request(function_id) || is_preinitialization_request(function_id)) {
+          if (is_preinitialization_request(function_id)) {
             break;
           }
           if (is_preauthentication_request(function_id)) {
@@ -3365,28 +3399,14 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
       }
       return answer_ok_query(id, init(as_db_key(encryption_key)));
     }
-    case State::Close: {
-      if (function_id == td_api::getAuthorizationState::ID) {
-        if (close_flag_ == 5) {
-          return send_closure(actor_id(this), &Td::send_result, id,
-                              td_api::make_object<td_api::authorizationStateClosed>());
-        } else {
-          return send_closure(actor_id(this), &Td::send_result, id,
-                              td_api::make_object<td_api::authorizationStateClosing>());
-        }
-      }
-      if (is_synchronous_request(function_id)) {
-        break;
-      }
+    case State::Close:
       return send_error_raw(id, 401, "Unauthorized");
-    }
     case State::Run:
       break;
   }
 
   if ((auth_manager_ == nullptr || !auth_manager_->is_authorized()) && !is_preauthentication_request(function_id) &&
-      !is_preinitialization_request(function_id) && !is_synchronous_request(function_id) &&
-      !is_authentication_request(function_id)) {
+      !is_preinitialization_request(function_id) && !is_authentication_request(function_id)) {
     return send_error_raw(id, 401, "Unauthorized");
   }
   downcast_call(*function, [this, id](auto &request) { this->on_request(id, request); });
@@ -3721,6 +3741,7 @@ void Td::on_closed() {
 void Td::dec_stop_cnt() {
   stop_cnt_--;
   if (stop_cnt_ == 0) {
+    LOG(WARNING) << "Stop Td";
     stop();
   }
 }
@@ -3864,6 +3885,7 @@ void Td::close_impl(bool destroy_flag) {
   }
   if (state_ == State::WaitParameters) {
     clear_requests();
+    state_ = State::Close;
     return on_closed();
   }
   if (state_ == State::Decrypt) {
@@ -4543,6 +4565,10 @@ void Td::on_request(uint64 id, const td_api::destroy &request) {
 void Td::on_request(uint64 id, td_api::checkAuthenticationBotToken &request) {
   CLEAN_INPUT_STRING(request.token_);
   send_closure(auth_manager_actor_, &AuthManager::check_bot_token, id, std::move(request.token_));
+}
+
+void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
+  return send_error_raw(id, 500, "Unimplemented");
 }
 
 void Td::on_request(uint64 id, td_api::getPasswordState &request) {
@@ -6728,27 +6754,27 @@ void Td::on_request(uint64 id, const td_api::pingProxy &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::getTextEntities &request) {
-  send_closure(actor_id(this), &Td::send_result, id, do_static_request(request));
+  UNREACHABLE();
 }
 
 void Td::on_request(uint64 id, td_api::parseTextEntities &request) {
-  send_closure(actor_id(this), &Td::send_result, id, do_static_request(request));
+  UNREACHABLE();
 }
 
 void Td::on_request(uint64 id, const td_api::getFileMimeType &request) {
-  send_closure(actor_id(this), &Td::send_result, id, do_static_request(request));
+  UNREACHABLE();
 }
 
 void Td::on_request(uint64 id, const td_api::getFileExtension &request) {
-  send_closure(actor_id(this), &Td::send_result, id, do_static_request(request));
+  UNREACHABLE();
 }
 
 void Td::on_request(uint64 id, const td_api::cleanFileName &request) {
-  send_closure(actor_id(this), &Td::send_result, id, do_static_request(request));
+  UNREACHABLE();
 }
 
 void Td::on_request(uint64 id, const td_api::getLanguagePackString &request) {
-  send_closure(actor_id(this), &Td::send_result, id, do_static_request(request));
+  UNREACHABLE();
 }
 
 template <class T>

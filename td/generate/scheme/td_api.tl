@@ -2310,6 +2310,10 @@ updateNewCustomEvent event:string = Update;
 updateNewCustomQuery id:int64 data:string timeout:int32 = Update;
 
 
+//@description Contains a list of updated @updates List of updates
+updates updates:vector<Update> = Updates;
+
+
 //@description A simple object containing a number; for testing only @value Number
 testInt value:int32 = TestInt;
 //@description A simple object containing a string; for testing only @value String
@@ -2368,6 +2372,10 @@ close = Ok;
 
 //@description Closes the TDLib instance, destroying all local data without a proper logout. The current user session will remain in the list of all active sessions. All local data will be destroyed. After the destruction completes updateAuthorizationState with authorizationStateClosed will be sent
 destroy = Ok;
+
+
+//@description Returns all updates needed to restore current TDLib state, i.e. all actual UpdateAuthorizationState/UpdateUser/UpdateNewChat and others. This is especially usefull if TDLib is run in a separate process
+getCurrentState = Updates;
 
 
 //@description Changes the database encryption key. Usually the encryption key is never changed and is stored in some OS keychain @new_encryption_key New encryption key

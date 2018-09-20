@@ -417,7 +417,6 @@ class CliClient final : public Actor {
         break;
       case td_api::authorizationStateClosed::ID:
         LOG(WARNING) << "TD closed";
-        // TODO only if count of created matches count of closed
         td_.reset();
         if (!close_flag_) {
           create_td("ClientActor3");
@@ -1193,6 +1192,8 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::checkAuthenticationPassword>(args));
     } else if (op == "cab" || op == "cabt") {
       send_request(make_tl_object<td_api::checkAuthenticationBotToken>(args));
+    } else if (op == "gcs") {
+      send_request(make_tl_object<td_api::getCurrentState>());
     } else if (op == "rapr") {
       send_request(make_tl_object<td_api::requestAuthenticationPasswordRecovery>());
     } else if (op == "rap") {
@@ -1204,7 +1205,10 @@ class CliClient final : public Actor {
     } else if (op == "reset") {
       init_td();
     } else if (op == "close_td") {
+      // send_request(make_tl_object<td_api::getCurrentState>());
       send_request(make_tl_object<td_api::close>());
+      // send_request(make_tl_object<td_api::getCurrentState>());
+      // send_request(make_tl_object<td_api::close>());
     } else if (op == "DeleteAccountYesIReallyWantToDeleteMyAccount") {
       send_request(make_tl_object<td_api::deleteAccount>(args));
     } else if (op == "gps" || op == "GetPasswordState") {

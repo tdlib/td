@@ -260,6 +260,8 @@ class Td final : public NetQueryCallback {
   template <class T>
   void complete_pending_preauthentication_requests(const T &func);
 
+  td_api::object_ptr<td_api::AuthorizationState> get_fake_authorization_state_object() const;
+
   static void on_alarm_timeout_callback(void *td_ptr, int64 alarm_id);
   void on_alarm_timeout(int64 alarm_id);
 
@@ -340,6 +342,8 @@ class Td final : public NetQueryCallback {
   void on_request(uint64 id, const td_api::destroy &request);
 
   void on_request(uint64 id, td_api::checkAuthenticationBotToken &request);
+
+  void on_request(uint64 id, const td_api::getCurrentState &request);
 
   void on_request(uint64 id, td_api::getPasswordState &request);
 
