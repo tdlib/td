@@ -255,6 +255,8 @@ class Td final : public NetQueryCallback {
   std::unordered_map<int64, uint64> pending_alarms_;
   MultiTimeout alarm_timeout_{"AlarmTimeout"};
 
+  TermsOfService pending_terms_of_service_;
+
   vector<std::pair<uint64, td_api::object_ptr<td_api::Function>>> pending_preauthentication_requests_;
 
   template <class T>
@@ -264,6 +266,8 @@ class Td final : public NetQueryCallback {
 
   static void on_alarm_timeout_callback(void *td_ptr, int64 alarm_id);
   void on_alarm_timeout(int64 alarm_id);
+
+  td_api::object_ptr<td_api::updateTermsOfService> get_update_terms_of_service_object() const;
 
   void on_get_terms_of_service(Result<std::pair<int32, TermsOfService>> result, bool dummy);
 

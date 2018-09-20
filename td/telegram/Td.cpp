@@ -3169,17 +3169,26 @@ void Td::on_update_status_success(bool is_online) {
   }
 }
 
+td_api::object_ptr<td_api::updateTermsOfService> Td::get_update_terms_of_service_object() const {
+  auto terms_of_service = pending_terms_of_service_.get_terms_of_service_object();
+  if (terms_of_service == nullptr) {
+    return nullptr;
+  }
+  return td_api::make_object<td_api::updateTermsOfService>(pending_terms_of_service_.get_id().str(),
+                                                           std::move(terms_of_service));
+}
+
 void Td::on_get_terms_of_service(Result<std::pair<int32, TermsOfService>> result, bool dummy) {
   int32 expires_in = 0;
   if (result.is_error()) {
     expires_in = Random::fast(10, 60);
   } else {
-    auto terms = std::move(result.ok().second);
-    if (terms.get_id().empty()) {
+    pending_terms_of_service_ = std::move(result.ok().second);
+    auto update = get_update_terms_of_service_object();
+    if (update == nullptr) {
       expires_in = min(max(result.ok().first, G()->unix_time() + 60) - G()->unix_time(), 86400);
     } else {
-      send_update(
-          make_tl_object<td_api::updateTermsOfService>(terms.get_id().str(), terms.get_terms_of_service_object()));
+      send_update(std::move(update));
     }
   }
   if (expires_in > 0) {
@@ -3188,6 +3197,10 @@ void Td::on_get_terms_of_service(Result<std::pair<int32, TermsOfService>> result
 }
 
 void Td::schedule_get_terms_of_service(int32 expires_in) {
+  if (expires_in == 0) {
+    // drop pending Terms of Service after successful accept
+    pending_terms_of_service_ = TermsOfService();
+  }
   if (!close_flag_ && !auth_manager_->is_bot()) {
     alarm_timeout_.set_timeout_in(TERMS_OF_SERVICE_ALARM_ID, expires_in);
   }
@@ -4603,6 +4616,11 @@ void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
     updateNewChat {
     updateChatLastMessage {
     */
+  }
+
+  auto update_terms_of_service = get_update_terms_of_service_object();
+  if (update_terms_of_service != nullptr) {
+    updates.push_back(std::move(update_terms_of_service));
   }
 
   // send response synchronously to prevent "Request aborted" or other changes of the current state
