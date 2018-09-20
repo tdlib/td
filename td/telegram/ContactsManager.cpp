@@ -6305,7 +6305,7 @@ void ContactsManager::update_channel_full(ChannelFull *channel_full, ChannelId c
     send_closure(
         G()->td(), &Td::send_update,
         make_tl_object<td_api::updateSupergroupFullInfo>(get_supergroup_id_object(channel_id, "update_channel_full"),
-                                                         get_channel_full_info_object(channel_full)));
+                                                         get_supergroup_full_info_object(channel_full)));
   }
 }
 
@@ -9677,11 +9677,11 @@ tl_object_ptr<td_api::supergroup> ContactsManager::get_supergroup_object(Channel
       channel->is_verified, channel->restriction_reason);
 }
 
-tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_channel_full_info_object(ChannelId channel_id) const {
-  return get_channel_full_info_object(get_channel_full(channel_id));
+tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_info_object(ChannelId channel_id) const {
+  return get_supergroup_full_info_object(get_channel_full(channel_id));
 }
 
-tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_channel_full_info_object(
+tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_info_object(
     const ChannelFull *channel_full) const {
   CHECK(channel_full != nullptr);
   return make_tl_object<td_api::supergroupFullInfo>(
@@ -9689,7 +9689,7 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_channel_full_info
       channel_full->restricted_count, channel_full->banned_count, channel_full->can_get_participants,
       channel_full->can_set_username, channel_full->can_set_sticker_set, channel_full->is_all_history_available,
       channel_full->sticker_set_id, channel_full->invite_link, channel_full->pinned_message_id.get(),
-      get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_channel_full_info_object"),
+      get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),
       channel_full->migrated_from_max_message_id.get());
 }
 
@@ -9857,6 +9857,37 @@ UserId ContactsManager::get_support_user(Promise<Unit> &&promise) {
 
   td_->create_handler<GetSupportUserQuery>(std::move(promise))->send();
   return UserId();
+}
+
+void ContactsManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) {
+  for (auto &it : users_) {
+    updates.push_back(td_api::make_object<td_api::updateUser>(get_user_object(it.first, &it.second)));
+  }
+  for (auto &it : channels_) {
+    updates.push_back(td_api::make_object<td_api::updateSupergroup>(get_supergroup_object(it.first, &it.second)));
+  }
+  for (auto &it : chats_) {  // chat object can contain channel_id, so it must be sent after channels
+    updates.push_back(td_api::make_object<td_api::updateBasicGroup>(get_basic_group_object(it.first, &it.second)));
+  }
+  for (auto &it : secret_chats_) {  // secret chat object contains user_id, so it must be sent after users
+    updates.push_back(td_api::make_object<td_api::updateSecretChat>(get_secret_chat_object(it.first, &it.second)));
+  }
+
+  for (auto &it : users_full_) {
+    if (!it.second.is_inited) {
+      continue;
+    }
+    updates.push_back(td_api::make_object<td_api::updateUserFullInfo>(get_user_id_object(it.first, "get_current_state"),
+                                                                      get_user_full_info_object(it.first, &it.second)));
+  }
+  for (auto &it : channels_full_) {
+    updates.push_back(td_api::make_object<td_api::updateSupergroupFullInfo>(
+        get_supergroup_id_object(it.first, "get_current_state"), get_supergroup_full_info_object(&it.second)));
+  }
+  for (auto &it : chats_full_) {
+    updates.push_back(td_api::make_object<td_api::updateBasicGroupFullInfo>(
+        get_basic_group_id_object(it.first, "get_current_state"), get_basic_group_full_info_object(&it.second)));
+  }
 }
 
 }  // namespace td

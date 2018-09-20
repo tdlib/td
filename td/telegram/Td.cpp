@@ -846,7 +846,7 @@ class GetSupergroupFullInfoRequest : public RequestActor<> {
   }
 
   void do_send_result() override {
-    send_result(td->contacts_manager_->get_channel_full_info_object(channel_id_));
+    send_result(td->contacts_manager_->get_supergroup_full_info_object(channel_id_));
   }
 
  public:
@@ -4587,19 +4587,19 @@ void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
 
   updates.push_back(td_api::make_object<td_api::updateConnectionState>(get_connection_state_object(connection_state_)));
 
+  contacts_manager_->get_current_state(updates);
+
   /*
   // TODO
   updateUnreadMessageCount {
   updateUnreadChatCount {
   updateScopeNotificationSettings {
   updateScopeNotificationSettings {
-  updateUser {
-  updateSecretChat {
   updateNewChat {
   updateChatLastMessage {
   */
 
-  // send response synchronously to prevent "Request aborted"
+  // send response synchronously to prevent "Request aborted" or other changes of the current state
   send_result(id, td_api::make_object<td_api::updates>(std::move(updates)));
 }
 

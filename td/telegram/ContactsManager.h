@@ -413,7 +413,7 @@ class ContactsManager : public Actor {
 
   tl_object_ptr<td_api::supergroup> get_supergroup_object(ChannelId channel_id) const;
 
-  tl_object_ptr<td_api::supergroupFullInfo> get_channel_full_info_object(ChannelId channel_id) const;
+  tl_object_ptr<td_api::supergroupFullInfo> get_supergroup_full_info_object(ChannelId channel_id) const;
 
   int32 get_secret_chat_id_object(SecretChatId secret_chat_id, const char *source) const;
 
@@ -432,6 +432,8 @@ class ContactsManager : public Actor {
   tl_object_ptr<td_api::chatInviteLinkInfo> get_chat_invite_link_info_object(const string &invite_link) const;
 
   UserId get_support_user(Promise<Unit> &&promise);
+
+  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates);
 
  private:
   enum class LinkState : uint8 { Unknown, None, KnowsPhoneNumber, Contact };
@@ -986,7 +988,7 @@ class ContactsManager : public Actor {
 
   tl_object_ptr<td_api::supergroup> get_supergroup_object(ChannelId channel_id, const Channel *channel) const;
 
-  tl_object_ptr<td_api::supergroupFullInfo> get_channel_full_info_object(const ChannelFull *channel_full) const;
+  tl_object_ptr<td_api::supergroupFullInfo> get_supergroup_full_info_object(const ChannelFull *channel_full) const;
 
   static tl_object_ptr<td_api::SecretChatState> get_secret_chat_state_object(SecretChatState state);
 
