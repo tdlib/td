@@ -113,10 +113,7 @@ enum class MessageContentType : int32 {
   PassportDataReceived
 };
 
-inline StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType content_type) {
-  // TODO
-  return string_builder << static_cast<int32>(content_type);
-}
+StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType content_type);
 
 // Do not forget to update MessagesManager::update_message_content when one of the inheritors of this class changes
 class MessageContent {
