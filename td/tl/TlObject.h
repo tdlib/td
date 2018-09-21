@@ -11,9 +11,11 @@
  * Contains the declarations of a base class for all TL-objects and some helper methods
  */
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <utility>
 
 namespace td {
@@ -90,46 +92,54 @@ class TlObject {
  * A smart wrapper to store a pointer to a TL-object.
  */
 namespace tl {
+
 template <class T>
 class unique_ptr {
  public:
-  unique_ptr() = default;
+  unique_ptr() noexcept = default;
+  unique_ptr(const unique_ptr &other) = delete;
+  unique_ptr &operator=(const unique_ptr &other) = delete;
+  unique_ptr(unique_ptr &&other) noexcept : ptr_(other.release()) {
+  }
+  unique_ptr &operator=(unique_ptr &&other) noexcept {
+    reset(other.release());
+    return *this;
+  }
   ~unique_ptr() {
     reset();
   }
-  unique_ptr(std::nullptr_t) {
+
+  unique_ptr(std::nullptr_t) noexcept {
   }
-  explicit unique_ptr(T *ptr) : ptr_(ptr) {
-  }
-  template <class S, class = std::enable_if_t<std::is_base_of<T, S>::value>>
-  unique_ptr(unique_ptr<S> &&other) : ptr_(static_cast<S *>(other.release())) {
+  explicit unique_ptr(T *ptr) noexcept : ptr_(ptr) {
   }
   template <class S, class = std::enable_if_t<std::is_base_of<T, S>::value>>
-  unique_ptr &operator=(unique_ptr<S> &&other) {
-    auto other_ptr = static_cast<T *>(other.release());
-    reset();
-    ptr_ = other_ptr;
+  unique_ptr(unique_ptr<S> &&other) noexcept : ptr_(static_cast<S *>(other.release())) {
+  }
+  template <class S, class = std::enable_if_t<std::is_base_of<T, S>::value>>
+  unique_ptr &operator=(unique_ptr<S> &&other) noexcept {
+    reset(static_cast<T *>(other.release()));
     return *this;
   }
-  void reset() {
+  void reset(T *new_ptr = nullptr) noexcept {
     delete ptr_;
-    ptr_ = nullptr;
+    ptr_ = new_ptr;
   }
-  T *release() {
+  T *release() noexcept {
     auto res = ptr_;
     ptr_ = nullptr;
     return res;
   }
-  T *get() const {
+  T *get() const noexcept {
     return ptr_;
   }
-  T *operator->() const {
+  T *operator->() const noexcept {
     return ptr_;
   }
-  T &operator*() const {
+  T &operator*() const noexcept {
     return *ptr_;
   }
-  operator bool() const {
+  explicit operator bool() const noexcept {
     return ptr_ != nullptr;
   }
 
