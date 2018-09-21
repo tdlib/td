@@ -23,7 +23,7 @@ void td_json_client_destroy(void *client) {
 }
 
 void td_json_client_send(void *client, const char *request) {
-  static_cast<td::ClientJson *>(client)->send(td::Slice(request));
+  static_cast<td::ClientJson *>(client)->send(td::Slice(request == nullptr ? "" : request));
 }
 
 const char *td_json_client_receive(void *client, double timeout) {
@@ -36,7 +36,7 @@ const char *td_json_client_receive(void *client, double timeout) {
 }
 
 const char *td_json_client_execute(void *client, const char *request) {
-  auto slice = static_cast<td::ClientJson *>(client)->execute(td::Slice(request));
+  auto slice = static_cast<td::ClientJson *>(client)->execute(td::Slice(request == nullptr ? "" : request));
   if (slice.empty()) {
     return nullptr;
   } else {
