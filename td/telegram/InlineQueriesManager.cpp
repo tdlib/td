@@ -1155,7 +1155,7 @@ tl_object_ptr<td_api::inlineQueryResultVoiceNote> copy(const td_api::inlineQuery
 
 static tl_object_ptr<td_api::InlineQueryResult> copy_result(const tl_object_ptr<td_api::InlineQueryResult> &obj_ptr) {
   tl_object_ptr<td_api::InlineQueryResult> result;
-  downcast_call(*obj_ptr, [&result](const auto &obj) { result = copy(obj); });
+  downcast_call(const_cast<td_api::InlineQueryResult &>(*obj_ptr), [&result](const auto &obj) { result = copy(obj); });
   return result;
 }
 

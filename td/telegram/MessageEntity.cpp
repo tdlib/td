@@ -1720,7 +1720,7 @@ vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entiti
 }
 
 Result<vector<MessageEntity>> get_message_entities(const ContactsManager *contacts_manager,
-                                                   const vector<tl_object_ptr<td_api::textEntity>> &input_entities) {
+                                                   vector<tl_object_ptr<td_api::textEntity>> &&input_entities) {
   vector<MessageEntity> entities;
   for (auto &entity : input_entities) {
     if (entity == nullptr || entity->type_ == nullptr) {

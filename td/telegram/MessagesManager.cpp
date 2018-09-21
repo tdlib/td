@@ -21140,7 +21140,7 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, const tl_object_ptr
       send_action = make_tl_object<telegram_api::sendMessageRecordVideoAction>();
       break;
     case td_api::chatActionUploadingVideo::ID: {
-      auto progress = static_cast<td_api::chatActionUploadingVideo &>(*action).progress_;
+      auto progress = static_cast<const td_api::chatActionUploadingVideo &>(*action).progress_;
       send_action = make_tl_object<telegram_api::sendMessageUploadVideoAction>(progress);
       break;
     }
@@ -21148,17 +21148,17 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, const tl_object_ptr
       send_action = make_tl_object<telegram_api::sendMessageRecordAudioAction>();
       break;
     case td_api::chatActionUploadingVoiceNote::ID: {
-      auto progress = static_cast<td_api::chatActionUploadingVoiceNote &>(*action).progress_;
+      auto progress = static_cast<const td_api::chatActionUploadingVoiceNote &>(*action).progress_;
       send_action = make_tl_object<telegram_api::sendMessageUploadAudioAction>(progress);
       break;
     }
     case td_api::chatActionUploadingPhoto::ID: {
-      auto progress = static_cast<td_api::chatActionUploadingPhoto &>(*action).progress_;
+      auto progress = static_cast<const td_api::chatActionUploadingPhoto &>(*action).progress_;
       send_action = make_tl_object<telegram_api::sendMessageUploadPhotoAction>(progress);
       break;
     }
     case td_api::chatActionUploadingDocument::ID: {
-      auto progress = static_cast<td_api::chatActionUploadingDocument &>(*action).progress_;
+      auto progress = static_cast<const td_api::chatActionUploadingDocument &>(*action).progress_;
       send_action = make_tl_object<telegram_api::sendMessageUploadDocumentAction>(progress);
       break;
     }
@@ -21175,7 +21175,7 @@ void MessagesManager::send_dialog_action(DialogId dialog_id, const tl_object_ptr
       send_action = make_tl_object<telegram_api::sendMessageRecordRoundAction>();
       break;
     case td_api::chatActionUploadingVideoNote::ID: {
-      auto progress = static_cast<td_api::chatActionUploadingVideoNote &>(*action).progress_;
+      auto progress = static_cast<const td_api::chatActionUploadingVideoNote &>(*action).progress_;
       send_action = make_tl_object<telegram_api::sendMessageUploadRoundAction>(progress);
       break;
     }

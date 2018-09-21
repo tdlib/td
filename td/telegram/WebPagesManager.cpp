@@ -1688,7 +1688,7 @@ int64 WebPagesManager::get_web_page_preview(td_api::object_ptr<td_api::formatted
     return 0;
   }
 
-  auto r_entities = get_message_entities(td_->contacts_manager_.get(), text->entities_);
+  auto r_entities = get_message_entities(td_->contacts_manager_.get(), std::move(text->entities_));
   if (r_entities.is_error()) {
     promise.set_error(r_entities.move_as_error());
     return 0;

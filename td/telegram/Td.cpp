@@ -143,7 +143,8 @@ class GetNearestDcQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    promise_.set_value(std::move(result_ptr.ok()->country_));
+    auto result = result_ptr.move_as_ok();
+    promise_.set_value(std::move(result->country_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -319,7 +320,8 @@ class SendCustomRequestQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    promise_.set_value(std::move(result_ptr.ok()->data_));
+    auto result = result_ptr.move_as_ok();
+    promise_.set_value(std::move(result->data_));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -428,7 +430,8 @@ class GetInviteTextQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    promise_.set_value(std::move(result_ptr.ok()->message_));
+    auto result = result_ptr.move_as_ok();
+    promise_.set_value(std::move(result->message_));
   }
 
   void on_error(uint64 id, Status status) override {

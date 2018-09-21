@@ -109,14 +109,15 @@ void DcAuthManager::on_result(NetQueryPtr result) {
         dc.state = DcInfo::State::Export;
         break;
       }
-      auto result_auth_exported = fetch_result<telegram_api::auth_exportAuthorization>(result->ok());
-      if (result_auth_exported.is_error()) {
-        LOG(WARNING) << "Failed to parse result to auth_exportAuthorization: " << result_auth_exported.error();
+      auto r_result_auth_exported = fetch_result<telegram_api::auth_exportAuthorization>(result->ok());
+      if (r_result_auth_exported.is_error()) {
+        LOG(WARNING) << "Failed to parse result to auth_exportAuthorization: " << r_result_auth_exported.error();
         dc.state = DcInfo::State::Export;
         break;
       }
-      dc.export_id = result_auth_exported.ok()->id_;
-      dc.export_bytes = std::move(result_auth_exported.ok()->bytes_);
+      auto result_auth_exported = r_result_auth_exported.move_as_ok();
+      dc.export_id = result_auth_exported->id_;
+      dc.export_bytes = std::move(result_auth_exported->bytes_);
       break;
     }
     case DcInfo::State::BeforeOk: {
