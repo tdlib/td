@@ -3609,10 +3609,10 @@ static void store(const MessageContent *content, StorerT &storer) {
   Td *td = storer.context()->td().get_actor_unsafe();
   CHECK(td != nullptr);
 
-  auto content_id = content->get_id();
-  store(content_id, storer);
+  auto content_type = content->get_type();
+  store(content_type, storer);
 
-  switch (content_id) {
+  switch (content_type) {
     case MessageContentType::Animation: {
       auto m = static_cast<const MessageAnimation *>(content);
       td->animations_manager_->store_animation(m->file_id, storer);
@@ -3868,11 +3868,11 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
   Td *td = parser.context()->td().get_actor_unsafe();
   CHECK(td != nullptr);
 
-  MessageContentType content_id;
-  parse(content_id, parser);
+  MessageContentType content_type;
+  parse(content_type, parser);
 
   bool is_bad = false;
-  switch (content_id) {
+  switch (content_type) {
     case MessageContentType::Animation: {
       auto m = make_unique<MessageAnimation>();
       m->file_id = td->animations_manager_->parse_animation(parser);
@@ -4171,7 +4171,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       UNREACHABLE();
   }
   if (is_bad) {
-    LOG(ERROR) << "Load a message with an invalid content of type " << content_id;
+    LOG(ERROR) << "Load a message with an invalid content of type " << content_type;
     content = make_unique<MessageUnsupported>();
   }
 }
@@ -4409,7 +4409,8 @@ void MessagesManager::Message::parse(ParserT &parser) {
     reply_markup = make_unique<ReplyMarkup>();
     parse(*reply_markup, parser);
   }
-  is_content_secret |= is_secret_message_content(ttl, content->get_id());  // repair is_content_secret for old messages
+  is_content_secret |=
+      is_secret_message_content(ttl, content->get_type());  // repair is_content_secret for old messages
 }
 
 template <class StorerT>
@@ -5078,7 +5079,7 @@ int32 MessagesManager::get_message_index_mask(DialogId dialog_id, const Message 
 
 int32 MessagesManager::get_message_content_index_mask(const MessageContent *content, bool is_secret,
                                                       bool is_outgoing) const {
-  switch (content->get_id()) {
+  switch (content->get_type()) {
     case MessageContentType::Animation:
       return search_messages_filter_index_mask(SearchMessagesFilter::Animation);
     case MessageContentType::Audio: {
@@ -5608,7 +5609,7 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
                        "on_update_service_notification"),
       std::move(update->media_),
       td_->auth_manager_->is_bot() ? DialogId() : get_service_notifications_dialog()->dialog_id, false, UserId(), &ttl);
-  bool is_content_secret = is_secret_message_content(ttl, content->get_id());
+  bool is_content_secret = is_secret_message_content(ttl, content->get_type());
   if ((update->flags_ & telegram_api::updateServiceNotification::POPUP_MASK) != 0) {
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateServiceNotification>(
@@ -5671,7 +5672,7 @@ void MessagesManager::on_update_contact_registered(tl_object_ptr<telegram_api::u
     if (d->last_message_id.is_valid()) {
       auto m = get_message(d, d->last_message_id);
       CHECK(m != nullptr);
-      if (m->content->get_id() == MessageContentType::ContactRegistered) {
+      if (m->content->get_type() == MessageContentType::ContactRegistered) {
         LOG(INFO) << "Ignore duplicate updateContactRegistered about " << user_id;
         return;
       }
@@ -6116,7 +6117,7 @@ void MessagesManager::cancel_user_dialog_action(DialogId dialog_id, const Messag
     return;
   }
 
-  on_user_dialog_action(dialog_id, m->sender_user_id, nullptr, m->content->get_id());
+  on_user_dialog_action(dialog_id, m->sender_user_id, nullptr, m->content->get_type());
 }
 
 void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_ptr<telegram_api::Update> &&update,
@@ -7784,8 +7785,8 @@ void MessagesManager::on_get_recent_locations(DialogId dialog_id, int32 limit, i
         continue;
       }
       auto m = get_message(new_message);
-      if (m->content->get_id() != MessageContentType::LiveLocation) {
-        LOG(ERROR) << "Receive a message of wrong type " << m->content->get_id() << " in on_get_recent_locations in "
+      if (m->content->get_type() != MessageContentType::LiveLocation) {
+        LOG(ERROR) << "Receive a message of wrong type " << m->content->get_type() << " in on_get_recent_locations in "
                    << dialog_id;
         continue;
       }
@@ -8030,7 +8031,7 @@ string MessagesManager::get_search_text(const Message *m) {
   if (m->is_content_secret) {
     return string();
   }
-  switch (m->content->get_id()) {
+  switch (m->content->get_type()) {
     case MessageContentType::Text: {
       auto *text = static_cast<const MessageText *>(m->content.get());
       if (!text->web_page_id.is_valid()) {
@@ -8172,14 +8173,14 @@ bool MessagesManager::can_forward_message(DialogId from_dialog_id, const Message
       return false;
   }
 
-  auto content_id = m->content->get_id();
-  if (content_id == MessageContentType::Text) {
+  auto content_type = m->content->get_type();
+  if (content_type == MessageContentType::Text) {
     auto *text = static_cast<const MessageText *>(m->content.get());
     return !is_empty_string(text->text.text);  // text can't be empty in the new message
   }
 
-  return !is_service_message_content(content_id) && content_id != MessageContentType::Unsupported &&
-         content_id != MessageContentType::ExpiredPhoto && content_id != MessageContentType::ExpiredVideo;
+  return !is_service_message_content(content_type) && content_type != MessageContentType::Unsupported &&
+         content_type != MessageContentType::ExpiredPhoto && content_type != MessageContentType::ExpiredVideo;
 }
 
 bool MessagesManager::can_delete_channel_message(DialogParticipantStatus status, const Message *m, bool is_bot) {
@@ -8199,8 +8200,8 @@ bool MessagesManager::can_delete_channel_message(DialogParticipantStatus status,
   if (m->message_id.get_server_message_id().get() == 1) {
     return false;
   }
-  auto content_id = m->content->get_id();
-  if (content_id == MessageContentType::ChannelMigrateFrom || content_id == MessageContentType::ChannelCreate) {
+  auto content_type = m->content->get_type();
+  if (content_type == MessageContentType::ChannelMigrateFrom || content_type == MessageContentType::ChannelCreate) {
     return false;
   }
 
@@ -8212,7 +8213,7 @@ bool MessagesManager::can_delete_channel_message(DialogParticipantStatus status,
     return false;
   }
 
-  if (m->is_channel_post || is_service_message_content(content_id)) {
+  if (m->is_channel_post || is_service_message_content(content_type)) {
     return status.can_post_messages();
   }
 
@@ -8251,14 +8252,14 @@ bool MessagesManager::can_revoke_message(DialogId dialog_id, const Message *m) c
     case DialogType::SecretChat:
       // all non-service messages will be deleted for everyone if secret chat is active
       return td_->contacts_manager_->get_secret_chat_state(dialog_id.get_secret_chat_id()) == SecretChatState::Active &&
-             !is_service_message_content(m->content->get_id());
+             !is_service_message_content(m->content->get_type());
     case DialogType::None:
     default:
       UNREACHABLE();
       return false;
   }
 
-  return (((m->is_outgoing || can_revoke_incoming) && !is_service_message_content(m->content->get_id())) ||
+  return (((m->is_outgoing || can_revoke_incoming) && !is_service_message_content(m->content->get_type())) ||
           is_appointed_administrator) &&
          G()->unix_time_cached() - m->date <= revoke_time_limit;
 }
@@ -8958,7 +8959,7 @@ void MessagesManager::read_channel_message_content_from_updates(Dialog *d, Messa
 }
 
 bool MessagesManager::update_opened_message_content(Message *m) {
-  switch (m->content->get_id()) {
+  switch (m->content->get_type()) {
     case MessageContentType::VideoNote: {
       auto content = static_cast<MessageVideoNote *>(m->content.get());
       if (content->is_viewed) {
@@ -9406,7 +9407,7 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
                                                                                   int32 message_date,
                                                                                   bool is_content_secret) const {
   CHECK(content != nullptr);
-  switch (content->get_id()) {
+  switch (content->get_type()) {
     case MessageContentType::Animation: {
       const MessageAnimation *m = static_cast<const MessageAnimation *>(content);
       return make_tl_object<td_api::messageAnimation>(
@@ -9801,7 +9802,7 @@ void MessagesManager::on_message_ttl_expired_impl(Dialog *d, Message *message) {
   CHECK(message->ttl > 0);
   CHECK(d->dialog_id.get_type() != DialogType::SecretChat);
   delete_message_files(message);
-  switch (message->content->get_id()) {
+  switch (message->content->get_type()) {
     case MessageContentType::Photo:
       message->content = make_unique<MessageExpiredPhoto>();
       break;
@@ -10248,7 +10249,7 @@ void MessagesManager::delete_secret_messages(SecretChatId secret_chat_id, std::v
     }
     const Message *m = get_message(d, message_id);
     CHECK(m != nullptr);
-    if (!is_service_message_content(m->content->get_id())) {
+    if (!is_service_message_content(m->content->get_type())) {
       to_delete_message_ids.push_back(message_id);
     }
   }
@@ -10653,7 +10654,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   }
 
   if (sender_user_id.is_valid() && (sender_user_id == my_id && dialog_id != my_dialog_id) != is_outgoing) {
-    //    if (content->get_id() != MessageContentType::ChatAddUser) {  // TODO: we have wrong flags for invites via links
+    //    if (content->get_type() != MessageContentType::ChatAddUser) {  // TODO: we have wrong flags for invites via links
     LOG(ERROR) << "Receive wrong message out flag: me is " << my_id << ", message is from " << sender_user_id
                << ", flags = " << flags << " for " << message_id << " in " << dialog_id;
     //    }
@@ -10686,7 +10687,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
 
   int32 ttl = message_info.ttl;
   bool is_content_secret =
-      is_secret_message_content(ttl, message_info.content->get_id());  // should be calculated before TTL is adjusted
+      is_secret_message_content(ttl, message_info.content->get_type());  // should be calculated before TTL is adjusted
   if (ttl < 0) {
     LOG(ERROR) << "Wrong ttl = " << ttl << " received in " << message_id << " in " << dialog_id;
     ttl = 0;
@@ -10728,8 +10729,8 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   message->reply_markup = get_reply_markup(std::move(message_info.reply_markup), td_->auth_manager_->is_bot(), false,
                                            message->contains_mention || dialog_id.get_type() == DialogType::User);
 
-  auto content_id = message->content->get_id();
-  if (content_id == MessageContentType::ExpiredPhoto || content_id == MessageContentType::ExpiredVideo) {
+  auto content_type = message->content->get_type();
+  if (content_type == MessageContentType::ExpiredPhoto || content_type == MessageContentType::ExpiredVideo) {
     CHECK(message->ttl == 0);  // ttl is ignored/set to 0 if the message has already been expired
     if (message->reply_markup != nullptr) {
       if (message->reply_markup->type != ReplyMarkup::Type::InlineKeyboard) {
@@ -10741,7 +10742,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   }
 
   if (message_info.media_album_id != 0) {
-    if (!is_allowed_media_group_content(content_id)) {
+    if (!is_allowed_media_group_content(content_type)) {
       LOG(ERROR) << "Receive media group id " << message_info.media_album_id << " in " << message_id << " from "
                  << dialog_id << " with content "
                  << oneline(to_string(
@@ -11107,8 +11108,8 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
     return;
   }
 
-  if (m->content->get_id() != MessageContentType::Text) {
-    LOG(ERROR) << "Text message content has been already changed to " << m->content->get_id();
+  if (m->content->get_type() != MessageContentType::Text) {
+    LOG(ERROR) << "Text message content has been already changed to " << m->content->get_type();
     return;
   }
   auto message_text = static_cast<const MessageText *>(m->content.get());
@@ -11117,8 +11118,8 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
       get_message_text(message_text->text.text, std::move(entities), m->forward_info ? m->forward_info->date : m->date,
                        "on_update_sent_text_message"),
       std::move(message_media), dialog_id, true /*likely ignored*/, UserId() /*likely ignored*/, nullptr /*ignored*/);
-  if (new_content->get_id() != MessageContentType::Text) {
-    LOG(ERROR) << "Text message content has changed to " << new_content->get_id();
+  if (new_content->get_type() != MessageContentType::Text) {
+    LOG(ERROR) << "Text message content has changed to " << new_content->get_type();
     return;
   }
   auto new_message_text = static_cast<const MessageText *>(new_content.get());
@@ -11139,7 +11140,7 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
 
   if (is_content_changed) {
     m->content = std::move(new_content);
-    m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_id());
+    m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_type());
   }
   if (need_update) {
     send_update_message_content(dialog_id, m->message_id, m->content.get(), m->date, m->is_content_secret,
@@ -11163,7 +11164,7 @@ void MessagesManager::on_update_message_web_page(FullMessageId full_message_id, 
     return;
   }
   CHECK(message->date > 0);
-  auto content_type = message->content->get_id();
+  auto content_type = message->content->get_type();
   CHECK(content_type == MessageContentType::Text);
   auto content = static_cast<MessageText *>(message->content.get());
   if (!content->web_page_id.is_valid()) {
@@ -11593,7 +11594,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
   }
 
   if (is_debug_message_op_enabled()) {
-    d->debug_message_op.emplace_back(Dialog::MessageOp::Delete, m->message_id, m->content->get_id(), false,
+    d->debug_message_op.emplace_back(Dialog::MessageOp::Delete, m->message_id, m->content->get_type(), false,
                                      m->have_previous, m->have_next, source);
   }
 
@@ -11804,7 +11805,7 @@ void MessagesManager::do_delete_all_dialog_messages(Dialog *d, unique_ptr<Messag
   MessageId message_id = m->message_id;
 
   if (is_debug_message_op_enabled()) {
-    d->debug_message_op.emplace_back(Dialog::MessageOp::Delete, m->message_id, m->content->get_id(), false,
+    d->debug_message_op.emplace_back(Dialog::MessageOp::Delete, m->message_id, m->content->get_type(), false,
                                      m->have_previous, m->have_next, "delete all messages");
   }
 
@@ -12398,7 +12399,7 @@ MessagesManager::Message *MessagesManager::get_message_force(FullMessageId full_
 }
 
 MessageId MessagesManager::get_replied_message_id(const Message *m) {
-  switch (m->content->get_id()) {
+  switch (m->content->get_type()) {
     case MessageContentType::PinMessage:
       CHECK(!m->reply_to_message_id.is_valid());
       return static_cast<const MessagePinMessage *>(m->content.get())->message_id;
@@ -13370,7 +13371,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
       }
 
       if (need_read) {
-        auto message_content_type = message->content->get_id();
+        auto message_content_type = message->content->get_type();
         if (message_content_type != MessageContentType::VoiceNote &&
             message_content_type != MessageContentType::VideoNote &&
             update_message_contains_unread_mention(d, message, false, "view_messages")) {
@@ -14565,7 +14566,7 @@ vector<FullMessageId> MessagesManager::get_active_live_location_messages(Promise
   for (auto &full_message_id : active_live_location_full_message_ids_) {
     auto m = get_message(full_message_id);
     CHECK(m != nullptr);
-    CHECK(m->content->get_id() == MessageContentType::LiveLocation);
+    CHECK(m->content->get_type() == MessageContentType::LiveLocation);
 
     auto live_period = static_cast<const MessageLiveLocation *>(m->content.get())->period;
     if (live_period <= G()->unix_time() - m->date) {  // bool is_expired flag?
@@ -14623,7 +14624,7 @@ void MessagesManager::on_load_active_live_location_messages_finished() {
 void MessagesManager::try_add_active_live_location(DialogId dialog_id, const Message *m) {
   CHECK(m != nullptr);
 
-  if (m->content->get_id() != MessageContentType::LiveLocation) {
+  if (m->content->get_type() != MessageContentType::LiveLocation) {
     return;
   }
 
@@ -15208,7 +15209,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     message->from_database = true;
 
     auto old_message = get_message(d, message->message_id);
-    if (old_message == nullptr && message->content->get_id() == MessageContentType::Text) {
+    if (old_message == nullptr && message->content->get_type() == MessageContentType::Text) {
       auto web_page_id = static_cast<const MessageText *>(message->content.get())->web_page_id;
       if (web_page_id.is_valid()) {
         td_->web_pages_manager_->have_web_page_force(web_page_id);
@@ -15635,7 +15636,7 @@ Result<Game> MessagesManager::process_input_message_game(
 SecretInputMedia MessagesManager::get_secret_input_media(const MessageContent *content,
                                                          tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
                                                          BufferSlice thumbnail, int32 layer) {
-  switch (content->get_id()) {
+  switch (content->get_type()) {
     case MessageContentType::Animation: {
       auto m = static_cast<const MessageAnimation *>(content);
       return td_->animations_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text,
@@ -15809,7 +15810,7 @@ tl_object_ptr<telegram_api::inputMediaInvoice> MessagesManager::get_input_media_
 tl_object_ptr<telegram_api::InputMedia> MessagesManager::get_input_media(
     const MessageContent *content, tl_object_ptr<telegram_api::InputFile> input_file,
     tl_object_ptr<telegram_api::InputFile> input_thumbnail, int32 ttl) {
-  switch (content->get_id()) {
+  switch (content->get_type()) {
     case MessageContentType::Animation: {
       auto m = static_cast<const MessageAnimation *>(content);
       return td_->animations_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail));
@@ -15900,7 +15901,7 @@ tl_object_ptr<telegram_api::InputMedia> MessagesManager::get_input_media(
 }
 
 void MessagesManager::delete_message_content_thumbnail(MessageContent *content) {
-  switch (content->get_id()) {
+  switch (content->get_type()) {
     case MessageContentType::Animation: {
       auto m = static_cast<MessageAnimation *>(content);
       return td_->animations_manager_->delete_animation_thumbnail(m->file_id);
@@ -16013,10 +16014,10 @@ MessagesManager::Message *MessagesManager::get_message_to_send(Dialog *d, Messag
 
   if (dialog_type == DialogType::SecretChat) {
     m->ttl = td_->contacts_manager_->get_secret_chat_ttl(dialog_id.get_secret_chat_id());
-    if (is_service_message_content(m->content->get_id())) {
+    if (is_service_message_content(m->content->get_type())) {
       m->ttl = 0;
     }
-    m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_id());
+    m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_type());
     if (reply_to_message_id.is_valid()) {
       auto *reply_to_message = get_message_force(d, reply_to_message_id);
       if (reply_to_message != nullptr) {
@@ -16118,7 +16119,7 @@ Status MessagesManager::can_send_message_content(DialogId dialog_id, const Messa
       UNREACHABLE();
   }
 
-  switch (content->get_id()) {
+  switch (content->get_type()) {
     case MessageContentType::Animation:
       if (!can_send_animations) {
         return Status::Error(400, "Not enough rights to send animations to the chat");
@@ -16288,7 +16289,7 @@ MessageId MessagesManager::get_reply_to_message_id(Dialog *d, MessageId message_
 }
 
 FormattedText MessagesManager::get_message_content_text(const MessageContent *content) {
-  switch (content->get_id()) {
+  switch (content->get_type()) {
     case MessageContentType::Text:
       return static_cast<const MessageText *>(content)->text;
     case MessageContentType::Game:
@@ -16299,7 +16300,7 @@ FormattedText MessagesManager::get_message_content_text(const MessageContent *co
 }
 
 FormattedText MessagesManager::get_message_content_caption(const MessageContent *content) {
-  switch (content->get_id()) {
+  switch (content->get_type()) {
     case MessageContentType::Animation:
       return static_cast<const MessageAnimation *>(content)->caption;
     case MessageContentType::Audio:
@@ -16319,7 +16320,7 @@ FormattedText MessagesManager::get_message_content_caption(const MessageContent 
 
 int32 MessagesManager::get_message_content_duration(const MessageContent *content) const {
   CHECK(content != nullptr);
-  switch (content->get_id()) {
+  switch (content->get_type()) {
     case MessageContentType::Animation: {
       auto animation_file_id = static_cast<const MessageAnimation *>(content)->file_id;
       return td_->animations_manager_->get_animation_duration(animation_file_id);
@@ -16345,7 +16346,7 @@ int32 MessagesManager::get_message_content_duration(const MessageContent *conten
 }
 
 FileId MessagesManager::get_message_content_file_id(const MessageContent *content) {
-  switch (content->get_id()) {
+  switch (content->get_type()) {
     case MessageContentType::Animation:
       return static_cast<const MessageAnimation *>(content)->file_id;
     case MessageContentType::Audio:
@@ -16378,7 +16379,7 @@ void MessagesManager::update_message_content_file_id_remote(MessageContent *cont
     return;
   }
   FileId *old_file_id = [&]() {
-    switch (content->get_id()) {
+    switch (content->get_type()) {
       case MessageContentType::Animation:
         return &static_cast<MessageAnimation *>(content)->file_id;
       case MessageContentType::Audio:
@@ -16403,7 +16404,7 @@ void MessagesManager::update_message_content_file_id_remote(MessageContent *cont
 }
 
 FileId MessagesManager::get_message_content_thumbnail_file_id(const MessageContent *content) const {
-  switch (content->get_id()) {
+  switch (content->get_type()) {
     case MessageContentType::Animation:
       return td_->animations_manager_->get_animation_thumbnail_file_id(
           static_cast<const MessageAnimation *>(content)->file_id);
@@ -16437,7 +16438,7 @@ FileId MessagesManager::get_message_content_thumbnail_file_id(const MessageConte
 
 vector<FileId> MessagesManager::get_message_file_ids(const Message *message) const {
   auto content = message->content.get();
-  switch (content->get_id()) {
+  switch (content->get_type()) {
     case MessageContentType::Photo:
       return transform(static_cast<const MessagePhoto *>(content)->photo.photos,
                        [](auto &size) { return size.file_id; });
@@ -16516,7 +16517,7 @@ void MessagesManager::cancel_send_message_query(DialogId dialog_id, unique_ptr<M
   }
 
   if (G()->parameters().use_file_db) {  // ResourceManager::Mode::Baseline
-    auto queue_id = get_sequence_dispatcher_id(dialog_id, m->content->get_id());
+    auto queue_id = get_sequence_dispatcher_id(dialog_id, m->content->get_type());
     if (queue_id & 1) {
       auto queue_it = yet_unsent_media_queues_.find(queue_id);
       if (queue_it != yet_unsent_media_queues_.end()) {
@@ -16581,7 +16582,7 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, Dialo
       add_dialog_dependencies(dependencies, m->forward_info->from_dialog_id);
     }
   }
-  switch (m->content->get_id()) {
+  switch (m->content->get_type()) {
     case MessageContentType::Text: {
       auto content = static_cast<const MessageText *>(m->content.get());
       dependencies.web_page_ids.insert(content->web_page_id);
@@ -16811,7 +16812,7 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId re
   m->clear_draft = message_content.clear_draft;
   if (message_content.ttl > 0) {
     m->ttl = message_content.ttl;
-    m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_id());
+    m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_type());
   }
 
   if (message_content.clear_draft) {
@@ -17276,7 +17277,7 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
   vector<std::pair<unique_ptr<MessageContent>, int32>> message_contents;
   for (auto &input_message_content : input_message_contents) {
     TRY_RESULT(message_content, process_input_message_content(dialog_id, std::move(input_message_content)));
-    if (!is_allowed_media_group_content(message_content.content->get_id())) {
+    if (!is_allowed_media_group_content(message_content.content->get_type())) {
       return Status::Error(5, "Wrong message content type");
     }
 
@@ -17304,7 +17305,7 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
     auto ttl = message_content.second;
     if (ttl > 0) {
       m->ttl = ttl;
-      m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_id());
+      m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_type());
     }
     m->media_album_id = media_album_id;
 
@@ -17350,7 +17351,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, Message *m, vector<int
 
   auto content = is_edit ? m->edited_content.get() : m->content.get();
   CHECK(content != nullptr);
-  auto content_type = content->get_id();
+  auto content_type = content->get_type();
   if (content_type == MessageContentType::Text) {
     auto message_text = static_cast<const MessageText *>(content);
 
@@ -17454,7 +17455,7 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, Message *m,
               get_message_flags(m), dialog_id, m->reply_to_message_id, get_input_reply_markup(m->reply_markup),
               get_input_message_entities(td_->contacts_manager_.get(), caption.entities, "on_message_media_uploaded"),
               caption.text, std::move(input_media), random_id, &m->send_query_ref,
-              get_sequence_dispatcher_id(dialog_id, m->content->get_id()));
+              get_sequence_dispatcher_id(dialog_id, m->content->get_type()));
         }));
   } else {
     switch (input_media->get_id()) {
@@ -18152,7 +18153,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
     return false;
   }
 
-  switch (m->content->get_id()) {
+  switch (m->content->get_type()) {
     case MessageContentType::Animation:
     case MessageContentType::Audio:
     case MessageContentType::Document:
@@ -18251,7 +18252,7 @@ void MessagesManager::edit_message_text(FullMessageId full_message_id,
     return promise.set_error(Status::Error(5, "Message can't be edited"));
   }
 
-  MessageContentType old_message_content_type = message->content->get_id();
+  MessageContentType old_message_content_type = message->content->get_type();
   if (old_message_content_type != MessageContentType::Text && old_message_content_type != MessageContentType::Game) {
     return promise.set_error(Status::Error(5, "There is no text in the message to edit"));
   }
@@ -18306,7 +18307,7 @@ void MessagesManager::edit_message_live_location(FullMessageId full_message_id,
     return promise.set_error(Status::Error(5, "Message can't be edited"));
   }
 
-  MessageContentType old_message_content_type = message->content->get_id();
+  MessageContentType old_message_content_type = message->content->get_type();
   if (old_message_content_type != MessageContentType::LiveLocation) {
     return promise.set_error(Status::Error(5, "There is no live location in the message to edit"));
   }
@@ -18358,8 +18359,8 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
   CHECK(m->edited_content != nullptr);
   if (result.is_ok()) {
     std::swap(m->content, m->edited_content);
-    bool need_send_update_message_content =
-        m->edited_content->get_id() == MessageContentType::Photo && m->content->get_id() == MessageContentType::Photo;
+    bool need_send_update_message_content = m->edited_content->get_type() == MessageContentType::Photo &&
+                                            m->content->get_type() == MessageContentType::Photo;
     update_message_content(dialog_id, m, std::move(m->edited_content), need_send_update_message_content, true);
   } else {
     auto error_message = result.error().message();
@@ -18429,7 +18430,7 @@ void MessagesManager::edit_message_media(FullMessageId full_message_id,
   }
   CHECK(message_id.is_server());
 
-  MessageContentType old_message_content_type = m->content->get_id();
+  MessageContentType old_message_content_type = m->content->get_type();
   if (old_message_content_type != MessageContentType::Animation &&
       old_message_content_type != MessageContentType::Audio &&
       old_message_content_type != MessageContentType::Document &&
@@ -18495,7 +18496,7 @@ void MessagesManager::edit_message_caption(FullMessageId full_message_id,
     return promise.set_error(Status::Error(5, "Message can't be edited"));
   }
 
-  if (!can_have_message_content_caption(message->content->get_id())) {
+  if (!can_have_message_content_caption(message->content->get_type())) {
     return promise.set_error(Status::Error(400, "There is no caption in the message to edit"));
   }
 
@@ -18822,7 +18823,7 @@ bool MessagesManager::can_set_game_score(DialogId dialog_id, const Message *m) c
       return false;
   }
 
-  return m->content->get_id() == MessageContentType::Game;
+  return m->content->get_type() == MessageContentType::Game;
 }
 
 void MessagesManager::set_game_score(FullMessageId full_message_id, bool edit_message, UserId user_id, int32 score,
@@ -19302,17 +19303,17 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
       continue;
     }
 
-    auto content_id = content->get_id();
-    if (media_album_id != 0 && !is_allowed_media_group_content(content_id)) {
+    auto content_type = content->get_type();
+    if (media_album_id != 0 && !is_allowed_media_group_content(content_type)) {
       media_album_id = 0;
       for (auto m : forwarded_messages) {
         m->media_album_id = 0;
       }
     }
 
-    bool is_game = content_id == MessageContentType::Game;
+    bool is_game = content_type == MessageContentType::Game;
     unique_ptr<MessageForwardInfo> forward_info;
-    if (!is_game && content_id != MessageContentType::Audio) {
+    if (!is_game && content_type != MessageContentType::Audio) {
       DialogId saved_from_dialog_id;
       MessageId saved_from_message_id;
       if (to_dialog_id == DialogId(my_id)) {
@@ -19582,13 +19583,13 @@ Result<MessageId> MessagesManager::add_local_message(
   m->clear_draft = message_content.clear_draft;
   if (dialog_type == DialogType::SecretChat) {
     m->ttl = td_->contacts_manager_->get_secret_chat_ttl(dialog_id.get_secret_chat_id());
-    if (is_service_message_content(m->content->get_id())) {
+    if (is_service_message_content(m->content->get_type())) {
       m->ttl = 0;
     }
   } else if (message_content.ttl > 0) {
     m->ttl = message_content.ttl;
   }
-  m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_id());
+  m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_type());
 
   m->have_previous = true;
   m->have_next = true;
@@ -20062,7 +20063,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
     }
     LOG(ERROR) << "Result from sent " << (m->is_outgoing ? "outgoing" : "incoming")
                << (m->forward_info == nullptr ? " not" : "") << " forwarded " << new_message_id
-               << " with content of the type " << m->content->get_id() << " in " << dialog_id
+               << " with content of the type " << m->content->get_type() << " in " << dialog_id
                << " comes after updateNewMessageId, current last new is " << d->last_new_message_id << ", last is "
                << d->last_message_id << ". " << td_->updates_manager_->get_state();
     return {};
@@ -20108,7 +20109,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
 
   bool is_content_changed = false;
   if (new_file_id.is_valid()) {
-    MessageContentType content_type = sent_message->content->get_id();
+    MessageContentType content_type = sent_message->content->get_type();
     switch (content_type) {
       case MessageContentType::Animation: {
         auto content = static_cast<MessageAnimation *>(sent_message->content.get());
@@ -20425,7 +20426,7 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
       } else if (error.message() == "WEBPAGE_MEDIA_EMPTY") {
         error_message = "Wrong type of the web page content";
       } else if (error.message() == "MEDIA_EMPTY") {
-        auto content_type = m->content->get_id();
+        auto content_type = m->content->get_type();
         if (content_type == MessageContentType::Game) {
           error_message = "Wrong game short name specified";
         } else if (content_type == MessageContentType::Invoice) {
@@ -21243,7 +21244,7 @@ void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {
   }
 
   td_api::object_ptr<td_api::ChatAction> action;
-  switch (m->content->get_id()) {
+  switch (m->content->get_type()) {
     case MessageContentType::Animation:
     case MessageContentType::Audio:
     case MessageContentType::Document:
@@ -22845,7 +22846,7 @@ unique_ptr<MessageContent> MessagesManager::dup_message_content(DialogId dialog_
   if (to_secret) {
     thumbnail_file_id = get_message_content_thumbnail_file_id(content);
   }
-  switch (content->get_id()) {
+  switch (content->get_type()) {
     case MessageContentType::Animation: {
       auto result = make_unique<MessageAnimation>(*static_cast<const MessageAnimation *>(content));
       if (td_->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
@@ -23257,7 +23258,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     // message->reply_to_message_id = MessageId();
   }
 
-  LOG(INFO) << "Adding " << message_id << " of type " << message->content->get_id() << " to " << dialog_id << " from "
+  LOG(INFO) << "Adding " << message_id << " of type " << message->content->get_type() << " to " << dialog_id << " from "
             << source << ". Last new is " << d->last_new_message_id << ", last is " << d->last_message_id
             << ", from_update = " << from_update << ", have_previous = " << message->have_previous
             << ", have_next = " << message->have_next;
@@ -23269,7 +23270,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     return nullptr;
   }
 
-  auto message_content_type = message->content->get_id();
+  auto message_content_type = message->content->get_type();
   if (is_debug_message_op_enabled()) {
     d->debug_message_op.emplace_back(Dialog::MessageOp::Add, message_id, message_content_type, from_update,
                                      message->have_previous, message->have_next, source);
@@ -23461,7 +23462,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         return nullptr;
       } else {
         on_message_ttl_expired_impl(d, message.get());
-        message_content_type = message->content->get_id();
+        message_content_type = message->content->get_type();
         if (message->from_database) {
           add_message_to_database(d, message.get(), "add expired message to dialog");
         }
@@ -24140,7 +24141,7 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
     if (new_message->forward_info != nullptr) {
       LOG(ERROR) << message_id << " in " << dialog_id << " has received forward info " << *new_message->forward_info
                  << ", really forwarded from " << old_message->debug_forward_from << ", message content type is "
-                 << old_message->content->get_id() << '/' << new_message->content->get_id();
+                 << old_message->content->get_type() << '/' << new_message->content->get_type();
     }
   } else {
     if (new_message->forward_info != nullptr) {
@@ -24223,7 +24224,7 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
   } else {
     if (old_message->reply_markup == nullptr) {
       if (new_message->reply_markup != nullptr) {
-        auto content_type = old_message->content->get_id();
+        auto content_type = old_message->content->get_type();
         // MessageGame and MessageInvoice reply markup can be generated server side
         LOG_IF(ERROR, content_type != MessageContentType::Game && content_type != MessageContentType::Invoice)
             << message_id << " in " << dialog_id << " has received reply markup " << *new_message->reply_markup;
@@ -24323,8 +24324,8 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
   bool is_content_changed = false;
   bool need_update = false;
   unique_ptr<MessageContent> &old_content = old_message->content;
-  MessageContentType old_content_type = old_content->get_id();
-  MessageContentType new_content_type = new_content->get_id();
+  MessageContentType old_content_type = old_content->get_type();
+  MessageContentType new_content_type = new_content->get_type();
   const bool can_delete_old_document = old_message->message_id.is_yet_unsent() && false;
 
   auto old_file_id = get_message_content_file_id(old_content.get());
@@ -24334,7 +24335,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
     need_update = true;
     LOG(INFO) << "Message content has changed its type from " << old_content_type << " to " << new_content_type;
 
-    old_message->is_content_secret = is_secret_message_content(old_message->ttl, new_content->get_id());
+    old_message->is_content_secret = is_secret_message_content(old_message->ttl, new_content->get_type());
 
     if (need_merge_files && old_file_id.is_valid()) {
       auto new_file_id = get_message_content_file_id(new_content.get());
@@ -24803,7 +24804,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
     update_message_content_file_id_remote(old_content.get(), get_message_content_file_id(new_content.get()));
   }
   if (location_access_hash != 0) {
-    switch (old_content->get_id()) {
+    switch (old_content->get_type()) {
       case MessageContentType::LiveLocation:
         static_cast<MessageLiveLocation *>(old_content.get())->location.set_access_hash(location_access_hash);
         break;
@@ -26247,7 +26248,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         auto m = std::move(log_event.m_out);
         m->send_message_logevent_id = event.id_;
 
-        if (m->content->get_id() == MessageContentType::Unsupported) {
+        if (m->content->get_type() == MessageContentType::Unsupported) {
           LOG(ERROR) << "Message content is invalid: " << format::as_hex_dump<4>(Slice(event.data_));
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           continue;
@@ -26279,7 +26280,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         auto m = std::move(log_event.m_out);
         m->send_message_logevent_id = event.id_;
 
-        CHECK(m->content->get_id() == MessageContentType::Text);
+        CHECK(m->content->get_type() == MessageContentType::Text);
 
         Dependencies dependencies;
         add_dialog_dependencies(dependencies, dialog_id);
@@ -26312,7 +26313,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         auto m = std::move(log_event.m_out);
         m->send_message_logevent_id = event.id_;
 
-        if (m->content->get_id() == MessageContentType::Unsupported) {
+        if (m->content->get_type() == MessageContentType::Unsupported) {
           LOG(ERROR) << "Message content is invalid: " << format::as_hex_dump<4>(Slice(event.data_));
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           continue;
@@ -26344,7 +26345,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         auto m = std::move(log_event.m_out);
         m->send_message_logevent_id = 0;  // to not allow event deletion by message deletion
 
-        CHECK(m->content->get_id() == MessageContentType::ScreenshotTaken);
+        CHECK(m->content->get_type() == MessageContentType::ScreenshotTaken);
 
         Dependencies dependencies;
         add_dialog_dependencies(dependencies, dialog_id);
@@ -27041,7 +27042,7 @@ Result<ServerMessageId> MessagesManager::get_invoice_message_id(FullMessageId fu
   if (message == nullptr) {
     return Status::Error(5, "Message not found");
   }
-  if (message->content->get_id() != MessageContentType::Invoice) {
+  if (message->content->get_type() != MessageContentType::Invoice) {
     return Status::Error(5, "Message has no invoice");
   }
   auto message_id = full_message_id.get_message_id();
@@ -27092,7 +27093,7 @@ void MessagesManager::get_payment_receipt(FullMessageId full_message_id,
   if (message == nullptr) {
     return promise.set_error(Status::Error(5, "Message not found"));
   }
-  if (message->content->get_id() != MessageContentType::PaymentSuccessful) {
+  if (message->content->get_type() != MessageContentType::PaymentSuccessful) {
     return promise.set_error(Status::Error(5, "Message has wrong type"));
   }
   auto message_id = full_message_id.get_message_id();
