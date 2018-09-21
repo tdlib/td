@@ -69,6 +69,55 @@ class Td;
 
 class MultiSequenceDispatcher;
 
+enum class MessageContentType : int32 {
+  None = -1,
+  Text,
+  Animation,
+  Audio,
+  Document,
+  Photo,
+  Sticker,
+  Video,
+  VoiceNote,
+  Contact,
+  Location,
+  Venue,
+  ChatCreate,
+  ChatChangeTitle,
+  ChatChangePhoto,
+  ChatDeletePhoto,
+  ChatDeleteHistory,
+  ChatAddUsers,
+  ChatJoinedByLink,
+  ChatDeleteUser,
+  ChatMigrateTo,
+  ChannelCreate,
+  ChannelMigrateFrom,
+  PinMessage,
+  Game,
+  GameScore,
+  ScreenshotTaken,
+  ChatSetTtl,
+  Unsupported,
+  Call,
+  Invoice,
+  PaymentSuccessful,
+  VideoNote,
+  ContactRegistered,
+  ExpiredPhoto,
+  ExpiredVideo,
+  LiveLocation,
+  CustomServiceAction,
+  WebsiteConnected,
+  PassportDataSent,
+  PassportDataReceived
+};
+
+inline StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType content_type) {
+  // TODO
+  return string_builder << static_cast<int32>(content_type);
+}
+
 // Do not forget to update MessagesManager::update_message_content when one of the inheritors of this class changes
 class MessageContent {
  public:
@@ -78,7 +127,7 @@ class MessageContent {
   MessageContent(MessageContent &&) = default;
   MessageContent &operator=(MessageContent &&) = default;
 
-  virtual int32 get_id() const = 0;
+  virtual MessageContentType get_id() const = 0;
   virtual ~MessageContent() = default;
 };
 
@@ -91,9 +140,8 @@ class MessageText : public MessageContent {
   MessageText(FormattedText text, WebPageId web_page_id) : text(std::move(text)), web_page_id(web_page_id) {
   }
 
-  static const int32 ID = 0;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::Text;
   }
 };
 
@@ -107,9 +155,8 @@ class MessageAnimation : public MessageContent {
   MessageAnimation(FileId file_id, FormattedText &&caption) : file_id(file_id), caption(std::move(caption)) {
   }
 
-  static const int32 ID = 1;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::Animation;
   }
 };
 
@@ -123,9 +170,8 @@ class MessageAudio : public MessageContent {
   MessageAudio(FileId file_id, FormattedText &&caption) : file_id(file_id), caption(std::move(caption)) {
   }
 
-  static const int32 ID = 2;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::Audio;
   }
 };
 
@@ -139,9 +185,8 @@ class MessageDocument : public MessageContent {
   MessageDocument(FileId file_id, FormattedText &&caption) : file_id(file_id), caption(std::move(caption)) {
   }
 
-  static const int32 ID = 3;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::Document;
   }
 };
 
@@ -155,9 +200,8 @@ class MessagePhoto : public MessageContent {
   MessagePhoto(Photo &&photo, FormattedText &&caption) : photo(std::move(photo)), caption(std::move(caption)) {
   }
 
-  static const int32 ID = 4;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::Photo;
   }
 };
 
@@ -169,9 +213,8 @@ class MessageSticker : public MessageContent {
   explicit MessageSticker(FileId file_id) : file_id(file_id) {
   }
 
-  static const int32 ID = 5;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::Sticker;
   }
 };
 
@@ -185,9 +228,8 @@ class MessageVideo : public MessageContent {
   MessageVideo(FileId file_id, FormattedText &&caption) : file_id(file_id), caption(std::move(caption)) {
   }
 
-  static const int32 ID = 6;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::Video;
   }
 };
 
@@ -203,9 +245,8 @@ class MessageVoiceNote : public MessageContent {
       : file_id(file_id), caption(std::move(caption)), is_listened(is_listened) {
   }
 
-  static const int32 ID = 7;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::VoiceNote;
   }
 };
 
@@ -217,9 +258,8 @@ class MessageContact : public MessageContent {
   explicit MessageContact(Contact &&contact) : contact(std::move(contact)) {
   }
 
-  static const int32 ID = 8;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::Contact;
   }
 };
 
@@ -231,9 +271,8 @@ class MessageLocation : public MessageContent {
   explicit MessageLocation(Location &&location) : location(std::move(location)) {
   }
 
-  static const int32 ID = 9;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::Location;
   }
 };
 
@@ -245,9 +284,8 @@ class MessageVenue : public MessageContent {
   explicit MessageVenue(Venue &&venue) : venue(std::move(venue)) {
   }
 
-  static const int32 ID = 10;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::Venue;
   }
 };
 
@@ -261,9 +299,8 @@ class MessageChatCreate : public MessageContent {
       : title(std::move(title)), participant_user_ids(std::move(participant_user_ids)) {
   }
 
-  static const int32 ID = 11;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::ChatCreate;
   }
 };
 
@@ -275,9 +312,8 @@ class MessageChatChangeTitle : public MessageContent {
   explicit MessageChatChangeTitle(string &&title) : title(std::move(title)) {
   }
 
-  static const int32 ID = 12;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::ChatChangeTitle;
   }
 };
 
@@ -289,25 +325,22 @@ class MessageChatChangePhoto : public MessageContent {
   explicit MessageChatChangePhoto(Photo &&photo) : photo(std::move(photo)) {
   }
 
-  static const int32 ID = 13;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::ChatChangePhoto;
   }
 };
 
 class MessageChatDeletePhoto : public MessageContent {
  public:
-  static const int32 ID = 14;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::ChatDeletePhoto;
   }
 };
 
 class MessageChatDeleteHistory : public MessageContent {
  public:
-  static const int32 ID = 15;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::ChatDeleteHistory;
   }
 };
 
@@ -319,17 +352,15 @@ class MessageChatAddUsers : public MessageContent {
   explicit MessageChatAddUsers(vector<UserId> &&user_ids) : user_ids(std::move(user_ids)) {
   }
 
-  static const int32 ID = 16;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::ChatAddUsers;
   }
 };
 
 class MessageChatJoinedByLink : public MessageContent {
  public:
-  static const int32 ID = 17;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::ChatJoinedByLink;
   }
 };
 
@@ -341,9 +372,8 @@ class MessageChatDeleteUser : public MessageContent {
   explicit MessageChatDeleteUser(UserId user_id) : user_id(user_id) {
   }
 
-  static const int32 ID = 18;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::ChatDeleteUser;
   }
 };
 
@@ -355,9 +385,8 @@ class MessageChatMigrateTo : public MessageContent {
   explicit MessageChatMigrateTo(ChannelId migrated_to_channel_id) : migrated_to_channel_id(migrated_to_channel_id) {
   }
 
-  static const int32 ID = 19;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::ChatMigrateTo;
   }
 };
 
@@ -369,9 +398,8 @@ class MessageChannelCreate : public MessageContent {
   explicit MessageChannelCreate(string &&title) : title(std::move(title)) {
   }
 
-  static const int32 ID = 20;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::ChannelCreate;
   }
 };
 
@@ -385,9 +413,8 @@ class MessageChannelMigrateFrom : public MessageContent {
       : title(std::move(title)), migrated_from_chat_id(migrated_from_chat_id) {
   }
 
-  static const int32 ID = 21;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::ChannelMigrateFrom;
   }
 };
 
@@ -399,9 +426,8 @@ class MessagePinMessage : public MessageContent {
   explicit MessagePinMessage(MessageId message_id) : message_id(message_id) {
   }
 
-  static const int32 ID = 22;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::PinMessage;
   }
 };
 
@@ -413,9 +439,8 @@ class MessageGame : public MessageContent {
   explicit MessageGame(Game &&game) : game(std::move(game)) {
   }
 
-  static const int32 ID = 23;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::Game;
   }
 };
 
@@ -430,17 +455,15 @@ class MessageGameScore : public MessageContent {
       : game_message_id(game_message_id), game_id(game_id), score(score) {
   }
 
-  static const int32 ID = 24;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::GameScore;
   }
 };
 
 class MessageScreenshotTaken : public MessageContent {
  public:
-  static const int32 ID = 25;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::ScreenshotTaken;
   }
 };
 
@@ -452,9 +475,8 @@ class MessageChatSetTtl : public MessageContent {
   explicit MessageChatSetTtl(int32 ttl) : ttl(ttl) {
   }
 
-  static const int32 ID = 26;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::ChatSetTtl;
   }
 };
 
@@ -462,9 +484,8 @@ class MessageUnsupported
     : public MessageContent {  // TODO save a layer in which the message was received to
                                // automatically reget it if the layer changes
  public:
-  static const int32 ID = 27;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::Unsupported;
   }
 };
 
@@ -479,9 +500,8 @@ class MessageCall : public MessageContent {
       : call_id(call_id), duration(duration), discard_reason(discard_reason) {
   }
 
-  static const int32 ID = 28;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::Call;
   }
 };
 
@@ -517,9 +537,8 @@ class MessageInvoice : public MessageContent {
       , receipt_message_id(receipt_message_id) {
   }
 
-  static const int32 ID = 29;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::Invoice;
   }
 };
 
@@ -541,9 +560,8 @@ class MessagePaymentSuccessful : public MessageContent {
       : invoice_message_id(invoice_message_id), currency(std::move(currency)), total_amount(total_amount) {
   }
 
-  static const int32 ID = 30;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::PaymentSuccessful;
   }
 };
 
@@ -557,17 +575,15 @@ class MessageVideoNote : public MessageContent {
   MessageVideoNote(FileId file_id, bool is_viewed) : file_id(file_id), is_viewed(is_viewed) {
   }
 
-  static const int32 ID = 31;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::VideoNote;
   }
 };
 
 class MessageContactRegistered : public MessageContent {
  public:
-  static const int32 ID = 32;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::ContactRegistered;
   }
 };
 
@@ -575,9 +591,8 @@ class MessageExpiredPhoto : public MessageContent {
  public:
   MessageExpiredPhoto() = default;
 
-  static const int32 ID = 33;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::ExpiredPhoto;
   }
 };
 
@@ -585,9 +600,8 @@ class MessageExpiredVideo : public MessageContent {
  public:
   MessageExpiredVideo() = default;
 
-  static const int32 ID = 34;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::ExpiredVideo;
   }
 };
 
@@ -600,9 +614,8 @@ class MessageLiveLocation : public MessageContent {
   MessageLiveLocation(Location &&location, int32 period) : location(std::move(location)), period(period) {
   }
 
-  static const int32 ID = 35;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::LiveLocation;
   }
 };
 
@@ -614,9 +627,8 @@ class MessageCustomServiceAction : public MessageContent {
   explicit MessageCustomServiceAction(string &&message) : message(std::move(message)) {
   }
 
-  static const int32 ID = 36;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::CustomServiceAction;
   }
 };
 
@@ -628,9 +640,8 @@ class MessageWebsiteConnected : public MessageContent {
   explicit MessageWebsiteConnected(string &&domain_name) : domain_name(std::move(domain_name)) {
   }
 
-  static const int32 ID = 37;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::WebsiteConnected;
   }
 };
 
@@ -642,9 +653,8 @@ class MessagePassportDataSent : public MessageContent {
   explicit MessagePassportDataSent(vector<SecureValueType> &&types) : types(std::move(types)) {
   }
 
-  static const int32 ID = 38;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::PassportDataSent;
   }
 };
 
@@ -658,9 +668,8 @@ class MessagePassportDataReceived : public MessageContent {
       : values(std::move(values)), credentials(std::move(credentials)) {
   }
 
-  static const int32 ID = 39;
-  int32 get_id() const override {
-    return ID;
+  MessageContentType get_id() const override {
+    return MessageContentType::PassportDataReceived;
   }
 };
 
@@ -1036,7 +1045,7 @@ class MessagesManager : public Actor {
   void on_update_channel_max_unavailable_message_id(ChannelId channel_id, MessageId max_unavailable_message_id);
 
   void on_user_dialog_action(DialogId dialog_id, UserId user_id, tl_object_ptr<td_api::ChatAction> &&action,
-                             int32 message_content_id = -1);
+                             MessageContentType message_content_type = MessageContentType::None);
 
   void delete_messages(DialogId dialog_id, const vector<MessageId> &message_ids, bool revoke, Promise<Unit> &&promise);
 
@@ -1694,16 +1703,17 @@ class MessagesManager : public Actor {
 
     struct MessageOp {
       enum : int8 { Add, SetPts, Delete, DeleteAll } type;
-      bool from_update;
-      bool have_previous;
-      bool have_next;
-      int32 content_type;
+      bool from_update = false;
+      bool have_previous = false;
+      bool have_next = false;
+      MessageContentType content_type = MessageContentType::None;
+      int32 pts = 0;
       MessageId message_id;
-      const char *source;
-      double date;
+      const char *source = nullptr;
+      double date = 0;
 
-      MessageOp(decltype(type) type, MessageId message_id, int32 content_type, bool from_update, bool have_previous,
-                bool have_next, const char *source)
+      MessageOp(decltype(type) type, MessageId message_id, MessageContentType content_type, bool from_update,
+                bool have_previous, bool have_next, const char *source)
           : type(type)
           , from_update(from_update)
           , have_previous(have_previous)
@@ -1712,6 +1722,10 @@ class MessagesManager : public Actor {
           , message_id(message_id)
           , source(source)
           , date(G()->server_time()) {
+      }
+
+      MessageOp(decltype(type) type, int32 pts, const char *source)
+          : type(type), pts(pts), source(source), date(G()->server_time()) {
       }
     };
 
@@ -2087,15 +2101,15 @@ class MessagesManager : public Actor {
 
   bool is_message_unload_enabled() const;
 
-  static bool is_allowed_media_group_content(int32 content_type);
+  static bool is_allowed_media_group_content(MessageContentType content_type);
 
   static bool can_forward_message(DialogId from_dialog_id, const Message *m);
 
-  static bool is_secret_message_content(int32 ttl, int32 content_type);
+  static bool is_secret_message_content(int32 ttl, MessageContentType content_type);
 
-  static bool is_service_message_content(int32 content_type);
+  static bool is_service_message_content(MessageContentType content_type);
 
-  static bool can_have_message_content_caption(int32 content_type);
+  static bool can_have_message_content_caption(MessageContentType content_type);
 
   static bool can_delete_channel_message(DialogParticipantStatus status, const Message *m, bool is_bot);
 
@@ -2369,7 +2383,7 @@ class MessagesManager : public Actor {
 
   void on_active_dialog_action_timeout(DialogId dialog_id);
 
-  static bool need_cancel_user_dialog_action(int32 action_id, int32 message_content_id);
+  static bool need_cancel_user_dialog_action(int32 action_id, MessageContentType message_content_type);
 
   void cancel_user_dialog_action(DialogId dialog_id, const Message *m);
 
@@ -2687,7 +2701,7 @@ class MessagesManager : public Actor {
 
   void set_sponsored_dialog_id(DialogId dialog_id);
 
-  static uint64 get_sequence_dispatcher_id(DialogId dialog_id, int32 message_content_type);
+  static uint64 get_sequence_dispatcher_id(DialogId dialog_id, MessageContentType message_content_type);
 
   Dialog *get_service_notifications_dialog();
 
