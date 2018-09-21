@@ -89,8 +89,73 @@ class TlObject {
 /**
  * A smart wrapper to store a pointer to a TL-object.
  */
+namespace tl {
+template <class T>
+class unique_ptr {
+ public:
+  unique_ptr() = default;
+  ~unique_ptr() {
+    reset();
+  }
+  unique_ptr(std::nullptr_t) {
+  }
+  explicit unique_ptr(T *ptr) : ptr_(ptr) {
+  }
+  template <class S, class = std::enable_if_t<std::is_base_of<T, S>::value>>
+  unique_ptr(unique_ptr<S> &&other) : ptr_(static_cast<S *>(other.release())) {
+  }
+  template <class S, class = std::enable_if_t<std::is_base_of<T, S>::value>>
+  unique_ptr &operator=(unique_ptr<S> &&other) {
+    auto other_ptr = static_cast<T *>(other.release());
+    reset();
+    ptr_ = other_ptr;
+    return *this;
+  }
+  void reset() {
+    delete ptr_;
+    ptr_ = nullptr;
+  }
+  T *release() {
+    auto res = ptr_;
+    ptr_ = nullptr;
+    return res;
+  }
+  T *get() const {
+    return ptr_;
+  }
+  T *operator->() const {
+    return ptr_;
+  }
+  T &operator*() const {
+    return *ptr_;
+  }
+  operator bool() const {
+    return ptr_ != nullptr;
+  }
+
+ private:
+  T *ptr_{nullptr};
+};
+
+template <class T>
+bool operator==(std::nullptr_t, const unique_ptr<T> &p) {
+  return !bool(p);
+}
+template <class T>
+bool operator==(const unique_ptr<T> &p, std::nullptr_t) {
+  return !bool(p);
+}
+template <class T>
+bool operator!=(std::nullptr_t, const unique_ptr<T> &p) {
+  return bool(p);
+}
+template <class T>
+bool operator!=(const unique_ptr<T> &p, std::nullptr_t) {
+  return bool(p);
+}
+}  // namespace tl
 template <class Type>
-using tl_object_ptr = std::unique_ptr<Type>;
+using tl_object_ptr = tl::unique_ptr<Type>;
 
 /**
  * A function to create a dynamically allocated TL-object. Can be treated as an analogue of std::make_unique.
