@@ -358,12 +358,12 @@ struct reversion_wrapper {
 
 template <typename T>
 auto begin(reversion_wrapper<T> w) {
-  return rbegin(w.iterable);
+  return w.iterable.rbegin();
 }
 
 template <typename T>
 auto end(reversion_wrapper<T> w) {
-  return rend(w.iterable);
+  return w.iterable.rend();
 }
 }  // namespace detail
 
