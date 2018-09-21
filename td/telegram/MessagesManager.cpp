@@ -16229,6 +16229,7 @@ Status MessagesManager::can_send_message_content(DialogId dialog_id, const Messa
         return Status::Error(400, "Not enough rights to send voice notes to the chat");
       }
       break;
+    case MessageContentType::None:
     case MessageContentType::ChatCreate:
     case MessageContentType::ChatChangeTitle:
     case MessageContentType::ChatChangePhoto:
@@ -16341,8 +16342,9 @@ int32 MessagesManager::get_message_content_duration(const MessageContent *conten
       auto voice_file_id = static_cast<const MessageVoiceNote *>(content)->file_id;
       return td_->voice_notes_manager_->get_voice_note_duration(voice_file_id);
     }
+    default:
+      return 0;
   }
-  return 0;
 }
 
 FileId MessagesManager::get_message_content_file_id(const MessageContent *content) {
@@ -23706,6 +23708,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       case MessageContentType::PinMessage:
         td_->contacts_manager_->on_update_channel_pinned_message(
             dialog_id.get_channel_id(), static_cast<const MessagePinMessage *>(message->content.get())->message_id);
+        break;
+      default:
+        // nothing to do
         break;
     }
     if (new_participant_count != 0) {
