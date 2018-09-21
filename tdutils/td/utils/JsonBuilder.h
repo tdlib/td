@@ -743,7 +743,7 @@ StrT json_encode(const ValT &val) {
   auto buf = StackAllocator::alloc(buf_len);
   JsonBuilder jb(StringBuilder(buf.as_slice()));
   jb.enter_value() << val;
-  LOG_IF(ERROR, jb.string_builder().is_error()) << "Json buffer overflow";
+  LOG_IF(ERROR, jb.string_builder().is_error()) << "JSON buffer overflow";
   auto slice = jb.string_builder().as_cslice();
   return StrT(slice.begin(), slice.size());
 }

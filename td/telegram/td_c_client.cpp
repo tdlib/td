@@ -32,9 +32,7 @@ TdResponse TdCClientReceive(void *instance, double timeout) {
   auto response = client->receive(timeout);
   TdResponse c_response;
   c_response.id = response.id;
-  c_response.object = response.object == nullptr
-                          ? nullptr
-                          : TdConvertFromInternal(static_cast<const td::td_api::Object &>(*response.object));
+  c_response.object = response.object == nullptr ? nullptr : TdConvertFromInternal(*response.object);
   return c_response;
 }
 

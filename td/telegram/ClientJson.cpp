@@ -37,7 +37,7 @@ Result<Client::Request> ClientJson::to_request(Slice request) {
 }
 
 std::string ClientJson::from_response(Client::Response response) {
-  auto str = json_encode<string>(ToJson(static_cast<td_api::Object &>(*response.object)));
+  auto str = json_encode<string>(ToJson(*response.object));
   CHECK(!str.empty() && str.back() == '}');
   std::string extra;
   if (response.id != 0) {
