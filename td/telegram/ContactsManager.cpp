@@ -9630,6 +9630,11 @@ tl_object_ptr<td_api::basicGroup> ContactsManager::get_basic_group_object(ChatId
   if (chat->migrated_to_channel_id.is_valid()) {
     get_channel_force(chat->migrated_to_channel_id);
   }
+  return get_basic_group_object_const(chat_id, chat);
+}
+
+tl_object_ptr<td_api::basicGroup> ContactsManager::get_basic_group_object_const(ChatId chat_id,
+                                                                                const Chat *chat) const {
   return make_tl_object<td_api::basicGroup>(
       chat_id.get(), chat->participant_count, get_chat_status(chat).get_chat_member_status_object(),
       chat->everyone_is_administrator, chat->is_active,
@@ -9731,6 +9736,11 @@ tl_object_ptr<td_api::secretChat> ContactsManager::get_secret_chat_object(Secret
     return nullptr;
   }
   get_user_force(secret_chat->user_id);
+  return get_secret_chat_object_const(secret_chat_id, secret_chat);
+}
+
+tl_object_ptr<td_api::secretChat> ContactsManager::get_secret_chat_object_const(SecretChatId secret_chat_id,
+                                                                                const SecretChat *secret_chat) const {
   return td_api::make_object<td_api::secretChat>(
       secret_chat_id.get(), get_user_id_object(secret_chat->user_id, "secretChat"),
       get_secret_chat_state_object(secret_chat->state), secret_chat->is_outbound, secret_chat->ttl,
@@ -9859,7 +9869,7 @@ UserId ContactsManager::get_support_user(Promise<Unit> &&promise) {
   return UserId();
 }
 
-void ContactsManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) {
+void ContactsManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   for (auto &it : users_) {
     updates.push_back(td_api::make_object<td_api::updateUser>(get_user_object(it.first, &it.second)));
   }
@@ -9867,10 +9877,12 @@ void ContactsManager::get_current_state(vector<td_api::object_ptr<td_api::Update
     updates.push_back(td_api::make_object<td_api::updateSupergroup>(get_supergroup_object(it.first, &it.second)));
   }
   for (auto &it : chats_) {  // chat object can contain channel_id, so it must be sent after channels
-    updates.push_back(td_api::make_object<td_api::updateBasicGroup>(get_basic_group_object(it.first, &it.second)));
+    updates.push_back(
+        td_api::make_object<td_api::updateBasicGroup>(get_basic_group_object_const(it.first, &it.second)));
   }
   for (auto &it : secret_chats_) {  // secret chat object contains user_id, so it must be sent after users
-    updates.push_back(td_api::make_object<td_api::updateSecretChat>(get_secret_chat_object(it.first, &it.second)));
+    updates.push_back(
+        td_api::make_object<td_api::updateSecretChat>(get_secret_chat_object_const(it.first, &it.second)));
   }
 
   for (auto &it : users_full_) {

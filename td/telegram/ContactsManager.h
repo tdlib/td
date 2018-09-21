@@ -433,7 +433,7 @@ class ContactsManager : public Actor {
 
   UserId get_support_user(Promise<Unit> &&promise);
 
-  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates);
+  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
   enum class LinkState : uint8 { Unknown, None, KnowsPhoneNumber, Contact };
@@ -984,6 +984,8 @@ class ContactsManager : public Actor {
 
   tl_object_ptr<td_api::basicGroup> get_basic_group_object(ChatId chat_id, const Chat *chat);
 
+  tl_object_ptr<td_api::basicGroup> get_basic_group_object_const(ChatId chat_id, const Chat *chat) const;
+
   tl_object_ptr<td_api::basicGroupFullInfo> get_basic_group_full_info_object(const ChatFull *chat_full) const;
 
   tl_object_ptr<td_api::supergroup> get_supergroup_object(ChannelId channel_id, const Channel *channel) const;
@@ -993,6 +995,9 @@ class ContactsManager : public Actor {
   static tl_object_ptr<td_api::SecretChatState> get_secret_chat_state_object(SecretChatState state);
 
   tl_object_ptr<td_api::secretChat> get_secret_chat_object(SecretChatId secret_chat_id, const SecretChat *secret_chat);
+
+  tl_object_ptr<td_api::secretChat> get_secret_chat_object_const(SecretChatId secret_chat_id,
+                                                                 const SecretChat *secret_chat) const;
 
   void delete_chat_participant(ChatId chat_id, UserId user_id, Promise<Unit> &&promise);
 

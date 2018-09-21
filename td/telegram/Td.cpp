@@ -4608,6 +4608,9 @@ void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
     stickers_manager_->get_current_state(updates);
 
     messages_manager_->get_current_state(updates);
+
+    // TODO updateFileGenerationStart generation_id:int64 original_path:string destination_path:string conversion:string = Update;
+    // TODO updateCall call:call = Update;
   }
 
   auto update_terms_of_service = get_update_terms_of_service_object();
