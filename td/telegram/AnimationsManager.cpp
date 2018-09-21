@@ -695,6 +695,10 @@ string AnimationsManager::get_animation_search_text(FileId file_id) const {
 }
 
 void AnimationsManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   if (are_saved_animations_loaded_) {
     updates.push_back(get_update_saved_animatoions_object());
   }

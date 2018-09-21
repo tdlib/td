@@ -1279,6 +1279,9 @@ class MessagesManager : public Actor {
   static tl_object_ptr<td_api::scopeNotificationSettings> get_scope_notification_settings_object(
       const ScopeNotificationSettings *notification_settings);
 
+  td_api::object_ptr<td_api::updateScopeNotificationSettings> get_update_scope_notification_settings_object(
+      NotificationSettingsScope scope) const;
+
   const DialogNotificationSettings *get_dialog_notification_settings(DialogId dialog_id, Promise<Unit> &&promise);
 
   const ScopeNotificationSettings *get_scope_notification_settings(NotificationSettingsScope scope,
@@ -1294,7 +1297,7 @@ class MessagesManager : public Actor {
 
   void reset_all_notification_settings();
 
-  tl_object_ptr<td_api::chat> get_chat_object(DialogId dialog_id);
+  tl_object_ptr<td_api::chat> get_chat_object(DialogId dialog_id) const;
 
   static tl_object_ptr<td_api::chats> get_chats_object(const vector<DialogId> &dialogs);
 
@@ -1441,6 +1444,8 @@ class MessagesManager : public Actor {
                          Promise<tl_object_ptr<td_api::paymentResult>> &&promise);
 
   void get_payment_receipt(FullMessageId full_message_id, Promise<tl_object_ptr<td_api::paymentReceipt>> &&promise);
+
+  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
   ActorOwn<MultiSequenceDispatcher> sequence_dispatcher_;
 
@@ -2388,7 +2393,7 @@ class MessagesManager : public Actor {
 
   tl_object_ptr<td_api::ChatType> get_chat_type_object(DialogId dialog_id) const;
 
-  tl_object_ptr<td_api::chat> get_chat_object(const Dialog *d);
+  tl_object_ptr<td_api::chat> get_chat_object(const Dialog *d) const;
 
   bool have_dialog_info(DialogId dialog_id) const;
   bool have_dialog_info_force(DialogId dialog_id) const;
@@ -2454,6 +2459,8 @@ class MessagesManager : public Actor {
   DialogNotificationSettings *get_dialog_notification_settings(DialogId dialog_id, bool force);
 
   ScopeNotificationSettings *get_scope_notification_settings(NotificationSettingsScope scope);
+
+  const ScopeNotificationSettings *get_scope_notification_settings(NotificationSettingsScope scope) const;
 
   static unique_ptr<DraftMessage> get_draft_message(ContactsManager *contacts_manager,
                                                     tl_object_ptr<telegram_api::DraftMessage> &&draft_message_ptr);

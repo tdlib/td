@@ -4607,15 +4607,7 @@ void Td::on_request(uint64 id, const td_api::getCurrentState &request) {
 
     stickers_manager_->get_current_state(updates);
 
-    /*
-    // TODO
-    updateUnreadMessageCount {
-    updateUnreadChatCount {
-    updateScopeNotificationSettings {
-    updateScopeNotificationSettings {
-    updateNewChat {
-    updateChatLastMessage {
-    */
+    messages_manager_->get_current_state(updates);
   }
 
   auto update_terms_of_service = get_update_terms_of_service_object();

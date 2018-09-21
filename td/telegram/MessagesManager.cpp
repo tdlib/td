@@ -6472,10 +6472,7 @@ bool MessagesManager::update_scope_notification_settings(NotificationSettingsSco
     *current_settings = new_settings;
 
     if (need_update) {
-      send_closure(
-          G()->td(), &Td::send_update,
-          make_tl_object<td_api::updateScopeNotificationSettings>(
-              get_notification_settings_scope_object(scope), get_scope_notification_settings_object(current_settings)));
+      send_closure(G()->td(), &Td::send_update, get_update_scope_notification_settings_object(scope));
     }
   }
   return is_changed;
@@ -6631,10 +6628,7 @@ void MessagesManager::on_scope_unmute(NotificationSettingsScope scope) {
   LOG(INFO) << "Unmute " << scope;
   update_scope_unmute_timeout(scope, notification_settings->mute_until, 0);
   notification_settings->mute_until = 0;
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateScopeNotificationSettings>(
-                   get_notification_settings_scope_object(scope),
-                   get_scope_notification_settings_object(notification_settings)));
+  send_closure(G()->td(), &Td::send_update, get_update_scope_notification_settings_object(scope));
   string key = get_notification_settings_scope_database_key(scope);
   G()->td_db()->get_binlog_pmc()->set(key, log_event_store(*notification_settings).as_slice().str());
 }
@@ -13637,15 +13631,8 @@ tl_object_ptr<td_api::ChatType> MessagesManager::get_chat_type_object(DialogId d
   }
 }
 
-tl_object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *d) {
-  if (!td_->auth_manager_->is_bot()) {
-    if (!is_dialog_inited(d) && d->dialog_id.get_type() != DialogType::SecretChat &&
-        have_input_peer(d->dialog_id, AccessRights::Read)) {
-      // asynchronously get dialog from the server
-      send_get_dialog_query(d->dialog_id, Auto());
-    }
-  }
-
+tl_object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *d) const {
+  CHECK(d != nullptr);
   return make_tl_object<td_api::chat>(
       d->dialog_id.get(), get_chat_type_object(d->dialog_id), get_dialog_title(d->dialog_id),
       get_chat_photo_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
@@ -13658,10 +13645,8 @@ tl_object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *d) {
       get_draft_message_object(d->draft_message), d->client_data);
 }
 
-tl_object_ptr<td_api::chat> MessagesManager::get_chat_object(DialogId dialog_id) {
-  auto d = get_dialog(dialog_id);
-  CHECK(d != nullptr);
-  return get_chat_object(d);
+tl_object_ptr<td_api::chat> MessagesManager::get_chat_object(DialogId dialog_id) const {
+  return get_chat_object(get_dialog(dialog_id));
 }
 
 tl_object_ptr<td_api::chats> MessagesManager::get_chats_object(const vector<DialogId> &dialogs) {
@@ -13694,6 +13679,14 @@ tl_object_ptr<td_api::scopeNotificationSettings> MessagesManager::get_scope_noti
   return make_tl_object<td_api::scopeNotificationSettings>(max(0, notification_settings->mute_until - G()->unix_time()),
                                                            notification_settings->sound,
                                                            notification_settings->show_preview);
+}
+
+td_api::object_ptr<td_api::updateScopeNotificationSettings>
+MessagesManager::get_update_scope_notification_settings_object(NotificationSettingsScope scope) const {
+  auto notification_settings = get_scope_notification_settings(scope);
+  CHECK(notification_settings != nullptr);
+  return td_api::make_object<td_api::updateScopeNotificationSettings>(
+      get_notification_settings_scope_object(scope), get_scope_notification_settings_object(notification_settings));
 }
 
 std::pair<bool, int32> MessagesManager::get_dialog_mute_until(DialogId dialog_id, const Dialog *d) const {
@@ -13759,6 +13752,19 @@ DialogNotificationSettings *MessagesManager::get_dialog_notification_settings(Di
 }
 
 ScopeNotificationSettings *MessagesManager::get_scope_notification_settings(NotificationSettingsScope scope) {
+  switch (scope) {
+    case NotificationSettingsScope::Private:
+      return &users_notification_settings_;
+    case NotificationSettingsScope::Group:
+      return &chats_notification_settings_;
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
+const ScopeNotificationSettings *MessagesManager::get_scope_notification_settings(
+    NotificationSettingsScope scope) const {
   switch (scope) {
     case NotificationSettingsScope::Private:
       return &users_notification_settings_;
@@ -25030,6 +25036,14 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   CHECK(d != nullptr);
   auto dialog_id = d->dialog_id;
 
+  if (!td_->auth_manager_->is_bot()) {
+    if (!is_dialog_inited(d) && dialog_id.get_type() != DialogType::SecretChat &&
+        have_input_peer(dialog_id, AccessRights::Read)) {
+      // asynchronously get dialog from the server
+      send_get_dialog_query(dialog_id, Auto());
+    }
+  }
+
   if (d->notification_settings.is_synchronized && !d->notification_settings.is_use_default_fixed &&
       have_input_peer(dialog_id, AccessRights::Read)) {
     LOG(INFO) << "Reget notification settings of " << dialog_id;
@@ -27131,6 +27145,48 @@ void MessagesManager::set_sponsored_dialog_id(DialogId dialog_id) {
     }
     LOG(INFO) << "Save sponsored " << sponsored_dialog_id_;
   }
+}
+
+void MessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  if (!td_->auth_manager_->is_bot()) {
+    if (G()->parameters().use_message_db) {
+      if (is_message_unread_count_inited_) {
+        int32 unread_unmuted_count = unread_message_total_count_ - unread_message_muted_count_;
+        updates.push_back(
+            td_api::make_object<td_api::updateUnreadMessageCount>(unread_message_total_count_, unread_unmuted_count));
+      }
+      if (is_dialog_unread_count_inited_) {
+        int32 unread_unmuted_count = unread_dialog_total_count_ - unread_dialog_muted_count_;
+        int32 unread_unmuted_marked_count = unread_dialog_marked_count_ - unread_dialog_muted_marked_count_;
+        updates.push_back(td_api::make_object<td_api::updateUnreadChatCount>(
+            unread_dialog_total_count_, unread_unmuted_count, unread_dialog_marked_count_,
+            unread_unmuted_marked_count));
+      }
+    }
+
+    vector<NotificationSettingsScope> scopes{NotificationSettingsScope::Private, NotificationSettingsScope::Group};
+    for (auto scope : scopes) {
+      auto current_settings = get_scope_notification_settings(scope);
+      CHECK(current_settings != nullptr);
+      if (current_settings->is_synchronized) {
+        updates.push_back(get_update_scope_notification_settings_object(scope));
+      }
+    }
+  }
+
+  vector<td_api::object_ptr<td_api::Update>> last_message_updates;
+  for (auto &it : dialogs_) {
+    const Dialog *d = it.second.get();
+    auto update = td_api::make_object<td_api::updateNewChat>(get_chat_object(d));
+    if (update->chat_->last_message_ != nullptr && update->chat_->last_message_->forward_info_ != nullptr) {
+      DialogDate dialog_date(d->order, d->dialog_id);
+      last_message_updates.push_back(td_api::make_object<td_api::updateChatLastMessage>(
+          d->dialog_id.get(), std::move(update->chat_->last_message_),
+          dialog_date <= last_dialog_date_ ? d->order : 0));
+    }
+    updates.push_back(std::move(update));
+  }
+  append(updates, std::move(last_message_updates));
 }
 
 }  // namespace td
