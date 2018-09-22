@@ -143,7 +143,7 @@ class MapDownloadGenerateActor : public FileGenerateActor {
 
   Result<tl_object_ptr<telegram_api::inputWebFileGeoPointLocation>> parse_conversion() {
     auto parts = full_split(Slice(conversion_), '#');
-    if (parts.size() != 8 || !parts[0].empty() || parts[1] != "map") {
+    if (parts.size() != 9 || !parts[0].empty() || parts[1] != "map" || !parts[8].empty()) {
       return Status::Error("Wrong conversion");
     }
 

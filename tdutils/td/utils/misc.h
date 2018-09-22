@@ -34,13 +34,17 @@ std::pair<T, T> split(T s, char delimiter = ' ') {
 
 template <class T>
 vector<T> full_split(T s, char delimiter = ' ') {
-  T next;
   vector<T> result;
-  while (!s.empty()) {
-    std::tie(next, s) = split(s, delimiter);
-    result.push_back(next);
+  while (true) {
+    auto delimiter_pos = s.find(delimiter);
+    if (delimiter_pos == string::npos) {
+      result.push_back(std::move(s));
+      return result;
+    } else {
+      result.push_back(s.substr(0, delimiter_pos));
+      s = s.substr(delimiter_pos + 1);
+    }
   }
-  return result;
 }
 
 string implode(vector<string> v, char delimiter = ' ');

@@ -450,3 +450,43 @@ TEST(Misc, IPAddress_get_ipv4) {
   test_get_ipv4(0x04030201);
   test_get_ipv4(0xFFFFFFFF);
 }
+
+static void test_split(Slice str, std::pair<Slice, Slice> expected) {
+  ASSERT_EQ(expected, td::split(str));
+}
+
+TEST(Misc, split) {
+  test_split("", {"", ""});
+  test_split(" ", {"", ""});
+  test_split("abcdef", {"abcdef", ""});
+  test_split("abc def", {"abc", "def"});
+  test_split("a bcdef", {"a", "bcdef"});
+  test_split(" abcdef", {"", "abcdef"});
+  test_split("abcdef ", {"abcdef", ""});
+  test_split("ab cd ef", {"ab", "cd ef"});
+  test_split("ab cdef ", {"ab", "cdef "});
+  test_split(" abcd ef", {"", "abcd ef"});
+  test_split(" abcdef ", {"", "abcdef "});
+}
+
+
+static void test_full_split(Slice str, vector<Slice> expected) {
+  ASSERT_EQ(expected, td::full_split(str));
+}
+
+TEST(Misc, full_split) {
+  test_full_split("", {""});
+  test_full_split(" ", {"", ""});
+  test_full_split("  ", {"", "", ""});
+  test_full_split("abcdef", {"abcdef"});
+  test_full_split("abc def", {"abc", "def"});
+  test_full_split("a bcdef", {"a", "bcdef"});
+  test_full_split(" abcdef", {"", "abcdef"});
+  test_full_split("abcdef ", {"abcdef", ""});
+  test_full_split("ab cd ef", {"ab", "cd", "ef"});
+  test_full_split("ab cdef ", {"ab", "cdef", ""});
+  test_full_split(" abcd ef", {"", "abcd", "ef"});
+  test_full_split(" abcdef ", {"", "abcdef", ""});
+  test_full_split(" ab cd ef ", {"", "ab", "cd", "ef", ""});
+  test_full_split("  ab  cd  ef  ", {"", "", "ab", "", "cd", "", "ef", "", ""});
+}
