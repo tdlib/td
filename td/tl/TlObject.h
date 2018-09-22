@@ -96,6 +96,9 @@ namespace tl {
 template <class T>
 class unique_ptr {
  public:
+  using pointer = T *;
+  using element_type = T;
+
   unique_ptr() noexcept = default;
   unique_ptr(const unique_ptr &other) = delete;
   unique_ptr &operator=(const unique_ptr &other) = delete;
