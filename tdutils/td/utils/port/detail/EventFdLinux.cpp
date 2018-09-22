@@ -81,6 +81,12 @@ void EventFdLinux::release() {
 }
 
 void EventFdLinux::acquire() {
+  impl_->info.get_flags();
+  SCOPE_EXIT {
+    // Clear flags without EAGAIN and EWOULDBLOCK
+    // Looks like it is safe thing to do with eventfd
+    get_poll_info().clear_flags(PollFlags::Read());
+  };
   uint64 res;
   auto slice = MutableSlice(reinterpret_cast<char *>(&res), sizeof(res));
   auto native_fd = impl_->info.native_fd().fd();
@@ -97,7 +103,6 @@ void EventFdLinux::acquire() {
         || read_errno == EWOULDBLOCK
 #endif
     ) {
-      get_poll_info().clear_flags(PollFlags::Read());
       return 0;
     }
     return Status::PosixError(read_errno, PSLICE() << "Read from fd " << native_fd << " has failed");
