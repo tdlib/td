@@ -429,23 +429,21 @@ bool InlineQueriesManager::register_inline_message_content(
   return false;
 }
 
-std::tuple<const MessageContent *, const ReplyMarkup *, bool> InlineQueriesManager::get_inline_message_content(
-    int64 query_id, const string &result_id) {
+const InlineMessageContent *InlineQueriesManager::get_inline_message_content(int64 query_id, const string &result_id) {
   auto it = inline_message_contents_.find(query_id);
   if (it == inline_message_contents_.end()) {
-    return std::make_tuple(nullptr, nullptr, false);
+    return nullptr;
   }
 
   auto result_it = it->second.find(result_id);
   if (result_it == it->second.end()) {
-    return std::make_tuple(nullptr, nullptr, false);
+    return nullptr;
   }
 
   if (update_bot_usage(get_inline_bot_user_id(query_id))) {
     save_recently_used_bots();
   }
-  return std::make_tuple(result_it->second.message_content.get(), result_it->second.message_reply_markup.get(),
-                         result_it->second.disable_web_page_preview);
+  return &result_it->second;
 }
 
 UserId InlineQueriesManager::get_inline_bot_user_id(int64 query_id) const {

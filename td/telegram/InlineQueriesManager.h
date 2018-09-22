@@ -26,7 +26,6 @@
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
 
-#include <tuple>
 #include <unordered_map>
 #include <utility>
 
@@ -37,6 +36,12 @@ class Td;
 class MessageContent;
 
 class Game;
+
+struct InlineMessageContent {
+  unique_ptr<MessageContent> message_content;
+  unique_ptr<ReplyMarkup> message_reply_markup;
+  bool disable_web_page_preview;
+};
 
 class InlineQueriesManager : public Actor {
  public:
@@ -56,8 +61,7 @@ class InlineQueriesManager : public Actor {
 
   void remove_recent_inline_bot(UserId bot_user_id, Promise<Unit> &&promise);
 
-  std::tuple<const MessageContent *, const ReplyMarkup *, bool> get_inline_message_content(int64 query_id,
-                                                                                           const string &result_id);
+  const InlineMessageContent *get_inline_message_content(int64 query_id, const string &result_id);
 
   UserId get_inline_bot_user_id(int64 query_id) const;
 
@@ -147,12 +151,6 @@ class InlineQueriesManager : public Actor {
 
   MultiTimeout drop_inline_query_result_timeout_{"DropInlineQueryResultTimeout"};
   std::unordered_map<uint64, InlineQueryResult> inline_query_results_;  // query_hash -> result
-
-  struct InlineMessageContent {
-    unique_ptr<MessageContent> message_content;
-    unique_ptr<ReplyMarkup> message_reply_markup;
-    bool disable_web_page_preview;
-  };
 
   std::unordered_map<int64, std::unordered_map<string, InlineMessageContent>>
       inline_message_contents_;  // query_id -> [result_id -> inline_message_content]

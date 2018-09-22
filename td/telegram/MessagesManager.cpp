@@ -18071,26 +18071,22 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
       UNREACHABLE();
   }
 
-  const MessageContent *message_content;
-  const ReplyMarkup *reply_markup;
-  bool disable_web_page_preview;
-  std::tie(message_content, reply_markup, disable_web_page_preview) =
-      td_->inline_queries_manager_->get_inline_message_content(query_id, result_id);
-  if (message_content == nullptr) {
+  const InlineMessageContent *content = td_->inline_queries_manager_->get_inline_message_content(query_id, result_id);
+  if (content == nullptr) {
     return Status::Error(5, "Inline query result not found");
   }
 
-  TRY_STATUS(can_send_message_content(dialog_id, message_content, false));
+  TRY_STATUS(can_send_message_content(dialog_id, content->message_content.get(), false));
 
   bool need_update_dialog_pos = false;
-  Message *m =
-      get_message_to_send(d, get_reply_to_message_id(d, reply_to_message_id), disable_notification, from_background,
-                          dup_message_content(dialog_id, message_content, false), &need_update_dialog_pos);
+  Message *m = get_message_to_send(
+      d, get_reply_to_message_id(d, reply_to_message_id), disable_notification, from_background,
+      dup_message_content(dialog_id, content->message_content.get(), false), &need_update_dialog_pos);
   m->via_bot_user_id = td_->inline_queries_manager_->get_inline_bot_user_id(query_id);
-  if (reply_markup != nullptr && !to_secret) {
-    m->reply_markup = make_unique<ReplyMarkup>(*reply_markup);
+  if (content->message_reply_markup != nullptr && !to_secret) {
+    m->reply_markup = make_unique<ReplyMarkup>(*content->message_reply_markup);
   }
-  m->disable_web_page_preview = disable_web_page_preview;
+  m->disable_web_page_preview = content->disable_web_page_preview;
   m->clear_draft = true;
 
   update_dialog_draft_message(d, nullptr, false, !need_update_dialog_pos);
