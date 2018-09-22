@@ -1713,6 +1713,12 @@ bool InlineQueriesManager::load_recently_used_bots(Promise<Unit> &promise) {
   auto bot_ids = full_split(saved_bot_ids, ',');
   string saved_bots = G()->td_db()->get_binlog_pmc()->get("recently_used_inline_bot_usernames");
   auto bot_usernames = full_split(saved_bots, ',');
+  if (bot_ids.size() == 1 && bot_ids[0].empty()) {
+    bot_ids.clear();
+  }
+  if (bot_usernames.size() == 1 && bot_usernames[0].empty()) {
+    bot_usernames.clear();
+  }
   if (bot_ids.empty() && bot_usernames.empty()) {
     recently_used_bots_loaded_ = 2;
     if (!recently_used_bot_user_ids_.empty()) {

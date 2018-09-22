@@ -26903,8 +26903,7 @@ bool MessagesManager::load_recently_found_dialogs(Promise<Unit> &promise) {
   }
 
   string found_dialogs_str = G()->td_db()->get_binlog_pmc()->get("recently_found_dialog_usernames_and_ids");
-  auto found_dialogs = full_split(found_dialogs_str, ',');
-  if (found_dialogs.empty()) {
+  if (found_dialogs_str.empty()) {
     recently_found_dialogs_loaded_ = 2;
     if (!recently_found_dialog_ids_.empty()) {
       save_recently_found_dialogs();
@@ -26912,6 +26911,7 @@ bool MessagesManager::load_recently_found_dialogs(Promise<Unit> &promise) {
     return true;
   }
 
+  auto found_dialogs = full_split(found_dialogs_str, ',');
   if (recently_found_dialogs_loaded_ == 1 && resolve_recent_found_dialogs_multipromise_.promise_count() == 0) {
     // queries was sent and have already been finished
     auto newly_found_dialogs = std::move(recently_found_dialog_ids_);
