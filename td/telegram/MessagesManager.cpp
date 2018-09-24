@@ -14080,14 +14080,25 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
   if (limit > MAX_GET_HISTORY) {
     limit = MAX_GET_HISTORY;
   }
-  if (limit <= -offset) {
-    promise.set_error(Status::Error(5, "Parameter limit must be greater than -offset"));
-    return nullptr;
-  }
   if (offset > 0) {
     promise.set_error(Status::Error(5, "Parameter offset must be non-positive"));
     return nullptr;
   }
+  if (offset <= -MAX_GET_HISTORY) {
+    promise.set_error(Status::Error(5, "Parameter offset must be greater than -100"));
+    return nullptr;
+  }
+  if (offset < -limit) {
+    promise.set_error(Status::Error(5, "Parameter offset must not be less than -limit"));
+    return nullptr;
+  }
+  bool is_limit_increased = false;
+  if (limit == -offset) {
+    limit++;
+    is_limit_increased = true;
+  }
+  CHECK(0 < limit && limit <= MAX_GET_HISTORY);
+  CHECK(-limit < offset && offset <= 0);
 
   if (from_message_id == MessageId() || from_message_id.get() > MessageId::max().get()) {
     from_message_id = MessageId::max();
@@ -14184,7 +14195,7 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
             << ", offset = " << offset << ", limit = " << limit << ", from_the_end = " << from_the_end;
   vector<tl_object_ptr<td_api::message>> messages;
   if (*p != nullptr && offset == 0) {
-    while (*p != nullptr && limit-- > 0) {
+    while (*p != nullptr && messages.size() < static_cast<size_t>(limit)) {
       messages.push_back(get_message_object(dialog_id, *p));
       from_message_id = (*p)->message_id;
       --p;
@@ -14196,14 +14207,20 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
     CHECK(offset == 0);
     preload_newer_messages(d, MessageId(messages[0]->id_));
     preload_older_messages(d, MessageId(messages.back()->id_));
-  } else if (limit > 0 && (/*d->first_remote_message_id != -1 && */ left_tries != 0)) {
+  } else if (messages.size() < static_cast<size_t>(limit) && left_tries != 0) {
     // there can be more messages on the server, need to load them
     if (from_the_end) {
       from_message_id = MessageId();
     }
-    send_closure_later(actor_id(this), &MessagesManager::load_messages, d->dialog_id, from_message_id, offset, limit,
-                       left_tries, only_local, std::move(promise));
+    send_closure_later(actor_id(this), &MessagesManager::load_messages, d->dialog_id, from_message_id, offset,
+                       limit - static_cast<int32>(messages.size()), left_tries, only_local, std::move(promise));
     return nullptr;
+  }
+
+  LOG(INFO) << "Have " << messages.size() << " messages out of requested "
+            << (is_limit_increased ? "increased " : "exact ") << limit;
+  if (is_limit_increased && static_cast<size_t>(limit) == messages.size()) {
+    messages.pop_back();
   }
 
   LOG(INFO) << "Return " << messages.size() << " messages in result to getChatHistory";
