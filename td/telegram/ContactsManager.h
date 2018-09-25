@@ -867,8 +867,8 @@ class ContactsManager : public Actor {
                                           tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link_ptr);
   void on_update_channel_full_pinned_message(ChannelFull *channel_full, MessageId message_id);
 
-  void speculative_add_channel_users(ChannelId channel_id, DialogParticipantStatus status,
-                                     DialogParticipantStatus old_status);
+  void speculative_add_channel_user(ChannelId channel_id, UserId user_id, DialogParticipantStatus status,
+                                    DialogParticipantStatus old_status);
 
   void invalidate_chat_full(ChatId chat_id);
 

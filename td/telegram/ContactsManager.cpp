@@ -4205,7 +4205,7 @@ void ContactsManager::add_channel_participant(ChannelId channel_id, UserId user_
     return promise.set_error(Status::Error(3, "Not enough rights to invite members to the supergroup chat"));
   }
 
-  speculative_add_channel_users(channel_id, DialogParticipantStatus::Member(), old_status);
+  speculative_add_channel_user(channel_id, user_id, DialogParticipantStatus::Member(), old_status);
   vector<tl_object_ptr<telegram_api::InputUser>> input_users;
   input_users.push_back(std::move(input_user));
   td_->create_handler<InviteToChannelQuery>(std::move(promise))->send(channel_id, std::move(input_users));
@@ -4365,7 +4365,7 @@ void ContactsManager::promote_channel_participant(ChannelId channel_id, UserId u
     return promise.set_error(Status::Error(3, "User not found"));
   }
 
-  speculative_add_channel_users(channel_id, status, old_status);
+  speculative_add_channel_user(channel_id, user_id, status, old_status);
   td_->create_handler<EditChannelAdminQuery>(std::move(promise))->send(channel_id, std::move(input_user), status);
 }
 
@@ -4603,7 +4603,7 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, UserId 
     status = DialogParticipantStatus::Banned(0);
   }
 
-  speculative_add_channel_users(channel_id, status, old_status);
+  speculative_add_channel_user(channel_id, user_id, status, old_status);
   td_->create_handler<EditChannelBannedQuery>(std::move(promise))->send(channel_id, std::move(input_user), status);
 }
 
@@ -7212,13 +7212,32 @@ void ContactsManager::speculative_add_channel_participants(ChannelId channel_id,
   update_channel_full(channel_full, channel_id);
 }
 
-void ContactsManager::speculative_add_channel_users(ChannelId channel_id, DialogParticipantStatus status,
-                                                    DialogParticipantStatus old_status) {
+void ContactsManager::speculative_add_channel_user(ChannelId channel_id, UserId user_id, DialogParticipantStatus status,
+                                                   DialogParticipantStatus old_status) {
   auto c = get_channel(channel_id);
   if (c != nullptr && c->participant_count != 0 &&
       speculative_add_count(c->participant_count, status.is_member() - old_status.is_member())) {
     c->need_send_update = true;
     update_channel(c, channel_id);
+  }
+
+  if (status.is_administrator() != old_status.is_administrator()) {
+    DialogId dialog_id(channel_id);
+    auto administrators_it = dialog_administrators_.find(dialog_id);
+    if (administrators_it != dialog_administrators_.end()) {
+      auto user_ids = administrators_it->second;
+      auto it = std::find(user_ids.begin(), user_ids.end(), user_id);
+      bool is_found = it != user_ids.end();
+
+      if (status.is_administrator() != is_found) {
+        if (is_found) {
+          user_ids.erase(it);
+        } else {
+          user_ids.push_back(user_id);
+        }
+        on_update_dialog_administrators(dialog_id, std::move(user_ids), true);
+      }
+    }
   }
 
   auto channel_full = get_channel_full(channel_id);
@@ -9135,6 +9154,7 @@ void ContactsManager::on_update_dialog_administrators(DialogId dialog_id, vector
                                           log_event_store(it->second).as_slice().str(), Auto());
     }
   } else {
+    dialog_administrators_.erase(dialog_id);
     if (G()->parameters().use_chat_info_db) {
       G()->td_db()->get_sqlite_pmc()->erase(get_dialog_administrators_database_key(dialog_id), Auto());
     }
