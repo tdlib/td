@@ -57,7 +57,6 @@ class OptionsParser {
 #if TD_WINDOWS
     return -1;
 #else
-    // use getopt. long keys are not supported for now
     char buff[1024];
     StringBuilder sb({buff, sizeof(buff)});
     for (auto &opt : options_) {

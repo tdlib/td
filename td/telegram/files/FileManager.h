@@ -35,6 +35,8 @@
 
 namespace td {
 
+extern int VERBOSITY_NAME(update_file);
+
 enum class FileLocationSource : int8 { None, FromUser, FromDb, FromServer };
 
 class FileNode {

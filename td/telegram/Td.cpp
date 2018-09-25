@@ -73,6 +73,8 @@
 
 #include "td/mtproto/utils.h"  // for create_storer, fetch_result, etc, TODO
 
+#include "tdnet/td/net/TransparentProxy.h"
+
 #include "td/utils/buffer.h"
 #include "td/utils/filesystem.h"
 #include "td/utils/format.h"
@@ -3251,6 +3253,7 @@ bool Td::is_synchronous_request(int32 id) {
     case td_api::getFileExtension::ID:
     case td_api::cleanFileName::ID:
     case td_api::getLanguagePackString::ID:
+    case td_api::testSetLogTagVerbosityLevel::ID:
       return true;
     default:
       return false;
@@ -6905,6 +6908,73 @@ void Td::on_request(uint64 id, td_api::testNetwork &request) {
 void Td::on_request(uint64 id, td_api::testGetDifference &request) {
   updates_manager_->get_difference("testGetDifference");
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
+}
+
+static int *get_log_verbosity_level(Slice name) {
+  if (name == "td_init") {
+    return &VERBOSITY_NAME(td_init);
+  }
+  if (name == "update_file") {
+    return &VERBOSITY_NAME(update_file);
+  }
+  if (name == "connections") {
+    return &VERBOSITY_NAME(connections);
+  }
+  if (name == "binlog") {
+    return &VERBOSITY_NAME(binlog);
+  }
+  if (name == "proxy") {
+    return &VERBOSITY_NAME(proxy);
+  }
+  if (name == "net_query") {
+    return &VERBOSITY_NAME(net_query);
+  }
+  if (name == "td_requests") {
+    return &VERBOSITY_NAME(td_requests);
+  }
+  if (name == "dc") {
+    return &VERBOSITY_NAME(dc);
+  }
+  if (name == "files") {
+    return &VERBOSITY_NAME(files);
+  }
+  if (name == "mtproto") {
+    return &VERBOSITY_NAME(mtproto);
+  }
+  if (name == "raw_mtproto") {
+    return &VERBOSITY_NAME(raw_mtproto);
+  }
+  if (name == "fd") {
+    return &VERBOSITY_NAME(fd);
+  }
+  if (name == "actor") {
+    return &VERBOSITY_NAME(actor);
+  }
+  if (name == "buffer") {
+    return &VERBOSITY_NAME(buffer);
+  }
+  if (name == "sqlite") {
+    return &VERBOSITY_NAME(sqlite);
+  }
+  return nullptr;
+}
+
+void Td::on_request(uint64 id, td_api::testSetLogTagVerbosityLevel &request) {
+  UNREACHABLE();
+}
+
+td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::testSetLogTagVerbosityLevel &request) {
+  if (request.new_verbosity_level_ < 0 || request.new_verbosity_level_ > 1023) {
+    return td_api::make_object<td_api::error>(400, "Wrong new verbosity level");
+  }
+
+  int *level = get_log_verbosity_level(request.tag_);
+  if (level == nullptr) {
+    return td_api::make_object<td_api::error>(400, "Log tag is not found");
+  }
+  *level = static_cast<int>(request.new_verbosity_level_);
+
+  return td_api::make_object<td_api::ok>();
 }
 
 void Td::on_request(uint64 id, td_api::testUseUpdate &request) {

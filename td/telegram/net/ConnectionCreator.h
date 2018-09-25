@@ -48,6 +48,8 @@ class GetHostByNameActor;
 
 namespace td {
 
+extern int VERBOSITY_NAME(connections);
+
 class Proxy {
  public:
   static Proxy socks5(string server, int32 port, string user, string password) {

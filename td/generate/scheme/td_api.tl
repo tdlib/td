@@ -3402,3 +3402,7 @@ testGetDifference = Ok;
 testUseUpdate = Update;
 //@description Does nothing and ensures that the Error object is used; for testing only
 testUseError = Error;
+//@description Changes verbosity level for a specified log tag; for testing only. This is an offline method. Can be called before authorization. Can be called synchronously
+//@tag Logging tag to change verbosity level (one of "td_init", "update_file", "connections", "binlog", "proxy", "net_query", "td_requests", "dc", "files", "mtproto", "raw_mtproto", "fd", "actor", "buffer", "sqlite")
+//@new_verbosity_level New verbosity level; 0-1023
+testSetLogTagVerbosityLevel tag:string new_verbosity_level:int32 = Ok;

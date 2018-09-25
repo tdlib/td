@@ -3381,6 +3381,16 @@ class CliClient final : public Actor {
       td::Log::set_verbosity_level(static_cast<int>(op.size()));
     } else if (op[0] == 'v' && ('0' <= op[1] && op[1] <= '9')) {
       td::Log::set_verbosity_level(to_integer<int>(op.substr(1)));
+    } else if (op == "sltvl" || op == "sltvle") {
+      string tag;
+      string level;
+      std::tie(tag, level) = split(args);
+      auto request = make_tl_object<td_api::testSetLogTagVerbosityLevel>(tag, to_integer<int32>(level));
+      if (op == "sltvl") {
+        send_request(std::move(request));
+      } else {
+        execute(std::move(request));
+      }
     } else if (op == "q" || op == "Quit") {
       quit();
     } else if (op == "dnq" || op == "DumpNetQueries") {
