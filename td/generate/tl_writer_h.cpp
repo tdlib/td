@@ -261,13 +261,8 @@ std::string TD_TL_writer_h::gen_fetch_function_begin(const std::string &parser_n
   if (parser_type == 0) {
     return "\n"
            "  static " +
-           fetched_type + "fetch(" + parser_name +
-           " &p) {\n"
-           "    return make_tl_object<" +
-           class_name +
-           ">(p);\n"
-           "  }\n\n" +
-           "  explicit " + class_name + "(" + parser_name + " &p);\n";
+           fetched_type + "fetch(" + parser_name + " &p);\n\n" + "  explicit " + class_name + "(" + parser_name +
+           " &p);\n";
   }
 
   assert(arity == 0);

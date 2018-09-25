@@ -516,7 +516,13 @@ std::string TD_TL_writer_cpp::gen_fetch_function_begin(const std::string &parser
   assert(arity == 0);
 
   if (parser_type == 0) {
-    return "\n" + class_name + "::" + class_name + "(" + parser_name +
+    return "\n" + fetched_type + class_name + "::fetch(" + parser_name +
+           " &p) {\n"
+           "  return make_tl_object<" +
+           class_name +
+           ">(p);\n"
+           "}\n\n" +
+           class_name + "::" + class_name + "(" + parser_name +
            " &p)\n"
            "#define FAIL(error) p.set_error(error)\n";
   }
