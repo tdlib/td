@@ -378,7 +378,8 @@ std::string TD_TL_writer_jni_cpp::gen_get_id(const std::string &class_name, std:
 }
 
 std::string TD_TL_writer_jni_cpp::gen_fetch_function_begin(const std::string &parser_name,
-                                                           const std::string &class_name, int arity,
+                                                           const std::string &class_name,
+                                                           const std::string &parent_class_name, int arity,
                                                            std::vector<tl::var_description> &vars,
                                                            int parser_type) const {
   for (std::size_t i = 0; i < vars.size(); i++) {
@@ -386,11 +387,12 @@ std::string TD_TL_writer_jni_cpp::gen_fetch_function_begin(const std::string &pa
   }
 
   std::string fetched_type = "object_ptr<" + class_name + "> ";
+  std::string returned_type = "object_ptr<" + parent_class_name + "> ";
   assert(arity == 0);
 
   assert(parser_type != 0);
 
-  return "\n" + fetched_type + class_name + "::fetch(" + parser_name + " &p) {\n" +
+  return "\n" + returned_type + class_name + "::fetch(" + parser_name + " &p) {\n" +
          (parser_type == -1 ? ""
                             : "  if (p == nullptr) return nullptr;\n"
                               "  " +

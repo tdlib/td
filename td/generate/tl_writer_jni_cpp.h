@@ -73,7 +73,8 @@ class TD_TL_writer_jni_cpp : public TD_TL_writer_cpp {
 
   std::string gen_get_id(const std::string &class_name, std::int32_t id, bool is_proxy) const override;
 
-  std::string gen_fetch_function_begin(const std::string &parser_name, const std::string &class_name, int arity,
+  std::string gen_fetch_function_begin(const std::string &parser_name, const std::string &class_name,
+                                       const std::string &parent_class_name, int arity,
                                        std::vector<tl::var_description> &vars, int parser_type) const override;
   std::string gen_fetch_function_end(int field_num, const std::vector<tl::var_description> &vars,
                                      int parser_type) const override;

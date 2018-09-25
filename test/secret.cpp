@@ -643,7 +643,7 @@ class Master : public Actor {
       add_event(Event::delayed_closure(&SecretChatActor::add_inbound_message, std::move(event)));
     }
 
-    void send_message(tl_object_ptr<secret_api::decryptedMessage> message) {
+    void send_message(tl_object_ptr<secret_api::DecryptedMessage> message) {
       BufferSlice serialized_message(serialize(*message));
       auto resend_promise = PromiseCreator::lambda(
           [actor_id = actor_id(this), serialized_message = std::move(serialized_message)](Result<> result) mutable {

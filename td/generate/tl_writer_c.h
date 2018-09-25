@@ -1028,7 +1028,8 @@ class TlWriterCCommon : public tl::TL_writer {
     return "";
   }
 
-  std::string gen_fetch_function_begin(const std::string &parser_name, const std::string &class_name, int arity,
+  std::string gen_fetch_function_begin(const std::string &parser_name, const std::string &class_name,
+                                       const std::string &parent_class_name, int arity,
                                        std::vector<tl::var_description> &vars, int parser_type) const override {
     return "";
   }

@@ -118,7 +118,8 @@ class TL_writer {
 
   virtual std::string gen_function_result_type(const tl_tree *result) const = 0;
 
-  virtual std::string gen_fetch_function_begin(const std::string &parser_name, const std::string &class_name, int arity,
+  virtual std::string gen_fetch_function_begin(const std::string &parser_name, const std::string &class_name,
+                                               const std::string &parent_class_name, int arity,
                                                std::vector<var_description> &vars, int parser_type) const = 0;
   virtual std::string gen_fetch_function_end(int field_num, const std::vector<var_description> &vars,
                                              int parser_type) const = 0;

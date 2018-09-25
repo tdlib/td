@@ -161,19 +161,19 @@ class unique_ptr {
 
 template <class T>
 bool operator==(std::nullptr_t, const unique_ptr<T> &p) {
-  return !bool(p);
+  return !p;
 }
 template <class T>
 bool operator==(const unique_ptr<T> &p, std::nullptr_t) {
-  return !bool(p);
+  return !p;
 }
 template <class T>
 bool operator!=(std::nullptr_t, const unique_ptr<T> &p) {
-  return bool(p);
+  return static_cast<bool>(p);
 }
 template <class T>
 bool operator!=(const unique_ptr<T> &p, std::nullptr_t) {
-  return bool(p);
+  return static_cast<bool>(p);
 }
 }  // namespace tl
 template <class Type>

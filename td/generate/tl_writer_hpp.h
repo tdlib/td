@@ -63,7 +63,8 @@ class TD_TL_writer_hpp : public TD_TL_writer {
 
   std::string gen_function_result_type(const tl::tl_tree *result) const override;
 
-  std::string gen_fetch_function_begin(const std::string &parser_name, const std::string &class_name, int arity,
+  std::string gen_fetch_function_begin(const std::string &parser_name, const std::string &class_name,
+                                       const std::string &parent_class_name, int arity,
                                        std::vector<tl::var_description> &vars, int parser_type) const override;
   std::string gen_fetch_function_end(int field_num, const std::vector<tl::var_description> &vars,
                                      int parser_type) const override;

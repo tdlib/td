@@ -506,17 +506,18 @@ std::string TD_TL_writer_cpp::gen_function_result_type(const tl::tl_tree *result
 }
 
 std::string TD_TL_writer_cpp::gen_fetch_function_begin(const std::string &parser_name, const std::string &class_name,
-                                                       int arity, std::vector<tl::var_description> &vars,
-                                                       int parser_type) const {
+                                                       const std::string &parent_class_name, int arity,
+                                                       std::vector<tl::var_description> &vars, int parser_type) const {
   for (std::size_t i = 0; i < vars.size(); i++) {
     assert(vars[i].is_stored == false);
   }
 
   std::string fetched_type = "object_ptr<" + class_name + "> ";
+  std::string returned_type = "object_ptr<" + parent_class_name + "> ";
   assert(arity == 0);
 
   if (parser_type == 0) {
-    return "\n" + fetched_type + class_name + "::fetch(" + parser_name +
+    return "\n" + returned_type + class_name + "::fetch(" + parser_name +
            " &p) {\n"
            "  return make_tl_object<" +
            class_name +
@@ -527,7 +528,7 @@ std::string TD_TL_writer_cpp::gen_fetch_function_begin(const std::string &parser
            "#define FAIL(error) p.set_error(error)\n";
   }
 
-  return "\n" + fetched_type + class_name + "::fetch(" + parser_name +
+  return "\n" + returned_type + class_name + "::fetch(" + parser_name +
          " &p) {\n"
          "#define FAIL(error) p.set_error(error); return nullptr;\n" +
          (parser_type == -1 ? "" : "  " + fetched_type + "res = make_tl_object<" + class_name + ">();\n");

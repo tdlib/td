@@ -254,21 +254,21 @@ std::string TD_TL_writer_h::gen_function_result_type(const tl::tl_tree *result) 
 }
 
 std::string TD_TL_writer_h::gen_fetch_function_begin(const std::string &parser_name, const std::string &class_name,
-                                                     int arity, std::vector<tl::var_description> &vars,
-                                                     int parser_type) const {
-  std::string fetched_type = "object_ptr<" + class_name + "> ";
+                                                     const std::string &parent_class_name, int arity,
+                                                     std::vector<tl::var_description> &vars, int parser_type) const {
+  std::string returned_type = "object_ptr<" + parent_class_name + "> ";
 
   if (parser_type == 0) {
     return "\n"
            "  static " +
-           fetched_type + "fetch(" + parser_name + " &p);\n\n" + "  explicit " + class_name + "(" + parser_name +
+           returned_type + "fetch(" + parser_name + " &p);\n\n" + "  explicit " + class_name + "(" + parser_name +
            " &p);\n";
   }
 
   assert(arity == 0);
   return "\n"
          "  static " +
-         fetched_type + "fetch(" + parser_name + " &p);\n";
+         returned_type + "fetch(" + parser_name + " &p);\n";
 }
 
 std::string TD_TL_writer_h::gen_fetch_function_end(int field_num, const std::vector<tl::var_description> &vars,

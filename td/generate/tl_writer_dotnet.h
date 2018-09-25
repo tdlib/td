@@ -29,7 +29,8 @@ class TlWriterDotNet : public TL_writer {
   }
 
   bool is_built_in_simple_type(const std::string &name) const override {
-    return name == "Bool" || name == "Int32" || name == "Int53" || name == "Int64" || name == "Double" || name == "String" || name == "Bytes";
+    return name == "Bool" || name == "Int32" || name == "Int53" || name == "Int64" || name == "Double" ||
+           name == "String" || name == "Bytes";
   }
   bool is_built_in_complex_type(const std::string &name) const override {
     return name == "Vector";
@@ -252,7 +253,8 @@ class TlWriterDotNet : public TL_writer {
     ss << "\n";
     if (storer_type) {
       ss << (is_header_ ? "  virtual " : "") << "String^ " << (is_header_ ? "" : gen_class_name(class_name) + "::")
-         << "ToString()" << (is_header_ ? " override;" : " {\n  return ::Telegram::Td::Api::ToString(this);\n}") << "\n";
+         << "ToString()" << (is_header_ ? " override;" : " {\n  return ::Telegram::Td::Api::ToString(this);\n}")
+         << "\n";
     } else {
       ss << (is_header_ ? "  virtual " : "") << "NativeObject^ "
          << (is_header_ ? "" : gen_class_name(class_name) + "::") << "ToUnmanaged()";
@@ -274,20 +276,23 @@ class TlWriterDotNet : public TL_writer {
     ss << (is_header_ ? "  " : gen_class_name(class_name) + "::") << gen_class_name(class_name) << "(";
     return ss.str();
   }
-  std::string gen_constructor_parameter(int field_num, const std::string &class_name, const arg &a, bool is_default) const override {
+  std::string gen_constructor_parameter(int field_num, const std::string &class_name, const arg &a,
+                                        bool is_default) const override {
     if (is_default) {
       return "";
     }
     std::stringstream ss;
     ss << (field_num == 0 ? "" : ", ");
     auto field_type = gen_field_type(a);
-    if (field_type.substr(0, 5) != "Array" && field_type.substr(0, 6) != "String" && to_upper(field_type[0]) == field_type[0]) {
+    if (field_type.substr(0, 5) != "Array" && field_type.substr(0, 6) != "String" &&
+        to_upper(field_type[0]) == field_type[0]) {
       field_type = "::Telegram::Td::Api::" + field_type;
     }
     ss << field_type << " " << to_camelCase(a.name);
     return ss.str();
   }
-  std::string gen_constructor_field_init(int field_num, const std::string &class_name, const arg &a, bool is_default) const override {
+  std::string gen_constructor_field_init(int field_num, const std::string &class_name, const arg &a,
+                                         bool is_default) const override {
     if (is_default || is_header_) {
       return "";
     }
@@ -332,8 +337,7 @@ class TlWriterDotNet : public TL_writer {
   void gen_to_unmanaged(std::stringstream &ss, const tl_combinator *t) const {
     auto native_class_name = gen_native_class_name(t->name);
     auto class_name = gen_class_name(t->name);
-    ss << "td::td_api::object_ptr<td::td_api::" << native_class_name << "> ToUnmanaged(" << class_name
-       << "^ from)";
+    ss << "td::td_api::object_ptr<td::td_api::" << native_class_name << "> ToUnmanaged(" << class_name << "^ from)";
     if (is_header_) {
       ss << ";\n";
       return;
@@ -463,7 +467,8 @@ class TlWriterDotNet : public TL_writer {
     return "";
   }
 
-  std::string gen_fetch_function_begin(const std::string &parser_name, const std::string &class_name, int arity,
+  std::string gen_fetch_function_begin(const std::string &parser_name, const std::string &class_name,
+                                       const std::string &parent_class_name, int arity,
                                        std::vector<var_description> &vars, int parser_type) const override {
     return "";
   }
@@ -509,8 +514,7 @@ class TlWriterDotNet : public TL_writer {
     auto native_class_name = gen_native_class_name(type->name);
     auto class_name = gen_class_name(type->name);
     if (function_name == "ToUnmanaged") {
-      ss << "td::td_api::object_ptr<td::td_api::" << native_class_name << "> ToUnmanaged(" << class_name
-         << "^ from)";
+      ss << "td::td_api::object_ptr<td::td_api::" << native_class_name << "> ToUnmanaged(" << class_name << "^ from)";
       if (is_header_) {
         ss << ";\n";
         return ss.str();
@@ -519,7 +523,8 @@ class TlWriterDotNet : public TL_writer {
          << "  if (!from) {\n"
          << "    return nullptr;\n"
          << "  }\n"
-         << "  return td::td_api::move_object_as<td::td_api::" << native_class_name << ">(from->ToUnmanaged()->get_object_ptr());\n}\n";
+         << "  return td::td_api::move_object_as<td::td_api::" << native_class_name
+         << ">(from->ToUnmanaged()->get_object_ptr());\n}\n";
     } else {
       ss << class_name << "^ FromUnmanaged(td::td_api::" << native_class_name << " &from)";
       if (is_header_) {
