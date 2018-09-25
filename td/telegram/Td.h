@@ -839,6 +839,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::getPassportAuthorizationForm &request);
 
+  void on_request(uint64 id, td_api::getPassportAuthorizationFormAvailableElements &request);
+
   void on_request(uint64 id, td_api::sendPassportAuthorizationForm &request);
 
   void on_request(uint64 id, td_api::sendPhoneNumberConfirmationCode &request);

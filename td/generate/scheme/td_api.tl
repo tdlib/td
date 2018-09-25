@@ -1027,9 +1027,12 @@ passportSuitableElement type:PassportElementType is_selfie_required:Bool is_tran
 passportRequiredElement suitable_elements:vector<passportSuitableElement> = PassportRequiredElement;
 
 //@description Contains information about a Telegram Passport authorization form that was requested @id Unique identifier of the authorization form
-//@required_elements Information about the Telegram Passport elements that need to be provided to complete the form @elements Already available Telegram Passport elements
-//@errors Errors in the elements that are already available @privacy_policy_url URL for the privacy policy of the service; can be empty
-passportAuthorizationForm id:int32 required_elements:vector<passportRequiredElement> elements:vector<PassportElement> errors:vector<passportElementError> privacy_policy_url:string = PassportAuthorizationForm;
+//@required_elements Information about the Telegram Passport elements that need to be provided to complete the form
+//@privacy_policy_url URL for the privacy policy of the service; can be empty
+passportAuthorizationForm id:int32 required_elements:vector<passportRequiredElement> privacy_policy_url:string = PassportAuthorizationForm;
+
+//@description Contains information about a Telegram Passport elements and corresponding errors @elements Telegram Passport elements @errors Errors in the elements that are already available
+passportElementsWithErrors elements:vector<PassportElement> errors:vector<passportElementError> = PassportElementsWithErrors;
 
 
 //@description Contains encrypted Telegram Passport data credentials @data The encrypted credentials @hash The decrypted data hash @secret Secret for data decryption, encrypted with the service's public key
@@ -3278,10 +3281,14 @@ resendEmailAddressVerificationCode = EmailAddressAuthenticationCodeInfo;
 checkEmailAddressVerificationCode code:string = Ok;
 
 
-//@description Returns a Telegram Passport authorization form for sharing data with a service @bot_user_id User identifier of the service's bot @scope Telegram Passport element types requested by the service @public_key Service's public_key @nonce Authorization form nonce provided by the service @password Password of the current user
-getPassportAuthorizationForm bot_user_id:int32 scope:string public_key:string nonce:string password:string = PassportAuthorizationForm;
+//@description Returns a Telegram Passport authorization form for sharing data with a service @bot_user_id User identifier of the service's bot @scope Telegram Passport element types requested by the service @public_key Service's public_key @nonce Authorization form nonce provided by the service
+getPassportAuthorizationForm bot_user_id:int32 scope:string public_key:string nonce:string = PassportAuthorizationForm;
 
-//@description Sends a Telegram Passport authorization form, effectively sharing data with the service @autorization_form_id Authorization form identifier @types Types of Telegram Passport elements chosen by user to complete the authorization form
+//@description Returns already available Telegram Passport elements suitable for completing a Telegram Passport authorization form. Result can be received only once for each authorization form @autorization_form_id Authorization form identifier @password Password of the current user
+getPassportAuthorizationFormAvailableElements autorization_form_id:int32 password:string = PassportElementsWithErrors;
+
+//@description Sends a Telegram Passport authorization form, effectively sharing data with the service. This method must be called after getPassportAuthorizationFormAvailableElements if some previously available elements need to be used
+//@autorization_form_id Authorization form identifier @types Types of Telegram Passport elements chosen by user to complete the authorization form
 sendPassportAuthorizationForm autorization_form_id:int32 types:vector<PassportElementType> = Ok;
 
 

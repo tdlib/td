@@ -6597,7 +6597,6 @@ void Td::on_request(uint64 id, td_api::checkEmailAddressVerificationCode &reques
 
 void Td::on_request(uint64 id, td_api::getPassportAuthorizationForm &request) {
   CHECK_IS_USER();
-  CLEAN_INPUT_STRING(request.password_);
   CLEAN_INPUT_STRING(request.public_key_);
   CLEAN_INPUT_STRING(request.scope_);
   CLEAN_INPUT_STRING(request.nonce_);
@@ -6609,9 +6608,16 @@ void Td::on_request(uint64 id, td_api::getPassportAuthorizationForm &request) {
     return send_error_raw(id, 400, "Nonce must be non-empty");
   }
   CREATE_REQUEST_PROMISE();
-  send_closure(secure_manager_, &SecureManager::get_passport_authorization_form, std::move(request.password_),
-               bot_user_id, std::move(request.scope_), std::move(request.public_key_), std::move(request.nonce_),
-               std::move(promise));
+  send_closure(secure_manager_, &SecureManager::get_passport_authorization_form, bot_user_id, std::move(request.scope_),
+               std::move(request.public_key_), std::move(request.nonce_), std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::getPassportAuthorizationFormAvailableElements &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.password_);
+  CREATE_REQUEST_PROMISE();
+  send_closure(secure_manager_, &SecureManager::get_passport_authorization_form_available_elements,
+               request.autorization_form_id_, std::move(request.password_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::sendPassportAuthorizationForm &request) {

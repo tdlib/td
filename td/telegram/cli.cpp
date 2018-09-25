@@ -1236,8 +1236,6 @@ class CliClient final : public Actor {
       }
       send_request(make_tl_object<td_api::setPassword>(password, new_password, new_hint, true, recovery_email_address));
     } else if (op == "gpafhttp") {
-      string password;
-      std::tie(password, args) = split(args);
       ChainBufferWriter writer;
       writer.append(PSLICE() << "GET " << args << " HTTP/1.1\r\n\r\n\r\n");
       ChainBufferReader reader = writer.extract_reader();
@@ -1254,10 +1252,9 @@ class CliClient final : public Actor {
       string public_key = query.get_arg("public_key").str();
       string payload = query.get_arg("payload").str();
       LOG(INFO) << "Callback URL:" << query.get_arg("callback_url");
-      send_request(make_tl_object<td_api::getPassportAuthorizationForm>(to_integer<int32>(bot_id), scope, public_key,
-                                                                        payload, password));
+      send_request(
+          make_tl_object<td_api::getPassportAuthorizationForm>(to_integer<int32>(bot_id), scope, public_key, payload));
     } else if (op == "gpaf") {
-      string password;
       string bot_id;
       string scope;
       string public_key =
@@ -1277,11 +1274,16 @@ class CliClient final : public Actor {
           "-----END PUBLIC KEY-----";
       string payload;
 
-      std::tie(password, args) = split(args);
       std::tie(bot_id, args) = split(args);
       std::tie(scope, payload) = split(args);
-      send_request(make_tl_object<td_api::getPassportAuthorizationForm>(to_integer<int32>(bot_id), scope, public_key,
-                                                                        payload, password));
+      send_request(
+          make_tl_object<td_api::getPassportAuthorizationForm>(to_integer<int32>(bot_id), scope, public_key, payload));
+    } else if (op == "gpafae") {
+      string id;
+      string password;
+      std::tie(id, password) = split(args);
+      send_request(
+          make_tl_object<td_api::getPassportAuthorizationFormAvailableElements>(to_integer<int32>(id), password));
     } else if (op == "spaf") {
       string id;
       string types;

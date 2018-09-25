@@ -157,7 +157,7 @@ GetSecureValue::GetSecureValue(ActorShared<SecureManager> parent, std::string pa
 }
 
 void GetSecureValue::on_error(Status error) {
-  if (error.code() != 0) {
+  if (error.code() > 0) {
     promise_.set_error(std::move(error));
   } else {
     promise_.set_error(Status::Error(400, error.message()));
@@ -233,7 +233,7 @@ GetAllSecureValues::GetAllSecureValues(ActorShared<SecureManager> parent, std::s
 }
 
 void GetAllSecureValues::on_error(Status error) {
-  if (error.code() != 0) {
+  if (error.code() > 0) {
     promise_.set_error(std::move(error));
   } else {
     promise_.set_error(Status::Error(400, error.message()));
@@ -361,7 +361,7 @@ void SetSecureValue::on_upload_error(FileId file_id, Status error) {
 }
 
 void SetSecureValue::on_error(Status error) {
-  if (error.code() != 0) {
+  if (error.code() > 0) {
     promise_.set_error(std::move(error));
   } else {
     promise_.set_error(Status::Error(400, error.message()));
@@ -624,13 +624,9 @@ class DeleteSecureValue : public NetQueryCallback {
 
 class GetPassportAuthorizationForm : public NetQueryCallback {
  public:
-  GetPassportAuthorizationForm(
-      ActorShared<SecureManager> parent, string password, int32 authorization_form_id, UserId bot_user_id, string scope,
-      string public_key,
-      Promise<std::pair<std::map<SecureValueType, SuitableSecureValue>, TdApiAuthorizationForm>> promise)
+  GetPassportAuthorizationForm(ActorShared<SecureManager> parent, UserId bot_user_id, string scope, string public_key,
+                               Promise<telegram_api::object_ptr<telegram_api::account_authorizationForm>> promise)
       : parent_(std::move(parent))
-      , password_(std::move(password))
-      , authorization_form_id_(authorization_form_id)
       , bot_user_id_(bot_user_id)
       , scope_(std::move(scope))
       , public_key_(std::move(public_key))
@@ -639,28 +635,13 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
 
  private:
   ActorShared<SecureManager> parent_;
-  string password_;
-  int32 authorization_form_id_;
   UserId bot_user_id_;
   string scope_;
   string public_key_;
-  Promise<std::pair<std::map<SecureValueType, SuitableSecureValue>, TdApiAuthorizationForm>> promise_;
-  optional<secure_storage::Secret> secret_;
-  telegram_api::object_ptr<telegram_api::account_authorizationForm> authorization_form_;
-
-  void on_secret(Result<secure_storage::Secret> r_secret, bool dummy) {
-    if (r_secret.is_error()) {
-      if (!G()->close_flag()) {
-        LOG(ERROR) << "Receive error instead of secret: " << r_secret.error();
-      }
-      return on_error(r_secret.move_as_error());
-    }
-    secret_ = r_secret.move_as_ok();
-    loop();
-  }
+  Promise<telegram_api::object_ptr<telegram_api::account_authorizationForm>> promise_;
 
   void on_error(Status error) {
-    if (error.code() != 0) {
+    if (error.code() > 0) {
       promise_.set_error(std::move(error));
     } else {
       promise_.set_error(Status::Error(400, error.message()));
@@ -673,11 +654,6 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
         telegram_api::account_getAuthorizationForm(bot_user_id_.get(), std::move(scope_), std::move(public_key_));
     auto query = G()->net_query_creator().create(create_storer(account_get_authorization_form));
     G()->net_query_dispatcher().dispatch_with_callback(std::move(query), actor_shared(this));
-
-    send_closure(G()->password_manager(), &PasswordManager::get_secure_secret, password_,
-                 PromiseCreator::lambda([actor_id = actor_id(this)](Result<secure_storage::Secret> r_secret) {
-                   send_closure(actor_id, &GetPassportAuthorizationForm::on_secret, std::move(r_secret), true);
-                 }));
   }
 
   void on_result(NetQueryPtr query) override {
@@ -685,197 +661,7 @@ class GetPassportAuthorizationForm : public NetQueryCallback {
     if (r_result.is_error()) {
       return on_error(r_result.move_as_error());
     }
-    authorization_form_ = r_result.move_as_ok();
-    LOG(INFO) << "Receive " << to_string(authorization_form_);
-    loop();
-  }
-
-  static int32 get_file_index(const vector<SecureFileCredentials> &file_credentials, Slice file_hash) {
-    for (size_t i = 0; i < file_credentials.size(); i++) {
-      if (file_credentials[i].hash == file_hash) {
-        return narrow_cast<int32>(i);
-      }
-    }
-    return -1;
-  }
-
-  void loop() override {
-    if (!secret_ || !authorization_form_) {
-      return;
-    }
-
-    G()->td().get_actor_unsafe()->contacts_manager_->on_get_users(std::move(authorization_form_->users_));
-
-    auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
-    vector<vector<SuitableSecureValue>> required_types;
-    std::map<SecureValueType, SuitableSecureValue> all_types;
-    for (auto &type_ptr : authorization_form_->required_types_) {
-      CHECK(type_ptr != nullptr);
-      vector<SuitableSecureValue> required_type;
-      switch (type_ptr->get_id()) {
-        case telegram_api::secureRequiredType::ID: {
-          auto value = get_suitable_secure_value(move_tl_object_as<telegram_api::secureRequiredType>(type_ptr));
-          all_types.emplace(value.type, value);
-          required_type.push_back(std::move(value));
-          break;
-        }
-        case telegram_api::secureRequiredTypeOneOf::ID: {
-          auto type_one_of = move_tl_object_as<telegram_api::secureRequiredTypeOneOf>(type_ptr);
-          for (auto &type : type_one_of->types_) {
-            if (type->get_id() == telegram_api::secureRequiredType::ID) {
-              auto value = get_suitable_secure_value(move_tl_object_as<telegram_api::secureRequiredType>(type));
-              all_types.emplace(value.type, value);
-              required_type.push_back(std::move(value));
-            } else {
-              LOG(ERROR) << to_string(type);
-            }
-          }
-          break;
-        }
-        default:
-          UNREACHABLE();
-      }
-      if (!required_type.empty()) {
-        required_types.push_back(required_type);
-      }
-    }
-
-    std::vector<TdApiSecureValue> values;
-    std::map<SecureValueType, SecureValueCredentials> all_credentials;
-    for (auto suitable_type : all_types) {
-      auto type = suitable_type.first;
-      for (auto &value : authorization_form_->values_) {
-        if (value == nullptr) {
-          continue;
-        }
-        auto value_type = get_secure_value_type(value->type_);
-        if (value_type != type) {
-          continue;
-        }
-
-        auto r_secure_value =
-            decrypt_secure_value(file_manager, *secret_, get_encrypted_secure_value(file_manager, std::move(value)));
-        value = nullptr;
-        if (r_secure_value.is_error()) {
-          LOG(ERROR) << "Failed to decrypt secure value: " << r_secure_value.error();
-          break;
-        }
-
-        send_closure(parent_, &SecureManager::on_get_secure_value, r_secure_value.ok());
-
-        auto secure_value = r_secure_value.move_as_ok();
-        auto r_passport_element = get_passport_element_object(file_manager, std::move(secure_value.value));
-        if (r_passport_element.is_error()) {
-          LOG(ERROR) << "Failed to get passport element object: " << r_passport_element.error();
-          break;
-        }
-        values.push_back(r_passport_element.move_as_ok());
-        all_credentials.emplace(type, std::move(secure_value.credentials));
-
-        break;
-      }
-    }
-
-    vector<td_api::object_ptr<td_api::passportElementError>> errors;
-    for (auto &error_ptr : authorization_form_->errors_) {
-      CHECK(error_ptr != nullptr);
-      SecureValueType type = SecureValueType::None;
-      td_api::object_ptr<td_api::PassportElementErrorSource> source;
-      string message;
-      switch (error_ptr->get_id()) {
-        case telegram_api::secureValueError::ID: {
-          auto error = move_tl_object_as<telegram_api::secureValueError>(error_ptr);
-          type = get_secure_value_type(error->type_);
-          message = std::move(error->text_);
-          source = td_api::make_object<td_api::passportElementErrorSourceUnspecified>();
-          break;
-        }
-        case telegram_api::secureValueErrorData::ID: {
-          auto error = move_tl_object_as<telegram_api::secureValueErrorData>(error_ptr);
-          type = get_secure_value_type(error->type_);
-          message = std::move(error->text_);
-          string field_name = get_secure_value_data_field_name(type, error->field_);
-          if (field_name.empty()) {
-            break;
-          }
-          source = td_api::make_object<td_api::passportElementErrorSourceDataField>(std::move(field_name));
-          break;
-        }
-        case telegram_api::secureValueErrorFile::ID: {
-          auto error = move_tl_object_as<telegram_api::secureValueErrorFile>(error_ptr);
-          type = get_secure_value_type(error->type_);
-          message = std::move(error->text_);
-          int32 file_index = get_file_index(all_credentials[type].files, error->file_hash_.as_slice());
-          if (file_index == -1) {
-            LOG(ERROR) << "Can't find file with error";
-            break;
-          }
-          source = td_api::make_object<td_api::passportElementErrorSourceFile>(file_index);
-          break;
-        }
-        case telegram_api::secureValueErrorFiles::ID: {
-          auto error = move_tl_object_as<telegram_api::secureValueErrorFiles>(error_ptr);
-          type = get_secure_value_type(error->type_);
-          message = std::move(error->text_);
-          source = td_api::make_object<td_api::passportElementErrorSourceFiles>();
-          break;
-        }
-        case telegram_api::secureValueErrorFrontSide::ID: {
-          auto error = move_tl_object_as<telegram_api::secureValueErrorFrontSide>(error_ptr);
-          type = get_secure_value_type(error->type_);
-          message = std::move(error->text_);
-          source = td_api::make_object<td_api::passportElementErrorSourceFrontSide>();
-          break;
-        }
-        case telegram_api::secureValueErrorReverseSide::ID: {
-          auto error = move_tl_object_as<telegram_api::secureValueErrorReverseSide>(error_ptr);
-          type = get_secure_value_type(error->type_);
-          message = std::move(error->text_);
-          source = td_api::make_object<td_api::passportElementErrorSourceReverseSide>();
-          break;
-        }
-        case telegram_api::secureValueErrorSelfie::ID: {
-          auto error = move_tl_object_as<telegram_api::secureValueErrorSelfie>(error_ptr);
-          type = get_secure_value_type(error->type_);
-          message = std::move(error->text_);
-          source = td_api::make_object<td_api::passportElementErrorSourceSelfie>();
-          break;
-        }
-        case telegram_api::secureValueErrorTranslationFile::ID: {
-          auto error = move_tl_object_as<telegram_api::secureValueErrorTranslationFile>(error_ptr);
-          type = get_secure_value_type(error->type_);
-          message = std::move(error->text_);
-          int32 file_index = get_file_index(all_credentials[type].translations, error->file_hash_.as_slice());
-          if (file_index == -1) {
-            LOG(ERROR) << "Can't find translation file with error";
-            break;
-          }
-          source = td_api::make_object<td_api::passportElementErrorSourceTranslationFile>(file_index);
-          break;
-        }
-        case telegram_api::secureValueErrorTranslationFiles::ID: {
-          auto error = move_tl_object_as<telegram_api::secureValueErrorTranslationFiles>(error_ptr);
-          type = get_secure_value_type(error->type_);
-          message = std::move(error->text_);
-          source = td_api::make_object<td_api::passportElementErrorSourceTranslationFiles>();
-          break;
-        }
-        default:
-          UNREACHABLE();
-      }
-      if (source == nullptr) {
-        continue;
-      }
-
-      errors.push_back(td_api::make_object<td_api::passportElementError>(get_passport_element_type_object(type),
-                                                                         message, std::move(source)));
-    }
-
-    auto authorization_form = make_tl_object<td_api::passportAuthorizationForm>(
-        authorization_form_id_, get_passport_required_elements_object(required_types), std::move(values),
-        std::move(errors), authorization_form_->privacy_policy_url_);
-
-    promise_.set_value({std::move(all_types), std::move(authorization_form)});
+    promise_.set_value(r_result.move_as_ok());
     stop();
   }
 };
@@ -1106,8 +892,7 @@ void SecureManager::set_secure_value_errors(Td *td, tl_object_ptr<telegram_api::
       ->send(std::move(input_user), std::move(input_errors));
 }
 
-void SecureManager::get_passport_authorization_form(string password, UserId bot_user_id, string scope,
-                                                    string public_key, string nonce,
+void SecureManager::get_passport_authorization_form(UserId bot_user_id, string scope, string public_key, string nonce,
                                                     Promise<TdApiAuthorizationForm> promise) {
   refcnt_++;
   auto authorization_form_id = ++max_authorization_form_id_;
@@ -1116,23 +901,20 @@ void SecureManager::get_passport_authorization_form(string password, UserId bot_
   form.scope = scope;
   form.public_key = public_key;
   form.nonce = nonce;
-  form.is_received = false;
   auto new_promise = PromiseCreator::lambda(
       [actor_id = actor_id(this), authorization_form_id, promise = std::move(promise)](
-          Result<std::pair<std::map<SecureValueType, SuitableSecureValue>, TdApiAuthorizationForm>>
-              r_authorization_form) mutable {
+          Result<telegram_api::object_ptr<telegram_api::account_authorizationForm>> r_authorization_form) mutable {
         send_closure(actor_id, &SecureManager::on_get_passport_authorization_form, authorization_form_id,
                      std::move(promise), std::move(r_authorization_form));
       });
-  create_actor<GetPassportAuthorizationForm>("GetPassportAuthorizationForm", actor_shared(this), std::move(password),
-                                             authorization_form_id, bot_user_id, std::move(scope),
-                                             std::move(public_key), std::move(new_promise))
+  create_actor<GetPassportAuthorizationForm>("GetPassportAuthorizationForm", actor_shared(this), bot_user_id,
+                                             std::move(scope), std::move(public_key), std::move(new_promise))
       .release();
 }
 
 void SecureManager::on_get_passport_authorization_form(
     int32 authorization_form_id, Promise<TdApiAuthorizationForm> promise,
-    Result<std::pair<std::map<SecureValueType, SuitableSecureValue>, TdApiAuthorizationForm>> r_authorization_form) {
+    Result<telegram_api::object_ptr<telegram_api::account_authorizationForm>> r_authorization_form) {
   auto it = authorization_forms_.find(authorization_form_id);
   CHECK(it != authorization_forms_.end());
   CHECK(it->second.is_received == false);
@@ -1142,10 +924,239 @@ void SecureManager::on_get_passport_authorization_form(
   }
 
   auto authorization_form = r_authorization_form.move_as_ok();
-  it->second.options = std::move(authorization_form.first);
+  LOG(INFO) << "Receive " << to_string(authorization_form);
+  G()->td().get_actor_unsafe()->contacts_manager_->on_get_users(std::move(authorization_form->users_));
+
+  vector<vector<SuitableSecureValue>> required_types;
+  std::map<SecureValueType, SuitableSecureValue> all_types;
+  for (auto &type_ptr : authorization_form->required_types_) {
+    CHECK(type_ptr != nullptr);
+    vector<SuitableSecureValue> required_type;
+    switch (type_ptr->get_id()) {
+      case telegram_api::secureRequiredType::ID: {
+        auto value = get_suitable_secure_value(move_tl_object_as<telegram_api::secureRequiredType>(type_ptr));
+        all_types.emplace(value.type, value);
+        required_type.push_back(std::move(value));
+        break;
+      }
+      case telegram_api::secureRequiredTypeOneOf::ID: {
+        auto type_one_of = move_tl_object_as<telegram_api::secureRequiredTypeOneOf>(type_ptr);
+        for (auto &type : type_one_of->types_) {
+          if (type->get_id() == telegram_api::secureRequiredType::ID) {
+            auto value = get_suitable_secure_value(move_tl_object_as<telegram_api::secureRequiredType>(type));
+            all_types.emplace(value.type, value);
+            required_type.push_back(std::move(value));
+          } else {
+            LOG(ERROR) << to_string(type);
+          }
+        }
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+    if (!required_type.empty()) {
+      required_types.push_back(required_type);
+    }
+  }
+
+  it->second.options = std::move(all_types);
+  it->second.values = std::move(authorization_form->values_);
+  it->second.errors = std::move(authorization_form->errors_);
   it->second.is_received = true;
-  CHECK(authorization_form.second != nullptr);
-  promise.set_value(std::move(authorization_form.second));
+
+  promise.set_value(td_api::make_object<td_api::passportAuthorizationForm>(
+      authorization_form_id, get_passport_required_elements_object(required_types),
+      authorization_form->privacy_policy_url_));
+}
+
+void SecureManager::get_passport_authorization_form_available_elements(int32 authorization_form_id, string password,
+                                                                       Promise<TdApiSecureValuesWithErrors> promise) {
+  auto it = authorization_forms_.find(authorization_form_id);
+  if (it == authorization_forms_.end()) {
+    return promise.set_error(Status::Error(400, "Unknown authorization_form_id"));
+  }
+  if (!it->second.is_received) {
+    return promise.set_error(Status::Error(400, "Authorization form isn't received yet"));
+  }
+
+  refcnt_++;
+  send_closure(G()->password_manager(), &PasswordManager::get_secure_secret, password,
+               PromiseCreator::lambda([actor_id = actor_shared(this), authorization_form_id,
+                                       promise = std::move(promise)](Result<secure_storage::Secret> r_secret) mutable {
+                 send_closure(actor_id, &SecureManager::on_get_passport_authorization_form_secret,
+                              authorization_form_id, std::move(promise), std::move(r_secret));
+               }));
+}
+
+void SecureManager::on_get_passport_authorization_form_secret(int32 authorization_form_id,
+                                                              Promise<TdApiSecureValuesWithErrors> promise,
+                                                              Result<secure_storage::Secret> r_secret) {
+  auto it = authorization_forms_.find(authorization_form_id);
+  if (it == authorization_forms_.end()) {
+    return promise.set_error(Status::Error(400, "Authorization form has already been sent"));
+  }
+  CHECK(it->second.is_received);
+  if (it->second.is_decrypted) {
+    return promise.set_error(Status::Error(400, "Authorization form has already been decrypted"));
+  }
+
+  if (r_secret.is_error()) {
+    auto error = r_secret.move_as_error();
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Receive error instead of secret: " << error;
+    }
+    if (error.code() <= 0) {
+      error = Status::Error(400, error.message());  // TODO error.set_code(400) ?
+    }
+    return promise.set_error(std::move(error));
+  }
+  auto secret = r_secret.move_as_ok();
+
+  it->second.is_decrypted = true;
+
+  auto *file_manager = G()->td().get_actor_unsafe()->file_manager_.get();
+  std::vector<TdApiSecureValue> values;
+  std::map<SecureValueType, SecureValueCredentials> all_credentials;
+  for (auto suitable_type : it->second.options) {
+    auto type = suitable_type.first;
+    for (auto &value : it->second.values) {
+      if (value == nullptr) {
+        continue;
+      }
+      auto value_type = get_secure_value_type(value->type_);
+      if (value_type != type) {
+        continue;
+      }
+
+      auto r_secure_value =
+          decrypt_secure_value(file_manager, secret, get_encrypted_secure_value(file_manager, std::move(value)));
+      value = nullptr;
+      if (r_secure_value.is_error()) {
+        LOG(ERROR) << "Failed to decrypt secure value: " << r_secure_value.error();
+        break;
+      }
+
+      on_get_secure_value(r_secure_value.ok());
+
+      auto secure_value = r_secure_value.move_as_ok();
+      auto r_passport_element = get_passport_element_object(file_manager, std::move(secure_value.value));
+      if (r_passport_element.is_error()) {
+        LOG(ERROR) << "Failed to get passport element object: " << r_passport_element.error();
+        break;
+      }
+      values.push_back(r_passport_element.move_as_ok());
+      all_credentials.emplace(type, std::move(secure_value.credentials));
+
+      break;
+    }
+  }
+
+  auto get_file_index = [](const vector<SecureFileCredentials> &file_credentials, Slice file_hash) -> int32 {
+    for (size_t i = 0; i < file_credentials.size(); i++) {
+      if (file_credentials[i].hash == file_hash) {
+        return narrow_cast<int32>(i);
+      }
+    }
+    return -1;
+  };
+
+  vector<td_api::object_ptr<td_api::passportElementError>> errors;
+  for (auto &error_ptr : it->second.errors) {
+    CHECK(error_ptr != nullptr);
+    SecureValueType type = SecureValueType::None;
+    td_api::object_ptr<td_api::PassportElementErrorSource> source;
+    string message;
+    switch (error_ptr->get_id()) {
+      case telegram_api::secureValueError::ID: {
+        auto error = move_tl_object_as<telegram_api::secureValueError>(error_ptr);
+        type = get_secure_value_type(error->type_);
+        message = std::move(error->text_);
+        source = td_api::make_object<td_api::passportElementErrorSourceUnspecified>();
+        break;
+      }
+      case telegram_api::secureValueErrorData::ID: {
+        auto error = move_tl_object_as<telegram_api::secureValueErrorData>(error_ptr);
+        type = get_secure_value_type(error->type_);
+        message = std::move(error->text_);
+        string field_name = get_secure_value_data_field_name(type, error->field_);
+        if (field_name.empty()) {
+          break;
+        }
+        source = td_api::make_object<td_api::passportElementErrorSourceDataField>(std::move(field_name));
+        break;
+      }
+      case telegram_api::secureValueErrorFile::ID: {
+        auto error = move_tl_object_as<telegram_api::secureValueErrorFile>(error_ptr);
+        type = get_secure_value_type(error->type_);
+        message = std::move(error->text_);
+        int32 file_index = get_file_index(all_credentials[type].files, error->file_hash_.as_slice());
+        if (file_index == -1) {
+          LOG(ERROR) << "Can't find file with error";
+          break;
+        }
+        source = td_api::make_object<td_api::passportElementErrorSourceFile>(file_index);
+        break;
+      }
+      case telegram_api::secureValueErrorFiles::ID: {
+        auto error = move_tl_object_as<telegram_api::secureValueErrorFiles>(error_ptr);
+        type = get_secure_value_type(error->type_);
+        message = std::move(error->text_);
+        source = td_api::make_object<td_api::passportElementErrorSourceFiles>();
+        break;
+      }
+      case telegram_api::secureValueErrorFrontSide::ID: {
+        auto error = move_tl_object_as<telegram_api::secureValueErrorFrontSide>(error_ptr);
+        type = get_secure_value_type(error->type_);
+        message = std::move(error->text_);
+        source = td_api::make_object<td_api::passportElementErrorSourceFrontSide>();
+        break;
+      }
+      case telegram_api::secureValueErrorReverseSide::ID: {
+        auto error = move_tl_object_as<telegram_api::secureValueErrorReverseSide>(error_ptr);
+        type = get_secure_value_type(error->type_);
+        message = std::move(error->text_);
+        source = td_api::make_object<td_api::passportElementErrorSourceReverseSide>();
+        break;
+      }
+      case telegram_api::secureValueErrorSelfie::ID: {
+        auto error = move_tl_object_as<telegram_api::secureValueErrorSelfie>(error_ptr);
+        type = get_secure_value_type(error->type_);
+        message = std::move(error->text_);
+        source = td_api::make_object<td_api::passportElementErrorSourceSelfie>();
+        break;
+      }
+      case telegram_api::secureValueErrorTranslationFile::ID: {
+        auto error = move_tl_object_as<telegram_api::secureValueErrorTranslationFile>(error_ptr);
+        type = get_secure_value_type(error->type_);
+        message = std::move(error->text_);
+        int32 file_index = get_file_index(all_credentials[type].translations, error->file_hash_.as_slice());
+        if (file_index == -1) {
+          LOG(ERROR) << "Can't find translation file with error";
+          break;
+        }
+        source = td_api::make_object<td_api::passportElementErrorSourceTranslationFile>(file_index);
+        break;
+      }
+      case telegram_api::secureValueErrorTranslationFiles::ID: {
+        auto error = move_tl_object_as<telegram_api::secureValueErrorTranslationFiles>(error_ptr);
+        type = get_secure_value_type(error->type_);
+        message = std::move(error->text_);
+        source = td_api::make_object<td_api::passportElementErrorSourceTranslationFiles>();
+        break;
+      }
+      default:
+        UNREACHABLE();
+    }
+    if (source == nullptr) {
+      continue;
+    }
+
+    errors.push_back(td_api::make_object<td_api::passportElementError>(get_passport_element_type_object(type), message,
+                                                                       std::move(source)));
+  }
+
+  promise.set_value(td_api::make_object<td_api::passportElementsWithErrors>(std::move(values), std::move(errors)));
 }
 
 void SecureManager::send_passport_authorization_form(int32 authorization_form_id, std::vector<SecureValueType> types,
@@ -1157,6 +1168,7 @@ void SecureManager::send_passport_authorization_form(int32 authorization_form_id
   if (!it->second.is_received) {
     return promise.set_error(Status::Error(400, "Authorization form isn't received yet"));
   }
+  // there is no need to check for is_decrypted
   if (types.empty()) {
     return promise.set_error(Status::Error(400, "Types must be non-empty"));
   }
