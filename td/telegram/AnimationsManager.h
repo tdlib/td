@@ -113,7 +113,7 @@ class AnimationsManager : public Actor {
 
   void on_load_saved_animations_finished(vector<FileId> &&saved_animation_ids, bool from_database = false);
 
-  td_api::object_ptr<td_api::updateSavedAnimations> get_update_saved_animatoions_object() const;
+  td_api::object_ptr<td_api::updateSavedAnimations> get_update_saved_animations_object() const;
 
   void send_update_saved_animations(bool from_database = false);
 
