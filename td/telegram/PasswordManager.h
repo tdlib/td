@@ -140,6 +140,8 @@ class PasswordManager : public NetQueryCallback {
   };
 
   optional<secure_storage::Secret> secret_;
+  double secret_expire_date_ = 0;
+
   TempPasswordState temp_password_state_;
   Promise<TempState> create_temp_password_promise_;
 
@@ -165,6 +167,7 @@ class PasswordManager : public NetQueryCallback {
   void do_get_secure_secret(bool recursive, string passwod, Promise<secure_storage::Secret> promise);
   void do_get_full_state(string password, PasswordState state, Promise<PasswordFullState> promise);
   void cache_secret(secure_storage::Secret secret);
+  void drop_cached_secret();
 
   void do_create_temp_password(string password, int32 timeout, PasswordState &&password_state,
                                Promise<TempPasswordState> promise);
@@ -173,6 +176,7 @@ class PasswordManager : public NetQueryCallback {
   void on_result(NetQueryPtr query) override;
 
   void start_up() override;
+  void timeout_expired() override;
   void hangup() override;
 
   Container<Promise<NetQueryPtr>> container_;
