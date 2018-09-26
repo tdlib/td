@@ -181,6 +181,10 @@ template <class T>
 ActorRef::ActorRef(const ActorId<T> &actor_id) : actor_id_(actor_id) {
 }
 template <class T>
+ActorRef::ActorRef(const ActorId<T> &&actor_id) : actor_id_(actor_id) {
+  actor_id.clear();
+}
+template <class T>
 ActorRef::ActorRef(const ActorShared<T> &actor_id) : actor_id_(actor_id.get()), token_(actor_id.token()) {
 }
 template <class T>
