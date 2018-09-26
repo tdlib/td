@@ -181,7 +181,7 @@ template <class T>
 ActorRef::ActorRef(const ActorId<T> &actor_id) : actor_id_(actor_id) {
 }
 template <class T>
-ActorRef::ActorRef(const ActorId<T> &&actor_id) : actor_id_(actor_id) {
+ActorRef::ActorRef(ActorId<T> &&actor_id) : actor_id_(actor_id) {
   actor_id.clear();
 }
 template <class T>

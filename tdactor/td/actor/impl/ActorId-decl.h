@@ -150,6 +150,8 @@ class ActorRef {
   template <class T>
   ActorRef(const ActorId<T> &actor_id);
   template <class T>
+  ActorRef(ActorId<T> &&actor_id);
+  template <class T>
   ActorRef(const ActorShared<T> &actor_id);
   template <class T>
   ActorRef(ActorShared<T> &&actor_id);
