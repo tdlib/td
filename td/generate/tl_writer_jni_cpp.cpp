@@ -399,7 +399,8 @@ std::string TD_TL_writer_jni_cpp::gen_fetch_function_begin(const std::string &pa
                                   fetched_type + "res = make_object<" + class_name + ">();\n");
 }
 
-std::string TD_TL_writer_jni_cpp::gen_fetch_function_end(int field_num, const std::vector<tl::var_description> &vars,
+std::string TD_TL_writer_jni_cpp::gen_fetch_function_end(bool has_parent, int field_num,
+                                                         const std::vector<tl::var_description> &vars,
                                                          int parser_type) const {
   for (std::size_t i = 0; i < vars.size(); i++) {
     assert(vars[i].is_stored);
@@ -411,7 +412,8 @@ std::string TD_TL_writer_jni_cpp::gen_fetch_function_end(int field_num, const st
     return "}\n";
   }
 
-  return "  return res;\n"
+  return "  return " + std::string(has_parent ? "std::move(res)" : "res") +
+         ";\n"
          "}\n";
 }
 

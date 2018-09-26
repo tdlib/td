@@ -534,7 +534,8 @@ std::string TD_TL_writer_cpp::gen_fetch_function_begin(const std::string &parser
          (parser_type == -1 ? "" : "  " + fetched_type + "res = make_tl_object<" + class_name + ">();\n");
 }
 
-std::string TD_TL_writer_cpp::gen_fetch_function_end(int field_num, const std::vector<tl::var_description> &vars,
+std::string TD_TL_writer_cpp::gen_fetch_function_end(bool has_parent, int field_num,
+                                                     const std::vector<tl::var_description> &vars,
                                                      int parser_type) const {
   for (std::size_t i = 0; i < vars.size(); i++) {
     assert(vars[i].is_stored);
@@ -552,7 +553,9 @@ std::string TD_TL_writer_cpp::gen_fetch_function_end(int field_num, const std::v
   }
 
   return "  if (p.get_error()) { FAIL(\"\"); }\n"
-         "  return res;\n"
+         "  return " +
+         std::string(has_parent ? "std::move(res)" : "res") +
+         ";\n"
          "#undef FAIL\n"
          "}\n";
 }

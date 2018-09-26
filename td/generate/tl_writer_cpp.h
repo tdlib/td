@@ -79,7 +79,7 @@ class TD_TL_writer_cpp : public TD_TL_writer {
   std::string gen_fetch_function_begin(const std::string &parser_name, const std::string &class_name,
                                        const std::string &parent_class_name, int arity,
                                        std::vector<tl::var_description> &vars, int parser_type) const override;
-  std::string gen_fetch_function_end(int field_num, const std::vector<tl::var_description> &vars,
+  std::string gen_fetch_function_end(bool has_parent, int field_num, const std::vector<tl::var_description> &vars,
                                      int parser_type) const override;
 
   std::string gen_fetch_function_result_begin(const std::string &parser_name, const std::string &class_name,

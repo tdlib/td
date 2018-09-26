@@ -3344,7 +3344,7 @@ class CliClient final : public Actor {
       if (!user.empty() && password.empty()) {
         type = make_tl_object<td_api::proxyTypeMtproto>(user);
       } else {
-        if (port == "80") {
+        if (port == "80" || port == "8080") {
           type = make_tl_object<td_api::proxyTypeHttp>(user, password, op.back() != 'p');
         } else {
           type = make_tl_object<td_api::proxyTypeSocks5>(user, password);
@@ -3381,7 +3381,7 @@ class CliClient final : public Actor {
       td::Log::set_verbosity_level(static_cast<int>(op.size()));
     } else if (op[0] == 'v' && ('0' <= op[1] && op[1] <= '9')) {
       td::Log::set_verbosity_level(to_integer<int>(op.substr(1)));
-    } else if (op == "sltvl" || op == "sltvle") {
+    } else if (op == "sltvl" || op == "sltvle" || op == "tag") {
       string tag;
       string level;
       std::tie(tag, level) = split(args);

@@ -103,7 +103,7 @@ static void write_function_fetch(tl_outputer &out, const std::string &parser_nam
     }
   }
 
-  out.append(w.gen_fetch_function_end(field_num, vars, parser_type));
+  out.append(w.gen_fetch_function_end(false, field_num, vars, parser_type));
 }
 
 static std::vector<var_description> write_function_store(tl_outputer &out, const std::string &storer_name,
@@ -192,7 +192,7 @@ static void write_constructor_fetch(tl_outputer &out, const std::string &parser_
     }
   }
 
-  out.append(w.gen_fetch_function_end(field_num, vars, parser_type));
+  out.append(w.gen_fetch_function_end(class_name != parent_class_name, field_num, vars, parser_type));
 }
 
 static void write_constructor_store(tl_outputer &out, const std::string &storer_name, const tl_combinator *t,
@@ -378,7 +378,7 @@ void write_class(tl_outputer &out, const tl_type *t, const std::set<std::string>
       }
 
       out.append(w.gen_fetch_switch_end());
-      out.append(w.gen_fetch_function_end(-1, empty_vars, -1));
+      out.append(w.gen_fetch_function_end(false, -1, empty_vars, -1));
     }
 
     std::vector<std::string> storers = w.get_storers();
@@ -672,7 +672,7 @@ void write_tl(const tl_config &config, tl_outputer &out, const TL_writer &w) {
         }
       }
       out.append(w.gen_fetch_switch_end());
-      out.append(w.gen_fetch_function_end(-1, empty_vars, -1));
+      out.append(w.gen_fetch_function_end(false, -1, empty_vars, -1));
     }
 
     std::vector<std::string> additional_functions = w.get_additional_functions();
@@ -737,7 +737,7 @@ void write_tl(const tl_config &config, tl_outputer &out, const TL_writer &w) {
         }
       }
       out.append(w.gen_fetch_switch_end());
-      out.append(w.gen_fetch_function_end(-1, empty_vars, -1));
+      out.append(w.gen_fetch_function_end(false, -1, empty_vars, -1));
     }
 
     std::vector<std::string> storers = w.get_storers();

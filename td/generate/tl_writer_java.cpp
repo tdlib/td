@@ -351,7 +351,8 @@ std::string TD_TL_writer_java::gen_fetch_function_begin(const std::string &parse
   return "";
 }
 
-std::string TD_TL_writer_java::gen_fetch_function_end(int field_num, const std::vector<tl::var_description> &vars,
+std::string TD_TL_writer_java::gen_fetch_function_end(bool has_parent, int field_num,
+                                                      const std::vector<tl::var_description> &vars,
                                                       int parser_type) const {
   return "";
 }

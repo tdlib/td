@@ -1033,7 +1033,7 @@ class TlWriterCCommon : public tl::TL_writer {
                                        std::vector<tl::var_description> &vars, int parser_type) const override {
     return "";
   }
-  std::string gen_fetch_function_end(int field_num, const std::vector<tl::var_description> &vars,
+  std::string gen_fetch_function_end(bool has_parent, int field_num, const std::vector<tl::var_description> &vars,
                                      int parser_type) const override {
     return "";
   }
