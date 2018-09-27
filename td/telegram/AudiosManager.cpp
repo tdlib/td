@@ -24,10 +24,10 @@ namespace td {
 AudiosManager::AudiosManager(Td *td) : td_(td) {
 }
 
-int32 AudiosManager::get_audio_duration(FileId file_id) {
-  auto &audio = audios_[file_id];
-  CHECK(audio != nullptr);
-  return audio->duration;
+int32 AudiosManager::get_audio_duration(FileId file_id) const {
+  auto it = audios_.find(file_id);
+  CHECK(it != audios_.end());
+  return it->second->duration;
 }
 
 tl_object_ptr<td_api::audio> AudiosManager::get_audio_object(FileId file_id) {

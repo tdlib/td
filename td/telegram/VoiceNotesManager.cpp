@@ -25,10 +25,10 @@ namespace td {
 VoiceNotesManager::VoiceNotesManager(Td *td) : td_(td) {
 }
 
-int32 VoiceNotesManager::get_voice_note_duration(FileId file_id) {
-  auto &voice_note = voice_notes_[file_id];
-  CHECK(voice_note != nullptr);
-  return voice_note->duration;
+int32 VoiceNotesManager::get_voice_note_duration(FileId file_id) const {
+  auto it = voice_notes_.find(file_id);
+  CHECK(it != voice_notes_.end());
+  return it->second->duration;
 }
 
 tl_object_ptr<td_api::voiceNote> VoiceNotesManager::get_voice_note_object(FileId file_id) {

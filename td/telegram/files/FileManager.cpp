@@ -1238,7 +1238,7 @@ void FileManager::flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local
     data.generate_ = make_unique<FullGenerateFileLocation>(*node->generate_);
   }
 
-  // TODO: not needed when GenerateLocation has constant convertion
+  // TODO: not needed when GenerateLocation has constant conversion
   if (data.remote_.type() != RemoteFileLocation::Type::Full && data.local_.type() != LocalFileLocation::Type::Full) {
     data.local_ = LocalFileLocation();
     data.remote_ = RemoteFileLocation();

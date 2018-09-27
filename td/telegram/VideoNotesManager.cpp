@@ -24,10 +24,10 @@ namespace td {
 VideoNotesManager::VideoNotesManager(Td *td) : td_(td) {
 }
 
-int32 VideoNotesManager::get_video_note_duration(FileId file_id) {
-  auto &video_note = video_notes_[file_id];
-  CHECK(video_note != nullptr);
-  return video_note->duration;
+int32 VideoNotesManager::get_video_note_duration(FileId file_id) const {
+  auto it = video_notes_.find(file_id);
+  CHECK(it != video_notes_.end());
+  return it->second->duration;
 }
 
 tl_object_ptr<td_api::videoNote> VideoNotesManager::get_video_note_object(FileId file_id) {

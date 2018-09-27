@@ -26,7 +26,7 @@ class VoiceNotesManager {
  public:
   explicit VoiceNotesManager(Td *td);
 
-  int32 get_voice_note_duration(FileId file_id);
+  int32 get_voice_note_duration(FileId file_id) const;
 
   tl_object_ptr<td_api::voiceNote> get_voice_note_object(FileId file_id);
 

@@ -25,10 +25,10 @@ namespace td {
 VideosManager::VideosManager(Td *td) : td_(td) {
 }
 
-int32 VideosManager::get_video_duration(FileId file_id) {
-  auto &video = videos_[file_id];
-  CHECK(video != nullptr);
-  return video->duration;
+int32 VideosManager::get_video_duration(FileId file_id) const {
+  auto it = videos_.find(file_id);
+  CHECK(it != videos_.end());
+  return it->second->duration;
 }
 
 tl_object_ptr<td_api::video> VideosManager::get_video_object(FileId file_id) {

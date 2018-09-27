@@ -107,10 +107,10 @@ void AnimationsManager::tear_down() {
   parent_.reset();
 }
 
-int32 AnimationsManager::get_animation_duration(FileId file_id) {
-  auto &animation = animations_[file_id];
-  CHECK(animation != nullptr);
-  return animation->duration;
+int32 AnimationsManager::get_animation_duration(FileId file_id) const {
+  auto it = animations_.find(file_id);
+  CHECK(it != animations_.end());
+  return it->second->duration;
 }
 
 tl_object_ptr<td_api::animation> AnimationsManager::get_animation_object(FileId file_id, const char *source) {

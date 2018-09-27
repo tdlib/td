@@ -4373,7 +4373,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   if (has_media_album_id) {
     store(media_album_id, storer);
   }
-  store(static_cast<const MessageContent *>(content.get()), storer);  // TODO unique_ptr with const propagation
+  store(content.get(), storer);
   if (has_reply_markup) {
     store(*reply_markup, storer);
   }
@@ -5157,7 +5157,7 @@ int32 MessagesManager::get_message_index_mask(DialogId dialog_id, const Message 
   if (m->is_content_secret || (m->ttl > 0 && !is_secret)) {
     return 0;
   }
-  int32 mentions_mask = get_message_content_index_mask(m->content.get(), is_secret, m->is_outgoing);
+  int32 mentions_mask = get_message_content_index_mask(m->content.get(), td_, is_secret, m->is_outgoing);
   if (m->contains_mention) {
     mentions_mask |= search_messages_filter_index_mask(SearchMessagesFilter::Mention);
     if (m->contains_unread_mention) {
@@ -5167,14 +5167,14 @@ int32 MessagesManager::get_message_index_mask(DialogId dialog_id, const Message 
   return mentions_mask;
 }
 
-int32 MessagesManager::get_message_content_index_mask(const MessageContent *content, bool is_secret,
-                                                      bool is_outgoing) const {
+int32 MessagesManager::get_message_content_index_mask(const MessageContent *content, const Td *td, bool is_secret,
+                                                      bool is_outgoing) {
   switch (content->get_type()) {
     case MessageContentType::Animation:
       return search_messages_filter_index_mask(SearchMessagesFilter::Animation);
     case MessageContentType::Audio: {
       auto message_audio = static_cast<const MessageAudio *>(content);
-      auto duration = td_->audios_manager_->get_audio_duration(message_audio->file_id);
+      auto duration = td->audios_manager_->get_audio_duration(message_audio->file_id);
       return is_secret || duration > 0 ? search_messages_filter_index_mask(SearchMessagesFilter::Audio)
                                        : search_messages_filter_index_mask(SearchMessagesFilter::Document);
     }
@@ -5193,14 +5193,14 @@ int32 MessagesManager::get_message_content_index_mask(const MessageContent *cont
       return 0;
     case MessageContentType::Video: {
       auto message_video = static_cast<const MessageVideo *>(content);
-      auto duration = td_->videos_manager_->get_video_duration(message_video->file_id);
+      auto duration = td->videos_manager_->get_video_duration(message_video->file_id);
       return is_secret || duration > 0 ? search_messages_filter_index_mask(SearchMessagesFilter::Video) |
                                              search_messages_filter_index_mask(SearchMessagesFilter::PhotoAndVideo)
                                        : search_messages_filter_index_mask(SearchMessagesFilter::Document);
     }
     case MessageContentType::VideoNote: {
       auto message_video_note = static_cast<const MessageVideoNote *>(content);
-      auto duration = td_->video_notes_manager_->get_video_note_duration(message_video_note->file_id);
+      auto duration = td->video_notes_manager_->get_video_note_duration(message_video_note->file_id);
       return is_secret || duration > 0 ? search_messages_filter_index_mask(SearchMessagesFilter::VideoNote) |
                                              search_messages_filter_index_mask(SearchMessagesFilter::VoiceAndVideoNote)
                                        : search_messages_filter_index_mask(SearchMessagesFilter::Document);

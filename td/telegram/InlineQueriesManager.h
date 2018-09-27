@@ -99,7 +99,7 @@ class InlineQueriesManager : public Actor {
   Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> get_inline_message(
       tl_object_ptr<td_api::InputMessageContent> &&input_message_content,
       tl_object_ptr<td_api::ReplyMarkup> &&reply_markup_ptr,
-      int32 allowed_media_content_id) const TD_WARN_UNUSED_RESULT;  // TODO make static
+      int32 allowed_media_content_id) const TD_WARN_UNUSED_RESULT;
 
   InlineMessageContent create_inline_message_content(FileId file_id,
                                                      tl_object_ptr<telegram_api::BotInlineMessage> &&inline_message,

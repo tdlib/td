@@ -28,7 +28,7 @@ class AudiosManager {
  public:
   explicit AudiosManager(Td *td);
 
-  int32 get_audio_duration(FileId file_id);
+  int32 get_audio_duration(FileId file_id) const;
 
   tl_object_ptr<td_api::audio> get_audio_object(FileId file_id);
 
