@@ -88,17 +88,18 @@ class FileDownloadGenerateActor : public FileGenerateActor {
   }
 
   void on_download_ok() {
-    send_lambda(G()->file_manager(), [file_type = file_type_, file_id = file_id_, callback = std::move(callback_)] {
-      auto file_view = G()->td().get_actor_unsafe()->file_manager_->get_file_view(file_id);
-      if (file_view.has_local_location()) {
-        auto location = file_view.local_location();
-        location.file_type_ = file_type;
-        callback->on_ok(location);
-      } else {
-        LOG(ERROR) << "Expected to have local location";
-        callback->on_error(Status::Error(500, "Unknown"));
-      }
-    });
+    send_lambda(G()->file_manager(),
+                [file_type = file_type_, file_id = file_id_, callback = std::move(callback_)]() mutable {
+                  auto file_view = G()->td().get_actor_unsafe()->file_manager_->get_file_view(file_id);
+                  if (file_view.has_local_location()) {
+                    auto location = file_view.local_location();
+                    location.file_type_ = file_type;
+                    callback->on_ok(location);
+                  } else {
+                    LOG(ERROR) << "Expected to have local location";
+                    callback->on_error(Status::Error(500, "Unknown"));
+                  }
+                });
     stop();
   }
   void on_download_error(Status error) {

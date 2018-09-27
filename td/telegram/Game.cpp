@@ -91,7 +91,7 @@ const FormattedText &Game::get_message_text() const {
   return text_;
 }
 
-tl_object_ptr<td_api::game> Game::get_game_object(const Td *td) const {
+tl_object_ptr<td_api::game> Game::get_game_object(Td *td) const {
   return make_tl_object<td_api::game>(
       id_, short_name_, title_, get_formatted_text_object(text_), description_,
       get_photo_object(td->file_manager_.get(), &photo_),

@@ -175,6 +175,7 @@ template <class T>
 bool operator!=(const unique_ptr<T> &p, std::nullptr_t) {
   return static_cast<bool>(p);
 }
+
 }  // namespace tl
 template <class Type>
 using tl_object_ptr = tl::unique_ptr<Type>;

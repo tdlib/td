@@ -12755,7 +12755,7 @@ Status MessagesManager::delete_dialog_reply_markup(DialogId dialog_id, MessageId
     return Status::OK();
   }
 
-  const Message *message = get_message_force(d, message_id);
+  Message *message = get_message_force(d, message_id);
   CHECK(message != nullptr);
   CHECK(message->reply_markup != nullptr);
 
@@ -14140,7 +14140,7 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
     if (*p == nullptr) {
       // there is no gap if from_message_id is less than first message in the dialog
       if (left_tries == 0 && d->messages != nullptr && offset < 0) {
-        Message *cur = d->messages.get();
+        const Message *cur = d->messages.get();
         while (cur->left != nullptr) {
           cur = cur->left.get();
         }

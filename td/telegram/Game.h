@@ -59,7 +59,7 @@ class Game {
 
   const FormattedText &get_message_text() const;
 
-  tl_object_ptr<td_api::game> get_game_object(const Td *td) const;
+  tl_object_ptr<td_api::game> get_game_object(Td *td) const;
 
   tl_object_ptr<telegram_api::inputMediaGame> get_input_media_game(const Td *td) const;
 

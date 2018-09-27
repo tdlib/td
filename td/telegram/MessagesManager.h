@@ -1585,7 +1585,7 @@ class MessagesManager : public Actor {
     unique_ptr<Message> left;
     unique_ptr<Message> right;
 
-    int32 last_access_date = 0;
+    mutable int32 last_access_date = 0;
 
     uint64 send_message_logevent_id = 0;
 

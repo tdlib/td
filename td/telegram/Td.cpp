@@ -4053,7 +4053,7 @@ Status Td::init(DbKey key) {
   VLOG(td_init) << "Create ConfigManager and ConfigShared";
   class ConfigSharedCallback : public ConfigShared::Callback {
    public:
-    void on_option_updated(const string &name, const string &value) override {
+    void on_option_updated(const string &name, const string &value) const override {
       send_closure(G()->td(), &Td::on_config_option_updated, name);
     }
   };

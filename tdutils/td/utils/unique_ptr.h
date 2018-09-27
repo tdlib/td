@@ -12,8 +12,10 @@
 
 namespace td {
 
+// const-correct and compiler-friendly (g++ RAM and CPU usage 10 times less than for std::unique_ptr)
+// replacement for std::unique_ptr
 template <class T>
-class unique_ptr {
+class unique_ptr final {
  public:
   using pointer = T *;
   using element_type = T;
@@ -52,13 +54,22 @@ class unique_ptr {
     ptr_ = nullptr;
     return res;
   }
-  T *get() const noexcept {
+  T *get() noexcept {
     return ptr_;
   }
-  T *operator->() const noexcept {
+  const T *get() const noexcept {
     return ptr_;
   }
-  T &operator*() const noexcept {
+  T *operator->() noexcept {
+    return ptr_;
+  }
+  const T *operator->() const noexcept {
+    return ptr_;
+  }
+  T &operator*() noexcept {
+    return *ptr_;
+  }
+  const T &operator*() const noexcept {
     return *ptr_;
   }
   explicit operator bool() const noexcept {

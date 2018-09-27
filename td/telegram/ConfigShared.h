@@ -25,7 +25,7 @@ class ConfigShared {
     Callback(const Callback &) = delete;
     Callback &operator=(const Callback &) = delete;
     virtual ~Callback() = default;
-    virtual void on_option_updated(const string &name, const string &value) = 0;
+    virtual void on_option_updated(const string &name, const string &value) const = 0;
   };
 
   ConfigShared(BinlogPmcPtr config_pmc, unique_ptr<Callback> callback);
