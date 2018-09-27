@@ -5695,15 +5695,17 @@ MessagesManager::Dialog *MessagesManager::get_service_notifications_dialog() {
 void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api::updateServiceNotification> &&update) {
   int32 ttl = 0;
   auto content = get_message_content(
+      td_,
       get_message_text(std::move(update->message_), std::move(update->entities_), update->inbox_date_,
                        "on_update_service_notification"),
       std::move(update->media_),
       td_->auth_manager_->is_bot() ? DialogId() : get_service_notifications_dialog()->dialog_id, false, UserId(), &ttl);
   bool is_content_secret = is_secret_message_content(ttl, content->get_type());
   if ((update->flags_ & telegram_api::updateServiceNotification::POPUP_MASK) != 0) {
-    send_closure(G()->td(), &Td::send_update,
-                 make_tl_object<td_api::updateServiceNotification>(
-                     update->type_, get_message_content_object(content.get(), update->inbox_date_, is_content_secret)));
+    send_closure(
+        G()->td(), &Td::send_update,
+        make_tl_object<td_api::updateServiceNotification>(
+            update->type_, get_message_content_object(content.get(), td_, update->inbox_date_, is_content_secret)));
   }
   if ((update->flags_ & telegram_api::updateServiceNotification::INBOX_DATE_MASK) != 0 &&
       !td_->auth_manager_->is_bot()) {
@@ -7100,7 +7102,7 @@ void MessagesManager::do_send_media(DialogId dialog_id, Message *m, FileId file_
   }
 
   on_message_media_uploaded(dialog_id, m,
-                            get_input_media(content, std::move(input_file), std::move(input_thumbnail), m->ttl),
+                            get_input_media(content, td_, std::move(input_file), std::move(input_thumbnail), m->ttl),
                             file_id, thumbnail_file_id);
 }
 
@@ -7118,8 +7120,8 @@ void MessagesManager::do_send_secret_media(DialogId dialog_id, Message *m, FileI
   auto layer = td_->contacts_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
   on_secret_message_media_uploaded(
       dialog_id, m,
-      get_secret_input_media(m->content.get(), std::move(input_encrypted_file), std::move(thumbnail), layer), file_id,
-      thumbnail_file_id);
+      get_secret_input_media(m->content.get(), td_, std::move(input_encrypted_file), std::move(thumbnail), layer),
+      file_id, thumbnail_file_id);
 }
 
 void MessagesManager::on_upload_media_error(FileId file_id, Status status) {
@@ -7180,7 +7182,7 @@ void MessagesManager::on_load_secret_thumbnail(FileId thumbnail_file_id, BufferS
   CHECK(m->message_id.is_yet_unsent());
 
   if (thumbnail.empty()) {
-    delete_message_content_thumbnail(m->content.get());
+    delete_message_content_thumbnail(m->content.get(), td_);
   }
 
   auto dialog_id = full_message_id.get_dialog_id();
@@ -7228,7 +7230,7 @@ void MessagesManager::on_upload_thumbnail(FileId thumbnail_file_id,
   bool is_edit = m->message_id.is_server();
 
   if (thumbnail_input_file == nullptr) {
-    delete_message_content_thumbnail(is_edit ? m->edited_content.get() : m->content.get());
+    delete_message_content_thumbnail(is_edit ? m->edited_content.get() : m->content.get(), td_);
   }
 
   auto dialog_id = full_message_id.get_dialog_id();
@@ -8117,40 +8119,43 @@ bool MessagesManager::can_have_message_content_caption(MessageContentType conten
   }
 }
 
-string MessagesManager::get_search_text(const Message *m) {
+string MessagesManager::get_search_text(const Message *m) const {
   if (m->is_content_secret) {
     return string();
   }
-  switch (m->content->get_type()) {
+  return get_message_content_search_text(td_, m->content.get());
+}
+
+string MessagesManager::get_message_content_search_text(const Td *td, const MessageContent *content) {
+  switch (content->get_type()) {
     case MessageContentType::Text: {
-      auto *text = static_cast<const MessageText *>(m->content.get());
+      auto *text = static_cast<const MessageText *>(content);
       if (!text->web_page_id.is_valid()) {
         return text->text.text;
       }
-      return PSTRING() << text->text.text << " "
-                       << td_->web_pages_manager_->get_web_page_search_text(text->web_page_id);
+      return PSTRING() << text->text.text << " " << td->web_pages_manager_->get_web_page_search_text(text->web_page_id);
     }
     case MessageContentType::Animation: {
-      auto animation = static_cast<const MessageAnimation *>(m->content.get());
-      return PSTRING() << td_->animations_manager_->get_animation_search_text(animation->file_id) << " "
+      auto animation = static_cast<const MessageAnimation *>(content);
+      return PSTRING() << td->animations_manager_->get_animation_search_text(animation->file_id) << " "
                        << animation->caption.text;
     }
     case MessageContentType::Audio: {
-      auto audio = static_cast<const MessageAudio *>(m->content.get());
-      return PSTRING() << td_->audios_manager_->get_audio_search_text(audio->file_id) << " " << audio->caption.text;
+      auto audio = static_cast<const MessageAudio *>(content);
+      return PSTRING() << td->audios_manager_->get_audio_search_text(audio->file_id) << " " << audio->caption.text;
     }
     case MessageContentType::Document: {
-      auto document = static_cast<const MessageDocument *>(m->content.get());
-      return PSTRING() << td_->documents_manager_->get_document_search_text(document->file_id) << " "
+      auto document = static_cast<const MessageDocument *>(content);
+      return PSTRING() << td->documents_manager_->get_document_search_text(document->file_id) << " "
                        << document->caption.text;
     }
     case MessageContentType::Photo: {
-      auto photo = static_cast<const MessagePhoto *>(m->content.get());
+      auto photo = static_cast<const MessagePhoto *>(content);
       return photo->caption.text;
     }
     case MessageContentType::Video: {
-      auto video = static_cast<const MessageVideo *>(m->content.get());
-      return PSTRING() << td_->videos_manager_->get_video_search_text(video->file_id) << " " << video->caption.text;
+      auto video = static_cast<const MessageVideo *>(content);
+      return PSTRING() << td->videos_manager_->get_video_search_text(video->file_id) << " " << video->caption.text;
     }
     case MessageContentType::Contact:
     case MessageContentType::Game:
@@ -8263,9 +8268,13 @@ bool MessagesManager::can_forward_message(DialogId from_dialog_id, const Message
       return false;
   }
 
-  auto content_type = m->content->get_type();
+  return can_forward_message_content(m->content.get());
+}
+
+bool MessagesManager::can_forward_message_content(const MessageContent *content) {
+  auto content_type = content->get_type();
   if (content_type == MessageContentType::Text) {
-    auto *text = static_cast<const MessageText *>(m->content.get());
+    auto *text = static_cast<const MessageText *>(content);
     return !is_empty_string(text->text.text);  // text can't be empty in the new message
   }
 
@@ -9048,22 +9057,22 @@ void MessagesManager::read_channel_message_content_from_updates(Dialog *d, Messa
   }
 }
 
-bool MessagesManager::update_opened_message_content(Message *m) {
-  switch (m->content->get_type()) {
+bool MessagesManager::update_opened_message_content(MessageContent *content) {
+  switch (content->get_type()) {
     case MessageContentType::VideoNote: {
-      auto content = static_cast<MessageVideoNote *>(m->content.get());
-      if (content->is_viewed) {
+      auto video_note_content = static_cast<MessageVideoNote *>(content);
+      if (video_note_content->is_viewed) {
         return false;
       }
-      content->is_viewed = true;
+      video_note_content->is_viewed = true;
       return true;
     }
     case MessageContentType::VoiceNote: {
-      auto content = static_cast<MessageVoiceNote *>(m->content.get());
-      if (content->is_listened) {
+      auto voice_note_content = static_cast<MessageVoiceNote *>(content);
+      if (voice_note_content->is_listened) {
         return false;
       }
-      content->is_listened = true;
+      voice_note_content->is_listened = true;
       return true;
     }
     default:
@@ -9074,7 +9083,8 @@ bool MessagesManager::update_opened_message_content(Message *m) {
 bool MessagesManager::read_message_content(Dialog *d, Message *m, bool is_local_read, const char *source) {
   CHECK(m != nullptr) << source;
   bool is_mention_read = update_message_contains_unread_mention(d, m, false, "read_message_content");
-  bool is_content_read = update_opened_message_content(m) | ttl_on_open(d, m, Time::now(), is_local_read);
+  bool is_content_read =
+      update_opened_message_content(m->content.get()) | ttl_on_open(d, m, Time::now(), is_local_read);
 
   if (is_mention_read || is_content_read) {
     on_message_changed(d, m, "read_message_content");
@@ -9493,20 +9503,20 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
   }
 }
 
-tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_object(const MessageContent *content,
+tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_object(const MessageContent *content, Td *td,
                                                                                   int32 message_date,
-                                                                                  bool is_content_secret) const {
+                                                                                  bool is_content_secret) {
   CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::Animation: {
       const MessageAnimation *m = static_cast<const MessageAnimation *>(content);
       return make_tl_object<td_api::messageAnimation>(
-          td_->animations_manager_->get_animation_object(m->file_id, "get_message_content_object"),
+          td->animations_manager_->get_animation_object(m->file_id, "get_message_content_object"),
           get_formatted_text_object(m->caption), is_content_secret);
     }
     case MessageContentType::Audio: {
       const MessageAudio *m = static_cast<const MessageAudio *>(content);
-      return make_tl_object<td_api::messageAudio>(td_->audios_manager_->get_audio_object(m->file_id),
+      return make_tl_object<td_api::messageAudio>(td->audios_manager_->get_audio_object(m->file_id),
                                                   get_formatted_text_object(m->caption));
     }
     case MessageContentType::Contact: {
@@ -9515,17 +9525,17 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
     }
     case MessageContentType::Document: {
       const MessageDocument *m = static_cast<const MessageDocument *>(content);
-      return make_tl_object<td_api::messageDocument>(td_->documents_manager_->get_document_object(m->file_id),
+      return make_tl_object<td_api::messageDocument>(td->documents_manager_->get_document_object(m->file_id),
                                                      get_formatted_text_object(m->caption));
     }
     case MessageContentType::Game: {
       const MessageGame *m = static_cast<const MessageGame *>(content);
-      return make_tl_object<td_api::messageGame>(m->game.get_game_object(td_));
+      return make_tl_object<td_api::messageGame>(m->game.get_game_object(td));
     }
     case MessageContentType::Invoice: {
       const MessageInvoice *m = static_cast<const MessageInvoice *>(content);
       return make_tl_object<td_api::messageInvoice>(
-          m->title, m->description, get_photo_object(td_->file_manager_.get(), &m->photo), m->invoice.currency,
+          m->title, m->description, get_photo_object(td->file_manager_.get(), &m->photo), m->invoice.currency,
           m->total_amount, m->start_parameter, m->invoice.is_test, m->invoice.need_shipping_address,
           m->receipt_message_id.get());
     }
@@ -9541,17 +9551,17 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
     }
     case MessageContentType::Photo: {
       const MessagePhoto *m = static_cast<const MessagePhoto *>(content);
-      return make_tl_object<td_api::messagePhoto>(get_photo_object(td_->file_manager_.get(), &m->photo),
+      return make_tl_object<td_api::messagePhoto>(get_photo_object(td->file_manager_.get(), &m->photo),
                                                   get_formatted_text_object(m->caption), is_content_secret);
     }
     case MessageContentType::Sticker: {
       const MessageSticker *m = static_cast<const MessageSticker *>(content);
-      return make_tl_object<td_api::messageSticker>(td_->stickers_manager_->get_sticker_object(m->file_id));
+      return make_tl_object<td_api::messageSticker>(td->stickers_manager_->get_sticker_object(m->file_id));
     }
     case MessageContentType::Text: {
       const MessageText *m = static_cast<const MessageText *>(content);
       return make_tl_object<td_api::messageText>(get_formatted_text_object(m->text),
-                                                 td_->web_pages_manager_->get_web_page_object(m->web_page_id));
+                                                 td->web_pages_manager_->get_web_page_object(m->web_page_id));
     }
     case MessageContentType::Unsupported: {
       return make_tl_object<td_api::messageUnsupported>();
@@ -9562,23 +9572,23 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
     }
     case MessageContentType::Video: {
       const MessageVideo *m = static_cast<const MessageVideo *>(content);
-      return make_tl_object<td_api::messageVideo>(td_->videos_manager_->get_video_object(m->file_id),
+      return make_tl_object<td_api::messageVideo>(td->videos_manager_->get_video_object(m->file_id),
                                                   get_formatted_text_object(m->caption), is_content_secret);
     }
     case MessageContentType::VideoNote: {
       const MessageVideoNote *m = static_cast<const MessageVideoNote *>(content);
-      return make_tl_object<td_api::messageVideoNote>(td_->video_notes_manager_->get_video_note_object(m->file_id),
+      return make_tl_object<td_api::messageVideoNote>(td->video_notes_manager_->get_video_note_object(m->file_id),
                                                       m->is_viewed, is_content_secret);
     }
     case MessageContentType::VoiceNote: {
       const MessageVoiceNote *m = static_cast<const MessageVoiceNote *>(content);
-      return make_tl_object<td_api::messageVoiceNote>(td_->voice_notes_manager_->get_voice_note_object(m->file_id),
+      return make_tl_object<td_api::messageVoiceNote>(td->voice_notes_manager_->get_voice_note_object(m->file_id),
                                                       get_formatted_text_object(m->caption), m->is_listened);
     }
     case MessageContentType::ChatCreate: {
       const MessageChatCreate *m = static_cast<const MessageChatCreate *>(content);
       return make_tl_object<td_api::messageBasicGroupChatCreate>(
-          m->title, td_->contacts_manager_->get_user_ids_object(m->participant_user_ids));
+          m->title, td->contacts_manager_->get_user_ids_object(m->participant_user_ids));
     }
     case MessageContentType::ChatChangeTitle: {
       const MessageChatChangeTitle *m = static_cast<const MessageChatChangeTitle *>(content);
@@ -9586,7 +9596,7 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
     }
     case MessageContentType::ChatChangePhoto: {
       const MessageChatChangePhoto *m = static_cast<const MessageChatChangePhoto *>(content);
-      return make_tl_object<td_api::messageChatChangePhoto>(get_photo_object(td_->file_manager_.get(), &m->photo));
+      return make_tl_object<td_api::messageChatChangePhoto>(get_photo_object(td->file_manager_.get(), &m->photo));
     }
     case MessageContentType::ChatDeletePhoto:
       return make_tl_object<td_api::messageChatDeletePhoto>();
@@ -9594,19 +9604,19 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
       return make_tl_object<td_api::messageUnsupported>();
     case MessageContentType::ChatAddUsers: {
       const MessageChatAddUsers *m = static_cast<const MessageChatAddUsers *>(content);
-      return make_tl_object<td_api::messageChatAddMembers>(td_->contacts_manager_->get_user_ids_object(m->user_ids));
+      return make_tl_object<td_api::messageChatAddMembers>(td->contacts_manager_->get_user_ids_object(m->user_ids));
     }
     case MessageContentType::ChatJoinedByLink:
       return make_tl_object<td_api::messageChatJoinByLink>();
     case MessageContentType::ChatDeleteUser: {
       const MessageChatDeleteUser *m = static_cast<const MessageChatDeleteUser *>(content);
       return make_tl_object<td_api::messageChatDeleteMember>(
-          td_->contacts_manager_->get_user_id_object(m->user_id, "messageChatDeleteMember"));
+          td->contacts_manager_->get_user_id_object(m->user_id, "messageChatDeleteMember"));
     }
     case MessageContentType::ChatMigrateTo: {
       const MessageChatMigrateTo *m = static_cast<const MessageChatMigrateTo *>(content);
       return make_tl_object<td_api::messageChatUpgradeTo>(
-          td_->contacts_manager_->get_supergroup_id_object(m->migrated_to_channel_id, "messageChatUpgradeTo"));
+          td->contacts_manager_->get_supergroup_id_object(m->migrated_to_channel_id, "messageChatUpgradeTo"));
     }
     case MessageContentType::ChannelCreate: {
       const MessageChannelCreate *m = static_cast<const MessageChannelCreate *>(content);
@@ -9616,7 +9626,7 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
       const MessageChannelMigrateFrom *m = static_cast<const MessageChannelMigrateFrom *>(content);
       return make_tl_object<td_api::messageChatUpgradeFrom>(
           m->title,
-          td_->contacts_manager_->get_basic_group_id_object(m->migrated_from_chat_id, "messageChatUpgradeFrom"));
+          td->contacts_manager_->get_basic_group_id_object(m->migrated_from_chat_id, "messageChatUpgradeFrom"));
     }
     case MessageContentType::PinMessage: {
       const MessagePinMessage *m = static_cast<const MessagePinMessage *>(content);
@@ -9638,7 +9648,7 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
     }
     case MessageContentType::PaymentSuccessful: {
       const MessagePaymentSuccessful *m = static_cast<const MessagePaymentSuccessful *>(content);
-      if (td_->auth_manager_->is_bot()) {
+      if (td->auth_manager_->is_bot()) {
         return make_tl_object<td_api::messagePaymentSuccessfulBot>(
             m->invoice_message_id.get(), m->currency, m->total_amount, m->invoice_payload, m->shipping_option_id,
             get_order_info_object(m->order_info), m->telegram_payment_charge_id, m->provider_payment_charge_id);
@@ -9668,7 +9678,7 @@ tl_object_ptr<td_api::MessageContent> MessagesManager::get_message_content_objec
     case MessageContentType::PassportDataReceived: {
       const MessagePassportDataReceived *m = static_cast<const MessagePassportDataReceived *>(content);
       return make_tl_object<td_api::messagePassportDataReceived>(
-          get_encrypted_passport_element_object(td_->file_manager_.get(), m->values),
+          get_encrypted_passport_element_object(td->file_manager_.get(), m->values),
           get_encrypted_credentials_object(m->credentials));
     }
     default:
@@ -10486,7 +10496,7 @@ void MessagesManager::on_get_secret_message(SecretChatId secret_chat_id, UserId 
 
   message_info.flags = flags;
   message_info.content = get_secret_message_content(
-      std::move(message->message_), std::move(file), std::move(message->media_), std::move(message->entities_),
+      td_, std::move(message->message_), std::move(file), std::move(message->media_), std::move(message->entities_),
       message_info.dialog_id, pending_secret_message->load_data_multipromise);
 
   add_secret_message(std::move(pending_secret_message), std::move(lock_promise));
@@ -10654,6 +10664,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
         is_content_read = true;
       }
       message_info.content = get_message_content(
+          td_,
           get_message_text(std::move(message->message_), std::move(message->entities_),
                            message_info.forward_header ? message_info.forward_header->date_ : message_info.date,
                            "parse_telegram_api_message"),
@@ -10678,7 +10689,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       MessageId reply_to_message_id = MessageId(ServerMessageId(
           message->flags_ & MESSAGE_FLAG_IS_REPLY ? message->reply_to_msg_id_ : 0));  // TODO zero init in fetch
       message_info.content =
-          get_message_action_content(std::move(message->action_), message_info.dialog_id, reply_to_message_id);
+          get_action_message_content(td_, std::move(message->action_), message_info.dialog_id, reply_to_message_id);
       break;
     }
     default:
@@ -10782,7 +10793,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     LOG(ERROR) << "Wrong ttl = " << ttl << " received in " << message_id << " in " << dialog_id;
     ttl = 0;
   } else if (ttl > 0) {
-    ttl = max(ttl, get_message_content_duration(message_info.content.get()) + 1);
+    ttl = max(ttl, get_message_content_duration(message_info.content.get(), td_) + 1);
   }
 
   int32 views = message_info.views;
@@ -10836,7 +10847,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
       LOG(ERROR) << "Receive media group id " << message_info.media_album_id << " in " << message_id << " from "
                  << dialog_id << " with content "
                  << oneline(to_string(
-                        get_message_content_object(message->content.get(), message->date, is_content_secret)));
+                        get_message_content_object(message->content.get(), td_, message->date, is_content_secret)));
     } else {
       message->media_album_id = message_info.media_album_id;
     }
@@ -11205,6 +11216,7 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
   auto message_text = static_cast<const MessageText *>(m->content.get());
 
   auto new_content = get_message_content(
+      td_,
       get_message_text(message_text->text.text, std::move(entities), m->forward_info ? m->forward_info->date : m->date,
                        "on_update_sent_text_message"),
       std::move(message_media), dialog_id, true /*likely ignored*/, UserId() /*likely ignored*/, nullptr /*ignored*/);
@@ -15558,7 +15570,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
       message->ttl_expires_at != 0 ? max(message->ttl_expires_at - Time::now(), 1e-3) : message->ttl,
       td_->contacts_manager_->get_user_id_object(message->via_bot_user_id, "via_bot_user_id"),
       message->author_signature, message->views, message->media_album_id,
-      get_message_content_object(message->content.get(), message->date, message->is_content_secret),
+      get_message_content_object(message->content.get(), td_, message->date, message->is_content_secret),
       get_reply_markup_object(message->reply_markup));
 }
 
@@ -15740,19 +15752,19 @@ Result<Game> MessagesManager::process_input_message_game(
   return Game(bot_user_id, std::move(input_message_game->game_short_name_));
 }
 
-SecretInputMedia MessagesManager::get_secret_input_media(const MessageContent *content,
+SecretInputMedia MessagesManager::get_secret_input_media(const MessageContent *content, Td *td,
                                                          tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
                                                          BufferSlice thumbnail, int32 layer) {
   switch (content->get_type()) {
     case MessageContentType::Animation: {
       auto m = static_cast<const MessageAnimation *>(content);
-      return td_->animations_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text,
-                                                              std::move(thumbnail));
+      return td->animations_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text,
+                                                             std::move(thumbnail));
     }
     case MessageContentType::Audio: {
       auto m = static_cast<const MessageAudio *>(content);
-      return td_->audios_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text,
-                                                          std::move(thumbnail));
+      return td->audios_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text,
+                                                         std::move(thumbnail));
     }
     case MessageContentType::Contact: {
       auto m = static_cast<const MessageContact *>(content);
@@ -15760,8 +15772,8 @@ SecretInputMedia MessagesManager::get_secret_input_media(const MessageContent *c
     }
     case MessageContentType::Document: {
       auto m = static_cast<const MessageDocument *>(content);
-      return td_->documents_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text,
-                                                             std::move(thumbnail));
+      return td->documents_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text,
+                                                            std::move(thumbnail));
     }
     case MessageContentType::Location: {
       auto m = static_cast<const MessageLocation *>(content);
@@ -15769,18 +15781,18 @@ SecretInputMedia MessagesManager::get_secret_input_media(const MessageContent *c
     }
     case MessageContentType::Photo: {
       auto m = static_cast<const MessagePhoto *>(content);
-      return photo_get_secret_input_media(td_->file_manager_.get(), m->photo, std::move(input_file), m->caption.text,
+      return photo_get_secret_input_media(td->file_manager_.get(), m->photo, std::move(input_file), m->caption.text,
                                           std::move(thumbnail));
     }
     case MessageContentType::Sticker: {
       auto m = static_cast<const MessageSticker *>(content);
-      return td_->stickers_manager_->get_secret_input_media(m->file_id, std::move(input_file), std::move(thumbnail));
+      return td->stickers_manager_->get_secret_input_media(m->file_id, std::move(input_file), std::move(thumbnail));
     }
     case MessageContentType::Text: {
       CHECK(input_file == nullptr);
       CHECK(thumbnail.empty());
       auto m = static_cast<const MessageText *>(content);
-      return td_->web_pages_manager_->get_secret_input_media(m->web_page_id);
+      return td->web_pages_manager_->get_secret_input_media(m->web_page_id);
     }
     case MessageContentType::Venue: {
       auto m = static_cast<const MessageVenue *>(content);
@@ -15788,17 +15800,17 @@ SecretInputMedia MessagesManager::get_secret_input_media(const MessageContent *c
     }
     case MessageContentType::Video: {
       auto m = static_cast<const MessageVideo *>(content);
-      return td_->videos_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text,
-                                                          std::move(thumbnail));
+      return td->videos_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text,
+                                                         std::move(thumbnail));
     }
     case MessageContentType::VideoNote: {
       auto m = static_cast<const MessageVideoNote *>(content);
-      return td_->video_notes_manager_->get_secret_input_media(m->file_id, std::move(input_file), std::move(thumbnail),
-                                                               layer);
+      return td->video_notes_manager_->get_secret_input_media(m->file_id, std::move(input_file), std::move(thumbnail),
+                                                              layer);
     }
     case MessageContentType::VoiceNote: {
       auto m = static_cast<const MessageVoiceNote *>(content);
-      return td_->voice_notes_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text);
+      return td->voice_notes_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text);
     }
     case MessageContentType::LiveLocation:
     case MessageContentType::Game:
@@ -15834,7 +15846,7 @@ SecretInputMedia MessagesManager::get_secret_input_media(const MessageContent *c
   return SecretInputMedia{};
 }
 
-tl_object_ptr<telegram_api::invoice> MessagesManager::get_input_invoice(const Invoice &invoice) const {
+tl_object_ptr<telegram_api::invoice> MessagesManager::get_input_invoice(const Invoice &invoice) {
   int32 flags = 0;
   if (invoice.is_test) {
     flags |= telegram_api::invoice::TEST_MASK;
@@ -15861,18 +15873,16 @@ tl_object_ptr<telegram_api::invoice> MessagesManager::get_input_invoice(const In
     flags |= telegram_api::invoice::FLEXIBLE_MASK;
   }
 
-  vector<tl_object_ptr<telegram_api::labeledPrice>> prices;
-  prices.reserve(invoice.price_parts.size());
-  for (auto &price : invoice.price_parts) {
-    prices.push_back(make_tl_object<telegram_api::labeledPrice>(price.label, price.amount));
-  }
-
+  auto prices = transform(invoice.price_parts, [](const LabeledPricePart &price) {
+    return telegram_api::make_object<telegram_api::labeledPrice>(price.label, price.amount);
+  });
   return make_tl_object<telegram_api::invoice>(
       flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
       false /*ignored*/, false /*ignored*/, false /*ignored*/, invoice.currency, std::move(prices));
 }
 
-tl_object_ptr<telegram_api::inputWebDocument> MessagesManager::get_input_web_document(const Photo &photo) const {
+tl_object_ptr<telegram_api::inputWebDocument> MessagesManager::get_input_web_document(const FileManager *file_manager,
+                                                                                      const Photo &photo) {
   if (photo.id == -2) {
     return nullptr;
   }
@@ -15887,7 +15897,7 @@ tl_object_ptr<telegram_api::inputWebDocument> MessagesManager::get_input_web_doc
         make_tl_object<telegram_api::documentAttributeImageSize>(size.dimensions.width, size.dimensions.height));
   }
 
-  auto file_view = td_->file_manager_->get_file_view(size.file_id);
+  auto file_view = file_manager->get_file_view(size.file_id);
   CHECK(file_view.has_url());
 
   auto file_name = get_url_file_name(file_view.url());
@@ -15897,10 +15907,10 @@ tl_object_ptr<telegram_api::inputWebDocument> MessagesManager::get_input_web_doc
 }
 
 tl_object_ptr<telegram_api::inputMediaInvoice> MessagesManager::get_input_media_invoice(
-    const MessageInvoice *message_invoice) const {
+    const FileManager *file_manager, const MessageInvoice *message_invoice) {
   CHECK(message_invoice != nullptr);
   int32 flags = 0;
-  auto input_web_document = get_input_web_document(message_invoice->photo);
+  auto input_web_document = get_input_web_document(file_manager, message_invoice->photo);
   if (input_web_document != nullptr) {
     flags |= telegram_api::inputMediaInvoice::PHOTO_MASK;
   }
@@ -15915,16 +15925,16 @@ tl_object_ptr<telegram_api::inputMediaInvoice> MessagesManager::get_input_media_
 }
 
 tl_object_ptr<telegram_api::InputMedia> MessagesManager::get_input_media(
-    const MessageContent *content, tl_object_ptr<telegram_api::InputFile> input_file,
+    const MessageContent *content, Td *td, tl_object_ptr<telegram_api::InputFile> input_file,
     tl_object_ptr<telegram_api::InputFile> input_thumbnail, int32 ttl) {
   switch (content->get_type()) {
     case MessageContentType::Animation: {
       auto m = static_cast<const MessageAnimation *>(content);
-      return td_->animations_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail));
+      return td->animations_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail));
     }
     case MessageContentType::Audio: {
       auto m = static_cast<const MessageAudio *>(content);
-      return td_->audios_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail));
+      return td->audios_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail));
     }
     case MessageContentType::Contact: {
       auto m = static_cast<const MessageContact *>(content);
@@ -15932,15 +15942,15 @@ tl_object_ptr<telegram_api::InputMedia> MessagesManager::get_input_media(
     }
     case MessageContentType::Document: {
       auto m = static_cast<const MessageDocument *>(content);
-      return td_->documents_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail));
+      return td->documents_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail));
     }
     case MessageContentType::Game: {
       auto m = static_cast<const MessageGame *>(content);
-      return m->game.get_input_media_game(td_);
+      return m->game.get_input_media_game(td);
     }
     case MessageContentType::Invoice: {
       auto m = static_cast<const MessageInvoice *>(content);
-      return get_input_media_invoice(m);
+      return get_input_media_invoice(td->file_manager_.get(), m);
     }
     case MessageContentType::LiveLocation: {
       auto m = static_cast<const MessageLiveLocation *>(content);
@@ -15952,11 +15962,11 @@ tl_object_ptr<telegram_api::InputMedia> MessagesManager::get_input_media(
     }
     case MessageContentType::Photo: {
       auto m = static_cast<const MessagePhoto *>(content);
-      return photo_get_input_media(td_->file_manager_.get(), m->photo, std::move(input_file), ttl);
+      return photo_get_input_media(td->file_manager_.get(), m->photo, std::move(input_file), ttl);
     }
     case MessageContentType::Sticker: {
       auto m = static_cast<const MessageSticker *>(content);
-      return td_->stickers_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail));
+      return td->stickers_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail));
     }
     case MessageContentType::Venue: {
       auto m = static_cast<const MessageVenue *>(content);
@@ -15964,15 +15974,15 @@ tl_object_ptr<telegram_api::InputMedia> MessagesManager::get_input_media(
     }
     case MessageContentType::Video: {
       auto m = static_cast<const MessageVideo *>(content);
-      return td_->videos_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail), ttl);
+      return td->videos_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail), ttl);
     }
     case MessageContentType::VideoNote: {
       auto m = static_cast<const MessageVideoNote *>(content);
-      return td_->video_notes_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail));
+      return td->video_notes_manager_->get_input_media(m->file_id, std::move(input_file), std::move(input_thumbnail));
     }
     case MessageContentType::VoiceNote: {
       auto m = static_cast<const MessageVoiceNote *>(content);
-      return td_->voice_notes_manager_->get_input_media(m->file_id, std::move(input_file));
+      return td->voice_notes_manager_->get_input_media(m->file_id, std::move(input_file));
     }
     case MessageContentType::Text:
     case MessageContentType::Unsupported:
@@ -16007,19 +16017,19 @@ tl_object_ptr<telegram_api::InputMedia> MessagesManager::get_input_media(
   return nullptr;
 }
 
-void MessagesManager::delete_message_content_thumbnail(MessageContent *content) {
+void MessagesManager::delete_message_content_thumbnail(MessageContent *content, Td *td) {
   switch (content->get_type()) {
     case MessageContentType::Animation: {
       auto m = static_cast<MessageAnimation *>(content);
-      return td_->animations_manager_->delete_animation_thumbnail(m->file_id);
+      return td->animations_manager_->delete_animation_thumbnail(m->file_id);
     }
     case MessageContentType::Audio: {
       auto m = static_cast<MessageAudio *>(content);
-      return td_->audios_manager_->delete_audio_thumbnail(m->file_id);
+      return td->audios_manager_->delete_audio_thumbnail(m->file_id);
     }
     case MessageContentType::Document: {
       auto m = static_cast<MessageDocument *>(content);
-      return td_->documents_manager_->delete_document_thumbnail(m->file_id);
+      return td->documents_manager_->delete_document_thumbnail(m->file_id);
     }
     case MessageContentType::Photo: {
       auto m = static_cast<MessagePhoto *>(content);
@@ -16027,15 +16037,15 @@ void MessagesManager::delete_message_content_thumbnail(MessageContent *content) 
     }
     case MessageContentType::Sticker: {
       auto m = static_cast<MessageSticker *>(content);
-      return td_->stickers_manager_->delete_sticker_thumbnail(m->file_id);
+      return td->stickers_manager_->delete_sticker_thumbnail(m->file_id);
     }
     case MessageContentType::Video: {
       auto m = static_cast<MessageVideo *>(content);
-      return td_->videos_manager_->delete_video_thumbnail(m->file_id);
+      return td->videos_manager_->delete_video_thumbnail(m->file_id);
     }
     case MessageContentType::VideoNote: {
       auto m = static_cast<MessageVideoNote *>(content);
-      return td_->video_notes_manager_->delete_video_note_thumbnail(m->file_id);
+      return td->video_notes_manager_->delete_video_note_thumbnail(m->file_id);
     }
     case MessageContentType::Contact:
     case MessageContentType::Game:
@@ -16426,28 +16436,28 @@ FormattedText MessagesManager::get_message_content_caption(const MessageContent 
   }
 }
 
-int32 MessagesManager::get_message_content_duration(const MessageContent *content) const {
+int32 MessagesManager::get_message_content_duration(const MessageContent *content, const Td *td) {
   CHECK(content != nullptr);
   switch (content->get_type()) {
     case MessageContentType::Animation: {
       auto animation_file_id = static_cast<const MessageAnimation *>(content)->file_id;
-      return td_->animations_manager_->get_animation_duration(animation_file_id);
+      return td->animations_manager_->get_animation_duration(animation_file_id);
     }
     case MessageContentType::Audio: {
       auto audio_file_id = static_cast<const MessageAudio *>(content)->file_id;
-      return td_->audios_manager_->get_audio_duration(audio_file_id);
+      return td->audios_manager_->get_audio_duration(audio_file_id);
     }
     case MessageContentType::Video: {
       auto video_file_id = static_cast<const MessageVideo *>(content)->file_id;
-      return td_->videos_manager_->get_video_duration(video_file_id);
+      return td->videos_manager_->get_video_duration(video_file_id);
     }
     case MessageContentType::VideoNote: {
       auto video_note_file_id = static_cast<const MessageVideoNote *>(content)->file_id;
-      return td_->video_notes_manager_->get_video_note_duration(video_note_file_id);
+      return td->video_notes_manager_->get_video_note_duration(video_note_file_id);
     }
     case MessageContentType::VoiceNote: {
       auto voice_file_id = static_cast<const MessageVoiceNote *>(content)->file_id;
-      return td_->voice_notes_manager_->get_voice_note_duration(voice_file_id);
+      return td->voice_notes_manager_->get_voice_note_duration(voice_file_id);
     }
     default:
       return 0;
@@ -16512,15 +16522,15 @@ void MessagesManager::update_message_content_file_id_remote(MessageContent *cont
   }
 }
 
-FileId MessagesManager::get_message_content_thumbnail_file_id(const MessageContent *content) const {
+FileId MessagesManager::get_message_content_thumbnail_file_id(const MessageContent *content, const Td *td) {
   switch (content->get_type()) {
     case MessageContentType::Animation:
-      return td_->animations_manager_->get_animation_thumbnail_file_id(
+      return td->animations_manager_->get_animation_thumbnail_file_id(
           static_cast<const MessageAnimation *>(content)->file_id);
     case MessageContentType::Audio:
-      return td_->audios_manager_->get_audio_thumbnail_file_id(static_cast<const MessageAudio *>(content)->file_id);
+      return td->audios_manager_->get_audio_thumbnail_file_id(static_cast<const MessageAudio *>(content)->file_id);
     case MessageContentType::Document:
-      return td_->documents_manager_->get_document_thumbnail_file_id(
+      return td->documents_manager_->get_document_thumbnail_file_id(
           static_cast<const MessageDocument *>(content)->file_id);
     case MessageContentType::Photo:
       for (auto &size : static_cast<const MessagePhoto *>(content)->photo.photos) {
@@ -16530,12 +16540,12 @@ FileId MessagesManager::get_message_content_thumbnail_file_id(const MessageConte
       }
       break;
     case MessageContentType::Sticker:
-      return td_->stickers_manager_->get_sticker_thumbnail_file_id(
+      return td->stickers_manager_->get_sticker_thumbnail_file_id(
           static_cast<const MessageSticker *>(content)->file_id);
     case MessageContentType::Video:
-      return td_->videos_manager_->get_video_thumbnail_file_id(static_cast<const MessageVideo *>(content)->file_id);
+      return td->videos_manager_->get_video_thumbnail_file_id(static_cast<const MessageVideo *>(content)->file_id);
     case MessageContentType::VideoNote:
-      return td_->video_notes_manager_->get_video_note_thumbnail_file_id(
+      return td->video_notes_manager_->get_video_note_thumbnail_file_id(
           static_cast<const MessageVideoNote *>(content)->file_id);
     case MessageContentType::VoiceNote:
       return FileId();
@@ -16564,7 +16574,7 @@ vector<FileId> MessagesManager::get_message_file_ids(const Message *message) con
       if (file_id.is_valid()) {
         result.push_back(file_id);
       }
-      FileId thumbnail_file_id = get_message_content_thumbnail_file_id(content);
+      FileId thumbnail_file_id = get_message_content_thumbnail_file_id(content, td_);
       if (file_id.is_valid()) {
         result.push_back(thumbnail_file_id);
       }
@@ -16581,7 +16591,7 @@ void MessagesManager::cancel_upload_message_content_files(const MessageContent *
     LOG(INFO) << "Cancel upload file " << file_id;
     td_->file_manager_->upload(file_id, nullptr, 0, 0);
   }
-  file_id = get_message_content_thumbnail_file_id(content);
+  file_id = get_message_content_thumbnail_file_id(content, td_);
   if (being_uploaded_thumbnails_.erase(file_id)) {
     LOG(INFO) << "Cancel upload thumbnail file " << file_id;
     td_->file_manager_->upload(file_id, nullptr, 0, 0);
@@ -16914,7 +16924,7 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId re
   bool need_update_dialog_pos = false;
   Message *m = get_message_to_send(
       d, get_reply_to_message_id(d, reply_to_message_id), disable_notification, from_background,
-      dup_message_content(dialog_id, message_content.content.get(), false), &need_update_dialog_pos);
+      dup_message_content(td_, dialog_id, message_content.content.get(), false), &need_update_dialog_pos);
   m->reply_markup = std::move(message_reply_markup);
   m->via_bot_user_id = message_content.via_bot_user_id;
   m->disable_web_page_preview = message_content.disable_web_page_preview;
@@ -17408,7 +17418,7 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
   bool need_update_dialog_pos = false;
   for (auto &message_content : message_contents) {
     Message *m = get_message_to_send(d, reply_to_message_id, disable_notification, from_background,
-                                     dup_message_content(dialog_id, message_content.first.get(), false),
+                                     dup_message_content(td_, dialog_id, message_content.first.get(), false),
                                      &need_update_dialog_pos);
     result.push_back(m->message_id);
     auto ttl = message_content.second;
@@ -17469,7 +17479,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, Message *m, vector<int
       auto layer = td_->contacts_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
       send_closure(td_->create_net_actor<SendSecretMessageActor>(), &SendSecretMessageActor::send, dialog_id,
                    m->reply_to_random_id, m->ttl, message_text->text.text,
-                   get_secret_input_media(content, nullptr, BufferSlice(), layer),
+                   get_secret_input_media(content, td_, nullptr, BufferSlice(), layer),
                    get_input_secret_message_entities(message_text->text.entities), m->via_bot_user_id,
                    m->media_album_id, random_id);
     } else {
@@ -17484,10 +17494,10 @@ void MessagesManager::do_send_message(DialogId dialog_id, Message *m, vector<int
 
   FileId file_id = get_message_content_file_id(content);
   FileView file_view = td_->file_manager_->get_file_view(file_id);
-  FileId thumbnail_file_id = get_message_content_thumbnail_file_id(content);
+  FileId thumbnail_file_id = get_message_content_thumbnail_file_id(content, td_);
   if (is_secret) {
     auto layer = td_->contacts_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
-    auto secret_input_media = get_secret_input_media(content, nullptr, BufferSlice(), layer);
+    auto secret_input_media = get_secret_input_media(content, td_, nullptr, BufferSlice(), layer);
     if (secret_input_media.empty()) {
       CHECK(file_view.is_encrypted_secret());
       CHECK(file_id.is_valid());
@@ -17499,7 +17509,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, Message *m, vector<int
       on_secret_message_media_uploaded(dialog_id, m, std::move(secret_input_media), FileId(), FileId());
     }
   } else {
-    auto input_media = get_input_media(content, nullptr, nullptr, m->ttl);
+    auto input_media = get_input_media(content, td_, nullptr, nullptr, m->ttl);
     if (input_media == nullptr) {
       if (content_type == MessageContentType::Photo) {
         thumbnail_file_id = FileId();
@@ -17656,12 +17666,12 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
     return;  // the message should be deleted soon
   }
 
-  auto content = get_message_content(get_message_content_caption(m->content.get()), std::move(media), dialog_id, false,
-                                     UserId(), nullptr);
+  auto content = get_message_content(td_, get_message_content_caption(m->content.get()), std::move(media), dialog_id,
+                                     false, UserId(), nullptr);
 
   update_message_content(dialog_id, m, std::move(content), true, true);
 
-  auto input_media = get_input_media(m->content.get(), nullptr, nullptr, m->ttl);
+  auto input_media = get_input_media(m->content.get(), td_, nullptr, nullptr, m->ttl);
   Status result;
   if (input_media == nullptr) {
     result = Status::Error(400, "Failed to upload file");
@@ -17797,7 +17807,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
 
     random_ids.push_back(begin_send_message(dialog_id, m));
     auto caption = get_message_content_caption(m->content.get());
-    auto input_media = get_input_media(m->content.get(), nullptr, nullptr, m->ttl);
+    auto input_media = get_input_media(m->content.get(), td_, nullptr, nullptr, m->ttl);
     auto entities = get_input_message_entities(td_->contacts_manager_.get(), caption.entities, "do_send_message_group");
     int32 input_single_media_flags = 0;
     if (!entities.empty()) {
@@ -18098,7 +18108,7 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
   bool need_update_dialog_pos = false;
   Message *m = get_message_to_send(
       d, get_reply_to_message_id(d, reply_to_message_id), disable_notification, from_background,
-      dup_message_content(dialog_id, content->message_content.get(), false), &need_update_dialog_pos);
+      dup_message_content(td_, dialog_id, content->message_content.get(), false), &need_update_dialog_pos);
   m->via_bot_user_id = td_->inline_queries_manager_->get_inline_bot_user_id(query_id);
   if (content->message_reply_markup != nullptr && !to_secret) {
     m->reply_markup = make_unique<ReplyMarkup>(*content->message_reply_markup);
@@ -18567,7 +18577,7 @@ void MessagesManager::edit_message_media(FullMessageId full_message_id,
 
   cancel_edit_message_media(dialog_id, m);
 
-  m->edited_content = dup_message_content(dialog_id, content.content.get(), false);
+  m->edited_content = dup_message_content(td_, dialog_id, content.content.get(), false);
   m->edited_reply_markup = r_new_reply_markup.move_as_ok();
   m->edit_generation = ++current_message_edit_generation_;
   m->edit_promise = std::move(promise);
@@ -18781,7 +18791,7 @@ void MessagesManager::edit_inline_message_media(const string &inline_message_id,
     return promise.set_error(Status::Error(400, "Wrong inline message identifier specified"));
   }
 
-  auto input_media = get_input_media(content.content.get(), nullptr, nullptr, 0);
+  auto input_media = get_input_media(content.content.get(), td_, nullptr, nullptr, 0);
   if (input_media == nullptr) {
     return promise.set_error(Status::Error(400, "Wrong message content specified"));
   }
@@ -19390,7 +19400,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
       continue;
     }
 
-    unique_ptr<MessageContent> content = dup_message_content(to_dialog_id, forwarded_message->content.get(), true);
+    unique_ptr<MessageContent> content = dup_message_content(td_, to_dialog_id, forwarded_message->content.get(), true);
     if (content == nullptr) {
       LOG(INFO) << "Can't forward " << message_id;
       continue;
@@ -19901,10 +19911,10 @@ void MessagesManager::send_update_message_content(DialogId dialog_id, MessageId 
   LOG(INFO) << "Send updateMessageContent for " << message_id << " in " << dialog_id << " from " << source;
   CHECK(have_dialog(dialog_id)) << "Send updateMessageContent in unknown " << dialog_id << " from " << source
                                 << " with load count " << loaded_dialogs_.count(dialog_id);
-  send_closure(
-      G()->td(), &Td::send_update,
-      make_tl_object<td_api::updateMessageContent>(
-          dialog_id.get(), message_id.get(), get_message_content_object(content, message_date, is_content_secret)));
+  send_closure(G()->td(), &Td::send_update,
+               make_tl_object<td_api::updateMessageContent>(
+                   dialog_id.get(), message_id.get(),
+                   get_message_content_object(content, td_, message_date, is_content_secret)));
 }
 
 void MessagesManager::send_update_message_edited(DialogId dialog_id, const Message *m) {
@@ -21331,7 +21341,7 @@ void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {
   auto file_id = get_message_content_file_id(m->content.get());
   if (!file_id.is_valid()) {
     LOG(ERROR) << "Have no file in "
-               << to_string(get_message_content_object(m->content.get(), m->date, m->is_content_secret));
+               << to_string(get_message_content_object(m->content.get(), td_, m->date, m->is_content_secret));
     return;
   }
   auto file_view = td_->file_manager_->get_file_view(file_id);
@@ -22314,28 +22324,27 @@ ScopeNotificationSettings MessagesManager::get_scope_notification_settings(
   return {mute_until, std::move(sound), show_preview};
 }
 
-unique_ptr<MessageContent> MessagesManager::get_secret_message_document(
-    tl_object_ptr<telegram_api::encryptedFile> file,
+unique_ptr<MessageContent> MessagesManager::get_secret_document_message_content(
+    Td *td, tl_object_ptr<telegram_api::encryptedFile> file,
     tl_object_ptr<secret_api::decryptedMessageMediaDocument> &&document,
     vector<tl_object_ptr<telegram_api::DocumentAttribute>> &&attributes, DialogId owner_dialog_id,
-    FormattedText &&caption, bool is_opened) const {
-  return get_message_document(td_->documents_manager_->on_get_document(
-                                  {std::move(file), std::move(document), std::move(attributes)}, owner_dialog_id),
-                              std::move(caption), is_opened);
-}
-
-unique_ptr<MessageContent> MessagesManager::get_message_document(tl_object_ptr<telegram_api::document> &&document,
-                                                                 DialogId owner_dialog_id, FormattedText &&caption,
-                                                                 bool is_opened,
-                                                                 MultiPromiseActor *load_data_multipromise_ptr) const {
-  return get_message_document(
-      td_->documents_manager_->on_get_document(std::move(document), owner_dialog_id, load_data_multipromise_ptr),
+    FormattedText &&caption, bool is_opened) {
+  return get_document_message_content(
+      td->documents_manager_->on_get_document({std::move(file), std::move(document), std::move(attributes)},
+                                              owner_dialog_id),
       std::move(caption), is_opened);
 }
 
-unique_ptr<MessageContent> MessagesManager::get_message_document(
-    std::pair<DocumentsManager::DocumentType, FileId> &&parsed_document, FormattedText &&caption,
-    bool is_opened) const {
+unique_ptr<MessageContent> MessagesManager::get_document_message_content(
+    Td *td, tl_object_ptr<telegram_api::document> &&document, DialogId owner_dialog_id, FormattedText &&caption,
+    bool is_opened, MultiPromiseActor *load_data_multipromise_ptr) {
+  return get_document_message_content(
+      td->documents_manager_->on_get_document(std::move(document), owner_dialog_id, load_data_multipromise_ptr),
+      std::move(caption), is_opened);
+}
+
+unique_ptr<MessageContent> MessagesManager::get_document_message_content(
+    std::pair<DocumentsManager::DocumentType, FileId> &&parsed_document, FormattedText &&caption, bool is_opened) {
   auto document_type = parsed_document.first;
   auto file_id = parsed_document.second;
   if (document_type != DocumentsManager::DocumentType::Unknown) {
@@ -22362,16 +22371,6 @@ unique_ptr<MessageContent> MessagesManager::get_message_document(
       UNREACHABLE();
       return nullptr;
   }
-}
-
-unique_ptr<MessagePhoto> MessagesManager::get_message_photo(tl_object_ptr<telegram_api::photo> &&photo,
-                                                            DialogId owner_dialog_id, FormattedText &&caption) const {
-  auto m = make_unique<MessagePhoto>();
-
-  m->photo = get_photo(td_->file_manager_.get(), std::move(photo), owner_dialog_id);
-  m->caption = std::move(caption);
-
-  return m;
 }
 
 FormattedText MessagesManager::get_secret_media_caption(string &&message_text, string &&message_caption) {
@@ -22578,25 +22577,11 @@ static tl_object_ptr<ToT> secret_to_telegram(FromT &from) {
   return res;
 }
 
-Photo MessagesManager::get_web_document_photo(tl_object_ptr<telegram_api::WebDocument> web_document,
-                                              DialogId owner_dialog_id) const {
-  PhotoSize s =
-      get_web_document_photo_size(td_->file_manager_.get(), FileType::Photo, owner_dialog_id, std::move(web_document));
-  Photo photo;
-  if (!s.file_id.is_valid()) {
-    photo.id = -2;
-  } else {
-    photo.id = 0;
-    photo.photos.push_back(s);
-  }
-  return photo;
-}
-
 unique_ptr<MessageContent> MessagesManager::get_secret_message_content(
-    string message_text, tl_object_ptr<telegram_api::encryptedFile> file,
+    Td *td, string message_text, tl_object_ptr<telegram_api::encryptedFile> file,
     tl_object_ptr<secret_api::DecryptedMessageMedia> &&media,
     vector<tl_object_ptr<secret_api::MessageEntity>> &&secret_entities, DialogId owner_dialog_id,
-    MultiPromiseActor &load_data_multipromise) const {
+    MultiPromiseActor &load_data_multipromise) {
   auto entities = get_message_entities(std::move(secret_entities));
   auto status = fix_formatted_text(message_text, entities, true, false, true, false);
   if (status.is_error()) {
@@ -22708,11 +22693,11 @@ unique_ptr<MessageContent> MessagesManager::get_secret_message_content(
       }
       auto url = r_http_url.ok().get_url();
 
-      auto web_page_id = td_->web_pages_manager_->get_web_page_by_url(url, load_data_multipromise.get_promise());
+      auto web_page_id = td->web_pages_manager_->get_web_page_by_url(url, load_data_multipromise.get_promise());
       auto result = make_unique<MessageText>(FormattedText{std::move(message_text), std::move(entities)}, web_page_id);
       if (!result->web_page_id.is_valid()) {
         load_data_multipromise.add_promise(
-            PromiseCreator::lambda([td = td_, url, &web_page_id = result->web_page_id](Result<Unit> result) {
+            PromiseCreator::lambda([td, url, &web_page_id = result->web_page_id](Result<Unit> result) {
               if (result.is_ok()) {
                 web_page_id = td->web_pages_manager_->get_web_page_by_url(url);
               }
@@ -22723,9 +22708,9 @@ unique_ptr<MessageContent> MessagesManager::get_secret_message_content(
     case secret_api::decryptedMessageMediaExternalDocument::ID: {
       auto external_document = move_tl_object_as<secret_api::decryptedMessageMediaExternalDocument>(media);
       auto document = secret_to_telegram_document(*external_document);
-      return get_message_document(std::move(document), owner_dialog_id,
-                                  FormattedText{std::move(message_text), std::move(entities)}, false,
-                                  &load_data_multipromise);
+      return get_document_message_content(td, std::move(document), owner_dialog_id,
+                                          FormattedText{std::move(message_text), std::move(entities)}, false,
+                                          &load_data_multipromise);
     }
   }
   if (file == nullptr && !is_media_empty) {
@@ -22742,7 +22727,7 @@ unique_ptr<MessageContent> MessagesManager::get_secret_message_content(
         message_photo->caption_.clear();
       }
       return make_unique<MessagePhoto>(
-          get_photo(td_->file_manager_.get(), std::move(file), std::move(message_photo), owner_dialog_id),
+          get_photo(td->file_manager_.get(), std::move(file), std::move(message_photo), owner_dialog_id),
           get_secret_media_caption(std::move(message_text), std::move(message_photo->caption_)));
     }
     case secret_api::decryptedMessageMediaDocument::ID: {
@@ -22755,8 +22740,8 @@ unique_ptr<MessageContent> MessagesManager::get_secret_message_content(
       }
       auto attributes = secret_to_telegram(message_document->attributes_);
       message_document->attributes_.clear();
-      return get_secret_message_document(
-          std::move(file), std::move(message_document), std::move(attributes), owner_dialog_id,
+      return get_secret_document_message_content(
+          td, std::move(file), std::move(message_document), std::move(attributes), owner_dialog_id,
           get_secret_media_caption(std::move(message_text), std::move(message_document->caption_)), false);
     }
     default:
@@ -22765,10 +22750,10 @@ unique_ptr<MessageContent> MessagesManager::get_secret_message_content(
   }
 }
 
-unique_ptr<MessageContent> MessagesManager::get_message_content(FormattedText message,
+unique_ptr<MessageContent> MessagesManager::get_message_content(Td *td, FormattedText message,
                                                                 tl_object_ptr<telegram_api::MessageMedia> &&media,
                                                                 DialogId owner_dialog_id, bool is_content_read,
-                                                                UserId via_bot_user_id, int32 *ttl) const {
+                                                                UserId via_bot_user_id, int32 *ttl) {
   if (media == nullptr) {
     return make_unique<MessageText>(std::move(message), WebPageId());
   }
@@ -22806,7 +22791,9 @@ unique_ptr<MessageContent> MessagesManager::get_message_content(FormattedText me
       if (ttl != nullptr && (message_photo->flags_ & telegram_api::messageMediaPhoto::TTL_SECONDS_MASK) != 0) {
         *ttl = message_photo->ttl_seconds_;
       }
-      return get_message_photo(move_tl_object_as<telegram_api::photo>(photo_ptr), owner_dialog_id, std::move(message));
+      return make_unique<MessagePhoto>(
+          get_photo(td->file_manager_.get(), move_tl_object_as<telegram_api::photo>(photo_ptr), owner_dialog_id),
+          std::move(message));
     }
     case telegram_api::messageMediaGeo::ID: {
       auto message_geo_point = move_tl_object_as<telegram_api::messageMediaGeo>(media);
@@ -22848,8 +22835,8 @@ unique_ptr<MessageContent> MessagesManager::get_message_content(FormattedText me
     case telegram_api::messageMediaContact::ID: {
       auto message_contact = move_tl_object_as<telegram_api::messageMediaContact>(media);
       if (message_contact->user_id_ != 0) {
-        td_->contacts_manager_->get_user_id_object(UserId(message_contact->user_id_),
-                                                   "messageMediaContact");  // to ensure updateUser
+        td->contacts_manager_->get_user_id_object(UserId(message_contact->user_id_),
+                                                  "messageMediaContact");  // to ensure updateUser
       }
       return make_unique<MessageContact>(Contact(
           std::move(message_contact->phone_number_), std::move(message_contact->first_name_),
@@ -22877,13 +22864,13 @@ unique_ptr<MessageContent> MessagesManager::get_message_content(FormattedText me
       if (ttl != nullptr && (message_document->flags_ & telegram_api::messageMediaDocument::TTL_SECONDS_MASK) != 0) {
         *ttl = message_document->ttl_seconds_;
       }
-      return get_message_document(move_tl_object_as<telegram_api::document>(document_ptr), owner_dialog_id,
-                                  std::move(message), is_content_read, nullptr);
+      return get_document_message_content(td, move_tl_object_as<telegram_api::document>(document_ptr), owner_dialog_id,
+                                          std::move(message), is_content_read, nullptr);
     }
     case telegram_api::messageMediaGame::ID: {
       auto message_game = move_tl_object_as<telegram_api::messageMediaGame>(media);
 
-      auto m = make_unique<MessageGame>(Game(td_, std::move(message_game->game_), owner_dialog_id));
+      auto m = make_unique<MessageGame>(Game(td, std::move(message_game->game_), owner_dialog_id));
       if (m->game.empty()) {
         break;
       }
@@ -22909,13 +22896,13 @@ unique_ptr<MessageContent> MessagesManager::get_message_content(FormattedText me
       bool is_test = (message_invoice->flags_ & telegram_api::messageMediaInvoice::TEST_MASK) != 0;
       return td::make_unique<MessageInvoice>(
           std::move(message_invoice->title_), std::move(message_invoice->description_),
-          get_web_document_photo(std::move(message_invoice->photo_), owner_dialog_id),
+          get_web_document_photo(td->file_manager_.get(), std::move(message_invoice->photo_), owner_dialog_id),
           std::move(message_invoice->start_param_), message_invoice->total_amount_,
           std::move(message_invoice->currency_), is_test, need_shipping_address, receipt_message_id);
     }
     case telegram_api::messageMediaWebPage::ID: {
       auto media_web_page = move_tl_object_as<telegram_api::messageMediaWebPage>(media);
-      auto web_page_id = td_->web_pages_manager_->on_get_web_page(std::move(media_web_page->webpage_), owner_dialog_id);
+      auto web_page_id = td->web_pages_manager_->on_get_web_page(std::move(media_web_page->webpage_), owner_dialog_id);
       return make_unique<MessageText>(std::move(message), web_page_id);
     }
 
@@ -22930,12 +22917,12 @@ unique_ptr<MessageContent> MessagesManager::get_message_content(FormattedText me
   return make_unique<MessageText>(std::move(message), WebPageId());
 }
 
-unique_ptr<MessageContent> MessagesManager::dup_message_content(DialogId dialog_id, const MessageContent *content,
-                                                                bool for_forward) {
+unique_ptr<MessageContent> MessagesManager::dup_message_content(Td *td, DialogId dialog_id,
+                                                                const MessageContent *content, bool for_forward) {
   CHECK(content != nullptr);
 
   bool to_secret = dialog_id.get_type() == DialogType::SecretChat;
-  auto fix_file_id = [dialog_id, to_secret, file_manager = td_->file_manager_.get()](FileId file_id) {
+  auto fix_file_id = [dialog_id, to_secret, file_manager = td->file_manager_.get()](FileId file_id) {
     auto file_view = file_manager->get_file_view(file_id);
     if (to_secret && !file_view.is_encrypted_secret()) {
       auto download_file_id = file_manager->dup_file_id(file_id);
@@ -22949,24 +22936,24 @@ unique_ptr<MessageContent> MessagesManager::dup_message_content(DialogId dialog_
 
   FileId thumbnail_file_id;
   if (to_secret) {
-    thumbnail_file_id = get_message_content_thumbnail_file_id(content);
+    thumbnail_file_id = get_message_content_thumbnail_file_id(content, td);
   }
   switch (content->get_type()) {
     case MessageContentType::Animation: {
       auto result = make_unique<MessageAnimation>(*static_cast<const MessageAnimation *>(content));
-      if (td_->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
+      if (td->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
         return std::move(result);
       }
-      result->file_id = td_->animations_manager_->dup_animation(fix_file_id(result->file_id), result->file_id);
+      result->file_id = td->animations_manager_->dup_animation(fix_file_id(result->file_id), result->file_id);
       CHECK(result->file_id.is_valid());
       return std::move(result);
     }
     case MessageContentType::Audio: {
       auto result = make_unique<MessageAudio>(*static_cast<const MessageAudio *>(content));
-      if (td_->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
+      if (td->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
         return std::move(result);
       }
-      result->file_id = td_->audios_manager_->dup_audio(fix_file_id(result->file_id), result->file_id);
+      result->file_id = td->audios_manager_->dup_audio(fix_file_id(result->file_id), result->file_id);
       CHECK(result->file_id.is_valid());
       return std::move(result);
     }
@@ -22974,10 +22961,10 @@ unique_ptr<MessageContent> MessagesManager::dup_message_content(DialogId dialog_
       return make_unique<MessageContact>(*static_cast<const MessageContact *>(content));
     case MessageContentType::Document: {
       auto result = make_unique<MessageDocument>(*static_cast<const MessageDocument *>(content));
-      if (td_->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
+      if (td->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
         return std::move(result);
       }
-      result->file_id = td_->documents_manager_->dup_document(fix_file_id(result->file_id), result->file_id);
+      result->file_id = td->documents_manager_->dup_document(fix_file_id(result->file_id), result->file_id);
       CHECK(result->file_id.is_valid());
       return std::move(result);
     }
@@ -23040,22 +23027,22 @@ unique_ptr<MessageContent> MessagesManager::dup_message_content(DialogId dialog_
       photo.type = 'i';
       result->photo.photos.push_back(std::move(photo));
 
-      if (photo_has_input_media(td_->file_manager_.get(), result->photo, to_secret)) {
+      if (photo_has_input_media(td->file_manager_.get(), result->photo, to_secret)) {
         return std::move(result);
       }
 
       result->photo.photos.back().file_id = fix_file_id(result->photo.photos.back().file_id);
       if (thumbnail.type != 0) {
-        result->photo.photos[0].file_id = td_->file_manager_->dup_file_id(result->photo.photos[0].file_id);
+        result->photo.photos[0].file_id = td->file_manager_->dup_file_id(result->photo.photos[0].file_id);
       }
       return std::move(result);
     }
     case MessageContentType::Sticker: {
       auto result = make_unique<MessageSticker>(*static_cast<const MessageSticker *>(content));
-      if (td_->stickers_manager_->has_input_media(result->file_id, to_secret)) {
+      if (td->stickers_manager_->has_input_media(result->file_id, to_secret)) {
         return std::move(result);
       }
-      result->file_id = td_->stickers_manager_->dup_sticker(fix_file_id(result->file_id), result->file_id);
+      result->file_id = td->stickers_manager_->dup_sticker(fix_file_id(result->file_id), result->file_id);
       CHECK(result->file_id.is_valid());
       return std::move(result);
     }
@@ -23065,30 +23052,30 @@ unique_ptr<MessageContent> MessagesManager::dup_message_content(DialogId dialog_
       return make_unique<MessageVenue>(*static_cast<const MessageVenue *>(content));
     case MessageContentType::Video: {
       auto result = make_unique<MessageVideo>(*static_cast<const MessageVideo *>(content));
-      if (td_->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
+      if (td->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
         return std::move(result);
       }
-      result->file_id = td_->videos_manager_->dup_video(fix_file_id(result->file_id), result->file_id);
+      result->file_id = td->videos_manager_->dup_video(fix_file_id(result->file_id), result->file_id);
       CHECK(result->file_id.is_valid());
       return std::move(result);
     }
     case MessageContentType::VideoNote: {
       auto result = make_unique<MessageVideoNote>(*static_cast<const MessageVideoNote *>(content));
       result->is_viewed = false;
-      if (td_->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
+      if (td->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
         return std::move(result);
       }
-      result->file_id = td_->video_notes_manager_->dup_video_note(fix_file_id(result->file_id), result->file_id);
+      result->file_id = td->video_notes_manager_->dup_video_note(fix_file_id(result->file_id), result->file_id);
       CHECK(result->file_id.is_valid());
       return std::move(result);
     }
     case MessageContentType::VoiceNote: {
       auto result = make_unique<MessageVoiceNote>(*static_cast<const MessageVoiceNote *>(content));
       result->is_listened = false;
-      if (td_->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
+      if (td->documents_manager_->has_input_media(result->file_id, thumbnail_file_id, to_secret)) {
         return std::move(result);
       }
-      result->file_id = td_->voice_notes_manager_->dup_voice_note(fix_file_id(result->file_id), result->file_id);
+      result->file_id = td->voice_notes_manager_->dup_voice_note(fix_file_id(result->file_id), result->file_id);
       CHECK(result->file_id.is_valid());
       return std::move(result);
     }
@@ -23125,9 +23112,9 @@ unique_ptr<MessageContent> MessagesManager::dup_message_content(DialogId dialog_
   return nullptr;
 }
 
-unique_ptr<MessageContent> MessagesManager::get_message_action_content(
-    tl_object_ptr<telegram_api::MessageAction> &&action, DialogId owner_dialog_id,
-    MessageId reply_to_message_id) const {
+unique_ptr<MessageContent> MessagesManager::get_action_message_content(
+    Td *td, tl_object_ptr<telegram_api::MessageAction> &&action, DialogId owner_dialog_id,
+    MessageId reply_to_message_id) {
   CHECK(action != nullptr);
 
   switch (action->get_id()) {
@@ -23165,7 +23152,7 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
       CHECK(photo_id == telegram_api::photo::ID);
 
       return make_unique<MessageChatChangePhoto>(
-          get_photo(td_->file_manager_.get(), move_tl_object_as<telegram_api::photo>(photo_ptr), owner_dialog_id));
+          get_photo(td->file_manager_.get(), move_tl_object_as<telegram_api::photo>(photo_ptr), owner_dialog_id));
     }
     case telegram_api::messageActionChatDeletePhoto::ID: {
       return make_unique<MessageChatDeletePhoto>();
@@ -23236,7 +23223,7 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
     }
     case telegram_api::messageActionGameScore::ID: {
       if (!reply_to_message_id.is_valid()) {
-        LOG_IF(ERROR, !td_->auth_manager_->is_bot())
+        LOG_IF(ERROR, !td->auth_manager_->is_bot())
             << "Receive game score with " << reply_to_message_id << " in " << owner_dialog_id;
         reply_to_message_id = MessageId();
       }
@@ -23250,7 +23237,7 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
       return make_unique<MessageCall>(phone_call->call_id_, duration, get_call_discard_reason(phone_call->reason_));
     }
     case telegram_api::messageActionPaymentSent::ID: {
-      LOG_IF(ERROR, td_->auth_manager_->is_bot()) << "Receive MessageActionPaymentSent in " << owner_dialog_id;
+      LOG_IF(ERROR, td->auth_manager_->is_bot()) << "Receive MessageActionPaymentSent in " << owner_dialog_id;
       if (!reply_to_message_id.is_valid()) {
         LOG(ERROR) << "Receive succesful payment message with " << reply_to_message_id << " in " << owner_dialog_id;
         reply_to_message_id = MessageId();
@@ -23260,7 +23247,7 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
                                                        payment_sent->total_amount_);
     }
     case telegram_api::messageActionPaymentSentMe::ID: {
-      LOG_IF(ERROR, !td_->auth_manager_->is_bot()) << "Receive MessageActionPaymentSentMe in " << owner_dialog_id;
+      LOG_IF(ERROR, !td->auth_manager_->is_bot()) << "Receive MessageActionPaymentSentMe in " << owner_dialog_id;
       if (!reply_to_message_id.is_valid()) {
         LOG(ERROR) << "Receive succesful payment message with " << reply_to_message_id << " in " << owner_dialog_id;
         reply_to_message_id = MessageId();
@@ -23287,15 +23274,15 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
       return td::make_unique<MessageWebsiteConnected>(std::move(bot_allowed->domain_));
     }
     case telegram_api::messageActionSecureValuesSent::ID: {
-      LOG_IF(ERROR, td_->auth_manager_->is_bot()) << "Receive MessageActionSecureValuesSent in " << owner_dialog_id;
+      LOG_IF(ERROR, td->auth_manager_->is_bot()) << "Receive MessageActionSecureValuesSent in " << owner_dialog_id;
       auto secure_values = move_tl_object_as<telegram_api::messageActionSecureValuesSent>(action);
       return td::make_unique<MessagePassportDataSent>(get_secure_value_types(secure_values->types_));
     }
     case telegram_api::messageActionSecureValuesSentMe::ID: {
-      LOG_IF(ERROR, !td_->auth_manager_->is_bot()) << "Receive MessageActionSecureValuesSentMe in " << owner_dialog_id;
+      LOG_IF(ERROR, !td->auth_manager_->is_bot()) << "Receive MessageActionSecureValuesSentMe in " << owner_dialog_id;
       auto secure_values = move_tl_object_as<telegram_api::messageActionSecureValuesSentMe>(action);
       return td::make_unique<MessagePassportDataReceived>(
-          get_encrypted_secure_values(td_->file_manager_.get(), std::move(secure_values->values_)),
+          get_encrypted_secure_values(td->file_manager_.get(), std::move(secure_values->values_)),
           get_encrypted_secure_credentials(std::move(secure_values->credentials_)));
     }
     default:
@@ -23587,7 +23574,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       message->date <
           G()->unix_time_cached() - G()->shared_config().get_option_integer("channels_read_media_period",
                                                                             (G()->is_test_dc() ? 300 : 7 * 86400))) {
-    update_opened_message_content(message.get());
+    update_opened_message_content(message->content.get());
   }
 
   if (message->contains_unread_mention && message_id.get() <= d->last_read_all_mentions_message_id.get()) {
@@ -24492,7 +24479,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
           if (need_message_text_changed_warning(old_message, old_, new_)) {
             LOG(ERROR) << "Message text has changed for " << to_string(get_message_object(dialog_id, old_message))
                        << ". New content is "
-                       << to_string(get_message_content_object(new_content.get(), old_message->date,
+                       << to_string(get_message_content_object(new_content.get(), td_, old_message->date,
                                                                old_message->is_content_secret));
           }
           need_update = true;
@@ -24503,7 +24490,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
               old_->text.entities.size() <= MAX_CUSTOM_ENTITIES_COUNT) {
             LOG(WARNING) << "Entities has changed for " << to_string(get_message_object(dialog_id, old_message))
                          << ". New content is "
-                         << to_string(get_message_content_object(new_content.get(), old_message->date,
+                         << to_string(get_message_content_object(new_content.get(), td_, old_message->date,
                                                                  old_message->is_content_secret));
           }
           need_update = true;
@@ -26367,7 +26354,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         add_message_dependencies(dependencies, dialog_id, m.get());
         resolve_dependencies_force(dependencies);
 
-        m->content = dup_message_content(dialog_id, m->content.get(), false);
+        m->content = dup_message_content(td_, dialog_id, m->content.get(), false);
 
         auto result_message = continue_send_message(dialog_id, std::move(m), event.id_);
         if (result_message != nullptr) {
@@ -26432,7 +26419,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         add_message_dependencies(dependencies, dialog_id, m.get());
         resolve_dependencies_force(dependencies);
 
-        m->content = dup_message_content(dialog_id, m->content.get(), false);
+        m->content = dup_message_content(td_, dialog_id, m->content.get(), false);
 
         auto result_message = continue_send_message(dialog_id, std::move(m), event.id_);
         if (result_message != nullptr) {
@@ -26504,7 +26491,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
           m->message_id = get_next_yet_unsent_message_id(to_dialog);
           m->random_y = get_random_y(m->message_id);
           m->date = now;
-          m->content = dup_message_content(to_dialog_id, m->content.get(), true);
+          m->content = dup_message_content(td_, to_dialog_id, m->content.get(), true);
           m->have_previous = true;
           m->have_next = true;
         }

@@ -2037,22 +2037,24 @@ class MessagesManager : public Actor {
                                     bool disable_notification, bool from_background,
                                     bool in_game_share) TD_WARN_UNUSED_RESULT;
 
-  SecretInputMedia get_secret_input_media(const MessageContent *content,
-                                          tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
-                                          BufferSlice thumbnail, int32 layer);
+  static SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
+                                                 tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
+                                                 BufferSlice thumbnail, int32 layer);
 
-  tl_object_ptr<telegram_api::invoice> get_input_invoice(const Invoice &invoice) const;
+  static tl_object_ptr<telegram_api::invoice> get_input_invoice(const Invoice &invoice);
 
-  tl_object_ptr<telegram_api::inputWebDocument> get_input_web_document(const Photo &photo) const;
+  static tl_object_ptr<telegram_api::inputWebDocument> get_input_web_document(const FileManager *file_manager,
+                                                                              const Photo &photo);
 
-  tl_object_ptr<telegram_api::inputMediaInvoice> get_input_media_invoice(const MessageInvoice *message_invoice) const;
+  static tl_object_ptr<telegram_api::inputMediaInvoice> get_input_media_invoice(const FileManager *file_manager,
+                                                                                const MessageInvoice *message_invoice);
 
-  tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content,
-                                                          tl_object_ptr<telegram_api::InputFile> input_file,
-                                                          tl_object_ptr<telegram_api::InputFile> input_thumbnail,
-                                                          int32 ttl);
+  static tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td,
+                                                                 tl_object_ptr<telegram_api::InputFile> input_file,
+                                                                 tl_object_ptr<telegram_api::InputFile> input_thumbnail,
+                                                                 int32 ttl);
 
-  void delete_message_content_thumbnail(MessageContent *content);
+  static void delete_message_content_thumbnail(MessageContent *content, Td *td);
 
   void do_send_media(DialogId dialog_id, Message *m, FileId file_id, FileId thumbnail_file_id,
                      tl_object_ptr<telegram_api::InputFile> input_file,
@@ -2101,6 +2103,8 @@ class MessagesManager : public Actor {
   static bool is_allowed_media_group_content(MessageContentType content_type);
 
   static bool can_forward_message(DialogId from_dialog_id, const Message *m);
+
+  static bool can_forward_message_content(const MessageContent *content);
 
   static bool is_secret_message_content(int32 ttl, MessageContentType content_type);
 
@@ -2154,7 +2158,7 @@ class MessagesManager : public Actor {
 
   bool update_message_contains_unread_mention(Dialog *d, Message *m, bool contains_unread_mention, const char *source);
 
-  static bool update_opened_message_content(Message *m);
+  static bool update_opened_message_content(MessageContent *content);
 
   void read_message_content_from_updates(MessageId message_id);
 
@@ -2479,54 +2483,53 @@ class MessagesManager : public Actor {
 
   static FormattedText get_secret_media_caption(string &&message_text, string &&message_caption);
 
-  Photo get_web_document_photo(tl_object_ptr<telegram_api::WebDocument> web_document, DialogId owner_dialog_id) const;
-
-  unique_ptr<MessageContent> get_secret_message_document(
-      tl_object_ptr<telegram_api::encryptedFile> file,
+  static unique_ptr<MessageContent> get_secret_document_message_content(
+      Td *td, tl_object_ptr<telegram_api::encryptedFile> file,
       tl_object_ptr<secret_api::decryptedMessageMediaDocument> &&document,
       vector<tl_object_ptr<telegram_api::DocumentAttribute>> &&attributes, DialogId owner_dialog_id,
-      FormattedText &&caption, bool is_opened) const;
+      FormattedText &&caption, bool is_opened);
 
-  unique_ptr<MessageContent> get_message_document(tl_object_ptr<telegram_api::document> &&document,
-                                                  DialogId owner_dialog_id, FormattedText &&caption, bool is_opened,
-                                                  MultiPromiseActor *load_data_multipromise_ptr) const;
+  static unique_ptr<MessageContent> get_document_message_content(Td *td,
+                                                                 tl_object_ptr<telegram_api::document> &&document,
+                                                                 DialogId owner_dialog_id, FormattedText &&caption,
+                                                                 bool is_opened,
+                                                                 MultiPromiseActor *load_data_multipromise_ptr);
 
-  unique_ptr<MessageContent> get_message_document(std::pair<DocumentsManager::DocumentType, FileId> &&parsed_document,
-                                                  FormattedText &&caption, bool is_opened) const;
+  static unique_ptr<MessageContent> get_document_message_content(
+      std::pair<DocumentsManager::DocumentType, FileId> &&parsed_document, FormattedText &&caption, bool is_opened);
 
-  unique_ptr<MessagePhoto> get_message_photo(tl_object_ptr<telegram_api::photo> &&photo, DialogId owner_dialog_id,
-                                             FormattedText &&caption) const;
-
-  unique_ptr<MessageContent> get_secret_message_content(
-      string message_text, tl_object_ptr<telegram_api::encryptedFile> file,
+  static unique_ptr<MessageContent> get_secret_message_content(
+      Td *td, string message_text, tl_object_ptr<telegram_api::encryptedFile> file,
       tl_object_ptr<secret_api::DecryptedMessageMedia> &&media,
       vector<tl_object_ptr<secret_api::MessageEntity>> &&secret_entities, DialogId owner_dialog_id,
-      MultiPromiseActor &load_data_multipromise) const;
+      MultiPromiseActor &load_data_multipromise);
 
-  unique_ptr<MessageContent> get_message_content(FormattedText message_text,
-                                                 tl_object_ptr<telegram_api::MessageMedia> &&media,
-                                                 DialogId owner_dialog_id, bool is_content_read, UserId via_bot_user_id,
-                                                 int32 *ttl) const;
+  static unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message_text,
+                                                        tl_object_ptr<telegram_api::MessageMedia> &&media,
+                                                        DialogId owner_dialog_id, bool is_content_read,
+                                                        UserId via_bot_user_id, int32 *ttl);
 
-  unique_ptr<MessageContent> dup_message_content(DialogId dialog_id, const MessageContent *content, bool for_forward);
+  static unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const MessageContent *content,
+                                                        bool for_forward);
 
-  unique_ptr<MessageContent> get_message_action_content(tl_object_ptr<telegram_api::MessageAction> &&action,
-                                                        DialogId owner_dialog_id, MessageId reply_to_message_id) const;
+  static unique_ptr<MessageContent> get_action_message_content(Td *td,
+                                                               tl_object_ptr<telegram_api::MessageAction> &&action,
+                                                               DialogId owner_dialog_id, MessageId reply_to_message_id);
 
-  tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content, int32 message_date,
-                                                                   bool is_content_secret) const;
+  static tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content, Td *td,
+                                                                          int32 message_date, bool is_content_secret);
 
   static FormattedText get_message_content_text(const MessageContent *content);
 
   static FormattedText get_message_content_caption(const MessageContent *content);
 
-  int32 get_message_content_duration(const MessageContent *content) const;
+  static int32 get_message_content_duration(const MessageContent *content, const Td *td);
 
   static FileId get_message_content_file_id(const MessageContent *content);
 
   static void update_message_content_file_id_remote(MessageContent *content, FileId file_id);
 
-  FileId get_message_content_thumbnail_file_id(const MessageContent *content) const;
+  static FileId get_message_content_thumbnail_file_id(const MessageContent *content, const Td *td);
 
   vector<FileId> get_message_file_ids(const Message *message) const;
 
@@ -2718,7 +2721,9 @@ class MessagesManager : public Actor {
 
   void update_used_hashtags(DialogId dialog_id, const Message *m);
 
-  string get_search_text(const Message *m);
+  string get_search_text(const Message *m) const;
+
+  static string get_message_content_search_text(const Td *td, const MessageContent *content);
 
   unique_ptr<Dialog> parse_dialog(DialogId dialog_id, const BufferSlice &value);
 

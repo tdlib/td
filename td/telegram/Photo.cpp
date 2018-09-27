@@ -470,6 +470,19 @@ Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::photo> &&
   return res;
 }
 
+Photo get_web_document_photo(FileManager *file_manager, tl_object_ptr<telegram_api::WebDocument> web_document,
+                             DialogId owner_dialog_id) {
+  PhotoSize s = get_web_document_photo_size(file_manager, FileType::Photo, owner_dialog_id, std::move(web_document));
+  Photo photo;
+  if (!s.file_id.is_valid()) {
+    photo.id = -2;
+  } else {
+    photo.id = 0;
+    photo.photos.push_back(s);
+  }
+  return photo;
+}
+
 tl_object_ptr<td_api::photo> get_photo_object(FileManager *file_manager, const Photo *photo) {
   if (photo == nullptr || photo->id == -2) {
     return nullptr;
