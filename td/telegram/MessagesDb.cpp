@@ -799,7 +799,7 @@ std::shared_ptr<MessagesDbSyncSafeInterface> create_messages_db_sync(
    public:
     explicit MessagesDbSyncSafe(std::shared_ptr<SqliteConnectionSafe> sqlite_connection)
         : lsls_db_([safe_connection = std::move(sqlite_connection)] {
-          return std::make_unique<MessagesDbImpl>(safe_connection->get().clone());
+          return make_unique<MessagesDbImpl>(safe_connection->get().clone());
         }) {
     }
     MessagesDbSyncInterface &get() override {
@@ -807,7 +807,7 @@ std::shared_ptr<MessagesDbSyncSafeInterface> create_messages_db_sync(
     }
 
    private:
-    LazySchedulerLocalStorage<std::unique_ptr<MessagesDbSyncInterface>> lsls_db_;
+    LazySchedulerLocalStorage<unique_ptr<MessagesDbSyncInterface>> lsls_db_;
   };
   return std::make_shared<MessagesDbSyncSafe>(std::move(sqlite_connection));
 }

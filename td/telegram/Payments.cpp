@@ -543,9 +543,9 @@ unique_ptr<Address> get_address(tl_object_ptr<telegram_api::postAddress> &&addre
   if (address == nullptr) {
     return nullptr;
   }
-  return make_unique<Address>(std::move(address->country_iso2_), std::move(address->state_), std::move(address->city_),
-                              std::move(address->street_line1_), std::move(address->street_line2_),
-                              std::move(address->post_code_));
+  return td::make_unique<Address>(std::move(address->country_iso2_), std::move(address->state_),
+                                  std::move(address->city_), std::move(address->street_line1_),
+                                  std::move(address->street_line2_), std::move(address->post_code_));
 }
 
 static bool is_capital_alpha(char c) {
@@ -684,8 +684,9 @@ unique_ptr<OrderInfo> get_order_info(tl_object_ptr<telegram_api::paymentRequeste
   if (order_info == nullptr || order_info->flags_ == 0) {
     return nullptr;
   }
-  return make_unique<OrderInfo>(std::move(order_info->name_), std::move(order_info->phone_),
-                                std::move(order_info->email_), get_address(std::move(order_info->shipping_address_)));
+  return td::make_unique<OrderInfo>(std::move(order_info->name_), std::move(order_info->phone_),
+                                    std::move(order_info->email_),
+                                    get_address(std::move(order_info->shipping_address_)));
 }
 
 tl_object_ptr<td_api::orderInfo> get_order_info_object(const unique_ptr<OrderInfo> &order_info) {

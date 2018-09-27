@@ -99,10 +99,10 @@ class DcOptionsSet {
     }
   };
 
-  std::vector<std::unique_ptr<DcOptionInfo>> options_;
+  std::vector<unique_ptr<DcOptionInfo>> options_;
   std::vector<DcOptionId> ordered_options_;
   std::map<IPAddress, int64> option_to_stat_id_;
-  Container<std::unique_ptr<OptionStat>> option_stats_;
+  Container<unique_ptr<OptionStat>> option_stats_;
 
   DcOptionInfo *register_dc_option(DcOption &&option);
   void init_option_stat(DcOptionInfo *option_info);

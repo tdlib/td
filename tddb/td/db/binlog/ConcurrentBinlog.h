@@ -33,7 +33,7 @@ class ConcurrentBinlog : public BinlogInterface {
                           DbKey old_db_key = DbKey::empty(), int scheduler_id = -1) TD_WARN_UNUSED_RESULT;
 
   ConcurrentBinlog();
-  explicit ConcurrentBinlog(std::unique_ptr<Binlog> binlog, int scheduler_id = -1);
+  explicit ConcurrentBinlog(unique_ptr<Binlog> binlog, int scheduler_id = -1);
   ConcurrentBinlog(const ConcurrentBinlog &other) = delete;
   ConcurrentBinlog &operator=(const ConcurrentBinlog &other) = delete;
   ConcurrentBinlog(ConcurrentBinlog &&other) = delete;
@@ -56,7 +56,7 @@ class ConcurrentBinlog : public BinlogInterface {
   }
 
  private:
-  void init_impl(std::unique_ptr<Binlog> binlog, int scheduler_id);
+  void init_impl(unique_ptr<Binlog> binlog, int scheduler_id);
   void close_impl(Promise<> promise) override;
   void close_and_destroy_impl(Promise<> promise) override;
   void add_raw_event_impl(uint64 id, BufferSlice &&raw_event, Promise<> promise, BinlogDebugInfo info) override;

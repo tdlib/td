@@ -188,7 +188,7 @@ void BufferedStdinImplDeleter::operator()(BufferedStdinImpl *impl) {
 }  // namespace detail
 #endif
 
-BufferedStdin::BufferedStdin() : impl_(std::make_unique<detail::BufferedStdinImpl>().release()) {
+BufferedStdin::BufferedStdin() : impl_(make_unique<detail::BufferedStdinImpl>().release()) {
 }
 BufferedStdin::BufferedStdin(BufferedStdin &&) = default;
 BufferedStdin &BufferedStdin::operator=(BufferedStdin &&) = default;

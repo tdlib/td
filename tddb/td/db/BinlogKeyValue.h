@@ -76,7 +76,7 @@ class BinlogKeyValue : public KeyValueSyncInterface {
       magic_ = override_magic;
     }
 
-    binlog_ = std::make_unique<BinlogT>();
+    binlog_ = std::make_shared<BinlogT>();
     TRY_STATUS(binlog_->init(name,
                              [&](const BinlogEvent &binlog_event) {
                                Event event;

@@ -522,7 +522,7 @@ class FakeSecretChatContext : public SecretChatActor::Context {
       , key_value_(std::move(key_value))
       , close_flag_(std::move(close_flag))
       , master_(std::move(master)) {
-    secret_chat_db_ = std::make_unique<SecretChatDb>(key_value_, 1);
+    secret_chat_db_ = std::make_shared<SecretChatDb>(key_value_, 1);
     net_query_creator_.stop_check();  // :(
   }
   DhCallback *dh_callback() override {
@@ -617,7 +617,7 @@ class Master : public Actor {
       parent_token_ = parent.token();
       actor_ = create_actor<SecretChatActor>(
           PSLICE() << "SecretChat " << name_, 123,
-          std::make_unique<FakeSecretChatContext>(binlog_, key_value_, close_flag_, std::move(parent)), true);
+          td::make_unique<FakeSecretChatContext>(binlog_, key_value_, close_flag_, std::move(parent)), true);
       on_binlog_replay_finish();
     }
 
@@ -625,7 +625,7 @@ class Master : public Actor {
 
     void add_inbound_message(int32 chat_id, BufferSlice data, uint64 crc) {
       CHECK(crc64(data.as_slice()) == crc);
-      auto event = std::make_unique<logevent::InboundSecretMessage>();
+      auto event = make_unique<logevent::InboundSecretMessage>();
       event->qts = 0;
       event->chat_id = chat_id;
       event->date = 0;
@@ -699,8 +699,8 @@ class Master : public Actor {
 
       actor_ = create_actor<SecretChatActor>(
           PSLICE() << "SecretChat " << name_, 123,
-          std::make_unique<FakeSecretChatContext>(binlog_, key_value_, close_flag_,
-                                                  ActorShared<Master>(parent_, parent_token_)),
+          td::make_unique<FakeSecretChatContext>(binlog_, key_value_, close_flag_,
+                                                 ActorShared<Master>(parent_, parent_token_)),
           true);
 
       for (auto &event : events) {
@@ -713,12 +713,12 @@ class Master : public Actor {
         switch (message->get_type()) {
           case logevent::SecretChatEvent::Type::InboundSecretMessage:
             send_closure_later(actor_, &SecretChatActor::replay_inbound_message,
-                               std::unique_ptr<logevent::InboundSecretMessage>(
+                               unique_ptr<logevent::InboundSecretMessage>(
                                    static_cast<logevent::InboundSecretMessage *>(message.release())));
             break;
           case logevent::SecretChatEvent::Type::OutboundSecretMessage:
             send_closure_later(actor_, &SecretChatActor::replay_outbound_message,
-                               std::unique_ptr<logevent::OutboundSecretMessage>(
+                               unique_ptr<logevent::OutboundSecretMessage>(
                                    static_cast<logevent::OutboundSecretMessage *>(message.release())));
             break;
           default:

@@ -122,8 +122,8 @@ class Binlog {
   uint64 fd_events_{0};
   string path_;
   std::vector<BinlogEvent> pending_events_;
-  std::unique_ptr<detail::BinlogEventsProcessor> processor_;
-  std::unique_ptr<detail::BinlogEventsBuffer> events_buffer_;
+  unique_ptr<detail::BinlogEventsProcessor> processor_;
+  unique_ptr<detail::BinlogEventsBuffer> events_buffer_;
   bool in_flush_events_buffer_{false};
   uint64 last_id_{0};
   double need_flush_since_ = 0;

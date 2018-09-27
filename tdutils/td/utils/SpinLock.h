@@ -9,6 +9,7 @@
 #include "td/utils/port/thread.h"
 
 #include <atomic>
+#include <memory>
 
 namespace td {
 

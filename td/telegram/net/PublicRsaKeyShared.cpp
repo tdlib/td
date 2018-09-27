@@ -120,7 +120,7 @@ bool PublicRsaKeyShared::has_keys() {
   return !options_.empty();
 }
 
-void PublicRsaKeyShared::add_listener(std::unique_ptr<Listener> listener) {
+void PublicRsaKeyShared::add_listener(unique_ptr<Listener> listener) {
   if (listener->notify()) {
     auto lock = rw_mutex_.lock_write();
     listeners_.push_back(std::move(listener));

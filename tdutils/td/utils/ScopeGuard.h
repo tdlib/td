@@ -58,8 +58,8 @@ class LambdaGuard : public Guard {
 };
 
 template <class F>
-std::unique_ptr<Guard> create_lambda_guard(F &&f) {
-  return std::make_unique<LambdaGuard<F>>(std::forward<F>(f));
+unique_ptr<Guard> create_lambda_guard(F &&f) {
+  return make_unique<LambdaGuard<F>>(std::forward<F>(f));
 }
 template <class F>
 std::shared_ptr<Guard> create_shared_lambda_guard(F &&f) {

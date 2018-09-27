@@ -13,6 +13,7 @@
 #include "td/utils/Status.h"
 
 #include <limits>
+#include <memory>
 
 namespace td {
 

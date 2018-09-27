@@ -25,7 +25,7 @@ namespace td {
 class Client::Impl final {
  public:
   Impl() {
-    concurrent_scheduler_ = std::make_unique<ConcurrentScheduler>();
+    concurrent_scheduler_ = make_unique<ConcurrentScheduler>();
     concurrent_scheduler_->init(0);
     class Callback : public TdCallback {
      public:
@@ -98,7 +98,7 @@ class Client::Impl final {
  private:
   std::deque<Response> responses_;
   std::vector<Request> requests_;
-  std::unique_ptr<ConcurrentScheduler> concurrent_scheduler_;
+  unique_ptr<ConcurrentScheduler> concurrent_scheduler_;
   ActorOwn<Td> td_;
   bool closed_ = false;
 };
@@ -136,7 +136,7 @@ class Client::Impl final {
      private:
       std::shared_ptr<OutputQueue> output_queue_;
     };
-    td_ = concurrent_scheduler_->create_actor_unsafe<Td>(0, "Td", std::make_unique<Callback>(output_queue_));
+    td_ = concurrent_scheduler_->create_actor_unsafe<Td>(0, "Td", td::make_unique<Callback>(output_queue_));
     concurrent_scheduler_->start();
 
     scheduler_thread_ = thread([concurrent_scheduler = concurrent_scheduler_] {
@@ -201,7 +201,7 @@ class Client::Impl final {
 #endif
 
 /*** Client ***/
-Client::Client() : impl_(make_unique<Impl>()) {
+Client::Client() : impl_(std::make_unique<Impl>()) {
   // At least it should be enough for everybody who uses TDLib
   init_openssl_threads();
 }

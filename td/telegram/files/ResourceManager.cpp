@@ -18,7 +18,7 @@ namespace td {
 void ResourceManager::register_worker(ActorShared<FileLoaderActor> callback, int8 priority) {
   auto node_id = nodes_container_.create();
   auto *node_ptr = nodes_container_.get(node_id);
-  *node_ptr = std::make_unique<Node>();
+  *node_ptr = make_unique<Node>();
   auto *node = (*node_ptr).get();
   CHECK(node);
   node->node_id = node_id;

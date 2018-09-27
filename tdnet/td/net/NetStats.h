@@ -87,7 +87,7 @@ class NetStats {
   }
 
   // do it before get_callback
-  void set_callback(std::unique_ptr<Callback> callback) {
+  void set_callback(unique_ptr<Callback> callback) {
     impl_->set_callback(std::move(callback));
   }
 
@@ -102,7 +102,7 @@ class NetStats {
       });
       return res;
     }
-    void set_callback(std::unique_ptr<Callback> callback) {
+    void set_callback(unique_ptr<Callback> callback) {
       callback_ = std::move(callback);
     }
 
@@ -114,7 +114,7 @@ class NetStats {
       std::atomic<uint64> write_size{0};
     };
     SchedulerLocalStorage<LocalNetStats> local_net_stats_;
-    std::unique_ptr<Callback> callback_;
+    unique_ptr<Callback> callback_;
 
     void on_read(uint64 size) final {
       auto &stats = local_net_stats_.get();

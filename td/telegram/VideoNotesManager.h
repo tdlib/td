@@ -70,7 +70,7 @@ class VideoNotesManager {
 
   const VideoNote *get_video_note(FileId file_id) const;
 
-  FileId on_get_video_note(std::unique_ptr<VideoNote> new_video_note, bool replace);
+  FileId on_get_video_note(unique_ptr<VideoNote> new_video_note, bool replace);
 
   Td *td_;
   std::unordered_map<FileId, unique_ptr<VideoNote>, FileIdHash> video_notes_;

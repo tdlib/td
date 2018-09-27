@@ -24,7 +24,7 @@ namespace mtproto {
 
 class PingConnection : private RawConnection::Callback {
  public:
-  PingConnection(std::unique_ptr<RawConnection> raw_connection, size_t ping_count)
+  PingConnection(unique_ptr<RawConnection> raw_connection, size_t ping_count)
       : raw_connection_(std::move(raw_connection)), ping_count_(ping_count) {
   }
 
@@ -32,7 +32,7 @@ class PingConnection : private RawConnection::Callback {
     return raw_connection_->get_poll_info();
   }
 
-  std::unique_ptr<RawConnection> move_as_raw_connection() {
+  unique_ptr<RawConnection> move_as_raw_connection() {
     return std::move(raw_connection_);
   }
 
@@ -76,7 +76,7 @@ class PingConnection : private RawConnection::Callback {
   }
 
  private:
-  std::unique_ptr<RawConnection> raw_connection_;
+  unique_ptr<RawConnection> raw_connection_;
   size_t ping_count_ = 1;
   double start_time_ = 0.0;
   double finish_time_ = 0.0;

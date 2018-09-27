@@ -510,7 +510,7 @@ class ContactsManager : public Actor {
     int32 photo_count = -1;
     int32 photos_offset = -1;
 
-    std::unique_ptr<BotInfo> bot_info;
+    unique_ptr<BotInfo> bot_info;
 
     string about;
 

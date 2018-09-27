@@ -5,6 +5,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/mtproto/HandshakeActor.h"
+
 #include "td/mtproto/HandshakeConnection.h"
 
 #include "td/utils/common.h"
@@ -13,14 +14,12 @@
 
 namespace td {
 namespace mtproto {
-HandshakeActor::HandshakeActor(std::unique_ptr<AuthKeyHandshake> handshake,
-                               std::unique_ptr<RawConnection> raw_connection,
-                               std::unique_ptr<AuthKeyHandshakeContext> context, double timeout,
-                               Promise<std::unique_ptr<RawConnection>> raw_connection_promise,
-                               Promise<std::unique_ptr<AuthKeyHandshake>> handshake_promise)
+HandshakeActor::HandshakeActor(unique_ptr<AuthKeyHandshake> handshake, unique_ptr<RawConnection> raw_connection,
+                               unique_ptr<AuthKeyHandshakeContext> context, double timeout,
+                               Promise<unique_ptr<RawConnection>> raw_connection_promise,
+                               Promise<unique_ptr<AuthKeyHandshake>> handshake_promise)
     : handshake_(std::move(handshake))
-    , connection_(
-          std::make_unique<HandshakeConnection>(std::move(raw_connection), handshake_.get(), std::move(context)))
+    , connection_(make_unique<HandshakeConnection>(std::move(raw_connection), handshake_.get(), std::move(context)))
     , timeout_(timeout)
     , raw_connection_promise_(std::move(raw_connection_promise))
     , handshake_promise_(std::move(handshake_promise)) {

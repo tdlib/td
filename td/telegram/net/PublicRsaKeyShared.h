@@ -38,7 +38,7 @@ class PublicRsaKeyShared : public PublicRsaKeyInterface {
   void drop_keys() override;
   bool has_keys();
 
-  void add_listener(std::unique_ptr<Listener> listener);
+  void add_listener(unique_ptr<Listener> listener);
 
   DcId dc_id() const {
     return dc_id_;
@@ -51,7 +51,7 @@ class PublicRsaKeyShared : public PublicRsaKeyInterface {
     RSA rsa;
   };
   std::vector<RsaOption> options_;
-  std::vector<std::unique_ptr<Listener>> listeners_;
+  std::vector<unique_ptr<Listener>> listeners_;
   RwMutex rw_mutex_;
 
   RSA *get_rsa_locked(int64 fingerprint);

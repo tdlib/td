@@ -26,8 +26,8 @@ class HandshakeConnection
     : private RawConnection::Callback
     , private AuthKeyHandshake::Callback {
  public:
-  HandshakeConnection(std::unique_ptr<RawConnection> raw_connection, AuthKeyHandshake *handshake,
-                      std::unique_ptr<AuthKeyHandshakeContext> context)
+  HandshakeConnection(unique_ptr<RawConnection> raw_connection, AuthKeyHandshake *handshake,
+                      unique_ptr<AuthKeyHandshakeContext> context)
       : raw_connection_(std::move(raw_connection)), handshake_(handshake), context_(std::move(context)) {
     handshake_->resume(this);
   }
@@ -36,7 +36,7 @@ class HandshakeConnection
     return raw_connection_->get_poll_info();
   }
 
-  std::unique_ptr<RawConnection> move_as_raw_connection() {
+  unique_ptr<RawConnection> move_as_raw_connection() {
     return std::move(raw_connection_);
   }
 
@@ -54,9 +54,9 @@ class HandshakeConnection
   }
 
  private:
-  std::unique_ptr<RawConnection> raw_connection_;
+  unique_ptr<RawConnection> raw_connection_;
   AuthKeyHandshake *handshake_;
-  std::unique_ptr<AuthKeyHandshakeContext> context_;
+  unique_ptr<AuthKeyHandshakeContext> context_;
 
   void send_no_crypto(const Storer &storer) override {
     raw_connection_->send_no_crypto(PacketStorer<NoCryptoImpl>(0, storer));

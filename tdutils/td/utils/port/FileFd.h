@@ -62,9 +62,9 @@ class FileFd {
   NativeFd move_as_native_fd();
 
  private:
-  std::unique_ptr<detail::FileFdImpl> impl_;
+  unique_ptr<detail::FileFdImpl> impl_;
 
-  explicit FileFd(std::unique_ptr<detail::FileFdImpl> impl);
+  explicit FileFd(unique_ptr<detail::FileFdImpl> impl);
 };
 
 }  // namespace td

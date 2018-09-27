@@ -36,7 +36,7 @@ void EventFdLinux::init() {
   auto fd = NativeFd(eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC));
   auto eventfd_errno = errno;
   LOG_IF(FATAL, !fd) << Status::PosixError(eventfd_errno, "eventfd call failed");
-  impl_ = std::make_unique<EventFdLinuxImpl>();
+  impl_ = make_unique<EventFdLinuxImpl>();
   impl_->info.set_native_fd(std::move(fd));
 }
 

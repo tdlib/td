@@ -26,7 +26,7 @@ class FileUploader : public FileLoader {
   };
 
   FileUploader(const LocalFileLocation &local, const RemoteFileLocation &remote, int64 expected_size,
-               const FileEncryptionKey &encryption_key, std::vector<int> bad_parts, std::unique_ptr<Callback> callback);
+               const FileEncryptionKey &encryption_key, std::vector<int> bad_parts, unique_ptr<Callback> callback);
 
   // Should just implement all parent pure virtual methods.
   // Must not call any of them...
@@ -37,7 +37,7 @@ class FileUploader : public FileLoader {
   int64 expected_size_;
   FileEncryptionKey encryption_key_;
   std::vector<int> bad_parts_;
-  std::unique_ptr<Callback> callback_;
+  unique_ptr<Callback> callback_;
   int64 local_size_ = 0;
   bool local_is_ready_ = false;
   FileType file_type_ = FileType::Temp;

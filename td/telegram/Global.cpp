@@ -57,11 +57,11 @@ void Global::set_temp_auth_key_watchdog(ActorOwn<TempAuthKeyWatchdog> actor) {
 MtprotoHeader &Global::mtproto_header() {
   return *mtproto_header_;
 }
-void Global::set_mtproto_header(std::unique_ptr<MtprotoHeader> mtproto_header) {
+void Global::set_mtproto_header(unique_ptr<MtprotoHeader> mtproto_header) {
   mtproto_header_ = std::move(mtproto_header);
 }
 
-Status Global::init(const TdParameters &parameters, ActorId<Td> td, std::unique_ptr<TdDb> td_db) {
+Status Global::init(const TdParameters &parameters, ActorId<Td> td, unique_ptr<TdDb> td_db) {
   parameters_ = parameters;
 
   gc_scheduler_id_ = min(Scheduler::instance()->sched_id() + 2, Scheduler::instance()->sched_count() - 1);
@@ -114,11 +114,11 @@ DcId Global::get_webfile_dc_id() const {
   return DcId::internal(dc_id);
 }
 
-void Global::set_net_query_dispatcher(std::unique_ptr<NetQueryDispatcher> net_query_dispatcher) {
+void Global::set_net_query_dispatcher(unique_ptr<NetQueryDispatcher> net_query_dispatcher) {
   net_query_dispatcher_ = std::move(net_query_dispatcher);
 }
 
-void Global::set_shared_config(std::unique_ptr<ConfigShared> shared_config) {
+void Global::set_shared_config(unique_ptr<ConfigShared> shared_config) {
   shared_config_ = std::move(shared_config);
 }
 

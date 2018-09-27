@@ -45,7 +45,7 @@ class ResourceManager : public Actor {
     }
   };
 
-  Container<std::unique_ptr<Node>> nodes_container_;
+  Container<unique_ptr<Node>> nodes_container_;
   vector<std::pair<int8, NodeId>> to_xload_;
   KHeap<int64> by_estimated_extra_;
   ResourceState resource_state_;

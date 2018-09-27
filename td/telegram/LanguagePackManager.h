@@ -92,7 +92,7 @@ class LanguagePackManager : public NetQueryCallback {
   static int32 manager_count_;
 
   static std::mutex language_database_mutex_;
-  static std::unordered_map<string, std::unique_ptr<LanguageDatabase>> language_databases_;
+  static std::unordered_map<string, unique_ptr<LanguageDatabase>> language_databases_;
 
   static LanguageDatabase *add_language_database(const string &path);
 

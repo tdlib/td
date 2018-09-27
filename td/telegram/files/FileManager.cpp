@@ -426,7 +426,7 @@ void prepare_path_for_pmc(FileType file_type, string &path) {
 }
 }  // namespace
 
-FileManager::FileManager(std::unique_ptr<Context> context) : context_(std::move(context)) {
+FileManager::FileManager(unique_ptr<Context> context) : context_(std::move(context)) {
   if (G()->parameters().use_file_db) {
     file_db_ = G()->td_db()->get_file_db_shared();
   }
@@ -699,7 +699,8 @@ Result<FileId> FileManager::register_generate(FileType file_type, FileLocationSo
                                               string original_path, string conversion, DialogId owner_dialog_id,
                                               int64 expected_size) {
   FileData data;
-  data.generate_ = make_unique<FullGenerateFileLocation>(file_type, std::move(original_path), std::move(conversion));
+  data.generate_ =
+      td::make_unique<FullGenerateFileLocation>(file_type, std::move(original_path), std::move(conversion));
   data.owner_dialog_id_ = owner_dialog_id;
   data.expected_size_ = expected_size;
   return register_file(std::move(data), file_location_source, "register_generate", false);
@@ -742,10 +743,10 @@ Result<FileId> FileManager::register_file(FileData data, FileLocationSource file
   // create FileNode
   auto file_node_id = next_file_node_id();
   auto &node = file_nodes_[file_node_id];
-  node = std::make_unique<FileNode>(std::move(data.local_), std::move(data.remote_), std::move(data.generate_),
-                                    data.size_, data.expected_size_, std::move(data.remote_name_), std::move(data.url_),
-                                    data.owner_dialog_id_, std::move(data.encryption_key_), file_id,
-                                    static_cast<int8>(has_remote));
+  node = td::make_unique<FileNode>(std::move(data.local_), std::move(data.remote_), std::move(data.generate_),
+                                   data.size_, data.expected_size_, std::move(data.remote_name_), std::move(data.url_),
+                                   data.owner_dialog_id_, std::move(data.encryption_key_), file_id,
+                                   static_cast<int8>(has_remote));
   node->remote_source_ = file_location_source;
   node->pmc_id_ = data.pmc_id_;
   get_file_id_info(file_id)->node_id_ = file_node_id;
@@ -1209,7 +1210,7 @@ void FileManager::clear_from_pmc(FileNodePtr node) {
     data.remote_ = node->remote_;
   }
   if (file_view.has_generate_location()) {
-    data.generate_ = std::make_unique<FullGenerateFileLocation>(*node->generate_);
+    data.generate_ = make_unique<FullGenerateFileLocation>(*node->generate_);
   }
   file_db_->clear_file_data(node->pmc_id_, data);
   node->pmc_id_ = 0;
@@ -1234,7 +1235,7 @@ void FileManager::flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local
   }
   data.remote_ = node->remote_;
   if (node->generate_ != nullptr && !begins_with(node->generate_->conversion_, "#file_id#")) {
-    data.generate_ = std::make_unique<FullGenerateFileLocation>(*node->generate_);
+    data.generate_ = make_unique<FullGenerateFileLocation>(*node->generate_);
   }
 
   // TODO: not needed when GenerateLocation has constant convertion
@@ -1701,7 +1702,7 @@ void FileManager::run_generate(FileNodePtr node) {
                      send_closure(actor_, &FileManager::on_error, query_id_, std::move(error));
                    }
                  };
-                 return std::make_unique<Callback>(file_manager->actor_id(file_manager), id);
+                 return make_unique<Callback>(file_manager->actor_id(file_manager), id);
                }());
 
   LOG(INFO) << "File " << file_id << " generate request has sent to FileGenerateManager";

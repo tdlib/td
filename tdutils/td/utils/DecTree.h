@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/utils/common.h"
 #include "td/utils/int_types.h"
 #include "td/utils/logging.h"
 #include "td/utils/Random.h"
@@ -19,8 +20,8 @@ namespace td {
 template <typename KeyType, typename ValueType, typename Compare = std::less<KeyType>>
 class DecTree {
   struct Node {
-    std::unique_ptr<Node> left_;
-    std::unique_ptr<Node> right_;
+    unique_ptr<Node> left_;
+    unique_ptr<Node> right_;
     size_t size_;
     KeyType key_;
     ValueType value_;
@@ -39,13 +40,13 @@ class DecTree {
     Node(KeyType key, ValueType value, uint32 y) : size_(1), key_(std::move(key)), value_(std::move(value)), y_(y) {
     }
   };
-  std::unique_ptr<Node> root_;
+  unique_ptr<Node> root_;
 
-  static std::unique_ptr<Node> create_node(KeyType key, ValueType value, uint32 y) {
-    return std::make_unique<Node>(std::move(key), std::move(value), y);
+  static unique_ptr<Node> create_node(KeyType key, ValueType value, uint32 y) {
+    return make_unique<Node>(std::move(key), std::move(value), y);
   }
 
-  static std::unique_ptr<Node> insert_node(std::unique_ptr<Node> Tree, KeyType key, ValueType value, uint32 y) {
+  static unique_ptr<Node> insert_node(unique_ptr<Node> Tree, KeyType key, ValueType value, uint32 y) {
     if (Tree == nullptr) {
       return create_node(std::move(key), std::move(value), y);
     }
@@ -68,7 +69,7 @@ class DecTree {
     return Tree;
   }
 
-  static std::unique_ptr<Node> remove_node(std::unique_ptr<Node> Tree, const KeyType &key) {
+  static unique_ptr<Node> remove_node(unique_ptr<Node> Tree, const KeyType &key) {
     if (Tree == nullptr) {
       // ?? assert
       return nullptr;
@@ -86,7 +87,7 @@ class DecTree {
     return Tree;
   }
 
-  static ValueType *get_node(std::unique_ptr<Node> &Tree, const KeyType &key) {
+  static ValueType *get_node(unique_ptr<Node> &Tree, const KeyType &key) {
     if (Tree == nullptr) {
       return nullptr;
     }
@@ -99,7 +100,7 @@ class DecTree {
     }
   }
 
-  static ValueType *get_node_by_idx(std::unique_ptr<Node> &Tree, size_t idx) {
+  static ValueType *get_node_by_idx(unique_ptr<Node> &Tree, size_t idx) {
     CHECK(Tree != nullptr);
     auto s = (Tree->left_ != nullptr) ? Tree->left_->size_ : 0;
     if (idx < s) {
@@ -111,8 +112,7 @@ class DecTree {
     }
   }
 
-  static std::pair<std::unique_ptr<Node>, std::unique_ptr<Node>> split_node(std::unique_ptr<Node> Tree,
-                                                                            const KeyType &key) {
+  static std::pair<unique_ptr<Node>, unique_ptr<Node>> split_node(unique_ptr<Node> Tree, const KeyType &key) {
     if (Tree == nullptr) {
       return {nullptr, nullptr};
     }
@@ -131,7 +131,7 @@ class DecTree {
     }
   }
 
-  static std::unique_ptr<Node> merge_node(std::unique_ptr<Node> left, std::unique_ptr<Node> right) {
+  static unique_ptr<Node> merge_node(unique_ptr<Node> left, unique_ptr<Node> right) {
     if (left == nullptr) {
       return right;
     }

@@ -303,7 +303,7 @@ class StickersManager : public Actor {
   Sticker *get_sticker(FileId file_id);
   const Sticker *get_sticker(FileId file_id) const;
 
-  FileId on_get_sticker(std::unique_ptr<Sticker> new_sticker, bool replace);
+  FileId on_get_sticker(unique_ptr<Sticker> new_sticker, bool replace);
 
   StickerSet *get_sticker_set(int64 sticker_set_id);
   const StickerSet *get_sticker_set(int64 sticker_set_id) const;

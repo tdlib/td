@@ -1254,7 +1254,7 @@ class FileData {
     GenerateFileLocation generate;
     parse(generate, parser);
     if (generate.type() == GenerateFileLocation::Type::Full) {
-      generate_ = std::make_unique<FullGenerateFileLocation>(generate.full());
+      generate_ = make_unique<FullGenerateFileLocation>(generate.full());
     } else {
       generate_ = nullptr;
     }

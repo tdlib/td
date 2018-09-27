@@ -25,6 +25,6 @@ class SqliteKeyValueAsyncInterface {
   virtual void close(Promise<> promise) = 0;
 };
 
-std::unique_ptr<SqliteKeyValueAsyncInterface> create_sqlite_key_value_async(std::shared_ptr<SqliteKeyValueSafe> kv,
-                                                                            int32 scheduler_id = 1);
+unique_ptr<SqliteKeyValueAsyncInterface> create_sqlite_key_value_async(std::shared_ptr<SqliteKeyValueSafe> kv,
+                                                                       int32 scheduler_id = 1);
 }  // namespace td

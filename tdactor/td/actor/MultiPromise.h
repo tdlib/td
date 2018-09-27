@@ -50,11 +50,11 @@ class MultiPromise : public MultiPromiseInterface {
   }
 
   MultiPromise() = default;
-  explicit MultiPromise(std::unique_ptr<MultiPromiseInterface> impl) : impl_(std::move(impl)) {
+  explicit MultiPromise(unique_ptr<MultiPromiseInterface> impl) : impl_(std::move(impl)) {
   }
 
  private:
-  std::unique_ptr<MultiPromiseInterface> impl_;
+  unique_ptr<MultiPromiseInterface> impl_;
 };
 
 class MultiPromiseActor final
@@ -103,13 +103,13 @@ class MultiPromiseActorSafe : public MultiPromiseInterface {
   ~MultiPromiseActorSafe() override;
 
  private:
-  std::unique_ptr<MultiPromiseActor> multi_promise_ = std::make_unique<MultiPromiseActor>();
+  unique_ptr<MultiPromiseActor> multi_promise_ = make_unique<MultiPromiseActor>();
 };
 
 class MultiPromiseCreator {
  public:
   static MultiPromise create() {
-    return MultiPromise(std::make_unique<MultiPromiseActor>());
+    return MultiPromise(make_unique<MultiPromiseActor>());
   }
 };
 

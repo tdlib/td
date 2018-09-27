@@ -26,7 +26,7 @@
 namespace td {
 FileUploader::FileUploader(const LocalFileLocation &local, const RemoteFileLocation &remote, int64 expected_size,
                            const FileEncryptionKey &encryption_key, std::vector<int> bad_parts,
-                           std::unique_ptr<Callback> callback)
+                           unique_ptr<Callback> callback)
     : local_(local)
     , remote_(remote)
     , expected_size_(expected_size)

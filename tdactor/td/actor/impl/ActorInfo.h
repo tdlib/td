@@ -96,7 +96,7 @@ inline void ActorInfo::destroy_actor() {
 }
 
 template <class ActorT>
-ActorOwn<ActorT> ActorInfo::transfer_ownership_to_scheduler(std::unique_ptr<ActorT> actor) {
+ActorOwn<ActorT> ActorInfo::transfer_ownership_to_scheduler(unique_ptr<ActorT> actor) {
   CHECK(!empty());
   CHECK(deleter_ == Deleter::None);
   ActorT *actor_ptr = actor.release();

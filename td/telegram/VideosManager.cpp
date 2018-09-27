@@ -46,7 +46,7 @@ tl_object_ptr<td_api::video> VideosManager::get_video_object(FileId file_id) {
       get_photo_size_object(td_->file_manager_.get(), &video->thumbnail), td_->file_manager_->get_file_object(file_id));
 }
 
-FileId VideosManager::on_get_video(std::unique_ptr<Video> new_video, bool replace) {
+FileId VideosManager::on_get_video(unique_ptr<Video> new_video, bool replace) {
   auto file_id = new_video->file_id;
   LOG(INFO) << "Receive video " << file_id;
   auto &v = videos_[file_id];
@@ -121,7 +121,7 @@ FileId VideosManager::dup_video(FileId new_id, FileId old_id) {
   CHECK(old_video != nullptr);
   auto &new_video = videos_[new_id];
   CHECK(!new_video);
-  new_video = std::make_unique<Video>(*old_video);
+  new_video = make_unique<Video>(*old_video);
   new_video->file_id = new_id;
   new_video->thumbnail.file_id = td_->file_manager_->dup_file_id(new_video->thumbnail.file_id);
   return new_id;

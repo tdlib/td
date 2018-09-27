@@ -61,7 +61,7 @@ void NetStatsManager::init() {
       id++;
     }
     stat.key = "net_stats_" + name.str();
-    stat.stats.set_callback(std::make_unique<NetStatsInternalCallback>(actor_id(this), id));
+    stat.stats.set_callback(make_unique<NetStatsInternalCallback>(actor_id(this), id));
   });
 }
 

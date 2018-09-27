@@ -99,7 +99,7 @@ class AnimationsManager : public Actor {
 
   const Animation *get_animation(FileId file_id) const;
 
-  FileId on_get_animation(std::unique_ptr<Animation> new_animation, bool replace);
+  FileId on_get_animation(unique_ptr<Animation> new_animation, bool replace);
 
   int32 get_saved_animations_hash(const char *source) const;
 

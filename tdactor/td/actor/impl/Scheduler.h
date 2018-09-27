@@ -127,7 +127,7 @@ ActorOwn<ActorT> Scheduler::register_actor_impl(Slice name, ActorT *actor_ptr, A
 }
 
 template <class ActorT>
-ActorOwn<ActorT> Scheduler::register_existing_actor(std::unique_ptr<ActorT> actor_ptr) {
+ActorOwn<ActorT> Scheduler::register_existing_actor(unique_ptr<ActorT> actor_ptr) {
   CHECK(!actor_ptr->empty());
   auto actor_info = actor_ptr->get_info();
   CHECK(actor_info->migrate_dest_flag_atomic().first == sched_id_);

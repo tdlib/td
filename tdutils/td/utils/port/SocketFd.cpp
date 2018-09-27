@@ -486,12 +486,12 @@ SocketFd::SocketFd(SocketFd &&) = default;
 SocketFd &SocketFd::operator=(SocketFd &&) = default;
 SocketFd::~SocketFd() = default;
 
-SocketFd::SocketFd(std::unique_ptr<detail::SocketFdImpl> impl) : impl_(impl.release()) {
+SocketFd::SocketFd(unique_ptr<detail::SocketFdImpl> impl) : impl_(impl.release()) {
 }
 
 Result<SocketFd> SocketFd::from_native_fd(NativeFd fd) {
   TRY_STATUS(detail::init_socket_options(fd));
-  return SocketFd(std::make_unique<detail::SocketFdImpl>(std::move(fd)));
+  return SocketFd(make_unique<detail::SocketFdImpl>(std::move(fd)));
 }
 
 Result<SocketFd> SocketFd::open(const IPAddress &address) {
@@ -510,14 +510,14 @@ Result<SocketFd> SocketFd::open(const IPAddress &address) {
       return Status::PosixError(connect_errno, PSLICE() << "Failed to connect to " << address);
     }
   }
-  return SocketFd(std::make_unique<detail::SocketFdImpl>(std::move(native_fd)));
+  return SocketFd(make_unique<detail::SocketFdImpl>(std::move(native_fd)));
 #elif TD_PORT_WINDOWS
   auto bind_addr = address.get_any_addr();
   auto e_bind = bind(native_fd.socket(), bind_addr.get_sockaddr(), narrow_cast<int>(bind_addr.get_sockaddr_len()));
   if (e_bind != 0) {
     return OS_SOCKET_ERROR("Failed to bind a socket");
   }
-  return SocketFd(std::make_unique<detail::SocketFdImpl>(std::move(native_fd), address));
+  return SocketFd(make_unique<detail::SocketFdImpl>(std::move(native_fd), address));
 #endif
 }
 

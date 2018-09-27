@@ -14,7 +14,7 @@ namespace td {
 int VERBOSITY_NAME(proxy) = VERBOSITY_NAME(DEBUG);
 
 TransparentProxy::TransparentProxy(SocketFd socket_fd, IPAddress ip_address, string username, string password,
-                                   std::unique_ptr<Callback> callback, ActorShared<> parent)
+                                   unique_ptr<Callback> callback, ActorShared<> parent)
     : fd_(std::move(socket_fd))
     , ip_address_(std::move(ip_address))
     , username_(std::move(username))

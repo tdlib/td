@@ -136,7 +136,7 @@ class QueryBench : public td::Benchmark {
       virtual ~Callback() = default;
       virtual void on_result(int x) = 0;
     };
-    explicit ClientActor(std::unique_ptr<Callback> callback) : callback_(std::move(callback)) {
+    explicit ClientActor(td::unique_ptr<Callback> callback) : callback_(std::move(callback)) {
     }
     void f(int x) {
       callback_->on_result(x * x);
@@ -152,7 +152,7 @@ class QueryBench : public td::Benchmark {
     }
 
    private:
-    std::unique_ptr<Callback> callback_;
+    td::unique_ptr<Callback> callback_;
   };
 
   class ServerActor : public td::Actor {

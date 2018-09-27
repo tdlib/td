@@ -43,11 +43,11 @@ class TempAuthKeyWatchdog : public NetQueryCallback {
   };
 
  public:
-  using RegisteredAuthKey = std::unique_ptr<RegisteredAuthKeyImpl>;
+  using RegisteredAuthKey = unique_ptr<RegisteredAuthKeyImpl>;
 
   static RegisteredAuthKey register_auth_key_id(int64 id) {
     send_closure(G()->temp_auth_key_watchdog(), &TempAuthKeyWatchdog::register_auth_key_id_impl, id);
-    return std::make_unique<RegisteredAuthKeyImpl>(id);
+    return make_unique<RegisteredAuthKeyImpl>(id);
   }
 
  private:

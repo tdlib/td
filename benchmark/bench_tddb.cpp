@@ -76,13 +76,13 @@ class MessagesDbBench : public Benchmark {
   }
 
  private:
-  std::unique_ptr<td::ConcurrentScheduler> scheduler_;
+  td::unique_ptr<td::ConcurrentScheduler> scheduler_;
   std::shared_ptr<SqliteConnectionSafe> sql_connection_;
   std::shared_ptr<MessagesDbSyncSafeInterface> messages_db_sync_safe_;
   std::shared_ptr<MessagesDbAsyncInterface> messages_db_async_;
 
   Status do_start_up() {
-    scheduler_ = std::make_unique<ConcurrentScheduler>();
+    scheduler_ = make_unique<ConcurrentScheduler>();
     scheduler_->init(1);
 
     auto guard = scheduler_->get_main_guard();

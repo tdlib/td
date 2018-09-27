@@ -42,7 +42,7 @@ class FileGenerateActor : public Actor {
 
 class FileDownloadGenerateActor : public FileGenerateActor {
  public:
-  FileDownloadGenerateActor(FileType file_type, FileId file_id, std::unique_ptr<FileGenerateCallback> callback,
+  FileDownloadGenerateActor(FileType file_type, FileId file_id, unique_ptr<FileGenerateCallback> callback,
                             ActorShared<> parent)
       : file_type_(file_type), file_id_(file_id), callback_(std::move(callback)), parent_(std::move(parent)) {
   }
@@ -56,7 +56,7 @@ class FileDownloadGenerateActor : public FileGenerateActor {
  private:
   FileType file_type_;
   FileId file_id_;
-  std::unique_ptr<FileGenerateCallback> callback_;
+  unique_ptr<FileGenerateCallback> callback_;
   ActorShared<> parent_;
 
   void start_up() override {
@@ -79,7 +79,7 @@ class FileDownloadGenerateActor : public FileGenerateActor {
       ActorId<FileDownloadGenerateActor> parent_;
     };
 
-    send_closure(G()->file_manager(), &FileManager::download, file_id_, std::make_unique<Callback>(actor_id(this)), 1);
+    send_closure(G()->file_manager(), &FileManager::download, file_id_, std::make_shared<Callback>(actor_id(this)), 1);
   }
   void hangup() override {
     send_closure(G()->file_manager(), &FileManager::download, file_id_, nullptr, 0);
@@ -108,7 +108,7 @@ class FileDownloadGenerateActor : public FileGenerateActor {
 
 class MapDownloadGenerateActor : public FileGenerateActor {
  public:
-  MapDownloadGenerateActor(string conversion, std::unique_ptr<FileGenerateCallback> callback, ActorShared<> parent)
+  MapDownloadGenerateActor(string conversion, unique_ptr<FileGenerateCallback> callback, ActorShared<> parent)
       : conversion_(std::move(conversion)), callback_(std::move(callback)), parent_(std::move(parent)) {
   }
   void file_generate_progress(int32 expected_size, int32 local_prefix_size, Promise<> promise) override {
@@ -120,7 +120,7 @@ class MapDownloadGenerateActor : public FileGenerateActor {
 
  private:
   string conversion_;
-  std::unique_ptr<FileGenerateCallback> callback_;
+  unique_ptr<FileGenerateCallback> callback_;
   ActorShared<> parent_;
   string file_name_;
 
@@ -233,7 +233,7 @@ class FileExternalGenerateActor : public FileGenerateActor {
  public:
   FileExternalGenerateActor(uint64 query_id, const FullGenerateFileLocation &generate_location,
                             const LocalFileLocation &local_location, string name,
-                            std::unique_ptr<FileGenerateCallback> callback, ActorShared<> parent)
+                            unique_ptr<FileGenerateCallback> callback, ActorShared<> parent)
       : query_id_(query_id)
       , generate_location_(generate_location)
       , local_(local_location)
@@ -260,7 +260,7 @@ class FileExternalGenerateActor : public FileGenerateActor {
   LocalFileLocation local_;
   string name_;
   string path_;
-  std::unique_ptr<FileGenerateCallback> callback_;
+  unique_ptr<FileGenerateCallback> callback_;
   ActorShared<> parent_;
 
   void start_up() override {
@@ -342,7 +342,7 @@ FileGenerateManager::Query &FileGenerateManager::Query::operator=(Query &&other)
 
 void FileGenerateManager::generate_file(uint64 query_id, const FullGenerateFileLocation &generate_location,
                                         const LocalFileLocation &local_location, string name,
-                                        std::unique_ptr<FileGenerateCallback> callback) {
+                                        unique_ptr<FileGenerateCallback> callback) {
   CHECK(query_id != 0);
   auto it_flag = query_id_to_query_.insert(std::make_pair(query_id, Query{}));
   CHECK(it_flag.second) << "Query id must be unique";

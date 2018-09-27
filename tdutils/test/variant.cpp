@@ -11,20 +11,18 @@
 
 REGISTER_TESTS(variant);
 
-using namespace td;
-
 static const size_t BUF_SIZE = 1024 * 1024;
 static char buf[BUF_SIZE], buf2[BUF_SIZE];
-static StringBuilder sb(MutableSlice(buf, BUF_SIZE - 1));
-static StringBuilder sb2(MutableSlice(buf2, BUF_SIZE - 1));
+static td::StringBuilder sb(td::MutableSlice(buf, BUF_SIZE - 1));
+static td::StringBuilder sb2(td::MutableSlice(buf2, BUF_SIZE - 1));
 
-static std::string move_sb() {
+static td::string move_sb() {
   auto res = sb.as_cslice().str();
   sb.clear();
   return res;
 }
 
-static std::string name(int id) {
+static td::string name(int id) {
   if (id == 1) {
     return "A";
   }
@@ -58,15 +56,15 @@ using C = Class<3>;
 
 TEST(Variant, simple) {
   {
-    Variant<std::unique_ptr<A>, std::unique_ptr<B>, std::unique_ptr<C>> abc;
+    td::Variant<td::unique_ptr<A>, td::unique_ptr<B>, td::unique_ptr<C>> abc;
     ASSERT_STREQ("", sb.as_cslice());
-    abc = std::make_unique<A>();
+    abc = td::make_unique<A>();
     ASSERT_STREQ("+A", sb.as_cslice());
     sb.clear();
-    abc = std::make_unique<B>();
+    abc = td::make_unique<B>();
     ASSERT_STREQ("+B-A", sb.as_cslice());
     sb.clear();
-    abc = std::make_unique<C>();
+    abc = td::make_unique<C>();
     ASSERT_STREQ("+C-B", sb.as_cslice());
     sb.clear();
   }

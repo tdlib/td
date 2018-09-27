@@ -203,7 +203,7 @@ class Scheduler {
   static TD_THREAD_LOCAL ActorContext *context_;
 
   Callback *callback_ = nullptr;
-  std::unique_ptr<ObjectPool<ActorInfo>> actor_info_pool_;
+  unique_ptr<ObjectPool<ActorInfo>> actor_info_pool_;
 
   int32 actor_count_;
   ListNode pending_actors_list_;

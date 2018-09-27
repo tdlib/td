@@ -60,7 +60,7 @@ class HazardPointers {
     CHECK(thread_id < threads_.size());
     auto &data = threads_[thread_id];
     if (ptr) {
-      data.to_delete.push_back(std::unique_ptr<T>(ptr));
+      data.to_delete.push_back(unique_ptr<T>(ptr));
     }
     for (auto it = data.to_delete.begin(); it != data.to_delete.end();) {
       if (!is_protected(it->get())) {
@@ -94,8 +94,8 @@ class HazardPointers {
     char pad[TD_CONCURRENCY_PAD - sizeof(std::array<std::atomic<T *>, MaxPointersN>)];
 
     // stupid gc
-    std::vector<std::unique_ptr<T>> to_delete;
-    char pad2[TD_CONCURRENCY_PAD - sizeof(std::vector<std::unique_ptr<T>>)];
+    std::vector<unique_ptr<T>> to_delete;
+    char pad2[TD_CONCURRENCY_PAD - sizeof(std::vector<unique_ptr<T>>)];
   };
   std::vector<ThreadData> threads_;
   char pad2[TD_CONCURRENCY_PAD - sizeof(std::vector<ThreadData>)];

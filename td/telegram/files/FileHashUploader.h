@@ -31,7 +31,7 @@ class FileHashUploader : public FileLoaderActor {
     virtual void on_error(Status status) = 0;
   };
 
-  FileHashUploader(const FullLocalFileLocation &local, int64 size, std::unique_ptr<Callback> callback)
+  FileHashUploader(const FullLocalFileLocation &local, int64 size, unique_ptr<Callback> callback)
       : local_(local), size_(size), size_left_(size), callback_(std::move(callback)) {
   }
 

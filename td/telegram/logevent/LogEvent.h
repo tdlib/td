@@ -129,13 +129,13 @@ void store(const EventT &event, StorerT &storer) {
 }
 
 template <class DestT, class T>
-Result<std::unique_ptr<DestT>> from_parser(T &&parser) {
+Result<unique_ptr<DestT>> from_parser(T &&parser) {
   auto version = parser.fetch_int();
   parser.set_version(version);
   parser.set_context(G());
   auto magic = static_cast<typename DestT::Type>(parser.fetch_int());
 
-  std::unique_ptr<DestT> event;
+  unique_ptr<DestT> event;
   DestT::downcast_call(magic, [&](auto *ptr) {
     auto tmp = make_unique<std::decay_t<decltype(*ptr)>>();
     tmp->parse(parser);
@@ -150,7 +150,7 @@ Result<std::unique_ptr<DestT>> from_parser(T &&parser) {
 }
 
 template <class DestT>
-Result<std::unique_ptr<DestT>> from_buffer_slice(BufferSlice slice) {
+Result<unique_ptr<DestT>> from_buffer_slice(BufferSlice slice) {
   return from_parser<DestT>(WithVersion<WithContext<TlBufferParser, Global *>>{&slice});
 }
 
@@ -191,7 +191,7 @@ class LogEventBase : public LogEvent {
   void store(StorerT &storer) const {
     detail::store(static_cast<const ChildT &>(*this), storer);
   }
-  static Result<std::unique_ptr<ChildT>> from_buffer_slice(BufferSlice slice) {
+  static Result<unique_ptr<ChildT>> from_buffer_slice(BufferSlice slice) {
     return detail::from_buffer_slice<ChildT>(std::move(slice));
   }
 };

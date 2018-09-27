@@ -3107,7 +3107,7 @@ class GetInviteTextRequest : public RequestActor<string> {
 };
 
 /** Td **/
-Td::Td(std::unique_ptr<TdCallback> callback) : callback_(std::move(callback)) {
+Td::Td(unique_ptr<TdCallback> callback) : callback_(std::move(callback)) {
 }
 
 void Td::on_alarm_timeout_callback(void *td_ptr, int64 alarm_id) {
@@ -4059,7 +4059,7 @@ Status Td::init(DbKey key) {
   };
 
   G()->set_shared_config(
-      std::make_unique<ConfigShared>(G()->td_db()->get_config_pmc(), std::make_unique<ConfigSharedCallback>()));
+      make_unique<ConfigShared>(G()->td_db()->get_config_pmc(), make_unique<ConfigSharedCallback>()));
   config_manager_ = create_actor<ConfigManager>("ConfigManager", create_reference());
   G()->set_config_manager(config_manager_.get());
 
@@ -4092,7 +4092,7 @@ Status Td::init(DbKey key) {
   options_.language_code = G()->shared_config().get_option_string("language_pack_id");
   options_.is_emulator = G()->shared_config().get_option_boolean("is_emulator");
   // options_.proxy = Proxy();
-  G()->set_mtproto_header(std::make_unique<MtprotoHeader>(options_));
+  G()->set_mtproto_header(make_unique<MtprotoHeader>(options_));
 
   if (!G()->shared_config().have_option("message_text_length_max")) {
     G()->shared_config().set_option_integer("message_text_length_max", 4096);
@@ -4102,11 +4102,11 @@ Status Td::init(DbKey key) {
   }
 
   VLOG(td_init) << "Create NetQueryDispatcher";
-  auto net_query_dispatcher = std::make_unique<NetQueryDispatcher>([&] { return create_reference(); });
+  auto net_query_dispatcher = make_unique<NetQueryDispatcher>([&] { return create_reference(); });
   G()->set_net_query_dispatcher(std::move(net_query_dispatcher));
 
   VLOG(td_init) << "Create AuthManager";
-  auth_manager_ = std::make_unique<AuthManager>(parameters_.api_id, parameters_.api_hash, create_reference());
+  auth_manager_ = td::make_unique<AuthManager>(parameters_.api_id, parameters_.api_hash, create_reference());
   auth_manager_actor_ = register_actor("AuthManager", auth_manager_.get());
 
   VLOG(td_init) << "Create FileManager";
@@ -4131,7 +4131,7 @@ Status Td::init(DbKey key) {
    private:
     Td *td_;
   };
-  file_manager_ = std::make_unique<FileManager>(std::make_unique<FileManagerContext>(this));
+  file_manager_ = make_unique<FileManager>(make_unique<FileManagerContext>(this));
   file_manager_actor_ = register_actor("FileManager", file_manager_.get());
   file_manager_->init_actor();
   G()->set_file_manager(file_manager_actor_.get());
@@ -4144,24 +4144,24 @@ Status Td::init(DbKey key) {
   videos_manager_ = make_unique<VideosManager>(this);
   voice_notes_manager_ = make_unique<VoiceNotesManager>(this);
 
-  animations_manager_ = std::make_unique<AnimationsManager>(this, create_reference());
+  animations_manager_ = make_unique<AnimationsManager>(this, create_reference());
   animations_manager_actor_ = register_actor("AnimationsManager", animations_manager_.get());
   G()->set_animations_manager(animations_manager_actor_.get());
-  contacts_manager_ = std::make_unique<ContactsManager>(this, create_reference());
+  contacts_manager_ = make_unique<ContactsManager>(this, create_reference());
   contacts_manager_actor_ = register_actor("ContactsManager", contacts_manager_.get());
   G()->set_contacts_manager(contacts_manager_actor_.get());
-  inline_queries_manager_ = std::make_unique<InlineQueriesManager>(this, create_reference());
+  inline_queries_manager_ = make_unique<InlineQueriesManager>(this, create_reference());
   inline_queries_manager_actor_ = register_actor("InlineQueriesManager", inline_queries_manager_.get());
-  messages_manager_ = std::make_unique<MessagesManager>(this, create_reference());
+  messages_manager_ = make_unique<MessagesManager>(this, create_reference());
   messages_manager_actor_ = register_actor("MessagesManager", messages_manager_.get());
   G()->set_messages_manager(messages_manager_actor_.get());
-  stickers_manager_ = std::make_unique<StickersManager>(this, create_reference());
+  stickers_manager_ = make_unique<StickersManager>(this, create_reference());
   stickers_manager_actor_ = register_actor("StickersManager", stickers_manager_.get());
   G()->set_stickers_manager(stickers_manager_actor_.get());
-  updates_manager_ = std::make_unique<UpdatesManager>(this, create_reference());
+  updates_manager_ = make_unique<UpdatesManager>(this, create_reference());
   updates_manager_actor_ = register_actor("UpdatesManager", updates_manager_.get());
   G()->set_updates_manager(updates_manager_actor_.get());
-  web_pages_manager_ = std::make_unique<WebPagesManager>(this, create_reference());
+  web_pages_manager_ = make_unique<WebPagesManager>(this, create_reference());
   web_pages_manager_actor_ = register_actor("WebPagesManager", web_pages_manager_.get());
   G()->set_web_pages_manager(web_pages_manager_actor_.get());
 

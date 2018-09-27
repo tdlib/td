@@ -13,7 +13,7 @@
 
 namespace td {
 
-FileFromBytes::FileFromBytes(FileType type, BufferSlice bytes, string name, std::unique_ptr<Callback> callback)
+FileFromBytes::FileFromBytes(FileType type, BufferSlice bytes, string name, unique_ptr<Callback> callback)
     : type_(type), bytes_(std::move(bytes)), name_(std::move(name)), callback_(std::move(callback)) {
 }
 

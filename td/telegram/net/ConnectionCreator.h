@@ -154,8 +154,8 @@ class ConnectionCreator : public NetQueryCallback {
   void on_pong(size_t hash);
   void on_mtproto_error(size_t hash);
   void request_raw_connection(DcId dc_id, bool allow_media_only, bool is_media,
-                              Promise<std::unique_ptr<mtproto::RawConnection>> promise, size_t hash = 0);
-  void request_raw_connection_by_ip(IPAddress ip_address, Promise<std::unique_ptr<mtproto::RawConnection>> promise);
+                              Promise<unique_ptr<mtproto::RawConnection>> promise, size_t hash = 0);
+  void request_raw_connection_by_ip(IPAddress ip_address, Promise<unique_ptr<mtproto::RawConnection>> promise);
 
   void set_net_stats_callback(std::shared_ptr<NetStatsCallback> common_callback,
                               std::shared_ptr<NetStatsCallback> media_callback);
@@ -224,8 +224,8 @@ class ConnectionCreator : public NetQueryCallback {
     Slot slot;
     size_t pending_connections{0};
     size_t checking_connections{0};
-    std::vector<std::pair<std::unique_ptr<mtproto::RawConnection>, double>> ready_connections;
-    std::vector<Promise<std::unique_ptr<mtproto::RawConnection>>> queries;
+    std::vector<std::pair<unique_ptr<mtproto::RawConnection>, double>> ready_connections;
+    std::vector<Promise<unique_ptr<mtproto::RawConnection>>> queries;
 
     static constexpr double READY_CONNECTIONS_TIMEOUT = 10;
 
@@ -276,10 +276,9 @@ class ConnectionCreator : public NetQueryCallback {
 
   void save_dc_options();
   Result<SocketFd> do_request_connection(DcId dc_id, bool allow_media_only);
-  Result<std::pair<std::unique_ptr<mtproto::RawConnection>, bool>> do_request_raw_connection(DcId dc_id,
-                                                                                             bool allow_media_only,
-                                                                                             bool is_media,
-                                                                                             size_t hash);
+  Result<std::pair<unique_ptr<mtproto::RawConnection>, bool>> do_request_raw_connection(DcId dc_id,
+                                                                                        bool allow_media_only,
+                                                                                        bool is_media, size_t hash);
 
   void on_network(bool network_flag, uint32 network_generation);
   void on_online(bool online_flag);
@@ -291,13 +290,12 @@ class ConnectionCreator : public NetQueryCallback {
   struct ConnectionData {
     SocketFd socket_fd;
     StateManager::ConnectionToken connection_token;
-    std::unique_ptr<detail::StatsCallback> stats_callback;
+    unique_ptr<detail::StatsCallback> stats_callback;
   };
   void client_create_raw_connection(Result<ConnectionData> r_connection_data, bool check_mode,
                                     mtproto::TransportType transport_type, size_t hash, string debug_str,
                                     uint32 network_generation);
-  void client_add_connection(size_t hash, Result<std::unique_ptr<mtproto::RawConnection>> r_raw_connection,
-                             bool check_flag);
+  void client_add_connection(size_t hash, Result<unique_ptr<mtproto::RawConnection>> r_raw_connection, bool check_flag);
   void client_set_timeout_at(ClientInfo &client, double wakeup_at);
 
   void on_get_proxy_info(telegram_api::object_ptr<telegram_api::help_ProxyData> proxy_data_ptr);

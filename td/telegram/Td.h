@@ -128,23 +128,23 @@ class Td final : public NetQueryCallback {
   unique_ptr<VideosManager> videos_manager_;
   unique_ptr<VoiceNotesManager> voice_notes_manager_;
 
-  std::unique_ptr<AnimationsManager> animations_manager_;
+  unique_ptr<AnimationsManager> animations_manager_;
   ActorOwn<AnimationsManager> animations_manager_actor_;
-  std::unique_ptr<AuthManager> auth_manager_;
+  unique_ptr<AuthManager> auth_manager_;
   ActorOwn<AuthManager> auth_manager_actor_;
-  std::unique_ptr<ContactsManager> contacts_manager_;
+  unique_ptr<ContactsManager> contacts_manager_;
   ActorOwn<ContactsManager> contacts_manager_actor_;
-  std::unique_ptr<FileManager> file_manager_;
+  unique_ptr<FileManager> file_manager_;
   ActorOwn<FileManager> file_manager_actor_;
-  std::unique_ptr<InlineQueriesManager> inline_queries_manager_;
+  unique_ptr<InlineQueriesManager> inline_queries_manager_;
   ActorOwn<InlineQueriesManager> inline_queries_manager_actor_;
-  std::unique_ptr<MessagesManager> messages_manager_;
+  unique_ptr<MessagesManager> messages_manager_;
   ActorOwn<MessagesManager> messages_manager_actor_;
-  std::unique_ptr<StickersManager> stickers_manager_;
+  unique_ptr<StickersManager> stickers_manager_;
   ActorOwn<StickersManager> stickers_manager_actor_;
-  std::unique_ptr<UpdatesManager> updates_manager_;
+  unique_ptr<UpdatesManager> updates_manager_;
   ActorOwn<UpdatesManager> updates_manager_actor_;
-  std::unique_ptr<WebPagesManager> web_pages_manager_;
+  unique_ptr<WebPagesManager> web_pages_manager_;
   ActorOwn<WebPagesManager> web_pages_manager_actor_;
 
   ActorOwn<CallManager> call_manager_;

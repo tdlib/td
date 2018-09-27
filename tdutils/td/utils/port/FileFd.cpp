@@ -91,7 +91,7 @@ FileFd::FileFd(FileFd &&) = default;
 FileFd &FileFd::operator=(FileFd &&) = default;
 FileFd::~FileFd() = default;
 
-FileFd::FileFd(std::unique_ptr<detail::FileFdImpl> impl) : impl_(std::move(impl)) {
+FileFd::FileFd(unique_ptr<detail::FileFdImpl> impl) : impl_(std::move(impl)) {
 }
 
 Result<FileFd> FileFd::open(CSlice filepath, int32 flags, int32 mode) {
@@ -194,7 +194,7 @@ Result<FileFd> FileFd::open(CSlice filepath, int32 flags, int32 mode) {
 }
 
 FileFd FileFd::from_native_fd(NativeFd native_fd) {
-  auto impl = std::make_unique<detail::FileFdImpl>();
+  auto impl = make_unique<detail::FileFdImpl>();
   impl->info.set_native_fd(std::move(native_fd));
   impl->info.add_flags(PollFlags::Write());
   return FileFd(std::move(impl));

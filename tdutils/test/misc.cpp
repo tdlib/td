@@ -127,7 +127,7 @@ TEST(Misc, errno_tls_bug) {
 }
 
 TEST(Misc, get_last_argument) {
-  auto a = std::make_unique<int>(5);
+  auto a = make_unique<int>(5);
   ASSERT_EQ(*get_last_argument(std::move(a)), 5);
   ASSERT_EQ(*get_last_argument(1, 2, 3, 4, a), 5);
   ASSERT_EQ(*get_last_argument(a), 5);
@@ -468,7 +468,6 @@ TEST(Misc, split) {
   test_split(" abcd ef", {"", "abcd ef"});
   test_split(" abcdef ", {"", "abcdef "});
 }
-
 
 static void test_full_split(Slice str, vector<Slice> expected) {
   ASSERT_EQ(expected, td::full_split(str));

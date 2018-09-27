@@ -273,7 +273,7 @@ ServerSocketFd::ServerSocketFd() = default;
 ServerSocketFd::ServerSocketFd(ServerSocketFd &&) = default;
 ServerSocketFd &ServerSocketFd::operator=(ServerSocketFd &&) = default;
 ServerSocketFd::~ServerSocketFd() = default;
-ServerSocketFd::ServerSocketFd(std::unique_ptr<detail::ServerSocketFdImpl> impl) : impl_(impl.release()) {
+ServerSocketFd::ServerSocketFd(unique_ptr<detail::ServerSocketFdImpl> impl) : impl_(impl.release()) {
 }
 PollableFdInfo &ServerSocketFd::get_poll_info() {
   return impl_->get_poll_info();
@@ -340,9 +340,9 @@ Result<ServerSocketFd> ServerSocketFd::open(int32 port, CSlice addr) {
   }
 
 #if TD_PORT_POSIX
-  auto impl = std::make_unique<detail::ServerSocketFdImpl>(std::move(fd));
+  auto impl = make_unique<detail::ServerSocketFdImpl>(std::move(fd));
 #elif TD_PORT_WINDOWS
-  auto impl = std::make_unique<detail::ServerSocketFdImpl>(std::move(fd), address.get_address_family());
+  auto impl = make_unique<detail::ServerSocketFdImpl>(std::move(fd), address.get_address_family());
 #endif
 
   return ServerSocketFd(std::move(impl));

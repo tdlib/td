@@ -44,7 +44,7 @@ tl_object_ptr<td_api::videoNote> VideoNotesManager::get_video_note_object(FileId
                                            td_->file_manager_->get_file_object(file_id));
 }
 
-FileId VideoNotesManager::on_get_video_note(std::unique_ptr<VideoNote> new_video_note, bool replace) {
+FileId VideoNotesManager::on_get_video_note(unique_ptr<VideoNote> new_video_note, bool replace) {
   auto file_id = new_video_note->file_id;
   LOG(INFO) << "Receive video note " << file_id;
   auto &v = video_notes_[file_id];
@@ -99,7 +99,7 @@ FileId VideoNotesManager::dup_video_note(FileId new_id, FileId old_id) {
   CHECK(old_video_note != nullptr);
   auto &new_video_note = video_notes_[new_id];
   CHECK(!new_video_note);
-  new_video_note = std::make_unique<VideoNote>(*old_video_note);
+  new_video_note = make_unique<VideoNote>(*old_video_note);
   new_video_note->file_id = new_id;
   new_video_note->thumbnail.file_id = td_->file_manager_->dup_file_id(new_video_note->thumbnail.file_id);
   return new_id;

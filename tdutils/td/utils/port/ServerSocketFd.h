@@ -13,6 +13,8 @@
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
+#include <memory>
+
 namespace td {
 namespace detail {
 class ServerSocketFdImpl;
@@ -47,6 +49,6 @@ class ServerSocketFd {
 
  private:
   std::unique_ptr<detail::ServerSocketFdImpl, detail::ServerSocketFdImplDeleter> impl_;
-  explicit ServerSocketFd(std::unique_ptr<detail::ServerSocketFdImpl> impl);
+  explicit ServerSocketFd(unique_ptr<detail::ServerSocketFdImpl> impl);
 };
 }  // namespace td

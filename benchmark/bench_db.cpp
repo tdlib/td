@@ -167,13 +167,13 @@ class SqliteKeyValueAsyncBench : public td::Benchmark {
   }
 
  private:
-  std::unique_ptr<td::ConcurrentScheduler> scheduler_;
+  td::unique_ptr<td::ConcurrentScheduler> scheduler_;
   std::shared_ptr<td::SqliteConnectionSafe> sql_connection_;
   std::shared_ptr<td::SqliteKeyValueSafe> sqlite_kv_safe_;
-  std::unique_ptr<td::SqliteKeyValueAsyncInterface> sqlite_kv_async_;
+  td::unique_ptr<td::SqliteKeyValueAsyncInterface> sqlite_kv_async_;
 
   td::Status do_start_up() {
-    scheduler_ = std::make_unique<td::ConcurrentScheduler>();
+    scheduler_ = td::make_unique<td::ConcurrentScheduler>();
     scheduler_->init(1);
 
     auto guard = scheduler_->get_main_guard();

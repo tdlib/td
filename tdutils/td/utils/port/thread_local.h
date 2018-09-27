@@ -39,7 +39,7 @@ void set_thread_id(int32 id);
 int32 get_thread_id();
 
 namespace detail {
-void add_thread_local_destructor(std::unique_ptr<Destructor> destructor);
+void add_thread_local_destructor(unique_ptr<Destructor> destructor);
 
 template <class T, class P, class... ArgsT>
 void do_init_thread_local(P &raw_ptr, ArgsT &&... args) {

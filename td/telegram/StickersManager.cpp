@@ -929,7 +929,7 @@ tl_object_ptr<telegram_api::InputStickerSet> StickersManager::get_input_sticker_
   return get_input_sticker_set(sticker_set);
 }
 
-FileId StickersManager::on_get_sticker(std::unique_ptr<Sticker> new_sticker, bool replace) {
+FileId StickersManager::on_get_sticker(unique_ptr<Sticker> new_sticker, bool replace) {
   auto file_id = new_sticker->file_id;
   LOG(INFO) << "Receive sticker " << file_id;
   auto &s = stickers_[file_id];
@@ -1150,7 +1150,7 @@ FileId StickersManager::dup_sticker(FileId new_id, FileId old_id) {
   CHECK(old_sticker != nullptr);
   auto &new_sticker = stickers_[new_id];
   CHECK(!new_sticker);
-  new_sticker = std::make_unique<Sticker>(*old_sticker);
+  new_sticker = make_unique<Sticker>(*old_sticker);
   new_sticker->file_id = new_id;
   // there is no reason to dup sticker_thumb
   new_sticker->message_thumbnail.file_id = td_->file_manager_->dup_file_id(new_sticker->message_thumbnail.file_id);

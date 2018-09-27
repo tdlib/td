@@ -169,7 +169,7 @@ void DcOptionsSet::reset() {
 }
 
 DcOptionsSet::DcOptionInfo *DcOptionsSet::register_dc_option(DcOption &&option) {
-  auto info = std::make_unique<DcOptionInfo>(std::move(option), options_.size());
+  auto info = make_unique<DcOptionInfo>(std::move(option), options_.size());
   init_option_stat(info.get());
   auto result = info.get();
   options_.push_back(std::move(info));
@@ -180,7 +180,7 @@ void DcOptionsSet::init_option_stat(DcOptionInfo *option_info) {
   const auto &ip_address = option_info->option.get_ip_address();
   auto it_ok = option_to_stat_id_.insert(std::make_pair(ip_address, 0));
   if (it_ok.second) {
-    it_ok.first->second = option_stats_.create(std::make_unique<OptionStat>());
+    it_ok.first->second = option_stats_.create(make_unique<OptionStat>());
   }
   option_info->stat_id = it_ok.first->second;
 }

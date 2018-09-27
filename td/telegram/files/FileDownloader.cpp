@@ -30,7 +30,7 @@ namespace td {
 
 FileDownloader::FileDownloader(const FullRemoteFileLocation &remote, const LocalFileLocation &local, int64 size,
                                string name, const FileEncryptionKey &encryption_key, bool is_small, bool search_file,
-                               std::unique_ptr<Callback> callback)
+                               unique_ptr<Callback> callback)
     : remote_(remote)
     , local_(local)
     , size_(size)

@@ -6454,7 +6454,8 @@ bool ContactsManager::on_update_user_full_bot_info(UserFull *user_full, UserId u
   for (auto &command : bot_info->commands_) {
     commands.emplace_back(std::move(command->command_), std::move(command->description_));
   }
-  user_full->bot_info = make_unique<BotInfo>(bot_info_version, std::move(bot_info->description_), std::move(commands));
+  user_full->bot_info =
+      td::make_unique<BotInfo>(bot_info_version, std::move(bot_info->description_), std::move(commands));
   user_full->is_changed = true;
   return true;
 }

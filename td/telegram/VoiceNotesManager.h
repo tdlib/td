@@ -63,7 +63,7 @@ class VoiceNotesManager {
 
   const VoiceNote *get_voice_note(FileId file_id) const;
 
-  FileId on_get_voice_note(std::unique_ptr<VoiceNote> new_voice_note, bool replace);
+  FileId on_get_voice_note(unique_ptr<VoiceNote> new_voice_note, bool replace);
 
   Td *td_;
   std::unordered_map<FileId, unique_ptr<VoiceNote>, FileIdHash> voice_notes_;

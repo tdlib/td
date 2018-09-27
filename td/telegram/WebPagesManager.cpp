@@ -462,14 +462,14 @@ class WebPagesManager::PageBlock {
     call_impl(type, this, [&](const auto *object) { store(*object, storer); });
   }
   template <class T>
-  static std::unique_ptr<PageBlock> parse(T &parser) {
+  static unique_ptr<PageBlock> parse(T &parser) {
     using ::td::parse;
     Type type;
     parse(type, parser);
-    std::unique_ptr<PageBlock> res;
+    unique_ptr<PageBlock> res;
     call_impl(type, nullptr, [&](const auto *ptr) {
       using ObjT = std::decay_t<decltype(*ptr)>;
-      auto object = std::make_unique<ObjT>();
+      auto object = make_unique<ObjT>();
       parse(*object, parser);
       res = std::move(object);
     });
@@ -2353,8 +2353,8 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
     }
     case telegram_api::pageBlockPreformatted::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockPreformatted>(page_block_ptr);
-      return make_unique<PageBlockPreformatted>(get_rich_text(std::move(page_block->text_)),
-                                                std::move(page_block->language_));
+      return td::make_unique<PageBlockPreformatted>(get_rich_text(std::move(page_block->text_)),
+                                                    std::move(page_block->language_));
     }
     case telegram_api::pageBlockFooter::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockFooter>(page_block_ptr);
@@ -2364,11 +2364,11 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
       return make_unique<PageBlockDivider>();
     case telegram_api::pageBlockAnchor::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockAnchor>(page_block_ptr);
-      return make_unique<PageBlockAnchor>(std::move(page_block->name_));
+      return td::make_unique<PageBlockAnchor>(std::move(page_block->name_));
     }
     case telegram_api::pageBlockList::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockList>(page_block_ptr);
-      return make_unique<PageBlockList>(get_rich_texts(std::move(page_block->items_)), page_block->ordered_);
+      return td::make_unique<PageBlockList>(get_rich_texts(std::move(page_block->items_)), page_block->ordered_);
     }
     case telegram_api::pageBlockBlockquote::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockBlockquote>(page_block_ptr);
@@ -2431,10 +2431,10 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
       } else {
         poster_photo = it->second;
       }
-      return make_unique<PageBlockEmbedded>(std::move(page_block->url_), std::move(page_block->html_),
-                                            std::move(poster_photo), get_dimensions(page_block->w_, page_block->h_),
-                                            get_rich_text(std::move(page_block->caption_)), is_full_width,
-                                            allow_scrolling);
+      return td::make_unique<PageBlockEmbedded>(std::move(page_block->url_), std::move(page_block->html_),
+                                                std::move(poster_photo), get_dimensions(page_block->w_, page_block->h_),
+                                                get_rich_text(std::move(page_block->caption_)), is_full_width,
+                                                allow_scrolling);
     }
     case telegram_api::pageBlockEmbedPost::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockEmbedPost>(page_block_ptr);
@@ -2445,20 +2445,20 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
       } else {
         author_photo = it->second;
       }
-      return make_unique<PageBlockEmbeddedPost>(
+      return td::make_unique<PageBlockEmbeddedPost>(
           std::move(page_block->url_), std::move(page_block->author_), std::move(author_photo), page_block->date_,
           get_page_blocks(std::move(page_block->blocks_), animations, audios, photos, videos),
           get_rich_text(std::move(page_block->caption_)));
     }
     case telegram_api::pageBlockCollage::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockCollage>(page_block_ptr);
-      return make_unique<PageBlockCollage>(
+      return td::make_unique<PageBlockCollage>(
           get_page_blocks(std::move(page_block->items_), animations, audios, photos, videos),
           get_rich_text(std::move(page_block->caption_)));
     }
     case telegram_api::pageBlockSlideshow::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockSlideshow>(page_block_ptr);
-      return make_unique<PageBlockSlideshow>(
+      return td::make_unique<PageBlockSlideshow>(
           get_page_blocks(std::move(page_block->items_), animations, audios, photos, videos),
           get_rich_text(std::move(page_block->caption_)));
     }
@@ -2476,13 +2476,13 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
         if (td_->contacts_manager_->have_channel_force(channel_id)) {
           td_->contacts_manager_->on_get_chat(std::move(page_block->channel_));
           LOG(INFO) << "Receive known min " << channel_id;
-          return make_unique<PageBlockChatLink>(td_->contacts_manager_->get_channel_title(channel_id),
-                                                *td_->contacts_manager_->get_channel_dialog_photo(channel_id),
-                                                td_->contacts_manager_->get_channel_username(channel_id));
+          return td::make_unique<PageBlockChatLink>(td_->contacts_manager_->get_channel_title(channel_id),
+                                                    *td_->contacts_manager_->get_channel_dialog_photo(channel_id),
+                                                    td_->contacts_manager_->get_channel_username(channel_id));
         } else {
-          return make_unique<PageBlockChatLink>(std::move(channel->title_),
-                                                get_dialog_photo(td_->file_manager_.get(), std::move(channel->photo_)),
-                                                std::move(channel->username_));
+          return td::make_unique<PageBlockChatLink>(
+              std::move(channel->title_), get_dialog_photo(td_->file_manager_.get(), std::move(channel->photo_)),
+              std::move(channel->username_));
         }
       } else {
         LOG(ERROR) << "Receive wrong channel " << to_string(page_block->channel_);

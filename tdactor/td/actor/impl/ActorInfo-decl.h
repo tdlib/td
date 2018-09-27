@@ -56,7 +56,7 @@ class ActorInfo
   void on_actor_moved(Actor *actor_new_ptr);
 
   template <class ActorT>
-  ActorOwn<ActorT> transfer_ownership_to_scheduler(std::unique_ptr<ActorT> actor);
+  ActorOwn<ActorT> transfer_ownership_to_scheduler(unique_ptr<ActorT> actor);
   void clear();
   void destroy_actor();
 

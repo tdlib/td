@@ -55,7 +55,7 @@ class SecretImpl {
   const Storer &data;
 };
 
-SecretChatActor::SecretChatActor(int32 id, std::unique_ptr<Context> context, bool can_be_empty)
+SecretChatActor::SecretChatActor(int32 id, unique_ptr<Context> context, bool can_be_empty)
     : context_(std::move(context)), can_be_empty_(can_be_empty) {
   auth_state_.id = id;
 }
@@ -81,7 +81,7 @@ void SecretChatActor::create_chat(int32 user_id, int64 user_access_hash, int32 r
     return;
   }
 
-  auto event = std::make_unique<logevent::CreateSecretChat>();
+  auto event = make_unique<logevent::CreateSecretChat>();
   event->user_id = user_id;
   event->user_access_hash = user_access_hash;
   event->random_id = random_id;
@@ -124,18 +124,18 @@ void SecretChatActor::on_result_resendable(NetQueryPtr net_query, Promise<NetQue
   loop();
 }
 
-void SecretChatActor::replay_close_chat(std::unique_ptr<logevent::CloseSecretChat> event) {
+void SecretChatActor::replay_close_chat(unique_ptr<logevent::CloseSecretChat> event) {
   do_close_chat_impl(std::move(event));
 }
 
-void SecretChatActor::replay_create_chat(std::unique_ptr<logevent::CreateSecretChat> event) {
+void SecretChatActor::replay_create_chat(unique_ptr<logevent::CreateSecretChat> event) {
   if (close_flag_) {
     return;
   }
   do_create_chat_impl(std::move(event));
 }
 
-void SecretChatActor::add_inbound_message(std::unique_ptr<logevent::InboundSecretMessage> message) {
+void SecretChatActor::add_inbound_message(unique_ptr<logevent::InboundSecretMessage> message) {
   SCOPE_EXIT {
     if (message) {
       message->qts_ack.set_value(Unit());
@@ -152,7 +152,7 @@ void SecretChatActor::add_inbound_message(std::unique_ptr<logevent::InboundSecre
   loop();
 }
 
-void SecretChatActor::replay_inbound_message(std::unique_ptr<logevent::InboundSecretMessage> message) {
+void SecretChatActor::replay_inbound_message(unique_ptr<logevent::InboundSecretMessage> message) {
   if (close_flag_) {
     return;
   }
@@ -175,7 +175,7 @@ void SecretChatActor::replay_inbound_message(std::unique_ptr<logevent::InboundSe
   loop();
 }
 
-void SecretChatActor::replay_outbound_message(std::unique_ptr<logevent::OutboundSecretMessage> message) {
+void SecretChatActor::replay_outbound_message(unique_ptr<logevent::OutboundSecretMessage> message) {
   if (close_flag_) {
     return;
   }
@@ -316,7 +316,7 @@ void SecretChatActor::send_message_impl(tl_object_ptr<secret_api::DecryptedMessa
     return on_outbound_outer_send_message_promise(it->second, std::move(promise));
   }
 
-  auto binlog_event = std::make_unique<logevent::OutboundSecretMessage>();
+  auto binlog_event = make_unique<logevent::OutboundSecretMessage>();
   binlog_event->chat_id = auth_state_.id;
   binlog_event->random_id = random_id;
   binlog_event->file = logevent::EncryptedInputFile::from_input_encrypted_file(file);
@@ -726,7 +726,7 @@ void SecretChatActor::cancel_chat(Promise<> promise) {
     create_logevent_id_ = 0;
   }
 
-  auto event = std::make_unique<logevent::CloseSecretChat>();
+  auto event = make_unique<logevent::CloseSecretChat>();
   event->chat_id = auth_state_.id;
   event->set_logevent_id(binlog_add(context_->binlog(), LogEvent::HandlerType::SecretChats, create_storer(*event)));
 
@@ -745,7 +745,7 @@ void SecretChatActor::cancel_chat(Promise<> promise) {
   yield();
 }
 
-void SecretChatActor::do_close_chat_impl(std::unique_ptr<logevent::CloseSecretChat> event) {
+void SecretChatActor::do_close_chat_impl(unique_ptr<logevent::CloseSecretChat> event) {
   close_flag_ = true;
   close_logevent_id_ = event->logevent_id();
   LOG(INFO) << "Send messages.discardEncryption";
@@ -764,7 +764,7 @@ void SecretChatActor::do_close_chat_impl(std::unique_ptr<logevent::CloseSecretCh
   context_->send_net_query(std::move(query), actor_shared(this), true);
 }
 
-void SecretChatActor::do_create_chat_impl(std::unique_ptr<logevent::CreateSecretChat> event) {
+void SecretChatActor::do_create_chat_impl(unique_ptr<logevent::CreateSecretChat> event) {
   LOG(INFO) << *event;
   CHECK(event->random_id == auth_state_.id);
   create_logevent_id_ = event->logevent_id();
@@ -873,7 +873,7 @@ Result<std::tuple<uint64, BufferSlice, int32>> SecretChatActor::decrypt(BufferSl
   }
 }
 
-Status SecretChatActor::do_inbound_message_encrypted(std::unique_ptr<logevent::InboundSecretMessage> message) {
+Status SecretChatActor::do_inbound_message_encrypted(unique_ptr<logevent::InboundSecretMessage> message) {
   SCOPE_EXIT {
     if (message) {
       message->qts_ack.set_value(Unit());
@@ -965,8 +965,7 @@ Status SecretChatActor::check_seq_no(int in_seq_no, int out_seq_no, int32 his_la
   return Status::OK();
 }
 
-Status SecretChatActor::do_inbound_message_decrypted_unchecked(
-    std::unique_ptr<logevent::InboundSecretMessage> message) {
+Status SecretChatActor::do_inbound_message_decrypted_unchecked(unique_ptr<logevent::InboundSecretMessage> message) {
   SCOPE_EXIT {
     LOG_IF(FATAL, message && message->qts_ack) << "Lost qts_promise";
   };
@@ -1045,7 +1044,7 @@ Status SecretChatActor::do_inbound_message_decrypted_unchecked(
   return do_inbound_message_decrypted(std::move(message));
 }
 
-void SecretChatActor::do_outbound_message_impl(std::unique_ptr<logevent::OutboundSecretMessage> binlog_event,
+void SecretChatActor::do_outbound_message_impl(unique_ptr<logevent::OutboundSecretMessage> binlog_event,
                                                Promise<> promise) {
   binlog_event->crc = crc64(binlog_event->encrypted_message.as_slice());
   LOG(INFO) << "Do outbound message: " << *binlog_event << tag("crc", binlog_event->crc);
@@ -1192,7 +1191,7 @@ void SecretChatActor::update_seq_no_state(const T &new_seq_no_state) {
   return on_seq_no_state_changed();
 }
 
-Status SecretChatActor::do_inbound_message_decrypted_pending(std::unique_ptr<logevent::InboundSecretMessage> message) {
+Status SecretChatActor::do_inbound_message_decrypted_pending(unique_ptr<logevent::InboundSecretMessage> message) {
   // Just save logevent if necessary
   auto logevent_id = message->logevent_id();
 
@@ -1217,7 +1216,7 @@ Status SecretChatActor::do_inbound_message_decrypted_pending(std::unique_ptr<log
   return Status::OK();
 }
 
-Status SecretChatActor::do_inbound_message_decrypted(std::unique_ptr<logevent::InboundSecretMessage> message) {
+Status SecretChatActor::do_inbound_message_decrypted(unique_ptr<logevent::InboundSecretMessage> message) {
   // InboundSecretMessage
   //
   // 1. [] => Add logevent. [save_logevent]

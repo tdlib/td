@@ -36,8 +36,7 @@ class FileGenerateManager : public Actor {
   }
 
   void generate_file(uint64 query_id, const FullGenerateFileLocation &generate_location,
-                     const LocalFileLocation &local_location, string name,
-                     std::unique_ptr<FileGenerateCallback> callback);
+                     const LocalFileLocation &local_location, string name, unique_ptr<FileGenerateCallback> callback);
   void cancel(uint64 query_id);
 
   // external updates about file generation state

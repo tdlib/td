@@ -16,6 +16,8 @@
 #include <pthread.h>
 #endif
 
+#include <memory>
+
 namespace td {
 
 class RwMutex {

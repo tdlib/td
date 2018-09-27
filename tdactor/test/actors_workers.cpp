@@ -45,7 +45,7 @@ class PowerWorker final : public Actor {
   }
 
  private:
-  std::unique_ptr<Callback> callback_;
+  unique_ptr<Callback> callback_;
 };
 
 class Manager final : public Actor {

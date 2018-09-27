@@ -124,7 +124,7 @@ class DocumentsManager {
 
   const Document *get_document(FileId file_id) const;
 
-  FileId on_get_document(std::unique_ptr<Document> new_document, bool replace);
+  FileId on_get_document(unique_ptr<Document> new_document, bool replace);
 
   Td *td_;
   std::unordered_map<FileId, unique_ptr<Document>, FileIdHash> documents_;  // file_id -> Document

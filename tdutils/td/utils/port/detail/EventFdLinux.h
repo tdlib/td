@@ -20,7 +20,7 @@ namespace detail {
 class EventFdLinuxImpl;
 
 class EventFdLinux final : public EventFdBase {
-  std::unique_ptr<EventFdLinuxImpl> impl_;
+  unique_ptr<EventFdLinuxImpl> impl_;
 
  public:
   EventFdLinux();

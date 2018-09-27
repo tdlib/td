@@ -88,15 +88,15 @@ class StatsCallback final : public mtproto::RawConnection::StatsCallback {
 
 class PingActor : public Actor {
  public:
-  PingActor(std::unique_ptr<mtproto::RawConnection> raw_connection,
-            Promise<std::unique_ptr<mtproto::RawConnection>> promise, ActorShared<> parent)
+  PingActor(unique_ptr<mtproto::RawConnection> raw_connection, Promise<unique_ptr<mtproto::RawConnection>> promise,
+            ActorShared<> parent)
       : promise_(std::move(promise)), parent_(std::move(parent)) {
-    ping_connection_ = std::make_unique<mtproto::PingConnection>(std::move(raw_connection), 2);
+    ping_connection_ = make_unique<mtproto::PingConnection>(std::move(raw_connection), 2);
   }
 
  private:
-  std::unique_ptr<mtproto::PingConnection> ping_connection_;
-  Promise<std::unique_ptr<mtproto::RawConnection>> promise_;
+  unique_ptr<mtproto::PingConnection> ping_connection_;
+  Promise<unique_ptr<mtproto::RawConnection>> promise_;
   ActorShared<> parent_;
 
   void start_up() override {
@@ -558,15 +558,15 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
     LOG(INFO) << "Start ping proxy: " << extra.debug_str;
     auto token = next_token();
     if (proxy.use_socks5_proxy()) {
-      children_[token] = {false, create_actor<Socks5>("PingSocks5", std::move(socket_fd), extra.mtproto_ip,
-                                                      proxy.proxy().user().str(), proxy.proxy().password().str(),
-                                                      std::make_unique<Callback>(std::move(socket_fd_promise)),
-                                                      create_reference(token))};
+      children_[token] = {
+          false, create_actor<Socks5>("PingSocks5", std::move(socket_fd), extra.mtproto_ip, proxy.proxy().user().str(),
+                                      proxy.proxy().password().str(),
+                                      make_unique<Callback>(std::move(socket_fd_promise)), create_reference(token))};
     } else {
-      children_[token] = {false, create_actor<HttpProxy>("PingHttpProxy", std::move(socket_fd), extra.mtproto_ip,
-                                                         proxy.proxy().user().str(), proxy.proxy().password().str(),
-                                                         std::make_unique<Callback>(std::move(socket_fd_promise)),
-                                                         create_reference(token))};
+      children_[token] = {
+          false, create_actor<HttpProxy>("PingHttpProxy", std::move(socket_fd), extra.mtproto_ip,
+                                         proxy.proxy().user().str(), proxy.proxy().password().str(),
+                                         make_unique<Callback>(std::move(socket_fd_promise)), create_reference(token))};
     }
   } else {
     socket_fd_promise.set_value(std::move(socket_fd));
@@ -576,20 +576,18 @@ void ConnectionCreator::ping_proxy_resolved(int32 proxy_id, IPAddress ip_address
 void ConnectionCreator::ping_proxy_socket_fd(SocketFd socket_fd, mtproto::TransportType transport_type,
                                              Promise<double> promise) {
   auto token = next_token();
-  auto raw_connection =
-      std::make_unique<mtproto::RawConnection>(std::move(socket_fd), std::move(transport_type), nullptr);
-  children_[token] = {
-      false, create_actor<detail::PingActor>(
-                 "PingActor", std::move(raw_connection),
-                 PromiseCreator::lambda(
-                     [promise = std::move(promise)](Result<std::unique_ptr<mtproto::RawConnection>> result) mutable {
-                       if (result.is_error()) {
-                         return promise.set_error(Status::Error(400, result.error().message()));
-                       }
-                       auto ping_time = result.ok()->rtt_;
-                       promise.set_value(std::move(ping_time));
-                     }),
-                 create_reference(token))};
+  auto raw_connection = make_unique<mtproto::RawConnection>(std::move(socket_fd), std::move(transport_type), nullptr);
+  children_[token] = {false, create_actor<detail::PingActor>(
+                                 "PingActor", std::move(raw_connection),
+                                 PromiseCreator::lambda([promise = std::move(promise)](
+                                                            Result<unique_ptr<mtproto::RawConnection>> result) mutable {
+                                   if (result.is_error()) {
+                                     return promise.set_error(Status::Error(400, result.error().message()));
+                                   }
+                                   auto ping_time = result.ok()->rtt_;
+                                   promise.set_value(std::move(ping_time));
+                                 }),
+                                 create_reference(token))};
 }
 
 void ConnectionCreator::set_active_proxy_id(int32 proxy_id, bool from_binlog) {
@@ -781,7 +779,7 @@ void ConnectionCreator::on_mtproto_error(size_t hash) {
 }
 
 void ConnectionCreator::request_raw_connection(DcId dc_id, bool allow_media_only, bool is_media,
-                                               Promise<std::unique_ptr<mtproto::RawConnection>> promise, size_t hash) {
+                                               Promise<unique_ptr<mtproto::RawConnection>> promise, size_t hash) {
   auto &client = clients_[hash];
   if (!client.inited) {
     client.inited = true;
@@ -803,12 +801,12 @@ void ConnectionCreator::request_raw_connection(DcId dc_id, bool allow_media_only
 }
 
 void ConnectionCreator::request_raw_connection_by_ip(IPAddress ip_address,
-                                                     Promise<std::unique_ptr<mtproto::RawConnection>> promise) {
+                                                     Promise<unique_ptr<mtproto::RawConnection>> promise) {
   auto r_socket_fd = SocketFd::open(ip_address);
   if (r_socket_fd.is_error()) {
     return promise.set_error(r_socket_fd.move_as_error());
   }
-  auto raw_connection = std::make_unique<mtproto::RawConnection>(
+  auto raw_connection = make_unique<mtproto::RawConnection>(
       r_socket_fd.move_as_ok(), mtproto::TransportType{mtproto::TransportType::ObfuscatedTcp, 0, ""}, nullptr);
   raw_connection->extra_ = network_generation_;
   promise.set_value(std::move(raw_connection));
@@ -997,15 +995,15 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
                        std::move(r_connection_data), check_mode, transport_type, hash, debug_str, network_generation);
         });
 
-    auto stats_callback = std::make_unique<detail::StatsCallback>(
-        client.is_media ? media_net_stats_callback_ : common_net_stats_callback_, actor_id(this), client.hash,
-        extra.stat);
+    auto stats_callback =
+        td::make_unique<detail::StatsCallback>(client.is_media ? media_net_stats_callback_ : common_net_stats_callback_,
+                                               actor_id(this), client.hash, extra.stat);
 
     if (proxy.use_socks5_proxy() || proxy.use_http_tcp_proxy()) {
       VLOG(connections) << "client_loop: create new transparent proxy connection " << extra.debug_str;
       class Callback : public TransparentProxy::Callback {
        public:
-        explicit Callback(Promise<ConnectionData> promise, std::unique_ptr<detail::StatsCallback> stats_callback)
+        explicit Callback(Promise<ConnectionData> promise, unique_ptr<detail::StatsCallback> stats_callback)
             : promise_(std::move(promise)), stats_callback_(std::move(stats_callback)) {
         }
         void set_result(Result<SocketFd> result) override {
@@ -1032,22 +1030,19 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
         Promise<ConnectionData> promise_;
         StateManager::ConnectionToken connection_token_;
         bool was_connected_{false};
-        std::unique_ptr<detail::StatsCallback> stats_callback_;
+        unique_ptr<detail::StatsCallback> stats_callback_;
       };
       LOG(INFO) << "Start " << (proxy.use_socks5_proxy() ? "Socks5" : "HTTP") << ": " << extra.debug_str;
       auto token = next_token();
+      auto callback = td::make_unique<Callback>(std::move(promise), std::move(stats_callback));
       if (proxy.use_socks5_proxy()) {
         children_[token] = {
             true, create_actor<Socks5>("Socks5", std::move(socket_fd), extra.mtproto_ip, proxy.proxy().user().str(),
-                                       proxy.proxy().password().str(),
-                                       std::make_unique<Callback>(std::move(promise), std::move(stats_callback)),
-                                       create_reference(token))};
+                                       proxy.proxy().password().str(), std::move(callback), create_reference(token))};
       } else {
-        children_[token] = {
-            true, create_actor<HttpProxy>("HttpProxy", std::move(socket_fd), extra.mtproto_ip,
-                                          proxy.proxy().user().str(), proxy.proxy().password().str(),
-                                          std::make_unique<Callback>(std::move(promise), std::move(stats_callback)),
-                                          create_reference(token))};
+        children_[token] = {true, create_actor<HttpProxy>("HttpProxy", std::move(socket_fd), extra.mtproto_ip,
+                                                          proxy.proxy().user().str(), proxy.proxy().password().str(),
+                                                          std::move(callback), create_reference(token))};
       }
     } else {
       VLOG(connections) << "client_loop: create new direct connection " << extra.debug_str;
@@ -1064,7 +1059,7 @@ void ConnectionCreator::client_create_raw_connection(Result<ConnectionData> r_co
                                                      mtproto::TransportType transport_type, size_t hash,
                                                      string debug_str, uint32 network_generation) {
   auto promise = PromiseCreator::lambda([actor_id = actor_id(this), hash, check_mode,
-                                         debug_str](Result<std::unique_ptr<mtproto::RawConnection>> result) mutable {
+                                         debug_str](Result<unique_ptr<mtproto::RawConnection>> result) mutable {
     VLOG(connections) << "Ready connection " << (check_mode ? "(" : "(un") << "checked) "
                       << (result.is_ok() ? result.ok().get() : nullptr) << " " << debug_str;
     send_closure(std::move(actor_id), &ConnectionCreator::client_add_connection, hash, std::move(result), check_mode);
@@ -1075,7 +1070,7 @@ void ConnectionCreator::client_create_raw_connection(Result<ConnectionData> r_co
   }
 
   auto connection_data = r_connection_data.move_as_ok();
-  auto raw_connection = std::make_unique<mtproto::RawConnection>(
+  auto raw_connection = make_unique<mtproto::RawConnection>(
       std::move(connection_data.socket_fd), std::move(transport_type), std::move(connection_data.stats_callback));
   raw_connection->set_connection_token(std::move(connection_data.connection_token));
 
@@ -1101,8 +1096,7 @@ void ConnectionCreator::client_set_timeout_at(ClientInfo &client, double wakeup_
                     << wakeup_at - Time::now_cached();
 }
 
-void ConnectionCreator::client_add_connection(size_t hash,
-                                              Result<std::unique_ptr<mtproto::RawConnection>> r_raw_connection,
+void ConnectionCreator::client_add_connection(size_t hash, Result<unique_ptr<mtproto::RawConnection>> r_raw_connection,
                                               bool check_flag) {
   auto &client = clients_[hash];
   CHECK(client.pending_connections > 0);

@@ -76,7 +76,7 @@ class AudiosManager {
 
   const Audio *get_audio(FileId file_id) const;
 
-  FileId on_get_audio(std::unique_ptr<Audio> new_audio, bool replace);
+  FileId on_get_audio(unique_ptr<Audio> new_audio, bool replace);
 
   Td *td_;
   std::unordered_map<FileId, unique_ptr<Audio>, FileIdHash> audios_;

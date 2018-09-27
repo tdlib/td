@@ -62,7 +62,7 @@ void DcAuthManager::add_dc(std::shared_ptr<AuthDataShared> auth_data) {
   if (!main_dc_id_.is_exact()) {
     main_dc_id_ = info.dc_id;
   }
-  info.shared_auth_data->add_auth_key_listener(std::make_unique<Listener>(actor_shared(this, info.dc_id.get_raw_id())));
+  info.shared_auth_data->add_auth_key_listener(make_unique<Listener>(actor_shared(this, info.dc_id.get_raw_id())));
   dcs_.emplace_back(std::move(info));
   loop();
 }

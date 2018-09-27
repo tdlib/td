@@ -82,7 +82,7 @@ class VideosManager {
 
   const Video *get_video(FileId file_id) const;
 
-  FileId on_get_video(std::unique_ptr<Video> new_video, bool replace);
+  FileId on_get_video(unique_ptr<Video> new_video, bool replace);
 
   Td *td_;
   std::unordered_map<FileId, unique_ptr<Video>, FileIdHash> videos_;

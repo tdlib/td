@@ -114,7 +114,7 @@ class QueryActor final : public Actor {
   explicit QueryActor(int threads_n) : threads_n_(threads_n) {
   }
 
-  void set_callback(std::unique_ptr<Callback> callback) {
+  void set_callback(unique_ptr<Callback> callback) {
     callback_ = std::move(callback);
   }
   void set_workers(std::vector<ActorId<Worker>> workers) {
@@ -440,14 +440,14 @@ TEST(Actors, main) {
 class DoAfterStop : public Actor {
  public:
   void loop() override {
-    ptr = std::make_unique<int>(10);
+    ptr = make_unique<int>(10);
     stop();
     CHECK(*ptr == 10);
     Scheduler::instance()->finish();
   }
 
  private:
-  std::unique_ptr<int> ptr;
+  unique_ptr<int> ptr;
 };
 
 TEST(Actors, do_after_stop) {

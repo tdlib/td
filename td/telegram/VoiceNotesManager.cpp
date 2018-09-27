@@ -43,7 +43,7 @@ tl_object_ptr<td_api::voiceNote> VoiceNotesManager::get_voice_note_object(FileId
                                            td_->file_manager_->get_file_object(file_id));
 }
 
-FileId VoiceNotesManager::on_get_voice_note(std::unique_ptr<VoiceNote> new_voice_note, bool replace) {
+FileId VoiceNotesManager::on_get_voice_note(unique_ptr<VoiceNote> new_voice_note, bool replace) {
   auto file_id = new_voice_note->file_id;
   LOG(INFO) << "Receive voice note " << file_id;
   auto &v = voice_notes_[file_id];
@@ -82,7 +82,7 @@ FileId VoiceNotesManager::dup_voice_note(FileId new_id, FileId old_id) {
   CHECK(old_voice_note != nullptr);
   auto &new_voice_note = voice_notes_[new_id];
   CHECK(!new_voice_note);
-  new_voice_note = std::make_unique<VoiceNote>(*old_voice_note);
+  new_voice_note = make_unique<VoiceNote>(*old_voice_note);
   new_voice_note->file_id = new_id;
   return new_id;
 }
@@ -129,7 +129,7 @@ bool VoiceNotesManager::merge_voice_notes(FileId new_id, FileId old_id, bool can
 
 void VoiceNotesManager::create_voice_note(FileId file_id, string mime_type, int32 duration, string waveform,
                                           bool replace) {
-  auto v = std::make_unique<VoiceNote>();
+  auto v = make_unique<VoiceNote>();
   v->file_id = file_id;
   v->mime_type = std::move(mime_type);
   v->duration = max(duration, 0);

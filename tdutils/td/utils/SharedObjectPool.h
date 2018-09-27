@@ -154,13 +154,13 @@ class SharedPtr {
 
   template <class... ArgsT>
   static SharedPtr<T, DeleterT> create(ArgsT &&... args) {
-    auto raw = std::make_unique<Raw>(DeleterT());
+    auto raw = make_unique<Raw>(DeleterT());
     raw->init_data(std::forward<ArgsT>(args)...);
     return SharedPtr<T, DeleterT>(raw.release());
   }
   template <class D, class... ArgsT>
   static SharedPtr<T, DeleterT> create_with_deleter(D &&d, ArgsT &&... args) {
-    auto raw = std::make_unique<Raw>(std::forward<D>(d));
+    auto raw = make_unique<Raw>(std::forward<D>(d));
     raw->init_data(std::forward<ArgsT>(args)...);
     return SharedPtr<T, DeleterT>(raw.release());
   }
@@ -227,7 +227,7 @@ class SharedObjectPool {
     if (raw) {
       return raw;
     }
-    allocated_.push_back(std::make_unique<Raw>(deleter()));
+    allocated_.push_back(make_unique<Raw>(deleter()));
     return allocated_.back().get();
   }
 
@@ -275,7 +275,7 @@ class SharedObjectPool {
     return Deleter(this);
   }
 
-  std::vector<std::unique_ptr<Raw>> allocated_;
+  std::vector<unique_ptr<Raw>> allocated_;
   MpscLinkQueue<Node> free_queue_;
   typename MpscLinkQueue<Node>::Reader free_queue_reader_;
 };

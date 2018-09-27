@@ -34,6 +34,6 @@ class IStreamTransport {
   virtual TransportType get_type() const = 0;
 };
 
-std::unique_ptr<IStreamTransport> create_transport(TransportType type);
+unique_ptr<IStreamTransport> create_transport(TransportType type);
 }  // namespace mtproto
 }  // namespace td

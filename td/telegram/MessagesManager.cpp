@@ -7010,7 +7010,7 @@ void MessagesManager::load_secret_thumbnail(FileId thumbnail_file_id) {
       });
 
   send_closure(G()->file_manager(), &FileManager::download, thumbnail_file_id,
-               std::make_unique<Callback>(std::move(download_promise)), 1);
+               std::make_shared<Callback>(std::move(download_promise)), 1);
 }
 
 void MessagesManager::on_upload_media(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file,
@@ -19183,8 +19183,8 @@ unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_for
     force_create_dialog(from_dialog_id, "message forward from info");
   }
 
-  return make_unique<MessageForwardInfo>(sender_user_id, forward_header->date_, dialog_id, message_id, author_signature,
-                                         from_dialog_id, from_message_id);
+  return td::make_unique<MessageForwardInfo>(sender_user_id, forward_header->date_, dialog_id, message_id,
+                                             author_signature, from_dialog_id, from_message_id);
 }
 
 tl_object_ptr<td_api::MessageForwardInfo> MessagesManager::get_message_forward_info_object(
@@ -19442,9 +19442,9 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
             auto author_signature = forwarded_message->sender_user_id.is_valid()
                                         ? td_->contacts_manager_->get_user_title(forwarded_message->sender_user_id)
                                         : forwarded_message->author_signature;
-            forward_info = make_unique<MessageForwardInfo>(UserId(), forwarded_message->date, from_dialog_id,
-                                                           forwarded_message_id, std::move(author_signature),
-                                                           saved_from_dialog_id, saved_from_message_id);
+            forward_info = td::make_unique<MessageForwardInfo>(UserId(), forwarded_message->date, from_dialog_id,
+                                                               forwarded_message_id, std::move(author_signature),
+                                                               saved_from_dialog_id, saved_from_message_id);
           }
         }
       }
@@ -22907,11 +22907,11 @@ unique_ptr<MessageContent> MessagesManager::get_message_content(FormattedText me
       bool need_shipping_address =
           (message_invoice->flags_ & telegram_api::messageMediaInvoice::SHIPPING_ADDRESS_REQUESTED_MASK) != 0;
       bool is_test = (message_invoice->flags_ & telegram_api::messageMediaInvoice::TEST_MASK) != 0;
-      return make_unique<MessageInvoice>(std::move(message_invoice->title_), std::move(message_invoice->description_),
-                                         get_web_document_photo(std::move(message_invoice->photo_), owner_dialog_id),
-                                         std::move(message_invoice->start_param_), message_invoice->total_amount_,
-                                         std::move(message_invoice->currency_), is_test, need_shipping_address,
-                                         receipt_message_id);
+      return td::make_unique<MessageInvoice>(
+          std::move(message_invoice->title_), std::move(message_invoice->description_),
+          get_web_document_photo(std::move(message_invoice->photo_), owner_dialog_id),
+          std::move(message_invoice->start_param_), message_invoice->total_amount_,
+          std::move(message_invoice->currency_), is_test, need_shipping_address, receipt_message_id);
     }
     case telegram_api::messageMediaWebPage::ID: {
       auto media_web_page = move_tl_object_as<telegram_api::messageMediaWebPage>(media);
@@ -23148,11 +23148,11 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
         }
       }
 
-      return make_unique<MessageChatCreate>(std::move(chat_create->title_), std::move(participant_user_ids));
+      return td::make_unique<MessageChatCreate>(std::move(chat_create->title_), std::move(participant_user_ids));
     }
     case telegram_api::messageActionChatEditTitle::ID: {
       auto chat_edit_title = move_tl_object_as<telegram_api::messageActionChatEditTitle>(action);
-      return make_unique<MessageChatChangeTitle>(std::move(chat_edit_title->title_));
+      return td::make_unique<MessageChatChangeTitle>(std::move(chat_edit_title->title_));
     }
     case telegram_api::messageActionChatEditPhoto::ID: {
       auto chat_edit_photo = move_tl_object_as<telegram_api::messageActionChatEditPhoto>(action);
@@ -23187,7 +23187,7 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
         }
       }
 
-      return make_unique<MessageChatAddUsers>(std::move(user_ids));
+      return td::make_unique<MessageChatAddUsers>(std::move(user_ids));
     }
     case telegram_api::messageActionChatJoinedByLink::ID:
       return make_unique<MessageChatJoinedByLink>();
@@ -23216,7 +23216,7 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
     }
     case telegram_api::messageActionChannelCreate::ID: {
       auto channel_create = move_tl_object_as<telegram_api::messageActionChannelCreate>(action);
-      return make_unique<MessageChannelCreate>(std::move(channel_create->title_));
+      return td::make_unique<MessageChannelCreate>(std::move(channel_create->title_));
     }
     case telegram_api::messageActionChannelMigrateFrom::ID: {
       auto channel_migrate_from = move_tl_object_as<telegram_api::messageActionChannelMigrateFrom>(action);
@@ -23225,7 +23225,7 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
       LOG_IF(ERROR, !chat_id.is_valid()) << "Receive messageActionChannelMigrateFrom with invalid " << chat_id << " in "
                                          << owner_dialog_id;
 
-      return make_unique<MessageChannelMigrateFrom>(std::move(channel_migrate_from->title_), chat_id);
+      return td::make_unique<MessageChannelMigrateFrom>(std::move(channel_migrate_from->title_), chat_id);
     }
     case telegram_api::messageActionPinMessage::ID: {
       if (!reply_to_message_id.is_valid()) {
@@ -23256,8 +23256,8 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
         reply_to_message_id = MessageId();
       }
       auto payment_sent = move_tl_object_as<telegram_api::messageActionPaymentSent>(action);
-      return make_unique<MessagePaymentSuccessful>(reply_to_message_id, std::move(payment_sent->currency_),
-                                                   payment_sent->total_amount_);
+      return td::make_unique<MessagePaymentSuccessful>(reply_to_message_id, std::move(payment_sent->currency_),
+                                                       payment_sent->total_amount_);
     }
     case telegram_api::messageActionPaymentSentMe::ID: {
       LOG_IF(ERROR, !td_->auth_manager_->is_bot()) << "Receive MessageActionPaymentSentMe in " << owner_dialog_id;
@@ -23266,8 +23266,8 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
         reply_to_message_id = MessageId();
       }
       auto payment_sent = move_tl_object_as<telegram_api::messageActionPaymentSentMe>(action);
-      auto result = make_unique<MessagePaymentSuccessful>(reply_to_message_id, std::move(payment_sent->currency_),
-                                                          payment_sent->total_amount_);
+      auto result = td::make_unique<MessagePaymentSuccessful>(reply_to_message_id, std::move(payment_sent->currency_),
+                                                              payment_sent->total_amount_);
       result->invoice_payload = payment_sent->payload_.as_slice().str();
       result->shipping_option_id = std::move(payment_sent->shipping_option_id_);
       result->order_info = get_order_info(std::move(payment_sent->info_));
@@ -23280,21 +23280,21 @@ unique_ptr<MessageContent> MessagesManager::get_message_action_content(
     }
     case telegram_api::messageActionCustomAction::ID: {
       auto custom_action = move_tl_object_as<telegram_api::messageActionCustomAction>(action);
-      return make_unique<MessageCustomServiceAction>(std::move(custom_action->message_));
+      return td::make_unique<MessageCustomServiceAction>(std::move(custom_action->message_));
     }
     case telegram_api::messageActionBotAllowed::ID: {
       auto bot_allowed = move_tl_object_as<telegram_api::messageActionBotAllowed>(action);
-      return make_unique<MessageWebsiteConnected>(std::move(bot_allowed->domain_));
+      return td::make_unique<MessageWebsiteConnected>(std::move(bot_allowed->domain_));
     }
     case telegram_api::messageActionSecureValuesSent::ID: {
       LOG_IF(ERROR, td_->auth_manager_->is_bot()) << "Receive MessageActionSecureValuesSent in " << owner_dialog_id;
       auto secure_values = move_tl_object_as<telegram_api::messageActionSecureValuesSent>(action);
-      return make_unique<MessagePassportDataSent>(get_secure_value_types(secure_values->types_));
+      return td::make_unique<MessagePassportDataSent>(get_secure_value_types(secure_values->types_));
     }
     case telegram_api::messageActionSecureValuesSentMe::ID: {
       LOG_IF(ERROR, !td_->auth_manager_->is_bot()) << "Receive MessageActionSecureValuesSentMe in " << owner_dialog_id;
       auto secure_values = move_tl_object_as<telegram_api::messageActionSecureValuesSentMe>(action);
-      return make_unique<MessagePassportDataReceived>(
+      return td::make_unique<MessagePassportDataReceived>(
           get_encrypted_secure_values(td_->file_manager_.get(), std::move(secure_values->values_)),
           get_encrypted_secure_credentials(std::move(secure_values->credentials_)));
     }

@@ -72,7 +72,7 @@ class Global : public ActorContext {
   void close_all(Promise<> on_finished);
   void close_and_destroy_all(Promise<> on_finished);
 
-  Status init(const TdParameters &parameters, ActorId<Td> td, std::unique_ptr<TdDb> td_db) TD_WARN_UNUSED_RESULT;
+  Status init(const TdParameters &parameters, ActorId<Td> td, unique_ptr<TdDb> td_db) TD_WARN_UNUSED_RESULT;
 
   Slice get_dir() const {
     return parameters_.database_directory;
@@ -88,7 +88,7 @@ class Global : public ActorContext {
     return net_query_creator_.get();
   }
 
-  void set_net_query_dispatcher(std::unique_ptr<NetQueryDispatcher> net_query_dispatcher);
+  void set_net_query_dispatcher(unique_ptr<NetQueryDispatcher> net_query_dispatcher);
 
   NetQueryDispatcher &net_query_dispatcher() {
     return *net_query_dispatcher_;
@@ -98,7 +98,7 @@ class Global : public ActorContext {
     return net_query_dispatcher_ != nullptr;
   }
 
-  void set_shared_config(std::unique_ptr<ConfigShared> shared_config);
+  void set_shared_config(unique_ptr<ConfigShared> shared_config);
 
   ConfigShared &shared_config() {
     return *shared_config_;
@@ -232,7 +232,7 @@ class Global : public ActorContext {
   void set_temp_auth_key_watchdog(ActorOwn<TempAuthKeyWatchdog> actor);
 
   MtprotoHeader &mtproto_header();
-  void set_mtproto_header(std::unique_ptr<MtprotoHeader> mtproto_header);
+  void set_mtproto_header(unique_ptr<MtprotoHeader> mtproto_header);
   bool have_mtproto_header() const {
     return mtproto_header_ != nullptr;
   }
@@ -309,7 +309,7 @@ class Global : public ActorContext {
  private:
   std::shared_ptr<DhConfig> dh_config_;
 
-  std::unique_ptr<TdDb> td_db_;
+  unique_ptr<TdDb> td_db_;
   Condition binlog_replay_finish_;
 
   ActorId<Td> td_;
@@ -330,7 +330,7 @@ class Global : public ActorContext {
   ActorOwn<ConnectionCreator> connection_creator_;
   ActorOwn<TempAuthKeyWatchdog> temp_auth_key_watchdog_;
 
-  std::unique_ptr<MtprotoHeader> mtproto_header_;
+  unique_ptr<MtprotoHeader> mtproto_header_;
 
   TdParameters parameters_;
   int32 gc_scheduler_id_;
@@ -345,9 +345,9 @@ class Global : public ActorContext {
   ActorId<StateManager> state_manager_;
 
   SchedulerLocalStorage<NetQueryCreator> net_query_creator_;
-  std::unique_ptr<NetQueryDispatcher> net_query_dispatcher_;
+  unique_ptr<NetQueryDispatcher> net_query_dispatcher_;
 
-  std::unique_ptr<ConfigShared> shared_config_;
+  unique_ptr<ConfigShared> shared_config_;
 
   int32 my_id_ = 0;  // hack
 

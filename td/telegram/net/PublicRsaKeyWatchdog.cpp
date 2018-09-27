@@ -33,7 +33,7 @@ void PublicRsaKeyWatchdog::add_public_rsa_key(std::shared_ptr<PublicRsaKeyShared
     ActorId<PublicRsaKeyWatchdog> parent_;
   };
 
-  key->add_listener(std::make_unique<Listener>(actor_id(this)));
+  key->add_listener(make_unique<Listener>(actor_id(this)));
   sync_key(key);
   keys_.push_back(std::move(key));
   loop();

@@ -41,7 +41,7 @@ class SessionCallback : public Session::Callback {
   void on_closed() override {
     send_closure(parent_, &SessionProxy::on_closed);
   }
-  void request_raw_connection(Promise<std::unique_ptr<mtproto::RawConnection>> promise) override {
+  void request_raw_connection(Promise<unique_ptr<mtproto::RawConnection>> promise) override {
     send_closure(G()->connection_creator(), &ConnectionCreator::request_raw_connection, dc_id_, allow_media_only_,
                  is_media_, std::move(promise), hash_);
   }
@@ -90,7 +90,7 @@ void SessionProxy::start_up() {
     ActorShared<SessionProxy> session_proxy_;
   };
   auth_state_ = auth_data_->get_auth_state().first;
-  auth_data_->add_auth_key_listener(std::make_unique<Listener>(actor_shared(this)));
+  auth_data_->add_auth_key_listener(make_unique<Listener>(actor_shared(this)));
   if (is_main_ && !need_wait_for_key_) {
     open_session();
   }

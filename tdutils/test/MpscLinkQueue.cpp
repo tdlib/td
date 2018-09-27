@@ -30,7 +30,7 @@ class NodeX : public td::MpscLinkQueueImpl::Node {
 using QueueNode = td::MpscLinkQueueUniquePtrNode<NodeX>;
 
 QueueNode create_node(int value) {
-  return QueueNode(std::make_unique<NodeX>(value));
+  return QueueNode(td::make_unique<NodeX>(value));
 }
 
 TEST(MpscLinkQueue, one_thread) {

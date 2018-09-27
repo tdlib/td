@@ -183,9 +183,9 @@ Status Binlog::init(string path, const Callback &callback, DbKey db_key, DbKey o
   db_key_ = std::move(db_key);
   old_db_key_ = std::move(old_db_key);
 
-  processor_ = std::make_unique<detail::BinlogEventsProcessor>();
+  processor_ = make_unique<detail::BinlogEventsProcessor>();
   // Turn off BinlogEventsBuffer
-  // events_buffer_ = std::make_unique<detail::BinlogEventsBuffer>();
+  // events_buffer_ = make_unique<detail::BinlogEventsBuffer>();
 
   // try to restore binlog from regenerated version
   if (stat(path).is_error()) {

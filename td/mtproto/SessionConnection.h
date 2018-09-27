@@ -66,8 +66,7 @@ class SessionConnection
     , private RawConnection::Callback {
  public:
   enum class Mode { Tcp, Http, HttpLongPoll };
-  SessionConnection(Mode mode, std::unique_ptr<RawConnection> raw_connection, AuthData *auth_data,
-                    DhCallback *dh_callback);
+  SessionConnection(Mode mode, unique_ptr<RawConnection> raw_connection, AuthData *auth_data, DhCallback *dh_callback);
 
   PollableFdInfo &get_poll_info();
 
@@ -181,7 +180,7 @@ class SessionConnection
   int64 main_message_id_ = 0;
   double created_at_ = 0;
 
-  std::unique_ptr<RawConnection> raw_connection_;
+  unique_ptr<RawConnection> raw_connection_;
   AuthData *auth_data_;
   SessionConnection::Callback *callback_ = nullptr;
   DhCallback *dh_callback_;

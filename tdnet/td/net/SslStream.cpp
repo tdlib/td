@@ -514,11 +514,11 @@ SslStream &SslStream::operator=(SslStream &&) = default;
 SslStream::~SslStream() = default;
 
 Result<SslStream> SslStream::create(CSlice host, CSlice cert_file, VerifyPeer verify_peer) {
-  auto impl = std::make_unique<detail::SslStreamImpl>();
+  auto impl = make_unique<detail::SslStreamImpl>();
   TRY_STATUS(impl->init(host, cert_file, verify_peer));
   return SslStream(std::move(impl));
 }
-SslStream::SslStream(std::unique_ptr<detail::SslStreamImpl> impl) : impl_(std::move(impl)) {
+SslStream::SslStream(unique_ptr<detail::SslStreamImpl> impl) : impl_(std::move(impl)) {
 }
 ByteFlowInterface &SslStream::read_byte_flow() {
   return impl_->read_byte_flow();

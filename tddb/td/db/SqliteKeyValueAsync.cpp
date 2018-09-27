@@ -137,9 +137,9 @@ class SqliteKeyValueAsync : public SqliteKeyValueAsyncInterface {
   ActorOwn<Impl> impl_;
 };
 
-std::unique_ptr<SqliteKeyValueAsyncInterface> create_sqlite_key_value_async(std::shared_ptr<SqliteKeyValueSafe> kv,
-                                                                            int32 scheduler_id) {
-  return std::make_unique<SqliteKeyValueAsync>(std::move(kv), scheduler_id);
+unique_ptr<SqliteKeyValueAsyncInterface> create_sqlite_key_value_async(std::shared_ptr<SqliteKeyValueSafe> kv,
+                                                                       int32 scheduler_id) {
+  return td::make_unique<SqliteKeyValueAsync>(std::move(kv), scheduler_id);
 }
 
 }  // namespace td

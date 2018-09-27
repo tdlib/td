@@ -112,12 +112,12 @@ class Promise {
     }
     return promise_->is_cancelled();
   }
-  std::unique_ptr<PromiseInterface<T>> release() {
+  unique_ptr<PromiseInterface<T>> release() {
     return std::move(promise_);
   }
 
   Promise() = default;
-  explicit Promise(std::unique_ptr<PromiseInterface<T>> promise) : promise_(std::move(promise)) {
+  explicit Promise(unique_ptr<PromiseInterface<T>> promise) : promise_(std::move(promise)) {
   }
   Promise(SafePromise<T> &&other);
   Promise &operator=(SafePromise<T> &&other);
@@ -127,7 +127,7 @@ class Promise {
   }
 
  private:
-  std::unique_ptr<PromiseInterface<T>> promise_;
+  unique_ptr<PromiseInterface<T>> promise_;
 };
 
 template <class T>
@@ -598,39 +598,39 @@ class PromiseCreator {
 
   template <class OkT, class ArgT = detail::drop_result_t<detail::get_arg_t<OkT>>>
   static Promise<ArgT> lambda(OkT &&ok) {
-    return Promise<ArgT>(std::make_unique<detail::LambdaPromise<ArgT, std::decay_t<OkT>, Ignore>>(std::forward<OkT>(ok),
-                                                                                                  Ignore(), true));
+    return Promise<ArgT>(
+        td::make_unique<detail::LambdaPromise<ArgT, std::decay_t<OkT>, Ignore>>(std::forward<OkT>(ok), Ignore(), true));
   }
 
   template <class OkT, class FailT, class ArgT = detail::get_arg_t<OkT>>
   static Promise<ArgT> lambda(OkT &&ok, FailT &&fail) {
-    return Promise<ArgT>(std::make_unique<detail::LambdaPromise<ArgT, std::decay_t<OkT>, std::decay_t<FailT>>>(
+    return Promise<ArgT>(td::make_unique<detail::LambdaPromise<ArgT, std::decay_t<OkT>, std::decay_t<FailT>>>(
         std::forward<OkT>(ok), std::forward<FailT>(fail), false));
   }
 
   template <class OkT, class ArgT = detail::drop_result_t<detail::get_arg_t<OkT>>>
   static auto cancellable_lambda(CancellationToken cancellation_token, OkT &&ok) {
     return Promise<ArgT>(
-        std::make_unique<detail::CancellablePromise<detail::LambdaPromise<ArgT, std::decay_t<OkT>, Ignore>>>(
+        td::make_unique<detail::CancellablePromise<detail::LambdaPromise<ArgT, std::decay_t<OkT>, Ignore>>>(
             std::move(cancellation_token), std::forward<OkT>(ok), Ignore(), true));
   }
 
   static Promise<> event(EventFull &&ok) {
-    return Promise<>(std::make_unique<detail::EventPromise>(std::move(ok)));
+    return Promise<>(td::make_unique<detail::EventPromise>(std::move(ok)));
   }
 
   static Promise<> event(EventFull ok, EventFull fail) {
-    return Promise<>(std::make_unique<detail::EventPromise>(std::move(ok), std::move(fail)));
+    return Promise<>(td::make_unique<detail::EventPromise>(std::move(ok), std::move(fail)));
   }
 
   template <class... ArgsT>
   static Promise<> join(ArgsT &&... args) {
-    return Promise<>(std::make_unique<detail::JoinPromise<ArgsT...>>(std::forward<ArgsT>(args)...));
+    return Promise<>(td::make_unique<detail::JoinPromise<ArgsT...>>(std::forward<ArgsT>(args)...));
   }
 
   template <class T>
   static Promise<T> from_promise_actor(PromiseActor<T> &&from) {
-    return Promise<T>(std::make_unique<PromiseActor<T>>(std::move(from)));
+    return Promise<T>(td::make_unique<PromiseActor<T>>(std::move(from)));
   }
 };
 

@@ -29,7 +29,7 @@ class FileFromBytes : public FileLoaderActor {
     virtual void on_error(Status status) = 0;
   };
 
-  FileFromBytes(FileType type, BufferSlice bytes, string name, std::unique_ptr<Callback> callback);
+  FileFromBytes(FileType type, BufferSlice bytes, string name, unique_ptr<Callback> callback);
 
   // Should just implement all parent pure virtual methods.
   // Must not call any of them...
@@ -38,7 +38,7 @@ class FileFromBytes : public FileLoaderActor {
   BufferSlice bytes_;
   string name_;
 
-  std::unique_ptr<Callback> callback_;
+  unique_ptr<Callback> callback_;
 
   FileFd fd_;
   string path_;

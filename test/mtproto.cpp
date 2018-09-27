@@ -31,7 +31,6 @@
 REGISTER_TESTS(mtproto);
 
 using namespace td;
-using namespace mtproto;
 
 TEST(Mtproto, config) {
   ConcurrentScheduler sched;
@@ -86,13 +85,13 @@ class TestPingActor : public Actor {
 
  private:
   IPAddress ip_address_;
-  std::unique_ptr<mtproto::PingConnection> ping_connection_;
+  unique_ptr<mtproto::PingConnection> ping_connection_;
   Status *result_;
 
   void start_up() override {
-    ping_connection_ = std::make_unique<mtproto::PingConnection>(
-        std::make_unique<mtproto::RawConnection>(SocketFd::open(ip_address_).move_as_ok(),
-                                                 mtproto::TransportType{mtproto::TransportType::Tcp, 0, ""}, nullptr),
+    ping_connection_ = make_unique<mtproto::PingConnection>(
+        make_unique<mtproto::RawConnection>(SocketFd::open(ip_address_).move_as_ok(),
+                                            mtproto::TransportType{mtproto::TransportType::Tcp, 0, ""}, nullptr),
         3);
 
     Scheduler::subscribe(ping_connection_->get_poll_info().extract_pollable_fd(this));
@@ -166,7 +165,7 @@ class Mtproto_ping : public td::Test {
 };
 Mtproto_ping mtproto_ping("Mtproto_ping");
 
-class HandshakeContext : public AuthKeyHandshakeContext {
+class HandshakeContext : public mtproto::AuthKeyHandshakeContext {
  public:
   DhCallback *get_dh_callback() override {
     return nullptr;
@@ -188,9 +187,9 @@ class HandshakeTestActor : public Actor {
   int32 dc_id_ = 0;
   Status *result_;
   bool wait_for_raw_connection_ = false;
-  std::unique_ptr<RawConnection> raw_connection_;
+  unique_ptr<mtproto::RawConnection> raw_connection_;
   bool wait_for_handshake_ = false;
-  std::unique_ptr<AuthKeyHandshake> handshake_;
+  unique_ptr<mtproto::AuthKeyHandshake> handshake_;
   Status status_;
   bool wait_for_result_ = false;
 
@@ -203,11 +202,11 @@ class HandshakeTestActor : public Actor {
   void loop() override {
     if (!wait_for_raw_connection_ && !raw_connection_) {
       raw_connection_ =
-          std::make_unique<mtproto::RawConnection>(SocketFd::open(get_default_ip_address()).move_as_ok(),
-                                                   mtproto::TransportType{mtproto::TransportType::Tcp, 0, ""}, nullptr);
+          make_unique<mtproto::RawConnection>(SocketFd::open(get_default_ip_address()).move_as_ok(),
+                                              mtproto::TransportType{mtproto::TransportType::Tcp, 0, ""}, nullptr);
     }
     if (!wait_for_handshake_ && !handshake_) {
-      handshake_ = std::make_unique<AuthKeyHandshake>(dc_id_, 0);
+      handshake_ = make_unique<mtproto::AuthKeyHandshake>(dc_id_, 0);
     }
     if (raw_connection_ && handshake_) {
       if (wait_for_result_) {
@@ -225,12 +224,12 @@ class HandshakeTestActor : public Actor {
       }
 
       wait_for_result_ = true;
-      create_actor<HandshakeActor>(
-          "HandshakeActor", std::move(handshake_), std::move(raw_connection_), std::make_unique<HandshakeContext>(),
-          10.0, PromiseCreator::lambda([self = actor_id(this)](Result<std::unique_ptr<RawConnection>> raw_connection) {
+      create_actor<mtproto::HandshakeActor>(
+          "HandshakeActor", std::move(handshake_), std::move(raw_connection_), make_unique<HandshakeContext>(), 10.0,
+          PromiseCreator::lambda([self = actor_id(this)](Result<unique_ptr<mtproto::RawConnection>> raw_connection) {
             send_closure(self, &HandshakeTestActor::got_connection, std::move(raw_connection), 1);
           }),
-          PromiseCreator::lambda([self = actor_id(this)](Result<std::unique_ptr<AuthKeyHandshake>> handshake) {
+          PromiseCreator::lambda([self = actor_id(this)](Result<unique_ptr<mtproto::AuthKeyHandshake>> handshake) {
             send_closure(self, &HandshakeTestActor::got_handshake, std::move(handshake), 1);
           }))
           .release();
@@ -239,7 +238,7 @@ class HandshakeTestActor : public Actor {
     }
   }
 
-  void got_connection(Result<std::unique_ptr<RawConnection>> r_raw_connection, int32 dummy) {
+  void got_connection(Result<unique_ptr<mtproto::RawConnection>> r_raw_connection, int32 dummy) {
     CHECK(wait_for_raw_connection_);
     wait_for_raw_connection_ = false;
     if (r_raw_connection.is_ok()) {
@@ -252,7 +251,7 @@ class HandshakeTestActor : public Actor {
     loop();
   }
 
-  void got_handshake(Result<std::unique_ptr<AuthKeyHandshake>> r_handshake, int32 dummy) {
+  void got_handshake(Result<unique_ptr<mtproto::AuthKeyHandshake>> r_handshake, int32 dummy) {
     CHECK(wait_for_handshake_);
     wait_for_handshake_ = false;
     CHECK(r_handshake.is_ok());
@@ -325,8 +324,8 @@ class Socks5TestActor : public Actor {
     IPAddress mtproto_ip = get_default_ip_address();
 
     auto r_socket = SocketFd::open(socks5_ip);
-    create_actor<Socks5>("socks5", r_socket.move_as_ok(), mtproto_ip, "", "",
-                         std::make_unique<Callback>(std::move(promise)), actor_shared())
+    create_actor<Socks5>("socks5", r_socket.move_as_ok(), mtproto_ip, "", "", make_unique<Callback>(std::move(promise)),
+                         actor_shared())
         .release();
   }
 

@@ -51,8 +51,7 @@ class TdDb {
   ~TdDb();
 
   struct Events;
-  static Result<std::unique_ptr<TdDb>> open(int32 scheduler_id, const TdParameters &parameters, DbKey key,
-                                            Events &events);
+  static Result<unique_ptr<TdDb>> open(int32 scheduler_id, const TdParameters &parameters, DbKey key, Events &events);
   static Result<EncryptionInfo> check_encryption(const TdParameters &parameters);
   static Status destroy(const TdParameters &parameters);
 
@@ -99,7 +98,7 @@ class TdDb {
   std::shared_ptr<FileDbInterface> file_db_;
 
   std::shared_ptr<SqliteKeyValueSafe> common_kv_safe_;
-  std::unique_ptr<SqliteKeyValueAsyncInterface> common_kv_async_;
+  unique_ptr<SqliteKeyValueAsyncInterface> common_kv_async_;
 
   std::shared_ptr<MessagesDbSyncSafeInterface> messages_db_sync_safe_;
   std::shared_ptr<MessagesDbAsyncInterface> messages_db_async_;

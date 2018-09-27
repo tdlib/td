@@ -43,7 +43,7 @@ tl_object_ptr<td_api::audio> AudiosManager::get_audio_object(FileId file_id) {
       get_photo_size_object(td_->file_manager_.get(), &audio->thumbnail), td_->file_manager_->get_file_object(file_id));
 }
 
-FileId AudiosManager::on_get_audio(std::unique_ptr<Audio> new_audio, bool replace) {
+FileId AudiosManager::on_get_audio(unique_ptr<Audio> new_audio, bool replace) {
   auto file_id = new_audio->file_id;
   LOG(INFO) << "Receive audio " << file_id;
   auto &a = audios_[file_id];
@@ -98,7 +98,7 @@ FileId AudiosManager::dup_audio(FileId new_id, FileId old_id) {
   CHECK(old_audio != nullptr);
   auto &new_audio = audios_[new_id];
   CHECK(!new_audio);
-  new_audio = std::make_unique<Audio>(*old_audio);
+  new_audio = make_unique<Audio>(*old_audio);
   new_audio->file_id = new_id;
   new_audio->thumbnail.file_id = td_->file_manager_->dup_file_id(new_audio->thumbnail.file_id);
   return new_id;
@@ -167,7 +167,7 @@ void AudiosManager::delete_audio_thumbnail(FileId file_id) {
 
 void AudiosManager::create_audio(FileId file_id, PhotoSize thumbnail, string file_name, string mime_type,
                                  int32 duration, string title, string performer, bool replace) {
-  auto a = std::make_unique<Audio>();
+  auto a = make_unique<Audio>();
   a->file_id = file_id;
   a->file_name = std::move(file_name);
   a->mime_type = std::move(mime_type);

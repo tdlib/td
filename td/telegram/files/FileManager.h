@@ -298,7 +298,7 @@ class FileManager : public FileLoadManager::Callback {
     virtual ~Context() = default;
   };
 
-  explicit FileManager(std::unique_ptr<Context> context);
+  explicit FileManager(unique_ptr<Context> context);
   FileManager(const FileManager &other) = delete;
   FileManager &operator=(const FileManager &other) = delete;
   FileManager(FileManager &&other) = delete;
@@ -393,7 +393,7 @@ class FileManager : public FileLoadManager::Callback {
   };
 
   ActorShared<> parent_;
-  std::unique_ptr<Context> context_;
+  unique_ptr<Context> context_;
   std::shared_ptr<FileDbInterface> file_db_;
 
   FileIdInfo *get_file_id_info(FileId file_id);
@@ -417,7 +417,7 @@ class FileManager : public FileLoadManager::Callback {
 
   vector<FileIdInfo> file_id_info_;
   vector<int32> empty_file_ids_;
-  vector<std::unique_ptr<FileNode>> file_nodes_;
+  vector<unique_ptr<FileNode>> file_nodes_;
   ActorOwn<FileLoadManager> file_load_manager_;
   ActorOwn<FileGenerateManager> file_generate_manager_;
 

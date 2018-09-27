@@ -68,14 +68,14 @@ struct LanguagePackManager::LanguagePack {
   SqliteKeyValue pack_kv_;                                              // usages should be guarded by database_->mutex_
   std::map<string, LanguageInfo> custom_language_pack_infos_;           // sorted by language_code
   vector<std::pair<string, LanguageInfo>> server_language_pack_infos_;  // sorted by server
-  std::unordered_map<string, std::unique_ptr<Language>> languages_;
+  std::unordered_map<string, unique_ptr<Language>> languages_;
 };
 
 struct LanguagePackManager::LanguageDatabase {
   std::mutex mutex_;
   string path_;
   SqliteDb database_;
-  std::unordered_map<string, std::unique_ptr<LanguagePack>> language_packs_;
+  std::unordered_map<string, unique_ptr<LanguagePack>> language_packs_;
 };
 
 LanguagePackManager::~LanguagePackManager() = default;
@@ -1284,7 +1284,6 @@ void LanguagePackManager::hangup() {
 
 int32 LanguagePackManager::manager_count_ = 0;
 std::mutex LanguagePackManager::language_database_mutex_;
-std::unordered_map<string, std::unique_ptr<LanguagePackManager::LanguageDatabase>>
-    LanguagePackManager::language_databases_;
+std::unordered_map<string, unique_ptr<LanguagePackManager::LanguageDatabase>> LanguagePackManager::language_databases_;
 
 }  // namespace td

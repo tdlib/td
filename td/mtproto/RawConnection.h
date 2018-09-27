@@ -42,7 +42,7 @@ class RawConnection {
     virtual void on_mtproto_error() = 0;
   };
   RawConnection() = default;
-  RawConnection(SocketFd socket_fd, TransportType transport_type, std::unique_ptr<StatsCallback> stats_callback)
+  RawConnection(SocketFd socket_fd, TransportType transport_type, unique_ptr<StatsCallback> stats_callback)
       : socket_fd_(std::move(socket_fd))
       , transport_(create_transport(transport_type))
       , stats_callback_(std::move(stats_callback)) {
@@ -116,7 +116,7 @@ class RawConnection {
   std::map<uint32, uint64> quick_ack_to_token_;
   bool has_error_{false};
 
-  std::unique_ptr<StatsCallback> stats_callback_;
+  unique_ptr<StatsCallback> stats_callback_;
 
   StateManager::ConnectionToken connection_token_;
 

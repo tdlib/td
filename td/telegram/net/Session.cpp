@@ -41,10 +41,9 @@ namespace detail {
 
 class GenAuthKeyActor : public Actor {
  public:
-  GenAuthKeyActor(std::unique_ptr<mtproto::AuthKeyHandshake> handshake,
-                  std::unique_ptr<mtproto::AuthKeyHandshakeContext> context,
-                  Promise<std::unique_ptr<mtproto::RawConnection>> connection_promise,
-                  Promise<std::unique_ptr<mtproto::AuthKeyHandshake>> handshake_promise,
+  GenAuthKeyActor(unique_ptr<mtproto::AuthKeyHandshake> handshake, unique_ptr<mtproto::AuthKeyHandshakeContext> context,
+                  Promise<unique_ptr<mtproto::RawConnection>> connection_promise,
+                  Promise<unique_ptr<mtproto::AuthKeyHandshake>> handshake_promise,
                   std::shared_ptr<Session::Callback> callback)
       : handshake_(std::move(handshake))
       , context_(std::move(context))
@@ -61,10 +60,10 @@ class GenAuthKeyActor : public Actor {
 
  private:
   uint32 network_generation_ = 0;
-  std::unique_ptr<mtproto::AuthKeyHandshake> handshake_;
-  std::unique_ptr<mtproto::AuthKeyHandshakeContext> context_;
-  Promise<std::unique_ptr<mtproto::RawConnection>> connection_promise_;
-  Promise<std::unique_ptr<mtproto::AuthKeyHandshake>> handshake_promise_;
+  unique_ptr<mtproto::AuthKeyHandshake> handshake_;
+  unique_ptr<mtproto::AuthKeyHandshakeContext> context_;
+  Promise<unique_ptr<mtproto::RawConnection>> connection_promise_;
+  Promise<unique_ptr<mtproto::AuthKeyHandshake>> handshake_promise_;
   std::shared_ptr<Session::Callback> callback_;
   CancellationToken cancellation_token_{true};
 
@@ -75,8 +74,7 @@ class GenAuthKeyActor : public Actor {
     // std::tuple<Result<int>> b(std::forward_as_tuple(Result<int>()));
 
     callback_->request_raw_connection(PromiseCreator::cancellable_lambda(
-        cancellation_token_,
-        [actor_id = actor_id(this)](Result<std::unique_ptr<mtproto::RawConnection>> r_raw_connection) {
+        cancellation_token_, [actor_id = actor_id(this)](Result<unique_ptr<mtproto::RawConnection>> r_raw_connection) {
           send_closure(actor_id, &GenAuthKeyActor::on_connection, std::move(r_raw_connection), false);
         }));
   }
@@ -91,7 +89,7 @@ class GenAuthKeyActor : public Actor {
     stop();
   }
 
-  void on_connection(Result<std::unique_ptr<mtproto::RawConnection>> r_raw_connection, bool dummy) {
+  void on_connection(Result<unique_ptr<mtproto::RawConnection>> r_raw_connection, bool dummy) {
     if (r_raw_connection.is_error()) {
       connection_promise_.set_error(r_raw_connection.move_as_error());
       handshake_promise_.set_value(std::move(handshake_));
@@ -865,7 +863,7 @@ void Session::connection_open(ConnectionInfo *info, bool ask_info) {
   // NB: rely on constant location of info
   auto promise = PromiseCreator::cancellable_lambda(
       info->cancellation_token_,
-      [actor_id = actor_id(this), info = info](Result<std::unique_ptr<mtproto::RawConnection>> res) {
+      [actor_id = actor_id(this), info = info](Result<unique_ptr<mtproto::RawConnection>> res) {
         send_closure(actor_id, &Session::connection_open_finish, info, std::move(res));
       });
 
@@ -880,7 +878,7 @@ void Session::connection_open(ConnectionInfo *info, bool ask_info) {
   info->wakeup_at = Time::now_cached() + 1000;
 }
 
-void Session::connection_add(std::unique_ptr<mtproto::RawConnection> raw_connection) {
+void Session::connection_add(unique_ptr<mtproto::RawConnection> raw_connection) {
   VLOG(dc) << "Cache connection " << raw_connection.get();
   cached_connection_ = std::move(raw_connection);
   cached_connection_timestamp_ = Time::now();
@@ -897,7 +895,7 @@ void Session::connection_check_mode(ConnectionInfo *info) {
 }
 
 void Session::connection_open_finish(ConnectionInfo *info,
-                                     Result<std::unique_ptr<mtproto::RawConnection>> r_raw_connection) {
+                                     Result<unique_ptr<mtproto::RawConnection>> r_raw_connection) {
   if (close_flag_ || info->state != ConnectionInfo::State::Connecting) {
     VLOG(dc) << "Ignore raw connection while closing";
     return;
@@ -1024,7 +1022,7 @@ bool Session::connection_send_bind_key(ConnectionInfo *info) {
   return true;
 }
 
-void Session::on_handshake_ready(Result<std::unique_ptr<mtproto::AuthKeyHandshake>> r_handshake) {
+void Session::on_handshake_ready(Result<unique_ptr<mtproto::AuthKeyHandshake>> r_handshake) {
   auto handshake_id = narrow_cast<HandshakeId>(get_link_token() - 1);
   bool is_main = handshake_id == MainAuthKeyHandshake;
   auto &info = handshake_info_[handshake_id];
@@ -1078,7 +1076,7 @@ void Session::create_gen_auth_key_actor(HandshakeId handshake_id) {
   info.flag_ = true;
   bool is_main = handshake_id == MainAuthKeyHandshake;
   if (!info.handshake_) {
-    info.handshake_ = std::make_unique<mtproto::AuthKeyHandshake>(dc_id_, is_main && !is_cdn_ ? 0 : 24 * 60 * 60);
+    info.handshake_ = make_unique<mtproto::AuthKeyHandshake>(dc_id_, is_main && !is_cdn_ ? 0 : 24 * 60 * 60);
   }
   class AuthKeyHandshakeContext : public mtproto::AuthKeyHandshakeContext {
    public:
@@ -1098,8 +1096,8 @@ void Session::create_gen_auth_key_actor(HandshakeId handshake_id) {
   };
   info.actor_ = create_actor<detail::GenAuthKeyActor>(
       "GenAuthKey", std::move(info.handshake_),
-      std::make_unique<AuthKeyHandshakeContext>(DhCache::instance(), shared_auth_data_->public_rsa_key()),
-      PromiseCreator::lambda([self = actor_id(this)](Result<std::unique_ptr<mtproto::RawConnection>> r_connection) {
+      td::make_unique<AuthKeyHandshakeContext>(DhCache::instance(), shared_auth_data_->public_rsa_key()),
+      PromiseCreator::lambda([self = actor_id(this)](Result<unique_ptr<mtproto::RawConnection>> r_connection) {
         if (r_connection.is_error()) {
           if (r_connection.error().code() != 1) {
             LOG(WARNING) << "Failed to open connection: " << r_connection.error();
@@ -1110,7 +1108,7 @@ void Session::create_gen_auth_key_actor(HandshakeId handshake_id) {
       }),
       PromiseCreator::lambda(
           [self = actor_shared(this, handshake_id + 1), handshake_perf = PerfWarningTimer("handshake", 1000.1)](
-              Result<std::unique_ptr<mtproto::AuthKeyHandshake>> handshake) mutable {
+              Result<unique_ptr<mtproto::AuthKeyHandshake>> handshake) mutable {
             // later is just to avoid lost hangup
             send_closure_later(std::move(self), &Session::on_handshake_ready, std::move(handshake));
           }),

@@ -369,7 +369,7 @@ std::pair<DocumentsManager::DocumentType, FileId> DocumentsManager::on_get_docum
   return {document_type, file_id};
 }
 
-FileId DocumentsManager::on_get_document(std::unique_ptr<Document> new_document, bool replace) {
+FileId DocumentsManager::on_get_document(unique_ptr<Document> new_document, bool replace) {
   auto file_id = new_document->file_id;
   LOG(INFO) << "Receive document " << file_id;
   auto &d = documents_[new_document->file_id];
@@ -521,7 +521,7 @@ FileId DocumentsManager::dup_document(FileId new_id, FileId old_id) {
   CHECK(old_document != nullptr);
   auto &new_document = documents_[new_id];
   CHECK(!new_document);
-  new_document = std::make_unique<Document>(*old_document);
+  new_document = make_unique<Document>(*old_document);
   new_document->file_id = new_id;
   new_document->thumbnail.file_id = td_->file_manager_->dup_file_id(new_document->thumbnail.file_id);
   return new_id;

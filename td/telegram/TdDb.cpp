@@ -346,8 +346,8 @@ Status TdDb::init(int32 scheduler_id, const TdParameters &parameters, DbKey key,
   Binlog *binlog_ptr = nullptr;
   auto binlog = std::shared_ptr<Binlog>(new Binlog, [&](Binlog *ptr) { binlog_ptr = ptr; });
 
-  auto binlog_pmc = std::make_unique<BinlogKeyValue<Binlog>>();
-  auto config_pmc = std::make_unique<BinlogKeyValue<Binlog>>();
+  auto binlog_pmc = make_unique<BinlogKeyValue<Binlog>>();
+  auto config_pmc = make_unique<BinlogKeyValue<Binlog>>();
   binlog_pmc->external_init_begin(static_cast<int32>(LogEvent::HandlerType::BinlogPmcMagic));
   config_pmc->external_init_begin(static_cast<int32>(LogEvent::HandlerType::ConfigPmcMagic));
 
@@ -400,7 +400,7 @@ Status TdDb::init(int32 scheduler_id, const TdParameters &parameters, DbKey key,
   config_pmc.reset();
 
   CHECK(binlog_ptr != nullptr);
-  auto concurrent_binlog = std::make_shared<ConcurrentBinlog>(std::unique_ptr<Binlog>(binlog_ptr), scheduler_id);
+  auto concurrent_binlog = std::make_shared<ConcurrentBinlog>(unique_ptr<Binlog>(binlog_ptr), scheduler_id);
 
   concurrent_binlog_pmc->external_init_finish(concurrent_binlog);
   concurrent_config_pmc->external_init_finish(concurrent_binlog);
@@ -415,9 +415,8 @@ Status TdDb::init(int32 scheduler_id, const TdParameters &parameters, DbKey key,
 TdDb::TdDb() = default;
 TdDb::~TdDb() = default;
 
-Result<std::unique_ptr<TdDb>> TdDb::open(int32 scheduler_id, const TdParameters &parameters, DbKey key,
-                                         Events &events) {
-  auto db = std::make_unique<TdDb>();
+Result<unique_ptr<TdDb>> TdDb::open(int32 scheduler_id, const TdParameters &parameters, DbKey key, Events &events) {
+  auto db = make_unique<TdDb>();
   TRY_STATUS(db->init(scheduler_id, parameters, std::move(key), events));
   return std::move(db);
 }

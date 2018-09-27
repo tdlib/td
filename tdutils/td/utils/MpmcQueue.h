@@ -199,7 +199,7 @@ class MpmcQueueOld {
     return "Mpmc queue (fetch and add array queue)";
   }
   MpmcQueueOld(size_t block_size, size_t threads_n) : block_size_{block_size}, hazard_pointers_{threads_n} {
-    auto node = std::make_unique<Node>(block_size_);
+    auto node = make_unique<Node>(block_size_);
     write_pos_ = node.get();
     read_pos_ = node.get();
     node.release();
@@ -324,7 +324,7 @@ class MpmcQueue {
     return "NEW Mpmc queue (fetch and add array queue)";
   }
   MpmcQueue(size_t block_size, size_t threads_n) : hazard_pointers_{threads_n} {
-    auto node = std::make_unique<Node>();
+    auto node = make_unique<Node>();
     write_pos_ = node.get();
     read_pos_ = node.get();
     node.release();

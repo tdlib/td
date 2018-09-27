@@ -158,7 +158,7 @@ std::shared_ptr<DialogDbSyncSafeInterface> create_dialog_db_sync(
    public:
     explicit DialogDbSyncSafe(std::shared_ptr<SqliteConnectionSafe> sqlite_connection)
         : lsls_db_([safe_connection = std::move(sqlite_connection)] {
-          return std::make_unique<DialogDbImpl>(safe_connection->get().clone());
+          return make_unique<DialogDbImpl>(safe_connection->get().clone());
         }) {
     }
     DialogDbSyncInterface &get() override {
@@ -166,7 +166,7 @@ std::shared_ptr<DialogDbSyncSafeInterface> create_dialog_db_sync(
     }
 
    private:
-    LazySchedulerLocalStorage<std::unique_ptr<DialogDbSyncInterface>> lsls_db_;
+    LazySchedulerLocalStorage<unique_ptr<DialogDbSyncInterface>> lsls_db_;
   };
   return std::make_shared<DialogDbSyncSafe>(std::move(sqlite_connection));
 }

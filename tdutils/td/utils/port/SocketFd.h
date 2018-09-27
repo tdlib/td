@@ -14,6 +14,8 @@
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 
+#include <memory>
+
 namespace td {
 
 namespace detail {
@@ -51,7 +53,7 @@ class SocketFd {
 
  private:
   std::unique_ptr<detail::SocketFdImpl, detail::SocketFdImplDeleter> impl_;
-  explicit SocketFd(std::unique_ptr<detail::SocketFdImpl> impl);
+  explicit SocketFd(unique_ptr<detail::SocketFdImpl> impl);
 };
 
 #if TD_PORT_POSIX

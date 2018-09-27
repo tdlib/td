@@ -38,9 +38,9 @@ class SslStream {
   }
 
  private:
-  std::unique_ptr<detail::SslStreamImpl> impl_;
+  unique_ptr<detail::SslStreamImpl> impl_;
 
-  explicit SslStream(std::unique_ptr<detail::SslStreamImpl> impl);
+  explicit SslStream(unique_ptr<detail::SslStreamImpl> impl);
 };
 
 }  // namespace td

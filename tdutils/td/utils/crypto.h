@@ -43,7 +43,7 @@ class AesCtrState {
 
  private:
   class Impl;
-  std::unique_ptr<Impl> ctx_;
+  unique_ptr<Impl> ctx_;
 };
 
 class AesCbcState {
@@ -75,7 +75,7 @@ struct Sha256State {
   Sha256State(Sha256State &&from);
   Sha256State &operator=(Sha256State &&from);
   ~Sha256State();
-  std::unique_ptr<Sha256StateImpl> impl;
+  unique_ptr<Sha256StateImpl> impl;
 };
 
 void sha256_init(Sha256State *state);

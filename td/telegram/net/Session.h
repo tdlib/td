@@ -54,7 +54,7 @@ class Session final
     virtual ~Callback() = default;
     virtual void on_failed() = 0;
     virtual void on_closed() = 0;
-    virtual void request_raw_connection(Promise<std::unique_ptr<mtproto::RawConnection>>) = 0;
+    virtual void request_raw_connection(Promise<unique_ptr<mtproto::RawConnection>>) = 0;
     virtual void on_tmp_auth_key_updated(mtproto::AuthKey auth_key) = 0;
     virtual void on_server_salt_updated(std::vector<mtproto::ServerSalt> server_salts) {
     }
@@ -139,7 +139,7 @@ class Session final
   StateManager::ConnectionToken connection_token_;
 
   double cached_connection_timestamp_ = 0;
-  std::unique_ptr<mtproto::RawConnection> cached_connection_;
+  unique_ptr<mtproto::RawConnection> cached_connection_;
 
   std::shared_ptr<Callback> callback_;
   mtproto::AuthData auth_data_;
@@ -159,13 +159,13 @@ class Session final
   struct HandshakeInfo {
     bool flag_ = false;
     ActorOwn<detail::GenAuthKeyActor> actor_;
-    std::unique_ptr<mtproto::AuthKeyHandshake> handshake_;
+    unique_ptr<mtproto::AuthKeyHandshake> handshake_;
   };
   enum HandshakeId : int32 { MainAuthKeyHandshake = 0, TmpAuthKeyHandshake = 1 };
   std::array<HandshakeInfo, 2> handshake_info_;
 
   double wakeup_at_;
-  void on_handshake_ready(Result<std::unique_ptr<mtproto::AuthKeyHandshake>> r_handshake);
+  void on_handshake_ready(Result<unique_ptr<mtproto::AuthKeyHandshake>> r_handshake);
   void create_gen_auth_key_actor(HandshakeId handshake_id);
   void auth_loop();
 
@@ -211,9 +211,9 @@ class Session final
   void resend_query(NetQueryPtr query);
 
   void connection_open(ConnectionInfo *info, bool ask_info = false);
-  void connection_add(std::unique_ptr<mtproto::RawConnection> raw_connection);
+  void connection_add(unique_ptr<mtproto::RawConnection> raw_connection);
   void connection_check_mode(ConnectionInfo *info);
-  void connection_open_finish(ConnectionInfo *info, Result<std::unique_ptr<mtproto::RawConnection>> r_raw_connection);
+  void connection_open_finish(ConnectionInfo *info, Result<unique_ptr<mtproto::RawConnection>> r_raw_connection);
 
   void connection_online_update(bool force = false);
   void connection_close(ConnectionInfo *info);

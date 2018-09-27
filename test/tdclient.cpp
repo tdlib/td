@@ -95,7 +95,7 @@ class TestClient : public Actor {
     return make_unique<TdCallbackImpl>(actor_id(this));
   }
 
-  void add_listener(std::unique_ptr<Listener> listener) {
+  void add_listener(unique_ptr<Listener> listener) {
     auto *ptr = listener.get();
     listeners_.push_back(std::move(listener));
     ptr->start_listen(this);
@@ -150,7 +150,7 @@ class TestClient : public Actor {
   string name_;
 
  private:
-  std::vector<std::unique_ptr<Listener>> listeners_;
+  std::vector<unique_ptr<Listener>> listeners_;
   std::vector<Listener *> pending_remove_;
 
   Promise<> close_promise_;
@@ -669,12 +669,12 @@ class LoginTestActor : public Actor {
     bob_ = create_actor<TestClient>("BobClient", "bob");
 
     send_closure(alice_, &TestClient::add_listener,
-                 std::make_unique<DoAuthentication>(
+                 td::make_unique<DoAuthentication>(
                      "alice", alice_phone_, "33333",
                      PromiseCreator::event(self_closure(this, &LoginTestActor::start_up_fence_dec))));
 
     send_closure(bob_, &TestClient::add_listener,
-                 std::make_unique<DoAuthentication>(
+                 td::make_unique<DoAuthentication>(
                      "bob", bob_phone_, "33333",
                      PromiseCreator::event(self_closure(this, &LoginTestActor::start_up_fence_dec))));
   }
@@ -709,10 +709,10 @@ class LoginTestActor : public Actor {
 
   void init() {
     send_closure(alice_, &TestClient::add_listener,
-                 std::make_unique<SetUsername>(
+                 td::make_unique<SetUsername>(
                      alice_username_, PromiseCreator::event(self_closure(this, &LoginTestActor::init_fence_dec))));
     send_closure(bob_, &TestClient::add_listener,
-                 std::make_unique<SetUsername>(
+                 td::make_unique<SetUsername>(
                      bob_username_, PromiseCreator::event(self_closure(this, &LoginTestActor::init_fence_dec))));
   }
 
@@ -736,15 +736,15 @@ class LoginTestActor : public Actor {
     string bob_tag = PSTRING() << format::as_hex(Random::secure_int64());
 
     send_closure(bob_, &TestClient::add_listener,
-                 std::make_unique<CheckTestA>(
-                     alice_tag, PromiseCreator::event(self_closure(this, &LoginTestActor::test_a_fence))));
-    send_closure(alice_, &TestClient::add_listener,
-                 std::make_unique<CheckTestA>(
-                     bob_tag, PromiseCreator::event(self_closure(this, &LoginTestActor::test_a_fence))));
+                 td::make_unique<CheckTestA>(alice_tag,
+                                             PromiseCreator::event(self_closure(this, &LoginTestActor::test_a_fence))));
+    send_closure(
+        alice_, &TestClient::add_listener,
+        td::make_unique<CheckTestA>(bob_tag, PromiseCreator::event(self_closure(this, &LoginTestActor::test_a_fence))));
 
-    send_closure(alice_, &TestClient::add_listener, std::make_unique<TestA>(alice_tag, bob_username_));
-    send_closure(bob_, &TestClient::add_listener, std::make_unique<TestA>(bob_tag, alice_username_));
-    // send_closure(alice_, &TestClient::add_listener, std::make_unique<TestChat>(bob_username_));
+    send_closure(alice_, &TestClient::add_listener, td::make_unique<TestA>(alice_tag, bob_username_));
+    send_closure(bob_, &TestClient::add_listener, td::make_unique<TestA>(bob_tag, alice_username_));
+    // send_closure(alice_, &TestClient::add_listener, td::make_unique<TestChat>(bob_username_));
   }
 
   void timeout_expired() override {
@@ -771,8 +771,8 @@ class LoginTestActor : public Actor {
 
     send_closure(
         bob_, &TestClient::add_listener,
-        std::make_unique<CheckTestA>(tag, PromiseCreator::event(self_closure(this, &LoginTestActor::test_b_fence))));
-    send_closure(alice_, &TestClient::add_listener, std::make_unique<TestSecretChat>(tag, bob_username_));
+        td::make_unique<CheckTestA>(tag, PromiseCreator::event(self_closure(this, &LoginTestActor::test_b_fence))));
+    send_closure(alice_, &TestClient::add_listener, td::make_unique<TestSecretChat>(tag, bob_username_));
   }
 
   void test_c() {
@@ -780,9 +780,9 @@ class LoginTestActor : public Actor {
     string tag = PSTRING() << format::as_hex(Random::secure_int64());
 
     send_closure(bob_, &TestClient::add_listener,
-                 std::make_unique<CheckTestC>(
-                     alice_username_, tag, PromiseCreator::event(self_closure(this, &LoginTestActor::test_c_fence))));
-    send_closure(alice_, &TestClient::add_listener, std::make_unique<TestFileGenerated>(tag, bob_username_));
+                 td::make_unique<CheckTestC>(alice_username_, tag,
+                                             PromiseCreator::event(self_closure(this, &LoginTestActor::test_c_fence))));
+    send_closure(alice_, &TestClient::add_listener, td::make_unique<TestFileGenerated>(tag, bob_username_));
   }
 
   int32 finish_fence_ = 2;

@@ -17,7 +17,7 @@ TEST(MultiTimeout, bug) {
   sched.init(threads_n);
 
   sched.start();
-  std::unique_ptr<MultiTimeout> multi_timeout;
+  unique_ptr<MultiTimeout> multi_timeout;
   struct Data {
     MultiTimeout *multi_timeout;
   };
@@ -25,7 +25,7 @@ TEST(MultiTimeout, bug) {
 
   {
     auto guard = sched.get_main_guard();
-    multi_timeout = std::make_unique<MultiTimeout>("MultiTimeout");
+    multi_timeout = make_unique<MultiTimeout>("MultiTimeout");
     data.multi_timeout = multi_timeout.get();
     multi_timeout->set_callback([](void *void_data, int64 key) {
       auto &data = *static_cast<Data *>(void_data);

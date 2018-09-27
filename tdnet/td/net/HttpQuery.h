@@ -42,7 +42,7 @@ class HttpQuery {
   int get_retry_after() const;
 };
 
-using HttpQueryPtr = std::unique_ptr<HttpQuery>;
+using HttpQueryPtr = unique_ptr<HttpQuery>;
 
 StringBuilder &operator<<(StringBuilder &sb, const HttpQuery &q);
 

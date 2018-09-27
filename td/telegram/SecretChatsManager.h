@@ -73,13 +73,13 @@ class SecretChatsManager : public Actor {
   void flush_pending_chat_updates();
   void do_update_chat(tl_object_ptr<telegram_api::updateEncryption> update);
 
-  void replay_inbound_message(std::unique_ptr<logevent::InboundSecretMessage> message);
-  void add_inbound_message(std::unique_ptr<logevent::InboundSecretMessage> message);
-  void replay_outbound_message(std::unique_ptr<logevent::OutboundSecretMessage> message);
-  void replay_close_chat(std::unique_ptr<logevent::CloseSecretChat> message);
-  void replay_create_chat(std::unique_ptr<logevent::CreateSecretChat> message);
+  void replay_inbound_message(unique_ptr<logevent::InboundSecretMessage> message);
+  void add_inbound_message(unique_ptr<logevent::InboundSecretMessage> message);
+  void replay_outbound_message(unique_ptr<logevent::OutboundSecretMessage> message);
+  void replay_close_chat(unique_ptr<logevent::CloseSecretChat> message);
+  void replay_create_chat(unique_ptr<logevent::CreateSecretChat> message);
 
-  std::unique_ptr<SecretChatActor::Context> make_secret_chat_context(int32 id);
+  unique_ptr<SecretChatActor::Context> make_secret_chat_context(int32 id);
   ActorId<SecretChatActor> get_chat_actor(int32 id);
   ActorId<SecretChatActor> create_chat_actor(int32 id);
   ActorId<SecretChatActor> create_chat_actor_impl(int32 id, bool can_be_empty);

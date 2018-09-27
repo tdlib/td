@@ -200,7 +200,7 @@ ActorOwn<> get_full_config(DcId dc_id, IPAddress ip_address, Promise<FullConfig>
     }
     void on_closed() final {
     }
-    void request_raw_connection(Promise<std::unique_ptr<mtproto::RawConnection>> promise) final {
+    void request_raw_connection(Promise<unique_ptr<mtproto::RawConnection>> promise) final {
       request_raw_connection_cnt_++;
       VLOG(config_recoverer) << "Request full config from " << address_ << ", try = " << request_raw_connection_cnt_;
       if (request_raw_connection_cnt_ <= 2) {
@@ -219,7 +219,7 @@ ActorOwn<> get_full_config(DcId dc_id, IPAddress ip_address, Promise<FullConfig>
     ActorShared<> parent_;
     IPAddress address_;
     size_t request_raw_connection_cnt_{0};
-    std::vector<Promise<std::unique_ptr<mtproto::RawConnection>>> delay_forever_;
+    std::vector<Promise<unique_ptr<mtproto::RawConnection>>> delay_forever_;
   };
 
   class SimpleAuthData : public AuthDataShared {
@@ -280,7 +280,7 @@ ActorOwn<> get_full_config(DcId dc_id, IPAddress ip_address, Promise<FullConfig>
     DcId dc_id_;
     std::shared_ptr<PublicRsaKeyShared> public_rsa_key_ = std::make_shared<PublicRsaKeyShared>(DcId::empty());
 
-    std::vector<std::unique_ptr<Listener>> auth_key_listeners_;
+    std::vector<unique_ptr<Listener>> auth_key_listeners_;
     void notify() {
       auto it = std::remove_if(auth_key_listeners_.begin(), auth_key_listeners_.end(),
                                [&](auto &listener) { return !listener->notify(); });
@@ -303,7 +303,7 @@ ActorOwn<> get_full_config(DcId dc_id, IPAddress ip_address, Promise<FullConfig>
 
    private:
     void start_up() override {
-      auto session_callback = std::make_unique<SessionCallback>(actor_shared(this, 1), std::move(ip_address_));
+      auto session_callback = make_unique<SessionCallback>(actor_shared(this, 1), std::move(ip_address_));
 
       auto auth_data = std::make_shared<SimpleAuthData>(dc_id_);
       int32 int_dc_id = dc_id_.get_raw_id();

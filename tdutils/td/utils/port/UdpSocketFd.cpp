@@ -774,10 +774,10 @@ Result<UdpSocketFd> UdpSocketFd::open(const IPAddress &address) {
   if (e_bind != 0) {
     return OS_SOCKET_ERROR("Failed to bind a socket");
   }
-  return UdpSocketFd(std::make_unique<detail::UdpSocketFdImpl>(std::move(native_fd)));
+  return UdpSocketFd(make_unique<detail::UdpSocketFdImpl>(std::move(native_fd)));
 }
 
-UdpSocketFd::UdpSocketFd(std::unique_ptr<detail::UdpSocketFdImpl> impl) : impl_(impl.release()) {
+UdpSocketFd::UdpSocketFd(unique_ptr<detail::UdpSocketFdImpl> impl) : impl_(impl.release()) {
 }
 
 void UdpSocketFd::close() {

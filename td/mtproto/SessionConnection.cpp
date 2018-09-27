@@ -659,7 +659,7 @@ Status SessionConnection::on_quick_ack(uint64 quick_ack_token) {
   callback_->on_message_ack(quick_ack_token);
   return Status::OK();
 }
-SessionConnection::SessionConnection(Mode mode, std::unique_ptr<RawConnection> raw_connection, AuthData *auth_data,
+SessionConnection::SessionConnection(Mode mode, unique_ptr<RawConnection> raw_connection, AuthData *auth_data,
                                      DhCallback *dh_callback)
     : raw_connection_(std::move(raw_connection)), auth_data_(auth_data), dh_callback_(dh_callback) {
   state_ = Init;

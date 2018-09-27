@@ -16,7 +16,7 @@ namespace td {
 namespace detail {
 class BinlogActor : public Actor {
  public:
-  BinlogActor(std::unique_ptr<Binlog> binlog, uint64 seq_no) : binlog_(std::move(binlog)), processor_(seq_no) {
+  BinlogActor(unique_ptr<Binlog> binlog, uint64 seq_no) : binlog_(std::move(binlog)), processor_(seq_no) {
   }
   void close(Promise<> promise) {
     binlog_->close().ensure();
@@ -68,7 +68,7 @@ class BinlogActor : public Actor {
   }
 
  private:
-  std::unique_ptr<Binlog> binlog_;
+  unique_ptr<Binlog> binlog_;
 
   OrderedEventsProcessor<Event> processor_;
 
@@ -163,20 +163,20 @@ class BinlogActor : public Actor {
 
 ConcurrentBinlog::ConcurrentBinlog() = default;
 ConcurrentBinlog::~ConcurrentBinlog() = default;
-ConcurrentBinlog::ConcurrentBinlog(std::unique_ptr<Binlog> binlog, int scheduler_id) {
+ConcurrentBinlog::ConcurrentBinlog(unique_ptr<Binlog> binlog, int scheduler_id) {
   init_impl(std::move(binlog), scheduler_id);
 }
 
 Result<BinlogInfo> ConcurrentBinlog::init(string path, const Callback &callback, DbKey db_key, DbKey old_db_key,
                                           int scheduler_id) {
-  auto binlog = std::make_unique<Binlog>();
+  auto binlog = make_unique<Binlog>();
   TRY_STATUS(binlog->init(std::move(path), callback, std::move(db_key), std::move(old_db_key)));
   auto info = binlog->get_info();
   init_impl(std::move(binlog), scheduler_id);
   return info;
 }
 
-void ConcurrentBinlog::init_impl(std::unique_ptr<Binlog> binlog, int32 scheduler_id) {
+void ConcurrentBinlog::init_impl(unique_ptr<Binlog> binlog, int32 scheduler_id) {
   path_ = binlog->get_path().str();
   last_id_ = binlog->peek_next_id();
   binlog_actor_ = create_actor_on_scheduler<detail::BinlogActor>(PSLICE() << "Binlog " << path_, scheduler_id,
