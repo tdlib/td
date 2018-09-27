@@ -147,7 +147,7 @@ bool Venue::empty() const {
   return location_.empty();
 }
 
-const Location &Venue::location() const {
+Location &Venue::location() {
   return location_;
 }
 

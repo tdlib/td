@@ -24406,11 +24406,432 @@ bool MessagesManager::need_message_text_changed_warning(const Message *old_messa
   return true;
 }
 
-int64 MessagesManager::choose_location_access_hash(const Location &first, const Location &second) {
+void MessagesManager::merge_location_access_hash(Location &first, Location &second) {
   if (second.get_access_hash() != 0) {
-    return second.get_access_hash();
+    first.set_access_hash(second.get_access_hash());
+  } else {
+    second.set_access_hash(first.get_access_hash());
   }
-  return first.get_access_hash();
+}
+
+void MessagesManager::merge_message_contents(Td *td, const Message *old_message, MessageContent *old_content,
+                                             MessageContent *new_content, DialogId dialog_id, bool need_merge_files,
+                                             bool &is_content_changed, bool &need_update) {
+  MessageContentType content_type = new_content->get_type();
+  CHECK(old_content->get_type() == content_type);
+
+  switch (content_type) {
+    case MessageContentType::Text: {
+      auto old_ = static_cast<const MessageText *>(old_content);
+      auto new_ = static_cast<const MessageText *>(new_content);
+      if (old_->text.text != new_->text.text) {
+        if (need_message_text_changed_warning(old_message, old_, new_)) {
+          LOG(ERROR) << "Message text has changed from "
+                     << to_string(get_message_content_object(old_content, td, old_message->date,
+                                                             old_message->is_content_secret))
+                     << ". New content is "
+                     << to_string(get_message_content_object(new_content, td, old_message->date,
+                                                             old_message->is_content_secret));
+        }
+        need_update = true;
+      }
+      if (old_->text.entities != new_->text.entities) {
+        const int32 MAX_CUSTOM_ENTITIES_COUNT = 100;  // server-size limit
+        if (need_message_text_changed_warning(old_message, old_, new_) &&
+            old_->text.entities.size() <= MAX_CUSTOM_ENTITIES_COUNT) {
+          LOG(WARNING) << "Entities has changed from "
+                       << to_string(get_message_content_object(old_content, td, old_message->date,
+                                                               old_message->is_content_secret))
+                       << ". New content is "
+                       << to_string(get_message_content_object(new_content, td, old_message->date,
+                                                               old_message->is_content_secret));
+        }
+        need_update = true;
+      }
+      if (old_->web_page_id != new_->web_page_id) {
+        LOG(INFO) << "Old: " << old_->web_page_id << ", new: " << new_->web_page_id;
+        is_content_changed = true;
+        need_update |= td->web_pages_manager_->have_web_page(old_->web_page_id) ||
+                       td->web_pages_manager_->have_web_page(new_->web_page_id);
+      }
+      break;
+    }
+    case MessageContentType::Animation: {
+      auto old_ = static_cast<const MessageAnimation *>(old_content);
+      auto new_ = static_cast<const MessageAnimation *>(new_content);
+      if (new_->file_id != old_->file_id &&
+          (!need_merge_files || td->animations_manager_->merge_animations(new_->file_id, old_->file_id, false))) {
+        need_update = true;
+      }
+      if (old_->caption != new_->caption) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::Audio: {
+      auto old_ = static_cast<const MessageAudio *>(old_content);
+      auto new_ = static_cast<const MessageAudio *>(new_content);
+      if (new_->file_id != old_->file_id &&
+          (!need_merge_files || td->audios_manager_->merge_audios(new_->file_id, old_->file_id, false))) {
+        need_update = true;
+      }
+      if (old_->caption != new_->caption) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::Contact: {
+      auto old_ = static_cast<const MessageContact *>(old_content);
+      auto new_ = static_cast<const MessageContact *>(new_content);
+      if (old_->contact != new_->contact) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::Document: {
+      auto old_ = static_cast<const MessageDocument *>(old_content);
+      auto new_ = static_cast<const MessageDocument *>(new_content);
+      if (new_->file_id != old_->file_id &&
+          (!need_merge_files || td->documents_manager_->merge_documents(new_->file_id, old_->file_id, false))) {
+        need_update = true;
+      }
+      if (old_->caption != new_->caption) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::Game: {
+      auto old_ = static_cast<const MessageGame *>(old_content);
+      auto new_ = static_cast<const MessageGame *>(new_content);
+      if (old_->game != new_->game) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::Invoice: {
+      auto old_ = static_cast<const MessageInvoice *>(old_content);
+      auto new_ = static_cast<const MessageInvoice *>(new_content);
+      if (old_->title != new_->title || old_->description != new_->description || old_->photo != new_->photo ||
+          old_->start_parameter != new_->start_parameter || old_->invoice != new_->invoice ||
+          old_->total_amount != new_->total_amount || old_->receipt_message_id != new_->receipt_message_id) {
+        need_update = true;
+      }
+      if (old_->payload != new_->payload || old_->provider_token != new_->provider_token ||
+          old_->provider_data != new_->provider_data) {
+        is_content_changed = true;
+      }
+      break;
+    }
+    case MessageContentType::LiveLocation: {
+      auto old_ = static_cast<MessageLiveLocation *>(old_content);
+      auto new_ = static_cast<MessageLiveLocation *>(new_content);
+      if (old_->location != new_->location) {
+        need_update = true;
+      }
+      if (old_->period != new_->period) {
+        need_update = true;
+      }
+      if (old_->location.get_access_hash() != new_->location.get_access_hash()) {
+        is_content_changed = true;
+        merge_location_access_hash(old_->location, new_->location);
+      }
+      break;
+    }
+    case MessageContentType::Location: {
+      auto old_ = static_cast<MessageLocation *>(old_content);
+      auto new_ = static_cast<MessageLocation *>(new_content);
+      if (old_->location != new_->location) {
+        need_update = true;
+      }
+      if (old_->location.get_access_hash() != new_->location.get_access_hash()) {
+        is_content_changed = true;
+        merge_location_access_hash(old_->location, new_->location);
+      }
+      break;
+    }
+    case MessageContentType::Photo: {
+      auto old_ = static_cast<const MessagePhoto *>(old_content);
+      auto new_ = static_cast<MessagePhoto *>(new_content);
+      const Photo *old_photo = &old_->photo;
+      Photo *new_photo = &new_->photo;
+      if (old_photo->date != new_photo->date) {
+        is_content_changed = true;
+      }
+      if (old_photo->id != new_photo->id || old_->caption != new_->caption) {
+        need_update = true;
+      }
+      if (old_photo->photos != new_photo->photos) {
+        if (need_merge_files &&
+            (old_photo->photos.size() == 1 || (old_photo->photos.size() == 2 && old_photo->photos[0].type == 't')) &&
+            old_photo->photos.back().type == 'i' && !new_photo->photos.empty()) {
+          // first time get info about sent photo
+          if (old_photo->photos.size() == 2) {
+            new_photo->photos.push_back(old_photo->photos[0]);
+          }
+          new_photo->photos.push_back(old_photo->photos.back());
+
+          FileId old_file_id = get_message_content_file_id(old_content);
+          FileView old_file_view = td->file_manager_->get_file_view(old_file_id);
+          FileId new_file_id = new_photo->photos[0].file_id;
+          FileView new_file_view = td->file_manager_->get_file_view(new_file_id);
+          if (!old_file_view.has_remote_location()) {
+            CHECK(new_file_view.has_remote_location());
+            CHECK(!new_file_view.remote_location().is_web());
+            FileId file_id = td->file_manager_->register_remote(
+                FullRemoteFileLocation(FileType::Photo, new_file_view.remote_location().get_id(),
+                                       new_file_view.remote_location().get_access_hash(), 0, 0, 0, DcId::invalid()),
+                FileLocationSource::FromServer, dialog_id, old_photo->photos.back().size, 0, "");
+            LOG_STATUS(td->file_manager_->merge(file_id, old_file_id));
+          }
+        }
+
+        // get sent photo again
+        auto new_photos_size = new_photo->photos.size();
+        auto old_photos_size = old_photo->photos.size();
+        if (old_photos_size == 2 + new_photos_size && old_photo->photos[new_photos_size].type == 't') {
+          new_photo->photos.push_back(old_photo->photos[new_photos_size]);
+        }
+        if (old_photos_size == 1 + new_photo->photos.size() && old_photo->photos.back().type == 'i') {
+          new_photo->photos.push_back(old_photo->photos.back());
+        }
+        if (old_photo->photos != new_photo->photos) {
+          new_photo->photos.resize(
+              new_photos_size);  // return previous size, because we shouldn't add local photo sizes
+          need_update = true;
+        }
+      }
+      break;
+    }
+    case MessageContentType::Sticker: {
+      auto old_ = static_cast<const MessageSticker *>(old_content);
+      auto new_ = static_cast<const MessageSticker *>(new_content);
+      if (new_->file_id != old_->file_id &&
+          (!need_merge_files || td->stickers_manager_->merge_stickers(new_->file_id, old_->file_id, false))) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::Venue: {
+      auto old_ = static_cast<MessageVenue *>(old_content);
+      auto new_ = static_cast<MessageVenue *>(new_content);
+      if (old_->venue != new_->venue) {
+        need_update = true;
+      }
+      if (old_->venue.location().get_access_hash() != new_->venue.location().get_access_hash()) {
+        is_content_changed = true;
+        merge_location_access_hash(old_->venue.location(), new_->venue.location());
+      }
+      break;
+    }
+    case MessageContentType::Video: {
+      auto old_ = static_cast<const MessageVideo *>(old_content);
+      auto new_ = static_cast<const MessageVideo *>(new_content);
+      if (new_->file_id != old_->file_id &&
+          (!need_merge_files || td->videos_manager_->merge_videos(new_->file_id, old_->file_id, false))) {
+        need_update = true;
+      }
+      if (old_->caption != new_->caption) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::VideoNote: {
+      auto old_ = static_cast<const MessageVideoNote *>(old_content);
+      auto new_ = static_cast<const MessageVideoNote *>(new_content);
+      if (new_->file_id != old_->file_id &&
+          (!need_merge_files || td->video_notes_manager_->merge_video_notes(new_->file_id, old_->file_id, false))) {
+        need_update = true;
+      }
+      if (old_->is_viewed != new_->is_viewed) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::VoiceNote: {
+      auto old_ = static_cast<const MessageVoiceNote *>(old_content);
+      auto new_ = static_cast<const MessageVoiceNote *>(new_content);
+      if (new_->file_id != old_->file_id &&
+          (!need_merge_files || td->voice_notes_manager_->merge_voice_notes(new_->file_id, old_->file_id, false))) {
+        need_update = true;
+      }
+      if (old_->caption != new_->caption) {
+        need_update = true;
+      }
+      if (old_->is_listened != new_->is_listened) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::ChatCreate: {
+      auto old_ = static_cast<const MessageChatCreate *>(old_content);
+      auto new_ = static_cast<const MessageChatCreate *>(new_content);
+      if (old_->title != new_->title || old_->participant_user_ids != new_->participant_user_ids) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::ChatChangeTitle: {
+      auto old_ = static_cast<const MessageChatChangeTitle *>(old_content);
+      auto new_ = static_cast<const MessageChatChangeTitle *>(new_content);
+      if (old_->title != new_->title) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::ChatChangePhoto: {
+      auto old_ = static_cast<const MessageChatChangePhoto *>(old_content);
+      auto new_ = static_cast<const MessageChatChangePhoto *>(new_content);
+      if (old_->photo != new_->photo) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::ChatDeletePhoto:
+      break;
+    case MessageContentType::ChatDeleteHistory:
+      break;
+    case MessageContentType::ChatAddUsers: {
+      auto old_ = static_cast<const MessageChatAddUsers *>(old_content);
+      auto new_ = static_cast<const MessageChatAddUsers *>(new_content);
+      if (old_->user_ids != new_->user_ids) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::ChatJoinedByLink:
+      break;
+    case MessageContentType::ChatDeleteUser: {
+      auto old_ = static_cast<const MessageChatDeleteUser *>(old_content);
+      auto new_ = static_cast<const MessageChatDeleteUser *>(new_content);
+      if (old_->user_id != new_->user_id) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::ChatMigrateTo: {
+      auto old_ = static_cast<const MessageChatMigrateTo *>(old_content);
+      auto new_ = static_cast<const MessageChatMigrateTo *>(new_content);
+      if (old_->migrated_to_channel_id != new_->migrated_to_channel_id) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::ChannelCreate: {
+      auto old_ = static_cast<const MessageChannelCreate *>(old_content);
+      auto new_ = static_cast<const MessageChannelCreate *>(new_content);
+      if (old_->title != new_->title) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::ChannelMigrateFrom: {
+      auto old_ = static_cast<const MessageChannelMigrateFrom *>(old_content);
+      auto new_ = static_cast<const MessageChannelMigrateFrom *>(new_content);
+      if (old_->title != new_->title || old_->migrated_from_chat_id != new_->migrated_from_chat_id) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::PinMessage: {
+      auto old_ = static_cast<const MessagePinMessage *>(old_content);
+      auto new_ = static_cast<const MessagePinMessage *>(new_content);
+      if (old_->message_id != new_->message_id) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::GameScore: {
+      auto old_ = static_cast<const MessageGameScore *>(old_content);
+      auto new_ = static_cast<const MessageGameScore *>(new_content);
+      if (old_->game_message_id != new_->game_message_id || old_->game_id != new_->game_id ||
+          old_->score != new_->score) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::ScreenshotTaken:
+      break;
+    case MessageContentType::ChatSetTtl: {
+      auto old_ = static_cast<const MessageChatSetTtl *>(old_content);
+      auto new_ = static_cast<const MessageChatSetTtl *>(new_content);
+      if (old_->ttl != new_->ttl) {
+        LOG(ERROR) << "Ttl has changed from " << old_->ttl << " to " << new_->ttl;
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::Call: {
+      auto old_ = static_cast<const MessageCall *>(old_content);
+      auto new_ = static_cast<const MessageCall *>(new_content);
+      if (old_->call_id != new_->call_id) {
+        is_content_changed = true;
+      }
+      if (old_->duration != new_->duration || old_->discard_reason != new_->discard_reason) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::PaymentSuccessful: {
+      auto old_ = static_cast<const MessagePaymentSuccessful *>(old_content);
+      auto new_ = static_cast<const MessagePaymentSuccessful *>(new_content);
+      if (old_->invoice_message_id != new_->invoice_message_id || old_->currency != new_->currency ||
+          old_->total_amount != new_->total_amount || old_->invoice_payload != new_->invoice_payload ||
+          old_->shipping_option_id != new_->shipping_option_id ||
+          old_->telegram_payment_charge_id != new_->telegram_payment_charge_id ||
+          old_->provider_payment_charge_id != new_->provider_payment_charge_id ||
+          ((old_->order_info != nullptr || new_->order_info != nullptr) &&
+           (old_->order_info == nullptr || new_->order_info == nullptr || *old_->order_info != *new_->order_info))) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::ContactRegistered:
+      break;
+    case MessageContentType::ExpiredPhoto:
+      break;
+    case MessageContentType::ExpiredVideo:
+      break;
+    case MessageContentType::CustomServiceAction: {
+      auto old_ = static_cast<const MessageCustomServiceAction *>(old_content);
+      auto new_ = static_cast<const MessageCustomServiceAction *>(new_content);
+      if (old_->message != new_->message) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::WebsiteConnected: {
+      auto old_ = static_cast<const MessageWebsiteConnected *>(old_content);
+      auto new_ = static_cast<const MessageWebsiteConnected *>(new_content);
+      if (old_->domain_name != new_->domain_name) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::PassportDataSent: {
+      auto old_ = static_cast<const MessagePassportDataSent *>(old_content);
+      auto new_ = static_cast<const MessagePassportDataSent *>(new_content);
+      if (old_->types != new_->types) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::PassportDataReceived: {
+      auto old_ = static_cast<const MessagePassportDataReceived *>(old_content);
+      auto new_ = static_cast<const MessagePassportDataReceived *>(new_content);
+      if (old_->values != new_->values) {
+        need_update = true;
+      }
+      if (old_->credentials != new_->credentials) {
+        need_update = true;
+      }
+      break;
+    }
+    case MessageContentType::Unsupported:
+      break;
+    default:
+      UNREACHABLE();
+      break;
+  }
 }
 
 bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_message,
@@ -24421,10 +24842,8 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
   unique_ptr<MessageContent> &old_content = old_message->content;
   MessageContentType old_content_type = old_content->get_type();
   MessageContentType new_content_type = new_content->get_type();
-  const bool can_delete_old_document = old_message->message_id.is_yet_unsent() && false;
 
   auto old_file_id = get_message_content_file_id(old_content.get());
-  int64 location_access_hash = 0;
   bool need_finish_upload = old_file_id.is_valid() && need_merge_files;
   if (old_content_type != new_content_type) {
     need_update = true;
@@ -24471,420 +24890,8 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
       }
     }
   } else {
-    switch (new_content_type) {
-      case MessageContentType::Text: {
-        auto old_ = static_cast<const MessageText *>(old_content.get());
-        auto new_ = static_cast<const MessageText *>(new_content.get());
-        if (old_->text.text != new_->text.text) {
-          if (need_message_text_changed_warning(old_message, old_, new_)) {
-            LOG(ERROR) << "Message text has changed for " << to_string(get_message_object(dialog_id, old_message))
-                       << ". New content is "
-                       << to_string(get_message_content_object(new_content.get(), td_, old_message->date,
-                                                               old_message->is_content_secret));
-          }
-          need_update = true;
-        }
-        if (old_->text.entities != new_->text.entities) {
-          const int32 MAX_CUSTOM_ENTITIES_COUNT = 100;  // server-size limit
-          if (need_message_text_changed_warning(old_message, old_, new_) &&
-              old_->text.entities.size() <= MAX_CUSTOM_ENTITIES_COUNT) {
-            LOG(WARNING) << "Entities has changed for " << to_string(get_message_object(dialog_id, old_message))
-                         << ". New content is "
-                         << to_string(get_message_content_object(new_content.get(), td_, old_message->date,
-                                                                 old_message->is_content_secret));
-          }
-          need_update = true;
-        }
-        if (old_->web_page_id != new_->web_page_id) {
-          LOG(INFO) << "Old: " << old_->web_page_id << ", new: " << new_->web_page_id;
-          is_content_changed = true;
-          need_update |= td_->web_pages_manager_->have_web_page(old_->web_page_id) ||
-                         td_->web_pages_manager_->have_web_page(new_->web_page_id);
-        }
-        break;
-      }
-      case MessageContentType::Animation: {
-        auto old_ = static_cast<const MessageAnimation *>(old_content.get());
-        auto new_ = static_cast<const MessageAnimation *>(new_content.get());
-        if (new_->file_id != old_->file_id &&
-            (!need_merge_files ||
-             td_->animations_manager_->merge_animations(new_->file_id, old_->file_id, can_delete_old_document))) {
-          need_update = true;
-        }
-        if (old_->caption != new_->caption) {
-          need_update = true;
-        }
-        break;
-      }
-      case MessageContentType::Audio: {
-        auto old_ = static_cast<const MessageAudio *>(old_content.get());
-        auto new_ = static_cast<const MessageAudio *>(new_content.get());
-        if (new_->file_id != old_->file_id &&
-            (!need_merge_files ||
-             td_->audios_manager_->merge_audios(new_->file_id, old_->file_id, can_delete_old_document))) {
-          need_update = true;
-        }
-        if (old_->caption != new_->caption) {
-          need_update = true;
-        }
-        break;
-      }
-      case MessageContentType::Contact: {
-        auto old_ = static_cast<const MessageContact *>(old_content.get());
-        auto new_ = static_cast<const MessageContact *>(new_content.get());
-        if (old_->contact != new_->contact) {
-          need_update = true;
-        }
-        break;
-      }
-      case MessageContentType::Document: {
-        auto old_ = static_cast<const MessageDocument *>(old_content.get());
-        auto new_ = static_cast<const MessageDocument *>(new_content.get());
-        if (new_->file_id != old_->file_id &&
-            (!need_merge_files ||
-             td_->documents_manager_->merge_documents(new_->file_id, old_->file_id, can_delete_old_document))) {
-          need_update = true;
-        }
-        if (old_->caption != new_->caption) {
-          need_update = true;
-        }
-        break;
-      }
-      case MessageContentType::Game: {
-        auto old_ = static_cast<const MessageGame *>(old_content.get());
-        auto new_ = static_cast<const MessageGame *>(new_content.get());
-        if (old_->game != new_->game) {
-          need_update = true;
-        }
-        break;
-      }
-      case MessageContentType::Invoice: {
-        auto old_ = static_cast<const MessageInvoice *>(old_content.get());
-        auto new_ = static_cast<const MessageInvoice *>(new_content.get());
-        if (old_->title != new_->title || old_->description != new_->description || old_->photo != new_->photo ||
-            old_->start_parameter != new_->start_parameter || old_->invoice != new_->invoice ||
-            old_->total_amount != new_->total_amount || old_->receipt_message_id != new_->receipt_message_id) {
-          need_update = true;
-        }
-        if (old_->payload != new_->payload || old_->provider_token != new_->provider_token ||
-            old_->provider_data != new_->provider_data) {
-          is_content_changed = true;
-        }
-        break;
-      }
-      case MessageContentType::LiveLocation: {
-        auto old_ = static_cast<const MessageLiveLocation *>(old_content.get());
-        auto new_ = static_cast<const MessageLiveLocation *>(new_content.get());
-        if (old_->location != new_->location) {
-          need_update = true;
-        }
-        if (old_->period != new_->period) {
-          need_update = true;
-        }
-        if (old_->location.get_access_hash() != new_->location.get_access_hash()) {
-          is_content_changed = true;
-          location_access_hash = choose_location_access_hash(old_->location, new_->location);
-        }
-        break;
-      }
-      case MessageContentType::Location: {
-        auto old_ = static_cast<const MessageLocation *>(old_content.get());
-        auto new_ = static_cast<const MessageLocation *>(new_content.get());
-        if (old_->location != new_->location) {
-          need_update = true;
-        }
-        if (old_->location.get_access_hash() != new_->location.get_access_hash()) {
-          is_content_changed = true;
-          location_access_hash = choose_location_access_hash(old_->location, new_->location);
-        }
-        break;
-      }
-      case MessageContentType::Photo: {
-        auto old_ = static_cast<const MessagePhoto *>(old_content.get());
-        auto new_ = static_cast<MessagePhoto *>(new_content.get());
-        const Photo *old_photo = &old_->photo;
-        Photo *new_photo = &new_->photo;
-        if (old_photo->date != new_photo->date) {
-          is_content_changed = true;
-        }
-        if (old_photo->id != new_photo->id || old_->caption != new_->caption) {
-          need_update = true;
-        }
-        if (old_photo->photos != new_photo->photos) {
-          if (need_merge_files &&
-              (old_photo->photos.size() == 1 || (old_photo->photos.size() == 2 && old_photo->photos[0].type == 't')) &&
-              old_photo->photos.back().type == 'i' && !new_photo->photos.empty()) {
-            // first time get info about sent photo
-            if (old_photo->photos.size() == 2) {
-              new_photo->photos.push_back(old_photo->photos[0]);
-            }
-            new_photo->photos.push_back(old_photo->photos.back());
-
-            FileView old_file_view = td_->file_manager_->get_file_view(old_file_id);
-            FileId new_file_id = new_photo->photos[0].file_id;
-            FileView new_file_view = td_->file_manager_->get_file_view(new_file_id);
-            if (!old_file_view.has_remote_location()) {
-              CHECK(new_file_view.has_remote_location());
-              CHECK(!new_file_view.remote_location().is_web());
-              FileId file_id = td_->file_manager_->register_remote(
-                  FullRemoteFileLocation(FileType::Photo, new_file_view.remote_location().get_id(),
-                                         new_file_view.remote_location().get_access_hash(), 0, 0, 0, DcId::invalid()),
-                  FileLocationSource::FromServer, dialog_id, old_photo->photos.back().size, 0, "");
-              LOG_STATUS(td_->file_manager_->merge(file_id, old_file_id));
-            }
-          }
-
-          // get sent photo again
-          auto new_photos_size = new_photo->photos.size();
-          auto old_photos_size = old_photo->photos.size();
-          if (old_photos_size == 2 + new_photos_size && old_photo->photos[new_photos_size].type == 't') {
-            new_photo->photos.push_back(old_photo->photos[new_photos_size]);
-          }
-          if (old_photos_size == 1 + new_photo->photos.size() && old_photo->photos.back().type == 'i') {
-            new_photo->photos.push_back(old_photo->photos.back());
-          }
-          if (old_photo->photos != new_photo->photos) {
-            new_photo->photos.resize(
-                new_photos_size);  // return previous size, because we shouldn't add local photo sizes
-            need_update = true;
-          }
-        }
-        break;
-      }
-      case MessageContentType::Sticker: {
-        auto old_ = static_cast<const MessageSticker *>(old_content.get());
-        auto new_ = static_cast<const MessageSticker *>(new_content.get());
-        if (new_->file_id != old_->file_id &&
-            (!need_merge_files ||
-             td_->stickers_manager_->merge_stickers(new_->file_id, old_->file_id, can_delete_old_document))) {
-          need_update = true;
-        }
-        break;
-      }
-      case MessageContentType::Venue: {
-        auto old_ = static_cast<const MessageVenue *>(old_content.get());
-        auto new_ = static_cast<const MessageVenue *>(new_content.get());
-        if (old_->venue != new_->venue) {
-          need_update = true;
-        }
-        if (old_->venue.location().get_access_hash() != new_->venue.location().get_access_hash()) {
-          is_content_changed = true;
-          location_access_hash = choose_location_access_hash(old_->venue.location(), new_->venue.location());
-        }
-        break;
-      }
-      case MessageContentType::Video: {
-        auto old_ = static_cast<const MessageVideo *>(old_content.get());
-        auto new_ = static_cast<const MessageVideo *>(new_content.get());
-        if (new_->file_id != old_->file_id &&
-            (!need_merge_files ||
-             td_->videos_manager_->merge_videos(new_->file_id, old_->file_id, can_delete_old_document))) {
-          need_update = true;
-        }
-        if (old_->caption != new_->caption) {
-          need_update = true;
-        }
-        break;
-      }
-      case MessageContentType::VideoNote: {
-        auto old_ = static_cast<const MessageVideoNote *>(old_content.get());
-        auto new_ = static_cast<const MessageVideoNote *>(new_content.get());
-        if (new_->file_id != old_->file_id &&
-            (!need_merge_files ||
-             td_->video_notes_manager_->merge_video_notes(new_->file_id, old_->file_id, can_delete_old_document))) {
-          need_update = true;
-        }
-        if (old_->is_viewed != new_->is_viewed) {
-          need_update = true;
-        }
-        break;
-      }
-      case MessageContentType::VoiceNote: {
-        auto old_ = static_cast<const MessageVoiceNote *>(old_content.get());
-        auto new_ = static_cast<const MessageVoiceNote *>(new_content.get());
-        if (new_->file_id != old_->file_id &&
-            (!need_merge_files ||
-             td_->voice_notes_manager_->merge_voice_notes(new_->file_id, old_->file_id, can_delete_old_document))) {
-          need_update = true;
-        }
-        if (old_->caption != new_->caption) {
-          need_update = true;
-        }
-        if (old_->is_listened != new_->is_listened) {
-          need_update = true;
-        }
-        break;
-      }
-      case MessageContentType::ChatCreate: {
-        auto old_ = static_cast<const MessageChatCreate *>(old_content.get());
-        auto new_ = static_cast<const MessageChatCreate *>(new_content.get());
-        if (old_->title != new_->title || old_->participant_user_ids != new_->participant_user_ids) {
-          need_update = true;
-        }
-        break;
-      }
-      case MessageContentType::ChatChangeTitle: {
-        auto old_ = static_cast<const MessageChatChangeTitle *>(old_content.get());
-        auto new_ = static_cast<const MessageChatChangeTitle *>(new_content.get());
-        if (old_->title != new_->title) {
-          need_update = true;
-        }
-        break;
-      }
-      case MessageContentType::ChatChangePhoto: {
-        auto old_ = static_cast<const MessageChatChangePhoto *>(old_content.get());
-        auto new_ = static_cast<const MessageChatChangePhoto *>(new_content.get());
-        if (old_->photo != new_->photo) {
-          need_update = true;
-        }
-        break;
-      }
-      case MessageContentType::ChatDeletePhoto:
-        break;
-      case MessageContentType::ChatDeleteHistory:
-        break;
-      case MessageContentType::ChatAddUsers: {
-        auto old_ = static_cast<const MessageChatAddUsers *>(old_content.get());
-        auto new_ = static_cast<const MessageChatAddUsers *>(new_content.get());
-        if (old_->user_ids != new_->user_ids) {
-          need_update = true;
-        }
-        break;
-      }
-      case MessageContentType::ChatJoinedByLink:
-        break;
-      case MessageContentType::ChatDeleteUser: {
-        auto old_ = static_cast<const MessageChatDeleteUser *>(old_content.get());
-        auto new_ = static_cast<const MessageChatDeleteUser *>(new_content.get());
-        if (old_->user_id != new_->user_id) {
-          need_update = true;
-        }
-        break;
-      }
-      case MessageContentType::ChatMigrateTo: {
-        auto old_ = static_cast<const MessageChatMigrateTo *>(old_content.get());
-        auto new_ = static_cast<const MessageChatMigrateTo *>(new_content.get());
-        if (old_->migrated_to_channel_id != new_->migrated_to_channel_id) {
-          need_update = true;
-        }
-        break;
-      }
-      case MessageContentType::ChannelCreate: {
-        auto old_ = static_cast<const MessageChannelCreate *>(old_content.get());
-        auto new_ = static_cast<const MessageChannelCreate *>(new_content.get());
-        if (old_->title != new_->title) {
-          need_update = true;
-        }
-        break;
-      }
-      case MessageContentType::ChannelMigrateFrom: {
-        auto old_ = static_cast<const MessageChannelMigrateFrom *>(old_content.get());
-        auto new_ = static_cast<const MessageChannelMigrateFrom *>(new_content.get());
-        if (old_->title != new_->title || old_->migrated_from_chat_id != new_->migrated_from_chat_id) {
-          need_update = true;
-        }
-        break;
-      }
-      case MessageContentType::PinMessage: {
-        auto old_ = static_cast<const MessagePinMessage *>(old_content.get());
-        auto new_ = static_cast<const MessagePinMessage *>(new_content.get());
-        if (old_->message_id != new_->message_id) {
-          need_update = true;
-        }
-        break;
-      }
-      case MessageContentType::GameScore: {
-        auto old_ = static_cast<const MessageGameScore *>(old_content.get());
-        auto new_ = static_cast<const MessageGameScore *>(new_content.get());
-        if (old_->game_message_id != new_->game_message_id || old_->game_id != new_->game_id ||
-            old_->score != new_->score) {
-          need_update = true;
-        }
-        break;
-      }
-      case MessageContentType::ScreenshotTaken:
-        break;
-      case MessageContentType::ChatSetTtl: {
-        auto old_ = static_cast<const MessageChatSetTtl *>(old_content.get());
-        auto new_ = static_cast<const MessageChatSetTtl *>(new_content.get());
-        if (old_->ttl != new_->ttl) {
-          LOG(ERROR) << "Ttl has changed from " << old_->ttl << " to " << new_->ttl;
-          need_update = true;
-        }
-        break;
-      }
-      case MessageContentType::Call: {
-        auto old_ = static_cast<const MessageCall *>(old_content.get());
-        auto new_ = static_cast<const MessageCall *>(new_content.get());
-        if (old_->call_id != new_->call_id) {
-          is_content_changed = true;
-        }
-        if (old_->duration != new_->duration || old_->discard_reason != new_->discard_reason) {
-          need_update = true;
-        }
-        break;
-      }
-      case MessageContentType::PaymentSuccessful: {
-        auto old_ = static_cast<const MessagePaymentSuccessful *>(old_content.get());
-        auto new_ = static_cast<const MessagePaymentSuccessful *>(new_content.get());
-        if (old_->invoice_message_id != new_->invoice_message_id || old_->currency != new_->currency ||
-            old_->total_amount != new_->total_amount || old_->invoice_payload != new_->invoice_payload ||
-            old_->shipping_option_id != new_->shipping_option_id ||
-            old_->telegram_payment_charge_id != new_->telegram_payment_charge_id ||
-            old_->provider_payment_charge_id != new_->provider_payment_charge_id ||
-            ((old_->order_info != nullptr || new_->order_info != nullptr) &&
-             (old_->order_info == nullptr || new_->order_info == nullptr || *old_->order_info != *new_->order_info))) {
-          need_update = true;
-        }
-        break;
-      }
-      case MessageContentType::ContactRegistered:
-        break;
-      case MessageContentType::ExpiredPhoto:
-        break;
-      case MessageContentType::ExpiredVideo:
-        break;
-      case MessageContentType::CustomServiceAction: {
-        auto old_ = static_cast<const MessageCustomServiceAction *>(old_content.get());
-        auto new_ = static_cast<const MessageCustomServiceAction *>(new_content.get());
-        if (old_->message != new_->message) {
-          need_update = true;
-        }
-        break;
-      }
-      case MessageContentType::WebsiteConnected: {
-        auto old_ = static_cast<const MessageWebsiteConnected *>(old_content.get());
-        auto new_ = static_cast<const MessageWebsiteConnected *>(new_content.get());
-        if (old_->domain_name != new_->domain_name) {
-          need_update = true;
-        }
-        break;
-      }
-      case MessageContentType::PassportDataSent: {
-        auto old_ = static_cast<const MessagePassportDataSent *>(old_content.get());
-        auto new_ = static_cast<const MessagePassportDataSent *>(new_content.get());
-        if (old_->types != new_->types) {
-          need_update = true;
-        }
-        break;
-      }
-      case MessageContentType::PassportDataReceived: {
-        auto old_ = static_cast<const MessagePassportDataReceived *>(old_content.get());
-        auto new_ = static_cast<const MessagePassportDataReceived *>(new_content.get());
-        if (old_->values != new_->values) {
-          need_update = true;
-        }
-        if (old_->credentials != new_->credentials) {
-          need_update = true;
-        }
-        break;
-      }
-      case MessageContentType::Unsupported:
-        break;
-      default:
-        UNREACHABLE();
-        break;
-    }
+    merge_message_contents(td_, old_message, old_content.get(), new_content.get(), dialog_id, need_merge_files,
+                           is_content_changed, need_update);
   }
   if (need_finish_upload) {
     // the file is likely to be already merged with a server file, but if not we need to
@@ -24897,21 +24904,6 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
     update_message_content_file_id_remote(old_content.get(), old_file_id);
   } else {
     update_message_content_file_id_remote(old_content.get(), get_message_content_file_id(new_content.get()));
-  }
-  if (location_access_hash != 0) {
-    switch (old_content->get_type()) {
-      case MessageContentType::LiveLocation:
-        static_cast<MessageLiveLocation *>(old_content.get())->location.set_access_hash(location_access_hash);
-        break;
-      case MessageContentType::Location:
-        static_cast<MessageLocation *>(old_content.get())->location.set_access_hash(location_access_hash);
-        break;
-      case MessageContentType::Venue:
-        static_cast<MessageVenue *>(old_content.get())->venue.set_access_hash(location_access_hash);
-        break;
-      default:
-        UNREACHABLE();
-    }
   }
   if (is_content_changed && !need_update) {
     LOG(INFO) << "Content of " << old_message->message_id << " in " << dialog_id << " has changed";

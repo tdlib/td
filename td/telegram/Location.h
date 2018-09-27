@@ -134,11 +134,7 @@ class Venue {
 
   bool empty() const;
 
-  const Location &location() const;
-
-  void set_access_hash(int64 access_hash) {
-    location_.set_access_hash(access_hash);
-  }
+  Location &location();
 
   tl_object_ptr<td_api::venue> get_venue_object() const;
 

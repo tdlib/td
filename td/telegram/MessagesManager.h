@@ -2274,7 +2274,11 @@ class MessagesManager : public Actor {
   static bool need_message_text_changed_warning(const Message *old_message, const MessageText *old_content,
                                                 const MessageText *new_content);
 
-  static int64 choose_location_access_hash(const Location &first, const Location &second);
+  static void merge_location_access_hash(Location &first, Location &second);
+
+  static void merge_message_contents(Td *td, const Message *old_message, MessageContent *old_content,
+                                     MessageContent *new_content, DialogId dialog_id, bool need_merge_files,
+                                     bool &is_content_changed, bool &need_update);
 
   bool update_message_content(DialogId dialog_id, Message *old_message, unique_ptr<MessageContent> new_content,
                               bool need_send_update_message_content, bool need_merge_files);
