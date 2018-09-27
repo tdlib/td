@@ -21,6 +21,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
+#include "td/utils/Time.h"
 
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"  // TODO: this file is already included. Why?

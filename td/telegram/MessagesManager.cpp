@@ -26328,7 +26328,7 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
 
   auto can_send_status = can_send_message(dialog_id);
   if (can_send_status.is_ok() && result_message->send_date < now - MAX_RESEND_DELAY) {
-    can_send_status = Status::Error(400, "Message is too old to be resent automatically");
+    can_send_status = Status::Error(400, "Message is too old to be re-sent automatically");
   }
   if (can_send_status.is_error()) {
     LOG(INFO) << "Can't resend a message to " << dialog_id << ": " << can_send_status.error();

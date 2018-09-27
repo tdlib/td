@@ -12,6 +12,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/Slice.h"
+#include "td/utils/Time.h"
 
 #if TD_PORT_WINDOWS
 #include "td/utils/port/detail/Iocp.h"

@@ -11,7 +11,6 @@
 #include "td/utils/int_types.h"
 
 #include <cstdint>
-#include <memory>
 #include <string>
 #include <vector>
 

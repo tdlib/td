@@ -25,6 +25,7 @@
 #include "td/utils/common.h"
 #include "td/utils/Container.h"
 #include "td/utils/Enumerator.h"
+#include "td/utils/logging.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 

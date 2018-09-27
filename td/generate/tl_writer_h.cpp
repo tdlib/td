@@ -50,7 +50,6 @@ std::string TD_TL_writer_h::gen_output_begin() const {
          "#include \"td/tl/TlObject.h\"\n\n" +
          ext_include_str +
          "#include <cstdint>\n"
-         "#include <memory>\n"
          "#include <utility>\n"
          "#include <vector>\n\n"
          "namespace td {\n" +

@@ -94,7 +94,6 @@ class TdExample {
         } else if (action == "me") {
           send_query(td_api::make_object<td_api::getMe>(),
                      [this](Object object) { std::cerr << to_string(object) << std::endl; });
-
         } else if (action == "l") {
           std::cerr << "Logging out..." << std::endl;
           send_query(td_api::make_object<td_api::logOut>(), {});

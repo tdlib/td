@@ -14,7 +14,6 @@
 #include "td/utils/logging.h"
 #include "td/utils/Status.h"
 
-#include <memory>
 #include <string>
 
 int main(int argc, char *argv[]) {

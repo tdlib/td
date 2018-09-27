@@ -20,7 +20,6 @@
 #include "td/utils/Status.h"
 
 #include <map>
-#include <memory>
 #include <unordered_map>
 #include <utility>
 

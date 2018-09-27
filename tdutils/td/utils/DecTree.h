@@ -12,7 +12,6 @@
 #include "td/utils/Random.h"
 
 #include <functional>
-#include <memory>
 #include <utility>
 
 namespace td {

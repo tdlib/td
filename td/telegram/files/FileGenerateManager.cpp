@@ -24,6 +24,7 @@
 #include "td/utils/Slice.h"
 
 #include <cmath>
+#include <memory>
 #include <utility>
 
 namespace td {

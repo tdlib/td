@@ -22,6 +22,8 @@
 #include "td/utils/optional.h"
 #include "td/utils/Slice.h"
 
+#include <memory>
+
 namespace td {
 
 class GetSecureValue : public NetQueryCallback {

@@ -24,6 +24,7 @@
 #include "td/net/NetStats.h"
 
 #include "td/utils/FloodControlStrict.h"
+#include "td/utils/logging.h"
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/port/SocketFd.h"
 #include "td/utils/Slice.h"
