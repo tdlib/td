@@ -83,11 +83,11 @@ UserId Game::get_bot_user_id() const {
   return bot_user_id_;
 }
 
-void Game::set_message_text(FormattedText &&text) {
+void Game::set_text(FormattedText &&text) {
   text_ = std::move(text);
 }
 
-const FormattedText &Game::get_message_text() const {
+const FormattedText &Game::get_text() const {
   return text_;
 }
 

@@ -384,11 +384,9 @@ InlineMessageContent InlineQueriesManager::create_inline_message_content(
     }
     case telegram_api::botInlineMessageMediaAuto::ID: {
       auto input_message_media_auto = move_tl_object_as<telegram_api::botInlineMessageMediaAuto>(inline_message);
-      auto caption = td_->messages_manager_->get_message_text(input_message_media_auto->message_,
-                                                              std::move(input_message_media_auto->entities_), 0,
-                                                              "register_inline_message_content");
-      reply_markup = std::move(input_message_media_auto->reply_markup_);
-
+      auto caption = MessagesManager::get_message_text(td_->contacts_manager_.get(), input_message_media_auto->message_,
+                                                       std::move(input_message_media_auto->entities_), 0,
+                                                       "register_inline_message_content");
       if (allowed_media_content_id == td_api::inputMessageAnimation::ID) {
         result.message_content = make_unique<MessageAnimation>(file_id, std::move(caption));
       } else if (allowed_media_content_id == td_api::inputMessageAudio::ID) {
@@ -408,10 +406,10 @@ InlineMessageContent InlineQueriesManager::create_inline_message_content(
       } else if (allowed_media_content_id == td_api::inputMessageVoiceNote::ID) {
         result.message_content = make_unique<MessageVoiceNote>(file_id, std::move(caption), true);
       } else {
-        input_message_media_auto->reply_markup_ = std::move(reply_markup);
-        input_message_media_auto->message_ = std::move(caption.text);
         LOG(WARNING) << "Unallowed bot inline message " << to_string(input_message_media_auto);
       }
+
+      reply_markup = std::move(input_message_media_auto->reply_markup_);
       break;
     }
     default:

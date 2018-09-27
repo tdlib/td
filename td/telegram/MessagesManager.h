@@ -1080,14 +1080,15 @@ class MessagesManager : public Actor {
   static Result<Contact> process_input_message_contact(
       tl_object_ptr<td_api::InputMessageContent> &&input_message_content) TD_WARN_UNUSED_RESULT;
 
-  Result<Game> process_input_message_game(tl_object_ptr<td_api::InputMessageContent> &&input_message_content) const
+  static Result<Game> process_input_message_game(const ContactsManager *contacts_manager,
+                                                 tl_object_ptr<td_api::InputMessageContent> &&input_message_content)
       TD_WARN_UNUSED_RESULT;
 
   bool need_skip_bot_commands(DialogId dialog_id, bool is_bot) const;
 
-  FormattedText get_message_text(string message_text,
-                                 vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities, int32 send_date,
-                                 const char *source) const;
+  static FormattedText get_message_text(const ContactsManager *contacts_manager, string message_text,
+                                        vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,
+                                        int32 send_date, const char *source);
 
   Result<MessageId> send_message(DialogId dialog_id, MessageId reply_to_message_id, bool disable_notification,
                                  bool from_background, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,

@@ -55,9 +55,9 @@ class Game {
 
   UserId get_bot_user_id() const;
 
-  void set_message_text(FormattedText &&text);
+  void set_text(FormattedText &&text);
 
-  const FormattedText &get_message_text() const;
+  const FormattedText &get_text() const;
 
   tl_object_ptr<td_api::game> get_game_object(Td *td) const;
 

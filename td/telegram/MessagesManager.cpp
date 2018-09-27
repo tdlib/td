@@ -5696,8 +5696,8 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
   int32 ttl = 0;
   auto content = get_message_content(
       td_,
-      get_message_text(std::move(update->message_), std::move(update->entities_), update->inbox_date_,
-                       "on_update_service_notification"),
+      get_message_text(td_->contacts_manager_.get(), std::move(update->message_), std::move(update->entities_),
+                       update->inbox_date_, "on_update_service_notification"),
       std::move(update->media_),
       td_->auth_manager_->is_bot() ? DialogId() : get_service_notifications_dialog()->dialog_id, false, UserId(), &ttl);
   bool is_content_secret = is_secret_message_content(ttl, content->get_type());
@@ -10665,7 +10665,7 @@ MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
       }
       message_info.content = get_message_content(
           td_,
-          get_message_text(std::move(message->message_), std::move(message->entities_),
+          get_message_text(td_->contacts_manager_.get(), std::move(message->message_), std::move(message->entities_),
                            message_info.forward_header ? message_info.forward_header->date_ : message_info.date,
                            "parse_telegram_api_message"),
           std::move(message->media_), message_info.dialog_id, is_content_read, message_info.via_bot_user_id,
@@ -11217,8 +11217,8 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
 
   auto new_content = get_message_content(
       td_,
-      get_message_text(message_text->text.text, std::move(entities), m->forward_info ? m->forward_info->date : m->date,
-                       "on_update_sent_text_message"),
+      get_message_text(td_->contacts_manager_.get(), message_text->text.text, std::move(entities),
+                       m->forward_info ? m->forward_info->date : m->date, "on_update_sent_text_message"),
       std::move(message_media), dialog_id, true /*likely ignored*/, UserId() /*likely ignored*/, nullptr /*ignored*/);
   if (new_content->get_type() != MessageContentType::Text) {
     LOG(ERROR) << "Text message content has changed to " << new_content->get_type();
@@ -15730,13 +15730,13 @@ Result<Contact> MessagesManager::process_input_message_contact(
 }
 
 Result<Game> MessagesManager::process_input_message_game(
-    tl_object_ptr<td_api::InputMessageContent> &&input_message_content) const {
+    const ContactsManager *contacts_manager, tl_object_ptr<td_api::InputMessageContent> &&input_message_content) {
   CHECK(input_message_content != nullptr);
   CHECK(input_message_content->get_id() == td_api::inputMessageGame::ID);
   auto input_message_game = move_tl_object_as<td_api::inputMessageGame>(input_message_content);
 
   UserId bot_user_id(input_message_game->bot_user_id_);
-  if (!td_->contacts_manager_->have_input_user(bot_user_id)) {
+  if (!contacts_manager->have_input_user(bot_user_id)) {
     return Status::Error(400, "Game owner bot is not accessible");
   }
 
@@ -16411,7 +16411,7 @@ FormattedText MessagesManager::get_message_content_text(const MessageContent *co
     case MessageContentType::Text:
       return static_cast<const MessageText *>(content)->text;
     case MessageContentType::Game:
-      return static_cast<const MessageGame *>(content)->game.get_message_text();
+      return static_cast<const MessageGame *>(content)->game.get_text();
     default:
       return get_message_content_caption(content);
   }
@@ -17243,7 +17243,7 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
       break;
     }
     case td_api::inputMessageGame::ID: {
-      TRY_RESULT(game, process_input_message_game(std::move(input_message_content)));
+      TRY_RESULT(game, process_input_message_game(td_->contacts_manager_.get(), std::move(input_message_content)));
       via_bot_user_id = game.get_bot_user_id();
       if (via_bot_user_id == td_->contacts_manager_->get_my_id("send_message")) {
         via_bot_user_id = UserId();
@@ -22387,10 +22387,10 @@ FormattedText MessagesManager::get_secret_media_caption(string &&message_text, s
   return caption;
 }
 
-FormattedText MessagesManager::get_message_text(string message_text,
+FormattedText MessagesManager::get_message_text(const ContactsManager *contacts_manager, string message_text,
                                                 vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,
-                                                int32 send_date, const char *source) const {
-  auto entities = get_message_entities(td_->contacts_manager_.get(), std::move(server_entities), source);
+                                                int32 send_date, const char *source) {
+  auto entities = get_message_entities(contacts_manager, std::move(server_entities), source);
   auto status = fix_formatted_text(message_text, entities, true, true, true, false);
   if (status.is_error()) {
     if (send_date == 0 || send_date > 1497000000) {  // approximate fix date
@@ -22876,7 +22876,7 @@ unique_ptr<MessageContent> MessagesManager::get_message_content(Td *td, Formatte
       }
 
       m->game.set_bot_user_id(via_bot_user_id);
-      m->game.set_message_text(std::move(message));
+      m->game.set_text(std::move(message));
 
       return std::move(m);
     }
