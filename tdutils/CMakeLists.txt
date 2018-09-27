@@ -202,6 +202,7 @@ set(TDUTILS_SOURCE
   td/utils/translit.h
   td/utils/type_traits.h
   td/utils/unicode.h
+  td/utils/unique_ptr.h
   td/utils/utf8.h
   td/utils/Variant.h
   td/utils/VectorQueue.h
