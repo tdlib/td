@@ -2272,6 +2272,10 @@ class MessagesManager : public Actor {
   void update_message(Dialog *d, unique_ptr<Message> &old_message, unique_ptr<Message> new_message,
                       bool need_send_update_message_content, bool *need_update_dialog_pos);
 
+  static WebPageId get_message_content_web_page_id(const MessageContent *content);
+
+  static void set_message_content_web_page_id(MessageContent *content, WebPageId web_page_id);
+
   static bool need_message_text_changed_warning(const Message *old_message, const MessageText *old_content,
                                                 const MessageText *new_content);
 

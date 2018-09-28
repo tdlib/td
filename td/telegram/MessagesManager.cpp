@@ -11239,6 +11239,18 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
   }
 }
 
+WebPageId MessagesManager::get_message_content_web_page_id(const MessageContent *content) {
+  if (content->get_type() == MessageContentType::Text) {
+    return static_cast<const MessageText *>(content)->web_page_id;
+  }
+  return WebPageId();
+}
+
+void MessagesManager::set_message_content_web_page_id(MessageContent *content, WebPageId web_page_id) {
+  CHECK(content->get_type() == MessageContentType::Text);
+  static_cast<MessageText *>(content)->web_page_id = web_page_id;
+}
+
 void MessagesManager::on_update_message_web_page(FullMessageId full_message_id, bool have_web_page) {
   waiting_for_web_page_messages_.erase(full_message_id);
   auto dialog_id = full_message_id.get_dialog_id();
@@ -11255,17 +11267,17 @@ void MessagesManager::on_update_message_web_page(FullMessageId full_message_id, 
     return;
   }
   CHECK(message->date > 0);
-  auto content_type = message->content->get_type();
-  CHECK(content_type == MessageContentType::Text);
-  auto content = static_cast<MessageText *>(message->content.get());
-  if (!content->web_page_id.is_valid()) {
+
+  MessageContent *content = message->content.get();
+  auto old_web_page_id = get_message_content_web_page_id(content);
+  if (!old_web_page_id.is_valid()) {
     // webpage has already been received as empty
     LOG_IF(ERROR, have_web_page) << "Receive earlier not received web page";
     return;
   }
 
   if (!have_web_page) {
-    content->web_page_id = WebPageId();
+    set_message_content_web_page_id(content, WebPageId());
     // don't need to send an update
 
     on_message_changed(d, message, "on_update_message_web_page");
@@ -15317,8 +15329,8 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     message->from_database = true;
 
     auto old_message = get_message(d, message->message_id);
-    if (old_message == nullptr && message->content->get_type() == MessageContentType::Text) {
-      auto web_page_id = static_cast<const MessageText *>(message->content.get())->web_page_id;
+    if (old_message == nullptr) {
+      auto web_page_id = get_message_content_web_page_id(message->content.get());
       if (web_page_id.is_valid()) {
         td_->web_pages_manager_->have_web_page_force(web_page_id);
       }
@@ -23408,13 +23420,11 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     return nullptr;
   }
 
-  if (message_content_type == MessageContentType::Text) {
-    auto web_page_id = static_cast<const MessageText *>(message->content.get())->web_page_id;
-    if (web_page_id.is_valid() && !td_->web_pages_manager_->have_web_page(web_page_id)) {
-      waiting_for_web_page_messages_.emplace(dialog_id, message_id);
-      send_closure(G()->web_pages_manager(), &WebPagesManager::wait_for_pending_web_page, dialog_id, message_id,
-                   web_page_id);
-    }
+  auto web_page_id = get_message_content_web_page_id(message->content.get());
+  if (web_page_id.is_valid() && !td_->web_pages_manager_->have_web_page(web_page_id)) {
+    waiting_for_web_page_messages_.emplace(dialog_id, message_id);
+    send_closure(G()->web_pages_manager(), &WebPagesManager::wait_for_pending_web_page, dialog_id, message_id,
+                 web_page_id);
   }
 
   if (*need_update && message_id.get() <= d->last_new_message_id.get()) {
