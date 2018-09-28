@@ -10168,7 +10168,7 @@ void MessagesManager::start_up() {
         m->random_y = get_random_y(message_id);
         m->message_id = message_id;
         m->date = G()->unix_time();
-        m->content = make_unique<MessageText>(FormattedText{"text", vector<MessageEntity>()}, WebPageId());
+        m->content = create_text_message_content("text", {}, {});
 
         m->have_previous = have_previous;
         m->have_next = have_next;
@@ -17110,6 +17110,11 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
   return std::move(content);
 }
 
+unique_ptr<MessageContent> MessagesManager::create_text_message_content(string text, vector<MessageEntity> entities,
+                                                                        WebPageId web_page_id) {
+  return make_unique<MessageText>(FormattedText{std::move(text), std::move(entities)}, web_page_id);
+}
+
 Result<InputMessageContent> MessagesManager::create_input_message_content(
     DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td,
     FormattedText caption, FileId file_id, PhotoSize thumbnail, vector<FileId> sticker_file_ids) {
@@ -18013,14 +18018,12 @@ Result<MessageId> MessagesManager::send_bot_start_message(UserId bot_user_id, Di
     text += bot_data.username;
   }
 
+  vector<MessageEntity> text_entities;
+  text_entities.emplace_back(MessageEntity::Type::BotCommand, 0, narrow_cast<int32>(text.size()));
   bool need_update_dialog_pos = false;
-  Message *m = get_message_to_send(
-      d, MessageId(), false, false,
-      make_unique<MessageText>(
-          FormattedText{text, vector<MessageEntity>{MessageEntity(MessageEntity::Type::BotCommand, 0,
-                                                                  narrow_cast<int32>(text.size()))}},
-          WebPageId()),
-      &need_update_dialog_pos);
+  Message *m = get_message_to_send(d, MessageId(), false, false,
+                                   create_text_message_content(text, std::move(text_entities), WebPageId()),
+                                   &need_update_dialog_pos);
 
   send_update_new_message(d, m, true);
   if (need_update_dialog_pos) {
@@ -22633,7 +22636,7 @@ unique_ptr<MessageContent> MessagesManager::get_secret_message_content(
   }
 
   if (media == nullptr) {
-    return make_unique<MessageText>(FormattedText{std::move(message_text), std::move(entities)}, WebPageId());
+    return create_text_message_content(std::move(message_text), std::move(entities), WebPageId());
   }
 
   int32 constructor_id = media->get_id();
@@ -22641,7 +22644,7 @@ unique_ptr<MessageContent> MessagesManager::get_secret_message_content(
     if (constructor_id != secret_api::decryptedMessageMediaEmpty::ID) {
       LOG(INFO) << "Receive non-empty message text and media";
     } else {
-      return make_unique<MessageText>(FormattedText{std::move(message_text), std::move(entities)}, WebPageId());
+      return create_text_message_content(std::move(message_text), std::move(entities), WebPageId());
     }
   }
 
@@ -22757,7 +22760,7 @@ unique_ptr<MessageContent> MessagesManager::get_secret_message_content(
     is_media_empty = true;
   }
   if (is_media_empty) {
-    return make_unique<MessageText>(FormattedText{std::move(message_text), std::move(entities)}, WebPageId());
+    return create_text_message_content(std::move(message_text), std::move(entities), WebPageId());
   }
   switch (constructor_id) {
     case secret_api::decryptedMessageMediaPhoto::ID: {

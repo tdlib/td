@@ -1984,6 +1984,9 @@ class MessagesManager : public Actor {
   FullMessageId on_get_message(MessageInfo &&message_info, bool from_update, bool is_channel_message,
                                bool have_previous, bool have_next, const char *source);
 
+  static unique_ptr<MessageContent> create_text_message_content(string text, vector<MessageEntity> entities,
+                                                                WebPageId web_page_id);
+
   Result<InputMessageContent> process_input_message_content(
       DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content) const;
 
