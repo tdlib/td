@@ -456,6 +456,7 @@ set(TDLIB_SOURCE
   td/telegram/Contact.h
   td/telegram/ContactsManager.h
   td/telegram/DelayDispatcher.h
+  td/telegram/Dependencies.h
   td/telegram/DeviceTokenManager.h
   td/telegram/DhCache.h
   td/telegram/DhConfig.h

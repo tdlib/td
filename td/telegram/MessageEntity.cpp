@@ -2196,4 +2196,12 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
   return Status::OK();
 }
 
+void add_formatted_text_dependencies(Dependencies &dependencies, const FormattedText &text) {
+  for (auto &entity : text.entities) {
+    if (entity.user_id.is_valid()) {
+      dependencies.user_ids.insert(entity.user_id);
+    }
+  }
+}
+
 }  // namespace td

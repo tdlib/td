@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
@@ -143,5 +144,7 @@ vector<MessageEntity> get_message_entities(vector<tl_object_ptr<secret_api::Mess
 // like clean_input_string but also validates entities
 Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool allow_empty, bool skip_new_entities,
                           bool skip_bot_commands, bool for_draft) TD_WARN_UNUSED_RESULT;
+
+void add_formatted_text_dependencies(Dependencies &dependencies, const FormattedText &text);
 
 }  // namespace td

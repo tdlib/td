@@ -16681,14 +16681,6 @@ bool MessagesManager::is_message_auto_read(DialogId dialog_id, bool is_outgoing)
   }
 }
 
-void MessagesManager::add_formatted_text_dependencies(Dependencies &dependencies, const FormattedText &text) {
-  for (auto &entity : text.entities) {
-    if (entity.user_id.is_valid()) {
-      dependencies.user_ids.insert(entity.user_id);
-    }
-  }
-}
-
 void MessagesManager::add_message_dependencies(Dependencies &dependencies, DialogId dialog_id, const Message *m) {
   dependencies.user_ids.insert(m->sender_user_id);
   dependencies.user_ids.insert(m->via_bot_user_id);

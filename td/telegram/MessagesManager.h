@@ -23,6 +23,7 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/Contact.h"
+#include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/DocumentsManager.h"
@@ -853,16 +854,6 @@ class dummyUpdate : public telegram_api::Update {
   }
 
   void store(TlStorerToString &s, const char *field_name) const override;
-};
-
-class Dependencies {
- public:
-  std::unordered_set<UserId, UserIdHash> user_ids;
-  std::unordered_set<ChatId, ChatIdHash> chat_ids;
-  std::unordered_set<ChannelId, ChannelIdHash> channel_ids;
-  std::unordered_set<SecretChatId, SecretChatIdHash> secret_chat_ids;
-  std::unordered_set<DialogId, DialogIdHash> dialog_ids;
-  std::unordered_set<WebPageId, WebPageIdHash> web_page_ids;
 };
 
 struct CallsDbState {
@@ -2746,8 +2737,6 @@ class MessagesManager : public Actor {
   }
 
   static void dump_debug_message_op(const Dialog *d, int priority = 0);
-
-  static void add_formatted_text_dependencies(Dependencies &dependencies, const FormattedText &text);
 
   static void add_message_dependencies(Dependencies &dependencies, DialogId dialog_id, const Message *m);
 
