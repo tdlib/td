@@ -23376,6 +23376,15 @@ int32 MessagesManager::get_message_content_new_participant_count(const MessageCo
   }
 }
 
+MessageId MessagesManager::get_message_content_pinned_message_id(const MessageContent *content) {
+  switch (content->get_type()) {
+    case MessageContentType::PinMessage:
+      return static_cast<const MessagePinMessage *>(content)->message_id;
+    default:
+      return MessageId();
+  }
+}
+
 MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, unique_ptr<Message> message,
                                                                  bool from_update, bool *need_update,
                                                                  bool *need_update_dialog_pos, const char *source) {
@@ -23841,9 +23850,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       td_->contacts_manager_->speculative_add_channel_participants(dialog_id.get_channel_id(), new_participant_count,
                                                                    message->sender_user_id == my_user_id);
     }
-    if (message_content_type == MessageContentType::PinMessage) {
-      td_->contacts_manager_->on_update_channel_pinned_message(
-          dialog_id.get_channel_id(), static_cast<const MessagePinMessage *>(message->content.get())->message_id);
+    auto pinned_message_id = get_message_content_pinned_message_id(message->content.get());
+    if (pinned_message_id.is_valid()) {
+      td_->contacts_manager_->on_update_channel_pinned_message(dialog_id.get_channel_id(), pinned_message_id);
     }
   }
   if (!td_->auth_manager_->is_bot() && from_update && message->forward_info == nullptr &&
