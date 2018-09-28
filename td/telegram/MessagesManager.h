@@ -1079,9 +1079,10 @@ class MessagesManager : public Actor {
                                           tl_object_ptr<td_api::InputMessageContent> &input_message_content,
                                           bool is_bot) const;
 
-  Result<InputMessageText> process_input_message_text(
-      DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, bool is_bot,
-      bool for_draft = false) const TD_WARN_UNUSED_RESULT;
+  static Result<InputMessageText> process_input_message_text(
+      const ContactsManager *contacts_manager, DialogId dialog_id,
+      tl_object_ptr<td_api::InputMessageContent> &&input_message_content, bool is_bot,
+      bool for_draft = false) TD_WARN_UNUSED_RESULT;
 
   static Result<std::pair<Location, int32>> process_input_message_location(
       tl_object_ptr<td_api::InputMessageContent> &&input_message_content) TD_WARN_UNUSED_RESULT;
@@ -1096,7 +1097,7 @@ class MessagesManager : public Actor {
                                                  tl_object_ptr<td_api::InputMessageContent> &&input_message_content)
       TD_WARN_UNUSED_RESULT;
 
-  bool need_skip_bot_commands(DialogId dialog_id, bool is_bot) const;
+  static bool need_skip_bot_commands(const ContactsManager *contacts_manager, DialogId dialog_id, bool is_bot);
 
   static FormattedText get_message_text(const ContactsManager *contacts_manager, string message_text,
                                         vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,

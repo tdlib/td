@@ -12831,7 +12831,8 @@ Status MessagesManager::set_dialog_draft_message(DialogId dialog_id,
       if (draft_message_content_type != td_api::inputMessageText::ID) {
         return Status::Error(5, "Input message content type must be InputMessageText");
       }
-      TRY_RESULT(message_content, process_input_message_text(dialog_id, std::move(input_message_content), false, true));
+      TRY_RESULT(message_content, process_input_message_text(td_->contacts_manager_.get(), dialog_id,
+                                                             std::move(input_message_content), false, true));
       new_draft_message->input_message_text = std::move(message_content);
     }
 
@@ -15600,17 +15601,17 @@ tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(
   return td_api::make_object<td_api::messages>(total_count, std::move(messages));
 }
 
-bool MessagesManager::need_skip_bot_commands(DialogId dialog_id, bool is_bot) const {
+bool MessagesManager::need_skip_bot_commands(const ContactsManager *contacts_manager, DialogId dialog_id, bool is_bot) {
   if (is_bot) {
     return false;
   }
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return !td_->contacts_manager_->is_user_bot(dialog_id.get_user_id());
+      return !contacts_manager->is_user_bot(dialog_id.get_user_id());
     case DialogType::SecretChat: {
-      auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
-      return !td_->contacts_manager_->is_user_bot(user_id);
+      auto user_id = contacts_manager->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+      return !contacts_manager->is_user_bot(user_id);
     }
     case DialogType::Chat:
     case DialogType::Channel:
@@ -15629,13 +15630,14 @@ Result<FormattedText> MessagesManager::process_input_caption(DialogId dialog_id,
     return FormattedText();
   }
   TRY_RESULT(entities, get_message_entities(td_->contacts_manager_.get(), std::move(text->entities_)));
-  TRY_STATUS(fix_formatted_text(text->text_, entities, true, false, need_skip_bot_commands(dialog_id, is_bot), false));
+  TRY_STATUS(fix_formatted_text(text->text_, entities, true, false,
+                                need_skip_bot_commands(td_->contacts_manager_.get(), dialog_id, is_bot), false));
   return FormattedText{std::move(text->text_), std::move(entities)};
 }
 
 Result<InputMessageText> MessagesManager::process_input_message_text(
-    DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, bool is_bot,
-    bool for_draft) const {
+    const ContactsManager *contacts_manager, DialogId dialog_id,
+    tl_object_ptr<td_api::InputMessageContent> &&input_message_content, bool is_bot, bool for_draft) {
   CHECK(input_message_content != nullptr);
   CHECK(input_message_content->get_id() == td_api::inputMessageText::ID);
   auto input_message_text = static_cast<td_api::inputMessageText *>(input_message_content.get());
@@ -15648,10 +15650,9 @@ Result<InputMessageText> MessagesManager::process_input_message_text(
     return Status::Error(400, "Message text can't be empty");
   }
 
-  TRY_RESULT(entities,
-             get_message_entities(td_->contacts_manager_.get(), std::move(input_message_text->text_->entities_)));
+  TRY_RESULT(entities, get_message_entities(contacts_manager, std::move(input_message_text->text_->entities_)));
   TRY_STATUS(fix_formatted_text(input_message_text->text_->text_, entities, for_draft, false,
-                                need_skip_bot_commands(dialog_id, is_bot), for_draft));
+                                need_skip_bot_commands(contacts_manager, dialog_id, is_bot), for_draft));
   return InputMessageText{FormattedText{std::move(input_message_text->text_->text_), std::move(entities)},
                           input_message_text->disable_web_page_preview_, input_message_text->clear_draft_};
 }
@@ -17131,10 +17132,11 @@ Result<InputMessageContent> MessagesManager::create_input_message_content(
   unique_ptr<MessageContent> content;
   UserId via_bot_user_id;
   int32 ttl = 0;
-  bool is_bot = td_->auth_manager_->is_bot();
+  bool is_bot = td->auth_manager_->is_bot();
   switch (input_message_content->get_id()) {
     case td_api::inputMessageText::ID: {
-      TRY_RESULT(input_message_text, process_input_message_text(dialog_id, std::move(input_message_content), is_bot));
+      TRY_RESULT(input_message_text, process_input_message_text(td->contacts_manager_.get(), dialog_id,
+                                                                std::move(input_message_content), is_bot));
       disable_web_page_preview = input_message_text.disable_web_page_preview;
       clear_draft = input_message_text.clear_draft;
 
@@ -18403,8 +18405,8 @@ void MessagesManager::edit_message_text(FullMessageId full_message_id,
     return promise.set_error(Status::Error(5, "There is no text in the message to edit"));
   }
 
-  auto r_input_message_text =
-      process_input_message_text(dialog_id, std::move(input_message_content), td_->auth_manager_->is_bot());
+  auto r_input_message_text = process_input_message_text(
+      td_->contacts_manager_.get(), dialog_id, std::move(input_message_content), td_->auth_manager_->is_bot());
   if (r_input_message_text.is_error()) {
     return promise.set_error(r_input_message_text.move_as_error());
   }
@@ -18721,8 +18723,8 @@ void MessagesManager::edit_inline_message_text(const string &inline_message_id,
     return promise.set_error(Status::Error(5, "Input message content type must be InputMessageText"));
   }
 
-  auto r_input_message_text =
-      process_input_message_text(DialogId(), std::move(input_message_content), td_->auth_manager_->is_bot());
+  auto r_input_message_text = process_input_message_text(
+      td_->contacts_manager_.get(), DialogId(), std::move(input_message_content), td_->auth_manager_->is_bot());
   if (r_input_message_text.is_error()) {
     return promise.set_error(r_input_message_text.move_as_error());
   }

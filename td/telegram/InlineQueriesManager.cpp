@@ -249,8 +249,8 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
 
   auto constructor_id = input_message_content->get_id();
   if (constructor_id == td_api::inputMessageText::ID) {
-    TRY_RESULT(input_message_text,
-               td_->messages_manager_->process_input_message_text(DialogId(), std::move(input_message_content), true));
+    TRY_RESULT(input_message_text, MessagesManager::process_input_message_text(td_->contacts_manager_.get(), DialogId(),
+                                                                               std::move(input_message_content), true));
 
     if (input_message_text.disable_web_page_preview) {
       flags |= telegram_api::inputBotInlineMessageText::NO_WEBPAGE_MASK;
