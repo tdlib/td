@@ -132,6 +132,10 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
                                                                               const vector<MessageEntity> &entities,
                                                                               const char *source);
 
+vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(const ContactsManager *contacts_manager,
+                                                                              const FormattedText *text,
+                                                                              const char *source);
+
 vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entities(
     const vector<MessageEntity> &entities);
 
@@ -145,6 +149,6 @@ vector<MessageEntity> get_message_entities(vector<tl_object_ptr<secret_api::Mess
 Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool allow_empty, bool skip_new_entities,
                           bool skip_bot_commands, bool for_draft) TD_WARN_UNUSED_RESULT;
 
-void add_formatted_text_dependencies(Dependencies &dependencies, const FormattedText &text);
+void add_formatted_text_dependencies(Dependencies &dependencies, const FormattedText *text);
 
 }  // namespace td

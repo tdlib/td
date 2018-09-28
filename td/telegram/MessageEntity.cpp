@@ -1667,6 +1667,15 @@ vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(co
   return result;
 }
 
+vector<tl_object_ptr<telegram_api::MessageEntity>> get_input_message_entities(const ContactsManager *contacts_manager,
+                                                                              const FormattedText *text,
+                                                                              const char *source) {
+  if (text != nullptr && !text->entities.empty()) {
+    return get_input_message_entities(contacts_manager, text->entities, source);
+  }
+  return {};
+}
+
 vector<tl_object_ptr<secret_api::MessageEntity>> get_input_secret_message_entities(
     const vector<MessageEntity> &entities) {
   vector<tl_object_ptr<secret_api::MessageEntity>> result;
@@ -2196,8 +2205,11 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
   return Status::OK();
 }
 
-void add_formatted_text_dependencies(Dependencies &dependencies, const FormattedText &text) {
-  for (auto &entity : text.entities) {
+void add_formatted_text_dependencies(Dependencies &dependencies, const FormattedText *text) {
+  if (text == nullptr) {
+    return;
+  }
+  for (auto &entity : text->entities) {
     if (entity.user_id.is_valid()) {
       dependencies.user_ids.insert(entity.user_id);
     }

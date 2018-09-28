@@ -11213,9 +11213,10 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
     return;
   }
 
-  FormattedText old_message_text = get_message_content_text(m->content.get());
+  const FormattedText *old_message_text = get_message_content_text(m->content.get());
+  CHECK(old_message_text != nullptr);
   FormattedText new_message_text =
-      get_message_text(td_->contacts_manager_.get(), std::move(old_message_text.text), std::move(entities),
+      get_message_text(td_->contacts_manager_.get(), old_message_text->text, std::move(entities),
                        m->forward_info ? m->forward_info->date : m->date, "on_update_sent_text_message");
   auto new_content = get_message_content(td_, std::move(new_message_text), std::move(message_media), dialog_id,
                                          true /*likely ignored*/, UserId() /*likely ignored*/, nullptr /*ignored*/);
@@ -16407,33 +16408,33 @@ MessageId MessagesManager::get_reply_to_message_id(Dialog *d, MessageId message_
   return message_id;
 }
 
-FormattedText MessagesManager::get_message_content_text(const MessageContent *content) {
+const FormattedText *MessagesManager::get_message_content_text(const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::Text:
-      return static_cast<const MessageText *>(content)->text;
+      return &static_cast<const MessageText *>(content)->text;
     case MessageContentType::Game:
-      return static_cast<const MessageGame *>(content)->game.get_text();
+      return &static_cast<const MessageGame *>(content)->game.get_text();
     default:
       return get_message_content_caption(content);
   }
 }
 
-FormattedText MessagesManager::get_message_content_caption(const MessageContent *content) {
+const FormattedText *MessagesManager::get_message_content_caption(const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::Animation:
-      return static_cast<const MessageAnimation *>(content)->caption;
+      return &static_cast<const MessageAnimation *>(content)->caption;
     case MessageContentType::Audio:
-      return static_cast<const MessageAudio *>(content)->caption;
+      return &static_cast<const MessageAudio *>(content)->caption;
     case MessageContentType::Document:
-      return static_cast<const MessageDocument *>(content)->caption;
+      return &static_cast<const MessageDocument *>(content)->caption;
     case MessageContentType::Photo:
-      return static_cast<const MessagePhoto *>(content)->caption;
+      return &static_cast<const MessagePhoto *>(content)->caption;
     case MessageContentType::Video:
-      return static_cast<const MessageVideo *>(content)->caption;
+      return &static_cast<const MessageVideo *>(content)->caption;
     case MessageContentType::VoiceNote:
-      return static_cast<const MessageVoiceNote *>(content)->caption;
+      return &static_cast<const MessageVoiceNote *>(content)->caption;
     default:
-      return FormattedText();
+      return nullptr;
   }
 }
 
@@ -17470,22 +17471,23 @@ void MessagesManager::do_send_message(DialogId dialog_id, Message *m, vector<int
   CHECK(content != nullptr);
   auto content_type = content->get_type();
   if (content_type == MessageContentType::Text) {
-    auto message_text = static_cast<const MessageText *>(content);
+    const FormattedText *message_text = get_message_content_text(content);
+    CHECK(message_text != nullptr);
 
     int64 random_id = begin_send_message(dialog_id, m);
     if (is_secret) {
       auto layer = td_->contacts_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
       send_closure(td_->create_net_actor<SendSecretMessageActor>(), &SendSecretMessageActor::send, dialog_id,
-                   m->reply_to_random_id, m->ttl, message_text->text.text,
+                   m->reply_to_random_id, m->ttl, message_text->text,
                    get_secret_input_media(content, td_, nullptr, BufferSlice(), layer),
-                   get_input_secret_message_entities(message_text->text.entities), m->via_bot_user_id,
-                   m->media_album_id, random_id);
+                   get_input_secret_message_entities(message_text->entities), m->via_bot_user_id, m->media_album_id,
+                   random_id);
     } else {
-      send_closure(
-          td_->create_net_actor<SendMessageActor>(), &SendMessageActor::send, get_message_flags(m), dialog_id,
-          m->reply_to_message_id, get_input_reply_markup(m->reply_markup),
-          get_input_message_entities(td_->contacts_manager_.get(), message_text->text.entities, "do_send_message"),
-          message_text->text.text, random_id, &m->send_query_ref, get_sequence_dispatcher_id(dialog_id, content_type));
+      send_closure(td_->create_net_actor<SendMessageActor>(), &SendMessageActor::send, get_message_flags(m), dialog_id,
+                   m->reply_to_message_id, get_input_reply_markup(m->reply_markup),
+                   get_input_message_entities(td_->contacts_manager_.get(), message_text->entities, "do_send_message"),
+                   message_text->text, random_id, &m->send_query_ref,
+                   get_sequence_dispatcher_id(dialog_id, content_type));
     }
     return;
   }
@@ -17532,7 +17534,7 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, Message *m,
 
   auto message_id = m->message_id;
   if (message_id.is_server()) {
-    auto caption = get_message_content_caption(m->edited_content.get());
+    const FormattedText *caption = get_message_content_caption(m->edited_content.get());
     auto input_reply_markup = get_input_reply_markup(m->edited_reply_markup);
 
     LOG(INFO) << "Edit media from " << message_id << " in " << dialog_id;
@@ -17542,8 +17544,8 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, Message *m,
                    thumbnail_file_id, generation, std::move(result));
     });
     send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 1 << 11,
-                 dialog_id, message_id, caption.text,
-                 get_input_message_entities(td_->contacts_manager_.get(), caption.entities, "edit_message_media"),
+                 dialog_id, message_id, caption == nullptr ? "" : caption->text,
+                 get_input_message_entities(td_->contacts_manager_.get(), caption, "edit_message_media"),
                  std::move(input_media), nullptr, std::move(input_reply_markup),
                  get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
     return;
@@ -17562,17 +17564,15 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, Message *m,
           CHECK(m != nullptr);
           CHECK(input_media != nullptr);
 
-          auto caption = get_message_content_caption(m->content.get());
-
+          const FormattedText *caption = get_message_content_caption(m->content.get());
           LOG(INFO) << "Send media from " << m->message_id << " in " << dialog_id << " in reply to "
                     << m->reply_to_message_id;
           int64 random_id = begin_send_message(dialog_id, m);
-          send_closure(
-              td_->create_net_actor<SendMediaActor>(), &SendMediaActor::send, file_id, thumbnail_file_id,
-              get_message_flags(m), dialog_id, m->reply_to_message_id, get_input_reply_markup(m->reply_markup),
-              get_input_message_entities(td_->contacts_manager_.get(), caption.entities, "on_message_media_uploaded"),
-              caption.text, std::move(input_media), random_id, &m->send_query_ref,
-              get_sequence_dispatcher_id(dialog_id, m->content->get_type()));
+          send_closure(td_->create_net_actor<SendMediaActor>(), &SendMediaActor::send, file_id, thumbnail_file_id,
+                       get_message_flags(m), dialog_id, m->reply_to_message_id, get_input_reply_markup(m->reply_markup),
+                       get_input_message_entities(td_->contacts_manager_.get(), caption, "on_message_media_uploaded"),
+                       caption == nullptr ? "" : caption->text, std::move(input_media), random_id, &m->send_query_ref,
+                       get_sequence_dispatcher_id(dialog_id, m->content->get_type()));
         }));
   } else {
     switch (input_media->get_id()) {
@@ -17664,7 +17664,8 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
     return;  // the message should be deleted soon
   }
 
-  auto content = get_message_content(td_, get_message_content_caption(m->content.get()), std::move(media), dialog_id,
+  auto caption = get_message_content_caption(m->content.get());
+  auto content = get_message_content(td_, caption == nullptr ? FormattedText() : *caption, std::move(media), dialog_id,
                                      false, UserId(), nullptr);
 
   update_message_content(dialog_id, m, std::move(content), true, true);
@@ -17804,16 +17805,17 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     flags = get_message_flags(m);
 
     random_ids.push_back(begin_send_message(dialog_id, m));
-    auto caption = get_message_content_caption(m->content.get());
+    const FormattedText *caption = get_message_content_caption(m->content.get());
     auto input_media = get_input_media(m->content.get(), td_, nullptr, nullptr, m->ttl);
-    auto entities = get_input_message_entities(td_->contacts_manager_.get(), caption.entities, "do_send_message_group");
+    auto entities = get_input_message_entities(td_->contacts_manager_.get(), caption, "do_send_message_group");
     int32 input_single_media_flags = 0;
     if (!entities.empty()) {
       input_single_media_flags |= telegram_api::inputSingleMedia::ENTITIES_MASK;
     }
 
     input_single_media.push_back(make_tl_object<telegram_api::inputSingleMedia>(
-        input_single_media_flags, std::move(input_media), random_ids.back(), caption.text, std::move(entities)));
+        input_single_media_flags, std::move(input_media), random_ids.back(), caption == nullptr ? "" : caption->text,
+        std::move(entities)));
     if (request.results[i].is_error()) {
       success = false;
     }
@@ -18794,10 +18796,10 @@ void MessagesManager::edit_inline_message_media(const string &inline_message_id,
     return promise.set_error(Status::Error(400, "Wrong message content specified"));
   }
 
-  auto caption = get_message_content_caption(content.content.get());
+  const FormattedText *caption = get_message_content_caption(content.content.get());
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
-      ->send(1 << 11, std::move(input_bot_inline_message_id), caption.text,
-             get_input_message_entities(td_->contacts_manager_.get(), caption.entities, "edit_inline_message_media"),
+      ->send(1 << 11, std::move(input_bot_inline_message_id), caption == nullptr ? "" : caption->text,
+             get_input_message_entities(td_->contacts_manager_.get(), caption, "edit_inline_message_media"),
              std::move(input_media), nullptr, get_input_reply_markup(r_new_reply_markup.ok()));
 }
 
@@ -25710,7 +25712,7 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
     add_message_dependencies(dependencies, dialog_id, d->messages.get());
   }
   if (d->draft_message != nullptr) {
-    add_formatted_text_dependencies(dependencies, d->draft_message->input_message_text.text);
+    add_formatted_text_dependencies(dependencies, &d->draft_message->input_message_text.text);
   }
   resolve_dependencies_force(dependencies);
 
@@ -26238,14 +26240,14 @@ void MessagesManager::update_used_hashtags(DialogId dialog_id, const Message *m)
   if (m->via_bot_user_id.is_valid()) {
     return;
   }
-  auto text = get_message_content_text(m->content.get());
-  if (text.text.empty()) {
+  const FormattedText *text = get_message_content_text(m->content.get());
+  if (text == nullptr || text->text.empty()) {
     return;
   }
-  const unsigned char *ptr = Slice(text.text).ubegin();
-  const unsigned char *end = Slice(text.text).uend();
+  const unsigned char *ptr = Slice(text->text).ubegin();
+  const unsigned char *end = Slice(text->text).uend();
   int32 utf16_pos = 0;
-  for (auto &entity : text.entities) {
+  for (auto &entity : text->entities) {
     if (entity.type != MessageEntity::Type::Hashtag) {
       continue;
     }
