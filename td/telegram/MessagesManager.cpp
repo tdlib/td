@@ -16948,21 +16948,20 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId re
   return message_id;
 }
 
-Result<MessagesManager::InputMessageContent> MessagesManager::process_input_message_content(
+Result<InputMessageContent> MessagesManager::process_input_message_content(
     DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content) const {
   if (input_message_content == nullptr) {
     return Status::Error(5, "Can't send message without content");
   }
 
   bool is_secret = dialog_id.get_type() == DialogType::SecretChat;
-  int32 message_type = input_message_content->get_id();
 
   bool have_file = true;
   // TODO: send from secret chat to common
   Result<FileId> r_file_id = Status::Error(500, "Have no file");
   tl_object_ptr<td_api::inputThumbnail> input_thumbnail;
   vector<FileId> sticker_file_ids;
-  switch (message_type) {
+  switch (input_message_content->get_id()) {
     case td_api::inputMessageAnimation::ID: {
       auto input_message = static_cast<td_api::inputMessageAnimation *>(input_message_content.get());
       r_file_id = td_->file_manager_->get_input_file_id(FileType::Animation, input_message->animation_, dialog_id,
@@ -17033,23 +17032,14 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
   // TODO is path of files must be stored in bytes instead of UTF-8 string?
 
   FileId file_id;
-  FileView file_view;
-  string file_name;
-  string mime_type;
   if (have_file) {
     if (r_file_id.is_error()) {
       return Status::Error(7, r_file_id.error().message());
     }
     file_id = r_file_id.ok();
     CHECK(file_id.is_valid());
-    file_view = td_->file_manager_->get_file_view(file_id);
-    auto suggested_name = file_view.suggested_name();
-    const PathView path_view(suggested_name);
-    file_name = path_view.file_name().str();
-    mime_type = MimeType::from_extension(path_view.extension());
   }
 
-  FileId thumbnail_file_id;
   PhotoSize thumbnail;
   if (input_thumbnail != nullptr) {
     auto r_thumbnail_file_id =
@@ -17057,21 +17047,51 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
     if (r_thumbnail_file_id.is_error()) {
       LOG(WARNING) << "Ignore thumbnail file: " << r_thumbnail_file_id.error().message();
     } else {
-      thumbnail_file_id = r_thumbnail_file_id.ok();
-      CHECK(thumbnail_file_id.is_valid());
-
       thumbnail.type = 't';
       thumbnail.dimensions = get_dimensions(input_thumbnail->width_, input_thumbnail->height_);
-      thumbnail.file_id = thumbnail_file_id;
+      thumbnail.file_id = r_thumbnail_file_id.ok();
+      CHECK(thumbnail.file_id.is_valid());
 
-      FileView thumbnail_file_view = td_->file_manager_->get_file_view(thumbnail_file_id);
+      FileView thumbnail_file_view = td_->file_manager_->get_file_view(thumbnail.file_id);
       if (thumbnail_file_view.has_remote_location()) {
-        // TODO td->file_manager_->delete_remote_location(thumbnail_file_id);
+        // TODO td->file_manager_->delete_remote_location(thumbnail.file_id);
       }
     }
   }
 
-  LOG(INFO) << "Send file " << file_id << " and thumbnail " << thumbnail_file_id;
+  TRY_RESULT(content, create_input_message_content(dialog_id, std::move(input_message_content), td_, file_id,
+                                                   std::move(thumbnail), std::move(sticker_file_ids)));
+
+  if (content.ttl < 0 || content.ttl > MAX_PRIVATE_MESSAGE_TTL) {
+    return Status::Error(10, "Wrong message TTL specified");
+  }
+  if (content.ttl > 0 && dialog_id.get_type() != DialogType::User) {
+    return Status::Error(10, "Message TTL can be specified only in private chats");
+  }
+
+  if (dialog_id != DialogId()) {
+    TRY_STATUS(can_send_message_content(dialog_id, content.content.get(), false));
+  }
+
+  return std::move(content);
+}
+
+Result<InputMessageContent> MessagesManager::create_input_message_content(
+    DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td, FileId file_id,
+    PhotoSize thumbnail, vector<FileId> sticker_file_ids) const {
+  CHECK(input_message_content != nullptr);
+  LOG(INFO) << "Create InputMessageContent with file " << file_id << " and thumbnail " << thumbnail.file_id;
+
+  FileView file_view;
+  string file_name;
+  string mime_type;
+  if (file_id.is_valid()) {
+    file_view = td->file_manager_->get_file_view(file_id);
+    auto suggested_name = file_view.suggested_name();
+    const PathView path_view(suggested_name);
+    file_name = path_view.file_name().str();
+    mime_type = MimeType::from_extension(path_view.extension());
+  }
 
   bool disable_web_page_preview = false;
   bool clear_draft = false;
@@ -17079,17 +17099,18 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
   UserId via_bot_user_id;
   int32 ttl = 0;
   bool is_bot = td_->auth_manager_->is_bot();
-  switch (message_type) {
+  switch (input_message_content->get_id()) {
     case td_api::inputMessageText::ID: {
       TRY_RESULT(input_message_text, process_input_message_text(dialog_id, std::move(input_message_content), is_bot));
       disable_web_page_preview = input_message_text.disable_web_page_preview;
       clear_draft = input_message_text.clear_draft;
 
       WebPageId web_page_id;
-      if (!td_->auth_manager_->is_bot() && !disable_web_page_preview &&
-          (dialog_id.get_type() != DialogType::Channel ||
-           td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).can_add_web_page_previews())) {
-        web_page_id = td_->web_pages_manager_->get_web_page_by_url(
+      bool can_add_web_page_previews =
+          dialog_id.get_type() != DialogType::Channel ||
+          td->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).can_add_web_page_previews();
+      if (!is_bot && !disable_web_page_preview && can_add_web_page_previews) {
+        web_page_id = td->web_pages_manager_->get_web_page_by_url(
             get_first_url(input_message_text.text.text, input_message_text.text.entities));
       }
       content = make_unique<MessageText>(std::move(input_message_text.text), web_page_id);
@@ -17100,7 +17121,7 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
 
       TRY_RESULT(caption, process_input_caption(dialog_id, std::move(input_animation->caption_), is_bot));
 
-      td_->animations_manager_->create_animation(
+      td->animations_manager_->create_animation(
           file_id, thumbnail, std::move(file_name), std::move(mime_type), input_animation->duration_,
           get_dimensions(input_animation->width_, input_animation->height_), false);
 
@@ -17118,9 +17139,9 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
       }
       TRY_RESULT(caption, process_input_caption(dialog_id, std::move(input_audio->caption_), is_bot));
 
-      td_->audios_manager_->create_audio(file_id, thumbnail, std::move(file_name), std::move(mime_type),
-                                         input_audio->duration_, std::move(input_audio->title_),
-                                         std::move(input_audio->performer_), false);
+      td->audios_manager_->create_audio(file_id, thumbnail, std::move(file_name), std::move(mime_type),
+                                        input_audio->duration_, std::move(input_audio->title_),
+                                        std::move(input_audio->performer_), false);
 
       content = make_unique<MessageAudio>(file_id, std::move(caption));
       break;
@@ -17130,7 +17151,7 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
 
       TRY_RESULT(caption, process_input_caption(dialog_id, std::move(input_document->caption_), is_bot));
 
-      td_->documents_manager_->create_document(file_id, thumbnail, std::move(file_name), std::move(mime_type), false);
+      td->documents_manager_->create_document(file_id, thumbnail, std::move(file_name), std::move(mime_type), false);
 
       content = make_unique<MessageDocument>(file_id, std::move(caption));
       break;
@@ -17160,8 +17181,8 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
       s.size = static_cast<int32>(file_view.size());
       s.file_id = file_id;
 
-      if (thumbnail_file_id.is_valid()) {
-        message_photo->photo.photos.push_back(thumbnail);
+      if (thumbnail.file_id.is_valid()) {
+        message_photo->photo.photos.push_back(std::move(thumbnail));
       }
 
       message_photo->photo.photos.push_back(s);
@@ -17176,7 +17197,7 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
     }
     case td_api::inputMessageSticker::ID: {
       auto input_sticker = static_cast<td_api::inputMessageSticker *>(input_message_content.get());
-      td_->stickers_manager_->create_sticker(
+      td->stickers_manager_->create_sticker(
           file_id, thumbnail, get_dimensions(input_sticker->width_, input_sticker->height_), true, nullptr, nullptr);
 
       content = make_unique<MessageSticker>(file_id);
@@ -17189,10 +17210,10 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
       ttl = input_video->ttl_;
 
       bool has_stickers = !sticker_file_ids.empty();
-      td_->videos_manager_->create_video(file_id, thumbnail, has_stickers, std::move(sticker_file_ids),
-                                         std::move(file_name), std::move(mime_type), input_video->duration_,
-                                         get_dimensions(input_video->width_, input_video->height_),
-                                         input_video->supports_streaming_, false);
+      td->videos_manager_->create_video(file_id, thumbnail, has_stickers, std::move(sticker_file_ids),
+                                        std::move(file_name), std::move(mime_type), input_video->duration_,
+                                        get_dimensions(input_video->width_, input_video->height_),
+                                        input_video->supports_streaming_, false);
 
       content = make_unique<MessageVideo>(file_id, std::move(caption));
       break;
@@ -17205,8 +17226,8 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
         return Status::Error(400, "Wrong video note length");
       }
 
-      td_->video_notes_manager_->create_video_note(file_id, thumbnail, input_video_note->duration_,
-                                                   get_dimensions(length, length), false);
+      td->video_notes_manager_->create_video_note(file_id, thumbnail, input_video_note->duration_,
+                                                  get_dimensions(length, length), false);
 
       content = make_unique<MessageVideoNote>(file_id, false);
       break;
@@ -17216,8 +17237,8 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
 
       TRY_RESULT(caption, process_input_caption(dialog_id, std::move(input_voice_note->caption_), is_bot));
 
-      td_->voice_notes_manager_->create_voice_note(file_id, std::move(mime_type), input_voice_note->duration_,
-                                                   std::move(input_voice_note->waveform_), false);
+      td->voice_notes_manager_->create_voice_note(file_id, std::move(mime_type), input_voice_note->duration_,
+                                                  std::move(input_voice_note->waveform_), false);
 
       content = make_unique<MessageVoiceNote>(file_id, std::move(caption), false);
       break;
@@ -17242,9 +17263,9 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
       break;
     }
     case td_api::inputMessageGame::ID: {
-      TRY_RESULT(game, process_input_message_game(td_->contacts_manager_.get(), std::move(input_message_content)));
+      TRY_RESULT(game, process_input_message_game(td->contacts_manager_.get(), std::move(input_message_content)));
       via_bot_user_id = game.get_bot_user_id();
-      if (via_bot_user_id == td_->contacts_manager_->get_my_id("send_message")) {
+      if (via_bot_user_id == td->contacts_manager_->get_my_id("send_message")) {
         via_bot_user_id = UserId();
       }
 
@@ -17291,7 +17312,7 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
         message_invoice->photo.id = -2;
       } else {
         auto url = r_http_url.ok().get_url();
-        auto r_invoice_file_id = td_->file_manager_->from_persistent_id(url, FileType::Temp);
+        auto r_invoice_file_id = td->file_manager_->from_persistent_id(url, FileType::Temp);
         if (r_invoice_file_id.is_error()) {
           LOG(INFO) << "Can't register url " << url;
           message_invoice->photo.id = -2;
@@ -17361,17 +17382,6 @@ Result<MessagesManager::InputMessageContent> MessagesManager::process_input_mess
     default:
       UNREACHABLE();
   }
-  if (ttl < 0 || ttl > MAX_PRIVATE_MESSAGE_TTL) {
-    return Status::Error(10, "Wrong message TTL specified");
-  }
-  if (ttl > 0 && dialog_id.get_type() != DialogType::User) {
-    return Status::Error(10, "Message TTL can be specified only in private chats");
-  }
-
-  if (dialog_id != DialogId()) {
-    TRY_STATUS(can_send_message_content(dialog_id, content.get(), false));
-  }
-
   return InputMessageContent{std::move(content), disable_web_page_preview, clear_draft, ttl, via_bot_user_id};
 }
 

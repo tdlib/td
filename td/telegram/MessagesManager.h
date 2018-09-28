@@ -671,6 +671,23 @@ class MessagePassportDataReceived : public MessageContent {
   }
 };
 
+struct InputMessageContent {
+  unique_ptr<MessageContent> content;
+  bool disable_web_page_preview = false;
+  bool clear_draft = false;
+  int32 ttl = 0;
+  UserId via_bot_user_id;
+
+  InputMessageContent(unique_ptr<MessageContent> &&content, bool disable_web_page_preview, bool clear_draft, int32 ttl,
+                      UserId via_bot_user_id)
+      : content(std::move(content))
+      , disable_web_page_preview(disable_web_page_preview)
+      , clear_draft(clear_draft)
+      , ttl(ttl)
+      , via_bot_user_id(via_bot_user_id) {
+  }
+};
+
 class InputMessageText {
  public:
   FormattedText text;
@@ -1869,23 +1886,6 @@ class MessagesManager : public Actor {
     Promise<> success_promise;
   };
 
-  struct InputMessageContent {
-    unique_ptr<MessageContent> content;
-    bool disable_web_page_preview = false;
-    bool clear_draft = false;
-    int32 ttl = 0;
-    UserId via_bot_user_id;
-
-    InputMessageContent(unique_ptr<MessageContent> &&content, bool disable_web_page_preview, bool clear_draft,
-                        int32 ttl, UserId via_bot_user_id)
-        : content(std::move(content))
-        , disable_web_page_preview(disable_web_page_preview)
-        , clear_draft(clear_draft)
-        , ttl(ttl)
-        , via_bot_user_id(via_bot_user_id) {
-    }
-  };
-
   class DeleteAllChannelMessagesFromUserOnServerLogEvent;
   class DeleteDialogHistoryFromServerLogEvent;
   class DeleteMessageLogEvent;
@@ -1981,6 +1981,10 @@ class MessagesManager : public Actor {
 
   Result<InputMessageContent> process_input_message_content(
       DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content) const;
+
+  Result<InputMessageContent> create_input_message_content(
+      DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td, FileId file_id,
+      PhotoSize thumbnail, vector<FileId> sticker_file_ids) const;
 
   Message *get_message_to_send(Dialog *d, MessageId reply_to_message_id, bool disable_notification,
                                bool from_background, unique_ptr<MessageContent> &&content, bool *need_update_dialog_pos,
