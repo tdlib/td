@@ -1987,9 +1987,9 @@ class MessagesManager : public Actor {
   Result<InputMessageContent> process_input_message_content(
       DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content) const;
 
-  Result<InputMessageContent> create_input_message_content(
+  static Result<InputMessageContent> create_input_message_content(
       DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td,
-      FormattedText caption, FileId file_id, PhotoSize thumbnail, vector<FileId> sticker_file_ids) const;
+      FormattedText caption, FileId file_id, PhotoSize thumbnail, vector<FileId> sticker_file_ids);
 
   Message *get_message_to_send(Dialog *d, MessageId reply_to_message_id, bool disable_notification,
                                bool from_background, unique_ptr<MessageContent> &&content, bool *need_update_dialog_pos,

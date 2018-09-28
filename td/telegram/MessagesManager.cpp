@@ -17112,7 +17112,7 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
 
 Result<InputMessageContent> MessagesManager::create_input_message_content(
     DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td,
-    FormattedText caption, FileId file_id, PhotoSize thumbnail, vector<FileId> sticker_file_ids) const {
+    FormattedText caption, FileId file_id, PhotoSize thumbnail, vector<FileId> sticker_file_ids) {
   CHECK(input_message_content != nullptr);
   LOG(INFO) << "Create InputMessageContent with file " << file_id << " and thumbnail " << thumbnail.file_id;
 
