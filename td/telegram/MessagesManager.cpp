@@ -16681,22 +16681,11 @@ bool MessagesManager::is_message_auto_read(DialogId dialog_id, bool is_outgoing)
   }
 }
 
-void MessagesManager::add_message_dependencies(Dependencies &dependencies, DialogId dialog_id, const Message *m) {
-  dependencies.user_ids.insert(m->sender_user_id);
-  dependencies.user_ids.insert(m->via_bot_user_id);
-  if (m->forward_info != nullptr) {
-    dependencies.user_ids.insert(m->forward_info->sender_user_id);
-    if (m->forward_info->dialog_id.is_valid() && dependencies.dialog_ids.insert(m->forward_info->dialog_id).second) {
-      add_dialog_dependencies(dependencies, m->forward_info->dialog_id);
-    }
-    if (m->forward_info->from_dialog_id.is_valid() &&
-        dependencies.dialog_ids.insert(m->forward_info->from_dialog_id).second) {
-      add_dialog_dependencies(dependencies, m->forward_info->from_dialog_id);
-    }
-  }
-  switch (m->content->get_type()) {
+void MessagesManager::add_message_content_dependencies(Dependencies &dependencies,
+                                                       const MessageContent *message_content) {
+  switch (message_content->get_type()) {
     case MessageContentType::Text: {
-      auto content = static_cast<const MessageText *>(m->content.get());
+      auto content = static_cast<const MessageText *>(message_content);
       dependencies.web_page_ids.insert(content->web_page_id);
       break;
     }
@@ -16705,14 +16694,14 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, Dialo
     case MessageContentType::Audio:
       break;
     case MessageContentType::Contact: {
-      auto content = static_cast<const MessageContact *>(m->content.get());
+      auto content = static_cast<const MessageContact *>(message_content);
       dependencies.user_ids.insert(content->contact.get_user_id());
       break;
     }
     case MessageContentType::Document:
       break;
     case MessageContentType::Game: {
-      auto content = static_cast<const MessageGame *>(m->content.get());
+      auto content = static_cast<const MessageGame *>(message_content);
       dependencies.user_ids.insert(content->game.get_bot_user_id());
       break;
     }
@@ -16735,7 +16724,7 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, Dialo
     case MessageContentType::VoiceNote:
       break;
     case MessageContentType::ChatCreate: {
-      auto content = static_cast<const MessageChatCreate *>(m->content.get());
+      auto content = static_cast<const MessageChatCreate *>(message_content);
       dependencies.user_ids.insert(content->participant_user_ids.begin(), content->participant_user_ids.end());
       break;
     }
@@ -16748,26 +16737,26 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, Dialo
     case MessageContentType::ChatDeleteHistory:
       break;
     case MessageContentType::ChatAddUsers: {
-      auto content = static_cast<const MessageChatAddUsers *>(m->content.get());
+      auto content = static_cast<const MessageChatAddUsers *>(message_content);
       dependencies.user_ids.insert(content->user_ids.begin(), content->user_ids.end());
       break;
     }
     case MessageContentType::ChatJoinedByLink:
       break;
     case MessageContentType::ChatDeleteUser: {
-      auto content = static_cast<const MessageChatDeleteUser *>(m->content.get());
+      auto content = static_cast<const MessageChatDeleteUser *>(message_content);
       dependencies.user_ids.insert(content->user_id);
       break;
     }
     case MessageContentType::ChatMigrateTo: {
-      auto content = static_cast<const MessageChatMigrateTo *>(m->content.get());
+      auto content = static_cast<const MessageChatMigrateTo *>(message_content);
       dependencies.channel_ids.insert(content->migrated_to_channel_id);
       break;
     }
     case MessageContentType::ChannelCreate:
       break;
     case MessageContentType::ChannelMigrateFrom: {
-      auto content = static_cast<const MessageChannelMigrateFrom *>(m->content.get());
+      auto content = static_cast<const MessageChannelMigrateFrom *>(message_content);
       dependencies.chat_ids.insert(content->migrated_from_chat_id);
       break;
     }
@@ -16803,7 +16792,23 @@ void MessagesManager::add_message_dependencies(Dependencies &dependencies, Dialo
       UNREACHABLE();
       break;
   }
-  add_formatted_text_dependencies(dependencies, get_message_content_text(m->content.get()));
+  add_formatted_text_dependencies(dependencies, get_message_content_text(message_content));
+}
+
+void MessagesManager::add_message_dependencies(Dependencies &dependencies, DialogId dialog_id, const Message *m) {
+  dependencies.user_ids.insert(m->sender_user_id);
+  dependencies.user_ids.insert(m->via_bot_user_id);
+  if (m->forward_info != nullptr) {
+    dependencies.user_ids.insert(m->forward_info->sender_user_id);
+    if (m->forward_info->dialog_id.is_valid() && dependencies.dialog_ids.insert(m->forward_info->dialog_id).second) {
+      add_dialog_dependencies(dependencies, m->forward_info->dialog_id);
+    }
+    if (m->forward_info->from_dialog_id.is_valid() &&
+        dependencies.dialog_ids.insert(m->forward_info->from_dialog_id).second) {
+      add_dialog_dependencies(dependencies, m->forward_info->from_dialog_id);
+    }
+  }
+  add_message_content_dependencies(dependencies, m->content.get());
 }
 
 void MessagesManager::add_dialog_dependencies(Dependencies &dependencies, DialogId dialog_id) {
