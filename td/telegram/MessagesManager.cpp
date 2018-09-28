@@ -23363,6 +23363,19 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(DialogId dialog
   return add_message_to_dialog(d, std::move(message), from_update, need_update, need_update_dialog_pos, source);
 }
 
+int32 MessagesManager::get_message_content_new_participant_count(const MessageContent *content) {
+  switch (content->get_type()) {
+    case MessageContentType::ChatAddUsers:
+      return narrow_cast<int32>(static_cast<const MessageChatAddUsers *>(content)->user_ids.size());
+    case MessageContentType::ChatJoinedByLink:
+      return 1;
+    case MessageContentType::ChatDeleteUser:
+      return -1;
+    default:
+      return 0;
+  }
+}
+
 MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, unique_ptr<Message> message,
                                                                  bool from_update, bool *need_update,
                                                                  bool *need_update_dialog_pos, const char *source) {
@@ -23823,29 +23836,14 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   if (from_update && message_id.is_server() && dialog_id.get_type() == DialogType::Channel) {
-    int32 new_participant_count = 0;
-    switch (message_content_type) {
-      case MessageContentType::ChatAddUsers:
-        new_participant_count =
-            narrow_cast<int32>(static_cast<const MessageChatAddUsers *>(message->content.get())->user_ids.size());
-        break;
-      case MessageContentType::ChatJoinedByLink:
-        new_participant_count = 1;
-        break;
-      case MessageContentType::ChatDeleteUser:
-        new_participant_count = -1;
-        break;
-      case MessageContentType::PinMessage:
-        td_->contacts_manager_->on_update_channel_pinned_message(
-            dialog_id.get_channel_id(), static_cast<const MessagePinMessage *>(message->content.get())->message_id);
-        break;
-      default:
-        // nothing to do
-        break;
-    }
+    int32 new_participant_count = get_message_content_new_participant_count(message->content.get());
     if (new_participant_count != 0) {
       td_->contacts_manager_->speculative_add_channel_participants(dialog_id.get_channel_id(), new_participant_count,
                                                                    message->sender_user_id == my_user_id);
+    }
+    if (message_content_type == MessageContentType::PinMessage) {
+      td_->contacts_manager_->on_update_channel_pinned_message(
+          dialog_id.get_channel_id(), static_cast<const MessagePinMessage *>(message->content.get())->message_id);
     }
   }
   if (!td_->auth_manager_->is_bot() && from_update && message->forward_info == nullptr &&

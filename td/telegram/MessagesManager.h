@@ -2249,6 +2249,8 @@ class MessagesManager : public Actor {
   static int32 get_message_content_index_mask(const MessageContent *content, const Td *td, bool is_secret,
                                               bool is_outgoing);
 
+  static int32 get_message_content_new_participant_count(const MessageContent *content);
+
   Message *add_message_to_dialog(DialogId dialog_id, unique_ptr<Message> message, bool from_update, bool *need_update,
                                  bool *need_update_dialog_pos, const char *source);
 
