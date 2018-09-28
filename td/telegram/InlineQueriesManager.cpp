@@ -318,8 +318,8 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
 }
 
 InlineMessageContent InlineQueriesManager::create_inline_message_content(
-    FileId file_id, tl_object_ptr<telegram_api::BotInlineMessage> &&inline_message, int32 allowed_media_content_id,
-    Photo *photo, Game *game) {
+    Td *td, FileId file_id, tl_object_ptr<telegram_api::BotInlineMessage> &&inline_message,
+    int32 allowed_media_content_id, Photo *photo, Game *game) {
   CHECK(inline_message != nullptr);
   CHECK((allowed_media_content_id == td_api::inputMessagePhoto::ID) == (photo != nullptr));
   CHECK((allowed_media_content_id == td_api::inputMessageGame::ID) == (game != nullptr));
@@ -333,7 +333,7 @@ InlineMessageContent InlineQueriesManager::create_inline_message_content(
   switch (inline_message->get_id()) {
     case telegram_api::botInlineMessageText::ID: {
       auto inline_message_text = move_tl_object_as<telegram_api::botInlineMessageText>(inline_message);
-      auto entities = get_message_entities(td_->contacts_manager_.get(), std::move(inline_message_text->entities_),
+      auto entities = get_message_entities(td->contacts_manager_.get(), std::move(inline_message_text->entities_),
                                            "botInlineMessageText");
       auto status = fix_formatted_text(inline_message_text->message_, entities, false, true, true, false);
       if (status.is_error()) {
@@ -347,7 +347,7 @@ InlineMessageContent InlineQueriesManager::create_inline_message_content(
       WebPageId web_page_id;
       if (!result.disable_web_page_preview) {
         web_page_id =
-            td_->web_pages_manager_->get_web_page_by_url(get_first_url(inline_message_text->message_, entities));
+            td->web_pages_manager_->get_web_page_by_url(get_first_url(inline_message_text->message_, entities));
       }
       result.message_content = make_unique<MessageText>(
           FormattedText{std::move(inline_message_text->message_), std::move(entities)}, web_page_id);
@@ -384,7 +384,7 @@ InlineMessageContent InlineQueriesManager::create_inline_message_content(
     }
     case telegram_api::botInlineMessageMediaAuto::ID: {
       auto input_message_media_auto = move_tl_object_as<telegram_api::botInlineMessageMediaAuto>(inline_message);
-      auto caption = MessagesManager::get_message_text(td_->contacts_manager_.get(), input_message_media_auto->message_,
+      auto caption = MessagesManager::get_message_text(td->contacts_manager_.get(), input_message_media_auto->message_,
                                                        std::move(input_message_media_auto->entities_), 0,
                                                        "register_inline_message_content");
       if (allowed_media_content_id == td_api::inputMessageAnimation::ID) {
@@ -415,7 +415,7 @@ InlineMessageContent InlineQueriesManager::create_inline_message_content(
     default:
       UNREACHABLE();
   }
-  result.message_reply_markup = get_reply_markup(std::move(reply_markup), td_->auth_manager_->is_bot(), true, false);
+  result.message_reply_markup = get_reply_markup(std::move(reply_markup), td->auth_manager_->is_bot(), true, false);
   return result;
 }
 
@@ -424,7 +424,7 @@ bool InlineQueriesManager::register_inline_message_content(
     tl_object_ptr<telegram_api::BotInlineMessage> &&inline_message, int32 allowed_media_content_id, Photo *photo,
     Game *game) {
   InlineMessageContent content =
-      create_inline_message_content(file_id, std::move(inline_message), allowed_media_content_id, photo, game);
+      create_inline_message_content(td_, file_id, std::move(inline_message), allowed_media_content_id, photo, game);
   if (content.message_content != nullptr) {
     inline_message_contents_[query_id].emplace(result_id, std::move(content));
     return true;
