@@ -25,7 +25,6 @@
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/Global.h"
-#include "td/telegram/InputMessageText.h"
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
@@ -63,12 +62,7 @@ class Td;
 
 class MultiSequenceDispatcher;
 
-class DraftMessage {
- public:
-  int32 date;
-  MessageId reply_to_message_id;
-  InputMessageText input_message_text;
-};
+class DraftMessage;
 
 class DialogNotificationSettings {
  public:
@@ -1675,8 +1669,6 @@ class MessagesManager : public Actor {
 
   void add_dialog_last_database_message(Dialog *d, unique_ptr<Message> &&last_database_message);
 
-  tl_object_ptr<td_api::draftMessage> get_draft_message_object(const unique_ptr<DraftMessage> &draft_message) const;
-
   tl_object_ptr<td_api::ChatType> get_chat_type_object(DialogId dialog_id) const;
 
   tl_object_ptr<td_api::chat> get_chat_object(const Dialog *d) const;
@@ -1747,9 +1739,6 @@ class MessagesManager : public Actor {
   ScopeNotificationSettings *get_scope_notification_settings(NotificationSettingsScope scope);
 
   const ScopeNotificationSettings *get_scope_notification_settings(NotificationSettingsScope scope) const;
-
-  static unique_ptr<DraftMessage> get_draft_message(ContactsManager *contacts_manager,
-                                                    tl_object_ptr<telegram_api::DraftMessage> &&draft_message_ptr);
 
   vector<FileId> get_message_file_ids(const Message *message) const;
 

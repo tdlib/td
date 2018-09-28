@@ -15,7 +15,7 @@
 namespace td {
 
 template <class StorerT>
-static void store(const InputMessageText &input_message_text, StorerT &storer) {
+void store(const InputMessageText &input_message_text, StorerT &storer) {
   BEGIN_STORE_FLAGS();
   STORE_FLAG(input_message_text.disable_web_page_preview);
   STORE_FLAG(input_message_text.clear_draft);
@@ -24,7 +24,7 @@ static void store(const InputMessageText &input_message_text, StorerT &storer) {
 }
 
 template <class ParserT>
-static void parse(InputMessageText &input_message_text, ParserT &parser) {
+void parse(InputMessageText &input_message_text, ParserT &parser) {
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(input_message_text.disable_web_page_preview);
   PARSE_FLAG(input_message_text.clear_draft);

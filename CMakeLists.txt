@@ -353,6 +353,7 @@ set(TDLIB_SOURCE
   td/telegram/DialogId.cpp
   td/telegram/DialogParticipant.cpp
   td/telegram/DocumentsManager.cpp
+  td/telegram/DraftMessage.cpp
   td/telegram/files/FileDb.cpp
   td/telegram/files/FileDownloader.cpp
   td/telegram/files/FileFromBytes.cpp
@@ -466,6 +467,7 @@ set(TDLIB_SOURCE
   td/telegram/DialogId.h
   td/telegram/DialogParticipant.h
   td/telegram/DocumentsManager.h
+  td/telegram/DraftMessage.h
   td/telegram/files/FileDb.h
   td/telegram/files/FileDownloader.h
   td/telegram/files/FileFromBytes.h
@@ -561,6 +563,7 @@ set(TDLIB_SOURCE
   td/telegram/AudiosManager.hpp
   td/telegram/AuthManager.hpp
   td/telegram/DocumentsManager.hpp
+  td/telegram/DraftMessage.hpp
   td/telegram/files/FileId.hpp
   td/telegram/files/FileManager.hpp
   td/telegram/Game.hpp

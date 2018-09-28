@@ -8,6 +8,8 @@
 
 #include "td/telegram/MessageEntity.h"
 
+#include "td/utils/logging.h"
+
 namespace td {
 
 bool operator==(const InputMessageText &lhs, const InputMessageText &rhs) {

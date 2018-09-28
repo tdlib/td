@@ -11,14 +11,17 @@
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogDb.h"
+#include "td/telegram/DraftMessage.h"
+#include "td/telegram/DraftMessage.hpp"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileId.hpp"
 #include "td/telegram/Global.h"
 #include "td/telegram/HashtagHints.h"
 #include "td/telegram/InlineQueriesManager.h"
-#include "td/telegram/InputMessageText.hpp"
+#include "td/telegram/InputMessageText.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/logevent/LogEventHelper.h"
+#include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageEntity.hpp"
 #include "td/telegram/MessagesDb.h"
 #include "td/telegram/misc.h"
@@ -3897,20 +3900,6 @@ static void parse(ScopeNotificationSettings &notification_settings, ParserT &par
   if (has_sound) {
     parse(notification_settings.sound, parser);
   }
-}
-
-template <class StorerT>
-static void store(const DraftMessage &draft_message, StorerT &storer) {
-  store(draft_message.date, storer);
-  store(draft_message.reply_to_message_id, storer);
-  store(draft_message.input_message_text, storer);
-}
-
-template <class ParserT>
-static void parse(DraftMessage &draft_message, ParserT &parser) {
-  parse(draft_message.date, parser);
-  parse(draft_message.reply_to_message_id, parser);
-  parse(draft_message.input_message_text, parser);
 }
 
 template <class StorerT>
@@ -12355,15 +12344,6 @@ void MessagesManager::close_dialog(Dialog *d) {
   }
 }
 
-tl_object_ptr<td_api::draftMessage> MessagesManager::get_draft_message_object(
-    const unique_ptr<DraftMessage> &draft_message) const {
-  if (draft_message == nullptr) {
-    return nullptr;
-  }
-  return make_tl_object<td_api::draftMessage>(draft_message->reply_to_message_id.get(),
-                                              get_input_message_text_object(draft_message->input_message_text));
-}
-
 tl_object_ptr<td_api::ChatType> MessagesManager::get_chat_type_object(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
@@ -12696,49 +12676,6 @@ void MessagesManager::reset_all_notification_settings_on_server(uint64 logevent_
 
   LOG(INFO) << "Reset all notification settings";
   td_->create_handler<ResetNotifySettingsQuery>(get_erase_logevent_promise(logevent_id))->send();
-}
-
-unique_ptr<DraftMessage> MessagesManager::get_draft_message(
-    ContactsManager *contacts_manager, tl_object_ptr<telegram_api::DraftMessage> &&draft_message_ptr) {
-  if (draft_message_ptr == nullptr) {
-    return nullptr;
-  }
-  auto constructor_id = draft_message_ptr->get_id();
-  switch (constructor_id) {
-    case telegram_api::draftMessageEmpty::ID:
-      return nullptr;
-    case telegram_api::draftMessage::ID: {
-      auto draft = move_tl_object_as<telegram_api::draftMessage>(draft_message_ptr);
-      auto flags = draft->flags_;
-      auto result = make_unique<DraftMessage>();
-      result->date = draft->date_;
-      if ((flags & SEND_MESSAGE_FLAG_IS_REPLY) != 0) {
-        result->reply_to_message_id = MessageId(ServerMessageId(draft->reply_to_msg_id_));
-        if (!result->reply_to_message_id.is_valid()) {
-          LOG(ERROR) << "Receive " << result->reply_to_message_id << " as reply_to_message_id in the draft";
-          result->reply_to_message_id = MessageId();
-        }
-      }
-
-      auto entities = get_message_entities(contacts_manager, std::move(draft->entities_), "draftMessage");
-      auto status = fix_formatted_text(draft->message_, entities, true, true, true, true);
-      if (status.is_error()) {
-        LOG(ERROR) << "Receive error " << status << " while parsing draft " << draft->message_;
-        if (!clean_input_string(draft->message_)) {
-          draft->message_.clear();
-        }
-        entities.clear();
-      }
-      result->input_message_text.text = FormattedText{std::move(draft->message_), std::move(entities)};
-      result->input_message_text.disable_web_page_preview = (flags & SEND_MESSAGE_FLAG_DISABLE_WEB_PAGE_PREVIEW) != 0;
-      result->input_message_text.clear_draft = false;
-
-      return result;
-    }
-    default:
-      UNREACHABLE();
-      return nullptr;
-  }
 }
 
 tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dialog_id, MessageId from_message_id,
