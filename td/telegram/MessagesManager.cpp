@@ -23385,6 +23385,15 @@ MessageId MessagesManager::get_message_content_pinned_message_id(const MessageCo
   }
 }
 
+UserId MessagesManager::get_message_content_deleted_user_id(const MessageContent *content) {
+  switch (content->get_type()) {
+    case MessageContentType::ChatDeleteUser:
+      return static_cast<const MessageChatDeleteUser *>(content)->user_id;
+    default:
+      return UserId();
+  }
+}
+
 MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, unique_ptr<Message> message,
                                                                  bool from_update, bool *need_update,
                                                                  bool *need_update_dialog_pos, const char *source) {
@@ -23828,10 +23837,9 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
-  if (!td_->auth_manager_->is_bot() && from_update && d->reply_markup_message_id != MessageId() &&
-      message_content_type == MessageContentType::ChatDeleteUser) {
-    auto deleted_user_id = static_cast<const MessageChatDeleteUser *>(message->content.get())->user_id;
-    if (td_->contacts_manager_->is_user_bot(deleted_user_id)) {
+  if (!td_->auth_manager_->is_bot() && from_update && d->reply_markup_message_id != MessageId()) {
+    auto deleted_user_id = get_message_content_deleted_user_id(message->content.get());
+    if (deleted_user_id.is_valid() && td_->contacts_manager_->is_user_bot(deleted_user_id)) {
       const Message *old_message = get_message_force(d, d->reply_markup_message_id);
       if (old_message == nullptr || old_message->sender_user_id == deleted_user_id) {
         set_dialog_reply_markup(d, MessageId());

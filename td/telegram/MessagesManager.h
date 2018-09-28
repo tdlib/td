@@ -2253,6 +2253,8 @@ class MessagesManager : public Actor {
 
   static MessageId get_message_content_pinned_message_id(const MessageContent *content);
 
+  static UserId get_message_content_deleted_user_id(const MessageContent *content);
+
   Message *add_message_to_dialog(DialogId dialog_id, unique_ptr<Message> message, bool from_update, bool *need_update,
                                  bool *need_update_dialog_pos, const char *source);
 
