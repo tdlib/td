@@ -11,6 +11,7 @@
 #include "td/telegram/Version.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
 
@@ -138,5 +139,8 @@ struct ContactHash {
            std::hash<std::string>()(contact.last_name_);
   }
 };
+
+Result<Contact> process_input_message_contact(tl_object_ptr<td_api::InputMessageContent> &&input_message_content)
+    TD_WARN_UNUSED_RESULT;
 
 }  // namespace td

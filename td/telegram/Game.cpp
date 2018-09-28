@@ -12,6 +12,7 @@
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DocumentsManager.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Td.h"
 
@@ -120,6 +121,29 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Game &game) {
                         << ", bot = " << game.bot_user_id_ << ", short_name = " << game.short_name_
                         << ", title = " << game.title_ << ", description = " << game.description_
                         << ", photo = " << game.photo_ << ", animation_file_id = " << game.animation_file_id_ << "]";
+}
+
+Result<Game> process_input_message_game(const ContactsManager *contacts_manager,
+                                        tl_object_ptr<td_api::InputMessageContent> &&input_message_content) {
+  CHECK(input_message_content != nullptr);
+  CHECK(input_message_content->get_id() == td_api::inputMessageGame::ID);
+  auto input_message_game = move_tl_object_as<td_api::inputMessageGame>(input_message_content);
+
+  UserId bot_user_id(input_message_game->bot_user_id_);
+  if (!contacts_manager->have_input_user(bot_user_id)) {
+    return Status::Error(400, "Game owner bot is not accessible");
+  }
+
+  if (!clean_input_string(input_message_game->game_short_name_)) {
+    return Status::Error(400, "Game short name must be encoded in UTF-8");
+  }
+
+  // TODO validate game_short_name
+  if (input_message_game->game_short_name_.empty()) {
+    return Status::Error(400, "Game short name must be non-empty");
+  }
+
+  return Game(bot_user_id, std::move(input_message_game->game_short_name_));
 }
 
 }  // namespace td

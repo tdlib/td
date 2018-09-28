@@ -19,28 +19,21 @@
 #include "td/db/binlog/BinlogEvent.h"
 
 #include "td/telegram/AccessRights.h"
-#include "td/telegram/CallDiscardReason.h"
 #include "td/telegram/ChannelId.h"
-#include "td/telegram/ChatId.h"
-#include "td/telegram/Contact.h"
 #include "td/telegram/Dependencies.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogParticipant.h"
-#include "td/telegram/DocumentsManager.h"
 #include "td/telegram/files/FileId.h"
-#include "td/telegram/Game.h"
 #include "td/telegram/Global.h"
-#include "td/telegram/Location.h"
+#include "td/telegram/InputMessageText.h"
+#include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesDb.h"
 #include "td/telegram/net/NetQuery.h"
-#include "td/telegram/Payments.h"
-#include "td/telegram/Photo.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/SecretInputMedia.h"
-#include "td/telegram/SecureValue.h"
 #include "td/telegram/UserId.h"
 #include "td/telegram/WebPageId.h"
 
@@ -69,638 +62,6 @@ namespace td {
 class Td;
 
 class MultiSequenceDispatcher;
-
-enum class MessageContentType : int32 {
-  None = -1,
-  Text,
-  Animation,
-  Audio,
-  Document,
-  Photo,
-  Sticker,
-  Video,
-  VoiceNote,
-  Contact,
-  Location,
-  Venue,
-  ChatCreate,
-  ChatChangeTitle,
-  ChatChangePhoto,
-  ChatDeletePhoto,
-  ChatDeleteHistory,
-  ChatAddUsers,
-  ChatJoinedByLink,
-  ChatDeleteUser,
-  ChatMigrateTo,
-  ChannelCreate,
-  ChannelMigrateFrom,
-  PinMessage,
-  Game,
-  GameScore,
-  ScreenshotTaken,
-  ChatSetTtl,
-  Unsupported,
-  Call,
-  Invoice,
-  PaymentSuccessful,
-  VideoNote,
-  ContactRegistered,
-  ExpiredPhoto,
-  ExpiredVideo,
-  LiveLocation,
-  CustomServiceAction,
-  WebsiteConnected,
-  PassportDataSent,
-  PassportDataReceived
-};
-
-StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType content_type);
-
-// Do not forget to update MessagesManager::update_message_content when one of the inheritors of this class changes
-class MessageContent {
- public:
-  MessageContent() = default;
-  MessageContent(const MessageContent &) = default;
-  MessageContent &operator=(const MessageContent &) = default;
-  MessageContent(MessageContent &&) = default;
-  MessageContent &operator=(MessageContent &&) = default;
-
-  virtual MessageContentType get_type() const = 0;
-  virtual ~MessageContent() = default;
-};
-
-class MessageText : public MessageContent {
- public:
-  FormattedText text;
-  WebPageId web_page_id;
-
-  MessageText() = default;
-  MessageText(FormattedText text, WebPageId web_page_id) : text(std::move(text)), web_page_id(web_page_id) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::Text;
-  }
-};
-
-class MessageAnimation : public MessageContent {
- public:
-  FileId file_id;
-
-  FormattedText caption;
-
-  MessageAnimation() = default;
-  MessageAnimation(FileId file_id, FormattedText &&caption) : file_id(file_id), caption(std::move(caption)) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::Animation;
-  }
-};
-
-class MessageAudio : public MessageContent {
- public:
-  FileId file_id;
-
-  FormattedText caption;
-
-  MessageAudio() = default;
-  MessageAudio(FileId file_id, FormattedText &&caption) : file_id(file_id), caption(std::move(caption)) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::Audio;
-  }
-};
-
-class MessageDocument : public MessageContent {
- public:
-  FileId file_id;
-
-  FormattedText caption;
-
-  MessageDocument() = default;
-  MessageDocument(FileId file_id, FormattedText &&caption) : file_id(file_id), caption(std::move(caption)) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::Document;
-  }
-};
-
-class MessagePhoto : public MessageContent {
- public:
-  Photo photo;
-
-  FormattedText caption;
-
-  MessagePhoto() = default;
-  MessagePhoto(Photo &&photo, FormattedText &&caption) : photo(std::move(photo)), caption(std::move(caption)) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::Photo;
-  }
-};
-
-class MessageSticker : public MessageContent {
- public:
-  FileId file_id;
-
-  MessageSticker() = default;
-  explicit MessageSticker(FileId file_id) : file_id(file_id) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::Sticker;
-  }
-};
-
-class MessageVideo : public MessageContent {
- public:
-  FileId file_id;
-
-  FormattedText caption;
-
-  MessageVideo() = default;
-  MessageVideo(FileId file_id, FormattedText &&caption) : file_id(file_id), caption(std::move(caption)) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::Video;
-  }
-};
-
-class MessageVoiceNote : public MessageContent {
- public:
-  FileId file_id;
-
-  FormattedText caption;
-  bool is_listened;
-
-  MessageVoiceNote() = default;
-  MessageVoiceNote(FileId file_id, FormattedText &&caption, bool is_listened)
-      : file_id(file_id), caption(std::move(caption)), is_listened(is_listened) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::VoiceNote;
-  }
-};
-
-class MessageContact : public MessageContent {
- public:
-  Contact contact;
-
-  MessageContact() = default;
-  explicit MessageContact(Contact &&contact) : contact(std::move(contact)) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::Contact;
-  }
-};
-
-class MessageLocation : public MessageContent {
- public:
-  Location location;
-
-  MessageLocation() = default;
-  explicit MessageLocation(Location &&location) : location(std::move(location)) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::Location;
-  }
-};
-
-class MessageVenue : public MessageContent {
- public:
-  Venue venue;
-
-  MessageVenue() = default;
-  explicit MessageVenue(Venue &&venue) : venue(std::move(venue)) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::Venue;
-  }
-};
-
-class MessageChatCreate : public MessageContent {
- public:
-  string title;
-  vector<UserId> participant_user_ids;
-
-  MessageChatCreate() = default;
-  MessageChatCreate(string &&title, vector<UserId> &&participant_user_ids)
-      : title(std::move(title)), participant_user_ids(std::move(participant_user_ids)) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::ChatCreate;
-  }
-};
-
-class MessageChatChangeTitle : public MessageContent {
- public:
-  string title;
-
-  MessageChatChangeTitle() = default;
-  explicit MessageChatChangeTitle(string &&title) : title(std::move(title)) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::ChatChangeTitle;
-  }
-};
-
-class MessageChatChangePhoto : public MessageContent {
- public:
-  Photo photo;
-
-  MessageChatChangePhoto() = default;
-  explicit MessageChatChangePhoto(Photo &&photo) : photo(std::move(photo)) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::ChatChangePhoto;
-  }
-};
-
-class MessageChatDeletePhoto : public MessageContent {
- public:
-  MessageContentType get_type() const override {
-    return MessageContentType::ChatDeletePhoto;
-  }
-};
-
-class MessageChatDeleteHistory : public MessageContent {
- public:
-  MessageContentType get_type() const override {
-    return MessageContentType::ChatDeleteHistory;
-  }
-};
-
-class MessageChatAddUsers : public MessageContent {
- public:
-  vector<UserId> user_ids;
-
-  MessageChatAddUsers() = default;
-  explicit MessageChatAddUsers(vector<UserId> &&user_ids) : user_ids(std::move(user_ids)) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::ChatAddUsers;
-  }
-};
-
-class MessageChatJoinedByLink : public MessageContent {
- public:
-  MessageContentType get_type() const override {
-    return MessageContentType::ChatJoinedByLink;
-  }
-};
-
-class MessageChatDeleteUser : public MessageContent {
- public:
-  UserId user_id;
-
-  MessageChatDeleteUser() = default;
-  explicit MessageChatDeleteUser(UserId user_id) : user_id(user_id) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::ChatDeleteUser;
-  }
-};
-
-class MessageChatMigrateTo : public MessageContent {
- public:
-  ChannelId migrated_to_channel_id;
-
-  MessageChatMigrateTo() = default;
-  explicit MessageChatMigrateTo(ChannelId migrated_to_channel_id) : migrated_to_channel_id(migrated_to_channel_id) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::ChatMigrateTo;
-  }
-};
-
-class MessageChannelCreate : public MessageContent {
- public:
-  string title;
-
-  MessageChannelCreate() = default;
-  explicit MessageChannelCreate(string &&title) : title(std::move(title)) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::ChannelCreate;
-  }
-};
-
-class MessageChannelMigrateFrom : public MessageContent {
- public:
-  string title;
-  ChatId migrated_from_chat_id;
-
-  MessageChannelMigrateFrom() = default;
-  MessageChannelMigrateFrom(string &&title, ChatId migrated_from_chat_id)
-      : title(std::move(title)), migrated_from_chat_id(migrated_from_chat_id) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::ChannelMigrateFrom;
-  }
-};
-
-class MessagePinMessage : public MessageContent {
- public:
-  MessageId message_id;
-
-  MessagePinMessage() = default;
-  explicit MessagePinMessage(MessageId message_id) : message_id(message_id) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::PinMessage;
-  }
-};
-
-class MessageGame : public MessageContent {
- public:
-  Game game;
-
-  MessageGame() = default;
-  explicit MessageGame(Game &&game) : game(std::move(game)) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::Game;
-  }
-};
-
-class MessageGameScore : public MessageContent {
- public:
-  MessageId game_message_id;
-  int64 game_id;
-  int32 score;
-
-  MessageGameScore() = default;
-  MessageGameScore(MessageId game_message_id, int64 game_id, int32 score)
-      : game_message_id(game_message_id), game_id(game_id), score(score) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::GameScore;
-  }
-};
-
-class MessageScreenshotTaken : public MessageContent {
- public:
-  MessageContentType get_type() const override {
-    return MessageContentType::ScreenshotTaken;
-  }
-};
-
-class MessageChatSetTtl : public MessageContent {
- public:
-  int32 ttl;
-
-  MessageChatSetTtl() = default;
-  explicit MessageChatSetTtl(int32 ttl) : ttl(ttl) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::ChatSetTtl;
-  }
-};
-
-class MessageUnsupported
-    : public MessageContent {  // TODO save a layer in which the message was received to
-                               // automatically reget it if the layer changes
- public:
-  MessageContentType get_type() const override {
-    return MessageContentType::Unsupported;
-  }
-};
-
-class MessageCall : public MessageContent {
- public:
-  int64 call_id;
-  int32 duration;
-  CallDiscardReason discard_reason;
-
-  MessageCall() = default;
-  MessageCall(int64 call_id, int32 duration, CallDiscardReason discard_reason)
-      : call_id(call_id), duration(duration), discard_reason(discard_reason) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::Call;
-  }
-};
-
-class MessageInvoice : public MessageContent {
- public:
-  string title;
-  string description;
-  Photo photo;
-  string start_parameter;
-
-  // InputMessageInvoice
-  Invoice invoice;
-  string payload;
-  string provider_token;
-  string provider_data;
-
-  // MessageInvoice
-  int64 total_amount = 0;
-  MessageId receipt_message_id;
-
-  MessageInvoice() = default;
-  MessageInvoice(string &&title, string &&description, Photo &&photo, string &&start_parameter, int64 total_amount,
-                 string &&currency, bool is_test, bool need_shipping_address, MessageId receipt_message_id)
-      : title(std::move(title))
-      , description(std::move(description))
-      , photo(std::move(photo))
-      , start_parameter(std::move(start_parameter))
-      , invoice(std::move(currency), is_test, need_shipping_address)
-      , payload()
-      , provider_token()
-      , provider_data()
-      , total_amount(total_amount)
-      , receipt_message_id(receipt_message_id) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::Invoice;
-  }
-};
-
-class MessagePaymentSuccessful : public MessageContent {
- public:
-  MessageId invoice_message_id;
-  string currency;
-  int64 total_amount = 0;
-
-  // bots only part
-  string invoice_payload;
-  string shipping_option_id;
-  unique_ptr<OrderInfo> order_info;
-  string telegram_payment_charge_id;
-  string provider_payment_charge_id;
-
-  MessagePaymentSuccessful() = default;
-  MessagePaymentSuccessful(MessageId invoice_message_id, string &&currency, int64 total_amount)
-      : invoice_message_id(invoice_message_id), currency(std::move(currency)), total_amount(total_amount) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::PaymentSuccessful;
-  }
-};
-
-class MessageVideoNote : public MessageContent {
- public:
-  FileId file_id;
-
-  bool is_viewed = false;
-
-  MessageVideoNote() = default;
-  MessageVideoNote(FileId file_id, bool is_viewed) : file_id(file_id), is_viewed(is_viewed) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::VideoNote;
-  }
-};
-
-class MessageContactRegistered : public MessageContent {
- public:
-  MessageContentType get_type() const override {
-    return MessageContentType::ContactRegistered;
-  }
-};
-
-class MessageExpiredPhoto : public MessageContent {
- public:
-  MessageExpiredPhoto() = default;
-
-  MessageContentType get_type() const override {
-    return MessageContentType::ExpiredPhoto;
-  }
-};
-
-class MessageExpiredVideo : public MessageContent {
- public:
-  MessageExpiredVideo() = default;
-
-  MessageContentType get_type() const override {
-    return MessageContentType::ExpiredVideo;
-  }
-};
-
-class MessageLiveLocation : public MessageContent {
- public:
-  Location location;
-  int32 period;
-
-  MessageLiveLocation() = default;
-  MessageLiveLocation(Location &&location, int32 period) : location(std::move(location)), period(period) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::LiveLocation;
-  }
-};
-
-class MessageCustomServiceAction : public MessageContent {
- public:
-  string message;
-
-  MessageCustomServiceAction() = default;
-  explicit MessageCustomServiceAction(string &&message) : message(std::move(message)) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::CustomServiceAction;
-  }
-};
-
-class MessageWebsiteConnected : public MessageContent {
- public:
-  string domain_name;
-
-  MessageWebsiteConnected() = default;
-  explicit MessageWebsiteConnected(string &&domain_name) : domain_name(std::move(domain_name)) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::WebsiteConnected;
-  }
-};
-
-class MessagePassportDataSent : public MessageContent {
- public:
-  vector<SecureValueType> types;
-
-  MessagePassportDataSent() = default;
-  explicit MessagePassportDataSent(vector<SecureValueType> &&types) : types(std::move(types)) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::PassportDataSent;
-  }
-};
-
-class MessagePassportDataReceived : public MessageContent {
- public:
-  vector<EncryptedSecureValue> values;
-  EncryptedSecureCredentials credentials;
-
-  MessagePassportDataReceived() = default;
-  MessagePassportDataReceived(vector<EncryptedSecureValue> &&values, EncryptedSecureCredentials &&credentials)
-      : values(std::move(values)), credentials(std::move(credentials)) {
-  }
-
-  MessageContentType get_type() const override {
-    return MessageContentType::PassportDataReceived;
-  }
-};
-
-struct InputMessageContent {
-  unique_ptr<MessageContent> content;
-  bool disable_web_page_preview = false;
-  bool clear_draft = false;
-  int32 ttl = 0;
-  UserId via_bot_user_id;
-
-  InputMessageContent(unique_ptr<MessageContent> &&content, bool disable_web_page_preview, bool clear_draft, int32 ttl,
-                      UserId via_bot_user_id)
-      : content(std::move(content))
-      , disable_web_page_preview(disable_web_page_preview)
-      , clear_draft(clear_draft)
-      , ttl(ttl)
-      , via_bot_user_id(via_bot_user_id) {
-  }
-};
-
-class InputMessageText {
- public:
-  FormattedText text;
-  bool disable_web_page_preview = false;
-  bool clear_draft = false;
-  InputMessageText() = default;
-  InputMessageText(FormattedText text, bool disable_web_page_preview, bool clear_draft)
-      : text(std::move(text)), disable_web_page_preview(disable_web_page_preview), clear_draft(clear_draft) {
-  }
-};
-
-bool operator==(const InputMessageText &lhs, const InputMessageText &rhs);
-bool operator!=(const InputMessageText &lhs, const InputMessageText &rhs);
 
 class DraftMessage {
  public:
@@ -776,27 +137,6 @@ inline StringBuilder &operator<<(StringBuilder &string_builder, NotificationSett
 inline StringBuilder &operator<<(StringBuilder &string_builder, ScopeNotificationSettings notification_settings) {
   return string_builder << "[" << notification_settings.mute_until << ", " << notification_settings.sound << ", "
                         << notification_settings.show_preview << ", " << notification_settings.is_synchronized << "]";
-}
-
-inline constexpr size_t search_messages_filter_size() {
-  return static_cast<int32>(SearchMessagesFilter::Size) - 1;
-}
-
-inline int32 search_messages_filter_index(SearchMessagesFilter filter) {
-  CHECK(filter != SearchMessagesFilter::Empty);
-  return static_cast<int32>(filter) - 1;
-}
-
-inline int32 search_messages_filter_index_mask(SearchMessagesFilter filter) {
-  if (filter == SearchMessagesFilter::Empty) {
-    return 0;
-  }
-  return 1 << search_messages_filter_index(filter);
-}
-
-inline int32 search_calls_filter_index(SearchMessagesFilter filter) {
-  CHECK(filter == SearchMessagesFilter::Call || filter == SearchMessagesFilter::MissedCall);
-  return static_cast<int32>(filter) - static_cast<int32>(SearchMessagesFilter::Call);
 }
 
 class DialogDate {
@@ -1078,30 +418,6 @@ class MessagesManager : public Actor {
   Result<FormattedText> get_input_caption(DialogId dialog_id,
                                           tl_object_ptr<td_api::InputMessageContent> &input_message_content,
                                           bool is_bot) const;
-
-  static Result<InputMessageText> process_input_message_text(
-      const ContactsManager *contacts_manager, DialogId dialog_id,
-      tl_object_ptr<td_api::InputMessageContent> &&input_message_content, bool is_bot,
-      bool for_draft = false) TD_WARN_UNUSED_RESULT;
-
-  static Result<std::pair<Location, int32>> process_input_message_location(
-      tl_object_ptr<td_api::InputMessageContent> &&input_message_content) TD_WARN_UNUSED_RESULT;
-
-  static Result<Venue> process_input_message_venue(tl_object_ptr<td_api::InputMessageContent> &&input_message_content)
-      TD_WARN_UNUSED_RESULT;
-
-  static Result<Contact> process_input_message_contact(
-      tl_object_ptr<td_api::InputMessageContent> &&input_message_content) TD_WARN_UNUSED_RESULT;
-
-  static Result<Game> process_input_message_game(const ContactsManager *contacts_manager,
-                                                 tl_object_ptr<td_api::InputMessageContent> &&input_message_content)
-      TD_WARN_UNUSED_RESULT;
-
-  static bool need_skip_bot_commands(const ContactsManager *contacts_manager, DialogId dialog_id, bool is_bot);
-
-  static FormattedText get_message_text(const ContactsManager *contacts_manager, string message_text,
-                                        vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,
-                                        int32 send_date, const char *source);
 
   Result<MessageId> send_message(DialogId dialog_id, MessageId reply_to_message_id, bool disable_notification,
                                  bool from_background, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
@@ -1948,9 +1264,6 @@ class MessagesManager : public Actor {
   static constexpr int32 USERNAME_CACHE_EXPIRE_TIME = 3 * 86400;
   static constexpr int32 USERNAME_CACHE_EXPIRE_TIME_SHORT = 900;
 
-  static constexpr int32 MIN_LIVE_LOCATION_PERIOD = 60;     // seconds, server side limit
-  static constexpr int32 MAX_LIVE_LOCATION_PERIOD = 86400;  // seconds, server side limit
-
   static constexpr int32 MAX_RESEND_DELAY = 86400;  // seconds, some resonable limit
 
   static constexpr int32 MAX_PRELOADED_DIALOGS = 1000;
@@ -1984,15 +1297,8 @@ class MessagesManager : public Actor {
   FullMessageId on_get_message(MessageInfo &&message_info, bool from_update, bool is_channel_message,
                                bool have_previous, bool have_next, const char *source);
 
-  static unique_ptr<MessageContent> create_text_message_content(string text, vector<MessageEntity> entities,
-                                                                WebPageId web_page_id);
-
   Result<InputMessageContent> process_input_message_content(
       DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content) const;
-
-  static Result<InputMessageContent> create_input_message_content(
-      DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td,
-      FormattedText caption, FileId file_id, PhotoSize thumbnail, vector<FileId> sticker_file_ids);
 
   Message *get_message_to_send(Dialog *d, MessageId reply_to_message_id, bool disable_notification,
                                bool from_background, unique_ptr<MessageContent> &&content, bool *need_update_dialog_pos,
@@ -2041,25 +1347,6 @@ class MessagesManager : public Actor {
                                     bool disable_notification, bool from_background,
                                     bool in_game_share) TD_WARN_UNUSED_RESULT;
 
-  static SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
-                                                 tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
-                                                 BufferSlice thumbnail, int32 layer);
-
-  static tl_object_ptr<telegram_api::invoice> get_input_invoice(const Invoice &invoice);
-
-  static tl_object_ptr<telegram_api::inputWebDocument> get_input_web_document(const FileManager *file_manager,
-                                                                              const Photo &photo);
-
-  static tl_object_ptr<telegram_api::inputMediaInvoice> get_input_media_invoice(const FileManager *file_manager,
-                                                                                const MessageInvoice *message_invoice);
-
-  static tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td,
-                                                                 tl_object_ptr<telegram_api::InputFile> input_file,
-                                                                 tl_object_ptr<telegram_api::InputFile> input_thumbnail,
-                                                                 int32 ttl);
-
-  static void delete_message_content_thumbnail(MessageContent *content, Td *td);
-
   void do_send_media(DialogId dialog_id, Message *m, FileId file_id, FileId thumbnail_file_id,
                      tl_object_ptr<telegram_api::InputFile> input_file,
                      tl_object_ptr<telegram_api::InputFile> input_thumbnail);
@@ -2104,17 +1391,7 @@ class MessagesManager : public Actor {
 
   bool is_message_unload_enabled() const;
 
-  static bool is_allowed_media_group_content(MessageContentType content_type);
-
   static bool can_forward_message(DialogId from_dialog_id, const Message *m);
-
-  static bool can_forward_message_content(const MessageContent *content);
-
-  static bool is_secret_message_content(int32 ttl, MessageContentType content_type);
-
-  static bool is_service_message_content(MessageContentType content_type);
-
-  static bool can_have_message_content_caption(MessageContentType content_type);
 
   static bool can_delete_channel_message(DialogParticipantStatus status, const Message *m, bool is_bot);
 
@@ -2161,8 +1438,6 @@ class MessagesManager : public Actor {
   bool update_message_views(DialogId dialog_id, Message *m, int32 views);
 
   bool update_message_contains_unread_mention(Dialog *d, Message *m, bool contains_unread_mention, const char *source);
-
-  static bool update_opened_message_content(MessageContent *content);
 
   void read_message_content_from_updates(MessageId message_id);
 
@@ -2246,15 +1521,6 @@ class MessagesManager : public Actor {
 
   int32 get_message_index_mask(DialogId dialog_id, const Message *m) const;
 
-  static int32 get_message_content_index_mask(const MessageContent *content, const Td *td, bool is_secret,
-                                              bool is_outgoing);
-
-  static int32 get_message_content_new_participant_count(const MessageContent *content);
-
-  static MessageId get_message_content_pinned_message_id(const MessageContent *content);
-
-  static UserId get_message_content_deleted_user_id(const MessageContent *content);
-
   Message *add_message_to_dialog(DialogId dialog_id, unique_ptr<Message> message, bool from_update, bool *need_update,
                                  bool *need_update_dialog_pos, const char *source);
 
@@ -2281,20 +1547,7 @@ class MessagesManager : public Actor {
   void update_message(Dialog *d, unique_ptr<Message> &old_message, unique_ptr<Message> new_message,
                       bool need_send_update_message_content, bool *need_update_dialog_pos);
 
-  static WebPageId get_message_content_web_page_id(const MessageContent *content);
-
-  static void set_message_content_web_page_id(MessageContent *content, WebPageId web_page_id);
-
-  static bool need_message_text_changed_warning(const Message *old_message, const MessageText *old_content,
-                                                const MessageText *new_content);
-
-  static void merge_location_access_hash(Location &first, Location &second);
-
-  static void merge_message_contents(Td *td, const Message *old_message, MessageContent *old_content,
-                                     MessageContent *new_content, DialogId dialog_id, bool need_merge_files,
-                                     bool &is_content_changed, bool &need_update);
-
-  static bool merge_message_content_file_id(Td *td, MessageContent *message_content, FileId new_file_id);
+  static bool need_message_changed_warning(const Message *old_message);
 
   bool update_message_content(DialogId dialog_id, Message *old_message, unique_ptr<MessageContent> new_content,
                               bool need_send_update_message_content, bool need_merge_files);
@@ -2422,9 +1675,6 @@ class MessagesManager : public Actor {
 
   void add_dialog_last_database_message(Dialog *d, unique_ptr<Message> &&last_database_message);
 
-  tl_object_ptr<td_api::inputMessageText> get_input_message_text_object(
-      const InputMessageText &input_message_text) const;
-
   tl_object_ptr<td_api::draftMessage> get_draft_message_object(const unique_ptr<DraftMessage> &draft_message) const;
 
   tl_object_ptr<td_api::ChatType> get_chat_type_object(DialogId dialog_id) const;
@@ -2500,56 +1750,6 @@ class MessagesManager : public Actor {
 
   static unique_ptr<DraftMessage> get_draft_message(ContactsManager *contacts_manager,
                                                     tl_object_ptr<telegram_api::DraftMessage> &&draft_message_ptr);
-
-  static FormattedText get_secret_media_caption(string &&message_text, string &&message_caption);
-
-  static unique_ptr<MessageContent> get_secret_document_message_content(
-      Td *td, tl_object_ptr<telegram_api::encryptedFile> file,
-      tl_object_ptr<secret_api::decryptedMessageMediaDocument> &&document,
-      vector<tl_object_ptr<telegram_api::DocumentAttribute>> &&attributes, DialogId owner_dialog_id,
-      FormattedText &&caption, bool is_opened);
-
-  static unique_ptr<MessageContent> get_document_message_content(Td *td,
-                                                                 tl_object_ptr<telegram_api::document> &&document,
-                                                                 DialogId owner_dialog_id, FormattedText &&caption,
-                                                                 bool is_opened,
-                                                                 MultiPromiseActor *load_data_multipromise_ptr);
-
-  static unique_ptr<MessageContent> get_document_message_content(
-      std::pair<DocumentsManager::DocumentType, FileId> &&parsed_document, FormattedText &&caption, bool is_opened);
-
-  static unique_ptr<MessageContent> get_secret_message_content(
-      Td *td, string message_text, tl_object_ptr<telegram_api::encryptedFile> file,
-      tl_object_ptr<secret_api::DecryptedMessageMedia> &&media,
-      vector<tl_object_ptr<secret_api::MessageEntity>> &&secret_entities, DialogId owner_dialog_id,
-      MultiPromiseActor &load_data_multipromise);
-
-  static unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message_text,
-                                                        tl_object_ptr<telegram_api::MessageMedia> &&media,
-                                                        DialogId owner_dialog_id, bool is_content_read,
-                                                        UserId via_bot_user_id, int32 *ttl);
-
-  static unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const MessageContent *content,
-                                                        bool for_forward);
-
-  static unique_ptr<MessageContent> get_action_message_content(Td *td,
-                                                               tl_object_ptr<telegram_api::MessageAction> &&action,
-                                                               DialogId owner_dialog_id, MessageId reply_to_message_id);
-
-  static tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageContent *content, Td *td,
-                                                                          int32 message_date, bool is_content_secret);
-
-  static const FormattedText *get_message_content_text(const MessageContent *content);
-
-  static const FormattedText *get_message_content_caption(const MessageContent *content);
-
-  static int32 get_message_content_duration(const MessageContent *content, const Td *td);
-
-  static FileId get_message_content_file_id(const MessageContent *content);
-
-  static void update_message_content_file_id_remote(MessageContent *content, FileId file_id);
-
-  static FileId get_message_content_thumbnail_file_id(const MessageContent *content, const Td *td);
 
   vector<FileId> get_message_file_ids(const Message *message) const;
 
@@ -2743,8 +1943,6 @@ class MessagesManager : public Actor {
 
   string get_search_text(const Message *m) const;
 
-  static string get_message_content_search_text(const Td *td, const MessageContent *content);
-
   unique_ptr<Dialog> parse_dialog(DialogId dialog_id, const BufferSlice &value);
 
   void load_calls_db_state();
@@ -2755,8 +1953,6 @@ class MessagesManager : public Actor {
   }
 
   static void dump_debug_message_op(const Dialog *d, int priority = 0);
-
-  static void add_message_content_dependencies(Dependencies &dependencies, const MessageContent *message_content);
 
   static void add_message_dependencies(Dependencies &dependencies, DialogId dialog_id, const Message *m);
 

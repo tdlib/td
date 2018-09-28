@@ -15,6 +15,7 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
 
@@ -175,5 +176,11 @@ bool operator==(const Venue &lhs, const Venue &rhs);
 bool operator!=(const Venue &lhs, const Venue &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const Venue &venue);
+
+Result<std::pair<Location, int32>> process_input_message_location(
+    td_api::object_ptr<td_api::InputMessageContent> &&input_message_content) TD_WARN_UNUSED_RESULT;
+
+Result<Venue> process_input_message_venue(td_api::object_ptr<td_api::InputMessageContent> &&input_message_content)
+    TD_WARN_UNUSED_RESULT;
 
 }  // namespace td

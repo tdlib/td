@@ -7,6 +7,7 @@
 #include "td/telegram/Location.h"
 
 #include "td/telegram/Global.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -185,6 +186,61 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Venue &venue) {
   return string_builder << "Venue[location = " << venue.location_ << ", title = " << venue.title_
                         << ", address = " << venue.address_ << ", provider = " << venue.provider_
                         << ", id = " << venue.id_ << ", type = " << venue.type_ << "]";
+}
+
+Result<std::pair<Location, int32>> process_input_message_location(
+    tl_object_ptr<td_api::InputMessageContent> &&input_message_content) {
+  CHECK(input_message_content != nullptr);
+  CHECK(input_message_content->get_id() == td_api::inputMessageLocation::ID);
+  auto input_location = static_cast<const td_api::inputMessageLocation *>(input_message_content.get());
+
+  Location location(input_location->location_);
+  if (location.empty()) {
+    return Status::Error(400, "Wrong location specified");
+  }
+
+  constexpr int32 MIN_LIVE_LOCATION_PERIOD = 60;     // seconds, server side limit
+  constexpr int32 MAX_LIVE_LOCATION_PERIOD = 86400;  // seconds, server side limit
+
+  auto period = input_location->live_period_;
+  if (period != 0 && (period < MIN_LIVE_LOCATION_PERIOD || period > MAX_LIVE_LOCATION_PERIOD)) {
+    return Status::Error(400, "Wrong live location period specified");
+  }
+
+  return std::make_pair(std::move(location), period);
+}
+
+Result<Venue> process_input_message_venue(tl_object_ptr<td_api::InputMessageContent> &&input_message_content) {
+  CHECK(input_message_content != nullptr);
+  CHECK(input_message_content->get_id() == td_api::inputMessageVenue::ID);
+  auto venue = std::move(static_cast<td_api::inputMessageVenue *>(input_message_content.get())->venue_);
+
+  if (venue == nullptr) {
+    return Status::Error(400, "Venue can't be empty");
+  }
+
+  if (!clean_input_string(venue->title_)) {
+    return Status::Error(400, "Venue title must be encoded in UTF-8");
+  }
+  if (!clean_input_string(venue->address_)) {
+    return Status::Error(400, "Venue address must be encoded in UTF-8");
+  }
+  if (!clean_input_string(venue->provider_)) {
+    return Status::Error(400, "Venue provider must be encoded in UTF-8");
+  }
+  if (!clean_input_string(venue->id_)) {
+    return Status::Error(400, "Venue identifier must be encoded in UTF-8");
+  }
+  if (!clean_input_string(venue->type_)) {
+    return Status::Error(400, "Venue type must be encoded in UTF-8");
+  }
+
+  Venue result(venue);
+  if (result.empty()) {
+    return Status::Error(400, "Wrong venue location specified");
+  }
+
+  return result;
 }
 
 }  // namespace td

@@ -21,6 +21,7 @@
 #include <utility>
 
 namespace td {
+
 // append only before Size
 enum class SearchMessagesFilter : int32 {
   Empty,
@@ -166,4 +167,26 @@ std::shared_ptr<MessagesDbSyncSafeInterface> create_messages_db_sync(
 
 std::shared_ptr<MessagesDbAsyncInterface> create_messages_db_async(std::shared_ptr<MessagesDbSyncSafeInterface> sync_db,
                                                                    int32 scheduler_id);
+
+inline constexpr size_t search_messages_filter_size() {
+  return static_cast<int32>(SearchMessagesFilter::Size) - 1;
+}
+
+inline int32 search_messages_filter_index(SearchMessagesFilter filter) {
+  CHECK(filter != SearchMessagesFilter::Empty);
+  return static_cast<int32>(filter) - 1;
+}
+
+inline int32 search_messages_filter_index_mask(SearchMessagesFilter filter) {
+  if (filter == SearchMessagesFilter::Empty) {
+    return 0;
+  }
+  return 1 << search_messages_filter_index(filter);
+}
+
+inline int32 search_calls_filter_index(SearchMessagesFilter filter) {
+  CHECK(filter == SearchMessagesFilter::Call || filter == SearchMessagesFilter::MissedCall);
+  return static_cast<int32>(filter) - static_cast<int32>(SearchMessagesFilter::Call);
+}
+
 }  // namespace td

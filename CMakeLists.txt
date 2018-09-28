@@ -373,8 +373,10 @@ set(TDLIB_SOURCE
   td/telegram/Global.cpp
   td/telegram/HashtagHints.cpp
   td/telegram/InlineQueriesManager.cpp
+  td/telegram/InputMessageText.cpp
   td/telegram/LanguagePackManager.cpp
   td/telegram/Location.cpp
+  td/telegram/MessageContent.cpp
   td/telegram/MessageEntity.cpp
   td/telegram/MessagesDb.cpp
   td/telegram/MessagesManager.cpp
@@ -488,11 +490,13 @@ set(TDLIB_SOURCE
   td/telegram/Global.h
   td/telegram/HashtagHints.h
   td/telegram/InlineQueriesManager.h
+  td/telegram/InputMessageText.h
   td/telegram/LanguagePackManager.h
   td/telegram/Location.h
   td/telegram/logevent/LogEvent.h
   td/telegram/logevent/LogEventHelper.h
   td/telegram/logevent/SecretChatEvent.h
+  td/telegram/MessageContent.h
   td/telegram/MessageEntity.h
   td/telegram/MessageId.h
   td/telegram/MessagesDb.h
@@ -560,6 +564,7 @@ set(TDLIB_SOURCE
   td/telegram/files/FileId.hpp
   td/telegram/files/FileManager.hpp
   td/telegram/Game.hpp
+  td/telegram/InputMessageText.hpp
   td/telegram/MessageEntity.hpp
   td/telegram/Payments.hpp
   td/telegram/Photo.hpp

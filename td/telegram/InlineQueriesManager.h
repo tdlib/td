@@ -17,6 +17,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/Location.h"
+#include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/Photo.h"
@@ -33,15 +34,7 @@ namespace td {
 
 class Td;
 
-class MessageContent;
-
 class Game;
-
-struct InlineMessageContent {
-  unique_ptr<MessageContent> message_content;
-  unique_ptr<ReplyMarkup> message_reply_markup;
-  bool disable_web_page_preview;
-};
 
 class InlineQueriesManager : public Actor {
  public:
@@ -100,10 +93,6 @@ class InlineQueriesManager : public Actor {
       tl_object_ptr<td_api::InputMessageContent> &&input_message_content,
       tl_object_ptr<td_api::ReplyMarkup> &&reply_markup_ptr,
       int32 allowed_media_content_id) const TD_WARN_UNUSED_RESULT;
-
-  static InlineMessageContent create_inline_message_content(
-      Td *td, FileId file_id, tl_object_ptr<telegram_api::BotInlineMessage> &&inline_message,
-      int32 allowed_media_content_id, Photo *photo, Game *game);
 
   bool register_inline_message_content(int64 query_id, const string &result_id, FileId file_id,
                                        tl_object_ptr<telegram_api::BotInlineMessage> &&inline_message,

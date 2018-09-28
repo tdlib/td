@@ -44,6 +44,7 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/PasswordManager.h"
+#include "td/telegram/Payments.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/PrivacyManager.h"
 #include "td/telegram/SecretChatId.h"

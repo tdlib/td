@@ -6,6 +6,7 @@
 //
 #include "td/telegram/Contact.h"
 
+#include "td/telegram/misc.h"
 #include "td/telegram/secret_api.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -75,6 +76,27 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Contact &contact)
   return string_builder << "Contact[phone_number = " << contact.phone_number_
                         << ", first_name = " << contact.first_name_ << ", last_name = " << contact.last_name_
                         << ", vCard size = " << contact.vcard_.size() << contact.user_id_ << "]";
+}
+
+Result<Contact> process_input_message_contact(tl_object_ptr<td_api::InputMessageContent> &&input_message_content) {
+  CHECK(input_message_content != nullptr);
+  CHECK(input_message_content->get_id() == td_api::inputMessageContact::ID);
+  auto contact = std::move(static_cast<td_api::inputMessageContact *>(input_message_content.get())->contact_);
+
+  if (!clean_input_string(contact->phone_number_)) {
+    return Status::Error(400, "Phone number must be encoded in UTF-8");
+  }
+  if (!clean_input_string(contact->first_name_)) {
+    return Status::Error(400, "First name must be encoded in UTF-8");
+  }
+  if (!clean_input_string(contact->last_name_)) {
+    return Status::Error(400, "Last name must be encoded in UTF-8");
+  }
+  if (!clean_input_string(contact->vcard_)) {
+    return Status::Error(400, "vCard must be encoded in UTF-8");
+  }
+
+  return Contact(contact->phone_number_, contact->first_name_, contact->last_name_, contact->vcard_, contact->user_id_);
 }
 
 }  // namespace td

@@ -2205,6 +2205,24 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
   return Status::OK();
 }
 
+FormattedText get_message_text(const ContactsManager *contacts_manager, string message_text,
+                               vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities, int32 send_date,
+                               const char *source) {
+  auto entities = get_message_entities(contacts_manager, std::move(server_entities), source);
+  auto status = fix_formatted_text(message_text, entities, true, true, true, false);
+  if (status.is_error()) {
+    if (send_date == 0 || send_date > 1497000000) {  // approximate fix date
+      LOG(ERROR) << "Receive error " << status << " while parsing message from " << source << " with content \""
+                 << message_text << "\" sent at " << send_date << " with entities " << format::as_array(entities);
+    }
+    if (!clean_input_string(message_text)) {
+      message_text.clear();
+    }
+    entities.clear();
+  }
+  return FormattedText{std::move(message_text), std::move(entities)};
+}
+
 void add_formatted_text_dependencies(Dependencies &dependencies, const FormattedText *text) {
   if (text == nullptr) {
     return;
@@ -2213,6 +2231,28 @@ void add_formatted_text_dependencies(Dependencies &dependencies, const Formatted
     if (entity.user_id.is_valid()) {
       dependencies.user_ids.insert(entity.user_id);
     }
+  }
+}
+
+bool need_skip_bot_commands(const ContactsManager *contacts_manager, DialogId dialog_id, bool is_bot) {
+  if (is_bot) {
+    return false;
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return !contacts_manager->is_user_bot(dialog_id.get_user_id());
+    case DialogType::SecretChat: {
+      auto user_id = contacts_manager->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+      return !contacts_manager->is_user_bot(user_id);
+    }
+    case DialogType::Chat:
+    case DialogType::Channel:
+    case DialogType::None:
+      return false;
+    default:
+      UNREACHABLE();
+      return false;
   }
 }
 

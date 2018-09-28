@@ -13,6 +13,7 @@
 #include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 
 #include "td/telegram/td_api.h"
@@ -20,6 +21,7 @@
 
 namespace td {
 
+class ContactsManager;
 class Td;
 
 class Game {
@@ -74,5 +76,9 @@ bool operator==(const Game &lhs, const Game &rhs);
 bool operator!=(const Game &lhs, const Game &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const Game &game);
+
+Result<Game> process_input_message_game(const ContactsManager *contacts_manager,
+                                        tl_object_ptr<td_api::InputMessageContent> &&input_message_content)
+    TD_WARN_UNUSED_RESULT;
 
 }  // namespace td

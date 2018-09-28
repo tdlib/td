@@ -21,6 +21,9 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Game.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/InputMessageText.h"
+#include "td/telegram/Location.h"
+#include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
@@ -249,8 +252,8 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
 
   auto constructor_id = input_message_content->get_id();
   if (constructor_id == td_api::inputMessageText::ID) {
-    TRY_RESULT(input_message_text, MessagesManager::process_input_message_text(td_->contacts_manager_.get(), DialogId(),
-                                                                               std::move(input_message_content), true));
+    TRY_RESULT(input_message_text, process_input_message_text(td_->contacts_manager_.get(), DialogId(),
+                                                              std::move(input_message_content), true));
 
     if (input_message_text.disable_web_page_preview) {
       flags |= telegram_api::inputBotInlineMessageText::NO_WEBPAGE_MASK;
@@ -265,16 +268,16 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
         std::move(input_reply_markup));
   }
   if (constructor_id == td_api::inputMessageContact::ID) {
-    TRY_RESULT(contact, MessagesManager::process_input_message_contact(std::move(input_message_content)));
+    TRY_RESULT(contact, process_input_message_contact(std::move(input_message_content)));
     return contact.get_input_bot_inline_message_media_contact(flags, std::move(input_reply_markup));
   }
   if (constructor_id == td_api::inputMessageLocation::ID) {
-    TRY_RESULT(location, MessagesManager::process_input_message_location(std::move(input_message_content)));
+    TRY_RESULT(location, process_input_message_location(std::move(input_message_content)));
     return make_tl_object<telegram_api::inputBotInlineMessageMediaGeo>(flags, location.first.get_input_geo_point(),
                                                                        location.second, std::move(input_reply_markup));
   }
   if (constructor_id == td_api::inputMessageVenue::ID) {
-    TRY_RESULT(venue, MessagesManager::process_input_message_venue(std::move(input_message_content)));
+    TRY_RESULT(venue, process_input_message_venue(std::move(input_message_content)));
     return venue.get_input_bot_inline_message_media_venue(flags, std::move(input_reply_markup));
   }
   if (constructor_id == allowed_media_content_id) {
@@ -315,108 +318,6 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
     }
   }
   return Status::Error(400, "Unallowed inline message content type");
-}
-
-InlineMessageContent InlineQueriesManager::create_inline_message_content(
-    Td *td, FileId file_id, tl_object_ptr<telegram_api::BotInlineMessage> &&inline_message,
-    int32 allowed_media_content_id, Photo *photo, Game *game) {
-  CHECK(inline_message != nullptr);
-  CHECK((allowed_media_content_id == td_api::inputMessagePhoto::ID) == (photo != nullptr));
-  CHECK((allowed_media_content_id == td_api::inputMessageGame::ID) == (game != nullptr));
-  CHECK((allowed_media_content_id != td_api::inputMessagePhoto::ID &&
-         allowed_media_content_id != td_api::inputMessageGame::ID && allowed_media_content_id != -1) ==
-        file_id.is_valid());
-
-  InlineMessageContent result;
-  tl_object_ptr<telegram_api::ReplyMarkup> reply_markup;
-  result.disable_web_page_preview = false;
-  switch (inline_message->get_id()) {
-    case telegram_api::botInlineMessageText::ID: {
-      auto inline_message_text = move_tl_object_as<telegram_api::botInlineMessageText>(inline_message);
-      auto entities = get_message_entities(td->contacts_manager_.get(), std::move(inline_message_text->entities_),
-                                           "botInlineMessageText");
-      auto status = fix_formatted_text(inline_message_text->message_, entities, false, true, true, false);
-      if (status.is_error()) {
-        LOG(ERROR) << "Receive error " << status << " while parsing botInlineMessageText "
-                   << inline_message_text->message_;
-        break;
-      }
-
-      result.disable_web_page_preview =
-          (inline_message_text->flags_ & telegram_api::botInlineMessageText::NO_WEBPAGE_MASK) != 0;
-      WebPageId web_page_id;
-      if (!result.disable_web_page_preview) {
-        web_page_id =
-            td->web_pages_manager_->get_web_page_by_url(get_first_url(inline_message_text->message_, entities));
-      }
-      result.message_content = make_unique<MessageText>(
-          FormattedText{std::move(inline_message_text->message_), std::move(entities)}, web_page_id);
-      reply_markup = std::move(inline_message_text->reply_markup_);
-      break;
-    }
-    case telegram_api::botInlineMessageMediaGeo::ID: {
-      auto inline_message_geo = move_tl_object_as<telegram_api::botInlineMessageMediaGeo>(inline_message);
-      if (inline_message_geo->period_ > 0) {
-        result.message_content =
-            make_unique<MessageLiveLocation>(Location(inline_message_geo->geo_), inline_message_geo->period_);
-      } else {
-        result.message_content = make_unique<MessageLocation>(Location(inline_message_geo->geo_));
-      }
-      reply_markup = std::move(inline_message_geo->reply_markup_);
-      break;
-    }
-    case telegram_api::botInlineMessageMediaVenue::ID: {
-      auto inline_message_venue = move_tl_object_as<telegram_api::botInlineMessageMediaVenue>(inline_message);
-      result.message_content = make_unique<MessageVenue>(
-          Venue(inline_message_venue->geo_, std::move(inline_message_venue->title_),
-                std::move(inline_message_venue->address_), std::move(inline_message_venue->provider_),
-                std::move(inline_message_venue->venue_id_), std::move(inline_message_venue->venue_type_)));
-      reply_markup = std::move(inline_message_venue->reply_markup_);
-      break;
-    }
-    case telegram_api::botInlineMessageMediaContact::ID: {
-      auto inline_message_contact = move_tl_object_as<telegram_api::botInlineMessageMediaContact>(inline_message);
-      result.message_content = make_unique<MessageContact>(
-          Contact(std::move(inline_message_contact->phone_number_), std::move(inline_message_contact->first_name_),
-                  std::move(inline_message_contact->last_name_), std::move(inline_message_contact->vcard_), 0));
-      reply_markup = std::move(inline_message_contact->reply_markup_);
-      break;
-    }
-    case telegram_api::botInlineMessageMediaAuto::ID: {
-      auto input_message_media_auto = move_tl_object_as<telegram_api::botInlineMessageMediaAuto>(inline_message);
-      auto caption = MessagesManager::get_message_text(td->contacts_manager_.get(), input_message_media_auto->message_,
-                                                       std::move(input_message_media_auto->entities_), 0,
-                                                       "register_inline_message_content");
-      if (allowed_media_content_id == td_api::inputMessageAnimation::ID) {
-        result.message_content = make_unique<MessageAnimation>(file_id, std::move(caption));
-      } else if (allowed_media_content_id == td_api::inputMessageAudio::ID) {
-        result.message_content = make_unique<MessageAudio>(file_id, std::move(caption));
-      } else if (allowed_media_content_id == td_api::inputMessageDocument::ID) {
-        result.message_content = make_unique<MessageDocument>(file_id, std::move(caption));
-      } else if (allowed_media_content_id == td_api::inputMessageGame::ID) {
-        CHECK(game != nullptr);
-        // TODO game->set_short_name(std::move(caption));
-        result.message_content = make_unique<MessageGame>(std::move(*game));
-      } else if (allowed_media_content_id == td_api::inputMessagePhoto::ID) {
-        result.message_content = make_unique<MessagePhoto>(std::move(*photo), std::move(caption));
-      } else if (allowed_media_content_id == td_api::inputMessageSticker::ID) {
-        result.message_content = make_unique<MessageSticker>(file_id);
-      } else if (allowed_media_content_id == td_api::inputMessageVideo::ID) {
-        result.message_content = make_unique<MessageVideo>(file_id, std::move(caption));
-      } else if (allowed_media_content_id == td_api::inputMessageVoiceNote::ID) {
-        result.message_content = make_unique<MessageVoiceNote>(file_id, std::move(caption), true);
-      } else {
-        LOG(WARNING) << "Unallowed bot inline message " << to_string(input_message_media_auto);
-      }
-
-      reply_markup = std::move(input_message_media_auto->reply_markup_);
-      break;
-    }
-    default:
-      UNREACHABLE();
-  }
-  result.message_reply_markup = get_reply_markup(std::move(reply_markup), td->auth_manager_->is_bot(), true, false);
-  return result;
 }
 
 bool InlineQueriesManager::register_inline_message_content(

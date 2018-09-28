@@ -149,6 +149,12 @@ vector<MessageEntity> get_message_entities(vector<tl_object_ptr<secret_api::Mess
 Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool allow_empty, bool skip_new_entities,
                           bool skip_bot_commands, bool for_draft) TD_WARN_UNUSED_RESULT;
 
+FormattedText get_message_text(const ContactsManager *contacts_manager, string message_text,
+                               vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities, int32 send_date,
+                               const char *source);
+
 void add_formatted_text_dependencies(Dependencies &dependencies, const FormattedText *text);
+
+bool need_skip_bot_commands(const ContactsManager *contacts_manager, DialogId dialog_id, bool is_bot);
 
 }  // namespace td
