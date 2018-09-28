@@ -1075,6 +1075,10 @@ class MessagesManager : public Actor {
   Result<FormattedText> process_input_caption(DialogId dialog_id, tl_object_ptr<td_api::formattedText> &&text,
                                               bool is_bot) const;
 
+  Result<FormattedText> get_input_caption(DialogId dialog_id,
+                                          tl_object_ptr<td_api::InputMessageContent> &input_message_content,
+                                          bool is_bot) const;
+
   Result<InputMessageText> process_input_message_text(
       DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, bool is_bot,
       bool for_draft = false) const TD_WARN_UNUSED_RESULT;
@@ -1983,8 +1987,8 @@ class MessagesManager : public Actor {
       DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content) const;
 
   Result<InputMessageContent> create_input_message_content(
-      DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td, FileId file_id,
-      PhotoSize thumbnail, vector<FileId> sticker_file_ids) const;
+      DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td,
+      FormattedText caption, FileId file_id, PhotoSize thumbnail, vector<FileId> sticker_file_ids) const;
 
   Message *get_message_to_send(Dialog *d, MessageId reply_to_message_id, bool disable_notification,
                                bool from_background, unique_ptr<MessageContent> &&content, bool *need_update_dialog_pos,

@@ -16948,6 +16948,38 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId re
   return message_id;
 }
 
+Result<FormattedText> MessagesManager::get_input_caption(
+    DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &input_message_content, bool is_bot) const {
+  switch (input_message_content->get_id()) {
+    case td_api::inputMessageAnimation::ID: {
+      auto input_animation = static_cast<td_api::inputMessageAnimation *>(input_message_content.get());
+      return process_input_caption(dialog_id, std::move(input_animation->caption_), is_bot);
+    }
+    case td_api::inputMessageAudio::ID: {
+      auto input_audio = static_cast<td_api::inputMessageAudio *>(input_message_content.get());
+      return process_input_caption(dialog_id, std::move(input_audio->caption_), is_bot);
+    }
+    case td_api::inputMessageDocument::ID: {
+      auto input_document = static_cast<td_api::inputMessageDocument *>(input_message_content.get());
+      return process_input_caption(dialog_id, std::move(input_document->caption_), is_bot);
+    }
+    case td_api::inputMessagePhoto::ID: {
+      auto input_photo = static_cast<td_api::inputMessagePhoto *>(input_message_content.get());
+      return process_input_caption(dialog_id, std::move(input_photo->caption_), is_bot);
+    }
+    case td_api::inputMessageVideo::ID: {
+      auto input_video = static_cast<td_api::inputMessageVideo *>(input_message_content.get());
+      return process_input_caption(dialog_id, std::move(input_video->caption_), is_bot);
+    }
+    case td_api::inputMessageVoiceNote::ID: {
+      auto input_voice_note = static_cast<td_api::inputMessageVoiceNote *>(input_message_content.get());
+      return process_input_caption(dialog_id, std::move(input_voice_note->caption_), is_bot);
+    }
+    default:
+      return FormattedText();
+  }
+}
+
 Result<InputMessageContent> MessagesManager::process_input_message_content(
     DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content) const {
   if (input_message_content == nullptr) {
@@ -17059,8 +17091,9 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
     }
   }
 
-  TRY_RESULT(content, create_input_message_content(dialog_id, std::move(input_message_content), td_, file_id,
-                                                   std::move(thumbnail), std::move(sticker_file_ids)));
+  TRY_RESULT(caption, get_input_caption(dialog_id, input_message_content, td_->auth_manager_->is_bot()));
+  TRY_RESULT(content, create_input_message_content(dialog_id, std::move(input_message_content), td_, std::move(caption),
+                                                   file_id, std::move(thumbnail), std::move(sticker_file_ids)));
 
   if (content.ttl < 0 || content.ttl > MAX_PRIVATE_MESSAGE_TTL) {
     return Status::Error(10, "Wrong message TTL specified");
@@ -17077,8 +17110,8 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
 }
 
 Result<InputMessageContent> MessagesManager::create_input_message_content(
-    DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td, FileId file_id,
-    PhotoSize thumbnail, vector<FileId> sticker_file_ids) const {
+    DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td,
+    FormattedText caption, FileId file_id, PhotoSize thumbnail, vector<FileId> sticker_file_ids) const {
   CHECK(input_message_content != nullptr);
   LOG(INFO) << "Create InputMessageContent with file " << file_id << " and thumbnail " << thumbnail.file_id;
 
@@ -17119,8 +17152,6 @@ Result<InputMessageContent> MessagesManager::create_input_message_content(
     case td_api::inputMessageAnimation::ID: {
       auto input_animation = static_cast<td_api::inputMessageAnimation *>(input_message_content.get());
 
-      TRY_RESULT(caption, process_input_caption(dialog_id, std::move(input_animation->caption_), is_bot));
-
       td->animations_manager_->create_animation(
           file_id, thumbnail, std::move(file_name), std::move(mime_type), input_animation->duration_,
           get_dimensions(input_animation->width_, input_animation->height_), false);
@@ -17137,7 +17168,6 @@ Result<InputMessageContent> MessagesManager::create_input_message_content(
       if (!clean_input_string(input_audio->performer_)) {
         return Status::Error(400, "Audio performer must be encoded in UTF-8");
       }
-      TRY_RESULT(caption, process_input_caption(dialog_id, std::move(input_audio->caption_), is_bot));
 
       td->audios_manager_->create_audio(file_id, thumbnail, std::move(file_name), std::move(mime_type),
                                         input_audio->duration_, std::move(input_audio->title_),
@@ -17146,20 +17176,14 @@ Result<InputMessageContent> MessagesManager::create_input_message_content(
       content = make_unique<MessageAudio>(file_id, std::move(caption));
       break;
     }
-    case td_api::inputMessageDocument::ID: {
-      auto input_document = static_cast<td_api::inputMessageDocument *>(input_message_content.get());
-
-      TRY_RESULT(caption, process_input_caption(dialog_id, std::move(input_document->caption_), is_bot));
-
+    case td_api::inputMessageDocument::ID:
       td->documents_manager_->create_document(file_id, thumbnail, std::move(file_name), std::move(mime_type), false);
 
       content = make_unique<MessageDocument>(file_id, std::move(caption));
       break;
-    }
     case td_api::inputMessagePhoto::ID: {
       auto input_photo = static_cast<td_api::inputMessagePhoto *>(input_message_content.get());
 
-      TRY_RESULT(caption, process_input_caption(dialog_id, std::move(input_photo->caption_), is_bot));
       if (input_photo->width_ < 0 || input_photo->width_ > 10000) {
         return Status::Error(400, "Wrong photo width");
       }
@@ -17206,7 +17230,6 @@ Result<InputMessageContent> MessagesManager::create_input_message_content(
     case td_api::inputMessageVideo::ID: {
       auto input_video = static_cast<td_api::inputMessageVideo *>(input_message_content.get());
 
-      TRY_RESULT(caption, process_input_caption(dialog_id, std::move(input_video->caption_), is_bot));
       ttl = input_video->ttl_;
 
       bool has_stickers = !sticker_file_ids.empty();
@@ -17234,8 +17257,6 @@ Result<InputMessageContent> MessagesManager::create_input_message_content(
     }
     case td_api::inputMessageVoiceNote::ID: {
       auto input_voice_note = static_cast<td_api::inputMessageVoiceNote *>(input_message_content.get());
-
-      TRY_RESULT(caption, process_input_caption(dialog_id, std::move(input_voice_note->caption_), is_bot));
 
       td->voice_notes_manager_->create_voice_note(file_id, std::move(mime_type), input_voice_note->duration_,
                                                   std::move(input_voice_note->waveform_), false);
