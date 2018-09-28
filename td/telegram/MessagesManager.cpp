@@ -11213,36 +11213,26 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
     LOG(ERROR) << "Text message content has been already changed to " << m->content->get_type();
     return;
   }
-  auto message_text = static_cast<const MessageText *>(m->content.get());
 
-  auto new_content = get_message_content(
-      td_,
-      get_message_text(td_->contacts_manager_.get(), message_text->text.text, std::move(entities),
-                       m->forward_info ? m->forward_info->date : m->date, "on_update_sent_text_message"),
-      std::move(message_media), dialog_id, true /*likely ignored*/, UserId() /*likely ignored*/, nullptr /*ignored*/);
+  FormattedText old_message_text = get_message_content_text(m->content.get());
+  FormattedText new_message_text =
+      get_message_text(td_->contacts_manager_.get(), std::move(old_message_text.text), std::move(entities),
+                       m->forward_info ? m->forward_info->date : m->date, "on_update_sent_text_message");
+  auto new_content = get_message_content(td_, std::move(new_message_text), std::move(message_media), dialog_id,
+                                         true /*likely ignored*/, UserId() /*likely ignored*/, nullptr /*ignored*/);
   if (new_content->get_type() != MessageContentType::Text) {
     LOG(ERROR) << "Text message content has changed to " << new_content->get_type();
     return;
   }
-  auto new_message_text = static_cast<const MessageText *>(new_content.get());
 
   bool need_update = false;
   bool is_content_changed = false;
+  merge_message_contents(td_, m, m->content.get(), new_content.get(), dialog_id, false, is_content_changed,
+                         need_update);
 
-  if (message_text->text.entities != new_message_text->text.entities) {
-    is_content_changed = true;
-    need_update = true;
-  }
-  if (message_text->web_page_id != new_message_text->web_page_id) {
-    LOG(INFO) << "Old: " << message_text->web_page_id << ", new: " << new_message_text->web_page_id;
-    is_content_changed = true;
-    need_update |= td_->web_pages_manager_->have_web_page(message_text->web_page_id) ||
-                   td_->web_pages_manager_->have_web_page(new_message_text->web_page_id);
-  }
-
-  if (is_content_changed) {
+  if (is_content_changed || need_update) {
     m->content = std::move(new_content);
-    m->is_content_secret = is_secret_message_content(m->ttl, m->content->get_type());
+    m->is_content_secret = is_secret_message_content(m->ttl, MessageContentType::Text);
   }
   if (need_update) {
     send_update_message_content(dialog_id, m->message_id, m->content.get(), m->date, m->is_content_secret,
@@ -24436,7 +24426,7 @@ void MessagesManager::merge_message_contents(Td *td, const Message *old_message,
         need_update = true;
       }
       if (old_->text.entities != new_->text.entities) {
-        const int32 MAX_CUSTOM_ENTITIES_COUNT = 100;  // server-size limit
+        const int32 MAX_CUSTOM_ENTITIES_COUNT = 100;  // server-side limit
         if (need_message_text_changed_warning(old_message, old_, new_) &&
             old_->text.entities.size() <= MAX_CUSTOM_ENTITIES_COUNT) {
           LOG(WARNING) << "Entities has changed from "
