@@ -2281,6 +2281,8 @@ class MessagesManager : public Actor {
                                      MessageContent *new_content, DialogId dialog_id, bool need_merge_files,
                                      bool &is_content_changed, bool &need_update);
 
+  static bool merge_message_content_file_id(Td *td, MessageContent *message_content, FileId new_file_id);
+
   bool update_message_content(DialogId dialog_id, Message *old_message, unique_ptr<MessageContent> new_content,
                               bool need_send_update_message_content, bool need_merge_files);
 

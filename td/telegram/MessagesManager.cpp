@@ -11187,7 +11187,6 @@ void MessagesManager::try_restore_dialog_reply_markup(Dialog *d, const Message *
   }
 }
 
-// TODO this function needs to be merged with on_send_message_success
 void MessagesManager::on_update_sent_text_message(int64 random_id,
                                                   tl_object_ptr<telegram_api::MessageMedia> message_media,
                                                   vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities) {
@@ -20121,6 +20120,131 @@ void MessagesManager::check_send_message_result(int64 random_id, DialogId dialog
   }
 }
 
+bool MessagesManager::merge_message_content_file_id(Td *td, MessageContent *message_content, FileId new_file_id) {
+  if (!new_file_id.is_valid()) {
+    return false;
+  }
+
+  LOG(INFO) << "Merge message content of a message with file " << new_file_id;
+  MessageContentType content_type = message_content->get_type();
+  switch (content_type) {
+    case MessageContentType::Animation: {
+      auto content = static_cast<MessageAnimation *>(message_content);
+      if (new_file_id != content->file_id) {
+        td->animations_manager_->merge_animations(new_file_id, content->file_id, false);
+        content->file_id = new_file_id;
+        return true;
+      }
+      break;
+    }
+    case MessageContentType::Audio: {
+      auto content = static_cast<MessageAudio *>(message_content);
+      if (new_file_id != content->file_id) {
+        td->audios_manager_->merge_audios(new_file_id, content->file_id, false);
+        content->file_id = new_file_id;
+        return true;
+      }
+      break;
+    }
+    case MessageContentType::Document: {
+      auto content = static_cast<MessageDocument *>(message_content);
+      if (new_file_id != content->file_id) {
+        td->documents_manager_->merge_documents(new_file_id, content->file_id, false);
+        content->file_id = new_file_id;
+        return true;
+      }
+      break;
+    }
+    case MessageContentType::Photo: {
+      auto content = static_cast<MessagePhoto *>(message_content);
+      Photo *photo = &content->photo;
+      if (!photo->photos.empty() && photo->photos.back().type == 'i') {
+        FileId &old_file_id = photo->photos.back().file_id;
+        if (old_file_id != new_file_id) {
+          LOG_STATUS(td->file_manager_->merge(new_file_id, old_file_id));
+          old_file_id = new_file_id;
+          return true;
+        }
+      }
+      break;
+    }
+    case MessageContentType::Sticker: {
+      auto content = static_cast<MessageSticker *>(message_content);
+      if (new_file_id != content->file_id) {
+        td->stickers_manager_->merge_stickers(new_file_id, content->file_id, false);
+        content->file_id = new_file_id;
+        return true;
+      }
+      break;
+    }
+    case MessageContentType::Video: {
+      auto content = static_cast<MessageVideo *>(message_content);
+      if (new_file_id != content->file_id) {
+        td->videos_manager_->merge_videos(new_file_id, content->file_id, false);
+        content->file_id = new_file_id;
+        return true;
+      }
+      break;
+    }
+    case MessageContentType::VideoNote: {
+      auto content = static_cast<MessageVideoNote *>(message_content);
+      if (new_file_id != content->file_id) {
+        td->video_notes_manager_->merge_video_notes(new_file_id, content->file_id, false);
+        content->file_id = new_file_id;
+        return true;
+      }
+      break;
+    }
+    case MessageContentType::VoiceNote: {
+      auto content = static_cast<MessageVoiceNote *>(message_content);
+      if (new_file_id != content->file_id) {
+        td->voice_notes_manager_->merge_voice_notes(new_file_id, content->file_id, false);
+        content->file_id = new_file_id;
+        return true;
+      }
+      break;
+    }
+    case MessageContentType::Contact:
+    case MessageContentType::Game:
+    case MessageContentType::Invoice:
+    case MessageContentType::LiveLocation:
+    case MessageContentType::Location:
+    case MessageContentType::Text:
+    case MessageContentType::Venue:
+    case MessageContentType::ChatCreate:
+    case MessageContentType::ChatChangeTitle:
+    case MessageContentType::ChatChangePhoto:
+    case MessageContentType::ChatDeletePhoto:
+    case MessageContentType::ChatDeleteHistory:
+    case MessageContentType::ChatAddUsers:
+    case MessageContentType::ChatJoinedByLink:
+    case MessageContentType::ChatDeleteUser:
+    case MessageContentType::ChatMigrateTo:
+    case MessageContentType::ChannelCreate:
+    case MessageContentType::ChannelMigrateFrom:
+    case MessageContentType::PinMessage:
+    case MessageContentType::GameScore:
+    case MessageContentType::ScreenshotTaken:
+    case MessageContentType::ChatSetTtl:
+    case MessageContentType::Unsupported:
+    case MessageContentType::Call:
+    case MessageContentType::PaymentSuccessful:
+    case MessageContentType::ContactRegistered:
+    case MessageContentType::ExpiredPhoto:
+    case MessageContentType::ExpiredVideo:
+    case MessageContentType::CustomServiceAction:
+    case MessageContentType::WebsiteConnected:
+    case MessageContentType::PassportDataSent:
+    case MessageContentType::PassportDataReceived:
+      LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
+      break;
+    default:
+      UNREACHABLE();
+      break;
+  }
+  return false;
+}
+
 FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageId new_message_id, int32 date,
                                                        FileId new_file_id, const char *source) {
   CHECK(source != nullptr);
@@ -20212,126 +20336,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
   //   sent_message->reply_to_message_id = MessageId();
   // }
 
-  bool is_content_changed = false;
-  if (new_file_id.is_valid()) {
-    MessageContentType content_type = sent_message->content->get_type();
-    switch (content_type) {
-      case MessageContentType::Animation: {
-        auto content = static_cast<MessageAnimation *>(sent_message->content.get());
-        if (new_file_id != content->file_id) {
-          td_->animations_manager_->merge_animations(new_file_id, content->file_id, false);
-          content->file_id = new_file_id;
-          is_content_changed = true;
-        }
-        break;
-      }
-      case MessageContentType::Audio: {
-        auto content = static_cast<MessageAudio *>(sent_message->content.get());
-        if (new_file_id != content->file_id) {
-          td_->audios_manager_->merge_audios(new_file_id, content->file_id, false);
-          content->file_id = new_file_id;
-          is_content_changed = true;
-        }
-        break;
-      }
-      case MessageContentType::Document: {
-        auto content = static_cast<MessageDocument *>(sent_message->content.get());
-        if (new_file_id != content->file_id) {
-          td_->documents_manager_->merge_documents(new_file_id, content->file_id, false);
-          content->file_id = new_file_id;
-          is_content_changed = true;
-        }
-        break;
-      }
-      case MessageContentType::Photo: {
-        auto content = static_cast<MessagePhoto *>(sent_message->content.get());
-        Photo *photo = &content->photo;
-        if (!photo->photos.empty() && photo->photos.back().type == 'i') {
-          FileId &old_file_id = photo->photos.back().file_id;
-          if (old_file_id != new_file_id) {
-            LOG_STATUS(td_->file_manager_->merge(new_file_id, old_file_id));
-            old_file_id = new_file_id;
-            is_content_changed = true;
-          }
-        }
-        break;
-      }
-      case MessageContentType::Sticker: {
-        auto content = static_cast<MessageSticker *>(sent_message->content.get());
-        if (new_file_id != content->file_id) {
-          td_->stickers_manager_->merge_stickers(new_file_id, content->file_id, false);
-          content->file_id = new_file_id;
-          is_content_changed = true;
-        }
-        break;
-      }
-      case MessageContentType::Video: {
-        auto content = static_cast<MessageVideo *>(sent_message->content.get());
-        if (new_file_id != content->file_id) {
-          td_->videos_manager_->merge_videos(new_file_id, content->file_id, false);
-          content->file_id = new_file_id;
-          is_content_changed = true;
-        }
-        break;
-      }
-      case MessageContentType::VideoNote: {
-        auto content = static_cast<MessageVideoNote *>(sent_message->content.get());
-        if (new_file_id != content->file_id) {
-          td_->video_notes_manager_->merge_video_notes(new_file_id, content->file_id, false);
-          content->file_id = new_file_id;
-          is_content_changed = true;
-        }
-        break;
-      }
-      case MessageContentType::VoiceNote: {
-        auto content = static_cast<MessageVoiceNote *>(sent_message->content.get());
-        if (new_file_id != content->file_id) {
-          td_->voice_notes_manager_->merge_voice_notes(new_file_id, content->file_id, false);
-          content->file_id = new_file_id;
-          is_content_changed = true;
-        }
-        break;
-      }
-      case MessageContentType::Contact:
-      case MessageContentType::Game:
-      case MessageContentType::Invoice:
-      case MessageContentType::LiveLocation:
-      case MessageContentType::Location:
-      case MessageContentType::Text:
-      case MessageContentType::Venue:
-      case MessageContentType::ChatCreate:
-      case MessageContentType::ChatChangeTitle:
-      case MessageContentType::ChatChangePhoto:
-      case MessageContentType::ChatDeletePhoto:
-      case MessageContentType::ChatDeleteHistory:
-      case MessageContentType::ChatAddUsers:
-      case MessageContentType::ChatJoinedByLink:
-      case MessageContentType::ChatDeleteUser:
-      case MessageContentType::ChatMigrateTo:
-      case MessageContentType::ChannelCreate:
-      case MessageContentType::ChannelMigrateFrom:
-      case MessageContentType::PinMessage:
-      case MessageContentType::GameScore:
-      case MessageContentType::ScreenshotTaken:
-      case MessageContentType::ChatSetTtl:
-      case MessageContentType::Unsupported:
-      case MessageContentType::Call:
-      case MessageContentType::PaymentSuccessful:
-      case MessageContentType::ContactRegistered:
-      case MessageContentType::ExpiredPhoto:
-      case MessageContentType::ExpiredVideo:
-      case MessageContentType::CustomServiceAction:
-      case MessageContentType::WebsiteConnected:
-      case MessageContentType::PassportDataSent:
-      case MessageContentType::PassportDataReceived:
-        LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
-        break;
-      default:
-        UNREACHABLE();
-        break;
-    }
-  }
-  if (is_content_changed) {
+  if (merge_message_content_file_id(td_, sent_message->content.get(), new_file_id)) {
     send_update_message_content(dialog_id, old_message_id, sent_message->content.get(), sent_message->date,
                                 sent_message->is_content_secret, source);
   }
