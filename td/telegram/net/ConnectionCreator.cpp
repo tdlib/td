@@ -595,7 +595,7 @@ void ConnectionCreator::set_active_proxy_id(int32 proxy_id, bool from_binlog) {
   if (proxy_id == 0) {
     G()->shared_config().set_option_empty("enabled_proxy_id");
   } else {
-    G()->shared_config().set_option_string("enabled_proxy_id", to_string(proxy_id));
+    G()->shared_config().set_option_integer("enabled_proxy_id", proxy_id);
   }
   if (!from_binlog) {
     if (proxy_id == 0) {
