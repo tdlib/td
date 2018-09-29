@@ -6911,7 +6911,7 @@ void Td::on_request(uint64 id, td_api::testGetDifference &request) {
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
 }
 
-static int *get_log_verbosity_level(Slice name) {
+int *Td::get_log_verbosity_level(Slice name) {
   if (name == "td_init") {
     return &VERBOSITY_NAME(td_init);
   }

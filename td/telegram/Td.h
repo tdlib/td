@@ -303,6 +303,8 @@ class Td final : public NetQueryCallback {
 
   std::shared_ptr<UploadFileCallback> upload_file_callback_;
 
+  static int *get_log_verbosity_level(Slice name);
+
   template <class T>
   Promise<T> create_request_promise(uint64 id);
 
