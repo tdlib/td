@@ -36,7 +36,6 @@
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/UserId.h"
-#include "td/telegram/WebPageId.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/ChangesProcessor.h"
@@ -50,7 +49,6 @@
 
 #include <array>
 #include <functional>
-#include <limits>
 #include <map>
 #include <memory>
 #include <set>

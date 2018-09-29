@@ -22,11 +22,9 @@
 #include <utility>
 
 namespace td {
+
 class MultiPromiseActor;
 class Td;
-}  // namespace td
-
-namespace td {
 
 class DocumentsManager {
  public:

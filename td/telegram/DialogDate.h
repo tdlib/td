@@ -12,6 +12,7 @@
 #include "td/utils/StringBuilder.h"
 
 #include <functional>
+#include <limits>
 
 namespace td {
 

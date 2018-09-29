@@ -31,6 +31,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesDb.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/net/DcId.h"
 #include "td/telegram/Payments.h"
 #include "td/telegram/Payments.hpp"
 #include "td/telegram/Photo.h"
@@ -42,16 +43,18 @@
 #include "td/telegram/StickersManager.hpp"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserId.h"
-#include "td/telegram/VideosManager.h"
-#include "td/telegram/VideosManager.hpp"
+#include "td/telegram/Version.h"
 #include "td/telegram/VideoNotesManager.h"
 #include "td/telegram/VideoNotesManager.hpp"
+#include "td/telegram/VideosManager.h"
+#include "td/telegram/VideosManager.hpp"
 #include "td/telegram/VoiceNotesManager.h"
 #include "td/telegram/VoiceNotesManager.hpp"
 #include "td/telegram/WebPageId.h"
 #include "td/telegram/WebPagesManager.h"
 
 #include "td/actor/MultiPromise.h"
+#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/format.h"
 #include "td/utils/HttpUrl.h"
@@ -60,8 +63,8 @@
 #include "td/utils/misc.h"
 #include "td/utils/PathView.h"
 #include "td/utils/tl_helpers.h"
-#include "td/utils/tl_parsers.h"
-#include "td/utils/tl_storers.h"
+
+#include <utility>
 
 namespace td {
 

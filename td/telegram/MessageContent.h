@@ -13,12 +13,11 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/Photo.h"
-#include "td/telegram/secret_api.h"
 #include "td/telegram/ReplyMarkup.h"
+#include "td/telegram/secret_api.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/UserId.h"
-#include "td/telegram/Version.h"
 #include "td/telegram/WebPageId.h"
 
 #include "td/utils/buffer.h"

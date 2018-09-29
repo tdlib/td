@@ -8,13 +8,14 @@
 
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ChatId.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogDb.h"
 #include "td/telegram/DraftMessage.h"
 #include "td/telegram/DraftMessage.hpp"
-#include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileId.hpp"
+#include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/HashtagHints.h"
 #include "td/telegram/InlineQueriesManager.h"
@@ -39,11 +40,8 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TopDialogManager.h"
 #include "td/telegram/UpdatesManager.h"
-#include "td/telegram/Version.h"
 #include "td/telegram/WebPageId.h"
 #include "td/telegram/WebPagesManager.h"
-
-#include "td/telegram/telegram_api.h"
 
 #include "td/actor/PromiseFuture.h"
 #include "td/actor/SleepActor.h"
