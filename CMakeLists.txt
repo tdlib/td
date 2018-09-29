@@ -464,6 +464,7 @@ set(TDLIB_SOURCE
   td/telegram/DeviceTokenManager.h
   td/telegram/DhCache.h
   td/telegram/DhConfig.h
+  td/telegram/DialogDate.h
   td/telegram/DialogDb.h
   td/telegram/DialogId.h
   td/telegram/DialogParticipant.h

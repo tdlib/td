@@ -21,6 +21,7 @@
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/Dependencies.h"
+#include "td/telegram/DialogDate.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/files/FileId.h"
@@ -64,62 +65,6 @@ class Td;
 class MultiSequenceDispatcher;
 
 class DraftMessage;
-
-class DialogDate {
-  int64 order;
-  DialogId dialog_id;
-
- public:
-  DialogDate(int64 order, DialogId dialog_id) : order(order), dialog_id(dialog_id) {
-  }
-
-  bool operator<(const DialogDate &other) const {
-    return order > other.order || (order == other.order && dialog_id.get() > other.dialog_id.get());
-  }
-
-  bool operator<=(const DialogDate &other) const {
-    return order >= other.order && (order != other.order || dialog_id.get() >= other.dialog_id.get());
-  }
-
-  bool operator==(const DialogDate &other) const {
-    return order == other.order && dialog_id == other.dialog_id;
-  }
-
-  bool operator!=(const DialogDate &other) const {
-    return order != other.order || dialog_id != other.dialog_id;
-  }
-
-  int64 get_order() const {
-    return order;
-  }
-  DialogId get_dialog_id() const {
-    return dialog_id;
-  }
-  int32 get_date() const {
-    return static_cast<int32>((order >> 32) & 0x7FFFFFFF);
-  }
-  MessageId get_message_id() const {
-    return MessageId(ServerMessageId(static_cast<int32>(order & 0x7FFFFFFF)));
-  }
-
-  friend struct DialogDateHash;
-
-  friend StringBuilder &operator<<(StringBuilder &string_builder, DialogDate dialog_date);
-};
-
-const DialogDate MIN_DIALOG_DATE(std::numeric_limits<int64>::max(), DialogId());
-const DialogDate MAX_DIALOG_DATE(0, DialogId());
-const int64 DEFAULT_ORDER = -1;
-
-struct DialogDateHash {
-  std::size_t operator()(const DialogDate &dialog_date) const {
-    return std::hash<int64>()(dialog_date.order) * 2023654985u + DialogIdHash()(dialog_date.dialog_id);
-  }
-};
-
-inline StringBuilder &operator<<(StringBuilder &string_builder, DialogDate dialog_date) {
-  return string_builder << "[" << dialog_date.order << ", " << dialog_date.dialog_id.get() << "]";
-}
 
 class dummyUpdate : public telegram_api::Update {
  public:
