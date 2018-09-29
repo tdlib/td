@@ -399,6 +399,7 @@ set(TDLIB_SOURCE
   td/telegram/net/Session.cpp
   td/telegram/net/SessionProxy.cpp
   td/telegram/net/SessionMultiProxy.cpp
+  td/telegram/NotificationSettings.cpp
   td/telegram/Payments.cpp
   td/telegram/PasswordManager.cpp
   td/telegram/PrivacyManager.cpp
@@ -525,6 +526,7 @@ set(TDLIB_SOURCE
   td/telegram/net/SessionProxy.h
   td/telegram/net/SessionMultiProxy.h
   td/telegram/net/TempAuthKeyWatchdog.h
+  td/telegram/NotificationSettings.h
   td/telegram/PasswordManager.h
   td/telegram/Payments.h
   td/telegram/Photo.h
@@ -569,6 +571,7 @@ set(TDLIB_SOURCE
   td/telegram/Game.hpp
   td/telegram/InputMessageText.hpp
   td/telegram/MessageEntity.hpp
+  td/telegram/NotificationSettings.hpp
   td/telegram/Payments.hpp
   td/telegram/Photo.hpp
   td/telegram/ReplyMarkup.hpp

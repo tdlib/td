@@ -28,6 +28,7 @@
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetActor.h"
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/NotificationSettings.hpp"
 #include "td/telegram/Payments.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/ReplyMarkup.hpp"
@@ -3068,7 +3069,7 @@ class GetScopeNotifySettingsQuery : public Td::ResultHandler {
 
   void send(NotificationSettingsScope scope) {
     scope_ = scope;
-    auto input_notify_peer = td->messages_manager_->get_input_notify_peer(scope);
+    auto input_notify_peer = get_input_notify_peer(scope);
     CHECK(input_notify_peer != nullptr);
     send_query(G()->net_query_creator().create(
         create_storer(telegram_api::account_getNotifySettings(std::move(input_notify_peer)))));
@@ -3161,7 +3162,7 @@ class UpdateScopeNotifySettingsQuery : public Td::ResultHandler {
   }
 
   void send(NotificationSettingsScope scope, const ScopeNotificationSettings &new_settings) {
-    auto input_notify_peer = td->messages_manager_->get_input_notify_peer(scope);
+    auto input_notify_peer = get_input_notify_peer(scope);
     CHECK(input_notify_peer != nullptr);
     int32 flags = telegram_api::inputPeerNotifySettings::MUTE_UNTIL_MASK |
                   telegram_api::inputPeerNotifySettings::SOUND_MASK |
@@ -3813,93 +3814,6 @@ void MessagesManager::Message::parse(ParserT &parser) {
   }
   is_content_secret |=
       is_secret_message_content(ttl, content->get_type());  // repair is_content_secret for old messages
-}
-
-template <class StorerT>
-static void store(const DialogNotificationSettings &notification_settings, StorerT &storer) {
-  bool is_muted = !notification_settings.use_default_mute_until && notification_settings.mute_until != 0 &&
-                  notification_settings.mute_until > G()->unix_time();
-  bool has_sound = !notification_settings.use_default_sound && notification_settings.sound != "default";
-  BEGIN_STORE_FLAGS();
-  STORE_FLAG(is_muted);
-  STORE_FLAG(has_sound);
-  STORE_FLAG(notification_settings.show_preview);
-  STORE_FLAG(notification_settings.silent_send_message);
-  STORE_FLAG(notification_settings.is_synchronized);
-  STORE_FLAG(notification_settings.use_default_mute_until);
-  STORE_FLAG(notification_settings.use_default_sound);
-  STORE_FLAG(notification_settings.use_default_show_preview);
-  STORE_FLAG(notification_settings.is_use_default_fixed);
-  END_STORE_FLAGS();
-  if (is_muted) {
-    store(notification_settings.mute_until, storer);
-  }
-  if (has_sound) {
-    store(notification_settings.sound, storer);
-  }
-}
-
-template <class ParserT>
-static void parse(DialogNotificationSettings &notification_settings, ParserT &parser) {
-  bool is_muted;
-  bool has_sound;
-  BEGIN_PARSE_FLAGS();
-  PARSE_FLAG(is_muted);
-  PARSE_FLAG(has_sound);
-  PARSE_FLAG(notification_settings.show_preview);
-  PARSE_FLAG(notification_settings.silent_send_message);
-  PARSE_FLAG(notification_settings.is_synchronized);
-  PARSE_FLAG(notification_settings.use_default_mute_until);
-  PARSE_FLAG(notification_settings.use_default_sound);
-  PARSE_FLAG(notification_settings.use_default_show_preview);
-  PARSE_FLAG(notification_settings.is_use_default_fixed);
-  END_PARSE_FLAGS();
-  if (is_muted) {
-    parse(notification_settings.mute_until, parser);
-  }
-  if (has_sound) {
-    parse(notification_settings.sound, parser);
-  }
-}
-
-template <class StorerT>
-static void store(const ScopeNotificationSettings &notification_settings, StorerT &storer) {
-  bool is_muted = notification_settings.mute_until != 0 && notification_settings.mute_until > G()->unix_time();
-  bool has_sound = notification_settings.sound != "default";
-  BEGIN_STORE_FLAGS();
-  STORE_FLAG(is_muted);
-  STORE_FLAG(has_sound);
-  STORE_FLAG(notification_settings.show_preview);
-  STORE_FLAG(false);
-  STORE_FLAG(notification_settings.is_synchronized);
-  END_STORE_FLAGS();
-  if (is_muted) {
-    store(notification_settings.mute_until, storer);
-  }
-  if (has_sound) {
-    store(notification_settings.sound, storer);
-  }
-}
-
-template <class ParserT>
-static void parse(ScopeNotificationSettings &notification_settings, ParserT &parser) {
-  bool is_muted;
-  bool has_sound;
-  bool silent_send_message_ignored;
-  BEGIN_PARSE_FLAGS();
-  PARSE_FLAG(is_muted);
-  PARSE_FLAG(has_sound);
-  PARSE_FLAG(notification_settings.show_preview);
-  PARSE_FLAG(silent_send_message_ignored);
-  PARSE_FLAG(notification_settings.is_synchronized);
-  END_PARSE_FLAGS();
-  (void)silent_send_message_ignored;
-  if (is_muted) {
-    parse(notification_settings.mute_until, parser);
-  }
-  if (has_sound) {
-    parse(notification_settings.sound, parser);
-  }
 }
 
 template <class StorerT>
@@ -5673,20 +5587,6 @@ void MessagesManager::drop_pending_updates() {
   pending_updates_.clear();
 }
 
-NotificationSettingsScope MessagesManager::get_notification_settings_scope(
-    const tl_object_ptr<td_api::NotificationSettingsScope> &scope) {
-  CHECK(scope != nullptr);
-  switch (scope->get_id()) {
-    case td_api::notificationSettingsScopePrivateChats::ID:
-      return NotificationSettingsScope::Private;
-    case td_api::notificationSettingsScopeGroupChats::ID:
-      return NotificationSettingsScope::Group;
-    default:
-      UNREACHABLE();
-      return NotificationSettingsScope::Private;
-  }
-}
-
 string MessagesManager::get_notification_settings_scope_database_key(NotificationSettingsScope scope) {
   switch (scope) {
     case NotificationSettingsScope::Private:
@@ -5926,7 +5826,7 @@ void MessagesManager::on_update_dialog_notify_settings(
   LOG(INFO) << "Receive notification settings for " << dialog_id << ": " << to_string(peer_notify_settings);
 
   const DialogNotificationSettings notification_settings =
-      get_dialog_notification_settings(std::move(peer_notify_settings));
+      td::get_dialog_notification_settings(std::move(peer_notify_settings));
   if (!notification_settings.is_synchronized) {
     return;
   }
@@ -5945,7 +5845,7 @@ void MessagesManager::on_update_scope_notify_settings(
   }
 
   const ScopeNotificationSettings notification_settings =
-      get_scope_notification_settings(std::move(peer_notify_settings));
+      td::get_scope_notification_settings(std::move(peer_notify_settings));
   if (!notification_settings.is_synchronized) {
     return;
   }
@@ -12395,34 +12295,6 @@ tl_object_ptr<td_api::chats> MessagesManager::get_chats_object(const vector<Dial
   return td_api::make_object<td_api::chats>(transform(dialogs, [](DialogId dialog_id) { return dialog_id.get(); }));
 }
 
-tl_object_ptr<td_api::NotificationSettingsScope> MessagesManager::get_notification_settings_scope_object(
-    NotificationSettingsScope scope) {
-  switch (scope) {
-    case NotificationSettingsScope::Private:
-      return make_tl_object<td_api::notificationSettingsScopePrivateChats>();
-    case NotificationSettingsScope::Group:
-      return make_tl_object<td_api::notificationSettingsScopeGroupChats>();
-    default:
-      UNREACHABLE();
-      return nullptr;
-  }
-}
-
-tl_object_ptr<td_api::chatNotificationSettings> MessagesManager::get_chat_notification_settings_object(
-    const DialogNotificationSettings *notification_settings) {
-  return make_tl_object<td_api::chatNotificationSettings>(
-      notification_settings->use_default_mute_until, max(0, notification_settings->mute_until - G()->unix_time()),
-      notification_settings->use_default_sound, notification_settings->sound,
-      notification_settings->use_default_show_preview, notification_settings->show_preview);
-}
-
-tl_object_ptr<td_api::scopeNotificationSettings> MessagesManager::get_scope_notification_settings_object(
-    const ScopeNotificationSettings *notification_settings) {
-  return make_tl_object<td_api::scopeNotificationSettings>(max(0, notification_settings->mute_until - G()->unix_time()),
-                                                           notification_settings->sound,
-                                                           notification_settings->show_preview);
-}
-
 td_api::object_ptr<td_api::updateScopeNotificationSettings>
 MessagesManager::get_update_scope_notification_settings_object(NotificationSettingsScope scope) const {
   auto notification_settings = get_scope_notification_settings(scope);
@@ -12527,17 +12399,6 @@ tl_object_ptr<telegram_api::InputNotifyPeer> MessagesManager::get_input_notify_p
     return nullptr;
   }
   return make_tl_object<telegram_api::inputNotifyPeer>(std::move(input_peer));
-}
-
-tl_object_ptr<telegram_api::InputNotifyPeer> MessagesManager::get_input_notify_peer(NotificationSettingsScope scope) {
-  switch (scope) {
-    case NotificationSettingsScope::Private:
-      return make_tl_object<telegram_api::inputNotifyUsers>();
-    case NotificationSettingsScope::Group:
-      return make_tl_object<telegram_api::inputNotifyChats>();
-    default:
-      return nullptr;
-  }
 }
 
 Status MessagesManager::set_dialog_notification_settings(
@@ -19737,33 +19598,6 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(DialogId
     send_update_chat_last_message(d, "on_get_message_from_database");
   }
   return result;
-}
-
-DialogNotificationSettings MessagesManager::get_dialog_notification_settings(
-    tl_object_ptr<telegram_api::peerNotifySettings> &&settings) {
-  bool use_default_mute_until = (settings->flags_ & telegram_api::peerNotifySettings::MUTE_UNTIL_MASK) == 0;
-  bool use_default_sound = (settings->flags_ & telegram_api::peerNotifySettings::SOUND_MASK) == 0;
-  bool use_default_show_preview = (settings->flags_ & telegram_api::peerNotifySettings::SHOW_PREVIEWS_MASK) == 0;
-  auto mute_until = use_default_mute_until || settings->mute_until_ <= G()->unix_time() ? 0 : settings->mute_until_;
-  bool silent_send_message =
-      (settings->flags_ & telegram_api::peerNotifySettings::SILENT_MASK) == 0 ? false : settings->silent_;
-  return {use_default_mute_until,   mute_until,
-          use_default_sound,        std::move(settings->sound_),
-          use_default_show_preview, settings->show_previews_,
-          silent_send_message};
-}
-
-ScopeNotificationSettings MessagesManager::get_scope_notification_settings(
-    tl_object_ptr<telegram_api::peerNotifySettings> &&settings) {
-  auto mute_until = (settings->flags_ & telegram_api::peerNotifySettings::MUTE_UNTIL_MASK) == 0 ||
-                            settings->mute_until_ <= G()->unix_time()
-                        ? 0
-                        : settings->mute_until_;
-  auto sound =
-      (settings->flags_ & telegram_api::peerNotifySettings::SOUND_MASK) == 0 ? "default" : std::move(settings->sound_);
-  auto show_preview =
-      (settings->flags_ & telegram_api::peerNotifySettings::SHOW_PREVIEWS_MASK) == 0 ? false : settings->show_previews_;
-  return {mute_until, std::move(sound), show_preview};
 }
 
 int32 MessagesManager::get_random_y(MessageId message_id) {

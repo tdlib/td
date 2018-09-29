@@ -30,6 +30,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesDb.h"
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/NotificationSettings.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/SecretInputMedia.h"
@@ -63,75 +64,6 @@ class Td;
 class MultiSequenceDispatcher;
 
 class DraftMessage;
-
-class DialogNotificationSettings {
- public:
-  int32 mute_until = 0;
-  string sound = "default";
-  bool show_preview = true;
-  bool silent_send_message = false;
-  bool use_default_mute_until = true;
-  bool use_default_sound = true;
-  bool use_default_show_preview = true;
-  bool is_use_default_fixed = true;
-  bool is_synchronized = false;
-
-  DialogNotificationSettings() = default;
-
-  DialogNotificationSettings(bool use_default_mute_until, int32 mute_until, bool use_default_sound, string sound,
-                             bool use_default_show_preview, bool show_preview, bool silent_send_message)
-      : mute_until(mute_until)
-      , sound(std::move(sound))
-      , show_preview(show_preview)
-      , silent_send_message(silent_send_message)
-      , use_default_mute_until(use_default_mute_until)
-      , use_default_sound(use_default_sound)
-      , use_default_show_preview(use_default_show_preview)
-      , is_synchronized(true) {
-  }
-};
-
-enum class NotificationSettingsScope : int32 { Private, Group };
-
-class ScopeNotificationSettings {
- public:
-  int32 mute_until = 0;
-  string sound = "default";
-  bool show_preview = true;
-  bool is_synchronized = false;
-
-  ScopeNotificationSettings() = default;
-
-  ScopeNotificationSettings(int32 mute_until, string sound, bool show_preview)
-      : mute_until(mute_until), sound(std::move(sound)), show_preview(show_preview), is_synchronized(true) {
-  }
-};
-
-inline StringBuilder &operator<<(StringBuilder &string_builder, DialogNotificationSettings notification_settings) {
-  return string_builder << "[" << notification_settings.mute_until << ", " << notification_settings.sound << ", "
-                        << notification_settings.show_preview << ", " << notification_settings.silent_send_message
-                        << ", " << notification_settings.use_default_mute_until << ", "
-                        << notification_settings.use_default_sound << ", "
-                        << notification_settings.use_default_show_preview << ", "
-                        << notification_settings.is_synchronized << "]";
-}
-
-inline StringBuilder &operator<<(StringBuilder &string_builder, NotificationSettingsScope scope) {
-  switch (scope) {
-    case NotificationSettingsScope::Private:
-      return string_builder << "notification settings for private chats";
-    case NotificationSettingsScope::Group:
-      return string_builder << "notification settings for group chats";
-    default:
-      UNREACHABLE();
-      return string_builder;
-  }
-}
-
-inline StringBuilder &operator<<(StringBuilder &string_builder, ScopeNotificationSettings notification_settings) {
-  return string_builder << "[" << notification_settings.mute_until << ", " << notification_settings.sound << ", "
-                        << notification_settings.show_preview << ", " << notification_settings.is_synchronized << "]";
-}
 
 class DialogDate {
   int64 order;
@@ -600,15 +532,6 @@ class MessagesManager : public Actor {
 
   Status open_message_content(FullMessageId full_message_id) TD_WARN_UNUSED_RESULT;
 
-  static tl_object_ptr<td_api::NotificationSettingsScope> get_notification_settings_scope_object(
-      NotificationSettingsScope scope);
-
-  static tl_object_ptr<td_api::chatNotificationSettings> get_chat_notification_settings_object(
-      const DialogNotificationSettings *notification_settings);
-
-  static tl_object_ptr<td_api::scopeNotificationSettings> get_scope_notification_settings_object(
-      const ScopeNotificationSettings *notification_settings);
-
   td_api::object_ptr<td_api::updateScopeNotificationSettings> get_update_scope_notification_settings_object(
       NotificationSettingsScope scope) const;
 
@@ -696,11 +619,6 @@ class MessagesManager : public Actor {
   static SearchMessagesFilter get_search_messages_filter(const tl_object_ptr<td_api::SearchMessagesFilter> &filter);
 
   tl_object_ptr<telegram_api::InputNotifyPeer> get_input_notify_peer(DialogId dialogId) const;
-
-  static tl_object_ptr<telegram_api::InputNotifyPeer> get_input_notify_peer(NotificationSettingsScope scope);
-
-  static NotificationSettingsScope get_notification_settings_scope(
-      const tl_object_ptr<td_api::NotificationSettingsScope> &scope);
 
   void on_update_dialog_notify_settings(DialogId dialog_id,
                                         tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings);
@@ -1721,12 +1639,6 @@ class MessagesManager : public Actor {
 
   void on_get_dialog_message_by_date_from_database(DialogId dialog_id, int32 date, int64 random_id,
                                                    Result<BufferSlice> result, Promise<Unit> promise);
-
-  static DialogNotificationSettings get_dialog_notification_settings(
-      tl_object_ptr<telegram_api::peerNotifySettings> &&settings);
-
-  static ScopeNotificationSettings get_scope_notification_settings(
-      tl_object_ptr<telegram_api::peerNotifySettings> &&settings);
 
   std::pair<bool, int32> get_dialog_mute_until(DialogId dialog_id, const Dialog *d) const;
 

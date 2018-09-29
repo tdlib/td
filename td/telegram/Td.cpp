@@ -43,6 +43,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/NotificationSettings.h"
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Payments.h"
 #include "td/telegram/Photo.h"
@@ -2233,7 +2234,7 @@ class GetScopeNotificationSettingsRequest : public RequestActor<> {
 
   void do_send_result() override {
     CHECK(notification_settings_ != nullptr);
-    send_result(td->messages_manager_->get_scope_notification_settings_object(notification_settings_));
+    send_result(get_scope_notification_settings_object(notification_settings_));
   }
 
  public:
@@ -6074,7 +6075,7 @@ void Td::on_request(uint64 id, const td_api::getScopeNotificationSettings &reque
   if (request.scope_ == nullptr) {
     return send_error_raw(id, 400, "Scope must not be empty");
   }
-  CREATE_REQUEST(GetScopeNotificationSettingsRequest, MessagesManager::get_notification_settings_scope(request.scope_));
+  CREATE_REQUEST(GetScopeNotificationSettingsRequest, get_notification_settings_scope(request.scope_));
 }
 
 void Td::on_request(uint64 id, const td_api::getChatReportSpamState &request) {
@@ -6108,8 +6109,7 @@ void Td::on_request(uint64 id, td_api::setScopeNotificationSettings &request) {
     return send_error_raw(id, 400, "Scope must not be empty");
   }
   answer_ok_query(id, messages_manager_->set_scope_notification_settings(
-                          MessagesManager::get_notification_settings_scope(request.scope_),
-                          std::move(request.notification_settings_)));
+                          get_notification_settings_scope(request.scope_), std::move(request.notification_settings_)));
 }
 
 void Td::on_request(uint64 id, const td_api::resetAllNotificationSettings &request) {
