@@ -534,6 +534,7 @@ set(TDLIB_SOURCE
   td/telegram/PrivacyManager.h
   td/telegram/PtsManager.h
   td/telegram/ReplyMarkup.h
+  td/telegram/RequestActor.h
   td/telegram/SecretChatActor.h
   td/telegram/SecretChatId.h
   td/telegram/SecretChatDb.h
