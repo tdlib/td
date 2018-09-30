@@ -82,11 +82,6 @@ class dummyUpdate : public telegram_api::Update {
   void store(TlStorerToString &s, const char *field_name) const override;
 };
 
-struct CallsDbState {
-  std::array<MessageId, 2> first_calls_database_message_id_by_index;
-  std::array<int32, 2> message_count_by_index;
-};
-
 class MessagesManager : public Actor {
  public:
   //  static constexpr int32 MESSAGE_FLAG_IS_UNREAD = 1 << 0;
@@ -2053,6 +2048,17 @@ class MessagesManager : public Actor {
       pending_add_dialog_last_database_message_dependent_dialogs_;
   std::unordered_map<DialogId, std::pair<int32, unique_ptr<Message>>, DialogIdHash>
       pending_add_dialog_last_database_message_;  // dialog -> dependency counter + message
+
+  struct CallsDbState {
+    std::array<MessageId, 2> first_calls_database_message_id_by_index;
+    std::array<int32, 2> message_count_by_index;
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
+  };
 
   CallsDbState calls_db_state_;
 

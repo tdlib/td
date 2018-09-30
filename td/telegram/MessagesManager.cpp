@@ -4045,30 +4045,32 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
 }
 
 template <class StorerT>
-static void store(const CallsDbState &state, StorerT &storer) {
-  store(static_cast<int32>(state.first_calls_database_message_id_by_index.size()), storer);
-  for (auto first_message_id : state.first_calls_database_message_id_by_index) {
+void MessagesManager::CallsDbState::store(StorerT &storer) const {
+  using td::store;
+  store(static_cast<int32>(first_calls_database_message_id_by_index.size()), storer);
+  for (auto first_message_id : first_calls_database_message_id_by_index) {
     store(first_message_id, storer);
   }
-  store(static_cast<int32>(state.message_count_by_index.size()), storer);
-  for (auto message_count : state.message_count_by_index) {
+  store(static_cast<int32>(message_count_by_index.size()), storer);
+  for (auto message_count : message_count_by_index) {
     store(message_count, storer);
   }
 }
 
 template <class ParserT>
-static void parse(CallsDbState &state, ParserT &parser) {
+void MessagesManager::CallsDbState::parse(ParserT &parser) {
+  using td::parse;
   int32 size;
   parse(size, parser);
-  CHECK(static_cast<size_t>(size) <= state.first_calls_database_message_id_by_index.size())
-      << size << " " << state.first_calls_database_message_id_by_index.size();
+  CHECK(static_cast<size_t>(size) <= first_calls_database_message_id_by_index.size())
+      << size << " " << first_calls_database_message_id_by_index.size();
   for (int32 i = 0; i < size; i++) {
-    parse(state.first_calls_database_message_id_by_index[i], parser);
+    parse(first_calls_database_message_id_by_index[i], parser);
   }
   parse(size, parser);
-  CHECK(static_cast<size_t>(size) <= state.message_count_by_index.size());
+  CHECK(static_cast<size_t>(size) <= message_count_by_index.size());
   for (int32 i = 0; i < size; i++) {
-    parse(state.message_count_by_index[i], parser);
+    parse(message_count_by_index[i], parser);
   }
 }
 
@@ -20317,7 +20319,7 @@ void MessagesManager::delete_all_dialog_messages_from_database(DialogId dialog_i
       save_calls_db_state();
     }
   }
-*/
+  */
   G()->td_db()->get_messages_db_async()->delete_all_dialog_messages(dialog_id, message_id, Auto());  // TODO Promise
 }
 
