@@ -97,18 +97,6 @@
 #include <type_traits>
 
 namespace td {
-namespace {
-DbKey as_db_key(string key) {
-  // Database will still be effectively not encrypted, but
-  // 1. sqlite db will be protected from corruption, because that's how sqlcipher works
-  // 2. security through obscurity
-  // 3. no need for reencryption of sqlite db
-  if (key.empty()) {
-    return DbKey::raw_key("cucumber");
-  }
-  return DbKey::raw_key(std::move(key));
-}
-}  // namespace
 
 void Td::ResultHandler::set_td(Td *new_td) {
   CHECK(td == nullptr);
@@ -3208,6 +3196,17 @@ td_api::object_ptr<td_api::AuthorizationState> Td::get_fake_authorization_state_
   }
 }
 
+DbKey Td::as_db_key(string key) {
+  // Database will still be effectively not encrypted, but
+  // 1. sqlite db will be protected from corruption, because that's how sqlcipher works
+  // 2. security through obscurity
+  // 3. no need for reencryption of sqlite db
+  if (key.empty()) {
+    return DbKey::raw_key("cucumber");
+  }
+  return DbKey::raw_key(std::move(key));
+}
+
 void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
   if (id == 0) {
     LOG(ERROR) << "Ignore request with id == 0: " << to_string(function);
@@ -3514,10 +3513,6 @@ void Td::on_connection_state_changed(StateManager::State new_state) {
 void Td::on_authorization_lost() {
   LOG(WARNING) << "on_authorization_lost";
   destroy();
-}
-
-static td_api::object_ptr<td_api::error> make_error(int32 code, CSlice error) {
-  return td_api::make_object<td_api::error>(code, error.str());
 }
 
 void Td::start_up() {

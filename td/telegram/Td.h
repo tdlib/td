@@ -939,11 +939,16 @@ class Td final : public NetQueryCallback {
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getLanguagePackString &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::testSetLogTagVerbosityLevel &request);
 
+  static DbKey as_db_key(string key);
   Status init(DbKey key) TD_WARN_UNUSED_RESULT;
   void clear();
   void close_impl(bool destroy_flag);
-  Status fix_parameters(TdParameters &parameters) TD_WARN_UNUSED_RESULT;
+  static Status fix_parameters(TdParameters &parameters) TD_WARN_UNUSED_RESULT;
   Status set_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters) TD_WARN_UNUSED_RESULT;
+
+  static td_api::object_ptr<td_api::error> make_error(int32 code, CSlice error) {
+    return td_api::make_object<td_api::error>(code, error.str());
+  }
 
   // Actor
   void start_up() override;
