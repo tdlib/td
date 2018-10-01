@@ -1835,6 +1835,32 @@ class MessagesManager : public Actor {
 
   void save_send_message_logevent(DialogId dialog_id, Message *m);
 
+  uint64 save_change_dialog_report_spam_state_on_server_logevent(DialogId dialog_id, bool is_spam_dialog);
+
+  uint64 save_delete_messages_from_server_logevent(DialogId dialog_id, const vector<MessageId> &message_ids,
+                                                   bool revoke);
+
+  uint64 save_delete_dialog_history_from_server_logevent(DialogId dialog_id, MessageId max_message_id,
+                                                         bool remove_from_dialog_list);
+
+  uint64 save_delete_all_channel_messages_from_user_on_server_logevent(ChannelId channel_id, UserId user_id);
+
+  uint64 save_read_all_dialog_mentions_on_server_logevent(DialogId dialog_id);
+
+  uint64 save_toggle_dialog_is_pinned_on_server_logevent(DialogId dialog_id, bool is_pinned);
+
+  uint64 save_reorder_pinned_dialogs_on_server_logevent(const vector<DialogId> &dialog_ids);
+
+  uint64 save_toggle_dialog_is_marked_as_unread_on_server_logevent(DialogId dialog_id, bool is_marked_as_unread);
+
+  uint64 save_read_message_contents_on_server_logevent(DialogId dialog_id, const vector<MessageId> &message_ids);
+
+  uint64 save_update_scope_notification_settings_on_server_logevent(NotificationSettingsScope scope);
+
+  uint64 save_reset_all_notification_settings_on_server_logevent();
+
+  uint64 save_get_dialog_from_server_logevent(DialogId dialog_id);
+
   void suffix_load_loop(Dialog *d);
   void suffix_load_update_first_message_id(Dialog *d);
   void suffix_load_query_ready(DialogId dialog_id);
