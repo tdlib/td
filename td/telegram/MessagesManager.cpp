@@ -5532,6 +5532,12 @@ string MessagesManager::get_notification_settings_scope_database_key(Notificatio
   }
 }
 
+void MessagesManager::save_scope_notification_settings(NotificationSettingsScope scope,
+                                                       const ScopeNotificationSettings &new_settings) {
+  string key = get_notification_settings_scope_database_key(scope);
+  G()->td_db()->get_binlog_pmc()->set(key, log_event_store(new_settings).as_slice().str());
+}
+
 bool MessagesManager::update_dialog_notification_settings(DialogId dialog_id,
                                                           DialogNotificationSettings *current_settings,
                                                           const DialogNotificationSettings &new_settings) {
@@ -5580,8 +5586,7 @@ bool MessagesManager::update_scope_notification_settings(NotificationSettingsSco
                      current_settings->show_preview != new_settings.show_preview;
   bool is_changed = need_update || current_settings->is_synchronized != new_settings.is_synchronized;
   if (is_changed) {
-    string key = get_notification_settings_scope_database_key(scope);
-    G()->td_db()->get_binlog_pmc()->set(key, log_event_store(new_settings).as_slice().str());
+    save_scope_notification_settings(scope, new_settings);
 
     update_scope_unmute_timeout(scope, current_settings->mute_until, new_settings.mute_until);
 
@@ -5746,8 +5751,7 @@ void MessagesManager::on_scope_unmute(NotificationSettingsScope scope) {
   update_scope_unmute_timeout(scope, notification_settings->mute_until, 0);
   notification_settings->mute_until = 0;
   send_closure(G()->td(), &Td::send_update, get_update_scope_notification_settings_object(scope));
-  string key = get_notification_settings_scope_database_key(scope);
-  G()->td_db()->get_binlog_pmc()->set(key, log_event_store(*notification_settings).as_slice().str());
+  save_scope_notification_settings(scope, *notification_settings);
 }
 
 void MessagesManager::on_update_dialog_notify_settings(
@@ -11720,6 +11724,12 @@ void MessagesManager::update_dialog_notification_settings_on_server(DialogId dia
         });
   }
 
+  send_update_dialog_notification_settings_query(dialog_id, std::move(promise));
+}
+
+void MessagesManager::send_update_dialog_notification_settings_query(DialogId dialog_id, Promise<Unit> &&promise) {
+  auto d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
   // TODO do not send two queries simultaneously or use SequenceDispatcher
   td_->create_handler<UpdateDialogNotifySettingsQuery>(std::move(promise))->send(dialog_id, d->notification_settings);
 }
@@ -16660,6 +16670,14 @@ class MessagesManager::ForwardMessagesLogEvent {
   }
 };
 
+uint64 MessagesManager::save_forward_messages_logevent(DialogId to_dialog_id, DialogId from_dialog_id,
+                                                       const vector<Message *> &messages,
+                                                       const vector<MessageId> &message_ids) {
+  ForwardMessagesLogEvent logevent{to_dialog_id, from_dialog_id, message_ids, messages, Auto()};
+  auto storer = LogEventStorerImpl<ForwardMessagesLogEvent>(logevent);
+  return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ForwardMessages, storer);
+}
+
 void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_dialog_id,
                                           const vector<Message *> &messages, const vector<MessageId> &message_ids,
                                           int64 logevent_id) {
@@ -16669,9 +16687,7 @@ void MessagesManager::do_forward_messages(DialogId to_dialog_id, DialogId from_d
   }
 
   if (logevent_id == 0 && G()->parameters().use_message_db) {
-    auto logevent = ForwardMessagesLogEvent{to_dialog_id, from_dialog_id, message_ids, messages, Auto()};
-    auto storer = LogEventStorerImpl<ForwardMessagesLogEvent>(logevent);
-    logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::ForwardMessages, storer);
+    logevent_id = save_forward_messages_logevent(to_dialog_id, from_dialog_id, messages, message_ids);
   }
 
   int32 flags = 0;

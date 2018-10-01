@@ -1521,6 +1521,8 @@ class MessagesManager : public Actor {
 
   static string get_notification_settings_scope_database_key(NotificationSettingsScope scope);
 
+  void save_scope_notification_settings(NotificationSettingsScope scope, const ScopeNotificationSettings &new_settings);
+
   bool update_dialog_notification_settings(DialogId dialog_id, DialogNotificationSettings *current_settings,
                                            const DialogNotificationSettings &new_settings);
 
@@ -1704,6 +1706,8 @@ class MessagesManager : public Actor {
 
   void update_dialog_notification_settings_on_server(DialogId dialog_id, bool from_binlog);
 
+  void send_update_dialog_notification_settings_query(DialogId dialog_id, Promise<Unit> &&promise);
+
   void on_updated_dialog_notification_settings(DialogId dialog_id, uint64 generation);
 
   void update_scope_notification_settings_on_server(NotificationSettingsScope scope, uint64 logevent_id);
@@ -1860,6 +1864,9 @@ class MessagesManager : public Actor {
   uint64 save_reset_all_notification_settings_on_server_logevent();
 
   uint64 save_get_dialog_from_server_logevent(DialogId dialog_id);
+
+  uint64 save_forward_messages_logevent(DialogId to_dialog_id, DialogId from_dialog_id,
+                                        const vector<Message *> &messages, const vector<MessageId> &message_ids);
 
   void suffix_load_loop(Dialog *d);
   void suffix_load_update_first_message_id(Dialog *d);
