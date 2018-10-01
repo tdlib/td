@@ -4120,7 +4120,7 @@ Status Td::init(DbKey key) {
 
   VLOG(td_init) << "Ping datacenter";
   if (!auth_manager_->is_authorized()) {
-    create_handler<GetNearestDcQuery>(Promise<string>())->send();
+    send_get_nearest_dc_query(Promise<string>());
   } else {
     updates_manager_->get_difference("init");
     schedule_get_terms_of_service(0);
@@ -4130,6 +4130,10 @@ Status Td::init(DbKey key) {
 
   state_ = State::Run;
   return Status::OK();
+}
+
+void Td::send_get_nearest_dc_query(Promise<string> promise) {
+  create_handler<GetNearestDcQuery>(std::move(promise))->send();
 }
 
 void Td::send_update(tl_object_ptr<td_api::Update> &&object) {

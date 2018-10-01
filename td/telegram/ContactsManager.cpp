@@ -2290,19 +2290,6 @@ bool ContactsManager::ChannelFull::is_expired() const {
   return expires_at < Time::now();
 }
 
-class ContactsManager::OnChatUpdate {
-  ContactsManager *manager_;
-
- public:
-  explicit OnChatUpdate(ContactsManager *manager) : manager_(manager) {
-  }
-
-  template <class T>
-  void operator()(T &func) const {
-    manager_->on_chat_update(func);
-  }
-};
-
 class ContactsManager::UploadProfilePhotoCallback : public FileManager::UploadCallback {
  public:
   void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) override {
@@ -6462,7 +6449,7 @@ bool ContactsManager::on_update_user_full_bot_info(UserFull *user_full, UserId u
 
 void ContactsManager::on_get_chat(tl_object_ptr<telegram_api::Chat> &&chat) {
   LOG(DEBUG) << "Receive " << to_string(chat);
-  downcast_call(*chat, OnChatUpdate(this));
+  downcast_call(*chat, [this](auto &c) { this->on_chat_update(c); });
 }
 
 void ContactsManager::on_get_chats(vector<tl_object_ptr<telegram_api::Chat>> &&chats) {

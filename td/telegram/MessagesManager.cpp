@@ -76,39 +76,6 @@ void dummyUpdate::store(TlStorerToString &s, const char *field_name) const {
   s.store_class_end();
 }
 
-class updateSentMessage : public telegram_api::Update {
- public:
-  int64 random_id_;
-
-  MessageId message_id_;
-  int32 date_;
-
-  updateSentMessage(int64 random_id, MessageId message_id, int32 date)
-      : random_id_(random_id), message_id_(message_id), date_(date) {
-  }
-
-  static constexpr int32 ID = 1234567890;
-  int32 get_id() const override {
-    return ID;
-  }
-
-  void store(TlStorerUnsafe &s) const override {
-    UNREACHABLE();
-  }
-
-  void store(TlStorerCalcLength &s) const override {
-    UNREACHABLE();
-  }
-
-  void store(TlStorerToString &s, const char *field_name) const override {
-    s.store_class_begin(field_name, "updateSentMessage");
-    s.store_field("random_id_", random_id_);
-    s.store_field("message_id_", message_id_.get());
-    s.store_field("date_", date_);
-    s.store_class_end();
-  }
-};
-
 class GetDialogQuery : public Td::ResultHandler {
   DialogId dialog_id_;
 
@@ -4077,8 +4044,6 @@ MessagesManager::Dialog::~Dialog() {
 }
 
 MessagesManager::MessagesManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
-  //  td_->create_handler<GetDialogListQuery>()->send(2147000000, ServerMessageId(), DialogId(), 5);
-
   upload_media_callback_ = std::make_shared<UploadMediaCallback>();
   upload_thumbnail_callback_ = std::make_shared<UploadThumbnailCallback>();
   upload_dialog_photo_callback_ = std::make_shared<UploadDialogPhotoCallback>();

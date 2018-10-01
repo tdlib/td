@@ -1108,8 +1108,6 @@ class ContactsManager : public Actor {
 
   MultiTimeout user_online_timeout_{"UserOnlineTimeout"};
   MultiTimeout channel_unban_timeout_{"ChannelUnbanTimeout"};
-
-  class OnChatUpdate;
 };
 
 }  // namespace td

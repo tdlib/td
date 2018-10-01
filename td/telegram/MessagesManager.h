@@ -82,6 +82,38 @@ class dummyUpdate : public telegram_api::Update {
   void store(TlStorerToString &s, const char *field_name) const override;
 };
 
+class updateSentMessage : public telegram_api::Update {
+ public:
+  int64 random_id_;
+  MessageId message_id_;
+  int32 date_;
+
+  updateSentMessage(int64 random_id, MessageId message_id, int32 date)
+      : random_id_(random_id), message_id_(message_id), date_(date) {
+  }
+
+  static constexpr int32 ID = 1234567890;
+  int32 get_id() const override {
+    return ID;
+  }
+
+  void store(TlStorerUnsafe &s) const override {
+    UNREACHABLE();
+  }
+
+  void store(TlStorerCalcLength &s) const override {
+    UNREACHABLE();
+  }
+
+  void store(TlStorerToString &s, const char *field_name) const override {
+    s.store_class_begin(field_name, "updateSentMessage");
+    s.store_field("random_id", random_id_);
+    s.store_field("message_id", message_id_.get());
+    s.store_field("date", date_);
+    s.store_class_end();
+  }
+};
+
 class MessagesManager : public Actor {
  public:
   //  static constexpr int32 MESSAGE_FLAG_IS_UNREAD = 1 << 0;
