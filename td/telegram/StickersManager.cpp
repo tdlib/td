@@ -2884,7 +2884,8 @@ vector<int64> StickersManager::get_attached_sticker_sets(FileId file_id, Promise
     promise.set_error(Status::Error(5, "File not found"));
     return {};
   }
-  if (!file_view.has_remote_location() || !file_view.remote_location().is_document() ||
+  if (!file_view.has_remote_location() ||
+      (!file_view.remote_location().is_document() && !file_view.remote_location().is_photo()) ||
       file_view.remote_location().is_web()) {
     promise.set_value(Unit());
     return {};
