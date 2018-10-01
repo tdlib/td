@@ -17,6 +17,7 @@
 #include "td/telegram/td_api.h"
 
 #include "td/actor/actor.h"
+#include "td/actor/PromiseFuture.h"
 #include "td/actor/Timeout.h"
 
 #include "td/utils/buffer.h"
@@ -62,8 +63,6 @@ class VideosManager;
 class VoiceNotesManager;
 class WebPagesManager;
 
-template <class T>
-class Promise;
 }  // namespace td
 
 namespace td {
@@ -306,7 +305,15 @@ class Td final : public NetQueryCallback {
   static int *get_log_verbosity_level(Slice name);
 
   template <class T>
-  Promise<T> create_request_promise(uint64 id);
+  Promise<T> create_request_promise(uint64 id) {
+    return PromiseCreator::lambda([id = id, actor_id = actor_id(this)](Result<T> r_state) {
+      if (r_state.is_error()) {
+        send_closure(actor_id, &Td::send_error, id, r_state.move_as_error());
+      } else {
+        send_closure(actor_id, &Td::send_result, id, r_state.move_as_ok());
+      }
+    });
+  }
 
   Promise<Unit> create_ok_request_promise(uint64 id);
 
@@ -921,7 +928,9 @@ class Td final : public NetQueryCallback {
   void on_request(uint64 id, td_api::testCallVectorStringObject &request);
 
   template <class T>
-  static td_api::object_ptr<td_api::Object> do_static_request(const T &request);
+  static td_api::object_ptr<td_api::Object> do_static_request(const T &request) {
+    return td_api::make_object<td_api::error>(400, "Function can't be executed synchronously");
+  }
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getTextEntities &request);
   static td_api::object_ptr<td_api::Object> do_static_request(td_api::parseTextEntities &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getFileMimeType &request);

@@ -4211,17 +4211,6 @@ void Td::answer_ok_query(uint64 id, Status status) {
   }
 }
 
-template <class T>
-Promise<T> Td::create_request_promise(uint64 id) {
-  return PromiseCreator::lambda([id = id, actor_id = actor_id(this)](Result<T> r_state) {
-    if (r_state.is_error()) {
-      send_closure(actor_id, &Td::send_error, id, r_state.move_as_error());
-    } else {
-      send_closure(actor_id, &Td::send_result, id, r_state.move_as_ok());
-    }
-  });
-}
-
 Promise<Unit> Td::create_ok_request_promise(uint64 id) {
   return PromiseCreator::lambda([id = id, actor_id = actor_id(this)](Result<Unit> result) mutable {
     if (result.is_error()) {
@@ -6712,11 +6701,6 @@ void Td::on_request(uint64 id, const td_api::cleanFileName &request) {
 
 void Td::on_request(uint64 id, const td_api::getLanguagePackString &request) {
   UNREACHABLE();
-}
-
-template <class T>
-td_api::object_ptr<td_api::Object> Td::do_static_request(const T &request) {
-  return make_error(400, "Function can't be executed synchronously");
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getTextEntities &request) {

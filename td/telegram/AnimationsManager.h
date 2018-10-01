@@ -24,8 +24,6 @@
 
 namespace td {
 class Td;
-template <class T>
-class Promise;
 }  // namespace td
 
 namespace td {

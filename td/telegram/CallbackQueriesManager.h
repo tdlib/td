@@ -24,9 +24,6 @@ namespace td {
 
 class Td;
 
-template <class T>
-class Promise;
-
 class CallbackQueriesManager {
  public:
   explicit CallbackQueriesManager(Td *td);
