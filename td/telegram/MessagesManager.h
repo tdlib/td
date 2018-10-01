@@ -642,6 +642,8 @@ class MessagesManager : public Actor {
 
   void send_get_dialog_notification_settings_query(DialogId dialog_id, Promise<Unit> &&promise);
 
+  void send_get_scope_notification_settings_query(NotificationSettingsScope scope, Promise<Unit> &&promise);
+
   void on_get_dialog_notification_settings_query_finished(DialogId dialog_id, Status &&status);
 
   void on_get_dialog_query_finished(DialogId dialog_id, Status &&status);

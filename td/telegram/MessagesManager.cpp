@@ -3126,7 +3126,7 @@ class UpdateScopeNotifySettingsQuery : public Td::ResultHandler {
 
     if (!td->auth_manager_->is_bot()) {
       // trying to repair notification settings for this scope
-      td->create_handler<GetScopeNotifySettingsQuery>(Promise<>())->send(scope_);
+      td->messages_manager_->send_get_scope_notification_settings_query(scope_, Promise<>());
     }
 
     promise_.set_error(std::move(status));
@@ -12279,7 +12279,7 @@ const ScopeNotificationSettings *MessagesManager::get_scope_notification_setting
   const ScopeNotificationSettings *notification_settings = get_scope_notification_settings(scope);
   CHECK(notification_settings != nullptr);
   if (!notification_settings->is_synchronized && !td_->auth_manager_->is_bot()) {
-    td_->create_handler<GetScopeNotifySettingsQuery>(std::move(promise))->send(scope);
+    send_get_scope_notification_settings_query(scope, std::move(promise));
     return nullptr;
   }
 
@@ -18203,6 +18203,11 @@ void MessagesManager::send_get_dialog_notification_settings_query(DialogId dialo
   td_->create_handler<GetDialogNotifySettingsQuery>()->send(dialog_id);
 }
 
+void MessagesManager::send_get_scope_notification_settings_query(NotificationSettingsScope scope,
+                                                                 Promise<Unit> &&promise) {
+  td_->create_handler<GetScopeNotifySettingsQuery>(std::move(promise))->send(scope);
+}
+
 void MessagesManager::on_get_dialog_notification_settings_query_finished(DialogId dialog_id, Status &&status) {
   auto it = get_dialog_notification_settings_queries_.find(dialog_id);
   CHECK(it != get_dialog_notification_settings_queries_.end());
@@ -21518,10 +21523,10 @@ void MessagesManager::load_notification_settings() {
     return;
   }
   if (!users_notification_settings_.is_synchronized) {
-    td_->create_handler<GetScopeNotifySettingsQuery>(Promise<>())->send(NotificationSettingsScope::Private);
+    send_get_scope_notification_settings_query(NotificationSettingsScope::Private, Promise<>());
   }
   if (!chats_notification_settings_.is_synchronized) {
-    td_->create_handler<GetScopeNotifySettingsQuery>(Promise<>())->send(NotificationSettingsScope::Group);
+    send_get_scope_notification_settings_query(NotificationSettingsScope::Group, Promise<>());
   }
 }
 
