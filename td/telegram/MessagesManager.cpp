@@ -186,39 +186,7 @@ class GetPinnedDialogsQuery : public NetActorOnce {
     promise_.set_error(std::move(status));
   }
 };
-/*
-class GetDialogsQuery : public Td::ResultHandler {
-  Promise<Unit> promise_;
 
- public:
-  explicit GetDialogsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(vector<DialogId> &&dialog_ids) {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_getPeerDialogs(
-        td->messages_manager_->get_input_dialog_peers(dialog_ids, AccessRights::Read)))));
-  }
-
-  void on_result(uint64 id, BufferSlice packet) override {
-    auto result_ptr = fetch_result<telegram_api::messages_getPeerDialogs>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
-    }
-
-    auto result = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive chats: " << to_string(result);
-
-    td->contacts_manager_->on_get_chats(std::move(result->chats_));
-    td->contacts_manager_->on_get_users(std::move(result->users_));
-    td->messages_manager_->on_get_dialogs(std::move(result->dialogs_), -1, std::move(result->messages_),
-                                          std::move(promise_));
-  }
-
-  void on_error(uint64 id, Status status) override {
-    promise_.set_error(std::move(status));
-  }
-};
-*/
 class GetDialogUnreadMarksQuery : public Td::ResultHandler {
  public:
   void send() {
