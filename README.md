@@ -62,6 +62,23 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 cmake --build .
 ```
 
+To build `TDLib` on low memory devices you can use [SplitSource.php](https://github.com/tdlib/td/blob/master/SplitSource.php)
+before compiling main `TDLib` source code and compile only needed targets:
+```
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
+cmake --build . --target prepare_cross_compiling
+cd ..
+php SplitSource.php
+cd build
+cmake --build . --target tdjson
+cmake --build . --target tdjson_static
+cd ..
+php SplitSource.php --undo
+```
+In our tests clang 6.0 with libc++ required less than 500MB RAM per file and GCC 6.3 used less than 1GB RAM per file.
+
 <a name="installing-dependencies"></a>
 ### Installing dependencies
 
