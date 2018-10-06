@@ -10690,7 +10690,9 @@ vector<DialogId> MessagesManager::get_pinned_dialogs() const {
   auto it = ordered_dialogs_.begin();
   auto end = ordered_dialogs_.end();
   while (it != end && it->get_date() >= MIN_PINNED_DIALOG_DATE) {
-    result.push_back(it->get_dialog_id());
+    if (it->get_order() != SPONSORED_DIALOG_ORDER) {
+      result.push_back(it->get_dialog_id());
+    }
     ++it;
   }
 
