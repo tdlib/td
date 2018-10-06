@@ -229,7 +229,7 @@ class ServerSocketFdImpl {
       return Status::Error(-1, "Operation would block");
     }
 
-    auto error = Status::PosixError(accept_errno, PSLICE() << "Accept from [fd = " << native_fd << "] has failed");
+    auto error = Status::PosixError(accept_errno, PSLICE() << "Accept from " << get_native_fd() << " has failed");
     switch (accept_errno) {
       case EBADF:
       case EFAULT:

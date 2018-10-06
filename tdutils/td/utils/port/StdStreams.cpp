@@ -127,7 +127,7 @@ class BufferedStdinImpl {
     if (res) {
       return static_cast<size_t>(bytes_read);
     }
-    return OS_ERROR(PSLICE() << "Read from [fd = " << native_fd << "] has failed");
+    return OS_ERROR(PSLICE() << "Read from " << info_.native_fd() << " has failed");
   }
 };
 void BufferedStdinImplDeleter::operator()(BufferedStdinImpl *impl) {

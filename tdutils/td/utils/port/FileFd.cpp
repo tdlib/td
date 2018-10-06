@@ -212,7 +212,7 @@ Result<size_t> FileFd::write(Slice slice) {
   if (success) {
     return narrow_cast<size_t>(bytes_written);
   }
-  return OS_ERROR(PSLICE() << "Write to [fd = " << native_fd << "] has failed");
+  return OS_ERROR(PSLICE() << "Write to " << get_native_fd() << " has failed");
 }
 
 Result<size_t> FileFd::read(MutableSlice slice) {
@@ -232,7 +232,7 @@ Result<size_t> FileFd::read(MutableSlice slice) {
     }
     return static_cast<size_t>(bytes_read);
   }
-  return OS_ERROR(PSLICE() << "Read from [fd = " << native_fd << "] has failed");
+  return OS_ERROR(PSLICE() << "Read from " << get_native_fd() << " has failed");
 }
 
 Result<size_t> FileFd::pwrite(Slice slice, int64 offset) {
@@ -256,7 +256,7 @@ Result<size_t> FileFd::pwrite(Slice slice, int64 offset) {
   if (success) {
     return narrow_cast<size_t>(bytes_written);
   }
-  return OS_ERROR(PSLICE() << "Pwrite to [fd = " << native_fd << "] at [offset = " << offset << "] has failed");
+  return OS_ERROR(PSLICE() << "Pwrite to " << get_native_fd() << " at offset " << offset << " has failed");
 }
 
 Result<size_t> FileFd::pread(MutableSlice slice, int64 offset) const {
@@ -279,7 +279,7 @@ Result<size_t> FileFd::pread(MutableSlice slice, int64 offset) const {
   if (success) {
     return narrow_cast<size_t>(bytes_read);
   }
-  return OS_ERROR(PSLICE() << "Pread from [fd = " << native_fd << "] at [offset = " << offset << "] has failed");
+  return OS_ERROR(PSLICE() << "Pread from " << get_native_fd() << " at offset " << offset << " has failed");
 }
 
 Status FileFd::lock(FileFd::LockFlags flags, int32 max_tries) {

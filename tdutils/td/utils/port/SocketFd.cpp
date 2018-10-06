@@ -361,7 +361,7 @@ class SocketFdImpl {
       return 0;
     }
 
-    auto error = Status::PosixError(write_errno, PSLICE() << "Write to fd " << native_fd << " has failed");
+    auto error = Status::PosixError(write_errno, PSLICE() << "Write to " << get_native_fd() << " has failed");
     switch (write_errno) {
       case EBADF:
       case ENXIO:
@@ -409,7 +409,7 @@ class SocketFdImpl {
       get_poll_info().clear_flags(PollFlags::Read());
       return 0;
     }
-    auto error = Status::PosixError(read_errno, PSLICE() << "Read from fd " << native_fd << " has failed");
+    auto error = Status::PosixError(read_errno, PSLICE() << "Read from " << get_native_fd() << " has failed");
     switch (read_errno) {
       case EISDIR:
       case EBADF:
@@ -453,9 +453,9 @@ Status get_socket_pending_error(const NativeFd &fd) {
     if (error == 0) {
       return Status::OK();
     }
-    return Status::PosixError(error, PSLICE() << "Error on socket [fd_ = " << fd << "]");
+    return Status::PosixError(error, PSLICE() << "Error on socket " << fd);
   }
-  auto status = OS_SOCKET_ERROR(PSLICE() << "Can't load error on socket [fd_ = " << fd << "]");
+  auto status = OS_SOCKET_ERROR(PSLICE() << "Can't load error on socket " << fd);
   LOG(INFO) << "Can't load pending socket error: " << status;
   return status;
 }
