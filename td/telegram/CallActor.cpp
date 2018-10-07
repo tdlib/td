@@ -495,7 +495,7 @@ void CallActor::on_received_query_result(NetQueryPtr net_query) {
 
 //phone.requestCall#5b95b3d4 user_id:InputUser random_id:int g_a_hash:bytes protocol:PhoneCallProtocol = phone.PhoneCall;
 void CallActor::try_send_request_query() {
-  LOG(INFO) << "Try send request query";
+  LOG(INFO) << "Trying to send request query";
   if (!load_dh_config()) {
     return;
   }
@@ -527,7 +527,7 @@ void CallActor::on_request_query_result(NetQueryPtr net_query) {
 
 //phone.acceptCall#3bd2b4a0 peer:InputPhoneCall g_b:bytes protocol:PhoneCallProtocol = phone.PhoneCall;
 void CallActor::try_send_accept_query() {
-  LOG(INFO) << "Try send accept query";
+  LOG(INFO) << "Trying to send accept query";
   if (!load_dh_config()) {
     return;
   }
@@ -555,7 +555,7 @@ void CallActor::on_accept_query_result(NetQueryPtr net_query) {
 
 //phone.confirmCall#2efe1722 peer:InputPhoneCall g_a:bytes key_fingerprint:long protocol:PhoneCallProtocol = phone.PhoneCall;
 void CallActor::try_send_confirm_query() {
-  LOG(INFO) << "Try send confirm query";
+  LOG(INFO) << "Trying to send confirm query";
   if (!load_dh_config()) {
     return;
   }

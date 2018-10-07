@@ -974,7 +974,7 @@ class Master : public Actor {
     LOG(INFO) << "on_send_message_error: " << tag("random_id", random_id) << error;
     auto it = sent_messages_.find(random_id);
     if (it == sent_messages_.end()) {
-      LOG(INFO) << "TODO: try fix errors about message after it is sent";
+      LOG(INFO) << "TODO: try to fix errors about message after it is sent";
       return;
     }
     CHECK(it != sent_messages_.end());
@@ -987,7 +987,7 @@ class Master : public Actor {
     LOG(INFO) << "on_send_message_ok: " << tag("random_id", random_id);
     auto it = sent_messages_.find(random_id);
     if (it == sent_messages_.end()) {
-      LOG(INFO) << "TODO: try fix errors about message after it is sent";
+      LOG(INFO) << "TODO: try to fix errors about message after it is sent";
       return;
     }
     CHECK(it != sent_messages_.end());

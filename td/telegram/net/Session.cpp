@@ -796,7 +796,7 @@ void Session::add_query(NetQueryPtr &&net_query) {
 }
 
 void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_query, uint64 message_id) {
-  net_query->debug("Session: try send to mtproto::connection");
+  net_query->debug("Session: trying to send to mtproto::connection");
   CHECK(info->state == ConnectionInfo::State::Ready);
   current_info_ = info;
 

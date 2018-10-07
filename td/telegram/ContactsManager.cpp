@@ -5357,7 +5357,7 @@ ContactsManager::User *ContactsManager::get_user_force_impl(UserId user_id) {
     return nullptr;
   }
 
-  LOG(INFO) << "Try load " << user_id << " from database";
+  LOG(INFO) << "Trying to load " << user_id << " from database";
   on_load_user_from_database(user_id, G()->td_db()->get_sqlite_sync_pmc()->get(get_user_database_key(user_id)));
   return get_user(user_id);
 }
@@ -5580,7 +5580,7 @@ ContactsManager::Chat *ContactsManager::get_chat_force(ChatId chat_id) {
     return nullptr;
   }
 
-  LOG(INFO) << "Try load " << chat_id << " from database";
+  LOG(INFO) << "Trying to load " << chat_id << " from database";
   on_load_chat_from_database(chat_id, G()->td_db()->get_sqlite_sync_pmc()->get(get_chat_database_key(chat_id)));
   return get_chat(chat_id);
 }
@@ -5801,7 +5801,7 @@ ContactsManager::Channel *ContactsManager::get_channel_force(ChannelId channel_i
     return nullptr;
   }
 
-  LOG(INFO) << "Try load " << channel_id << " from database";
+  LOG(INFO) << "Trying to load " << channel_id << " from database";
   on_load_channel_from_database(channel_id,
                                 G()->td_db()->get_sqlite_sync_pmc()->get(get_channel_database_key(channel_id)));
   return get_channel(channel_id);
@@ -6028,7 +6028,7 @@ ContactsManager::SecretChat *ContactsManager::get_secret_chat_force(SecretChatId
     return nullptr;
   }
 
-  LOG(INFO) << "Try load " << secret_chat_id << " from database";
+  LOG(INFO) << "Trying to load " << secret_chat_id << " from database";
   on_load_secret_chat_from_database(
       secret_chat_id, G()->td_db()->get_sqlite_sync_pmc()->get(get_secret_chat_database_key(secret_chat_id)));
   return get_secret_chat(secret_chat_id);

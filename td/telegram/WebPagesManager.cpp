@@ -2766,7 +2766,7 @@ WebPagesManager::WebPage *WebPagesManager::get_web_page_force(WebPageId web_page
     return nullptr;
   }
 
-  LOG(INFO) << "Try load " << web_page_id << " from database";
+  LOG(INFO) << "Trying to load " << web_page_id << " from database";
   on_load_web_page_from_database(web_page_id,
                                  G()->td_db()->get_sqlite_sync_pmc()->get(get_web_page_database_key(web_page_id)));
   return get_web_page(web_page_id);
