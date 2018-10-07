@@ -5614,7 +5614,7 @@ void MessagesManager::update_dialog_unmute_timeout(Dialog *d, bool old_use_defau
     dialog_unmute_timeout_.cancel_timeout(d->dialog_id.get());
   }
 
-  if (old_mute_until != -1 && d->order != DEFAULT_ORDER &&
+  if (old_mute_until != -1 && need_unread_counter(d->order) &&
       (is_message_unread_count_inited_ || is_dialog_unread_count_inited_)) {
     auto unread_count = d->server_unread_count + d->local_unread_count;
     if (unread_count != 0 || d->is_marked_as_unread) {
@@ -5669,7 +5669,7 @@ void MessagesManager::update_scope_unmute_timeout(NotificationSettingsScope scop
       int32 marked_count = 0;
       for (auto &dialog : dialogs_) {
         Dialog *d = dialog.second.get();
-        if (d->order != DEFAULT_ORDER && d->notification_settings.use_default_mute_until &&
+        if (need_unread_counter(d->order) && d->notification_settings.use_default_mute_until &&
             get_dialog_notification_setting_scope(d->dialog_id) == scope) {
           int32 unread_count = d->server_unread_count + d->local_unread_count;
           if (unread_count != 0) {
@@ -6433,7 +6433,7 @@ void MessagesManager::after_get_difference() {
   load_notification_settings();
 
   // TODO move to ContactsManager or delete after users will become persistent
-  td_->contacts_manager_->get_user(td_->contacts_manager_->get_my_id("after_get_difference"), false, Promise<Unit>());
+  td_->contacts_manager_->get_user(td_->contacts_manager_->get_my_id("after_get_difference"), 3, Promise<Unit>());
 
   // TODO resend some messages
 }
@@ -8049,6 +8049,10 @@ void MessagesManager::read_history_outbox(DialogId dialog_id, MessageId max_mess
   }
 }
 
+bool MessagesManager::need_unread_counter(int64 dialog_order) {
+  return dialog_order != DEFAULT_ORDER;
+}
+
 void MessagesManager::recalc_unread_count() {
   if (td_->auth_manager_->is_bot() || !need_unread_count_recalc_) {
     return;
@@ -8068,7 +8072,7 @@ void MessagesManager::recalc_unread_count() {
     Dialog *d = get_dialog(dialog_id);
     CHECK(d != nullptr);
     int unread_count = d->server_unread_count + d->local_unread_count;
-    if (d->order != DEFAULT_ORDER && (unread_count > 0 || d->is_marked_as_unread)) {
+    if (need_unread_counter(d->order) && (unread_count > 0 || d->is_marked_as_unread)) {
       total_count += unread_count;
       dialog_total_count++;
       if (unread_count == 0 && d->is_marked_as_unread) {
@@ -8124,7 +8128,7 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
   d->local_unread_count = local_unread_count;
   int32 new_unread_count = d->server_unread_count + d->local_unread_count;
   int32 delta = new_unread_count - old_unread_count;
-  if (delta != 0 && d->order != DEFAULT_ORDER && is_message_unread_count_inited_) {
+  if (delta != 0 && need_unread_counter(d->order) && is_message_unread_count_inited_) {
     unread_message_total_count_ += delta;
     if (is_dialog_muted(d)) {
       unread_message_muted_count_ += delta;
@@ -8132,7 +8136,7 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
     send_update_unread_message_count(d->dialog_id, force_update, source);
   }
   delta = static_cast<int32>(new_unread_count != 0) - static_cast<int32>(old_unread_count != 0);
-  if (delta != 0 && d->order != DEFAULT_ORDER && is_dialog_unread_count_inited_) {
+  if (delta != 0 && need_unread_counter(d->order) && is_dialog_unread_count_inited_) {
     if (d->is_marked_as_unread) {
       unread_dialog_marked_count_ -= delta;
     } else {
@@ -18064,7 +18068,7 @@ void MessagesManager::set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_a
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateChatIsMarkedAsUnread>(d->dialog_id.get(), is_marked_as_unread));
 
-  if (d->server_unread_count + d->local_unread_count == 0 && d->order != DEFAULT_ORDER &&
+  if (d->server_unread_count + d->local_unread_count == 0 && need_unread_counter(d->order) &&
       is_dialog_unread_count_inited_) {
     int32 delta = d->is_marked_as_unread ? 1 : -1;
     unread_dialog_total_count_ += delta;
@@ -21344,16 +21348,18 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
   bool add_to_hints = (d->order == DEFAULT_ORDER);
   bool was_sponsored = (d->order == SPONSORED_DIALOG_ORDER);
   bool is_sponsored = (new_order == SPONSORED_DIALOG_ORDER);
+  bool had_unread_counter = need_unread_counter(d->order);
+  bool has_unread_counter = need_unread_counter(new_order);
 
-  if (!is_new && (d->order == DEFAULT_ORDER || new_order == DEFAULT_ORDER)) {
+  if (!is_new && had_unread_counter != has_unread_counter) {
     auto unread_count = d->server_unread_count + d->local_unread_count;
     if (unread_count != 0 && is_message_unread_count_inited_) {
       const char *source = "on_dialog_join";
-      if (d->order != DEFAULT_ORDER) {
+      if (had_unread_counter) {
         unread_count = -unread_count;
         source = "on_dialog_leave";
       } else {
-        CHECK(new_order != DEFAULT_ORDER);
+        CHECK(has_unread_counter);
       }
 
       unread_message_total_count_ += unread_count;
@@ -21365,11 +21371,11 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
     if ((unread_count != 0 || d->is_marked_as_unread) && is_dialog_unread_count_inited_) {
       const char *source = "on_dialog_join";
       int delta = 1;
-      if (d->order != DEFAULT_ORDER) {
+      if (had_unread_counter) {
         delta = -1;
         source = "on_dialog_leave";
       } else {
-        CHECK(new_order != DEFAULT_ORDER);
+        CHECK(has_unread_counter);
       }
 
       unread_dialog_total_count_ += delta;
@@ -21385,7 +21391,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
       send_update_unread_chat_count(d->dialog_id, true, source);
     }
 
-    if (d->dialog_id.get_type() == DialogType::Channel && d->order == DEFAULT_ORDER) {
+    if (d->dialog_id.get_type() == DialogType::Channel && has_unread_counter) {
       repair_channel_server_unread_count(d);
     }
   }
@@ -21488,7 +21494,7 @@ MessagesManager::Dialog *MessagesManager::get_dialog_force(DialogId dialog_id) {
 }
 
 unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialog_id, const BufferSlice &value) {
-  LOG(INFO) << "Loaded " << dialog_id << " from database";
+  LOG(INFO) << "Loaded " << dialog_id << " of size " << value.size() << " from database";
   auto d = make_unique<Dialog>();
   std::fill(d->message_count_by_index.begin(), d->message_count_by_index.end(), -1);
 

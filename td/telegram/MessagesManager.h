@@ -1479,6 +1479,8 @@ class MessagesManager : public Actor {
 
   vector<DialogId> get_peers_dialog_ids(vector<tl_object_ptr<telegram_api::Peer>> &&peers);
 
+  static bool need_unread_counter(int64 dialog_order);
+
   void recalc_unread_count();
 
   void set_dialog_last_read_inbox_message_id(Dialog *d, MessageId message_id, int32 server_unread_count,
