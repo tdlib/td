@@ -17210,6 +17210,8 @@ void MessagesManager::send_update_new_message(Dialog *d, const Message *m, bool 
   CHECK(d != nullptr);
   CHECK(m != nullptr);
 
+  LOG(INFO) << "Trying to " << (force ? "forcely " : "") << "send updateNewMessage for " << m->message_id << " in "
+            << d->dialog_id;
   DialogId my_dialog_id(td_->contacts_manager_->get_my_id("send_update_new_message"));
   bool disable_notification =
       m->disable_notification || m->is_outgoing || d->dialog_id == my_dialog_id || td_->auth_manager_->is_bot();
@@ -17244,17 +17246,20 @@ void MessagesManager::send_update_new_message(Dialog *d, const Message *m, bool 
   }
 
   if (!force && (!have_settings || !d->pending_update_new_messages.empty())) {
-    LOG(INFO) << "Delay update new message for " << m->message_id << " in " << d->dialog_id;
+    LOG(INFO) << "Delay update new message for " << m->message_id << " in " << d->dialog_id << " with "
+              << d->pending_update_new_messages.size() << " already waiting messages";
     if (d->pending_update_new_messages.empty()) {
       create_actor<SleepActor>(
           "FlushPendingUpdateNewMessagesSleepActor", 5.0,
           PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = d->dialog_id](Result<Unit> result) {
+            LOG(INFO) << "Flush pending updateNewMessages in " << dialog_id << " by timeout";
             send_closure(actor_id, &MessagesManager::flush_pending_update_new_messages, dialog_id);
           }))
           .release();
     }
     d->pending_update_new_messages.push_back(m->message_id);
     auto promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = d->dialog_id](Result<Unit> result) {
+      LOG(INFO) << "Flush pending updateNewMessages in " << dialog_id << " because of received notification settings";
       send_closure(actor_id, &MessagesManager::flush_pending_update_new_messages, dialog_id);
     });
     if (settings_dialog == nullptr && have_input_peer(settings_dialog_id, AccessRights::Read)) {
@@ -17269,7 +17274,9 @@ void MessagesManager::send_update_new_message(Dialog *d, const Message *m, bool 
     return;
   }
 
-  LOG_IF(WARNING, !have_settings) << "Have no notification settings for " << settings_dialog_id;
+  LOG_IF(WARNING, !have_settings) << "Have no notification settings for " << settings_dialog_id
+                                  << ", but forced to send updateNewMessage for " << m->message_id << " in "
+                                  << d->dialog_id;
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateNewMessage>(get_message_object(d->dialog_id, m), disable_notification,
                                                         m->contains_mention));
@@ -18226,12 +18233,15 @@ DialogId MessagesManager::search_public_dialog(const string &username_to_search,
 
 void MessagesManager::send_get_dialog_notification_settings_query(DialogId dialog_id, Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot() || dialog_id.get_type() == DialogType::SecretChat) {
+    LOG(WARNING) << "Can't get notification settings for " << dialog_id;
     return promise.set_error(Status::Error(500, "Wrong getDialogNotificationSettings query"));
   }
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    LOG(WARNING) << "Have no access to " << dialog_id << " to get notification settings";
     return promise.set_error(Status::Error(400, "Can't access the chat"));
   }
 
+  LOG(INFO) << "Send GetDialogNotifySettingsQuery for " << dialog_id;
   auto &promises = get_dialog_notification_settings_queries_[dialog_id];
   promises.push_back(std::move(promise));
   if (promises.size() != 1) {
