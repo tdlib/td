@@ -530,7 +530,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
     for (auto ptr = query.ubegin(), end = query.uend(); ptr < end;) {
       uint32 code;
       auto code_ptr = ptr;
-      ptr = next_utf8_unsafe(ptr, &code);
+      ptr = next_utf8_unsafe(ptr, &code, "prepare_query");
       if (is_word_character(code)) {
         if (!in_word) {
           in_word = true;

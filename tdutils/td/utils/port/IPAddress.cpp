@@ -50,7 +50,7 @@ static void punycode(string &result, Slice part) {
   auto end = part.uend();
   while (begin != end) {
     uint32 code;
-    begin = next_utf8_unsafe(begin, &code);
+    begin = next_utf8_unsafe(begin, &code, "punycode");
     if (code <= 127u) {
       result += to_lower(static_cast<char>(code));
       processed++;

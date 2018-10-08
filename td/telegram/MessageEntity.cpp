@@ -189,7 +189,7 @@ static vector<Slice> match_mentions(Slice str) {
 
     if (ptr != begin) {
       uint32 prev;
-      next_utf8_unsafe(prev_utf8_unsafe(ptr), &prev);
+      next_utf8_unsafe(prev_utf8_unsafe(ptr), &prev, "match_mentions");
 
       if (is_word_character(prev)) {
         ptr++;
@@ -207,7 +207,7 @@ static vector<Slice> match_mentions(Slice str) {
     }
     uint32 next = 0;
     if (ptr != end) {
-      next_utf8_unsafe(ptr, &next);
+      next_utf8_unsafe(ptr, &next, "match_mentions 2");
     }
     if (is_word_character(next)) {
       continue;
@@ -233,7 +233,7 @@ static vector<Slice> match_bot_commands(Slice str) {
 
     if (ptr != begin) {
       uint32 prev;
-      next_utf8_unsafe(prev_utf8_unsafe(ptr), &prev);
+      next_utf8_unsafe(prev_utf8_unsafe(ptr), &prev, "match_bot_commands");
 
       if (is_word_character(prev) || prev == '/' || prev == '<' || prev == '>') {
         ptr++;
@@ -266,7 +266,7 @@ static vector<Slice> match_bot_commands(Slice str) {
 
     uint32 next = 0;
     if (ptr != end) {
-      next_utf8_unsafe(ptr, &next);
+      next_utf8_unsafe(ptr, &next, "match_bot_commands 2");
     }
     if (is_word_character(next) || next == '/' || next == '<' || next == '>') {
       continue;
@@ -309,7 +309,7 @@ static vector<Slice> match_hashtags(Slice str) {
 
     if (ptr != begin) {
       uint32 prev;
-      next_utf8_unsafe(prev_utf8_unsafe(ptr), &prev);
+      next_utf8_unsafe(prev_utf8_unsafe(ptr), &prev, "match_hashtags");
 
       if (is_hashtag_letter(prev, category)) {
         ptr++;
@@ -322,7 +322,7 @@ static vector<Slice> match_hashtags(Slice str) {
     bool was_letter = false;
     while (ptr != end) {
       uint32 code;
-      auto next_ptr = next_utf8_unsafe(ptr, &code);
+      auto next_ptr = next_utf8_unsafe(ptr, &code, "match_hashtags 2");
       if (!is_hashtag_letter(code, category)) {
         break;
       }
@@ -370,7 +370,7 @@ static vector<Slice> match_cashtags(Slice str) {
 
     if (ptr != begin) {
       uint32 prev;
-      next_utf8_unsafe(prev_utf8_unsafe(ptr), &prev);
+      next_utf8_unsafe(prev_utf8_unsafe(ptr), &prev, "match_cashtags");
 
       if (is_hashtag_letter(prev, category) || prev == '$') {
         ptr++;
@@ -390,7 +390,7 @@ static vector<Slice> match_cashtags(Slice str) {
 
     if (cashtag_end != end) {
       uint32 code;
-      next_utf8_unsafe(ptr, &code);
+      next_utf8_unsafe(ptr, &code, "match_cashtags 2");
       if (is_hashtag_letter(code, category) || code == '$') {
         continue;
       }
@@ -480,7 +480,7 @@ static vector<Slice> match_urls(Slice str) {
     const unsigned char *domain_end_ptr = begin + dot_pos;
     while (domain_end_ptr != end) {
       uint32 code = 0;
-      auto next_ptr = next_utf8_unsafe(domain_end_ptr, &code);
+      auto next_ptr = next_utf8_unsafe(domain_end_ptr, &code, "match_urls");
       if (code == '@') {
         last_at_ptr = domain_end_ptr;
       }
@@ -492,7 +492,7 @@ static vector<Slice> match_urls(Slice str) {
     domain_end_ptr = last_at_ptr == nullptr ? begin + dot_pos : last_at_ptr + 1;
     while (domain_end_ptr != end) {
       uint32 code = 0;
-      auto next_ptr = next_utf8_unsafe(domain_end_ptr, &code);
+      auto next_ptr = next_utf8_unsafe(domain_end_ptr, &code, "match_urls 2");
       if (!is_domain_symbol(code)) {
         break;
       }
@@ -503,7 +503,7 @@ static vector<Slice> match_urls(Slice str) {
     while (domain_begin_ptr != begin) {
       domain_begin_ptr = prev_utf8_unsafe(domain_begin_ptr);
       uint32 code = 0;
-      auto next_ptr = next_utf8_unsafe(domain_begin_ptr, &code);
+      auto next_ptr = next_utf8_unsafe(domain_begin_ptr, &code, "match_urls 3");
       if (last_at_ptr == nullptr ? !is_domain_symbol(code) : !is_user_data_symbol(code)) {
         domain_begin_ptr = next_ptr;
         break;
@@ -534,7 +534,7 @@ static vector<Slice> match_urls(Slice str) {
       auto path_end_ptr = url_end_ptr + 1;
       while (path_end_ptr != end) {
         uint32 code = 0;
-        auto next_ptr = next_utf8_unsafe(path_end_ptr, &code);
+        auto next_ptr = next_utf8_unsafe(path_end_ptr, &code, "match_urls 4");
         if (!is_path_symbol(code)) {
           break;
         }
@@ -559,7 +559,7 @@ static vector<Slice> match_urls(Slice str) {
       while (user_data_begin_ptr != begin) {
         user_data_begin_ptr = prev_utf8_unsafe(user_data_begin_ptr);
         uint32 code = 0;
-        auto next_ptr = next_utf8_unsafe(user_data_begin_ptr, &code);
+        auto next_ptr = next_utf8_unsafe(user_data_begin_ptr, &code, "match_urls 5");
         if (!is_user_data_symbol(code)) {
           user_data_begin_ptr = next_ptr;
           break;
@@ -579,7 +579,7 @@ static vector<Slice> match_urls(Slice str) {
         while (protocol_begin_ptr != begin) {
           protocol_begin_ptr = prev_utf8_unsafe(protocol_begin_ptr);
           uint32 code = 0;
-          auto next_ptr = next_utf8_unsafe(protocol_begin_ptr, &code);
+          auto next_ptr = next_utf8_unsafe(protocol_begin_ptr, &code, "match_urls 6");
           if (!is_protocol_symbol(code)) {
             protocol_begin_ptr = next_ptr;
             break;
@@ -601,7 +601,7 @@ static vector<Slice> match_urls(Slice str) {
         auto prefix_end = prefix.uend();
         auto prefix_back = prev_utf8_unsafe(prefix_end);
         uint32 code = 0;
-        next_utf8_unsafe(prefix_back, &code);
+        next_utf8_unsafe(prefix_back, &code, "match_urls 7");
         if (is_word_character(code) || code == '/' || code == '#' || code == '@') {
           is_bad = true;
         }
@@ -1117,7 +1117,7 @@ vector<MessageEntity> find_entities(Slice text, bool skip_bot_commands, bool onl
     while (ptr != end && cnt > 0) {
       unsigned char c = ptr[0];
       utf16_pos += 1 + (c >= 0xf0);
-      ptr = next_utf8_unsafe(ptr, nullptr);
+      ptr = next_utf8_unsafe(ptr, nullptr, "match_urls 8");
 
       pos = static_cast<int32>(ptr - begin);
       if (entity_begin == pos) {

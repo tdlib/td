@@ -41,7 +41,7 @@ vector<string> Hints::get_words(Slice name) {
   auto end = name.uend();
   while (pos != end) {
     uint32 code;
-    pos = next_utf8_unsafe(pos, &code);
+    pos = next_utf8_unsafe(pos, &code, "get_words");
 
     code = prepare_search_character(code);
     if (code == 0) {

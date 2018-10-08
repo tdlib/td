@@ -22083,14 +22083,14 @@ void MessagesManager::update_used_hashtags(DialogId dialog_id, const Message *m)
     }
     while (utf16_pos < entity.offset && ptr < end) {
       utf16_pos += 1 + (ptr[0] >= 0xf0);
-      ptr = next_utf8_unsafe(ptr, nullptr);
+      ptr = next_utf8_unsafe(ptr, nullptr, "update_used_hashtags");
     }
     CHECK(utf16_pos == entity.offset);
     auto from = ptr;
 
     while (utf16_pos < entity.offset + entity.length && ptr < end) {
       utf16_pos += 1 + (ptr[0] >= 0xf0);
-      ptr = next_utf8_unsafe(ptr, nullptr);
+      ptr = next_utf8_unsafe(ptr, nullptr, "update_used_hashtags 2");
     }
     CHECK(utf16_pos == entity.offset + entity.length);
     auto to = ptr;
