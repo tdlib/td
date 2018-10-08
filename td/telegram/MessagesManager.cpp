@@ -22135,7 +22135,7 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
   }
 
   auto can_send_status = can_send_message(dialog_id);
-  if (can_send_status.is_ok() && result_message->send_date < now - MAX_RESEND_DELAY) {
+  if (can_send_status.is_ok() && result_message->send_date < now - MAX_RESEND_DELAY && dialog_id != get_my_dialog_id()) {
     can_send_status = Status::Error(400, "Message is too old to be re-sent automatically");
   }
   if (can_send_status.is_error()) {
@@ -22318,7 +22318,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
 
         if (!have_input_peer(from_dialog_id, AccessRights::Read) || can_send_message(to_dialog_id).is_error() ||
-            messages.empty() || messages[0]->send_date < now - MAX_RESEND_DELAY) {
+            messages.empty() || (messages[0]->send_date < now - MAX_RESEND_DELAY && to_dialog_id != get_my_dialog_id())) {
           LOG(WARNING) << "Can't continue forwarding " << messages.size() << " message(s) to " << to_dialog_id;
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
