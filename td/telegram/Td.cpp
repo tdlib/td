@@ -3854,11 +3854,13 @@ Status Td::init(DbKey key) {
 
   VLOG(td_init) << "Begin to init database";
   TdDb::Events events;
-  TRY_RESULT(td_db,
-             TdDb::open(min(current_scheduler_id + 1, scheduler_count - 1), parameters_, std::move(key), events));
+  auto r_td_db = TdDb::open(min(current_scheduler_id + 1, scheduler_count - 1), parameters_, std::move(key), events);
+  if (r_td_db.is_error()) {
+    return Status::Error(400, r_td_db.error().message());
+  }
   LOG(INFO) << "Successfully inited database in " << tag("database_directory", parameters_.database_directory)
             << " and " << tag("files_directory", parameters_.files_directory);
-  G()->init(parameters_, actor_id(this), std::move(td_db)).ensure();
+  G()->init(parameters_, actor_id(this), r_td_db.move_as_ok()).ensure();
 
   // Init all managers and actors
   VLOG(td_init) << "Create StateManager";

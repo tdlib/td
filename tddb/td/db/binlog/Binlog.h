@@ -132,7 +132,7 @@ class Binlog {
 
   static constexpr uint32 MAX_EVENT_SIZE = 65536;
 
-  Result<FileFd> open_binlog(CSlice path, int32 flags);
+  Result<FileFd> open_binlog(const string &path, int32 flags);
   size_t flush_events_buffer(bool force);
   void do_add_event(BinlogEvent &&event);
   void do_event(BinlogEvent &&event);

@@ -713,10 +713,10 @@ class CliClient final : public Actor {
       return;
     }
 
+    LOG(WARNING) << "Creating new TD " << name << " with generation " << generation_ + 1;
     class TdCallbackImpl : public TdCallback {
      public:
       TdCallbackImpl(CliClient *client, uint64 generation) : client_(client), generation_(generation) {
-        LOG(WARNING) << "Creating new TD with generation " << generation;
       }
       void on_result(uint64 id, tl_object_ptr<td_api::Object> result) override {
         client_->on_result(generation_, id, std::move(result));

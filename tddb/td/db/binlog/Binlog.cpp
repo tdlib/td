@@ -170,9 +170,9 @@ Binlog::~Binlog() {
   close().ignore();
 }
 
-Result<FileFd> Binlog::open_binlog(CSlice path, int32 flags) {
+Result<FileFd> Binlog::open_binlog(const string &path, int32 flags) {
   TRY_RESULT(fd, FileFd::open(path, flags));
-  TRY_STATUS(fd.lock(FileFd::LockFlags::Write, 100));
+  TRY_STATUS(fd.lock(FileFd::LockFlags::Write, path, 100));
   return std::move(fd);
 }
 
@@ -280,17 +280,17 @@ Status Binlog::close(bool need_sync) {
   if (fd_.empty()) {
     return Status::OK();
   }
-  SCOPE_EXIT {
-    path_ = "";
-    info_.is_opened = false;
-    fd_.close();
-    need_sync_ = false;
-  };
   if (need_sync) {
     sync();
   } else {
     flush();
   }
+
+  fd_.lock(FileFd::LockFlags::Unlock, path_, 1).ensure();
+  fd_.close();
+  path_.clear();
+  info_.is_opened = false;
+  need_sync_ = false;
   return Status::OK();
 }
 
@@ -618,7 +618,7 @@ void Binlog::do_reindex() {
     LOG(ERROR) << "Can't open new binlog for regenerate: " << r_opened_file.error();
     return;
   }
-  fd_.close();
+  auto old_fd = std::move(fd_);  // can't close fd_ now, because it will release file lock
   fd_ = BufferedFdBase<FileFd>(r_opened_file.move_as_ok());
 
   buffer_writer_ = ChainBufferWriter();
@@ -639,7 +639,9 @@ void Binlog::do_reindex() {
   // finish_reindex
   auto status = unlink(path_);
   LOG_IF(FATAL, status.is_error()) << "Failed to unlink old binlog: " << status;
+  old_fd.close();  // now we can close old file and release the system lock
   status = rename(new_path, path_);
+  FileFd::remove_local_lock(new_path);  // now we can release local lock for temporary file
   LOG_IF(FATAL, status.is_error()) << "Failed to rename binlog: " << status;
 
   auto finish_time = Clocks::monotonic();

@@ -21,6 +21,8 @@
 #include "td/utils/StringBuilder.h"
 
 #include <cstring>
+#include <mutex>
+#include <unordered_set>
 
 #if TD_PORT_POSIX
 #include <fcntl.h>
@@ -282,10 +284,48 @@ Result<size_t> FileFd::pread(MutableSlice slice, int64 offset) const {
   return OS_ERROR(PSLICE() << "Pread from " << get_native_fd() << " at offset " << offset << " has failed");
 }
 
-Status FileFd::lock(FileFd::LockFlags flags, int32 max_tries) {
+static std::mutex in_process_lock_mutex;
+static std::unordered_set<string> locked_files;
+
+Status FileFd::lock(const LockFlags flags, const string &path, int32 max_tries) {
   if (max_tries <= 0) {
     return Status::Error(0, "Can't lock file: wrong max_tries");
   }
+
+  bool need_local_unlock = false;
+  if (!path.empty()) {
+    if (flags == LockFlags::Unlock) {
+      need_local_unlock = true;
+    } else if (flags == LockFlags::Read) {
+      LOG(FATAL) << "Local locking in Read mode is unsupported";
+    } else {
+      CHECK(flags == LockFlags::Write);
+      VLOG(fd) << "Trying to lock file \"" << path << '"';
+      while (true) {
+        std::unique_lock<std::mutex> lock(in_process_lock_mutex);
+        if (locked_files.find(path) != locked_files.end()) {
+          if (--max_tries > 0) {
+            usleep_for(100000);
+            continue;
+          }
+
+          return Status::Error(
+              0, PSLICE() << "Can't lock file \"" << path << "\", because it is already in use by current program");
+        }
+
+        VLOG(fd) << "Lock file \"" << path << '"';
+        need_local_unlock = true;
+        locked_files.insert(path);
+        break;
+      }
+    }
+  }
+  SCOPE_EXIT {
+    if (need_local_unlock) {
+      remove_local_lock(path);
+    }
+  };
+
 #if TD_PORT_POSIX
   auto native_fd = get_native_fd().fd();
 #elif TD_PORT_WINDOWS
@@ -337,12 +377,28 @@ Status FileFd::lock(FileFd::LockFlags flags, int32 max_tries) {
           continue;
         }
 
-        return OS_ERROR("Can't lock file because it is already in use; check for another program instance running");
+        return OS_ERROR(PSLICE() << "Can't lock file \"" << path
+                                 << "\", because it is already in use; check for another program instance running");
       }
 
       return OS_ERROR("Can't lock file");
     }
-    return Status::OK();
+
+    break;
+  }
+
+  if (flags == LockFlags::Write) {
+    need_local_unlock = false;
+  }
+  return Status::OK();
+}
+
+void FileFd::remove_local_lock(const string &path) {
+  if (!path.empty()) {
+    VLOG(fd) << "Unlock file \"" << path << '"';
+    std::unique_lock<std::mutex> lock(in_process_lock_mutex);
+    auto erased = locked_files.erase(path);
+    CHECK(erased > 0);
   }
 }
 
