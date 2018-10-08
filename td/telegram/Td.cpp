@@ -502,7 +502,8 @@ class TestQuery : public Td::ResultHandler {
   }
 
   void send() {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::help_getConfig())));
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::help_getConfig()), DcId::main(),
+                                               NetQuery::Type::Common, NetQuery::AuthFlag::Off));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
