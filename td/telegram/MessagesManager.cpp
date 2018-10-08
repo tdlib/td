@@ -775,6 +775,7 @@ class SaveDraftMessageQuery : public Td::ResultHandler {
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       LOG(INFO) << "Can't update draft message because have no write access to " << dialog_id;
+      on_error(0, Status::Error(500, "Can't save draft message"));
       return;
     }
 
@@ -872,6 +873,7 @@ class ToggleDialogPinQuery : public Td::ResultHandler {
     is_pinned_ = is_pinned;
     auto input_peer = td->messages_manager_->get_input_dialog_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
+      on_error(0, Status::Error(500, "Can't update dialog is_pinned"));
       return;
     }
 
@@ -955,6 +957,7 @@ class ToggleDialogUnreadMarkQuery : public Td::ResultHandler {
     is_marked_as_unread_ = is_marked_as_unread;
     auto input_peer = td->messages_manager_->get_input_dialog_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
+      on_error(0, Status::Error(500, "Can't update dialog is_marked_as_unread"));
       return;
     }
 
@@ -998,6 +1001,7 @@ class GetMessagesViewsQuery : public Td::ResultHandler {
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
     if (input_peer == nullptr) {
       LOG(ERROR) << "Can't update message views because doesn't have info about the " << dialog_id;
+      on_error(0, Status::Error(500, "Can't update message views"));
       return;
     }
 
@@ -1085,6 +1089,7 @@ class ReadChannelMessagesContentsQuery : public Td::ResultHandler {
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     if (input_channel == nullptr) {
       LOG(ERROR) << "Have no input channel for " << channel_id;
+      on_error(0, Status::Error(500, "Can't read channel message contents"));
       return;
     }
 
@@ -3036,6 +3041,7 @@ class UpdateDialogNotifySettingsQuery : public Td::ResultHandler {
   void send(DialogId dialog_id, const DialogNotificationSettings &new_settings) {
     auto input_notify_peer = td->messages_manager_->get_input_notify_peer(dialog_id);
     if (input_notify_peer == nullptr) {
+      on_error(0, Status::Error(500, "Can't update chat notification settings"));
       return;
     }
     int32 flags = 0;
@@ -22135,7 +22141,8 @@ MessagesManager::Message *MessagesManager::continue_send_message(DialogId dialog
   }
 
   auto can_send_status = can_send_message(dialog_id);
-  if (can_send_status.is_ok() && result_message->send_date < now - MAX_RESEND_DELAY && dialog_id != get_my_dialog_id()) {
+  if (can_send_status.is_ok() && result_message->send_date < now - MAX_RESEND_DELAY &&
+      dialog_id != get_my_dialog_id()) {
     can_send_status = Status::Error(400, "Message is too old to be re-sent automatically");
   }
   if (can_send_status.is_error()) {
@@ -22318,7 +22325,8 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
 
         if (!have_input_peer(from_dialog_id, AccessRights::Read) || can_send_message(to_dialog_id).is_error() ||
-            messages.empty() || (messages[0]->send_date < now - MAX_RESEND_DELAY && to_dialog_id != get_my_dialog_id())) {
+            messages.empty() ||
+            (messages[0]->send_date < now - MAX_RESEND_DELAY && to_dialog_id != get_my_dialog_id())) {
           LOG(WARNING) << "Can't continue forwarding " << messages.size() << " message(s) to " << to_dialog_id;
           binlog_erase(G()->td_db()->get_binlog(), event.id_);
           break;
