@@ -3552,7 +3552,8 @@ void main(int argc, char **argv) {
   std::locale::global(new_locale);
   SCOPE_EXIT {
     std::locale::global(std::locale::classic());
-    log_interface = default_log_interface;
+    static NullLog null_log;
+    log_interface = &null_log;
   };
 
   CliLog cli_log;
