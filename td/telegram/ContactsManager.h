@@ -209,7 +209,7 @@ class ContactsManager : public Actor {
 
   void on_get_channel_full_fail(ChannelId channel_id, Status &&error);
 
-  UserId get_my_id(const char *source) const;
+  UserId get_my_id() const;
 
   void set_my_online_status(bool is_online, bool send_update, bool is_local);
 

@@ -4483,8 +4483,8 @@ bool MessagesManager::is_allowed_useless_update(const tl_object_ptr<telegram_api
     auto message = static_cast<const telegram_api::updateNewMessage *>(update.get())->message_.get();
     if (message->get_id() == telegram_api::message::ID) {
       auto m = static_cast<const telegram_api::message *>(message);
-      bool is_outgoing = (m->flags_ & MESSAGE_FLAG_IS_OUT) != 0 ||
-                         UserId(m->from_id_) == td_->contacts_manager_->get_my_id("is_allowed_useless_update");
+      bool is_outgoing =
+          (m->flags_ & MESSAGE_FLAG_IS_OUT) != 0 || UserId(m->from_id_) == td_->contacts_manager_->get_my_id();
       if (is_outgoing && m->media_ != nullptr && m->media_->get_id() != telegram_api::messageMediaEmpty::ID) {
         // allow outgoing media, because they are returned if random_id coincided
         return true;
@@ -4492,8 +4492,8 @@ bool MessagesManager::is_allowed_useless_update(const tl_object_ptr<telegram_api
     }
     if (message->get_id() == telegram_api::messageService::ID) {
       auto m = static_cast<const telegram_api::messageService *>(message);
-      bool is_outgoing = (m->flags_ & MESSAGE_FLAG_IS_OUT) != 0 ||
-                         UserId(m->from_id_) == td_->contacts_manager_->get_my_id("is_allowed_useless_update");
+      bool is_outgoing =
+          (m->flags_ & MESSAGE_FLAG_IS_OUT) != 0 || UserId(m->from_id_) == td_->contacts_manager_->get_my_id();
       if (is_outgoing && m->action_->get_id() == telegram_api::messageActionScreenshotTaken::ID) {
         // allow outgoing messageActionScreenshotTaken, because they are returned if random_id coincided
         return true;
@@ -6432,7 +6432,7 @@ void MessagesManager::after_get_difference() {
   load_notification_settings();
 
   // TODO move to ContactsManager or delete after users will become persistent
-  td_->contacts_manager_->get_user(td_->contacts_manager_->get_my_id("after_get_difference"), 3, Promise<Unit>());
+  td_->contacts_manager_->get_user(td_->contacts_manager_->get_my_id(), 3, Promise<Unit>());
 
   // TODO resend some messages
 }
@@ -9263,7 +9263,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   bool is_silent = (flags & MESSAGE_FLAG_IS_SILENT) != 0;
   bool is_channel_post = (flags & MESSAGE_FLAG_IS_POST) != 0;
 
-  UserId my_id = td_->contacts_manager_->get_my_id("create_message");
+  UserId my_id = td_->contacts_manager_->get_my_id();
   DialogId my_dialog_id = DialogId(my_id);
   if (dialog_id == my_dialog_id) {
     // dialog_id should be already fixed
@@ -10832,7 +10832,7 @@ vector<DialogId> MessagesManager::get_common_dialogs(UserId user_id, DialogId of
     return vector<DialogId>();
   }
 
-  if (user_id == td_->contacts_manager_->get_my_id("get_common_dialogs")) {
+  if (user_id == td_->contacts_manager_->get_my_id()) {
     promise.set_error(Status::Error(6, "Can't get common chats with self"));
     return vector<DialogId>();
   }
@@ -11955,7 +11955,7 @@ Status MessagesManager::close_dialog(DialogId dialog_id) {
 }
 
 DialogId MessagesManager::get_my_dialog_id() const {
-  return DialogId(td_->contacts_manager_->get_my_id("get_my_dialog_id"));
+  return DialogId(td_->contacts_manager_->get_my_id());
 }
 
 Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId> &message_ids, bool force_read) {
@@ -14043,7 +14043,7 @@ MessagesManager::Message *MessagesManager::get_message_to_send(Dialog *d, Messag
   LOG(INFO) << "Create " << message_id << " in " << dialog_id;
 
   auto dialog_type = dialog_id.get_type();
-  auto my_id = td_->contacts_manager_->get_my_id("get_message_to_send");
+  auto my_id = td_->contacts_manager_->get_my_id();
 
   auto m = make_unique<Message>();
   m->random_y = get_random_y(message_id);
@@ -14428,7 +14428,7 @@ bool MessagesManager::is_message_auto_read(DialogId dialog_id, bool is_outgoing)
   switch (dialog_id.get_type()) {
     case DialogType::User: {
       auto user_id = dialog_id.get_user_id();
-      if (user_id == td_->contacts_manager_->get_my_id("is_message_auto_read")) {
+      if (user_id == td_->contacts_manager_->get_my_id()) {
         return true;
       }
       if (is_outgoing && td_->contacts_manager_->is_user_bot(user_id)) {
@@ -15600,7 +15600,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
     return false;
   }
 
-  auto my_id = td_->contacts_manager_->get_my_id("can_edit_message");
+  auto my_id = td_->contacts_manager_->get_my_id();
   if (m->via_bot_user_id.is_valid() && m->via_bot_user_id != my_id) {
     return false;
   }
@@ -16776,7 +16776,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
   vector<MessageId> forwarded_message_ids;
   vector<unique_ptr<MessageContent>> unforwarded_message_contents(message_ids.size());
   vector<bool> unforwarded_message_disable_web_page_previews(message_ids.size());
-  auto my_id = td_->contacts_manager_->get_my_id("forward_message");
+  auto my_id = td_->contacts_manager_->get_my_id();
   bool need_update_dialog_pos = false;
   for (size_t i = 0; i < message_ids.size(); i++) {
     MessageId message_id = get_persistent_message_id(from_dialog, message_ids[i]);
@@ -17054,7 +17054,7 @@ Result<MessageId> MessagesManager::add_local_message(
   }
 
   auto dialog_type = dialog_id.get_type();
-  auto my_id = td_->contacts_manager_->get_my_id("add_local_message");
+  auto my_id = td_->contacts_manager_->get_my_id();
   if (sender_user_id != my_id) {
     if (dialog_type == DialogType::User && DialogId(sender_user_id) != dialog_id) {
       return Status::Error(400, "Wrong sender user");
@@ -18992,7 +18992,7 @@ DialogParticipant MessagesManager::get_dialog_participant(DialogId dialog_id, Us
   switch (dialog_id.get_type()) {
     case DialogType::User: {
       auto peer_user_id = dialog_id.get_user_id();
-      if (user_id == td_->contacts_manager_->get_my_id("get_dialog_participant")) {
+      if (user_id == td_->contacts_manager_->get_my_id()) {
         promise.set_value(Unit());
         return {user_id, peer_user_id, 0, DialogParticipantStatus::Member()};
       }
@@ -19011,7 +19011,7 @@ DialogParticipant MessagesManager::get_dialog_participant(DialogId dialog_id, Us
                                                              std::move(promise));
     case DialogType::SecretChat: {
       auto peer_user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
-      if (user_id == td_->contacts_manager_->get_my_id("get_dialog_participant")) {
+      if (user_id == td_->contacts_manager_->get_my_id()) {
         promise.set_value(Unit());
         return {user_id, peer_user_id, 0, DialogParticipantStatus::Member()};
       }
@@ -19080,8 +19080,8 @@ std::pair<int32, vector<DialogParticipant>> MessagesManager::search_dialog_parti
   switch (dialog_id.get_type()) {
     case DialogType::User:
       promise.set_value(Unit());
-      return search_private_chat_participants(td_->contacts_manager_->get_my_id("search_dialog_participants"),
-                                              dialog_id.get_user_id(), query, limit, filter);
+      return search_private_chat_participants(td_->contacts_manager_->get_my_id(), dialog_id.get_user_id(), query,
+                                              limit, filter);
     case DialogType::Chat:
       return td_->contacts_manager_->search_chat_participants(dialog_id.get_chat_id(), query, limit, filter, force,
                                                               std::move(promise));
@@ -19122,8 +19122,7 @@ std::pair<int32, vector<DialogParticipant>> MessagesManager::search_dialog_parti
     case DialogType::SecretChat: {
       promise.set_value(Unit());
       auto peer_user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
-      return search_private_chat_participants(td_->contacts_manager_->get_my_id("search_dialog_participants"),
-                                              peer_user_id, query, limit, filter);
+      return search_private_chat_participants(td_->contacts_manager_->get_my_id(), peer_user_id, query, limit, filter);
     }
     case DialogType::None:
     default:
@@ -19979,7 +19978,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
-  UserId my_user_id(td_->contacts_manager_->get_my_id("add_message_to_dialog"));
+  UserId my_user_id(td_->contacts_manager_->get_my_id());
   DialogId my_dialog_id(my_user_id);
   if (*need_update && message_id.get() > d->last_read_inbox_message_id.get() && !td_->auth_manager_->is_bot()) {
     if (!message->is_outgoing && dialog_id != my_dialog_id) {

@@ -286,7 +286,7 @@ void TopDialogManager::do_get_top_dialogs(GetTopDialogsQuery &&query) {
           LOG(INFO) << "Skip deleted " << user_id;
           continue;
         }
-        if (G()->td().get_actor_unsafe()->contacts_manager_->get_my_id("do_get_top_dialogs") == user_id) {
+        if (G()->td().get_actor_unsafe()->contacts_manager_->get_my_id() == user_id) {
           LOG(INFO) << "Skip self " << user_id;
           continue;
         }

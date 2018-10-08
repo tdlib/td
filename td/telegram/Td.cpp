@@ -5433,16 +5433,16 @@ void Td::on_request(uint64 id, td_api::setChatClientData &request) {
 
 void Td::on_request(uint64 id, const td_api::joinChat &request) {
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->set_dialog_participant_status(DialogId(request.chat_id_), contacts_manager_->get_my_id("joinChat"),
+  messages_manager_->set_dialog_participant_status(DialogId(request.chat_id_), contacts_manager_->get_my_id(),
                                                    td_api::make_object<td_api::chatMemberStatusMember>(),
                                                    std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::leaveChat &request) {
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->set_dialog_participant_status(
-      DialogId(request.chat_id_), contacts_manager_->get_my_id("leaveChat"),
-      td_api::make_object<td_api::chatMemberStatusLeft>(), std::move(promise));
+  messages_manager_->set_dialog_participant_status(DialogId(request.chat_id_), contacts_manager_->get_my_id(),
+                                                   td_api::make_object<td_api::chatMemberStatusLeft>(),
+                                                   std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::addChatMember &request) {

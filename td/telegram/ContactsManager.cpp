@@ -684,8 +684,7 @@ class UpdateProfilePhotoQuery : public Td::ResultHandler {
     }
 
     LOG(DEBUG) << "Receive result for updateProfilePhoto " << to_string(result_ptr.ok());
-    td->contacts_manager_->on_update_user_photo(td->contacts_manager_->get_my_id("UpdateProfilePhotoQuery"),
-                                                result_ptr.move_as_ok());
+    td->contacts_manager_->on_update_user_photo(td->contacts_manager_->get_my_id(), result_ptr.move_as_ok());
 
     promise_.set_value(Unit());
   }
@@ -2725,7 +2724,7 @@ void ContactsManager::SecretChat::parse(ParserT &parser) {
 }
 
 tl_object_ptr<telegram_api::InputUser> ContactsManager::get_input_user(UserId user_id) const {
-  if (user_id == get_my_id("get_input_user")) {
+  if (user_id == get_my_id()) {
     return make_tl_object<telegram_api::inputUserSelf>();
   }
 
@@ -2741,7 +2740,7 @@ tl_object_ptr<telegram_api::InputUser> ContactsManager::get_input_user(UserId us
 }
 
 bool ContactsManager::have_input_user(UserId user_id) const {
-  if (user_id == get_my_id("have_input_user")) {
+  if (user_id == get_my_id()) {
     return true;
   }
 
@@ -2769,7 +2768,7 @@ tl_object_ptr<telegram_api::InputChannel> ContactsManager::get_input_channel(Cha
 }
 
 bool ContactsManager::have_input_peer_user(UserId user_id, AccessRights access_rights) const {
-  if (user_id == get_my_id("have_input_peer_user")) {
+  if (user_id == get_my_id()) {
     return true;
   }
   return have_input_peer_user(get_user(user_id), access_rights);
@@ -2793,7 +2792,7 @@ bool ContactsManager::have_input_peer_user(const User *user, AccessRights access
 
 tl_object_ptr<telegram_api::InputPeer> ContactsManager::get_input_peer_user(UserId user_id,
                                                                             AccessRights access_rights) const {
-  if (user_id == get_my_id("get_input_peer_user")) {
+  if (user_id == get_my_id()) {
     return make_tl_object<telegram_api::inputPeerSelf>();
   }
   const User *u = get_user(user_id);
@@ -3054,8 +3053,8 @@ int32 ContactsManager::get_secret_chat_layer(SecretChatId secret_chat_id) const 
   return c->layer;
 }
 
-UserId ContactsManager::get_my_id(const char *source) const {
-  LOG_IF(ERROR, !my_id_.is_valid()) << "Wrong or unknown my id returned to " << source;
+UserId ContactsManager::get_my_id() const {
+  LOG_IF(ERROR, !my_id_.is_valid()) << "Wrong or unknown my id returned";
   return my_id_;
 }
 
@@ -3076,7 +3075,7 @@ void ContactsManager::set_my_id(UserId my_id) {
 }
 
 void ContactsManager::set_my_online_status(bool is_online, bool send_update, bool is_local) {
-  auto my_id = get_my_id("set_my_online_status");
+  auto my_id = get_my_id();
   User *u = get_user_force(my_id);
   if (u != nullptr) {
     int32 new_online;
@@ -3127,7 +3126,7 @@ void ContactsManager::check_dialog_username(DialogId dialog_id, const string &us
 
   switch (dialog_id.get_type()) {
     case DialogType::User: {
-      if (dialog_id.get_user_id() != get_my_id("check_dialog_username")) {
+      if (dialog_id.get_user_id() != get_my_id()) {
         return promise.set_error(Status::Error(3, "Can't check username for private chat with other user"));
       }
       break;
@@ -3251,7 +3250,7 @@ void ContactsManager::disconnect_all_websites(Promise<Unit> &&promise) const {
 }
 
 Status ContactsManager::block_user(UserId user_id) {
-  if (user_id == get_my_id("block_user")) {
+  if (user_id == get_my_id()) {
     return Status::Error(5, "Can't block self");
   }
 
@@ -3267,7 +3266,7 @@ Status ContactsManager::block_user(UserId user_id) {
 }
 
 Status ContactsManager::unblock_user(UserId user_id) {
-  if (user_id == get_my_id("unblock_user")) {
+  if (user_id == get_my_id()) {
     return Status::Error(5, "Can't unblock self");
   }
 
@@ -3401,7 +3400,7 @@ int32 ContactsManager::get_contacts_hash() {
 
   vector<int64> user_ids = contacts_hints_.search_empty(100000).second;
   CHECK(std::is_sorted(user_ids.begin(), user_ids.end()));
-  auto my_id = get_my_id("get_contacts_hash");
+  auto my_id = get_my_id();
   const User *u = get_user_force(my_id);
   if (u != nullptr && u->outbound == LinkState::Contact) {
     user_ids.insert(std::upper_bound(user_ids.begin(), user_ids.end(), my_id.get()), my_id.get());
@@ -3725,7 +3724,7 @@ void ContactsManager::clear_imported_contacts(Promise<Unit> &&promise) {
 
 void ContactsManager::on_update_contacts_reset() {
   /*
-  UserId my_id = get_my_id("on_update_contacts_reset");
+  UserId my_id = get_my_id();
   for (auto &p : users_) {
     UserId user_id = p.first;
     User &u = p.second;
@@ -3803,8 +3802,8 @@ std::pair<int32, vector<UserId>> ContactsManager::search_contacts(const string &
 }
 
 void ContactsManager::set_profile_photo(const tl_object_ptr<td_api::InputFile> &input_photo, Promise<Unit> &&promise) {
-  auto r_file_id = td_->file_manager_->get_input_file_id(FileType::Photo, input_photo,
-                                                         DialogId(get_my_id("set_profile_photo")), false, false);
+  auto r_file_id =
+      td_->file_manager_->get_input_file_id(FileType::Photo, input_photo, DialogId(get_my_id()), false, false);
   if (r_file_id.is_error()) {
     // TODO promise.set_error(std::move(status));
     return promise.set_error(Status::Error(7, r_file_id.error().message()));
@@ -3829,7 +3828,7 @@ void ContactsManager::set_profile_photo(const tl_object_ptr<td_api::InputFile> &
 }
 
 void ContactsManager::delete_profile_photo(int64 profile_photo_id, Promise<Unit> &&promise) {
-  const User *u = get_user(get_my_id("delete_profile_photo"));
+  const User *u = get_user(get_my_id());
   if (u != nullptr && u->photo.id == profile_photo_id) {
     td_->create_handler<UpdateProfilePhotoQuery>(std::move(promise))
         ->send(make_tl_object<telegram_api::inputPhotoEmpty>());
@@ -3846,7 +3845,7 @@ void ContactsManager::set_name(const string &first_name, const string &last_name
     return promise.set_error(Status::Error(7, "First name must be non-empty"));
   }
 
-  const User *u = get_user(get_my_id("set_name"));
+  const User *u = get_user(get_my_id());
   int32 flags = 0;
   // TODO we can already send request for changing first_name and last_name and wanting to set initial values
   // TODO need to be rewritten using invoke after and cancelling previous request
@@ -3871,7 +3870,7 @@ void ContactsManager::set_bio(const string &bio, Promise<Unit> &&promise) {
     }
   }
 
-  const UserFull *user_full = get_user_full(get_my_id("set_bio"));
+  const UserFull *user_full = get_user_full(get_my_id());
   int32 flags = 0;
   // TODO we can already send request for changing bio and wanting to set initial values
   // TODO need to be rewritten using invoke after and cancelling previous request
@@ -3889,7 +3888,7 @@ void ContactsManager::on_update_profile_success(int32 flags, const string &first
                                                 const string &about) {
   CHECK(flags != 0);
 
-  auto my_user_id = get_my_id("on_update_profile_success");
+  auto my_user_id = get_my_id();
   const User *u = get_user(my_user_id);
   if (u == nullptr) {
     LOG(ERROR) << "Doesn't receive info about me during update profile";
@@ -4096,7 +4095,7 @@ void ContactsManager::report_channel_spam(ChannelId channel_id, UserId user_id, 
   if (!have_input_user(user_id)) {
     return promise.set_error(Status::Error(6, "Have no access to the user"));
   }
-  if (user_id == get_my_id("report_channel_spam")) {
+  if (user_id == get_my_id()) {
     return promise.set_error(Status::Error(6, "Can't report self"));
   }
 
@@ -4145,7 +4144,7 @@ void ContactsManager::add_chat_participant(ChatId chat_id, UserId user_id, int32
   if (forward_limit < 0) {
     return promise.set_error(Status::Error(3, "Can't forward negative number of messages"));
   }
-  if (user_id != get_my_id("add_chat_participant")) {
+  if (user_id != get_my_id()) {
     if (!get_chat_status(c).can_invite_users()) {
       return promise.set_error(Status::Error(3, "Not enough rights to invite members to the group chat"));
     }
@@ -4178,7 +4177,7 @@ void ContactsManager::add_channel_participant(ChannelId channel_id, UserId user_
     return promise.set_error(Status::Error(3, "User not found"));
   }
 
-  if (user_id == get_my_id("add_channel_participant")) {
+  if (user_id == get_my_id()) {
     // join the channel
     if (get_channel_status(c).is_banned()) {
       return promise.set_error(Status::Error(3, "Can't return to kicked from chat"));
@@ -4220,7 +4219,7 @@ void ContactsManager::add_channel_participants(ChannelId channel_id, const vecto
       return promise.set_error(Status::Error(3, "User not found"));
     }
 
-    if (user_id == get_my_id("add_channel_participants")) {
+    if (user_id == get_my_id()) {
       // can't invite self
       continue;
     }
@@ -4246,7 +4245,7 @@ void ContactsManager::change_channel_participant_status(ChannelId channel_id, Us
     return promise.set_error(Status::Error(6, "User not found"));
   }
 
-  if (user_id == get_my_id("change_channel_participant_status")) {
+  if (user_id == get_my_id()) {
     // fast path is needed, because get_channel_status may return Creator, while GetChannelParticipantQuery returning Left
     return change_channel_participant_status_impl(channel_id, user_id, std::move(status), get_channel_status(c),
                                                   std::move(promise));
@@ -4335,7 +4334,7 @@ void ContactsManager::promote_channel_participant(ChannelId channel_id, UserId u
   const Channel *c = get_channel(channel_id);
   CHECK(c != nullptr);
 
-  if (user_id == get_my_id("change_channel_participant_status")) {
+  if (user_id == get_my_id()) {
     if (status.is_administrator()) {
       return promise.set_error(Status::Error(3, "Can't promote self"));
     }
@@ -4375,7 +4374,7 @@ void ContactsManager::change_chat_participant_status(ChatId chat_id, UserId user
     return promise.set_error(Status::Error(3, "Administrators editing is disabled in the group chat"));
   }
 
-  if (user_id == get_my_id("change_chat_participant_status")) {
+  if (user_id == get_my_id()) {
     return promise.set_error(Status::Error(3, "Can't change chat member status of self"));
   }
 
@@ -4481,7 +4480,7 @@ void ContactsManager::delete_chat_participant(ChatId chat_id, UserId user_id, Pr
   if (!c->is_active) {
     return promise.set_error(Status::Error(3, "Chat is deactivated"));
   }
-  auto my_id = get_my_id("delete_chat_participant");
+  auto my_id = get_my_id();
   if (c->left) {
     if (user_id == my_id) {
       return promise.set_value(Unit());
@@ -4530,7 +4529,7 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, UserId 
     return promise.set_error(Status::Error(3, "Chat info not found"));
   }
   if (!c->status.is_member()) {
-    if (user_id == get_my_id("restrict_channel_participant")) {
+    if (user_id == get_my_id()) {
       if (status.is_member()) {
         return promise.set_error(Status::Error(3, "Can't unrestrict self"));
       }
@@ -4544,7 +4543,7 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, UserId 
     return promise.set_error(Status::Error(3, "User not found"));
   }
 
-  if (user_id == get_my_id("restrict_channel_participant")) {
+  if (user_id == get_my_id()) {
     if (status.is_restricted() || status.is_banned()) {
       return promise.set_error(Status::Error(3, "Can't restrict self"));
     }
@@ -4775,7 +4774,7 @@ void ContactsManager::on_get_contacts(tl_object_ptr<telegram_api::contacts_Conta
   }
   on_get_users(std::move(contacts->users_));
 
-  UserId my_id = get_my_id("on_get_contacts");
+  UserId my_id = get_my_id();
   for (auto &p : users_) {
     UserId user_id = p.first;
     User &u = p.second;
@@ -6068,7 +6067,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
       user_full->photos_offset = user_full->photo_count;
     }
   }
-  if (u->is_status_changed && user_id != get_my_id("update_user")) {
+  if (u->is_status_changed && user_id != get_my_id()) {
     auto left_time = u->was_online - G()->server_time_cached();
     if (left_time >= 0 && left_time < 30 * 86400) {
       left_time += 2.0;  // to guarantee expiration
@@ -6770,7 +6769,7 @@ void ContactsManager::on_update_user_online(User *u, UserId user_id, tl_object_p
     u->was_online = new_online;
     u->is_status_changed = true;
 
-    if (user_id == get_my_id("on_update_user_online")) {
+    if (user_id == get_my_id()) {
       my_was_online_local_ = 0;
       if (is_offline) {
         td_->on_online_updated(false, false);
@@ -6803,7 +6802,7 @@ void ContactsManager::on_update_user_full_is_blocked(UserFull *user_full, UserId
 }
 
 void ContactsManager::on_delete_profile_photo(int64 profile_photo_id, Promise<Unit> promise) {
-  UserId my_id = get_my_id("on_delete_profile_photo");
+  UserId my_id = get_my_id();
 
   UserFull *user_full = get_user_full(my_id);
   if (user_full != nullptr) {
@@ -6854,7 +6853,7 @@ void ContactsManager::on_update_user_links(UserId user_id, tl_object_ptr<telegra
 }
 
 void ContactsManager::on_update_user_links(User *u, UserId user_id, LinkState outbound, LinkState inbound) {
-  UserId my_id = get_my_id("on_update_user_links");
+  UserId my_id = get_my_id();
   if (user_id == my_id) {
     if (outbound == LinkState::None && !td_->auth_manager_->is_bot()) {
       outbound = LinkState::KnowsPhoneNumber;
@@ -7564,7 +7563,7 @@ void ContactsManager::on_update_chat_edit_administrator(ChatId chat_id, UserId u
 
     c->version = version;
     c->is_changed = true;
-    if (user_id == get_my_id("on_update_chat_edit_administrator")) {
+    if (user_id == get_my_id()) {
       on_update_chat_rights(c, chat_id, c->is_creator, is_administrator, c->everyone_is_administrator);
     }
     update_chat(c, chat_id);
@@ -7612,7 +7611,7 @@ void ContactsManager::on_update_chat_delete_user(ChatId chat_id, UserId user_id,
     repair_chat_participants(chat_id);
     return;
   }
-  if (user_id == get_my_id("on_update_chat_delete_user")) {
+  if (user_id == get_my_id()) {
     LOG_IF(WARNING, !c->left) << "User was removed from " << chat_id
                               << " but it is not left the group. Possible if updates comes out of order";
     return;
@@ -8000,7 +7999,7 @@ void ContactsManager::on_update_channel_is_all_history_available(ChannelId chann
 }
 
 void ContactsManager::update_contacts_hints(const User *u, UserId user_id, bool from_database) {
-  bool is_contact = u->outbound == LinkState::Contact && user_id != get_my_id("update_contacts_hints");
+  bool is_contact = u->outbound == LinkState::Contact && user_id != get_my_id();
   if (td_->auth_manager_->is_bot()) {
     LOG_IF(ERROR, is_contact) << "Bot has " << user_id << " in the contacts list";
     return;
@@ -8102,7 +8101,7 @@ void ContactsManager::send_get_me_query(Td *td, Promise<Unit> &&promise) {
 }
 
 UserId ContactsManager::get_me(Promise<Unit> &&promise) {
-  auto my_id = get_my_id("get_me");
+  auto my_id = get_my_id();
   if (!have_user_force(my_id)) {
     send_get_me_query(td_, std::move(promise));
     return UserId();
@@ -8814,7 +8813,7 @@ std::pair<int32, vector<UserId>> ContactsManager::search_among_users(const vecto
                                                                      const string &query, int32 limit) {
   Hints hints;  // TODO cache Hints
 
-  UserId my_user_id = get_my_id("search_among_users");
+  UserId my_user_id = get_my_id();
   for (auto user_id : user_ids) {
     auto u = get_user(user_id);
     if (u == nullptr) {
@@ -9527,7 +9526,7 @@ tl_object_ptr<td_api::UserStatus> ContactsManager::get_user_status_object(UserId
   }
 
   int32 was_online = u->was_online;
-  if (user_id == get_my_id("get_user_status_object") && my_was_online_local_ != 0) {
+  if (user_id == get_my_id() && my_was_online_local_ != 0) {
     was_online = my_was_online_local_;
   }
   switch (was_online) {

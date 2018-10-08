@@ -1583,7 +1583,7 @@ Result<InputMessageContent> create_input_message_content(
     case td_api::inputMessageGame::ID: {
       TRY_RESULT(game, process_input_message_game(td->contacts_manager_.get(), std::move(input_message_content)));
       via_bot_user_id = game.get_bot_user_id();
-      if (via_bot_user_id == td->contacts_manager_->get_my_id("send_message")) {
+      if (via_bot_user_id == td->contacts_manager_->get_my_id()) {
         via_bot_user_id = UserId();
       }
 

@@ -648,9 +648,8 @@ void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updat
         update->flags_ ^= MessagesManager::MESSAGE_FLAG_HAS_MEDIA;
       }
 
-      auto from_id = update->flags_ & MessagesManager::MESSAGE_FLAG_IS_OUT
-                         ? td_->contacts_manager_->get_my_id("on_get_updates").get()
-                         : update->user_id_;
+      auto from_id = update->flags_ & MessagesManager::MESSAGE_FLAG_IS_OUT ? td_->contacts_manager_->get_my_id().get()
+                                                                           : update->user_id_;
 
       update->flags_ |= MessagesManager::MESSAGE_FLAG_HAS_FROM_ID;
       on_pending_update(
