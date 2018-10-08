@@ -1168,6 +1168,8 @@ class MessagesManager : public Actor {
 
   void close_dialog(Dialog *d);
 
+  DialogId get_my_dialog_id() const;
+
   void add_secret_message(unique_ptr<PendingSecretMessage> pending_secret_message, Promise<Unit> lock_promise = Auto());
 
   void finish_add_secret_message(unique_ptr<PendingSecretMessage> pending_secret_message);

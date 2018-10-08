@@ -5496,8 +5496,7 @@ void MessagesManager::on_message_edited(FullMessageId full_message_id) {
   if (td_->auth_manager_->is_bot()) {
     send_update_message_edited(dialog_id, m);
   } else {
-    if (m->forward_info == nullptr &&
-        (m->is_outgoing || dialog_id == DialogId(td_->contacts_manager_->get_my_id("on_message_edited")))) {
+    if (m->forward_info == nullptr && (m->is_outgoing || dialog_id == get_my_dialog_id())) {
       update_used_hashtags(dialog_id, m);
     }
   }
@@ -7069,7 +7068,7 @@ bool MessagesManager::can_revoke_message(DialogId dialog_id, const Message *m) c
   if (m->message_id.is_local()) {
     return false;
   }
-  if (dialog_id == DialogId(td_->contacts_manager_->get_my_id("can_revoke_message"))) {
+  if (dialog_id == get_my_dialog_id()) {
     return false;
   }
   if (m->message_id.is_yet_unsent()) {
@@ -7974,7 +7973,7 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
       ttl_read_history(d, false, max_message_id, d->last_read_inbox_message_id, Time::now());
     }
 
-    bool is_saved_messages = dialog_id == DialogId(td_->contacts_manager_->get_my_id("read_history_inbox"));
+    bool is_saved_messages = dialog_id == get_my_dialog_id();
     int32 server_unread_count =
         is_saved_messages ? 0 : calc_new_unread_count(d, max_message_id, MessageType::Server, unread_count);
     int32 local_unread_count = d->local_unread_count == 0 || is_saved_messages
@@ -8293,9 +8292,7 @@ FullMessageId MessagesManager::get_full_message_id(const tl_object_ptr<telegram_
       break;
   }
 
-  UserId my_id = td_->contacts_manager_->get_my_id("get_full_message_id");
-  DialogId my_dialog_id = DialogId(my_id);
-  if (dialog_id == my_dialog_id) {
+  if (dialog_id == get_my_dialog_id()) {
     LOG_IF(ERROR, !sender_user_id.is_valid()) << "Receive invalid " << sender_user_id;
     dialog_id = DialogId(sender_user_id);
   }
@@ -9123,7 +9120,7 @@ void MessagesManager::finish_add_secret_message(unique_ptr<PendingSecretMessage>
 }
 
 void MessagesManager::fix_message_info_dialog_id(MessageInfo &message_info) const {
-  if (message_info.dialog_id != DialogId(td_->contacts_manager_->get_my_id("fix_message_info_dialog_id"))) {
+  if (message_info.dialog_id != get_my_dialog_id()) {
     return;
   }
 
@@ -9392,8 +9389,6 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
   }
   MessageId message_id = new_message->message_id;
 
-  DialogId my_dialog_id = DialogId(td_->contacts_manager_->get_my_id("on_get_message"));
-
   new_message->have_previous = have_previous;
   new_message->have_next = have_next;
 
@@ -9422,7 +9417,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
 
     update_message_ids_.erase(it);
 
-    if (!new_message->is_outgoing && dialog_id != my_dialog_id) {
+    if (!new_message->is_outgoing && dialog_id != get_my_dialog_id()) {
       // sent message is not from me
       LOG(ERROR) << "Sent in " << dialog_id << " " << message_id << " is sent by " << new_message->sender_user_id;
       return FullMessageId();
@@ -10355,8 +10350,8 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     }
     // if last_read_inbox_message_id is not known, we can't be sure whether unread_count should be decreased or not
     if (!result->is_outgoing && message_id.get() > d->last_read_inbox_message_id.get() &&
-        d->dialog_id != DialogId(td_->contacts_manager_->get_my_id("do_delete_message")) &&
-        d->is_last_read_inbox_message_id_inited && !td_->auth_manager_->is_bot()) {
+        d->dialog_id != get_my_dialog_id() && d->is_last_read_inbox_message_id_inited &&
+        !td_->auth_manager_->is_bot()) {
       int32 server_unread_count = d->server_unread_count;
       int32 local_unread_count = d->local_unread_count;
       int32 &unread_count = message_id.is_server() ? server_unread_count : local_unread_count;
@@ -11957,6 +11952,10 @@ Status MessagesManager::close_dialog(DialogId dialog_id) {
 
   close_dialog(d);
   return Status::OK();
+}
+
+DialogId MessagesManager::get_my_dialog_id() const {
+  return DialogId(td_->contacts_manager_->get_my_id("get_my_dialog_id"));
 }
 
 Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId> &message_ids, bool force_read) {
@@ -13957,7 +13956,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
     can_delete = can_delete_channel_message(dialog_status, message, is_bot);
   }
 
-  DialogId my_dialog_id(td_->contacts_manager_->get_my_id("get_message_object"));
+  DialogId my_dialog_id = get_my_dialog_id();
   bool can_delete_for_self = false;
   bool can_delete_for_all_users = can_delete && can_revoke_message(dialog_id, message);
   if (can_delete) {
@@ -16288,10 +16287,9 @@ bool MessagesManager::can_set_game_score(DialogId dialog_id, const Message *m) c
     return false;
   }
 
-  DialogId my_dialog_id(td_->contacts_manager_->get_my_id("can_set_game_score"));
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      if (!m->is_outgoing && dialog_id != my_dialog_id) {
+      if (!m->is_outgoing && dialog_id != get_my_dialog_id()) {
         return false;
       }
       break;
@@ -17212,9 +17210,8 @@ void MessagesManager::send_update_new_message(Dialog *d, const Message *m, bool 
 
   LOG(INFO) << "Trying to " << (force ? "forcely " : "") << "send updateNewMessage for " << m->message_id << " in "
             << d->dialog_id;
-  DialogId my_dialog_id(td_->contacts_manager_->get_my_id("send_update_new_message"));
   bool disable_notification =
-      m->disable_notification || m->is_outgoing || d->dialog_id == my_dialog_id || td_->auth_manager_->is_bot();
+      m->disable_notification || m->is_outgoing || d->dialog_id == get_my_dialog_id() || td_->auth_manager_->is_bot();
   if (m->message_id.get() <= d->last_read_inbox_message_id.get()) {
     LOG(INFO) << "Disable notification for read " << m->message_id << " in " << d->dialog_id;
     disable_notification = true;
@@ -20463,8 +20460,7 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
   bool is_changed = false;
   if (old_message->date != new_message->date) {
     if (new_message->date > 0) {
-      LOG_IF(ERROR,
-             !new_message->is_outgoing && dialog_id != DialogId(td_->contacts_manager_->get_my_id("update_message")))
+      LOG_IF(ERROR, !new_message->is_outgoing && dialog_id != get_my_dialog_id())
           << "Date has changed for incoming " << message_id << " in " << dialog_id << " from " << old_message->date
           << " to " << new_message->date;
       CHECK(old_message->date > 0);
@@ -20864,7 +20860,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
   auto dialog_id = d->dialog_id;
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      if (dialog_id.get_user_id() == td_->contacts_manager_->get_my_id("add_new_dialog")) {
+      if (dialog_id == get_my_dialog_id()) {
         d->last_read_inbox_message_id = MessageId::max();
         d->is_last_read_inbox_message_id_inited = true;
         d->last_read_outbox_message_id = MessageId::max();
