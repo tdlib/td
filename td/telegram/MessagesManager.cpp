@@ -7712,6 +7712,10 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, Promise<Unit>
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     return promise.set_error(Status::Error(3, "Chat is not accessible"));
   }
+  if (dialog_id.get_type() == DialogType::SecretChat) {
+    CHECK(d->unread_mention_count == 0);
+    return promise.set_value(Unit());
+  }
 
   if (d->last_new_message_id.get() > d->last_read_all_mentions_message_id.get()) {
     d->last_read_all_mentions_message_id = d->last_new_message_id;
@@ -11499,6 +11503,11 @@ uint64 MessagesManager::save_toggle_dialog_is_pinned_on_server_logevent(DialogId
 }
 
 void MessagesManager::toggle_dialog_is_pinned_on_server(DialogId dialog_id, bool is_pinned, uint64 logevent_id) {
+  if (logevent_id == 0 && dialog_id.get_type() == DialogType::SecretChat) {
+    // don't even create new binlog events
+    return;
+  }
+
   if (logevent_id == 0 && G()->parameters().use_message_db) {
     logevent_id = save_toggle_dialog_is_pinned_on_server_logevent(dialog_id, is_pinned);
   }
@@ -11657,6 +11666,11 @@ uint64 MessagesManager::save_toggle_dialog_is_marked_as_unread_on_server_logeven
 
 void MessagesManager::toggle_dialog_is_marked_as_unread_on_server(DialogId dialog_id, bool is_marked_as_unread,
                                                                   uint64 logevent_id) {
+  if (logevent_id == 0 && dialog_id.get_type() == DialogType::SecretChat) {
+    // don't even create new binlog events
+    return;
+  }
+
   if (logevent_id == 0 && G()->parameters().use_message_db) {
     logevent_id = save_toggle_dialog_is_marked_as_unread_on_server_logevent(dialog_id, is_marked_as_unread);
   }
@@ -11699,6 +11713,11 @@ class MessagesManager::UpdateDialogNotificationSettingsOnServerLogEvent {
 };
 
 void MessagesManager::update_dialog_notification_settings_on_server(DialogId dialog_id, bool from_binlog) {
+  if (!from_binlog && get_input_notify_peer(dialog_id) == nullptr) {
+    // don't even create new binlog events
+    return;
+  }
+
   auto d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
@@ -20820,6 +20839,15 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
     d = add_dialog(dialog_id);
     update_dialog_pos(d, false, "force_create_dialog");
 
+    if (dialog_id.get_type() == DialogType::SecretChat) {
+      // secret chat is being created
+      // let's copy notification settings from main chat if available
+      auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
+      Dialog *user_d = get_dialog_force(DialogId(user_id));
+      if (user_d != nullptr && user_d->notification_settings.is_synchronized) {
+        update_dialog_notification_settings(dialog_id, &d->notification_settings, user_d->notification_settings);
+      }
+    }
     if (have_input_peer(dialog_id, AccessRights::Read)) {
       if (dialog_id.get_type() != DialogType::SecretChat && !is_dialog_inited(d)) {
         // asynchronously preload information about the dialog
