@@ -277,7 +277,7 @@ Status TdDb::init_sqlite(int32 scheduler_id, const TdParameters &parameters, DbK
 
   // Get 'PRAGMA user_version'
   TRY_RESULT(user_version, db.user_version());
-  LOG(WARNING) << "got PRAGMA user_version = " << user_version;
+  LOG(WARNING) << "Got PRAGMA user_version = " << user_version;
 
   // init DialogDb
   bool dialog_db_was_created = false;
@@ -304,7 +304,7 @@ Status TdDb::init_sqlite(int32 scheduler_id, const TdParameters &parameters, DbK
   // Update 'PRAGMA user_version'
   auto db_version = current_db_version();
   if (db_version != user_version) {
-    LOG(WARNING) << "set PRAGMA user_version = " << db_version;
+    LOG(WARNING) << "Set PRAGMA user_version = " << db_version;
     TRY_STATUS(db.set_user_version(db_version));
   }
 
@@ -314,9 +314,9 @@ Status TdDb::init_sqlite(int32 scheduler_id, const TdParameters &parameters, DbK
     binlog_pmc.erase("last_server_dialog_date");
     binlog_pmc.erase("promoted_dialog_id");
     binlog_pmc.erase("sponsored_dialog_id");
-  }
-  if (db_version == 0) {
     binlog_pmc.erase_by_prefix("top_dialogs");
+  }
+  if (user_version == 0) {
     binlog_pmc.erase("next_contacts_sync_date");
   }
   binlog_pmc.force_sync({});

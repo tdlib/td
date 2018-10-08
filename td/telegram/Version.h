@@ -39,7 +39,7 @@ enum class DbVersion : int32 {
   Next
 };
 
-inline int32 current_db_version() {
+inline constexpr int32 current_db_version() {
   return static_cast<int32>(DbVersion::Next) - 1;
 }
 
