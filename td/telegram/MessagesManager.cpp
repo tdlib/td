@@ -17415,8 +17415,7 @@ void MessagesManager::send_update_unread_message_count(DialogId dialog_id, bool 
       have_postponed_unread_message_count_update_ = false;
       LOG(INFO) << "Send updateUnreadMessageCount to " << unread_message_total_count_ << '/' << unread_unmuted_count
                 << " from " << source << " and " << dialog_id;
-      send_closure(G()->td(), &Td::send_update,
-                   make_tl_object<td_api::updateUnreadMessageCount>(unread_message_total_count_, unread_unmuted_count));
+      send_closure(G()->td(), &Td::send_update, get_update_unread_message_count_object());
     }
   }
 }
@@ -17460,10 +17459,7 @@ void MessagesManager::send_update_unread_chat_count(DialogId dialog_id, bool for
       have_postponed_unread_chat_count_update_ = true;
     } else {
       have_postponed_unread_chat_count_update_ = false;
-      send_closure(
-          G()->td(), &Td::send_update,
-          make_tl_object<td_api::updateUnreadChatCount>(unread_dialog_total_count_, unread_unmuted_count,
-                                                        unread_dialog_marked_count_, unread_unmuted_marked_count));
+      send_closure(G()->td(), &Td::send_update, get_update_unread_chat_count_object());
     }
   }
 }
@@ -23101,20 +23097,34 @@ void MessagesManager::set_sponsored_dialog_id(DialogId dialog_id) {
   }
 }
 
+td_api::object_ptr<td_api::updateUnreadMessageCount> MessagesManager::get_update_unread_message_count_object() const {
+  CHECK(is_message_unread_count_inited_);
+  int32 unread_unmuted_count = unread_message_total_count_ - unread_message_muted_count_;
+  CHECK(unread_message_total_count_ >= 0);
+  CHECK(unread_unmuted_count >= 0);
+  return td_api::make_object<td_api::updateUnreadMessageCount>(unread_message_total_count_, unread_unmuted_count);
+}
+
+td_api::object_ptr<td_api::updateUnreadChatCount> MessagesManager::get_update_unread_chat_count_object() const {
+  CHECK(is_dialog_unread_count_inited_);
+  int32 unread_unmuted_count = unread_dialog_total_count_ - unread_dialog_muted_count_;
+  int32 unread_unmuted_marked_count = unread_dialog_marked_count_ - unread_dialog_muted_marked_count_;
+  CHECK(unread_dialog_total_count_ >= 0);
+  CHECK(unread_unmuted_count >= 0);
+  CHECK(unread_dialog_marked_count_ >= 0);
+  CHECK(unread_unmuted_marked_count >= 0);
+  return td_api::make_object<td_api::updateUnreadChatCount>(unread_dialog_total_count_, unread_unmuted_count,
+                                                            unread_dialog_marked_count_, unread_unmuted_marked_count);
+}
+
 void MessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   if (!td_->auth_manager_->is_bot()) {
     if (G()->parameters().use_message_db) {
       if (is_message_unread_count_inited_) {
-        int32 unread_unmuted_count = unread_message_total_count_ - unread_message_muted_count_;
-        updates.push_back(
-            td_api::make_object<td_api::updateUnreadMessageCount>(unread_message_total_count_, unread_unmuted_count));
+        updates.push_back(get_update_unread_message_count_object());
       }
       if (is_dialog_unread_count_inited_) {
-        int32 unread_unmuted_count = unread_dialog_total_count_ - unread_dialog_muted_count_;
-        int32 unread_unmuted_marked_count = unread_dialog_marked_count_ - unread_dialog_muted_marked_count_;
-        updates.push_back(td_api::make_object<td_api::updateUnreadChatCount>(
-            unread_dialog_total_count_, unread_unmuted_count, unread_dialog_marked_count_,
-            unread_unmuted_marked_count));
+        updates.push_back(get_update_unread_chat_count_object());
       }
     }
 

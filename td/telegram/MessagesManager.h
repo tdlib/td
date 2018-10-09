@@ -1485,6 +1485,10 @@ class MessagesManager : public Actor {
 
   void recalc_unread_count();
 
+  td_api::object_ptr<td_api::updateUnreadMessageCount> get_update_unread_message_count_object() const;
+
+  td_api::object_ptr<td_api::updateUnreadChatCount> get_update_unread_chat_count_object() const;
+
   void set_dialog_last_read_inbox_message_id(Dialog *d, MessageId message_id, int32 server_unread_count,
                                              int32 local_unread_count, bool force_update, const char *source);
 
