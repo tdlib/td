@@ -2365,8 +2365,12 @@ class CliClient final : public Actor {
       execute(make_tl_object<td_api::getTextEntities>(args));
     } else if (op == "pte") {
       send_request(make_tl_object<td_api::parseTextEntities>(args, make_tl_object<td_api::textParseModeMarkdown>()));
+    } else if (op == "pteh") {
+      send_request(make_tl_object<td_api::parseTextEntities>(args, make_tl_object<td_api::textParseModeHTML>()));
     } else if (op == "ptes") {
       execute(make_tl_object<td_api::parseTextEntities>(args, make_tl_object<td_api::textParseModeMarkdown>()));
+    } else if (op == "ptehs") {
+      execute(make_tl_object<td_api::parseTextEntities>(args, make_tl_object<td_api::textParseModeHTML>()));
     } else if (op == "gfmt") {
       send_request(make_tl_object<td_api::getFileMimeType>(trim(args)));
     } else if (op == "gfe") {

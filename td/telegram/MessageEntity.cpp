@@ -1616,6 +1616,12 @@ Result<vector<MessageEntity>> parse_html(string &text) {
       utf16_offset += utf16_entity_length;
     }
   }
+  if (!check_utf8(result)) {
+    return Status::Error(400,
+                         "Text contains invalid Unicode characters after decoding HTML entities, check for unmatched "
+                         "surrogate code units");
+  }
+
   text = result;
   return entities;
 }
