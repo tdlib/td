@@ -67,7 +67,7 @@ if (CCACHE_FOUND)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 else()
-  message(STATUS "Could NOT find ccache")
+  message(STATUS "Could NOT find ccache (this is NOT an error)")
 endif()
 
 set(MEMPROF "" CACHE STRING "Use one of \"ON\", \"FAST\" or \"SAFE\" to enable memory profiling. \
@@ -180,7 +180,7 @@ if (CYGWIN)
   add_definitions(-D_DEFAULT_SOURCE=1 -DFD_SETSIZE=4096)
 endif()
 
-if (NOT ANDROID) # _FILE_OFFSET_BITS is broken in ndk r15 and r15b and doesn't work prior to Android 7.0
+if (NOT ANDROID) # _FILE_OFFSET_BITS is broken in NDK r15, r15b and r17 and doesn't work prior to Android 7.0
   add_definitions(-D_FILE_OFFSET_BITS=64)
 endif()
 
@@ -766,7 +766,7 @@ if (NOT CMAKE_CROSSCOMPILING)
     find_package(Readline)
   endif()
   if (NOT READLINE_FOUND)
-    message(STATUS "Could NOT find Readline")
+    message(STATUS "Could NOT find Readline (this is NOT an error)")
   else()
     message(STATUS "Found Readline: ${READLINE_INCLUDE_DIR} ${READLINE_LIBRARY}")
     target_link_libraries(tg_cli PRIVATE ${READLINE_LIBRARY})
