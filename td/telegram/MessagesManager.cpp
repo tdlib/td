@@ -5094,6 +5094,41 @@ void MessagesManager::on_update_channel_max_unavailable_message_id(ChannelId cha
                                         "on_update_channel_max_unavailable_message_id");
 }
 
+void MessagesManager::on_update_include_sponsored_dialog_from_unread_count(bool include_sponsored_dialog) {
+  if (td_->auth_manager_->is_bot()) {
+    // just in case
+    return;
+  }
+  if (include_sponsored_dialog_from_unread_count_ == include_sponsored_dialog) {
+    return;
+  }
+  if (sponsored_dialog_id_.is_valid()) {
+    // preload sponsored dialog
+    get_dialog_force(sponsored_dialog_id_);
+  }
+
+  include_sponsored_dialog_from_unread_count_ = include_sponsored_dialog;
+
+  if (!sponsored_dialog_id_.is_valid()) {
+    // nothing has changed
+    return;
+  }
+  if (!G()->parameters().use_message_db) {
+    // there is no support for unread count updates without message database
+    return;
+  }
+
+  const Dialog *d = get_dialog(sponsored_dialog_id_);
+  CHECK(d != nullptr);
+  auto unread_count = d->server_unread_count + d->local_unread_count;
+  if (unread_count != 0 && is_message_unread_count_inited_) {
+    send_update_unread_message_count(d->dialog_id, true, "on_update_include_sponsored_dialog_from_unread_count");
+  }
+  if ((unread_count != 0 || d->is_marked_as_unread) && is_dialog_unread_count_inited_) {
+    send_update_unread_chat_count(d->dialog_id, true, "on_update_include_sponsored_dialog_from_unread_count");
+  }
+}
+
 bool MessagesManager::need_cancel_user_dialog_action(int32 action_id, MessageContentType message_content_type) {
   if (message_content_type == MessageContentType::None) {
     return true;
@@ -8088,14 +8123,13 @@ void MessagesManager::recalc_unread_count() {
         dialog_marked_count++;
       }
 
+      LOG(DEBUG) << "Have " << unread_count << " messages in " << dialog_id;
       if (is_dialog_muted(d)) {
         muted_count += unread_count;
         dialog_muted_count++;
         if (unread_count == 0 && d->is_marked_as_unread) {
           dialog_muted_marked_count++;
         }
-      } else {
-        LOG(DEBUG) << "Have " << unread_count << " messages in unmuted " << dialog_id;
       }
     }
   }
@@ -8489,6 +8523,9 @@ void MessagesManager::tear_down() {
 void MessagesManager::start_up() {
   always_wait_for_mailbox();
 
+  include_sponsored_dialog_from_unread_count_ =
+      G()->shared_config().get_option_boolean("include_sponsored_chat_from_unread_count");
+
   if (G()->parameters().use_message_db) {
     auto last_database_server_dialog_date_string = G()->td_db()->get_binlog_pmc()->get("last_server_dialog_date");
     if (!last_database_server_dialog_date_string.empty()) {
@@ -8505,6 +8542,33 @@ void MessagesManager::start_up() {
       }
     }
     LOG(INFO) << "Load last_database_server_dialog_date_ = " << last_database_server_dialog_date_;
+
+    auto sponsored_dialog_id_string = G()->td_db()->get_binlog_pmc()->get("sponsored_dialog_id");
+    if (sponsored_dialog_id_string.empty()) {
+      sponsored_dialog_id_string = G()->td_db()->get_binlog_pmc()->get("promoted_dialog_id");
+      if (!sponsored_dialog_id_string.empty()) {
+        G()->td_db()->get_binlog_pmc()->erase("promoted_dialog_id");
+        G()->td_db()->get_binlog_pmc()->set("sponsored_dialog_id", sponsored_dialog_id_string);
+      }
+    }
+    if (!sponsored_dialog_id_string.empty()) {
+      auto r_dialog_id = to_integer_safe<int64>(sponsored_dialog_id_string);
+      if (r_dialog_id.is_error()) {
+        LOG(ERROR) << "Can't parse " << sponsored_dialog_id_string;
+      } else {
+        sponsored_dialog_id_ = DialogId(r_dialog_id.ok());
+        if (!sponsored_dialog_id_.is_valid()) {
+          LOG(ERROR) << "Have invalid chat ID " << sponsored_dialog_id_string;
+          sponsored_dialog_id_ = DialogId();
+        } else {
+          Dialog *d = get_dialog_force(sponsored_dialog_id_);
+          if (d == nullptr) {
+            LOG(ERROR) << "Can't load " << sponsored_dialog_id_;
+            sponsored_dialog_id_ = DialogId();
+          }
+        }
+      }
+    }
 
     auto unread_message_count_string = G()->td_db()->get_binlog_pmc()->get("unread_message_count");
     if (!unread_message_count_string.empty()) {
@@ -8537,33 +8601,6 @@ void MessagesManager::start_up() {
         unread_dialog_muted_marked_count_ = counts[3].ok();
         is_dialog_unread_count_inited_ = true;
         send_update_unread_chat_count(DialogId(), true, "load unread_dialog_count");
-      }
-    }
-
-    auto sponsored_dialog_id_string = G()->td_db()->get_binlog_pmc()->get("sponsored_dialog_id");
-    if (sponsored_dialog_id_string.empty()) {
-      sponsored_dialog_id_string = G()->td_db()->get_binlog_pmc()->get("promoted_dialog_id");
-      if (!sponsored_dialog_id_string.empty()) {
-        G()->td_db()->get_binlog_pmc()->erase("promoted_dialog_id");
-        G()->td_db()->get_binlog_pmc()->set("sponsored_dialog_id", sponsored_dialog_id_string);
-      }
-    }
-    if (!sponsored_dialog_id_string.empty()) {
-      auto r_dialog_id = to_integer_safe<int64>(sponsored_dialog_id_string);
-      if (r_dialog_id.is_error()) {
-        LOG(ERROR) << "Can't parse " << sponsored_dialog_id_string;
-      } else {
-        sponsored_dialog_id_ = DialogId(r_dialog_id.ok());
-        if (!sponsored_dialog_id_.is_valid()) {
-          LOG(ERROR) << "Have invalid chat ID " << sponsored_dialog_id_string;
-          sponsored_dialog_id_ = DialogId();
-        } else {
-          Dialog *d = get_dialog_force(sponsored_dialog_id_);
-          if (d == nullptr) {
-            LOG(ERROR) << "Can't load " << sponsored_dialog_id_;
-            sponsored_dialog_id_ = DialogId();
-          }
-        }
       }
     }
 
@@ -21388,11 +21425,10 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
 
   if (!is_new && had_unread_counter != has_unread_counter) {
     auto unread_count = d->server_unread_count + d->local_unread_count;
+    const char *source = had_unread_counter ? "on_dialog_leave" : "on_dialog_join";
     if (unread_count != 0 && is_message_unread_count_inited_) {
-      const char *source = "on_dialog_join";
       if (had_unread_counter) {
         unread_count = -unread_count;
-        source = "on_dialog_leave";
       } else {
         CHECK(has_unread_counter);
       }
@@ -21404,11 +21440,9 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
       send_update_unread_message_count(d->dialog_id, true, source);
     }
     if ((unread_count != 0 || d->is_marked_as_unread) && is_dialog_unread_count_inited_) {
-      const char *source = "on_dialog_join";
       int delta = 1;
       if (had_unread_counter) {
         delta = -1;
-        source = "on_dialog_leave";
       } else {
         CHECK(has_unread_counter);
       }
@@ -21428,6 +21462,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
 
     if (d->dialog_id.get_type() == DialogType::Channel && has_unread_counter) {
       repair_channel_server_unread_count(d);
+      get_channel_difference(d->dialog_id, d->pts, true, source);
     }
   }
 
@@ -23099,22 +23134,63 @@ void MessagesManager::set_sponsored_dialog_id(DialogId dialog_id) {
 
 td_api::object_ptr<td_api::updateUnreadMessageCount> MessagesManager::get_update_unread_message_count_object() const {
   CHECK(is_message_unread_count_inited_);
+  int32 unread_count = unread_message_total_count_;
   int32 unread_unmuted_count = unread_message_total_count_ - unread_message_muted_count_;
-  CHECK(unread_message_total_count_ >= 0);
+
+  if (!include_sponsored_dialog_from_unread_count_ && sponsored_dialog_id_.is_valid()) {
+    const Dialog *d = get_dialog(sponsored_dialog_id_);
+    CHECK(d != nullptr);
+    auto sponsored_unread_count = d->server_unread_count + d->local_unread_count;
+    if (sponsored_unread_count != 0) {
+      unread_count -= sponsored_unread_count;
+      if (unread_count < 0) {
+        unread_count = 0;
+      }
+      if (!is_dialog_muted(d)) {
+        unread_unmuted_count -= sponsored_unread_count;
+        if (unread_unmuted_count < 0) {
+          unread_unmuted_count = 0;
+        }
+      }
+    }
+  }
+
+  CHECK(unread_count >= 0);
   CHECK(unread_unmuted_count >= 0);
-  return td_api::make_object<td_api::updateUnreadMessageCount>(unread_message_total_count_, unread_unmuted_count);
+  return td_api::make_object<td_api::updateUnreadMessageCount>(unread_count, unread_unmuted_count);
 }
 
 td_api::object_ptr<td_api::updateUnreadChatCount> MessagesManager::get_update_unread_chat_count_object() const {
   CHECK(is_dialog_unread_count_inited_);
-  int32 unread_unmuted_count = unread_dialog_total_count_ - unread_dialog_muted_count_;
-  int32 unread_unmuted_marked_count = unread_dialog_marked_count_ - unread_dialog_muted_marked_count_;
-  CHECK(unread_dialog_total_count_ >= 0);
+  int32 unread_count = unread_dialog_total_count_;
+  int32 unread_unmuted_count = unread_count - unread_dialog_muted_count_;
+  int32 unread_marked_count = unread_dialog_marked_count_;
+  int32 unread_unmuted_marked_count = unread_marked_count - unread_dialog_muted_marked_count_;
+  CHECK(unread_count >= 0);
   CHECK(unread_unmuted_count >= 0);
-  CHECK(unread_dialog_marked_count_ >= 0);
+  CHECK(unread_marked_count >= 0);
   CHECK(unread_unmuted_marked_count >= 0);
-  return td_api::make_object<td_api::updateUnreadChatCount>(unread_dialog_total_count_, unread_unmuted_count,
-                                                            unread_dialog_marked_count_, unread_unmuted_marked_count);
+
+  if (!include_sponsored_dialog_from_unread_count_ && sponsored_dialog_id_.is_valid()) {
+    const Dialog *d = get_dialog(sponsored_dialog_id_);
+    CHECK(d != nullptr);
+    auto sponsored_unread_count = d->server_unread_count + d->local_unread_count;
+    if (sponsored_unread_count != 0 || d->is_marked_as_unread) {
+      unread_count = td::max(unread_count - 1, 0);
+      if (sponsored_unread_count == 0 && d->is_marked_as_unread) {
+        unread_marked_count = td::max(unread_marked_count - 1, 0);
+      }
+      if (!is_dialog_muted(d)) {
+        unread_unmuted_count = td::max(unread_unmuted_count - 1, 0);
+        if (sponsored_unread_count == 0 && d->is_marked_as_unread) {
+          unread_unmuted_marked_count = td::max(unread_unmuted_marked_count - 1, 0);
+        }
+      }
+    }
+  }
+
+  return td_api::make_object<td_api::updateUnreadChatCount>(unread_count, unread_unmuted_count, unread_marked_count,
+                                                            unread_unmuted_marked_count);
 }
 
 void MessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {

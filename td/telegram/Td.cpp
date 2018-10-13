@@ -3441,6 +3441,9 @@ void Td::on_config_option_updated(const string &name) {
     return stickers_manager_->on_update_recent_stickers_limit(G()->shared_config().get_option_integer(name));
   } else if (name == "favorite_stickers_limit") {
     stickers_manager_->on_update_favorite_stickers_limit(G()->shared_config().get_option_integer(name));
+  } else if (name == "include_sponsored_chat_from_unread_count") {
+    messages_manager_->on_update_include_sponsored_dialog_from_unread_count(
+        G()->shared_config().get_option_boolean(name));
   } else if (name == "my_id") {
     G()->set_my_id(G()->shared_config().get_option_integer(name));
   } else if (name == "session_count") {
@@ -4157,7 +4160,9 @@ void Td::send_update(tl_object_ptr<td_api::Update> &&object) {
     case td_api::updateTrendingStickerSets::ID:
       VLOG(td_requests) << "Sending update: updateTrendingStickerSets { ... }";
       break;
-    case td_api::updateChatReadInbox::ID * 0:
+    case td_api::updateChatReadInbox::ID * 2:
+    case td_api::updateUnreadMessageCount::ID * 2:
+    case td_api::updateUnreadChatCount::ID * 2:
       LOG(ERROR) << "Sending update: " << oneline(to_string(object));
       break;
     default:
@@ -6170,6 +6175,11 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
         return;
       }
       if (set_boolean_option("is_emulator")) {
+        return;
+      }
+      // this option currently can't be set, because unread count doesn't work for channels,
+      // in which user have never been a member
+      if (false && !is_bot && set_boolean_option("include_sponsored_chat_from_unread_count")) {
         return;
       }
       break;
