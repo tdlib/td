@@ -135,7 +135,7 @@ string base64url_encode(Slice input) {
 static unsigned char url_char_to_value[256];
 static void init_base64url_table() {
   static bool is_inited = []() {
-    std::fill(std::begin(url_char_to_value), std::end(url_char_to_value), 64);
+    std::fill(std::begin(url_char_to_value), std::end(url_char_to_value), static_cast<unsigned char>(64));
     for (unsigned char i = 0; i < 64; i++) {
       url_char_to_value[static_cast<size_t>(url_symbols64[i])] = i;
     }
