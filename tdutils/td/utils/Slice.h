@@ -165,8 +165,7 @@ Slice::Slice(T s, std::enable_if_t<std::is_same<char *, std::remove_const_t<T>>:
 }
 
 template <class T>
-Slice::Slice(T s, std::enable_if_t<std::is_same<const char *, std::remove_const_t<T>>::value, private_tag>)
-    : s_(s) {
+Slice::Slice(T s, std::enable_if_t<std::is_same<const char *, std::remove_const_t<T>>::value, private_tag>) : s_(s) {
   CHECK(s_ != nullptr);
   len_ = std::strlen(s_);
 }
