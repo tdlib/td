@@ -80,6 +80,7 @@ class HttpReader {
   string file_field_name_;
   string field_content_type_;
   string file_name_;
+  bool has_file_name_ = false;
   FileFd temp_file_;
   string temp_file_name_;
   int64 file_size_;

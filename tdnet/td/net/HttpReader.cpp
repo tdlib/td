@@ -290,6 +290,7 @@ Result<bool> HttpReader::parse_multipart_form_data() {
           file_field_name_.clear();
           field_content_type_ = "application/octet-stream";
           file_name_.clear();
+          has_file_name_ = false;
           CHECK(temp_file_.empty());
           temp_file_name_.clear();
 
@@ -349,6 +350,7 @@ Result<bool> HttpReader::parse_multipart_form_data() {
                   field_name_ = value;
                 } else if (key == "filename") {
                   file_name_ = value.str();
+                  has_file_name_ = true;
                 } else {
                   // ignore unknown parts of header
                 }
@@ -368,7 +370,7 @@ Result<bool> HttpReader::parse_multipart_form_data() {
             return Status::Error(400, "Bad Request: field name in multipart/form-data not found");
           }
 
-          if (!file_name_.empty()) {
+          if (has_file_name_) {
             // file
             if (query_->files_.size() == max_files_) {
               return Status::Error(413, "Request Entity Too Large: too much files attached");
