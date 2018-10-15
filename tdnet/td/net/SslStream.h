@@ -34,7 +34,7 @@ class SslStream {
   size_t flow_write(Slice slice);
 
   explicit operator bool() const {
-    return bool(impl_);
+    return static_cast<bool>(impl_);
   }
 
  private:

@@ -15,6 +15,7 @@
 #include <unordered_map>
 
 namespace td {
+
 class GetHostByNameActor final : public td::Actor {
  public:
   explicit GetHostByNameActor(int32 ok_timeout = CACHE_TIME, int32 error_timeout = ERROR_CACHE_TIME);
@@ -37,4 +38,5 @@ class GetHostByNameActor final : public td::Actor {
 
   Result<td::IPAddress> load_ip(string host, int port, bool prefer_ipv6) TD_WARN_UNUSED_RESULT;
 };
+
 }  // namespace td
