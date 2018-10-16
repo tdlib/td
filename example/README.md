@@ -5,7 +5,7 @@ If you are looking for documentation of all available TDLib methods, see the [td
 automatically generated [HTML documentation](https://core.telegram.org/tdlib/docs/td__api_8h.html) for a list of all available TDLib [methods](https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1_function.html) and [classes](https://core.telegram.org/tdlib/docs/classtd_1_1td__api_1_1_object.html).
 You can also see our [Getting Started](https://core.telegram.org/tdlib/getting-started) tutorial for a description of basic TDLib concepts.
 
-TDLib can be easily used from almost any language on any platform. Choose your preferred programming language to see examples and a detailed description:
+TDLib can be easily used from almost any programming language on any platform. Choose your preferred programming language to see examples and a detailed description:
 
 - [Python](#python)
 - [JavaScript](#javascript)
@@ -121,7 +121,7 @@ TDLib can be used from the Rust programming language through the [JSON](https://
 
 See [rust-tdlib](https://github.com/lattenwald/rust-tdlib) for an example of TDLib Rust bindings.
 
-<a name="Erlang"></a>
+<a name="erlang"></a>
 ## Using TDLib in Erlang projects
 
 TDLib can be used from the Erlang programming language through the [JSON](https://github.com/tdlib/td#using-json) interface.
@@ -144,7 +144,7 @@ See [tdlua](https://github.com/giuseppeM99/tdlua) or [tdlua](https://github.com/
 
 See also [tdbot](https://github.com/vysheng/tdbot), which makes all TDLib features available from Lua scripts.
 
-<a name="D"></a>
+<a name="d"></a>
 ## Using TDLib in D projects
 
 TDLib can be used from the D programming language through the [JSON](https://github.com/tdlib/td#using-json) interface.
@@ -159,7 +159,7 @@ TDLib can be used from the Ruby programming language through the [JSON](https://
 See [tdlib-ruby](https://github.com/centosadmin/tdlib-ruby) for examples of Ruby bindings and a client for TDLib.
 See [example/ruby](https://github.com/tdlib/td/tree/master/example/ruby) for an example of logging in to Telegram using TDLib and `tdlib-ruby` gem.
 
-<a name="Elixir"></a>
+<a name="elixir"></a>
 ## Using TDLib in Elixir projects
 
 TDLib can be used from the Elixir programming language.
@@ -184,10 +184,10 @@ You can also try to use our [C](https://github.com/tdlib/td/blob/master/td/teleg
 <a name="other"></a>
 ## Using TDLib from other programming languages
 
-You can use TDLib from any other language using [tdbot](https://github.com/vysheng/tdbot) or [TDLib JSON CLI](https://github.com/oott123/tdlib-json-cli),
+You can use TDLib from any other programming language using [tdbot](https://github.com/vysheng/tdbot) or [TDLib JSON CLI](https://github.com/oott123/tdlib-json-cli),
 which provide a command line tool for interaction with TDLIb using the [JSON](https://github.com/tdlib/td#using-json) interface through stdin and stdout.
 You can use this method to use TDLib, for example, from Brainfuck (unfortunately, we haven't seen examples of sending a Telegram message through TDLib on Brainfuck yet).
 
 Alternatively, you can use the TDLib [JSON](https://github.com/tdlib/td#using-json) interface directly from your programming language.
 
-Feel free to create an issue, if you have created a valuable TDLib binding or a TDLib client in some language and want it to be added to this list of examples.
+Feel free to create an issue, if you have created a valuable TDLib binding or a TDLib client in some programming language and want it to be added to this list of examples.

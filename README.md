@@ -77,7 +77,7 @@ cmake --build . --target tdjson_static
 cd ..
 php SplitSource.php --undo
 ```
-In our tests clang 6.0 with libc++ required less than 500MB RAM per file and GCC 6.3 used less than 1GB RAM per file.
+In our tests clang 6.0 with libc++ required less than 500 MB of RAM per file and GCC 6.3 used less than 1 GB of RAM per file.
 
 <a name="installing-dependencies"></a>
 ### Installing dependencies
