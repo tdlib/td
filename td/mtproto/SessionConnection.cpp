@@ -681,9 +681,9 @@ Status SessionConnection::init() {
 void SessionConnection::set_online(bool online_flag) {
   online_flag_ = online_flag;
   if (online_flag_) {
-    last_pong_at_ = Time::now_cached() - ping_disconnect_delay() + rtt();  // disconnect if no ping in 1 second
+    last_pong_at_ = Time::now() - ping_disconnect_delay() + rtt();
   } else {
-    last_pong_at_ = Time::now_cached();
+    last_pong_at_ = Time::now();
   }
   last_ping_at_ = 0;
   last_ping_message_id_ = 0;
