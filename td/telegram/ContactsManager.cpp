@@ -6096,7 +6096,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
   }
 
   LOG(DEBUG) << "Update " << user_id << ": is_changed = " << u->is_changed
-             << ", need_send_update = " << u->need_send_update << ", is_status_chaned = " << u->is_status_changed;
+             << ", need_send_update = " << u->need_send_update << ", is_status_changed = " << u->is_status_changed;
   if (u->is_changed || u->need_send_update) {
     if (!from_database) {
       u->is_saved = false;
