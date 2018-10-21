@@ -272,7 +272,7 @@ string get_emoji_fingerprint(uint64 num) {
       // comment for clang-format
       u8"\U0001f537"};
 
-  return emojis[(num & 0x7FFFFFFFFFFFFFFF) % emojis.size()].str();
+  return emojis[static_cast<size_t>((num & 0x7FFFFFFFFFFFFFFF) % emojis.size())].str();
 }
 
 Result<string> check_url(MutableSlice url) {
