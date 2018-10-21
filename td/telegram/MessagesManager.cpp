@@ -3694,7 +3694,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   if (has_send_date) {
     CHECK(message_id.is_yet_unsent());
     parse(send_date, parser);
-  } else if (message_id.is_yet_unsent()) {
+  } else if (message_id.is_valid() && message_id.is_yet_unsent()) {
     send_date = date;  // for backward compatibility
   }
   if (has_random_id) {
@@ -17951,6 +17951,7 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   MessageId old_message_id = full_message_id.get_message_id();
+  CHECK(old_message_id.is_valid());
   CHECK(old_message_id.is_yet_unsent());
 
   bool need_update_dialog_pos = false;
@@ -20408,6 +20409,10 @@ void MessagesManager::delete_message_files(const Message *m) const {
 
 void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_id, const Message *m,
                                                    bool is_permanently_deleted) const {
+  if (!message_id.is_valid()) {
+    return;
+  }
+
   if (is_permanently_deleted) {
     d->deleted_message_ids.insert(message_id);
   }
@@ -20423,7 +20428,6 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
 
   if (!G()->parameters().use_message_db) {
     // TODO message files should be deleted anyway
-    // TODO message should be deleted anyway after restart
     return;
   }
 
