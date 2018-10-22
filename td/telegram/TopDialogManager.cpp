@@ -290,6 +290,18 @@ void TopDialogManager::do_get_top_dialogs(GetTopDialogsQuery &&query) {
           LOG(INFO) << "Skip self " << user_id;
           continue;
         }
+        if (query.category == TopDialogCategory::BotInline || query.category == TopDialogCategory::BotPM) {
+          auto r_bot_info = G()->td().get_actor_unsafe()->contacts_manager_->get_bot_data(user_id);
+          if (r_bot_info.is_error()) {
+            LOG(INFO) << "Skip not a bot " << user_id;
+            continue;
+          }
+          if (query.category == TopDialogCategory::BotInline &&
+              (r_bot_info.ok().username.empty() || !r_bot_info.ok().is_inline)) {
+            LOG(INFO) << "Skip not inline bot " << user_id;
+            continue;
+          }
+        }
       }
 
       result.push_back(dialog_id);
