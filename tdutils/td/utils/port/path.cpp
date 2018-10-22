@@ -91,7 +91,14 @@ Status rmrf(CSlice path) {
 #if TD_PORT_POSIX
 
 Status mkdir(CSlice dir, int32 mode) {
-  int mkdir_res = detail::skip_eintr([&] { return ::mkdir(dir.c_str(), static_cast<mode_t>(mode)); });
+  int mkdir_res = [&] {
+    int res;
+    do {
+      errno = 0;  // just in case
+      res = ::mkdir(dir.c_str(), static_cast<mode_t>(mode));
+    } while (res < 0 && (errno == EINTR || errno == EAGAIN));
+    return res;
+  }();
   if (mkdir_res == 0) {
     return Status::OK();
   }
