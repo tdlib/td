@@ -21377,11 +21377,12 @@ void MessagesManager::update_dialog_pos(Dialog *d, bool remove_from_dialog_list,
 
 bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_send_update_chat_order) {
   CHECK(d != nullptr);
-  DialogDate old_date(d->order, d->dialog_id);
-  DialogDate new_date(new_order, d->dialog_id);
+  DialogId dialog_id = d->dialog_id;
+  DialogDate old_date(d->order, dialog_id);
+  DialogDate new_date(new_order, dialog_id);
 
   std::set<DialogDate> *ordered_dialogs_set = nullptr;
-  switch (d->dialog_id.get_type()) {
+  switch (dialog_id.get_type()) {
     case DialogType::User:
     case DialogType::Chat:
     case DialogType::Channel:
@@ -21401,7 +21402,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
     LOG(INFO) << "Dialog order is not changed: " << new_order;
     return false;
   }
-  LOG(INFO) << "Update order of " << d->dialog_id << " from " << d->order << " to " << new_order;
+  LOG(INFO) << "Update order of " << dialog_id << " from " << d->order << " to " << new_order;
 
   bool need_update = false;
   if (old_date <= last_dialog_date_) {
@@ -21411,7 +21412,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
     need_update = true;
   }
   bool is_new = ordered_dialogs_set->erase(old_date) == 0;
-  LOG_IF(ERROR, is_new && d->order != DEFAULT_ORDER) << d->dialog_id << " not found in the chat list";
+  LOG_IF(ERROR, is_new && d->order != DEFAULT_ORDER) << dialog_id << " not found in the chat list";
 
   int64 updated_to = 0;
   if (new_date <= last_dialog_date_) {
@@ -21441,7 +21442,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
       if (is_dialog_muted(d)) {
         unread_message_muted_count_ += unread_count;
       }
-      send_update_unread_message_count(d->dialog_id, true, source);
+      send_update_unread_message_count(dialog_id, true, source);
     }
     if ((unread_count != 0 || d->is_marked_as_unread) && is_dialog_unread_count_inited_) {
       int delta = 1;
@@ -21461,12 +21462,12 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
           unread_dialog_muted_marked_count_ += delta;
         }
       }
-      send_update_unread_chat_count(d->dialog_id, true, source);
+      send_update_unread_chat_count(dialog_id, true, source);
     }
 
-    if (d->dialog_id.get_type() == DialogType::Channel && has_unread_counter) {
+    if (dialog_id.get_type() == DialogType::Channel && has_unread_counter) {
       repair_channel_server_unread_count(d);
-      get_channel_difference(d->dialog_id, d->pts, true, source);
+      channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
     }
   }
 
@@ -21482,7 +21483,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
     need_update = false;
   }
   if (need_update && need_send_update_chat_order) {
-    send_closure(G()->td(), &Td::send_update, make_tl_object<td_api::updateChatOrder>(d->dialog_id.get(), updated_to));
+    send_closure(G()->td(), &Td::send_update, make_tl_object<td_api::updateChatOrder>(dialog_id.get(), updated_to));
   }
   return true;
 }
