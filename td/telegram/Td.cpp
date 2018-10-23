@@ -6833,15 +6833,11 @@ void Td::on_request(uint64 id, td_api::testSetLogTagVerbosityLevel &request) {
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::testSetLogTagVerbosityLevel &request) {
-  if (request.new_verbosity_level_ < 0 || request.new_verbosity_level_ > 1023) {
-    return td_api::make_object<td_api::error>(400, "Wrong new verbosity level");
-  }
-
   int *level = get_log_verbosity_level(request.tag_);
   if (level == nullptr) {
     return td_api::make_object<td_api::error>(400, "Log tag is not found");
   }
-  *level = static_cast<int>(request.new_verbosity_level_);
+  *level = clamp(static_cast<int>(request.new_verbosity_level_), 1, VERBOSITY_NAME(NEVER));
 
   return td_api::make_object<td_api::ok>();
 }
