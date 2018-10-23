@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
 
 project(TdJavaExample VERSION 1.0 LANGUAGES CXX)
 
@@ -58,7 +58,39 @@ target_include_directories(tdjni PRIVATE ${JAVA_INCLUDE_PATH} ${JAVA_INCLUDE_PAT
 target_link_libraries(tdjni PRIVATE Td::TdStatic ${JAVA_JVM_LIBRARY})
 target_compile_definitions(tdjni PRIVATE PACKAGE_NAME="${TD_API_JAVA_PACKAGE}")
 
-set_property(TARGET tdjni PROPERTY CXX_STANDARD 14)
+if (${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
+  set(GCC 1)
+elseif (${CMAKE_CXX_COMPILER_ID} MATCHES Clang)
+  set(CLANG 1)
+elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL Intel)
+  set(INTEL 1)
+elseif (NOT MSVC)
+  message(FATAL_ERROR "Compiler isn't supported")
+endif()
+
+include(CheckCXXCompilerFlag)
+
+if (GCC OR CLANG OR INTEL)
+  if (WIN32 AND INTEL)
+    set(STD14_FLAG /Qstd=c++14)
+  else()
+    set(STD14_FLAG -std=c++14)
+  endif()
+  check_cxx_compiler_flag(${STD14_FLAG} HAVE_STD14)
+  if (NOT HAVE_STD14)
+    string(REPLACE "c++14" "c++1y" STD14_FLAG "${STD14_FLAG}")
+    check_cxx_compiler_flag(${STD14_FLAG} HAVE_STD1Y)
+    set(HAVE_STD14 ${HAVE_STD1Y})
+  endif()
+
+  target_compile_options(tdjni PRIVATE "${STD14_FLAG}")
+elseif (MSVC)
+  set(HAVE_STD14 MSVC_VERSION>=1900)
+endif()
+
+if (NOT HAVE_STD14)
+  message(FATAL_ERROR "No C++14 support in the compiler. Please upgrade the compiler.")
+endif()
 
 add_dependencies(tdjni td_generate_java_api build_java generate_javadoc)
 
