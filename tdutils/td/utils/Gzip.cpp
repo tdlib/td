@@ -37,7 +37,7 @@ Status Gzip::init_encode() {
   mode_ = Encode;
   int ret = deflateInit2(&impl_->stream_, 6, Z_DEFLATED, 15, MAX_MEM_LEVEL, Z_DEFAULT_STRATEGY);
   if (ret != Z_OK) {
-    return Status::Error("zlib deflate init failed");
+    return Status::Error(PSLICE() << "zlib deflate init failed: " << ret);
   }
   return Status::OK();
 }
@@ -48,7 +48,7 @@ Status Gzip::init_decode() {
   mode_ = Decode;
   int ret = inflateInit2(&impl_->stream_, MAX_WBITS + 32);
   if (ret != Z_OK) {
-    return Status::Error("zlib inflate init failed");
+    return Status::Error(PSLICE() << "zlib inflate init failed: " << ret);
   }
   return Status::OK();
 }
