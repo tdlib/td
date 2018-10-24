@@ -187,7 +187,7 @@ void CallActor::rate_call(int32 rating, string comment, Promise<> promise) {
     return promise.set_error(Status::Error(400, "Unexpected sendCallRating"));
   }
   promise.set_value(Unit());
-  auto tl_query = telegram_api::phone_setCallRating(get_input_phone_call(), rating, std::move(comment));
+  auto tl_query = telegram_api::phone_setCallRating(get_input_phone_call("rate_call"), rating, std::move(comment));
   auto query = G()->net_query_creator().create(create_storer(tl_query));
   send_with_promise(std::move(query), PromiseCreator::lambda([actor_id = actor_id(this)](NetQueryPtr net_query) {
                       send_closure(actor_id, &CallActor::on_set_rating_query_result, std::move(net_query));
@@ -209,7 +209,7 @@ void CallActor::send_call_debug_information(string data, Promise<> promise) {
     return promise.set_error(Status::Error(400, "Unexpected sendCallDebugInformation"));
   }
   promise.set_value(Unit());
-  auto tl_query = telegram_api::phone_saveCallDebug(get_input_phone_call(),
+  auto tl_query = telegram_api::phone_saveCallDebug(get_input_phone_call("send_call_debug_information"),
                                                     make_tl_object<telegram_api::dataJSON>(std::move(data)));
   auto query = G()->net_query_creator().create(create_storer(tl_query));
   send_with_promise(std::move(query), PromiseCreator::lambda([actor_id = actor_id(this)](NetQueryPtr net_query) {
@@ -310,8 +310,8 @@ Status CallActor::do_update_call(telegram_api::phoneCallRequested &call) {
   return Status::OK();
 }
 
-tl_object_ptr<telegram_api::inputPhoneCall> CallActor::get_input_phone_call() {
-  CHECK(is_call_id_inited_);
+tl_object_ptr<telegram_api::inputPhoneCall> CallActor::get_input_phone_call(const char *source) {
+  CHECK(is_call_id_inited_) << source;
   return make_tl_object<telegram_api::inputPhoneCall>(call_id_, call_access_hash_);
 }
 
@@ -480,7 +480,7 @@ void CallActor::do_load_dh_config(Promise<std::shared_ptr<DhConfig>> promise) {
 }
 
 void CallActor::send_received_query() {
-  auto tl_query = telegram_api::phone_receivedCall(get_input_phone_call());
+  auto tl_query = telegram_api::phone_receivedCall(get_input_phone_call("send_received_query"));
   auto query = G()->net_query_creator().create(create_storer(tl_query));
   send_with_promise(std::move(query), PromiseCreator::lambda([actor_id = actor_id(this)](NetQueryPtr net_query) {
                       send_closure(actor_id, &CallActor::on_received_query_result, std::move(net_query));
@@ -537,8 +537,9 @@ void CallActor::try_send_accept_query() {
     return;
   }
   dh_handshake_.set_config(dh_config_->g, dh_config_->prime);
-  auto tl_query = telegram_api::phone_acceptCall(get_input_phone_call(), BufferSlice(dh_handshake_.get_g_b()),
-                                                 call_state_.protocol.as_telegram_api());
+  auto tl_query =
+      telegram_api::phone_acceptCall(get_input_phone_call("try_send_accept_query"),
+                                     BufferSlice(dh_handshake_.get_g_b()), call_state_.protocol.as_telegram_api());
   auto query = G()->net_query_creator().create(create_storer(tl_query));
   state_ = State::WaitAcceptResult;
   send_with_promise(std::move(query), PromiseCreator::lambda([actor_id = actor_id(this)](NetQueryPtr net_query) {
@@ -560,8 +561,9 @@ void CallActor::try_send_confirm_query() {
   if (!load_dh_config()) {
     return;
   }
-  auto tl_query = telegram_api::phone_confirmCall(get_input_phone_call(), BufferSlice(dh_handshake_.get_g_b()),
-                                                  call_state_.key_fingerprint, call_state_.protocol.as_telegram_api());
+  auto tl_query = telegram_api::phone_confirmCall(get_input_phone_call("try_send_confirm_query"),
+                                                  BufferSlice(dh_handshake_.get_g_b()), call_state_.key_fingerprint,
+                                                  call_state_.protocol.as_telegram_api());
   auto query = G()->net_query_creator().create(create_storer(tl_query));
   state_ = State::WaitConfirmResult;
   send_with_promise(std::move(query), PromiseCreator::lambda([actor_id = actor_id(this)](NetQueryPtr net_query) {
@@ -586,7 +588,7 @@ void CallActor::try_send_discard_query() {
   }
   LOG(INFO) << "Trying to send discard query";
   auto tl_query =
-      telegram_api::phone_discardCall(get_input_phone_call(), duration_,
+      telegram_api::phone_discardCall(get_input_phone_call("try_send_discard_query"), duration_,
                                       get_input_phone_call_discard_reason(call_state_.discard_reason), connection_id_);
   auto query = G()->net_query_creator().create(create_storer(tl_query));
   state_ = State::WaitDiscardResult;

@@ -129,7 +129,7 @@ class CallActor : public NetQueryCallback {
 
   NetQueryRef request_query_ref_;
 
-  tl_object_ptr<telegram_api::inputPhoneCall> get_input_phone_call();
+  tl_object_ptr<telegram_api::inputPhoneCall> get_input_phone_call(const char *source);
   bool load_dh_config();
   void on_dh_config(Result<std::shared_ptr<DhConfig>> r_dh_config, bool dummy);
   void do_load_dh_config(Promise<std::shared_ptr<DhConfig>> promise);
