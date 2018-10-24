@@ -15210,17 +15210,18 @@ void MessagesManager::on_upload_message_media_finished(int64 media_album_id, Dia
     // send later, because some messages may be being deleted now
     for (auto request_message_id : request.message_ids) {
       LOG(INFO) << "Send on_media_message_ready_to_send for " << request_message_id << " in " << dialog_id;
-      send_closure_later(actor_id(this), &MessagesManager::on_media_message_ready_to_send, dialog_id,
-                         request_message_id,
-                         PromiseCreator::lambda([actor_id = actor_id(this)](Result<Message *> result) mutable {
-                           if (result.is_error() || G()->close_flag()) {
-                             return;
-                           }
+      send_closure_later(
+          actor_id(this), &MessagesManager::on_media_message_ready_to_send, dialog_id, request_message_id,
+          PromiseCreator::lambda([actor_id = actor_id(this), media_album_id](Result<Message *> result) mutable {
+            if (result.is_error() || G()->close_flag()) {
+              return;
+            }
 
-                           auto m = result.move_as_ok();
-                           CHECK(m != nullptr);
-                           send_closure_later(actor_id, &MessagesManager::do_send_message_group, m->media_album_id);
-                         }));
+            auto m = result.move_as_ok();
+            CHECK(m != nullptr);
+            CHECK(m->media_album_id == media_album_id);
+            send_closure_later(actor_id, &MessagesManager::do_send_message_group, media_album_id);
+          }));
     }
   }
 }
@@ -15285,7 +15286,8 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     pending_message_group_sends_.erase(it);
     return;
   }
-  CHECK(request.finished_count == request.message_ids.size());
+  CHECK(request.finished_count == request.message_ids.size())
+      << request.finished_count << " " << request.message_ids.size();
   pending_message_group_sends_.erase(it);
 
   LOG(INFO) << "Begin to send media group " << media_album_id << " to " << dialog_id;
