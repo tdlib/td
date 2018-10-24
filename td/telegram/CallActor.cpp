@@ -323,6 +323,16 @@ Status CallActor::do_update_call(telegram_api::phoneCallAccepted &call) {
   }
 
   LOG(DEBUG) << "Do update call to Accepted";
+  if (!is_call_id_inited_) {
+    call_id_ = call.id_;
+    call_access_hash_ = call.access_hash_;
+    is_call_id_inited_ = true;
+    call_admin_id_ = call.admin_id_;
+    call_participant_id_ = call.participant_id_;
+    if (call_id_promise_) {
+      call_id_promise_.set_value(std::move(call.id_));
+    }
+  }
   dh_handshake_.set_g_a(call.g_b_.as_slice());
   TRY_STATUS(dh_handshake_.run_checks(true, DhCache::instance()));
   std::tie(call_state_.key_fingerprint, call_state_.key) = dh_handshake_.gen_key();
