@@ -1266,7 +1266,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       break;
     }
     default:
-      UNREACHABLE();
+      LOG(FATAL) << "Have unknown message content type " << static_cast<int32>(content_type);
   }
   if (is_bad) {
     LOG(ERROR) << "Load a message with an invalid content of type " << content_type;
