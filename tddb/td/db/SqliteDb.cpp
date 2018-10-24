@@ -221,6 +221,7 @@ Result<SqliteStatement> SqliteDb::get_statement(CSlice statement) {
   if (rc != SQLITE_OK) {
     return Status::Error(PSLICE() << "Failed to prepare sqlite " << tag("stmt", statement) << raw_->last_error());
   }
+  CHECK(stmt != nullptr) << statement;
   return SqliteStatement(stmt, raw_);
 }
 
