@@ -269,6 +269,7 @@ Status CallActor::do_update_call(telegram_api::phoneCallWaiting &call) {
 
   call_id_ = call.id_;
   call_access_hash_ = call.access_hash_;
+  is_call_id_inited_ = true;
   call_admin_id_ = call.admin_id_;
   call_participant_id_ = call.participant_id_;
   if (call_id_promise_) {
