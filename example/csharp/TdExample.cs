@@ -216,7 +216,7 @@ namespace TdExample
             _client = CreateTdClient();
 
             // test Client.Execute
-            _defaultHandler.OnResult(_client.Execute(new TdApi.GetTextEntities("@telegram /test_command https://telegram.org telegram.me @gif @test")));
+            _defaultHandler.OnResult(Td.Client.Execute(new TdApi.GetTextEntities("@telegram /test_command https://telegram.org telegram.me @gif @test")));
 
             // main loop
             while (!_quiting)

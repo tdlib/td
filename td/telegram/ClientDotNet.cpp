@@ -61,7 +61,7 @@ public:
   /// <param name="function">Object representing a query to the TDLib.</param>
   /// <returns>Returns request result.</returns>
   /// <exception cref="NullReferenceException">Thrown when query is null.</exception>
-  Api::BaseObject^ Execute(Api::Function^ function) {
+  static Api::BaseObject^ Execute(Api::Function^ function) {
     if (function == nullptr) {
       throw REF_NEW NullReferenceException("Function can't be null");
     }
@@ -69,7 +69,7 @@ public:
     td::Client::Request request;
     request.id = 0;
     request.function = td::td_api::move_object_as<td::td_api::Function>(ToUnmanaged(function)->get_object_ptr());
-    return Api::FromUnmanaged(*client->execute(std::move(request)).object);
+    return Api::FromUnmanaged(*td::Client::execute(std::move(request)).object);
   }
 
   /// <summary>
