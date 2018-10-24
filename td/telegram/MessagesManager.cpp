@@ -20851,7 +20851,12 @@ MessageId MessagesManager::get_message_id_by_random_id(Dialog *d, int64 random_i
           CHECK(m->random_id == random_id)
               << random_id << " " << m->random_id << " " << d->random_id_to_message_id[random_id] << " "
               << d->random_id_to_message_id[m->random_id] << " " << m->message_id << " " << source << " "
-              << m->from_database << " " << debug_add_message_to_dialog_fail_reason_;
+              << m->from_database << get_message(d, m->message_id) << " " << m << " "
+              << debug_add_message_to_dialog_fail_reason_;
+          CHECK(d->random_id_to_message_id.count(random_id))
+              << source << " " << random_id << " " << m->message_id << " " << m->is_failed_to_send << " "
+              << m->is_outgoing << " " << m->from_database << " " << get_message(d, m->message_id) << " " << m << " "
+              << debug_add_message_to_dialog_fail_reason_;
           CHECK(d->random_id_to_message_id[random_id] == m->message_id)
               << source << " " << random_id << " " << d->random_id_to_message_id[random_id] << " " << m->message_id
               << " " << m->is_failed_to_send << " " << m->is_outgoing << " " << m->from_database << " "
