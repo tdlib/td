@@ -3002,7 +3002,7 @@ void Td::on_alarm_timeout(int64 alarm_id) {
   }
 
   auto it = pending_alarms_.find(alarm_id);
-  CHECK(it != pending_alarms_.end());
+  CHECK(it != pending_alarms_.end()) << alarm_id << ' ' << close_flag_ << ' ' << G()->close_flag();
   uint64 request_id = it->second;
   pending_alarms_.erase(alarm_id);
   send_result(request_id, make_tl_object<td_api::ok>());
