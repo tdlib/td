@@ -17691,7 +17691,8 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
 
   bool need_update = true;
   Message *m = add_message_to_dialog(d, std::move(sent_message), true, &need_update, &need_update_dialog_pos, source);
-  CHECK(m != nullptr);
+  CHECK(m != nullptr) << dialog_id << " " << have_input_peer(dialog_id, AccessRights::Read) << " "
+                      << debug_add_message_to_dialog_fail_reason_ << " " << source;
 
   send_update_message_send_succeeded(d, old_message_id, m);
   if (need_update_dialog_pos) {
