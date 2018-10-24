@@ -7,8 +7,6 @@
 #include "td/utils/port/FileFd.h"
 
 #if TD_PORT_WINDOWS
-#include "td/utils/misc.h"  // for narrow_cast
-
 #include "td/utils/port/Stat.h"
 #include "td/utils/port/wstring_convert.h"
 #endif
@@ -222,7 +220,7 @@ Result<size_t> FileFd::read(MutableSlice slice) {
 #if TD_PORT_POSIX
   auto bytes_read = detail::skip_eintr([&] { return ::read(native_fd, slice.begin(), slice.size()); });
   bool success = bytes_read >= 0;
-  bool is_eof = narrow_cast<size_t>(bytes_read) < slice.size();
+  bool is_eof = success && narrow_cast<size_t>(bytes_read) < slice.size();
 #elif TD_PORT_WINDOWS
   DWORD bytes_read = 0;
   BOOL success = ReadFile(native_fd, slice.data(), narrow_cast<DWORD>(slice.size()), &bytes_read, nullptr);
