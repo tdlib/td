@@ -118,6 +118,7 @@ class CallActor : public NetQueryCallback {
 
   CallId local_call_id_;
   int64 call_id_{0};
+  bool is_call_id_inited_{false};
   int64 call_access_hash_{0};
   int32 call_admin_id_{0};
   int32 call_participant_id_{0};

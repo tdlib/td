@@ -291,6 +291,7 @@ Status CallActor::do_update_call(telegram_api::phoneCallRequested &call) {
   LOG(DEBUG) << "Do update call to Requested";
   call_id_ = call.id_;
   call_access_hash_ = call.access_hash_;
+  is_call_id_inited_ = true;
   call_admin_id_ = call.admin_id_;
   call_participant_id_ = call.participant_id_;
   if (call_id_promise_) {
@@ -310,7 +311,7 @@ Status CallActor::do_update_call(telegram_api::phoneCallRequested &call) {
 }
 
 tl_object_ptr<telegram_api::inputPhoneCall> CallActor::get_input_phone_call() {
-  CHECK(call_id_ != 0);
+  CHECK(is_call_id_inited_);
   return make_tl_object<telegram_api::inputPhoneCall>(call_id_, call_access_hash_);
 }
 
