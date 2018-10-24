@@ -39,6 +39,7 @@
 #include "td/telegram/HashtagHints.h"
 #include "td/telegram/InlineQueriesManager.h"
 #include "td/telegram/LanguagePackManager.h"
+#include "td/telegram/Logging.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
@@ -75,8 +76,6 @@
 #include "td/db/binlog/BinlogEvent.h"
 
 #include "td/mtproto/utils.h"  // for create_storer, fetch_result, etc, TODO
-
-#include "tdnet/td/net/TransparentProxy.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/filesystem.h"
@@ -3116,7 +3115,13 @@ bool Td::is_synchronous_request(int32 id) {
     case td_api::getFileExtension::ID:
     case td_api::cleanFileName::ID:
     case td_api::getLanguagePackString::ID:
-    case td_api::testSetLogTagVerbosityLevel::ID:
+    case td_api::setLogStream::ID:
+    case td_api::getLogStream::ID:
+    case td_api::setLogVerbosityLevel::ID:
+    case td_api::getLogVerbosityLevel::ID:
+    case td_api::getLogTags::ID:
+    case td_api::setLogTagVerbosityLevel::ID:
+    case td_api::getLogTagVerbosityLevel::ID:
       return true;
     default:
       return false;
@@ -6715,6 +6720,34 @@ void Td::on_request(uint64 id, const td_api::getLanguagePackString &request) {
   UNREACHABLE();
 }
 
+void Td::on_request(uint64 id, const td_api::setLogStream &request) {
+  UNREACHABLE();
+}
+
+void Td::on_request(uint64 id, const td_api::getLogStream &request) {
+  UNREACHABLE();
+}
+
+void Td::on_request(uint64 id, const td_api::setLogVerbosityLevel &request) {
+  UNREACHABLE();
+}
+
+void Td::on_request(uint64 id, const td_api::getLogVerbosityLevel &request) {
+  UNREACHABLE();
+}
+
+void Td::on_request(uint64 id, const td_api::getLogTags &request) {
+  UNREACHABLE();
+}
+
+void Td::on_request(uint64 id, const td_api::setLogTagVerbosityLevel &request) {
+  UNREACHABLE();
+}
+
+void Td::on_request(uint64 id, const td_api::getLogTagVerbosityLevel &request) {
+  UNREACHABLE();
+}
+
 td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getTextEntities &request) {
   if (!check_utf8(request.text_)) {
     return make_error(400, "Text must be encoded in UTF-8");
@@ -6769,6 +6802,59 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getLangua
       request.language_pack_database_path_, request.localization_target_, request.language_pack_id_, request.key_);
 }
 
+td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::setLogStream &request) {
+  auto result = Logging::set_current_stream(std::move(request.log_stream_));
+  if (result.is_ok()) {
+    return td_api::make_object<td_api::ok>();
+  } else {
+    return make_error(400, result.message());
+  }
+}
+
+td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getLogStream &request) {
+  auto result = Logging::get_current_stream();
+  if (result.is_ok()) {
+    return result.move_as_ok();
+  } else {
+    return make_error(400, result.error().message());
+  }
+}
+
+td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::setLogVerbosityLevel &request) {
+  auto result = Logging::set_verbosity_level(static_cast<int>(request.new_verbosity_level_));
+  if (result.is_ok()) {
+    return td_api::make_object<td_api::ok>();
+  } else {
+    return make_error(400, result.message());
+  }
+}
+
+td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getLogVerbosityLevel &request) {
+  return td_api::make_object<td_api::logVerbosityLevel>(Logging::get_verbosity_level());
+}
+
+td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getLogTags &request) {
+  return td_api::make_object<td_api::logTags>(Logging::get_tags());
+}
+
+td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::setLogTagVerbosityLevel &request) {
+  auto result = Logging::set_tag_verbosity_level(request.tag_, static_cast<int>(request.new_verbosity_level_));
+  if (result.is_ok()) {
+    return td_api::make_object<td_api::ok>();
+  } else {
+    return make_error(400, result.message());
+  }
+}
+
+td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getLogTagVerbosityLevel &request) {
+  auto result = Logging::get_tag_verbosity_level(request.tag_);
+  if (result.is_ok()) {
+    return td_api::make_object<td_api::logVerbosityLevel>(result.ok());
+  } else {
+    return make_error(400, result.error().message());
+  }
+}
+
 // test
 void Td::on_request(uint64 id, td_api::testNetwork &request) {
   create_handler<TestQuery>(id)->send();
@@ -6777,69 +6863,6 @@ void Td::on_request(uint64 id, td_api::testNetwork &request) {
 void Td::on_request(uint64 id, td_api::testGetDifference &request) {
   updates_manager_->get_difference("testGetDifference");
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
-}
-
-int *Td::get_log_verbosity_level(Slice name) {
-  if (name == "td_init") {
-    return &VERBOSITY_NAME(td_init);
-  }
-  if (name == "update_file") {
-    return &VERBOSITY_NAME(update_file);
-  }
-  if (name == "connections") {
-    return &VERBOSITY_NAME(connections);
-  }
-  if (name == "binlog") {
-    return &VERBOSITY_NAME(binlog);
-  }
-  if (name == "proxy") {
-    return &VERBOSITY_NAME(proxy);
-  }
-  if (name == "net_query") {
-    return &VERBOSITY_NAME(net_query);
-  }
-  if (name == "td_requests") {
-    return &VERBOSITY_NAME(td_requests);
-  }
-  if (name == "dc") {
-    return &VERBOSITY_NAME(dc);
-  }
-  if (name == "files") {
-    return &VERBOSITY_NAME(files);
-  }
-  if (name == "mtproto") {
-    return &VERBOSITY_NAME(mtproto);
-  }
-  if (name == "raw_mtproto") {
-    return &VERBOSITY_NAME(raw_mtproto);
-  }
-  if (name == "fd") {
-    return &VERBOSITY_NAME(fd);
-  }
-  if (name == "actor") {
-    return &VERBOSITY_NAME(actor);
-  }
-  if (name == "buffer") {
-    return &VERBOSITY_NAME(buffer);
-  }
-  if (name == "sqlite") {
-    return &VERBOSITY_NAME(sqlite);
-  }
-  return nullptr;
-}
-
-void Td::on_request(uint64 id, td_api::testSetLogTagVerbosityLevel &request) {
-  UNREACHABLE();
-}
-
-td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::testSetLogTagVerbosityLevel &request) {
-  int *level = get_log_verbosity_level(request.tag_);
-  if (level == nullptr) {
-    return td_api::make_object<td_api::error>(400, "Log tag is not found");
-  }
-  *level = clamp(static_cast<int>(request.new_verbosity_level_), 1, VERBOSITY_NAME(NEVER));
-
-  return td_api::make_object<td_api::ok>();
 }
 
 void Td::on_request(uint64 id, td_api::testUseUpdate &request) {

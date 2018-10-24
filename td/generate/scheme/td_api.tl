@@ -2317,6 +2317,25 @@ updateNewCustomQuery id:int64 data:string timeout:int32 = Update;
 updates updates:vector<Update> = Updates;
 
 
+//@class LogStream @description Describes a stream to which TDLib internal log is written
+
+//@description The log is written to stderr or an OS specific log
+logStreamDefault = LogStream;
+
+//@description TDLib needs TdlibParameters for initialization @path Path to the file to where the internal TDLib log will be written @max_file_size Maximum size of the file to where the internal TDLib log is written before the file will be auto-rotated
+logStreamFile path:string max_file_size:int53 = LogStream;
+
+//@description The log is written nowhere
+logStreamEmpty = LogStream;
+
+
+//@description Contains a TDLib internal log verbosity level @verbosity_level Log verbosity level
+logVerbosityLevel verbosity_level:int32 = LogVerbosityLevel;
+
+//@description Contains a list of available TDLib internal log tags @tags List of log tags
+logTags tags:vector<string> = LogTags;
+
+
 //@description A simple object containing a number; for testing only @value Number
 testInt value:int32 = TestInt;
 //@description A simple object containing a string; for testing only @value String
@@ -3378,6 +3397,30 @@ getProxyLink proxy_id:int32 = Text;
 pingProxy proxy_id:int32 = Seconds;
 
 
+//@description Sets new log stream for internal logging of TDLib. This is an offline method. Can be called before authorization. Can be called synchronously @log_stream New log stream
+setLogStream log_stream:LogStream = Ok;
+
+//@description Returns information about currently used log stream for internal logging of TDLib. This is an offline method. Can be called before authorization. Can be called synchronously
+getLogStream = LogStream;
+
+//@description Sets the verbosity level of the internal logging of TDLib. This is an offline method. Can be called before authorization. Can be called synchronously
+//@new_verbosity_level New value of the verbosity level for logging. Value 0 corresponds to fatal errors, value 1 corresponds to errors, value 2 corresponds to warnings and debug warnings, value 3 corresponds to informational, value 4 corresponds to debug, value 5 corresponds to verbose debug, value greater than 5 and up to 1023 can be used to enable even more logging
+setLogVerbosityLevel new_verbosity_level:int32 = Ok;
+
+//@description Returns current verbosity level of the internal logging of TDLib. This is an offline method. Can be called before authorization. Can be called synchronously
+getLogVerbosityLevel = LogVerbosityLevel;
+
+//@description Returns list of available TDLib internal log tags. Currently returns ["td_init", "update_file", "connections", "binlog", "proxy", "net_query", "td_requests", "dc", "files", "mtproto", "raw_mtproto", "fd", "actor", "buffer", "sqlite"]
+getLogTags = LogTags;
+
+//@description Sets the verbosity level for a specified TDLib internal log tag. This is an offline method. Can be called before authorization. Can be called synchronously
+//@tag Logging tag to change verbosity level @new_verbosity_level New verbosity level; 1-1024
+setLogTagVerbosityLevel tag:string new_verbosity_level:int32 = Ok;
+
+//@description Returns current verbosity level for a specified TDLib internal log tag. This is an offline method. Can be called before authorization. Can be called synchronously @tag Logging tag to change verbosity level
+getLogTagVerbosityLevel tag:string = LogVerbosityLevel;
+
+
 //@description Does nothing; for testing only
 testCallEmpty = Ok;
 //@description Returns the received string; for testing only @x String to return
@@ -3402,7 +3445,3 @@ testGetDifference = Ok;
 testUseUpdate = Update;
 //@description Does nothing and ensures that the Error object is used; for testing only
 testUseError = Error;
-//@description Changes verbosity level for a specified log tag; for testing only. This is an offline method. Can be called before authorization. Can be called synchronously
-//@tag Logging tag to change verbosity level (one of "td_init", "update_file", "connections", "binlog", "proxy", "net_query", "td_requests", "dc", "files", "mtproto", "raw_mtproto", "fd", "actor", "buffer", "sqlite")
-//@new_verbosity_level New verbosity level; 1-1024
-testSetLogTagVerbosityLevel tag:string new_verbosity_level:int32 = Ok;

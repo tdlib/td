@@ -31,9 +31,6 @@ EMSCRIPTEN_KEEPALIVE const char *td_execute(void *client, const char *query) {
 EMSCRIPTEN_KEEPALIVE void td_destroy(void *client) {
   td_json_client_destroy(client);
 }
-EMSCRIPTEN_KEEPALIVE void td_set_verbosity(int verbosity) {
-  td_set_log_verbosity_level(verbosity);
-}
 EMSCRIPTEN_KEEPALIVE double td_get_timeout() {
   return td::ConcurrentScheduler::emscripten_get_main_timeout();
 }

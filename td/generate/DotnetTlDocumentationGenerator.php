@@ -8,7 +8,7 @@ class DotnetTlDocumentationGenerator extends TlDocumentationGenerator
     {
         $doc = htmlspecialchars($doc, ENT_XML1);
         $doc = str_replace('*/', '*&#47;', $doc);
-        $doc = preg_replace_callback('/_([A-Za-z])/', function ($matches) {return strtoupper($matches[1]);}, $doc);
+        $doc = preg_replace_callback('/(?<!")_([A-Za-z])/', function ($matches) {return strtoupper($matches[1]);}, $doc);
         return $doc;
     }
 

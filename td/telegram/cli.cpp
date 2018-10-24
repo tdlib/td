@@ -1130,9 +1130,13 @@ class CliClient final : public Actor {
   }
 
   static td_api::object_ptr<td_api::Object> execute(tl_object_ptr<td_api::Function> f) {
-    LOG(INFO) << "Execute request: " << to_string(f);
+    if (GET_VERBOSITY_LEVEL() < VERBOSITY_NAME(td_requests)) {
+      LOG(ERROR) << "Execute request: " << to_string(f);
+    }
     auto res = ClientActor::execute(std::move(f));
-    LOG(INFO) << "Execute response: " << to_string(res);
+    if (GET_VERBOSITY_LEVEL() < VERBOSITY_NAME(td_requests)) {
+      LOG(ERROR) << "Execute response: " << to_string(res);
+    }
     return res;
   }
 
@@ -3384,12 +3388,32 @@ class CliClient final : public Actor {
       td::Log::set_verbosity_level(static_cast<int>(op.size()));
     } else if (op[0] == 'v' && ('0' <= op[1] && op[1] <= '9')) {
       td::Log::set_verbosity_level(to_integer<int>(op.substr(1)));
+    } else if (op == "slse") {
+      execute(td_api::make_object<td_api::setLogStream>(td_api::make_object<td_api::logStreamEmpty>()));
+    } else if (op == "slsd") {
+      execute(td_api::make_object<td_api::setLogStream>(td_api::make_object<td_api::logStreamDefault>()));
+    } else if (op == "gls") {
+      execute(td_api::make_object<td_api::getLogStream>());
+    } else if (op == "slvl") {
+      execute(td_api::make_object<td_api::setLogVerbosityLevel>(to_integer<int32>(args)));
+    } else if (op == "glvl") {
+      execute(td_api::make_object<td_api::getLogVerbosityLevel>());
+    } else if (op == "gtags" || op == "glt") {
+      execute(td_api::make_object<td_api::getLogTags>());
     } else if (op == "sltvl" || op == "sltvle" || op == "tag") {
       string tag;
       string level;
       std::tie(tag, level) = split(args);
-      auto request = make_tl_object<td_api::testSetLogTagVerbosityLevel>(tag, to_integer<int32>(level));
+      auto request = td_api::make_object<td_api::setLogTagVerbosityLevel>(tag, to_integer<int32>(level));
       if (op == "sltvl") {
+        send_request(std::move(request));
+      } else {
+        execute(std::move(request));
+      }
+    } else if (op == "gltvl" || op == "gltvle" || op == "gtag") {
+      string tag = args;
+      auto request = make_tl_object<td_api::getLogTagVerbosityLevel>(tag);
+      if (op == "gltvl") {
         send_request(std::move(request));
       } else {
         execute(std::move(request));
@@ -3606,7 +3630,7 @@ void main(int argc, char **argv) {
       if (*arg == '\0' && i + 1 < argc) {
         arg = argv[++i];
       }
-      if (file_log.init(arg) && file_log.init(arg) && file_log.init(arg, 1000 << 20)) {
+      if (file_log.init(arg).is_ok() && file_log.init(arg).is_ok() && file_log.init(arg, 1000 << 20).is_ok()) {
         log_interface = &ts_log;
       }
     } else if (!std::strcmp(argv[i], "-W")) {

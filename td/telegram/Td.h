@@ -67,6 +67,8 @@ class WebPagesManager;
 
 namespace td {
 
+extern int VERBOSITY_NAME(td_init);
+
 // Td may start closing after explicit "close" or "destroy" query.
 // Or it may start closing by itself, because authorization is lost.
 // It any case the parent will be notified via updateAuthorizationState.
@@ -912,10 +914,23 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::getLanguagePackString &request);
 
+  void on_request(uint64 id, const td_api::setLogStream &request);
+
+  void on_request(uint64 id, const td_api::getLogStream &request);
+
+  void on_request(uint64 id, const td_api::setLogVerbosityLevel &request);
+
+  void on_request(uint64 id, const td_api::getLogVerbosityLevel &request);
+
+  void on_request(uint64 id, const td_api::getLogTags &request);
+
+  void on_request(uint64 id, const td_api::setLogTagVerbosityLevel &request);
+
+  void on_request(uint64 id, const td_api::getLogTagVerbosityLevel &request);
+
   // test
   void on_request(uint64 id, td_api::testNetwork &request);
   void on_request(uint64 id, td_api::testGetDifference &request);
-  void on_request(uint64 id, td_api::testSetLogTagVerbosityLevel &request);
   void on_request(uint64 id, td_api::testUseUpdate &request);
   void on_request(uint64 id, td_api::testUseError &request);
   void on_request(uint64 id, td_api::testCallEmpty &request);
@@ -937,7 +952,13 @@ class Td final : public NetQueryCallback {
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getFileExtension &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::cleanFileName &request);
   static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getLanguagePackString &request);
-  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::testSetLogTagVerbosityLevel &request);
+  static td_api::object_ptr<td_api::Object> do_static_request(td_api::setLogStream &request);
+  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getLogStream &request);
+  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::setLogVerbosityLevel &request);
+  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getLogVerbosityLevel &request);
+  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getLogTags &request);
+  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::setLogTagVerbosityLevel &request);
+  static td_api::object_ptr<td_api::Object> do_static_request(const td_api::getLogTagVerbosityLevel &request);
 
   static DbKey as_db_key(string key);
   Status init(DbKey key) TD_WARN_UNUSED_RESULT;
