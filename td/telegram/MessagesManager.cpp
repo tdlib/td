@@ -10186,6 +10186,20 @@ unique_ptr<MessagesManager::Message> MessagesManager::delete_message(Dialog *d, 
   return do_delete_message(d, message_id, is_permanently_deleted, false, need_update_dialog_pos, source);
 }
 
+void MessagesManager::add_random_id_to_message_id_correspondence(Dialog *d, int64 random_id, MessageId message_id) {
+  CHECK(d != nullptr);
+  CHECK(d->dialog_id.get_type() == DialogType::SecretChat);
+  LOG(INFO) << "Add correspondence from random_id " << random_id << " to " << message_id << " in " << d->dialog_id;
+  d->random_id_to_message_id[random_id] = message_id;
+}
+
+void MessagesManager::delete_random_id_to_message_id_correspondence(Dialog *d, int64 random_id, MessageId message_id) {
+  CHECK(d != nullptr);
+  CHECK(d->dialog_id.get_type() == DialogType::SecretChat);
+  LOG(INFO) << "Delete correspondence from random_id " << random_id << " to " << message_id << " in " << d->dialog_id;
+  d->random_id_to_message_id.erase(random_id);
+}
+
 // DO NOT FORGET TO ADD ALL CHANGES OF THIS FUNCTION AS WELL TO do_delete_all_dialog_messages
 unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *d, MessageId message_id,
                                                                         bool is_permanently_deleted,
@@ -10437,9 +10451,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
       // nothing to do
       break;
     case DialogType::SecretChat:
-      LOG(INFO) << "Delete correspondence random_id " << result->random_id << " to " << message_id << " in "
-                << d->dialog_id;
-      d->random_id_to_message_id.erase(result->random_id);
+      delete_random_id_to_message_id_correspondence(d, result->random_id, message_id);
       break;
     case DialogType::None:
     default:
@@ -10485,8 +10497,7 @@ void MessagesManager::do_delete_all_dialog_messages(Dialog *d, unique_ptr<Messag
       // nothing to do
       break;
     case DialogType::SecretChat:
-      LOG(INFO) << "Delete correspondence random_id " << m->random_id << " to " << message_id << " in " << d->dialog_id;
-      d->random_id_to_message_id.erase(m->random_id);
+      delete_random_id_to_message_id_correspondence(d, m->random_id, message_id);
       break;
     case DialogType::None:
     default:
@@ -17742,10 +17753,8 @@ void MessagesManager::on_send_message_file_part_missing(int64 random_id, int bad
     } while (m->random_id == 0 || message_random_ids_.find(m->random_id) != message_random_ids_.end());
     message_random_ids_.insert(m->random_id);
 
-    LOG(INFO) << "Replace random_id from " << random_id << " to " << m->random_id << " in " << m->message_id << " in "
-              << dialog_id;
-    d->random_id_to_message_id.erase(random_id);
-    d->random_id_to_message_id[m->random_id] = m->message_id;
+    delete_random_id_to_message_id_correspondence(d, random_id, m->message_id);
+    add_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
 
     auto logevent = SendMessageLogEvent(dialog_id, m);
     auto storer = LogEventStorerImpl<SendMessageLogEvent>(logevent);
@@ -20260,8 +20269,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       // nothing to do
       break;
     case DialogType::SecretChat:
-      LOG(INFO) << "Add correspondence random_id " << (*v)->random_id << " to " << message_id << " in " << dialog_id;
-      d->random_id_to_message_id[(*v)->random_id] = message_id;
+      add_random_id_to_message_id_correspondence(d, (*v)->random_id, message_id);
       break;
     case DialogType::None:
     default:

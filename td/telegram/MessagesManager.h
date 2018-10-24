@@ -1426,6 +1426,10 @@ class MessagesManager : public Actor {
 
   void delete_message_files(const Message *m) const;
 
+  static void add_random_id_to_message_id_correspondence(Dialog *d, int64 random_id, MessageId message_id);
+
+  static void delete_random_id_to_message_id_correspondence(Dialog *d, int64 random_id, MessageId message_id);
+
   void do_delete_message_logevent(const DeleteMessageLogEvent &logevent) const;
 
   void attach_message_to_previous(Dialog *d, MessageId message_id, const char *source);
