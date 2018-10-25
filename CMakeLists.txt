@@ -220,6 +220,10 @@ if (NOT MSVC)
 #  add_cxx_compiler_flag("-Wzero-as-null-pointer-constant")
 endif()
 
+if (GCC AND NOT (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 7.0))
+  add_cxx_compiler_flag("-Wno-maybe-uninitialized")  # too much false positives
+endif()
+
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem /usr/include/c++/v1")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
