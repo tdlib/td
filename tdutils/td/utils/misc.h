@@ -208,7 +208,7 @@ std::enable_if_t<std::is_signed<T>::value, T> to_integer(Slice str) {
     begin++;
   }
   while (begin != end && is_digit(*begin)) {
-    integer_value = static_cast<unsigned_T>(integer_value * 10 + (*begin++ - '0'));
+    integer_value = static_cast<unsigned_T>(integer_value * 10 + static_cast<unsigned_T>(*begin++ - '0'));
   }
   if (integer_value > static_cast<unsigned_T>(std::numeric_limits<T>::max())) {
     static_assert(~0 + 1 == 0, "Two's complement");
@@ -230,7 +230,7 @@ std::enable_if_t<std::is_unsigned<T>::value, T> to_integer(Slice str) {
   auto begin = str.begin();
   auto end = str.end();
   while (begin != end && is_digit(*begin)) {
-    integer_value = static_cast<T>(integer_value * 10 + (*begin++ - '0'));
+    integer_value = static_cast<T>(integer_value * 10 + static_cast<T>(*begin++ - '0'));
   }
   return integer_value;
 }

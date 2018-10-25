@@ -132,7 +132,7 @@ class NetStats {
     void on_change(LocalNetStats &stats, uint64 size) {
       stats.unsync_size += size;
       auto now = Time::now();
-      if (stats.unsync_size > 10000 || now - stats.last_update > 5 * 60) {
+      if (stats.unsync_size > 10000 || now - stats.last_update > 300) {
         stats.unsync_size = 0;
         stats.last_update = now;
         callback_->on_stats_updated();

@@ -396,22 +396,22 @@ class LinkTokenMasterActor : public Actor {
   }
   void loop() override {
     for (int i = 0; i < 100 && cnt_ > 0; cnt_--, i++) {
+      auto token = static_cast<uint64>(cnt_ + 1);
       switch (i % 4) {
         case 0: {
-          send_closure(ActorShared<LinkTokenSlave>(child_, cnt_ + 1), &LinkTokenSlave::add, cnt_ + 1);
+          send_closure(ActorShared<LinkTokenSlave>(child_, token), &LinkTokenSlave::add, token);
           break;
         }
         case 1: {
-          send_closure_later(ActorShared<LinkTokenSlave>(child_, cnt_ + 1), &LinkTokenSlave::add, cnt_ + 1);
+          send_closure_later(ActorShared<LinkTokenSlave>(child_, token), &LinkTokenSlave::add, token);
           break;
         }
         case 2: {
-          EventCreator::closure(ActorShared<LinkTokenSlave>(child_, cnt_ + 1), &LinkTokenSlave::add, cnt_ + 1)
-              .try_emit();
+          EventCreator::closure(ActorShared<LinkTokenSlave>(child_, token), &LinkTokenSlave::add, token).try_emit();
           break;
         }
         case 3: {
-          EventCreator::closure(ActorShared<LinkTokenSlave>(child_, cnt_ + 1), &LinkTokenSlave::add, cnt_ + 1)
+          EventCreator::closure(ActorShared<LinkTokenSlave>(child_, token), &LinkTokenSlave::add, token)
               .try_emit_later();
           break;
         }
