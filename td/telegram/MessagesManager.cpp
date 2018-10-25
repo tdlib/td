@@ -13770,6 +13770,22 @@ void MessagesManager::preload_older_messages(const Dialog *d, MessageId min_mess
   }
 }
 
+unique_ptr<MessagesManager::Message> MessagesManager::parse_message(const BufferSlice &value) {
+  LOG(INFO) << "Loaded message of size " << value.size() << " from database";
+  auto m = make_unique<Message>();
+
+  auto status = log_event_parse(*m, value.as_slice());
+  if (status.is_error() || !m->message_id.is_valid()) {
+    // can't happen unless database is broken, but has been seen in the wild
+
+    LOG(FATAL) << "Receive invalid message from database: " << m->message_id << ' ' << status << ' '
+               << format::as_hex_dump<4>(value.as_slice());
+    return nullptr;
+  }
+
+  return m;
+}
+
 void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId from_message_id, int32 offset,
                                                    int32 limit, bool from_the_end, bool only_local,
                                                    vector<BufferSlice> &&messages, Promise<Unit> &&promise) {
@@ -13807,8 +13823,14 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     if (!d->first_database_message_id.is_valid() && !d->have_full_history) {
       break;
     }
-    auto message = make_unique<Message>();
-    log_event_parse(*message, message_slice.as_slice()).ensure();
+    auto message = parse_message(std::move(message_slice));
+    if (message == nullptr) {
+      if (d->have_full_history) {
+        d->have_full_history = false;
+        on_dialog_updated(dialog_id, "drop have_full_history in on_get_history_from_database");
+      }
+      break;
+    }
     if (message->message_id.get() < d->first_database_message_id.get()) {
       if (d->have_full_history) {
         LOG(ERROR) << "Have full history in the " << dialog_id << " and receive " << message->message_id
@@ -19616,8 +19638,10 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(DialogId
     return nullptr;
   }
 
-  auto m = make_unique<Message>();
-  log_event_parse(*m, value.as_slice()).ensure();
+  auto m = parse_message(std::move(value));
+  if (m == nullptr) {
+    return nullptr;
+  }
 
   if (d == nullptr) {
     LOG(ERROR) << "Can't find " << dialog_id << ", but have a message from it";
@@ -21601,10 +21625,10 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
   if (status.is_error() || !d->dialog_id.is_valid()) {
     // can't happen unless database is broken, but has been seen in the wild
     // if dialog_id is invalid, we can't repair the dialog
-    CHECK(dialog_id.is_valid()) << "Can't repair " << dialog_id << " " << d->dialog_id << " "
+    CHECK(dialog_id.is_valid()) << "Can't repair " << dialog_id << ' ' << d->dialog_id << ' ' << status << ' '
                                 << format::as_hex_dump<4>(value.as_slice());
 
-    LOG(ERROR) << "Repair broken " << dialog_id << " " << format::as_hex_dump<4>(value.as_slice());
+    LOG(ERROR) << "Repair broken " << dialog_id << ' ' << format::as_hex_dump<4>(value.as_slice());
 
     // just clean all known data about the dialog
     d = make_unique<Dialog>();
