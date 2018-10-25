@@ -70,7 +70,8 @@ Status RawConnection::flush_read(const AuthKey &auth_key, Callback &callback) {
       new_packet.as_slice().copy_from(packet.as_slice());
       packet = std::move(new_packet);
     }
-    CHECK(is_aligned_pointer<4>(packet.as_slice().ubegin()));
+    CHECK(is_aligned_pointer<4>(packet.as_slice().ubegin()))
+        << packet.as_slice().ubegin() << ' ' << packet.size() << ' ' << wait_size;
     if (wait_size != 0) {
       break;
     }
