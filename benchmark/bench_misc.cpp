@@ -122,24 +122,23 @@ class PipeBench : public Benchmark {
  public:
   int p[2];
 
-  PipeBench() {
-    pipe(p);
-  }
-
   string get_description() const override {
     return "pipe write + read int32";
   }
 
   void start_up() override {
-    pipe(p);
+    int res = pipe(p);
+    CHECK(res == 0);
   }
 
   void run(int n) override {
     int res = 0;
     for (int i = 0; i < n; i++) {
       int val = 1;
-      write(p[1], &val, sizeof(val));
-      read(p[0], &val, sizeof(val));
+      auto write_len = write(p[1], &val, sizeof(val));
+      CHECK(write_len == sizeof(val));
+      auto read_len = read(p[0], &val, sizeof(val));
+      CHECK(read_len == sizeof(val));
       res += val;
     }
     do_not_optimize_away(res);

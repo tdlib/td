@@ -57,18 +57,21 @@ class PipeQueue {
  public:
   void init() {
     int new_pipe[2];
-    pipe(new_pipe);
+    int res = pipe(new_pipe);
+    CHECK(res == 0);
     output = new_pipe[0];
     input = new_pipe[1];
   }
 
   void put(qvalue_t value) {
-    write(input, &value, sizeof(value));
+    auto len = write(input, &value, sizeof(value));
+    CHECK(len == sizeof(value));
   }
 
   qvalue_t get() {
     qvalue_t res;
-    read(output, &res, sizeof(res));
+    auto len = read(output, &res, sizeof(res));
+    CHECK(len == sizeof(res));
     return res;
   }
 
@@ -193,11 +196,14 @@ class EventfdQueue {
   void put(qvalue_t value) {
     q.put(value);
     td::int64 x = 1;
-    write(fd, &x, sizeof(x));
+    auto len = write(fd, &x, sizeof(x));
+    CHECK(len == sizeof(x));
   }
   qvalue_t get() {
     td::int64 x;
-    read(fd, &x, sizeof(x));
+    auto len = read(fd, &x, sizeof(x));
+    CHECK(len == sizeof(x));
+    CHECK(x == 1);
     return q.get();
   }
   void destroy() {
@@ -351,7 +357,8 @@ class BufferedFdQueue {
     td::int64 x = 1;
     __sync_synchronize();
     if (wait_flag.load(MODE)) {
-      write(fd, &x, sizeof(x));
+      auto len = write(fd, &x, sizeof(x));
+      CHECK(len == sizeof(x));
     }
   }
   void put_noflush(qvalue_t value) {
@@ -362,7 +369,8 @@ class BufferedFdQueue {
     td::int64 x = 1;
     __sync_synchronize();
     if (wait_flag.load(MODE)) {
-      write(fd, &x, sizeof(x));
+      auto len = write(fd, &x, sizeof(x));
+      CHECK(len == sizeof(x));
     }
   }
   void flush_reader() {
@@ -393,7 +401,8 @@ class BufferedFdQueue {
     wait_flag.store(1, MODE);
     __sync_synchronize();
     while (!(res = q.update_reader())) {
-      read(fd, &x, sizeof(x));
+      auto len = read(fd, &x, sizeof(x));
+      CHECK(len == sizeof(x));
       __sync_synchronize();
     }
     wait_flag.store(0, MODE);
@@ -416,7 +425,8 @@ class BufferedFdQueue {
     wait_flag.store(1, MODE);
     __sync_synchronize();
     while (!q.update_reader()) {
-      read(fd, &x, sizeof(x));
+      auto len = read(fd, &x, sizeof(x));
+      CHECK(len == sizeof(x));
       __sync_synchronize();
     }
     wait_flag.store(0, MODE);
@@ -445,12 +455,14 @@ class FdQueue {
     td::int64 x = 1;
     __sync_synchronize();
     if (wait_flag.load(MODE)) {
-      write(fd, &x, sizeof(x));
+      auto len = write(fd, &x, sizeof(x));
+      CHECK(len == sizeof(x));
     }
   }
   qvalue_t get() {
     // td::int64 x;
-    // read(fd, &x, sizeof(x));
+    // auto len = read(fd, &x, sizeof(x));
+    // CHECK(len == sizeof(x));
     // return q.get();
 
     Backoff backoff;
@@ -467,13 +479,13 @@ class FdQueue {
     wait_flag.store(1, MODE);
     __sync_synchronize();
     // std::fprintf(stderr, "!\n");
-    // while (res == -1 && read(fd, &x, sizeof(x))) {
+    // while (res == -1 && read(fd, &x, sizeof(x)) == sizeof(x)) {
     // res = q.try_get();
     //}
     do {
       __sync_synchronize();
       res = q.try_get();
-    } while (res == -1 && read(fd, &x, sizeof(x)));
+    } while (res == -1 && read(fd, &x, sizeof(x)) == sizeof(x));
     q.acquire();
     wait_flag.store(0, MODE);
     return res;
