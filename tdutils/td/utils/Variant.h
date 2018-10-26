@@ -170,7 +170,7 @@ class Variant {
 
   template <class T>
   void init_empty(T &&t) {
-    CHECK(offset_ == npos);
+    CHECK(offset_ == npos) << offset_ << ' ' << typeid(T).name() << ' ' << typeid(*this).name();
     offset_ = offset<T>();
     new (&get<T>()) std::decay_t<T>(std::forward<T>(t));
   }

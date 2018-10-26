@@ -24,6 +24,16 @@ class HttpUrl {
   string query_;
 
   string get_url() const;
+
+  HttpUrl(Protocol protocol, string userinfo, string host, bool is_ipv6, int specified_port, int port, string query)
+      : protocol_(protocol)
+      , userinfo_(std::move(userinfo))
+      , host_(std::move(host))
+      , is_ipv6_(is_ipv6)
+      , specified_port_(specified_port)
+      , port_(port)
+      , query_(std::move(query)) {
+  }
 };
 
 // TODO Slice instead of MutableSlice
