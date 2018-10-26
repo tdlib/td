@@ -48,17 +48,13 @@ Result<RSA> RSA::from_pem(Slice pem) {
     BIO_free(bio);
   };
 
-  auto *rsa = RSA_new();
+  auto rsa = PEM_read_bio_RSAPublicKey(bio, nullptr, nullptr, nullptr);
   if (rsa == nullptr) {
-    return Status::Error("Cannot create RSA");
+    return Status::Error("Error while reading rsa pubkey");
   }
   SCOPE_EXIT {
     RSA_free(rsa);
   };
-
-  if (!PEM_read_bio_RSAPublicKey(bio, &rsa, nullptr, nullptr)) {
-    return Status::Error("Error while reading rsa pubkey");
-  }
 
   if (RSA_size(rsa) != 256) {
     return Status::Error("RSA_size != 256");
