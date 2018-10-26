@@ -22,7 +22,6 @@
 namespace td {
 
 class OptionsParser {
- public:
   class Option {
    public:
     enum Type { NoArg, Arg, OptionalArg };
@@ -33,6 +32,7 @@ class OptionsParser {
     std::function<Status(Slice)> arg_callback;
   };
 
+ public:
   void set_description(std::string description) {
     description_ = std::move(description);
   }

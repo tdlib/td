@@ -593,13 +593,13 @@ class ChainBufferReader {
 
   // Return [begin_, tail.begin_)
   // *this = tail
-  ChainBufferReader cut_head(ChainBufferIterator pos) {
+  ChainBufferReader cut_head(ChainBufferIterator pos) TD_WARN_UNUSED_RESULT {
     auto tmp = begin_.clone();
     begin_ = pos.clone();
     return ChainBufferReader(std::move(tmp), std::move(pos), false);
   }
 
-  ChainBufferReader cut_head(size_t offset) {
+  ChainBufferReader cut_head(size_t offset) TD_WARN_UNUSED_RESULT {
     CHECK(offset <= size()) << offset << " " << size();
     auto it = begin_.clone();
     it.advance(offset);

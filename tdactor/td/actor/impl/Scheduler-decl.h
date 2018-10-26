@@ -205,7 +205,7 @@ class Scheduler {
   Callback *callback_ = nullptr;
   unique_ptr<ObjectPool<ActorInfo>> actor_info_pool_;
 
-  int32 actor_count_;
+  int32 actor_count_ = 0;
   ListNode pending_actors_list_;
   ListNode ready_actors_list_;
   KHeap<double> timeout_queue_;
@@ -215,27 +215,27 @@ class Scheduler {
   ServiceActor service_actor_;
   Poll poll_;
 
-  bool yield_flag_;
+  bool yield_flag_ = false;
   bool has_guard_ = false;
   bool close_flag_ = false;
 
   uint32 wait_generation_ = 0;
-  int32 sched_id_;
-  int32 sched_n_;
+  int32 sched_id_ = 0;
+  int32 sched_n_ = 0;
   std::shared_ptr<MpscPollableQueue<EventFull>> inbound_queue_;
   std::vector<std::shared_ptr<MpscPollableQueue<EventFull>>> outbound_queues_;
 
   std::shared_ptr<ActorContext> save_context_;
 
   struct EventContext {
-    int32 dest_sched_id;
+    int32 dest_sched_id{0};
     enum Flags { Stop = 1, Migrate = 2 };
     int32 flags{0};
-    uint64 link_token;
+    uint64 link_token{0};
 
-    ActorInfo *actor_info;
+    ActorInfo *actor_info{nullptr};
   };
-  EventContext *event_context_ptr_;
+  EventContext *event_context_ptr_{nullptr};
 
   friend class GlobalScheduler;
   friend class SchedulerGuard;

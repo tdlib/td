@@ -81,8 +81,8 @@ class AuthKeyHandshake {
   using State = enum { Start, ResPQ, ServerDHParams, DHGenResponse, Finish };
   State state_ = Start;
   Mode mode_ = Mode::Unknown;
-  int32 dc_id_;
-  int32 expire_in_;
+  int32 dc_id_ = 0;
+  int32 expire_in_ = 0;
   double expire_at_ = 0;
 
   UInt128 nonce;

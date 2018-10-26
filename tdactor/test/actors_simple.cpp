@@ -290,7 +290,7 @@ class OpenClose final : public Actor {
       auto r_file_fd = FileFd::open("server", FileFd::Read | FileFd::Create);
       CHECK(r_file_fd.is_ok()) << r_file_fd.error();
       auto file_fd = r_file_fd.move_as_ok();
-      file_fd.get_poll_info().extract_pollable_fd(observer);
+      { PollableFd pollable_fd = file_fd.get_poll_info().extract_pollable_fd(observer); }
       file_fd.close();
       cnt_--;
       yield();
@@ -396,7 +396,7 @@ class LinkTokenMasterActor : public Actor {
   }
   void loop() override {
     for (int i = 0; i < 100 && cnt_ > 0; cnt_--, i++) {
-      auto token = static_cast<uint64>(cnt_ + 1);
+      auto token = static_cast<uint64>(cnt_) + 1;
       switch (i % 4) {
         case 0: {
           send_closure(ActorShared<LinkTokenSlave>(child_, token), &LinkTokenSlave::add, token);

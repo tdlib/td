@@ -22,13 +22,13 @@ class HttpQuery {
   enum class Type : int8 { EMPTY, GET, POST, RESPONSE };
 
   std::vector<BufferSlice> container_;
-  Type type_;
+  Type type_ = Type::EMPTY;
   MutableSlice url_path_;
   std::vector<std::pair<MutableSlice, MutableSlice>> args_;
-  int code_;
+  int code_ = 0;
   MutableSlice reason_;
 
-  bool keep_alive_;
+  bool keep_alive_ = true;
   std::vector<std::pair<MutableSlice, MutableSlice>> headers_;
   std::vector<HttpFile> files_;
   MutableSlice content_;

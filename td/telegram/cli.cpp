@@ -817,7 +817,7 @@ class CliClient final : public Actor {
     if (!data.empty() && data[data.size() - 1] == '\r') {
       data.truncate(data.size() - 1);
     }
-    buffer->cut_head(1);
+    buffer->advance(1);
     buffer_pos_ = 0;
     return std::move(data);
   }

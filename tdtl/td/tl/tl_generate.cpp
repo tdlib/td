@@ -106,17 +106,15 @@ static void write_function_fetch(tl_outputer &out, const std::string &parser_nam
   out.append(w.gen_fetch_function_end(false, field_num, vars, parser_type));
 }
 
-static std::vector<var_description> write_function_store(tl_outputer &out, const std::string &storer_name,
-                                                         const tl_combinator *t, const std::string &class_name,
-                                                         std::vector<var_description> &vars,
-                                                         const std::set<std::string> &request_types,
-                                                         const std::set<std::string> &result_types,
-                                                         const TL_writer &w) {
+static void write_function_store(tl_outputer &out, const std::string &storer_name, const tl_combinator *t,
+                                 const std::string &class_name, std::vector<var_description> &vars,
+                                 const std::set<std::string> &request_types, const std::set<std::string> &result_types,
+                                 const TL_writer &w) {
   //  std::fprintf(stderr, "Write function store %s\n", class_name.c_str());
   int storer_type = w.get_storer_type(t, storer_name);
 
   if (!is_reachable_for_storer(storer_type, t->name, request_types, result_types, w)) {
-    return vars;
+    return;
   }
 
   out.append(w.gen_store_function_begin(storer_name, class_name, 0, vars, storer_type));
@@ -126,8 +124,6 @@ static std::vector<var_description> write_function_store(tl_outputer &out, const
   }
 
   out.append(w.gen_store_function_end(vars, storer_type));
-
-  return vars;
 }
 
 static void write_function_result_fetch(tl_outputer &out, const std::string &parser_name, const tl_combinator *t,

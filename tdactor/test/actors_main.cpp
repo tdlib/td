@@ -49,8 +49,8 @@ static uint32 slow_pow_mod_uint32(uint32 x, uint32 p) {
 }
 
 struct Query {
-  uint32 query_id;
-  uint32 result;
+  uint32 query_id{};
+  uint32 result{};
   std::vector<int> todo;
   Query() = default;
   Query(const Query &) = delete;
@@ -336,7 +336,7 @@ class SimpleActor final : public Actor {
   ActorId<Worker> worker_;
   FutureActor<uint32> future_;
   uint32 q_ = 1;
-  uint32 p_;
+  uint32 p_ = 0;
 };
 }  // namespace
 
@@ -399,7 +399,7 @@ TEST(Actors, send_to_dead) {
   int threads_n = 5;
   sched.init(threads_n);
 
-  sched.create_actor_unsafe<SendToDead>(0, "manager").release();
+  auto actor_id = sched.create_actor_unsafe<SendToDead>(0, "SendToDead").release();
   sched.start();
   while (sched.run_main(10)) {
     // empty
@@ -414,7 +414,7 @@ TEST(Actors, main_simple) {
   int threads_n = 3;
   sched.init(threads_n);
 
-  sched.create_actor_unsafe<SimpleActor>(threads_n > 1 ? 1 : 0, "simple", threads_n).release();
+  auto actor_id = sched.create_actor_unsafe<SimpleActor>(threads_n > 1 ? 1 : 0, "simple", threads_n).release();
   sched.start();
   while (sched.run_main(10)) {
     // empty
@@ -429,7 +429,7 @@ TEST(Actors, main) {
   int threads_n = 9;
   sched.init(threads_n);
 
-  sched.create_actor_unsafe<MainQueryActor>(threads_n > 1 ? 1 : 0, "manager", threads_n).release();
+  auto actor_id = sched.create_actor_unsafe<MainQueryActor>(threads_n > 1 ? 1 : 0, "MainQuery", threads_n).release();
   sched.start();
   while (sched.run_main(10)) {
     // empty
@@ -457,7 +457,7 @@ TEST(Actors, do_after_stop) {
   int threads_n = 0;
   sched.init(threads_n);
 
-  sched.create_actor_unsafe<DoAfterStop>(0, "manager").release();
+  auto actor_id = sched.create_actor_unsafe<DoAfterStop>(0, "DoAfterStop").release();
   sched.start();
   while (sched.run_main(10)) {
     // empty

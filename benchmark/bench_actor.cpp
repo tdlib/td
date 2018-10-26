@@ -23,10 +23,10 @@ class RingBench : public td::Benchmark {
   struct PassActor;
 
  private:
-  int actor_n_;
-  int thread_n_;
+  int actor_n_ = -1;
+  int thread_n_ = -1;
   std::vector<td::ActorId<PassActor>> actor_array_;
-  td::ConcurrentScheduler *scheduler_;
+  td::ConcurrentScheduler *scheduler_ = nullptr;
 
  public:
   std::string get_description() const override {
@@ -36,7 +36,7 @@ class RingBench : public td::Benchmark {
   }
 
   struct PassActor : public td::Actor {
-    int id;
+    int id = -1;
     td::ActorId<PassActor> next_actor;
     int start_n = 0;
 
@@ -232,7 +232,7 @@ class QueryBench : public td::Benchmark {
 
    private:
     td::ActorId<ClientActor> client_;
-    int n_;
+    int n_ = 0;
     td::FutureActor<int> future_;
   };
 
@@ -262,7 +262,7 @@ class QueryBench : public td::Benchmark {
   }
 
  private:
-  td::ConcurrentScheduler *scheduler_;
+  td::ConcurrentScheduler *scheduler_ = nullptr;
   td::ActorOwn<ServerActor> server_;
 };
 

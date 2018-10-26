@@ -182,7 +182,7 @@ class Task : public TestClient::Listener {
 
  protected:
   std::map<uint64, std::function<void(tl_object_ptr<td_api::Object>)>> sent_queries_;
-  TestClient *client_;
+  TestClient *client_ = nullptr;
   uint64 current_query_id_ = 1;
 
   virtual void start_up() {
@@ -272,7 +272,7 @@ class SetUsername : public Task {
  private:
   string username_;
   Promise<> promise_;
-  int32 self_id_;
+  int32 self_id_ = 0;
   string tag_;
 
   void start_up() override {
@@ -588,7 +588,7 @@ class CheckTestC : public Task {
   string username_;
   string tag_;
   Promise<> promise_;
-  int64 chat_id_;
+  int64 chat_id_ = 0;
 
   void one_file() {
     this->send_query(
@@ -701,9 +701,10 @@ class LoginTestActor : public Actor {
         double timeout_;
         Promise<> promise_;
       };
-      create_actor<WaitActor>("WaitActor", 2,
-                              PromiseCreator::event(self_closure(this, &LoginTestActor::start_up_fence_dec)))
-          .release();
+      auto actor_id =
+          create_actor<WaitActor>("WaitActor", 2,
+                                  PromiseCreator::event(self_closure(this, &LoginTestActor::start_up_fence_dec)))
+              .release();
     }
   }
 

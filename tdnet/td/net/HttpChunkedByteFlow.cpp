@@ -62,7 +62,7 @@ void HttpChunkedByteFlow::loop() {
         need_size = 2;
         break;
       }
-      input_->cut_head(2);
+      input_->advance(2);
       total_size_ += 2;
       if (save_len_ == 0) {
         return finish(Status::OK());

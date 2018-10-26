@@ -63,7 +63,7 @@ string oneline(Slice str) {
 double to_double(Slice str) {
   static TD_THREAD_LOCAL std::stringstream *ss;
   if (init_thread_local<std::stringstream>(ss)) {
-    ss->imbue(std::locale::classic());
+    auto previous_locale = ss->imbue(std::locale::classic());
   } else {
     ss->str(std::string());
     ss->clear();

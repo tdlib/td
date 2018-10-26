@@ -64,7 +64,7 @@ TEST(SecureStorage, simple) {
     td::unlink(encrypted_path).ignore();
     td::unlink(decrypted_path).ignore();
     std::string file_value(100000, 'a');
-    td::write_file(value_path, file_value);
+    td::write_file(value_path, file_value).ensure();
     auto hash = encrypt_file(value_secret, value_path, encrypted_path).move_as_ok();
     decrypt_file(value_secret, hash, encrypted_path, decrypted_path).ensure();
     ASSERT_TRUE(td::read_file(decrypted_path).move_as_ok().as_slice() == file_value);

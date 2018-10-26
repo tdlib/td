@@ -64,7 +64,7 @@ class BufferBench : public td::Benchmark {
       }
       reader_.sync_with_writer();
       for (int j = 0; j < cnt; j++) {
-        reader_.cut_head(http_query.size());
+        auto result = reader_.cut_head(http_query.size());
       }
     }
   }
@@ -93,7 +93,7 @@ class FindBoundaryBench : public td::Benchmark {
         size_t len = 0;
         find_boundary(reader_.clone(), "\r\n\r\n", len);
         CHECK(size_t(len) + 4 == http_query.size());
-        reader_.cut_head(len + 2);
+        auto result = reader_.cut_head(len + 2);
         reader_.advance(2);
       }
     }

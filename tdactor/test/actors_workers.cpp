@@ -51,7 +51,10 @@ class PowerWorker final : public Actor {
 class Manager final : public Actor {
  public:
   Manager(int queries_n, int query_size, std::vector<ActorId<PowerWorker>> workers)
-      : workers_(std::move(workers)), left_query_(queries_n), query_size_(query_size) {
+      : workers_(std::move(workers))
+      , ref_cnt_(static_cast<int>(workers_.size()))
+      , left_query_(queries_n)
+      , query_size_(query_size) {
   }
 
   class Callback : public PowerWorker::Callback {
@@ -71,7 +74,6 @@ class Manager final : public Actor {
   };
 
   void start_up() override {
-    ref_cnt_ = static_cast<int>(workers_.size());
     int i = 0;
     for (auto &worker : workers_) {
       ref_cnt_++;
@@ -103,8 +105,8 @@ class Manager final : public Actor {
 
  private:
   std::vector<ActorId<PowerWorker>> workers_;
-  int left_query_;
   int ref_cnt_;
+  int left_query_;
   int query_size_;
 };
 
@@ -119,7 +121,7 @@ void test_workers(int threads_n, int workers_n, int queries_n, int query_size) {
     int thread_id = threads_n ? i % (threads_n - 1) + 2 : 0;
     workers.push_back(sched.create_actor_unsafe<PowerWorker>(thread_id, PSLICE() << "worker" << i).release());
   }
-  sched.create_actor_unsafe<Manager>(threads_n ? 1 : 0, "manager", queries_n, query_size, std::move(workers)).release();
+  sched.create_actor_unsafe<Manager>(threads_n ? 1 : 0, "Manager", queries_n, query_size, std::move(workers)).release();
 
   sched.start();
   while (sched.run_main(10)) {

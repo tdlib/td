@@ -186,8 +186,8 @@ class Transport {
    private:
     Type type_ = Nop;
     MutableSlice packet_;
-    int32 error_code_;
-    uint32 quick_ack_;
+    int32 error_code_ = 0;
+    uint32 quick_ack_ = 0;
   };
 
   static Result<uint64> read_auth_key_id(Slice message);

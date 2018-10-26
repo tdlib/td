@@ -429,7 +429,7 @@ class PromiseActor final : public PromiseInterface<T> {
  private:
   ActorOwn<FutureActor<T>> future_id_;
   EventFull event_;
-  State state_;
+  State state_ = State::Hangup;
 
   void init() {
     state_ = State::Waiting;

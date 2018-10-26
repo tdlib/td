@@ -50,11 +50,10 @@ namespace my_api {
 
 using namespace td;
 
-//messages_getDhConfig
 class messages_getDhConfig {
  public:
-  int32 version_;
-  int32 random_length_;
+  int32 version_{};
+  int32 random_length_{};
 
   messages_getDhConfig() = default;
 
@@ -71,7 +70,6 @@ class messages_getDhConfig {
   }
 };
 
-//InputUser
 class InputUser {
  public:
   static tl_object_ptr<InputUser> fetch(TlBufferParser &p);
@@ -79,8 +77,8 @@ class InputUser {
 
 class inputUser final : public InputUser {
  public:
-  int32 user_id_;
-  int64 access_hash_;
+  int32 user_id_{};
+  int64 access_hash_{};
 
   static const int32 ID = -668391402;
   inputUser() = default;
@@ -93,6 +91,7 @@ class inputUser final : public InputUser {
   {
   }
 };
+
 tl_object_ptr<InputUser> InputUser::fetch(TlBufferParser &p) {
 #define FAIL(error)   \
   p.set_error(error); \
@@ -110,36 +109,28 @@ tl_object_ptr<InputUser> InputUser::fetch(TlBufferParser &p) {
 class messages_requestEncryption final {
  public:
   tl_object_ptr<InputUser> user_id_;
-  int32 random_id_;
+  int32 random_id_{};
   BufferSlice g_a_;
 
   static const int32 ID = -162681021;
   messages_requestEncryption();
 
   explicit messages_requestEncryption(TlBufferParser &p)
-#define FAIL(error) p.set_error(error)
       : user_id_(TlFetchObject<InputUser>::parse(p))
       , random_id_(TlFetchInt::parse(p))
-      , g_a_(TlFetchBytes<BufferSlice>::parse(p))
-#undef FAIL
-  {
+      , g_a_(TlFetchBytes<BufferSlice>::parse(p)) {
   }
 };
 
 class inputEncryptedChat final {
  public:
-  int32 chat_id_;
-  int64 access_hash_;
+  int32 chat_id_{};
+  int64 access_hash_{};
 
   inputEncryptedChat() = default;
 
   static const int32 ID = -247351839;
-  explicit inputEncryptedChat(TlBufferParser &p)
-#define FAIL(error) p.set_error(error)
-      : chat_id_(TlFetchInt::parse(p))
-      , access_hash_(TlFetchLong::parse(p))
-#undef FAIL
-  {
+  explicit inputEncryptedChat(TlBufferParser &p) : chat_id_(TlFetchInt::parse(p)), access_hash_(TlFetchLong::parse(p)) {
   }
   static tl_object_ptr<inputEncryptedChat> fetch(TlBufferParser &p) {
     return make_tl_object<inputEncryptedChat>(p);
@@ -150,56 +141,47 @@ class messages_acceptEncryption final {
  public:
   tl_object_ptr<inputEncryptedChat> peer_;
   BufferSlice g_b_;
-  int64 key_fingerprint_;
+  int64 key_fingerprint_{};
 
   messages_acceptEncryption() = default;
 
   static const int32 ID = 1035731989;
 
   explicit messages_acceptEncryption(TlBufferParser &p)
-#define FAIL(error) p.set_error(error)
       : peer_(TlFetchBoxed<TlFetchObject<inputEncryptedChat>, -247351839>::parse(p))
       , g_b_(TlFetchBytes<BufferSlice>::parse(p))
-      , key_fingerprint_(TlFetchLong::parse(p))
-#undef FAIL
-  {
+      , key_fingerprint_(TlFetchLong::parse(p)) {
   }
 };
 
 class messages_sendEncryptedService final {
  public:
   tl_object_ptr<inputEncryptedChat> peer_;
-  int64 random_id_;
+  int64 random_id_{};
   BufferSlice data_;
 
   messages_sendEncryptedService() = default;
   static const int32 ID = 852769188;
   explicit messages_sendEncryptedService(TlBufferParser &p)
-#define FAIL(error) p.set_error(error)
       : peer_(TlFetchBoxed<TlFetchObject<inputEncryptedChat>, -247351839>::parse(p))
       , random_id_(TlFetchLong::parse(p))
-      , data_(TlFetchBytes<BufferSlice>::parse(p))
-#undef FAIL
-  {
+      , data_(TlFetchBytes<BufferSlice>::parse(p)) {
   }
 };
 
 class messages_sendEncrypted final {
  public:
   tl_object_ptr<inputEncryptedChat> peer_;
-  int64 random_id_;
+  int64 random_id_{};
   BufferSlice data_;
 
   messages_sendEncrypted() = default;
   static const int32 ID = -1451792525;
 
   explicit messages_sendEncrypted(TlBufferParser &p)
-#define FAIL(error) p.set_error(error)
       : peer_(TlFetchBoxed<TlFetchObject<inputEncryptedChat>, -247351839>::parse(p))
       , random_id_(TlFetchLong::parse(p))
-      , data_(TlFetchBytes<BufferSlice>::parse(p))
-#undef FAIL
-  {
+      , data_(TlFetchBytes<BufferSlice>::parse(p)) {
   }
 };
 
@@ -225,9 +207,9 @@ static void downcast_call(TlBufferParser &p, F &&f) {
 
 class messages_dhConfig final {
  public:
-  int32 g_;
+  int32 g_{};
   BufferSlice p_;
-  int32 version_;
+  int32 version_{};
   BufferSlice random_;
 
   messages_dhConfig() = default;
@@ -259,13 +241,13 @@ class messages_dhConfig final {
 
 class encryptedChat final {
  public:
-  int32 id_;
-  int64 access_hash_;
-  int32 date_;
-  int32 admin_id_;
-  int32 participant_id_;
+  int32 id_{};
+  int64 access_hash_{};
+  int32 date_{};
+  int32 admin_id_{};
+  int32 participant_id_{};
   BufferSlice g_a_or_b_;
-  int64 key_fingerprint_;
+  int64 key_fingerprint_{};
 
   encryptedChat() = default;
 
@@ -310,7 +292,7 @@ class encryptedChat final {
 
 class messages_sentEncryptedMessage final {
  public:
-  int32 date_;
+  int32 date_{};
 
   messages_sentEncryptedMessage() = default;
 

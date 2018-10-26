@@ -20,7 +20,7 @@ class HttpChunkedByteFlow final : public ByteFlowBase {
   static constexpr size_t MIN_UPDATE_SIZE = 1 << 14;
   enum { ReadChunkLength, ReadChunkContent, OK } state_ = ReadChunkLength;
   size_t len_ = 0;
-  size_t save_len_;
+  size_t save_len_ = 0;
   size_t total_size_ = 0;
   size_t uncommited_size_ = 0;
 };

@@ -80,15 +80,15 @@ TEST(SharedObjectPool, simple) {
   };
   {
     td::SharedObjectPool<Node> pool;
-    pool.alloc();
-    pool.alloc();
-    pool.alloc();
-    pool.alloc();
-    pool.alloc();
+    { auto ptr1 = pool.alloc(); }
+    { auto ptr2 = pool.alloc(); }
+    { auto ptr3 = pool.alloc(); }
+    { auto ptr4 = pool.alloc(); }
+    { auto ptr5 = pool.alloc(); }
     CHECK(Node::cnt() == 0);
     CHECK(pool.total_size() == 1);
     CHECK(pool.calc_free_size() == 1);
-    pool.alloc(), pool.alloc(), pool.alloc();
+    { auto ptr6 = pool.alloc(), ptr7 = pool.alloc(), ptr8 = pool.alloc(); }
     CHECK(pool.total_size() == 3);
     CHECK(pool.calc_free_size() == 3);
   }

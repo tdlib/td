@@ -342,7 +342,7 @@ TEST(Mtproto, socks5) {
   int threads_n = 0;
   sched.init(threads_n);
 
-  sched.create_actor_unsafe<Socks5TestActor>(0, "Socks5TestActor").release();
+  auto actor_id = sched.create_actor_unsafe<Socks5TestActor>(0, "Socks5TestActor").release();
   sched.start();
   while (sched.run_main(10)) {
     // empty;

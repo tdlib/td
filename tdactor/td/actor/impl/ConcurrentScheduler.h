@@ -84,7 +84,7 @@ class ConcurrentScheduler : private Scheduler::Callback {
 
  private:
   enum class State { Start, Run };
-  State state_;
+  State state_ = State::Start;
   std::vector<unique_ptr<Scheduler>> schedulers_;
   std::atomic<bool> is_finished_;
   std::mutex at_finish_mutex_;

@@ -99,7 +99,7 @@ class Test : private ListNode {
   struct State {
     ListNode *it = nullptr;
     bool is_running = false;
-    double start;
+    double start = 0;
     ListNode *end = nullptr;
   };
   static State *get_state() {

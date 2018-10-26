@@ -260,16 +260,16 @@ class NetQuery : public ListNode {
 
  private:
   State state_ = State::Empty;
-  Type type_;
-  AuthFlag auth_flag_;
-  GzipFlag gzip_flag_;
+  Type type_ = Type::Common;
+  AuthFlag auth_flag_ = AuthFlag::Off;
+  GzipFlag gzip_flag_ = GzipFlag::Off;
   DcId dc_id_;
 
   Status status_;
-  uint64 id_;
+  uint64 id_ = 0;
   BufferSlice query_;
   BufferSlice answer_;
-  int32 tl_constructor_;
+  int32 tl_constructor_ = 0;
 
   NetQueryRef invoke_after_;
   uint32 session_rand_ = 0;
@@ -293,7 +293,7 @@ class NetQuery : public ListNode {
   static int32 get_my_id();
 
   movable_atomic<uint64> session_id_{0};
-  uint64 message_id_;
+  uint64 message_id_{};
 
   movable_atomic<int32> cancellation_token_{-1};  // == 0 if query is canceled
   ActorShared<NetQueryCallback> callback_;
@@ -313,8 +313,8 @@ class NetQuery : public ListNode {
   bool need_resend_on_503 = true;
   bool may_be_lost_ = false;
   string debug_str_ = "empty";
-  string source_ = "";
-  double debug_timestamp_;
+  string source_;
+  double debug_timestamp_ = 0;
   int32 debug_cnt_ = 0;
   int32 debug_send_failed_cnt_ = 0;
   int32 debug_resend_cnt_ = 0;
@@ -325,7 +325,7 @@ class NetQuery : public ListNode {
   Promise<> quick_ack_promise_;
   int32 file_type_ = -1;
 
-  double start_timestamp_;
+  double start_timestamp_ = 0;
   int32 my_id_ = 0;
   NetQueryCounter nq_counter_;
 

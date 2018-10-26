@@ -15,12 +15,12 @@ namespace td {
 
 class HttpUrl {
  public:
-  enum class Protocol { HTTP, HTTPS } protocol_;
+  enum class Protocol { HTTP, HTTPS } protocol_ = Protocol::HTTP;
   string userinfo_;
   string host_;
-  bool is_ipv6_;
-  int specified_port_;
-  int port_;
+  bool is_ipv6_ = false;
+  int specified_port_ = 0;
+  int port_ = 0;
   string query_;
 
   string get_url() const;

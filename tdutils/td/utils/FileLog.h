@@ -33,8 +33,8 @@ class FileLog : public LogInterface {
  private:
   FileFd fd_;
   string path_;
-  int64 size_;
-  int64 rotate_threshold_;
+  int64 size_ = 0;
+  int64 rotate_threshold_ = 0;
 
   void do_rotate();
 };

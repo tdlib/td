@@ -100,9 +100,9 @@ class ActorInfo
   void always_wait_for_mailbox();
 
  private:
-  Deleter deleter_;
-  bool is_lite_;
-  bool is_running_;
+  Deleter deleter_ = Deleter::None;
+  bool is_lite_ = false;
+  bool is_running_ = false;
   bool always_wait_for_mailbox_{false};
   uint32 wait_generation_{0};
 

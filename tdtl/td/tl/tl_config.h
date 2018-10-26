@@ -77,7 +77,7 @@ class tl_config_parser {
   std::string try_parse_string();
 
  public:
-  tl_config_parser(const char *s, std::size_t len) : p(s, len) {
+  tl_config_parser(const char *s, std::size_t len) : p(s, len), schema_version(-1) {
   }
 
   tl_config parse_config();

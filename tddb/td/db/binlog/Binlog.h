@@ -23,8 +23,8 @@
 
 namespace td {
 struct BinlogInfo {
-  bool was_created;
-  uint64 last_id;
+  bool was_created{false};
+  uint64 last_id{0};
   bool is_encrypted{false};
   bool wrong_password{false};
   bool is_opened{false};
@@ -100,7 +100,7 @@ class Binlog {
   BufferedFdBase<FileFd> fd_;
   ChainBufferWriter buffer_writer_;
   ChainBufferReader buffer_reader_;
-  detail::BinlogReader *binlog_reader_ptr_;
+  detail::BinlogReader *binlog_reader_ptr_ = nullptr;
 
   BinlogInfo info_;
   DbKey db_key_;

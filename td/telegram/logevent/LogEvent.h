@@ -37,7 +37,7 @@ class WithVersion : public ParentT {
   }
 
  private:
-  int32 version_;
+  int32 version_{};
 };
 
 template <class ParentT, class ContextT>
@@ -52,7 +52,7 @@ class WithContext : public ParentT {
   }
 
  private:
-  ContextT context_;
+  ContextT context_{};
 };
 
 class LogEvent {
@@ -109,7 +109,7 @@ class LogEvent {
   }
 
  private:
-  Id logevent_id_;
+  Id logevent_id_{};
 };
 inline StringBuilder &operator<<(StringBuilder &sb, const LogEvent &log_event) {
   return log_event.print(sb);

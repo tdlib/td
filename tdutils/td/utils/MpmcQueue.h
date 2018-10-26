@@ -95,7 +95,7 @@ class OneValue {
  private:
   enum Type : int { Empty = 0, Taken, Value };
   std::atomic<int> state_{Empty};
-  T value_;
+  T value_{};
 };
 
 template <class T>

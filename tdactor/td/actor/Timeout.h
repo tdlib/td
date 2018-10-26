@@ -49,8 +49,8 @@ class Timeout final : public Actor {
  private:
   friend class Scheduler;
 
-  Callback callback_;
-  Data data_;
+  Callback callback_{};
+  Data data_{};
 
   void set_timeout_at(double timeout) {
     Actor::set_timeout_at(timeout);

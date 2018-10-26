@@ -91,7 +91,6 @@ struct AesCtrEncryptionEvent {
 
 class BinlogReader {
  public:
-  BinlogReader() = default;
   explicit BinlogReader(ChainBufferReader *input) : input_(input) {
   }
   void set_input(ChainBufferReader *input, bool is_encrypted, int64 expected_size) {
@@ -480,7 +479,7 @@ Status Binlog::load_binlog(const Callback &callback, const Callback &debug_callb
   buffer_writer_ = ChainBufferWriter();
   buffer_reader_ = buffer_writer_.extract_reader();
   fd_.set_input_writer(&buffer_writer_);
-  detail::BinlogReader reader;
+  detail::BinlogReader reader{nullptr};
   binlog_reader_ptr_ = &reader;
 
   update_read_encryption();

@@ -69,7 +69,7 @@ class ByteFlowBaseCommon : public ByteFlowInterface {
 
  protected:
   bool waiting_flag_ = false;
-  ChainBufferReader *input_;
+  ChainBufferReader *input_ = nullptr;
   bool is_input_active_ = true;
   size_t need_size_ = 0;
   void finish(Status status) {

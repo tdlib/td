@@ -26,7 +26,7 @@ void WineventPoll::subscribe(PollableFd fd, PollFlags flags) {
 }
 
 void WineventPoll::unsubscribe(PollableFdRef fd) {
-  fd.lock();
+  auto pollable_fd = fd.lock();  // unlocked in destructor
 }
 
 void WineventPoll::unsubscribe_before_close(PollableFdRef fd) {
