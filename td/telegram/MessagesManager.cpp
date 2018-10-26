@@ -10676,7 +10676,9 @@ void MessagesManager::on_get_dialogs_from_database(vector<BufferSlice> &&dialogs
   DialogDate max_dialog_date = MIN_DIALOG_DATE;
   for (auto &dialog : dialogs) {
     Dialog *d = on_load_dialog_from_database(std::move(dialog));
-    CHECK(d != nullptr);
+    if (d == nullptr) {
+      continue;
+    }
 
     DialogDate dialog_date(d->order, d->dialog_id);
     if (max_dialog_date < dialog_date) {
@@ -21673,6 +21675,11 @@ MessagesManager::Dialog *MessagesManager::on_load_dialog_from_database(const Res
   DialogId dialog_id;
   parse(flags, dialog_id_parser);
   parse(dialog_id, dialog_id_parser);
+
+  if (!dialog_id.is_valid()) {
+    LOG(ERROR) << "Failed to parse dialog_id from blob. Database is broken";
+    return nullptr;
+  }
 
   auto old_d = get_dialog(dialog_id);
   if (old_d != nullptr) {

@@ -72,6 +72,7 @@ struct EncryptedInputFile {
     store(key_fingerprint, storer);
   }
 
+  EncryptedInputFile() = default;
   EncryptedInputFile(Type type, int64 id, int64 access_hash, int32 parts, int32 key_fingerprint)
       : type(type), id(id), access_hash(access_hash), parts(parts), key_fingerprint(key_fingerprint) {
   }
