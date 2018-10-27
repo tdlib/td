@@ -3446,8 +3446,8 @@ void Td::on_config_option_updated(const string &name) {
     return stickers_manager_->on_update_recent_stickers_limit(G()->shared_config().get_option_integer(name));
   } else if (name == "favorite_stickers_limit") {
     stickers_manager_->on_update_favorite_stickers_limit(G()->shared_config().get_option_integer(name));
-  } else if (name == "include_sponsored_chat_from_unread_count") {
-    messages_manager_->on_update_include_sponsored_dialog_from_unread_count(
+  } else if (name == "include_sponsored_chat_to_unread_count") {
+    messages_manager_->on_update_include_sponsored_dialog_to_unread_count(
         G()->shared_config().get_option_boolean(name));
   } else if (name == "my_id") {
     G()->set_my_id(G()->shared_config().get_option_integer(name));
@@ -6184,7 +6184,7 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
       }
       // this option currently can't be set, because unread count doesn't work for channels,
       // in which user have never been a member
-      if (false && !is_bot && set_boolean_option("include_sponsored_chat_from_unread_count")) {
+      if (false && !is_bot && set_boolean_option("include_sponsored_chat_to_unread_count")) {
         return;
       }
       break;

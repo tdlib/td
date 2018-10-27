@@ -285,7 +285,7 @@ class MessagesManager : public Actor {
 
   void on_update_channel_max_unavailable_message_id(ChannelId channel_id, MessageId max_unavailable_message_id);
 
-  void on_update_include_sponsored_dialog_from_unread_count(bool include_sponsored_dialog);
+  void on_update_include_sponsored_dialog_to_unread_count(bool include_sponsored_dialog);
 
   void on_user_dialog_action(DialogId dialog_id, UserId user_id, tl_object_ptr<td_api::ChatAction> &&action,
                              MessageContentType message_content_type = MessageContentType::None);
@@ -2056,7 +2056,7 @@ class MessagesManager : public Actor {
   ScopeNotificationSettings users_notification_settings_;
   ScopeNotificationSettings chats_notification_settings_;
 
-  bool include_sponsored_dialog_from_unread_count_ = false;
+  bool include_sponsored_dialog_to_unread_count_ = false;
   bool have_postponed_unread_message_count_update_ = false;
   bool have_postponed_unread_chat_count_update_ = false;
   bool is_message_unread_count_inited_ = false;

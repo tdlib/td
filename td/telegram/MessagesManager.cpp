@@ -5094,12 +5094,12 @@ void MessagesManager::on_update_channel_max_unavailable_message_id(ChannelId cha
                                         "on_update_channel_max_unavailable_message_id");
 }
 
-void MessagesManager::on_update_include_sponsored_dialog_from_unread_count(bool include_sponsored_dialog) {
+void MessagesManager::on_update_include_sponsored_dialog_to_unread_count(bool include_sponsored_dialog) {
   if (td_->auth_manager_->is_bot()) {
     // just in case
     return;
   }
-  if (include_sponsored_dialog_from_unread_count_ == include_sponsored_dialog) {
+  if (include_sponsored_dialog_to_unread_count_ == include_sponsored_dialog) {
     return;
   }
   if (sponsored_dialog_id_.is_valid()) {
@@ -5107,7 +5107,7 @@ void MessagesManager::on_update_include_sponsored_dialog_from_unread_count(bool 
     get_dialog_force(sponsored_dialog_id_);
   }
 
-  include_sponsored_dialog_from_unread_count_ = include_sponsored_dialog;
+  include_sponsored_dialog_to_unread_count_ = include_sponsored_dialog;
 
   if (!sponsored_dialog_id_.is_valid()) {
     // nothing has changed
@@ -5122,10 +5122,10 @@ void MessagesManager::on_update_include_sponsored_dialog_from_unread_count(bool 
   CHECK(d != nullptr);
   auto unread_count = d->server_unread_count + d->local_unread_count;
   if (unread_count != 0 && is_message_unread_count_inited_) {
-    send_update_unread_message_count(d->dialog_id, true, "on_update_include_sponsored_dialog_from_unread_count");
+    send_update_unread_message_count(d->dialog_id, true, "on_update_include_sponsored_dialog_to_unread_count");
   }
   if ((unread_count != 0 || d->is_marked_as_unread) && is_dialog_unread_count_inited_) {
-    send_update_unread_chat_count(d->dialog_id, true, "on_update_include_sponsored_dialog_from_unread_count");
+    send_update_unread_chat_count(d->dialog_id, true, "on_update_include_sponsored_dialog_to_unread_count");
   }
 }
 
@@ -8523,8 +8523,8 @@ void MessagesManager::tear_down() {
 void MessagesManager::start_up() {
   always_wait_for_mailbox();
 
-  include_sponsored_dialog_from_unread_count_ =
-      G()->shared_config().get_option_boolean("include_sponsored_chat_from_unread_count");
+  include_sponsored_dialog_to_unread_count_ =
+      G()->shared_config().get_option_boolean("include_sponsored_chat_to_unread_count");
 
   if (G()->parameters().use_message_db) {
     auto last_database_server_dialog_date_string = G()->td_db()->get_binlog_pmc()->get("last_server_dialog_date");
@@ -23195,7 +23195,7 @@ td_api::object_ptr<td_api::updateUnreadMessageCount> MessagesManager::get_update
   int32 unread_count = unread_message_total_count_;
   int32 unread_unmuted_count = unread_message_total_count_ - unread_message_muted_count_;
 
-  if (!include_sponsored_dialog_from_unread_count_ && sponsored_dialog_id_.is_valid()) {
+  if (!include_sponsored_dialog_to_unread_count_ && sponsored_dialog_id_.is_valid()) {
     const Dialog *d = get_dialog(sponsored_dialog_id_);
     CHECK(d != nullptr);
     auto sponsored_unread_count = d->server_unread_count + d->local_unread_count;
@@ -23229,7 +23229,7 @@ td_api::object_ptr<td_api::updateUnreadChatCount> MessagesManager::get_update_un
   CHECK(unread_marked_count >= 0);
   CHECK(unread_unmuted_marked_count >= 0);
 
-  if (!include_sponsored_dialog_from_unread_count_ && sponsored_dialog_id_.is_valid()) {
+  if (!include_sponsored_dialog_to_unread_count_ && sponsored_dialog_id_.is_valid()) {
     const Dialog *d = get_dialog(sponsored_dialog_id_);
     CHECK(d != nullptr);
     auto sponsored_unread_count = d->server_unread_count + d->local_unread_count;
