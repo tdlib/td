@@ -701,10 +701,9 @@ class LoginTestActor : public Actor {
         double timeout_;
         Promise<> promise_;
       };
-      auto actor_id =
-          create_actor<WaitActor>("WaitActor", 2,
-                                  PromiseCreator::event(self_closure(this, &LoginTestActor::start_up_fence_dec)))
-              .release();
+      create_actor<WaitActor>("WaitActor", 2,
+                              PromiseCreator::event(self_closure(this, &LoginTestActor::start_up_fence_dec)))
+          .release();
     }
   }
 
