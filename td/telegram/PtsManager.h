@@ -10,6 +10,7 @@
 #include "td/utils/logging.h"
 
 namespace td {
+
 // It is not about handling gaps.
 // It is about finding mem processed pts.
 // All checks must be done before.
@@ -54,4 +55,5 @@ class PtsManager {
   int32 mem_pts_ = -1;
   ChangesProcessor<int32> state_helper_;
 };
+
 }  // namespace td

@@ -67,7 +67,7 @@ class TestClient : public Actor {
   };
   void close(Promise<> close_promise) {
     close_promise_ = std::move(close_promise);
-    td_.reset();
+    td_client_.reset();
   }
 
   unique_ptr<TdCallback> make_td_callback() {
@@ -142,10 +142,10 @@ class TestClient : public Actor {
     set_tag(name_);
     LOG(INFO) << "START UP!";
 
-    td_ = create_actor<ClientActor>("Td-proxy", make_td_callback());
+    td_client_ = create_actor<ClientActor>("Td-proxy", make_td_callback());
   }
 
-  ActorOwn<ClientActor> td_;
+  ActorOwn<ClientActor> td_client_;
 
   string name_;
 
@@ -177,7 +177,7 @@ class Task : public TestClient::Listener {
   void send_query(tl_object_ptr<td_api::Function> function, F callback) {
     auto id = current_query_id_++;
     sent_queries_[id] = std::forward<F>(callback);
-    send_closure(client_->td_, &ClientActor::request, id, std::move(function));
+    send_closure(client_->td_client_, &ClientActor::request, id, std::move(function));
   }
 
  protected:

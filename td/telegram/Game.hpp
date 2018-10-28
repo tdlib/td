@@ -11,6 +11,7 @@
 #include "td/telegram/AnimationsManager.hpp"
 #include "td/telegram/MessageEntity.hpp"
 #include "td/telegram/Photo.hpp"
+#include "td/telegram/Td.h"
 #include "td/telegram/Version.h"
 
 #include "td/utils/tl_helpers.h"

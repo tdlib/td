@@ -10,7 +10,6 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
-#include "td/telegram/DocumentsManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/SecretChatActor.h"
 #include "td/telegram/Td.h"

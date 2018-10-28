@@ -19,7 +19,6 @@
 #include "td/telegram/DhConfig.h"
 #include "td/telegram/logevent/SecretChatEvent.h"
 #include "td/telegram/MessageId.h"
-#include "td/telegram/PtsManager.h"
 #include "td/telegram/SecretChatDb.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/UserId.h"

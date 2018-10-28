@@ -19,6 +19,7 @@
 #include <memory>
 
 namespace td {
+
 class DcAuthManager : public NetQueryCallback {
  public:
   explicit DcAuthManager(ActorShared<> parent);
@@ -56,4 +57,5 @@ class DcAuthManager : public NetQueryCallback {
 
   void loop() override;
 };
+
 }  // namespace td

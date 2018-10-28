@@ -16,6 +16,7 @@
 #include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/PollFlags.h"
 #include "td/utils/port/sleep.h"
+#include "td/utils/ScopeGuard.h"
 #include "td/utils/StringBuilder.h"
 
 #include <cstring>

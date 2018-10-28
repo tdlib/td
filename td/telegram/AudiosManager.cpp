@@ -6,7 +6,6 @@
 //
 #include "td/telegram/AudiosManager.h"
 
-#include "td/telegram/DocumentsManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/Td.h"

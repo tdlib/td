@@ -15,6 +15,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/MpscPollableQueue.h"
 #include "td/utils/Observer.h"
+#include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/FileFd.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/Slice.h"

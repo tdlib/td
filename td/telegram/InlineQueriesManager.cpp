@@ -31,10 +31,8 @@
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
-#include "td/telegram/VideoNotesManager.h"
 #include "td/telegram/VideosManager.h"
 #include "td/telegram/VoiceNotesManager.h"
-#include "td/telegram/WebPagesManager.h"
 
 #include "td/telegram/net/DcId.h"
 

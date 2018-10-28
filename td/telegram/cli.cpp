@@ -416,7 +416,7 @@ class CliClient final : public Actor {
         break;
       case td_api::authorizationStateClosed::ID:
         LOG(WARNING) << "TD closed";
-        td_.reset();
+        td_client_.reset();
         if (!close_flag_) {
           create_td("ClientActor3");
         }
@@ -676,7 +676,7 @@ class CliClient final : public Actor {
     LOG(WARNING) << "QUIT";
     close_flag_ = true;
     dump_memory_usage();
-    td_.reset();
+    td_client_.reset();
     Scheduler::unsubscribe(stdin_.get_poll_info().get_pollable_fd_ref());
     is_stdin_reader_stopped_ = true;
     yield();
@@ -737,7 +737,7 @@ class CliClient final : public Actor {
       uint64 generation_;
     };
 
-    td_ = create_actor<ClientActor>(name, make_unique<TdCallbackImpl>(this, ++generation_));
+    td_client_ = create_actor<ClientActor>(name, make_unique<TdCallbackImpl>(this, ++generation_));
   }
 
   void init_td() {
@@ -753,7 +753,7 @@ class CliClient final : public Actor {
       create_td("ClientActor2");
 
       for (int i = 0; i < 4; i++) {
-        send_closure_later(td_, &ClientActor::request, std::numeric_limits<uint64>::max(),
+        send_closure_later(td_client_, &ClientActor::request, std::numeric_limits<uint64>::max(),
                            td_api::make_object<td_api::setAlarm>(0.001 + 1000 * (i / 2)));
       }
 
@@ -1142,9 +1142,9 @@ class CliClient final : public Actor {
 
   uint64 send_request(tl_object_ptr<td_api::Function> f) {
     static uint64 query_num = 1;
-    if (!td_.empty()) {
+    if (!td_client_.empty()) {
       auto id = query_num++;
-      send_closure_later(td_, &ClientActor::request, id, std::move(f));
+      send_closure_later(td_client_, &ClientActor::request, id, std::move(f));
       return id;
     } else {
       LOG(ERROR) << "Failed to send: " << to_string(f);
@@ -3536,7 +3536,7 @@ class CliClient final : public Actor {
   ConcurrentScheduler *scheduler_{nullptr};
 
   bool use_test_dc_ = false;
-  ActorOwn<ClientActor> td_;
+  ActorOwn<ClientActor> td_client_;
   std::queue<string> cmd_queue_;
   bool close_flag_ = false;
   bool ready_to_stop_ = false;

@@ -70,4 +70,5 @@ class ConfigManager : public NetQueryCallback {
   void save_dc_options_update(DcOptions dc_options);
   DcOptions load_dc_options_update();
 };
+
 }  // namespace td

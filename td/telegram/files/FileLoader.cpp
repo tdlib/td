@@ -9,7 +9,6 @@
 #include "td/telegram/files/ResourceManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
-#include "td/telegram/Td.h"
 #include "td/telegram/UniqueId.h"
 
 #include "td/utils/format.h"

@@ -33,14 +33,14 @@
 namespace td {
 class AnimationsManager;
 class CallManager;
-class ConfigShared;
 class ConfigManager;
+class ConfigShared;
 class ConnectionCreator;
 class ContactsManager;
 class FileManager;
 class LanguagePackManager;
-class MtprotoHeader;
 class MessagesManager;
+class MtprotoHeader;
 class NetQueryDispatcher;
 class PasswordManager;
 class SecretChatsManager;
@@ -139,83 +139,19 @@ class Global : public ActorContext {
   ActorId<Td> td() const {
     return td_;
   }
+
   ActorId<AnimationsManager> animations_manager() const {
     return animations_manager_;
   }
   void set_animations_manager(ActorId<AnimationsManager> animations_manager) {
     animations_manager_ = animations_manager;
   }
-  ActorId<ContactsManager> contacts_manager() const {
-    return contacts_manager_;
-  }
-  void set_contacts_manager(ActorId<ContactsManager> contacts_manager) {
-    contacts_manager_ = contacts_manager;
-  }
-  ActorId<FileManager> file_manager() const {
-    return file_manager_;
-  }
-  void set_file_manager(ActorId<FileManager> file_manager) {
-    file_manager_ = std::move(file_manager);
-  }
-  ActorId<LanguagePackManager> language_pack_manager() const {
-    return language_pack_manager_;
-  }
-  void set_language_pack_manager(ActorId<LanguagePackManager> language_pack_manager) {
-    language_pack_manager_ = language_pack_manager;
-  }
-  ActorId<MessagesManager> messages_manager() const {
-    return messages_manager_;
-  }
-  void set_messages_manager(ActorId<MessagesManager> messages_manager) {
-    messages_manager_ = messages_manager;
-  }
-  ActorId<PasswordManager> password_manager() const {
-    return password_manager_;
-  }
-  void set_password_manager(ActorId<PasswordManager> password_manager) {
-    password_manager_ = password_manager;
-  }
-  ActorId<SecretChatsManager> secret_chats_manager() const {
-    return secret_chats_manager_;
-  }
-  void set_secret_chats_manager(ActorId<SecretChatsManager> secret_chats_manager) {
-    secret_chats_manager_ = secret_chats_manager;
-  }
+
   ActorId<CallManager> call_manager() const {
     return call_manager_;
   }
   void set_call_manager(ActorId<CallManager> call_manager) {
     call_manager_ = call_manager;
-  }
-  ActorId<StickersManager> stickers_manager() const {
-    return stickers_manager_;
-  }
-  void set_stickers_manager(ActorId<StickersManager> stickers_manager) {
-    stickers_manager_ = stickers_manager;
-  }
-  ActorId<StorageManager> storage_manager() const {
-    return storage_manager_;
-  }
-  void set_storage_manager(ActorId<StorageManager> storage_manager) {
-    storage_manager_ = storage_manager;
-  }
-  ActorId<TopDialogManager> top_dialog_manager() const {
-    return top_dialog_manager_;
-  }
-  void set_top_dialog_manager(ActorId<TopDialogManager> top_dialog_manager) {
-    top_dialog_manager_ = top_dialog_manager;
-  }
-  ActorId<UpdatesManager> updates_manager() const {
-    return updates_manager_;
-  }
-  void set_updates_manager(ActorId<UpdatesManager> updates_manager) {
-    updates_manager_ = updates_manager;
-  }
-  ActorId<WebPagesManager> web_pages_manager() const {
-    return web_pages_manager_;
-  }
-  void set_web_pages_manager(ActorId<WebPagesManager> web_pages_manager) {
-    web_pages_manager_ = web_pages_manager;
   }
 
   ActorId<ConfigManager> config_manager() const {
@@ -223,6 +159,83 @@ class Global : public ActorContext {
   }
   void set_config_manager(ActorId<ConfigManager> config_manager) {
     config_manager_ = config_manager;
+  }
+
+  ActorId<ContactsManager> contacts_manager() const {
+    return contacts_manager_;
+  }
+  void set_contacts_manager(ActorId<ContactsManager> contacts_manager) {
+    contacts_manager_ = contacts_manager;
+  }
+
+  ActorId<FileManager> file_manager() const {
+    return file_manager_;
+  }
+  void set_file_manager(ActorId<FileManager> file_manager) {
+    file_manager_ = std::move(file_manager);
+  }
+
+  ActorId<LanguagePackManager> language_pack_manager() const {
+    return language_pack_manager_;
+  }
+  void set_language_pack_manager(ActorId<LanguagePackManager> language_pack_manager) {
+    language_pack_manager_ = language_pack_manager;
+  }
+
+  ActorId<MessagesManager> messages_manager() const {
+    return messages_manager_;
+  }
+  void set_messages_manager(ActorId<MessagesManager> messages_manager) {
+    messages_manager_ = messages_manager;
+  }
+
+  ActorId<PasswordManager> password_manager() const {
+    return password_manager_;
+  }
+  void set_password_manager(ActorId<PasswordManager> password_manager) {
+    password_manager_ = password_manager;
+  }
+
+  ActorId<SecretChatsManager> secret_chats_manager() const {
+    return secret_chats_manager_;
+  }
+  void set_secret_chats_manager(ActorId<SecretChatsManager> secret_chats_manager) {
+    secret_chats_manager_ = secret_chats_manager;
+  }
+
+  ActorId<StickersManager> stickers_manager() const {
+    return stickers_manager_;
+  }
+  void set_stickers_manager(ActorId<StickersManager> stickers_manager) {
+    stickers_manager_ = stickers_manager;
+  }
+
+  ActorId<StorageManager> storage_manager() const {
+    return storage_manager_;
+  }
+  void set_storage_manager(ActorId<StorageManager> storage_manager) {
+    storage_manager_ = storage_manager;
+  }
+
+  ActorId<TopDialogManager> top_dialog_manager() const {
+    return top_dialog_manager_;
+  }
+  void set_top_dialog_manager(ActorId<TopDialogManager> top_dialog_manager) {
+    top_dialog_manager_ = top_dialog_manager;
+  }
+
+  ActorId<UpdatesManager> updates_manager() const {
+    return updates_manager_;
+  }
+  void set_updates_manager(ActorId<UpdatesManager> updates_manager) {
+    updates_manager_ = updates_manager;
+  }
+
+  ActorId<WebPagesManager> web_pages_manager() const {
+    return web_pages_manager_;
+  }
+  void set_web_pages_manager(ActorId<WebPagesManager> web_pages_manager) {
+    web_pages_manager_ = web_pages_manager;
   }
 
   ActorId<ConnectionCreator> connection_creator() const;
@@ -314,19 +327,19 @@ class Global : public ActorContext {
 
   ActorId<Td> td_;
   ActorId<AnimationsManager> animations_manager_;
+  ActorId<CallManager> call_manager_;
+  ActorId<ConfigManager> config_manager_;
   ActorId<ContactsManager> contacts_manager_;
   ActorId<FileManager> file_manager_;
-  ActorId<MessagesManager> messages_manager_;
   ActorId<LanguagePackManager> language_pack_manager_;
+  ActorId<MessagesManager> messages_manager_;
   ActorId<PasswordManager> password_manager_;
   ActorId<SecretChatsManager> secret_chats_manager_;
-  ActorId<CallManager> call_manager_;
   ActorId<StickersManager> stickers_manager_;
   ActorId<StorageManager> storage_manager_;
   ActorId<TopDialogManager> top_dialog_manager_;
   ActorId<UpdatesManager> updates_manager_;
   ActorId<WebPagesManager> web_pages_manager_;
-  ActorId<ConfigManager> config_manager_;
   ActorOwn<ConnectionCreator> connection_creator_;
   ActorOwn<TempAuthKeyWatchdog> temp_auth_key_watchdog_;
 

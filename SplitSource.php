@@ -16,7 +16,7 @@ function disjoint_set_union(&$parents, $x, $y) {
             $parents[$x] = $y;
         } else {
             $parents[$y] = $x;
-        } 
+        }
     }
 }
 
@@ -107,7 +107,7 @@ function split_file($file, $chunks, $undo) {
             $common .= $line;
             continue;
         }
-         
+
         if (strpos($line, 'static ') === 0 && $depth === $target_depth) {
             $is_static = true;
         }
