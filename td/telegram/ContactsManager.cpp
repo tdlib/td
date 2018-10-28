@@ -5417,6 +5417,11 @@ void ContactsManager::on_binlog_chat_event(BinlogEvent &&event) {
   auto chat_id = log_event.chat_id;
   LOG(INFO) << "Add " << chat_id << " from binlog";
   Chat *c = add_chat(chat_id);
+  if (c->left || !c->kicked) {
+    LOG(ERROR) << "Skip adding already added " << chat_id;
+    binlog_erase(G()->td_db()->get_binlog(), event.id_);
+    return;  // TODO fix bug in Binlog and remove that fix
+  }
   CHECK(!c->left && c->kicked);
   *c = std::move(log_event.c);  // chats come from binlog before all other events, so just add them
 
