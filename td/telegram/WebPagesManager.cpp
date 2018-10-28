@@ -2738,7 +2738,10 @@ void WebPagesManager::on_load_web_page_from_database(WebPageId web_page_id, stri
   if (web_page == nullptr) {
     if (!value.empty()) {
       auto result = make_unique<WebPage>();
-      log_event_parse(*result, value).ensure();
+      auto status = log_event_parse(*result, value);
+      if (status.is_error()) {
+        LOG(FATAL) << status << ": " << format::as_hex_dump<4>(Slice(value));
+      }
       update_web_page(std::move(result), web_page_id, true, true);
     }
   } else {
