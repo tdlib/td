@@ -10675,7 +10675,7 @@ void MessagesManager::on_get_dialogs_from_database(vector<BufferSlice> &&dialogs
   LOG(INFO) << "Receive " << dialogs.size() << " dialogs in result of GetDialogsFromDatabase";
   DialogDate max_dialog_date = MIN_DIALOG_DATE;
   for (auto &dialog : dialogs) {
-    Dialog *d = on_load_dialog_from_database(std::move(dialog));
+    Dialog *d = on_load_dialog_from_database(DialogId(), std::move(dialog));
     if (d == nullptr) {
       continue;
     }
@@ -21611,7 +21611,7 @@ MessagesManager::Dialog *MessagesManager::get_dialog_force(DialogId dialog_id) {
   }
 
   LOG(INFO) << "Try to load " << dialog_id << " from database";
-  auto d = on_load_dialog_from_database(G()->td_db()->get_dialog_db_sync()->get_dialog(dialog_id));
+  auto d = on_load_dialog_from_database(dialog_id, G()->td_db()->get_dialog_db_sync()->get_dialog(dialog_id));
   CHECK(d == nullptr || d->dialog_id == dialog_id) << d->dialog_id << " " << dialog_id;
   return d;
 }
@@ -21624,7 +21624,7 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
   loaded_dialogs_.insert(dialog_id);
 
   auto status = log_event_parse(*d, value.as_slice());
-  if (status.is_error() || !d->dialog_id.is_valid()) {
+  if (status.is_error() || !d->dialog_id.is_valid() || d->dialog_id != dialog_id) {
     // can't happen unless database is broken, but has been seen in the wild
     // if dialog_id is invalid, we can't repair the dialog
     CHECK(dialog_id.is_valid()) << "Can't repair " << dialog_id << ' ' << d->dialog_id << ' ' << status << ' '
@@ -21662,23 +21662,25 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
   return d;
 }
 
-MessagesManager::Dialog *MessagesManager::on_load_dialog_from_database(const Result<BufferSlice> &r_value) {
+MessagesManager::Dialog *MessagesManager::on_load_dialog_from_database(DialogId dialog_id,
+                                                                       const Result<BufferSlice> &r_value) {
   CHECK(G()->parameters().use_message_db);
 
   if (!r_value.is_ok()) {
     return nullptr;
   }
 
-  // hack
-  LogEventParser dialog_id_parser(r_value.ok().as_slice());
-  int32 flags;
-  DialogId dialog_id;
-  parse(flags, dialog_id_parser);
-  parse(dialog_id, dialog_id_parser);
-
   if (!dialog_id.is_valid()) {
-    LOG(ERROR) << "Failed to parse dialog_id from blob. Database is broken";
-    return nullptr;
+    // hack
+    LogEventParser dialog_id_parser(r_value.ok().as_slice());
+    int32 flags;
+    parse(flags, dialog_id_parser);
+    parse(dialog_id, dialog_id_parser);
+
+    if (!dialog_id.is_valid()) {
+      LOG(ERROR) << "Failed to parse dialog_id from blob. Database is broken";
+      return nullptr;
+    }
   }
 
   auto old_d = get_dialog(dialog_id);

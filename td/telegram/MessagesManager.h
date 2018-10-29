@@ -1587,7 +1587,7 @@ class MessagesManager : public Actor {
 
   Dialog *get_dialog_force(DialogId dialog_id);
 
-  Dialog *on_load_dialog_from_database(const Result<BufferSlice> &r_value);
+  Dialog *on_load_dialog_from_database(DialogId dialog_id, const Result<BufferSlice> &r_value);
 
   void on_get_dialogs_from_database(vector<BufferSlice> &&dialogs, Promise<Unit> &&promise);
 
