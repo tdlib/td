@@ -1,5 +1,5 @@
 #/bin/sh
-td_path=$(realpath ../..)
+td_path=$(grealpath ../..)
 
 rm -rf build
 mkdir -p build
@@ -9,7 +9,7 @@ platforms="macOS iOS watchOS tvOS"
 for platform in $platforms;
 do
   echo "Platform = ${platform} Simulator = ${simulator}"
-  openssl_path=$(realpath ../third_party/openssl/${platform})
+  openssl_path=$(grealpath ../third_party/openssl/${platform})
   echo "OpenSSL path = ${openssl_path}"
   openssl_crypto_library="${openssl_path}/lib/libcrypto.a"
   openssl_ssl_library="${openssl_path}/lib/libssl.a"
