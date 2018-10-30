@@ -195,7 +195,7 @@ function getExampleAnchor(language) {
 
 function onLanguageChanged(initial) {
   var language = document.getElementById('languageSelect').value;
-  
+
   var supported_os = getSupportedOs(language);
 
   var os_select = document.getElementById('osSelect');
@@ -470,7 +470,7 @@ function onOptionsChanged() {
     var compiler = use_clang ? 'clang++ >= 3.4' : 'g++ >= 4.9.2';
     pre_text.push('Install Git, ' + compiler + ', make, CMake >= 3.0.2, OpenSSL, zlib, gperf, PHP' + jdk + ' using your package manager.');
   }
-  
+
   var terminal_name = os_windows ? (use_powershell ? 'PowerShell' : 'mintty/Bash') : (os_mac ? 'Terminal' : 'Bash');
   if (os_windows) {
     pre_text.push('Close and re-open ' + terminal_name + ' if PATH environment variable was changed.');
@@ -642,7 +642,7 @@ function onOptionsChanged() {
         commands.push('export CXXFLAGS="' + cxx_flags.join(' ') + '"');
       }
     }
-    
+
     cmake_init_options = getBacicCmakeInitOptions();
     if (os_mac) {
       cmake_init_options.push('-DOPENSSL_ROOT_DIR=/usr/local/opt/openssl/');
@@ -665,7 +665,7 @@ function onOptionsChanged() {
     if (use_vcpkg) {
       cmake_init_options.push('-DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake');
     }
-    
+
     function getCmakeInitCommand(options) {
       var prefix = '';
       if (os_linux) {
@@ -730,7 +730,7 @@ function onOptionsChanged() {
       var resolve_path = use_powershell ? 'Resolve-Path' : (os_mac ? 'greadlink -e' : (is_alpine ? 'readlink -f' : 'readlink -e'));
       cmake_init_options.push('-DTd_DIR:PATH=$(' + resolve_path + ' ../td/lib/cmake/Td)');
       commands.push(getCmakeInitCommand(cmake_init_options));
-      
+
       build_command = 'cmake --build .';
       if (jni_install_dir) {
         build_command += ' --target install';
