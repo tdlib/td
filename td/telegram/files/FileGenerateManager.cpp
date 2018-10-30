@@ -20,6 +20,7 @@
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/Parser.h"
 #include "td/utils/port/path.h"
 #include "td/utils/Slice.h"
 
@@ -342,9 +343,39 @@ FileGenerateManager::Query::~Query() = default;
 FileGenerateManager::Query::Query(Query &&other) = default;
 FileGenerateManager::Query &FileGenerateManager::Query::operator=(Query &&other) = default;
 
-void FileGenerateManager::generate_file(uint64 query_id, const FullGenerateFileLocation &generate_location,
+Status check_mtime(std::string &conversion, CSlice original_path) {
+  if (original_path.empty()) {
+    return Status::OK();
+  }
+  Parser parser(conversion);
+  if (!parser.skip_start_with("#mtime#")) {
+    return td::Status::OK();
+  }
+  auto mtime_str = parser.read_till('#');
+  parser.skip('#');
+  auto r_mtime = to_integer_safe<uint64>(mtime_str);
+  if (parser.status().is_error() || r_mtime.is_error()) {
+    return td::Status::OK();
+  }
+  auto expected_mtime = r_mtime.move_as_ok();
+  conversion = parser.read_all().str();
+  auto r_stat = stat(original_path);
+  uint64 actual_mtime = r_stat.is_ok() ? r_stat.ok().mtime_nsec_ : 0;
+  if (expected_mtime == actual_mtime) {
+    return td::Status::OK();
+  }
+  return td::Status::Error(PSLICE() << "mtime changed " << tag("file", original_path)
+                                    << tag("expected mtime", expected_mtime) << tag("actual mtime", actual_mtime));
+}
+
+void FileGenerateManager::generate_file(uint64 query_id, FullGenerateFileLocation generate_location,
                                         const LocalFileLocation &local_location, string name,
                                         unique_ptr<FileGenerateCallback> callback) {
+  auto mtime_status = check_mtime(generate_location.conversion_, generate_location.original_path_);
+  if (mtime_status.is_error()) {
+    return callback->on_error(std::move(mtime_status));
+  }
+
   CHECK(query_id != 0);
   auto it_flag = query_id_to_query_.insert(std::make_pair(query_id, Query{}));
   CHECK(it_flag.second) << "Query id must be unique";

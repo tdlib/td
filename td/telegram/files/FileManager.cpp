@@ -697,6 +697,15 @@ FileId FileManager::register_url(string url, FileType file_type, FileLocationSou
 Result<FileId> FileManager::register_generate(FileType file_type, FileLocationSource file_location_source,
                                               string original_path, string conversion, DialogId owner_dialog_id,
                                               int64 expected_size) {
+  // add #mtime# into conversion
+  if (!original_path.empty() && !begins_with(conversion, "#mtime#") && !begins_with(conversion, "#file_id#") &&
+      !begins_with(conversion, "#map#")) {
+    auto r_stat = stat(original_path);
+    uint64 mtime = r_stat.is_ok() ? r_stat.ok().mtime_nsec_ : 0;
+    auto new_conversion = PSTRING() << "#mtime#" << mtime << "#" << conversion;
+    conversion = std::move(new_conversion);
+  }
+
   FileData data;
   data.generate_ =
       td::make_unique<FullGenerateFileLocation>(file_type, std::move(original_path), std::move(conversion));

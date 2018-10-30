@@ -35,7 +35,7 @@ class FileGenerateManager : public Actor {
   explicit FileGenerateManager(ActorShared<> parent) : parent_(std::move(parent)) {
   }
 
-  void generate_file(uint64 query_id, const FullGenerateFileLocation &generate_location,
+  void generate_file(uint64 query_id, FullGenerateFileLocation generate_location,
                      const LocalFileLocation &local_location, string name, unique_ptr<FileGenerateCallback> callback);
   void cancel(uint64 query_id);
 
