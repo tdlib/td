@@ -287,10 +287,6 @@ static std::mutex in_process_lock_mutex;
 static std::unordered_set<string> locked_files;
 
 static Status create_local_lock(const string &path, int32 max_tries) {
-  if (max_tries <= 0) {
-    return Status::Error(0, "Can't lock file: wrong max_tries");
-  }
-
   while (true) {
     {  // mutex lock scope
       std::lock_guard<std::mutex> lock(in_process_lock_mutex);
@@ -312,6 +308,10 @@ static Status create_local_lock(const string &path, int32 max_tries) {
 }
 
 Status FileFd::lock(const LockFlags flags, const string &path, int32 max_tries) {
+  if (max_tries <= 0) {
+    return Status::Error(0, "Can't lock file: wrong max_tries");
+  }
+
   bool need_local_unlock = false;
   if (!path.empty()) {
     if (flags == LockFlags::Unlock) {
