@@ -301,21 +301,23 @@ Status FileFd::lock(const LockFlags flags, const string &path, int32 max_tries) 
       CHECK(flags == LockFlags::Write);
       VLOG(fd) << "Trying to lock file \"" << path << '"';
       while (true) {
-        std::unique_lock<std::mutex> lock(in_process_lock_mutex);
-        if (locked_files.find(path) != locked_files.end()) {
-          if (--max_tries > 0) {
-            usleep_for(100000);
-            continue;
+        {  // mutex lock scope
+          std::lock_guard<std::mutex> lock(in_process_lock_mutex);
+          if (locked_files.find(path) == locked_files.end()) {
+            VLOG(fd) << "Lock file \"" << path << '"';
+            need_local_unlock = true;
+            locked_files.insert(path);
+            break;
           }
-
-          return Status::Error(
-              0, PSLICE() << "Can't lock file \"" << path << "\", because it is already in use by current program");
         }
 
-        VLOG(fd) << "Lock file \"" << path << '"';
-        need_local_unlock = true;
-        locked_files.insert(path);
-        break;
+        if (--max_tries > 0) {
+          usleep_for(100000);
+          continue;
+        }
+
+        return Status::Error(
+            0, PSLICE() << "Can't lock file \"" << path << "\", because it is already in use by current program");
       }
     }
   }
