@@ -286,7 +286,7 @@ Result<size_t> FileFd::pread(MutableSlice slice, int64 offset) const {
 static std::mutex in_process_lock_mutex;
 static std::unordered_set<string> locked_files;
 
-static Status create_local_lock(const string &path, int32 max_tries) {
+static Status create_local_lock(const string &path, int32 &max_tries) {
   while (true) {
     {  // mutex lock scope
       std::lock_guard<std::mutex> lock(in_process_lock_mutex);
@@ -298,13 +298,12 @@ static Status create_local_lock(const string &path, int32 max_tries) {
     }
 
     if (--max_tries <= 0) {
-      break;
+      return Status::Error(
+          0, PSLICE() << "Can't lock file \"" << path << "\", because it is already in use by current program");
     }
 
     usleep_for(100000);
   }
-  return Status::Error(
-      0, PSLICE() << "Can't lock file \"" << path << "\", because it is already in use by current program");
 }
 
 Status FileFd::lock(const LockFlags flags, const string &path, int32 max_tries) {
