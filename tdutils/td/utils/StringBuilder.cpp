@@ -61,8 +61,34 @@ static char *print_int(char *current_ptr, T x) {
   return print_uint(current_ptr, x);
 }
 
+bool StringBuilder::reserve_inner(size_t size) {
+  if (!use_buffer_) {
+    return false;
+  }
+  //TODO: check size_t oveflow
+  size_t old_data_size = current_ptr_ - begin_ptr_;
+  size_t need_data_size = old_data_size + size;
+  size_t old_buffer_size = end_ptr_ - begin_ptr_;
+  size_t new_buffer_size = (old_buffer_size + 1) * 2;
+  if (new_buffer_size < need_data_size) {
+    new_buffer_size = need_data_size;
+  }
+  if (new_buffer_size < 100) {
+    new_buffer_size = 100;
+  }
+  new_buffer_size += reserved_size;
+  auto new_buffer_ = std::make_unique<char[]>(new_buffer_size);
+  std::memcpy(new_buffer_.get(), begin_ptr_, old_data_size);
+  buffer_ = std::move(new_buffer_);
+  begin_ptr_ = buffer_.get();
+  current_ptr_ = begin_ptr_ + old_data_size;
+  end_ptr_ = begin_ptr_ + new_buffer_size - reserved_size;
+  CHECK(end_ptr_ > begin_ptr_);
+  return true;
+}
+
 StringBuilder &StringBuilder::operator<<(int x) {
-  if (unlikely(end_ptr_ < current_ptr_)) {
+  if (unlikely(!reserve())) {
     return on_error();
   }
   current_ptr_ = print_int(current_ptr_, x);
@@ -70,7 +96,7 @@ StringBuilder &StringBuilder::operator<<(int x) {
 }
 
 StringBuilder &StringBuilder::operator<<(unsigned int x) {
-  if (unlikely(end_ptr_ < current_ptr_)) {
+  if (unlikely(!reserve())) {
     return on_error();
   }
   current_ptr_ = print_uint(current_ptr_, x);
@@ -78,7 +104,7 @@ StringBuilder &StringBuilder::operator<<(unsigned int x) {
 }
 
 StringBuilder &StringBuilder::operator<<(long int x) {
-  if (unlikely(end_ptr_ < current_ptr_)) {
+  if (unlikely(!reserve())) {
     return on_error();
   }
   current_ptr_ = print_int(current_ptr_, x);
@@ -86,7 +112,7 @@ StringBuilder &StringBuilder::operator<<(long int x) {
 }
 
 StringBuilder &StringBuilder::operator<<(long unsigned int x) {
-  if (unlikely(end_ptr_ < current_ptr_)) {
+  if (unlikely(!reserve())) {
     return on_error();
   }
   current_ptr_ = print_uint(current_ptr_, x);
@@ -94,7 +120,7 @@ StringBuilder &StringBuilder::operator<<(long unsigned int x) {
 }
 
 StringBuilder &StringBuilder::operator<<(long long int x) {
-  if (unlikely(end_ptr_ < current_ptr_)) {
+  if (unlikely(!reserve())) {
     return on_error();
   }
   current_ptr_ = print_int(current_ptr_, x);
@@ -102,7 +128,7 @@ StringBuilder &StringBuilder::operator<<(long long int x) {
 }
 
 StringBuilder &StringBuilder::operator<<(long long unsigned int x) {
-  if (unlikely(end_ptr_ < current_ptr_)) {
+  if (unlikely(!reserve())) {
     return on_error();
   }
   current_ptr_ = print_uint(current_ptr_, x);
@@ -110,7 +136,7 @@ StringBuilder &StringBuilder::operator<<(long long unsigned int x) {
 }
 
 StringBuilder &StringBuilder::operator<<(FixedDouble x) {
-  if (unlikely(end_ptr_ < current_ptr_)) {
+  if (unlikely(!reserve())) {
     return on_error();
   }
 
@@ -137,7 +163,7 @@ StringBuilder &StringBuilder::operator<<(FixedDouble x) {
 }
 
 StringBuilder &StringBuilder::operator<<(const void *ptr) {
-  if (unlikely(end_ptr_ < current_ptr_)) {
+  if (unlikely(!reserve())) {
     return on_error();
   }
   current_ptr_ += std::snprintf(current_ptr_, reserved_size, "%p", ptr);

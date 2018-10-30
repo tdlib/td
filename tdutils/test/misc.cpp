@@ -492,3 +492,29 @@ TEST(Misc, full_split) {
   test_full_split(" ab cd ef ", {"", "ab", "cd", "ef", ""});
   test_full_split("  ab  cd  ef  ", {"", "", "ab", "", "cd", "", "ef", "", ""});
 }
+
+TEST(Misc, StringBuilder) {
+  auto small = std::string{"abcdefghij"};
+  auto big = std::string(1000, 'a');
+  using V = std::vector<std::string>;
+  for (auto use_buf : {false, true}) {
+    for (size_t initial_buffer_size : {0, 1, 5, 10, 100, 1000, 2000}) {
+      for (auto test : {V{small}, {small, big, big, small}, {big, small, big}}) {
+        std::string buf(initial_buffer_size, '\0');
+        td::StringBuilder sb(buf, use_buf);
+        std::string res;
+        for (auto x : test) {
+          res += x;
+          sb << x;
+        }
+        if (use_buf) {
+          ASSERT_EQ(res, sb.as_cslice());
+        } else {
+          auto got = sb.as_cslice();
+          res.resize(got.size());
+          ASSERT_EQ(res, got);
+        }
+      }
+    }
+  }
+}
