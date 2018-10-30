@@ -65,10 +65,16 @@ bool StringBuilder::reserve_inner(size_t size) {
   if (!use_buffer_) {
     return false;
   }
-  //TODO: check size_t oveflow
+
   size_t old_data_size = current_ptr_ - begin_ptr_;
+  if (size >= std::numeric_limits<size_t>::max() - reserved_size - old_data_size - 1) {
+    return false;
+  }
   size_t need_data_size = old_data_size + size;
   size_t old_buffer_size = end_ptr_ - begin_ptr_;
+  if (old_buffer_size >= (std::numeric_limits<size_t>::max() - reserved_size) / 2 - 2) {
+    return false;
+  }
   size_t new_buffer_size = (old_buffer_size + 1) * 2;
   if (new_buffer_size < need_data_size) {
     new_buffer_size = need_data_size;
@@ -77,13 +83,14 @@ bool StringBuilder::reserve_inner(size_t size) {
     new_buffer_size = 100;
   }
   new_buffer_size += reserved_size;
-  auto new_buffer_ = std::make_unique<char[]>(new_buffer_size);
-  std::memcpy(new_buffer_.get(), begin_ptr_, old_data_size);
-  buffer_ = std::move(new_buffer_);
+  auto new_buffer = std::make_unique<char[]>(new_buffer_size);
+  std::memcpy(new_buffer.get(), begin_ptr_, old_data_size);
+  buffer_ = std::move(new_buffer);
   begin_ptr_ = buffer_.get();
   current_ptr_ = begin_ptr_ + old_data_size;
   end_ptr_ = begin_ptr_ + new_buffer_size - reserved_size;
-  CHECK(end_ptr_ > begin_ptr_);
+  CHECK(end_ptr_ > current_ptr_);
+  CHECK(static_cast<size_t>(end_ptr_ - current_ptr_) >= size);
   return true;
 }
 
@@ -136,7 +143,7 @@ StringBuilder &StringBuilder::operator<<(long long unsigned int x) {
 }
 
 StringBuilder &StringBuilder::operator<<(FixedDouble x) {
-  if (unlikely(!reserve())) {
+  if (unlikely(!reserve(std::numeric_limits<double>::max_exponent10 + x.precision + 4))) {
     return on_error();
   }
 

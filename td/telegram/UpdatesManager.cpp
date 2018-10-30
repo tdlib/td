@@ -187,7 +187,7 @@ void UpdatesManager::fill_gap(void *td, const char *source) {
 
 string UpdatesManager::get_state() const {
   char buff[1024];
-  StringBuilder sb({buff, sizeof(buff)});
+  StringBuilder sb(MutableSlice{buff, sizeof(buff)});
   sb << "UpdatesManager is in state ";
   switch (state_.type) {
     case State::Type::General:

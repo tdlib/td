@@ -58,7 +58,7 @@ class OptionsParser {
     return -1;
 #else
     char buff[1024];
-    StringBuilder sb({buff, sizeof(buff)});
+    StringBuilder sb(MutableSlice{buff, sizeof(buff)});
     for (auto &opt : options_) {
       CHECK(opt.type != Option::OptionalArg);
       sb << opt.short_key;

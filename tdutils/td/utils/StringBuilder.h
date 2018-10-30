@@ -19,16 +19,15 @@ namespace td {
 class StringBuilder {
  public:
   explicit StringBuilder(MutableSlice slice, bool use_buffer = false)
-      : begin_ptr_(slice.begin())
-      , current_ptr_(begin_ptr_)
-      , end_ptr_(slice.end() - reserved_size)
-      , use_buffer_(use_buffer) {
+      : begin_ptr_(slice.begin()), current_ptr_(begin_ptr_), use_buffer_(use_buffer) {
     if (slice.size() <= reserved_size) {
       auto buffer_size = reserved_size + 100;
       buffer_ = std::make_unique<char[]>(buffer_size);
       begin_ptr_ = buffer_.get();
       current_ptr_ = begin_ptr_;
       end_ptr_ = begin_ptr_ + buffer_size - reserved_size;
+    } else {
+      end_ptr_ = slice.end() - reserved_size;
     }
   }
 
