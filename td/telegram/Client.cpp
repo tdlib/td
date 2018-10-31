@@ -157,11 +157,13 @@ class Client::Impl final {
   }
 
   Response receive(double timeout) {
+    VLOG(td_requests) << "Begin to wait for updates with timeout " << timeout;
     auto is_locked = receive_lock_.exchange(true);
     CHECK(!is_locked);
     auto response = receive_unlocked(timeout);
     is_locked = receive_lock_.exchange(false);
     CHECK(is_locked);
+    LOG(td_requests) << "End to wait for updates, returning object " << response.id << ' ' << response.object.get();
     return response;
   }
 
