@@ -36,6 +36,13 @@ string implode(vector<string> v, char delimiter) {
   return result;
 }
 
+string lpad0(string str, size_t size) {
+  if (str.size() >= size) {
+    return str;
+  }
+  return string(size - str.size(), '0') + str;
+}
+
 string oneline(Slice str) {
   string result;
   result.reserve(str.size());

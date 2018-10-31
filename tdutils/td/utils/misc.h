@@ -194,6 +194,8 @@ T trim(T str) {
   return T(begin, end);
 }
 
+string lpad0(string str, size_t size);
+
 string oneline(Slice str);
 
 template <class T>

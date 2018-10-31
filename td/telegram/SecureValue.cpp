@@ -670,13 +670,6 @@ td_api::object_ptr<td_api::encryptedCredentials> get_encrypted_credentials_objec
                                                            credentials.encrypted_secret);
 }
 
-static string lpad0(string str, size_t size) {
-  if (str.size() >= size) {
-    return str;
-  }
-  return string(size - str.size(), '0') + str;
-}
-
 // TODO tests
 static Status check_date(int32 day, int32 month, int32 year) {
   if (day < 1 || day > 31) {

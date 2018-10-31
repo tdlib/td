@@ -343,34 +343,39 @@ FileGenerateManager::Query::~Query() = default;
 FileGenerateManager::Query::Query(Query &&other) = default;
 FileGenerateManager::Query &FileGenerateManager::Query::operator=(Query &&other) = default;
 
-Status check_mtime(std::string &conversion, CSlice original_path) {
+static Status check_mtime(std::string &conversion, CSlice original_path) {
   if (original_path.empty()) {
     return Status::OK();
   }
   Parser parser(conversion);
   if (!parser.skip_start_with("#mtime#")) {
-    return td::Status::OK();
+    return Status::OK();
   }
   auto mtime_str = parser.read_till('#');
   parser.skip('#');
+  while (mtime_str.size() >= 2 && mtime_str[0] == '0') {
+    mtime_str.remove_prefix(1);
+  }
   auto r_mtime = to_integer_safe<uint64>(mtime_str);
   if (parser.status().is_error() || r_mtime.is_error()) {
-    return td::Status::OK();
+    return Status::OK();
   }
   auto expected_mtime = r_mtime.move_as_ok();
   conversion = parser.read_all().str();
   auto r_stat = stat(original_path);
   uint64 actual_mtime = r_stat.is_ok() ? r_stat.ok().mtime_nsec_ : 0;
   if (expected_mtime == actual_mtime) {
-    return td::Status::OK();
+    return Status::OK();
   }
-  return td::Status::Error(PSLICE() << "mtime changed " << tag("file", original_path)
-                                    << tag("expected mtime", expected_mtime) << tag("actual mtime", actual_mtime));
+  return Status::Error(PSLICE() << "File \"" << original_path
+                                << "\" was modified: " << tag("expected modification time", expected_mtime)
+                                << tag("actual modification time", actual_mtime));
 }
 
 void FileGenerateManager::generate_file(uint64 query_id, FullGenerateFileLocation generate_location,
                                         const LocalFileLocation &local_location, string name,
                                         unique_ptr<FileGenerateCallback> callback) {
+  LOG(INFO) << "Begin to generate file with " << generate_location;
   auto mtime_status = check_mtime(generate_location.conversion_, generate_location.original_path_);
   if (mtime_status.is_error()) {
     return callback->on_error(std::move(mtime_status));

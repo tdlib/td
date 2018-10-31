@@ -698,11 +698,10 @@ Result<FileId> FileManager::register_generate(FileType file_type, FileLocationSo
                                               string original_path, string conversion, DialogId owner_dialog_id,
                                               int64 expected_size) {
   // add #mtime# into conversion
-  if (!original_path.empty() && !begins_with(conversion, "#mtime#") && !begins_with(conversion, "#file_id#") &&
-      !begins_with(conversion, "#map#")) {
+  if (!original_path.empty() && conversion[0] != '#') {
     auto r_stat = stat(original_path);
     uint64 mtime = r_stat.is_ok() ? r_stat.ok().mtime_nsec_ : 0;
-    auto new_conversion = PSTRING() << "#mtime#" << mtime << "#" << conversion;
+    auto new_conversion = PSTRING() << "#mtime#" << lpad0(to_string(mtime), 20) << '#' << conversion;
     conversion = std::move(new_conversion);
   }
 
@@ -849,12 +848,23 @@ static int merge_choose_remote_location(const RemoteFileLocation &x, int8 x_sour
   }
   return 2;
 }
+
 static int merge_choose_generate_location(const unique_ptr<FullGenerateFileLocation> &x,
                                           const unique_ptr<FullGenerateFileLocation> &y) {
-  int x_type = static_cast<int>(x != nullptr);
-  int y_type = static_cast<int>(y != nullptr);
-  if (x_type != y_type) {
-    return x_type < y_type;
+  int x_empty = (x == nullptr);
+  int y_empty = (y == nullptr);
+  if (x_empty != y_empty) {
+    return x_empty ? 1 : 0;
+  }
+  if (!x_empty) {
+    bool x_has_mtime = begins_with(x->conversion_, "#mtime#");
+    bool y_has_mtime = begins_with(y->conversion_, "#mtime#");
+    if (x_has_mtime != y_has_mtime) {
+      return x_has_mtime ? 0 : 1;
+    }
+    return x->conversion_ >= y->conversion_
+               ? 0
+               : 1;  // the bigger conversion, the bigger mtime or at least more stable choise
   }
   return 2;
 }

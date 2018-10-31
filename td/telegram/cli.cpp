@@ -361,7 +361,7 @@ class CliClient final : public Actor {
     FileGeneration file_generation;
     file_generation.id = update.generation_id_;
     file_generation.destination = update.destination_path_;
-    if (update.conversion_ == "#url#") {
+    if (update.conversion_ == "#url#" || update.conversion_ == "url") {
       // TODO: actually download
       file_generation.source = "test.jpg";
       file_generation.part_size = 1000000;
