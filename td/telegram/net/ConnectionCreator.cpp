@@ -41,7 +41,7 @@
 
 namespace td {
 
-int VERBOSITY_NAME(connections) = VERBOSITY_NAME(DEBUG) + 8;
+int VERBOSITY_NAME(connections) = VERBOSITY_NAME(INFO);
 
 namespace detail {
 
