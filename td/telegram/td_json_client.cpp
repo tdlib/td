@@ -36,7 +36,7 @@ const char *td_json_client_receive(void *client, double timeout) {
 }
 
 const char *td_json_client_execute(void *client, const char *request) {
-  auto slice = static_cast<td::ClientJson *>(client)->execute(td::Slice(request == nullptr ? "" : request));
+  auto slice = td::ClientJson::execute(td::Slice(request == nullptr ? "" : request));
   if (slice.empty()) {
     return nullptr;
   } else {

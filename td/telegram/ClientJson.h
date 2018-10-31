@@ -8,16 +8,13 @@
 
 #include "td/telegram/Client.h"
 
-#include "td/utils/port/thread_local.h"
 #include "td/utils/Slice.h"
-#include "td/utils/Status.h"
 
 #include <atomic>
 #include <cstdint>
 #include <mutex>
 #include <string>
 #include <unordered_map>
-#include <vector>
 
 namespace td {
 
@@ -27,18 +24,13 @@ class ClientJson final {
 
   CSlice receive(double timeout);
 
-  CSlice execute(Slice request);
+  static CSlice execute(Slice request);
 
  private:
   Client client_;
   std::mutex mutex_;  // for extra_
   std::unordered_map<std::int64_t, std::string> extra_;
   std::atomic<std::uint64_t> extra_id_{1};
-  static TD_THREAD_LOCAL std::string *current_output_;
-
-  CSlice store_string(std::string str);
-
-  Result<Client::Request> to_request(Slice request);
-  std::string from_response(Client::Response response);
 };
+
 }  // namespace td

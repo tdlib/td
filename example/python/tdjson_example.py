@@ -79,7 +79,7 @@ def td_receive():
 
 def td_execute(query):
     query = json.dumps(query).encode('utf-8')
-    result = td_json_client_execute(client, query)
+    result = td_json_client_execute(None, query)
     if result:
         result = json.loads(result.decode('utf-8'))
     return result

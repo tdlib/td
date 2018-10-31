@@ -14,55 +14,50 @@
 #include "td/utils/format.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
+#include "td/utils/port/thread_local.h"
 #include "td/utils/Status.h"
+
+#include <utility>
 
 namespace td {
 
-Result<Client::Request> ClientJson::to_request(Slice request) {
+static Result<std::pair<td_api::object_ptr<td_api::Function>, string>> to_request(Slice request) {
   auto request_str = request.str();
   TRY_RESULT(json_value, json_decode(request_str));
   if (json_value.type() != JsonValue::Type::Object) {
     return Status::Error("Expected an Object");
   }
-  std::uint64_t extra_id = extra_id_.fetch_add(1, std::memory_order_relaxed);
+
+  string extra;
   if (has_json_object_field(json_value.get_object(), "@extra")) {
-    std::lock_guard<std::mutex> guard(mutex_);
-    extra_[extra_id] = json_encode<string>(
+    extra = json_encode<string>(
         get_json_object_field(json_value.get_object(), "@extra", JsonValue::Type::Null).move_as_ok());
   }
 
   td_api::object_ptr<td_api::Function> func;
   TRY_STATUS(from_json(func, json_value));
-  return Client::Request{extra_id, std::move(func)};
+  return std::make_pair(std::move(func), extra);
 }
 
-std::string ClientJson::from_response(Client::Response response) {
-  auto str = json_encode<string>(ToJson(*response.object));
+static std::string from_response(const td_api::Object &object, const string &extra) {
+  auto str = json_encode<string>(ToJson(object));
   CHECK(!str.empty() && str.back() == '}');
-  std::string extra;
-  if (response.id != 0) {
-    std::lock_guard<std::mutex> guard(mutex_);
-    auto it = extra_.find(response.id);
-    if (it != extra_.end()) {
-      extra = std::move(it->second);
-      extra_.erase(it);
-    }
-  }
   if (!extra.empty()) {
     str.pop_back();
-    str.reserve(str.size() + 10 + extra.size());
+    str.reserve(str.size() + 11 + extra.size());
     str += ",\"@extra\":";
     str += extra;
-    str += "}";
+    str += '}';
   }
   return str;
 }
 
-TD_THREAD_LOCAL std::string *ClientJson::current_output_;
-CSlice ClientJson::store_string(std::string str) {
-  init_thread_local<std::string>(ClientJson::current_output_);
-  *current_output_ = std::move(str);
-  return *current_output_;
+static TD_THREAD_LOCAL std::string *current_output;
+
+static CSlice store_string(std::string str) {
+  init_thread_local<std::string>(current_output);
+  *current_output = std::move(str);
+  return *current_output;
 }
 
 void ClientJson::send(Slice request) {
@@ -72,7 +67,12 @@ void ClientJson::send(Slice request) {
     return;
   }
 
-  client_.send(r_request.move_as_ok());
+  std::uint64_t extra_id = extra_id_.fetch_add(1, std::memory_order_relaxed);
+  if (!r_request.ok_ref().second.empty()) {
+    std::lock_guard<std::mutex> guard(mutex_);
+    extra_[extra_id] = std::move(r_request.ok_ref().second);
+  }
+  client_.send(Client::Request{extra_id, std::move(r_request.ok_ref().first)});
 }
 
 CSlice ClientJson::receive(double timeout) {
@@ -80,7 +80,17 @@ CSlice ClientJson::receive(double timeout) {
   if (!response.object) {
     return {};
   }
-  return store_string(from_response(std::move(response)));
+
+  std::string extra;
+  if (response.id != 0) {
+    std::lock_guard<std::mutex> guard(mutex_);
+    auto it = extra_.find(response.id);
+    if (it != extra_.end()) {
+      extra = std::move(it->second);
+      extra_.erase(it);
+    }
+  }
+  return store_string(from_response(*response.object, extra));
 }
 
 CSlice ClientJson::execute(Slice request) {
@@ -90,7 +100,8 @@ CSlice ClientJson::execute(Slice request) {
     return {};
   }
 
-  return store_string(from_response(Client::execute(r_request.move_as_ok())));
+  return store_string(from_response(*Client::execute(Client::Request{0, std::move(r_request.ok_ref().first)}).object,
+                                    r_request.ok().second));
 }
 
 }  // namespace td
