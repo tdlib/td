@@ -576,7 +576,7 @@ Slice JsonValue::get_type_name(Type type) {
   }
 }
 
-bool has_json_object_field(JsonObject &object, Slice name) {
+bool has_json_object_field(const JsonObject &object, Slice name) {
   for (auto &field_value : object) {
     if (field_value.first == name) {
       return true;
