@@ -698,11 +698,10 @@ Result<FileId> FileManager::register_generate(FileType file_type, FileLocationSo
                                               string original_path, string conversion, DialogId owner_dialog_id,
                                               int64 expected_size) {
   // add #mtime# into conversion
-  if (!original_path.empty() && conversion[0] != '#') {
+  if (!original_path.empty() && conversion[0] != '#' && PathView(original_path).is_absolute()) {
     auto r_stat = stat(original_path);
     uint64 mtime = r_stat.is_ok() ? r_stat.ok().mtime_nsec_ : 0;
-    auto new_conversion = PSTRING() << "#mtime#" << lpad0(to_string(mtime), 20) << '#' << conversion;
-    conversion = std::move(new_conversion);
+    conversion = PSTRING() << "#mtime#" << lpad0(to_string(mtime), 20) << '#' << conversion;
   }
 
   FileData data;
