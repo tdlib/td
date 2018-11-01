@@ -154,14 +154,16 @@ void SessionProxy::open_session(bool force) {
   if (!session_.empty()) {
     return;
   }
-  if (auth_state_ == AuthState::Empty && need_destroy_) {
-    return;
-  }
-  if (auth_state_ != AuthState::OK && need_wait_for_key_) {
-    return;
-  }
-  if (!is_main_ && pending_queries_.empty() && !need_destroy_) {
-    return;
+  if (!force) {
+    if (auth_state_ == AuthState::Empty && need_destroy_) {
+      return;
+    }
+    if (auth_state_ != AuthState::OK && need_wait_for_key_) {
+      return;
+    }
+    if (!is_main_ && pending_queries_.empty() && !need_destroy_) {
+      return;
+    }
   }
 
   CHECK(session_.empty());
