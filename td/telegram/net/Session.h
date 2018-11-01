@@ -222,9 +222,9 @@ class Session final
   void connection_close(ConnectionInfo *info);
   void connection_flush(ConnectionInfo *info);
   void connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_query, uint64 message_id = 0);
-  bool need_send_bind_key();
-  bool need_send_query();
-  bool can_destroy_auth_key();
+  bool need_send_bind_key() const;
+  bool need_send_query() const;
+  bool can_destroy_auth_key() const;
   bool connection_send_bind_key(ConnectionInfo *info);
 
   void on_result(NetQueryPtr query) override;

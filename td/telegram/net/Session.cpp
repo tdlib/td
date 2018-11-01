@@ -146,7 +146,7 @@ Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> 
   last_activity_timestamp_ = Time::now();
 }
 
-bool Session::can_destroy_auth_key() {
+bool Session::can_destroy_auth_key() const {
   return need_destroy_;
 }
 
@@ -1006,10 +1006,10 @@ void Session::connection_close(ConnectionInfo *info) {
   CHECK(info->state == ConnectionInfo::State::Empty);
 }
 
-bool Session::need_send_bind_key() {
+bool Session::need_send_bind_key() const {
   return auth_data_.use_pfs() && !auth_data_.get_bind_flag() && auth_data_.get_tmp_auth_key().id() != tmp_auth_key_id_;
 }
-bool Session::need_send_query() {
+bool Session::need_send_query() const {
   return !close_flag_ && (!auth_data_.use_pfs() || auth_data_.get_bind_flag()) && !pending_queries_.empty() &&
          !can_destroy_auth_key();
 }

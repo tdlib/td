@@ -291,8 +291,8 @@ Status SessionConnection::on_packet(const MsgInfo &info, const mtproto_api::rpc_
 }
 
 Status SessionConnection::on_packet(const MsgInfo &info, uint64 req_msg_id, const mtproto_api::rpc_error &rpc_error) {
-  VLOG(mtproto) << "ERROR [code:" << rpc_error.error_code_ << "] [msg:" << rpc_error.error_message_.str().c_str() << "]"
-                << " " << tag("req_msg_id", req_msg_id);
+  VLOG(mtproto) << "ERROR " << tag("code", rpc_error.error_code_) << tag("message", rpc_error.error_message_)
+                << tag("req_msg_id", req_msg_id);
   if (req_msg_id != 0) {
     callback_->on_message_result_error(req_msg_id, rpc_error.error_code_, as_buffer_slice(rpc_error.error_message_));
   } else {

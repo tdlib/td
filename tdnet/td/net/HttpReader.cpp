@@ -124,7 +124,7 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
           return Status::Error(413, PSLICE() << "Request Entity Too Large: content length is " << content_length_);
         }
 
-        if (std::strstr(content_type_lowercased_.c_str(), "multipart/form-data")) {
+        if (content_type_lowercased_.find("multipart/form-data") != string::npos) {
           state_ = ReadMultipartFormData;
 
           const char *p = std::strstr(content_type_lowercased_.c_str(), "boundary");
@@ -157,8 +157,8 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
           form_data_parse_state_ = SkipPrologue;
           form_data_read_length_ = 0;
           form_data_skipped_length_ = 0;
-        } else if (std::strstr(content_type_lowercased_.c_str(), "application/x-www-form-urlencoded") ||
-                   std::strstr(content_type_lowercased_.c_str(), "application/json")) {
+        } else if (content_type_lowercased_.find("application/x-www-form-urlencoded") != string::npos ||
+                   content_type_lowercased_.find("application/json") != string::npos) {
           state_ = ReadArgs;
         } else {
           form_data_skipped_length_ = 0;
@@ -210,7 +210,7 @@ Result<size_t> HttpReader::read_next(HttpQuery *query) {
         if (flow_sink_.is_ready()) {
           query_->container_.emplace_back(content_->cut_head(size).move_as_buffer_slice());
           Status result;
-          if (std::strstr(content_type_lowercased_.c_str(), "application/x-www-form-urlencoded")) {
+          if (content_type_lowercased_.find("application/x-www-form-urlencoded") != string::npos) {
             result = parse_parameters(query_->container_.back().as_slice());
           } else {
             result = parse_json_parameters(query_->container_.back().as_slice());
