@@ -15,6 +15,7 @@ char disable_linker_warning_about_empty_file_kqueue_cpp TD_UNUSED;
 
 #include <utility>
 
+#include <sys/time.h>
 #include <unistd.h>
 
 namespace td {
