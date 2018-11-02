@@ -15,6 +15,7 @@
 
 #if !TD_WINDOWS
 #include <arpa/inet.h>
+#include <netinet/in.h>
 #include <sys/socket.h>
 #endif
 

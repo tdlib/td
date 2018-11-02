@@ -18,9 +18,7 @@
 #include "td/utils/port/wstring_convert.h"
 #else
 #include <netdb.h>
-#include <netinet/in.h>
 #include <netinet/tcp.h>
-#include <sys/socket.h>
 #include <sys/types.h>
 #endif
 
