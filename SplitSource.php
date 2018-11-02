@@ -65,6 +65,11 @@ function split_file($file, $chunks, $undo) {
         file_put_contents($cmake_file, $cmake);
     }
 
+    if (!file_exists($cpp_name)) {
+        echo "ERROR: skip unexisting file $cpp_name".PHP_EOL;
+        return;
+    }
+
     $lines = file($cpp_name);
     $depth = 0;
     $target_depth = 1 + $is_generated;
