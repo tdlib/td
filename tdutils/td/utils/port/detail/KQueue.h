@@ -18,6 +18,8 @@
 
 #include <cstdint>
 
+#include <sys/types.h> // must be included before sys/event.h, which depends on sys/types.h on FreeBSD
+
 #include <sys/event.h>
 
 namespace td {
