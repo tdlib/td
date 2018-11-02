@@ -186,7 +186,7 @@ void SessionProxy::open_session(bool force) {
 
 void SessionProxy::update_auth_state() {
   auth_state_ = auth_data_->get_auth_state().first;
-  open_session(true);
+  open_session();
   for (auto &query : pending_queries_) {
     query->debug(PSTRING() << get_name() << ": sent to session");
     send_closure(session_, &Session::send, std::move(query));
