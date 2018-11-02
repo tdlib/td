@@ -1737,7 +1737,7 @@ languagePackInfo id:string name:string native_name:string local_string_count:int
 localizationTargetInfo language_packs:vector<languagePackInfo> = LocalizationTargetInfo;
 
 
-//@class DeviceToken @description Represents a data needed to subscribe for push notifications. To use specific push notification service, you must specify the correct application platform and upload valid server authentication data at https://my.telegram.org
+//@class DeviceToken @description Represents a data needed to subscribe for push notifications through registerDevice method. To use specific push notification service, you must specify the correct application platform and upload valid server authentication data at https://my.telegram.org
 
 //@description A token for Google Cloud Messaging @token Device registration token; may be empty to de-register a device
 deviceTokenGoogleCloudMessaging token:string = DeviceToken;
