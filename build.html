@@ -154,16 +154,16 @@ function getSupportedOs(language) {
     case 'Choose a programming language:':
       return [];
     case 'JavaScript':
-      return ['Windows (Node.js)', 'Linux (Node.js)', 'macOS (Node.js)', 'Browser (Chrome, Firefox, Safari, Edge, Opera)'];
+      return ['Windows (Node.js)', 'Linux (Node.js)', 'macOS (Node.js)', 'FreeBSD (Node.js)', 'Browser (Chrome, Firefox, Safari, Edge, Opera)'];
     case 'Java':
-      return ['Windows', 'Linux', 'macOS', 'Android'];
+      return ['Windows', 'Linux', 'macOS', 'FreeBSD', 'Android'];
     case 'C#':
-      return ['Windows (through C++/CLI)', 'Universal Windows Platform (through C++/CX)', 'Windows (.Net Core)', 'Linux (.Net Core)', 'macOS (.Net Core)'];
-    case 'Swift:':
-    case 'Objective-C:':
+      return ['Windows (through C++/CLI)', 'Universal Windows Platform (through C++/CX)', 'Windows (.Net Core)', 'Linux (.Net Core)', 'macOS (.Net Core)', 'FreeBSD (.Net Core)'];
+    case 'Swift':
+    case 'Objective-C':
       return ['macOS', 'iOS', 'tvOS', 'watchOS'];
     default:
-      return ['Windows', 'Linux', 'macOS'];
+      return ['Windows', 'Linux', 'macOS', 'FreeBSD'];
   }
 }
 
@@ -173,8 +173,8 @@ function getExampleAnchor(language) {
     case 'JavaScript':
     case 'Go':
     case 'Java':
-    case 'Swift:':
-    case 'Objective-C:':
+    case 'Swift':
+    case 'Objective-C':
     case 'Rust':
     case 'Erlang':
     case 'PHP':
@@ -254,6 +254,9 @@ function getTarget(language, os) {
   if (os.includes('Android')) {
     return 'Android';
   }
+  if (os.includes('iOS') || os.includes('tvOS') || os.includes('watchOS')) {
+    return 'iOS';
+  }
 
   switch (language) {
     case 'C++':
@@ -269,6 +272,7 @@ function getTargetName(target) {
   switch (target) {
     case 'tdjson':
     case 'WebAssembly':
+    case 'iOS':
       return '<a href="https://github.com/tdlib/td#using-json">JSON</a>';
     case 'tdclient':
       return '<a href="https://github.com/tdlib/td#using-cxx">a simple and convenient C++11-interface</a>';
@@ -301,6 +305,9 @@ function onOsChanged() {
     text = 'TDLib for Android is available in a prebuilt form and can be downloaded from <a href="https://core.telegram.org/tdlib/tdlib.zip">there</a>.';
     target = '';
   }
+  if (target === 'iOS') {
+    target = '';
+  }
   document.getElementById('buildText').innerHTML = text;
 
   if (!target) {
@@ -322,6 +329,7 @@ function onOptionsChanged() {
   var os_windows = os.includes('Windows');
   var os_linux = os.includes('Linux');
   var os_mac = os.includes('macOS');
+  var os_freebsd = os.includes('FreeBSD');
 
   var display_commands = 'block';
   var linux_distro = 'none';
@@ -336,7 +344,7 @@ function onOptionsChanged() {
   }
   document.getElementById('buildCommandsDiv').style.display = display_commands;
 
-  var use_clang = false;
+  var use_clang = os_freebsd;
   if (os_linux && linux_distro !== 'Alpine') {
     document.getElementById('buildCompilerDiv').style.display = 'block';
     use_clang = document.getElementById('buildCompilerRadioClang').checked;
@@ -345,7 +353,7 @@ function onOptionsChanged() {
   }
 
   var low_memory = false;
-  if (os_linux) {
+  if (os_linux || os_freebsd) {
     low_memory = document.getElementById('buildLowMemoryCheckbox').checked;
     document.getElementById('buildLowMemoryText').innerHTML = 'I have less than ' + (use_clang ? '1.5' : '3.5') +' GB of RAM.' +
             (low_memory ? ' Now you will need only ' + (use_clang ? '0.5' : '1') +' GB of RAM to build TDLib.' : '');
@@ -405,7 +413,7 @@ function onOptionsChanged() {
   }
 
   var sudo = 'sudo ';
-  if (use_root || linux_distro.includes('Debian')) {
+  if (use_root || linux_distro.includes('Debian') || os_freebsd) {
     sudo = '';
   }
 
@@ -457,11 +465,9 @@ function onOptionsChanged() {
     }
   }
   if (target === 'JNI') {
-    if (!os_linux) {
-      if (os_windows) {
-        pre_text.push('Download and install <a href="https://www.oracle.com/technetwork/java/javase/downloads/index.html">JDK</a>.');
-      }
-    } else if (linux_distro === 'Alpine') {
+    if (os_windows) {
+      pre_text.push('Download and install <a href="https://www.oracle.com/technetwork/java/javase/downloads/index.html">JDK</a>.');
+    } else if (os_linux && linux_distro === 'Alpine') {
       pre_text.push('Add community repository for your Alpine version (not edge) in /etc/apk/repositories. For example, you can do it through vim, preliminary installing it via "apk add --update vim".');
     }
   }
@@ -470,8 +476,23 @@ function onOptionsChanged() {
     var compiler = use_clang ? 'clang++ >= 3.4' : 'g++ >= 4.9.2';
     pre_text.push('Install Git, ' + compiler + ', make, CMake >= 3.0.2, OpenSSL, zlib, gperf, PHP' + jdk + ' using your package manager.');
   }
+  if (os_freebsd) {
+    pre_text.push('Note that following instruction is for FreeBSD 11.');
+    pre_text.push('Note that following calls to <code>pkg</code> needs to be run as <code>root</code>.');
+  }
 
-  var terminal_name = os_windows ? (use_powershell ? 'PowerShell' : 'mintty/Bash') : (os_mac ? 'Terminal' : 'Bash');
+  var terminal_name = (function () {
+    if (os_windows) {
+      return use_powershell ? 'PowerShell' : 'mintty/Bash';
+    }
+    if (os_mac) {
+      return 'Terminal';
+    }
+    if (os_freebsd) {
+      return 'csh';
+    }
+    return 'Bash';
+  })();
   if (os_windows) {
     pre_text.push('Close and re-open ' + terminal_name + ' if PATH environment variable was changed.');
   }
@@ -561,6 +582,13 @@ function onOptionsChanged() {
         }
         break;
     }
+  } else if (os_freebsd) {
+    commands.push(sudo + 'pkg upgrade');
+    var packages = 'git gperf php72 php72-ctype cmake';
+    if (target === 'JNI') {
+      packages += ' openjdk';
+    }
+    commands.push(sudo + 'pkg install ' + packages);
   }
   commands.push('git clone https://github.com/tdlib/td.git');
 
@@ -655,6 +683,9 @@ function onOptionsChanged() {
       if (linux_distro === 'Alpine') {
         cmake_init_options.push('-DJAVA_HOME=/usr/lib/jvm/java-1.8-openjdk/');
       }
+      if (os_freebsd) {
+        cmake_init_options.push('-DJAVA_HOME=/usr/local/openjdk7/');
+      }
     }
     if (target === 'C++/CX' || target === 'C++/CLI') {
       cmake_init_options.push('-DTD_ENABLE_DOTNET=ON');
@@ -727,9 +758,18 @@ function onOptionsChanged() {
       if (is_alpine) {
         cmake_init_options.push('-DJAVA_HOME=/usr/lib/jvm/java-1.8-openjdk/');
       }
-      var resolve_path = use_powershell ? 'Resolve-Path' : (os_mac ? 'greadlink -e' : (is_alpine ? 'readlink -f' : 'readlink -e'));
-      cmake_init_options.push('-DTd_DIR:PATH=$(' + resolve_path + ' ../td/lib/cmake/Td)');
-      commands.push(getCmakeInitCommand(cmake_init_options));
+      if (os_freebsd) {
+        cmake_init_options.push('-DJAVA_HOME=/usr/local/openjdk7/');
+      }
+      var resolve_path = use_powershell ? 'Resolve-Path' : (os_mac ? 'greadlink -e' : (is_alpine || os_freebsd ? 'readlink -f' : 'readlink -e'));
+      var resolved_path = resolve_path + ' ../td/lib/cmake/Td';
+      if (os_freebsd) {
+        cmake_init_options.push('-DTd_DIR:PATH=$td_dir');
+        commands.push('set td_dir=`' + resolved_path + '` ; ' + getCmakeInitCommand(cmake_init_options));
+      } else {
+        cmake_init_options.push('-DTd_DIR:PATH=$(' + resolved_path + ')');
+        commands.push(getCmakeInitCommand(cmake_init_options));
+      }
 
       build_command = 'cmake --build .';
       if (jni_install_dir) {
