@@ -154,16 +154,30 @@ void SessionProxy::open_session(bool force) {
   if (!session_.empty()) {
     return;
   }
-  if (!force) {
-    if (auth_state_ == AuthState::Empty && need_destroy_) {
-      return;
+  // There are several assumption that make this code OK
+  // 1. All unauthorized query will be sent into the same SessionProxy
+  // 2. All authorized query are delayed before we have authorization
+  // So only one SessionProxy will be active before we have authorization key
+  auto should_open = [&]() {
+    if (force) {
+      return true;
     }
-    if (auth_state_ != AuthState::OK && need_wait_for_key_) {
-      return;
+    if (auth_state_ != AuthState::Empty && need_destroy_) {
+      return true;
     }
-    if (!is_main_ && pending_queries_.empty() && !need_destroy_) {
-      return;
+    if (need_destroy_) {
+      return false;
     }
+    if (is_main_ && !need_destroy_) {  // alays open main
+      return true;
+    }
+    if (!pending_queries_.empty() && auth_state_ == AuthState::OK) {
+      return true;
+    }
+    return false;
+  }();
+  if (!should_open) {
+    return;
   }
 
   CHECK(session_.empty());
@@ -187,6 +201,9 @@ void SessionProxy::open_session(bool force) {
 void SessionProxy::update_auth_state() {
   auth_state_ = auth_data_->get_auth_state().first;
   open_session();
+  if (session_.empty() || auth_state_ != AuthState::OK) {
+    return;
+  }
   for (auto &query : pending_queries_) {
     query->debug(PSTRING() << get_name() << ": sent to session");
     send_closure(session_, &Session::send, std::move(query));
