@@ -162,13 +162,10 @@ void SessionProxy::open_session(bool force) {
     if (force) {
       return true;
     }
-    if (auth_state_ != AuthState::Empty && need_destroy_) {
-      return true;
-    }
     if (need_destroy_) {
-      return false;
+      return auth_state_ != AuthState::Empty;
     }
-    if (is_main_ && !need_destroy_) {  // alays open main
+    if (is_main_) {  // always open main for ordinary queries
       return true;
     }
     if (!pending_queries_.empty() && auth_state_ == AuthState::OK) {
