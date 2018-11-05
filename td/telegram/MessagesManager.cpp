@@ -16715,11 +16715,11 @@ Result<unique_ptr<ReplyMarkup>> MessagesManager::get_dialog_reply_markup(
 
   bool only_inline_keyboard = is_broadcast;
   bool request_buttons_allowed = dialog_type == DialogType::User;
-  bool switch_inline_current_chat_buttons_allowed = !is_broadcast;
+  bool switch_inline_buttons_allowed = !is_broadcast;
 
   TRY_RESULT(reply_markup,
              get_reply_markup(std::move(reply_markup_ptr), td_->auth_manager_->is_bot(), only_inline_keyboard,
-                              request_buttons_allowed, switch_inline_current_chat_buttons_allowed));
+                              request_buttons_allowed, switch_inline_buttons_allowed));
   if (reply_markup == nullptr) {
     return nullptr;
   }

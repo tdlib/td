@@ -60,7 +60,7 @@ unique_ptr<ReplyMarkup> get_reply_markup(tl_object_ptr<telegram_api::ReplyMarkup
 
 Result<unique_ptr<ReplyMarkup>> get_reply_markup(tl_object_ptr<td_api::ReplyMarkup> &&reply_markup_ptr, bool is_bot,
                                                  bool only_inline_keyboard, bool request_buttons_allowed,
-                                                 bool switch_inline_current_chat_buttons_allowed) TD_WARN_UNUSED_RESULT;
+                                                 bool switch_inline_buttons_allowed) TD_WARN_UNUSED_RESULT;
 
 tl_object_ptr<telegram_api::ReplyMarkup> get_input_reply_markup(const unique_ptr<ReplyMarkup> &reply_markup);
 
