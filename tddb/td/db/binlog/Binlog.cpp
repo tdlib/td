@@ -340,7 +340,7 @@ void Binlog::do_event(BinlogEvent &&event) {
 
       BufferSlice key;
       if (aes_ctr_key_salt_.as_slice() == encryption_event.key_salt_.as_slice()) {
-        key = BufferSlice(Slice(aes_ctr_key_.raw, sizeof(aes_ctr_key_.raw)));
+        key = BufferSlice(as_slice(aes_ctr_key_));
       } else if (!db_key_.is_empty()) {
         key = encryption_event.generate_key(db_key_);
       }
@@ -559,9 +559,9 @@ Status Binlog::load_binlog(const Callback &callback, const Callback &debug_callb
 }
 
 void Binlog::update_encryption(Slice key, Slice iv) {
-  MutableSlice(aes_ctr_key_.raw, sizeof(aes_ctr_key_.raw)).copy_from(key);
+  as_slice(aes_ctr_key_).copy_from(key);
   UInt128 aes_ctr_iv;
-  MutableSlice(aes_ctr_iv.raw, sizeof(aes_ctr_iv.raw)).copy_from(iv);
+  as_slice(aes_ctr_iv).copy_from(iv);
   aes_ctr_state_.init(aes_ctr_key_, aes_ctr_iv);
 }
 
@@ -585,7 +585,7 @@ void Binlog::reset_encryption() {
 
   BufferSlice key;
   if (aes_ctr_key_salt_.as_slice() == event.key_salt_.as_slice()) {
-    key = BufferSlice(Slice(aes_ctr_key_.raw, sizeof(aes_ctr_key_.raw)));
+    key = BufferSlice(as_slice(aes_ctr_key_));
   } else {
     key = event.generate_key(db_key_);
   }

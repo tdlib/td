@@ -233,13 +233,13 @@ class TlStorerToString {
 
   void store_field(const char *name, const UInt128 &value) {
     store_field_begin(name);
-    store_binary(Slice(reinterpret_cast<const unsigned char *>(&value), sizeof(value)));
+    store_binary(as_slice(value));
     store_field_end();
   }
 
   void store_field(const char *name, const UInt256 &value) {
     store_field_begin(name);
-    store_binary(Slice(reinterpret_cast<const unsigned char *>(&value), sizeof(value)));
+    store_binary(as_slice(value));
     store_field_end();
   }
 

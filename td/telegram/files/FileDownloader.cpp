@@ -362,9 +362,9 @@ void FileDownloader::on_progress(int32 part_count, int32 part_size, int32 ready_
     } else {
       LOG(FATAL) << tag("ready_part_count", ready_part_count) << tag("next_part", next_part_);
     }
-    callback_->on_partial_download(PartialLocalFileLocation{remote_.file_type_, path_, part_size, ready_part_count,
-                                                            Slice(iv.raw, sizeof(iv)).str()},
-                                   ready_size);
+    callback_->on_partial_download(
+        PartialLocalFileLocation{remote_.file_type_, path_, part_size, ready_part_count, as_slice(iv).str()},
+        ready_size);
   } else {
     UNREACHABLE();
   }

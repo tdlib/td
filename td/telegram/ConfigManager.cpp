@@ -83,8 +83,8 @@ Result<SimpleConfig> decode_config(Slice input) {
   MutableSlice data_cbc = data_rsa_slice.substr(32);
   UInt256 key;
   UInt128 iv;
-  MutableSlice(key.raw, sizeof(key.raw)).copy_from(data_rsa_slice.substr(0, 32));
-  MutableSlice(iv.raw, sizeof(iv.raw)).copy_from(data_rsa_slice.substr(16, 16));
+  as_slice(key).copy_from(data_rsa_slice.substr(0, 32));
+  as_slice(iv).copy_from(data_rsa_slice.substr(16, 16));
   aes_cbc_decrypt(key, &iv, data_cbc, data_cbc);
 
   CHECK(data_cbc.size() == 224);

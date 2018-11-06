@@ -406,7 +406,7 @@ void tmp_KDF(const UInt128 &server_nonce, const UInt256 &new_nonce, UInt256 *tmp
 void KDF2(Slice auth_key, const UInt128 &msg_key, int X, UInt256 *aes_key, UInt256 *aes_iv) {
   uint8 buf_raw[36 + 16];
   MutableSlice buf(buf_raw, 36 + 16);
-  Slice msg_key_slice(msg_key.raw, sizeof(msg_key.raw));
+  Slice msg_key_slice = as_slice(msg_key);
 
   // sha256_a = SHA256 (msg_key + substr (auth_key, x, 36));
   buf.copy_from(msg_key_slice);

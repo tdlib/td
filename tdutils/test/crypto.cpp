@@ -65,7 +65,7 @@ TEST(Crypto, Sha256State) {
   for (auto length : {0, 1, 31, 32, 33, 9999, 10000, 10001, 999999, 1000001}) {
     auto s = td::rand_string(std::numeric_limits<char>::min(), std::numeric_limits<char>::max(), length);
     td::UInt256 baseline;
-    td::sha256(s, td::MutableSlice(baseline.raw, 32));
+    td::sha256(s, as_slice(baseline));
 
     td::Sha256State state;
     td::sha256_init(&state);
@@ -74,7 +74,7 @@ TEST(Crypto, Sha256State) {
       td::sha256_update(x, &state);
     }
     td::UInt256 result;
-    td::sha256_final(&state, td::MutableSlice(result.raw, 32));
+    td::sha256_final(&state, as_slice(result));
     ASSERT_TRUE(baseline == result);
   }
 }

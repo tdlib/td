@@ -49,11 +49,10 @@ std::tuple<uint32, UInt128> Transport::calc_message_key2(const AuthKey &auth_key
   sha256_final(&state, msg_key_large);
 
   // msg_key = substr (msg_key_large, 8, 16);
-  UInt128 res_raw;
-  MutableSlice res(res_raw.raw, sizeof(res_raw.raw));
-  res.copy_from(msg_key_large.substr(8, 16));
+  UInt128 res;
+  as_slice(res).copy_from(msg_key_large.substr(8, 16));
 
-  return std::make_tuple(as<uint32>(msg_key_large_raw) | (1u << 31), res_raw);
+  return std::make_tuple(as<uint32>(msg_key_large_raw) | (1u << 31), res);
 }
 
 template <class HeaderT>
