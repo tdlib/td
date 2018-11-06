@@ -111,6 +111,7 @@ Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> 
                  bool is_main, bool use_pfs, bool is_cdn, bool need_destroy, const mtproto::AuthKey &tmp_auth_key,
                  std::vector<mtproto::ServerSalt> server_salts)
     : dc_id_(dc_id), is_main_(is_main), is_cdn_(is_cdn) {
+  LOG(INFO) << "Open session: ";
   VLOG(dc) << "Start connection";
   need_destroy_ = need_destroy;
   if (need_destroy) {
@@ -287,6 +288,7 @@ void Session::flush_pending_invoke_after_queries() {
 }
 
 void Session::close() {
+  LOG(INFO) << "Close session (external)";
   close_flag_ = true;
   connection_close(&main_connection_);
   connection_close(&long_poll_connection_);
@@ -669,7 +671,7 @@ void Session::on_message_result_error(uint64 id, int error_code, BufferSlice mes
       LOG(WARNING) << "Lost authorization due to " << tag("msg", message.as_slice());
       auth_data_.set_auth_flag(false);
       shared_auth_data_->set_auth_key(auth_data_.get_main_auth_key());
-      auth_lost_flag_ = true;
+      on_session_failed(Status::OK());
     }
   }
 
@@ -1166,7 +1168,6 @@ void Session::loop() {
   main_connection_.wakeup_at = 0;
   long_poll_connection_.wakeup_at = 0;
 
-  auth_lost_flag_ = false;
   // NB: order is crucial. First long_poll_connection, then main_connection
   // Otherwise queries could be sent with big delay
 
@@ -1217,13 +1218,6 @@ void Session::loop() {
   }
   if (!close_flag_ && main_connection_.state == ConnectionInfo::State::Empty) {
     connection_open(&main_connection_, true /*send ask_info*/);
-  }
-
-  if (auth_lost_flag_) {
-    connection_close(&main_connection_);
-    connection_close(&long_poll_connection_);
-    auth_lost_flag_ = false;
-    relax_timeout_at(&wakeup_at, Time::now_cached() + 0.1);
   }
 
   relax_timeout_at(&wakeup_at, main_connection_.wakeup_at);

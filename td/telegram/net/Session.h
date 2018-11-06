@@ -136,7 +136,6 @@ class Session final
   ConnectionInfo *current_info_;
   ConnectionInfo main_connection_;
   ConnectionInfo long_poll_connection_;
-  bool auth_lost_flag_ = false;
   StateManager::ConnectionToken connection_token_;
 
   double cached_connection_timestamp_ = 0;

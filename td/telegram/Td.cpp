@@ -3521,7 +3521,7 @@ void Td::on_connection_state_changed(StateManager::State new_state) {
 
 void Td::on_authorization_lost() {
   LOG(WARNING) << "on_authorization_lost";
-  destroy();
+  send_closure(auth_manager_actor_, &AuthManager::on_authorization_lost);
 }
 
 void Td::start_up() {

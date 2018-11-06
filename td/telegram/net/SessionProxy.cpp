@@ -165,13 +165,10 @@ void SessionProxy::open_session(bool force) {
     if (need_destroy_) {
       return auth_state_ != AuthState::Empty;
     }
-    if (is_main_) {  // always open main for ordinary queries
-      return true;
+    if (auth_state_ != AuthState::OK) {
+      return false;
     }
-    if (!pending_queries_.empty() && auth_state_ == AuthState::OK) {
-      return true;
-    }
-    return false;
+    return is_main_ || !pending_queries_.empty();
   }();
   if (!should_open) {
     return;
@@ -196,7 +193,11 @@ void SessionProxy::open_session(bool force) {
 }
 
 void SessionProxy::update_auth_state() {
+  auto old_auth_state = auth_state_;
   auth_state_ = auth_data_->get_auth_state().first;
+  if (auth_state_ != old_auth_state && old_auth_state == AuthState::OK) {
+    close_session();
+  }
   open_session();
   if (session_.empty() || auth_state_ != AuthState::OK) {
     return;
