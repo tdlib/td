@@ -36,6 +36,7 @@ enum class DbVersion : int32 {
   MessagesDbFts,
   MessagesCallIndex,
   FixFileRemoteLocationKeyBug,
+  DialogDbLastNotificationDate,
   Next
 };
 

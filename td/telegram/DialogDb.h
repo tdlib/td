@@ -27,9 +27,11 @@ class DialogDbSyncInterface {
   DialogDbSyncInterface &operator=(const DialogDbSyncInterface &) = delete;
   virtual ~DialogDbSyncInterface() = default;
 
-  virtual Status add_dialog(DialogId dialog_id, int64 order, BufferSlice data) = 0;
+  virtual Status add_dialog(DialogId dialog_id, int64 order, int32 last_notification_date, BufferSlice data) = 0;
   virtual Result<BufferSlice> get_dialog(DialogId dialog_id) = 0;
   virtual Result<std::vector<BufferSlice>> get_dialogs(int64 order, DialogId dialog_id, int32 limit) = 0;
+  virtual Result<std::vector<BufferSlice>> get_dialogs_by_last_notification_date(int32 last_notification_date,
+                                                                                 DialogId dialog_id, int32 limit) = 0;
   virtual Status begin_transaction() = 0;
   virtual Status commit_transaction() = 0;
 };
@@ -51,9 +53,12 @@ class DialogDbAsyncInterface {
   DialogDbAsyncInterface &operator=(const DialogDbAsyncInterface &) = delete;
   virtual ~DialogDbAsyncInterface() = default;
 
-  virtual void add_dialog(DialogId dialog_id, int64 order, BufferSlice data, Promise<> promise) = 0;
+  virtual void add_dialog(DialogId dialog_id, int64 order, int32 last_notification_date, BufferSlice data,
+                          Promise<> promise) = 0;
   virtual void get_dialog(DialogId dialog_id, Promise<BufferSlice> promise) = 0;
   virtual void get_dialogs(int64 order, DialogId dialog_id, int32 limit, Promise<std::vector<BufferSlice>> promise) = 0;
+  virtual void get_dialogs_by_last_notification_date(int32 last_notification_date, DialogId dialog_id, int32 limit,
+                                                     Promise<std::vector<BufferSlice>> promise) = 0;
   virtual void close(Promise<> promise) = 0;
 };
 

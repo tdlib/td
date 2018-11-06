@@ -37,12 +37,25 @@ Status init_dialog_db(SqliteDb &db, int32 version, bool &was_created) {
     version = 0;
   }
 
+  auto create_last_notification_date_index = [&]() {
+    return db.exec(
+        "CREATE INDEX IF NOT EXISTS dialog_by_last_notification_date ON dialogs (last_notification_date, "
+        "dialog_id) WHERE last_notification_date IS NOT NULL");
+  };
+
   if (version == 0) {
     LOG(INFO) << "Create new dialog db";
     was_created = true;
     TRY_STATUS(
-        db.exec("CREATE TABLE IF NOT EXISTS dialogs (dialog_id INT8 PRIMARY KEY, dialog_order INT8, data BLOB)"));
+        db.exec("CREATE TABLE IF NOT EXISTS dialogs (dialog_id INT8 PRIMARY KEY, dialog_order INT8, data BLOB, "
+                "last_notification_date INT4)"));
     TRY_STATUS(db.exec("CREATE INDEX IF NOT EXISTS dialog_by_dialog_order ON dialogs (dialog_order, dialog_id)"));
+    TRY_STATUS(create_last_notification_date_index());
+    version = current_db_version();
+  }
+  if (version < static_cast<int32>(DbVersion::DialogDbLastNotificationDate)) {
+    TRY_STATUS(db.exec("ALTER TABLE dialogs ADD COLUMN last_notification_date INT4"));
+    TRY_STATUS(create_last_notification_date_index());
   }
 
   return Status::OK();
@@ -68,11 +81,16 @@ class DialogDbImpl : public DialogDbSyncInterface {
   }
 
   Status init() {
-    TRY_RESULT(add_dialog_stmt, db_.get_statement("INSERT OR REPLACE INTO dialogs VALUES(?1, ?2, ?3)"));
+    TRY_RESULT(add_dialog_stmt, db_.get_statement("INSERT OR REPLACE INTO dialogs VALUES(?1, ?2, ?3, ?4)"));
     TRY_RESULT(get_dialog_stmt, db_.get_statement("SELECT data FROM dialogs WHERE dialog_id = ?1"));
     TRY_RESULT(get_dialogs_stmt, db_.get_statement("SELECT data, dialog_id, dialog_order FROM dialogs WHERE "
                                                    "dialog_order < ?1 OR (dialog_order = ?1 AND dialog_id < ?2) ORDER "
                                                    "BY dialog_order DESC, dialog_id DESC LIMIT ?3"));
+    TRY_RESULT(
+        get_dialogs_by_last_notification_date_stmt,
+        db_.get_statement("SELECT data, dialog_id, last_notification_date FROM dialogs WHERE "
+                          "last_notification_date < ?1 OR (last_notification_date = ?1 AND dialog_id < ?2) ORDER "
+                          "BY last_notification_date DESC, dialog_id DESC LIMIT ?3"));
     /*
         TRY_RESULT(get_dialogs2_stmt, db_.get_statement("SELECT data FROM dialogs WHERE dialog_order <= ?1 AND
        (dialog_order != ?1 OR "
@@ -82,6 +100,7 @@ class DialogDbImpl : public DialogDbSyncInterface {
     add_dialog_stmt_ = std::move(add_dialog_stmt);
     get_dialog_stmt_ = std::move(get_dialog_stmt);
     get_dialogs_stmt_ = std::move(get_dialogs_stmt);
+    get_dialogs_by_last_notification_date_stmt_ = std::move(get_dialogs_by_last_notification_date_stmt);
 
     // LOG(ERROR) << get_dialog_stmt_.explain().ok();
     // LOG(ERROR) << get_dialogs_stmt_.explain().ok();
@@ -91,13 +110,19 @@ class DialogDbImpl : public DialogDbSyncInterface {
     return Status::OK();
   }
 
-  Status add_dialog(DialogId dialog_id, int64 order, BufferSlice data) override {
+  Status add_dialog(DialogId dialog_id, int64 order, int32 last_notification_date, BufferSlice data) override {
     SCOPE_EXIT {
       add_dialog_stmt_.reset();
     };
     add_dialog_stmt_.bind_int64(1, dialog_id.get()).ensure();
     add_dialog_stmt_.bind_int64(2, order).ensure();
     add_dialog_stmt_.bind_blob(3, data.as_slice()).ensure();
+    if (last_notification_date != 0) {
+      add_dialog_stmt_.bind_int32(4, last_notification_date).ensure();
+    } else {
+      add_dialog_stmt_.bind_null(4).ensure();
+    }
+
     TRY_STATUS(add_dialog_stmt_.step());
     return Status::OK();
   }
@@ -137,6 +162,30 @@ class DialogDbImpl : public DialogDbSyncInterface {
 
     return std::move(dialogs);
   }
+  Result<std::vector<BufferSlice>> get_dialogs_by_last_notification_date(int32 last_notification_date,
+                                                                         DialogId dialog_id, int32 limit) override {
+    SCOPE_EXIT {
+      get_dialogs_by_last_notification_date_stmt_.reset();
+    };
+
+    get_dialogs_by_last_notification_date_stmt_.bind_int32(1, last_notification_date).ensure();
+    get_dialogs_by_last_notification_date_stmt_.bind_int64(2, dialog_id.get()).ensure();
+    get_dialogs_by_last_notification_date_stmt_.bind_int32(3, limit).ensure();
+
+    std::vector<BufferSlice> dialogs;
+    TRY_STATUS(get_dialogs_by_last_notification_date_stmt_.step());
+    while (get_dialogs_by_last_notification_date_stmt_.has_row()) {
+      BufferSlice data(get_dialogs_by_last_notification_date_stmt_.view_blob(0));
+      auto loaded_dialog_id = get_dialogs_by_last_notification_date_stmt_.view_int64(1);
+      auto loaded_dialog_last_notification_date = get_dialogs_by_last_notification_date_stmt_.view_int32(2);
+      LOG(INFO) << "Load chat " << loaded_dialog_id << " with last notification date "
+                << loaded_dialog_last_notification_date;
+      dialogs.emplace_back(std::move(data));
+      TRY_STATUS(get_dialogs_by_last_notification_date_stmt_.step());
+    }
+
+    return std::move(dialogs);
+  }
   Status begin_transaction() override {
     return db_.begin_transaction();
   }
@@ -150,6 +199,7 @@ class DialogDbImpl : public DialogDbSyncInterface {
   SqliteStatement add_dialog_stmt_;
   SqliteStatement get_dialog_stmt_;
   SqliteStatement get_dialogs_stmt_;
+  SqliteStatement get_dialogs_by_last_notification_date_stmt_;
 };
 
 std::shared_ptr<DialogDbSyncSafeInterface> create_dialog_db_sync(
@@ -177,14 +227,21 @@ class DialogDbAsync : public DialogDbAsyncInterface {
     impl_ = create_actor_on_scheduler<Impl>("DialogDbActor", scheduler_id, std::move(sync_db));
   }
 
-  void add_dialog(DialogId dialog_id, int64 order, BufferSlice data, Promise<> promise) override {
-    send_closure_later(impl_, &Impl::add_dialog, dialog_id, order, std::move(data), std::move(promise));
+  void add_dialog(DialogId dialog_id, int64 order, int32 last_notification_date, BufferSlice data,
+                  Promise<> promise) override {
+    send_closure_later(impl_, &Impl::add_dialog, dialog_id, order, last_notification_date, std::move(data),
+                       std::move(promise));
   }
   void get_dialog(DialogId dialog_id, Promise<BufferSlice> promise) override {
     send_closure_later(impl_, &Impl::get_dialog, dialog_id, std::move(promise));
   }
   void get_dialogs(int64 order, DialogId dialog_id, int32 limit, Promise<std::vector<BufferSlice>> promise) override {
     send_closure_later(impl_, &Impl::get_dialogs, order, dialog_id, limit, std::move(promise));
+  }
+  void get_dialogs_by_last_notification_date(int32 last_notification_date, DialogId dialog_id, int32 limit,
+                                             Promise<std::vector<BufferSlice>> promise) override {
+    send_closure_later(impl_, &Impl::get_dialogs_by_last_notification_date, last_notification_date, dialog_id, limit,
+                       std::move(promise));
   }
   void close(Promise<> promise) override {
     send_closure_later(impl_, &Impl::close, std::move(promise));
@@ -195,9 +252,10 @@ class DialogDbAsync : public DialogDbAsyncInterface {
    public:
     explicit Impl(std::shared_ptr<DialogDbSyncSafeInterface> sync_db_safe) : sync_db_safe_(std::move(sync_db_safe)) {
     }
-    void add_dialog(DialogId dialog_id, int64 order, BufferSlice data, Promise<> promise) {
+    void add_dialog(DialogId dialog_id, int64 order, int32 last_notification_date, BufferSlice data,
+                    Promise<> promise) {
       add_write_query([=, promise = std::move(promise), data = std::move(data)](Unit) mutable {
-        promise.set_result(sync_db_->add_dialog(dialog_id, order, std::move(data)));
+        promise.set_result(sync_db_->add_dialog(dialog_id, order, last_notification_date, std::move(data)));
       });
     }
     void get_dialog(DialogId dialog_id, Promise<BufferSlice> promise) {
@@ -207,6 +265,11 @@ class DialogDbAsync : public DialogDbAsyncInterface {
     void get_dialogs(int64 order, DialogId dialog_id, int32 limit, Promise<std::vector<BufferSlice>> promise) {
       add_read_query();
       promise.set_result(sync_db_->get_dialogs(order, dialog_id, limit));
+    }
+    void get_dialogs_by_last_notification_date(int32 last_notification_date, DialogId dialog_id, int32 limit,
+                                               Promise<std::vector<BufferSlice>> promise) {
+      add_read_query();
+      promise.set_result(sync_db_->get_dialogs_by_last_notification_date(last_notification_date, dialog_id, limit));
     }
     void close(Promise<> promise) {
       do_flush();
