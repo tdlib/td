@@ -367,7 +367,7 @@ static Status check_mtime(std::string &conversion, CSlice original_path) {
   if (expected_mtime == actual_mtime) {
     return Status::OK();
   }
-  return Status::Error(PSLICE() << "File \"" << original_path
+  return Status::Error(PSLICE() << "FILE_GENERATE_LOCATION_INVALID: File \"" << original_path
                                 << "\" was modified: " << tag("expected modification time", expected_mtime)
                                 << tag("actual modification time", actual_mtime));
 }

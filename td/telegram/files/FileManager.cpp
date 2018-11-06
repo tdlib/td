@@ -2465,6 +2465,10 @@ void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type,
     }
   }
 
+  if (begins_with(status.message(), "FILE_GENERATE_LOCATION_INVALID")) {
+    node->set_generate_location(nullptr);
+  }
+
   if (status.message() == "FILE_UPLOAD_RESTART") {
     run_upload(node, {});
     return;
