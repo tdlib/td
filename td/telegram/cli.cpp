@@ -563,6 +563,7 @@ class CliClient final : public Actor {
     // LOG(INFO) << "on_result [" << generation << "][id=" << id << "] " << as_json_str;
 
     if (generation != generation_) {
+      LOG(INFO) << "Drop unneded " << to_string(result);
       return;
     }
 
@@ -1206,7 +1207,7 @@ class CliClient final : public Actor {
     } else if (op == "ra" || op == "destroy") {
       send_request(make_tl_object<td_api::destroy>());
     } else if (op == "reset") {
-      init_td();
+      td_client_.reset();
     } else if (op == "close_td") {
       // send_request(make_tl_object<td_api::getCurrentState>());
       send_request(make_tl_object<td_api::close>());
