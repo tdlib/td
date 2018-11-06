@@ -666,10 +666,13 @@ class FullRemoteFileLocation {
     return is_common() && !is_secure() && !is_encrypted_secret();
   }
 
-  tl_object_ptr<telegram_api::inputWebFileLocation> as_input_web_file_location() const {
-    CHECK(is_web());
+#define as_input_web_file_location() as_input_web_file_location_impl(__FILE__, __LINE__)
+  tl_object_ptr<telegram_api::inputWebFileLocation> as_input_web_file_location_impl(const char *file, int line) const {
+    CHECK(is_web()) << file << ' ' << line;
+    ;
     return make_tl_object<telegram_api::inputWebFileLocation>(web().url_, web().access_hash_);
   }
+
   tl_object_ptr<telegram_api::InputFileLocation> as_input_file_location() const {
     switch (location_type()) {
       case LocationType::Photo:
@@ -690,23 +693,27 @@ class FullRemoteFileLocation {
     }
   }
 
-  tl_object_ptr<telegram_api::InputDocument> as_input_document() const {
-    CHECK(is_common());
-    LOG_IF(ERROR, !is_document()) << "Can't call as_input_document on an encrypted file";
+#define as_input_document() as_input_document_impl(__FILE__, __LINE__)
+  tl_object_ptr<telegram_api::InputDocument> as_input_document_impl(const char *file, int line) const {
+    CHECK(is_common()) << file << ' ' << line;
+    CHECK(is_document()) << file << ' ' << line;
     return make_tl_object<telegram_api::inputDocument>(common().id_, common().access_hash_);
   }
 
-  tl_object_ptr<telegram_api::InputPhoto> as_input_photo() const {
-    CHECK(is_photo());
+#define as_input_photo() as_input_photo_impl(__FILE__, __LINE__)
+  tl_object_ptr<telegram_api::InputPhoto> as_input_photo_impl(const char *file, int line) const {
+    CHECK(is_photo()) << file << ' ' << line;
     return make_tl_object<telegram_api::inputPhoto>(photo().id_, photo().access_hash_);
   }
 
   tl_object_ptr<telegram_api::InputEncryptedFile> as_input_encrypted_file() const {
-    CHECK(is_encrypted_secret()) << "Can't call as_input_encrypted_file on a non-encrypted file";
+    CHECK(is_encrypted_secret());
     return make_tl_object<telegram_api::inputEncryptedFile>(common().id_, common().access_hash_);
   }
-  tl_object_ptr<telegram_api::InputSecureFile> as_input_secure_file() const {
-    CHECK(is_secure()) << "Can't call as_input_secure_file on a non-secure file";
+
+#define as_input_secure_file() as_input_secure_file_impl(__FILE__, __LINE__)
+  tl_object_ptr<telegram_api::InputSecureFile> as_input_secure_file_impl(const char *file, int line) const {
+    CHECK(is_secure()) << file << ' ' << line;
     return make_tl_object<telegram_api::inputSecureFile>(common().id_, common().access_hash_);
   }
 
