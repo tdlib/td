@@ -46,21 +46,18 @@ struct HexDumpSlice {
 
 template <std::size_t align>
 StringBuilder &operator<<(StringBuilder &builder, const HexDumpSlice<align> &dump) {
-  std::size_t size = dump.slice.size();
-  const unsigned char *ptr = dump.slice.ubegin();
+  const auto str = dump.slice;
+  const auto size = str.size();
 
   builder << '\n';
 
-  const std::size_t part = size % align;
-  if (part) {
-    builder << HexDumpSlice<1>{Slice(ptr, part)} << '\n';
+  const std::size_t first_part_size = size % align;
+  if (first_part_size) {
+    builder << HexDumpSlice<1>{str.substr(0, first_part_size)} << '\n';
   }
-  size -= part;
-  ptr += part;
 
-  for (std::size_t i = 0; i < size; i += align) {
-    builder << HexDumpSize<align>{ptr};
-    ptr += align;
+  for (std::size_t i = first_part_size; i < size; i += align) {
+    builder << HexDumpSize<align>{str.ubegin() + i};
 
     if (((i / align) & 15) == 15 || i + align >= size) {
       builder << '\n';
