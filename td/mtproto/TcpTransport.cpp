@@ -130,8 +130,7 @@ void AbridgedTransport::write_prepare_inplace(BufferWriter *message, bool quick_
 }
 
 void AbridgedTransport::init_output_stream(ChainBufferWriter *stream) {
-  const uint8 magic = 0xef;
-  stream->append(Slice(&magic, 1));
+  stream->append("\xef");
 }
 
 void ObfuscatedTransport::init(ChainBufferReader *input, ChainBufferWriter *output) {

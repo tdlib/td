@@ -166,7 +166,7 @@ Status AuthKeyHandshake::on_server_dh_params(Slice message, Callback *connection
 
   size_t dh_inner_data_size = answer.size() - pad - 20;
   UInt<160> answer_real_sha1;
-  sha1(Slice(answer.ubegin() + 20, dh_inner_data_size), answer_real_sha1.raw);
+  sha1(answer.substr(20, dh_inner_data_size), answer_real_sha1.raw);
   if (answer_sha1 != answer_real_sha1) {
     return Status::Error("SHA1 mismatch");
   }
@@ -196,7 +196,7 @@ Status AuthKeyHandshake::on_server_dh_params(Slice message, Callback *connection
   as<int32>(encrypted_data.begin() + 20) = data.get_id();
   auto real_size = tl_store_unsafe(data, encrypted_data.ubegin() + 20 + 4);
   CHECK(real_size + 4 == data_size);
-  sha1(Slice(encrypted_data.ubegin() + 20, data_size), encrypted_data.ubegin());
+  sha1(encrypted_data.substr(20, data_size), encrypted_data.ubegin());
   Random::secure_bytes(encrypted_data.ubegin() + encrypted_data_size,
                        encrypted_data_size_with_pad - encrypted_data_size);
   tmp_KDF(server_nonce, new_nonce, &tmp_aes_key, &tmp_aes_iv);
