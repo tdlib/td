@@ -52,7 +52,7 @@ FileId VideosManager::parse_video(T &parser) {
   if (video->has_stickers) {
     parse(video->sticker_file_ids, parser);
   }
-  return on_get_video(std::move(video), true);
+  return on_get_video(std::move(video), false);
 }
 
 }  // namespace td

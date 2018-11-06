@@ -36,7 +36,7 @@ FileId DocumentsManager::parse_document(T &parser) {
   parse(document->thumbnail, parser);
   parse(document->file_id, parser);
   LOG(DEBUG) << "Parsed document " << document->file_id;
-  return on_get_document(std::move(document), true);
+  return on_get_document(std::move(document), false);
 }
 
 }  // namespace td

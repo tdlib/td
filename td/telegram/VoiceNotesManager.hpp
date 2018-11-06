@@ -33,7 +33,7 @@ FileId VoiceNotesManager::parse_voice_note(T &parser) {
   parse(voice_note->duration, parser);
   parse(voice_note->waveform, parser);
   parse(voice_note->file_id, parser);
-  return on_get_voice_note(std::move(voice_note), true);
+  return on_get_voice_note(std::move(voice_note), false);
 }
 
 }  // namespace td

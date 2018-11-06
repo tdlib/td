@@ -40,7 +40,7 @@ FileId AudiosManager::parse_audio(T &parser) {
   parse(audio->performer, parser);
   parse(audio->thumbnail, parser);
   parse(audio->file_id, parser);
-  return on_get_audio(std::move(audio), true);
+  return on_get_audio(std::move(audio), false);
 }
 
 }  // namespace td

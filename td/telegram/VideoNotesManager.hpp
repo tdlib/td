@@ -34,7 +34,7 @@ FileId VideoNotesManager::parse_video_note(T &parser) {
   parse(video_note->dimensions, parser);
   parse(video_note->thumbnail, parser);
   parse(video_note->file_id, parser);
-  return on_get_video_note(std::move(video_note), true);
+  return on_get_video_note(std::move(video_note), false);
 }
 
 }  // namespace td

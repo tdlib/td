@@ -88,7 +88,7 @@ FileId StickersManager::parse_sticker(bool in_sticker_set, T &parser) {
     parse(sticker->y_shift, parser);
     parse(sticker->scale, parser);
   }
-  return on_get_sticker(std::move(sticker), true);
+  return on_get_sticker(std::move(sticker), false);  // data in the database is always outdated
 }
 
 template <class T>
