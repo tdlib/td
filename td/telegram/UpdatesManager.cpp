@@ -142,7 +142,8 @@ class GetDifferenceQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (status.message() != CSlice("SESSION_REVOKED") && status.message() != CSlice("USER_DEACTIVATED")) {
+    if (status.code() != 401 && status.message() != CSlice("SESSION_REVOKED") &&
+        status.message() != CSlice("USER_DEACTIVATED")) {
       LOG(ERROR) << "updates.getDifference error: " << status;
     }
     td->updates_manager_->on_get_difference(nullptr);

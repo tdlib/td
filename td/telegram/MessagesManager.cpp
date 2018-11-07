@@ -17272,7 +17272,8 @@ bool MessagesManager::on_update_message_id(int64 random_id, MessageId new_messag
 }
 
 bool MessagesManager::on_get_dialog_error(DialogId dialog_id, const Status &status, const string &source) {
-  if (status.message() == CSlice("SESSION_REVOKED") || status.message() == CSlice("USER_DEACTIVATED")) {
+  if (status.code() == 401 || status.message() == CSlice("SESSION_REVOKED") ||
+      status.message() == CSlice("USER_DEACTIVATED")) {
     // authorization is lost
     return true;
   }

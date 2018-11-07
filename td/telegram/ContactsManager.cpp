@@ -7083,7 +7083,8 @@ tl_object_ptr<td_api::chatMember> ContactsManager::get_chat_member_object(
 
 bool ContactsManager::on_get_channel_error(ChannelId channel_id, const Status &status, const string &source) {
   LOG(INFO) << "Receive " << status << " in " << channel_id << " from " << source;
-  if (status.message() == CSlice("SESSION_REVOKED") || status.message() == CSlice("USER_DEACTIVATED")) {
+  if (status.code() == 401 || status.message() == CSlice("SESSION_REVOKED") ||
+      status.message() == CSlice("USER_DEACTIVATED")) {
     // authorization is lost
     return true;
   }
