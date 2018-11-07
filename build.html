@@ -93,10 +93,17 @@ select.large { font-size: large; }
       <p></p>
     </div>
 
-    <div id="buildConsoleDiv" class="hide">
-      <span>Choose which Console application you want to use for building:</span><br>
-      <label><input type="radio" id="buildConsoleRadioPowerShell" name="buildConsoleRadio" onchange="onOptionsChanged()" checked/>PowerShell</label>
-      <label><input type="radio" id="buildConsoleRadioBash" name="buildConsoleRadio" onchange="onOptionsChanged()"/>mintty/Bash</label>
+    <div id="buildShellDiv" class="hide">
+      <span>Choose which shell application you want to use for building:</span><br>
+      <label><input type="radio" id="buildShellRadioPowerShell" name="buildShellRadio" onchange="onOptionsChanged()" checked/>PowerShell</label>
+      <label><input type="radio" id="buildShellRadioBash" name="buildShellRadio" onchange="onOptionsChanged()"/>mintty/Bash</label>
+      <p></p>
+    </div>
+
+    <div id="buildShellBsdDiv" class="hide">
+      <span>Choose which shell application you want to use for building:</span><br>
+      <label><input type="radio" id="buildShellBsdRadioCsh" name="buildShellRadioBsd" onchange="onOptionsChanged()" checked/>tcsh/csh</label>
+      <label><input type="radio" id="buildShellBsdRadioBash" name="buildShellRadioBsd" onchange="onOptionsChanged()"/>Bash</label>
       <p></p>
     </div>
 
@@ -372,11 +379,18 @@ function onOptionsChanged() {
 
   var use_powershell = false;
   var use_cmd = false;
+  var use_csh = false;
   if (os_windows) {
-    document.getElementById('buildConsoleDiv').style.display = 'block';
-    use_powershell = document.getElementById('buildConsoleRadioPowerShell').checked;
+    document.getElementById('buildShellDiv').style.display = 'block';
+    use_powershell = document.getElementById('buildShellRadioPowerShell').checked;
   } else {
-    document.getElementById('buildConsoleDiv').style.display = 'none';
+    document.getElementById('buildShellDiv').style.display = 'none';
+  }
+  if (os_freebsd) {
+    document.getElementById('buildShellBsdDiv').style.display = 'block';
+    use_csh = document.getElementById('buildShellBsdRadioCsh').checked;
+  } else {
+    document.getElementById('buildShellBsdDiv').style.display = 'none';
   }
 
   var use_msvc = os_windows;
@@ -488,8 +502,8 @@ function onOptionsChanged() {
     if (os_mac) {
       return 'Terminal';
     }
-    if (os_freebsd) {
-      return 'csh';
+    if (use_csh) {
+      return 'tcsh/csh';
     }
     return 'Bash';
   })();
@@ -763,7 +777,7 @@ function onOptionsChanged() {
       }
       var resolve_path = use_powershell ? 'Resolve-Path' : (os_mac ? 'greadlink -e' : (is_alpine || os_freebsd ? 'readlink -f' : 'readlink -e'));
       var resolved_path = resolve_path + ' ../td/lib/cmake/Td';
-      if (os_freebsd) {
+      if (use_csh) {
         cmake_init_options.push('-DTd_DIR:PATH=$td_dir');
         commands.push('set td_dir=`' + resolved_path + '` ; ' + getCmakeInitCommand(cmake_init_options));
       } else {
