@@ -898,7 +898,7 @@ class MessagesManager : public Actor {
 
     std::unordered_set<MessageId, MessageIdHash> deleted_message_ids;
 
-    std::vector<MessageId> pending_update_new_messages;
+    std::vector<MessageId> pending_new_message_notifications;
 
     string client_data;
 
@@ -1444,9 +1444,11 @@ class MessagesManager : public Actor {
   bool update_message_content(DialogId dialog_id, Message *old_message, unique_ptr<MessageContent> new_content,
                               bool need_send_update_message_content, bool need_merge_files);
 
-  void send_update_new_message(Dialog *d, const Message *m, bool force = false);
+  void send_update_new_message(Dialog *d, const Message *m);
 
-  void flush_pending_update_new_messages(DialogId dialog_id);
+  void add_new_message_notification(Dialog *d, const Message *m, bool force);
+
+  void flush_pending_new_message_notifications(DialogId dialog_id);
 
   void send_update_message_send_succeeded(Dialog *d, MessageId old_message_id, const Message *m) const;
 

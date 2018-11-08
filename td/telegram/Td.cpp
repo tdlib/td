@@ -5060,6 +5060,18 @@ void Td::on_request(uint64 id, td_api::getChatMessageCount &request) {
   CREATE_REQUEST(GetChatMessageCountRequest, request.chat_id_, std::move(request.filter_), request.return_local_);
 }
 
+void Td::on_request(uint64 id, const td_api::removeNotification &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  // TODO notification_manager->remove_notification(request.notification_id_, std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::removeNotifications &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  // TODO notification_manager->remove_notifications(request.notification_group_id_, request.max_notification_id_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::deleteMessages &request) {
   CREATE_OK_REQUEST_PROMISE();
   messages_manager_->delete_messages(DialogId(request.chat_id_), MessagesManager::get_message_ids(request.message_ids_),
@@ -6199,6 +6211,14 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
         return;
       }
       if (!is_bot && set_string_option("language_pack_id", LanguagePackManager::check_language_code_name)) {
+        return;
+      }
+      break;
+    case 'n':
+      if (!is_bot && set_integer_option("notification_group_count_max", 1, 25)) {
+        return;
+      }
+      if (!is_bot && set_integer_option("notification_group_size_max", 1, 25)) {
         return;
       }
       break;

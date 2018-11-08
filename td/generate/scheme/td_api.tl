@@ -248,10 +248,10 @@ chatPhoto small:file big:file = ChatPhoto;
 //@description The phone number of user A is not known to user B
 linkStateNone = LinkState;
 
-//@description The phone number of user A is known but that number has not been saved to the contacts list of user B
+//@description The phone number of user A is known but that number has not been saved to the contact list of user B
 linkStateKnowsPhoneNumber = LinkState;
 
-//@description The phone number of user A has been saved to the contacts list of user B
+//@description The phone number of user A has been saved to the contact list of user B
 linkStateIsContact = LinkState;
 
 
@@ -1803,6 +1803,26 @@ checkChatUsernameResultPublicChatsTooMuch = CheckChatUsernameResult;
 checkChatUsernameResultPublicGroupsUnavailable = CheckChatUsernameResult;
 
 
+//@class NotificationType @description Contains detailed information about a notification
+
+//@description New message was received @message The message
+notificationTypeNewMessage message:message = NotificationType;
+
+//@description New secret chat was created
+notificationTypeNewSecretChat = NotificationType;
+
+//@description New incoming call was received @call_id Call identifier
+notificationTypeNewIncomingCall call_id:int32 = NotificationType;
+
+
+//@description Contains information about a notification @id Unique persistent identifier of this notification @type Notification type
+notification id:int32 type:NotificationType = Notification;
+
+//@description Describes a group of notifications @id Unique persistent auto-incremented from 1 identifier of the notification group @chat_id Identifier of a chat to which all notifications in the group belong
+//@total_count Total number of active notifications in the group @notifications The list of active notifications
+notificationGroup id:int32 chat_id:int53 total_count:int32 notifications:vector<notification> = NotificationGroup;
+
+
 //@class OptionValue @description Represents the value of an option
 
 //@description Boolean option @value The value of the option
@@ -2118,8 +2138,8 @@ inputSticker png_sticker:InputFile emojis:string mask_position:maskPosition = In
 //@description The user authorization state has changed @authorization_state New authorization state
 updateAuthorizationState authorization_state:AuthorizationState = Update;
 
-//@description A new message was received; can also be an outgoing message @message The new message @disable_notification True, if this message must not generate a notification @contains_mention True, if the message contains a mention of the current user
-updateNewMessage message:message disable_notification:Bool contains_mention:Bool = Update;
+//@description A new message was received; can also be an outgoing message @message The new message
+updateNewMessage message:message = Update;
 
 //@description A request to send a message has reached the Telegram server. This doesn't mean that the message will be sent successfully or even that the send message request will be processed. This update will be sent only if the option "use_quick_ack" is set to true. This update may be sent multiple times for the same message
 //@chat_id The chat identifier of the sent message @message_id A temporary message identifier
@@ -2159,7 +2179,7 @@ updateChatPhoto chat_id:int53 photo:chatPhoto = Update;
 //@description The last message of a chat was changed. If last_message is null then the last message in the chat became unknown. Some new unknown messages might be added to the chat in this case @chat_id Chat identifier @last_message The new last message in the chat; may be null @order New value of the chat order
 updateChatLastMessage chat_id:int53 last_message:message order:int64 = Update;
 
-//@description The order of the chat in the chats list has changed. Instead of this update updateChatLastMessage, updateChatIsPinned or updateChatDraftMessage might be sent @chat_id Chat identifier @order New value of the order
+//@description The order of the chat in the chat list has changed. Instead of this update updateChatLastMessage, updateChatIsPinned or updateChatDraftMessage might be sent @chat_id Chat identifier @order New value of the order
 updateChatOrder chat_id:int53 order:int64 = Update;
 
 //@description A chat was pinned or unpinned @chat_id Chat identifier @is_pinned New value of is_pinned @order New value of the chat order
@@ -2195,6 +2215,14 @@ updateChatReplyMarkup chat_id:int53 reply_markup_message_id:int53 = Update;
 
 //@description A chat draft has changed. Be aware that the update may come in the currently opened chat but with old content of the draft. If the user has changed the content of the draft, this update shouldn't be applied @chat_id Chat identifier @draft_message The new draft message; may be null @order New value of the chat order
 updateChatDraftMessage chat_id:int53 draft_message:draftMessage order:int64 = Update;
+
+//@description A list of active notifications in a notification group has changed @notification_group_id Unique notification group identifier @chat_id Identifier of a chat to which all notifications in the group belong
+//@notification_settings_chat_id Chat identifier, which notification settings must be applied @silent True, if the notifications should be shown without sound
+//@total_count Total number of active notifications in the group @new_notifications List of new group notifications @edited_notifications List of edited group notifications @deleted_notification_ids Identifiers of deleted group notifications
+updateNotificationGroup chat_id:int53 notification_group_id:int32 notification_settings_chat_id:int53 silent:Bool total_count:int32 new_notifications:vector<notification> edited_notifications:vector<notification> deleted_notification_ids:vector<int32> = Update;
+
+//@description Contains active notifications that was shown on previous application launches. This update is sent only if a message database is used. In that case it comes once before any updateNotificationGroup update @groups Lists of active notification groups
+updateActiveNotifications groups:vector<notificationGroup> = Update;
 
 //@description Some messages were deleted @chat_id Chat identifier @message_ids Identifiers of the deleted messages
 //@is_permanent True, if the messages are permanently deleted by a user (as opposed to just becoming unaccessible)
@@ -2515,7 +2543,7 @@ removeRecentlyFoundChat chat_id:int53 = Ok;
 clearRecentlyFoundChats = Ok;
 
 //@description Checks whether a username can be set for a chat @chat_id Chat identifier; should be identifier of a supergroup chat, or a channel chat, or a private chat with self, or zero if chat is being created @username Username to be checked
-checkChatUsername chat_id:int64 username:string = CheckChatUsernameResult;
+checkChatUsername chat_id:int53 username:string = CheckChatUsernameResult;
 
 //@description Returns a list of public chats created by the user
 getCreatedPublicChats = Chats;
@@ -2534,7 +2562,7 @@ getGroupsInCommon user_id:int32 offset_chat_id:int53 limit:int32 = Chats;
 //@only_local If true, returns only messages that are available locally without sending network requests
 getChatHistory chat_id:int53 from_message_id:int53 offset:int32 limit:int32 only_local:Bool = Messages;
 
-//@description Deletes all messages in the chat only for the user. Cannot be used in channels and public supergroups @chat_id Chat identifier @remove_from_chat_list Pass true if the chat should be removed from the chats list
+//@description Deletes all messages in the chat only for the user. Cannot be used in channels and public supergroups @chat_id Chat identifier @remove_from_chat_list Pass true if the chat should be removed from the chat list
 deleteChatHistory chat_id:int53 remove_from_chat_list:Bool = Ok;
 
 //@description Searches for messages with given words in the chat. Returns the results in reverse chronological order, i.e. in order of decreasing message_id. Cannot be used in secret chats with a non-empty query
@@ -2580,6 +2608,13 @@ getChatMessageByDate chat_id:int53 date:int32 = Message;
 
 //@description Returns approximate number of messages of the specified type in the chat @chat_id Identifier of the chat in which to count messages @filter Filter for message content; searchMessagesFilterEmpty is unsupported in this function @return_local If true, returns count that is available locally without sending network requests, returning -1 if the number of messages is unknown
 getChatMessageCount chat_id:int53 filter:SearchMessagesFilter return_local:Bool = Count;
+
+
+//@description Removes an active notification from notification list @notification_id Identifier of removed notification
+removeNotification notification_id:int32 = Ok;
+
+//@description Removes group of active notifications @notification_group_id Notification group identifier @max_notification_id Maximum identifier of removed notifications
+removeNotifications notification_group_id:int32 max_notification_id:int32 = Ok;
 
 
 //@description Returns a public HTTPS link to a message. Available only for messages in public supergroups and channels
@@ -2928,7 +2963,7 @@ getContacts = Users;
 //@description Searches for the specified query in the first names, last names and usernames of the known user contacts @query Query to search for; can be empty to return all contacts @limit Maximum number of users to be returned
 searchContacts query:string limit:int32 = Users;
 
-//@description Removes users from the contacts list @user_ids Identifiers of users to be deleted
+//@description Removes users from the contact list @user_ids Identifiers of users to be deleted
 removeContacts user_ids:vector<int32> = Ok;
 
 //@description Returns the total number of imported contacts
@@ -2938,7 +2973,7 @@ getImportedContactCount = Count;
 //-Query result depends on the result of the previous query, so only one query is possible at the same time @contacts The new list of contacts, contact's vCard are ignored and are not imported
 changeImportedContacts contacts:vector<contact> = ImportedContacts;
 
-//@description Clears all imported contacts, contacts list remains unchanged
+//@description Clears all imported contacts, contact list remains unchanged
 clearImportedContacts = Ok;
 
 

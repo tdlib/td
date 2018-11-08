@@ -14696,7 +14696,7 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId re
     update_dialog_draft_message(d, nullptr, false, !need_update_dialog_pos);
   }
 
-  send_update_new_message(d, m, true);
+  send_update_new_message(d, m);
   if (need_update_dialog_pos) {
     send_update_chat_last_message(d, "send_message");
   }
@@ -14923,7 +14923,7 @@ Result<vector<MessageId>> MessagesManager::send_message_group(
     save_send_message_logevent(dialog_id, m);
     do_send_message(dialog_id, m);
 
-    send_update_new_message(d, m, true);
+    send_update_new_message(d, m);
   }
 
   if (need_update_dialog_pos) {
@@ -15482,7 +15482,7 @@ Result<MessageId> MessagesManager::send_bot_start_message(UserId bot_user_id, Di
                                    create_text_message_content(text, std::move(text_entities), WebPageId()),
                                    &need_update_dialog_pos);
 
-  send_update_new_message(d, m, true);
+  send_update_new_message(d, m);
   if (need_update_dialog_pos) {
     send_update_chat_last_message(d, "send_bot_start_message");
   }
@@ -15611,7 +15611,7 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
 
   update_dialog_draft_message(d, nullptr, false, !need_update_dialog_pos);
 
-  send_update_new_message(d, m, true);
+  send_update_new_message(d, m);
   if (need_update_dialog_pos) {
     send_update_chat_last_message(d, "send_inline_query_result_message");
   }
@@ -16980,7 +16980,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
     forwarded_messages.push_back(m);
     forwarded_message_ids.push_back(message_id);
 
-    send_update_new_message(to_dialog, m, true);
+    send_update_new_message(to_dialog, m);
   }
 
   if (!forwarded_messages.empty()) {
@@ -17000,7 +17000,7 @@ Result<vector<MessageId>> MessagesManager::forward_messages(DialogId to_dialog_i
       do_send_message(to_dialog_id, m);
       result[i] = m->message_id;
 
-      send_update_new_message(to_dialog, m, true);
+      send_update_new_message(to_dialog, m);
     }
   }
 
@@ -17032,7 +17032,7 @@ Result<MessageId> MessagesManager::send_dialog_set_ttl_message(DialogId dialog_i
   Message *m = get_message_to_send(d, MessageId(), false, false, create_chat_set_ttl_message_content(ttl),
                                    &need_update_dialog_pos);
 
-  send_update_new_message(d, m, true);
+  send_update_new_message(d, m);
   if (need_update_dialog_pos) {
     send_update_chat_last_message(d, "send_dialog_set_ttl_message");
   }
@@ -17067,7 +17067,7 @@ Status MessagesManager::send_screenshot_taken_notification_message(DialogId dial
 
     do_send_screenshot_taken_notification_message(dialog_id, m, 0);
 
-    send_update_new_message(d, m, true);
+    send_update_new_message(d, m);
     if (need_update_dialog_pos) {
       send_update_chat_last_message(d, "send_screenshot_taken_notification_message");
     }
@@ -17225,7 +17225,7 @@ Result<MessageId> MessagesManager::add_local_message(
     update_dialog_draft_message(d, nullptr, false, !need_update_dialog_pos);
   }
 
-  send_update_new_message(d, result, true);
+  send_update_new_message(d, result);
   if (need_update_dialog_pos) {
     send_update_chat_last_message(d, "add_local_message");
   }
@@ -17311,63 +17311,70 @@ void MessagesManager::on_dialog_updated(DialogId dialog_id, const char *source) 
   }
 }
 
-void MessagesManager::send_update_new_message(Dialog *d, const Message *m, bool force) {
+void MessagesManager::send_update_new_message(Dialog *d, const Message *m) {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
 
-  LOG(INFO) << "Trying to " << (force ? "forcely " : "") << "send updateNewMessage for " << m->message_id << " in "
-            << d->dialog_id;
-  bool disable_notification =
-      m->disable_notification || m->is_outgoing || d->dialog_id == get_my_dialog_id() || td_->auth_manager_->is_bot();
+  LOG(INFO) << "Send updateNewMessage for " << m->message_id << " in " << d->dialog_id;
+  send_closure(G()->td(), &Td::send_update,
+               make_tl_object<td_api::updateNewMessage>(get_message_object(d->dialog_id, m)));
+
+  add_new_message_notification(d, m, false);
+}
+
+void MessagesManager::add_new_message_notification(Dialog *d, const Message *m, bool force) {
+  CHECK(d != nullptr);
+  CHECK(m != nullptr);
+
+  if (m->disable_notification || m->is_outgoing || d->dialog_id == get_my_dialog_id() || td_->auth_manager_->is_bot()) {
+    return;
+  }
   if (m->message_id.get() <= d->last_read_inbox_message_id.get()) {
     LOG(INFO) << "Disable notification for read " << m->message_id << " in " << d->dialog_id;
-    disable_notification = true;
+    return;
   }
-  if (!disable_notification && d->dialog_id.get_type() == DialogType::Channel) {
-    if (!td_->contacts_manager_->get_channel_status(d->dialog_id.get_channel_id()).is_member()) {
-      disable_notification = true;
-    }
-  }
-  bool have_settings = true;
-  DialogId settings_dialog_id;
-  Dialog *settings_dialog = nullptr;
-  if (!disable_notification) {
-    if (!m->contains_mention || !m->sender_user_id.is_valid()) {
-      // use notification settings from the dialog
-      settings_dialog_id = d->dialog_id;
-      settings_dialog = d;
-    } else {
-      // have a mention, so use notification settings from the dialog with the sender
-      settings_dialog_id = DialogId(m->sender_user_id);
-      settings_dialog = get_dialog_force(settings_dialog_id);
-    }
-
-    int32 mute_until;
-    std::tie(have_settings, mute_until) = get_dialog_mute_until(settings_dialog_id, settings_dialog);
-    if (mute_until > G()->unix_time()) {
-      disable_notification = true;
-    }
+  if (d->dialog_id.get_type() == DialogType::Channel &&
+      !td_->contacts_manager_->get_channel_status(d->dialog_id.get_channel_id()).is_member()) {
+    return;
   }
 
-  if (!force && (!have_settings || !d->pending_update_new_messages.empty())) {
-    LOG(INFO) << "Delay update new message for " << m->message_id << " in " << d->dialog_id << " with "
-              << d->pending_update_new_messages.size() << " already waiting messages";
-    if (d->pending_update_new_messages.empty()) {
+  LOG(INFO) << "Trying to " << (force ? "forcely " : "") << "add new message notification for " << m->message_id
+            << " in " << d->dialog_id;
+
+  DialogId settings_dialog_id = d->dialog_id;
+  Dialog *settings_dialog = d;
+  if (m->contains_mention && m->sender_user_id.is_valid()) {
+    // have a mention, so use notification settings from the dialog with the sender
+    settings_dialog_id = DialogId(m->sender_user_id);
+    settings_dialog = get_dialog_force(settings_dialog_id);
+  }
+
+  bool have_settings;
+  int32 mute_until;
+  std::tie(have_settings, mute_until) = get_dialog_mute_until(settings_dialog_id, settings_dialog);
+  if (mute_until > G()->unix_time()) {
+    return;
+  }
+
+  if (!force && (!have_settings || !d->pending_new_message_notifications.empty())) {
+    LOG(INFO) << "Delay new message notification for " << m->message_id << " in " << d->dialog_id << " with "
+              << d->pending_new_message_notifications.size() << " already waiting messages";
+    if (d->pending_new_message_notifications.empty()) {
       create_actor<SleepActor>(
-          "FlushPendingUpdateNewMessagesSleepActor", 5.0,
+          "FlushPendingNewMessageNotificationsSleepActor", 5.0,
           PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = d->dialog_id](Result<Unit> result) {
-            LOG(INFO) << "Flush pending updateNewMessages in " << dialog_id << " by timeout";
-            send_closure(actor_id, &MessagesManager::flush_pending_update_new_messages, dialog_id);
+            LOG(INFO) << "Flush pending notifications in " << dialog_id << " by timeout";
+            send_closure(actor_id, &MessagesManager::flush_pending_new_message_notifications, dialog_id);
           }))
           .release();
     }
-    d->pending_update_new_messages.push_back(m->message_id);
+    d->pending_new_message_notifications.push_back(m->message_id);
     auto promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = d->dialog_id](Result<Unit> result) {
-      LOG(INFO) << "Flush pending updateNewMessages in " << dialog_id << " because of received notification settings";
-      send_closure(actor_id, &MessagesManager::flush_pending_update_new_messages, dialog_id);
+      LOG(INFO) << "Flush pending notifications in " << dialog_id << " because of received notification settings";
+      send_closure(actor_id, &MessagesManager::flush_pending_new_message_notifications, dialog_id);
     });
     if (settings_dialog == nullptr && have_input_peer(settings_dialog_id, AccessRights::Read)) {
-      force_create_dialog(settings_dialog_id, "send update new message");
+      force_create_dialog(settings_dialog_id, "add_new_message_notification");
       settings_dialog = get_dialog(settings_dialog_id);
     }
     if (settings_dialog != nullptr) {
@@ -17379,25 +17386,23 @@ void MessagesManager::send_update_new_message(Dialog *d, const Message *m, bool 
   }
 
   LOG_IF(WARNING, !have_settings) << "Have no notification settings for " << settings_dialog_id
-                                  << ", but forced to send updateNewMessage for " << m->message_id << " in "
+                                  << ", but forced to send notification about " << m->message_id << " in "
                                   << d->dialog_id;
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateNewMessage>(get_message_object(d->dialog_id, m), disable_notification,
-                                                        m->contains_mention));
+  // TODO
 }
 
-void MessagesManager::flush_pending_update_new_messages(DialogId dialog_id) {
+void MessagesManager::flush_pending_new_message_notifications(DialogId dialog_id) {
   auto d = get_dialog(dialog_id);
   CHECK(d != nullptr);
-  if (d->pending_update_new_messages.empty()) {
+  if (d->pending_new_message_notifications.empty()) {
     return;
   }
-  auto message_ids = std::move(d->pending_update_new_messages);
-  reset_to_empty(d->pending_update_new_messages);
+  auto message_ids = std::move(d->pending_new_message_notifications);
+  reset_to_empty(d->pending_new_message_notifications);
   for (auto message_id : message_ids) {
     auto m = get_message(d, message_id);
     if (m != nullptr) {
-      send_update_new_message(d, m, true);
+      add_new_message_notification(d, m, true);
     }
   }
 }
