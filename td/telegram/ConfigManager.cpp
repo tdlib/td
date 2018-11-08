@@ -854,6 +854,9 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
     shared_config.set_option_string("photo_search_bot_username", config->img_search_username_);
   }
 
+  shared_config.set_option_integer("online_update_period_ms", config->online_update_period_ms_);
+  shared_config.set_option_integer("online_cloud_timeout_ms", config->online_cloud_timeout_ms_);
+
   // delete outdated options
   shared_config.set_option_empty("suggested_language_code");
   shared_config.set_option_empty("chat_big_size");
@@ -865,10 +868,8 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   shared_config.set_option_empty("group_chat_size_max");
   shared_config.set_option_empty("chat_size_max");
   shared_config.set_option_empty("megagroup_size_max");
-  shared_config.set_option_empty("online_update_period_ms");
   shared_config.set_option_empty("offline_blur_timeout_ms");
   shared_config.set_option_empty("offline_idle_timeout_ms");
-  shared_config.set_option_empty("online_cloud_timeout_ms");
   shared_config.set_option_empty("notify_cloud_delay_ms");
   shared_config.set_option_empty("notify_default_delay_ms");
   shared_config.set_option_empty("large_chat_size");
@@ -880,10 +881,9 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   }
 
   // TODO implement online status updates
-  //  shared_config.set_option_integer("online_update_period_ms", config->online_update_period_ms_);
   //  shared_config.set_option_integer("offline_blur_timeout_ms", config->offline_blur_timeout_ms_);
   //  shared_config.set_option_integer("offline_idle_timeout_ms", config->offline_idle_timeout_ms_);
-  //  shared_config.set_option_integer("online_cloud_timeout_ms", config->online_cloud_timeout_ms_);
+
   //  shared_config.set_option_integer("notify_cloud_delay_ms", config->notify_cloud_delay_ms_);
   //  shared_config.set_option_integer("notify_default_delay_ms", config->notify_default_delay_ms_);
 

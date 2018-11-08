@@ -206,7 +206,6 @@ class Td final : public NetQueryCallback {
  private:
   static constexpr const char *TDLIB_VERSION = "1.3.3";
   static constexpr int64 ONLINE_ALARM_ID = 0;
-  static constexpr int32 ONLINE_TIMEOUT = 240;
   static constexpr int64 PING_SERVER_ALARM_ID = -1;
   static constexpr int32 PING_SERVER_TIMEOUT = 300;
   static constexpr int64 TERMS_OF_SERVICE_ALARM_ID = -2;

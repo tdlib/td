@@ -3021,7 +3021,8 @@ void Td::on_online_updated(bool force, bool send_update) {
     update_status_query_ = create_handler<UpdateStatusQuery>()->send(!is_online_);
   }
   if (is_online_) {
-    alarm_timeout_.set_timeout_in(ONLINE_ALARM_ID, ONLINE_TIMEOUT);
+    alarm_timeout_.set_timeout_in(ONLINE_ALARM_ID,
+                                  G()->shared_config().get_option_integer("online_update_period_ms", 120000) * 1e-3);
   } else {
     alarm_timeout_.cancel_timeout(ONLINE_ALARM_ID);
   }
@@ -3422,6 +3423,8 @@ bool Td::is_internal_config_option(Slice name) {
       return name == "language_pack_version";
     case 'm':
       return name == "my_phone_number";
+    case 'o':
+      return name == "online_update_period_ms" || name == "online_cloud_timeout_ms";
     case 'r':
       return name == "revoke_pm_inbox" || name == "revoke_time_limit" || name == "revoke_pm_time_limit" ||
              name == "rating_e_decay" || name == "recent_stickers_limit";
