@@ -535,6 +535,8 @@ set(TDLIB_SOURCE
   td/telegram/net/SessionProxy.h
   td/telegram/net/SessionMultiProxy.h
   td/telegram/net/TempAuthKeyWatchdog.h
+  td/telegram/NotificationGroupId.h
+  td/telegram/NotificationId.h
   td/telegram/NotificationManager.h
   td/telegram/NotificationSettings.h
   td/telegram/NotificationType.h

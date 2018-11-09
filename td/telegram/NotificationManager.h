@@ -7,6 +7,8 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/NotificationGroupId.h"
+#include "td/telegram/NotificationId.h"
 #include "td/telegram/NotificationType.h"
 
 #include "td/actor/PromiseFuture.h"
@@ -21,24 +23,22 @@ class NotificationManager {
  public:
   explicit NotificationManager(Td *td);
 
-  int32 get_next_notification_id();
+  NotificationId get_next_notification_id();
 
-  void add_notification(int32 group_id, int32 total_count, DialogId dialog_id, DialogId notification_settings_dialog_id,
-                        bool silent, int32 notification_id, unique_ptr<NotificationType> type);
+  void add_notification(NotificationGroupId group_id, int32 total_count, DialogId dialog_id,
+                        DialogId notification_settings_dialog_id, bool silent, NotificationId notification_id,
+                        unique_ptr<NotificationType> type);
 
-  void edit_notification(int32 notification_id, unique_ptr<NotificationType> type);
+  void edit_notification(NotificationId notification_id, unique_ptr<NotificationType> type);
 
-  void delete_notification(int32 notification_id);
+  void delete_notification(NotificationId notification_id);
 
-  void remove_notification(int32 notification_id, Promise<Unit> &&promise);
+  void remove_notification(NotificationId notification_id, Promise<Unit> &&promise);
 
-  void remove_notification_group(int32 group_id, int32 max_notification_id, Promise<Unit> &&promise);
+  void remove_notification_group(NotificationGroupId group_id, NotificationId max_notification_id,
+                                 Promise<Unit> &&promise);
 
  private:
-  static bool is_valid_notification_id(int32 notification_id);
-
-  static bool is_valid_group_id(int32 group_id);
-
   Td *td_;
 };
 

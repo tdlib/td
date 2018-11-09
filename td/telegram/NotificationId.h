@@ -6,8 +6,6 @@
 //
 #pragma once
 
-#include "td/telegram/td_api.h"
-
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
 
@@ -16,29 +14,25 @@
 
 namespace td {
 
-class CallId {
+class NotificationId {
  public:
-  CallId() = default;
+  NotificationId() = default;
 
-  explicit CallId(int32 call_id) : id(call_id) {
+  explicit NotificationId(int32 notification_id) : id(notification_id) {
   }
 
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int32>::value>>
-  CallId(T call_id) = delete;
+  NotificationId(T notification_id) = delete;
 
   bool is_valid() const {
-    return id != 0;
+    return id > 0;
   }
 
   int32 get() const {
     return id;
   }
 
-  auto as_td_api() const {
-    return make_tl_object<td_api::callId>(id);
-  }
-
-  bool operator==(const CallId &other) const {
+  bool operator==(const NotificationId &other) const {
     return id == other.id;
   }
 
@@ -46,14 +40,14 @@ class CallId {
   int32 id{0};
 };
 
-struct CallIdHash {
-  std::size_t operator()(CallId call_id) const {
-    return std::hash<int32>()(call_id.get());
+struct NotificationIdHash {
+  std::size_t operator()(NotificationId notification_id) const {
+    return std::hash<int32>()(notification_id.get());
   }
 };
 
-inline StringBuilder &operator<<(StringBuilder &sb, const CallId call_id) {
-  return sb << "CallId(" << call_id.get() << ")";
+inline StringBuilder &operator<<(StringBuilder &sb, const NotificationId notification_id) {
+  return sb << "Notification(" << notification_id.get() << ")";
 }
 
 }  // namespace td

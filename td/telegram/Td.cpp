@@ -44,6 +44,8 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/NotificationGroupId.h"
+#include "td/telegram/NotificationId.h"
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/NotificationSettings.h"
 #include "td/telegram/PasswordManager.h"
@@ -5067,14 +5069,14 @@ void Td::on_request(uint64 id, td_api::getChatMessageCount &request) {
 void Td::on_request(uint64 id, const td_api::removeNotification &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  notification_manager_->remove_notification(request.notification_id_, std::move(promise));
+  notification_manager_->remove_notification(NotificationId(request.notification_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::removeNotificationGroup &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  notification_manager_->remove_notification_group(request.notification_group_id_, request.max_notification_id_,
-                                                   std::move(promise));
+  notification_manager_->remove_notification_group(NotificationGroupId(request.notification_group_id_),
+                                                   NotificationId(request.max_notification_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteMessages &request) {
