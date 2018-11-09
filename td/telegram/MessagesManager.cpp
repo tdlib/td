@@ -3537,6 +3537,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
   bool has_forward_from =
       is_forwarded && (forward_info->from_dialog_id.is_valid() || forward_info->from_message_id.is_valid());
   bool has_send_date = message_id.is_yet_unsent() && send_date != 0;
+  bool has_flags2 = true;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_channel_post);
   STORE_FLAG(is_outgoing);
@@ -3567,7 +3568,12 @@ void MessagesManager::Message::store(StorerT &storer) const {
   STORE_FLAG(in_game_share);
   STORE_FLAG(is_content_secret);
   STORE_FLAG(has_send_date);
+  STORE_FLAG(has_flags2);
   END_STORE_FLAGS();
+  if (has_flags2) {
+    BEGIN_STORE_FLAGS();
+    END_STORE_FLAGS();
+  }
 
   store(message_id, storer);
   if (has_sender) {
@@ -3650,6 +3656,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
   bool has_media_album_id;
   bool has_forward_from;
   bool has_send_date;
+  bool has_flags2;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_channel_post);
   PARSE_FLAG(is_outgoing);
@@ -3680,7 +3687,12 @@ void MessagesManager::Message::parse(ParserT &parser) {
   PARSE_FLAG(in_game_share);
   PARSE_FLAG(is_content_secret);
   PARSE_FLAG(has_send_date);
+  PARSE_FLAG(has_flags2);
   END_PARSE_FLAGS();
+  if (has_flags2) {
+    BEGIN_PARSE_FLAGS();
+    END_PARSE_FLAGS();
+  }
 
   parse(message_id, parser);
   random_y = get_random_y(message_id);
@@ -3900,7 +3912,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   PARSE_FLAG(has_contact_registered_message);
   PARSE_FLAG(has_last_database_message_id);
   PARSE_FLAG(need_repair_server_unread_count);
-  PARSE_FLAG(is_marked_as_unread);
+  PARSE_FLAG(is_marked_as_unread);  // 22
   END_PARSE_FLAGS();
 
   parse(dialog_id, parser);  // must be stored at offset 4
