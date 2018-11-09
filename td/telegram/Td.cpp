@@ -44,6 +44,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/NotificationManager.h"
 #include "td/telegram/NotificationSettings.h"
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Payments.h"
@@ -3603,6 +3604,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "InlineQueriesManager was cleared " << timer;
       messages_manager_.reset();
       LOG(DEBUG) << "MessagesManager was cleared " << timer;
+      notification_manager_.reset();
+      LOG(DEBUG) << "NotificationManager was cleared " << timer;
       stickers_manager_.reset();
       LOG(DEBUG) << "StickersManager was cleared " << timer;
       updates_manager_.reset();
@@ -4023,6 +4026,7 @@ Status Td::init(DbKey key) {
   audios_manager_ = make_unique<AudiosManager>(this);
   callback_queries_manager_ = make_unique<CallbackQueriesManager>(this);
   documents_manager_ = make_unique<DocumentsManager>(this);
+  notification_manager_ = make_unique<NotificationManager>(this);
   video_notes_manager_ = make_unique<VideoNotesManager>(this);
   videos_manager_ = make_unique<VideosManager>(this);
   voice_notes_manager_ = make_unique<VoiceNotesManager>(this);
@@ -5063,13 +5067,14 @@ void Td::on_request(uint64 id, td_api::getChatMessageCount &request) {
 void Td::on_request(uint64 id, const td_api::removeNotification &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  // TODO notification_manager->remove_notification(request.notification_id_, std::move(promise));
+  notification_manager_->remove_notification(request.notification_id_, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::removeNotifications &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  // TODO notification_manager->remove_notifications(request.notification_group_id_, request.max_notification_id_, std::move(promise));
+  notification_manager_->remove_notifications(request.notification_group_id_, request.max_notification_id_,
+                                              std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteMessages &request) {

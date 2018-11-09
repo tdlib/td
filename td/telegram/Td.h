@@ -49,6 +49,7 @@ class HashtagHints;
 class LanguagePackManager;
 class MessagesManager;
 class NetStatsManager;
+class NotificationManager;
 class PasswordManager;
 class PhoneNumberManager;
 class PrivacyManager;
@@ -125,6 +126,7 @@ class Td final : public NetQueryCallback {
   unique_ptr<AudiosManager> audios_manager_;
   unique_ptr<CallbackQueriesManager> callback_queries_manager_;
   unique_ptr<DocumentsManager> documents_manager_;
+  unique_ptr<NotificationManager> notification_manager_;
   unique_ptr<VideoNotesManager> video_notes_manager_;
   unique_ptr<VideosManager> videos_manager_;
   unique_ptr<VoiceNotesManager> voice_notes_manager_;
