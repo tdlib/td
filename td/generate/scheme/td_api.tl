@@ -2218,8 +2218,8 @@ updateChatDraftMessage chat_id:int53 draft_message:draftMessage order:int64 = Up
 
 //@description A list of active notifications in a notification group has changed @notification_group_id Unique notification group identifier @chat_id Identifier of a chat to which all notifications in the group belong
 //@notification_settings_chat_id Chat identifier, which notification settings must be applied @silent True, if the notifications should be shown without sound
-//@total_count Total number of active notifications in the group @new_notifications List of new group notifications @edited_notifications List of edited group notifications @deleted_notification_ids Identifiers of deleted group notifications
-updateNotificationGroup chat_id:int53 notification_group_id:int32 notification_settings_chat_id:int53 silent:Bool total_count:int32 new_notifications:vector<notification> edited_notifications:vector<notification> deleted_notification_ids:vector<int32> = Update;
+//@total_count Total number of active notifications in the group @new_notifications List of new group notifications @edited_notifications List of edited group notifications @removed_notification_ids Identifiers of removed group notifications
+updateNotificationGroup chat_id:int53 notification_group_id:int32 notification_settings_chat_id:int53 silent:Bool total_count:int32 new_notifications:vector<notification> edited_notifications:vector<notification> removed_notification_ids:vector<int32> = Update;
 
 //@description Contains active notifications that was shown on previous application launches. This update is sent only if a message database is used. In that case it comes once before any updateNotificationGroup update @groups Lists of active notification groups
 updateActiveNotifications groups:vector<notificationGroup> = Update;

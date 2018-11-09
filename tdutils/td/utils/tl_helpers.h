@@ -19,34 +19,42 @@
 #include <unordered_set>
 
 #define BEGIN_STORE_FLAGS() \
-  uint32 flags_store = 0;   \
+  do {                      \
+    uint32 flags_store = 0; \
   uint32 bit_offset_store = 0
 
 #define STORE_FLAG(flag)                     \
   flags_store |= (flag) << bit_offset_store; \
   bit_offset_store++
 
-#define END_STORE_FLAGS()       \
-  CHECK(bit_offset_store < 31); \
-  td::store(flags_store, storer)
+#define END_STORE_FLAGS()         \
+  CHECK(bit_offset_store < 31);   \
+  td::store(flags_store, storer); \
+  }                               \
+  while (false)
 
-#define BEGIN_PARSE_FLAGS()    \
-  uint32 flags_parse;          \
-  uint32 bit_offset_parse = 0; \
+#define BEGIN_PARSE_FLAGS()      \
+  do {                           \
+    uint32 flags_parse;          \
+    uint32 bit_offset_parse = 0; \
   td::parse(flags_parse, parser)
 
 #define PARSE_FLAG(flag)                               \
   flag = ((flags_parse >> bit_offset_parse) & 1) != 0; \
   bit_offset_parse++
 
-#define END_PARSE_FLAGS()                                    \
-  CHECK(bit_offset_parse < 31);                              \
-  CHECK((flags_parse & ~((1 << bit_offset_parse) - 1)) == 0) \
-      << flags_parse << " " << bit_offset_parse << " " << parser.version();
+#define END_PARSE_FLAGS()                                                   \
+  CHECK(bit_offset_parse < 31);                                             \
+  CHECK((flags_parse & ~((1 << bit_offset_parse) - 1)) == 0)                \
+      << flags_parse << " " << bit_offset_parse << " " << parser.version(); \
+  }                                                                         \
+  while (false)
 
-#define END_PARSE_FLAGS_GENERIC() \
-  CHECK(bit_offset_parse < 31);   \
-  CHECK((flags_parse & ~((1 << bit_offset_parse) - 1)) == 0) << flags_parse << " " << bit_offset_parse;
+#define END_PARSE_FLAGS_GENERIC()                                                                       \
+  CHECK(bit_offset_parse < 31);                                                                         \
+  CHECK((flags_parse & ~((1 << bit_offset_parse) - 1)) == 0) << flags_parse << " " << bit_offset_parse; \
+  }                                                                                                     \
+  while (false)
 
 namespace td {
 template <class StorerT>
