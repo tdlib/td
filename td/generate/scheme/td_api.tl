@@ -1811,8 +1811,8 @@ notificationTypeNewMessage message:message = NotificationType;
 //@description New secret chat was created
 notificationTypeNewSecretChat = NotificationType;
 
-//@description New incoming call was received @call_id Call identifier
-notificationTypeNewIncomingCall call_id:int32 = NotificationType;
+//@description New call was received @call_id Call identifier
+notificationTypeNewCall call_id:int32 = NotificationType;
 
 
 //@description Contains information about a notification @id Unique persistent identifier of this notification @type Notification type
@@ -2219,7 +2219,7 @@ updateChatDraftMessage chat_id:int53 draft_message:draftMessage order:int64 = Up
 //@description A list of active notifications in a notification group has changed @notification_group_id Unique notification group identifier @chat_id Identifier of a chat to which all notifications in the group belong
 //@notification_settings_chat_id Chat identifier, which notification settings must be applied @silent True, if the notifications should be shown without sound
 //@total_count Total number of active notifications in the group @new_notifications List of new group notifications @edited_notifications List of edited group notifications @removed_notification_ids Identifiers of removed group notifications
-updateNotificationGroup chat_id:int53 notification_group_id:int32 notification_settings_chat_id:int53 silent:Bool total_count:int32 new_notifications:vector<notification> edited_notifications:vector<notification> removed_notification_ids:vector<int32> = Update;
+updateNotificationGroup notification_group_id:int32 chat_id:int53 notification_settings_chat_id:int53 silent:Bool total_count:int32 new_notifications:vector<notification> edited_notifications:vector<notification> removed_notification_ids:vector<int32> = Update;
 
 //@description Contains active notifications that was shown on previous application launches. This update is sent only if a message database is used. In that case it comes once before any updateNotificationGroup update @groups Lists of active notification groups
 updateActiveNotifications groups:vector<notificationGroup> = Update;
@@ -2614,7 +2614,7 @@ getChatMessageCount chat_id:int53 filter:SearchMessagesFilter return_local:Bool 
 removeNotification notification_id:int32 = Ok;
 
 //@description Removes group of active notifications @notification_group_id Notification group identifier @max_notification_id Maximum identifier of removed notifications
-removeNotifications notification_group_id:int32 max_notification_id:int32 = Ok;
+removeNotificationGroup notification_group_id:int32 max_notification_id:int32 = Ok;
 
 
 //@description Returns a public HTTPS link to a message. Available only for messages in public supergroups and channels

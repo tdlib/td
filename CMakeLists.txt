@@ -406,6 +406,7 @@ set(TDLIB_SOURCE
   td/telegram/net/SessionMultiProxy.cpp
   td/telegram/NotificationManager.cpp
   td/telegram/NotificationSettings.cpp
+  td/telegram/NotificationType.cpp
   td/telegram/Payments.cpp
   td/telegram/PasswordManager.cpp
   td/telegram/PrivacyManager.cpp
@@ -536,6 +537,7 @@ set(TDLIB_SOURCE
   td/telegram/net/TempAuthKeyWatchdog.h
   td/telegram/NotificationManager.h
   td/telegram/NotificationSettings.h
+  td/telegram/NotificationType.h
   td/telegram/PasswordManager.h
   td/telegram/Payments.h
   td/telegram/Photo.h

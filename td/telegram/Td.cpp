@@ -5070,11 +5070,11 @@ void Td::on_request(uint64 id, const td_api::removeNotification &request) {
   notification_manager_->remove_notification(request.notification_id_, std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::removeNotifications &request) {
+void Td::on_request(uint64 id, const td_api::removeNotificationGroup &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  notification_manager_->remove_notifications(request.notification_group_id_, request.max_notification_id_,
-                                              std::move(promise));
+  notification_manager_->remove_notification_group(request.notification_group_id_, request.max_notification_id_,
+                                                   std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::deleteMessages &request) {

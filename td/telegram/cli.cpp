@@ -3295,12 +3295,12 @@ class CliClient final : public Actor {
     } else if (op == "rn") {
       string notification_id = args;
       send_request(make_tl_object<td_api::removeNotification>(to_integer<int32>(notification_id)));
-    } else if (op == "rns") {
+    } else if (op == "rng") {
       string group_id;
       string max_notification_id;
       std::tie(group_id, max_notification_id) = split(args);
-      send_request(make_tl_object<td_api::removeNotifications>(to_integer<int32>(group_id),
-                                                               to_integer<int32>(max_notification_id)));
+      send_request(make_tl_object<td_api::removeNotificationGroup>(to_integer<int32>(group_id),
+                                                                   to_integer<int32>(max_notification_id)));
     } else if (op == "gcrss") {
       send_request(make_tl_object<td_api::getChatReportSpamState>(as_chat_id(args)));
     } else if (op == "ccrss") {

@@ -1,0 +1,69 @@
+//
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2018
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+#include "td/telegram/NotificationType.h"
+
+namespace td {
+
+class NotificationTypeMessage : public NotificationType {
+  StringBuilder &to_string_builder(StringBuilder &string_builder) const override {
+    return string_builder << "NewMessageNotification[" << message_id_ << ']';
+  }
+
+  Type get_type() const {
+    return Type::Message;
+  }
+
+  MessageId message_id_;
+
+ public:
+  explicit NotificationTypeMessage(MessageId message_id) : message_id_(message_id) {
+  }
+};
+
+class NotificationTypeSecretChat : public NotificationType {
+  StringBuilder &to_string_builder(StringBuilder &string_builder) const override {
+    return string_builder << "NewSecretChatNotification[]";
+  }
+
+  Type get_type() const {
+    return Type::SecretChat;
+  }
+
+ public:
+  NotificationTypeSecretChat() {
+  }
+};
+
+class NotificationTypeCall : public NotificationType {
+  StringBuilder &to_string_builder(StringBuilder &string_builder) const override {
+    return string_builder << "NewCallNotification[" << call_id_ << ']';
+  }
+
+  Type get_type() const {
+    return Type::Call;
+  }
+
+  CallId call_id_;
+
+ public:
+  explicit NotificationTypeCall(CallId call_id) : call_id_(call_id) {
+  }
+};
+
+unique_ptr<NotificationType> create_new_message_notification(MessageId message_id) {
+  return make_unique<NotificationTypeMessage>(message_id);
+}
+
+unique_ptr<NotificationType> create_new_secret_chat_notification() {
+  return make_unique<NotificationTypeSecretChat>();
+}
+
+unique_ptr<NotificationType> create_new_call_notification(CallId call_id) {
+  return make_unique<NotificationTypeCall>(call_id);
+}
+
+}  // namespace td
