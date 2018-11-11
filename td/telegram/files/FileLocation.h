@@ -310,6 +310,7 @@ struct PartialRemoteFileLocation {
   int32 part_size_;
   int32 ready_part_count_;
   int32 is_big_;
+
   template <class StorerT>
   void store(StorerT &storer) const {
     using td::store;

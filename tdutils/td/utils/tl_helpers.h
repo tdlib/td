@@ -158,8 +158,8 @@ void parse(std::unordered_set<Key, Hash, KeyEqual, Allocator> &s, ParserT &parse
     return;
   }
   s.clear();
-  Key val;
   for (uint32 i = 0; i < size; i++) {
+    Key val;
     parse(val, parser);
     s.insert(std::move(val));
   }
