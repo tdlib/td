@@ -822,9 +822,9 @@ static tl_object_ptr<T> copy(const tl_object_ptr<T> &obj) {
 
 template <>
 td_api::object_ptr<td_api::localFile> copy(const td_api::localFile &obj) {
-  return td_api::make_object<td_api::localFile>(obj.path_, obj.can_be_downloaded_, obj.can_be_deleted_,
-                                                obj.is_downloading_active_, obj.is_downloading_completed_,
-                                                obj.downloaded_prefix_size_, obj.downloaded_size_);
+  return td_api::make_object<td_api::localFile>(
+      obj.path_, obj.can_be_downloaded_, obj.can_be_deleted_, obj.is_downloading_active_, obj.is_downloading_completed_,
+      obj.download_offset_, obj.downloaded_prefix_size_, obj.downloaded_size_);
 }
 template <>
 td_api::object_ptr<td_api::remoteFile> copy(const td_api::remoteFile &obj) {

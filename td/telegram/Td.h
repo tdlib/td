@@ -442,6 +442,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::getFile &request);
 
+  void on_request(uint64 id, const td_api::getFileDownloadedPrefix &request);
+
   void on_request(uint64 id, td_api::getRemoteFile &request);
 
   void on_request(uint64 id, td_api::getStorageStatistics &request);
@@ -643,6 +645,8 @@ class Td final : public NetQueryCallback {
   void on_request(uint64 id, const td_api::clearAllDraftMessages &request);
 
   void on_request(uint64 id, const td_api::downloadFile &request);
+
+  void on_request(uint64 id, const td_api::setFileDownloadOffset &request);
 
   void on_request(uint64 id, const td_api::cancelDownloadFile &request);
 

@@ -22,8 +22,10 @@ class FileLoaderActor : public NetQueryCallback {
   virtual void update_priority(int8 priority) = 0;
   virtual void update_resources(const ResourceState &other) = 0;
 
-  // TODO: existence of this function is a dirty hack. Refactoring is highly appreciated
+  // TODO: existence of this two functions is a dirty hack. Refactoring is highly appreciated
   virtual void update_local_file_location(const LocalFileLocation &local) {
+  }
+  virtual void update_download_offset(int64 offset) {
   }
 };
 

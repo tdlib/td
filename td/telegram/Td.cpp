@@ -4858,6 +4858,15 @@ void Td::on_request(uint64 id, const td_api::getFile &request) {
   send_closure(actor_id(this), &Td::send_result, id, file_manager_->get_file_object(FileId(request.file_id_, 0)));
 }
 
+void Td::on_request(uint64 id, const td_api::getFileDownloadedPrefix &request) {
+  auto file_view = file_manager_->get_file_view(FileId(request.file_id_, 0));
+  if (file_view.empty()) {
+    return send_closure(actor_id(this), &Td::send_error, id, Status::Error(10, "Unknown file id"));
+  }
+  send_closure(actor_id(this), &Td::send_result, id,
+               td_api::make_object<td_api::count>(static_cast<int32>(file_view.downloaded_prefix(request.offset_))));
+}
+
 void Td::on_request(uint64 id, td_api::getRemoteFile &request) {
   CLEAN_INPUT_STRING(request.remote_file_id_);
   auto r_file_id = file_manager_->from_persistent_id(
@@ -5668,7 +5677,7 @@ void Td::on_request(uint64 id, const td_api::downloadFile &request) {
   if (!(1 <= priority && priority <= 32)) {
     return send_error_raw(id, 5, "Download priority must be in [1;32] range");
   }
-  file_manager_->download(FileId(request.file_id_, 0), download_file_callback_, priority);
+  file_manager_->download(FileId(request.file_id_, 0), download_file_callback_, priority, request.offset_);
 
   auto file = file_manager_->get_file_object(FileId(request.file_id_, 0), false);
   if (file->id_ == 0) {
@@ -5678,8 +5687,18 @@ void Td::on_request(uint64 id, const td_api::downloadFile &request) {
   send_closure(actor_id(this), &Td::send_result, id, std::move(file));
 }
 
+void Td::on_request(uint64 id, const td_api::setFileDownloadOffset &request) {
+  file_manager_->download_set_offset(FileId(request.file_id_, 0), request.offset_);
+  auto file = file_manager_->get_file_object(FileId(request.file_id_, 0), false);
+  if (file->id_ == 0) {
+    return send_error_raw(id, 400, "Invalid file id");
+  }
+
+  send_closure(actor_id(this), &Td::send_result, id, std::move(file));
+}
+
 void Td::on_request(uint64 id, const td_api::cancelDownloadFile &request) {
-  file_manager_->download(FileId(request.file_id_, 0), nullptr, request.only_if_pending_ ? -1 : 0);
+  file_manager_->download(FileId(request.file_id_, 0), nullptr, 0, request.only_if_pending_ ? -1 : 0);
 
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
 }

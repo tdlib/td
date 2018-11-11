@@ -9,6 +9,8 @@
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
 
+#include "td/telegram/files/FileBitmask.h"
+
 namespace td {
 
 /*** PartsManager***/
@@ -33,6 +35,7 @@ class PartsManager {
   Status set_known_prefix(size_t size, bool is_ready);
   void set_need_check();
   void set_checked_prefix_size(int64 size);
+  void set_streaming_offset(int64 offset);
 
   int64 get_checked_prefix_size() const;
   int64 get_unchecked_ready_prefix_size();
@@ -44,6 +47,7 @@ class PartsManager {
   int32 get_part_count() const;
   int32 get_unchecked_ready_prefix_count();
   int32 get_ready_prefix_count();
+  string get_bitmask() const;
 
  private:
   static constexpr int MAX_PART_COUNT = 3000;
@@ -70,7 +74,10 @@ class PartsManager {
   int pending_count_;
   int first_empty_part_;
   int first_not_ready_part_;
+  int64 streaming_offset_{0};
+  int first_streaming_empty_part_;
   vector<PartStatus> part_status_;
+  Bitmask bitmask_;
   bool use_part_count_limit_;
 
   void init_common(const vector<int> &ready_parts);

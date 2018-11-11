@@ -358,6 +358,7 @@ set(TDLIB_SOURCE
   td/telegram/DialogParticipant.cpp
   td/telegram/DocumentsManager.cpp
   td/telegram/DraftMessage.cpp
+  td/telegram/files/FileBitmask.cpp
   td/telegram/files/FileDb.cpp
   td/telegram/files/FileDownloader.cpp
   td/telegram/files/FileFromBytes.cpp
@@ -478,6 +479,7 @@ set(TDLIB_SOURCE
   td/telegram/DialogParticipant.h
   td/telegram/DocumentsManager.h
   td/telegram/DraftMessage.h
+  td/telegram/files/FileBitmask.h
   td/telegram/files/FileDb.h
   td/telegram/files/FileDownloader.h
   td/telegram/files/FileFromBytes.h

@@ -38,6 +38,7 @@ class FileLoader : public FileLoaderActor {
   void update_resources(const ResourceState &other) override;
 
   void update_local_file_location(const LocalFileLocation &local) override;
+  void update_download_offset(int64 offset) override;
 
  protected:
   void set_ordered_flag(bool flag);
@@ -49,13 +50,14 @@ class FileLoader : public FileLoaderActor {
   };
   struct FileInfo {
     int64 size;
-    int64 expected_size = 0;
+    int64 expected_size{0};
     bool is_size_final;
     int32 part_size;
     std::vector<int> ready_parts;
     bool use_part_count_limit = true;
     bool only_check = false;
     bool need_delay = false;
+    int64 offset{0};
   };
   virtual Result<FileInfo> init() TD_WARN_UNUSED_RESULT = 0;
   virtual Status on_ok(int64 size) TD_WARN_UNUSED_RESULT = 0;
@@ -67,8 +69,8 @@ class FileLoader : public FileLoaderActor {
   virtual void after_start_parts() {
   }
   virtual Result<size_t> process_part(Part part, NetQueryPtr net_query) TD_WARN_UNUSED_RESULT = 0;
-  virtual void on_progress(int32 part_count, int32 part_size, int32 ready_part_count, bool is_ready,
-                           int64 ready_size) = 0;
+  virtual void on_progress(int32 part_count, int32 part_size, int32 ready_part_count, std::string ready_bitmask,
+                           bool is_ready, int64 ready_size) = 0;
   virtual Callback *get_callback() = 0;
   virtual Result<PrefixInfo> on_update_local_location(const LocalFileLocation &location) TD_WARN_UNUSED_RESULT {
     return Status::Error("unsupported");

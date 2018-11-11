@@ -33,7 +33,7 @@ class FileDownloader : public FileLoader {
   };
 
   FileDownloader(const FullRemoteFileLocation &remote, const LocalFileLocation &local, int64 size, string name,
-                 const FileEncryptionKey &encryption_key, bool is_small, bool search_file,
+                 const FileEncryptionKey &encryption_key, bool is_small, bool search_file, int64 offset,
                  unique_ptr<Callback> callback);
 
   // Should just implement all parent pure virtual methods.
@@ -56,6 +56,7 @@ class FileDownloader : public FileLoader {
   bool next_part_stop_ = false;
   bool is_small_;
   bool search_file_{false};
+  int64 offset_;
 
   bool use_cdn_ = false;
   DcId cdn_dc_id_;
@@ -84,7 +85,8 @@ class FileDownloader : public FileLoader {
   Result<bool> should_restart_part(Part part, NetQueryPtr &net_query) override TD_WARN_UNUSED_RESULT;
   Result<std::pair<NetQueryPtr, bool>> start_part(Part part, int32 part_count) override TD_WARN_UNUSED_RESULT;
   Result<size_t> process_part(Part part, NetQueryPtr net_query) override TD_WARN_UNUSED_RESULT;
-  void on_progress(int32 part_count, int32 part_size, int32 ready_part_count, bool is_ready, int64 ready_size) override;
+  void on_progress(int32 part_count, int32 part_size, int32 ready_part_count, string ready_bitmask, bool is_ready,
+                   int64 ready_size) override;
   FileLoader::Callback *get_callback() override;
   Status process_check_query(NetQueryPtr net_query) override;
   Result<CheckInfo> check_loop(int64 checked_prefix_size, int64 ready_prefix_size, bool is_ready) override;

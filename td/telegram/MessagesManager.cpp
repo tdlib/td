@@ -6224,7 +6224,7 @@ void MessagesManager::load_secret_thumbnail(FileId thumbnail_file_id) {
       });
 
   send_closure(G()->file_manager(), &FileManager::download, thumbnail_file_id,
-               std::make_shared<Callback>(std::move(download_promise)), 1);
+               std::make_shared<Callback>(std::move(download_promise)), 1, -1);
 }
 
 void MessagesManager::on_upload_media(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file,

@@ -380,4 +380,8 @@ detail::reversion_wrapper<T> reversed(T &iterable) {
   return {iterable};
 }
 
+std::string zero_encode(Slice data);
+std::string zero_decode(Slice data);
+std::string zero_one_encode(Slice data);
+std::string zero_one_decode(Slice data);
 }  // namespace td

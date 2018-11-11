@@ -83,10 +83,11 @@ class FileDownloadGenerateActor : public FileGenerateActor {
       ActorId<FileDownloadGenerateActor> parent_;
     };
 
-    send_closure(G()->file_manager(), &FileManager::download, file_id_, std::make_shared<Callback>(actor_id(this)), 1);
+    send_closure(G()->file_manager(), &FileManager::download, file_id_, std::make_shared<Callback>(actor_id(this)), 1,
+                 -1);
   }
   void hangup() override {
-    send_closure(G()->file_manager(), &FileManager::download, file_id_, nullptr, 0);
+    send_closure(G()->file_manager(), &FileManager::download, file_id_, nullptr, 0, 0);
     stop();
   }
 
@@ -302,8 +303,9 @@ class FileExternalGenerateActor : public FileGenerateActor {
     if (local_prefix_size < 0) {
       return Status::Error(1, "Invalid local prefix size");
     }
-    callback_->on_partial_generate(
-        PartialLocalFileLocation{generate_location_.file_type_, path_, 1, local_prefix_size, ""}, expected_size);
+    callback_->on_partial_generate(PartialLocalFileLocation{generate_location_.file_type_, path_, local_prefix_size,
+                                                            Bitmask(Bitmask::Ones{}, 1).encode(), ""},
+                                   expected_size);
     return Status::OK();
   }
 

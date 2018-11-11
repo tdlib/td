@@ -32,7 +32,7 @@ namespace td {
 
 FileDownloader::FileDownloader(const FullRemoteFileLocation &remote, const LocalFileLocation &local, int64 size,
                                string name, const FileEncryptionKey &encryption_key, bool is_small, bool search_file,
-                               unique_ptr<Callback> callback)
+                               int64 offset, unique_ptr<Callback> callback)
     : remote_(remote)
     , local_(local)
     , size_(size)
@@ -40,9 +40,13 @@ FileDownloader::FileDownloader(const FullRemoteFileLocation &remote, const Local
     , encryption_key_(encryption_key)
     , callback_(std::move(callback))
     , is_small_(is_small)
-    , search_file_(search_file) {
+    , search_file_(search_file)
+    , offset_(offset) {
   if (encryption_key.is_secret()) {
     set_ordered_flag(true);
+  }
+  if (!encryption_key.empty()) {
+    CHECK(offset_ == 0);
   }
 }
 
@@ -59,22 +63,22 @@ Result<FileLoader::FileInfo> FileDownloader::init() {
   if (remote_.file_type_ == FileType::Secure) {
     size_ = 0;
   }
-  int ready_part_count = 0;
   int32 part_size = 0;
+  Bitmask bitmask{Bitmask::Ones{}, 0};
   if (local_.type() == LocalFileLocation::Type::Partial) {
     const auto &partial = local_.partial();
     path_ = partial.path_;
     auto result_fd = FileFd::open(path_, FileFd::Write | FileFd::Read);
     // TODO: check timestamps..
     if (result_fd.is_ok()) {
+      bitmask = Bitmask(Bitmask::Decode{}, partial.ready_bitmask_);
       if (encryption_key_.is_secret()) {
         CHECK(partial.iv_.size() == 32) << partial.iv_.size();
         encryption_key_.mutable_iv() = as<UInt256>(partial.iv_.data());
-        next_part_ = partial.ready_part_count_;
+        next_part_ = narrow_cast<int32>(bitmask.get_ready_parts(0));
       }
       fd_ = result_fd.move_as_ok();
       part_size = partial.part_size_;
-      ready_part_count = partial.ready_part_count_;
     }
   }
   if (search_file_ && fd_.empty() && size_ > 0 && size_ < 1000 * (1 << 20) && encryption_key_.empty() &&
@@ -88,27 +92,23 @@ Result<FileLoader::FileInfo> FileDownloader::init() {
       need_check_ = true;
       only_check_ = true;
       part_size = 32 * (1 << 10);
-      ready_part_count = narrow_cast<int>((size_ + part_size - 1) / part_size);
+      bitmask = Bitmask{Bitmask::Ones{}, (size_ + part_size - 1) / part_size};
       return Status::OK();
     }();
-  }
-
-  std::vector<int> parts(ready_part_count);
-  for (int i = 0; i < ready_part_count; i++) {
-    parts[i] = i;
   }
 
   FileInfo res;
   res.size = size_;
   res.is_size_final = true;
   res.part_size = part_size;
-  res.ready_parts = std::move(parts);
+  res.ready_parts = bitmask.as_vector();
   res.use_part_count_limit = false;
   res.only_check = only_check_;
   res.need_delay = !is_small_ && (remote_.file_type_ == FileType::VideoNote ||
                                   remote_.file_type_ == FileType::VoiceNote || remote_.file_type_ == FileType::Audio ||
                                   remote_.file_type_ == FileType::Video || remote_.file_type_ == FileType::Animation ||
                                   (remote_.file_type_ == FileType::Encrypted && size_ > (1 << 20)));
+  res.offset = offset_;
   return res;
 }
 Status FileDownloader::on_ok(int64 size) {
@@ -345,8 +345,8 @@ Result<size_t> FileDownloader::process_part(Part part, NetQueryPtr net_query) {
   }
   return written;
 }
-void FileDownloader::on_progress(int32 part_count, int32 part_size, int32 ready_part_count, bool is_ready,
-                                 int64 ready_size) {
+void FileDownloader::on_progress(int32 part_count, int32 part_size, int32 ready_part_count, string ready_bitmask,
+                                 bool is_ready, int64 ready_size) {
   if (is_ready) {
     // do not send partial location. will lead to wrong local_size
     return;
@@ -355,7 +355,7 @@ void FileDownloader::on_progress(int32 part_count, int32 part_size, int32 ready_
     return;
   }
   if (encryption_key_.empty() || encryption_key_.is_secure()) {
-    callback_->on_partial_download(PartialLocalFileLocation{remote_.file_type_, path_, part_size, ready_part_count, ""},
+    callback_->on_partial_download(PartialLocalFileLocation{remote_.file_type_, path_, part_size, "", ready_bitmask},
                                    ready_size);
   } else if (encryption_key_.is_secret()) {
     UInt256 iv;
@@ -365,8 +365,7 @@ void FileDownloader::on_progress(int32 part_count, int32 part_size, int32 ready_
       LOG(FATAL) << tag("ready_part_count", ready_part_count) << tag("next_part", next_part_);
     }
     callback_->on_partial_download(
-        PartialLocalFileLocation{remote_.file_type_, path_, part_size, ready_part_count, as_slice(iv).str()},
-        ready_size);
+        PartialLocalFileLocation{remote_.file_type_, path_, part_size, as_slice(iv).str(), ready_bitmask}, ready_size);
   } else {
     UNREACHABLE();
   }

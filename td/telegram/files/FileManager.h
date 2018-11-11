@@ -56,8 +56,9 @@ class FileNode {
       , encryption_key_(std::move(key))
       , main_file_id_(main_file_id)
       , main_file_id_priority_(main_file_id_priority) {
+    init_ready_size();
   }
-  void set_local_location(const LocalFileLocation &local, int64 ready_size);
+  void set_local_location(const LocalFileLocation &local, int64 ready_size, Bitmask::ReadySize ready_prefix_size = {});
   void set_remote_location(const RemoteFileLocation &remote, FileLocationSource source, int64 ready_size);
   void set_generate_location(unique_ptr<FullGenerateFileLocation> &&generate);
   void set_size(int64 size);
@@ -70,6 +71,9 @@ class FileNode {
   void set_download_priority(int8 priority);
   void set_upload_priority(int8 priority);
   void set_generate_priority(int8 download_priority, int8 upload_priority);
+
+  void set_download_offset(int64 download_offset);
+  void recalc_ready_prefix_size(Bitmask::ReadySize ready_prefix_size);
 
   void on_changed();
   void on_info_changed();
@@ -90,6 +94,8 @@ class FileNode {
   LocalFileLocation local_;
   FileLoadManager::QueryId upload_id_ = 0;
   int64 local_ready_size_ = 0;
+  int64 download_offset_ = 0;
+  int64 local_ready_prefix_size_ = 0;
 
   RemoteFileLocation remote_;
   FileLoadManager::QueryId download_id_ = 0;
@@ -118,6 +124,7 @@ class FileNode {
   int8 generate_upload_priority_ = 0;
 
   int8 main_file_id_priority_ = 0;
+  bool is_download_offset_dirty_ = false;
 
   FileLocationSource remote_source_ = FileLocationSource::FromUser;
 
@@ -131,6 +138,9 @@ class FileNode {
 
   bool pmc_changed_flag_{false};
   bool info_changed_flag_{false};
+  bool offset_changed_flags_{false};
+
+  void init_ready_size();
 };
 
 class FileManager;
@@ -209,6 +219,8 @@ class FileView {
   int64 size() const;
   int64 expected_size() const;
   bool is_downloading() const;
+  int64 download_offset() const;
+  int64 downloaded_prefix(int64 offset) const;
   int64 local_size() const;
   int64 local_total_size() const;
   bool is_uploading() const;
@@ -327,7 +339,8 @@ class FileManager : public FileLoadManager::Callback {
   bool set_encryption_key(FileId file_id, FileEncryptionKey key);
   bool set_content(FileId file_id, BufferSlice bytes);
 
-  void download(FileId file_id, std::shared_ptr<DownloadCallback> callback, int32 new_priority);
+  void download(FileId file_id, std::shared_ptr<DownloadCallback> callback, int32 new_priority, int64 offset);
+  void download_set_offset(FileId file_id, int64 offset);
   void upload(FileId file_id, std::shared_ptr<UploadCallback> callback, int32 new_priority, uint64 upload_order);
   void resume_upload(FileId file_id, std::vector<int> bad_parts, std::shared_ptr<UploadCallback> callback,
                      int32 new_priority, uint64 upload_order);

@@ -107,7 +107,9 @@ Result<FileLoader::PrefixInfo> FileUploader::on_update_local_location(const Loca
     file_type = FileType::Temp;
   } else if (location.type() == LocalFileLocation::Type::Partial) {
     path = location.partial().path_;
-    local_size = static_cast<int64>(location.partial().part_size_) * location.partial().ready_part_count_;
+    local_size = Bitmask(Bitmask::Decode{}, location.partial().ready_bitmask_)
+                     .get_ready_size(0, location.partial().part_size_)
+                     .ready_size;
     local_is_ready = false;
     file_type = location.partial().file_type_;
   } else {
@@ -292,8 +294,8 @@ Result<size_t> FileUploader::process_part(Part part, NetQueryPtr net_query) {
   return part.size;
 }
 
-void FileUploader::on_progress(int32 part_count, int32 part_size, int32 ready_part_count, bool is_ready,
-                               int64 ready_size) {
+void FileUploader::on_progress(int32 part_count, int32 part_size, int32 ready_part_count, std::string bitmask,
+                               bool is_ready, int64 ready_size) {
   callback_->on_partial_upload(PartialRemoteFileLocation{file_id_, part_count, part_size, ready_part_count, big_flag_},
                                ready_size);
   if (is_ready) {

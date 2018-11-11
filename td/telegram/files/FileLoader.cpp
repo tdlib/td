@@ -63,6 +63,15 @@ void FileLoader::update_local_file_location(const LocalFileLocation &local) {
   loop();
 }
 
+void FileLoader::update_download_offset(int64 offset) {
+  parts_manager_.set_streaming_offset(offset);
+  //TODO: cancel only some queries
+  for (auto &it : part_map_) {
+    it.second.second.reset();  // cancel_query(it.second.second);
+  }
+  loop();
+}
+
 void FileLoader::start_up() {
   auto r_file_info = init();
   if (r_file_info.is_error()) {
@@ -78,14 +87,15 @@ void FileLoader::start_up() {
   auto &ready_parts = file_info.ready_parts;
   auto use_part_count_limit = file_info.use_part_count_limit;
   auto status = parts_manager_.init(size, expected_size, is_size_final, part_size, ready_parts, use_part_count_limit);
-  if (file_info.only_check) {
-    parts_manager_.set_checked_prefix_size(0);
-  }
   if (status.is_error()) {
     on_error(std::move(status));
     stop_flag_ = true;
     return;
   }
+  if (file_info.only_check) {
+    parts_manager_.set_checked_prefix_size(0);
+  }
+  parts_manager_.set_streaming_offset(file_info.offset);
   if (ordered_flag_) {
     ordered_parts_ = OrderedEventsProcessor<std::pair<Part, NetQueryPtr>>(parts_manager_.get_ready_prefix_count());
   }
@@ -289,6 +299,7 @@ Status FileLoader::try_on_part_query(Part part, NetQueryPtr query) {
 
 void FileLoader::on_progress_impl(size_t size) {
   on_progress(parts_manager_.get_part_count(), static_cast<int32>(parts_manager_.get_part_size()),
-              parts_manager_.get_ready_prefix_count(), parts_manager_.ready(), parts_manager_.get_ready_size());
+              parts_manager_.get_ready_prefix_count(), parts_manager_.get_bitmask(), parts_manager_.ready(),
+              parts_manager_.get_ready_size());
 }
 }  // namespace td

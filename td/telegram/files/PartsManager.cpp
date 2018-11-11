@@ -29,6 +29,27 @@ Status PartsManager::init_known_prefix(int64 known_prefix, size_t part_size, con
   return init_no_size(part_size, ready_parts);
 }
 
+void PartsManager::set_streaming_offset(int64 offset) {
+  if (need_check_ || (!unknown_size_flag_ && get_size() < offset)) {
+    streaming_offset_ = 0;
+    return;
+  }
+
+  auto part_i = offset / part_size_;
+  if (part_i > MAX_PART_COUNT || part_i < 0) {
+    streaming_offset_ = 0;
+    // error?
+    return;
+  }
+
+  streaming_offset_ = offset;
+  first_streaming_empty_part_ = narrow_cast<int>(part_i);
+  if (part_count_ <= first_streaming_empty_part_) {
+    part_count_ = first_streaming_empty_part_ + 1;
+    part_status_.resize(part_count_, PartStatus::Empty);
+  }
+}
+
 Status PartsManager::init_no_size(size_t part_size, const std::vector<int> &ready_parts) {
   unknown_size_flag_ = true;
   size_ = 0;
@@ -121,6 +142,14 @@ void PartsManager::update_first_empty_part() {
   while (first_empty_part_ < part_count_ && part_status_[first_empty_part_] != PartStatus::Empty) {
     first_empty_part_++;
   }
+
+  if (streaming_offset_ == 0) {
+    first_streaming_empty_part_ = first_empty_part_;
+    return;
+  }
+  while (first_streaming_empty_part_ < part_count_ && part_status_[first_streaming_empty_part_] != PartStatus::Empty) {
+    first_streaming_empty_part_++;
+  }
 }
 
 void PartsManager::update_first_not_ready_part() {
@@ -144,10 +173,14 @@ int32 PartsManager::get_ready_prefix_count() {
   }
   return res;
 }
+string PartsManager::get_bitmask() const {
+  return bitmask_.encode();
+}
 
 Result<Part> PartsManager::start_part() {
   update_first_empty_part();
-  if (first_empty_part_ == part_count_) {
+  auto part_i = first_streaming_empty_part_;
+  if (part_i == part_count_) {
     if (unknown_size_flag_) {
       if (known_prefix_flag_ == false) {
         part_count_++;
@@ -159,13 +192,16 @@ Result<Part> PartsManager::start_part() {
         return Status::Error(1, "Wait for prefix to be known");
       }
     } else {
-      return get_empty_part();
+      if (first_empty_part_ < part_count_) {
+        part_i = first_empty_part_;
+      } else {
+        return get_empty_part();
+      }
     }
   }
-  CHECK(part_status_[first_empty_part_] == PartStatus::Empty);
-  int id = first_empty_part_;
-  on_part_start(id);
-  return get_part(id);
+  CHECK(part_status_[part_i] == PartStatus::Empty);
+  on_part_start(part_i);
+  return get_part(part_i);
 }
 
 Status PartsManager::set_known_prefix(size_t size, bool is_ready) {
@@ -200,6 +236,7 @@ Status PartsManager::on_part_ok(int32 id, size_t part_size, size_t actual_size) 
   pending_count_--;
 
   part_status_[id] = PartStatus::Ready;
+  bitmask_.set(id);
   ready_size_ += narrow_cast<int64>(actual_size);
 
   VLOG(files) << "Transferred part " << id << " of size " << part_size << ", total ready size = " << ready_size_;
@@ -241,6 +278,14 @@ void PartsManager::on_part_failed(int32 id) {
   if (id < first_empty_part_) {
     first_empty_part_ = id;
   }
+  if (streaming_offset_ == 0) {
+    first_streaming_empty_part_ = id;
+    return;
+  }
+  auto part_i = narrow_cast<int>(streaming_offset_ / part_size_);
+  if (id >= part_i && id < first_streaming_empty_part_) {
+    first_streaming_empty_part_ = id;
+  }
 }
 
 int64 PartsManager::get_size() const {
@@ -280,6 +325,7 @@ void PartsManager::init_common(const std::vector<int> &ready_parts) {
   for (auto i : ready_parts) {
     CHECK(0 <= i && i < part_count_) << tag("i", i) << tag("part_count", part_count_);
     part_status_[i] = PartStatus::Ready;
+    bitmask_.set(i);
     auto part = get_part(i);
     ready_size_ += narrow_cast<int64>(part.size);
   }
@@ -289,6 +335,7 @@ void PartsManager::init_common(const std::vector<int> &ready_parts) {
 
 void PartsManager::set_need_check() {
   need_check_ = true;
+  set_streaming_offset(0);
 }
 
 void PartsManager::set_checked_prefix_size(int64 size) {

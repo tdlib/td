@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/files/FileBitmask.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
@@ -909,8 +910,8 @@ struct PartialLocalFileLocation {
   FileType file_type_;
   string path_;
   int32 part_size_;
-  int32 ready_part_count_;
   string iv_;
+  string ready_bitmask_;
 
   template <class StorerT>
   void store(StorerT &storer) const {
@@ -918,8 +919,10 @@ struct PartialLocalFileLocation {
     store(file_type_, storer);
     store(path_, storer);
     store(part_size_, storer);
-    store(ready_part_count_, storer);
+    int32 deprecated_ready_part_count = -1;
+    store(deprecated_ready_part_count, storer);
     store(iv_, storer);
+    store(ready_bitmask_, storer);
   }
   template <class ParserT>
   void parse(ParserT &parser) {
@@ -930,14 +933,20 @@ struct PartialLocalFileLocation {
     }
     parse(path_, parser);
     parse(part_size_, parser);
-    parse(ready_part_count_, parser);
+    int32 deprecated_ready_part_count;
+    parse(deprecated_ready_part_count, parser);
     parse(iv_, parser);
+    if (deprecated_ready_part_count == -1) {
+      parse(ready_bitmask_, parser);
+    } else {
+      ready_bitmask_ = Bitmask(Bitmask::Ones{}, deprecated_ready_part_count).encode();
+    }
   }
 };
 
 inline bool operator==(const PartialLocalFileLocation &lhs, const PartialLocalFileLocation &rhs) {
   return lhs.file_type_ == rhs.file_type_ && lhs.path_ == rhs.path_ && lhs.part_size_ == rhs.part_size_ &&
-         lhs.ready_part_count_ == rhs.ready_part_count_ && lhs.iv_ == rhs.iv_;
+         lhs.iv_ == rhs.iv_ && lhs.ready_bitmask_ == rhs.ready_bitmask_;
 }
 
 inline bool operator!=(const PartialLocalFileLocation &lhs, const PartialLocalFileLocation &rhs) {
