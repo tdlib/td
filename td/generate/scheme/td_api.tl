@@ -3447,7 +3447,7 @@ setLogVerbosityLevel new_verbosity_level:int32 = Ok;
 //@description Returns current verbosity level of the internal logging of TDLib. This is an offline method. Can be called before authorization. Can be called synchronously
 getLogVerbosityLevel = LogVerbosityLevel;
 
-//@description Returns list of available TDLib internal log tags. Currently returns ["td_init", "update_file", "connections", "binlog", "proxy", "net_query", "td_requests", "dc", "files", "mtproto", "raw_mtproto", "fd", "actor", "buffer", "sqlite"]
+//@description Returns list of available TDLib internal log tags. Currently returns ["td_init", "update_file", "connections", "binlog", "proxy", "net_query", "td_requests", "dc", "files", "mtproto", "raw_mtproto", "fd", "actor", "buffer", "sqlite", "notifications"]
 getLogTags = LogTags;
 
 //@description Sets the verbosity level for a specified TDLib internal log tag. This is an offline method. Can be called before authorization. Can be called synchronously

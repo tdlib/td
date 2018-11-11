@@ -3769,6 +3769,8 @@ void Td::clear() {
   LOG(DEBUG) << "InlineQueriesManager actor was cleared " << timer;
   messages_manager_actor_.reset();  // TODO: Stop silent
   LOG(DEBUG) << "MessagesManager actor was cleared " << timer;
+  notification_manager_actor_.reset();
+  LOG(DEBUG) << "NotificationManager actor was cleared " << timer;
   stickers_manager_actor_.reset();
   LOG(DEBUG) << "StickersManager actor was cleared " << timer;
   updates_manager_actor_.reset();
@@ -4028,7 +4030,6 @@ Status Td::init(DbKey key) {
   audios_manager_ = make_unique<AudiosManager>(this);
   callback_queries_manager_ = make_unique<CallbackQueriesManager>(this);
   documents_manager_ = make_unique<DocumentsManager>(this);
-  notification_manager_ = make_unique<NotificationManager>(this);
   video_notes_manager_ = make_unique<VideoNotesManager>(this);
   videos_manager_ = make_unique<VideosManager>(this);
   voice_notes_manager_ = make_unique<VoiceNotesManager>(this);
@@ -4044,6 +4045,9 @@ Status Td::init(DbKey key) {
   messages_manager_ = make_unique<MessagesManager>(this, create_reference());
   messages_manager_actor_ = register_actor("MessagesManager", messages_manager_.get());
   G()->set_messages_manager(messages_manager_actor_.get());
+  notification_manager_ = make_unique<NotificationManager>(this, create_reference());
+  notification_manager_actor_ = register_actor("NotificationManager", notification_manager_.get());
+  G()->set_notification_manager(notification_manager_actor_.get());
   stickers_manager_ = make_unique<StickersManager>(this, create_reference());
   stickers_manager_actor_ = register_actor("StickersManager", stickers_manager_.get());
   G()->set_stickers_manager(stickers_manager_actor_.get());

@@ -36,6 +36,16 @@ class NotificationGroupId {
     return id == other.id;
   }
 
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    storer.store_int(id);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    id = parser.fetch_int();
+  }
+
  private:
   int32 id{0};
 };
@@ -47,7 +57,7 @@ struct NotificationGroupIdHash {
 };
 
 inline StringBuilder &operator<<(StringBuilder &sb, const NotificationGroupId group_id) {
-  return sb << "NotificationGroup(" << group_id.get() << ")";
+  return sb << "notification group " << group_id.get();
 }
 
 }  // namespace td

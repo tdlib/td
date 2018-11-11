@@ -6,7 +6,7 @@
 //
 #pragma once
 
-#include "td/actor/PromiseFuture.h"
+#include "td/telegram/TdParameters.h"
 
 #include "td/db/binlog/Binlog.h"
 #include "td/db/binlog/BinlogEvent.h"
@@ -15,7 +15,7 @@
 #include "td/db/DbKey.h"
 #include "td/db/Pmc.h"
 
-#include "td/telegram/TdParameters.h"
+#include "td/actor/PromiseFuture.h"
 
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"

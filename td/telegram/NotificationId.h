@@ -36,6 +36,16 @@ class NotificationId {
     return id == other.id;
   }
 
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    storer.store_int(id);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    id = parser.fetch_int();
+  }
+
  private:
   int32 id{0};
 };
@@ -47,7 +57,7 @@ struct NotificationIdHash {
 };
 
 inline StringBuilder &operator<<(StringBuilder &sb, const NotificationId notification_id) {
-  return sb << "Notification(" << notification_id.get() << ")";
+  return sb << "notification " << notification_id.get();
 }
 
 }  // namespace td

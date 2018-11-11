@@ -42,6 +42,7 @@ class LanguagePackManager;
 class MessagesManager;
 class MtprotoHeader;
 class NetQueryDispatcher;
+class NotificationManager;
 class PasswordManager;
 class SecretChatsManager;
 class StateManager;
@@ -189,6 +190,13 @@ class Global : public ActorContext {
     messages_manager_ = messages_manager;
   }
 
+  ActorId<NotificationManager> notification_manager() const {
+    return notification_manager_;
+  }
+  void set_notification_manager(ActorId<NotificationManager> notification_manager) {
+    notification_manager_ = notification_manager;
+  }
+
   ActorId<PasswordManager> password_manager() const {
     return password_manager_;
   }
@@ -333,6 +341,7 @@ class Global : public ActorContext {
   ActorId<FileManager> file_manager_;
   ActorId<LanguagePackManager> language_pack_manager_;
   ActorId<MessagesManager> messages_manager_;
+  ActorId<NotificationManager> notification_manager_;
   ActorId<PasswordManager> password_manager_;
   ActorId<SecretChatsManager> secret_chats_manager_;
   ActorId<StickersManager> stickers_manager_;

@@ -11,23 +11,27 @@
 #include "td/telegram/NotificationId.h"
 #include "td/telegram/NotificationType.h"
 
+#include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/common.h"
 
 namespace td {
 
+extern int VERBOSITY_NAME(notifications);
+
 class Td;
 
-class NotificationManager {
+class NotificationManager : public Actor {
  public:
-  explicit NotificationManager(Td *td);
+  NotificationManager(Td *td, ActorShared<> parent);
 
   NotificationId get_next_notification_id();
 
-  void add_notification(NotificationGroupId group_id, int32 total_count, DialogId dialog_id,
-                        DialogId notification_settings_dialog_id, bool silent, NotificationId notification_id,
-                        unique_ptr<NotificationType> type);
+  NotificationGroupId get_next_notification_group_id();
+
+  void add_notification(NotificationGroupId group_id, DialogId dialog_id, DialogId notification_settings_dialog_id,
+                        bool silent, NotificationId notification_id, unique_ptr<NotificationType> type);
 
   void edit_notification(NotificationId notification_id, unique_ptr<NotificationType> type);
 
@@ -39,7 +43,14 @@ class NotificationManager {
                                  Promise<Unit> &&promise);
 
  private:
+  void start_up() override;
+  void tear_down() override;
+
+  NotificationId current_notification_id_;
+  NotificationGroupId current_notification_group_id_;
+
   Td *td_;
+  ActorShared<> parent_;
 };
 
 }  // namespace td

@@ -10,14 +10,6 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
-#include "td/actor/actor.h"
-#include "td/actor/MultiPromise.h"
-#include "td/actor/PromiseFuture.h"
-#include "td/actor/SignalSlot.h"
-#include "td/actor/Timeout.h"
-
-#include "td/db/binlog/BinlogEvent.h"
-
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/Dependencies.h"
@@ -31,11 +23,21 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesDb.h"
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/NotificationGroupId.h"
+#include "td/telegram/NotificationId.h"
 #include "td/telegram/NotificationSettings.h"
 #include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/UserId.h"
+
+#include "td/db/binlog/BinlogEvent.h"
+
+#include "td/actor/actor.h"
+#include "td/actor/MultiPromise.h"
+#include "td/actor/PromiseFuture.h"
+#include "td/actor/SignalSlot.h"
+#include "td/actor/Timeout.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/ChangesProcessor.h"
@@ -782,6 +784,8 @@ class MessagesManager : public Actor {
     bool have_next = false;
     bool from_database = false;
 
+    NotificationId notification_id;
+
     int32 views = 0;
 
     int32 ttl = 0;
@@ -861,6 +865,8 @@ class MessagesManager : public Actor {
     MessageId deleted_last_message_id;
 
     MessageId max_added_message_id;
+
+    NotificationGroupId message_notification_group_id;
 
     bool has_contact_registered_message = false;
 
@@ -1444,9 +1450,11 @@ class MessagesManager : public Actor {
   bool update_message_content(DialogId dialog_id, Message *old_message, unique_ptr<MessageContent> new_content,
                               bool need_send_update_message_content, bool need_merge_files);
 
-  void send_update_new_message(Dialog *d, const Message *m);
+  void send_update_new_message(const Dialog *d, const Message *m);
 
-  void add_new_message_notification(Dialog *d, const Message *m, bool force);
+  NotificationGroupId get_dialog_message_notification_group_id(Dialog *d);
+
+  void add_new_message_notification(Dialog *d, Message *m, bool force);
 
   void flush_pending_new_message_notifications(DialogId dialog_id);
 
