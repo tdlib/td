@@ -36,6 +36,10 @@ class NotificationGroupId {
     return id == other.id;
   }
 
+  bool operator!=(const NotificationGroupId &other) const {
+    return id != other.id;
+  }
+
   template <class StorerT>
   void store(StorerT &storer) const {
     storer.store_int(id);

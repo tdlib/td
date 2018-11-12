@@ -43,11 +43,39 @@ class NotificationManager : public Actor {
                                  Promise<Unit> &&promise);
 
  private:
+  struct Notification {
+    NotificationId notification_id;
+    unique_ptr<NotificationType> type;
+  };
+
+  struct PendingNotification {
+    DialogId settings_dialog_id;
+    bool silent = false;
+    NotificationId notification_id;
+    unique_ptr<NotificationType> type;
+  };
+
+  struct NotificationGroup {
+    DialogId dialog_id;
+    int32 total_count = 0;
+
+    vector<Notification> notifications;
+    vector<PendingNotification> pending_notifications;
+  };
+
+  bool is_disabled() const;
+
   void start_up() override;
   void tear_down() override;
 
   NotificationId current_notification_id_;
   NotificationGroupId current_notification_group_id_;
+
+  static constexpr int32 DEFAULT_NOTIFICATION_GROUP_COUNT_MAX = 10;
+  static constexpr int32 DEFAULT_NOTIFICATION_GROUP_SIZE_MAX = 10;
+
+  int32 max_notification_group_count_;
+  int32 max_notification_group_size_;
 
   Td *td_;
   ActorShared<> parent_;

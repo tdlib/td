@@ -867,6 +867,7 @@ class MessagesManager : public Actor {
     MessageId max_added_message_id;
 
     NotificationGroupId message_notification_group_id;
+    int32 last_notification_date = 0;
 
     bool has_contact_registered_message = false;
 
@@ -1542,6 +1543,8 @@ class MessagesManager : public Actor {
   void set_dialog_reply_markup(Dialog *d, MessageId message_id);
 
   void try_restore_dialog_reply_markup(Dialog *d, const Message *m);
+
+  void set_dialog_last_notification_date(Dialog *d, int32 last_notification_date);
 
   static string get_notification_settings_scope_database_key(NotificationSettingsScope scope);
 
