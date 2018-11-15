@@ -691,7 +691,7 @@ void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updat
     }
     case telegram_api::updateShort::ID: {
       auto update = move_tl_object_as<telegram_api::updateShort>(updates_ptr);
-      LOG(DEBUG) << "Receive " << to_string(update);
+      LOG(DEBUG) << "Receive " << oneline(to_string(update));
       if (!is_acceptable_update(update->update_.get())) {
         LOG(ERROR) << "Receive unacceptable short update: " << td::oneline(to_string(update));
         return get_difference("unacceptable short update");

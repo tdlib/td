@@ -1101,6 +1101,9 @@ class ContactsManager : public Actor {
   MultiPromiseActor load_contact_users_multipromise_;
   int32 saved_contact_count_ = -1;
 
+  int32 was_online_local_ = 0;
+  int32 was_online_remote_ = 0;
+
   bool are_imported_contacts_loaded_ = false;
   vector<Promise<Unit>> load_imported_contacts_queries_;
   MultiPromiseActor load_imported_contact_users_multipromise_;

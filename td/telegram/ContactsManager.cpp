@@ -25,6 +25,7 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/NotificationManager.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Photo.hpp"
 #include "td/telegram/SecretChatActor.h"
@@ -2330,6 +2331,12 @@ ContactsManager::ContactsManager(Td *td, ActorShared<> parent) : td_(td), parent
     G()->td_db()->get_binlog_pmc()->erase("saved_contact_count");
   }
 
+  was_online_local_ = to_integer<int32>(G()->td_db()->get_binlog_pmc()->get("my_was_online_local"));
+  was_online_remote_ = to_integer<int32>(G()->td_db()->get_binlog_pmc()->get("my_was_online_remote"));
+  if (was_online_local_ >= G()->unix_time_cached() && !td_->is_online()) {
+    was_online_local_ = G()->unix_time_cached() - 1;
+  }
+
   user_online_timeout_.set_callback(on_user_online_timeout_callback);
   user_online_timeout_.set_callback_data(static_cast<void *>(this));
 
@@ -3075,6 +3082,10 @@ void ContactsManager::set_my_id(UserId my_id) {
 }
 
 void ContactsManager::set_my_online_status(bool is_online, bool send_update, bool is_local) {
+  if (td_->auth_manager_->is_bot()) {
+    return;  // just in case
+  }
+
   auto my_id = get_my_id();
   User *u = get_user_force(my_id);
   if (u != nullptr) {
@@ -3104,6 +3115,12 @@ void ContactsManager::set_my_online_status(bool is_online, bool send_update, boo
       }
     }
 
+    if (was_online_local_ != new_online) {
+      was_online_local_ = new_online;
+      VLOG(notifications) << "Set was_online_local to " << was_online_local_;
+      G()->td_db()->get_binlog_pmc()->set("my_was_online_local", to_string(was_online_local_));
+    }
+
     if (send_update) {
       update_user(u, my_id);
     }
@@ -3111,15 +3128,11 @@ void ContactsManager::set_my_online_status(bool is_online, bool send_update, boo
 }
 
 ContactsManager::MyOnlineStatusInfo ContactsManager::get_my_online_status() const {
-  auto my_id = get_my_id();
-  const User *u = get_user(my_id);
-  int32 was_online = my_was_online_local_ != 0 ? my_was_online_local_ : (u == nullptr ? 0 : u->was_online);
-
   MyOnlineStatusInfo status_info;
   status_info.is_online_local = td_->is_online();
-  status_info.is_online_remote = false;        // TODO
-  status_info.was_online_local = was_online;   // TODO
-  status_info.was_online_remote = was_online;  // TODO
+  status_info.is_online_remote = was_online_remote_ > G()->unix_time_cached();
+  status_info.was_online_local = was_online_local_;
+  status_info.was_online_remote = was_online_remote_;
 
   return status_info;
 }
@@ -4890,8 +4903,12 @@ void ContactsManager::on_get_contacts_finished(size_t expected_contact_count) {
 }
 
 void ContactsManager::on_get_contacts_statuses(vector<tl_object_ptr<telegram_api::contactStatus>> &&statuses) {
+  auto my_user_id = get_my_id();
   for (auto &status : statuses) {
-    on_update_user_online(UserId(status->user_id_), std::move(status->status_));
+    UserId user_id(status->user_id_);
+    if (user_id != my_user_id) {
+      on_update_user_online(user_id, std::move(status->status_));
+    }
   }
   save_next_contacts_sync_date();
 }
@@ -6741,8 +6758,18 @@ void ContactsManager::on_update_user_online(UserId user_id, tl_object_ptr<telegr
 
   User *u = get_user_force(user_id);
   if (u != nullptr) {
+    if (u->is_bot) {
+      LOG(ERROR) << "Receive updateUserStatus about bot " << user_id;
+      return;
+    }
     on_update_user_online(u, user_id, std::move(status));
     update_user(u, user_id);
+
+    if (user_id == get_my_id() && was_online_remote_ != u->was_online) {  // only update was_online_remote_ from updateUserStatus
+      was_online_remote_ = u->was_online;
+      VLOG(notifications) << "Set was_online_remote to " << was_online_remote_;
+      G()->td_db()->get_binlog_pmc()->set("my_was_online_remote", to_string(was_online_remote_));
+    }
   } else {
     LOG(INFO) << "Ignore update user online about unknown " << user_id;
   }
