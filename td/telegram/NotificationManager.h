@@ -57,6 +57,12 @@ class NotificationManager : public Actor {
 
   void on_notification_group_size_max_changed();
 
+  void on_online_cloud_timeout_changed();
+
+  void on_notification_cloud_delay_changed();
+
+  void on_notification_default_delay_changed();
+
  private:
   static constexpr int32 DEFAULT_GROUP_COUNT_MAX = 10;
   static constexpr int32 DEFAULT_GROUP_SIZE_MAX = 10;

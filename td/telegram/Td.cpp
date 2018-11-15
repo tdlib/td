@@ -3426,6 +3426,8 @@ bool Td::is_internal_config_option(Slice name) {
       return name == "language_pack_version";
     case 'm':
       return name == "my_phone_number";
+    case 'n':
+      return name == "notification_cloud_delay_ms" || name == "notification_default_delay_ms";
     case 'o':
       return name == "online_update_period_ms" || name == "online_cloud_timeout_ms";
     case 'r':
@@ -3489,6 +3491,12 @@ void Td::on_config_option_updated(const string &name) {
     send_closure(notification_manager_actor_, &NotificationManager::on_notification_group_count_max_changed);
   } else if (name == "notification_group_size_max") {
     send_closure(notification_manager_actor_, &NotificationManager::on_notification_group_size_max_changed);
+  } else if (name == "online_cloud_timeout_ms") {
+    return send_closure(notification_manager_actor_, &NotificationManager::on_online_cloud_timeout_changed);
+  } else if (name == "notification_cloud_delay_ms") {
+    return send_closure(notification_manager_actor_, &NotificationManager::on_notification_cloud_delay_changed);
+  } else if (name == "notification_default_delay_ms") {
+    return send_closure(notification_manager_actor_, &NotificationManager::on_notification_default_delay_changed);
   } else if (is_internal_config_option(name)) {
     return;
   }
