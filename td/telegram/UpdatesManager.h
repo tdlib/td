@@ -23,6 +23,8 @@
 
 namespace td {
 
+extern int VERBOSITY_NAME(get_difference);
+
 class Td;
 
 class UpdatesManager : public Actor {

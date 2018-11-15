@@ -47,6 +47,8 @@
 
 namespace td {
 
+int VERBOSITY_NAME(get_difference) = VERBOSITY_NAME(INFO);
+
 class OnUpdate {
   UpdatesManager *manager_;
   tl_object_ptr<telegram_api::Update> &update_;
@@ -126,7 +128,7 @@ class GetDifferenceQuery : public Td::ResultHandler {
       pts = 0;
     }
 
-    LOG(INFO) << tag("pts", pts) << tag("qts", qts) << tag("date", date);
+    VLOG(get_difference) << tag("pts", pts) << tag("qts", qts) << tag("date", date);
 
     send_query(
         G()->net_query_creator().create(create_storer(telegram_api::updates_getDifference(0, pts, 0, date, qts))));
@@ -238,12 +240,12 @@ void UpdatesManager::get_difference(const char *source) {
   }
 
   if (running_get_difference_) {
-    LOG(INFO) << "Skip running getDifference from " << source << " because it is already running";
+    VLOG(get_difference) << "Skip running getDifference from " << source << " because it is already running";
     return;
   }
   running_get_difference_ = true;
 
-  LOG(INFO) << "-----BEGIN GET DIFFERENCE----- from " << source;
+  VLOG(get_difference) << "-----BEGIN GET DIFFERENCE----- from " << source;
 
   before_get_difference();
 
@@ -730,7 +732,7 @@ void UpdatesManager::on_failed_get_difference() {
 }
 
 void UpdatesManager::schedule_get_difference(const char *source) {
-  LOG(INFO) << "Schedule getDifference from " << source;
+  VLOG(get_difference) << "Schedule getDifference from " << source;
   if (!retry_timeout_.has_timeout()) {
     retry_timeout_.set_callback(std::move(fill_get_difference_gap));
     retry_timeout_.set_callback_data(static_cast<void *>(td_));
@@ -748,7 +750,7 @@ void UpdatesManager::on_get_updates_state(tl_object_ptr<telegram_api::updates_st
     on_failed_get_difference();
     return;
   }
-  LOG(INFO) << "Receive " << oneline(to_string(state)) << " from " << source;
+  VLOG(get_difference) << "Receive " << oneline(to_string(state)) << " from " << source;
   // TODO use state->unread_count;
 
   if (get_pts() == std::numeric_limits<int32>::max()) {
@@ -929,8 +931,9 @@ void UpdatesManager::process_get_difference_updates(
     vector<tl_object_ptr<telegram_api::Message>> &&new_messages,
     vector<tl_object_ptr<telegram_api::EncryptedMessage>> &&new_encrypted_messages, int32 qts,
     vector<tl_object_ptr<telegram_api::Update>> &&other_updates) {
-  LOG(INFO) << "In get difference receive " << new_messages.size() << " messages, " << new_encrypted_messages.size()
-            << " encrypted messages and " << other_updates.size() << " other updates";
+  VLOG(get_difference) << "In get difference receive " << new_messages.size() << " messages, "
+                       << new_encrypted_messages.size() << " encrypted messages and " << other_updates.size()
+                       << " other updates";
   for (auto &update : other_updates) {
     auto constructor_id = update->get_id();
     if (constructor_id == telegram_api::updateMessageID::ID) {
@@ -968,7 +971,7 @@ void UpdatesManager::process_get_difference_updates(
 }
 
 void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Difference> &&difference_ptr) {
-  LOG(INFO) << "----- END  GET DIFFERENCE-----";
+  VLOG(get_difference) << "----- END  GET DIFFERENCE-----";
   running_get_difference_ = false;
 
   if (difference_ptr == nullptr) {
@@ -1054,7 +1057,7 @@ void UpdatesManager::after_get_difference() {
   }
 
   if (postponed_updates_.size()) {
-    LOG(INFO) << "Begin to apply postponed updates";
+    VLOG(get_difference) << "Begin to apply postponed updates";
     while (!postponed_updates_.empty()) {
       auto it = postponed_updates_.begin();
       auto updates = std::move(it->second.updates);
@@ -1064,11 +1067,11 @@ void UpdatesManager::after_get_difference() {
       postponed_updates_.erase(it);
       on_pending_updates(std::move(updates), updates_seq_begin, updates_seq_end, 0, "postponed updates");
       if (running_get_difference_) {
-        LOG(INFO) << "Finish to apply postponed updates because forced to run getDifference";
+        VLOG(get_difference) << "Finish to apply postponed updates because forced to run getDifference";
         return;
       }
     }
-    LOG(INFO) << "Finish to apply postponed updates";
+    VLOG(get_difference) << "Finish to apply postponed updates";
   }
 
   state_ = saved_state;

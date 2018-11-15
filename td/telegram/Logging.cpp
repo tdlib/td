@@ -10,6 +10,7 @@
 #include "td/telegram/net/ConnectionCreator.h"
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UpdatesManager.h"
 
 #include "tddb/td/db/binlog/BinlogEvent.h"
 
@@ -31,11 +32,12 @@ static NullLog null_log;
 
 #define ADD_TAG(tag) \
   { #tag, &VERBOSITY_NAME(tag) }
-static const std::unordered_map<Slice, int *, SliceHash> log_tags{
-    ADD_TAG(td_init), ADD_TAG(update_file), ADD_TAG(connections), ADD_TAG(binlog),
-    ADD_TAG(proxy),   ADD_TAG(net_query),   ADD_TAG(td_requests), ADD_TAG(dc),
-    ADD_TAG(files),   ADD_TAG(mtproto),     ADD_TAG(raw_mtproto), ADD_TAG(fd),
-    ADD_TAG(actor),   ADD_TAG(buffer),      ADD_TAG(sqlite),      ADD_TAG(notifications)};
+static const std::map<Slice, int *> log_tags{
+    ADD_TAG(td_init),       ADD_TAG(update_file), ADD_TAG(connections), ADD_TAG(binlog),
+    ADD_TAG(proxy),         ADD_TAG(net_query),   ADD_TAG(td_requests), ADD_TAG(dc),
+    ADD_TAG(files),         ADD_TAG(mtproto),     ADD_TAG(raw_mtproto), ADD_TAG(fd),
+    ADD_TAG(actor),         ADD_TAG(buffer),      ADD_TAG(sqlite),      ADD_TAG(notifications),
+    ADD_TAG(get_difference)};
 #undef ADD_TAG
 
 Status Logging::set_current_stream(td_api::object_ptr<td_api::LogStream> stream) {
