@@ -116,6 +116,9 @@ int32 NotificationManager::get_notification_delay_ms(DialogId dialog_id,
     if (dialog_id.get_type() == DialogType::SecretChat) {
       return 0;  // there is no reason to delay notifications in secret chats
     }
+    if (!notification.type->can_be_delayed()) {
+      return 0;
+    }
 
     auto online_info = td_->contacts_manager_->get_my_online_status();
     if (!online_info.is_online_local && online_info.is_online_remote) {

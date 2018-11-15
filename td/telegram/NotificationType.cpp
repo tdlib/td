@@ -12,6 +12,10 @@
 namespace td {
 
 class NotificationTypeMessage : public NotificationType {
+  bool can_be_delayed() const override {
+    return true;
+  }
+
   td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const override {
     auto message_object = G()->td().get_actor_unsafe()->messages_manager_->get_message_object({dialog_id, message_id_});
     if (message_object == nullptr) {
@@ -36,6 +40,10 @@ class NotificationTypeMessage : public NotificationType {
 };
 
 class NotificationTypeSecretChat : public NotificationType {
+  bool can_be_delayed() const override {
+    return false;
+  }
+
   td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const override {
     return td_api::make_object<td_api::notificationTypeNewSecretChat>();
   }
@@ -54,6 +62,10 @@ class NotificationTypeSecretChat : public NotificationType {
 };
 
 class NotificationTypeCall : public NotificationType {
+  bool can_be_delayed() const override {
+    return false;
+  }
+
   td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const override {
     return td_api::make_object<td_api::notificationTypeNewCall>(call_id_.get());
   }
