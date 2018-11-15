@@ -3110,6 +3110,20 @@ void ContactsManager::set_my_online_status(bool is_online, bool send_update, boo
   }
 }
 
+ContactsManager::MyOnlineStatusInfo ContactsManager::get_my_online_status() const {
+  auto my_id = get_my_id();
+  const User *u = get_user(my_id);
+  int32 was_online = my_was_online_local_ != 0 ? my_was_online_local_ : (u == nullptr ? 0 : u->was_online);
+
+  MyOnlineStatusInfo status_info;
+  status_info.is_online_local = td_->is_online();
+  status_info.is_online_remote = false;        // TODO
+  status_info.was_online_local = was_online;   // TODO
+  status_info.was_online_remote = was_online;  // TODO
+
+  return status_info;
+}
+
 UserId ContactsManager::get_service_notifications_user_id() {
   UserId user_id(777000);
   if (!have_user_force(user_id)) {

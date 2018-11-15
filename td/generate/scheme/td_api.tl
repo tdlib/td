@@ -2216,12 +2216,15 @@ updateChatReplyMarkup chat_id:int53 reply_markup_message_id:int53 = Update;
 //@description A chat draft has changed. Be aware that the update may come in the currently opened chat but with old content of the draft. If the user has changed the content of the draft, this update shouldn't be applied @chat_id Chat identifier @draft_message The new draft message; may be null @order New value of the chat order
 updateChatDraftMessage chat_id:int53 draft_message:draftMessage order:int64 = Update;
 
-//@description A list of active notifications in a notification group has changed @notification_group_id Unique notification group identifier @chat_id Identifier of a chat to which all notifications in the group belong
-//@notification_settings_chat_id Chat identifier, which notification settings must be applied @silent True, if the notifications should be shown without sound
-//@total_count Total number of active notifications in the group @new_notifications List of new group notifications @edited_notifications List of edited group notifications @removed_notification_ids Identifiers of removed group notifications
-updateNotificationGroup notification_group_id:int32 chat_id:int53 notification_settings_chat_id:int53 silent:Bool total_count:int32 new_notifications:vector<notification> edited_notifications:vector<notification> removed_notification_ids:vector<int32> = Update;
+//@description A notification was changed @notification_group_id Unique notification group identifier @notification Changed notification
+updateNotification notification_group_id:int32 notification:notification = Update;
 
-//@description Contains active notifications that was shown on previous application launches. This update is sent only if a message database is used. In that case it comes once before any updateNotificationGroup update @groups Lists of active notification groups
+//@description A list of active notifications in a notification group has changed @notification_group_id Unique notification group identifier @chat_id Identifier of a chat to which all notifications in the group belong
+//@notification_settings_chat_id Chat identifier, which notification settings must be applied @is_silent True, if the notifications should be shown without sound
+//@total_count Total number of active notifications in the group @new_notifications List of new group notifications @removed_notification_ids Identifiers of removed group notifications
+updateNotificationGroup notification_group_id:int32 chat_id:int53 notification_settings_chat_id:int53 is_silent:Bool total_count:int32 new_notifications:vector<notification> removed_notification_ids:vector<int32> = Update;
+
+//@description Contains active notifications that was shown on previous application launches. This update is sent only if a message database is used. In that case it comes once before any updateNotification and updateNotificationGroup update @groups Lists of active notification groups
 updateActiveNotifications groups:vector<notificationGroup> = Update;
 
 //@description Some messages were deleted @chat_id Chat identifier @message_ids Identifiers of the deleted messages

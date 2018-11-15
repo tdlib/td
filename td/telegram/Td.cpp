@@ -3485,6 +3485,10 @@ void Td::on_config_option_updated(const string &name) {
   } else if (name == "language_pack_version") {
     send_closure(language_pack_manager_, &LanguagePackManager::on_language_pack_version_changed, -1);
     return;
+  } else if (name == "notification_group_count_max") {
+    send_closure(notification_manager_actor_, &NotificationManager::on_notification_group_count_max_changed);
+  } else if (name == "notification_group_size_max") {
+    send_closure(notification_manager_actor_, &NotificationManager::on_notification_group_size_max_changed);
   } else if (is_internal_config_option(name)) {
     return;
   }
@@ -6226,10 +6230,14 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
       }
       break;
     case 'n':
-      if (!is_bot && set_integer_option("notification_group_count_max", 1, 25)) {
+      if (!is_bot &&
+          set_integer_option("notification_group_count_max", NotificationManager::MIN_NOTIFICATION_GROUP_COUNT_MAX,
+                             NotificationManager::MAX_NOTIFICATION_GROUP_COUNT_MAX)) {
         return;
       }
-      if (!is_bot && set_integer_option("notification_group_size_max", 1, 25)) {
+      if (!is_bot &&
+          set_integer_option("notification_group_size_max", NotificationManager::MIN_NOTIFICATION_GROUP_SIZE_MAX,
+                             NotificationManager::MAX_NOTIFICATION_GROUP_SIZE_MAX)) {
         return;
       }
       break;

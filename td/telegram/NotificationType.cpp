@@ -6,9 +6,20 @@
 //
 #include "td/telegram/NotificationType.h"
 
+#include "td/telegram/MessagesManager.h"
+#include "td/telegram/Td.h"
+
 namespace td {
 
 class NotificationTypeMessage : public NotificationType {
+  td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const override {
+    auto message_object = G()->td().get_actor_unsafe()->messages_manager_->get_message_object({dialog_id, message_id_});
+    if (message_object == nullptr) {
+      return nullptr;
+    }
+    return td_api::make_object<td_api::notificationTypeNewMessage>(std::move(message_object));
+  }
+
   StringBuilder &to_string_builder(StringBuilder &string_builder) const override {
     return string_builder << "NewMessageNotification[" << message_id_ << ']';
   }
@@ -25,6 +36,10 @@ class NotificationTypeMessage : public NotificationType {
 };
 
 class NotificationTypeSecretChat : public NotificationType {
+  td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const override {
+    return td_api::make_object<td_api::notificationTypeNewSecretChat>();
+  }
+
   StringBuilder &to_string_builder(StringBuilder &string_builder) const override {
     return string_builder << "NewSecretChatNotification[]";
   }
@@ -39,6 +54,10 @@ class NotificationTypeSecretChat : public NotificationType {
 };
 
 class NotificationTypeCall : public NotificationType {
+  td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const override {
+    return td_api::make_object<td_api::notificationTypeNewCall>(call_id_.get());
+  }
+
   StringBuilder &to_string_builder(StringBuilder &string_builder) const override {
     return string_builder << "NewCallNotification[" << call_id_ << ']';
   }

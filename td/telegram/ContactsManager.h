@@ -213,6 +213,15 @@ class ContactsManager : public Actor {
 
   void set_my_online_status(bool is_online, bool send_update, bool is_local);
 
+  struct MyOnlineStatusInfo {
+    bool is_online_local = false;
+    bool is_online_remote = false;
+    int32 was_online_local = 0;
+    int32 was_online_remote = 0;
+  };
+
+  MyOnlineStatusInfo get_my_online_status() const;
+
   UserId get_service_notifications_user_id();
 
   void on_update_online_status_privacy();
