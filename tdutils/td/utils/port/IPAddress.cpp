@@ -12,6 +12,7 @@
 #include "td/utils/port/SocketFd.h"
 #include "td/utils/port/thread_local.h"
 #include "td/utils/ScopeGuard.h"
+#include "td/utils/Slice.h"
 #include "td/utils/utf8.h"
 
 #if TD_WINDOWS
@@ -23,6 +24,7 @@
 #endif
 
 #include <cstring>
+#include <limits>
 
 namespace td {
 
@@ -173,6 +175,38 @@ IPAddress::IPAddress() : is_valid_(false) {
 
 bool IPAddress::is_valid() const {
   return is_valid_;
+}
+
+bool IPAddress::is_reserved() const {
+  CHECK(is_valid());
+
+  if (is_ipv6()) {
+    // TODO proper check for reserved IPv6 addresses
+    return true;
+  }
+
+  uint32 ip = get_ipv4();
+  struct IpBlock {
+    CSlice ip;
+    int mask;
+    IpBlock(CSlice ip, int mask) : ip(ip), mask(mask) {
+    }
+  };
+  static const IpBlock blocks[] = {{"0.0.0.0", 8},      {"10.0.0.0", 8},     {"100.64.0.0", 10}, {"127.0.0.0", 8},
+                                   {"169.254.0.0", 16}, {"172.16.0.0", 12},  {"192.0.0.0", 24},  {"192.0.2.0", 24},
+                                   {"192.88.99.0", 24}, {"192.168.0.0", 16}, {"198.18.0.0", 15}, {"198.51.100.0", 24},
+                                   {"203.0.113.0", 24}, {"224.0.0.0", 3}};
+  for (auto &block : blocks) {
+    IPAddress block_ip_address;
+    block_ip_address.init_ipv4_port(block.ip, 80).ensure();
+    uint32 range = block_ip_address.get_ipv4();
+    CHECK(block.mask != 0);
+    uint32 mask = std::numeric_limits<uint32>::max() >> (32 - block.mask) << (32 - block.mask);
+    if ((ip & mask) == (range & mask)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 const sockaddr *IPAddress::get_sockaddr() const {

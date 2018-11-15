@@ -454,6 +454,73 @@ TEST(Misc, IPAddress_get_ipv4) {
   test_get_ipv4(0xFFFFFFFF);
 }
 
+static void test_is_reserved(string ip, bool is_reserved) {
+  IPAddress ip_address;
+  ip_address.init_ipv4_port(ip, 80).ensure();
+  ASSERT_EQ(is_reserved, ip_address.is_reserved());
+}
+
+TEST(Misc, IPAddress_is_reserved) {
+  test_is_reserved("0.0.0.0", true);
+  test_is_reserved("0.255.255.255", true);
+  test_is_reserved("1.0.0.0", false);
+  test_is_reserved("5.0.0.0", false);
+  test_is_reserved("9.255.255.255", false);
+  test_is_reserved("10.0.0.0", true);
+  test_is_reserved("10.255.255.255", true);
+  test_is_reserved("11.0.0.0", false);
+  test_is_reserved("100.63.255.255", false);
+  test_is_reserved("100.64.0.0", true);
+  test_is_reserved("100.127.255.255", true);
+  test_is_reserved("100.128.0.0", false);
+  test_is_reserved("126.255.255.255", false);
+  test_is_reserved("127.0.0.0", true);
+  test_is_reserved("127.255.255.255", true);
+  test_is_reserved("128.0.0.0", false);
+  test_is_reserved("169.253.255.255", false);
+  test_is_reserved("169.254.0.0", true);
+  test_is_reserved("169.254.255.255", true);
+  test_is_reserved("169.255.0.0", false);
+  test_is_reserved("172.15.255.255", false);
+  test_is_reserved("172.16.0.0", true);
+  test_is_reserved("172.31.255.255", true);
+  test_is_reserved("172.32.0.0", false);
+  test_is_reserved("191.255.255.255", false);
+  test_is_reserved("192.0.0.0", true);
+  test_is_reserved("192.0.0.255", true);
+  test_is_reserved("192.0.1.0", false);
+  test_is_reserved("192.0.1.255", false);
+  test_is_reserved("192.0.2.0", true);
+  test_is_reserved("192.0.2.255", true);
+  test_is_reserved("192.0.3.0", false);
+  test_is_reserved("192.88.98.255", false);
+  test_is_reserved("192.88.99.0", true);
+  test_is_reserved("192.88.99.255", true);
+  test_is_reserved("192.88.100.0", false);
+  test_is_reserved("192.167.255.255", false);
+  test_is_reserved("192.168.0.0", true);
+  test_is_reserved("192.168.255.255", true);
+  test_is_reserved("192.169.0.0", false);
+  test_is_reserved("198.17.255.255", false);
+  test_is_reserved("198.18.0.0", true);
+  test_is_reserved("198.19.255.255", true);
+  test_is_reserved("198.20.0.0", false);
+  test_is_reserved("198.51.99.255", false);
+  test_is_reserved("198.51.100.0", true);
+  test_is_reserved("198.51.100.255", true);
+  test_is_reserved("198.51.101.0", false);
+  test_is_reserved("203.0.112.255", false);
+  test_is_reserved("203.0.113.0", true);
+  test_is_reserved("203.0.113.255", true);
+  test_is_reserved("203.0.114.0", false);
+  test_is_reserved("223.255.255.255", false);
+  test_is_reserved("224.0.0.0", true);
+  test_is_reserved("239.255.255.255", true);
+  test_is_reserved("240.0.0.0", true);
+  test_is_reserved("255.255.255.254", true);
+  test_is_reserved("255.255.255.255", true);
+}
+
 static void test_split(Slice str, std::pair<Slice, Slice> expected) {
   ASSERT_EQ(expected, td::split(str));
 }
