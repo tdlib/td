@@ -2450,7 +2450,7 @@ void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type,
   };
   if (status.code() != 1 && !G()->close_flag()) {
     LOG(WARNING) << "Failed to upload/download/generate file: " << status << ". Query type = " << type
-                 << ". File type is " << file_type_name[static_cast<int32>(FileView(node).get_type())];
+                 << ". File type is " << FileView(node).get_type();
     if (status.code() == 0) {
       // Remove partial locations
       if (node->local_.type() == LocalFileLocation::Type::Partial && status.message() != "FILE_UPLOAD_RESTART") {

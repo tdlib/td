@@ -9,7 +9,10 @@
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/Global.h"
 
+#include "td/utils/format.h"
+
 namespace td {
+
 FileGcParameters::FileGcParameters(int64 size, int32 ttl, int32 count, int32 immunity_delay,
                                    vector<FileType> file_types, vector<DialogId> owner_dialog_ids,
                                    vector<DialogId> exclude_owner_dialog_ids, int32 dialog_limit)
@@ -29,4 +32,15 @@ FileGcParameters::FileGcParameters(int64 size, int32 ttl, int32 count, int32 imm
   this->immunity_delay =
       immunity_delay >= 0 ? immunity_delay : config.get_option_integer("storage_immunity_delay", 60 * 60);
 }
+
+StringBuilder &operator<<(StringBuilder &string_builder, const FileGcParameters &parameters) {
+  return string_builder << "FileGcParameters[" << tag("max_files_size", parameters.max_files_size)
+                        << tag("max_time_from_last_access", parameters.max_time_from_last_access)
+                        << tag("max_file_count", parameters.max_file_count)
+                        << tag("immunity_delay", parameters.immunity_delay) << tag("file_types", parameters.file_types)
+                        << tag("owner_dialog_ids", parameters.owner_dialog_ids)
+                        << tag("exclude_owner_dialog_ids", parameters.exclude_owner_dialog_ids)
+                        << tag("dialog_limit", parameters.dialog_limit) << ']';
+}
+
 }  // namespace td

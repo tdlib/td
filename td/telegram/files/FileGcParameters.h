@@ -10,6 +10,7 @@
 #include "td/telegram/files/FileLocation.h"
 
 #include "td/utils/common.h"
+#include "td/utils/StringBuilder.h"
 
 namespace td {
 
@@ -30,5 +31,7 @@ struct FileGcParameters {
 
   int32 dialog_limit;
 };
+
+StringBuilder &operator<<(StringBuilder &string_builder, const FileGcParameters &parameters);
 
 }  // namespace td

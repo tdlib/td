@@ -134,7 +134,15 @@ inline tl_object_ptr<td_api::FileType> as_td_api(FileType file_type) {
   }
 }
 
+constexpr int32 file_type_size = static_cast<int32>(FileType::Size);
+extern const char *file_type_name[file_type_size];
+
+inline StringBuilder &operator<<(StringBuilder &string_builder, FileType file_type) {
+  return string_builder << file_type_name[static_cast<int32>(file_type)];
+}
+
 enum class FileDirType : int8 { Secure, Common };
+
 inline FileDirType get_file_dir_type(FileType file_type) {
   switch (file_type) {
     case FileType::Thumbnail:
@@ -151,9 +159,6 @@ inline FileDirType get_file_dir_type(FileType file_type) {
       return FileDirType::Common;
   }
 }
-
-constexpr int32 file_type_size = static_cast<int32>(FileType::Size);
-extern const char *file_type_name[file_type_size];
 
 struct FileEncryptionKey {
   enum class Type : int32 { None, Secret, Secure };
@@ -786,7 +791,7 @@ class FullRemoteFileLocation {
 
 inline StringBuilder &operator<<(StringBuilder &string_builder,
                                  const FullRemoteFileLocation &full_remote_file_location) {
-  string_builder << "[" << file_type_name[static_cast<int32>(full_remote_file_location.file_type_)];
+  string_builder << "[" << full_remote_file_location.file_type_;
   if (!full_remote_file_location.is_web()) {
     string_builder << ", " << full_remote_file_location.get_dc_id();
   }
@@ -987,7 +992,7 @@ inline bool operator!=(const FullLocalFileLocation &lhs, const FullLocalFileLoca
 }
 
 inline StringBuilder &operator<<(StringBuilder &sb, const FullLocalFileLocation &location) {
-  return sb << "[" << file_type_name[static_cast<int32>(location.file_type_)] << "] at \"" << location.path_ << '"';
+  return sb << '[' << location.file_type_ << "] at \"" << location.path_ << '"';
 }
 
 class LocalFileLocation {
@@ -1120,10 +1125,9 @@ inline bool operator!=(const FullGenerateFileLocation &lhs, const FullGenerateFi
 
 inline StringBuilder &operator<<(StringBuilder &string_builder,
                                  const FullGenerateFileLocation &full_generated_file_location) {
-  return string_builder << "["
-                        << tag("file_type", file_type_name[static_cast<int32>(full_generated_file_location.file_type_)])
+  return string_builder << '[' << tag("file_type", full_generated_file_location.file_type_)
                         << tag("original_path", full_generated_file_location.original_path_)
-                        << tag("conversion", full_generated_file_location.conversion_) << "]";
+                        << tag("conversion", full_generated_file_location.conversion_) << ']';
 }
 
 class GenerateFileLocation {

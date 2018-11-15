@@ -14,6 +14,9 @@
 #include "td/telegram/files/FileStats.h"
 
 namespace td {
+
+extern int VERBOSITY_NAME(file_gc);
+
 class FileGcWorker : public Actor {
  public:
   explicit FileGcWorker(ActorShared<> parent) : parent_(std::move(parent)) {
