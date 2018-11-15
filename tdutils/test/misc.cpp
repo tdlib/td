@@ -544,7 +544,7 @@ static void test_full_split(Slice str, vector<Slice> expected) {
 }
 
 TEST(Misc, full_split) {
-  test_full_split("", {""});
+  test_full_split("", {});
   test_full_split(" ", {"", ""});
   test_full_split("  ", {"", "", ""});
   test_full_split("abcdef", {"abcdef"});

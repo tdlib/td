@@ -34,6 +34,9 @@ std::pair<T, T> split(T s, char delimiter = ' ') {
 template <class T>
 vector<T> full_split(T s, char delimiter = ' ') {
   vector<T> result;
+  if (s.empty()) {
+    return result;
+  }
   while (true) {
     auto delimiter_pos = s.find(delimiter);
     if (delimiter_pos == string::npos) {
