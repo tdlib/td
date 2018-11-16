@@ -27,12 +27,21 @@ constexpr size_t secure_bytes_buffer_size = 512;
 void Random::secure_bytes(MutableSlice dest) {
   Random::secure_bytes(dest.ubegin(), dest.size());
 }
+namespace {
+std::atomic<int64> random_seed_generation{0};
+}
 
 void Random::secure_bytes(unsigned char *ptr, size_t size) {
   constexpr size_t buf_size = secure_bytes_buffer_size;
   static TD_THREAD_LOCAL unsigned char *buf;  // static zero-initialized
   static TD_THREAD_LOCAL size_t buf_pos;
+  static TD_THREAD_LOCAL int64 generation;
   if (init_thread_local<unsigned char[]>(buf, buf_size)) {
+    buf_pos = buf_size;
+    generation = 0;
+  }
+  if (generation != random_seed_generation.load(std::memory_order_relaxed)) {
+    generation = random_seed_generation.load(std::memory_order_acquire);
     buf_pos = buf_size;
   }
 
@@ -75,9 +84,7 @@ int64 Random::secure_int64() {
 
 void Random::add_seed(Slice bytes, double entropy) {
   RAND_add(bytes.data(), static_cast<int>(bytes.size()), entropy);
-  // drain all secure_bytes buffer
-  std::array<char, secure_bytes_buffer_size> buf;
-  secure_bytes(MutableSlice(buf.data(), buf.size()));
+  random_seed_generation++;
 }
 #endif
 
