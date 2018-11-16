@@ -44,11 +44,10 @@ class NotificationManager : public Actor {
                         DialogId notification_settings_dialog_id, bool is_silent, NotificationId notification_id,
                         unique_ptr<NotificationType> type);
 
-  void edit_notification(NotificationId notification_id, unique_ptr<NotificationType> type);
+  void edit_notification(NotificationGroupId group_id, NotificationId notification_id,
+                         unique_ptr<NotificationType> type);
 
-  void delete_notification(NotificationId notification_id);
-
-  void remove_notification(NotificationId notification_id, Promise<Unit> &&promise);
+  void remove_notification(NotificationGroupId group_id, NotificationId notification_id, Promise<Unit> &&promise);
 
   void remove_notification_group(NotificationGroupId group_id, NotificationId max_notification_id,
                                  Promise<Unit> &&promise);
@@ -133,6 +132,9 @@ class NotificationManager : public Actor {
                                                                           const Notification &notification);
 
   void send_update_notification_group(td_api::object_ptr<td_api::updateNotificationGroup> update);
+
+  void send_update_notification(NotificationGroupId notification_group_id, DialogId dialog_id,
+                                const Notification &notification);
 
   NotificationGroups::iterator get_group(NotificationGroupId group_id);
 

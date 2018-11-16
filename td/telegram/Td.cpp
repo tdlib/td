@@ -5085,7 +5085,8 @@ void Td::on_request(uint64 id, td_api::getChatMessageCount &request) {
 void Td::on_request(uint64 id, const td_api::removeNotification &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  notification_manager_->remove_notification(NotificationId(request.notification_id_), std::move(promise));
+  notification_manager_->remove_notification(NotificationGroupId(request.notification_group_id_),
+                                             NotificationId(request.notification_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::removeNotificationGroup &request) {

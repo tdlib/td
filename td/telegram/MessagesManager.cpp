@@ -5577,7 +5577,8 @@ void MessagesManager::on_message_edited(FullMessageId full_message_id) {
   }
 
   auto dialog_id = full_message_id.get_dialog_id();
-  Message *m = get_message(full_message_id);
+  Dialog *d = get_dialog(dialog_id);
+  const Message *m = get_message(d, full_message_id.get_message_id());
   CHECK(m != nullptr);
   if (td_->auth_manager_->is_bot()) {
     send_update_message_edited(dialog_id, m);
@@ -5587,7 +5588,8 @@ void MessagesManager::on_message_edited(FullMessageId full_message_id) {
     }
 
     if (m->notification_id.is_valid()) {
-      send_closure_later(G()->notification_manager(), &NotificationManager::edit_notification, m->notification_id,
+      send_closure_later(G()->notification_manager(), &NotificationManager::edit_notification,
+                         get_dialog_message_notification_group_id(d), m->notification_id,
                          create_new_message_notification(m->message_id));
     }
   }

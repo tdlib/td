@@ -201,6 +201,20 @@ void NotificationManager::send_update_notification_group(td_api::object_ptr<td_a
   send_closure(G()->td(), &Td::send_update, std::move(update));
 }
 
+void NotificationManager::send_update_notification(NotificationGroupId notification_group_id, DialogId dialog_id,
+                                                   const Notification &notification) {
+  auto notification_object = get_notification_object(dialog_id, notification);
+  if (notification_object->type_ == nullptr) {
+    return;
+  }
+
+  // TODO delay and combine updates while getDifference is running
+  auto update =
+      td_api::make_object<td_api::updateNotification>(notification_group_id.get(), std::move(notification_object));
+  VLOG(notifications) << "Send " << to_string(update);
+  send_closure(G()->td(), &Td::send_update, std::move(update));
+}
+
 void NotificationManager::flush_pending_notifications(NotificationGroupKey &group_key, NotificationGroup &group,
                                                       vector<PendingNotification> &pending_notifications) {
   if (pending_notifications.empty()) {
@@ -363,7 +377,8 @@ void NotificationManager::flush_pending_notifications(NotificationGroupId group_
   groups_.emplace(std::move(final_group_key), std::move(group));
 }
 
-void NotificationManager::edit_notification(NotificationId notification_id, unique_ptr<NotificationType> type) {
+void NotificationManager::edit_notification(NotificationGroupId group_id, NotificationId notification_id,
+                                            unique_ptr<NotificationType> type) {
   if (is_disabled()) {
     return;
   }
@@ -371,17 +386,28 @@ void NotificationManager::edit_notification(NotificationId notification_id, uniq
   CHECK(notification_id.is_valid());
   CHECK(type != nullptr);
   VLOG(notifications) << "Edit " << notification_id << ": " << *type;
-}
 
-void NotificationManager::delete_notification(NotificationId notification_id) {
-  if (is_disabled()) {
-    return;
+  auto group_it = get_group(group_id);
+  auto &group = group_it->second;
+  for (size_t i = 0; i < group.notifications.size(); i++) {
+    auto &notification = group.notifications[i];
+    if (notification.notification_id == notification_id) {
+      notification.type = std::move(type);
+      if (i + max_notification_group_size_ >= group.notifications.size()) {
+        send_update_notification(group_it->first.group_id, group_it->first.dialog_id, notification);
+        return;
+      }
+    }
   }
-
-  CHECK(notification_id.is_valid());
+  for (auto &notification : group.pending_notifications) {
+    if (notification.notification_id == notification_id) {
+      notification.type = std::move(type);
+    }
+  }
 }
 
-void NotificationManager::remove_notification(NotificationId notification_id, Promise<Unit> &&promise) {
+void NotificationManager::remove_notification(NotificationGroupId group_id, NotificationId notification_id,
+                                              Promise<Unit> &&promise) {
   if (!notification_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Notification identifier is invalid"));
   }
@@ -389,6 +415,10 @@ void NotificationManager::remove_notification(NotificationId notification_id, Pr
   if (is_disabled()) {
     return promise.set_value(Unit());
   }
+
+  VLOG(notifications) << "Remove " << notification_id;
+
+  // TODO remove notification from database by notification_id
 
   // TODO update total_count
   promise.set_value(Unit());
@@ -406,6 +436,8 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
   if (is_disabled()) {
     return promise.set_value(Unit());
   }
+
+  VLOG(notifications) << "Remove " << group_id << " up to " << max_notification_id;
 
   // TODO update total_count
   promise.set_value(Unit());

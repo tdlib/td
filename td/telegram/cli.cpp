@@ -3293,8 +3293,11 @@ class CliClient final : public Actor {
     } else if (op == "rans") {
       send_request(make_tl_object<td_api::resetAllNotificationSettings>());
     } else if (op == "rn") {
-      string notification_id = args;
-      send_request(make_tl_object<td_api::removeNotification>(to_integer<int32>(notification_id)));
+      string group_id;
+      string notification_id;
+      std::tie(group_id, notification_id) = split(args);
+      send_request(
+          make_tl_object<td_api::removeNotification>(to_integer<int32>(group_id), to_integer<int32>(notification_id)));
     } else if (op == "rng") {
       string group_id;
       string max_notification_id;
