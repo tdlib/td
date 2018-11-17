@@ -924,7 +924,7 @@ void AuthManager::on_authorization(tl_object_ptr<telegram_api::auth_authorizatio
     G()->shared_config().set_option_integer("session_count", auth->tmp_sessions_);
   }
   td->updates_manager_->get_difference("on_authorization");
-  td->on_online_updated(true, true);
+  td->on_online_updated(false, true);
   td->schedule_get_terms_of_service(0);
   if (!is_bot()) {
     G()->td_db()->get_binlog_pmc()->set("fetched_marks_as_unread", "1");
