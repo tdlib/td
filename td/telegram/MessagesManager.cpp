@@ -13038,7 +13038,7 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
   }
 
   // Trying to use database
-  if (query.empty() && G()->parameters().use_message_db && filter_type != SearchMessagesFilter::Empty &&
+  if (use_db && query.empty() && G()->parameters().use_message_db && filter_type != SearchMessagesFilter::Empty &&
       input_user == nullptr) {  // TODO support filter by users in the database
     MessageId first_db_message_id = get_first_database_message_id_by_index(d, filter_type);
     int32 message_count = d->message_count_by_index[search_messages_filter_index(filter_type)];
@@ -13048,8 +13048,7 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
     }
     LOG(INFO) << "Search messages in " << dialog_id << " from " << fixed_from_message_id << ", have up to "
               << first_db_message_id << ", message_count = " << message_count;
-    if (use_db &&
-        (first_db_message_id.get() < fixed_from_message_id.get() ||
+    if ((first_db_message_id.get() < fixed_from_message_id.get() ||
          (first_db_message_id.get() == fixed_from_message_id.get() && offset < 0)) &&
         message_count != -1) {
       LOG(INFO) << "Search messages in database in " << dialog_id << " from " << fixed_from_message_id
@@ -13140,31 +13139,33 @@ std::pair<int32, vector<FullMessageId>> MessagesManager::search_call_messages(Me
 
   auto filter_type = only_missed ? SearchMessagesFilter::MissedCall : SearchMessagesFilter::Call;
 
-  // Try to use database
-  MessageId first_db_message_id =
-      calls_db_state_.first_calls_database_message_id_by_index[search_calls_filter_index(filter_type)];
-  int32 message_count = calls_db_state_.message_count_by_index[search_calls_filter_index(filter_type)];
-  auto fixed_from_message_id = from_message_id;
-  if (fixed_from_message_id == MessageId()) {
-    fixed_from_message_id = MessageId::max();
-  }
-  CHECK(fixed_from_message_id.is_valid() && fixed_from_message_id.is_server());
-  LOG(INFO) << "Search call messages from " << fixed_from_message_id << ", have up to " << first_db_message_id
-            << ", message_count = " << message_count;
-  if (use_db && first_db_message_id.get() < fixed_from_message_id.get() && message_count != -1) {
-    LOG(INFO) << "Search messages in database from " << fixed_from_message_id << " and with limit " << limit;
+  if (use_db && G()->parameters().use_message_db) {
+    // Try to use database
+    MessageId first_db_message_id =
+        calls_db_state_.first_calls_database_message_id_by_index[search_calls_filter_index(filter_type)];
+    int32 message_count = calls_db_state_.message_count_by_index[search_calls_filter_index(filter_type)];
+    auto fixed_from_message_id = from_message_id;
+    if (fixed_from_message_id == MessageId()) {
+      fixed_from_message_id = MessageId::max();
+    }
+    CHECK(fixed_from_message_id.is_valid() && fixed_from_message_id.is_server());
+    LOG(INFO) << "Search call messages from " << fixed_from_message_id << ", have up to " << first_db_message_id
+              << ", message_count = " << message_count;
+    if (first_db_message_id.get() < fixed_from_message_id.get() && message_count != -1) {
+      LOG(INFO) << "Search messages in database from " << fixed_from_message_id << " and with limit " << limit;
 
-    MessagesDbCallsQuery db_query;
-    db_query.index_mask = search_messages_filter_index_mask(filter_type);
-    db_query.from_unique_message_id = fixed_from_message_id.get_server_message_id().get();
-    db_query.limit = limit;
-    G()->td_db()->get_messages_db_async()->get_calls(
-        db_query, PromiseCreator::lambda([random_id, first_db_message_id, filter_type, promise = std::move(promise)](
-                                             Result<MessagesDbCallsResult> calls_result) mutable {
-          send_closure(G()->messages_manager(), &MessagesManager::on_messages_db_calls_result, std::move(calls_result),
-                       random_id, first_db_message_id, filter_type, std::move(promise));
-        }));
-    return result;
+      MessagesDbCallsQuery db_query;
+      db_query.index_mask = search_messages_filter_index_mask(filter_type);
+      db_query.from_unique_message_id = fixed_from_message_id.get_server_message_id().get();
+      db_query.limit = limit;
+      G()->td_db()->get_messages_db_async()->get_calls(
+          db_query, PromiseCreator::lambda([random_id, first_db_message_id, filter_type, promise = std::move(promise)](
+                                               Result<MessagesDbCallsResult> calls_result) mutable {
+            send_closure(G()->messages_manager(), &MessagesManager::on_messages_db_calls_result,
+                         std::move(calls_result), random_id, first_db_message_id, filter_type, std::move(promise));
+          }));
+      return result;
+    }
   }
 
   LOG(DEBUG) << "Search call messages on server from " << from_message_id << " and with limit " << limit;
@@ -13416,6 +13417,11 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
 std::pair<int64, vector<FullMessageId>> MessagesManager::offline_search_messages(
     DialogId dialog_id, const string &query, int64 from_search_id, int32 limit,
     const tl_object_ptr<td_api::SearchMessagesFilter> &filter, int64 &random_id, Promise<> &&promise) {
+  if (!G()->parameters().use_message_db) {
+    promise.set_error(Status::Error(400, "Message database is required to search messages in secret chats"));
+    return {};
+  }
+
   if (random_id != 0) {
     // request has already been sent before
     auto it = found_fts_messages_.find(random_id);
@@ -13428,15 +13434,15 @@ std::pair<int64, vector<FullMessageId>> MessagesManager::offline_search_messages
 
   if (query.empty()) {
     promise.set_value(Unit());
-    return Auto();
+    return {};
   }
   if (dialog_id != DialogId() && !have_dialog_force(dialog_id)) {
     promise.set_error(Status::Error(400, "Chat not found"));
-    return Auto();
+    return {};
   }
   if (limit <= 0) {
     promise.set_error(Status::Error(400, "Limit must be positive"));
-    return Auto();
+    return {};
   }
   if (limit > MAX_SEARCH_MESSAGES) {
     limit = MAX_SEARCH_MESSAGES;
@@ -13461,7 +13467,7 @@ std::pair<int64, vector<FullMessageId>> MessagesManager::offline_search_messages
                      random_id, std::move(promise));
       }));
 
-  return Auto();
+  return {};
 }
 
 void MessagesManager::on_messages_db_fts_result(Result<MessagesDbFtsResult> result, int64 random_id,
@@ -20586,6 +20592,8 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
 }
 
 void MessagesManager::do_delete_message_logevent(const DeleteMessageLogEvent &logevent) const {
+  CHECK(G()->parameters().use_message_db);
+
   Promise<Unit> db_promise;
   if (!logevent.file_ids_.empty()) {
     auto logevent_id = logevent.id_;
