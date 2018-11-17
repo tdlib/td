@@ -423,7 +423,7 @@ class ConfigRecoverer : public Actor {
     dc_options_i_ = 0;
     if (r_simple_config.is_ok()) {
       auto config = r_simple_config.move_as_ok();
-      VLOG(config_recoverer) << "Receive raw SimpleConfig" << to_string(config);
+      VLOG(config_recoverer) << "Receive raw " << to_string(config);
       if (config->expires_ >= G()->unix_time()) {
         string phone_number = G()->shared_config().get_option_string("my_phone_number");
         simple_config_.dc_options.clear();

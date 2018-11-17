@@ -5014,7 +5014,7 @@ void MessagesManager::on_update_channel_too_long(tl_object_ptr<telegram_api::upd
   if (d == nullptr) {
     auto pts = load_channel_pts(dialog_id);
     if (pts > 0) {
-      d = add_dialog(dialog_id);
+      d = add_dialog(dialog_id, true);
       CHECK(d != nullptr);
       CHECK(d->pts == pts);
       update_dialog_pos(d, false, "on_update_channel_too_long");
@@ -5360,7 +5360,7 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
         return;
       }
 
-      d = add_dialog(dialog_id);
+      d = add_dialog(dialog_id, true);
       CHECK(d != nullptr);
       CHECK(d->pts == pts);
       update_dialog_pos(d, false, "add_pending_channel_update");
@@ -10024,7 +10024,7 @@ void MessagesManager::on_get_dialogs(vector<tl_object_ptr<telegram_api::dialog>>
     Dialog *d = get_dialog_force(dialog_id);
     bool need_update_dialog_pos = false;
     if (d == nullptr) {
-      d = add_dialog(dialog_id);
+      d = add_dialog(dialog_id, false);
       need_update_dialog_pos = true;
     } else {
       LOG(INFO) << "Receive already created " << dialog_id;
@@ -10646,7 +10646,7 @@ bool MessagesManager::load_dialog(DialogId dialog_id, int left_tries, Promise<Un
         return false;
       }
 
-      add_dialog(dialog_id);
+      add_dialog(dialog_id, false);
       return true;
     }
 
@@ -12060,7 +12060,7 @@ DialogId MessagesManager::migrate_dialog_to_megagroup(DialogId dialog_id, Promis
   auto new_dialog_id = DialogId(channel_id);
   Dialog *d = get_dialog_force(new_dialog_id);
   if (d == nullptr) {
-    d = add_dialog(new_dialog_id);
+    d = add_dialog(new_dialog_id, true);
     if (d->pts == 0) {
       d->pts = 1;
       if (is_debug_message_op_enabled()) {
@@ -19794,7 +19794,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(DialogId dialog
   // TODO remove creation of dialog from this function, use cgc or cpc or something else
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
-    d = add_dialog(dialog_id);
+    d = add_dialog(dialog_id, true);
     *need_update_dialog_pos = true;
   } else {
     CHECK(d->dialog_id == dialog_id);
@@ -20758,23 +20758,36 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
       dump_debug_message_op(d);
     }
   }
-  LOG_IF(ERROR, old_message->via_bot_user_id != new_message->via_bot_user_id)
-      << message_id << " in " << dialog_id << " has changed bot via it is sent from " << old_message->via_bot_user_id
-      << " to " << new_message->via_bot_user_id;
-  LOG_IF(ERROR, old_message->is_outgoing != new_message->is_outgoing)
-      << message_id << " in " << dialog_id << " has changed is_outgoing from " << old_message->is_outgoing << " to "
-      << new_message->is_outgoing;
+  if (old_message->via_bot_user_id != new_message->via_bot_user_id) {
+    LOG(ERROR) << message_id << " in " << dialog_id << " has changed bot via it is sent from "
+               << old_message->via_bot_user_id << " to " << new_message->via_bot_user_id;
+    old_message->via_bot_user_id = new_message->via_bot_user_id;
+    is_changed = true;
+  }
+  if (old_message->is_outgoing != new_message->is_outgoing) {
+    LOG(ERROR) << message_id << " in " << dialog_id << " has changed is_outgoing from " << old_message->is_outgoing
+               << " to " << new_message->is_outgoing;
+    old_message->is_outgoing = new_message->is_outgoing; is_changed = true;
+  }
   LOG_IF(ERROR, old_message->is_channel_post != new_message->is_channel_post)
       << message_id << " in " << dialog_id << " has changed is_channel_post from " << old_message->is_channel_post
       << " to " << new_message->is_channel_post;
-  LOG_IF(ERROR, old_message->contains_mention != new_message->contains_mention && old_message->edit_date == 0)
-      << message_id << " in " << dialog_id << " has changed contains_mention from " << old_message->contains_mention
-      << " to " << new_message->contains_mention;
-  LOG_IF(ERROR, old_message->disable_notification != new_message->disable_notification && old_message->edit_date == 0)
-      << "Disable_notification has changed from " << old_message->disable_notification << " to "
-      << new_message->disable_notification
-      << ". Old message: " << to_string(get_message_object(dialog_id, old_message.get()))
-      << ". New message: " << to_string(get_message_object(dialog_id, new_message.get()));
+  if (old_message->contains_mention != new_message->contains_mention) {
+    LOG_IF(ERROR, old_message->edit_date == 0)
+        << message_id << " in " << dialog_id << " has changed contains_mention from " << old_message->contains_mention
+        << " to " << new_message->contains_mention;
+    // old_message->contains_mention = new_message->contains_mention;
+    // is_changed = true;
+  }
+  if (old_message->disable_notification != new_message->disable_notification) {
+    LOG_IF(ERROR, old_message->edit_date == 0)
+        << "Disable_notification has changed from " << old_message->disable_notification << " to "
+        << new_message->disable_notification
+        << ". Old message: " << to_string(get_message_object(dialog_id, old_message.get()))
+        << ". New message: " << to_string(get_message_object(dialog_id, new_message.get()));
+    // old_message->disable_notification = new_message->disable_notification;
+    // is_changed = true;
+  }
 
   if (update_message_contains_unread_mention(d, old_message.get(), new_message->contains_unread_mention,
                                              "update_message")) {
@@ -21029,7 +21042,7 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
       return;
     }
 
-    d = add_dialog(dialog_id);
+    d = add_dialog(dialog_id, true);
     update_dialog_pos(d, false, "force_create_dialog");
 
     if (dialog_id.get_type() == DialogType::SecretChat) {
@@ -21041,12 +21054,7 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
         update_dialog_notification_settings(dialog_id, &d->notification_settings, user_d->notification_settings);
       }
     }
-    if (have_input_peer(dialog_id, AccessRights::Read)) {
-      if (dialog_id.get_type() != DialogType::SecretChat && !is_dialog_inited(d)) {
-        // asynchronously preload information about the dialog
-        send_get_dialog_query(dialog_id, Auto());
-      }
-    } else {
+    if (!have_input_peer(dialog_id, AccessRights::Read)) {
       if (!have_dialog_info(dialog_id)) {
         LOG(ERROR) << "Have no info about " << dialog_id << " received from " << source << ", but forced to create it";
       } else {
@@ -21062,16 +21070,16 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
   }
 }
 
-MessagesManager::Dialog *MessagesManager::add_dialog(DialogId dialog_id) {
+MessagesManager::Dialog *MessagesManager::add_dialog(DialogId dialog_id, bool need_info) {
   LOG(DEBUG) << "Creating " << dialog_id;
   CHECK(!have_dialog(dialog_id));
 
   if (G()->parameters().use_message_db) {
     // TODO preload dialog asynchronously, remove loading from this function
-    LOG(INFO) << "Synchronously load " << dialog_id << " from database";
     auto r_value = G()->td_db()->get_dialog_db_sync()->get_dialog(dialog_id);
     if (r_value.is_ok()) {
-      return add_new_dialog(parse_dialog(dialog_id, r_value.ok()), true);
+      LOG(INFO) << "Synchronously loaded " << dialog_id << " from database";
+      return add_new_dialog(parse_dialog(dialog_id, r_value.ok()), true, need_info);
     }
   }
 
@@ -21079,10 +21087,11 @@ MessagesManager::Dialog *MessagesManager::add_dialog(DialogId dialog_id) {
   std::fill(d->message_count_by_index.begin(), d->message_count_by_index.end(), -1);
   d->dialog_id = dialog_id;
 
-  return add_new_dialog(std::move(d), false);
+  return add_new_dialog(std::move(d), false, need_info);
 }
 
-MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d, bool is_loaded_from_database) {
+MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d, bool is_loaded_from_database,
+                                                         bool need_info) {
   auto dialog_id = d->dialog_id;
   switch (dialog_id.get_type()) {
     case DialogType::User:
@@ -21168,23 +21177,21 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
   send_update_new_chat(dialog);
 
   fix_new_dialog(dialog, std::move(last_database_message), last_database_message_id, order, last_clear_history_date,
-                 last_clear_history_message_id);
+                 last_clear_history_message_id, need_info);
 
   return dialog;
 }
 
 void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_database_message,
                                      MessageId last_database_message_id, int64 order, int32 last_clear_history_date,
-                                     MessageId last_clear_history_message_id) {
+                                     MessageId last_clear_history_message_id, bool need_info) {
   CHECK(d != nullptr);
   auto dialog_id = d->dialog_id;
 
-  if (!td_->auth_manager_->is_bot()) {
-    if (!is_dialog_inited(d) && dialog_id.get_type() != DialogType::SecretChat &&
-        have_input_peer(dialog_id, AccessRights::Read)) {
-      // asynchronously get dialog from the server
-      send_get_dialog_query(dialog_id, Auto());
-    }
+  if (need_info && !td_->auth_manager_->is_bot() && !is_dialog_inited(d) &&
+      dialog_id.get_type() != DialogType::SecretChat && have_input_peer(dialog_id, AccessRights::Read)) {
+    // asynchronously get dialog from the server
+    send_get_dialog_query(dialog_id, Auto());
   }
 
   if (d->notification_settings.is_synchronized && !d->notification_settings.is_use_default_fixed &&
@@ -21718,10 +21725,16 @@ MessagesManager::Dialog *MessagesManager::get_dialog_force(DialogId dialog_id) {
     return nullptr;
   }
 
-  LOG(INFO) << "Try to load " << dialog_id << " from database";
-  auto d = on_load_dialog_from_database(dialog_id, G()->td_db()->get_dialog_db_sync()->get_dialog(dialog_id));
-  CHECK(d == nullptr || d->dialog_id == dialog_id) << d->dialog_id << " " << dialog_id;
-  return d;
+  auto r_value = G()->td_db()->get_dialog_db_sync()->get_dialog(dialog_id);
+  if (r_value.is_ok()) {
+    LOG(INFO) << "Loaded " << dialog_id << " from database";
+    auto d = on_load_dialog_from_database(dialog_id, r_value.move_as_ok());
+    CHECK(d == nullptr || d->dialog_id == dialog_id) << d->dialog_id << " " << dialog_id;
+    return d;
+  } else {
+    LOG(INFO) << "Failed to load " << dialog_id << " from database";
+    return nullptr;
+  }
 }
 
 unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialog_id, const BufferSlice &value) {
@@ -21770,17 +21783,12 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
   return d;
 }
 
-MessagesManager::Dialog *MessagesManager::on_load_dialog_from_database(DialogId dialog_id,
-                                                                       const Result<BufferSlice> &r_value) {
+MessagesManager::Dialog *MessagesManager::on_load_dialog_from_database(DialogId dialog_id, const BufferSlice &value) {
   CHECK(G()->parameters().use_message_db);
-
-  if (!r_value.is_ok()) {
-    return nullptr;
-  }
 
   if (!dialog_id.is_valid()) {
     // hack
-    LogEventParser dialog_id_parser(r_value.ok().as_slice());
+    LogEventParser dialog_id_parser(value.as_slice());
     int32 flags;
     parse(flags, dialog_id_parser);
     parse(dialog_id, dialog_id_parser);
@@ -21796,7 +21804,7 @@ MessagesManager::Dialog *MessagesManager::on_load_dialog_from_database(DialogId 
     return old_d;
   }
 
-  return add_new_dialog(parse_dialog(dialog_id, r_value.ok()), true);
+  return add_new_dialog(parse_dialog(dialog_id, value), true, true);
 }
 
 void MessagesManager::load_notification_settings() {
@@ -22103,7 +22111,7 @@ void MessagesManager::on_get_channel_difference(
 
   bool need_update_dialog_pos = false;
   if (d == nullptr) {
-    d = add_dialog(dialog_id);
+    d = add_dialog(dialog_id, true);
     need_update_dialog_pos = true;
   }
 

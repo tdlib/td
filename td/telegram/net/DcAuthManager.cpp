@@ -210,7 +210,7 @@ void DcAuthManager::destroy_loop() {
     LOG(INFO) << "Destroy auth keys loop is ready, all keys are destroyed";
     destroy_promise_.set_value(Unit());
   } else {
-    LOG(ERROR) << "NOT READY";
+    LOG(INFO) << "DC is not ready for destroying auth key";
   }
 }
 

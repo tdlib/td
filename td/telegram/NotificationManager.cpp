@@ -74,6 +74,10 @@ NotificationManager::NotificationGroups::iterator NotificationManager::get_group
   return groups_.end();
 }
 
+NotificationId NotificationManager::get_max_notification_id() const {
+  return current_notification_id_;
+}
+
 NotificationId NotificationManager::get_next_notification_id() {
   if (is_disabled()) {
     return NotificationId();
