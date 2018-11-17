@@ -1579,13 +1579,13 @@ class MessagesManager : public Actor {
 
   MessageId get_message_id_by_random_id(Dialog *d, int64 random_id, const char *source);
 
-  Dialog *add_dialog(DialogId dialog_id, bool need_info);
+  Dialog *add_dialog(DialogId dialog_id);
 
-  Dialog *add_new_dialog(unique_ptr<Dialog> &&d, bool is_loaded_from_database, bool need_info);
+  Dialog *add_new_dialog(unique_ptr<Dialog> &&d, bool is_loaded_from_database);
 
   void fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_database_message, MessageId last_database_message_id,
                       int64 order, int32 last_clear_history_date, MessageId last_clear_history_message_id,
-                      bool need_info);
+                      bool is_loaded_from_database);
 
   void add_dialog_last_database_message(Dialog *d, unique_ptr<Message> &&last_database_message);
 
@@ -1748,9 +1748,10 @@ class MessagesManager : public Actor {
   int64 get_next_pinned_dialog_order();
 
   void update_dialog_pos(Dialog *d, bool remove_from_dialog_list, const char *source,
-                         bool need_send_update_chat_order = true);
+                         bool need_send_update_chat_order = true, bool is_loaded_from_database = false);
 
-  bool set_dialog_order(Dialog *d, int64 new_order, bool need_send_update_chat_order);
+  bool set_dialog_order(Dialog *d, int64 new_order, bool need_send_update_chat_order, bool is_loaded_from_database,
+                        const char *source);
 
   void update_last_dialog_date();
 
@@ -2165,6 +2166,8 @@ class MessagesManager : public Actor {
   std::unordered_map<DialogId, NetQueryRef, DialogIdHash> set_typing_query_;
 
   DialogId sponsored_dialog_id_;
+
+  DialogId being_added_dialog_id_;
 
   Td *td_;
   ActorShared<> parent_;
