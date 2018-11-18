@@ -41,11 +41,13 @@ namespace detail {
 
 class GenAuthKeyActor : public Actor {
  public:
-  GenAuthKeyActor(unique_ptr<mtproto::AuthKeyHandshake> handshake, unique_ptr<mtproto::AuthKeyHandshakeContext> context,
+  GenAuthKeyActor(Slice name, unique_ptr<mtproto::AuthKeyHandshake> handshake,
+                  unique_ptr<mtproto::AuthKeyHandshakeContext> context,
                   Promise<unique_ptr<mtproto::RawConnection>> connection_promise,
                   Promise<unique_ptr<mtproto::AuthKeyHandshake>> handshake_promise,
                   std::shared_ptr<Session::Callback> callback)
-      : handshake_(std::move(handshake))
+      : name_(name.str())
+      , handshake_(std::move(handshake))
       , context_(std::move(context))
       , connection_promise_(std::move(connection_promise))
       , handshake_promise_(std::move(handshake_promise))
@@ -59,6 +61,7 @@ class GenAuthKeyActor : public Actor {
   }
 
  private:
+  string name_;
   uint32 network_generation_ = 0;
   unique_ptr<mtproto::AuthKeyHandshake> handshake_;
   unique_ptr<mtproto::AuthKeyHandshakeContext> context_;
@@ -100,8 +103,9 @@ class GenAuthKeyActor : public Actor {
     VLOG(dc) << "Receive raw connection " << raw_connection.get();
     network_generation_ = raw_connection->extra_;
     child_ = create_actor_on_scheduler<mtproto::HandshakeActor>(
-        "HandshakeActor", G()->get_slow_net_scheduler_id(), std::move(handshake_), std::move(raw_connection),
-        std::move(context_), 10, std::move(connection_promise_), std::move(handshake_promise_));
+        PSLICE() << name_ + "::HandshakeActor", G()->get_slow_net_scheduler_id(), std::move(handshake_),
+        std::move(raw_connection), std::move(context_), 10, std::move(connection_promise_),
+        std::move(handshake_promise_));
   }
 };
 
@@ -1106,7 +1110,7 @@ void Session::create_gen_auth_key_actor(HandshakeId handshake_id) {
     std::shared_ptr<PublicRsaKeyInterface> public_rsa_key_;
   };
   info.actor_ = create_actor<detail::GenAuthKeyActor>(
-      "GenAuthKey", std::move(info.handshake_),
+      PSLICE() << get_name() << "::GenAuthKey", get_name(), std::move(info.handshake_),
       td::make_unique<AuthKeyHandshakeContext>(DhCache::instance(), shared_auth_data_->public_rsa_key()),
       PromiseCreator::lambda([self = actor_id(this)](Result<unique_ptr<mtproto::RawConnection>> r_connection) {
         if (r_connection.is_error()) {
