@@ -49,10 +49,11 @@ class NotificationManager : public Actor {
   void edit_notification(NotificationGroupId group_id, NotificationId notification_id,
                          unique_ptr<NotificationType> type);
 
-  void remove_notification(NotificationGroupId group_id, NotificationId notification_id, Promise<Unit> &&promise);
+  void remove_notification(NotificationGroupId group_id, NotificationId notification_id, bool is_permanent,
+                           Promise<Unit> &&promise);
 
   void remove_notification_group(NotificationGroupId group_id, NotificationId max_notification_id,
-                                 Promise<Unit> &&promise);
+                                 int32 new_total_count, Promise<Unit> &&promise);
 
   void on_notification_group_count_max_changed();
 
@@ -77,10 +78,11 @@ class NotificationManager : public Actor {
 
   struct Notification {
     NotificationId notification_id;
+    int32 date = 0;
     unique_ptr<NotificationType> type;
 
-    Notification(NotificationId notification_id, unique_ptr<NotificationType> type)
-        : notification_id(notification_id), type(std::move(type)) {
+    Notification(NotificationId notification_id, int32 date, unique_ptr<NotificationType> type)
+        : notification_id(notification_id), date(date), type(std::move(type)) {
     }
   };
 
@@ -152,6 +154,10 @@ class NotificationManager : public Actor {
                                    vector<PendingNotification> &pending_notifications);
 
   void flush_pending_notifications(NotificationGroupId group_id);
+
+  void on_notifications_removed(NotificationGroups::iterator &&group_it,
+                                vector<td_api::object_ptr<td_api::notification>> &&added_notifications,
+                                vector<int32> &&removed_notification_ids);
 
   NotificationId current_notification_id_;
   NotificationGroupId current_notification_group_id_;
