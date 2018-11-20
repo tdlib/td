@@ -979,16 +979,14 @@ Status SessionConnection::do_flush() {
 
   TRY_STATUS(raw_connection_->flush(auth_data_->get_auth_key(), *this));
 
-  // check last pong
-  if (last_pong_at_ != 0 && last_pong_at_ + ping_disconnect_delay() < Time::now_cached()) {
+  if (last_pong_at_ + ping_disconnect_delay() < Time::now_cached()) {
     raw_connection_->stats_callback()->on_error();
-    return Status::Error(PSLICE() << "No pong :( " << tag("rtt", rtt()) << tag("delay", ping_disconnect_delay()));
+    return Status::Error(PSLICE() << "Ping timeout of " << ping_disconnect_delay() << " seconds expired");
   }
 
-  // check last pong
-  if (last_read_at_ != 0 && last_read_at_ + read_disconnect_delay() < Time::now_cached()) {
+  if (last_read_at_ + read_disconnect_delay() < Time::now_cached()) {
     raw_connection_->stats_callback()->on_error();
-    return Status::Error("No read :(");
+    return Status::Error(PSLICE() << "Read timeout of " << read_disconnect_delay() << " seconds expired");
   }
 
   return Status::OK();
