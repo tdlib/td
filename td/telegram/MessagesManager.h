@@ -1426,7 +1426,7 @@ class MessagesManager : public Actor {
 
   void add_message_to_database(const Dialog *d, const Message *m, const char *source);
 
-  void delete_all_dialog_messages_from_database(DialogId dialog_id, MessageId message_id, const char *source);
+  void delete_all_dialog_messages_from_database(const Dialog *d, MessageId message_id, const char *source);
 
   void delete_message_from_database(Dialog *d, MessageId message_id, const Message *m,
                                     bool is_permanently_deleted) const;
@@ -1460,6 +1460,8 @@ class MessagesManager : public Actor {
   void add_new_message_notification(Dialog *d, Message *m, bool force);
 
   void flush_pending_new_message_notifications(DialogId dialog_id);
+
+  void remove_dialog_message_notifications(const Dialog *d) const;
 
   void send_update_message_send_succeeded(Dialog *d, MessageId old_message_id, const Message *m) const;
 

@@ -5088,6 +5088,11 @@ bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message 
     LOG(INFO) << "Update unread mention message count in " << d->dialog_id << " to " << d->unread_mention_count
               << " by reading " << m->message_id << " from " << source;
 
+    if (m->notification_id.is_valid() && d->message_notification_group_id.is_valid()) {
+      send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification,
+                         d->message_notification_group_id, m->notification_id, true, Promise<Unit>());
+    }
+
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateMessageMentionRead>(d->dialog_id.get(), m->message_id.get(),
                                                                   d->unread_mention_count));
@@ -5702,6 +5707,7 @@ void MessagesManager::update_dialog_unmute_timeout(Dialog *d, bool old_use_defau
   auto now = G()->unix_time_cached();
   if (!new_use_default && new_mute_until >= now && new_mute_until < now + 366 * 86400) {
     dialog_unmute_timeout_.set_timeout_in(d->dialog_id.get(), new_mute_until - now + 1);
+    remove_dialog_message_notifications(d);
   } else {
     dialog_unmute_timeout_.cancel_timeout(d->dialog_id.get());
   }
@@ -7733,7 +7739,7 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
 
   vector<int64> deleted_message_ids;
   do_delete_all_dialog_messages(d, d->messages, deleted_message_ids);
-  delete_all_dialog_messages_from_database(d->dialog_id, MessageId::max(), "delete_all_dialog_messages");
+  delete_all_dialog_messages_from_database(d, MessageId::max(), "delete_all_dialog_messages");
   if (is_permanent) {
     for (auto id : deleted_message_ids) {
       d->deleted_message_ids.insert(MessageId{id});
@@ -7821,6 +7827,10 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, Promise<Unit>
     CHECK(m->message_id == message_id);
     m->contains_unread_mention = false;
 
+    if (m->notification_id.is_valid() && d->message_notification_group_id.is_valid()) {
+      send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification,
+                         d->message_notification_group_id, m->notification_id, true, Promise<Unit>());
+    }
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateMessageMentionRead>(dialog_id.get(), m->message_id.get(), 0));
     is_update_sent = true;
@@ -8217,12 +8227,6 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
   if (message_id != MessageId::min()) {
     d->last_read_inbox_message_id = message_id;
     d->is_last_read_inbox_message_id_inited = true;
-
-    if (d->last_read_inbox_message_id.is_valid() && d->message_notification_group_id.is_valid()) {
-      send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group,
-                         d->message_notification_group_id, NotificationId(), d->last_read_inbox_message_id,
-                         get_dialog_pending_notification_count(d), Promise<Unit>());
-    }
   }
   int32 old_unread_count = d->server_unread_count + d->local_unread_count;
   d->server_unread_count = server_unread_count;
@@ -8251,6 +8255,14 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
       }
     }
     send_update_unread_chat_count(d->dialog_id, force_update, source);
+  }
+  if (message_id != MessageId::min()) {
+    if (d->last_read_inbox_message_id.is_valid() && d->message_notification_group_id.is_valid() &&
+        d->order != DEFAULT_ORDER && d->order != SPONSORED_DIALOG_ORDER) {
+      send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group,
+                         d->message_notification_group_id, NotificationId(), d->last_read_inbox_message_id,
+                         get_dialog_pending_notification_count(d), Promise<Unit>());
+    }
   }
 
   send_update_chat_read_inbox(d, force_update, source);
@@ -9639,7 +9651,7 @@ void MessagesManager::set_dialog_last_new_message_id(Dialog *d, MessageId last_n
       << last_new_message_id << " " << d->last_new_message_id << " " << source;
   CHECK(d->dialog_id.get_type() == DialogType::SecretChat || last_new_message_id.is_server());
   if (!d->last_new_message_id.is_valid()) {
-    delete_all_dialog_messages_from_database(d->dialog_id, MessageId::max(), "set_dialog_last_new_message_id");
+    delete_all_dialog_messages_from_database(d, MessageId::max(), "set_dialog_last_new_message_id");
     set_dialog_first_database_message_id(d, MessageId(), "set_dialog_last_new_message_id");
     set_dialog_last_database_message_id(d, MessageId(), source);
     if (d->dialog_id.get_type() != DialogType::SecretChat) {
@@ -17510,6 +17522,14 @@ void MessagesManager::flush_pending_new_message_notifications(DialogId dialog_id
   }
 }
 
+void MessagesManager::remove_dialog_message_notifications(const Dialog *d) const {
+  if (d->message_notification_group_id.is_valid()) {
+    send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group,
+                       d->message_notification_group_id, td_->notification_manager_->get_max_notification_id(),
+                       MessageId(), 0, Promise<Unit>());
+  }
+}
+
 void MessagesManager::send_update_message_send_succeeded(Dialog *d, MessageId old_message_id, const Message *m) const {
   CHECK(m != nullptr);
   d->yet_unsent_message_id_to_persistent_message_id.emplace(old_message_id, m->message_id);
@@ -20502,13 +20522,19 @@ void MessagesManager::add_message_to_database(const Dialog *d, const Message *m,
                                                      search_id, text, log_event_store(*m), Auto());  // TODO Promise
 }
 
-void MessagesManager::delete_all_dialog_messages_from_database(DialogId dialog_id, MessageId message_id,
+void MessagesManager::delete_all_dialog_messages_from_database(const Dialog *d, MessageId message_id,
                                                                const char *source) {
+  CHECK(d != nullptr);
+  if (d->message_notification_group_id.is_valid()) {
+    send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group,
+                       d->message_notification_group_id, NotificationId(), message_id, 0, Promise<Unit>());
+  }
+
   if (!G()->parameters().use_message_db) {
     return;
   }
 
-  CHECK(dialog_id.is_valid());
+  auto dialog_id = d->dialog_id;
   if (!message_id.is_valid()) {
     return;
   }
@@ -20586,6 +20612,11 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
 
   if (message_id.is_yet_unsent()) {
     return;
+  }
+
+  if (m != nullptr && m->notification_id.is_valid() && d->message_notification_group_id.is_valid()) {
+    send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification,
+                       d->message_notification_group_id, m->notification_id, true, Promise<Unit>());
   }
 
   auto is_secret = d->dialog_id.get_type() == DialogType::SecretChat;
@@ -20805,6 +20836,8 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
     LOG_IF(ERROR, old_message->edit_date == 0)
         << message_id << " in " << dialog_id << " has changed contains_mention from " << old_message->contains_mention
         << " to " << new_message->contains_mention;
+    // contains_mention flag shouldn't be changed, because the message will not be added to unread mention list
+    // and we are unable to show/hide message notification
     // old_message->contains_mention = new_message->contains_mention;
     // is_changed = true;
   }
@@ -20814,6 +20847,7 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
         << new_message->disable_notification
         << ". Old message: " << to_string(get_message_object(dialog_id, old_message.get()))
         << ". New message: " << to_string(get_message_object(dialog_id, new_message.get()));
+    // disable_notification flag shouldn't be changed, because we are unable to show/hide message notification
     // old_message->disable_notification = new_message->disable_notification;
     // is_changed = true;
   }
@@ -21664,6 +21698,9 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
       repair_channel_server_unread_count(d);
       channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
     }
+    if (dialog_id.get_type() == DialogType::Channel && !has_unread_counter) {
+      remove_dialog_message_notifications(d);
+    }
   }
 
   d->order = new_order;
@@ -22069,7 +22106,6 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
   //    searchChatMessages. The messages should still be lazily checked using getHistory, but they are still available
   //    offline. It is the best way for gaps support, but it is pretty hard to implement correctly.
   // It should be also noted that some messages like live location messages shouldn't be deleted.
-  // delete_all_dialog_messages_from_database(dialog_id, d->last_database_message_id, "on_get_channel_dialog");
 
   set_dialog_first_database_message_id(d, MessageId(), "on_get_channel_dialog");
   set_dialog_last_database_message_id(d, MessageId(), "on_get_channel_dialog");
