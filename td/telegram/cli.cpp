@@ -648,6 +648,9 @@ class CliClient final : public Actor {
       case td_api::updateFile::ID:
         on_get_file(*static_cast<const td_api::updateFile *>(result.get())->file_);
         break;
+      case td_api::updateConnectionState::ID:
+        LOG(WARNING) << to_string(result);
+        break;
     }
   }
 

@@ -966,6 +966,7 @@ void Session::connection_open_finish(ConnectionInfo *info,
     }
   }
   auto name = PSTRING() << get_name() << "::Connect::" << mode_name << "::" << raw_connection->debug_str_;
+  LOG(INFO) << "connection_open_finish: " << name;
   info->connection =
       make_unique<mtproto::SessionConnection>(mode, std::move(raw_connection), &auth_data_, DhCache::instance());
   if (is_main_) {
