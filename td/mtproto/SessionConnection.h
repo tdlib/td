@@ -79,7 +79,7 @@ class SessionConnection
   void cancel_answer(int64 message_id);
   void destroy_key();
 
-  void set_online(bool online_flag);
+  void set_online(bool online_flag, bool is_main);
 
   // Callback
   class Callback {
@@ -124,13 +124,18 @@ class SessionConnection
   static constexpr double RESEND_ANSWER_DELAY = 0.001;  // 0.001s
 
   bool online_flag_ = false;
+  bool is_main_ = false;
 
   int rtt() const {
     return max(2, static_cast<int>(raw_connection_->rtt_ * 1.5 + 1));
   }
 
+  int32 read_disconnect_delay() {
+    return online_flag_ ? rtt() * 7 / 2 : 135;
+  }
+
   int32 ping_disconnect_delay() const {
-    return online_flag_ ? rtt() * 5 / 2 : 135;
+    return (online_flag_ && is_main_) ? rtt() * 5 / 2 : 135;
   }
 
   int32 ping_may_delay() const {
@@ -164,6 +169,7 @@ class SessionConnection
   // nobody cleans up this map. But it should be really small.
   std::unordered_map<uint64, std::vector<uint64>> container_to_service_msg_;
 
+  double last_read_at_ = 0;
   double last_ping_at_ = 0;
   double last_pong_at_ = 0;
   int64 cur_ping_id_ = 0;
@@ -257,6 +263,7 @@ class SessionConnection
   Status before_write() override TD_WARN_UNUSED_RESULT;
   Status on_raw_packet(const td::mtproto::PacketInfo &info, BufferSlice packet) override;
   Status on_quick_ack(uint64 quick_ack_token) override;
+  void on_read(size_t size) override;
 };
 
 }  // namespace mtproto

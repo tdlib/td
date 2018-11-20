@@ -83,6 +83,8 @@ class RawConnection {
     virtual Status before_write() {
       return Status::OK();
     }
+    virtual void on_read(size_t size) {
+    }
   };
 
   // NB: After first returned error, all subsequent calls will return error too.

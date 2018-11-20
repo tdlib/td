@@ -58,8 +58,11 @@ uint64 RawConnection::send_no_crypto(const Storer &storer) {
 
 Status RawConnection::flush_read(const AuthKey &auth_key, Callback &callback) {
   auto r = socket_fd_.flush_read();
-  if (r.is_ok() && stats_callback_) {
-    stats_callback_->on_read(r.ok());
+  if (r.is_ok()) {
+    if (stats_callback_) {
+      stats_callback_->on_read(r.ok());
+    }
+    callback.on_read(r.ok());
   }
   while (transport_->can_read()) {
     BufferSlice packet;
@@ -73,6 +76,10 @@ Status RawConnection::flush_read(const AuthKey &auth_key, Callback &callback) {
     CHECK(is_aligned_pointer<4>(packet.as_slice().ubegin()))
         << packet.as_slice().ubegin() << ' ' << packet.size() << ' ' << wait_size;
     if (wait_size != 0) {
+      constexpr size_t MAX_PACKET_SIZE = (1 << 22) + 1024;
+      if (wait_size > MAX_PACKET_SIZE) {
+        return Status::Error(PSLICE() << "Expected packet size is too big: " << wait_size);
+      }
       break;
     }
 

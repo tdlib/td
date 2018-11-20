@@ -206,20 +206,11 @@ void Session::connection_online_update(bool force) {
   }
   connection_online_flag_ = new_connection_online_flag;
   VLOG(dc) << "Set connection_online " << connection_online_flag_;
-  if (is_main_) {
-    if (main_connection_.connection) {
-      main_connection_.connection->set_online(connection_online_flag_);
-    }
-    if (long_poll_connection_.connection) {
-      long_poll_connection_.connection->set_online(connection_online_flag_);
-    }
-  } else {
-    // TODO: support online state in media connections.
-    if (connection_online_flag_) {
-      connection_close(&main_connection_);
-      connection_close(&long_poll_connection_);
-    }
-    return;
+  if (main_connection_.connection) {
+    main_connection_.connection->set_online(connection_online_flag_, is_main_);
+  }
+  if (long_poll_connection_.connection) {
+    long_poll_connection_.connection->set_online(connection_online_flag_, is_main_);
   }
 }
 
@@ -967,11 +958,10 @@ void Session::connection_open_finish(ConnectionInfo *info,
   }
   auto name = PSTRING() << get_name() << "::Connect::" << mode_name << "::" << raw_connection->debug_str_;
   LOG(INFO) << "connection_open_finish: " << name;
+  //LOG(ERROR) << "connection_open_finish: " << name;
   info->connection =
       make_unique<mtproto::SessionConnection>(mode, std::move(raw_connection), &auth_data_, DhCache::instance());
-  if (is_main_) {
-    info->connection->set_online(connection_online_flag_);
-  }
+  info->connection->set_online(connection_online_flag_, is_main_);
   info->connection->set_name(name);
   Scheduler::subscribe(info->connection->get_poll_info().extract_pollable_fd(this));
   info->mode = mode_;

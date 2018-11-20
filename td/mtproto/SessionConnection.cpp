@@ -680,6 +680,11 @@ Status SessionConnection::on_quick_ack(uint64 quick_ack_token) {
   callback_->on_message_ack(quick_ack_token);
   return Status::OK();
 }
+
+void SessionConnection::on_read(size_t size) {
+  last_read_at_ = Time::now_cached();
+}
+
 SessionConnection::SessionConnection(Mode mode, unique_ptr<RawConnection> raw_connection, AuthData *auth_data,
                                      DhCallback *dh_callback)
     : raw_connection_(std::move(raw_connection)), auth_data_(auth_data), dh_callback_(dh_callback) {
@@ -695,16 +700,21 @@ PollableFdInfo &SessionConnection::get_poll_info() {
 Status SessionConnection::init() {
   CHECK(state_ == Init);
   last_pong_at_ = Time::now_cached();
+  last_read_at_ = Time::now_cached();
   state_ = Run;
   return Status::OK();
 }
 
-void SessionConnection::set_online(bool online_flag) {
+void SessionConnection::set_online(bool online_flag, bool is_main) {
   online_flag_ = online_flag;
+  is_main_ = is_main;
+  auto now = Time::now();
   if (online_flag_) {
-    last_pong_at_ = Time::now() - ping_disconnect_delay() + rtt();
+    last_pong_at_ = now - ping_disconnect_delay() + rtt();
+    last_read_at_ = now - read_disconnect_delay() + rtt();
   } else {
-    last_pong_at_ = Time::now();
+    last_pong_at_ = now;
+    last_read_at_ = now;
   }
   last_ping_at_ = 0;
   last_ping_message_id_ = 0;
@@ -829,7 +839,8 @@ void SessionConnection::flush_packet() {
   if (mode_ == Mode::HttpLongPoll) {
     max_delay = HTTP_MAX_DELAY;
     max_after = HTTP_MAX_AFTER;
-    auto time_to_disconnect = ping_disconnect_delay() + last_pong_at_ - Time::now_cached();
+    auto time_to_disconnect =
+        std::min(ping_disconnect_delay() + last_pong_at_, read_disconnect_delay() + last_read_at_) - Time::now_cached();
     max_wait = min(http_max_wait(), static_cast<int>(1000 * max(0.1, time_to_disconnect - rtt())));
   } else if (mode_ == Mode::Http) {
     max_delay = HTTP_MAX_DELAY;
@@ -971,7 +982,13 @@ Status SessionConnection::do_flush() {
   // check last pong
   if (last_pong_at_ != 0 && last_pong_at_ + ping_disconnect_delay() < Time::now_cached()) {
     raw_connection_->stats_callback()->on_error();
-    return Status::Error("No pong :(");
+    return Status::Error(PSLICE() << "No pong :( " << tag("rtt", rtt()) << tag("delay", ping_disconnect_delay()));
+  }
+
+  // check last pong
+  if (last_read_at_ != 0 && last_read_at_ + read_disconnect_delay() < Time::now_cached()) {
+    raw_connection_->stats_callback()->on_error();
+    return Status::Error("No read :(");
   }
 
   return Status::OK();
@@ -992,6 +1009,7 @@ double SessionConnection::flush(SessionConnection::Callback *callback) {
   // 1. close connection after PING_DISCONNECT_DELAY after last_pong.
   // 2. the one returned by must_flush_packet
   relax_timeout_at(&wakeup_at_, last_pong_at_ + ping_disconnect_delay() + 0.002);
+  relax_timeout_at(&wakeup_at_, last_read_at_ + read_disconnect_delay() + 0.002);
   // CHECK(wakeup_at > Time::now_cached());
 
   relax_timeout_at(&wakeup_at_, flush_packet_at_);
