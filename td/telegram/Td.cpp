@@ -3315,12 +3315,29 @@ void Td::request(uint64 id, tl_object_ptr<td_api::Function> function) {
 }
 
 td_api::object_ptr<td_api::Object> Td::static_request(td_api::object_ptr<td_api::Function> function) {
-  VLOG(td_requests) << "Receive static request: " << to_string(function);
+  bool need_logging = [&] {
+    switch (function->get_id()) {
+      case td_api::getTextEntities::ID:
+      case td_api::parseTextEntities::ID:
+      case td_api::getFileMimeType::ID:
+      case td_api::getFileExtension::ID:
+      case td_api::cleanFileName::ID:
+        return true;
+      default:
+        return false;
+    }
+  }();
+
+  if (need_logging) {
+    VLOG(td_requests) << "Receive static request: " << to_string(function);
+  }
 
   td_api::object_ptr<td_api::Object> response;
   downcast_call(*function, [&response](auto &request) { response = Td::do_static_request(request); });
 
-  VLOG(td_requests) << "Sending result for static request: " << to_string(response);
+  if (need_logging) {
+    VLOG(td_requests) << "Sending result for static request: " << to_string(response);
+  }
   return response;
 }
 
