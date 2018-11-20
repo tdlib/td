@@ -8217,6 +8217,12 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
   if (message_id != MessageId::min()) {
     d->last_read_inbox_message_id = message_id;
     d->is_last_read_inbox_message_id_inited = true;
+
+    if (d->last_read_inbox_message_id.is_valid() && d->message_notification_group_id.is_valid()) {
+      send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group,
+                         d->message_notification_group_id, NotificationId(), d->last_read_inbox_message_id,
+                         get_dialog_pending_notification_count(d), Promise<Unit>());
+    }
   }
   int32 old_unread_count = d->server_unread_count + d->local_unread_count;
   d->server_unread_count = server_unread_count;
@@ -17387,6 +17393,7 @@ void MessagesManager::send_update_new_message(const Dialog *d, const Message *m)
 }
 
 NotificationGroupId MessagesManager::get_dialog_message_notification_group_id(Dialog *d) {
+  CHECK(d != nullptr);
   if (!d->message_notification_group_id.is_valid()) {
     d->message_notification_group_id = td_->notification_manager_->get_next_notification_group_id();
     VLOG(notifications) << "Assign " << d->message_notification_group_id << " to " << d->dialog_id;
@@ -17395,6 +17402,17 @@ NotificationGroupId MessagesManager::get_dialog_message_notification_group_id(Di
 
   CHECK(d->message_notification_group_id.is_valid());
   return d->message_notification_group_id;
+}
+
+int32 MessagesManager::get_dialog_pending_notification_count(Dialog *d) {
+  CHECK(d != nullptr);
+  if (is_dialog_muted(d)) {
+    // TODO pinned message?
+    // TODO hidden notifications?
+    return d->unread_mention_count;
+  }
+
+  return d->server_unread_count + d->local_unread_count;  // TODO remove/add some messages with unread mentions
 }
 
 void MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool force) {

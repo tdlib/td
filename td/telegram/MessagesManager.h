@@ -1455,6 +1455,8 @@ class MessagesManager : public Actor {
 
   NotificationGroupId get_dialog_message_notification_group_id(Dialog *d);
 
+  int32 get_dialog_pending_notification_count(Dialog *d);
+
   void add_new_message_notification(Dialog *d, Message *m, bool force);
 
   void flush_pending_new_message_notifications(DialogId dialog_id);
