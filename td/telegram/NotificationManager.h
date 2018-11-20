@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/MessageId.h"
 #include "td/telegram/NotificationGroupId.h"
 #include "td/telegram/NotificationId.h"
 #include "td/telegram/NotificationType.h"
@@ -53,7 +54,7 @@ class NotificationManager : public Actor {
                            Promise<Unit> &&promise);
 
   void remove_notification_group(NotificationGroupId group_id, NotificationId max_notification_id,
-                                 int32 new_total_count, Promise<Unit> &&promise);
+                                 MessageId max_message_id, int32 new_total_count, Promise<Unit> &&promise);
 
   void on_notification_group_count_max_changed();
 

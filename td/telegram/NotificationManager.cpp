@@ -532,6 +532,9 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
       added_notifications.push_back(
           get_notification_object(group_it->first.dialog_id,
                                   group_it->second.notifications[old_group_size - max_notification_group_size_ - 1]));
+      if (added_notifications.back()->type_ == nullptr) {
+        added_notifications.pop_back();
+      }
     } else {
       // TODO preload more notifications in the group
     }
@@ -552,11 +555,12 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
 }
 
 void NotificationManager::remove_notification_group(NotificationGroupId group_id, NotificationId max_notification_id,
-                                                    int32 new_total_count, Promise<Unit> &&promise) {
+                                                    MessageId max_message_id, int32 new_total_count,
+                                                    Promise<Unit> &&promise) {
   if (!group_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Group identifier is invalid"));
   }
-  if (!max_notification_id.is_valid()) {
+  if (!max_notification_id.is_valid() && !max_message_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Notification identifier is invalid"));
   }
 
@@ -564,9 +568,11 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
     return promise.set_value(Unit());
   }
 
-  VLOG(notifications) << "Remove " << group_id << " up to " << max_notification_id;
+  VLOG(notifications) << "Remove " << group_id << " up to " << max_notification_id << " or " << max_message_id;
 
-  // TODO remove notifications from database by max_notification_id, save that they are removed
+  if (max_notification_id.is_valid()) {
+    // TODO remove notifications from database by max_notification_id, save that they are removed
+  }
 
   auto group_it = get_group(group_id);
   if (group_it == groups_.end()) {
@@ -577,7 +583,8 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
   auto pending_delete_end = group_it->second.pending_notifications.begin();
   for (auto it = group_it->second.pending_notifications.begin(); it != group_it->second.pending_notifications.end();
        ++it) {
-    if (it->notification_id.get() <= max_notification_id.get()) {
+    if (it->notification_id.get() <= max_notification_id.get() ||
+        (max_message_id.is_valid() && it->type->get_message_id().get() <= max_message_id.get())) {
       pending_delete_end = it + 1;
     }
   }
@@ -595,7 +602,9 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
   auto old_group_size = group_it->second.notifications.size();
   auto notification_delete_end = old_group_size;
   for (size_t pos = 0; pos < notification_delete_end; pos++) {
-    if (group_it->second.notifications[pos].notification_id.get() > max_notification_id.get()) {
+    auto &notification = group_it->second.notifications[pos];
+    if (notification.notification_id.get() > max_notification_id.get() &&
+        (!max_message_id.is_valid() || notification.type->get_message_id().get() > max_message_id.get())) {
       notification_delete_end = pos;
     }
   }
