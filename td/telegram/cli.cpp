@@ -353,6 +353,7 @@ class CliClient final : public Actor {
     int32 part_size = 0;
     int32 local_size = 0;
     int32 size = 0;
+    bool test_local_size_decrease = false;
   };
 
   vector<FileGeneration> pending_file_generations_;
@@ -370,6 +371,7 @@ class CliClient final : public Actor {
     } else {
       file_generation.source = update.original_path_;
       file_generation.part_size = to_integer<int32>(update.conversion_);
+      file_generation.test_local_size_decrease = !update.conversion_.empty() && update.conversion_.back() == 't';
     }
 
     auto r_stat = stat(file_generation.source);
@@ -3497,8 +3499,12 @@ class CliClient final : public Actor {
         send_request(make_tl_object<td_api::finishFileGeneration>(it->id, nullptr));
         it = pending_file_generations_.erase(it);
       } else {
+        auto local_size = it->local_size;
+        if (it->test_local_size_decrease && local_size > it->size / 2) {
+          local_size = local_size * 2 - it->size;
+        }
         send_request(
-            make_tl_object<td_api::setFileGenerationProgress>(it->id, (it->size + it->local_size) / 2, it->local_size));
+            make_tl_object<td_api::setFileGenerationProgress>(it->id, (it->size + it->local_size) / 2, local_size));
         ++it;
       }
     }
