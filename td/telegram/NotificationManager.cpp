@@ -187,7 +187,7 @@ void NotificationManager::add_notification(NotificationGroupId group_id, DialogI
 
   auto delay_ms = get_notification_delay_ms(dialog_id, notification);
   VLOG(notifications) << "Delay " << notification_id << " for " << delay_ms << " milliseconds";
-  auto flush_time = delay_ms * 0.001 + Time::now_cached();
+  auto flush_time = delay_ms * 0.001 + Time::now();
 
   NotificationGroup &group = group_it->second;
   if (group.pending_notifications_flush_time == 0 || flush_time < group.pending_notifications_flush_time) {

@@ -5023,17 +5023,15 @@ void MessagesManager::on_update_channel_too_long(tl_object_ptr<telegram_api::upd
 
   int32 update_pts = (update->flags_ & UPDATE_CHANNEL_TO_LONG_FLAG_HAS_PTS) ? update->pts_ : 0;
 
-  if (force_apply) {
-    if (d == nullptr) {
-      get_channel_difference(dialog_id, -1, true, "on_update_channel_too_long 1");
-    } else {
-      get_channel_difference(dialog_id, d->pts, true, "on_update_channel_too_long 2");
+  if (d != nullptr) {
+    if (update_pts == 0 || update_pts > d->pts){
+      get_channel_difference(dialog_id, d->pts, true, "on_update_channel_too_long 1");
     }
   } else {
-    if (d == nullptr) {
-      td_->updates_manager_->schedule_get_difference("on_update_channel_too_long");
-    } else if (update_pts > d->pts) {
-      get_channel_difference(dialog_id, d->pts, true, "on_update_channel_too_long 3");
+    if (force_apply) {
+      get_channel_difference(dialog_id, -1, true, "on_update_channel_too_long 2");
+    } else {
+      td_->updates_manager_->schedule_get_difference("on_update_channel_too_long 3");
     }
   }
 }
