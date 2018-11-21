@@ -33,7 +33,9 @@ void NotificationManager::on_flush_pending_notifications_timeout_callback(void *
   }
 
   auto notification_manager = static_cast<NotificationManager *>(notification_manager_ptr);
-  notification_manager->flush_pending_notifications(NotificationGroupId(narrow_cast<int32>(group_id_int)));
+  send_closure_later(notification_manager->actor_id(notification_manager),
+                     &NotificationManager::flush_pending_notifications,
+                     NotificationGroupId(narrow_cast<int32>(group_id_int)));
 }
 
 bool NotificationManager::is_disabled() const {
@@ -221,8 +223,8 @@ void NotificationManager::send_update_notification(NotificationGroupId notificat
   send_closure(G()->td(), &Td::send_update, std::move(update));
 }
 
-void NotificationManager::flush_pending_notifications(NotificationGroupKey &group_key, NotificationGroup &group,
-                                                      vector<PendingNotification> &pending_notifications) {
+void NotificationManager::do_flush_pending_notifications(NotificationGroupKey &group_key, NotificationGroup &group,
+                                                         vector<PendingNotification> &pending_notifications) {
   if (pending_notifications.empty()) {
     return;
   }
@@ -275,22 +277,19 @@ void NotificationManager::flush_pending_notifications(NotificationGroupKey &grou
   pending_notifications.clear();
 }
 
-void NotificationManager::send_remove_group_update(NotificationGroupId group_id) {
-  CHECK(group_id.is_valid());
-  auto group_it = get_group(group_id);
-  CHECK(group_it != groups_.end());
-
-  auto total_size = group_it->second.notifications.size();
+void NotificationManager::send_remove_group_update(const NotificationGroupKey &group_key,
+                                                   const NotificationGroup &group) {
+  auto total_size = group.notifications.size();
   auto removed_size = min(total_size, max_notification_group_size_);
   vector<int32> removed_notification_ids;
   removed_notification_ids.reserve(removed_size);
   for (size_t i = total_size - removed_size; i < total_size; i++) {
-    removed_notification_ids.push_back(group_it->second.notifications[i].notification_id.get());
+    removed_notification_ids.push_back(group.notifications[i].notification_id.get());
   }
 
   if (!removed_notification_ids.empty()) {
     send_update_notification_group(td_api::make_object<td_api::updateNotificationGroup>(
-        group_id.get(), group_it->first.dialog_id.get(), group_it->first.dialog_id.get(), true, 0,
+        group_key.group_id.get(), group_key.dialog_id.get(), group_key.dialog_id.get(), true, 0,
         vector<td_api::object_ptr<td_api::notification>>(), std::move(removed_notification_ids)));
   }
 }
@@ -354,7 +353,7 @@ void NotificationManager::flush_pending_notifications(NotificationGroupId group_
     if (!was_updated) {
       if (last_group_key.last_notification_date != 0) {
         // need to remove last notification group to not exceed max_notification_group_size_
-        send_remove_group_update(last_group_key.group_id);
+        send_remove_group_update(last_group_key, groups_[last_group_key]);
       }
       send_add_group_update(group_key, group);
     }
@@ -367,13 +366,13 @@ void NotificationManager::flush_pending_notifications(NotificationGroupId group_
     for (auto &pending_notification : group.pending_notifications) {
       if (notification_settings_dialog_id != pending_notification.settings_dialog_id ||
           is_silent != pending_notification.is_silent) {
-        flush_pending_notifications(group_key, group, grouped_notifications);
+        do_flush_pending_notifications(group_key, group, grouped_notifications);
         notification_settings_dialog_id = pending_notification.settings_dialog_id;
         is_silent = pending_notification.is_silent;
       }
       grouped_notifications.push_back(std::move(pending_notification));
     }
-    flush_pending_notifications(group_key, group, grouped_notifications);
+    do_flush_pending_notifications(group_key, group, grouped_notifications);
   }
 
   group.pending_notifications_flush_time = 0;
@@ -459,7 +458,7 @@ void NotificationManager::on_notifications_removed(
           std::move(added_notifications), std::move(removed_notification_ids)));
     } else {
       // group needs to be removed
-      send_remove_group_update(group_key.group_id);
+      send_remove_group_update(group_key, group);
       if (last_group_key.last_notification_date != 0) {
         // need to add new last notification group
         send_add_group_update(last_group_key, groups_[last_group_key]);
@@ -613,12 +612,15 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
 
   vector<int32> removed_notification_ids;
   if (is_found && notification_delete_end + max_notification_group_size_ > old_group_size) {
-    for (size_t i = old_group_size; i < notification_delete_end + max_notification_group_size_; i++) {
-      removed_notification_ids.push_back(
-          group_it->second.notifications[i - max_notification_group_size_].notification_id.get());
+    for (size_t i = old_group_size >= max_notification_group_size_ ? old_group_size - max_notification_group_size_ : 0;
+         i < notification_delete_end; i++) {
+      removed_notification_ids.push_back(group_it->second.notifications[i].notification_id.get());
     }
   }
 
+  if (group_it->second.total_count == new_total_count) {
+    new_total_count = -1;
+  }
   if (new_total_count != -1) {
     group_it->second.total_count = new_total_count;
   }

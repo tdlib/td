@@ -17466,31 +17466,35 @@ void MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   }
 
   if (!force && (!have_settings || !d->pending_new_message_notifications.empty())) {
-    LOG(INFO) << "Delay new message notification for " << m->message_id << " in " << d->dialog_id << " with "
-              << d->pending_new_message_notifications.size() << " already waiting messages";
+    VLOG(notifications) << "Delay new message notification for " << m->message_id << " in " << d->dialog_id << " with "
+                        << d->pending_new_message_notifications.size() << " already waiting messages";
     if (d->pending_new_message_notifications.empty()) {
       create_actor<SleepActor>(
           "FlushPendingNewMessageNotificationsSleepActor", 5.0,
           PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = d->dialog_id](Result<Unit> result) {
-            VLOG(notifications) << "Flush pending notifications in " << dialog_id << " by timeout";
-            send_closure(actor_id, &MessagesManager::flush_pending_new_message_notifications, dialog_id);
+            send_closure(actor_id, &MessagesManager::flush_pending_new_message_notifications, dialog_id, DialogId());
           }))
           .release();
     }
-    d->pending_new_message_notifications.push_back(m->message_id);
-    auto promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = d->dialog_id](Result<Unit> result) {
-      VLOG(notifications) << "Flush pending notifications in " << dialog_id
-                          << " because of received notification settings";
-      send_closure(actor_id, &MessagesManager::flush_pending_new_message_notifications, dialog_id);
-    });
-    if (settings_dialog == nullptr && have_input_peer(settings_dialog_id, AccessRights::Read)) {
-      force_create_dialog(settings_dialog_id, "add_new_message_notification");
-      settings_dialog = get_dialog(settings_dialog_id);
-    }
-    if (settings_dialog != nullptr) {
-      send_get_dialog_notification_settings_query(settings_dialog_id, std::move(promise));
-    } else {
-      send_get_dialog_query(settings_dialog_id, std::move(promise));
+    auto last_settings_dialog_id =
+        (d->pending_new_message_notifications.empty() ? DialogId() : d->pending_new_message_notifications.back().first);
+    d->pending_new_message_notifications.emplace_back((have_settings ? DialogId() : settings_dialog_id), m->message_id);
+    if (!have_settings && last_settings_dialog_id != settings_dialog_id) {
+      VLOG(notifications) << "Fetch notification settings for " << settings_dialog_id;
+      auto promise = PromiseCreator::lambda(
+          [actor_id = actor_id(this), dialog_id = d->dialog_id, settings_dialog_id](Result<Unit> result) {
+            send_closure(actor_id, &MessagesManager::flush_pending_new_message_notifications, dialog_id,
+                         settings_dialog_id);
+          });
+      if (settings_dialog == nullptr && have_input_peer(settings_dialog_id, AccessRights::Read)) {
+        force_create_dialog(settings_dialog_id, "add_new_message_notification");
+        settings_dialog = get_dialog(settings_dialog_id);
+      }
+      if (settings_dialog != nullptr) {
+        send_get_dialog_notification_settings_query(settings_dialog_id, std::move(promise));
+      } else {
+        send_get_dialog_query(settings_dialog_id, std::move(promise));
+      }
     }
     return;
   }
@@ -17506,19 +17510,33 @@ void MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
                      m->disable_notification, m->notification_id, create_new_message_notification(m->message_id));
 }
 
-void MessagesManager::flush_pending_new_message_notifications(DialogId dialog_id) {
+void MessagesManager::flush_pending_new_message_notifications(DialogId dialog_id, DialogId settings_dialog_id) {
   auto d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   if (d->pending_new_message_notifications.empty()) {
     return;
   }
-  auto message_ids = std::move(d->pending_new_message_notifications);
-  reset_to_empty(d->pending_new_message_notifications);
-  for (auto message_id : message_ids) {
-    auto m = get_message(d, message_id);
+  for (auto &it : d->pending_new_message_notifications) {
+    if (it.first == settings_dialog_id || !settings_dialog_id.is_valid()) {
+      it.first = DialogId();
+    }
+  }
+
+  VLOG(notifications) << "Flush pending notifications in " << dialog_id
+                      << " because of received notification settings in " << settings_dialog_id;
+  auto it = d->pending_new_message_notifications.begin();
+  while (it != d->pending_new_message_notifications.end() && it->first == DialogId()) {
+    auto m = get_message(d, it->second);
     if (m != nullptr) {
       add_new_message_notification(d, m, true);
     }
+    ++it;
+  }
+
+  if (it == d->pending_new_message_notifications.end()) {
+    reset_to_empty(d->pending_new_message_notifications);
+  } else {
+    d->pending_new_message_notifications.erase(d->pending_new_message_notifications.begin(), it);
   }
 }
 

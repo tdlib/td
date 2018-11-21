@@ -905,7 +905,7 @@ class MessagesManager : public Actor {
 
     std::unordered_set<MessageId, MessageIdHash> deleted_message_ids;
 
-    std::vector<MessageId> pending_new_message_notifications;
+    std::vector<std::pair<DialogId, MessageId>> pending_new_message_notifications;
 
     string client_data;
 
@@ -1459,7 +1459,7 @@ class MessagesManager : public Actor {
 
   void add_new_message_notification(Dialog *d, Message *m, bool force);
 
-  void flush_pending_new_message_notifications(DialogId dialog_id);
+  void flush_pending_new_message_notifications(DialogId dialog_id, DialogId settings_dialog_id);
 
   void remove_dialog_message_notifications(const Dialog *d) const;
 

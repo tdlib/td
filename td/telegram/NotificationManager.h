@@ -145,14 +145,14 @@ class NotificationManager : public Actor {
 
   NotificationGroupKey get_last_updated_group_key() const;
 
-  void send_remove_group_update(NotificationGroupId group_id);
+  void send_remove_group_update(const NotificationGroupKey &group_key, const NotificationGroup &group);
 
   void send_add_group_update(const NotificationGroupKey &group_key, const NotificationGroup &group);
 
   int32 get_notification_delay_ms(DialogId dialog_id, const PendingNotification &notification) const;
 
-  void flush_pending_notifications(NotificationGroupKey &group_key, NotificationGroup &group,
-                                   vector<PendingNotification> &pending_notifications);
+  void do_flush_pending_notifications(NotificationGroupKey &group_key, NotificationGroup &group,
+                                      vector<PendingNotification> &pending_notifications);
 
   void flush_pending_notifications(NotificationGroupId group_id);
 
