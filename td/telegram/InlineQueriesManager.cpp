@@ -1622,6 +1622,7 @@ bool InlineQueriesManager::load_recently_used_bots(Promise<Unit> &promise) {
     return true;
   }
 
+  LOG(INFO) << "Load recently used inline bots " << saved_bots << '/' << saved_bot_ids;
   if (recently_used_bots_loaded_ == 1 && resolve_recent_inline_bots_multipromise_.promise_count() == 0) {
     // queries was sent and have already been finished
     auto newly_used_bots = std::move(recently_used_bot_user_ids_);

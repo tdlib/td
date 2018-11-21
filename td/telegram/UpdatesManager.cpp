@@ -135,6 +135,7 @@ class GetDifferenceQuery : public Td::ResultHandler {
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
+    VLOG(get_difference) << "Receive getDifference result of size " << packet.size();
     auto result_ptr = fetch_result<telegram_api::updates_getDifference>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
@@ -990,6 +991,8 @@ void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Diffe
     }
     case telegram_api::updates_difference::ID: {
       auto difference = move_tl_object_as<telegram_api::updates_difference>(difference_ptr);
+      VLOG(get_difference) << "In get difference receive " << difference->users_.size() << " users and "
+                           << difference->chats_.size() << " chats";
       td_->contacts_manager_->on_get_users(std::move(difference->users_));
       td_->contacts_manager_->on_get_chats(std::move(difference->chats_));
 
@@ -1008,6 +1011,13 @@ void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Diffe
     }
     case telegram_api::updates_differenceSlice::ID: {
       auto difference = move_tl_object_as<telegram_api::updates_differenceSlice>(difference_ptr);
+      if (difference->intermediate_state_->pts_ >= get_pts() && get_pts() != std::numeric_limits<int32>::max() &&
+          difference->intermediate_state_->date_ >= date_ && difference->intermediate_state_->qts_ == qts_) {
+        // TODO send new getDifference request and apply difference slice only after that
+      }
+
+      VLOG(get_difference) << "In get difference receive " << difference->users_.size() << " users and "
+                           << difference->chats_.size() << " chats";
       td_->contacts_manager_->on_get_users(std::move(difference->users_));
       td_->contacts_manager_->on_get_chats(std::move(difference->chats_));
 
