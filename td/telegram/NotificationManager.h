@@ -21,6 +21,7 @@
 #include "td/utils/StringBuilder.h"
 
 #include <map>
+#include <unordered_map>
 
 namespace td {
 
@@ -77,6 +78,9 @@ class NotificationManager : public Actor {
 
   static constexpr int32 MIN_NOTIFICATION_DELAY_MS = 1;
 
+  static constexpr int32 MIN_UPDATE_DELAY_MS = 50;
+  static constexpr int32 MAX_UPDATE_DELAY_MS = 60000;
+
   struct Notification {
     NotificationId notification_id;
     int32 date = 0;
@@ -128,6 +132,8 @@ class NotificationManager : public Actor {
 
   static void on_flush_pending_notifications_timeout_callback(void *notification_manager_ptr, int64 group_id_int);
 
+  static void on_flush_pending_updates_timeout_callback(void *notification_manager_ptr, int64 group_id_int);
+
   bool is_disabled() const;
 
   void start_up() override;
@@ -136,10 +142,12 @@ class NotificationManager : public Actor {
   static td_api::object_ptr<td_api::notification> get_notification_object(DialogId dialog_id,
                                                                           const Notification &notification);
 
-  void send_update_notification_group(td_api::object_ptr<td_api::updateNotificationGroup> update);
+  void add_update(int32 group_id, td_api::object_ptr<td_api::Update> update);
 
-  void send_update_notification(NotificationGroupId notification_group_id, DialogId dialog_id,
-                                const Notification &notification);
+  void add_update_notification_group(td_api::object_ptr<td_api::updateNotificationGroup> update);
+
+  void add_update_notification(NotificationGroupId notification_group_id, DialogId dialog_id,
+                               const Notification &notification);
 
   NotificationGroups::iterator get_group(NotificationGroupId group_id);
 
@@ -161,6 +169,8 @@ class NotificationManager : public Actor {
                                 vector<td_api::object_ptr<td_api::notification>> &&added_notifications,
                                 vector<int32> &&removed_notification_ids);
 
+  void flush_pending_updates(int32 group_id);
+
   NotificationId current_notification_id_;
   NotificationGroupId current_notification_group_id_;
 
@@ -172,9 +182,14 @@ class NotificationManager : public Actor {
   int32 notification_cloud_delay_ms_ = DEFAULT_ONLINE_CLOUD_DELAY_MS;
   int32 notification_default_delay_ms_ = DEFAULT_DEFAULT_DELAY_MS;
 
+  bool running_get_difference_ = false;
+
   NotificationGroups groups_;
 
+  std::unordered_map<int32, vector<td_api::object_ptr<td_api::Update>>> pending_updates_;
+
   MultiTimeout flush_pending_notifications_timeout_{"FlushPendingNotificationsTimeout"};
+  MultiTimeout flush_pending_updates_timeout_{"FlushPendingUpdatesTimeout"};
 
   Td *td_;
   ActorShared<> parent_;

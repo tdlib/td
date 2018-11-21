@@ -15,6 +15,7 @@
 
 #include "td/utils/misc.h"
 
+#include <algorithm>
 #include <tuple>
 
 namespace td {
@@ -24,6 +25,9 @@ int VERBOSITY_NAME(notifications) = VERBOSITY_NAME(WARNING);
 NotificationManager::NotificationManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   flush_pending_notifications_timeout_.set_callback(on_flush_pending_notifications_timeout_callback);
   flush_pending_notifications_timeout_.set_callback_data(static_cast<void *>(this));
+
+  flush_pending_updates_timeout_.set_callback(on_flush_pending_updates_timeout_callback);
+  flush_pending_updates_timeout_.set_callback_data(static_cast<void *>(this));
 }
 
 void NotificationManager::on_flush_pending_notifications_timeout_callback(void *notification_manager_ptr,
@@ -36,6 +40,17 @@ void NotificationManager::on_flush_pending_notifications_timeout_callback(void *
   send_closure_later(notification_manager->actor_id(notification_manager),
                      &NotificationManager::flush_pending_notifications,
                      NotificationGroupId(narrow_cast<int32>(group_id_int)));
+}
+
+void NotificationManager::on_flush_pending_updates_timeout_callback(void *notification_manager_ptr,
+                                                                    int64 group_id_int) {
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto notification_manager = static_cast<NotificationManager *>(notification_manager_ptr);
+  send_closure_later(notification_manager->actor_id(notification_manager), &NotificationManager::flush_pending_updates,
+                     narrow_cast<int32>(group_id_int));
 }
 
 bool NotificationManager::is_disabled() const {
@@ -203,24 +218,186 @@ td_api::object_ptr<td_api::notification> NotificationManager::get_notification_o
                                                    notification.type->get_notification_type_object(dialog_id));
 }
 
-void NotificationManager::send_update_notification_group(td_api::object_ptr<td_api::updateNotificationGroup> update) {
-  // TODO delay and combine updates while getDifference is running
-  VLOG(notifications) << "Send " << to_string(update);
-  send_closure(G()->td(), &Td::send_update, std::move(update));
+void NotificationManager::add_update(int32 group_id, td_api::object_ptr<td_api::Update> update) {
+  // TODO delay updates while getDifference is running
+  // flush updates when getDifference or getChannelDiference is finished
+  VLOG(notifications) << "Add " << to_string(update);
+  pending_updates_[group_id].push_back(std::move(update));
+  if (!running_get_difference_) {
+    flush_pending_updates_timeout_.add_timeout_in(group_id, MIN_UPDATE_DELAY_MS * 1e-3);
+  } else {
+    flush_pending_updates_timeout_.set_timeout_in(group_id, MAX_UPDATE_DELAY_MS * 1e-3);
+  }
 }
 
-void NotificationManager::send_update_notification(NotificationGroupId notification_group_id, DialogId dialog_id,
-                                                   const Notification &notification) {
+void NotificationManager::add_update_notification_group(td_api::object_ptr<td_api::updateNotificationGroup> update) {
+  auto group_id = update->notification_group_id_;
+  if (update->notification_settings_chat_id_ == 0) {
+    update->notification_settings_chat_id_ = update->chat_id_;
+  }
+  add_update(group_id, std::move(update));
+}
+
+void NotificationManager::add_update_notification(NotificationGroupId notification_group_id, DialogId dialog_id,
+                                                  const Notification &notification) {
   auto notification_object = get_notification_object(dialog_id, notification);
   if (notification_object->type_ == nullptr) {
     return;
   }
 
-  // TODO delay and combine updates while getDifference is running
-  auto update =
-      td_api::make_object<td_api::updateNotification>(notification_group_id.get(), std::move(notification_object));
-  VLOG(notifications) << "Send " << to_string(update);
-  send_closure(G()->td(), &Td::send_update, std::move(update));
+  add_update(notification_group_id.get(), td_api::make_object<td_api::updateNotification>(
+                                              notification_group_id.get(), std::move(notification_object)));
+}
+
+void NotificationManager::flush_pending_updates(int32 group_id) {
+  auto it = pending_updates_.find(group_id);
+  if (it == pending_updates_.end()) {
+    return;
+  }
+
+  VLOG(notifications) << "Send pending updates in " << NotificationGroupId(group_id);
+
+  auto updates = std::move(it->second);
+  pending_updates_.erase(it);
+
+  std::unordered_map<int32, size_t> notification_pos;
+  size_t cur_pos = 1;
+  for (auto &update : updates) {
+    if (update->get_id() == td_api::updateNotificationGroup::ID) {
+      auto update_ptr = static_cast<td_api::updateNotificationGroup *>(update.get());
+      bool is_deletion = !update_ptr->removed_notification_ids_.empty() &&
+                         (update_ptr->new_notifications_.empty() ||
+                          update_ptr->new_notifications_.back()->id_ < update_ptr->removed_notification_ids_[0]);
+
+      for (auto &notification : update_ptr->new_notifications_) {
+        auto notification_id = notification->id_;
+        auto &pos = notification_pos[notification_id];
+        CHECK(pos < cur_pos);
+        if (pos != 0) {
+          // this notification was deleted by previous update, but we can't remove the deletion or the addition
+        }
+        pos = cur_pos;
+      }
+      for (auto &notification_id : update_ptr->removed_notification_ids_) {
+        auto &pos = notification_pos[notification_id];
+        CHECK(pos < cur_pos);
+        if (pos == 0 || !is_deletion) {
+          pos = cur_pos;
+        } else {
+          // this notification was added by previous update, we can remove the addition and the deletion
+          auto &previous_update = updates[pos - 1];
+          CHECK(previous_update != nullptr);
+
+          if (previous_update->get_id() == td_api::updateNotificationGroup::ID) {
+            auto previous_update_ptr = static_cast<td_api::updateNotificationGroup *>(previous_update.get());
+            bool found = false;
+            size_t i = 0;
+            for (auto &notification : previous_update_ptr->new_notifications_) {
+              if (notification->id_ == notification_id) {
+                previous_update_ptr->new_notifications_.erase(previous_update_ptr->new_notifications_.begin() + i);
+                found = true;
+                break;
+              }
+              i++;
+            }
+            CHECK(found);  // there should be no deletions without previous addition
+            if (previous_update_ptr->new_notifications_.empty() &&
+                previous_update_ptr->removed_notification_ids_.empty()) {
+              previous_update = nullptr;
+            }
+          } else {
+            auto previous_update_ptr = static_cast<td_api::updateNotification *>(previous_update.get());
+            CHECK(previous_update_ptr->notification_->id_ == notification_id);
+            previous_update = nullptr;
+          }
+
+          notification_id = 0;
+          pos = 0;
+        }
+      }
+
+      update_ptr->removed_notification_ids_.erase(
+          std::remove_if(update_ptr->removed_notification_ids_.begin(), update_ptr->removed_notification_ids_.end(),
+                         [](auto &notification_id) { return notification_id == 0; }),
+          update_ptr->removed_notification_ids_.end());
+      if (update_ptr->removed_notification_ids_.empty() && update_ptr->new_notifications_.empty()) {
+        update = nullptr;
+      }
+    } else {
+      auto update_ptr = static_cast<td_api::updateNotification *>(update.get());
+      auto notification_id = update_ptr->notification_->id_;
+      auto &pos = notification_pos[notification_id];
+      if (pos == 0) {
+        pos = cur_pos;
+      } else {
+        VLOG(notifications) << "Previous update with " << notification_id
+                            << " is not sent, so we can edit the notification in-place";
+        auto type = std::move(update_ptr->notification_->type_);
+        auto &previous_update = updates[pos - 1];
+        CHECK(previous_update != nullptr);
+
+        if (previous_update->get_id() == td_api::updateNotificationGroup::ID) {
+          auto previous_update_ptr = static_cast<td_api::updateNotificationGroup *>(previous_update.get());
+          bool found = false;
+          for (auto &notification : previous_update_ptr->new_notifications_) {
+            if (notification->id_ == notification_id) {
+              notification->type_ = std::move(type);
+              found = true;
+              break;
+            }
+          }
+          CHECK(found);  // there should be no update about editing of deleted message
+        } else {
+          auto previous_update_ptr = static_cast<td_api::updateNotification *>(previous_update.get());
+          CHECK(previous_update_ptr->notification_->id_ == notification_id);
+          previous_update_ptr->notification_->type_ = std::move(type);
+        }
+
+        update = nullptr;
+      }
+    }
+    cur_pos++;
+  }
+
+  updates.erase(std::remove_if(updates.begin(), updates.end(), [](auto &update) { return update == nullptr; }),
+                updates.end());
+  if (updates.empty()) {
+    return;
+  }
+
+  size_t last_update_pos = 0;
+  for (size_t i = 1; i < updates.size(); i++) {
+    if (updates[last_update_pos]->get_id() == td_api::updateNotificationGroup::ID &&
+        updates[i]->get_id() == td_api::updateNotificationGroup::ID) {
+      auto last_update_ptr = static_cast<td_api::updateNotificationGroup *>(updates[last_update_pos].get());
+      auto update_ptr = static_cast<td_api::updateNotificationGroup *>(updates[i].get());
+      if (last_update_ptr->notification_settings_chat_id_ == update_ptr->notification_settings_chat_id_ &&
+          last_update_ptr->is_silent_ == update_ptr->is_silent_) {
+        if ((last_update_ptr->new_notifications_.empty() && update_ptr->new_notifications_.empty()) ||
+            (last_update_ptr->removed_notification_ids_.empty() && update_ptr->removed_notification_ids_.empty())) {
+          // combine updates
+          VLOG(notifications) << "Combine " << to_string(*last_update_ptr) << " and " << to_string(*update_ptr);
+          CHECK(last_update_ptr->notification_group_id_ == update_ptr->notification_group_id_);
+          CHECK(last_update_ptr->chat_id_ == update_ptr->chat_id_);
+          last_update_ptr->total_count_ = update_ptr->total_count_;
+          append(last_update_ptr->new_notifications_, std::move(update_ptr->new_notifications_));
+          append(last_update_ptr->removed_notification_ids_, std::move(update_ptr->removed_notification_ids_));
+          updates[i] = nullptr;
+          continue;
+        }
+      }
+    }
+    last_update_pos++;
+    if (last_update_pos != i) {
+      updates[last_update_pos] = std::move(updates[i]);
+    }
+  }
+  updates.resize(last_update_pos + 1);
+
+  for (auto &update : updates) {
+    VLOG(notifications) << "Send " << to_string(update);
+    send_closure(G()->td(), &Td::send_update, std::move(update));
+  }
 }
 
 void NotificationManager::do_flush_pending_notifications(NotificationGroupKey &group_key, NotificationGroup &group,
@@ -267,7 +444,7 @@ void NotificationManager::do_flush_pending_notifications(NotificationGroupKey &g
   }
 
   if (!added_notifications.empty()) {
-    send_update_notification_group(td_api::make_object<td_api::updateNotificationGroup>(
+    add_update_notification_group(td_api::make_object<td_api::updateNotificationGroup>(
         group_key.group_id.get(), group_key.dialog_id.get(), pending_notifications[0].settings_dialog_id.get(),
         pending_notifications[0].is_silent, group.total_count, std::move(added_notifications),
         std::move(removed_notification_ids)));
@@ -290,7 +467,7 @@ void NotificationManager::send_remove_group_update(const NotificationGroupKey &g
   }
 
   if (!removed_notification_ids.empty()) {
-    send_update_notification_group(td_api::make_object<td_api::updateNotificationGroup>(
+    add_update_notification_group(td_api::make_object<td_api::updateNotificationGroup>(
         group_key.group_id.get(), group_key.dialog_id.get(), group_key.dialog_id.get(), true, 0,
         vector<td_api::object_ptr<td_api::notification>>(), std::move(removed_notification_ids)));
   }
@@ -310,7 +487,7 @@ void NotificationManager::send_add_group_update(const NotificationGroupKey &grou
   }
 
   if (!added_notifications.empty()) {
-    send_update_notification_group(
+    add_update_notification_group(
         td_api::make_object<td_api::updateNotificationGroup>(group_key.group_id.get(), group_key.dialog_id.get(), 0,
                                                              true, 0, std::move(added_notifications), vector<int32>()));
   }
@@ -408,7 +585,7 @@ void NotificationManager::edit_notification(NotificationGroupId group_id, Notifi
     if (notification.notification_id == notification_id) {
       notification.type = std::move(type);
       if (i + max_notification_group_size_ >= group.notifications.size()) {
-        send_update_notification(group_it->first.group_id, group_it->first.dialog_id, notification);
+        add_update_notification(group_it->first.group_id, group_it->first.dialog_id, notification);
         return;
       }
     }
@@ -456,7 +633,7 @@ void NotificationManager::on_notifications_removed(
   } else {
     if (is_updated) {
       // group is still visible
-      send_update_notification_group(td_api::make_object<td_api::updateNotificationGroup>(
+      add_update_notification_group(td_api::make_object<td_api::updateNotificationGroup>(
           group_key.group_id.get(), group_key.dialog_id.get(), 0, true, group.total_count,
           std::move(added_notifications), std::move(removed_notification_ids)));
     } else {
