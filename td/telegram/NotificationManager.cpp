@@ -248,6 +248,7 @@ void NotificationManager::do_flush_pending_notifications(NotificationGroupKey &g
       group.notifications.push_back(std::move(notification));
     }
   }
+  group.total_count += narrow_cast<int32>(added_notifications.size());
   if (added_notifications.size() > max_notification_group_size_) {
     added_notifications.erase(
         added_notifications.begin(),
@@ -265,7 +266,6 @@ void NotificationManager::do_flush_pending_notifications(NotificationGroupKey &g
     }
   }
 
-  group.total_count += narrow_cast<int32>(added_notifications.size());
   if (!added_notifications.empty()) {
     send_update_notification_group(td_api::make_object<td_api::updateNotificationGroup>(
         group_key.group_id.get(), group_key.dialog_id.get(), pending_notifications[0].settings_dialog_id.get(),
