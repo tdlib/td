@@ -230,7 +230,7 @@ void NotificationManager::do_flush_pending_notifications(NotificationGroupKey &g
   }
 
   VLOG(notifications) << "Flush " << pending_notifications.size() << " pending notifications in " << group_key
-                      << " with available " << group.notifications.size() << " from " << group.total_count
+                      << " with known " << group.notifications.size() << " from total of " << group.total_count
                       << " notifications";
 
   size_t old_notification_count = group.notifications.size();
@@ -278,11 +278,13 @@ void NotificationManager::do_flush_pending_notifications(NotificationGroupKey &g
 }
 
 void NotificationManager::send_remove_group_update(const NotificationGroupKey &group_key,
-                                                   const NotificationGroup &group) {
+                                                   const NotificationGroup &group,
+                                                   vector<int32> &&removed_notification_ids) {
+  VLOG(notifications) << "Remove " << group_key.group_id;
   auto total_size = group.notifications.size();
-  auto removed_size = min(total_size, max_notification_group_size_);
-  vector<int32> removed_notification_ids;
-  removed_notification_ids.reserve(removed_size);
+  CHECK(removed_notification_ids.size() <= max_notification_group_size_);
+  auto removed_size = min(total_size, max_notification_group_size_ - removed_notification_ids.size());
+  removed_notification_ids.reserve(removed_size + removed_notification_ids.size());
   for (size_t i = total_size - removed_size; i < total_size; i++) {
     removed_notification_ids.push_back(group.notifications[i].notification_id.get());
   }
@@ -295,6 +297,7 @@ void NotificationManager::send_remove_group_update(const NotificationGroupKey &g
 }
 
 void NotificationManager::send_add_group_update(const NotificationGroupKey &group_key, const NotificationGroup &group) {
+  VLOG(notifications) << "Add " << group_key.group_id;
   auto total_size = group.notifications.size();
   auto added_size = min(total_size, max_notification_group_size_);
   vector<td_api::object_ptr<td_api::notification>> added_notifications;
@@ -353,7 +356,7 @@ void NotificationManager::flush_pending_notifications(NotificationGroupId group_
     if (!was_updated) {
       if (last_group_key.last_notification_date != 0) {
         // need to remove last notification group to not exceed max_notification_group_size_
-        send_remove_group_update(last_group_key, groups_[last_group_key]);
+        send_remove_group_update(last_group_key, groups_[last_group_key], vector<int32>());
       }
       send_add_group_update(group_key, group);
     }
@@ -449,7 +452,7 @@ void NotificationManager::on_notifications_removed(
 
   if (!was_updated) {
     CHECK(!is_updated);
-    // there is no need to send update
+    VLOG(notifications) << "There is no need to send updateNotificationGroup about " << group_key.group_id;
   } else {
     if (is_updated) {
       // group is still visible
@@ -458,7 +461,7 @@ void NotificationManager::on_notifications_removed(
           std::move(added_notifications), std::move(removed_notification_ids)));
     } else {
       // group needs to be removed
-      send_remove_group_update(group_key, group);
+      send_remove_group_update(group_key, group, std::move(removed_notification_ids));
       if (last_group_key.last_notification_date != 0) {
         // need to add new last notification group
         send_add_group_update(last_group_key, groups_[last_group_key]);

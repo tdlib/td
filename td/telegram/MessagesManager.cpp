@@ -17504,7 +17504,7 @@ void MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
                                   << d->dialog_id;
   m->notification_id = td_->notification_manager_->get_next_notification_id();
   set_dialog_last_notification_date(d, m->date);
-  VLOG(notifications) << "Assign " << m->notification_id << " to " << m->message_id << " in " << d->dialog_id;
+  VLOG(notifications) << "Create " << m->notification_id << " with " << m->message_id << " in " << d->dialog_id;
   send_closure_later(G()->notification_manager(), &NotificationManager::add_notification,
                      get_dialog_message_notification_group_id(d), d->dialog_id, m->date, settings_dialog_id,
                      m->disable_notification, m->notification_id, create_new_message_notification(m->message_id));

@@ -145,7 +145,8 @@ class NotificationManager : public Actor {
 
   NotificationGroupKey get_last_updated_group_key() const;
 
-  void send_remove_group_update(const NotificationGroupKey &group_key, const NotificationGroup &group);
+  void send_remove_group_update(const NotificationGroupKey &group_key, const NotificationGroup &group,
+                                vector<int32> &&removed_notification_ids);
 
   void send_add_group_update(const NotificationGroupKey &group_key, const NotificationGroup &group);
 
