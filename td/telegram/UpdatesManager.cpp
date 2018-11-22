@@ -25,6 +25,7 @@
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/net/DcOptions.h"
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/NotificationManager.h"
 #include "td/telegram/Payments.h"
 #include "td/telegram/PrivacyManager.h"
 #include "td/telegram/SecretChatId.h"
@@ -262,6 +263,7 @@ void UpdatesManager::before_get_difference() {
 
   td_->messages_manager_->before_get_difference();
   send_closure(td_->secret_chats_manager_, &SecretChatsManager::before_get_difference, get_qts());
+  send_closure_later(td_->notification_manager_actor_, &NotificationManager::before_get_difference);
 }
 
 Promise<> UpdatesManager::add_pts(int32 pts) {
@@ -1088,6 +1090,7 @@ void UpdatesManager::after_get_difference() {
 
   td_->inline_queries_manager_->after_get_difference();
   td_->messages_manager_->after_get_difference();
+  send_closure_later(td_->notification_manager_actor_, &NotificationManager::after_get_difference);
   send_closure(G()->state_manager(), &StateManager::on_synchronized, true);
 
   set_state(State::Type::General);

@@ -5024,7 +5024,7 @@ void MessagesManager::on_update_channel_too_long(tl_object_ptr<telegram_api::upd
   int32 update_pts = (update->flags_ & UPDATE_CHANNEL_TO_LONG_FLAG_HAS_PTS) ? update->pts_ : 0;
 
   if (d != nullptr) {
-    if (update_pts == 0 || update_pts > d->pts){
+    if (update_pts == 0 || update_pts > d->pts) {
       get_channel_difference(dialog_id, d->pts, true, "on_update_channel_too_long 1");
     }
   } else {
@@ -17408,6 +17408,12 @@ NotificationGroupId MessagesManager::get_dialog_message_notification_group_id(Di
     d->message_notification_group_id = td_->notification_manager_->get_next_notification_group_id();
     VLOG(notifications) << "Assign " << d->message_notification_group_id << " to " << d->dialog_id;
     on_dialog_updated(d->dialog_id, "get_dialog_message_notification_group_id");
+
+    if (running_get_channel_difference(d->dialog_id) ||
+        get_channel_difference_to_logevent_id_.count(d->dialog_id) != 0) {
+      send_closure_later(td_->notification_manager_actor_, &NotificationManager::before_get_chat_difference,
+                         d->message_notification_group_id);
+    }
   }
 
   CHECK(d->message_notification_group_id.is_valid());
@@ -22016,6 +22022,12 @@ void MessagesManager::do_get_channel_difference(DialogId dialog_id, int32 pts, b
     return;
   }
 
+  const Dialog *d = get_dialog(dialog_id);
+  if (d != nullptr && d->message_notification_group_id.is_valid()) {
+    send_closure_later(td_->notification_manager_actor_, &NotificationManager::before_get_chat_difference,
+                       d->message_notification_group_id);
+  }
+
   int32 limit = td_->auth_manager_->is_bot() ? MAX_BOT_CHANNEL_DIFFERENCE : MAX_CHANNEL_DIFFERENCE;
   if (pts <= 0) {
     pts = 1;
@@ -22351,6 +22363,11 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
       }
     }
     LOG(INFO) << "Finish to apply postponed channel updates";
+  }
+
+  if (d != nullptr && d->message_notification_group_id.is_valid()) {
+    send_closure_later(td_->notification_manager_actor_, &NotificationManager::after_get_chat_difference,
+                       d->message_notification_group_id);
   }
 
   if (postponed_chat_read_inbox_updates_.erase(dialog_id) > 0) {

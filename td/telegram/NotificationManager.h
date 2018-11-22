@@ -67,6 +67,14 @@ class NotificationManager : public Actor {
 
   void on_notification_default_delay_changed();
 
+  void before_get_difference();
+
+  void after_get_difference();
+
+  void before_get_chat_difference(NotificationGroupId group_id);
+
+  void after_get_chat_difference(NotificationGroupId group_id);
+
  private:
   static constexpr int32 DEFAULT_GROUP_COUNT_MAX = 10;
   static constexpr int32 DEFAULT_GROUP_SIZE_MAX = 10;
@@ -183,6 +191,7 @@ class NotificationManager : public Actor {
   int32 notification_default_delay_ms_ = DEFAULT_DEFAULT_DELAY_MS;
 
   bool running_get_difference_ = false;
+  std::unordered_set<int32> running_get_chat_difference_;
 
   NotificationGroups groups_;
 
