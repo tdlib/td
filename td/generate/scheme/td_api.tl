@@ -2221,8 +2221,8 @@ updateNotification notification_group_id:int32 notification:notification = Updat
 
 //@description A list of active notifications in a notification group has changed @notification_group_id Unique notification group identifier @chat_id Identifier of a chat to which all notifications in the group belong
 //@notification_settings_chat_id Chat identifier, which notification settings must be applied @is_silent True, if the notifications should be shown without sound
-//@total_count Total number of active notifications in the group @new_notifications List of new group notifications @removed_notification_ids Identifiers of removed group notifications
-updateNotificationGroup notification_group_id:int32 chat_id:int53 notification_settings_chat_id:int53 is_silent:Bool total_count:int32 new_notifications:vector<notification> removed_notification_ids:vector<int32> = Update;
+//@total_count Total number of active notifications in the group @added_notifications List of added group notifications @removed_notification_ids Identifiers of removed group notifications
+updateNotificationGroup notification_group_id:int32 chat_id:int53 notification_settings_chat_id:int53 is_silent:Bool total_count:int32 added_notifications:vector<notification> removed_notification_ids:vector<int32> = Update;
 
 //@description Contains active notifications that was shown on previous application launches. This update is sent only if a message database is used. In that case it comes once before any updateNotification and updateNotificationGroup update @groups Lists of active notification groups
 updateActiveNotifications groups:vector<notificationGroup> = Update;
