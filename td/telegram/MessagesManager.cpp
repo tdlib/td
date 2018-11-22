@@ -20000,11 +20000,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     return nullptr;
   }
 
-  if (!message->from_database) {
-    // load message from database before updating it
-    get_message_force(d, message_id);
-  }
-
   if (message->reply_markup != nullptr &&
       (message->reply_markup->type == ReplyMarkup::Type::RemoveKeyboard ||
        (message->reply_markup->type == ReplyMarkup::Type::ForceReply && !message->reply_markup->is_personal)) &&
@@ -20026,48 +20021,49 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   {
-    // TODO function
-    unique_ptr<Message> *v = &d->messages;
-    while (*v != nullptr && (*v)->random_y >= message->random_y) {
-      if ((*v)->message_id.get() < message_id.get()) {
-        v = &(*v)->right;
-      } else if ((*v)->message_id == message_id) {
-        LOG(INFO) << "Adding already existing " << message_id << " in " << dialog_id << " from " << source;
-        if (*need_update) {
-          *need_update = false;
-          if (!G()->parameters().use_message_db) {
-            LOG(ERROR) << "Receive again " << (message->is_outgoing ? "outgoing" : "incoming")
-                       << (message->forward_info == nullptr ? " not" : "") << " forwarded " << message_id
-                       << " with content of type " << message_content_type << " in " << dialog_id << " from " << source
-                       << ", current last new is " << d->last_new_message_id << ", last is " << d->last_message_id
-                       << ". " << td_->updates_manager_->get_state();
-            dump_debug_message_op(d, 1);
-          }
-        }
-        if (auto_attach) {
-          CHECK(message->have_previous);
-          CHECK(message->have_next);
-          message->have_previous = false;
-          message->have_next = false;
-        }
-        if (!message->from_database) {
-          const int32 INDEX_MASK_MASK = ~search_messages_filter_index_mask(SearchMessagesFilter::UnreadMention);
-          auto old_index_mask = get_message_index_mask(dialog_id, v->get()) & INDEX_MASK_MASK;
-          bool was_deleted = delete_active_live_location(dialog_id, v->get());
-          update_message(d, *v, std::move(message), true, need_update_dialog_pos);
-          auto new_index_mask = get_message_index_mask(dialog_id, v->get()) & INDEX_MASK_MASK;
-          if (was_deleted) {
-            try_add_active_live_location(dialog_id, v->get());
-          }
-          if (old_index_mask != new_index_mask) {
-            update_message_count_by_index(d, -1, old_index_mask & ~new_index_mask);
-            update_message_count_by_index(d, +1, new_index_mask & ~old_index_mask);
-          }
-        }
-        return v->get();
-      } else {
-        v = &(*v)->left;
+    unique_ptr<Message> *v = find_message(&d->messages, message_id);
+    if (*v == nullptr && !message->from_database) {
+      // load message from database before updating it
+      if (G()->parameters().use_message_db && get_message_force(d, message_id) != nullptr) {
+        v = find_message(&d->messages, message_id);
+        CHECK(*v != nullptr);
       }
+    }
+
+    if (*v != nullptr) {
+      LOG(INFO) << "Adding already existing " << message_id << " in " << dialog_id << " from " << source;
+      if (*need_update) {
+        *need_update = false;
+        if (!G()->parameters().use_message_db) {
+          LOG(ERROR) << "Receive again " << (message->is_outgoing ? "outgoing" : "incoming")
+                     << (message->forward_info == nullptr ? " not" : "") << " forwarded " << message_id
+                     << " with content of type " << message_content_type << " in " << dialog_id << " from " << source
+                     << ", current last new is " << d->last_new_message_id << ", last is " << d->last_message_id << ". "
+                     << td_->updates_manager_->get_state();
+          dump_debug_message_op(d, 1);
+        }
+      }
+      if (auto_attach) {
+        CHECK(message->have_previous);
+        CHECK(message->have_next);
+        message->have_previous = false;
+        message->have_next = false;
+      }
+      if (!message->from_database) {
+        const int32 INDEX_MASK_MASK = ~search_messages_filter_index_mask(SearchMessagesFilter::UnreadMention);
+        auto old_index_mask = get_message_index_mask(dialog_id, v->get()) & INDEX_MASK_MASK;
+        bool was_deleted = delete_active_live_location(dialog_id, v->get());
+        update_message(d, *v, std::move(message), true, need_update_dialog_pos);
+        auto new_index_mask = get_message_index_mask(dialog_id, v->get()) & INDEX_MASK_MASK;
+        if (was_deleted) {
+          try_add_active_live_location(dialog_id, v->get());
+        }
+        if (old_index_mask != new_index_mask) {
+          update_message_count_by_index(d, -1, old_index_mask & ~new_index_mask);
+          update_message_count_by_index(d, +1, new_index_mask & ~old_index_mask);
+        }
+      }
+      return v->get();
     }
   }
 
