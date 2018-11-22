@@ -20,6 +20,7 @@
 #include "td/utils/common.h"
 #include "td/utils/StringBuilder.h"
 
+#include <functional>
 #include <map>
 #include <unordered_map>
 
@@ -176,6 +177,10 @@ class NotificationManager : public Actor {
   void on_notifications_removed(NotificationGroups::iterator &&group_it,
                                 vector<td_api::object_ptr<td_api::notification>> &&added_notifications,
                                 vector<int32> &&removed_notification_ids);
+
+  void remove_added_notifications_from_pending_updates(
+      NotificationGroupId group_id,
+      std::function<bool(const td_api::object_ptr<td_api::notification> &notification)> is_removed);
 
   void flush_pending_updates(int32 group_id);
 

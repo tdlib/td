@@ -22056,7 +22056,7 @@ void MessagesManager::process_get_channel_difference_updates(
 
   // if last message is pretty old, we might have missed the update
   bool need_repair_unread_count =
-      !new_messages.empty() && get_message_date(new_messages.back()) < G()->unix_time() - 2 * 86400;
+      !new_messages.empty() && get_message_date(new_messages[0]) < G()->unix_time() - 2 * 86400;
 
   for (auto &message : new_messages) {
     on_get_message(std::move(message), true, true, true, true, "get channel difference");

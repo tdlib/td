@@ -75,7 +75,7 @@ class NotificationTypeCall : public NotificationType {
   }
 
   MessageId get_message_id() const override {
-    return MessageId();
+    return MessageId::max();
   }
 
   td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const override {

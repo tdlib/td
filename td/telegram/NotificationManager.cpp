@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <tuple>
+#include <unordered_set>
 
 namespace td {
 
@@ -301,6 +302,10 @@ void NotificationManager::flush_pending_updates(int32 group_id) {
     std::unordered_map<int32, size_t> notification_pos;
     size_t cur_pos = 1;
     for (auto &update : updates) {
+      if (update == nullptr) {
+        is_changed = true;
+        continue;
+      }
       if (update->get_id() == td_api::updateNotificationGroup::ID) {
         auto update_ptr = static_cast<td_api::updateNotificationGroup *>(update.get());
         bool is_deletion = !update_ptr->removed_notification_ids_.empty() &&
@@ -368,15 +373,18 @@ void NotificationManager::flush_pending_updates(int32 group_id) {
             if (updates[i - 1] != nullptr && updates[i - 1]->get_id() == td_api::updateNotificationGroup::ID) {
               auto previous_update_ptr = static_cast<td_api::updateNotificationGroup *>(updates[i - 1].get());
               previous_update_ptr->total_count_ = update_ptr->total_count_;
+              is_changed = true;
               update = nullptr;
               break;
             }
           }
-          if (update != nullptr && update_ptr->total_count_ == 0) {
+          if (update != nullptr && (cur_pos == 1 || update_ptr->total_count_ == 0)) {
+            is_changed = true;
             update = nullptr;
           }
         }
       } else {
+        CHECK(update->get_id() == td_api::updateNotification::ID);
         auto update_ptr = static_cast<td_api::updateNotification *>(update.get());
         auto notification_id = update_ptr->notification_->id_;
         auto &pos = notification_pos[notification_id];
@@ -722,6 +730,52 @@ void NotificationManager::on_notifications_removed(
   */
 }
 
+void NotificationManager::remove_added_notifications_from_pending_updates(
+    NotificationGroupId group_id,
+    std::function<bool(const td_api::object_ptr<td_api::notification> &notification)> is_removed) {
+  auto it = pending_updates_.find(group_id.get());
+  if (it == pending_updates_.end()) {
+    return;
+  }
+
+  std::unordered_set<int32> removed_notification_ids;
+  for (auto &update : it->second) {
+    if (update == nullptr) {
+      continue;
+    }
+    if (update->get_id() == td_api::updateNotificationGroup::ID) {
+      auto update_ptr = static_cast<td_api::updateNotificationGroup *>(update.get());
+      if (!removed_notification_ids.empty() && !update_ptr->removed_notification_ids_.empty()) {
+        update_ptr->removed_notification_ids_.erase(
+            std::remove_if(update_ptr->removed_notification_ids_.begin(), update_ptr->removed_notification_ids_.end(),
+                           [&removed_notification_ids](auto &notification_id) {
+                             return removed_notification_ids.count(notification_id) == 1;
+                           }),
+            update_ptr->removed_notification_ids_.end());
+      }
+      for (auto &notification : update_ptr->added_notifications_) {
+        if (is_removed(notification)) {
+          removed_notification_ids.insert(notification->id_);
+          VLOG(notifications) << "Remove " << NotificationId(notification->id_) << " in " << group_id;
+          notification = nullptr;
+        }
+      }
+      update_ptr->added_notifications_.erase(
+          std::remove_if(update_ptr->added_notifications_.begin(), update_ptr->added_notifications_.end(),
+                         [](auto &notification) { return notification == nullptr; }),
+          update_ptr->added_notifications_.end());
+    } else {
+      CHECK(update->get_id() == td_api::updateNotification::ID);
+      auto update_ptr = static_cast<td_api::updateNotification *>(update.get());
+      if (is_removed(update_ptr->notification_)) {
+        removed_notification_ids.insert(update_ptr->notification_->id_);
+        VLOG(notifications) << "Remove " << NotificationId(update_ptr->notification_->id_) << " in " << group_id;
+        update = nullptr;
+      }
+    }
+  }
+}
+
 void NotificationManager::remove_notification(NotificationGroupId group_id, NotificationId notification_id,
                                               bool is_permanent, Promise<Unit> &&promise) {
   if (!notification_id.is_valid()) {
@@ -791,6 +845,11 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
   if (is_permanent || !removed_notification_ids.empty()) {
     on_notifications_removed(std::move(group_it), std::move(added_notifications), std::move(removed_notification_ids));
   }
+
+  remove_added_notifications_from_pending_updates(
+      group_id, [notification_id](const td_api::object_ptr<td_api::notification> &notification) {
+        return notification->id_ == notification_id.get();
+      });
 
   promise.set_value(Unit());
 }
@@ -881,6 +940,21 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
     VLOG(notifications) << "Have new_total_count = " << new_total_count << " and " << removed_notification_ids.size()
                         << " removed notifications";
   }
+
+  if (max_notification_id.is_valid()) {
+    remove_added_notifications_from_pending_updates(
+        group_id, [max_notification_id](const td_api::object_ptr<td_api::notification> &notification) {
+          return notification->id_ <= max_notification_id.get();
+        });
+  } else {
+    remove_added_notifications_from_pending_updates(
+        group_id, [max_message_id](const td_api::object_ptr<td_api::notification> &notification) {
+          return notification->type_->get_id() == td_api::notificationTypeNewMessage::ID &&
+                 static_cast<const td_api::notificationTypeNewMessage *>(notification->type_.get())->message_->id_ <=
+                     max_message_id.get();
+        });
+  }
+
   promise.set_value(Unit());
 }
 
