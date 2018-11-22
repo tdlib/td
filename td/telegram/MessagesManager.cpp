@@ -19743,6 +19743,39 @@ const unique_ptr<MessagesManager::Message> *MessagesManager::find_message(const 
   return v;
 }
 
+MessagesManager::Message *MessagesManager::insert_message(unique_ptr<Message> *v, unique_ptr<Message> message) {
+  auto message_id = message->message_id;
+  while (*v != nullptr && (*v)->random_y >= message->random_y) {
+    if ((*v)->message_id.get() < message_id.get()) {
+      v = &(*v)->right;
+    } else if ((*v)->message_id == message_id) {
+      UNREACHABLE();
+    } else {
+      v = &(*v)->left;
+    }
+  }
+
+  unique_ptr<Message> *left = &message->left;
+  unique_ptr<Message> *right = &message->right;
+
+  unique_ptr<Message> cur = std::move(*v);
+  while (cur != nullptr) {
+    if (cur->message_id.get() < message_id.get()) {
+      *left = std::move(cur);
+      left = &((*left)->right);
+      cur = std::move(*left);
+    } else {
+      *right = std::move(cur);
+      right = &((*right)->left);
+      cur = std::move(*right);
+    }
+  }
+  CHECK(*left == nullptr);
+  CHECK(*right == nullptr);
+  *v = std::move(message);
+  return v->get();
+}
+
 MessagesManager::Message *MessagesManager::get_message(Dialog *d, MessageId message_id) {
   return const_cast<Message *>(get_message(static_cast<const Dialog *>(d), message_id));
 }
@@ -20408,40 +20441,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
-  Message *result_message = nullptr;
-  {
-    // TODO function
-    auto v = &d->messages;
-    while (*v != nullptr && (*v)->random_y >= m->random_y) {
-      if ((*v)->message_id.get() < message_id.get()) {
-        v = &(*v)->right;
-      } else if ((*v)->message_id == message_id) {
-        UNREACHABLE();
-      } else {
-        v = &(*v)->left;
-      }
-    }
-
-    unique_ptr<Message> *left = &message->left;
-    unique_ptr<Message> *right = &message->right;
-
-    unique_ptr<Message> cur = std::move(*v);
-    while (cur != nullptr) {
-      if (cur->message_id.get() < message_id.get()) {
-        *left = std::move(cur);
-        left = &((*left)->right);
-        cur = std::move(*left);
-      } else {
-        *right = std::move(cur);
-        right = &((*right)->left);
-        cur = std::move(*right);
-      }
-    }
-    CHECK(*left == nullptr);
-    CHECK(*right == nullptr);
-    *v = std::move(message);
-    result_message = v->get();
-  }
+  Message *result_message = insert_message(&d->messages, std::move(message));
   CHECK(result_message != nullptr);
   CHECK(d->messages != nullptr);
 

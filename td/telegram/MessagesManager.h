@@ -1625,6 +1625,8 @@ class MessagesManager : public Actor {
   static unique_ptr<Message> *find_message(unique_ptr<Message> *v, MessageId message_id);
   static const unique_ptr<Message> *find_message(const unique_ptr<Message> *v, MessageId message_id);
 
+  static Message *insert_message(unique_ptr<Message> *v, unique_ptr<Message> message);
+
   static Message *get_message(Dialog *d, MessageId message_id);
   static const Message *get_message(const Dialog *d, MessageId message_id);
 
