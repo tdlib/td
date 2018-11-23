@@ -22318,6 +22318,7 @@ void MessagesManager::on_get_channel_difference(
 }
 
 void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool success) {
+  LOG(INFO) << "After " << (success ? "un" : "") << "successful get channel difference in " << dialog_id;
   CHECK(!running_get_channel_difference(dialog_id)) << '"' << active_get_channel_differencies_[dialog_id] << '"';
 
   auto logevent_it = get_channel_difference_to_logevent_id_.find(dialog_id);
