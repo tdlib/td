@@ -381,6 +381,10 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
             std::remove_if(update_ptr->removed_notification_ids_.begin(), update_ptr->removed_notification_ids_.end(),
                            [](auto &notification_id) { return notification_id == 0; }),
             update_ptr->removed_notification_ids_.end());
+        if (update_ptr->added_notifications_.empty() && !update_ptr->is_silent_) {
+          update_ptr->is_silent_ = true;
+          is_changed = true;
+        }
         if (update_ptr->removed_notification_ids_.empty() && update_ptr->added_notifications_.empty()) {
           for (size_t i = cur_pos - 1; i > 0; i--) {
             if (updates[i - 1] != nullptr && updates[i - 1]->get_id() == td_api::updateNotificationGroup::ID) {
