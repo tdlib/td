@@ -182,7 +182,7 @@ class NotificationManager : public Actor {
       NotificationGroupId group_id,
       std::function<bool(const td_api::object_ptr<td_api::notification> &notification)> is_removed);
 
-  void flush_pending_updates(int32 group_id);
+  void flush_pending_updates(int32 group_id, const char *source);
 
   NotificationId current_notification_id_;
   NotificationGroupId current_notification_group_id_;
@@ -201,6 +201,10 @@ class NotificationManager : public Actor {
   NotificationGroups groups_;
 
   std::unordered_map<int32, vector<td_api::object_ptr<td_api::Update>>> pending_updates_;
+
+  void after_get_difference_impl();
+
+  void after_get_chat_difference_impl(NotificationGroupId group_id);
 
   MultiTimeout flush_pending_notifications_timeout_{"FlushPendingNotificationsTimeout"};
   MultiTimeout flush_pending_updates_timeout_{"FlushPendingUpdatesTimeout"};

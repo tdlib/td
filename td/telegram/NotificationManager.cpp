@@ -38,9 +38,18 @@ void NotificationManager::on_flush_pending_notifications_timeout_callback(void *
   }
 
   auto notification_manager = static_cast<NotificationManager *>(notification_manager_ptr);
-  send_closure_later(notification_manager->actor_id(notification_manager),
-                     &NotificationManager::flush_pending_notifications,
-                     NotificationGroupId(narrow_cast<int32>(group_id_int)));
+  if (group_id_int > 0) {
+    send_closure_later(notification_manager->actor_id(notification_manager),
+                       &NotificationManager::flush_pending_notifications,
+                       NotificationGroupId(narrow_cast<int32>(group_id_int)));
+  } else if (group_id_int == 0) {
+    send_closure_later(notification_manager->actor_id(notification_manager),
+                       &NotificationManager::after_get_difference_impl);
+  } else {
+    send_closure_later(notification_manager->actor_id(notification_manager),
+                       &NotificationManager::after_get_chat_difference_impl,
+                       NotificationGroupId(narrow_cast<int32>(-group_id_int)));
+  }
 }
 
 void NotificationManager::on_flush_pending_updates_timeout_callback(void *notification_manager_ptr,
@@ -51,7 +60,7 @@ void NotificationManager::on_flush_pending_updates_timeout_callback(void *notifi
 
   auto notification_manager = static_cast<NotificationManager *>(notification_manager_ptr);
   send_closure_later(notification_manager->actor_id(notification_manager), &NotificationManager::flush_pending_updates,
-                     narrow_cast<int32>(group_id_int));
+                     narrow_cast<int32>(group_id_int), "timeout");
 }
 
 bool NotificationManager::is_disabled() const {
@@ -285,7 +294,7 @@ void NotificationManager::add_update_notification(NotificationGroupId notificati
                                               notification_group_id.get(), std::move(notification_object)));
 }
 
-void NotificationManager::flush_pending_updates(int32 group_id) {
+void NotificationManager::flush_pending_updates(int32 group_id, const char *source) {
   auto it = pending_updates_.find(group_id);
   if (it == pending_updates_.end()) {
     return;
@@ -294,7 +303,11 @@ void NotificationManager::flush_pending_updates(int32 group_id) {
   auto updates = std::move(it->second);
   pending_updates_.erase(it);
 
-  VLOG(notifications) << "Send " << updates.size() << " pending updates in " << NotificationGroupId(group_id);
+  VLOG(notifications) << "Send " << updates.size() << " pending updates in " << NotificationGroupId(group_id)
+                      << " from " << source;
+  for (auto &update : updates) {
+    VLOG(notifications) << "Have " << as_notification_update(update.get());
+  }
 
   bool is_changed = true;
   while (is_changed) {
@@ -534,7 +547,7 @@ void NotificationManager::send_remove_group_update(const NotificationGroupKey &g
 
   if (!removed_notification_ids.empty()) {
     add_update_notification_group(td_api::make_object<td_api::updateNotificationGroup>(
-        group_key.group_id.get(), group_key.dialog_id.get(), group_key.dialog_id.get(), true, 0,
+        group_key.group_id.get(), group_key.dialog_id.get(), group_key.dialog_id.get(), true, group.total_count,
         vector<td_api::object_ptr<td_api::notification>>(), std::move(removed_notification_ids)));
   }
 }
@@ -553,9 +566,9 @@ void NotificationManager::send_add_group_update(const NotificationGroupKey &grou
   }
 
   if (!added_notifications.empty()) {
-    add_update_notification_group(
-        td_api::make_object<td_api::updateNotificationGroup>(group_key.group_id.get(), group_key.dialog_id.get(), 0,
-                                                             true, 0, std::move(added_notifications), vector<int32>()));
+    add_update_notification_group(td_api::make_object<td_api::updateNotificationGroup>(
+        group_key.group_id.get(), group_key.dialog_id.get(), 0, true, group.total_count, std::move(added_notifications),
+        vector<int32>()));
   }
 }
 
@@ -1033,6 +1046,11 @@ void NotificationManager::before_get_difference() {
 void NotificationManager::after_get_difference() {
   CHECK(running_get_difference_);
   running_get_difference_ = false;
+  flush_pending_notifications_timeout_.set_timeout_in(0, MIN_NOTIFICATION_DELAY_MS);
+}
+
+void NotificationManager::after_get_difference_impl() {
+  VLOG(notifications) << "After get difference";
   vector<int32> ready_group_ids;
   for (auto &it : pending_updates_) {
     if (running_get_chat_difference_.count(it.first) == 0) {
@@ -1041,22 +1059,29 @@ void NotificationManager::after_get_difference() {
   }
   for (auto group_id : ready_group_ids) {
     flush_pending_updates_timeout_.cancel_timeout(group_id);
-    flush_pending_updates(group_id);
+    flush_pending_updates(group_id, "after_get_difference");
   }
 }
 
 void NotificationManager::before_get_chat_difference(NotificationGroupId group_id) {
   VLOG(notifications) << "Before get chat difference in " << group_id;
+  CHECK(group_id.is_valid());
   bool is_inserted = running_get_chat_difference_.insert(group_id.get()).second;
   CHECK(is_inserted);
 }
 
 void NotificationManager::after_get_chat_difference(NotificationGroupId group_id) {
+  CHECK(group_id.is_valid());
+  flush_pending_notifications_timeout_.set_timeout_in(-group_id.get(), MIN_NOTIFICATION_DELAY_MS);
+}
+
+void NotificationManager::after_get_chat_difference_impl(NotificationGroupId group_id) {
   VLOG(notifications) << "After get chat difference in " << group_id;
+  CHECK(group_id.is_valid());
   auto erased_count = running_get_chat_difference_.erase(group_id.get());
   if (erased_count == 1 && !running_get_difference_ && pending_updates_.count(group_id.get()) == 1) {
     flush_pending_updates_timeout_.cancel_timeout(group_id.get());
-    flush_pending_updates(group_id.get());
+    flush_pending_updates(group_id.get(), "after_get_chat_difference");
   }
 }
 

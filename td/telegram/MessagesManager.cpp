@@ -5,7 +5,6 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/telegram/MessagesManager.h"
-
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ChatId.h"
@@ -17451,7 +17450,8 @@ void MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   }
 
   VLOG(notifications) << "Trying to " << (force ? "forcely " : "") << "add new message notification for "
-                      << m->message_id << " in " << d->dialog_id;
+                      << m->message_id << " in " << d->dialog_id
+                      << (m->disable_notification ? " silently" : " with sound");
 
   DialogId settings_dialog_id = d->dialog_id;
   Dialog *settings_dialog = d;
