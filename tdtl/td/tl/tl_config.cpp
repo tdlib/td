@@ -327,7 +327,7 @@ tl_type *tl_config_parser::read_type() {
 tl_config tl_config_parser::parse_config() {
   schema_version = get_schema_version(try_parse_int());
   if (schema_version < 2) {
-    std::fprintf(stderr, "Unsupported tl-schema verdion %d\n", static_cast<int>(schema_version));
+    std::fprintf(stderr, "Unsupported tl-schema version %d\n", static_cast<int>(schema_version));
     std::abort();
   }
 
