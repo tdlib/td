@@ -714,13 +714,14 @@ void NotificationManager::edit_notification(NotificationGroupId group_id, Notifi
       notification.type = std::move(type);
       if (i + max_notification_group_size_ >= group.notifications.size()) {
         add_update_notification(group_it->first.group_id, group_it->first.dialog_id, notification);
-        return;
       }
+      return;
     }
   }
   for (auto &notification : group.pending_notifications) {
     if (notification.notification_id == notification_id) {
       notification.type = std::move(type);
+      return;
     }
   }
 }
@@ -1104,15 +1105,20 @@ void NotificationManager::after_get_difference_impl() {
   }
 
   VLOG(notifications) << "After get difference";
-  vector<int32> ready_group_ids;
+  vector<NotificationGroupKey> ready_group_keys;
   for (auto &it : pending_updates_) {
     if (running_get_chat_difference_.count(it.first) == 0) {
-      ready_group_ids.push_back(it.first);
+      auto group_it = get_group(NotificationGroupId(it.first));
+      CHECK(group_it != groups_.end());
+      ready_group_keys.push_back(group_it->first);
     }
   }
-  for (auto group_id : ready_group_ids) {
-    flush_pending_updates_timeout_.cancel_timeout(group_id);
-    flush_pending_updates(group_id, "after_get_difference");
+
+  // flush groups in reverse order to not exceed max_notification_group_count_
+  std::sort(ready_group_keys.begin(), ready_group_keys.end());
+  for (auto group_key : reversed(ready_group_keys)) {
+    flush_pending_updates_timeout_.cancel_timeout(group_key.group_id.get());
+    flush_pending_updates(group_key.group_id.get(), "after_get_difference");
   }
 }
 
