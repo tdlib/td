@@ -23,6 +23,7 @@
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesDb.h"
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/Notification.h"
 #include "td/telegram/NotificationGroupId.h"
 #include "td/telegram/NotificationId.h"
 #include "td/telegram/NotificationSettings.h"
@@ -655,6 +656,13 @@ class MessagesManager : public Actor {
   void on_get_sponsored_dialog_id(tl_object_ptr<telegram_api::Peer> peer,
                                   vector<tl_object_ptr<telegram_api::User>> users,
                                   vector<tl_object_ptr<telegram_api::Chat>> chats);
+
+  struct MessageNotificationGroup {
+    DialogId dialog_id;
+    int32 total_count = 0;
+    vector<Notification> notifications;
+  };
+  MessageNotificationGroup get_message_notification_group_force(NotificationGroupId group_id);
 
   void on_binlog_events(vector<BinlogEvent> &&events);
 

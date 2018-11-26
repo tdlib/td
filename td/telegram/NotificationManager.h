@@ -8,6 +8,7 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/Notification.h"
 #include "td/telegram/NotificationGroupId.h"
 #include "td/telegram/NotificationId.h"
 #include "td/telegram/NotificationType.h"
@@ -90,16 +91,6 @@ class NotificationManager : public Actor {
   static constexpr int32 MIN_UPDATE_DELAY_MS = 50;
   static constexpr int32 MAX_UPDATE_DELAY_MS = 60000;
 
-  struct Notification {
-    NotificationId notification_id;
-    int32 date = 0;
-    unique_ptr<NotificationType> type;
-
-    Notification(NotificationId notification_id, int32 date, unique_ptr<NotificationType> type)
-        : notification_id(notification_id), date(date), type(std::move(type)) {
-    }
-  };
-
   struct PendingNotification {
     int32 date = 0;
     DialogId settings_dialog_id;
@@ -148,9 +139,6 @@ class NotificationManager : public Actor {
   void start_up() override;
   void tear_down() override;
 
-  static td_api::object_ptr<td_api::notification> get_notification_object(DialogId dialog_id,
-                                                                          const Notification &notification);
-
   void add_update(int32 group_id, td_api::object_ptr<td_api::Update> update);
 
   void add_update_notification_group(td_api::object_ptr<td_api::updateNotificationGroup> update);
@@ -159,6 +147,8 @@ class NotificationManager : public Actor {
                                const Notification &notification);
 
   NotificationGroups::iterator get_group(NotificationGroupId group_id);
+
+  NotificationGroups::iterator get_group_force(NotificationGroupId group_id);
 
   NotificationGroupKey get_last_updated_group_key() const;
 

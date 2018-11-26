@@ -5,6 +5,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/telegram/MessagesManager.h"
+
 #include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ChatId.h"
@@ -17417,6 +17418,15 @@ NotificationGroupId MessagesManager::get_dialog_message_notification_group_id(Di
 
   CHECK(d->message_notification_group_id.is_valid());
   return d->message_notification_group_id;
+}
+
+MessagesManager::MessageNotificationGroup MessagesManager::get_message_notification_group_force(
+    NotificationGroupId group_id) {
+  MessageNotificationGroup result;
+  if (G()->parameters().use_message_db) {
+    // TODO load message notification group
+  }
+  return result;
 }
 
 int32 MessagesManager::get_dialog_pending_notification_count(Dialog *d) {

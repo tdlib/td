@@ -10,6 +10,7 @@
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 
@@ -85,7 +86,7 @@ void NotificationManager::start_up() {
   on_notification_cloud_delay_changed();
   on_notification_default_delay_changed();
 
-  // TODO load groups
+  // TODO send updateActiveNotifications
 }
 
 void NotificationManager::tear_down() {
@@ -100,6 +101,34 @@ NotificationManager::NotificationGroups::iterator NotificationManager::get_group
     }
   }
   return groups_.end();
+}
+
+NotificationManager::NotificationGroups::iterator NotificationManager::get_group_force(NotificationGroupId group_id) {
+  auto group_it = get_group(group_id);
+  if (group_it != groups_.end()) {
+    return group_it;
+  }
+
+  auto message_group = td_->messages_manager_->get_message_notification_group_force(group_id);
+  if (!message_group.dialog_id.is_valid()) {
+    return groups_.end();
+  }
+
+  NotificationGroupKey group_key;
+  group_key.group_id = group_id;
+  group_key.dialog_id = message_group.dialog_id;
+  group_key.last_notification_date = 0;
+  for (auto &notification : message_group.notifications) {
+    if (notification.date >= group_key.last_notification_date) {
+      group_key.last_notification_date = notification.date;
+    }
+  }
+
+  NotificationGroup group;
+  group.total_count = message_group.total_count;
+  group.notifications = std::move(message_group.notifications);
+
+  return groups_.emplace(std::move(group_key), std::move(group)).first;
 }
 
 NotificationId NotificationManager::get_max_notification_id() const {
@@ -193,15 +222,13 @@ void NotificationManager::add_notification(NotificationGroupId group_id, DialogI
                       << " with settings from " << notification_settings_dialog_id
                       << (is_silent ? "   silently" : " with sound") << ": " << *type;
 
-  auto group_it = get_group(group_id);
+  auto group_it = get_group_force(group_id);
   if (group_it == groups_.end()) {
     NotificationGroupKey group_key;
     group_key.group_id = group_id;
     group_key.dialog_id = dialog_id;
     group_key.last_notification_date = 0;
     group_it = std::move(groups_.emplace(group_key, NotificationGroup()).first);
-
-    // TODO synchronously load old group notifications from the database
   }
 
   PendingNotification notification;
@@ -221,12 +248,6 @@ void NotificationManager::add_notification(NotificationGroupId group_id, DialogI
     flush_pending_notifications_timeout_.set_timeout_at(group_id.get(), group.pending_notifications_flush_time);
   }
   group.pending_notifications.push_back(std::move(notification));
-}
-
-td_api::object_ptr<td_api::notification> NotificationManager::get_notification_object(
-    DialogId dialog_id, const Notification &notification) {
-  return td_api::make_object<td_api::notification>(notification.notification_id.get(),
-                                                   notification.type->get_notification_type_object(dialog_id));
 }
 
 struct NotificationUpdate {
@@ -619,8 +640,8 @@ void NotificationManager::do_flush_pending_notifications(NotificationGroupKey &g
   vector<td_api::object_ptr<td_api::notification>> added_notifications;
   added_notifications.reserve(pending_notifications.size());
   for (auto &pending_notification : pending_notifications) {
-    Notification notification{pending_notification.notification_id, pending_notification.date,
-                              std::move(pending_notification.type)};
+    Notification notification(pending_notification.notification_id, pending_notification.date,
+                              std::move(pending_notification.type));
     added_notifications.push_back(get_notification_object(group_key.dialog_id, notification));
     if (added_notifications.back()->type_ == nullptr) {
       added_notifications.pop_back();
@@ -864,7 +885,8 @@ void NotificationManager::on_notifications_removed(
 
   /*
   if (last_loaded_group_key_ < last_group_key) {
-    // TODO load new groups from database
+    TODO
+    load_notification_groups_from_database();
   }
   */
 }
@@ -929,9 +951,8 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
 
   // TODO remove notification from database by notification_id
 
-  auto group_it = get_group(group_id);
+  auto group_it = get_group_force(group_id);
   if (group_it == groups_.end()) {
-    // TODO synchronously load the group
     return promise.set_value(Unit());
   }
 
@@ -1014,10 +1035,9 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
     // TODO remove notifications from database by max_notification_id, save that they are removed
   }
 
-  auto group_it = get_group(group_id);
+  auto group_it = get_group_force(group_id);
   if (group_it == groups_.end()) {
     VLOG(notifications) << "Can't find " << group_id;
-    // TODO synchronously load the group
     return promise.set_value(Unit());
   }
 
