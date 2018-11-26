@@ -20316,6 +20316,11 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       }
     }
   }
+  if (*need_update && dialog_id.get_type() == DialogType::Channel &&
+      message->date < G()->unix_time_cached() - 2 * 86400 && Slice(source) == Slice("updateNewChannelMessage")) {
+    // if the message is pretty old, we might have missed the update that the message has already been read
+    repair_channel_server_unread_count(d);
+  }
 
   if (*need_update) {
     add_new_message_notification(d, message.get(), false);
