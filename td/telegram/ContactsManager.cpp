@@ -6765,7 +6765,8 @@ void ContactsManager::on_update_user_online(UserId user_id, tl_object_ptr<telegr
     on_update_user_online(u, user_id, std::move(status));
     update_user(u, user_id);
 
-    if (user_id == get_my_id() && was_online_remote_ != u->was_online) {  // only update was_online_remote_ from updateUserStatus
+    if (user_id == get_my_id() &&
+        was_online_remote_ != u->was_online) {  // only update was_online_remote_ from updateUserStatus
       was_online_remote_ = u->was_online;
       VLOG(notifications) << "Set was_online_remote to " << was_online_remote_;
       G()->td_db()->get_binlog_pmc()->set("my_was_online_remote", to_string(was_online_remote_));
