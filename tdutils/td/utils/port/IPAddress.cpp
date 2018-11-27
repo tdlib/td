@@ -4,6 +4,8 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
+#define _WINSOCK_DEPRECATED_NO_WARNINGS  // we need to use inet_addr instead of inet_pton
+
 #include "td/utils/port/IPAddress.h"
 
 #include "td/utils/format.h"
@@ -170,6 +172,25 @@ Result<string> idn_to_ascii(CSlice host) {
 #endif
 }
 
+static CSlice get_ip_str(int family, const void *addr) {
+  const int buf_size = INET6_ADDRSTRLEN;
+  static TD_THREAD_LOCAL char *buf;
+  init_thread_local<char[]>(buf, buf_size);
+
+  const char *res = inet_ntop(family,
+#if TD_WINDOWS
+                              const_cast<PVOID>(addr),
+#else
+                              addr,
+#endif
+                              buf, buf_size);
+  if (res == nullptr) {
+    return CSlice();
+  } else {
+    return CSlice(res);
+  }
+}
+
 IPAddress::IPAddress() : is_valid_(false) {
 }
 
@@ -327,6 +348,7 @@ Status IPAddress::init_host_port(CSlice host, int port, bool prefer_ipv6) {
 }
 
 Status IPAddress::init_host_port(CSlice host, CSlice port, bool prefer_ipv6) {
+  is_valid_ = false;
   if (host.empty()) {
     return Status::Error("Host is empty");
   }
@@ -337,6 +359,13 @@ Status IPAddress::init_host_port(CSlice host, CSlice port, bool prefer_ipv6) {
 #endif
   TRY_RESULT(ascii_host, idn_to_ascii(host));
   host = ascii_host;
+
+  // some getaddrinfo implementations use inet_pton instead of inet_aton and support only decimal-dotted IPv4 form,
+  // and so doesn't recognize 0x12.0x34.0x56.0x78, or 0x12345678, or 0x7f.001 as valid IPv4 addresses
+  auto ipv4_numeric_addr = inet_addr(host.c_str());
+  if (ipv4_numeric_addr != INADDR_NONE) {
+    host = ::td::get_ip_str(AF_INET, &ipv4_numeric_addr);
+  }
 
   addrinfo hints;
   addrinfo *info = nullptr;
@@ -435,25 +464,6 @@ Status IPAddress::init_peer_address(const SocketFd &socket_fd) {
   }
   is_valid_ = true;
   return Status::OK();
-}
-
-static CSlice get_ip_str(int family, const void *addr) {
-  const int buf_size = INET6_ADDRSTRLEN;
-  static TD_THREAD_LOCAL char *buf;
-  init_thread_local<char[]>(buf, buf_size);
-
-  const char *res = inet_ntop(family,
-#if TD_WINDOWS
-                              const_cast<PVOID>(addr),
-#else
-                              addr,
-#endif
-                              buf, buf_size);
-  if (res == nullptr) {
-    return CSlice();
-  } else {
-    return CSlice(res);
-  }
 }
 
 CSlice IPAddress::ipv4_to_str(uint32 ipv4) {
