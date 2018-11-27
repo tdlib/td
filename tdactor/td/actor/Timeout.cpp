@@ -77,20 +77,34 @@ void MultiTimeout::update_timeout() {
   }
 }
 
-void MultiTimeout::timeout_expired() {
-  double now = Time::now_cached();
+vector<int64> MultiTimeout::get_expired_keys(double now) {
+  vector<int64> expired_keys;
   while (!timeout_queue_.empty() && timeout_queue_.top_key() < now) {
     int64 key = static_cast<Item *>(timeout_queue_.pop())->key;
     items_.erase(Item(key));
-    expired_.push_back(key);
+    expired_keys.push_back(key);
   }
+  return expired_keys;
+}
+
+void MultiTimeout::timeout_expired() {
+  vector<int64> expired_keys = get_expired_keys(Time::now_cached());
   if (!items_.empty()) {
     update_timeout();
   }
-  for (auto key : expired_) {
+  for (auto key : expired_keys) {
     callback_(data_, key);
   }
-  expired_.clear();
+}
+
+void MultiTimeout::run_all() {
+  vector<int64> expired_keys = get_expired_keys(Time::now_cached() + 1e10);
+  if (!expired_keys.empty()) {
+    update_timeout();
+  }
+  for (auto key : expired_keys) {
+    callback_(data_, key);
+  }
 }
 
 }  // namespace td

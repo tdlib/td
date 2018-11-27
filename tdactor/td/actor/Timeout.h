@@ -111,6 +111,8 @@ class MultiTimeout final : public Actor {
 
   void cancel_timeout(int64 key);
 
+  void run_all();
+
  private:
   friend class Scheduler;
 
@@ -119,11 +121,12 @@ class MultiTimeout final : public Actor {
 
   KHeap<double> timeout_queue_;
   std::set<Item> items_;
-  std::vector<int64> expired_;
 
   void update_timeout();
 
   void timeout_expired() override;
+
+  vector<int64> get_expired_keys(double now);
 };
 
 }  // namespace td

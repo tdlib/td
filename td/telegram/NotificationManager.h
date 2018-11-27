@@ -164,6 +164,8 @@ class NotificationManager : public Actor {
 
   void flush_pending_notifications(NotificationGroupId group_id);
 
+  void flush_all_pending_notifications();
+
   void on_notifications_removed(NotificationGroups::iterator &&group_it,
                                 vector<td_api::object_ptr<td_api::notification>> &&added_notifications,
                                 vector<int32> &&removed_notification_ids);
@@ -173,6 +175,8 @@ class NotificationManager : public Actor {
       std::function<bool(const td_api::object_ptr<td_api::notification> &notification)> is_removed);
 
   void flush_pending_updates(int32 group_id, const char *source);
+
+  void flush_all_pending_updates(bool include_delayed_chats, const char *source);
 
   NotificationId current_notification_id_;
   NotificationGroupId current_notification_group_id_;
