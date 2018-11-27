@@ -4265,7 +4265,7 @@ void MessagesManager::save_dialog_to_database(DialogId dialog_id) {
   CHECK(d != nullptr);
   LOG(INFO) << "Save " << dialog_id << " to database";
   G()->td_db()->get_dialog_db_async()->add_dialog(
-      dialog_id, d->order, d->last_notification_date, get_dialog_database_value(d),
+      dialog_id, d->order, d->last_notification_date, d->message_notification_group_id, get_dialog_database_value(d),
       PromiseCreator::lambda([dialog_id](Result<> result) {
         send_closure(G()->messages_manager(), &MessagesManager::on_save_dialog_to_database, dialog_id, result.is_ok());
       }));
