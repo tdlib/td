@@ -11,6 +11,7 @@
 
 namespace td {
 namespace mtproto {
+
 class AuthKey {
  public:
   AuthKey() = default;
@@ -54,11 +55,11 @@ class AuthKey {
     auth_key_.clear();
   }
 
-  enum { AUTH_FLAG = 1, WAS_AUTH_FLAG = 2 };
+  enum : int32 { AUTH_FLAG = 1, WAS_AUTH_FLAG = 2 };
   template <class StorerT>
   void store(StorerT &storer) const {
     storer.store_binary(auth_key_id_);
-    storer.store_binary((auth_flag_ ? AUTH_FLAG : 0) | (was_auth_flag_ ? WAS_AUTH_FLAG : 0));
+    storer.store_binary(static_cast<int32>((auth_flag_ ? AUTH_FLAG : 0) | (was_auth_flag_ ? WAS_AUTH_FLAG : 0)));
     storer.store_string(auth_key_);
   }
 
