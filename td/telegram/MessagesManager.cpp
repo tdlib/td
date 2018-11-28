@@ -17462,6 +17462,16 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
     result.total_count = get_dialog_pending_notification_count(d);
     result.notifications = get_message_notifications_from_database(
         d, NotificationId::max(), td_->notification_manager_->get_max_notification_group_size());
+
+    int32 last_notification_date = 0;
+    if (!result.notifications.empty()) {
+      last_notification_date = result.notifications[0].date;
+    }
+    if (last_notification_date != d->last_notification_date) {
+      LOG(ERROR) << "Fix last notification date in " << d->dialog_id << " from " << d->last_notification_date << " to "
+                 << last_notification_date;
+      set_dialog_last_notification_date(d, last_notification_date);
+    }
   }
 
   return result;
@@ -17486,7 +17496,8 @@ vector<Notification> MessagesManager::get_message_notifications_from_database(Di
   res.reserve(messages.size());
   for (auto &message : messages) {
     auto m = on_get_message_from_database(d->dialog_id, d, std::move(message));
-    if (m != nullptr && m->notification_id.is_valid()) {
+    if (m != nullptr && m->notification_id.is_valid() &&
+        (m->message_id.get() > d->last_read_inbox_message_id.get() || m->contains_unread_mention)) {
       res.emplace_back(m->notification_id, m->date, create_new_message_notification(m->message_id));
     }
   }
