@@ -17456,10 +17456,33 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
     VLOG(notifications) << "Found " << d->dialog_id << " by " << group_id;
     result.dialog_id = d->dialog_id;
     result.total_count = get_dialog_pending_notification_count(d);
-    // TODO load result.notifications
+    result.notifications = get_message_notifications_from_database(
+        d, NotificationId::max(), td_->notification_manager_->get_max_notification_group_size());
   }
 
   return result;
+}
+
+vector<Notification> MessagesManager::get_message_notifications_from_database(Dialog *d,
+                                                                              NotificationId from_notification_id,
+                                                                              int32 limit) {
+  CHECK(d != nullptr);
+  auto result = G()->td_db()->get_messages_db_sync()->get_messages_from_notification_id(d->dialog_id,
+                                                                                        from_notification_id, limit);
+  if (result.is_error()) {
+    return {};
+  }
+  auto messages = result.move_as_ok();
+
+  vector<Notification> res;
+  res.reserve(messages.size());
+  for (auto &message : messages) {
+    auto m = on_get_message_from_database(d->dialog_id, d, std::move(message));
+    if (m != nullptr && m->notification_id.is_valid()) {
+      res.emplace_back(m->notification_id, m->date, create_new_message_notification(m->message_id));
+    }
+  }
+  return res;
 }
 
 int32 MessagesManager::get_dialog_pending_notification_count(Dialog *d) {

@@ -10,6 +10,7 @@
 #include "td/utils/StringBuilder.h"
 
 #include <functional>
+#include <limits>
 #include <type_traits>
 
 namespace td {
@@ -18,11 +19,15 @@ class NotificationId {
  public:
   NotificationId() = default;
 
-  explicit NotificationId(int32 notification_id) : id(notification_id) {
+  explicit constexpr NotificationId(int32 notification_id) : id(notification_id) {
   }
 
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int32>::value>>
   NotificationId(T notification_id) = delete;
+
+  static constexpr NotificationId max() {
+    return NotificationId(std::numeric_limits<int32>::max());
+  }
 
   bool is_valid() const {
     return id > 0;

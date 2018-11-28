@@ -1463,6 +1463,9 @@ class MessagesManager : public Actor {
 
   NotificationGroupId get_dialog_message_notification_group_id(Dialog *d);
 
+  vector<Notification> get_message_notifications_from_database(Dialog *d, NotificationId from_notification_id,
+                                                               int32 limit);
+
   int32 get_dialog_pending_notification_count(Dialog *d);
 
   bool add_new_message_notification(Dialog *d, Message *m, bool force);

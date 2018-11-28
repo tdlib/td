@@ -193,6 +193,9 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
                                  "message_id > ?2 ORDER BY message_id ASC LIMIT ?3"));
     TRY_RESULT(get_messages_desc_stmt, db_.get_statement("SELECT data, message_id FROM messages WHERE dialog_id = ?1 "
                                                          "AND message_id < ?2 ORDER BY message_id DESC LIMIT ?3"));
+    TRY_RESULT(get_messages_from_notification_id_stmt,
+               db_.get_statement("SELECT data, message_id FROM messages WHERE dialog_id = ?1 "
+                                 "AND notification_id < ?2 ORDER BY notification_id DESC LIMIT ?3"));
     TRY_RESULT(
         get_messages_fts_stmt,
         db_.get_statement("SELECT dialog_id, data, search_id FROM messages WHERE search_id IN (SELECT rowid FROM "
@@ -239,10 +242,12 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
 
     get_messages_stmt_.asc_stmt_ = std::move(get_messages_asc_stmt);
     get_messages_stmt_.desc_stmt_ = std::move(get_messages_desc_stmt);
+    get_messages_from_notification_id_stmt_ = std::move(get_messages_from_notification_id_stmt);
 
     get_messages_fts_stmt_ = std::move(get_messages_fts_stmt);
 
     // LOG(ERROR) << get_message_stmt_.explain().ok();
+    // LOG(ERROR) << get_messages_from_notification_id_stmt.explain().ok();
     // LOG(ERROR) << get_message_by_random_id_stmt_.explain().ok();
     // LOG(ERROR) << get_message_by_unique_message_id_stmt_.explain().ok();
 
@@ -529,6 +534,28 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
     return get_messages_impl(get_messages_stmt_, query.dialog_id, query.from_message_id, query.offset, query.limit);
   }
 
+  Result<vector<BufferSlice>> get_messages_from_notification_id(DialogId dialog_id, NotificationId from_notification_id,
+                                                                int32 limit) {
+    auto &stmt = get_messages_from_notification_id_stmt_;
+    SCOPE_EXIT {
+      stmt.reset();
+    };
+    stmt.bind_int64(1, dialog_id.get()).ensure();
+    stmt.bind_int32(2, from_notification_id.get()).ensure();
+    stmt.bind_int32(3, limit).ensure();
+
+    std::vector<BufferSlice> result;
+    stmt.step().ensure();
+    while (stmt.has_row()) {
+      auto data_slice = stmt.view_blob(0);
+      result.emplace_back(data_slice);
+      auto message_id = stmt.view_int64(1);
+      LOG(INFO) << "Load " << MessageId(message_id) << " in " << dialog_id << " from database";
+      stmt.step().ensure();
+    }
+    return std::move(result);
+  }
+
   static string prepare_query(Slice query) {
     auto is_word_character = [](uint32 a) {
       switch (get_unicode_simple_category(a)) {
@@ -717,6 +744,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
     SqliteStatement desc_stmt_;
   };
   GetMessagesStmt get_messages_stmt_;
+  SqliteStatement get_messages_from_notification_id_stmt_;
 
   std::array<GetMessagesStmt, MESSAGES_DB_INDEX_COUNT> get_messages_from_index_stmts_;
   std::array<SqliteStatement, 2> get_calls_stmts_;
@@ -875,6 +903,11 @@ class MessagesDbAsync : public MessagesDbAsyncInterface {
   void get_messages(MessagesDbMessagesQuery query, Promise<MessagesDbMessagesResult> promise) override {
     send_closure_later(impl_, &Impl::get_messages, std::move(query), std::move(promise));
   }
+  void get_messages_from_notification_id(DialogId dialog_id, NotificationId from_notification_id, int32 limit,
+                                         Promise<vector<BufferSlice>> promise) override {
+    send_closure_later(impl_, &Impl::get_messages_from_notification_id, dialog_id, from_notification_id, limit,
+                       std::move(promise));
+  }
   void get_calls(MessagesDbCallsQuery query, Promise<MessagesDbCallsResult> promise) override {
     send_closure_later(impl_, &Impl::get_calls, std::move(query), std::move(promise));
   }
@@ -946,6 +979,11 @@ class MessagesDbAsync : public MessagesDbAsyncInterface {
     void get_messages(MessagesDbMessagesQuery query, Promise<MessagesDbMessagesResult> promise) {
       add_read_query();
       promise.set_result(sync_db_->get_messages(std::move(query)));
+    }
+    void get_messages_from_notification_id(DialogId dialog_id, NotificationId from_notification_id, int32 limit,
+                                           Promise<vector<BufferSlice>> promise) {
+      add_read_query();
+      promise.set_result(sync_db_->get_messages_from_notification_id(dialog_id, from_notification_id, limit));
     }
     void get_calls(MessagesDbCallsQuery query, Promise<MessagesDbCallsResult> promise) {
       add_read_query();

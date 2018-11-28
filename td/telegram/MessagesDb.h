@@ -106,6 +106,9 @@ class MessagesDbSyncInterface {
                                                          MessageId last_message_id, int32 date) = 0;
 
   virtual Result<MessagesDbMessagesResult> get_messages(MessagesDbMessagesQuery query) = 0;
+  virtual Result<vector<BufferSlice>> get_messages_from_notification_id(DialogId dialog_id,
+                                                                        NotificationId from_notification_id,
+                                                                        int32 limit) = 0;
 
   virtual Result<std::pair<std::vector<std::pair<DialogId, BufferSlice>>, int32>> get_expiring_messages(
       int32 expire_from, int32 expire_till, int32 limit) = 0;
@@ -148,9 +151,11 @@ class MessagesDbAsyncInterface {
   virtual void get_dialog_message_by_date(DialogId dialog_id, MessageId first_message_id, MessageId last_message_id,
                                           int32 date, Promise<BufferSlice> promise) = 0;
 
-  virtual void get_messages(MessagesDbMessagesQuery query, Promise<MessagesDbMessagesResult>) = 0;
+  virtual void get_messages(MessagesDbMessagesQuery query, Promise<MessagesDbMessagesResult> promise) = 0;
+  virtual void get_messages_from_notification_id(DialogId dialog_id, NotificationId from_notification_id, int32 limit,
+                                                 Promise<vector<BufferSlice>> promise) = 0;
 
-  virtual void get_calls(MessagesDbCallsQuery, Promise<MessagesDbCallsResult>) = 0;
+  virtual void get_calls(MessagesDbCallsQuery, Promise<MessagesDbCallsResult> promise) = 0;
   virtual void get_messages_fts(MessagesDbFtsQuery query, Promise<MessagesDbFtsResult> promise) = 0;
 
   virtual void get_expiring_messages(

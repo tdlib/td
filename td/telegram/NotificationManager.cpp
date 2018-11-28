@@ -131,6 +131,10 @@ NotificationManager::NotificationGroups::iterator NotificationManager::get_group
   return groups_.emplace(std::move(group_key), std::move(group)).first;
 }
 
+int32 NotificationManager::get_max_notification_group_size() const {
+  return max_notification_group_size_;
+}
+
 NotificationId NotificationManager::get_max_notification_id() const {
   return current_notification_id_;
 }
