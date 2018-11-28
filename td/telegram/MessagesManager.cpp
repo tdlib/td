@@ -17415,7 +17415,11 @@ void MessagesManager::send_update_new_message(const Dialog *d, const Message *m)
 NotificationGroupId MessagesManager::get_dialog_message_notification_group_id(Dialog *d) {
   CHECK(d != nullptr);
   if (!d->message_notification_group_id.is_valid()) {
-    d->message_notification_group_id = td_->notification_manager_->get_next_notification_group_id();
+    NotificationGroupId next_notification_group_id;
+    do {
+      next_notification_group_id = td_->notification_manager_->get_next_notification_group_id();
+    } while (get_message_notification_group_force(next_notification_group_id).dialog_id.is_valid());
+    d->message_notification_group_id = next_notification_group_id;
     VLOG(notifications) << "Assign " << d->message_notification_group_id << " to " << d->dialog_id;
     on_dialog_updated(d->dialog_id, "get_dialog_message_notification_group_id");
 
