@@ -668,6 +668,8 @@ class MessagesManager : public Actor {
   vector<NotificationGroupKey> get_message_notification_group_keys_from_database(int32 from_last_notification_date,
                                                                                  DialogId from_dialog_id, int32 limit);
 
+  void remove_message_notification(DialogId dialog_id, NotificationId notification_id);
+
   void on_binlog_events(vector<BinlogEvent> &&events);
 
   void get_payment_form(FullMessageId full_message_id, Promise<tl_object_ptr<td_api::paymentForm>> &&promise);
@@ -918,6 +920,8 @@ class MessagesManager : public Actor {
     std::unordered_set<MessageId, MessageIdHash> deleted_message_ids;
 
     std::vector<std::pair<DialogId, MessageId>> pending_new_message_notifications;
+
+    std::unordered_map<NotificationId, MessageId, NotificationIdHash> notification_id_to_message_id;
 
     string client_data;
 
@@ -1449,6 +1453,14 @@ class MessagesManager : public Actor {
 
   static void delete_random_id_to_message_id_correspondence(Dialog *d, int64 random_id, MessageId message_id);
 
+  static void add_notification_id_to_message_id_correspondence(Dialog *d, NotificationId notification_id,
+                                                               MessageId message_id);
+
+  static void delete_notification_id_to_message_id_correspondence(Dialog *d, NotificationId notification_id,
+                                                                  MessageId message_id);
+
+  static void remove_message_notification_id(Dialog *d, Message *m);
+
   void do_delete_message_logevent(const DeleteMessageLogEvent &logevent) const;
 
   void attach_message_to_previous(Dialog *d, MessageId message_id, const char *source);
@@ -1469,6 +1481,8 @@ class MessagesManager : public Actor {
 
   vector<Notification> get_message_notifications_from_database(Dialog *d, NotificationId from_notification_id,
                                                                int32 limit);
+
+  void do_remove_message_notification(DialogId dialog_id, NotificationId notification_id, vector<BufferSlice> result);
 
   int32 get_dialog_pending_notification_count(Dialog *d);
 

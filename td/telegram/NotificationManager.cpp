@@ -1018,11 +1018,13 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
 
   VLOG(notifications) << "Remove " << notification_id << " from " << group_id;
 
-  // TODO remove notification from database by notification_id
-
   auto group_it = get_group_force(group_id);
   if (group_it == groups_.end()) {
     return promise.set_value(Unit());
+  }
+
+  if (!is_permanent) {
+    td_->messages_manager_->remove_message_notification(group_it->first.dialog_id, notification_id);
   }
 
   for (auto it = group_it->second.pending_notifications.begin(); it != group_it->second.pending_notifications.end();

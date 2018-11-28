@@ -5087,6 +5087,7 @@ bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message 
               << " by reading " << m->message_id << " from " << source;
 
     if (m->notification_id.is_valid() && d->message_notification_group_id.is_valid()) {
+      remove_message_notification_id(d, m);
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification,
                          d->message_notification_group_id, m->notification_id, true, Promise<Unit>());
     }
@@ -7753,6 +7754,7 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
   set_dialog_last_clear_history_date(d, last_message_date, last_clear_history_message_id, "delete_all_dialog_messages");
   d->last_read_all_mentions_message_id = MessageId();  // it is not needed anymore
   std::fill(d->message_count_by_index.begin(), d->message_count_by_index.end(), 0);
+  d->notification_id_to_message_id.clear();
 
   if (has_last_message_id) {
     set_dialog_last_message_id(d, MessageId(), "delete_all_dialog_messages");
@@ -7826,6 +7828,7 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, Promise<Unit>
     m->contains_unread_mention = false;
 
     if (m->notification_id.is_valid() && d->message_notification_group_id.is_valid()) {
+      remove_message_notification_id(d, m);
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification,
                          d->message_notification_group_id, m->notification_id, true, Promise<Unit>());
     }
@@ -10293,6 +10296,47 @@ void MessagesManager::delete_random_id_to_message_id_correspondence(Dialog *d, i
   }
 }
 
+void MessagesManager::add_notification_id_to_message_id_correspondence(Dialog *d, NotificationId notification_id,
+                                                                       MessageId message_id) {
+  CHECK(d != nullptr);
+  VLOG(notifications) << "Add correspondence from " << notification_id << " to " << message_id << " in "
+                      << d->dialog_id;
+  auto it = d->notification_id_to_message_id.find(notification_id);
+  if (it == d->notification_id_to_message_id.end()) {
+    d->notification_id_to_message_id.emplace(notification_id, message_id);
+  } else {
+    LOG(ERROR) << "Have duplicated " << notification_id << " in " << d->dialog_id << " in " << message_id << " and "
+               << it->second;
+    if (it->second.get() < message_id.get()) {
+      it->second = message_id;
+    }
+  }
+}
+
+void MessagesManager::delete_notification_id_to_message_id_correspondence(Dialog *d, NotificationId notification_id,
+                                                                          MessageId message_id) {
+  CHECK(d != nullptr);
+  VLOG(notifications) << "Delete correspondence from " << notification_id << " to " << message_id << " in "
+                      << d->dialog_id;
+  auto it = d->notification_id_to_message_id.find(notification_id);
+  if (it != d->notification_id_to_message_id.end() && it->second == message_id) {
+    d->notification_id_to_message_id.erase(it);
+  } else {
+    LOG(ERROR) << "Can't find " << notification_id << " in " << d->dialog_id << " with " << message_id;
+  }
+}
+
+void MessagesManager::remove_message_notification_id(Dialog *d, Message *m) {
+  CHECK(d != nullptr);
+  CHECK(m != nullptr);
+  CHECK(d->message_notification_group_id.is_valid());
+  CHECK(m->notification_id.is_valid());
+  VLOG(notifications) << "Remove " << m->notification_id << " from " << m->message_id << " in " << d->dialog_id
+                      << " from database";
+  delete_notification_id_to_message_id_correspondence(d, m->notification_id, m->message_id);
+  m->notification_id = NotificationId();
+}
+
 // DO NOT FORGET TO ADD ALL CHANGES OF THIS FUNCTION AS WELL TO do_delete_all_dialog_messages
 unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *d, MessageId message_id,
                                                                         bool is_permanently_deleted,
@@ -10551,6 +10595,9 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
       UNREACHABLE();
   }
   ttl_unregister_message(d->dialog_id, result.get(), Time::now(), "do_delete_message");
+  if (result->notification_id.is_valid()) {
+    delete_notification_id_to_message_id_correspondence(d, result->notification_id, message_id);
+  }
 
   return result;
 }
@@ -17534,6 +17581,66 @@ vector<NotificationGroupKey> MessagesManager::get_message_notification_group_key
   return group_keys;
 }
 
+void MessagesManager::remove_message_notification(DialogId dialog_id, NotificationId notification_id) {
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    LOG(ERROR) << "Can't find " << dialog_id;
+    return;
+  }
+  if (!d->message_notification_group_id.is_valid()) {
+    LOG(ERROR) << "There is no message notiication group in " << dialog_id;
+    return;
+  }
+  if (notification_id == NotificationId::max()) {
+    return;  // there can be nonotification with this ID
+  }
+
+  auto it = d->notification_id_to_message_id.find(notification_id);
+  if (it != d->notification_id_to_message_id.end()) {
+    auto m = get_message(d, it->second);
+    CHECK(m != nullptr);
+    CHECK(m->notification_id == notification_id);
+    if (m->message_id.get() > d->last_read_inbox_message_id.get() || m->contains_unread_mention) {
+      remove_message_notification_id(d, m);
+      on_message_changed(d, m, false, "remove_message_notification");
+    }
+    return;
+  }
+
+  G()->td_db()->get_messages_db_async()->get_messages_from_notification_id(
+      dialog_id, NotificationId(notification_id.get() + 1), 1,
+      PromiseCreator::lambda(
+          [dialog_id, notification_id, actor_id = actor_id(this)](vector<BufferSlice> result) mutable {
+            send_closure(actor_id, &MessagesManager::do_remove_message_notification, dialog_id, notification_id,
+                         std::move(result));
+          }));
+}
+
+void MessagesManager::do_remove_message_notification(DialogId dialog_id, NotificationId notification_id,
+                                                     vector<BufferSlice> result) {
+  if (result.empty()) {
+    return;
+  }
+  CHECK(result.size() == 1);
+
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    LOG(ERROR) << "Can't find " << dialog_id;
+    return;
+  }
+  if (!d->message_notification_group_id.is_valid()) {
+    LOG(ERROR) << "There is no message notiication group in " << dialog_id;
+    return;
+  }
+
+  auto m = on_get_message_from_database(dialog_id, d, std::move(result[0]));
+  if (m != nullptr && m->notification_id.is_valid() &&
+      (m->message_id.get() > d->last_read_inbox_message_id.get() || m->contains_unread_mention)) {
+    remove_message_notification_id(d, m);
+    on_message_changed(d, m, false, "do_remove_message_notification");
+  }
+}
+
 int32 MessagesManager::get_dialog_pending_notification_count(Dialog *d) {
   CHECK(d != nullptr);
   if (is_dialog_muted(d)) {
@@ -17621,7 +17728,10 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   LOG_IF(WARNING, !have_settings) << "Have no notification settings for " << settings_dialog_id
                                   << ", but forced to send notification about " << m->message_id << " in "
                                   << d->dialog_id;
-  m->notification_id = td_->notification_manager_->get_next_notification_id();
+  do {
+    m->notification_id = td_->notification_manager_->get_next_notification_id();
+  } while (d->notification_id_to_message_id.count(m->notification_id) != 0);  // just in case
+  add_notification_id_to_message_id_correspondence(d, m->notification_id, m->message_id);
   set_dialog_last_notification_date(d, m->date);
   VLOG(notifications) << "Create " << m->notification_id << " with " << m->message_id << " in " << d->dialog_id;
   send_closure_later(G()->notification_manager(), &NotificationManager::add_notification,
@@ -20593,6 +20703,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       UNREACHABLE();
   }
 
+  if (m->notification_id.is_valid()) {
+    add_notification_id_to_message_id_correspondence(d, m->notification_id, message_id);
+  }
+
   return result_message;
 }
 
@@ -20943,6 +21057,8 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
                    << old_message->notification_id << " to " << new_message->notification_id;
       }
     } else {
+      CHECK(new_message->notification_id.is_valid());
+      add_notification_id_to_message_id_correspondence(d, new_message->notification_id, message_id);
       old_message->notification_id = new_message->notification_id;
     }
   }
