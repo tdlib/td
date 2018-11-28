@@ -5,11 +5,11 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
-
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/Notification.h"
 #include "td/telegram/NotificationGroupId.h"
+#include "td/telegram/NotificationGroupKey.h"
 #include "td/telegram/NotificationId.h"
 #include "td/telegram/NotificationType.h"
 #include "td/telegram/td_api.h"
@@ -101,26 +101,6 @@ class NotificationManager : public Actor {
     unique_ptr<NotificationType> type;
   };
 
-  struct NotificationGroupKey {
-    NotificationGroupId group_id;
-    DialogId dialog_id;
-    int32 last_notification_date = 0;
-
-    bool operator<(const NotificationGroupKey &other) const {
-      if (last_notification_date != other.last_notification_date) {
-        return last_notification_date > other.last_notification_date;
-      }
-      if (dialog_id != other.dialog_id) {
-        return dialog_id.get() > other.dialog_id.get();
-      }
-      return group_id.get() > other.group_id.get();
-    }
-
-    friend StringBuilder &operator<<(StringBuilder &string_builder, const NotificationGroupKey &group_key) {
-      return string_builder << '[' << group_key.group_id << ',' << group_key.dialog_id << ','
-                            << group_key.last_notification_date << ']';
-    }
-  };
   struct NotificationGroup {
     int32 total_count = 0;
 
@@ -150,7 +130,9 @@ class NotificationManager : public Actor {
 
   NotificationGroups::iterator get_group(NotificationGroupId group_id);
 
-  NotificationGroups::iterator get_group_force(NotificationGroupId group_id);
+  NotificationGroups::iterator get_group_force(NotificationGroupId group_id, bool send_update = true);
+
+  void load_message_notification_groups_from_database(bool send_update);
 
   NotificationGroupKey get_last_updated_group_key() const;
 
@@ -190,6 +172,9 @@ class NotificationManager : public Actor {
   int32 online_cloud_timeout_ms_ = DEFAULT_ONLINE_CLOUD_TIMEOUT_MS;
   int32 notification_cloud_delay_ms_ = DEFAULT_ONLINE_CLOUD_DELAY_MS;
   int32 notification_default_delay_ms_ = DEFAULT_DEFAULT_DELAY_MS;
+
+  int32 last_loaded_notification_date_ = 0;
+  DialogId last_loaded_notification_dialog_id_;
 
   bool running_get_difference_ = false;
   std::unordered_set<int32> running_get_chat_difference_;

@@ -17467,6 +17467,10 @@ vector<Notification> MessagesManager::get_message_notifications_from_database(Di
                                                                               NotificationId from_notification_id,
                                                                               int32 limit) {
   CHECK(d != nullptr);
+  if (!G()->parameters().use_message_db) {
+    return {};
+  }
+
   auto result = G()->td_db()->get_messages_db_sync()->get_messages_from_notification_id(d->dialog_id,
                                                                                         from_notification_id, limit);
   if (result.is_error()) {
@@ -17483,6 +17487,36 @@ vector<Notification> MessagesManager::get_message_notifications_from_database(Di
     }
   }
   return res;
+}
+
+vector<NotificationGroupKey> MessagesManager::get_message_notification_group_keys_from_database(
+    int32 from_last_notification_date, DialogId from_dialog_id, int32 limit) {
+  if (!G()->parameters().use_message_db) {
+    return {};
+  }
+
+  Result<std::vector<BufferSlice>> r_dialogs =
+      G()->td_db()->get_dialog_db_sync()->get_dialogs_by_last_notification_date(from_last_notification_date,
+                                                                                from_dialog_id, limit);
+  r_dialogs.ensure();
+  auto dialogs = r_dialogs.move_as_ok();
+
+  vector<NotificationGroupKey> group_keys;
+  group_keys.reserve(dialogs.size());
+  for (auto &dialog : dialogs) {
+    Dialog *d = on_load_dialog_from_database(DialogId(), std::move(dialog));
+    if (d == nullptr) {
+      continue;
+    }
+
+    CHECK(d->dialog_id.is_valid());
+    CHECK(d->last_notification_date != 0);
+    CHECK(d->message_notification_group_id.is_valid());
+    group_keys.emplace_back(d->message_notification_group_id, d->dialog_id, d->last_notification_date);
+
+    VLOG(notifications) << "Load " << group_keys.back() << " from database";
+  }
+  return group_keys;
 }
 
 int32 MessagesManager::get_dialog_pending_notification_count(Dialog *d) {

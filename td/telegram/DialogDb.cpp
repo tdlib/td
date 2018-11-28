@@ -97,9 +97,8 @@ class DialogDbImpl : public DialogDbSyncInterface {
                                                    "BY dialog_order DESC, dialog_id DESC LIMIT ?3"));
     TRY_RESULT(
         get_dialogs_by_last_notification_date_stmt,
-        db_.get_statement("SELECT data, dialog_id, last_notification_date FROM dialogs WHERE "
-                          "last_notification_date < ?1 OR (last_notification_date = ?1 AND dialog_id < ?2) ORDER "
-                          "BY last_notification_date DESC, dialog_id DESC LIMIT ?3"));
+        db_.get_statement("SELECT data FROM dialogs WHERE last_notification_date < ?1 OR (last_notification_date = ?1 "
+                          "AND dialog_id < ?2) ORDER BY last_notification_date DESC, dialog_id DESC LIMIT ?3"));
     TRY_RESULT(get_dialog_by_notification_group_id_stmt,
                db_.get_statement("SELECT data FROM dialogs WHERE notification_group_id = ?1"));
 
@@ -207,12 +206,7 @@ class DialogDbImpl : public DialogDbSyncInterface {
     std::vector<BufferSlice> dialogs;
     TRY_STATUS(get_dialogs_by_last_notification_date_stmt_.step());
     while (get_dialogs_by_last_notification_date_stmt_.has_row()) {
-      BufferSlice data(get_dialogs_by_last_notification_date_stmt_.view_blob(0));
-      auto loaded_dialog_id = get_dialogs_by_last_notification_date_stmt_.view_int64(1);
-      auto loaded_dialog_last_notification_date = get_dialogs_by_last_notification_date_stmt_.view_int32(2);
-      LOG(INFO) << "Load chat " << loaded_dialog_id << " with last notification date "
-                << loaded_dialog_last_notification_date;
-      dialogs.emplace_back(std::move(data));
+      dialogs.emplace_back(get_dialogs_by_last_notification_date_stmt_.view_blob(0));
       TRY_STATUS(get_dialogs_by_last_notification_date_stmt_.step());
     }
 

@@ -25,6 +25,7 @@
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/Notification.h"
 #include "td/telegram/NotificationGroupId.h"
+#include "td/telegram/NotificationGroupKey.h"
 #include "td/telegram/NotificationId.h"
 #include "td/telegram/NotificationSettings.h"
 #include "td/telegram/ReplyMarkup.h"
@@ -663,6 +664,9 @@ class MessagesManager : public Actor {
     vector<Notification> notifications;
   };
   MessageNotificationGroup get_message_notification_group_force(NotificationGroupId group_id);
+
+  vector<NotificationGroupKey> get_message_notification_group_keys_from_database(int32 from_last_notification_date,
+                                                                                 DialogId from_dialog_id, int32 limit);
 
   void on_binlog_events(vector<BinlogEvent> &&events);
 

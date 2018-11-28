@@ -17,6 +17,7 @@
 #include "td/utils/misc.h"
 
 #include <algorithm>
+#include <limits>
 #include <tuple>
 #include <unordered_map>
 #include <unordered_set>
@@ -86,6 +87,10 @@ void NotificationManager::start_up() {
   on_notification_cloud_delay_changed();
   on_notification_default_delay_changed();
 
+  last_loaded_notification_date_ = std::numeric_limits<int32>::max();
+
+  load_message_notification_groups_from_database(false);
+
   // TODO send updateActiveNotifications
 }
 
@@ -103,7 +108,8 @@ NotificationManager::NotificationGroups::iterator NotificationManager::get_group
   return groups_.end();
 }
 
-NotificationManager::NotificationGroups::iterator NotificationManager::get_group_force(NotificationGroupId group_id) {
+NotificationManager::NotificationGroups::iterator NotificationManager::get_group_force(NotificationGroupId group_id,
+                                                                                       bool send_update) {
   auto group_it = get_group(group_id);
   if (group_it != groups_.end()) {
     return group_it;
@@ -114,21 +120,42 @@ NotificationManager::NotificationGroups::iterator NotificationManager::get_group
     return groups_.end();
   }
 
-  NotificationGroupKey group_key;
-  group_key.group_id = group_id;
-  group_key.dialog_id = message_group.dialog_id;
-  group_key.last_notification_date = 0;
+  NotificationGroupKey group_key(group_id, message_group.dialog_id, 0);
   for (auto &notification : message_group.notifications) {
-    if (notification.date >= group_key.last_notification_date) {
+    if (notification.date > group_key.last_notification_date) {
       group_key.last_notification_date = notification.date;
     }
   }
+
+  std::reverse(message_group.notifications.begin(), message_group.notifications.end());
 
   NotificationGroup group;
   group.total_count = message_group.total_count;
   group.notifications = std::move(message_group.notifications);
 
+  // TODO send update about the new group, if needed
+
   return groups_.emplace(std::move(group_key), std::move(group)).first;
+}
+
+void NotificationManager::load_message_notification_groups_from_database(bool send_update) {
+  if (last_loaded_notification_date_ == 0) {
+    // everything was already loaded
+    return;
+  }
+  vector<NotificationGroupKey> group_keys = td_->messages_manager_->get_message_notification_group_keys_from_database(
+      last_loaded_notification_date_, last_loaded_notification_dialog_id_, max_notification_group_count_);
+  if (group_keys.empty()) {
+    last_loaded_notification_date_ = 0;
+    last_loaded_notification_dialog_id_ = DialogId();
+    return;
+  }
+
+  last_loaded_notification_date_ = group_keys.back().last_notification_date;
+  last_loaded_notification_dialog_id_ = group_keys.back().dialog_id;
+  for (auto &group_key : group_keys) {
+    get_group_force(group_key.group_id, send_update);
+  }
 }
 
 int32 NotificationManager::get_max_notification_group_size() const {
@@ -159,7 +186,7 @@ NotificationGroupId NotificationManager::get_next_notification_group_id() {
   return current_notification_group_id_;
 }
 
-NotificationManager::NotificationGroupKey NotificationManager::get_last_updated_group_key() const {
+NotificationGroupKey NotificationManager::get_last_updated_group_key() const {
   int32 left = max_notification_group_count_;
   auto it = groups_.begin();
   while (it != groups_.end() && left > 1) {
@@ -228,10 +255,7 @@ void NotificationManager::add_notification(NotificationGroupId group_id, DialogI
 
   auto group_it = get_group_force(group_id);
   if (group_it == groups_.end()) {
-    NotificationGroupKey group_key;
-    group_key.group_id = group_id;
-    group_key.dialog_id = dialog_id;
-    group_key.last_notification_date = 0;
+    NotificationGroupKey group_key(group_id, dialog_id, 0);
     group_it = std::move(groups_.emplace(group_key, NotificationGroup()).first);
   }
 
