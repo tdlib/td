@@ -2085,6 +2085,8 @@ class MessagesManager : public Actor {
   ScopeNotificationSettings users_notification_settings_;
   ScopeNotificationSettings chats_notification_settings_;
 
+  std::unordered_map<NotificationGroupId, DialogId, NotificationGroupIdHash> notification_group_id_to_dialog_id_;
+
   bool include_sponsored_dialog_to_unread_count_ = false;
   bool have_postponed_unread_message_count_update_ = false;
   bool have_postponed_unread_chat_count_update_ = false;

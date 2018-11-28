@@ -17419,6 +17419,8 @@ NotificationGroupId MessagesManager::get_dialog_message_notification_group_id(Di
     VLOG(notifications) << "Assign " << d->message_notification_group_id << " to " << d->dialog_id;
     on_dialog_updated(d->dialog_id, "get_dialog_message_notification_group_id");
 
+    notification_group_id_to_dialog_id_.emplace(d->message_notification_group_id, d->dialog_id);
+
     if (running_get_channel_difference(d->dialog_id) ||
         get_channel_difference_to_logevent_id_.count(d->dialog_id) != 0) {
       send_closure_later(td_->notification_manager_actor_, &NotificationManager::before_get_chat_difference,
@@ -17432,10 +17434,31 @@ NotificationGroupId MessagesManager::get_dialog_message_notification_group_id(Di
 
 MessagesManager::MessageNotificationGroup MessagesManager::get_message_notification_group_force(
     NotificationGroupId group_id) {
+  CHECK(group_id.is_valid());
   MessageNotificationGroup result;
-  if (G()->parameters().use_message_db) {
-    // TODO load message notification group
+  Dialog *d = nullptr;
+  auto it = notification_group_id_to_dialog_id_.find(group_id);
+  if (it != notification_group_id_to_dialog_id_.end()) {
+    d = get_dialog(it->second);
+    CHECK(d != nullptr);
+  } else if (G()->parameters().use_message_db) {
+    auto r_value = G()->td_db()->get_dialog_db_sync()->get_dialog_by_notification_group_id(group_id);
+    if (r_value.is_ok()) {
+      VLOG(notifications) << "Loaded " << group_id << " from database";
+      d = on_load_dialog_from_database(DialogId(), r_value.move_as_ok());
+      CHECK(d == nullptr || d->message_notification_group_id == group_id);
+    } else {
+      VLOG(notifications) << "Failed to load " << group_id << " from database";
+    }
   }
+
+  if (d != nullptr) {
+    VLOG(notifications) << "Found " << d->dialog_id << " by " << group_id;
+    result.dialog_id = d->dialog_id;
+    result.total_count = get_dialog_pending_notification_count(d);
+    // TODO load result.notifications
+  }
+
   return result;
 }
 
@@ -21268,6 +21291,10 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
   MessageId last_clear_history_message_id = d->last_clear_history_message_id;
   d->last_clear_history_date = 0;
   d->last_clear_history_message_id = MessageId();
+
+  if (d->message_notification_group_id.is_valid()) {
+    notification_group_id_to_dialog_id_.emplace(d->message_notification_group_id, d->dialog_id);
+  }
 
   if (!is_loaded_from_database) {
     CHECK(order == DEFAULT_ORDER);
