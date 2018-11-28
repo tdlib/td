@@ -40,7 +40,7 @@ static constexpr int32 MESSAGES_DB_INDEX_COUNT_OLD = 9;
 
 // NB: must happen inside a transaction
 Status init_messages_db(SqliteDb &db, int32 version) {
-  LOG(INFO) << "Init message db " << tag("version", version);
+  LOG(INFO) << "Init message database " << tag("version", version);
 
   // Check if database exists
   TRY_RESULT(has_table, db.has_table("messages"));
@@ -92,18 +92,25 @@ Status init_messages_db(SqliteDb &db, int32 version) {
     }
     return Status::OK();
   };
+  auto add_notification_id_index = [&db]() {
+    TRY_STATUS(
+        db.exec("CREATE INDEX IF NOT EXISTS message_by_notification_id ON messages (dialog_id, notification_id) "
+                "WHERE notification_id IS NOT NULL"));
+    return Status::OK();
+  };
 
   if (version == 0) {
-    LOG(INFO) << "Create new messages db";
+    LOG(INFO) << "Create new message database";
     TRY_STATUS(
         db.exec("CREATE TABLE IF NOT EXISTS messages (dialog_id INT8, message_id INT8, "
                 "unique_message_id INT4, sender_user_id INT4, random_id INT8, data BLOB, "
-                "ttl_expires_at INT4, index_mask INT4, search_id INT8, text STRING, PRIMARY KEY "
+                "ttl_expires_at INT4, index_mask INT4, search_id INT8, text STRING, notification_id INT4, PRIMARY KEY "
                 "(dialog_id, message_id))"));
 
     TRY_STATUS(
         db.exec("CREATE INDEX IF NOT EXISTS message_by_random_id ON messages (dialog_id, random_id) "
                 "WHERE random_id IS NOT NULL"));
+
     TRY_STATUS(
         db.exec("CREATE INDEX IF NOT EXISTS message_by_unique_message_id ON messages "
                 "(unique_message_id) WHERE unique_message_id IS NOT NULL"));
@@ -117,6 +124,8 @@ Status init_messages_db(SqliteDb &db, int32 version) {
     TRY_STATUS(add_fts());
 
     TRY_STATUS(add_call_index());
+
+    TRY_STATUS(add_notification_id_index());
 
     version = current_db_version();
   }
@@ -135,12 +144,17 @@ Status init_messages_db(SqliteDb &db, int32 version) {
   if (version < static_cast<int32>(DbVersion::MessagesCallIndex)) {
     TRY_STATUS(add_call_index());
   }
+  if (version < static_cast<int32>(DbVersion::AddNotificationsSupport)) {
+    TRY_STATUS(db.exec("ALTER TABLE messages ADD COLUMN notification_id INT4"));
+    TRY_STATUS(add_notification_id_index());
+  }
   return Status::OK();
 }
 
 // NB: must happen inside a transaction
 Status drop_messages_db(SqliteDb &db, int32 version) {
-  LOG(WARNING) << "Drop messages db " << tag("version", version) << tag("current_db_version", current_db_version());
+  LOG(WARNING) << "Drop message database " << tag("version", version)
+               << tag("current_db_version", current_db_version());
   return db.exec("DROP TABLE IF EXISTS messages");
 }
 
@@ -151,8 +165,9 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
   }
 
   Status init() {
-    TRY_RESULT(add_message_stmt,
-               db_.get_statement("INSERT OR REPLACE INTO messages VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)"));
+    TRY_RESULT(
+        add_message_stmt,
+        db_.get_statement("INSERT OR REPLACE INTO messages VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)"));
     TRY_RESULT(delete_message_stmt, db_.get_statement("DELETE FROM messages WHERE dialog_id = ?1 AND message_id = ?2"));
     TRY_RESULT(delete_all_dialog_messages_stmt,
                db_.get_statement("DELETE FROM messages WHERE dialog_id = ?1 AND message_id <= ?2"));
@@ -243,7 +258,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
 
   Status add_message(FullMessageId full_message_id, ServerMessageId unique_message_id, UserId sender_user_id,
                      int64 random_id, int32 ttl_expires_at, int32 index_mask, int64 search_id, string text,
-                     BufferSlice data) override {
+                     NotificationId notification_id, BufferSlice data) override {
     LOG(INFO) << "Add " << full_message_id << " to database";
     auto dialog_id = full_message_id.get_dialog_id();
     auto message_id = full_message_id.get_message_id();
@@ -305,6 +320,11 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
       add_message_stmt_.bind_string(10, text).ensure();
     } else {
       add_message_stmt_.bind_null(10).ensure();
+    }
+    if (notification_id.is_valid()) {
+      add_message_stmt_.bind_int32(11, notification_id.get()).ensure();
+    } else {
+      add_message_stmt_.bind_null(11).ensure();
     }
 
     add_message_stmt_.step().ensure();
@@ -820,9 +840,10 @@ class MessagesDbAsync : public MessagesDbAsyncInterface {
 
   void add_message(FullMessageId full_message_id, ServerMessageId unique_message_id, UserId sender_user_id,
                    int64 random_id, int32 ttl_expires_at, int32 index_mask, int64 search_id, string text,
-                   BufferSlice data, Promise<> promise) override {
+                   NotificationId notification_id, BufferSlice data, Promise<> promise) override {
     send_closure_later(impl_, &Impl::add_message, full_message_id, unique_message_id, sender_user_id, random_id,
-                       ttl_expires_at, index_mask, search_id, std::move(text), std::move(data), std::move(promise));
+                       ttl_expires_at, index_mask, search_id, std::move(text), notification_id, std::move(data),
+                       std::move(promise));
   }
 
   void delete_message(FullMessageId full_message_id, Promise<> promise) override {
@@ -881,11 +902,11 @@ class MessagesDbAsync : public MessagesDbAsyncInterface {
     }
     void add_message(FullMessageId full_message_id, ServerMessageId unique_message_id, UserId sender_user_id,
                      int64 random_id, int32 ttl_expires_at, int32 index_mask, int64 search_id, string text,
-                     BufferSlice data, Promise<> promise) {
+                     NotificationId notification_id, BufferSlice data, Promise<> promise) {
       add_write_query([=, promise = std::move(promise), data = std::move(data), text = std::move(text)](Unit) mutable {
         promise.set_result(sync_db_->add_message(full_message_id, unique_message_id, sender_user_id, random_id,
                                                  ttl_expires_at, index_mask, search_id, std::move(text),
-                                                 std::move(data)));
+                                                 notification_id, std::move(data)));
       });
     }
 

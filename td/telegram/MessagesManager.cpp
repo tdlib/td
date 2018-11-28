@@ -5054,7 +5054,7 @@ void MessagesManager::on_update_message_views(FullMessageId full_message_id, int
   }
 
   if (update_message_views(full_message_id.get_dialog_id(), m, views)) {
-    on_message_changed(d, m, "on_update_message_views");
+    on_message_changed(d, m, true, "on_update_message_views");
   }
 }
 
@@ -7832,7 +7832,7 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, Promise<Unit>
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateMessageMentionRead>(dialog_id.get(), m->message_id.get(), 0));
     is_update_sent = true;
-    on_message_changed(d, m, "read_all_mentions");
+    on_message_changed(d, m, true, "read_all_mentions");
   }
 
   if (d->unread_mention_count != 0) {
@@ -7917,7 +7917,7 @@ bool MessagesManager::read_message_content(Dialog *d, Message *m, bool is_local_
       update_opened_message_content(m->content.get()) | ttl_on_open(d, m, Time::now(), is_local_read);
 
   if (is_mention_read || is_content_read) {
-    on_message_changed(d, m, "read_message_content");
+    on_message_changed(d, m, true, "read_message_content");
     if (is_content_read) {
       send_closure(G()->td(), &Td::send_update,
                    make_tl_object<td_api::updateMessageContentOpened>(d->dialog_id.get(), m->message_id.get()));
@@ -8459,7 +8459,7 @@ void MessagesManager::ttl_on_view(const Dialog *d, Message *message, double view
       !message->is_failed_to_send && !message->is_content_secret) {
     message->ttl_expires_at = message->ttl + view_date;
     ttl_register_message(d->dialog_id, message, now);
-    on_message_changed(d, message, "ttl_on_view");
+    on_message_changed(d, message, true, "ttl_on_view");
   }
 }
 
@@ -8518,7 +8518,7 @@ void MessagesManager::ttl_loop(double now) {
       auto m = get_message(d, full_message_id.get_message_id());
       CHECK(m != nullptr);
       on_message_ttl_expired(d, m);
-      on_message_changed(d, m, "ttl_loop");
+      on_message_changed(d, m, true, "ttl_loop");
     }
   }
   for (auto &it : to_delete) {
@@ -9915,7 +9915,7 @@ void MessagesManager::on_update_message_web_page(FullMessageId full_message_id, 
     set_message_content_web_page_id(content, WebPageId());
     // don't need to send an update
 
-    on_message_changed(d, message, "on_update_message_web_page");
+    on_message_changed(d, message, true, "on_update_message_web_page");
     return;
   }
 
@@ -11433,7 +11433,7 @@ Status MessagesManager::delete_dialog_reply_markup(DialogId dialog_id, MessageId
       message->reply_markup->is_personal = false;
       set_dialog_reply_markup(d, message_id);
 
-      on_message_changed(d, message, "delete_dialog_reply_markup");
+      on_message_changed(d, message, true, "delete_dialog_reply_markup");
     }
   } else {
     // non-bots can't have messages with RemoveKeyboard
@@ -12161,7 +12161,7 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
             update_message_contains_unread_mention(d, message, false, "view_messages")) {
           CHECK(message_id.is_server());
           read_content_message_ids.push_back(message_id);
-          on_message_changed(d, message, "view_messages");
+          on_message_changed(d, message, true, "view_messages");
         }
       }
     }
@@ -17473,22 +17473,22 @@ int32 MessagesManager::get_dialog_pending_notification_count(Dialog *d) {
   return d->server_unread_count + d->local_unread_count;  // TODO remove/add some messages with unread mentions
 }
 
-void MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool force) {
+bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool force) {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
 
   CHECK(!m->notification_id.is_valid());
   if (m->is_outgoing || d->dialog_id == get_my_dialog_id() || td_->auth_manager_->is_bot()) {
-    return;
+    return false;
   }
   if (m->message_id.get() <= d->last_read_inbox_message_id.get()) {
     VLOG(notifications) << "Disable notification for read " << m->message_id << " in " << d->dialog_id;
-    return;
+    return false;
   }
   if (d->dialog_id.get_type() == DialogType::Channel) {
     if (!td_->contacts_manager_->get_channel_status(d->dialog_id.get_channel_id()).is_member() ||
         m->date < td_->contacts_manager_->get_channel_date(d->dialog_id.get_channel_id())) {
-      return;
+      return false;
     }
   }
 
@@ -17509,7 +17509,7 @@ void MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   std::tie(have_settings, mute_until) = get_dialog_mute_until(settings_dialog_id, settings_dialog);
   if (mute_until > G()->unix_time()) {
     VLOG(notifications) << "Disable notification, because " << settings_dialog_id << " is muted";
-    return;
+    return false;
   }
 
   if (!force && (!have_settings || !d->pending_new_message_notifications.empty())) {
@@ -17543,7 +17543,7 @@ void MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
         send_get_dialog_query(settings_dialog_id, std::move(promise));
       }
     }
-    return;
+    return false;
   }
 
   LOG_IF(WARNING, !have_settings) << "Have no notification settings for " << settings_dialog_id
@@ -17555,6 +17555,7 @@ void MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   send_closure_later(G()->notification_manager(), &NotificationManager::add_notification,
                      get_dialog_message_notification_group_id(d), d->dialog_id, m->date, settings_dialog_id,
                      m->disable_notification, m->notification_id, create_new_message_notification(m->message_id));
+  return true;
 }
 
 void MessagesManager::flush_pending_new_message_notifications(DialogId dialog_id, DialogId settings_dialog_id) {
@@ -17575,7 +17576,9 @@ void MessagesManager::flush_pending_new_message_notifications(DialogId dialog_id
   while (it != d->pending_new_message_notifications.end() && it->first == DialogId()) {
     auto m = get_message(d, it->second);
     if (m != nullptr) {
-      add_new_message_notification(d, m, true);
+      if (add_new_message_notification(d, m, true)) {
+        on_message_changed(d, m, false, "flush_pending_new_message_notifications");
+      }
     }
     ++it;
   }
@@ -20521,10 +20524,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   return result_message;
 }
 
-void MessagesManager::on_message_changed(const Dialog *d, const Message *m, const char *source) {
+void MessagesManager::on_message_changed(const Dialog *d, const Message *m, bool need_send_update, const char *source) {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
-  if (m->message_id == d->last_message_id) {
+  if (need_send_update && m->message_id == d->last_message_id) {
     send_update_chat_last_message_impl(d, source);
   }
 
@@ -20585,7 +20588,8 @@ void MessagesManager::add_message_to_database(const Dialog *d, const Message *m,
   }
   G()->td_db()->get_messages_db_async()->add_message({d->dialog_id, message_id}, unique_message_id, m->sender_user_id,
                                                      random_id, ttl_expires_at, get_message_index_mask(d->dialog_id, m),
-                                                     search_id, text, log_event_store(*m), Auto());  // TODO Promise
+                                                     search_id, text, m->notification_id, log_event_store(*m),
+                                                     Auto());  // TODO Promise
 }
 
 void MessagesManager::delete_all_dialog_messages_from_database(const Dialog *d, MessageId message_id,
@@ -20994,14 +20998,7 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
     send_update_message_edited(dialog_id, old_message.get());
   }
 
-  if (is_changed) {
-    on_message_changed(d, old_message.get(), "update_message");
-  } else {
-    // need to save message always, because it might be added to some message index
-    if (!message_id.is_yet_unsent()) {
-      add_message_to_database(d, old_message.get(), "update_message");
-    }
-  }
+  on_message_changed(d, old_message.get(), is_changed, "update_message");
 }
 
 bool MessagesManager::need_message_changed_warning(const Message *old_message) {

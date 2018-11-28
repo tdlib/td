@@ -1430,7 +1430,7 @@ class MessagesManager : public Actor {
   Message *add_message_to_dialog(Dialog *d, unique_ptr<Message> message, bool from_update, bool *need_update,
                                  bool *need_update_dialog_pos, const char *source);
 
-  void on_message_changed(const Dialog *d, const Message *m, const char *source);
+  void on_message_changed(const Dialog *d, const Message *m, bool need_send_update, const char *source);
 
   void add_message_to_database(const Dialog *d, const Message *m, const char *source);
 
@@ -1465,7 +1465,7 @@ class MessagesManager : public Actor {
 
   int32 get_dialog_pending_notification_count(Dialog *d);
 
-  void add_new_message_notification(Dialog *d, Message *m, bool force);
+  bool add_new_message_notification(Dialog *d, Message *m, bool force);
 
   void flush_pending_new_message_notifications(DialogId dialog_id, DialogId settings_dialog_id);
 

@@ -23,7 +23,7 @@
 namespace td {
 // NB: must happen inside a transaction
 Status init_dialog_db(SqliteDb &db, int32 version, bool &was_created) {
-  LOG(INFO) << "Init dialog db " << tag("version", version);
+  LOG(INFO) << "Init dialog database " << tag("version", version);
   was_created = false;
 
   // Check if database exists
@@ -50,7 +50,7 @@ Status init_dialog_db(SqliteDb &db, int32 version, bool &was_created) {
   };
 
   if (version == 0) {
-    LOG(INFO) << "Create new dialog db";
+    LOG(INFO) << "Create new dialog database";
     was_created = true;
     TRY_STATUS(
         db.exec("CREATE TABLE IF NOT EXISTS dialogs (dialog_id INT8 PRIMARY KEY, dialog_order INT8, data BLOB, "
@@ -60,7 +60,7 @@ Status init_dialog_db(SqliteDb &db, int32 version, bool &was_created) {
     TRY_STATUS(create_notification_group_id_index());
     version = current_db_version();
   }
-  if (version < static_cast<int32>(DbVersion::DialogDbLastNotificationDate)) {
+  if (version < static_cast<int32>(DbVersion::AddNotificationsSupport)) {
     TRY_STATUS(db.exec("ALTER TABLE dialogs ADD COLUMN last_notification_date INT4"));
     TRY_STATUS(db.exec("ALTER TABLE dialogs ADD COLUMN notification_group_id INT4"));
     TRY_STATUS(create_last_notification_date_index());
@@ -276,7 +276,8 @@ class DialogDbAsync : public DialogDbAsyncInterface {
     send_closure_later(impl_, &Impl::get_dialogs_by_last_notification_date, last_notification_date, dialog_id, limit,
                        std::move(promise));
   }
-  void get_dialog_by_notification_group_id(NotificationGroupId notification_group_id, Promise<BufferSlice> promise) override {
+  void get_dialog_by_notification_group_id(NotificationGroupId notification_group_id,
+                                           Promise<BufferSlice> promise) override {
     send_closure_later(impl_, &Impl::get_dialog_by_notification_group_id, notification_group_id, std::move(promise));
   }
   void close(Promise<> promise) override {
