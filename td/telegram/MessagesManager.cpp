@@ -9391,6 +9391,16 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
                << ", flags = " << flags << " for " << message_id << " in " << dialog_id;
     //    }
     is_outgoing = !is_outgoing;
+
+    if (dialog_type == DialogType::Channel && !running_get_difference_ && !running_get_channel_difference(dialog_id) &&
+        get_channel_difference_to_logevent_id_.count(dialog_id) == 0) {
+      // it is safer to completely ignore the message and re-get it through getChannelsDifference
+      Dialog *d = get_dialog(dialog_id);
+      if (d != nullptr) {
+        get_channel_difference(dialog_id, d->pts, true, "create_message");
+        return {DialogId(), nullptr};
+      }
+    }
   }
 
   MessageId reply_to_message_id = message_info.reply_to_message_id;
