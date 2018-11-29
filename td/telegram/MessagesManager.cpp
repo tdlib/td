@@ -3802,6 +3802,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_last_database_message_id = !has_last_database_message && last_database_message_id.is_valid();
   bool has_message_notification_group_id = message_notification_group_id.is_valid();
   bool has_last_notification_date = last_notification_date > 0;
+  bool has_last_notification_id = last_notification_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
@@ -3827,7 +3828,8 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   STORE_FLAG(need_repair_server_unread_count);
   STORE_FLAG(is_marked_as_unread);
   STORE_FLAG(has_message_notification_group_id);
-  STORE_FLAG(has_last_notification_date);  // 24
+  STORE_FLAG(has_last_notification_date);
+  STORE_FLAG(has_last_notification_id);  // 25
   END_STORE_FLAGS();
 
   store(dialog_id, storer);  // must be stored at offset 4
@@ -3892,6 +3894,9 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   if (has_last_notification_date) {
     store(last_notification_date, storer);
   }
+  if (has_last_notification_id) {
+    store(last_notification_id, storer);
+  }
 }
 
 // do not forget to resolve dialog dependencies including dependencies of last_message
@@ -3913,6 +3918,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   bool has_last_database_message_id;
   bool has_message_notification_group_id;
   bool has_last_notification_date;
+  bool has_last_notification_id;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_draft_message);
   PARSE_FLAG(has_last_database_message);
@@ -3939,6 +3945,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   PARSE_FLAG(is_marked_as_unread);
   PARSE_FLAG(has_message_notification_group_id);
   PARSE_FLAG(has_last_notification_date);
+  PARSE_FLAG(has_last_notification_id);
   END_PARSE_FLAGS();
 
   parse(dialog_id, parser);  // must be stored at offset 4
@@ -4026,6 +4033,9 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   }
   if (has_last_notification_date) {
     parse(last_notification_date, parser);
+  }
+  if (has_last_notification_id) {
+    parse(last_notification_id, parser);
   }
 }
 
@@ -9831,10 +9841,12 @@ void MessagesManager::try_restore_dialog_reply_markup(Dialog *d, const Message *
   }
 }
 
-void MessagesManager::set_dialog_last_notification_date(Dialog *d, int32 last_notification_date) {
-  if (last_notification_date != d->last_notification_date) {
+void MessagesManager::set_dialog_last_notification(Dialog *d, int32 last_notification_date,
+                                                   NotificationId last_notification_id) {
+  if (last_notification_date != d->last_notification_date || d->last_notification_id != last_notification_id) {
     d->last_notification_date = last_notification_date;
-    on_dialog_updated(d->dialog_id, "set_dialog_last_notification_date");
+    d->last_notification_id = last_notification_id;
+    on_dialog_updated(d->dialog_id, "set_dialog_last_notification");
   }
 }
 
@@ -17513,13 +17525,16 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
         d, NotificationId::max(), td_->notification_manager_->get_max_notification_group_size());
 
     int32 last_notification_date = 0;
+    NotificationId last_notification_id;
     if (!result.notifications.empty()) {
       last_notification_date = result.notifications[0].date;
+      last_notification_id = result.notifications[0].notification_id;
     }
-    if (last_notification_date != d->last_notification_date) {
+    if (last_notification_date != d->last_notification_date || last_notification_id != d->last_notification_id) {
       LOG(ERROR) << "Fix last notification date in " << d->dialog_id << " from " << d->last_notification_date << " to "
-                 << last_notification_date;
-      set_dialog_last_notification_date(d, last_notification_date);
+                 << last_notification_date << " and last notification id from " << d->last_notification_id << " to "
+                 << last_notification_id;
+      set_dialog_last_notification(d, last_notification_date, last_notification_id);
     }
   }
 
@@ -17733,8 +17748,10 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   do {
     m->notification_id = td_->notification_manager_->get_next_notification_id();
   } while (d->notification_id_to_message_id.count(m->notification_id) != 0);  // just in case
-  add_notification_id_to_message_id_correspondence(d, m->notification_id, m->message_id);
-  set_dialog_last_notification_date(d, m->date);
+  if (force) {  // otherwise add_message_to_dialog will add the corespondence
+    add_notification_id_to_message_id_correspondence(d, m->notification_id, m->message_id);
+  }
+  set_dialog_last_notification(d, m->date, m->notification_id);
   VLOG(notifications) << "Create " << m->notification_id << " with " << m->message_id << " in " << d->dialog_id;
   send_closure_later(G()->notification_manager(), &NotificationManager::add_notification,
                      get_dialog_message_notification_group_id(d), d->dialog_id, m->date, settings_dialog_id,
