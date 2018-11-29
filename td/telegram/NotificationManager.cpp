@@ -133,6 +133,9 @@ NotificationManager::NotificationGroups::iterator NotificationManager::get_group
   group.total_count = message_group.total_count;
   group.notifications = std::move(message_group.notifications);
 
+  VLOG(notifications) << "Finish to load " << group_id << " with total_count " << message_group.total_count
+                      << " and notifications " << group.notifications;
+
   // TODO send update about the new group, if needed
 
   return groups_.emplace(std::move(group_key), std::move(group)).first;
@@ -679,7 +682,7 @@ void NotificationManager::do_flush_pending_notifications(NotificationGroupKey &g
     return;
   }
 
-  VLOG(notifications) << "Flush " << pending_notifications.size() << " pending notifications in " << group_key
+  VLOG(notifications) << "Do flush " << pending_notifications.size() << " pending notifications in " << group_key
                       << " with known " << group.notifications.size() << " from total of " << group.total_count
                       << " notifications";
 
@@ -1102,14 +1105,17 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
   VLOG(notifications) << "Remove " << group_id << " up to " << max_notification_id << " or " << max_message_id
                       << " with new_total_count = " << new_total_count;
 
-  if (max_notification_id.is_valid()) {
-    // TODO remove notifications from database by max_notification_id, save that they are removed
-  }
-
   auto group_it = get_group_force(group_id);
   if (group_it == groups_.end()) {
     VLOG(notifications) << "Can't find " << group_id;
     return promise.set_value(Unit());
+  }
+
+  if (max_notification_id.is_valid()) {
+    if (max_notification_id.get() > current_notification_id_.get()) {
+      max_notification_id = current_notification_id_;
+    }
+    td_->messages_manager_->remove_message_notifications(group_it->first.dialog_id, max_notification_id);
   }
 
   auto pending_delete_end = group_it->second.pending_notifications.begin();
@@ -1374,7 +1380,7 @@ void NotificationManager::after_get_chat_difference_impl(NotificationGroupId gro
     return;
   }
 
-  VLOG(notifications) << "After get chat difference in " << group_id;
+  VLOG(notifications) << "Flush updates after get chat difference in " << group_id;
   CHECK(group_id.is_valid());
   if (!running_get_difference_ && pending_updates_.count(group_id.get()) == 1) {
     flush_pending_updates_timeout_.cancel_timeout(group_id.get());

@@ -33,7 +33,7 @@ inline td_api::object_ptr<td_api::notification> get_notification_object(DialogId
                                                    notification.type->get_notification_type_object(dialog_id));
 }
 
-inline StringBuilder &operator<<(StringBuilder &sb, const Notification notification) {
+inline StringBuilder &operator<<(StringBuilder &sb, const Notification &notification) {
   return sb << "notification[" << notification.notification_id << ", " << notification.date << ", "
             << *notification.type << ']';
 }

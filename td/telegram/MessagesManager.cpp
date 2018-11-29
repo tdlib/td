@@ -3803,6 +3803,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   bool has_message_notification_group_id = message_notification_group_id.is_valid();
   bool has_last_notification_date = last_notification_date > 0;
   bool has_last_notification_id = last_notification_id.is_valid();
+  bool has_max_removed_notification_id = max_removed_notification_id.is_valid();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(has_draft_message);
   STORE_FLAG(has_last_database_message);
@@ -3829,7 +3830,11 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   STORE_FLAG(is_marked_as_unread);
   STORE_FLAG(has_message_notification_group_id);
   STORE_FLAG(has_last_notification_date);
-  STORE_FLAG(has_last_notification_id);  // 25
+  STORE_FLAG(has_last_notification_id);
+  STORE_FLAG(has_max_removed_notification_id);  // 26
+  //
+  //
+  //STORE_FLAG(has_flags2);
   END_STORE_FLAGS();
 
   store(dialog_id, storer);  // must be stored at offset 4
@@ -3897,6 +3902,9 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   if (has_last_notification_id) {
     store(last_notification_id, storer);
   }
+  if (has_max_removed_notification_id) {
+    store(max_removed_notification_id, storer);
+  }
 }
 
 // do not forget to resolve dialog dependencies including dependencies of last_message
@@ -3919,6 +3927,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   bool has_message_notification_group_id;
   bool has_last_notification_date;
   bool has_last_notification_id;
+  bool has_max_removed_notification_id;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(has_draft_message);
   PARSE_FLAG(has_last_database_message);
@@ -3946,6 +3955,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   PARSE_FLAG(has_message_notification_group_id);
   PARSE_FLAG(has_last_notification_date);
   PARSE_FLAG(has_last_notification_id);
+  PARSE_FLAG(has_max_removed_notification_id);
   END_PARSE_FLAGS();
 
   parse(dialog_id, parser);  // must be stored at offset 4
@@ -4036,6 +4046,9 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
   }
   if (has_last_notification_id) {
     parse(last_notification_id, parser);
+  }
+  if (has_max_removed_notification_id) {
+    parse(max_removed_notification_id, parser);
   }
 }
 
@@ -7759,6 +7772,7 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
   set_dialog_last_database_message_id(d, MessageId(), "delete_all_dialog_messages");
   set_dialog_last_clear_history_date(d, last_message_date, last_clear_history_message_id, "delete_all_dialog_messages");
   d->last_read_all_mentions_message_id = MessageId();  // it is not needed anymore
+  d->max_removed_notification_id = NotificationId();   // it is not needed anymore
   std::fill(d->message_count_by_index.begin(), d->message_count_by_index.end(), 0);
   d->notification_id_to_message_id.clear();
 
@@ -8262,9 +8276,13 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
   if (message_id != MessageId::min()) {
     if (d->last_read_inbox_message_id.is_valid() && d->message_notification_group_id.is_valid() &&
         d->order != DEFAULT_ORDER && d->order != SPONSORED_DIALOG_ORDER) {
+      auto total_count = get_dialog_pending_notification_count(d);
+      if (total_count == 0) {
+        set_dialog_last_notification(d, 0, NotificationId(), "set_dialog_last_read_inbox_message_id");
+      }
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group,
-                         d->message_notification_group_id, NotificationId(), d->last_read_inbox_message_id,
-                         get_dialog_pending_notification_count(d), Promise<Unit>());
+                         d->message_notification_group_id, NotificationId(), d->last_read_inbox_message_id, total_count,
+                         Promise<Unit>());
     }
   }
 
@@ -17609,6 +17627,7 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
 
 bool MessagesManager::is_message_has_active_notification(const Dialog *d, const Message *m) {
   return m != nullptr && m->notification_id.is_valid() &&
+         m->notification_id.get() > d->max_removed_notification_id.get() &&
          (m->message_id.get() > d->last_read_inbox_message_id.get() || m->contains_unread_mention);
 }
 
@@ -17723,6 +17742,25 @@ void MessagesManager::do_remove_message_notification(DialogId dialog_id, Notific
   if (is_message_has_active_notification(d, m)) {
     remove_message_notification_id(d, m, false);
   }
+}
+
+void MessagesManager::remove_message_notifications(DialogId dialog_id, NotificationId max_notification_id) {
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    LOG(ERROR) << "Can't find " << dialog_id;
+    return;
+  }
+  if (!d->message_notification_group_id.is_valid()) {
+    LOG(ERROR) << "There is no message notiication group in " << dialog_id;
+    return;
+  }
+  if (d->max_removed_notification_id.get() >= max_notification_id.get()) {
+    return;
+  }
+
+  VLOG(notifications) << "Set max_removed_notification_id in " << dialog_id << " to " << max_notification_id;
+  d->max_removed_notification_id = max_notification_id;
+  on_dialog_updated(dialog_id, "remove_message_notifications");
 }
 
 int32 MessagesManager::get_dialog_pending_notification_count(Dialog *d) {
@@ -17859,11 +17897,15 @@ void MessagesManager::flush_pending_new_message_notifications(DialogId dialog_id
   }
 }
 
-void MessagesManager::remove_dialog_message_notifications(const Dialog *d) const {
-  if (d->message_notification_group_id.is_valid()) {
+void MessagesManager::remove_dialog_message_notifications(Dialog *d) {
+  if (d->message_notification_group_id.is_valid() && d->last_notification_id.is_valid() &&
+      d->max_removed_notification_id != d->last_notification_id) {
+    VLOG(notifications) << "Set max_removed_notification_id in " << d->dialog_id << " to " << d->last_notification_id;
+    d->max_removed_notification_id = d->last_notification_id;
     send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group,
-                       d->message_notification_group_id, td_->notification_manager_->get_max_notification_id(),
-                       MessageId(), 0, Promise<Unit>());
+                       d->message_notification_group_id, d->last_notification_id, MessageId(), 0, Promise<Unit>());
+    bool is_changed = set_dialog_last_notification(d, 0, NotificationId(), "remove_dialog_message_notifications");
+    CHECK(is_changed);
   }
 }
 
@@ -20873,12 +20915,21 @@ void MessagesManager::add_message_to_database(const Dialog *d, const Message *m,
                                                      Auto());  // TODO Promise
 }
 
-void MessagesManager::delete_all_dialog_messages_from_database(const Dialog *d, MessageId message_id,
-                                                               const char *source) {
+void MessagesManager::delete_all_dialog_messages_from_database(Dialog *d, MessageId message_id, const char *source) {
   CHECK(d != nullptr);
   if (d->message_notification_group_id.is_valid()) {
+    auto max_notification_message_id = message_id;
+    if (d->last_message_id.is_valid() && max_notification_message_id.get() > d->last_message_id.get()) {
+      max_notification_message_id = d->last_message_id;
+      set_dialog_last_notification(d, 0, NotificationId(), "delete_all_dialog_messages_from_database 1");
+    }
+    if (max_notification_message_id == MessageId::max()) {
+      max_notification_message_id = get_next_local_message_id(d);
+      set_dialog_last_notification(d, 0, NotificationId(), "delete_all_dialog_messages_from_database 2");
+    }
     send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group,
-                       d->message_notification_group_id, NotificationId(), message_id, 0, Promise<Unit>());
+                       d->message_notification_group_id, NotificationId(), max_notification_message_id, 0,
+                       Promise<Unit>());
   }
 
   if (!G()->parameters().use_message_db) {

@@ -670,6 +670,8 @@ class MessagesManager : public Actor {
 
   void remove_message_notification(DialogId dialog_id, NotificationId notification_id);
 
+  void remove_message_notifications(DialogId dialog_id, NotificationId max_notification_id);
+
   void on_binlog_events(vector<BinlogEvent> &&events);
 
   void get_payment_form(FullMessageId full_message_id, Promise<tl_object_ptr<td_api::paymentForm>> &&promise);
@@ -883,6 +885,7 @@ class MessagesManager : public Actor {
     NotificationGroupId message_notification_group_id;
     int32 last_notification_date = 0;
     NotificationId last_notification_id;
+    NotificationId max_removed_notification_id;
 
     bool has_contact_registered_message = false;
 
@@ -1443,7 +1446,7 @@ class MessagesManager : public Actor {
 
   void add_message_to_database(const Dialog *d, const Message *m, const char *source);
 
-  void delete_all_dialog_messages_from_database(const Dialog *d, MessageId message_id, const char *source);
+  void delete_all_dialog_messages_from_database(Dialog *d, MessageId message_id, const char *source);
 
   void delete_message_from_database(Dialog *d, MessageId message_id, const Message *m, bool is_permanently_deleted);
 
@@ -1497,7 +1500,7 @@ class MessagesManager : public Actor {
 
   void flush_pending_new_message_notifications(DialogId dialog_id, DialogId settings_dialog_id);
 
-  void remove_dialog_message_notifications(const Dialog *d) const;
+  void remove_dialog_message_notifications(Dialog *d);
 
   void send_update_message_send_succeeded(Dialog *d, MessageId old_message_id, const Message *m) const;
 
