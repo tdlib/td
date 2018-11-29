@@ -1546,8 +1546,22 @@ void WebPagesManager::update_web_page(unique_ptr<WebPage> web_page, WebPageId we
 
 void WebPagesManager::update_web_page_instant_view(WebPageId web_page_id, WebPageInstantView &new_instant_view,
                                                    WebPageInstantView &&old_instant_view) {
+  LOG(INFO) << "Merge new " << new_instant_view << " and old " << old_instant_view;
+
   bool new_from_database = new_instant_view.was_loaded_from_database;
   bool old_from_database = old_instant_view.was_loaded_from_database;
+
+  if (new_instant_view.is_empty && !new_from_database) {
+    // new_instant_view is from server and is empty, need to delete the instant view
+    if (G()->parameters().use_message_db && (!old_instant_view.is_empty || !old_from_database)) {
+      // we have no instant view and probably want it to be deleted from database
+      LOG(INFO) << "Erase instant view of " << web_page_id << " from database";
+      new_instant_view.was_loaded_from_database = true;
+      G()->td_db()->get_sqlite_pmc()->erase(get_web_page_instant_view_database_key(web_page_id), Auto());
+    }
+    return;
+  }
+
   if (need_use_old_instant_view(new_instant_view, old_instant_view)) {
     new_instant_view = std::move(old_instant_view);
   }
@@ -1589,7 +1603,6 @@ void WebPagesManager::update_web_page_instant_view(WebPageId web_page_id, WebPag
 
 bool WebPagesManager::need_use_old_instant_view(const WebPageInstantView &new_instant_view,
                                                 const WebPageInstantView &old_instant_view) {
-  LOG(INFO) << "Merge " << new_instant_view << " and " << old_instant_view;
   if (old_instant_view.is_empty || !old_instant_view.is_loaded) {
     return false;
   }
@@ -1845,7 +1858,7 @@ void WebPagesManager::on_load_web_page_instant_view_from_database(WebPageId web_
     if (log_event_parse(result, value).is_error()) {
       result = WebPageInstantView();
 
-      LOG(INFO) << "Erase instant view in " << web_page_id << " from database";
+      LOG(ERROR) << "Erase instant view in " << web_page_id << " from database";
       G()->td_db()->get_sqlite_pmc()->erase(get_web_page_instant_view_database_key(web_page_id), Auto());
     }
   }
