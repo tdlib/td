@@ -1460,7 +1460,7 @@ class MessagesManager : public Actor {
   static void delete_notification_id_to_message_id_correspondence(Dialog *d, NotificationId notification_id,
                                                                   MessageId message_id);
 
-  static void remove_message_notification_id(Dialog *d, Message *m);
+  void remove_message_notification_id(Dialog *d, Message *m, bool is_permanent);
 
   void do_delete_message_logevent(const DeleteMessageLogEvent &logevent) const;
 

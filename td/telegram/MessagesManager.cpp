@@ -5096,11 +5096,7 @@ bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message 
     LOG(INFO) << "Update unread mention message count in " << d->dialog_id << " to " << d->unread_mention_count
               << " by reading " << m->message_id << " from " << source;
 
-    if (m->notification_id.is_valid() && d->message_notification_group_id.is_valid()) {
-      remove_message_notification_id(d, m);
-      send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification,
-                         d->message_notification_group_id, m->notification_id, true, Promise<Unit>());
-    }
+    remove_message_notification_id(d, m, true);
 
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateMessageMentionRead>(d->dialog_id.get(), m->message_id.get(),
@@ -7837,11 +7833,7 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, Promise<Unit>
     CHECK(m->message_id == message_id);
     m->contains_unread_mention = false;
 
-    if (m->notification_id.is_valid() && d->message_notification_group_id.is_valid()) {
-      remove_message_notification_id(d, m);
-      send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification,
-                         d->message_notification_group_id, m->notification_id, true, Promise<Unit>());
-    }
+    remove_message_notification_id(d, m, true);
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateMessageMentionRead>(dialog_id.get(), m->message_id.get(), 0));
     is_update_sent = true;
@@ -10340,15 +10332,24 @@ void MessagesManager::delete_notification_id_to_message_id_correspondence(Dialog
   }
 }
 
-void MessagesManager::remove_message_notification_id(Dialog *d, Message *m) {
+void MessagesManager::remove_message_notification_id(Dialog *d, Message *m, bool is_permanent) {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
-  CHECK(d->message_notification_group_id.is_valid());
-  CHECK(m->notification_id.is_valid());
-  VLOG(notifications) << "Remove " << m->notification_id << " from " << m->message_id << " in " << d->dialog_id
+  if (!m->notification_id.is_valid() || !d->message_notification_group_id.is_valid()) {
+    return;
+  }
+
+  auto notification_id = m->notification_id;
+  VLOG(notifications) << "Remove " << notification_id << " from " << m->message_id << " in " << d->dialog_id
                       << " from database";
-  delete_notification_id_to_message_id_correspondence(d, m->notification_id, m->message_id);
+  delete_notification_id_to_message_id_correspondence(d, notification_id, m->message_id);
   m->notification_id = NotificationId();
+  if (is_permanent) {
+    send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification,
+                       d->message_notification_group_id, notification_id, true, Promise<Unit>());
+  } else {
+    on_message_changed(d, m, false, "remove_message_notification_id");
+  }
 }
 
 // DO NOT FORGET TO ADD ALL CHANGES OF THIS FUNCTION AS WELL TO do_delete_all_dialog_messages
@@ -17609,7 +17610,7 @@ void MessagesManager::remove_message_notification(DialogId dialog_id, Notificati
     return;
   }
   if (notification_id == NotificationId::max()) {
-    return;  // there can be nonotification with this ID
+    return;  // there can be no notification with this ID
   }
 
   auto it = d->notification_id_to_message_id.find(notification_id);
@@ -17618,8 +17619,7 @@ void MessagesManager::remove_message_notification(DialogId dialog_id, Notificati
     CHECK(m != nullptr);
     CHECK(m->notification_id == notification_id);
     if (m->message_id.get() > d->last_read_inbox_message_id.get() || m->contains_unread_mention) {
-      remove_message_notification_id(d, m);
-      on_message_changed(d, m, false, "remove_message_notification");
+      remove_message_notification_id(d, m, false);
     }
     return;
   }
@@ -17651,10 +17651,8 @@ void MessagesManager::do_remove_message_notification(DialogId dialog_id, Notific
   }
 
   auto m = on_get_message_from_database(dialog_id, d, std::move(result[0]));
-  if (m != nullptr && m->notification_id.is_valid() &&
-      (m->message_id.get() > d->last_read_inbox_message_id.get() || m->contains_unread_mention)) {
-    remove_message_notification_id(d, m);
-    on_message_changed(d, m, false, "do_remove_message_notification");
+  if (m != nullptr && (m->message_id.get() > d->last_read_inbox_message_id.get() || m->contains_unread_mention)) {
+    remove_message_notification_id(d, m, false);
   }
 }
 
