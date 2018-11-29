@@ -2206,6 +2206,8 @@ class MessagesManager : public Actor {
 
   DialogId being_added_dialog_id_;
 
+  double start_time_ = 0;
+
   Td *td_;
   ActorShared<> parent_;
 };

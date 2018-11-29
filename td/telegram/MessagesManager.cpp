@@ -8594,6 +8594,8 @@ void MessagesManager::tear_down() {
 void MessagesManager::start_up() {
   always_wait_for_mailbox();
 
+  start_time_ = Time::now();
+
   include_sponsored_dialog_to_unread_count_ =
       G()->shared_config().get_option_boolean("include_sponsored_chat_to_unread_count");
 
@@ -18358,6 +18360,7 @@ MessageId MessagesManager::get_next_message_id(Dialog *d, int32 type) {
 
   int64 base = (last + MessageId::TYPE_MASK + 1) & ~MessageId::TYPE_MASK;
   d->last_assigned_message_id = MessageId(base + type);
+  CHECK(d->last_assigned_message_id.is_valid()) << d->last_assigned_message_id;
   return d->last_assigned_message_id;
 }
 
@@ -20188,6 +20191,13 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     CHECK(message->have_previous);
     if (message_id.get() <= d->last_new_message_id.get() && d->dialog_id.get_type() != DialogType::Channel) {
       if (!G()->parameters().use_message_db) {
+        if (td_->auth_manager_->is_bot() && Time::now() > start_time_ + 300 &&
+            MessageId(ServerMessageId(100)).get() <= message_id.get() &&
+            message_id.get() <= MessageId(ServerMessageId(1000)).get() &&
+            d->last_new_message_id.get() >= MessageId(ServerMessageId(2147483000)).get()) {
+          LOG(FATAL) << "Force restart because of message_id overflow in " << d->dialog_id << " from "
+                     << d->last_new_message_id << " to " << message_id;
+        }
         LOG(ERROR) << "New " << message_id << " in " << dialog_id << " from " << source
                    << " has id less than last_new_message_id = " << d->last_new_message_id;
         dump_debug_message_op(d);
