@@ -1445,8 +1445,7 @@ class MessagesManager : public Actor {
 
   void delete_all_dialog_messages_from_database(const Dialog *d, MessageId message_id, const char *source);
 
-  void delete_message_from_database(Dialog *d, MessageId message_id, const Message *m,
-                                    bool is_permanently_deleted) const;
+  void delete_message_from_database(Dialog *d, MessageId message_id, const Message *m, bool is_permanently_deleted);
 
   void delete_message_files(const Message *m) const;
 
@@ -1461,6 +1460,11 @@ class MessagesManager : public Actor {
                                                                   MessageId message_id);
 
   void remove_message_notification_id(Dialog *d, Message *m, bool is_permanent);
+
+  void fix_dialog_last_notification_id(Dialog *d, MessageId message_id);
+
+  void do_fix_dialog_last_notification_id(DialogId dialog_id, NotificationId prev_last_notification_id,
+                                          Result<vector<BufferSlice>> result);
 
   void do_delete_message_logevent(const DeleteMessageLogEvent &logevent) const;
 
@@ -1477,6 +1481,8 @@ class MessagesManager : public Actor {
                               bool need_send_update_message_content, bool need_merge_files);
 
   void send_update_new_message(const Dialog *d, const Message *m);
+
+  static bool is_message_has_active_notification(const Dialog *d, const Message *m);
 
   NotificationGroupId get_dialog_message_notification_group_id(Dialog *d);
 
@@ -1578,7 +1584,8 @@ class MessagesManager : public Actor {
 
   void try_restore_dialog_reply_markup(Dialog *d, const Message *m);
 
-  void set_dialog_last_notification(Dialog *d, int32 last_notification_date, NotificationId last_notification_id);
+  bool set_dialog_last_notification(Dialog *d, int32 last_notification_date, NotificationId last_notification_id,
+                                    const char *source);
 
   static string get_notification_settings_scope_database_key(NotificationSettingsScope scope);
 
