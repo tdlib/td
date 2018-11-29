@@ -17605,7 +17605,8 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
     result.dialog_id = d->dialog_id;
     result.total_count = get_dialog_pending_notification_count(d);
     result.notifications = get_message_notifications_from_database(
-        d, NotificationId::max(), td_->notification_manager_->get_max_notification_group_size());
+        d, d->first_new_notification_id.is_valid() ? d->first_new_notification_id : NotificationId::max(),
+        td_->notification_manager_->get_max_notification_group_size());
 
     int32 last_notification_date = 0;
     NotificationId last_notification_id;
@@ -17857,6 +17858,9 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
     add_notification_id_to_message_id_correspondence(d, m->notification_id, m->message_id);
   }
   bool is_changed = set_dialog_last_notification(d, m->date, m->notification_id, "add_new_message_notification");
+  if (!d->first_new_notification_id.is_valid()) {
+    d->first_new_notification_id = m->notification_id;
+  }
   CHECK(is_changed);
   VLOG(notifications) << "Create " << m->notification_id << " with " << m->message_id << " in " << d->dialog_id;
   send_closure_later(G()->notification_manager(), &NotificationManager::add_notification,
