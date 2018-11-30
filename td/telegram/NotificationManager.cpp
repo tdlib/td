@@ -70,6 +70,35 @@ bool NotificationManager::is_disabled() const {
   return td_->auth_manager_->is_bot();
 }
 
+namespace {
+
+struct ActiveNotificationsUpdate {
+  const td_api::updateActiveNotifications *update;
+};
+
+StringBuilder &operator<<(StringBuilder &string_builder, const ActiveNotificationsUpdate &update) {
+  if (update.update == nullptr) {
+    return string_builder << "null";
+  }
+  string_builder << "update[\n";
+  for (auto &group : update.update->groups_) {
+    vector<int32> added_notification_ids;
+    for (auto &notification : group->notifications_) {
+      added_notification_ids.push_back(notification->id_);
+    }
+
+    string_builder << "    [" << NotificationGroupId(group->id_) << " from " << DialogId(group->chat_id_)
+                   << "; total_count = " << group->total_count_ << ", restore " << added_notification_ids << "]\n";
+  }
+  return string_builder << ']';
+}
+
+ActiveNotificationsUpdate as_active_notifications_update(const td_api::updateActiveNotifications *update) {
+  return ActiveNotificationsUpdate{update};
+}
+
+}  // namespace
+
 void NotificationManager::start_up() {
   if (is_disabled()) {
     return;
@@ -89,9 +118,36 @@ void NotificationManager::start_up() {
 
   last_loaded_notification_date_ = std::numeric_limits<int32>::max();
 
-  load_message_notification_groups_from_database(false);
+  int32 loaded_groups = 0;
+  int32 needed_groups = static_cast<int32>(max_notification_group_count_);
+  do {
+    loaded_groups += load_message_notification_groups_from_database(needed_groups, false);
+  } while (loaded_groups < needed_groups && last_loaded_notification_date_ != 0);
 
-  // TODO send updateActiveNotifications
+  vector<td_api::object_ptr<td_api::notificationGroup>> groups;
+  for (auto &group : groups_) {
+    if (needed_groups == 0 || group.first.last_notification_date == 0) {
+      break;
+    }
+    needed_groups--;
+
+    vector<td_api::object_ptr<td_api::notification>> notifications;
+    for (auto &notification : group.second.notifications) {
+      auto notification_object = get_notification_object(group.first.dialog_id, notification);
+      if (notification_object->type_ != nullptr) {
+        notifications.push_back(std::move(notification_object));
+      }
+    }
+    if (!notifications.empty()) {
+      groups.push_back(td_api::make_object<td_api::notificationGroup>(
+          group.first.group_id.get(), group.first.dialog_id.get(), group.second.total_count, std::move(notifications)));
+    }
+  }
+  if (!groups.empty()) {
+    auto update = td_api::make_object<td_api::updateActiveNotifications>(std::move(groups));
+    VLOG(notifications) << "Send " << as_active_notifications_update(update.get());
+    send_closure(G()->td(), &Td::send_update, std::move(update));
+  }
 }
 
 void NotificationManager::tear_down() {
@@ -141,24 +197,36 @@ NotificationManager::NotificationGroups::iterator NotificationManager::get_group
   return groups_.emplace(std::move(group_key), std::move(group)).first;
 }
 
-void NotificationManager::load_message_notification_groups_from_database(bool send_update) {
+int32 NotificationManager::load_message_notification_groups_from_database(int32 limit, bool send_update) {
+  CHECK(limit > 0);
   if (last_loaded_notification_date_ == 0) {
     // everything was already loaded
-    return;
+    return 0;
   }
   vector<NotificationGroupKey> group_keys = td_->messages_manager_->get_message_notification_group_keys_from_database(
-      last_loaded_notification_date_, last_loaded_notification_dialog_id_, max_notification_group_count_);
+      last_loaded_notification_date_, last_loaded_notification_dialog_id_, limit);
   if (group_keys.empty()) {
     last_loaded_notification_date_ = 0;
     last_loaded_notification_dialog_id_ = DialogId();
-    return;
+    return 0;
   }
 
   last_loaded_notification_date_ = group_keys.back().last_notification_date;
   last_loaded_notification_dialog_id_ = group_keys.back().dialog_id;
-  for (auto &group_key : group_keys) {
-    get_group_force(group_key.group_id, send_update);
+  if (group_keys.size() < static_cast<size_t>(limit)) {
+    last_loaded_notification_date_ = 0;
+    last_loaded_notification_dialog_id_ = DialogId();
   }
+  int32 result = 0;
+  for (auto &group_key : group_keys) {
+    auto group_it = get_group_force(group_key.group_id, send_update);
+    CHECK(group_it != groups_.end());
+    CHECK(group_it->first.dialog_id.is_valid());
+    if (group_it->first.last_notification_date > 0) {
+      result++;
+    }
+  }
+  return group_keys.size();
 }
 
 int32 NotificationManager::get_max_notification_group_size() const {
@@ -281,6 +349,8 @@ void NotificationManager::add_notification(NotificationGroupId group_id, DialogI
   group.pending_notifications.push_back(std::move(notification));
 }
 
+namespace {
+
 struct NotificationUpdate {
   const td_api::Update *update;
 };
@@ -317,6 +387,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const NotificationUpdat
 NotificationUpdate as_notification_update(const td_api::Update *update) {
   return NotificationUpdate{update};
 }
+
+}  // namespace
 
 void NotificationManager::add_update(int32 group_id, td_api::object_ptr<td_api::Update> update) {
   VLOG(notifications) << "Add " << as_notification_update(update.get());

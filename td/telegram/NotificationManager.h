@@ -132,7 +132,7 @@ class NotificationManager : public Actor {
 
   NotificationGroups::iterator get_group_force(NotificationGroupId group_id, bool send_update = true);
 
-  void load_message_notification_groups_from_database(bool send_update);
+  int32 load_message_notification_groups_from_database(int32 limit, bool send_update);
 
   NotificationGroupKey get_last_updated_group_key() const;
 
