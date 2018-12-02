@@ -1076,6 +1076,7 @@ tl_object_ptr<td_api::inlineQueryResults> InlineQueriesManager::decrease_pending
     auto left_time = it->second.cache_expire_time - Time::now();
     if (left_time < 0) {
       LOG(INFO) << "Drop cache for inline query " << query_hash;
+      drop_inline_query_result_timeout_.cancel_timeout(static_cast<int64>(query_hash));
       auto result = std::move(it->second.results);
       inline_query_results_.erase(it);
       return result;
