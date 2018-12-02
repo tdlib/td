@@ -130,9 +130,13 @@ class NotificationManager : public Actor {
   void add_update_notification(NotificationGroupId notification_group_id, DialogId dialog_id,
                                const Notification &notification);
 
+  NotificationGroups::iterator add_group(NotificationGroupKey &&group_key, NotificationGroup &&group);
+
   NotificationGroups::iterator get_group(NotificationGroupId group_id);
 
   NotificationGroups::iterator get_group_force(NotificationGroupId group_id, bool send_update = true);
+
+  void delete_group(NotificationGroups::iterator &&group_it);
 
   int32 load_message_notification_groups_from_database(int32 limit, bool send_update);
 

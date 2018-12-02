@@ -154,6 +154,11 @@ void NotificationManager::tear_down() {
   parent_.reset();
 }
 
+NotificationManager::NotificationGroups::iterator NotificationManager::add_group(NotificationGroupKey &&group_key,
+                                                                                 NotificationGroup &&group) {
+  return groups_.emplace(std::move(group_key), std::move(group)).first;
+}
+
 NotificationManager::NotificationGroups::iterator NotificationManager::get_group(NotificationGroupId group_id) {
   // TODO optimize
   for (auto it = groups_.begin(); it != groups_.end(); ++it) {
@@ -198,8 +203,11 @@ NotificationManager::NotificationGroups::iterator NotificationManager::get_group
                       << " and notifications " << group.notifications;
 
   // TODO send update about the new group, if needed
+  return add_group(std::move(group_key), std::move(group));
+}
 
-  return groups_.emplace(std::move(group_key), std::move(group)).first;
+void NotificationManager::delete_group(NotificationGroups::iterator &&group_it) {
+  groups_.erase(group_it);
 }
 
 int32 NotificationManager::load_message_notification_groups_from_database(int32 limit, bool send_update) {
@@ -331,8 +339,7 @@ void NotificationManager::add_notification(NotificationGroupId group_id, DialogI
 
   auto group_it = get_group_force(group_id);
   if (group_it == groups_.end()) {
-    NotificationGroupKey group_key(group_id, dialog_id, 0);
-    group_it = std::move(groups_.emplace(group_key, NotificationGroup()).first);
+    group_it = add_group(NotificationGroupKey(group_id, dialog_id, 0), NotificationGroup());
   }
 
   PendingNotification notification;
@@ -857,7 +864,7 @@ void NotificationManager::flush_pending_notifications(NotificationGroupId group_
   auto group_key = group_it->first;
   auto group = std::move(group_it->second);
 
-  groups_.erase(group_it);
+  delete_group(std::move(group_it));
 
   auto final_group_key = group_key;
   for (auto &pending_notification : group.pending_notifications) {
@@ -919,7 +926,7 @@ void NotificationManager::flush_pending_notifications(NotificationGroupId group_
         group.notifications.begin() + (group.notifications.size() - keep_notification_group_size_));
   }
 
-  groups_.emplace(std::move(final_group_key), std::move(group));
+  add_group(std::move(final_group_key), std::move(group));
 }
 
 void NotificationManager::flush_all_pending_notifications() {
@@ -990,7 +997,7 @@ void NotificationManager::on_notifications_removed(
   NotificationGroup group = std::move(group_it->second);
   if (is_position_changed) {
     VLOG(notifications) << "Position of notification group is changed from " << group_key << " to " << final_group_key;
-    groups_.erase(group_it);
+    delete_group(std::move(group_it));
   }
 
   auto last_group_key = get_last_updated_group_key();
@@ -1023,7 +1030,7 @@ void NotificationManager::on_notifications_removed(
   }
 
   if (is_position_changed) {
-    groups_.emplace(std::move(final_group_key), std::move(group));
+    add_group(std::move(final_group_key), std::move(group));
 
     last_group_key = get_last_updated_group_key();
   } else {

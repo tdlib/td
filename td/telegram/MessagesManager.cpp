@@ -17785,11 +17785,10 @@ int32 MessagesManager::get_dialog_pending_notification_count(Dialog *d) {
   CHECK(d != nullptr);
   if (is_dialog_muted(d)) {
     // TODO pinned message?
-    // TODO hidden notifications?
     return d->unread_mention_count;
   }
 
-  return d->server_unread_count + d->local_unread_count;  // TODO remove/add some messages with unread mentions
+  return d->server_unread_count + d->local_unread_count;  // TODO remove/add messages with unread mentions
 }
 
 bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool force) {
