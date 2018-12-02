@@ -156,15 +156,15 @@ void NotificationManager::tear_down() {
 
 NotificationManager::NotificationGroups::iterator NotificationManager::add_group(NotificationGroupKey &&group_key,
                                                                                  NotificationGroup &&group) {
+  bool is_inserted = group_keys_.emplace(group_key.group_id, group_key).second;
+  CHECK(is_inserted);
   return groups_.emplace(std::move(group_key), std::move(group)).first;
 }
 
 NotificationManager::NotificationGroups::iterator NotificationManager::get_group(NotificationGroupId group_id) {
-  // TODO optimize
-  for (auto it = groups_.begin(); it != groups_.end(); ++it) {
-    if (it->first.group_id == group_id) {
-      return it;
-    }
+  auto group_keys_it = group_keys_.find(group_id);
+  if (group_keys_it != group_keys_.end()) {
+    return groups_.find(group_keys_it->second);
   }
   return groups_.end();
 }
@@ -207,6 +207,8 @@ NotificationManager::NotificationGroups::iterator NotificationManager::get_group
 }
 
 void NotificationManager::delete_group(NotificationGroups::iterator &&group_it) {
+  bool is_erased = group_keys_.erase(group_it->first.group_id);
+  CHECK(is_erased);
   groups_.erase(group_it);
 }
 

@@ -186,6 +186,7 @@ class NotificationManager : public Actor {
   std::unordered_set<int32> running_get_chat_difference_;
 
   NotificationGroups groups_;
+  std::unordered_map<NotificationGroupId, NotificationGroupKey, NotificationGroupIdHash> group_keys_;
 
   std::unordered_map<int32, vector<td_api::object_ptr<td_api::Update>>> pending_updates_;
 
