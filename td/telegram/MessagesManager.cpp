@@ -17733,13 +17733,15 @@ void MessagesManager::remove_message_notification(DialogId dialog_id, Notificati
     return;
   }
 
-  G()->td_db()->get_messages_db_async()->get_messages_from_notification_id(
-      dialog_id, NotificationId(notification_id.get() + 1), 1,
-      PromiseCreator::lambda(
-          [dialog_id, notification_id, actor_id = actor_id(this)](vector<BufferSlice> result) mutable {
-            send_closure(actor_id, &MessagesManager::do_remove_message_notification, dialog_id, notification_id,
-                         std::move(result));
-          }));
+  if (G()->parameters().use_message_db) {
+    G()->td_db()->get_messages_db_async()->get_messages_from_notification_id(
+        dialog_id, NotificationId(notification_id.get() + 1), 1,
+        PromiseCreator::lambda(
+            [dialog_id, notification_id, actor_id = actor_id(this)](vector<BufferSlice> result) mutable {
+              send_closure(actor_id, &MessagesManager::do_remove_message_notification, dialog_id, notification_id,
+                           std::move(result));
+            }));
+  }
 }
 
 void MessagesManager::do_remove_message_notification(DialogId dialog_id, NotificationId notification_id,
@@ -17750,14 +17752,8 @@ void MessagesManager::do_remove_message_notification(DialogId dialog_id, Notific
   CHECK(result.size() == 1);
 
   Dialog *d = get_dialog_force(dialog_id);
-  if (d == nullptr) {
-    LOG(ERROR) << "Can't find " << dialog_id;
-    return;
-  }
-  if (!d->message_notification_group_id.is_valid()) {
-    LOG(ERROR) << "There is no message notiication group in " << dialog_id;
-    return;
-  }
+  CHECK(d != nullptr);
+  CHECK(d->message_notification_group_id.is_valid());
 
   auto m = on_get_message_from_database(dialog_id, d, std::move(result[0]));
   if (m->notification_id == notification_id && is_message_has_active_notification(d, m)) {

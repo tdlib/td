@@ -244,6 +244,11 @@ int32 NotificationManager::load_message_notification_groups_from_database(int32 
   return result;
 }
 
+void NotificationManager::load_message_notifications_from_database(const NotificationGroupKey &group_key,
+                                                                   const NotificationGroup &group) {
+  // TODO
+}
+
 size_t NotificationManager::get_max_notification_group_size() const {
   return max_notification_group_size_;
 }
@@ -1151,7 +1156,7 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
         added_notifications.pop_back();
       }
     } else {
-      // TODO preload more notifications in the group
+      load_message_notifications_from_database(group_it->first, group_it->second);
     }
   }
 
@@ -1388,8 +1393,8 @@ void NotificationManager::on_notification_group_size_max_changed() {
           }
         }
         if (new_max_notification_group_size_size_t > notification_count &&
-            static_cast<size_t>(group.total_count) > notification_count) {
-          // TODO load more notifications in the group from the message database
+            static_cast<size_t>(group.total_count) > notification_count && G()->parameters().use_message_db) {
+          load_message_notifications_from_database(group_key, group);
         }
         if (added_notifications.empty()) {
           continue;

@@ -141,6 +141,8 @@ class NotificationManager : public Actor {
 
   int32 load_message_notification_groups_from_database(int32 limit, bool send_update);
 
+  void load_message_notifications_from_database(const NotificationGroupKey &group_key, const NotificationGroup &group);
+
   NotificationGroupKey get_last_updated_group_key() const;
 
   void send_remove_group_update(const NotificationGroupKey &group_key, const NotificationGroup &group,
