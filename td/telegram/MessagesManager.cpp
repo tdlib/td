@@ -17623,7 +17623,7 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
       result.total_count = 0;
     }
     result.notifications = get_message_notifications_from_database(
-        d, NotificationId::max(), td_->notification_manager_->get_max_notification_group_size());
+        d, NotificationId::max(), static_cast<int32>(td_->notification_manager_->get_max_notification_group_size()));
 
     int32 last_notification_date = 0;
     NotificationId last_notification_id;
@@ -17760,7 +17760,7 @@ void MessagesManager::do_remove_message_notification(DialogId dialog_id, Notific
   }
 
   auto m = on_get_message_from_database(dialog_id, d, std::move(result[0]));
-  if (is_message_has_active_notification(d, m)) {
+  if (m->notification_id == notification_id && is_message_has_active_notification(d, m)) {
     remove_message_notification_id(d, m, false);
   }
 }

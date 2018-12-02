@@ -244,7 +244,7 @@ int32 NotificationManager::load_message_notification_groups_from_database(int32 
   return result;
 }
 
-int32 NotificationManager::get_max_notification_group_size() const {
+size_t NotificationManager::get_max_notification_group_size() const {
   return max_notification_group_size_;
 }
 
@@ -273,7 +273,7 @@ NotificationGroupId NotificationManager::get_next_notification_group_id() {
 }
 
 NotificationGroupKey NotificationManager::get_last_updated_group_key() const {
-  int32 left = max_notification_group_count_;
+  size_t left = max_notification_group_count_;
   auto it = groups_.begin();
   while (it != groups_.end() && left > 1) {
     ++it;
@@ -1355,7 +1355,7 @@ void NotificationManager::on_notification_group_size_max_changed() {
     flush_all_pending_notifications();
     flush_all_pending_updates(true, "on_notification_group_size_max_changed");
 
-    int32 left = max_notification_group_count_;
+    size_t left = max_notification_group_count_;
     for (auto it = groups_.begin(); it != groups_.end() && left > 0; ++it, left--) {
       auto &group_key = it->first;
       auto &group = it->second;

@@ -41,7 +41,7 @@ class NotificationManager : public Actor {
 
   NotificationManager(Td *td, ActorShared<> parent);
 
-  int32 get_max_notification_group_size() const;
+  size_t get_max_notification_group_size() const;
 
   NotificationId get_max_notification_id() const;
 
