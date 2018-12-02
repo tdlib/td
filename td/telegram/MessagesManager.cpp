@@ -9661,6 +9661,10 @@ void MessagesManager::set_dialog_last_message_id(Dialog *d, MessageId last_messa
     d->is_last_message_deleted_locally = false;
     on_dialog_updated(d->dialog_id, "update_delete_last_message_date");
   }
+  if (d->pending_last_message_date != 0) {
+    d->pending_last_message_date = 0;
+    d->pending_last_message_id = MessageId();
+  }
 }
 
 void MessagesManager::set_dialog_first_database_message_id(Dialog *d, MessageId first_database_message_id,
@@ -9793,6 +9797,10 @@ void MessagesManager::set_dialog_is_empty(Dialog *d, const char *source) {
     d->is_last_message_deleted_locally = false;
 
     on_dialog_updated(d->dialog_id, "set_dialog_is_empty");
+  }
+  if (d->pending_last_message_date != 0) {
+    d->pending_last_message_date = 0;
+    d->pending_last_message_id = MessageId();
   }
 
   update_dialog_pos(d, false, source);
@@ -21720,27 +21728,27 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   bool need_get_history = true;
 
   // add last database message to dialog
-  MessageId message_id;
+  MessageId last_message_id;
   if (last_database_message != nullptr) {
     need_get_history = false;
-    message_id = last_database_message->message_id;
+    last_message_id = last_database_message->message_id;
   } else if (last_database_message_id.is_valid()) {
-    message_id = last_database_message_id;
+    last_message_id = last_database_message_id;
   }
 
-  if (message_id.is_valid()) {
-    if ((message_id.is_server() || dialog_id.get_type() == DialogType::SecretChat) &&
+  if (last_message_id.is_valid()) {
+    if ((last_message_id.is_server() || dialog_id.get_type() == DialogType::SecretChat) &&
         !d->last_new_message_id.is_valid()) {
-      LOG(ERROR) << "Bugfixing wrong last_new_message_id to " << message_id << " in " << dialog_id;
+      LOG(ERROR) << "Bugfixing wrong last_new_message_id to " << last_message_id << " in " << dialog_id;
       // must be called before set_dialog_first_database_message_id and set_dialog_last_database_message_id
-      set_dialog_last_new_message_id(d, message_id, "fix_new_dialog 1");
+      set_dialog_last_new_message_id(d, last_message_id, "fix_new_dialog 1");
     }
-    if (!d->first_database_message_id.is_valid() || d->first_database_message_id.get() > message_id.get()) {
+    if (!d->first_database_message_id.is_valid() || d->first_database_message_id.get() > last_message_id.get()) {
       LOG(ERROR) << "Bugfixing wrong first_database_message_id from " << d->first_database_message_id << " to "
-                 << message_id << " in " << dialog_id;
-      set_dialog_first_database_message_id(d, message_id, "fix_new_dialog 2");
+                 << last_message_id << " in " << dialog_id;
+      set_dialog_first_database_message_id(d, last_message_id, "fix_new_dialog 2");
     }
-    set_dialog_last_database_message_id(d, message_id, "fix_new_dialog 3");
+    set_dialog_last_database_message_id(d, last_message_id, "fix_new_dialog 3");
   } else if (d->first_database_message_id.is_valid()) {
     // ensure that first_database_message_id <= last_database_message_id
     if (d->first_database_message_id.get() <= d->last_new_message_id.get()) {
@@ -21777,6 +21785,8 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       add_dialog_last_database_message(d, std::move(last_database_message));
     } else {
       // can't add message immediately, because need to notify first about adding of dependent dialogs
+      d->pending_last_message_date = last_database_message->date;
+      d->pending_last_message_id = last_database_message->message_id;
       pending_add_dialog_last_database_message_[dialog_id] = {dependent_dialog_count, std::move(last_database_message)};
     }
   }
@@ -21828,7 +21838,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     repair_server_unread_count(dialog_id, d->server_unread_count);
   }
 
-  update_dialog_pos(d, false, "fix_new_dialog 7", true, true);
+  update_dialog_pos(d, false, "fix_new_dialog 7", true, is_loaded_from_database);
 
   LOG(INFO) << "Loaded " << dialog_id << " with last new " << d->last_new_message_id << ", first database "
             << d->first_database_message_id << ", last database " << d->last_database_message_id << ", last "
@@ -21847,6 +21857,11 @@ void MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Mes
 
   if (!have_input_peer(d->dialog_id, AccessRights::Read)) {
     // do not add last message to inaccessible dialog
+    if (d->pending_last_message_date != 0) {
+      d->pending_last_message_date = 0;
+      d->pending_last_message_id = MessageId();
+      update_dialog_pos(d, false, "add_dialog_last_database_message 1");
+    }
     return;
   }
 
@@ -21856,15 +21871,21 @@ void MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Mes
   last_database_message->have_next = false;
   last_database_message->from_database = true;
   Message *m = add_message_to_dialog(d, std::move(last_database_message), false, &need_update, &need_update_dialog_pos,
-                                     "add_dialog_last_database_message");
+                                     "add_dialog_last_database_message 2");
+  if (need_update_dialog_pos) {
+    LOG(ERROR) << "Need to update pos in " << d->dialog_id;
+  }
   if (m != nullptr) {
-    set_dialog_last_message_id(d, message_id, "add_dialog_last_database_message");
-    send_update_chat_last_message(d, "add_dialog_last_database_message");
+    set_dialog_last_message_id(d, message_id, "add_dialog_last_database_message 3");
+    send_update_chat_last_message(d, "add_dialog_last_database_message 4");
+  } else if (d->pending_last_message_date != 0) {
+    d->pending_last_message_date = 0;
+    d->pending_last_message_id = MessageId();
+    need_update_dialog_pos = true;
   }
 
   if (need_update_dialog_pos) {
-    LOG(ERROR) << "Update pos in " << d->dialog_id;
-    update_dialog_pos(d, false, "add_dialog_last_database_message");
+    update_dialog_pos(d, false, "add_dialog_last_database_message 5");
   }
 }
 
@@ -21965,6 +21986,13 @@ void MessagesManager::update_dialog_pos(Dialog *d, bool remove_from_dialog_list,
       int64 clear_order = get_dialog_order(d->last_clear_history_message_id, d->last_clear_history_date);
       if (clear_order > new_order) {
         new_order = clear_order;
+      }
+    }
+    if (d->pending_last_message_date > 0) {
+      LOG(INFO) << "Pending last " << d->pending_last_message_id << " at " << d->pending_last_message_date << " found";
+      int64 pending_order = get_dialog_order(d->pending_last_message_id, d->pending_last_message_date);
+      if (pending_order > new_order) {
+        new_order = pending_order;
       }
     }
     if (d->draft_message != nullptr) {

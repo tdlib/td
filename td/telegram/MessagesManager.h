@@ -879,6 +879,8 @@ class MessagesManager : public Actor {
     int64 pinned_order = DEFAULT_ORDER;
     int32 delete_last_message_date = 0;
     MessageId deleted_last_message_id;
+    int32 pending_last_message_date = 0;
+    MessageId pending_last_message_id;
 
     MessageId max_added_message_id;
 

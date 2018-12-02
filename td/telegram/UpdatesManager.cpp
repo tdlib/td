@@ -1151,6 +1151,7 @@ void UpdatesManager::on_pending_updates(vector<tl_object_ptr<telegram_api::Updat
       if (message_ptr != nullptr && (*message_ptr)->get_id() != telegram_api::messageService::ID) {
         auto dialog_id = td_->messages_manager_->get_message_dialog_id(*message_ptr);
         if (dialog_id.get_type() == DialogType::Channel) {
+          LOG(INFO) << "Replace update about new message with updateChannelTooLong in " << dialog_id;
           auto channel_id = dialog_id.get_channel_id();
           if (td_->contacts_manager_->have_channel_force(channel_id)) {
             update = telegram_api::make_object<telegram_api::updateChannelTooLong>(
