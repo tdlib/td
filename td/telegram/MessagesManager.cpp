@@ -8280,6 +8280,11 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
       if (total_count == 0) {
         set_dialog_last_notification(d, 0, NotificationId(), "set_dialog_last_read_inbox_message_id");
       }
+      total_count -= static_cast<int32>(d->pending_new_message_notifications.size());
+      if (total_count < 0) {
+        LOG(ERROR) << "Total notification count is negative in " << d->dialog_id;
+        total_count = 0;
+      }
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group,
                          d->message_notification_group_id, NotificationId(), d->last_read_inbox_message_id, total_count,
                          Promise<Unit>());
@@ -17612,9 +17617,13 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
     VLOG(notifications) << "Found " << d->dialog_id << " by " << group_id;
     result.dialog_id = d->dialog_id;
     result.total_count = get_dialog_pending_notification_count(d);
+    result.total_count -= static_cast<int32>(d->pending_new_message_notifications.size());
+    if (result.total_count < 0) {
+      LOG(ERROR) << "Total notification count is negative in " << d->dialog_id;
+      result.total_count = 0;
+    }
     result.notifications = get_message_notifications_from_database(
-        d, d->first_new_notification_id.is_valid() ? d->first_new_notification_id : NotificationId::max(),
-        td_->notification_manager_->get_max_notification_group_size());
+        d, NotificationId::max(), td_->notification_manager_->get_max_notification_group_size());
 
     int32 last_notification_date = 0;
     NotificationId last_notification_id;
@@ -17859,6 +17868,9 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   LOG_IF(WARNING, !have_settings) << "Have no notification settings for " << settings_dialog_id
                                   << ", but forced to send notification about " << m->message_id << " in "
                                   << d->dialog_id;
+  // notification group must be preloaded to guarantee that there is no race between
+  // get_message_notifications_from_database and new notifications added right now
+  td_->notification_manager_->load_group_force(get_dialog_message_notification_group_id(d));
   do {
     m->notification_id = td_->notification_manager_->get_next_notification_id();
   } while (d->notification_id_to_message_id.count(m->notification_id) != 0);  // just in case
@@ -17866,9 +17878,6 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
     add_notification_id_to_message_id_correspondence(d, m->notification_id, m->message_id);
   }
   bool is_changed = set_dialog_last_notification(d, m->date, m->notification_id, "add_new_message_notification");
-  if (!d->first_new_notification_id.is_valid()) {
-    d->first_new_notification_id = m->notification_id;
-  }
   CHECK(is_changed);
   VLOG(notifications) << "Create " << m->notification_id << " with " << m->message_id << " in " << d->dialog_id;
   send_closure_later(G()->notification_manager(), &NotificationManager::add_notification,
@@ -20644,6 +20653,12 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
+  if (*need_update) {
+    // notification must be added before updating unread_count to have correct total notification count
+    // in get_message_notification_group_force
+    add_new_message_notification(d, message.get(), false);
+  }
+
   UserId my_user_id(td_->contacts_manager_->get_my_id());
   DialogId my_dialog_id(my_user_id);
   if (*need_update && message_id.get() > d->last_read_inbox_message_id.get() && !td_->auth_manager_->is_bot()) {
@@ -20698,10 +20713,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       message->date < G()->unix_time_cached() - 2 * 86400 && Slice(source) == Slice("updateNewChannelMessage")) {
     // if the message is pretty old, we might have missed the update that the message has already been read
     repair_channel_server_unread_count(d);
-  }
-
-  if (*need_update) {
-    add_new_message_notification(d, message.get(), false);
   }
 
   const Message *m = message.get();

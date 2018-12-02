@@ -888,7 +888,6 @@ class MessagesManager : public Actor {
     int32 last_notification_date = 0;            // last known date of last notification in the dialog
     NotificationId last_notification_id;         // last known identifier of last notification in the dialog
     NotificationId max_removed_notification_id;  // notification identifier, up to which all notifications are removed
-    NotificationId first_new_notification_id;    // identifier of first added notification in that library launch
 
     bool has_contact_registered_message = false;
 

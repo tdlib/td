@@ -164,6 +164,11 @@ NotificationManager::NotificationGroups::iterator NotificationManager::get_group
   return groups_.end();
 }
 
+void NotificationManager::load_group_force(NotificationGroupId group_id) {
+  auto group_it = get_group_force(group_id, true);
+  CHECK(group_it != groups_.end());
+}
+
 NotificationManager::NotificationGroups::iterator NotificationManager::get_group_force(NotificationGroupId group_id,
                                                                                        bool send_update) {
   auto group_it = get_group(group_id);
