@@ -633,8 +633,9 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
               break;
             }
           }
-          if (update != nullptr && (cur_pos == 1 || update_ptr->total_count_ == 0)) {
+          if (update != nullptr && cur_pos == 1 && (updates.size() > 1 || update_ptr->total_count_ == 0)) {
             VLOG(notifications) << "Remove empty update " << cur_pos;
+            CHECK(moved_deleted_notification_ids.empty());
             is_changed = true;
             update = nullptr;
           }
