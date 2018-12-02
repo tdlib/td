@@ -17681,6 +17681,9 @@ vector<NotificationGroupKey> MessagesManager::get_message_notification_group_key
     return {};
   }
 
+  VLOG(notifications) << "Load " << limit << " message notification groups from database from date "
+                      << from_last_notification_date << " and " << from_dialog_id;
+
   Result<std::vector<BufferSlice>> r_dialogs =
       G()->td_db()->get_dialog_db_sync()->get_dialogs_by_last_notification_date(from_last_notification_date,
                                                                                 from_dialog_id, limit);

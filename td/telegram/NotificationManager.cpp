@@ -202,7 +202,15 @@ NotificationManager::NotificationGroups::iterator NotificationManager::get_group
   VLOG(notifications) << "Finish to load " << group_id << " with total_count " << message_group.total_count
                       << " and notifications " << group.notifications;
 
-  // TODO send update about the new group, if needed
+  if (send_update && group_key.last_notification_date != 0) {
+    auto last_group_key = get_last_updated_group_key();
+    if (group_key < last_group_key) {
+      if (last_group_key.last_notification_date != 0) {
+        send_remove_group_update(last_group_key, groups_[last_group_key], vector<int32>());
+      }
+      send_add_group_update(group_key, group);
+    }
+  }
   return add_group(std::move(group_key), std::move(group));
 }
 
@@ -218,6 +226,7 @@ int32 NotificationManager::load_message_notification_groups_from_database(int32 
     // everything was already loaded
     return 0;
   }
+
   vector<NotificationGroupKey> group_keys = td_->messages_manager_->get_message_notification_group_keys_from_database(
       last_loaded_notification_date_, last_loaded_notification_dialog_id_, limit);
   if (group_keys.empty()) {
