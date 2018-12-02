@@ -1327,11 +1327,10 @@ void NotificationManager::on_notification_group_count_max_changed() {
   }
 
   max_notification_group_count_ = new_max_notification_group_count_size_t;
-  /*
-  if (is_increased && last_loaded_group_key_ < get_last_updated_group_key()) {
-    TODO load_notification_groups_from_database();
+  if (is_increased && last_loaded_notification_group_key_ < get_last_updated_group_key()) {
+    load_message_notification_groups_from_database(
+        td::max(new_max_notification_group_count, DEFAULT_GROUP_COUNT_MAX / 2), true);
   }
-  */
 }
 
 void NotificationManager::on_notification_group_size_max_changed() {
