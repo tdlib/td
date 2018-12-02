@@ -116,13 +116,13 @@ void NotificationManager::start_up() {
   on_notification_cloud_delay_changed();
   on_notification_default_delay_changed();
 
-  last_loaded_notification_date_ = std::numeric_limits<int32>::max();
+  last_loaded_notification_group_key_.last_notification_date = std::numeric_limits<int32>::max();
 
   int32 loaded_groups = 0;
   int32 needed_groups = static_cast<int32>(max_notification_group_count_);
   do {
     loaded_groups += load_message_notification_groups_from_database(needed_groups, false);
-  } while (loaded_groups < needed_groups && last_loaded_notification_date_ != 0);
+  } while (loaded_groups < needed_groups && last_loaded_notification_group_key_.last_notification_date != 0);
 
   vector<td_api::object_ptr<td_api::notificationGroup>> groups;
   for (auto &group : groups_) {
@@ -222,25 +222,16 @@ void NotificationManager::delete_group(NotificationGroups::iterator &&group_it) 
 
 int32 NotificationManager::load_message_notification_groups_from_database(int32 limit, bool send_update) {
   CHECK(limit > 0);
-  if (last_loaded_notification_date_ == 0) {
+  if (last_loaded_notification_group_key_.last_notification_date == 0) {
     // everything was already loaded
     return 0;
   }
 
   vector<NotificationGroupKey> group_keys = td_->messages_manager_->get_message_notification_group_keys_from_database(
-      last_loaded_notification_date_, last_loaded_notification_dialog_id_, limit);
-  if (group_keys.empty()) {
-    last_loaded_notification_date_ = 0;
-    last_loaded_notification_dialog_id_ = DialogId();
-    return 0;
-  }
+      last_loaded_notification_group_key_.last_notification_date, last_loaded_notification_group_key_.dialog_id, limit);
+  last_loaded_notification_group_key_ =
+      group_keys.size() == static_cast<size_t>(limit) ? group_keys.back() : NotificationGroupKey();
 
-  last_loaded_notification_date_ = group_keys.back().last_notification_date;
-  last_loaded_notification_dialog_id_ = group_keys.back().dialog_id;
-  if (group_keys.size() < static_cast<size_t>(limit)) {
-    last_loaded_notification_date_ = 0;
-    last_loaded_notification_dialog_id_ = DialogId();
-  }
   int32 result = 0;
   for (auto &group_key : group_keys) {
     auto group_it = get_group_force(group_key.group_id, send_update);
@@ -250,7 +241,7 @@ int32 NotificationManager::load_message_notification_groups_from_database(int32 
       result++;
     }
   }
-  return group_keys.size();
+  return result;
 }
 
 int32 NotificationManager::get_max_notification_group_size() const {
@@ -1049,11 +1040,10 @@ void NotificationManager::on_notifications_removed(
     group_it->second = std::move(group);
   }
 
-  /*
-  if (last_loaded_group_key_ < last_group_key) {
-    TODO load_notification_groups_from_database();
+  if (last_loaded_notification_group_key_ < last_group_key) {
+    load_message_notification_groups_from_database(
+        td::max(static_cast<int32>(max_notification_group_count_), DEFAULT_GROUP_COUNT_MAX) / 2, true);
   }
-  */
 }
 
 void NotificationManager::remove_added_notifications_from_pending_updates(

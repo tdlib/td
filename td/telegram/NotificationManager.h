@@ -5,6 +5,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
+
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/Notification.h"
@@ -179,8 +180,7 @@ class NotificationManager : public Actor {
   int32 notification_cloud_delay_ms_ = DEFAULT_ONLINE_CLOUD_DELAY_MS;
   int32 notification_default_delay_ms_ = DEFAULT_DEFAULT_DELAY_MS;
 
-  int32 last_loaded_notification_date_ = 0;
-  DialogId last_loaded_notification_dialog_id_;
+  NotificationGroupKey last_loaded_notification_group_key_;
 
   bool running_get_difference_ = false;
   std::unordered_set<int32> running_get_chat_difference_;
