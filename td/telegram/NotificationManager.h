@@ -106,6 +106,8 @@ class NotificationManager : public Actor {
 
   struct NotificationGroup {
     int32 total_count = 0;
+    bool is_loaded_from_database = false;
+    bool is_being_loaded_from_database = false;
 
     vector<Notification> notifications;
 
@@ -139,9 +141,17 @@ class NotificationManager : public Actor {
 
   void delete_group(NotificationGroups::iterator &&group_it);
 
+  static NotificationId get_first_notification_id(const NotificationGroup &group);
+
   int32 load_message_notification_groups_from_database(int32 limit, bool send_update);
 
-  void load_message_notifications_from_database(const NotificationGroupKey &group_key, const NotificationGroup &group);
+  void load_message_notifications_from_database(const NotificationGroupKey &group_key, NotificationGroup &group,
+                                                size_t desired_size);
+
+  void on_get_message_notifications_from_database(NotificationGroupId group_id, size_t limit,
+                                                  Result<vector<Notification>> r_notifications);
+
+  void add_notifications_to_group_begin(NotificationGroups::iterator group_it, vector<Notification> notifications);
 
   NotificationGroupKey get_last_updated_group_key() const;
 

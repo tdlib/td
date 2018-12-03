@@ -17622,7 +17622,7 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
       LOG(ERROR) << "Total notification count is negative in " << d->dialog_id;
       result.total_count = 0;
     }
-    result.notifications = get_message_notifications_from_database(
+    result.notifications = get_message_notifications_from_database_force(
         d, NotificationId::max(), static_cast<int32>(td_->notification_manager_->get_max_notification_group_size()));
 
     int32 last_notification_date = 0;
@@ -17638,6 +17638,8 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
       set_dialog_last_notification(d, last_notification_date, last_notification_id,
                                    "get_message_notification_group_force");
     }
+
+    std::reverse(result.notifications.begin(), result.notifications.end());
   }
 
   return result;
@@ -17649,30 +17651,43 @@ bool MessagesManager::is_message_has_active_notification(const Dialog *d, const 
          (m->message_id.get() > d->last_read_inbox_message_id.get() || m->contains_unread_mention);
 }
 
-vector<Notification> MessagesManager::get_message_notifications_from_database(Dialog *d,
-                                                                              NotificationId from_notification_id,
-                                                                              int32 limit) {
+vector<Notification> MessagesManager::get_message_notifications_from_database_force(Dialog *d,
+                                                                                    NotificationId from_notification_id,
+                                                                                    int32 limit) {
   CHECK(d != nullptr);
   if (!G()->parameters().use_message_db) {
     return {};
   }
 
-  auto result = G()->td_db()->get_messages_db_sync()->get_messages_from_notification_id(d->dialog_id,
-                                                                                        from_notification_id, limit);
-  if (result.is_error()) {
-    return {};
-  }
-  auto messages = result.move_as_ok();
+  while (true) {
+    auto result = G()->td_db()->get_messages_db_sync()->get_messages_from_notification_id(d->dialog_id,
+                                                                                          from_notification_id, limit);
+    if (result.is_error()) {
+      return {};
+    }
+    auto messages = result.move_as_ok();
+    if (messages.empty()) {
+      return {};
+    }
 
-  vector<Notification> res;
-  res.reserve(messages.size());
-  for (auto &message : messages) {
-    auto m = on_get_message_from_database(d->dialog_id, d, std::move(message));
-    if (is_message_has_active_notification(d, m)) {
-      res.emplace_back(m->notification_id, m->date, create_new_message_notification(m->message_id));
+    vector<Notification> res;
+    res.reserve(messages.size());
+    bool is_found = false;
+    for (auto &message : messages) {
+      auto m = on_get_message_from_database(d->dialog_id, d, std::move(message));
+      if (is_message_has_active_notification(d, m)) {
+        res.emplace_back(m->notification_id, m->date, create_new_message_notification(m->message_id));
+      }
+      if (m != nullptr && m->notification_id.is_valid()) {
+        CHECK(m->notification_id.get() < from_notification_id.get());
+        from_notification_id = m->notification_id;
+        is_found = true;
+      }
+    }
+    if (!res.empty() || !is_found) {
+      return res;
     }
   }
-  return res;
 }
 
 vector<NotificationGroupKey> MessagesManager::get_message_notification_group_keys_from_database(
@@ -17681,7 +17696,7 @@ vector<NotificationGroupKey> MessagesManager::get_message_notification_group_key
     return {};
   }
 
-  VLOG(notifications) << "Load " << limit << " message notification groups from database from date "
+  VLOG(notifications) << "Trying to load " << limit << " message notification groups from database from date "
                       << from_last_notification_date << " and " << from_dialog_id;
 
   Result<std::vector<BufferSlice>> r_dialogs =
@@ -17703,9 +17718,80 @@ vector<NotificationGroupKey> MessagesManager::get_message_notification_group_key
     CHECK(d->message_notification_group_id.is_valid());
     group_keys.emplace_back(d->message_notification_group_id, d->dialog_id, d->last_notification_date);
 
-    VLOG(notifications) << "Load " << group_keys.back() << " from database";
+    VLOG(notifications) << "Loaded " << group_keys.back() << " from database";
   }
   return group_keys;
+}
+
+void MessagesManager::get_message_notifications_from_database(DialogId dialog_id, NotificationId from_notification_id,
+                                                              int32 limit, Promise<vector<Notification>> promise) {
+  if (!G()->parameters().use_message_db) {
+    return promise.set_error(Status::Error(500, "There is no message database"));
+  }
+
+  CHECK(dialog_id.is_valid());
+  CHECK(limit > 0);
+
+  auto d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    LOG(ERROR) << "Can't find " << dialog_id;
+    return promise.set_error(Status::Error(500, "Can't find chat"));
+  }
+  if (!d->message_notification_group_id.is_valid()) {
+    return promise.set_value(vector<Notification>());
+  }
+
+  VLOG(notifications) << "Trying to load " << limit << " notifications in " << dialog_id << " from "
+                      << from_notification_id;
+  G()->td_db()->get_messages_db_async()->get_messages_from_notification_id(
+      dialog_id, from_notification_id, limit,
+      PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, limit,
+                              promise = std::move(promise)](Result<vector<BufferSlice>> result) mutable {
+        send_closure(actor_id, &MessagesManager::on_get_message_notifications_from_database, dialog_id, limit,
+                     std::move(result), std::move(promise));
+      }));
+}
+
+void MessagesManager::on_get_message_notifications_from_database(DialogId dialog_id, int32 limit,
+                                                                 Result<vector<BufferSlice>> result,
+                                                                 Promise<vector<Notification>> promise) {
+  if (result.is_error()) {
+    return promise.set_error(result.move_as_error());
+  }
+
+  Dialog *d = get_dialog_force(dialog_id);
+  CHECK(d != nullptr);
+  CHECK(d->message_notification_group_id.is_valid());
+
+  auto messages = result.move_as_ok();
+  vector<Notification> res;
+  res.reserve(messages.size());
+  NotificationId from_notification_id;
+  for (auto &message : messages) {
+    auto m = on_get_message_from_database(dialog_id, d, std::move(message));
+    if (is_message_has_active_notification(d, m)) {
+      res.emplace_back(m->notification_id, m->date, create_new_message_notification(m->message_id));
+    }
+    if (m != nullptr && m->notification_id.is_valid()) {
+      CHECK(!from_notification_id.is_valid() || m->notification_id.get() < from_notification_id.get());
+      from_notification_id = m->notification_id;
+    }
+  }
+  if (!res.empty() || !from_notification_id.is_valid() || static_cast<size_t>(limit) > messages.size()) {
+    std::reverse(res.begin(), res.end());
+    return promise.set_value(std::move(res));
+  }
+
+  // try again from adjusted from_notification_id
+  VLOG(notifications) << "Trying to load " << limit << " notifications in " << dialog_id << " from "
+                      << from_notification_id;
+  G()->td_db()->get_messages_db_async()->get_messages_from_notification_id(
+      dialog_id, from_notification_id, limit,
+      PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, limit,
+                              promise = std::move(promise)](Result<vector<BufferSlice>> result) mutable {
+        send_closure(actor_id, &MessagesManager::on_get_message_notifications_from_database, dialog_id, limit,
+                     std::move(result), std::move(promise));
+      }));
 }
 
 void MessagesManager::remove_message_notification(DialogId dialog_id, NotificationId notification_id) {
@@ -17736,11 +17822,10 @@ void MessagesManager::remove_message_notification(DialogId dialog_id, Notificati
   if (G()->parameters().use_message_db) {
     G()->td_db()->get_messages_db_async()->get_messages_from_notification_id(
         dialog_id, NotificationId(notification_id.get() + 1), 1,
-        PromiseCreator::lambda(
-            [dialog_id, notification_id, actor_id = actor_id(this)](vector<BufferSlice> result) mutable {
-              send_closure(actor_id, &MessagesManager::do_remove_message_notification, dialog_id, notification_id,
-                           std::move(result));
-            }));
+        PromiseCreator::lambda([dialog_id, notification_id, actor_id = actor_id(this)](vector<BufferSlice> result) {
+          send_closure(actor_id, &MessagesManager::do_remove_message_notification, dialog_id, notification_id,
+                       std::move(result));
+        }));
   }
 }
 
@@ -17867,7 +17952,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
                                   << ", but forced to send notification about " << m->message_id << " in "
                                   << d->dialog_id;
   // notification group must be preloaded to guarantee that there is no race between
-  // get_message_notifications_from_database and new notifications added right now
+  // get_message_notifications_from_database_force and new notifications added right now
   td_->notification_manager_->load_group_force(get_dialog_message_notification_group_id(d));
   do {
     m->notification_id = td_->notification_manager_->get_next_notification_id();
@@ -20190,7 +20275,7 @@ MessagesManager::Message *MessagesManager::get_message_force(Dialog *d, MessageI
     return nullptr;
   }
 
-  LOG(INFO) << "Try to load " << FullMessageId{d->dialog_id, message_id} << " from database";
+  LOG(INFO) << "Trying to load " << FullMessageId{d->dialog_id, message_id} << " from database";
   auto r_value = G()->td_db()->get_messages_db_sync()->get_message({d->dialog_id, message_id});
   if (r_value.is_error()) {
     return nullptr;
