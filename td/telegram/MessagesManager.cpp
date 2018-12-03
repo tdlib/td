@@ -9867,7 +9867,7 @@ void MessagesManager::try_restore_dialog_reply_markup(Dialog *d, const Message *
 bool MessagesManager::set_dialog_last_notification(Dialog *d, int32 last_notification_date,
                                                    NotificationId last_notification_id, const char *source) {
   if (last_notification_date != d->last_notification_date || d->last_notification_id != last_notification_id) {
-    VLOG(notifications) << "Set dialog last notification to " << last_notification_id << " sent at "
+    VLOG(notifications) << "Set " << d->dialog_id << " last notification to " << last_notification_id << " sent at "
                         << last_notification_date << " from " << source;
     d->last_notification_date = last_notification_date;
     d->last_notification_id = last_notification_id;
@@ -10405,6 +10405,7 @@ void MessagesManager::fix_dialog_last_notification_id(Dialog *d, MessageId messa
     }
   }
   if (G()->parameters().use_message_db) {
+    VLOG(notifications) << "Get message notification in " << d->dialog_id << " from " << d->last_notification_id;
     G()->td_db()->get_messages_db_async()->get_messages_from_notification_id(
         d->dialog_id, d->last_notification_id, 1,
         PromiseCreator::lambda(
@@ -10422,6 +10423,7 @@ void MessagesManager::do_fix_dialog_last_notification_id(DialogId dialog_id, Not
     return;
   }
 
+  VLOG(notifications) << "Receive " << result.ok().size() << " messages with notifications in " << dialog_id;
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   if (d->last_notification_id != prev_last_notification_id) {
@@ -10436,6 +10438,7 @@ void MessagesManager::do_fix_dialog_last_notification_id(DialogId dialog_id, Not
   NotificationId last_notification_id;
   for (auto &message : messages) {
     auto m = on_get_message_from_database(dialog_id, d, std::move(message));
+    VLOG(notifications) << "Receive " << m->message_id << " with " << m->notification_id << " in " << dialog_id;
     if (is_message_has_active_notification(d, m)) {
       last_notification_date = m->date;
       last_notification_id = m->notification_id;

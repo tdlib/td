@@ -670,6 +670,7 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
   // all other additions and edits can be merged to the first addition/edit
   // i.e. in edit+delete+add chain we want to remove deletion and merge addition to the edit
 
+  bool is_hidden = get_last_updated_group_key() < group_keys_[NotificationGroupId(group_id)];
   bool is_changed = true;
   while (is_changed) {
     is_changed = false;
@@ -796,7 +797,7 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
               break;
             }
           }
-          if (update != nullptr && cur_pos == 1 && (updates.size() > 1 || update_ptr->total_count_ == 0)) {
+          if (update != nullptr && cur_pos == 1 && (updates.size() > 1 || update_ptr->total_count_ == 0 || is_hidden)) {
             VLOG(notifications) << "Remove empty update " << cur_pos;
             CHECK(moved_deleted_notification_ids.empty());
             is_changed = true;
@@ -876,6 +877,16 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
       return;
     }
 
+    auto has_common_notifications = [](const vector<td_api::object_ptr<td_api::notification>> &notifications,
+                                       const vector<int32> &notification_ids) {
+      for (auto &notification : notifications) {
+        if (std::find(notification_ids.begin(), notification_ids.end(), notification->id_) != notification_ids.end()) {
+          return true;
+        }
+      }
+      return false;
+    };
+
     size_t last_update_pos = 0;
     for (size_t i = 1; i < updates.size(); i++) {
       if (updates[last_update_pos]->get_id() == td_api::updateNotificationGroup::ID &&
@@ -883,21 +894,20 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
         auto last_update_ptr = static_cast<td_api::updateNotificationGroup *>(updates[last_update_pos].get());
         auto update_ptr = static_cast<td_api::updateNotificationGroup *>(updates[i].get());
         if (last_update_ptr->notification_settings_chat_id_ == update_ptr->notification_settings_chat_id_ &&
-            last_update_ptr->is_silent_ == update_ptr->is_silent_) {
-          if ((last_update_ptr->added_notifications_.empty() && update_ptr->added_notifications_.empty()) ||
-              (last_update_ptr->removed_notification_ids_.empty() && update_ptr->removed_notification_ids_.empty())) {
-            // combine updates
-            VLOG(notifications) << "Combine " << as_notification_update(last_update_ptr) << " and "
-                                << as_notification_update(update_ptr);
-            CHECK(last_update_ptr->notification_group_id_ == update_ptr->notification_group_id_);
-            CHECK(last_update_ptr->chat_id_ == update_ptr->chat_id_);
-            last_update_ptr->total_count_ = update_ptr->total_count_;
-            append(last_update_ptr->added_notifications_, std::move(update_ptr->added_notifications_));
-            append(last_update_ptr->removed_notification_ids_, std::move(update_ptr->removed_notification_ids_));
-            updates[i] = nullptr;
-            is_changed = true;
-            continue;
-          }
+            (!last_update_ptr->is_silent_ || update_ptr->is_silent_) &&
+            !has_common_notifications(last_update_ptr->added_notifications_, update_ptr->removed_notification_ids_) &&
+            !has_common_notifications(update_ptr->added_notifications_, last_update_ptr->removed_notification_ids_)) {
+          // combine updates
+          VLOG(notifications) << "Combine " << as_notification_update(last_update_ptr) << " and "
+                              << as_notification_update(update_ptr);
+          CHECK(last_update_ptr->notification_group_id_ == update_ptr->notification_group_id_);
+          CHECK(last_update_ptr->chat_id_ == update_ptr->chat_id_);
+          last_update_ptr->total_count_ = update_ptr->total_count_;
+          append(last_update_ptr->added_notifications_, std::move(update_ptr->added_notifications_));
+          append(last_update_ptr->removed_notification_ids_, std::move(update_ptr->removed_notification_ids_));
+          updates[i] = nullptr;
+          is_changed = true;
+          continue;
         }
       }
       last_update_pos++;

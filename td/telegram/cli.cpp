@@ -545,7 +545,7 @@ class CliClient final : public Actor {
 
   template <class T>
   static vector<T> to_integers(Slice ids_string, char delimiter = ' ') {
-    return transform(full_split(ids_string, delimiter), to_integer<T>);
+    return transform(transform(full_split(ids_string, delimiter), trim<Slice>), to_integer<T>);
   }
 
   void on_result(uint64 generation, uint64 id, tl_object_ptr<td_api::Object> result) {
@@ -3294,10 +3294,12 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::resetAllNotificationSettings>());
     } else if (op == "rn") {
       string group_id;
-      string notification_id;
-      std::tie(group_id, notification_id) = split(args);
-      send_request(
-          make_tl_object<td_api::removeNotification>(to_integer<int32>(group_id), to_integer<int32>(notification_id)));
+      string notification_ids;
+      std::tie(group_id, notification_ids) = split(args);
+      char delimiter = notification_ids.find(',') != string::npos ? ',' : ' ';
+      for (auto notification_id : to_integers<int32>(notification_ids, delimiter)) {
+        send_request(make_tl_object<td_api::removeNotification>(to_integer<int32>(group_id), notification_id));
+      }
     } else if (op == "rng") {
       string group_id;
       string max_notification_id;
