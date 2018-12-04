@@ -154,7 +154,7 @@ SecretInputMedia VoiceNotesManager::get_secret_input_media(FileId voice_file_id,
   }
   vector<tl_object_ptr<secret_api::DocumentAttribute>> attributes;
   attributes.push_back(make_tl_object<secret_api::documentAttributeAudio>(
-      secret_api::documentAttributeAudio::Flags::VOICE_MASK | secret_api::documentAttributeAudio::Flags::WAVEFORM_MASK,
+      secret_api::documentAttributeAudio::VOICE_MASK | secret_api::documentAttributeAudio::WAVEFORM_MASK,
       false /*ignored*/, voice_note->duration, "", "", BufferSlice(voice_note->waveform)));
   return SecretInputMedia{std::move(input_file),
                           make_tl_object<secret_api::decryptedMessageMediaDocument>(

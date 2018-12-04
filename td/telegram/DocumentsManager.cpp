@@ -139,7 +139,7 @@ std::pair<DocumentsManager::DocumentType, FileId> DocumentsManager::on_get_docum
                default_document_type == DocumentType::VoiceNote) {
       bool is_voice_note = default_document_type == DocumentType::VoiceNote;
       if (audio != nullptr) {
-        is_voice_note = (audio->flags_ & telegram_api::documentAttributeAudio::Flags::VOICE_MASK) != 0;
+        is_voice_note = (audio->flags_ & telegram_api::documentAttributeAudio::VOICE_MASK) != 0;
       }
       if (is_voice_note) {
         document_type = DocumentType::VoiceNote;

@@ -14684,7 +14684,7 @@ Status MessagesManager::can_send_message_content(DialogId dialog_id, const Messa
       if (!can_send_media) {
         return Status::Error(400, "Not enough rights to send video notes to the chat");
       }
-      if (secret_chat_layer < SecretChatActor::VOICE_NOTES_LAYER) {
+      if (secret_chat_layer < SecretChatActor::VIDEO_NOTES_LAYER) {
         return Status::Error(400, PSLICE()
                                       << "Video notes can't be sent to secret chat with layer " << secret_chat_layer);
       }

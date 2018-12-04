@@ -43,10 +43,10 @@ CallProtocol CallProtocol::from_telegram_api(const telegram_api::phoneCallProtoc
 tl_object_ptr<telegram_api::phoneCallProtocol> CallProtocol::as_telegram_api() const {
   int32 flags = 0;
   if (udp_p2p) {
-    flags |= telegram_api::phoneCallProtocol::Flags::UDP_P2P_MASK;
+    flags |= telegram_api::phoneCallProtocol::UDP_P2P_MASK;
   }
   if (udp_reflector) {
-    flags |= telegram_api::phoneCallProtocol::Flags::UDP_REFLECTOR_MASK;
+    flags |= telegram_api::phoneCallProtocol::UDP_REFLECTOR_MASK;
   }
   return make_tl_object<telegram_api::phoneCallProtocol>(flags, udp_p2p, udp_reflector, min_layer, max_layer);
 }

@@ -1710,7 +1710,7 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
     case MessageContentType::Animation: {
       auto m = static_cast<const MessageAnimation *>(content);
       return td->animations_manager_->get_secret_input_media(m->file_id, std::move(input_file), m->caption.text,
-                                                             std::move(thumbnail));
+                                                             std::move(thumbnail), layer);
     }
     case MessageContentType::Audio: {
       auto m = static_cast<const MessageAudio *>(content);

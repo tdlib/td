@@ -13,6 +13,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/SecretChatActor.h"
 #include "td/telegram/Td.h"
 
 #include "td/telegram/secret_api.h"
@@ -305,7 +306,8 @@ tl_object_ptr<telegram_api::InputMedia> AnimationsManager::get_input_media(
 }
 SecretInputMedia AnimationsManager::get_secret_input_media(FileId animation_file_id,
                                                            tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
-                                                           const string &caption, BufferSlice thumbnail) const {
+                                                           const string &caption, BufferSlice thumbnail,
+                                                           int32 layer) const {
   auto *animation = get_animation(animation_file_id);
   CHECK(animation != nullptr);
   auto file_view = td_->file_manager_->get_file_view(animation_file_id);
@@ -327,8 +329,13 @@ SecretInputMedia AnimationsManager::get_secret_input_media(FileId animation_file
     attributes.push_back(make_tl_object<secret_api::documentAttributeFilename>(animation->file_name));
   }
   if (animation->duration != 0 && animation->mime_type == "video/mp4") {
-    attributes.push_back(make_tl_object<secret_api::documentAttributeVideo>(
-        animation->duration, animation->dimensions.width, animation->dimensions.height));
+    if (layer >= SecretChatActor::VIDEO_NOTES_LAYER) {
+      attributes.push_back(make_tl_object<secret_api::documentAttributeVideo66>(
+          0, false, animation->duration, animation->dimensions.width, animation->dimensions.height));
+    } else {
+      attributes.push_back(make_tl_object<secret_api::documentAttributeVideo>(
+          animation->duration, animation->dimensions.width, animation->dimensions.height));
+    }
   }
   if (animation->dimensions.width != 0 && animation->dimensions.height != 0) {
     attributes.push_back(make_tl_object<secret_api::documentAttributeImageSize>(animation->dimensions.width,

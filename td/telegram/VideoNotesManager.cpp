@@ -175,10 +175,10 @@ SecretInputMedia VideoNotesManager::get_secret_input_media(FileId video_note_fil
   if (video_note->thumbnail.file_id.is_valid() && thumbnail.empty()) {
     return SecretInputMedia{};
   }
-  CHECK(layer >= SecretChatActor::VOICE_NOTES_LAYER);
+  CHECK(layer >= SecretChatActor::VIDEO_NOTES_LAYER);
   vector<tl_object_ptr<secret_api::DocumentAttribute>> attributes;
   attributes.push_back(make_tl_object<secret_api::documentAttributeVideo66>(
-      secret_api::documentAttributeVideo66::Flags::ROUND_MESSAGE_MASK, true, video_note->duration,
+      secret_api::documentAttributeVideo66::ROUND_MESSAGE_MASK, true, video_note->duration,
       video_note->dimensions.width, video_note->dimensions.height));
   return SecretInputMedia{
       std::move(input_file),

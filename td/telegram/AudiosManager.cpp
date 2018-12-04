@@ -201,7 +201,7 @@ SecretInputMedia AudiosManager::get_secret_input_media(FileId audio_file_id,
     attributes.push_back(make_tl_object<secret_api::documentAttributeFilename>(audio->file_name));
   }
   attributes.push_back(make_tl_object<secret_api::documentAttributeAudio>(
-      secret_api::documentAttributeAudio::Flags::TITLE_MASK | secret_api::documentAttributeAudio::Flags::PERFORMER_MASK,
+      secret_api::documentAttributeAudio::TITLE_MASK | secret_api::documentAttributeAudio::PERFORMER_MASK,
       false /*ignored*/, audio->duration, audio->title, audio->performer, BufferSlice()));
 
   return SecretInputMedia{

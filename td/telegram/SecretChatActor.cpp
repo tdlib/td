@@ -237,7 +237,7 @@ static int32 get_min_layer(const secret_api::decryptedMessageActionTyping &messa
   switch (message.action_->get_id()) {
     case secret_api::sendMessageRecordRoundAction::ID:
     case secret_api::sendMessageUploadRoundAction::ID:
-      return SecretChatActor::VOICE_NOTES_LAYER;
+      return SecretChatActor::VIDEO_NOTES_LAYER;
   }
   return 0;
 }
@@ -252,7 +252,7 @@ static int32 get_min_layer(const secret_api::decryptedMessageService &message) {
 static int32 get_min_layer(const secret_api::DocumentAttribute &attribute) {
   switch (attribute.get_id()) {
     case secret_api::documentAttributeVideo66::ID:
-      return SecretChatActor::VOICE_NOTES_LAYER;
+      return SecretChatActor::VIDEO_NOTES_LAYER;
     default:
       return 0;
   }
