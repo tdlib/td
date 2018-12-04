@@ -234,6 +234,8 @@ class MessagesManager : public Actor {
 
   void read_secret_chat_outbox(SecretChatId secret_chat_id, int32 up_to_date, int32 read_date);
 
+  void on_update_secret_chat_state(SecretChatId secret_chat_id, SecretChatState state);
+
   void on_get_secret_message(SecretChatId secret_chat_id, UserId user_id, MessageId message_id, int32 date,
                              tl_object_ptr<telegram_api::encryptedFile> file,
                              tl_object_ptr<secret_api::decryptedMessage> message, Promise<> promise);
@@ -891,6 +893,7 @@ class MessagesManager : public Actor {
     int32 last_notification_date = 0;            // last known date of last notification in the dialog
     NotificationId last_notification_id;         // last known identifier of last notification in the dialog
     NotificationId max_removed_notification_id;  // notification identifier, up to which all notifications are removed
+    NotificationId new_secret_chat_notification_id;  // secret chats only
 
     bool has_contact_registered_message = false;
 
@@ -1469,6 +1472,8 @@ class MessagesManager : public Actor {
 
   void remove_message_notification_id(Dialog *d, Message *m, bool is_permanent);
 
+  void remove_new_secret_chat_notification(Dialog *d, bool is_permanent);
+
   void fix_dialog_last_notification_id(Dialog *d, MessageId message_id);
 
   void do_fix_dialog_last_notification_id(DialogId dialog_id, NotificationId prev_last_notification_id,
@@ -1493,6 +1498,8 @@ class MessagesManager : public Actor {
   static bool is_message_has_active_notification(const Dialog *d, const Message *m);
 
   NotificationGroupId get_dialog_message_notification_group_id(Dialog *d);
+
+  NotificationId get_next_notification_id(Dialog *d, MessageId message_id);
 
   vector<Notification> get_message_notifications_from_database_force(Dialog *d, NotificationId from_notification_id,
                                                                      int32 limit);

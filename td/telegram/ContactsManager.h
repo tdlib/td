@@ -104,6 +104,7 @@ class ContactsManager : public Actor {
   int32 get_secret_chat_date(SecretChatId secret_chat_id) const;
   int32 get_secret_chat_ttl(SecretChatId secret_chat_id) const;
   UserId get_secret_chat_user_id(SecretChatId secret_chat_id) const;
+  bool get_secret_chat_is_outbound(SecretChatId secret_chat_id) const;
   SecretChatState get_secret_chat_state(SecretChatId secret_chat_id) const;
   int32 get_secret_chat_layer(SecretChatId secret_chat_id) const;
 

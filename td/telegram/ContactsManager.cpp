@@ -3044,6 +3044,14 @@ UserId ContactsManager::get_secret_chat_user_id(SecretChatId secret_chat_id) con
   return c->user_id;
 }
 
+bool ContactsManager::get_secret_chat_is_outbound(SecretChatId secret_chat_id) const {
+  auto c = get_secret_chat(secret_chat_id);
+  if (c == nullptr) {
+    return false;
+  }
+  return c->is_outbound;
+}
+
 SecretChatState ContactsManager::get_secret_chat_state(SecretChatId secret_chat_id) const {
   auto c = get_secret_chat(secret_chat_id);
   if (c == nullptr) {
@@ -8831,6 +8839,7 @@ void ContactsManager::on_update_secret_chat(SecretChatId secret_chat_id, int64 a
   if (state != SecretChatState::Unknown && state != secret_chat->state) {
     secret_chat->state = state;
     secret_chat->need_send_update = true;
+    td_->messages_manager_->on_update_secret_chat_state(secret_chat_id, state);
   }
   if (is_outbound != secret_chat->is_outbound) {
     secret_chat->is_outbound = is_outbound;

@@ -894,7 +894,6 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
         auto last_update_ptr = static_cast<td_api::updateNotificationGroup *>(updates[last_update_pos].get());
         auto update_ptr = static_cast<td_api::updateNotificationGroup *>(updates[i].get());
         if (last_update_ptr->notification_settings_chat_id_ == update_ptr->notification_settings_chat_id_ &&
-            (!last_update_ptr->is_silent_ || update_ptr->is_silent_) &&
             !has_common_notifications(last_update_ptr->added_notifications_, update_ptr->removed_notification_ids_) &&
             !has_common_notifications(update_ptr->added_notifications_, last_update_ptr->removed_notification_ids_)) {
           // combine updates
@@ -902,6 +901,9 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
                               << as_notification_update(update_ptr);
           CHECK(last_update_ptr->notification_group_id_ == update_ptr->notification_group_id_);
           CHECK(last_update_ptr->chat_id_ == update_ptr->chat_id_);
+          if (last_update_ptr->is_silent_ && !update_ptr->is_silent_) {
+            last_update_ptr->is_silent_ = false;
+          }
           last_update_ptr->total_count_ = update_ptr->total_count_;
           append(last_update_ptr->added_notifications_, std::move(update_ptr->added_notifications_));
           append(last_update_ptr->removed_notification_ids_, std::move(update_ptr->removed_notification_ids_));
