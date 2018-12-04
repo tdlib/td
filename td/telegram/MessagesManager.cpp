@@ -21625,6 +21625,7 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
       auto user_id = td_->contacts_manager_->get_secret_chat_user_id(dialog_id.get_secret_chat_id());
       Dialog *user_d = get_dialog_force(DialogId(user_id));
       if (user_d != nullptr && user_d->notification_settings.is_synchronized) {
+        LOG(INFO) << "Copy notification settings from " << user_d->dialog_id << " to " << dialog_id;
         update_dialog_notification_settings(dialog_id, &d->notification_settings, user_d->notification_settings);
       }
     }

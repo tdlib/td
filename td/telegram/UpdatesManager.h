@@ -171,7 +171,7 @@ class UpdatesManager : public Actor {
 
   void on_failed_get_difference();
 
-  void before_get_difference();
+  void before_get_difference(bool is_initial);
 
   void after_get_difference();
 

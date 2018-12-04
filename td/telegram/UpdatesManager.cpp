@@ -249,7 +249,7 @@ void UpdatesManager::get_difference(const char *source) {
 
   VLOG(get_difference) << "-----BEGIN GET DIFFERENCE----- from " << source;
 
-  before_get_difference();
+  before_get_difference(false);
 
   td_->create_handler<GetDifferenceQuery>()->send();
   last_get_difference_pts_ = get_pts();
@@ -257,12 +257,14 @@ void UpdatesManager::get_difference(const char *source) {
   set_state(State::Type::RunningGetDifference);
 }
 
-void UpdatesManager::before_get_difference() {
+void UpdatesManager::before_get_difference(bool is_initial) {
   // may be called many times before after_get_difference is called
   send_closure(G()->state_manager(), &StateManager::on_synchronized, false);
 
   td_->messages_manager_->before_get_difference();
-  send_closure(td_->secret_chats_manager_, &SecretChatsManager::before_get_difference, get_qts());
+  if (!is_initial) {
+    send_closure(td_->secret_chats_manager_, &SecretChatsManager::before_get_difference, get_qts());
+  }
   send_closure_later(td_->notification_manager_actor_, &NotificationManager::before_get_difference);
 }
 
@@ -901,7 +903,9 @@ void UpdatesManager::init_state() {
   if (pts_str.empty()) {
     if (!running_get_difference_) {
       running_get_difference_ = true;
-      send_closure(G()->state_manager(), &StateManager::on_synchronized, false);
+
+      before_get_difference(true);
+
       td_->create_handler<GetUpdatesStateQuery>()->send();
 
       set_state(State::Type::RunningGetUpdatesState);

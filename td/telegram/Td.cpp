@@ -3025,7 +3025,7 @@ void Td::on_online_updated(bool force, bool send_update) {
   }
   if (is_online_) {
     alarm_timeout_.set_timeout_in(ONLINE_ALARM_ID,
-                                  G()->shared_config().get_option_integer("online_update_period_ms", 120000) * 1e-3);
+                                  G()->shared_config().get_option_integer("online_update_period_ms", 210000) * 1e-3);
   } else {
     alarm_timeout_.cancel_timeout(ONLINE_ALARM_ID);
   }
