@@ -49,6 +49,8 @@ class NotificationManager : public Actor {
 
   NotificationGroupId get_next_notification_group_id();
 
+  void try_reuse_notification_group_id(NotificationGroupId group_id);
+
   void load_group_force(NotificationGroupId group_id);
 
   void add_notification(NotificationGroupId group_id, DialogId dialog_id, int32 date,

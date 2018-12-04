@@ -41,6 +41,7 @@ void NotificationManager::on_flush_pending_notifications_timeout_callback(void *
   }
 
   auto notification_manager = static_cast<NotificationManager *>(notification_manager_ptr);
+  VLOG(notifications) << "Ready to flush pending notifications for notification group " << group_id_int;
   if (group_id_int > 0) {
     send_closure_later(notification_manager->actor_id(notification_manager),
                        &NotificationManager::flush_pending_notifications,
@@ -260,6 +261,9 @@ void NotificationManager::load_message_notifications_from_database(const Notific
   if (group.is_loaded_from_database || group.is_being_loaded_from_database) {
     return;
   }
+  if (group.total_count == 0) {
+    return;
+  }
 
   VLOG(notifications) << "Trying to load up to " << desired_size << " notifications in " << group_key.group_id
                       << " with " << group.notifications.size() << " current notifications";
@@ -442,6 +446,37 @@ NotificationGroupId NotificationManager::get_next_notification_group_id() {
   current_notification_group_id_ = NotificationGroupId(current_notification_group_id_.get() % 0x7FFFFFFF + 1);
   G()->td_db()->get_binlog_pmc()->set("notification_group_id_current", to_string(current_notification_group_id_.get()));
   return current_notification_group_id_;
+}
+
+void NotificationManager::try_reuse_notification_group_id(NotificationGroupId group_id) {
+  if (!group_id.is_valid()) {
+    return;
+  }
+
+  VLOG(notifications) << "Trying to reuse " << group_id;
+  if (group_id != current_notification_group_id_) {
+    // may be implemented in the future
+    return;
+  }
+
+  auto group_it = get_group(group_id);
+  if (group_it != groups_.end()) {
+    CHECK(group_it->first.last_notification_date == 0);
+    CHECK(group_it->second.total_count == 0);
+    CHECK(group_it->second.notifications.empty());
+    CHECK(group_it->second.pending_notifications.empty());
+    CHECK(!group_it->second.is_being_loaded_from_database);
+    delete_group(std::move(group_it));
+
+    CHECK(running_get_chat_difference_.count(group_id.get()) == 0);
+
+    flush_pending_notifications_timeout_.cancel_timeout(group_id.get());
+    flush_pending_updates_timeout_.cancel_timeout(group_id.get());
+    pending_updates_.erase(group_id.get());
+  }
+
+  current_notification_group_id_ = NotificationGroupId(current_notification_group_id_.get() - 1);
+  G()->td_db()->get_binlog_pmc()->set("notification_group_id_current", to_string(current_notification_group_id_.get()));
 }
 
 NotificationGroupKey NotificationManager::get_last_updated_group_key() const {
@@ -1040,7 +1075,10 @@ void NotificationManager::send_add_group_update(const NotificationGroupKey &grou
 
 void NotificationManager::flush_pending_notifications(NotificationGroupId group_id) {
   auto group_it = get_group(group_id);
-  CHECK(group_it != groups_.end());
+  if (group_it == groups_.end()) {
+    CHECK(group_id.get() > current_notification_group_id_.get());
+    return;
+  }
 
   if (group_it->second.pending_notifications.empty()) {
     return;
@@ -1107,6 +1145,7 @@ void NotificationManager::flush_pending_notifications(NotificationGroupId group_
   if (group.notifications.size() > keep_notification_group_size_ + EXTRA_GROUP_SIZE) {
     // keep only keep_notification_group_size_ last notifications in memory
     group.notifications.erase(group.notifications.begin(), group.notifications.end() - keep_notification_group_size_);
+    group.is_loaded_from_database = false;
   }
 
   add_group(std::move(final_group_key), std::move(group));

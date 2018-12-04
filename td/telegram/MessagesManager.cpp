@@ -9106,8 +9106,18 @@ void MessagesManager::on_update_secret_chat_state(SecretChatId secret_chat_id, S
   if (state == SecretChatState::Closed) {
     DialogId dialog_id(secret_chat_id);
     Dialog *d = get_dialog_force(dialog_id);
-    if (d != nullptr && d->new_secret_chat_notification_id.is_valid()) {
-      remove_new_secret_chat_notification(d, true);
+    if (d != nullptr) {
+      if (d->new_secret_chat_notification_id.is_valid()) {
+        remove_new_secret_chat_notification(d, true);
+      }
+      if (d->message_notification_group_id.is_valid() && get_dialog_pending_notification_count(d) == 0) {
+        CHECK(d->unread_mention_count == 0);  // there can't be unread mentions in secret chats
+        send_closure_later(G()->notification_manager(), &NotificationManager::try_reuse_notification_group_id,
+                           d->message_notification_group_id);
+        notification_group_id_to_dialog_id_.erase(d->message_notification_group_id);
+        d->message_notification_group_id = NotificationGroupId();
+        on_dialog_updated(d->dialog_id, "on_update_secret_chat_state");
+      }
     }
   }
 }
@@ -17981,6 +17991,11 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   if (d->dialog_id.get_type() == DialogType::Channel) {
     if (!td_->contacts_manager_->get_channel_status(d->dialog_id.get_channel_id()).is_member() ||
         m->date < td_->contacts_manager_->get_channel_date(d->dialog_id.get_channel_id())) {
+      return false;
+    }
+  }
+  if (d->dialog_id.get_type() == DialogType::SecretChat) {
+    if (td_->contacts_manager_->get_secret_chat_state(d->dialog_id.get_secret_chat_id()) == SecretChatState::Closed) {
       return false;
     }
   }
