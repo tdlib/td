@@ -17993,7 +17993,14 @@ int32 MessagesManager::get_dialog_pending_notification_count(Dialog *d) {
     return d->unread_mention_count;
   }
 
-  return d->server_unread_count + d->local_unread_count;  // TODO remove/add messages with unread mentions
+  auto unread_count = d->server_unread_count + d->local_unread_count;
+  if (d->unread_mention_count == 0) {
+    return unread_count;
+  }
+  if (unread_count == 0) {
+    return d->unread_mention_count;
+  }
+  return unread_count;  // TODO remove/add messages with unread mentions
 }
 
 bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool force) {
