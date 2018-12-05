@@ -262,6 +262,18 @@ NotificationId NotificationManager::get_first_notification_id(const Notification
   return NotificationId();
 }
 
+MessageId NotificationManager::get_first_message_id(const NotificationGroup &group) {
+  // it's fine to return MessageId() if first notification has no message_id, because
+  // non-message notification can't be mixed with message notifications
+  if (!group.notifications.empty()) {
+    return group.notifications[0].type->get_message_id();
+  }
+  if (!group.pending_notifications.empty()) {
+    return group.pending_notifications[0].type->get_message_id();
+  }
+  return MessageId();
+}
+
 void NotificationManager::load_message_notifications_from_database(const NotificationGroupKey &group_key,
                                                                    NotificationGroup &group, size_t desired_size) {
   if (!G()->parameters().use_message_db) {
@@ -283,8 +295,10 @@ void NotificationManager::load_message_notifications_from_database(const Notific
   size_t limit = desired_size - group.notifications.size();
   auto first_notification_id = get_first_notification_id(group);
   auto from_notification_id = first_notification_id.is_valid() ? first_notification_id : NotificationId::max();
+  auto first_message_id = get_first_message_id(group);
+  auto from_message_id = first_message_id.is_valid() ? first_message_id : MessageId::max();
   send_closure(G()->messages_manager(), &MessagesManager::get_message_notifications_from_database, group_key.dialog_id,
-               from_notification_id, static_cast<int32>(limit),
+               from_notification_id, from_message_id, static_cast<int32>(limit),
                PromiseCreator::lambda([actor_id = actor_id(this), group_id = group_key.group_id,
                                        limit](Result<vector<Notification>> r_notifications) {
                  send_closure_later(actor_id, &NotificationManager::on_get_message_notifications_from_database,

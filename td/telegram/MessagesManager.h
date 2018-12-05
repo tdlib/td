@@ -670,7 +670,8 @@ class MessagesManager : public Actor {
   vector<NotificationGroupKey> get_message_notification_group_keys_from_database(int32 from_last_notification_date,
                                                                                  DialogId from_dialog_id, int32 limit);
 
-  void get_message_notifications_from_database(DialogId dialog_id, NotificationId from_notification_id, int32 limit,
+  void get_message_notifications_from_database(DialogId dialog_id, NotificationId from_notification_id,
+                                               MessageId from_message_id, int32 limit,
                                                Promise<vector<Notification>> promise);
 
   void remove_message_notification(DialogId dialog_id, NotificationId notification_id);
@@ -1506,6 +1507,10 @@ class MessagesManager : public Actor {
   Result<vector<BufferSlice>> do_get_message_notifications_from_database_force(Dialog *d,
                                                                                NotificationId from_notification_id,
                                                                                MessageId from_message_id, int32 limit);
+
+  void do_get_message_notifications_from_database(Dialog *d, NotificationId from_notification_id,
+                                                  MessageId from_message_id, int32 limit,
+                                                  Promise<vector<Notification>> promise);
 
   void on_get_message_notifications_from_database(DialogId dialog_id, int32 limit, Result<vector<BufferSlice>> result,
                                                   Promise<vector<Notification>> promise);

@@ -147,6 +147,8 @@ class NotificationManager : public Actor {
 
   static NotificationId get_first_notification_id(const NotificationGroup &group);
 
+  static MessageId get_first_message_id(const NotificationGroup &group);
+
   int32 load_message_notification_groups_from_database(int32 limit, bool send_update);
 
   void load_message_notifications_from_database(const NotificationGroupKey &group_key, NotificationGroup &group,

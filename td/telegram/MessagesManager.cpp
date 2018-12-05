@@ -17760,9 +17760,6 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
                  (m->message_id.get() <= d->last_read_inbox_message_id.get() && d->unread_mention_count == 0)) {
         // if message still has notification_id, but it was removed via max_removed_notification_id
         // or last_read_inbox_message_id, then there will be no more messages with active notifications
-
-        // TODO use unread_mention index to get active notifications if message_id <= d->last_read_inbox_message_id
-        // in all calls to get_messages_from_notification_id
         is_found = false;
         break;
       }
@@ -17844,7 +17841,8 @@ vector<NotificationGroupKey> MessagesManager::get_message_notification_group_key
 }
 
 void MessagesManager::get_message_notifications_from_database(DialogId dialog_id, NotificationId from_notification_id,
-                                                              int32 limit, Promise<vector<Notification>> promise) {
+                                                              MessageId from_message_id, int32 limit,
+                                                              Promise<vector<Notification>> promise) {
   if (!G()->parameters().use_message_db) {
     return promise.set_error(Status::Error(500, "There is no message database"));
   }
@@ -17871,15 +17869,47 @@ void MessagesManager::get_message_notifications_from_database(DialogId dialog_id
     return promise.set_value(std::move(notifications));
   }
 
-  VLOG(notifications) << "Trying to load " << limit << " notifications in " << dialog_id << " from "
-                      << from_notification_id;
-  G()->td_db()->get_messages_db_async()->get_messages_from_notification_id(
-      dialog_id, from_notification_id, limit,
-      PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, limit,
-                              promise = std::move(promise)](Result<vector<BufferSlice>> result) mutable {
-        send_closure(actor_id, &MessagesManager::on_get_message_notifications_from_database, dialog_id, limit,
-                     std::move(result), std::move(promise));
-      }));
+  do_get_message_notifications_from_database(d, from_notification_id, from_message_id, limit, std::move(promise));
+}
+
+void MessagesManager::do_get_message_notifications_from_database(Dialog *d, NotificationId from_notification_id,
+                                                                 MessageId from_message_id, int32 limit,
+                                                                 Promise<vector<Notification>> promise) {
+  CHECK(G()->parameters().use_message_db);
+
+  if (from_notification_id.get() <= d->max_removed_notification_id.get()) {
+    return promise.set_value(vector<Notification>());
+  }
+
+  auto dialog_id = d->dialog_id;
+  auto new_promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, limit,
+                                             promise = std::move(promise)](Result<vector<BufferSlice>> result) mutable {
+    send_closure(actor_id, &MessagesManager::on_get_message_notifications_from_database, dialog_id, limit,
+                 std::move(result), std::move(promise));
+  });
+
+  auto db = G()->td_db()->get_messages_db_async();
+  if (!is_dialog_muted(d) && from_message_id.get() > d->last_read_inbox_message_id.get()) {
+    // there are some notifications with unread messages
+    VLOG(notifications) << "Trying to load " << limit << " messages with notifications in " << dialog_id << " from "
+                        << from_notification_id;
+    return db->get_messages_from_notification_id(dialog_id, from_notification_id, limit, std::move(new_promise));
+  }
+  if (d->unread_mention_count == 0) {
+    return new_promise.set_value(vector<BufferSlice>());
+  }
+
+  VLOG(notifications) << "Trying to load " << limit << " messages with unread mentions in " << dialog_id << " from "
+                      << from_message_id;
+
+  // ignore first_db_message_id, notifications can be nonconsecutive
+  MessagesDbMessagesQuery db_query;
+  db_query.dialog_id = dialog_id;
+  db_query.index_mask = search_messages_filter_index_mask(SearchMessagesFilter::UnreadMention);
+  db_query.from_message_id = from_message_id;
+  db_query.offset = 0;
+  db_query.limit = limit;
+  return db->get_messages(db_query, std::move(new_promise));
 }
 
 void MessagesManager::on_get_message_notifications_from_database(DialogId dialog_id, int32 limit,
@@ -17897,6 +17927,7 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
   vector<Notification> res;
   res.reserve(messages.size());
   NotificationId from_notification_id;
+  MessageId from_message_id;
   VLOG(notifications) << "Loaded " << messages.size() << " messages with notifications from database";
   for (auto &message : messages) {
     auto m = on_get_message_from_database(dialog_id, d, std::move(message));
@@ -17915,22 +17946,16 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
 
     CHECK(!from_notification_id.is_valid() || m->notification_id.get() < from_notification_id.get());
     from_notification_id = m->notification_id;
+    CHECK(!from_message_id.is_valid() || m->message_id.get() < from_message_id.get());
+    from_message_id = m->message_id;
   }
   if (!res.empty() || !from_notification_id.is_valid() || static_cast<size_t>(limit) > messages.size()) {
     std::reverse(res.begin(), res.end());
     return promise.set_value(std::move(res));
   }
 
-  // try again from adjusted from_notification_id
-  VLOG(notifications) << "Trying to load " << limit << " notifications in " << dialog_id << " from "
-                      << from_notification_id;
-  G()->td_db()->get_messages_db_async()->get_messages_from_notification_id(
-      dialog_id, from_notification_id, limit,
-      PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, limit,
-                              promise = std::move(promise)](Result<vector<BufferSlice>> result) mutable {
-        send_closure(actor_id, &MessagesManager::on_get_message_notifications_from_database, dialog_id, limit,
-                     std::move(result), std::move(promise));
-      }));
+  // try again from adjusted from_notification_id and from_message_id
+  do_get_message_notifications_from_database(d, from_notification_id, from_message_id, limit, std::move(promise));
 }
 
 void MessagesManager::remove_message_notification(DialogId dialog_id, NotificationId notification_id) {
