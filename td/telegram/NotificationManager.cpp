@@ -1194,7 +1194,8 @@ void NotificationManager::edit_notification(NotificationGroupId group_id, Notifi
     auto &notification = group.notifications[i];
     if (notification.notification_id == notification_id) {
       notification.type = std::move(type);
-      if (i + max_notification_group_size_ >= group.notifications.size()) {
+      if (i + max_notification_group_size_ >= group.notifications.size() &&
+          !(get_last_updated_group_key() < group_it->first)) {
         add_update_notification(group_it->first.group_id, group_it->first.dialog_id, notification);
       }
       return;
