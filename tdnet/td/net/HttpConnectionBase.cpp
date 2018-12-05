@@ -70,7 +70,7 @@ void HttpConnectionBase::write_ok() {
 
 void HttpConnectionBase::write_error(Status error) {
   CHECK(state_ == State::Write);
-  LOG(WARNING) << "Close http connection: " << error;
+  LOG(WARNING) << "Close HTTP connection: " << error;
   state_ = State::Close;
   loop();
 }

@@ -30,7 +30,7 @@ Result<size_t> Transport::read_next(BufferSlice *message, uint32 *quick_ack) {
     return r_size;
   }
   if (http_query_.type_ != HttpQuery::Type::RESPONSE) {
-    return Status::Error("Unexpected http query type");
+    return Status::Error("Unexpected HTTP query type");
   }
   if (http_query_.container_.size() != 2u) {
     return Status::Error("Wrong response");
