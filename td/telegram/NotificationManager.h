@@ -84,6 +84,8 @@ class NotificationManager : public Actor {
 
   void after_get_chat_difference(NotificationGroupId group_id);
 
+  void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
+
  private:
   static constexpr int32 DEFAULT_GROUP_COUNT_MAX = 10;
   static constexpr int32 DEFAULT_GROUP_SIZE_MAX = 10;
@@ -156,6 +158,8 @@ class NotificationManager : public Actor {
   void add_notifications_to_group_begin(NotificationGroups::iterator group_it, vector<Notification> notifications);
 
   NotificationGroupKey get_last_updated_group_key() const;
+
+  td_api::object_ptr<td_api::updateActiveNotifications> get_update_active_notificaitons() const;
 
   void send_remove_group_update(const NotificationGroupKey &group_key, const NotificationGroup &group,
                                 vector<int32> &&removed_notification_ids);

@@ -125,6 +125,15 @@ void NotificationManager::start_up() {
     loaded_groups += load_message_notification_groups_from_database(needed_groups, false);
   } while (loaded_groups < needed_groups && last_loaded_notification_group_key_.last_notification_date != 0);
 
+  auto update = get_update_active_notificaitons();
+  if (update != nullptr) {
+    VLOG(notifications) << "Send " << as_active_notifications_update(update.get());
+    send_closure(G()->td(), &Td::send_update, std::move(update));
+  }
+}
+
+td_api::object_ptr<td_api::updateActiveNotifications> NotificationManager::get_update_active_notificaitons() const {
+  auto needed_groups = max_notification_group_count_;
   vector<td_api::object_ptr<td_api::notificationGroup>> groups;
   for (auto &group : groups_) {
     if (needed_groups == 0 || group.first.last_notification_date == 0) {
@@ -144,11 +153,11 @@ void NotificationManager::start_up() {
           group.first.group_id.get(), group.first.dialog_id.get(), group.second.total_count, std::move(notifications)));
     }
   }
-  if (!groups.empty()) {
-    auto update = td_api::make_object<td_api::updateActiveNotifications>(std::move(groups));
-    VLOG(notifications) << "Send " << as_active_notifications_update(update.get());
-    send_closure(G()->td(), &Td::send_update, std::move(update));
+  if (groups.empty()) {
+    return nullptr;
   }
+
+  return td_api::make_object<td_api::updateActiveNotifications>(std::move(groups));
 }
 
 void NotificationManager::tear_down() {
@@ -1691,6 +1700,17 @@ void NotificationManager::after_get_chat_difference_impl(NotificationGroupId gro
   if (!running_get_difference_ && pending_updates_.count(group_id.get()) == 1) {
     flush_pending_updates_timeout_.cancel_timeout(group_id.get());
     flush_pending_updates(group_id.get(), "after_get_chat_difference");
+  }
+}
+
+void NotificationManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
+  if (is_disabled()) {
+    return;
+  }
+
+  auto update = get_update_active_notificaitons();
+  if (update != nullptr) {
+    updates.push_back(std::move(update));
   }
 }
 
