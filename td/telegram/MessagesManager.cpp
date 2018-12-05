@@ -18186,14 +18186,14 @@ void MessagesManager::send_update_unread_message_count(DialogId dialog_id, bool 
   if (!td_->auth_manager_->is_bot() && G()->parameters().use_message_db) {
     CHECK(is_message_unread_count_inited_);
     if (unread_message_muted_count_ < 0 || unread_message_muted_count_ > unread_message_total_count_) {
-      LOG(ERROR) << "Unread messafe count became invalid: " << unread_message_total_count_ << '/'
+      LOG(ERROR) << "Unread message count became invalid: " << unread_message_total_count_ << '/'
                  << unread_message_total_count_ - unread_message_muted_count_ << " from " << source << " and "
                  << dialog_id;
       if (unread_message_muted_count_ < 0) {
         unread_message_muted_count_ = 0;
       }
       if (unread_message_muted_count_ > unread_message_total_count_) {
-        unread_message_muted_count_ = unread_message_total_count_;
+        unread_message_total_count_ = unread_message_muted_count_;
       }
     }
     G()->td_db()->get_binlog_pmc()->set("unread_message_count",
