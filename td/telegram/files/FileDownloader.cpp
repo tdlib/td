@@ -15,6 +15,7 @@
 #include "td/telegram/UniqueId.h"
 
 #include "td/utils/as.h"
+#include "td/utils/base64.h"
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"
@@ -267,10 +268,19 @@ Result<std::pair<NetQueryPtr, bool>> FileDownloader::start_part(Part part, int32
   return std::make_pair(std::move(net_query), false);
 }
 
-Result<size_t> FileDownloader::process_part(Part part, NetQueryPtr net_query) {
+Status FileDownloader::check_net_query(NetQueryPtr &net_query) {
   if (net_query->is_error()) {
-    return std::move(net_query->error());
+    auto error = net_query->move_as_error();
+    if (begins_with(error.message(), "FILE_REFERENCE_")) {
+      error = Status::Error(400, PSLICE() << "FILE_REFERENCE_BASE64" << base64_encode(remote_.get_file_reference()));
+    }
+    return error;
   }
+  return Status::OK();
+}
+
+Result<size_t> FileDownloader::process_part(Part part, NetQueryPtr net_query) {
+  TRY_STATUS(check_net_query(net_query));
 
   BufferSlice bytes;
   bool need_cdn_decrypt = false;
@@ -380,6 +390,7 @@ FileLoader::Callback *FileDownloader::get_callback() {
 
 Status FileDownloader::process_check_query(NetQueryPtr net_query) {
   has_hash_query_ = false;
+  TRY_STATUS(check_net_query(net_query));
   TRY_RESULT(file_hashes, fetch_result<telegram_api::upload_getCdnFileHashes>(std::move(net_query)));
   add_hash_info(file_hashes);
   return Status::OK();

@@ -366,8 +366,10 @@ class FullRemoteFileLocation {
 
  private:
   static constexpr int32 WEB_LOCATION_FLAG = 1 << 24;
+  static constexpr int32 FILE_REFERENCE_FLAG = 1 << 25;
   bool web_location_flag_{false};
   DcId dc_id_;
+  std::string file_reference_;
   enum class LocationType : int32 { Web, Photo, Common, None };
   Variant<WebRemoteFileLocation, PhotoRemoteFileLocation, CommonRemoteFileLocation> variant_;
 
@@ -429,6 +431,9 @@ class FullRemoteFileLocation {
     if (is_web()) {
       type |= WEB_LOCATION_FLAG;
     }
+    if (!file_reference_.empty()) {
+      type |= FILE_REFERENCE_FLAG;
+    }
     return type;
   }
 
@@ -438,6 +443,9 @@ class FullRemoteFileLocation {
     using ::td::store;
     store(full_type(), storer);
     store(dc_id_.get_value(), storer);
+    if (!file_reference_.empty()) {
+      store(file_reference_, storer);
+    }
     variant_.visit([&](auto &&value) {
       using td::store;
       store(value, storer);
@@ -450,6 +458,8 @@ class FullRemoteFileLocation {
     parse(raw_type, parser);
     web_location_flag_ = (raw_type & WEB_LOCATION_FLAG) != 0;
     raw_type &= ~WEB_LOCATION_FLAG;
+    bool has_file_reference = (raw_type & FILE_REFERENCE_FLAG) != 0;
+    raw_type &= ~FILE_REFERENCE_FLAG;
     if (raw_type < 0 || raw_type >= static_cast<int32>(FileType::Size)) {
       return parser.set_error("Invalid FileType in FullRemoteFileLocation");
     }
@@ -457,6 +467,10 @@ class FullRemoteFileLocation {
     int32 dc_id_value;
     parse(dc_id_value, parser);
     dc_id_ = DcId::from_value(dc_id_value);
+
+    if (has_file_reference) {
+      parse(file_reference_, parser);
+    }
 
     switch (location_type()) {
       case LocationType::Web: {
@@ -525,6 +539,19 @@ class FullRemoteFileLocation {
         return 0;
     }
   }
+  bool delete_file_reference(Slice bad_file_reference) {
+    if (file_reference_.empty()) {
+      return false;
+    }
+    if (!bad_file_reference.empty() && file_reference_ != bad_file_reference) {
+      return false;
+    }
+    file_reference_ = {};
+    return true;
+  }
+  string get_file_reference() const {
+    return file_reference_;
+  }
   string get_url() const {
     if (is_web()) {
       return web().url_;
@@ -567,14 +594,16 @@ class FullRemoteFileLocation {
   tl_object_ptr<telegram_api::InputFileLocation> as_input_file_location() const {
     switch (location_type()) {
       case LocationType::Photo:
-        return make_tl_object<telegram_api::inputFileLocation>(photo().volume_id_, photo().local_id_, photo().secret_);
+        return make_tl_object<telegram_api::inputFileLocation>(photo().volume_id_, photo().local_id_, photo().secret_,
+                                                               BufferSlice(file_reference_));
       case LocationType::Common:
         if (is_encrypted_secret()) {
           return make_tl_object<telegram_api::inputEncryptedFileLocation>(common().id_, common().access_hash_);
         } else if (is_secure()) {
           return make_tl_object<telegram_api::inputSecureFileLocation>(common().id_, common().access_hash_);
         } else {
-          return make_tl_object<telegram_api::inputDocumentFileLocation>(common().id_, common().access_hash_, 0);
+          return make_tl_object<telegram_api::inputDocumentFileLocation>(common().id_, common().access_hash_,
+                                                                         BufferSlice(file_reference_));
         }
       case LocationType::Web:
       case LocationType::None:
@@ -588,13 +617,14 @@ class FullRemoteFileLocation {
   tl_object_ptr<telegram_api::InputDocument> as_input_document_impl(const char *file, int line) const {
     CHECK(is_common()) << file << ' ' << line;
     CHECK(is_document()) << file << ' ' << line;
-    return make_tl_object<telegram_api::inputDocument>(common().id_, common().access_hash_);
+    return make_tl_object<telegram_api::inputDocument>(common().id_, common().access_hash_,
+                                                       BufferSlice(file_reference_));
   }
 
 #define as_input_photo() as_input_photo_impl(__FILE__, __LINE__)
   tl_object_ptr<telegram_api::InputPhoto> as_input_photo_impl(const char *file, int line) const {
     CHECK(is_photo()) << file << ' ' << line;
-    return make_tl_object<telegram_api::inputPhoto>(photo().id_, photo().access_hash_);
+    return make_tl_object<telegram_api::inputPhoto>(photo().id_, photo().access_hash_, BufferSlice(file_reference_));
   }
 
   tl_object_ptr<telegram_api::InputEncryptedFile> as_input_encrypted_file() const {
@@ -611,14 +641,18 @@ class FullRemoteFileLocation {
   // TODO: this constructor is just for immediate unserialize
   FullRemoteFileLocation() = default;
   FullRemoteFileLocation(FileType file_type, int64 id, int64 access_hash, int32 local_id, int64 volume_id, int64 secret,
-                         DcId dc_id)
+                         DcId dc_id, std::string file_reference)
       : file_type_(file_type)
       , dc_id_(dc_id)
+      , file_reference_(std::move(file_reference))
       , variant_(PhotoRemoteFileLocation{id, access_hash, volume_id, secret, local_id}) {
     CHECK(is_photo());
   }
-  FullRemoteFileLocation(FileType file_type, int64 id, int64 access_hash, DcId dc_id)
-      : file_type_(file_type), dc_id_(dc_id), variant_(CommonRemoteFileLocation{id, access_hash}) {
+  FullRemoteFileLocation(FileType file_type, int64 id, int64 access_hash, DcId dc_id, std::string file_reference)
+      : file_type_(file_type)
+      , dc_id_(dc_id)
+      , file_reference_(std::move(file_reference))
+      , variant_(CommonRemoteFileLocation{id, access_hash}) {
     CHECK(is_common());
   }
   FullRemoteFileLocation(FileType file_type, string url, int64 access_hash)
@@ -679,6 +713,10 @@ inline StringBuilder &operator<<(StringBuilder &string_builder,
   string_builder << "[" << full_remote_file_location.file_type_;
   if (!full_remote_file_location.is_web()) {
     string_builder << ", " << full_remote_file_location.get_dc_id();
+  }
+  if (!full_remote_file_location.file_reference_.empty()) {
+    string_builder << ", "
+                   << tag("file_reference", format::as_hex_dump<0>(Slice(full_remote_file_location.file_reference_)));
   }
 
   string_builder << ", location = ";
@@ -748,11 +786,12 @@ class RemoteFileLocation {
   explicit RemoteFileLocation(const PartialRemoteFileLocation &partial) : variant_(partial) {
   }
   RemoteFileLocation(FileType file_type, int64 id, int64 access_hash, int32 local_id, int64 volume_id, int64 secret,
-                     DcId dc_id)
-      : variant_(FullRemoteFileLocation{file_type, id, access_hash, local_id, volume_id, secret, dc_id}) {
+                     DcId dc_id, std::string file_reference)
+      : variant_(FullRemoteFileLocation{file_type, id, access_hash, local_id, volume_id, secret, dc_id,
+                                        std::move(file_reference)}) {
   }
-  RemoteFileLocation(FileType file_type, int64 id, int64 access_hash, DcId dc_id)
-      : variant_(FullRemoteFileLocation{file_type, id, access_hash, dc_id}) {
+  RemoteFileLocation(FileType file_type, int64 id, int64 access_hash, DcId dc_id, std::string file_reference)
+      : variant_(FullRemoteFileLocation{file_type, id, access_hash, dc_id, std::move(file_reference)}) {
   }
 
  private:
@@ -1006,8 +1045,7 @@ class LocalFileLocation {
 
   LocalFileLocation() : variant_{EmptyLocalFileLocation()} {
   }
-  explicit LocalFileLocation(const PartialLocalFileLocation &partial)
-      : variant_(PartialLocalFileLocationPtr(partial)) {
+  explicit LocalFileLocation(const PartialLocalFileLocation &partial) : variant_(PartialLocalFileLocationPtr(partial)) {
   }
   explicit LocalFileLocation(const FullLocalFileLocation &full) : variant_(full) {
   }

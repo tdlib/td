@@ -2745,7 +2745,8 @@ void merge_message_contents(Td *td, MessageContent *old_content, MessageContent 
             CHECK(!new_file_view.remote_location().is_web());
             FileId file_id = td->file_manager_->register_remote(
                 FullRemoteFileLocation(FileType::Photo, new_file_view.remote_location().get_id(),
-                                       new_file_view.remote_location().get_access_hash(), 0, 0, 0, DcId::invalid()),
+                                       new_file_view.remote_location().get_access_hash(), 0, 0, 0, DcId::invalid(),
+                                       new_file_view.remote_location().get_file_reference()),
                 FileLocationSource::FromServer, dialog_id, old_photo->photos.back().size, 0, "");
             LOG_STATUS(td->file_manager_->merge(file_id, old_file_id));
           }
@@ -3157,7 +3158,8 @@ static auto secret_to_telegram(secret_api::fileLocationUnavailable &file_locatio
 // fileLocation#53d69076 dc_id:int volume_id:long local_id:int secret:long = FileLocation;
 static auto secret_to_telegram(secret_api::fileLocation &file_location) {
   return make_tl_object<telegram_api::fileLocation>(file_location.dc_id_, file_location.volume_id_,
-                                                    file_location.local_id_, file_location.secret_);
+                                                    file_location.local_id_, file_location.secret_,
+                                                    BufferSlice() /*FIXME*/);
 }
 
 // photoSizeEmpty#e17e23c type:string = PhotoSize;
@@ -3305,9 +3307,9 @@ static auto secret_to_telegram_document(secret_api::decryptedMessageMediaExterna
   if (!clean_input_string(from.mime_type_)) {
     from.mime_type_.clear();
   }
-  return make_tl_object<telegram_api::document>(from.id_, from.access_hash_, from.date_, from.mime_type_, from.size_,
-                                                secret_to_telegram<telegram_api::PhotoSize>(*from.thumb_), from.dc_id_,
-                                                0, secret_to_telegram(from.attributes_));
+  return make_tl_object<telegram_api::document>(
+      from.id_, from.access_hash_, BufferSlice() /*FIXME*/, from.date_, from.mime_type_, from.size_,
+      secret_to_telegram<telegram_api::PhotoSize>(*from.thumb_), from.dc_id_, secret_to_telegram(from.attributes_));
 }
 
 template <class ToT, class FromT>

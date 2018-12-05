@@ -68,6 +68,7 @@ static FileId register_photo(FileManager *file_manager, FileType file_type, int6
   int32 local_id;
   int64 volume_id;
   int64 secret;
+  std::string file_reference;
   switch (location_id) {
     case telegram_api::fileLocationUnavailable::ID: {
       auto location = move_tl_object_as<telegram_api::fileLocationUnavailable>(location_ptr);
@@ -87,6 +88,7 @@ static FileId register_photo(FileManager *file_manager, FileType file_type, int6
       local_id = location->local_id_;
       volume_id = location->volume_id_;
       secret = location->secret_;
+      file_reference = location->file_reference_.as_slice().str();
       break;
     }
     default:
@@ -100,7 +102,7 @@ static FileId register_photo(FileManager *file_manager, FileType file_type, int6
   auto suggested_name = PSTRING() << static_cast<uint64>(volume_id) << "_" << static_cast<uint64>(local_id)
                                   << (is_webp ? ".webp" : ".jpg");
   return file_manager->register_remote(
-      FullRemoteFileLocation(file_type, id, access_hash, local_id, volume_id, secret, dc_id),
+      FullRemoteFileLocation(file_type, id, access_hash, local_id, volume_id, secret, dc_id, file_reference),
       FileLocationSource::FromServer, owner_dialog_id, file_size, 0, std::move(suggested_name));
 }
 
@@ -229,7 +231,7 @@ PhotoSize get_thumbnail_photo_size(FileManager *file_manager, BufferSlice bytes,
   auto volume_id = Random::secure_int64();
   auto secret = 0;
   res.file_id = file_manager->register_remote(
-      FullRemoteFileLocation(FileType::EncryptedThumbnail, 0, 0, local_id, volume_id, secret, dc_id),
+      FullRemoteFileLocation(FileType::EncryptedThumbnail, 0, 0, local_id, volume_id, secret, dc_id, ""),
       FileLocationSource::FromServer, owner_dialog_id, res.size, 0,
       PSTRING() << static_cast<uint64>(volume_id) << "_" << static_cast<uint64>(local_id) << ".jpg");
   file_manager->set_content(res.file_id, std::move(bytes));
@@ -437,7 +439,7 @@ Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::encrypted
                 tl_object_ptr<secret_api::decryptedMessageMediaPhoto> &&photo, DialogId owner_dialog_id) {
   CHECK(DcId::is_valid(file->dc_id_));
   FileId file_id = file_manager->register_remote(
-      FullRemoteFileLocation(FileType::Encrypted, file->id_, file->access_hash_, DcId::internal(file->dc_id_)),
+      FullRemoteFileLocation(FileType::Encrypted, file->id_, file->access_hash_, DcId::internal(file->dc_id_), ""),
       FileLocationSource::FromServer, owner_dialog_id, photo->size_, 0,
       PSTRING() << static_cast<uint64>(file->id_) << ".jpg");
   file_manager->set_encryption_key(file_id, FileEncryptionKey{photo->key_.as_slice(), photo->iv_.as_slice()});

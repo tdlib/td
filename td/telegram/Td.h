@@ -44,6 +44,7 @@ class ConfigManager;
 class ContactsManager;
 class DeviceTokenManager;
 class DocumentsManager;
+class FileReferenceManager;
 class FileManager;
 class InlineQueriesManager;
 class HashtagHints;
@@ -138,6 +139,8 @@ class Td final : public NetQueryCallback {
   ActorOwn<AuthManager> auth_manager_actor_;
   unique_ptr<ContactsManager> contacts_manager_;
   ActorOwn<ContactsManager> contacts_manager_actor_;
+  unique_ptr<FileReferenceManager> file_reference_manager_;
+  ActorOwn<FileReferenceManager> file_reference_manager_actor_;
   unique_ptr<FileManager> file_manager_;
   ActorOwn<FileManager> file_manager_actor_;
   unique_ptr<InlineQueriesManager> inline_queries_manager_;

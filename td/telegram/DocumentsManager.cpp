@@ -189,6 +189,7 @@ std::pair<DocumentsManager::DocumentType, FileId> DocumentsManager::on_get_docum
   int32 dc_id;
   int32 size;
   string mime_type;
+  string file_reference;
   PhotoSize thumbnail;
   FileEncryptionKey encryption_key;
   bool is_web = false;
@@ -202,6 +203,7 @@ std::pair<DocumentsManager::DocumentType, FileId> DocumentsManager::on_get_docum
     dc_id = document->dc_id_;
     size = document->size_;
     mime_type = std::move(document->mime_type_);
+    file_reference = document->file_reference_.as_slice().str();
 
     if (document_type != DocumentType::VoiceNote) {
       thumbnail = get_photo_size(td_->file_manager_.get(), FileType::Thumbnail, 0, 0, owner_dialog_id,
@@ -291,8 +293,8 @@ std::pair<DocumentsManager::DocumentType, FileId> DocumentsManager::on_get_docum
   FileId file_id;
   if (!is_web) {
     file_id = td_->file_manager_->register_remote(
-        FullRemoteFileLocation(file_type, id, access_hash, DcId::internal(dc_id)), FileLocationSource::FromServer,
-        owner_dialog_id, size, 0, suggested_file_name);
+        FullRemoteFileLocation(file_type, id, access_hash, DcId::internal(dc_id), std::move(file_reference)),
+        FileLocationSource::FromServer, owner_dialog_id, size, 0, suggested_file_name);
     if (!encryption_key.empty()) {
       td_->file_manager_->set_encryption_key(file_id, std::move(encryption_key));
     }

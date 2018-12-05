@@ -14,6 +14,8 @@
 
 namespace td {
 
+using FileSourceId = int32;
+
 class FileId {
   int32 id = 0;
   int32 remote_id = 0;

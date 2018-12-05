@@ -96,5 +96,7 @@ class FileDownloader : public FileLoader {
   void keep_fd_flag(bool keep_fd) override;
   void try_release_fd();
   Status acquire_fd() TD_WARN_UNUSED_RESULT;
+
+  Status check_net_query(NetQueryPtr &net_query);
 };
 }  // namespace td

@@ -32,6 +32,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/DocumentsManager.h"
+#include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileGcParameters.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileManager.h"
@@ -3632,6 +3633,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "ContactsManager was cleared " << timer;
       documents_manager_.reset();
       LOG(DEBUG) << "DocumentsManager was cleared " << timer;
+      file_reference_manager_.reset();
+      LOG(DEBUG) << "FileReferenceManager was cleared " << timer;
       file_manager_.reset();
       LOG(DEBUG) << "FileManager was cleared " << timer;
       inline_queries_manager_.reset();
@@ -3805,6 +3808,8 @@ void Td::clear() {
   LOG(DEBUG) << "AuthManager actor was cleared " << timer;
   contacts_manager_actor_.reset();
   LOG(DEBUG) << "ContactsManager actor was cleared " << timer;
+  file_reference_manager_actor_.reset();
+  LOG(DEBUG) << "FileReferenceManager actor was cleared " << timer;
   file_manager_actor_.reset();
   LOG(DEBUG) << "FileManager actor was cleared " << timer;
   inline_queries_manager_actor_.reset();
@@ -4082,6 +4087,10 @@ Status Td::init(DbKey key) {
    private:
     Td *td_;
   };
+  file_reference_manager_ = make_unique<FileReferenceManager>();
+  file_reference_manager_actor_ = register_actor("FileReferenceManager", file_reference_manager_.get());
+  G()->set_file_reference_manager(file_reference_manager_actor_.get());
+
   file_manager_ = make_unique<FileManager>(make_unique<FileManagerContext>(this));
   file_manager_actor_ = register_actor("FileManager", file_manager_.get());
   file_manager_->init_actor();

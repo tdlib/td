@@ -36,6 +36,7 @@ class ConfigManager;
 class ConfigShared;
 class ConnectionCreator;
 class ContactsManager;
+class FileReferenceManager;
 class FileManager;
 class LanguagePackManager;
 class MessagesManager;
@@ -170,6 +171,13 @@ class Global : public ActorContext {
   }
   void set_contacts_manager(ActorId<ContactsManager> contacts_manager) {
     contacts_manager_ = contacts_manager;
+  }
+
+  ActorId<FileReferenceManager> file_reference_manager() const {
+    return file_reference_manager_;
+  }
+  void set_file_reference_manager(ActorId<FileReferenceManager> file_reference_manager) {
+    file_reference_manager_ = std::move(file_reference_manager);
   }
 
   ActorId<FileManager> file_manager() const {
@@ -348,6 +356,7 @@ class Global : public ActorContext {
   ActorId<CallManager> call_manager_;
   ActorId<ConfigManager> config_manager_;
   ActorId<ContactsManager> contacts_manager_;
+  ActorId<FileReferenceManager> file_reference_manager_;
   ActorId<FileManager> file_manager_;
   ActorId<LanguagePackManager> language_pack_manager_;
   ActorId<MessagesManager> messages_manager_;

@@ -65,6 +65,7 @@ class FileNode {
   void set_local_location(const LocalFileLocation &local, int64 ready_size, int64 prefix_offset,
                           int64 ready_prefix_size);
   void set_remote_location(const RemoteFileLocation &remote, FileLocationSource source, int64 ready_size);
+  void delete_file_reference(Slice file_reference);
   void set_generate_location(unique_ptr<FullGenerateFileLocation> &&generate);
   void set_size(int64 size);
   void set_expected_size(int64 expected_size);
@@ -79,6 +80,9 @@ class FileNode {
   void set_generate_priority(int8 download_priority, int8 upload_priority);
 
   void set_download_offset(int64 download_offset);
+
+  void add_file_source(FileSourceId file_source_id);
+  void remove_file_source(FileSourceId file_source_id);
 
   void on_changed();
   void on_info_changed();
@@ -105,6 +109,8 @@ class FileNode {
   RemoteFileLocation remote_;
   FileLoadManager::QueryId download_id_ = 0;
   int64 remote_ready_size_ = 0;
+
+  std::vector<FileSourceId> file_source_ids_;
 
   unique_ptr<FullGenerateFileLocation> generate_;
   FileLoadManager::QueryId generate_id_ = 0;
@@ -204,6 +210,7 @@ class FileView {
   bool has_local_location() const;
   const FullLocalFileLocation &local_location() const;
   bool has_remote_location() const;
+  bool has_active_remote_location() const;
   const FullRemoteFileLocation &remote_location() const;
   bool has_generate_location() const;
   const FullGenerateFileLocation &generate_location() const;
@@ -343,6 +350,10 @@ class FileManager : public FileLoadManager::Callback {
 
   Result<FileId> merge(FileId x_file_id, FileId y_file_id, bool no_sync = false) TD_WARN_UNUSED_RESULT;
 
+  void add_file_source(FileId file_id, FileSourceId file_source_id);
+
+  void remove_file_source(FileId file_id, FileSourceId file_source_id);
+
   bool set_encryption_key(FileId file_id, FileEncryptionKey key);
   bool set_content(FileId file_id, BufferSlice bytes);
 
@@ -351,6 +362,7 @@ class FileManager : public FileLoadManager::Callback {
   void resume_upload(FileId file_id, std::vector<int> bad_parts, std::shared_ptr<UploadCallback> callback,
                      int32 new_priority, uint64 upload_order);
   bool delete_partial_remote_location(FileId file_id);
+  void delete_file_reference(FileId file_id, std::string file_reference);
   void get_content(FileId file_id, Promise<BufferSlice> promise);
 
   void delete_file(FileId file_id, Promise<Unit> promise, const char *source);

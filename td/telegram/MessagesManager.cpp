@@ -13,6 +13,7 @@
 #include "td/telegram/DialogDb.h"
 #include "td/telegram/DraftMessage.h"
 #include "td/telegram/DraftMessage.hpp"
+#include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileId.hpp"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
@@ -8956,7 +8957,7 @@ void MessagesManager::on_send_secret_message_success(int64 random_id, MessageId 
       }
 
       new_file_id = td_->file_manager_->register_remote(
-          FullRemoteFileLocation(FileType::Encrypted, file->id_, file->access_hash_, DcId::internal(file->dc_id_)),
+          FullRemoteFileLocation(FileType::Encrypted, file->id_, file->access_hash_, DcId::internal(file->dc_id_), ""),
           FileLocationSource::FromServer, owner_dialog_id, 0, 0, "");
     }
   }
@@ -20968,6 +20969,16 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   if (from_update) {
     cancel_user_dialog_action(dialog_id, message.get());
+  }
+
+  if (message_id.is_server()) {
+    auto file_ids = get_message_content_file_ids(message->content.get(), td_);
+    if (!file_ids.empty()) {
+      auto file_source_id = td_->file_reference_manager_->create_file_source(FullMessageId(dialog_id, message_id));
+      for (auto file_id : file_ids) {
+        td_->file_manager_->add_file_source(file_id, file_source_id);
+      }
+    }
   }
 
   {
