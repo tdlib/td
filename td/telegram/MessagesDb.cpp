@@ -526,7 +526,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
     return std::make_pair(std::move(messages), next_expire_till);
   }
 
-  Result<MessagesDbMessagesResult> get_messages(MessagesDbMessagesQuery query) override {
+  Result<std::vector<BufferSlice>> get_messages(MessagesDbMessagesQuery query) override {
     if (query.index_mask != 0) {
       return get_messages_from_index(query.dialog_id, query.from_message_id, query.index_mask, query.offset,
                                      query.limit);
@@ -657,7 +657,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
     return std::move(result);
   }
 
-  Result<MessagesDbMessagesResult> get_messages_from_index(DialogId dialog_id, MessageId from_message_id,
+  Result<std::vector<BufferSlice>> get_messages_from_index(DialogId dialog_id, MessageId from_message_id,
                                                            int32 index_mask, int32 offset, int32 limit) {
     CHECK(index_mask != 0);
     CHECK(index_mask < (1 << MESSAGES_DB_INDEX_COUNT)) << tag("index_mask", index_mask);
@@ -751,7 +751,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
 
   SqliteStatement get_messages_fts_stmt_;
 
-  Result<MessagesDbMessagesResult> get_messages_impl(GetMessagesStmt &stmt, DialogId dialog_id,
+  Result<std::vector<BufferSlice>> get_messages_impl(GetMessagesStmt &stmt, DialogId dialog_id,
                                                      MessageId from_message_id, int32 offset, int32 limit) {
     CHECK(dialog_id.is_valid()) << dialog_id;
     CHECK(from_message_id.is_valid());
@@ -790,16 +790,16 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
       std::reverse(right.begin(), right.end());
     }
     if (left.empty()) {
-      return MessagesDbMessagesResult{std::move(right)};
+      return std::move(right);
     }
     if (right.empty()) {
-      return MessagesDbMessagesResult{std::move(left)};
+      return std::move(left);
     }
 
     right.reserve(right.size() + left.size());
     std::move(left.begin(), left.end(), std::back_inserter(right));
 
-    return MessagesDbMessagesResult{std::move(right)};
+    return std::move(right);
   }
 
   Result<std::vector<BufferSlice>> get_messages_inner(SqliteStatement &stmt, int64 dialog_id, int64 from_message_id,
@@ -900,7 +900,7 @@ class MessagesDbAsync : public MessagesDbAsyncInterface {
                        std::move(promise));
   }
 
-  void get_messages(MessagesDbMessagesQuery query, Promise<MessagesDbMessagesResult> promise) override {
+  void get_messages(MessagesDbMessagesQuery query, Promise<std::vector<BufferSlice>> promise) override {
     send_closure_later(impl_, &Impl::get_messages, std::move(query), std::move(promise));
   }
   void get_messages_from_notification_id(DialogId dialog_id, NotificationId from_notification_id, int32 limit,
@@ -976,7 +976,7 @@ class MessagesDbAsync : public MessagesDbAsyncInterface {
       promise.set_result(sync_db_->get_dialog_message_by_date(dialog_id, first_message_id, last_message_id, date));
     }
 
-    void get_messages(MessagesDbMessagesQuery query, Promise<MessagesDbMessagesResult> promise) {
+    void get_messages(MessagesDbMessagesQuery query, Promise<std::vector<BufferSlice>> promise) {
       add_read_query();
       promise.set_result(sync_db_->get_messages(std::move(query)));
     }

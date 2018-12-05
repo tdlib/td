@@ -1501,8 +1501,11 @@ class MessagesManager : public Actor {
 
   NotificationId get_next_notification_id(Dialog *d, MessageId message_id);
 
-  vector<Notification> get_message_notifications_from_database_force(Dialog *d, NotificationId from_notification_id,
-                                                                     int32 limit);
+  vector<Notification> get_message_notifications_from_database_force(Dialog *d, int32 limit);
+
+  Result<vector<BufferSlice>> do_get_message_notifications_from_database_force(Dialog *d,
+                                                                               NotificationId from_notification_id,
+                                                                               MessageId from_message_id, int32 limit);
 
   void on_get_message_notifications_from_database(DialogId dialog_id, int32 limit, Result<vector<BufferSlice>> result,
                                                   Promise<vector<Notification>> promise);
@@ -1755,7 +1758,7 @@ class MessagesManager : public Actor {
 
   void on_search_dialog_messages_db_result(int64 random_id, DialogId dialog_id, MessageId from_message_id,
                                            MessageId first_db_message_id, SearchMessagesFilter filter_type,
-                                           int32 offset, int32 limit, Result<MessagesDbMessagesResult> result,
+                                           int32 offset, int32 limit, Result<std::vector<BufferSlice>> r_messages,
                                            Promise<> promise);
 
   void on_messages_db_fts_result(Result<MessagesDbFtsResult> result, int64 random_id, Promise<> &&promise);

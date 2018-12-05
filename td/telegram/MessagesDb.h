@@ -53,10 +53,6 @@ struct MessagesDbMessagesQuery {
   int32 limit{100};
 };
 
-struct MessagesDbMessagesResult {
-  std::vector<BufferSlice> messages;
-};
-
 struct MessagesDbMessage {
   DialogId dialog_id;
   BufferSlice data;
@@ -105,7 +101,7 @@ class MessagesDbSyncInterface {
   virtual Result<BufferSlice> get_dialog_message_by_date(DialogId dialog_id, MessageId first_message_id,
                                                          MessageId last_message_id, int32 date) = 0;
 
-  virtual Result<MessagesDbMessagesResult> get_messages(MessagesDbMessagesQuery query) = 0;
+  virtual Result<std::vector<BufferSlice>> get_messages(MessagesDbMessagesQuery query) = 0;
   virtual Result<vector<BufferSlice>> get_messages_from_notification_id(DialogId dialog_id,
                                                                         NotificationId from_notification_id,
                                                                         int32 limit) = 0;
@@ -151,7 +147,7 @@ class MessagesDbAsyncInterface {
   virtual void get_dialog_message_by_date(DialogId dialog_id, MessageId first_message_id, MessageId last_message_id,
                                           int32 date, Promise<BufferSlice> promise) = 0;
 
-  virtual void get_messages(MessagesDbMessagesQuery query, Promise<MessagesDbMessagesResult> promise) = 0;
+  virtual void get_messages(MessagesDbMessagesQuery query, Promise<std::vector<BufferSlice>> promise) = 0;
   virtual void get_messages_from_notification_id(DialogId dialog_id, NotificationId from_notification_id, int32 limit,
                                                  Promise<vector<BufferSlice>> promise) = 0;
 

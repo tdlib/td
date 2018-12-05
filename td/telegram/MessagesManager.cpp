@@ -13287,10 +13287,10 @@ std::pair<int32, vector<MessageId>> MessagesManager::search_dialog_messages(
                 << " and with limit " << limit;
       auto new_promise = PromiseCreator::lambda(
           [random_id, dialog_id, fixed_from_message_id, first_db_message_id, filter_type, offset, limit,
-           promise = std::move(promise)](Result<MessagesDbMessagesResult> result) mutable {
+           promise = std::move(promise)](Result<std::vector<BufferSlice>> r_messages) mutable {
             send_closure(G()->messages_manager(), &MessagesManager::on_search_dialog_messages_db_result, random_id,
                          dialog_id, fixed_from_message_id, first_db_message_id, filter_type, offset, limit,
-                         std::move(result), std::move(promise));
+                         std::move(r_messages), std::move(promise));
           });
       MessagesDbMessagesQuery db_query;
       db_query.dialog_id = dialog_id;
@@ -13597,16 +13597,17 @@ MessageId MessagesManager::get_first_database_message_id_by_index(const Dialog *
 void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, DialogId dialog_id,
                                                           MessageId from_message_id, MessageId first_db_message_id,
                                                           SearchMessagesFilter filter_type, int32 offset, int32 limit,
-                                                          Result<MessagesDbMessagesResult> result, Promise<> promise) {
-  if (result.is_error()) {
-    LOG(ERROR) << result.error();
+                                                          Result<std::vector<BufferSlice>> r_messages,
+                                                          Promise<> promise) {
+  if (r_messages.is_error()) {
+    LOG(ERROR) << r_messages.error();
     if (first_db_message_id != MessageId::min() && dialog_id.get_type() != DialogType::SecretChat) {
       found_dialog_messages_.erase(random_id);
     }
     return promise.set_value(Unit());
   }
 
-  auto messages = result.move_as_ok().messages;
+  auto messages = r_messages.move_as_ok();
 
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
@@ -14246,9 +14247,9 @@ void MessagesManager::get_history_from_the_end(DialogId dialog_id, bool from_dat
     db_query.limit = limit;
     G()->td_db()->get_messages_db_async()->get_messages(
         db_query, PromiseCreator::lambda([dialog_id, only_local, limit, actor_id = actor_id(this),
-                                          promise = std::move(promise)](MessagesDbMessagesResult result) mutable {
+                                          promise = std::move(promise)](std::vector<BufferSlice> messages) mutable {
           send_closure(actor_id, &MessagesManager::on_get_history_from_database, dialog_id, MessageId::max(), 0, limit,
-                       true, only_local, std::move(result.messages), std::move(promise));
+                       true, only_local, std::move(messages), std::move(promise));
         }));
   } else {
     if (only_local || dialog_id.get_type() == DialogType::SecretChat) {
@@ -14279,9 +14280,9 @@ void MessagesManager::get_history(DialogId dialog_id, MessageId from_message_id,
     G()->td_db()->get_messages_db_async()->get_messages(
         db_query,
         PromiseCreator::lambda([dialog_id, from_message_id, offset, limit, only_local, actor_id = actor_id(this),
-                                promise = std::move(promise)](MessagesDbMessagesResult result) mutable {
+                                promise = std::move(promise)](std::vector<BufferSlice> messages) mutable {
           send_closure(actor_id, &MessagesManager::on_get_history_from_database, dialog_id, from_message_id, offset,
-                       limit, false, only_local, std::move(result.messages), std::move(promise));
+                       limit, false, only_local, std::move(messages), std::move(promise));
         }));
   } else {
     if (only_local || dialog_id.get_type() == DialogType::SecretChat) {
@@ -17696,7 +17697,7 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
                                       create_new_secret_chat_notification());
   } else {
     result.notifications = get_message_notifications_from_database_force(
-        d, NotificationId::max(), static_cast<int32>(td_->notification_manager_->get_max_notification_group_size()));
+        d, static_cast<int32>(td_->notification_manager_->get_max_notification_group_size()));
   }
 
   int32 last_notification_date = 0;
@@ -17724,17 +17725,16 @@ bool MessagesManager::is_message_has_active_notification(const Dialog *d, const 
          (m->message_id.get() > d->last_read_inbox_message_id.get() || m->contains_unread_mention);
 }
 
-vector<Notification> MessagesManager::get_message_notifications_from_database_force(Dialog *d,
-                                                                                    NotificationId from_notification_id,
-                                                                                    int32 limit) {
+vector<Notification> MessagesManager::get_message_notifications_from_database_force(Dialog *d, int32 limit) {
   CHECK(d != nullptr);
   if (!G()->parameters().use_message_db) {
     return {};
   }
 
+  auto from_notification_id = NotificationId::max();
+  auto from_message_id = MessageId::max();
   while (true) {
-    auto result = G()->td_db()->get_messages_db_sync()->get_messages_from_notification_id(d->dialog_id,
-                                                                                          from_notification_id, limit);
+    auto result = do_get_message_notifications_from_database_force(d, from_notification_id, from_message_id, limit);
     if (result.is_error()) {
       return {};
     }
@@ -17749,11 +17749,15 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
     VLOG(notifications) << "Loaded " << messages.size() << " messages with notifications from database";
     for (auto &message : messages) {
       auto m = on_get_message_from_database(d->dialog_id, d, std::move(message));
+      if (m == nullptr || !m->notification_id.is_valid()) {
+        // notification_id can be empty if it is deleted in memory, but not in the database
+        continue;
+      }
+
       if (is_message_has_active_notification(d, m)) {
         res.emplace_back(m->notification_id, m->date, create_new_message_notification(m->message_id));
-      } else if (m != nullptr && m->notification_id.is_valid() &&
-                 (m->notification_id.get() <= d->max_removed_notification_id.get() ||
-                  (m->message_id.get() <= d->last_read_inbox_message_id.get() && d->unread_mention_count == 0))) {
+      } else if (m->notification_id.get() <= d->max_removed_notification_id.get() ||
+                 (m->message_id.get() <= d->last_read_inbox_message_id.get() && d->unread_mention_count == 0)) {
         // if message still has notification_id, but it was removed via max_removed_notification_id
         // or last_read_inbox_message_id, then there will be no more messages with active notifications
 
@@ -17762,16 +17766,48 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
         is_found = false;
         break;
       }
-      if (m != nullptr && m->notification_id.is_valid()) {
-        CHECK(m->notification_id.get() < from_notification_id.get());
-        from_notification_id = m->notification_id;
-        is_found = true;
-      }
+
+      CHECK(m->notification_id.get() < from_notification_id.get());
+      from_notification_id = m->notification_id;
+      from_message_id = m->message_id;
+      is_found = true;
     }
     if (!res.empty() || !is_found) {
       return res;
     }
   }
+}
+
+Result<vector<BufferSlice>> MessagesManager::do_get_message_notifications_from_database_force(
+    Dialog *d, NotificationId from_notification_id, MessageId from_message_id, int32 limit) {
+  CHECK(G()->parameters().use_message_db);
+
+  if (from_notification_id.get() <= d->max_removed_notification_id.get()) {
+    return vector<BufferSlice>();
+  }
+
+  auto db = G()->td_db()->get_messages_db_sync();
+  if (!is_dialog_muted(d) && from_message_id.get() > d->last_read_inbox_message_id.get()) {
+    // there are some notifications with unread messages
+    VLOG(notifications) << "Trying to load " << limit << " messages with notifications in " << d->dialog_id << " from "
+                        << from_notification_id;
+    return db->get_messages_from_notification_id(d->dialog_id, from_notification_id, limit);
+  }
+  if (d->unread_mention_count == 0) {
+    return vector<BufferSlice>();
+  }
+
+  VLOG(notifications) << "Trying to load " << limit << " messages with unread mentions in " << d->dialog_id << " from "
+                      << from_message_id;
+
+  // ignore first_db_message_id, notifications can be nonconsecutive
+  MessagesDbMessagesQuery db_query;
+  db_query.dialog_id = d->dialog_id;
+  db_query.index_mask = search_messages_filter_index_mask(SearchMessagesFilter::UnreadMention);
+  db_query.from_message_id = from_message_id;
+  db_query.offset = 0;
+  db_query.limit = limit;
+  return db->get_messages(db_query);
 }
 
 vector<NotificationGroupKey> MessagesManager::get_message_notification_group_keys_from_database(
