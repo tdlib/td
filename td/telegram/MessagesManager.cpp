@@ -17746,10 +17746,21 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
     vector<Notification> res;
     res.reserve(messages.size());
     bool is_found = false;
+    VLOG(notifications) << "Loaded " << messages.size() << " messages with notifications from database";
     for (auto &message : messages) {
       auto m = on_get_message_from_database(d->dialog_id, d, std::move(message));
       if (is_message_has_active_notification(d, m)) {
         res.emplace_back(m->notification_id, m->date, create_new_message_notification(m->message_id));
+      } else if (m != nullptr && m->notification_id.is_valid() &&
+                 (m->notification_id.get() <= d->max_removed_notification_id.get() ||
+                  (m->message_id.get() <= d->last_read_inbox_message_id.get() && d->unread_mention_count == 0))) {
+        // if message still has notification_id, but it was removed via max_removed_notification_id
+        // or last_read_inbox_message_id, then there will be no more messages with active notifications
+
+        // TODO use unread_mention index to get active notifications if message_id <= d->last_read_inbox_message_id
+        // in all calls to get_messages_from_notification_id
+        is_found = false;
+        break;
       }
       if (m != nullptr && m->notification_id.is_valid()) {
         CHECK(m->notification_id.get() < from_notification_id.get());
@@ -17850,15 +17861,24 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
   vector<Notification> res;
   res.reserve(messages.size());
   NotificationId from_notification_id;
+  VLOG(notifications) << "Loaded " << messages.size() << " messages with notifications from database";
   for (auto &message : messages) {
     auto m = on_get_message_from_database(dialog_id, d, std::move(message));
+    if (m == nullptr || !m->notification_id.is_valid()) {
+      continue;
+    }
     if (is_message_has_active_notification(d, m)) {
       res.emplace_back(m->notification_id, m->date, create_new_message_notification(m->message_id));
     }
-    if (m != nullptr && m->notification_id.is_valid()) {
-      CHECK(!from_notification_id.is_valid() || m->notification_id.get() < from_notification_id.get());
-      from_notification_id = m->notification_id;
+
+    if (m->notification_id.get() <= d->max_removed_notification_id.get() ||
+        (m->message_id.get() <= d->last_read_inbox_message_id.get() && d->unread_mention_count == 0)) {
+      from_notification_id = NotificationId();  // stop requesting database
+      break;
     }
+
+    CHECK(!from_notification_id.is_valid() || m->notification_id.get() < from_notification_id.get());
+    from_notification_id = m->notification_id;
   }
   if (!res.empty() || !from_notification_id.is_valid() || static_cast<size_t>(limit) > messages.size()) {
     std::reverse(res.begin(), res.end());
