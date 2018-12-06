@@ -279,7 +279,7 @@ class SslStreamImpl {
 #endif
     } else {
       if (SSL_CTX_load_verify_locations(ssl_ctx, cert_file.c_str(), nullptr) == 0) {
-        return create_openssl_error(-8, "Failed to set custom cert file");
+        return create_openssl_error(-8, "Failed to set custom certificate file");
       }
     }
 
