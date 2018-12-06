@@ -7,6 +7,7 @@
 #include "td/net/HttpProxy.h"
 
 #include "td/utils/base64.h"
+#include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
@@ -41,6 +42,10 @@ Status HttpProxy::wait_connect_response() {
   it.advance(12, begin);
   if ((begin.substr(0, 10) != "HTTP/1.1 2" && begin.substr(0, 10) != "HTTP/1.0 2") || !is_digit(begin[10]) ||
       !is_digit(begin[11])) {
+    char buf[1024];
+    size_t len = min(sizeof(buf), it.size());
+    it.advance(len, MutableSlice{buf, sizeof(buf)});
+    VLOG(proxy) << "Failed to connect: " << format::escaped(Slice(buf, len));
     return Status::Error("Failed to connect");
   }
 
