@@ -256,8 +256,6 @@ class SessionConnection
   void flush_packet();
 
   Status init() TD_WARN_UNUSED_RESULT;
-  Status process_packet(const PacketInfo &info, Slice packet) TD_WARN_UNUSED_RESULT;
-  Status flush_read() TD_WARN_UNUSED_RESULT;
   Status do_flush() TD_WARN_UNUSED_RESULT;
 
   Status before_write() override TD_WARN_UNUSED_RESULT;
