@@ -23,7 +23,7 @@ Status MessageIdDuplicateChecker::check(int64 message_id) {
   if (saved_message_ids_.size() == MAX_SAVED_MESSAGE_IDS) {
     auto oldest_message_id = *saved_message_ids_.begin();
     if (message_id < oldest_message_id) {
-      return Status::Error(1, PSLICE() << "Ignore very old message_id " << tag("oldest message_id", oldest_message_id)
+      return Status::Error(2, PSLICE() << "Ignore very old message_id " << tag("oldest message_id", oldest_message_id)
                                        << tag("got message_id", message_id));
     }
   }

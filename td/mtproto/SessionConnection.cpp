@@ -488,6 +488,11 @@ Status SessionConnection::on_slice_packet(const MsgInfo &info, Slice packet) {
     // It is an update... I hope.
     auto status = auth_data_->check_update(info.message_id);
     if (status.is_error()) {
+      if (status.code() == 2) {
+        LOG(WARNING) << "Receive too old update: " << status;
+        callback_->on_session_failed(Status::Error("Receive too old update"));
+        return status;
+      }
       VLOG(mtproto) << "Skip update " << info.message_id << " from " << get_name() << " created in "
                     << (Time::now() - created_at_) << ": " << status;
       return Status::OK();
@@ -666,6 +671,10 @@ Status SessionConnection::on_raw_packet(const td::mtproto::PacketInfo &info, Buf
       LOG(WARNING) << "Packet ignored " << status;
       send_ack(info.message_id);
       return Status::OK();
+    } else if (status.code() == 2) {
+      LOG(WARNING) << "Receive too old packet: " << status;
+      callback_->on_session_failed(Status::Error("Receive too old packet"));
+      return status;
     } else {
       return status;
     }
