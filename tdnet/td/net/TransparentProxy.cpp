@@ -76,7 +76,7 @@ void TransparentProxy::loop() {
 }
 
 void TransparentProxy::timeout_expired() {
-  on_error(Status::Error("Timeout expired"));
+  on_error(Status::Error("Connection timeout expired"));
 }
 
 }  // namespace td

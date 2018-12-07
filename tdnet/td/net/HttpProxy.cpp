@@ -46,7 +46,8 @@ Status HttpProxy::wait_connect_response() {
     size_t len = min(sizeof(buf), it.size());
     it.advance(len, MutableSlice{buf, sizeof(buf)});
     VLOG(proxy) << "Failed to connect: " << format::escaped(Slice(buf, len));
-    return Status::Error("Failed to connect");
+    return Status::Error(PSLICE() << "Failed to connect to " << ip_address_.get_ip_str() << ':'
+                                  << ip_address_.get_port());
   }
 
   size_t total_size = 12;
