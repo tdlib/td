@@ -1920,6 +1920,9 @@ chatReportReasonViolence = ChatReportReason;
 //@description The chat contains pornographic messages
 chatReportReasonPornography = ChatReportReason;
 
+//@description The chat has child abuse related content
+chatReportReasonChildAbuse = ChatReportReason;
+
 //@description The chat contains copyrighted content
 chatReportReasonCopyright = ChatReportReason;
 

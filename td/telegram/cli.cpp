@@ -3328,6 +3328,8 @@ class CliClient final : public Actor {
         reason = make_tl_object<td_api::chatReportReasonViolence>();
       } else if (reason_str == "porno") {
         reason = make_tl_object<td_api::chatReportReasonPornography>();
+      } else if (reason_str == "ca") {
+        reason = make_tl_object<td_api::chatReportReasonChildAbuse>();
       } else if (reason_str == "copyright") {
         reason = make_tl_object<td_api::chatReportReasonCopyright>();
       } else {

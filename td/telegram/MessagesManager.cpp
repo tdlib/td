@@ -6098,6 +6098,9 @@ void MessagesManager::report_dialog(DialogId dialog_id, const tl_object_ptr<td_a
     case td_api::chatReportReasonPornography::ID:
       report_reason = make_tl_object<telegram_api::inputReportReasonPornography>();
       break;
+    case td_api::chatReportReasonChildAbuse::ID:
+      report_reason = make_tl_object<telegram_api::inputReportReasonChildAbuse>();
+      break;
     case td_api::chatReportReasonCopyright::ID:
       report_reason = make_tl_object<telegram_api::inputReportReasonCopyright>();
       break;

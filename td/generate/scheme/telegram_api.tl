@@ -72,8 +72,6 @@ inputDocumentFileLocation#430f0724 id:long access_hash:long version:int = InputF
 inputSecureFileLocation#cbc7ee28 id:long access_hash:long = InputFileLocation;
 inputTakeoutFileLocation#29be5899 = InputFileLocation;
 
-inputAppEvent#770656a8 time:double type:string peer:long data:string = InputAppEvent;
-
 peerUser#9db1bc6d user_id:int = Peer;
 peerChat#bad0e5bb chat_id:int = Peer;
 peerChannel#bddde532 channel_id:int = Peer;
@@ -199,6 +197,7 @@ wallPaperSolid#63117f24 id:int title:string bg_color:int color:int = WallPaper;
 inputReportReasonSpam#58dbcab8 = ReportReason;
 inputReportReasonViolence#1e22c78d = ReportReason;
 inputReportReasonPornography#2e59d922 = ReportReason;
+inputReportReasonChildAbuse#adf44ee3 = ReportReason;
 inputReportReasonOther#e1746d0a text:string = ReportReason;
 inputReportReasonCopyright#9b89f93a = ReportReason;
 
@@ -920,6 +919,17 @@ secureRequiredTypeOneOf#27477b4 types:Vector<SecureRequiredType> = SecureRequire
 help.passportConfigNotModified#bfb9f457 = help.PassportConfig;
 help.passportConfig#a098d6af hash:int countries_langs:DataJSON = help.PassportConfig;
 
+inputAppEvent#1d1b1245 time:double type:string peer:long data:JSONValue = InputAppEvent;
+
+jsonObjectValue#c0de1bd9 key:string value:JSONValue = JSONObjectValue;
+
+jsonNull#3f6d7b68 = JSONValue;
+jsonBool#c7345e6a value:Bool = JSONValue;
+jsonNumber#2be0dfa4 value:double = JSONValue;
+jsonString#b71e767a value:string = JSONValue;
+jsonArray#f7444763 value:Vector<JSONValue> = JSONValue;
+jsonObject#99c1d49d value:Vector<JSONObjectValue> = JSONValue;
+
 ---functions---
 
 invokeAfterMsg#cb9f372d {X:Type} msg_id:long query:!X = X;
@@ -1133,7 +1143,6 @@ upload.getFileHashes#c7025931 location:InputFileLocation offset:int = Vector<Fil
 help.getConfig#c4f9186b = Config;
 help.getNearestDc#1fb33026 = NearestDc;
 help.getAppUpdate#522d5a7d source:string = help.AppUpdate;
-help.saveAppLog#6f02f748 events:Vector<InputAppEvent> = Bool;
 help.getInviteText#4d392343 = help.InviteText;
 help.getSupport#9cdf08cd = help.Support;
 help.getAppChangelog#9010ef6f prev_app_version:string = Updates;
@@ -1144,6 +1153,8 @@ help.getProxyData#3d7758e1 = help.ProxyData;
 help.getTermsOfServiceUpdate#2ca51fd1 = help.TermsOfServiceUpdate;
 help.acceptTermsOfService#ee72f79a id:DataJSON = Bool;
 help.getDeepLinkInfo#3fedc75f path:string = help.DeepLinkInfo;
+help.getAppConfig#98914110 = JSONValue;
+help.saveAppLog#6f02f748 events:Vector<InputAppEvent> = Bool;
 help.getPassportConfig#c661ad08 hash:int = help.PassportConfig;
 
 channels.readHistory#cc104937 channel:InputChannel max_id:int = Bool;
