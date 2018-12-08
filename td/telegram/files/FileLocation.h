@@ -14,6 +14,7 @@
 #include "td/telegram/files/FileEncryptionKey.h"
 #include "td/telegram/net/DcId.h"
 
+#include "td/utils/base64.h"
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/format.h"
@@ -549,6 +550,9 @@ class FullRemoteFileLocation {
     file_reference_ = {};
     return true;
   }
+  bool has_file_reference() const {
+    return !file_reference_.empty();
+  }
   string get_file_reference() const {
     return file_reference_;
   }
@@ -715,8 +719,7 @@ inline StringBuilder &operator<<(StringBuilder &string_builder,
     string_builder << ", " << full_remote_file_location.get_dc_id();
   }
   if (!full_remote_file_location.file_reference_.empty()) {
-    string_builder << ", "
-                   << tag("file_reference", format::as_hex_dump<0>(Slice(full_remote_file_location.file_reference_)));
+    string_builder << ", " << tag("file_reference", base64_encode(full_remote_file_location.file_reference_));
   }
 
   string_builder << ", location = ";

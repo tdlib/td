@@ -362,7 +362,7 @@ bool FileView::has_active_remote_location() const {
   if (remote_location().is_encrypted_any()) {
     return true;
   }
-  return !remote_location().get_file_reference().empty();
+  return remote_location().has_file_reference();
 }
 const FullRemoteFileLocation &FileView::remote_location() const {
   CHECK(has_remote_location());
@@ -983,8 +983,8 @@ static int merge_choose_remote_location(const RemoteFileLocation &x, int8 x_sour
     if (x.full().is_web() != y.full().is_web()) {
       return x.full().is_web();  // prefer non-web
     }
-    auto x_ref = !x.full().get_file_reference().empty();
-    auto y_ref = !y.full().get_file_reference().empty();
+    auto x_ref = x.full().has_file_reference();
+    auto y_ref = !y.full().has_file_reference();
     if (x_ref || y_ref) {
       if (x_ref != y_ref) {
         return !x_ref;
@@ -1103,7 +1103,7 @@ void FileManager::cancel_generate(FileNodePtr node) {
 }
 
 Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
-  LOG(ERROR) << x_file_id << " VS " << y_file_id;
+  LOG(DEBUG) << x_file_id << " VS " << y_file_id;
 
   if (!x_file_id.is_valid()) {
     return Status::Error("First file_id is invalid");
@@ -1197,8 +1197,6 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
              << ", generate_i = " << generate_i << ", size_i = " << size_i << ", remote_name_i = " << remote_name_i
              << ", url_i = " << url_i << ", owner_i = " << owner_i << ", encryption_key_i = " << encryption_key_i
              << ", main_file_id_i = " << main_file_id_i;
-  LOG(ERROR) << FileView(node).has_active_remote_location();
-  LOG(ERROR) << FileView(other_node).has_active_remote_location();
   if (local_i == other_node_i) {
     cancel_download(node);
     node->set_download_offset(other_node->download_offset_);
@@ -1747,25 +1745,26 @@ void FileManager::run_download(FileNodePtr node) {
 
   // If file reference is needed
   if (!file_view.has_active_remote_location()) {
-    LOG(ERROR) << "run_download: no active location";
+    LOG(INFO) << "run_download: Do not have valid file_reference " << file_id;
     QueryId id = queries_container_.create(Query{file_id, Query::Download});
     node->download_id_ = id;
     if (node->file_source_ids_.empty()) {
-      on_error(id, Status::Error("Can't download file: no valid file refernce and no valid source id"));
+      on_error(id, Status::Error("Can't download file: have valid file reference and no valid source id"));
       return;
     }
 
-    send_closure(G()->file_reference_manager(), &FileReferenceManager::update_file_reference, file_id,
-                 node->file_source_ids_, PromiseCreator::lambda([id, actor_id = actor_id(this)](Result<Unit> res) {
-                   Status error;
-                   LOG(ERROR) << "run_download: update_file_reference finished";
-                   if (res.is_ok()) {
-                     error = td::Status::Error("FILE_DOWNLOAD_RESTART_WITH_FILE_REFERENCE");
-                   } else {
-                     error = res.move_as_error();
-                   }
-                   send_closure(actor_id, &FileManager::on_error, id, std::move(error));
-                 }));
+    send_closure(
+        G()->file_reference_manager(), &FileReferenceManager::update_file_reference, file_id, node->file_source_ids_,
+        PromiseCreator::lambda([id, actor_id = actor_id(this), file_id](Result<Unit> res) {
+          Status error;
+          if (res.is_ok()) {
+            error = td::Status::Error("FILE_DOWNLOAD_RESTART_WITH_FILE_REFERENCE");
+          } else {
+            error = res.move_as_error();
+          }
+          LOG(INFO) << "run_download: Got result from FileSourceManager for file " << file_id << " : " << error;
+          send_closure(actor_id, &FileManager::on_error, id, std::move(error));
+        }));
     return;
   }
 
@@ -1867,7 +1866,7 @@ bool FileManager::delete_partial_remote_location(FileId file_id) {
 }
 
 void FileManager::delete_file_reference(FileId file_id, std::string file_reference) {
-  LOG(ERROR) << "Delete file reference " << file_id << tag("reference", format::as_hex_dump<0>(Slice(file_reference)));
+  LOG(INFO) << "Delete file reference to file " << file_id << " " << tag("reference", base64_encode(file_reference));
   auto node = get_sync_file_node(file_id);
   if (!node) {
     LOG(INFO) << "Wrong file id " << file_id;
@@ -2714,7 +2713,6 @@ void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type,
   SCOPE_EXIT {
     try_flush_node(node, "on_error");
   };
-  //FIXME: should we apply error if !was_active?
   if (status.code() != 1 && !G()->close_flag()) {
     LOG(WARNING) << "Failed to upload/download/generate file: " << status << ". Query type = " << type
                  << ". File type is " << FileView(node).get_type();
@@ -2758,13 +2756,15 @@ void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type,
   }
   if (begins_with(status.message(), "FILE_REFERENCE_")) {
     string file_reference;
-    Slice prefix = "FILE_REFERENCE_BASE64";
+    Slice prefix = "FILE_REFERENCE_EXPIRED_BASE64";
     if (begins_with(status.message(), prefix)) {
       auto tmp = base64_decode(status.message().substr(prefix.size()));
       LOG_IF(WARNING, tmp.is_error()) << "Can't decode file reference from error " << status << " " << tmp.error();
       if (tmp.is_ok()) {
         file_reference = tmp.move_as_ok();
       }
+    } else {
+      LOG(ERROR) << "Unexpected error, file_reference will be deleted just in case " << status;
     }
     CHECK(!node->file_ids_.empty());
     delete_file_reference(node->file_ids_.back(), file_reference);
@@ -2779,12 +2779,12 @@ void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type,
   if (begins_with(status.message(), "FILE_DOWNLOAD_RESTART")) {
     if (ends_with(status.message(), "WITH_FILE_REFERENCE")) {
       if (FileView(node).has_active_remote_location()) {
-        LOG(ERROR) << "??????";
         run_download(node);
         return;
       }
       LOG_IF(WARNING, !node->file_source_ids_.empty())
-          << "Got no active remote locations " << FileView(node).remote_location();
+          << "Got no active remote locations, but have file_source_ids, download will be cancelled "
+          << FileView(node).remote_location();
     } else {
       node->can_search_locally_ = false;
       run_download(node);

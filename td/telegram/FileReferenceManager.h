@@ -24,7 +24,7 @@ class FileReferenceManager : public Actor {
 
  private:
   td::int32 last_file_source_id_{0};
-  std::map<FileSourceId, FullMessageId> to_full_message_id_;
+  std::unordered_map<FileSourceId, FullMessageId, FileSourceIdHash> to_full_message_id_;
   std::unordered_map<FullMessageId, FileSourceId, FullMessageIdHash> from_full_message_id_;
 };
 
