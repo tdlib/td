@@ -161,6 +161,8 @@ void FileNode::set_remote_location(const RemoteFileLocation &remote, FileLocatio
 
 void FileNode::delete_file_reference(Slice file_reference) {
   if (remote_.type() == RemoteFileLocation::Type::Full && remote_.full().delete_file_reference(file_reference)) {
+    upload_may_update_file_reference_ = true;
+    download_may_update_file_reference_ = true;
     on_pmc_changed();
   }
 }
@@ -257,6 +259,8 @@ void FileNode::add_file_source(FileSourceId file_source_id) {
   if (std::find(file_source_ids_.begin(), file_source_ids_.end(), file_source_id) != file_source_ids_.end()) {
     return;
   }
+  upload_may_update_file_reference_ = true;
+  download_may_update_file_reference_ = true;
   file_source_ids_.push_back(file_source_id);
 }
 
@@ -1080,6 +1084,7 @@ void FileManager::cancel_download(FileNodePtr node) {
   send_closure(file_load_manager_, &FileLoadManager::cancel, node->download_id_);
   node->download_id_ = 0;
   node->is_download_started_ = false;
+  node->download_may_update_file_reference_ = !node->file_source_ids_.empty();
   node->set_download_priority(0);
 }
 
@@ -1089,6 +1094,7 @@ void FileManager::cancel_upload(FileNodePtr node) {
   }
   send_closure(file_load_manager_, &FileLoadManager::cancel, node->upload_id_);
   node->upload_id_ = 0;
+  node->upload_may_update_file_reference_ = !node->file_source_ids_.empty();
   node->set_upload_priority(0);
 }
 
@@ -1746,12 +1752,17 @@ void FileManager::run_download(FileNodePtr node) {
   // If file reference is needed
   if (!file_view.has_active_remote_location()) {
     LOG(INFO) << "run_download: Do not have valid file_reference " << file_id;
-    QueryId id = queries_container_.create(Query{file_id, Query::Download});
+    QueryId id = queries_container_.create(Query{file_id, Query::DownloadWaitFileReferece});
     node->download_id_ = id;
     if (node->file_source_ids_.empty()) {
-      on_error(id, Status::Error("Can't download file: have valid file reference and no valid source id"));
+      on_error(id, Status::Error("Can't download file: have no valid file reference and no valid source id"));
       return;
     }
+    if (!node->download_may_update_file_reference_) {
+      on_error(id, Status::Error("Can't download file: have valid source id, but do not allowed to use id"));
+      return;
+    }
+    node->download_may_update_file_reference_ = false;
 
     send_closure(
         G()->file_reference_manager(), &FileReferenceManager::update_file_reference, file_id, node->file_source_ids_,
@@ -2029,9 +2040,11 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
   CHECK(node->upload_id_ == 0);
   if (file_view.has_remote_location() && !file_view.has_active_remote_location() &&
       file_view.get_type() != FileType::Thumbnail && file_view.get_type() != FileType::EncryptedThumbnail &&
-      !node->file_source_ids_.empty()) {
-    QueryId id = queries_container_.create(Query{file_id, Query::Upload});
+      !node->file_source_ids_.empty() && node->upload_may_update_file_reference_) {
+    QueryId id = queries_container_.create(Query{file_id, Query::UploadWaitFileReference});
     node->upload_id_ = id;
+    node->upload_may_update_file_reference_ = false;
+
     send_closure(G()->file_reference_manager(), &FileReferenceManager::update_file_reference, file_id,
                  node->file_source_ids_, PromiseCreator::lambda([id, actor_id = actor_id(this)](Result<Unit> res) {
                    send_closure(actor_id, &FileManager::on_error, id, Status::Error("FILE_UPLOAD_RESTART"));
@@ -2777,19 +2790,11 @@ void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type,
     return;
   }
   if (begins_with(status.message(), "FILE_DOWNLOAD_RESTART")) {
-    if (ends_with(status.message(), "WITH_FILE_REFERENCE")) {
-      if (FileView(node).has_active_remote_location()) {
-        run_download(node);
-        return;
-      }
-      LOG_IF(WARNING, !node->file_source_ids_.empty())
-          << "Got no active remote locations, but have file_source_ids, download will be cancelled "
-          << FileView(node).remote_location();
-    } else {
+    if (!ends_with(status.message(), "WITH_FILE_REFERENCE")) {
       node->can_search_locally_ = false;
-      run_download(node);
-      return;
     }
+    run_download(node);
+    return;
   }
 
   if (!was_active) {

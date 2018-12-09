@@ -151,6 +151,9 @@ class FileNode {
   bool pmc_changed_flag_{false};
   bool info_changed_flag_{false};
 
+  bool upload_may_update_file_reference_{false};
+  bool download_may_update_file_reference_{false};
+
   void init_ready_size();
 
   void recalc_ready_prefix_size(int64 prefix_offset, int64 ready_prefix_size);
@@ -408,7 +411,15 @@ class FileManager : public FileLoadManager::Callback {
   class Query {
    public:
     FileId file_id_;
-    enum Type : int32 { UploadByHash, Upload, Download, SetContent, Generate } type_;
+    enum Type : int32 {
+      UploadByHash,
+      UploadWaitFileReference,
+      Upload,
+      DownloadWaitFileReferece,
+      Download,
+      SetContent,
+      Generate
+    } type_;
   };
   struct FileIdInfo {
     FileNodeId node_id_{0};

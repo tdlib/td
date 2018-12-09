@@ -37,7 +37,7 @@ void FileReferenceManager::update_file_reference(FileId file_id, std::vector<Fil
   for (auto source_id : sources) {
     auto it = to_full_message_id_.find(source_id);
     auto new_promise = PromiseCreator::lambda([promise = mpas.get_promise(), file_id, source_id,
-                                           file_manager = G()->file_manager()](Result<Unit> res) mutable {
+                                               file_manager = G()->file_manager()](Result<Unit> res) mutable {
       if (res.is_error()) {
         LOG(INFO) << "Invalid source id " << source_id << " " << res.error();
         send_closure(file_manager, &FileManager::remove_file_source, file_id, source_id);
