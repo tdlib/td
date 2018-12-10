@@ -344,17 +344,17 @@ Result<JsonValue> do_json_decode(Parser &parser, int32 max_depth) {
       if (parser.skip_start_with("false")) {
         return JsonValue::create_boolean(false);
       }
-      return Status::Error("Starts with 'f' -- false expected");
+      return Status::Error("Token starts with 'f' -- false expected");
     case 't':
       if (parser.skip_start_with("true")) {
         return JsonValue::create_boolean(true);
       }
-      return Status::Error("Starts with 't' -- true expected");
+      return Status::Error("Token starts with 't' -- true expected");
     case 'n':
       if (parser.skip_start_with("null")) {
         return JsonValue();
       }
-      return Status::Error("Starts with 'n' -- null expected");
+      return Status::Error("Token starts with 'n' -- null expected");
     case '"': {
       TRY_RESULT(slice, json_string_decode(parser));
       return JsonValue::create_string(slice);
@@ -368,7 +368,7 @@ Result<JsonValue> do_json_decode(Parser &parser, int32 max_depth) {
       }
       while (true) {
         if (parser.empty()) {
-          return Status::Error("Unexpected end");
+          return Status::Error("Unexpected string end");
         }
         TRY_RESULT(value, do_json_decode(parser, max_depth - 1));
         res.emplace_back(std::move(value));
@@ -381,7 +381,10 @@ Result<JsonValue> do_json_decode(Parser &parser, int32 max_depth) {
           parser.skip_whitespaces();
           continue;
         }
-        return Status::Error("Unexpected symbol");
+        if (parser.empty()) {
+          return Status::Error("Unexpected string end");
+        }
+        return Status::Error("Unexpected symbol while parsing JSON Array");
       }
       return JsonValue::create_array(std::move(res));
     }
@@ -394,7 +397,7 @@ Result<JsonValue> do_json_decode(Parser &parser, int32 max_depth) {
       }
       while (true) {
         if (parser.empty()) {
-          return Status::Error("Unexpected end");
+          return Status::Error("Unexpected string end");
         }
         TRY_RESULT(key, json_string_decode(parser));
         parser.skip_whitespaces();
@@ -412,7 +415,10 @@ Result<JsonValue> do_json_decode(Parser &parser, int32 max_depth) {
           parser.skip_whitespaces();
           continue;
         }
-        return Status::Error("Unexpected symbol");
+        if (parser.empty()) {
+          return Status::Error("Unexpected string end");
+        }
+        return Status::Error("Unexpected symbol while parsing JSON Object");
       }
       return JsonValue::make_object(std::move(res));
     }
@@ -434,7 +440,7 @@ Result<JsonValue> do_json_decode(Parser &parser, int32 max_depth) {
       return JsonValue::create_number(num);
     }
     case 0:
-      return Status::Error("Unexpected end");
+      return Status::Error("Unexpected string end");
     default: {
       char next = parser.peek_char();
       if (0 < next && next < 127) {

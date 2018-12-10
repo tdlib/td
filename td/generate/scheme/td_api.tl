@@ -1825,17 +1825,41 @@ notificationGroup id:int32 chat_id:int53 total_count:int32 notifications:vector<
 
 //@class OptionValue @description Represents the value of an option
 
-//@description Boolean option @value The value of the option
+//@description Represents a boolean option @value The value of the option
 optionValueBoolean value:Bool = OptionValue;
 
-//@description An unknown option or an option which has a default value
+//@description Represents an unknown option or an option which has a default value
 optionValueEmpty = OptionValue;
 
-//@description An integer option @value The value of the option
+//@description Represents an integer option @value The value of the option
 optionValueInteger value:int32 = OptionValue;
 
-//@description A string option @value The value of the option
+//@description Represents a string option @value The value of the option
 optionValueString value:string = OptionValue;
+
+
+//@description Represents one member of a JSON object @key Member's key @value Member's value
+jsonObjectMember key:string value:JsonValue = JsonObjectMember;
+
+//@class JsonValue @description Represents a JSON value
+
+//@description Represents a null JSON value
+jsonValueNull = JsonValue;
+
+//@description Represents a boolean JSON value @value The value
+jsonValueBoolean value:Bool = JsonValue;
+
+//@description Represents a numeric JSON value @value The value
+jsonValueNumber value:double = JsonValue;
+
+//@description Represents a string JSON value @value The value
+jsonValueString value:string = JsonValue;
+
+//@description Represents a JSON array @values The list of array elements
+jsonValueArray values:vector<JsonValue> = JsonValue;
+
+//@description Represents a JSON object @members The list of object members
+jsonValueObject members:vector<jsonObjectMember> = JsonValue;
 
 
 //@class UserPrivacySettingRule @description Represents a single rule for managing privacy settings
@@ -2727,6 +2751,12 @@ cleanFileName file_name:string = Text;
 //@description Returns a string stored in the local database from the specified localization target and language pack by its key. Returns a 404 error if the string is not found. This is an offline method. Can be called before authorization. Can be called synchronously
 //@language_pack_database_path Path to the language pack database in which strings are stored @localization_target Localization target to which the language pack belongs @language_pack_id Language pack identifier @key Language pack key of the string to be returned
 getLanguagePackString language_pack_database_path:string localization_target:string language_pack_id:string key:string = LanguagePackStringValue;
+
+//@description Converts a JSON-serialized string to corresponding JsonValue object. This is an offline method. Can be called before authorization. Can be called synchronously @json The JSON-serialized string
+getJsonValue json:string = JsonValue;
+
+//@description Converts a JsonValue object to corresponding JSON-serialized string. This is an offline method. Can be called before authorization. Can be called synchronously @json_value The JsonValue object
+getJsonString json_value:JsonValue = Text;
 
 
 //@description Sends an inline query to a bot and returns its results. Returns an error with code 502 if the bot fails to answer the query before the query timeout expires @bot_user_id The identifier of the target bot

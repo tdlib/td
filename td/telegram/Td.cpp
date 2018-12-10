@@ -38,6 +38,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/HashtagHints.h"
 #include "td/telegram/InlineQueriesManager.h"
+#include "td/telegram/JsonValue.h"
 #include "td/telegram/LanguagePackManager.h"
 #include "td/telegram/Logging.h"
 #include "td/telegram/MessageEntity.h"
@@ -3119,6 +3120,8 @@ bool Td::is_synchronous_request(int32 id) {
     case td_api::getFileExtension::ID:
     case td_api::cleanFileName::ID:
     case td_api::getLanguagePackString::ID:
+    case td_api::getJsonValue::ID:
+    case td_api::getJsonString::ID:
     case td_api::setLogStream::ID:
     case td_api::getLogStream::ID:
     case td_api::setLogVerbosityLevel::ID:
@@ -3322,6 +3325,8 @@ td_api::object_ptr<td_api::Object> Td::static_request(td_api::object_ptr<td_api:
       case td_api::getFileMimeType::ID:
       case td_api::getFileExtension::ID:
       case td_api::cleanFileName::ID:
+      case td_api::getJsonValue::ID:
+      case td_api::getJsonString::ID:
         return true;
       default:
         return false;
@@ -6771,7 +6776,7 @@ void Td::on_request(uint64 id, const td_api::getTextEntities &request) {
   UNREACHABLE();
 }
 
-void Td::on_request(uint64 id, td_api::parseTextEntities &request) {
+void Td::on_request(uint64 id, const td_api::parseTextEntities &request) {
   UNREACHABLE();
 }
 
@@ -6788,6 +6793,14 @@ void Td::on_request(uint64 id, const td_api::cleanFileName &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::getLanguagePackString &request) {
+  UNREACHABLE();
+}
+
+void Td::on_request(uint64 id, const td_api::getJsonValue &request) {
+  UNREACHABLE();
+}
+
+void Td::on_request(uint64 id, const td_api::getJsonString &request) {
   UNREACHABLE();
 }
 
@@ -6871,6 +6884,22 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::cleanFile
 td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getLanguagePackString &request) {
   return LanguagePackManager::get_language_pack_string(
       request.language_pack_database_path_, request.localization_target_, request.language_pack_id_, request.key_);
+}
+
+td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::getJsonValue &request) {
+  if (!check_utf8(request.json_)) {
+    return make_error(400, "JSON has invalid encoding");
+  }
+  auto result = get_json_value(request.json_);
+  if (result.is_error()) {
+    return make_error(400, result.error().message());
+  } else {
+    return result.move_as_ok();
+  }
+}
+
+td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getJsonString &request) {
+  return td_api::make_object<td_api::text>(get_json_string(request.json_value_.get()));
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::setLogStream &request) {

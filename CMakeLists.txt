@@ -379,6 +379,7 @@ set(TDLIB_SOURCE
   td/telegram/HashtagHints.cpp
   td/telegram/InlineQueriesManager.cpp
   td/telegram/InputMessageText.cpp
+  td/telegram/JsonValue.cpp
   td/telegram/LanguagePackManager.cpp
   td/telegram/Location.cpp
   td/telegram/Logging.cpp
@@ -502,6 +503,7 @@ set(TDLIB_SOURCE
   td/telegram/HashtagHints.h
   td/telegram/InlineQueriesManager.h
   td/telegram/InputMessageText.h
+  td/telegram/JsonValue.h
   td/telegram/LanguagePackManager.h
   td/telegram/Location.h
   td/telegram/logevent/LogEvent.h
