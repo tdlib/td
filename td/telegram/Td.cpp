@@ -497,6 +497,64 @@ class GetDeepLinkInfoQuery : public Td::ResultHandler {
   }
 };
 
+class GetAppConfigQuery : public Td::ResultHandler {
+  Promise<tl_object_ptr<td_api::JsonValue>> promise_;
+
+ public:
+  explicit GetAppConfigQuery(Promise<tl_object_ptr<td_api::JsonValue>> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send() {
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::help_getAppConfig())));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::help_getAppConfig>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    promise_.set_value(convert_json_value_object(result));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
+class SaveAppLogQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SaveAppLogQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(const string &type, int64 peer_id, tl_object_ptr<telegram_api::JSONValue> &&data) {
+    CHECK(data != nullptr);
+    vector<telegram_api::object_ptr<telegram_api::inputAppEvent>> input_app_events;
+    input_app_events.push_back(
+        make_tl_object<telegram_api::inputAppEvent>(G()->server_time_cached(), type, peer_id, std::move(data)));
+    send_query(
+        G()->net_query_creator().create(create_storer(telegram_api::help_saveAppLog(std::move(input_app_events)))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::help_saveAppLog>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.move_as_ok();
+    LOG_IF(ERROR, !result) << "Receive false from help.saveAppLog";
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+  }
+};
+
 /*** Td ***/
 /** Td queries **/
 class TestQuery : public Td::ResultHandler {
@@ -3174,6 +3232,8 @@ bool Td::is_preauthentication_request(int32 id) {
     case td_api::getStorageStatisticsFast::ID:
     case td_api::getCountryCode::ID:
     case td_api::getDeepLinkInfo::ID:
+    case td_api::getApplicationConfig::ID:
+    case td_api::saveApplicationLogEvent::ID:
     case td_api::addProxy::ID:
     case td_api::editProxy::ID:
     case td_api::enableProxy::ID:
@@ -6708,6 +6768,18 @@ void Td::on_request(uint64 id, td_api::getDeepLinkInfo &request) {
   CLEAN_INPUT_STRING(request.link_);
   CREATE_REQUEST_PROMISE();
   create_handler<GetDeepLinkInfoQuery>(std::move(promise))->send(request.link_);
+}
+
+void Td::on_request(uint64 id, const td_api::getApplicationConfig &request) {
+  CREATE_REQUEST_PROMISE();
+  create_handler<GetAppConfigQuery>(std::move(promise))->send();
+}
+
+void Td::on_request(uint64 id, td_api::saveApplicationLogEvent &request) {
+  CLEAN_INPUT_STRING(request.type_);
+  auto result = convert_json_value(std::move(request.data_));
+  CREATE_OK_REQUEST_PROMISE();
+  create_handler<SaveAppLogQuery>(std::move(promise))->send(request.type_, request.chat_id_, std::move(result));
 }
 
 void Td::on_request(uint64 id, td_api::addProxy &request) {

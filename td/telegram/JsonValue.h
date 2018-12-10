@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/td_api.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Slice.h"
@@ -15,6 +16,11 @@
 namespace td {
 
 Result<td_api::object_ptr<td_api::JsonValue>> get_json_value(MutableSlice json);
+
+td_api::object_ptr<td_api::JsonValue> convert_json_value_object(
+    const tl_object_ptr<telegram_api::JSONValue> &json_value);
+
+tl_object_ptr<telegram_api::JSONValue> convert_json_value(td_api::object_ptr<td_api::JsonValue> &&json_value);
 
 string get_json_string(const td_api::JsonValue *json_value);
 

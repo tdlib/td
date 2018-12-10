@@ -892,6 +892,10 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::getDeepLinkInfo &request);
 
+  void on_request(uint64 id, const td_api::getApplicationConfig &request);
+
+  void on_request(uint64 id, td_api::saveApplicationLogEvent &request);
+
   void on_request(uint64 id, td_api::addProxy &request);
 
   void on_request(uint64 id, td_api::editProxy &request);

@@ -2389,15 +2389,21 @@ class CliClient final : public Actor {
       execute(make_tl_object<td_api::cleanFileName>(args));
     } else if (op == "gjv") {
       execute(td_api::make_object<td_api::getJsonValue>(args));
+    } else if (op == "gjvtest") {
+      execute(td_api::make_object<td_api::getJsonValue>("\"aba\200caba\""));
+      execute(td_api::make_object<td_api::getJsonValue>("\"\\u0080\""));
+      execute(td_api::make_object<td_api::getJsonValue>("\"\\uD800\""));
     } else if (op == "gjs") {
-      execute(td_api::make_object<td_api::getJsonString>());
-      execute(td_api::make_object<td_api::getJsonString>(td_api::make_object<td_api::jsonValueNull>()));
-      execute(td_api::make_object<td_api::getJsonString>(td_api::make_object<td_api::jsonValueBoolean>(true)));
-      execute(td_api::make_object<td_api::getJsonString>(td_api::make_object<td_api::jsonValueNumber>(123456789123.0)));
-      execute(
-          td_api::make_object<td_api::getJsonString>(td_api::make_object<td_api::jsonValueString>(string("aba\x00"
-                                                                                                         "caba",
-                                                                                                         8))));
+      auto test_get_json_string = [&](auto &&json_value) {
+        execute(td_api::make_object<td_api::getJsonString>(std::move(json_value)));
+      };
+
+      test_get_json_string(nullptr);
+      test_get_json_string(td_api::make_object<td_api::jsonValueNull>());
+      test_get_json_string(td_api::make_object<td_api::jsonValueBoolean>(true));
+      test_get_json_string(td_api::make_object<td_api::jsonValueNumber>(123456789123.0));
+      test_get_json_string(td_api::make_object<td_api::jsonValueString>(string("aba\0caba", 8)));
+      test_get_json_string(td_api::make_object<td_api::jsonValueString>("aba\200caba"));
 
       auto inner_array = td_api::make_object<td_api::jsonValueArray>();
       inner_array->values_.push_back(td_api::make_object<td_api::jsonValueBoolean>(false));
@@ -2406,16 +2412,33 @@ class CliClient final : public Actor {
       array->values_.push_back(std::move(inner_array));
       array->values_.push_back(td_api::make_object<td_api::jsonValueNull>());
       array->values_.push_back(td_api::make_object<td_api::jsonValueNumber>(-1));
-      execute(td_api::make_object<td_api::getJsonString>(std::move(array)));
+      test_get_json_string(std::move(array));
 
       auto object = td_api::make_object<td_api::jsonValueObject>();
       object->members_.push_back(
           td_api::make_object<td_api::jsonObjectMember>("", td_api::make_object<td_api::jsonValueString>("test")));
       object->members_.push_back(td_api::make_object<td_api::jsonObjectMember>("a", nullptr));
+      object->members_.push_back(td_api::make_object<td_api::jsonObjectMember>("\x80", nullptr));
       object->members_.push_back(nullptr);
       object->members_.push_back(
           td_api::make_object<td_api::jsonObjectMember>("a", td_api::make_object<td_api::jsonValueNull>()));
-      execute(td_api::make_object<td_api::getJsonString>(std::move(object)));
+      test_get_json_string(std::move(object));
+    } else if (op == "gac") {
+      send_request(td_api::make_object<td_api::getApplicationConfig>());
+    } else if (op == "sale") {
+      string type;
+      string chat_id;
+      string json;
+      std::tie(type, args) = split(args);
+      std::tie(chat_id, json) = split(args);
+
+      auto result = execute(td_api::make_object<td_api::getJsonValue>(json));
+      if (result->get_id() == td_api::error::ID) {
+        LOG(ERROR) << to_string(result);
+      } else {
+        send_request(td_api::make_object<td_api::saveApplicationLogEvent>(
+            type, as_chat_id(chat_id), move_tl_object_as<td_api::JsonValue>(result)));
+      }
     } else {
       op_not_found_count++;
     }

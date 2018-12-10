@@ -3445,6 +3445,13 @@ getInviteText = Text;
 getDeepLinkInfo link:string = DeepLinkInfo;
 
 
+//@description Returns application config, provided by the server. Can be called before authorization
+getApplicationConfig = JsonValue;
+
+//@description Saves application log event on the server. Can be called before authorization @type Event type @chat_id Optional chat identifier, associated with the event @data The log event data
+saveApplicationLogEvent type:string chat_id:int53 data:JsonValue = Ok;
+
+
 //@description Adds a proxy server for network requests. Can be called before authorization @server Proxy server IP address @port Proxy server port @enable True, if the proxy should be enabled @type Proxy type
 addProxy server:string port:int32 enable:Bool type:ProxyType = Proxy;
 

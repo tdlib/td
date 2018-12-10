@@ -6,8 +6,11 @@
 //
 #include "td/telegram/JsonValue.h"
 
+#include "td/telegram/misc.h"
+
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/misc.h"
+#include "td/utils/utf8.h"
 
 namespace td {
 
@@ -45,6 +48,82 @@ Result<td_api::object_ptr<td_api::JsonValue>> get_json_value(MutableSlice json) 
   return get_json_value_object(json_value);
 }
 
+static td_api::object_ptr<td_api::jsonObjectMember> convert_json_value_member_object(
+    const telegram_api::object_ptr<telegram_api::jsonObjectValue> &json_object_value) {
+  CHECK(json_object_value != nullptr);
+  return td_api::make_object<td_api::jsonObjectMember>(json_object_value->key_,
+                                                       convert_json_value_object(json_object_value->value_));
+}
+
+td_api::object_ptr<td_api::JsonValue> convert_json_value_object(
+    const tl_object_ptr<telegram_api::JSONValue> &json_value) {
+  CHECK(json_value != nullptr);
+  switch (json_value->get_id()) {
+    case telegram_api::jsonNull::ID:
+      return td_api::make_object<td_api::jsonValueNull>();
+    case telegram_api::jsonBool::ID:
+      return td_api::make_object<td_api::jsonValueBoolean>(
+          static_cast<const telegram_api::jsonBool *>(json_value.get())->value_);
+    case telegram_api::jsonNumber::ID:
+      return td_api::make_object<td_api::jsonValueNumber>(
+          static_cast<const telegram_api::jsonNumber *>(json_value.get())->value_);
+    case telegram_api::jsonString::ID:
+      return td_api::make_object<td_api::jsonValueString>(
+          static_cast<const telegram_api::jsonString *>(json_value.get())->value_);
+    case telegram_api::jsonArray::ID:
+      return td_api::make_object<td_api::jsonValueArray>(
+          transform(static_cast<const telegram_api::jsonArray *>(json_value.get())->value_, convert_json_value_object));
+    case telegram_api::jsonObject::ID:
+      return td_api::make_object<td_api::jsonValueObject>(transform(
+          static_cast<const telegram_api::jsonObject *>(json_value.get())->value_, convert_json_value_member_object));
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
+static telegram_api::object_ptr<telegram_api::jsonObjectValue> convert_json_value_member(
+    td_api::object_ptr<td_api::jsonObjectMember> &&json_object_member) {
+  CHECK(json_object_member != nullptr);
+  if (!clean_input_string(json_object_member->key_)) {
+    json_object_member->key_.clear();
+  }
+  return telegram_api::make_object<telegram_api::jsonObjectValue>(
+      json_object_member->key_, convert_json_value(std::move(json_object_member->value_)));
+}
+
+tl_object_ptr<telegram_api::JSONValue> convert_json_value(td_api::object_ptr<td_api::JsonValue> &&json_value) {
+  if (json_value == nullptr) {
+    return td_api::make_object<telegram_api::jsonNull>();
+  }
+  switch (json_value->get_id()) {
+    case td_api::jsonValueNull::ID:
+      return telegram_api::make_object<telegram_api::jsonNull>();
+    case td_api::jsonValueBoolean::ID:
+      return telegram_api::make_object<telegram_api::jsonBool>(
+          static_cast<const td_api::jsonValueBoolean *>(json_value.get())->value_);
+    case td_api::jsonValueNumber::ID:
+      return telegram_api::make_object<telegram_api::jsonNumber>(
+          static_cast<const td_api::jsonValueNumber *>(json_value.get())->value_);
+    case td_api::jsonValueString::ID: {
+      auto &str = static_cast<td_api::jsonValueString *>(json_value.get())->value_;
+      if (!clean_input_string(str)) {
+        str.clear();
+      }
+      return telegram_api::make_object<telegram_api::jsonString>(str);
+    }
+    case td_api::jsonValueArray::ID:
+      return telegram_api::make_object<telegram_api::jsonArray>(
+          transform(std::move(static_cast<td_api::jsonValueArray *>(json_value.get())->values_), convert_json_value));
+    case td_api::jsonValueObject::ID:
+      return telegram_api::make_object<telegram_api::jsonObject>(transform(
+          std::move(static_cast<td_api::jsonValueObject *>(json_value.get())->members_), convert_json_value_member));
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
 namespace {
 
 class JsonableJsonValue : public Jsonable {
@@ -66,9 +145,16 @@ class JsonableJsonValue : public Jsonable {
       case td_api::jsonValueNumber::ID:
         *scope << static_cast<const td_api::jsonValueNumber *>(json_value_)->value_;
         break;
-      case td_api::jsonValueString::ID:
-        *scope << static_cast<const td_api::jsonValueString *>(json_value_)->value_;
+      case td_api::jsonValueString::ID: {
+        auto &str = static_cast<const td_api::jsonValueString *>(json_value_)->value_;
+        if (!check_utf8(str)) {
+          LOG(ERROR) << "Have incorrect UTF-8 string " << str;
+          *scope << "";
+        } else {
+          *scope << str;
+        }
         break;
+      }
       case td_api::jsonValueArray::ID: {
         auto array = scope->enter_array();
         for (auto &value : static_cast<const td_api::jsonValueArray *>(json_value_)->values_) {
@@ -80,7 +166,11 @@ class JsonableJsonValue : public Jsonable {
         auto object = scope->enter_object();
         for (auto &member : static_cast<const td_api::jsonValueObject *>(json_value_)->members_) {
           if (member != nullptr) {
-            object << ctie(member->key_, JsonableJsonValue(member->value_.get()));
+            if (!check_utf8(member->key_)) {
+              LOG(ERROR) << "Have incorrect UTF-8 object key " << member->key_;
+            } else {
+              object << ctie(member->key_, JsonableJsonValue(member->value_.get()));
+            }
           }
         }
         break;
