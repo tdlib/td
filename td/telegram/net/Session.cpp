@@ -963,8 +963,7 @@ void Session::connection_open_finish(ConnectionInfo *info,
   auto name = PSTRING() << get_name() << "::Connect::" << mode_name << "::" << raw_connection->debug_str_;
   LOG(INFO) << "connection_open_finish: " << name;
   //LOG(ERROR) << "connection_open_finish: " << name;
-  info->connection =
-      make_unique<mtproto::SessionConnection>(mode, std::move(raw_connection), &auth_data_, DhCache::instance());
+  info->connection = make_unique<mtproto::SessionConnection>(mode, std::move(raw_connection), &auth_data_);
   info->connection->set_online(connection_online_flag_, is_main_);
   info->connection->set_name(name);
   Scheduler::subscribe(info->connection->get_poll_info().extract_pollable_fd(this));

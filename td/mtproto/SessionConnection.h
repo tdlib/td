@@ -65,7 +65,7 @@ class SessionConnection
     , private RawConnection::Callback {
  public:
   enum class Mode { Tcp, Http, HttpLongPoll };
-  SessionConnection(Mode mode, unique_ptr<RawConnection> raw_connection, AuthData *auth_data, DhCallback *dh_callback);
+  SessionConnection(Mode mode, unique_ptr<RawConnection> raw_connection, AuthData *auth_data);
 
   PollableFdInfo &get_poll_info();
 
@@ -194,16 +194,15 @@ class SessionConnection
   unique_ptr<RawConnection> raw_connection_;
   AuthData *auth_data_;
   SessionConnection::Callback *callback_ = nullptr;
-  DhCallback *dh_callback_;
-  BufferSlice *current_buffer_slice;
+  BufferSlice *current_buffer_slice_;
 
   friend class OnPacket;
 
   BufferSlice as_buffer_slice(Slice packet);
   auto set_buffer_slice(BufferSlice *buffer_slice) TD_WARN_UNUSED_RESULT {
-    auto old_buffer_slice = current_buffer_slice;
-    current_buffer_slice = buffer_slice;
-    return ScopeExit() + [&to = current_buffer_slice, from = old_buffer_slice] { to = from; };
+    auto old_buffer_slice = current_buffer_slice_;
+    current_buffer_slice_ = buffer_slice;
+    return ScopeExit() + [&to = current_buffer_slice_, from = old_buffer_slice] { to = from; };
   }
 
   Status parse_message(TlParser &parser, MsgInfo *info, Slice *packet, bool crypto_flag = true) TD_WARN_UNUSED_RESULT;

@@ -186,7 +186,7 @@ class OnPacket {
 
 /*** SessionConnection ***/
 BufferSlice SessionConnection::as_buffer_slice(Slice packet) {
-  return current_buffer_slice->from_slice(packet);
+  return current_buffer_slice_->from_slice(packet);
 }
 
 Status SessionConnection::parse_message(TlParser &parser, MsgInfo *info, Slice *packet, bool crypto_flag) {
@@ -694,9 +694,8 @@ void SessionConnection::on_read(size_t size) {
   last_read_at_ = Time::now_cached();
 }
 
-SessionConnection::SessionConnection(Mode mode, unique_ptr<RawConnection> raw_connection, AuthData *auth_data,
-                                     DhCallback *dh_callback)
-    : raw_connection_(std::move(raw_connection)), auth_data_(auth_data), dh_callback_(dh_callback) {
+SessionConnection::SessionConnection(Mode mode, unique_ptr<RawConnection> raw_connection, AuthData *auth_data)
+    : raw_connection_(std::move(raw_connection)), auth_data_(auth_data) {
   state_ = Init;
   mode_ = mode;
   created_at_ = Time::now();
