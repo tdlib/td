@@ -117,8 +117,7 @@ void SessionMultiProxy::init() {
     string name = PSTRING() << "Session" << get_name().substr(Slice("SessionMulti").size())
                             << format::cond(session_count_ > 1, format::concat("#", i));
     sessions_.push_back(create_actor<SessionProxy>(name, auth_data_, is_main_, allow_media_only_, is_media_,
-                                                   get_pfs_flag(), is_main_ && i != 0, is_cdn_,
-                                                   need_destroy_auth_key_ && i == 0));
+                                                   get_pfs_flag(), is_cdn_, need_destroy_auth_key_ && i == 0));
   }
 }
 

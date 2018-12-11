@@ -22,7 +22,7 @@ class SessionProxy : public Actor {
   friend class SessionCallback;
 
   SessionProxy(std::shared_ptr<AuthDataShared> shared_auth_data, bool is_main, bool allow_media_only, bool is_media,
-               bool use_pfs, bool need_wait_for_key, bool is_cdn, bool need_destroy);
+               bool use_pfs, bool is_cdn, bool need_destroy);
 
   void send(NetQueryPtr query);
   void update_main_flag(bool is_main);
@@ -38,7 +38,6 @@ class SessionProxy : public Actor {
   bool use_pfs_;
   mtproto::AuthKey tmp_auth_key_;
   std::vector<mtproto::ServerSalt> server_salts_;
-  bool need_wait_for_key_;
   bool is_cdn_;
   bool need_destroy_;
   ActorOwn<Session> session_;

@@ -63,13 +63,12 @@ class SessionCallback : public Session::Callback {
 };
 
 SessionProxy::SessionProxy(std::shared_ptr<AuthDataShared> shared_auth_data, bool is_main, bool allow_media_only,
-                           bool is_media, bool use_pfs, bool need_wait_for_key, bool is_cdn, bool need_destroy)
+                           bool is_media, bool use_pfs, bool is_cdn, bool need_destroy)
     : auth_data_(std::move(shared_auth_data))
     , is_main_(is_main)
     , allow_media_only_(allow_media_only)
     , is_media_(is_media)
     , use_pfs_(use_pfs)
-    , need_wait_for_key_(need_wait_for_key)
     , is_cdn_(is_cdn)
     , need_destroy_(need_destroy) {
 }
