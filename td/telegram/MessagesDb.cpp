@@ -535,7 +535,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
   }
 
   Result<vector<BufferSlice>> get_messages_from_notification_id(DialogId dialog_id, NotificationId from_notification_id,
-                                                                int32 limit) {
+                                                                int32 limit) override {
     auto &stmt = get_messages_from_notification_id_stmt_;
     SCOPE_EXIT {
       stmt.reset();

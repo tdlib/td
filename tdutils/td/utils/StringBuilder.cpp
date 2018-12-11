@@ -6,16 +6,51 @@
 //
 #include "td/utils/StringBuilder.h"
 
+#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/thread_local.h"
+#include "td/utils/Slice.h"
 
 #include <cstdio>
+#include <cstring>
 #include <limits>
 #include <locale>
+#include <memory>
 #include <sstream>
 #include <utility>
 
 namespace td {
+
+StringBuilder::StringBuilder(MutableSlice slice, bool use_buffer)
+    : begin_ptr_(slice.begin()), current_ptr_(begin_ptr_), use_buffer_(use_buffer) {
+  if (slice.size() <= reserved_size) {
+    auto buffer_size = reserved_size + 100;
+    buffer_ = std::make_unique<char[]>(buffer_size);
+    begin_ptr_ = buffer_.get();
+    current_ptr_ = begin_ptr_;
+    end_ptr_ = begin_ptr_ + buffer_size - reserved_size;
+  } else {
+    end_ptr_ = slice.end() - reserved_size;
+  }
+}
+
+StringBuilder &StringBuilder::operator<<(Slice slice) {
+  size_t size = slice.size();
+  if (unlikely(!reserve(size))) {
+    if (end_ptr_ < current_ptr_) {
+      return on_error();
+    }
+    auto available_size = static_cast<size_t>(end_ptr_ + reserved_size - 1 - current_ptr_);
+    if (size > available_size) {
+      error_flag_ = true;
+      size = available_size;
+    }
+  }
+
+  std::memcpy(current_ptr_, slice.begin(), size);
+  current_ptr_ += size;
+  return *this;
+}
 
 template <class T>
 static char *print_uint(char *current_ptr, T x) {

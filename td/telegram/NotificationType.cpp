@@ -32,7 +32,7 @@ class NotificationTypeMessage : public NotificationType {
     return string_builder << "NewMessageNotification[" << message_id_ << ']';
   }
 
-  Type get_type() const {
+  Type get_type() const override {
     return Type::Message;
   }
 
@@ -60,7 +60,7 @@ class NotificationTypeSecretChat : public NotificationType {
     return string_builder << "NewSecretChatNotification[]";
   }
 
-  Type get_type() const {
+  Type get_type() const override {
     return Type::SecretChat;
   }
 
@@ -86,7 +86,7 @@ class NotificationTypeCall : public NotificationType {
     return string_builder << "NewCallNotification[" << call_id_ << ']';
   }
 
-  Type get_type() const {
+  Type get_type() const override {
     return Type::Call;
   }
 

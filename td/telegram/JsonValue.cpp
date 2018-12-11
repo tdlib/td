@@ -9,8 +9,11 @@
 #include "td/telegram/misc.h"
 
 #include "td/utils/JsonBuilder.h"
+#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/utf8.h"
+
+#include <utility>
 
 namespace td {
 

@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/CallId.h"
+#include "td/telegram/DialogId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/td_api.h"
 

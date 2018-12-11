@@ -675,7 +675,6 @@ class FullRemoteFileLocation {
 #define as_input_web_file_location() as_input_web_file_location_impl(__FILE__, __LINE__)
   tl_object_ptr<telegram_api::inputWebFileLocation> as_input_web_file_location_impl(const char *file, int line) const {
     CHECK(is_web()) << file << ' ' << line;
-    ;
     return make_tl_object<telegram_api::inputWebFileLocation>(web().url_, web().access_hash_);
   }
 

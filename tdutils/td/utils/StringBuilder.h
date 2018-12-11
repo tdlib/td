@@ -11,25 +11,14 @@
 #include "td/utils/StackAllocator.h"
 
 #include <cstdlib>
-#include <cstring>
+#include <memory>
 #include <type_traits>
 
 namespace td {
 
 class StringBuilder {
  public:
-  explicit StringBuilder(MutableSlice slice, bool use_buffer = false)
-      : begin_ptr_(slice.begin()), current_ptr_(begin_ptr_), use_buffer_(use_buffer) {
-    if (slice.size() <= reserved_size) {
-      auto buffer_size = reserved_size + 100;
-      buffer_ = std::make_unique<char[]>(buffer_size);
-      begin_ptr_ = buffer_.get();
-      current_ptr_ = begin_ptr_;
-      end_ptr_ = begin_ptr_ + buffer_size - reserved_size;
-    } else {
-      end_ptr_ = slice.end() - reserved_size;
-    }
-  }
+  explicit StringBuilder(MutableSlice slice, bool use_buffer = false);
 
   void clear() {
     current_ptr_ = begin_ptr_;
@@ -54,23 +43,7 @@ class StringBuilder {
 
   StringBuilder &operator<<(const wchar_t *str) = delete;
 
-  StringBuilder &operator<<(Slice slice) {
-    size_t size = slice.size();
-    if (unlikely(!reserve(size))) {
-      if (end_ptr_ < current_ptr_) {
-        return on_error();
-      }
-      auto available_size = static_cast<size_t>(end_ptr_ + reserved_size - 1 - current_ptr_);
-      if (size > available_size) {
-        error_flag_ = true;
-        size = available_size;
-      }
-    }
-
-    std::memcpy(current_ptr_, slice.begin(), size);
-    current_ptr_ += size;
-    return *this;
-  }
+  StringBuilder &operator<<(Slice slice);
 
   StringBuilder &operator<<(bool b) {
     return *this << (b ? Slice("true") : Slice("false"));

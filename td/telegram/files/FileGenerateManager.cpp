@@ -18,10 +18,12 @@
 #include "td/telegram/Td.h"
 
 #include "td/utils/common.h"
+#include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Parser.h"
 #include "td/utils/port/path.h"
+#include "td/utils/port/Stat.h"
 #include "td/utils/Slice.h"
 
 #include <cmath>

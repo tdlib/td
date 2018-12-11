@@ -20,11 +20,14 @@
 #include "td/actor/Timeout.h"
 
 #include "td/utils/common.h"
+#include "td/utils/logging.h"
+#include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 
 #include <functional>
 #include <map>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace td {
 

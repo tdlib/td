@@ -17,6 +17,7 @@
 #include "td/actor/Timeout.h"
 
 #include "td/utils/common.h"
+#include "td/utils/logging.h"
 
 #include <map>
 #include <unordered_set>

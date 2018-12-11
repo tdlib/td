@@ -13,7 +13,7 @@
 #include <openssl/rand.h>
 #endif
 
-#include <array>
+#include <atomic>
 #include <cstring>
 #include <limits>
 #include <random>
@@ -21,18 +21,17 @@
 namespace td {
 
 #if TD_HAVE_OPENSSL
+
 namespace {
-constexpr size_t secure_bytes_buffer_size = 512;
-}
+std::atomic<int64> random_seed_generation{0};
+}  // namespace
+
 void Random::secure_bytes(MutableSlice dest) {
   Random::secure_bytes(dest.ubegin(), dest.size());
 }
-namespace {
-std::atomic<int64> random_seed_generation{0};
-}
 
 void Random::secure_bytes(unsigned char *ptr, size_t size) {
-  constexpr size_t buf_size = secure_bytes_buffer_size;
+  constexpr size_t buf_size = 512;
   static TD_THREAD_LOCAL unsigned char *buf;  // static zero-initialized
   static TD_THREAD_LOCAL size_t buf_pos;
   static TD_THREAD_LOCAL int64 generation;

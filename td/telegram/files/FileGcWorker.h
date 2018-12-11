@@ -13,6 +13,8 @@
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileStats.h"
 
+#include "td/utils/logging.h"
+
 namespace td {
 
 extern int VERBOSITY_NAME(file_gc);
