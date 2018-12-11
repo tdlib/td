@@ -1125,7 +1125,7 @@ class MessagesManager : public Actor {
 
   struct PendingSecretMessage {
     MessageInfo message_info;
-    MultiPromiseActor load_data_multipromise;
+    MultiPromiseActor load_data_multipromise{"LoadPendingSecretMessageDataMultiPromiseActor"};
     Promise<> success_promise;
   };
 
@@ -1980,7 +1980,7 @@ class MessagesManager : public Actor {
   bool is_broadcast_channel(DialogId dialog_id) const;
 
   int32 recently_found_dialogs_loaded_ = 0;  // 0 - not loaded, 1 - load request was sent, 2 - loaded
-  MultiPromiseActor resolve_recent_found_dialogs_multipromise_;
+  MultiPromiseActor resolve_recently_found_dialogs_multipromise_{"ResolveRecentlyFoundDialogsMultiPromiseActor"};
 
   vector<DialogId> recently_found_dialog_ids_;
 
@@ -2171,7 +2171,8 @@ class MessagesManager : public Actor {
   DialogDate last_loaded_database_dialog_date_ = MIN_DIALOG_DATE;
   DialogDate last_database_server_dialog_date_ = MIN_DIALOG_DATE;
 
-  MultiPromiseActor load_dialog_list_multipromise_;  // should be defined before pending_on_get_dialogs_
+  MultiPromiseActor load_dialog_list_multipromise_{
+      "LoadDialogListMultiPromiseActor"};  // should be defined before pending_on_get_dialogs_
   Timeout preload_dialog_list_timeout_;
 
   std::unordered_map<DialogId, string, DialogIdHash> active_get_channel_differencies_;

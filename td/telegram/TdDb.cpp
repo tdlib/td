@@ -193,7 +193,7 @@ void TdDb::close_and_destroy_all(Promise<> on_finished) {
   do_close(std::move(on_finished), true /*destroy_flag*/);
 }
 void TdDb::do_close(Promise<> on_finished, bool destroy_flag) {
-  MultiPromiseActorSafe mpas;
+  MultiPromiseActorSafe mpas{"TdDbCloseMultiPromiseActor"};
   mpas.add_promise(PromiseCreator::lambda(
       [promise = std::move(on_finished), sql_connection = std::move(sql_connection_), destroy_flag](Unit) mutable {
         if (sql_connection) {

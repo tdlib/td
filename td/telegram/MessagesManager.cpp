@@ -21357,7 +21357,7 @@ void MessagesManager::do_delete_message_logevent(const DeleteMessageLogEvent &lo
       logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteMessage, storer);
     }
 
-    MultiPromiseActorSafe mpas;
+    MultiPromiseActorSafe mpas{"DeleteMessageMultiPromiseActor"};
     mpas.add_promise(PromiseCreator::lambda([logevent_id](Result<Unit> result) {
       if (result.is_error()) {
         return;
@@ -23799,7 +23799,7 @@ bool MessagesManager::load_recently_found_dialogs(Promise<Unit> &promise) {
   }
 
   auto found_dialogs = full_split(found_dialogs_str, ',');
-  if (recently_found_dialogs_loaded_ == 1 && resolve_recent_found_dialogs_multipromise_.promise_count() == 0) {
+  if (recently_found_dialogs_loaded_ == 1 && resolve_recently_found_dialogs_multipromise_.promise_count() == 0) {
     // queries was sent and have already been finished
     auto newly_found_dialogs = std::move(recently_found_dialog_ids_);
     recently_found_dialog_ids_.clear();
@@ -23830,15 +23830,15 @@ bool MessagesManager::load_recently_found_dialogs(Promise<Unit> &promise) {
     return true;
   }
 
-  resolve_recent_found_dialogs_multipromise_.add_promise(std::move(promise));
+  resolve_recently_found_dialogs_multipromise_.add_promise(std::move(promise));
   if (recently_found_dialogs_loaded_ == 0) {
     recently_found_dialogs_loaded_ = 1;
 
-    resolve_recent_found_dialogs_multipromise_.set_ignore_errors(true);
+    resolve_recently_found_dialogs_multipromise_.set_ignore_errors(true);
 
     for (auto &found_dialog : found_dialogs) {
       if (found_dialog[0] == '@') {
-        search_public_dialog(found_dialog, false, resolve_recent_found_dialogs_multipromise_.get_promise());
+        search_public_dialog(found_dialog, false, resolve_recently_found_dialogs_multipromise_.get_promise());
       }
     }
     if (G()->parameters().use_message_db) {
@@ -23847,14 +23847,14 @@ bool MessagesManager::load_recently_found_dialogs(Promise<Unit> &promise) {
           auto dialog_id = DialogId(to_integer<int64>(found_dialog));
           CHECK(dialog_id.is_valid());
           // TODO use asynchronous load
-          // get_dialog(dialog_id, resolve_recent_found_dialogs_multipromise_.get_promise());
+          // get_dialog(dialog_id, resolve_recently_found_dialogs_multipromise_.get_promise());
           get_dialog_force(dialog_id);
         }
       }
-      resolve_recent_found_dialogs_multipromise_.get_promise().set_value(Unit());
+      resolve_recently_found_dialogs_multipromise_.get_promise().set_value(Unit());
     } else {
-      get_dialogs(MIN_DIALOG_DATE, MAX_GET_DIALOGS, false, resolve_recent_found_dialogs_multipromise_.get_promise());
-      td_->contacts_manager_->search_contacts("", 1, resolve_recent_found_dialogs_multipromise_.get_promise());
+      get_dialogs(MIN_DIALOG_DATE, MAX_GET_DIALOGS, false, resolve_recently_found_dialogs_multipromise_.get_promise());
+      td_->contacts_manager_->search_contacts("", 1, resolve_recently_found_dialogs_multipromise_.get_promise());
     }
   }
   return false;

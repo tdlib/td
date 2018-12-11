@@ -1099,7 +1099,7 @@ class ContactsManager : public Actor {
   int32 next_contacts_sync_date_ = 0;
   Hints contacts_hints_;  // search contacts by first name, last name and username
   vector<Promise<Unit>> load_contacts_queries_;
-  MultiPromiseActor load_contact_users_multipromise_;
+  MultiPromiseActor load_contact_users_multipromise_{"LoadContactUsersMultiPromiseActor"};
   int32 saved_contact_count_ = -1;
 
   int32 was_online_local_ = 0;
@@ -1107,7 +1107,7 @@ class ContactsManager : public Actor {
 
   bool are_imported_contacts_loaded_ = false;
   vector<Promise<Unit>> load_imported_contacts_queries_;
-  MultiPromiseActor load_imported_contact_users_multipromise_;
+  MultiPromiseActor load_imported_contact_users_multipromise_{"LoadImportedContactUsersMultiPromiseActor"};
   vector<Contact> all_imported_contacts_;
   bool are_imported_contacts_changing_ = false;
   bool need_clear_imported_contacts_ = false;

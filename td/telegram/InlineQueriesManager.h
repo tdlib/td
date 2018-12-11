@@ -118,7 +118,7 @@ class InlineQueriesManager : public Actor {
   void tear_down() override;
 
   int32 recently_used_bots_loaded_ = 0;  // 0 - not loaded, 1 - load request was sent, 2 - loaded
-  MultiPromiseActor resolve_recent_inline_bots_multipromise_;
+  MultiPromiseActor resolve_recent_inline_bots_multipromise_{"ResolveRecentInlineBotsMultiPromiseActor"};
 
   vector<UserId> recently_used_bot_user_ids_;
 

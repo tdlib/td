@@ -1328,7 +1328,7 @@ Status SecretChatActor::do_inbound_message_decrypted(unique_ptr<logevent::Inboun
         if (random_ids.size() == 1) {
           context_->on_read_message(random_ids[0], std::move(save_message_finish));
         } else {  // probably never happens
-          MultiPromiseActorSafe mpas;
+          MultiPromiseActorSafe mpas{"ReadSecretMessagesMultiPromiseActor"};
           mpas.add_promise(std::move(save_message_finish));
           auto lock = mpas.get_promise();
           for (auto random_id : random_ids) {

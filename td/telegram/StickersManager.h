@@ -30,7 +30,6 @@
 #include <utility>
 
 namespace td {
-class MultiPromiseActor;
 class Td;
 }  // namespace td
 
@@ -274,7 +273,7 @@ class StickersManager : public Actor {
   };
 
   struct PendingNewStickerSet {
-    MultiPromiseActor upload_files_multipromise;
+    MultiPromiseActor upload_files_multipromise{"UploadNewStickerSetFilesMultiPromiseActor"};
     UserId user_id;
     string title;
     string short_name;

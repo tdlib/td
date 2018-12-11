@@ -517,7 +517,7 @@ class MultiPromise2 : public Actor {
       Scheduler::instance()->finish();
     });
 
-    MultiPromiseActorSafe multi_promise;
+    MultiPromiseActorSafe multi_promise{"MultiPromiseActor2"};
     multi_promise.add_promise(std::move(promise));
     for (int i = 0; i < 10; i++) {
       create_actor<SleepActor>("Sleep", 0.1, multi_promise.get_promise()).release();
@@ -532,7 +532,7 @@ class MultiPromise1 : public Actor {
       CHECK(result.is_error());
       create_actor<MultiPromise2>("B").release();
     });
-    MultiPromiseActorSafe multi_promise;
+    MultiPromiseActorSafe multi_promise{"MultiPromiseActor1"};
     multi_promise.add_promise(std::move(promise));
   }
 };

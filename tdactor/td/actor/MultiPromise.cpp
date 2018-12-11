@@ -13,9 +13,6 @@ void MultiPromiseActor::add_promise(Promise<Unit> &&promise) {
 }
 
 Promise<Unit> MultiPromiseActor::get_promise() {
-  if (empty()) {
-    register_actor("MultiPromise", this).release();
-  }
   CHECK(!promises_.empty());
 
   PromiseActor<Unit> promise;

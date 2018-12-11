@@ -9151,7 +9151,7 @@ void ContactsManager::on_load_dialog_administrators_from_database(DialogId dialo
 
   LOG(INFO) << "Successfully loaded " << user_ids.size() << " administrators in " << dialog_id << " from database";
 
-  MultiPromiseActorSafe load_users_multipromise;
+  MultiPromiseActorSafe load_users_multipromise{"LoadUsersMultiPromiseActor"};
   load_users_multipromise.add_promise(
       PromiseCreator::lambda([dialog_id, user_ids, promise = std::move(promise)](Result<> result) mutable {
         send_closure(G()->contacts_manager(), &ContactsManager::on_load_administrator_users_finished, dialog_id,

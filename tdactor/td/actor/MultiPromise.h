@@ -41,7 +41,6 @@ class MultiPromise : public MultiPromiseInterface {
     return impl_->get_promise();
   }
 
-  // deprecated?
   size_t promise_count() const override {
     return impl_->promise_count();
   }
@@ -61,7 +60,9 @@ class MultiPromiseActor final
     : public Actor
     , public MultiPromiseInterface {
  public:
-  MultiPromiseActor() = default;
+  MultiPromiseActor(Slice name) {
+    register_actor(name, this).release();
+  }
 
   void add_promise(Promise<Unit> &&promise) override;
 
@@ -95,7 +96,8 @@ class MultiPromiseActorSafe : public MultiPromiseInterface {
   Promise<Unit> get_promise() override;
   void set_ignore_errors(bool ignore_errors) override;
   size_t promise_count() const override;
-  MultiPromiseActorSafe() = default;
+  explicit MultiPromiseActorSafe(Slice name) : multi_promise_(make_unique<MultiPromiseActor>(name)) {
+  }
   MultiPromiseActorSafe(const MultiPromiseActorSafe &other) = delete;
   MultiPromiseActorSafe &operator=(const MultiPromiseActorSafe &other) = delete;
   MultiPromiseActorSafe(MultiPromiseActorSafe &&other) = delete;
@@ -103,14 +105,7 @@ class MultiPromiseActorSafe : public MultiPromiseInterface {
   ~MultiPromiseActorSafe() override;
 
  private:
-  unique_ptr<MultiPromiseActor> multi_promise_ = make_unique<MultiPromiseActor>();
-};
-
-class MultiPromiseCreator {
- public:
-  static MultiPromise create() {
-    return MultiPromise(make_unique<MultiPromiseActor>());
-  }
+  unique_ptr<MultiPromiseActor> multi_promise_;
 };
 
 }  // namespace td
