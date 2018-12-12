@@ -63,23 +63,24 @@ Status setup_signals_alt_stack() {
 }
 
 #if TD_PORT_POSIX
+static void set_handler(struct sigaction &act, decltype(act.sa_handler) handler) {
+  act.sa_handler = handler;
+}
+static void set_handler(struct sigaction &act, decltype(act.sa_sigaction) handler) {
+  act.sa_sigaction = handler;
+  act.sa_flags |= SA_SIGINFO;
+}
 template <class F>
-static Status set_signal_handler_impl(vector<int> signals, F func, bool is_extended = false) {
+static Status set_signal_handler_impl(vector<int> signals, F func) {
   struct sigaction act;
   std::memset(&act, '\0', sizeof(act));
-  if (is_extended) {  // TODO if constexpr, remove useless reinterpret_cast
-    act.sa_handler = reinterpret_cast<decltype(act.sa_handler)>(func);
-  } else {
-    act.sa_sigaction = reinterpret_cast<decltype(act.sa_sigaction)>(func);
-  }
+
   sigemptyset(&act.sa_mask);
   for (auto signal : signals) {
     sigaddset(&act.sa_mask, signal);
   }
   act.sa_flags = SA_RESTART | SA_ONSTACK;
-  if (is_extended) {
-    act.sa_flags |= SA_SIGINFO;
-  }
+  set_handler(act, func);
 
   for (auto signal : signals) {
     if (sigaction(signal, &act, nullptr) != 0) {
@@ -111,7 +112,7 @@ static vector<int> get_native_signals(SignalType type) {
 }
 #endif
 #if TD_PORT_WINDOWS
-static Status set_signal_handler_impl(vector<int> signals, void (*func)(int sig), bool /*unused*/ = true) {
+static Status set_signal_handler_impl(vector<int> signals, void (*func)(int sig)) {
   for (auto signal : signals) {
     if (std::signal(signal, func) == SIG_ERR) {
       return Status::Error("Failed to set signal handler");
@@ -171,7 +172,7 @@ Status set_extended_signal_handler(SignalType type, extended_signal_handler func
       UNREACHABLE();
     }
   }
-  return set_signal_handler_impl(std::move(signals), siginfo_handler, true);
+  return set_signal_handler_impl(std::move(signals), siginfo_handler);
 }
 
 Status set_runtime_signal_handler(int runtime_signal_number, void (*func)(int)) {
