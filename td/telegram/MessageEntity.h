@@ -154,6 +154,9 @@ FormattedText get_message_text(const ContactsManager *contacts_manager, string m
                                vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities, int32 send_date,
                                const char *source);
 
+Result<FormattedText> process_input_caption(const ContactsManager *contacts_manager, DialogId dialog_id,
+                                            tl_object_ptr<td_api::formattedText> &&text, bool is_bot);
+
 void add_formatted_text_dependencies(Dependencies &dependencies, const FormattedText *text);
 
 bool need_skip_bot_commands(const ContactsManager *contacts_manager, DialogId dialog_id, bool is_bot);

@@ -14412,18 +14412,6 @@ tl_object_ptr<td_api::messages> MessagesManager::get_messages_object(
   return td_api::make_object<td_api::messages>(total_count, std::move(messages));
 }
 
-Result<FormattedText> MessagesManager::process_input_caption(DialogId dialog_id,
-                                                             tl_object_ptr<td_api::formattedText> &&text,
-                                                             bool is_bot) const {
-  if (text == nullptr) {
-    return FormattedText();
-  }
-  TRY_RESULT(entities, get_message_entities(td_->contacts_manager_.get(), std::move(text->entities_)));
-  TRY_STATUS(fix_formatted_text(text->text_, entities, true, false,
-                                need_skip_bot_commands(td_->contacts_manager_.get(), dialog_id, is_bot), false));
-  return FormattedText{std::move(text->text_), std::move(entities)};
-}
-
 MessagesManager::Message *MessagesManager::get_message_to_send(Dialog *d, MessageId reply_to_message_id,
                                                                bool disable_notification, bool from_background,
                                                                unique_ptr<MessageContent> &&content,
@@ -15000,27 +14988,30 @@ Result<FormattedText> MessagesManager::get_input_caption(
   switch (input_message_content->get_id()) {
     case td_api::inputMessageAnimation::ID: {
       auto input_animation = static_cast<td_api::inputMessageAnimation *>(input_message_content.get());
-      return process_input_caption(dialog_id, std::move(input_animation->caption_), is_bot);
+      return process_input_caption(td_->contacts_manager_.get(), dialog_id, std::move(input_animation->caption_),
+                                   is_bot);
     }
     case td_api::inputMessageAudio::ID: {
       auto input_audio = static_cast<td_api::inputMessageAudio *>(input_message_content.get());
-      return process_input_caption(dialog_id, std::move(input_audio->caption_), is_bot);
+      return process_input_caption(td_->contacts_manager_.get(), dialog_id, std::move(input_audio->caption_), is_bot);
     }
     case td_api::inputMessageDocument::ID: {
       auto input_document = static_cast<td_api::inputMessageDocument *>(input_message_content.get());
-      return process_input_caption(dialog_id, std::move(input_document->caption_), is_bot);
+      return process_input_caption(td_->contacts_manager_.get(), dialog_id, std::move(input_document->caption_),
+                                   is_bot);
     }
     case td_api::inputMessagePhoto::ID: {
       auto input_photo = static_cast<td_api::inputMessagePhoto *>(input_message_content.get());
-      return process_input_caption(dialog_id, std::move(input_photo->caption_), is_bot);
+      return process_input_caption(td_->contacts_manager_.get(), dialog_id, std::move(input_photo->caption_), is_bot);
     }
     case td_api::inputMessageVideo::ID: {
       auto input_video = static_cast<td_api::inputMessageVideo *>(input_message_content.get());
-      return process_input_caption(dialog_id, std::move(input_video->caption_), is_bot);
+      return process_input_caption(td_->contacts_manager_.get(), dialog_id, std::move(input_video->caption_), is_bot);
     }
     case td_api::inputMessageVoiceNote::ID: {
       auto input_voice_note = static_cast<td_api::inputMessageVoiceNote *>(input_message_content.get());
-      return process_input_caption(dialog_id, std::move(input_voice_note->caption_), is_bot);
+      return process_input_caption(td_->contacts_manager_.get(), dialog_id, std::move(input_voice_note->caption_),
+                                   is_bot);
     }
     default:
       return FormattedText();
@@ -16396,7 +16387,8 @@ void MessagesManager::edit_message_caption(FullMessageId full_message_id,
     return promise.set_error(Status::Error(400, "There is no caption in the message to edit"));
   }
 
-  auto r_caption = process_input_caption(dialog_id, std::move(input_caption), td_->auth_manager_->is_bot());
+  auto r_caption = process_input_caption(td_->contacts_manager_.get(), dialog_id, std::move(input_caption),
+                                         td_->auth_manager_->is_bot());
   if (r_caption.is_error()) {
     return promise.set_error(r_caption.move_as_error());
   }
@@ -16592,7 +16584,8 @@ void MessagesManager::edit_inline_message_caption(const string &inline_message_i
     return promise.set_error(Status::Error(3, "Method is available only for bots"));
   }
 
-  auto r_caption = process_input_caption(DialogId(), std::move(input_caption), td_->auth_manager_->is_bot());
+  auto r_caption = process_input_caption(td_->contacts_manager_.get(), DialogId(), std::move(input_caption),
+                                         td_->auth_manager_->is_bot());
   if (r_caption.is_error()) {
     return promise.set_error(r_caption.move_as_error());
   }

@@ -316,9 +316,6 @@ class MessagesManager : public Actor {
 
   DialogId search_public_dialog(const string &username_to_search, bool force, Promise<Unit> &&promise);
 
-  Result<FormattedText> process_input_caption(DialogId dialog_id, tl_object_ptr<td_api::formattedText> &&text,
-                                              bool is_bot) const;
-
   Result<FormattedText> get_input_caption(DialogId dialog_id,
                                           tl_object_ptr<td_api::InputMessageContent> &input_message_content,
                                           bool is_bot) const;

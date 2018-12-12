@@ -2230,6 +2230,17 @@ FormattedText get_message_text(const ContactsManager *contacts_manager, string m
   return FormattedText{std::move(message_text), std::move(entities)};
 }
 
+Result<FormattedText> process_input_caption(const ContactsManager *contacts_manager, DialogId dialog_id,
+                                            tl_object_ptr<td_api::formattedText> &&text, bool is_bot) {
+  if (text == nullptr) {
+    return FormattedText();
+  }
+  TRY_RESULT(entities, get_message_entities(contacts_manager, std::move(text->entities_)));
+  TRY_STATUS(fix_formatted_text(text->text_, entities, true, false,
+                                need_skip_bot_commands(contacts_manager, dialog_id, is_bot), false));
+  return FormattedText{std::move(text->text_), std::move(entities)};
+}
+
 void add_formatted_text_dependencies(Dependencies &dependencies, const FormattedText *text) {
   if (text == nullptr) {
     return;

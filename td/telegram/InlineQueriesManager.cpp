@@ -214,7 +214,7 @@ string InlineQueriesManager::get_inline_message_id(
 
 Result<FormattedText> InlineQueriesManager::process_input_caption(
     td_api::object_ptr<td_api::formattedText> &&caption) const {
-  return td_->messages_manager_->process_input_caption(DialogId(), std::move(caption), true);
+  return td::process_input_caption(td_->contacts_manager_.get(), DialogId(), std::move(caption), true);
 }
 
 tl_object_ptr<telegram_api::inputBotInlineMessageMediaAuto>
