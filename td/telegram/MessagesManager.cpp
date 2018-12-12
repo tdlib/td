@@ -21820,7 +21820,8 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
         update_dialog_notification_settings(dialog_id, &d->notification_settings, user_d->notification_settings);
       }
 
-      if (G()->parameters().use_message_db && !td_->contacts_manager_->get_secret_chat_is_outbound(secret_chat_id)) {
+      if (G()->parameters().use_message_db && !td_->auth_manager_->is_bot() &&
+          !td_->contacts_manager_->get_secret_chat_is_outbound(secret_chat_id)) {
         d->new_secret_chat_notification_id = get_next_notification_id(d, MessageId());
         auto date = td_->contacts_manager_->get_secret_chat_date(secret_chat_id);
         bool is_changed =

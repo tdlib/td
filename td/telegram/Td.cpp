@@ -3570,7 +3570,7 @@ void Td::on_config_option_updated(const string &name) {
     send_closure(language_pack_manager_, &LanguagePackManager::on_language_pack_version_changed, -1);
     return;
   } else if (name == "notification_group_count_max") {
-    send_closure(notification_manager_actor_, &NotificationManager::on_notification_group_count_max_changed);
+    send_closure(notification_manager_actor_, &NotificationManager::on_notification_group_count_max_changed, true);
   } else if (name == "notification_group_size_max") {
     send_closure(notification_manager_actor_, &NotificationManager::on_notification_group_size_max_changed);
   } else if (name == "online_cloud_timeout_ms") {

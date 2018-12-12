@@ -112,25 +112,27 @@ void NotificationManager::start_up() {
   current_notification_group_id_ =
       NotificationGroupId(to_integer<int32>(G()->td_db()->get_binlog_pmc()->get("notification_group_id_current")));
 
-  on_notification_group_count_max_changed();
+  on_notification_group_count_max_changed(false);
   on_notification_group_size_max_changed();
 
   on_online_cloud_timeout_changed();
   on_notification_cloud_delay_changed();
   on_notification_default_delay_changed();
 
-  last_loaded_notification_group_key_.last_notification_date = std::numeric_limits<int32>::max();
+  if (max_notification_group_count_ != 0) {
+    last_loaded_notification_group_key_.last_notification_date = std::numeric_limits<int32>::max();
 
-  int32 loaded_groups = 0;
-  int32 needed_groups = static_cast<int32>(max_notification_group_count_);
-  do {
-    loaded_groups += load_message_notification_groups_from_database(needed_groups, false);
-  } while (loaded_groups < needed_groups && last_loaded_notification_group_key_.last_notification_date != 0);
+    int32 loaded_groups = 0;
+    int32 needed_groups = static_cast<int32>(max_notification_group_count_);
+    do {
+      loaded_groups += load_message_notification_groups_from_database(needed_groups, false);
+    } while (loaded_groups < needed_groups && last_loaded_notification_group_key_.last_notification_date != 0);
 
-  auto update = get_update_active_notificaitons();
-  if (update != nullptr) {
-    VLOG(notifications) << "Send " << as_active_notifications_update(update.get());
-    send_closure(G()->td(), &Td::send_update, std::move(update));
+    auto update = get_update_active_notificaitons();
+    if (update != nullptr) {
+      VLOG(notifications) << "Send " << as_active_notifications_update(update.get());
+      send_closure(G()->td(), &Td::send_update, std::move(update));
+    }
   }
 }
 
@@ -182,6 +184,10 @@ NotificationManager::NotificationGroups::iterator NotificationManager::get_group
 }
 
 void NotificationManager::load_group_force(NotificationGroupId group_id) {
+  if (is_disabled() || max_notification_group_count_ == 0) {
+    return;
+  }
+
   auto group_it = get_group_force(group_id, true);
   CHECK(group_it != groups_.end());
 }
@@ -558,7 +564,7 @@ int32 NotificationManager::get_notification_delay_ms(DialogId dialog_id,
 void NotificationManager::add_notification(NotificationGroupId group_id, DialogId dialog_id, int32 date,
                                            DialogId notification_settings_dialog_id, bool is_silent,
                                            NotificationId notification_id, unique_ptr<NotificationType> type) {
-  if (is_disabled()) {
+  if (is_disabled() || max_notification_group_count_ == 0) {
     return;
   }
 
@@ -1193,7 +1199,7 @@ void NotificationManager::flush_all_pending_notifications() {
 
 void NotificationManager::edit_notification(NotificationGroupId group_id, NotificationId notification_id,
                                             unique_ptr<NotificationType> type) {
-  if (is_disabled()) {
+  if (is_disabled() || max_notification_group_count_ == 0) {
     return;
   }
 
@@ -1346,7 +1352,7 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
     return promise.set_error(Status::Error(400, "Notification identifier is invalid"));
   }
 
-  if (is_disabled()) {
+  if (is_disabled() || max_notification_group_count_ == 0) {
     return promise.set_value(Unit());
   }
 
@@ -1429,7 +1435,7 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
     return promise.set_error(Status::Error(400, "Notification identifier is invalid"));
   }
 
-  if (is_disabled()) {
+  if (is_disabled() || max_notification_group_count_ == 0) {
     return promise.set_value(Unit());
   }
 
@@ -1525,7 +1531,7 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
   promise.set_value(Unit());
 }
 
-void NotificationManager::on_notification_group_count_max_changed() {
+void NotificationManager::on_notification_group_count_max_changed(bool send_updates) {
   if (is_disabled()) {
     return;
   }
@@ -1544,7 +1550,7 @@ void NotificationManager::on_notification_group_count_max_changed() {
                       << new_max_notification_group_count;
 
   bool is_increased = new_max_notification_group_count_size_t > max_notification_group_count_;
-  if (max_notification_group_count_ != 0) {
+  if (send_updates) {
     flush_all_pending_notifications();
     flush_all_pending_updates(true, "on_notification_group_size_max_changed begin");
 
@@ -1569,6 +1575,14 @@ void NotificationManager::on_notification_group_count_max_changed() {
     }
 
     flush_all_pending_updates(true, "on_notification_group_size_max_changed end");
+
+    if (new_max_notification_group_count == 0) {
+      last_loaded_notification_group_key_ = NotificationGroupKey();
+      last_loaded_notification_group_key_.last_notification_date = std::numeric_limits<int32>::max();
+      CHECK(pending_updates_.empty());
+      groups_.clear();
+      group_keys_.clear();
+    }
   }
 
   max_notification_group_count_ = new_max_notification_group_count_size_t;
@@ -1674,10 +1688,18 @@ void NotificationManager::on_notification_default_delay_changed() {
 }
 
 void NotificationManager::before_get_difference() {
+  if (is_disabled()) {
+    return;
+  }
+
   running_get_difference_ = true;
 }
 
 void NotificationManager::after_get_difference() {
+  if (is_disabled()) {
+    return;
+  }
+
   CHECK(running_get_difference_);
   running_get_difference_ = false;
   flush_pending_notifications_timeout_.set_timeout_in(0, MIN_NOTIFICATION_DELAY_MS * 1e-3);
@@ -1693,12 +1715,20 @@ void NotificationManager::after_get_difference_impl() {
 }
 
 void NotificationManager::before_get_chat_difference(NotificationGroupId group_id) {
+  if (is_disabled()) {
+    return;
+  }
+
   VLOG(notifications) << "Before get chat difference in " << group_id;
   CHECK(group_id.is_valid());
   running_get_chat_difference_.insert(group_id.get());
 }
 
 void NotificationManager::after_get_chat_difference(NotificationGroupId group_id) {
+  if (is_disabled()) {
+    return;
+  }
+
   VLOG(notifications) << "After get chat difference in " << group_id;
   CHECK(group_id.is_valid());
   auto erased_count = running_get_chat_difference_.erase(group_id.get());
@@ -1721,7 +1751,7 @@ void NotificationManager::after_get_chat_difference_impl(NotificationGroupId gro
 }
 
 void NotificationManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
-  if (is_disabled()) {
+  if (is_disabled() || max_notification_group_count_ == 0) {
     return;
   }
 

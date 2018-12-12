@@ -37,7 +37,7 @@ class Td;
 
 class NotificationManager : public Actor {
  public:
-  static constexpr int32 MIN_NOTIFICATION_GROUP_COUNT_MAX = 1;
+  static constexpr int32 MIN_NOTIFICATION_GROUP_COUNT_MAX = 0;
   static constexpr int32 MAX_NOTIFICATION_GROUP_COUNT_MAX = 25;
   static constexpr int32 MIN_NOTIFICATION_GROUP_SIZE_MAX = 1;
   static constexpr int32 MAX_NOTIFICATION_GROUP_SIZE_MAX = 25;
@@ -69,7 +69,7 @@ class NotificationManager : public Actor {
   void remove_notification_group(NotificationGroupId group_id, NotificationId max_notification_id,
                                  MessageId max_message_id, int32 new_total_count, Promise<Unit> &&promise);
 
-  void on_notification_group_count_max_changed();
+  void on_notification_group_count_max_changed(bool send_updates);
 
   void on_notification_group_size_max_changed();
 
@@ -90,7 +90,7 @@ class NotificationManager : public Actor {
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:
-  static constexpr int32 DEFAULT_GROUP_COUNT_MAX = 10;
+  static constexpr int32 DEFAULT_GROUP_COUNT_MAX = 0;
   static constexpr int32 DEFAULT_GROUP_SIZE_MAX = 10;
   static constexpr size_t EXTRA_GROUP_SIZE = 10;
 
@@ -192,6 +192,10 @@ class NotificationManager : public Actor {
 
   void flush_all_pending_updates(bool include_delayed_chats, const char *source);
 
+  void after_get_difference_impl();
+
+  void after_get_chat_difference_impl(NotificationGroupId group_id);
+
   NotificationId current_notification_id_;
   NotificationGroupId current_notification_group_id_;
 
@@ -212,10 +216,6 @@ class NotificationManager : public Actor {
   std::unordered_map<NotificationGroupId, NotificationGroupKey, NotificationGroupIdHash> group_keys_;
 
   std::unordered_map<int32, vector<td_api::object_ptr<td_api::Update>>> pending_updates_;
-
-  void after_get_difference_impl();
-
-  void after_get_chat_difference_impl(NotificationGroupId group_id);
 
   MultiTimeout flush_pending_notifications_timeout_{"FlushPendingNotificationsTimeout"};
   MultiTimeout flush_pending_updates_timeout_{"FlushPendingUpdatesTimeout"};
