@@ -4524,4 +4524,16 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
   add_formatted_text_dependencies(dependencies, get_message_content_text(message_content));
 }
 
+void on_sent_message_content(Td *td, const MessageContent *content) {
+  switch (content->get_type()) {
+    case MessageContentType::Animation:
+      return td->animations_manager_->add_saved_animation_by_id(get_message_content_file_id(content));
+    case MessageContentType::Sticker:
+      return td->stickers_manager_->add_recent_sticker_by_id(false, get_message_content_file_id(content));
+    default:
+      // nothing to do
+      return;
+  }
+}
+
 }  // namespace td

@@ -6,7 +6,6 @@
 //
 #include "td/telegram/MessagesManager.h"
 
-#include "td/telegram/AnimationsManager.h"
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ConfigShared.h"
@@ -21036,21 +21035,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
   if (!td_->auth_manager_->is_bot() && from_update && m->forward_info == nullptr &&
       (m->is_outgoing || dialog_id == my_dialog_id)) {
-    switch (message_content_type) {
-      case MessageContentType::Animation:
-        if (dialog_id.get_type() != DialogType::SecretChat) {
-          td_->animations_manager_->add_saved_animation_by_id(get_message_content_file_id(m->content.get()));
-        }
-        break;
-      case MessageContentType::Sticker:
-        if (dialog_id.get_type() != DialogType::SecretChat) {
-          td_->stickers_manager_->add_recent_sticker_by_id(false, get_message_content_file_id(m->content.get()));
-        }
-        break;
-      default:
-        update_used_hashtags(dialog_id, m);
-        break;
+    if (dialog_id.get_type() != DialogType::SecretChat && !message_id.is_local()) {
+      on_sent_message_content(td_, m->content.get());
     }
+    update_used_hashtags(dialog_id, m);
   }
   if (!td_->auth_manager_->is_bot() && from_update && message_id.is_server() &&
       (m->is_outgoing || dialog_id == my_dialog_id) && dialog_id.get_type() != DialogType::SecretChat) {

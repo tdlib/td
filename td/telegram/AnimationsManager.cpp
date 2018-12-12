@@ -570,6 +570,7 @@ void AnimationsManager::add_saved_animation_by_id(FileId animation_id) {
 bool AnimationsManager::add_saved_animation_impl(FileId animation_id, Promise<Unit> &promise) {
   CHECK(!td_->auth_manager_->is_bot());
 
+  LOG(INFO) << "Add saved animation " << animation_id;
   if (!are_saved_animations_loaded_) {
     load_saved_animations(PromiseCreator::lambda([animation_id, promise = std::move(promise)](Result<> result) mutable {
       if (result.is_ok()) {

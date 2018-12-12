@@ -3701,6 +3701,7 @@ void StickersManager::add_recent_sticker_by_id(bool is_attached, FileId sticker_
 bool StickersManager::add_recent_sticker_impl(bool is_attached, FileId sticker_id, Promise<Unit> &promise) {
   CHECK(!td_->auth_manager_->is_bot());
 
+  LOG(INFO) << "Add recent " << (is_attached ? "attached " : "") << "sticker " << sticker_id;
   if (!are_recent_stickers_loaded_[is_attached]) {
     load_recent_stickers(is_attached, PromiseCreator::lambda([is_attached, sticker_id,
                                                               promise = std::move(promise)](Result<> result) mutable {
