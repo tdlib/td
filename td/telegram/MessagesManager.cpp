@@ -6546,9 +6546,6 @@ void MessagesManager::after_get_difference() {
   }
 
   if (td_->is_online()) {
-    // TODO move to AnimationsManager
-    td_->animations_manager_->get_saved_animations(Auto());
-
     // TODO move to StickersManager
     td_->stickers_manager_->get_installed_sticker_sets(false, Auto());
     td_->stickers_manager_->get_installed_sticker_sets(true, Auto());

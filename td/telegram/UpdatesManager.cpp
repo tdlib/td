@@ -1092,6 +1092,7 @@ void UpdatesManager::after_get_difference() {
 
   state_ = saved_state;
 
+  td_->animations_manager_->after_get_difference();
   td_->inline_queries_manager_->after_get_difference();
   td_->messages_manager_->after_get_difference();
   send_closure_later(td_->notification_manager_actor_, &NotificationManager::after_get_difference);
