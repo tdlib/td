@@ -524,7 +524,7 @@ void TopDialogManager::init() {
 
 void TopDialogManager::on_first_sync() {
   was_first_sync_ = true;
-  if (G()->td().get_actor_unsafe()->auth_manager_->is_bot()) {
+  if (!G()->close_flag() && G()->td().get_actor_unsafe()->auth_manager_->is_bot()) {
     is_active_ = false;
     init();
   }

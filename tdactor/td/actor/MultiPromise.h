@@ -60,8 +60,7 @@ class MultiPromiseActor final
     : public Actor
     , public MultiPromiseInterface {
  public:
-  MultiPromiseActor(Slice name) {
-    register_actor(name, this).release();
+  explicit MultiPromiseActor(string name) : name_(std::move(name)) {
   }
 
   void add_promise(Promise<Unit> &&promise) override;
@@ -75,6 +74,7 @@ class MultiPromiseActor final
  private:
   void set_result(Result<Unit> &&result);
 
+  string name_;
   vector<Promise<Unit>> promises_;     // promises waiting for result
   vector<FutureActor<Unit>> futures_;  // futures waiting for result of the queries
   size_t received_results_ = 0;
@@ -96,7 +96,7 @@ class MultiPromiseActorSafe : public MultiPromiseInterface {
   Promise<Unit> get_promise() override;
   void set_ignore_errors(bool ignore_errors) override;
   size_t promise_count() const override;
-  explicit MultiPromiseActorSafe(Slice name) : multi_promise_(make_unique<MultiPromiseActor>(name)) {
+  explicit MultiPromiseActorSafe(string name) : multi_promise_(td::make_unique<MultiPromiseActor>(std::move(name))) {
   }
   MultiPromiseActorSafe(const MultiPromiseActorSafe &other) = delete;
   MultiPromiseActorSafe &operator=(const MultiPromiseActorSafe &other) = delete;
