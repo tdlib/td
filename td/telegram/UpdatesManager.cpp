@@ -1093,6 +1093,7 @@ void UpdatesManager::after_get_difference() {
   state_ = saved_state;
 
   td_->animations_manager_->after_get_difference();
+  td_->contacts_manager_->after_get_difference();
   td_->inline_queries_manager_->after_get_difference();
   td_->messages_manager_->after_get_difference();
   td_->stickers_manager_->after_get_difference();

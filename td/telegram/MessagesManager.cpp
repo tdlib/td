@@ -6551,9 +6551,6 @@ void MessagesManager::after_get_difference() {
 
   load_notification_settings();
 
-  // TODO move to ContactsManager or delete after users will become persistent
-  td_->contacts_manager_->get_user(td_->contacts_manager_->get_my_id(), 3, Promise<Unit>());
-
   // TODO resend some messages
 }
 

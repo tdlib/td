@@ -443,6 +443,8 @@ class ContactsManager : public Actor {
 
   UserId get_support_user(Promise<Unit> &&promise);
 
+  void after_get_difference();
+
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
  private:

@@ -9933,6 +9933,10 @@ UserId ContactsManager::get_support_user(Promise<Unit> &&promise) {
   return UserId();
 }
 
+void ContactsManager::after_get_difference() {
+  get_user(get_my_id(), 3, Promise<Unit>());
+}
+
 void ContactsManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   for (auto &it : users_) {
     updates.push_back(td_api::make_object<td_api::updateUser>(get_user_object(it.first, &it.second)));
