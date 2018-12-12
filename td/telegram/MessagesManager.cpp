@@ -6545,16 +6545,6 @@ void MessagesManager::after_get_difference() {
     }
   }
 
-  if (td_->is_online()) {
-    // TODO move to StickersManager
-    td_->stickers_manager_->get_installed_sticker_sets(false, Auto());
-    td_->stickers_manager_->get_installed_sticker_sets(true, Auto());
-    td_->stickers_manager_->get_featured_sticker_sets(Auto());
-    td_->stickers_manager_->get_recent_stickers(false, Auto());
-    td_->stickers_manager_->get_recent_stickers(true, Auto());
-    td_->stickers_manager_->get_favorite_stickers(Auto());
-  }
-
   if (!G()->td_db()->get_binlog_pmc()->isset("fetched_marks_as_unread") && !td_->auth_manager_->is_bot()) {
     td_->create_handler<GetDialogUnreadMarksQuery>()->send();
   }

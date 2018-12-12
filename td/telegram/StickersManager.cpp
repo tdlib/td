@@ -4249,6 +4249,17 @@ string StickersManager::remove_emoji_modifiers(string emoji) {
   return emoji;
 }
 
+void StickersManager::after_get_difference() {
+  if (td_->is_online()) {
+    get_installed_sticker_sets(false, Auto());
+    get_installed_sticker_sets(true, Auto());
+    get_featured_sticker_sets(Auto());
+    get_recent_stickers(false, Auto());
+    get_recent_stickers(true, Auto());
+    get_favorite_stickers(Auto());
+  }
+}
+
 void StickersManager::get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const {
   if (td_->auth_manager_->is_bot()) {
     return;
