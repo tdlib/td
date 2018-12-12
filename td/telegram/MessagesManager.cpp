@@ -37,7 +37,6 @@
 #include "td/telegram/SecretChatActor.h"
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/SequenceDispatcher.h"
-#include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TopDialogManager.h"
 #include "td/telegram/UpdatesManager.h"
@@ -14989,116 +14988,7 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
     return Status::Error(5, "Can't send message without content");
   }
 
-  bool is_secret = dialog_id.get_type() == DialogType::SecretChat;
-
-  bool have_file = true;
-  // TODO: send from secret chat to common
-  Result<FileId> r_file_id = Status::Error(500, "Have no file");
-  tl_object_ptr<td_api::inputThumbnail> input_thumbnail;
-  vector<FileId> sticker_file_ids;
-  switch (input_message_content->get_id()) {
-    case td_api::inputMessageAnimation::ID: {
-      auto input_message = static_cast<td_api::inputMessageAnimation *>(input_message_content.get());
-      r_file_id = td_->file_manager_->get_input_file_id(FileType::Animation, input_message->animation_, dialog_id,
-                                                        false, is_secret, true);
-      input_thumbnail = std::move(input_message->thumbnail_);
-      break;
-    }
-    case td_api::inputMessageAudio::ID: {
-      auto input_message = static_cast<td_api::inputMessageAudio *>(input_message_content.get());
-      r_file_id =
-          td_->file_manager_->get_input_file_id(FileType::Audio, input_message->audio_, dialog_id, false, is_secret);
-      input_thumbnail = std::move(input_message->album_cover_thumbnail_);
-      break;
-    }
-    case td_api::inputMessageDocument::ID: {
-      auto input_message = static_cast<td_api::inputMessageDocument *>(input_message_content.get());
-      r_file_id = td_->file_manager_->get_input_file_id(FileType::Document, input_message->document_, dialog_id, false,
-                                                        is_secret, true);
-      input_thumbnail = std::move(input_message->thumbnail_);
-      break;
-    }
-    case td_api::inputMessagePhoto::ID: {
-      auto input_message = static_cast<td_api::inputMessagePhoto *>(input_message_content.get());
-      r_file_id =
-          td_->file_manager_->get_input_file_id(FileType::Photo, input_message->photo_, dialog_id, false, is_secret);
-      input_thumbnail = std::move(input_message->thumbnail_);
-      if (!input_message->added_sticker_file_ids_.empty()) {
-        sticker_file_ids =
-            td_->stickers_manager_->get_attached_sticker_file_ids(input_message->added_sticker_file_ids_);
-      }
-      break;
-    }
-    case td_api::inputMessageSticker::ID: {
-      auto input_message = static_cast<td_api::inputMessageSticker *>(input_message_content.get());
-      r_file_id = td_->file_manager_->get_input_file_id(FileType::Sticker, input_message->sticker_, dialog_id, false,
-                                                        is_secret);
-      input_thumbnail = std::move(input_message->thumbnail_);
-      break;
-    }
-    case td_api::inputMessageVideo::ID: {
-      auto input_message = static_cast<td_api::inputMessageVideo *>(input_message_content.get());
-      r_file_id =
-          td_->file_manager_->get_input_file_id(FileType::Video, input_message->video_, dialog_id, false, is_secret);
-      input_thumbnail = std::move(input_message->thumbnail_);
-      if (!input_message->added_sticker_file_ids_.empty()) {
-        sticker_file_ids =
-            td_->stickers_manager_->get_attached_sticker_file_ids(input_message->added_sticker_file_ids_);
-      }
-      break;
-    }
-    case td_api::inputMessageVideoNote::ID: {
-      auto input_message = static_cast<td_api::inputMessageVideoNote *>(input_message_content.get());
-      r_file_id = td_->file_manager_->get_input_file_id(FileType::VideoNote, input_message->video_note_, dialog_id,
-                                                        false, is_secret);
-      input_thumbnail = std::move(input_message->thumbnail_);
-      break;
-    }
-    case td_api::inputMessageVoiceNote::ID: {
-      auto input_message = static_cast<td_api::inputMessageVoiceNote *>(input_message_content.get());
-      r_file_id = td_->file_manager_->get_input_file_id(FileType::VoiceNote, input_message->voice_note_, dialog_id,
-                                                        false, is_secret);
-      break;
-    }
-    default:
-      have_file = false;
-      break;
-  }
-  // TODO is path of files must be stored in bytes instead of UTF-8 string?
-
-  FileId file_id;
-  if (have_file) {
-    if (r_file_id.is_error()) {
-      return Status::Error(7, r_file_id.error().message());
-    }
-    file_id = r_file_id.ok();
-    CHECK(file_id.is_valid());
-  }
-
-  PhotoSize thumbnail;
-  if (input_thumbnail != nullptr) {
-    auto r_thumbnail_file_id =
-        td_->file_manager_->get_input_thumbnail_file_id(input_thumbnail->thumbnail_, dialog_id, is_secret);
-    if (r_thumbnail_file_id.is_error()) {
-      LOG(WARNING) << "Ignore thumbnail file: " << r_thumbnail_file_id.error().message();
-    } else {
-      thumbnail.type = 't';
-      thumbnail.dimensions = get_dimensions(input_thumbnail->width_, input_thumbnail->height_);
-      thumbnail.file_id = r_thumbnail_file_id.ok();
-      CHECK(thumbnail.file_id.is_valid());
-
-      FileView thumbnail_file_view = td_->file_manager_->get_file_view(thumbnail.file_id);
-      if (thumbnail_file_view.has_remote_location()) {
-        // TODO td->file_manager_->delete_remote_location(thumbnail.file_id);
-      }
-    }
-  }
-
-  TRY_RESULT(caption,
-             process_input_caption(td_->contacts_manager_.get(), dialog_id,
-                                   extract_input_caption(input_message_content), td_->auth_manager_->is_bot()));
-  TRY_RESULT(content, create_input_message_content(dialog_id, std::move(input_message_content), td_, std::move(caption),
-                                                   file_id, std::move(thumbnail), std::move(sticker_file_ids)));
+  TRY_RESULT(content, get_input_message_content(dialog_id, std::move(input_message_content), td_));
 
   if (content.ttl < 0 || content.ttl > MAX_PRIVATE_MESSAGE_TTL) {
     return Status::Error(10, "Wrong message TTL specified");

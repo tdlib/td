@@ -134,9 +134,8 @@ unique_ptr<MessageContent> create_screenshot_taken_message_content();
 
 unique_ptr<MessageContent> create_chat_set_ttl_message_content(int32 ttl);
 
-Result<InputMessageContent> create_input_message_content(
-    DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td,
-    FormattedText caption, FileId file_id, PhotoSize thumbnail, vector<FileId> sticker_file_ids);
+Result<InputMessageContent> get_input_message_content(
+    DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td);
 
 SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
                                         tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
