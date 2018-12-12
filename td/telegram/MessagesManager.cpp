@@ -14075,16 +14075,19 @@ void MessagesManager::preload_older_messages(const Dialog *d, MessageId min_mess
   }
 }
 
-unique_ptr<MessagesManager::Message> MessagesManager::parse_message(const BufferSlice &value) {
+unique_ptr<MessagesManager::Message> MessagesManager::parse_message(DialogId dialog_id, const BufferSlice &value) {
   LOG(INFO) << "Loaded message of size " << value.size() << " from database";
   auto m = make_unique<Message>();
 
   auto status = log_event_parse(*m, value.as_slice());
   if (status.is_error() || !m->message_id.is_valid()) {
     // can't happen unless database is broken, but has been seen in the wild
-
-    LOG(FATAL) << "Receive invalid message from database: " << m->message_id << ' ' << status << ' '
+    LOG(ERROR) << "Receive invalid message from database: " << m->message_id << ' ' << status << ' '
                << format::as_hex_dump<4>(value.as_slice());
+    if (dialog_id.get_type() != DialogType::SecretChat && m->message_id.is_valid() && m->message_id.is_server()) {
+      // trying to repair the message
+      get_messages_from_server({FullMessageId{dialog_id, m->message_id}}, Auto());
+    }
     return nullptr;
   }
 
@@ -14128,7 +14131,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
     if (!d->first_database_message_id.is_valid() && !d->have_full_history) {
       break;
     }
-    auto message = parse_message(std::move(message_slice));
+    auto message = parse_message(dialog_id, std::move(message_slice));
     if (message == nullptr) {
       if (d->have_full_history) {
         d->have_full_history = false;
@@ -20479,7 +20482,7 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(DialogId
     return nullptr;
   }
 
-  auto m = parse_message(std::move(value));
+  auto m = parse_message(dialog_id, std::move(value));
   if (m == nullptr) {
     return nullptr;
   }

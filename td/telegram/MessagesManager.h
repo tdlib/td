@@ -1918,7 +1918,7 @@ class MessagesManager : public Actor {
 
   string get_search_text(const Message *m) const;
 
-  static unique_ptr<Message> parse_message(const BufferSlice &value);
+  unique_ptr<Message> parse_message(DialogId dialog_id, const BufferSlice &value);
 
   unique_ptr<Dialog> parse_dialog(DialogId dialog_id, const BufferSlice &value);
 
