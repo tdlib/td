@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/utils/common.h"
 #include "td/utils/int_types.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
@@ -221,13 +222,19 @@ class TlStorerToString {
     result.append("bytes [");
     store_long(static_cast<int64>(value.size()));
     result.append("] { ");
-    for (size_t i = 0; i < value.size(); i++) {
+    size_t len = min(static_cast<size_t>(64), value.size());
+    for (size_t i = 0; i < len; i++) {
       int b = value[static_cast<int>(i)] & 0xff;
       result += hex[b >> 4];
       result += hex[b & 15];
-      result += ' ';
+      if (i != len) {
+        result += ' ';
+      }
     }
-    result.append("}");
+    if (len < value.size()) {
+      result.append(" ...");
+    }
+    result += '}';
     store_field_end();
   }
 
