@@ -2230,15 +2230,47 @@ FormattedText get_message_text(const ContactsManager *contacts_manager, string m
   return FormattedText{std::move(message_text), std::move(entities)};
 }
 
+td_api::object_ptr<td_api::formattedText> extract_input_caption(
+    tl_object_ptr<td_api::InputMessageContent> &input_message_content) {
+  switch (input_message_content->get_id()) {
+    case td_api::inputMessageAnimation::ID: {
+      auto input_animation = static_cast<td_api::inputMessageAnimation *>(input_message_content.get());
+      return std::move(input_animation->caption_);
+    }
+    case td_api::inputMessageAudio::ID: {
+      auto input_audio = static_cast<td_api::inputMessageAudio *>(input_message_content.get());
+      return std::move(input_audio->caption_);
+    }
+    case td_api::inputMessageDocument::ID: {
+      auto input_document = static_cast<td_api::inputMessageDocument *>(input_message_content.get());
+      return std::move(input_document->caption_);
+    }
+    case td_api::inputMessagePhoto::ID: {
+      auto input_photo = static_cast<td_api::inputMessagePhoto *>(input_message_content.get());
+      return std::move(input_photo->caption_);
+    }
+    case td_api::inputMessageVideo::ID: {
+      auto input_video = static_cast<td_api::inputMessageVideo *>(input_message_content.get());
+      return std::move(input_video->caption_);
+    }
+    case td_api::inputMessageVoiceNote::ID: {
+      auto input_voice_note = static_cast<td_api::inputMessageVoiceNote *>(input_message_content.get());
+      return std::move(input_voice_note->caption_);
+    }
+    default:
+      return nullptr;
+  }
+}
+
 Result<FormattedText> process_input_caption(const ContactsManager *contacts_manager, DialogId dialog_id,
-                                            tl_object_ptr<td_api::formattedText> &&text, bool is_bot) {
-  if (text == nullptr) {
+                                            tl_object_ptr<td_api::formattedText> &&caption, bool is_bot) {
+  if (caption == nullptr) {
     return FormattedText();
   }
-  TRY_RESULT(entities, get_message_entities(contacts_manager, std::move(text->entities_)));
-  TRY_STATUS(fix_formatted_text(text->text_, entities, true, false,
+  TRY_RESULT(entities, get_message_entities(contacts_manager, std::move(caption->entities_)));
+  TRY_STATUS(fix_formatted_text(caption->text_, entities, true, false,
                                 need_skip_bot_commands(contacts_manager, dialog_id, is_bot), false));
-  return FormattedText{std::move(text->text_), std::move(entities)};
+  return FormattedText{std::move(caption->text_), std::move(entities)};
 }
 
 void add_formatted_text_dependencies(Dependencies &dependencies, const FormattedText *text) {

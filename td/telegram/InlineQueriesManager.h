@@ -84,11 +84,6 @@ class InlineQueriesManager : public Actor {
   static constexpr int32 BOT_INLINE_MEDIA_RESULT_FLAG_HAS_TITLE = 1 << 2;
   static constexpr int32 BOT_INLINE_MEDIA_RESULT_FLAG_HAS_DESCRIPTION = 1 << 3;
 
-  Result<FormattedText> process_input_caption(td_api::object_ptr<td_api::formattedText> &&caption) const;
-
-  tl_object_ptr<telegram_api::inputBotInlineMessageMediaAuto> get_input_bot_inline_message_media_auto(
-      const FormattedText &caption, tl_object_ptr<telegram_api::ReplyMarkup> &&input_reply_markup) const;
-
   Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> get_inline_message(
       tl_object_ptr<td_api::InputMessageContent> &&input_message_content,
       tl_object_ptr<td_api::ReplyMarkup> &&reply_markup_ptr,

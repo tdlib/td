@@ -14983,41 +14983,6 @@ Result<MessageId> MessagesManager::send_message(DialogId dialog_id, MessageId re
   return message_id;
 }
 
-Result<FormattedText> MessagesManager::get_input_caption(
-    DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &input_message_content, bool is_bot) const {
-  switch (input_message_content->get_id()) {
-    case td_api::inputMessageAnimation::ID: {
-      auto input_animation = static_cast<td_api::inputMessageAnimation *>(input_message_content.get());
-      return process_input_caption(td_->contacts_manager_.get(), dialog_id, std::move(input_animation->caption_),
-                                   is_bot);
-    }
-    case td_api::inputMessageAudio::ID: {
-      auto input_audio = static_cast<td_api::inputMessageAudio *>(input_message_content.get());
-      return process_input_caption(td_->contacts_manager_.get(), dialog_id, std::move(input_audio->caption_), is_bot);
-    }
-    case td_api::inputMessageDocument::ID: {
-      auto input_document = static_cast<td_api::inputMessageDocument *>(input_message_content.get());
-      return process_input_caption(td_->contacts_manager_.get(), dialog_id, std::move(input_document->caption_),
-                                   is_bot);
-    }
-    case td_api::inputMessagePhoto::ID: {
-      auto input_photo = static_cast<td_api::inputMessagePhoto *>(input_message_content.get());
-      return process_input_caption(td_->contacts_manager_.get(), dialog_id, std::move(input_photo->caption_), is_bot);
-    }
-    case td_api::inputMessageVideo::ID: {
-      auto input_video = static_cast<td_api::inputMessageVideo *>(input_message_content.get());
-      return process_input_caption(td_->contacts_manager_.get(), dialog_id, std::move(input_video->caption_), is_bot);
-    }
-    case td_api::inputMessageVoiceNote::ID: {
-      auto input_voice_note = static_cast<td_api::inputMessageVoiceNote *>(input_message_content.get());
-      return process_input_caption(td_->contacts_manager_.get(), dialog_id, std::move(input_voice_note->caption_),
-                                   is_bot);
-    }
-    default:
-      return FormattedText();
-  }
-}
-
 Result<InputMessageContent> MessagesManager::process_input_message_content(
     DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content) const {
   if (input_message_content == nullptr) {
@@ -15129,7 +15094,9 @@ Result<InputMessageContent> MessagesManager::process_input_message_content(
     }
   }
 
-  TRY_RESULT(caption, get_input_caption(dialog_id, input_message_content, td_->auth_manager_->is_bot()));
+  TRY_RESULT(caption,
+             process_input_caption(td_->contacts_manager_.get(), dialog_id,
+                                   extract_input_caption(input_message_content), td_->auth_manager_->is_bot()));
   TRY_RESULT(content, create_input_message_content(dialog_id, std::move(input_message_content), td_, std::move(caption),
                                                    file_id, std::move(thumbnail), std::move(sticker_file_ids)));
 

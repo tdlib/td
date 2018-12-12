@@ -212,28 +212,6 @@ string InlineQueriesManager::get_inline_message_id(
   return base64url_encode(serialize(*input_bot_inline_message_id));
 }
 
-Result<FormattedText> InlineQueriesManager::process_input_caption(
-    td_api::object_ptr<td_api::formattedText> &&caption) const {
-  return td::process_input_caption(td_->contacts_manager_.get(), DialogId(), std::move(caption), true);
-}
-
-tl_object_ptr<telegram_api::inputBotInlineMessageMediaAuto>
-InlineQueriesManager::get_input_bot_inline_message_media_auto(
-    const FormattedText &caption, tl_object_ptr<telegram_api::ReplyMarkup> &&input_reply_markup) const {
-  int32 flags = 0;
-  if (input_reply_markup != nullptr) {
-    flags |= telegram_api::inputBotInlineMessageText::REPLY_MARKUP_MASK;
-  }
-  auto entities = get_input_message_entities(td_->contacts_manager_.get(), caption.entities,
-                                             "get_input_bot_inline_message_media_auto");
-  if (!entities.empty()) {
-    flags |= telegram_api::inputBotInlineMessageText::ENTITIES_MASK;
-  }
-
-  return make_tl_object<telegram_api::inputBotInlineMessageMediaAuto>(flags, caption.text, std::move(entities),
-                                                                      std::move(input_reply_markup));
-}
-
 Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager::get_inline_message(
     tl_object_ptr<td_api::InputMessageContent> &&input_message_content,
     tl_object_ptr<td_api::ReplyMarkup> &&reply_markup_ptr, int32 allowed_media_content_id) const {
@@ -278,41 +256,15 @@ Result<tl_object_ptr<telegram_api::InputBotInlineMessage>> InlineQueriesManager:
     return venue.get_input_bot_inline_message_media_venue(flags, std::move(input_reply_markup));
   }
   if (constructor_id == allowed_media_content_id) {
-    if (constructor_id == td_api::inputMessageAnimation::ID) {
-      auto input_message_animation = static_cast<td_api::inputMessageAnimation *>(input_message_content.get());
-      TRY_RESULT(caption, process_input_caption(std::move(input_message_animation->caption_)));
-      return get_input_bot_inline_message_media_auto(caption, std::move(input_reply_markup));
+    TRY_RESULT(caption, process_input_caption(td_->contacts_manager_.get(), DialogId(),
+                                              extract_input_caption(input_message_content), true));
+    auto entities = get_input_message_entities(td_->contacts_manager_.get(), caption.entities, "get_inline_message");
+    if (!entities.empty()) {
+      flags |= telegram_api::inputBotInlineMessageText::ENTITIES_MASK;
     }
-    if (constructor_id == td_api::inputMessageAudio::ID) {
-      auto input_message_audio = static_cast<td_api::inputMessageAudio *>(input_message_content.get());
-      TRY_RESULT(caption, process_input_caption(std::move(input_message_audio->caption_)));
-      return get_input_bot_inline_message_media_auto(caption, std::move(input_reply_markup));
-    }
-    if (constructor_id == td_api::inputMessageDocument::ID) {
-      auto input_message_document = static_cast<td_api::inputMessageDocument *>(input_message_content.get());
-      TRY_RESULT(caption, process_input_caption(std::move(input_message_document->caption_)));
-      return get_input_bot_inline_message_media_auto(caption, std::move(input_reply_markup));
-    }
-    if (constructor_id == td_api::inputMessagePhoto::ID) {
-      auto input_message_photo = static_cast<td_api::inputMessagePhoto *>(input_message_content.get());
-      TRY_RESULT(caption, process_input_caption(std::move(input_message_photo->caption_)));
-      return get_input_bot_inline_message_media_auto(caption, std::move(input_reply_markup));
-    }
-    if (constructor_id == td_api::inputMessageSticker::ID) {
-      // auto input_message_sticker = static_cast<const td_api::inputMessageSticker *>(input_message_content.get());
-      return make_tl_object<telegram_api::inputBotInlineMessageMediaAuto>(flags, "", Auto(),
-                                                                          std::move(input_reply_markup));
-    }
-    if (constructor_id == td_api::inputMessageVideo::ID) {
-      auto input_message_video = static_cast<td_api::inputMessageVideo *>(input_message_content.get());
-      TRY_RESULT(caption, process_input_caption(std::move(input_message_video->caption_)));
-      return get_input_bot_inline_message_media_auto(caption, std::move(input_reply_markup));
-    }
-    if (constructor_id == td_api::inputMessageVoiceNote::ID) {
-      auto input_message_voice_note = static_cast<td_api::inputMessageVoiceNote *>(input_message_content.get());
-      TRY_RESULT(caption, process_input_caption(std::move(input_message_voice_note->caption_)));
-      return get_input_bot_inline_message_media_auto(caption, std::move(input_reply_markup));
-    }
+
+    return make_tl_object<telegram_api::inputBotInlineMessageMediaAuto>(flags, caption.text, std::move(entities),
+                                                                        std::move(input_reply_markup));
   }
   return Status::Error(400, "Unallowed inline message content type");
 }

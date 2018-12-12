@@ -316,10 +316,6 @@ class MessagesManager : public Actor {
 
   DialogId search_public_dialog(const string &username_to_search, bool force, Promise<Unit> &&promise);
 
-  Result<FormattedText> get_input_caption(DialogId dialog_id,
-                                          tl_object_ptr<td_api::InputMessageContent> &input_message_content,
-                                          bool is_bot) const;
-
   Result<MessageId> send_message(DialogId dialog_id, MessageId reply_to_message_id, bool disable_notification,
                                  bool from_background, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup,
                                  tl_object_ptr<td_api::InputMessageContent> &&input_message_content)
