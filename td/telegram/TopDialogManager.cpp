@@ -6,6 +6,7 @@
 //
 #include "td/telegram/TopDialogManager.h"
 
+#include "td/telegram/AuthManager.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
@@ -459,7 +460,7 @@ void TopDialogManager::do_save_top_dialogs() {
 }
 
 void TopDialogManager::start_up() {
-  is_active_ = G()->parameters().use_chat_info_db;
+  is_active_ = G()->parameters().use_chat_info_db && !G()->td().get_actor_unsafe()->auth_manager_->is_bot();
   is_enabled_ = !G()->shared_config().get_option_boolean("disable_top_chats");
   update_rating_e_decay();
 
@@ -523,6 +524,10 @@ void TopDialogManager::init() {
 
 void TopDialogManager::on_first_sync() {
   was_first_sync_ = true;
+  if (G()->td().get_actor_unsafe()->auth_manager_->is_bot()) {
+    is_active_ = false;
+    init();
+  }
   loop();
 }
 
