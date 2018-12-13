@@ -32,16 +32,16 @@
 #include <memory>
 
 namespace td {
-//
+
 // qts and seq_no
 // Each EncryptedMessage (update_message) has qts.
 // Such updates must be handled in order of qts
 //
 // Qts should be handled on level of SecretChatsManager
 // 1. Each update can be received by SecretChatsManager multiple times.
-// 2. Each update should be sent to SecretChatActor only once. (Thought SecretChatActor mustn't rely it)
+// 2. Each update should be sent to SecretChatActor only once. (Though SecretChatActor mustn't rely it)
 // 3. Updates must be send in order of qts, without gaps.
-// 4. SecretChatActor must notify SecretChatManager when update is processed (saved in db)
+// 4. SecretChatActor must notify SecretChatManager when update is processed (saved in database)
 // 5. Only after all updates <= qts are processed by SecretChatActor, UpdatesManager should be
 // notified about new qts.
 //
@@ -75,9 +75,6 @@ namespace td {
 // 5. Handling gaps.
 // TODO
 // Just fail chat.
-//
-//
-//
 
 SecretChatsManager::SecretChatsManager(ActorShared<> parent) : parent_(std::move(parent)) {
 }
@@ -87,7 +84,7 @@ void SecretChatsManager::start_up() {
     dummy_mode_ = true;
     return;
   }
-  // TODO: use db wrapper
+  // TODO: use database wrapper
   auto pmc = G()->td_db()->get_binlog_pmc();
   auto qts_str = pmc->get("updates.qts");
   if (!qts_str.empty()) {

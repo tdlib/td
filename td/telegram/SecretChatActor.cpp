@@ -1416,7 +1416,7 @@ void SecretChatActor::on_save_changes_start(ChangesProcessor<StateChange>::Id sa
     saved_pfs_state_message_id_ = pfs_state_change.message_id;
     context_->secret_chat_db()->set_value(pfs_state_change);
   }
-  // NB: we may not wait till db is flushed, because every other change will be in the same binlog
+  // NB: we may not wait till database is flushed, because every other change will be in the same binlog
   for (auto &save_changes_finish : save_changes_finish_promises) {
     save_changes_finish.set_value(Unit());
   }

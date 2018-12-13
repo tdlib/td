@@ -35,7 +35,7 @@ Status drop_file_db(SqliteDb &db, int32 version) {
 
 Status fix_file_remote_location_key_bug(SqliteDb &db);
 Status init_file_db(SqliteDb &db, int32 version) {
-  LOG(INFO) << "Init file db " << tag("version", version);
+  LOG(INFO) << "Init file database " << tag("version", version);
 
   // Check if database exists
   TRY_RESULT(has_table, db.has_table("files"));
@@ -143,7 +143,7 @@ class FileDb : public FileDbInterface {
     }
 
     void optimize_refs(const std::vector<Id> ids, Id main_id) {
-      LOG(INFO) << "Optimize ids in file db" << format::as_array(ids) << " " << main_id;
+      LOG(INFO) << "Optimize ids in file database" << format::as_array(ids) << " " << main_id;
       auto &pmc = file_pmc();
       pmc.begin_transaction().ensure();
       SCOPE_EXIT {
@@ -248,7 +248,7 @@ class FileDb : public FileDbInterface {
     int attempt_count = 0;
     while (true) {
       if (attempt_count > 100) {
-        LOG(FATAL) << "cycle in files db?";
+        LOG(FATAL) << "cycle in file database?";
       }
       attempt_count++;
 
@@ -281,7 +281,7 @@ class FileDb : public FileDbInterface {
     auto id_str = pmc.get(key);
     //LOG(DEBUG) << "Found id " << id_str << " by key " << format::as_hex_dump<4>(Slice(key));
     if (id_str.empty()) {
-      return Status::Error("There is no such a key in db");
+      return Status::Error("There is no such a key in database");
     }
     return to_integer<Id>(id_str);
   }

@@ -62,7 +62,7 @@ Status SqliteDb::init(CSlice path, bool *was_created) {
   int rc = sqlite3_open_v2(path.c_str(), &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE /*| SQLITE_OPEN_SHAREDCACHE*/,
                            nullptr);
   if (rc != SQLITE_OK) {
-    auto res = Status::Error(PSLICE() << "Failed to open db: " << detail::RawSqliteDb::last_error(db));
+    auto res = Status::Error(PSLICE() << "Failed to open database: " << detail::RawSqliteDb::last_error(db));
     sqlite3_close(db);
     return res;
   }
@@ -92,9 +92,9 @@ void SqliteDb::trace(bool flag) {
 Status SqliteDb::exec(CSlice cmd) {
   CHECK(!empty());
   char *msg;
-  VLOG(sqlite) << "Start exec " << tag("cmd", cmd) << tag("db", raw_->db());
+  VLOG(sqlite) << "Start exec " << tag("query", cmd) << tag("database", raw_->db());
   auto rc = sqlite3_exec(raw_->db(), cmd.c_str(), nullptr, nullptr, &msg);
-  VLOG(sqlite) << "Finish exec " << tag("cmd", cmd) << tag("db", raw_->db());
+  VLOG(sqlite) << "Finish exec " << tag("query", cmd) << tag("database", raw_->db());
   if (rc != SQLITE_OK) {
     CHECK(msg != nullptr);
     return Status::Error(PSLICE() << tag("query", cmd) << " failed: " << msg);
@@ -175,7 +175,7 @@ Status SqliteDb::change_key(CSlice path, const DbKey &new_db_key, const DbKey &o
   auto new_key = db_key_to_sqlcipher_key(new_db_key);
   if (old_db_key.is_empty() && !new_db_key.is_empty()) {
     LOG(DEBUG) << "ENCRYPT";
-    PerfWarningTimer timer("Encrypt sqlite database", 0.1);
+    PerfWarningTimer timer("Encrypt SQLite database", 0.1);
     auto tmp_path = path.str() + ".ecnrypted";
     TRY_STATUS(destroy(tmp_path));
 
@@ -190,7 +190,7 @@ Status SqliteDb::change_key(CSlice path, const DbKey &new_db_key, const DbKey &o
     TRY_STATUS(rename(tmp_path, path));
   } else if (!old_db_key.is_empty() && new_db_key.is_empty()) {
     LOG(DEBUG) << "DECRYPT";
-    PerfWarningTimer timer("Decrypt sqlite database", 0.1);
+    PerfWarningTimer timer("Decrypt SQLite database", 0.1);
     auto tmp_path = path.str() + ".ecnrypted";
     TRY_STATUS(destroy(tmp_path));
 
@@ -203,7 +203,7 @@ Status SqliteDb::change_key(CSlice path, const DbKey &new_db_key, const DbKey &o
     TRY_STATUS(rename(tmp_path, path));
   } else {
     LOG(DEBUG) << "REKEY";
-    PerfWarningTimer timer("Rekey sqlite database", 0.1);
+    PerfWarningTimer timer("Rekey SQLite database", 0.1);
     TRY_STATUS(db.exec(PSLICE() << "PRAGMA rekey = " << new_key));
   }
 
@@ -219,7 +219,7 @@ Result<SqliteStatement> SqliteDb::get_statement(CSlice statement) {
   sqlite3_stmt *stmt = nullptr;
   auto rc = sqlite3_prepare_v2(get_native(), statement.c_str(), static_cast<int>(statement.size()) + 1, &stmt, nullptr);
   if (rc != SQLITE_OK) {
-    return Status::Error(PSLICE() << "Failed to prepare sqlite " << tag("stmt", statement) << raw_->last_error());
+    return Status::Error(PSLICE() << "Failed to prepare SQLite " << tag("statement", statement) << raw_->last_error());
   }
   CHECK(stmt != nullptr) << statement;
   return SqliteStatement(stmt, raw_);

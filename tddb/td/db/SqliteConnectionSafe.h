@@ -40,12 +40,12 @@ class SqliteConnectionSafe {
   }
 
   void close() {
-    LOG(INFO) << "Close sqlite db " << tag("path", name_);
+    LOG(INFO) << "Close SQLite database " << tag("path", name_);
     lsls_connection_.clear_values();
   }
   void close_and_destroy() {
     close();
-    LOG(INFO) << "Destroy sqlite db " << tag("path", name_);
+    LOG(INFO) << "Destroy SQLite database " << tag("path", name_);
     SqliteDb::destroy(name_).ignore();
   }
 

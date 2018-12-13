@@ -3271,9 +3271,9 @@ td_api::object_ptr<td_api::AuthorizationState> Td::get_fake_authorization_state_
 
 DbKey Td::as_db_key(string key) {
   // Database will still be effectively not encrypted, but
-  // 1. sqlite db will be protected from corruption, because that's how sqlcipher works
+  // 1. SQLite database will be protected from corruption, because that's how sqlcipher works
   // 2. security through obscurity
-  // 3. no need for reencryption of sqlite db
+  // 3. no need for reencryption of SQLite database
   if (key.empty()) {
     return DbKey::raw_key("cucumber");
   }

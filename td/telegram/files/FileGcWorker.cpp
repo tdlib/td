@@ -26,7 +26,7 @@ int VERBOSITY_NAME(file_gc) = VERBOSITY_NAME(INFO);
 void FileGcWorker::do_remove_file(const FullFileInfo &info) {
   // LOG(WARNING) << "Gc remove file: " << tag("path", file) << tag("mtime", stat.mtime_nsec_ / 1000000000)
   // << tag("atime", stat.atime_nsec_ / 1000000000);
-  // TODO: remove file from db too.
+  // TODO: remove file from database too
   auto status = unlink(info.path);
   LOG_IF(WARNING, status.is_error()) << "Failed to unlink file during files gc: " << status;
   send_closure(G()->file_manager(), &FileManager::on_file_unlink,

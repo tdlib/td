@@ -71,7 +71,7 @@ class SecretChatActor : public NetQueryCallback {
     virtual bool close_flag() = 0;
 
     // We don't want to expose the whole NetQueryDispatcher, MessagesManager and ContactsManager.
-    // So it is more clear which parts of MessagesManager is really used. And it is much easier to create tests.
+    // So it is more clear which parts of MessagesManager are really used. And it is much easier to create tests.
     virtual void send_net_query(NetQueryPtr query, ActorShared<NetQueryCallback> callback, bool ordered) = 0;
 
     virtual void on_update_secret_chat(int64 access_hash, UserId user_id, SecretChatState state, bool is_outbound,
@@ -80,7 +80,7 @@ class SecretChatActor : public NetQueryCallback {
     // Promise must be set only after the update is processed.
     //
     // For example, one may set promise, after update was sent to binlog. It is ok, because SecretChatsActor will delete
-    // this update thought binlog too. So it wouldn't be deleted before update is saved.
+    // this update through binlog too. So it wouldn't be deleted before update is saved.
 
     // inbound messages
     virtual void on_inbound_message(UserId user_id, MessageId message_id, int32 date,
@@ -113,7 +113,7 @@ class SecretChatActor : public NetQueryCallback {
   void add_inbound_message(unique_ptr<logevent::InboundSecretMessage> message);
 
   // Outbound messages
-  // Promise will be set just after correspoiding logevent will be SENT to binlog.
+  // Promise will be set just after corresponding logevent will be SENT to binlog.
   void send_message(tl_object_ptr<secret_api::DecryptedMessage> message,
                     tl_object_ptr<telegram_api::InputEncryptedFile> file, Promise<> promise);
   void send_message_action(tl_object_ptr<secret_api::SendMessageAction> action);
@@ -137,7 +137,7 @@ class SecretChatActor : public NetQueryCallback {
   enum class State : int32 { Empty, SendRequest, SendAccept, WaitRequestResponse, WaitAcceptResponse, Ready, Closed };
   static constexpr int32 MAX_RESEND_COUNT = 1000;
 
-  // We have git state that should be synchronized with db.
+  // We have git state that should be synchronized with the database.
   // It is splitted into several parts because:
   // 1. Some parts are BIG (auth_key, for example) and are rarely updated.
   // 2. Other are frequently updated, so probably should be as small as possible.
@@ -459,13 +459,13 @@ class SecretChatActor : public NetQueryCallback {
   // This is completly flawed.
   // (A-start_save_to_binlog ----> B-start_save_to_binlog+change_memory ----> A-finish_save_to_binlog+surprise)
   //
-  // Instead I suggest general solution that is already used with SeqNoState and Qts
-  // 1. We APPLY CHANGE to memory immidiately AFTER correspoding EVENT is SENT to the binlog.
-  // 2. We SEND CHANGE to db only after correspoiding EVENT is SAVED to the binlog.
-  // 3. The we are able to ERASE EVENT just AFTER the CHANGE is SAVED to the binlog.
+  // Instead I suggest general solution that is already used with SeqNoState and qts
+  // 1. We APPLY CHANGE to memory immediately AFTER corresponding EVENT is SENT to the binlog.
+  // 2. We SEND CHANGE to database only after corresponding EVENT is SAVED to the binlog.
+  // 3. Then we are able to ERASE EVENT just AFTER the CHANGE is SAVED to the binlog.
   //
   // Actually the change will be saved to binlog too.
-  // So we can do it immidiatelly after EVENT is SENT to the binlog, because SEND CHANGE and ERASE EVENT will be
+  // So we can do it immediatelly after EVENT is SENT to the binlog, because SEND CHANGE and ERASE EVENT will be
   // ordered automatically.
   //
   // We will use common ChangeProcessor for all changes (inside one SecretChatActor).

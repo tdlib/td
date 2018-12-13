@@ -561,7 +561,7 @@ void TopDialogManager::loop() {
   }
 
   if (is_enabled_) {
-    // db sync
+    // database sync
     Timestamp db_sync_timeout;
     if (db_sync_state_ == SyncState::Ok) {
       if (first_unsync_change_) {

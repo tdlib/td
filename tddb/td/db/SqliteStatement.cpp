@@ -22,7 +22,7 @@ int printExplainQueryPlan(StringBuilder &sb, sqlite3_stmt *pStmt) {
     return SQLITE_ERROR;
   }
 
-  sb << "Explain " << tag("cmd", zSql);
+  sb << "Explain query " << zSql;
   char *zExplain = sqlite3_mprintf("EXPLAIN QUERY PLAN %s", zSql);
   if (zExplain == nullptr) {
     return SQLITE_NOMEM;
@@ -41,7 +41,7 @@ int printExplainQueryPlan(StringBuilder &sb, sqlite3_stmt *pStmt) {
     int iFrom = sqlite3_column_int(pExplain, 2);
     const char *zDetail = reinterpret_cast<const char *>(sqlite3_column_text(pExplain, 3));
 
-    sb << "\n" << iSelectid << " " << iOrder << " " << iFrom << " " << zDetail;
+    sb << '\n' << iSelectid << ' ' << iOrder << ' ' << iFrom << ' ' << zDetail;
   }
 
   return sqlite3_finalize(pExplain);
@@ -176,11 +176,11 @@ Status SqliteStatement::step() {
   if (state_ == Finish) {
     return Status::Error("One has to reset statement");
   }
-  VLOG(sqlite) << "Start step " << tag("cmd", sqlite3_sql(stmt_.get())) << tag("stmt", stmt_.get())
-               << tag("db", db_.get());
+  VLOG(sqlite) << "Start step " << tag("query", sqlite3_sql(stmt_.get())) << tag("statement", stmt_.get())
+               << tag("database", db_.get());
   auto rc = sqlite3_step(stmt_.get());
-  VLOG(sqlite) << "Finish step " << tag("cmd", sqlite3_sql(stmt_.get())) << tag("stmt", stmt_.get())
-               << tag("db", db_.get());
+  VLOG(sqlite) << "Finish step " << tag("query", sqlite3_sql(stmt_.get())) << tag("statement", stmt_.get())
+               << tag("database", db_.get());
   if (rc == SQLITE_ROW) {
     state_ = GotRow;
     return Status::OK();

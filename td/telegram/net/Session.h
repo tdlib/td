@@ -91,11 +91,11 @@ class Session final
     }
   };
 
-  // When connection is closed, mark all queries without ack as unknown
+  // When connection is closed, mark all queries without ack as unknown.
   // Ask state of all unknown queries when new connection is created.
   //
   // Just re-ask answer_id each time we get information about it.
-  // Thought mtproto::Connection must ensure delivery of such query
+  // Though mtproto::Connection must ensure delivery of such query.
 
   int32 dc_id_;
   enum class Mode : int8 { Tcp, Http } mode_ = Mode::Tcp;

@@ -1041,7 +1041,7 @@ bool AuthManager::load_state() {
     return false;
   }
 
-  LOG(INFO) << "Load auth_state from db: " << tag("state", static_cast<int32>(db_state.state_));
+  LOG(INFO) << "Load auth_state from database: " << tag("state", static_cast<int32>(db_state.state_));
   if (db_state.state_ == State::WaitCode) {
     send_code_helper_ = std::move(db_state.send_code_helper_);
     terms_of_service_ = std::move(db_state.terms_of_service_);
