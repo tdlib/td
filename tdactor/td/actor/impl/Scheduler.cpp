@@ -297,6 +297,8 @@ void Scheduler::do_event(ActorInfo *actor_info, Event &&event) {
       UNREACHABLE();
       break;
     }
+    default:
+      UNREACHABLE();
   }
   // can't clear event here. It may be already destroyed during destory_actor
 }
