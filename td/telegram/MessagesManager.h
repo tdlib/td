@@ -1426,7 +1426,7 @@ class MessagesManager : public Actor {
 
   void on_save_dialog_to_database(DialogId dialog_id, bool success);
 
-  void load_dialog_list(Promise<Unit> &&promise);
+  void load_dialog_list(int32 limit, Promise<Unit> &&promise);
 
   void load_dialog_list_from_database(int32 limit, Promise<Unit> &&promise);
 
@@ -1663,7 +1663,7 @@ class MessagesManager : public Actor {
 
   Dialog *on_load_dialog_from_database(DialogId dialog_id, const BufferSlice &value);
 
-  void on_get_dialogs_from_database(vector<BufferSlice> &&dialogs, Promise<Unit> &&promise);
+  void on_get_dialogs_from_database(int32 limit, vector<BufferSlice> &&dialogs, Promise<Unit> &&promise);
 
   void send_get_dialog_query(DialogId dialog_id, Promise<Unit> &&promise, uint64 logevent_id = 0);
 
@@ -2166,6 +2166,7 @@ class MessagesManager : public Actor {
 
   MultiPromiseActor load_dialog_list_multipromise_{
       "LoadDialogListMultiPromiseActor"};  // should be defined before pending_on_get_dialogs_
+  int32 load_dialog_list_limit_max_ = 0;
   Timeout preload_dialog_list_timeout_;
 
   std::unordered_map<DialogId, string, DialogIdHash> active_get_channel_differencies_;

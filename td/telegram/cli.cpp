@@ -1518,6 +1518,10 @@ class CliClient final : public Actor {
       }
       send_request(
           make_tl_object<td_api::getChats>(offset_order, as_chat_id(offset_chat_id), to_integer<int32>(limit)));
+    } else if (op == "gctest") {
+      send_request(make_tl_object<td_api::getChats>(std::numeric_limits<int64>::max(), 0, 1));
+      send_request(make_tl_object<td_api::getChats>(std::numeric_limits<int64>::max(), 0, 10));
+      send_request(make_tl_object<td_api::getChats>(std::numeric_limits<int64>::max(), 0, 5));
     } else if (op == "gcc" || op == "GetCommonChats") {
       string user_id;
       string offset_chat_id;

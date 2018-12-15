@@ -8178,6 +8178,7 @@ void MessagesManager::recalc_unread_count() {
   if (td_->auth_manager_->is_bot() || !need_unread_count_recalc_) {
     return;
   }
+  LOG(INFO) << "Recalculate unread counts";
   need_unread_count_recalc_ = false;
   is_message_unread_count_inited_ = true;
   is_dialog_unread_count_inited_ = true;
@@ -10905,21 +10906,27 @@ vector<DialogId> MessagesManager::get_dialogs(DialogDate offset, int32 limit, bo
     return result;
   }
 
-  load_dialog_list(std::move(promise));
+  load_dialog_list(limit, std::move(promise));
   return result;
 }
 
-void MessagesManager::load_dialog_list(Promise<Unit> &&promise) {
+void MessagesManager::load_dialog_list(int32 limit, Promise<Unit> &&promise) {
+  LOG(INFO) << "Load dialog list with limit " << limit;
   auto &multipromise = load_dialog_list_multipromise_;
   multipromise.add_promise(std::move(promise));
+  bool use_database =
+      G()->parameters().use_message_db && last_loaded_database_dialog_date_ < last_database_server_dialog_date_;
   if (multipromise.promise_count() != 1) {
     // queries have already been sent, just wait for the result
+    if (use_database) {
+      load_dialog_list_limit_max_ = std::max(load_dialog_list_limit_max_, limit);
+    }
     return;
   }
 
   bool is_query_sent = false;
-  if (G()->parameters().use_message_db && last_loaded_database_dialog_date_ < last_database_server_dialog_date_) {
-    load_dialog_list_from_database(MAX_GET_DIALOGS, multipromise.get_promise());
+  if (use_database) {
+    load_dialog_list_from_database(limit, multipromise.get_promise());
     is_query_sent = true;
   } else {
     LOG(INFO) << "Get dialogs from " << last_server_dialog_date_;
@@ -10938,19 +10945,31 @@ void MessagesManager::load_dialog_list(Promise<Unit> &&promise) {
 }
 
 void MessagesManager::load_dialog_list_from_database(int32 limit, Promise<Unit> &&promise) {
-  LOG(INFO) << "Load dialogs from " << last_loaded_database_dialog_date_
+  LOG(INFO) << "Load " << limit << " dialogs from database from " << last_loaded_database_dialog_date_
             << ", last database server dialog date = " << last_database_server_dialog_date_;
 
+  CHECK(load_dialog_list_limit_max_ == 0);
+  load_dialog_list_limit_max_ = limit;
   G()->td_db()->get_dialog_db_async()->get_dialogs(
       last_loaded_database_dialog_date_.get_order(), last_loaded_database_dialog_date_.get_dialog_id(), limit,
-      PromiseCreator::lambda([actor_id = actor_id(this),
-                              promise = std::move(promise)](vector<BufferSlice> result) mutable {
-        send_closure(actor_id, &MessagesManager::on_get_dialogs_from_database, std::move(result), std::move(promise));
-      }));
+      PromiseCreator::lambda(
+          [actor_id = actor_id(this), limit, promise = std::move(promise)](vector<BufferSlice> result) mutable {
+            send_closure(actor_id, &MessagesManager::on_get_dialogs_from_database, limit, std::move(result),
+                         std::move(promise));
+          }));
 }
 
-void MessagesManager::on_get_dialogs_from_database(vector<BufferSlice> &&dialogs, Promise<Unit> &&promise) {
-  LOG(INFO) << "Receive " << dialogs.size() << " dialogs in result of GetDialogsFromDatabase";
+void MessagesManager::on_get_dialogs_from_database(int32 limit, vector<BufferSlice> &&dialogs,
+                                                   Promise<Unit> &&promise) {
+  LOG(INFO) << "Receive " << dialogs.size() << " from expected " << limit
+            << " dialogs in result of GetDialogsFromDatabase";
+  int32 new_get_dialogs_limit = 0;
+  int32 have_more_dialogs_in_database = (limit == static_cast<int32>(dialogs.size()));
+  if (have_more_dialogs_in_database && limit < load_dialog_list_limit_max_) {
+    new_get_dialogs_limit = load_dialog_list_limit_max_ - limit;
+  }
+  load_dialog_list_limit_max_ = 0;
+
   DialogDate max_dialog_date = MIN_DIALOG_DATE;
   for (auto &dialog : dialogs) {
     Dialog *d = on_load_dialog_from_database(DialogId(), std::move(dialog));
@@ -10965,36 +10984,44 @@ void MessagesManager::on_get_dialogs_from_database(vector<BufferSlice> &&dialogs
     LOG(INFO) << "Chat " << dialog_date << " is loaded from database";
   }
 
-  if (dialogs.empty()) {
-    // if there is no more dialogs in the database
+  if (!have_more_dialogs_in_database) {
     last_loaded_database_dialog_date_ = MAX_DIALOG_DATE;
     LOG(INFO) << "Set last loaded database dialog date to " << last_loaded_database_dialog_date_;
     last_server_dialog_date_ = max(last_server_dialog_date_, last_database_server_dialog_date_);
     LOG(INFO) << "Set last server dialog date to " << last_server_dialog_date_;
     update_last_dialog_date();
-  }
-  if (last_loaded_database_dialog_date_ < max_dialog_date) {
+  } else if (last_loaded_database_dialog_date_ < max_dialog_date) {
     last_loaded_database_dialog_date_ = min(max_dialog_date, last_database_server_dialog_date_);
     LOG(INFO) << "Set last loaded database dialog date to " << last_loaded_database_dialog_date_;
     last_server_dialog_date_ = max(last_server_dialog_date_, last_loaded_database_dialog_date_);
     LOG(INFO) << "Set last server dialog date to " << last_server_dialog_date_;
     update_last_dialog_date();
-  } else if (!dialogs.empty()) {
+  } else {
     LOG(ERROR) << "Last loaded database dialog date didn't increased";
   }
 
-  if (!preload_dialog_list_timeout_.has_timeout()) {
-    LOG(INFO) << "Schedule chat list preload";
-    preload_dialog_list_timeout_.set_callback(std::move(MessagesManager::preload_dialog_list));
-    preload_dialog_list_timeout_.set_callback_data(static_cast<void *>(this));
+  if (!(last_loaded_database_dialog_date_ < last_database_server_dialog_date_)) {
+    have_more_dialogs_in_database = false;
+    new_get_dialogs_limit = 0;
   }
-  preload_dialog_list_timeout_.set_timeout_in(0.2);
 
-  promise.set_value(Unit());
+  if (new_get_dialogs_limit == 0) {
+    if (!preload_dialog_list_timeout_.has_timeout()) {
+      LOG(INFO) << "Schedule chat list preload";
+      preload_dialog_list_timeout_.set_callback(std::move(MessagesManager::preload_dialog_list));
+      preload_dialog_list_timeout_.set_callback_data(static_cast<void *>(this));
+    }
+    preload_dialog_list_timeout_.set_timeout_in(0.2);
+
+    promise.set_value(Unit());
+  } else {
+    load_dialog_list_from_database(new_get_dialogs_limit, std::move(promise));
+  }
 }
 
 void MessagesManager::preload_dialog_list(void *messages_manager_void) {
   if (G()->close_flag()) {
+    LOG(INFO) << "Skip chat list preload, because of closing";
     return;
   }
 
@@ -11003,7 +11030,7 @@ void MessagesManager::preload_dialog_list(void *messages_manager_void) {
 
   CHECK(G()->parameters().use_message_db);
   if (messages_manager->load_dialog_list_multipromise_.promise_count() != 0) {
-    // do nothing if there is pending load dialog list request
+    LOG(INFO) << "Skip chat list preload, because there is a pending load chat list request";
     return;
   }
 
@@ -11015,13 +11042,14 @@ void MessagesManager::preload_dialog_list(void *messages_manager_void) {
 
   if (messages_manager->last_loaded_database_dialog_date_ < messages_manager->last_database_server_dialog_date_) {
     // if there are some dialogs in database, preload some of them
-    messages_manager->load_dialog_list_from_database(20, Auto());
+    messages_manager->load_dialog_list(20, Auto());
   } else if (messages_manager->last_dialog_date_ != MAX_DIALOG_DATE) {
-    messages_manager->load_dialog_list(PromiseCreator::lambda([messages_manager](Result<Unit> result) {
-      if (result.is_ok()) {
-        messages_manager->recalc_unread_count();
-      }
-    }));
+    // otherwise load more dialogs from the server
+    messages_manager->load_dialog_list(MAX_GET_DIALOGS, PromiseCreator::lambda([messages_manager](Result<Unit> result) {
+                                         if (result.is_ok()) {
+                                           messages_manager->recalc_unread_count();
+                                         }
+                                       }));
   } else {
     messages_manager->recalc_unread_count();
   }
@@ -22366,7 +22394,7 @@ MessagesManager::Dialog *MessagesManager::get_dialog_force(DialogId dialog_id) {
     CHECK(d == nullptr || d->dialog_id == dialog_id) << d->dialog_id << " " << dialog_id;
     return d;
   } else {
-    LOG(INFO) << "Failed to load " << dialog_id << " from database";
+    LOG(INFO) << "Failed to load " << dialog_id << " from database: " << r_value.error().message();
     return nullptr;
   }
 }
