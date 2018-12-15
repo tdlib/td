@@ -9700,11 +9700,13 @@ void MessagesManager::set_dialog_first_database_message_id(Dialog *d, MessageId 
 }
 
 void MessagesManager::set_dialog_last_database_message_id(Dialog *d, MessageId last_database_message_id,
-                                                          const char *source) {
+                                                          const char *source, bool is_loaded_from_database) {
   LOG(INFO) << "Set " << d->dialog_id << " last database message to " << last_database_message_id << " from " << source;
   d->debug_set_dialog_last_database_message_id = source;
   d->last_database_message_id = last_database_message_id;
-  on_dialog_updated(d->dialog_id, "set_dialog_last_database_message_id");
+  if (!is_loaded_from_database) {
+    on_dialog_updated(d->dialog_id, "set_dialog_last_database_message_id");
+  }
 }
 
 void MessagesManager::set_dialog_last_new_message_id(Dialog *d, MessageId last_new_message_id, const char *source) {
@@ -9767,7 +9769,7 @@ void MessagesManager::set_dialog_last_new_message_id(Dialog *d, MessageId last_n
 }
 
 void MessagesManager::set_dialog_last_clear_history_date(Dialog *d, int32 date, MessageId last_clear_history_message_id,
-                                                         const char *source) {
+                                                         const char *source, bool is_loaded_from_database) {
   LOG(INFO) << "Set " << d->dialog_id << " last clear history date to " << date << " of "
             << last_clear_history_message_id << " from " << source;
   if (d->last_clear_history_message_id.is_valid()) {
@@ -9788,7 +9790,9 @@ void MessagesManager::set_dialog_last_clear_history_date(Dialog *d, int32 date, 
 
   d->last_clear_history_date = date;
   d->last_clear_history_message_id = last_clear_history_message_id;
-  on_dialog_updated(d->dialog_id, "set_dialog_last_clear_history_date");
+  if (!is_loaded_from_database) {
+    on_dialog_updated(d->dialog_id, "set_dialog_last_clear_history_date");
+  }
 
   if (d->last_clear_history_message_id.is_valid()) {
     switch (d->dialog_id.get_type()) {
@@ -10508,7 +10512,6 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
 
       if (is_permanently_deleted && d->last_clear_history_message_id == message_id) {
         set_dialog_last_clear_history_date(d, 0, MessageId(), "do_delete_message");
-        on_dialog_updated(d->dialog_id, "forget last_clear_history_date from do_delete_message");
         *need_update_dialog_pos = true;
       }
 
@@ -20547,7 +20550,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
     if (message->date > last_message_date) {
       set_dialog_last_clear_history_date(d, message->date, message_id, "update_last_clear_history_date");
-      on_dialog_updated(dialog_id, "update_last_clear_history_date");
       *need_update_dialog_pos = true;
     }
     LOG(INFO) << "Process MessageChatDeleteHistory in " << message_id << " in " << dialog_id << " with date "
@@ -21870,7 +21872,8 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     }
   }
 
-  set_dialog_last_clear_history_date(d, last_clear_history_date, last_clear_history_message_id, "fix_new_dialog 8");
+  set_dialog_last_clear_history_date(d, last_clear_history_date, last_clear_history_message_id, "fix_new_dialog 8",
+                                     is_loaded_from_database);
 
   set_dialog_order(d, order, false, is_loaded_from_database, "fix_new_dialog 9");
 
@@ -21878,6 +21881,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       !d->last_new_message_id.is_server()) {
     // fix wrong last_new_message_id
     d->last_new_message_id = MessageId(d->last_new_message_id.get() & ~MessageId::FULL_TYPE_MASK);
+    on_dialog_updated(dialog_id, "fix_new_dialog 10");
   }
 
   bool need_get_history = true;
@@ -21903,7 +21907,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
                  << last_message_id << " in " << dialog_id;
       set_dialog_first_database_message_id(d, last_message_id, "fix_new_dialog 2");
     }
-    set_dialog_last_database_message_id(d, last_message_id, "fix_new_dialog 3");
+    set_dialog_last_database_message_id(d, last_message_id, "fix_new_dialog 3", is_loaded_from_database);
   } else if (d->first_database_message_id.is_valid()) {
     // ensure that first_database_message_id <= last_database_message_id
     if (d->first_database_message_id.get() <= d->last_new_message_id.get()) {

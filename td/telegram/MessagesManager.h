@@ -1574,12 +1574,13 @@ class MessagesManager : public Actor {
 
   void set_dialog_first_database_message_id(Dialog *d, MessageId first_database_message_id, const char *source);
 
-  void set_dialog_last_database_message_id(Dialog *d, MessageId last_database_message_id, const char *source);
+  void set_dialog_last_database_message_id(Dialog *d, MessageId last_database_message_id, const char *source,
+                                           bool is_loaded_from_database = false);
 
   void set_dialog_last_new_message_id(Dialog *d, MessageId last_new_message_id, const char *source);
 
   void set_dialog_last_clear_history_date(Dialog *d, int32 date, MessageId last_clear_history_message_id,
-                                          const char *source);
+                                          const char *source, bool is_loaded_from_database = false);
 
   void set_dialog_is_empty(Dialog *d, const char *source);
 
