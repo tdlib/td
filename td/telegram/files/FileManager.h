@@ -340,7 +340,7 @@ class FileManager : public FileLoadManager::Callback {
   void external_file_generate_finish(int64 id, Status status, Promise<> promise);
 
   static constexpr char PERSISTENT_ID_VERSION = 2;
-  Result<string> to_persistent_id(FileId file_id) TD_WARN_UNUSED_RESULT;
+  static constexpr char PERSISTENT_ID_VERSION_MAP = 3;
   Result<FileId> from_persistent_id(CSlice persistent_id, FileType file_type) TD_WARN_UNUSED_RESULT;
   FileView get_file_view(FileId file_id) const;
   FileView get_sync_file_view(FileId file_id);
@@ -451,7 +451,11 @@ class FileManager : public FileLoadManager::Callback {
   void flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local, bool new_generate);
   void load_from_pmc(FileNodePtr node, bool new_remote, bool new_local, bool new_generate);
 
+  string get_persistent_id(const FullGenerateFileLocation &location);
   string get_persistent_id(const FullRemoteFileLocation &location);
+
+  Result<FileId> from_persistent_id_map(Slice binary, FileType file_type);
+  Result<FileId> from_persistent_id_v2(Slice binary, FileType file_type);
 
   string fix_file_extension(Slice file_name, Slice file_type, Slice file_extension);
   string get_file_name(FileType file_type, Slice path);

@@ -1847,23 +1847,19 @@ static bool is_document_type(FileType type) {
          type == FileType::Animation;
 }
 
+string FileManager::get_persistent_id(const FullGenerateFileLocation &location) {
+  auto binary = serialize(location);
+
+  binary = zero_encode(binary);
+  binary.push_back(PERSISTENT_ID_VERSION_MAP);
+  return base64url_encode(binary);
+}
 string FileManager::get_persistent_id(const FullRemoteFileLocation &location) {
   auto binary = serialize(location);
 
   binary = zero_encode(binary);
   binary.push_back(PERSISTENT_ID_VERSION);
   return base64url_encode(binary);
-}
-
-Result<string> FileManager::to_persistent_id(FileId file_id) {
-  auto view = get_file_view(file_id);
-  if (view.empty()) {
-    return Status::Error(10, "Unknown file id");
-  }
-  if (!view.has_remote_location()) {
-    return Status::Error(10, "File has no persistent id");
-  }
-  return get_persistent_id(view.remote_location());
 }
 
 Result<FileId> FileManager::from_persistent_id(CSlice persistent_id, FileType file_type) {
@@ -1885,10 +1881,37 @@ Result<FileId> FileManager::from_persistent_id(CSlice persistent_id, FileType fi
   if (binary.empty()) {
     return Status::Error(10, "Remote file id can't be empty");
   }
-  if (binary.back() != PERSISTENT_ID_VERSION) {
-    return Status::Error(10, "Wrong remote file id specified: can't unserialize it. Wrong last symbol");
+  if (binary.back() == PERSISTENT_ID_VERSION) {
+    return from_persistent_id_v2(binary, file_type);
   }
-  binary.pop_back();
+  if (binary.back() == PERSISTENT_ID_VERSION_MAP) {
+    return from_persistent_id_map(binary, file_type);
+  }
+  return Status::Error(10, "Wrong remote file id specified: can't unserialize it. Wrong last symbol");
+}
+
+Result<FileId> FileManager::from_persistent_id_map(Slice binary, FileType file_type) {
+  binary.remove_suffix(1);
+  binary = zero_decode(binary);
+  FullGenerateFileLocation generate_location;
+  auto status = unserialize(generate_location, binary);
+  if (status.is_error()) {
+    return Status::Error(10, "Wrong remote file id specified: can't unserialize it");
+  }
+  auto real_file_type = generate_location.file_type_;
+  if ((real_file_type != file_type && file_type != FileType::Temp) || real_file_type != FileType::Thumbnail) {
+    return Status::Error(10, "Type of file mismatch");
+  }
+  if (!begins_with(generate_location.conversion_, "#map#")) {
+    return Status::Error(10, "Unexpected converstioion type");
+  }
+  FileData data;
+  data.generate_ = make_unique<FullGenerateFileLocation>(std::move(generate_location));
+  return register_file(std::move(data), FileLocationSource::FromUser, "from_persistent_id_map", false).move_as_ok();
+}
+
+Result<FileId> FileManager::from_persistent_id_v2(Slice binary, FileType file_type) {
+  binary.remove_suffix(1);
   binary = zero_decode(binary);
   FullRemoteFileLocation remote_location;
   auto status = unserialize(remote_location, binary);
@@ -1903,7 +1926,7 @@ Result<FileId> FileManager::from_persistent_id(CSlice persistent_id, FileType fi
   }
   FileData data;
   data.remote_ = RemoteFileLocation(std::move(remote_location));
-  return register_file(std::move(data), FileLocationSource::FromUser, "from_persistent_id", false).move_as_ok();
+  return register_file(std::move(data), FileLocationSource::FromUser, "from_persistent_id_v2", false).move_as_ok();
 }
 
 FileView FileManager::get_file_view(FileId file_id) const {
@@ -1934,7 +1957,10 @@ tl_object_ptr<td_api::file> FileManager::get_file_object(FileId file_id, bool wi
     persistent_file_id = get_persistent_id(file_view.remote_location());
   } else if (file_view.has_url()) {
     persistent_file_id = file_view.url();
+  } else if (file_view.has_generate_location() && begins_with(file_view.generate_location().conversion_, "#map#")) {
+    persistent_file_id = get_persistent_id(file_view.generate_location());
   }
+  bool is_uploading_completed = !persistent_file_id.empty();
 
   int32 size = narrow_cast<int32>(file_view.size());
   int32 expected_size = narrow_cast<int32>(file_view.expected_size());
@@ -1963,7 +1989,7 @@ tl_object_ptr<td_api::file> FileManager::get_file_object(FileId file_id, bool wi
                                              file_view.is_downloading(), file_view.has_local_location(), local_size,
                                              local_total_size),
       td_api::make_object<td_api::remoteFile>(std::move(persistent_file_id), file_view.is_uploading(),
-                                              file_view.has_remote_location(), remote_size));
+                                              is_uploading_completed, remote_size));
 }
 
 vector<tl_object_ptr<td_api::file>> FileManager::get_files_object(const vector<FileId> &file_ids,
