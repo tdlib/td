@@ -1892,18 +1892,19 @@ Result<FileId> FileManager::from_persistent_id(CSlice persistent_id, FileType fi
 
 Result<FileId> FileManager::from_persistent_id_map(Slice binary, FileType file_type) {
   binary.remove_suffix(1);
-  binary = zero_decode(binary);
+  auto decoded_binary = zero_decode(binary);
   FullGenerateFileLocation generate_location;
-  auto status = unserialize(generate_location, binary);
+  auto status = unserialize(generate_location, decoded_binary);
   if (status.is_error()) {
     return Status::Error(10, "Wrong remote file id specified: can't unserialize it");
   }
   auto real_file_type = generate_location.file_type_;
-  if ((real_file_type != file_type && file_type != FileType::Temp) || real_file_type != FileType::Thumbnail) {
+  if ((real_file_type != file_type && file_type != FileType::Temp) ||
+      (real_file_type != FileType::Thumbnail && real_file_type != FileType::EncryptedThumbnail)) {
     return Status::Error(10, "Type of file mismatch");
   }
   if (!begins_with(generate_location.conversion_, "#map#")) {
-    return Status::Error(10, "Unexpected converstioion type");
+    return Status::Error(10, "Unexpected conversion type");
   }
   FileData data;
   data.generate_ = make_unique<FullGenerateFileLocation>(std::move(generate_location));
@@ -1912,9 +1913,9 @@ Result<FileId> FileManager::from_persistent_id_map(Slice binary, FileType file_t
 
 Result<FileId> FileManager::from_persistent_id_v2(Slice binary, FileType file_type) {
   binary.remove_suffix(1);
-  binary = zero_decode(binary);
+  auto decoded_binary = zero_decode(binary);
   FullRemoteFileLocation remote_location;
-  auto status = unserialize(remote_location, binary);
+  auto status = unserialize(remote_location, decoded_binary);
   if (status.is_error()) {
     return Status::Error(10, "Wrong remote file id specified: can't unserialize it");
   }
@@ -2137,8 +2138,9 @@ Result<FileId> FileManager::get_map_thumbnail_file_id(Location location, int32 z
 
   string conversion = PSTRING() << "#map#" << zoom << "#" << x << "#" << y << "#" << width << "#" << height << "#"
                                 << scale << "#";
-  return register_generate(FileType::Thumbnail, FileLocationSource::FromUser, string(), std::move(conversion),
-                           owner_dialog_id, 0);
+  return register_generate(
+      owner_dialog_id.get_type() == DialogType::SecretChat ? FileType::EncryptedThumbnail : FileType::Thumbnail,
+      FileLocationSource::FromUser, string(), std::move(conversion), owner_dialog_id, 0);
 }
 
 vector<tl_object_ptr<telegram_api::InputDocument>> FileManager::get_input_documents(const vector<FileId> &file_ids) {
