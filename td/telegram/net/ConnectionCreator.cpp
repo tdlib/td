@@ -1060,8 +1060,13 @@ void ConnectionCreator::client_create_raw_connection(Result<ConnectionData> r_co
                                                      string debug_str, uint32 network_generation) {
   auto promise = PromiseCreator::lambda([actor_id = actor_id(this), hash, check_mode,
                                          debug_str](Result<unique_ptr<mtproto::RawConnection>> result) mutable {
-    VLOG(connections) << "Ready connection " << (check_mode ? "(" : "(un") << "checked) "
-                      << (result.is_ok() ? result.ok().get() : nullptr) << " " << debug_str;
+    if (result.is_ok()) {
+      VLOG(connections) << "Ready connection (" << (check_mode ? "" : "un") << "checked) " << result.ok().get() << ' '
+                        << debug_str;
+    } else {
+      VLOG(connections) << "Failed connection (" << (check_mode ? "" : "un") << "checked) " << result.error() << ' '
+                        << debug_str;
+    }
     send_closure(std::move(actor_id), &ConnectionCreator::client_add_connection, hash, std::move(result), check_mode);
   });
 
