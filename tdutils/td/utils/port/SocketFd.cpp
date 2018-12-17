@@ -202,11 +202,11 @@ class SocketFdImpl : private Iocp::Callback {
   void on_iocp(Result<size_t> r_size, WSAOVERLAPPED *overlapped) override {
     // called from other thread
     if (dec_refcnt() || close_flag_) {
-      VLOG(fd) << "ignore iocp (file is closing)";
+      VLOG(fd) << "Ignore IOCP (socket is closing)";
       return;
     }
     if (r_size.is_error()) {
-      return on_error(r_size.move_as_error());
+      return on_error(get_socket_pending_error(get_native_fd(), overlapped, r_size.move_as_error()));
     }
 
     if (!is_connected_ && overlapped == &read_overlapped_) {
@@ -446,6 +446,9 @@ void SocketFdImplDeleter::operator()(SocketFdImpl *impl) {
   delete impl;
 }
 
+#endif
+
+#if TD_PORT_POSIX
 Status get_socket_pending_error(const NativeFd &fd) {
   int error = 0;
   socklen_t errlen = sizeof(error);
@@ -453,13 +456,25 @@ Status get_socket_pending_error(const NativeFd &fd) {
     if (error == 0) {
       return Status::OK();
     }
-    return Status::PosixError(error, PSLICE() << "Error on socket " << fd);
+    return Status::PosixError(error, PSLICE() << "Error on " << fd);
   }
   auto status = OS_SOCKET_ERROR(PSLICE() << "Can't load error on socket " << fd);
   LOG(INFO) << "Can't load pending socket error: " << status;
   return status;
 }
-
+#elif TD_PORT_WINDOWS
+Status get_socket_pending_error(const NativeFd &fd, WSAOVERLAPPED *overlapped, Status iocp_error) {
+  // We need to call WSAGetOverlappedResult() just so WSAGetLastError() will return the correct error. See
+  // https://stackoverflow.com/questions/28925003/calling-wsagetlasterror-from-an-iocp-thread-return-incorrect-result
+  DWORD num_bytes = 0;
+  DWORD flags = 0;
+  bool success = WSAGetOverlappedResult(fd.socket(), overlapped, &num_bytes, false, &flags);
+  if (success) {
+    LOG(ERROR) << "WSAGetOverlappedResult succeded after " << iocp_error;
+    return iocp_error;
+  }
+  return OS_SOCKET_ERROR(PSLICE() << "Error on " << fd);
+}
 #endif
 
 Status init_socket_options(NativeFd &native_fd) {

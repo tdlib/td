@@ -164,10 +164,11 @@ class ServerSocketFdImpl : private Iocp::Callback {
   void on_iocp(Result<size_t> r_size, WSAOVERLAPPED *overlapped) override {
     // called from other thread
     if (dec_refcnt() || close_flag_) {
+      VLOG(fd) << "Ignore IOCP (server socket is closing)";
       return;
     }
     if (r_size.is_error()) {
-      return on_error(r_size.move_as_error());
+      return on_error(get_socket_pending_error(get_native_fd(), overlapped, r_size.move_as_error()));
     }
 
     if (overlapped == nullptr) {

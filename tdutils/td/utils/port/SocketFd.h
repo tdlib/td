@@ -56,10 +56,12 @@ class SocketFd {
   explicit SocketFd(unique_ptr<detail::SocketFdImpl> impl);
 };
 
-#if TD_PORT_POSIX
 namespace detail {
+#if TD_PORT_POSIX
 Status get_socket_pending_error(const NativeFd &fd);
-}  // namespace detail
+#elif TD_PORT_WINDOWS
+Status get_socket_pending_error(const NativeFd &fd, WSAOVERLAPPED *overlapped, Status iocp_error);
 #endif
+}  // namespace detail
 
 }  // namespace td
