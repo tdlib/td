@@ -119,9 +119,8 @@ void NotificationManager::start_up() {
   on_notification_cloud_delay_changed();
   on_notification_default_delay_changed();
 
+  last_loaded_notification_group_key_.last_notification_date = std::numeric_limits<int32>::max();
   if (max_notification_group_count_ != 0) {
-    last_loaded_notification_group_key_.last_notification_date = std::numeric_limits<int32>::max();
-
     int32 loaded_groups = 0;
     int32 needed_groups = static_cast<int32>(max_notification_group_count_);
     do {
