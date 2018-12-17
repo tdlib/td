@@ -251,12 +251,18 @@ class SslStreamImpl {
           X509 *x509 = d2i_X509(nullptr, &in, static_cast<long>(cert_context->cbCertEncoded));
           if (x509 != nullptr) {
             if (X509_STORE_add_cert(store, x509) != 1) {
-              LOG(ERROR) << "Failed to add certificate";
+              auto error_code = ERR_peek_error();
+              auto error = create_openssl_error(-20, "Failed to add certificate");
+              if (ERR_GET_REASON(error_code) != X509_R_CERT_ALREADY_IN_HASH_TABLE) {
+                LOG(ERROR) << error;
+              } else {
+                LOG(INFO) << error;
+              }
             }
 
             X509_free(x509);
           } else {
-            LOG(ERROR) << "Failed to load X509 certificate";
+            LOG(ERROR) << create_openssl_error(-21, "Failed to load X509 certificate");
           }
         }
 
@@ -265,7 +271,7 @@ class SslStreamImpl {
         SSL_CTX_set_cert_store(ssl_ctx, store);
         LOG(DEBUG) << "End to load system store";
       } else {
-        LOG(ERROR) << "Failed to open system certificate store";
+        LOG(ERROR) << create_openssl_error(-22, "Failed to open system certificate store");
       }
 #else
       if (SSL_CTX_set_default_verify_paths(ssl_ctx) == 0) {
