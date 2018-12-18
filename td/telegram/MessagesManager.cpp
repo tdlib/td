@@ -14140,6 +14140,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
   Dependencies dependencies;
   bool is_first = true;
   bool had_full_history = d->have_full_history;
+  auto debug_first_message_id = d->first_database_message_id;
   for (auto &message_slice : messages) {
     if (!d->first_database_message_id.is_valid() && !d->have_full_history) {
       break;
@@ -14238,8 +14239,9 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
           !d->first_database_message_id.is_valid()) {
         CHECK(next_message != nullptr);
         CHECK(had_full_history || d->have_full_history)
-            << had_full_history << " " << d->have_full_history << " " << next_message->message_id << " "
-            << last_added_message_id << " " << d->first_database_message_id << " " << debug_last_database_message_id;
+            << had_full_history << ' ' << d->have_full_history << ' ' << next_message->message_id << ' '
+            << last_added_message_id << ' ' << d->first_database_message_id << ' ' << debug_first_message_id << ' '
+            << d->last_database_message_id << ' ' << debug_last_database_message_id;
         CHECK(next_message->message_id.get() <= d->last_database_message_id.get());
         LOG(ERROR) << "Fix first database message id in " << dialog_id << " from " << d->first_database_message_id
                    << " to " << next_message->message_id;
