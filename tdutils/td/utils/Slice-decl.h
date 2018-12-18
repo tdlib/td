@@ -189,8 +189,7 @@ class CSlice : public Slice {
 
   template <size_t N>
   constexpr CSlice &operator=(const char (&a)[N]) {
-    s_ = a;
-    len_ = N - 1;
+    this->Slice::operator=(a);
     return *this;
   }
 
