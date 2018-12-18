@@ -19,6 +19,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
+#include "td/telegram/NotificationManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UpdatesManager.h"
 
@@ -618,6 +619,22 @@ void CallActor::on_discard_query_result(NetQueryPtr net_query) {
 
 void CallActor::flush_call_state() {
   if (call_state_need_flush_) {
+    if (!is_outgoing_) {
+      if (call_state_.type == CallState::Type::Pending) {
+        if (!has_notification_) {
+          has_notification_ = true;
+          send_closure(G()->notification_manager(), &NotificationManager::add_call_notification,
+                       DialogId(UserId(call_admin_id_)), local_call_id_);
+        }
+      } else {
+        if (has_notification_) {
+          has_notification_ = false;
+          send_closure(G()->notification_manager(), &NotificationManager::remove_call_notification,
+                       DialogId(UserId(call_admin_id_)), local_call_id_);
+        }
+      }
+    }
+
     if (call_state_.type == CallState::Type::Ready && !call_state_has_config_) {
       return;
     }

@@ -35,7 +35,7 @@ Status SqliteKeyValue::init_with_connection(SqliteDb connection, string table_na
   get_stmt_ = std::move(get_stmt);
   TRY_RESULT(erase_stmt, db_.get_statement(PSLICE() << "DELETE FROM " << table_name_ << " WHERE k = ?1"));
   erase_stmt_ = std::move(erase_stmt);
-  TRY_RESULT(get_all_stmt, db_.get_statement(PSLICE() << "SELECT k, v FROM " << table_name_ << ""));
+  TRY_RESULT(get_all_stmt, db_.get_statement(PSLICE() << "SELECT k, v FROM " << table_name_));
   get_all_stmt_ = std::move(get_all_stmt);
 
   TRY_RESULT(erase_by_prefix_stmt,

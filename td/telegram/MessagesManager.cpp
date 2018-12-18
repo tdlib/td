@@ -10407,8 +10407,12 @@ void MessagesManager::remove_message_notification_id(Dialog *d, Message *m, bool
     fix_dialog_last_notification_id(d, m->message_id);
   }
   if (is_permanent) {
-    send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification,
-                       d->message_notification_group_id, notification_id, true, Promise<Unit>());
+    if (m->notification_id.get() > d->max_removed_notification_id.get()) {
+      send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification,
+                         d->message_notification_group_id, notification_id, true, Promise<Unit>());
+    }
+    // on_message_changed will be called by the caller
+    // don't need to call there to not save twice/or to save just deleted message
   } else {
     on_message_changed(d, m, false, "remove_message_notification_id");
   }
@@ -17805,7 +17809,8 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
   res.reserve(messages.size());
   NotificationId from_notification_id;
   MessageId from_message_id;
-  VLOG(notifications) << "Loaded " << messages.size() << " messages with notifications from database";
+  VLOG(notifications) << "Loaded " << messages.size() << " messages with notifications in " << dialog_id
+                      << " from database";
   for (auto &message : messages) {
     auto m = on_get_message_from_database(dialog_id, d, std::move(message));
     if (m == nullptr || !m->notification_id.is_valid()) {

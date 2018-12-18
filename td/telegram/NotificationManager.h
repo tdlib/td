@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/CallId.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/Notification.h"
@@ -69,6 +70,10 @@ class NotificationManager : public Actor {
   void remove_notification_group(NotificationGroupId group_id, NotificationId max_notification_id,
                                  MessageId max_message_id, int32 new_total_count, Promise<Unit> &&promise);
 
+  void add_call_notification(DialogId dialog_id, CallId call_id);
+
+  void remove_call_notification(DialogId dialog_id, CallId call_id);
+
   void on_notification_group_count_max_changed(bool send_updates);
 
   void on_notification_group_size_max_changed();
@@ -94,6 +99,9 @@ class NotificationManager : public Actor {
   static constexpr int32 DEFAULT_GROUP_SIZE_MAX = 10;
   static constexpr size_t EXTRA_GROUP_SIZE = 10;
 
+  static constexpr size_t MAX_CALL_NOTIFICATION_GROUPS = 10;
+  static constexpr size_t MAX_CALL_NOTIFICATIONS = 10;
+
   static constexpr int32 DEFAULT_ONLINE_CLOUD_TIMEOUT_MS = 300000;
   static constexpr int32 DEFAULT_ONLINE_CLOUD_DELAY_MS = 30000;
   static constexpr int32 DEFAULT_DEFAULT_DELAY_MS = 1500;
@@ -115,6 +123,7 @@ class NotificationManager : public Actor {
     int32 total_count = 0;
     bool is_loaded_from_database = false;
     bool is_being_loaded_from_database = false;
+    bool contains_messages = true;
 
     vector<Notification> notifications;
 
@@ -192,6 +201,8 @@ class NotificationManager : public Actor {
 
   void flush_all_pending_updates(bool include_delayed_chats, const char *source);
 
+  NotificationGroupId get_call_notification_group_id(DialogId dialog_id);
+
   void after_get_difference_impl();
 
   void after_get_chat_difference_impl(NotificationGroupId group_id);
@@ -219,6 +230,16 @@ class NotificationManager : public Actor {
 
   MultiTimeout flush_pending_notifications_timeout_{"FlushPendingNotificationsTimeout"};
   MultiTimeout flush_pending_updates_timeout_{"FlushPendingUpdatesTimeout"};
+
+  vector<NotificationGroupId> call_notification_group_ids_;
+  std::unordered_set<NotificationGroupId, NotificationGroupIdHash> available_call_notification_group_ids_;
+  std::unordered_map<DialogId, NotificationGroupId, DialogIdHash> dialog_id_to_call_notification_group_id_;
+
+  struct ActiveCallNotification {
+    CallId call_id;
+    NotificationId notification_id;
+  };
+  std::unordered_map<DialogId, vector<ActiveCallNotification>, DialogIdHash> active_call_notifications_;
 
   Td *td_;
   ActorShared<> parent_;

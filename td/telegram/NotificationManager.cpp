@@ -70,7 +70,7 @@ void NotificationManager::on_flush_pending_updates_timeout_callback(void *notifi
 }
 
 bool NotificationManager::is_disabled() const {
-  return td_->auth_manager_->is_bot();
+  return td_->auth_manager_->is_bot() || G()->close_flag();
 }
 
 namespace {
@@ -131,6 +131,17 @@ void NotificationManager::start_up() {
     if (update != nullptr) {
       VLOG(notifications) << "Send " << as_active_notifications_update(update.get());
       send_closure(G()->td(), &Td::send_update, std::move(update));
+    }
+  }
+
+  auto call_notification_group_ids_string = G()->td_db()->get_binlog_pmc()->get("notification_call_group_ids");
+  if (!call_notification_group_ids_string.empty()) {
+    call_notification_group_ids_ = transform(full_split(call_notification_group_ids_string, ','), [](Slice str) {
+      return NotificationGroupId{to_integer_safe<int32>(str).ok()};
+    });
+    VLOG(notifications) << "Load call_notification_group_ids_ = " << call_notification_group_ids_;
+    for (auto &group_id : call_notification_group_ids_) {
+      available_call_notification_group_ids_.insert(group_id);
     }
   }
 }
@@ -196,6 +207,11 @@ NotificationManager::NotificationGroups::iterator NotificationManager::get_group
   auto group_it = get_group(group_id);
   if (group_it != groups_.end()) {
     return group_it;
+  }
+
+  if (std::find(call_notification_group_ids_.begin(), call_notification_group_ids_.end(), group_id) !=
+      call_notification_group_ids_.end()) {
+    return groups_.end();
   }
 
   auto message_group = td_->messages_manager_->get_message_notification_group_force(group_id);
@@ -286,7 +302,7 @@ void NotificationManager::load_message_notifications_from_database(const Notific
   if (!G()->parameters().use_message_db) {
     return;
   }
-  if (group.is_loaded_from_database || group.is_being_loaded_from_database) {
+  if (group.is_loaded_from_database || group.is_being_loaded_from_database || !group.contains_messages) {
     return;
   }
   if (group.total_count == 0) {
@@ -579,7 +595,12 @@ void NotificationManager::add_notification(NotificationGroupId group_id, DialogI
   auto group_it = get_group_force(group_id);
   if (group_it == groups_.end()) {
     group_it = add_group(NotificationGroupKey(group_id, dialog_id, 0), NotificationGroup());
+    if (type->get_call_id().is_valid()) {
+      group_it->second.contains_messages = false;
+    }
   }
+
+  CHECK(group_it->second.contains_messages == !type->get_call_id().is_valid());
 
   PendingNotification notification;
   notification.date = date;
@@ -1106,7 +1127,6 @@ void NotificationManager::send_add_group_update(const NotificationGroupKey &grou
 void NotificationManager::flush_pending_notifications(NotificationGroupId group_id) {
   auto group_it = get_group(group_id);
   if (group_it == groups_.end()) {
-    CHECK(group_id.get() > current_notification_group_id_.get());
     return;
   }
 
@@ -1172,7 +1192,7 @@ void NotificationManager::flush_pending_notifications(NotificationGroupId group_
   group.pending_notifications_flush_time = 0;
   group.pending_notifications.clear();
   // if we can delete a lot of notifications simultaneously
-  if (group.notifications.size() > keep_notification_group_size_ + EXTRA_GROUP_SIZE) {
+  if (group.notifications.size() > keep_notification_group_size_ + EXTRA_GROUP_SIZE && group.contains_messages) {
     // keep only keep_notification_group_size_ last notifications in memory
     group.notifications.erase(group.notifications.begin(), group.notifications.end() - keep_notification_group_size_);
     group.is_loaded_from_database = false;
@@ -1291,8 +1311,8 @@ void NotificationManager::on_notifications_removed(
   }
 
   if (last_loaded_notification_group_key_ < last_group_key) {
-    load_message_notification_groups_from_database(
-        td::max(static_cast<int32>(max_notification_group_count_), DEFAULT_GROUP_COUNT_MAX) / 2, true);
+    load_message_notification_groups_from_database(td::max(static_cast<int32>(max_notification_group_count_), 10) / 2,
+                                                   true);
   }
 }
 
@@ -1362,7 +1382,7 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
     return promise.set_value(Unit());
   }
 
-  if (!is_permanent) {
+  if (!is_permanent && group_it->second.contains_messages) {
     td_->messages_manager_->remove_message_notification(group_it->first.dialog_id, notification_id);
   }
 
@@ -1389,8 +1409,14 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
     }
   }
 
-  if (is_permanent) {
-    group_it->second.total_count--;
+  bool is_total_count_changed = false;
+  if ((group_it->second.contains_messages && is_permanent) || (!group_it->second.contains_messages && is_found)) {
+    if (group_it->second.total_count == 0) {
+      LOG(ERROR) << "Total notification count became negative in " << group_id << " after removing " << notification_id;
+    } else {
+      group_it->second.total_count--;
+      is_total_count_changed = true;
+    }
   }
   if (is_found) {
     group_it->second.notifications.erase(group_it->second.notifications.begin() + notification_pos);
@@ -1412,7 +1438,7 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
     }
   }
 
-  if (is_permanent || !removed_notification_ids.empty()) {
+  if (is_total_count_changed || !removed_notification_ids.empty()) {
     on_notifications_removed(std::move(group_it), std::move(added_notifications), std::move(removed_notification_ids));
   }
 
@@ -1451,7 +1477,9 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
     if (max_notification_id.get() > current_notification_id_.get()) {
       max_notification_id = current_notification_id_;
     }
-    td_->messages_manager_->remove_message_notifications(group_it->first.dialog_id, max_notification_id);
+    if (group_it->second.contains_messages) {
+      td_->messages_manager_->remove_message_notifications(group_it->first.dialog_id, max_notification_id);
+    }
   }
 
   auto pending_delete_end = group_it->second.pending_notifications.begin();
@@ -1494,15 +1522,20 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
     }
   }
 
+  VLOG(notifications) << "Need to delete " << notification_delete_end << " from "
+                      << group_it->second.notifications.size() << " notifications";
+  if (is_found) {
+    group_it->second.notifications.erase(group_it->second.notifications.begin(),
+                                         group_it->second.notifications.begin() + notification_delete_end);
+  }
+  if (!group_it->second.contains_messages) {
+    new_total_count = static_cast<int32>(group_it->second.notifications.size());
+  }
   if (group_it->second.total_count == new_total_count) {
     new_total_count = -1;
   }
   if (new_total_count != -1) {
     group_it->second.total_count = new_total_count;
-  }
-  if (is_found) {
-    group_it->second.notifications.erase(group_it->second.notifications.begin(),
-                                         group_it->second.notifications.begin() + notification_delete_end);
   }
 
   if (new_total_count != -1 || !removed_notification_ids.empty()) {
@@ -1528,6 +1561,119 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
   }
 
   promise.set_value(Unit());
+}
+
+NotificationGroupId NotificationManager::get_call_notification_group_id(DialogId dialog_id) {
+  auto it = dialog_id_to_call_notification_group_id_.find(dialog_id);
+  if (it != dialog_id_to_call_notification_group_id_.end()) {
+    return it->second;
+  }
+
+  if (available_call_notification_group_ids_.empty()) {
+    // need to reserve new group_id for calls
+    if (call_notification_group_ids_.size() >= MAX_CALL_NOTIFICATION_GROUPS) {
+      return {};
+    }
+    NotificationGroupId last_group_id;
+    if (!call_notification_group_ids_.empty()) {
+      last_group_id = call_notification_group_ids_.back();
+    }
+    NotificationGroupId next_notification_group_id;
+    do {
+      next_notification_group_id = get_next_notification_group_id();
+    } while (last_group_id.get() >= next_notification_group_id.get());  // just in case
+    VLOG(notifications) << "Add call " << next_notification_group_id;
+
+    call_notification_group_ids_.push_back(next_notification_group_id);
+    auto call_notification_group_ids_string = implode(
+        transform(call_notification_group_ids_, [](NotificationGroupId group_id) { return to_string(group_id.get()); }),
+        ',');
+    G()->td_db()->get_binlog_pmc()->set("notification_call_group_ids", call_notification_group_ids_string);
+    available_call_notification_group_ids_.insert(next_notification_group_id);
+  }
+
+  auto available_it = available_call_notification_group_ids_.begin();
+  auto group_id = *available_it;
+  available_call_notification_group_ids_.erase(available_it);
+  dialog_id_to_call_notification_group_id_[dialog_id] = group_id;
+  return group_id;
+}
+
+void NotificationManager::add_call_notification(DialogId dialog_id, CallId call_id) {
+  CHECK(dialog_id.is_valid());
+  CHECK(call_id.is_valid());
+  if (is_disabled() || max_notification_group_count_ == 0) {
+    return;
+  }
+
+  auto group_id = get_call_notification_group_id(dialog_id);
+  if (!group_id.is_valid()) {
+    VLOG(notifications) << "Ignore notification about " << call_id << " in " << dialog_id;
+    return;
+  }
+
+  G()->td().get_actor_unsafe()->messages_manager_->force_create_dialog(dialog_id, "add_call_notification");
+
+  auto &active_notifications = active_call_notifications_[dialog_id];
+  if (active_notifications.size() >= MAX_CALL_NOTIFICATIONS) {
+    VLOG(notifications) << "Ignore notification about " << call_id << " in " << dialog_id << " and " << group_id;
+    return;
+  }
+
+  auto notification_id = get_next_notification_id();
+  active_notifications.push_back(ActiveCallNotification{call_id, notification_id});
+
+  add_notification(group_id, dialog_id, G()->unix_time() + 120, dialog_id, false, notification_id,
+                   create_new_call_notification(call_id));
+}
+
+void NotificationManager::remove_call_notification(DialogId dialog_id, CallId call_id) {
+  CHECK(dialog_id.is_valid());
+  CHECK(call_id.is_valid());
+  if (is_disabled() || max_notification_group_count_ == 0) {
+    return;
+  }
+
+  auto group_id_it = dialog_id_to_call_notification_group_id_.find(dialog_id);
+  if (group_id_it == dialog_id_to_call_notification_group_id_.end()) {
+    VLOG(notifications) << "Ignore removing notification about " << call_id << " in " << dialog_id;
+    return;
+  }
+  auto group_id = group_id_it->second;
+  CHECK(group_id.is_valid());
+
+  auto &active_notifications = active_call_notifications_[dialog_id];
+  for (auto it = active_notifications.begin(); it != active_notifications.end(); ++it) {
+    if (it->call_id == call_id) {
+      remove_notification(group_id, it->notification_id, true, Promise<Unit>());
+      active_notifications.erase(it);
+      if (active_notifications.empty()) {
+        VLOG(notifications) << "Reuse call " << group_id;
+        active_call_notifications_.erase(dialog_id);
+        available_call_notification_group_ids_.insert(group_id);
+        dialog_id_to_call_notification_group_id_.erase(dialog_id);
+
+        flush_pending_notifications_timeout_.cancel_timeout(group_id.get());
+        flush_pending_notifications(group_id);
+        flush_pending_updates_timeout_.cancel_timeout(group_id.get());
+        flush_pending_updates(group_id.get(), "reuse call group_id");
+
+        auto group_it = get_group(group_id);
+        CHECK(group_it->first.dialog_id == dialog_id);
+        CHECK(group_it->first.last_notification_date == 0);
+        CHECK(group_it->second.total_count == 0);
+        CHECK(group_it->second.notifications.empty());
+        CHECK(group_it->second.pending_notifications.empty());
+        CHECK(!group_it->second.contains_messages);
+        CHECK(!group_it->second.is_being_loaded_from_database);
+        CHECK(pending_updates_.count(group_id.get()) == 0);
+        delete_group(std::move(group_it));
+      }
+      return;
+    }
+  }
+
+  VLOG(notifications) << "Failed to find " << call_id << " in " << dialog_id << " and " << group_id;
 }
 
 void NotificationManager::on_notification_group_count_max_changed(bool send_updates) {
@@ -1586,8 +1732,7 @@ void NotificationManager::on_notification_group_count_max_changed(bool send_upda
 
   max_notification_group_count_ = new_max_notification_group_count_size_t;
   if (is_increased && last_loaded_notification_group_key_ < get_last_updated_group_key()) {
-    load_message_notification_groups_from_database(
-        td::max(new_max_notification_group_count, DEFAULT_GROUP_COUNT_MAX / 2), true);
+    load_message_notification_groups_from_database(td::max(new_max_notification_group_count, 5), true);
   }
 }
 
