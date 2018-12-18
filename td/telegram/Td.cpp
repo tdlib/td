@@ -3062,9 +3062,13 @@ void Td::on_alarm_timeout(int64 alarm_id) {
     }
     return;
   }
+  if (close_flag_ >= 2) {
+    // pending_alarms_ was already cleared
+    return;
+  }
 
   auto it = pending_alarms_.find(alarm_id);
-  CHECK(it != pending_alarms_.end()) << alarm_id << ' ' << close_flag_ << ' ' << G()->close_flag();
+  CHECK(it != pending_alarms_.end());
   uint64 request_id = it->second;
   pending_alarms_.erase(alarm_id);
   send_result(request_id, make_tl_object<td_api::ok>());
