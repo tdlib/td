@@ -10343,9 +10343,9 @@ unique_ptr<MessagesManager::Message> MessagesManager::delete_message(Dialog *d, 
 void MessagesManager::add_random_id_to_message_id_correspondence(Dialog *d, int64 random_id, MessageId message_id) {
   CHECK(d != nullptr);
   CHECK(d->dialog_id.get_type() == DialogType::SecretChat);
-  LOG(INFO) << "Add correspondence from random_id " << random_id << " to " << message_id << " in " << d->dialog_id;
   auto it = d->random_id_to_message_id.find(random_id);
   if (it == d->random_id_to_message_id.end() || it->second.get() < message_id.get()) {
+    LOG(INFO) << "Add correspondence from random_id " << random_id << " to " << message_id << " in " << d->dialog_id;
     d->random_id_to_message_id[random_id] = message_id;
   }
 }
@@ -10353,9 +10353,9 @@ void MessagesManager::add_random_id_to_message_id_correspondence(Dialog *d, int6
 void MessagesManager::delete_random_id_to_message_id_correspondence(Dialog *d, int64 random_id, MessageId message_id) {
   CHECK(d != nullptr);
   CHECK(d->dialog_id.get_type() == DialogType::SecretChat);
-  LOG(INFO) << "Delete correspondence from random_id " << random_id << " to " << message_id << " in " << d->dialog_id;
   auto it = d->random_id_to_message_id.find(random_id);
   if (it != d->random_id_to_message_id.end() && it->second == message_id) {
+    LOG(INFO) << "Delete correspondence from random_id " << random_id << " to " << message_id << " in " << d->dialog_id;
     d->random_id_to_message_id.erase(it);
   }
 }
@@ -10363,12 +10363,12 @@ void MessagesManager::delete_random_id_to_message_id_correspondence(Dialog *d, i
 void MessagesManager::add_notification_id_to_message_id_correspondence(Dialog *d, NotificationId notification_id,
                                                                        MessageId message_id) {
   CHECK(d != nullptr);
-  VLOG(notifications) << "Add correspondence from " << notification_id << " to " << message_id << " in "
-                      << d->dialog_id;
   auto it = d->notification_id_to_message_id.find(notification_id);
   if (it == d->notification_id_to_message_id.end()) {
+    VLOG(notifications) << "Add correspondence from " << notification_id << " to " << message_id << " in "
+                        << d->dialog_id;
     d->notification_id_to_message_id.emplace(notification_id, message_id);
-  } else {
+  } else if (it->second.get() != message_id.get()) {
     LOG(ERROR) << "Have duplicated " << notification_id << " in " << d->dialog_id << " in " << message_id << " and "
                << it->second;
     if (it->second.get() < message_id.get()) {
@@ -10380,10 +10380,10 @@ void MessagesManager::add_notification_id_to_message_id_correspondence(Dialog *d
 void MessagesManager::delete_notification_id_to_message_id_correspondence(Dialog *d, NotificationId notification_id,
                                                                           MessageId message_id) {
   CHECK(d != nullptr);
-  VLOG(notifications) << "Delete correspondence from " << notification_id << " to " << message_id << " in "
-                      << d->dialog_id;
   auto it = d->notification_id_to_message_id.find(notification_id);
   if (it != d->notification_id_to_message_id.end() && it->second == message_id) {
+    VLOG(notifications) << "Delete correspondence from " << notification_id << " to " << message_id << " in "
+                        << d->dialog_id;
     d->notification_id_to_message_id.erase(it);
   } else {
     LOG(ERROR) << "Can't find " << notification_id << " in " << d->dialog_id << " with " << message_id;
@@ -20371,7 +20371,18 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(DialogId
 
   auto old_message = get_message(d, m->message_id);
   if (old_message != nullptr) {
+    CHECK(m->message_id == old_message->message_id);
     // data in the database is always outdated, so return a message from the memory
+    if (dialog_id.get_type() == DialogType::SecretChat) {
+      // just in case restore random_id to message_id corespondence
+      // can be needed if there was newer unloaded message with the same random_id
+      add_random_id_to_message_id_correspondence(d, old_message->random_id, m->message_id);
+    }
+
+    if (old_message->notification_id.is_valid()) {
+      add_notification_id_to_message_id_correspondence(d, old_message->notification_id, m->message_id);
+    }
+
     return old_message;
   }
 
