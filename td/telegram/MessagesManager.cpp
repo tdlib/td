@@ -14192,9 +14192,14 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
         added_new_message = true;
       }
       if (next_message != nullptr && !next_message->have_previous) {
+        CHECK(m->message_id.get() < next_message->message_id.get()) << m->message_id << ' ' << next_message->message_id;
         LOG(INFO) << "Fix have_previous for " << next_message->message_id;
         next_message->have_previous = true;
-        attach_message_to_previous(d, next_message->message_id, "on_get_history_from_database 1");
+        attach_message_to_previous(
+            d, next_message->message_id,
+            (PSLICE() << "on_get_history_from_database 1 " << m->message_id << ' ' << from_message_id << ' ' << offset
+                      << ' ' << limit << ' ' << d->first_database_message_id << ' ' << d->have_full_history)
+                .c_str());
       }
 
       have_next = true;
