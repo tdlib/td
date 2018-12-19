@@ -163,7 +163,7 @@ class Mtproto_ping : public td::Test {
   ConcurrentScheduler sched_;
   Status result_;
 };
-Mtproto_ping mtproto_ping("Mtproto_ping");
+RegisterTest<Mtproto_ping> mtproto_ping("Mtproto_ping");
 
 class HandshakeContext : public mtproto::AuthKeyHandshakeContext {
  public:
@@ -296,7 +296,7 @@ class Mtproto_handshake : public td::Test {
   ConcurrentScheduler sched_;
   Status result_;
 };
-Mtproto_handshake mtproto_handshake("Mtproto_handshake");
+RegisterTest<Mtproto_handshake> mtproto_handshake("Mtproto_handshake");
 
 class Socks5TestActor : public Actor {
  public:

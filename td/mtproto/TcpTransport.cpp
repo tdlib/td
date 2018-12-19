@@ -168,7 +168,7 @@ void ObfuscatedTransport::init(ChainBufferReader *input, ChainBufferWriter *outp
 
   string rheader = header;
   std::reverse(rheader.begin(), rheader.end());
-  auto key = as<UInt256>(rheader.data() + 8);
+  UInt256 key = as<UInt256>(rheader.data() + 8);
   if (secret_.size() == 17) {
     secret_ = secret_.substr(1);
   }

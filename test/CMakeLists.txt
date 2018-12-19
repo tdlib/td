@@ -9,11 +9,6 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/secret.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/secure_storage.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/string_cleaning.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/TestsRunner.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/tests_runner.cpp
-
-  ${CMAKE_CURRENT_SOURCE_DIR}/TestsRunner.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/tests_runner.h
 
   ${CMAKE_CURRENT_SOURCE_DIR}/data.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/data.h

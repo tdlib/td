@@ -19,7 +19,6 @@
 
 namespace td {
 namespace mtproto {
-
 // mtproto v1.0
 template <class HeaderT>
 std::tuple<uint32, UInt128> Transport::calc_message_ack_and_key(const HeaderT &head, size_t data_size) {
@@ -80,10 +79,9 @@ Status Transport::read_no_crypto(MutableSlice message, PacketInfo *info, Mutable
     return Status::Error(PSLICE() << "Invalid mtproto message: too small [message.size()=" << message.size()
                                   << "] < [sizeof(NoCryptoHeader) = " << sizeof(NoCryptoHeader) << "]");
   }
-  auto &header = as<NoCryptoHeader>(message.begin());
   size_t data_size = message.size() - sizeof(NoCryptoHeader);
   CHECK(message.size() == calc_no_crypto_size(data_size));
-  *data = MutableSlice(header.data, data_size);
+  *data = MutableSlice(message.begin() + sizeof(NoCryptoHeader), data_size);
   return Status::OK();
 }
 
@@ -94,7 +92,8 @@ Status Transport::read_crypto_impl(int X, MutableSlice message, const AuthKey &a
     return Status::Error(PSLICE() << "Invalid mtproto message: too small [message.size()=" << message.size()
                                   << "] < [sizeof(HeaderT) = " << sizeof(HeaderT) << "]");
   }
-  auto *header = &as<HeaderT>(message.begin());
+  //FIXME: rewrite without reinterpret cast
+  auto *header = reinterpret_cast<HeaderT *>(message.begin());
   *header_ptr = header;
   auto to_decrypt = MutableSlice(header->encrypt_begin(), message.uend());
   to_decrypt = to_decrypt.truncate(to_decrypt.size() & ~15);
@@ -123,7 +122,8 @@ Status Transport::read_crypto_impl(int X, MutableSlice message, const AuthKey &a
   if (tail_size < sizeof(PrefixT)) {
     return Status::Error("Too small encrypted part");
   }
-  auto *prefix = &as<PrefixT>(header->data);
+  //FIXME: rewrite without reinterpret cast
+  auto *prefix = reinterpret_cast<PrefixT *>(header->data);
   *prefix_ptr = prefix;
   size_t data_size = prefix->message_data_length + sizeof(PrefixT);
   bool is_length_ok = prefix->message_data_length % 4 == 0;
@@ -191,9 +191,9 @@ size_t Transport::write_no_crypto(const Storer &storer, PacketInfo *info, Mutabl
   if (size > dest.size()) {
     return size;
   }
-  auto &header = as<NoCryptoHeader>(dest.begin());
-  header.auth_key_id = 0;
-  auto real_size = storer.store(header.data);
+  // NoCryptoHeader
+  as<uint64>(dest.begin()) = uint64(0);
+  auto real_size = storer.store(dest.ubegin() + sizeof(uint64));
   CHECK(real_size == storer.size());
   return size;
 }
@@ -249,7 +249,8 @@ size_t Transport::write_crypto(const Storer &storer, const AuthKey &auth_key, Pa
     return size;
   }
 
-  auto &header = as<CryptoHeader>(dest.begin());
+  //FIXME: rewrite without reinterpret cast
+  auto &header = *reinterpret_cast<CryptoHeader *>(dest.begin());
   header.auth_key_id = auth_key.id();
   header.salt = info->salt;
   header.session_id = info->session_id;
@@ -271,7 +272,8 @@ size_t Transport::write_e2e_crypto(const Storer &storer, const AuthKey &auth_key
     return size;
   }
 
-  auto &header = as<EndToEndHeader>(dest.begin());
+  //FIXME: rewrite without reinterpret cast
+  auto &header = *reinterpret_cast<EndToEndHeader *>(dest.begin());
   header.auth_key_id = auth_key.id();
 
   write_crypto_impl(info->is_creator || info->version == 1 ? 0 : 8, storer, auth_key, info, &header, data_size);

@@ -312,7 +312,7 @@ Result<size_t> FileDownloader::process_part(Part part, NetQueryPtr net_query) {
 
   // Encryption
   if (need_cdn_decrypt) {
-    auto iv = as<UInt128>(cdn_encryption_iv_.c_str());
+    UInt128 iv = as<UInt128>(cdn_encryption_iv_.c_str());
     CHECK(part.offset % 16 == 0);
     auto offset = narrow_cast<uint32>(part.offset / 16);
     offset =
