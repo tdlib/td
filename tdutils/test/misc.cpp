@@ -593,6 +593,8 @@ TEST(Misc, As) {
   ASSERT_EQ(123, as<int>((const char *)buf));
   ASSERT_EQ(123, as<int>((char *)buf));
   char buf2[100];
+  //auto x = as<int>(buf2);
+  //x = 44342;  //CE
   as<int>(buf2) = as<int>(buf);
   ASSERT_EQ(123, as<int>((const char *)buf2));
   ASSERT_EQ(123, as<int>((char *)buf2));
