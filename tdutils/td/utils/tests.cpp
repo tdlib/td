@@ -6,14 +6,20 @@
 //
 #include "td/utils/tests.h"
 
-#include "td/utils/base64.h"
 #include "td/utils/crypto.h"
 #include "td/utils/filesystem.h"
 #include "td/utils/Parser.h"
 #include "td/utils/PathView.h"
 #include "td/utils/port/path.h"
+#include "td/utils/port/Stat.h"
+#include "td/utils/ScopeGuard.h"
+#include "td/utils/StringBuilder.h"
+#include "td/utils/Time.h"
+
+#include <map>
 
 namespace td {
+
 struct TestInfo {
   string name;
   string result_hash;  // base64
@@ -31,7 +37,7 @@ class RegressionTesterImpl : public RegressionTester {
     unlink(db_path).ignore();
   }
 
-  explicit RegressionTesterImpl(string db_path, string db_cache_dir) : db_path_(db_path), db_cache_dir_(db_cache_dir) {
+  RegressionTesterImpl(string db_path, string db_cache_dir) : db_path_(db_path), db_cache_dir_(db_cache_dir) {
     load_db(db_path);
     if (db_cache_dir_.empty()) {
       db_cache_dir_ = PathView(db_path).without_extension().str() + ".cache/";
@@ -118,15 +124,17 @@ class RegressionTesterImpl : public RegressionTester {
 void RegressionTester::destroy(CSlice path) {
   RegressionTesterImpl::destroy(path);
 }
-std::unique_ptr<RegressionTester> RegressionTester::create(string db_path, string db_cache_dir) {
-  return std::make_unique<RegressionTesterImpl>(std::move(db_path), std::move(db_cache_dir));
+
+unique_ptr<RegressionTester> RegressionTester::create(string db_path, string db_cache_dir) {
+  return td::make_unique<RegressionTesterImpl>(std::move(db_path), std::move(db_cache_dir));
 }
+
 TestsRunner &TestsRunner::get_default() {
   static TestsRunner default_runner;
   return default_runner;
 }
 
-void TestsRunner::add_test(string name, std::unique_ptr<Test> test) {
+void TestsRunner::add_test(string name, unique_ptr<Test> test) {
   for (auto &it : tests_) {
     if (it.first == name) {
       LOG(FATAL) << "Test name collision " << name;
@@ -135,14 +143,14 @@ void TestsRunner::add_test(string name, std::unique_ptr<Test> test) {
   tests_.emplace_back(name, std::move(test));
 }
 
-void TestsRunner::add_substr_filter(std::string str) {
+void TestsRunner::add_substr_filter(string str) {
   if (str[0] != '+' && str[0] != '-') {
     str = "+" + str;
   }
   substr_filters_.push_back(std::move(str));
 }
 
-void TestsRunner::set_regression_tester(std::unique_ptr<RegressionTester> regression_tester) {
+void TestsRunner::set_regression_tester(unique_ptr<RegressionTester> regression_tester) {
   regression_tester_ = std::move(regression_tester);
 }
 
@@ -154,6 +162,7 @@ void TestsRunner::run_all() {
   while (run_all_step()) {
   }
 }
+
 bool TestsRunner::run_all_step() {
   Guard guard(this);
   if (state_.it == state_.end) {
@@ -167,14 +176,14 @@ bool TestsRunner::run_all_step() {
     if (!state_.is_running) {
       bool ok = true;
       for (const auto &filter : substr_filters_) {
-        bool is_match = name.find(filter.substr(1)) != std::string::npos;
+        bool is_match = name.find(filter.substr(1)) != string::npos;
         if (is_match != (filter[0] == '+')) {
           ok = false;
           break;
         }
       }
       if (!ok) {
-        state_.it++;
+        ++state_.it;
         continue;
       }
       LOG(ERROR) << "Run test " << tag("name", name);
@@ -191,7 +200,7 @@ bool TestsRunner::run_all_step() {
       regression_tester_->save_db();
     }
     state_.is_running = false;
-    state_.it++;
+    ++state_.it;
   }
 
   auto ret = state_.it != state_.end;
@@ -214,4 +223,5 @@ Status TestsRunner::verify(Slice data) {
   }
   return regression_tester_->verify_test(PSLICE() << name() << "_default", data);
 }
+
 }  // namespace td

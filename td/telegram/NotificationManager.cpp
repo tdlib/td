@@ -16,6 +16,7 @@
 
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/Slice.h"
 #include "td/utils/Time.h"
 
 #include <algorithm>

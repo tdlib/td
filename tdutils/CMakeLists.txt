@@ -85,9 +85,9 @@ set(TDUTILS_SOURCE
   td/utils/StackAllocator.cpp
   td/utils/Status.cpp
   td/utils/StringBuilder.cpp
+  td/utils/tests.cpp
   td/utils/Time.cpp
   td/utils/Timer.cpp
-  td/utils/tests.cpp
   td/utils/tl_parsers.cpp
   td/utils/translit.cpp
   td/utils/unicode.cpp

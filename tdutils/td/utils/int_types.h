@@ -92,16 +92,6 @@ td::UInt<size> operator^(const UInt<size> &a, const UInt<size> &b) {
 }
 
 template <size_t size>
-bool is_zero(const UInt<size> &a) {
-  for (size_t i = 0; i * 8 < size; i++) {
-    if (a.raw[i]) {
-      return false;
-    }
-  }
-  return true;
-}
-
-template <size_t size>
 int get_kth_bit(const UInt<size> &a, uint32 bit) {
   uint8 b = a.raw[bit / 8];
   bit &= 7;

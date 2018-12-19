@@ -9,17 +9,14 @@
 #include "td/utils/common.h"
 #include "td/utils/Context.h"
 #include "td/utils/format.h"
-#include "td/utils/List.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/Random.h"
-#include "td/utils/optional.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
-#include "td/utils/Time.h"
 
 #include <atomic>
-#include <map>
+#include <utility>
 
 #define REGISTER_TESTS(x)                \
   void TD_CONCAT(register_tests_, x)() { \
@@ -33,7 +30,7 @@ class RegressionTester {
  public:
   virtual ~RegressionTester() = default;
   static void destroy(CSlice db_path);
-  static std::unique_ptr<RegressionTester> create(string db_path, string db_cache_dir = "");
+  static unique_ptr<RegressionTester> create(string db_path, string db_cache_dir = "");
 
   virtual Status verify_test(Slice name, Slice result) = 0;
   virtual void save_db() = 0;
@@ -68,12 +65,12 @@ class TestsRunner : public TestContext {
  public:
   static TestsRunner &get_default();
 
-  void add_test(string name, std::unique_ptr<Test> test);
-  void add_substr_filter(std::string str);
+  void add_test(string name, unique_ptr<Test> test);
+  void add_substr_filter(string str);
   void set_stress_flag(bool flag);
   void run_all();
   bool run_all_step();
-  void set_regression_tester(std::unique_ptr<RegressionTester> regression_tester);
+  void set_regression_tester(unique_ptr<RegressionTester> regression_tester);
 
  private:
   struct State {
@@ -83,10 +80,10 @@ class TestsRunner : public TestContext {
     size_t end{0};
   };
   bool stress_flag_{false};
-  std::vector<std::string> substr_filters_;
-  std::vector<std::pair<string, std::unique_ptr<Test>>> tests_;
+  vector<string> substr_filters_;
+  vector<std::pair<string, unique_ptr<Test>>> tests_;
   State state_;
-  std::unique_ptr<RegressionTester> regression_tester_;
+  unique_ptr<RegressionTester> regression_tester_;
 
   Slice name() override;
   Status verify(Slice data) override;
@@ -96,7 +93,7 @@ template <class T>
 class RegisterTest {
  public:
   RegisterTest(string name, TestsRunner &runner = TestsRunner::get_default()) {
-    runner.add_test(name, std::make_unique<T>());
+    runner.add_test(name, make_unique<T>());
   }
 };
 
@@ -121,8 +118,8 @@ inline string rand_string(char from, char to, int len) {
   return res;
 }
 
-inline std::vector<string> rand_split(string str) {
-  std::vector<string> res;
+inline vector<string> rand_split(string str) {
+  vector<string> res;
   size_t pos = 0;
   while (pos < str.size()) {
     size_t len;

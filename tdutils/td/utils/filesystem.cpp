@@ -8,6 +8,7 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/PathView.h"
 #include "td/utils/port/FileFd.h"
 #include "td/utils/Slice.h"
@@ -17,31 +18,41 @@
 
 namespace td {
 
+// TODO remove copypaste
 Result<BufferSlice> read_file(CSlice path, int64 size, int64 offset) {
   TRY_RESULT(from_file, FileFd::open(path, FileFd::Read));
   if (size == -1) {
-    size = from_file.get_size() - offset;
+    size = from_file.get_size();
   }
   if (size < 0) {
-    return Status::Error("Failed to read file: invalid size or offset");
+    return Status::Error("Failed to read file: invalid size");
   }
-  BufferWriter content{static_cast<size_t>(size), 0, 0};
-  TRY_RESULT(got_size, from_file.pread(content.as_slice(), offset));
+  if (offset < 0 || offset > size) {
+    return Status::Error("Failed to read file: invalid offset");
+  }
+  size -= offset;
+  BufferSlice content{narrow_cast<size_t>(size)};
+  TRY_RESULT(got_size, from_file.pread(as_slice(content), offset));
   if (got_size != static_cast<size_t>(size)) {
     return Status::Error("Failed to read file");
   }
   from_file.close();
-  return content.as_buffer_slice();
+  return std::move(content);
 }
+
 Result<std::string> read_file_str(CSlice path, int64 size, int64 offset) {
   TRY_RESULT(from_file, FileFd::open(path, FileFd::Read));
   if (size == -1) {
-    size = from_file.get_size() - offset;
+    size = from_file.get_size();
   }
   if (size < 0) {
-    return Status::Error("Failed to read file: invalid size or offset");
+    return Status::Error("Failed to read file: invalid size");
   }
-  std::string content(static_cast<size_t>(size), '\0');
+  if (offset < 0 || offset > size) {
+    return Status::Error("Failed to read file: invalid offset");
+  }
+  size -= offset;
+  std::string content(narrow_cast<size_t>(size), '\0');
   TRY_RESULT(got_size, from_file.pread(content, offset));
   if (got_size != static_cast<size_t>(size)) {
     return Status::Error("Failed to read file");

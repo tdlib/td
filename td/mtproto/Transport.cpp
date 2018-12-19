@@ -19,6 +19,7 @@
 
 namespace td {
 namespace mtproto {
+
 // mtproto v1.0
 template <class HeaderT>
 std::tuple<uint32, UInt128> Transport::calc_message_ack_and_key(const HeaderT &head, size_t data_size) {
@@ -331,5 +332,6 @@ size_t Transport::write(const Storer &storer, const AuthKey &auth_key, PacketInf
     return write_crypto(storer, auth_key, info, dest);
   }
 }
+
 }  // namespace mtproto
 }  // namespace td
