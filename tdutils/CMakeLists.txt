@@ -133,6 +133,7 @@ set(TDUTILS_SOURCE
   td/utils/port/detail/WineventPoll.h
 
   td/utils/AesCtrByteFlow.h
+  td/utils/as.h
   td/utils/base64.h
   td/utils/benchmark.h
   td/utils/BigNum.h

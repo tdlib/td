@@ -13,6 +13,7 @@
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/UniqueId.h"
 
+#include "td/utils/as.h"
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/crypto.h"

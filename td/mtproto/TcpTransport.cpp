@@ -6,6 +6,7 @@
 //
 #include "td/mtproto/TcpTransport.h"
 
+#include "td/utils/as.h"
 #include "td/utils/logging.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"

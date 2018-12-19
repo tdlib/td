@@ -16,6 +16,7 @@
 #include "td/mtproto/TcpTransport.h"
 #include "td/mtproto/Transport.h"
 
+#include "td/utils/as.h"
 #include "td/utils/format.h"
 #include "td/utils/Gzip.h"
 #include "td/utils/logging.h"

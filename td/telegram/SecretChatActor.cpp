@@ -19,6 +19,7 @@
 
 #include "td/actor/MultiPromise.h"
 
+#include "td/utils/as.h"
 #include "td/utils/crypto.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"

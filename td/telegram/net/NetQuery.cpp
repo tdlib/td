@@ -8,6 +8,7 @@
 
 #include "td/telegram/Global.h"
 
+#include "td/utils/as.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 
