@@ -48,7 +48,7 @@ class BigNum {
 
   static Result<BigNum> from_decimal(CSlice str);
 
-  static BigNum from_hex(CSlice str);
+  static Result<BigNum> from_hex(CSlice str);
 
   static BigNum from_raw(void *openssl_big_num);
 

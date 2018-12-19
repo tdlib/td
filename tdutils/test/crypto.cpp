@@ -157,6 +157,16 @@ TEST(Crypto, crc32) {
 }
 #endif
 
+#if TD_HAVE_CRC32C
+TEST(Crypto, crc32c) {
+  td::vector<td::uint32> answers{0u, 2432014819u, 1077264849u, 1131405888u};
+
+  for (std::size_t i = 0; i < strings.size(); i++) {
+    ASSERT_EQ(answers[i], td::crc32c(strings[i]));
+  }
+}
+#endif
+
 TEST(Crypto, crc64) {
   td::vector<td::uint64> answers{0ull, 3039664240384658157ull, 17549519902062861804ull, 8794730974279819706ull};
 

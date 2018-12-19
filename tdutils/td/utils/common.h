@@ -107,14 +107,55 @@ struct Auto {
   }
 };
 
+template <class T>
+class As {
+ public:
+  As(void *ptr) : ptr_(ptr) {
+  }
+  As(As &&) = default;
+  const As<T> &operator=(const As &new_value) const {
+    memcpy(ptr_, new_value.ptr_, sizeof(T));
+    return *this;
+  }
+  const As<T> &operator=(const T new_value) const {
+    memcpy(ptr_, &new_value, sizeof(T));
+    return *this;
+  }
+
+  operator T() const {
+    T res;
+    memcpy(&res, ptr_, sizeof(T));
+    return res;
+  }
+
+ private:
+  void *ptr_;
+};
+
+template <class T>
+class ConstAs {
+ public:
+  ConstAs(const void *ptr) : ptr_(ptr) {
+  }
+
+  operator T() const {
+    T res;
+    memcpy(&res, ptr_, sizeof(T));
+    return res;
+  }
+
+ private:
+  const void *ptr_;
+};
+
 template <class ToT, class FromT>
-ToT &as(FromT *from) {
-  return *reinterpret_cast<ToT *>(from);
+As<ToT> as(FromT *from) {
+  return As<ToT>(from);
 }
 
 template <class ToT, class FromT>
-const ToT &as(const FromT *from) {
-  return *reinterpret_cast<const ToT *>(from);
+const ConstAs<ToT> as(const FromT *from) {
+  return ConstAs<ToT>(from);
 }
 
 }  // namespace td

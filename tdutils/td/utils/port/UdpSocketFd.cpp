@@ -69,9 +69,6 @@ class UdpSocketReceiveHelper {
     CHECK(message_size <= message.data.size());
     message.data.truncate(message_size);
     CHECK(message_size == message.data.size());
-    if (message_size >= 1500) {
-      LOG(ERROR) << "Received datagram of size " << message_size;
-    }
   }
 
  private:
@@ -433,9 +430,6 @@ class UdpSocketReceiveHelper {
     CHECK(message_size <= message.data.size());
     message.data.truncate(message_size);
     CHECK(message_size == message.data.size());
-    if (message_size >= 1500) {
-      LOG(ERROR) << "received datagram of size " << message_size;
-    }
   }
 
  private:
@@ -765,7 +759,6 @@ Result<UdpSocketFd> UdpSocketFd::open(const IPAddress &address) {
   BOOL flags = TRUE;
 #endif
   setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char *>(&flags), sizeof(flags));
-  setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, reinterpret_cast<const char *>(&flags), sizeof(flags));
   // TODO: SO_REUSEADDR, SO_KEEPALIVE, TCP_NODELAY, SO_SNDBUF, SO_RCVBUF, TCP_QUICKACK, SO_LINGER
 
   auto bind_addr = address.get_any_addr();

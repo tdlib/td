@@ -52,6 +52,9 @@ class Timestamp {
   static Timestamp at(double timeout) {
     return Timestamp{timeout};
   }
+  static Timestamp at_unix(double timeout) {
+    return Timestamp{timeout - td::Clocks::system() + Time::now()};
+  }
 
   static Timestamp in(double timeout) {
     return Timestamp{Time::now_cached() + timeout};

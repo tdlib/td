@@ -146,6 +146,10 @@ class Parser {
   void skip_whitespaces() {
     skip_till_not(" \t\r\n");
   }
+  MutableSlice read_word() {
+    skip_whitespaces();
+    return read_till_nofail(" \t\r\n");
+  }
 
   MutableSlice data() const {
     return MutableSlice(ptr_, end_);

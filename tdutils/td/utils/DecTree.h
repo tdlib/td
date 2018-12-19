@@ -111,6 +111,31 @@ class DecTree {
     }
   }
 
+  static const ValueType *get_node(const unique_ptr<Node> &Tree, const KeyType &key) {
+    if (Tree == nullptr) {
+      return nullptr;
+    }
+    if (Compare()(key, Tree->key_)) {
+      return get_node(Tree->left_, key);
+    } else if (Compare()(Tree->key_, key)) {
+      return get_node(Tree->right_, key);
+    } else {
+      return &Tree->value_;
+    }
+  }
+
+  static const ValueType *get_node_by_idx(const unique_ptr<Node> &Tree, size_t idx) {
+    CHECK(Tree != nullptr);
+    auto s = (Tree->left_ != nullptr) ? Tree->left_->size_ : 0;
+    if (idx < s) {
+      return get_node_by_idx(Tree->left_, idx);
+    } else if (idx == s) {
+      return &Tree->value_;
+    } else {
+      return get_node_by_idx(Tree->right_, idx - s - 1);
+    }
+  }
+
   static std::pair<unique_ptr<Node>, unique_ptr<Node>> split_node(unique_ptr<Node> Tree, const KeyType &key) {
     if (Tree == nullptr) {
       return {nullptr, nullptr};
@@ -128,7 +153,7 @@ class DecTree {
       P.first = std::move(Tree);
       return P;
     }
-  }
+  }  // namespace td
 
   static unique_ptr<Node> merge_node(unique_ptr<Node> left, unique_ptr<Node> right) {
     if (left == nullptr) {
@@ -166,6 +191,16 @@ class DecTree {
     return get_node(root_, key);
   }
   ValueType *get_random() {
+    if (size() == 0) {
+      return nullptr;
+    } else {
+      return get_node_by_idx(root_, td::Random::fast_uint32() % size());
+    }
+  }
+  const ValueType *get(const KeyType &key) const {
+    return get_node(root_, key);
+  }
+  const ValueType *get_random() const {
     if (size() == 0) {
       return nullptr;
     } else {

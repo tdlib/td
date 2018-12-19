@@ -36,6 +36,12 @@ class SpanImpl {
   template <size_t N>
   SpanImpl(std::array<T, N> &arr) : SpanImpl(arr.data(), arr.size()) {
   }
+  template <size_t N>
+  SpanImpl(const T (&arr)[N]) : SpanImpl(arr, N) {
+  }
+  template <size_t N>
+  SpanImpl(T (&arr)[N]) : SpanImpl(arr, N) {
+  }
   SpanImpl(const vector<T> &v) : SpanImpl(v.data(), v.size()) {
   }
   SpanImpl(vector<T> &v) : SpanImpl(v.data(), v.size()) {
@@ -48,6 +54,11 @@ class SpanImpl {
   }
 
   InnerT &operator[](size_t i) {
+    DCHECK(i < size());
+    return data_[i];
+  }
+
+  const InnerT &operator[](size_t i) const {
     DCHECK(i < size());
     return data_[i];
   }
@@ -74,6 +85,11 @@ class SpanImpl {
   SpanImpl substr(size_t offset) const {
     CHECK(offset <= size_);
     return SpanImpl(begin() + offset, size_ - offset);
+  }
+  SpanImpl substr(size_t offset, size_t size) const {
+    CHECK(offset <= size_);
+    CHECK(size_ - offset >= size);
+    return SpanImpl(begin() + offset, size);
   }
 };
 }  // namespace detail

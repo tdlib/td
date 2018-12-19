@@ -16,6 +16,10 @@ if (ZLIB_FOUND)
   endif()
 endif()
 
+if (CRC32C_FOUND)
+  set(TD_HAVE_CRC32C 1)
+endif()
+
 configure_file(td/utils/config.h.in td/utils/config.h @ONLY)
 
 add_subdirectory(generate)
@@ -83,6 +87,7 @@ set(TDUTILS_SOURCE
   td/utils/StringBuilder.cpp
   td/utils/Time.cpp
   td/utils/Timer.cpp
+  td/utils/tests.cpp
   td/utils/tl_parsers.cpp
   td/utils/translit.cpp
   td/utils/unicode.cpp
@@ -131,6 +136,7 @@ set(TDUTILS_SOURCE
   td/utils/base64.h
   td/utils/benchmark.h
   td/utils/BigNum.h
+  td/utils/bits.h
   td/utils/buffer.h
   td/utils/BufferedFd.h
   td/utils/BufferedReader.h
@@ -255,6 +261,10 @@ endif()
 if (ZLIB_FOUND)
   target_link_libraries(tdutils PRIVATE ${ZLIB_LIBRARIES})
   target_include_directories(tdutils SYSTEM PRIVATE ${ZLIB_INCLUDE_DIR})
+endif()
+
+if (CRC32C_FOUND)
+  target_link_libraries(tdutils PRIVATE crc32c)
 endif()
 
 install(TARGETS tdutils EXPORT TdTargets

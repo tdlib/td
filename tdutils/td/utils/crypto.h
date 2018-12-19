@@ -100,6 +100,10 @@ void init_openssl_threads();
 uint32 crc32(Slice data);
 #endif
 
+#if TD_HAVE_CRC32C
+uint32 crc32c(Slice data);
+#endif
+
 uint64 crc64(Slice data);
 
 }  // namespace td

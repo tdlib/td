@@ -43,10 +43,33 @@ static_assert(static_cast<char>(-256) == 0, "Unexpected cast to char implementat
 #pragma warning(pop)
 #endif
 
+class Slice;
+class MutableSlice;
 template <size_t size>
 struct UInt {
   static_assert(size % 8 == 0, "size should be divisible by 8");
   uint8 raw[size / 8];
+  Slice as_slice() const;
+  MutableSlice as_slice();
+
+  bool is_zero() const {
+    for (size_t i = 0; i * 8 < size; i++) {
+      if (raw[i] != 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+  void set_zero() {
+    for (size_t i = 0; i * 8 < size; i++) {
+      raw[i] = 0;
+    }
+  }
+  static UInt zero() {
+    UInt v;
+    v.set_zero();
+    return v;
+  }
 };
 
 template <size_t size>

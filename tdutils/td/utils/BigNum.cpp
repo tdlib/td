@@ -103,10 +103,12 @@ Result<BigNum> BigNum::from_decimal(CSlice str) {
   return result;
 }
 
-BigNum BigNum::from_hex(CSlice str) {
+Result<BigNum> BigNum::from_hex(CSlice str) {
   BigNum result;
-  int err = BN_hex2bn(&result.impl_->big_num, str.c_str());
-  LOG_IF(FATAL, err == 0);
+  int res = BN_hex2bn(&result.impl_->big_num, str.c_str());
+  if (res == 0 || static_cast<size_t>(res) != str.size()) {
+    return Status::Error(PSLICE() << "Failed to parse \"" << str << "\" as hexadecimal BigNum");
+  }
   return result;
 }
 

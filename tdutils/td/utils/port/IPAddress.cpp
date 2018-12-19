@@ -375,7 +375,7 @@ Status IPAddress::init_host_port(CSlice host, CSlice port, bool prefer_ipv6) {
   hints.ai_family = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_protocol = IPPROTO_TCP;
-  LOG(INFO) << "Try to init IP address of " << host << " with port " << port;
+  LOG(DEBUG + 10) << "Try to init IP address of " << host << " with port " << port;
   auto err = getaddrinfo(host.c_str(), port.c_str(), &hints, &info);
   if (err != 0) {
 #if TD_WINDOWS
@@ -440,7 +440,7 @@ Status IPAddress::init_sockaddr(sockaddr *addr, socklen_t len) {
   }
 
   is_valid_ = true;
-  LOG(INFO) << "Have address " << get_ip_str() << " with port " << get_port();
+  LOG(DEBUG + 10) << "Have address " << get_ip_str() << " with port " << get_port();
   return Status::OK();
 }
 

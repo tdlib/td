@@ -12,7 +12,8 @@
 
 namespace td {
 
-Result<BufferSlice> read_file(CSlice path, int64 size = -1);
+Result<BufferSlice> read_file(CSlice path, int64 size = -1, int64 offset = 0);
+Result<std::string> read_file_str(CSlice path, int64 size = -1, int64 offset = 0);
 
 Status copy_file(CSlice from, CSlice to, int64 size = -1) TD_WARN_UNUSED_RESULT;
 

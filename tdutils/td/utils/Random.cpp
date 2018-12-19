@@ -148,5 +148,8 @@ uint64 Random::Xorshift128plus::operator()() {
   seed_[1] = x ^ y ^ (x >> 17) ^ (y >> 26);
   return seed_[1] + y;
 }
+int Random::Xorshift128plus::fast(int min, int max) {
+  return static_cast<int>((*this)() % (max - min + 1) + min);
+}
 
 }  // namespace td

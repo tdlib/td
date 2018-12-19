@@ -28,6 +28,7 @@ class PerfWarningTimer {
   PerfWarningTimer(PerfWarningTimer &&other);
   PerfWarningTimer &operator=(PerfWarningTimer &&) = delete;
   ~PerfWarningTimer();
+  void reset();
 
  private:
   string name_;

@@ -123,8 +123,10 @@ Status update_atime(int native_fd) {
   timespec times[2];
   // access time
   times[0].tv_nsec = UTIME_NOW;
+  times[0].tv_sec = 0;
   // modify time
   times[1].tv_nsec = UTIME_OMIT;
+  times[1].tv_sec = 0;
   if (futimens(native_fd, times) < 0) {
     auto status = OS_ERROR(PSLICE() << "futimens " << tag("fd", native_fd));
     LOG(WARNING) << status;

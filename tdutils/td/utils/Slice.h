@@ -301,13 +301,28 @@ inline std::size_t SliceHash::operator()(Slice slice) const {
   return result;
 }
 
+inline Slice as_slice(Slice slice) {
+  return slice;
+}
+inline MutableSlice as_slice(MutableSlice slice) {
+  return slice;
+}
+
 template <size_t N>
-td::Slice as_slice(const td::UInt<N> &value) {
-  return td::Slice(value.raw, N / 8);
+Slice UInt<N>::as_slice() const {
+  return Slice(raw, N / 8);
 }
 template <size_t N>
-td::MutableSlice as_slice(td::UInt<N> &value) {
-  return td::MutableSlice(value.raw, N / 8);
+MutableSlice UInt<N>::as_slice() {
+  return MutableSlice(raw, N / 8);
+}
+template <size_t N>
+Slice as_slice(const UInt<N> &value) {
+  return value.as_slice();
+}
+template <size_t N>
+MutableSlice as_slice(UInt<N> &value) {
+  return value.as_slice();
 }
 
 }  // namespace td

@@ -34,6 +34,7 @@ class Random {
     explicit Xorshift128plus(uint64 seed);
     Xorshift128plus(uint64 seed_a, uint64 seed_b);
     uint64 operator()();
+    int fast(int min, int max);
 
    private:
     uint64 seed_[2];

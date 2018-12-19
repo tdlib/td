@@ -30,6 +30,10 @@
 #include <zlib.h>
 #endif
 
+#if TD_HAVE_CRC32C
+#include "crc32c/crc32c.h"
+#endif
+
 #include <algorithm>
 #include <cstring>
 #include <mutex>
@@ -628,6 +632,12 @@ void init_openssl_threads() {
 #if TD_HAVE_ZLIB
 uint32 crc32(Slice data) {
   return static_cast<uint32>(::crc32(0, data.ubegin(), static_cast<uint32>(data.size())));
+}
+#endif
+
+#if TD_HAVE_CRC32C
+uint32 crc32c(Slice data) {
+  return crc32c::Crc32c(data.data(), data.size());
 }
 #endif
 

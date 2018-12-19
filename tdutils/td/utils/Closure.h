@@ -68,16 +68,17 @@ class ImmediateClosure {
   friend Delayed;
   using ActorType = ActorT;
 
-  auto run(ActorT *actor) {
-    return mem_call_tuple(actor, std::move(args));
-  }
-
   // no &&. just save references as references.
   explicit ImmediateClosure(FunctionT func, ArgsT... args) : args(func, std::forward<ArgsT>(args)...) {
   }
 
  private:
   std::tuple<FunctionT, ArgsT...> args;
+
+ public:
+  auto run(ActorT *actor) -> decltype(mem_call_tuple(actor, std::move(args))) {
+    return mem_call_tuple(actor, std::move(args));
+  }
 };
 
 template <class ActorT, class ResultT, class... DestArgsT, class... SrcArgsT>
@@ -92,10 +93,6 @@ class DelayedClosure {
  public:
   using ActorType = ActorT;
   using Delayed = DelayedClosure<ActorT, FunctionT, ArgsT...>;
-
-  auto run(ActorT *actor) {
-    return mem_call_tuple(actor, std::move(args));
-  }
 
   DelayedClosure clone() const {
     return do_clone(*this);
@@ -144,6 +141,11 @@ class DelayedClosure {
                    DelayedClosure<FromActorT, FromFunctionT, FromArgsT...>>
   do_clone(const DelayedClosure<FromActorT, FromFunctionT, FromArgsT...> &value) const {
     return DelayedClosure<FromActorT, FromFunctionT, FromArgsT...>(value);
+  }
+
+ public:
+  auto run(ActorT *actor) -> decltype(mem_call_tuple(actor, std::move(args))) {
+    return mem_call_tuple(actor, std::move(args));
   }
 };
 
