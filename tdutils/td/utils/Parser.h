@@ -50,7 +50,7 @@ class Parser {
     if (status_.is_error()) {
       return MutableSlice();
     }
-    char *till = reinterpret_cast<char *>(std::memchr(ptr_, c, end_ - ptr_));
+    char *till = static_cast<char *>(std::memchr(ptr_, c, end_ - ptr_));
     if (till == nullptr) {
       till = end_;
     }
@@ -65,7 +65,7 @@ class Parser {
     }
     char *best_till = end_;
     for (auto c : str) {
-      char *till = reinterpret_cast<char *>(std::memchr(ptr_, c, end_ - ptr_));
+      char *till = static_cast<char *>(std::memchr(ptr_, c, end_ - ptr_));
       if (till != nullptr && till < best_till) {
         best_till = till;
       }

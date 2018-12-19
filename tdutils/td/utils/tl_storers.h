@@ -31,7 +31,7 @@ class TlStorerUnsafe {
 
   template <class T>
   void store_binary(const T &x) {
-    std::memcpy(buf_, reinterpret_cast<const unsigned char *>(&x), sizeof(T));
+    std::memcpy(buf_, &x, sizeof(T));
     buf_ += sizeof(T);
   }
 

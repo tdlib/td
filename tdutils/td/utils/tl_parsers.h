@@ -51,7 +51,7 @@ class TlParser {
         data_buf = std::make_unique<int32[]>(1 + data_len / sizeof(int32));
         buf = data_buf.get();
       }
-      std::memcpy(static_cast<void *>(buf), static_cast<const void *>(slice.begin()), slice.size());
+      std::memcpy(buf, slice.begin(), slice.size());
       data = reinterpret_cast<unsigned char *>(buf);
     }
   }
@@ -89,7 +89,7 @@ class TlParser {
 
   int32 fetch_int_unsafe() {
     int32 result;
-    std::memcpy(reinterpret_cast<unsigned char *>(&result), data, sizeof(int32));
+    std::memcpy(&result, data, sizeof(int32));
     data += sizeof(int32);
     return result;
   }
@@ -101,7 +101,7 @@ class TlParser {
 
   int64 fetch_long_unsafe() {
     int64 result;
-    std::memcpy(reinterpret_cast<unsigned char *>(&result), data, sizeof(int64));
+    std::memcpy(&result, data, sizeof(int64));
     data += sizeof(int64);
     return result;
   }
@@ -113,7 +113,7 @@ class TlParser {
 
   double fetch_double_unsafe() {
     double result;
-    std::memcpy(reinterpret_cast<unsigned char *>(&result), data, sizeof(double));
+    std::memcpy(&result, data, sizeof(double));
     data += sizeof(double);
     return result;
   }
@@ -126,7 +126,7 @@ class TlParser {
   template <class T>
   T fetch_binary_unsafe() {
     T result;
-    std::memcpy(reinterpret_cast<unsigned char *>(&result), data, sizeof(T));
+    std::memcpy(&result, data, sizeof(T));
     data += sizeof(T);
     return result;
   }

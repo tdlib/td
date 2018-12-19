@@ -182,7 +182,7 @@ static vector<Slice> match_mentions(Slice str) {
   // '/(?<=\B)@([a-zA-Z0-9_]{2,32})(?=\b)/u'
 
   while (true) {
-    ptr = reinterpret_cast<const unsigned char *>(std::memchr(ptr, '@', narrow_cast<int32>(end - ptr)));
+    ptr = static_cast<const unsigned char *>(std::memchr(ptr, '@', narrow_cast<int32>(end - ptr)));
     if (ptr == nullptr) {
       break;
     }
@@ -226,7 +226,7 @@ static vector<Slice> match_bot_commands(Slice str) {
   // '/(?<!\b|[\/<>])\/([a-zA-Z0-9_]{1,64})(?:@([a-zA-Z0-9_]{3,32}))?(?!\B|[\/<>])/u'
 
   while (true) {
-    ptr = reinterpret_cast<const unsigned char *>(std::memchr(ptr, '/', narrow_cast<int32>(end - ptr)));
+    ptr = static_cast<const unsigned char *>(std::memchr(ptr, '/', narrow_cast<int32>(end - ptr)));
     if (ptr == nullptr) {
       break;
     }
@@ -302,7 +302,7 @@ static vector<Slice> match_hashtags(Slice str) {
   UnicodeSimpleCategory category;
 
   while (true) {
-    ptr = reinterpret_cast<const unsigned char *>(std::memchr(ptr, '#', narrow_cast<int32>(end - ptr)));
+    ptr = static_cast<const unsigned char *>(std::memchr(ptr, '#', narrow_cast<int32>(end - ptr)));
     if (ptr == nullptr) {
       break;
     }
@@ -363,7 +363,7 @@ static vector<Slice> match_cashtags(Slice str) {
 
   UnicodeSimpleCategory category;
   while (true) {
-    ptr = reinterpret_cast<const unsigned char *>(std::memchr(ptr, '$', narrow_cast<int32>(end - ptr)));
+    ptr = static_cast<const unsigned char *>(std::memchr(ptr, '$', narrow_cast<int32>(end - ptr)));
     if (ptr == nullptr) {
       break;
     }
