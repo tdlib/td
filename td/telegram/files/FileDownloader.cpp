@@ -320,7 +320,7 @@ Result<size_t> FileDownloader::process_part(Part part, NetQueryPtr net_query) {
     offset =
         ((offset & 0xff) << 24) | ((offset & 0xff00) << 8) | ((offset & 0xff0000) >> 8) | ((offset & 0xff000000) >> 24);
     as<uint32>(iv.raw + 12) = offset;
-    auto key = as<UInt256>(cdn_encryption_key_.c_str());
+    UInt256 key = as<UInt256>(cdn_encryption_key_.c_str());
 
     AesCtrState ctr_state;
     ctr_state.init(key, iv);

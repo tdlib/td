@@ -865,7 +865,7 @@ Result<std::tuple<uint64, BufferSlice, int32>> SecretChatActor::decrypt(BufferSl
       UNREACHABLE();
   }
 
-  auto len = as<int32>(data.begin());
+  int32 len = as<int32>(data.begin());
   data = data.substr(4, len);
   if (!is_aligned_pointer<4>(data.data())) {
     return std::make_tuple(auth_key_id, BufferSlice(data), mtproto_version);

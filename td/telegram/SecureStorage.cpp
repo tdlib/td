@@ -184,7 +184,7 @@ Result<Secret> Secret::create(Slice secret) {
 
   UInt256 secret_sha256;
   sha256(secret, ::td::as_slice(secret_sha256));
-  auto hash = as<int64>(secret_sha256.raw);
+  int64 hash = as<int64>(secret_sha256.raw);
   return Secret{res, hash};
 }
 

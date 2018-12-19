@@ -10,24 +10,31 @@
 
 namespace td {
 
+namespace detail {
+
 template <class T>
 class As {
  public:
-  As(void *ptr) : ptr_(ptr) {
+  explicit As(void *ptr) : ptr_(ptr) {
   }
+
+  As(const As &new_value) = delete;
+  As &operator=(const As &) = delete;
   As(As &&) = default;
-  As<T> &operator=(const As &new_value) && {
-    memcpy(ptr_, new_value.ptr_, sizeof(T));
+  As &operator=(As &&new_value) && {
+    std::memcpy(ptr_, new_value.ptr_, sizeof(T));
     return *this;
   }
-  As<T> &operator=(const T new_value) && {
-    memcpy(ptr_, &new_value, sizeof(T));
+  ~As() = default;
+
+  As &operator=(const T &new_value) && {
+    std::memcpy(ptr_, &new_value, sizeof(T));
     return *this;
   }
 
   operator T() const {
     T res;
-    memcpy(&res, ptr_, sizeof(T));
+    std::memcpy(&res, ptr_, sizeof(T));
     return res;
   }
 
@@ -38,12 +45,12 @@ class As {
 template <class T>
 class ConstAs {
  public:
-  ConstAs(const void *ptr) : ptr_(ptr) {
+  explicit ConstAs(const void *ptr) : ptr_(ptr) {
   }
 
   operator T() const {
     T res;
-    memcpy(&res, ptr_, sizeof(T));
+    std::memcpy(&res, ptr_, sizeof(T));
     return res;
   }
 
@@ -51,14 +58,16 @@ class ConstAs {
   const void *ptr_;
 };
 
+}  // namespace detail
+
 template <class ToT, class FromT>
-As<ToT> as(FromT *from) {
-  return As<ToT>(from);
+detail::As<ToT> as(FromT *from) {
+  return detail::As<ToT>(from);
 }
 
 template <class ToT, class FromT>
-const ConstAs<ToT> as(const FromT *from) {
-  return ConstAs<ToT>(from);
+const detail::ConstAs<ToT> as(const FromT *from) {
+  return detail::ConstAs<ToT>(from);
 }
 
 }  // namespace td

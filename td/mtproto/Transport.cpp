@@ -296,7 +296,7 @@ Result<Transport::ReadResult> Transport::read(MutableSlice message, const AuthKe
       return Status::Error(PSLICE() << "Invalid mtproto message: smaller than 4 bytes [size=" << message.size() << "]");
     }
 
-    auto code = as<int32>(message.begin());
+    int32 code = as<int32>(message.begin());
     if (code == 0) {
       return ReadResult::make_nop();
     } else if (code == -1 && message.size() >= 8) {

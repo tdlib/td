@@ -149,12 +149,12 @@ void ObfuscatedTransport::init(ChainBufferReader *input, ChainBufferWriter *outp
     if (as<uint8>(header.data()) == 0xef) {
       continue;
     }
-    auto first_int = as<uint32>(header.data());
+    uint32 first_int = as<uint32>(header.data());
     if (first_int == 0x44414548 || first_int == 0x54534f50 || first_int == 0x20544547 || first_int == 0x4954504f ||
         first_int == 0xdddddddd || first_int == 0xeeeeeeee) {
       continue;
     }
-    auto second_int = as<uint32>(header.data() + sizeof(uint32));
+    uint32 second_int = as<uint32>(header.data() + sizeof(uint32));
     if (second_int == 0) {
       continue;
     }
