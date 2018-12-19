@@ -8,7 +8,7 @@
 
 #include "td/tl/TlObject.h"
 
-#include "td/utils/int_types.h"
+#include "td/utils/UInt.h"
 
 #include <cstdint>
 #include <string>

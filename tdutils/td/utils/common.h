@@ -45,6 +45,7 @@
 #include "td/utils/int_types.h"
 #include "td/utils/unique_ptr.h"
 
+#include <cstring>  // temporary for std::memcpy
 #include <string>
 #include <vector>
 

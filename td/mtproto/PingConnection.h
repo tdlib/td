@@ -16,6 +16,7 @@
 #include "td/utils/Random.h"
 #include "td/utils/Status.h"
 #include "td/utils/Time.h"
+#include "td/utils/UInt.h"
 
 #include "td/mtproto/mtproto_api.h"
 

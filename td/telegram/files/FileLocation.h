@@ -24,6 +24,7 @@
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
 #include "td/utils/tl_storers.h"
+#include "td/utils/UInt.h"
 #include "td/utils/Variant.h"
 
 #include <tuple>

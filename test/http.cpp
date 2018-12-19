@@ -30,6 +30,7 @@
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
+#include "td/utils/UInt.h"
 
 #include "test/data.h"
 

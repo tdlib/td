@@ -12,6 +12,7 @@
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 #include "td/utils/StorerBase.h"
+#include "td/utils/UInt.h"
 
 #include <cstring>
 

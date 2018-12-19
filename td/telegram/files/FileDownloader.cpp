@@ -23,6 +23,7 @@
 #include "td/utils/port/Stat.h"
 #include "td/utils/ScopeGuard.h"
 #include "td/utils/Slice.h"
+#include "td/utils/UInt.h"
 
 #include <tuple>
 

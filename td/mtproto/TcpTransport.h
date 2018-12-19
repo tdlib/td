@@ -15,6 +15,7 @@
 #include "td/utils/crypto.h"
 #include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/Status.h"
+#include "td/utils/UInt.h"
 
 namespace td {
 namespace mtproto {

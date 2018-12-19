@@ -308,21 +308,4 @@ inline MutableSlice as_slice(MutableSlice slice) {
   return slice;
 }
 
-template <size_t N>
-Slice UInt<N>::as_slice() const {
-  return Slice(raw, N / 8);
-}
-template <size_t N>
-MutableSlice UInt<N>::as_slice() {
-  return MutableSlice(raw, N / 8);
-}
-template <size_t N>
-Slice as_slice(const UInt<N> &value) {
-  return value.as_slice();
-}
-template <size_t N>
-MutableSlice as_slice(UInt<N> &value) {
-  return value.as_slice();
-}
-
 }  // namespace td

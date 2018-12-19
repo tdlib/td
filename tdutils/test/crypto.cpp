@@ -9,6 +9,7 @@
 #include "td/utils/crypto.h"
 #include "td/utils/Slice.h"
 #include "td/utils/tests.h"
+#include "td/utils/UInt.h"
 
 #include <limits>
 

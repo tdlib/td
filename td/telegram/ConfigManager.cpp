@@ -42,6 +42,7 @@
 #include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
 #include "td/utils/tl_parsers.h"
+#include "td/utils/UInt.h"
 
 #include <algorithm>
 #include <memory>

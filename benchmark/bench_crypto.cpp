@@ -12,6 +12,7 @@
 #include "td/utils/port/thread.h"
 #include "td/utils/Random.h"
 #include "td/utils/Slice.h"
+#include "td/utils/UInt.h"
 
 #include <openssl/sha.h>
 
