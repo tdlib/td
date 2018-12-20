@@ -98,7 +98,7 @@ inline int32 count_bits64(uint64 x) {
 
 inline int32 count_leading_zeroes32(uint32 x) {
   unsigned __int32 res = 0;
-  if (_BitScanReverse(&__int32, x)) {
+  if (_BitScanReverse(&res, x)) {
     return 31 - res;
   }
   return 32;
