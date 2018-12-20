@@ -45,7 +45,7 @@ Status init_dialog_db(SqliteDb &db, int32 version, bool &was_created) {
   auto create_last_notification_date_index = [&]() {
     return db.exec(
         "CREATE INDEX IF NOT EXISTS notification_group_by_last_notification_date ON notification_groups "
-        "(last_notification_date, dialog_id) WHERE last_notification_date IS NOT NULL");
+        "(last_notification_date, dialog_id, notification_group_id) WHERE last_notification_date IS NOT NULL");
   };
 
   if (version == 0) {
@@ -99,18 +99,15 @@ class DialogDbImpl : public DialogDbSyncInterface {
         get_notification_groups_by_last_notification_date_stmt,
         db_.get_statement("SELECT notification_group_id, dialog_id, last_notification_date FROM notification_groups "
                           "WHERE last_notification_date < ?1 OR (last_notification_date = ?1 "
-                          "AND dialog_id < ?2) ORDER BY last_notification_date DESC, dialog_id DESC LIMIT ?3"));
+                          "AND (dialog_id < ?2 OR (dialog_id = ?2 AND notification_group_id < ?3))) ORDER BY "
+                          "last_notification_date DESC, dialog_id DESC LIMIT ?4"));
+    //                          "WHERE (last_notification_date, dialog_id, notification_group_id) < (?1, ?2, ?3) ORDER BY "
+    //                          "last_notification_date DESC, dialog_id DESC, notification_group_id DESC LIMIT ?4"));
     TRY_RESULT(
         get_notification_group_stmt,
         db_.get_statement(
             "SELECT dialog_id, last_notification_date FROM notification_groups WHERE notification_group_id = ?1"));
 
-    /*
-        TRY_RESULT(get_dialogs2_stmt, db_.get_statement("SELECT data FROM dialogs WHERE dialog_order <= ?1 AND
-       (dialog_order != ?1 OR "
-                                                        "dialog_id < ?2) ORDER BY dialog_order, dialog_id DESC LIMIT
-       ?3"));
-    */
     add_dialog_stmt_ = std::move(add_dialog_stmt);
     add_notification_group_stmt_ = std::move(add_notification_group_stmt);
     get_dialog_stmt_ = std::move(get_dialog_stmt);
@@ -121,7 +118,8 @@ class DialogDbImpl : public DialogDbSyncInterface {
 
     // LOG(ERROR) << get_dialog_stmt_.explain().ok();
     // LOG(ERROR) << get_dialogs_stmt_.explain().ok();
-    // LOG(ERROR) << get_dialogs2_stmt.explain().ok();
+    // LOG(ERROR) << get_notification_groups_by_last_notification_date_stmt_.explain().ok();
+    // LOG(ERROR) << get_notification_group_stmt_.explain().ok();
     // LOG(FATAL) << "EXPLAINED";
 
     return Status::OK();
@@ -138,7 +136,7 @@ class DialogDbImpl : public DialogDbSyncInterface {
 
     TRY_STATUS(add_dialog_stmt_.step());
 
-    for (auto to_add : notification_groups) {
+    for (auto &to_add : notification_groups) {
       SCOPE_EXIT {
         add_notification_group_stmt_.reset();
       };
@@ -211,13 +209,14 @@ class DialogDbImpl : public DialogDbSyncInterface {
 
     stmt.bind_int32(1, notification_group_key.last_notification_date).ensure();
     stmt.bind_int64(2, notification_group_key.dialog_id.get()).ensure();
-    stmt.bind_int32(3, limit).ensure();
+    stmt.bind_int32(3, notification_group_key.group_id.get()).ensure();
+    stmt.bind_int32(4, limit).ensure();
 
     std::vector<NotificationGroupKey> notification_groups;
     TRY_STATUS(stmt.step());
     while (stmt.has_row()) {
-      notification_groups.emplace_back(NotificationGroupKey(NotificationGroupId(stmt.view_int32(0)),
-                                                            DialogId(stmt.view_int64(1)), stmt.view_int32(2)));
+      notification_groups.emplace_back(NotificationGroupId(stmt.view_int32(0)), DialogId(stmt.view_int64(1)),
+                                       stmt.view_int32(2));
       TRY_STATUS(stmt.step());
     }
 
