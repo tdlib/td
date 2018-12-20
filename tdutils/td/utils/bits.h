@@ -25,6 +25,7 @@ inline int32 count_bits32(uint32 x);
 inline int32 count_bits64(uint64 x);
 
 #if TD_MSVC
+
 inline int32 count_leading_zeroes32(uint32 x) {
   unsigned long res = 0;
   if (_BitScanReverse(&res, x)) {
@@ -92,7 +93,75 @@ inline int32 count_bits64(uint64 x) {
   return count_bits32(static_cast<uint32>(x >> 32)) + count_bits32(static_cast<uint32>(x));
 #endif
 }
+
+#elif TD_INTEL
+
+inline int32 count_leading_zeroes32(uint32 x) {
+  unsigned __int32 res = 0;
+  if (_BitScanReverse(&__int32, x)) {
+    return 31 - res;
+  }
+  return 32;
+}
+
+inline int32 count_leading_zeroes64(uint64 x) {
+#if defined(_M_X64) || defined(__x86_64__)
+  unsigned __int32 res = 0;
+  if (_BitScanReverse64(&res, x)) {
+    return 63 - res;
+  }
+  return 64;
 #else
+  if ((x >> 32) == 0) {
+    return count_leading_zeroes32(static_cast<uint32>(x)) + 32;
+  } else {
+    return count_leading_zeroes32(static_cast<uint32>(x >> 32));
+  }
+#endif
+}
+
+inline int32 count_trailing_zeroes32(uint32 x) {
+  unsigned __int32 res = 0;
+  if (_BitScanForward(&res, x)) {
+    return res;
+  }
+  return 32;
+}
+
+inline int32 count_trailing_zeroes64(uint64 x) {
+#if defined(_M_X64) || defined(__x86_64__)
+  unsigned __int32 res = 0;
+  if (_BitScanForward64(&res, x)) {
+    return res;
+  }
+  return 64;
+#else
+  if (static_cast<uint32>(x) == 0) {
+    return count_trailing_zeroes32(static_cast<uint32>(x >> 32)) + 32;
+  } else {
+    return count_trailing_zeroes32(static_cast<uint32>(x));
+  }
+#endif
+}
+
+inline uint32 bswap32(uint32 x) {
+  return _bswap(static_cast<int>(x));
+}
+
+inline uint64 bswap64(uint64 x) {
+  return _bswap64(static_cast<__int64>(x));
+}
+
+inline int32 count_bits32(uint32 x) {
+  return _popcnt32(static_cast<int>(x));
+}
+
+inline int32 count_bits64(uint64 x) {
+  return _popcnt64(static_cast<__int64>(x));
+}
+
+#else
+
 inline int32 count_leading_zeroes32(uint32 x) {
   if (x == 0) {
     return 32;
@@ -136,6 +205,7 @@ inline int32 count_bits32(uint32 x) {
 inline int32 count_bits64(uint64 x) {
   return __builtin_popcountll(x);
 }
+
 #endif
 
 //TODO: optimize
