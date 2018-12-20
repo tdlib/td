@@ -29,7 +29,7 @@ class Notification {
 
 inline td_api::object_ptr<td_api::notification> get_notification_object(DialogId dialog_id,
                                                                         const Notification &notification) {
-  return td_api::make_object<td_api::notification>(notification.notification_id.get(),
+  return td_api::make_object<td_api::notification>(notification.notification_id.get(), notification.date,
                                                    notification.type->get_notification_type_object(dialog_id));
 }
 
