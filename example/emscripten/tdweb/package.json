@@ -44,18 +44,21 @@
     "worker-loader": "^1.1.1"
   },
   "lint-staged": {
-    "webpack.config.json": [
-      "prettier --single-quote --write",
-      "git add"
-    ],
-    "package.json": [
-      "prettier --single-quote --write",
-      "git add"
-    ],
-    "src/*.{js,jsx,json,css}": [
-      "prettier --single-quote --write",
-      "git add"
-    ]
+    "gitDir": "../../../",
+    "linters": {
+      "webpack.config.json": [
+        "prettier --single-quote --write",
+        "git add"
+      ],
+      "package.json": [
+        "prettier --single-quote --write",
+        "git add"
+      ],
+      "src/*.{js,jsx,json,css}": [
+        "prettier --single-quote --write",
+        "git add"
+      ]
+    }
   },
   "dependencies": {
     "babel-runtime": "^6.26.0",
