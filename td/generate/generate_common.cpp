@@ -36,7 +36,8 @@ int main() {
                  {"\"td/tl/tl_object_parse.h\"", "\"td/tl/tl_object_store.h\""}, {"\"td/utils/buffer.h\""});
 
   generate_cpp<>("auto/td/mtproto", "mtproto_api", "Slice", "Slice",
-                 {"\"td/tl/tl_object_parse.h\"", "\"td/tl/tl_object_store.h\""}, {"\"td/utils/Slice.h\""});
+                 {"\"td/tl/tl_object_parse.h\"", "\"td/tl/tl_object_store.h\""},
+                 {"\"td/utils/Slice.h\"", "\"td/utils/UInt.h\""});
 
 #ifdef TD_ENABLE_JNI
   generate_cpp<td::TD_TL_writer_jni_cpp, td::TD_TL_writer_jni_h>(
