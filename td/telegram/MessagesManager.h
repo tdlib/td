@@ -660,16 +660,17 @@ class MessagesManager : public Actor {
   };
   MessageNotificationGroup get_message_notification_group_force(NotificationGroupId group_id);
 
-  vector<NotificationGroupKey> get_message_notification_group_keys_from_database(int32 from_last_notification_date,
-                                                                                 DialogId from_dialog_id, int32 limit);
+  vector<NotificationGroupKey> get_message_notification_group_keys_from_database(NotificationGroupKey from_group_key,
+                                                                                 int32 limit);
 
-  void get_message_notifications_from_database(DialogId dialog_id, NotificationId from_notification_id,
-                                               MessageId from_message_id, int32 limit,
-                                               Promise<vector<Notification>> promise);
+  void get_message_notifications_from_database(DialogId dialog_id, NotificationGroupId group_id,
+                                               NotificationId from_notification_id, MessageId from_message_id,
+                                               int32 limit, Promise<vector<Notification>> promise);
 
-  void remove_message_notification(DialogId dialog_id, NotificationId notification_id);
+  void remove_message_notification(DialogId dialog_id, NotificationGroupId group_id, NotificationId notification_id);
 
-  void remove_message_notifications(DialogId dialog_id, NotificationId max_notification_id);
+  void remove_message_notifications(DialogId dialog_id, NotificationGroupId group_id,
+                                    NotificationId max_notification_id);
 
   void on_binlog_events(vector<BinlogEvent> &&events);
 
@@ -835,6 +836,21 @@ class MessagesManager : public Actor {
     void parse(ParserT &parser);
   };
 
+  struct NotificationGroupInfo {
+    NotificationGroupId group_id;
+    int32 last_notification_date = 0;            // date of last notification in the group
+    NotificationId last_notification_id;         // identifier of last notification in the group
+    NotificationId max_removed_notification_id;  // notification identifier, up to which all notifications are removed
+    bool is_changed = false;                     // true, if the group needs to be saved to database
+    bool try_reuse = false;  // true, if the group needs to be deleted from database and tried to be reused
+
+    template <class StorerT>
+    void store(StorerT &storer) const;
+
+    template <class ParserT>
+    void parse(ParserT &parser);
+  };
+
   struct Dialog {
     DialogId dialog_id;
     MessageId last_new_message_id;  // identifier of the last known server message received from update, there should be
@@ -883,10 +899,8 @@ class MessagesManager : public Actor {
 
     MessageId max_added_message_id;
 
-    NotificationGroupId message_notification_group_id;
-    int32 last_notification_date = 0;            // last known date of last notification in the dialog
-    NotificationId last_notification_id;         // last known identifier of last notification in the dialog
-    NotificationId max_removed_notification_id;  // notification identifier, up to which all notifications are removed
+    NotificationGroupInfo message_notification_group;
+    NotificationGroupInfo mention_notification_group;
     NotificationId new_secret_chat_notification_id;  // secret chats only
 
     bool has_contact_registered_message = false;
@@ -926,6 +940,7 @@ class MessagesManager : public Actor {
     std::unordered_set<MessageId, MessageIdHash> deleted_message_ids;
 
     std::vector<std::pair<DialogId, MessageId>> pending_new_message_notifications;
+    std::vector<std::pair<DialogId, MessageId>> pending_new_mention_notifications;
 
     std::unordered_map<NotificationId, MessageId, NotificationIdHash> notification_id_to_message_id;
 
@@ -1426,6 +1441,8 @@ class MessagesManager : public Actor {
 
   void on_save_dialog_to_database(DialogId dialog_id, bool success);
 
+  void try_reuse_notification_group(NotificationGroupInfo &group_info);
+
   void load_dialog_list(int32 limit, Promise<Unit> &&promise);
 
   void load_dialog_list_from_database(int32 limit, Promise<Unit> &&promise);
@@ -1448,7 +1465,7 @@ class MessagesManager : public Actor {
 
   void add_message_to_database(const Dialog *d, const Message *m, const char *source);
 
-  void delete_all_dialog_messages_from_database(Dialog *d, MessageId message_id, const char *source);
+  void delete_all_dialog_messages_from_database(Dialog *d, MessageId max_message_id, const char *source);
 
   void delete_message_from_database(Dialog *d, MessageId message_id, const Message *m, bool is_permanently_deleted);
 
@@ -1468,10 +1485,11 @@ class MessagesManager : public Actor {
 
   void remove_new_secret_chat_notification(Dialog *d, bool is_permanent);
 
-  void fix_dialog_last_notification_id(Dialog *d, MessageId message_id);
+  void fix_dialog_last_notification_id(Dialog *d, bool from_mentions, MessageId message_id);
 
-  void do_fix_dialog_last_notification_id(DialogId dialog_id, NotificationId prev_last_notification_id,
-                                          Result<vector<BufferSlice>> result);
+  void do_fix_dialog_last_notification_id(DialogId dialog_id, bool from_mentions,
+                                          NotificationId prev_last_notification_id,
+                                          Result<vector<Notification>> result);
 
   void do_delete_message_logevent(const DeleteMessageLogEvent &logevent) const;
 
@@ -1489,34 +1507,42 @@ class MessagesManager : public Actor {
 
   void send_update_new_message(const Dialog *d, const Message *m);
 
-  static bool is_message_has_active_notification(const Dialog *d, const Message *m);
+  static bool is_from_mention_notification_group(const Dialog *d, const Message *m);
 
-  NotificationGroupId get_dialog_message_notification_group_id(Dialog *d);
+  static bool is_message_notification_active(const Dialog *d, const Message *m);
 
-  NotificationId get_next_notification_id(Dialog *d, MessageId message_id);
+  static NotificationGroupInfo &get_notification_group_info(Dialog *d, const Message *m);
 
-  vector<Notification> get_message_notifications_from_database_force(Dialog *d, int32 limit);
+  NotificationGroupId get_dialog_notification_group_id(DialogId dialog_id, NotificationGroupInfo &group_info);
 
-  Result<vector<BufferSlice>> do_get_message_notifications_from_database_force(Dialog *d,
+  NotificationId get_next_notification_id(Dialog *d, NotificationGroupId notification_group_id, MessageId message_id);
+
+  vector<Notification> get_message_notifications_from_database_force(Dialog *d, bool from_mentions, int32 limit);
+
+  Result<vector<BufferSlice>> do_get_message_notifications_from_database_force(Dialog *d, bool from_mentions,
                                                                                NotificationId from_notification_id,
                                                                                MessageId from_message_id, int32 limit);
 
-  void do_get_message_notifications_from_database(Dialog *d, NotificationId from_notification_id,
+  void do_get_message_notifications_from_database(Dialog *d, bool from_mentions, NotificationId from_notification_id,
                                                   MessageId from_message_id, int32 limit,
                                                   Promise<vector<Notification>> promise);
 
-  void on_get_message_notifications_from_database(DialogId dialog_id, int32 limit, Result<vector<BufferSlice>> result,
+  void on_get_message_notifications_from_database(DialogId dialog_id, bool from_mentions, int32 limit,
+                                                  Result<vector<BufferSlice>> result,
                                                   Promise<vector<Notification>> promise);
 
-  void do_remove_message_notification(DialogId dialog_id, NotificationId notification_id, vector<BufferSlice> result);
+  void do_remove_message_notification(DialogId dialog_id, bool from_mentions, NotificationId notification_id,
+                                      vector<BufferSlice> result);
 
-  int32 get_dialog_pending_notification_count(Dialog *d);
+  int32 get_dialog_pending_notification_count(Dialog *d, bool from_mentions);
 
   bool add_new_message_notification(Dialog *d, Message *m, bool force);
 
-  void flush_pending_new_message_notifications(DialogId dialog_id, DialogId settings_dialog_id);
+  void flush_pending_new_message_notifications(DialogId dialog_id, bool from_mentions, DialogId settings_dialog_id);
 
-  void remove_dialog_message_notifications(Dialog *d);
+  void remove_all_dialog_notifications(DialogId dialog_id, NotificationGroupInfo &group_info);
+
+  void remove_all_dialog_notifications(Dialog *d, MessageId max_message_id, NotificationGroupInfo &group_info);
 
   void send_update_message_send_succeeded(Dialog *d, MessageId old_message_id, const Message *m) const;
 
@@ -1604,8 +1630,8 @@ class MessagesManager : public Actor {
 
   void try_restore_dialog_reply_markup(Dialog *d, const Message *m);
 
-  bool set_dialog_last_notification(Dialog *d, int32 last_notification_date, NotificationId last_notification_id,
-                                    const char *source);
+  bool set_dialog_last_notification(DialogId dialog_id, NotificationGroupInfo &group_info, int32 last_notification_date,
+                                    NotificationId last_notification_id, const char *source);
 
   static string get_notification_settings_scope_database_key(NotificationSettingsScope scope);
 

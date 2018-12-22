@@ -29,35 +29,20 @@ class DialogDbSyncInterface {
   DialogDbSyncInterface &operator=(const DialogDbSyncInterface &) = delete;
   virtual ~DialogDbSyncInterface() = default;
 
-  virtual Status add_dialog_new(DialogId dialog_id, int64 order, BufferSlice data,
-                                std::vector<NotificationGroupKey> notification_groups) = 0;
+  virtual Status add_dialog(DialogId dialog_id, int64 order, BufferSlice data,
+                            vector<NotificationGroupKey> notification_groups) = 0;
 
   virtual Result<BufferSlice> get_dialog(DialogId dialog_id) = 0;
 
-  virtual Result<std::vector<BufferSlice>> get_dialogs(int64 order, DialogId dialog_id, int32 limit) = 0;
+  virtual Result<vector<BufferSlice>> get_dialogs(int64 order, DialogId dialog_id, int32 limit) = 0;
 
-  virtual Result<std::vector<NotificationGroupKey>> get_notification_groups_by_last_notification_date(
+  virtual Result<vector<NotificationGroupKey>> get_notification_groups_by_last_notification_date(
       NotificationGroupKey notification_group_key, int32 limit) = 0;
 
   virtual Result<NotificationGroupKey> get_notification_group(NotificationGroupId notification_group_id) = 0;
 
   virtual Status begin_transaction() = 0;
   virtual Status commit_transaction() = 0;
-
-  virtual Status add_dialog(DialogId dialog_id, int64 order, int32 last_notification_date,
-                            NotificationGroupId notification_group_id, BufferSlice data) {
-    LOG(FATAL) << "method is removed";
-    return Status::Error();
-  }
-  virtual Result<std::vector<BufferSlice>> get_dialogs_by_last_notification_date(int32 last_notification_date,
-                                                                                 DialogId dialog_id, int32 limit) {
-    LOG(FATAL) << "method is removed";
-    return Status::Error();
-  }
-  virtual Result<BufferSlice> get_dialog_by_notification_group_id(NotificationGroupId notification_group_id) {
-    LOG(FATAL) << "method is removed";
-    return Status::Error();
-  }
 };
 
 class DialogDbSyncSafeInterface {
@@ -77,33 +62,21 @@ class DialogDbAsyncInterface {
   DialogDbAsyncInterface &operator=(const DialogDbAsyncInterface &) = delete;
   virtual ~DialogDbAsyncInterface() = default;
 
-  virtual void add_dialog_new(DialogId dialog_id, int64 order, BufferSlice data,
-                              std::vector<NotificationGroupKey> notification_groups, Promise<> promise) = 0;
+  virtual void add_dialog(DialogId dialog_id, int64 order, BufferSlice data,
+                          vector<NotificationGroupKey> notification_groups, Promise<> promise) = 0;
 
   virtual void get_dialog(DialogId dialog_id, Promise<BufferSlice> promise) = 0;
 
-  virtual void get_dialogs(int64 order, DialogId dialog_id, int32 limit, Promise<std::vector<BufferSlice>> promise) = 0;
+  virtual void get_dialogs(int64 order, DialogId dialog_id, int32 limit, Promise<vector<BufferSlice>> promise) = 0;
 
-  virtual void get_notification_groups_by_last_notification_date(
-      NotificationGroupKey notification_group_key, int32 limit, Promise<std::vector<NotificationGroupKey>> promise) = 0;
+  virtual void get_notification_groups_by_last_notification_date(NotificationGroupKey notification_group_key,
+                                                                 int32 limit,
+                                                                 Promise<vector<NotificationGroupKey>> promise) = 0;
 
   virtual void get_notification_group(NotificationGroupId notification_group_id,
                                       Promise<NotificationGroupKey> promise) = 0;
 
   virtual void close(Promise<> promise) = 0;
-
-  virtual void add_dialog(DialogId dialog_id, int64 order, int32 last_notification_date,
-                          NotificationGroupId notification_group_id, BufferSlice data, Promise<> promise) {
-    LOG(FATAL) << "method removed";
-  }
-  virtual void get_dialogs_by_last_notification_date(int32 last_notification_date, DialogId dialog_id, int32 limit,
-                                                     Promise<std::vector<BufferSlice>> promise) {
-    LOG(FATAL) << "method removed";
-  }
-  virtual void get_dialog_by_notification_group_id(NotificationGroupId notification_group_id,
-                                                   Promise<BufferSlice> promise) {
-    LOG(FATAL) << "method removed";
-  }
 };
 
 Status init_dialog_db(SqliteDb &db, int version, bool &was_created) TD_WARN_UNUSED_RESULT;

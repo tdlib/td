@@ -260,7 +260,7 @@ int32 NotificationManager::load_message_notification_groups_from_database(int32 
   }
 
   vector<NotificationGroupKey> group_keys = td_->messages_manager_->get_message_notification_group_keys_from_database(
-      last_loaded_notification_group_key_.last_notification_date, last_loaded_notification_group_key_.dialog_id, limit);
+      last_loaded_notification_group_key_, limit);
   last_loaded_notification_group_key_ =
       group_keys.size() == static_cast<size_t>(limit) ? group_keys.back() : NotificationGroupKey();
 
@@ -322,7 +322,7 @@ void NotificationManager::load_message_notifications_from_database(const Notific
   auto first_message_id = get_first_message_id(group);
   auto from_message_id = first_message_id.is_valid() ? first_message_id : MessageId::max();
   send_closure(G()->messages_manager(), &MessagesManager::get_message_notifications_from_database, group_key.dialog_id,
-               from_notification_id, from_message_id, static_cast<int32>(limit),
+               group_key.group_id, from_notification_id, from_message_id, static_cast<int32>(limit),
                PromiseCreator::lambda([actor_id = actor_id(this), group_id = group_key.group_id,
                                        limit](Result<vector<Notification>> r_notifications) {
                  send_closure_later(actor_id, &NotificationManager::on_get_message_notifications_from_database,
@@ -669,7 +669,7 @@ void NotificationManager::add_update(int32 group_id, td_api::object_ptr<td_api::
   if (!running_get_difference_ && running_get_chat_difference_.count(group_id) == 0) {
     flush_pending_updates_timeout_.add_timeout_in(group_id, MIN_UPDATE_DELAY_MS * 1e-3);
   } else {
-    flush_pending_updates_timeout_.set_timeout_in(group_id, MAX_UPDATE_DELAY_MS * 1e-3);
+    flush_pending_updates_timeout_.set_timeout_in(group_id, 3 * MAX_UPDATE_DELAY_MS * 1e-3);
   }
 }
 
@@ -1256,7 +1256,7 @@ void NotificationManager::on_notifications_removed(
     vector<int32> &&removed_notification_ids) {
   VLOG(notifications) << "In on_notifications_removed for " << group_it->first.group_id << " with "
                       << added_notifications.size() << " added notifications and " << removed_notification_ids.size()
-                      << " removed notifications";
+                      << " removed notifications, new total_count = " << group_it->second.total_count;
   auto group_key = group_it->first;
   auto final_group_key = group_key;
   final_group_key.last_notification_date = 0;
@@ -1384,7 +1384,7 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
   }
 
   if (!is_permanent && group_it->second.contains_messages) {
-    td_->messages_manager_->remove_message_notification(group_it->first.dialog_id, notification_id);
+    td_->messages_manager_->remove_message_notification(group_it->first.dialog_id, group_id, notification_id);
   }
 
   for (auto it = group_it->second.pending_notifications.begin(); it != group_it->second.pending_notifications.end();
@@ -1479,7 +1479,7 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
       max_notification_id = current_notification_id_;
     }
     if (group_it->second.contains_messages) {
-      td_->messages_manager_->remove_message_notifications(group_it->first.dialog_id, max_notification_id);
+      td_->messages_manager_->remove_message_notifications(group_it->first.dialog_id, group_id, max_notification_id);
     }
   }
 
