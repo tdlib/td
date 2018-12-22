@@ -1,3 +1,5 @@
+emconfigure || { echo 'emconfigure not found. Install Emscripten and add emconfigure to PATH environment variable'; exit 1; }
+
 mkdir -p build/generate
 mkdir -p build/asmjs
 mkdir -p build/wasm
@@ -18,20 +20,19 @@ OPENSSL_OPTIONS="-DOPENSSL_FOUND=1 \
 
 pushd .
 cd build/wasm
-eval emconfigure cmake $TD_ROOT -GNinja $OPENSSL_OPTIONS
+eval emconfigure cmake $TD_ROOT -GNinja $OPENSSL_OPTIONS || exit 1
 popd
 
 pushd .
 cd build/asmjs
-eval emconfigure cmake $TD_ROOT -GNinja -DASMJS=1 $OPENSSL_OPTIONS
+eval emconfigure cmake $TD_ROOT -GNinja -DASMJS=1 $OPENSSL_OPTIONS || exit 1
 popd
 
 pushd .
 cd build/generate
-cmake $TD_ROOT -GNinja
+cmake $TD_ROOT -GNinja || exit 1
 popd
 
-cmake --build build/generate -j --target prepare_cross_compiling 
-cmake --build build/wasm -j --target td_wasm 
-cmake --build build/asmjs -j --target td_asmjs 
-
+cmake --build build/generate -j --target prepare_cross_compiling || exit 1
+cmake --build build/wasm -j --target td_wasm || exit 1
+cmake --build build/asmjs -j --target td_asmjs || exit 1

@@ -1,4 +1,4 @@
-dest=tdweb/src/prebuilt/release/
-mkdir -p $dest
-cp build/wasm/td_wasm.{js,wasm} $dest
-cp build/asmjs/td_asmjs.js{,.mem} $dest
+DEST=tdweb/src/prebuilt/release/
+mkdir -p $DEST
+cp build/wasm/td_wasm.{js,wasm} $DEST
+cp build/asmjs/td_asmjs.js{,.mem} $DEST
