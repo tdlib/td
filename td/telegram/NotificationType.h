@@ -31,8 +31,6 @@ class NotificationType {
 
   virtual MessageId get_message_id() const = 0;
 
-  virtual CallId get_call_id() const = 0;
-
   virtual td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const = 0;
 
   virtual StringBuilder &to_string_builder(StringBuilder &string_builder) const = 0;

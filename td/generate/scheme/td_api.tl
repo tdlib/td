@@ -1355,7 +1355,7 @@ searchMessagesFilterVoiceAndVideoNote = SearchMessagesFilter;
 //@description Returns only messages with mentions of the current user, or messages that are replies to their messages
 searchMessagesFilterMention = SearchMessagesFilter;
 
-//@description Returns only messages with unread mentions of the current user or messages that are replies to their messages. When using this filter the results can't be additionally filtered by a query or by the sending user
+//@description Returns only messages with unread mentions of the current user, or messages that are replies to their messages. When using this filter the results can't be additionally filtered by a query or by the sending user
 searchMessagesFilterUnreadMention = SearchMessagesFilter;
 
 
@@ -1815,12 +1815,28 @@ notificationTypeNewSecretChat = NotificationType;
 notificationTypeNewCall call_id:int32 = NotificationType;
 
 
+//@class NotificationGroupType @description Describes type of notifications in the group
+
+//@description A group containing notifications of type notificationTypeNewMessage with ordinary unread messages
+notificationGroupTypeMessages = NotificationGroupType;
+
+//@description A group containing notifications of type notificationTypeNewMessage with unread mentions of the current user, replies to their messages, or a pinned message
+notificationGroupTypeMentions = NotificationGroupType;
+
+//@description A group containing a notification of type notificationTypeSecretChat
+notificationGroupTypeSecretChat = NotificationGroupType;
+
+//@description A group containing notifications of type notificationTypeNewCall
+notificationGroupTypeCalls = NotificationGroupType;
+
+
 //@description Contains information about a notification @id Unique persistent identifier of this notification @date Notification date @type Notification type
 notification id:int32 date:int32 type:NotificationType = Notification;
 
-//@description Describes a group of notifications @id Unique persistent auto-incremented from 1 identifier of the notification group @chat_id Identifier of a chat to which all notifications in the group belong
+//@description Describes a group of notifications @id Unique persistent auto-incremented from 1 identifier of the notification group @type Type of the group
+//@chat_id Identifier of a chat to which all notifications in the group belong
 //@total_count Total number of active notifications in the group @notifications The list of active notifications
-notificationGroup id:int32 chat_id:int53 total_count:int32 notifications:vector<notification> = NotificationGroup;
+notificationGroup id:int32 type:NotificationGroupType chat_id:int53 total_count:int32 notifications:vector<notification> = NotificationGroup;
 
 
 //@class OptionValue @description Represents the value of an option
@@ -2246,10 +2262,11 @@ updateChatDraftMessage chat_id:int53 draft_message:draftMessage order:int64 = Up
 //@description A notification was changed @notification_group_id Unique notification group identifier @notification Changed notification
 updateNotification notification_group_id:int32 notification:notification = Update;
 
-//@description A list of active notifications in a notification group has changed @notification_group_id Unique notification group identifier @chat_id Identifier of a chat to which all notifications in the group belong
+//@description A list of active notifications in a notification group has changed @notification_group_id Unique notification group identifier @type New type of the notification group
+//@chat_id Identifier of a chat to which all notifications in the group belong
 //@notification_settings_chat_id Chat identifier, which notification settings must be applied @is_silent True, if the notifications should be shown without sound
 //@total_count Total number of active notifications in the group @added_notifications List of added group notifications @removed_notification_ids Identifiers of removed group notifications
-updateNotificationGroup notification_group_id:int32 chat_id:int53 notification_settings_chat_id:int53 is_silent:Bool total_count:int32 added_notifications:vector<notification> removed_notification_ids:vector<int32> = Update;
+updateNotificationGroup notification_group_id:int32 type:NotificationGroupType chat_id:int53 notification_settings_chat_id:int53 is_silent:Bool total_count:int32 added_notifications:vector<notification> removed_notification_ids:vector<int32> = Update;
 
 //@description Contains active notifications that was shown on previous application launches. This update is sent only if a message database is used. In that case it comes once before any updateNotification and updateNotificationGroup update @groups Lists of active notification groups
 updateActiveNotifications groups:vector<notificationGroup> = Update;

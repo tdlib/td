@@ -26,6 +26,7 @@
 #include "td/telegram/Notification.h"
 #include "td/telegram/NotificationGroupId.h"
 #include "td/telegram/NotificationGroupKey.h"
+#include "td/telegram/NotificationGroupType.h"
 #include "td/telegram/NotificationId.h"
 #include "td/telegram/NotificationSettings.h"
 #include "td/telegram/ReplyMarkup.h"
@@ -655,6 +656,7 @@ class MessagesManager : public Actor {
 
   struct MessageNotificationGroup {
     DialogId dialog_id;
+    NotificationGroupType type = NotificationGroupType::Calls;
     int32 total_count = 0;
     vector<Notification> notifications;
   };

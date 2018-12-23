@@ -20,10 +20,6 @@ class NotificationTypeMessage : public NotificationType {
     return message_id_;
   }
 
-  CallId get_call_id() const override {
-    return CallId();
-  }
-
   td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const override {
     auto message_object = G()->td().get_actor_unsafe()->messages_manager_->get_message_object({dialog_id, message_id_});
     if (message_object == nullptr) {
@@ -56,10 +52,6 @@ class NotificationTypeSecretChat : public NotificationType {
     return MessageId();
   }
 
-  CallId get_call_id() const override {
-    return CallId();
-  }
-
   td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const override {
     return td_api::make_object<td_api::notificationTypeNewSecretChat>();
   }
@@ -84,10 +76,6 @@ class NotificationTypeCall : public NotificationType {
 
   MessageId get_message_id() const override {
     return MessageId::max();
-  }
-
-  CallId get_call_id() const override {
-    return call_id_;
   }
 
   td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const override {

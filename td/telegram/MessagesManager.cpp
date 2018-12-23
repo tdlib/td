@@ -28,6 +28,7 @@
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetActor.h"
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/NotificationGroupType.h"
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/NotificationSettings.hpp"
 #include "td/telegram/NotificationType.h"
@@ -17639,6 +17640,7 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
   MessageNotificationGroup result;
   VLOG(notifications) << "Found " << d->dialog_id << " by " << group_id;
   result.dialog_id = d->dialog_id;
+  result.type = from_mentions ? NotificationGroupType::Mentions : NotificationGroupType::Messages;
   result.total_count = get_dialog_pending_notification_count(d, from_mentions);
   result.total_count -= static_cast<int32>(from_mentions ? d->pending_new_mention_notifications.size()
                                                          : d->pending_new_message_notifications.size());
@@ -18142,7 +18144,8 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   CHECK(is_changed);
   VLOG(notifications) << "Create " << m->notification_id << " with " << m->message_id << " in " << d->dialog_id;
   send_closure_later(G()->notification_manager(), &NotificationManager::add_notification, notification_group_id,
-                     d->dialog_id, m->date, settings_dialog_id, m->disable_notification, m->notification_id,
+                     from_mentions ? NotificationGroupType::Mentions : NotificationGroupType::Messages, d->dialog_id,
+                     m->date, settings_dialog_id, m->disable_notification, m->notification_id,
                      create_new_message_notification(m->message_id));
   return true;
 }
@@ -21858,8 +21861,8 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
         CHECK(is_changed);
         VLOG(notifications) << "Create " << d->new_secret_chat_notification_id << " with " << secret_chat_id;
         send_closure_later(G()->notification_manager(), &NotificationManager::add_notification, notification_group_id,
-                           dialog_id, date, dialog_id, false, d->new_secret_chat_notification_id,
-                           create_new_secret_chat_notification());
+                           NotificationGroupType::SecretChat, dialog_id, date, dialog_id, false,
+                           d->new_secret_chat_notification_id, create_new_secret_chat_notification());
       }
     }
     if (!have_input_peer(dialog_id, AccessRights::Read)) {

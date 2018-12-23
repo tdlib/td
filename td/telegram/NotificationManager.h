@@ -12,6 +12,7 @@
 #include "td/telegram/Notification.h"
 #include "td/telegram/NotificationGroupId.h"
 #include "td/telegram/NotificationGroupKey.h"
+#include "td/telegram/NotificationGroupType.h"
 #include "td/telegram/NotificationId.h"
 #include "td/telegram/NotificationType.h"
 #include "td/telegram/td_api.h"
@@ -57,7 +58,7 @@ class NotificationManager : public Actor {
 
   void load_group_force(NotificationGroupId group_id);
 
-  void add_notification(NotificationGroupId group_id, DialogId dialog_id, int32 date,
+  void add_notification(NotificationGroupId group_id, NotificationGroupType group_type, DialogId dialog_id, int32 date,
                         DialogId notification_settings_dialog_id, bool is_silent, NotificationId notification_id,
                         unique_ptr<NotificationType> type);
 
@@ -121,9 +122,9 @@ class NotificationManager : public Actor {
 
   struct NotificationGroup {
     int32 total_count = 0;
+    NotificationGroupType type = NotificationGroupType::Calls;
     bool is_loaded_from_database = false;
     bool is_being_loaded_from_database = false;
-    bool contains_messages = true;
 
     vector<Notification> notifications;
 
