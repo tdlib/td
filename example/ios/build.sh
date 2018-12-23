@@ -1,4 +1,4 @@
-#/bin/sh
+#!/bin/sh
 td_path=$(grealpath ../..)
 
 rm -rf build
