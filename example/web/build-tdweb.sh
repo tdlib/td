@@ -1,3 +1,5 @@
+#!/bin/sh
+
 pushd .
 cd tdweb
 npm install || exit 1
