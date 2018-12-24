@@ -14,6 +14,7 @@
 #include "td/telegram/td_api.h"
 
 #include "td/utils/common.h"
+#include "td/utils/Slice.h"
 #include "td/utils/StringBuilder.h"
 
 #include <array>
@@ -26,6 +27,8 @@ class DeviceTokenManager : public NetQueryCallback {
   }
   void register_device(tl_object_ptr<td_api::DeviceToken> device_token_ptr, vector<int32> other_user_ids,
                        Promise<tl_object_ptr<td_api::ok>> promise);
+
+  vector<Slice> get_encryption_keys() const;
 
  private:
   static constexpr size_t MAX_OTHER_USER_IDS = 100;
@@ -53,6 +56,8 @@ class DeviceTokenManager : public NetQueryCallback {
     uint64 net_query_id = 0;
     vector<int32> other_user_ids;
     bool is_app_sandbox = false;
+    bool encrypt = false;
+    string encryption_key;
     Promise<tl_object_ptr<td_api::ok>> promise;
 
     template <class StorerT>

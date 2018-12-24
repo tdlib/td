@@ -19,6 +19,7 @@
 #include "td/utils/format.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
+#include "td/utils/Random.h"
 #include "td/utils/Status.h"
 #include "td/utils/tl_helpers.h"
 
@@ -39,10 +40,14 @@ void DeviceTokenManager::TokenInfo::store(StorerT &storer) const {
   STORE_FLAG(is_unregister);
   STORE_FLAG(is_register);
   STORE_FLAG(is_app_sandbox);
+  STORE_FLAG(encrypt);
   END_STORE_FLAGS();
   store(token, storer);
   if (has_other_user_ids) {
     store(other_user_ids, storer);
+  }
+  if (encrypt) {
+    store(encryption_key, storer);
   }
 }
 
@@ -59,6 +64,7 @@ void DeviceTokenManager::TokenInfo::parse(ParserT &parser) {
   PARSE_FLAG(is_unregister);
   PARSE_FLAG(is_register);
   PARSE_FLAG(is_app_sandbox);
+  PARSE_FLAG(encrypt);
   END_PARSE_FLAGS_GENERIC();
   CHECK(is_sync + is_unregister + is_register == 1);
   if (is_sync) {
@@ -71,6 +77,9 @@ void DeviceTokenManager::TokenInfo::parse(ParserT &parser) {
   parse(token, parser);
   if (has_other_user_ids) {
     parse(other_user_ids, parser);
+  }
+  if (encrypt) {
+    parse(encryption_key, parser);
   }
 }
 
@@ -95,6 +104,9 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DeviceTokenManage
   if (token_info.is_app_sandbox) {
     string_builder << ", sandboxed";
   }
+  if (token_info.encrypt) {
+    string_builder << ", encrypted";
+  }
   return string_builder;
 }
 
@@ -104,6 +116,7 @@ void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> devi
   TokenType token_type;
   string token;
   bool is_app_sandbox = false;
+  bool encrypt = false;
   switch (device_token_ptr->get_id()) {
     case td_api::deviceTokenApplePush::ID: {
       auto device_token = static_cast<td_api::deviceTokenApplePush *>(device_token_ptr.get());
@@ -116,6 +129,7 @@ void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> devi
       auto device_token = static_cast<td_api::deviceTokenGoogleCloudMessaging *>(device_token_ptr.get());
       token = std::move(device_token->token_);
       token_type = TokenType::GCM;
+      encrypt = device_token->encrypt_;
       break;
     }
     case td_api::deviceTokenMicrosoftPush::ID: {
@@ -153,6 +167,7 @@ void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> devi
       token = std::move(device_token->device_token_);
       token_type = TokenType::APNS_VOIP;
       is_app_sandbox = device_token->is_app_sandbox_;
+      encrypt = device_token->encrypt_;
       break;
     }
     case td_api::deviceTokenWebPush::ID: {
@@ -226,9 +241,30 @@ void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> devi
   }
   info.other_user_ids = std::move(other_user_ids);
   info.is_app_sandbox = is_app_sandbox;
+  if (encrypt != info.encrypt) {
+    if (encrypt) {
+      constexpr size_t ENCRYPTION_KEY_LENGTH = 256;
+      info.encryption_key.resize(ENCRYPTION_KEY_LENGTH);
+      Random::secure_bytes(info.encryption_key);
+    } else {
+      info.encryption_key.clear();
+    }
+    info.encrypt = encrypt;
+  }
   info.promise.set_value(make_tl_object<td_api::ok>());
   info.promise = std::move(promise);
   save_info(token_type);
+}
+
+vector<Slice> DeviceTokenManager::get_encryption_keys() const {
+  vector<Slice> result;
+  for (int32 token_type = 1; token_type < TokenType::SIZE; token_type++) {
+    auto &info = tokens_[token_type];
+    if (!info.token.empty() && info.encrypt && info.state != TokenInfo::State::Unregister) {
+      result.push_back(info.encryption_key);
+    }
+  }
+  return result;
 }
 
 string DeviceTokenManager::get_database_key(int32 token_type) {
@@ -302,7 +338,7 @@ void DeviceTokenManager::loop() {
           create_storer(telegram_api::account_unregisterDevice(token_type, info.token, std::move(other_user_ids))));
     } else {
       net_query = G()->net_query_creator().create(create_storer(telegram_api::account_registerDevice(
-          token_type, info.token, info.is_app_sandbox, BufferSlice(), std::move(other_user_ids))));
+          token_type, info.token, info.is_app_sandbox, BufferSlice(info.encryption_key), std::move(other_user_ids))));
     }
     info.net_query_id = net_query->id();
     G()->net_query_dispatcher().dispatch_with_callback(std::move(net_query), actor_shared(this, token_type));
@@ -329,7 +365,7 @@ void DeviceTokenManager::on_result(NetQueryPtr net_query) {
       info.promise.set_value(make_tl_object<td_api::ok>());
     }
     if (info.state == TokenInfo::State::Unregister) {
-      info.token = "";
+      info.token.clear();
     }
     info.state = TokenInfo::State::Sync;
   } else {
@@ -344,7 +380,7 @@ void DeviceTokenManager::on_result(NetQueryPtr net_query) {
       info.state = TokenInfo::State::Unregister;
     } else {
       info.state = TokenInfo::State::Sync;
-      info.token = "";
+      info.token.clear();
     }
     if (r_flag.is_error()) {
       LOG(ERROR) << r_flag.error();

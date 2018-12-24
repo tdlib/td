@@ -9,11 +9,13 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
+#include "td/telegram/DeviceTokenManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 
+#include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
@@ -1869,7 +1871,19 @@ void NotificationManager::on_notification_default_delay_changed() {
 }
 
 void NotificationManager::process_push_notification(const string &payload, Promise<Unit> &&promise) {
-  VLOG(notifications) << "Process push notification \"" << payload << '"';
+  if (G()->close_flag()) {
+    return;
+  }
+
+  auto encryption_keys = td_->device_token_manager_->get_actor_unsafe()->get_encryption_keys();
+  for (auto &key : encryption_keys) {
+    VLOG(notifications) << "Have key \"" << format::escaped(key) << '"';
+  }
+  if (encryption_keys.empty()) {
+    VLOG(notifications) << "Process push notification \"" << payload << '"';
+  } else {
+    VLOG(notifications) << "Process encrypted push notification \"" << format::escaped(payload) << '"';
+  }
   promise.set_value(Unit());
 }
 

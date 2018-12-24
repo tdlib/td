@@ -1367,6 +1367,9 @@ class CliClient final : public Actor {
     } else if (op == "rdb") {
       send_request(make_tl_object<td_api::registerDevice>(make_tl_object<td_api::deviceTokenBlackBerryPush>(args),
                                                           as_user_ids("")));
+    } else if (op == "rdg") {
+      send_request(make_tl_object<td_api::registerDevice>(
+          make_tl_object<td_api::deviceTokenGoogleCloudMessaging>(args, true), as_user_ids("")));
     } else if (op == "rdt") {
       string token;
       string other_user_ids_str;
