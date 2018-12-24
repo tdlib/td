@@ -3802,6 +3802,8 @@ void Td::clear() {
       }
     }
     notification_manager_->destroy_all_notifications();
+  } else {
+    notification_manager_->flush_all_notifications();
   }
   LOG(DEBUG) << "Options was cleared " << timer;
 

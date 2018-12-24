@@ -1024,6 +1024,8 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
 }
 
 void NotificationManager::flush_all_pending_updates(bool include_delayed_chats, const char *source) {
+  VLOG(notifications) << "Flush all pending notification updates "
+                      << (include_delayed_chats ? "with delayed chats " : "") << "from " << source;
   vector<NotificationGroupKey> ready_group_keys;
   for (auto &it : pending_updates_) {
     if (include_delayed_chats || running_get_chat_difference_.count(it.first) == 0) {
@@ -1034,6 +1036,7 @@ void NotificationManager::flush_all_pending_updates(bool include_delayed_chats, 
   }
 
   // flush groups in reverse order to not exceed max_notification_group_count_
+  VLOG(notifications) << "Flush pending updates in " << ready_group_keys.size() << " notification groups";
   std::sort(ready_group_keys.begin(), ready_group_keys.end());
   for (auto group_key : reversed(ready_group_keys)) {
     flush_pending_updates_timeout_.cancel_timeout(group_key.group_id.get());
@@ -1233,6 +1236,7 @@ void NotificationManager::flush_all_pending_notifications() {
   }
 
   // flush groups in order of last notification date
+  VLOG(notifications) << "Flush pending notifications in " << group_ids.size() << " notification groups";
   for (auto &it : group_ids) {
     flush_pending_notifications_timeout_.cancel_timeout(it.second.get());
     flush_pending_notifications(it.second);
@@ -1720,8 +1724,7 @@ void NotificationManager::on_notification_group_count_max_changed(bool send_upda
 
   bool is_increased = new_max_notification_group_count_size_t > max_notification_group_count_;
   if (send_updates) {
-    flush_all_pending_notifications();
-    flush_all_pending_updates(true, "on_notification_group_size_max_changed begin");
+    flush_all_notifications();
 
     size_t cur_pos = 0;
     size_t min_group_count = min(new_max_notification_group_count_size_t, max_notification_group_count_);
@@ -1787,8 +1790,7 @@ void NotificationManager::on_notification_group_size_max_changed() {
                       << new_max_notification_group_size;
 
   if (max_notification_group_size_ != 0) {
-    flush_all_pending_notifications();
-    flush_all_pending_updates(true, "on_notification_group_size_max_changed");
+    flush_all_notifications();
 
     size_t left = max_notification_group_count_;
     for (auto it = groups_.begin(); it != groups_.end() && left > 0; ++it, left--) {
@@ -1943,6 +1945,11 @@ void NotificationManager::get_current_state(vector<td_api::object_ptr<td_api::Up
   if (update != nullptr) {
     updates.push_back(std::move(update));
   }
+}
+
+void NotificationManager::flush_all_notifications() {
+  flush_all_pending_notifications();
+  flush_all_pending_updates(true, "flush_all_notifications");
 }
 
 void NotificationManager::destroy_all_notifications() {

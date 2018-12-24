@@ -97,6 +97,8 @@ class NotificationManager : public Actor {
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
+  void flush_all_notifications();
+
   void destroy_all_notifications();
 
  private:
