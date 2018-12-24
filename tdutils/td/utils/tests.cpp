@@ -46,7 +46,11 @@ class RegressionTesterImpl : public RegressionTester {
   }
 
   Status verify_test(Slice name, Slice result) override {
+#if TD_HAVE_OPENSSL
     auto hash = PSTRING() << format::as_hex_dump<0>(Slice(sha256(result)));
+#else
+    auto hash = to_string(crc64(result));
+#endif
     TestInfo &old_test_info = tests_[name.str()];
     if (!old_test_info.result_hash.empty() && old_test_info.result_hash != hash) {
       auto wa_path = db_cache_dir_ + "WA";
