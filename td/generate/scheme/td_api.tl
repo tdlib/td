@@ -2271,7 +2271,7 @@ updateNotificationGroup notification_group_id:int32 type:NotificationGroupType c
 //@description Contains active notifications that was shown on previous application launches. This update is sent only if a message database is used. In that case it comes once before any updateNotification and updateNotificationGroup update @groups Lists of active notification groups
 updateActiveNotifications groups:vector<notificationGroup> = Update;
 
-//@description Describes, whether there are some pending notification updates. Can be used to prevent application from killing, while there are some pending notifiations @have_pending_notifications True, if there are some pending notification updates, which will be sent soon
+//@description Describes, whether there are some pending notification updates. Can be used to prevent application from killing, while there are some pending notifications @have_pending_notifications True, if there are some pending notification updates, which will be sent soon
 updateHavePendingNotifications have_pending_notifications:Bool = Update;
 
 //@description Some messages were deleted @chat_id Chat identifier @message_ids Identifiers of the deleted messages
