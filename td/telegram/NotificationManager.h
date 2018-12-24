@@ -218,6 +218,8 @@ class NotificationManager : public Actor {
 
   void after_get_chat_difference_impl(NotificationGroupId group_id);
 
+  void on_pending_notification_update_count_changed(int32 diff);
+
   NotificationId current_notification_id_;
   NotificationGroupId current_notification_group_id_;
 
@@ -228,6 +230,8 @@ class NotificationManager : public Actor {
   int32 online_cloud_timeout_ms_ = DEFAULT_ONLINE_CLOUD_TIMEOUT_MS;
   int32 notification_cloud_delay_ms_ = DEFAULT_ONLINE_CLOUD_DELAY_MS;
   int32 notification_default_delay_ms_ = DEFAULT_DEFAULT_DELAY_MS;
+
+  int32 pending_notification_update_count_ = 0;
 
   NotificationGroupKey last_loaded_notification_group_key_;
 
