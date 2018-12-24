@@ -22512,6 +22512,11 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
 
   if (was_sponsored != is_sponsored) {
     send_update_chat_is_sponsored(d);
+    if (!is_loaded_from_database && is_sponsored) {
+      // channel is sponsored only if user isn't a channel member
+      remove_all_dialog_notifications(dialog_id, d->message_notification_group);
+      remove_all_dialog_notifications(dialog_id, d->mention_notification_group);
+    }
     need_update = false;
   }
   if (need_update && need_send_update_chat_order) {
