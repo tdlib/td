@@ -3801,6 +3801,7 @@ void Td::clear() {
         send_update(make_tl_object<td_api::updateOption>(option.first, make_tl_object<td_api::optionValueEmpty>()));
       }
     }
+    notification_manager_->destroy_all_notifications();
   }
   LOG(DEBUG) << "Options was cleared " << timer;
 

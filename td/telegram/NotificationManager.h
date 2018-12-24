@@ -97,6 +97,8 @@ class NotificationManager : public Actor {
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
 
+  void destroy_all_notifications();
+
  private:
   static constexpr int32 DEFAULT_GROUP_COUNT_MAX = 0;
   static constexpr int32 DEFAULT_GROUP_SIZE_MAX = 10;
@@ -176,7 +178,11 @@ class NotificationManager : public Actor {
 
   NotificationGroupKey get_last_updated_group_key() const;
 
-  td_api::object_ptr<td_api::updateActiveNotifications> get_update_active_notificaitons() const;
+  td_api::object_ptr<td_api::updateActiveNotifications> get_update_active_notifications() const;
+
+  td_api::object_ptr<td_api::updateNotificationGroup> get_remove_group_update(
+      const NotificationGroupKey &group_key, const NotificationGroup &group,
+      vector<int32> &&removed_notification_ids) const;
 
   void send_remove_group_update(const NotificationGroupKey &group_key, const NotificationGroup &group,
                                 vector<int32> &&removed_notification_ids);
@@ -222,6 +228,8 @@ class NotificationManager : public Actor {
   int32 notification_default_delay_ms_ = DEFAULT_DEFAULT_DELAY_MS;
 
   NotificationGroupKey last_loaded_notification_group_key_;
+
+  bool is_destroyed_ = false;
 
   bool running_get_difference_ = false;
   std::unordered_set<int32> running_get_chat_difference_;
