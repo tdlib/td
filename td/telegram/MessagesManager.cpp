@@ -9941,8 +9941,8 @@ bool MessagesManager::set_dialog_last_notification(DialogId dialog_id, Notificat
                                                    const char *source) {
   if (group_info.last_notification_date != last_notification_date ||
       group_info.last_notification_id != last_notification_id) {
-    VLOG(notifications) << "Set " << dialog_id << " last notification to " << last_notification_id << " sent at "
-                        << last_notification_date << " from " << source;
+    VLOG(notifications) << "Set " << group_info.group_id << '/' << dialog_id << " last notification to "
+                        << last_notification_id << " sent at " << last_notification_date << " from " << source;
     group_info.last_notification_date = last_notification_date;
     group_info.last_notification_id = last_notification_id;
     group_info.is_changed = true;
@@ -10458,8 +10458,8 @@ void MessagesManager::remove_message_notification_id(Dialog *d, Message *m, bool
   bool had_active_notification = is_message_notification_active(d, m);
 
   auto notification_id = m->notification_id;
-  VLOG(notifications) << "Remove " << notification_id << " from " << m->message_id << " in " << d->dialog_id
-                      << " from database";
+  VLOG(notifications) << "Remove " << notification_id << " from " << m->message_id << " in " << group_info.group_id
+                      << '/' << d->dialog_id << " from database";
   delete_notification_id_to_message_id_correspondence(d, notification_id, m->message_id);
   m->notification_id = NotificationId();
   if (group_info.last_notification_id == notification_id) {
@@ -10529,10 +10529,11 @@ void MessagesManager::do_fix_dialog_last_notification_id(DialogId dialog_id, boo
     return;
   }
 
-  VLOG(notifications) << "Receive " << result.ok().size() << " message notifications in " << dialog_id;
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   auto &group_info = from_mentions ? d->mention_notification_group : d->message_notification_group;
+  VLOG(notifications) << "Receive " << result.ok().size() << " message notifications in " << group_info.group_id << '/'
+                      << dialog_id;
   if (group_info.last_notification_id != prev_last_notification_id) {
     // last_notification_id was changed
     return;
@@ -17578,7 +17579,7 @@ NotificationGroupId MessagesManager::get_dialog_notification_group_id(DialogId d
     } while (get_message_notification_group_force(next_notification_group_id).dialog_id.is_valid());
     group_info.group_id = next_notification_group_id;
     group_info.is_changed = true;
-    VLOG(notifications) << "Assign " << next_notification_group_id << " to " << dialog_id;
+    VLOG(notifications) << "Assign " << next_notification_group_id << " to " << group_info.group_id << '/' << dialog_id;
     on_dialog_updated(dialog_id, "get_dialog_notification_group_id");
 
     notification_group_id_to_dialog_id_.emplace(next_notification_group_id, dialog_id);
@@ -17638,7 +17639,7 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
   auto &group_info = from_mentions ? d->mention_notification_group : d->message_notification_group;
 
   MessageNotificationGroup result;
-  VLOG(notifications) << "Found " << d->dialog_id << " by " << group_id;
+  VLOG(notifications) << "Found " << group_info.group_id << '/' << d->dialog_id << " by " << group_id;
   result.dialog_id = d->dialog_id;
   result.type = from_mentions ? NotificationGroupType::Mentions : NotificationGroupType::Messages;
   result.total_count = get_dialog_pending_notification_count(d, from_mentions);
@@ -17718,7 +17719,8 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
     res.reserve(messages.size());
     bool is_found = false;
     VLOG(notifications) << "Loaded " << messages.size() << (from_mentions ? " mention" : "")
-                        << " messages with notifications from database in " << d->dialog_id;
+                        << " messages with notifications from database in " << group_info.group_id << '/'
+                        << d->dialog_id;
     for (auto &message : messages) {
       auto m = on_get_message_from_database(d->dialog_id, d, std::move(message));
       if (m == nullptr || !m->notification_id.is_valid()) {
@@ -17759,12 +17761,13 @@ Result<vector<BufferSlice>> MessagesManager::do_get_message_notifications_from_d
   auto *db = G()->td_db()->get_messages_db_sync();
   if (!from_mentions) {
     CHECK(from_message_id.get() > d->last_read_inbox_message_id.get());
-    VLOG(notifications) << "Trying to load " << limit << " messages with notifications in " << d->dialog_id << " from "
+    VLOG(notifications) << "Trying to load " << limit << " messages with notifications in "
+                        << d->message_notification_group.group_id << '/' << d->dialog_id << " from "
                         << from_notification_id;
     return db->get_messages_from_notification_id(d->dialog_id, from_notification_id, limit);
   } else {
-    VLOG(notifications) << "Trying to load " << limit << " messages with unread mentions in " << d->dialog_id
-                        << " from " << from_message_id;
+    VLOG(notifications) << "Trying to load " << limit << " messages with unread mentions in "
+                        << d->mention_notification_group.group_id << '/' << d->dialog_id << " from " << from_message_id;
 
     // ignore first_db_message_id, notifications can be nonconsecutive
     MessagesDbMessagesQuery db_query;
@@ -17860,12 +17863,12 @@ void MessagesManager::do_get_message_notifications_from_database(Dialog *d, bool
 
   auto *db = G()->td_db()->get_messages_db_async();
   if (!from_mentions) {
-    VLOG(notifications) << "Trying to load " << limit << " messages with notifications in " << dialog_id << " from "
-                        << from_notification_id;
+    VLOG(notifications) << "Trying to load " << limit << " messages with notifications in " << group_info.group_id
+                        << '/' << dialog_id << " from " << from_notification_id;
     return db->get_messages_from_notification_id(d->dialog_id, from_notification_id, limit, std::move(new_promise));
   } else {
-    VLOG(notifications) << "Trying to load " << limit << " messages with unread mentions in " << dialog_id << " from "
-                        << from_message_id;
+    VLOG(notifications) << "Trying to load " << limit << " messages with unread mentions in " << group_info.group_id
+                        << '/' << dialog_id << " from " << from_message_id;
 
     // ignore first_db_message_id, notifications can be nonconsecutive
     MessagesDbMessagesQuery db_query;
@@ -17898,8 +17901,8 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
   res.reserve(messages.size());
   NotificationId from_notification_id;
   MessageId from_message_id;
-  VLOG(notifications) << "Loaded " << messages.size() << " messages with notifications in " << dialog_id
-                      << " from database";
+  VLOG(notifications) << "Loaded " << messages.size() << " messages with notifications in " << group_info.group_id
+                      << '/' << dialog_id << " from database";
   for (auto &message : messages) {
     auto m = on_get_message_from_database(dialog_id, d, std::move(message));
     if (m == nullptr || !m->notification_id.is_valid()) {
@@ -18025,7 +18028,8 @@ void MessagesManager::remove_message_notifications(DialogId dialog_id, Notificat
     return;
   }
 
-  VLOG(notifications) << "Set max_removed_notification_id in " << dialog_id << " to " << max_notification_id;
+  VLOG(notifications) << "Set max_removed_notification_id in " << group_info.group_id << '/' << dialog_id << " to "
+                      << max_notification_id;
   group_info.max_removed_notification_id = max_notification_id;
   on_dialog_updated(dialog_id, "remove_message_notifications");
 }
@@ -18142,7 +18146,8 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   bool is_changed = set_dialog_last_notification(d->dialog_id, group_info, m->date, m->notification_id,
                                                  "add_new_message_notification");
   CHECK(is_changed);
-  VLOG(notifications) << "Create " << m->notification_id << " with " << m->message_id << " in " << d->dialog_id;
+  VLOG(notifications) << "Create " << m->notification_id << " with " << m->message_id << " in " << group_info.group_id
+                      << '/' << d->dialog_id;
   send_closure_later(G()->notification_manager(), &NotificationManager::add_notification, notification_group_id,
                      from_mentions ? NotificationGroupType::Mentions : NotificationGroupType::Messages, d->dialog_id,
                      m->date, settings_dialog_id, m->disable_notification, m->notification_id,
@@ -18189,7 +18194,7 @@ void MessagesManager::remove_all_dialog_notifications(DialogId dialog_id, Notifi
   // removes up to group_info.last_notification_id
   if (group_info.group_id.is_valid() && group_info.last_notification_id.is_valid() &&
       group_info.max_removed_notification_id != group_info.last_notification_id) {
-    VLOG(notifications) << "Set max_removed_notification_id in " << dialog_id << " to "
+    VLOG(notifications) << "Set max_removed_notification_id in " << group_info.group_id << '/' << dialog_id << " to "
                         << group_info.last_notification_id;
     group_info.max_removed_notification_id = group_info.last_notification_id;
     send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group,
