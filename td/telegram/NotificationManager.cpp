@@ -485,8 +485,12 @@ NotificationId NotificationManager::get_next_notification_id() {
   if (is_disabled()) {
     return NotificationId();
   }
+  if (current_notification_id_.get() == std::numeric_limits<int32>::max()) {
+    LOG(ERROR) << "Notification id overflowed";
+    return NotificationId();
+  }
 
-  current_notification_id_ = NotificationId(current_notification_id_.get() % 0x7FFFFFFF + 1);
+  current_notification_id_ = NotificationId(current_notification_id_.get() + 1);
   G()->td_db()->get_binlog_pmc()->set("notification_id_current", to_string(current_notification_id_.get()));
   return current_notification_id_;
 }
@@ -495,8 +499,12 @@ NotificationGroupId NotificationManager::get_next_notification_group_id() {
   if (is_disabled()) {
     return NotificationGroupId();
   }
+  if (current_notification_group_id_.get() == std::numeric_limits<int32>::max()) {
+    LOG(ERROR) << "Notification group id overflowed";
+    return NotificationGroupId();
+  }
 
-  current_notification_group_id_ = NotificationGroupId(current_notification_group_id_.get() % 0x7FFFFFFF + 1);
+  current_notification_group_id_ = NotificationGroupId(current_notification_group_id_.get() + 1);
   G()->td_db()->get_binlog_pmc()->set("notification_group_id_current", to_string(current_notification_group_id_.get()));
   return current_notification_group_id_;
 }
@@ -1261,6 +1269,9 @@ void NotificationManager::edit_notification(NotificationGroupId group_id, Notifi
   if (is_disabled() || max_notification_group_count_ == 0) {
     return;
   }
+  if (!group_id.is_valid()) {
+    return;
+  }
 
   CHECK(notification_id.is_valid());
   CHECK(type != nullptr);
@@ -1624,6 +1635,9 @@ NotificationGroupId NotificationManager::get_call_notification_group_id(DialogId
     NotificationGroupId next_notification_group_id;
     do {
       next_notification_group_id = get_next_notification_group_id();
+      if (!next_notification_group_id.is_valid()) {
+        return {};
+      }
     } while (last_group_id.get() >= next_notification_group_id.get());  // just in case
     VLOG(notifications) << "Add call " << next_notification_group_id;
 
@@ -1664,6 +1678,9 @@ void NotificationManager::add_call_notification(DialogId dialog_id, CallId call_
   }
 
   auto notification_id = get_next_notification_id();
+  if (!notification_id.is_valid()) {
+    return;
+  }
   active_notifications.push_back(ActiveCallNotification{call_id, notification_id});
 
   add_notification(group_id, NotificationGroupType::Calls, dialog_id, G()->unix_time() + 120, dialog_id, false,

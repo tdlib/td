@@ -5661,9 +5661,10 @@ void MessagesManager::on_message_edited(FullMessageId full_message_id) {
 
     if (m->notification_id.is_valid() && is_message_notification_active(d, m)) {
       auto &group_info = get_notification_group_info(d, m);
-      send_closure_later(G()->notification_manager(), &NotificationManager::edit_notification,
-                         get_dialog_notification_group_id(dialog_id, group_info), m->notification_id,
-                         create_new_message_notification(m->message_id));
+      if (group_info.group_id.is_valid()) {
+        send_closure_later(G()->notification_manager(), &NotificationManager::edit_notification, group_info.group_id,
+                           m->notification_id, create_new_message_notification(m->message_id));
+      }
     }
   }
 }
@@ -17576,6 +17577,9 @@ NotificationGroupId MessagesManager::get_dialog_notification_group_id(DialogId d
     NotificationGroupId next_notification_group_id;
     do {
       next_notification_group_id = td_->notification_manager_->get_next_notification_group_id();
+      if (!next_notification_group_id.is_valid()) {
+        return next_notification_group_id;
+      }
     } while (get_message_notification_group_force(next_notification_group_id).dialog_id.is_valid());
     group_info.group_id = next_notification_group_id;
     group_info.is_changed = true;
@@ -17604,6 +17608,9 @@ NotificationId MessagesManager::get_next_notification_id(Dialog *d, Notification
   NotificationId notification_id;
   do {
     notification_id = td_->notification_manager_->get_next_notification_id();
+    if (!notification_id.is_valid()) {
+      return notification_id;
+    }
   } while (d->notification_id_to_message_id.count(notification_id) != 0 ||
            d->new_secret_chat_notification_id == notification_id);  // just in case
   if (message_id.is_valid()) {
@@ -18141,8 +18148,14 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
                                   << d->dialog_id;
   auto &group_info = get_notification_group_info(d, m);
   auto notification_group_id = get_dialog_notification_group_id(d->dialog_id, group_info);
+  if (!notification_group_id.is_valid()) {
+    return false;
+  }
   // if !force, then add_message_to_dialog will add the correspondence
   m->notification_id = get_next_notification_id(d, notification_group_id, force ? m->message_id : MessageId());
+  if (!m->notification_id.is_valid()) {
+    return false;
+  }
   bool is_changed = set_dialog_last_notification(d->dialog_id, group_info, m->date, m->notification_id,
                                                  "add_new_message_notification");
   CHECK(is_changed);
@@ -21859,15 +21872,19 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
       if (G()->parameters().use_message_db && !td_->auth_manager_->is_bot() &&
           !td_->contacts_manager_->get_secret_chat_is_outbound(secret_chat_id)) {
         auto notification_group_id = get_dialog_notification_group_id(dialog_id, d->message_notification_group);
-        d->new_secret_chat_notification_id = get_next_notification_id(d, notification_group_id, MessageId());
-        auto date = td_->contacts_manager_->get_secret_chat_date(secret_chat_id);
-        bool is_changed = set_dialog_last_notification(dialog_id, d->message_notification_group, date,
-                                                       d->new_secret_chat_notification_id, "add_new_secret_chat");
-        CHECK(is_changed);
-        VLOG(notifications) << "Create " << d->new_secret_chat_notification_id << " with " << secret_chat_id;
-        send_closure_later(G()->notification_manager(), &NotificationManager::add_notification, notification_group_id,
-                           NotificationGroupType::SecretChat, dialog_id, date, dialog_id, false,
-                           d->new_secret_chat_notification_id, create_new_secret_chat_notification());
+        if (notification_group_id.is_valid()) {
+          d->new_secret_chat_notification_id = get_next_notification_id(d, notification_group_id, MessageId());
+          if (d->new_secret_chat_notification_id.is_valid()) {
+            auto date = td_->contacts_manager_->get_secret_chat_date(secret_chat_id);
+            bool is_changed = set_dialog_last_notification(dialog_id, d->message_notification_group, date,
+                                                           d->new_secret_chat_notification_id, "add_new_secret_chat");
+            CHECK(is_changed);
+            VLOG(notifications) << "Create " << d->new_secret_chat_notification_id << " with " << secret_chat_id;
+            send_closure_later(G()->notification_manager(), &NotificationManager::add_notification,
+                               notification_group_id, NotificationGroupType::SecretChat, dialog_id, date, dialog_id,
+                               false, d->new_secret_chat_notification_id, create_new_secret_chat_notification());
+          }
+        }
       }
     }
     if (!have_input_peer(dialog_id, AccessRights::Read)) {
