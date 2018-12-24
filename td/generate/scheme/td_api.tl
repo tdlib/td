@@ -2511,6 +2511,9 @@ getTemporaryPasswordState = TemporaryPasswordState;
 //@description Handles a DC_UPDATE push service notification. Can be called before authorization @dc Value of the "dc" parameter of the notification @addr Value of the "addr" parameter of the notification
 processDcUpdate dc:string addr:string = Ok;
 
+//@description Handles a push notification. Can be called before authorization @payload Push notification payload
+processPushNotification payload:string = Ok;
+
 
 //@description Returns the current user
 getMe = User;

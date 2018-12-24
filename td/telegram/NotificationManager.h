@@ -85,6 +85,8 @@ class NotificationManager : public Actor {
 
   void on_notification_default_delay_changed();
 
+  void process_push_notification(const string &payload, Promise<Unit> &&promise);
+
   void before_get_difference();
 
   void after_get_difference();

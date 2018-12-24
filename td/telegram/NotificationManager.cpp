@@ -1842,6 +1842,11 @@ void NotificationManager::on_notification_default_delay_changed() {
   VLOG(notifications) << "Set notification_default_delay_ms to " << notification_default_delay_ms_;
 }
 
+void NotificationManager::process_push_notification(const string &payload, Promise<Unit> &&promise) {
+  VLOG(notifications) << "Process push notification \"" << payload << '"';
+  promise.set_value(Unit());
+}
+
 void NotificationManager::before_get_difference() {
   if (is_disabled()) {
     return;

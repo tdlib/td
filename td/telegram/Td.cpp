@@ -3220,6 +3220,7 @@ bool Td::is_preinitialization_request(int32 id) {
 bool Td::is_preauthentication_request(int32 id) {
   switch (id) {
     case td_api::processDcUpdate::ID:
+    case td_api::processPushNotification::ID:
     case td_api::getLocalizationTargetInfo::ID:
     case td_api::getLanguagePackStrings::ID:
     case td_api::setCustomLanguagePack::ID:
@@ -4015,6 +4016,7 @@ Status Td::init(DbKey key) {
     complete_pending_preauthentication_requests([](int32 id) {
       switch (id) {
         case td_api::processDcUpdate::ID:
+        case td_api::processPushNotification::ID:
         case td_api::setNetworkType::ID:
         case td_api::getNetworkStatistics::ID:
         case td_api::addNetworkStatistics::ID:
@@ -4689,6 +4691,13 @@ void Td::on_request(uint64 id, td_api::processDcUpdate &request) {
   }
   send_closure(G()->connection_creator(), &ConnectionCreator::on_dc_update, DcId::internal(dc_id_raw), request.addr_,
                std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::processPushNotification &request) {
+  CLEAN_INPUT_STRING(request.payload_);
+  CREATE_OK_REQUEST_PROMISE();
+  send_closure(G()->notification_manager(), &NotificationManager::process_push_notification,
+               std::move(request.payload_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::registerDevice &request) {

@@ -145,7 +145,7 @@ inline StringBuilder &operator<<(StringBuilder &builder, const Escaped &escaped)
       builder << static_cast<char>(c);
     } else {
       const char *oct = "01234567";
-      builder << "\\0" << oct[c >> 6] << oct[(c >> 3) & 7] << oct[c & 7];
+      builder << '\\' << oct[c >> 6] << oct[(c >> 3) & 7] << oct[c & 7];
     }
   }
   return builder;

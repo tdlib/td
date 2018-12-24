@@ -1359,6 +1359,8 @@ class CliClient final : public Actor {
       string ip_port;
       std::tie(dc_id, ip_port) = split(args);
       send_request(make_tl_object<td_api::processDcUpdate>(dc_id, ip_port));
+    } else if (op == "ppn") {
+      send_request(make_tl_object<td_api::processPushNotification>(args));
     } else if (op == "rda") {
       send_request(make_tl_object<td_api::registerDevice>(make_tl_object<td_api::deviceTokenApplePush>(args, true),
                                                           as_user_ids("")));
