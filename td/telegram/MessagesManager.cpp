@@ -22493,11 +22493,12 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
       send_update_unread_chat_count(dialog_id, true, change_source);
     }
 
-    if (dialog_id.get_type() == DialogType::Channel && has_unread_counter && being_added_dialog_id_ != dialog_id) {
+    auto dialog_type = dialog_id.get_type();
+    if (dialog_type == DialogType::Channel && has_unread_counter && being_added_dialog_id_ != dialog_id) {
       repair_channel_server_unread_count(d);
       channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
     }
-    if (dialog_id.get_type() == DialogType::Channel && !has_unread_counter) {
+    if (dialog_type == DialogType::Channel && !has_unread_counter) {
       remove_all_dialog_notifications(dialog_id, d->message_notification_group);
       remove_all_dialog_notifications(dialog_id, d->mention_notification_group);
     }
