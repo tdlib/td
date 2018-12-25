@@ -3983,15 +3983,16 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
     }
     case telegram_api::messageActionPinMessage::ID: {
       if (!reply_to_message_id.is_valid()) {
-        LOG(ERROR) << "Receive pinned message with " << reply_to_message_id << " in " << owner_dialog_id;
+        // possible in basic groups
+        LOG(INFO) << "Receive pinned message with " << reply_to_message_id << " in " << owner_dialog_id;
         reply_to_message_id = MessageId();
       }
       return make_unique<MessagePinMessage>(reply_to_message_id);
     }
     case telegram_api::messageActionGameScore::ID: {
       if (!reply_to_message_id.is_valid()) {
-        LOG_IF(ERROR, !td->auth_manager_->is_bot())
-            << "Receive game score with " << reply_to_message_id << " in " << owner_dialog_id;
+        // possible in basic groups
+        LOG(INFO) << "Receive game score with " << reply_to_message_id << " in " << owner_dialog_id;
         reply_to_message_id = MessageId();
       }
       auto game_score = move_tl_object_as<telegram_api::messageActionGameScore>(action);

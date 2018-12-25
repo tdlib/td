@@ -1008,7 +1008,8 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
           updates[i]->get_id() == td_api::updateNotificationGroup::ID) {
         auto last_update_ptr = static_cast<td_api::updateNotificationGroup *>(updates[last_update_pos].get());
         auto update_ptr = static_cast<td_api::updateNotificationGroup *>(updates[i].get());
-        if (last_update_ptr->notification_settings_chat_id_ == update_ptr->notification_settings_chat_id_ &&
+        if ((last_update_ptr->notification_settings_chat_id_ == update_ptr->notification_settings_chat_id_ ||
+             last_update_ptr->added_notifications_.empty()) &&
             !has_common_notifications(last_update_ptr->added_notifications_, update_ptr->removed_notification_ids_) &&
             !has_common_notifications(update_ptr->added_notifications_, last_update_ptr->removed_notification_ids_)) {
           // combine updates
@@ -1019,6 +1020,7 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
           if (last_update_ptr->is_silent_ && !update_ptr->is_silent_) {
             last_update_ptr->is_silent_ = false;
           }
+          last_update_ptr->notification_settings_chat_id_ = update_ptr->notification_settings_chat_id_;
           last_update_ptr->type_ = std::move(update_ptr->type_);
           last_update_ptr->total_count_ = update_ptr->total_count_;
           append(last_update_ptr->added_notifications_, std::move(update_ptr->added_notifications_));
@@ -1543,11 +1545,13 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
       pending_delete_end = it + 1;
     }
   }
-  group_it->second.pending_notifications.erase(group_it->second.pending_notifications.begin(), pending_delete_end);
-  if (group_it->second.pending_notifications.empty()) {
-    group_it->second.pending_notifications_flush_time = 0;
-    flush_pending_notifications_timeout_.cancel_timeout(group_id.get());
-    on_pending_notification_update_count_changed(-1);
+  if (pending_delete_end != group_it->second.pending_notifications.begin()) {
+    group_it->second.pending_notifications.erase(group_it->second.pending_notifications.begin(), pending_delete_end);
+    if (group_it->second.pending_notifications.empty()) {
+      group_it->second.pending_notifications_flush_time = 0;
+      flush_pending_notifications_timeout_.cancel_timeout(group_id.get());
+      on_pending_notification_update_count_changed(-1);
+    }
   }
   if (new_total_count != -1) {
     new_total_count -= static_cast<int32>(group_it->second.pending_notifications.size());

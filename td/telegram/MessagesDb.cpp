@@ -756,6 +756,9 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
     CHECK(dialog_id.is_valid()) << dialog_id;
     CHECK(from_message_id.is_valid());
 
+    LOG(INFO) << "Loading messages in " << dialog_id << " from " << from_message_id << " with offset = " << offset
+              << " and limit = " << limit;
+
     auto message_id = from_message_id.get();
 
     if (message_id >= MessageId::max().get()) {
@@ -811,13 +814,15 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
     stmt.bind_int64(2, from_message_id).ensure();
     stmt.bind_int32(3, limit).ensure();
 
+    LOG(INFO) << "Load " << limit << " messages in " << DialogId(dialog_id) << " from " << MessageId(from_message_id)
+              << " from database";
     std::vector<BufferSlice> result;
     stmt.step().ensure();
     while (stmt.has_row()) {
       auto data_slice = stmt.view_blob(0);
       result.emplace_back(data_slice);
       auto message_id = stmt.view_int64(1);
-      LOG(INFO) << "Load " << MessageId(message_id) << " in " << DialogId(dialog_id) << " from database";
+      LOG(INFO) << "Loaded " << MessageId(message_id) << " in " << DialogId(dialog_id) << " from database";
       stmt.step().ensure();
     }
     return std::move(result);
@@ -836,7 +841,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
     }
     int32 date;
     td::parse(date, message_date_parser);
-    LOG(INFO) << "Load " << message_id << " sent at " << date << " by " << sender_user_id;
+    LOG(INFO) << "Loaded " << message_id << " sent at " << date << " by " << sender_user_id;
     return std::make_tuple(message_id, date);
   }
 };

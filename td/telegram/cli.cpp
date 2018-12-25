@@ -3248,7 +3248,7 @@ class CliClient final : public Actor {
 
       std::tie(supergroup_id, message_id) = split(args);
       send_request(make_tl_object<td_api::pinSupergroupMessage>(to_integer<int32>(supergroup_id),
-                                                                as_message_id(message_id), false));
+                                                                as_message_id(message_id), true));
     } else if (op == "upsgm" || op == "upchm") {
       send_request(make_tl_object<td_api::unpinSupergroupMessage>(to_integer<int32>(args)));
     } else if (op == "grib") {

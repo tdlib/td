@@ -904,6 +904,7 @@ class MessagesManager : public Actor {
     NotificationGroupInfo message_notification_group;
     NotificationGroupInfo mention_notification_group;
     NotificationId new_secret_chat_notification_id;  // secret chats only
+    MessageId pinned_message_notification_message_id;
 
     bool has_contact_registered_message = false;
 
@@ -1519,17 +1520,22 @@ class MessagesManager : public Actor {
 
   NotificationId get_next_notification_id(Dialog *d, NotificationGroupId notification_group_id, MessageId message_id);
 
+  void try_add_pinned_message_notification(Dialog *d, vector<Notification> &res, NotificationId max_notification_id,
+                                           int32 limit);
+
   vector<Notification> get_message_notifications_from_database_force(Dialog *d, bool from_mentions, int32 limit);
 
   Result<vector<BufferSlice>> do_get_message_notifications_from_database_force(Dialog *d, bool from_mentions,
                                                                                NotificationId from_notification_id,
                                                                                MessageId from_message_id, int32 limit);
 
-  void do_get_message_notifications_from_database(Dialog *d, bool from_mentions, NotificationId from_notification_id,
-                                                  MessageId from_message_id, int32 limit,
-                                                  Promise<vector<Notification>> promise);
+  void do_get_message_notifications_from_database(Dialog *d, bool from_mentions,
+                                                  NotificationId initial_from_notification_id,
+                                                  NotificationId from_notification_id, MessageId from_message_id,
+                                                  int32 limit, Promise<vector<Notification>> promise);
 
-  void on_get_message_notifications_from_database(DialogId dialog_id, bool from_mentions, int32 limit,
+  void on_get_message_notifications_from_database(DialogId dialog_id, bool from_mentions,
+                                                  NotificationId initial_from_notification_id, int32 limit,
                                                   Result<vector<BufferSlice>> result,
                                                   Promise<vector<Notification>> promise);
 
@@ -1631,6 +1637,8 @@ class MessagesManager : public Actor {
   void set_dialog_reply_markup(Dialog *d, MessageId message_id);
 
   void try_restore_dialog_reply_markup(Dialog *d, const Message *m);
+
+  void set_dialog_pinned_message_notification(Dialog *d, MessageId message_id);
 
   bool set_dialog_last_notification(DialogId dialog_id, NotificationGroupInfo &group_info, int32 last_notification_date,
                                     NotificationId last_notification_id, const char *source);
