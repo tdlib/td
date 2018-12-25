@@ -17858,6 +17858,7 @@ vector<NotificationGroupKey> MessagesManager::get_message_notification_group_key
   if (!G()->parameters().use_message_db) {
     return {};
   }
+  CHECK(start_time_ != 0);  // ensure that MessagesManager was already inited in start_up
 
   VLOG(notifications) << "Trying to load " << limit << " message notification groups from database from "
                       << from_group_key;
