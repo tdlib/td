@@ -5742,7 +5742,7 @@ bool MessagesManager::update_dialog_notification_settings(DialogId dialog_id,
     *current_settings = new_settings;
 
     if (!was_muted && is_dialog_muted(d)) {
-      remove_all_dialog_notifications(dialog_id, d->message_notification_group);
+      remove_all_dialog_notifications(dialog_id, d->message_notification_group, "save_scope_notification_settings");
     }
 
     if (need_update) {
@@ -6986,6 +6986,7 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
       old_message_count = total_count;
       if (filter == SearchMessagesFilter::UnreadMention) {
         d->unread_mention_count = old_message_count;
+        update_dialog_mention_notification_count(d);
         send_update_chat_unread_mention_count(d);
       }
       update_dialog = true;
@@ -7917,7 +7918,7 @@ void MessagesManager::read_all_dialog_mentions(DialogId dialog_id, Promise<Unit>
       on_dialog_updated(dialog_id, "read_all_mentions");
     }
   }
-  remove_all_dialog_notifications(d, MessageId::max(), d->mention_notification_group);
+  remove_all_dialog_notifications(d, MessageId::max(), d->mention_notification_group, "read_all_dialog_mentions");
 
   read_all_dialog_mentions_on_server(dialog_id, 0, std::move(promise));
 }
@@ -8340,7 +8341,7 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
       }
       total_count -= static_cast<int32>(d->pending_new_message_notifications.size());
       if (total_count < 0) {
-        LOG(ERROR) << "Total notification count is negative in " << d->dialog_id;
+        LOG(ERROR) << "Total message notification count is negative in " << d->dialog_id;
         total_count = 0;
       }
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group,
@@ -10315,6 +10316,7 @@ void MessagesManager::on_get_dialogs(vector<tl_object_ptr<telegram_api::dialog>>
     if (!G()->parameters().use_message_db || is_new) {
       if (d->unread_mention_count != dialog->unread_mentions_count_) {
         d->unread_mention_count = dialog->unread_mentions_count_;
+        update_dialog_mention_notification_count(d);
         d->message_count_by_index[search_messages_filter_index(SearchMessagesFilter::UnreadMention)] =
             d->unread_mention_count;
         send_update_chat_unread_mention_count(d);
@@ -13751,6 +13753,7 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
     message_count = result_size;
     if (filter_type == SearchMessagesFilter::UnreadMention) {
       d->unread_mention_count = message_count;
+      update_dialog_mention_notification_count(d);
       send_update_chat_unread_mention_count(d);
     }
     on_dialog_updated(dialog_id, "on_search_dialog_messages_db_result");
@@ -18115,7 +18118,7 @@ void MessagesManager::remove_message_notifications(DialogId dialog_id, Notificat
   on_dialog_updated(dialog_id, "remove_message_notifications");
 }
 
-int32 MessagesManager::get_dialog_pending_notification_count(Dialog *d, bool from_mentions) {
+int32 MessagesManager::get_dialog_pending_notification_count(const Dialog *d, bool from_mentions) const {
   CHECK(d != nullptr);
   if (from_mentions) {
     return d->unread_mention_count + (d->pinned_message_notification_message_id.is_valid() ? 1 : 0);
@@ -18129,6 +18132,21 @@ int32 MessagesManager::get_dialog_pending_notification_count(Dialog *d, bool fro
 
     return d->server_unread_count + d->local_unread_count;
   }
+}
+
+void MessagesManager::update_dialog_mention_notification_count(const Dialog *d) {
+  CHECK(d != nullptr);
+  if (!d->mention_notification_group.group_id.is_valid()) {
+    return;
+  }
+  auto total_count =
+      get_dialog_pending_notification_count(d, true) - static_cast<int32>(d->pending_new_mention_notifications.size());
+  if (total_count < 0) {
+    LOG(ERROR) << "Total mention notification count is negative in " << d->dialog_id;
+    total_count = 0;
+  }
+  send_closure_later(G()->notification_manager(), &NotificationManager::set_notification_total_count,
+                     d->mention_notification_group.group_id, total_count);
 }
 
 bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool force) {
@@ -18282,25 +18300,28 @@ void MessagesManager::flush_pending_new_message_notifications(DialogId dialog_id
   }
 }
 
-void MessagesManager::remove_all_dialog_notifications(DialogId dialog_id, NotificationGroupInfo &group_info) {
+void MessagesManager::remove_all_dialog_notifications(DialogId dialog_id, NotificationGroupInfo &group_info,
+                                                      const char *source) {
   // removes up to group_info.last_notification_id
   if (group_info.group_id.is_valid() && group_info.last_notification_id.is_valid() &&
       group_info.max_removed_notification_id != group_info.last_notification_id) {
     VLOG(notifications) << "Set max_removed_notification_id in " << group_info.group_id << '/' << dialog_id << " to "
-                        << group_info.last_notification_id;
+                        << group_info.last_notification_id << " from " << source;
     group_info.max_removed_notification_id = group_info.last_notification_id;
     send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group,
                        group_info.group_id, group_info.last_notification_id, MessageId(), 0, Promise<Unit>());
-    bool is_changed =
-        set_dialog_last_notification(dialog_id, group_info, 0, NotificationId(), "remove_all_dialog_notifications");
+    bool is_changed = set_dialog_last_notification(dialog_id, group_info, 0, NotificationId(), source);
     CHECK(is_changed);
   }
 }
 
 void MessagesManager::remove_all_dialog_notifications(Dialog *d, MessageId max_message_id,
-                                                      NotificationGroupInfo &group_info) {
+                                                      NotificationGroupInfo &group_info, const char *source) {
   // removes up to max_message_id
   if (group_info.group_id.is_valid()) {
+    VLOG(notifications) << "Remove all dialog notifications in " << group_info.group_id << '/' << d->dialog_id
+                        << " up to " << max_message_id << " from " << source;
+
     auto max_notification_message_id = max_message_id;
     if (d->last_message_id.is_valid() && max_notification_message_id.get() >= d->last_message_id.get()) {
       max_notification_message_id = d->last_message_id;
@@ -21353,8 +21374,8 @@ void MessagesManager::add_message_to_database(const Dialog *d, const Message *m,
 void MessagesManager::delete_all_dialog_messages_from_database(Dialog *d, MessageId max_message_id,
                                                                const char *source) {
   CHECK(d != nullptr);
-  remove_all_dialog_notifications(d, max_message_id, d->message_notification_group);
-  remove_all_dialog_notifications(d, max_message_id, d->mention_notification_group);
+  remove_all_dialog_notifications(d, max_message_id, d->message_notification_group, source);
+  remove_all_dialog_notifications(d, max_message_id, d->mention_notification_group, source);
 
   if (!G()->parameters().use_message_db) {
     return;
@@ -22580,8 +22601,8 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
       channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
     }
     if (dialog_type == DialogType::Channel && !has_unread_counter) {
-      remove_all_dialog_notifications(dialog_id, d->message_notification_group);
-      remove_all_dialog_notifications(dialog_id, d->mention_notification_group);
+      remove_all_dialog_notifications(dialog_id, d->message_notification_group, "set_dialog_order 1");
+      remove_all_dialog_notifications(dialog_id, d->mention_notification_group, "set_dialog_order 2");
     }
   }
 
@@ -22596,8 +22617,8 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
     send_update_chat_is_sponsored(d);
     if (!is_loaded_from_database && is_sponsored) {
       // channel is sponsored only if user isn't a channel member
-      remove_all_dialog_notifications(dialog_id, d->message_notification_group);
-      remove_all_dialog_notifications(dialog_id, d->mention_notification_group);
+      remove_all_dialog_notifications(dialog_id, d->message_notification_group, "set_dialog_order 3");
+      remove_all_dialog_notifications(dialog_id, d->mention_notification_group, "set_dialog_order 4");
     }
     need_update = false;
   }
@@ -23045,6 +23066,7 @@ void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_m
     d->unread_mention_count = unread_mention_count;
     d->message_count_by_index[search_messages_filter_index(SearchMessagesFilter::UnreadMention)] =
         d->unread_mention_count;
+    update_dialog_mention_notification_count(d);
     send_update_chat_unread_mention_count(d);
   }
 

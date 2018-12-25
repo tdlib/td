@@ -71,6 +71,8 @@ class NotificationManager : public Actor {
   void remove_notification_group(NotificationGroupId group_id, NotificationId max_notification_id,
                                  MessageId max_message_id, int32 new_total_count, Promise<Unit> &&promise);
 
+  void set_notification_total_count(NotificationGroupId group_id, int32 new_total_count);
+
   void add_call_notification(DialogId dialog_id, CallId call_id);
 
   void remove_call_notification(DialogId dialog_id, CallId call_id);

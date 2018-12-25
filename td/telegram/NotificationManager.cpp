@@ -1621,6 +1621,43 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
   promise.set_value(Unit());
 }
 
+void NotificationManager::set_notification_total_count(NotificationGroupId group_id, int32 new_total_count) {
+  if (!group_id.is_valid()) {
+    return;
+  }
+  if (is_disabled() || max_notification_group_count_ == 0) {
+    return;
+  }
+
+  auto group_it = get_group_force(group_id);
+  if (group_it == groups_.end()) {
+    VLOG(notifications) << "Can't find " << group_id;
+    return;
+  }
+
+  new_total_count -= static_cast<int32>(group_it->second.pending_notifications.size());
+  if (new_total_count < 0) {
+    LOG(ERROR) << "Have wrong new_total_count " << new_total_count << " after removing "
+               << group_it->second.pending_notifications.size() << " pending notifications";
+    return;
+  }
+  if (new_total_count < static_cast<int32>(group_it->second.notifications.size())) {
+    LOG(ERROR) << "Have wrong new_total_count " << new_total_count << " less than number of known notifications "
+               << group_it->second.notifications.size();
+    return;
+  }
+
+  CHECK(group_it->second.type != NotificationGroupType::Calls);
+  if (group_it->second.total_count == new_total_count) {
+    return;
+  }
+
+  VLOG(notifications) << "Set total_count in " << group_id << " to " << new_total_count;
+  group_it->second.total_count = new_total_count;
+
+  on_notifications_removed(std::move(group_it), vector<td_api::object_ptr<td_api::notification>>(), vector<int32>());
+}
+
 NotificationGroupId NotificationManager::get_call_notification_group_id(DialogId dialog_id) {
   auto it = dialog_id_to_call_notification_group_id_.find(dialog_id);
   if (it != dialog_id_to_call_notification_group_id_.end()) {

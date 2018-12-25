@@ -1542,15 +1542,18 @@ class MessagesManager : public Actor {
   void do_remove_message_notification(DialogId dialog_id, bool from_mentions, NotificationId notification_id,
                                       vector<BufferSlice> result);
 
-  int32 get_dialog_pending_notification_count(Dialog *d, bool from_mentions);
+  int32 get_dialog_pending_notification_count(const Dialog *d, bool from_mentions) const;
+
+  void update_dialog_mention_notification_count(const Dialog *d);
 
   bool add_new_message_notification(Dialog *d, Message *m, bool force);
 
   void flush_pending_new_message_notifications(DialogId dialog_id, bool from_mentions, DialogId settings_dialog_id);
 
-  void remove_all_dialog_notifications(DialogId dialog_id, NotificationGroupInfo &group_info);
+  void remove_all_dialog_notifications(DialogId dialog_id, NotificationGroupInfo &group_info, const char *source);
 
-  void remove_all_dialog_notifications(Dialog *d, MessageId max_message_id, NotificationGroupInfo &group_info);
+  void remove_all_dialog_notifications(Dialog *d, MessageId max_message_id, NotificationGroupInfo &group_info,
+                                       const char *source);
 
   void send_update_message_send_succeeded(Dialog *d, MessageId old_message_id, const Message *m) const;
 
