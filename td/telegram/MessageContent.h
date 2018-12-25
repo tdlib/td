@@ -218,6 +218,8 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
 
 string get_message_content_search_text(const Td *td, const MessageContent *content);
 
+bool need_reget_message_content(const MessageContent *content);
+
 void update_expired_message_content(unique_ptr<MessageContent> &content);
 
 void add_message_content_dependencies(Dependencies &dependencies, const MessageContent *message_content);

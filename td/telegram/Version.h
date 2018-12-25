@@ -26,6 +26,7 @@ enum class Version : int32 {
   AddVenueType,
   AddTermsOfService,
   AddContactVcard,
+  AddMessageUnsupportedVersion,
   Next
 };
 

@@ -2039,7 +2039,6 @@ void NotificationManager::get_current_state(vector<td_api::object_ptr<td_api::Up
 void NotificationManager::flush_all_notifications() {
   flush_all_pending_notifications();
   flush_all_pending_updates(true, "flush_all_notifications");
-  CHECK(pending_notification_update_count_ == 0);
 }
 
 void NotificationManager::destroy_all_notifications() {
@@ -2071,6 +2070,8 @@ void NotificationManager::on_pending_notification_update_count_changed(int32 dif
   bool had_pending = pending_notification_update_count_ != 0;
   pending_notification_update_count_ += diff;
   CHECK(pending_notification_update_count_ >= 0);
+  VLOG(notifications) << "Update pending notification count with diff " << diff << " to "
+                      << pending_notification_update_count_;
   bool have_pending = pending_notification_update_count_ != 0;
   if (had_pending != have_pending && !is_destroyed_) {
     auto update = td_api::make_object<td_api::updateHavePendingNotifications>(have_pending);

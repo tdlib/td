@@ -21188,6 +21188,13 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     on_dialog_updated(dialog_id, "update_has_contact_registered_message");
   }
 
+  if (message_id.is_server() && dialog_id.get_type() != DialogType::SecretChat &&
+      need_reget_message_content(m->content.get())) {
+    FullMessageId full_message_id{dialog_id, message_id};
+    LOG(INFO) << "Reget from server " << full_message_id;
+    get_messages_from_server({full_message_id}, Auto());
+  }
+
   if (from_update && message_id.is_server() && dialog_id.get_type() == DialogType::Channel) {
     int32 new_participant_count = get_message_content_new_participant_count(m->content.get());
     if (new_participant_count != 0) {

@@ -417,10 +417,15 @@ class MessageChatSetTtl : public MessageContent {
   }
 };
 
-class MessageUnsupported
-    : public MessageContent {  // TODO save a layer in which the message was received to
-                               // automatically reget it if the layer changes
+class MessageUnsupported : public MessageContent {
  public:
+  static constexpr int32 CURRENT_VERSION = 1;
+  int32 version = CURRENT_VERSION;
+
+  MessageUnsupported() = default;
+  explicit MessageUnsupported(int32 version) : version(version) {
+  }
+
   MessageContentType get_type() const override {
     return MessageContentType::Unsupported;
   }
@@ -782,8 +787,11 @@ static void store(const MessageContent *content, StorerT &storer) {
       store(m->web_page_id, storer);
       break;
     }
-    case MessageContentType::Unsupported:
+    case MessageContentType::Unsupported: {
+      auto m = static_cast<const MessageUnsupported *>(content);
+      store(m->version, storer);
       break;
+    }
     case MessageContentType::Venue: {
       auto m = static_cast<const MessageVenue *>(content);
       store(m->venue, storer);
@@ -1067,9 +1075,16 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       content = std::move(m);
       break;
     }
-    case MessageContentType::Unsupported:
-      content = make_unique<MessageUnsupported>();
+    case MessageContentType::Unsupported: {
+      auto m = make_unique<MessageUnsupported>();
+      if (parser.version() >= static_cast<int32>(Version::AddMessageUnsupportedVersion)) {
+        parse(m->version, parser);
+      } else {
+        m->version = 0;
+      }
+      content = std::move(m);
       break;
+    }
     case MessageContentType::Venue: {
       auto m = make_unique<MessageVenue>();
       parse(m->venue, parser);
@@ -1270,7 +1285,7 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
   }
   if (is_bad) {
     LOG(ERROR) << "Load a message with an invalid content of type " << content_type;
-    content = make_unique<MessageUnsupported>();
+    content = make_unique<MessageUnsupported>(0);
   }
 }
 
@@ -2976,8 +2991,14 @@ void merge_message_contents(Td *td, MessageContent *old_content, MessageContent 
       }
       break;
     }
-    case MessageContentType::Unsupported:
+    case MessageContentType::Unsupported: {
+      auto old_ = static_cast<const MessageUnsupported *>(old_content);
+      auto new_ = static_cast<const MessageUnsupported *>(new_content);
+      if (old_->version != new_->version) {
+        is_content_changed = true;
+      }
       break;
+    }
     default:
       UNREACHABLE();
       break;
@@ -4119,9 +4140,8 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
       return make_tl_object<td_api::messageText>(get_formatted_text_object(m->text),
                                                  td->web_pages_manager_->get_web_page_object(m->web_page_id));
     }
-    case MessageContentType::Unsupported: {
+    case MessageContentType::Unsupported:
       return make_tl_object<td_api::messageUnsupported>();
-    }
     case MessageContentType::Venue: {
       const MessageVenue *m = static_cast<const MessageVenue *>(content);
       return make_tl_object<td_api::messageVenue>(m->venue.get_venue_object());
@@ -4491,6 +4511,18 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     default:
       UNREACHABLE();
       return string();
+  }
+}
+
+bool need_reget_message_content(const MessageContent *content) {
+  CHECK(content != nullptr);
+  switch (content->get_type()) {
+    case MessageContentType::Unsupported: {
+      auto message_unsupported = static_cast<const MessageUnsupported *>(content);
+      return message_unsupported->version != MessageUnsupported::CURRENT_VERSION;
+    }
+    default:
+      return false;
   }
 }
 
