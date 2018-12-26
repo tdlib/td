@@ -989,7 +989,7 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
                   updates.end());
     if (updates.empty()) {
       VLOG(notifications) << "There are no updates to send in " << NotificationGroupId(group_id);
-      return;
+      break;
     }
 
     auto has_common_notifications = [](const vector<td_api::object_ptr<td_api::notification>> &notifications,
@@ -1069,7 +1069,7 @@ void NotificationManager::flush_all_pending_updates(bool include_delayed_chats, 
   std::sort(ready_group_keys.begin(), ready_group_keys.end());
   for (auto group_key : reversed(ready_group_keys)) {
     flush_pending_updates_timeout_.cancel_timeout(group_key.group_id.get());
-    flush_pending_updates(group_key.group_id.get(), "after_get_difference");
+    flush_pending_updates(group_key.group_id.get(), "flush_all_pending_updates");
   }
   if (include_delayed_chats) {
     CHECK(pending_updates_.empty());
@@ -1967,6 +1967,9 @@ void NotificationManager::process_push_notification(const string &payload, Promi
 
 void NotificationManager::before_get_difference() {
   if (is_disabled()) {
+    return;
+  }
+  if (running_get_difference_) {
     return;
   }
 
