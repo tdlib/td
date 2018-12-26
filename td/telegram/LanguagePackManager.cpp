@@ -162,7 +162,7 @@ LanguagePackManager::LanguageDatabase *LanguagePackManager::add_language_databas
     database = r_database.move_as_ok();
   }
 
-  it = language_databases_.emplace(path, nullptr).first;
+  it = language_databases_.emplace(path, make_unique<LanguageDatabase>()).first;
   it->second->path_ = std::move(path);
   it->second->database_ = std::move(database);
   return it->second.get();
