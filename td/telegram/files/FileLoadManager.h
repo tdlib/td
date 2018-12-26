@@ -35,7 +35,8 @@ class FileLoadManager final : public Actor {
     Callback &operator=(const Callback &) = delete;
     ~Callback() override = default;
     virtual void on_start_download(QueryId id) = 0;
-    virtual void on_partial_download(QueryId id, const PartialLocalFileLocation &partial_local, int64 ready_size) = 0;
+    virtual void on_partial_download(QueryId id, const PartialLocalFileLocation &partial_local, int64 ready_size,
+                                     int64 size) = 0;
     virtual void on_partial_upload(QueryId id, const PartialRemoteFileLocation &partial_remote, int64 ready_size) = 0;
     virtual void on_hash(QueryId id, string hash) = 0;
     virtual void on_upload_ok(QueryId id, FileType file_type, const PartialRemoteFileLocation &remtoe, int64 size) = 0;
@@ -84,7 +85,7 @@ class FileLoadManager final : public Actor {
   ActorOwn<ResourceManager> &get_download_resource_manager(bool is_small, DcId dc_id);
 
   void on_start_download();
-  void on_partial_download(const PartialLocalFileLocation &partial_local, int64 ready_size);
+  void on_partial_download(const PartialLocalFileLocation &partial_local, int64 ready_size, int64 size);
   void on_partial_upload(const PartialRemoteFileLocation &partial_remote, int64 ready_size);
   void on_hash(string hash);
   void on_ok_download(const FullLocalFileLocation &local, int64 size);
@@ -104,8 +105,8 @@ class FileLoadManager final : public Actor {
     void on_start_download() override {
       send_closure(actor_id_, &FileLoadManager::on_start_download);
     }
-    void on_partial_download(const PartialLocalFileLocation &partial_local, int64 ready_size) override {
-      send_closure(actor_id_, &FileLoadManager::on_partial_download, partial_local, ready_size);
+    void on_partial_download(const PartialLocalFileLocation &partial_local, int64 ready_size, int64 size) override {
+      send_closure(actor_id_, &FileLoadManager::on_partial_download, partial_local, ready_size, size);
     }
     void on_ok(const FullLocalFileLocation &full_local, int64 size) override {
       send_closure(std::move(actor_id_), &FileLoadManager::on_ok_download, full_local, size);

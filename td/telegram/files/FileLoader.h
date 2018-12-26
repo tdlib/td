@@ -70,8 +70,16 @@ class FileLoader : public FileLoaderActor {
   virtual void after_start_parts() {
   }
   virtual Result<size_t> process_part(Part part, NetQueryPtr net_query) TD_WARN_UNUSED_RESULT = 0;
-  virtual void on_progress(int32 part_count, int32 part_size, int32 ready_part_count, const string &ready_bitmask,
-                           bool is_ready, int64 ready_size) = 0;
+  struct Progress {
+    int32 part_count{0};
+    int32 part_size{0};
+    int32 ready_part_count{0};
+    string ready_bitmask;
+    bool is_ready{false};
+    int64 ready_size{0};
+    int64 size{0};
+  };
+  virtual void on_progress(Progress progress) = 0;
   virtual Callback *get_callback() = 0;
   virtual Result<PrefixInfo> on_update_local_location(const LocalFileLocation &location,
                                                       int64 file_size) TD_WARN_UNUSED_RESULT {
@@ -121,7 +129,7 @@ class FileLoader : public FileLoaderActor {
   void tear_down() override;
 
   void update_estimated_limit();
-  void on_progress_impl(size_t size);
+  void on_progress_impl();
 
   void on_result(NetQueryPtr query) override;
   void on_part_query(Part part, NetQueryPtr query);

@@ -255,7 +255,6 @@ Result<std::pair<NetQueryPtr, bool>> FileUploader::start_part(Part part, int32 p
   }
 
   if (size != part.size) {
-    LOG(ERROR) << "Need to read " << part.size << " bytes, but read " << size << " bytes instead";
     return Status::Error("Failed to read file part");
   }
 
@@ -295,13 +294,14 @@ Result<size_t> FileUploader::process_part(Part part, NetQueryPtr net_query) {
   return part.size;
 }
 
-void FileUploader::on_progress(int32 part_count, int32 part_size, int32 ready_part_count, const string &ready_bitmask,
-                               bool is_ready, int64 ready_size) {
-  callback_->on_partial_upload(PartialRemoteFileLocation{file_id_, part_count, part_size, ready_part_count, big_flag_},
-                               ready_size);
-  if (is_ready) {
+void FileUploader::on_progress(Progress progress) {
+  callback_->on_partial_upload(PartialRemoteFileLocation{file_id_, progress.part_count, progress.part_size,
+                                                         progress.ready_part_count, big_flag_},
+                               progress.ready_size);
+  if (progress.is_ready) {
     callback_->on_ok(file_type_,
-                     PartialRemoteFileLocation{file_id_, part_count, part_size, ready_part_count, big_flag_},
+                     PartialRemoteFileLocation{file_id_, progress.part_count, progress.part_size,
+                                               progress.ready_part_count, big_flag_},
                      local_size_);
   }
 }

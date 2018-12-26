@@ -346,27 +346,28 @@ Result<size_t> FileDownloader::process_part(Part part, NetQueryPtr net_query) {
   }
   return written;
 }
-void FileDownloader::on_progress(int32 part_count, int32 part_size, int32 ready_part_count, const string &ready_bitmask,
-                                 bool is_ready, int64 ready_size) {
-  if (is_ready) {
+void FileDownloader::on_progress(Progress progress) {
+  if (progress.is_ready) {
     // do not send partial location. will lead to wrong local_size
     return;
   }
-  if (ready_size == 0 || path_.empty()) {
+  if (progress.ready_size == 0 || path_.empty()) {
     return;
   }
   if (encryption_key_.empty() || encryption_key_.is_secure()) {
-    callback_->on_partial_download(PartialLocalFileLocation{remote_.file_type_, part_size, path_, "", ready_bitmask},
-                                   ready_size);
+    callback_->on_partial_download(
+        PartialLocalFileLocation{remote_.file_type_, progress.part_size, path_, "", std::move(progress.ready_bitmask)},
+        progress.ready_size, progress.size);
   } else if (encryption_key_.is_secret()) {
     UInt256 iv;
-    if (ready_part_count == next_part_) {
+    if (progress.ready_part_count == next_part_) {
       iv = encryption_key_.mutable_iv();
     } else {
-      LOG(FATAL) << tag("ready_part_count", ready_part_count) << tag("next_part", next_part_);
+      LOG(FATAL) << tag("ready_part_count", progress.ready_part_count) << tag("next_part", next_part_);
     }
-    callback_->on_partial_download(
-        PartialLocalFileLocation{remote_.file_type_, part_size, path_, as_slice(iv).str(), ready_bitmask}, ready_size);
+    callback_->on_partial_download(PartialLocalFileLocation{remote_.file_type_, progress.part_size, path_,
+                                                            as_slice(iv).str(), std::move(progress.ready_bitmask)},
+                                   progress.ready_size, progress.size);
   } else {
     UNREACHABLE();
   }

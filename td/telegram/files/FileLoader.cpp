@@ -106,7 +106,7 @@ void FileLoader::start_up() {
   }
   resource_state_.set_unit_size(parts_manager_.get_part_size());
   update_estimated_limit();
-  on_progress_impl(narrow_cast<size_t>(parts_manager_.get_ready_size()));
+  on_progress_impl();
   yield();
 }
 
@@ -129,7 +129,7 @@ Status FileLoader::do_loop() {
              check_loop(parts_manager_.get_checked_prefix_size(), parts_manager_.get_unchecked_ready_prefix_size(),
                         parts_manager_.unchecked_ready()));
   if (check_info.changed) {
-    on_progress_impl(narrow_cast<size_t>(parts_manager_.get_ready_size()));
+    on_progress_impl();
   }
   for (auto &query : check_info.queries) {
     G()->net_query_dispatcher().dispatch_with_callback(
@@ -294,14 +294,20 @@ Status FileLoader::try_on_part_query(Part part, NetQueryPtr query) {
     debug_bad_parts_.push_back(part.id);
     debug_bad_part_order_++;
   }
-  on_progress_impl(size);
+  on_progress_impl();
   return Status::OK();
 }
 
-void FileLoader::on_progress_impl(size_t size) {
-  on_progress(parts_manager_.get_part_count(), static_cast<int32>(parts_manager_.get_part_size()),
-              parts_manager_.get_ready_prefix_count(), parts_manager_.get_bitmask(), parts_manager_.ready(),
-              parts_manager_.get_ready_size());
+void FileLoader::on_progress_impl() {
+  Progress progress;
+  progress.part_count = parts_manager_.get_part_count();
+  progress.part_size = static_cast<int32>(parts_manager_.get_part_size());
+  progress.ready_part_count = parts_manager_.get_ready_prefix_count();
+  progress.ready_bitmask = parts_manager_.get_bitmask();
+  progress.is_ready = parts_manager_.ready();
+  progress.ready_size = parts_manager_.get_ready_size();
+  progress.size = parts_manager_.get_size_or_zero();
+  on_progress(std::move(progress));
 }
 
 }  // namespace td

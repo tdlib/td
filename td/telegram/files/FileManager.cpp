@@ -2271,8 +2271,8 @@ void FileManager::on_start_download(QueryId query_id) {
   file_node->is_download_started_ = true;
 }
 
-void FileManager::on_partial_download(QueryId query_id, const PartialLocalFileLocation &partial_local,
-                                      int64 ready_size) {
+void FileManager::on_partial_download(QueryId query_id, const PartialLocalFileLocation &partial_local, int64 ready_size,
+                                      int64 size) {
   if (is_closed_) {
     return;
   }
@@ -2290,6 +2290,9 @@ void FileManager::on_partial_download(QueryId query_id, const PartialLocalFileLo
     return;
   }
 
+  if (size != 0) {
+    file_node->set_size(size);
+  }
   file_node->set_local_location(LocalFileLocation(partial_local), ready_size, -1, -1 /* TODO */);
   try_flush_node(file_node);
 }

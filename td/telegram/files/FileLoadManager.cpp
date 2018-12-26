@@ -187,14 +187,14 @@ void FileLoadManager::on_start_download() {
   }
 }
 
-void FileLoadManager::on_partial_download(const PartialLocalFileLocation &partial_local, int64 ready_size) {
+void FileLoadManager::on_partial_download(const PartialLocalFileLocation &partial_local, int64 ready_size, int64 size) {
   auto node_id = get_link_token();
   auto node = nodes_container_.get(node_id);
   if (node == nullptr) {
     return;
   }
   if (!stop_flag_) {
-    send_closure(callback_, &Callback::on_partial_download, node->query_id_, partial_local, ready_size);
+    send_closure(callback_, &Callback::on_partial_download, node->query_id_, partial_local, ready_size, size);
   }
 }
 

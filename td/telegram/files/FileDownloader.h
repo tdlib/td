@@ -27,7 +27,7 @@ class FileDownloader : public FileLoader {
   class Callback : public FileLoader::Callback {
    public:
     virtual void on_start_download() = 0;
-    virtual void on_partial_download(const PartialLocalFileLocation &partial_local, int64 ready_size) = 0;
+    virtual void on_partial_download(const PartialLocalFileLocation &partial_local, int64 ready_size, int64 size) = 0;
     virtual void on_ok(const FullLocalFileLocation &full_local, int64 size) = 0;
     virtual void on_error(Status status) = 0;
   };
@@ -85,8 +85,7 @@ class FileDownloader : public FileLoader {
   Result<bool> should_restart_part(Part part, NetQueryPtr &net_query) override TD_WARN_UNUSED_RESULT;
   Result<std::pair<NetQueryPtr, bool>> start_part(Part part, int32 part_count) override TD_WARN_UNUSED_RESULT;
   Result<size_t> process_part(Part part, NetQueryPtr net_query) override TD_WARN_UNUSED_RESULT;
-  void on_progress(int32 part_count, int32 part_size, int32 ready_part_count, const string &ready_bitmask,
-                   bool is_ready, int64 ready_size) override;
+  void on_progress(Progress progress) override;
   FileLoader::Callback *get_callback() override;
   Status process_check_query(NetQueryPtr net_query) override;
   Result<CheckInfo> check_loop(int64 checked_prefix_size, int64 ready_prefix_size, bool is_ready) override;

@@ -63,8 +63,7 @@ class FileUploader : public FileLoader {
   void after_start_parts() override;
   Result<std::pair<NetQueryPtr, bool>> start_part(Part part, int32 part_count) override TD_WARN_UNUSED_RESULT;
   Result<size_t> process_part(Part part, NetQueryPtr net_query) override TD_WARN_UNUSED_RESULT;
-  void on_progress(int32 part_count, int32 part_size, int32 ready_part_count, const string &ready_bitmask,
-                   bool is_ready, int64 ready_size) override;
+  void on_progress(Progress progress) override;
   FileLoader::Callback *get_callback() override;
   Result<PrefixInfo> on_update_local_location(const LocalFileLocation &location,
                                               int64 file_size) override TD_WARN_UNUSED_RESULT;

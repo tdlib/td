@@ -495,7 +495,8 @@ class FileManager : public FileLoadManager::Callback {
   void run_generate(FileNodePtr node);
 
   void on_start_download(QueryId query_id) override;
-  void on_partial_download(QueryId query_id, const PartialLocalFileLocation &partial_local, int64 ready_size) override;
+  void on_partial_download(QueryId query_id, const PartialLocalFileLocation &partial_local, int64 ready_size,
+                           int64 size) override;
   void on_hash(QueryId query_id, string hash) override;
   void on_partial_upload(QueryId query_id, const PartialRemoteFileLocation &partial_remote, int64 ready_size) override;
   void on_download_ok(QueryId query_id, const FullLocalFileLocation &local, int64 size) override;
