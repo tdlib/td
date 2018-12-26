@@ -23,8 +23,13 @@ void NetQueryDelayer::delay(NetQueryPtr query) {
   CHECK(query->is_error());
   auto code = query->error().code();
   double timeout = 0;
-  if (code < 0 || code == 500) {
+  if (code < 0) {
     // skip
+  } else if (code == 500) {
+    auto msg = query->error().message();
+    if (msg == "WORKER_BUSY_TOO_LONG_RETRY") {
+      timeout = 1;  // it is dangerous to resend query without timeout, so use 1
+    }
   } else if (code == 420) {
     auto msg = query->error().message();
     for (auto prefix : {Slice("FLOOD_WAIT_"), Slice("2FA_CONFIRM_WAIT_"), Slice("TAKEOUT_INIT_DELAY_")}) {
