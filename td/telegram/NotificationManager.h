@@ -220,7 +220,7 @@ class NotificationManager : public Actor {
 
   void after_get_chat_difference_impl(NotificationGroupId group_id);
 
-  void on_pending_notification_update_count_changed(int32 diff);
+  void on_pending_notification_update_count_changed(int32 diff, int32 notification_group_id, const char *source);
 
   NotificationId current_notification_id_;
   NotificationGroupId current_notification_group_id_;
