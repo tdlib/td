@@ -50,7 +50,7 @@
 
 namespace td {
 
-static int VERBOSITY_NAME(config_recoverer) = VERBOSITY_NAME(INFO);
+int VERBOSITY_NAME(config_recoverer) = VERBOSITY_NAME(INFO);
 
 Result<SimpleConfig> decode_config(Slice input) {
   static auto rsa = td::RSA::from_pem(

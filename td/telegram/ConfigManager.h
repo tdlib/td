@@ -22,6 +22,8 @@
 
 namespace td {
 
+extern int VERBOSITY_NAME(config_recoverer);
+
 class ConfigShared;
 
 using SimpleConfig = tl_object_ptr<telegram_api::help_configSimple>;
