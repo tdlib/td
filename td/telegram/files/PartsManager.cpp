@@ -44,8 +44,8 @@ void PartsManager::set_streaming_offset(int64 offset) {
 
   streaming_offset_ = offset;
   first_streaming_empty_part_ = narrow_cast<int>(part_i);
-  if (part_count_ <= first_streaming_empty_part_) {
-    part_count_ = first_streaming_empty_part_ + 1;
+  if (part_count_ < first_streaming_empty_part_) {
+    part_count_ = first_streaming_empty_part_;
     part_status_.resize(part_count_, PartStatus::Empty);
   }
 }
@@ -69,12 +69,8 @@ Status PartsManager::init_no_size(size_t part_size, const std::vector<int> &read
       part_size_ *= 2;
     }
   }
-  part_count_ = 0;
-  if (known_prefix_flag_) {
-    part_count_ = static_cast<int>(known_prefix_size_ / part_size_);
-  }
-  part_count_ = max(part_count_, std::accumulate(ready_parts.begin(), ready_parts.end(), 0,
-                                                 [](auto a, auto b) { return max(a, b + 1); }));
+  part_count_ =
+      std::accumulate(ready_parts.begin(), ready_parts.end(), 0, [](auto a, auto b) { return max(a, b + 1); });
 
   init_common(ready_parts);
   return Status::OK();
@@ -180,17 +176,16 @@ string PartsManager::get_bitmask() const {
 Result<Part> PartsManager::start_part() {
   update_first_empty_part();
   auto part_i = first_streaming_empty_part_;
+  if (known_prefix_flag_ && part_i >= static_cast<int>(known_prefix_size_ / part_size_)) {
+    return Status::Error(1, "Wait for prefix to be known");
+  }
   if (part_i == part_count_) {
     if (unknown_size_flag_) {
-      if (known_prefix_flag_ == false) {
-        part_count_++;
-        if (part_count_ > MAX_PART_COUNT) {
-          return Status::Error("Too big file with unknown size");
-        }
-        part_status_.push_back(PartStatus::Empty);
-      } else {
-        return Status::Error(1, "Wait for prefix to be known");
+      part_count_++;
+      if (part_count_ > MAX_PART_COUNT) {
+        return Status::Error("Too big file with unknown size");
       }
+      part_status_.push_back(PartStatus::Empty);
     } else {
       if (first_empty_part_ < part_count_) {
         part_i = first_empty_part_;
@@ -207,6 +202,9 @@ Result<Part> PartsManager::start_part() {
 Status PartsManager::set_known_prefix(size_t size, bool is_ready) {
   CHECK(known_prefix_flag_) << unknown_size_flag_ << " " << size << " " << is_ready << " " << known_prefix_size_ << " "
                             << expected_size_ << " " << part_count_ << " " << part_status_.size();
+  if (size < static_cast<size_t>(known_prefix_size_)) {
+    return Status::Error("FILE_UPLOAD_RESTART");
+  }
   CHECK(size >= static_cast<size_t>(known_prefix_size_))
       << unknown_size_flag_ << " " << size << " " << is_ready << " " << known_prefix_size_ << " " << expected_size_
       << " " << part_count_ << " " << part_status_.size();
@@ -219,6 +217,7 @@ Status PartsManager::set_known_prefix(size_t size, bool is_ready) {
 
     size_ = narrow_cast<int64>(size);
     unknown_size_flag_ = false;
+    known_prefix_flag_ = false;
   } else {
     part_count_ = static_cast<int>(size / part_size_);
   }
