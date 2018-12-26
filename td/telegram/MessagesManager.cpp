@@ -22262,6 +22262,9 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       d->pending_last_message_id = last_database_message->message_id;
       pending_add_dialog_last_database_message_[dialog_id] = {dependent_dialog_count, std::move(last_database_message)};
     }
+  } else if (last_database_message_id.is_valid()) {
+    d->pending_last_message_date = DialogDate(order, dialog_id).get_date();
+    d->pending_last_message_id = last_database_message_id;
   }
 
   switch (dialog_id.get_type()) {
