@@ -7,7 +7,7 @@ if [ ! -f $OPENSSL.tar.gz ]; then
   echo "Downloading OpenSSL sources..."
   wget https://github.com/openssl/openssl/archive/$OPENSSL.tar.gz
 fi
-rm -rf ./$OPENSSL
+rm -rf ./openssl-$OPENSSL
 echo "Unpacking OpenSSL sources..."
 tar xzf $OPENSSL.tar.gz || exit 1
 cd openssl-$OPENSSL
