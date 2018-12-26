@@ -1039,6 +1039,13 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
   }
 
   for (auto &update : updates) {
+    CHECK(update != nullptr);
+    if (update->get_id() == td_api::updateNotificationGroup::ID) {
+      auto update_ptr = static_cast<td_api::updateNotificationGroup *>(update.get());
+      std::sort(update_ptr->added_notifications_.begin(), update_ptr->added_notifications_.end(),
+                [](const auto &lhs, const auto &rhs) { return lhs->id_ < rhs->id_; });
+      std::sort(update_ptr->removed_notification_ids_.begin(), update_ptr->removed_notification_ids_.end());
+    }
     VLOG(notifications) << "Send " << as_notification_update(update.get());
     send_closure(G()->td(), &Td::send_update, std::move(update));
   }
