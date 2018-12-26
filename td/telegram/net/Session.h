@@ -115,7 +115,7 @@ class Session final
   std::unordered_set<uint64> unknown_queries_;
   std::vector<int64> to_cancel_;
 
-  // Do not invalidate iterators of this two containers!
+  // Do not invalidate iterators of these two containers!
   // TODO: better data structures
   std::deque<NetQueryPtr> pending_queries_;
   std::map<uint64, Query> sent_queries_;

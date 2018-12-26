@@ -9956,6 +9956,9 @@ void MessagesManager::try_restore_dialog_reply_markup(Dialog *d, const Message *
 
 void MessagesManager::set_dialog_pinned_message_notification(Dialog *d, MessageId message_id) {
   auto old_message_id = d->pinned_message_notification_message_id;
+  if (!old_message_id.is_valid() && !message_id.is_valid()) {
+    return;
+  }
   CHECK(old_message_id != message_id);
   VLOG(notifications) << "Change pinned message notification in " << d->dialog_id << " from " << old_message_id
                       << " to " << message_id;

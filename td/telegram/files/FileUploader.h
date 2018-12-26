@@ -16,6 +16,7 @@
 #include <utility>
 
 namespace td {
+
 class FileUploader : public FileLoader {
  public:
   class Callback : public FileLoader::Callback {
@@ -62,10 +63,11 @@ class FileUploader : public FileLoader {
   void after_start_parts() override;
   Result<std::pair<NetQueryPtr, bool>> start_part(Part part, int32 part_count) override TD_WARN_UNUSED_RESULT;
   Result<size_t> process_part(Part part, NetQueryPtr net_query) override TD_WARN_UNUSED_RESULT;
-  void on_progress(int32 part_count, int32 part_size, int32 ready_part_count, string ready_bitmask, bool is_ready,
-                   int64 ready_size) override;
+  void on_progress(int32 part_count, int32 part_size, int32 ready_part_count, const string &ready_bitmask,
+                   bool is_ready, int64 ready_size) override;
   FileLoader::Callback *get_callback() override;
-  Result<PrefixInfo> on_update_local_location(const LocalFileLocation &location) override TD_WARN_UNUSED_RESULT;
+  Result<PrefixInfo> on_update_local_location(const LocalFileLocation &location,
+                                              int64 file_size) override TD_WARN_UNUSED_RESULT;
 
   Status generate_iv_map();
 
@@ -74,4 +76,5 @@ class FileUploader : public FileLoader {
   void try_release_fd();
   Status acquire_fd() TD_WARN_UNUSED_RESULT;
 };
+
 }  // namespace td

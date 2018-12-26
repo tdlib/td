@@ -6,10 +6,10 @@
 //
 #pragma once
 
+#include "td/telegram/files/FileBitmask.h"
+
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
-
-#include "td/telegram/files/FileBitmask.h"
 
 namespace td {
 

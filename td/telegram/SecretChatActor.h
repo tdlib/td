@@ -103,7 +103,7 @@ class SecretChatActor : public NetQueryCallback {
 
   SecretChatActor(int32 id, unique_ptr<Context> context, bool can_be_empty);
 
-  // First query to new chat must be on of this two
+  // First query to new chat must be on of these two
   void update_chat(telegram_api::object_ptr<telegram_api::EncryptedChat> chat);
   void create_chat(int32 user_id, int64 user_access_hash, int32 random_id, Promise<SecretChatId> promise);
   void cancel_chat(Promise<> promise);

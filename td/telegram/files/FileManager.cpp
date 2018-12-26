@@ -66,17 +66,16 @@ FileNodePtr::operator bool() const {
   return file_manager_ != nullptr && get_unsafe() != nullptr;
 }
 
-void FileNode::recalc_ready_prefix_size(Bitmask::ReadySize ready_prefix_size) {
+void FileNode::recalc_ready_prefix_size(int64 prefix_offset, int64 ready_prefix_size) {
   if (local_.type() != LocalFileLocation::Type::Partial) {
     return;
   }
   int64 new_local_ready_prefix_size;
-  if (download_offset_ == ready_prefix_size.offset) {
-    new_local_ready_prefix_size = ready_prefix_size.ready_size;
+  if (download_offset_ == prefix_offset) {
+    new_local_ready_prefix_size = ready_prefix_size;
   } else {
     new_local_ready_prefix_size = Bitmask(Bitmask::Decode{}, local_.partial().ready_bitmask_)
-                                      .get_ready_size(download_offset_, local_.partial().part_size_)
-                                      .ready_size;
+                                      .get_ready_prefix_size(download_offset_, local_.partial().part_size_, size_);
   }
   if (new_local_ready_prefix_size != local_ready_prefix_size_) {
     local_ready_prefix_size_ = new_local_ready_prefix_size;
@@ -89,7 +88,7 @@ void FileNode::init_ready_size() {
     return;
   }
   auto bitmask = Bitmask(Bitmask::Decode{}, local_.partial().ready_bitmask_);
-  local_ready_prefix_size_ = bitmask.get_ready_size(0, local_.partial().part_size_).ready_size;
+  local_ready_prefix_size_ = bitmask.get_ready_prefix_size(0, local_.partial().part_size_, size_);
   local_ready_size_ = bitmask.get_total_size(local_.partial().part_size_);
 }
 
@@ -102,22 +101,27 @@ void FileNode::set_download_offset(int64 download_offset) {
   }
   download_offset_ = download_offset;
   is_download_offset_dirty_ = true;
-  recalc_ready_prefix_size({});
+  recalc_ready_prefix_size(-1, -1);
   on_info_changed();
 }
 
-void FileNode::set_local_location(const LocalFileLocation &local, int64 ready_size,
-                                  Bitmask::ReadySize ready_prefix_size) {
+void FileNode::drop_local_location() {
+  set_local_location(LocalFileLocation(), 0, -1, -1);
+}
+
+void FileNode::set_local_location(const LocalFileLocation &local, int64 ready_size, int64 prefix_offset,
+                                  int64 ready_prefix_size) {
   if (local_ready_size_ != ready_size) {
+    VLOG(update_file) << "File " << main_file_id_ << " has changed local ready size from " << local_ready_size_
+                      << " to " << ready_size;
     local_ready_size_ = ready_size;
-    VLOG(update_file) << "File " << main_file_id_ << " has changed local ready size";
     on_info_changed();
   }
   if (local_ != local) {
     VLOG(update_file) << "File " << main_file_id_ << " has changed local location";
     local_ = local;
 
-    recalc_ready_prefix_size(ready_prefix_size);
+    recalc_ready_prefix_size(prefix_offset, ready_prefix_size);
 
     on_changed();
   }
@@ -357,22 +361,25 @@ int64 FileView::downloaded_prefix(int64 offset) const {
       }
       return 0;
     case LocalFileLocation::Type::Partial:
+      if (is_encrypted_secure()) {
+        // File is not decrypted and verified yet
+        return 0;
+      }
       return Bitmask(Bitmask::Decode{}, node_->local_.partial().ready_bitmask_)
-          .get_ready_size(offset, node_->local_.partial().part_size_)
-          .ready_size;
+          .get_ready_prefix_size(offset, node_->local_.partial().part_size_, node_->size_);
     default:
       UNREACHABLE();
       return 0;
   }
 }
 
-int64 FileView::local_size() const {
+int64 FileView::local_prefix_size() const {
   switch (node_->local_.type()) {
     case LocalFileLocation::Type::Full:
-      return node_->size_;
+      return node_->download_offset_ <= node_->size_ ? node_->size_ - node_->download_offset_ : 0;
     case LocalFileLocation::Type::Partial: {
       if (is_encrypted_secure()) {
-        // File is not decrypted yet
+        // File is not decrypted and verified yet
         return 0;
       }
       return node_->local_ready_prefix_size_;
@@ -660,7 +667,7 @@ Status FileManager::check_local_location(FileNodePtr node) {
     status = check_partial_local_location(node->local_.partial());
   }
   if (status.is_error()) {
-    node->set_local_location(LocalFileLocation(), 0);
+    node->drop_local_location();
     try_flush_node(node);
   }
   return status;
@@ -719,7 +726,7 @@ void FileManager::on_file_unlink(const FullLocalFileLocation &location) {
   auto file_id = it->second;
   auto file_node = get_sync_file_node(file_id);
   CHECK(file_node);
-  file_node->set_local_location(LocalFileLocation(), 0);
+  file_node->drop_local_location();
   try_flush_node_info(file_node);
 }
 
@@ -1114,15 +1121,17 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
              << ", main_file_id_i = " << main_file_id_i;
   if (local_i == other_node_i) {
     cancel_download(node);
-    node->set_local_location(other_node->local_, other_node->local_ready_size_);
+    node->set_download_offset(other_node->download_offset_);
+    node->set_local_location(other_node->local_, other_node->local_ready_size_, other_node->download_offset_,
+                             other_node->local_ready_prefix_size_);
     node->download_id_ = other_node->download_id_;
     node->is_download_started_ |= other_node->is_download_started_;
     node->set_download_priority(other_node->download_priority_);
-    node->set_download_offset(other_node->download_offset_);
     other_node->download_id_ = 0;
     other_node->is_download_started_ = false;
     other_node->download_priority_ = 0;
     other_node->download_offset_ = 0;
+    other_node->local_ready_prefix_size_ = 0;
 
     //cancel_generate(node);
     //node->set_generate_location(std::move(other_node->generate_));
@@ -1500,7 +1509,7 @@ void FileManager::delete_file(FileId file_id, Promise<Unit> promise, const char 
 
       unlink(file_view.local_location().path_).ignore();
       context_->on_new_file(-file_view.size());
-      node->set_local_location(LocalFileLocation(), 0);
+      node->drop_local_location();
       try_flush_node(node);
     }
   } else {
@@ -1510,7 +1519,7 @@ void FileManager::delete_file(FileId file_id, Promise<Unit> promise, const char 
     if (node->local_.type() == LocalFileLocation::Type::Partial) {
       LOG(INFO) << "Unlink partial file " << file_id << " at " << node->local_.partial().path_;
       unlink(node->local_.partial().path_).ignore();
-      node->set_local_location(LocalFileLocation(), 0);
+      node->drop_local_location();
       try_flush_node(node);
     }
   }
@@ -1566,6 +1575,10 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
   }
 
   LOG(INFO) << "Change download priority of file " << file_id << " to " << new_priority;
+  if (file_view.is_encrypted_any()) {
+    // TODO: we need to set it always and just download from the beginning
+    offset = 0;
+  }
   node->set_download_offset(offset);
   auto *file_info = get_file_id_info(file_id);
   CHECK(new_priority == 0 || callback);
@@ -1585,7 +1598,7 @@ void FileManager::download_set_offset(FileId file_id, int64 offset) {
     LOG(INFO) << "File " << file_id << " not found";
     return;
   }
-  if (FileView(file_node).is_encrypted()) {
+  if (FileView(file_node).is_encrypted_any()) {
     offset = 0;
   }
   file_node->set_download_offset(offset);
@@ -1622,10 +1635,6 @@ void FileManager::run_download(FileNodePtr node) {
     }
     return;
   }
-  if (file_view.is_encrypted()) {
-    node->set_download_offset(0);
-  }
-  auto offset = node->download_offset_;
   bool need_update_offset = node->is_download_offset_dirty_;
   node->is_download_offset_dirty_ = false;
 
@@ -1633,7 +1642,8 @@ void FileManager::run_download(FileNodePtr node) {
     CHECK(node->download_id_ != 0);
     send_closure(file_load_manager_, &FileLoadManager::update_priority, node->download_id_, priority);
     if (need_update_offset) {
-      send_closure(file_load_manager_, &FileLoadManager::update_download_offset, node->download_id_, offset);
+      send_closure(file_load_manager_, &FileLoadManager::update_download_offset, node->download_id_,
+                   node->download_offset_);
     }
     return;
   }
@@ -2030,7 +2040,7 @@ tl_object_ptr<td_api::file> FileManager::get_file_object(FileId file_id, bool wi
   int32 size = narrow_cast<int32>(file_view.size());
   int32 expected_size = narrow_cast<int32>(file_view.expected_size());
   int32 download_offset = narrow_cast<int32>(file_view.download_offset());
-  int32 local_size = narrow_cast<int32>(file_view.local_size());
+  int32 local_prefix_size = narrow_cast<int32>(file_view.local_prefix_size());
   int32 local_total_size = narrow_cast<int32>(file_view.local_total_size());
   int32 remote_size = narrow_cast<int32>(file_view.remote_size());
   string path = file_view.path();
@@ -2053,7 +2063,7 @@ tl_object_ptr<td_api::file> FileManager::get_file_object(FileId file_id, bool wi
       result_file_id.get(), size, expected_size,
       td_api::make_object<td_api::localFile>(std::move(path), can_be_downloaded, can_be_deleted,
                                              file_view.is_downloading(), file_view.has_local_location(),
-                                             download_offset, local_size, local_total_size),
+                                             download_offset, local_prefix_size, local_total_size),
       td_api::make_object<td_api::remoteFile>(std::move(persistent_file_id), file_view.is_uploading(),
                                               is_uploading_completed, remote_size));
 }
@@ -2272,9 +2282,7 @@ void FileManager::on_partial_download(QueryId query_id, const PartialLocalFileLo
 
   auto file_id = query->file_id_;
   auto file_node = get_file_node(file_id);
-  LOG(DEBUG) << "Receive on_parial_download for file " << file_id;
-  LOG(ERROR) << "Receive on_parital_generate for file " << file_id << ": " << partial_local.path_ << " "
-             << Bitmask(Bitmask::Decode{}, partial_local.ready_bitmask_);
+  LOG(DEBUG) << "Receive on_partial_download for file " << file_id;
   if (!file_node) {
     return;
   }
@@ -2282,7 +2290,7 @@ void FileManager::on_partial_download(QueryId query_id, const PartialLocalFileLo
     return;
   }
 
-  file_node->set_local_location(LocalFileLocation(partial_local), ready_size);
+  file_node->set_local_location(LocalFileLocation(partial_local), ready_size, -1, -1 /* TODO */);
   try_flush_node(file_node);
 }
 
@@ -2445,7 +2453,7 @@ void FileManager::on_partial_generate(QueryId query_id, const PartialLocalFileLo
 
   auto file_id = query->file_id_;
   auto file_node = get_file_node(file_id);
-  LOG(DEBUG) << "Receive on_parital_generate for file " << file_id << ": " << partial_local.path_ << " "
+  LOG(DEBUG) << "Receive on_partial_generate for file " << file_id << ": " << partial_local.path_ << " "
              << Bitmask(Bitmask::Decode{}, partial_local.ready_bitmask_);
   if (!file_node) {
     return;
@@ -2453,7 +2461,7 @@ void FileManager::on_partial_generate(QueryId query_id, const PartialLocalFileLo
   if (file_node->generate_id_ != query_id) {
     return;
   }
-  file_node->set_local_location(LocalFileLocation(partial_local), 0);
+  file_node->set_local_location(LocalFileLocation(partial_local), 0, -1, -1 /* TODO */);
   // TODO check for size and local_size, abort generation if needed
   if (expected_size > 0) {
     file_node->set_expected_size(expected_size);
@@ -2551,7 +2559,7 @@ void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type,
       if (node->local_.type() == LocalFileLocation::Type::Partial && status.message() != "FILE_UPLOAD_RESTART") {
         LOG(INFO) << "Unlink file " << node->local_.partial().path_;
         unlink(node->local_.partial().path_).ignore();
-        node->set_local_location(LocalFileLocation(), 0);
+        node->drop_local_location();
       }
       if (node->remote_.type() == RemoteFileLocation::Type::Partial) {
         node->set_remote_location(RemoteFileLocation(), FileLocationSource::None, 0);

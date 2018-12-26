@@ -280,7 +280,7 @@ void *memalign(std::size_t aligment, std::size_t size) {
 }
 }
 
-// c++14 guarantees than it is enough to override this two operators.
+// c++14 guarantees that it is enough to override these two operators.
 void *operator new(std::size_t count) {
   return malloc_with_frame(count, get_backtrace());
 }

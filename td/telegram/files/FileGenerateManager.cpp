@@ -303,8 +303,8 @@ class FileExternalGenerateActor : public FileGenerateActor {
     if (local_prefix_size < 0) {
       return Status::Error(1, "Invalid local prefix size");
     }
-    callback_->on_partial_generate(PartialLocalFileLocation{generate_location_.file_type_, path_, local_prefix_size,
-                                                            Bitmask(Bitmask::Ones{}, 1).encode(), ""},
+    callback_->on_partial_generate(PartialLocalFileLocation{generate_location_.file_type_, local_prefix_size, path_, "",
+                                                            Bitmask(Bitmask::Ones{}, 1).encode()},
                                    expected_size);
     return Status::OK();
   }

@@ -104,10 +104,11 @@ Result<FileLoader::FileInfo> FileDownloader::init() {
   res.ready_parts = bitmask.as_vector();
   res.use_part_count_limit = false;
   res.only_check = only_check_;
-  res.need_delay = !is_small_ && (remote_.file_type_ == FileType::VideoNote ||
-                                  remote_.file_type_ == FileType::VoiceNote || remote_.file_type_ == FileType::Audio ||
-                                  remote_.file_type_ == FileType::Video || remote_.file_type_ == FileType::Animation ||
-                                  (remote_.file_type_ == FileType::Encrypted && size_ > (1 << 20)));
+  res.need_delay =
+      !is_small_ && (remote_.file_type_ == FileType::VideoNote || remote_.file_type_ == FileType::Document ||
+                     remote_.file_type_ == FileType::VoiceNote || remote_.file_type_ == FileType::Audio ||
+                     remote_.file_type_ == FileType::Video || remote_.file_type_ == FileType::Animation ||
+                     (remote_.file_type_ == FileType::Encrypted && size_ > (1 << 20)));
   res.offset = offset_;
   return res;
 }
@@ -304,7 +305,6 @@ Result<size_t> FileDownloader::process_part(Part part, NetQueryPtr net_query) {
   if (encryption_key_.is_secret()) {
     padded_size = (part.size + 15) & ~15;
   }
-  LOG(INFO) << "Got " << bytes.size() << " bytes, padded_size = " << padded_size << " for " << path_;
   if (bytes.size() > padded_size) {
     return Status::Error("Part size is more than requested");
   }
@@ -338,6 +338,7 @@ Result<size_t> FileDownloader::process_part(Part part, NetQueryPtr net_query) {
 
   auto slice = bytes.as_slice().truncate(part.size);
   TRY_STATUS(acquire_fd());
+  LOG(INFO) << "Got " << slice.size() << " bytes at " << part.offset << " for \"" << path_ << '"';
   TRY_RESULT(written, fd_.pwrite(slice, part.offset));
   // may write less than part.size, when size of downloadable file is unknown
   if (written != slice.size()) {
@@ -345,7 +346,7 @@ Result<size_t> FileDownloader::process_part(Part part, NetQueryPtr net_query) {
   }
   return written;
 }
-void FileDownloader::on_progress(int32 part_count, int32 part_size, int32 ready_part_count, string ready_bitmask,
+void FileDownloader::on_progress(int32 part_count, int32 part_size, int32 ready_part_count, const string &ready_bitmask,
                                  bool is_ready, int64 ready_size) {
   if (is_ready) {
     // do not send partial location. will lead to wrong local_size
@@ -355,7 +356,7 @@ void FileDownloader::on_progress(int32 part_count, int32 part_size, int32 ready_
     return;
   }
   if (encryption_key_.empty() || encryption_key_.is_secure()) {
-    callback_->on_partial_download(PartialLocalFileLocation{remote_.file_type_, path_, part_size, "", ready_bitmask},
+    callback_->on_partial_download(PartialLocalFileLocation{remote_.file_type_, part_size, path_, "", ready_bitmask},
                                    ready_size);
   } else if (encryption_key_.is_secret()) {
     UInt256 iv;
@@ -365,7 +366,7 @@ void FileDownloader::on_progress(int32 part_count, int32 part_size, int32 ready_
       LOG(FATAL) << tag("ready_part_count", ready_part_count) << tag("next_part", next_part_);
     }
     callback_->on_partial_download(
-        PartialLocalFileLocation{remote_.file_type_, path_, part_size, as_slice(iv).str(), ready_bitmask}, ready_size);
+        PartialLocalFileLocation{remote_.file_type_, part_size, path_, as_slice(iv).str(), ready_bitmask}, ready_size);
   } else {
     UNREACHABLE();
   }

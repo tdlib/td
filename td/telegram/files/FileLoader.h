@@ -24,6 +24,7 @@
 #include <utility>
 
 namespace td {
+
 class FileLoader : public FileLoaderActor {
  public:
   class Callback {
@@ -69,10 +70,11 @@ class FileLoader : public FileLoaderActor {
   virtual void after_start_parts() {
   }
   virtual Result<size_t> process_part(Part part, NetQueryPtr net_query) TD_WARN_UNUSED_RESULT = 0;
-  virtual void on_progress(int32 part_count, int32 part_size, int32 ready_part_count, std::string ready_bitmask,
+  virtual void on_progress(int32 part_count, int32 part_size, int32 ready_part_count, const string &ready_bitmask,
                            bool is_ready, int64 ready_size) = 0;
   virtual Callback *get_callback() = 0;
-  virtual Result<PrefixInfo> on_update_local_location(const LocalFileLocation &location) TD_WARN_UNUSED_RESULT {
+  virtual Result<PrefixInfo> on_update_local_location(const LocalFileLocation &location,
+                                                      int64 file_size) TD_WARN_UNUSED_RESULT {
     return Status::Error("unsupported");
   }
   virtual Result<bool> should_restart_part(Part part, NetQueryPtr &net_query) TD_WARN_UNUSED_RESULT {
@@ -103,7 +105,6 @@ class FileLoader : public FileLoaderActor {
   PartsManager parts_manager_;
   uint64 blocking_id_{0};
   std::map<uint64, std::pair<Part, ActorShared<>>> part_map_;
-  // std::map<uint64, std::pair<Part, NetQueryRef>> part_map_;
   bool ordered_flag_ = false;
   OrderedEventsProcessor<std::pair<Part, NetQueryPtr>> ordered_parts_;
   ActorOwn<DelayDispatcher> delay_dispatcher_;
@@ -127,4 +128,5 @@ class FileLoader : public FileLoaderActor {
   void on_common_query(NetQueryPtr query);
   Status try_on_part_query(Part part, NetQueryPtr query);
 };
+
 }  // namespace td

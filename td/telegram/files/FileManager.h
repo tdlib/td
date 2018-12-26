@@ -58,7 +58,9 @@ class FileNode {
       , main_file_id_priority_(main_file_id_priority) {
     init_ready_size();
   }
-  void set_local_location(const LocalFileLocation &local, int64 ready_size, Bitmask::ReadySize ready_prefix_size = {});
+  void drop_local_location();
+  void set_local_location(const LocalFileLocation &local, int64 ready_size, int64 prefix_offset,
+                          int64 ready_prefix_size);
   void set_remote_location(const RemoteFileLocation &remote, FileLocationSource source, int64 ready_size);
   void set_generate_location(unique_ptr<FullGenerateFileLocation> &&generate);
   void set_size(int64 size);
@@ -73,7 +75,6 @@ class FileNode {
   void set_generate_priority(int8 download_priority, int8 upload_priority);
 
   void set_download_offset(int64 download_offset);
-  void recalc_ready_prefix_size(Bitmask::ReadySize ready_prefix_size);
 
   void on_changed();
   void on_info_changed();
@@ -95,7 +96,7 @@ class FileNode {
   FileLoadManager::QueryId upload_id_ = 0;
   int64 local_ready_size_ = 0;
   int64 download_offset_ = 0;
-  int64 local_ready_prefix_size_ = 0;
+  int64 local_ready_prefix_size_ = 0;  // PartialLocal only
 
   RemoteFileLocation remote_;
   FileLoadManager::QueryId download_id_ = 0;
@@ -124,9 +125,10 @@ class FileNode {
   int8 generate_upload_priority_ = 0;
 
   int8 main_file_id_priority_ = 0;
-  bool is_download_offset_dirty_ = false;
 
   FileLocationSource remote_source_ = FileLocationSource::FromUser;
+
+  bool is_download_offset_dirty_ = false;
 
   bool get_by_hash_ = false;
   bool can_search_locally_{true};
@@ -138,9 +140,10 @@ class FileNode {
 
   bool pmc_changed_flag_{false};
   bool info_changed_flag_{false};
-  bool offset_changed_flags_{false};
 
   void init_ready_size();
+
+  void recalc_ready_prefix_size(int64 prefix_offset, int64 ready_prefix_size);
 };
 
 class FileManager;
@@ -221,7 +224,7 @@ class FileView {
   bool is_downloading() const;
   int64 download_offset() const;
   int64 downloaded_prefix(int64 offset) const;
-  int64 local_size() const;
+  int64 local_prefix_size() const;
   int64 local_total_size() const;
   bool is_uploading() const;
   int64 remote_size() const;
@@ -515,4 +518,5 @@ class FileManager : public FileLoadManager::Callback {
 
   friend class FileNodePtr;
 };
+
 }  // namespace td

@@ -24,6 +24,7 @@
 #include "td/utils/ScopeGuard.h"
 
 namespace td {
+
 FileUploader::FileUploader(const LocalFileLocation &local, const RemoteFileLocation &remote, int64 expected_size,
                            const FileEncryptionKey &encryption_key, std::vector<int> bad_parts,
                            unique_ptr<Callback> callback)
@@ -47,7 +48,7 @@ Result<FileLoader::FileInfo> FileUploader::init() {
     return Status::Error("File is already uploaded");
   }
 
-  TRY_RESULT(prefix_info, on_update_local_location(local_));
+  TRY_RESULT(prefix_info, on_update_local_location(local_, 0 /* TODO(now) */));
   (void)prefix_info;
 
   int offset = 0;
@@ -86,7 +87,8 @@ Result<FileLoader::FileInfo> FileUploader::init() {
   return res;
 }
 
-Result<FileLoader::PrefixInfo> FileUploader::on_update_local_location(const LocalFileLocation &location) {
+Result<FileLoader::PrefixInfo> FileUploader::on_update_local_location(const LocalFileLocation &location,
+                                                                      int64 file_size) {
   SCOPE_EXIT {
     try_release_fd();
   };
@@ -108,8 +110,7 @@ Result<FileLoader::PrefixInfo> FileUploader::on_update_local_location(const Loca
   } else if (location.type() == LocalFileLocation::Type::Partial) {
     path = location.partial().path_;
     local_size = Bitmask(Bitmask::Decode{}, location.partial().ready_bitmask_)
-                     .get_ready_size(0, location.partial().part_size_)
-                     .ready_size;
+                     .get_ready_prefix_size(0, location.partial().part_size_, file_size);
     local_is_ready = false;
     file_type = location.partial().file_type_;
   } else {
@@ -294,7 +295,7 @@ Result<size_t> FileUploader::process_part(Part part, NetQueryPtr net_query) {
   return part.size;
 }
 
-void FileUploader::on_progress(int32 part_count, int32 part_size, int32 ready_part_count, std::string bitmask,
+void FileUploader::on_progress(int32 part_count, int32 part_size, int32 ready_part_count, const string &ready_bitmask,
                                bool is_ready, int64 ready_size) {
   callback_->on_partial_upload(PartialRemoteFileLocation{file_id_, part_count, part_size, ready_part_count, big_flag_},
                                ready_size);

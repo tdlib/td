@@ -20,6 +20,7 @@
 #include <utility>
 
 namespace td {
+
 void FileLoader::set_resource_manager(ActorShared<ResourceManager> resource_manager) {
   resource_manager_ = std::move(resource_manager);
   send_closure(resource_manager_, &ResourceManager::update_resources, resource_state_);
@@ -47,7 +48,7 @@ void FileLoader::hangup() {
 }
 
 void FileLoader::update_local_file_location(const LocalFileLocation &local) {
-  auto r_prefix_info = on_update_local_location(local);
+  auto r_prefix_info = on_update_local_location(local, parts_manager_.get_size_or_zero());
   if (r_prefix_info.is_error()) {
     on_error(r_prefix_info.move_as_error());
     stop_flag_ = true;
@@ -302,4 +303,5 @@ void FileLoader::on_progress_impl(size_t size) {
               parts_manager_.get_ready_prefix_count(), parts_manager_.get_bitmask(), parts_manager_.ready(),
               parts_manager_.get_ready_size());
 }
+
 }  // namespace td

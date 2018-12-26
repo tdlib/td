@@ -4858,13 +4858,13 @@ void Td::on_request(uint64 id, const td_api::getFile &request) {
   send_closure(actor_id(this), &Td::send_result, id, file_manager_->get_file_object(FileId(request.file_id_, 0)));
 }
 
-void Td::on_request(uint64 id, const td_api::getFileDownloadedPrefix &request) {
+void Td::on_request(uint64 id, const td_api::getFileDownloadedPrefixSize &request) {
   auto file_view = file_manager_->get_file_view(FileId(request.file_id_, 0));
   if (file_view.empty()) {
     return send_closure(actor_id(this), &Td::send_error, id, Status::Error(10, "Unknown file id"));
   }
   send_closure(actor_id(this), &Td::send_result, id,
-               td_api::make_object<td_api::count>(static_cast<int32>(file_view.downloaded_prefix(request.offset_))));
+               td_api::make_object<td_api::count>(narrow_cast<int32>(file_view.downloaded_prefix(request.offset_))));
 }
 
 void Td::on_request(uint64 id, td_api::getRemoteFile &request) {

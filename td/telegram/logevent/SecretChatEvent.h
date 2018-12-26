@@ -323,7 +323,7 @@ class OutboundSecretMessage : public LogEventHelper<OutboundSecretMessage, Secre
   // 1. is_service // use messages_sendEncryptedsService
   // 3. can_rewrite_with_empty // false for almost all service messages
 
-  // TODO: combine this two functions into one macros hell. Or lambda hell.
+  // TODO: combine these two functions into one macros hell. Or a lambda hell.
   template <class T>
   void store(T &storer) const {
     using td::store;

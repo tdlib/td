@@ -6,11 +6,11 @@
 //
 #pragma once
 
-#include "td/telegram/files/FileBitmask.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/files/FileBitmask.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/SecureStorage.h"
 
@@ -908,8 +908,8 @@ inline bool operator!=(const EmptyLocalFileLocation &lhs, const EmptyLocalFileLo
 
 struct PartialLocalFileLocation {
   FileType file_type_;
-  string path_;
   int32 part_size_;
+  string path_;
   string iv_;
   string ready_bitmask_;
 
@@ -939,6 +939,8 @@ struct PartialLocalFileLocation {
     if (deprecated_ready_part_count == -1) {
       parse(ready_bitmask_, parser);
     } else {
+      CHECK(0 <= deprecated_ready_part_count);
+      CHECK(deprecated_ready_part_count <= (1 << 22));
       ready_bitmask_ = Bitmask(Bitmask::Ones{}, deprecated_ready_part_count).encode();
     }
   }

@@ -2251,11 +2251,11 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::getChatMessageByDate>(as_chat_id(chat_id), to_integer<int32>(date)));
     } else if (op == "gf" || op == "GetFile") {
       send_request(make_tl_object<td_api::getFile>(as_file_id(args)));
-    } else if (op == "gfp" || op == "GetFileDownloadedPrefix") {
+    } else if (op == "gfdps") {
       string file_id;
       string offset;
       std::tie(file_id, offset) = split(args);
-      send_request(make_tl_object<td_api::getFileDownloadedPrefix>(as_file_id(file_id), to_integer<int32>(offset)));
+      send_request(make_tl_object<td_api::getFileDownloadedPrefixSize>(as_file_id(file_id), to_integer<int32>(offset)));
     } else if (op == "grf") {
       send_request(make_tl_object<td_api::getRemoteFile>(args, nullptr));
     } else if (op == "gmtf") {
@@ -2277,36 +2277,34 @@ class CliClient final : public Actor {
           as_location(latitude, longitude), to_integer<int32>(zoom), to_integer<int32>(width),
           to_integer<int32>(height), to_integer<int32>(scale), as_chat_id(chat_id)));
     } else if (op == "sfdo" || op == "SetDownloadFileOffset") {
-      string file_id_str;
+      string file_id;
       string offset;
-      std::tie(file_id_str, offset) = split(args);
+      std::tie(file_id, offset) = split(args);
 
-      auto file_id = as_file_id(file_id_str);
-      send_request(make_tl_object<td_api::setFileDownloadOffset>(file_id, to_integer<int32>(offset)));
+      send_request(make_tl_object<td_api::setFileDownloadOffset>(as_file_id(file_id), to_integer<int32>(offset)));
     } else if (op == "df" || op == "DownloadFile") {
-      string file_id_str;
-      string priority;
-      string offset;
-      std::tie(file_id_str, args) = split(args);
-      std::tie(priority, offset) = split(args);
-      if (priority.empty()) {
-        priority = "1";
-      }
-
-      auto file_id = as_file_id(file_id_str);
-      send_request(
-          make_tl_object<td_api::downloadFile>(file_id, to_integer<int32>(priority), to_integer<int32>(offset)));
-    } else if (op == "dff") {
       string file_id;
       string priority;
       string offset;
       std::tie(file_id, args) = split(args);
-      std::tie(priority, offset) = split(args);
+      std::tie(offset, priority) = split(args);
       if (priority.empty()) {
         priority = "1";
       }
 
-      for (int i = 1; i <= as_file_id(file_id); i++) {
+      send_request(make_tl_object<td_api::downloadFile>(as_file_id(file_id), to_integer<int32>(priority),
+                                                        to_integer<int32>(offset)));
+    } else if (op == "dff") {
+      string max_file_id;
+      string priority;
+      string offset;
+      std::tie(max_file_id, args) = split(args);
+      std::tie(offset, priority) = split(args);
+      if (priority.empty()) {
+        priority = "1";
+      }
+
+      for (int i = 1; i <= as_file_id(max_file_id); i++) {
         send_request(make_tl_object<td_api::downloadFile>(i, to_integer<int32>(priority), to_integer<int32>(offset)));
       }
     } else if (op == "cdf") {
