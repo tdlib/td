@@ -6253,75 +6253,74 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
   int32 value_constructor_id = request.value_ == nullptr ? td_api::optionValueEmpty::ID : request.value_->get_id();
 
   auto set_integer_option = [&](Slice name, int32 min = 0, int32 max = std::numeric_limits<int32>::max()) {
-    if (request.name_ == name) {
-      if (value_constructor_id != td_api::optionValueInteger::ID &&
-          value_constructor_id != td_api::optionValueEmpty::ID) {
-        send_error_raw(id, 3, PSLICE() << "Option \"" << name << "\" must have integer value");
-        return true;
-      }
-      if (value_constructor_id == td_api::optionValueEmpty::ID) {
-        G()->shared_config().set_option_empty(name);
-      } else {
-        int32 value = static_cast<td_api::optionValueInteger *>(request.value_.get())->value_;
-        if (value < min || value > max) {
-          send_error_raw(id, 3,
-                         PSLICE() << "Option's \"" << name << "\" value " << value << " is outside of a valid range ["
-                                  << min << ", " << max << "]");
-          return true;
-        }
-        G()->shared_config().set_option_integer(name, clamp(value, min, max));
-      }
-      send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
+    if (request.name_ != name) {
+      return false;
+    }
+    if (value_constructor_id != td_api::optionValueInteger::ID &&
+        value_constructor_id != td_api::optionValueEmpty::ID) {
+      send_error_raw(id, 3, PSLICE() << "Option \"" << name << "\" must have integer value");
       return true;
     }
-    return false;
+    if (value_constructor_id == td_api::optionValueEmpty::ID) {
+      G()->shared_config().set_option_empty(name);
+    } else {
+      int32 value = static_cast<td_api::optionValueInteger *>(request.value_.get())->value_;
+      if (value < min || value > max) {
+        send_error_raw(id, 3,
+                       PSLICE() << "Option's \"" << name << "\" value " << value << " is outside of a valid range ["
+                                << min << ", " << max << "]");
+        return true;
+      }
+      G()->shared_config().set_option_integer(name, clamp(value, min, max));
+    }
+    send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
+    return true;
   };
 
   auto set_boolean_option = [&](Slice name) {
-    if (request.name_ == name) {
-      if (value_constructor_id != td_api::optionValueBoolean::ID &&
-          value_constructor_id != td_api::optionValueEmpty::ID) {
-        send_error_raw(id, 3, PSLICE() << "Option \"" << name << "\" must have boolean value");
-        return true;
-      }
-      if (value_constructor_id == td_api::optionValueEmpty::ID) {
-        G()->shared_config().set_option_empty(name);
-      } else {
-        bool value = static_cast<td_api::optionValueBoolean *>(request.value_.get())->value_;
-        G()->shared_config().set_option_boolean(name, value);
-      }
-      send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
+    if (request.name_ != name) {
+      return false;
+    }
+    if (value_constructor_id != td_api::optionValueBoolean::ID &&
+        value_constructor_id != td_api::optionValueEmpty::ID) {
+      send_error_raw(id, 3, PSLICE() << "Option \"" << name << "\" must have boolean value");
       return true;
     }
-    return false;
+    if (value_constructor_id == td_api::optionValueEmpty::ID) {
+      G()->shared_config().set_option_empty(name);
+    } else {
+      bool value = static_cast<td_api::optionValueBoolean *>(request.value_.get())->value_;
+      G()->shared_config().set_option_boolean(name, value);
+    }
+    send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
+    return true;
   };
 
   auto set_string_option = [&](Slice name, auto check_value) {
-    if (request.name_ == name) {
-      if (value_constructor_id != td_api::optionValueString::ID &&
-          value_constructor_id != td_api::optionValueEmpty::ID) {
-        send_error_raw(id, 3, PSLICE() << "Option \"" << name << "\" must have string value");
-        return true;
-      }
-      if (value_constructor_id == td_api::optionValueEmpty::ID) {
-        G()->shared_config().set_option_empty(name);
-      } else {
-        const string &value = static_cast<td_api::optionValueString *>(request.value_.get())->value_;
-        if (value.empty()) {
-          G()->shared_config().set_option_empty(name);
-        } else {
-          if (check_value(value)) {
-            G()->shared_config().set_option_string(name, value);
-          } else {
-            send_error_raw(id, 3, PSLICE() << "Option \"" << name << "\" can't have specified value");
-            return true;
-          }
-        }
-      }
-      send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
+    if (request.name_ != name) {
+      return false;
+    }
+    if (value_constructor_id != td_api::optionValueString::ID && value_constructor_id != td_api::optionValueEmpty::ID) {
+      send_error_raw(id, 3, PSLICE() << "Option \"" << name << "\" must have string value");
       return true;
     }
-    return false;
+    if (value_constructor_id == td_api::optionValueEmpty::ID) {
+      G()->shared_config().set_option_empty(name);
+    } else {
+      const string &value = static_cast<td_api::optionValueString *>(request.value_.get())->value_;
+      if (value.empty()) {
+        G()->shared_config().set_option_empty(name);
+      } else {
+        if (check_value(value)) {
+          G()->shared_config().set_option_string(name, value);
+        } else {
+          send_error_raw(id, 3, PSLICE() << "Option \"" << name << "\" can't have specified value");
+          return true;
+        }
+      }
+    }
+    send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
+    return true;
   };
 
   bool is_bot = auth_manager_ != nullptr && auth_manager_->is_authorized() && auth_manager_->is_bot();
