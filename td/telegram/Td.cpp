@@ -3911,7 +3911,7 @@ void Td::close_impl(bool destroy_flag) {
   state_ = State::Close;
   close_flag_ = 1;
   G()->set_close_flag();
-  send_closure(auth_manager_actor_, &AuthManager::on_closing);
+  send_closure(auth_manager_actor_, &AuthManager::on_closing, destroy_flag);
   LOG(WARNING) << "Close " << tag("destroy", destroy_flag);
 
   // wait till all request_actors will stop.

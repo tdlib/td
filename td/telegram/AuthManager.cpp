@@ -688,8 +688,12 @@ void AuthManager::delete_account(uint64 query_id, const string &reason) {
                                                   DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off));
 }
 
-void AuthManager::on_closing() {
-  update_state(State::Closing);
+void AuthManager::on_closing(bool destroy_flag) {
+  if (destroy_flag) {
+    update_state(State::LoggingOut);
+  } else {
+    update_state(State::Closing);
+  }
 }
 
 void AuthManager::on_new_query(uint64 query_id) {

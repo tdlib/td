@@ -167,7 +167,7 @@ class AuthManager : public NetActor {
   void delete_account(uint64 query_id, const string &reason);
 
   void on_authorization_lost();
-  void on_closing();
+  void on_closing(bool destroy_flag);
 
   // can return nullptr if state isn't initialized yet
   tl_object_ptr<td_api::AuthorizationState> get_current_authorization_state_object() const;
