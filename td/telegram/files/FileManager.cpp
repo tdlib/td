@@ -2317,7 +2317,10 @@ void FileManager::on_partial_download(QueryId query_id, const PartialLocalFileLo
   }
 
   if (size != 0) {
-    file_node->set_size(size);
+    FileView file_view(file_node);
+    if (!file_view.is_encrypted_secure()) {
+      file_node->set_size(size);
+    }
   }
   file_node->set_local_location(LocalFileLocation(partial_local), ready_size, -1, -1 /* TODO */);
   try_flush_node(file_node, "on_partial_download");
