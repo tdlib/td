@@ -78,6 +78,8 @@ void FileNode::recalc_ready_prefix_size(int64 prefix_offset, int64 ready_prefix_
                                       .get_ready_prefix_size(download_offset_, local_.partial().part_size_, size_);
   }
   if (new_local_ready_prefix_size != local_ready_prefix_size_) {
+    VLOG(update_file) << "File " << main_file_id_ << " has changed local_ready_prefix_size from "
+                      << local_ready_prefix_size_ << " to " << new_local_ready_prefix_size;
     local_ready_prefix_size_ = new_local_ready_prefix_size;
     on_info_changed();
   }
@@ -99,6 +101,9 @@ void FileNode::set_download_offset(int64 download_offset) {
   if (download_offset == download_offset_) {
     return;
   }
+
+  VLOG(update_file) << "File " << main_file_id_ << " has changed download_offset from " << download_offset_ << " to "
+                    << download_offset;
   download_offset_ = download_offset;
   is_download_offset_dirty_ = true;
   recalc_ready_prefix_size(-1, -1);
@@ -129,8 +134,9 @@ void FileNode::set_local_location(const LocalFileLocation &local, int64 ready_si
 
 void FileNode::set_remote_location(const RemoteFileLocation &remote, FileLocationSource source, int64 ready_size) {
   if (remote_ready_size_ != ready_size) {
+    VLOG(update_file) << "File " << main_file_id_ << " has changed remote ready size from " << remote_ready_size_
+                      << " to " << ready_size;
     remote_ready_size_ = ready_size;
-    VLOG(update_file) << "File " << main_file_id_ << " has changed remote ready size";
     on_info_changed();
   }
   if (remote_ == remote) {
