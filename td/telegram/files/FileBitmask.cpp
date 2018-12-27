@@ -30,6 +30,9 @@ std::string Bitmask::encode() const {
 }
 
 int64 Bitmask::get_ready_prefix_size(int64 offset, int64 part_size, int64 file_size) const {
+  if (offset < 0) {
+    return 0;
+  }
   auto offset_part = offset / part_size;
   auto ones = get_ready_parts(offset_part);
   if (ones == 0) {
