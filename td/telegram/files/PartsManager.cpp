@@ -169,7 +169,7 @@ int32 PartsManager::get_ready_prefix_count() {
   }
   return res;
 }
-string PartsManager::get_bitmask() const {
+string PartsManager::get_bitmask() {
   int32 prefix_count = -1;
   if (need_check_) {
     prefix_count = narrow_cast<int32>(checked_prefix_size_ / part_size_);

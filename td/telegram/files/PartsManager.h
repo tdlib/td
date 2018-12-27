@@ -47,7 +47,7 @@ class PartsManager {
   int32 get_part_count() const;
   int32 get_unchecked_ready_prefix_count();
   int32 get_ready_prefix_count();
-  string get_bitmask() const;
+  string get_bitmask();
 
  private:
   static constexpr int MAX_PART_COUNT = 3000;

@@ -19,7 +19,7 @@ class Bitmask {
   Bitmask() = default;
   Bitmask(Decode, Slice data);
   Bitmask(Ones, int64 count);
-  std::string encode(int32 prefix_count = -1) const;
+  std::string encode(int32 prefix_count = -1);
   int64 get_ready_prefix_size(int64 offset, int64 part_size, int64 file_size) const;
   int64 get_total_size(int64 part_size, int64 file_size) const;
   bool get(int64 offset_part) const;
