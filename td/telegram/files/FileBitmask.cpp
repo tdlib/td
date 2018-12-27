@@ -20,9 +20,12 @@ Bitmask::Bitmask(Ones, int64 count) : data_(narrow_cast<size_t>((count + 7) / 8)
   }
 }
 
-std::string Bitmask::encode() const {
+std::string Bitmask::encode(int32 prefix_count) const {
   // remove zeroes in the end to make encoding deterministic
   td::Slice data(data_);
+  if (prefix_count != -1) {
+    data.truncate(prefix_count);
+  }
   while (!data.empty() && data.back() == '\0') {
     data.remove_suffix(1);
   }
