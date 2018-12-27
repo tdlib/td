@@ -13,6 +13,7 @@
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
+#include "td/telegram/SecureStorage.h"
 
 #include "td/utils/base64.h"
 #include "td/utils/format.h"

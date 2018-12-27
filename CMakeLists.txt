@@ -361,6 +361,7 @@ set(TDLIB_SOURCE
   td/telegram/files/FileBitmask.cpp
   td/telegram/files/FileDb.cpp
   td/telegram/files/FileDownloader.cpp
+  td/telegram/files/FileEncryptionKey.cpp
   td/telegram/files/FileFromBytes.cpp
   td/telegram/files/FileGcParameters.cpp
   td/telegram/files/FileGcWorker.cpp

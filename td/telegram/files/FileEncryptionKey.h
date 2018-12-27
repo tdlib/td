@@ -6,13 +6,8 @@
 //
 #pragma once
 
-#include "td/telegram/SecureStorage.h"
-
-#include "td/utils/as.h"
 #include "td/utils/common.h"
-#include "td/utils/crypto.h"
 #include "td/utils/logging.h"
-#include "td/utils/Random.h"
 #include "td/utils/Slice.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
@@ -20,93 +15,54 @@
 
 namespace td {
 
+namespace secure_storage {
+class Secret;
+class ValueHash;
+};  // namespace secure_storage
+
 struct FileEncryptionKey {
   enum class Type : int32 { None, Secret, Secure };
-  FileEncryptionKey() = default;
-  FileEncryptionKey(Slice key, Slice iv) : key_iv_(key.size() + iv.size(), '\0'), type_(Type::Secret) {
-    if (key.size() != 32 || iv.size() != 32) {
-      LOG(ERROR) << "Wrong key/iv sizes: " << key.size() << " " << iv.size();
-      type_ = Type::None;
-      return;
-    }
-    CHECK(key_iv_.size() == 64);
-    MutableSlice(key_iv_).copy_from(key);
-    MutableSlice(key_iv_).substr(key.size()).copy_from(iv);
-  }
 
-  explicit FileEncryptionKey(const secure_storage::Secret &secret) : type_(Type::Secure) {
-    key_iv_ = secret.as_slice().str();
-  }
+  FileEncryptionKey() = default;
+
+  FileEncryptionKey(Slice key, Slice iv);
+
+  explicit FileEncryptionKey(const secure_storage::Secret &secret);
 
   bool is_secret() const {
     return type_ == Type::Secret;
   }
+
   bool is_secure() const {
     return type_ == Type::Secure;
   }
 
-  static FileEncryptionKey create() {
-    FileEncryptionKey res;
-    res.key_iv_.resize(64);
-    Random::secure_bytes(res.key_iv_);
-    res.type_ = Type::Secret;
-    return res;
-  }
-  static FileEncryptionKey create_secure_key() {
-    return FileEncryptionKey(secure_storage::Secret::create_new());
-  }
+  static FileEncryptionKey create();
 
-  const UInt256 &key() const {
-    CHECK(is_secret());
-    CHECK(key_iv_.size() == 64);
-    return *reinterpret_cast<const UInt256 *>(key_iv_.data());
-  }
-  Slice key_slice() const {
-    CHECK(is_secret());
-    CHECK(key_iv_.size() == 64);
-    return Slice(key_iv_.data(), 32);
-  }
-  secure_storage::Secret secret() const {
-    CHECK(is_secure());
-    return secure_storage::Secret::create(Slice(key_iv_).truncate(32)).move_as_ok();
-  }
+  static FileEncryptionKey create_secure_key();
 
-  bool has_value_hash() const {
-    CHECK(is_secure());
-    return key_iv_.size() > secure_storage::Secret::size();
-  }
+  const UInt256 &key() const;
 
-  void set_value_hash(const secure_storage::ValueHash &value_hash) {
-    key_iv_.resize(secure_storage::Secret::size() + value_hash.as_slice().size());
-    MutableSlice(key_iv_).remove_prefix(secure_storage::Secret::size()).copy_from(value_hash.as_slice());
-  }
+  Slice key_slice() const;
 
-  secure_storage::ValueHash value_hash() const {
-    CHECK(has_value_hash());
-    return secure_storage::ValueHash::create(Slice(key_iv_).remove_prefix(secure_storage::Secret::size())).move_as_ok();
-  }
+  secure_storage::Secret secret() const;
 
-  UInt256 &mutable_iv() {
-    CHECK(is_secret());
-    CHECK(key_iv_.size() == 64);
-    return *reinterpret_cast<UInt256 *>(&key_iv_[0] + 32);
-  }
-  Slice iv_slice() const {
-    CHECK(is_secret());
-    CHECK(key_iv_.size() == 64);
-    return Slice(key_iv_.data() + 32, 32);
-  }
+  bool has_value_hash() const;
 
-  int32 calc_fingerprint() const {
-    CHECK(is_secret());
-    char buf[16];
-    md5(key_iv_, {buf, sizeof(buf)});
-    return as<int32>(buf) ^ as<int32>(buf + 4);
-  }
+  void set_value_hash(const secure_storage::ValueHash &value_hash);
+
+  secure_storage::ValueHash value_hash() const;
+
+  UInt256 &mutable_iv();
+
+  Slice iv_slice() const;
+
+  int32 calc_fingerprint() const;
 
   bool empty() const {
     return key_iv_.empty();
   }
+
   size_t size() const {
     return key_iv_.size();
   }
@@ -142,14 +98,6 @@ inline bool operator!=(const FileEncryptionKey &lhs, const FileEncryptionKey &rh
   return !(lhs == rhs);
 }
 
-inline StringBuilder &operator<<(StringBuilder &string_builder, const FileEncryptionKey &key) {
-  if (key.is_secret()) {
-    return string_builder << "SecretKey{" << key.size() << "}";
-  }
-  if (key.is_secret()) {
-    return string_builder << "SecureKey{" << key.size() << "}";
-  }
-  return string_builder << "NoKey{}";
-}
+StringBuilder &operator<<(StringBuilder &string_builder, const FileEncryptionKey &key);
 
 }  // namespace td
