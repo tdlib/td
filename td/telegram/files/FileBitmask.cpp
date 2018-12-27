@@ -7,7 +7,9 @@
 #include "td/telegram/files/FileBitmask.h"
 
 #include "td/utils/common.h"
+#include "td/utils/logging.h"
 #include "td/utils/misc.h"
+#include "td/utils/ScopeGuard.h"
 
 namespace td {
 

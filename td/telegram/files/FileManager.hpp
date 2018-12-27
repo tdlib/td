@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/files/FileEncryptionKey.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Version.h"
 

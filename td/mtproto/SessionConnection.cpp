@@ -85,7 +85,7 @@ namespace mtproto {
  *   - ping_delay_disconnect#f3427b8c ping_id:long disconnect_delay:int = Pong;
  *
  * 6. New session creation
- *  Notification about new session.
+ *  A notification about new session.
  *  It is reasonable to store unique_id with current session, in order to process duplicated notifications once.
  *
  *  Causes all older than first_msg_id to be re-sent.

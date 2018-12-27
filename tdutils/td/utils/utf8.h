@@ -6,7 +6,7 @@
 //
 #pragma once
 
-#include "td/utils/int_types.h"
+#include "td/utils/common.h"
 #include "td/utils/Slice.h"
 
 namespace td {

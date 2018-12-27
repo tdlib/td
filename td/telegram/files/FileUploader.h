@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/files/FileEncryptionKey.h"
 #include "td/telegram/files/FileLoader.h"
 #include "td/telegram/files/FileLocation.h"
 

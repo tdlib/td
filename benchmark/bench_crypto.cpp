@@ -7,7 +7,6 @@
 #include "td/utils/benchmark.h"
 
 #include "td/utils/crypto.h"
-#include "td/utils/int_types.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/Random.h"

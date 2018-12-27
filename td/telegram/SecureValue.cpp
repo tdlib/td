@@ -7,6 +7,7 @@
 #include "td/telegram/SecureValue.h"
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/files/FileEncryptionKey.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/misc.h"

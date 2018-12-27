@@ -10,7 +10,6 @@
 #include "td/mtproto/crypto.h"
 
 #include "td/utils/buffer.h"
-#include "td/utils/int_types.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/UInt.h"

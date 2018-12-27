@@ -7,7 +7,6 @@
 #pragma once
 
 #include "td/utils/common.h"
-#include "td/utils/int_types.h"
 #include "td/utils/logging.h"
 #include "td/utils/Random.h"
 

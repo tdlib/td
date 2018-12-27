@@ -10,7 +10,6 @@
 
 #include "td/utils/as.h"
 #include "td/utils/crypto.h"
-#include "td/utils/int_types.h"  // for UInt256, UInt128, etc
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Random.h"

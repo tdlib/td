@@ -11,6 +11,7 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileDb.h"
+#include "td/telegram/files/FileEncryptionKey.h"
 #include "td/telegram/files/FileGenerateManager.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileLoadManager.h"

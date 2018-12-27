@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/net/NetQuery.h"
+#include "td/telegram/SecureStorage.h"
 #include "td/telegram/SecureValue.h"
 #include "td/telegram/UserId.h"
 

@@ -18,7 +18,7 @@ namespace td {
 namespace secure_storage {
 class Secret;
 class ValueHash;
-};  // namespace secure_storage
+}  // namespace secure_storage
 
 struct FileEncryptionKey {
   enum class Type : int32 { None, Secret, Secure };

@@ -10,6 +10,7 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/telegram/files/FileDownloader.h"
+#include "td/telegram/files/FileEncryptionKey.h"
 #include "td/telegram/files/FileFromBytes.h"
 #include "td/telegram/files/FileHashUploader.h"
 #include "td/telegram/files/FileLocation.h"
