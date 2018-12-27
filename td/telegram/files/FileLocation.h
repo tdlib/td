@@ -33,6 +33,8 @@
 
 namespace td {
 
+constexpr int64 SMALL_FILE_MAX_SIZE = 10 * (1 << 20);
+
 enum class FileType : int8 {
   Thumbnail,
   ProfilePhoto,

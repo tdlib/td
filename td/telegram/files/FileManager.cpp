@@ -91,7 +91,7 @@ void FileNode::init_ready_size() {
   }
   auto bitmask = Bitmask(Bitmask::Decode{}, local_.partial().ready_bitmask_);
   local_ready_prefix_size_ = bitmask.get_ready_prefix_size(0, local_.partial().part_size_, size_);
-  local_ready_size_ = bitmask.get_total_size(local_.partial().part_size_);
+  local_ready_size_ = bitmask.get_total_size(local_.partial().part_size_, size_);
 }
 
 void FileNode::set_download_offset(int64 download_offset) {
@@ -343,11 +343,18 @@ int64 FileView::size() const {
   return node_->size_;
 }
 
-int64 FileView::expected_size() const {
+int64 FileView::expected_size(bool may_guess) const {
   if (node_->size_ != 0) {
     return node_->size_;
   }
-  return node_->expected_size_;
+  int64 current_size = local_total_size();  // TODO: this is not the best approximation
+  if (node_->expected_size_ != 0) {
+    return max(current_size, node_->expected_size_);
+  }
+  if (may_guess && node_->local_.type() == LocalFileLocation::Type::Partial) {
+    current_size *= 3;
+  }
+  return current_size;
 }
 
 bool FileView::is_downloading() const {
@@ -1911,9 +1918,9 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
 
   QueryId id = queries_container_.create(Query{file_id, Query::Upload});
   node->upload_id_ = id;
-  send_closure(file_load_manager_, &FileLoadManager::upload, id, node->local_, node->remote_, node->size_,
-               node->encryption_key_, narrow_cast<int8>(bad_parts.empty() ? -priority : priority),
-               std::move(bad_parts));
+  send_closure(file_load_manager_, &FileLoadManager::upload, id, node->local_, node->remote_,
+               file_view.expected_size(true), node->encryption_key_,
+               narrow_cast<int8>(bad_parts.empty() ? -priority : priority), std::move(bad_parts));
 
   LOG(INFO) << "File " << file_id << " upload request has sent to FileLoadManager";
 }
@@ -2576,6 +2583,23 @@ void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type,
       }
       status = Status::Error(400, status.message());
     }
+  }
+
+  if (status.message() == "FILE_PART_INVALID") {
+    bool has_partial_small_location =
+        node->remote_.type() == RemoteFileLocation::Type::Partial && !node->remote_.partial().is_big_;
+    auto expected_size = FileView(node).expected_size(true);
+    bool should_be_big_location = expected_size > SMALL_FILE_MAX_SIZE;
+
+    node->set_remote_location(RemoteFileLocation(), FileLocationSource::None, 0);
+    if (has_partial_small_location && should_be_big_location) {
+      run_upload(node, {});
+      return;
+    }
+
+    LOG(WARNING) << "Failed to upload file: unexpected " << status << " " << has_partial_small_location << " "
+                 << should_be_big_location << " "
+                 << "expected size: " << expected_size;
   }
 
   if (begins_with(status.message(), "FILE_GENERATE_LOCATION_INVALID")) {

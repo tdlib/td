@@ -220,7 +220,7 @@ class FileView {
   }
 
   int64 size() const;
-  int64 expected_size() const;
+  int64 expected_size(bool may_guess = false) const;
   bool is_downloading() const;
   int64 download_offset() const;
   int64 downloaded_prefix(int64 offset) const;

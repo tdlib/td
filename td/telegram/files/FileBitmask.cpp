@@ -50,12 +50,21 @@ int64 Bitmask::get_ready_prefix_size(int64 offset, int64 part_size, int64 file_s
   return res;
 }
 
-int64 Bitmask::get_total_size(int64 part_size) const {
+int64 Bitmask::get_total_size(int64 part_size, int64 file_size) const {
   int64 res = 0;
   for (int64 i = 0; i < size(); i++) {
-    res += static_cast<int64>(get(i));
+    if (get(i)) {
+      auto from = i * part_size;
+      auto to = from + part_size;
+      if (file_size != 0 && file_size < to) {
+        to = file_size;
+      }
+      if (from < to) {
+        res += to - from;
+      }
+    }
   }
-  return res * part_size;
+  return res;
 }
 
 bool Bitmask::get(int64 offset_part) const {

@@ -21,7 +21,7 @@ class Bitmask {
   Bitmask(Ones, int64 count);
   std::string encode() const;
   int64 get_ready_prefix_size(int64 offset, int64 part_size, int64 file_size) const;
-  int64 get_total_size(int64 part_size) const;
+  int64 get_total_size(int64 part_size, int64 file_size) const;
   bool get(int64 offset_part) const;
 
   int64 get_ready_parts(int64 offset_part) const;

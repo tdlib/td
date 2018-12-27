@@ -60,7 +60,7 @@ void FileLoadManager::download(QueryId id, const FullRemoteFileLocation &remote_
 }
 
 void FileLoadManager::upload(QueryId id, const LocalFileLocation &local_location,
-                             const RemoteFileLocation &remote_location, int64 size,
+                             const RemoteFileLocation &remote_location, int64 expected_size,
                              const FileEncryptionKey &encryption_key, int8 priority, vector<int> bad_parts) {
   if (stop_flag_) {
     return;
@@ -71,7 +71,7 @@ void FileLoadManager::upload(QueryId id, const LocalFileLocation &local_location
   CHECK(node);
   node->query_id_ = id;
   auto callback = make_unique<FileUploaderCallback>(actor_shared(this, node_id));
-  node->loader_ = create_actor<FileUploader>("Uploader", local_location, remote_location, size, encryption_key,
+  node->loader_ = create_actor<FileUploader>("Uploader", local_location, remote_location, expected_size, encryption_key,
                                              std::move(bad_parts), std::move(callback));
   send_closure(upload_resource_manager_, &ResourceManager::register_worker,
                ActorShared<FileLoaderActor>(node->loader_.get(), static_cast<uint64>(-1)), priority);

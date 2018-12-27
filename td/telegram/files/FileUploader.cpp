@@ -61,7 +61,7 @@ Result<FileLoader::FileInfo> FileUploader::init() {
     offset = partial.ready_part_count_;
   } else {
     file_id_ = Random::secure_int64();
-    big_flag_ = expected_size_ > 10 * (1 << 20);
+    big_flag_ = expected_size_ > SMALL_FILE_MAX_SIZE;
   }
 
   std::vector<bool> ok(offset, true);
