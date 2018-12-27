@@ -791,7 +791,7 @@ void write_tl(const tl_config &config, tl_outputer &out, const TL_writer &w) {
   for (std::size_t function = 0; function < functions_n; function++) {
     tl_combinator *t = config.get_function_by_num(function);
     if (!w.is_combinator_supported(t)) {
-      std::fprintf(stderr, "Function %s is too hard to store\n", t->name.c_str());
+      // std::fprintf(stderr, "Function %s is too hard to store\n", t->name.c_str());
       continue;
     }
 
