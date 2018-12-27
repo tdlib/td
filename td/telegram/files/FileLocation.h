@@ -845,18 +845,15 @@ class RemoteFileLocation {
   void parse(ParserT &parser) {
     auto type = static_cast<Type>(parser.fetch_int());
     switch (type) {
-      case Type::Empty: {
+      case Type::Empty:
         variant_ = EmptyRemoteFileLocation();
         return;
-      }
-      case Type::Partial: {
+      case Type::Partial:
         variant_ = PartialRemoteFileLocation();
         return partial().parse(parser);
-      }
-      case Type::Full: {
+      case Type::Full:
         variant_ = FullRemoteFileLocation();
         return full().parse(parser);
-      }
     }
     parser.set_error("Invalid type in RemoteFileLocation");
   }
@@ -879,9 +876,26 @@ class RemoteFileLocation {
   Variant<EmptyRemoteFileLocation, PartialRemoteFileLocation, FullRemoteFileLocation> variant_;
 
   friend bool operator==(const RemoteFileLocation &lhs, const RemoteFileLocation &rhs);
+
+  bool is_empty() const {
+    switch (type()) {
+      case Type::Empty:
+        return true;
+      case Type::Partial:
+        return partial().ready_part_count_ == 0;
+      case Type::Full:
+        return false;
+      default:
+        UNREACHABLE();
+        return false;
+    }
+  }
 };
 
 inline bool operator==(const RemoteFileLocation &lhs, const RemoteFileLocation &rhs) {
+  if (lhs.is_empty() && rhs.is_empty()) {
+    return true;
+  }
   return lhs.variant_ == rhs.variant_;
 }
 
