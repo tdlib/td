@@ -2044,6 +2044,9 @@ void NotificationManager::get_current_state(vector<td_api::object_ptr<td_api::Up
   if (update != nullptr) {
     updates.push_back(std::move(update));
   }
+  if (pending_notification_update_count_ != 0) {
+    updates.push_back(td_api::make_object<td_api::updateHavePendingNotifications>(true));
+  }
 }
 
 void NotificationManager::flush_all_notifications() {
