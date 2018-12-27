@@ -1,8 +1,7 @@
 import localforage from 'localforage';
 import log from './logger.js';
 import {
-  instantiateCachedURL,
-  /*fetchAndInstantiate,*/ instantiateStreaming
+  instantiateAny
 } from './wasm-utils.js';
 
 import td_wasm_release from './prebuilt/release/td_wasm.wasm';
@@ -12,9 +11,59 @@ import td_wasm_release from './prebuilt/release/td_wasm.wasm';
 
 import { detect } from 'detect-browser';
 const browser = detect();
-const tdlibVersion = 5;
+const tdlibVersion = 6;
+const localForageDrivers = [localforage.INDEXEDDB, localforage.LOCALSTORAGE, 'memoryDriver'];
 
-async function loadTdLibWasm(useStreaming) {
+async function initLocalForage() {
+  // Implement the driver here.
+  var memoryDriver = {
+    _driver: 'memoryDriver',
+    _initStorage: function(options) {
+      var dbInfo = {};
+      if (options) {
+        for (var i in options) {
+          dbInfo[i] = options[i];
+        }
+      }
+      this._dbInfo = dbInfo;
+      this._map = new Map();
+    },
+    clear: async function() {
+      this._map.clear();
+    },
+    getItem: async function(key) {
+      let value = this._map.get(key);
+      console.log("getItem", this._map, key, value);
+      return value;
+    },
+    iterate: async function(iteratorCallback) {
+      log.error("iterate is not supported");
+    },
+    key: async function(n) {
+      log.error("key n is not supported");
+    },
+    keys: async function() {
+      return this._map.keys();
+    },
+    length: async function() {
+      return this._map.size();
+    },
+    removeItem: async function(key) {
+      this._map.delete(key)
+    },
+    setItem: async function(key, value) {
+      let originalValue = this._map.get(key);
+      console.log("setItem", this._map, key, value);
+      this._map.set(key, value);
+      return originalValue;
+    }
+  }
+
+  // Add the driver to localForage.
+  localforage.defineDriver(memoryDriver);
+}
+
+async function loadTdLibWasm() {
   let Module = await import('./prebuilt/release/td_wasm.js');
   log.info('got td_wasm.js');
   let td_wasm = td_wasm_release;
@@ -29,11 +78,7 @@ async function loadTdLibWasm(useStreaming) {
           log.info('finish instantiateWasm');
           successCallback(instance);
         };
-        if (useStreaming) {
-          instantiateStreaming(td_wasm, imports).then(next);
-        } else {
-          instantiateCachedURL(tdlibVersion, td_wasm, imports).then(next);
-        }
+        instantiateAny(tdlibVersion, td_wasm, imports).then(next);
         return {};
       },
       ENVIROMENT: 'WORKER'
@@ -78,7 +123,7 @@ async function loadTdLib(mode) {
   //if (mode === 'asmjs') {
     //return loadTdLibAsmjs();
   //}
-  return loadTdLibWasm(mode !== 'wasm');
+  return loadTdLibWasm();
 }
 
 class OutboundFileSystem {
@@ -125,7 +170,8 @@ class InboundFileSystem {
       FS.mkdir(root);
 
       ifs.store = localforage.createInstance({
-        name: dbName
+        name: dbName,
+        driver: localForageDrivers
       });
       let keys = await ifs.store.keys();
 
@@ -246,10 +292,37 @@ class TdClient {
     this.wasInit = false;
   }
 
+  async testLocalForage() {
+    await initLocalForage();
+    var DRIVERS = [
+      localforage.INDEXEDDB,
+      'memoryDriver',
+      localforage.LOCALSTORAGE,
+      localforage.WEBSQL,
+      localForageDrivers
+    ];
+    for (const driverName of DRIVERS) {
+      console.log("Test ", driverName);
+      try {
+        await localforage.setDriver(driverName);
+        console.log("A");
+        await localforage.setItem('hello', 'world');
+        console.log("B");
+        let x = await localforage.getItem('hello');
+        console.log("got ", x);
+        await localforage.clear();
+        console.log("C");
+      } catch (error)  {
+        console.log("Error", error);
+      }
+    };
+  }
+
   async init(options) {
     if (this.wasInit) {
       return;
     }
+    await this.testLocalForage();
     log.setVerbosity(options.jsVerbosity);
     this.wasInit = true;
 

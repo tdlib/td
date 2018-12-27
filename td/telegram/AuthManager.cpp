@@ -570,8 +570,9 @@ void AuthManager::set_phone_number(uint64 query_id, string phone_number, bool al
 
   on_new_query(query_id);
 
+  auto unique_id = UniqueId::next();
   start_net_query(NetQueryType::SendCode,
-                  G()->net_query_creator().create(create_storer(r_send_code.move_as_ok()), DcId::main(),
+                  G()->net_query_creator().create(unique_id, create_storer(r_send_code.move_as_ok()), DcId::main(),
                                                   NetQuery::Type::Common, NetQuery::AuthFlag::Off));
 }
 

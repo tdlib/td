@@ -3,10 +3,9 @@
 // This library function fetches the wasm module at 'url', instantiates it with
 // the given 'importObject', and returns the instantiated object instance
 
-export function instantiateStreaming(url, importObject) {
-  return WebAssembly.instantiateStreaming(fetch(url), importObject).then(
-    results => results.instance
-  );
+export async function instantiateStreaming(url, importObject) {
+  let result = await WebAssembly.instantiateStreaming(fetch(url), importObject);
+  return result.instance;
 }
 export function fetchAndInstantiate(url, importObject) {
   return fetch(url)
@@ -119,3 +118,19 @@ export function instantiateCachedURL(dbVersion, url, importObject) {
     }
   );
 }
+
+export async function instantiateAny(version, url, importObject) {
+  console.log("instantiate");
+  try {
+   return await instantiateStreaming(url, importObject);
+  } catch (e) {
+    console.log("instantiateSteaming failed", e);
+  }
+  try {
+   return await instantiateCachedURL(version, url, importObject);
+  } catch (e) {
+    console.log("instantiateCachedURL failed", e);
+  }
+  throw new Error("can't instantiate wasm");
+}
+
