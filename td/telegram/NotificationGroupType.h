@@ -15,7 +15,8 @@ namespace td {
 
 enum class NotificationGroupType : int8 { Messages, Mentions, SecretChat, Calls };
 
-inline td_api::object_ptr<td_api::NotificationGroupType> get_notification_group_type_object(NotificationGroupType type) {
+inline td_api::object_ptr<td_api::NotificationGroupType> get_notification_group_type_object(
+    NotificationGroupType type) {
   switch (type) {
     case NotificationGroupType::Messages:
       return td_api::make_object<td_api::notificationGroupTypeMessages>();
@@ -31,7 +32,8 @@ inline td_api::object_ptr<td_api::NotificationGroupType> get_notification_group_
   }
 }
 
-inline NotificationGroupType get_notification_group_type(const td_api::object_ptr<td_api::NotificationGroupType> &type) {
+inline NotificationGroupType get_notification_group_type(
+    const td_api::object_ptr<td_api::NotificationGroupType> &type) {
   CHECK(type != nullptr);
   switch (type->get_id()) {
     case td_api::notificationGroupTypeMessages::ID:

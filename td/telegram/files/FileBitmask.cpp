@@ -130,4 +130,11 @@ int64 Bitmask::size() const {
   return static_cast<int64>(data_.size() * 8);
 }
 
+StringBuilder &operator<<(StringBuilder &sb, const Bitmask &mask) {
+  for (int64 i = 0; i < mask.size(); i++) {
+    sb << (mask.get(i) ? '1' : '0');
+  }
+  return sb;
+}
+
 }  // namespace td

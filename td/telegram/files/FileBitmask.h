@@ -34,11 +34,6 @@ class Bitmask {
   std::string data_;
 };
 
-inline StringBuilder &operator<<(StringBuilder &sb, const Bitmask &mask) {
-  for (int64 i = 0; i < mask.size(); i++) {
-    sb << (mask.get(i) ? '1' : '0');
-  }
-  return sb;
-}
+StringBuilder &operator<<(StringBuilder &sb, const Bitmask &mask);
 
 }  // namespace td
