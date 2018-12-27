@@ -6587,6 +6587,15 @@ void MessagesManager::after_get_difference() {
         if (dialog_id.get_type() != DialogType::Channel) {
           dump_debug_message_op(get_dialog(dialog_id));
         }
+        get_messages_from_server(
+            {it.first}, PromiseCreator::lambda([this, full_message_id = it.first](Result<Unit> result) {
+              if (result.is_error()) {
+                LOG(WARNING) << "Failed to get missing " << full_message_id << ": " << result.error();
+              } else {
+                LOG(WARNING) << "Successfully get missing " << full_message_id << ": "
+                             << to_string(get_message_object(full_message_id));
+              }
+            }));
         break;
       case DialogType::SecretChat:
         break;
