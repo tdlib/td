@@ -409,6 +409,8 @@ int64 FileView::local_total_size() const {
     case LocalFileLocation::Type::Full:
       return node_->size_;
     case LocalFileLocation::Type::Partial:
+      VLOG(update_file) << "Have local_ready_prefix_size = " << node_->local_ready_prefix_size_
+                        << " and local_ready_size = " << node_->local_ready_size_;
       return max(node_->local_ready_prefix_size_, node_->local_ready_size_);
     default:
       UNREACHABLE();
@@ -425,9 +427,12 @@ int64 FileView::remote_size() const {
     case RemoteFileLocation::Type::Full:
       return node_->size_;
     case RemoteFileLocation::Type::Partial: {
-      auto res =
-          max(static_cast<int64>(node_->remote_.partial().part_size_) * node_->remote_.partial().ready_part_count_,
-              node_->remote_ready_size_);
+      auto part_size = static_cast<int64>(node_->remote_.partial().part_size_);
+      auto ready_part_count = node_->remote_.partial().ready_part_count_;
+      auto remote_ready_size = node_->remote_ready_size_;
+      VLOG(update_file) << "Have part_size = " << part_size << ", remote_ready_part_count = " << ready_part_count
+                        << ", remote_ready_size = " << remote_ready_size << ", size = " << size();
+      auto res = max(part_size * ready_part_count, remote_ready_size);
       if (size() != 0 && size() < res) {
         res = size();
       }
@@ -2478,7 +2483,9 @@ void FileManager::on_partial_generate(QueryId query_id, const PartialLocalFileLo
   if (file_node->generate_id_ != query_id) {
     return;
   }
-  file_node->set_local_location(LocalFileLocation(partial_local), 0, -1, -1 /* TODO */);
+  auto ready_size = Bitmask(Bitmask::Decode{}, partial_local.ready_bitmask_)
+                        .get_total_size(partial_local.part_size_, file_node->size_);
+  file_node->set_local_location(LocalFileLocation(partial_local), ready_size, -1, -1 /* TODO */);
   // TODO check for size and local_size, abort generation if needed
   if (expected_size > 0) {
     file_node->set_expected_size(expected_size);

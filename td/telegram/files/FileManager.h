@@ -94,8 +94,8 @@ class FileNode {
 
   LocalFileLocation local_;
   FileLoadManager::QueryId upload_id_ = 0;
-  int64 local_ready_size_ = 0;
   int64 download_offset_ = 0;
+  int64 local_ready_size_ = 0;         // PartialLocal only
   int64 local_ready_prefix_size_ = 0;  // PartialLocal only
 
   RemoteFileLocation remote_;
