@@ -439,7 +439,7 @@ int64 FileView::remote_size() const {
       return res;
     }
     default:
-      return 0;
+      return node_->remote_ready_size_;
   }
 }
 
@@ -2349,7 +2349,7 @@ void FileManager::on_partial_upload(QueryId query_id, const PartialRemoteFileLoc
 
   auto file_id = query->file_id_;
   auto file_node = get_file_node(file_id);
-  LOG(DEBUG) << "Receive on_partial_upload for file " << file_id;
+  LOG(DEBUG) << "Receive on_partial_upload for file " << file_id << " with " << partial_remote;
   if (!file_node) {
     return;
   }
@@ -2475,16 +2475,15 @@ void FileManager::on_partial_generate(QueryId query_id, const PartialLocalFileLo
 
   auto file_id = query->file_id_;
   auto file_node = get_file_node(file_id);
-  LOG(DEBUG) << "Receive on_partial_generate for file " << file_id << ": " << partial_local.path_ << " "
-             << Bitmask(Bitmask::Decode{}, partial_local.ready_bitmask_);
+  auto bitmask = Bitmask(Bitmask::Decode{}, partial_local.ready_bitmask_);
+  LOG(DEBUG) << "Receive on_partial_generate for file " << file_id << ": " << partial_local.path_ << " " << bitmask;
   if (!file_node) {
     return;
   }
   if (file_node->generate_id_ != query_id) {
     return;
   }
-  auto ready_size = Bitmask(Bitmask::Decode{}, partial_local.ready_bitmask_)
-                        .get_total_size(partial_local.part_size_, file_node->size_);
+  auto ready_size = bitmask.get_total_size(partial_local.part_size_, file_node->size_);
   file_node->set_local_location(LocalFileLocation(partial_local), ready_size, -1, -1 /* TODO */);
   // TODO check for size and local_size, abort generation if needed
   if (expected_size > 0) {

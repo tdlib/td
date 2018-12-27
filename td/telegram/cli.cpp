@@ -3596,7 +3596,7 @@ class CliClient final : public Actor {
           local_size = local_size * 2 - it->size;
         }
         send_request(
-            make_tl_object<td_api::setFileGenerationProgress>(it->id, (it->size + it->local_size) / 2, local_size));
+            make_tl_object<td_api::setFileGenerationProgress>(it->id, (it->size + 3 * it->local_size) / 4, local_size));
         ++it;
       }
     }

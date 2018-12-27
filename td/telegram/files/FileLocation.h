@@ -363,6 +363,11 @@ inline bool operator!=(const PartialRemoteFileLocation &lhs, const PartialRemote
   return !(lhs == rhs);
 }
 
+inline StringBuilder &operator<<(StringBuilder &sb, const PartialRemoteFileLocation &location) {
+  return sb << '[' << (location.is_big_ ? "Big" : "Small") << " partial remote location with " << location.part_count_
+            << " parts of size " << location.part_size_ << " with " << location.ready_part_count_ << " ready parts]";
+}
+
 struct PhotoRemoteFileLocation {
   int64 id_;
   int64 access_hash_;
