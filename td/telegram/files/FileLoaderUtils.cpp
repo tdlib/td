@@ -76,6 +76,7 @@ bool for_suggested_file_name(CSlice name, bool use_pmc, bool use_random, F &&cal
     if (r_path.is_error()) {
       return true;
     }
+    LOG(DEBUG) << "Trying " << r_path.ok();
     return callback(r_path.move_as_ok());
   };
   auto cleaned_name = clean_filename(name);

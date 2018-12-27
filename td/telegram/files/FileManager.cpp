@@ -1607,10 +1607,6 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
   }
 
   LOG(INFO) << "Change download priority of file " << file_id << " to " << new_priority;
-  if (file_view.is_encrypted_any()) {
-    // TODO: we need to set offset always and just download from the beginning
-    offset = 0;
-  }
   node->set_download_offset(offset);
   auto *file_info = get_file_id_info(file_id);
   CHECK(new_priority == 0 || callback);
@@ -1629,9 +1625,6 @@ void FileManager::download_set_offset(FileId file_id, int64 offset) {
   if (!file_node) {
     LOG(INFO) << "File " << file_id << " not found";
     return;
-  }
-  if (FileView(file_node).is_encrypted_any()) {
-    offset = 0;
   }
   file_node->set_download_offset(offset);
   run_generate(file_node);
@@ -1674,8 +1667,8 @@ void FileManager::run_download(FileNodePtr node) {
     CHECK(node->download_id_ != 0);
     send_closure(file_load_manager_, &FileLoadManager::update_priority, node->download_id_, priority);
     if (need_update_offset) {
-      send_closure(file_load_manager_, &FileLoadManager::update_download_offset, node->download_id_,
-                   node->download_offset_);
+      auto download_offset = file_view.is_encrypted_any() ? 0 : node->download_offset_;
+      send_closure(file_load_manager_, &FileLoadManager::update_download_offset, node->download_id_, download_offset);
     }
     return;
   }
@@ -1688,9 +1681,9 @@ void FileManager::run_download(FileNodePtr node) {
   node->is_download_started_ = false;
   LOG(DEBUG) << "Run download of file " << file_id << " of size " << node->size_ << " from " << node->remote_.full()
              << " with suggested name " << node->suggested_name() << " and encyption key " << node->encryption_key_;
+  auto download_offset = file_view.is_encrypted_any() ? 0 : node->download_offset_;
   send_closure(file_load_manager_, &FileLoadManager::download, id, node->remote_.full(), node->local_, node->size_,
-               node->suggested_name(), node->encryption_key_, node->can_search_locally_, node->download_offset_,
-               priority);
+               node->suggested_name(), node->encryption_key_, node->can_search_locally_, download_offset, priority);
 }
 
 void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std::shared_ptr<UploadCallback> callback,
