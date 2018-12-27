@@ -989,6 +989,12 @@ inline bool operator!=(const PartialLocalFileLocation &lhs, const PartialLocalFi
   return !(lhs == rhs);
 }
 
+inline StringBuilder &operator<<(StringBuilder &sb, const PartialLocalFileLocation &location) {
+  return sb << "[partial local location of " << location.file_type_ << " with part size " << location.part_size_
+            << " and ready parts " << Bitmask(Bitmask::Decode{}, location.ready_bitmask_) << "] at \"" << location.path_
+            << '"';
+}
+
 struct FullLocalFileLocation {
   FileType file_type_;
   string path_;
