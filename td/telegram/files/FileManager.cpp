@@ -2588,8 +2588,9 @@ void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type,
   if (status.message() == "FILE_PART_INVALID") {
     bool has_partial_small_location =
         node->remote_.type() == RemoteFileLocation::Type::Partial && !node->remote_.partial().is_big_;
-    auto expected_size = FileView(node).expected_size(true);
-    bool should_be_big_location = expected_size > SMALL_FILE_MAX_SIZE;
+    FileView file_view(node);
+    auto expected_size = file_view.expected_size(true);
+    bool should_be_big_location = is_file_big(file_view.get_type(), expected_size);
 
     node->set_remote_location(RemoteFileLocation(), FileLocationSource::None, 0);
     if (has_partial_small_location && should_be_big_location) {
@@ -2597,9 +2598,8 @@ void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type,
       return;
     }
 
-    LOG(WARNING) << "Failed to upload file: unexpected " << status << " " << has_partial_small_location << " "
-                 << should_be_big_location << " "
-                 << "expected size: " << expected_size;
+    LOG(WARNING) << "Failed to upload file: unexpected " << status << ", is_small = " << has_partial_small_location
+                 << ", should_be_big = " << should_be_big_location << ", expected size = " << expected_size;
   }
 
   if (begins_with(status.message(), "FILE_GENERATE_LOCATION_INVALID")) {

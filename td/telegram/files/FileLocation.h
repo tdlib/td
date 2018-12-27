@@ -33,8 +33,6 @@
 
 namespace td {
 
-constexpr int64 SMALL_FILE_MAX_SIZE = 10 * (1 << 20);
-
 enum class FileType : int8 {
   Thumbnail,
   ProfilePhoto,
@@ -163,6 +161,21 @@ inline FileDirType get_file_dir_type(FileType file_type) {
     default:
       return FileDirType::Common;
   }
+}
+
+inline bool is_file_big(FileType file_type, int64 expected_size) {
+  switch (file_type) {
+    case FileType::Thumbnail:
+    case FileType::ProfilePhoto:
+    case FileType::Photo:
+    case FileType::EncryptedThumbnail:
+      return false;
+    default:
+      break;
+  }
+
+  constexpr int64 SMALL_FILE_MAX_SIZE = 10 << 20;
+  return expected_size > SMALL_FILE_MAX_SIZE;
 }
 
 struct FileEncryptionKey {
