@@ -200,14 +200,9 @@ Result<Part> PartsManager::start_part() {
 }
 
 Status PartsManager::set_known_prefix(size_t size, bool is_ready) {
-  CHECK(known_prefix_flag_) << unknown_size_flag_ << " " << size << " " << is_ready << " " << known_prefix_size_ << " "
-                            << expected_size_ << " " << part_count_ << " " << part_status_.size();
-  if (size < static_cast<size_t>(known_prefix_size_)) {
+  if (!known_prefix_flag_ || size < static_cast<size_t>(known_prefix_size_)) {
     return Status::Error("FILE_UPLOAD_RESTART");
   }
-  CHECK(size >= static_cast<size_t>(known_prefix_size_))
-      << unknown_size_flag_ << " " << size << " " << is_ready << " " << known_prefix_size_ << " " << expected_size_
-      << " " << part_count_ << " " << part_status_.size();
   known_prefix_size_ = narrow_cast<int64>(size);
   expected_size_ = max(known_prefix_size_, expected_size_);
 
