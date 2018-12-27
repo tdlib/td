@@ -482,6 +482,7 @@ set(TDLIB_SOURCE
   td/telegram/files/FileBitmask.h
   td/telegram/files/FileDb.h
   td/telegram/files/FileDownloader.h
+  td/telegram/files/FileEncryptionKey.h
   td/telegram/files/FileFromBytes.h
   td/telegram/files/FileGcParameters.h
   td/telegram/files/FileGcWorker.h

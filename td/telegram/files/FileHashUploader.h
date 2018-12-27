@@ -79,4 +79,5 @@ class FileHashUploader : public FileLoaderActor {
 
   Status on_result_impl(NetQueryPtr net_query);
 };
+
 }  // namespace td

@@ -23,6 +23,7 @@
 #include "td/utils/Status.h"
 
 namespace td {
+
 void FileHashUploader::start_up() {
   auto status = init();
   if (status.is_error()) {
@@ -31,6 +32,7 @@ void FileHashUploader::start_up() {
     return;
   }
 }
+
 Status FileHashUploader::init() {
   TRY_RESULT(fd, FileFd::open(local_.path_, FileFd::Read));
   if (fd.get_size() != size_) {
@@ -43,6 +45,7 @@ Status FileHashUploader::init() {
   resource_state_.update_estimated_limit(size_);
   return Status::OK();
 }
+
 void FileHashUploader::loop() {
   if (stop_flag_) {
     return;
@@ -140,4 +143,5 @@ Status FileHashUploader::on_result_impl(NetQueryPtr net_query) {
       return Status::Error("UNREACHABLE");
   }
 }
+
 }  // namespace td
