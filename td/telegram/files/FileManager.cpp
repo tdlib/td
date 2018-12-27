@@ -687,7 +687,7 @@ Status FileManager::check_local_location(FileNodePtr node) {
   }
   if (status.is_error()) {
     node->drop_local_location();
-    try_flush_node(node);
+    try_flush_node(node, "check_local_location");
   }
   return status;
 }
@@ -746,7 +746,7 @@ void FileManager::on_file_unlink(const FullLocalFileLocation &location) {
   auto file_node = get_sync_file_node(file_id);
   CHECK(file_node);
   file_node->drop_local_location();
-  try_flush_node_info(file_node);
+  try_flush_node_info(file_node, "on_file_unlink");
 }
 
 Result<FileId> FileManager::register_local(FullLocalFileLocation location, DialogId owner_dialog_id, int64 size,
@@ -904,7 +904,7 @@ Result<FileId> FileManager::register_file(FileData data, FileLocationSource file
     merge(file_id, id, no_sync_merge).ignore();
   }
 
-  try_flush_node(get_file_node(file_id));
+  try_flush_node(get_file_node(file_id), "register_file");
   auto main_file_id = get_file_node(file_id)->main_file_id_;
   try_forget_file_id(file_id);
   return FileId(main_file_id.get(), remote_key);
@@ -1272,13 +1272,13 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     // node might not changed, but we need to merge nodes in pmc anyway
     node->on_pmc_changed();
   }
-  try_flush_node(node, node_i != remote_i, node_i != local_i, node_i != generate_i, other_pmc_id);
+  try_flush_node_full(node, node_i != remote_i, node_i != local_i, node_i != generate_i, other_pmc_id);
 
   return node->main_file_id_;
 }
 
-void FileManager::try_flush_node(FileNodePtr node, bool new_remote, bool new_local, bool new_generate,
-                                 FileDbId other_pmc_id) {
+void FileManager::try_flush_node_full(FileNodePtr node, bool new_remote, bool new_local, bool new_generate,
+                                      FileDbId other_pmc_id) {
   if (node->need_pmc_flush()) {
     if (file_db_) {
       load_from_pmc(node, true, true, true);
@@ -1290,15 +1290,27 @@ void FileManager::try_flush_node(FileNodePtr node, bool new_remote, bool new_loc
     node->on_pmc_flushed();
   }
 
-  try_flush_node_info(node);
+  try_flush_node_info(node, "try_flush_node_full");
 }
 
-void FileManager::try_flush_node_info(FileNodePtr node) {
+void FileManager::try_flush_node(FileNodePtr node, const char *source) {
+  if (node->need_pmc_flush()) {
+    if (file_db_) {
+      load_from_pmc(node, true, true, true);
+      flush_to_pmc(node, false, false, false);
+    }
+    node->on_pmc_flushed();
+  }
+
+  try_flush_node_info(node, source);
+}
+
+void FileManager::try_flush_node_info(FileNodePtr node, const char *source) {
   if (node->need_info_flush()) {
     for (auto file_id : vector<FileId>(node->file_ids_)) {
       auto *info = get_file_id_info(file_id);
       if (info->send_updates_flag_) {
-        VLOG(update_file) << "Send UpdateFile about file " << file_id;
+        VLOG(update_file) << "Send UpdateFile about file " << file_id << " from " << source;
         context_->on_file_updated(file_id);
       }
     }
@@ -1457,7 +1469,7 @@ bool FileManager::set_encryption_key(FileId file_id, FileEncryptionKey key) {
     return false;
   }
   node->set_encryption_key(std::move(key));
-  try_flush_node(node);
+  try_flush_node(node, "set_encryption_key");
   return true;
 }
 
@@ -1529,7 +1541,7 @@ void FileManager::delete_file(FileId file_id, Promise<Unit> promise, const char 
       unlink(file_view.local_location().path_).ignore();
       context_->on_new_file(-file_view.size());
       node->drop_local_location();
-      try_flush_node(node);
+      try_flush_node(node, "delete_file 1");
     }
   } else {
     if (file_view.get_type() == FileType::Encrypted) {
@@ -1539,7 +1551,7 @@ void FileManager::delete_file(FileId file_id, Promise<Unit> promise, const char 
       LOG(INFO) << "Unlink partial file " << file_id << " at " << node->local_.partial().path_;
       unlink(node->local_.partial().path_).ignore();
       node->drop_local_location();
-      try_flush_node(node);
+      try_flush_node(node, "delete_file 2");
     }
   }
 
@@ -1608,7 +1620,7 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
   run_generate(node);
   run_download(node);
 
-  try_flush_node(node);
+  try_flush_node(node, "download");
 }
 
 void FileManager::download_set_offset(FileId file_id, int64 offset) {
@@ -1623,7 +1635,7 @@ void FileManager::download_set_offset(FileId file_id, int64 offset) {
   file_node->set_download_offset(offset);
   run_generate(file_node);
   run_download(file_node);
-  try_flush_node(file_node);
+  try_flush_node(file_node, "download_set_offset");
 }
 
 void FileManager::run_download(FileNodePtr node) {
@@ -1730,7 +1742,7 @@ void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std:
 
   run_generate(node);
   run_upload(node, std::move(bad_parts));
-  try_flush_node(node);
+  try_flush_node(node, "resume_upload");
 }
 
 bool FileManager::delete_partial_remote_location(FileId file_id) {
@@ -1763,7 +1775,7 @@ bool FileManager::delete_partial_remote_location(FileId file_id) {
   }
 
   run_upload(node, std::vector<int>());
-  try_flush_node(node);
+  try_flush_node(node, "delete_partial_remote_location");
   return true;
 }
 
@@ -2313,7 +2325,7 @@ void FileManager::on_partial_download(QueryId query_id, const PartialLocalFileLo
     file_node->set_size(size);
   }
   file_node->set_local_location(LocalFileLocation(partial_local), ready_size, -1, -1 /* TODO */);
-  try_flush_node(file_node);
+  try_flush_node(file_node, "on_partial_download");
 }
 
 void FileManager::on_hash(QueryId query_id, string hash) {
@@ -2358,7 +2370,7 @@ void FileManager::on_partial_upload(QueryId query_id, const PartialRemoteFileLoc
   }
 
   file_node->set_remote_location(RemoteFileLocation(partial_remote), FileLocationSource::None, ready_size);
-  try_flush_node(file_node);
+  try_flush_node(file_node, "on_partial_upload");
 }
 
 void FileManager::on_download_ok(QueryId query_id, const FullLocalFileLocation &local, int64 size) {
@@ -2498,7 +2510,7 @@ void FileManager::on_partial_generate(QueryId query_id, const PartialLocalFileLo
                  LocalFileLocation(partial_local));
   }
 
-  try_flush_node(file_node);
+  try_flush_node(file_node, "on_partial_generate");
 }
 
 void FileManager::on_generate_ok(QueryId query_id, const FullLocalFileLocation &local) {
@@ -2572,7 +2584,7 @@ void FileManager::on_error(QueryId query_id, Status status) {
 
 void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type, bool was_active, Status status) {
   SCOPE_EXIT {
-    try_flush_node(node);
+    try_flush_node(node, "on_error");
   };
   if (status.code() != 1 && !G()->close_flag()) {
     LOG(WARNING) << "Failed to upload/download/generate file: " << status << ". Query type = " << type

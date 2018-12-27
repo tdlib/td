@@ -460,9 +460,9 @@ class FileManager : public FileLoadManager::Callback {
 
   Status check_local_location(FileNodePtr node);
   Status check_local_location(FullLocalFileLocation &location, int64 &size);
-  void try_flush_node(FileNodePtr node, bool new_remote = false, bool new_local = false, bool new_generate = false,
-                      FileDbId other_pmc_id = Auto());
-  void try_flush_node_info(FileNodePtr node);
+  void try_flush_node_full(FileNodePtr node, bool new_remote, bool new_local, bool new_generate, FileDbId other_pmc_id);
+  void try_flush_node(FileNodePtr node, const char *source);
+  void try_flush_node_info(FileNodePtr node, const char *source);
   void clear_from_pmc(FileNodePtr node);
   void flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local, bool new_generate);
   void load_from_pmc(FileNodePtr node, bool new_remote, bool new_local, bool new_generate);
