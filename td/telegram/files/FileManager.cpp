@@ -357,6 +357,7 @@ bool FileView::is_downloading() const {
 int64 FileView::download_offset() const {
   return node_->download_offset_;
 }
+
 int64 FileView::downloaded_prefix(int64 offset) const {
   switch (node_->local_.type()) {
     case LocalFileLocation::Type::Empty:
@@ -1582,7 +1583,7 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
 
   LOG(INFO) << "Change download priority of file " << file_id << " to " << new_priority;
   if (file_view.is_encrypted_any()) {
-    // TODO: we need to set it always and just download from the beginning
+    // TODO: we need to set offset always and just download from the beginning
     offset = 0;
   }
   node->set_download_offset(offset);

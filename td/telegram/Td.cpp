@@ -4859,6 +4859,9 @@ void Td::on_request(uint64 id, const td_api::getFile &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::getFileDownloadedPrefixSize &request) {
+  if (request.offset_ < 0) {
+    return send_error_raw(id, 5, "Prefix offset must be non-negative");
+  }
   auto file_view = file_manager_->get_file_view(FileId(request.file_id_, 0));
   if (file_view.empty()) {
     return send_closure(actor_id(this), &Td::send_error, id, Status::Error(10, "Unknown file id"));
@@ -5677,6 +5680,9 @@ void Td::on_request(uint64 id, const td_api::downloadFile &request) {
   if (!(1 <= priority && priority <= 32)) {
     return send_error_raw(id, 5, "Download priority must be in [1;32] range");
   }
+  if (request.offset_ < 0) {
+    return send_error_raw(id, 5, "Download offset must be non-negative");
+  }
   file_manager_->download(FileId(request.file_id_, 0), download_file_callback_, priority, request.offset_);
 
   auto file = file_manager_->get_file_object(FileId(request.file_id_, 0), false);
@@ -5688,6 +5694,9 @@ void Td::on_request(uint64 id, const td_api::downloadFile &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::setFileDownloadOffset &request) {
+  if (request.offset_ < 0) {
+    return send_error_raw(id, 5, "Download offset must be non-negative");
+  }
   file_manager_->download_set_offset(FileId(request.file_id_, 0), request.offset_);
   auto file = file_manager_->get_file_object(FileId(request.file_id_, 0), false);
   if (file->id_ == 0) {
@@ -5698,7 +5707,7 @@ void Td::on_request(uint64 id, const td_api::setFileDownloadOffset &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::cancelDownloadFile &request) {
-  file_manager_->download(FileId(request.file_id_, 0), nullptr, 0, request.only_if_pending_ ? -1 : 0);
+  file_manager_->download(FileId(request.file_id_, 0), nullptr, request.only_if_pending_ ? -1 : 0, -1);
 
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
 }

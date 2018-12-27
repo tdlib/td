@@ -87,7 +87,7 @@ class FileDownloadGenerateActor : public FileGenerateActor {
                  -1);
   }
   void hangup() override {
-    send_closure(G()->file_manager(), &FileManager::download, file_id_, nullptr, 0, 0);
+    send_closure(G()->file_manager(), &FileManager::download, file_id_, nullptr, 0, -1);
     stop();
   }
 
