@@ -34,8 +34,8 @@ std::string Bitmask::encode(int32 prefix_count) {
     if (prefix_count % 8 != 0) {
       save_i = truncated_size - 1;
       save_c = data_[save_i];
-      uint8 mask = 0xff >> (8 - prefix_count % 8);
-      data_[save_i] &= mask;
+      auto mask = 0xff >> (8 - prefix_count % 8);
+      data_[save_i] = static_cast<char>(data_[save_i] & mask);
     }
   }
   SCOPE_EXIT {
@@ -123,7 +123,7 @@ void Bitmask::set(int64 offset_part) {
   if (need_size > data_.size()) {
     data_.resize(need_size, '\0');
   }
-  data_[need_size - 1] |= (1 << (offset_part % 8));
+  data_[need_size - 1] = static_cast<char>(data_[need_size - 1] | (1 << (offset_part % 8)));
 }
 
 int64 Bitmask::size() const {
@@ -135,7 +135,7 @@ StringBuilder &operator<<(StringBuilder &sb, const Bitmask &mask) {
   int32 cnt = 0;
   for (int64 i = 0; i <= mask.size(); i++) {
     bool cur = mask.get(i);
-    if (cur != prev) { // zeros at the end are intentionally skipped
+    if (cur != prev) {  // zeros at the end are intentionally skipped
       if (cnt < 5) {
         while (cnt > 0) {
           sb << (prev ? '1' : '0');
