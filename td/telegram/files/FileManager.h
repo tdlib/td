@@ -344,7 +344,6 @@ class FileManager : public FileLoadManager::Callback {
   bool set_content(FileId file_id, BufferSlice bytes);
 
   void download(FileId file_id, std::shared_ptr<DownloadCallback> callback, int32 new_priority, int64 offset);
-  void download_set_offset(FileId file_id, int64 offset);
   void upload(FileId file_id, std::shared_ptr<UploadCallback> callback, int32 new_priority, uint64 upload_order);
   void resume_upload(FileId file_id, std::vector<int> bad_parts, std::shared_ptr<UploadCallback> callback,
                      int32 new_priority, uint64 upload_order);

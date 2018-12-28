@@ -2276,12 +2276,6 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::getMapThumbnailFile>(
           as_location(latitude, longitude), to_integer<int32>(zoom), to_integer<int32>(width),
           to_integer<int32>(height), to_integer<int32>(scale), as_chat_id(chat_id)));
-    } else if (op == "sfdo" || op == "SetDownloadFileOffset") {
-      string file_id;
-      string offset;
-      std::tie(file_id, offset) = split(args);
-
-      send_request(make_tl_object<td_api::setFileDownloadOffset>(as_file_id(file_id), to_integer<int32>(offset)));
     } else if (op == "df" || op == "DownloadFile") {
       string file_id;
       string priority;

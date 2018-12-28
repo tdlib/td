@@ -646,8 +646,6 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, const td_api::downloadFile &request);
 
-  void on_request(uint64 id, const td_api::setFileDownloadOffset &request);
-
   void on_request(uint64 id, const td_api::cancelDownloadFile &request);
 
   void on_request(uint64 id, td_api::uploadFile &request);

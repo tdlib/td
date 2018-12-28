@@ -1619,18 +1619,6 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
   try_flush_node(node, "download");
 }
 
-void FileManager::download_set_offset(FileId file_id, int64 offset) {
-  auto file_node = get_sync_file_node(file_id);
-  if (!file_node) {
-    LOG(INFO) << "File " << file_id << " not found";
-    return;
-  }
-  file_node->set_download_offset(offset);
-  run_generate(file_node);
-  run_download(file_node);
-  try_flush_node(file_node, "download_set_offset");
-}
-
 void FileManager::run_download(FileNodePtr node) {
   if (node->need_load_from_pmc_) {
     return;

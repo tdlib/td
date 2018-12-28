@@ -2952,9 +2952,6 @@ setPinnedChats chat_ids:vector<int53> = Ok;
 //@offset File will be downloaded starting from that offset in bytes first. Supposed to be used for streaming
 downloadFile file_id:int32 priority:int32 offset:int32 = File;
 
-//@description Sets offset for file downloading @file_id Identifier of the file to change download offset @offset New file download offset
-setFileDownloadOffset file_id:int32 offset:int32 = File;
-
 //@description Returns file downloaded prefix size from a given offset @file_id Identifier of the file @offset Offset from which downloaded prefix size should be calculated
 getFileDownloadedPrefixSize file_id:int32 offset:int32 = Count;
 

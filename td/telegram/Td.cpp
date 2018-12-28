@@ -5693,19 +5693,6 @@ void Td::on_request(uint64 id, const td_api::downloadFile &request) {
   send_closure(actor_id(this), &Td::send_result, id, std::move(file));
 }
 
-void Td::on_request(uint64 id, const td_api::setFileDownloadOffset &request) {
-  if (request.offset_ < 0) {
-    return send_error_raw(id, 5, "Download offset must be non-negative");
-  }
-  file_manager_->download_set_offset(FileId(request.file_id_, 0), request.offset_);
-  auto file = file_manager_->get_file_object(FileId(request.file_id_, 0), false);
-  if (file->id_ == 0) {
-    return send_error_raw(id, 400, "Invalid file id");
-  }
-
-  send_closure(actor_id(this), &Td::send_result, id, std::move(file));
-}
-
 void Td::on_request(uint64 id, const td_api::cancelDownloadFile &request) {
   file_manager_->download(FileId(request.file_id_, 0), nullptr, request.only_if_pending_ ? -1 : 0, -1);
 
