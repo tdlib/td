@@ -407,8 +407,7 @@ void PasswordManager::resend_email_address_verification_code(
   send_email_address_verification_code(last_verified_email_address_, std::move(promise));
 }
 
-void PasswordManager::check_email_address_verification_code(string code,
-                                                            Promise<td_api::object_ptr<td_api::ok>> promise) {
+void PasswordManager::check_email_address_verification_code(string code, Promise<Unit> promise) {
   if (last_verified_email_address_.empty()) {
     return promise.set_error(Status::Error(400, "No email address verification was sent"));
   }
@@ -420,7 +419,7 @@ void PasswordManager::check_email_address_verification_code(string code,
                       if (r_result.is_error()) {
                         return promise.set_error(r_result.move_as_error());
                       }
-                      return promise.set_value(td_api::make_object<td_api::ok>());
+                      return promise.set_value(Unit());
                     }));
 }
 

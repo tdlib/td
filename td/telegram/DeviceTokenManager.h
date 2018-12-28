@@ -18,6 +18,7 @@
 #include "td/utils/StringBuilder.h"
 
 #include <array>
+#include <utility>
 
 namespace td {
 
@@ -26,9 +27,9 @@ class DeviceTokenManager : public NetQueryCallback {
   explicit DeviceTokenManager(ActorShared<> parent) : parent_(std::move(parent)) {
   }
   void register_device(tl_object_ptr<td_api::DeviceToken> device_token_ptr, vector<int32> other_user_ids,
-                       Promise<tl_object_ptr<td_api::ok>> promise);
+                       Promise<td_api::object_ptr<td_api::pushReceiverId>> promise);
 
-  vector<Slice> get_encryption_keys() const;
+  vector<std::pair<int64, Slice>> get_encryption_keys() const;
 
  private:
   static constexpr size_t MAX_OTHER_USER_IDS = 100;
@@ -58,7 +59,8 @@ class DeviceTokenManager : public NetQueryCallback {
     bool is_app_sandbox = false;
     bool encrypt = false;
     string encryption_key;
-    Promise<tl_object_ptr<td_api::ok>> promise;
+    int64 encryption_key_id = 0;
+    Promise<td_api::object_ptr<td_api::pushReceiverId>> promise;
 
     template <class StorerT>
     void store(StorerT &storer) const;

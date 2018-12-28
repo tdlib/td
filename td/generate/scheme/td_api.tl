@@ -1775,6 +1775,10 @@ deviceTokenBlackBerryPush token:string = DeviceToken;
 deviceTokenTizenPush reg_id:string = DeviceToken;
 
 
+//@description Contains a globally unique push receiver identifier, which can be used to identify which account has received a push notification @id The globally unique identifier of push notification subscription
+pushReceiverId id:int64 = PushReceiverId;
+
+
 //@description Contains information about a wallpaper @id Unique persistent wallpaper identifier @sizes Available variants of the wallpaper in different sizes. These photos can only be downloaded; they can't be sent in a message @color Main color of the wallpaper in RGB24 format; should be treated as background color if no photos are specified
 wallpaper id:int32 sizes:vector<photoSize> color:int32 = Wallpaper;
 
@@ -2510,13 +2514,6 @@ createTemporaryPassword password:string valid_for:int32 = TemporaryPasswordState
 
 //@description Returns information about the current temporary password
 getTemporaryPasswordState = TemporaryPasswordState;
-
-
-//@description Handles a DC_UPDATE push service notification. Can be called before authorization @dc Value of the "dc" parameter of the notification @addr Value of the "addr" parameter of the notification
-processDcUpdate dc:string addr:string = Ok;
-
-//@description Handles a push notification. Can be called before authorization @payload Push notification payload
-processPushNotification payload:string = Ok;
 
 
 //@description Returns the current user
@@ -3284,8 +3281,17 @@ setCustomLanguagePackString language_pack_id:string new_string:languagePackStrin
 deleteLanguagePack language_pack_id:string = Ok;
 
 
-//@description Registers the currently used device for receiving push notifications @device_token Device token @other_user_ids List of at most 100 user identifiers of other users currently using the client
-registerDevice device_token:DeviceToken other_user_ids:vector<int32> = Ok;
+//@description Registers the currently used device for receiving push notifications. Returns a globally unique identifier of the push notification subscription @device_token Device token @other_user_ids List of at most 100 user identifiers of other users currently using the client
+registerDevice device_token:DeviceToken other_user_ids:vector<int32> = PushReceiverId;
+
+//@description Handles a DC_UPDATE push notification. Can be called before authorization @dc Value of the "dc" parameter of the push notification @addr Value of the "addr" parameter of the push notification
+processDcUpdate dc:string addr:string = Ok;
+
+//@description Handles a push notification. Can be called before authorization @payload JSON-encoded push notification payload
+processPushNotification payload:string = Ok;
+
+//@description Returns a globally unique push notification subscription identifier for identification of an account, which has received a push notification. This is an offline method. Can be called before authorization. Can be called synchronously @payload JSON-encoded push notification payload
+getPushReceiverId payload:string = PushReceiverId;
 
 
 //@description Returns t.me URLs recently visited by a newly registered user @referrer Google Play referrer to identify the user

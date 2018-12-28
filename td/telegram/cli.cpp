@@ -1361,6 +1361,8 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::processDcUpdate>(dc_id, ip_port));
     } else if (op == "ppn") {
       send_request(make_tl_object<td_api::processPushNotification>(args));
+    } else if (op == "gpri") {
+      send_request(make_tl_object<td_api::getPushReceiverId>(args));
     } else if (op == "rda") {
       send_request(make_tl_object<td_api::registerDevice>(make_tl_object<td_api::deviceTokenApplePush>(args, true),
                                                           as_user_ids("")));

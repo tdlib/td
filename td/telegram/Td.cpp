@@ -3182,6 +3182,7 @@ bool Td::is_synchronous_request(int32 id) {
     case td_api::getFileExtension::ID:
     case td_api::cleanFileName::ID:
     case td_api::getLanguagePackString::ID:
+    case td_api::getPushReceiverId::ID:
     case td_api::getJsonValue::ID:
     case td_api::getJsonString::ID:
     case td_api::setLogStream::ID:
@@ -4721,7 +4722,7 @@ void Td::on_request(uint64 id, td_api::getUserPrivacySettingRules &request) {
 
 void Td::on_request(uint64 id, td_api::setUserPrivacySettingRules &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
+  CREATE_OK_REQUEST_PROMISE();
   send_closure(privacy_manager_, &PrivacyManager::set_privacy, std::move(request.setting_), std::move(request.rules_),
                std::move(promise));
 }
@@ -6638,7 +6639,7 @@ void Td::on_request(uint64 id, const td_api::resendEmailAddressVerificationCode 
 void Td::on_request(uint64 id, td_api::checkEmailAddressVerificationCode &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.code_);
-  CREATE_REQUEST_PROMISE();
+  CREATE_OK_REQUEST_PROMISE();
   send_closure(password_manager_, &PasswordManager::check_email_address_verification_code, request.code_,
                std::move(promise));
 }
@@ -6898,6 +6899,10 @@ void Td::on_request(uint64 id, const td_api::getLanguagePackString &request) {
   UNREACHABLE();
 }
 
+void Td::on_request(uint64 id, const td_api::getPushReceiverId &request) {
+  UNREACHABLE();
+}
+
 void Td::on_request(uint64 id, const td_api::getJsonValue &request) {
   UNREACHABLE();
 }
@@ -6986,6 +6991,15 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::cleanFile
 td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getLanguagePackString &request) {
   return LanguagePackManager::get_language_pack_string(
       request.language_pack_database_path_, request.localization_target_, request.language_pack_id_, request.key_);
+}
+
+td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getPushReceiverId &request) {
+  // don't check push payload UTF-8 correctness
+  auto r_push_receiver_id = NotificationManager::get_push_receiver_id(std::move(request.payload_));
+  if (r_push_receiver_id.is_error()) {
+    return make_error(r_push_receiver_id.error().code(), r_push_receiver_id.error().message());
+  }
+  return td_api::make_object<td_api::pushReceiverId>(r_push_receiver_id.ok());
 }
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(td_api::getJsonValue &request) {

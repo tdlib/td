@@ -19,6 +19,7 @@
 #include <limits>
 
 namespace td {
+
 /*** Sequence Dispatcher ***/
 // Sends queries with invokeAfter.
 //
@@ -266,4 +267,5 @@ void MultiSequenceDispatcher::ready_to_close() {
     dispatchers_.erase(it);
   }
 }
+
 }  // namespace td

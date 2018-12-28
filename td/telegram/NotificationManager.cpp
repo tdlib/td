@@ -15,7 +15,9 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 
+#include "td/utils/as.h"
 #include "td/utils/format.h"
+#include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"
@@ -1948,21 +1950,72 @@ void NotificationManager::on_notification_default_delay_changed() {
   VLOG(notifications) << "Set notification_default_delay_ms to " << notification_default_delay_ms_;
 }
 
-void NotificationManager::process_push_notification(const string &payload, Promise<Unit> &&promise) {
+void NotificationManager::process_push_notification(string payload, Promise<Unit> &&promise) {
   if (G()->close_flag()) {
+    promise.set_value(Unit());
     return;
   }
 
+  auto r_receiver_id = get_push_receiver_id(payload);
+  if (r_receiver_id.is_error()) {
+    VLOG(notifications) << "Failed to get push notification receiver from \"" << format::escaped(payload) << '"';
+    promise.set_error(r_receiver_id.move_as_error());
+    return;
+  }
+
+  auto receiver_id = r_receiver_id.move_as_ok();
+  VLOG(notifications) << "Process push notification \"" << format::escaped(payload)
+                      << "\" with receiver_id = " << receiver_id;
+
   auto encryption_keys = td_->device_token_manager_->get_actor_unsafe()->get_encryption_keys();
   for (auto &key : encryption_keys) {
-    VLOG(notifications) << "Have key \"" << format::escaped(key) << '"';
+    VLOG(notifications) << "Have key " << key.first << ": \"" << format::escaped(key.second) << '"';
+    if (key.first == receiver_id) {
+      if (key.second.empty()) {
+        VLOG(notifications) << "Process unencrypted push notification";
+      } else {
+        VLOG(notifications) << "Process encrypted push notification";
+      }
+      promise.set_value(Unit());
+      return;
+    }
   }
-  if (encryption_keys.empty()) {
-    VLOG(notifications) << "Process push notification \"" << payload << '"';
-  } else {
-    VLOG(notifications) << "Process encrypted push notification \"" << format::escaped(payload) << '"';
+  if (receiver_id != 0) {  // TODO move this check up
+    promise.set_value(Unit());
+    return;
   }
+
+  VLOG(notifications) << "Failed to process push notification";
   promise.set_value(Unit());
+}
+
+Result<int64> NotificationManager::get_push_receiver_id(string payload) {
+  VLOG(notifications) << "Get push notification receiver ID of \"" << format::escaped(payload) << '"';
+  auto r_json_value = json_decode(payload);
+  if (r_json_value.is_error()) {
+    return Status::Error(400, "Failed to parse payload as JSON object");
+  }
+
+  auto json_value = r_json_value.move_as_ok();
+  if (json_value.type() != JsonValue::Type::Object) {
+    return Status::Error(400, "Expected JSON object");
+  }
+
+  for (auto &field_value : json_value.get_object()) {
+    if (field_value.first == "p") {
+      auto encrypted_payload = std::move(field_value.second);
+      if (encrypted_payload.type() != JsonValue::Type::String) {
+        return Status::Error(400, "Expected encrypted payload as a String");
+      }
+      Slice data = encrypted_payload.get_string();
+      if (data.size() < 8) {
+        return Status::Error(400, "Encrypted payload is too small");
+      }
+      return as<int64>(data.data());
+    }
+  }
+
+  return Status::Error(200, "Unsupported push notification");
 }
 
 void NotificationManager::before_get_difference() {

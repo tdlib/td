@@ -17,6 +17,7 @@
 #include <unordered_map>
 
 namespace td {
+
 class SequenceDispatcher : public NetQueryCallback {
  public:
   class Parent : public Actor {
@@ -85,4 +86,5 @@ class MultiSequenceDispatcher : public SequenceDispatcher::Parent {
   void on_result() override;
   void ready_to_close() override;
 };
+
 }  // namespace td

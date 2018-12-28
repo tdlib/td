@@ -14,8 +14,10 @@
 #include "td/telegram/td_api.hpp"
 #include "td/telegram/telegram_api.h"
 
+#include "td/utils/as.h"
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"
+#include "td/utils/crypto.h"
 #include "td/utils/format.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
@@ -48,6 +50,7 @@ void DeviceTokenManager::TokenInfo::store(StorerT &storer) const {
   }
   if (encrypt) {
     store(encryption_key, storer);
+    store(encryption_key_id, storer);
   }
 }
 
@@ -80,6 +83,7 @@ void DeviceTokenManager::TokenInfo::parse(ParserT &parser) {
   }
   if (encrypt) {
     parse(encryption_key, parser);
+    parse(encryption_key_id, parser);
   }
 }
 
@@ -111,7 +115,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DeviceTokenManage
 }
 
 void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> device_token_ptr,
-                                         vector<int32> other_user_ids, Promise<tl_object_ptr<td_api::ok>> promise) {
+                                         vector<int32> other_user_ids,
+                                         Promise<td_api::object_ptr<td_api::pushReceiverId>> promise) {
   CHECK(device_token_ptr != nullptr);
   TokenType token_type;
   string token;
@@ -231,7 +236,7 @@ void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> devi
   if (token.empty()) {
     if (info.token.empty()) {
       // already unregistered
-      return promise.set_value(make_tl_object<td_api::ok>());
+      return promise.set_value(td_api::make_object<td_api::pushReceiverId>());
     }
 
     info.state = TokenInfo::State::Unregister;
@@ -244,24 +249,39 @@ void DeviceTokenManager::register_device(tl_object_ptr<td_api::DeviceToken> devi
   if (encrypt != info.encrypt) {
     if (encrypt) {
       constexpr size_t ENCRYPTION_KEY_LENGTH = 256;
+      constexpr int64 MIN_ENCRYPTION_KEY_ID = static_cast<int64>(10000000000000ll);
       info.encryption_key.resize(ENCRYPTION_KEY_LENGTH);
-      Random::secure_bytes(info.encryption_key);
+      while (true) {
+        Random::secure_bytes(info.encryption_key);
+        uint8 sha1_buf[20];
+        sha1(info.encryption_key, sha1_buf);
+        info.encryption_key_id = as<int64>(sha1_buf + 12);
+        if (info.encryption_key_id <= -MIN_ENCRYPTION_KEY_ID || info.encryption_key_id >= MIN_ENCRYPTION_KEY_ID) {
+          // ensure that encryption key ID never collide with anything
+          break;
+        }
+      }
     } else {
       info.encryption_key.clear();
+      info.encryption_key_id = 0;
     }
     info.encrypt = encrypt;
   }
-  info.promise.set_value(make_tl_object<td_api::ok>());
+  info.promise.set_value(td_api::make_object<td_api::pushReceiverId>());
   info.promise = std::move(promise);
   save_info(token_type);
 }
 
-vector<Slice> DeviceTokenManager::get_encryption_keys() const {
-  vector<Slice> result;
+vector<std::pair<int64, Slice>> DeviceTokenManager::get_encryption_keys() const {
+  vector<std::pair<int64, Slice>> result;
   for (int32 token_type = 1; token_type < TokenType::SIZE; token_type++) {
     auto &info = tokens_[token_type];
-    if (!info.token.empty() && info.encrypt && info.state != TokenInfo::State::Unregister) {
-      result.push_back(info.encryption_key);
+    if (!info.token.empty() && info.state != TokenInfo::State::Unregister) {
+      if (info.encrypt) {
+        result.emplace_back(info.encryption_key_id, info.encryption_key);
+      } else {
+        result.emplace_back(G()->get_my_id(), Slice());
+      }
     }
   }
   return result;
@@ -281,7 +301,12 @@ void DeviceTokenManager::start_up() {
     auto &token = tokens_[token_type];
     char c = serialized[0];
     if (c == '*') {
-      unserialize(token, serialized.substr(1)).ensure();
+      auto status = unserialize(token, serialized.substr(1));
+      if (status.is_error()) {
+        token = TokenInfo();
+        LOG(ERROR) << "Invalid serialized TokenInfo: " << format::escaped(serialized) << ' ' << status;
+        continue;
+      }
     } else {
       // legacy
       if (c == '+') {
@@ -362,7 +387,15 @@ void DeviceTokenManager::on_result(NetQueryPtr net_query) {
   info.net_query_id = 0;
   if (r_flag.is_ok() && r_flag.ok()) {
     if (info.promise) {
-      info.promise.set_value(make_tl_object<td_api::ok>());
+      int64 push_token_id = 0;
+      if (info.state == TokenInfo::State::Register) {
+        if (info.encrypt) {
+          push_token_id = info.encryption_key_id;
+        } else {
+          push_token_id = G()->get_my_id();
+        }
+      }
+      info.promise.set_value(td_api::make_object<td_api::pushReceiverId>(push_token_id));
     }
     if (info.state == TokenInfo::State::Unregister) {
       info.token.clear();
@@ -373,7 +406,7 @@ void DeviceTokenManager::on_result(NetQueryPtr net_query) {
       if (r_flag.is_error()) {
         info.promise.set_error(r_flag.error().clone());
       } else {
-        info.promise.set_error(Status::Error(5, "Got false as result"));
+        info.promise.set_error(Status::Error(5, "Got false as result of server request"));
       }
     }
     if (info.state == TokenInfo::State::Register) {
