@@ -9,6 +9,7 @@ set(TD_TEST_SOURCE
   ${CMAKE_CURRENT_SOURCE_DIR}/secret.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/secure_storage.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/string_cleaning.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/tdclient.cpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/data.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/data.h

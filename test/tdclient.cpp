@@ -799,7 +799,7 @@ class LoginTestActor : public Actor {
   }
 };
 
-class Tdclient_login : public td::Test {
+class Tdclient_login : public Test {
  public:
   using Test::Test;
   bool step() final {
@@ -828,6 +828,6 @@ class Tdclient_login : public td::Test {
   ConcurrentScheduler sched_;
   Status result_;
 };
-//Tdclient_login Tdclient_login("Tdclient_login");
+//RegisterTest<Tdclient_login> Tdclient_login("Tdclient_login");
 
 }  // namespace td

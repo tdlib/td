@@ -136,7 +136,7 @@ static int32 get_default_dc_id() {
   return 10002;
 }
 
-class Mtproto_ping : public td::Test {
+class Mtproto_ping : public Test {
  public:
   using Test::Test;
   bool step() final {
@@ -269,7 +269,7 @@ class HandshakeTestActor : public Actor {
   }
 };
 
-class Mtproto_handshake : public td::Test {
+class Mtproto_handshake : public Test {
  public:
   using Test::Test;
   bool step() final {
