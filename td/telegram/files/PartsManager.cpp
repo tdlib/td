@@ -234,7 +234,9 @@ Status PartsManager::on_part_ok(int32 id, size_t part_size, size_t actual_size) 
   pending_count_--;
 
   part_status_[id] = PartStatus::Ready;
-  bitmask_.set(id);
+  if (actual_size != 0) {
+    bitmask_.set(id);
+  }
   ready_size_ += narrow_cast<int64>(actual_size);
 
   VLOG(files) << "Transferred part " << id << " of size " << part_size << ", total ready size = " << ready_size_;
