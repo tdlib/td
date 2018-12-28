@@ -238,6 +238,9 @@ void FileLoader::on_result(NetQueryPtr query) {
   bool next = false;
   auto status = [&] {
     TRY_RESULT(should_restart, should_restart_part(part, query));
+    if (query->is_error() && query->error().code() == NetQuery::Error::Cancelled) {
+      should_restart = true;
+    }
     if (should_restart) {
       VLOG(files) << "Restart part " << tag("id", part.id) << tag("size", part.size);
       resource_state_.stop_use(static_cast<int64>(part.size));
