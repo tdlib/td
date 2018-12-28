@@ -131,8 +131,23 @@ int64 Bitmask::size() const {
 }
 
 StringBuilder &operator<<(StringBuilder &sb, const Bitmask &mask) {
-  for (int64 i = 0; i < mask.size(); i++) {
-    sb << (mask.get(i) ? '1' : '0');
+  bool prev = 0;
+  int32 cnt = 0;
+  for (int64 i = 0; i <= mask.size(); i++) {
+    bool cur = mask.get(i);
+    if (cur != prev) { // zeros at the end are intentionally skipped
+      if (cnt < 5) {
+        while (cnt > 0) {
+          sb << (prev ? '1' : '0');
+          cnt--;
+        }
+      } else {
+        sb << (prev ? '1' : '0') << "(x" << cnt << ')';
+        cnt = 0;
+      }
+    }
+    prev = cur;
+    cnt++;
   }
   return sb;
 }
