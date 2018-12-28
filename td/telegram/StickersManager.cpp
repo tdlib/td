@@ -2564,7 +2564,12 @@ void StickersManager::on_load_sticker_set_from_database(int64 sticker_set_id, bo
     LOG_IF(ERROR, sticker_set->is_changed)
         << "Sticker set with" << (with_stickers ? "" : "out") << " stickers " << sticker_set_id << " is changed";
     parser.fetch_end();
-    parser.get_status().ensure();
+    auto status = parser.get_status();
+    if (status.is_error()) {
+      LOG(FATAL) << "Failed to parse sticker set " << sticker_set_id << ": " << status << ' '
+                 << format::as_hex_dump<4>(Slice(value));
+    }
+    status.ensure();
   }
 
   if (with_stickers && old_sticker_count < 5 && old_sticker_count < sticker_set->sticker_ids.size()) {
