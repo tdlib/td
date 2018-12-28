@@ -5,7 +5,6 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/telegram/files/FileManager.h"
-
 #include "td/telegram/telegram_api.h"
 
 #include "td/telegram/ConfigShared.h"
@@ -2590,9 +2589,13 @@ void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type,
     if (status.code() == 0) {
       // Remove partial locations
       if (node->local_.type() == LocalFileLocation::Type::Partial && status.message() != "FILE_UPLOAD_RESTART") {
-        LOG(INFO) << "Unlink file " << node->local_.partial().path_;
-        unlink(node->local_.partial().path_).ignore();
-        node->drop_local_location();
+        CSlice path = node->local_.partial().path_;
+        if (begins_with(path, get_files_temp_dir(FileType::Encrypted)) ||
+            begins_with(path, get_files_temp_dir(FileType::Video))) {
+          LOG(INFO) << "Unlink file " << path;
+          unlink(path).ignore();
+          node->drop_local_location();
+        }
       }
       if (node->remote_.type() == RemoteFileLocation::Type::Partial) {
         node->set_remote_location(RemoteFileLocation(), FileLocationSource::None, 0);
