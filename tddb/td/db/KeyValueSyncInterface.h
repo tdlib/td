@@ -1,0 +1,28 @@
+//
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2017
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+#pragma once
+
+#include "td/utils/common.h"
+
+namespace td {
+class KeyValueSyncInterface {
+ public:
+  // SeqNo is used to restore total order on all write queries.
+  // Some implementations may return 0 as SeqNo.
+  using SeqNo = uint64;
+
+  KeyValueSyncInterface() = default;
+  KeyValueSyncInterface(const KeyValueSyncInterface &) = delete;
+  KeyValueSyncInterface &operator=(const KeyValueSyncInterface &) = delete;
+  KeyValueSyncInterface(KeyValueSyncInterface &&) = default;
+  KeyValueSyncInterface &operator=(KeyValueSyncInterface &&) = default;
+  virtual ~KeyValueSyncInterface() = default;
+  virtual SeqNo set(string key, string value) = 0;
+  virtual SeqNo erase(const string &key) = 0;
+  virtual string get(const string &key) = 0;
+};
+}  // namespace td

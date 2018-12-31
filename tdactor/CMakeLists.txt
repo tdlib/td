@@ -1,0 +1,64 @@
+cmake_minimum_required(VERSION 3.0.2 FATAL_ERROR)
+
+#SOURCE SETS
+set(TDACTOR_SOURCE
+  td/actor/impl/ConcurrentScheduler.cpp
+  td/actor/impl/Scheduler.cpp
+  td/actor/MultiPromise.cpp
+  td/actor/Timeout.cpp
+
+  td/actor/impl2/Scheduler.cpp
+
+  td/actor/impl/Actor-decl.h
+  td/actor/impl/Actor.h
+  td/actor/impl/ActorId-decl.h
+  td/actor/impl/ActorId.h
+  td/actor/impl/ActorInfo-decl.h
+  td/actor/impl/ActorInfo.h
+  td/actor/impl/EventFull-decl.h
+  td/actor/impl/EventFull.h
+  td/actor/impl/ConcurrentScheduler.h
+  td/actor/impl/Event.h
+  td/actor/impl/Scheduler-decl.h
+  td/actor/impl/Scheduler.h
+  td/actor/Condition.h
+  td/actor/MultiPromise.h
+  td/actor/PromiseFuture.h
+  td/actor/SchedulerLocalStorage.h
+  td/actor/SignalSlot.h
+  td/actor/SleepActor.h
+  td/actor/Timeout.h
+  td/actor/actor.h
+
+  td/actor/impl2/ActorLocker.h
+  td/actor/impl2/ActorSignals.h
+  td/actor/impl2/ActorState.h
+  td/actor/impl2/Scheduler.h
+  td/actor/impl2/SchedulerId.h
+)
+
+set(TDACTOR_TEST_SOURCE
+  ${CMAKE_CURRENT_SOURCE_DIR}/test/actors_impl2.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/test/actors_main.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/test/actors_simple.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/test/actors_workers.cpp
+  PARENT_SCOPE
+)
+
+#RULES
+
+#LIBRARIES
+
+add_library(tdactor STATIC ${TDACTOR_SOURCE})
+target_include_directories(tdactor PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+target_link_libraries(tdactor PUBLIC tdutils)
+
+add_executable(example example/example.cpp)
+target_link_libraries(example PRIVATE tdactor)
+
+install(TARGETS tdactor EXPORT TdTargets
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
+)

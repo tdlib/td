@@ -1,0 +1,16 @@
+image: gcc:5.4
+
+pipelines:
+  default:
+    - step:
+        script:
+          - apt-get update
+          - apt-get install -y cmake
+          - apt-get install -y gperf
+          - g++ --version
+          - cmake --version
+          - mkdir build
+          - cd build
+          - cmake ..
+          - make -k run_all_tests
+          - ./test/run_all_tests

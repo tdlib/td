@@ -1,0 +1,60 @@
+sudo: false
+dist: trusty
+
+addons_shortcuts:
+  addons_clang38: &clang38
+    apt:
+      sources:  [ 'ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.8' ]
+      packages: [ 'g++-5', 'clang-3.8','libc++-dev', 'libc++abi-dev', 'gperf']
+  addons_gcc5: &gcc5
+    apt:
+      sources:  [ 'ubuntu-toolchain-r-test']
+      packages: [ 'gcc-5','g++-5', 'gperf']
+
+branches:
+  only:
+  - travis
+
+language: cpp
+
+matrix:
+  include:
+    - os: linux
+      env: _CXX=g++-5 _CC=gcc-5 JOBS=1
+      addons: *gcc5
+    - os: linux
+      env: _CXX=clang++-3.8 _CC=clang-3.8 JOBS=4
+      addons: *clang38
+    - os: osx
+      env: JOBS=4
+      compiler: clang
+
+before_install:
+  #- sudo apt-get -qq update
+  #- sudo apt-get install -y libxml2-dev
+
+addons:
+  apt:
+    packages:
+      - gperf
+
+
+install:
+  # /usr/bin/gcc is 4.6 always, but gcc-X.Y is available.
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then
+      export OPENSSL_ROOT_DIR=/usr/local/opt/openssl/;
+      brew link --force readline;
+      ulimit -n 1000;
+    fi
+  - false || [ -z "$_CXX" ] || export CXX=${_CXX}
+  - false || [ -z "$_CC" ] || export CC=${_CC}
+  - echo ${PATH}
+  - echo ${CXX}
+  - ${CXX} --version
+  - ${CXX} -v
+
+script:
+  - mkdir build
+  - cd build
+  - cmake .. && make -j${JOBS} VERBOSE=1
+  - ./test/run_all_tests --filter -client

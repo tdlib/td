@@ -1,0 +1,220 @@
+//
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2017
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+#pragma once
+
+#include "td/telegram/DialogId.h"
+#include "td/telegram/files/FileManager.h"
+#include "td/telegram/Version.h"
+
+#include "td/utils/logging.h"
+#include "td/utils/misc.h"
+#include "td/utils/Slice.h"
+#include "td/utils/tl_helpers.h"
+
+namespace td {
+
+enum class FileStoreType : int32 { Empty, Url, Generate, Local, Remote };
+
+template <class StorerT>
+void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
+  auto file_store_type = FileStoreType::Empty;
+  auto file_view = get_file_view(file_id);
+  if (file_view.empty() || ttl <= 0) {
+  } else if (file_view.has_remote_location()) {
+    file_store_type = FileStoreType::Remote;
+  } else if (file_view.has_local_location()) {
+    file_store_type = FileStoreType::Local;
+  } else if (!file_view.url().empty()) {
+    file_store_type = FileStoreType::Url;
+  } else if (file_view.has_generate_location()) {
+    file_store_type = FileStoreType::Generate;
+  }
+
+  store(file_store_type, storer);
+
+  bool has_encryption_key = false;
+  bool has_expected_size =
+      file_store_type == FileStoreType::Remote && file_view.size() == 0 && file_view.expected_size() != 0;
+  if (file_store_type != FileStoreType::Empty) {
+    has_encryption_key = !file_view.empty() && file_view.is_encrypted();
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(has_encryption_key);
+    STORE_FLAG(has_expected_size);
+    END_STORE_FLAGS();
+  }
+
+  switch (file_store_type) {
+    case FileStoreType::Empty:
+      break;
+    case FileStoreType::Url:
+      store(file_view.get_type(), storer);
+      store(file_view.url(), storer);
+      store(file_view.owner_dialog_id(), storer);
+      break;
+    case FileStoreType::Remote: {
+      store(file_view.remote_location(), storer);
+      if (has_expected_size) {
+        store(narrow_cast<int32>(file_view.expected_size()), storer);
+      } else {
+        store(narrow_cast<int32>(file_view.size()), storer);
+      }
+      store(file_view.name(), storer);
+      store(file_view.owner_dialog_id(), storer);
+      break;
+    }
+    case FileStoreType::Local: {
+      store(file_view.local_location(), storer);
+      store(narrow_cast<int32>(file_view.size()), storer);
+      store(static_cast<int32>(file_view.get_by_hash()), storer);
+      store(file_view.owner_dialog_id(), storer);
+      break;
+    }
+    case FileStoreType::Generate: {
+      auto generate_location = file_view.generate_location();
+      FileId from_file_id;
+      bool have_file_id = false;
+      if (generate_location.conversion_ == "#_file_id#") {
+        break;
+      } else if (begins_with(generate_location.conversion_, "#file_id#")) {
+        // It is not the best possible way to serialize file_id
+        from_file_id =
+            FileId(to_integer<int32>(Slice(generate_location.conversion_).remove_prefix(Slice("#file_id#").size())));
+        generate_location.conversion_ = "#_file_id#";
+        have_file_id = true;
+      }
+      store(generate_location, storer);
+      store(static_cast<int32>(0), storer);  // expected_size
+      store(static_cast<int32>(0), storer);
+      store(file_view.owner_dialog_id(), storer);
+
+      if (have_file_id) {
+        store_file(from_file_id, storer, ttl - 1);
+      }
+      break;
+    }
+  }
+  if (has_encryption_key) {
+    store(file_view.encryption_key(), storer);
+  }
+}
+
+template <class ParserT>
+FileId FileManager::parse_file(ParserT &parser) {
+  if (parser.version() < static_cast<int32>(Version::StoreFileId)) {
+    return FileId();
+  }
+
+  FileStoreType file_store_type;
+  parse(file_store_type, parser);
+
+  bool has_encryption_key = false;
+  bool has_expected_size = false;
+  if (file_store_type != FileStoreType::Empty) {
+    if (parser.version() >= static_cast<int32>(Version::StoreFileEncryptionKey)) {
+      BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(has_encryption_key);
+      PARSE_FLAG(has_expected_size);
+      END_PARSE_FLAGS();
+    }
+  }
+
+  auto file_id = [&] {
+    switch (file_store_type) {
+      case FileStoreType::Empty:
+        return FileId();
+      case FileStoreType::Remote: {
+        FullRemoteFileLocation full_remote_location;
+        parse(full_remote_location, parser);
+        int32 size = 0;
+        int32 expected_size = 0;
+        if (has_expected_size) {
+          parse(expected_size, parser);
+        } else {
+          parse(size, parser);
+        }
+        string name;
+        parse(name, parser);
+        DialogId owner_dialog_id;
+        if (parser.version() >= static_cast<int32>(Version::StoreFileOwnerId)) {
+          parse(owner_dialog_id, parser);
+        }
+        return register_remote(full_remote_location, owner_dialog_id, size, expected_size, name);
+      }
+      case FileStoreType::Local: {
+        FullLocalFileLocation full_local_location;
+        parse(full_local_location, parser);
+        int32 size;
+        parse(size, parser);
+        int32 get_by_hash;
+        parse(get_by_hash, parser);
+        DialogId owner_dialog_id;
+        if (parser.version() >= static_cast<int32>(Version::StoreFileOwnerId)) {
+          parse(owner_dialog_id, parser);
+        }
+        auto r_file_id = register_local(full_local_location, owner_dialog_id, size, get_by_hash != 0);
+        if (r_file_id.is_ok()) {
+          return r_file_id.move_as_ok();
+        }
+        LOG(ERROR) << "Can't resend local file " << full_local_location.path_;
+        return register_empty(full_local_location.type_);
+      }
+      case FileStoreType::Generate: {
+        FullGenerateFileLocation full_generated_location;
+        parse(full_generated_location, parser);
+        int32 expected_size;
+        parse(expected_size, parser);  // expected_size
+        int32 zero;
+        parse(zero, parser);
+        DialogId owner_dialog_id;
+        if (parser.version() >= static_cast<int32>(Version::StoreFileOwnerId)) {
+          parse(owner_dialog_id, parser);
+        }
+        if (begins_with(full_generated_location.conversion_, "#file_id#")) {
+          LOG(ERROR) << "Can't resend message with '#file_id#...' location";
+          return register_empty(full_generated_location.type_);
+        }
+        if (full_generated_location.conversion_ == "#_file_id#") {
+          auto file_id = parse_file(parser);
+          if (file_id.empty()) {
+            return register_empty(full_generated_location.type_);
+          }
+          auto download_file_id = dup_file_id(file_id);
+          full_generated_location.conversion_ = PSTRING() << "#file_id#" << download_file_id.get();
+        }
+
+        auto r_file_id = register_generate(full_generated_location.type_, full_generated_location.original_path_,
+                                           full_generated_location.conversion_, owner_dialog_id, expected_size);
+        if (r_file_id.is_ok()) {
+          return r_file_id.move_as_ok();
+        }
+        return register_empty(full_generated_location.type_);
+      }
+      case FileStoreType::Url: {
+        FileType type;
+        string url;
+        parse(type, parser);
+        parse(url, parser);
+        DialogId owner_dialog_id;
+        if (parser.version() >= static_cast<int32>(Version::StoreFileOwnerId)) {
+          parse(owner_dialog_id, parser);
+        }
+        return register_url(url, type, owner_dialog_id);
+      }
+    }
+    return FileId();
+  }();
+
+  if (has_encryption_key) {
+    FileEncryptionKey encryption_key;
+    parse(encryption_key, parser);
+    set_encryption_key(file_id, std::move(encryption_key));
+  }
+
+  return file_id;
+}
+
+}  // namespace td

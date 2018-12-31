@@ -1,0 +1,69 @@
+//
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2017
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+#include "test/data.h"
+namespace td {
+static const char thumbnail_arr[] =
+    "_9j_4AAQSkZJRgABAQEASABIAAD_2wBDAAICAgICAQICAgIDAgIDAwYEAwMDAwcFBQQGCAcJCAgHCAgJCg0LCQoMCggICw8LDA0ODg8OCQsQERAOEQ"
+    "0ODg7_2wBDAQIDAwMDAwcEBAcOCQgJDg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg7_wAARCAAyADIDASIA"
+    "AhEBAxEB_8QAHAAAAQUBAQEAAAAAAAAAAAAAAAUGBwgJAgQD_8QAMRAAAgEDAwMDAgUDBQAAAAAAAQIDBAURAAYSByExCBNBFCIVMlFhcZGhsQkjUm"
+    "KB_8QAGgEAAgMBAQAAAAAAAAAAAAAABgcAAggEBf_EACgRAAECBgIBBAMBAQAAAAAAAAECEQADBAUhMRJBBhMyUWEUIlJCkf_aAAwDAQACEQMRAD8A"
+    "381CvUXrbtzYtTLa6ZPx3cKj76SGQLHTn491-_E_9QC38a464dSH2H08gpLZMI9x3dmhom7EwKB98uP2yAP3Ofg6z2M8jVXvM5qqkyFpeTsCCR3Lk9"
+    "y2eWe_yD3znTG8esEqtR-TVAlJ9qRgqbZJ6T1956ELjyG_T6RRpqQhJHvWrIS-gkf6UfjrGHMTVePUH1HuVYxp7rTWOFj9sVDRocfoOUgYk_00nUXX"
+    "XqdQTrIdzmsQgHhWUcLowOcdwoPwfB1W3fG8KjaNlpnoqNK-veCWVYXk9qL26eMSOXkPZclUUdxkk-QMaiPZPqFp9wdT7btC92iltlRcZvpqea33Na"
+    "mNZSuVjcY7BsYDA-SMjByD5c2w01V-DMp5aS4HtffypjnXffULxNPeqmjNwlVU1YZRcFtfCSRjfXRIfUa1bG9SFuuddDbt6UUdkqHIVbhTkmmJPjmp"
+    "-6P-ckfrjVno5ElgSWJ1kjdQyspyGB8EH51kUWDShpFIbAAkQEjsDktk5wAMAD9hq2Pp16lTrdl2BeJzJSyKzWWWRs8Co5NCD8qR3A-CCv6aE7_45T"
+    "y5SqijSUKTlSNhvlJ-tkPrI0YMLD5DUmYiTVrE2WssmYMEK_lYxvQLbYHYi4-jRo0p4bUZ6-oC7y3P1IXajJ5QW-lio4jyIKgqsreDg_cwPceQMY86"
+    "hQAKoUeAMdzk6lzrhb5aT1R7kUqSKpoaiLt-YNEo_wAqw_8ANMuqsVbTWy3x1tEbeXV2E0isWkOcn7QPABAyTnPxp9zfJPH_ABO1US6xYSJwSMZIHE"
+    "krIyriFYJA2obyIzbMst_8oulZLpwVeiVkA4BPIAIBwORTkAnQOsExZNddoWn1T9Kju6G1yU9bLW01ILraKetiqKgLDJHSH3gVi94hoxIBkOYwCM6r"
+    "x6yLDYdt9fOi9T03l3DfN2_h8VRPBdYF-uWp-pWSCmZY40CyZYqYuPJOSqQp-0TtuK1dPt0b6oLNvfZg3R9HDM8UU8X3orcQxTDqAGwnEk4J8kAEa8"
+    "th2NtTZnVjprfZ62fd9vgsMU9jmu1OZJ7YaZ-ApqFsKEVXYq0vEBnZeJIw5UdRfrd5Fd6mptyipCVMFMwUyQXDsWwWcAk6Goc1ts9dZLNT01enishy"
+    "PcQ6jgs40csSAHc4MPynrYKyxwXHgaenngWfhMvExBl5cWB8Fc4IPgg6WbJdqi07ntd5pJ-Ro6mGpgfOSntsGwD-hGRj9zpSHTjfm-t6XWt2zXWqhg"
+    "J-rqqGpo-VNLKMMY4nVwW5sCzKue5YjAPHTbobXf6eWjs9-t0duv1RHFIaSGpWYAT_AJMEAEEkkFWAYEeMYJd9vvtHeJyKWanPByT_AEBkD6ZzCUuX"
+    "j1fYKeZVypmCviAM_ofaTjB5MPrbuRGucUizU0c0bZR1DL2-CMjRriliFNbKanzn2olTP8DGjWczvGo0onQfcV666bXhFwsXUGKnhq6m0LItRSTSGN"
+    "KpUR5olZgDxAdCCcHCuT8Y1nd0O3dW9X-gta1nv0fTvct_u9xZZ4LuK-sjZgrSSokhb2hyBVEAwBGDjuQdft02GPcuxLjZ3dYnniIhlePmI5B-Vivy"
+    "AfIyMjI-dUZpukO99qbiEtv6YxVFQjk-9QVkP08mD5BGJMHzhhkds_roG8lNVUKlOhSwkJCSHPEJUVMwBcEqJDgx7NqlU9P6hQySslSgeyQA-W6SIb"
+    "O6tqQbUk2jcEu0k93WrRPrGjVZPd4_mRhjv7gRyvEqCMnHjTT6f1VmrfUttCyb2RL7FT0sFos9NV0iJTQUsCPUksVHeV5QWLcTyZBnHwp9RoKy47tp"
+    "pr5a7haK6mOGiniaBBjHZc_GRnlnP9iI1u1huF9r7dV2GrnpNx0NSs9BUUqM5Dg5AKr3Iz_Tv8Egnvg_h12Rbq2pXI9JC-BlBRZSikK5nJ_UEEAOzk"
+    "dCF_5N5hbJVzpKZM4rKeYmcQ6U8m4aDqKSC_F2B7OIsX1grfTIfVHsSh6gRXPZW5LeJLlYLxaqeWgt0pMyoyTVKf7QkZ4lAVuLEHAbDYMc7F3jsHdX"
+    "-tXPtXb9FX38PRrW1N5p0MlKwp6f3qcyOo4BFaQxA5yWVVxjSjvDp31r6rdNVgvHS2WgqaWZaumd6yn9mr44WSLizLKnuAI6lk7PChPbOrhem3phH0"
+    "k9Ie1NpyWZbHdVgM9ypRULMY5nYkoZFGG4jio8-PJ8nsE2bSLJQeK8j_oIPz0SNwRLpqKsokKUrk5H6l2YEKSrQ7AwexE76NGjXmx0QaMDRo1IkfKS"
+    "KKZCk0ayp_xdQR_fXEVLS0yn6emip8-fbjC_40aNWc66ijDbZj0YGjRo1WLwaNGjUiR__9k";
+
+const char *thumbnail = thumbnail_arr;
+const size_t thumbnail_size = sizeof(thumbnail_arr) - 1;
+
+static const char gzip_bomb_arr[] =
+    "eJzt3VlQU2cYxvGTSFSkqHWJuIHTUqotAetIBmWzVUeUqlRrFcIqZlxCUKRshZBULVS0oqLiwqJWUVwAQQNBgSgt1EHFlS1AQCsZ1qAsASKTRonnnJ"
+    "ledHrViz5cfvMOOd_v_d-eJCK5vf6MaUmDLK7Jk_tZ9sSDEyYmdo7fOMeqdKSs-jXRxA_m8_fZPGTMW-Rhlf-AP7XxrGTW-qCOyWPtB90qdo-"
+    "NHtXfEi3Wlul0bWrxYNa1QaVY12ure9OdRgz_SVzyX-"
+    "nS59eYP1uYV68zHBLi7xcf2qyd7ddSbhX2geFsfPs3aeO04xhKLWffzBGGQyOHIeckkUmXZ1qZoH2a4XBWddSKRKGJ-"
+    "9UQxe8HGIbDXaZLU4U8SfDf_-UhiXroGG0wJSatvIgVcbXihV2YKTnpdP6ulHWxUtaxsez9U96O_ahCypHn9_AnOow0nI3uu1gRN-"
+    "Qq18SU0wZXFVfwlcxblapX025Sk6mPNymY37bVhV0LeK_hp7-3gu3nNZizl7pj1FNVSYxlY1QxnzZ4QanK2c7waeuO-"
+    "MWbmly9NUfIuBQadLP6C8PZouwzf-QKTebaiGp-o-7o1Nrt7zKhq1CZQxt8og6pySOyeiNvlWaSk4UX5tdICf12vNvNSF_"
+    "3P2ukLLOkokDaHc17B7ItjPsbtnvQBls0snaepGrQ0SegipxsWHsykCfZlqKwoTYROPt1oIK5382XS7tjwmB0dYJRtDrPmrayHq1XH0cuEJlnXROQk"
+    "-o5K6WcRTceCKdQm-BOipQKGaXnbU_R7rhM5Ny-"
+    "jFmk4bGpwbBBkY2W3XjDOaGq2o6c1ByxUrBPe6qktNqmxzsqpMSLx0kraXf81dmi72NkOTyILJElskSWBLJElgSyRJbDg8gSWSJLZEkgS2RJIEtkOT"
+    "yILJElskSWBLJElgSyRJbDi0CWyBJZIktkiSyH74gskSWyRJYEskSWBLJElu_uiCyRJbJElgSyRJbDvsgSWSJLZIkskeXwJLJElsgSWSJLZPluEFn-"
+    "11nq_NUHhOP3MGfHl7pe3eBeYz_S1Jhbye4pZRxnTCxxbZeP9Jw3gnXUOLb4jm1MyAOjcEmSo-ESnr5HI-2Nj9_kupErWfL5sYyx-"
+    "phmrlrZSlZXqylU6gsrH5TVryVZHqWWLdY_hU9x2cDJhe8f7efK9XzzVczmzPtrqMF4_qUS_"
+    "ebj1iYWkHN9InW4gt2YExOkeUru6brq1UH951Spg4vSyY2e7V13Ii5RIhPk0gY3nmjNZplVNT09R-7zrEiprZey8q-kKZxCSdSOSMdN-s_"
+    "pjUrOyiD5t4jWNTdZ-nXWWlODVzekLwxklIba22WQ-FuUmpg8IcOmTRW2mhKKMh-"
+    "nbyRiyFwlaCV7ACUoQQlKUIISlKAEJShBCUpQghKUoAQlKEEJSlCCEpSgBCUoQQlKUIISlKAEJShBCUpQghKUoAQlKEEJSlCCEpSgBCUoQQlKUIISl"
+    "KAEJShBCcp_ouzPDS_"
+    "jjv6KMWnp4tNs6yuBM3bHLpkuGBP1nLgnMfa3DN8xwjrl9p14o26PpinFCzbvcpC7meuhEyLZUuJCaJGU9nmanev3cOQBLQeSaHfIyLjcYdno0LOUW"
+    "khtk2bB9revxtcp15Cvxj9qCEj9iSPfmpIlpE0W1k32N-naUPDiE-oOwm2t2xyM-8eKDlELCesXPVC8_XoFTd5T8usVrmuOb_"
+    "Y32eGpEpyiTdqGL61mOh7rjFhO5XDqZEHtKmbRYt9z1EJmxqR1S99-F8IQJ5T8LoQOp2aPamZy5UAtbXX15d4fSomE8w4-"
+    "tBzS0zOliRL1wyk0oDil6pa-"
+    "pbYQsZs31SwoQQlKUIISlKAEJShBCUpQghKUoAQlKEEJSlCCEpSgBCUoQQlKUIISlKAEJShBCUpQghKUoAQlKEEJSlCCEpSgBCUoQQlKUIISlKAEJS"
+    "hBCUpQ_jtKiTgqPPDO3MOL_Pv3TxL68UbFJ5tlxpXs_XLFDAd3Gy-JIPvL_"
+    "KOXG414uxZmy1zt7B9axXrM53w9d0a0L0vMGGduuE7ODydO5bOO39kQKiPf5d-Udqb6Ck8SEOGbKSMXsSmvXuqVR1T4ireEkA9010f1xDnVKNpCMy_"
+    "8PeXBKz7NVkGM9LnfeXeS7_LXbJ7NbWM3mjUkCTrJRdQI8zhVHHl3lUVtHbnbnKqB6wmfMpRlhfdISsvLSbK9PMmc_euSyN-sd-2bGn-_"
+    "gGUfq3l5kvyhddcwhbA81KTrTW8cl3qg9lDnjhfL5ZpgW9qTt_KDnrP9xgQ8e0m-y39YFLsxN4hxoEkkayYXcbg-"
+    "TLGznukoHjpzn3qgqJTV2ogJXaK6ctqTgxKUoPyfUeqmx4szeRJuj3josnbUu0O57kcXXX-bi25IozxSONDzF5jalI4";
+const char *gzip_bomb = gzip_bomb_arr;
+const size_t gzip_bomb_size = sizeof(gzip_bomb_arr) - 1;
+}  // namespace td

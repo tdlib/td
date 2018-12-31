@@ -1,0 +1,17 @@
+* text=auto
+
+*.cpp text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
+*.hpp text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
+*.h text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
+*.c text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
+*.tl text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
+*.txt text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
+*.sh text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent eol=lf
+*.php text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
+*.ps1 text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent eol=crlf
+*.yml text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
+*.py text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
+*.cmake text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
+*.md text whitespace=blank-at-eol,space-before-tab,blank-at-eof,tab-in-indent
+
+*.tlo binary

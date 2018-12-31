@@ -1,0 +1,333 @@
+//
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2017
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+#pragma once
+
+#include "td/telegram/DhConfig.h"
+#include "td/telegram/net/NetQueryCreator.h"
+#include "td/telegram/TdDb.h"
+#include "td/telegram/TdParameters.h"
+
+#include "td/actor/actor.h"
+#include "td/actor/Condition.h"
+#include "td/actor/PromiseFuture.h"
+#include "td/actor/SchedulerLocalStorage.h"
+
+#include "td/db/binlog/ConcurrentBinlog.h"
+#include "td/db/BinlogKeyValue.h"
+#include "td/db/Pmc.h"
+
+#include "td/net/NetStats.h"
+
+#include "td/utils/common.h"
+#include "td/utils/logging.h"
+#include "td/utils/Slice.h"
+#include "td/utils/Status.h"
+#include "td/utils/Time.h"
+
+#include <atomic>
+#include <memory>
+#include <mutex>
+
+namespace td {
+class AnimationsManager;
+class CallManager;
+class ConfigShared;
+class ConfigManager;
+class ConnectionCreator;
+class ContactsManager;
+class FileManager;
+class MtprotoHeader;
+class MessagesManager;
+class NetQueryDispatcher;
+class SecretChatsManager;
+class StateManager;
+class StickersManager;
+class StorageManager;
+class Td;
+class TempAuthKeyWatchdog;
+class TopDialogManager;
+class UpdatesManager;
+class WebPagesManager;
+};  // namespace td
+
+namespace td {
+class Global : public ActorContext {
+ public:
+  Global();
+  ~Global() override;
+  Global(const Global &) = delete;
+  Global &operator=(const Global &) = delete;
+  Global(Global &&other) = delete;
+  Global &operator=(Global &&other) = delete;
+
+  TdDb *td_db() {
+    CHECK(td_db_);
+    return td_db_.get();
+  }
+  void close_all(Promise<> on_finished);
+  void close_and_destroy_all(Promise<> on_finished);
+
+  Status init(const TdParameters &parameters, ActorId<Td> td, std::unique_ptr<TdDb> td_db) TD_WARN_UNUSED_RESULT;
+
+  Slice get_dir() const {
+    return parameters_.database_directory;
+  }
+  Slice get_files_dir() const {
+    return parameters_.files_directory;
+  }
+  bool is_test_dc() const {
+    return parameters_.use_test_dc;
+  }
+
+  NetQueryCreator &net_query_creator() {
+    return net_query_creator_.get();
+  }
+
+  void set_net_query_dispatcher(std::unique_ptr<NetQueryDispatcher> net_query_dispatcher);
+
+  NetQueryDispatcher &net_query_dispatcher() {
+    return *net_query_dispatcher_;
+  }
+
+  void set_shared_config(std::unique_ptr<ConfigShared> shared_config);
+
+  ConfigShared &shared_config() {
+    return *shared_config_;
+  }
+
+  double from_server_time(double date) const {
+    return date - get_server_time_difference();
+  }
+  double to_server_time(double now) const {
+    return now + get_server_time_difference();
+  }
+  double server_time() const {
+    return to_server_time(Time::now());
+  }
+  double server_time_cached() const {
+    return to_server_time(Time::now_cached());
+  }
+  int32 unix_time() const {
+    return static_cast<int32>(server_time());
+  }
+  int32 unix_time_cached() const {
+    return static_cast<int32>(server_time_cached());
+  }
+
+  void update_server_time_difference(double diff);
+
+  double get_server_time_difference() const {
+    return server_time_difference_.load(std::memory_order_relaxed);
+  }
+
+  ActorId<StateManager> state_manager() const {
+    return state_manager_;
+  }
+  void set_state_manager(ActorId<StateManager> state_manager) {
+    state_manager_ = state_manager;
+  }
+
+  ActorId<Td> td() const {
+    return td_;
+  }
+  ActorId<AnimationsManager> animations_manager() const {
+    return animations_manager_;
+  }
+  void set_animations_manager(ActorId<AnimationsManager> animations_manager) {
+    animations_manager_ = animations_manager;
+  }
+  ActorId<ContactsManager> contacts_manager() const {
+    return contacts_manager_;
+  }
+  void set_contacts_manager(ActorId<ContactsManager> contacts_manager) {
+    contacts_manager_ = contacts_manager;
+  }
+  ActorId<FileManager> file_manager() const {
+    return file_manager_;
+  }
+  void set_file_manager(ActorId<FileManager> file_manager) {
+    file_manager_ = std::move(file_manager);
+  }
+  ActorId<MessagesManager> messages_manager() const {
+    return messages_manager_;
+  }
+  void set_messages_manager(ActorId<MessagesManager> messages_manager) {
+    messages_manager_ = messages_manager;
+  }
+  ActorId<SecretChatsManager> secret_chats_manager() const {
+    return secret_chats_manager_;
+  }
+  void set_secret_chats_manager(ActorId<SecretChatsManager> secret_chats_manager) {
+    secret_chats_manager_ = secret_chats_manager;
+  }
+  ActorId<CallManager> call_manager() const {
+    return call_manager_;
+  }
+  void set_call_manager(ActorId<CallManager> call_manager) {
+    call_manager_ = call_manager;
+  }
+  ActorId<StickersManager> stickers_manager() const {
+    return stickers_manager_;
+  }
+  void set_stickers_manager(ActorId<StickersManager> stickers_manager) {
+    stickers_manager_ = stickers_manager;
+  }
+  ActorId<StorageManager> storage_manager() const {
+    return storage_manager_;
+  }
+  void set_storage_manager(ActorId<StorageManager> storage_manager) {
+    storage_manager_ = storage_manager;
+  }
+  ActorId<TopDialogManager> top_dialog_manager() const {
+    return top_dialog_manager_;
+  }
+  void set_top_dialog_manager(ActorId<TopDialogManager> top_dialog_manager) {
+    top_dialog_manager_ = top_dialog_manager;
+  }
+  ActorId<UpdatesManager> updates_manager() const {
+    return updates_manager_;
+  }
+  void set_updates_manager(ActorId<UpdatesManager> updates_manager) {
+    updates_manager_ = updates_manager;
+  }
+  ActorId<WebPagesManager> web_pages_manager() const {
+    return web_pages_manager_;
+  }
+  void set_web_pages_manager(ActorId<WebPagesManager> web_pages_manager) {
+    web_pages_manager_ = web_pages_manager;
+  }
+
+  ActorId<ConfigManager> config_manager() const {
+    return config_manager_;
+  }
+  void set_config_manager(ActorId<ConfigManager> config_manager) {
+    config_manager_ = config_manager;
+  }
+
+  ActorId<ConnectionCreator> connection_creator() const;
+  void set_connection_creator(ActorOwn<ConnectionCreator> connection_creator);
+
+  ActorId<TempAuthKeyWatchdog> temp_auth_key_watchdog() const;
+  void set_temp_auth_key_watchdog(ActorOwn<TempAuthKeyWatchdog> actor);
+
+  const MtprotoHeader &mtproto_header() const;
+  void set_mtproto_header(std::unique_ptr<MtprotoHeader> mtproto_header);
+
+  const TdParameters &parameters() const {
+    return parameters_;
+  }
+
+  int32 get_my_id() const {
+    return my_id_;
+  }
+  void set_my_id(int32 my_id) {
+    my_id_ = my_id;
+  }
+
+  int32 get_gc_scheduler_id() const {
+    return gc_scheduler_id_;
+  }
+
+  int32 get_slow_net_scheduler_id() const {
+    return slow_net_scheduler_id_;
+  }
+
+#if !TD_HAVE_ATOMIC_SHARED_PTR
+  std::mutex dh_config_mutex_;
+#endif
+
+  std::shared_ptr<DhConfig> get_dh_config() {
+#if !TD_HAVE_ATOMIC_SHARED_PTR
+    std::lock_guard<std::mutex> guard(dh_config_mutex_);
+    auto res = dh_config_;
+    return res;
+#else
+    return atomic_load(&dh_config_);
+#endif
+  }
+  void set_dh_config(std::shared_ptr<DhConfig> new_dh_config) {
+#if !TD_HAVE_ATOMIC_SHARED_PTR
+    std::lock_guard<std::mutex> guard(dh_config_mutex_);
+    dh_config_ = new_dh_config;
+#else
+    atomic_store(&dh_config_, std::move(new_dh_config));
+#endif
+  }
+
+  void wait_binlog_replay_finish(Promise<> promise) {
+    binlog_replay_finish_.wait(std::move(promise));
+  }
+
+  void on_binlog_replay_finish() {
+    binlog_replay_finish_.set_true();
+  }
+
+  void set_close_flag() {
+    close_flag_ = true;
+  }
+  bool close_flag() const {
+    return close_flag_.load();
+  }
+
+  const std::vector<std::shared_ptr<NetStatsCallback>> &get_net_stats_file_callbacks() {
+    return net_stats_file_callbacks_;
+  }
+  void set_net_stats_file_callbacks(std::vector<std::shared_ptr<NetStatsCallback>> callbacks) {
+    net_stats_file_callbacks_ = std::move(callbacks);
+  }
+
+ private:
+  std::shared_ptr<DhConfig> dh_config_;
+
+  std::unique_ptr<TdDb> td_db_;
+  Condition binlog_replay_finish_;
+
+  ActorId<Td> td_;
+  ActorId<AnimationsManager> animations_manager_;
+  ActorId<ContactsManager> contacts_manager_;
+  ActorId<FileManager> file_manager_;
+  ActorId<MessagesManager> messages_manager_;
+  ActorId<SecretChatsManager> secret_chats_manager_;
+  ActorId<CallManager> call_manager_;
+  ActorId<StickersManager> stickers_manager_;
+  ActorId<StorageManager> storage_manager_;
+  ActorId<TopDialogManager> top_dialog_manager_;
+  ActorId<UpdatesManager> updates_manager_;
+  ActorId<WebPagesManager> web_pages_manager_;
+  ActorId<ConfigManager> config_manager_;
+  ActorOwn<ConnectionCreator> connection_creator_;
+  ActorOwn<TempAuthKeyWatchdog> temp_auth_key_watchdog_;
+
+  std::unique_ptr<MtprotoHeader> mtproto_header_;
+
+  TdParameters parameters_;
+  int32 gc_scheduler_id_;
+  int32 slow_net_scheduler_id_;
+
+  std::atomic<double> server_time_difference_;
+  std::atomic<bool> server_time_difference_was_updated_;
+  std::atomic<bool> close_flag_{false};
+
+  std::vector<std::shared_ptr<NetStatsCallback>> net_stats_file_callbacks_;
+
+  ActorId<StateManager> state_manager_;
+
+  SchedulerLocalStorage<NetQueryCreator> net_query_creator_;
+  std::unique_ptr<NetQueryDispatcher> net_query_dispatcher_;
+
+  std::unique_ptr<ConfigShared> shared_config_;
+
+  int32 my_id_ = 0;  // hack
+
+  void do_close(Promise<> on_finish, bool destroy_flag);
+};
+
+inline Global *G() {
+  CHECK(Scheduler::context());
+  return static_cast<Global *>(Scheduler::context());
+}
+}  // namespace td

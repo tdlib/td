@@ -1,0 +1,63 @@
+//
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2017
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+#include "td/telegram/net/NetQuery.h"
+
+#include "td/telegram/Global.h"
+
+namespace td {
+ListNode net_query_list_;
+
+int32 NetQuery::get_my_id() {
+  return G()->get_my_id();
+}
+
+void NetQuery::on_net_write(size_t size) {
+  if (file_type_ == -1) {
+    return;
+  }
+  G()->get_net_stats_file_callbacks().at(file_type_)->on_write(size);
+}
+void NetQuery::on_net_read(size_t size) {
+  if (file_type_ == -1) {
+    return;
+  }
+  G()->get_net_stats_file_callbacks().at(file_type_)->on_read(size);
+}
+int32 NetQuery::tl_magic(const BufferSlice &buffer_slice) {
+  auto slice = buffer_slice.as_slice();
+  if (slice.size() < 4) {
+    return 0;
+  }
+  return as<int32>(slice.begin());
+}
+
+void dump_pending_network_queries() {
+  auto n = NetQueryCounter::get_count();
+  LOG(WARNING) << tag("pending net queries", n);
+
+  decltype(n) i = 0;
+  bool was_gap = false;
+  for (auto end = &net_query_list_, cur = end->prev; cur != end; cur = cur->prev, i++) {
+    if (i < 20 || i + 20 > n || i % (n / 20 + 1) == 0) {
+      if (was_gap) {
+        LOG(WARNING) << "...";
+        was_gap = false;
+      }
+      auto nq = &static_cast<NetQuery &>(*cur);
+      LOG(WARNING) << tag("id", nq->my_id_) << *nq << tag("total_flood", td::format::as_time(nq->total_timeout)) << " "
+                   << tag("since start", td::format::as_time(td::Time::now_cached() - nq->start_timestamp_))
+                   << tag("state", nq->debug_str_)
+                   << tag("since state", td::format::as_time(td::Time::now_cached() - nq->debug_timestamp_))
+                   << tag("resend_cnt", nq->debug_resend_cnt_) << tag("fail_cnt", nq->debug_send_failed_cnt_)
+                   << tag("ack", nq->debug_ack) << tag("unknown", nq->debug_unknown);
+    } else {
+      was_gap = true;
+    }
+  }
+}
+
+}  // namespace td
