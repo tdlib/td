@@ -14,7 +14,7 @@
 
 namespace td {
 
-PublicRsaKeyShared::PublicRsaKeyShared(DcId dc_id) : dc_id_(dc_id) {
+PublicRsaKeyShared::PublicRsaKeyShared(DcId dc_id, bool is_test) : dc_id_(dc_id) {
   if (!dc_id_.is_empty()) {
     return;
   }
@@ -26,6 +26,20 @@ PublicRsaKeyShared::PublicRsaKeyShared(DcId dc_id) : dc_id_(dc_id) {
       this->add_rsa(r_rsa.move_as_ok());
     }
   };
+
+  if (is_test) {
+    add_pem(
+        "-----BEGIN RSA PUBLIC KEY-----\n"
+        "MIIBCgKCAQEAr4v4wxMDXIaMOh8bayF/NyoYdpcysn5EbjTIOZC0RkgzsRj3SGlu\n"
+        "52QSz+ysO41dQAjpFLgxPVJoOlxXokaOq827IfW0bGCm0doT5hxtedu9UCQKbE8j\n"
+        "lDOk+kWMXHPZFJKWRgKgTu9hcB3y3Vk+JFfLpq3d5ZB48B4bcwrRQnzkx5GhWOFX\n"
+        "x73ZgjO93eoQ2b/lDyXxK4B4IS+hZhjzezPZTI5upTRbs5ljlApsddsHrKk6jJNj\n"
+        "8Ygs/ps8e6ct82jLXbnndC9s8HjEvDvBPH9IPjv5JUlmHMBFZ5vFQIfbpo0u0+1P\n"
+        "n6bkEi5o7/ifoyVv2pAZTRwppTz0EuXD8QIDAQAB\n"
+        "-----END RSA PUBLIC KEY-----");
+    return;
+  }
+
   //old_key
   add_pem(
       "-----BEGIN RSA PUBLIC KEY-----\n"

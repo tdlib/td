@@ -138,7 +138,7 @@ Status NetQueryDispatcher::wait_dc_init(DcId dc_id, bool force) {
     if (dc_id.is_internal()) {
       public_rsa_key = common_public_rsa_key_;
     } else {
-      public_rsa_key = std::make_shared<PublicRsaKeyShared>(dc_id);
+      public_rsa_key = std::make_shared<PublicRsaKeyShared>(dc_id, G()->is_test_dc());
       send_closure_later(public_rsa_key_watchdog_, &PublicRsaKeyWatchdog::add_public_rsa_key, public_rsa_key);
       is_cdn = true;
     }
@@ -275,7 +275,7 @@ NetQueryDispatcher::NetQueryDispatcher(std::function<ActorShared<>()> create_ref
   LOG(INFO) << tag("main_dc_id", main_dc_id_.load(std::memory_order_relaxed));
   delayer_ = create_actor<NetQueryDelayer>("NetQueryDelayer", create_reference());
   dc_auth_manager_ = create_actor<DcAuthManager>("DcAuthManager", create_reference());
-  common_public_rsa_key_ = std::make_shared<PublicRsaKeyShared>(DcId::empty());
+  common_public_rsa_key_ = std::make_shared<PublicRsaKeyShared>(DcId::empty(), G()->is_test_dc());
   public_rsa_key_watchdog_ = create_actor<PublicRsaKeyWatchdog>("PublicRsaKeyWatchdog", create_reference());
 
   td_guard_ = create_shared_lambda_guard([actor = create_reference()] {});

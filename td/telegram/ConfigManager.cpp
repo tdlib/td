@@ -280,7 +280,8 @@ ActorOwn<> get_full_config(DcId dc_id, IPAddress ip_address, Promise<FullConfig>
 
    private:
     DcId dc_id_;
-    std::shared_ptr<PublicRsaKeyShared> public_rsa_key_ = std::make_shared<PublicRsaKeyShared>(DcId::empty());
+    std::shared_ptr<PublicRsaKeyShared> public_rsa_key_ =
+        std::make_shared<PublicRsaKeyShared>(DcId::empty(), G()->is_test_dc());
 
     std::vector<unique_ptr<Listener>> auth_key_listeners_;
     void notify() {

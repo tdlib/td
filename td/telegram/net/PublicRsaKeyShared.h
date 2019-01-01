@@ -20,7 +20,7 @@ namespace td {
 
 class PublicRsaKeyShared : public PublicRsaKeyInterface {
  public:
-  explicit PublicRsaKeyShared(DcId dc_id);
+  PublicRsaKeyShared(DcId dc_id, bool is_test);
 
   class Listener {
    public:
