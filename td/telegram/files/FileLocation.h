@@ -994,6 +994,20 @@ inline bool operator!=(const LocalFileLocation &lhs, const LocalFileLocation &rh
   return !(lhs == rhs);
 }
 
+inline StringBuilder &operator<<(StringBuilder &sb, const LocalFileLocation &location) {
+  switch (location.type()) {
+    case LocalFileLocation::Type::Empty:
+      return sb << "[empty local location]";
+    case LocalFileLocation::Type::Partial:
+      return sb << location.partial();
+    case LocalFileLocation::Type::Full:
+      return sb << location.full();
+    default:
+      UNREACHABLE();
+      return sb;
+  }
+}
+
 struct FullGenerateFileLocation {
   FileType file_type_{FileType::None};
   string original_path_;
