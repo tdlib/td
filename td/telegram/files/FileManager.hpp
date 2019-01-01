@@ -91,7 +91,7 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
         have_file_id = true;
       }
       store(generate_location, storer);
-      store(static_cast<int32>(0), storer);  // expected_size
+      store(static_cast<int32>(file_view.expected_size()), storer);
       store(static_cast<int32>(0), storer);
       store(file_view.owner_dialog_id(), storer);
 
@@ -100,6 +100,8 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
       }
       break;
     }
+    default:
+      UNREACHABLE();
   }
   if (has_encryption_key) {
     store(file_view.encryption_key(), storer);
@@ -175,7 +177,7 @@ FileId FileManager::parse_file(ParserT &parser) {
         FullGenerateFileLocation full_generated_location;
         parse(full_generated_location, parser);
         int32 expected_size;
-        parse(expected_size, parser);  // expected_size
+        parse(expected_size, parser);
         int32 zero;
         parse(zero, parser);
         DialogId owner_dialog_id;

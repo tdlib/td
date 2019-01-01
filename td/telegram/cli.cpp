@@ -2919,12 +2919,14 @@ class CliClient final : public Actor {
       string chat_id;
       string photo_path;
       string conversion;
+      string expected_size;
       std::tie(chat_id, args) = split(args);
-      std::tie(photo_path, conversion) = split(args);
+      std::tie(photo_path, args) = split(args);
+      std::tie(conversion, expected_size) = split(args);
 
-      send_message(chat_id,
-                   make_tl_object<td_api::inputMessagePhoto>(as_generated_file(photo_path, conversion), nullptr,
-                                                             vector<int32>(), 0, 0, as_caption(""), 0));
+      send_message(chat_id, make_tl_object<td_api::inputMessagePhoto>(
+                                as_generated_file(photo_path, conversion, to_integer<int32>(expected_size)), nullptr,
+                                vector<int32>(), 0, 0, as_caption(""), 0));
     } else if (op == "spt") {
       string chat_id;
       string photo_path;
