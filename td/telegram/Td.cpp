@@ -5602,10 +5602,10 @@ void Td::on_request(uint64 id, td_api::setChatClientData &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::joinChat &request) {
+  CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->set_dialog_participant_status(DialogId(request.chat_id_), contacts_manager_->get_my_id(),
-                                                   td_api::make_object<td_api::chatMemberStatusMember>(),
-                                                   std::move(promise));
+  messages_manager_->add_dialog_participant(DialogId(request.chat_id_), contacts_manager_->get_my_id(), 0,
+                                            std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::leaveChat &request) {
