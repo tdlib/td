@@ -49,7 +49,9 @@ Result<FileLoader::FileInfo> FileUploader::init() {
     return Status::Error("File is already uploaded");
   }
 
-  TRY_RESULT(prefix_info, on_update_local_location(local_, 0 /* TODO(now) */));
+  // file_size is needed only for partial local locations, but for uploaded partial files
+  // size is yet unknown or local location is full, so we can always pass 0 here
+  TRY_RESULT(prefix_info, on_update_local_location(local_, 0));
   (void)prefix_info;
 
   int offset = 0;
