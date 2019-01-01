@@ -166,6 +166,14 @@ class DialogParticipantStatus {
     return (flags_ & CAN_ADD_WEB_PAGE_PREVIEWS) != 0;
   }
 
+  void set_is_member(bool is_member) {
+    if (is_member) {
+      flags_ |= IS_MEMBER;
+    } else {
+      flags_ &= ~IS_MEMBER;
+    }
+  }
+
   bool is_member() const {
     return (flags_ & IS_MEMBER) != 0;
   }

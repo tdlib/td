@@ -4338,7 +4338,20 @@ void ContactsManager::change_channel_participant_status_impl(ChannelId channel_i
   } else if (status.is_administrator()) {
     need_promote = true;
   } else if (!status.is_member() || status.is_restricted()) {
-    need_restrict = true;
+    if (status.is_member() && !old_status.is_member()) {
+      // TODO there is no way in server API to invite someone and change restrictions
+      // we need to first add user and change restrictions again after that
+      // but if restrictions aren't changed, then adding is enough
+      auto copy_old_status = old_status;
+      copy_old_status.set_is_member(true);
+      if (copy_old_status == status) {
+        need_add = true;
+      } else {
+        need_restrict = true;
+      }
+    } else {
+      need_restrict = true;
+    }
   } else {
     // regular member
     if (old_status.is_administrator()) {

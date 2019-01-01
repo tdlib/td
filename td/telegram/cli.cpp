@@ -3150,10 +3150,13 @@ class CliClient final : public Actor {
         status = make_tl_object<td_api::chatMemberStatusAdministrator>(true, false, false, false, false, false, false,
                                                                        false, false);
       } else if (status_str == "rest") {
-        status = make_tl_object<td_api::chatMemberStatusRestricted>(true, static_cast<int32>(60 + std::time(nullptr)),
+        status = make_tl_object<td_api::chatMemberStatusRestricted>(true, static_cast<int32>(120 + std::time(nullptr)),
                                                                     false, false, false, false);
       } else if (status_str == "restkick") {
-        status = make_tl_object<td_api::chatMemberStatusRestricted>(false, static_cast<int32>(60 + std::time(nullptr)),
+        status = make_tl_object<td_api::chatMemberStatusRestricted>(false, static_cast<int32>(120 + std::time(nullptr)),
+                                                                    true, false, false, false);
+      } else if (status_str == "restunkick") {
+        status = make_tl_object<td_api::chatMemberStatusRestricted>(true, static_cast<int32>(120 + std::time(nullptr)),
                                                                     true, false, false, false);
       } else if (status_str == "unrest") {
         status = make_tl_object<td_api::chatMemberStatusRestricted>(true, 0, true, true, true, true);
