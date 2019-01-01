@@ -2390,8 +2390,12 @@ void ContactsManager::on_channel_unban_timeout(ChannelId channel_id) {
 
   auto old_status = c->status;
   c->status.update_restrictions();
-  LOG_IF(ERROR, c->status == old_status && (c->status.is_restricted() || c->status.is_banned()))
-      << "Status of " << channel_id << " wasn't updated: " << c->status;
+  if (c->status == old_status) {
+    LOG_IF(ERROR, c->status.is_restricted() || c->status.is_banned())
+        << "Status of " << channel_id << " wasn't updated: " << c->status;
+  } else {
+    c->need_send_update = true;
+  }
 
   LOG(INFO) << "Update " << channel_id << " status";
   c->is_status_changed = true;
