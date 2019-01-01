@@ -122,6 +122,12 @@ Result<FileLoader::PrefixInfo> FileUploader::on_update_local_location(const Loca
     file_type = location.full().file_type_;
   }
 
+  LOG(INFO) << "In FileUploader::on_update_local_location with " << location << ". Have path = \"" << path
+            << "\", local_size = " << local_size << ", local_is_ready = " << local_is_ready
+            << " and file type = " << file_type;
+
+  file_type_ = file_type;
+
   bool is_temp = false;
   if (encryption_key_.is_secure() && local_is_ready) {
     TRY_RESULT(file_fd_path, open_temp_file(FileType::Temp));
@@ -140,6 +146,7 @@ Result<FileLoader::PrefixInfo> FileUploader::on_update_local_location(const Loca
     // Race: partial location could be already deleted. Just ignore such locations
     if (res_fd.is_error()) {
       if (location.type() == LocalFileLocation::Type::Partial) {
+        LOG(INFO) << "Ignore partial local location: " << res_fd.error();
         PrefixInfo info;
         info.size = local_size_;
         info.is_ready = local_is_ready_;
@@ -176,7 +183,6 @@ Result<FileLoader::PrefixInfo> FileUploader::on_update_local_location(const Loca
     expected_size_ = local_size_;
   }
   local_is_ready_ = local_is_ready;
-  file_type_ = file_type;
 
   PrefixInfo info;
   info.size = local_size_;
