@@ -6,6 +6,7 @@
 //
 #include "td/utils/port/Stat.h"
 
+#include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/FileFd.h"
 
 #if TD_PORT_POSIX
@@ -112,7 +113,7 @@ Stat from_native_stat(const struct ::stat &buf) {
 
 Stat fstat(int native_fd) {
   struct ::stat buf;
-  int err = fstat(native_fd, &buf);
+  int err = detail::skip_eintr([&] { return ::fstat(native_fd, &buf); });
   auto fstat_errno = errno;
   LOG_IF(FATAL, err < 0) << Status::PosixError(fstat_errno, PSLICE() << "Stat for fd " << native_fd << " failed");
   return detail::from_native_stat(buf);
@@ -177,8 +178,9 @@ Status update_atime(CSlice path) {
 
 Result<Stat> stat(CSlice path) {
   struct ::stat buf;
-  if (stat(path.c_str(), &buf) < 0) {
-    return OS_ERROR(PSLICE() << "stat for " << tag("file", path) << " failed");
+  int err = detail::skip_eintr([&] { return ::stat(path.c_str(), &buf); });
+  if (err < 0) {
+    return OS_ERROR(PSLICE() << "Stat for file \"" << path << "\" failed");
   }
   return detail::from_native_stat(buf);
 }
