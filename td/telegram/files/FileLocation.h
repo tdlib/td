@@ -910,6 +910,38 @@ inline StringBuilder &operator<<(StringBuilder &sb, const FullLocalFileLocation 
   return sb << "[full local location of " << location.file_type_ << "] at \"" << location.path_ << '"';
 }
 
+struct PartialLocalFileLocationPtr {
+  unique_ptr<PartialLocalFileLocation> location_;  // must never be equal to nullptr
+
+  PartialLocalFileLocationPtr() : location_(make_unique<PartialLocalFileLocation>()) {
+  }
+  explicit PartialLocalFileLocationPtr(PartialLocalFileLocation location)
+      : location_(make_unique<PartialLocalFileLocation>(location)) {
+  }
+  PartialLocalFileLocationPtr(const PartialLocalFileLocationPtr &other)
+      : location_(make_unique<PartialLocalFileLocation>(*other.location_)) {
+  }
+  PartialLocalFileLocationPtr &operator=(const PartialLocalFileLocationPtr &other) {
+    *location_ = *other.location_;
+  }
+  PartialLocalFileLocationPtr(PartialLocalFileLocationPtr &&other)
+      : location_(make_unique<PartialLocalFileLocation>(std::move(*other.location_))) {
+  }
+  PartialLocalFileLocationPtr &operator=(PartialLocalFileLocationPtr &&other) {
+    *location_ = std::move(*other.location_);
+  }
+  ~PartialLocalFileLocationPtr() = default;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(*location_, storer);
+  }
+};
+
+inline bool operator==(const PartialLocalFileLocationPtr &lhs, const PartialLocalFileLocationPtr &rhs) {
+  return *lhs.location_ == *rhs.location_;
+}
+
 class LocalFileLocation {
  public:
   enum class Type : int32 { Empty, Partial, Full };
@@ -919,13 +951,13 @@ class LocalFileLocation {
   }
 
   PartialLocalFileLocation &partial() {
-    return variant_.get<1>();
+    return *variant_.get<1>().location_;
   }
   FullLocalFileLocation &full() {
     return variant_.get<2>();
   }
   const PartialLocalFileLocation &partial() const {
-    return variant_.get<1>();
+    return *variant_.get<1>().location_;
   }
   const FullLocalFileLocation &full() const {
     return variant_.get<2>();
@@ -961,7 +993,7 @@ class LocalFileLocation {
         variant_ = EmptyLocalFileLocation();
         return;
       case Type::Partial:
-        variant_ = PartialLocalFileLocation();
+        variant_ = PartialLocalFileLocationPtr();
         return parse(partial(), parser);
       case Type::Full:
         variant_ = FullLocalFileLocation();
@@ -972,7 +1004,8 @@ class LocalFileLocation {
 
   LocalFileLocation() : variant_{EmptyLocalFileLocation()} {
   }
-  explicit LocalFileLocation(const PartialLocalFileLocation &partial) : variant_(partial) {
+  explicit LocalFileLocation(const PartialLocalFileLocation &partial)
+      : variant_(PartialLocalFileLocationPtr(partial)) {
   }
   explicit LocalFileLocation(const FullLocalFileLocation &full) : variant_(full) {
   }
@@ -981,7 +1014,7 @@ class LocalFileLocation {
   }
 
  private:
-  Variant<EmptyLocalFileLocation, PartialLocalFileLocation, FullLocalFileLocation> variant_;
+  Variant<EmptyLocalFileLocation, PartialLocalFileLocationPtr, FullLocalFileLocation> variant_;
 
   friend bool operator==(const LocalFileLocation &lhs, const LocalFileLocation &rhs);
 };
