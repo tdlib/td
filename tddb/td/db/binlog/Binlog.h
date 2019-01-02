@@ -23,6 +23,7 @@
 #include <functional>
 
 namespace td {
+
 struct BinlogInfo {
   bool was_created{false};
   uint64 last_id{0};
@@ -144,5 +145,8 @@ class Binlog {
   void reset_encryption();
   void update_read_encryption();
   void update_write_encryption();
+
+  string debug_get_binlog_data(int64 begin_offset, int64 end_offset);
 };
+
 }  // namespace td

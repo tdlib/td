@@ -14,6 +14,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/Clocks.h"
+#include "td/utils/port/FileFd.h"
 #include "td/utils/port/path.h"
 #include "td/utils/port/PollFlags.h"
 #include "td/utils/port/Stat.h"
@@ -380,12 +381,14 @@ void Binlog::do_event(BinlogEvent &&event) {
     auto status = processor_->add_event(std::move(event));
     if (status.is_error()) {
       auto old_size = detail::file_size(path_);
+      auto data = debug_get_binlog_data(fd_size_, old_size);
       if (state_ == State::Load) {
         fd_.seek(fd_size_).ensure();
         fd_.truncate_to_current_position(fd_size_).ensure();
       }
       LOG(FATAL) << "Truncate binlog \"" << path_ << "\" from size " << old_size << " to size " << fd_size_
-                 << " in state " << static_cast<int32>(state_) << " due to error: " << status;
+                 << " in state " << static_cast<int32>(state_) << " due to error: " << status << " after reading "
+                 << data;
     }
   }
 
@@ -492,10 +495,12 @@ Status Binlog::load_binlog(const Callback &callback, const Callback &debug_callb
     if (r_need_size.is_error()) {
       if (r_need_size.error().code() == -2) {
         auto old_size = detail::file_size(path_);
-        fd_.seek(reader.offset()).ensure();
-        fd_.truncate_to_current_position(reader.offset()).ensure();
-        LOG(FATAL) << "Truncate binlog \"" << path_ << "\" from size " << old_size << " to size " << reader.offset()
-                   << " due to error: " << r_need_size.error();
+        auto offset = reader.offset();
+        auto data = debug_get_binlog_data(offset, old_size);
+        fd_.seek(offset).ensure();
+        fd_.truncate_to_current_position(offset).ensure();
+        LOG(FATAL) << "Truncate binlog \"" << path_ << "\" from size " << old_size << " to size " << offset
+                   << " due to error: " << r_need_size.error() << " after reading " << data;
       }
       LOG(ERROR) << r_need_size.error();
       break;
@@ -662,6 +667,45 @@ void Binlog::do_reindex() {
     aes_ctr_state_ = aes_xcode_byte_flow_.move_aes_ctr_state();
   }
   update_write_encryption();
+}
+
+string Binlog::debug_get_binlog_data(int64 begin_offset, int64 end_offset) {
+  if (begin_offset > end_offset) {
+    return "Begin offset is bigger than end_offset";
+  }
+  if (begin_offset == end_offset) {
+    return string();
+  }
+
+  static int64 MAX_DATA_LENGTH = 512;
+  if (end_offset - begin_offset > MAX_DATA_LENGTH) {
+    end_offset = begin_offset + MAX_DATA_LENGTH;
+  }
+
+  auto r_fd = FileFd::open(path_, FileFd::Flags::Read);
+  if (r_fd.is_error()) {
+    return PSTRING() << "Failed to open binlog: " << r_fd.error();
+  }
+  auto fd = r_fd.move_as_ok();
+
+  fd_.lock(FileFd::LockFlags::Unlock, path_, 1).ignore();
+  SCOPE_EXIT {
+    fd_.lock(FileFd::LockFlags::Write, path_, 1).ensure();
+  };
+  size_t expected_data_length = narrow_cast<size_t>(end_offset - begin_offset);
+  string data(expected_data_length, '\0');
+  auto r_data_size = fd.pread(data, begin_offset);
+  if (r_data_size.is_error()) {
+    return PSTRING() << "Failed to read binlog: " << r_data_size.error();
+  }
+  if (r_data_size.ok() < expected_data_length) {
+    data.resize(r_data_size.ok());
+    data = PSTRING() << format::as_hex_dump<4>(Slice(data)) << " | with " << expected_data_length - r_data_size.ok()
+                     << " missed bytes";
+  } else {
+    data = PSTRING() << format::as_hex_dump<4>(Slice(data));
+  }
+  return data;
 }
 
 }  // namespace td
