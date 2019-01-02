@@ -923,12 +923,14 @@ struct PartialLocalFileLocationPtr {
   }
   PartialLocalFileLocationPtr &operator=(const PartialLocalFileLocationPtr &other) {
     *location_ = *other.location_;
+    return *this;
   }
   PartialLocalFileLocationPtr(PartialLocalFileLocationPtr &&other)
       : location_(make_unique<PartialLocalFileLocation>(std::move(*other.location_))) {
   }
   PartialLocalFileLocationPtr &operator=(PartialLocalFileLocationPtr &&other) {
     *location_ = std::move(*other.location_);
+    return *this;
   }
   ~PartialLocalFileLocationPtr() = default;
 
