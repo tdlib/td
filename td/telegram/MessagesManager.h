@@ -333,7 +333,7 @@ class MessagesManager : public Actor {
 
   Result<MessageId> send_inline_query_result_message(DialogId dialog_id, MessageId reply_to_message_id,
                                                      bool disable_notification, bool from_background, int64 query_id,
-                                                     const string &result_id) TD_WARN_UNUSED_RESULT;
+                                                     const string &result_id, bool hide_via_bot) TD_WARN_UNUSED_RESULT;
 
   Result<vector<MessageId>> forward_messages(DialogId to_dialog_id, DialogId from_dialog_id,
                                              vector<MessageId> message_ids, bool disable_notification,

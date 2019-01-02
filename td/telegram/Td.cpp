@@ -5284,7 +5284,7 @@ void Td::on_request(uint64 id, td_api::sendInlineQueryResultMessage &request) {
   DialogId dialog_id(request.chat_id_);
   auto r_new_message_id = messages_manager_->send_inline_query_result_message(
       dialog_id, MessageId(request.reply_to_message_id_), request.disable_notification_, request.from_background_,
-      request.query_id_, request.result_id_);
+      request.query_id_, request.result_id_, request.hide_via_bot_);
   if (r_new_message_id.is_error()) {
     return send_closure(actor_id(this), &Td::send_error, id, r_new_message_id.move_as_error());
   }

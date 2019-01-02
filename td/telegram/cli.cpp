@@ -2691,7 +2691,7 @@ class CliClient final : public Actor {
       std::tie(bot_id, query) = split(args);
       send_request(
           make_tl_object<td_api::getInlineQueryResults>(as_user_id(bot_id), 0, as_location("1.1", "2.2"), query, ""));
-    } else if (op == "siqr") {
+    } else if (op == "siqr" || op == "siqrh") {
       string chat_id;
       string query_id;
       string result_id;
@@ -2699,8 +2699,8 @@ class CliClient final : public Actor {
       std::tie(query_id, result_id) = split(args);
 
       auto chat = as_chat_id(chat_id);
-      send_request(make_tl_object<td_api::sendInlineQueryResultMessage>(chat, 0, false, false,
-                                                                        to_integer<int64>(query_id), result_id));
+      send_request(make_tl_object<td_api::sendInlineQueryResultMessage>(
+          chat, 0, false, false, to_integer<int64>(query_id), result_id, op == "siqrh"));
     } else if (op == "gcqr") {
       string chat_id;
       string message_id;

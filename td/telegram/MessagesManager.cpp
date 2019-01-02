@@ -2059,7 +2059,7 @@ class SendInlineBotResultQuery : public Td::ResultHandler {
     CHECK(input_peer != nullptr);
 
     auto query = G()->net_query_creator().create(create_storer(telegram_api::messages_sendInlineBotResult(
-        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, std::move(input_peer),
         reply_to_message_id.get_server_message_id().get(), random_id, query_id, result_id)));
     auto send_query_ref = query.get_weak();
     send_query(std::move(query));
@@ -15896,7 +15896,8 @@ void MessagesManager::do_send_bot_start_message(UserId bot_user_id, DialogId dia
 
 Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dialog_id, MessageId reply_to_message_id,
                                                                     bool disable_notification, bool from_background,
-                                                                    int64 query_id, const string &result_id) {
+                                                                    int64 query_id, const string &result_id,
+                                                                    bool hide_via_bot) {
   LOG(INFO) << "Begin to send inline query result message to " << dialog_id << " in reply to " << reply_to_message_id;
 
   Dialog *d = get_dialog_force(dialog_id);
@@ -15938,7 +15939,9 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
   Message *m = get_message_to_send(
       d, get_reply_to_message_id(d, reply_to_message_id), disable_notification, from_background,
       dup_message_content(td_, dialog_id, content->message_content.get(), false), &need_update_dialog_pos);
-  m->via_bot_user_id = td_->inline_queries_manager_->get_inline_bot_user_id(query_id);
+  if (!hide_via_bot) {
+    m->via_bot_user_id = td_->inline_queries_manager_->get_inline_bot_user_id(query_id);
+  }
   if (content->message_reply_markup != nullptr && !to_secret) {
     m->reply_markup = make_unique<ReplyMarkup>(*content->message_reply_markup);
   }
@@ -16015,8 +16018,12 @@ void MessagesManager::do_send_inline_query_result_message(DialogId dialog_id, Me
   LOG(INFO) << "Do send inline query result " << FullMessageId(dialog_id, m->message_id);
 
   int64 random_id = begin_send_message(dialog_id, m);
-  m->send_query_ref = td_->create_handler<SendInlineBotResultQuery>()->send(
-      get_message_flags(m), dialog_id, m->reply_to_message_id, random_id, query_id, result_id);
+  auto flags = get_message_flags(m);
+  if (!m->via_bot_user_id.is_valid()) {
+    flags |= telegram_api::messages_sendInlineBotResult::HIDE_VIA_MASK;
+  }
+  m->send_query_ref = td_->create_handler<SendInlineBotResultQuery>()->send(flags, dialog_id, m->reply_to_message_id,
+                                                                            random_id, query_id, result_id);
 }
 
 bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, bool is_editing,
@@ -21742,8 +21749,10 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
     }
   }
   if (old_message->via_bot_user_id != new_message->via_bot_user_id) {
-    LOG(ERROR) << message_id << " in " << dialog_id << " has changed bot via it is sent from "
-               << old_message->via_bot_user_id << " to " << new_message->via_bot_user_id;
+    if (!message_id.is_yet_unsent() || old_message->via_bot_user_id.is_valid()) {
+      LOG(ERROR) << message_id << " in " << dialog_id << " has changed bot via it is sent from "
+                 << old_message->via_bot_user_id << " to " << new_message->via_bot_user_id;
+    }
     old_message->via_bot_user_id = new_message->via_bot_user_id;
     is_changed = true;
   }

@@ -2693,7 +2693,8 @@ sendBotStartMessage bot_user_id:int32 chat_id:int53 parameter:string = Message;
 //@description Sends the result of an inline query as a message. Returns the sent message. Always clears a chat draft message @chat_id Target chat @reply_to_message_id Identifier of a message to reply to or 0
 //@disable_notification Pass true to disable notification for the message. Not supported in secret chats @from_background Pass true if the message is sent from background
 //@query_id Identifier of the inline query @result_id Identifier of the inline result
-sendInlineQueryResultMessage chat_id:int53 reply_to_message_id:int53 disable_notification:Bool from_background:Bool query_id:int64 result_id:string = Message;
+//@hide_via_bot If true, there will be no mention of a bot, via which the message is sent. Can be used only for bots getOption('animation_search_bot_username'), getOption('photo_search_bot_username') and getOption('venue_search_bot_username')
+sendInlineQueryResultMessage chat_id:int53 reply_to_message_id:int53 disable_notification:Bool from_background:Bool query_id:int64 result_id:string hide_via_bot:Bool = Message;
 
 //@description Forwards previously sent messages. Returns the forwarded messages in the same order as the message identifiers passed in message_ids. If a message can't be forwarded, null will be returned instead of the message
 //@chat_id Identifier of the chat to which to forward messages @from_chat_id Identifier of the chat from which to forward messages @message_ids Identifiers of the messages to forward
