@@ -592,6 +592,41 @@ class DeleteContactsQuery : public Td::ResultHandler {
   }
 };
 
+class DeleteContactsByPhoneNumberQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  vector<UserId> user_ids_;
+
+ public:
+  explicit DeleteContactsByPhoneNumberQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(vector<string> &&user_phone_numbers, vector<UserId> &&user_ids) {
+    user_ids_ = std::move(user_ids);
+    send_query(G()->net_query_creator().create(
+        create_storer(telegram_api::contacts_deleteByPhones(std::move(user_phone_numbers)))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::contacts_deleteByPhones>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    bool result = result_ptr.ok();
+    if (!result) {
+      return on_error(id, Status::Error(500, "Some contacts can't be deleted"));
+    }
+
+    td->contacts_manager_->on_deleted_contacts(user_ids_);
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
+    td->contacts_manager_->reload_contacts(true);
+  }
+};
+
 class ResetContactsQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
 
@@ -3525,9 +3560,20 @@ void ContactsManager::remove_contacts(vector<UserId> user_ids, Promise<Unit> &&p
     return promise.set_value(Unit());
   }
 
-  // TODO DeleteContactQuery
   td_->create_handler<DeleteContactsQuery>(std::move(promise))
       ->send(std::move(to_delete_user_ids), std::move(input_users));
+}
+
+void ContactsManager::remove_contacts_by_phone_number(vector<string> user_phone_numbers, vector<UserId> user_ids,
+                                                      Promise<Unit> &&promise) {
+  LOG(INFO) << "Delete contacts by phone number: " << format::as_array(user_phone_numbers);
+  if (!are_contacts_loaded_) {
+    load_contacts(std::move(promise));
+    return;
+  }
+
+  td_->create_handler<DeleteContactsByPhoneNumberQuery>(std::move(promise))
+      ->send(std::move(user_phone_numbers), std::move(user_ids));
 }
 
 int32 ContactsManager::get_imported_contact_count(Promise<Unit> &&promise) {
@@ -3690,13 +3736,18 @@ std::pair<vector<UserId>, vector<int32>> ContactsManager::change_imported_contac
     }
   }
 
-  vector<UserId> to_delete;
+  vector<string> to_delete;
+  vector<UserId> to_delete_user_ids;
   for (auto &old_contact : all_imported_contacts_) {
     auto user_id = old_contact.get_user_id();
     auto it = different_new_contacts.find(old_contact);
     if (it == different_new_contacts.end()) {
-      if (user_id.is_valid() && different_new_phone_numbers.count(old_contact.get_phone_number()) == 0) {
-        to_delete.push_back(user_id);
+      auto phone_number = old_contact.get_phone_number();
+      if (different_new_phone_numbers.count(phone_number) == 0) {
+        to_delete.push_back(std::move(phone_number));
+        if (user_id.is_valid()) {
+          to_delete_user_ids.push_back(user_id);
+        }
       }
     } else {
       unique_new_contacts[it->second].set_user_id(user_id);
@@ -3723,8 +3774,8 @@ std::pair<vector<UserId>, vector<int32>> ContactsManager::change_imported_contac
   are_imported_contacts_changing_ = true;
   random_id = 1;
 
-  remove_contacts(
-      std::move(to_delete),
+  remove_contacts_by_phone_number(
+      std::move(to_delete), std::move(to_delete_user_ids),
       PromiseCreator::lambda([new_contacts = std::move(unique_new_contacts),
                               new_contacts_unique_id = std::move(new_contacts_unique_id), to_add = std::move(to_add),
                               promise = std::move(promise)](Result<> result) mutable {
@@ -4781,7 +4832,7 @@ void ContactsManager::on_imported_contacts(int64 random_id, vector<UserId> impor
 }
 
 void ContactsManager::on_deleted_contacts(const vector<UserId> &deleted_contact_user_ids) {
-  LOG(INFO) << "Contacts deletion has finished";
+  LOG(INFO) << "Contacts deletion has finished for " << deleted_contact_user_ids;
 
   for (auto user_id : deleted_contact_user_ids) {
     LOG(INFO) << "Drop contact with " << user_id;

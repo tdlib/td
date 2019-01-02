@@ -265,6 +265,9 @@ class ContactsManager : public Actor {
 
   void remove_contacts(vector<UserId> user_ids, Promise<Unit> &&promise);
 
+  void remove_contacts_by_phone_number(vector<string> user_phone_numbers, vector<UserId> user_ids,
+                                       Promise<Unit> &&promise);
+
   int32 get_imported_contact_count(Promise<Unit> &&promise);
 
   std::pair<vector<UserId>, vector<int32>> change_imported_contacts(vector<tl_object_ptr<td_api::contact>> &&contacts,
