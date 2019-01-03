@@ -1841,6 +1841,10 @@ class MessagesManager : public Actor {
 
   void save_active_live_locations();
 
+  void add_message_file_sources(DialogId dialog_id, const Message *m);
+
+  void remove_message_file_sources(DialogId dialog_id, const Message *m);
+
   Result<unique_ptr<ReplyMarkup>> get_dialog_reply_markup(
       DialogId dialog_id, tl_object_ptr<td_api::ReplyMarkup> &&reply_markup_ptr) const TD_WARN_UNUSED_RESULT;
 

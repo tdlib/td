@@ -607,6 +607,7 @@ void FileManager::init_actor() {
   file_generate_manager_ = create_actor_on_scheduler<FileGenerateManager>(
       "FileGenerateManager", G()->get_slow_net_scheduler_id(), context_->create_reference());
 }
+
 FileManager::~FileManager() {
 }
 

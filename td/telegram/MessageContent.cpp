@@ -3159,7 +3159,7 @@ static auto secret_to_telegram(secret_api::fileLocationUnavailable &file_locatio
 static auto secret_to_telegram(secret_api::fileLocation &file_location) {
   return make_tl_object<telegram_api::fileLocation>(file_location.dc_id_, file_location.volume_id_,
                                                     file_location.local_id_, file_location.secret_,
-                                                    BufferSlice() /*FIXME*/);
+                                                    BufferSlice());
 }
 
 // photoSizeEmpty#e17e23c type:string = PhotoSize;
@@ -3308,7 +3308,7 @@ static auto secret_to_telegram_document(secret_api::decryptedMessageMediaExterna
     from.mime_type_.clear();
   }
   return make_tl_object<telegram_api::document>(
-      from.id_, from.access_hash_, BufferSlice() /*FIXME*/, from.date_, from.mime_type_, from.size_,
+      from.id_, from.access_hash_, BufferSlice(), from.date_, from.mime_type_, from.size_,
       secret_to_telegram<telegram_api::PhotoSize>(*from.thumb_), from.dc_id_, secret_to_telegram(from.attributes_));
 }
 

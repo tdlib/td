@@ -47,7 +47,7 @@ void FileReferenceManager::update_file_reference(FileId file_id, std::vector<Fil
       promise.set_value(Unit());
     });
     if (it == to_full_message_id_.end()) {
-      new_promise.set_error(Status::Error("Unkonwn  source id"));
+      new_promise.set_error(Status::Error("Unkonwn source id"));
       continue;
     }
 

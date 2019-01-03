@@ -10627,6 +10627,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     delete_message_from_database(d, message_id, m, is_permanently_deleted);
 
     delete_active_live_location(d->dialog_id, m);
+    remove_message_file_sources(d->dialog_id, m);
 
     if (message_id == d->last_message_id) {
       MessagesConstIterator it(d, message_id);
@@ -10838,6 +10839,7 @@ void MessagesManager::do_delete_all_dialog_messages(Dialog *d, unique_ptr<Messag
   do_delete_all_dialog_messages(d, m->left, deleted_message_ids);
 
   delete_active_live_location(d->dialog_id, m.get());
+  remove_message_file_sources(d->dialog_id, m.get());
 
   if (message_id.is_yet_unsent()) {
     cancel_send_message_query(d->dialog_id, m);
@@ -13692,6 +13694,38 @@ void MessagesManager::save_active_live_locations() {
     G()->td_db()->get_sqlite_pmc()->set("di_active_live_location_messages",
                                         log_event_store(active_live_location_full_message_ids_).as_slice().str(),
                                         Auto());
+  }
+}
+
+void MessagesManager::add_message_file_sources(DialogId dialog_id, const Message *m) {
+  if (dialog_id.get_type() == DialogType::SecretChat || !m->message_id.is_server()) {
+    return;
+  }
+
+  auto file_ids = get_message_content_file_ids(m->content.get(), td_);
+  if (file_ids.empty()) {
+    return;
+  }
+
+  auto file_source_id = td_->file_reference_manager_->create_file_source(FullMessageId(dialog_id, m->message_id));
+  for (auto file_id : file_ids) {
+    td_->file_manager_->add_file_source(file_id, file_source_id);
+  }
+}
+
+void MessagesManager::remove_message_file_sources(DialogId dialog_id, const Message *m) {
+  if (dialog_id.get_type() == DialogType::SecretChat || !m->message_id.is_server()) {
+    return;
+  }
+
+  auto file_ids = get_message_content_file_ids(m->content.get(), td_);
+  if (file_ids.empty()) {
+    return;
+  }
+
+  auto file_source_id = td_->file_reference_manager_->create_file_source(FullMessageId(dialog_id, m->message_id));
+  for (auto file_id : file_ids) {
+    td_->file_manager_->remove_file_source(file_id, file_source_id);
   }
 }
 
@@ -20971,16 +21005,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     cancel_user_dialog_action(dialog_id, message.get());
   }
 
-  if (message_id.is_server()) {
-    auto file_ids = get_message_content_file_ids(message->content.get(), td_);
-    if (!file_ids.empty()) {
-      auto file_source_id = td_->file_reference_manager_->create_file_source(FullMessageId(dialog_id, message_id));
-      for (auto file_id : file_ids) {
-        td_->file_manager_->add_file_source(file_id, file_source_id);
-      }
-    }
-  }
-
   {
     unique_ptr<Message> *v = find_message(&d->messages, message_id);
     if (*v == nullptr && !message->from_database) {
@@ -21014,11 +21038,13 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         const int32 INDEX_MASK_MASK = ~search_messages_filter_index_mask(SearchMessagesFilter::UnreadMention);
         auto old_index_mask = get_message_index_mask(dialog_id, v->get()) & INDEX_MASK_MASK;
         bool was_deleted = delete_active_live_location(dialog_id, v->get());
+        remove_message_file_sources(dialog_id, v->get());
         update_message(d, *v, std::move(message), true, need_update_dialog_pos);
         auto new_index_mask = get_message_index_mask(dialog_id, v->get()) & INDEX_MASK_MASK;
         if (was_deleted) {
           try_add_active_live_location(dialog_id, v->get());
         }
+        add_message_file_sources(dialog_id, v->get());
         if (old_index_mask != new_index_mask) {
           update_message_count_by_index(d, -1, old_index_mask & ~new_index_mask);
           update_message_count_by_index(d, +1, new_index_mask & ~old_index_mask);
@@ -21345,6 +21371,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     LOG(INFO) << "Reget from server " << full_message_id;
     get_messages_from_server({full_message_id}, Auto());
   }
+
+  add_message_file_sources(dialog_id, m);
 
   if (from_update && message_id.is_server() && dialog_id.get_type() == DialogType::Channel) {
     int32 new_participant_count = get_message_content_new_participant_count(m->content.get());
