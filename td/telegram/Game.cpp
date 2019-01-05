@@ -84,6 +84,14 @@ UserId Game::get_bot_user_id() const {
   return bot_user_id_;
 }
 
+vector<FileId> Game::get_file_ids() const {
+  auto result = photo_get_file_ids(photo_);
+  if (animation_file_id_.is_valid()) {
+    result.push_back(animation_file_id_);
+  }
+  return result;
+}
+
 void Game::set_text(FormattedText &&text) {
   text_ = std::move(text);
 }

@@ -4417,8 +4417,7 @@ FileId get_message_content_thumbnail_file_id(const MessageContent *content, cons
 vector<FileId> get_message_content_file_ids(const MessageContent *content, const Td *td) {
   switch (content->get_type()) {
     case MessageContentType::Photo:
-      return transform(static_cast<const MessagePhoto *>(content)->photo.photos,
-                       [](auto &size) { return size.file_id; });
+      return photo_get_file_ids(static_cast<const MessagePhoto *>(content)->photo);
     case MessageContentType::Animation:
     case MessageContentType::Audio:
     case MessageContentType::Document:
@@ -4438,6 +4437,8 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
       }
       return result;
     }
+    case MessageContentType::Game:
+      return static_cast<const MessageGame *>(content)->game.get_file_ids();
     default:
       return {};
   }

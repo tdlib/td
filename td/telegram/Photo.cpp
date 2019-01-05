@@ -637,6 +637,10 @@ SecretInputMedia photo_get_secret_input_media(FileManager *file_manager, const P
           BufferSlice(encryption_key.key_slice()), BufferSlice(encryption_key.iv_slice()), caption)};
 }
 
+vector<FileId> photo_get_file_ids(const Photo &photo) {
+  return transform(photo.photos, [](auto &size) { return size.file_id; });
+}
+
 bool operator==(const Photo &lhs, const Photo &rhs) {
   return lhs.id == rhs.id && lhs.photos == rhs.photos;
 }

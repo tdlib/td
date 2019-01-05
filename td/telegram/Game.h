@@ -57,6 +57,8 @@ class Game {
 
   UserId get_bot_user_id() const;
 
+  vector<FileId> get_file_ids() const;
+
   void set_text(FormattedText &&text);
 
   const FormattedText &get_text() const;

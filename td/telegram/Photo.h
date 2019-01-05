@@ -114,6 +114,8 @@ tl_object_ptr<telegram_api::InputMedia> photo_get_input_media(FileManager *file_
                                                               tl_object_ptr<telegram_api::InputFile> input_file,
                                                               int32 ttl);
 
+vector<FileId> photo_get_file_ids(const Photo &photo);
+
 bool operator==(const Photo &lhs, const Photo &rhs);
 bool operator!=(const Photo &lhs, const Photo &rhs);
 
