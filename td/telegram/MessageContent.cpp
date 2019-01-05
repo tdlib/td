@@ -4439,6 +4439,30 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
     }
     case MessageContentType::Game:
       return static_cast<const MessageGame *>(content)->game.get_file_ids();
+    case MessageContentType::Invoice:
+      return photo_get_file_ids(static_cast<const MessageInvoice *>(content)->photo);
+    case MessageContentType::ChatChangePhoto:
+      return photo_get_file_ids(static_cast<const MessageChatChangePhoto *>(content)->photo);
+    case MessageContentType::PassportDataReceived: {
+      vector<FileId> result;
+      for (auto &value : static_cast<const MessagePassportDataReceived *>(content)->values) {
+        auto process_encrypted_secure_file = [&result](const EncryptedSecureFile &file) {
+          if (file.file.file_id.is_valid()) {
+            result.push_back(file.file.file_id);
+          }
+        };
+        for (auto &file : value.files) {
+          process_encrypted_secure_file(file);
+        }
+        process_encrypted_secure_file(value.front_side);
+        process_encrypted_secure_file(value.reverse_side);
+        process_encrypted_secure_file(value.selfie);
+        for (auto &file : value.translations) {
+          process_encrypted_secure_file(file);
+        }
+      }
+      return result;
+    }
     default:
       return {};
   }
