@@ -6,6 +6,7 @@
 //
 #include "td/telegram/FileReferenceManager.h"
 
+#include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
 
@@ -31,9 +32,6 @@ void FileReferenceManager::update_file_reference(FileId file_id, std::vector<Fil
   MultiPromiseActorSafe mpas{"UpdateFileReferenceMultiPromiseActor"};
   mpas.add_promise(std::move(promise));
   auto lock = mpas.get_promise();
-  SCOPE_EXIT {
-    lock.set_value(Unit());
-  };
   for (auto source_id : sources) {
     auto it = to_full_message_id_.find(source_id);
     auto new_promise = PromiseCreator::lambda([promise = mpas.get_promise(), file_id, source_id,
@@ -47,7 +45,7 @@ void FileReferenceManager::update_file_reference(FileId file_id, std::vector<Fil
       promise.set_value(Unit());
     });
     if (it == to_full_message_id_.end()) {
-      new_promise.set_error(Status::Error("Unkonwn source id"));
+      new_promise.set_error(Status::Error("Unknown source id"));
       continue;
     }
 
@@ -56,6 +54,7 @@ void FileReferenceManager::update_file_reference(FileId file_id, std::vector<Fil
     send_closure_later(G()->messages_manager(), &MessagesManager::get_messages_from_server, std::move(message_ids),
                        std::move(new_promise), nullptr);
   }
+  lock.set_value(Unit());
 }
 
 }  // namespace td

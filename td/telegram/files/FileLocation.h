@@ -553,7 +553,7 @@ class FullRemoteFileLocation {
   bool has_file_reference() const {
     return !file_reference_.empty();
   }
-  string get_file_reference() const {
+  const string &get_file_reference() const {
     return file_reference_;
   }
   string get_url() const {

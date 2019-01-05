@@ -271,7 +271,7 @@ Result<std::pair<NetQueryPtr, bool>> FileDownloader::start_part(Part part, int32
 Status FileDownloader::check_net_query(NetQueryPtr &net_query) {
   if (net_query->is_error()) {
     auto error = net_query->move_as_error();
-    if (begins_with(error.message(), "FILE_REFERENCE_")) {
+    if (error.code() == 400 && begins_with(error.message(), "FILE_REFERENCE_")) {
       error = Status::Error(400, PSLICE()
                                      << "FILE_REFERENCE_EXPIRED_BASE64" << base64_encode(remote_.get_file_reference()));
     }

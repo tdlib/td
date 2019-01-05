@@ -352,13 +352,16 @@ string FileNode::suggested_name() const {
 bool FileView::has_local_location() const {
   return node_->local_.type() == LocalFileLocation::Type::Full;
 }
+
 const FullLocalFileLocation &FileView::local_location() const {
   CHECK(has_local_location());
   return node_->local_.full();
 }
+
 bool FileView::has_remote_location() const {
   return node_->remote_.type() == RemoteFileLocation::Type::Full;
 }
+
 bool FileView::has_active_remote_location() const {
   if (!has_remote_location()) {
     return false;
@@ -368,6 +371,7 @@ bool FileView::has_active_remote_location() const {
   }
   return remote_location().has_file_reference();
 }
+
 const FullRemoteFileLocation &FileView::remote_location() const {
   CHECK(has_remote_location());
   auto *remote = node_.get_remote();
@@ -376,9 +380,11 @@ const FullRemoteFileLocation &FileView::remote_location() const {
   }
   return node_->remote_.full();
 }
+
 bool FileView::has_generate_location() const {
   return node_->generate_ != nullptr;
 }
+
 const FullGenerateFileLocation &FileView::generate_location() const {
   CHECK(has_generate_location());
   return *node_->generate_;
@@ -989,12 +995,14 @@ static int merge_choose_remote_location(const RemoteFileLocation &x, int8 x_sour
       return x.full().is_web();  // prefer non-web
     }
     auto x_ref = x.full().has_file_reference();
-    auto y_ref = !y.full().has_file_reference();
+    auto y_ref = y.full().has_file_reference();
     if (x_ref || y_ref) {
       if (x_ref != y_ref) {
         return !x_ref;
       }
-      return x_source < y_source;
+      if (x.full().get_file_reference() != y.full().get_file_reference()) {
+        return x_source < y_source;
+      }
     }
     if (x.full().get_access_hash() != y.full().get_access_hash()) {
       return x_source < y_source;
@@ -1356,7 +1364,7 @@ void FileManager::add_file_source(FileId file_id, FileSourceId file_source_id) {
 }
 
 void FileManager::remove_file_source(FileId file_id, FileSourceId file_source_id) {
-  LOG(ERROR) << "Remove file source " << file_id, file_source_id;
+  LOG(ERROR) << "Remove file source " << file_id << " " << file_source_id;
   auto node = get_file_node(file_id);
   if (!node) {
     return;
@@ -1752,7 +1760,7 @@ void FileManager::run_download(FileNodePtr node) {
 
   // If file reference is needed
   if (!file_view.has_active_remote_location()) {
-    LOG(INFO) << "run_download: Do not have valid file_reference " << file_id;
+    LOG(INFO) << "run_download: Do not have valid file_reference for file " << file_id;
     QueryId id = queries_container_.create(Query{file_id, Query::DownloadWaitFileReferece});
     node->download_id_ = id;
     if (node->file_source_ids_.empty()) {
@@ -1760,23 +1768,23 @@ void FileManager::run_download(FileNodePtr node) {
       return;
     }
     if (!node->download_may_update_file_reference_) {
-      on_error(id, Status::Error("Can't download file: have valid source id, but do not allowed to use id"));
+      on_error(id, Status::Error("Can't download file: have valid source id, but do not allowed to use it"));
       return;
     }
     node->download_may_update_file_reference_ = false;
 
-    send_closure(
-        G()->file_reference_manager(), &FileReferenceManager::update_file_reference, file_id, node->file_source_ids_,
-        PromiseCreator::lambda([id, actor_id = actor_id(this), file_id](Result<Unit> res) {
-          Status error;
-          if (res.is_ok()) {
-            error = td::Status::Error("FILE_DOWNLOAD_RESTART_WITH_FILE_REFERENCE");
-          } else {
-            error = res.move_as_error();
-          }
-          LOG(INFO) << "run_download: Got result from FileSourceManager for file " << file_id << " : " << error;
-          send_closure(actor_id, &FileManager::on_error, id, std::move(error));
-        }));
+    send_closure(G()->file_reference_manager(), &FileReferenceManager::update_file_reference, file_id,
+                 node->file_source_ids_,
+                 PromiseCreator::lambda([id, actor_id = actor_id(this), file_id](Result<Unit> res) {
+                   Status error;
+                   if (res.is_ok()) {
+                     error = Status::Error("FILE_DOWNLOAD_RESTART_WITH_FILE_REFERENCE");
+                   } else {
+                     error = res.move_as_error();
+                   }
+                   LOG(INFO) << "run_download: Got result from FileSourceManager for file " << file_id << ": " << error;
+                   send_closure(actor_id, &FileManager::on_error, id, std::move(error));
+                 }));
     return;
   }
 
@@ -2772,10 +2780,11 @@ void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type,
     string file_reference;
     Slice prefix = "FILE_REFERENCE_EXPIRED_BASE64";
     if (begins_with(status.message(), prefix)) {
-      auto tmp = base64_decode(status.message().substr(prefix.size()));
-      LOG_IF(WARNING, tmp.is_error()) << "Can't decode file reference from error " << status << " " << tmp.error();
-      if (tmp.is_ok()) {
-        file_reference = tmp.move_as_ok();
+      auto r_file_reference = base64_decode(status.message().substr(prefix.size()));
+      if (r_file_reference.is_ok()) {
+        file_reference = r_file_reference.move_as_ok();
+      } else {
+        LOG(ERROR) << "Can't decode file reference from error " << status << ": " << r_file_reference.error();
       }
     } else {
       LOG(ERROR) << "Unexpected error, file_reference will be deleted just in case " << status;
