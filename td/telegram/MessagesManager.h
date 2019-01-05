@@ -1790,6 +1790,8 @@ class MessagesManager : public Actor {
   void loop() override;
   void tear_down() override;
 
+  void init();
+
   void ttl_db_loop_start(double server_now);
   void ttl_db_loop(double server_now);
   void ttl_db_on_result(Result<std::pair<std::vector<std::pair<DialogId, BufferSlice>>, int32>> r_result, bool dummy);
@@ -2280,6 +2282,7 @@ class MessagesManager : public Actor {
   DialogId being_added_dialog_id_;
 
   double start_time_ = 0;
+  bool is_inited_ = false;
 
   Td *td_;
   ActorShared<> parent_;

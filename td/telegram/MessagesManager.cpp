@@ -8735,6 +8735,15 @@ void MessagesManager::tear_down() {
 }
 
 void MessagesManager::start_up() {
+  init();
+}
+
+void MessagesManager::init() {
+  if (is_inited_) {
+    return;
+  }
+  is_inited_ = true;
+
   always_wait_for_mailbox();
 
   start_time_ = Time::now();
@@ -17925,7 +17934,8 @@ vector<NotificationGroupKey> MessagesManager::get_message_notification_group_key
   if (!G()->parameters().use_message_db) {
     return {};
   }
-  CHECK(start_time_ != 0);  // ensure that MessagesManager was already inited in start_up
+
+  init();
 
   VLOG(notifications) << "Trying to load " << limit << " message notification groups from database from "
                       << from_group_key;
