@@ -12,6 +12,7 @@
 #include "td/telegram/DeviceTokenManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/StateManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 
@@ -150,6 +151,22 @@ void NotificationManager::start_up() {
       available_call_notification_group_ids_.insert(group_id);
     }
   }
+
+  class StateCallback : public StateManager::Callback {
+   public:
+    explicit StateCallback(ActorId<NotificationManager> parent) : parent_(std::move(parent)) {
+    }
+    bool on_online(bool is_online) override {
+      if (is_online) {
+        send_closure(parent_, &NotificationManager::flush_all_pending_notifications);
+      }
+      return parent_.is_alive();
+    }
+
+   private:
+    ActorId<NotificationManager> parent_;
+  };
+  send_closure(G()->state_manager(), &StateManager::add_callback, make_unique<StateCallback>(actor_id(this)));
 }
 
 td_api::object_ptr<td_api::updateActiveNotifications> NotificationManager::get_update_active_notifications() const {
