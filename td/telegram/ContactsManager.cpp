@@ -688,6 +688,7 @@ class UploadProfilePhotoQuery : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for uploadProfilePhoto: " << to_string(ptr);
     td->contacts_manager_->on_get_users(std::move(ptr->users_));
+    // ignore ptr->photo_
 
     td->file_manager_->delete_partial_remote_location(file_id_);
 
