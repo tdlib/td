@@ -15,6 +15,7 @@
 
 #include "td/actor/MultiPromise.h"
 
+#include "td/db/binlog/Binlog.h"
 #include "td/db/binlog/ConcurrentBinlog.h"
 #include "td/db/BinlogKeyValue.h"
 #include "td/db/SqliteKeyValue.h"

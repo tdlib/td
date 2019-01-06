@@ -8,7 +8,6 @@
 
 #include "td/telegram/TdParameters.h"
 
-#include "td/db/binlog/Binlog.h"
 #include "td/db/binlog/BinlogInterface.h"
 #include "td/db/binlog/BinlogEvent.h"
 #include "td/db/DbKey.h"
@@ -24,6 +23,7 @@
 
 namespace td {
 
+class Binlog;
 template <class BinlogT>
 class BinlogKeyValue;
 class ConcurrentBinlog;
