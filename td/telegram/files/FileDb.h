@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/files/FileDbId.h"
 #include "td/telegram/files/FileLocation.h"
 
 #include "td/actor/PromiseFuture.h"
@@ -16,12 +17,11 @@
 #include <memory>
 
 namespace td {
+
 class SqliteDb;
 class SqliteConnectionSafe;
 class SqliteKeyValue;
-}  // namespace td
 
-namespace td {
 Status drop_file_db(SqliteDb &db, int32 version) TD_WARN_UNUSED_RESULT;
 Status init_file_db(SqliteDb &db, int32 version) TD_WARN_UNUSED_RESULT;
 
@@ -29,18 +29,15 @@ class FileDbInterface;
 std::shared_ptr<FileDbInterface> create_file_db(std::shared_ptr<SqliteConnectionSafe> connection,
                                                 int32 scheduler_id = -1) TD_WARN_UNUSED_RESULT;
 
-using FileDbId = uint64;
-
 class FileDbInterface {
  public:
-  using Id = FileDbId;
   FileDbInterface() = default;
   FileDbInterface(const FileDbInterface &) = delete;
   FileDbInterface &operator=(const FileDbInterface &) = delete;
   virtual ~FileDbInterface() = default;
 
   // non thread safe
-  virtual Id create_pmc_id() = 0;
+  virtual FileDbId create_pmc_id() = 0;
 
   // thread safe
   virtual void close(Promise<> promise) = 0;
@@ -60,9 +57,10 @@ class FileDbInterface {
     return res;
   }
 
-  virtual void clear_file_data(Id id, const FileData &file_data) = 0;
-  virtual void set_file_data(Id id, const FileData &file_data, bool new_remote, bool new_local, bool new_generate) = 0;
-  virtual void set_file_data_ref(Id id, Id new_id) = 0;
+  virtual void clear_file_data(FileDbId id, const FileData &file_data) = 0;
+  virtual void set_file_data(FileDbId id, const FileData &file_data, bool new_remote, bool new_local,
+                             bool new_generate) = 0;
+  virtual void set_file_data_ref(FileDbId id, FileDbId new_id) = 0;
 
   // For FileStatsWorker. TODO: remove it
   virtual SqliteKeyValue &pmc() = 0;
@@ -71,5 +69,5 @@ class FileDbInterface {
   virtual void get_file_data_impl(string key, Promise<FileData> promise) = 0;
   virtual Result<FileData> get_file_data_sync_impl(string key) = 0;
 };
-;
+
 }  // namespace td

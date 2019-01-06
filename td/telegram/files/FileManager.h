@@ -11,6 +11,7 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileDb.h"
+#include "td/telegram/files/FileDbId.h"
 #include "td/telegram/files/FileEncryptionKey.h"
 #include "td/telegram/files/FileGenerateManager.h"
 #include "td/telegram/files/FileId.h"
@@ -112,7 +113,7 @@ class FileNode {
   string url_;
   DialogId owner_dialog_id_;
   FileEncryptionKey encryption_key_;
-  FileDbId pmc_id_ = 0;
+  FileDbId pmc_id_;
   std::vector<FileId> file_ids_;
 
   FileId main_file_id_;

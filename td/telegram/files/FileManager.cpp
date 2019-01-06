@@ -258,7 +258,7 @@ bool FileNode::need_pmc_flush() const {
   }
 
   // already in pmc
-  if (pmc_id_ != 0) {
+  if (pmc_id_.is_valid()) {
     return true;
   }
 
@@ -848,7 +848,7 @@ Result<FileId> FileManager::register_file(FileData data, FileLocationSource file
                                    data.owner_dialog_id_, std::move(data.encryption_key_), file_id,
                                    static_cast<int8>(has_remote));
   node->remote_source_ = file_location_source;
-  node->pmc_id_ = data.pmc_id_;
+  node->pmc_id_ = FileDbId(data.pmc_id_);
   get_file_id_info(file_id)->node_id_ = file_node_id;
   node->file_ids_.push_back(file_id);
 
@@ -1125,15 +1125,16 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     }
   }
 
-  int node_i = std::make_tuple(y_node->pmc_id_ != 0, x_node->pmc_id_, y_node->file_ids_.size(), main_file_id_i == 1) >
-               std::make_tuple(x_node->pmc_id_ != 0, y_node->pmc_id_, x_node->file_ids_.size(), main_file_id_i == 0);
+  int node_i =
+      std::make_tuple(y_node->pmc_id_.is_valid(), x_node->pmc_id_, y_node->file_ids_.size(), main_file_id_i == 1) >
+      std::make_tuple(x_node->pmc_id_.is_valid(), y_node->pmc_id_, x_node->file_ids_.size(), main_file_id_i == 0);
 
   auto other_node_i = 1 - node_i;
   FileNodePtr node = nodes[node_i];
   FileNodePtr other_node = nodes[other_node_i];
   auto file_view = FileView(node);
 
-  LOG(DEBUG) << "x_node->pmc_id_ = " << x_node->pmc_id_ << ", y_node->pmc_id_ = " << y_node->pmc_id_
+  LOG(DEBUG) << "x_node->pmc_id_ = " << x_node->pmc_id_.get() << ", y_node->pmc_id_ = " << y_node->pmc_id_.get()
              << ", x_node_size = " << x_node->file_ids_.size() << ", y_node_size = " << y_node->file_ids_.size()
              << ", node_i = " << node_i << ", local_i = " << local_i << ", remote_i = " << remote_i
              << ", generate_i = " << generate_i << ", size_i = " << size_i << ", remote_name_i = " << remote_name_i
@@ -1269,7 +1270,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   run_download(node);
   run_upload(node, {});
 
-  if (other_pmc_id != 0) {
+  if (other_pmc_id.is_valid()) {
     // node might not changed, but we need to merge nodes in pmc anyway
     node->on_pmc_changed();
   }
@@ -1284,7 +1285,7 @@ void FileManager::try_flush_node_full(FileNodePtr node, bool new_remote, bool ne
     if (file_db_) {
       load_from_pmc(node, true, true, true);
       flush_to_pmc(node, new_remote, new_local, new_generate);
-      if (other_pmc_id != 0 && node->pmc_id_ != other_pmc_id) {
+      if (other_pmc_id.is_valid() && node->pmc_id_ != other_pmc_id) {
         file_db_->set_file_data_ref(other_pmc_id, node->pmc_id_);
       }
     }
@@ -1323,7 +1324,7 @@ void FileManager::clear_from_pmc(FileNodePtr node) {
   if (!file_db_) {
     return;
   }
-  if (node->pmc_id_ == 0) {
+  if (node->pmc_id_.empty()) {
     return;
   }
 
@@ -1340,7 +1341,7 @@ void FileManager::clear_from_pmc(FileNodePtr node) {
     data.generate_ = make_unique<FullGenerateFileLocation>(*node->generate_);
   }
   file_db_->clear_file_data(node->pmc_id_, data);
-  node->pmc_id_ = 0;
+  node->pmc_id_ = FileDbId();
 }
 
 void FileManager::flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local, bool new_generate) {
@@ -1349,13 +1350,13 @@ void FileManager::flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local
   }
   FileView view(node);
   bool create_flag = false;
-  if (node->pmc_id_ == 0) {
+  if (node->pmc_id_.empty()) {
     create_flag = true;
     node->pmc_id_ = file_db_->create_pmc_id();
   }
 
   FileData data;
-  data.pmc_id_ = node->pmc_id_;
+  data.pmc_id_ = node->pmc_id_.get();
   data.local_ = node->local_;
   if (data.local_.type() == LocalFileLocation::Type::Full) {
     prepare_path_for_pmc(data.local_.full().file_type_, data.local_.full().path_);
