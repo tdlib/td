@@ -3445,22 +3445,28 @@ vector<FileId> StickersManager::get_attached_sticker_file_ids(const vector<int32
   result.reserve(int_file_ids.size());
   for (auto int_file_id : int_file_ids) {
     FileId file_id(int_file_id, 0);
-    if (get_sticker(file_id) == nullptr) {
+    const Sticker *s = get_sticker(file_id);
+    if (s == nullptr) {
       LOG(WARNING) << "Can't find sticker " << file_id;
       continue;
     }
+    if (s->set_id == 0) {
+      // only stickers from sticker sets can be attached to files
+      continue;
+    }
+
     auto file_view = td_->file_manager_->get_file_view(file_id);
     CHECK(!file_view.empty());
     if (!file_view.has_remote_location()) {
-      LOG(WARNING) << "Sticker " << file_id << " has no remote location";
+      LOG(ERROR) << "Sticker " << file_id << " has no remote location";
       continue;
     }
     if (file_view.remote_location().is_web()) {
-      LOG(WARNING) << "Sticker " << file_id << " is web";
+      LOG(ERROR) << "Sticker " << file_id << " is web";
       continue;
     }
     if (!file_view.remote_location().is_document()) {
-      LOG(WARNING) << "Sticker " << file_id << " is encrypted";
+      LOG(ERROR) << "Sticker " << file_id << " is encrypted";
       continue;
     }
     result.push_back(file_id);
