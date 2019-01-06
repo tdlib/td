@@ -13,7 +13,7 @@
 
 namespace td {
 
-ConfigShared::ConfigShared(std::shared_ptr<BinlogKeyValue<ConcurrentBinlog>> config_pmc, unique_ptr<Callback> callback)
+ConfigShared::ConfigShared(std::shared_ptr<KeyValueSyncInterface> config_pmc, unique_ptr<Callback> callback)
     : config_pmc_(std::move(config_pmc)), callback_(std::move(callback)) {
   for (auto key_value : config_pmc_->get_all()) {
     on_option_updated(key_value.first);

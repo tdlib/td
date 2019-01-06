@@ -183,7 +183,7 @@ class BinlogKeyValue : public KeyValueSyncInterface {
     binlog_->lazy_sync(std::move(promise));
   }
 
-  std::unordered_map<string, string> prefix_get(Slice prefix) {
+  std::unordered_map<string, string> prefix_get(Slice prefix) override {
     // TODO: optimize with std::map?
     auto lock = rw_mutex_.lock_write().move_as_ok();
     std::unordered_map<string, string> res;
@@ -195,7 +195,7 @@ class BinlogKeyValue : public KeyValueSyncInterface {
     return res;
   }
 
-  std::unordered_map<string, string> get_all() {
+  std::unordered_map<string, string> get_all() override {
     auto lock = rw_mutex_.lock_write().move_as_ok();
     std::unordered_map<string, string> res;
     for (const auto &kv : map_) {

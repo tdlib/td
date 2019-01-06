@@ -144,7 +144,7 @@ std::shared_ptr<KeyValueSyncInterface> TdDb::get_binlog_pmc_shared() {
   return binlog_pmc_;
 }
 
-std::shared_ptr<BinlogKeyValue<ConcurrentBinlog>> TdDb::get_config_pmc_shared() {
+std::shared_ptr<KeyValueSyncInterface> TdDb::get_config_pmc_shared() {
   return config_pmc_;
 }
 

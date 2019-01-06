@@ -65,4 +65,5 @@ class ConcurrentBinlog : public BinlogInterface {
   string path_;
   std::atomic<uint64> last_id_;
 };
+
 }  // namespace td
