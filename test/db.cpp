@@ -5,6 +5,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/db/binlog/BinlogHelper.h"
+#include "td/db/binlog/ConcurrentBinlog.h"
 #include "td/db/BinlogKeyValue.h"
 #include "td/db/SeqKeyValue.h"
 #include "td/db/SqliteKeyValue.h"

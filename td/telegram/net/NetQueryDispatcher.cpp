@@ -18,8 +18,6 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 
-#include "td/db/Pmc.h"
-
 #include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"

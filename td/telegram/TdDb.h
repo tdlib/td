@@ -9,9 +9,8 @@
 #include "td/telegram/TdParameters.h"
 
 #include "td/db/binlog/Binlog.h"
+#include "td/db/binlog/BinlogInterface.h"
 #include "td/db/binlog/BinlogEvent.h"
-#include "td/db/binlog/ConcurrentBinlog.h"
-#include "td/db/BinlogKeyValue.h"
 #include "td/db/DbKey.h"
 #include "td/db/KeyValueSyncInterface.h"
 
@@ -25,17 +24,20 @@
 
 namespace td {
 
-class SqliteConnectionSafe;
-class SqliteKeyValueSafe;
-class SqliteKeyValueAsyncInterface;
-class SqliteKeyValue;
-class MessagesDbSyncInterface;
-class MessagesDbSyncSafeInterface;
-class MessagesDbAsyncInterface;
+template <class BinlogT>
+class BinlogKeyValue;
+class ConcurrentBinlog;
 class DialogDbSyncInterface;
 class DialogDbSyncSafeInterface;
 class DialogDbAsyncInterface;
 class FileDbInterface;
+class MessagesDbSyncInterface;
+class MessagesDbSyncSafeInterface;
+class MessagesDbAsyncInterface;
+class SqliteConnectionSafe;
+class SqliteKeyValueSafe;
+class SqliteKeyValueAsyncInterface;
+class SqliteKeyValue;
 
 class TdDb {
  public:
@@ -66,12 +68,12 @@ class TdDb {
 
   std::shared_ptr<FileDbInterface> get_file_db_shared();
   std::shared_ptr<SqliteConnectionSafe> &get_sqlite_connection_safe();
-  ConcurrentBinlog *get_binlog();
+  BinlogInterface *get_binlog();
 
   std::shared_ptr<KeyValueSyncInterface> get_binlog_pmc_shared();
   std::shared_ptr<KeyValueSyncInterface> get_config_pmc_shared();
-  BinlogKeyValue<ConcurrentBinlog> *get_binlog_pmc();
-  BinlogKeyValue<ConcurrentBinlog> *get_config_pmc();
+  KeyValueSyncInterface *get_binlog_pmc();
+  KeyValueSyncInterface *get_config_pmc();
 
   SqliteKeyValue *get_sqlite_sync_pmc();
   SqliteKeyValueAsyncInterface *get_sqlite_pmc();

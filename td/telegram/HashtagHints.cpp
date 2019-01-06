@@ -9,7 +9,6 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/TdDb.h"
 
-#include "td/db/Pmc.h"
 #include "td/db/SqliteKeyValueAsync.h"
 
 #include "td/utils/logging.h"

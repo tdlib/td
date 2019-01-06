@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include "td/actor/PromiseFuture.h"
+
 #include "td/utils/common.h"
 #include "td/utils/Slice.h"
 
@@ -37,6 +39,10 @@ class KeyValueSyncInterface {
   virtual std::unordered_map<string, string> get_all() = 0;
 
   virtual SeqNo erase(const string &key) = 0;
+
+  virtual void erase_by_prefix(Slice prefix) = 0;
+
+  virtual void force_sync(Promise<> &&promise) = 0;
 };
 
 }  // namespace td

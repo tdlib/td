@@ -15,6 +15,7 @@
 
 #include "td/actor/MultiPromise.h"
 
+#include "td/db/binlog/ConcurrentBinlog.h"
 #include "td/db/BinlogKeyValue.h"
 #include "td/db/SqliteKeyValue.h"
 #include "td/db/SqliteKeyValueAsync.h"
@@ -135,25 +136,27 @@ std::shared_ptr<SqliteConnectionSafe> &TdDb::get_sqlite_connection_safe() {
   return sql_connection_;
 }
 
-ConcurrentBinlog *TdDb::get_binlog() {
+BinlogInterface *TdDb::get_binlog() {
   CHECK(binlog_);
   return binlog_.get();
 }
 
 std::shared_ptr<KeyValueSyncInterface> TdDb::get_binlog_pmc_shared() {
+  CHECK(binlog_pmc_);
   return binlog_pmc_;
 }
 
 std::shared_ptr<KeyValueSyncInterface> TdDb::get_config_pmc_shared() {
+  CHECK(config_pmc_);
   return config_pmc_;
 }
 
-BinlogKeyValue<ConcurrentBinlog> *TdDb::get_binlog_pmc() {
+KeyValueSyncInterface *TdDb::get_binlog_pmc() {
   CHECK(binlog_pmc_);
   return binlog_pmc_.get();
 }
 
-BinlogKeyValue<ConcurrentBinlog> *TdDb::get_config_pmc() {
+KeyValueSyncInterface *TdDb::get_config_pmc() {
   CHECK(config_pmc_);
   return config_pmc_.get();
 }

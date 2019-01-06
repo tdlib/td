@@ -6,8 +6,6 @@
 //
 #include "td/telegram/DhCache.h"
 
-#include "td/db/Pmc.h"
-
 #include "td/telegram/Global.h"
 #include "td/telegram/TdDb.h"
 

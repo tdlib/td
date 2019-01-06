@@ -10,7 +10,6 @@
 
 #include "td/db/binlog/Binlog.h"
 #include "td/db/binlog/BinlogEvent.h"
-#include "td/db/binlog/ConcurrentBinlog.h"
 #include "td/db/KeyValueSyncInterface.h"
 
 #include "td/utils/buffer.h"
@@ -175,7 +174,7 @@ class BinlogKeyValue : public KeyValueSyncInterface {
     return it->second.first;
   }
 
-  void force_sync(Promise<> &&promise) {
+  void force_sync(Promise<> &&promise) override {
     binlog_->force_sync(std::move(promise));
   }
 
@@ -204,7 +203,7 @@ class BinlogKeyValue : public KeyValueSyncInterface {
     return res;
   }
 
-  void erase_by_prefix(Slice prefix) {
+  void erase_by_prefix(Slice prefix) override {
     auto lock = rw_mutex_.lock_write().move_as_ok();
     std::vector<uint64> ids;
     for (auto it = map_.begin(); it != map_.end();) {
