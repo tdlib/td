@@ -11,7 +11,6 @@
 
 #include "td/telegram/files/FileEncryptionKey.h"
 #include "td/telegram/files/FileManager.h"
-#include "td/telegram/Global.h"
 #include "td/telegram/net/DcId.h"
 
 #include "td/utils/common.h"

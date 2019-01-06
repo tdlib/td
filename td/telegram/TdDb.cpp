@@ -37,13 +37,13 @@ std::string get_sqlite_path(const TdParameters &parameters) {
   return parameters.database_directory + db_name + ".sqlite";
 }
 
-Result<EncryptionInfo> check_encryption(string path) {
+Result<TdDb::EncryptionInfo> check_encryption(string path) {
   Binlog binlog;
   auto status = binlog.init(path, Binlog::Callback());
   if (status.is_error() && status.code() != Binlog::Error::WrongPassword) {
     return Status::Error(400, status.message());
   }
-  EncryptionInfo info;
+  TdDb::EncryptionInfo info;
   info.is_encrypted = binlog.get_info().wrong_password;
   binlog.close(false /*need_sync*/).ensure();
   return info;
@@ -420,7 +420,7 @@ Result<unique_ptr<TdDb>> TdDb::open(int32 scheduler_id, const TdParameters &para
   TRY_STATUS(db->init(scheduler_id, parameters, std::move(key), events));
   return std::move(db);
 }
-Result<EncryptionInfo> TdDb::check_encryption(const TdParameters &parameters) {
+Result<TdDb::EncryptionInfo> TdDb::check_encryption(const TdParameters &parameters) {
   return ::td::check_encryption(get_binlog_path(parameters));
 }
 void TdDb::change_key(DbKey key, Promise<> promise) {

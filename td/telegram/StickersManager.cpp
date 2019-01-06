@@ -24,6 +24,7 @@
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/StickersManager.hpp"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
 
 #include "td/actor/MultiPromise.h"
 #include "td/actor/PromiseFuture.h"

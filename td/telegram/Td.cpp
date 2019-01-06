@@ -3259,7 +3259,7 @@ td_api::object_ptr<td_api::AuthorizationState> Td::get_fake_authorization_state_
     case State::WaitParameters:
       return td_api::make_object<td_api::authorizationStateWaitTdlibParameters>();
     case State::Decrypt:
-      return td_api::make_object<td_api::authorizationStateWaitEncryptionKey>(encryption_info_.is_encrypted);
+      return td_api::make_object<td_api::authorizationStateWaitEncryptionKey>(is_database_encrypted_);
     case State::Run:
       UNREACHABLE();
       return nullptr;
@@ -4468,7 +4468,7 @@ Status Td::set_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters
   TRY_STATUS(fix_parameters(parameters_));
   VLOG(td_init) << "Check binlog encryption...";
   TRY_RESULT(encryption_info, TdDb::check_encryption(parameters_));
-  encryption_info_ = std::move(encryption_info);
+  is_database_encrypted_ = encryption_info.is_encrypted;
 
   VLOG(td_init) << "Create Global";
   set_context(std::make_shared<Global>());
@@ -4506,7 +4506,7 @@ Status Td::set_parameters(td_api::object_ptr<td_api::tdlibParameters> parameters
   VLOG(td_init) << "Send authorizationStateWaitEncryptionKey";
   send_closure(actor_id(this), &Td::send_update,
                td_api::make_object<td_api::updateAuthorizationState>(
-                   td_api::make_object<td_api::authorizationStateWaitEncryptionKey>(encryption_info_.is_encrypted)));
+                   td_api::make_object<td_api::authorizationStateWaitEncryptionKey>(is_database_encrypted_)));
   VLOG(td_init) << "Finish set parameters";
   return Status::OK();
 }

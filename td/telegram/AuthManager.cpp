@@ -20,6 +20,7 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
 #include "td/telegram/UniqueId.h"
 #include "td/telegram/UpdatesManager.h"
 

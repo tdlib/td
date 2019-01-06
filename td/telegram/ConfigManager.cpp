@@ -18,6 +18,7 @@
 #include "td/telegram/net/PublicRsaKeyShared.h"
 #include "td/telegram/net/Session.h"
 #include "td/telegram/StateManager.h"
+#include "td/telegram/TdDb.h"
 
 #if !TD_EMSCRIPTEN  //FIXME
 #include "td/net/HttpQuery.h"

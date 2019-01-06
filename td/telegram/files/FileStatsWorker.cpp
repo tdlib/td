@@ -10,6 +10,7 @@
 #include "td/telegram/files/FileDb.h"
 #include "td/telegram/files/FileLoaderUtils.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/TdDb.h"
 
 #include "td/db/SqliteKeyValue.h"
 

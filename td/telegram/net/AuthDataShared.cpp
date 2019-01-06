@@ -7,6 +7,7 @@
 #include "td/telegram/net/AuthDataShared.h"
 
 #include "td/telegram/Global.h"
+#include "td/telegram/TdDb.h"
 
 #include "td/utils/format.h"
 #include "td/utils/logging.h"

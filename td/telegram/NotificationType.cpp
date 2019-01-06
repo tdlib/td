@@ -6,6 +6,7 @@
 //
 #include "td/telegram/NotificationType.h"
 
+#include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/Td.h"
 

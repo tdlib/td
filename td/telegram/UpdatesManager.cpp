@@ -33,6 +33,7 @@
 #include "td/telegram/StateManager.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
 #include "td/telegram/WebPagesManager.h"
 
 #include "td/utils/buffer.h"

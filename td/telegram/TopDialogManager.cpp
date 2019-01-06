@@ -18,6 +18,7 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
 
 #include "td/utils/misc.h"
 #include "td/utils/port/Clocks.h"

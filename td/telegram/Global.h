@@ -9,7 +9,6 @@
 #include "td/telegram/DhConfig.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQueryCreator.h"
-#include "td/telegram/TdDb.h"
 #include "td/telegram/TdParameters.h"
 
 #include "td/actor/actor.h"
@@ -49,6 +48,7 @@ class StateManager;
 class StickersManager;
 class StorageManager;
 class Td;
+class TdDb;
 class TempAuthKeyWatchdog;
 class TopDialogManager;
 class UpdatesManager;

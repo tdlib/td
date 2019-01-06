@@ -10,13 +10,6 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/telegram_api.hpp"
 
-#include "td/actor/PromiseFuture.h"
-#include "td/actor/SleepActor.h"
-
-#include "td/db/binlog/BinlogEvent.h"
-#include "td/db/binlog/BinlogHelper.h"
-#include "td/db/SqliteKeyValueAsync.h"
-
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/files/FileManager.h"
@@ -32,9 +25,17 @@
 #include "td/telegram/SecretChatActor.h"
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
 #include "td/telegram/TopDialogManager.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/Version.h"
+
+#include "td/actor/PromiseFuture.h"
+#include "td/actor/SleepActor.h"
+
+#include "td/db/binlog/BinlogEvent.h"
+#include "td/db/binlog/BinlogHelper.h"
+#include "td/db/SqliteKeyValueAsync.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/format.h"

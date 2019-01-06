@@ -11,6 +11,7 @@
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/SecureStorage.h"
+#include "td/telegram/TdDb.h"
 
 #include "td/mtproto/crypto.h"
 

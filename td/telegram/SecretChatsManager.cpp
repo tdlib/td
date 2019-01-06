@@ -9,6 +9,7 @@
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DhCache.h"
+#include "td/telegram/Global.h"
 #include "td/telegram/logevent/SecretChatEvent.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
@@ -16,6 +17,7 @@
 #include "td/telegram/SequenceDispatcher.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
 
 #include "td/telegram/secret_api.h"
 #include "td/telegram/telegram_api.hpp"
@@ -23,6 +25,7 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/db/binlog/BinlogEvent.h"
+#include "td/db/binlog/BinlogInterface.h"
 
 #include "td/utils/format.h"
 #include "td/utils/logging.h"

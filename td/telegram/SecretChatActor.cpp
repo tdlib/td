@@ -16,6 +16,7 @@
 #include "td/telegram/telegram_api.hpp"
 
 #include "td/db/binlog/BinlogHelper.h"
+#include "td/db/binlog/BinlogInterface.h"
 
 #include "td/actor/MultiPromise.h"
 

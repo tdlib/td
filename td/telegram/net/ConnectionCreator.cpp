@@ -17,6 +17,7 @@
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/net/NetType.h"
 #include "td/telegram/StateManager.h"
+#include "td/telegram/TdDb.h"
 
 #include "td/mtproto/IStreamTransport.h"
 #include "td/mtproto/PingConnection.h"

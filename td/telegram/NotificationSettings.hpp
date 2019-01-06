@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/Global.h"
 #include "td/telegram/NotificationSettings.h"
 
 #include "td/utils/tl_helpers.h"

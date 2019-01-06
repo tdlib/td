@@ -10,7 +10,6 @@
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/TdCallback.h"
-#include "td/telegram/TdDb.h"
 #include "td/telegram/TdParameters.h"
 #include "td/telegram/TermsOfService.h"
 
@@ -19,6 +18,8 @@
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
 #include "td/actor/Timeout.h"
+
+#include "td/db/DbKey.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
@@ -245,7 +246,7 @@ class Td final : public NetQueryCallback {
   int close_flag_ = 0;
 
   enum class State : int32 { WaitParameters, Decrypt, Run, Close } state_ = State::WaitParameters;
-  EncryptionInfo encryption_info_;
+  bool is_database_encrypted_ = false;
 
   vector<std::pair<uint64, std::shared_ptr<ResultHandler>>> result_handlers_;
   enum : int8 { RequestActorIdType = 1, ActorIdType = 2 };

@@ -37,10 +37,6 @@ class DialogDbSyncSafeInterface;
 class DialogDbAsyncInterface;
 class FileDbInterface;
 
-struct EncryptionInfo {
-  bool is_encrypted{false};
-};
-
 class TdDb {
  public:
   TdDb();
@@ -59,9 +55,13 @@ class TdDb {
     vector<BinlogEvent> web_page_events;
     vector<BinlogEvent> to_messages_manager;
   };
-
   static Result<unique_ptr<TdDb>> open(int32 scheduler_id, const TdParameters &parameters, DbKey key, Events &events);
+
+  struct EncryptionInfo {
+    bool is_encrypted{false};
+  };
   static Result<EncryptionInfo> check_encryption(const TdParameters &parameters);
+
   static Status destroy(const TdParameters &parameters);
 
   std::shared_ptr<FileDbInterface> get_file_db_shared();
@@ -74,9 +74,12 @@ class TdDb {
 
   SqliteKeyValue *get_sqlite_sync_pmc();
   SqliteKeyValueAsyncInterface *get_sqlite_pmc();
+
   CSlice binlog_path() const;
   CSlice sqlite_path() const;
+
   void flush_all();
+
   void close_all(Promise<> on_finished);
   void close_and_destroy_all(Promise<> on_finished);
 

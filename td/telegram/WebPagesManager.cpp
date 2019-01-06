@@ -28,6 +28,7 @@
 #include "td/telegram/StickersManager.h"
 #include "td/telegram/StickersManager.hpp"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
 #include "td/telegram/Version.h"
 #include "td/telegram/VideoNotesManager.h"
 #include "td/telegram/VideoNotesManager.hpp"

@@ -12,7 +12,6 @@
 
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/files/FileManager.h"
-#include "td/telegram/Global.h"
 #include "td/telegram/Td.h"
 
 #include "td/utils/logging.h"

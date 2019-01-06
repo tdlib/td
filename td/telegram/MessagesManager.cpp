@@ -39,6 +39,7 @@
 #include "td/telegram/SecretChatsManager.h"
 #include "td/telegram/SequenceDispatcher.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
 #include "td/telegram/TopDialogManager.h"
 #include "td/telegram/UpdatesManager.h"
 #include "td/telegram/WebPageId.h"

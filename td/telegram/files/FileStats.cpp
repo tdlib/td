@@ -9,7 +9,6 @@
 #include "td/telegram/td_api.h"
 
 #include "td/telegram/files/FileLoaderUtils.h"
-#include "td/telegram/Global.h"
 
 #include "td/utils/format.h"
 #include "td/utils/logging.h"

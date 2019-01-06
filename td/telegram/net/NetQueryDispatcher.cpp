@@ -16,6 +16,7 @@
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdDb.h"
 
 #include "td/db/Pmc.h"
 
