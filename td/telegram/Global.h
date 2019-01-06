@@ -102,6 +102,7 @@ class Global : public ActorContext {
   void set_shared_config(unique_ptr<ConfigShared> shared_config);
 
   ConfigShared &shared_config() {
+    CHECK(shared_config_ != nullptr);
     return *shared_config_;
   }
 

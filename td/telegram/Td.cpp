@@ -3723,6 +3723,7 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "WebPagesManager was cleared " << timer;
       Promise<> promise = PromiseCreator::lambda([actor_id = create_reference()](Unit) mutable { actor_id.reset(); });
 
+      G()->set_shared_config(nullptr);
       if (destroy_flag_) {
         G()->close_and_destroy_all(std::move(promise));
       } else {
@@ -4055,10 +4056,13 @@ Status Td::init(DbKey key) {
     void on_option_updated(const string &name, const string &value) const override {
       send_closure(G()->td(), &Td::on_config_option_updated, name);
     }
+    ~ConfigSharedCallback() override {
+      LOG(INFO) << "Destroy ConfigShared";
+    }
   };
 
   G()->set_shared_config(
-      make_unique<ConfigShared>(G()->td_db()->get_config_pmc(), make_unique<ConfigSharedCallback>()));
+      td::make_unique<ConfigShared>(G()->td_db()->get_config_pmc_shared(), make_unique<ConfigSharedCallback>()));
   config_manager_ = create_actor<ConfigManager>("ConfigManager", create_reference());
   G()->set_config_manager(config_manager_.get());
 

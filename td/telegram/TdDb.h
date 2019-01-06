@@ -69,6 +69,7 @@ class TdDb {
   ConcurrentBinlog *get_binlog();
 
   std::shared_ptr<KeyValueSyncInterface> get_binlog_pmc_shared();
+  std::shared_ptr<BinlogKeyValue<ConcurrentBinlog>> get_config_pmc_shared();
   BinlogKeyValue<ConcurrentBinlog> *get_binlog_pmc();
   BinlogKeyValue<ConcurrentBinlog> *get_config_pmc();
 

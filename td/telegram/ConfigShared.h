@@ -6,13 +6,15 @@
 //
 #pragma once
 
-#include "td/db/Pmc.h"
-
 #include "td/telegram/td_api.h"
+
+#include "td/db/binlog/ConcurrentBinlog.h"
+#include "td/db/BinlogKeyValue.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Slice.h"
 
+#include <memory>
 #include <unordered_map>
 
 namespace td {
@@ -28,7 +30,7 @@ class ConfigShared {
     virtual void on_option_updated(const string &name, const string &value) const = 0;
   };
 
-  ConfigShared(BinlogPmcPtr config_pmc, unique_ptr<Callback> callback);
+  ConfigShared(std::shared_ptr<BinlogKeyValue<ConcurrentBinlog>> config_pmc, unique_ptr<Callback> callback);
 
   void set_option_boolean(Slice name, bool value);
   void set_option_empty(Slice name);
@@ -49,7 +51,7 @@ class ConfigShared {
   static tl_object_ptr<td_api::OptionValue> get_option_value_object(Slice value);
 
  private:
-  BinlogPmcPtr config_pmc_;
+  std::shared_ptr<BinlogKeyValue<ConcurrentBinlog>> config_pmc_;
   unique_ptr<Callback> callback_;
 
   bool set_option(Slice name, Slice value);

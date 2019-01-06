@@ -144,6 +144,10 @@ std::shared_ptr<KeyValueSyncInterface> TdDb::get_binlog_pmc_shared() {
   return binlog_pmc_;
 }
 
+std::shared_ptr<BinlogKeyValue<ConcurrentBinlog>> TdDb::get_config_pmc_shared() {
+  return config_pmc_;
+}
+
 BinlogKeyValue<ConcurrentBinlog> *TdDb::get_binlog_pmc() {
   CHECK(binlog_pmc_);
   return binlog_pmc_.get();
@@ -185,18 +189,23 @@ CSlice TdDb::sqlite_path() const {
 }
 
 void TdDb::flush_all() {
+  LOG(INFO) << "Flush all databases";
   if (messages_db_async_) {
     messages_db_async_->force_flush();
   }
   binlog_->force_flush();
 }
+
 void TdDb::close_all(Promise<> on_finished) {
+  LOG(INFO) << "Close all databases";
   do_close(std::move(on_finished), false /*destroy_flag*/);
 }
 
 void TdDb::close_and_destroy_all(Promise<> on_finished) {
+  LOG(INFO) << "Destroy all databases";
   do_close(std::move(on_finished), true /*destroy_flag*/);
 }
+
 void TdDb::do_close(Promise<> on_finished, bool destroy_flag) {
   MultiPromiseActorSafe mpas{"TdDbCloseMultiPromiseActor"};
   mpas.add_promise(PromiseCreator::lambda(

@@ -101,6 +101,7 @@ void Global::update_server_time_difference(double diff) {
 }
 
 DcId Global::get_webfile_dc_id() const {
+  CHECK(shared_config_ != nullptr);
   int32 dc_id = shared_config_->get_option_integer("webfile_dc_id");
   if (!DcId::is_valid(dc_id)) {
     if (is_test_dc()) {
