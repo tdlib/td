@@ -6,8 +6,6 @@
 //
 #include "td/telegram/SecretChatsManager.h"
 
-#include "td/actor/PromiseFuture.h"
-
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DhCache.h"
@@ -21,6 +19,10 @@
 
 #include "td/telegram/secret_api.h"
 #include "td/telegram/telegram_api.hpp"
+
+#include "td/actor/PromiseFuture.h"
+
+#include "td/db/binlog/BinlogEvent.h"
 
 #include "td/utils/format.h"
 #include "td/utils/logging.h"

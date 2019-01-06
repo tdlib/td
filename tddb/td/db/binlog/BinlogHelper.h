@@ -14,6 +14,7 @@
 #include "td/utils/Storer.h"
 
 namespace td {
+
 template <class BinlogT, class StorerT>
 uint64 binlog_add(const BinlogT &binlog_ptr, int32 type, const StorerT &storer, Promise<> promise = Promise<>()) {
   auto logevent_id = binlog_ptr->next_id();
@@ -42,4 +43,5 @@ uint64 binlog_erase_impl(BinlogDebugInfo info, const BinlogT &binlog_ptr, uint64
                             std::move(promise));
   return seq_no;
 }
+
 }  // namespace td

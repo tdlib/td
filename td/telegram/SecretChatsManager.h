@@ -17,14 +17,15 @@
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
 
-#include "td/db/binlog/BinlogEvent.h"
-
 #include "td/utils/Time.h"
 
 #include <map>
 #include <utility>
 
 namespace td {
+
+struct BinlogEvent;
+
 class SecretChatsManager : public Actor {
  public:
   explicit SecretChatsManager(ActorShared<> parent);

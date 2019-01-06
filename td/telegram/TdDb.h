@@ -50,11 +50,6 @@ class TdDb {
   TdDb &operator=(TdDb &&) = delete;
   ~TdDb();
 
-  struct Events;
-  static Result<unique_ptr<TdDb>> open(int32 scheduler_id, const TdParameters &parameters, DbKey key, Events &events);
-  static Result<EncryptionInfo> check_encryption(const TdParameters &parameters);
-  static Status destroy(const TdParameters &parameters);
-
   struct Events {
     vector<BinlogEvent> to_secret_chats_manager;
     vector<BinlogEvent> user_events;
@@ -64,6 +59,10 @@ class TdDb {
     vector<BinlogEvent> web_page_events;
     vector<BinlogEvent> to_messages_manager;
   };
+
+  static Result<unique_ptr<TdDb>> open(int32 scheduler_id, const TdParameters &parameters, DbKey key, Events &events);
+  static Result<EncryptionInfo> check_encryption(const TdParameters &parameters);
+  static Status destroy(const TdParameters &parameters);
 
   std::shared_ptr<FileDbInterface> get_file_db_shared();
   std::shared_ptr<SqliteConnectionSafe> &get_sqlite_connection_safe();

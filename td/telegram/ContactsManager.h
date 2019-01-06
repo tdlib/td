@@ -9,13 +9,6 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
-#include "td/actor/actor.h"
-#include "td/actor/MultiPromise.h"
-#include "td/actor/PromiseFuture.h"
-#include "td/actor/Timeout.h"
-
-#include "td/db/binlog/BinlogEvent.h"
-
 #include "td/telegram/AccessRights.h"
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/ChatId.h"
@@ -27,6 +20,11 @@
 #include "td/telegram/Photo.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/UserId.h"
+
+#include "td/actor/actor.h"
+#include "td/actor/MultiPromise.h"
+#include "td/actor/PromiseFuture.h"
+#include "td/actor/Timeout.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Hints.h"
@@ -40,6 +38,8 @@
 #include <utility>
 
 namespace td {
+
+struct BinlogEvent;
 
 class Td;
 

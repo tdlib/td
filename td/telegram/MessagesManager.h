@@ -34,8 +34,6 @@
 #include "td/telegram/SecretInputMedia.h"
 #include "td/telegram/UserId.h"
 
-#include "td/db/binlog/BinlogEvent.h"
-
 #include "td/actor/actor.h"
 #include "td/actor/MultiPromise.h"
 #include "td/actor/PromiseFuture.h"
@@ -62,6 +60,8 @@
 #include <utility>
 
 namespace td {
+
+struct BinlogEvent;
 
 class Td;
 

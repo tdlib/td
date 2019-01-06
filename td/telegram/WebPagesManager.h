@@ -19,8 +19,6 @@
 #include "td/actor/PromiseFuture.h"
 #include "td/actor/Timeout.h"
 
-#include "td/db/binlog/BinlogEvent.h"
-
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
 
@@ -29,6 +27,8 @@
 #include <utility>
 
 namespace td {
+
+struct BinlogEvent;
 
 class Td;
 

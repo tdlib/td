@@ -13,6 +13,7 @@
 #include "td/actor/PromiseFuture.h"
 #include "td/actor/SleepActor.h"
 
+#include "td/db/binlog/BinlogEvent.h"
 #include "td/db/binlog/BinlogHelper.h"
 #include "td/db/SqliteKeyValueAsync.h"
 
