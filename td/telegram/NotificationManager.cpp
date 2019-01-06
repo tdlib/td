@@ -714,7 +714,7 @@ void NotificationManager::add_update(int32 group_id, td_api::object_ptr<td_api::
   if (!running_get_difference_ && running_get_chat_difference_.count(group_id) == 0) {
     flush_pending_updates_timeout_.add_timeout_in(group_id, MIN_UPDATE_DELAY_MS * 1e-3);
   } else {
-    flush_pending_updates_timeout_.set_timeout_in(group_id, 3 * MAX_UPDATE_DELAY_MS * 1e-3);
+    flush_pending_updates_timeout_.set_timeout_in(group_id, MAX_UPDATE_DELAY_MS * 1e-3);
   }
 }
 
@@ -1077,6 +1077,10 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
 void NotificationManager::flush_all_pending_updates(bool include_delayed_chats, const char *source) {
   VLOG(notifications) << "Flush all pending notification updates "
                       << (include_delayed_chats ? "with delayed chats " : "") << "from " << source;
+  if (!include_delayed_chats && running_get_difference_) {
+    return;
+  }
+
   vector<NotificationGroupKey> ready_group_keys;
   for (const auto &it : pending_updates_) {
     if (include_delayed_chats || running_get_chat_difference_.count(it.first) == 0) {

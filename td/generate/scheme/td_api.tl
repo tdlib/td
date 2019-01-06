@@ -2662,10 +2662,10 @@ getChatMessageByDate chat_id:int53 date:int32 = Message;
 getChatMessageCount chat_id:int53 filter:SearchMessagesFilter return_local:Bool = Count;
 
 
-//@description Removes an active notification from notification list @notification_group_id Identifier of notification group to which the notification belongs @notification_id Identifier of removed notification
+//@description Removes an active notification from notification list. Needs to be called only if the notification is removed by the current user @notification_group_id Identifier of notification group to which the notification belongs @notification_id Identifier of removed notification
 removeNotification notification_group_id:int32 notification_id:int32 = Ok;
 
-//@description Removes group of active notifications @notification_group_id Notification group identifier @max_notification_id Maximum identifier of removed notifications
+//@description Removes a group of active notifications. Needs to be called only if the notification group is removed by the current user @notification_group_id Notification group identifier @max_notification_id Maximum identifier of removed notifications
 removeNotificationGroup notification_group_id:int32 max_notification_id:int32 = Ok;
 
 
