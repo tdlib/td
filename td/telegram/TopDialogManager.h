@@ -23,6 +23,7 @@
 #include <utility>
 
 namespace td {
+
 enum class TopDialogCategory : int32 { Correspondent, BotPM, BotInline, Group, Channel, Call, Size };
 
 inline TopDialogCategory top_dialog_category_from_td_api(const td_api::TopChatCategory &category) {
@@ -133,4 +134,5 @@ class TopDialogManager : public NetQueryCallback {
   void start_up() override;
   void loop() override;
 };
+
 }  // namespace td

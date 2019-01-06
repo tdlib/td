@@ -130,21 +130,26 @@ Status init_db(SqliteDb &db) {
 std::shared_ptr<FileDbInterface> TdDb::get_file_db_shared() {
   return file_db_;
 }
+
 std::shared_ptr<SqliteConnectionSafe> &TdDb::get_sqlite_connection_safe() {
   return sql_connection_;
 }
+
 ConcurrentBinlog *TdDb::get_binlog() {
   CHECK(binlog_);
   return binlog_.get();
 }
-BinlogPmc TdDb::get_binlog_pmc_shared() {
+
+std::shared_ptr<KeyValueSyncInterface> TdDb::get_binlog_pmc_shared() {
   return binlog_pmc_;
 }
-BinlogPmcPtr TdDb::get_binlog_pmc() {
+
+BinlogKeyValue<ConcurrentBinlog> *TdDb::get_binlog_pmc() {
   CHECK(binlog_pmc_);
   return binlog_pmc_.get();
 }
-BinlogPmcPtr TdDb::get_config_pmc() {
+
+BinlogKeyValue<ConcurrentBinlog> *TdDb::get_config_pmc() {
   CHECK(config_pmc_);
   return config_pmc_.get();
 }

@@ -13,7 +13,7 @@
 #include "td/db/binlog/ConcurrentBinlog.h"
 #include "td/db/BinlogKeyValue.h"
 #include "td/db/DbKey.h"
-#include "td/db/Pmc.h"
+#include "td/db/KeyValueSyncInterface.h"
 
 #include "td/actor/PromiseFuture.h"
 
@@ -68,9 +68,9 @@ class TdDb {
   std::shared_ptr<SqliteConnectionSafe> &get_sqlite_connection_safe();
   ConcurrentBinlog *get_binlog();
 
-  BinlogPmc get_binlog_pmc_shared();
-  BinlogPmcPtr get_binlog_pmc();
-  BinlogPmcPtr get_config_pmc();
+  std::shared_ptr<KeyValueSyncInterface> get_binlog_pmc_shared();
+  BinlogKeyValue<ConcurrentBinlog> *get_binlog_pmc();
+  BinlogKeyValue<ConcurrentBinlog> *get_config_pmc();
 
   SqliteKeyValue *get_sqlite_sync_pmc();
   SqliteKeyValueAsyncInterface *get_sqlite_pmc();

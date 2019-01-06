@@ -178,6 +178,7 @@ class BinlogKeyValue : public KeyValueSyncInterface {
   void force_sync(Promise<> &&promise) {
     binlog_->force_sync(std::move(promise));
   }
+
   void lazy_sync(Promise<> &&promise) {
     binlog_->lazy_sync(std::move(promise));
   }
