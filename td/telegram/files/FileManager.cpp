@@ -5,9 +5,11 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include "td/telegram/files/FileManager.h"
+
 #include "td/telegram/telegram_api.h"
 
 #include "td/telegram/ConfigShared.h"
+#include "td/telegram/files/FileDb.h"
 #include "td/telegram/files/FileLoaderUtils.h"
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/Global.h"

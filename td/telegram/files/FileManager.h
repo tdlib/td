@@ -10,7 +10,6 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/telegram/DialogId.h"
-#include "td/telegram/files/FileDb.h"
 #include "td/telegram/files/FileDbId.h"
 #include "td/telegram/files/FileEncryptionKey.h"
 #include "td/telegram/files/FileGenerateManager.h"
@@ -39,6 +38,8 @@
 namespace td {
 
 extern int VERBOSITY_NAME(update_file);
+
+class FileDbInterface;
 
 enum class FileLocationSource : int8 { None, FromUser, FromDb, FromServer };
 
