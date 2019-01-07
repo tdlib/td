@@ -258,6 +258,10 @@ class ChannelParticipantsFilter {
   bool is_administrators() const {
     return type == Type::Administrators;
   }
+
+  bool is_bots() const {
+    return type == Type::Bots;
+  }
 };
 
 enum class DialogParticipantsFilter : int32 { Administrators, Members, Restricted, Banned, Bots };

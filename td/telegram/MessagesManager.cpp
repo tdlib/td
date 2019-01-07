@@ -10474,13 +10474,15 @@ bool MessagesManager::can_unload_message(const Dialog *d, const Message *m) cons
   // don't want to unload messages from opened dialogs
   // don't want to unload messages to which there are replies in yet unsent messages
   // don't want to unload messages with pending web pages
+  // don't want to unload message with active reply markup
   // can't unload from memory last dialog, last database messages, yet unsent messages, being edited media messages and active live locations
   // can't unload messages in dialog with active suffix load query
   FullMessageId full_message_id{d->dialog_id, m->message_id};
   return !d->is_opened && m->message_id != d->last_message_id && m->message_id != d->last_database_message_id &&
          !m->message_id.is_yet_unsent() && active_live_location_full_message_ids_.count(full_message_id) == 0 &&
          replied_by_yet_unsent_messages_.count(full_message_id) == 0 && m->edited_content == nullptr &&
-         waiting_for_web_page_messages_.count(full_message_id) == 0 && d->suffix_load_queries_.empty();
+         waiting_for_web_page_messages_.count(full_message_id) == 0 && d->suffix_load_queries_.empty() &&
+         m->message_id != d->reply_markup_message_id;
 }
 
 void MessagesManager::unload_message(Dialog *d, MessageId message_id) {
@@ -19273,6 +19275,23 @@ void MessagesManager::on_create_new_dialog_fail(int64 random_id, Status error, P
   td_->updates_manager_->get_difference("on_create_new_dialog_fail");
 }
 
+void MessagesManager::on_dialog_bots_updated(DialogId dialog_id, vector<UserId> bot_user_ids) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  auto d = get_dialog_force(dialog_id);
+  if (d->reply_markup_message_id == MessageId()) {
+    return;
+  }
+  const Message *m = get_message_force(d, d->reply_markup_message_id);
+  if (m == nullptr || std::find(bot_user_ids.begin(), bot_user_ids.end(), m->sender_user_id) == bot_user_ids.end()) {
+    LOG(INFO) << "Remove reply markup in " << dialog_id << ", because bot " << m->sender_user_id
+              << " isn't a member of the chat";
+    set_dialog_reply_markup(d, MessageId());
+  }
+}
+
 void MessagesManager::on_dialog_photo_updated(DialogId dialog_id) {
   auto d = get_dialog(dialog_id);  // called from update_user, must not create the dialog
   if (d != nullptr && d->is_update_new_chat_sent) {
@@ -21265,9 +21284,11 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   if (!td_->auth_manager_->is_bot() && from_update && d->reply_markup_message_id != MessageId()) {
     auto deleted_user_id = get_message_content_deleted_user_id(m->content.get());
-    if (deleted_user_id.is_valid() && td_->contacts_manager_->is_user_bot(deleted_user_id)) {
+    if (deleted_user_id.is_valid()) {  // do not check for is_user_bot to allow deleted bots
       const Message *old_message = get_message_force(d, d->reply_markup_message_id);
       if (old_message == nullptr || old_message->sender_user_id == deleted_user_id) {
+        LOG(INFO) << "Remove reply markup in " << dialog_id << ", because bot " << deleted_user_id
+                  << " isn't a member of the chat";
         set_dialog_reply_markup(d, MessageId());
       }
     }

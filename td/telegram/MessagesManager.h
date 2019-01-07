@@ -581,6 +581,8 @@ class MessagesManager : public Actor {
 
   bool is_update_about_username_change_received(DialogId dialog_id) const;
 
+  void on_dialog_bots_updated(DialogId dialog_id, vector<UserId> bot_user_ids);
+
   void on_dialog_photo_updated(DialogId dialog_id);
   void on_dialog_title_updated(DialogId dialog_id);
   void on_dialog_username_updated(DialogId dialog_id, const string &old_username, const string &new_username);

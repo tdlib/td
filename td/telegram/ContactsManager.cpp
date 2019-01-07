@@ -6386,12 +6386,18 @@ void ContactsManager::update_chat_full(ChatFull *chat_full, ChatId chat_id) {
   CHECK(chat_full != nullptr);
   if (chat_full->is_changed) {
     vector<UserId> administrator_user_ids;
+    vector<UserId> bot_user_ids;
     for (auto &participant : chat_full->participants) {
+      auto user_id = participant.user_id;
       if (participant.status.is_administrator()) {
-        administrator_user_ids.push_back(participant.user_id);
+        administrator_user_ids.push_back(user_id);
+      }
+      if (is_user_bot(user_id)) {
+        bot_user_ids.push_back(user_id);
       }
     }
     on_update_dialog_administrators(DialogId(chat_id), std::move(administrator_user_ids), chat_full->version != -1);
+    td_->messages_manager_->on_dialog_bots_updated(DialogId(chat_id), std::move(bot_user_ids));
 
     chat_full->is_changed = false;
     send_closure(
@@ -7281,10 +7287,15 @@ void ContactsManager::on_get_channel_participants_success(
     result.push_back(get_dialog_participant(channel_id, std::move(participant_ptr)));
   }
 
-  if (filter.is_administrators() && offset == 0 && static_cast<int32>(participants.size()) < limit) {
-    on_update_dialog_administrators(
-        DialogId(channel_id),
-        transform(result, [](const DialogParticipant &participant) { return participant.user_id; }), true);
+  if (offset == 0 && static_cast<int32>(participants.size()) < limit) {
+    if (filter.is_administrators() || filter.is_bots()) {
+      auto user_ids = transform(result, [](const DialogParticipant &participant) { return participant.user_id; });
+      if (filter.is_administrators()) {
+        on_update_dialog_administrators(DialogId(channel_id), std::move(user_ids), true);
+      } else {
+        td_->messages_manager_->on_dialog_bots_updated(DialogId(channel_id), std::move(user_ids));
+      }
+    }
   }
 }
 
