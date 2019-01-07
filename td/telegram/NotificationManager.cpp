@@ -425,6 +425,7 @@ void NotificationManager::add_notifications_to_group_begin(NotificationGroups::i
     was_updated = group_key.last_notification_date != 0 && group_key < last_group_key;
     is_updated = final_group_key.last_notification_date != 0 && final_group_key < last_group_key;
   } else {
+    CHECK(group_key.last_notification_date != 0);
     was_updated = is_updated = !(last_group_key < group_key);
   }
 
@@ -1326,6 +1327,7 @@ void NotificationManager::edit_notification(NotificationGroupId group_id, Notifi
       notification.type = std::move(type);
       if (i + max_notification_group_size_ >= group.notifications.size() &&
           !(get_last_updated_group_key() < group_it->first)) {
+        CHECK(group_it->first.last_notification_date != 0);
         add_update_notification(group_it->first.group_id, group_it->first.dialog_id, notification);
       }
       return;
@@ -1369,7 +1371,7 @@ void NotificationManager::on_notifications_removed(
     was_updated = group_key.last_notification_date != 0 && group_key < last_group_key;
     is_updated = final_group_key.last_notification_date != 0 && final_group_key < last_group_key;
   } else {
-    was_updated = is_updated = !(last_group_key < group_key);
+    was_updated = is_updated = group_key.last_notification_date != 0 && !(last_group_key < group_key);
   }
 
   if (!was_updated) {
