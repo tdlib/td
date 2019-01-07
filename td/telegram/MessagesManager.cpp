@@ -19274,7 +19274,7 @@ void MessagesManager::on_create_new_dialog_fail(int64 random_id, Status error, P
 }
 
 void MessagesManager::on_dialog_photo_updated(DialogId dialog_id) {
-  auto d = get_dialog(dialog_id);
+  auto d = get_dialog(dialog_id);  // called from update_user, must not create the dialog
   if (d != nullptr && d->is_update_new_chat_sent) {
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateChatPhoto>(
@@ -19283,7 +19283,7 @@ void MessagesManager::on_dialog_photo_updated(DialogId dialog_id) {
 }
 
 void MessagesManager::on_dialog_title_updated(DialogId dialog_id) {
-  auto d = get_dialog(dialog_id);
+  auto d = get_dialog(dialog_id);  // called from update_user, must not create the dialog
   if (d != nullptr) {
     update_dialogs_hints(d);
     if (d->is_update_new_chat_sent) {

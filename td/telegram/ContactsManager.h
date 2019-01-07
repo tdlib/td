@@ -664,6 +664,7 @@ class ContactsManager : public Actor {
 
     bool is_outbound = false;
 
+    bool is_state_changed = true;
     bool is_changed = true;        // have new changes not sent to the database except changes visible to the client
     bool need_send_update = true;  // have new changes not sent to the client
 

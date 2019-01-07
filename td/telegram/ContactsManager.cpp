@@ -6358,6 +6358,11 @@ void ContactsManager::update_secret_chat(SecretChat *c, SecretChatId secret_chat
     DialogId dialog_id(secret_chat_id);
     send_closure_later(G()->messages_manager(), &MessagesManager::force_create_dialog, dialog_id, "update secret chat",
                        true);
+    if (c->is_state_changed) {
+      send_closure_later(G()->messages_manager(), &MessagesManager::on_update_secret_chat_state, secret_chat_id,
+                         c->state);
+      c->is_state_changed = false;
+    }
   }
 
   if (!from_database) {
@@ -8910,7 +8915,7 @@ void ContactsManager::on_update_secret_chat(SecretChatId secret_chat_id, int64 a
   if (state != SecretChatState::Unknown && state != secret_chat->state) {
     secret_chat->state = state;
     secret_chat->need_send_update = true;
-    td_->messages_manager_->on_update_secret_chat_state(secret_chat_id, state);
+    secret_chat->is_state_changed = true;
   }
   if (is_outbound != secret_chat->is_outbound) {
     secret_chat->is_outbound = is_outbound;
