@@ -624,7 +624,8 @@ string FileManager::get_file_name(FileType file_type, Slice path) {
 }
 
 Status FileManager::check_local_location(FullLocalFileLocation &location, int64 &size) {
-  constexpr int64 MAX_THUMBNAIL_SIZE = 200 * (1 << 10) /* 200KB */;
+  constexpr int64 MAX_THUMBNAIL_SIZE = 200 * (1 << 10) /* 200 kB */;
+  constexpr int64 MAX_PHOTO_SIZE = 10 * (1 << 20) /* 10 MB */;
 
   if (location.path_.empty()) {
     return Status::Error("File must have non-empty path");
@@ -659,7 +660,11 @@ Status FileManager::check_local_location(FullLocalFileLocation &location, int64 
   }
   if ((location.file_type_ == FileType::Thumbnail || location.file_type_ == FileType::EncryptedThumbnail) &&
       size >= MAX_THUMBNAIL_SIZE && !begins_with(PathView(location.path_).file_name(), "map")) {
-    return Status::Error(PSLICE() << "File \"" << location.path_ << "\" is too big for thumbnail "
+    return Status::Error(PSLICE() << "File \"" << location.path_ << "\" is too big for a thumbnail "
+                                  << tag("size", format::as_size(size)));
+  }
+  if (location.file_type_ == FileType::Photo && size >= MAX_PHOTO_SIZE) {
+    return Status::Error(PSLICE() << "File \"" << location.path_ << "\" is too big for a photo "
                                   << tag("size", format::as_size(size)));
   }
   if (size >= MAX_FILE_SIZE) {
