@@ -756,6 +756,9 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
     VLOG(notifications) << "Have " << as_notification_update(update.get());
   }
 
+  updates.erase(std::remove_if(updates.begin(), updates.end(), [](auto &update) { return update == nullptr; }),
+                updates.end());
+
   // if a notification was added, then deleted and then re-added we need to keep
   // first addition, because it can be with sound,
   // deletion, because number of notification should never exceed max_notification_group_size_,
@@ -766,10 +769,7 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
   std::unordered_set<int32> edited_notification_ids;
   std::unordered_set<int32> removed_notification_ids;
   for (auto &update : updates) {
-    if (update == nullptr) {
-      continue;
-    }
-
+    CHECK(update != nullptr);
     if (update->get_id() == td_api::updateNotificationGroup::ID) {
       auto update_ptr = static_cast<td_api::updateNotificationGroup *>(update.get());
       for (auto &notification : update_ptr->added_notifications_) {
@@ -806,7 +806,8 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
   // all other additions and edits can be merged to the first addition/edit
   // i.e. in edit+delete+add chain we want to remove deletion and merge addition to the edit
 
-  bool is_hidden = get_last_updated_group_key() < group_keys_[NotificationGroupId(group_id)];
+  auto group_key = group_keys_[NotificationGroupId(group_id)];
+  bool is_hidden = group_key.last_notification_date == 0 || get_last_updated_group_key() < group_key;
   bool is_changed = true;
   while (is_changed) {
     is_changed = false;
@@ -817,13 +818,11 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
     std::unordered_set<int32> can_be_deleted_notification_ids;
     std::vector<int32> moved_deleted_notification_ids;
     size_t first_notification_group_pos = 0;
+
     for (auto &update : updates) {
       cur_pos++;
-      if (update == nullptr) {
-        is_changed = true;
-        continue;
-      }
 
+      CHECK(update != nullptr);
       if (update->get_id() == td_api::updateNotificationGroup::ID) {
         auto update_ptr = static_cast<td_api::updateNotificationGroup *>(update.get());
 
@@ -934,11 +933,15 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
               break;
             }
           }
-          if (update != nullptr && cur_pos == 1 && (updates.size() > 1 || update_ptr->total_count_ == 0 || is_hidden)) {
-            VLOG(notifications) << "Remove empty update " << cur_pos;
-            CHECK(moved_deleted_notification_ids.empty());
-            is_changed = true;
-            update = nullptr;
+          if (update != nullptr && cur_pos == 1) {
+            bool is_empty_group =
+                added_notification_ids.empty() && edited_notification_ids.empty() && update_ptr->total_count_ == 0;
+            if (updates.size() > 1 || (is_hidden && !is_empty_group)) {
+              VLOG(notifications) << "Remove empty update " << cur_pos;
+              CHECK(moved_deleted_notification_ids.empty());
+              is_changed = true;
+              update = nullptr;
+            }
           }
         }
 
@@ -1371,7 +1374,14 @@ void NotificationManager::on_notifications_removed(
 
   if (!was_updated) {
     CHECK(!is_updated);
-    VLOG(notifications) << "There is no need to send updateNotificationGroup about " << group_key.group_id;
+    if (final_group_key.last_notification_date == 0 && group.total_count == 0) {
+      // send update about empty invisible group anyway
+      add_update_notification_group(td_api::make_object<td_api::updateNotificationGroup>(
+          group_key.group_id.get(), get_notification_group_type_object(group.type), group_key.dialog_id.get(), 0, true,
+          0, vector<td_api::object_ptr<td_api::notification>>(), vector<int32>()));
+    } else {
+      VLOG(notifications) << "There is no need to send updateNotificationGroup about " << group_key.group_id;
+    }
   } else {
     if (is_updated) {
       // group is still visible
