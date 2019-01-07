@@ -176,7 +176,7 @@ class DialogDbImpl : public DialogDbSyncInterface {
       return Status::Error("Not found");
     }
     return NotificationGroupKey(notification_group_id, DialogId(get_notification_group_stmt_.view_int64(0)),
-                                get_notification_group_stmt_.view_int32(1));
+                                get_last_notification_date(get_notification_group_stmt_, 1));
   }
 
   Result<vector<BufferSlice>> get_dialogs(int64 order, DialogId dialog_id, int32 limit) override {
@@ -217,7 +217,7 @@ class DialogDbImpl : public DialogDbSyncInterface {
     TRY_STATUS(stmt.step());
     while (stmt.has_row()) {
       notification_groups.emplace_back(NotificationGroupId(stmt.view_int32(0)), DialogId(stmt.view_int64(1)),
-                                       stmt.view_int32(2));
+                                       get_last_notification_date(stmt, 2));
       TRY_STATUS(stmt.step());
     }
 
@@ -239,6 +239,13 @@ class DialogDbImpl : public DialogDbSyncInterface {
   SqliteStatement get_dialogs_stmt_;
   SqliteStatement get_notification_groups_by_last_notification_date_stmt_;
   SqliteStatement get_notification_group_stmt_;
+
+  static int32 get_last_notification_date(SqliteStatement &stmt, int id) {
+    if (stmt.view_datatype(id) == SqliteStatement::Datatype::Null) {
+      return 0;
+    }
+    return stmt.view_int32(id);
+  }
 };
 
 std::shared_ptr<DialogDbSyncSafeInterface> create_dialog_db_sync(
