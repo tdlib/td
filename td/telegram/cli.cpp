@@ -485,6 +485,35 @@ class CliClient final : public Actor {
     return transform(full_split(user_ids, delimiter), [this](Slice str) { return as_user_id(str); });
   }
 
+  int32 as_basic_group_id(Slice str) const {
+    str = trim(str);
+    auto result = to_integer<int32>(str);
+    if (result < 0) {
+      return -result;
+    }
+    return result;
+  }
+
+  int32 as_supergroup_id(Slice str) const {
+    str = trim(str);
+    auto result = to_integer<int64>(str);
+    int64 shift = static_cast<int64>(-1000000000000ll);
+    if (result <= shift) {
+      return static_cast<int32>(shift - result);
+    }
+    return static_cast<int32>(result);
+  }
+
+  int32 as_secret_chat_id(Slice str) const {
+    str = trim(str);
+    auto result = to_integer<int64>(str);
+    int64 shift = static_cast<int64>(-2000000000000ll);
+    if (result <= shift + std::numeric_limits<int32>::max()) {
+      return static_cast<int32>(result - shift);
+    }
+    return static_cast<int32>(result);
+  }
+
   static int32 as_file_id(string str) {
     return to_integer<int32>(trim(std::move(str)));
   }
@@ -1262,7 +1291,7 @@ class CliClient final : public Actor {
       string payload = query.get_arg("payload").str();
       LOG(INFO) << "Callback URL:" << query.get_arg("callback_url");
       send_request(
-          make_tl_object<td_api::getPassportAuthorizationForm>(to_integer<int32>(bot_id), scope, public_key, payload));
+          make_tl_object<td_api::getPassportAuthorizationForm>(as_user_id(bot_id), scope, public_key, payload));
     } else if (op == "gpaf") {
       string bot_id;
       string scope;
@@ -1286,18 +1315,18 @@ class CliClient final : public Actor {
       std::tie(bot_id, args) = split(args);
       std::tie(scope, payload) = split(args);
       send_request(
-          make_tl_object<td_api::getPassportAuthorizationForm>(to_integer<int32>(bot_id), scope, public_key, payload));
+          make_tl_object<td_api::getPassportAuthorizationForm>(as_user_id(bot_id), scope, public_key, payload));
     } else if (op == "gpafae") {
-      string id;
+      string form_id;
       string password;
-      std::tie(id, password) = split(args);
+      std::tie(form_id, password) = split(args);
       send_request(
-          make_tl_object<td_api::getPassportAuthorizationFormAvailableElements>(to_integer<int32>(id), password));
+          make_tl_object<td_api::getPassportAuthorizationFormAvailableElements>(to_integer<int32>(form_id), password));
     } else if (op == "spaf") {
-      string id;
+      string form_id;
       string types;
-      std::tie(id, types) = split(args);
-      send_request(make_tl_object<td_api::sendPassportAuthorizationForm>(to_integer<int32>(id),
+      std::tie(form_id, types) = split(args);
+      send_request(make_tl_object<td_api::sendPassportAuthorizationForm>(to_integer<int32>(form_id),
                                                                          as_passport_element_types(types)));
     } else if (op == "gpcl") {
       send_request(make_tl_object<td_api::getPreferredCountryLanguage>(args));
@@ -1477,7 +1506,8 @@ class CliClient final : public Actor {
       if (args.empty()) {
         send_request(make_tl_object<td_api::getContacts>());
       } else {
-        send_request(make_tl_object<td_api::searchContacts>("", to_integer<int32>(args)));
+        auto limit = to_integer<int32>(args);
+        send_request(make_tl_object<td_api::searchContacts>("", limit));
       }
     } else if (op == "ImportContacts" || op == "cic") {
       vector<string> contacts_str = full_split(args, ';');
@@ -1944,9 +1974,10 @@ class CliClient final : public Actor {
     } else if (op == "gtss") {
       send_request(make_tl_object<td_api::getTrendingStickerSets>());
     } else if (op == "gatss") {
-      send_request(make_tl_object<td_api::getAttachedStickerSets>(to_integer<int32>(args)));
+      send_request(make_tl_object<td_api::getAttachedStickerSets>(as_file_id(args)));
     } else if (op == "storage") {
-      send_request(make_tl_object<td_api::getStorageStatistics>(to_integer<int32>(args)));
+      auto chat_limit = to_integer<int32>(args);
+      send_request(make_tl_object<td_api::getStorageStatistics>(chat_limit));
     } else if (op == "storage_fast") {
       send_request(make_tl_object<td_api::getStorageStatisticsFast>());
     } else if (op == "optimize_storage") {
@@ -2083,15 +2114,15 @@ class CliClient final : public Actor {
     } else if (op == "guf") {
       send_request(make_tl_object<td_api::getUserFullInfo>(as_user_id(args)));
     } else if (op == "gbg") {
-      send_request(make_tl_object<td_api::getBasicGroup>(to_integer<int32>(args)));
+      send_request(make_tl_object<td_api::getBasicGroup>(as_basic_group_id(args)));
     } else if (op == "gbgf") {
-      send_request(make_tl_object<td_api::getBasicGroupFullInfo>(to_integer<int32>(args)));
+      send_request(make_tl_object<td_api::getBasicGroupFullInfo>(as_basic_group_id(args)));
     } else if (op == "gsg" || op == "gch") {
-      send_request(make_tl_object<td_api::getSupergroup>(to_integer<int32>(args)));
+      send_request(make_tl_object<td_api::getSupergroup>(as_supergroup_id(args)));
     } else if (op == "gsgf" || op == "gchf") {
-      send_request(make_tl_object<td_api::getSupergroupFullInfo>(to_integer<int32>(args)));
+      send_request(make_tl_object<td_api::getSupergroupFullInfo>(as_supergroup_id(args)));
     } else if (op == "gsc") {
-      send_request(make_tl_object<td_api::getSecretChat>(to_integer<int32>(args)));
+      send_request(make_tl_object<td_api::getSecretChat>(as_secret_chat_id(args)));
     } else if (op == "scm") {
       string chat_id;
       string limit;
@@ -2123,7 +2154,7 @@ class CliClient final : public Actor {
         limit = "10";
       }
       send_request(make_tl_object<td_api::getSupergroupMembers>(
-          to_integer<int32>(supergroup_id), make_tl_object<td_api::supergroupMembersFilterAdministrators>(),
+          as_supergroup_id(supergroup_id), make_tl_object<td_api::supergroupMembersFilterAdministrators>(),
           to_integer<int32>(offset), to_integer<int32>(limit)));
     } else if (op == "GetChatAdministrators") {
       string chat_id = args;
@@ -2144,7 +2175,7 @@ class CliClient final : public Actor {
         limit = "10";
       }
       send_request(make_tl_object<td_api::getSupergroupMembers>(
-          to_integer<int32>(supergroup_id), make_tl_object<td_api::supergroupMembersFilterBanned>(query),
+          as_supergroup_id(supergroup_id), make_tl_object<td_api::supergroupMembersFilterBanned>(query),
           to_integer<int32>(offset), to_integer<int32>(limit)));
     } else if (op == "GetSupergroupBots") {
       string supergroup_id;
@@ -2159,7 +2190,7 @@ class CliClient final : public Actor {
       if (limit.empty()) {
         limit = "10";
       }
-      send_request(make_tl_object<td_api::getSupergroupMembers>(to_integer<int32>(supergroup_id),
+      send_request(make_tl_object<td_api::getSupergroupMembers>(as_supergroup_id(supergroup_id),
                                                                 make_tl_object<td_api::supergroupMembersFilterBots>(),
                                                                 to_integer<int32>(offset), to_integer<int32>(limit)));
     } else if (op == "GetSupergroupMembers") {
@@ -2175,7 +2206,7 @@ class CliClient final : public Actor {
       if (limit.empty()) {
         limit = "10";
       }
-      send_request(make_tl_object<td_api::getSupergroupMembers>(to_integer<int32>(supergroup_id),
+      send_request(make_tl_object<td_api::getSupergroupMembers>(as_supergroup_id(supergroup_id),
                                                                 make_tl_object<td_api::supergroupMembersFilterRecent>(),
                                                                 to_integer<int32>(offset), to_integer<int32>(limit)));
     } else if (op == "SearchSupergroupMembers") {
@@ -2194,7 +2225,7 @@ class CliClient final : public Actor {
         limit = "10";
       }
       send_request(make_tl_object<td_api::getSupergroupMembers>(
-          to_integer<int32>(supergroup_id), make_tl_object<td_api::supergroupMembersFilterSearch>(query),
+          as_supergroup_id(supergroup_id), make_tl_object<td_api::supergroupMembersFilterSearch>(query),
           to_integer<int32>(offset), to_integer<int32>(limit)));
     } else if (op == "GetSupergroupRestricted") {
       string supergroup_id;
@@ -2212,7 +2243,7 @@ class CliClient final : public Actor {
         limit = "10";
       }
       send_request(make_tl_object<td_api::getSupergroupMembers>(
-          to_integer<int32>(supergroup_id), make_tl_object<td_api::supergroupMembersFilterRestricted>(query),
+          as_supergroup_id(supergroup_id), make_tl_object<td_api::supergroupMembersFilterRestricted>(query),
           to_integer<int32>(offset), to_integer<int32>(limit)));
     } else if (op == "gdialog" || op == "gd") {
       send_request(make_tl_object<td_api::getChat>(as_chat_id(args)));
@@ -2354,7 +2385,7 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::forwardMessages>(chat, as_chat_id(from_chat_id), as_message_ids(message_ids),
                                                            false, false, op == "fmg"));
     } else if (op == "csc" || op == "CreateSecretChat") {
-      send_request(make_tl_object<td_api::createSecretChat>(to_integer<int32>(args)));
+      send_request(make_tl_object<td_api::createSecretChat>(as_secret_chat_id(args)));
     } else if (op == "cnsc" || op == "CreateNewSecretChat") {
       send_request(make_tl_object<td_api::createNewSecretChat>(as_user_id(args)));
     } else if (op == "scstn") {
@@ -2366,7 +2397,7 @@ class CliClient final : public Actor {
 
       send_request(make_tl_object<td_api::sendChatSetTtlMessage>(as_chat_id(chat_id), to_integer<int32>(ttl)));
     } else if (op == "closeSC" || op == "cancelSC") {
-      send_request(make_tl_object<td_api::closeSecretChat>(to_integer<int32>(args)));
+      send_request(make_tl_object<td_api::closeSecretChat>(as_secret_chat_id(args)));
     } else if (op == "cc" || op == "CreateCall") {
       send_request(make_tl_object<td_api::createCall>(as_user_id(args),
                                                       make_tl_object<td_api::callProtocol>(true, true, 65, 65)));
@@ -3061,7 +3092,7 @@ class CliClient final : public Actor {
     } else if (op == "UpgradeBasicGroupChatToSupergroupChat") {
       send_request(make_tl_object<td_api::upgradeBasicGroupChatToSupergroupChat>(as_chat_id(args)));
     } else if (op == "DeleteSupergroup") {
-      send_request(make_tl_object<td_api::deleteSupergroup>(to_integer<int32>(args)));
+      send_request(make_tl_object<td_api::deleteSupergroup>(as_supergroup_id(args)));
     } else if (op == "gcpc") {
       send_request(make_tl_object<td_api::getCreatedPublicChats>());
     } else if (op == "cpc") {
@@ -3075,13 +3106,13 @@ class CliClient final : public Actor {
       string force;
 
       std::tie(basic_group_id, force) = split(args);
-      send_request(make_tl_object<td_api::createBasicGroupChat>(to_integer<int32>(basic_group_id), as_bool(force)));
+      send_request(make_tl_object<td_api::createBasicGroupChat>(as_basic_group_id(basic_group_id), as_bool(force)));
     } else if (op == "csgc" || op == "cchc") {
       string supergroup_id;
       string force;
 
       std::tie(supergroup_id, force) = split(args);
-      send_request(make_tl_object<td_api::createSupergroupChat>(to_integer<int32>(supergroup_id), as_bool(force)));
+      send_request(make_tl_object<td_api::createSupergroupChat>(as_supergroup_id(supergroup_id), as_bool(force)));
     } else if (op == "sct") {
       string chat_id;
       string title;
@@ -3203,7 +3234,7 @@ class CliClient final : public Actor {
       string everyone_is_administrator;
 
       std::tie(group_id, everyone_is_administrator) = split(args);
-      send_request(make_tl_object<td_api::toggleBasicGroupAdministrators>(to_integer<int32>(group_id),
+      send_request(make_tl_object<td_api::toggleBasicGroupAdministrators>(as_basic_group_id(group_id),
                                                                           as_bool(everyone_is_administrator)));
     } else if (op == "ccun") {
       string chat_id;
@@ -3216,57 +3247,57 @@ class CliClient final : public Actor {
       string username;
 
       std::tie(supergroup_id, username) = split(args);
-      send_request(make_tl_object<td_api::setSupergroupUsername>(to_integer<int32>(supergroup_id), username));
+      send_request(make_tl_object<td_api::setSupergroupUsername>(as_supergroup_id(supergroup_id), username));
     } else if (op == "ssgss") {
       string supergroup_id;
       string sticker_set_id;
 
       std::tie(supergroup_id, sticker_set_id) = split(args);
-      send_request(make_tl_object<td_api::setSupergroupStickerSet>(to_integer<int32>(supergroup_id),
+      send_request(make_tl_object<td_api::setSupergroupStickerSet>(as_supergroup_id(supergroup_id),
                                                                    to_integer<int64>(sticker_set_id)));
     } else if (op == "tsgi") {
       string supergroup_id;
       string anyone_can_invite;
 
       std::tie(supergroup_id, anyone_can_invite) = split(args);
-      send_request(make_tl_object<td_api::toggleSupergroupInvites>(to_integer<int32>(supergroup_id),
-                                                                   as_bool(anyone_can_invite)));
+      send_request(
+          make_tl_object<td_api::toggleSupergroupInvites>(as_supergroup_id(supergroup_id), as_bool(anyone_can_invite)));
     } else if (op == "tsgp") {
       string supergroup_id;
       string is_all_history_available;
 
       std::tie(supergroup_id, is_all_history_available) = split(args);
-      send_request(make_tl_object<td_api::toggleSupergroupIsAllHistoryAvailable>(to_integer<int32>(supergroup_id),
+      send_request(make_tl_object<td_api::toggleSupergroupIsAllHistoryAvailable>(as_supergroup_id(supergroup_id),
                                                                                  as_bool(is_all_history_available)));
     } else if (op == "tsgsm") {
       string supergroup_id;
       string sign_messages;
 
       std::tie(supergroup_id, sign_messages) = split(args);
-      send_request(make_tl_object<td_api::toggleSupergroupSignMessages>(to_integer<int32>(supergroup_id),
+      send_request(make_tl_object<td_api::toggleSupergroupSignMessages>(as_supergroup_id(supergroup_id),
                                                                         as_bool(sign_messages)));
     } else if (op == "csgd" || op == "cchd") {
       string supergroup_id;
       string description;
 
       std::tie(supergroup_id, description) = split(args);
-      send_request(make_tl_object<td_api::setSupergroupDescription>(to_integer<int32>(supergroup_id), description));
+      send_request(make_tl_object<td_api::setSupergroupDescription>(as_supergroup_id(supergroup_id), description));
     } else if (op == "psgm" || op == "pchm") {
       string supergroup_id;
       string message_id;
 
       std::tie(supergroup_id, message_id) = split(args);
-      send_request(make_tl_object<td_api::pinSupergroupMessage>(to_integer<int32>(supergroup_id),
+      send_request(make_tl_object<td_api::pinSupergroupMessage>(as_supergroup_id(supergroup_id),
                                                                 as_message_id(message_id), false));
     } else if (op == "psgms" || op == "pchms") {
       string supergroup_id;
       string message_id;
 
       std::tie(supergroup_id, message_id) = split(args);
-      send_request(make_tl_object<td_api::pinSupergroupMessage>(to_integer<int32>(supergroup_id),
+      send_request(make_tl_object<td_api::pinSupergroupMessage>(as_supergroup_id(supergroup_id),
                                                                 as_message_id(message_id), true));
     } else if (op == "upsgm" || op == "upchm") {
-      send_request(make_tl_object<td_api::unpinSupergroupMessage>(to_integer<int32>(args)));
+      send_request(make_tl_object<td_api::unpinSupergroupMessage>(as_supergroup_id(args)));
     } else if (op == "grib") {
       send_request(make_tl_object<td_api::getRecentInlineBots>());
     } else if (op == "spc" || op == "su" || op == "sch") {
@@ -3422,7 +3453,7 @@ class CliClient final : public Actor {
       std::tie(supergroup_id, args) = split(args);
       std::tie(user_id, message_ids) = split(args);
 
-      send_request(make_tl_object<td_api::reportSupergroupSpam>(to_integer<int32>(supergroup_id), as_user_id(user_id),
+      send_request(make_tl_object<td_api::reportSupergroupSpam>(as_supergroup_id(supergroup_id), as_user_id(user_id),
                                                                 as_message_ids(message_ids)));
     } else if (op == "gdiff") {
       send_request(make_tl_object<td_api::testGetDifference>());

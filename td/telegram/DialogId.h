@@ -70,8 +70,8 @@ class DialogId {
 
   UserId get_user_id() const;
   ChatId get_chat_id() const;
-  SecretChatId get_secret_chat_id() const;
   ChannelId get_channel_id() const;
+  SecretChatId get_secret_chat_id() const;
 
   template <class StorerT>
   void store(StorerT &storer) const {
