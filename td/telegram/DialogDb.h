@@ -12,8 +12,6 @@
 
 #include "td/actor/PromiseFuture.h"
 
-#include "td/db/SqliteConnectionSafe.h"
-
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
@@ -22,6 +20,10 @@
 #include <utility>
 
 namespace td {
+
+class SqliteConnectionSafe;
+class SqliteDb;
+
 class DialogDbSyncInterface {
  public:
   DialogDbSyncInterface() = default;
@@ -87,4 +89,5 @@ std::shared_ptr<DialogDbSyncSafeInterface> create_dialog_db_sync(
 
 std::shared_ptr<DialogDbAsyncInterface> create_dialog_db_async(std::shared_ptr<DialogDbSyncSafeInterface> sync_db,
                                                                int32 scheduler_id);
+
 }  // namespace td

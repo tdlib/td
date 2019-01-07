@@ -10,6 +10,7 @@
 #include "td/db/binlog/ConcurrentBinlog.h"
 #include "td/db/BinlogKeyValue.h"
 #include "td/db/SeqKeyValue.h"
+#include "td/db/SqliteConnectionSafe.h"
 #include "td/db/SqliteDb.h"
 #include "td/db/SqliteKeyValueAsync.h"
 

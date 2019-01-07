@@ -12,8 +12,6 @@
 
 #include "td/actor/PromiseFuture.h"
 
-#include "td/db/SqliteConnectionSafe.h"
-
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
@@ -23,6 +21,9 @@
 #include <utility>
 
 namespace td {
+
+class SqliteConnectionSafe;
+class SqliteDb;
 
 // append only before Size
 enum class SearchMessagesFilter : int32 {

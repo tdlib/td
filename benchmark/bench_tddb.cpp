@@ -13,6 +13,8 @@
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
 
+#include "td/db/SqliteConnectionSafe.h"
+
 #include "td/utils/benchmark.h"
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
@@ -77,7 +79,7 @@ class MessagesDbBench : public Benchmark {
   }
 
  private:
-  td::unique_ptr<td::ConcurrentScheduler> scheduler_;
+  td::unique_ptr<ConcurrentScheduler> scheduler_;
   std::shared_ptr<SqliteConnectionSafe> sql_connection_;
   std::shared_ptr<MessagesDbSyncSafeInterface> messages_db_sync_safe_;
   std::shared_ptr<MessagesDbAsyncInterface> messages_db_async_;

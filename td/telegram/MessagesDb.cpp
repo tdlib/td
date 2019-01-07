@@ -9,6 +9,7 @@
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/Version.h"
 
+#include "td/db/SqliteConnectionSafe.h"
 #include "td/db/SqliteDb.h"
 #include "td/db/SqliteStatement.h"
 
