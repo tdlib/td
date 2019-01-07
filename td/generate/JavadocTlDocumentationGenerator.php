@@ -10,9 +10,13 @@ class JavadocTlDocumentationGenerator extends TlDocumentationGenerator
 
     protected function escapeDocumentation($doc)
     {
+        $doc = preg_replace_callback('/(?<!["A-Za-z_])[A-Za-z]*_[A-Za-z_]*/',
+            function ($word_matches)
+            {
+                return preg_replace_callback('/_([A-Za-z])/', function ($matches) {return strtoupper($matches[1]);}, $word_matches[0]);
+            }, $doc);
         $doc = htmlspecialchars($doc);
         $doc = str_replace('*/', '*&#47;', $doc);
-        $doc = preg_replace_callback('/(?<!")_([A-Za-z])/', function ($matches) {return strtoupper($matches[1]);}, $doc);
         return $doc;
     }
 
@@ -88,13 +92,13 @@ class JavadocTlDocumentationGenerator extends TlDocumentationGenerator
 
     protected function needSkipLine($line)
     {
-        $line = trim($line);
-        return strpos($line, 'public') !== 0 && !$this->isHeaderLine($line);
+        $line = $this->fixLine(trim($line));
+        return (strpos($line, 'public') !== 0 && !$this->isHeaderLine($line)) || $line === 'public @interface Constructors {}';
     }
 
     protected function isHeaderLine($line)
     {
-        return trim($line) === '@Override';
+        return trim($line) === '@Override' || trim($line) === '@Constructors';
     }
 
     protected function extractClassName($line)

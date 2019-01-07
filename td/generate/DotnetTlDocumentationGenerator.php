@@ -6,9 +6,13 @@ class DotnetTlDocumentationGenerator extends TlDocumentationGenerator
 {
     protected function escapeDocumentation($doc)
     {
+        $doc = preg_replace_callback('/(?<!["A-Za-z_])[A-Za-z]*_[A-Za-z_]*/',
+            function ($word_matches)
+            {
+                return ucfirst(preg_replace_callback('/_([A-Za-z])/', function ($matches) {return strtoupper($matches[1]);}, $word_matches[0]));
+            }, $doc);
         $doc = htmlspecialchars($doc, ENT_XML1);
         $doc = str_replace('*/', '*&#47;', $doc);
-        $doc = preg_replace_callback('/(?<!")_([A-Za-z])/', function ($matches) {return strtoupper($matches[1]);}, $doc);
         return $doc;
     }
 
