@@ -647,6 +647,7 @@ function onOptionsChanged() {
         break;
     }
 
+    commands.push('powershell -ExecutionPolicy ByPass ' + local + 'build.ps1 -mode clean');
     commands.push('powershell -ExecutionPolicy ByPass ' + local + 'build.ps1 -vcpkg_root ../../vcpkg' + archiver_option);
     if (install_dir) {
       commands.push('cp build-uwp/vsix/tdlib.vsix ' + install_dir);
