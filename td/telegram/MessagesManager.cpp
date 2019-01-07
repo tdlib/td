@@ -18242,16 +18242,29 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
     return false;
   }
 
-  if (d->dialog_id.get_type() == DialogType::Channel) {
-    if (!td_->contacts_manager_->get_channel_status(d->dialog_id.get_channel_id()).is_member() ||
-        m->date < td_->contacts_manager_->get_channel_date(d->dialog_id.get_channel_id())) {
-      return false;
-    }
-  }
-  if (d->dialog_id.get_type() == DialogType::SecretChat) {
-    if (td_->contacts_manager_->get_secret_chat_state(d->dialog_id.get_secret_chat_id()) == SecretChatState::Closed) {
-      return false;
-    }
+  switch (d->dialog_id.get_type()) {
+    case DialogType::User:
+      break;
+    case DialogType::Chat:
+      if (!td_->contacts_manager_->get_chat_is_active(d->dialog_id.get_chat_id()) ||
+          m->content->get_type() == MessageContentType::ChatMigrateTo) {
+        return false;
+      }
+      break;
+    case DialogType::Channel:
+      if (!td_->contacts_manager_->get_channel_status(d->dialog_id.get_channel_id()).is_member() ||
+          m->date < td_->contacts_manager_->get_channel_date(d->dialog_id.get_channel_id())) {
+        return false;
+      }
+      break;
+    case DialogType::SecretChat:
+      if (td_->contacts_manager_->get_secret_chat_state(d->dialog_id.get_secret_chat_id()) == SecretChatState::Closed) {
+        return false;
+      }
+      break;
+    case DialogType::None:
+    default:
+      UNREACHABLE();
   }
 
   VLOG(notifications) << "Trying to " << (force ? "forcely " : "") << "add new message notification for "
