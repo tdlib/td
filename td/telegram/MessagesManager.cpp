@@ -10568,6 +10568,9 @@ void MessagesManager::remove_message_notification_id(Dialog *d, Message *m, bool
                       << ", is_permanent = " << is_permanent;
   delete_notification_id_to_message_id_correspondence(d, notification_id, m->message_id);
   m->notification_id = NotificationId();
+  if (d->pinned_message_notification_message_id == m->message_id && is_permanent) {
+    set_dialog_pinned_message_notification(d, MessageId());  // must be called after notification_id is removed
+  }
   if (group_info.last_notification_id == notification_id) {
     // last notification is deleted, need to find new last notification
     fix_dialog_last_notification_id(d, from_mentions, m->message_id);
@@ -17822,7 +17825,7 @@ void MessagesManager::try_add_pinned_message_notification(Dialog *d, vector<Noti
   }
 
   auto m = get_message_force(d, message_id);
-  if (m->notification_id.get() > d->mention_notification_group.max_removed_notification_id.get()) {
+  if (m != nullptr && m->notification_id.get() > d->mention_notification_group.max_removed_notification_id.get()) {
     if (m->notification_id.get() < max_notification_id.get()) {
       VLOG(notifications) << "Add " << m->notification_id << " about pinned " << message_id << " in " << d->dialog_id;
       auto pos = res.size();
