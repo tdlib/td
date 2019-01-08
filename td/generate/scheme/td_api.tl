@@ -2407,7 +2407,7 @@ updates updates:vector<Update> = Updates;
 //@description The log is written to stderr or an OS specific log
 logStreamDefault = LogStream;
 
-//@description TDLib needs TdlibParameters for initialization @path Path to the file to where the internal TDLib log will be written @max_file_size Maximum size of the file to where the internal TDLib log is written before the file will be auto-rotated
+//@description The log is written to a file @path Path to the file to where the internal TDLib log will be written @max_file_size Maximum size of the file to where the internal TDLib log is written before the file will be auto-rotated
 logStreamFile path:string max_file_size:int53 = LogStream;
 
 //@description The log is written nowhere
