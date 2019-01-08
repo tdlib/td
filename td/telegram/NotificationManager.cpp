@@ -578,16 +578,16 @@ NotificationGroupKey NotificationManager::get_last_updated_group_key() const {
   return it->first;
 }
 
-int32 NotificationManager::get_notification_delay_ms(DialogId dialog_id,
-                                                     const PendingNotification &notification) const {
-  auto delay_ms = [&]() {
-    if (dialog_id.get_type() == DialogType::SecretChat) {
-      return 0;  // there is no reason to delay notifications in secret chats
-    }
-    if (!notification.type->can_be_delayed()) {
-      return 0;
-    }
+int32 NotificationManager::get_notification_delay_ms(DialogId dialog_id, const PendingNotification &notification,
+                                                     int32 min_delay_ms) const {
+  if (dialog_id.get_type() == DialogType::SecretChat) {
+    return MIN_NOTIFICATION_DELAY_MS;  // there is no reason to delay notifications in secret chats
+  }
+  if (!notification.type->can_be_delayed()) {
+    return MIN_NOTIFICATION_DELAY_MS;
+  }
 
+  auto delay_ms = [&]() {
     auto online_info = td_->contacts_manager_->get_my_online_status();
     if (!online_info.is_online_local && online_info.is_online_remote) {
       // If we are offline, but online from some other client then delay notification
@@ -613,12 +613,12 @@ int32 NotificationManager::get_notification_delay_ms(DialogId dialog_id,
   }();
 
   auto passed_time_ms = max(0, static_cast<int32>((G()->server_time_cached() - notification.date - 1) * 1000));
-  return max(delay_ms - passed_time_ms, MIN_NOTIFICATION_DELAY_MS);
+  return max(max(min_delay_ms, delay_ms) - passed_time_ms, MIN_NOTIFICATION_DELAY_MS);
 }
 
 void NotificationManager::add_notification(NotificationGroupId group_id, NotificationGroupType group_type,
                                            DialogId dialog_id, int32 date, DialogId notification_settings_dialog_id,
-                                           bool is_silent, NotificationId notification_id,
+                                           bool is_silent, int32 min_delay_ms, NotificationId notification_id,
                                            unique_ptr<NotificationType> type) {
   if (is_disabled() || max_notification_group_count_ == 0) {
     return;
@@ -649,7 +649,7 @@ void NotificationManager::add_notification(NotificationGroupId group_id, Notific
   notification.notification_id = notification_id;
   notification.type = std::move(type);
 
-  auto delay_ms = get_notification_delay_ms(dialog_id, notification);
+  auto delay_ms = get_notification_delay_ms(dialog_id, notification, min_delay_ms);
   VLOG(notifications) << "Delay " << notification_id << " for " << delay_ms << " milliseconds";
   auto flush_time = delay_ms * 0.001 + Time::now();
 
@@ -1769,7 +1769,7 @@ void NotificationManager::add_call_notification(DialogId dialog_id, CallId call_
   }
   active_notifications.push_back(ActiveCallNotification{call_id, notification_id});
 
-  add_notification(group_id, NotificationGroupType::Calls, dialog_id, G()->unix_time() + 120, dialog_id, false,
+  add_notification(group_id, NotificationGroupType::Calls, dialog_id, G()->unix_time() + 120, dialog_id, false, 0,
                    notification_id, create_new_call_notification(call_id));
 }
 

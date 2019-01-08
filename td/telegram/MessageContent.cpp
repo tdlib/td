@@ -4551,6 +4551,24 @@ bool need_reget_message_content(const MessageContent *content) {
   }
 }
 
+bool need_delay_message_content_notification(const MessageContent *content, UserId my_user_id) {
+  switch (content->get_type()) {
+    case MessageContentType::ChatChangeTitle:
+    case MessageContentType::ChatChangePhoto:
+    case MessageContentType::ChatDeletePhoto:
+    case MessageContentType::ChatJoinedByLink:
+      return true;
+    case MessageContentType::ChatAddUsers: {
+      auto &added_user_ids = static_cast<const MessageChatAddUsers *>(content)->user_ids;
+      return std::find(added_user_ids.begin(), added_user_ids.end(), my_user_id) == added_user_ids.end();
+    }
+    case MessageContentType::ChatDeleteUser:
+      return static_cast<const MessageChatDeleteUser *>(content)->user_id != my_user_id;
+    default:
+      return false;
+  }
+}
+
 void update_expired_message_content(unique_ptr<MessageContent> &content) {
   switch (content->get_type()) {
     case MessageContentType::Photo:

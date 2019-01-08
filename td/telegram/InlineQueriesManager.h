@@ -21,7 +21,6 @@
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/Photo.h"
-#include "td/telegram/ReplyMarkup.h"
 #include "td/telegram/UserId.h"
 
 #include "td/utils/common.h"

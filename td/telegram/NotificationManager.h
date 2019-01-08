@@ -59,8 +59,8 @@ class NotificationManager : public Actor {
   void load_group_force(NotificationGroupId group_id);
 
   void add_notification(NotificationGroupId group_id, NotificationGroupType group_type, DialogId dialog_id, int32 date,
-                        DialogId notification_settings_dialog_id, bool is_silent, NotificationId notification_id,
-                        unique_ptr<NotificationType> type);
+                        DialogId notification_settings_dialog_id, bool is_silent, int32 min_delay_ms,
+                        NotificationId notification_id, unique_ptr<NotificationType> type);
 
   void edit_notification(NotificationGroupId group_id, NotificationId notification_id,
                          unique_ptr<NotificationType> type);
@@ -195,7 +195,8 @@ class NotificationManager : public Actor {
 
   void send_add_group_update(const NotificationGroupKey &group_key, const NotificationGroup &group);
 
-  int32 get_notification_delay_ms(DialogId dialog_id, const PendingNotification &notification) const;
+  int32 get_notification_delay_ms(DialogId dialog_id, const PendingNotification &notification,
+                                  int32 min_delay_ms) const;
 
   void do_flush_pending_notifications(NotificationGroupKey &group_key, NotificationGroup &group,
                                       vector<PendingNotification> &pending_notifications);

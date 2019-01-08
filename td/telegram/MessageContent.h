@@ -220,6 +220,8 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
 
 bool need_reget_message_content(const MessageContent *content);
 
+bool need_delay_message_content_notification(const MessageContent *content, UserId my_user_id);
+
 void update_expired_message_content(unique_ptr<MessageContent> &content);
 
 void add_message_content_dependencies(Dependencies &dependencies, const MessageContent *message_content);
