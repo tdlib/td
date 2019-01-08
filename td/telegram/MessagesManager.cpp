@@ -21762,14 +21762,17 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
         old_message->forward_info->author_signature = new_message->forward_info->author_signature;
         LOG_IF(ERROR, *old_message->forward_info != *new_message->forward_info)
             << message_id << " in " << dialog_id << " has changed forward info from " << *old_message->forward_info
-            << " to " << *new_message->forward_info << ", really forwarded from " << old_message->debug_forward_from;
+            << " to " << *new_message->forward_info << ", really forwarded from " << old_message->debug_forward_from
+            << ", message content type is " << old_message->content->get_type() << '/'
+            << new_message->content->get_type();
       }
       old_message->forward_info = std::move(new_message->forward_info);
       is_changed = true;
     } else {
       LOG(ERROR) << message_id << " in " << dialog_id << " sent by " << old_message->sender_user_id
                  << " has lost forward info " << *old_message->forward_info << ", really forwarded from "
-                 << old_message->debug_forward_from;
+                 << old_message->debug_forward_from << ", message content type is " << old_message->content->get_type()
+                 << '/' << new_message->content->get_type();
       old_message->forward_info = nullptr;
       is_changed = true;
     }
