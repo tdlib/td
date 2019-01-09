@@ -18352,8 +18352,12 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   }
   VLOG(notifications) << "Create " << m->notification_id << " with " << m->message_id << " in " << group_info.group_id
                       << '/' << d->dialog_id;
-  int32 min_delay_ms =
-      need_delay_message_content_notification(m->content.get(), td_->contacts_manager_->get_my_id()) ? 3000 : 0;
+  int32 min_delay_ms = 0;
+  if (need_delay_message_content_notification(m->content.get(), td_->contacts_manager_->get_my_id())) {
+    min_delay_ms = 3000;  // 3 seconds
+  } else if (td_->is_online() && d->is_opened) {
+    min_delay_ms = 1000;  // 1 second
+  }
   send_closure_later(G()->notification_manager(), &NotificationManager::add_notification, notification_group_id,
                      from_mentions ? NotificationGroupType::Mentions : NotificationGroupType::Messages, d->dialog_id,
                      m->date, settings_dialog_id, m->disable_notification, min_delay_ms, m->notification_id,
