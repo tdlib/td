@@ -14537,9 +14537,7 @@ void MessagesManager::load_messages(DialogId dialog_id, MessageId from_message_i
 }
 
 tl_object_ptr<td_api::message> MessagesManager::get_message_object(FullMessageId full_message_id) {
-  auto dialog_id = full_message_id.get_dialog_id();
-  Dialog *d = get_dialog(dialog_id);
-  return get_message_object(dialog_id, get_message_force(d, full_message_id.get_message_id()));
+  return get_message_object(full_message_id.get_dialog_id(), get_message_force(full_message_id));
 }
 
 tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dialog_id, const Message *message) const {

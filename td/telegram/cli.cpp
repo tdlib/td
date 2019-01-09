@@ -2256,6 +2256,11 @@ class CliClient final : public Actor {
       string message_id;
       std::tie(chat_id, message_id) = split(args);
       send_request(make_tl_object<td_api::getMessage>(as_chat_id(chat_id), as_message_id(message_id)));
+    } else if (op == "gml") {
+      string chat_id;
+      string message_id;
+      std::tie(chat_id, message_id) = split(args);
+      send_request(make_tl_object<td_api::getMessageLocally>(as_chat_id(chat_id), as_message_id(message_id)));
     } else if (op == "grm") {
       string chat_id;
       string message_id;

@@ -4848,6 +4848,11 @@ void Td::on_request(uint64 id, const td_api::getMessage &request) {
   CREATE_REQUEST(GetMessageRequest, request.chat_id_, request.message_id_);
 }
 
+void Td::on_request(uint64 id, const td_api::getMessageLocally &request) {
+  FullMessageId full_message_id(DialogId(request.chat_id_), MessageId(request.message_id_));
+  send_closure(actor_id(this), &Td::send_result, id, messages_manager_->get_message_object(full_message_id));
+}
+
 void Td::on_request(uint64 id, const td_api::getRepliedMessage &request) {
   CREATE_REQUEST(GetRepliedMessageRequest, request.chat_id_, request.message_id_);
 }

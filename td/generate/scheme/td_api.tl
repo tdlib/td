@@ -109,7 +109,7 @@ authorizationStateClosing = AuthorizationState;
 authorizationStateClosed = AuthorizationState;
 
 
-//@description Represents the current state of 2-step verification @has_password True if a 2-step verification password is set @password_hint Hint for the password; can be empty @has_recovery_email_address True if a recovery email is set @has_passport_data True if some Telegram Passport elements were saved @unconfirmed_recovery_email_address_pattern Pattern of the email address to which the confirmation email was sent
+//@description Represents the current state of 2-step verification @has_password True, if a 2-step verification password is set @password_hint Hint for the password; can be empty @has_recovery_email_address True, if a recovery email is set @has_passport_data True, if some Telegram Passport elements were saved @unconfirmed_recovery_email_address_pattern Pattern of the email address to which the confirmation email was sent
 passwordState has_password:Bool password_hint:string has_recovery_email_address:Bool has_passport_data:Bool unconfirmed_recovery_email_address_pattern:string = PasswordState;
 
 //@description Contains information about the current recovery email address @recovery_email_address Recovery email address
@@ -2546,6 +2546,9 @@ getChat chat_id:int53 = Chat;
 
 //@description Returns information about a message @chat_id Identifier of the chat the message belongs to @message_id Identifier of the message to get
 getMessage chat_id:int53 message_id:int53 = Message;
+
+//@description Returns information about a message, if it is available locally without sending network request. This is an offline request @chat_id Identifier of the chat the message belongs to @message_id Identifier of the message to get
+getMessageLocally chat_id:int53 message_id:int53 = Message;
 
 //@description Returns information about a message that is replied by given message @chat_id Identifier of the chat the message belongs to @message_id Identifier of the message reply to which get
 getRepliedMessage chat_id:int53 message_id:int53 = Message;
