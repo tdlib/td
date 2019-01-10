@@ -2287,8 +2287,7 @@ class UploadMediaQuery : public Td::ResultHandler {
             tl_object_ptr<telegram_api::InputMedia> &&input_media) {
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
-      on_error(0, Status::Error(400, "Have no write access to the chat"));
-      return;
+      return on_error(0, Status::Error(400, "Have no write access to the chat"));
     }
     CHECK(input_media != nullptr);
 
@@ -15044,12 +15043,13 @@ vector<FileId> MessagesManager::get_message_file_ids(const Message *message) con
 
 void MessagesManager::cancel_upload_message_content_files(const MessageContent *content) {
   auto file_id = get_message_content_file_id(content);
-  if (being_uploaded_files_.erase(file_id)) {
+  // always cancel file upload, it is a no-op in the worst case
+  if (being_uploaded_files_.erase(file_id) || file_id.is_valid()) {
     LOG(INFO) << "Cancel upload file " << file_id;
     td_->file_manager_->upload(file_id, nullptr, 0, 0);
   }
   file_id = get_message_content_thumbnail_file_id(content, td_);
-  if (being_uploaded_thumbnails_.erase(file_id)) {
+  if (being_uploaded_thumbnails_.erase(file_id) || file_id.is_valid()) {
     LOG(INFO) << "Cancel upload thumbnail file " << file_id;
     td_->file_manager_->upload(file_id, nullptr, 0, 0);
   }
