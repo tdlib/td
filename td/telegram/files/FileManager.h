@@ -72,6 +72,7 @@ class FileNode {
   void set_url(string url);
   void set_owner_dialog_id(DialogId owner_id);
   void set_encryption_key(FileEncryptionKey key);
+  void set_upload_pause(FileId file_id);
 
   void set_download_priority(int8 priority);
   void set_upload_priority(int8 priority);

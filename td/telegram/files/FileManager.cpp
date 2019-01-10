@@ -211,6 +211,13 @@ void FileNode::set_encryption_key(FileEncryptionKey key) {
   }
 }
 
+void FileNode::set_upload_pause(FileId upload_pause) {
+  if (upload_pause_ != upload_pause) {
+    LOG(INFO) << "Change file " << main_file_id_ << " upload_pause from " << upload_pause_ << " to " << upload_pause;
+    upload_pause_ = upload_pause;
+  }
+}
+
 void FileNode::set_download_priority(int8 priority) {
   if ((download_priority_ == 0) != (priority == 0)) {
     VLOG(update_file) << "File " << main_file_id_ << " has changed download priority to " << priority;
@@ -1072,13 +1079,13 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   }
 
   if (x_file_id == x_node->upload_pause_) {
-    x_node->upload_pause_ = FileId();
+    x_node->set_upload_pause(FileId());
   }
   if (x_node.get() == y_node.get()) {
     return x_node->main_file_id_;
   }
   if (y_file_id == y_node->upload_pause_) {
-    y_node->upload_pause_ = FileId();
+    y_node->set_upload_pause(FileId());
   }
 
   if (x_node->remote_.type() == RemoteFileLocation::Type::Full &&
@@ -1180,10 +1187,10 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     node->set_remote_location(other_node->remote_, other_node->remote_source_, other_node->remote_ready_size_);
     node->upload_id_ = other_node->upload_id_;
     node->set_upload_priority(other_node->upload_priority_);
-    node->upload_pause_ = other_node->upload_pause_;
+    node->set_upload_pause(other_node->upload_pause_);
     other_node->upload_id_ = 0;
     other_node->upload_priority_ = 0;
-    other_node->upload_pause_ = FileId();
+    other_node->set_upload_pause(FileId());
   } else {
     cancel_upload(other_node);
   }
@@ -1462,7 +1469,6 @@ void FileManager::load_from_pmc(FileNodePtr node, bool new_remote, bool new_loca
   if (new_generate) {
     load(generate);
   }
-  return;
 }
 
 bool FileManager::set_encryption_key(FileId file_id, FileEncryptionKey key) {
@@ -1695,7 +1701,7 @@ void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std:
     return;
   }
   if (node->upload_pause_ == file_id) {
-    node->upload_pause_ = FileId();
+    node->set_upload_pause(FileId());
   }
   FileView file_view(node);
   if (file_view.has_remote_location() && file_view.get_type() != FileType::Thumbnail &&
@@ -1742,7 +1748,7 @@ bool FileManager::delete_partial_remote_location(FileId file_id) {
     return false;
   }
   if (node->upload_pause_ == file_id) {
-    node->upload_pause_ = FileId();
+    node->set_upload_pause(FileId());
   }
   if (node->remote_.type() == RemoteFileLocation::Type::Full) {
     LOG(INFO) << "File " << file_id << " is already uploaded";
@@ -1853,18 +1859,23 @@ void FileManager::run_generate(FileNodePtr node) {
 
 void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
   if (node->need_load_from_pmc_) {
+    LOG(INFO) << "File " << node->main_file_id_ << " needs to be loaded from database before upload";
     return;
   }
   if (node->upload_pause_.is_valid()) {
+    LOG(INFO) << "File " << node->main_file_id_ << " upload is paused: " << node->upload_pause_;
     return;
   }
   FileView file_view(node);
   if (!file_view.has_local_location()) {
     if (node->get_by_hash_ || node->generate_id_ == 0 || !node->generate_was_update_) {
+      LOG(INFO) << "Have no local location for file: get_by_hash = " << node->get_by_hash_
+                << ", generate_id = " << node->generate_id_ << ", generate_was_update = " << node->generate_was_update_;
       return;
     }
     if (file_view.has_generate_location() && file_view.generate_location().file_type_ == FileType::Secure) {
       // Can't upload secure file before its size is known.
+      LOG(INFO) << "Can't upload secure file " << node->main_file_id_ << " before it's size is known";
       return;
     }
   }
@@ -1915,6 +1926,7 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
 
   CHECK(node->upload_id_ == 0);
   if (node->remote_.type() != RemoteFileLocation::Type::Partial && node->get_by_hash_) {
+    LOG(INFO) << "Get file " << node->main_file_id_ << " by hash";
     QueryId id = queries_container_.create(Query{file_id, Query::UploadByHash});
     node->upload_id_ = id;
 
@@ -2412,6 +2424,7 @@ void FileManager::on_upload_ok(QueryId query_id, FileType file_type, const Parti
   }
 
   auto *file_info = get_file_id_info(file_id);
+  LOG(INFO) << "Found being uploaded file " << file_id << " with priority " << file_info->upload_priority_;
   file_info->upload_priority_ = 0;
   file_info->download_priority_ = 0;
 
@@ -2429,7 +2442,7 @@ void FileManager::on_upload_ok(QueryId query_id, FileType file_type, const Parti
     }
     if (file_info->upload_callback_) {
       file_info->upload_callback_->on_upload_encrypted_ok(file_id, std::move(input_file));
-      file_node->upload_pause_ = file_id;
+      file_node->set_upload_pause(file_id);
       file_info->upload_callback_.reset();
     }
   } else if (file_view.is_secure()) {
@@ -2453,7 +2466,7 @@ void FileManager::on_upload_ok(QueryId query_id, FileType file_type, const Parti
     }
     if (file_info->upload_callback_) {
       file_info->upload_callback_->on_upload_ok(file_id, std::move(input_file));
-      file_node->upload_pause_ = file_id;
+      file_node->set_upload_pause(file_id);
       file_info->upload_callback_.reset();
     }
   }
