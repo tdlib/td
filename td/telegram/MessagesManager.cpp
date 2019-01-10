@@ -5260,30 +5260,6 @@ void MessagesManager::on_update_include_sponsored_dialog_to_unread_count() {
   }
 }
 
-void MessagesManager::on_disable_pinned_message_notifications_changed() {
-  if (td_->auth_manager_->is_bot()) {
-    // just in case
-    return;
-  }
-
-  bool disable_pinned_message_notifications =
-      G()->shared_config().get_option_boolean("disable_pinned_message_notifications");
-  if (disable_pinned_message_notifications_ == disable_pinned_message_notifications) {
-    return;
-  }
-
-  disable_pinned_message_notifications_ = disable_pinned_message_notifications;
-
-  if (disable_pinned_message_notifications_) {
-    for (auto &dialog : dialogs_) {
-      Dialog *d = dialog.second.get();
-      if (d->mention_notification_group.group_id.is_valid() && d->pinned_message_notification_message_id.is_valid()) {
-        set_dialog_pinned_message_notification(d, MessageId());
-      }
-    }
-  }
-}
-
 bool MessagesManager::need_cancel_user_dialog_action(int32 action_id, MessageContentType message_content_type) {
   if (message_content_type == MessageContentType::None) {
     return true;
@@ -5745,15 +5721,18 @@ void MessagesManager::save_scope_notification_settings(NotificationSettingsScope
 bool MessagesManager::update_dialog_notification_settings(DialogId dialog_id,
                                                           DialogNotificationSettings *current_settings,
                                                           const DialogNotificationSettings &new_settings) {
-  bool need_update = current_settings->mute_until != new_settings.mute_until ||
-                     current_settings->sound != new_settings.sound ||
-                     current_settings->show_preview != new_settings.show_preview ||
-                     current_settings->use_default_mute_until != new_settings.use_default_mute_until ||
-                     current_settings->use_default_sound != new_settings.use_default_sound ||
-                     current_settings->use_default_show_preview != new_settings.use_default_show_preview;
-  bool need_update_default_disable_notification =
-      current_settings->silent_send_message != new_settings.silent_send_message;
-  bool is_changed = need_update || need_update_default_disable_notification ||
+  bool need_update_server = current_settings->mute_until != new_settings.mute_until ||
+                            current_settings->sound != new_settings.sound ||
+                            current_settings->show_preview != new_settings.show_preview ||
+                            current_settings->use_default_mute_until != new_settings.use_default_mute_until ||
+                            current_settings->use_default_sound != new_settings.use_default_sound ||
+                            current_settings->use_default_show_preview != new_settings.use_default_show_preview;
+  bool need_update_local =
+      current_settings->use_default_disable_pinned_message_notification !=
+          new_settings.use_default_disable_pinned_message_notification ||
+      current_settings->disable_pinned_message_notification != new_settings.disable_pinned_message_notification;
+
+  bool is_changed = need_update_server || need_update_local ||
                     current_settings->is_synchronized != new_settings.is_synchronized ||
                     current_settings->is_use_default_fixed != new_settings.is_use_default_fixed;
 
@@ -5772,41 +5751,54 @@ bool MessagesManager::update_dialog_notification_settings(DialogId dialog_id,
     if (!was_muted && is_dialog_muted(d)) {
       remove_all_dialog_notifications(dialog_id, d->message_notification_group, "save_scope_notification_settings");
     }
+    if (is_dialog_pinned_message_notification_disabled(d) && d->mention_notification_group.group_id.is_valid() &&
+        d->pinned_message_notification_message_id.is_valid()) {
+      set_dialog_pinned_message_notification(d, MessageId());
+    }
 
-    if (need_update) {
+    if (need_update_server || need_update_local) {
       send_closure(G()->td(), &Td::send_update,
                    make_tl_object<td_api::updateChatNotificationSettings>(
                        dialog_id.get(), get_chat_notification_settings_object(current_settings)));
     }
-    if (need_update_default_disable_notification) {
-      send_closure(G()->td(), &Td::send_update,
-                   make_tl_object<td_api::updateChatDefaultDisableNotification>(dialog_id.get(),
-                                                                                current_settings->silent_send_message));
-    }
   }
-  return is_changed;
+  return need_update_server;
 }
 
 bool MessagesManager::update_scope_notification_settings(NotificationSettingsScope scope,
                                                          ScopeNotificationSettings *current_settings,
                                                          const ScopeNotificationSettings &new_settings) {
-  bool need_update = current_settings->mute_until != new_settings.mute_until ||
-                     current_settings->sound != new_settings.sound ||
-                     current_settings->show_preview != new_settings.show_preview;
-  bool is_changed = need_update || current_settings->is_synchronized != new_settings.is_synchronized;
+  bool need_update_server = current_settings->mute_until != new_settings.mute_until ||
+                            current_settings->sound != new_settings.sound ||
+                            current_settings->show_preview != new_settings.show_preview;
+  bool need_update_local =
+      current_settings->disable_pinned_message_notification != new_settings.disable_pinned_message_notification;
+  bool is_changed =
+      need_update_server || need_update_local || current_settings->is_synchronized != new_settings.is_synchronized;
   if (is_changed) {
     save_scope_notification_settings(scope, new_settings);
 
     update_scope_unmute_timeout(scope, current_settings->mute_until, new_settings.mute_until);
 
+    if (!current_settings->disable_pinned_message_notification && new_settings.disable_pinned_message_notification) {
+      VLOG(notifications) << "Remove pinned message notifications in " << scope;
+      for (auto &dialog : dialogs_) {
+        Dialog *d = dialog.second.get();
+        if (d->mention_notification_group.group_id.is_valid() && d->pinned_message_notification_message_id.is_valid() &&
+            get_dialog_notification_setting_scope(d->dialog_id) == scope) {
+          set_dialog_pinned_message_notification(d, MessageId());
+        }
+      }
+    }
+
     LOG(INFO) << "Update notification settings in " << scope << " from " << *current_settings << " to " << new_settings;
     *current_settings = new_settings;
 
-    if (need_update) {
+    if (need_update_server || need_update_local) {
       send_closure(G()->td(), &Td::send_update, get_update_scope_notification_settings_object(scope));
     }
   }
-  return is_changed;
+  return need_update_server;
 }
 
 void MessagesManager::update_dialog_unmute_timeout(Dialog *d, bool old_use_default, int32 old_mute_until,
@@ -5971,16 +5963,18 @@ void MessagesManager::on_update_dialog_notify_settings(
 
   LOG(INFO) << "Receive notification settings for " << dialog_id << ": " << to_string(peer_notify_settings);
 
-  const DialogNotificationSettings notification_settings =
-      td::get_dialog_notification_settings(std::move(peer_notify_settings));
-  if (!notification_settings.is_synchronized) {
-    return;
-  }
-
   DialogNotificationSettings *current_settings = get_dialog_notification_settings(dialog_id, true);
   if (current_settings == nullptr) {
     return;
   }
+
+  const DialogNotificationSettings notification_settings = td::get_dialog_notification_settings(
+      std::move(peer_notify_settings), current_settings->use_default_disable_pinned_message_notification,
+      current_settings->disable_pinned_message_notification);
+  if (!notification_settings.is_synchronized) {
+    return;
+  }
+
   update_dialog_notification_settings(dialog_id, current_settings, notification_settings);
 }
 
@@ -5990,13 +5984,16 @@ void MessagesManager::on_update_scope_notify_settings(
     return;
   }
 
-  const ScopeNotificationSettings notification_settings =
-      td::get_scope_notification_settings(std::move(peer_notify_settings));
+  auto old_notification_settings = get_scope_notification_settings(scope);
+  CHECK(old_notification_settings != nullptr);
+
+  const ScopeNotificationSettings notification_settings = td::get_scope_notification_settings(
+      std::move(peer_notify_settings), old_notification_settings->disable_pinned_message_notification);
   if (!notification_settings.is_synchronized) {
     return;
   }
 
-  update_scope_notification_settings(scope, get_scope_notification_settings(scope), notification_settings);
+  update_scope_notification_settings(scope, old_notification_settings, notification_settings);
 }
 
 bool MessagesManager::update_dialog_silent_send_message(Dialog *d, bool silent_send_message) {
@@ -8750,8 +8747,6 @@ void MessagesManager::init() {
 
   start_time_ = Time::now();
 
-  on_disable_pinned_message_notifications_changed();
-
   include_sponsored_dialog_to_unread_count_ =
       G()->shared_config().get_option_boolean("include_sponsored_chat_to_unread_count");
 
@@ -8851,9 +8846,6 @@ void MessagesManager::init() {
     if (!notification_settings_string.empty()) {
       ScopeNotificationSettings notification_settings;
       log_event_parse(notification_settings, notification_settings_string).ensure();
-      if (!notification_settings.is_synchronized) {
-        continue;
-      }
 
       auto current_settings = get_scope_notification_settings(scope);
       CHECK(current_settings != nullptr);
@@ -12341,6 +12333,16 @@ bool MessagesManager::is_dialog_muted(const Dialog *d) const {
   return get_dialog_mute_until(d) != 0;
 }
 
+bool MessagesManager::is_dialog_pinned_message_notification_disabled(const Dialog *d) const {
+  CHECK(d != nullptr);
+  if (d->notification_settings.use_default_disable_pinned_message_notification) {
+    auto scope = get_dialog_notification_setting_scope(d->dialog_id);
+    return get_scope_notification_settings(scope)->disable_pinned_message_notification;
+  }
+
+  return d->notification_settings.disable_pinned_message_notification;
+}
+
 void MessagesManager::create_dialog(DialogId dialog_id, bool force, Promise<Unit> &&promise) {
   if (!have_input_peer(dialog_id, AccessRights::Read)) {
     if (!have_dialog_info_force(dialog_id)) {
@@ -12958,7 +12960,9 @@ Status MessagesManager::set_dialog_notification_settings(
   DialogNotificationSettings new_settings(
       notification_settings->use_default_mute_for_, mute_until, notification_settings->use_default_sound_,
       std::move(notification_settings->sound_), notification_settings->use_default_show_preview_,
-      notification_settings->show_preview_, current_settings->silent_send_message);
+      notification_settings->show_preview_, current_settings->silent_send_message,
+      notification_settings->use_default_disable_pinned_message_notification_,
+      notification_settings->disable_pinned_message_notification_);
   if (update_dialog_notification_settings(dialog_id, current_settings, new_settings)) {
     update_dialog_notification_settings_on_server(dialog_id, false);
   }
@@ -12987,7 +12991,8 @@ Status MessagesManager::set_scope_notification_settings(
   }
 
   ScopeNotificationSettings new_settings(mute_until, std::move(notification_settings->sound_),
-                                         notification_settings->show_preview_);
+                                         notification_settings->show_preview_,
+                                         notification_settings->disable_pinned_message_notification_);
 
   if (update_scope_notification_settings(scope, get_scope_notification_settings(scope), new_settings)) {
     update_scope_notification_settings_on_server(scope, 0);
@@ -21192,7 +21197,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   if (*need_update) {
     if (message_content_type == MessageContentType::PinMessage &&
-        (disable_pinned_message_notifications_ ||
+        (is_dialog_pinned_message_notification_disabled(d) ||
          !get_message_content_pinned_message_id(message->content.get()).is_valid())) {
       // treat message pin without pinned message as ordinary message
       message->contains_mention = false;
@@ -21530,7 +21535,8 @@ void MessagesManager::delete_all_dialog_messages_from_database(Dialog *d, Messag
     }
   }
   */
-  G()->td_db()->get_messages_db_async()->delete_all_dialog_messages(dialog_id, max_message_id, Auto());  // TODO Promise
+  G()->td_db()->get_messages_db_async()->delete_all_dialog_messages(dialog_id, max_message_id,
+                                                                    Auto());  // TODO Promise
 }
 
 class MessagesManager::DeleteMessageLogEvent {
@@ -22289,8 +22295,9 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   } else {
     update_dialog_unmute_timeout(d, false, -1, false, d->notification_settings.mute_until);
   }
-  if (disable_pinned_message_notifications_ && d->mention_notification_group.group_id.is_valid() &&
+  if (is_dialog_pinned_message_notification_disabled(d) && d->mention_notification_group.group_id.is_valid() &&
       d->pinned_message_notification_message_id.is_valid()) {
+    VLOG(notifications) << "Remove disabled pinned message notification in " << dialog_id;
     set_dialog_pinned_message_notification(d, MessageId());
   }
 

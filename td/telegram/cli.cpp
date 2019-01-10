@@ -3379,14 +3379,18 @@ class CliClient final : public Actor {
       string mute_for;
       string sound;
       string show_preview;
+      string disable_pinned_message_notification;
 
       std::tie(mute_for, settings) = split(settings, ',');
-      std::tie(sound, show_preview) = split(settings, ',');
+      std::tie(sound, settings) = split(settings, ',');
+      std::tie(show_preview, disable_pinned_message_notification) = split(settings, ',');
 
       send_request(make_tl_object<td_api::setChatNotificationSettings>(
           as_chat_id(chat_id),
           make_tl_object<td_api::chatNotificationSettings>(mute_for.empty(), to_integer<int32>(mute_for), sound.empty(),
-                                                           sound, show_preview.empty(), as_bool(show_preview))));
+                                                           sound, show_preview.empty(), as_bool(show_preview),
+                                                           disable_pinned_message_notification.empty(),
+                                                           as_bool(disable_pinned_message_notification))));
     } else if (op == "ssns") {
       string scope;
       string settings;
@@ -3396,13 +3400,16 @@ class CliClient final : public Actor {
       string mute_for;
       string sound;
       string show_preview;
+      string disable_pinned_message_notification;
 
       std::tie(mute_for, settings) = split(settings, ',');
-      std::tie(sound, show_preview) = split(settings, ',');
+      std::tie(sound, settings) = split(settings, ',');
+      std::tie(show_preview, disable_pinned_message_notification) = split(settings, ',');
 
       send_request(make_tl_object<td_api::setScopeNotificationSettings>(
-          get_notification_settings_scope(scope), make_tl_object<td_api::scopeNotificationSettings>(
-                                                      to_integer<int32>(mute_for), sound, as_bool(show_preview))));
+          get_notification_settings_scope(scope),
+          make_tl_object<td_api::scopeNotificationSettings>(to_integer<int32>(mute_for), sound, as_bool(show_preview),
+                                                            as_bool(disable_pinned_message_notification))));
     } else if (op == "rans") {
       send_request(make_tl_object<td_api::resetAllNotificationSettings>());
     } else if (op == "rn") {

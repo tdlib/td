@@ -3554,8 +3554,6 @@ void Td::on_config_option_updated(const string &name) {
     send_closure(storage_manager_, &StorageManager::update_use_storage_optimizer);
   } else if (name == "rating_e_decay") {
     return send_closure(top_dialog_manager_, &TopDialogManager::update_rating_e_decay);
-  } else if (name == "disable_pinned_message_notifications") {
-    send_closure(messages_manager_actor_, &MessagesManager::on_disable_pinned_message_notifications_changed);
   } else if (name == "disable_top_chats") {
     send_closure(top_dialog_manager_, &TopDialogManager::update_is_enabled,
                  !G()->shared_config().get_option_boolean(name));
@@ -6338,9 +6336,6 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
   switch (request.name_[0]) {
     case 'd':
       if (!is_bot && set_boolean_option("disable_contact_registered_notifications")) {
-        return;
-      }
-      if (!is_bot && set_boolean_option("disable_pinned_message_notifications")) {
         return;
       }
       if (!is_bot && set_boolean_option("disable_top_chats")) {

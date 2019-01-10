@@ -293,7 +293,7 @@ int32 NotificationManager::load_message_notification_groups_from_database(int32 
     auto group_it = get_group_force(group_key.group_id, send_update);
     CHECK(group_it != groups_.end());
     CHECK(group_it->first.dialog_id.is_valid());
-    if (group_it->first.last_notification_date > 0) {
+    if (!(last_loaded_notification_group_key_ < group_it->first)) {
       result++;
     }
   }

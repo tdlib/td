@@ -26,10 +26,16 @@ class DialogNotificationSettings {
   bool is_use_default_fixed = true;
   bool is_synchronized = false;
 
+  // local settings
+  bool use_default_disable_pinned_message_notification = true;
+  bool disable_pinned_message_notification = false;
+
   DialogNotificationSettings() = default;
 
   DialogNotificationSettings(bool use_default_mute_until, int32 mute_until, bool use_default_sound, string sound,
-                             bool use_default_show_preview, bool show_preview, bool silent_send_message)
+                             bool use_default_show_preview, bool show_preview, bool silent_send_message,
+                             bool use_default_disable_pinned_message_notification,
+                             bool disable_pinned_message_notification)
       : mute_until(mute_until)
       , sound(std::move(sound))
       , show_preview(show_preview)
@@ -37,7 +43,9 @@ class DialogNotificationSettings {
       , use_default_mute_until(use_default_mute_until)
       , use_default_sound(use_default_sound)
       , use_default_show_preview(use_default_show_preview)
-      , is_synchronized(true) {
+      , is_synchronized(true)
+      , use_default_disable_pinned_message_notification(use_default_disable_pinned_message_notification)
+      , disable_pinned_message_notification(disable_pinned_message_notification) {
   }
 };
 
@@ -50,10 +58,17 @@ class ScopeNotificationSettings {
   bool show_preview = true;
   bool is_synchronized = false;
 
+  // local settings
+  bool disable_pinned_message_notification = false;
+
   ScopeNotificationSettings() = default;
 
-  ScopeNotificationSettings(int32 mute_until, string sound, bool show_preview)
-      : mute_until(mute_until), sound(std::move(sound)), show_preview(show_preview), is_synchronized(true) {
+  ScopeNotificationSettings(int32 mute_until, string sound, bool show_preview, bool disable_pinned_message_notification)
+      : mute_until(mute_until)
+      , sound(std::move(sound))
+      , show_preview(show_preview)
+      , is_synchronized(true)
+      , disable_pinned_message_notification(disable_pinned_message_notification) {
   }
 };
 
@@ -77,8 +92,11 @@ telegram_api::object_ptr<telegram_api::InputNotifyPeer> get_input_notify_peer(No
 NotificationSettingsScope get_notification_settings_scope(
     const td_api::object_ptr<td_api::NotificationSettingsScope> &scope);
 
-DialogNotificationSettings get_dialog_notification_settings(tl_object_ptr<telegram_api::peerNotifySettings> &&settings);
+DialogNotificationSettings get_dialog_notification_settings(tl_object_ptr<telegram_api::peerNotifySettings> &&settings,
+                                                            bool old_use_default_disable_pinned_message_notification,
+                                                            bool old_disable_pinned_message_notification);
 
-ScopeNotificationSettings get_scope_notification_settings(tl_object_ptr<telegram_api::peerNotifySettings> &&settings);
+ScopeNotificationSettings get_scope_notification_settings(tl_object_ptr<telegram_api::peerNotifySettings> &&settings,
+                                                          bool old_disable_pinned_message_notification);
 
 }  // namespace td

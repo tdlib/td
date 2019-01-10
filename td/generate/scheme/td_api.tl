@@ -523,11 +523,15 @@ notificationSettingsScopeGroupChats = NotificationSettingsScope;
 //@use_default_mute_for If true, mute_for is ignored and the value for the relevant type of chat is used instead @mute_for Time left before notifications will be unmuted, in seconds
 //@use_default_sound If true, sound is ignored and the value for the relevant type of chat is used instead @sound The name of an audio file to be used for notification sounds; only applies to iOS applications
 //@use_default_show_preview If true, show_preview is ignored and the value for the relevant type of chat is used instead @show_preview True, if message content should be displayed in notifications
-chatNotificationSettings use_default_mute_for:Bool mute_for:int32 use_default_sound:Bool sound:string use_default_show_preview:Bool show_preview:Bool = ChatNotificationSettings;
+//@use_default_disable_pinned_message_notification If true, disable_pinned_message_notification is ignored and the value for the relevant type of chat is used instead @disable_pinned_message_notification If true, notifications for incoming pinned messages will be created as for an ordinary unread message
+chatNotificationSettings use_default_mute_for:Bool mute_for:int32 use_default_sound:Bool sound:string use_default_show_preview:Bool show_preview:Bool use_default_disable_pinned_message_notification:Bool disable_pinned_message_notification:Bool = ChatNotificationSettings;
 
-//@description Contains information about notification settings for several chats @mute_for Time left before notifications will be unmuted, in seconds
-//@sound The name of an audio file to be used for notification sounds; only applies to iOS applications @show_preview True, if message content should be displayed in notifications
-scopeNotificationSettings mute_for:int32 sound:string show_preview:Bool = ScopeNotificationSettings;
+//@description Contains information about notification settings for several chats
+//@mute_for Time left before notifications will be unmuted, in seconds
+//@sound The name of an audio file to be used for notification sounds; only applies to iOS applications
+//@show_preview True, if message content should be displayed in notifications
+//@disable_pinned_message_notification True, if notifications for incoming pinned messages will be created as for an ordinary unread message
+scopeNotificationSettings mute_for:int32 sound:string show_preview:Bool disable_pinned_message_notification:Bool = ScopeNotificationSettings;
 
 
 //@description Contains information about a message draft @reply_to_message_id Identifier of the message to reply to; 0 if none @input_message_text Content of the message draft; this should always be of type inputMessageText
