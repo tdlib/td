@@ -28,8 +28,10 @@ void store(const DialogNotificationSettings &notification_settings, StorerT &sto
   STORE_FLAG(notification_settings.use_default_sound);
   STORE_FLAG(notification_settings.use_default_show_preview);
   STORE_FLAG(notification_settings.is_use_default_fixed);
-  STORE_FLAG(!notification_settings.use_default_disable_pinned_message_notification);
-  STORE_FLAG(notification_settings.disable_pinned_message_notification);
+  STORE_FLAG(!notification_settings.use_default_disable_pinned_message_notifications);
+  STORE_FLAG(notification_settings.disable_pinned_message_notifications);
+  STORE_FLAG(!notification_settings.use_default_disable_mention_notifications);
+  STORE_FLAG(notification_settings.disable_mention_notifications);
   END_STORE_FLAGS();
   if (is_muted) {
     store(notification_settings.mute_until, storer);
@@ -43,7 +45,8 @@ template <class ParserT>
 void parse(DialogNotificationSettings &notification_settings, ParserT &parser) {
   bool is_muted;
   bool has_sound;
-  bool use_disable_pinned_message_notification;
+  bool use_disable_pinned_message_notifications;
+  bool use_disable_mention_notifications;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_muted);
   PARSE_FLAG(has_sound);
@@ -54,10 +57,13 @@ void parse(DialogNotificationSettings &notification_settings, ParserT &parser) {
   PARSE_FLAG(notification_settings.use_default_sound);
   PARSE_FLAG(notification_settings.use_default_show_preview);
   PARSE_FLAG(notification_settings.is_use_default_fixed);
-  PARSE_FLAG(use_disable_pinned_message_notification);
-  PARSE_FLAG(notification_settings.disable_pinned_message_notification);
+  PARSE_FLAG(use_disable_pinned_message_notifications);
+  PARSE_FLAG(notification_settings.disable_pinned_message_notifications);
+  PARSE_FLAG(use_disable_mention_notifications);
+  PARSE_FLAG(notification_settings.disable_mention_notifications);
   END_PARSE_FLAGS();
-  notification_settings.use_default_disable_pinned_message_notification = !use_disable_pinned_message_notification;
+  notification_settings.use_default_disable_pinned_message_notifications = !use_disable_pinned_message_notifications;
+  notification_settings.use_default_disable_mention_notifications = !use_disable_mention_notifications;
   if (is_muted) {
     parse(notification_settings.mute_until, parser);
   }
@@ -76,7 +82,8 @@ void store(const ScopeNotificationSettings &notification_settings, StorerT &stor
   STORE_FLAG(notification_settings.show_preview);
   STORE_FLAG(false);
   STORE_FLAG(notification_settings.is_synchronized);
-  STORE_FLAG(notification_settings.disable_pinned_message_notification);
+  STORE_FLAG(notification_settings.disable_pinned_message_notifications);
+  STORE_FLAG(notification_settings.disable_mention_notifications);
   END_STORE_FLAGS();
   if (is_muted) {
     store(notification_settings.mute_until, storer);
@@ -97,7 +104,8 @@ void parse(ScopeNotificationSettings &notification_settings, ParserT &parser) {
   PARSE_FLAG(notification_settings.show_preview);
   PARSE_FLAG(silent_send_message_ignored);
   PARSE_FLAG(notification_settings.is_synchronized);
-  PARSE_FLAG(notification_settings.disable_pinned_message_notification);
+  PARSE_FLAG(notification_settings.disable_pinned_message_notifications);
+  PARSE_FLAG(notification_settings.disable_mention_notifications);
   END_PARSE_FLAGS();
   (void)silent_send_message_ignored;
   if (is_muted) {

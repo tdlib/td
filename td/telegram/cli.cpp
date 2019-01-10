@@ -3370,46 +3370,38 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::deleteProfilePhoto>(to_integer<int64>(args)));
     } else if (op == "gsns") {
       send_request(make_tl_object<td_api::getScopeNotificationSettings>(get_notification_settings_scope(args)));
-    } else if (op == "scns") {
-      string chat_id;
+    } else if (op == "scns" || op == "ssns") {
+      string chat_id_or_scope;
       string settings;
 
-      std::tie(chat_id, settings) = split(args);
+      std::tie(chat_id_or_scope, settings) = split(args);
 
       string mute_for;
       string sound;
       string show_preview;
-      string disable_pinned_message_notification;
+      string disable_pinned_message_notifications;
+      string disable_mention_notifications;
 
       std::tie(mute_for, settings) = split(settings, ',');
       std::tie(sound, settings) = split(settings, ',');
-      std::tie(show_preview, disable_pinned_message_notification) = split(settings, ',');
+      std::tie(show_preview, settings) = split(settings, ',');
+      std::tie(disable_pinned_message_notifications, disable_mention_notifications) = split(settings, ',');
 
-      send_request(make_tl_object<td_api::setChatNotificationSettings>(
-          as_chat_id(chat_id),
-          make_tl_object<td_api::chatNotificationSettings>(mute_for.empty(), to_integer<int32>(mute_for), sound.empty(),
-                                                           sound, show_preview.empty(), as_bool(show_preview),
-                                                           disable_pinned_message_notification.empty(),
-                                                           as_bool(disable_pinned_message_notification))));
-    } else if (op == "ssns") {
-      string scope;
-      string settings;
-
-      std::tie(scope, settings) = split(args);
-
-      string mute_for;
-      string sound;
-      string show_preview;
-      string disable_pinned_message_notification;
-
-      std::tie(mute_for, settings) = split(settings, ',');
-      std::tie(sound, settings) = split(settings, ',');
-      std::tie(show_preview, disable_pinned_message_notification) = split(settings, ',');
-
-      send_request(make_tl_object<td_api::setScopeNotificationSettings>(
-          get_notification_settings_scope(scope),
-          make_tl_object<td_api::scopeNotificationSettings>(to_integer<int32>(mute_for), sound, as_bool(show_preview),
-                                                            as_bool(disable_pinned_message_notification))));
+      if (op == "scns") {
+        send_request(make_tl_object<td_api::setChatNotificationSettings>(
+            as_chat_id(chat_id_or_scope),
+            make_tl_object<td_api::chatNotificationSettings>(
+                mute_for.empty(), to_integer<int32>(mute_for), sound.empty(), sound, show_preview.empty(),
+                as_bool(show_preview), disable_pinned_message_notifications.empty(),
+                as_bool(disable_pinned_message_notifications), disable_mention_notifications.empty(),
+                as_bool(disable_mention_notifications))));
+      } else {
+        send_request(make_tl_object<td_api::setScopeNotificationSettings>(
+            get_notification_settings_scope(chat_id_or_scope),
+            make_tl_object<td_api::scopeNotificationSettings>(to_integer<int32>(mute_for), sound, as_bool(show_preview),
+                                                              as_bool(disable_pinned_message_notifications),
+                                                              as_bool(disable_mention_notifications))));
+      }
     } else if (op == "rans") {
       send_request(make_tl_object<td_api::resetAllNotificationSettings>());
     } else if (op == "rn") {

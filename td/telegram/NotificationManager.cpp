@@ -1703,6 +1703,34 @@ void NotificationManager::set_notification_total_count(NotificationGroupId group
   on_notifications_removed(std::move(group_it), vector<td_api::object_ptr<td_api::notification>>(), vector<int32>());
 }
 
+vector<MessageId> NotificationManager::get_notification_group_message_ids(NotificationGroupId group_id) {
+  CHECK(group_id.is_valid());
+  if (is_disabled() || max_notification_group_count_ == 0) {
+    return {};
+  }
+
+  auto group_it = get_group_force(group_id);
+  if (group_it == groups_.end()) {
+    return {};
+  }
+
+  vector<MessageId> message_ids;
+  for (auto &notification : group_it->second.notifications) {
+    auto message_id = notification.type->get_message_id();
+    if (message_id.is_valid()) {
+      message_ids.push_back(message_id);
+    }
+  }
+  for (auto &notification : group_it->second.pending_notifications) {
+    auto message_id = notification.type->get_message_id();
+    if (message_id.is_valid()) {
+      message_ids.push_back(message_id);
+    }
+  }
+
+  return message_ids;
+}
+
 NotificationGroupId NotificationManager::get_call_notification_group_id(DialogId dialog_id) {
   auto it = dialog_id_to_call_notification_group_id_.find(dialog_id);
   if (it != dialog_id_to_call_notification_group_id_.end()) {

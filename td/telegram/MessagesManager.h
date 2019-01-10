@@ -794,6 +794,7 @@ class MessagesManager : public Actor {
     bool contains_unread_mention = false;
     bool had_reply_markup = false;   // had non-inline reply markup?
     bool is_content_secret = false;  // should be shown only while tapped
+    bool is_mention_notification_disabled = false;
 
     bool from_background = false;           // for send_message
     bool disable_web_page_preview = false;  // for send_message
@@ -1215,7 +1216,9 @@ class MessagesManager : public Actor {
 
   bool is_dialog_muted(const Dialog *d) const;
 
-  bool is_dialog_pinned_message_notification_disabled(const Dialog *d) const;
+  bool is_dialog_pinned_message_notifications_disabled(const Dialog *d) const;
+
+  bool is_dialog_mention_notifications_disabled(const Dialog *d) const;
 
   void open_dialog(Dialog *d);
 
@@ -1647,6 +1650,8 @@ class MessagesManager : public Actor {
 
   void set_dialog_pinned_message_notification(Dialog *d, MessageId message_id);
 
+  void remove_dialog_mention_notifications(Dialog *d);
+
   bool set_dialog_last_notification(DialogId dialog_id, NotificationGroupInfo &group_info, int32 last_notification_date,
                                     NotificationId last_notification_id, const char *source);
 
@@ -1785,8 +1790,8 @@ class MessagesManager : public Actor {
   void ttl_loop(double now);
   void ttl_update_timeout(double now);
 
-  void on_message_ttl_expired(Dialog *d, Message *message);
-  void on_message_ttl_expired_impl(Dialog *d, Message *message);
+  void on_message_ttl_expired(Dialog *d, Message *m);
+  void on_message_ttl_expired_impl(Dialog *d, Message *m);
 
   void start_up() override;
   void loop() override;

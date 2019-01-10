@@ -73,6 +73,8 @@ class NotificationManager : public Actor {
 
   void set_notification_total_count(NotificationGroupId group_id, int32 new_total_count);
 
+  vector<MessageId> get_notification_group_message_ids(NotificationGroupId group_id);
+
   void add_call_notification(DialogId dialog_id, CallId call_id);
 
   void remove_call_notification(DialogId dialog_id, CallId call_id);

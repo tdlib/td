@@ -27,15 +27,18 @@ class DialogNotificationSettings {
   bool is_synchronized = false;
 
   // local settings
-  bool use_default_disable_pinned_message_notification = true;
-  bool disable_pinned_message_notification = false;
+  bool use_default_disable_pinned_message_notifications = true;
+  bool disable_pinned_message_notifications = false;
+  bool use_default_disable_mention_notifications = true;
+  bool disable_mention_notifications = false;
 
   DialogNotificationSettings() = default;
 
   DialogNotificationSettings(bool use_default_mute_until, int32 mute_until, bool use_default_sound, string sound,
                              bool use_default_show_preview, bool show_preview, bool silent_send_message,
-                             bool use_default_disable_pinned_message_notification,
-                             bool disable_pinned_message_notification)
+                             bool use_default_disable_pinned_message_notifications,
+                             bool disable_pinned_message_notifications, bool use_default_disable_mention_notifications,
+                             bool disable_mention_notifications)
       : mute_until(mute_until)
       , sound(std::move(sound))
       , show_preview(show_preview)
@@ -44,8 +47,10 @@ class DialogNotificationSettings {
       , use_default_sound(use_default_sound)
       , use_default_show_preview(use_default_show_preview)
       , is_synchronized(true)
-      , use_default_disable_pinned_message_notification(use_default_disable_pinned_message_notification)
-      , disable_pinned_message_notification(disable_pinned_message_notification) {
+      , use_default_disable_pinned_message_notifications(use_default_disable_pinned_message_notifications)
+      , disable_pinned_message_notifications(disable_pinned_message_notifications)
+      , use_default_disable_mention_notifications(use_default_disable_mention_notifications)
+      , disable_mention_notifications(disable_mention_notifications) {
   }
 };
 
@@ -59,16 +64,19 @@ class ScopeNotificationSettings {
   bool is_synchronized = false;
 
   // local settings
-  bool disable_pinned_message_notification = false;
+  bool disable_pinned_message_notifications = false;
+  bool disable_mention_notifications = false;
 
   ScopeNotificationSettings() = default;
 
-  ScopeNotificationSettings(int32 mute_until, string sound, bool show_preview, bool disable_pinned_message_notification)
+  ScopeNotificationSettings(int32 mute_until, string sound, bool show_preview,
+                            bool disable_pinned_message_notifications, bool disable_mention_notifications)
       : mute_until(mute_until)
       , sound(std::move(sound))
       , show_preview(show_preview)
       , is_synchronized(true)
-      , disable_pinned_message_notification(disable_pinned_message_notification) {
+      , disable_pinned_message_notifications(disable_pinned_message_notifications)
+      , disable_mention_notifications(disable_mention_notifications) {
   }
 };
 
@@ -93,10 +101,13 @@ NotificationSettingsScope get_notification_settings_scope(
     const td_api::object_ptr<td_api::NotificationSettingsScope> &scope);
 
 DialogNotificationSettings get_dialog_notification_settings(tl_object_ptr<telegram_api::peerNotifySettings> &&settings,
-                                                            bool old_use_default_disable_pinned_message_notification,
-                                                            bool old_disable_pinned_message_notification);
+                                                            bool old_use_default_disable_pinned_message_notifications,
+                                                            bool old_disable_pinned_message_notifications,
+                                                            bool old_use_default_disable_mention_notifications,
+                                                            bool old_disable_mention_notifications);
 
 ScopeNotificationSettings get_scope_notification_settings(tl_object_ptr<telegram_api::peerNotifySettings> &&settings,
-                                                          bool old_disable_pinned_message_notification);
+                                                          bool old_disable_pinned_message_notifications,
+                                                          bool old_disable_mention_notifications);
 
 }  // namespace td
