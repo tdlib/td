@@ -1650,6 +1650,8 @@ class MessagesManager : public Actor {
 
   void set_dialog_pinned_message_notification(Dialog *d, MessageId message_id);
 
+  void remove_dialog_pinned_message_notification(Dialog *d);
+
   void remove_dialog_mention_notifications(Dialog *d);
 
   bool set_dialog_last_notification(DialogId dialog_id, NotificationGroupInfo &group_info, int32 last_notification_date,
