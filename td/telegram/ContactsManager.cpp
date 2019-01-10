@@ -5111,23 +5111,23 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   on_update_user_photo(u, user_id, std::move(user->photo_));
   if (is_received) {
     on_update_user_online(u, user_id, std::move(user->status_));
-  }
 
-  LinkState out, in;
-  if (flags & USER_FLAG_IS_MUTUAL_CONTACT) {
-    out = LinkState::Contact;
-    in = LinkState::Contact;
-  } else if (flags & USER_FLAG_IS_CONTACT) {
-    out = LinkState::Contact;
-    in = LinkState::Unknown;
-  } else if (flags & USER_FLAG_HAS_PHONE_NUMBER) {
-    out = LinkState::KnowsPhoneNumber;
-    in = LinkState::Unknown;
-  } else {
-    out = LinkState::None;
-    in = LinkState::Unknown;
+    LinkState out, in;
+    if (flags & USER_FLAG_IS_MUTUAL_CONTACT) {
+      out = LinkState::Contact;
+      in = LinkState::Contact;
+    } else if (flags & USER_FLAG_IS_CONTACT) {
+      out = LinkState::Contact;
+      in = LinkState::Unknown;
+    } else if (flags & USER_FLAG_HAS_PHONE_NUMBER) {
+      out = LinkState::KnowsPhoneNumber;
+      in = LinkState::Unknown;
+    } else {
+      out = LinkState::None;
+      in = LinkState::Unknown;
+    }
+    on_update_user_links(u, user_id, out, in);
   }
-  on_update_user_links(u, user_id, out, in);
 
   if (is_received || !u->is_received) {
     on_update_user_name(u, user_id, std::move(user->first_name_), std::move(user->last_name_),
