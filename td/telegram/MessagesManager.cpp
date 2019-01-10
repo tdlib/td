@@ -17919,6 +17919,11 @@ void MessagesManager::try_add_pinned_message_notification(Dialog *d, vector<Noti
   if (m != nullptr && m->notification_id.get() > d->mention_notification_group.max_removed_notification_id.get()) {
     if (m->notification_id.get() < max_notification_id.get()) {
       VLOG(notifications) << "Add " << m->notification_id << " about pinned " << message_id << " in " << d->dialog_id;
+      auto pinned_message_id = get_message_content_pinned_message_id(m->content.get());
+      if (pinned_message_id.is_valid()) {
+        get_message_force(d, pinned_message_id);  // preload pinned message
+      }
+
       auto pos = res.size();
       res.emplace_back(m->notification_id, m->date, create_new_message_notification(message_id));
       while (pos > 0 && res[pos - 1].type->get_message_id().get() < message_id.get()) {
@@ -18396,9 +18401,17 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
     return false;
   }
 
+  MessageId missing_pinned_message_id;
+  if (is_pinned) {
+    auto message_id = get_message_content_pinned_message_id(m->content.get());
+    if (message_id.is_valid() && !have_message({d->dialog_id, message_id})) {
+      missing_pinned_message_id = message_id;
+    }
+  }
+
   auto &pending_notifications =
       from_mentions ? d->pending_new_mention_notifications : d->pending_new_message_notifications;
-  if (!force && (!have_settings || !pending_notifications.empty())) {
+  if (!force && (!have_settings || !pending_notifications.empty() || missing_pinned_message_id.is_valid())) {
     VLOG(notifications) << "Delay new message notification for " << m->message_id << " in " << d->dialog_id << " with "
                         << pending_notifications.size() << " already waiting messages";
     if (pending_notifications.empty()) {
@@ -18428,6 +18441,15 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
       } else {
         send_get_dialog_query(settings_dialog_id, std::move(promise));
       }
+    }
+    if (missing_pinned_message_id.is_valid()) {
+      VLOG(notifications) << "Fetch pinned " << missing_pinned_message_id;
+      auto promise = PromiseCreator::lambda(
+          [actor_id = actor_id(this), dialog_id = d->dialog_id, from_mentions](Result<Unit> result) {
+            send_closure(actor_id, &MessagesManager::flush_pending_new_message_notifications, dialog_id, from_mentions,
+                         dialog_id);
+          });
+      get_messages_from_server({FullMessageId{d->dialog_id, missing_pinned_message_id}}, std::move(promise));
     }
     return false;
   }
