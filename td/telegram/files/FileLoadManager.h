@@ -42,7 +42,7 @@ class FileLoadManager final : public Actor {
     virtual void on_hash(QueryId id, string hash) = 0;
     virtual void on_upload_ok(QueryId id, FileType file_type, const PartialRemoteFileLocation &remtoe, int64 size) = 0;
     virtual void on_upload_full_ok(QueryId id, const FullRemoteFileLocation &remote) = 0;
-    virtual void on_download_ok(QueryId id, const FullLocalFileLocation &local, int64 size) = 0;
+    virtual void on_download_ok(QueryId id, const FullLocalFileLocation &local, int64 size, bool is_new) = 0;
     virtual void on_error(QueryId id, Status status) = 0;
   };
 
@@ -89,7 +89,7 @@ class FileLoadManager final : public Actor {
   void on_partial_download(const PartialLocalFileLocation &partial_local, int64 ready_size, int64 size);
   void on_partial_upload(const PartialRemoteFileLocation &partial_remote, int64 ready_size);
   void on_hash(string hash);
-  void on_ok_download(const FullLocalFileLocation &local, int64 size);
+  void on_ok_download(const FullLocalFileLocation &local, int64 size, bool is_new);
   void on_ok_upload(FileType file_type, const PartialRemoteFileLocation &remote, int64 size);
   void on_ok_upload_full(const FullRemoteFileLocation &remote);
   void on_error(Status status);
@@ -109,8 +109,8 @@ class FileLoadManager final : public Actor {
     void on_partial_download(const PartialLocalFileLocation &partial_local, int64 ready_size, int64 size) override {
       send_closure(actor_id_, &FileLoadManager::on_partial_download, partial_local, ready_size, size);
     }
-    void on_ok(const FullLocalFileLocation &full_local, int64 size) override {
-      send_closure(std::move(actor_id_), &FileLoadManager::on_ok_download, full_local, size);
+    void on_ok(const FullLocalFileLocation &full_local, int64 size, bool is_new) override {
+      send_closure(std::move(actor_id_), &FileLoadManager::on_ok_download, full_local, size, is_new);
     }
     void on_error(Status status) override {
       send_closure(std::move(actor_id_), &FileLoadManager::on_error, std::move(status));
@@ -163,7 +163,7 @@ class FileLoadManager final : public Actor {
     ActorShared<FileLoadManager> actor_id_;
 
     void on_ok(const FullLocalFileLocation &full_local, int64 size) override {
-      send_closure(std::move(actor_id_), &FileLoadManager::on_ok_download, full_local, size);
+      send_closure(std::move(actor_id_), &FileLoadManager::on_ok_download, full_local, size, true);
     }
     void on_error(Status status) override {
       send_closure(std::move(actor_id_), &FileLoadManager::on_error, std::move(status));

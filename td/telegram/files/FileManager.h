@@ -502,7 +502,7 @@ class FileManager : public FileLoadManager::Callback {
                            int64 size) override;
   void on_hash(QueryId query_id, string hash) override;
   void on_partial_upload(QueryId query_id, const PartialRemoteFileLocation &partial_remote, int64 ready_size) override;
-  void on_download_ok(QueryId query_id, const FullLocalFileLocation &local, int64 size) override;
+  void on_download_ok(QueryId query_id, const FullLocalFileLocation &local, int64 size, bool is_new) override;
   void on_upload_ok(QueryId query_id, FileType file_type, const PartialRemoteFileLocation &partial_remote,
                     int64 size) override;
   void on_upload_full_ok(QueryId query_id, const FullRemoteFileLocation &remote) override;

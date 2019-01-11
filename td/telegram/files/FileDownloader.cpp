@@ -134,7 +134,7 @@ Status FileDownloader::on_ok(int64 size) {
     TRY_RESULT(perm_path, create_from_temp(path_, dir, name_));
     path = std::move(perm_path);
   }
-  callback_->on_ok(FullLocalFileLocation(remote_.file_type_, std::move(path), 0), size);
+  callback_->on_ok(FullLocalFileLocation(remote_.file_type_, std::move(path), 0), size, !only_check_);
   return Status::OK();
 }
 void FileDownloader::on_error(Status status) {

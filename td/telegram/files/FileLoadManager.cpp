@@ -220,14 +220,14 @@ void FileLoadManager::on_partial_upload(const PartialRemoteFileLocation &partial
   }
 }
 
-void FileLoadManager::on_ok_download(const FullLocalFileLocation &local, int64 size) {
+void FileLoadManager::on_ok_download(const FullLocalFileLocation &local, int64 size, bool is_new) {
   auto node_id = get_link_token();
   auto node = nodes_container_.get(node_id);
   if (node == nullptr) {
     return;
   }
   if (!stop_flag_) {
-    send_closure(callback_, &Callback::on_download_ok, node->query_id_, local, size);
+    send_closure(callback_, &Callback::on_download_ok, node->query_id_, local, size, is_new);
   }
   close_node(node_id);
   loop();

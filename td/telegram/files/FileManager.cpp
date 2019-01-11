@@ -2381,19 +2381,21 @@ void FileManager::on_partial_upload(QueryId query_id, const PartialRemoteFileLoc
   try_flush_node(file_node, "on_partial_upload");
 }
 
-void FileManager::on_download_ok(QueryId query_id, const FullLocalFileLocation &local, int64 size) {
+void FileManager::on_download_ok(QueryId query_id, const FullLocalFileLocation &local, int64 size, bool is_new) {
   if (is_closed_) {
     return;
   }
 
   auto query = finish_query(query_id).first;
   auto file_id = query.file_id_;
-  LOG(INFO) << "ON DOWNLOAD OK file " << file_id << " of size " << size;
+  LOG(INFO) << "ON DOWNLOAD OK of " << (is_new ? "new" : "checked") << " file " << file_id << " of size " << size;
   auto r_new_file_id = register_local(local, DialogId(), size);
   if (r_new_file_id.is_error()) {
     LOG(ERROR) << "Can't register local file after download: " << r_new_file_id.error();
   } else {
-    context_->on_new_file(size, 1);
+    if (is_new) {
+      context_->on_new_file(size, 1);
+    }
     LOG_STATUS(merge(r_new_file_id.ok(), file_id));
   }
 }
