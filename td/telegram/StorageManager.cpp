@@ -37,6 +37,7 @@ void StorageManager::start_up() {
 }
 
 void StorageManager::on_new_file(int64 size, int32 cnt) {
+  LOG(INFO) << "Add " << cnt << " file of size " << size << " to fast storage statistics";
   fast_stat_.cnt += cnt;
   fast_stat_.size += size;
 
@@ -171,10 +172,13 @@ void StorageManager::load_fast_stat() {
   if (status.is_error()) {
     fast_stat_ = FileTypeStat();
   }
+  LOG(INFO) << "Loaded fast storage statistics with " << fast_stat_.cnt << " files of total size " << fast_stat_.size;
 }
 
 void StorageManager::send_stats(FileStats &&stats, int32 dialog_limit, std::vector<Promise<FileStats>> promises) {
   fast_stat_ = stats.get_total_nontemp_stat();
+  LOG(INFO) << "Recalculate fast storage statistics to " << fast_stat_.cnt << " files of total size "
+            << fast_stat_.size;
   save_fast_stat();
 
   stats.apply_dialog_limit(dialog_limit);

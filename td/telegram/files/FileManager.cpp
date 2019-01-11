@@ -2557,9 +2557,12 @@ void FileManager::on_generate_ok(QueryId query_id, const FullLocalFileLocation &
   if (status.is_error()) {
     return on_error_impl(file_node, query.type_, was_active, std::move(status));
   }
-
   CHECK(file_node);
-  context_->on_new_file(FileView(file_node).size(), 1);
+
+  FileView file_view(file_node);
+  if (!file_view.has_generate_location() || !begins_with(file_view.generate_location().conversion_, "#file_id#")) {
+    context_->on_new_file(file_view.size(), 1);
+  }
 
   run_upload(file_node, {});
 
