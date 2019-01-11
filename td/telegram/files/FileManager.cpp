@@ -989,6 +989,7 @@ static int merge_choose_size(int64 x, int64 y) {
   }
   return 2;
 }
+
 static int merge_choose_expected_size(int64 x, int64 y) {
   if (x == 0) {
     return 1;
@@ -1554,7 +1555,7 @@ void FileManager::delete_file(FileId file_id, Promise<Unit> promise, const char 
       clear_from_pmc(node);
 
       unlink(file_view.local_location().path_).ignore();
-      context_->on_new_file(-file_view.size());
+      context_->on_new_file(-file_view.size(), -1);
       node->drop_local_location();
       try_flush_node(node, "delete_file 1");
     }
@@ -1780,6 +1781,7 @@ void FileManager::external_file_generate_progress(int64 id, int32 expected_size,
   send_closure(file_generate_manager_, &FileGenerateManager::external_file_generate_progress, id, expected_size,
                local_prefix_size, std::move(promise));
 }
+
 void FileManager::external_file_generate_finish(int64 id, Status status, Promise<> promise) {
   send_closure(file_generate_manager_, &FileGenerateManager::external_file_generate_finish, id, std::move(status),
                std::move(promise));
@@ -2384,13 +2386,14 @@ void FileManager::on_download_ok(QueryId query_id, const FullLocalFileLocation &
     return;
   }
 
-  auto file_id = finish_query(query_id).first.file_id_;
+  auto query = finish_query(query_id).first;
+  auto file_id = query.file_id_;
   LOG(INFO) << "ON DOWNLOAD OK file " << file_id << " of size " << size;
   auto r_new_file_id = register_local(local, DialogId(), size);
   if (r_new_file_id.is_error()) {
     LOG(ERROR) << "Can't register local file after download: " << r_new_file_id.error();
   } else {
-    context_->on_new_file(get_file_view(r_new_file_id.ok()).size());
+    context_->on_new_file(size, 1);
     LOG_STATUS(merge(r_new_file_id.ok(), file_id));
   }
 }
@@ -2554,7 +2557,7 @@ void FileManager::on_generate_ok(QueryId query_id, const FullLocalFileLocation &
   }
 
   CHECK(file_node);
-  context_->on_new_file(FileView(file_node).size());
+  context_->on_new_file(FileView(file_node).size(), 1);
 
   run_upload(file_node, {});
 

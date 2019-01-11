@@ -11,14 +11,10 @@
 
 #include "td/telegram/files/FileGcWorker.h"
 #include "td/telegram/files/FileStats.h"
+#include "td/telegram/files/FileStatsWorker.h"
 
 #include "td/utils/common.h"
 #include "td/utils/Status.h"
-
-namespace td {
-class FileStatsWorker;
-class FileGcWorker;
-}  // namespace td
 
 namespace td {
 
@@ -29,7 +25,8 @@ class StorageManager : public Actor {
   void get_storage_stats_fast(Promise<FileStatsFast> promise);
   void run_gc(FileGcParameters parameters, Promise<FileStats> promise);
   void update_use_storage_optimizer();
-  void on_new_file(int64 size);
+
+  void on_new_file(int64 size, int32 cnt);
 
  private:
   static constexpr uint32 GC_EACH = 60 * 60 * 24;  // 1 day

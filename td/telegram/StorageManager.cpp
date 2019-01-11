@@ -35,20 +35,18 @@ void StorageManager::start_up() {
 
   load_fast_stat();
 }
-void StorageManager::on_new_file(int64 size) {
-  if (size > 0) {
-    fast_stat_.cnt++;
-  } else {
-    fast_stat_.cnt--;
-  }
+
+void StorageManager::on_new_file(int64 size, int32 cnt) {
+  fast_stat_.cnt += cnt;
   fast_stat_.size += size;
 
   if (fast_stat_.cnt < 0 || fast_stat_.size < 0) {
-    LOG(ERROR) << "Wrong fast stat after adding size " << size;
+    LOG(ERROR) << "Wrong fast stat after adding size " << size << " and cnt " << cnt;
     fast_stat_ = FileTypeStat();
   }
   save_fast_stat();
 }
+
 void StorageManager::get_storage_stats(int32 dialog_limit, Promise<FileStats> promise) {
   if (pending_storage_stats_.size() != 0) {
     promise.set_error(Status::Error(400, "Another storage stats is active"));
@@ -167,6 +165,7 @@ void StorageManager::on_gc_finished(Result<FileStats> r_file_stats, bool dummy) 
 void StorageManager::save_fast_stat() {
   G()->td_db()->get_binlog_pmc()->set("fast_file_stat", log_event_store(fast_stat_).as_slice().str());
 }
+
 void StorageManager::load_fast_stat() {
   auto status = log_event_parse(fast_stat_, G()->td_db()->get_binlog_pmc()->get("fast_file_stat"));
   if (status.is_error()) {
@@ -210,10 +209,12 @@ uint32 StorageManager::load_last_gc_timestamp() {
   last_gc_timestamp_ = to_integer<uint32>(G()->td_db()->get_binlog_pmc()->get("files_gc_ts"));
   return last_gc_timestamp_;
 }
+
 void StorageManager::save_last_gc_timestamp() {
   last_gc_timestamp_ = static_cast<uint32>(Clocks::system());
   G()->td_db()->get_binlog_pmc()->set("files_gc_ts", to_string(last_gc_timestamp_));
 }
+
 void StorageManager::schedule_next_gc() {
   if (!G()->shared_config().get_option_boolean("use_storage_optimizer") &&
       !G()->parameters().enable_storage_optimizer) {

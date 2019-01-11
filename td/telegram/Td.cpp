@@ -4118,8 +4118,8 @@ Status Td::init(DbKey key) {
    public:
     explicit FileManagerContext(Td *td) : td_(td) {
     }
-    void on_new_file(int64 size) final {
-      send_closure(G()->storage_manager(), &StorageManager::on_new_file, size);
+    void on_new_file(int64 size, int32 cnt) final {
+      send_closure(G()->storage_manager(), &StorageManager::on_new_file, size, cnt);
     }
     void on_file_updated(FileId file_id) final {
       send_closure(G()->td(), &Td::send_update,
