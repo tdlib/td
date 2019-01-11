@@ -5786,8 +5786,12 @@ bool MessagesManager::update_scope_notification_settings(NotificationSettingsSco
   bool need_update_local =
       current_settings->disable_pinned_message_notifications != new_settings.disable_pinned_message_notifications ||
       current_settings->disable_mention_notifications != new_settings.disable_mention_notifications;
-  bool is_changed =
-      need_update_server || need_update_local || current_settings->is_synchronized != new_settings.is_synchronized;
+  bool was_inited = current_settings->is_synchronized;
+  bool is_inited = new_settings.is_synchronized;
+  if (was_inited && !is_inited) {
+    return false;  // just in case
+  }
+  bool is_changed = need_update_server || need_update_local || was_inited != is_inited;
   if (is_changed) {
     save_scope_notification_settings(scope, new_settings);
 
@@ -5822,9 +5826,7 @@ bool MessagesManager::update_scope_notification_settings(NotificationSettingsSco
     LOG(INFO) << "Update notification settings in " << scope << " from " << *current_settings << " to " << new_settings;
     *current_settings = new_settings;
 
-    if (need_update_server || need_update_local) {
-      send_closure(G()->td(), &Td::send_update, get_update_scope_notification_settings_object(scope));
-    }
+    send_closure(G()->td(), &Td::send_update, get_update_scope_notification_settings_object(scope));
   }
   return need_update_server;
 }
