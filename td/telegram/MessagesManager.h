@@ -194,6 +194,13 @@ class MessagesManager : public Actor {
 
   bool have_input_peer(DialogId dialog_id, AccessRights access_rights) const;
 
+  struct MessagesInfo {
+    vector<tl_object_ptr<telegram_api::Message>> messages;
+    int32 total_count = 0;
+    bool is_channel_messages = false;
+  };
+  MessagesInfo on_get_messages(tl_object_ptr<telegram_api::messages_Messages> &&messages_ptr, const char *source);
+
   void on_get_messages(vector<tl_object_ptr<telegram_api::Message>> &&messages, bool is_channel_message,
                        const char *source);
 

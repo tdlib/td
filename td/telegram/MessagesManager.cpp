@@ -98,8 +98,8 @@ class GetDialogQuery : public Td::ResultHandler {
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive chat: " << to_string(result);
 
-    td->contacts_manager_->on_get_chats(std::move(result->chats_));
     td->contacts_manager_->on_get_users(std::move(result->users_));
+    td->contacts_manager_->on_get_chats(std::move(result->chats_));
     td->messages_manager_->on_get_dialogs(
         std::move(result->dialogs_), -1, std::move(result->messages_),
         PromiseCreator::lambda([td = td, dialog_id = dialog_id_](Result<> result) {
@@ -145,8 +145,8 @@ class GetPinnedDialogsQuery : public NetActorOnce {
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive pinned chats: " << to_string(result);
 
-    td->contacts_manager_->on_get_chats(std::move(result->chats_));
     td->contacts_manager_->on_get_users(std::move(result->users_));
+    td->contacts_manager_->on_get_chats(std::move(result->chats_));
     std::reverse(result->dialogs_.begin(), result->dialogs_.end());
     td->messages_manager_->on_get_dialogs(std::move(result->dialogs_), -2, std::move(result->messages_),
                                           std::move(promise_));
@@ -201,38 +201,9 @@ class GetMessagesQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    auto ptr = result_ptr.move_as_ok();
-    // LOG(INFO) << "Receive result for GetMessagesQuery " << to_string(ptr);
-    int32 constructor_id = ptr->get_id();
-    switch (constructor_id) {
-      case telegram_api::messages_messages::ID: {
-        auto messages = move_tl_object_as<telegram_api::messages_messages>(ptr);
-
-        td->contacts_manager_->on_get_chats(std::move(messages->chats_));
-        td->contacts_manager_->on_get_users(std::move(messages->users_));
-        td->messages_manager_->on_get_messages(std::move(messages->messages_), false, "get messages");
-        break;
-      }
-      case telegram_api::messages_messagesSlice::ID: {
-        auto messages = move_tl_object_as<telegram_api::messages_messagesSlice>(ptr);
-
-        td->contacts_manager_->on_get_chats(std::move(messages->chats_));
-        td->contacts_manager_->on_get_users(std::move(messages->users_));
-        td->messages_manager_->on_get_messages(std::move(messages->messages_), false, "get messages slice");
-        break;
-      }
-      case telegram_api::messages_channelMessages::ID: {
-        LOG(ERROR) << "Receive channel messages in GetMessagesQuery";
-        auto messages = move_tl_object_as<telegram_api::messages_channelMessages>(ptr);
-
-        td->contacts_manager_->on_get_chats(std::move(messages->chats_));
-        td->contacts_manager_->on_get_users(std::move(messages->users_));
-        td->messages_manager_->on_get_messages(std::move(messages->messages_), false, "get channel messages");
-        break;
-      }
-      default:
-        UNREACHABLE();
-    }
+    auto info = td->messages_manager_->on_get_messages(result_ptr.move_as_ok(), "GetMessagesQuery");
+    LOG_IF(ERROR, info.is_channel_messages) << "Receive channel messages in GetMessagesQuery";
+    td->messages_manager_->on_get_messages(std::move(info.messages), info.is_channel_messages, "GetMessagesQuery");
 
     promise_.set_value(Unit());
   }
@@ -268,39 +239,10 @@ class GetChannelMessagesQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    auto ptr = result_ptr.move_as_ok();
-    LOG(DEBUG) << "Receive result for GetChannelMessagesQuery " << to_string(ptr);
-    int32 constructor_id = ptr->get_id();
-    switch (constructor_id) {
-      case telegram_api::messages_messages::ID: {
-        LOG(ERROR) << "Receive ordinary messages in GetChannelMessagesQuery";
-        auto messages = move_tl_object_as<telegram_api::messages_messages>(ptr);
-
-        td->contacts_manager_->on_get_chats(std::move(messages->chats_));
-        td->contacts_manager_->on_get_users(std::move(messages->users_));
-        td->messages_manager_->on_get_messages(std::move(messages->messages_), true, "get messages");
-        break;
-      }
-      case telegram_api::messages_messagesSlice::ID: {
-        LOG(ERROR) << "Receive ordinary messages in GetChannelMessagesQuery";
-        auto messages = move_tl_object_as<telegram_api::messages_messagesSlice>(ptr);
-
-        td->contacts_manager_->on_get_chats(std::move(messages->chats_));
-        td->contacts_manager_->on_get_users(std::move(messages->users_));
-        td->messages_manager_->on_get_messages(std::move(messages->messages_), true, "get messages slice");
-        break;
-      }
-      case telegram_api::messages_channelMessages::ID: {
-        auto messages = move_tl_object_as<telegram_api::messages_channelMessages>(ptr);
-
-        td->contacts_manager_->on_get_chats(std::move(messages->chats_));
-        td->contacts_manager_->on_get_users(std::move(messages->users_));
-        td->messages_manager_->on_get_messages(std::move(messages->messages_), true, "get channel messages");
-        break;
-      }
-      default:
-        UNREACHABLE();
-    }
+    auto info = td->messages_manager_->on_get_messages(result_ptr.move_as_ok(), "GetChannelMessagesQuery");
+    LOG_IF(ERROR, !info.is_channel_messages) << "Receive ordinary messages in GetChannelMessagesQuery";
+    td->messages_manager_->on_get_messages(std::move(info.messages), info.is_channel_messages,
+                                           "GetChannelMessagesQuery");
 
     promise_.set_value(Unit());
   }
@@ -342,37 +284,19 @@ class GetChannelPinnedMessageQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    auto ptr = result_ptr.move_as_ok();
-    LOG(DEBUG) << "Receive result for GetChannelPinnedMessageQuery " << to_string(ptr);
-    int32 constructor_id = ptr->get_id();
-    switch (constructor_id) {
-      case telegram_api::messages_messages::ID:
-      case telegram_api::messages_messagesSlice::ID:
-        LOG(ERROR) << "Receive ordinary messages in GetChannelPinnedMessageQuery " << to_string(ptr);
-        return promise_.set_error(Status::Error(500, "Receive wrong request result"));
-      case telegram_api::messages_channelMessages::ID: {
-        auto messages = move_tl_object_as<telegram_api::messages_channelMessages>(ptr);
-
-        td->contacts_manager_->on_get_chats(std::move(messages->chats_));
-        td->contacts_manager_->on_get_users(std::move(messages->users_));
-        if (messages->messages_.empty()) {
-          return promise_.set_value(MessageId());
-        }
-        if (messages->messages_.size() >= 2) {
-          LOG(ERROR) << to_string(ptr);
-          return promise_.set_error(Status::Error(500, "More than 1 pinned message received"));
-        }
-        auto full_message_id = td->messages_manager_->on_get_message(std::move(messages->messages_[0]), false, true,
-                                                                     false, false, "get channel pinned messages");
-        if (full_message_id.get_dialog_id().is_valid() && full_message_id.get_dialog_id() != DialogId(channel_id_)) {
-          LOG(ERROR) << full_message_id << " " << to_string(ptr);
-          return promise_.set_error(Status::Error(500, "Receive pinned message in a wrong chat"));
-        }
-        return promise_.set_value(full_message_id.get_message_id());
-      }
-      default:
-        UNREACHABLE();
+    auto info = td->messages_manager_->on_get_messages(result_ptr.move_as_ok(), "GetChannelPinnedMessageQuery");
+    if (info.messages.empty()) {
+      return promise_.set_value(MessageId());
     }
+    if (info.messages.size() >= 2) {
+      return promise_.set_error(Status::Error(500, "More than 1 pinned message received"));
+    }
+    auto full_message_id = td->messages_manager_->on_get_message(
+        std::move(info.messages[0]), false, info.is_channel_messages, false, false, "GetChannelPinnedMessageQuery");
+    if (full_message_id.get_dialog_id().is_valid() && full_message_id.get_dialog_id() != DialogId(channel_id_)) {
+      return promise_.set_error(Status::Error(500, "Receive pinned message in a wrong chat"));
+    }
+    promise_.set_value(full_message_id.get_message_id());
   }
 
   void on_error(uint64 id, Status status) override {
@@ -457,8 +381,8 @@ class GetDialogListQuery : public NetActorOnce {
     switch (ptr->get_id()) {
       case telegram_api::messages_dialogs::ID: {
         auto dialogs = move_tl_object_as<telegram_api::messages_dialogs>(ptr);
-        td->contacts_manager_->on_get_chats(std::move(dialogs->chats_));
         td->contacts_manager_->on_get_users(std::move(dialogs->users_));
+        td->contacts_manager_->on_get_chats(std::move(dialogs->chats_));
         td->messages_manager_->on_get_dialogs(std::move(dialogs->dialogs_),
                                               narrow_cast<int32>(dialogs->dialogs_.size()),
                                               std::move(dialogs->messages_), std::move(promise_));
@@ -466,8 +390,8 @@ class GetDialogListQuery : public NetActorOnce {
       }
       case telegram_api::messages_dialogsSlice::ID: {
         auto dialogs = move_tl_object_as<telegram_api::messages_dialogsSlice>(ptr);
-        td->contacts_manager_->on_get_chats(std::move(dialogs->chats_));
         td->contacts_manager_->on_get_users(std::move(dialogs->users_));
+        td->contacts_manager_->on_get_chats(std::move(dialogs->chats_));
         td->messages_manager_->on_get_dialogs(std::move(dialogs->dialogs_), max(dialogs->count_, 0),
                                               std::move(dialogs->messages_), std::move(promise_));
         break;
@@ -503,8 +427,8 @@ class SearchPublicDialogsQuery : public Td::ResultHandler {
 
     auto dialogs = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SearchPublicDialogsQuery " << to_string(dialogs);
-    td->contacts_manager_->on_get_chats(std::move(dialogs->chats_));
     td->contacts_manager_->on_get_users(std::move(dialogs->users_));
+    td->contacts_manager_->on_get_chats(std::move(dialogs->chats_));
     td->messages_manager_->on_get_public_dialogs_search_result(query_, std::move(dialogs->my_results_),
                                                                std::move(dialogs->results_));
   }
@@ -1153,39 +1077,9 @@ class GetDialogMessageByDateQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    auto ptr = result_ptr.move_as_ok();
-    int32 constructor_id = ptr->get_id();
-    switch (constructor_id) {
-      case telegram_api::messages_messages::ID: {
-        auto messages = move_tl_object_as<telegram_api::messages_messages>(ptr);
-        td->contacts_manager_->on_get_chats(std::move(messages->chats_));
-        td->contacts_manager_->on_get_users(std::move(messages->users_));
-        td->messages_manager_->on_get_dialog_message_by_date_success(dialog_id_, date_, random_id_,
-                                                                     std::move(messages->messages_));
-        break;
-      }
-      case telegram_api::messages_messagesSlice::ID: {
-        auto messages = move_tl_object_as<telegram_api::messages_messagesSlice>(ptr);
-        td->contacts_manager_->on_get_chats(std::move(messages->chats_));
-        td->contacts_manager_->on_get_users(std::move(messages->users_));
-        td->messages_manager_->on_get_dialog_message_by_date_success(dialog_id_, date_, random_id_,
-                                                                     std::move(messages->messages_));
-        break;
-      }
-      case telegram_api::messages_channelMessages::ID: {
-        auto messages = move_tl_object_as<telegram_api::messages_channelMessages>(ptr);
-        td->contacts_manager_->on_get_chats(std::move(messages->chats_));
-        td->contacts_manager_->on_get_users(std::move(messages->users_));
-        td->messages_manager_->on_get_dialog_message_by_date_success(dialog_id_, date_, random_id_,
-                                                                     std::move(messages->messages_));
-        break;
-      }
-      case telegram_api::messages_messagesNotModified::ID:
-        return on_error(id, Status::Error(500, "Server returned messagesNotModified"));
-      default:
-        UNREACHABLE();
-    }
-
+    auto info = td->messages_manager_->on_get_messages(result_ptr.move_as_ok(), "GetDialogMessageByDateQuery");
+    td->messages_manager_->on_get_dialog_message_by_date_success(dialog_id_, date_, random_id_,
+                                                                 std::move(info.messages));
     promise_.set_value(Unit());
   }
 
@@ -1248,45 +1142,10 @@ class GetHistoryQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    auto ptr = result_ptr.move_as_ok();
-    // LOG(INFO) << "Receive result for GetHistoryQuery " << to_string(ptr);
-    int32 constructor_id = ptr->get_id();
-    switch (constructor_id) {
-      case telegram_api::messages_messages::ID: {
-        auto messages = move_tl_object_as<telegram_api::messages_messages>(ptr);
-
-        td->contacts_manager_->on_get_chats(std::move(messages->chats_));
-        td->contacts_manager_->on_get_users(std::move(messages->users_));
-        td->messages_manager_->on_get_history(dialog_id_, from_message_id_, offset_, limit_, from_the_end_,
-                                              std::move(messages->messages_));
-        break;
-      }
-      case telegram_api::messages_messagesSlice::ID: {
-        auto messages = move_tl_object_as<telegram_api::messages_messagesSlice>(ptr);
-        // TODO use messages->count_
-
-        td->contacts_manager_->on_get_chats(std::move(messages->chats_));
-        td->contacts_manager_->on_get_users(std::move(messages->users_));
-        td->messages_manager_->on_get_history(dialog_id_, from_message_id_, offset_, limit_, from_the_end_,
-                                              std::move(messages->messages_));
-        break;
-      }
-      case telegram_api::messages_channelMessages::ID: {
-        auto messages = move_tl_object_as<telegram_api::messages_channelMessages>(ptr);
-        // TODO use messages->count_, messages->pts_
-
-        td->contacts_manager_->on_get_chats(std::move(messages->chats_));
-        td->contacts_manager_->on_get_users(std::move(messages->users_));
-        td->messages_manager_->on_get_history(dialog_id_, from_message_id_, offset_, limit_, from_the_end_,
-                                              std::move(messages->messages_));
-        break;
-      }
-      case telegram_api::messages_messagesNotModified::ID:
-        LOG(ERROR) << "Receive messagesNotModified";
-        break;
-      default:
-        UNREACHABLE();
-    }
+    auto info = td->messages_manager_->on_get_messages(result_ptr.move_as_ok(), "GetHistoryQuery");
+    // TODO use info.total_count, info.pts
+    td->messages_manager_->on_get_history(dialog_id_, from_message_id_, offset_, limit_, from_the_end_,
+                                          std::move(info.messages));
 
     promise_.set_value(Unit());
   }
@@ -1434,43 +1293,10 @@ class SearchMessagesQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for SearchMessagesQuery: " << to_string(ptr);
-    int32 constructor_id = ptr->get_id();
-    switch (constructor_id) {
-      case telegram_api::messages_messages::ID: {
-        auto messages = move_tl_object_as<telegram_api::messages_messages>(ptr);
-
-        td->contacts_manager_->on_get_chats(std::move(messages->chats_));
-        td->contacts_manager_->on_get_users(std::move(messages->users_));
-        td->messages_manager_->on_get_dialog_messages_search_result(
-            dialog_id_, query_, sender_user_id_, from_message_id_, offset_, limit_, filter_, random_id_,
-            narrow_cast<int32>(messages->messages_.size()), std::move(messages->messages_));
-        break;
-      }
-      case telegram_api::messages_messagesSlice::ID: {
-        auto messages = move_tl_object_as<telegram_api::messages_messagesSlice>(ptr);
-
-        td->contacts_manager_->on_get_chats(std::move(messages->chats_));
-        td->contacts_manager_->on_get_users(std::move(messages->users_));
-        td->messages_manager_->on_get_dialog_messages_search_result(
-            dialog_id_, query_, sender_user_id_, from_message_id_, offset_, limit_, filter_, random_id_,
-            messages->count_, std::move(messages->messages_));
-        break;
-      }
-      case telegram_api::messages_channelMessages::ID: {
-        auto messages = move_tl_object_as<telegram_api::messages_channelMessages>(ptr);
-
-        td->contacts_manager_->on_get_chats(std::move(messages->chats_));
-        td->contacts_manager_->on_get_users(std::move(messages->users_));
-        td->messages_manager_->on_get_dialog_messages_search_result(
-            dialog_id_, query_, sender_user_id_, from_message_id_, offset_, limit_, filter_, random_id_,
-            messages->count_, std::move(messages->messages_));
-        break;
-      }
-      default:
-        UNREACHABLE();
-    }
+    auto info = td->messages_manager_->on_get_messages(result_ptr.move_as_ok(), "SearchMessagesQuery");
+    td->messages_manager_->on_get_dialog_messages_search_result(dialog_id_, query_, sender_user_id_, from_message_id_,
+                                                                offset_, limit_, filter_, random_id_, info.total_count,
+                                                                std::move(info.messages));
 
     promise_.set_value(Unit());
   }
@@ -1519,43 +1345,10 @@ class SearchMessagesGlobalQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for SearchMessagesGlobalQuery: " << to_string(ptr);
-    int32 constructor_id = ptr->get_id();
-    switch (constructor_id) {
-      case telegram_api::messages_messages::ID: {
-        auto messages = move_tl_object_as<telegram_api::messages_messages>(ptr);
-
-        td->contacts_manager_->on_get_chats(std::move(messages->chats_));
-        td->contacts_manager_->on_get_users(std::move(messages->users_));
-        td->messages_manager_->on_get_messages_search_result(
-            query_, offset_date_, offset_dialog_id_, offset_message_id_, limit_, random_id_,
-            narrow_cast<int32>(messages->messages_.size()), std::move(messages->messages_));
-        break;
-      }
-      case telegram_api::messages_messagesSlice::ID: {
-        auto messages = move_tl_object_as<telegram_api::messages_messagesSlice>(ptr);
-
-        td->contacts_manager_->on_get_chats(std::move(messages->chats_));
-        td->contacts_manager_->on_get_users(std::move(messages->users_));
-        td->messages_manager_->on_get_messages_search_result(query_, offset_date_, offset_dialog_id_,
-                                                             offset_message_id_, limit_, random_id_, messages->count_,
-                                                             std::move(messages->messages_));
-        break;
-      }
-      case telegram_api::messages_channelMessages::ID: {
-        auto messages = move_tl_object_as<telegram_api::messages_channelMessages>(ptr);
-
-        td->contacts_manager_->on_get_chats(std::move(messages->chats_));
-        td->contacts_manager_->on_get_users(std::move(messages->users_));
-        td->messages_manager_->on_get_messages_search_result(query_, offset_date_, offset_dialog_id_,
-                                                             offset_message_id_, limit_, random_id_, messages->count_,
-                                                             std::move(messages->messages_));
-        break;
-      }
-      default:
-        UNREACHABLE();
-    }
+    auto info = td->messages_manager_->on_get_messages(result_ptr.move_as_ok(), "SearchMessagesGlobalQuery");
+    td->messages_manager_->on_get_messages_search_result(query_, offset_date_, offset_dialog_id_, offset_message_id_,
+                                                         limit_, random_id_, info.total_count,
+                                                         std::move(info.messages));
 
     promise_.set_value(Unit());
   }
@@ -1597,41 +1390,9 @@ class GetRecentLocationsQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetRecentLocationsQuery: " << to_string(ptr);
-    int32 constructor_id = ptr->get_id();
-    switch (constructor_id) {
-      case telegram_api::messages_messages::ID: {
-        auto messages = move_tl_object_as<telegram_api::messages_messages>(ptr);
-
-        td->contacts_manager_->on_get_chats(std::move(messages->chats_));
-        td->contacts_manager_->on_get_users(std::move(messages->users_));
-        td->messages_manager_->on_get_recent_locations(dialog_id_, limit_, random_id_,
-                                                       narrow_cast<int32>(messages->messages_.size()),
-                                                       std::move(messages->messages_));
-        break;
-      }
-      case telegram_api::messages_messagesSlice::ID: {
-        auto messages = move_tl_object_as<telegram_api::messages_messagesSlice>(ptr);
-
-        td->contacts_manager_->on_get_chats(std::move(messages->chats_));
-        td->contacts_manager_->on_get_users(std::move(messages->users_));
-        td->messages_manager_->on_get_recent_locations(dialog_id_, limit_, random_id_, messages->count_,
-                                                       std::move(messages->messages_));
-        break;
-      }
-      case telegram_api::messages_channelMessages::ID: {
-        auto messages = move_tl_object_as<telegram_api::messages_channelMessages>(ptr);
-
-        td->contacts_manager_->on_get_chats(std::move(messages->chats_));
-        td->contacts_manager_->on_get_users(std::move(messages->users_));
-        td->messages_manager_->on_get_recent_locations(dialog_id_, limit_, random_id_, messages->count_,
-                                                       std::move(messages->messages_));
-        break;
-      }
-      default:
-        UNREACHABLE();
-    }
+    auto info = td->messages_manager_->on_get_messages(result_ptr.move_as_ok(), "GetRecentLocationsQuery");
+    td->messages_manager_->on_get_recent_locations(dialog_id_, limit_, random_id_, info.total_count,
+                                                   std::move(info.messages));
 
     promise_.set_value(Unit());
   }
@@ -6689,6 +6450,57 @@ void MessagesManager::after_get_difference() {
   load_notification_settings();
 
   // TODO resend some messages
+}
+
+MessagesManager::MessagesInfo MessagesManager::on_get_messages(
+    tl_object_ptr<telegram_api::messages_Messages> &&messages_ptr, const char *source) {
+  CHECK(messages_ptr != nullptr);
+  LOG(DEBUG) << "Receive result for " << source << ": " << to_string(messages_ptr);
+
+  vector<tl_object_ptr<telegram_api::User>> users;
+  vector<tl_object_ptr<telegram_api::Chat>> chats;
+  MessagesInfo result;
+  switch (messages_ptr->get_id()) {
+    case telegram_api::messages_messages::ID: {
+      auto messages = move_tl_object_as<telegram_api::messages_messages>(messages_ptr);
+
+      users = std::move(messages->users_);
+      chats = std::move(messages->chats_);
+      result.total_count = narrow_cast<int32>(messages->messages_.size());
+      result.messages = std::move(messages->messages_);
+      break;
+    }
+    case telegram_api::messages_messagesSlice::ID: {
+      auto messages = move_tl_object_as<telegram_api::messages_messagesSlice>(messages_ptr);
+
+      users = std::move(messages->users_);
+      chats = std::move(messages->chats_);
+      result.total_count = messages->count_;
+      result.messages = std::move(messages->messages_);
+      break;
+    }
+    case telegram_api::messages_channelMessages::ID: {
+      auto messages = move_tl_object_as<telegram_api::messages_channelMessages>(messages_ptr);
+
+      users = std::move(messages->users_);
+      chats = std::move(messages->chats_);
+      result.total_count = messages->count_;
+      result.messages = std::move(messages->messages_);
+      result.is_channel_messages = true;
+      break;
+    }
+    case telegram_api::messages_messagesNotModified::ID:
+      LOG(ERROR) << "Server returned messagesNotModified in response to " << source;
+      break;
+    default:
+      UNREACHABLE();
+      break;
+  }
+
+  td_->contacts_manager_->on_get_users(std::move(users));
+  td_->contacts_manager_->on_get_chats(std::move(chats));
+
+  return result;
 }
 
 void MessagesManager::on_get_messages(vector<tl_object_ptr<telegram_api::Message>> &&messages, bool is_channel_message,
