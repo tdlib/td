@@ -92,6 +92,8 @@ class DialogDbImpl : public DialogDbSyncInterface {
     TRY_RESULT(add_dialog_stmt, db_.get_statement("INSERT OR REPLACE INTO dialogs VALUES(?1, ?2, ?3)"));
     TRY_RESULT(add_notification_group_stmt,
                db_.get_statement("INSERT OR REPLACE INTO notification_groups VALUES(?1, ?2, ?3)"));
+    TRY_RESULT(delete_notification_group_stmt,
+               db_.get_statement("DELETE FROM notification_groups WHERE notification_group_id = ?1"));
     TRY_RESULT(get_dialog_stmt, db_.get_statement("SELECT data FROM dialogs WHERE dialog_id = ?1"));
     TRY_RESULT(get_dialogs_stmt, db_.get_statement("SELECT data, dialog_id, dialog_order FROM dialogs WHERE "
                                                    "dialog_order < ?1 OR (dialog_order = ?1 AND dialog_id < ?2) ORDER "
@@ -111,6 +113,7 @@ class DialogDbImpl : public DialogDbSyncInterface {
 
     add_dialog_stmt_ = std::move(add_dialog_stmt);
     add_notification_group_stmt_ = std::move(add_notification_group_stmt);
+    delete_notification_group_stmt_ = std::move(delete_notification_group_stmt);
     get_dialog_stmt_ = std::move(get_dialog_stmt);
     get_dialogs_stmt_ = std::move(get_dialogs_stmt);
     get_notification_groups_by_last_notification_date_stmt_ =
@@ -138,17 +141,25 @@ class DialogDbImpl : public DialogDbSyncInterface {
     TRY_STATUS(add_dialog_stmt_.step());
 
     for (auto &to_add : notification_groups) {
-      SCOPE_EXIT {
-        add_notification_group_stmt_.reset();
-      };
-      add_notification_group_stmt_.bind_int32(1, to_add.group_id.get()).ensure();
-      add_notification_group_stmt_.bind_int64(2, to_add.dialog_id.get()).ensure();
-      if (to_add.last_notification_date != 0) {
-        add_notification_group_stmt_.bind_int32(3, to_add.last_notification_date).ensure();
+      if (to_add.dialog_id.is_valid()) {
+        SCOPE_EXIT {
+          add_notification_group_stmt_.reset();
+        };
+        add_notification_group_stmt_.bind_int32(1, to_add.group_id.get()).ensure();
+        add_notification_group_stmt_.bind_int64(2, to_add.dialog_id.get()).ensure();
+        if (to_add.last_notification_date != 0) {
+          add_notification_group_stmt_.bind_int32(3, to_add.last_notification_date).ensure();
+        } else {
+          add_notification_group_stmt_.bind_null(3).ensure();
+        }
+        TRY_STATUS(add_notification_group_stmt_.step());
       } else {
-        add_notification_group_stmt_.bind_null(3).ensure();
+        SCOPE_EXIT {
+          delete_notification_group_stmt_.reset();
+        };
+        delete_notification_group_stmt_.bind_int32(1, to_add.group_id.get()).ensure();
+        TRY_STATUS(delete_notification_group_stmt_.step());
       }
-      TRY_STATUS(add_notification_group_stmt_.step());
     }
     return Status::OK();
   }
@@ -235,6 +246,7 @@ class DialogDbImpl : public DialogDbSyncInterface {
 
   SqliteStatement add_dialog_stmt_;
   SqliteStatement add_notification_group_stmt_;
+  SqliteStatement delete_notification_group_stmt_;
   SqliteStatement get_dialog_stmt_;
   SqliteStatement get_dialogs_stmt_;
   SqliteStatement get_notification_groups_by_last_notification_date_stmt_;

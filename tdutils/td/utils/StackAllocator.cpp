@@ -15,4 +15,5 @@ StackAllocator::Impl &StackAllocator::impl() {
   init_thread_local<Impl>(impl);
   return *impl;
 }
+
 }  // namespace td

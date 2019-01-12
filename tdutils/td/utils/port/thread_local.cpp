@@ -31,6 +31,7 @@ void clear_thread_locals() {
   delete to_delete;
   CHECK(detail::thread_local_destructors == nullptr);
 }
+
 void set_thread_id(int32 id) {
   detail::thread_id_ = id;
 }
@@ -38,4 +39,5 @@ void set_thread_id(int32 id) {
 int32 get_thread_id() {
   return detail::thread_id_;
 }
+
 }  // namespace td

@@ -255,8 +255,8 @@ NotificationManager::NotificationGroups::iterator NotificationManager::get_group
   group.total_count = message_group.total_count;
   group.notifications = std::move(message_group.notifications);
 
-  VLOG(notifications) << "Finish to load " << group_id << " with total_count " << message_group.total_count
-                      << " and notifications " << group.notifications;
+  VLOG(notifications) << "Finish to load " << group_id << " of type " << message_group.type << " with total_count "
+                      << message_group.total_count << " and notifications " << group.notifications;
 
   if (send_update && group_key.last_notification_date != 0) {
     auto last_group_key = get_last_updated_group_key();
