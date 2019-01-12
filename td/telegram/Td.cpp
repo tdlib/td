@@ -223,8 +223,8 @@ class GetRecentMeUrlsQuery : public Td::ResultHandler {
     }
 
     auto urls_full = result_ptr.move_as_ok();
-    td->contacts_manager_->on_get_users(std::move(urls_full->users_));
-    td->contacts_manager_->on_get_chats(std::move(urls_full->chats_));
+    td->contacts_manager_->on_get_users(std::move(urls_full->users_), "GetRecentMeUrlsQuery");
+    td->contacts_manager_->on_get_chats(std::move(urls_full->chats_), "GetRecentMeUrlsQuery");
 
     auto urls = std::move(urls_full->urls_);
     auto results = make_tl_object<td_api::tMeUrls>();

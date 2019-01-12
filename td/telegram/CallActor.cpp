@@ -242,7 +242,7 @@ void CallActor::update_call(tl_object_ptr<telegram_api::PhoneCall> call) {
 
 void CallActor::update_call_inner(tl_object_ptr<telegram_api::phone_phoneCall> call) {
   LOG(INFO) << "Update call with " << to_string(call);
-  send_closure(G()->contacts_manager(), &ContactsManager::on_get_users, std::move(call->users_));
+  send_closure(G()->contacts_manager(), &ContactsManager::on_get_users, std::move(call->users_), "UpdatePhoneCall");
   update_call(std::move(call->phone_call_));
 }
 

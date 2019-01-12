@@ -710,16 +710,16 @@ void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updat
     }
     case telegram_api::updatesCombined::ID: {
       auto updates = move_tl_object_as<telegram_api::updatesCombined>(updates_ptr);
-      td_->contacts_manager_->on_get_users(std::move(updates->users_));
-      td_->contacts_manager_->on_get_chats(std::move(updates->chats_));
+      td_->contacts_manager_->on_get_users(std::move(updates->users_), "updatesCombined");
+      td_->contacts_manager_->on_get_chats(std::move(updates->chats_), "updatesCombined");
       on_pending_updates(std::move(updates->updates_), updates->seq_start_, updates->seq_, updates->date_,
                          "telegram_api::updatesCombined");
       break;
     }
     case telegram_api::updates::ID: {
       auto updates = move_tl_object_as<telegram_api::updates>(updates_ptr);
-      td_->contacts_manager_->on_get_users(std::move(updates->users_));
-      td_->contacts_manager_->on_get_chats(std::move(updates->chats_));
+      td_->contacts_manager_->on_get_users(std::move(updates->users_), "updates");
+      td_->contacts_manager_->on_get_chats(std::move(updates->chats_), "updates");
       on_pending_updates(std::move(updates->updates_), updates->seq_, updates->seq_, updates->date_,
                          "telegram_api::updates");
       break;
@@ -1000,8 +1000,8 @@ void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Diffe
       auto difference = move_tl_object_as<telegram_api::updates_difference>(difference_ptr);
       VLOG(get_difference) << "In get difference receive " << difference->users_.size() << " users and "
                            << difference->chats_.size() << " chats";
-      td_->contacts_manager_->on_get_users(std::move(difference->users_));
-      td_->contacts_manager_->on_get_chats(std::move(difference->chats_));
+      td_->contacts_manager_->on_get_users(std::move(difference->users_), "updates.difference");
+      td_->contacts_manager_->on_get_chats(std::move(difference->chats_), "updates.difference");
 
       set_state(State::Type::ApplyingDifference);
 
@@ -1025,8 +1025,8 @@ void UpdatesManager::on_get_difference(tl_object_ptr<telegram_api::updates_Diffe
 
       VLOG(get_difference) << "In get difference receive " << difference->users_.size() << " users and "
                            << difference->chats_.size() << " chats";
-      td_->contacts_manager_->on_get_users(std::move(difference->users_));
-      td_->contacts_manager_->on_get_chats(std::move(difference->chats_));
+      td_->contacts_manager_->on_get_users(std::move(difference->users_), "updates.differenceSlice");
+      td_->contacts_manager_->on_get_chats(std::move(difference->chats_), "updates.differenceSlice");
 
       set_state(State::Type::ApplyingDifferenceSlice);
 

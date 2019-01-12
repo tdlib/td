@@ -125,8 +125,9 @@ class ContactsManager : public Actor {
 
   void on_get_contacts_link(tl_object_ptr<telegram_api::contacts_link> &&link);
 
-  void on_get_user(tl_object_ptr<telegram_api::User> &&user, bool is_me = false, bool is_support = false);
-  void on_get_users(vector<tl_object_ptr<telegram_api::User>> &&users);
+  void on_get_user(tl_object_ptr<telegram_api::User> &&user, const char *source, bool is_me = false,
+                   bool is_support = false);
+  void on_get_users(vector<tl_object_ptr<telegram_api::User>> &&users, const char *source);
 
   void on_binlog_user_event(BinlogEvent &&event);
   void on_binlog_chat_event(BinlogEvent &&event);
@@ -138,8 +139,8 @@ class ContactsManager : public Actor {
   void on_get_user_photos(UserId user_id, int32 offset, int32 limit, int32 total_count,
                           vector<tl_object_ptr<telegram_api::Photo>> photos);
 
-  void on_get_chat(tl_object_ptr<telegram_api::Chat> &&chat);
-  void on_get_chats(vector<tl_object_ptr<telegram_api::Chat>> &&chats);
+  void on_get_chat(tl_object_ptr<telegram_api::Chat> &&chat, const char *source);
+  void on_get_chats(vector<tl_object_ptr<telegram_api::Chat>> &&chats, const char *source);
 
   void on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&chat_full);
 
@@ -888,11 +889,11 @@ class ContactsManager : public Actor {
 
   void invalidate_chat_full(ChatId chat_id);
 
-  void on_chat_update(telegram_api::chatEmpty &chat);
-  void on_chat_update(telegram_api::chat &chat);
-  void on_chat_update(telegram_api::chatForbidden &chat);
-  void on_chat_update(telegram_api::channel &channel);
-  void on_chat_update(telegram_api::channelForbidden &channel);
+  void on_chat_update(telegram_api::chatEmpty &chat, const char *source);
+  void on_chat_update(telegram_api::chat &chat, const char *source);
+  void on_chat_update(telegram_api::chatForbidden &chat, const char *source);
+  void on_chat_update(telegram_api::channel &channel, const char *source);
+  void on_chat_update(telegram_api::channelForbidden &channel, const char *source);
 
   void save_user(User *u, UserId user_id, bool from_binlog);
   static string get_user_database_key(UserId user_id);

@@ -98,8 +98,8 @@ class GetDialogQuery : public Td::ResultHandler {
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive chat: " << to_string(result);
 
-    td->contacts_manager_->on_get_users(std::move(result->users_));
-    td->contacts_manager_->on_get_chats(std::move(result->chats_));
+    td->contacts_manager_->on_get_users(std::move(result->users_), "GetDialogQuery");
+    td->contacts_manager_->on_get_chats(std::move(result->chats_), "GetDialogQuery");
     td->messages_manager_->on_get_dialogs(
         std::move(result->dialogs_), -1, std::move(result->messages_),
         PromiseCreator::lambda([td = td, dialog_id = dialog_id_](Result<> result) {
@@ -145,8 +145,8 @@ class GetPinnedDialogsQuery : public NetActorOnce {
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive pinned chats: " << to_string(result);
 
-    td->contacts_manager_->on_get_users(std::move(result->users_));
-    td->contacts_manager_->on_get_chats(std::move(result->chats_));
+    td->contacts_manager_->on_get_users(std::move(result->users_), "GetPinnedDialogsQuery");
+    td->contacts_manager_->on_get_chats(std::move(result->chats_), "GetPinnedDialogsQuery");
     std::reverse(result->dialogs_.begin(), result->dialogs_.end());
     td->messages_manager_->on_get_dialogs(std::move(result->dialogs_), -2, std::move(result->messages_),
                                           std::move(promise_));
@@ -381,8 +381,8 @@ class GetDialogListQuery : public NetActorOnce {
     switch (ptr->get_id()) {
       case telegram_api::messages_dialogs::ID: {
         auto dialogs = move_tl_object_as<telegram_api::messages_dialogs>(ptr);
-        td->contacts_manager_->on_get_users(std::move(dialogs->users_));
-        td->contacts_manager_->on_get_chats(std::move(dialogs->chats_));
+        td->contacts_manager_->on_get_users(std::move(dialogs->users_), "GetDialogListQuery");
+        td->contacts_manager_->on_get_chats(std::move(dialogs->chats_), "GetDialogListQuery");
         td->messages_manager_->on_get_dialogs(std::move(dialogs->dialogs_),
                                               narrow_cast<int32>(dialogs->dialogs_.size()),
                                               std::move(dialogs->messages_), std::move(promise_));
@@ -390,8 +390,8 @@ class GetDialogListQuery : public NetActorOnce {
       }
       case telegram_api::messages_dialogsSlice::ID: {
         auto dialogs = move_tl_object_as<telegram_api::messages_dialogsSlice>(ptr);
-        td->contacts_manager_->on_get_users(std::move(dialogs->users_));
-        td->contacts_manager_->on_get_chats(std::move(dialogs->chats_));
+        td->contacts_manager_->on_get_users(std::move(dialogs->users_), "GetDialogListQuery");
+        td->contacts_manager_->on_get_chats(std::move(dialogs->chats_), "GetDialogListQuery");
         td->messages_manager_->on_get_dialogs(std::move(dialogs->dialogs_), max(dialogs->count_, 0),
                                               std::move(dialogs->messages_), std::move(promise_));
         break;
@@ -427,8 +427,8 @@ class SearchPublicDialogsQuery : public Td::ResultHandler {
 
     auto dialogs = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for SearchPublicDialogsQuery " << to_string(dialogs);
-    td->contacts_manager_->on_get_users(std::move(dialogs->users_));
-    td->contacts_manager_->on_get_chats(std::move(dialogs->chats_));
+    td->contacts_manager_->on_get_users(std::move(dialogs->users_), "SearchPublicDialogsQuery");
+    td->contacts_manager_->on_get_chats(std::move(dialogs->chats_), "SearchPublicDialogsQuery");
     td->messages_manager_->on_get_public_dialogs_search_result(query_, std::move(dialogs->my_results_),
                                                                std::move(dialogs->results_));
   }
@@ -3164,8 +3164,8 @@ class ResolveUsernameQuery : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(DEBUG) << "Receive result for resolveUsername " << to_string(ptr);
-    td->contacts_manager_->on_get_users(std::move(ptr->users_));
-    td->contacts_manager_->on_get_chats(std::move(ptr->chats_));
+    td->contacts_manager_->on_get_users(std::move(ptr->users_), "ResolveUsernameQuery");
+    td->contacts_manager_->on_get_chats(std::move(ptr->chats_), "ResolveUsernameQuery");
 
     td->messages_manager_->on_resolved_username(username_, DialogId(ptr->peer_));
 
@@ -6497,8 +6497,8 @@ MessagesManager::MessagesInfo MessagesManager::on_get_messages(
       break;
   }
 
-  td_->contacts_manager_->on_get_users(std::move(users));
-  td_->contacts_manager_->on_get_chats(std::move(chats));
+  td_->contacts_manager_->on_get_users(std::move(users), source);
+  td_->contacts_manager_->on_get_chats(std::move(chats), source);
 
   return result;
 }
@@ -6850,7 +6850,7 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
   }
   for (auto &message : messages) {
     auto new_message = on_get_message(std::move(message), false, dialog_id.get_type() == DialogType::Channel, false,
-                                      false, "search chat messages");
+                                      false, "SearchMessagesQuery");
     if (new_message != FullMessageId()) {
       if (new_message.get_dialog_id() != dialog_id) {
         LOG(ERROR) << "Receive " << new_message << " instead of a message in " << dialog_id;
@@ -11399,7 +11399,7 @@ void MessagesManager::on_get_common_dialogs(UserId user_id, vector<tl_object_ptr
         UNREACHABLE();
     }
     CHECK(dialog_id.is_valid());
-    td_->contacts_manager_->on_get_chat(std::move(chat));
+    td_->contacts_manager_->on_get_chat(std::move(chat), "on_get_common_dialogs");
 
     if (std::find(result.begin(), result.end(), dialog_id) == result.end()) {
       force_create_dialog(dialog_id, "get common dialogs");
@@ -16853,7 +16853,7 @@ void MessagesManager::on_get_game_high_scores(int64 random_id,
     return;
   }
 
-  td_->contacts_manager_->on_get_users(std::move(high_scores->users_));
+  td_->contacts_manager_->on_get_users(std::move(high_scores->users_), "on_get_game_high_scores");
 
   result = make_tl_object<td_api::gameHighScores>();
 
@@ -20543,8 +20543,8 @@ void MessagesManager::on_get_event_log(int64 random_id,
 
   LOG(INFO) << "Receive " << to_string(events);
 
-  td_->contacts_manager_->on_get_users(std::move(events->users_));
-  td_->contacts_manager_->on_get_chats(std::move(events->chats_));
+  td_->contacts_manager_->on_get_users(std::move(events->users_), "on_get_event_log");
+  td_->contacts_manager_->on_get_chats(std::move(events->chats_), "on_get_event_log");
 
   result = make_tl_object<td_api::chatEvents>();
   result->events_.reserve(events->events_.size());
@@ -23280,8 +23280,8 @@ void MessagesManager::on_get_channel_difference(
         new_pts = request_pts + 1;
       }
 
-      td_->contacts_manager_->on_get_users(std::move(difference->users_));
-      td_->contacts_manager_->on_get_chats(std::move(difference->chats_));
+      td_->contacts_manager_->on_get_users(std::move(difference->users_), "updates.channelDifference");
+      td_->contacts_manager_->on_get_chats(std::move(difference->chats_), "updates.channelDifference");
 
       process_get_channel_difference_updates(dialog_id, std::move(difference->new_messages_),
                                              std::move(difference->other_updates_));
@@ -23308,8 +23308,8 @@ void MessagesManager::on_get_channel_difference(
         }
       }
 
-      td_->contacts_manager_->on_get_users(std::move(difference->users_));
-      td_->contacts_manager_->on_get_chats(std::move(difference->chats_));
+      td_->contacts_manager_->on_get_users(std::move(difference->users_), "updates.channelDifferenceTooLong");
+      td_->contacts_manager_->on_get_chats(std::move(difference->chats_), "updates.channelDifferenceTooLong");
 
       on_get_channel_dialog(dialog_id, MessageId(ServerMessageId(difference->top_message_)),
                             MessageId(ServerMessageId(difference->read_inbox_max_id_)), difference->unread_count_,
@@ -24400,8 +24400,8 @@ void MessagesManager::on_get_sponsored_dialog_id(tl_object_ptr<telegram_api::Pee
     return;
   }
 
-  td_->contacts_manager_->on_get_users(std::move(users));
-  td_->contacts_manager_->on_get_chats(std::move(chats));
+  td_->contacts_manager_->on_get_users(std::move(users), "on_get_sponsored_dialog_id");
+  td_->contacts_manager_->on_get_chats(std::move(chats), "on_get_sponsored_dialog_id");
 
   set_sponsored_dialog_id(DialogId(peer));
 }

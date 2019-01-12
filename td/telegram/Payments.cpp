@@ -271,7 +271,7 @@ class GetPaymentFormQuery : public Td::ResultHandler {
     auto payment_form = result_ptr.move_as_ok();
     LOG(INFO) << "Receive payment form: " << to_string(payment_form);
 
-    td->contacts_manager_->on_get_users(std::move(payment_form->users_));
+    td->contacts_manager_->on_get_users(std::move(payment_form->users_), "GetPaymentFormQuery");
 
     bool can_save_credentials =
         (payment_form->flags_ & telegram_api::payments_paymentForm::CAN_SAVE_CREDENTIALS_MASK) != 0;
@@ -404,7 +404,7 @@ class GetPaymentReceiptQuery : public Td::ResultHandler {
     auto payment_receipt = result_ptr.move_as_ok();
     LOG(INFO) << "Receive payment receipt: " << to_string(payment_receipt);
 
-    td->contacts_manager_->on_get_users(std::move(payment_receipt->users_));
+    td->contacts_manager_->on_get_users(std::move(payment_receipt->users_), "GetPaymentReceiptQuery");
 
     UserId payments_provider_user_id(payment_receipt->provider_id_);
     if (!payments_provider_user_id.is_valid()) {

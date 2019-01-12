@@ -918,7 +918,7 @@ void AuthManager::on_authorization(tl_object_ptr<telegram_api::auth_authorizatio
   code_.clear();
   password_.clear();
   state_ = State::Ok;
-  td->contacts_manager_->on_get_user(std::move(auth->user_), true);
+  td->contacts_manager_->on_get_user(std::move(auth->user_), "on_authorization", true);
   update_state(State::Ok, true);
   if (!td->contacts_manager_->get_my_id().is_valid()) {
     LOG(ERROR) << "Server doesn't send proper authorization";

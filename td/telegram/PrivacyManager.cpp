@@ -211,7 +211,7 @@ vector<int32> PrivacyManager::UserPrivacySettingRule::user_ids_as_td_api() const
 
 Result<PrivacyManager::UserPrivacySettingRules> PrivacyManager::UserPrivacySettingRules::from_telegram_api(
     tl_object_ptr<telegram_api::account_privacyRules> rules) {
-  G()->td().get_actor_unsafe()->contacts_manager_->on_get_users(std::move(rules->users_));
+  G()->td().get_actor_unsafe()->contacts_manager_->on_get_users(std::move(rules->users_), "on get privacy rules");
   return from_telegram_api(std::move(rules->rules_));
 }
 

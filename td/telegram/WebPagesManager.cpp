@@ -2491,7 +2491,7 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
         }
 
         if (td_->contacts_manager_->have_channel_force(channel_id)) {
-          td_->contacts_manager_->on_get_chat(std::move(page_block->channel_));
+          td_->contacts_manager_->on_get_chat(std::move(page_block->channel_), "pageBlockChannel");
           LOG(INFO) << "Receive known min " << channel_id;
           return td::make_unique<PageBlockChatLink>(td_->contacts_manager_->get_channel_title(channel_id),
                                                     *td_->contacts_manager_->get_channel_dialog_photo(channel_id),

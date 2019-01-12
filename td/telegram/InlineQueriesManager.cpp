@@ -1107,7 +1107,7 @@ void InlineQueriesManager::on_get_inline_query_results(UserId bot_user_id, uint6
   }
   LOG(INFO) << to_string(results);
 
-  td_->contacts_manager_->on_get_users(std::move(results->users_));
+  td_->contacts_manager_->on_get_users(std::move(results->users_), "on_get_inline_query_results");
 
   vector<tl_object_ptr<td_api::InlineQueryResult>> output_results;
   for (auto &result_ptr : results->results_) {

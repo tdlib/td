@@ -417,8 +417,10 @@ void TopDialogManager::on_result(NetQueryPtr net_query) {
       set_is_enabled(true);  // apply immediately
       auto top_peers = move_tl_object_as<telegram_api::contacts_topPeers>(std::move(top_peers_parent));
 
-      send_closure(G()->contacts_manager(), &ContactsManager::on_get_users, std::move(top_peers->users_));
-      send_closure(G()->contacts_manager(), &ContactsManager::on_get_chats, std::move(top_peers->chats_));
+      send_closure(G()->contacts_manager(), &ContactsManager::on_get_users, std::move(top_peers->users_),
+                   "on get top chats");
+      send_closure(G()->contacts_manager(), &ContactsManager::on_get_chats, std::move(top_peers->chats_),
+                   "on get top chats");
       for (auto &category : top_peers->categories_) {
         auto dialog_category = top_dialog_category_from_telegram_api(*category->category_);
         auto pos = static_cast<size_t>(dialog_category);

@@ -232,7 +232,7 @@ class GetWebAuthorizationsQuery : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetWebAuthorizationsQuery: " << to_string(ptr);
 
-    td->contacts_manager_->on_get_users(std::move(ptr->users_));
+    td->contacts_manager_->on_get_users(std::move(ptr->users_), "GetWebAuthorizationsQuery");
 
     auto results = make_tl_object<td_api::connectedWebsites>();
     results->websites_.reserve(ptr->authorizations_.size());
@@ -389,7 +389,7 @@ class GetBlockedUsersQuery : public Td::ResultHandler {
       case telegram_api::contacts_blocked::ID: {
         auto blocked_users = move_tl_object_as<telegram_api::contacts_blocked>(ptr);
 
-        td->contacts_manager_->on_get_users(std::move(blocked_users->users_));
+        td->contacts_manager_->on_get_users(std::move(blocked_users->users_), "GetBlockedUsersQuery");
         td->contacts_manager_->on_get_blocked_users_result(offset_, limit_, random_id_,
                                                            narrow_cast<int32>(blocked_users->blocked_.size()),
                                                            std::move(blocked_users->blocked_));
@@ -398,7 +398,7 @@ class GetBlockedUsersQuery : public Td::ResultHandler {
       case telegram_api::contacts_blockedSlice::ID: {
         auto blocked_users = move_tl_object_as<telegram_api::contacts_blockedSlice>(ptr);
 
-        td->contacts_manager_->on_get_users(std::move(blocked_users->users_));
+        td->contacts_manager_->on_get_users(std::move(blocked_users->users_), "GetBlockedUsersQuery");
         td->contacts_manager_->on_get_blocked_users_result(offset_, limit_, random_id_, blocked_users->count_,
                                                            std::move(blocked_users->blocked_));
         break;
@@ -506,7 +506,7 @@ class ImportContactsQuery : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for importContacts: " << to_string(ptr);
 
-    td->contacts_manager_->on_get_users(std::move(ptr->users_));
+    td->contacts_manager_->on_get_users(std::move(ptr->users_), "ImportContactsQuery");
     for (auto &imported_contact : ptr->imported_) {
       int64 client_id = imported_contact->client_id_;
       if (client_id < 0 || client_id >= static_cast<int64>(imported_user_ids_.size())) {
@@ -689,7 +689,7 @@ class UploadProfilePhotoQuery : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for uploadProfilePhoto: " << to_string(ptr);
-    td->contacts_manager_->on_get_users(std::move(ptr->users_));
+    td->contacts_manager_->on_get_users(std::move(ptr->users_), "UploadProfilePhotoQuery");
     // ignore ptr->photo_
 
     td->file_manager_->delete_partial_remote_location(file_id_);
@@ -797,7 +797,7 @@ class UpdateProfileQuery : public Td::ResultHandler {
     }
 
     LOG(DEBUG) << "Receive result for updateProfile " << to_string(result_ptr.ok());
-    td->contacts_manager_->on_get_user(result_ptr.move_as_ok());
+    td->contacts_manager_->on_get_user(result_ptr.move_as_ok(), "UpdateProfileQuery");
     td->contacts_manager_->on_update_profile_success(flags_, first_name_, last_name_, about_);
 
     promise_.set_value(Unit());
@@ -851,7 +851,7 @@ class UpdateUsernameQuery : public Td::ResultHandler {
     }
 
     LOG(DEBUG) << "Receive result for updateUsername " << to_string(result_ptr.ok());
-    td->contacts_manager_->on_get_user(result_ptr.move_as_ok());
+    td->contacts_manager_->on_get_user(result_ptr.move_as_ok(), "UpdateUsernameQuery");
     promise_.set_value(Unit());
   }
 
@@ -1852,7 +1852,7 @@ class GetUsersQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    td->contacts_manager_->on_get_users(result_ptr.move_as_ok());
+    td->contacts_manager_->on_get_users(result_ptr.move_as_ok(), "GetUsersQuery");
 
     promise_.set_value(Unit());
   }
@@ -1919,14 +1919,14 @@ class GetUserPhotosQuery : public Td::ResultHandler {
     if (constructor_id == telegram_api::photos_photos::ID) {
       auto photos = move_tl_object_as<telegram_api::photos_photos>(ptr);
 
-      td->contacts_manager_->on_get_users(std::move(photos->users_));
+      td->contacts_manager_->on_get_users(std::move(photos->users_), "GetUserPhotosQuery");
       int32 photos_size = narrow_cast<int32>(photos->photos_.size());
       td->contacts_manager_->on_get_user_photos(user_id_, offset_, limit_, photos_size, std::move(photos->photos_));
     } else {
       CHECK(constructor_id == telegram_api::photos_photosSlice::ID);
       auto photos = move_tl_object_as<telegram_api::photos_photosSlice>(ptr);
 
-      td->contacts_manager_->on_get_users(std::move(photos->users_));
+      td->contacts_manager_->on_get_users(std::move(photos->users_), "GetUserPhotosQuery");
       td->contacts_manager_->on_get_user_photos(user_id_, offset_, limit_, photos->count_, std::move(photos->photos_));
     }
 
@@ -1960,13 +1960,13 @@ class GetChatsQuery : public Td::ResultHandler {
     switch (constructor_id) {
       case telegram_api::messages_chats::ID: {
         auto chats = move_tl_object_as<telegram_api::messages_chats>(chats_ptr);
-        td->contacts_manager_->on_get_chats(std::move(chats->chats_));
+        td->contacts_manager_->on_get_chats(std::move(chats->chats_), "GetChatsQuery");
         break;
       }
       case telegram_api::messages_chatsSlice::ID: {
         auto chats = move_tl_object_as<telegram_api::messages_chatsSlice>(chats_ptr);
         LOG(ERROR) << "Receive chatsSlice in result of GetChatsQuery";
-        td->contacts_manager_->on_get_chats(std::move(chats->chats_));
+        td->contacts_manager_->on_get_chats(std::move(chats->chats_), "GetChatsQuery");
         break;
       }
       default:
@@ -1999,8 +1999,8 @@ class GetFullChatQuery : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     //    LOG(INFO) << "Receive result for getFullChat query: " << to_string(ptr);
-    td->contacts_manager_->on_get_users(std::move(ptr->users_));
-    td->contacts_manager_->on_get_chats(std::move(ptr->chats_));
+    td->contacts_manager_->on_get_users(std::move(ptr->users_), "GetFullChatQuery");
+    td->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetFullChatQuery");
     td->contacts_manager_->on_get_chat_full(std::move(ptr->full_chat_));
 
     td->contacts_manager_->on_get_chat_full_success(chat_id_);
@@ -2043,13 +2043,13 @@ class GetChannelsQuery : public Td::ResultHandler {
     switch (constructor_id) {
       case telegram_api::messages_chats::ID: {
         auto chats = move_tl_object_as<telegram_api::messages_chats>(chats_ptr);
-        td->contacts_manager_->on_get_chats(std::move(chats->chats_));
+        td->contacts_manager_->on_get_chats(std::move(chats->chats_), "GetChannelsQuery");
         break;
       }
       case telegram_api::messages_chatsSlice::ID: {
         auto chats = move_tl_object_as<telegram_api::messages_chatsSlice>(chats_ptr);
         LOG(ERROR) << "Receive chatsSlice in result of GetChannelsQuery";
-        td->contacts_manager_->on_get_chats(std::move(chats->chats_));
+        td->contacts_manager_->on_get_chats(std::move(chats->chats_), "GetChannelsQuery");
         break;
       }
       default:
@@ -2083,8 +2083,8 @@ class GetFullChannelQuery : public Td::ResultHandler {
 
     auto ptr = result_ptr.move_as_ok();
     //    LOG(INFO) << "Receive result for getFullChannel query: " << to_string(ptr);
-    td->contacts_manager_->on_get_users(std::move(ptr->users_));
-    td->contacts_manager_->on_get_chats(std::move(ptr->chats_));
+    td->contacts_manager_->on_get_users(std::move(ptr->users_), "GetFullChannelQuery");
+    td->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetFullChannelQuery");
     td->contacts_manager_->on_get_chat_full(std::move(ptr->full_chat_));
 
     td->contacts_manager_->on_get_channel_full_success(channel_id_);
@@ -2128,7 +2128,7 @@ class GetChannelParticipantQuery : public Td::ResultHandler {
     auto participant = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetChannelParticipantQuery: " << to_string(participant);
 
-    td->contacts_manager_->on_get_users(std::move(participant->users_));
+    td->contacts_manager_->on_get_users(std::move(participant->users_), "GetChannelParticipantQuery");
     promise_.set_value(
         td->contacts_manager_->get_dialog_participant(channel_id_, std::move(participant->participant_)));
   }
@@ -2183,7 +2183,7 @@ class GetChannelParticipantsQuery : public Td::ResultHandler {
     switch (participants_ptr->get_id()) {
       case telegram_api::channels_channelParticipants::ID: {
         auto participants = telegram_api::move_object_as<telegram_api::channels_channelParticipants>(participants_ptr);
-        td->contacts_manager_->on_get_users(std::move(participants->users_));
+        td->contacts_manager_->on_get_users(std::move(participants->users_), "GetChannelParticipantsQuery");
         td->contacts_manager_->on_get_channel_participants_success(channel_id_, std::move(filter_), offset_, limit_,
                                                                    random_id_, participants->count_,
                                                                    std::move(participants->participants_));
@@ -2238,7 +2238,7 @@ class GetChannelAdministratorsQuery : public Td::ResultHandler {
     switch (participants_ptr->get_id()) {
       case telegram_api::channels_channelParticipants::ID: {
         auto participants = telegram_api::move_object_as<telegram_api::channels_channelParticipants>(participants_ptr);
-        td->contacts_manager_->on_get_users(std::move(participants->users_));
+        td->contacts_manager_->on_get_users(std::move(participants->users_), "GetChannelAdministratorsQuery");
         vector<UserId> administrator_user_ids;
         administrator_user_ids.reserve(participants->participants_.size());
         for (auto &participant : participants->participants_) {
@@ -2288,7 +2288,7 @@ class GetSupportUserQuery : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for GetSupportUserQuery: " << to_string(ptr);
 
-    td->contacts_manager_->on_get_user(std::move(ptr->user_), false, true);
+    td->contacts_manager_->on_get_user(std::move(ptr->user_), "GetSupportUserQuery", false, true);
 
     promise_.set_value(Unit());
   }
@@ -4771,7 +4771,7 @@ void ContactsManager::on_get_created_public_channels(vector<tl_object_ptr<telegr
       default:
         UNREACHABLE();
     }
-    on_get_chat(std::move(chat));
+    on_get_chat(std::move(chat), "on_get_created_public_channels");
   }
 }
 
@@ -4878,7 +4878,7 @@ void ContactsManager::on_get_contacts(tl_object_ptr<telegram_api::contacts_Conta
     }
     contact_user_ids.insert(user_id);
   }
-  on_get_users(std::move(contacts->users_));
+  on_get_users(std::move(contacts->users_), "on_get_contacts");
 
   UserId my_id = get_my_id();
   for (auto &p : users_) {
@@ -4998,7 +4998,7 @@ void ContactsManager::on_update_online_status_privacy() {
 
 void ContactsManager::on_get_contacts_link(tl_object_ptr<telegram_api::contacts_link> &&link) {
   UserId user_id = get_user_id(link->user_);
-  on_get_user(std::move(link->user_));
+  on_get_user(std::move(link->user_), "on_get_contacts_link");
   on_update_user_links(user_id, std::move(link->my_link_), std::move(link->foreign_link_));
 }
 
@@ -5041,21 +5041,22 @@ ChannelId ContactsManager::get_channel_id(const tl_object_ptr<telegram_api::Chat
   }
 }
 
-void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, bool is_me, bool is_support) {
-  LOG(DEBUG) << "Receive " << to_string(user_ptr);
+void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, const char *source, bool is_me,
+                                  bool is_support) {
+  LOG(DEBUG) << "Receive from " << source << ' ' << to_string(user_ptr);
   int32 constructor_id = user_ptr->get_id();
   if (constructor_id == telegram_api::userEmpty::ID) {
     auto user = move_tl_object_as<telegram_api::userEmpty>(user_ptr);
     UserId user_id(user->id_);
     if (!user_id.is_valid()) {
-      LOG(ERROR) << "Receive invalid " << user_id;
+      LOG(ERROR) << "Receive invalid " << user_id << " from " << source;
       return;
     }
-    LOG(INFO) << "Receive empty " << user_id;
+    LOG(INFO) << "Receive empty " << user_id << " from " << source;
 
     User *u = get_user_force(user_id);
     if (u == nullptr) {
-      LOG(ERROR) << "Have no information about " << user_id << ", but received userEmpty";
+      LOG(ERROR) << "Have no information about " << user_id << ", but received userEmpty from " << source;
     }
     return;
   }
@@ -5068,9 +5069,9 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     return;
   }
   int32 flags = user->flags_;
-  LOG(INFO) << "Receive " << user_id << " with flags " << flags;
+  LOG(INFO) << "Receive " << user_id << " with flags " << flags << " from " << source;
   if (is_me && (flags & USER_FLAG_IS_ME) == 0) {
-    LOG(ERROR) << user_id << " doesn't have flag IS_ME, but must have it";
+    LOG(ERROR) << user_id << " doesn't have flag IS_ME, but must have it when received from " << source;
     flags |= USER_FLAG_IS_ME;
   }
 
@@ -5144,10 +5145,12 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   bool need_location_bot = (flags & USER_FLAG_NEED_LOCATION_BOT) != 0;
   bool has_bot_info_version = (flags & USER_FLAG_HAS_BOT_INFO_VERSION) != 0;
 
-  LOG_IF(ERROR, !can_join_groups && !is_bot) << "Receive not bot which can't join groups";
-  LOG_IF(ERROR, can_read_all_group_messages && !is_bot) << "Receive not bot which can read all group messages";
-  LOG_IF(ERROR, is_inline_bot && !is_bot) << "Receive not bot which is inline bot";
-  LOG_IF(ERROR, need_location_bot && !is_inline_bot) << "Receive not inline bot which needs user location";
+  LOG_IF(ERROR, !can_join_groups && !is_bot) << "Receive not bot which can't join groups from " << source;
+  LOG_IF(ERROR, can_read_all_group_messages && !is_bot)
+      << "Receive not bot which can read all group messages from " << source;
+  LOG_IF(ERROR, is_inline_bot && !is_bot) << "Receive not bot which is inline bot from " << source;
+  LOG_IF(ERROR, need_location_bot && !is_inline_bot)
+      << "Receive not inline bot which needs user location from " << source;
 
   if (is_received && !u->is_received) {
     u->is_received = true;
@@ -5168,14 +5171,14 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     has_bot_info_version = false;
   }
 
-  LOG_IF(ERROR, has_bot_info_version && !is_bot) << "Receive not bot which has bot info version";
+  LOG_IF(ERROR, has_bot_info_version && !is_bot) << "Receive not bot which has bot info version from " << source;
 
   int32 bot_info_version = has_bot_info_version ? user->bot_info_version_ : -1;
   if (is_verified != u->is_verified || is_bot != u->is_bot || can_join_groups != u->can_join_groups ||
       can_read_all_group_messages != u->can_read_all_group_messages || restriction_reason != u->restriction_reason ||
       is_inline_bot != u->is_inline_bot || inline_query_placeholder != u->inline_query_placeholder ||
       need_location_bot != u->need_location_bot) {
-    LOG_IF(ERROR, is_bot != u->is_bot && !is_deleted && !u->is_deleted) << "User.is_bot has changed";
+    LOG_IF(ERROR, is_bot != u->is_bot && !is_deleted && !u->is_deleted) << "User.is_bot has changed from " << source;
     u->is_verified = is_verified;
     u->is_bot = is_bot;
     u->can_join_groups = can_join_groups;
@@ -5207,7 +5210,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   }
 
   bool has_language_code = (flags & USER_FLAG_HAS_LANGUAGE_CODE) != 0;
-  LOG_IF(ERROR, has_language_code && !td_->auth_manager_->is_bot()) << "Receive language code";
+  LOG_IF(ERROR, has_language_code && !td_->auth_manager_->is_bot()) << "Receive language code from " << source;
   if (u->language_code != user->lang_code_ && !user->lang_code_.empty()) {
     u->language_code = user->lang_code_;
 
@@ -5443,7 +5446,7 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, 777000, 1, "Telegram", "Updates", string(), "42777", std::move(profile_photo), nullptr, 0,
         string(), string(), string());
-    on_get_user(std::move(user));
+    on_get_user(std::move(user), "get_user_force");
     u = get_user(user_id);
     CHECK(u != nullptr && u->is_received);
   }
@@ -6421,9 +6424,9 @@ void ContactsManager::update_channel_full(ChannelFull *channel_full, ChannelId c
   }
 }
 
-void ContactsManager::on_get_users(vector<tl_object_ptr<telegram_api::User>> &&users) {
+void ContactsManager::on_get_users(vector<tl_object_ptr<telegram_api::User>> &&users, const char *source) {
   for (auto &user : users) {
-    on_get_user(std::move(user));
+    on_get_user(std::move(user), source);
   }
 }
 
@@ -6434,7 +6437,7 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
     return;
   }
 
-  on_get_user(std::move(user_full->user_));
+  on_get_user(std::move(user_full->user_), "on_get_user_full");
   const User *u = get_user(user_id);
   if (u == nullptr) {
     return;
@@ -6572,23 +6575,23 @@ bool ContactsManager::on_update_user_full_bot_info(UserFull *user_full, UserId u
   return true;
 }
 
-void ContactsManager::on_get_chat(tl_object_ptr<telegram_api::Chat> &&chat) {
-  LOG(DEBUG) << "Receive " << to_string(chat);
-  downcast_call(*chat, [this](auto &c) { this->on_chat_update(c); });
+void ContactsManager::on_get_chat(tl_object_ptr<telegram_api::Chat> &&chat, const char *source) {
+  LOG(DEBUG) << "Receive from " << source << ' ' << to_string(chat);
+  downcast_call(*chat, [this, source](auto &c) { this->on_chat_update(c, source); });
 }
 
-void ContactsManager::on_get_chats(vector<tl_object_ptr<telegram_api::Chat>> &&chats) {
+void ContactsManager::on_get_chats(vector<tl_object_ptr<telegram_api::Chat>> &&chats, const char *source) {
   for (auto &chat : chats) {
     auto constuctor_id = chat->get_id();
     if (constuctor_id == telegram_api::channel::ID || constuctor_id == telegram_api::channelForbidden::ID) {
       // apply info about megagroups before corresponding chats
-      on_get_chat(std::move(chat));
+      on_get_chat(std::move(chat), source);
       chat = nullptr;
     }
   }
   for (auto &chat : chats) {
     if (chat != nullptr) {
-      on_get_chat(std::move(chat));
+      on_get_chat(std::move(chat), source);
       chat = nullptr;
     }
   }
@@ -7256,7 +7259,7 @@ bool ContactsManager::on_get_channel_error(ChannelId channel_id, const Status &s
       }
       telegram_api::channelForbidden update(flags, false /*ignored*/, false /*ignored*/, channel_id.get(),
                                             c->access_hash, c->title, 0);
-      on_chat_update(update);
+      on_chat_update(update, "CHANNEL_PRIVATE");
     } else if (!c->username.empty()) {
       LOG(INFO) << "Drop username of " << channel_id;
       on_update_channel_username(c, channel_id, "");
@@ -7476,7 +7479,7 @@ void ContactsManager::on_get_dialog_invite_link_info(const string &invite_link,
         LOG(ERROR) << "Receive invalid " << channel_id;
         channel_id = ChannelId();
       }
-      on_get_chat(std::move(chat_invite_already->chat_));
+      on_get_chat(std::move(chat_invite_already->chat_), "chatInviteAlready");
 
       CHECK(chat_id == ChatId() || channel_id == ChannelId());
       invite_link_info->chat_id = chat_id;
@@ -7503,7 +7506,7 @@ void ContactsManager::on_get_dialog_invite_link_info(const string &invite_link,
         if (!user_id.is_valid()) {
           LOG(ERROR) << "Receive invalid " << user_id;
         } else {
-          on_get_user(std::move(user));
+          on_get_user(std::move(user), "chatInvite");
         }
         invite_link_info->participant_user_ids.push_back(user_id);
       }
@@ -9305,30 +9308,30 @@ void ContactsManager::reload_dialog_administrators(DialogId dialog_id, int32 has
   }
 }
 
-void ContactsManager::on_chat_update(telegram_api::chatEmpty &chat) {
+void ContactsManager::on_chat_update(telegram_api::chatEmpty &chat, const char *source) {
   ChatId chat_id(chat.id_);
   if (!chat_id.is_valid()) {
-    LOG(ERROR) << "Receive invalid " << chat_id;
+    LOG(ERROR) << "Receive invalid " << chat_id << " from " << source;
     return;
   }
 
   if (!have_chat(chat_id)) {
-    LOG(ERROR) << "Have no information about " << chat_id << " but received chatEmpty";
+    LOG(ERROR) << "Have no information about " << chat_id << " but received chatEmpty from " << source;
   }
 }
 
-void ContactsManager::on_chat_update(telegram_api::chat &chat) {
-  auto debug_str = oneline(to_string(chat));
+void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *source) {
+  auto debug_str = PSTRING() << " from " << source << " in " << oneline(to_string(chat));
   ChatId chat_id(chat.id_);
   if (!chat_id.is_valid()) {
-    LOG(ERROR) << "Receive invalid " << chat_id << " in " << debug_str;
+    LOG(ERROR) << "Receive invalid " << chat_id << debug_str;
     return;
   }
 
   bool has_left = 0 != (chat.flags_ & CHAT_FLAG_USER_HAS_LEFT);
   bool was_kicked = 0 != (chat.flags_ & CHAT_FLAG_USER_WAS_KICKED);
   if (was_kicked) {
-    LOG_IF(ERROR, has_left) << "Kicked and left in " << debug_str;  // only one of the flags can be set
+    LOG_IF(ERROR, has_left) << "Kicked and left" << debug_str;  // only one of the flags can be set
     has_left = true;
   }
 
@@ -9342,7 +9345,7 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat) {
   if (chat.flags_ & CHAT_FLAG_WAS_MIGRATED) {
     switch (chat.migrated_to_->get_id()) {
       case telegram_api::inputChannelEmpty::ID: {
-        LOG(ERROR) << "Receive empty upgraded to supergroup for " << chat_id << " in " << debug_str;
+        LOG(ERROR) << "Receive empty upgraded to supergroup for " << chat_id << debug_str;
         break;
       }
       case telegram_api::inputChannel::ID: {
@@ -9350,7 +9353,7 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat) {
         migrated_to_channel_id = ChannelId(input_channel->channel_id_);
         if (!have_channel(migrated_to_channel_id)) {
           if (!migrated_to_channel_id.is_valid()) {
-            LOG(ERROR) << "Receive invalid " << migrated_to_channel_id << " in " << debug_str;
+            LOG(ERROR) << "Receive invalid " << migrated_to_channel_id << debug_str;
           } else {
             // temporarily create the channel
             Channel *c = add_channel(migrated_to_channel_id, "on_chat_update");
@@ -9379,7 +9382,7 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat) {
     on_update_chat_participant_count(c, chat_id, chat.participants_count_, chat.version_, debug_str);
   }
   if (c->date != chat.date_) {
-    LOG_IF(ERROR, c->date != 0) << "Chat creation date has changed from " << c->date << " to " << chat.date_ << " in "
+    LOG_IF(ERROR, c->date != 0) << "Chat creation date has changed from " << c->date << " to " << chat.date_
                                 << debug_str;
     c->date = chat.date_;
     c->is_changed = true;
@@ -9393,10 +9396,10 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat) {
   update_chat(c, chat_id);
 }
 
-void ContactsManager::on_chat_update(telegram_api::chatForbidden &chat) {
+void ContactsManager::on_chat_update(telegram_api::chatForbidden &chat, const char *source) {
   ChatId chat_id(chat.id_);
   if (!chat_id.is_valid()) {
-    LOG(ERROR) << "Receive invalid " << chat_id;
+    LOG(ERROR) << "Receive invalid " << chat_id << " from " << source;
     return;
   }
 
@@ -9421,16 +9424,16 @@ void ContactsManager::on_chat_update(telegram_api::chatForbidden &chat) {
   update_chat(c, chat_id);
 }
 
-void ContactsManager::on_chat_update(telegram_api::channel &channel) {
+void ContactsManager::on_chat_update(telegram_api::channel &channel, const char *source) {
   ChannelId channel_id(channel.id_);
   if (!channel_id.is_valid()) {
-    LOG(ERROR) << "Receive invalid " << channel_id << ": " << to_string(channel);
+    LOG(ERROR) << "Receive invalid " << channel_id << " from " << source << ": " << to_string(channel);
     return;
   }
 
   if (channel.flags_ == 0 && channel.access_hash_ == 0 && channel.title_.empty()) {
     Channel *c = get_channel_force(channel_id);
-    LOG(ERROR) << "Receive empty " << to_string(channel) << ", have "
+    LOG(ERROR) << "Receive empty " << to_string(channel) << " from " << source << ", have "
                << to_string(get_supergroup_object(channel_id, c));
     if (c == nullptr) {
       min_channels_.insert(channel_id);
@@ -9453,17 +9456,17 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel) {
   {
     bool is_broadcast = (channel.flags_ & CHANNEL_FLAG_IS_BROADCAST) != 0;
     LOG_IF(ERROR, is_broadcast == is_megagroup)
-        << "Receive wrong channel flag is_broadcast == is_megagroup == " << is_megagroup << ": "
+        << "Receive wrong channel flag is_broadcast == is_megagroup == " << is_megagroup << " from " << source << ": "
         << oneline(to_string(channel));
   }
 
   if (!is_megagroup && anyone_can_invite) {
-    LOG(ERROR) << "Anyone can invite new members to the " << channel_id;
+    LOG(ERROR) << "Anyone can invite new members to the " << channel_id << " from " << source;
     anyone_can_invite = false;
   }
 
   if (is_megagroup) {
-    LOG_IF(ERROR, sign_messages) << "Need to sign messages in the supergroup " << channel_id;
+    LOG_IF(ERROR, sign_messages) << "Need to sign messages in the supergroup " << channel_id << " from " << source;
     sign_messages = true;
   }
 
@@ -9510,7 +9513,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel) {
     return;
   }
   if (!has_access_hash) {
-    LOG(ERROR) << "Receive non-min " << channel_id << " without access_hash";
+    LOG(ERROR) << "Receive non-min " << channel_id << " without access_hash from " << source;
     return;
   }
 
@@ -9551,16 +9554,16 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel) {
   update_channel(c, channel_id);
 }
 
-void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel) {
+void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, const char *source) {
   ChannelId channel_id(channel.id_);
   if (!channel_id.is_valid()) {
-    LOG(ERROR) << "Receive invalid " << channel_id << ": " << to_string(channel);
+    LOG(ERROR) << "Receive invalid " << channel_id << " from " << source << ": " << to_string(channel);
     return;
   }
 
   if (channel.flags_ == 0 && channel.access_hash_ == 0 && channel.title_.empty()) {
     Channel *c = get_channel_force(channel_id);
-    LOG(ERROR) << "Receive empty " << to_string(channel) << ", have "
+    LOG(ERROR) << "Receive empty " << to_string(channel) << " from " << source << ", have "
                << to_string(get_supergroup_object(channel_id, c));
     if (c == nullptr) {
       min_channels_.insert(channel_id);
@@ -9595,7 +9598,7 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel) {
   {
     bool is_broadcast = (channel.flags_ & CHANNEL_FLAG_IS_BROADCAST) != 0;
     LOG_IF(ERROR, is_broadcast == is_megagroup)
-        << "Receive wrong channel flag is_broadcast == is_megagroup == " << is_megagroup << ": "
+        << "Receive wrong channel flag is_broadcast == is_megagroup == " << is_megagroup << " from " << source << ": "
         << oneline(to_string(channel));
   }
 
