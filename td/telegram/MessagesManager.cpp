@@ -12795,6 +12795,10 @@ void MessagesManager::open_dialog(Dialog *d) {
   LOG(INFO) << "Cancel unload timeout for " << d->dialog_id;
   pending_unload_dialog_timeout_.cancel_timeout(d->dialog_id.get());
 
+  if (d->new_secret_chat_notification_id.is_valid()) {
+    remove_new_secret_chat_notification(d, true);
+  }
+
   switch (d->dialog_id.get_type()) {
     case DialogType::User:
       break;
