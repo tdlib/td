@@ -7668,6 +7668,8 @@ void MessagesManager::unload_dialog(DialogId dialog_id) {
 
 void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dialog_list, bool is_permanent) {
   CHECK(d != nullptr);
+  LOG(INFO) << "Delete all messages in " << d->dialog_id
+            << " with remove_from_dialog_list = " << remove_from_dialog_list << " and is_permanent = " << is_permanent;
   if (is_debug_message_op_enabled()) {
     d->debug_message_op.emplace_back(Dialog::MessageOp::DeleteAll, MessageId(), MessageContentType::None,
                                      remove_from_dialog_list, false, false, "");
@@ -22433,7 +22435,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
 
   LOG(INFO) << "Loaded " << dialog_id << " with last new " << d->last_new_message_id << ", first database "
             << d->first_database_message_id << ", last database " << d->last_database_message_id << ", last "
-            << d->last_message_id;
+            << d->last_message_id << " with order " << d->order << " and pinned order " << d->pinned_order;
 }
 
 void MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Message> &&last_database_message) {
