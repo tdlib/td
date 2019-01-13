@@ -21575,8 +21575,10 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
         // last notification is deleted, need to find new last notification
         fix_dialog_last_notification_id(d, from_mentions, m->message_id);
       }
-      send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification, group_info.group_id,
-                         m->notification_id, true, Promise<Unit>());
+      if (is_message_notification_active(d, m)) {
+        send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification, group_info.group_id,
+                           m->notification_id, true, Promise<Unit>());
+      }
     }
   }
 
