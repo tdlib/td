@@ -7007,8 +7007,10 @@ td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getLangua
 
 td_api::object_ptr<td_api::Object> Td::do_static_request(const td_api::getPushReceiverId &request) {
   // don't check push payload UTF-8 correctness
-  auto r_push_receiver_id = NotificationManager::get_push_receiver_id(std::move(request.payload_));
+  auto r_push_receiver_id = NotificationManager::get_push_receiver_id(request.payload_);
   if (r_push_receiver_id.is_error()) {
+    VLOG(notifications) << "Failed to get push notification receiver from \"" << format::escaped(request.payload_)
+                        << '"';
     return make_error(r_push_receiver_id.error().code(), r_push_receiver_id.error().message());
   }
   return td_api::make_object<td_api::pushReceiverId>(r_push_receiver_id.ok());

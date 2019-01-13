@@ -2074,7 +2074,6 @@ void NotificationManager::process_push_notification(string payload, Promise<Unit
 }
 
 Result<int64> NotificationManager::get_push_receiver_id(string payload) {
-  VLOG(notifications) << "Get push notification receiver ID of \"" << format::escaped(payload) << '"';
   auto r_json_value = json_decode(payload);
   if (r_json_value.is_error()) {
     return Status::Error(400, "Failed to parse payload as JSON object");
@@ -2096,6 +2095,21 @@ Result<int64> NotificationManager::get_push_receiver_id(string payload) {
         return Status::Error(400, "Encrypted payload is too small");
       }
       return as<int64>(data.data());
+    }
+    if (field_value.first == "user_id") {
+      auto user_id = std::move(field_value.second);
+      if (user_id.type() != JsonValue::Type::String && user_id.type() != JsonValue::Type::Number) {
+        return Status::Error(400, "Expected user_id as a String or a Number");
+      }
+      Slice user_id_str = user_id.type() == JsonValue::Type::String ? user_id.get_string() : user_id.get_number();
+      auto r_user_id = to_integer_safe<int32>(user_id_str);
+      if (r_user_id.is_error()) {
+        return Status::Error(400, PSLICE() << "Failed to get user_id from " << user_id_str);
+      }
+      if (r_user_id.ok() <= 0) {
+        return Status::Error(400, PSLICE() << "Receive wrong user_id " << user_id_str);
+      }
+      return static_cast<int64>(r_user_id.ok());
     }
   }
 
