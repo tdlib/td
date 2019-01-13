@@ -815,8 +815,8 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
     stmt.bind_int64(2, from_message_id).ensure();
     stmt.bind_int32(3, limit).ensure();
 
-    LOG(INFO) << "Load " << limit << " messages in " << DialogId(dialog_id) << " from " << MessageId(from_message_id)
-              << " from database";
+    LOG(INFO) << "Begin to load " << limit << " messages in " << DialogId(dialog_id) << " from "
+              << MessageId(from_message_id) << " from database";
     std::vector<BufferSlice> result;
     stmt.step().ensure();
     while (stmt.has_row()) {

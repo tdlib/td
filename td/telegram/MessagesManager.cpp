@@ -13128,8 +13128,9 @@ tl_object_ptr<td_api::messages> MessagesManager::get_dialog_history(DialogId dia
     CHECK(offset == 0);
     preload_newer_messages(d, MessageId(messages[0]->id_));
     preload_older_messages(d, MessageId(messages.back()->id_));
-  } else if (messages.size() < static_cast<size_t>(limit) && left_tries != 0) {
-    // there can be more messages on the server, need to load them
+  } else if (messages.size() < static_cast<size_t>(limit) && left_tries != 0 &&
+             !(d->is_empty && d->have_full_history && left_tries < 3)) {
+    // there can be more messages in the database or on the server, need to load them
     if (from_the_end) {
       from_message_id = MessageId();
     }
