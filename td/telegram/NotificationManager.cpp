@@ -783,9 +783,17 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
       for (auto &notification_id : update_ptr->removed_notification_ids_) {
         added_notification_ids.erase(notification_id);
         edited_notification_ids.erase(notification_id);
-        bool is_inserted = removed_notification_ids.insert(notification_id).second;
-        CHECK(is_inserted);  // there must be no deletions after deletions
+        if (!removed_notification_ids.insert(notification_id).second) {
+          // sometimes there can be deletion of notification without previous addition, because the notification
+          // has already been deleted at the time of addition and get_notification_object_type was nullptr
+          VLOG(notifications) << "Remove duplicated deletion of " << notification_id;
+          notification_id = 0;
+        }
       }
+      update_ptr->removed_notification_ids_.erase(
+          std::remove_if(update_ptr->removed_notification_ids_.begin(), update_ptr->removed_notification_ids_.end(),
+                         [](auto &notification_id) { return notification_id == 0; }),
+          update_ptr->removed_notification_ids_.end());
     } else {
       CHECK(update->get_id() == td_api::updateNotification::ID);
       auto update_ptr = static_cast<td_api::updateNotification *>(update.get());

@@ -40,7 +40,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, NotificationSettingsSco
 StringBuilder &operator<<(StringBuilder &string_builder, const ScopeNotificationSettings &notification_settings) {
   return string_builder << "[" << notification_settings.mute_until << ", " << notification_settings.sound << ", "
                         << notification_settings.show_preview << ", " << notification_settings.is_synchronized << ", "
-                        << notification_settings.disable_pinned_message_notifications
+                        << notification_settings.disable_pinned_message_notifications << ", "
                         << notification_settings.disable_mention_notifications << "]";
 }
 
