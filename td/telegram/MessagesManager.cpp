@@ -6529,7 +6529,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
         on_dialog_updated(dialog_id, "set have_full_history");
       }
 
-      if (from_the_end && d->have_full_history) {
+      if (from_the_end && d->have_full_history && d->messages == nullptr && !d->last_database_message_id.is_valid()) {
         set_dialog_is_empty(d, "on_get_history empty");
       }
     }
@@ -9801,6 +9801,10 @@ void MessagesManager::set_dialog_is_empty(Dialog *d, const char *source) {
   if (d->pending_last_message_date != 0) {
     d->pending_last_message_date = 0;
     d->pending_last_message_id = MessageId();
+  }
+  if (d->last_database_message_id.is_valid()) {
+    set_dialog_first_database_message_id(d, MessageId(), "set_dialog_is_empty");
+    set_dialog_last_database_message_id(d, MessageId(), "set_dialog_is_empty");
   }
 
   update_dialog_pos(d, false, source);
@@ -22382,8 +22386,11 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       pending_add_dialog_last_database_message_[dialog_id] = {dependent_dialog_count, std::move(last_database_message)};
     }
   } else if (last_database_message_id.is_valid()) {
-    d->pending_last_message_date = DialogDate(order, dialog_id).get_date();
-    d->pending_last_message_id = last_database_message_id;
+    auto date = DialogDate(order, dialog_id).get_date();
+    if (date < MIN_PINNED_DIALOG_DATE) {
+      d->pending_last_message_date = date;
+      d->pending_last_message_id = last_database_message_id;
+    }
   }
 
   switch (dialog_id.get_type()) {
