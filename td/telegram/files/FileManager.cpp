@@ -161,6 +161,7 @@ void FileNode::set_remote_location(const RemoteFileLocation &remote, FileLocatio
 
 void FileNode::delete_file_reference(Slice file_reference) {
   if (remote_.type() == RemoteFileLocation::Type::Full && remote_.full().delete_file_reference(file_reference)) {
+    VLOG(file_references) << "Delete file reference of file " << main_file_id_;
     upload_may_update_file_reference_ = true;
     download_may_update_file_reference_ = true;
     on_pmc_changed();
@@ -259,6 +260,8 @@ void FileNode::add_file_source(FileSourceId file_source_id) {
   if (std::find(file_source_ids_.begin(), file_source_ids_.end(), file_source_id) != file_source_ids_.end()) {
     return;
   }
+
+  VLOG(file_references) << "Add " << file_source_id << " to file " << main_file_id_;
   upload_may_update_file_reference_ = true;
   download_may_update_file_reference_ = true;
   file_source_ids_.push_back(file_source_id);
@@ -269,6 +272,8 @@ void FileNode::remove_file_source(FileSourceId file_source_id) {
   if (it == file_source_ids_.end()) {
     return;
   }
+
+  VLOG(file_references) << "Remove " << file_source_id << " from file " << main_file_id_;
   file_source_ids_.erase(it);
 }
 
@@ -1760,7 +1765,7 @@ void FileManager::run_download(FileNodePtr node) {
 
   // If file reference is needed
   if (!file_view.has_active_remote_location()) {
-    LOG(INFO) << "run_download: Do not have valid file_reference for file " << file_id;
+    VLOG(file_references) << "run_download: Do not have valid file_reference for file " << file_id;
     QueryId id = queries_container_.create(Query{file_id, Query::DownloadWaitFileReferece});
     node->download_id_ = id;
     if (node->file_source_ids_.empty()) {
@@ -1782,7 +1787,8 @@ void FileManager::run_download(FileNodePtr node) {
                    } else {
                      error = res.move_as_error();
                    }
-                   LOG(INFO) << "run_download: Got result from FileSourceManager for file " << file_id << ": " << error;
+                   VLOG(file_references) << "run_download: Got result from FileSourceManager for file " << file_id
+                                         << ": " << error;
                    send_closure(actor_id, &FileManager::on_error, id, std::move(error));
                  }));
     return;
@@ -1885,11 +1891,12 @@ bool FileManager::delete_partial_remote_location(FileId file_id) {
   return true;
 }
 
-void FileManager::delete_file_reference(FileId file_id, std::string file_reference) {
-  LOG(INFO) << "Delete file reference to file " << file_id << " " << tag("reference", base64_encode(file_reference));
+void FileManager::delete_file_reference(FileId file_id, string file_reference) {
+  VLOG(file_references) << "Delete file reference of file " << file_id << " "
+                        << tag("reference", base64_encode(file_reference));
   auto node = get_sync_file_node(file_id);
   if (!node) {
-    LOG(INFO) << "Wrong file id " << file_id;
+    LOG(ERROR) << "Wrong file id " << file_id;
     return;
   }
   node->delete_file_reference(file_reference);

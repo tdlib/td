@@ -32,7 +32,7 @@
 
 namespace td {
 
-int VERBOSITY_NAME(notifications) = VERBOSITY_NAME(WARNING);
+int VERBOSITY_NAME(notifications) = VERBOSITY_NAME(INFO);
 
 NotificationManager::NotificationManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   flush_pending_notifications_timeout_.set_callback(on_flush_pending_notifications_timeout_callback);

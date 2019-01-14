@@ -66,6 +66,8 @@ class WebPagesManager : public Actor {
 
   WebPageId get_web_page_by_url(const string &url, Promise<Unit> &&promise);
 
+  void reload_web_page_by_url(const string &url, Promise<Unit> &&promise);
+
   void on_get_web_page_preview_success(int64 request_id, const string &url,
                                        tl_object_ptr<telegram_api::MessageMedia> &&message_media_ptr,
                                        Promise<Unit> &&promise);
@@ -209,8 +211,6 @@ class WebPagesManager : public Actor {
   static string get_web_page_url_database_key(const string &url);
 
   void load_web_page_by_url(const string &url, Promise<Unit> &&promise);
-
-  void reload_web_page_by_url(const string &url, Promise<Unit> &&promise);
 
   void on_load_web_page_id_by_url_from_database(const string &url, string value, Promise<Unit> &&promise);
 
