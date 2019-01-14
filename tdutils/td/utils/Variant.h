@@ -153,11 +153,11 @@ class Variant {
     return res;
   }
 
-  template <class T>
+  template <class T, std::enable_if_t<!std::is_same<std::decay_t<T>, Variant>::value, int> = 0>
   Variant(T &&t) {
     init_empty(std::forward<T>(t));
   }
-  template <class T>
+  template <class T, std::enable_if_t<!std::is_same<std::decay_t<T>, Variant>::value, int> = 0>
   Variant &operator=(T &&t) {
     clear();
     init_empty(std::forward<T>(t));
@@ -287,4 +287,5 @@ template <int T, class... Types>
 auto &get(const Variant<Types...> &v) {
   return v.template get<T>();
 }
+
 }  // namespace td
