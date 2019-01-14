@@ -1897,13 +1897,15 @@ class GetUserPhotosQuery : public Td::ResultHandler {
   explicit GetUserPhotosQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user, int32 offset, int32 limit) {
+  void send(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user, int32 offset, int32 limit,
+            int64 photo_id) {
     user_id_ = user_id;
     offset_ = offset;
     limit_ = limit;
-    LOG(INFO) << "Get " << user_id << " profile photos with offset " << offset << " and limit " << limit;
+    LOG(INFO) << "Get " << user_id << " profile photos with offset " << offset << " and limit " << limit
+              << " from photo " << photo_id;
     send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::photos_getUserPhotos(std::move(input_user), offset, 0, limit))));
+        create_storer(telegram_api::photos_getUserPhotos(std::move(input_user), offset, photo_id, limit))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -6473,8 +6475,8 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   } else {
     CHECK(photo_id == telegram_api::photo::ID);
 
-    //    Photo profile_photo =
-    //        get_photo(td_->file_manager_.get(), move_tl_object_as<telegram_api::photo>(user_full->profile_photo_));
+    //  Photo profile_photo =
+    //      get_photo(td_->file_manager_.get(), move_tl_object_as<telegram_api::photo>(user_full->profile_photo_));
   }
 
   if ((user_full->flags_ & USER_FULL_FLAG_HAS_BOT_INFO) != 0 && !u->is_deleted) {
@@ -6492,6 +6494,17 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
   }
   LOG_IF(ERROR, limit < photo_count) << "Requested not more than " << limit << " photos, but " << photo_count
                                      << " returned";
+
+  if (offset == -1) {
+    // from reload_user_profile_photo
+    CHECK(limit == 1);
+    for (auto &photo : photos) {
+      if (photo->get_id() == telegram_api::photo::ID) {
+        get_photo(td_->file_manager_.get(), telegram_api::move_object_as<telegram_api::photo>(photo), DialogId());
+      }
+    }
+    return;
+  }
 
   UserFull *user = &users_full_[user_id];
   user->photo_count = total_count;
@@ -6521,7 +6534,7 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
     CHECK(photo_id == telegram_api::photo::ID);
 
     user->photos.push_back(
-        get_photo(td_->file_manager_.get(), move_tl_object_as<telegram_api::photo>(photo), DialogId()));
+        get_photo(td_->file_manager_.get(), telegram_api::move_object_as<telegram_api::photo>(photo), DialogId()));
   }
 }
 
@@ -8454,8 +8467,19 @@ std::pair<int32, vector<const Photo *>> ContactsManager::get_user_profile_photos
     limit = MAX_GET_PROFILE_PHOTOS / 5;  // make limit reasonable
   }
 
-  td_->create_handler<GetUserPhotosQuery>(std::move(promise))->send(user_id, std::move(input_user), offset, limit);
+  td_->create_handler<GetUserPhotosQuery>(std::move(promise))->send(user_id, std::move(input_user), offset, limit, 0);
   return result;
+}
+
+void ContactsManager::reload_user_profile_photo(UserId user_id, int64 photo_id, Promise<Unit> &&promise) {
+  auto input_user = get_input_user(user_id);
+  if (input_user == nullptr) {
+    return promise.set_error(Status::Error(6, "User not found"));
+  }
+
+  // this request will be needed only to download the photo,
+  // so there is no reason to combine different requests for a photo into one request
+  td_->create_handler<GetUserPhotosQuery>(std::move(promise))->send(user_id, std::move(input_user), -1, 1, photo_id);
 }
 
 bool ContactsManager::have_chat(ChatId chat_id) const {

@@ -360,6 +360,7 @@ class ContactsManager : public Actor {
 
   std::pair<int32, vector<const Photo *>> get_user_profile_photos(UserId user_id, int32 offset, int32 limit,
                                                                   Promise<Unit> &&promise);
+  void reload_user_profile_photo(UserId user_id, int64 photo_id, Promise<Unit> &&promise);
 
   bool have_chat(ChatId chat_id) const;
   bool have_chat_force(ChatId chat_id);
