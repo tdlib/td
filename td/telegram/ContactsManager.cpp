@@ -8474,7 +8474,7 @@ std::pair<int32, vector<const Photo *>> ContactsManager::get_user_profile_photos
 void ContactsManager::reload_user_profile_photo(UserId user_id, int64 photo_id, Promise<Unit> &&promise) {
   auto input_user = get_input_user(user_id);
   if (input_user == nullptr) {
-    return promise.set_error(Status::Error(6, "User not found"));
+    return promise.set_error(Status::Error(6, "User info not found"));
   }
 
   // this request will be needed only to download the photo,
@@ -8533,6 +8533,16 @@ bool ContactsManager::get_chat(ChatId chat_id, int left_tries, Promise<Unit> &&p
 
   promise.set_value(Unit());
   return true;
+}
+
+void ContactsManager::reload_chat(ChatId chat_id, Promise<Unit> &&promise) {
+  if (!chat_id.is_valid()) {
+    return promise.set_error(Status::Error(6, "Invalid basic group id"));
+  }
+
+  // this request will be needed only to download the chat photo,
+  // so there is no reason to combine different requests into one request
+  td_->create_handler<GetChatsQuery>(std::move(promise))->send(vector<int32>{chat_id.get()});
 }
 
 const ContactsManager::ChatFull *ContactsManager::get_chat_full(ChatId chat_id) const {
@@ -8792,6 +8802,21 @@ bool ContactsManager::get_channel(ChannelId channel_id, int left_tries, Promise<
 
   promise.set_value(Unit());
   return true;
+}
+
+void ContactsManager::reload_channel(ChannelId channel_id, Promise<Unit> &&promise) {
+  if (!channel_id.is_valid()) {
+    return promise.set_error(Status::Error(6, "Invalid supergroup id"));
+  }
+
+  auto input_channel = get_input_channel(channel_id);
+  if (input_channel == nullptr) {
+    return promise.set_error(Status::Error(6, "Supergroup info not found"));
+  }
+
+  // this request will be needed only to download the channel photo,
+  // so there is no reason to combine different requests into one request
+  td_->create_handler<GetChannelsQuery>(std::move(promise))->send(std::move(input_channel));
 }
 
 const ContactsManager::ChannelFull *ContactsManager::get_channel_full(ChannelId channel_id) const {

@@ -365,6 +365,7 @@ class ContactsManager : public Actor {
   bool have_chat(ChatId chat_id) const;
   bool have_chat_force(ChatId chat_id);
   bool get_chat(ChatId chat_id, int left_tries, Promise<Unit> &&promise);
+  void reload_chat(ChatId chat_id, Promise<Unit> &&promise);
   bool get_chat_full(ChatId chat_id, Promise<Unit> &&promise);
 
   bool get_chat_is_active(ChatId chat_id) const;
@@ -375,6 +376,7 @@ class ContactsManager : public Actor {
   bool have_min_channel(ChannelId channel_id) const;
   bool have_channel_force(ChannelId channel_id);
   bool get_channel(ChannelId channel_id, int left_tries, Promise<Unit> &&promise);
+  void reload_channel(ChannelId chnanel_id, Promise<Unit> &&promise);
   bool get_channel_full(ChannelId channel_id, Promise<Unit> &&promise);
 
   bool have_secret_chat(SecretChatId secret_chat_id) const;
