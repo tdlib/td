@@ -159,10 +159,10 @@ Result<bool> FileDownloader::should_restart_part(Part part, NetQueryPtr &net_que
   switch (narrow_cast<QueryType>(UniqueId::extract_key(net_query->id()))) {
     case QueryType::Default: {
       if (net_query->ok_tl_constructor() == telegram_api::upload_fileCdnRedirect::ID) {
-        LOG(DEBUG) << part.id << " got REDIRECT";
         TRY_RESULT(file_base, fetch_result<telegram_api::upload_getFile>(net_query->ok()));
         CHECK(file_base->get_id() == telegram_api::upload_fileCdnRedirect::ID);
         auto file = move_tl_object_as<telegram_api::upload_fileCdnRedirect>(file_base);
+        LOG(DEBUG) << part.id << " got REDIRECT " << to_string(file);
 
         auto new_cdn_file_token = file->file_token_.as_slice();
         if (cdn_file_token_ == new_cdn_file_token) {
@@ -193,10 +193,10 @@ Result<bool> FileDownloader::should_restart_part(Part part, NetQueryPtr &net_que
     }
     case QueryType::CDN: {
       if (net_query->ok_tl_constructor() == telegram_api::upload_cdnFileReuploadNeeded::ID) {
-        LOG(DEBUG) << part.id << " got REUPLOAD";
         TRY_RESULT(file_base, fetch_result<telegram_api::upload_getCdnFile>(net_query->ok()));
         CHECK(file_base->get_id() == telegram_api::upload_cdnFileReuploadNeeded::ID);
         auto file = move_tl_object_as<telegram_api::upload_cdnFileReuploadNeeded>(file_base);
+        LOG(DEBUG) << part.id << " got REUPLOAD " << to_string(file);
         cdn_part_reupload_token_[part.id] = file->request_token_.as_slice().str();
         return true;
       }
@@ -284,7 +284,7 @@ Result<size_t> FileDownloader::process_part(Part part, NetQueryPtr net_query) {
         TRY_RESULT(file_base, fetch_result<telegram_api::upload_getFile>(net_query->ok()));
         CHECK(file_base->get_id() == telegram_api::upload_file::ID);
         auto file = move_tl_object_as<telegram_api::upload_file>(file_base);
-        LOG(DEBUG) << part.id << " upload_getFile result";
+        LOG(DEBUG) << part.id << " upload_getFile result " << to_string(file);
         bytes = std::move(file->bytes_);
       }
       break;
@@ -293,7 +293,7 @@ Result<size_t> FileDownloader::process_part(Part part, NetQueryPtr net_query) {
       TRY_RESULT(file_base, fetch_result<telegram_api::upload_getCdnFile>(net_query->ok()));
       CHECK(file_base->get_id() == telegram_api::upload_cdnFile::ID);
       auto file = move_tl_object_as<telegram_api::upload_cdnFile>(file_base);
-      LOG(DEBUG) << part.id << " upload_getCdnFile result";
+      LOG(DEBUG) << part.id << " upload_getCdnFile result " << to_string(file);
       bytes = std::move(file->bytes_);
       need_cdn_decrypt = true;
       break;
