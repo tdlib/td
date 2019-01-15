@@ -2006,17 +2006,17 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
   fix_entities(entities);
 
   bool in_entity = false;
-  bool has_non_space_in_entity = false;
+  bool has_non_whitespace_in_entity = false;
   size_t current_entity = 0;
   int32 skipped_before_current_entity = 0;
-  size_t left_entities = 0;  // will remove all entities containing spaces only
+  size_t left_entities = 0;  // will remove entities containing whitespaces only
 
   int32 utf16_offset = 0;
   int32 utf16_skipped = 0;
 
   size_t text_size = text.size();
-  size_t last_non_space_pos = text_size + 1;
-  int32 last_non_space_utf16_offset = 0;
+  size_t last_non_whitespace_pos = text_size + 1;
+  int32 last_non_whitespace_utf16_offset = 0;
 
   string result;
   result.reserve(text_size);
@@ -2036,7 +2036,7 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
           entities[current_entity].length -= utf16_skipped - skipped_before_current_entity;
           in_entity = false;
 
-          if (has_non_space_in_entity) {
+          if (has_non_whitespace_in_entity) {
             // TODO check entities for validness, for example, that mentions, hashtags, cashtags and URLs are valid
             if (current_entity != left_entities) {
               entities[left_entities] = std::move(entities[current_entity]);
@@ -2052,7 +2052,7 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
           return Status::Error(16, PSLICE() << "Entity begins in a middle of a UTF-16 symbol at byte offset " << pos);
         }
         in_entity = true;
-        has_non_space_in_entity = false;
+        has_non_whitespace_in_entity = false;
         skipped_before_current_entity = utf16_skipped;
       }
     }
@@ -2131,16 +2131,16 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
         result.push_back(text[pos]);
 
         if (c != '\n') {
-          has_non_space_in_entity = true;
-          last_non_space_pos = result.size();
-          last_non_space_utf16_offset = utf16_offset - utf16_skipped;
+          has_non_whitespace_in_entity = true;
+          last_non_whitespace_pos = result.size();
+          last_non_whitespace_utf16_offset = utf16_offset - utf16_skipped;
         }
         break;
     }
   }
   entities.erase(entities.begin() + left_entities, entities.end());
 
-  if (last_non_space_pos == text_size + 1) {
+  if (last_non_whitespace_pos == text_size + 1) {
     if (allow_empty) {
       text.clear();
       entities.clear();
@@ -2153,24 +2153,24 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
     text = std::move(result);
   } else {
     // rtrim
-    result.resize(last_non_space_pos);
+    result.resize(last_non_whitespace_pos);
     for (auto &entity : entities) {
-      if (entity.offset + entity.length > last_non_space_utf16_offset) {
-        entity.length = last_non_space_utf16_offset - entity.offset;
+      if (entity.offset + entity.length > last_non_whitespace_utf16_offset) {
+        entity.length = last_non_whitespace_utf16_offset - entity.offset;
         CHECK(entity.length > 0);
       }
     }
 
     // ltrim
-    size_t first_non_spaces_pos = 0;
+    size_t first_non_whitespaces_pos = 0;
     size_t first_entity_begin_pos = entities.empty() ? result.size() : entities[0].offset;
-    while (first_non_spaces_pos < first_entity_begin_pos &&
-           (result[first_non_spaces_pos] == ' ' || result[first_non_spaces_pos] == '\n')) {
-      first_non_spaces_pos++;
+    while (first_non_whitespaces_pos < first_entity_begin_pos &&
+           (result[first_non_whitespaces_pos] == ' ' || result[first_non_whitespaces_pos] == '\n')) {
+      first_non_whitespaces_pos++;
     }
-    if (first_non_spaces_pos > 0) {
-      int32 offset = narrow_cast<int32>(first_non_spaces_pos);
-      text = result.substr(first_non_spaces_pos);
+    if (first_non_whitespaces_pos > 0) {
+      int32 offset = narrow_cast<int32>(first_non_whitespaces_pos);
+      text = result.substr(first_non_whitespaces_pos);
       for (auto &entity : entities) {
         entity.offset -= offset;
         CHECK(entity.offset >= 0);
