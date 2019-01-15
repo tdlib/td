@@ -52,6 +52,7 @@ class TdDb;
 class TempAuthKeyWatchdog;
 class TopDialogManager;
 class UpdatesManager;
+class WallpaperManager;
 class WebPagesManager;
 }  // namespace td
 
@@ -240,6 +241,13 @@ class Global : public ActorContext {
     updates_manager_ = updates_manager;
   }
 
+  ActorId<WallpaperManager> wallpaper_manager() const {
+    return wallpaper_manager_;
+  }
+  void set_wallpaper_manager(ActorId<WallpaperManager> wallpaper_manager) {
+    wallpaper_manager_ = wallpaper_manager;
+  }
+
   ActorId<WebPagesManager> web_pages_manager() const {
     return web_pages_manager_;
   }
@@ -349,6 +357,7 @@ class Global : public ActorContext {
   ActorId<StorageManager> storage_manager_;
   ActorId<TopDialogManager> top_dialog_manager_;
   ActorId<UpdatesManager> updates_manager_;
+  ActorId<WallpaperManager> wallpaper_manager_;
   ActorId<WebPagesManager> web_pages_manager_;
   ActorOwn<ConnectionCreator> connection_creator_;
   ActorOwn<TempAuthKeyWatchdog> temp_auth_key_watchdog_;

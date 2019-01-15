@@ -433,6 +433,7 @@ set(TDLIB_SOURCE
   td/telegram/VideoNotesManager.cpp
   td/telegram/VideosManager.cpp
   td/telegram/VoiceNotesManager.cpp
+  td/telegram/WallpaperManager.cpp
   td/telegram/WebPagesManager.cpp
 
   td/mtproto/AuthData.h
@@ -582,6 +583,7 @@ set(TDLIB_SOURCE
   td/telegram/VideoNotesManager.h
   td/telegram/VideosManager.h
   td/telegram/VoiceNotesManager.h
+  td/telegram/WallpaperManager.h
   td/telegram/WebPageId.h
   td/telegram/WebPagesManager.h
 

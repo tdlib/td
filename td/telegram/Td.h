@@ -63,6 +63,7 @@ class UpdatesManager;
 class VideoNotesManager;
 class VideosManager;
 class VoiceNotesManager;
+class WallpaperManager;
 class WebPagesManager;
 
 }  // namespace td
@@ -149,6 +150,8 @@ class Td final : public NetQueryCallback {
   ActorOwn<StickersManager> stickers_manager_actor_;
   unique_ptr<UpdatesManager> updates_manager_;
   ActorOwn<UpdatesManager> updates_manager_actor_;
+  unique_ptr<WallpaperManager> wallpaper_manager_;
+  ActorOwn<WallpaperManager> wallpaper_manager_actor_;
   unique_ptr<WebPagesManager> web_pages_manager_;
   ActorOwn<WebPagesManager> web_pages_manager_actor_;
 

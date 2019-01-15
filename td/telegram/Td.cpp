@@ -67,6 +67,7 @@
 #include "td/telegram/VideoNotesManager.h"
 #include "td/telegram/VideosManager.h"
 #include "td/telegram/VoiceNotesManager.h"
+#include "td/telegram/WallpaperManager.h"
 #include "td/telegram/WebPageId.h"
 #include "td/telegram/WebPagesManager.h"
 
@@ -145,62 +146,6 @@ class GetNearestDcQuery : public Td::ResultHandler {
 
   void on_error(uint64 id, Status status) override {
     LOG(ERROR) << "GetNearestDc returned " << status;
-    promise_.set_error(std::move(status));
-  }
-};
-
-class GetWallpapersQuery : public Td::ResultHandler {
-  Promise<tl_object_ptr<td_api::wallpapers>> promise_;
-
- public:
-  explicit GetWallpapersQuery(Promise<tl_object_ptr<td_api::wallpapers>> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send() {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::account_getWallPapers())));
-  }
-
-  void on_result(uint64 id, BufferSlice packet) override {
-    auto result_ptr = fetch_result<telegram_api::account_getWallPapers>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
-    }
-
-    auto wallpapers = result_ptr.move_as_ok();
-
-    auto results = make_tl_object<td_api::wallpapers>();
-    results->wallpapers_.reserve(wallpapers.size());
-    for (auto &wallpaper_ptr : wallpapers) {
-      CHECK(wallpaper_ptr != nullptr);
-      switch (wallpaper_ptr->get_id()) {
-        case telegram_api::wallPaper::ID: {
-          auto wallpaper = move_tl_object_as<telegram_api::wallPaper>(wallpaper_ptr);
-          vector<tl_object_ptr<td_api::photoSize>> sizes;
-          sizes.reserve(wallpaper->sizes_.size());
-          for (auto &size_ptr : wallpaper->sizes_) {
-            auto photo_size = get_photo_size(td->file_manager_.get(), FileType::Wallpaper, 0, 0, DialogId(),
-                                             std::move(size_ptr), false);
-            sizes.push_back(get_photo_size_object(td->file_manager_.get(), &photo_size));
-          }
-          sort_photo_sizes(sizes);
-          results->wallpapers_.push_back(
-              make_tl_object<td_api::wallpaper>(wallpaper->id_, std::move(sizes), wallpaper->color_));
-          break;
-        }
-        case telegram_api::wallPaperSolid::ID: {
-          auto wallpaper = move_tl_object_as<telegram_api::wallPaperSolid>(wallpaper_ptr);
-          results->wallpapers_.push_back(make_tl_object<td_api::wallpaper>(
-              wallpaper->id_, vector<tl_object_ptr<td_api::photoSize>>(), wallpaper->bg_color_));
-          break;
-        }
-        default:
-          UNREACHABLE();
-      }
-    }
-    promise_.set_value(std::move(results));
-  }
-
-  void on_error(uint64 id, Status status) override {
     promise_.set_error(std::move(status));
   }
 };
@@ -2896,32 +2841,6 @@ class GetSupportUserRequest : public RequestActor<> {
   }
 };
 
-class GetWallpapersRequest : public RequestActor<tl_object_ptr<td_api::wallpapers>> {
-  tl_object_ptr<td_api::wallpapers> wallpapers_;
-
-  void do_run(Promise<tl_object_ptr<td_api::wallpapers>> &&promise) override {
-    if (get_tries() < 2) {
-      promise.set_value(std::move(wallpapers_));
-      return;
-    }
-
-    td->create_handler<GetWallpapersQuery>(std::move(promise))->send();
-  }
-
-  void do_set_result(tl_object_ptr<td_api::wallpapers> &&result) override {
-    wallpapers_ = std::move(result);
-  }
-
-  void do_send_result() override {
-    CHECK(wallpapers_ != nullptr);
-    send_result(std::move(wallpapers_));
-  }
-
- public:
-  GetWallpapersRequest(ActorShared<Td> td, uint64 request_id) : RequestActor(std::move(td), request_id) {
-  }
-};
-
 class GetRecentlyVisitedTMeUrlsRequest : public RequestActor<tl_object_ptr<td_api::tMeUrls>> {
   string referrer_;
 
@@ -3717,6 +3636,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "VideosManager was cleared " << timer;
       voice_notes_manager_.reset();
       LOG(DEBUG) << "VoiceNotesManager was cleared " << timer;
+      wallpaper_manager_.reset();
+      LOG(DEBUG) << "WallpaperManager was cleared " << timer;
       web_pages_manager_.reset();
       LOG(DEBUG) << "WebPagesManager was cleared " << timer;
       Promise<> promise = PromiseCreator::lambda([actor_id = create_reference()](Unit) mutable { actor_id.reset(); });
@@ -3882,6 +3803,8 @@ void Td::clear() {
   LOG(DEBUG) << "StickersManager actor was cleared " << timer;
   updates_manager_actor_.reset();
   LOG(DEBUG) << "UpdatesManager actor was cleared " << timer;
+  wallpaper_manager_actor_.reset();
+  LOG(DEBUG) << "WallpaperManager actor was cleared " << timer;
   web_pages_manager_actor_.reset();
   LOG(DEBUG) << "WebPagesManager actor was cleared " << timer;
 }
@@ -4165,6 +4088,9 @@ Status Td::init(DbKey key) {
   updates_manager_ = make_unique<UpdatesManager>(this, create_reference());
   updates_manager_actor_ = register_actor("UpdatesManager", updates_manager_.get());
   G()->set_updates_manager(updates_manager_actor_.get());
+  wallpaper_manager_ = make_unique<WallpaperManager>(this, create_reference());
+  wallpaper_manager_actor_ = register_actor("WallpaperManager", wallpaper_manager_.get());
+  G()->set_wallpaper_manager(wallpaper_manager_actor_.get());
   web_pages_manager_ = make_unique<WebPagesManager>(this, create_reference());
   web_pages_manager_actor_ = register_actor("WebPagesManager", web_pages_manager_.get());
   G()->set_web_pages_manager(web_pages_manager_actor_.get());
@@ -6721,7 +6647,8 @@ void Td::on_request(uint64 id, const td_api::getSupportUser &request) {
 
 void Td::on_request(uint64 id, const td_api::getWallpapers &request) {
   CHECK_IS_USER();
-  CREATE_NO_ARGS_REQUEST(GetWallpapersRequest);
+  CREATE_REQUEST_PROMISE();
+  send_closure(wallpaper_manager_actor_, &WallpaperManager::get_wallpapers, std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::getRecentlyVisitedTMeUrls &request) {
