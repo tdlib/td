@@ -529,3 +529,176 @@ TEST(MessageEntities, url) {
   check_url("👉http://ab.com/cdefgh-1IJ", {"http://ab.com/cdefgh-1IJ"});
   check_url("...👉http://ab.com/cdefgh-1IJ", {});  // TODO
 }
+
+static void check_fix_formatted_text(string str, vector<MessageEntity> entities, string expected_str,
+                                     vector<MessageEntity> expected_entities, bool allow_empty, bool skip_new_entities,
+                                     bool skip_bot_commands, bool for_draft) {
+  ASSERT_TRUE(fix_formatted_text(str, entities, allow_empty, skip_new_entities, skip_bot_commands, for_draft).is_ok());
+  ASSERT_STREQ(expected_str, str);
+  ASSERT_EQ(expected_entities, entities);
+}
+
+static void check_fix_formatted_text(string str, vector<MessageEntity> entities, bool allow_empty,
+                                     bool skip_new_entities, bool skip_bot_commands, bool for_draft) {
+  ASSERT_TRUE(
+      fix_formatted_text(str, entities, allow_empty, skip_new_entities, skip_bot_commands, for_draft).is_error());
+}
+
+TEST(MessageEntities, fix_formatted_text) {
+  string str;
+  string fixed_str;
+  for (auto i = 0; i <= 32; i++) {
+    str += static_cast<char>(i);
+    if (i != 13) {
+      if (i != 10) {
+        fixed_str += ' ';
+      } else {
+        fixed_str += str.back();
+      }
+    }
+  }
+
+  check_fix_formatted_text(str, {}, "", {}, true, true, true, true);
+  check_fix_formatted_text(str, {}, "", {}, true, true, false, true);
+  check_fix_formatted_text(str, {}, "", {}, true, false, true, true);
+  check_fix_formatted_text(str, {}, "", {}, true, false, false, true);
+  check_fix_formatted_text(str, {}, "", {}, true, false, false, false);
+  check_fix_formatted_text(str, {}, false, false, false, false);
+  check_fix_formatted_text(str, {}, false, false, false, true);
+
+  str += "a  \r\n  ";
+  fixed_str += "a  \n  ";
+
+  for (int32 i = 33; i <= 35; i++) {
+    vector<MessageEntity> entities;
+    entities.emplace_back(MessageEntity::Type::Bold, 0, i);
+
+    vector<MessageEntity> fixed_entities;
+    if (i != 33) {
+      fixed_entities = entities;
+      fixed_entities.back().length = i - 1;
+    }
+    check_fix_formatted_text(str, entities, fixed_str, fixed_entities, true, false, false, true);
+
+    string expected_str;
+    if (i != 33) {
+      fixed_entities = entities;
+      fixed_entities.back().length = 33;
+      expected_str = fixed_str.substr(0, 33);
+    } else {
+      fixed_entities.clear();
+      expected_str = "a";
+    }
+    check_fix_formatted_text(str, entities, expected_str, fixed_entities, false, false, false, false);
+  }
+
+  str = "👉 👉";
+  for (int i = 0; i < 10; i++) {
+    vector<MessageEntity> entities;
+    entities.emplace_back(MessageEntity::Type::Bold, i, 1);
+    if (i == 0 || i == 1 || i == 3 || i == 4) {
+      check_fix_formatted_text(str, entities, true, true, true, true);
+      check_fix_formatted_text(str, entities, false, false, false, false);
+    } else {
+      check_fix_formatted_text(str, entities, str, {}, true, true, true, true);
+      check_fix_formatted_text(str, entities, str, {}, false, false, false, false);
+    }
+  }
+
+  str = "  /test @abaca #ORD $ABC  telegram.org ";
+  for (auto for_draft : {false, true}) {
+    int32 shift = for_draft ? 2 : 0;
+    string expected_str = for_draft ? str : str.substr(2, str.size() - 3);
+
+    for (auto skip_new_entities : {false, true}) {
+      for (auto skip_bot_commands : {false, true}) {
+        vector<MessageEntity> entities;
+        if (!skip_new_entities) {
+          if (!skip_bot_commands) {
+            entities.emplace_back(MessageEntity::Type::BotCommand, shift, 5);
+          }
+          entities.emplace_back(MessageEntity::Type::Mention, shift + 6, 6);
+          entities.emplace_back(MessageEntity::Type::Hashtag, shift + 13, 4);
+          entities.emplace_back(MessageEntity::Type::Cashtag, shift + 18, 4);
+          entities.emplace_back(MessageEntity::Type::Url, shift + 24, 12);
+        }
+
+        check_fix_formatted_text(str, {}, expected_str, entities, true, skip_new_entities, skip_bot_commands,
+                                 for_draft);
+        check_fix_formatted_text(str, {}, expected_str, entities, false, skip_new_entities, skip_bot_commands,
+                                 for_draft);
+      }
+    }
+  }
+
+  str = "aba \r\n caba ";
+  for (int32 length = 1; length <= 3; length++) {
+    for (int32 offset = 0; static_cast<size_t>(offset + length) <= str.size(); offset++) {
+      for (auto type : {MessageEntity::Type::Bold, MessageEntity::Type::Url, MessageEntity::Type::TextUrl,
+                        MessageEntity::Type::MentionName}) {
+        for (auto for_draft : {false, true}) {
+          fixed_str = for_draft ? "aba \n caba " : "aba \n caba";
+          auto fixed_length = offset <= 4 && offset + length >= 5 ? length - 1 : length;
+          auto fixed_offset = offset >= 5 ? offset - 1 : offset;
+          if (static_cast<size_t>(fixed_offset) >= fixed_str.size()) {
+            fixed_length = 0;
+          }
+          while (static_cast<size_t>(fixed_offset + fixed_length) > fixed_str.size()) {
+            fixed_length--;
+          }
+
+          vector<MessageEntity> entities;
+          entities.emplace_back(type, offset, length);
+          vector<MessageEntity> fixed_entities;
+          if (fixed_length > 0) {
+            for (auto i = 0; i < length; i++) {
+              if (str[offset + i] != '\r' && str[offset + i] != '\n' &&
+                  (str[offset + i] != ' ' || type == MessageEntity::Type::TextUrl ||
+                   type == MessageEntity::Type::MentionName)) {
+                fixed_entities.emplace_back(type, fixed_offset, fixed_length);
+                break;
+              }
+            }
+          }
+          check_fix_formatted_text(str, entities, fixed_str, fixed_entities, true, false, false, for_draft);
+        }
+      }
+    }
+  }
+
+  str = "aba caba";
+  for (int32 length = -10; length <= 10; length++) {
+    for (int32 offset = -10; offset <= 10; offset++) {
+      vector<MessageEntity> entities;
+      entities.emplace_back(MessageEntity::Type::Bold, offset, length);
+      vector<MessageEntity> fixed_entities;
+      if (length > 0 && offset >= 0 && static_cast<size_t>(length + offset) <= str.size() &&
+          (length >= 2 || offset != 3)) {
+        fixed_entities.emplace_back(MessageEntity::Type::Bold, offset, length);
+      }
+      check_fix_formatted_text(str, entities, str, fixed_entities, true, false, false, false);
+      check_fix_formatted_text(str, entities, str, fixed_entities, false, false, false, true);
+    }
+  }
+
+  str = "aba caba";
+  for (int32 length = 1; length <= 7; length++) {
+    for (int32 offset = 0; offset <= 8 - length; offset++) {
+      for (int32 length2 = 1; length2 <= 7; length2++) {
+        for (int32 offset2 = 0; offset2 <= 8 - length2; offset2++) {
+          if (offset != offset2) {
+            vector<MessageEntity> entities;
+            entities.emplace_back(MessageEntity::Type::TextUrl, offset, length);
+            entities.emplace_back(MessageEntity::Type::TextUrl, offset2, length2);
+            vector<MessageEntity> fixed_entities = entities;
+            std::sort(fixed_entities.begin(), fixed_entities.end());
+            if (fixed_entities[0].offset + fixed_entities[0].length > fixed_entities[1].offset) {
+              fixed_entities.pop_back();
+            }
+            check_fix_formatted_text(str, entities, str, fixed_entities, false, false, false, false);
+          }
+        }
+      }
+    }
+  }
+}

@@ -2160,6 +2160,11 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
   } else {
     // rtrim
     result.resize(last_non_whitespace_pos);
+    while (!entities.empty() && entities.back().offset >= last_non_whitespace_utf16_offset) {
+      CHECK(entities.back().type == MessageEntity::Type::TextUrl ||
+            entities.back().type == MessageEntity::Type::MentionName);
+      entities.pop_back();
+    }
     for (auto &entity : entities) {
       if (entity.offset + entity.length > last_non_whitespace_utf16_offset) {
         entity.length = last_non_whitespace_utf16_offset - entity.offset;
