@@ -2006,7 +2006,8 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
   fix_entities(entities);
 
   bool in_entity = false;
-  bool has_non_whitespace_in_entity = false;
+  bool have_space_in_entity = false;
+  bool have_non_whitespace_in_entity = false;
   size_t current_entity = 0;
   int32 skipped_before_current_entity = 0;
   size_t left_entities = 0;  // will remove entities containing whitespaces only
@@ -2036,7 +2037,10 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
           entities[current_entity].length -= utf16_skipped - skipped_before_current_entity;
           in_entity = false;
 
-          if (has_non_whitespace_in_entity) {
+          auto entity_type = entities[current_entity].type;
+          auto have_hidden_data =
+              entity_type == MessageEntity::Type::TextUrl || entity_type == MessageEntity::Type::MentionName;
+          if (have_non_whitespace_in_entity || (have_space_in_entity && have_hidden_data)) {
             // TODO check entities for validness, for example, that mentions, hashtags, cashtags and URLs are valid
             if (current_entity != left_entities) {
               entities[left_entities] = std::move(entities[current_entity]);
@@ -2052,7 +2056,8 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
           return Status::Error(16, PSLICE() << "Entity begins in a middle of a UTF-16 symbol at byte offset " << pos);
         }
         in_entity = true;
-        has_non_whitespace_in_entity = false;
+        have_space_in_entity = false;
+        have_non_whitespace_in_entity = false;
         skipped_before_current_entity = utf16_skipped;
       }
     }
@@ -2095,6 +2100,7 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
       case 30:
       case 31:
       case 32:
+        have_space_in_entity = true;
         result.push_back(' ');
         utf16_offset++;
         break;
@@ -2131,7 +2137,7 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
         result.push_back(text[pos]);
 
         if (c != '\n') {
-          has_non_whitespace_in_entity = true;
+          have_non_whitespace_in_entity = true;
           last_non_whitespace_pos = result.size();
           last_non_whitespace_utf16_offset = utf16_offset - utf16_skipped;
         }
