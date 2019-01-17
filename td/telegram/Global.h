@@ -93,6 +93,7 @@ class Global : public ActorContext {
   void set_net_query_dispatcher(unique_ptr<NetQueryDispatcher> net_query_dispatcher);
 
   NetQueryDispatcher &net_query_dispatcher() {
+    CHECK(have_net_query_dispatcher());
     return *net_query_dispatcher_;
   }
 

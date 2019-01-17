@@ -13,12 +13,20 @@
 
 namespace td {
 
-ConfigShared::ConfigShared(std::shared_ptr<KeyValueSyncInterface> config_pmc, unique_ptr<Callback> callback)
-    : config_pmc_(std::move(config_pmc)), callback_(std::move(callback)) {
+ConfigShared::ConfigShared(std::shared_ptr<KeyValueSyncInterface> config_pmc) : config_pmc_(std::move(config_pmc)) {
+}
+
+void ConfigShared::set_callback(unique_ptr<Callback> callback) {
+  callback_ = std::move(callback);
+  if (callback_ == nullptr) {
+    return;
+  }
+
   for (auto key_value : config_pmc_->get_all()) {
     on_option_updated(key_value.first);
   }
 }
+
 void ConfigShared::set_option_boolean(Slice name, bool value) {
   if (set_option(name, value ? Slice("Btrue") : Slice("Bfalse"))) {
     on_option_updated(name);
@@ -134,7 +142,9 @@ tl_object_ptr<td_api::OptionValue> ConfigShared::get_option_value_object(Slice v
 }
 
 void ConfigShared::on_option_updated(Slice name) const {
-  callback_->on_option_updated(name.str(), get_option(name));
+  if (callback_ != nullptr) {
+    callback_->on_option_updated(name.str(), get_option(name));
+  }
 }
 
 }  // namespace td

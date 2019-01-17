@@ -594,7 +594,7 @@ class CliClient final : public Actor {
     // LOG(INFO) << "on_result [" << generation << "][id=" << id << "] " << as_json_str;
 
     if (generation != generation_) {
-      LOG(INFO) << "Drop unneded " << to_string(result);
+      LOG(INFO) << "Drop received from previous Client " << to_string(result);
       return;
     }
 
@@ -801,6 +801,8 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getOption>("use_pfs"));
       send_request(td_api::make_object<td_api::setOption>(
           "use_pfs", td_api::make_object<td_api::optionValueBoolean>(std::time(nullptr) / 86400 % 2 == 0)));
+      send_request(td_api::make_object<td_api::setOption>("notification_group_count_max",
+                                                          td_api::make_object<td_api::optionValueInteger>(1)));
       send_request(td_api::make_object<td_api::setOption>("use_storage_optimizer",
                                                           td_api::make_object<td_api::optionValueBoolean>(false)));
       send_request(
@@ -809,6 +811,11 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setNetworkType>(td_api::make_object<td_api::networkTypeWiFi>()));
       send_request(td_api::make_object<td_api::getNetworkStatistics>());
       send_request(td_api::make_object<td_api::getCountryCode>());
+      send_request(
+          td_api::make_object<td_api::addProxy>("1.1.1.1", 1111, true, td_api::make_object<td_api::proxyTypeSocks5>()));
+      send_request(td_api::make_object<td_api::addProxy>("1.1.1.1", 1112, false,
+                                                         td_api::make_object<td_api::proxyTypeSocks5>()));
+      send_request(td_api::make_object<td_api::pingProxy>(0));
 
       auto bad_parameters = td_api::make_object<td_api::tdlibParameters>();
       bad_parameters->database_directory_ = "/..";
@@ -3812,6 +3819,7 @@ void main(int argc, char **argv) {
 
   dump_memory_usage();
 }
+
 }  // namespace td
 
 int main(int argc, char **argv) {

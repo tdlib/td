@@ -3943,6 +3943,30 @@ Status Td::init(DbKey key) {
   G()->set_state_manager(state_manager_.get());
   connection_state_ = StateManager::State::Empty;
 
+  VLOG(td_init) << "Create ConfigShared";
+  G()->set_shared_config(td::make_unique<ConfigShared>(G()->td_db()->get_config_pmc_shared()));
+
+  if (G()->shared_config().have_option("language_database_path")) {
+    G()->shared_config().set_option_string("language_pack_database_path",
+                                           G()->shared_config().get_option_string("language_database_path"));
+    G()->shared_config().set_option_empty("language_database_path");
+  }
+  if (G()->shared_config().have_option("language_pack")) {
+    G()->shared_config().set_option_string("localization_target",
+                                           G()->shared_config().get_option_string("language_pack"));
+    G()->shared_config().set_option_empty("language_pack");
+  }
+  if (G()->shared_config().have_option("language_code")) {
+    G()->shared_config().set_option_string("language_pack_id", G()->shared_config().get_option_string("language_code"));
+    G()->shared_config().set_option_empty("language_code");
+  }
+  if (!G()->shared_config().have_option("message_text_length_max")) {
+    G()->shared_config().set_option_integer("message_text_length_max", 4096);
+  }
+  if (!G()->shared_config().have_option("message_caption_length_max")) {
+    G()->shared_config().set_option_integer("message_caption_length_max", 200);
+  }
+
   VLOG(td_init) << "Create ConnectionCreator";
   {
     auto connection_creator = create_actor<ConnectionCreator>("ConnectionCreator", create_reference());
@@ -3973,7 +3997,6 @@ Status Td::init(DbKey key) {
         case td_api::removeProxy::ID:
         case td_api::getProxies::ID:
         case td_api::getProxyLink::ID:
-        case td_api::pingProxy::ID:
           return true;
         default:
           return false;
@@ -3985,36 +4008,28 @@ Status Td::init(DbKey key) {
   auto temp_auth_key_watchdog = create_actor<TempAuthKeyWatchdog>("TempAuthKeyWatchdog");
   G()->set_temp_auth_key_watchdog(std::move(temp_auth_key_watchdog));
 
-  VLOG(td_init) << "Create ConfigManager and ConfigShared";
+  VLOG(td_init) << "Create ConfigManager";
+  config_manager_ = create_actor<ConfigManager>("ConfigManager", create_reference());
+  G()->set_config_manager(config_manager_.get());
+
+  VLOG(td_init) << "Set ConfigShared callback";
   class ConfigSharedCallback : public ConfigShared::Callback {
    public:
     void on_option_updated(const string &name, const string &value) const override {
       send_closure(G()->td(), &Td::on_config_option_updated, name);
     }
     ~ConfigSharedCallback() override {
-      LOG(INFO) << "Destroy ConfigShared";
+      LOG(INFO) << "Destroy ConfigSharedCallback";
     }
   };
-
-  G()->set_shared_config(
-      td::make_unique<ConfigShared>(G()->td_db()->get_config_pmc_shared(), make_unique<ConfigSharedCallback>()));
-  config_manager_ = create_actor<ConfigManager>("ConfigManager", create_reference());
-  G()->set_config_manager(config_manager_.get());
-
-  if (G()->shared_config().have_option("language_database_path")) {
-    G()->shared_config().set_option_string("language_pack_database_path",
-                                           G()->shared_config().get_option_string("language_database_path"));
-    G()->shared_config().set_option_empty("language_database_path");
-  }
-  if (G()->shared_config().have_option("language_pack")) {
-    G()->shared_config().set_option_string("localization_target",
-                                           G()->shared_config().get_option_string("language_pack"));
-    G()->shared_config().set_option_empty("language_pack");
-  }
-  if (G()->shared_config().have_option("language_code")) {
-    G()->shared_config().set_option_string("language_pack_id", G()->shared_config().get_option_string("language_code"));
-    G()->shared_config().set_option_empty("language_code");
-  }
+  // we need to set ConfigShared callback before td_api::getOption requests are processed for consistency
+  // TODO currently they will be inconsistent anyway, because td_api::getOption returns current value,
+  // but in td_api::updateOption there will be a newer value, obtained at the time of update creation
+  // so, there can be even two succesive updateOption with the same value
+  // we need to process td_api::getOption along with td_api::setOption for consistency
+  // we need to process td_api::setOption before managers and MTProto header are created,
+  // because their initialiation may be affected by the options
+  G()->shared_config().set_callback(make_unique<ConfigSharedCallback>());
 
   complete_pending_preauthentication_requests([](int32 id) {
     switch (id) {
@@ -4032,16 +4047,14 @@ Status Td::init(DbKey key) {
   // options_.proxy = Proxy();
   G()->set_mtproto_header(make_unique<MtprotoHeader>(options_));
 
-  if (!G()->shared_config().have_option("message_text_length_max")) {
-    G()->shared_config().set_option_integer("message_text_length_max", 4096);
-  }
-  if (!G()->shared_config().have_option("message_caption_length_max")) {
-    G()->shared_config().set_option_integer("message_caption_length_max", 200);
-  }
-
   VLOG(td_init) << "Create NetQueryDispatcher";
   auto net_query_dispatcher = make_unique<NetQueryDispatcher>([&] { return create_reference(); });
   G()->set_net_query_dispatcher(std::move(net_query_dispatcher));
+
+  complete_pending_preauthentication_requests([](int32 id) {
+    // pingProxy uses NetQueryDispatcher to get main_dc_id, so must be called after NetQueryDispatcher is created
+    return id == td_api::pingProxy::ID;
+  });
 
   VLOG(td_init) << "Create AuthManager";
   auth_manager_ = td::make_unique<AuthManager>(parameters_.api_id, parameters_.api_hash, create_reference());
@@ -4202,6 +4215,8 @@ Status Td::init(DbKey key) {
   }
 
   complete_pending_preauthentication_requests([](int32 id) { return true; });
+
+  VLOG(td_init) << "Finish initialization";
 
   state_ = State::Run;
   return Status::OK();

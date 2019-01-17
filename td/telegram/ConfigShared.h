@@ -25,11 +25,15 @@ class ConfigShared {
     Callback() = default;
     Callback(const Callback &) = delete;
     Callback &operator=(const Callback &) = delete;
+    Callback(Callback &&) = delete;
+    Callback &operator=(Callback &&) = delete;
     virtual ~Callback() = default;
     virtual void on_option_updated(const string &name, const string &value) const = 0;
   };
 
-  ConfigShared(std::shared_ptr<KeyValueSyncInterface> config_pmc, unique_ptr<Callback> callback);
+  explicit ConfigShared(std::shared_ptr<KeyValueSyncInterface> config_pmc);
+
+  void set_callback(unique_ptr<Callback> callback);
 
   void set_option_boolean(Slice name, bool value);
   void set_option_empty(Slice name);
