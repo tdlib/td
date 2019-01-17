@@ -369,6 +369,7 @@ static Status check_mtime(std::string &conversion, CSlice original_path) {
   auto r_stat = stat(original_path);
   uint64 actual_mtime = r_stat.is_ok() ? r_stat.ok().mtime_nsec_ : 0;
   if (expected_mtime == actual_mtime) {
+    LOG(DEBUG) << "File \"" << original_path << "\" modification time " << actual_mtime << " matches";
     return Status::OK();
   }
   return Status::Error(PSLICE() << "FILE_GENERATE_LOCATION_INVALID: File \"" << original_path

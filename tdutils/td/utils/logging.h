@@ -158,6 +158,9 @@ class LogInterface {
   }
   virtual void rotate() {
   }
+  virtual vector<string> get_file_paths() {
+    return {};
+  }
 };
 
 class NullLog : public LogInterface {
@@ -287,6 +290,12 @@ class TsLog : public LogInterface {
     enter_critical();
     log_->rotate();
     exit_critical();
+  }
+  vector<string> get_file_paths() override {
+    enter_critical();
+    auto result = log_->get_file_paths();
+    exit_critical();
+    return result;
   }
 
  private:

@@ -22,6 +22,8 @@ class FileLog : public LogInterface {
 
   Slice get_path() const;
 
+  vector<string> get_file_paths() override;
+
   void set_rotate_threshold(int64 rotate_threshold);
 
   int64 get_rotate_threshold() const;

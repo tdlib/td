@@ -22,6 +22,9 @@ Status FileLog::init(string path, int64 rotate_threshold) {
     set_rotate_threshold(rotate_threshold);
     return Status::OK();
   }
+  if (path.empty()) {
+    return Status::Error("Log file path can't be empty");
+  }
 
   TRY_RESULT(fd, FileFd::open(path, FileFd::Create | FileFd::Write | FileFd::Append));
 
@@ -31,7 +34,12 @@ Status FileLog::init(string path, int64 rotate_threshold) {
     fd_.get_native_fd().duplicate(Stderr().get_native_fd()).ignore();
   }
 
-  path_ = std::move(path);
+  auto r_path = realpath(path, true);
+  if (r_path.is_error()) {
+    path_ = std::move(path);
+  } else {
+    path_ = r_path.move_as_ok();
+  }
   size_ = fd_.get_size();
   rotate_threshold_ = rotate_threshold;
   return Status::OK();
@@ -39,6 +47,15 @@ Status FileLog::init(string path, int64 rotate_threshold) {
 
 Slice FileLog::get_path() const {
   return path_;
+}
+
+vector<string> FileLog::get_file_paths() {
+  vector<string> result;
+  if (!path_.empty()) {
+    result.push_back(path_);
+    result.push_back(PSTRING() << path_ << ".old");
+  }
+  return result;
 }
 
 void FileLog::set_rotate_threshold(int64 rotate_threshold) {
