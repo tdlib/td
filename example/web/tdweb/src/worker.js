@@ -404,6 +404,15 @@ class TdClient {
     this.client = this.td_functions.td_create();
 
     this.savingFiles = new Map();
+    this.send({
+      '@type': 'setOption',
+      name: 'language_pack_database_path'
+      value: {
+        '@type': 'optionValueString',
+         value: this.tdfs.dbFileSystem.root + '/language' 
+      }
+    });
+
     this.flushPendingQueries();
 
     this.receive();
@@ -430,6 +439,9 @@ class TdClient {
     if (query['@type'] === 'setTdlibParameters') {
       query.parameters.database_directory = this.tdfs.dbFileSystem.root;
       query.parameters.files_directory = this.tdfs.inboundFileSystem.root;
+    }
+    if (query['@type'] === 'getLanguagePackString') {
+      query.language_pack_database_path = this.tdfs.dbFileSystem.root + '/language';
     }
     return this.prepareQueryRecursive(query);
   }
