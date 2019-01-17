@@ -807,9 +807,12 @@ Result<FileId> FileManager::register_generate(FileType file_type, FileLocationSo
                                               int64 expected_size) {
   // add #mtime# into conversion
   if (!original_path.empty() && conversion[0] != '#' && PathView(original_path).is_absolute()) {
-    auto r_stat = stat(original_path);
-    uint64 mtime = r_stat.is_ok() ? r_stat.ok().mtime_nsec_ : 0;
-    conversion = PSTRING() << "#mtime#" << lpad0(to_string(mtime), 20) << '#' << conversion;
+    auto file_paths = log_interface->get_file_paths();
+    if (std::find(file_paths.begin(), file_paths.end(), original_path) == file_paths.end()) {
+      auto r_stat = stat(original_path);
+      uint64 mtime = r_stat.is_ok() ? r_stat.ok().mtime_nsec_ : 0;
+      conversion = PSTRING() << "#mtime#" << lpad0(to_string(mtime), 20) << '#' << conversion;
+    }
   }
 
   FileData data;
