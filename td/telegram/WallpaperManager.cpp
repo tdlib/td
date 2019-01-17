@@ -13,13 +13,15 @@
 #include "td/telegram/Photo.h"
 #include "td/telegram/Td.h"
 
+#include "td/utils/misc.h"
+
 namespace td {
 
 class GetWallpapersQuery : public Td::ResultHandler {
-  Promise<td_api::object_ptr<td_api::wallpapers>> promise_;
+  Promise<vector<telegram_api::object_ptr<telegram_api::WallPaper>>> promise_;
 
  public:
-  explicit GetWallpapersQuery(Promise<td_api::object_ptr<td_api::wallpapers>> &&promise)
+  explicit GetWallpapersQuery(Promise<vector<telegram_api::object_ptr<telegram_api::WallPaper>>> &&promise)
       : promise_(std::move(promise)) {
   }
 
@@ -33,38 +35,7 @@ class GetWallpapersQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    auto wallpapers = result_ptr.move_as_ok();
-
-    auto results = td_api::make_object<td_api::wallpapers>();
-    results->wallpapers_.reserve(wallpapers.size());
-    for (auto &wallpaper_ptr : wallpapers) {
-      CHECK(wallpaper_ptr != nullptr);
-      switch (wallpaper_ptr->get_id()) {
-        case telegram_api::wallPaper::ID: {
-          auto wallpaper = move_tl_object_as<telegram_api::wallPaper>(wallpaper_ptr);
-          vector<td_api::object_ptr<td_api::photoSize>> sizes;
-          sizes.reserve(wallpaper->sizes_.size());
-          for (auto &size_ptr : wallpaper->sizes_) {
-            auto photo_size = get_photo_size(td->file_manager_.get(), FileType::Wallpaper, 0, 0, DialogId(),
-                                             std::move(size_ptr), false);
-            sizes.push_back(get_photo_size_object(td->file_manager_.get(), &photo_size));
-          }
-          sort_photo_sizes(sizes);
-          results->wallpapers_.push_back(
-              td_api::make_object<td_api::wallpaper>(wallpaper->id_, std::move(sizes), wallpaper->color_));
-          break;
-        }
-        case telegram_api::wallPaperSolid::ID: {
-          auto wallpaper = move_tl_object_as<telegram_api::wallPaperSolid>(wallpaper_ptr);
-          results->wallpapers_.push_back(td_api::make_object<td_api::wallpaper>(
-              wallpaper->id_, vector<td_api::object_ptr<td_api::photoSize>>(), wallpaper->bg_color_));
-          break;
-        }
-        default:
-          UNREACHABLE();
-      }
-    }
-    promise_.set_value(std::move(results));
+    promise_.set_value(result_ptr.move_as_ok());
   }
 
   void on_error(uint64 id, Status status) override {
@@ -79,8 +50,70 @@ void WallpaperManager::tear_down() {
   parent_.reset();
 }
 
-void WallpaperManager::get_wallpapers(Promise<td_api::object_ptr<td_api::wallpapers>> &&promise) {
-  td_->create_handler<GetWallpapersQuery>(std::move(promise))->send();
+void WallpaperManager::get_wallpapers(Promise<Unit> &&promise) {
+  if (!wallpapers_.empty()) {
+    return promise.set_value(Unit());
+  }
+
+  pending_get_wallpapers_queries_.push_back(std::move(promise));
+  if (pending_get_wallpapers_queries_.size() == 1) {
+    auto request_promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this)](Result<vector<telegram_api::object_ptr<telegram_api::WallPaper>>> result) {
+          send_closure(actor_id, &WallpaperManager::on_get_wallpapers, std::move(result));
+        });
+
+    td_->create_handler<GetWallpapersQuery>(std::move(request_promise))->send();
+  }
+}
+
+void WallpaperManager::on_get_wallpapers(Result<vector<telegram_api::object_ptr<telegram_api::WallPaper>>> result) {
+  CHECK(wallpapers_.empty());
+
+  auto promises = std::move(pending_get_wallpapers_queries_);
+  CHECK(!promises.empty());
+  reset_to_empty(pending_get_wallpapers_queries_);
+
+  if (result.is_error()) {
+    auto error = result.move_as_error();
+    for (auto &promise : promises) {
+      promise.set_error(error.clone());
+    }
+    return;
+  }
+
+  wallpapers_ = transform(result.move_as_ok(), [file_manager = td_->file_manager_.get()](
+                                                   tl_object_ptr<telegram_api::WallPaper> &&wallpaper_ptr) {
+    CHECK(wallpaper_ptr != nullptr);
+    switch (wallpaper_ptr->get_id()) {
+      case telegram_api::wallPaper::ID: {
+        auto wallpaper = move_tl_object_as<telegram_api::wallPaper>(wallpaper_ptr);
+        vector<PhotoSize> sizes = transform(
+            std::move(wallpaper->sizes_), [file_manager](tl_object_ptr<telegram_api::PhotoSize> &&photo_size) {
+              return get_photo_size(file_manager, FileType::Wallpaper, 0, 0, DialogId(), std::move(photo_size), false);
+            });
+        return Wallpaper{wallpaper->id_, std::move(sizes), wallpaper->color_};
+      }
+      case telegram_api::wallPaperSolid::ID: {
+        auto wallpaper = move_tl_object_as<telegram_api::wallPaperSolid>(wallpaper_ptr);
+        return Wallpaper{wallpaper->id_, {}, wallpaper->bg_color_};
+      }
+      default:
+        UNREACHABLE();
+        return Wallpaper{0, {}, 0};
+    }
+  });
+
+  for (auto &promise : promises) {
+    promise.set_value(Unit());
+  }
+}
+
+td_api::object_ptr<td_api::wallpapers> WallpaperManager::get_wallpapers_object() const {
+  return td_api::make_object<td_api::wallpapers>(
+      transform(wallpapers_, [file_manager = td_->file_manager_.get()](const Wallpaper &wallpaper) {
+        return td_api::make_object<td_api::wallpaper>(
+            wallpaper.id, get_photo_sizes_object(file_manager, wallpaper.sizes), wallpaper.color);
+      }));
 }
 
 }  // namespace td

@@ -135,9 +135,9 @@ tl_object_ptr<td_api::profilePhoto> get_profile_photo_object(FileManager *file_m
   if (profile_photo == nullptr || !profile_photo->small_file_id.is_valid()) {
     return nullptr;
   }
-  return make_tl_object<td_api::profilePhoto>(profile_photo->id,
-                                              file_manager->get_file_object(profile_photo->small_file_id),
-                                              file_manager->get_file_object(profile_photo->big_file_id));
+  return td_api::make_object<td_api::profilePhoto>(profile_photo->id,
+                                                   file_manager->get_file_object(profile_photo->small_file_id),
+                                                   file_manager->get_file_object(profile_photo->big_file_id));
 }
 
 bool operator==(const ProfilePhoto &lhs, const ProfilePhoto &rhs) {
@@ -196,8 +196,8 @@ tl_object_ptr<td_api::chatPhoto> get_chat_photo_object(FileManager *file_manager
   if (dialog_photo == nullptr || !dialog_photo->small_file_id.is_valid()) {
     return nullptr;
   }
-  return make_tl_object<td_api::chatPhoto>(file_manager->get_file_object(dialog_photo->small_file_id),
-                                           file_manager->get_file_object(dialog_photo->big_file_id));
+  return td_api::make_object<td_api::chatPhoto>(file_manager->get_file_object(dialog_photo->small_file_id),
+                                                file_manager->get_file_object(dialog_photo->big_file_id));
 }
 
 bool operator==(const DialogPhoto &lhs, const DialogPhoto &rhs) {
@@ -379,13 +379,17 @@ tl_object_ptr<td_api::photoSize> get_photo_size_object(FileManager *file_manager
     return nullptr;
   }
 
-  return make_tl_object<td_api::photoSize>(
+  return td_api::make_object<td_api::photoSize>(
       photo_size->type ? std::string(1, static_cast<char>(photo_size->type))
                        : std::string(),  // TODO replace string type with integer type
       file_manager->get_file_object(photo_size->file_id), photo_size->dimensions.width, photo_size->dimensions.height);
 }
 
-void sort_photo_sizes(vector<td_api::object_ptr<td_api::photoSize>> &sizes) {
+vector<td_api::object_ptr<td_api::photoSize>> get_photo_sizes_object(FileManager *file_manager,
+                                                                     const vector<PhotoSize> &photo_sizes) {
+  auto sizes = transform(photo_sizes, [file_manager](const PhotoSize &photo_size) {
+    return get_photo_size_object(file_manager, &photo_size);
+  });
   std::sort(sizes.begin(), sizes.end(), [](const auto &lhs, const auto &rhs) {
     if (lhs->photo_->expected_size_ != rhs->photo_->expected_size_) {
       return lhs->photo_->expected_size_ < rhs->photo_->expected_size_;
@@ -393,6 +397,7 @@ void sort_photo_sizes(vector<td_api::object_ptr<td_api::photoSize>> &sizes) {
     return static_cast<uint32>(lhs->width_) * static_cast<uint32>(lhs->height_) <
            static_cast<uint32>(rhs->width_) * static_cast<uint32>(rhs->height_);
   });
+  return sizes;
 }
 
 bool operator==(const PhotoSize &lhs, const PhotoSize &rhs) {
@@ -488,12 +493,7 @@ tl_object_ptr<td_api::photo> get_photo_object(FileManager *file_manager, const P
     return nullptr;
   }
 
-  vector<td_api::object_ptr<td_api::photoSize>> photos;
-  for (auto &photo_size : photo->photos) {
-    photos.push_back(get_photo_size_object(file_manager, &photo_size));
-  }
-  sort_photo_sizes(photos);
-  return make_tl_object<td_api::photo>(photo->has_stickers, std::move(photos));
+  return td_api::make_object<td_api::photo>(photo->has_stickers, get_photo_sizes_object(file_manager, photo->photos));
 }
 
 tl_object_ptr<td_api::userProfilePhoto> get_user_profile_photo_object(FileManager *file_manager, const Photo *photo) {
@@ -501,12 +501,8 @@ tl_object_ptr<td_api::userProfilePhoto> get_user_profile_photo_object(FileManage
     return nullptr;
   }
 
-  vector<td_api::object_ptr<td_api::photoSize>> photos;
-  for (auto &photo_size : photo->photos) {
-    photos.push_back(get_photo_size_object(file_manager, &photo_size));
-  }
-  sort_photo_sizes(photos);
-  return make_tl_object<td_api::userProfilePhoto>(photo->id, photo->date, std::move(photos));
+  return td_api::make_object<td_api::userProfilePhoto>(photo->id, photo->date,
+                                                       get_photo_sizes_object(file_manager, photo->photos));
 }
 
 void photo_delete_thumbnail(Photo &photo) {

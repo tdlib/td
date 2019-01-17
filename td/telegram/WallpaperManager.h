@@ -6,10 +6,13 @@
 //
 #pragma once
 
+#include "td/telegram/Photo.h"
 #include "td/telegram/td_api.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
+
+#include "td/utils/Status.h"
 
 namespace td {
 
@@ -19,10 +22,26 @@ class WallpaperManager : public Actor {
  public:
   WallpaperManager(Td *td, ActorShared<> parent);
 
-  void get_wallpapers(Promise<td_api::object_ptr<td_api::wallpapers>> &&promise);
+  void get_wallpapers(Promise<> &&promise);
+
+  td_api::object_ptr<td_api::wallpapers> get_wallpapers_object() const;
 
  private:
   void tear_down() override;
+
+  void on_get_wallpapers(Result<vector<telegram_api::object_ptr<telegram_api::WallPaper>>> result);
+
+  struct Wallpaper {
+    int32 id = 0;
+    vector<PhotoSize> sizes;
+    int32 color = 0;
+
+    Wallpaper(int32 id, vector<PhotoSize> sizes, int32 color) : id(id), sizes(std::move(sizes)), color(color) {
+    }
+  };
+  vector<Wallpaper> wallpapers_;
+
+  vector<Promise<Unit>> pending_get_wallpapers_queries_;
 
   Td *td_;
   ActorShared<> parent_;

@@ -2841,6 +2841,20 @@ class GetSupportUserRequest : public RequestActor<> {
   }
 };
 
+class GetWallpapersRequest : public RequestOnceActor {
+  void do_run(Promise<Unit> &&promise) override {
+    td->wallpaper_manager_->get_wallpapers(std::move(promise));
+  }
+
+  void do_send_result() override {
+    send_result(td->wallpaper_manager_->get_wallpapers_object());
+  }
+
+ public:
+  GetWallpapersRequest(ActorShared<Td> td, uint64 request_id) : RequestOnceActor(std::move(td), request_id) {
+  }
+};
+
 class GetRecentlyVisitedTMeUrlsRequest : public RequestActor<tl_object_ptr<td_api::tMeUrls>> {
   string referrer_;
 
@@ -6647,8 +6661,7 @@ void Td::on_request(uint64 id, const td_api::getSupportUser &request) {
 
 void Td::on_request(uint64 id, const td_api::getWallpapers &request) {
   CHECK_IS_USER();
-  CREATE_REQUEST_PROMISE();
-  send_closure(wallpaper_manager_actor_, &WallpaperManager::get_wallpapers, std::move(promise));
+  CREATE_NO_ARGS_REQUEST(GetWallpapersRequest);
 }
 
 void Td::on_request(uint64 id, td_api::getRecentlyVisitedTMeUrls &request) {
