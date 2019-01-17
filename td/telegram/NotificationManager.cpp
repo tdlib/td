@@ -248,6 +248,18 @@ NotificationManager::NotificationGroups::iterator NotificationManager::get_group
     if (notification.date > group_key.last_notification_date) {
       group_key.last_notification_date = notification.date;
     }
+    if (notification.notification_id.get() > current_notification_id_.get()) {
+      LOG(ERROR) << "Fix current notification id from " << current_notification_id_ << " to "
+                 << notification.notification_id;
+      current_notification_id_ = notification.notification_id;
+      G()->td_db()->get_binlog_pmc()->set("notification_id_current", to_string(current_notification_id_.get()));
+    }
+  }
+  if (group_id.get() > current_notification_group_id_.get()) {
+    LOG(ERROR) << "Fix current notification group id from " << current_notification_group_id_ << " to " << group_id;
+    current_notification_group_id_ = group_id;
+    G()->td_db()->get_binlog_pmc()->set("notification_group_id_current",
+                                        to_string(current_notification_group_id_.get()));
   }
 
   NotificationGroup group;
