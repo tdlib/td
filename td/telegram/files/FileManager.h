@@ -81,9 +81,6 @@ class FileNode {
 
   void set_download_offset(int64 download_offset);
 
-  void add_file_source(FileSourceId file_source_id);
-  void remove_file_source(FileSourceId file_source_id);
-
   void on_changed();
   void on_info_changed();
   void on_pmc_changed();
@@ -109,8 +106,6 @@ class FileNode {
   RemoteFileLocation remote_;
   FileLoadManager::QueryId download_id_ = 0;
   int64 remote_ready_size_ = 0;
-
-  std::vector<FileSourceId> file_source_ids_;
 
   unique_ptr<FullGenerateFileLocation> generate_;
   FileLoadManager::QueryId generate_id_ = 0;
@@ -151,8 +146,8 @@ class FileNode {
   bool pmc_changed_flag_{false};
   bool info_changed_flag_{false};
 
-  bool upload_may_update_file_reference_{false};
-  bool download_may_update_file_reference_{false};
+  bool upload_was_update_file_reference_{false};
+  bool download_was_update_file_reference_{false};
 
   void init_ready_size();
 

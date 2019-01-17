@@ -162,8 +162,8 @@ void FileNode::set_remote_location(const RemoteFileLocation &remote, FileLocatio
 void FileNode::delete_file_reference(Slice file_reference) {
   if (remote_.type() == RemoteFileLocation::Type::Full && remote_.full().delete_file_reference(file_reference)) {
     VLOG(file_references) << "Delete file reference of file " << main_file_id_;
-    upload_may_update_file_reference_ = true;
-    download_may_update_file_reference_ = true;
+    upload_was_update_file_reference_ = false;
+    download_was_update_file_reference_ = false;
     on_pmc_changed();
   }
 }
@@ -254,27 +254,6 @@ void FileNode::set_generate_priority(int8 download_priority, int8 upload_priorit
   generate_priority_ = max(download_priority, upload_priority);
   generate_download_priority_ = download_priority;
   generate_upload_priority_ = upload_priority;
-}
-
-void FileNode::add_file_source(FileSourceId file_source_id) {
-  if (std::find(file_source_ids_.begin(), file_source_ids_.end(), file_source_id) != file_source_ids_.end()) {
-    return;
-  }
-
-  VLOG(file_references) << "Add " << file_source_id << " to file " << main_file_id_;
-  upload_may_update_file_reference_ = true;
-  download_may_update_file_reference_ = true;
-  file_source_ids_.push_back(file_source_id);
-}
-
-void FileNode::remove_file_source(FileSourceId file_source_id) {
-  auto it = std::find(file_source_ids_.begin(), file_source_ids_.end(), file_source_id);
-  if (it == file_source_ids_.end()) {
-    return;
-  }
-
-  VLOG(file_references) << "Remove " << file_source_id << " from file " << main_file_id_;
-  file_source_ids_.erase(it);
 }
 
 void FileNode::on_changed() {
@@ -1098,7 +1077,7 @@ void FileManager::cancel_download(FileNodePtr node) {
   send_closure(file_load_manager_, &FileLoadManager::cancel, node->download_id_);
   node->download_id_ = 0;
   node->is_download_started_ = false;
-  node->download_may_update_file_reference_ = !node->file_source_ids_.empty();
+  node->download_was_update_file_reference_ = false;
   node->set_download_priority(0);
 }
 
@@ -1108,7 +1087,7 @@ void FileManager::cancel_upload(FileNodePtr node) {
   }
   send_closure(file_load_manager_, &FileLoadManager::cancel, node->upload_id_);
   node->upload_id_ = 0;
-  node->upload_may_update_file_reference_ = !node->file_source_ids_.empty();
+  node->upload_was_update_file_reference_ = false;
   node->set_upload_priority(0);
 }
 
@@ -1223,9 +1202,11 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     node->set_local_location(other_node->local_, other_node->local_ready_size_, other_node->download_offset_,
                              other_node->local_ready_prefix_size_);
     node->download_id_ = other_node->download_id_;
+    node->download_was_update_file_reference_ = other_node->download_was_update_file_reference_;
     node->is_download_started_ |= other_node->is_download_started_;
     node->set_download_priority(other_node->download_priority_);
     other_node->download_id_ = 0;
+    other_node->download_was_update_file_reference_ = false;
     other_node->is_download_started_ = false;
     other_node->download_priority_ = 0;
     other_node->download_offset_ = 0;
@@ -1249,9 +1230,11 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     cancel_upload(node);
     node->set_remote_location(other_node->remote_, other_node->remote_source_, other_node->remote_ready_size_);
     node->upload_id_ = other_node->upload_id_;
+    node->upload_was_update_file_reference_ = other_node->upload_was_update_file_reference_;
     node->set_upload_priority(other_node->upload_priority_);
     node->set_upload_pause(other_node->upload_pause_);
     other_node->upload_id_ = 0;
+    other_node->upload_was_update_file_reference_ = false;
     other_node->upload_priority_ = 0;
     other_node->set_upload_pause(FileId());
   } else {
@@ -1297,13 +1280,15 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   }
   node->need_load_from_pmc_ |= other_node->need_load_from_pmc_;
   node->can_search_locally_ &= other_node->can_search_locally_;
-  for (auto source_id : other_node->file_source_ids_) {
-    node->add_file_source(source_id);
-  }
 
   if (main_file_id_i == other_node_i) {
+    send_closure(G()->file_reference_manager(), &FileReferenceManager::merge, other_node->main_file_id_,
+                 node->main_file_id_);
     node->main_file_id_ = other_node->main_file_id_;
     node->main_file_id_priority_ = other_node->main_file_id_priority_;
+  } else {
+    send_closure(G()->file_reference_manager(), &FileReferenceManager::merge, node->main_file_id_,
+                 other_node->main_file_id_);
   }
 
   bool send_updates_flag = false;
@@ -1365,7 +1350,9 @@ void FileManager::add_file_source(FileId file_id, FileSourceId file_source_id) {
   if (!node) {
     return;
   }
-  node->add_file_source(file_source_id);
+
+  send_closure(G()->file_reference_manager(), &FileReferenceManager::add_file_source, node->main_file_id_,
+               file_source_id);
 }
 
 void FileManager::remove_file_source(FileId file_id, FileSourceId file_source_id) {
@@ -1374,7 +1361,8 @@ void FileManager::remove_file_source(FileId file_id, FileSourceId file_source_id
   if (!node) {
     return;
   }
-  node->remove_file_source(file_source_id);
+  send_closure(G()->file_reference_manager(), &FileReferenceManager::remove_file_source, node->main_file_id_,
+               file_source_id);
 }
 
 void FileManager::try_flush_node_full(FileNodePtr node, bool new_remote, bool new_local, bool new_generate,
@@ -1761,25 +1749,20 @@ void FileManager::run_download(FileNodePtr node) {
 
   CHECK(node->download_id_ == 0);
   CHECK(!node->file_ids_.empty());
-  auto file_id = node->file_ids_.back();
+  auto file_id = node->main_file_id_;
 
   // If file reference is needed
   if (!file_view.has_active_remote_location()) {
     VLOG(file_references) << "run_download: Do not have valid file_reference for file " << file_id;
     QueryId id = queries_container_.create(Query{file_id, Query::DownloadWaitFileReferece});
     node->download_id_ = id;
-    if (node->file_source_ids_.empty()) {
-      on_error(id, Status::Error("Can't download file: have no valid file reference and no valid source id"));
-      return;
-    }
-    if (!node->download_may_update_file_reference_) {
+    if (node->download_was_update_file_reference_) {
       on_error(id, Status::Error("Can't download file: have valid source id, but do not allowed to use it"));
       return;
     }
-    node->download_may_update_file_reference_ = false;
+    node->download_was_update_file_reference_ = true;
 
     send_closure(G()->file_reference_manager(), &FileReferenceManager::update_file_reference, file_id,
-                 node->file_source_ids_,
                  PromiseCreator::lambda([id, actor_id = actor_id(this), file_id](Result<Unit> res) {
                    Status error;
                    if (res.is_ok()) {
@@ -2056,14 +2039,15 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
   CHECK(node->upload_id_ == 0);
   if (file_view.has_remote_location() && !file_view.has_active_remote_location() &&
       file_view.get_type() != FileType::Thumbnail && file_view.get_type() != FileType::EncryptedThumbnail &&
-      !node->file_source_ids_.empty() && node->upload_may_update_file_reference_) {
+      !node->upload_was_update_file_reference_) {
     QueryId id = queries_container_.create(Query{file_id, Query::UploadWaitFileReference});
     node->upload_id_ = id;
-    node->upload_may_update_file_reference_ = false;
+    node->upload_was_update_file_reference_ = true;
 
     send_closure(G()->file_reference_manager(), &FileReferenceManager::update_file_reference, file_id,
-                 node->file_source_ids_, PromiseCreator::lambda([id, actor_id = actor_id(this)](Result<Unit> res) {
-                   send_closure(actor_id, &FileManager::on_error, id, Status::Error("FILE_UPLOAD_RESTART"));
+                 PromiseCreator::lambda([id, actor_id = actor_id(this)](Result<Unit> res) {
+                   send_closure(actor_id, &FileManager::on_error, id,
+                                Status::Error("FILE_UPLOAD_RESTART_WITH_FILE_REFERENCE"));
                  }));
     return;
   }
@@ -2803,11 +2787,16 @@ void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type,
   }
 
   if (status.message() == "FILE_UPLOAD_RESTART") {
+    if (ends_with(status.message(), "WITH_FILE_REFERENCE")) {
+      node->upload_was_update_file_reference_ = true;
+    }
     run_upload(node, {});
     return;
   }
   if (begins_with(status.message(), "FILE_DOWNLOAD_RESTART")) {
-    if (!ends_with(status.message(), "WITH_FILE_REFERENCE")) {
+    if (ends_with(status.message(), "WITH_FILE_REFERENCE")) {
+      node->download_was_update_file_reference_ = true;
+    } else {
       node->can_search_locally_ = false;
     }
     run_download(node);
@@ -2863,12 +2852,14 @@ std::pair<FileManager::Query, bool> FileManager::finish_query(QueryId query_id) 
   }
   if (node->download_id_ == query_id) {
     node->download_id_ = 0;
+    node->download_was_update_file_reference_ = false;
     node->is_download_started_ = false;
     node->set_download_priority(0);
     was_active = true;
   }
   if (node->upload_id_ == query_id) {
     node->upload_id_ = 0;
+    node->upload_was_update_file_reference_ = false;
     node->set_upload_priority(0);
     was_active = true;
   }
