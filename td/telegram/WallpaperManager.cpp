@@ -55,6 +55,10 @@ void WallpaperManager::get_wallpapers(Promise<Unit> &&promise) {
     return promise.set_value(Unit());
   }
 
+  reload_wallpapers(std::move(promise));
+}
+
+void WallpaperManager::reload_wallpapers(Promise<Unit> &&promise) {
   pending_get_wallpapers_queries_.push_back(std::move(promise));
   if (pending_get_wallpapers_queries_.size() == 1) {
     auto request_promise = PromiseCreator::lambda(
@@ -67,13 +71,13 @@ void WallpaperManager::get_wallpapers(Promise<Unit> &&promise) {
 }
 
 void WallpaperManager::on_get_wallpapers(Result<vector<telegram_api::object_ptr<telegram_api::WallPaper>>> result) {
-  CHECK(wallpapers_.empty());
-
   auto promises = std::move(pending_get_wallpapers_queries_);
   CHECK(!promises.empty());
   reset_to_empty(pending_get_wallpapers_queries_);
 
   if (result.is_error()) {
+    // do not clear wallpapers_
+
     auto error = result.move_as_error();
     for (auto &promise : promises) {
       promise.set_error(error.clone());

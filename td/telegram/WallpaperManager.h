@@ -22,7 +22,9 @@ class WallpaperManager : public Actor {
  public:
   WallpaperManager(Td *td, ActorShared<> parent);
 
-  void get_wallpapers(Promise<> &&promise);
+  void get_wallpapers(Promise<Unit> &&promise);
+
+  void reload_wallpapers(Promise<Unit> &&promise);
 
   td_api::object_ptr<td_api::wallpapers> get_wallpapers_object() const;
 
