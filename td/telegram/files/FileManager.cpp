@@ -1365,6 +1365,10 @@ void FileManager::remove_file_source(FileId file_id, FileSourceId file_source_id
 
 void FileManager::change_files_source(FileSourceId file_source_id, const vector<FileId> &old_file_ids,
                                       const vector<FileId> &new_file_ids) {
+  if (old_file_ids == new_file_ids) {
+    return;
+  }
+
   auto old_main_file_ids = get_main_file_ids(old_file_ids);
   auto new_main_file_ids = get_main_file_ids(new_file_ids);
   for (auto file_id : old_main_file_ids) {

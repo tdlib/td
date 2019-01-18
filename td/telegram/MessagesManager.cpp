@@ -21046,13 +21046,19 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         const int32 INDEX_MASK_MASK = ~search_messages_filter_index_mask(SearchMessagesFilter::UnreadMention);
         auto old_index_mask = get_message_index_mask(dialog_id, v->get()) & INDEX_MASK_MASK;
         bool was_deleted = delete_active_live_location(dialog_id, v->get());
-        remove_message_file_sources(dialog_id, v->get());
+        auto old_file_ids = get_message_content_file_ids((*v)->content.get(), td_);
         update_message(d, *v, std::move(message), true, need_update_dialog_pos);
         auto new_index_mask = get_message_index_mask(dialog_id, v->get()) & INDEX_MASK_MASK;
         if (was_deleted) {
           try_add_active_live_location(dialog_id, v->get());
         }
-        add_message_file_sources(dialog_id, v->get());
+        auto new_file_ids = get_message_content_file_ids((*v)->content.get(), td_);
+        if (new_file_ids != old_file_ids) {
+          if (dialog_id.get_type() != DialogType::SecretChat && message_id.is_server()) {
+            auto file_source_id = get_message_file_source_id(FullMessageId(dialog_id, message_id));
+            td_->file_manager_->change_files_source(file_source_id, old_file_ids, new_file_ids);
+          }
+        }
         if (old_index_mask != new_index_mask) {
           update_message_count_by_index(d, -1, old_index_mask & ~new_index_mask);
           update_message_count_by_index(d, +1, new_index_mask & ~old_index_mask);
