@@ -25,10 +25,14 @@ namespace td {
 extern int VERBOSITY_NAME(file_references);
 
 class FileReferenceManager : public Actor {
-  struct Node;
-
  public:
   FileSourceId create_message_file_source(FullMessageId full_message_id);
+  FileSourceId create_user_photo_file_source(UserId user_id, int64 photo_id);
+  FileSourceId create_chat_photo_file_source(ChatId chat_id);
+  FileSourceId create_channel_photo_file_source(ChannelId channel_id);
+  FileSourceId create_wallpapers_file_source();
+  FileSourceId create_web_page_file_source(string url);
+  FileSourceId create_saved_animations_file_source();
 
   using NodeId = FileId;
   void update_file_reference(NodeId node_id, Promise<> promise);
@@ -83,13 +87,16 @@ class FileReferenceManager : public Actor {
                              FileSourceWallpapers, FileSourceWebPage, FileSourceSavedAnimations>;
   vector<FileSource> file_sources_;
 
-  int64 query_generation{0};
+  int64 query_generation_{0};
 
   std::unordered_map<NodeId, Node, FileIdHash> nodes_;
 
   void run_node(NodeId node);
   void send_query(Destination dest, FileSourceId file_source_id);
   Destination on_query_result(Destination dest, FileSourceId file_source_id, Status status, int32 sub = 0);
+
+  template <class T>
+  FileSourceId add_file_source_id(T source);
 
   FileSourceId get_current_file_source_id() const;
 };

@@ -38,11 +38,52 @@ FileSourceId FileReferenceManager::get_current_file_source_id() const {
   return FileSourceId(narrow_cast<int32>(file_sources_.size()));
 }
 
+template <class T>
+FileSourceId FileReferenceManager::add_file_source_id(T source) {
+  file_sources_.emplace_back(std::move(source));
+  return get_current_file_source_id();
+}
+
 FileSourceId FileReferenceManager::create_message_file_source(FullMessageId full_message_id) {
   VLOG(file_references) << "Create file source for " << full_message_id;
   FileSourceMessage source{full_message_id};
-  file_sources_.emplace_back(source);
-  return get_current_file_source_id();
+  return add_file_source_id(source);
+}
+
+FileSourceId FileReferenceManager::create_user_photo_file_source(UserId user_id, int64 photo_id) {
+  VLOG(file_references) << "Create file source for photo " << photo_id << " of " << user_id;
+  FileSourceUserPhoto source{photo_id, user_id};
+  return add_file_source_id(source);
+}
+
+FileSourceId FileReferenceManager::create_chat_photo_file_source(ChatId chat_id) {
+  VLOG(file_references) << "Create file source for photo of " << chat_id;
+  FileSourceChatPhoto source{chat_id};
+  return add_file_source_id(source);
+}
+
+FileSourceId FileReferenceManager::create_channel_photo_file_source(ChannelId channel_id) {
+  VLOG(file_references) << "Create file source for photo of " << channel_id;
+  FileSourceChannelPhoto source{channel_id};
+  return add_file_source_id(source);
+}
+
+FileSourceId FileReferenceManager::create_wallpapers_file_source() {
+  VLOG(file_references) << "Create file source for wallpapers";
+  FileSourceWebPage source;
+  return add_file_source_id(source);
+}
+
+FileSourceId FileReferenceManager::create_web_page_file_source(string url) {
+  VLOG(file_references) << "Create file source for web page of " << url;
+  FileSourceWebPage source{std::move(url)};
+  return add_file_source_id(std::move(source));
+}
+
+FileSourceId FileReferenceManager::create_saved_animations_file_source() {
+  VLOG(file_references) << "Create file source for saved animations";
+  FileSourceSavedAnimations source;
+  return add_file_source_id(source);
 }
 
 void FileReferenceManager::add_file_source(NodeId node_id, FileSourceId file_source_id) {
@@ -73,7 +114,7 @@ void FileReferenceManager::merge(NodeId to_node_id, NodeId from_node_id) {
   if (to.query || from.query) {
     if (!to.query) {
       to.query = make_unique<Query>();
-      to.query->generation = ++query_generation;
+      to.query->generation = ++query_generation_;
     }
     if (from.query) {
       ::td::merge(to.query->promises, from.query->promises);
@@ -221,11 +262,12 @@ void FileReferenceManager::update_file_reference(NodeId node_id, Promise<> promi
   auto &node = nodes_[node_id];
   if (!node.query) {
     node.query = make_unique<Query>();
-    node.query->generation = ++query_generation;
+    node.query->generation = ++query_generation_;
     node.file_source_ids.reset_position();
-    VLOG(file_references) << "new query " << query_generation;
+    VLOG(file_references) << "new query " << query_generation_;
   }
   node.query->promises.push_back(std::move(promise));
   run_node(node_id);
 }
+
 }  // namespace td
