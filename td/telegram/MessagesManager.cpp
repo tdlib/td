@@ -16320,6 +16320,10 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
     }
 
     cancel_upload_message_content_files(m->edited_content.get());
+
+    if (dialog_id.get_type() != DialogType::SecretChat) {
+      get_messages_from_server({FullMessageId{dialog_id, message_id}}, Auto());
+    }
   }
 
   m->edited_content = nullptr;
