@@ -13,6 +13,7 @@
 #include "td/telegram/ChannelId.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/MessageId.h"
+#include "td/telegram/SetWithPosition.h"
 #include "td/telegram/UserId.h"
 
 #include "td/utils/Variant.h"
@@ -22,57 +23,6 @@
 namespace td {
 
 extern int VERBOSITY_NAME(file_references);
-template <class T>
-class SetWithPosition {
- public:
-  void add(T value) {
-    auto it = std::find(values_.begin(), values_.end(), value);
-    if (it != end(values_)) {
-      return;
-    }
-    values_.push_back(value);
-  }
-  void remove(T value) {
-    auto it = std::find(values_.begin(), values_.end(), value);
-    if (it == end(values_)) {
-      return;
-    }
-    size_t i = it - values_.begin();
-    values_.erase(it);
-    if (pos_ > i) {
-      pos_--;
-    }
-  }
-  void reset_position() {
-    pos_ = 0;
-  }
-  T next() {
-    return values_[pos_++];
-  }
-  bool has_next() {
-    return pos_ < values_.size();
-  }
-  void merge(SetWithPosition &&other) {
-    std::vector<T> new_values_;
-    for (size_t i = 0; i < pos_; i++) {
-      new_values_.push_back(values_[i]);
-    }
-    for (size_t i = 0; i < other.pos_; i++) {
-      new_values_.push_back(other.values_[i]);
-    }
-    for (size_t i = pos_; i < values_.size(); i++) {
-      new_values_.push_back(values_[i]);
-    }
-    for (size_t i = other.pos_; i < other.values_.size(); i++) {
-      new_values_.push_back(other.values_[i]);
-    }
-    pos_ += other.pos_;
-  }
-
- private:
-  std::vector<T> values_;
-  size_t pos_{0};
-};
 
 class FileReferenceManager : public Actor {
   struct Node;
