@@ -1653,7 +1653,7 @@ void FileManager::delete_file(FileId file_id, Promise<Unit> promise, const char 
 
   auto file_view = FileView(node);
 
-  // TODO: review delete condition
+  // TODO review delete condition
   if (file_view.has_local_location()) {
     if (begins_with(file_view.local_location().path_, get_files_dir(file_view.get_type()))) {
       LOG(INFO) << "Unlink file " << file_id << " at " << file_view.local_location().path_;

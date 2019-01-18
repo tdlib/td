@@ -21068,6 +21068,15 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         }
         auto new_file_ids = get_message_content_file_ids((*v)->content.get(), td_);
         if (new_file_ids != old_file_ids) {
+          if ((*v)->ttl && (*v)->message_id.is_server()) {
+            for (auto file_id : old_file_ids) {
+              if (std::find(new_file_ids.begin(), new_file_ids.end(), file_id) == new_file_ids.end()) {
+                send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<>(),
+                             "add_message_to_dialog");
+              }
+            }
+          }
+
           auto file_source_id = get_message_file_source_id(FullMessageId(dialog_id, message_id));
           if (file_source_id.is_valid()) {
             td_->file_manager_->change_files_source(file_source_id, old_file_ids, new_file_ids);
@@ -21672,8 +21681,7 @@ class MessagesManager::DeleteMessageLogEvent {
 
 void MessagesManager::delete_message_files(const Message *m) const {
   for (auto file_id : get_message_file_ids(m)) {
-    send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<>(),
-                 "delete_message_files");  // TODO add log event
+    send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<>(), "delete_message_files");
   }
 }
 
