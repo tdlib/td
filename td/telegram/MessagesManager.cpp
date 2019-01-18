@@ -8537,6 +8537,7 @@ void MessagesManager::on_message_ttl_expired(Dialog *d, Message *m) {
   CHECK(m->ttl > 0);
   CHECK(d->dialog_id.get_type() != DialogType::SecretChat);
   ttl_unregister_message(d->dialog_id, m, Time::now(), "on_message_ttl_expired");
+  remove_message_file_sources(d->dialog_id, m);
   on_message_ttl_expired_impl(d, m);
   send_update_message_content(d->dialog_id, m->message_id, m->content.get(), m->date, m->is_content_secret,
                               "on_message_ttl_expired");
@@ -9587,7 +9588,7 @@ FullMessageId MessagesManager::on_get_message(MessageInfo &&message_info, bool f
     new_message->random_y = get_random_y(new_message->message_id);
     new_message->have_previous = false;
     new_message->have_next = false;
-    update_message(d, old_message, std::move(new_message), true, &need_update_dialog_pos);
+    update_message(d, old_message, std::move(new_message), &need_update_dialog_pos);
     new_message = std::move(old_message);
 
     new_message->message_id = message_id;
@@ -10019,6 +10020,7 @@ void MessagesManager::on_update_message_web_page(FullMessageId full_message_id, 
     LOG_IF(ERROR, have_web_page) << "Receive earlier not received web page";
     return;
   }
+  CHECK(content->get_type() == MessageContentType::Text);
 
   if (!have_web_page) {
     set_message_content_web_page_id(content, WebPageId());
@@ -16291,6 +16293,11 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
 
   CHECK(m->edited_content != nullptr);
   if (result.is_ok()) {
+    // message content has already been replaced from updateEdit{Channel,}Message
+    // TODO check that it really was replaced
+    // need only merge files from edited_content with their uploaded counterparts
+    // updateMessageContent was already sent and needs to be sent again,
+    // only if 'i' and 't' sizes from edited_content was added to the photo
     std::swap(m->content, m->edited_content);
     bool need_send_update_message_content = m->edited_content->get_type() == MessageContentType::Photo &&
                                             m->content->get_type() == MessageContentType::Photo;
@@ -18783,7 +18790,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
     // dump_debug_message_op(d, 5);
   }
 
-  // imitation of update_message(d, sent_message, std::move(new_message), true, &need_update_dialog_pos);
+  // imitation of update_message(d, sent_message, std::move(new_message), &need_update_dialog_pos);
   if (date <= 0) {
     LOG(ERROR) << "Receive " << new_message_id << " in " << dialog_id << " with wrong date " << date;
   } else {
@@ -18794,7 +18801,7 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
   }
 
   // reply_to message may be already deleted
-  // but can't use get_message for check, because the message can be already unloaded from the memory
+  // but can't use get_message_force for check, because the message can be already unloaded from the memory
   // if (get_message_force(d, sent_message->reply_to_message_id) == nullptr) {
   //   sent_message->reply_to_message_id = MessageId();
   // }
@@ -21047,7 +21054,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         auto old_index_mask = get_message_index_mask(dialog_id, v->get()) & INDEX_MASK_MASK;
         bool was_deleted = delete_active_live_location(dialog_id, v->get());
         auto old_file_ids = get_message_content_file_ids((*v)->content.get(), td_);
-        update_message(d, *v, std::move(message), true, need_update_dialog_pos);
+        update_message(d, *v, std::move(message), need_update_dialog_pos);
         auto new_index_mask = get_message_index_mask(dialog_id, v->get()) & INDEX_MASK_MASK;
         if (was_deleted) {
           try_add_active_live_location(dialog_id, v->get());
@@ -21782,7 +21789,7 @@ void MessagesManager::attach_message_to_next(Dialog *d, MessageId message_id, co
 }
 
 void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message, unique_ptr<Message> new_message,
-                                     bool need_send_update_message_content, bool *need_update_dialog_pos) {
+                                     bool *need_update_dialog_pos) {
   CHECK(d != nullptr);
   CHECK(old_message != nullptr);
   CHECK(new_message != nullptr);
@@ -22002,8 +22009,7 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
     attach_message_to_next(d, message_id, "update_message");
   }
 
-  if (update_message_content(dialog_id, old_message.get(), std::move(new_message->content),
-                             need_send_update_message_content,
+  if (update_message_content(dialog_id, old_message.get(), std::move(new_message->content), true,
                              message_id.is_yet_unsent() && new_message->edit_date == 0)) {
     is_changed = true;
   }
