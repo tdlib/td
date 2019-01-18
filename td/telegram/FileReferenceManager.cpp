@@ -34,15 +34,10 @@ fileSourceSavedAnimations = FileSource;                                // repair
 */
 
 FileSourceId FileReferenceManager::create_message_file_source(FullMessageId full_message_id) {
-  auto it = full_message_id_to_file_source_id_.find(full_message_id);
-  if (it != full_message_id_to_file_source_id_.end()) {
-    return it->second;
-  }
-
+  VLOG(file_references) << "Create file source for " << full_message_id;
   auto source_id = FileSourceId{++last_file_source_id_};
   FileSourceMessage source{full_message_id};
   file_sources_.emplace_back(source);
-  full_message_id_to_file_source_id_[full_message_id] = source_id;
   return source_id;
 }
 
@@ -50,6 +45,7 @@ void FileReferenceManager::add_file_source(NodeId node_id, FileSourceId file_sou
   VLOG(file_references) << "add_file_source: " << node_id << " " << file_source_id;
   nodes_[node_id].file_source_ids.add(file_source_id);
 }
+
 void FileReferenceManager::remove_file_source(NodeId node_id, FileSourceId file_source_id) {
   VLOG(file_references) << "remove_file_source: " << node_id << " " << file_source_id;
   nodes_[node_id].file_source_ids.remove(file_source_id);

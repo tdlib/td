@@ -1841,6 +1841,8 @@ class MessagesManager : public Actor {
 
   void save_active_live_locations();
 
+  FileSourceId get_message_file_source_id(FullMessageId full_message_id);
+
   void add_message_file_sources(DialogId dialog_id, const Message *m);
 
   void remove_message_file_sources(DialogId dialog_id, const Message *m);
@@ -2299,6 +2301,8 @@ class MessagesManager : public Actor {
   std::unordered_map<uint64, std::map<int64, Promise<Message *>>> yet_unsent_media_queues_;
 
   std::unordered_map<DialogId, NetQueryRef, DialogIdHash> set_typing_query_;
+
+  std::unordered_map<FullMessageId, FileSourceId, FullMessageIdHash> full_message_id_to_file_source_id_;
 
   DialogId sponsored_dialog_id_;
 

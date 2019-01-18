@@ -60,8 +60,8 @@ class FileReferenceManager : public Actor {
     FullMessageId full_message_id;
   };
   struct FileSourceUserPhoto {
-    UserId user_id;
     int64 photo_id;
+    UserId user_id;
   };
   struct FileSourceChatPhoto {
     ChatId chat_id;
@@ -81,9 +81,7 @@ class FileReferenceManager : public Actor {
 
   using FileSource = Variant<FileSourceMessage, FileSourceUserPhoto, FileSourceChatPhoto, FileSourceChannelPhoto,
                              FileSourceWallpapers, FileSourceWebPage, FileSourceSavedAnimations>;
-
   vector<FileSource> file_sources_;
-  std::unordered_map<FullMessageId, FileSourceId, FullMessageIdHash> full_message_id_to_file_source_id_;
 
   int32 last_file_source_id_{0};
   int64 query_generation{0};
