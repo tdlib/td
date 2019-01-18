@@ -1345,7 +1345,6 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
 }
 
 void FileManager::add_file_source(FileId file_id, FileSourceId file_source_id) {
-  LOG(ERROR) << "Add file source " << file_id << " " << file_source_id;
   auto node = get_file_node(file_id);
   if (!node) {
     return;
@@ -1356,13 +1355,40 @@ void FileManager::add_file_source(FileId file_id, FileSourceId file_source_id) {
 }
 
 void FileManager::remove_file_source(FileId file_id, FileSourceId file_source_id) {
-  LOG(ERROR) << "Remove file source " << file_id << " " << file_source_id;
   auto node = get_file_node(file_id);
   if (!node) {
     return;
   }
   send_closure(G()->file_reference_manager(), &FileReferenceManager::remove_file_source, node->main_file_id_,
                file_source_id);
+}
+
+void FileManager::change_files_source(FileSourceId file_source_id, const vector<FileId> &old_file_ids,
+                                      const vector<FileId> &new_file_ids) {
+  auto old_main_file_ids = get_main_file_ids(old_file_ids);
+  auto new_main_file_ids = get_main_file_ids(new_file_ids);
+  for (auto file_id : old_main_file_ids) {
+    auto it = new_main_file_ids.find(file_id);
+    if (it == new_main_file_ids.end()) {
+      send_closure(G()->file_reference_manager(), &FileReferenceManager::remove_file_source, file_id, file_source_id);
+    } else {
+      new_main_file_ids.erase(it);
+    }
+  }
+  for (auto file_id : new_main_file_ids) {
+    send_closure(G()->file_reference_manager(), &FileReferenceManager::add_file_source, file_id, file_source_id);
+  }
+}
+
+std::unordered_set<FileId, FileIdHash> FileManager::get_main_file_ids(const vector<FileId> &file_ids) {
+  std::unordered_set<FileId, FileIdHash> result;
+  for (auto file_id : file_ids) {
+    auto node = get_file_node(file_id);
+    if (node) {
+      result.insert(node->main_file_id_);
+    }
+  }
+  return result;
 }
 
 void FileManager::try_flush_node_full(FileNodePtr node, bool new_remote, bool new_local, bool new_generate,
@@ -1762,7 +1788,7 @@ void FileManager::run_download(FileNodePtr node) {
     }
     node->download_was_update_file_reference_ = true;
 
-    send_closure(G()->file_reference_manager(), &FileReferenceManager::update_file_reference, file_id,
+    send_closure(G()->file_reference_manager(), &FileReferenceManager::repair_file_reference, file_id,
                  PromiseCreator::lambda([id, actor_id = actor_id(this), file_id](Result<Unit> res) {
                    Status error;
                    if (res.is_ok()) {
@@ -2044,7 +2070,7 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
     node->upload_id_ = id;
     node->upload_was_update_file_reference_ = true;
 
-    send_closure(G()->file_reference_manager(), &FileReferenceManager::update_file_reference, file_id,
+    send_closure(G()->file_reference_manager(), &FileReferenceManager::repair_file_reference, file_id,
                  PromiseCreator::lambda([id, actor_id = actor_id(this)](Result<Unit> res) {
                    send_closure(actor_id, &FileManager::on_error, id,
                                 Status::Error("FILE_UPLOAD_RESTART_WITH_FILE_REFERENCE"));

@@ -35,9 +35,9 @@ class FileReferenceManager : public Actor {
   FileSourceId create_saved_animations_file_source();
 
   using NodeId = FileId;
-  void update_file_reference(NodeId node_id, Promise<> promise);
+  void repair_file_reference(NodeId node_id, Promise<> promise);
   void add_file_source(NodeId node_id, FileSourceId file_source_id);
-  void remove_file_source(NodeId file_id, FileSourceId file_source_id);
+  void remove_file_source(NodeId node_id, FileSourceId file_source_id);
   void merge(NodeId to_node_id, NodeId from_node_id);
 
  private:

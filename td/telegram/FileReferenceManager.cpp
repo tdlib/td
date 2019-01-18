@@ -87,16 +87,16 @@ FileSourceId FileReferenceManager::create_saved_animations_file_source() {
 }
 
 void FileReferenceManager::add_file_source(NodeId node_id, FileSourceId file_source_id) {
-  VLOG(file_references) << "add_file_source: " << node_id << " " << file_source_id;
+  VLOG(file_references) << "Add file source " << file_source_id << " for file " << node_id;
   nodes_[node_id].file_source_ids.add(file_source_id);
 }
 
 void FileReferenceManager::remove_file_source(NodeId node_id, FileSourceId file_source_id) {
-  VLOG(file_references) << "remove_file_source: " << node_id << " " << file_source_id;
+  VLOG(file_references) << "Remove file source " << file_source_id << " from file " << node_id;
   nodes_[node_id].file_source_ids.remove(file_source_id);
 }
 
-void merge(std::vector<Promise<>> &a, std::vector<Promise<>> &b) {
+static void merge(std::vector<Promise<>> &a, std::vector<Promise<>> &b) {
   if (a.size() < b.size()) {
     std::swap(a, b);
   }
@@ -106,7 +106,7 @@ void merge(std::vector<Promise<>> &a, std::vector<Promise<>> &b) {
 }
 
 void FileReferenceManager::merge(NodeId to_node_id, NodeId from_node_id) {
-  VLOG(file_references) << "merge: " << to_node_id << " " << from_node_id;
+  VLOG(file_references) << "Merge sources of files " << to_node_id << " and " << from_node_id;
   auto &to = nodes_[to_node_id];
   auto &from = nodes_[from_node_id];
   CHECK(!to.query || to.query->proxy.empty());
@@ -128,7 +128,7 @@ void FileReferenceManager::merge(NodeId to_node_id, NodeId from_node_id) {
 }
 
 void FileReferenceManager::run_node(NodeId node_id) {
-  VLOG(file_references) << "run_node: " << node_id;
+  VLOG(file_references) << "Run file references repair for file " << node_id;
   Node &node = nodes_[node_id];
   if (!node.query) {
     return;
@@ -152,7 +152,8 @@ void FileReferenceManager::run_node(NodeId node_id) {
 }
 
 void FileReferenceManager::send_query(Destination dest, FileSourceId file_source_id) {
-  VLOG(file_references) << "send_query " << dest.node_id << " " << dest.generation << " " << file_source_id;
+  VLOG(file_references) << "Send file references repair query for file " << dest.node_id << " with generation "
+                        << dest.generation << " from source " << file_source_id;
   auto &node = nodes_[dest.node_id];
   node.query->active_queries++;
 
@@ -219,8 +220,9 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
 
 FileReferenceManager::Destination FileReferenceManager::on_query_result(Destination dest, FileSourceId file_source_id,
                                                                         Status status, int32 sub) {
-  VLOG(file_references) << "on_query_result " << dest.node_id << " " << dest.generation << " " << file_source_id << " "
-                        << status << " " << sub;
+  VLOG(file_references) << "Receive result of file references repair query for file " << dest.node_id
+                        << " with generation " << dest.generation << " from source " << file_source_id << ": " << status
+                        << " " << sub;
   auto &node = nodes_[dest.node_id];
 
   auto query = node.query.get();
@@ -257,8 +259,8 @@ FileReferenceManager::Destination FileReferenceManager::on_query_result(Destinat
   return dest;
 }
 
-void FileReferenceManager::update_file_reference(NodeId node_id, Promise<> promise) {
-  VLOG(file_references) << "update_file_reference " << node_id;
+void FileReferenceManager::repair_file_reference(NodeId node_id, Promise<> promise) {
+  VLOG(file_references) << "Repair file reference for file " << node_id;
   auto &node = nodes_[node_id];
   if (!node.query) {
     node.query = make_unique<Query>();

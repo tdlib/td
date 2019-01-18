@@ -33,6 +33,7 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <unordered_set>
 #include <utility>
 
 namespace td {
@@ -352,6 +353,9 @@ class FileManager : public FileLoadManager::Callback {
 
   void remove_file_source(FileId file_id, FileSourceId file_source_id);
 
+  void change_files_source(FileSourceId file_source_id, const vector<FileId> &old_file_ids,
+                           const vector<FileId> &new_file_ids);
+
   bool set_encryption_key(FileId file_id, FileEncryptionKey key);
   bool set_content(FileId file_id, BufferSlice bytes);
 
@@ -534,6 +538,8 @@ class FileManager : public FileLoadManager::Callback {
   std::pair<Query, bool> finish_query(QueryId query_id);
 
   FullRemoteFileLocation *get_remote(int32 key);
+
+  std::unordered_set<FileId, FileIdHash> get_main_file_ids(const vector<FileId> &file_ids);
 
   void hangup() override;
   void tear_down() override;
