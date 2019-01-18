@@ -1350,6 +1350,7 @@ void FileManager::add_file_source(FileId file_id, FileSourceId file_source_id) {
     return;
   }
 
+  CHECK(file_source_id.is_valid());
   send_closure(G()->file_reference_manager(), &FileReferenceManager::add_file_source, node->main_file_id_,
                file_source_id);
 }
@@ -1359,6 +1360,8 @@ void FileManager::remove_file_source(FileId file_id, FileSourceId file_source_id
   if (!node) {
     return;
   }
+
+  CHECK(file_source_id.is_valid());
   send_closure(G()->file_reference_manager(), &FileReferenceManager::remove_file_source, node->main_file_id_,
                file_source_id);
 }
@@ -1368,6 +1371,7 @@ void FileManager::change_files_source(FileSourceId file_source_id, const vector<
   if (old_file_ids == new_file_ids) {
     return;
   }
+  CHECK(file_source_id.is_valid());
 
   auto old_main_file_ids = get_main_file_ids(old_file_ids);
   auto new_main_file_ids = get_main_file_ids(new_file_ids);

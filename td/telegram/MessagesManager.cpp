@@ -13700,6 +13700,11 @@ void MessagesManager::save_active_live_locations() {
 }
 
 FileSourceId MessagesManager::get_message_file_source_id(FullMessageId full_message_id) {
+  if (full_message_id.get_dialog_id().get_type() == DialogType::SecretChat ||
+      !full_message_id.get_message_id().is_server()) {
+    return FileSourceId();
+  }
+
   auto &file_source_id = full_message_id_to_file_source_id_[full_message_id];
   if (!file_source_id.is_valid()) {
     file_source_id = td_->file_reference_manager_->create_message_file_source(full_message_id);
@@ -13708,34 +13713,32 @@ FileSourceId MessagesManager::get_message_file_source_id(FullMessageId full_mess
 }
 
 void MessagesManager::add_message_file_sources(DialogId dialog_id, const Message *m) {
-  if (dialog_id.get_type() == DialogType::SecretChat || !m->message_id.is_server()) {
-    return;
-  }
-
   auto file_ids = get_message_content_file_ids(m->content.get(), td_);
   if (file_ids.empty()) {
     return;
   }
 
+  // do not create file_source_id for messages without file_ids
   auto file_source_id = get_message_file_source_id(FullMessageId(dialog_id, m->message_id));
-  for (auto file_id : file_ids) {
-    td_->file_manager_->add_file_source(file_id, file_source_id);
+  if (file_source_id.is_valid()) {
+    for (auto file_id : file_ids) {
+      td_->file_manager_->add_file_source(file_id, file_source_id);
+    }
   }
 }
 
 void MessagesManager::remove_message_file_sources(DialogId dialog_id, const Message *m) {
-  if (dialog_id.get_type() == DialogType::SecretChat || !m->message_id.is_server()) {
-    return;
-  }
-
   auto file_ids = get_message_content_file_ids(m->content.get(), td_);
   if (file_ids.empty()) {
     return;
   }
 
+  // do not create file_source_id for messages without file_ids
   auto file_source_id = get_message_file_source_id(FullMessageId(dialog_id, m->message_id));
-  for (auto file_id : file_ids) {
-    td_->file_manager_->remove_file_source(file_id, file_source_id);
+  if (file_source_id.is_valid()) {
+    for (auto file_id : file_ids) {
+      td_->file_manager_->remove_file_source(file_id, file_source_id);
+    }
   }
 }
 
@@ -21065,8 +21068,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         }
         auto new_file_ids = get_message_content_file_ids((*v)->content.get(), td_);
         if (new_file_ids != old_file_ids) {
-          if (dialog_id.get_type() != DialogType::SecretChat && message_id.is_server()) {
-            auto file_source_id = get_message_file_source_id(FullMessageId(dialog_id, message_id));
+          auto file_source_id = get_message_file_source_id(FullMessageId(dialog_id, message_id));
+          if (file_source_id.is_valid()) {
             td_->file_manager_->change_files_source(file_source_id, old_file_ids, new_file_ids);
           }
         }
