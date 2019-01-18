@@ -83,7 +83,6 @@ class FileReferenceManager : public Actor {
                              FileSourceWallpapers, FileSourceWebPage, FileSourceSavedAnimations>;
   vector<FileSource> file_sources_;
 
-  int32 last_file_source_id_{0};
   int64 query_generation{0};
 
   std::unordered_map<NodeId, Node, FileIdHash> nodes_;
@@ -91,6 +90,8 @@ class FileReferenceManager : public Actor {
   void run_node(NodeId node);
   void send_query(Destination dest, FileSourceId file_source_id);
   Destination on_query_result(Destination dest, FileSourceId file_source_id, Status status, int32 sub = 0);
+
+  FileSourceId get_current_file_source_id() const;
 };
 
 }  // namespace td

@@ -16,6 +16,7 @@
 #include "td/actor/MultiPromise.h"
 
 #include "td/utils/format.h"
+#include "td/utils/misc.h"
 #include "td/utils/overloaded.h"
 #include "td/utils/Variant.h"
 
@@ -33,12 +34,15 @@ fileSourceWallpapers = FileSource;                                     // repair
 fileSourceSavedAnimations = FileSource;                                // repaired with messages.getSavedGifs
 */
 
+FileSourceId FileReferenceManager::get_current_file_source_id() const {
+  return FileSourceId(narrow_cast<int32>(file_sources_.size()));
+}
+
 FileSourceId FileReferenceManager::create_message_file_source(FullMessageId full_message_id) {
   VLOG(file_references) << "Create file source for " << full_message_id;
-  auto source_id = FileSourceId{++last_file_source_id_};
   FileSourceMessage source{full_message_id};
   file_sources_.emplace_back(source);
-  return source_id;
+  return get_current_file_source_id();
 }
 
 void FileReferenceManager::add_file_source(NodeId node_id, FileSourceId file_source_id) {
