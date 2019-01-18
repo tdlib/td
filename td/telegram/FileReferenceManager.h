@@ -66,7 +66,7 @@ class SetWithPosition {
     for (size_t i = other.pos_; i < other.values_.size(); i++) {
       new_values_.push_back(other.values_[i]);
     }
-    pos_ += other.values_.size();
+    pos_ += other.pos_;
   }
 
  private:

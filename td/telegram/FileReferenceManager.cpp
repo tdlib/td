@@ -131,6 +131,7 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
     }
     send_lambda(file_manager, [file_manager, dest, new_promise = std::move(new_promise)]() mutable {
       auto view = file_manager.get_actor_unsafe()->get_file_view(dest.node_id);
+      CHECK(!view.empty());
       if (view.has_active_remote_location()) {
         new_promise.set_value({});
       } else {
@@ -183,19 +184,19 @@ FileReferenceManager::Destination FileReferenceManager::on_query_result(Destinat
 
   auto query = node.query.get();
   if (!query) {
-    return {};
+    return dest;
   }
   if (query->generation != dest.generation) {
-    return {};
+    return dest;
   }
   query->active_queries--;
+  CHECK(query->active_queries >= 0);
 
   if (!query->proxy.empty()) {
     query->active_queries -= sub;
+    CHECK(query->active_queries >= 0);
     auto new_proxy = on_query_result(query->proxy, file_source_id, std::move(status), query->active_queries);
-    if (!new_proxy.empty()) {
-      query->proxy = new_proxy;
-    }
+    query->proxy = new_proxy;
     run_node(dest.node_id);
     return new_proxy;
   }
@@ -220,11 +221,11 @@ void FileReferenceManager::update_file_reference(NodeId node_id, Promise<> promi
   auto &node = nodes_[node_id];
   if (!node.query) {
     node.query = make_unique<Query>();
-    node.query->promises.push_back(std::move(promise));
     node.query->generation = ++query_generation;
     node.file_source_ids.reset_position();
     VLOG(file_references) << "new query " << query_generation;
   }
+  node.query->promises.push_back(std::move(promise));
   run_node(node_id);
 }
 }  // namespace td
