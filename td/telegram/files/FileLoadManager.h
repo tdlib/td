@@ -14,6 +14,7 @@
 #include "td/telegram/files/FileFromBytes.h"
 #include "td/telegram/files/FileHashUploader.h"
 #include "td/telegram/files/FileLocation.h"
+#include "td/telegram/files/FileType.h"
 #include "td/telegram/files/FileUploader.h"
 #include "td/telegram/files/ResourceManager.h"
 #include "td/telegram/net/DcId.h"

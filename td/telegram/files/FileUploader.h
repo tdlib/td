@@ -9,6 +9,7 @@
 #include "td/telegram/files/FileEncryptionKey.h"
 #include "td/telegram/files/FileLoader.h"
 #include "td/telegram/files/FileLocation.h"
+#include "td/telegram/files/FileType.h"
 
 #include "td/utils/port/FileFd.h"
 #include "td/utils/Status.h"

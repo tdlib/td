@@ -11,7 +11,7 @@
 
 #include "td/telegram/td_api.h"
 
-#include "td/telegram/files/FileLocation.h"
+#include "td/telegram/files/FileType.h"
 #include "td/telegram/net/NetType.h"
 
 #include "td/net/NetStats.h"

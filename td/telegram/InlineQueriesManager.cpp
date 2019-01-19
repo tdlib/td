@@ -19,6 +19,7 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/files/FileManager.h"
+#include "td/telegram/files/FileType.h"
 #include "td/telegram/Game.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/InputMessageText.h"

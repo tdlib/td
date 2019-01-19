@@ -8,6 +8,7 @@
 
 #include "td/telegram/telegram_api.h"
 
+#include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQueryDispatcher.h"

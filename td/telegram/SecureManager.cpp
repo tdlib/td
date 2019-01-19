@@ -10,6 +10,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileManager.h"
+#include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
 #include "td/telegram/net/NetQueryDispatcher.h"

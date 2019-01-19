@@ -10,6 +10,8 @@
 #include "td/telegram/files/FileData.h"
 #include "td/telegram/files/FileDb.h"
 #include "td/telegram/files/FileLoaderUtils.h"
+#include "td/telegram/files/FileLocation.h"
+#include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/TdDb.h"
 

@@ -8,7 +8,7 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
-#include "td/telegram/files/FileLocation.h"
+#include "td/telegram/files/FileType.h"
 #include "td/telegram/SecretInputMedia.h"
 
 #include "td/utils/buffer.h"

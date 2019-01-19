@@ -12,6 +12,7 @@
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileLoaderUtils.h"
 #include "td/telegram/files/FileManager.h"
+#include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/net/NetQueryDispatcher.h"

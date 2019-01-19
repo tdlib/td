@@ -1,0 +1,160 @@
+//
+// Copyright Aliaksei Levin (levlam@telegram.org), Arseny Smirnov (arseny30@gmail.com) 2014-2019
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+#pragma once
+
+#include "td/telegram/td_api.h"
+
+#include "td/utils/logging.h"
+
+namespace td {
+
+enum class FileType : int8 {
+  Thumbnail,
+  ProfilePhoto,
+  Photo,
+  VoiceNote,
+  Video,
+  Document,
+  Encrypted,
+  Temp,
+  Sticker,
+  Audio,
+  Animation,
+  EncryptedThumbnail,
+  Wallpaper,
+  VideoNote,
+  SecureRaw,
+  Secure,
+  Size,
+  None
+};
+
+inline FileType from_td_api(const td_api::FileType &file_type) {
+  switch (file_type.get_id()) {
+    case td_api::fileTypeThumbnail::ID:
+      return FileType::Thumbnail;
+    case td_api::fileTypeProfilePhoto::ID:
+      return FileType::ProfilePhoto;
+    case td_api::fileTypePhoto::ID:
+      return FileType::Photo;
+    case td_api::fileTypeVoiceNote::ID:
+      return FileType::VoiceNote;
+    case td_api::fileTypeVideo::ID:
+      return FileType::Video;
+    case td_api::fileTypeDocument::ID:
+      return FileType::Document;
+    case td_api::fileTypeSecret::ID:
+      return FileType::Encrypted;
+    case td_api::fileTypeUnknown::ID:
+      return FileType::Temp;
+    case td_api::fileTypeSticker::ID:
+      return FileType::Sticker;
+    case td_api::fileTypeAudio::ID:
+      return FileType::Audio;
+    case td_api::fileTypeAnimation::ID:
+      return FileType::Animation;
+    case td_api::fileTypeSecretThumbnail::ID:
+      return FileType::EncryptedThumbnail;
+    case td_api::fileTypeWallpaper::ID:
+      return FileType::Wallpaper;
+    case td_api::fileTypeVideoNote::ID:
+      return FileType::VideoNote;
+    case td_api::fileTypeSecure::ID:
+      return FileType::Secure;
+    case td_api::fileTypeNone::ID:
+      return FileType::None;
+    default:
+      UNREACHABLE();
+      return FileType::None;
+  }
+}
+
+inline tl_object_ptr<td_api::FileType> as_td_api(FileType file_type) {
+  switch (file_type) {
+    case FileType::Thumbnail:
+      return make_tl_object<td_api::fileTypeThumbnail>();
+    case FileType::ProfilePhoto:
+      return make_tl_object<td_api::fileTypeProfilePhoto>();
+    case FileType::Photo:
+      return make_tl_object<td_api::fileTypePhoto>();
+    case FileType::VoiceNote:
+      return make_tl_object<td_api::fileTypeVoiceNote>();
+    case FileType::Video:
+      return make_tl_object<td_api::fileTypeVideo>();
+    case FileType::Document:
+      return make_tl_object<td_api::fileTypeDocument>();
+    case FileType::Encrypted:
+      return make_tl_object<td_api::fileTypeSecret>();
+    case FileType::Temp:
+      return make_tl_object<td_api::fileTypeUnknown>();
+    case FileType::Sticker:
+      return make_tl_object<td_api::fileTypeSticker>();
+    case FileType::Audio:
+      return make_tl_object<td_api::fileTypeAudio>();
+    case FileType::Animation:
+      return make_tl_object<td_api::fileTypeAnimation>();
+    case FileType::EncryptedThumbnail:
+      return make_tl_object<td_api::fileTypeSecretThumbnail>();
+    case FileType::Wallpaper:
+      return make_tl_object<td_api::fileTypeWallpaper>();
+    case FileType::VideoNote:
+      return make_tl_object<td_api::fileTypeVideoNote>();
+    case FileType::Secure:
+      return make_tl_object<td_api::fileTypeSecure>();
+    case FileType::SecureRaw:
+      UNREACHABLE();
+      return make_tl_object<td_api::fileTypeSecure>();
+    case FileType::None:
+      return make_tl_object<td_api::fileTypeNone>();
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
+constexpr int32 file_type_size = static_cast<int32>(FileType::Size);
+extern const char *file_type_name[file_type_size];
+
+inline StringBuilder &operator<<(StringBuilder &string_builder, FileType file_type) {
+  return string_builder << file_type_name[static_cast<int32>(file_type)];
+}
+
+enum class FileDirType : int8 { Secure, Common };
+
+inline FileDirType get_file_dir_type(FileType file_type) {
+  switch (file_type) {
+    case FileType::Thumbnail:
+    case FileType::ProfilePhoto:
+    case FileType::Encrypted:
+    case FileType::Sticker:
+    case FileType::Temp:
+    case FileType::Wallpaper:
+    case FileType::EncryptedThumbnail:
+    case FileType::Secure:
+    case FileType::SecureRaw:
+      return FileDirType::Secure;
+    default:
+      return FileDirType::Common;
+  }
+}
+
+inline bool is_file_big(FileType file_type, int64 expected_size) {
+  switch (file_type) {
+    case FileType::Thumbnail:
+    case FileType::ProfilePhoto:
+    case FileType::Photo:
+    case FileType::EncryptedThumbnail:
+      return false;
+    default:
+      break;
+  }
+
+  constexpr int64 SMALL_FILE_MAX_SIZE = 10 << 20;
+  return expected_size > SMALL_FILE_MAX_SIZE;
+}
+
+}  // namespace td

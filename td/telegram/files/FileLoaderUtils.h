@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/files/FileLocation.h"
+#include "td/telegram/files/FileType.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"

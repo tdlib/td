@@ -10,7 +10,6 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/telegram/files/FileGcParameters.h"
-#include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileStats.h"
 
 #include "td/utils/logging.h"
