@@ -228,7 +228,8 @@ template <template <class> class RawSet>
 static void test_speed() {
   Random::Xorshift128plus rnd(123);
   using Set = CheckedSetWithPosition<int, RawSet>;
-  std::vector<unique_ptr<Set>> sets(1 << 13);
+  constexpr size_t total_size = 1 << 13;
+  std::vector<unique_ptr<Set>> sets(total_size);
   for (size_t i = 0; i < sets.size(); i++) {
     sets[i] = make_unique<Set>();
     sets[i]->add(int(i));
@@ -240,7 +241,7 @@ static void test_speed() {
       sets[i]->merge(std::move(*sets[j]));
     }
   }
-  LOG(ERROR) << sets[0]->size();
+  ASSERT_EQ(total_size, sets[0]->size());
 }
 
 TEST(SetWithPosition, hands) {
