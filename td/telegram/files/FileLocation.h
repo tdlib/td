@@ -6,7 +6,6 @@
 //
 #pragma once
 
-#include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
 #include "td/telegram/files/FileBitmask.h"

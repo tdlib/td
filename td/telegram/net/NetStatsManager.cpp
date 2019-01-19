@@ -168,7 +168,7 @@ void NetStatsManager::add_network_stats(const NetworkStatsEntry &entry) {
   }
   add_network_stats_impl(media_net_stats_, entry);
   size_t file_type_n = static_cast<size_t>(entry.file_type);
-  CHECK(file_type_n < file_type_size);
+  CHECK(file_type_n < static_cast<size_t>(file_type_size));
   add_network_stats_impl(files_stats_[file_type_n], entry);
 }
 

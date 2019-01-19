@@ -96,7 +96,7 @@ struct FsFileInfo {
 // long and blocking
 template <class CallbackT>
 Status scan_fs(CallbackT &&callback) {
-  for (int i = 0; i < file_type_size; i++) {
+  for (int32 i = 0; i < file_type_size; i++) {
     auto file_type = static_cast<FileType>(i);
     if (file_type == FileType::SecureRaw) {
       continue;

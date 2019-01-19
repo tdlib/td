@@ -125,7 +125,7 @@ class NetStatsManager : public Actor {
   void for_each_stat(F &&f) {
     f(common_net_stats_, 0, CSlice("common"), FileType::None);
     f(media_net_stats_, 1, CSlice("media"), FileType::None);
-    for (size_t file_type_i = 0; file_type_i < file_type_size; file_type_i++) {
+    for (int32 file_type_i = 0; file_type_i < file_type_size; file_type_i++) {
       auto &stat = files_stats_[file_type_i];
       f(stat, file_type_i + 2, CSlice(file_type_name[file_type_i]), FileType(file_type_i));
     }

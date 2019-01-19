@@ -580,7 +580,7 @@ FileManager::FileManager(unique_ptr<Context> context) : context_(std::move(conte
     FileFd::open(dirs.back() + ".nomedia", FileFd::Create | FileFd::Read).ignore();
 #endif
   };
-  for (int i = 0; i < file_type_size; i++) {
+  for (int32 i = 0; i < file_type_size; i++) {
     auto path = get_files_dir(FileType(i));
     create_dir(path);
   }
