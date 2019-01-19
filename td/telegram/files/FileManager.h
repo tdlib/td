@@ -41,6 +41,7 @@ namespace td {
 
 extern int VERBOSITY_NAME(update_file);
 
+class FileData;
 class FileDbInterface;
 
 enum class FileLocationSource : int8 { None, FromUser, FromDb, FromServer };
@@ -346,7 +347,6 @@ class FileManager : public FileLoadManager::Callback {
   Result<FileId> register_generate(FileType file_type, FileLocationSource file_location_source, string original_path,
                                    string conversion, DialogId owner_dialog_id,
                                    int64 expected_size) TD_WARN_UNUSED_RESULT;
-  Result<FileId> register_file(FileData data, FileLocationSource file_location_source, const char *source, bool force);
 
   Result<FileId> merge(FileId x_file_id, FileId y_file_id, bool no_sync = false) TD_WARN_UNUSED_RESULT;
 
@@ -404,6 +404,8 @@ class FileManager : public FileLoadManager::Callback {
 
   FileId register_url(string url, FileType file_type, FileLocationSource file_location_source,
                       DialogId owner_dialog_id);
+  Result<FileId> register_file(FileData &&data, FileLocationSource file_location_source, const char *source,
+                               bool force);
 
   static constexpr int8 FROM_BYTES_PRIORITY = 10;
   using FileNodeId = int32;

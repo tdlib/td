@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/files/FileData.h"
 #include "td/telegram/files/FileDbId.h"
 #include "td/telegram/files/FileLocation.h"
 

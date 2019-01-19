@@ -484,6 +484,7 @@ set(TDLIB_SOURCE
   td/telegram/DraftMessage.h
   td/telegram/FileReferenceManager.h
   td/telegram/files/FileBitmask.h
+  td/telegram/files/FileData.h
   td/telegram/files/FileDb.h
   td/telegram/files/FileDbId.h
   td/telegram/files/FileDownloader.h

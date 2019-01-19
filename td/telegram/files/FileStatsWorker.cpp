@@ -7,6 +7,7 @@
 #include "td/telegram/files/FileStatsWorker.h"
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/files/FileData.h"
 #include "td/telegram/files/FileDb.h"
 #include "td/telegram/files/FileLoaderUtils.h"
 #include "td/telegram/Global.h"

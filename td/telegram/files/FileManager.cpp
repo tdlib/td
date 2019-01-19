@@ -10,6 +10,7 @@
 
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/FileReferenceManager.h"
+#include "td/telegram/files/FileData.h"
 #include "td/telegram/files/FileDb.h"
 #include "td/telegram/files/FileLoaderUtils.h"
 #include "td/telegram/files/FileLocation.h"
@@ -849,7 +850,7 @@ Result<FileId> FileManager::register_generate(FileType file_type, FileLocationSo
   return register_file(std::move(data), file_location_source, "register_generate", false);
 }
 
-Result<FileId> FileManager::register_file(FileData data, FileLocationSource file_location_source, const char *source,
+Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource file_location_source, const char *source,
                                           bool force) {
   bool has_remote = data.remote_.type() == RemoteFileLocation::Type::Full;
   bool has_generate = data.generate_ != nullptr;
