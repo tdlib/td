@@ -30,10 +30,6 @@ target_link_libraries(all_tests PRIVATE tdactor tddb tdcore tdnet tdutils)
 
 if (NOT CMAKE_CROSSCOMPILING OR EMSCRIPTEN)
   #Tests
-  add_executable(set_with_position ${TESTS_MAIN} set_with_position.cpp)
-  target_link_libraries(set_with_position PRIVATE tdutils)
-  target_include_directories(set_with_position PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>)
-
   add_executable(run_all_tests ${TESTS_MAIN} ${TD_TEST_SOURCE})
   if (CLANG AND NOT CYGWIN AND NOT EMSCRIPTEN)
     target_compile_options(run_all_tests PUBLIC -fsanitize=undefined -fno-sanitize=vptr)
