@@ -128,7 +128,6 @@ void FileReferenceManager::merge(NodeId to_node_id, NodeId from_node_id) {
 }
 
 void FileReferenceManager::run_node(NodeId node_id) {
-  VLOG(file_references) << "Run file references repair for file " << node_id;
   Node &node = nodes_[node_id];
   if (!node.query) {
     return;
@@ -136,6 +135,7 @@ void FileReferenceManager::run_node(NodeId node_id) {
   if (node.query->active_queries != 0) {
     return;
   }
+  VLOG(file_references) << "Run file references repair for file " << node_id;
   if (node.query->promises.empty()) {
     node.query = {};
     return;

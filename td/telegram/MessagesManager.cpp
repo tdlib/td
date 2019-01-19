@@ -5436,14 +5436,6 @@ void MessagesManager::on_message_edited(FullMessageId full_message_id) {
     if (m->forward_info == nullptr && (m->is_outgoing || dialog_id == get_my_dialog_id())) {
       update_used_hashtags(dialog_id, m);
     }
-
-    if (m->notification_id.is_valid() && is_message_notification_active(d, m)) {
-      auto &group_info = get_notification_group_info(d, m);
-      if (group_info.group_id.is_valid()) {
-        send_closure_later(G()->notification_manager(), &NotificationManager::edit_notification, group_info.group_id,
-                           m->notification_id, create_new_message_notification(m->message_id));
-      }
-    }
   }
 }
 
@@ -18504,10 +18496,10 @@ void MessagesManager::send_update_message_content(DialogId dialog_id, MessageId 
   LOG(INFO) << "Send updateMessageContent for " << message_id << " in " << dialog_id << " from " << source;
   CHECK(have_dialog(dialog_id)) << "Send updateMessageContent in unknown " << dialog_id << " from " << source
                                 << " with load count " << loaded_dialogs_.count(dialog_id);
-  send_closure(G()->td(), &Td::send_update,
-               make_tl_object<td_api::updateMessageContent>(
-                   dialog_id.get(), message_id.get(),
-                   get_message_content_object(content, td_, message_date, is_content_secret)));
+  auto content_object = get_message_content_object(content, td_, message_date, is_content_secret);
+  send_closure(
+      G()->td(), &Td::send_update,
+      td_api::make_object<td_api::updateMessageContent>(dialog_id.get(), message_id.get(), std::move(content_object)));
 }
 
 void MessagesManager::send_update_message_edited(DialogId dialog_id, const Message *m) {
@@ -21062,13 +21054,14 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         bool was_deleted = delete_active_live_location(dialog_id, v->get());
         auto old_file_ids = get_message_content_file_ids((*v)->content.get(), td_);
         update_message(d, *v, std::move(message), need_update_dialog_pos);
-        auto new_index_mask = get_message_index_mask(dialog_id, v->get()) & INDEX_MASK_MASK;
+        const Message *m = v->get();
+        auto new_index_mask = get_message_index_mask(dialog_id, m) & INDEX_MASK_MASK;
         if (was_deleted) {
-          try_add_active_live_location(dialog_id, v->get());
+          try_add_active_live_location(dialog_id, m);
         }
-        auto new_file_ids = get_message_content_file_ids((*v)->content.get(), td_);
+        auto new_file_ids = get_message_content_file_ids(m->content.get(), td_);
         if (new_file_ids != old_file_ids) {
-          if ((*v)->ttl && (*v)->message_id.is_server()) {
+          if (m->ttl && m->message_id.is_server()) {
             for (auto file_id : old_file_ids) {
               if (std::find(new_file_ids.begin(), new_file_ids.end(), file_id) == new_file_ids.end()) {
                 send_closure(G()->file_manager(), &FileManager::delete_file, file_id, Promise<>(),
@@ -21082,10 +21075,15 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
             td_->file_manager_->change_files_source(file_source_id, old_file_ids, new_file_ids);
           }
         }
-        if (old_index_mask != new_index_mask) {
-          update_message_count_by_index(d, -1, old_index_mask & ~new_index_mask);
-          update_message_count_by_index(d, +1, new_index_mask & ~old_index_mask);
+        if (m->notification_id.is_valid() && is_message_notification_active(d, m)) {
+          auto &group_info = get_notification_group_info(d, m);
+          if (group_info.group_id.is_valid()) {
+            send_closure_later(G()->notification_manager(), &NotificationManager::edit_notification,
+                               group_info.group_id, m->notification_id, create_new_message_notification(m->message_id));
+          }
         }
+        update_message_count_by_index(d, -1, old_index_mask & ~new_index_mask);
+        update_message_count_by_index(d, +1, new_index_mask & ~old_index_mask);
       }
       return v->get();
     }
