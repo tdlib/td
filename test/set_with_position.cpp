@@ -51,6 +51,10 @@ class CheckedSetWithPosition {
   }
 
   void merge(CheckedSetWithPosition &&other) {
+    if (size() < other.size()) {
+      std::swap(*this, other);
+      std::swap(this->s_, other.s_);
+    }
     for (auto x : other.checked_) {
       not_checked_.erase(x);
       checked_.insert(x);
@@ -62,6 +66,9 @@ class CheckedSetWithPosition {
       not_checked_.insert(x);
     }
     s_.merge(std::move(other.s_));
+  }
+  size_t size() const {
+    return checked_.size() + not_checked_.size();
   }
 
  private:
@@ -156,12 +163,36 @@ void test_stress() {
     }
   }
 }
+template <template <class> class RawSet>
+void test_speed() {
+  Random::Xorshift128plus rnd(123);
+  using Set = CheckedSetWithPosition<int, RawSet>;
+  std::vector<unique_ptr<Set>> sets(1 << 18);
+  for (size_t i = 0; i < sets.size(); i++) {
+    sets[i] = make_unique<Set>();
+    sets[i]->add(int(i));
+  }
+  for (size_t d = 1; d < sets.size(); d *= 2) {
+    for (size_t i = 0; i < sets.size(); i += 2 * d) {
+      size_t j = i + d;
+      CHECK(j < sets.size());
+      sets[i]->merge(std::move(*sets[j]));
+    }
+  }
+  LOG(ERROR) << sets[0]->size();
+}
 
 TEST(SetWithPosition, hands) {
-  //test_hands<SetWithPosition>();
+  test_hands<FastSetWithPosition>();
+  test_hands<OldSetWithPosition>();
   test_hands<SetWithPosition>();
 }
 TEST(SetWithPosition, stress) {
-  //test_stress<SetWithPosition>();
+  test_stress<FastSetWithPosition>();
+  test_stress<OldSetWithPosition>();
   test_stress<SetWithPosition>();
+}
+TEST(SetWithPosition, speed) {
+  test_speed<FastSetWithPosition>();
+  test_speed<SetWithPosition>();
 }
