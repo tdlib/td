@@ -2861,12 +2861,16 @@ class CliClient final : public Actor {
       send_message(chat_id, make_tl_object<td_api::inputMessageDocument>(
                                 as_local_file(document_path), as_input_thumbnail(as_local_file(thumbnail_path)),
                                 as_caption("test caption")));
-    } else if (op == "sdg") {
+    } else if (op == "sdg" || op == "sdgu") {
       string chat_id;
       string document_path;
       string document_conversion;
       std::tie(chat_id, args) = split(args);
       std::tie(document_path, document_conversion) = split(args);
+      if (op == "sdgu") {
+        send_request(
+            make_tl_object<td_api::uploadFile>(as_generated_file(document_path, document_conversion), nullptr, 1));
+      }
       send_message(chat_id,
                    make_tl_object<td_api::inputMessageDocument>(as_generated_file(document_path, document_conversion),
                                                                 nullptr, as_caption("test caption")));

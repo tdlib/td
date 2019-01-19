@@ -972,9 +972,11 @@ static int merge_choose_generate_location(const unique_ptr<FullGenerateFileLocat
     if (x_has_mtime != y_has_mtime) {
       return x_has_mtime ? 0 : 1;
     }
-    return x->conversion_ >= y->conversion_
-               ? 0
-               : 1;  // the bigger conversion, the bigger mtime or at least more stable choise
+    if (x->conversion_ != y->conversion) {
+      return x->conversion_ >= y->conversion_
+                 ? 0
+                 : 1;  // the bigger conversion, the bigger mtime or at least more stable choise
+    }
   }
   return 2;
 }

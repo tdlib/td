@@ -16,6 +16,7 @@
 #include <map>
 
 namespace td {
+
 class FileGenerateActor;
 
 class FileGenerateCallback {
