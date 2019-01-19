@@ -966,17 +966,15 @@ static int merge_choose_generate_location(const unique_ptr<FullGenerateFileLocat
   if (x_empty != y_empty) {
     return x_empty ? 1 : 0;
   }
-  if (!x_empty) {
+  if (!x_empty && *x != *y) {
     bool x_has_mtime = begins_with(x->conversion_, "#mtime#");
     bool y_has_mtime = begins_with(y->conversion_, "#mtime#");
     if (x_has_mtime != y_has_mtime) {
       return x_has_mtime ? 0 : 1;
     }
-    if (x->conversion_ != y->conversion) {
-      return x->conversion_ >= y->conversion_
-                 ? 0
-                 : 1;  // the bigger conversion, the bigger mtime or at least more stable choise
-    }
+    return x->conversion_ >= y->conversion_
+               ? 0
+               : 1;  // the bigger conversion, the bigger mtime or at least more stable choise
   }
   return 2;
 }
