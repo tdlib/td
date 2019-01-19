@@ -91,15 +91,32 @@ void reset_to_empty(T &value) {
 }
 
 template <class T>
-auto append(vector<T> &destination, const vector<T> &source) {
+void append(vector<T> &destination, const vector<T> &source) {
   destination.insert(destination.end(), source.begin(), source.end());
 }
 
 template <class T>
-auto append(vector<T> &destination, vector<T> &&source) {
+void append(vector<T> &destination, vector<T> &&source) {
   if (destination.empty()) {
     destination.swap(source);
     return;
+  }
+  destination.reserve(destination.size() + source.size());
+  for (auto &elem : source) {
+    destination.push_back(std::move(elem));
+  }
+  reset_to_empty(source);
+}
+
+template <class T>
+void combine(vector<T> &destination, const vector<T> &source) {
+  append(destination, source);
+}
+
+template <class T>
+void combine(vector<T> &destination, vector<T> &&source) {
+  if (destination.size() < source.size()) {
+    destination.swap(source);
   }
   destination.reserve(destination.size() + source.size());
   for (auto &elem : source) {

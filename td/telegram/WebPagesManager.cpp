@@ -1888,7 +1888,7 @@ void WebPagesManager::update_web_page_instant_view_load_requests(WebPageId web_p
 
   if (result.is_error()) {
     LOG(INFO) << "Receive error " << result.error() << " for load " << web_page_id;
-    append(promises[0], std::move(promises[1]));
+    combine(promises[0], std::move(promises[1]));
     for (auto &promise : promises[0]) {
       promise.set_error(result.error().clone());
     }
@@ -1898,7 +1898,7 @@ void WebPagesManager::update_web_page_instant_view_load_requests(WebPageId web_p
 
   auto web_page_instant_view = get_web_page_instant_view(web_page_id);
   if (web_page_instant_view == nullptr) {
-    append(promises[0], std::move(promises[1]));
+    combine(promises[0], std::move(promises[1]));
     for (auto &promise : promises[0]) {
       promise.set_value(Unit());
     }
@@ -1906,20 +1906,19 @@ void WebPagesManager::update_web_page_instant_view_load_requests(WebPageId web_p
   }
   if (web_page_instant_view->is_loaded) {
     if (web_page_instant_view->is_full) {
-      append(promises[0], std::move(promises[1]));
-      promises[1].clear();
+      combine(promises[0], std::move(promises[1]));
     }
 
     for (auto &promise : promises[0]) {
       promise.set_value(Unit());
     }
-    promises[0].clear();
+    reset_to_empty(promises[0]);
   }
   if (!promises[0].empty() || !promises[1].empty()) {
     if (force_update) {
       // protection from cycles
       LOG(ERROR) << "Expected to receive " << web_page_id << " from the server, but didn't receive it";
-      append(promises[0], std::move(promises[1]));
+      combine(promises[0], std::move(promises[1]));
       for (auto &promise : promises[0]) {
         promise.set_value(Unit());
       }
@@ -1927,8 +1926,8 @@ void WebPagesManager::update_web_page_instant_view_load_requests(WebPageId web_p
     }
     auto &load_queries = load_web_page_instant_view_queries_[web_page_id];
     auto old_size = load_queries.partial.size() + load_queries.full.size();
-    append(load_queries.partial, std::move(promises[0]));
-    append(load_queries.full, std::move(promises[1]));
+    combine(load_queries.partial, std::move(promises[0]));
+    combine(load_queries.full, std::move(promises[1]));
     if (old_size == 0) {
       reload_web_page_instant_view(web_page_id);
     }

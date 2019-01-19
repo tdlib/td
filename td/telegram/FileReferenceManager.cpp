@@ -96,15 +96,6 @@ void FileReferenceManager::remove_file_source(NodeId node_id, FileSourceId file_
   nodes_[node_id].file_source_ids.remove(file_source_id);
 }
 
-static void merge(std::vector<Promise<>> &a, std::vector<Promise<>> &b) {
-  if (a.size() < b.size()) {
-    std::swap(a, b);
-  }
-  for (auto &x : b) {
-    a.push_back(std::move(x));
-  }
-}
-
 void FileReferenceManager::merge(NodeId to_node_id, NodeId from_node_id) {
   VLOG(file_references) << "Merge sources of files " << to_node_id << " and " << from_node_id;
   auto &to = nodes_[to_node_id];
@@ -117,7 +108,7 @@ void FileReferenceManager::merge(NodeId to_node_id, NodeId from_node_id) {
       to.query->generation = ++query_generation_;
     }
     if (from.query) {
-      ::td::merge(to.query->promises, from.query->promises);
+      combine(to.query->promises, std::move(from.query->promises));
       to.query->active_queries += from.query->active_queries;
       from.query->proxy = {to_node_id, to.query->generation};
     }
