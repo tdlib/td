@@ -4,16 +4,75 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
-#include "td/utils/tests.h"
-#include "td/utils/Random.h"
-
 #include "td/telegram/SetWithPosition.h"
 
+#include "td/utils/common.h"
+#include "td/utils/logging.h"
+#include "td/utils/Random.h"
+#include "td/utils/tests.h"
+
+#include <algorithm>
+#include <functional>
 #include <set>
+#include <utility>
 
 using namespace td;
 
-template <class T, template <class> class Set = SetWithPosition>
+template <class T>
+class OldSetWithPosition {
+ public:
+  void add(T value) {
+    auto it = std::find(values_.begin(), values_.end(), value);
+    if (it != values_.end()) {
+      return;
+    }
+    values_.push_back(value);
+  }
+  void remove(T value) {
+    auto it = std::find(values_.begin(), values_.end(), value);
+    if (it == values_.end()) {
+      return;
+    }
+    size_t i = it - values_.begin();
+    values_.erase(it);
+    if (pos_ > i) {
+      pos_--;
+    }
+  }
+  void reset_position() {
+    pos_ = 0;
+  }
+  T next() {
+    CHECK(has_next());
+    return values_[pos_++];
+  }
+  bool has_next() const {
+    return pos_ < values_.size();
+  }
+  void merge(OldSetWithPosition &&other) {
+    OldSetWithPosition res;
+    for (size_t i = 0; i < pos_; i++) {
+      res.add(values_[i]);
+    }
+    for (size_t i = 0; i < other.pos_; i++) {
+      res.add(other.values_[i]);
+    }
+    res.pos_ = res.values_.size();
+    for (size_t i = pos_; i < values_.size(); i++) {
+      res.add(values_[i]);
+    }
+    for (size_t i = other.pos_; i < other.values_.size(); i++) {
+      res.add(other.values_[i]);
+    }
+    *this = std::move(res);
+  }
+
+ private:
+  std::vector<T> values_;
+  size_t pos_{0};
+};
+
+template <class T, template <class> class SetWithPosition>
 class CheckedSetWithPosition {
  public:
   void add(int x) {
@@ -28,7 +87,7 @@ class CheckedSetWithPosition {
     checked_.erase(x);
     not_checked_.erase(x);
   }
-  bool has_next() {
+  bool has_next() const {
     auto res = !not_checked_.empty();
     //LOG(ERROR) << res;
     ASSERT_EQ(res, s_.has_next());
@@ -74,11 +133,11 @@ class CheckedSetWithPosition {
  private:
   std::set<T> checked_;
   std::set<T> not_checked_;
-  Set<T> s_;
+  SetWithPosition<T> s_;
 };
 
 template <template <class> class RawSet>
-void test_hands() {
+static void test_hands() {
   using Set = CheckedSetWithPosition<int, RawSet>;
 
   Set a;
@@ -94,12 +153,13 @@ void test_hands() {
     a.next();
   }
 }
+
 template <template <class> class RawSet>
-void test_stress() {
+static void test_stress() {
   Random::Xorshift128plus rnd(123);
   using Set = CheckedSetWithPosition<int, RawSet>;
-  for (int t = 0; t < 100; t++) {
-    std::vector<unique_ptr<Set>> sets(1000);
+  for (int t = 0; t < 10; t++) {
+    std::vector<unique_ptr<Set>> sets(100);
     for (auto &s : sets) {
       s = make_unique<Set>();
     }
@@ -163,11 +223,12 @@ void test_stress() {
     }
   }
 }
+
 template <template <class> class RawSet>
-void test_speed() {
+static void test_speed() {
   Random::Xorshift128plus rnd(123);
   using Set = CheckedSetWithPosition<int, RawSet>;
-  std::vector<unique_ptr<Set>> sets(1 << 18);
+  std::vector<unique_ptr<Set>> sets(1 << 13);
   for (size_t i = 0; i < sets.size(); i++) {
     sets[i] = make_unique<Set>();
     sets[i]->add(int(i));
@@ -187,11 +248,13 @@ TEST(SetWithPosition, hands) {
   test_hands<OldSetWithPosition>();
   test_hands<SetWithPosition>();
 }
+
 TEST(SetWithPosition, stress) {
   test_stress<FastSetWithPosition>();
   test_stress<OldSetWithPosition>();
   test_stress<SetWithPosition>();
 }
+
 TEST(SetWithPosition, speed) {
   test_speed<FastSetWithPosition>();
   test_speed<SetWithPosition>();

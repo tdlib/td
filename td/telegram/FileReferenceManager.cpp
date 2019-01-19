@@ -11,14 +11,12 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/WallpaperManager.h"
 #include "td/telegram/WebPagesManager.h"
 
-#include "td/actor/MultiPromise.h"
-
-#include "td/utils/format.h"
+#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/overloaded.h"
-#include "td/utils/Variant.h"
 
 namespace td {
 

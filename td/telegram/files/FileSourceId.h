@@ -33,6 +33,10 @@ class FileSourceId {
     return id;
   }
 
+  bool operator<(const FileSourceId &other) const {
+    return id < other.id;
+  }
+
   bool operator==(const FileSourceId &other) const {
     return id == other.id;
   }

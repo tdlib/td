@@ -9,10 +9,13 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
+#include "td/telegram/DialogId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Td.h"
 
+#include "td/utils/buffer.h"
+#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 
 namespace td {

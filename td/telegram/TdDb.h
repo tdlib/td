@@ -8,8 +8,8 @@
 
 #include "td/telegram/TdParameters.h"
 
-#include "td/db/binlog/BinlogInterface.h"
 #include "td/db/binlog/BinlogEvent.h"
+#include "td/db/binlog/BinlogInterface.h"
 #include "td/db/DbKey.h"
 #include "td/db/KeyValueSyncInterface.h"
 

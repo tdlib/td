@@ -9,15 +9,16 @@
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
 
-#include "td/telegram/ChatId.h"
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/ChatId.h"
 #include "td/telegram/files/FileId.h"
-#include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/SetWithPosition.h"
 #include "td/telegram/UserId.h"
 
+#include "td/utils/logging.h"
+#include "td/utils/Status.h"
 #include "td/utils/Variant.h"
 
 #include <unordered_map>

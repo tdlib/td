@@ -8,6 +8,7 @@
 
 #include "td/telegram/files/FileId.h"
 
+#include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileManager.hpp"
 #include "td/telegram/Td.h"
 
