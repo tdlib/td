@@ -18235,12 +18235,26 @@ bool MessagesManager::is_message_notification_disabled(const Dialog *d, const Me
     return true;
   }
 
+  switch (m->content->get_type()) {
+    case MessageContentType::ChatDeleteHistory:
+    case MessageContentType::ChatMigrateTo:
+    case MessageContentType::Unsupported:
+    case MessageContentType::ExpiredPhoto:
+    case MessageContentType::ExpiredVideo:
+    case MessageContentType::PassportDataSent:
+    case MessageContentType::PassportDataReceived:
+      VLOG(notifications) << "Disable notification for " << m->message_id << " in " << d->dialog_id
+                          << " with content of type " << m->content->get_type();
+      return true;
+    default:
+      break;
+  }
+
   switch (d->dialog_id.get_type()) {
     case DialogType::User:
       break;
     case DialogType::Chat:
-      if (!td_->contacts_manager_->get_chat_is_active(d->dialog_id.get_chat_id()) ||
-          m->content->get_type() == MessageContentType::ChatMigrateTo) {
+      if (!td_->contacts_manager_->get_chat_is_active(d->dialog_id.get_chat_id())) {
         return true;
       }
       break;
