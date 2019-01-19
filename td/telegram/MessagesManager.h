@@ -17,6 +17,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessageContent.h"
 #include "td/telegram/MessageEntity.h"

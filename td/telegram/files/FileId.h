@@ -14,51 +14,6 @@
 
 namespace td {
 
-class FileSourceId {
-  int32 id = 0;
-
- public:
-  FileSourceId() = default;
-
-  explicit FileSourceId(int32 file_id) : id(file_id) {
-  }
-  template <class T1, typename = std::enable_if_t<std::is_convertible<T1, int32>::value>>
-  FileSourceId(T1 file_id) = delete;
-
-  bool empty() const {
-    return id <= 0;
-  }
-  bool is_valid() const {
-    return id > 0;
-  }
-
-  int32 get() const {
-    return id;
-  }
-
-  bool operator<(const FileSourceId &other) const {
-    return id < other.id;
-  }
-
-  bool operator==(const FileSourceId &other) const {
-    return id == other.id;
-  }
-
-  bool operator!=(const FileSourceId &other) const {
-    return id != other.id;
-  }
-};
-
-struct FileSourceIdHash {
-  std::size_t operator()(FileSourceId file_id) const {
-    return std::hash<int32>()(file_id.get());
-  }
-};
-
-inline StringBuilder &operator<<(StringBuilder &string_builder, FileSourceId file_id) {
-  return string_builder << "FileSourceId(" << file_id.get() << ")";
-}
-
 class FileId {
   int32 id = 0;
   int32 remote_id = 0;

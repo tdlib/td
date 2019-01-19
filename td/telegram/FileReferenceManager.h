@@ -11,7 +11,9 @@
 
 #include "td/telegram/ChatId.h"
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileManager.h"
+#include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/SetWithPosition.h"
 #include "td/telegram/UserId.h"
