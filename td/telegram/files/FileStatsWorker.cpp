@@ -71,7 +71,7 @@ Status scan_db(CallbackT &&callback) {
     }
     PathView path_view(info.path);
     if (path_view.is_relative()) {
-      info.path = get_files_base_dir(info.file_type) + info.path;
+      info.path = PSTRING() << get_files_base_dir(info.file_type) << info.path;
     }
     // LOG(INFO) << "Found file in the database: " << data << " " << info.path;
     info.owner_dialog_id = data.owner_dialog_id_;

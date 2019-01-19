@@ -57,6 +57,7 @@
   while (false)
 
 namespace td {
+
 template <class StorerT>
 void store(bool x, StorerT &storer) {
   storer.store_binary(static_cast<int32>(x));
@@ -215,4 +216,5 @@ TD_WARN_UNUSED_RESULT Status unserialize(T &object, Slice data) {
   parser.fetch_end();
   return parser.get_status();
 }
+
 }  // namespace td

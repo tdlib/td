@@ -9,6 +9,7 @@
 #include "td/telegram/td_api.h"
 
 #include "td/utils/logging.h"
+#include "td/utils/Slice.h"
 
 namespace td {
 
@@ -117,10 +118,51 @@ inline tl_object_ptr<td_api::FileType> as_td_api(FileType file_type) {
 }
 
 constexpr int32 file_type_size = static_cast<int32>(FileType::Size);
-extern const char *file_type_name[file_type_size];
+
+inline CSlice get_file_type_name(FileType file_type) {
+  switch (file_type) {
+    case FileType::Thumbnail:
+      return CSlice("thumbnails");
+    case FileType::ProfilePhoto:
+      return CSlice("profile_photos");
+    case FileType::Photo:
+      return CSlice("photos");
+    case FileType::VoiceNote:
+      return CSlice("voice");
+    case FileType::Video:
+      return CSlice("videos");
+    case FileType::Document:
+      return CSlice("documents");
+    case FileType::Encrypted:
+      return CSlice("secret");
+    case FileType::Temp:
+      return CSlice("temp");
+    case FileType::Sticker:
+      return CSlice("stickers");
+    case FileType::Audio:
+      return CSlice("music");
+    case FileType::Animation:
+      return CSlice("animations");
+    case FileType::EncryptedThumbnail:
+      return CSlice("secret_thumbnails");
+    case FileType::Wallpaper:
+      return CSlice("wallpapers");
+    case FileType::VideoNote:
+      return CSlice("video_notes");
+    case FileType::SecureRaw:
+      return CSlice("passport");
+    case FileType::Secure:
+      return CSlice("passport");
+    case FileType::Size:
+    case FileType::None:
+    default:
+      UNREACHABLE();
+      return CSlice("none");
+  }
+}
 
 inline StringBuilder &operator<<(StringBuilder &string_builder, FileType file_type) {
-  return string_builder << file_type_name[static_cast<int32>(file_type)];
+  return string_builder << get_file_type_name(file_type);
 }
 
 enum class FileDirType : int8 { Secure, Common };

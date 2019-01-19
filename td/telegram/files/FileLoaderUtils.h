@@ -27,7 +27,7 @@ Result<string> search_file(CSlice dir, CSlice name, int64 expected_size) TD_WARN
 
 Result<FullLocalFileLocation> save_file_bytes(FileType type, BufferSlice bytes, CSlice file_name);
 
-string get_files_base_dir(FileType file_type);
+Slice get_files_base_dir(FileType file_type);
 
 string get_files_temp_dir(FileType file_type);
 

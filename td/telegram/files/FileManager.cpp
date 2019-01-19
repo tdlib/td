@@ -858,7 +858,8 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
     if (file_location_source == FileLocationSource::FromDb) {
       PathView path_view(data.local_.full().path_);
       if (path_view.is_relative()) {
-        data.local_.full().path_ = get_files_base_dir(data.local_.full().file_type_) + data.local_.full().path_;
+        data.local_.full().path_ = PSTRING()
+                                   << get_files_base_dir(data.local_.full().file_type_) << data.local_.full().path_;
       }
     }
 
