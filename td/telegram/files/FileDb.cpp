@@ -306,7 +306,7 @@ Status fix_file_remote_location_key_bug(SqliteDb &db) {
     auto remote_str = PSTRING() << key.substr(4, 4) << Slice("\0\0\0\0") << key.substr(8);
     FullRemoteFileLocation remote;
     if (unserialize(remote, remote_str).is_ok()) {
-      kv.set(as_key(remote), value);
+      kv.set(FileDbInterface::as_key(remote), value);
     }
     LOG(DEBUG) << "ERASE " << format::as_hex_dump<4>(Slice(key));
     kv.erase(key);

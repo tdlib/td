@@ -11,8 +11,10 @@
 
 #include "td/actor/PromiseFuture.h"
 
+#include "td/utils/buffer.h"
 #include "td/utils/logging.h"
 #include "td/utils/Status.h"
+#include "td/utils/tl_storers.h"
 
 #include <memory>
 
@@ -41,9 +43,25 @@ class FileDbInterface {
 
   // thread safe
   virtual void close(Promise<> promise) = 0;
+
+  template <class LocationT>
+  static string as_key(const LocationT &object) {
+    TlStorerCalcLength calc_length;
+    calc_length.store_int(0);
+    object.as_key().store(calc_length);
+
+    BufferSlice key_buffer{calc_length.get_length()};
+    auto key = key_buffer.as_slice();
+    TlStorerUnsafe storer(key.ubegin());
+    storer.store_int(LocationT::KEY_MAGIC);
+    object.as_key().store(storer);
+    CHECK(storer.get_buf() == key.uend());
+    return key.str();
+  }
+
   template <class LocationT>
   void get_file_data(const LocationT &location, Promise<FileData> promise) {
-    get_file_data(as_key(location), std::move(promise));
+    get_file_data_impl(as_key(location), std::move(promise));
   }
 
   template <class LocationT>

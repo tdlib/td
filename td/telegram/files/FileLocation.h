@@ -22,7 +22,6 @@
 #include "td/utils/Slice.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
-#include "td/utils/tl_storers.h"
 #include "td/utils/Variant.h"
 
 #include <tuple>
@@ -1304,21 +1303,6 @@ inline StringBuilder &operator<<(StringBuilder &sb, const FileData &file_data) {
     sb << " remote " << file_data.remote_.full();
   }
   return sb << "]";
-}
-
-template <class T>
-string as_key(const T &object) {
-  TlStorerCalcLength calc_length;
-  calc_length.store_int(0);
-  object.as_key().store(calc_length);
-
-  BufferSlice key_buffer{calc_length.get_length()};
-  auto key = key_buffer.as_slice();
-  TlStorerUnsafe storer(key.ubegin());
-  storer.store_int(T::KEY_MAGIC);
-  object.as_key().store(storer);
-  CHECK(storer.get_buf() == key.uend());
-  return key.str();
 }
 
 }  // namespace td
