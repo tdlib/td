@@ -279,6 +279,13 @@ class FullRemoteFileLocation {
   friend StringBuilder &operator<<(StringBuilder &string_builder,
                                    const FullRemoteFileLocation &full_remote_file_location);
 
+  int32 key_type() const {
+    auto type = static_cast<int32>(file_type_);
+    if (is_web()) {
+      type |= WEB_LOCATION_FLAG;
+    }
+    return type;
+  }
   int32 full_type() const {
     auto type = static_cast<int32>(file_type_);
     if (is_web()) {
@@ -350,7 +357,7 @@ class FullRemoteFileLocation {
     template <class StorerT>
     void store(StorerT &storer) const {
       using td::store;
-      store(key.full_type(), storer);
+      store(key.key_type(), storer);
       key.variant_.visit([&](auto &&value) {
         using td::store;
         store(value.as_key(), storer);
@@ -521,8 +528,8 @@ class FullRemoteFileLocation {
   }
 
   bool operator<(const FullRemoteFileLocation &other) const {
-    if (full_type() != other.full_type()) {
-      return full_type() < other.full_type();
+    if (key_type() != other.key_type()) {
+      return key_type() < other.key_type();
     }
     if (dc_id_ != other.dc_id_) {
       return dc_id_ < other.dc_id_;
@@ -541,7 +548,7 @@ class FullRemoteFileLocation {
     }
   }
   bool operator==(const FullRemoteFileLocation &other) const {
-    if (full_type() != other.full_type()) {
+    if (key_type() != other.key_type()) {
       return false;
     }
     if (dc_id_ != other.dc_id_) {
