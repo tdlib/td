@@ -12,6 +12,7 @@
 
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/ConfigShared.h"
+#include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
@@ -6248,6 +6249,15 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
 void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, bool from_database) {
   CHECK(c != nullptr);
   if (c->is_photo_changed) {
+    auto file_ids = dialog_photo_get_file_ids(c->photo);
+    if (!file_ids.empty()) {
+      if (!c->photo_source_id.is_valid()) {
+        c->photo_source_id = td_->file_reference_manager_->create_chat_photo_file_source(chat_id);
+      }
+      for (auto file_id : file_ids) {
+        td_->file_manager_->add_file_source(file_id, c->photo_source_id);
+      }
+    }
     td_->messages_manager_->on_dialog_photo_updated(DialogId(chat_id));
   }
   if (c->is_title_changed) {
@@ -6278,6 +6288,15 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
 void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from_binlog, bool from_database) {
   CHECK(c != nullptr);
   if (c->is_photo_changed) {
+    auto file_ids = dialog_photo_get_file_ids(c->photo);
+    if (!file_ids.empty()) {
+      if (!c->photo_source_id.is_valid()) {
+        c->photo_source_id = td_->file_reference_manager_->create_channel_photo_file_source(channel_id);
+      }
+      for (auto file_id : file_ids) {
+        td_->file_manager_->add_file_source(file_id, c->photo_source_id);
+      }
+    }
     td_->messages_manager_->on_dialog_photo_updated(DialogId(channel_id));
   }
   if (c->is_title_changed) {
@@ -7926,6 +7945,11 @@ void ContactsManager::on_update_chat_photo(Chat *c, ChatId chat_id,
   DialogPhoto new_chat_photo = get_dialog_photo(td_->file_manager_.get(), std::move(chat_photo_ptr));
 
   if (new_chat_photo != c->photo) {
+    if (c->photo_source_id.is_valid()) {
+      for (auto file_id : dialog_photo_get_file_ids(c->photo)) {
+        td_->file_manager_->remove_file_source(file_id, c->photo_source_id);
+      }
+    }
     c->photo = new_chat_photo;
     c->is_photo_changed = true;
     c->is_changed = true;
@@ -8027,6 +8051,11 @@ void ContactsManager::on_update_channel_photo(Channel *c, ChannelId channel_id,
   DialogPhoto new_chat_photo = get_dialog_photo(td_->file_manager_.get(), std::move(chat_photo_ptr));
 
   if (new_chat_photo != c->photo) {
+    if (c->photo_source_id.is_valid()) {
+      for (auto file_id : dialog_photo_get_file_ids(c->photo)) {
+        td_->file_manager_->remove_file_source(file_id, c->photo_source_id);
+      }
+    }
     c->photo = new_chat_photo;
     c->is_photo_changed = true;
     c->is_changed = true;

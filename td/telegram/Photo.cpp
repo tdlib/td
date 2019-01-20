@@ -203,6 +203,17 @@ tl_object_ptr<td_api::chatPhoto> get_chat_photo_object(FileManager *file_manager
                                                 file_manager->get_file_object(dialog_photo->big_file_id));
 }
 
+vector<FileId> dialog_photo_get_file_ids(const DialogPhoto &dialog_photo) {
+  vector<FileId> result;
+  if (dialog_photo.small_file_id.is_valid()) {
+    result.push_back(dialog_photo.small_file_id);
+  }
+  if (dialog_photo.big_file_id.is_valid()) {
+    result.push_back(dialog_photo.big_file_id);
+  }
+  return result;
+}
+
 bool operator==(const DialogPhoto &lhs, const DialogPhoto &rhs) {
   return lhs.small_file_id == rhs.small_file_id && lhs.big_file_id == rhs.big_file_id;
 }

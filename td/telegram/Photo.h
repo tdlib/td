@@ -73,6 +73,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const ProfilePhoto &pro
 DialogPhoto get_dialog_photo(FileManager *file_manager, tl_object_ptr<telegram_api::ChatPhoto> &&chat_photo_ptr);
 tl_object_ptr<td_api::chatPhoto> get_chat_photo_object(FileManager *file_manager, const DialogPhoto *dialog_photo);
 
+vector<FileId> dialog_photo_get_file_ids(const DialogPhoto &dialog_photo);
+
 bool operator==(const DialogPhoto &lhs, const DialogPhoto &rhs);
 bool operator!=(const DialogPhoto &lhs, const DialogPhoto &rhs);
 

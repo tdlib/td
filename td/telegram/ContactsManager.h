@@ -16,6 +16,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DialogParticipant.h"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/SecretChatId.h"
@@ -553,6 +554,7 @@ class ContactsManager : public Actor {
   struct Chat {
     string title;
     DialogPhoto photo;
+    FileSourceId photo_source_id;
     int32 participant_count = 0;
     int32 date = 0;
     int32 version = -1;
@@ -598,6 +600,7 @@ class ContactsManager : public Actor {
     int64 access_hash = 0;
     string title;
     DialogPhoto photo;
+    FileSourceId photo_source_id;
     string username;
     string restriction_reason;
     DialogParticipantStatus status = DialogParticipantStatus::Banned(0);

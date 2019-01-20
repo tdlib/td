@@ -95,9 +95,10 @@ void FileReferenceManager::remove_file_source(NodeId node_id, FileSourceId file_
 }
 
 void FileReferenceManager::merge(NodeId to_node_id, NodeId from_node_id) {
-  VLOG(file_references) << "Merge sources of files " << to_node_id << " and " << from_node_id;
   auto &to = nodes_[to_node_id];
   auto &from = nodes_[from_node_id];
+  VLOG(file_references) << "Merge " << to.file_source_ids.size() << " and " << from.file_source_ids.size()
+                        << " sources of files " << to_node_id << " and " << from_node_id;
   CHECK(!to.query || to.query->proxy.empty());
   CHECK(!from.query || from.query->proxy.empty());
   if (to.query || from.query) {
