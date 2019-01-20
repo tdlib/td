@@ -7,8 +7,8 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
-#include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileEncryptionKey.h"
+#include "td/telegram/files/FileLocation.h"
 
 #include "td/utils/common.h"
 #include "td/utils/format.h"

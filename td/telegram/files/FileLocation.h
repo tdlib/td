@@ -9,7 +9,6 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/telegram/files/FileBitmask.h"
-#include "td/telegram/files/FileEncryptionKey.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/net/DcId.h"
 

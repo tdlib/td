@@ -6,8 +6,8 @@
 //
 #include "td/telegram/files/FileGcWorker.h"
 
-#include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileLocation.h"
+#include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
 

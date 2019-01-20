@@ -12,7 +12,6 @@
 
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
-#include "td/utils/Slice.h"
 
 #include <algorithm>
 #include <unordered_set>
