@@ -12797,14 +12797,14 @@ const ScopeNotificationSettings *MessagesManager::get_scope_notification_setting
 }
 
 DialogNotificationSettings *MessagesManager::get_dialog_notification_settings(DialogId dialog_id, bool force) {
-  auto dialog = get_dialog_force(dialog_id);
-  if (dialog == nullptr) {
+  auto d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
     return nullptr;
   }
   if (!force && !have_input_peer(dialog_id, AccessRights::Read)) {
     return nullptr;
   }
-  return &dialog->notification_settings;
+  return &d->notification_settings;
 }
 
 ScopeNotificationSettings *MessagesManager::get_scope_notification_settings(NotificationSettingsScope scope) {
@@ -19350,7 +19350,7 @@ void MessagesManager::on_dialog_bots_updated(DialogId dialog_id, vector<UserId> 
   }
 
   auto d = get_dialog_force(dialog_id);
-  if (d->reply_markup_message_id == MessageId()) {
+  if (d == nullptr || d->reply_markup_message_id == MessageId()) {
     return;
   }
   const Message *m = get_message_force(d, d->reply_markup_message_id);
@@ -20803,7 +20803,7 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(DialogId
       return nullptr;
     }
 
-    // can succeed in private chats
+    // can succeed in private and group chats
     get_messages_from_server({FullMessageId{dialog_id, m->message_id}}, Auto());
 
     force_create_dialog(dialog_id, source);
