@@ -410,7 +410,7 @@ void AnimationsManager::reload_saved_animations(bool force) {
   }
 }
 
-void AnimationsManager::reload_saved_animations(Promise<Unit> &&promise) {
+void AnimationsManager::reload_saved_animations_force(Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
     return promise.set_error(Status::Error(400, "Bots has no saved animations"));
   }

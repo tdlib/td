@@ -59,7 +59,7 @@ class AnimationsManager : public Actor {
 
   void reload_saved_animations(bool force);
 
-  void reload_saved_animations(Promise<Unit> &&promise);
+  void reload_saved_animations_force(Promise<Unit> &&promise);
 
   void on_get_saved_animations(bool is_reload, tl_object_ptr<telegram_api::messages_SavedGifs> &&saved_animations_ptr);
 

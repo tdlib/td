@@ -178,32 +178,26 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
                            vector<FullMessageId>{source.full_message_id}, std::move(promise), nullptr);
       },
       [&](const FileSourceUserPhoto &source) {
-        //  send_closure_later(G()->contacts_manager(), &ContactsManager::get_user_photo_from_server, source.user_id,
-        //                     source.photo_id, std::move(promise));
+        send_closure_later(G()->contacts_manager(), &ContactsManager::reload_user_profile_photo, source.user_id,
+                           source.photo_id, std::move(promise));
       },
       [&](const FileSourceChatPhoto &source) {
-        //  send_closure_later(G()->contacts_manager(), &ContactsManager::get_chat_photo_from_server, source.chat_id,
-        //                     std::move(promise));
+        send_closure_later(G()->contacts_manager(), &ContactsManager::reload_chat, source.chat_id, std::move(promise));
       },
       [&](const FileSourceChannelPhoto &source) {
-        //  send_closure_later(G()->contacts_manager(), &ContactsManager::get_channel_photo_from_server,
-        //                     source.channel_id, std::move(promise));
+        send_closure_later(G()->contacts_manager(), &ContactsManager::reload_channel, source.channel_id,
+                           std::move(promise));
       },
       [&](const FileSourceWallpapers &source) {
-        //  send_closure_later(G()->wallpaper_manager(), &WallpaperManager::get_wallpapers_from_server,
-        //                     std::move(promise));
+        send_closure_later(G()->wallpaper_manager(), &WallpaperManager::reload_wallpapers, std::move(promise));
       },
       [&](const FileSourceWebPage &source) {
         send_closure_later(G()->web_pages_manager(), &WebPagesManager::reload_web_page_by_url, source.url,
                            std::move(promise));
       },
       [&](const FileSourceSavedAnimations &source) {
-        /*
-          // TODO this is wrong, because we shouldn't pass animations hash to the call
-          // we also sometimes need to do two simultaneous calls one with and one without hash
-          send_closure_later(G()->animations_manager(), &AnimationsManager::reload_saved_animations,
-                             true, std::move(promise));
-          */
+        send_closure_later(G()->animations_manager(), &AnimationsManager::reload_saved_animations_force,
+                           std::move(promise));
       }));
 }
 
