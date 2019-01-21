@@ -6,6 +6,8 @@
 //
 #pragma once
 
+#include "td/telegram/files/FileId.h"
+#include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -43,6 +45,8 @@ class WallpaperManager : public Actor {
     }
   };
   vector<Wallpaper> wallpapers_;
+  vector<FileId> wallpaper_file_ids_;
+  FileSourceId wallpaper_source_id_;
 
   vector<Promise<Unit>> pending_get_wallpapers_queries_;
 

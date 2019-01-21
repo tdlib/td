@@ -10,6 +10,8 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/FileReferenceManager.h"
+#include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/Photo.h"
@@ -110,6 +112,15 @@ void WallpaperManager::on_get_wallpapers(Result<vector<telegram_api::object_ptr<
         return Wallpaper{0, {}, 0};
     }
   });
+  vector<FileId> new_file_ids;
+  for (auto &wallpaper : wallpapers_) {
+    append(new_file_ids, transform(wallpaper.sizes, [](auto &size) { return size.file_id; }));
+  };
+  if (!wallpaper_source_id_.is_valid()) {
+    wallpaper_source_id_ = td_->file_reference_manager_->create_wallpapers_file_source();
+  }
+  td_->file_manager_->change_files_source(wallpaper_source_id_, wallpaper_file_ids_, new_file_ids);
+  wallpaper_file_ids_ = std::move(new_file_ids);
 
   for (auto &promise : promises) {
     promise.set_value(Unit());
