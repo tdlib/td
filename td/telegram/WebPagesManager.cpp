@@ -17,9 +17,11 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/DocumentsManager.hpp"
+#include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileManager.hpp"
+#include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessageEntity.h"
@@ -190,6 +192,8 @@ class WebPagesManager::WebPage {
   DocumentsManager::DocumentType document_type = DocumentsManager::DocumentType::Unknown;
   FileId document_file_id;
   WebPageInstantView instant_view;
+
+  FileSourceId file_source_id;
 
   mutable uint64 logevent_id = 0;
 
@@ -1504,6 +1508,10 @@ WebPageId WebPagesManager::on_get_web_page(tl_object_ptr<telegram_api::WebPage> 
           binlog_erase(G()->td_db()->get_binlog(), web_page_to_delete->logevent_id);
           web_page_to_delete->logevent_id = 0;
         }
+        if (web_page_to_delete->file_source_id.is_valid()) {
+          td_->file_manager_->change_files_source(web_page_to_delete->file_source_id,
+                                                  get_web_page_file_ids(web_page_to_delete), vector<FileId>());
+        }
         web_pages_.erase(web_page_id);
       }
 
@@ -1612,6 +1620,7 @@ void WebPagesManager::update_web_page(unique_ptr<WebPage> web_page, WebPageId we
   CHECK(web_page != nullptr);
 
   auto &page = web_pages_[web_page_id];
+  auto old_file_ids = get_web_page_file_ids(page.get());
   WebPageInstantView old_instant_view;
   if (page != nullptr) {
     old_instant_view = std::move(page->instant_view);
@@ -1620,6 +1629,15 @@ void WebPagesManager::update_web_page(unique_ptr<WebPage> web_page, WebPageId we
   page = std::move(web_page);
 
   update_web_page_instant_view(web_page_id, page->instant_view, std::move(old_instant_view));
+
+  auto new_file_ids = get_web_page_file_ids(page.get());
+  if (old_file_ids != new_file_ids) {
+    if (!page->file_source_id.is_valid()) {
+      LOG(ERROR) << page->url;
+      page->file_source_id = td_->file_reference_manager_->create_web_page_file_source(page->url);
+    }
+    td_->file_manager_->change_files_source(page->file_source_id, old_file_ids, new_file_ids);
+  }
 
   on_get_web_page_by_url(page->url, web_page_id, from_database);
 
@@ -1935,7 +1953,7 @@ void WebPagesManager::on_load_web_page_instant_view_from_database(WebPageId web_
     update_web_page_instant_view_load_requests(web_page_id, true, Unit());
     return;
   }
-  auto web_page = web_page_it->second.get();
+  WebPage *web_page = web_page_it->second.get();
   auto &web_page_instant_view = web_page->instant_view;
   if (web_page_instant_view.was_loaded_from_database) {
     return;
@@ -1952,7 +1970,18 @@ void WebPagesManager::on_load_web_page_instant_view_from_database(WebPageId web_
   }
   result.was_loaded_from_database = true;
 
+  auto old_file_ids = get_web_page_file_ids(web_page);
+
   update_web_page_instant_view(web_page_id, web_page_instant_view, std::move(result));
+
+  auto new_file_ids = get_web_page_file_ids(web_page);
+  if (old_file_ids != new_file_ids) {
+    if (!web_page->file_source_id.is_valid()) {
+      LOG(ERROR) << web_page->url;
+      web_page->file_source_id = td_->file_reference_manager_->create_web_page_file_source(web_page->url);
+    }
+    td_->file_manager_->change_files_source(web_page->file_source_id, old_file_ids, new_file_ids);
+  }
 
   update_web_page_instant_view_load_requests(web_page_id, false, Unit());
 }
@@ -2868,7 +2897,10 @@ string WebPagesManager::get_web_page_search_text(WebPageId web_page_id) const {
 }
 
 vector<FileId> WebPagesManager::get_web_page_file_ids(const WebPage *web_page) {
-  CHECK(web_page != nullptr);
+  if (web_page == nullptr) {
+    return vector<FileId>();
+  }
+
   vector<FileId> result = photo_get_file_ids(web_page->photo);
   if (web_page->document_file_id.is_valid()) {
     result.push_back(web_page->document_file_id);
