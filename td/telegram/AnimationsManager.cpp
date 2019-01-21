@@ -9,6 +9,7 @@
 #include "td/telegram/AuthManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DocumentsManager.h"
+#include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/Global.h"
@@ -661,6 +662,7 @@ bool AnimationsManager::add_saved_animation_impl(FileId animation_id, Promise<Un
     it = saved_animation_ids_.end() - 1;
   }
   std::rotate(saved_animation_ids_.begin(), it, it + 1);
+  CHECK(saved_animation_ids_[0] == animation_id);
   if (saved_animation_ids_[0].get_remote() == 0 && animation_id.get_remote() != 0) {
     saved_animation_ids_[0] = animation_id;
   }
@@ -714,6 +716,20 @@ td_api::object_ptr<td_api::updateSavedAnimations> AnimationsManager::get_update_
 
 void AnimationsManager::send_update_saved_animations(bool from_database) {
   if (are_saved_animations_loaded_) {
+    if (!saved_animations_file_source_id_.is_valid() && !saved_animation_ids_.empty()) {
+      saved_animations_file_source_id_ = td_->file_reference_manager_->create_saved_animations_file_source();
+    }
+    for (auto &animation_id : saved_animation_ids_) {
+      td_->file_manager_->add_file_source(animation_id, saved_animations_file_source_id_);
+      auto thumbnail_file_id = get_animation_thumbnail_file_id(animation_id);
+      if (thumbnail_file_id.is_valid()) {
+        td_->file_manager_->add_file_source(thumbnail_file_id, saved_animations_file_source_id_);
+      }
+    }
+    // there is no much reason to delete source from deleted saved animations,
+    // it will be automatically deleted after unsuccessfull try of file reference repairing
+    // moreover one thumbnail can belong to different animations, so removal should be careful
+
     send_closure(G()->td(), &Td::send_update, get_update_saved_animations_object());
 
     if (!from_database) {

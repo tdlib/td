@@ -13,6 +13,7 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/SecretInputMedia.h"
 
@@ -136,6 +137,7 @@ class AnimationsManager : public Actor {
   bool are_saved_animations_loaded_ = false;
   vector<Promise<Unit>> load_saved_animations_queries_;
   vector<Promise<Unit>> reload_saved_animations_queries_;
+  FileSourceId saved_animations_file_source_id_;
 };
 
 }  // namespace td
