@@ -218,6 +218,8 @@ class WebPagesManager : public Actor {
 
   void tear_down() override;
 
+  static vector<FileId> get_web_page_file_ids(const WebPage *web_page);
+
   Td *td_;
   ActorShared<> parent_;
   std::unordered_map<WebPageId, unique_ptr<WebPage>, WebPageIdHash> web_pages_;

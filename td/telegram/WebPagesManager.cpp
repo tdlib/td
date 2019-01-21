@@ -17,6 +17,7 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DocumentsManager.h"
 #include "td/telegram/DocumentsManager.hpp"
+#include "td/telegram/files/FileId.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileManager.hpp"
 #include "td/telegram/Global.h"
@@ -448,6 +449,10 @@ class WebPagesManager::PageBlock {
   };
 
   virtual Type get_type() const = 0;
+
+  virtual vector<FileId> get_file_ids() const {
+    return vector<FileId>();
+  }
 
   virtual tl_object_ptr<td_api::PageBlock> get_page_block_object() const = 0;
 
@@ -888,6 +893,19 @@ class WebPagesManager::PageBlockAnimation : public PageBlock {
     return Type::Animation;
   }
 
+  vector<FileId> get_file_ids() const override {
+    vector<FileId> result;
+    if (animation_file_id.is_valid()) {
+      result.push_back(animation_file_id);
+      auto thumbnail_file_id =
+          G()->td().get_actor_unsafe()->animations_manager_->get_animation_thumbnail_file_id(animation_file_id);
+      if (thumbnail_file_id.is_valid()) {
+        result.push_back(thumbnail_file_id);
+      }
+    }
+    return result;
+  }
+
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
     return make_tl_object<td_api::pageBlockAnimation>(
         G()->td().get_actor_unsafe()->animations_manager_->get_animation_object(animation_file_id,
@@ -948,6 +966,10 @@ class WebPagesManager::PageBlockPhoto : public PageBlock {
     return Type::Photo;
   }
 
+  vector<FileId> get_file_ids() const override {
+    return photo_get_file_ids(photo);
+  }
+
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
     return make_tl_object<td_api::pageBlockPhoto>(
         get_photo_object(G()->td().get_actor_unsafe()->file_manager_.get(), &photo), get_rich_text_object(caption));
@@ -982,6 +1004,19 @@ class WebPagesManager::PageBlockVideo : public PageBlock {
 
   Type get_type() const override {
     return Type::Video;
+  }
+
+  vector<FileId> get_file_ids() const override {
+    vector<FileId> result;
+    if (video_file_id.is_valid()) {
+      result.push_back(video_file_id);
+      auto thumbnail_file_id =
+          G()->td().get_actor_unsafe()->videos_manager_->get_video_thumbnail_file_id(video_file_id);
+      if (thumbnail_file_id.is_valid()) {
+        result.push_back(thumbnail_file_id);
+      }
+    }
+    return result;
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -1044,6 +1079,10 @@ class WebPagesManager::PageBlockCover : public PageBlock {
     return Type::Cover;
   }
 
+  vector<FileId> get_file_ids() const override {
+    return cover->get_file_ids();
+  }
+
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
     return make_tl_object<td_api::pageBlockCover>(cover->get_page_block_object());
   }
@@ -1085,6 +1124,10 @@ class WebPagesManager::PageBlockEmbedded : public PageBlock {
 
   Type get_type() const override {
     return Type::Embedded;
+  }
+
+  vector<FileId> get_file_ids() const override {
+    return photo_get_file_ids(poster_photo);
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -1148,6 +1191,14 @@ class WebPagesManager::PageBlockEmbeddedPost : public PageBlock {
     return Type::EmbeddedPost;
   }
 
+  vector<FileId> get_file_ids() const override {
+    vector<FileId> result = photo_get_file_ids(author_photo);
+    for (auto &page_block : page_blocks) {
+      append(result, page_block->get_file_ids());
+    }
+    return result;
+  }
+
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
     return make_tl_object<td_api::pageBlockEmbeddedPost>(
         url, author, get_photo_object(G()->td().get_actor_unsafe()->file_manager_.get(), &author_photo), date,
@@ -1190,6 +1241,14 @@ class WebPagesManager::PageBlockCollage : public PageBlock {
     return Type::Collage;
   }
 
+  vector<FileId> get_file_ids() const override {
+    vector<FileId> result;
+    for (auto &page_block : page_blocks) {
+      append(result, page_block->get_file_ids());
+    }
+    return result;
+  }
+
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
     return make_tl_object<td_api::pageBlockCollage>(get_page_block_objects(page_blocks), get_rich_text_object(caption));
   }
@@ -1221,6 +1280,14 @@ class WebPagesManager::PageBlockSlideshow : public PageBlock {
 
   Type get_type() const override {
     return Type::Slideshow;
+  }
+
+  vector<FileId> get_file_ids() const override {
+    vector<FileId> result;
+    for (auto &page_block : page_blocks) {
+      append(result, page_block->get_file_ids());
+    }
+    return result;
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -1258,6 +1325,10 @@ class WebPagesManager::PageBlockChatLink : public PageBlock {
     return Type::ChatLink;
   }
 
+  vector<FileId> get_file_ids() const override {
+    return dialog_photo_get_file_ids(photo);
+  }
+
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
     return make_tl_object<td_api::pageBlockChatLink>(
         title, get_chat_photo_object(G()->td().get_actor_unsafe()->file_manager_.get(), &photo), username);
@@ -1291,6 +1362,19 @@ class WebPagesManager::PageBlockAudio : public PageBlock {
 
   Type get_type() const override {
     return Type::Audio;
+  }
+
+  vector<FileId> get_file_ids() const override {
+    vector<FileId> result;
+    if (audio_file_id.is_valid()) {
+      result.push_back(audio_file_id);
+      auto thumbnail_file_id =
+          G()->td().get_actor_unsafe()->audios_manager_->get_audio_thumbnail_file_id(audio_file_id);
+      if (thumbnail_file_id.is_valid()) {
+        result.push_back(thumbnail_file_id);
+      }
+    }
+    return result;
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -1805,7 +1889,7 @@ void WebPagesManager::load_web_page_instant_view(WebPageId web_page_id, bool for
   }
   LOG(INFO) << "Load " << web_page_id << " instant view, have " << previous_queries << " previous queries";
   if (previous_queries == 0) {
-    const WebPageInstantView *web_page_instant_view = get_web_page_instant_view(web_page_id);
+    const auto *web_page_instant_view = get_web_page_instant_view(web_page_id);
     CHECK(web_page_instant_view != nullptr);
 
     if (G()->parameters().use_message_db && !web_page_instant_view->was_loaded_from_database) {
@@ -1841,7 +1925,7 @@ void WebPagesManager::on_load_web_page_instant_view_from_database(WebPageId web_
   //  G()->td_db()->get_sqlite_pmc()->erase(get_web_page_instant_view_database_key(web_page_id), Auto());
   //  return;
 
-  auto web_page_instant_view = get_web_page_instant_view(web_page_id);
+  auto *web_page_instant_view = get_web_page_instant_view(web_page_id);
   if (web_page_instant_view == nullptr) {
     // possible if web page loses preview/instant view
     LOG(WARNING) << "There is no instant view in " << web_page_id;
@@ -1896,7 +1980,7 @@ void WebPagesManager::update_web_page_instant_view_load_requests(WebPageId web_p
   }
   LOG(INFO) << "Successfully loaded web page " << web_page_id;
 
-  auto web_page_instant_view = get_web_page_instant_view(web_page_id);
+  const auto *web_page_instant_view = get_web_page_instant_view(web_page_id);
   if (web_page_instant_view == nullptr) {
     combine(promises[0], std::move(promises[1]));
     for (auto &promise : promises[0]) {
@@ -2788,6 +2872,20 @@ string WebPagesManager::get_web_page_search_text(WebPageId web_page_id) const {
     return "";
   }
   return PSTRING() << web_page->title + " " + web_page->description;
+}
+
+vector<FileId> WebPagesManager::get_web_page_file_ids(const WebPage *web_page) {
+  CHECK(web_page != nullptr);
+  vector<FileId> result = photo_get_file_ids(web_page->photo);
+  if (web_page->document_file_id.is_valid()) {
+    result.push_back(web_page->document_file_id);
+  }
+  if (!web_page->instant_view.is_empty) {
+    for (auto &page_block : web_page->instant_view.page_blocks) {
+      append(result, page_block->get_file_ids());
+    }
+  }
+  return result;
 }
 
 }  // namespace td
