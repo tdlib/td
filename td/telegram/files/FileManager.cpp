@@ -758,9 +758,10 @@ FileId FileManager::create_file_id(int32 file_node_id, FileNode *file_node) {
   file_node->file_ids_.push_back(file_id);
   return file_id;
 }
+
 void FileManager::try_forget_file_id(FileId file_id) {
   auto *info = get_file_id_info(file_id);
-  if (info->send_updates_flag_ || info->pin_flag_) {
+  if (info->send_updates_flag_ || info->pin_flag_ || info->sent_file_id_flag_) {
     return;
   }
   auto file_node = get_file_node(file_id);
@@ -2216,7 +2217,7 @@ FileView FileManager::get_sync_file_view(FileId file_id) {
   return FileView(file_node);
 }
 
-tl_object_ptr<td_api::file> FileManager::get_file_object(FileId file_id, bool with_main_file_id) {
+td_api::object_ptr<td_api::file> FileManager::get_file_object(FileId file_id, bool with_main_file_id) {
   auto file_view = get_sync_file_view(file_id);
 
   if (file_view.empty()) {
@@ -2265,10 +2266,21 @@ tl_object_ptr<td_api::file> FileManager::get_file_object(FileId file_id, bool wi
                                               is_uploading_completed, remote_size));
 }
 
-vector<tl_object_ptr<td_api::file>> FileManager::get_files_object(const vector<FileId> &file_ids,
-                                                                  bool with_main_file_id) {
-  return transform(file_ids,
-                   [this, with_main_file_id](FileId file_id) { return get_file_object(file_id, with_main_file_id); });
+vector<int32> FileManager::get_file_ids_object(const vector<FileId> &file_ids, bool with_main_file_id) {
+  return transform(file_ids, [this, with_main_file_id](FileId file_id) {
+    auto file_view = get_sync_file_view(file_id);
+    auto result_file_id = file_id;
+    auto *file_info = get_file_id_info(result_file_id);
+    if (with_main_file_id) {
+      if (!file_info->sent_file_id_flag_ && !file_info->send_updates_flag_) {
+        result_file_id = file_view.file_id();
+      }
+      file_info = get_file_id_info(file_view.file_id());
+    }
+    file_info->sent_file_id_flag_ = true;
+
+    return result_file_id.get();
+  });
 }
 
 Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> result, bool is_encrypted,

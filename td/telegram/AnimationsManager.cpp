@@ -709,7 +709,7 @@ void AnimationsManager::remove_saved_animation(const tl_object_ptr<td_api::Input
 
 td_api::object_ptr<td_api::updateSavedAnimations> AnimationsManager::get_update_saved_animations_object() const {
   return td_api::make_object<td_api::updateSavedAnimations>(
-      transform(saved_animation_ids_, [](FileId animation_id) { return animation_id.get(); }));
+      td_->file_manager_->get_file_ids_object(saved_animation_ids_));
 }
 
 void AnimationsManager::send_update_saved_animations(bool from_database) {

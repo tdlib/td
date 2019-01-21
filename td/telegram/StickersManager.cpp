@@ -3857,8 +3857,7 @@ void StickersManager::clear_recent_stickers(bool is_attached, Promise<Unit> &&pr
 td_api::object_ptr<td_api::updateRecentStickers> StickersManager::get_update_recent_stickers_object(
     int is_attached) const {
   return td_api::make_object<td_api::updateRecentStickers>(
-      is_attached != 0,
-      transform(recent_sticker_ids_[is_attached], [](FileId sticker_id) { return sticker_id.get(); }));
+      is_attached != 0, td_->file_manager_->get_file_ids_object(recent_sticker_ids_[is_attached]));
 }
 
 void StickersManager::send_update_recent_stickers(bool from_database) {
@@ -4177,8 +4176,8 @@ void StickersManager::remove_favorite_sticker(const tl_object_ptr<td_api::InputF
 }
 
 td_api::object_ptr<td_api::updateFavoriteStickers> StickersManager::get_update_favorite_stickers_object() const {
-  return make_tl_object<td_api::updateFavoriteStickers>(
-      transform(favorite_sticker_ids_, [](FileId sticker_id) { return sticker_id.get(); }));
+  return td_api::make_object<td_api::updateFavoriteStickers>(
+      td_->file_manager_->get_file_ids_object(favorite_sticker_ids_));
 }
 
 void StickersManager::send_update_favorite_stickers(bool from_database) {
