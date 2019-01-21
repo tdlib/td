@@ -142,7 +142,6 @@ class WebPagesManager : public Actor {
 
   void update_messages_content(WebPageId web_page_id, bool have_web_page);
 
-  WebPage *get_web_page(WebPageId web_page_id);
   const WebPage *get_web_page(WebPageId web_page_id) const;
 
   WebPageInstantView *get_web_page_instant_view(WebPageId web_page_id);
@@ -186,7 +185,7 @@ class WebPagesManager : public Actor {
   void on_get_web_page_instant_view(WebPage *web_page, tl_object_ptr<telegram_api::Page> &&page_ptr, int32 hash,
                                     DialogId owner_dialog_id);
 
-  void save_web_page(WebPage *web_page, WebPageId web_page_id, bool from_binlog);
+  void save_web_page(const WebPage *web_page, WebPageId web_page_id, bool from_binlog);
 
   static string get_web_page_database_key(WebPageId web_page_id);
 
@@ -196,7 +195,7 @@ class WebPagesManager : public Actor {
 
   void on_load_web_page_from_database(WebPageId web_page_id, string value);
 
-  WebPage *get_web_page_force(WebPageId web_page_id);
+  const WebPage *get_web_page_force(WebPageId web_page_id);
 
   static string get_web_page_instant_view_database_key(WebPageId web_page_id);
 

@@ -190,7 +190,7 @@ class WebPagesManager::WebPage {
   FileId document_file_id;
   WebPageInstantView instant_view;
 
-  uint64 logevent_id = 0;
+  mutable uint64 logevent_id = 0;
 
   template <class T>
   void store(T &storer) const {
@@ -1771,7 +1771,7 @@ WebPageId WebPagesManager::get_web_page_instant_view(const string &url, bool for
 WebPageId WebPagesManager::get_web_page_instant_view(WebPageId web_page_id, bool force_full, Promise<Unit> &&promise) {
   LOG(INFO) << "Trying to get web page instant view for " << web_page_id;
 
-  auto web_page_instant_view = get_web_page_instant_view(web_page_id);
+  const auto *web_page_instant_view = get_web_page_instant_view(web_page_id);
   if (web_page_instant_view == nullptr) {
     promise.set_value(Unit());
     return WebPageId();
@@ -2138,15 +2138,6 @@ void WebPagesManager::update_messages_content(WebPageId web_page_id, bool have_w
   pending_web_pages_timeout_.cancel_timeout(web_page_id.get());
 }
 
-WebPagesManager::WebPage *WebPagesManager::get_web_page(WebPageId web_page_id) {
-  auto p = web_pages_.find(web_page_id);
-  if (p == web_pages_.end()) {
-    return nullptr;
-  } else {
-    return p->second.get();
-  }
-}
-
 const WebPagesManager::WebPage *WebPagesManager::get_web_page(WebPageId web_page_id) const {
   auto p = web_pages_.find(web_page_id);
   if (p == web_pages_.end()) {
@@ -2157,11 +2148,12 @@ const WebPagesManager::WebPage *WebPagesManager::get_web_page(WebPageId web_page
 }
 
 WebPagesManager::WebPageInstantView *WebPagesManager::get_web_page_instant_view(WebPageId web_page_id) {
-  auto web_page = get_web_page(web_page_id);
-  if (web_page == nullptr || web_page->instant_view.is_empty) {
+  auto p = web_pages_.find(web_page_id);
+  if (p == web_pages_.end() || p->second->instant_view.is_empty) {
     return nullptr;
+  } else {
+    return &p->second->instant_view;
   }
-  return &web_page->instant_view;
 }
 
 const WebPagesManager::WebPageInstantView *WebPagesManager::get_web_page_instant_view(WebPageId web_page_id) const {
@@ -2643,7 +2635,7 @@ class WebPagesManager::WebPageLogEvent {
   }
 };
 
-void WebPagesManager::save_web_page(WebPage *web_page, WebPageId web_page_id, bool from_binlog) {
+void WebPagesManager::save_web_page(const WebPage *web_page, WebPageId web_page_id, bool from_binlog) {
   if (!G()->parameters().use_message_db) {
     return;
   }
@@ -2696,7 +2688,7 @@ string WebPagesManager::get_web_page_database_key(WebPageId web_page_id) {
 }
 
 void WebPagesManager::on_save_web_page_to_database(WebPageId web_page_id, bool success) {
-  WebPage *web_page = get_web_page(web_page_id);
+  auto web_page = get_web_page(web_page_id);
   if (web_page == nullptr) {
     LOG(ERROR) << "Can't find " << (success ? "saved " : "failed to save ") << web_page_id;
     return;
@@ -2750,8 +2742,7 @@ void WebPagesManager::on_load_web_page_from_database(WebPageId web_page_id, stri
   //  G()->td_db()->get_sqlite_pmc()->erase(get_web_page_database_key(web_page_id), Auto());
   //  return;
 
-  WebPage *web_page = get_web_page(web_page_id);
-  if (web_page == nullptr) {
+  if (!have_web_page(web_page_id)) {
     if (!value.empty()) {
       auto result = make_unique<WebPage>();
       auto status = log_event_parse(*result, value);
@@ -2773,8 +2764,8 @@ bool WebPagesManager::have_web_page_force(WebPageId web_page_id) {
   return get_web_page_force(web_page_id) != nullptr;
 }
 
-WebPagesManager::WebPage *WebPagesManager::get_web_page_force(WebPageId web_page_id) {
-  WebPage *web_page = get_web_page(web_page_id);
+const WebPagesManager::WebPage *WebPagesManager::get_web_page_force(WebPageId web_page_id) {
+  auto web_page = get_web_page(web_page_id);
   if (web_page != nullptr) {
     return web_page;
   }
@@ -2792,7 +2783,7 @@ WebPagesManager::WebPage *WebPagesManager::get_web_page_force(WebPageId web_page
 }
 
 string WebPagesManager::get_web_page_search_text(WebPageId web_page_id) const {
-  auto *web_page = get_web_page(web_page_id);
+  auto web_page = get_web_page(web_page_id);
   if (web_page == nullptr) {
     return "";
   }
