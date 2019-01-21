@@ -399,18 +399,21 @@ class FullRemoteFileLocation {
         return 0;
     }
   }
+  static Slice invalid_file_reference() {
+    return "#";
+  }
   bool delete_file_reference(Slice bad_file_reference) {
     if (file_reference_.empty()) {
       return false;
     }
-    if (!bad_file_reference.empty() && file_reference_ != bad_file_reference) {
+    if (file_reference_ != bad_file_reference) {
       return false;
     }
-    file_reference_ = {};
+    file_reference_ = invalid_file_reference().str();
     return true;
   }
   bool has_file_reference() const {
-    return !file_reference_.empty();
+    return file_reference_ != invalid_file_reference();
   }
   const string &get_file_reference() const {
     return file_reference_;
