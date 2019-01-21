@@ -18,6 +18,7 @@
 #include "td/telegram/UserId.h"
 
 #include "td/utils/logging.h"
+#include "td/utils/Slice.h"
 #include "td/utils/Status.h"
 #include "td/utils/Variant.h"
 
@@ -99,7 +100,7 @@ class FileReferenceManager : public Actor {
   Destination on_query_result(Destination dest, FileSourceId file_source_id, Status status, int32 sub = 0);
 
   template <class T>
-  FileSourceId add_file_source_id(T source);
+  FileSourceId add_file_source_id(T source, Slice source_str);
 
   FileSourceId get_current_file_source_id() const;
 };

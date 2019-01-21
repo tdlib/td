@@ -37,60 +37,54 @@ FileSourceId FileReferenceManager::get_current_file_source_id() const {
 }
 
 template <class T>
-FileSourceId FileReferenceManager::add_file_source_id(T source) {
+FileSourceId FileReferenceManager::add_file_source_id(T source, Slice source_str) {
   file_sources_.emplace_back(std::move(source));
+  VLOG(file_references) << "Create file source " << file_sources_.size() << " for " << source_str;
   return get_current_file_source_id();
 }
 
 FileSourceId FileReferenceManager::create_message_file_source(FullMessageId full_message_id) {
-  VLOG(file_references) << "Create file source for " << full_message_id;
   FileSourceMessage source{full_message_id};
-  return add_file_source_id(source);
+  return add_file_source_id(source, PSLICE() << full_message_id);
 }
 
 FileSourceId FileReferenceManager::create_user_photo_file_source(UserId user_id, int64 photo_id) {
-  VLOG(file_references) << "Create file source for photo " << photo_id << " of " << user_id;
   FileSourceUserPhoto source{photo_id, user_id};
-  return add_file_source_id(source);
+  return add_file_source_id(source, PSLICE() << "photo " << photo_id << " of " << user_id);
 }
 
 FileSourceId FileReferenceManager::create_chat_photo_file_source(ChatId chat_id) {
-  VLOG(file_references) << "Create file source for photo of " << chat_id;
   FileSourceChatPhoto source{chat_id};
-  return add_file_source_id(source);
+  return add_file_source_id(source, PSLICE() << "photo of " << chat_id);
 }
 
 FileSourceId FileReferenceManager::create_channel_photo_file_source(ChannelId channel_id) {
-  VLOG(file_references) << "Create file source for photo of " << channel_id;
   FileSourceChannelPhoto source{channel_id};
-  return add_file_source_id(source);
+  return add_file_source_id(source, PSLICE() << "photo of " << channel_id);
 }
 
 FileSourceId FileReferenceManager::create_wallpapers_file_source() {
-  VLOG(file_references) << "Create file source for wallpapers";
   FileSourceWebPage source;
-  return add_file_source_id(source);
+  return add_file_source_id(source, "wallpapers");
 }
 
 FileSourceId FileReferenceManager::create_web_page_file_source(string url) {
-  VLOG(file_references) << "Create file source for web page of " << url;
   FileSourceWebPage source{std::move(url)};
-  return add_file_source_id(std::move(source));
+  return add_file_source_id(std::move(source), PSLICE() << "web page of " << url);
 }
 
 FileSourceId FileReferenceManager::create_saved_animations_file_source() {
-  VLOG(file_references) << "Create file source for saved animations";
   FileSourceSavedAnimations source;
-  return add_file_source_id(source);
+  return add_file_source_id(source, "saved animations");
 }
 
 void FileReferenceManager::add_file_source(NodeId node_id, FileSourceId file_source_id) {
-  VLOG(file_references) << "Add file source " << file_source_id << " for file " << node_id;
+  VLOG(file_references) << "Add " << file_source_id << " for file " << node_id;
   nodes_[node_id].file_source_ids.add(file_source_id);
 }
 
 void FileReferenceManager::remove_file_source(NodeId node_id, FileSourceId file_source_id) {
-  VLOG(file_references) << "Remove file source " << file_source_id << " from file " << node_id;
+  VLOG(file_references) << "Remove " << file_source_id << " from file " << node_id;
   nodes_[node_id].file_source_ids.remove(file_source_id);
 }
 
@@ -148,7 +142,7 @@ void FileReferenceManager::run_node(NodeId node_id) {
 
 void FileReferenceManager::send_query(Destination dest, FileSourceId file_source_id) {
   VLOG(file_references) << "Send file references repair query for file " << dest.node_id << " with generation "
-                        << dest.generation << " from source " << file_source_id;
+                        << dest.generation << " from " << file_source_id;
   auto &node = nodes_[dest.node_id];
   node.query->active_queries++;
 
@@ -210,8 +204,8 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
 FileReferenceManager::Destination FileReferenceManager::on_query_result(Destination dest, FileSourceId file_source_id,
                                                                         Status status, int32 sub) {
   VLOG(file_references) << "Receive result of file references repair query for file " << dest.node_id
-                        << " with generation " << dest.generation << " from source " << file_source_id << ": " << status
-                        << " " << sub;
+                        << " with generation " << dest.generation << " from " << file_source_id << ": " << status << " "
+                        << sub;
   auto &node = nodes_[dest.node_id];
 
   auto query = node.query.get();
@@ -240,7 +234,7 @@ FileReferenceManager::Destination FileReferenceManager::on_query_result(Destinat
     node.query = {};
   }
   if (status.is_error() && status.error().code() != 429 && status.error().code() < 500 && !G()->close_flag()) {
-    VLOG(file_references) << "Invalid source id " << file_source_id << " " << status;
+    VLOG(file_references) << "Invalid " << file_source_id << " " << status;
     remove_file_source(dest.node_id, file_source_id);
   }
 
