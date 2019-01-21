@@ -144,8 +144,6 @@ class WebPagesManager : public Actor {
 
   const WebPage *get_web_page(WebPageId web_page_id) const;
 
-  WebPageInstantView *get_web_page_instant_view(WebPageId web_page_id);
-
   const WebPageInstantView *get_web_page_instant_view(WebPageId web_page_id) const;
 
   WebPageId get_web_page_instant_view(WebPageId web_page_id, bool force_full, Promise<Unit> &&promise);
