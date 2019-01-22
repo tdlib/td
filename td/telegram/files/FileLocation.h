@@ -403,7 +403,7 @@ class FullRemoteFileLocation {
     return "#";
   }
   bool delete_file_reference(Slice bad_file_reference) {
-    if (file_reference_.empty()) {
+    if (file_reference_ == invalid_file_reference()) {
       return false;
     }
     if (file_reference_ != bad_file_reference) {
