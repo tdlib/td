@@ -6180,6 +6180,8 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
       }
     }
 
+    add_user_photo_id(u, user_id, u->photo.id, dialog_photo_get_file_ids(u->photo));
+
     UserFull *user_full = get_user_full(user_id);
     if (user_full != nullptr) {
       user_full->photos.clear();
@@ -6517,12 +6519,20 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
   LOG_IF(ERROR, limit < photo_count) << "Requested not more than " << limit << " photos, but " << photo_count
                                      << " returned";
 
+  User *u = get_user(user_id);
+  if (u == nullptr) {
+    LOG(ERROR) << "Can't find " << user_id;
+    return;
+  }
+
   if (offset == -1) {
     // from reload_user_profile_photo
     CHECK(limit == 1);
-    for (auto &photo : photos) {
-      if (photo->get_id() == telegram_api::photo::ID) {
-        get_photo(td_->file_manager_.get(), telegram_api::move_object_as<telegram_api::photo>(photo), DialogId());
+    for (auto &photo_ptr : photos) {
+      if (photo_ptr->get_id() == telegram_api::photo::ID) {
+        auto photo = get_photo(td_->file_manager_.get(), telegram_api::move_object_as<telegram_api::photo>(photo_ptr),
+                               DialogId());
+        add_user_photo_id(u, user_id, photo.id, photo_get_file_ids(photo));
       }
     }
     return;
@@ -6557,6 +6567,7 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
 
     user->photos.push_back(
         get_photo(td_->file_manager_.get(), telegram_api::move_object_as<telegram_api::photo>(photo), DialogId()));
+    add_user_photo_id(u, user_id, user->photos.back().id, photo_get_file_ids(user->photos.back()));
   }
 }
 
@@ -6875,6 +6886,15 @@ void ContactsManager::do_update_user_photo(User *u, UserId user_id,
     u->is_photo_changed = true;
     LOG(DEBUG) << "Photo has changed for " << user_id;
     u->need_send_update = true;
+  }
+}
+
+void ContactsManager::add_user_photo_id(User *u, UserId user_id, int64 photo_id, const vector<FileId> &photo_file_ids) {
+  if (photo_id > 0 && !photo_file_ids.empty() && u->photo_ids.insert(photo_id).second) {
+    auto file_source_id = td_->file_reference_manager_->create_user_photo_file_source(user_id, photo_id);
+    for (auto &file_id : photo_file_ids) {
+      td_->file_manager_->add_file_source(file_id, file_source_id);
+    }
   }
 }
 

@@ -480,6 +480,8 @@ class ContactsManager : public Actor {
     LinkState outbound = LinkState::Unknown;
     LinkState inbound = LinkState::Unknown;
 
+    std::unordered_set<int64> photo_ids;
+
     bool is_received = false;
     bool is_verified = false;
     bool is_deleted = true;
@@ -858,6 +860,8 @@ class ContactsManager : public Actor {
   void on_update_user_links(User *u, UserId user_id, LinkState outbound, LinkState inbound);
 
   void do_update_user_photo(User *u, UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo);
+
+  void add_user_photo_id(User *u, UserId user_id, int64 photo_id, const vector<FileId> &photo_file_ids);
 
   void on_update_user_full_is_blocked(UserFull *user_full, UserId user_id, bool is_blocked);
   bool on_update_user_full_bot_info(UserFull *user_full, UserId user_id, int32 bot_info_version,

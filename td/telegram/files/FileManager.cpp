@@ -1796,7 +1796,7 @@ void FileManager::run_download(FileNodePtr node) {
     QueryId id = queries_container_.create(Query{file_id, Query::DownloadWaitFileReferece});
     node->download_id_ = id;
     if (node->download_was_update_file_reference_) {
-      on_error(id, Status::Error("Can't download file: have valid source id, but do not allowed to use it"));
+      on_error(id, Status::Error("Can't download file: have no valid file reference"));
       return;
     }
     node->download_was_update_file_reference_ = true;
