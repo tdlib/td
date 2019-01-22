@@ -4850,8 +4850,8 @@ void Td::on_request(uint64 id, const td_api::getFileDownloadedPrefixSize &reques
 
 void Td::on_request(uint64 id, td_api::getRemoteFile &request) {
   CLEAN_INPUT_STRING(request.remote_file_id_);
-  auto r_file_id = file_manager_->from_persistent_id(
-      request.remote_file_id_, request.file_type_ == nullptr ? FileType::Temp : from_td_api(*request.file_type_));
+  auto file_type = request.file_type_ == nullptr ? FileType::Temp : from_td_api(*request.file_type_);
+  auto r_file_id = file_manager_->from_persistent_id(request.remote_file_id_, file_type);
   if (r_file_id.is_error()) {
     send_closure(actor_id(this), &Td::send_error, id, r_file_id.move_as_error());
   } else {

@@ -18,6 +18,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/SecureStorage.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/WallpaperManager.h"
 
 #include "td/utils/base64.h"
 #include "td/utils/format.h"
@@ -2199,7 +2200,12 @@ Result<FileId> FileManager::from_persistent_id_v2(Slice binary, FileType file_ty
   }
   FileData data;
   data.remote_ = RemoteFileLocation(std::move(remote_location));
-  return register_file(std::move(data), FileLocationSource::FromUser, "from_persistent_id_v2", false).move_as_ok();
+  auto file_id =
+      register_file(std::move(data), FileLocationSource::FromUser, "from_persistent_id_v2", false).move_as_ok();
+  if (real_file_type == FileType::Wallpaper && file_id.is_valid()) {
+    send_closure(G()->wallpaper_manager(), &WallpaperManager::add_wallpapers_file_source, file_id);
+  }
+  return file_id;
 }
 
 FileView FileManager::get_file_view(FileId file_id) const {

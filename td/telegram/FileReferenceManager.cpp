@@ -64,7 +64,7 @@ FileSourceId FileReferenceManager::create_channel_photo_file_source(ChannelId ch
 }
 
 FileSourceId FileReferenceManager::create_wallpapers_file_source() {
-  FileSourceWebPage source;
+  FileSourceWallpapers source;
   return add_file_source_id(source, "wallpapers");
 }
 
