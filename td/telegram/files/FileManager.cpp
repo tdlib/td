@@ -1843,7 +1843,7 @@ void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std:
   }
   FileView file_view(node);
   if (file_view.has_active_remote_location() && file_view.get_type() != FileType::Thumbnail &&
-      file_view.get_type() != FileType::EncryptedThumbnail) {
+      file_view.get_type() != FileType::EncryptedThumbnail && file_view.get_type() != FileType::Photo) {
     LOG(INFO) << "File " << file_id << " is already uploaded";
     if (callback) {
       callback->on_upload_ok(file_id, nullptr);

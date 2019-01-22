@@ -6530,8 +6530,15 @@ void ContactsManager::on_get_user_photos(UserId user_id, int32 offset, int32 lim
     CHECK(limit == 1);
     for (auto &photo_ptr : photos) {
       if (photo_ptr->get_id() == telegram_api::photo::ID) {
-        auto photo = get_photo(td_->file_manager_.get(), telegram_api::move_object_as<telegram_api::photo>(photo_ptr),
-                               DialogId());
+        auto server_photo = telegram_api::move_object_as<telegram_api::photo>(photo_ptr);
+        auto profile_photo = convert_photo_to_profile_photo(server_photo);
+        if (profile_photo) {
+          get_profile_photo(td_->file_manager_.get(), std::move(profile_photo));
+        } else {
+          LOG(ERROR) << "Failed to get profile photo from " << to_string(server_photo);
+        }
+
+        auto photo = get_photo(td_->file_manager_.get(), std::move(server_photo), DialogId());
         add_user_photo_id(u, user_id, photo.id, photo_get_file_ids(photo));
       }
     }

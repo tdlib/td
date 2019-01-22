@@ -64,13 +64,12 @@ StringBuilder &operator<<(StringBuilder &string_builder, const Dimensions &dimen
 static FileId register_photo(FileManager *file_manager, FileType file_type, int64 id, int64 access_hash,
                              tl_object_ptr<telegram_api::FileLocation> &&location_ptr, DialogId owner_dialog_id,
                              int32 file_size, bool is_webp = false) {
-  int32 location_id = location_ptr->get_id();
   DcId dc_id;
   int32 local_id;
   int64 volume_id;
   int64 secret;
   std::string file_reference;
-  switch (location_id) {
+  switch (location_ptr->get_id()) {
     case telegram_api::fileLocationUnavailable::ID: {
       auto location = move_tl_object_as<telegram_api::fileLocationUnavailable>(location_ptr);
       dc_id = DcId::invalid();
@@ -259,8 +258,7 @@ PhotoSize get_photo_size(FileManager *file_manager, FileType file_type, int64 id
   PhotoSize res;
   BufferSlice content;
 
-  int32 size_id = size_ptr->get_id();
-  switch (size_id) {
+  switch (size_ptr->get_id()) {
     case telegram_api::photoSizeEmpty::ID:
       return res;
     case telegram_api::photoSize::ID: {
@@ -286,7 +284,6 @@ PhotoSize get_photo_size(FileManager *file_manager, FileType file_type, int64 id
 
       break;
     }
-
     default:
       UNREACHABLE();
       break;
@@ -481,6 +478,9 @@ Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::photo> &&
   res.date = photo->date_;
   res.has_stickers = (photo->flags_ & telegram_api::photo::HAS_STICKERS_MASK) != 0;
 
+  auto file_reference = photo->file_reference_.as_slice().str();
+  // TODO use file_reference
+
   for (auto &size_ptr : photo->sizes_) {
     res.photos.push_back(get_photo_size(file_manager, FileType::Photo, photo->id_, photo->access_hash_, owner_dialog_id,
                                         std::move(size_ptr), false));
@@ -660,6 +660,64 @@ bool operator!=(const Photo &lhs, const Photo &rhs) {
 
 StringBuilder &operator<<(StringBuilder &string_builder, const Photo &photo) {
   return string_builder << "[id = " << photo.id << ", photos = " << format::as_array(photo.photos) << "]";
+}
+
+static tl_object_ptr<telegram_api::FileLocation> copy_location(
+    const tl_object_ptr<telegram_api::FileLocation> &location_ptr) {
+  CHECK(location_ptr != nullptr);
+  switch (location_ptr->get_id()) {
+    case telegram_api::fileLocationUnavailable::ID: {
+      auto location = static_cast<const telegram_api::fileLocationUnavailable *>(location_ptr.get());
+      return make_tl_object<telegram_api::fileLocationUnavailable>(location->volume_id_, location->local_id_,
+                                                                   location->secret_);
+    }
+    case telegram_api::fileLocation::ID: {
+      auto location = static_cast<const telegram_api::fileLocation *>(location_ptr.get());
+      return make_tl_object<telegram_api::fileLocation>(location->dc_id_, location->volume_id_, location->local_id_,
+                                                        location->secret_, location->file_reference_.clone());
+    }
+    default:
+      UNREACHABLE();
+      return nullptr;
+  }
+}
+
+tl_object_ptr<telegram_api::userProfilePhoto> convert_photo_to_profile_photo(
+    const tl_object_ptr<telegram_api::photo> &photo) {
+  CHECK(photo != nullptr);
+  tl_object_ptr<telegram_api::FileLocation> photo_small;
+  tl_object_ptr<telegram_api::FileLocation> photo_big;
+  for (auto &size_ptr : photo->sizes_) {
+    switch (size_ptr->get_id()) {
+      case telegram_api::photoSizeEmpty::ID:
+        break;
+      case telegram_api::photoSize::ID: {
+        auto size = static_cast<const telegram_api::photoSize *>(size_ptr.get());
+        if (size->type_ == "a") {
+          photo_small = copy_location(size->location_);
+        } else if (size->type_ == "c") {
+          photo_big = copy_location(size->location_);
+        }
+        break;
+      }
+      case telegram_api::photoCachedSize::ID: {
+        auto size = static_cast<const telegram_api::photoCachedSize *>(size_ptr.get());
+        if (size->type_ == "a") {
+          photo_small = copy_location(size->location_);
+        } else if (size->type_ == "c") {
+          photo_big = copy_location(size->location_);
+        }
+        break;
+      }
+      default:
+        UNREACHABLE();
+        break;
+    }
+  }
+  if (photo_small == nullptr || photo_big == nullptr) {
+    return nullptr;
+  }
+  return make_tl_object<telegram_api::userProfilePhoto>(photo->id_, std::move(photo_small), std::move(photo_big));
 }
 
 }  // namespace td
