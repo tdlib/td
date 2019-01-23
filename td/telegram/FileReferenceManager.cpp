@@ -128,14 +128,19 @@ void FileReferenceManager::run_node(NodeId node_id) {
   if (node.query->active_queries != 0) {
     return;
   }
-  VLOG(file_references) << "Run file references repair for file " << node_id;
+  VLOG(file_references) << "Trying to repair file reference for file " << node_id;
   if (node.query->promises.empty()) {
     node.query = {};
     return;
   }
   if (!node.file_source_ids.has_next()) {
+    VLOG(file_references) << "Have no more file sources to repair file reference for file " << node_id;
     for (auto &p : node.query->promises) {
-      p.set_value(Unit());
+      if (node.file_source_ids.empty()) {
+        p.set_error(Status::Error(400, "File not found"));
+      } else {
+        p.set_error(Status::Error(429, "Too Many Requests: retry after 1"));
+      }
     }
     node.query = {};
     return;
@@ -253,7 +258,7 @@ void FileReferenceManager::repair_file_reference(NodeId node_id, Promise<> promi
     node.query = make_unique<Query>();
     node.query->generation = ++query_generation_;
     node.file_source_ids.reset_position();
-    VLOG(file_references) << "new query " << query_generation_;
+    VLOG(file_references) << "Create new file reference repair query with " << query_generation_;
   }
   node.query->promises.push_back(std::move(promise));
   run_node(node_id);

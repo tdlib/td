@@ -77,6 +77,10 @@ class FastSetWithPosition {
     return checked_.size() + not_checked_.size();
   }
 
+  bool empty() const {
+    return size() == 0;
+  }
+
  private:
   std::set<T> checked_;
   std::set<T> not_checked_;
@@ -166,6 +170,13 @@ class SetWithPosition {
       return fast_->size();
     }
     return static_cast<size_t>(has_value_);
+  }
+
+  bool empty() const {
+    if (fast_) {
+      return false;
+    }
+    return !has_value_;
   }
 
  private:

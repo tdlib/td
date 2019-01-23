@@ -68,6 +68,8 @@ class AnimationsManager : public Actor {
 
   vector<FileId> get_saved_animations(Promise<Unit> &&promise);
 
+  void send_save_gif_query(FileId animation_id, bool unsave, Promise<Unit> &&promise);
+
   void add_saved_animation(const tl_object_ptr<td_api::InputFile> &input_file, Promise<Unit> &&promise);
 
   void add_saved_animation_by_id(FileId animation_id);
@@ -133,6 +135,7 @@ class AnimationsManager : public Actor {
 
   int32 saved_animations_limit_ = 200;
   vector<FileId> saved_animation_ids_;
+  vector<FileId> saved_animation_file_ids_;
   double next_saved_animations_load_time_ = 0;
   bool are_saved_animations_loaded_ = false;
   vector<Promise<Unit>> load_saved_animations_queries_;

@@ -64,13 +64,22 @@ class GetSavedGifsQuery : public Td::ResultHandler {
 };
 
 class SaveGifQuery : public Td::ResultHandler {
+  FileId file_id_;
+  string file_reference_;
+  bool unsave_ = false;
+
   Promise<Unit> promise_;
 
  public:
   explicit SaveGifQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(tl_object_ptr<telegram_api::InputDocument> &&input_document, bool unsave) {
+  void send(FileId file_id, tl_object_ptr<telegram_api::inputDocument> &&input_document, bool unsave) {
+    CHECK(input_document != nullptr);
+    CHECK(file_id.is_valid());
+    file_id_ = file_id;
+    file_reference_ = input_document->file_reference_.as_slice().str();
+    unsave_ = unsave;
     send_query(G()->net_query_creator().create(
         create_storer(telegram_api::messages_saveGif(std::move(input_document), unsave))));
   }
@@ -82,7 +91,7 @@ class SaveGifQuery : public Td::ResultHandler {
     }
 
     bool result = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for save gif: " << result;
+    LOG(INFO) << "Receive result for save GIF: " << result;
     if (!result) {
       td->animations_manager_->reload_saved_animations(true);
     }
@@ -91,7 +100,22 @@ class SaveGifQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(ERROR) << "Receive error for save gif: " << status;
+    if (FileReferenceManager::is_file_reference_error(status)) {
+      td->file_manager_->delete_file_reference(file_id_, file_reference_);
+      td->file_reference_manager_->repair_file_reference(
+          file_id_, PromiseCreator::lambda([animation_id = file_id_, unsave = unsave_,
+                                            promise = std::move(promise_)](Result<Unit> result) mutable {
+            if (result.is_error()) {
+              return promise.set_error(Status::Error(400, "Failed to find the animation"));
+            }
+
+            send_closure(G()->animations_manager(), &AnimationsManager::send_save_gif_query, animation_id, unsave,
+                         std::move(promise));
+          }));
+      return;
+    }
+
+    LOG(ERROR) << "Receive error for save GIF: " << status;
     td->animations_manager_->reload_saved_animations(true);
     promise_.set_error(std::move(status));
   }
@@ -310,6 +334,7 @@ tl_object_ptr<telegram_api::InputMedia> AnimationsManager::get_input_media(
 
   return nullptr;
 }
+
 SecretInputMedia AnimationsManager::get_secret_input_media(FileId animation_file_id,
                                                            tl_object_ptr<telegram_api::InputEncryptedFile> input_file,
                                                            const string &caption, BufferSlice thumbnail,
@@ -511,7 +536,7 @@ void AnimationsManager::on_get_saved_animations(
   for (auto &document_ptr : saved_animations->gifs_) {
     int32 document_constructor_id = document_ptr->get_id();
     if (document_constructor_id == telegram_api::documentEmpty::ID) {
-      LOG(ERROR) << "Empty gif document received";
+      LOG(ERROR) << "Empty saved animation document received";
       continue;
     }
     CHECK(document_constructor_id == telegram_api::document::ID);
@@ -588,11 +613,19 @@ void AnimationsManager::add_saved_animation(const tl_object_ptr<td_api::InputFil
   add_saved_animation_inner(r_file_id.ok(), std::move(promise));
 }
 
+void AnimationsManager::send_save_gif_query(FileId animation_id, bool unsave, Promise<Unit> &&promise) {
+  // TODO invokeAfter and log event
+  auto file_view = td_->file_manager_->get_file_view(animation_id);
+  CHECK(file_view.has_remote_location());
+  CHECK(file_view.remote_location().is_document()) << file_view.remote_location();
+  CHECK(!file_view.remote_location().is_web());
+  td_->create_handler<SaveGifQuery>(std::move(promise))
+      ->send(animation_id, file_view.remote_location().as_input_document(), unsave);
+}
+
 void AnimationsManager::add_saved_animation_inner(FileId animation_id, Promise<Unit> &&promise) {
   if (add_saved_animation_impl(animation_id, promise)) {
-    // TODO invokeAfter and log event
-    auto file_view = td_->file_manager_->get_file_view(animation_id);
-    td_->create_handler<SaveGifQuery>(std::move(promise))->send(file_view.remote_location().as_input_document(), false);
+    send_save_gif_query(animation_id, false, std::move(promise));
   }
 }
 
@@ -697,12 +730,7 @@ void AnimationsManager::remove_saved_animation(const tl_object_ptr<td_api::Input
     return promise.set_error(Status::Error(7, "Animation not found"));
   }
 
-  // TODO invokeAfter
-  auto file_view = td_->file_manager_->get_file_view(file_id);
-  CHECK(file_view.has_remote_location());
-  CHECK(file_view.remote_location().is_document()) << file_view.remote_location();
-  CHECK(!file_view.remote_location().is_web());
-  td_->create_handler<SaveGifQuery>(std::move(promise))->send(file_view.remote_location().as_input_document(), true);
+  send_save_gif_query(file_id, true, std::move(promise));
 
   saved_animation_ids_.erase(it);
 
@@ -716,19 +744,22 @@ td_api::object_ptr<td_api::updateSavedAnimations> AnimationsManager::get_update_
 
 void AnimationsManager::send_update_saved_animations(bool from_database) {
   if (are_saved_animations_loaded_) {
-    if (!saved_animations_file_source_id_.is_valid() && !saved_animation_ids_.empty()) {
-      saved_animations_file_source_id_ = td_->file_reference_manager_->create_saved_animations_file_source();
-    }
+    vector<FileId> new_saved_animation_file_ids = saved_animation_ids_;
     for (auto &animation_id : saved_animation_ids_) {
-      td_->file_manager_->add_file_source(animation_id, saved_animations_file_source_id_);
       auto thumbnail_file_id = get_animation_thumbnail_file_id(animation_id);
       if (thumbnail_file_id.is_valid()) {
-        td_->file_manager_->add_file_source(thumbnail_file_id, saved_animations_file_source_id_);
+        new_saved_animation_file_ids.push_back(thumbnail_file_id);
       }
     }
-    // there is no much reason to delete source from deleted saved animations,
-    // it will be automatically deleted after unsuccessfull try of file reference repairing
-    // moreover one thumbnail can belong to different animations, so removal should be careful
+    std::sort(new_saved_animation_file_ids.begin(), new_saved_animation_file_ids.end());
+    if (new_saved_animation_file_ids != saved_animation_file_ids_) {
+      if (!saved_animations_file_source_id_.is_valid()) {
+        saved_animations_file_source_id_ = td_->file_reference_manager_->create_saved_animations_file_source();
+      }
+      td_->file_manager_->change_files_source(saved_animations_file_source_id_, saved_animation_file_ids_,
+                                              new_saved_animation_file_ids);
+      saved_animation_file_ids_ = std::move(new_saved_animation_file_ids);
+    }
 
     send_closure(G()->td(), &Td::send_update, get_update_saved_animations_object());
 

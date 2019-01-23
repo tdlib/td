@@ -164,7 +164,7 @@ void FileNode::set_remote_location(const RemoteFileLocation &remote, FileLocatio
 
 void FileNode::delete_file_reference(Slice file_reference) {
   if (remote_.type() == RemoteFileLocation::Type::Full && remote_.full().delete_file_reference(file_reference)) {
-    VLOG(file_references) << "Delete file reference of file " << main_file_id_;
+    VLOG(file_references) << "Do delete file reference of main file " << main_file_id_;
     upload_was_update_file_reference_ = false;
     download_was_update_file_reference_ = false;
     on_pmc_changed();
@@ -1915,7 +1915,7 @@ bool FileManager::delete_partial_remote_location(FileId file_id) {
 
 void FileManager::delete_file_reference(FileId file_id, string file_reference) {
   VLOG(file_references) << "Delete file reference of file " << file_id << " "
-                        << tag("reference", base64_encode(file_reference));
+                        << tag("reference_base64", base64_encode(file_reference));
   auto node = get_sync_file_node(file_id);
   if (!node) {
     LOG(ERROR) << "Wrong file id " << file_id;

@@ -241,7 +241,7 @@ class SaveRecentStickerQuery : public Td::ResultHandler {
   explicit SaveRecentStickerQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(bool is_attached, tl_object_ptr<telegram_api::InputDocument> &&input_document, bool unsave) {
+  void send(bool is_attached, tl_object_ptr<telegram_api::inputDocument> &&input_document, bool unsave) {
     is_attached_ = is_attached;
 
     int32 flags = 0;
@@ -347,7 +347,7 @@ class FaveStickerQuery : public Td::ResultHandler {
   explicit FaveStickerQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(tl_object_ptr<telegram_api::InputDocument> &&input_document, bool unsave) {
+  void send(tl_object_ptr<telegram_api::inputDocument> &&input_document, bool unsave) {
     send_query(G()->net_query_creator().create(
         create_storer(telegram_api::messages_faveSticker(std::move(input_document), unsave))));
   }
@@ -666,7 +666,7 @@ class SetStickerPositionQuery : public Td::ResultHandler {
   explicit SetStickerPositionQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(tl_object_ptr<telegram_api::InputDocument> &&input_document, int32 position) {
+  void send(tl_object_ptr<telegram_api::inputDocument> &&input_document, int32 position) {
     send_query(G()->net_query_creator().create(
         create_storer(telegram_api::stickers_changeStickerPosition(std::move(input_document), position))));
   }
@@ -695,7 +695,7 @@ class DeleteStickerFromSetQuery : public Td::ResultHandler {
   explicit DeleteStickerFromSetQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(tl_object_ptr<telegram_api::InputDocument> &&input_document) {
+  void send(tl_object_ptr<telegram_api::inputDocument> &&input_document) {
     send_query(G()->net_query_creator().create(
         create_storer(telegram_api::stickers_removeStickerFromSet(std::move(input_document)))));
   }
