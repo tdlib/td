@@ -443,6 +443,8 @@ class ConfigRecoverer : public Actor {
           }
         }
         VLOG(config_recoverer) << "Got SimpleConfig " << simple_config_;
+      } else {
+        VLOG(config_recoverer) << "Config has expired at " << config->expires_;
       }
 
       simple_config_expire_at_ = get_config_expire_time();

@@ -69,7 +69,7 @@ class DcOption {
     }
     if (!option.secret_.empty()) {
       flags_ |= Flags::HasSecret;
-      if (option.secret_.size() != 16u) {
+      if (option.secret_.size() != 16u && option.secret_.size() != 17u) {
         return;
       }
       secret_ = option.secret_.as_slice().str();
@@ -86,7 +86,7 @@ class DcOption {
       }
       case telegram_api::ipPortSecret::ID: {
         auto &ip_port = static_cast<const telegram_api::ipPortSecret &>(ip_port_ref);
-        if (ip_port.secret_.size() != 16u) {
+        if (ip_port.secret_.size() != 16u && ip_port.secret_.size() != 17u) {
           return;
         }
         flags_ |= Flags::HasSecret;
