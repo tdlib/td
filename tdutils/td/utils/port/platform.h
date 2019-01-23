@@ -9,7 +9,7 @@
 // clang-format off
 
 /*** Platform macros ***/
-#if defined(_WIN32)
+#if defined(_WIN32) || defined(_WINDOWS) // _WINDOWS is defined by CMake
   #if defined(__cplusplus_winrt)
     #define TD_WINRT 1
   #endif
