@@ -30,6 +30,8 @@ extern int VERBOSITY_NAME(file_references);
 
 class FileReferenceManager : public Actor {
  public:
+  static bool is_file_reference_error(const Status &error);
+
   FileSourceId create_message_file_source(FullMessageId full_message_id);
   FileSourceId create_user_photo_file_source(UserId user_id, int64 photo_id);
   FileSourceId create_chat_photo_file_source(ChatId chat_id);

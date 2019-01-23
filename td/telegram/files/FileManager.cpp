@@ -2822,11 +2822,12 @@ void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type,
   if (begins_with(status.message(), "FILE_GENERATE_LOCATION_INVALID")) {
     node->set_generate_location(nullptr);
   }
-  if (begins_with(status.message(), "FILE_REFERENCE_")) {
+  if (FileReferenceManager::is_file_reference_error(status)) {
     string file_reference;
-    Slice prefix = "FILE_REFERENCE_EXPIRED_BASE64";
-    if (begins_with(status.message(), prefix)) {
-      auto r_file_reference = base64_decode(status.message().substr(prefix.size()));
+    Slice prefix = "#BASE64";
+    auto pos = status.message().rfind('#');
+    if (pos < status.message().size() && begins_with(status.message().substr(pos), prefix)) {
+      auto r_file_reference = base64_decode(status.message().substr(pos + prefix.size()));
       if (r_file_reference.is_ok()) {
         file_reference = r_file_reference.move_as_ok();
       } else {
