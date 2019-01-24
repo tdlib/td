@@ -147,11 +147,12 @@ void FileNode::set_remote_location(const RemoteFileLocation &remote, FileLocatio
   }
   if (remote_ == remote) {
     if (remote_.type() == RemoteFileLocation::Type::Full) {
-      if (remote_.full().get_access_hash() == remote.full().get_access_hash() &&
-          remote_.full().has_file_reference() == remote.full().has_file_reference()) {
-        return;
+      if (remote_.full().get_access_hash() != remote.full().get_access_hash() ||
+          remote_.full().get_file_reference() != remote.full().get_file_reference()) {
+        remote_ = remote;
+        remote_source_ = source;
+        on_pmc_changed();
       }
-    } else {
       return;
     }
   }
