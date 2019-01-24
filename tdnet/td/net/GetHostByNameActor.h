@@ -15,24 +15,35 @@
 #include <unordered_map>
 
 namespace td {
-
-class DnsOverHttps {
- public:
-  static TD_WARN_UNUSED_RESULT ActorOwn<> resolve(std::string host, int port, bool prefer_ipv6,
-                                                  td::Promise<td::IPAddress> promise);
-};
-
 class GetHostByNameActor final : public td::Actor {
  public:
   explicit GetHostByNameActor(int32 ok_timeout = CACHE_TIME, int32 error_timeout = ERROR_CACHE_TIME);
   void run(std::string host, int port, bool prefer_ipv6, td::Promise<td::IPAddress> promise);
+
+  struct Options {
+    enum Type { Native, Google, All } type{Native};
+    bool prefer_ipv6{false};
+    int scheduler_id{-1};
+  };
+  static TD_WARN_UNUSED_RESULT ActorOwn<> resolve(std::string host, Options options, Promise<IPAddress> promise);
 
  private:
   struct Value {
     Result<td::IPAddress> ip;
     double expire_at;
 
+    ActorOwn<> query;
+    std::vector<std::pair<int, Promise<IPAddress>>> promises;
+
     Value(Result<td::IPAddress> ip, double expire_at) : ip(std::move(ip)), expire_at(expire_at) {
+    }
+
+    Result<td::IPAddress> get_ip_port(int port) {
+      auto res = ip.clone();
+      if (res.is_ok()) {
+        res.ok_ref().set_port(port);
+      }
+      return res;
     }
   };
   std::unordered_map<string, Value> cache_[2];
@@ -42,7 +53,7 @@ class GetHostByNameActor final : public td::Actor {
   int32 ok_timeout_;
   int32 error_timeout_;
 
-  Result<td::IPAddress> load_ip(string host, int port, bool prefer_ipv6) TD_WARN_UNUSED_RESULT;
+  void on_result(std::string host, bool prefer_ipv6, Result<IPAddress> res);
 };
 
 }  // namespace td

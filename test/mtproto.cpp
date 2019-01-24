@@ -43,7 +43,7 @@ TEST(Mtproto, DnsOverHttps) {
   {
     auto guard = sched.get_main_guard();
 
-    auto run = [&](bool prefer_ipv6) {
+    auto run = [&](GetHostByNameActor::Options options) {
       auto promise = PromiseCreator::lambda([&, num = cnt](Result<IPAddress> r_ip_address) {
         if (r_ip_address.is_ok()) {
           LOG(WARNING) << num << " " << r_ip_address.ok();
@@ -55,11 +55,15 @@ TEST(Mtproto, DnsOverHttps) {
         }
       });
       cnt++;
-      DnsOverHttps::resolve("web.telegram.org", 443, prefer_ipv6, std::move(promise)).release();
+      GetHostByNameActor::resolve("web.telegram.org", options, std::move(promise)).release();
     };
 
-    run(false);
-    run(true);
+    run(GetHostByNameActor::Options{GetHostByNameActor::Options::Native, true, -1});
+    run(GetHostByNameActor::Options{GetHostByNameActor::Options::Google, true, -1});
+    run(GetHostByNameActor::Options{GetHostByNameActor::Options::All, true, -1});
+    run(GetHostByNameActor::Options{GetHostByNameActor::Options::Native, false, -1});
+    run(GetHostByNameActor::Options{GetHostByNameActor::Options::Google, false, -1});
+    run(GetHostByNameActor::Options{GetHostByNameActor::Options::All, false, -1});
   }
   cnt--;
   sched.start();
