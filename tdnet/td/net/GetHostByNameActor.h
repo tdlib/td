@@ -16,6 +16,12 @@
 
 namespace td {
 
+class DnsOverHttps {
+ public:
+  static TD_WARN_UNUSED_RESULT ActorOwn<> resolve(std::string host, int port, bool prefer_ipv6,
+                                                  td::Promise<td::IPAddress> promise);
+};
+
 class GetHostByNameActor final : public td::Actor {
  public:
   explicit GetHostByNameActor(int32 ok_timeout = CACHE_TIME, int32 error_timeout = ERROR_CACHE_TIME);

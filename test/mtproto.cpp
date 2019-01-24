@@ -18,6 +18,7 @@
 
 #include "td/net/Socks5.h"
 #include "td/net/TransparentProxy.h"
+#include "td/net/GetHostByNameActor.h"
 
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/net/DcId.h"
@@ -31,6 +32,42 @@
 REGISTER_TESTS(mtproto);
 
 using namespace td;
+
+TEST(Mtproto, DnsOverHttps) {
+  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(WARNING));
+  ConcurrentScheduler sched;
+  int threads_n = 0;
+  sched.init(threads_n);
+
+  int cnt = 1;
+  {
+    auto guard = sched.get_main_guard();
+
+    auto run = [&](bool prefer_ipv6) {
+      auto promise = PromiseCreator::lambda([&, num = cnt](Result<IPAddress> r_ip_address) {
+        if (r_ip_address.is_ok()) {
+          LOG(WARNING) << num << " " << r_ip_address.ok();
+        } else {
+          LOG(ERROR) << num << " " << r_ip_address.error();
+        }
+        if (--cnt == 0) {
+          Scheduler::instance()->finish();
+        }
+      });
+      cnt++;
+      DnsOverHttps::resolve("web.telegram.org", 443, prefer_ipv6, std::move(promise)).release();
+    };
+
+    run(false);
+    run(true);
+  }
+  cnt--;
+  sched.start();
+  while (sched.run_main(10)) {
+    // empty;
+  }
+  sched.finish();
+}
 
 TEST(Mtproto, config) {
   ConcurrentScheduler sched;
