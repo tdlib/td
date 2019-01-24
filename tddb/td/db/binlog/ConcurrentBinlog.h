@@ -63,7 +63,7 @@ class ConcurrentBinlog : public BinlogInterface {
 
   ActorOwn<detail::BinlogActor> binlog_actor_;
   string path_;
-  std::atomic<uint64> last_id_;
+  std::atomic<uint64> last_id_{0};
 };
 
 }  // namespace td

@@ -67,7 +67,7 @@ class SPSCBlockQueue {
   }
 
   struct Position {
-    std::atomic<uint32> i;
+    std::atomic<uint32> i{0};
     char pad[64 - sizeof(std::atomic<uint32>)];
     uint32 local_writer_i;
     char pad2[64 - sizeof(uint32)];
@@ -252,7 +252,7 @@ class SPSCChainQueue {
  private:
   struct Node {
     BlockQueueT q_;
-    std::atomic<bool> is_closed_;
+    std::atomic<bool> is_closed_{false};
     Node *next_;
 
     void init() {
@@ -399,7 +399,7 @@ class PollQueue : public QueueT {
 
  private:
   EventFd event_fd_;
-  std::atomic<int> wait_state_;
+  std::atomic<int> wait_state_{0};
   int writer_wait_state_;
 
   int get_wait_state() {

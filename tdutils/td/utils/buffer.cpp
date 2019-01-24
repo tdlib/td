@@ -103,13 +103,14 @@ BufferRaw *BufferAllocator::create_buffer_raw(size_t size) {
   new (buffer_raw) BufferRaw();
   buffer_raw->data_size_ = size;
   buffer_raw->begin_ = 0;
-  buffer_raw->end_ = 0;
+  std::atomic_init(&buffer_raw->end_, 0);
 
-  buffer_raw->ref_cnt_.store(1, std::memory_order_relaxed);
-  buffer_raw->has_writer_.store(true, std::memory_order_relaxed);
+  std::atomic_init(&buffer_raw->ref_cnt_, 1);
+  std::atomic_init(&buffer_raw->has_writer_, true);
   buffer_raw->was_reader_ = false;
   return buffer_raw;
 }
+
 void BufferBuilder::append(BufferSlice slice) {
   if (append_inplace(slice.as_slice())) {
     return;

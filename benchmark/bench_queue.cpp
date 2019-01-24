@@ -28,12 +28,6 @@
 #include <sys/eventfd.h>
 #endif
 
-using std::atomic;
-using std::vector;
-
-using td::int32;
-using td::uint32;
-
 #define MODE std::memory_order_relaxed
 
 // void set_affinity(int mask) {
@@ -100,7 +94,7 @@ class Backoff {
 };
 
 class VarQueue {
-  atomic<qvalue_t> data;
+  std::atomic<qvalue_t> data{0};
 
  public:
   void init() {
@@ -218,17 +212,17 @@ const int queue_buf_size = 1 << 10;
 class BufferQueue {
   struct node {
     qvalue_t val;
-    char pad[64 - sizeof(atomic<qvalue_t>)];
+    char pad[64 - sizeof(std::atomic<qvalue_t>)];
   };
   node q[queue_buf_size];
 
   struct Position {
-    atomic<uint32> i;
-    char pad[64 - sizeof(atomic<uint32>)];
+    std::atomic<td::uint32> i{0};
+    char pad[64 - sizeof(std::atomic<td::uint32>)];
 
-    uint32 local_read_i;
-    uint32 local_write_i;
-    char pad2[64 - sizeof(uint32) * 2];
+    td::uint32 local_read_i;
+    td::uint32 local_write_i;
+    char pad2[64 - sizeof(td::uint32) * 2];
 
     void init() {
       i = 0;
@@ -342,7 +336,7 @@ class BufferQueue {
 #if TD_LINUX
 class BufferedFdQueue {
   int fd;
-  atomic<int> wait_flag;
+  std::atomic<int> wait_flag{0};
   BufferQueue q;
   char pad[64];
 
@@ -440,7 +434,7 @@ class BufferedFdQueue {
 
 class FdQueue {
   int fd;
-  atomic<int> wait_flag;
+  std::atomic<int> wait_flag{0};
   VarQueue q;
   char pad[64];
 
@@ -572,8 +566,8 @@ class QueueBenchmark2 : public td::Benchmark {
 
   int server_active_connections;
   int client_active_connections;
-  vector<td::int64> server_conn;
-  vector<td::int64> client_conn;
+  std::vector<td::int64> server_conn;
+  std::vector<td::int64> client_conn;
 
  public:
   explicit QueueBenchmark2(int connections_n = 1) : connections_n(connections_n) {
@@ -615,7 +609,7 @@ class QueueBenchmark2 : public td::Benchmark {
   }
 
   void *server_run(void *) {
-    server_conn = vector<td::int64>(connections_n);
+    server_conn = std::vector<td::int64>(connections_n);
     server_active_connections = connections_n;
 
     while (server_active_connections > 0) {
@@ -656,7 +650,7 @@ class QueueBenchmark2 : public td::Benchmark {
   }
 
   void *client_run(void *) {
-    client_conn = vector<td::int64>(connections_n);
+    client_conn = std::vector<td::int64>(connections_n);
     client_active_connections = connections_n;
     if (queries_n >= (1 << 24)) {
       std::fprintf(stderr, "Too big queries_n\n");
@@ -732,7 +726,7 @@ class QueueBenchmark : public td::Benchmark {
   }
 
   void *server_run(void *) {
-    vector<td::int64> conn(connections_n);
+    std::vector<td::int64> conn(connections_n);
     int active_connections = connections_n;
     while (active_connections > 0) {
       qvalue_t value = server.get();
@@ -756,7 +750,7 @@ class QueueBenchmark : public td::Benchmark {
   }
 
   void *client_run(void *) {
-    vector<td::int64> conn(connections_n);
+    std::vector<td::int64> conn(connections_n);
     if (queries_n >= (1 << 24)) {
       std::fprintf(stderr, "Too big queries_n\n");
       std::exit(0);
@@ -789,7 +783,7 @@ class QueueBenchmark : public td::Benchmark {
   }
 
   void *client_run2(void *) {
-    vector<td::int64> conn(connections_n);
+    std::vector<td::int64> conn(connections_n);
     if (queries_n >= (1 << 24)) {
       std::fprintf(stderr, "Too big queries_n\n");
       std::exit(0);

@@ -72,7 +72,8 @@ static int fast_backtrace(void **buffer, int size) {
   return i;
 }
 
-static std::atomic<std::size_t> fast_backtrace_failed_cnt, backtrace_total_cnt;
+static std::atomic<std::size_t> fast_backtrace_failed_cnt;
+static std::atomic<std::size_t> backtrace_total_cnt;
 double get_fast_backtrace_success_rate() {
   return 1 - static_cast<double>(fast_backtrace_failed_cnt.load(std::memory_order_relaxed)) /
                  static_cast<double>(std::max(std::size_t(1), backtrace_total_cnt.load(std::memory_order_relaxed)));

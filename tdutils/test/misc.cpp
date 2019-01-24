@@ -96,7 +96,7 @@ TEST(Misc, errno_tls_bug) {
 #if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED
   EventFd test_event_fd;
   test_event_fd.init();
-  std::atomic<int> s(0);
+  std::atomic<int> s{0};
   s = 1;
   td::thread th([&] {
     while (s != 1) {

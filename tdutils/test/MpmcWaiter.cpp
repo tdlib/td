@@ -18,7 +18,7 @@ TEST(MpmcWaiter, stress_one_one) {
   td::Stage check;
 
   std::vector<td::thread> threads;
-  std::atomic<size_t> value;
+  std::atomic<size_t> value{0};
   size_t write_cnt = 10;
   td::unique_ptr<td::MpmcWaiter> waiter;
   size_t threads_n = 2;
@@ -64,8 +64,8 @@ TEST(MpmcWaiter, stress) {
   std::vector<td::thread> threads;
   size_t write_n;
   size_t read_n;
-  std::atomic<size_t> write_pos;
-  std::atomic<size_t> read_pos;
+  std::atomic<size_t> write_pos{0};
+  std::atomic<size_t> read_pos{0};
   size_t end_pos;
   size_t write_cnt;
   size_t threads_n = 20;

@@ -86,7 +86,7 @@ class ConcurrentScheduler : private Scheduler::Callback {
   enum class State { Start, Run };
   State state_ = State::Start;
   std::vector<unique_ptr<Scheduler>> schedulers_;
-  std::atomic<bool> is_finished_;
+  std::atomic<bool> is_finished_{false};
   std::mutex at_finish_mutex_;
   std::vector<std::function<void()>> at_finish_;
 #if !TD_THREAD_UNSUPPORTED && !TD_EVENTFD_UNSUPPORTED

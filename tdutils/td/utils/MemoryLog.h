@@ -77,7 +77,7 @@ class MemoryLog : public LogInterface {
 
  private:
   char buffer_[buffer_size];
-  std::atomic<uint32> pos_;
+  std::atomic<uint32> pos_{0};
 };
 
 }  // namespace td

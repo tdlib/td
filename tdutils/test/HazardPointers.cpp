@@ -15,7 +15,7 @@
 #if !TD_THREAD_UNSUPPORTED
 TEST(HazardPointers, stress) {
   struct Node {
-    std::atomic<std::string *> name_;
+    std::atomic<std::string *> name_{nullptr};
     char pad[64];
   };
   int threads_n = 10;

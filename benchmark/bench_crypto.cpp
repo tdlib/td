@@ -110,7 +110,7 @@ BENCH(TdRandFast, "td_rand_fast") {
 #if !TD_THREAD_UNSUPPORTED
 BENCH(SslRand, "ssl_rand_int32") {
   std::vector<td::thread> v;
-  std::atomic<td::uint32> sum;
+  std::atomic<td::uint32> sum{0};
   for (int i = 0; i < 3; i++) {
     v.push_back(td::thread([&] {
       td::int32 res = 0;

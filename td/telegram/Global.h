@@ -378,8 +378,8 @@ class Global : public ActorContext {
   int32 gc_scheduler_id_;
   int32 slow_net_scheduler_id_;
 
-  std::atomic<double> server_time_difference_;
-  std::atomic<bool> server_time_difference_was_updated_;
+  std::atomic<double> server_time_difference_{0.0};
+  std::atomic<bool> server_time_difference_was_updated_{false};
   std::atomic<bool> close_flag_{false};
 
   std::vector<std::shared_ptr<NetStatsCallback>> net_stats_file_callbacks_;
