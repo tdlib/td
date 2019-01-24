@@ -100,15 +100,7 @@ BufferRaw *BufferAllocator::create_buffer_raw(size_t size) {
   }
   buffer_mem += buf_size;
   auto *buffer_raw = reinterpret_cast<BufferRaw *>(new char[buf_size]);
-  new (buffer_raw) BufferRaw();
-  buffer_raw->data_size_ = size;
-  buffer_raw->begin_ = 0;
-  std::atomic_init(&buffer_raw->end_, 0);
-
-  std::atomic_init(&buffer_raw->ref_cnt_, 1);
-  std::atomic_init(&buffer_raw->has_writer_, true);
-  buffer_raw->was_reader_ = false;
-  return buffer_raw;
+  return new (buffer_raw) BufferRaw(size);
 }
 
 void BufferBuilder::append(BufferSlice slice) {

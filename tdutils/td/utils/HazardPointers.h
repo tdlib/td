@@ -20,7 +20,7 @@ class HazardPointers {
   explicit HazardPointers(size_t threads_n) : threads_(threads_n) {
     for (auto &data : threads_) {
       for (auto &ptr : data.hazard) {
-        std::atomic_init(&ptr, nullptr);
+        std::atomic_init(&ptr, static_cast<T *>(nullptr));
       }
     }
   }

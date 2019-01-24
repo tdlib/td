@@ -20,6 +20,9 @@
 namespace td {
 
 struct BufferRaw {
+  explicit BufferRaw(size_t size)
+      : data_size_(size), begin_(0), end_(0), ref_cnt_(1), has_writer_(true), was_reader_(false) {
+  }
   size_t data_size_;
 
   // Constant after first reader is created.
