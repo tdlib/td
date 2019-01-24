@@ -43,28 +43,31 @@ TEST(Mtproto, GetHostByName) {
   {
     auto guard = sched.get_main_guard();
 
-    auto run = [&](GetHostByNameActor::ResolveOptions options) {
-      auto promise = PromiseCreator::lambda([&, num = cnt](Result<IPAddress> r_ip_address) {
+    auto run = [&](GetHostByNameActor::ResolveOptions options, string host) {
+      auto promise = PromiseCreator::lambda([&cnt, num = cnt, host](Result<IPAddress> r_ip_address) {
         if (r_ip_address.is_ok()) {
-          LOG(WARNING) << num << " " << r_ip_address.ok();
+          LOG(WARNING) << num << " " << host << " " << r_ip_address.ok();
         } else {
-          LOG(ERROR) << num << " " << r_ip_address.error();
+          LOG(ERROR) << num << " " << host << " " << r_ip_address.error();
         }
         if (--cnt == 0) {
           Scheduler::instance()->finish();
         }
       });
       cnt++;
-      GetHostByNameActor::resolve("web.telegram.org", options, std::move(promise)).release();
+      GetHostByNameActor::resolve(host, options, std::move(promise)).release();
     };
 
-    for (auto type : {GetHostByNameActor::ResolveType::Native, GetHostByNameActor::ResolveType::Google,
-                      GetHostByNameActor::ResolveType::All}) {
-      for (auto prefer_ipv6 : {false, true}) {
-        GetHostByNameActor::ResolveOptions options;
-        options.type = type;
-        options.prefer_ipv6 = prefer_ipv6;
-        run(options);
+    std::vector<std::string> hosts = {"127.0.0.2", "1.1.1.1", "localhost", "web.telegram.org"};
+    for (auto host : hosts) {
+      for (auto type : {GetHostByNameActor::ResolveType::Native, GetHostByNameActor::ResolveType::Google,
+                        GetHostByNameActor::ResolveType::All}) {
+        for (auto prefer_ipv6 : {false, true}) {
+          GetHostByNameActor::ResolveOptions options;
+          options.type = type;
+          options.prefer_ipv6 = prefer_ipv6;
+          run(options, host);
+        }
       }
     }
   }

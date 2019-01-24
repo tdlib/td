@@ -39,7 +39,6 @@ class GoogleDnsResolver : public Actor {
     return PromiseCreator::lambda([promise = std::move(promise)](Result<HttpQueryPtr> r_http_query) mutable {
       promise.set_result([&]() -> Result<IPAddress> {
         TRY_RESULT(http_query, std::move(r_http_query));
-        LOG(ERROR) << *http_query;
         TRY_RESULT(json_value, json_decode(http_query->content_));
         if (json_value.type() != JsonValue::Type::Object) {
           return Status::Error("Failed to parse dns result: not an object");
@@ -108,6 +107,7 @@ class DnsResolver : public Actor {
       return stop();
     }
     options_.type = types[pos_];
+    pos_++;
     query_ = GetHostByNameActor::resolve(host_, options_,
                                          PromiseCreator::lambda([actor_id = actor_id(this)](Result<IPAddress> res) {
                                            send_closure(actor_id, &DnsResolver::on_result, std::move(res));
