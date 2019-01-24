@@ -16,9 +16,9 @@
 #include "td/mtproto/PingConnection.h"
 #include "td/mtproto/RawConnection.h"
 
+#include "td/net/GetHostByNameActor.h"
 #include "td/net/Socks5.h"
 #include "td/net/TransparentProxy.h"
-#include "td/net/GetHostByNameActor.h"
 
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/net/DcId.h"
@@ -74,10 +74,11 @@ TEST(Mtproto, GetHostByName) {
   cnt--;
   sched.start();
   while (sched.run_main(10)) {
-    // empty;
+    // empty
   }
   sched.finish();
 }
+
 TEST(Mtproto, GetHostByNameActor) {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(WARNING));
   ConcurrentScheduler sched;
@@ -127,7 +128,7 @@ TEST(Mtproto, GetHostByNameActor) {
   cnt--;
   sched.start();
   while (sched.run_main(10)) {
-    // empty;
+    // empty
   }
   sched.finish();
 }

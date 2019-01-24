@@ -15,7 +15,8 @@
 #include <unordered_map>
 
 namespace td {
-class GetHostByNameActor final : public td::Actor {
+
+class GetHostByNameActor final : public Actor {
  public:
   enum ResolveType { Native, Google, All };
   struct Options {
@@ -26,27 +27,27 @@ class GetHostByNameActor final : public td::Actor {
     int32 error_timeout{ERROR_CACHE_TIME};
   };
   explicit GetHostByNameActor(Options options = {});
-  void run(std::string host, int port, bool prefer_ipv6, td::Promise<td::IPAddress> promise);
+  void run(std::string host, int port, bool prefer_ipv6, Promise<IPAddress> promise);
 
   struct ResolveOptions {
     ResolveType type{Native};
-    bool prefer_ipv6;
+    bool prefer_ipv6{false};
     int scheduler_id{-1};
   };
   static TD_WARN_UNUSED_RESULT ActorOwn<> resolve(std::string host, ResolveOptions options, Promise<IPAddress> promise);
 
  private:
   struct Value {
-    Result<td::IPAddress> ip;
+    Result<IPAddress> ip;
     double expire_at;
 
     ActorOwn<> query;
     std::vector<std::pair<int, Promise<IPAddress>>> promises;
 
-    Value(Result<td::IPAddress> ip, double expire_at) : ip(std::move(ip)), expire_at(expire_at) {
+    Value(Result<IPAddress> ip, double expire_at) : ip(std::move(ip)), expire_at(expire_at) {
     }
 
-    Result<td::IPAddress> get_ip_port(int port) {
+    Result<IPAddress> get_ip_port(int port) {
       auto res = ip.clone();
       if (res.is_ok()) {
         res.ok_ref().set_port(port);

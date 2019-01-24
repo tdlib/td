@@ -6,16 +6,17 @@
 //
 #include "td/net/GetHostByNameActor.h"
 
+#include "td/net/Wget.h"
+
+#include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/Time.h"
-#include "td/utils/JsonBuilder.h"
-#include "td/net/Wget.h"
 
 namespace td {
 namespace detail {
 class GoogleDnsResolver : public Actor {
  public:
-  GoogleDnsResolver(std::string host, GetHostByNameActor::ResolveOptions options, td::Promise<td::IPAddress> promise)
+  GoogleDnsResolver(std::string host, GetHostByNameActor::ResolveOptions options, Promise<IPAddress> promise)
       : host_(std::move(host)), options_(std::move(options)), promise_(std::move(promise)) {
   }
 
@@ -44,13 +45,14 @@ class GoogleDnsResolver : public Actor {
           return Status::Error("Failed to parse dns result: not an object");
         }
         TRY_RESULT(answer, get_json_object_field(json_value.get_object(), "Answer", JsonValue::Type::Array, false));
-        if (answer.get_array().size() == 0) {
+        auto &array = answer.get_array();
+        if (array.size() == 0) {
           return Status::Error("Failed to parse dns result: Answer is an empty array");
         }
-        if (answer.get_array()[0].type() != JsonValue::Type::Object) {
+        if (array[0].type() != JsonValue::Type::Object) {
           return Status::Error("Failed to parse dns result: Answer[0] is not an object");
         }
-        auto &answer_0 = answer.get_array()[0].get_object();
+        auto &answer_0 = array[0].get_object();
         TRY_RESULT(ip_str, get_json_object_string_field(answer_0, "data", false));
         IPAddress ip;
         TRY_STATUS(ip.init_host_port(ip_str, 0));
@@ -59,9 +61,10 @@ class GoogleDnsResolver : public Actor {
     });
   }
 };
+
 class NativeDnsResolver : public Actor {
  public:
-  NativeDnsResolver(std::string host, GetHostByNameActor::ResolveOptions options, td::Promise<td::IPAddress> promise)
+  NativeDnsResolver(std::string host, GetHostByNameActor::ResolveOptions options, Promise<IPAddress> promise)
       : host_(std::move(host)), options_(std::move(options)), promise_(std::move(promise)) {
   }
 
@@ -72,9 +75,9 @@ class NativeDnsResolver : public Actor {
 
   void start_up() override {
     IPAddress ip;
-    auto begin_time = td::Time::now();
+    auto begin_time = Time::now();
     auto status = ip.init_host_port(host_, 0, options_.prefer_ipv6);
-    auto end_time = td::Time::now();
+    auto end_time = Time::now();
     LOG(WARNING) << "Init host = " << host_ << " in " << end_time - begin_time << " seconds to " << ip;
     if (status.is_error()) {
       promise_.set_error(std::move(status));
@@ -84,9 +87,10 @@ class NativeDnsResolver : public Actor {
     stop();
   }
 };
+
 class DnsResolver : public Actor {
  public:
-  DnsResolver(std::string host, GetHostByNameActor::ResolveOptions options, td::Promise<td::IPAddress> promise)
+  DnsResolver(std::string host, GetHostByNameActor::ResolveOptions options, Promise<IPAddress> promise)
       : host_(std::move(host)), options_(std::move(options)), promise_(std::move(promise)) {
   }
 
@@ -126,6 +130,7 @@ class DnsResolver : public Actor {
 }  // namespace detail
 
 GetHostByNameActor::Options::Options() = default;
+
 ActorOwn<> GetHostByNameActor::resolve(std::string host, ResolveOptions options, Promise<IPAddress> promise) {
   switch (options.type) {
     case Native:
@@ -137,6 +142,9 @@ ActorOwn<> GetHostByNameActor::resolve(std::string host, ResolveOptions options,
     case All:
       return ActorOwn<>(create_actor_on_scheduler<detail::DnsResolver>("DnsResolver", options.scheduler_id,
                                                                        std::move(host), options, std::move(promise)));
+    default:
+      UNREACHABLE();
+      return ActorOwn<>();
   }
 }
 
@@ -147,7 +155,7 @@ void GetHostByNameActor::on_result(std::string host, bool prefer_ipv6, Result<IP
   auto &value = cache_[prefer_ipv6].emplace(host, Value{{}, 0}).first->second;
 
   auto promises = std::move(value.promises);
-  auto end_time = td::Time::now();
+  auto end_time = Time::now();
   if (res.is_ok()) {
     value = Value{res.move_as_ok(), end_time + options_.ok_timeout};
   } else {
@@ -160,7 +168,7 @@ void GetHostByNameActor::on_result(std::string host, bool prefer_ipv6, Result<IP
 
 void GetHostByNameActor::run(string host, int port, bool prefer_ipv6, Promise<IPAddress> promise) {
   auto &value = cache_[prefer_ipv6].emplace(host, Value{{}, 0}).first->second;
-  auto begin_time = td::Time::now();
+  auto begin_time = Time::now();
   if (value.expire_at > begin_time) {
     return promise.set_result(value.get_ip_port(port));
   }
