@@ -16,6 +16,7 @@
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DialogId.h"
 #include "td/telegram/DocumentsManager.h"
+#include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/files/FileType.h"
@@ -173,13 +174,16 @@ class GetFeaturedStickerSetsQuery : public Td::ResultHandler {
 class GetAttachedStickerSetsQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   FileId file_id_;
+  string file_reference_;
 
  public:
   explicit GetAttachedStickerSetsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(FileId file_id, tl_object_ptr<telegram_api::InputStickeredMedia> &&input_stickered_media) {
+  void send(FileId file_id, string &&file_reference,
+            tl_object_ptr<telegram_api::InputStickeredMedia> &&input_stickered_media) {
     file_id_ = file_id;
+    file_reference_ = std::move(file_reference);
     send_query(G()->net_query_creator().create(
         create_storer(telegram_api::messages_getAttachedStickers(std::move(input_stickered_media)))));
   }
@@ -196,6 +200,21 @@ class GetAttachedStickerSetsQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
+    if (FileReferenceManager::is_file_reference_error(status)) {
+      td->file_manager_->delete_file_reference(file_id_, file_reference_);
+      td->file_reference_manager_->repair_file_reference(
+          file_id_,
+          PromiseCreator::lambda([file_id = file_id_, promise = std::move(promise_)](Result<Unit> result) mutable {
+            if (result.is_error()) {
+              return promise.set_error(Status::Error(400, "Failed to find the file"));
+            }
+
+            send_closure(G()->stickers_manager(), &StickersManager::send_get_attached_stickers_query, file_id,
+                         std::move(promise));
+          }));
+      return;
+    }
+
     promise_.set_error(std::move(status));
   }
 };
@@ -2893,35 +2912,41 @@ vector<int64> StickersManager::get_attached_sticker_sets(FileId file_id, Promise
     return {};
   }
 
-  auto file_view = td_->file_manager_->get_file_view(file_id);
-  if (file_view.empty()) {
-    promise.set_error(Status::Error(5, "File not found"));
-    return {};
-  }
-  if (!file_view.has_remote_location() ||
-      (!file_view.remote_location().is_document() && !file_view.remote_location().is_photo()) ||
-      file_view.remote_location().is_web()) {
-    promise.set_value(Unit());
-    return {};
-  }
-
   auto it = attached_sticker_sets_.find(file_id);
   if (it != attached_sticker_sets_.end()) {
     promise.set_value(Unit());
     return it->second;
   }
 
-  tl_object_ptr<telegram_api::InputStickeredMedia> input_stickered_media;
-  if (file_view.remote_location().is_photo()) {
-    input_stickered_media =
-        make_tl_object<telegram_api::inputStickeredMediaPhoto>(file_view.remote_location().as_input_photo());
-  } else {
-    input_stickered_media =
-        make_tl_object<telegram_api::inputStickeredMediaDocument>(file_view.remote_location().as_input_document());
+  send_get_attached_stickers_query(file_id, std::move(promise));
+  return {};
+}
+
+void StickersManager::send_get_attached_stickers_query(FileId file_id, Promise<Unit> &&promise) {
+  auto file_view = td_->file_manager_->get_file_view(file_id);
+  if (file_view.empty()) {
+    return promise.set_error(Status::Error(5, "File not found"));
+  }
+  if (!file_view.has_remote_location() ||
+      (!file_view.remote_location().is_document() && !file_view.remote_location().is_photo()) ||
+      file_view.remote_location().is_web()) {
+    return promise.set_value(Unit());
   }
 
-  td_->create_handler<GetAttachedStickerSetsQuery>(std::move(promise))->send(file_id, std::move(input_stickered_media));
-  return {};
+  tl_object_ptr<telegram_api::InputStickeredMedia> input_stickered_media;
+  string file_reference;
+  if (file_view.remote_location().is_photo()) {
+    auto input_photo = file_view.remote_location().as_input_photo();
+    file_reference = input_photo->file_reference_.as_slice().str();
+    input_stickered_media = make_tl_object<telegram_api::inputStickeredMediaPhoto>(std::move(input_photo));
+  } else {
+    auto input_document = file_view.remote_location().as_input_document();
+    file_reference = input_document->file_reference_.as_slice().str();
+    input_stickered_media = make_tl_object<telegram_api::inputStickeredMediaDocument>(std::move(input_document));
+  }
+
+  td_->create_handler<GetAttachedStickerSetsQuery>(std::move(promise))
+      ->send(file_id, std::move(file_reference), std::move(input_stickered_media));
 }
 
 void StickersManager::on_get_attached_sticker_sets(

@@ -214,6 +214,8 @@ class StickersManager : public Actor {
 
   void on_find_sticker_sets_fail(const string &query, Status &&error);
 
+  void send_get_attached_stickers_query(FileId file_id, Promise<Unit> &&promise);
+
   void after_get_difference();
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
