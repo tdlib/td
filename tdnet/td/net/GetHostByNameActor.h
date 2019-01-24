@@ -17,15 +17,23 @@
 namespace td {
 class GetHostByNameActor final : public td::Actor {
  public:
-  explicit GetHostByNameActor(int32 ok_timeout = CACHE_TIME, int32 error_timeout = ERROR_CACHE_TIME);
+  enum ResolveType { Native, Google, All };
+  struct Options {
+    Options();
+    ResolveType type{Native};
+    int scheduler_id{-1};
+    int32 ok_timeout{CACHE_TIME};
+    int32 error_timeout{ERROR_CACHE_TIME};
+  };
+  explicit GetHostByNameActor(Options options = {});
   void run(std::string host, int port, bool prefer_ipv6, td::Promise<td::IPAddress> promise);
 
-  struct Options {
-    enum Type { Native, Google, All } type{Native};
-    bool prefer_ipv6{false};
+  struct ResolveOptions {
+    ResolveType type{Native};
+    bool prefer_ipv6;
     int scheduler_id{-1};
   };
-  static TD_WARN_UNUSED_RESULT ActorOwn<> resolve(std::string host, Options options, Promise<IPAddress> promise);
+  static TD_WARN_UNUSED_RESULT ActorOwn<> resolve(std::string host, ResolveOptions options, Promise<IPAddress> promise);
 
  private:
   struct Value {
@@ -50,8 +58,7 @@ class GetHostByNameActor final : public td::Actor {
   static constexpr int32 CACHE_TIME = 60 * 29;       // 29 minutes
   static constexpr int32 ERROR_CACHE_TIME = 60 * 5;  // 5 minutes
 
-  int32 ok_timeout_;
-  int32 error_timeout_;
+  Options options_;
 
   void on_result(std::string host, bool prefer_ipv6, Result<IPAddress> res);
 };

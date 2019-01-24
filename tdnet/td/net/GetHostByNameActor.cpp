@@ -15,13 +15,13 @@ namespace td {
 namespace detail {
 class GoogleDnsResolver : public Actor {
  public:
-  GoogleDnsResolver(std::string host, GetHostByNameActor::Options options, td::Promise<td::IPAddress> promise)
+  GoogleDnsResolver(std::string host, GetHostByNameActor::ResolveOptions options, td::Promise<td::IPAddress> promise)
       : host_(std::move(host)), options_(std::move(options)), promise_(std::move(promise)) {
   }
 
  private:
   std::string host_;
-  GetHostByNameActor::Options options_;
+  GetHostByNameActor::ResolveOptions options_;
   Promise<IPAddress> promise_;
   ActorOwn<Wget> wget_;
 
@@ -62,13 +62,13 @@ class GoogleDnsResolver : public Actor {
 };
 class NativeDnsResolver : public Actor {
  public:
-  NativeDnsResolver(std::string host, GetHostByNameActor::Options options, td::Promise<td::IPAddress> promise)
+  NativeDnsResolver(std::string host, GetHostByNameActor::ResolveOptions options, td::Promise<td::IPAddress> promise)
       : host_(std::move(host)), options_(std::move(options)), promise_(std::move(promise)) {
   }
 
  private:
   std::string host_;
-  GetHostByNameActor::Options options_;
+  GetHostByNameActor::ResolveOptions options_;
   Promise<IPAddress> promise_;
 
   void start_up() override {
@@ -87,18 +87,17 @@ class NativeDnsResolver : public Actor {
 };
 class DnsResolver : public Actor {
  public:
-  DnsResolver(std::string host, GetHostByNameActor::Options options, td::Promise<td::IPAddress> promise)
+  DnsResolver(std::string host, GetHostByNameActor::ResolveOptions options, td::Promise<td::IPAddress> promise)
       : host_(std::move(host)), options_(std::move(options)), promise_(std::move(promise)) {
   }
 
  private:
   std::string host_;
-  GetHostByNameActor::Options options_;
+  GetHostByNameActor::ResolveOptions options_;
   Promise<IPAddress> promise_;
   ActorOwn<> query_;
   size_t pos_ = 0;
-  GetHostByNameActor::Options::Type types[2] = {GetHostByNameActor::Options::Google,
-                                                GetHostByNameActor::Options::Native};
+  GetHostByNameActor::ResolveType types[2] = {GetHostByNameActor::Google, GetHostByNameActor::Native};
 
   void loop() override {
     if (!query_.empty()) {
@@ -126,22 +125,22 @@ class DnsResolver : public Actor {
 };
 }  // namespace detail
 
-ActorOwn<> GetHostByNameActor::resolve(std::string host, Options options, Promise<IPAddress> promise) {
+GetHostByNameActor::Options::Options() = default;
+ActorOwn<> GetHostByNameActor::resolve(std::string host, ResolveOptions options, Promise<IPAddress> promise) {
   switch (options.type) {
-    case Options::Native:
+    case Native:
       return ActorOwn<>(create_actor_on_scheduler<detail::NativeDnsResolver>(
           "NativeDnsResolver", options.scheduler_id, std::move(host), options, std::move(promise)));
-    case Options::Google:
+    case Google:
       return ActorOwn<>(create_actor_on_scheduler<detail::GoogleDnsResolver>(
           "GoogleDnsResolver", options.scheduler_id, std::move(host), options, std::move(promise)));
-    case Options::All:
+    case All:
       return ActorOwn<>(create_actor_on_scheduler<detail::DnsResolver>("DnsResolver", options.scheduler_id,
                                                                        std::move(host), options, std::move(promise)));
   }
 }
 
-GetHostByNameActor::GetHostByNameActor(int32 ok_timeout, int32 error_timeout)
-    : ok_timeout_(ok_timeout), error_timeout_(error_timeout) {
+GetHostByNameActor::GetHostByNameActor(Options options) : options_(options) {
 }
 
 void GetHostByNameActor::on_result(std::string host, bool prefer_ipv6, Result<IPAddress> res) {
@@ -150,9 +149,9 @@ void GetHostByNameActor::on_result(std::string host, bool prefer_ipv6, Result<IP
   auto promises = std::move(value.promises);
   auto end_time = td::Time::now();
   if (res.is_ok()) {
-    value = Value{res.move_as_ok(), end_time + ok_timeout_};
+    value = Value{res.move_as_ok(), end_time + options_.ok_timeout};
   } else {
-    value = Value{res.move_as_error(), end_time + error_timeout_};
+    value = Value{res.move_as_error(), end_time + options_.error_timeout};
   }
   for (auto &promise : promises) {
     promise.second.set_result(value.get_ip_port(promise.first));
@@ -168,8 +167,9 @@ void GetHostByNameActor::run(string host, int port, bool prefer_ipv6, Promise<IP
 
   value.promises.emplace_back(port, std::move(promise));
   if (value.query.empty()) {
-    Options options;
-    options.type = Options::Type::All;
+    ResolveOptions options;
+    options.type = options_.type;
+    options.scheduler_id = options_.scheduler_id;
     options.prefer_ipv6 = prefer_ipv6;
     value.query =
         resolve(host, options,

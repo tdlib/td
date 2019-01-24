@@ -1241,8 +1241,12 @@ void ConnectionCreator::start_up() {
     on_proxy_changed(true);
   }
 
-  get_host_by_name_actor_ =
-      create_actor_on_scheduler<GetHostByNameActor>("GetHostByNameActor", G()->get_gc_scheduler_id(), 5 * 60 - 1, 0);
+  GetHostByNameActor::Options options;
+  options.scheduler_id = G()->get_gc_scheduler_id();
+  options.type = GetHostByNameActor::ResolveType::All;
+  options.ok_timeout = 5 * 60 - 1;
+  options.error_timeout = 0;
+  get_host_by_name_actor_ = create_actor<GetHostByNameActor>("GetHostByNameActor", options);
 
   ref_cnt_guard_ = create_reference(-1);
 

@@ -33,7 +33,7 @@ REGISTER_TESTS(mtproto);
 
 using namespace td;
 
-TEST(Mtproto, DnsOverHttps) {
+TEST(Mtproto, GetHostByName) {
   SET_VERBOSITY_LEVEL(VERBOSITY_NAME(WARNING));
   ConcurrentScheduler sched;
   int threads_n = 0;
@@ -43,7 +43,7 @@ TEST(Mtproto, DnsOverHttps) {
   {
     auto guard = sched.get_main_guard();
 
-    auto run = [&](GetHostByNameActor::Options options) {
+    auto run = [&](GetHostByNameActor::ResolveOptions options) {
       auto promise = PromiseCreator::lambda([&, num = cnt](Result<IPAddress> r_ip_address) {
         if (r_ip_address.is_ok()) {
           LOG(WARNING) << num << " " << r_ip_address.ok();
@@ -58,12 +58,68 @@ TEST(Mtproto, DnsOverHttps) {
       GetHostByNameActor::resolve("web.telegram.org", options, std::move(promise)).release();
     };
 
-    run(GetHostByNameActor::Options{GetHostByNameActor::Options::Native, true, -1});
-    run(GetHostByNameActor::Options{GetHostByNameActor::Options::Google, true, -1});
-    run(GetHostByNameActor::Options{GetHostByNameActor::Options::All, true, -1});
-    run(GetHostByNameActor::Options{GetHostByNameActor::Options::Native, false, -1});
-    run(GetHostByNameActor::Options{GetHostByNameActor::Options::Google, false, -1});
-    run(GetHostByNameActor::Options{GetHostByNameActor::Options::All, false, -1});
+    for (auto type : {GetHostByNameActor::ResolveType::Native, GetHostByNameActor::ResolveType::Google,
+                      GetHostByNameActor::ResolveType::All}) {
+      for (auto prefer_ipv6 : {false, true}) {
+        GetHostByNameActor::ResolveOptions options;
+        options.type = type;
+        options.prefer_ipv6 = prefer_ipv6;
+        run(options);
+      }
+    }
+  }
+  cnt--;
+  sched.start();
+  while (sched.run_main(10)) {
+    // empty;
+  }
+  sched.finish();
+}
+TEST(Mtproto, GetHostByNameActor) {
+  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(WARNING));
+  ConcurrentScheduler sched;
+  int threads_n = 0;
+  sched.init(threads_n);
+
+  int cnt = 1;
+  {
+    auto guard = sched.get_main_guard();
+
+    auto run = [&](GetHostByNameActor::Options options) {
+      auto host = create_actor<GetHostByNameActor>("GetHostByNameActor", options);
+      auto host_id = host.get();
+      auto promise = PromiseCreator::lambda([&, num = cnt](Result<IPAddress> r_ip_address) {
+        if (r_ip_address.is_ok()) {
+          LOG(WARNING) << num << " " << r_ip_address.ok();
+        } else {
+          LOG(ERROR) << num << " " << r_ip_address.error();
+        }
+        if (--cnt == 0) {
+          Scheduler::instance()->finish();
+        }
+      });
+      cnt++;
+      send_closure(host_id, &GetHostByNameActor::run, "web.telegram.org", 443, false, std::move(promise));
+      promise = PromiseCreator::lambda([&, num = cnt, host = std::move(host)](Result<IPAddress> r_ip_address) {
+        if (r_ip_address.is_ok()) {
+          LOG(WARNING) << num << " " << r_ip_address.ok();
+        } else {
+          LOG(ERROR) << num << " " << r_ip_address.error();
+        }
+        if (--cnt == 0) {
+          Scheduler::instance()->finish();
+        }
+      });
+      cnt++;
+      send_closure(host_id, &GetHostByNameActor::run, "web.telegram.org", 443, false, std::move(promise));
+    };
+
+    for (auto type : {GetHostByNameActor::ResolveType::Native, GetHostByNameActor::ResolveType::Google,
+                      GetHostByNameActor::ResolveType::All}) {
+      GetHostByNameActor::Options options;
+      options.type = type;
+      run(options);
+    }
   }
   cnt--;
   sched.start();
