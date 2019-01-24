@@ -18,10 +18,10 @@ namespace td {
 
 class GetHostByNameActor final : public Actor {
  public:
-  enum ResolveType { Native, Google, All };
+  enum class ResolveType { Native, Google, All };
   struct Options {
     Options();
-    ResolveType type{Native};
+    ResolveType type{ResolveType::Native};
     int scheduler_id{-1};
     int32 ok_timeout{CACHE_TIME};
     int32 error_timeout{ERROR_CACHE_TIME};
@@ -30,7 +30,7 @@ class GetHostByNameActor final : public Actor {
   void run(std::string host, int port, bool prefer_ipv6, Promise<IPAddress> promise);
 
   struct ResolveOptions {
-    ResolveType type{Native};
+    ResolveType type{ResolveType::Native};
     bool prefer_ipv6{false};
     int scheduler_id{-1};
   };

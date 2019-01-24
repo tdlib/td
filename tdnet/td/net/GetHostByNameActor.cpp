@@ -100,7 +100,8 @@ class DnsResolver : public Actor {
   Promise<IPAddress> promise_;
   ActorOwn<> query_;
   size_t pos_ = 0;
-  GetHostByNameActor::ResolveType types[2] = {GetHostByNameActor::Google, GetHostByNameActor::Native};
+  GetHostByNameActor::ResolveType types[2] = {GetHostByNameActor::ResolveType::Google,
+                                              GetHostByNameActor::ResolveType::Native};
 
   void loop() override {
     if (!query_.empty()) {
@@ -133,13 +134,13 @@ GetHostByNameActor::Options::Options() = default;
 
 ActorOwn<> GetHostByNameActor::resolve(std::string host, ResolveOptions options, Promise<IPAddress> promise) {
   switch (options.type) {
-    case Native:
+    case ResolveType::Native:
       return ActorOwn<>(create_actor_on_scheduler<detail::NativeDnsResolver>(
           "NativeDnsResolver", options.scheduler_id, std::move(host), options, std::move(promise)));
-    case Google:
+    case ResolveType::Google:
       return ActorOwn<>(create_actor_on_scheduler<detail::GoogleDnsResolver>(
           "GoogleDnsResolver", options.scheduler_id, std::move(host), options, std::move(promise)));
-    case All:
+    case ResolveType::All:
       return ActorOwn<>(create_actor_on_scheduler<detail::DnsResolver>("DnsResolver", options.scheduler_id,
                                                                        std::move(host), options, std::move(promise)));
     default:
