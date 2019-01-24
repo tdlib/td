@@ -20,4 +20,5 @@ Status copy_file(CSlice from, CSlice to, int64 size = -1) TD_WARN_UNUSED_RESULT;
 Status write_file(CSlice to, Slice data) TD_WARN_UNUSED_RESULT;
 
 std::string clean_filename(CSlice name);
+
 }  // namespace td

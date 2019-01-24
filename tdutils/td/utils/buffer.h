@@ -20,23 +20,22 @@
 namespace td {
 
 struct BufferRaw {
-  explicit BufferRaw(size_t size)
-      : data_size_(size), begin_(0), end_(0), ref_cnt_(1), has_writer_(true), was_reader_(false) {
+  explicit BufferRaw(size_t size) : data_size_(size) {
   }
   size_t data_size_;
 
   // Constant after first reader is created.
   // May be change by writer before it.
   // So writer may do prepends till there is no reader created.
-  size_t begin_;
+  size_t begin_ = 0;
 
   // Write by writer.
   // Read by reader.
-  std::atomic<size_t> end_;
+  std::atomic<size_t> end_{0};
 
-  mutable std::atomic<int32> ref_cnt_;
-  std::atomic<bool> has_writer_;
-  bool was_reader_;
+  mutable std::atomic<int32> ref_cnt_{1};
+  std::atomic<bool> has_writer_{true};
+  bool was_reader_{false};
 
   alignas(4) unsigned char data_[1];
 };
