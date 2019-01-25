@@ -19948,6 +19948,19 @@ void MessagesManager::on_active_dialog_action_timeout(DialogId dialog_id) {
                                                actions_it->second[0].start_time + DIALOG_ACTION_TIMEOUT - now);
 }
 
+void MessagesManager::clear_active_dialog_actions(DialogId dialog_id) {
+  LOG(DEBUG) << "Clear active dialog actions in " << dialog_id;
+  Dialog *d = get_dialog(dialog_id);
+  CHECK(d != nullptr);
+
+  auto actions_it = active_dialog_actions_.find(dialog_id);
+  while (actions_it != active_dialog_actions_.end()) {
+    CHECK(!actions_it->second.empty());
+    on_user_dialog_action(dialog_id, actions_it->second[0].user_id, nullptr);
+    actions_it = active_dialog_actions_.find(dialog_id);
+  }
+}
+
 tl_object_ptr<telegram_api::InputChatPhoto> MessagesManager::get_input_chat_photo(FileId file_id) const {
   if (!file_id.is_valid()) {
     return make_tl_object<telegram_api::inputChatPhotoEmpty>();
@@ -22913,6 +22926,7 @@ bool MessagesManager::set_dialog_order(Dialog *d, int64 new_order, bool need_sen
     if (dialog_type == DialogType::Channel && !has_unread_counter) {
       remove_all_dialog_notifications(dialog_id, d->message_notification_group, "set_dialog_order 1");
       remove_all_dialog_notifications(dialog_id, d->mention_notification_group, "set_dialog_order 2");
+      clear_active_dialog_actions(dialog_id);
     }
   }
 

@@ -1696,6 +1696,8 @@ class MessagesManager : public Actor {
 
   void on_active_dialog_action_timeout(DialogId dialog_id);
 
+  void clear_active_dialog_actions(DialogId dialog_id);
+
   static bool need_cancel_user_dialog_action(int32 action_id, MessageContentType message_content_type);
 
   void cancel_user_dialog_action(DialogId dialog_id, const Message *m);
