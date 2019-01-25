@@ -488,10 +488,10 @@ tl_object_ptr<telegram_api::InputMedia> DocumentsManager::get_input_media(
   }
   CHECK(!file_view.has_remote_location());
 
-  const Document *document = get_document(file_id);
-  CHECK(document != nullptr);
-
   if (input_file != nullptr) {
+    const Document *document = get_document(file_id);
+    CHECK(document != nullptr);
+
     vector<tl_object_ptr<telegram_api::DocumentAttribute>> attributes;
     if (document->file_name.size()) {
       attributes.push_back(make_tl_object<telegram_api::documentAttributeFilename>(document->file_name));

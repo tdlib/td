@@ -163,13 +163,15 @@ void FileNode::set_remote_location(const RemoteFileLocation &remote, FileLocatio
   on_changed();
 }
 
-void FileNode::delete_file_reference(Slice file_reference) {
+bool FileNode::delete_file_reference(Slice file_reference) {
   if (remote_.type() == RemoteFileLocation::Type::Full && remote_.full().delete_file_reference(file_reference)) {
     VLOG(file_references) << "Do delete file reference of main file " << main_file_id_;
     upload_was_update_file_reference_ = false;
     download_was_update_file_reference_ = false;
     on_pmc_changed();
+    return true;
   }
+  return false;
 }
 
 void FileNode::set_generate_location(unique_ptr<FullGenerateFileLocation> &&generate) {
@@ -2445,6 +2447,24 @@ vector<tl_object_ptr<telegram_api::InputDocument>> FileManager::get_input_docume
     result.push_back(file_view.remote_location().as_input_document());
   }
   return result;
+}
+
+bool FileManager::extract_was_uploaded(const tl_object_ptr<telegram_api::InputMedia> &input_media) {
+  if (input_media == nullptr) {
+    return false;
+  }
+
+  auto input_media_id = input_media->get_id();
+  return input_media_id == telegram_api::inputMediaUploadedPhoto::ID ||
+         input_media_id == telegram_api::inputMediaUploadedDocument::ID;
+}
+
+bool FileManager::extract_was_thumbnail_uploaded(const tl_object_ptr<telegram_api::InputMedia> &input_media) {
+  if (input_media == nullptr || input_media->get_id() != telegram_api::inputMediaUploadedDocument::ID) {
+    return false;
+  }
+
+  return static_cast<const telegram_api::inputMediaUploadedDocument *>(input_media.get())->thumb_ != nullptr;
 }
 
 FileId FileManager::next_file_id() {

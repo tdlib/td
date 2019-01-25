@@ -583,6 +583,7 @@ class ReadFeaturedStickerSetsQuery : public Td::ResultHandler {
 class UploadStickerFileQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   FileId file_id_;
+  bool was_uploaded_ = false;
 
  public:
   explicit UploadStickerFileQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
@@ -593,6 +594,7 @@ class UploadStickerFileQuery : public Td::ResultHandler {
     CHECK(input_peer != nullptr);
     CHECK(input_media != nullptr);
     file_id_ = file_id;
+    was_uploaded_ = FileManager::extract_was_uploaded(input_media);
     send_query(G()->net_query_creator().create(
         create_storer(telegram_api::messages_uploadMedia(std::move(input_peer), std::move(input_media)))));
   }
@@ -608,6 +610,17 @@ class UploadStickerFileQuery : public Td::ResultHandler {
 
   void on_error(uint64 id, Status status) override {
     CHECK(status.is_error());
+    if (was_uploaded_) {
+      CHECK(file_id_.is_valid());
+      if (begins_with(status.message(), "FILE_PART_") && ends_with(status.message(), "_MISSING")) {
+        // TODO td->stickers_manager_->on_upload_sticker_file_part_missing(file_id_, to_integer<int32>(status.message().substr(10)));
+        return;
+      } else {
+        if (status.code() != 429 && status.code() < 500 && !G()->close_flag()) {
+          td->file_manager_->delete_partial_remote_location(file_id_);
+        }
+      }
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -3291,8 +3304,14 @@ void StickersManager::do_upload_sticker_file(UserId user_id, FileId file_id,
     return promise.set_error(Status::Error(3, "Have no access to the user"));
   }
 
+  bool had_input_file = input_file != nullptr;
   auto input_media = td_->documents_manager_->get_input_media(file_id, std::move(input_file), nullptr);
   CHECK(input_media != nullptr);
+  if (had_input_file && !FileManager::extract_was_uploaded(input_media)) {
+    // if we had InputFile, but has failed to use it, then we need to immediately cancel file upload
+    // so the next upload with the same file can succeed
+    td_->file_manager_->upload(file_id, nullptr, 0, 0);
+  }
 
   td_->create_handler<UploadStickerFileQuery>(std::move(promise))
       ->send(std::move(input_peer), file_id, std::move(input_media));

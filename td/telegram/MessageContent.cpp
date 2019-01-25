@@ -2004,10 +2004,10 @@ static tl_object_ptr<telegram_api::inputMediaInvoice> get_input_media_invoice(co
       message_invoice->start_parameter);
 }
 
-tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td,
-                                                        tl_object_ptr<telegram_api::InputFile> input_file,
-                                                        tl_object_ptr<telegram_api::InputFile> input_thumbnail,
-                                                        int32 ttl) {
+static tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td,
+                                                               tl_object_ptr<telegram_api::InputFile> input_file,
+                                                               tl_object_ptr<telegram_api::InputFile> input_thumbnail,
+                                                               int32 ttl) {
   switch (content->get_type()) {
     case MessageContentType::Animation: {
       auto m = static_cast<const MessageAnimation *>(content);
@@ -2096,6 +2096,34 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
       UNREACHABLE();
   }
   return nullptr;
+}
+
+tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td,
+                                                        tl_object_ptr<telegram_api::InputFile> input_file,
+                                                        tl_object_ptr<telegram_api::InputFile> input_thumbnail,
+                                                        FileId file_id, FileId thumbnail_file_id, int32 ttl) {
+  bool had_input_file = input_file != nullptr;
+  bool had_input_thumbnail = input_thumbnail != nullptr;
+  auto input_media = get_input_media(content, td, std::move(input_file), std::move(input_thumbnail), ttl);
+  if (had_input_file) {
+    if (!FileManager::extract_was_uploaded(input_media)) {
+      // if we had InputFile, but has failed to use it, then we need to immediately cancel file upload
+      // so the next upload with the same file can succeed
+      CHECK(file_id.is_valid());
+      td->file_manager_->upload(file_id, nullptr, 0, 0);
+      if (had_input_thumbnail) {
+        CHECK(thumbnail_file_id.is_valid());
+        td->file_manager_->upload(thumbnail_file_id, nullptr, 0, 0);
+      }
+    }
+  } else {
+    CHECK(!had_input_thumbnail);
+  }
+  return input_media;
+}
+
+tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td, int32 ttl) {
+  return get_input_media(content, td, nullptr, nullptr, ttl);
 }
 
 void delete_message_content_thumbnail(MessageContent *content, Td *td) {

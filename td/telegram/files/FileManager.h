@@ -69,7 +69,7 @@ class FileNode {
   void set_local_location(const LocalFileLocation &local, int64 ready_size, int64 prefix_offset,
                           int64 ready_prefix_size);
   void set_remote_location(const RemoteFileLocation &remote, FileLocationSource source, int64 ready_size);
-  void delete_file_reference(Slice file_reference);
+  bool delete_file_reference(Slice file_reference);
   void set_generate_location(unique_ptr<FullGenerateFileLocation> &&generate);
   void set_size(int64 size);
   void set_expected_size(int64 expected_size);
@@ -374,8 +374,6 @@ class FileManager : public FileLoadManager::Callback {
   void external_file_generate_progress(int64 id, int32 expected_size, int32 local_prefix_size, Promise<> promise);
   void external_file_generate_finish(int64 id, Status status, Promise<> promise);
 
-  static constexpr char PERSISTENT_ID_VERSION = 2;
-  static constexpr char PERSISTENT_ID_VERSION_MAP = 3;
   Result<FileId> from_persistent_id(CSlice persistent_id, FileType file_type) TD_WARN_UNUSED_RESULT;
   FileView get_file_view(FileId file_id) const;
   FileView get_sync_file_view(FileId file_id);
@@ -393,6 +391,9 @@ class FileManager : public FileLoadManager::Callback {
 
   vector<tl_object_ptr<telegram_api::InputDocument>> get_input_documents(const vector<FileId> &file_ids);
 
+  static bool extract_was_uploaded(const tl_object_ptr<telegram_api::InputMedia> &input_media);
+  static bool extract_was_thumbnail_uploaded(const tl_object_ptr<telegram_api::InputMedia> &input_media);
+
   template <class T>
   void store_file(FileId file_id, T &storer, int32 ttl = 5) const;
 
@@ -400,6 +401,9 @@ class FileManager : public FileLoadManager::Callback {
   FileId parse_file(T &parser);
 
  private:
+  static constexpr char PERSISTENT_ID_VERSION = 2;
+  static constexpr char PERSISTENT_ID_VERSION_MAP = 3;
+
   Result<FileId> check_input_file_id(FileType type, Result<FileId> result, bool is_encrypted, bool allow_zero,
                                      bool is_secure) TD_WARN_UNUSED_RESULT;
 

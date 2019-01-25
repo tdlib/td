@@ -1269,7 +1269,8 @@ class MessagesManager : public Actor {
   void cancel_edit_message_media(DialogId dialog_id, Message *m);
 
   void on_message_media_edited(DialogId dialog_id, MessageId message_id, FileId file_id, FileId thumbnail_file_id,
-                               uint64 generation, Result<Unit> &&result);
+                               bool was_uploaded, bool was_thumbnail_uploaded, uint64 generation,
+                               Result<Unit> &&result);
 
   MessageId get_persistent_message_id(const Dialog *d, MessageId message_id) const;
 
