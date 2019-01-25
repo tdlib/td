@@ -2105,12 +2105,12 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
     return;
   }
 
+  auto new_priority = narrow_cast<int8>(bad_parts.empty() ? -priority : priority);
   bad_parts.erase(std::remove_if(bad_parts.begin(), bad_parts.end(), [](auto part_id) { return part_id < 0; }),
                   bad_parts.end());
 
   QueryId id = queries_container_.create(Query{file_id, Query::Upload});
   node->upload_id_ = id;
-  auto new_priority = narrow_cast<int8>(bad_parts.empty() ? -priority : priority);
   send_closure(file_load_manager_, &FileLoadManager::upload, id, node->local_, node->remote_,
                file_view.expected_size(true), node->encryption_key_, new_priority, std::move(bad_parts));
 
