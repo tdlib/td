@@ -614,7 +614,7 @@ class UploadStickerFileQuery : public Td::ResultHandler {
       CHECK(file_id_.is_valid());
       if (begins_with(status.message(), "FILE_PART_") && ends_with(status.message(), "_MISSING")) {
         // TODO td->stickers_manager_->on_upload_sticker_file_part_missing(file_id_, to_integer<int32>(status.message().substr(10)));
-        return;
+        // return;
       } else {
         if (status.code() != 429 && status.code() < 500 && !G()->close_flag()) {
           td->file_manager_->delete_partial_remote_location(file_id_);
@@ -3310,7 +3310,7 @@ void StickersManager::do_upload_sticker_file(UserId user_id, FileId file_id,
   if (had_input_file && !FileManager::extract_was_uploaded(input_media)) {
     // if we had InputFile, but has failed to use it, then we need to immediately cancel file upload
     // so the next upload with the same file can succeed
-    td_->file_manager_->upload(file_id, nullptr, 0, 0);
+    td_->file_manager_->cancel_upload(file_id);
   }
 
   td_->create_handler<UploadStickerFileQuery>(std::move(promise))

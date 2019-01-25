@@ -3886,17 +3886,17 @@ class Td::UploadFileCallback : public FileManager::UploadCallback {
 
   void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) override {
     // cancel file upload of the file to allow next upload with the same file to succeed
-    send_closure(G()->file_manager(), &FileManager::upload, file_id, nullptr, 0, 0);
+    send_closure(G()->file_manager(), &FileManager::cancel_upload, file_id);
   }
 
   void on_upload_encrypted_ok(FileId file_id, tl_object_ptr<telegram_api::InputEncryptedFile> input_file) override {
     // cancel file upload of the file to allow next upload with the same file to succeed
-    send_closure(G()->file_manager(), &FileManager::upload, file_id, nullptr, 0, 0);
+    send_closure(G()->file_manager(), &FileManager::cancel_upload, file_id);
   }
 
   void on_upload_secure_ok(FileId file_id, tl_object_ptr<telegram_api::InputSecureFile> input_file) override {
     // cancel file upload of the file to allow next upload with the same file to succeed
-    send_closure(G()->file_manager(), &FileManager::upload, file_id, nullptr, 0, 0);
+    send_closure(G()->file_manager(), &FileManager::cancel_upload, file_id);
   }
 
   void on_upload_error(FileId file_id, Status error) override {
@@ -5700,7 +5700,7 @@ void Td::on_request(uint64 id, td_api::uploadFile &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::cancelUploadFile &request) {
-  file_manager_->upload(FileId(request.file_id_, 0), nullptr, 0, 0);
+  file_manager_->cancel_upload(FileId(request.file_id_, 0));
 
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
 }

@@ -1078,7 +1078,7 @@ static int merge_choose_encryption_key(const FileEncryptionKey &a, const FileEnc
   return 2;
 }
 
-void FileManager::cancel_download(FileNodePtr node) {
+void FileManager::do_cancel_download(FileNodePtr node) {
   if (node->download_id_ == 0) {
     return;
   }
@@ -1089,7 +1089,7 @@ void FileManager::cancel_download(FileNodePtr node) {
   node->set_download_priority(0);
 }
 
-void FileManager::cancel_upload(FileNodePtr node) {
+void FileManager::do_cancel_upload(FileNodePtr node) {
   if (node->upload_id_ == 0) {
     return;
   }
@@ -1099,7 +1099,7 @@ void FileManager::cancel_upload(FileNodePtr node) {
   node->set_upload_priority(0);
 }
 
-void FileManager::cancel_generate(FileNodePtr node) {
+void FileManager::do_cancel_generate(FileNodePtr node) {
   if (node->generate_id_ == 0) {
     return;
   }
@@ -1205,7 +1205,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
              << ", url_i = " << url_i << ", owner_i = " << owner_i << ", encryption_key_i = " << encryption_key_i
              << ", main_file_id_i = " << main_file_id_i;
   if (local_i == other_node_i) {
-    cancel_download(node);
+    do_cancel_download(node);
     node->set_download_offset(other_node->download_offset_);
     node->set_local_location(other_node->local_, other_node->local_ready_size_, other_node->download_offset_,
                              other_node->local_ready_prefix_size_);
@@ -1220,7 +1220,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     other_node->download_offset_ = 0;
     other_node->local_ready_prefix_size_ = 0;
 
-    //cancel_generate(node);
+    //do_cancel_generate(node);
     //node->set_generate_location(std::move(other_node->generate_));
     //node->generate_id_ = other_node->generate_id_;
     //node->set_generate_priority(other_node->generate_download_priority_, other_node->generate_upload_priority_);
@@ -1230,12 +1230,12 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     //other_node->generate_download_priority_ = 0;
     //other_node->generate_upload_priority_ = 0;
   } else {
-    cancel_download(other_node);
-    //cancel_generate(other_node);
+    do_cancel_download(other_node);
+    //do_cancel_generate(other_node);
   }
 
   if (remote_i == other_node_i) {
-    cancel_upload(node);
+    do_cancel_upload(node);
     node->set_remote_location(other_node->remote_, other_node->remote_source_, other_node->remote_ready_size_);
     node->upload_id_ = other_node->upload_id_;
     node->upload_was_update_file_reference_ = other_node->upload_was_update_file_reference_;
@@ -1246,11 +1246,11 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     other_node->upload_priority_ = 0;
     other_node->set_upload_pause(FileId());
   } else {
-    cancel_upload(other_node);
+    do_cancel_upload(other_node);
   }
 
   if (generate_i == other_node_i) {
-    cancel_generate(node);
+    do_cancel_generate(node);
     node->set_generate_location(std::move(other_node->generate_));
     node->generate_id_ = other_node->generate_id_;
     node->set_generate_priority(other_node->generate_download_priority_, other_node->generate_upload_priority_);
@@ -1259,7 +1259,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
     other_node->generate_download_priority_ = 0;
     other_node->generate_upload_priority_ = 0;
   } else {
-    cancel_generate(other_node);
+    do_cancel_generate(other_node);
   }
 
   if (size_i == other_node_i) {
@@ -1621,7 +1621,7 @@ bool FileManager::set_content(FileId file_id, BufferSlice bytes) {
     return true;
   }
 
-  cancel_download(node);
+  do_cancel_download(node);
 
   auto *file_info = get_file_id_info(file_id);
   file_info->download_priority_ = FROM_BYTES_PRIORITY;
@@ -1772,7 +1772,7 @@ void FileManager::run_download(FileNodePtr node) {
 
   if (priority == 0) {
     if (old_priority != 0) {
-      cancel_download(node);
+      do_cancel_download(node);
     }
     return;
   }
@@ -1973,7 +1973,7 @@ void FileManager::run_generate(FileNodePtr node) {
   if (node->generate_priority_ == 0) {
     if (old_priority != 0) {
       LOG(INFO) << "Cancel file " << file_id << " generation";
-      cancel_generate(node);
+      do_cancel_generate(node);
     }
     return;
   }
@@ -2049,7 +2049,7 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
   if (priority == 0) {
     if (old_priority != 0) {
       LOG(INFO) << "Cancel file " << file_id << " uploading";
-      cancel_upload(node);
+      do_cancel_upload(node);
     }
     return;
   }
@@ -2116,6 +2116,10 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
 void FileManager::upload(FileId file_id, std::shared_ptr<UploadCallback> callback, int32 new_priority,
                          uint64 upload_order) {
   return resume_upload(file_id, std::vector<int>(), std::move(callback), new_priority, upload_order);
+}
+
+void FileManager::cancel_upload(FileId file_id) {
+  return resume_upload(file_id, std::vector<int>(), nullptr, 0, 0);
 }
 
 static bool is_document_type(FileType type) {
@@ -2885,9 +2889,9 @@ void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type,
   }
 
   // Stop everything on error
-  cancel_generate(node);
-  cancel_download(node);
-  cancel_upload(node);
+  do_cancel_generate(node);
+  do_cancel_download(node);
+  do_cancel_upload(node);
 
   for (auto file_id : vector<FileId>(node->file_ids_)) {
     auto *info = get_file_id_info(file_id);

@@ -527,19 +527,19 @@ void SetSecureValue::tear_down() {
     return;
   }
   for (auto &file_info : files_to_upload_) {
-    file_manager->upload(file_info.file_id, nullptr, 0, 0);
+    file_manager->cancel_upload(file_info.file_id);
   }
   for (auto &file_info : translations_to_upload_) {
-    file_manager->upload(file_info.file_id, nullptr, 0, 0);
+    file_manager->cancel_upload(file_info.file_id);
   }
   if (front_side_) {
-    file_manager->upload(front_side_.value().file_id, nullptr, 0, 0);
+    file_manager->cancel_upload(front_side_.value().file_id);
   }
   if (reverse_side_) {
-    file_manager->upload(reverse_side_.value().file_id, nullptr, 0, 0);
+    file_manager->cancel_upload(reverse_side_.value().file_id);
   }
   if (selfie_) {
-    file_manager->upload(selfie_.value().file_id, nullptr, 0, 0);
+    file_manager->cancel_upload(selfie_.value().file_id);
   }
 }
 

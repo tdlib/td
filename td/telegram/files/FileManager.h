@@ -365,6 +365,7 @@ class FileManager : public FileLoadManager::Callback {
   void upload(FileId file_id, std::shared_ptr<UploadCallback> callback, int32 new_priority, uint64 upload_order);
   void resume_upload(FileId file_id, std::vector<int> bad_parts, std::shared_ptr<UploadCallback> callback,
                      int32 new_priority, uint64 upload_order);
+  void cancel_upload(FileId file_id);
   bool delete_partial_remote_location(FileId file_id);
   void delete_file_reference(FileId file_id, std::string file_reference);
   void get_content(FileId file_id, Promise<BufferSlice> promise);
@@ -521,9 +522,9 @@ class FileManager : public FileLoadManager::Callback {
   FileNodePtr get_sync_file_node(FileId file_id);
 
   // void release_file_node(FileNodeId id);
-  void cancel_download(FileNodePtr node);
-  void cancel_upload(FileNodePtr node);
-  void cancel_generate(FileNodePtr node);
+  void do_cancel_download(FileNodePtr node);
+  void do_cancel_upload(FileNodePtr node);
+  void do_cancel_generate(FileNodePtr node);
   void run_upload(FileNodePtr node, std::vector<int> bad_parts);
   void run_download(FileNodePtr node);
   void run_generate(FileNodePtr node);

@@ -6214,7 +6214,7 @@ void MessagesManager::on_load_secret_thumbnail(FileId thumbnail_file_id, BufferS
   if (m == nullptr) {
     // message has already been deleted by the user, do not need to send it
     // cancel file upload of the main file to allow next upload with the same file to succeed
-    td_->file_manager_->upload(file_id, nullptr, 0, 0);
+    td_->file_manager_->cancel_upload(file_id);
     LOG(INFO) << "Message with a media has already been deleted";
     return;
   }
@@ -14932,12 +14932,12 @@ void MessagesManager::cancel_upload_message_content_files(const MessageContent *
   // always cancel file upload, it is a no-op in the worst case
   if (being_uploaded_files_.erase(file_id) || file_id.is_valid()) {
     LOG(INFO) << "Cancel upload file " << file_id;
-    td_->file_manager_->upload(file_id, nullptr, 0, 0);
+    td_->file_manager_->cancel_upload(file_id);
   }
   file_id = get_message_content_thumbnail_file_id(content, td_);
   if (being_uploaded_thumbnails_.erase(file_id) || file_id.is_valid()) {
     LOG(INFO) << "Cancel upload thumbnail file " << file_id;
-    td_->file_manager_->upload(file_id, nullptr, 0, 0);
+    td_->file_manager_->cancel_upload(file_id);
   }
 }
 
@@ -22142,7 +22142,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
   if (need_finish_upload) {
     // the file is likely to be already merged with a server file, but if not we need to
     // cancel file upload of the main file to allow next upload with the same file to succeed
-    td_->file_manager_->upload(old_file_id, nullptr, 0, 0);
+    td_->file_manager_->cancel_upload(old_file_id);
   }
 
   if (is_content_changed || need_update) {
