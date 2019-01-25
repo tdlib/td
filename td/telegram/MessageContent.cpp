@@ -2105,8 +2105,9 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
   bool had_input_file = input_file != nullptr;
   bool had_input_thumbnail = input_thumbnail != nullptr;
   auto input_media = get_input_media(content, td, std::move(input_file), std::move(input_thumbnail), ttl);
+  auto was_uploaded = FileManager::extract_was_uploaded(input_media);
   if (had_input_file) {
-    if (!FileManager::extract_was_uploaded(input_media)) {
+    if (!was_uploaded) {
       // if we had InputFile, but has failed to use it, then we need to immediately cancel file upload
       // so the next upload with the same file can succeed
       CHECK(file_id.is_valid());
@@ -2118,6 +2119,12 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
     }
   } else {
     CHECK(!had_input_thumbnail);
+  }
+  if (!was_uploaded) {
+    auto file_reference = FileManager::extract_file_reference(input_media);
+    if (file_reference == FullRemoteFileLocation::invalid_file_reference()) {
+      return nullptr;
+    }
   }
   return input_media;
 }
