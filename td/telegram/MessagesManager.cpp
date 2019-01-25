@@ -19923,9 +19923,6 @@ void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {
 
 void MessagesManager::on_active_dialog_action_timeout(DialogId dialog_id) {
   LOG(DEBUG) << "Receive active dialog action timeout in " << dialog_id;
-  Dialog *d = get_dialog(dialog_id);
-  CHECK(d != nullptr);
-
   auto actions_it = active_dialog_actions_.find(dialog_id);
   if (actions_it == active_dialog_actions_.end()) {
     return;
@@ -19950,9 +19947,6 @@ void MessagesManager::on_active_dialog_action_timeout(DialogId dialog_id) {
 
 void MessagesManager::clear_active_dialog_actions(DialogId dialog_id) {
   LOG(DEBUG) << "Clear active dialog actions in " << dialog_id;
-  Dialog *d = get_dialog(dialog_id);
-  CHECK(d != nullptr);
-
   auto actions_it = active_dialog_actions_.find(dialog_id);
   while (actions_it != active_dialog_actions_.end()) {
     CHECK(!actions_it->second.empty());
