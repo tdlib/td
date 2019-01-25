@@ -2104,11 +2104,14 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
     return;
   }
 
+  bad_parts.erase(std::remove_if(bad_parts.begin(), bad_parts.end(), [](auto part_id) { return part_id < 0; }),
+                  bad_parts.end());
+
   QueryId id = queries_container_.create(Query{file_id, Query::Upload});
   node->upload_id_ = id;
+  auto new_priority = narrow_cast<int8>(bad_parts.empty() ? -priority : priority);
   send_closure(file_load_manager_, &FileLoadManager::upload, id, node->local_, node->remote_,
-               file_view.expected_size(true), node->encryption_key_,
-               narrow_cast<int8>(bad_parts.empty() ? -priority : priority), std::move(bad_parts));
+               file_view.expected_size(true), node->encryption_key_, new_priority, std::move(bad_parts));
 
   LOG(INFO) << "File " << file_id << " upload request has sent to FileLoadManager";
 }
@@ -2469,6 +2472,30 @@ bool FileManager::extract_was_thumbnail_uploaded(const tl_object_ptr<telegram_ap
   }
 
   return static_cast<const telegram_api::inputMediaUploadedDocument *>(input_media.get())->thumb_ != nullptr;
+}
+
+string FileManager::extract_file_reference(const tl_object_ptr<telegram_api::InputMedia> &input_media) {
+  if (input_media != nullptr) {
+    switch (input_media->get_id()) {
+      case telegram_api::inputMediaDocument::ID: {
+        const auto *id = static_cast<const telegram_api::inputMediaDocument *>(input_media.get())->id_.get();
+        CHECK(id != nullptr);
+        if (id->get_id() == telegram_api::inputDocument::ID) {
+          return static_cast<const telegram_api::inputDocument *>(id)->file_reference_.as_slice().str();
+        }
+        break;
+      }
+      case telegram_api::inputMediaPhoto::ID: {
+        const auto *id = static_cast<const telegram_api::inputMediaPhoto *>(input_media.get())->id_.get();
+        CHECK(id != nullptr);
+        if (id->get_id() == telegram_api::inputPhoto::ID) {
+          return static_cast<const telegram_api::inputPhoto *>(id)->file_reference_.as_slice().str();
+        }
+        break;
+      }
+    }
+  }
+  return string();
 }
 
 FileId FileManager::next_file_id() {

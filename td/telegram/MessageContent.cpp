@@ -2123,7 +2123,12 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
 }
 
 tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td, int32 ttl) {
-  return get_input_media(content, td, nullptr, nullptr, ttl);
+  auto input_media = get_input_media(content, td, nullptr, nullptr, ttl);
+  auto file_reference = FileManager::extract_file_reference(input_media);
+  if (file_reference == FullRemoteFileLocation::invalid_file_reference()) {
+    return nullptr;
+  }
+  return input_media;
 }
 
 void delete_message_content_thumbnail(MessageContent *content, Td *td) {

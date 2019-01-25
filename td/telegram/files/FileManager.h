@@ -394,6 +394,7 @@ class FileManager : public FileLoadManager::Callback {
 
   static bool extract_was_uploaded(const tl_object_ptr<telegram_api::InputMedia> &input_media);
   static bool extract_was_thumbnail_uploaded(const tl_object_ptr<telegram_api::InputMedia> &input_media);
+  static string extract_file_reference(const tl_object_ptr<telegram_api::InputMedia> &input_media);
 
   template <class T>
   void store_file(FileId file_id, T &storer, int32 ttl = 5) const;

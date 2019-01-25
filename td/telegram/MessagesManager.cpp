@@ -15362,12 +15362,14 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, Message *m,
     bool was_thumbnail_uploaded = FileManager::extract_was_thumbnail_uploaded(input_media);
 
     LOG(INFO) << "Edit media from " << message_id << " in " << dialog_id;
-    auto promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id, message_id, file_id, thumbnail_file_id,
-                                           generation = m->edit_generation, was_uploaded,
-                                           was_thumbnail_uploaded](Result<Unit> result) {
-      send_closure(actor_id, &MessagesManager::on_message_media_edited, dialog_id, message_id, file_id,
-                   thumbnail_file_id, was_uploaded, was_thumbnail_uploaded, generation, std::move(result));
-    });
+    auto promise = PromiseCreator::lambda(
+        [actor_id = actor_id(this), dialog_id, message_id, file_id, thumbnail_file_id, generation = m->edit_generation,
+         was_uploaded, was_thumbnail_uploaded,
+         file_reference = FileManager::extract_file_reference(input_media)](Result<Unit> result) mutable {
+          send_closure(actor_id, &MessagesManager::on_message_media_edited, dialog_id, message_id, file_id,
+                       thumbnail_file_id, was_uploaded, was_thumbnail_uploaded, std::move(file_reference), generation,
+                       std::move(result));
+        });
     send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 1 << 11,
                  dialog_id, message_id, caption == nullptr ? "" : caption->text,
                  get_input_message_entities(td_->contacts_manager_.get(), caption, "edit_message_media"),
@@ -16296,7 +16298,7 @@ void MessagesManager::cancel_edit_message_media(DialogId dialog_id, Message *m) 
 
 void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId message_id, FileId file_id,
                                               FileId thumbnail_file_id, bool was_uploaded, bool was_thumbnail_uploaded,
-                                              uint64 generation, Result<Unit> &&result) {
+                                              string file_reference, uint64 generation, Result<Unit> &&result) {
   CHECK(message_id.is_server());
   auto m = get_message({dialog_id, message_id});
   if (m == nullptr || m->edit_generation != generation) {
@@ -16316,7 +16318,6 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
                                             m->content->get_type() == MessageContentType::Photo;
     update_message_content(dialog_id, m, std::move(m->edited_content), need_send_update_message_content, true);
   } else {
-    auto error_message = result.error().message();
     if (was_uploaded) {
       if (was_thumbnail_uploaded) {
         CHECK(thumbnail_file_id.is_valid());
@@ -16324,6 +16325,7 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
         td_->file_manager_->delete_partial_remote_location(thumbnail_file_id);
       }
       CHECK(file_id.is_valid());
+      auto error_message = result.error().message();
       if (begins_with(error_message, "FILE_PART_") && ends_with(error_message, "_MISSING")) {
         do_send_message(dialog_id, m, {to_integer<int32>(error_message.substr(10))});
         return;
@@ -16331,6 +16333,14 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
 
       if (result.error().code() != 429 && result.error().code() < 500 && !G()->close_flag()) {
         td_->file_manager_->delete_partial_remote_location(file_id);
+      }
+    } else if (FileReferenceManager::is_file_reference_error(result.error())) {
+      if (file_id.is_valid()) {
+        td_->file_manager_->delete_file_reference(file_id, file_reference);
+        do_send_message(dialog_id, m, {-1});
+        return;
+      } else {
+        LOG(ERROR) << "Receive file reference error, but have no file_id";
       }
     }
 
