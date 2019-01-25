@@ -746,7 +746,7 @@ class DeleteProfilePhotoQuery : public Td::ResultHandler {
   void send(int64 profile_photo_id) {
     profile_photo_id_ = profile_photo_id;
     vector<tl_object_ptr<telegram_api::InputPhoto>> input_photo_ids;
-    input_photo_ids.push_back(make_tl_object<telegram_api::inputPhoto>(profile_photo_id, 0, BufferSlice("")));
+    input_photo_ids.push_back(make_tl_object<telegram_api::inputPhoto>(profile_photo_id, 0, BufferSlice()));
     send_query(
         G()->net_query_creator().create(create_storer(telegram_api::photos_deletePhotos(std::move(input_photo_ids)))));
   }
@@ -5438,10 +5438,9 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
                   telegram_api::user::PHONE_MASK | telegram_api::user::PHOTO_MASK | telegram_api::user::VERIFIED_MASK;
     auto profile_photo = telegram_api::make_object<telegram_api::userProfilePhoto>(
         3337190045231018,
-        telegram_api::make_object<telegram_api::fileLocation>(1, 702229962, 26779, 5859320227133863146,
-                                                              BufferSlice("0")),
+        telegram_api::make_object<telegram_api::fileLocation>(1, 702229962, 26779, 5859320227133863146, BufferSlice()),
         telegram_api::make_object<telegram_api::fileLocation>(1, 702229962, 26781, -3695031185685824216,
-                                                              BufferSlice("0")));
+                                                              BufferSlice()));
     if (G()->is_test_dc()) {
       profile_photo = nullptr;
       flags -= telegram_api::user::PHOTO_MASK;
