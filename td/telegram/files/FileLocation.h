@@ -513,6 +513,10 @@ class FullRemoteFileLocation {
       , file_reference_(std::move(file_reference))
       , variant_(PhotoRemoteFileLocation{id, access_hash, volume_id, secret, local_id}) {
     CHECK(is_photo());
+    if (file_reference_ == invalid_file_reference()) {
+      LOG(ERROR) << "Tried to register file with invalid file reference";
+      file_reference_.clear();
+    }
   }
   FullRemoteFileLocation(FileType file_type, int64 id, int64 access_hash, DcId dc_id, std::string file_reference)
       : file_type_(file_type)
@@ -520,6 +524,10 @@ class FullRemoteFileLocation {
       , file_reference_(std::move(file_reference))
       , variant_(CommonRemoteFileLocation{id, access_hash}) {
     CHECK(is_common());
+    if (file_reference_ == invalid_file_reference()) {
+      LOG(ERROR) << "Tried to register file with invalid file reference";
+      file_reference_.clear();
+    }
   }
   FullRemoteFileLocation(FileType file_type, string url, int64 access_hash)
       : file_type_(file_type)
