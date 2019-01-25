@@ -111,7 +111,8 @@ ActorOwn<ActorT> Scheduler::register_actor_impl(Slice name, ActorT *actor_ptr, A
   actor_count_++;
   auto weak_info = info.get_weak();
   auto actor_info = info.get();
-  info->init(sched_id_, name, std::move(info), static_cast<Actor *>(actor_ptr), deleter, ActorTraits<ActorT>::is_lite);
+  actor_info->init(sched_id_, name, std::move(info), static_cast<Actor *>(actor_ptr), deleter,
+                   ActorTraits<ActorT>::is_lite);
 
   ActorId<ActorT> actor_id = weak_info->actor_id(actor_ptr);
   if (sched_id != sched_id_) {

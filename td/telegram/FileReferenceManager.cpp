@@ -74,7 +74,8 @@ FileSourceId FileReferenceManager::create_wallpapers_file_source() {
 
 FileSourceId FileReferenceManager::create_web_page_file_source(string url) {
   FileSourceWebPage source{std::move(url)};
-  return add_file_source_id(std::move(source), PSLICE() << "web page of " << source.url);
+  auto source_str = PSTRING() << "web page of " << source.url;
+  return add_file_source_id(std::move(source), source_str);
 }
 
 FileSourceId FileReferenceManager::create_saved_animations_file_source() {
