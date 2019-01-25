@@ -157,8 +157,18 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
 
   auto promise = PromiseCreator::lambda([dest, file_source_id, file_reference_manager = G()->file_reference_manager(),
                                          file_manager = G()->file_manager()](Result<Unit> result) mutable {
+    if (G()->close_flag()) {
+      VLOG(file_references) << "Ignore file reference repair from " << file_source_id << " during closing";
+      return;
+    }
+
     auto new_promise =
         PromiseCreator::lambda([dest, file_source_id, file_reference_manager](Result<Unit> result) mutable {
+          if (G()->close_flag()) {
+            VLOG(file_references) << "Ignore file reference repair from " << file_source_id << " during closing";
+            return;
+          }
+
           Status status;
           if (result.is_error()) {
             status = result.move_as_error();
