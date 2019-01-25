@@ -1861,10 +1861,11 @@ void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std:
     }
   }
 
-  if (!file_view.has_local_location() && !file_view.has_generate_location()) {
+  if (!file_view.has_local_location() && !file_view.has_generate_location() && !file_view.has_remote_location()) {
     LOG(INFO) << "File " << file_id << " can't be uploaded";
     if (callback) {
-      callback->on_upload_error(file_id, Status::Error("Need full local (or generate) location for upload"));
+      callback->on_upload_error(file_id,
+                                Status::Error("Need full local (or generate, or inactive remote) location for upload"));
     }
     return;
   }
@@ -2021,7 +2022,7 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
     return;
   }
   FileView file_view(node);
-  if (!file_view.has_local_location()) {
+  if (!file_view.has_local_location() && !file_view.has_remote_location()) {
     if (node->get_by_hash_ || node->generate_id_ == 0 || !node->generate_was_update_) {
       LOG(INFO) << "Have no local location for file: get_by_hash = " << node->get_by_hash_
                 << ", generate_id = " << node->generate_id_ << ", generate_was_update = " << node->generate_was_update_;
