@@ -243,7 +243,7 @@ void FileNode::set_download_priority(int8 priority) {
 }
 
 void FileNode::set_upload_priority(int8 priority) {
-  if ((upload_priority_ == 0) != (priority == 0)) {
+  if (remote_.type() != RemoteFileLocation::Type::Full && (upload_priority_ == 0) != (priority == 0)) {
     VLOG(update_file) << "File " << main_file_id_ << " has changed upload priority to " << priority;
     on_info_changed();
   }
