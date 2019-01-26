@@ -25,7 +25,7 @@
 #elif TD_EMSCRIPTEN
   #define TD_POLL_POLL 1
   #define TD_EVENTFD_UNSUPPORTED 1
-#elif TD_DARWIN
+#elif TD_DARWIN || TD_FREEBSD
   #define TD_POLL_KQUEUE 1
   #define TD_EVENTFD_BSD 1
 #elif TD_WINDOWS

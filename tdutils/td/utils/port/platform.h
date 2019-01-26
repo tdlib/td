@@ -47,6 +47,8 @@
   #define TD_CYGWIN 1
 #elif defined(__EMSCRIPTEN__)
   #define TD_EMSCRIPTEN 1
+#elif defined(__FreeBSD__)
+  #define TD_FREEBSD 1
 #elif defined(__unix__)  // all unices not caught above
   #warning "Probably unsupported Unix platform. Feel free to try to compile"
   #define TD_CYGWIN 1

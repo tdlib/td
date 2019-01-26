@@ -18,6 +18,10 @@
 #include <sys/socket.h>
 #endif
 
+#if TD_FREEBSD
+#include <netinet/in.h>
+#endif
+
 namespace td {
 
 Result<string> idn_to_ascii(CSlice host);
