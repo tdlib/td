@@ -1954,6 +1954,7 @@ class SendMediaActor : public NetActorOnce {
   FileId file_id_;
   FileId thumbnail_file_id_;
   DialogId dialog_id_;
+  string file_reference_;
   bool was_uploaded_ = false;
   bool was_thumbnail_uploaded_ = false;
 
@@ -1967,6 +1968,7 @@ class SendMediaActor : public NetActorOnce {
     file_id_ = file_id;
     thumbnail_file_id_ = thumbnail_file_id;
     dialog_id_ = dialog_id;
+    file_reference_ = FileManager::extract_file_reference(input_media);
     was_uploaded_ = FileManager::extract_was_uploaded(input_media);
     was_thumbnail_uploaded_ = FileManager::extract_was_thumbnail_uploaded(input_media);
 
@@ -2042,6 +2044,15 @@ class SendMediaActor : public NetActorOnce {
           td->file_manager_->delete_partial_remote_location(file_id_);
         }
       }
+    } else if (FileReferenceManager::is_file_reference_error(status)) {
+      if (file_id_.is_valid() && !was_uploaded_) {
+        td->file_manager_->delete_file_reference(file_id_, file_reference_);
+        td->messages_manager_->on_send_message_file_reference_error(random_id_);
+        return;
+      } else {
+        LOG(ERROR) << "Receive file reference error, but file_id = " << file_id_
+                   << ", was_uploaded = " << was_uploaded_;
+      }
     }
 
     td->messages_manager_->on_send_message_fail(random_id_, std::move(status));
@@ -2053,6 +2064,7 @@ class UploadMediaQuery : public Td::ResultHandler {
   MessageId message_id_;
   FileId file_id_;
   FileId thumbnail_file_id_;
+  string file_reference_;
   bool was_uploaded_ = false;
   bool was_thumbnail_uploaded_ = false;
 
@@ -2064,6 +2076,7 @@ class UploadMediaQuery : public Td::ResultHandler {
     message_id_ = message_id;
     file_id_ = file_id;
     thumbnail_file_id_ = thumbnail_file_id;
+    file_reference_ = FileManager::extract_file_reference(input_media);
     was_uploaded_ = FileManager::extract_was_uploaded(input_media);
     was_thumbnail_uploaded_ = FileManager::extract_was_thumbnail_uploaded(input_media);
 
@@ -2117,6 +2130,8 @@ class UploadMediaQuery : public Td::ResultHandler {
           td->file_manager_->delete_partial_remote_location(file_id_);
         }
       }
+    } else if (FileReferenceManager::is_file_reference_error(status)) {
+      LOG(ERROR) << "Receive file reference error for UploadMediaQuery";
     }
     td->messages_manager_->on_upload_message_media_fail(dialog_id_, message_id_, std::move(status));
   }
@@ -18902,9 +18917,10 @@ void MessagesManager::on_send_message_file_part_missing(int64 random_id, int bad
     // dump_debug_message_op(get_dialog(dialog_id), 5);
   }
 
-  Dialog *d = get_dialog(dialog_id);
-  CHECK(d != nullptr);
   if (dialog_id.get_type() == DialogType::SecretChat) {
+    Dialog *d = get_dialog(dialog_id);
+    CHECK(d != nullptr);
+
     // need to change message random_id before resending
     do {
       m->random_id = Random::secure_int64();
@@ -18921,6 +18937,56 @@ void MessagesManager::on_send_message_file_part_missing(int64 random_id, int bad
   }
 
   do_send_message(dialog_id, m, {bad_part});
+}
+
+void MessagesManager::on_send_message_file_reference_error(int64 random_id) {
+  auto it = being_sent_messages_.find(random_id);
+  if (it == being_sent_messages_.end()) {
+    // we can't receive fail more than once
+    // but message can be successfully sent before
+    LOG(WARNING) << "Receive file reference invalid error about successfully sent message with random_id = " << random_id;
+    return;
+  }
+
+  auto full_message_id = it->second;
+
+  being_sent_messages_.erase(it);
+
+  Message *m = get_message(full_message_id);
+  if (m == nullptr) {
+    // message has already been deleted by the user or sent to inaccessible channel
+    // don't need to send error to the user, because the message has already been deleted
+    // and there is nothing to be deleted from the server
+    LOG(INFO) << "Fail to send already deleted by the user or sent to inaccessible chat " << full_message_id;
+    return;
+  }
+
+  auto dialog_id = full_message_id.get_dialog_id();
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    // LOG(ERROR) << "Found " << m->message_id << " in inaccessible " << dialog_id;
+    // dump_debug_message_op(get_dialog(dialog_id), 5);
+  }
+
+  if (dialog_id.get_type() == DialogType::SecretChat) {
+    Dialog *d = get_dialog(dialog_id);
+    CHECK(d != nullptr);
+
+    // need to change message random_id before resending
+    do {
+      m->random_id = Random::secure_int64();
+    } while (m->random_id == 0 || message_random_ids_.find(m->random_id) != message_random_ids_.end());
+    message_random_ids_.insert(m->random_id);
+
+    delete_random_id_to_message_id_correspondence(d, random_id, m->message_id);
+    add_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
+
+    auto logevent = SendMessageLogEvent(dialog_id, m);
+    auto storer = LogEventStorerImpl<SendMessageLogEvent>(logevent);
+    CHECK(m->send_message_logevent_id != 0);
+    binlog_rewrite(G()->td_db()->get_binlog(), m->send_message_logevent_id, LogEvent::HandlerType::SendMessage, storer);
+  }
+
+  do_send_message(dialog_id, m, {-1});
 }
 
 void MessagesManager::on_send_message_fail(int64 random_id, Status error) {

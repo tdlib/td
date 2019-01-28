@@ -620,6 +620,8 @@ class UploadStickerFileQuery : public Td::ResultHandler {
           td->file_manager_->delete_partial_remote_location(file_id_);
         }
       }
+    } else if (FileReferenceManager::is_file_reference_error(status)) {
+      LOG(ERROR) << "Receive file reference error for UploadStickerFileQuery";
     }
     promise_.set_error(std::move(status));
   }

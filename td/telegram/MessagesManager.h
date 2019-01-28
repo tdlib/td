@@ -633,6 +633,8 @@ class MessagesManager : public Actor {
 
   void on_send_message_file_part_missing(int64 random_id, int bad_part);
 
+  void on_send_message_file_reference_error(int64 random_id);
+
   void on_send_message_fail(int64 random_id, Status error);
 
   void on_upload_message_media_success(DialogId dialog_id, MessageId message_id,
