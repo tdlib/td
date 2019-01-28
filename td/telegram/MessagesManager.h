@@ -686,6 +686,8 @@ class MessagesManager : public Actor {
   void remove_message_notifications(DialogId dialog_id, NotificationGroupId group_id,
                                     NotificationId max_notification_id);
 
+  void upload_dialog_photo(DialogId dialog_id, FileId file_id, Promise<Unit> &&promise);
+
   void on_binlog_events(vector<BinlogEvent> &&events);
 
   void get_payment_form(FullMessageId full_message_id, Promise<tl_object_ptr<td_api::paymentForm>> &&promise);
@@ -1341,8 +1343,6 @@ class MessagesManager : public Actor {
 
   Message *continue_send_message(DialogId dialog_id, unique_ptr<Message> &&m, uint64 logevent_id);
 
-  tl_object_ptr<telegram_api::InputChatPhoto> get_input_chat_photo(FileId file_id) const;
-
   bool is_message_unload_enabled() const;
 
   static bool can_forward_message(DialogId from_dialog_id, const Message *m);
@@ -1964,6 +1964,10 @@ class MessagesManager : public Actor {
 
   void on_upload_dialog_photo(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file);
   void on_upload_dialog_photo_error(FileId file_id, Status status);
+
+  void send_edit_dialog_photo_query(FileId file_id, bool was_uploaded, string file_reference, DialogId dialog_id,
+                                    tl_object_ptr<telegram_api::InputChatPhoto> &&input_chat_photo,
+                                    Promise<Unit> &&promise);
 
   void set_sponsored_dialog_id(DialogId dialog_id);
 

@@ -2081,8 +2081,8 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
 
   CHECK(node->upload_id_ == 0);
   if (file_view.has_remote_location() && !file_view.has_active_remote_location() &&
-      file_view.get_type() != FileType::Thumbnail && file_view.get_type() != FileType::EncryptedThumbnail &&
-      !node->upload_was_update_file_reference_) {
+      file_view.get_type() != FileType::Photo && file_view.get_type() != FileType::Thumbnail &&
+      file_view.get_type() != FileType::EncryptedThumbnail && !node->upload_was_update_file_reference_) {
     QueryId id = queries_container_.create(Query{file_id, Query::UploadWaitFileReference});
     node->upload_id_ = id;
     node->upload_was_update_file_reference_ = true;
