@@ -708,12 +708,17 @@ class UploadProfilePhotoQuery : public Td::ResultHandler {
 
 class UpdateProfilePhotoQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
+  FileId file_id_;
+  string file_reference_;
 
  public:
   explicit UpdateProfilePhotoQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(tl_object_ptr<telegram_api::InputPhoto> &&input_photo) {
+  void send(FileId file_id, tl_object_ptr<telegram_api::InputPhoto> &&input_photo) {
+    CHECK(input_photo != nullptr);
+    file_id_ = file_id;
+    file_reference_ = FileManager::extract_file_reference(input_photo);
     send_query(G()->net_query_creator().create(
         create_storer(telegram_api::photos_updateProfilePhoto(std::move(input_photo)))));
   }
@@ -731,6 +736,16 @@ class UpdateProfilePhotoQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
+    if (FileReferenceManager::is_file_reference_error(status)) {
+      if (file_id_.is_valid()) {
+        td->file_manager_->delete_file_reference(file_id_, file_reference_);
+        td->contacts_manager_->upload_profile_photo(file_id_, std::move(promise_));
+        return;
+      } else {
+        LOG(ERROR) << "Receive file reference error, but file_id = " << file_id_;
+      }
+    }
+
     promise_.set_error(std::move(status));
   }
 };
@@ -3912,23 +3927,26 @@ void ContactsManager::set_profile_photo(const tl_object_ptr<td_api::InputFile> &
   CHECK(!file_view.is_encrypted());
   if (file_view.has_remote_location() && !file_view.remote_location().is_web()) {
     td_->create_handler<UpdateProfilePhotoQuery>(std::move(promise))
-        ->send(file_view.remote_location().as_input_photo());
+        ->send(file_id, file_view.remote_location().as_input_photo());
     return;
   }
 
-  auto upload_file_id = td_->file_manager_->dup_file_id(file_id);
-  CHECK(upload_file_id.is_valid());
-  CHECK(uploaded_profile_photos_.find(upload_file_id) == uploaded_profile_photos_.end());
-  uploaded_profile_photos_.emplace(upload_file_id, std::move(promise));
-  LOG(INFO) << "Ask to upload profile photo " << upload_file_id;
-  td_->file_manager_->upload(upload_file_id, upload_profile_photo_callback_, 1, 0);
+  upload_profile_photo(td_->file_manager_->dup_file_id(file_id), std::move(promise));
+}
+
+void ContactsManager::upload_profile_photo(FileId file_id, Promise<Unit> &&promise) {
+  CHECK(file_id.is_valid());
+  CHECK(uploaded_profile_photos_.find(file_id) == uploaded_profile_photos_.end());
+  uploaded_profile_photos_.emplace(file_id, std::move(promise));
+  LOG(INFO) << "Ask to upload profile photo " << file_id;
+  td_->file_manager_->upload(file_id, upload_profile_photo_callback_, 1, 0);
 }
 
 void ContactsManager::delete_profile_photo(int64 profile_photo_id, Promise<Unit> &&promise) {
   const User *u = get_user(get_my_id());
   if (u != nullptr && u->photo.id == profile_photo_id) {
     td_->create_handler<UpdateProfilePhotoQuery>(std::move(promise))
-        ->send(make_tl_object<telegram_api::inputPhotoEmpty>());
+        ->send(FileId(), make_tl_object<telegram_api::inputPhotoEmpty>());
     return;
   }
 
@@ -9752,7 +9770,7 @@ void ContactsManager::on_upload_profile_photo(FileId file_id, tl_object_ptr<tele
     }
 
     td_->create_handler<UpdateProfilePhotoQuery>(std::move(promise))
-        ->send(file_view.remote_location().as_input_photo());
+        ->send(file_id, file_view.remote_location().as_input_photo());
     return;
   }
   CHECK(input_file != nullptr);

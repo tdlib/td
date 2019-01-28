@@ -283,6 +283,8 @@ class ContactsManager : public Actor {
 
   void delete_profile_photo(int64 profile_photo_id, Promise<Unit> &&promise);
 
+  void upload_profile_photo(FileId file_id, Promise<Unit> &&promise);
+
   void set_name(const string &first_name, const string &last_name, Promise<Unit> &&promise);
 
   void set_bio(const string &bio, Promise<Unit> &&promise);

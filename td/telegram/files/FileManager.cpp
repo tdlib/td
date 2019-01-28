@@ -2476,27 +2476,46 @@ bool FileManager::extract_was_thumbnail_uploaded(const tl_object_ptr<telegram_ap
 }
 
 string FileManager::extract_file_reference(const tl_object_ptr<telegram_api::InputMedia> &input_media) {
-  if (input_media != nullptr) {
-    switch (input_media->get_id()) {
-      case telegram_api::inputMediaDocument::ID: {
-        const auto *id = static_cast<const telegram_api::inputMediaDocument *>(input_media.get())->id_.get();
-        CHECK(id != nullptr);
-        if (id->get_id() == telegram_api::inputDocument::ID) {
-          return static_cast<const telegram_api::inputDocument *>(id)->file_reference_.as_slice().str();
-        }
-        break;
-      }
-      case telegram_api::inputMediaPhoto::ID: {
-        const auto *id = static_cast<const telegram_api::inputMediaPhoto *>(input_media.get())->id_.get();
-        CHECK(id != nullptr);
-        if (id->get_id() == telegram_api::inputPhoto::ID) {
-          return static_cast<const telegram_api::inputPhoto *>(id)->file_reference_.as_slice().str();
-        }
-        break;
-      }
-    }
+  if (input_media == nullptr) {
+    return string();
   }
-  return string();
+
+  switch (input_media->get_id()) {
+    case telegram_api::inputMediaDocument::ID:
+      return extract_file_reference(static_cast<const telegram_api::inputMediaDocument *>(input_media.get())->id_);
+    case telegram_api::inputMediaPhoto::ID:
+      return extract_file_reference(static_cast<const telegram_api::inputMediaPhoto *>(input_media.get())->id_);
+    default:
+      return string();
+  }
+}
+
+string FileManager::extract_file_reference(const tl_object_ptr<telegram_api::InputDocument> &input_document) {
+  if (input_document == nullptr || input_document->get_id() != telegram_api::inputDocument::ID) {
+    return string();
+  }
+
+  return static_cast<const telegram_api::inputDocument *>(input_document.get())->file_reference_.as_slice().str();
+}
+
+string FileManager::extract_file_reference(const tl_object_ptr<telegram_api::InputPhoto> &input_photo) {
+  if (input_photo == nullptr || input_photo->get_id() != telegram_api::inputPhoto::ID) {
+    return string();
+  }
+
+  return static_cast<const telegram_api::inputPhoto *>(input_photo.get())->file_reference_.as_slice().str();
+}
+
+bool FileManager::extract_was_uploaded(const tl_object_ptr<telegram_api::InputChatPhoto> &input_chat_photo) {
+  return input_chat_photo != nullptr && input_chat_photo->get_id() == telegram_api::inputChatUploadedPhoto::ID;
+}
+
+string FileManager::extract_file_reference(const tl_object_ptr<telegram_api::InputChatPhoto> &input_chat_photo) {
+  if (input_chat_photo == nullptr || input_chat_photo->get_id() != telegram_api::inputChatPhoto::ID) {
+    return string();
+  }
+
+  return extract_file_reference(static_cast<const telegram_api::inputChatPhoto *>(input_chat_photo.get())->id_);
 }
 
 FileId FileManager::next_file_id() {
