@@ -1965,7 +1965,7 @@ class MessagesManager : public Actor {
   void on_upload_dialog_photo(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file);
   void on_upload_dialog_photo_error(FileId file_id, Status status);
 
-  void send_edit_dialog_photo_query(FileId file_id, bool was_uploaded, string file_reference, DialogId dialog_id,
+  void send_edit_dialog_photo_query(DialogId dialog_id, FileId file_id,
                                     tl_object_ptr<telegram_api::InputChatPhoto> &&input_chat_photo,
                                     Promise<Unit> &&promise);
 
