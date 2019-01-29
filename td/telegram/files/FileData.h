@@ -9,6 +9,7 @@
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileEncryptionKey.h"
 #include "td/telegram/files/FileLocation.h"
+#include "td/telegram/files/FileSourceId.h"
 
 #include "td/utils/common.h"
 #include "td/utils/format.h"
@@ -29,6 +30,7 @@ class FileData {
   string remote_name_;
   string url_;
   FileEncryptionKey encryption_key_;
+  std::vector<FileSourceId> sources_;
 
   template <class StorerT>
   void store(StorerT &storer) const {
@@ -36,10 +38,13 @@ class FileData {
     bool has_owner_dialog_id = owner_dialog_id_.is_valid();
     bool has_expected_size = size_ == 0 && expected_size_ != 0;
     bool encryption_key_is_secure = encryption_key_.is_secure();
+    bool has_sources = !sources_.empty();
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_owner_dialog_id);
     STORE_FLAG(has_expected_size);
     STORE_FLAG(encryption_key_is_secure);
+    //TODO: uncomment
+    //STORE_FLAG(has_sources);
     END_STORE_FLAGS();
 
     if (has_owner_dialog_id) {
@@ -58,6 +63,10 @@ class FileData {
     store(remote_name_, storer);
     store(url_, storer);
     store(encryption_key_, storer);
+    if (has_sources) {
+      // TODO: uncomment
+      // store(sources_, storer);
+    }
   }
   template <class ParserT>
   void parse(ParserT &parser) {
@@ -65,10 +74,12 @@ class FileData {
     bool has_owner_dialog_id;
     bool has_expected_size;
     bool encryption_key_is_secure;
+    bool has_sources;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_owner_dialog_id);
     PARSE_FLAG(has_expected_size);
     PARSE_FLAG(encryption_key_is_secure);
+    PARSE_FLAG(has_sources);
     END_PARSE_FLAGS_GENERIC();
 
     if (has_owner_dialog_id) {
@@ -93,6 +104,10 @@ class FileData {
     parse(url_, parser);
     encryption_key_.parse(encryption_key_is_secure ? FileEncryptionKey::Type::Secure : FileEncryptionKey::Type::Secret,
                           parser);
+    if (has_sources) {
+      //TODO: uncomment
+      // parse(sources_, parser);
+    }
   }
 };
 
@@ -112,6 +127,7 @@ inline StringBuilder &operator<<(StringBuilder &sb, const FileData &file_data) {
   if (file_data.remote_.type() == RemoteFileLocation::Type::Full) {
     sb << " remote " << file_data.remote_.full();
   }
+  sb << format::as_array(file_data.sources_);
   return sb << "]";
 }
 

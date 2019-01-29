@@ -45,6 +45,8 @@ class FileReferenceManager : public Actor {
 
   void add_file_source(NodeId node_id, FileSourceId file_source_id);
 
+  std::vector<FileSourceId> get_some_file_sources(NodeId node_id);
+
   void remove_file_source(NodeId node_id, FileSourceId file_source_id);
 
   void merge(NodeId to_node_id, NodeId from_node_id);

@@ -1361,6 +1361,8 @@ void FileManager::add_file_source(FileId file_id, FileSourceId file_source_id) {
   CHECK(file_source_id.is_valid());
   send_closure(G()->file_reference_manager(), &FileReferenceManager::add_file_source, node->main_file_id_,
                file_source_id);
+  node->on_pmc_changed();
+  try_flush_node(node, "add_file_source");
 }
 
 void FileManager::remove_file_source(FileId file_id, FileSourceId file_source_id) {
@@ -1372,6 +1374,8 @@ void FileManager::remove_file_source(FileId file_id, FileSourceId file_source_id
   CHECK(file_source_id.is_valid());
   send_closure(G()->file_reference_manager(), &FileReferenceManager::remove_file_source, node->main_file_id_,
                file_source_id);
+  node->on_pmc_changed();
+  try_flush_node(node, "remove_file_source");
 }
 
 void FileManager::change_files_source(FileSourceId file_source_id, const vector<FileId> &old_file_ids,
@@ -1386,13 +1390,13 @@ void FileManager::change_files_source(FileSourceId file_source_id, const vector<
   for (auto file_id : old_main_file_ids) {
     auto it = new_main_file_ids.find(file_id);
     if (it == new_main_file_ids.end()) {
-      send_closure(G()->file_reference_manager(), &FileReferenceManager::remove_file_source, file_id, file_source_id);
+      remove_file_source(file_id, file_source_id);
     } else {
       new_main_file_ids.erase(it);
     }
   }
   for (auto file_id : new_main_file_ids) {
-    send_closure(G()->file_reference_manager(), &FileReferenceManager::add_file_source, file_id, file_source_id);
+    add_file_source(file_id, file_source_id);
   }
 }
 
@@ -1509,6 +1513,7 @@ void FileManager::flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local
   data.encryption_key_ = node->encryption_key_;
   data.url_ = node->url_;
   data.owner_dialog_id_ = node->owner_dialog_id_;
+  data.sources_ = G()->file_reference_manager().get_actor_unsafe()->get_some_file_sources(view.file_id());
 
   file_db_->set_file_data(node->pmc_id_, data, (create_flag || new_remote), (create_flag || new_local),
                           (create_flag || new_generate));

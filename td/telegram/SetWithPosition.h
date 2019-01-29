@@ -18,6 +18,26 @@ namespace td {
 template <class T>
 class FastSetWithPosition {
  public:
+  std::vector<T> get_some_elements() const {
+    std::vector<T> res;
+    using std::prev;
+    using std::next;
+    res.reserve(5);
+    if (!checked_.empty()) {
+      res.push_back(*begin(checked_));
+      res.push_back(*prev(end(checked_)));
+    }
+    if (!not_checked_.empty()) {
+      res.push_back(*begin(not_checked_));
+      res.push_back(*prev(end(not_checked_)));
+    }
+    std::sort(res.begin(), res.end());
+    res.erase(std::unique(res.begin(), res.end()), res.end());
+    if (res.size() > 2) {
+      res.erase(next(res.begin()), prev(res.end()));
+    }
+    return res;
+  }
   void add(T x) {
     if (checked_.count(x) != 0) {
       return;
@@ -89,6 +109,15 @@ class FastSetWithPosition {
 template <class T>
 class SetWithPosition {
  public:
+  std::vector<T> get_some_elements() const {
+    if (fast_) {
+      return fast_->get_some_elements();
+    }
+    if (has_value_) {
+      return {value_};
+    }
+    return {};
+  }
   void add(T x) {
     if (fast_) {
       fast_->add(x);

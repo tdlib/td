@@ -93,6 +93,14 @@ void FileReferenceManager::remove_file_source(NodeId node_id, FileSourceId file_
   nodes_[node_id].file_source_ids.remove(file_source_id);
 }
 
+std::vector<FileSourceId> FileReferenceManager::get_some_file_sources(NodeId node_id) {
+  auto it = nodes_.find(node_id);
+  if (it == nodes_.end()) {
+    return {};
+  }
+  return it->second.file_source_ids.get_some_elements();
+}
+
 void FileReferenceManager::merge(NodeId to_node_id, NodeId from_node_id) {
   auto from_it = nodes_.find(from_node_id);
   if (from_it == nodes_.end()) {
@@ -177,17 +185,19 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
           send_closure(file_reference_manager, &FileReferenceManager::on_query_result, dest, file_source_id,
                        std::move(status), 0);
         });
-    if (result.is_error()) {
-      new_promise.set_result(std::move(result));
-    }
-    send_lambda(file_manager, [file_manager, dest, new_promise = std::move(new_promise)]() mutable {
+
+    send_lambda(file_manager, [file_manager, dest, result = std::move(result), file_source_id,
+                               new_promise = std::move(new_promise)]() mutable {
       auto view = file_manager.get_actor_unsafe()->get_file_view(dest.node_id);
       CHECK(!view.empty());
-      if (view.has_active_remote_location()) {
-        new_promise.set_value({});
-      } else {
-        new_promise.set_error(Status::Error("No active remote location"));
+      if (result.is_ok() && !view.has_active_remote_location()) {
+        result = Status::Error("No active remote location");
       }
+      if (result.is_error() && result.error().code() != 429 && result.error().code() < 500) {
+        VLOG(file_references) << "Invalid " << file_source_id << " " << result.error();
+        file_manager.get_actor_unsafe()->remove_file_source(dest.node_id, file_source_id);
+      }
+      new_promise.set_result(std::move(result));
     });
   });
   auto index = static_cast<size_t>(file_source_id.get()) - 1;
@@ -252,10 +262,6 @@ FileReferenceManager::Destination FileReferenceManager::on_query_result(Destinat
       p.set_value(Unit());
     }
     node.query = {};
-  }
-  if (status.is_error() && status.error().code() != 429 && status.error().code() < 500 && !G()->close_flag()) {
-    VLOG(file_references) << "Invalid " << file_source_id << " " << status;
-    remove_file_source(dest.node_id, file_source_id);
   }
 
   run_node(dest.node_id);
