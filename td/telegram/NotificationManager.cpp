@@ -17,6 +17,7 @@
 #include "td/telegram/TdDb.h"
 
 #include "td/utils/as.h"
+#include "td/utils/base64.h"
 #include "td/utils/format.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
@@ -2103,10 +2104,15 @@ Result<int64> NotificationManager::get_push_receiver_id(string payload) {
         return Status::Error(400, "Expected encrypted payload as a String");
       }
       Slice data = encrypted_payload.get_string();
-      if (data.size() < 8) {
+      if (data.size() < 12) {
         return Status::Error(400, "Encrypted payload is too small");
       }
-      return as<int64>(data.data());
+      auto r_decoded = base64url_decode(data.substr(0, 12));
+      if (r_decoded.is_error()) {
+        return Status::Error(400, "Failed to base64url-decode payload");
+      }
+      CHECK(r_decoded.ok().size() == 9);
+      return as<int64>(r_decoded.ok().c_str());
     }
     if (field_value.first == "user_id") {
       auto user_id = std::move(field_value.second);

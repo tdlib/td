@@ -20,7 +20,6 @@ class MultiPromiseInterface {
   virtual void add_promise(Promise<> &&promise) = 0;
   virtual Promise<> get_promise() = 0;
 
-  // deprecated?
   virtual size_t promise_count() const = 0;
   virtual void set_ignore_errors(bool ignore_errors) = 0;
 
