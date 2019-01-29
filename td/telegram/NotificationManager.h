@@ -91,8 +91,9 @@ class NotificationManager : public Actor {
 
   void process_push_notification(string payload, Promise<Unit> &&promise);
 
-  static Result<int64> get_push_receiver_id(string payload);
-
+  static Result<int64> get_push_receiver_id(string push);
+  static Result<string> decrypt_push(int64 encryption_key_id, string encryption_key, string push);
+  static Result<string> decrypt_push_payload(int64 encryption_key_id, string encryption_key, string payload);
   void before_get_difference();
 
   void after_get_difference();

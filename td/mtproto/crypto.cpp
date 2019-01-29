@@ -334,7 +334,7 @@ std::pair<int64, string> DhHandshake::gen_key() {
   return std::pair<int64, string>(key_id, std::move(key));
 }
 
-int64 DhHandshake::calc_key_id(const string &auth_key) {
+int64 DhHandshake::calc_key_id(Slice auth_key) {
   UInt<160> auth_key_sha1;
   sha1(auth_key, auth_key_sha1.raw);
   return as<int64>(auth_key_sha1.raw + 12);

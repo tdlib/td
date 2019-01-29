@@ -132,9 +132,10 @@ struct PacketInfo {
 
   uint64 message_id;
   int32 seq_no;
-  int32 version = 1;
+  int32 version{1};
   bool no_crypto_flag;
-  bool is_creator = false;
+  bool is_creator{false};
+  bool check_mod4{true};
 };
 
 class Transport {

@@ -16,6 +16,9 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 
+#include "td/mtproto/Transport.h"
+#include "td/mtproto/AuthKey.h"
+
 #include "td/utils/as.h"
 #include "td/utils/base64.h"
 #include "td/utils/format.h"
@@ -2132,6 +2135,53 @@ Result<int64> NotificationManager::get_push_receiver_id(string payload) {
   }
 
   return Status::Error(200, "Unsupported push notification");
+}
+
+Result<string> NotificationManager::decrypt_push(int64 encryption_key_id, string encryption_key, string push) {
+  auto r_json_value = json_decode(push);
+  if (r_json_value.is_error()) {
+    return Status::Error(400, "Failed to parse payload as JSON object");
+  }
+
+  auto json_value = r_json_value.move_as_ok();
+  if (json_value.type() != JsonValue::Type::Object) {
+    return Status::Error(400, "Expected JSON object");
+  }
+
+  for (auto &field_value : json_value.get_object()) {
+    if (field_value.first == "p") {
+      auto encrypted_payload = std::move(field_value.second);
+      if (encrypted_payload.type() != JsonValue::Type::String) {
+        return Status::Error(400, "Expected encrypted payload as a String");
+      }
+      Slice data = encrypted_payload.get_string();
+      if (data.size() < 12) {
+        return Status::Error(400, "Encrypted payload is too small");
+      }
+      auto r_decoded = base64url_decode(data);
+      if (r_decoded.is_error()) {
+        return Status::Error(400, "Failed to base64url-decode payload");
+      }
+      return decrypt_push_payload(encryption_key_id, std::move(encryption_key), r_decoded.move_as_ok());
+    }
+  }
+  return Status::Error(400, "No 'p'(payload) field found in push");
+}
+
+Result<string> NotificationManager::decrypt_push_payload(int64 encryption_key_id, string encryption_key,
+                                                         string payload) {
+  mtproto::AuthKey auth_key(encryption_key_id, std::move(encryption_key));
+  mtproto::PacketInfo packet_info;
+  packet_info.version = 2;
+  packet_info.type = mtproto::PacketInfo::EndToEnd;
+  packet_info.is_creator = true;
+  packet_info.check_mod4 = false;
+
+  TRY_RESULT(result, mtproto::Transport::read(payload, auth_key, &packet_info));
+  if (result.type() != mtproto::Transport::ReadResult::Packet) {
+    return Status::Error(400, "Wrong packet type");
+  }
+  return result.packet().str();
 }
 
 void NotificationManager::before_get_difference() {

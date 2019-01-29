@@ -15,6 +15,7 @@
 #include "td/mtproto/HandshakeConnection.h"
 #include "td/mtproto/PingConnection.h"
 #include "td/mtproto/RawConnection.h"
+#include "td/mtproto/Transport.h"
 
 #include "td/net/GetHostByNameActor.h"
 #include "td/net/Socks5.h"
@@ -23,7 +24,10 @@
 #include "td/telegram/ConfigManager.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/PublicRsaKeyShared.h"
+#include "td/telegram/NotificationManager.h"
 
+#include "td/utils/as.h"
+#include "td/utils/base64.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/port/SocketFd.h"
@@ -425,4 +429,28 @@ TEST(Mtproto, socks5) {
     // empty;
   }
   sched.finish();
+}
+
+TEST(Mtproto, notifications) {
+  string push =
+      "eyJwIjoiSkRnQ3NMRWxEaWhyVWRRN1pYM3J1WVU4TlRBMFhMb0N6UWRNdzJ1cWlqMkdRbVR1WXVvYXhUeFJHaG1QQm8yVElYZFBzX2N3b2RIb3lY"
+      "b2drVjM1dVl0UzdWeElNX1FNMDRKMG1mV3ZZWm4zbEtaVlJ0aFVBNGhYUWlaN0pfWDMyZDBLQUlEOWgzRnZwRjNXUFRHQWRaVkdFYzg3bnFPZ3hD"
+      "NUNMRkM2SU9fZmVqcEpaV2RDRlhBWWpwc1k2aktrbVNRdFZ1MzE5ZW04UFVieXZudFpfdTNud2hjQ0czMk96TGp4S1kyS1lzU21JZm1GMzRmTmw1"
+      "QUxaa2JvY2s2cE5rZEdrak9qYmRLckJyU0ZtWU8tQ0FsRE10dEplZFFnY1U5bVJQdU80b1d2NG5sb1VXS19zSlNTaXdIWEZyb1pWTnZTeFJ0Z1dN"
+      "ZyJ9";
+  string key =
+      "uBa5yu01a-nJJeqsR3yeqMs6fJLYXjecYzFcvS6jIwS3nefBIr95LWrTm-IbRBNDLrkISz1Sv0KYpDzhU8WFRk1D0V_"
+      "qyO7XsbDPyrYxRBpGxofJUINSjb1uCxoSdoh1_F0UXEA2fWWKKVxL0DKUQssZfbVj3AbRglsWpH-jDK1oc6eBydRiS3i4j-"
+      "H0yJkEMoKRgaF9NaYI4u26oIQ-Ez46kTVU-R7e3acdofOJKm7HIKan_5ZMg82Dvec2M6vc_"
+      "I54Vs28iBx8IbBO1y5z9WSScgW3JCvFFKP2MXIu7Jow5-cpUx6jXdzwRUb9RDApwAFKi45zpv8eb3uPCDAmIQ";
+  string decrypted_payload =
+      "fwAAAHsibG9jX2tleSI6Ik1FU1NBR0VfVEVYVCIsImxvY19hcmdzIjpbIkFyc2VueSBTbWlybm92IiwiYWJjZGVmZyJdLCJjdXN0b20iOnsibXNn"
+      "X2lkIjoiNTkwMDQ3IiwiZnJvbV9pZCI6IjYyODE0In0sImJhZGdlIjoiNDA5In0";
+  push = base64url_decode(push).move_as_ok();
+  key = base64url_decode(key).move_as_ok();
+  decrypted_payload = base64url_decode(decrypted_payload).move_as_ok();
+
+  auto key_id = DhHandshake::calc_key_id(key);
+  ASSERT_EQ(key_id, NotificationManager::get_push_receiver_id(push).ok());
+  ASSERT_EQ(decrypted_payload, NotificationManager::decrypt_push(key_id, key, push).ok());
 }

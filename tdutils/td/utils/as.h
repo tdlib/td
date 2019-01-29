@@ -38,6 +38,9 @@ class As {
     std::memcpy(&res, ptr_, sizeof(T));
     return res;
   }
+  bool operator==(const As &other) const {
+    return this->operator T() == other.operator T();
+  }
 
  private:
   void *ptr_;

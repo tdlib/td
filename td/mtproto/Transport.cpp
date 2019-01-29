@@ -128,18 +128,16 @@ Status Transport::read_crypto_impl(int X, MutableSlice message, const AuthKey &a
   auto *prefix = reinterpret_cast<PrefixT *>(header->data);
   *prefix_ptr = prefix;
   size_t data_size = prefix->message_data_length + sizeof(PrefixT);
-  bool is_length_ok = prefix->message_data_length % 4 == 0;
+  bool is_length_ok = true;
   UInt128 real_message_key;
 
   if (info->version == 1) {
+    is_length_ok &= !info->check_mod4 || prefix->message_data_length % 4 == 0;
     auto expected_size = calc_crypto_size<HeaderT>(data_size);
     is_length_ok = (is_length_ok & (expected_size == message.size())) != 0;
     auto check_size = data_size * is_length_ok + tail_size * (1 - is_length_ok);
     std::tie(info->message_ack, real_message_key) = calc_message_ack_and_key(*header, check_size);
   } else {
-    size_t pad_size = tail_size - data_size;
-    is_length_ok = (is_length_ok & (tail_size - sizeof(PrefixT) >= prefix->message_data_length) & (12 <= pad_size) &
-                    (pad_size <= 1024)) != 0;
     std::tie(info->message_ack, real_message_key) = calc_message_key2(auth_key, X, to_decrypt);
   }
 
@@ -153,9 +151,29 @@ Status Transport::read_crypto_impl(int X, MutableSlice message, const AuthKey &a
                                   << format::as_hex_dump(header->message_key)
                                   << "] [expected=" << format::as_hex_dump(real_message_key) << "]");
   }
-  if (!is_length_ok) {
-    return Status::Error(PSLICE() << "Invalid mtproto message: invalid length " << tag("total_size", message.size())
-                                  << tag("message_data_length", prefix->message_data_length));
+
+  if (info->version == 2) {
+    if (info->check_mod4 && prefix->message_data_length % 4 != 0) {
+      return Status::Error(PSLICE() << "Invalid mtproto message: invalid length (not divisible by four)"
+                                    << tag("total_size", message.size())
+                                    << tag("message_data_length", prefix->message_data_length));
+    }
+    if (tail_size - sizeof(PrefixT) < prefix->message_data_length) {
+      return Status::Error(PSLICE() << "Invalid mtproto message: invalid length (message_data_length is too big)"
+                                    << tag("total_size", message.size())
+                                    << tag("message_data_length", prefix->message_data_length));
+    }
+    size_t pad_size = tail_size - data_size;
+    if (pad_size < 12 || pad_size > 1024) {
+      return Status::Error(PSLICE() << "Invalid mtproto message: invalid length (invalid padding length)"
+                                    << tag("padding_size", pad_size) << tag("total_size", message.size())
+                                    << tag("message_data_length", prefix->message_data_length));
+    }
+  } else {
+    if (!is_length_ok) {
+      return Status::Error(PSLICE() << "Invalid mtproto message: invalid length " << tag("total_size", message.size())
+                                    << tag("message_data_length", prefix->message_data_length));
+    }
   }
 
   *data = MutableSlice(header->data, data_size);

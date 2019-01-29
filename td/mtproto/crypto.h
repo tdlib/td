@@ -83,7 +83,7 @@ class DhHandshake {
 
   std::pair<int64, string> gen_key();
 
-  static int64 calc_key_id(const string &auth_key);
+  static int64 calc_key_id(Slice auth_key);
 
   enum Flags { HasConfig = 1, HasGA = 2 };
 
