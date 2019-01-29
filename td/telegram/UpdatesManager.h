@@ -274,6 +274,9 @@ class UpdatesManager : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateLangPack> update, bool /*force_apply*/);
 
   // unsupported updates
+
+  void on_update(tl_object_ptr<telegram_api::updateUserPinnedMessage> update, bool /*force_apply*/);
+  void on_update(tl_object_ptr<telegram_api::updateChatPinnedMessage> update, bool /*force_apply*/);
 };
 
 }  // namespace td

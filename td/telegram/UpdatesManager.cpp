@@ -1854,4 +1854,10 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateLangPack> updat
 
 // unsupported updates
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserPinnedMessage> update, bool /*force_apply*/) {
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatPinnedMessage> update, bool /*force_apply*/) {
+}
+
 }  // namespace td

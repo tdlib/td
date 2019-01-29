@@ -266,9 +266,10 @@ void LanguagePackManager::on_language_pack_version_changed(int32 new_version) {
                      std::move(language_code), result->version_, true, vector<string>(), std::move(result->strings_),
                      Promise<td_api::object_ptr<td_api::languagePackStrings>>());
       });
-  send_with_promise(G()->net_query_creator().create(create_storer(telegram_api::langpack_getDifference(version)),
-                                                    DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off),
-                    std::move(request_promise));
+  send_with_promise(
+      G()->net_query_creator().create(create_storer(telegram_api::langpack_getDifference(language_code_, version)),
+                                      DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off),
+      std::move(request_promise));
 }
 
 void LanguagePackManager::on_update_language_pack(tl_object_ptr<telegram_api::langPackDifference> difference) {
