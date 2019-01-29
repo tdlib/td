@@ -515,8 +515,11 @@ foundMessages messages:vector<message> next_from_search_id:int64 = FoundMessages
 //@description Notification settings applied to all private and secret chats when the corresponding chat setting has a default value
 notificationSettingsScopePrivateChats = NotificationSettingsScope;
 
-//@description Notification settings applied to all basic groups, supergroups and channels when the corresponding chat setting has a default value
+//@description Notification settings applied to all basic groups and supergroups when the corresponding chat setting has a default value
 notificationSettingsScopeGroupChats = NotificationSettingsScope;
+
+//@description Notification settings applied to all channels when the corresponding chat setting has a default value
+notificationSettingsScopeChannelChats = NotificationSettingsScope;
 
 
 //@description Contains information about notification settings for a chat

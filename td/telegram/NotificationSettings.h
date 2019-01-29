@@ -54,7 +54,7 @@ class DialogNotificationSettings {
   }
 };
 
-enum class NotificationSettingsScope : int32 { Private, Group };
+enum class NotificationSettingsScope : int32 { Private, Group, Channel };
 
 class ScopeNotificationSettings {
  public:

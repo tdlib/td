@@ -4076,7 +4076,7 @@ void MessagesManager::on_dialog_unmute_timeout_callback(void *messages_manager_p
   }
 
   auto messages_manager = static_cast<MessagesManager *>(messages_manager_ptr);
-  if (1 <= dialog_id_int && dialog_id_int <= 2) {
+  if (1 <= dialog_id_int && dialog_id_int <= 3) {
     send_closure_later(messages_manager->actor_id(messages_manager), &MessagesManager::on_scope_unmute,
                        static_cast<NotificationSettingsScope>(dialog_id_int - 1));
   } else {
@@ -5514,6 +5514,8 @@ string MessagesManager::get_notification_settings_scope_database_key(Notificatio
       return "nsfpc";
     case NotificationSettingsScope::Group:
       return "nsfgc";
+    case NotificationSettingsScope::Channel:
+      return "nsfcc";
     default:
       UNREACHABLE();
       return "";
@@ -8722,7 +8724,8 @@ void MessagesManager::init() {
 
   load_calls_db_state();
 
-  vector<NotificationSettingsScope> scopes{NotificationSettingsScope::Private, NotificationSettingsScope::Group};
+  vector<NotificationSettingsScope> scopes{NotificationSettingsScope::Private, NotificationSettingsScope::Group,
+                                           NotificationSettingsScope::Channel};
   for (auto scope : scopes) {
     auto notification_settings_string =
         G()->td_db()->get_binlog_pmc()->get(get_notification_settings_scope_database_key(scope));
@@ -8735,6 +8738,11 @@ void MessagesManager::init() {
       current_settings->mute_until = -1;
       update_scope_notification_settings(scope, current_settings, notification_settings);
     }
+  }
+  if (!channels_notification_settings_.is_synchronized) {
+    channels_notification_settings_ = chats_notification_settings_;
+    channels_notification_settings_.is_synchronized = false;
+    send_get_scope_notification_settings_query(NotificationSettingsScope::Channel, Promise<>());
   }
   G()->td_db()->get_binlog_pmc()->erase("nsfac");
 
@@ -12793,14 +12801,15 @@ std::pair<bool, int32> MessagesManager::get_dialog_mute_until(DialogId dialog_id
   return {d->notification_settings.is_use_default_fixed, get_dialog_mute_until(d)};
 }
 
-NotificationSettingsScope MessagesManager::get_dialog_notification_setting_scope(DialogId dialog_id) {
+NotificationSettingsScope MessagesManager::get_dialog_notification_setting_scope(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
     case DialogType::SecretChat:
       return NotificationSettingsScope::Private;
     case DialogType::Chat:
-    case DialogType::Channel:
       return NotificationSettingsScope::Group;
+    case DialogType::Channel:
+      return is_broadcast_channel(dialog_id) ? NotificationSettingsScope::Channel : NotificationSettingsScope::Group;
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -12814,8 +12823,10 @@ int32 MessagesManager::get_scope_mute_until(DialogId dialog_id) const {
     case DialogType::SecretChat:
       return users_notification_settings_.mute_until;
     case DialogType::Chat:
-    case DialogType::Channel:
       return chats_notification_settings_.mute_until;
+    case DialogType::Channel:
+      return is_broadcast_channel(dialog_id) ? channels_notification_settings_.mute_until
+                                             : chats_notification_settings_.mute_until;
     case DialogType::None:
     default:
       UNREACHABLE();
@@ -12853,6 +12864,8 @@ ScopeNotificationSettings *MessagesManager::get_scope_notification_settings(Noti
       return &users_notification_settings_;
     case NotificationSettingsScope::Group:
       return &chats_notification_settings_;
+    case NotificationSettingsScope::Channel:
+      return &channels_notification_settings_;
     default:
       UNREACHABLE();
       return nullptr;
@@ -12866,6 +12879,8 @@ const ScopeNotificationSettings *MessagesManager::get_scope_notification_setting
       return &users_notification_settings_;
     case NotificationSettingsScope::Group:
       return &chats_notification_settings_;
+    case NotificationSettingsScope::Channel:
+      return &channels_notification_settings_;
     default:
       UNREACHABLE();
       return nullptr;
@@ -12996,6 +13011,8 @@ void MessagesManager::reset_all_notification_settings() {
   update_scope_notification_settings(NotificationSettingsScope::Private, &users_notification_settings_,
                                      new_scope_settings);
   update_scope_notification_settings(NotificationSettingsScope::Group, &chats_notification_settings_,
+                                     new_scope_settings);
+  update_scope_notification_settings(NotificationSettingsScope::Channel, &channels_notification_settings_,
                                      new_scope_settings);
 
   for (auto &dialog : dialogs_) {
@@ -23194,6 +23211,9 @@ void MessagesManager::load_notification_settings() {
   if (!chats_notification_settings_.is_synchronized) {
     send_get_scope_notification_settings_query(NotificationSettingsScope::Group, Promise<>());
   }
+  if (!channels_notification_settings_.is_synchronized) {
+    send_get_scope_notification_settings_query(NotificationSettingsScope::Channel, Promise<>());
+  }
 }
 
 string MessagesManager::get_channel_pts_key(DialogId dialog_id) {
@@ -24781,7 +24801,8 @@ void MessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update
       }
     }
 
-    vector<NotificationSettingsScope> scopes{NotificationSettingsScope::Private, NotificationSettingsScope::Group};
+    vector<NotificationSettingsScope> scopes{NotificationSettingsScope::Private, NotificationSettingsScope::Group,
+                                             NotificationSettingsScope::Channel};
     for (auto scope : scopes) {
       auto current_settings = get_scope_notification_settings(scope);
       CHECK(current_settings != nullptr);

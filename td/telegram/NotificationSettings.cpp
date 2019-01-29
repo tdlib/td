@@ -31,6 +31,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, NotificationSettingsSco
       return string_builder << "notification settings for private chats";
     case NotificationSettingsScope::Group:
       return string_builder << "notification settings for group chats";
+    case NotificationSettingsScope::Channel:
+      return string_builder << "notification settings for channel chats";
     default:
       UNREACHABLE();
       return string_builder;
@@ -51,6 +53,8 @@ td_api::object_ptr<td_api::NotificationSettingsScope> get_notification_settings_
       return td_api::make_object<td_api::notificationSettingsScopePrivateChats>();
     case NotificationSettingsScope::Group:
       return td_api::make_object<td_api::notificationSettingsScopeGroupChats>();
+    case NotificationSettingsScope::Channel:
+      return td_api::make_object<td_api::notificationSettingsScopeChannelChats>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -85,6 +89,8 @@ telegram_api::object_ptr<telegram_api::InputNotifyPeer> get_input_notify_peer(No
       return telegram_api::make_object<telegram_api::inputNotifyUsers>();
     case NotificationSettingsScope::Group:
       return telegram_api::make_object<telegram_api::inputNotifyChats>();
+    case NotificationSettingsScope::Channel:
+      return telegram_api::make_object<telegram_api::inputNotifyBroadcasts>();
     default:
       return nullptr;
   }
@@ -98,6 +104,8 @@ NotificationSettingsScope get_notification_settings_scope(
       return NotificationSettingsScope::Private;
     case td_api::notificationSettingsScopeGroupChats::ID:
       return NotificationSettingsScope::Group;
+    case td_api::notificationSettingsScopeChannelChats::ID:
+      return NotificationSettingsScope::Channel;
     default:
       UNREACHABLE();
       return NotificationSettingsScope::Private;

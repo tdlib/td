@@ -883,7 +883,10 @@ class CliClient final : public Actor {
   }
 
   tl_object_ptr<td_api::NotificationSettingsScope> get_notification_settings_scope(Slice scope) const {
-    if (scope == "chats" || scope == "groups" || scope == "channels" || as_bool(scope.str())) {
+    if (scope == "channels" || scope == "ch") {
+      return make_tl_object<td_api::notificationSettingsScopeChannelChats>();
+    }
+    if (scope == "chats" || scope == "groups" || as_bool(scope.str())) {
       return make_tl_object<td_api::notificationSettingsScopeGroupChats>();
     }
     return make_tl_object<td_api::notificationSettingsScopePrivateChats>();

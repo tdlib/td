@@ -1521,6 +1521,9 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNotifySettings>
     case telegram_api::notifyChats::ID:
       return td_->messages_manager_->on_update_scope_notify_settings(NotificationSettingsScope::Group,
                                                                      std::move(update->notify_settings_));
+    case telegram_api::notifyBroadcasts::ID:
+      return td_->messages_manager_->on_update_scope_notify_settings(NotificationSettingsScope::Channel,
+                                                                     std::move(update->notify_settings_));
     default:
       UNREACHABLE();
   }

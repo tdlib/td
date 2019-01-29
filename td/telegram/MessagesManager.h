@@ -1778,7 +1778,7 @@ class MessagesManager : public Actor {
 
   std::pair<bool, int32> get_dialog_mute_until(DialogId dialog_id, const Dialog *d) const;
 
-  static NotificationSettingsScope get_dialog_notification_setting_scope(DialogId dialog_id);
+  NotificationSettingsScope get_dialog_notification_setting_scope(DialogId dialog_id) const;
 
   int32 get_scope_mute_until(DialogId dialog_id) const;
 
@@ -2214,6 +2214,7 @@ class MessagesManager : public Actor {
 
   ScopeNotificationSettings users_notification_settings_;
   ScopeNotificationSettings chats_notification_settings_;
+  ScopeNotificationSettings channels_notification_settings_;
 
   std::unordered_map<NotificationGroupId, DialogId, NotificationGroupIdHash> notification_group_id_to_dialog_id_;
 
