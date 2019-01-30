@@ -7,9 +7,13 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
+#include "td/telegram/Global.h"
+#include "td/telegram/FileReferenceManager.h"
+#include "td/telegram/FileReferenceManager.hpp"
 #include "td/telegram/files/FileEncryptionKey.h"
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileSourceId.h"
+#include "td/telegram/Td.h"
 
 #include "td/utils/common.h"
 #include "td/utils/format.h"
@@ -30,7 +34,7 @@ class FileData {
   string remote_name_;
   string url_;
   FileEncryptionKey encryption_key_;
-  std::vector<FileSourceId> sources_;
+  vector<FileSourceId> file_source_ids_;
 
   template <class StorerT>
   void store(StorerT &storer) const {
@@ -38,13 +42,12 @@ class FileData {
     bool has_owner_dialog_id = owner_dialog_id_.is_valid();
     bool has_expected_size = size_ == 0 && expected_size_ != 0;
     bool encryption_key_is_secure = encryption_key_.is_secure();
-    bool has_sources = !sources_.empty();
+    bool has_sources = !file_source_ids_.empty();
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_owner_dialog_id);
     STORE_FLAG(has_expected_size);
     STORE_FLAG(encryption_key_is_secure);
-    //TODO: uncomment
-    //STORE_FLAG(has_sources);
+    STORE_FLAG(has_sources);
     END_STORE_FLAGS();
 
     if (has_owner_dialog_id) {
@@ -64,8 +67,11 @@ class FileData {
     store(url_, storer);
     store(encryption_key_, storer);
     if (has_sources) {
-      // TODO: uncomment
-      // store(sources_, storer);
+      auto td = G()->td().get_actor_unsafe();
+      store(narrow_cast<int32>(file_source_ids_.size()), storer);
+      for (auto file_source_id : file_source_ids_) {
+        td->file_reference_manager_->store_file_source(file_source_id, storer);
+      }
     }
   }
   template <class ParserT>
@@ -105,8 +111,16 @@ class FileData {
     encryption_key_.parse(encryption_key_is_secure ? FileEncryptionKey::Type::Secure : FileEncryptionKey::Type::Secret,
                           parser);
     if (has_sources) {
-      //TODO: uncomment
-      // parse(sources_, parser);
+      auto td = G()->td().get_actor_unsafe();
+      int32 size;
+      parse(size, parser);
+      if (0 < size && size < 5) {
+        for (int i = 0; i < size; i++) {
+          file_source_ids_.push_back(td->file_reference_manager_->parse_file_source(td, parser));
+        }
+      } else {
+        parser.set_error("Wrong number of file source ids");
+      }
     }
   }
 };
@@ -127,7 +141,7 @@ inline StringBuilder &operator<<(StringBuilder &sb, const FileData &file_data) {
   if (file_data.remote_.type() == RemoteFileLocation::Type::Full) {
     sb << " remote " << file_data.remote_.full();
   }
-  sb << format::as_array(file_data.sources_);
+  sb << format::as_array(file_data.file_source_ids_);
   return sb << "]";
 }
 

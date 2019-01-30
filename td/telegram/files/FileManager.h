@@ -320,8 +320,23 @@ class FileManager : public FileLoadManager::Callback {
   class Context {
    public:
     virtual void on_new_file(int64 size, int32 cnt) = 0;
+
     virtual void on_file_updated(FileId size) = 0;
+
+    virtual bool add_file_source(FileId file_id, FileSourceId file_source_id) = 0;
+
+    virtual FileSourceId get_wallpapers_file_source_id() = 0;
+
+    virtual bool remove_file_source(FileId file_id, FileSourceId file_source_id) = 0;
+
+    virtual void on_merge_files(FileId to_file_id, FileId from_file_id) = 0;
+
+    virtual vector<FileSourceId> get_some_file_sources(FileId file_id) = 0;
+
+    virtual void repair_file_reference(FileId file_id, Promise<Unit> promise) = 0;
+
     virtual ActorShared<> create_reference() = 0;
+
     Context() = default;
     Context(const Context &) = delete;
     Context &operator=(const Context &) = delete;
@@ -509,7 +524,7 @@ class FileManager : public FileLoadManager::Callback {
   void try_flush_node_info(FileNodePtr node, const char *source);
   void try_flush_node_pmc(FileNodePtr node, const char *source);
   void clear_from_pmc(FileNodePtr node);
-  void flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local, bool new_generate);
+  void flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local, bool new_generate, const char *source);
   void load_from_pmc(FileNodePtr node, bool new_remote, bool new_local, bool new_generate);
 
   string get_persistent_id(const FullGenerateFileLocation &location);

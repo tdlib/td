@@ -4073,13 +4073,41 @@ Status Td::init(DbKey key) {
    public:
     explicit FileManagerContext(Td *td) : td_(td) {
     }
+
     void on_new_file(int64 size, int32 cnt) final {
       send_closure(G()->storage_manager(), &StorageManager::on_new_file, size, cnt);
     }
+
     void on_file_updated(FileId file_id) final {
       send_closure(G()->td(), &Td::send_update,
                    make_tl_object<td_api::updateFile>(td_->file_manager_->get_file_object(file_id)));
     }
+
+    bool add_file_source(FileId file_id, FileSourceId file_source_id) final {
+      return td_->file_reference_manager_->add_file_source(file_id, file_source_id);
+    }
+
+    FileSourceId get_wallpapers_file_source_id() final {
+      return td_->wallpaper_manager_->get_wallpapers_file_source_id();
+    }
+
+    bool remove_file_source(FileId file_id, FileSourceId file_source_id) final {
+      return td_->file_reference_manager_->remove_file_source(file_id, file_source_id);
+    }
+
+    void on_merge_files(FileId to_file_id, FileId from_file_id) final {
+      td_->file_reference_manager_->merge(to_file_id, from_file_id);
+    }
+
+    vector<FileSourceId> get_some_file_sources(FileId file_id) final {
+      return td_->file_reference_manager_->get_some_file_sources(file_id);
+    }
+
+    void repair_file_reference(FileId file_id, Promise<Unit> promise) final {
+      send_closure(G()->file_reference_manager(), &FileReferenceManager::repair_file_reference, file_id,
+                   std::move(promise));
+    }
+
     ActorShared<> create_reference() final {
       return td_->create_reference();
     }

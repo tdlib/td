@@ -1625,6 +1625,13 @@ void WebPagesManager::update_web_page(unique_ptr<WebPage> web_page, WebPageId we
   if (page != nullptr) {
     old_instant_view = std::move(page->instant_view);
     web_page->logevent_id = page->logevent_id;
+  } else {
+    auto it = url_to_file_source_id_.find(web_page->url);
+    if (it != url_to_file_source_id_.end()) {
+      VLOG(file_references) << "Move " << it->second << " inside of " << web_page_id;
+      web_page->file_source_id = it->second;
+      url_to_file_source_id_.erase(it);
+    }
   }
   page = std::move(web_page);
 
@@ -1632,11 +1639,7 @@ void WebPagesManager::update_web_page(unique_ptr<WebPage> web_page, WebPageId we
 
   auto new_file_ids = get_web_page_file_ids(page.get());
   if (old_file_ids != new_file_ids) {
-    if (!page->file_source_id.is_valid()) {
-      LOG(ERROR) << page->url;
-      page->file_source_id = td_->file_reference_manager_->create_web_page_file_source(page->url);
-    }
-    td_->file_manager_->change_files_source(page->file_source_id, old_file_ids, new_file_ids);
+    td_->file_manager_->change_files_source(get_web_page_file_source_id(page.get()), old_file_ids, new_file_ids);
   }
 
   on_get_web_page_by_url(page->url, web_page_id, from_database);
@@ -1976,11 +1979,7 @@ void WebPagesManager::on_load_web_page_instant_view_from_database(WebPageId web_
 
   auto new_file_ids = get_web_page_file_ids(web_page);
   if (old_file_ids != new_file_ids) {
-    if (!web_page->file_source_id.is_valid()) {
-      LOG(ERROR) << web_page->url;
-      web_page->file_source_id = td_->file_reference_manager_->create_web_page_file_source(web_page->url);
-    }
-    td_->file_manager_->change_files_source(web_page->file_source_id, old_file_ids, new_file_ids);
+    td_->file_manager_->change_files_source(get_web_page_file_source_id(web_page), old_file_ids, new_file_ids);
   }
 
   update_web_page_instant_view_load_requests(web_page_id, false, Unit());
@@ -2886,6 +2885,28 @@ const WebPagesManager::WebPage *WebPagesManager::get_web_page_force(WebPageId we
   on_load_web_page_from_database(web_page_id,
                                  G()->td_db()->get_sqlite_sync_pmc()->get(get_web_page_database_key(web_page_id)));
   return get_web_page(web_page_id);
+}
+
+FileSourceId WebPagesManager::get_web_page_file_source_id(WebPage *web_page) {
+  if (!web_page->file_source_id.is_valid()) {
+    web_page->file_source_id = td_->file_reference_manager_->create_web_page_file_source(web_page->url);
+  }
+  return web_page->file_source_id;
+}
+
+FileSourceId WebPagesManager::get_url_file_source_id(const string &url) {
+  auto web_page_id = get_web_page_by_url(url);
+  if (web_page_id.is_valid()) {
+    auto web_page = get_web_page(web_page_id);
+    if (web_page != nullptr) {
+      if (!web_page->file_source_id.is_valid()) {
+        web_pages_[web_page_id]->file_source_id =
+            td_->file_reference_manager_->create_web_page_file_source(web_page->url);
+      }
+      return web_page->file_source_id;
+    }
+  }
+  return url_to_file_source_id_[url] = td_->file_reference_manager_->create_web_page_file_source(url);
 }
 
 string WebPagesManager::get_web_page_search_text(WebPageId web_page_id) const {

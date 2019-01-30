@@ -26,6 +26,8 @@
 
 namespace td {
 
+class Td;
+
 extern int VERBOSITY_NAME(file_references);
 
 class FileReferenceManager : public Actor {
@@ -43,13 +45,19 @@ class FileReferenceManager : public Actor {
   using NodeId = FileId;
   void repair_file_reference(NodeId node_id, Promise<> promise);
 
-  void add_file_source(NodeId node_id, FileSourceId file_source_id);
+  bool add_file_source(NodeId node_id, FileSourceId file_source_id);
 
   std::vector<FileSourceId> get_some_file_sources(NodeId node_id);
 
-  void remove_file_source(NodeId node_id, FileSourceId file_source_id);
+  bool remove_file_source(NodeId node_id, FileSourceId file_source_id);
 
   void merge(NodeId to_node_id, NodeId from_node_id);
+
+  template <class StorerT>
+  void store_file_source(FileSourceId file_source_id, StorerT &storer) const;
+
+  template <class ParserT>
+  FileSourceId parse_file_source(Td *td, ParserT &parser);
 
  private:
   struct Destination {
@@ -94,6 +102,7 @@ class FileReferenceManager : public Actor {
     // empty
   };
 
+  // append only
   using FileSource = Variant<FileSourceMessage, FileSourceUserPhoto, FileSourceChatPhoto, FileSourceChannelPhoto,
                              FileSourceWallpapers, FileSourceWebPage, FileSourceSavedAnimations>;
   vector<FileSource> file_sources_;

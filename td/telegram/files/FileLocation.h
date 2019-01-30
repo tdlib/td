@@ -25,16 +25,17 @@
 #include <tuple>
 
 namespace td {
+
 class FileReferenceView {
  public:
   static Slice invalid_file_reference() {
     return "#";
   }
-  static std::string create_one(td::Slice first) {
-    char second_length = char(255);
-    return PSTRING() << second_length << first;
+  static std::string create_one(Slice first) {
+    unsigned char second_length = 255;
+    return PSTRING() << static_cast<char>(second_length) << first;
   }
-  static std::string create_two(td::Slice first, td::Slice second = {}) {
+  static std::string create_two(Slice first, Slice second = {}) {
     if (second.size() >= 255) {
       LOG(ERROR) << "File reference is too big " << base64_encode(second);
       second = invalid_file_reference();
@@ -42,7 +43,7 @@ class FileReferenceView {
     char second_length = narrow_cast<unsigned char>(second.size());
     return PSTRING() << second_length << first << second;
   }
-  std::string create(td::Slice first, td::Slice second) const {
+  std::string create(Slice first, Slice second) const {
     if (size() == 1) {
       return create_one(first);
     }
@@ -55,7 +56,6 @@ class FileReferenceView {
     }
 
     unsigned char second_size = data.ubegin()[0];
-
     if (second_size == 255) {
       first_ = data.substr(1);
       second_ = data.substr(1);

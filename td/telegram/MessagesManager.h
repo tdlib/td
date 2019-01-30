@@ -666,6 +666,8 @@ class MessagesManager : public Actor {
                                   vector<tl_object_ptr<telegram_api::User>> users,
                                   vector<tl_object_ptr<telegram_api::Chat>> chats);
 
+  FileSourceId get_message_file_source_id(FullMessageId full_message_id);
+
   struct MessageNotificationGroup {
     DialogId dialog_id;
     NotificationGroupType type = NotificationGroupType::Calls;
@@ -1846,8 +1848,6 @@ class MessagesManager : public Actor {
   bool delete_active_live_location(DialogId dialog_id, const Message *m);
 
   void save_active_live_locations();
-
-  FileSourceId get_message_file_source_id(FullMessageId full_message_id);
 
   void add_message_file_sources(DialogId dialog_id, const Message *m);
 

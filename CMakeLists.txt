@@ -483,6 +483,7 @@ set(TDLIB_SOURCE
   td/telegram/DocumentsManager.h
   td/telegram/DraftMessage.h
   td/telegram/FileReferenceManager.h
+  td/telegram/FileReferenceManager.hpp
   td/telegram/files/FileBitmask.h
   td/telegram/files/FileData.h
   td/telegram/files/FileDb.h
@@ -501,10 +502,10 @@ set(TDLIB_SOURCE
   td/telegram/files/FileLoadManager.h
   td/telegram/files/FileLocation.h
   td/telegram/files/FileManager.h
-  td/telegram/files/FileType.h
   td/telegram/files/FileSourceId.h
   td/telegram/files/FileStats.h
   td/telegram/files/FileStatsWorker.h
+  td/telegram/files/FileType.h
   td/telegram/files/FileUploader.h
   td/telegram/files/PartsManager.h
   td/telegram/files/ResourceManager.h

@@ -10,6 +10,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 
+#include <algorithm>
 #include <set>
 #include <utility>
 
@@ -20,34 +21,32 @@ class FastSetWithPosition {
  public:
   std::vector<T> get_some_elements() const {
     std::vector<T> res;
-    using std::prev;
-    using std::next;
-    res.reserve(5);
+    res.reserve(4);
     if (!checked_.empty()) {
-      res.push_back(*begin(checked_));
-      res.push_back(*prev(end(checked_)));
+      res.push_back(*checked_.begin());
+      res.push_back(*checked_.rbegin());
     }
     if (!not_checked_.empty()) {
-      res.push_back(*begin(not_checked_));
-      res.push_back(*prev(end(not_checked_)));
+      res.push_back(*not_checked_.begin());
+      res.push_back(*not_checked_.rbegin());
     }
     std::sort(res.begin(), res.end());
     res.erase(std::unique(res.begin(), res.end()), res.end());
     if (res.size() > 2) {
-      res.erase(next(res.begin()), prev(res.end()));
+      res.erase(res.begin() + 1, res.end() - 1);
     }
     return res;
   }
-  void add(T x) {
+
+  bool add(T x) {
     if (checked_.count(x) != 0) {
-      return;
+      return false;
     }
-    not_checked_.insert(x);
+    return not_checked_.insert(x).second;
   }
 
-  void remove(T x) {
-    checked_.erase(x);
-    not_checked_.erase(x);
+  bool remove(T x) {
+    return checked_.erase(x) != 0 || not_checked_.erase(x) != 0;
   }
 
   bool has_next() const {
@@ -118,33 +117,34 @@ class SetWithPosition {
     }
     return {};
   }
-  void add(T x) {
+
+  bool add(T x) {
     if (fast_) {
-      fast_->add(x);
-      return;
+      return fast_->add(x);
     }
     if (!has_value_) {
       value_ = x;
       has_value_ = true;
       is_checked_ = false;
-      return;
+      return true;
     }
     if (value_ == x) {
-      return;
+      return false;
     }
     make_fast();
-    fast_->add(x);
+    return fast_->add(x);
   }
 
-  void remove(T x) {
+  bool remove(T x) {
     if (fast_) {
-      fast_->remove(x);
-      return;
+      return fast_->remove(x);
     }
     if (has_value_ && value_ == x) {
       has_value_ = false;
       is_checked_ = false;
+      return true;
     }
+    return false;
   }
 
   bool has_next() const {

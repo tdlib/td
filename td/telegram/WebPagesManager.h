@@ -11,6 +11,7 @@
 
 #include "td/telegram/DialogId.h"
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/WebPageId.h"
@@ -77,6 +78,8 @@ class WebPagesManager : public Actor {
   SecretInputMedia get_secret_input_media(WebPageId web_page_id) const;
 
   void on_binlog_web_page_event(BinlogEvent &&event);
+
+  FileSourceId get_url_file_source_id(const string &url);
 
   string get_web_page_search_text(WebPageId web_page_id) const;
 
@@ -216,6 +219,8 @@ class WebPagesManager : public Actor {
 
   void tear_down() override;
 
+  FileSourceId get_web_page_file_source_id(WebPage *web_page);
+
   static vector<FileId> get_web_page_file_ids(const WebPage *web_page);
 
   Td *td_;
@@ -239,6 +244,8 @@ class WebPagesManager : public Actor {
   std::unordered_map<int64, WebPageId> got_web_page_previews_;
 
   std::unordered_map<string, WebPageId> url_to_web_page_id_;
+
+  std::unordered_map<string, FileSourceId> url_to_file_source_id_;
 
   MultiTimeout pending_web_pages_timeout_{"PendingWebPagesTimeout"};
 };

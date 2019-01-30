@@ -11660,6 +11660,7 @@ void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_i
   }
 
   for (auto &it : channel_message_ids) {
+    td_->contacts_manager_->have_channel_force(it.first);
     auto input_channel = td_->contacts_manager_->get_input_channel(it.first);
     if (input_channel == nullptr) {
       LOG(ERROR) << "Can't find info about " << it.first << " to get a message from it";
@@ -13733,8 +13734,10 @@ void MessagesManager::save_active_live_locations() {
 }
 
 FileSourceId MessagesManager::get_message_file_source_id(FullMessageId full_message_id) {
-  if (full_message_id.get_dialog_id().get_type() == DialogType::SecretChat ||
-      !full_message_id.get_message_id().is_server()) {
+  auto dialog_id = full_message_id.get_dialog_id();
+  auto message_id = full_message_id.get_message_id();
+  if (!dialog_id.is_valid() || !message_id.is_valid() || dialog_id.get_type() == DialogType::SecretChat ||
+      !message_id.is_server()) {
     return FileSourceId();
   }
 

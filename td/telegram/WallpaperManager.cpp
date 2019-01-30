@@ -117,10 +117,7 @@ void WallpaperManager::on_get_wallpapers(Result<vector<telegram_api::object_ptr<
   for (auto &wallpaper : wallpapers_) {
     append(new_file_ids, transform(wallpaper.sizes, [](auto &size) { return size.file_id; }));
   };
-  if (!wallpaper_source_id_.is_valid()) {
-    wallpaper_source_id_ = td_->file_reference_manager_->create_wallpapers_file_source();
-  }
-  td_->file_manager_->change_files_source(wallpaper_source_id_, wallpaper_file_ids_, new_file_ids);
+  td_->file_manager_->change_files_source(get_wallpapers_file_source_id(), wallpaper_file_ids_, new_file_ids);
   wallpaper_file_ids_ = std::move(new_file_ids);
 
   for (auto &promise : promises) {
@@ -128,11 +125,11 @@ void WallpaperManager::on_get_wallpapers(Result<vector<telegram_api::object_ptr<
   }
 }
 
-void WallpaperManager::add_wallpapers_file_source(FileId file_id) {
+FileSourceId WallpaperManager::get_wallpapers_file_source_id() {
   if (!wallpaper_source_id_.is_valid()) {
     wallpaper_source_id_ = td_->file_reference_manager_->create_wallpapers_file_source();
   }
-  td_->file_manager_->add_file_source(file_id, wallpaper_source_id_);
+  return wallpaper_source_id_;
 }
 
 td_api::object_ptr<td_api::wallpapers> WallpaperManager::get_wallpapers_object() const {

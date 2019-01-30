@@ -9,7 +9,6 @@
 #include "td/telegram/telegram_api.h"
 
 #include "td/telegram/ConfigShared.h"
-#include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/files/FileData.h"
 #include "td/telegram/files/FileDb.h"
 #include "td/telegram/files/FileLoaderUtils.h"
@@ -18,7 +17,6 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/SecureStorage.h"
 #include "td/telegram/TdDb.h"
-#include "td/telegram/WallpaperManager.h"
 
 #include "td/utils/base64.h"
 #include "td/utils/format.h"
@@ -299,8 +297,9 @@ bool FileNode::need_pmc_flush() const {
     has_generate_location = false;
   }
 
-  if (remote_.type() == RemoteFileLocation::Type::Full &&
-      (has_generate_location || local_.type() != LocalFileLocation::Type::Empty)) {
+  if (remote_.type() == RemoteFileLocation::Type::Full/* &&
+      (has_generate_location || local_.type() != LocalFileLocation::Type::Empty)*/) {
+    // we need to always save file sources
     return true;
   }
   if (local_.type() == LocalFileLocation::Type::Full &&
@@ -969,6 +968,12 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
   try_flush_node(get_file_node(file_id), "register_file");
   auto main_file_id = get_file_node(file_id)->main_file_id_;
   try_forget_file_id(file_id);
+  for (auto file_source_id : data.file_source_ids_) {
+    VLOG(file_references) << "Loaded " << data.file_source_ids_ << " for file " << main_file_id << " from " << source;
+    if (file_source_id.is_valid()) {
+      context_->add_file_source(main_file_id, file_source_id);
+    }
+  }
   return FileId(main_file_id.get(), remote_key);
 }
 
@@ -1300,13 +1305,11 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   node->can_search_locally_ &= other_node->can_search_locally_;
 
   if (main_file_id_i == other_node_i) {
-    send_closure(G()->file_reference_manager(), &FileReferenceManager::merge, other_node->main_file_id_,
-                 node->main_file_id_);
+    context_->on_merge_files(other_node->main_file_id_, node->main_file_id_);
     node->main_file_id_ = other_node->main_file_id_;
     node->main_file_id_priority_ = other_node->main_file_id_priority_;
   } else {
-    send_closure(G()->file_reference_manager(), &FileReferenceManager::merge, node->main_file_id_,
-                 other_node->main_file_id_);
+    context_->on_merge_files(node->main_file_id_, other_node->main_file_id_);
   }
 
   bool send_updates_flag = false;
@@ -1369,10 +1372,10 @@ void FileManager::add_file_source(FileId file_id, FileSourceId file_source_id) {
   }
 
   CHECK(file_source_id.is_valid());
-  send_closure(G()->file_reference_manager(), &FileReferenceManager::add_file_source, node->main_file_id_,
-               file_source_id);
-  node->on_pmc_changed();
-  try_flush_node_pmc(node, "add_file_source");
+  if (context_->add_file_source(node->main_file_id_, file_source_id)) {
+    node->on_pmc_changed();
+    try_flush_node_pmc(node, "add_file_source");
+  }
 }
 
 void FileManager::remove_file_source(FileId file_id, FileSourceId file_source_id) {
@@ -1382,10 +1385,10 @@ void FileManager::remove_file_source(FileId file_id, FileSourceId file_source_id
   }
 
   CHECK(file_source_id.is_valid());
-  send_closure(G()->file_reference_manager(), &FileReferenceManager::remove_file_source, node->main_file_id_,
-               file_source_id);
-  node->on_pmc_changed();
-  try_flush_node_pmc(node, "remove_file_source");
+  if (context_->remove_file_source(node->main_file_id_, file_source_id)) {
+    node->on_pmc_changed();
+    try_flush_node_pmc(node, "remove_file_source");
+  }
 }
 
 void FileManager::change_files_source(FileSourceId file_source_id, const vector<FileId> &old_file_ids,
@@ -1426,7 +1429,7 @@ void FileManager::try_flush_node_full(FileNodePtr node, bool new_remote, bool ne
   if (node->need_pmc_flush()) {
     if (file_db_) {
       load_from_pmc(node, true, true, true);
-      flush_to_pmc(node, new_remote, new_local, new_generate);
+      flush_to_pmc(node, new_remote, new_local, new_generate, "try_flush_node_full");
       if (other_pmc_id.is_valid() && node->pmc_id_ != other_pmc_id) {
         file_db_->set_file_data_ref(other_pmc_id, node->pmc_id_);
       }
@@ -1446,7 +1449,7 @@ void FileManager::try_flush_node_pmc(FileNodePtr node, const char *source) {
   if (node->need_pmc_flush()) {
     if (file_db_) {
       load_from_pmc(node, true, true, true);
-      flush_to_pmc(node, false, false, false);
+      flush_to_pmc(node, false, false, false, source);
     }
     node->on_pmc_flushed();
   }
@@ -1489,7 +1492,8 @@ void FileManager::clear_from_pmc(FileNodePtr node) {
   node->pmc_id_ = FileDbId();
 }
 
-void FileManager::flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local, bool new_generate) {
+void FileManager::flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local, bool new_generate,
+                               const char *source) {
   if (!file_db_) {
     return;
   }
@@ -1526,7 +1530,9 @@ void FileManager::flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local
   data.encryption_key_ = node->encryption_key_;
   data.url_ = node->url_;
   data.owner_dialog_id_ = node->owner_dialog_id_;
-  data.sources_ = G()->file_reference_manager().get_actor_unsafe()->get_some_file_sources(view.file_id());
+  data.file_source_ids_ = context_->get_some_file_sources(view.file_id());
+  VLOG(file_references) << "Save " << data.file_source_ids_ << " to database for file " << view.file_id() << " from "
+                        << source;
 
   file_db_->set_file_data(node->pmc_id_, data, (create_flag || new_remote), (create_flag || new_local),
                           (create_flag || new_generate));
@@ -1822,18 +1828,18 @@ void FileManager::run_download(FileNodePtr node) {
     }
     node->download_was_update_file_reference_ = true;
 
-    send_closure(G()->file_reference_manager(), &FileReferenceManager::repair_file_reference, file_id,
-                 PromiseCreator::lambda([id, actor_id = actor_id(this), file_id](Result<Unit> res) {
-                   Status error;
-                   if (res.is_ok()) {
-                     error = Status::Error("FILE_DOWNLOAD_RESTART_WITH_FILE_REFERENCE");
-                   } else {
-                     error = res.move_as_error();
-                   }
-                   VLOG(file_references) << "run_download: Got result from FileSourceManager for file " << file_id
-                                         << ": " << error;
-                   send_closure(actor_id, &FileManager::on_error, id, std::move(error));
-                 }));
+    context_->repair_file_reference(
+        file_id, PromiseCreator::lambda([id, actor_id = actor_id(this), file_id](Result<Unit> res) {
+          Status error;
+          if (res.is_ok()) {
+            error = Status::Error("FILE_DOWNLOAD_RESTART_WITH_FILE_REFERENCE");
+          } else {
+            error = res.move_as_error();
+          }
+          VLOG(file_references) << "run_download: Got result from FileSourceManager for file " << file_id << ": "
+                                << error;
+          send_closure(actor_id, &FileManager::on_error, id, std::move(error));
+        }));
     return;
   }
 
@@ -2105,11 +2111,10 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
     node->upload_id_ = id;
     node->upload_was_update_file_reference_ = true;
 
-    send_closure(G()->file_reference_manager(), &FileReferenceManager::repair_file_reference, file_id,
-                 PromiseCreator::lambda([id, actor_id = actor_id(this)](Result<Unit> res) {
-                   send_closure(actor_id, &FileManager::on_error, id,
-                                Status::Error("FILE_UPLOAD_RESTART_WITH_FILE_REFERENCE"));
-                 }));
+    context_->repair_file_reference(file_id, PromiseCreator::lambda([id, actor_id = actor_id(this)](Result<Unit> res) {
+                                      send_closure(actor_id, &FileManager::on_error, id,
+                                                   Status::Error("FILE_UPLOAD_RESTART_WITH_FILE_REFERENCE"));
+                                    }));
     return;
   }
 
@@ -2232,7 +2237,7 @@ Result<FileId> FileManager::from_persistent_id_v2(Slice binary, FileType file_ty
   auto file_id =
       register_file(std::move(data), FileLocationSource::FromUser, "from_persistent_id_v2", false).move_as_ok();
   if (real_file_type == FileType::Wallpaper && file_id.is_valid()) {
-    send_closure(G()->wallpaper_manager(), &WallpaperManager::add_wallpapers_file_source, file_id);
+    add_file_source(file_id, context_->get_wallpapers_file_source_id());
   }
   return file_id;
 }

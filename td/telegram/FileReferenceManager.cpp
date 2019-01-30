@@ -83,14 +83,14 @@ FileSourceId FileReferenceManager::create_saved_animations_file_source() {
   return add_file_source_id(source, "saved animations");
 }
 
-void FileReferenceManager::add_file_source(NodeId node_id, FileSourceId file_source_id) {
+bool FileReferenceManager::add_file_source(NodeId node_id, FileSourceId file_source_id) {
   VLOG(file_references) << "Add " << file_source_id << " for file " << node_id;
-  nodes_[node_id].file_source_ids.add(file_source_id);
+  return nodes_[node_id].file_source_ids.add(file_source_id);
 }
 
-void FileReferenceManager::remove_file_source(NodeId node_id, FileSourceId file_source_id) {
+bool FileReferenceManager::remove_file_source(NodeId node_id, FileSourceId file_source_id) {
   VLOG(file_references) << "Remove " << file_source_id << " from file " << node_id;
-  nodes_[node_id].file_source_ids.remove(file_source_id);
+  return nodes_[node_id].file_source_ids.remove(file_source_id);
 }
 
 std::vector<FileSourceId> FileReferenceManager::get_some_file_sources(NodeId node_id) {
@@ -276,7 +276,7 @@ void FileReferenceManager::repair_file_reference(NodeId node_id, Promise<> promi
     node.query = make_unique<Query>();
     node.query->generation = ++query_generation_;
     node.file_source_ids.reset_position();
-    VLOG(file_references) << "Create new file reference repair query with " << query_generation_;
+    VLOG(file_references) << "Create new file reference repair query with generation " << query_generation_;
   }
   node.query->promises.push_back(std::move(promise));
   run_node(node_id);

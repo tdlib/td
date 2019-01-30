@@ -49,6 +49,7 @@
 #include "td/utils/tl_helpers.h"
 
 #include <algorithm>
+#include <functional>
 #include <limits>
 #include <tuple>
 #include <utility>
@@ -6915,7 +6916,15 @@ void ContactsManager::do_update_user_photo(User *u, UserId user_id,
 
 void ContactsManager::add_user_photo_id(User *u, UserId user_id, int64 photo_id, const vector<FileId> &photo_file_ids) {
   if (photo_id > 0 && !photo_file_ids.empty() && u->photo_ids.insert(photo_id).second) {
-    auto file_source_id = td_->file_reference_manager_->create_user_photo_file_source(user_id, photo_id);
+    FileSourceId file_source_id;
+    auto it = user_profile_photo_file_source_ids_.find(std::make_pair(user_id, photo_id));
+    if (it != user_profile_photo_file_source_ids_.end()) {
+      VLOG(file_references) << "Move " << it->second << " inside of " << user_id;
+      file_source_id = it->second;
+      user_profile_photo_file_source_ids_.erase(it);
+    } else {
+      file_source_id = td_->file_reference_manager_->create_user_photo_file_source(user_id, photo_id);
+    }
     for (auto &file_id : photo_file_ids) {
       td_->file_manager_->add_file_source(file_id, file_source_id);
     }
@@ -8548,6 +8557,7 @@ std::pair<int32, vector<const Photo *>> ContactsManager::get_user_profile_photos
 }
 
 void ContactsManager::reload_user_profile_photo(UserId user_id, int64 photo_id, Promise<Unit> &&promise) {
+  get_user_force(user_id);
   auto input_user = get_input_user(user_id);
   if (input_user == nullptr) {
     return promise.set_error(Status::Error(6, "User info not found"));
@@ -8556,6 +8566,22 @@ void ContactsManager::reload_user_profile_photo(UserId user_id, int64 photo_id, 
   // this request will be needed only to download the photo,
   // so there is no reason to combine different requests for a photo into one request
   td_->create_handler<GetUserPhotosQuery>(std::move(promise))->send(user_id, std::move(input_user), -1, 1, photo_id);
+}
+
+FileSourceId ContactsManager::get_user_profile_photo_file_source_id(UserId user_id, int64 photo_id) {
+  auto u = get_user(user_id);
+  if (u != nullptr && u->photo_ids.count(photo_id) != 0) {
+    VLOG(file_references) << "Don't need to create file source for photo " << photo_id << " of " << user_id;
+    // photo was already added, source id was registered and shouldn't be needed
+    return FileSourceId();
+  }
+
+  auto &source_id = user_profile_photo_file_source_ids_[std::make_pair(user_id, photo_id)];
+  if (!source_id.is_valid()) {
+    source_id = td_->file_reference_manager_->create_user_photo_file_source(user_id, photo_id);
+  }
+  VLOG(file_references) << "Return " << source_id << " for photo " << photo_id << " of " << user_id;
+  return source_id;
 }
 
 bool ContactsManager::have_chat(ChatId chat_id) const {
@@ -8581,8 +8607,20 @@ ContactsManager::Chat *ContactsManager::get_chat(ChatId chat_id) {
 }
 
 ContactsManager::Chat *ContactsManager::add_chat(ChatId chat_id) {
+  auto c = get_chat(chat_id);
+  if (c != nullptr) {
+    return c;
+  }
+
   CHECK(chat_id.is_valid());
-  return &chats_[chat_id];
+  c = &chats_[chat_id];
+  auto it = chat_photo_file_source_ids_.find(chat_id);
+  if (it != chat_photo_file_source_ids_.end()) {
+    VLOG(file_references) << "Move " << it->second << " inside of " << chat_id;
+    c->photo_source_id = it->second;
+    chat_photo_file_source_ids_.erase(it);
+  }
+  return c;
 }
 
 bool ContactsManager::get_chat(ChatId chat_id, int left_tries, Promise<Unit> &&promise) {
@@ -8771,6 +8809,15 @@ bool ContactsManager::is_appointed_chat_administrator(ChatId chat_id) const {
   }
 }
 
+FileSourceId ContactsManager::get_chat_photo_file_source_id(ChatId chat_id) {
+  auto c = get_chat(chat_id);
+  auto &source_id = c == nullptr ? chat_photo_file_source_ids_[chat_id] : c->photo_source_id;
+  if (!source_id.is_valid()) {
+    source_id = td_->file_reference_manager_->create_chat_photo_file_source(chat_id);
+  }
+  return source_id;
+}
+
 ChannelType ContactsManager::get_channel_type(ChannelId channel_id) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
@@ -8819,6 +8866,15 @@ bool ContactsManager::get_channel_sign_messages(const Channel *c) {
   return c->sign_messages;
 }
 
+FileSourceId ContactsManager::get_channel_photo_file_source_id(ChannelId channel_id) {
+  auto c = get_channel(channel_id);
+  auto &source_id = c == nullptr ? channel_photo_file_source_ids_[channel_id] : c->photo_source_id;
+  if (!source_id.is_valid()) {
+    source_id = td_->file_reference_manager_->create_channel_photo_file_source(channel_id);
+  }
+  return source_id;
+}
+
 bool ContactsManager::have_channel(ChannelId channel_id) const {
   return channels_.count(channel_id) > 0;
 }
@@ -8846,11 +8902,20 @@ ContactsManager::Channel *ContactsManager::get_channel(ChannelId channel_id) {
 }
 
 ContactsManager::Channel *ContactsManager::add_channel(ChannelId channel_id, const char *source) {
-  CHECK(channel_id.is_valid());
-  Channel *c = &channels_[channel_id];
-  if (c->debug_source == nullptr) {
-    c->debug_source = source;
+  auto c = get_channel(channel_id);
+  if (c != nullptr) {
+    return c;
   }
+
+  CHECK(channel_id.is_valid());
+  c = &channels_[channel_id];
+  auto it = channel_photo_file_source_ids_.find(channel_id);
+  if (it != channel_photo_file_source_ids_.end()) {
+    VLOG(file_references) << "Move " << it->second << " inside of " << channel_id;
+    c->photo_source_id = it->second;
+    channel_photo_file_source_ids_.erase(it);
+  }
+  c->debug_source = source;
   return c;
 }
 
@@ -8885,6 +8950,7 @@ void ContactsManager::reload_channel(ChannelId channel_id, Promise<Unit> &&promi
     return promise.set_error(Status::Error(6, "Invalid supergroup id"));
   }
 
+  have_channel_force(channel_id);
   auto input_channel = get_input_channel(channel_id);
   if (input_channel == nullptr) {
     return promise.set_error(Status::Error(6, "Supergroup info not found"));

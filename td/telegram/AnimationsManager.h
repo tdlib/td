@@ -68,6 +68,8 @@ class AnimationsManager : public Actor {
 
   vector<FileId> get_saved_animations(Promise<Unit> &&promise);
 
+  FileSourceId get_saved_animations_file_source_id();
+
   void send_save_gif_query(FileId animation_id, bool unsave, Promise<Unit> &&promise);
 
   void add_saved_animation(const tl_object_ptr<td_api::InputFile> &input_file, Promise<Unit> &&promise);

@@ -31,7 +31,7 @@ class WallpaperManager : public Actor {
 
   td_api::object_ptr<td_api::wallpapers> get_wallpapers_object() const;
 
-  void add_wallpapers_file_source(FileId file_id);
+  FileSourceId get_wallpapers_file_source_id();
 
  private:
   void tear_down() override;

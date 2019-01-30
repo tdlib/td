@@ -753,10 +753,7 @@ void AnimationsManager::send_update_saved_animations(bool from_database) {
     }
     std::sort(new_saved_animation_file_ids.begin(), new_saved_animation_file_ids.end());
     if (new_saved_animation_file_ids != saved_animation_file_ids_) {
-      if (!saved_animations_file_source_id_.is_valid()) {
-        saved_animations_file_source_id_ = td_->file_reference_manager_->create_saved_animations_file_source();
-      }
-      td_->file_manager_->change_files_source(saved_animations_file_source_id_, saved_animation_file_ids_,
+      td_->file_manager_->change_files_source(get_saved_animations_file_source_id(), saved_animation_file_ids_,
                                               new_saved_animation_file_ids);
       saved_animation_file_ids_ = std::move(new_saved_animation_file_ids);
     }
@@ -775,6 +772,13 @@ void AnimationsManager::save_saved_animations_to_database() {
     AnimationListLogEvent log_event(saved_animation_ids_);
     G()->td_db()->get_sqlite_pmc()->set("ans", log_event_store(log_event).as_slice().str(), Auto());
   }
+}
+
+FileSourceId AnimationsManager::get_saved_animations_file_source_id() {
+  if (!saved_animations_file_source_id_.is_valid()) {
+    saved_animations_file_source_id_ = td_->file_reference_manager_->create_saved_animations_file_source();
+  }
+  return saved_animations_file_source_id_;
 }
 
 string AnimationsManager::get_animation_search_text(FileId file_id) const {
