@@ -6923,6 +6923,7 @@ void ContactsManager::add_user_photo_id(User *u, UserId user_id, int64 photo_id,
       file_source_id = it->second;
       user_profile_photo_file_source_ids_.erase(it);
     } else {
+      VLOG(file_references) << "Need to create new file source for " << photo_id << " of " << user_id;
       file_source_id = td_->file_reference_manager_->create_user_photo_file_source(user_id, photo_id);
     }
     for (auto &file_id : photo_file_ids) {

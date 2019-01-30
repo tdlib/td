@@ -162,7 +162,11 @@ void FileNode::set_remote_location(const RemoteFileLocation &remote, FileLocatio
 }
 
 bool FileNode::delete_file_reference(Slice file_reference) {
-  if (remote_.type() == RemoteFileLocation::Type::Full && remote_.full().delete_file_reference(file_reference)) {
+  if (remote_.type() != RemoteFileLocation::Type::Full) {
+    return false;
+  }
+
+  if (remote_.full().delete_file_reference(file_reference)) {
     VLOG(file_references) << "Do delete file reference of main file " << main_file_id_;
     upload_was_update_file_reference_ = false;
     download_was_update_file_reference_ = false;
@@ -1531,7 +1535,7 @@ void FileManager::flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local
   data.url_ = node->url_;
   data.owner_dialog_id_ = node->owner_dialog_id_;
   data.file_source_ids_ = context_->get_some_file_sources(view.file_id());
-  VLOG(file_references) << "Save " << data.file_source_ids_ << " to database for file " << view.file_id() << " from "
+  VLOG(file_references) << "Save file " << view.file_id() << " to database with " << data.file_source_ids_ << " from "
                         << source;
 
   file_db_->set_file_data(node->pmc_id_, data, (create_flag || new_remote), (create_flag || new_local),
@@ -1950,6 +1954,15 @@ void FileManager::delete_file_reference(FileId file_id, string file_reference) {
     return;
   }
   node->delete_file_reference(file_reference);
+  auto remote = get_remote(file_id.get_remote());
+  if (remote != nullptr) {
+    VLOG(file_references) << "Do delete file reference of remote file " << file_id;
+    if (remote->delete_file_reference(file_reference)) {
+      node->upload_was_update_file_reference_ = false;
+      node->download_was_update_file_reference_ = false;
+      node->on_pmc_changed();
+    }
+  }
   try_flush_node_pmc(node, "delete_file_reference");
 }
 

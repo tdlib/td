@@ -2122,7 +2122,7 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
   }
   if (!was_uploaded) {
     auto file_reference = FileManager::extract_file_reference(input_media);
-    if (file_reference == FileReferenceView::invalid_file_reference()) {
+    if (!FileReferenceView(file_reference).has_upload()) {
       return nullptr;
     }
   }
@@ -2132,7 +2132,7 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
 tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td, int32 ttl) {
   auto input_media = get_input_media(content, td, nullptr, nullptr, ttl);
   auto file_reference = FileManager::extract_file_reference(input_media);
-  if (file_reference == FileReferenceView::invalid_file_reference()) {
+  if (!FileReferenceView(file_reference).has_upload()) {
     return nullptr;
   }
   return input_media;

@@ -481,9 +481,6 @@ Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::photo> &&
   res.date = photo->date_;
   res.has_stickers = (photo->flags_ & telegram_api::photo::HAS_STICKERS_MASK) != 0;
 
-  auto file_reference = photo->file_reference_.as_slice().str();
-  // TODO use file_reference
-
   for (auto &size_ptr : photo->sizes_) {
     res.photos.push_back(get_photo_size(file_manager, FileType::Photo, photo->id_, photo->access_hash_,
                                         photo->file_reference_.as_slice().str(), owner_dialog_id, std::move(size_ptr),
