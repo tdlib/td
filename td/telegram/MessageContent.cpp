@@ -2122,7 +2122,7 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
   }
   if (!was_uploaded) {
     auto file_reference = FileManager::extract_file_reference(input_media);
-    if (file_reference == FullRemoteFileLocation::invalid_file_reference()) {
+    if (file_reference == FileReferenceView::invalid_file_reference()) {
       return nullptr;
     }
   }
@@ -2132,7 +2132,7 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
 tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td, int32 ttl) {
   auto input_media = get_input_media(content, td, nullptr, nullptr, ttl);
   auto file_reference = FileManager::extract_file_reference(input_media);
-  if (file_reference == FullRemoteFileLocation::invalid_file_reference()) {
+  if (file_reference == FileReferenceView::invalid_file_reference()) {
     return nullptr;
   }
   return input_media;
@@ -2788,7 +2788,8 @@ void merge_message_contents(Td *td, MessageContent *old_content, MessageContent 
             FileId file_id = td->file_manager_->register_remote(
                 FullRemoteFileLocation(FileType::Photo, new_file_view.remote_location().get_id(),
                                        new_file_view.remote_location().get_access_hash(), 0, 0, 0, DcId::invalid(),
-                                       new_file_view.remote_location().get_file_reference()),
+                                       new_file_view.remote_location().get_upload_file_reference().str(),
+                                       new_file_view.remote_location().get_download_file_reference().str()),
                 FileLocationSource::FromServer, dialog_id, old_photo->photos.back().size, 0, "");
             LOG_STATUS(td->file_manager_->merge(file_id, old_file_id));
           }

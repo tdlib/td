@@ -83,7 +83,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogPhoto &dial
 PhotoSize get_thumbnail_photo_size(FileManager *file_manager, BufferSlice bytes, DialogId owner_dialog_id, int32 width,
                                    int32 height);
 PhotoSize get_photo_size(FileManager *file_manager, FileType file_type, int64 id, int64 access_hash,
-                         DialogId owner_dialog_id, tl_object_ptr<telegram_api::PhotoSize> &&size_ptr, bool is_webp);
+                         std::string upload_file_reference, DialogId owner_dialog_id,
+                         tl_object_ptr<telegram_api::PhotoSize> &&size_ptr, bool is_webp);
 PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_type, DialogId owner_dialog_id,
                                       tl_object_ptr<telegram_api::WebDocument> web_document_ptr);
 td_api::object_ptr<td_api::photoSize> get_photo_size_object(FileManager *file_manager, const PhotoSize *photo_size);

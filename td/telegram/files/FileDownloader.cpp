@@ -274,8 +274,8 @@ Status FileDownloader::check_net_query(NetQueryPtr &net_query) {
   if (net_query->is_error()) {
     auto error = net_query->move_as_error();
     if (FileReferenceManager::is_file_reference_error(error)) {
-      error = Status::Error(error.code(),
-                            PSLICE() << error.message() << "#BASE64" << base64_encode(remote_.get_file_reference()));
+      error = Status::Error(error.code(), PSLICE() << error.message() << "#BASE64"
+                                                   << base64_encode(remote_.get_download_file_reference()));
     }
     return error;
   }

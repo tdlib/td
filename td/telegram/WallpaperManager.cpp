@@ -97,10 +97,11 @@ void WallpaperManager::on_get_wallpapers(Result<vector<telegram_api::object_ptr<
     switch (wallpaper_ptr->get_id()) {
       case telegram_api::wallPaper::ID: {
         auto wallpaper = move_tl_object_as<telegram_api::wallPaper>(wallpaper_ptr);
-        vector<PhotoSize> sizes = transform(
-            std::move(wallpaper->sizes_), [file_manager](tl_object_ptr<telegram_api::PhotoSize> &&photo_size) {
-              return get_photo_size(file_manager, FileType::Wallpaper, 0, 0, DialogId(), std::move(photo_size), false);
-            });
+        vector<PhotoSize> sizes = transform(std::move(wallpaper->sizes_),
+                                            [file_manager](tl_object_ptr<telegram_api::PhotoSize> &&photo_size) {
+                                              return get_photo_size(file_manager, FileType::Wallpaper, 0, 0, "",
+                                                                    DialogId(), std::move(photo_size), false);
+                                            });
         return Wallpaper{wallpaper->id_, std::move(sizes), wallpaper->color_};
       }
       case telegram_api::wallPaperSolid::ID: {

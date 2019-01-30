@@ -208,7 +208,7 @@ std::pair<DocumentsManager::DocumentType, FileId> DocumentsManager::on_get_docum
     file_reference = document->file_reference_.as_slice().str();
 
     if (document_type != DocumentType::VoiceNote) {
-      thumbnail = get_photo_size(td_->file_manager_.get(), FileType::Thumbnail, 0, 0, owner_dialog_id,
+      thumbnail = get_photo_size(td_->file_manager_.get(), FileType::Thumbnail, 0, 0, "", owner_dialog_id,
                                  std::move(document->thumb_), has_webp_thumbnail);
     }
   } else if (remote_document.secret_file != nullptr) {

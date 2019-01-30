@@ -190,7 +190,8 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
                                new_promise = std::move(new_promise)]() mutable {
       auto view = file_manager.get_actor_unsafe()->get_file_view(dest.node_id);
       CHECK(!view.empty());
-      if (result.is_ok() && !view.has_active_remote_location()) {
+      if (result.is_ok() &&
+          (!view.has_active_upload_remote_location() || !view.has_active_download_remote_location())) {
         result = Status::Error("No active remote location");
       }
       if (result.is_error() && result.error().code() != 429 && result.error().code() < 500) {

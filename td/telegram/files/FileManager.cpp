@@ -148,7 +148,7 @@ void FileNode::set_remote_location(const RemoteFileLocation &remote, FileLocatio
   if (remote_ == remote) {
     if (remote_.type() == RemoteFileLocation::Type::Full) {
       if (remote_.full().get_access_hash() != remote.full().get_access_hash() ||
-          remote_.full().get_file_reference() != remote.full().get_file_reference()) {
+          remote_.full().get_raw_file_reference() != remote.full().get_raw_file_reference()) {
         remote_ = remote;
         remote_source_ = source;
         on_pmc_changed();
@@ -352,14 +352,24 @@ bool FileView::has_remote_location() const {
   return node_->remote_.type() == RemoteFileLocation::Type::Full;
 }
 
-bool FileView::has_active_remote_location() const {
+bool FileView::has_active_upload_remote_location() const {
   if (!has_remote_location()) {
     return false;
   }
   if (remote_location().is_encrypted_any()) {
     return true;
   }
-  return remote_location().has_file_reference();
+  return remote_location().has_upload_file_reference();
+}
+
+bool FileView::has_active_download_remote_location() const {
+  if (!has_remote_location()) {
+    return false;
+  }
+  if (remote_location().is_encrypted_any()) {
+    return true;
+  }
+  return remote_location().has_download_file_reference();
 }
 
 const FullRemoteFileLocation &FileView::remote_location() const {
@@ -986,13 +996,13 @@ static int merge_choose_remote_location(const RemoteFileLocation &x, int8 x_sour
     if (x.full().is_web() != y.full().is_web()) {
       return x.full().is_web();  // prefer non-web
     }
-    auto x_ref = x.full().has_file_reference();
-    auto y_ref = y.full().has_file_reference();
+    auto x_ref = x.full().has_any_file_reference();
+    auto y_ref = y.full().has_any_file_reference();
     if (x_ref || y_ref) {
       if (x_ref != y_ref) {
         return !x_ref;
       }
-      if (x.full().get_file_reference() != y.full().get_file_reference()) {
+      if (x.full().get_raw_file_reference() != y.full().get_raw_file_reference()) {
         return x_source < y_source;
       }
     }
@@ -1799,7 +1809,7 @@ void FileManager::run_download(FileNodePtr node) {
   auto file_id = node->main_file_id_;
 
   // If file reference is needed
-  if (!file_view.has_active_remote_location()) {
+  if (!file_view.has_active_download_remote_location()) {
     VLOG(file_references) << "run_download: Do not have valid file_reference for file " << file_id;
     QueryId id = queries_container_.create(Query{file_id, Query::DownloadWaitFileReferece});
     node->download_id_ = id;
@@ -1850,8 +1860,8 @@ void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std:
     node->set_upload_pause(FileId());
   }
   FileView file_view(node);
-  if (file_view.has_active_remote_location() && file_view.get_type() != FileType::Thumbnail &&
-      file_view.get_type() != FileType::EncryptedThumbnail && file_view.get_type() != FileType::Photo) {
+  if (file_view.has_active_upload_remote_location() && file_view.get_type() != FileType::Thumbnail &&
+      file_view.get_type() != FileType::EncryptedThumbnail) {
     LOG(INFO) << "File " << file_id << " is already uploaded";
     if (callback) {
       callback->on_upload_ok(file_id, nullptr);
@@ -2085,9 +2095,9 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
   }
 
   CHECK(node->upload_id_ == 0);
-  if (file_view.has_remote_location() && !file_view.has_active_remote_location() &&
-      file_view.get_type() != FileType::Photo && file_view.get_type() != FileType::Thumbnail &&
-      file_view.get_type() != FileType::EncryptedThumbnail && !node->upload_was_update_file_reference_) {
+  if (file_view.has_remote_location() && !file_view.has_active_upload_remote_location() &&
+      file_view.get_type() != FileType::Thumbnail && file_view.get_type() != FileType::EncryptedThumbnail &&
+      !node->upload_was_update_file_reference_) {
     QueryId id = queries_container_.create(Query{file_id, Query::UploadWaitFileReference});
     node->upload_id_ = id;
     node->upload_was_update_file_reference_ = true;

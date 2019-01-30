@@ -1069,7 +1069,7 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<
                              document->file_reference_.as_slice().str()),
       FileLocationSource::FromServer, DialogId(), document->size_, 0, PSTRING() << document_id << ".webp");
 
-  PhotoSize thumbnail = get_photo_size(td_->file_manager_.get(), FileType::Thumbnail, 0, 0, DialogId(),
+  PhotoSize thumbnail = get_photo_size(td_->file_manager_.get(), FileType::Thumbnail, 0, 0, "", DialogId(),
                                        std::move(document->thumb_), has_webp_thumbnail(sticker));
 
   create_sticker(sticker_id, std::move(thumbnail), dimensions, from_message, std::move(sticker), nullptr);
