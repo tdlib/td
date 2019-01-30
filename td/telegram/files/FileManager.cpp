@@ -1372,7 +1372,7 @@ void FileManager::add_file_source(FileId file_id, FileSourceId file_source_id) {
   send_closure(G()->file_reference_manager(), &FileReferenceManager::add_file_source, node->main_file_id_,
                file_source_id);
   node->on_pmc_changed();
-  try_flush_node(node, "add_file_source");
+  try_flush_node_pmc(node, "add_file_source");
 }
 
 void FileManager::remove_file_source(FileId file_id, FileSourceId file_source_id) {
@@ -1385,7 +1385,7 @@ void FileManager::remove_file_source(FileId file_id, FileSourceId file_source_id
   send_closure(G()->file_reference_manager(), &FileReferenceManager::remove_file_source, node->main_file_id_,
                file_source_id);
   node->on_pmc_changed();
-  try_flush_node(node, "remove_file_source");
+  try_flush_node_pmc(node, "remove_file_source");
 }
 
 void FileManager::change_files_source(FileSourceId file_source_id, const vector<FileId> &old_file_ids,
@@ -1438,6 +1438,11 @@ void FileManager::try_flush_node_full(FileNodePtr node, bool new_remote, bool ne
 }
 
 void FileManager::try_flush_node(FileNodePtr node, const char *source) {
+  try_flush_node_pmc(node, source);
+  try_flush_node_info(node, source);
+}
+
+void FileManager::try_flush_node_pmc(FileNodePtr node, const char *source) {
   if (node->need_pmc_flush()) {
     if (file_db_) {
       load_from_pmc(node, true, true, true);
@@ -1445,8 +1450,6 @@ void FileManager::try_flush_node(FileNodePtr node, const char *source) {
     }
     node->on_pmc_flushed();
   }
-
-  try_flush_node_info(node, source);
 }
 
 void FileManager::try_flush_node_info(FileNodePtr node, const char *source) {
@@ -1613,7 +1616,7 @@ bool FileManager::set_encryption_key(FileId file_id, FileEncryptionKey key) {
     return false;
   }
   node->set_encryption_key(std::move(key));
-  try_flush_node(node, "set_encryption_key");
+  try_flush_node_pmc(node, "set_encryption_key");
   return true;
 }
 
@@ -1941,7 +1944,7 @@ void FileManager::delete_file_reference(FileId file_id, string file_reference) {
     return;
   }
   node->delete_file_reference(file_reference);
-  try_flush_node(node, "delete_file_reference");
+  try_flush_node_pmc(node, "delete_file_reference");
 }
 
 void FileManager::external_file_generate_progress(int64 id, int32 expected_size, int32 local_prefix_size,
