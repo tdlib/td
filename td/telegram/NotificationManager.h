@@ -92,8 +92,9 @@ class NotificationManager : public Actor {
   void process_push_notification(string payload, Promise<Unit> &&promise);
 
   static Result<int64> get_push_receiver_id(string push);
+
   static Result<string> decrypt_push(int64 encryption_key_id, string encryption_key, string push);
-  static Result<string> decrypt_push_payload(int64 encryption_key_id, string encryption_key, string payload);
+
   void before_get_difference();
 
   void after_get_difference();
@@ -221,6 +222,8 @@ class NotificationManager : public Actor {
   void flush_all_pending_updates(bool include_delayed_chats, const char *source);
 
   NotificationGroupId get_call_notification_group_id(DialogId dialog_id);
+
+  static Result<string> decrypt_push_payload(int64 encryption_key_id, string encryption_key, string payload);
 
   void after_get_difference_impl();
 

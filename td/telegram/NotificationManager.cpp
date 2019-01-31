@@ -16,8 +16,8 @@
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
 
-#include "td/mtproto/Transport.h"
 #include "td/mtproto/AuthKey.h"
+#include "td/mtproto/Transport.h"
 
 #include "td/utils/as.h"
 #include "td/utils/base64.h"
@@ -152,6 +152,12 @@ void NotificationManager::start_up() {
     });
     VLOG(notifications) << "Load call_notification_group_ids_ = " << call_notification_group_ids_;
     for (auto &group_id : call_notification_group_ids_) {
+      if (group_id.get() > current_notification_group_id_.get()) {
+        LOG(ERROR) << "Fix current notification group id from " << current_notification_group_id_ << " to " << group_id;
+        current_notification_group_id_ = group_id;
+        G()->td_db()->get_binlog_pmc()->set("notification_group_id_current",
+                                            to_string(current_notification_group_id_.get()));
+      }
       available_call_notification_group_ids_.insert(group_id);
     }
   }
