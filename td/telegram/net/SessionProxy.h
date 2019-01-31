@@ -9,6 +9,9 @@
 #include "td/telegram/net/AuthDataShared.h"
 #include "td/telegram/net/NetQuery.h"
 
+#include "td/mtproto/AuthData.h"
+#include "td/mtproto/AuthKey.h"
+
 #include "td/actor/actor.h"
 
 #include <memory>

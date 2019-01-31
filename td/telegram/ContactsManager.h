@@ -33,6 +33,7 @@
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
 
+#include <functional>
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>

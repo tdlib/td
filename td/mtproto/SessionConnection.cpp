@@ -7,13 +7,8 @@
 #include "td/mtproto/SessionConnection.h"
 
 #include "td/mtproto/AuthData.h"
-#include "td/mtproto/AuthKey.h"
 #include "td/mtproto/CryptoStorer.h"
-#include "td/mtproto/Handshake.h"
-#include "td/mtproto/NoCryptoStorer.h"
-
-#include "td/mtproto/HttpTransport.h"
-#include "td/mtproto/TcpTransport.h"
+#include "td/mtproto/PacketStorer.h"
 #include "td/mtproto/Transport.h"
 
 #include "td/utils/as.h"
@@ -650,7 +645,7 @@ Status SessionConnection::before_write() {
   return Status::OK();
 }
 
-Status SessionConnection::on_raw_packet(const td::mtproto::PacketInfo &info, BufferSlice packet) {
+Status SessionConnection::on_raw_packet(const PacketInfo &info, BufferSlice packet) {
   auto old_main_message_id = main_message_id_;
   main_message_id_ = info.message_id;
   SCOPE_EXIT {
@@ -799,14 +794,14 @@ std::pair<uint64, BufferSlice> SessionConnection::encrypted_bind(int64 perm_key,
   Query query{auth_data_->next_message_id(Time::now_cached()), 0, object_packet.as_buffer_slice(), false, 0, false};
   PacketStorer<QueryImpl> query_storer(query, Slice());
 
-  mtproto::PacketInfo info;
+  PacketInfo info;
   info.version = 1;
   info.no_crypto_flag = false;
   info.salt = Random::secure_int64();
   info.session_id = Random::secure_int64();
 
-  auto packet = BufferWriter{mtproto::Transport::write(query_storer, auth_data_->get_main_auth_key(), &info), 0, 0};
-  mtproto::Transport::write(query_storer, auth_data_->get_main_auth_key(), &info, packet.as_slice());
+  auto packet = BufferWriter{Transport::write(query_storer, auth_data_->get_main_auth_key(), &info), 0, 0};
+  Transport::write(query_storer, auth_data_->get_main_auth_key(), &info, packet.as_slice());
   return std::make_pair(query.message_id, packet.as_buffer_slice());
 }
 
@@ -1028,5 +1023,6 @@ void SessionConnection::force_close(SessionConnection::Callback *callback) {
   callback_ = callback;
   do_close(Status::OK());
 }
+
 }  // namespace mtproto
 }  // namespace td

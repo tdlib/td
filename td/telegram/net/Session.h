@@ -6,17 +6,18 @@
 //
 #pragma once
 
+#include "td/telegram/net/AuthDataShared.h"
+#include "td/telegram/net/NetQuery.h"
+#include "td/telegram/net/TempAuthKeyWatchdog.h"
+#include "td/telegram/StateManager.h"
+
 #include "td/mtproto/AuthData.h"
+#include "td/mtproto/AuthKey.h"
 #include "td/mtproto/Handshake.h"
 #include "td/mtproto/SessionConnection.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
-
-#include "td/telegram/net/AuthDataShared.h"
-#include "td/telegram/net/NetQuery.h"
-#include "td/telegram/net/TempAuthKeyWatchdog.h"
-#include "td/telegram/StateManager.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"

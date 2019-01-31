@@ -6,7 +6,6 @@
 //
 #pragma once
 
-#include "td/mtproto/crypto.h"
 #include "td/mtproto/RawConnection.h"
 #include "td/mtproto/utils.h"
 
@@ -258,7 +257,7 @@ class SessionConnection
   Status do_flush() TD_WARN_UNUSED_RESULT;
 
   Status before_write() override TD_WARN_UNUSED_RESULT;
-  Status on_raw_packet(const td::mtproto::PacketInfo &info, BufferSlice packet) override;
+  Status on_raw_packet(const PacketInfo &info, BufferSlice packet) override;
   Status on_quick_ack(uint64 quick_ack_token) override;
   void on_read(size_t size) override;
 };

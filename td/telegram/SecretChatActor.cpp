@@ -6,14 +6,16 @@
 //
 #include "td/telegram/SecretChatActor.h"
 
-#include "td/mtproto/PacketStorer.h"
-
 #include "td/telegram/net/NetQueryCreator.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/UniqueId.h"
 
 #include "td/telegram/secret_api.hpp"
 #include "td/telegram/telegram_api.hpp"
+
+#include "td/mtproto/PacketStorer.h"
+#include "td/mtproto/Transport.h"
+#include "td/mtproto/utils.h"
 
 #include "td/db/binlog/BinlogHelper.h"
 #include "td/db/binlog/BinlogInterface.h"

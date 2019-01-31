@@ -9,6 +9,7 @@
 #include "td/mtproto/AuthKey.h"
 #include "td/mtproto/Handshake.h"
 #include "td/mtproto/NoCryptoStorer.h"
+#include "td/mtproto/PacketStorer.h"
 #include "td/mtproto/RawConnection.h"
 #include "td/mtproto/Transport.h"
 #include "td/mtproto/utils.h"
@@ -22,6 +23,7 @@
 
 namespace td {
 namespace mtproto {
+
 class HandshakeConnection
     : private RawConnection::Callback
     , private AuthKeyHandshake::Callback {
@@ -78,5 +80,6 @@ class HandshakeConnection
     return Status::OK();
   }
 };
+
 }  // namespace mtproto
 }  // namespace td

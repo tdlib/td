@@ -19,6 +19,12 @@
 #include "td/telegram/net/Session.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/telegram_api.h"
+
+#include "td/mtproto/AuthData.h"
+#include "td/mtproto/AuthKey.h"
+#include "td/mtproto/crypto.h"
+#include "td/mtproto/RawConnection.h"
 
 #if !TD_EMSCRIPTEN  //FIXME
 #include "td/net/HttpQuery.h"
@@ -27,8 +33,6 @@
 #endif
 
 #include "td/actor/actor.h"
-
-#include "td/telegram/telegram_api.h"
 
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"

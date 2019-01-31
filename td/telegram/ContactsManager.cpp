@@ -49,7 +49,6 @@
 #include "td/utils/tl_helpers.h"
 
 #include <algorithm>
-#include <functional>
 #include <limits>
 #include <tuple>
 #include <utility>

@@ -12,6 +12,7 @@
 
 namespace td {
 namespace mtproto {
+
 struct TransportType {
   enum Type { Tcp, ObfuscatedTcp, Http } type;
   int16 dc_id;
@@ -22,6 +23,7 @@ struct TransportType {
   TransportType(Type type, int16 dc_id, string secret) : type(type), dc_id(dc_id), secret(std::move(secret)) {
   }
 };
+
 class IStreamTransport {
  public:
   IStreamTransport() = default;
@@ -40,5 +42,6 @@ class IStreamTransport {
 };
 
 unique_ptr<IStreamTransport> create_transport(TransportType type);
+
 }  // namespace mtproto
 }  // namespace td

@@ -29,6 +29,7 @@ struct PacketInfo;
 
 namespace td {
 namespace mtproto {
+
 class RawConnection {
  public:
   class StatsCallback {

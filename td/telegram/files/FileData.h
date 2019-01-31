@@ -7,16 +7,17 @@
 #pragma once
 
 #include "td/telegram/DialogId.h"
-#include "td/telegram/Global.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/FileReferenceManager.hpp"
 #include "td/telegram/files/FileEncryptionKey.h"
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileSourceId.h"
+#include "td/telegram/Global.h"
 #include "td/telegram/Td.h"
 
 #include "td/utils/common.h"
 #include "td/utils/format.h"
+#include "td/utils/misc.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
 

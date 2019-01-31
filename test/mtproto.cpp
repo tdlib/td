@@ -12,7 +12,7 @@
 #include "td/mtproto/crypto.h"
 #include "td/mtproto/Handshake.h"
 #include "td/mtproto/HandshakeActor.h"
-#include "td/mtproto/HandshakeConnection.h"
+#include "td/mtproto/IStreamTransport.h"
 #include "td/mtproto/PingConnection.h"
 #include "td/mtproto/RawConnection.h"
 #include "td/mtproto/Transport.h"
@@ -26,7 +26,6 @@
 #include "td/telegram/net/PublicRsaKeyShared.h"
 #include "td/telegram/NotificationManager.h"
 
-#include "td/utils/as.h"
 #include "td/utils/base64.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/IPAddress.h"

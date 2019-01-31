@@ -8,8 +8,11 @@
 
 #include "td/mtproto/AuthKey.h"
 #include "td/mtproto/NoCryptoStorer.h"
+#include "td/mtproto/PacketStorer.h"
 #include "td/mtproto/RawConnection.h"
 #include "td/mtproto/utils.h"
+
+#include "td/mtproto/mtproto_api.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/port/detail/PollableFd.h"
@@ -17,8 +20,6 @@
 #include "td/utils/Status.h"
 #include "td/utils/Time.h"
 #include "td/utils/UInt.h"
-
-#include "td/mtproto/mtproto_api.h"
 
 namespace td {
 namespace mtproto {

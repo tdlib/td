@@ -41,11 +41,11 @@ class FileReferenceView {
       LOG(ERROR) << "File reference is too big " << base64_encode(second);
       second = invalid_file_reference();
     }
-    char second_length = static_cast<char>(narrow_cast<unsigned char>(second.size()));
+    char second_length = static_cast<char>(static_cast<unsigned char>(second.size()));
     return PSTRING() << second_length << first << second;
   }
 
-  FileReferenceView(Slice data) {
+  explicit FileReferenceView(Slice data) {
     if (data.empty()) {
       return;
     }

@@ -14,7 +14,6 @@
 
 #include "td/mtproto/AuthKey.h"
 #include "td/mtproto/crypto.h"
-#include "td/mtproto/Transport.h"
 
 #include "td/telegram/DhConfig.h"
 #include "td/telegram/logevent/SecretChatEvent.h"

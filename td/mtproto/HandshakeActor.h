@@ -6,6 +6,10 @@
 //
 #pragma once
 
+#include "td/mtproto/Handshake.h"
+#include "td/mtproto/HandshakeConnection.h"
+#include "td/mtproto/RawConnection.h"
+
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
 
@@ -13,11 +17,6 @@
 
 namespace td {
 namespace mtproto {
-
-class AuthKeyHandshake;
-class AuthKeyHandshakeContext;
-class RawConnection;
-class HandshakeConnection;
 
 // Has Raw connection. Generates new auth key. And returns it and raw_connection. Or error...
 class HandshakeActor : public Actor {
@@ -59,5 +58,6 @@ class HandshakeActor : public Actor {
   void return_connection(Status status);
   void return_handshake();
 };
+
 }  // namespace mtproto
 }  // namespace td

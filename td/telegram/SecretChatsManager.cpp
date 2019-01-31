@@ -22,6 +22,8 @@
 #include "td/telegram/secret_api.h"
 #include "td/telegram/telegram_api.hpp"
 
+#include "td/mtproto/crypto.h"
+
 #include "td/actor/PromiseFuture.h"
 
 #include "td/db/binlog/BinlogEvent.h"

@@ -18,6 +18,7 @@
 
 namespace td {
 namespace mtproto {
+
 class AuthKey;
 
 #pragma pack(push, 4)

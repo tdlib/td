@@ -6,9 +6,8 @@
 //
 #pragma once
 
-#include "td/mtproto/PacketStorer.h"
-
 #include "td/utils/Random.h"
+#include "td/utils/StorerBase.h"
 
 namespace td {
 namespace mtproto {
@@ -23,6 +22,7 @@ class NoCryptoImpl {
       Random::secure_bytes(pad_);
     }
   }
+
   template <class T>
   void do_store(T &storer) const {
     storer.store_binary(message_id_);

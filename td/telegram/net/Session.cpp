@@ -17,8 +17,10 @@
 #include "td/telegram/StateManager.h"
 #include "td/telegram/UniqueId.h"
 
+#include "td/mtproto/crypto.h"
 #include "td/mtproto/Handshake.h"
 #include "td/mtproto/HandshakeActor.h"
+#include "td/mtproto/IStreamTransport.h"
 #include "td/mtproto/RawConnection.h"
 #include "td/mtproto/SessionConnection.h"
 

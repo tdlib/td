@@ -13,6 +13,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Status.h"
+#include "td/utils/StorerBase.h"
 
 #include <utility>
 
@@ -21,15 +22,15 @@ namespace mtproto {
 
 void RawConnection::send_crypto(const Storer &storer, int64 session_id, int64 salt, const AuthKey &auth_key,
                                 uint64 quick_ack_token) {
-  mtproto::PacketInfo info;
+  PacketInfo info;
   info.version = 2;
   info.no_crypto_flag = false;
   info.salt = salt;
   info.session_id = session_id;
 
-  auto packet = BufferWriter{mtproto::Transport::write(storer, auth_key, &info), transport_->max_prepend_size(),
+  auto packet = BufferWriter{Transport::write(storer, auth_key, &info), transport_->max_prepend_size(),
                              transport_->max_append_size()};
-  mtproto::Transport::write(storer, auth_key, &info, packet.as_slice());
+  Transport::write(storer, auth_key, &info, packet.as_slice());
 
   bool use_quick_ack = false;
   if (quick_ack_token != 0 && transport_->support_quick_ack()) {
@@ -45,12 +46,12 @@ void RawConnection::send_crypto(const Storer &storer, int64 session_id, int64 sa
 }
 
 uint64 RawConnection::send_no_crypto(const Storer &storer) {
-  mtproto::PacketInfo info;
+  PacketInfo info;
 
   info.no_crypto_flag = true;
-  auto packet = BufferWriter{mtproto::Transport::write(storer, mtproto::AuthKey(), &info),
-                             transport_->max_prepend_size(), transport_->max_append_size()};
-  mtproto::Transport::write(storer, mtproto::AuthKey(), &info, packet.as_slice());
+  auto packet = BufferWriter{Transport::write(storer, AuthKey(), &info), transport_->max_prepend_size(),
+                             transport_->max_append_size()};
+  Transport::write(storer, AuthKey(), &info, packet.as_slice());
   LOG(INFO) << "Send handshake packet: " << format::as_hex_dump<4>(packet.as_slice());
   transport_->write(std::move(packet), false);
   return info.message_id;
@@ -91,17 +92,17 @@ Status RawConnection::flush_read(const AuthKey &auth_key, Callback &callback) {
     PacketInfo info;
     info.version = 2;
 
-    TRY_RESULT(read_result, mtproto::Transport::read(packet.as_slice(), auth_key, &info));
+    TRY_RESULT(read_result, Transport::read(packet.as_slice(), auth_key, &info));
     switch (read_result.type()) {
-      case mtproto::Transport::ReadResult::Quickack: {
+      case Transport::ReadResult::Quickack: {
         TRY_STATUS(on_quick_ack(read_result.quick_ack(), callback));
         break;
       }
-      case mtproto::Transport::ReadResult::Error: {
+      case Transport::ReadResult::Error: {
         TRY_STATUS(on_read_mtproto_error(read_result.error()));
         break;
       }
-      case mtproto::Transport::ReadResult::Packet: {
+      case Transport::ReadResult::Packet: {
         // If a packet was successfully decrypted, then it is ok to assume that the connection is alive
         if (!auth_key.empty()) {
           if (stats_callback_) {
@@ -112,7 +113,7 @@ Status RawConnection::flush_read(const AuthKey &auth_key, Callback &callback) {
         TRY_STATUS(callback.on_raw_packet(info, packet.from_slice(read_result.packet())));
         break;
       }
-      case mtproto::Transport::ReadResult::Nop:
+      case Transport::ReadResult::Nop:
         break;
       default:
         UNREACHABLE();
