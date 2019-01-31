@@ -164,10 +164,13 @@ void FileNode::set_remote_location(const RemoteFileLocation &remote, FileLocatio
 
 bool FileNode::delete_file_reference(Slice file_reference) {
   if (remote_.type() != RemoteFileLocation::Type::Full) {
+    VLOG(file_references) << "Can't delete file reference, because there is no remote location";
     return false;
   }
 
   if (!remote_.full().delete_file_reference(file_reference)) {
+    VLOG(file_references) << "Can't delete unmatching file reference " << format::escaped(file_reference) << ", have "
+                          << format::escaped(remote_.full().get_raw_file_reference());
     return false;
   }
 
