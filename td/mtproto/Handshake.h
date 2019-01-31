@@ -8,6 +8,7 @@
 
 #include "td/mtproto/AuthKey.h"
 #include "td/mtproto/crypto.h"
+#include "td/mtproto/DhHandshake.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/Slice.h"

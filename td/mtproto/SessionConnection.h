@@ -6,9 +6,9 @@
 //
 #pragma once
 
-#include "td/mtproto/RawConnection.h"
 #include "td/mtproto/PacketInfo.h"
 #include "td/mtproto/Query.h"
+#include "td/mtproto/RawConnection.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/format.h"

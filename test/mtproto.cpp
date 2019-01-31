@@ -10,11 +10,11 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/mtproto/crypto.h"
+#include "td/mtproto/DhHandshake.h"
 #include "td/mtproto/Handshake.h"
 #include "td/mtproto/HandshakeActor.h"
 #include "td/mtproto/PingConnection.h"
 #include "td/mtproto/RawConnection.h"
-#include "td/mtproto/Transport.h"
 #include "td/mtproto/TransportType.h"
 
 #include "td/net/GetHostByNameActor.h"

@@ -10,8 +10,6 @@
 #include "td/telegram/telegram_api.h"
 #include "td/telegram/telegram_api.hpp"
 
-#include "td/mtproto/crypto.h"
-
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DhCache.h"

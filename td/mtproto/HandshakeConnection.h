@@ -12,8 +12,6 @@
 #include "td/mtproto/PacketInfo.h"
 #include "td/mtproto/PacketStorer.h"
 #include "td/mtproto/RawConnection.h"
-#include "td/mtproto/Transport.h"
-#include "td/mtproto/utils.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"

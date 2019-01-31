@@ -6,7 +6,7 @@
 //
 #include "td/utils/benchmark.h"  // for bench, do_not_optimize_away, etc
 
-#include "td/mtproto/crypto.h"
+#include "td/mtproto/DhHandshake.h"
 
 #include "td/utils/base64.h"
 #include "td/utils/logging.h"

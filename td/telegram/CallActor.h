@@ -9,7 +9,7 @@
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
 
-#include "td/mtproto/crypto.h"
+#include "td/mtproto/DhHandshake.h"
 
 #include "td/telegram/CallDiscardReason.h"
 #include "td/telegram/CallId.h"

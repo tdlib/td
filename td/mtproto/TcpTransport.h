@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/mtproto/IStreamTransport.h"
+#include "td/mtproto/TransportType.h"
 
 #include "td/utils/AesCtrByteFlow.h"
 #include "td/utils/buffer.h"

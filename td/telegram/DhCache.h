@@ -6,7 +6,7 @@
 //
 #pragma once
 
-#include "td/mtproto/crypto.h"
+#include "td/mtproto/DhHandshake.h"
 
 #include "td/utils/Slice.h"
 

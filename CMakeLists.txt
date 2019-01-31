@@ -328,6 +328,7 @@ set(TL_DOTNET_SCHEME_SOURCE
 set(TDLIB_SOURCE
   td/mtproto/AuthData.cpp
   td/mtproto/crypto.cpp
+  td/mtproto/DhHandshake.cpp
   td/mtproto/Handshake.cpp
   td/mtproto/HandshakeActor.cpp
   td/mtproto/HttpTransport.cpp
@@ -441,6 +442,7 @@ set(TDLIB_SOURCE
   td/mtproto/AuthKey.h
   td/mtproto/crypto.h
   td/mtproto/CryptoStorer.h
+  td/mtproto/DhHandshake.h
   td/mtproto/Handshake.h
   td/mtproto/HandshakeActor.h
   td/mtproto/HandshakeConnection.h

@@ -13,7 +13,7 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/mtproto/AuthKey.h"
-#include "td/mtproto/crypto.h"
+#include "td/mtproto/DhHandshake.h"
 
 #include "td/telegram/DhConfig.h"
 #include "td/telegram/logevent/SecretChatEvent.h"

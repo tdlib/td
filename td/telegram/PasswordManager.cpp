@@ -13,7 +13,7 @@
 #include "td/telegram/SecureStorage.h"
 #include "td/telegram/TdDb.h"
 
-#include "td/mtproto/crypto.h"
+#include "td/mtproto/DhHandshake.h"
 
 #include "td/utils/BigNum.h"
 #include "td/utils/buffer.h"
