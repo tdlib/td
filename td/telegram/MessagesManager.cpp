@@ -10789,7 +10789,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     if (message_id.is_yet_unsent()) {
       cancel_send_message_query(d->dialog_id, result);
     } else {
-      cancel_edit_message_media(d->dialog_id, result.get());
+      cancel_edit_message_media(d->dialog_id, result.get(), "Message was deleted");
     }
 
     if (need_get_history && !td_->auth_manager_->is_bot() && have_input_peer(d->dialog_id, AccessRights::Read)) {
@@ -10879,7 +10879,7 @@ void MessagesManager::do_delete_all_dialog_messages(Dialog *d, unique_ptr<Messag
   if (message_id.is_yet_unsent()) {
     cancel_send_message_query(d->dialog_id, m);
   } else {
-    cancel_edit_message_media(d->dialog_id, m.get());
+    cancel_edit_message_media(d->dialog_id, m.get(), "Message was deleted");
   }
 
   switch (d->dialog_id.get_type()) {
@@ -16313,7 +16313,7 @@ void MessagesManager::edit_message_live_location(FullMessageId full_message_id,
                get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
 }
 
-void MessagesManager::cancel_edit_message_media(DialogId dialog_id, Message *m) {
+void MessagesManager::cancel_edit_message_media(DialogId dialog_id, Message *m, Slice error_message) {
   if (m->edited_content == nullptr) {
     return;
   }
@@ -16323,7 +16323,7 @@ void MessagesManager::cancel_edit_message_media(DialogId dialog_id, Message *m) 
   m->edited_content = nullptr;
   m->edited_reply_markup = nullptr;
   m->edit_generation = 0;
-  m->edit_promise.set_error(Status::Error(400, "Cancelled"));
+  m->edit_promise.set_error(Status::Error(400, error_message));
 }
 
 void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId message_id, FileId file_id,
@@ -16459,7 +16459,7 @@ void MessagesManager::edit_message_media(FullMessageId full_message_id,
     return promise.set_error(r_new_reply_markup.move_as_error());
   }
 
-  cancel_edit_message_media(dialog_id, m);
+  cancel_edit_message_media(dialog_id, m, "Cancelled by new editMessageMedia request");
 
   m->edited_content = dup_message_content(td_, dialog_id, content.content.get(), false);
   m->edited_reply_markup = r_new_reply_markup.move_as_ok();
@@ -19270,7 +19270,7 @@ void MessagesManager::fail_edit_message_media(FullMessageId full_message_id, Sta
   }
   CHECK(m->edited_content != nullptr);
   m->edit_promise.set_error(std::move(error));
-  cancel_edit_message_media(dialog_id, m);
+  cancel_edit_message_media(dialog_id, m, "Failed to edit message. MUST BE IGNORED");
 }
 
 void MessagesManager::on_update_dialog_draft_message(DialogId dialog_id,

@@ -1272,7 +1272,7 @@ class MessagesManager : public Actor {
 
   bool can_report_dialog(DialogId dialog_id) const;
 
-  void cancel_edit_message_media(DialogId dialog_id, Message *m);
+  void cancel_edit_message_media(DialogId dialog_id, Message *m, Slice error_message);
 
   void on_message_media_edited(DialogId dialog_id, MessageId message_id, FileId file_id, FileId thumbnail_file_id,
                                bool was_uploaded, bool was_thumbnail_uploaded, string file_reference, uint64 generation,
