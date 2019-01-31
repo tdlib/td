@@ -17,17 +17,119 @@
 #include "td/utils/Status.h"
 
 #include <array>
+#include <tuple>
 
 namespace td {
 namespace mtproto {
 
+#pragma pack(push, 4)
+#if TD_MSVC
+#pragma warning(push)
+#pragma warning(disable : 4200)
+#endif
+
+struct CryptoHeader {
+  uint64 auth_key_id;
+  UInt128 message_key;
+
+  // encrypted part
+  uint64 salt;
+  uint64 session_id;
+
+  // It is weird to generate message_id and seq_no while writing a packet.
+  //
+  // uint64 message_id;
+  // uint32 seq_no;
+  // uint32 message_data_length;
+  uint8 data[0];  // use compiler extension
+
+  static size_t encrypted_header_size() {
+    return sizeof(salt) + sizeof(session_id);
+  }
+
+  uint8 *encrypt_begin() {
+    return reinterpret_cast<uint8 *>(&salt);
+  }
+
+  const uint8 *encrypt_begin() const {
+    return reinterpret_cast<const uint8 *>(&salt);
+  }
+
+  CryptoHeader() = delete;
+  CryptoHeader(const CryptoHeader &) = delete;
+  CryptoHeader(CryptoHeader &&) = delete;
+  CryptoHeader &operator=(const CryptoHeader &) = delete;
+  CryptoHeader &operator=(CryptoHeader &&) = delete;
+  ~CryptoHeader() = delete;
+};
+
+struct CryptoPrefix {
+  uint64 message_id;
+  uint32 seq_no;
+  uint32 message_data_length;
+};
+
+struct EndToEndHeader {
+  uint64 auth_key_id;
+  UInt128 message_key;
+
+  // encrypted part
+  // uint32 message_data_length;
+  uint8 data[0];  // use compiler extension
+
+  static size_t encrypted_header_size() {
+    return 0;
+  }
+
+  uint8 *encrypt_begin() {
+    return reinterpret_cast<uint8 *>(&data);
+  }
+
+  const uint8 *encrypt_begin() const {
+    return reinterpret_cast<const uint8 *>(&data);
+  }
+
+  EndToEndHeader() = delete;
+  EndToEndHeader(const EndToEndHeader &) = delete;
+  EndToEndHeader(EndToEndHeader &&) = delete;
+  EndToEndHeader &operator=(const EndToEndHeader &) = delete;
+  EndToEndHeader &operator=(EndToEndHeader &&) = delete;
+  ~EndToEndHeader() = delete;
+};
+
+struct EndToEndPrefix {
+  uint32 message_data_length;
+};
+
+struct NoCryptoHeader {
+  uint64 auth_key_id;
+
+  // message_id is removed from CryptoHeader. Should be removed from here too.
+  //
+  // int64 message_id;
+  // uint32 message_data_length;
+  uint8 data[0];  // use compiler extension
+
+  NoCryptoHeader() = delete;
+  NoCryptoHeader(const NoCryptoHeader &) = delete;
+  NoCryptoHeader(NoCryptoHeader &&) = delete;
+  NoCryptoHeader &operator=(const NoCryptoHeader &) = delete;
+  NoCryptoHeader &operator=(NoCryptoHeader &&) = delete;
+  ~NoCryptoHeader() = delete;
+};
+
+#if TD_MSVC
+#pragma warning(pop)
+#endif
+#pragma pack(pop)
+
 // mtproto v1.0
 template <class HeaderT>
-std::tuple<uint32, UInt128> Transport::calc_message_ack_and_key(const HeaderT &head, size_t data_size) {
+std::pair<uint32, UInt128> Transport::calc_message_ack_and_key(const HeaderT &head, size_t data_size) {
   Slice part(head.encrypt_begin(), head.data + data_size);
   UInt<160> message_sha1;
   sha1(part, message_sha1.raw);
-  return std::make_tuple(as<uint32>(message_sha1.raw) | (1u << 31), as<UInt128>(message_sha1.raw + 4));
+  return std::make_pair(as<uint32>(message_sha1.raw) | (1u << 31), as<UInt128>(message_sha1.raw + 4));
 }
 
 template <class HeaderT>
@@ -38,7 +140,7 @@ size_t Transport::calc_crypto_size(size_t data_size) {
 }
 
 // mtproto v2.0
-std::tuple<uint32, UInt128> Transport::calc_message_key2(const AuthKey &auth_key, int X, Slice to_encrypt) {
+std::pair<uint32, UInt128> Transport::calc_message_key2(const AuthKey &auth_key, int X, Slice to_encrypt) {
   // msg_key_large = SHA256 (substr (auth_key, 88+x, 32) + plaintext + random_padding);
   Sha256State state;
   sha256_init(&state);
@@ -53,7 +155,7 @@ std::tuple<uint32, UInt128> Transport::calc_message_key2(const AuthKey &auth_key
   UInt128 res;
   as_slice(res).copy_from(msg_key_large.substr(8, 16));
 
-  return std::make_tuple(as<uint32>(msg_key_large_raw) | (1u << 31), res);
+  return std::make_pair(as<uint32>(msg_key_large_raw) | (1u << 31), res);
 }
 
 template <class HeaderT>
