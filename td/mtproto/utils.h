@@ -19,17 +19,6 @@
 
 namespace td {
 
-namespace mtproto {
-struct Query {
-  int64 message_id;
-  int32 seq_no;
-  BufferSlice packet;
-  bool gzip_flag;
-  uint64 invoke_after_id;
-  bool use_quick_ack;
-};
-}  // namespace mtproto
-
 template <class T>
 Result<typename T::ReturnType> fetch_result(Slice message, bool check_end = true) {
   TlParser parser(message);

@@ -450,6 +450,7 @@ set(TDLIB_SOURCE
   td/mtproto/PacketInfo.h
   td/mtproto/PacketStorer.h
   td/mtproto/PingConnection.h
+  td/mtproto/Query.h
   td/mtproto/RawConnection.h
   td/mtproto/SessionConnection.h
   td/mtproto/TcpTransport.h

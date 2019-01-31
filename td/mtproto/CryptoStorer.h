@@ -8,6 +8,7 @@
 
 #include "td/mtproto/AuthData.h"
 #include "td/mtproto/PacketStorer.h"
+#include "td/mtproto/Query.h"
 #include "td/mtproto/utils.h"
 
 #include "td/mtproto/mtproto_api.h"
@@ -102,7 +103,7 @@ class CancelVectorImpl {
 
 class QueryImpl {
  public:
-  QueryImpl(const Query &query, Slice header) : query_(query), header_(header) {
+  QueryImpl(const MtprotoQuery &query, Slice header) : query_(query), header_(header) {
   }
 
   template <class T>
@@ -144,13 +145,13 @@ class QueryImpl {
   }
 
  private:
-  const Query &query_;
+  const MtprotoQuery &query_;
   Slice header_;
 };
 
 class QueryVectorImpl {
  public:
-  QueryVectorImpl(const vector<Query> &to_send, Slice header) : to_send_(to_send), header_(header) {
+  QueryVectorImpl(const vector<MtprotoQuery> &to_send, Slice header) : to_send_(to_send), header_(header) {
   }
 
   template <class T>
@@ -164,7 +165,7 @@ class QueryVectorImpl {
   }
 
  private:
-  const vector<Query> &to_send_;
+  const vector<MtprotoQuery> &to_send_;
   Slice header_;
 };
 
@@ -187,7 +188,7 @@ class ContainerImpl {
 
 class CryptoImpl {
  public:
-  CryptoImpl(const vector<Query> &to_send, Slice header, vector<int64> &&to_ack, int64 ping_id, int ping_timeout,
+  CryptoImpl(const vector<MtprotoQuery> &to_send, Slice header, vector<int64> &&to_ack, int64 ping_id, int ping_timeout,
              int max_delay, int max_after, int max_wait, int future_salt_n, vector<int64> get_info,
              vector<int64> resend, vector<int64> cancel, bool destroy_key, AuthData *auth_data, uint64 *container_id,
              uint64 *get_info_id, uint64 *resend_id, uint64 *ping_message_id, uint64 *parent_message_id)

@@ -8,7 +8,7 @@
 
 #include "td/mtproto/RawConnection.h"
 #include "td/mtproto/PacketInfo.h"
-#include "td/mtproto/utils.h"
+#include "td/mtproto/Query.h"
 
 #include "td/utils/buffer.h"
 #include "td/utils/format.h"
@@ -152,7 +152,7 @@ class SessionConnection
   static constexpr int HTTP_MAX_DELAY = 30;              // 0.03s
   static constexpr int TEMP_KEY_TIMEOUT = 60 * 60 * 24;  // one day
 
-  vector<Query> to_send_;
+  vector<MtprotoQuery> to_send_;
   vector<int64> to_ack_;
   double force_send_at_ = 0;
 

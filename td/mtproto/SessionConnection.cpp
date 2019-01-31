@@ -749,7 +749,7 @@ Result<uint64> SessionConnection::send_query(BufferSlice buffer, bool gzip_flag,
   if (to_send_.empty()) {
     send_before(Time::now_cached() + QUERY_DELAY);
   }
-  to_send_.push_back(Query{message_id, seq_no, std::move(buffer), gzip_flag, invoke_after_id, use_quick_ack});
+  to_send_.push_back(MtprotoQuery{message_id, seq_no, std::move(buffer), gzip_flag, invoke_after_id, use_quick_ack});
   VLOG(mtproto) << "Invoke query " << message_id << " of size " << to_send_.back().packet.size() << " with seq_no "
                 << seq_no << " after " << invoke_after_id << (use_quick_ack ? " with quick ack" : "");
 
@@ -791,7 +791,8 @@ std::pair<uint64, BufferSlice> SessionConnection::encrypted_bind(int64 perm_key,
   auto real_size = object_storer.store(object_packet.as_slice().ubegin());
   CHECK(size == real_size);
 
-  Query query{auth_data_->next_message_id(Time::now_cached()), 0, object_packet.as_buffer_slice(), false, 0, false};
+  MtprotoQuery query{
+      auth_data_->next_message_id(Time::now_cached()), 0, object_packet.as_buffer_slice(), false, 0, false};
   PacketStorer<QueryImpl> query_storer(query, Slice());
 
   PacketInfo info;
@@ -871,7 +872,7 @@ void SessionConnection::flush_packet() {
       send_till++;
     }
   }
-  std::vector<Query> queries;
+  std::vector<MtprotoQuery> queries;
   if (send_till == to_send_.size()) {
     queries = std::move(to_send_);
   } else if (send_till != 0) {
@@ -943,7 +944,7 @@ void SessionConnection::flush_packet() {
   }
 
   if (container_id != 0) {
-    vector<uint64> ids = transform(queries, [](const Query &x) { return static_cast<uint64>(x.message_id); });
+    vector<uint64> ids = transform(queries, [](const MtprotoQuery &x) { return static_cast<uint64>(x.message_id); });
 
     // some acks may be lost here. Nobody will resend them if something goes wrong with query.
     // It is mostly problem for server. We will just drop this answers in next connection
