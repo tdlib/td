@@ -29,14 +29,23 @@ namespace td {
 
 class FileReferenceView {
  public:
+  static Slice invalid_file_reference() {
+    return Slice("#");
+  }
   static std::string create_invalid() {
     return create_one(invalid_file_reference());
   }
   static std::string create_one(Slice first) {
+    if (first.empty()) {
+      return {};
+    }
     unsigned char second_length = 255;
     return PSTRING() << static_cast<char>(second_length) << first;
   }
   static std::string create_two(Slice first, Slice second) {
+    if (first.empty() && second.empty()) {
+      return {};
+    }
     if (second.size() >= 255) {
       LOG(ERROR) << "File reference is too big " << base64_encode(second);
       second = invalid_file_reference();
@@ -99,10 +108,6 @@ class FileReferenceView {
   }
 
  private:
-  static Slice invalid_file_reference() {
-    return Slice("#");
-  }
-
   std::string create(Slice first, Slice second) const {
     if (size_ == 1) {
       return create_one(first);
@@ -112,7 +117,7 @@ class FileReferenceView {
 
   Slice first_;
   Slice second_;
-  int size_ = 1;
+  int size_{1};
 };
 
 struct EmptyRemoteFileLocation {
@@ -495,8 +500,6 @@ class FullRemoteFileLocation {
     auto res = FileReferenceView(file_reference_).delete_file_reference(bad_file_reference);
     if (res.second) {
       file_reference_ = res.first;
-    } else if (file_reference_ == bad_file_reference) {
-      file_reference_ = FileReferenceView::create_invalid();
     }
     return res.second;
   }
@@ -570,8 +573,8 @@ class FullRemoteFileLocation {
         } else if (is_secure()) {
           return make_tl_object<telegram_api::inputSecureFileLocation>(common().id_, common().access_hash_);
         } else {
-          return make_tl_object<telegram_api::inputDocumentFileLocation>(common().id_, common().access_hash_,
-                                                                         BufferSlice(file_reference_));
+          return make_tl_object<telegram_api::inputDocumentFileLocation>(
+              common().id_, common().access_hash_, BufferSlice(FileReferenceView(file_reference_).download()));
         }
       case LocationType::Web:
       case LocationType::None:
@@ -586,7 +589,7 @@ class FullRemoteFileLocation {
     CHECK(is_common()) << file << ' ' << line;
     CHECK(is_document()) << file << ' ' << line;
     return make_tl_object<telegram_api::inputDocument>(common().id_, common().access_hash_,
-                                                       BufferSlice(file_reference_));
+                                                       BufferSlice(FileReferenceView(file_reference_).upload()));
   }
 
 #define as_input_photo() as_input_photo_impl(__FILE__, __LINE__)
@@ -625,7 +628,7 @@ class FullRemoteFileLocation {
   FullRemoteFileLocation(FileType file_type, int64 id, int64 access_hash, DcId dc_id, std::string file_reference)
       : file_type_(file_type)
       , dc_id_(dc_id)
-      , file_reference_(std::move(file_reference))
+      , file_reference_(FileReferenceView::create_one(file_reference))
       , variant_(CommonRemoteFileLocation{id, access_hash}) {
     CHECK(is_common());
     FileReferenceView view(file_reference_);
@@ -694,7 +697,9 @@ inline StringBuilder &operator<<(StringBuilder &string_builder,
     string_builder << ", " << full_remote_file_location.get_dc_id();
   }
   if (!full_remote_file_location.file_reference_.empty()) {
-    string_builder << ", " << tag("file_reference", base64_encode(full_remote_file_location.file_reference_));
+    FileReferenceView view(full_remote_file_location.file_reference_);
+    string_builder << ", " << tag("file_reference_upload", base64_encode(view.upload()))
+                   << tag("file_reference_download", base64_encode(view.download()));
   }
 
   string_builder << ", location = ";

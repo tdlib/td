@@ -167,14 +167,15 @@ bool FileNode::delete_file_reference(Slice file_reference) {
     return false;
   }
 
-  if (remote_.full().delete_file_reference(file_reference)) {
-    VLOG(file_references) << "Do delete file reference of main file " << main_file_id_;
-    upload_was_update_file_reference_ = false;
-    download_was_update_file_reference_ = false;
-    on_pmc_changed();
-    return true;
+  if (!remote_.full().delete_file_reference(file_reference)) {
+    return false;
   }
-  return false;
+
+  VLOG(file_references) << "Do delete file reference of main file " << main_file_id_;
+  upload_was_update_file_reference_ = false;
+  download_was_update_file_reference_ = false;
+  on_pmc_changed();
+  return true;
 }
 
 void FileNode::set_generate_location(unique_ptr<FullGenerateFileLocation> &&generate) {
