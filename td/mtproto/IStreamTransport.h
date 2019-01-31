@@ -6,23 +6,14 @@
 //
 #pragma once
 
+#include "td/mtproto/TransportType.h"
+
 #include "td/utils/buffer.h"
 #include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/Status.h"
 
 namespace td {
 namespace mtproto {
-
-struct TransportType {
-  enum Type { Tcp, ObfuscatedTcp, Http } type;
-  int16 dc_id;
-  string secret;
-
-  TransportType() : type(Tcp), dc_id(0), secret() {
-  }
-  TransportType(Type type, int16 dc_id, string secret) : type(type), dc_id(dc_id), secret(std::move(secret)) {
-  }
-};
 
 class IStreamTransport {
  public:

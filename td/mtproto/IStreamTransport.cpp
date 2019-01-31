@@ -13,6 +13,7 @@
 
 namespace td {
 namespace mtproto {
+
 unique_ptr<IStreamTransport> create_transport(TransportType type) {
   switch (type.type) {
     case TransportType::ObfuscatedTcp:
@@ -24,5 +25,6 @@ unique_ptr<IStreamTransport> create_transport(TransportType type) {
   }
   UNREACHABLE();
 }
+
 }  // namespace mtproto
 }  // namespace td

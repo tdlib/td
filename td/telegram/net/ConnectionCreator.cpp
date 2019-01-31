@@ -19,7 +19,6 @@
 #include "td/telegram/StateManager.h"
 #include "td/telegram/TdDb.h"
 
-#include "td/mtproto/IStreamTransport.h"
 #include "td/mtproto/PingConnection.h"
 #include "td/mtproto/RawConnection.h"
 

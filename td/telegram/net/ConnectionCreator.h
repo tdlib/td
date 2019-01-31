@@ -15,7 +15,7 @@
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/StateManager.h"
 
-#include "td/mtproto/IStreamTransport.h"
+#include "td/mtproto/TransportType.h"
 
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"

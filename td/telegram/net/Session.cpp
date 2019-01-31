@@ -20,9 +20,9 @@
 #include "td/mtproto/crypto.h"
 #include "td/mtproto/Handshake.h"
 #include "td/mtproto/HandshakeActor.h"
-#include "td/mtproto/IStreamTransport.h"
 #include "td/mtproto/RawConnection.h"
 #include "td/mtproto/SessionConnection.h"
+#include "td/mtproto/TransportType.h"
 
 #include "td/utils/format.h"
 #include "td/utils/logging.h"

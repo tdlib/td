@@ -453,6 +453,7 @@ set(TDLIB_SOURCE
   td/mtproto/SessionConnection.h
   td/mtproto/TcpTransport.h
   td/mtproto/Transport.h
+  td/mtproto/TransportType.h
   td/mtproto/utils.h
 
   td/telegram/AccessRights.h
