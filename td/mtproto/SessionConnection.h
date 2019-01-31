@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/mtproto/RawConnection.h"
+#include "td/mtproto/PacketInfo.h"
 #include "td/mtproto/utils.h"
 
 #include "td/utils/buffer.h"
@@ -45,7 +46,6 @@ class destroy_auth_key_none;
 namespace mtproto {
 
 class AuthData;
-struct PacketInfo;
 
 struct MsgInfo {
   uint64 session_id;

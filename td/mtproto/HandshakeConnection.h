@@ -9,6 +9,7 @@
 #include "td/mtproto/AuthKey.h"
 #include "td/mtproto/Handshake.h"
 #include "td/mtproto/NoCryptoStorer.h"
+#include "td/mtproto/PacketInfo.h"
 #include "td/mtproto/PacketStorer.h"
 #include "td/mtproto/RawConnection.h"
 #include "td/mtproto/Transport.h"

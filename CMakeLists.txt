@@ -447,6 +447,7 @@ set(TDLIB_SOURCE
   td/mtproto/HttpTransport.h
   td/mtproto/IStreamTransport.h
   td/mtproto/NoCryptoStorer.h
+  td/mtproto/PacketInfo.h
   td/mtproto/PacketStorer.h
   td/mtproto/PingConnection.h
   td/mtproto/RawConnection.h

@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/mtproto/IStreamTransport.h"
+#include "td/mtproto/PacketInfo.h"
 #include "td/mtproto/TransportType.h"
 
 #include "td/utils/buffer.h"
@@ -24,7 +25,6 @@ namespace td {
 class Storer;
 namespace mtproto {
 class AuthKey;
-struct PacketInfo;
 }  // namespace mtproto
 }  // namespace td
 

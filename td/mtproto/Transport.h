@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/mtproto/PacketInfo.h"
 #include "td/mtproto/utils.h"
 
 #include "td/utils/common.h"
@@ -121,23 +122,6 @@ struct NoCryptoHeader {
 #pragma warning(pop)
 #endif
 #pragma pack(pop)
-
-struct PacketInfo {
-  enum { Common, EndToEnd } type = Common;
-  uint64 auth_key_id;
-  uint32 message_ack;
-  UInt128 message_key;
-
-  uint64 salt;
-  uint64 session_id;
-
-  uint64 message_id;
-  int32 seq_no;
-  int32 version{1};
-  bool no_crypto_flag;
-  bool is_creator{false};
-  bool check_mod4{true};
-};
 
 class Transport {
  public:

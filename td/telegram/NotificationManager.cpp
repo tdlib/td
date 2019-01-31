@@ -17,6 +17,7 @@
 #include "td/telegram/TdDb.h"
 
 #include "td/mtproto/AuthKey.h"
+#include "td/mtproto/PacketInfo.h"
 #include "td/mtproto/Transport.h"
 
 #include "td/utils/as.h"
