@@ -276,6 +276,8 @@ class MessagesManager : public Actor {
 
   void on_update_dialog_is_marked_as_unread(DialogId dialog_id, bool is_marked_as_unread);
 
+  void on_update_dialog_pinned_message_id(DialogId dialog_id, MessageId pinned_message_id);
+
   void on_update_service_notification(tl_object_ptr<telegram_api::updateServiceNotification> &&update);
 
   void on_update_contact_registered(tl_object_ptr<telegram_api::updateContactRegistered> &&update);
@@ -408,6 +410,9 @@ class MessagesManager : public Actor {
 
   void set_dialog_title(DialogId dialog_id, const string &title, Promise<Unit> &&promise);
 
+  void pin_dialog_message(DialogId dialog_id, MessageId message_id, bool disable_notification, bool is_unpin,
+                          Promise<Unit> &&promise);
+
   void add_dialog_participant(DialogId dialog_id, UserId user_id, int32 forward_limit, Promise<Unit> &&promise);
 
   void add_dialog_participants(DialogId dialog_id, const vector<UserId> &user_ids, Promise<Unit> &&promise);
@@ -462,7 +467,7 @@ class MessagesManager : public Actor {
 
   MessageId get_replied_message(DialogId dialog_id, MessageId message_id, bool force, Promise<Unit> &&promise);
 
-  void get_dialog_pinned_message(DialogId dialog_id, Promise<MessageId> &&promise);
+  MessageId get_dialog_pinned_message(DialogId dialog_id, Promise<Unit> &&promise);
 
   bool get_messages(DialogId dialog_id, const vector<MessageId> &message_ids, Promise<Unit> &&promise);
 
@@ -893,6 +898,7 @@ class MessagesManager : public Actor {
     MessageId last_read_inbox_message_id;
     int32 last_read_inbox_message_date = 0;  // secret chats only
     MessageId last_read_outbox_message_id;
+    MessageId pinned_message_id;
     MessageId reply_markup_message_id;
     DialogNotificationSettings notification_settings;
     unique_ptr<DraftMessage> draft_message;
@@ -941,6 +947,7 @@ class MessagesManager : public Actor {
 
     bool is_last_read_inbox_message_id_inited = false;
     bool is_last_read_outbox_message_id_inited = false;
+    bool is_pinned_message_id_inited = false;
     bool need_repair_server_unread_count = false;
     bool is_marked_as_unread = false;
 
@@ -1656,6 +1663,8 @@ class MessagesManager : public Actor {
   void set_dialog_is_pinned(Dialog *d, bool is_pinned);
 
   void set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_as_unread);
+
+  void set_dialog_pinned_message_id(Dialog *d, MessageId pinned_message_id);
 
   void toggle_dialog_is_pinned_on_server(DialogId dialog_id, bool is_pinned, uint64 logevent_id);
 

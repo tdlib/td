@@ -975,26 +975,17 @@ class GetRepliedMessageRequest : public RequestOnceActor {
  public:
   GetRepliedMessageRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id, int64 message_id)
       : RequestOnceActor(std::move(td), request_id), dialog_id_(dialog_id), message_id_(message_id) {
-    set_tries(3);
+    set_tries(3);  // 1 to get initial message, 1 to get the reply and 1 for result
   }
 };
 
-class GetChatPinnedMessageRequest : public RequestActor<MessageId> {
+class GetChatPinnedMessageRequest : public RequestOnceActor {
   DialogId dialog_id_;
 
   MessageId pinned_message_id_;
 
-  void do_run(Promise<MessageId> &&promise) override {
-    if (get_tries() < 2) {
-      promise.set_value(std::move(pinned_message_id_));
-      return;
-    }
-
-    td->messages_manager_->get_dialog_pinned_message(dialog_id_, std::move(promise));
-  }
-
-  void do_set_result(MessageId &&result) override {
-    pinned_message_id_ = result;
+  void do_run(Promise<Unit> &&promise) override {
+    pinned_message_id_ = td->messages_manager_->get_dialog_pinned_message(dialog_id_, std::move(promise));
   }
 
   void do_send_result() override {
@@ -1003,7 +994,8 @@ class GetChatPinnedMessageRequest : public RequestActor<MessageId> {
 
  public:
   GetChatPinnedMessageRequest(ActorShared<Td> td, uint64 request_id, int64 dialog_id)
-      : RequestActor(std::move(td), request_id), dialog_id_(dialog_id) {
+      : RequestOnceActor(std::move(td), request_id), dialog_id_(dialog_id) {
+    set_tries(3);  // 1 to get pinned_message_id, 1 to get the message and 1 for result
   }
 };
 
@@ -5916,15 +5908,15 @@ void Td::on_request(uint64 id, td_api::setSupergroupDescription &request) {
                                              std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::pinSupergroupMessage &request) {
+void Td::on_request(uint64 id, const td_api::pinChatMessage &request) {
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->pin_channel_message(ChannelId(request.supergroup_id_), MessageId(request.message_id_),
-                                         request.disable_notification_, std::move(promise));
+  messages_manager_->pin_dialog_message(DialogId(request.chat_id_), MessageId(request.message_id_),
+                                        request.disable_notification_, false, std::move(promise));
 }
 
-void Td::on_request(uint64 id, const td_api::unpinSupergroupMessage &request) {
+void Td::on_request(uint64 id, const td_api::unpinChatMessage &request) {
   CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->unpin_channel_message(ChannelId(request.supergroup_id_), std::move(promise));
+  messages_manager_->pin_dialog_message(DialogId(request.chat_id_), MessageId(), false, true, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::reportSupergroupSpam &request) {

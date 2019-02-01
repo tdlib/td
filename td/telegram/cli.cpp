@@ -3301,22 +3301,15 @@ class CliClient final : public Actor {
 
       std::tie(supergroup_id, description) = split(args);
       send_request(make_tl_object<td_api::setSupergroupDescription>(as_supergroup_id(supergroup_id), description));
-    } else if (op == "psgm" || op == "pchm") {
-      string supergroup_id;
+    } else if (op == "pcm" || op == "pcms") {
+      string chat_id;
       string message_id;
 
-      std::tie(supergroup_id, message_id) = split(args);
-      send_request(make_tl_object<td_api::pinSupergroupMessage>(as_supergroup_id(supergroup_id),
-                                                                as_message_id(message_id), false));
-    } else if (op == "psgms" || op == "pchms") {
-      string supergroup_id;
-      string message_id;
-
-      std::tie(supergroup_id, message_id) = split(args);
-      send_request(make_tl_object<td_api::pinSupergroupMessage>(as_supergroup_id(supergroup_id),
-                                                                as_message_id(message_id), true));
-    } else if (op == "upsgm" || op == "upchm") {
-      send_request(make_tl_object<td_api::unpinSupergroupMessage>(as_supergroup_id(args)));
+      std::tie(chat_id, message_id) = split(args);
+      send_request(
+          make_tl_object<td_api::pinChatMessage>(as_chat_id(chat_id), as_message_id(message_id), op == "pcms"));
+    } else if (op == "upcm") {
+      send_request(make_tl_object<td_api::unpinChatMessage>(as_chat_id(args)));
     } else if (op == "grib") {
       send_request(make_tl_object<td_api::getRecentInlineBots>());
     } else if (op == "spc" || op == "su" || op == "sch") {

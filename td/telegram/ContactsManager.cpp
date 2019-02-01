@@ -1229,57 +1229,6 @@ class EditChannelAboutQuery : public Td::ResultHandler {
   }
 };
 
-class UpdateChannelPinnedMessageQuery : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  ChannelId channel_id_;
-  MessageId message_id_;
-
- public:
-  explicit UpdateChannelPinnedMessageQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(ChannelId channel_id, MessageId message_id, bool disable_notification) {
-    channel_id_ = channel_id;
-    message_id_ = message_id;
-    auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
-    CHECK(input_channel != nullptr);
-
-    int32 flags = 0;
-    if (disable_notification) {
-      flags |= telegram_api::channels_updatePinnedMessage::SILENT_MASK;
-    }
-
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_updatePinnedMessage(
-        flags, false /*ignored*/, std::move(input_channel), message_id.get_server_message_id().get()))));
-  }
-
-  void on_result(uint64 id, BufferSlice packet) override {
-    auto result_ptr = fetch_result<telegram_api::channels_updatePinnedMessage>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for updateChannelPinnedMessage: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr));
-
-    promise_.set_value(Unit());
-  }
-
-  void on_error(uint64 id, Status status) override {
-    if (status.message() == "CHAT_NOT_MODIFIED") {
-      td->contacts_manager_->on_update_channel_pinned_message(channel_id_, message_id_);
-      if (!td->auth_manager_->is_bot()) {
-        promise_.set_value(Unit());
-        return;
-      }
-    } else {
-      td->contacts_manager_->on_get_channel_error(channel_id_, status, "UpdateChannelPinnedMessageQuery");
-    }
-    promise_.set_error(std::move(status));
-  }
-};
-
 class ReportChannelSpamQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
@@ -4159,44 +4108,6 @@ void ContactsManager::set_channel_description(ChannelId channel_id, const string
   td_->create_handler<EditChannelAboutQuery>(std::move(promise))->send(channel_id, new_description);
 }
 
-void ContactsManager::pin_channel_message(ChannelId channel_id, MessageId message_id, bool disable_notification,
-                                          Promise<Unit> &&promise) {
-  auto c = get_channel(channel_id);
-  if (c == nullptr) {
-    return promise.set_error(Status::Error(6, "Supergroup not found"));
-  }
-  auto channel_status = get_channel_status(c);
-  bool can_pin = c->is_megagroup ? channel_status.can_pin_messages() : channel_status.can_edit_messages();
-  if (!can_pin) {
-    return promise.set_error(Status::Error(6, "Not enough rights to pin a message"));
-  }
-
-  if (!td_->messages_manager_->have_message({DialogId(channel_id), message_id})) {
-    return promise.set_error(Status::Error(6, "Message not found"));
-  }
-
-  if (!message_id.is_server()) {
-    return promise.set_error(Status::Error(6, "Message can't be pinned"));
-  }
-
-  td_->create_handler<UpdateChannelPinnedMessageQuery>(std::move(promise))
-      ->send(channel_id, message_id, disable_notification);
-}
-
-void ContactsManager::unpin_channel_message(ChannelId channel_id, Promise<Unit> &&promise) {
-  auto c = get_channel(channel_id);
-  if (c == nullptr) {
-    return promise.set_error(Status::Error(6, "Supergroup not found"));
-  }
-  auto channel_status = get_channel_status(c);
-  bool can_unpin = c->is_megagroup ? channel_status.can_pin_messages() : channel_status.can_edit_messages();
-  if (!can_unpin) {
-    return promise.set_error(Status::Error(6, "Not enough rights to unpin a message"));
-  }
-
-  td_->create_handler<UpdateChannelPinnedMessageQuery>(std::move(promise))->send(channel_id, MessageId(), false);
-}
-
 void ContactsManager::report_channel_spam(ChannelId channel_id, UserId user_id, const vector<MessageId> &message_ids,
                                           Promise<Unit> &&promise) {
   auto c = get_channel(channel_id);
@@ -4589,15 +4500,6 @@ string ContactsManager::get_channel_invite_link(
     return it == channel_invite_links_.end() ? string() : it->second;
   }
   return channel_full->invite_link;
-}
-
-MessageId ContactsManager::get_channel_pinned_message_id(
-    ChannelId channel_id) {  // should be non-const to update ChannelFull cache
-  auto channel_full = get_channel_full(channel_id);
-  if (channel_full == nullptr) {
-    return MessageId();
-  }
-  return channel_full->pinned_message_id;
 }
 
 void ContactsManager::delete_chat_participant(ChatId chat_id, UserId user_id, Promise<Unit> &&promise) {
@@ -6489,6 +6391,12 @@ void ContactsManager::on_get_user_full(tl_object_ptr<telegram_api::userFull> &&u
   on_update_user_links(user_id, std::move(user_full->link_->my_link_), std::move(user_full->link_->foreign_link_));
   td_->messages_manager_->on_update_dialog_notify_settings(DialogId(user_id), std::move(user_full->notify_settings_));
 
+  MessageId pinned_message_id;
+  if ((user_full->flags_ & USER_FULL_FLAG_HAS_PINNED_MESSAGE) != 0) {
+    pinned_message_id = MessageId(ServerMessageId(user_full->pinned_msg_id_));
+  }
+  td_->messages_manager_->on_update_dialog_pinned_message_id(DialogId(user_id), pinned_message_id);
+
   UserFull *user = &users_full_[user_id];
   user->expires_at = Time::now() + USER_FULL_EXPIRE_TIME;
   user->is_inited = true;
@@ -6677,6 +6585,12 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       return;
     }
 
+    MessageId pinned_message_id;
+    if ((chat_full->flags_ & CHAT_FULL_FLAG_HAS_PINNED_MESSAGE) != 0) {
+      pinned_message_id = MessageId(ServerMessageId(chat_full->pinned_msg_id_));
+    }
+    td_->messages_manager_->on_update_dialog_pinned_message_id(DialogId(chat_id), pinned_message_id);
+
     ChatFull *chat = &chats_full_[chat_id];
     on_update_chat_full_invite_link(chat, std::move(chat_full->exported_invite_));
 
@@ -6768,9 +6682,11 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
 
     on_update_channel_full_invite_link(channel, std::move(channel_full->exported_invite_));
 
+    MessageId pinned_message_id;
     if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_PINNED_MESSAGE) != 0) {
-      on_update_channel_full_pinned_message(channel, MessageId(ServerMessageId(channel_full->pinned_msg_id_)));
+      pinned_message_id = MessageId(ServerMessageId(channel_full->pinned_msg_id_));
     }
+    td_->messages_manager_->on_update_dialog_pinned_message_id(DialogId(channel_id), pinned_message_id);
 
     for (auto &bot_info : channel_full->bot_info_) {
       on_update_bot_info(std::move(bot_info));
@@ -6779,7 +6695,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     ChatId migrated_from_chat_id;
     MessageId migrated_from_max_message_id;
 
-    if (channel_full->flags_ & CHANNEL_FULL_FLAG_MIGRATED_FROM) {
+    if ((channel_full->flags_ & CHANNEL_FULL_FLAG_MIGRATED_FROM) != 0) {
       migrated_from_chat_id = ChatId(channel_full->migrated_from_chat_id_);
       migrated_from_max_message_id = MessageId(ServerMessageId(channel_full->migrated_from_max_id_));
     }
@@ -8164,19 +8080,6 @@ void ContactsManager::on_update_channel_username(Channel *c, ChannelId channel_i
   }
 }
 
-void ContactsManager::on_update_channel_full_pinned_message(ChannelFull *channel_full, MessageId message_id) {
-  if (!message_id.is_valid() && message_id != MessageId()) {
-    LOG(ERROR) << "Receive " << message_id << " as pinned message";
-    return;
-  }
-  CHECK(channel_full != nullptr);
-
-  if (channel_full->pinned_message_id != message_id) {
-    channel_full->pinned_message_id = message_id;
-    channel_full->is_changed = true;
-  }
-}
-
 void ContactsManager::on_update_channel_description(ChannelId channel_id, string &&description) {
   if (!channel_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << channel_id;
@@ -8209,20 +8112,6 @@ void ContactsManager::on_update_channel_sticker_set(ChannelId channel_id, int64 
     channel_full->is_changed = true;
     update_channel_full(channel_full, channel_id);
   }
-}
-
-void ContactsManager::on_update_channel_pinned_message(ChannelId channel_id, MessageId message_id) {
-  if (!channel_id.is_valid()) {
-    LOG(ERROR) << "Receive invalid " << channel_id;
-    return;
-  }
-
-  auto channel_full = get_channel_full(channel_id);
-  if (channel_full == nullptr) {
-    return;
-  }
-  on_update_channel_full_pinned_message(channel_full, message_id);
-  update_channel_full(channel_full, channel_id);
 }
 
 void ContactsManager::on_update_channel_is_all_history_available(ChannelId channel_id, bool is_all_history_available) {
@@ -10038,7 +9927,7 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
       channel_full->description, channel_full->participant_count, channel_full->administrator_count,
       channel_full->restricted_count, channel_full->banned_count, channel_full->can_get_participants,
       channel_full->can_set_username, channel_full->can_set_sticker_set, channel_full->is_all_history_available,
-      channel_full->sticker_set_id, channel_full->invite_link, channel_full->pinned_message_id.get(),
+      channel_full->sticker_set_id, channel_full->invite_link,
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),
       channel_full->migrated_from_max_message_id.get());
 }

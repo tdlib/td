@@ -314,7 +314,7 @@ chatMemberStatusCreator is_member:Bool = ChatMemberStatus;
 //@can_delete_messages True, if the administrator can delete messages of other users
 //@can_invite_users True, if the administrator can invite new users to the chat
 //@can_restrict_members True, if the administrator can restrict, ban, or unban chat members
-//@can_pin_messages True, if the administrator can pin messages; applicable to supergroups only
+//@can_pin_messages True, if the administrator can pin messages; applicable to groups only
 //@can_promote_members True, if the administrator can add new administrators with a subset of his own privileges or demote administrators that were directly or indirectly promoted by him
 chatMemberStatusAdministrator can_be_edited:Bool can_change_info:Bool can_post_messages:Bool can_edit_messages:Bool can_delete_messages:Bool can_invite_users:Bool can_restrict_members:Bool can_pin_messages:Bool can_promote_members:Bool = ChatMemberStatus;
 
@@ -424,10 +424,9 @@ supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_co
 //@is_all_history_available True, if new chat members will have access to old messages. In public supergroups and both public and private channels, old messages are always available, so this option affects only private supergroups. The value of this field is only available for chat administrators
 //@sticker_set_id Identifier of the supergroup sticker set; 0 if none
 //@invite_link Invite link for this chat
-//@pinned_message_id Identifier of the pinned message in the chat; 0 if none
 //@upgraded_from_basic_group_id Identifier of the basic group from which supergroup was upgraded; 0 if none
 //@upgraded_from_max_message_id Identifier of the last message in the basic group from which supergroup was upgraded; 0 if none
-supergroupFullInfo description:string member_count:int32 administrator_count:int32 restricted_count:int32 banned_count:int32 can_get_members:Bool can_set_username:Bool can_set_sticker_set:Bool is_all_history_available:Bool sticker_set_id:int64 invite_link:string pinned_message_id:int53 upgraded_from_basic_group_id:int32 upgraded_from_max_message_id:int53 = SupergroupFullInfo;
+supergroupFullInfo description:string member_count:int32 administrator_count:int32 restricted_count:int32 banned_count:int32 can_get_members:Bool can_set_username:Bool can_set_sticker_set:Bool is_all_history_available:Bool sticker_set_id:int64 invite_link:string upgraded_from_basic_group_id:int32 upgraded_from_max_message_id:int53 = SupergroupFullInfo;
 
 
 //@class SecretChatState @description Describes the current secret chat state
@@ -575,10 +574,11 @@ chatTypeSecret secret_chat_id:int32 user_id:int32 = ChatType;
 //@last_read_outbox_message_id Identifier of the last read outgoing message
 //@unread_mention_count Number of unread messages with a mention/reply in the chat
 //@notification_settings Notification settings for this chat
+//@pinned_message_id Identifier of the pinned message in the chat; 0 if none
 //@reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 //@draft_message A draft of a message in the chat; may be null
 //@client_data Contains client-specific data associated with the chat. (For example, the chat position or local chat notification settings can be stored here.) Persistent if a message database is used
-chat id:int53 type:ChatType title:string photo:chatPhoto last_message:message order:int64 is_pinned:Bool is_marked_as_unread:Bool is_sponsored:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:chatNotificationSettings reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
+chat id:int53 type:ChatType title:string photo:chatPhoto last_message:message order:int64 is_pinned:Bool is_marked_as_unread:Bool is_sponsored:Bool can_be_reported:Bool default_disable_notification:Bool unread_count:int32 last_read_inbox_message_id:int53 last_read_outbox_message_id:int53 unread_mention_count:int32 notification_settings:chatNotificationSettings pinned_message_id:int53 reply_markup_message_id:int53 draft_message:draftMessage client_data:string = Chat;
 
 //@description Represents a list of chats @chat_ids List of chat identifiers
 chats chat_ids:vector<int53> = Chats;
@@ -1175,7 +1175,7 @@ messageChatUpgradeTo supergroup_id:int32 = MessageContent;
 //@description A supergroup has been created from a basic group @title Title of the newly created supergroup @basic_group_id The identifier of the original basic group
 messageChatUpgradeFrom title:string basic_group_id:int32 = MessageContent;
 
-//@description A message has been pinned @message_id Identifier of the pinned message, can be an identifier of a deleted message
+//@description A message has been pinned @message_id Identifier of the pinned message, can be an identifier of a deleted message or 0
 messagePinMessage message_id:int53 = MessageContent;
 
 //@description A screenshot of a message in the chat has been taken
@@ -2266,6 +2266,9 @@ updateChatNotificationSettings chat_id:int53 notification_settings:chatNotificat
 //@description Notification settings for some type of chats were updated @scope Types of chats for which notification settings were updated @notification_settings The new notification settings
 updateScopeNotificationSettings scope:NotificationSettingsScope notification_settings:scopeNotificationSettings = Update;
 
+//@description The chat pinned message was changed @chat_id Chat identifier @pinned_message_id The new identifier of the pinned message; 0 if there is no pinned message in the chat
+updateChatPinnedMessage chat_id:int53 pinned_message_id:int53 = Update;
+
 //@description The default chat reply markup was changed. Can occur because new messages with reply markup were received or because an old reply markup was hidden by the user
 //@chat_id Chat identifier @reply_markup_message_id Identifier of the message from which reply markup needs to be used; 0 if there is no default custom reply markup in the chat
 updateChatReplyMarkup chat_id:int53 reply_markup_message_id:int53 = Update;
@@ -2911,6 +2914,12 @@ toggleChatDefaultDisableNotification chat_id:int53 default_disable_notification:
 //@description Changes client data associated with a chat @chat_id Chat identifier @client_data New value of client_data
 setChatClientData chat_id:int53 client_data:string = Ok;
 
+//@description Pins a message in a chat; requires appropriate administrator rights in the group or channel @chat_id Identifier of the chat @message_id Identifier of the new pinned message @disable_notification True, if there should be no notification about the pinned message
+pinChatMessage chat_id:int53 message_id:int53 disable_notification:Bool = Ok;
+
+//@description Removes the pinned message from a chat; requires appropriate administrator rights in the group or channel @chat_id Identifier of the chat
+unpinChatMessage chat_id:int53 = Ok;
+
 //@description Adds current user as a new member to a chat. Private and secret chats can't be joined using this method @chat_id Chat identifier
 joinChat chat_id:int53 = Ok;
 
@@ -3218,12 +3227,6 @@ toggleSupergroupIsAllHistoryAvailable supergroup_id:int32 is_all_history_availab
 
 //@description Changes information about a supergroup or channel; requires appropriate administrator rights @supergroup_id Identifier of the supergroup or channel @param_description New supergroup or channel description; 0-255 characters
 setSupergroupDescription supergroup_id:int32 description:string = Ok;
-
-//@description Pins a message in a supergroup or channel; requires appropriate administrator rights in the supergroup or channel @supergroup_id Identifier of the supergroup or channel @message_id Identifier of the new pinned message @disable_notification True, if there should be no notification about the pinned message
-pinSupergroupMessage supergroup_id:int32 message_id:int53 disable_notification:Bool = Ok;
-
-//@description Removes the pinned message from a supergroup or channel; requires appropriate administrator rights in the supergroup or channel @supergroup_id Identifier of the supergroup or channel
-unpinSupergroupMessage supergroup_id:int32 = Ok;
 
 //@description Reports some messages from a user in a supergroup as spam; requires administrator rights in the supergroup @supergroup_id Supergroup identifier @user_id User identifier @message_ids Identifiers of messages sent in the supergroup by the user. This list must be non-empty
 reportSupergroupSpam supergroup_id:int32 user_id:int32 message_ids:vector<int53> = Ok;

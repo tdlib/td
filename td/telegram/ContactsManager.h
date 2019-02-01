@@ -167,7 +167,6 @@ class ContactsManager : public Actor {
   void on_update_channel_username(ChannelId channel_id, string &&username);
   void on_update_channel_description(ChannelId channel_id, string &&description);
   void on_update_channel_sticker_set(ChannelId channel_id, int64 sticker_set_id);
-  void on_update_channel_pinned_message(ChannelId channel_id, MessageId message_id);
   void on_update_channel_is_all_history_available(ChannelId channel_id, bool is_all_history_available);
 
   void on_update_dialog_administrators(DialogId dialog_id, vector<UserId> administrator_user_ids, bool have_access);
@@ -307,11 +306,6 @@ class ContactsManager : public Actor {
 
   void set_channel_description(ChannelId channel_id, const string &description, Promise<Unit> &&promise);
 
-  void pin_channel_message(ChannelId channel_id, MessageId message_id, bool disable_notification,
-                           Promise<Unit> &&promise);
-
-  void unpin_channel_message(ChannelId channel_id, Promise<Unit> &&promise);
-
   void report_channel_spam(ChannelId channel_id, UserId user_id, const vector<MessageId> &message_ids,
                            Promise<Unit> &&promise);
 
@@ -341,8 +335,6 @@ class ContactsManager : public Actor {
   string get_chat_invite_link(ChatId chat_id) const;
 
   string get_channel_invite_link(ChannelId channel_id);
-
-  MessageId get_channel_pinned_message_id(ChannelId channel_id);
 
   ChannelId migrate_chat_to_megagroup(ChatId chat_id, Promise<Unit> &promise);
 
@@ -650,7 +642,6 @@ class ContactsManager : public Actor {
     int32 restricted_count = 0;
     int32 banned_count = 0;
     string invite_link;
-    MessageId pinned_message_id;
 
     int64 sticker_set_id = 0;  // do not forget to store along with access hash
 
@@ -744,6 +735,8 @@ class ContactsManager : public Actor {
   static constexpr int32 USER_FULL_FLAG_HAS_ABOUT = 1 << 1;
   static constexpr int32 USER_FULL_FLAG_HAS_PHOTO = 1 << 2;
   static constexpr int32 USER_FULL_FLAG_HAS_BOT_INFO = 1 << 3;
+  static constexpr int32 USER_FULL_FLAG_HAS_PINNED_MESSAGE = 1 << 6;
+  static constexpr int32 USER_FULL_FLAG_CAN_PIN_MESSAGE = 1 << 7;
 
   static constexpr int32 CHAT_FLAG_USER_IS_CREATOR = 1 << 0;
   static constexpr int32 CHAT_FLAG_USER_WAS_KICKED = 1 << 1;
@@ -752,6 +745,8 @@ class ContactsManager : public Actor {
   static constexpr int32 CHAT_FLAG_IS_ADMINISTRATOR = 1 << 4;
   static constexpr int32 CHAT_FLAG_IS_DEACTIVATED = 1 << 5;
   static constexpr int32 CHAT_FLAG_WAS_MIGRATED = 1 << 6;
+
+  static constexpr int32 CHAT_FULL_FLAG_HAS_PINNED_MESSAGE = 1 << 6;
 
   static constexpr int32 CHANNEL_FLAG_USER_IS_CREATOR = 1 << 0;
   static constexpr int32 CHANNEL_FLAG_USER_HAS_LEFT = 1 << 2;
@@ -898,7 +893,6 @@ class ContactsManager : public Actor {
 
   void on_update_channel_full_invite_link(ChannelFull *channel_full,
                                           tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link_ptr);
-  void on_update_channel_full_pinned_message(ChannelFull *channel_full, MessageId message_id);
 
   void speculative_add_channel_user(ChannelId channel_id, UserId user_id, DialogParticipantStatus status,
                                     DialogParticipantStatus old_status);

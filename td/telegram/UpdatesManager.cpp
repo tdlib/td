@@ -1492,15 +1492,25 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelMessageV
   td_->messages_manager_->on_update_message_views({dialog_id, MessageId(ServerMessageId(update->id_))}, update->views_);
 }
 
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelPinnedMessage> update, bool /*force_apply*/) {
-  td_->contacts_manager_->on_update_channel_pinned_message(ChannelId(update->channel_id_),
-                                                           MessageId(ServerMessageId(update->id_)));
-}
-
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelAvailableMessages> update,
                                bool /*force_apply*/) {
   td_->messages_manager_->on_update_channel_max_unavailable_message_id(
       ChannelId(update->channel_id_), MessageId(ServerMessageId(update->available_min_id_)));
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserPinnedMessage> update, bool /*force_apply*/) {
+  td_->messages_manager_->on_update_dialog_pinned_message_id(DialogId(UserId(update->user_id_)),
+                                                             MessageId(ServerMessageId(update->id_)));
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatPinnedMessage> update, bool /*force_apply*/) {
+  td_->messages_manager_->on_update_dialog_pinned_message_id(DialogId(ChatId(update->chat_id_)),
+                                                             MessageId(ServerMessageId(update->id_)));
+}
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelPinnedMessage> update, bool /*force_apply*/) {
+  td_->messages_manager_->on_update_dialog_pinned_message_id(DialogId(ChannelId(update->channel_id_)),
+                                                             MessageId(ServerMessageId(update->id_)));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNotifySettings> update, bool /*force_apply*/) {
@@ -1856,11 +1866,5 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateLangPack> updat
 }
 
 // unsupported updates
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserPinnedMessage> update, bool /*force_apply*/) {
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatPinnedMessage> update, bool /*force_apply*/) {
-}
 
 }  // namespace td

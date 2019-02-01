@@ -81,7 +81,7 @@ DialogParticipantStatus DialogParticipantStatus::Banned(int32 banned_until_date)
 }
 
 DialogParticipantStatus DialogParticipantStatus::GroupAdministrator(bool is_creator) {
-  return DialogParticipantStatus::Administrator(is_creator, true, false, false, true, true, false, true, false, false);
+  return DialogParticipantStatus::Administrator(is_creator, true, false, false, true, true, false, true, true, false);
 }
 
 DialogParticipantStatus DialogParticipantStatus::ChannelAdministrator(bool is_creator, bool is_megagroup) {

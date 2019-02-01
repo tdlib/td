@@ -627,6 +627,10 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::setChatClientData &request);
 
+  void on_request(uint64 id, const td_api::pinChatMessage &request);
+
+  void on_request(uint64 id, const td_api::unpinChatMessage &request);
+
   void on_request(uint64 id, const td_api::joinChat &request);
 
   void on_request(uint64 id, const td_api::leaveChat &request);
@@ -714,10 +718,6 @@ class Td final : public NetQueryCallback {
   void on_request(uint64 id, const td_api::toggleSupergroupIsAllHistoryAvailable &request);
 
   void on_request(uint64 id, td_api::setSupergroupDescription &request);
-
-  void on_request(uint64 id, const td_api::pinSupergroupMessage &request);
-
-  void on_request(uint64 id, const td_api::unpinSupergroupMessage &request);
 
   void on_request(uint64 id, const td_api::reportSupergroupSpam &request);
 
