@@ -11593,6 +11593,9 @@ MessageId MessagesManager::get_dialog_pinned_message(DialogId dialog_id, Promise
     return MessageId();
   }
 
+  LOG(INFO) << "Get pinned message in " << dialog_id << " with "
+            << (d->is_pinned_message_id_inited ? "inited" : "unknown") << " pinned " << d->pinned_message_id;
+
   Promise<Unit> empty_promise;
   auto &get_pinned_message_id_promise = d->is_pinned_message_id_inited ? empty_promise : promise;
   switch (dialog_id.get_type()) {
@@ -21643,7 +21646,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
                                                                    m->sender_user_id == my_user_id);
     }
   }
-  if (from_update && message_id.is_server()) {
+  if (from_update && message_id.is_server() && message_content_type == MessageContentType::PinMessage) {
     auto pinned_message_id = get_message_content_pinned_message_id(m->content.get());
     on_update_dialog_pinned_message_id(dialog_id, pinned_message_id);
   }
