@@ -12939,38 +12939,13 @@ tl_object_ptr<telegram_api::InputNotifyPeer> MessagesManager::get_input_notify_p
 
 Status MessagesManager::set_dialog_notification_settings(
     DialogId dialog_id, tl_object_ptr<td_api::chatNotificationSettings> &&notification_settings) {
-  if (notification_settings == nullptr) {
-    return Status::Error(400, "New notification settings must not be empty");
-  }
-  if (!clean_input_string(notification_settings->sound_)) {
-    return Status::Error(400, "Notification settings sound must be encoded in UTF-8");
-  }
-
   auto current_settings = get_dialog_notification_settings(dialog_id, false);
   if (current_settings == nullptr) {
     return Status::Error(6, "Wrong chat identifier specified");
   }
 
-  int32 current_time = G()->unix_time();
-  if (notification_settings->mute_for_ > std::numeric_limits<int32>::max() - current_time) {
-    notification_settings->mute_for_ = std::numeric_limits<int32>::max() - current_time;
-  }
-
-  int32 mute_until;
-  if (notification_settings->use_default_mute_for_ || notification_settings->mute_for_ <= 0) {
-    mute_until = 0;
-  } else {
-    mute_until = notification_settings->mute_for_ + current_time;
-  }
-
-  DialogNotificationSettings new_settings(
-      notification_settings->use_default_mute_for_, mute_until, notification_settings->use_default_sound_,
-      std::move(notification_settings->sound_), notification_settings->use_default_show_preview_,
-      notification_settings->show_preview_, current_settings->silent_send_message,
-      notification_settings->use_default_disable_pinned_message_notifications_,
-      notification_settings->disable_pinned_message_notifications_,
-      notification_settings->use_default_disable_mention_notifications_,
-      notification_settings->disable_mention_notifications_);
+  TRY_RESULT(new_settings, ::td::get_dialog_notification_settings(std::move(notification_settings),
+                                                                  current_settings->silent_send_message));
   if (update_dialog_notification_settings(dialog_id, current_settings, new_settings)) {
     update_dialog_notification_settings_on_server(dialog_id, false);
   }
@@ -12979,30 +12954,7 @@ Status MessagesManager::set_dialog_notification_settings(
 
 Status MessagesManager::set_scope_notification_settings(
     NotificationSettingsScope scope, tl_object_ptr<td_api::scopeNotificationSettings> &&notification_settings) {
-  if (notification_settings == nullptr) {
-    return Status::Error(400, "New notification settings must not be empty");
-  }
-  if (!clean_input_string(notification_settings->sound_)) {
-    return Status::Error(400, "Notification settings sound must be encoded in UTF-8");
-  }
-
-  int32 current_time = G()->unix_time();
-  if (notification_settings->mute_for_ > std::numeric_limits<int32>::max() - current_time) {
-    notification_settings->mute_for_ = std::numeric_limits<int32>::max() - current_time;
-  }
-
-  int32 mute_until;
-  if (notification_settings->mute_for_ <= 0) {
-    mute_until = 0;
-  } else {
-    mute_until = notification_settings->mute_for_ + current_time;
-  }
-
-  ScopeNotificationSettings new_settings(mute_until, std::move(notification_settings->sound_),
-                                         notification_settings->show_preview_,
-                                         notification_settings->disable_pinned_message_notifications_,
-                                         notification_settings->disable_mention_notifications_);
-
+  TRY_RESULT(new_settings, ::td::get_scope_notification_settings(std::move(notification_settings)));
   if (update_scope_notification_settings(scope, get_scope_notification_settings(scope), new_settings)) {
     update_scope_notification_settings_on_server(scope, 0);
   }

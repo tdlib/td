@@ -100,6 +100,12 @@ telegram_api::object_ptr<telegram_api::InputNotifyPeer> get_input_notify_peer(No
 NotificationSettingsScope get_notification_settings_scope(
     const td_api::object_ptr<td_api::NotificationSettingsScope> &scope);
 
+Result<DialogNotificationSettings> get_dialog_notification_settings(
+    td_api::object_ptr<td_api::chatNotificationSettings> &&notification_settings, bool old_silent_send_message);
+
+Result<ScopeNotificationSettings> get_scope_notification_settings(
+    td_api::object_ptr<td_api::scopeNotificationSettings> &&notification_settings);
+
 DialogNotificationSettings get_dialog_notification_settings(tl_object_ptr<telegram_api::peerNotifySettings> &&settings,
                                                             bool old_use_default_disable_pinned_message_notifications,
                                                             bool old_disable_pinned_message_notifications,
