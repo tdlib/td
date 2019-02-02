@@ -4466,7 +4466,6 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
     case MessageContentType::Animation:
     case MessageContentType::Audio:
     case MessageContentType::Document:
-    case MessageContentType::Sticker:
     case MessageContentType::Video:
     case MessageContentType::VideoNote:
     case MessageContentType::VoiceNote: {
@@ -4482,6 +4481,8 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
       }
       return result;
     }
+    case MessageContentType::Sticker:
+      return td->stickers_manager_->get_sticker_file_ids(static_cast<const MessageSticker *>(content)->file_id);
     case MessageContentType::Game:
       return static_cast<const MessageGame *>(content)->game.get_file_ids();
     case MessageContentType::Invoice:

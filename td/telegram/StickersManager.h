@@ -12,6 +12,7 @@
 #include "td/actor/Timeout.h"
 
 #include "td/telegram/files/FileId.h"
+#include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/SecretInputMedia.h"
 
@@ -146,9 +147,12 @@ class StickersManager : public Actor {
 
   vector<FileId> get_recent_stickers(bool is_attached, Promise<Unit> &&promise);
 
-  void on_get_recent_stickers(bool is_attached, tl_object_ptr<telegram_api::messages_RecentStickers> &&stickers_ptr);
+  void on_get_recent_stickers(bool is_reload, bool is_attached,
+                              tl_object_ptr<telegram_api::messages_RecentStickers> &&stickers_ptr);
 
-  void on_get_recent_stickers_failed(bool is_attached, Status error);
+  void on_get_recent_stickers_failed(bool is_reload, bool is_attached, Status error);
+
+  FileSourceId get_recent_stickers_file_source_id(bool is_attached);
 
   void add_recent_sticker(bool is_attached, const tl_object_ptr<td_api::InputFile> &input_file,
                           Promise<Unit> &&promise);
@@ -188,7 +192,11 @@ class StickersManager : public Actor {
 
   void reload_recent_stickers(bool is_attached, bool force);
 
+  void reload_recent_stickers_force(bool is_attached, Promise<Unit> &&promise);
+
   FileId get_sticker_thumbnail_file_id(FileId file_id) const;
+
+  vector<FileId> get_sticker_file_ids(FileId file_id) const;
 
   void delete_sticker_thumbnail(FileId file_id);
 
@@ -483,7 +491,11 @@ class StickersManager : public Actor {
   vector<Promise<Unit>> load_installed_sticker_sets_queries_[2];
   vector<Promise<Unit>> load_featured_sticker_sets_queries_;
   vector<Promise<Unit>> load_recent_stickers_queries_[2];
+  vector<Promise<Unit>> reload_recent_stickers_queries_[2];
   vector<Promise<Unit>> load_favorite_stickers_queries_;
+
+  vector<FileId> recent_sticker_file_ids_;
+  FileSourceId recent_stickers_file_source_id_;
 
   vector<int64> archived_sticker_set_ids_[2];
   int32 total_archived_sticker_set_count_[2] = {-1, -1};

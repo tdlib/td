@@ -14,6 +14,7 @@
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/StickersManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/UserId.h"
 #include "td/telegram/WallpaperManager.h"
@@ -39,7 +40,8 @@ void FileReferenceManager::store_file_source(FileSourceId file_source_id, Storer
                           [&](const FileSourceChannelPhoto &source) { td::store(source.channel_id, storer); },
                           [&](const FileSourceWallpapers &source) {},
                           [&](const FileSourceWebPage &source) { td::store(source.url, storer); },
-                          [&](const FileSourceSavedAnimations &source) {}));
+                          [&](const FileSourceSavedAnimations &source) {},
+                          [&](const FileSourceRecentStickers &source) { td::store(source.is_attached, storer); }));
 }
 
 template <class ParserT>
@@ -77,6 +79,11 @@ FileSourceId FileReferenceManager::parse_file_source(Td *td, ParserT &parser) {
     }
     case 6:
       return td->animations_manager_->get_saved_animations_file_source_id();
+    case 7: {
+      bool is_attached;
+      td::parse(is_attached, parser);
+      return td->stickers_manager_->get_recent_stickers_file_source_id(is_attached);
+    }
     default:
       parser.set_error("Invalid type in FileSource");
       return FileSourceId();
