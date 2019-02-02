@@ -256,13 +256,22 @@ class GetRecentStickersQuery : public Td::ResultHandler {
 
 class SaveRecentStickerQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
+  FileId file_id_;
+  string file_reference_;
+  bool unsave_ = false;
   bool is_attached_;
 
  public:
   explicit SaveRecentStickerQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(bool is_attached, tl_object_ptr<telegram_api::inputDocument> &&input_document, bool unsave) {
+  void send(bool is_attached, FileId file_id, tl_object_ptr<telegram_api::inputDocument> &&input_document,
+            bool unsave) {
+    CHECK(input_document != nullptr);
+    CHECK(file_id.is_valid());
+    file_id_ = file_id;
+    file_reference_ = input_document->file_reference_.as_slice().str();
+    unsave_ = unsave;
     is_attached_ = is_attached;
 
     int32 flags = 0;
@@ -290,6 +299,21 @@ class SaveRecentStickerQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
+    if (FileReferenceManager::is_file_reference_error(status)) {
+      td->file_manager_->delete_file_reference(file_id_, file_reference_);
+      td->file_reference_manager_->repair_file_reference(
+          file_id_, PromiseCreator::lambda([sticker_id = file_id_, is_attached = is_attached_, unsave = unsave_,
+                                            promise = std::move(promise_)](Result<Unit> result) mutable {
+            if (result.is_error()) {
+              return promise.set_error(Status::Error(400, "Failed to find the sticker"));
+            }
+
+            send_closure(G()->stickers_manager(), &StickersManager::send_save_recent_sticker_query, is_attached,
+                         sticker_id, unsave, std::move(promise));
+          }));
+      return;
+    }
+
     LOG(ERROR) << "Receive error for save recent " << (is_attached_ ? "attached " : "") << "sticker: " << status;
     td->stickers_manager_->reload_recent_stickers(is_attached_, true);
     promise_.set_error(std::move(status));
@@ -3830,11 +3854,19 @@ void StickersManager::add_recent_sticker(bool is_attached, const tl_object_ptr<t
 
 void StickersManager::add_recent_sticker_inner(bool is_attached, FileId sticker_id, Promise<Unit> &&promise) {
   if (add_recent_sticker_impl(is_attached, sticker_id, promise)) {
-    // TODO invokeAfter and log event
-    auto file_view = td_->file_manager_->get_file_view(sticker_id);
-    td_->create_handler<SaveRecentStickerQuery>(std::move(promise))
-        ->send(is_attached, file_view.remote_location().as_input_document(), false);
+    send_save_recent_sticker_query(is_attached, sticker_id, false, std::move(promise));
   }
+}
+
+void StickersManager::send_save_recent_sticker_query(bool is_attached, FileId sticker_id, bool unsave,
+                                                     Promise<Unit> &&promise) {
+  // TODO invokeAfter and log event
+  auto file_view = td_->file_manager_->get_file_view(sticker_id);
+  CHECK(file_view.has_remote_location());
+  CHECK(file_view.remote_location().is_document());
+  CHECK(!file_view.remote_location().is_web());
+  td_->create_handler<SaveRecentStickerQuery>(std::move(promise))
+      ->send(is_attached, sticker_id, file_view.remote_location().as_input_document(), unsave);
 }
 
 void StickersManager::add_recent_sticker_by_id(bool is_attached, FileId sticker_id) {
@@ -3942,13 +3974,7 @@ void StickersManager::remove_recent_sticker(bool is_attached, const tl_object_pt
     return promise.set_error(Status::Error(7, "Sticker not found"));
   }
 
-  // TODO invokeAfter
-  auto file_view = td_->file_manager_->get_file_view(file_id);
-  CHECK(file_view.has_remote_location());
-  CHECK(file_view.remote_location().is_document());
-  CHECK(!file_view.remote_location().is_web());
-  td_->create_handler<SaveRecentStickerQuery>(std::move(promise))
-      ->send(is_attached, file_view.remote_location().as_input_document(), true);
+  send_save_recent_sticker_query(is_attached, file_id, true, std::move(promise));
 
   sticker_ids.erase(it);
 

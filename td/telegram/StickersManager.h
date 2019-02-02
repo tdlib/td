@@ -162,6 +162,8 @@ class StickersManager : public Actor {
   void remove_recent_sticker(bool is_attached, const tl_object_ptr<td_api::InputFile> &input_file,
                              Promise<Unit> &&promise);
 
+  void send_save_recent_sticker_query(bool is_attached, FileId sticker_id, bool unsave, Promise<Unit> &&promise);
+
   void clear_recent_stickers(bool is_attached, Promise<Unit> &&promise);
 
   void on_update_recent_stickers_limit(int32 recent_stickers_limit);
