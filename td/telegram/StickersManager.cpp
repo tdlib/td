@@ -365,13 +365,23 @@ class GetFavedStickersQuery : public Td::ResultHandler {
 };
 
 class FaveStickerQuery : public Td::ResultHandler {
+  FileId file_id_;
+  string file_reference_;
+  bool unsave_ = false;
+
   Promise<Unit> promise_;
 
  public:
   explicit FaveStickerQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(tl_object_ptr<telegram_api::inputDocument> &&input_document, bool unsave) {
+  void send(FileId file_id, tl_object_ptr<telegram_api::inputDocument> &&input_document, bool unsave) {
+    CHECK(input_document != nullptr);
+    CHECK(file_id.is_valid());
+    file_id_ = file_id;
+    file_reference_ = input_document->file_reference_.as_slice().str();
+    unsave_ = unsave;
+
     send_query(G()->net_query_creator().create(
         create_storer(telegram_api::messages_faveSticker(std::move(input_document), unsave))));
   }
@@ -392,6 +402,21 @@ class FaveStickerQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
+    if (FileReferenceManager::is_file_reference_error(status)) {
+      td->file_manager_->delete_file_reference(file_id_, file_reference_);
+      td->file_reference_manager_->repair_file_reference(
+          file_id_, PromiseCreator::lambda([sticker_id = file_id_, unsave = unsave_,
+                                            promise = std::move(promise_)](Result<Unit> result) mutable {
+            if (result.is_error()) {
+              return promise.set_error(Status::Error(400, "Failed to find the sticker"));
+            }
+
+            send_closure(G()->stickers_manager(), &StickersManager::send_fave_sticker_query, sticker_id, unsave,
+                         std::move(promise));
+          }));
+      return;
+    }
+
     LOG(ERROR) << "Receive error for fave sticker: " << status;
     td->stickers_manager_->reload_favorite_stickers(true);
     promise_.set_error(std::move(status));
@@ -4174,6 +4199,13 @@ int32 StickersManager::get_favorite_stickers_hash() const {
   return get_recent_stickers_hash(favorite_sticker_ids_);
 }
 
+FileSourceId StickersManager::get_favorite_stickers_file_source_id() {
+  if (!favorite_stickers_file_source_id_.is_valid()) {
+    favorite_stickers_file_source_id_ = td_->file_reference_manager_->create_favorite_stickers_file_source();
+  }
+  return favorite_stickers_file_source_id_;
+}
+
 void StickersManager::add_favorite_sticker(const tl_object_ptr<td_api::InputFile> &input_file,
                                            Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
@@ -4194,11 +4226,18 @@ void StickersManager::add_favorite_sticker(const tl_object_ptr<td_api::InputFile
 
 void StickersManager::add_favorite_sticker_inner(FileId sticker_id, Promise<Unit> &&promise) {
   if (add_favorite_sticker_impl(sticker_id, promise)) {
-    // TODO invokeAfter and log event
-    auto file_view = td_->file_manager_->get_file_view(sticker_id);
-    td_->create_handler<FaveStickerQuery>(std::move(promise))
-        ->send(file_view.remote_location().as_input_document(), false);
+    send_fave_sticker_query(sticker_id, false, std::move(promise));
   }
+}
+
+void StickersManager::send_fave_sticker_query(FileId sticker_id, bool unsave, Promise<Unit> &&promise) {
+  // TODO invokeAfter and log event
+  auto file_view = td_->file_manager_->get_file_view(sticker_id);
+  CHECK(file_view.has_remote_location());
+  CHECK(file_view.remote_location().is_document());
+  CHECK(!file_view.remote_location().is_web());
+  td_->create_handler<FaveStickerQuery>(std::move(promise))
+      ->send(sticker_id, file_view.remote_location().as_input_document(), unsave);
 }
 
 void StickersManager::add_favorite_sticker_by_id(FileId sticker_id) {
@@ -4300,13 +4339,7 @@ void StickersManager::remove_favorite_sticker(const tl_object_ptr<td_api::InputF
     return promise.set_error(Status::Error(7, "Sticker not found"));
   }
 
-  // TODO invokeAfter
-  auto file_view = td_->file_manager_->get_file_view(file_id);
-  CHECK(file_view.has_remote_location());
-  CHECK(file_view.remote_location().is_document());
-  CHECK(!file_view.remote_location().is_web());
-  td_->create_handler<FaveStickerQuery>(std::move(promise))
-      ->send(file_view.remote_location().as_input_document(), true);
+  send_fave_sticker_query(file_id, true, std::move(promise));
 
   favorite_sticker_ids_.erase(it);
 

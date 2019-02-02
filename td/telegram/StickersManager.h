@@ -187,6 +187,8 @@ class StickersManager : public Actor {
 
   void remove_favorite_sticker(const tl_object_ptr<td_api::InputFile> &input_file, Promise<Unit> &&promise);
 
+  void send_fave_sticker_query(FileId sticker_id, bool unsave, Promise<Unit> &&promise);
+
   vector<FileId> get_attached_sticker_file_ids(const vector<int32> &int_file_ids);
 
   vector<string> get_sticker_emojis(const tl_object_ptr<td_api::InputFile> &input_file, Promise<Unit> &&promise);
