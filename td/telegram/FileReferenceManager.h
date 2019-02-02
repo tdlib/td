@@ -42,6 +42,7 @@ class FileReferenceManager : public Actor {
   FileSourceId create_web_page_file_source(string url);
   FileSourceId create_saved_animations_file_source();
   FileSourceId create_recent_stickers_file_source(bool is_attached);
+  FileSourceId create_favorite_stickers_file_source();
 
   using NodeId = FileId;
   void repair_file_reference(NodeId node_id, Promise<> promise);
@@ -105,11 +106,12 @@ class FileReferenceManager : public Actor {
   struct FileSourceRecentStickers {
     bool is_attached;
   };
+  struct FileSourceFavoriteStickers {};
 
   // append only
   using FileSource =
       Variant<FileSourceMessage, FileSourceUserPhoto, FileSourceChatPhoto, FileSourceChannelPhoto, FileSourceWallpapers,
-              FileSourceWebPage, FileSourceSavedAnimations, FileSourceRecentStickers>;
+              FileSourceWebPage, FileSourceSavedAnimations, FileSourceRecentStickers, FileSourceFavoriteStickers>;
   vector<FileSource> file_sources_;
 
   int64 query_generation_{0};

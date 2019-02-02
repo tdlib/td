@@ -36,6 +36,7 @@ fileSourceWebPage url:string = FileSource;                             // repair
 fileSourceWallpapers = FileSource;                                     // repaired with account.getWallPapers
 fileSourceSavedAnimations = FileSource;                                // repaired with messages.getSavedGifs
 fileSourceRecentStickers is_attached:Bool = FileSource;                // repaired with messages.getRecentStickers, not reliable
+fileSourceFavoriteStickers = FileSource;                               // repaired with messages.getFavedStickers, not reliable
 */
 
 FileSourceId FileReferenceManager::get_current_file_source_id() const {
@@ -88,6 +89,11 @@ FileSourceId FileReferenceManager::create_saved_animations_file_source() {
 FileSourceId FileReferenceManager::create_recent_stickers_file_source(bool is_attached) {
   FileSourceRecentStickers source{is_attached};
   return add_file_source_id(source, PSLICE() << "recent " << (is_attached ? "attached " : "") << "stickers");
+}
+
+FileSourceId FileReferenceManager::create_favorite_stickers_file_source() {
+  FileSourceFavoriteStickers source;
+  return add_file_source_id(source, PSLICE() << "favorite stickers");
 }
 
 bool FileReferenceManager::add_file_source(NodeId node_id, FileSourceId file_source_id) {
@@ -234,12 +240,14 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
                            std::move(promise));
       },
       [&](const FileSourceSavedAnimations &source) {
-        send_closure_later(G()->animations_manager(), &AnimationsManager::reload_saved_animations_force,
-                           std::move(promise));
+        send_closure_later(G()->animations_manager(), &AnimationsManager::repair_saved_animations, std::move(promise));
       },
       [&](const FileSourceRecentStickers &source) {
-        send_closure_later(G()->stickers_manager(), &StickersManager::reload_recent_stickers_force, source.is_attached,
+        send_closure_later(G()->stickers_manager(), &StickersManager::repair_recent_stickers, source.is_attached,
                            std::move(promise));
+      },
+      [&](const FileSourceFavoriteStickers &source) {
+        send_closure_later(G()->stickers_manager(), &StickersManager::repair_favorite_stickers, std::move(promise));
       }));
 }
 

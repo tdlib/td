@@ -60,11 +60,11 @@ class AnimationsManager : public Actor {
 
   void reload_saved_animations(bool force);
 
-  void reload_saved_animations_force(Promise<Unit> &&promise);
+  void repair_saved_animations(Promise<Unit> &&promise);
 
-  void on_get_saved_animations(bool is_reload, tl_object_ptr<telegram_api::messages_SavedGifs> &&saved_animations_ptr);
+  void on_get_saved_animations(bool is_repair, tl_object_ptr<telegram_api::messages_SavedGifs> &&saved_animations_ptr);
 
-  void on_get_saved_animations_failed(bool is_reload, Status error);
+  void on_get_saved_animations_failed(bool is_repair, Status error);
 
   vector<FileId> get_saved_animations(Promise<Unit> &&promise);
 
@@ -141,7 +141,7 @@ class AnimationsManager : public Actor {
   double next_saved_animations_load_time_ = 0;
   bool are_saved_animations_loaded_ = false;
   vector<Promise<Unit>> load_saved_animations_queries_;
-  vector<Promise<Unit>> reload_saved_animations_queries_;
+  vector<Promise<Unit>> repair_saved_animations_queries_;
   FileSourceId saved_animations_file_source_id_;
 };
 

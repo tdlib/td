@@ -41,7 +41,8 @@ void FileReferenceManager::store_file_source(FileSourceId file_source_id, Storer
                           [&](const FileSourceWallpapers &source) {},
                           [&](const FileSourceWebPage &source) { td::store(source.url, storer); },
                           [&](const FileSourceSavedAnimations &source) {},
-                          [&](const FileSourceRecentStickers &source) { td::store(source.is_attached, storer); }));
+                          [&](const FileSourceRecentStickers &source) { td::store(source.is_attached, storer); },
+                          [&](const FileSourceFavoriteStickers &source) {}));
 }
 
 template <class ParserT>
@@ -84,6 +85,8 @@ FileSourceId FileReferenceManager::parse_file_source(Td *td, ParserT &parser) {
       td::parse(is_attached, parser);
       return td->stickers_manager_->get_recent_stickers_file_source_id(is_attached);
     }
+    case 8:
+      return td->stickers_manager_->get_favorite_stickers_file_source_id();
     default:
       parser.set_error("Invalid type in FileSource");
       return FileSourceId();

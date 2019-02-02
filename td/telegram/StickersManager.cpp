@@ -220,12 +220,12 @@ class GetAttachedStickerSetsQuery : public Td::ResultHandler {
 };
 
 class GetRecentStickersQuery : public Td::ResultHandler {
-  bool is_reload_ = false;
+  bool is_repair_ = false;
   bool is_attached_ = false;
 
  public:
-  void send(bool is_reload, bool is_attached, int32 hash) {
-    is_reload_ = is_reload;
+  void send(bool is_repair, bool is_attached, int32 hash) {
+    is_repair_ = is_repair;
     is_attached_ = is_attached;
     int32 flags = 0;
     if (is_attached) {
@@ -245,12 +245,12 @@ class GetRecentStickersQuery : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(DEBUG) << "Receive result for get recent " << (is_attached_ ? "attached " : "")
                << "stickers: " << to_string(ptr);
-    td->stickers_manager_->on_get_recent_stickers(is_reload_, is_attached_, std::move(ptr));
+    td->stickers_manager_->on_get_recent_stickers(is_repair_, is_attached_, std::move(ptr));
   }
 
   void on_error(uint64 id, Status status) override {
     LOG(ERROR) << "Receive error for get recent " << (is_attached_ ? "attached " : "") << "stickers: " << status;
-    td->stickers_manager_->on_get_recent_stickers_failed(is_reload_, is_attached_, std::move(status));
+    td->stickers_manager_->on_get_recent_stickers_failed(is_repair_, is_attached_, std::move(status));
   }
 };
 
@@ -339,8 +339,11 @@ class ClearRecentStickersQuery : public Td::ResultHandler {
 };
 
 class GetFavedStickersQuery : public Td::ResultHandler {
+  bool is_repair_ = false;
+
  public:
-  void send(int32 hash) {
+  void send(bool is_repair, int32 hash) {
+    is_repair_ = is_repair;
     LOG(INFO) << "Send get favorite stickers request with hash = " << hash;
     send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_getFavedStickers(hash))));
   }
@@ -352,12 +355,12 @@ class GetFavedStickersQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    td->stickers_manager_->on_get_favorite_stickers(std::move(ptr));
+    td->stickers_manager_->on_get_favorite_stickers(is_repair_, std::move(ptr));
   }
 
   void on_error(uint64 id, Status status) override {
     LOG(ERROR) << "Receive error for get favorite stickers: " << status;
-    td->stickers_manager_->on_get_favorite_stickers_failed(std::move(status));
+    td->stickers_manager_->on_get_favorite_stickers_failed(is_repair_, std::move(status));
   }
 };
 
@@ -3624,13 +3627,13 @@ void StickersManager::reload_recent_stickers(bool is_attached, bool force) {
   }
 }
 
-void StickersManager::reload_recent_stickers_force(bool is_attached, Promise<Unit> &&promise) {
+void StickersManager::repair_recent_stickers(bool is_attached, Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
     return promise.set_error(Status::Error(400, "Bots has no recent stickers"));
   }
 
-  reload_recent_stickers_queries_[is_attached].push_back(std::move(promise));
-  if (reload_recent_stickers_queries_[is_attached].size() == 1u) {
+  repair_recent_stickers_queries_[is_attached].push_back(std::move(promise));
+  if (repair_recent_stickers_queries_[is_attached].size() == 1u) {
     td_->create_handler<GetRecentStickersQuery>()->send(true, is_attached, 0);
   }
 }
@@ -3702,17 +3705,17 @@ void StickersManager::on_load_recent_stickers_finished(bool is_attached, vector<
   }
 }
 
-void StickersManager::on_get_recent_stickers(bool is_reload, bool is_attached,
+void StickersManager::on_get_recent_stickers(bool is_repair, bool is_attached,
                                              tl_object_ptr<telegram_api::messages_RecentStickers> &&stickers_ptr) {
   CHECK(!td_->auth_manager_->is_bot());
-  if (!is_reload) {
+  if (!is_repair) {
     next_recent_stickers_load_time_[is_attached] = Time::now_cached() + Random::fast(30 * 60, 50 * 60);
   }
 
   CHECK(stickers_ptr != nullptr);
   int32 constructor_id = stickers_ptr->get_id();
   if (constructor_id == telegram_api::messages_recentStickersNotModified::ID) {
-    if (is_reload) {
+    if (is_repair) {
       return on_get_recent_stickers_failed(true, is_attached, Status::Error(500, "Failed to reload recent stickers"));
     }
     LOG(INFO) << (is_attached ? "Attached r" : "R") << "ecent stickers are not modified";
@@ -3731,9 +3734,9 @@ void StickersManager::on_get_recent_stickers(bool is_reload, bool is_attached,
     recent_sticker_ids.push_back(sticker_id);
   }
 
-  if (is_reload) {
-    auto promises = std::move(reload_recent_stickers_queries_[is_attached]);
-    reload_recent_stickers_queries_[is_attached].clear();
+  if (is_repair) {
+    auto promises = std::move(repair_recent_stickers_queries_[is_attached]);
+    repair_recent_stickers_queries_[is_attached].clear();
     for (auto &promise : promises) {
       promise.set_value(Unit());
     }
@@ -3744,12 +3747,12 @@ void StickersManager::on_get_recent_stickers(bool is_reload, bool is_attached,
   }
 }
 
-void StickersManager::on_get_recent_stickers_failed(bool is_reload, bool is_attached, Status error) {
+void StickersManager::on_get_recent_stickers_failed(bool is_repair, bool is_attached, Status error) {
   CHECK(error.is_error());
-  if (!is_reload) {
+  if (!is_repair) {
     next_recent_stickers_load_time_[is_attached] = Time::now_cached() + Random::fast(5, 10);
   }
-  auto &queries = is_reload ? reload_recent_stickers_queries_[is_attached] : load_recent_stickers_queries_[is_attached];
+  auto &queries = is_repair ? repair_recent_stickers_queries_[is_attached] : load_recent_stickers_queries_[is_attached];
   auto promises = std::move(queries);
   queries.clear();
   for (auto &promise : promises) {
@@ -3775,10 +3778,11 @@ int32 StickersManager::get_recent_stickers_hash(const vector<FileId> &sticker_id
 }
 
 FileSourceId StickersManager::get_recent_stickers_file_source_id(bool is_attached) {
-  if (!recent_stickers_file_source_id_.is_valid()) {
-    recent_stickers_file_source_id_ = td_->file_reference_manager_->create_recent_stickers_file_source(is_attached);
+  if (!recent_stickers_file_source_id_[is_attached].is_valid()) {
+    recent_stickers_file_source_id_[is_attached] =
+        td_->file_reference_manager_->create_recent_stickers_file_source(is_attached);
   }
-  return recent_stickers_file_source_id_;
+  return recent_stickers_file_source_id_[is_attached];
 }
 
 void StickersManager::add_recent_sticker(bool is_attached, const tl_object_ptr<td_api::InputFile> &input_file,
@@ -3961,15 +3965,15 @@ void StickersManager::send_update_recent_stickers(bool from_database) {
     if (need_update_recent_stickers_[is_attached]) {
       need_update_recent_stickers_[is_attached] = false;
       if (are_recent_stickers_loaded_[is_attached]) {
-        vector<FileId> new_recent_sticker_file_ids = recent_sticker_ids_[is_attached];
+        vector<FileId> new_recent_sticker_file_ids;
         for (auto &sticker_id : recent_sticker_ids_[is_attached]) {
           append(new_recent_sticker_file_ids, get_sticker_file_ids(sticker_id));
         }
         std::sort(new_recent_sticker_file_ids.begin(), new_recent_sticker_file_ids.end());
-        if (new_recent_sticker_file_ids != recent_sticker_file_ids_) {
-          td_->file_manager_->change_files_source(get_recent_stickers_file_source_id(is_attached), recent_sticker_file_ids_,
-                                                  new_recent_sticker_file_ids);
-          recent_sticker_file_ids_ = std::move(new_recent_sticker_file_ids);
+        if (new_recent_sticker_file_ids != recent_sticker_file_ids_[is_attached]) {
+          td_->file_manager_->change_files_source(get_recent_stickers_file_source_id(is_attached),
+                                                  recent_sticker_file_ids_[is_attached], new_recent_sticker_file_ids);
+          recent_sticker_file_ids_[is_attached] = std::move(new_recent_sticker_file_ids);
         }
 
         recent_stickers_hash_[is_attached] = get_recent_stickers_hash(recent_sticker_ids_[is_attached]);
@@ -4029,7 +4033,18 @@ void StickersManager::reload_favorite_stickers(bool force) {
       (next_favorite_stickers_load_time_ < Time::now() || force)) {
     LOG_IF(INFO, force) << "Reload favorite stickers";
     next_favorite_stickers_load_time_ = -1;
-    td_->create_handler<GetFavedStickersQuery>()->send(get_favorite_stickers_hash());
+    td_->create_handler<GetFavedStickersQuery>()->send(false, get_favorite_stickers_hash());
+  }
+}
+
+void StickersManager::repair_favorite_stickers(Promise<Unit> &&promise) {
+  if (td_->auth_manager_->is_bot()) {
+    return promise.set_error(Status::Error(400, "Bots has no favorite stickers"));
+  }
+
+  repair_favorite_stickers_queries_.push_back(std::move(promise));
+  if (repair_favorite_stickers_queries_.size() == 1u) {
+    td_->create_handler<GetFavedStickersQuery>()->send(true, 0);
   }
 }
 
@@ -4098,13 +4113,18 @@ void StickersManager::on_load_favorite_stickers_finished(vector<FileId> &&favori
 }
 
 void StickersManager::on_get_favorite_stickers(
-    tl_object_ptr<telegram_api::messages_FavedStickers> &&favorite_stickers_ptr) {
+    bool is_repair, tl_object_ptr<telegram_api::messages_FavedStickers> &&favorite_stickers_ptr) {
   CHECK(!td_->auth_manager_->is_bot());
-  next_favorite_stickers_load_time_ = Time::now_cached() + Random::fast(30 * 60, 50 * 60);
+  if (!is_repair) {
+    next_favorite_stickers_load_time_ = Time::now_cached() + Random::fast(30 * 60, 50 * 60);
+  }
 
   CHECK(favorite_stickers_ptr != nullptr);
   int32 constructor_id = favorite_stickers_ptr->get_id();
   if (constructor_id == telegram_api::messages_favedStickersNotModified::ID) {
+    if (is_repair) {
+      return on_get_favorite_stickers_failed(true, Status::Error(500, "Failed to reload favorite stickers"));
+    }
     LOG(INFO) << "Favorite stickers are not modified";
     return;
   }
@@ -4124,16 +4144,27 @@ void StickersManager::on_get_favorite_stickers(
     favorite_sticker_ids.push_back(sticker_id);
   }
 
-  on_load_favorite_stickers_finished(std::move(favorite_sticker_ids));
+  if (is_repair) {
+    auto promises = std::move(repair_favorite_stickers_queries_);
+    repair_favorite_stickers_queries_.clear();
+    for (auto &promise : promises) {
+      promise.set_value(Unit());
+    }
+  } else {
+    on_load_favorite_stickers_finished(std::move(favorite_sticker_ids));
 
-  LOG_IF(ERROR, get_favorite_stickers_hash() != favorite_stickers->hash_) << "Favorite stickers hash mismatch";
+    LOG_IF(ERROR, get_favorite_stickers_hash() != favorite_stickers->hash_) << "Favorite stickers hash mismatch";
+  }
 }
 
-void StickersManager::on_get_favorite_stickers_failed(Status error) {
+void StickersManager::on_get_favorite_stickers_failed(bool is_repair, Status error) {
   CHECK(error.is_error());
-  next_favorite_stickers_load_time_ = Time::now_cached() + Random::fast(5, 10);
-  auto promises = std::move(load_favorite_stickers_queries_);
-  load_favorite_stickers_queries_.clear();
+  if (!is_repair) {
+    next_favorite_stickers_load_time_ = Time::now_cached() + Random::fast(5, 10);
+  }
+  auto &queries = is_repair ? repair_favorite_stickers_queries_ : load_favorite_stickers_queries_;
+  auto promises = std::move(queries);
+  queries.clear();
   for (auto &promise : promises) {
     promise.set_error(error.clone());
   }
@@ -4289,6 +4320,17 @@ td_api::object_ptr<td_api::updateFavoriteStickers> StickersManager::get_update_f
 
 void StickersManager::send_update_favorite_stickers(bool from_database) {
   if (are_favorite_stickers_loaded_) {
+    vector<FileId> new_favorite_sticker_file_ids;
+    for (auto &sticker_id : favorite_sticker_ids_) {
+      append(new_favorite_sticker_file_ids, get_sticker_file_ids(sticker_id));
+    }
+    std::sort(new_favorite_sticker_file_ids.begin(), new_favorite_sticker_file_ids.end());
+    if (new_favorite_sticker_file_ids != favorite_sticker_file_ids_) {
+      td_->file_manager_->change_files_source(get_favorite_stickers_file_source_id(), favorite_sticker_file_ids_,
+                                              new_favorite_sticker_file_ids);
+      favorite_sticker_file_ids_ = std::move(new_favorite_sticker_file_ids);
+    }
+
     send_closure(G()->td(), &Td::send_update, get_update_favorite_stickers_object());
 
     if (!from_database) {

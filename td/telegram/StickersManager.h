@@ -147,10 +147,10 @@ class StickersManager : public Actor {
 
   vector<FileId> get_recent_stickers(bool is_attached, Promise<Unit> &&promise);
 
-  void on_get_recent_stickers(bool is_reload, bool is_attached,
+  void on_get_recent_stickers(bool is_repair, bool is_attached,
                               tl_object_ptr<telegram_api::messages_RecentStickers> &&stickers_ptr);
 
-  void on_get_recent_stickers_failed(bool is_reload, bool is_attached, Status error);
+  void on_get_recent_stickers_failed(bool is_repair, bool is_attached, Status error);
 
   FileSourceId get_recent_stickers_file_source_id(bool is_attached);
 
@@ -170,9 +170,14 @@ class StickersManager : public Actor {
 
   void reload_favorite_stickers(bool force);
 
-  void on_get_favorite_stickers(tl_object_ptr<telegram_api::messages_FavedStickers> &&favorite_stickers_ptr);
+  void repair_favorite_stickers(Promise<Unit> &&promise);
 
-  void on_get_favorite_stickers_failed(Status error);
+  void on_get_favorite_stickers(bool is_repair,
+                                tl_object_ptr<telegram_api::messages_FavedStickers> &&favorite_stickers_ptr);
+
+  void on_get_favorite_stickers_failed(bool is_repair, Status error);
+
+  FileSourceId get_favorite_stickers_file_source_id();
 
   vector<FileId> get_favorite_stickers(Promise<Unit> &&promise);
 
@@ -192,7 +197,7 @@ class StickersManager : public Actor {
 
   void reload_recent_stickers(bool is_attached, bool force);
 
-  void reload_recent_stickers_force(bool is_attached, Promise<Unit> &&promise);
+  void repair_recent_stickers(bool is_attached, Promise<Unit> &&promise);
 
   FileId get_sticker_thumbnail_file_id(FileId file_id) const;
 
@@ -491,11 +496,14 @@ class StickersManager : public Actor {
   vector<Promise<Unit>> load_installed_sticker_sets_queries_[2];
   vector<Promise<Unit>> load_featured_sticker_sets_queries_;
   vector<Promise<Unit>> load_recent_stickers_queries_[2];
-  vector<Promise<Unit>> reload_recent_stickers_queries_[2];
+  vector<Promise<Unit>> repair_recent_stickers_queries_[2];
   vector<Promise<Unit>> load_favorite_stickers_queries_;
+  vector<Promise<Unit>> repair_favorite_stickers_queries_;
 
-  vector<FileId> recent_sticker_file_ids_;
-  FileSourceId recent_stickers_file_source_id_;
+  vector<FileId> recent_sticker_file_ids_[2];
+  FileSourceId recent_stickers_file_source_id_[2];
+  vector<FileId> favorite_sticker_file_ids_;
+  FileSourceId favorite_stickers_file_source_id_;
 
   vector<int64> archived_sticker_set_ids_[2];
   int32 total_archived_sticker_set_count_[2] = {-1, -1};

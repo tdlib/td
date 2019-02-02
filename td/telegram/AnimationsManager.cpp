@@ -38,11 +38,11 @@
 namespace td {
 
 class GetSavedGifsQuery : public Td::ResultHandler {
-  bool is_reload_ = false;
+  bool is_repair_ = false;
 
  public:
-  void send(bool is_reload, int32 hash) {
-    is_reload_ = is_reload;
+  void send(bool is_repair, int32 hash) {
+    is_repair_ = is_repair;
     LOG(INFO) << "Send get saved animations request with hash = " << hash;
     send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_getSavedGifs(hash))));
   }
@@ -54,12 +54,12 @@ class GetSavedGifsQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    td->animations_manager_->on_get_saved_animations(is_reload_, std::move(ptr));
+    td->animations_manager_->on_get_saved_animations(is_repair_, std::move(ptr));
   }
 
   void on_error(uint64 id, Status status) override {
     LOG(ERROR) << "Receive error for get saved animations: " << status;
-    td->animations_manager_->on_get_saved_animations_failed(is_reload_, std::move(status));
+    td->animations_manager_->on_get_saved_animations_failed(is_repair_, std::move(status));
   }
 };
 
@@ -436,13 +436,13 @@ void AnimationsManager::reload_saved_animations(bool force) {
   }
 }
 
-void AnimationsManager::reload_saved_animations_force(Promise<Unit> &&promise) {
+void AnimationsManager::repair_saved_animations(Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
     return promise.set_error(Status::Error(400, "Bots has no saved animations"));
   }
 
-  reload_saved_animations_queries_.push_back(std::move(promise));
-  if (reload_saved_animations_queries_.size() == 1u) {
+  repair_saved_animations_queries_.push_back(std::move(promise));
+  if (repair_saved_animations_queries_.size() == 1u) {
     td_->create_handler<GetSavedGifsQuery>()->send(true, 0);
   }
 }
@@ -512,16 +512,16 @@ void AnimationsManager::on_load_saved_animations_finished(vector<FileId> &&saved
 }
 
 void AnimationsManager::on_get_saved_animations(
-    bool is_reload, tl_object_ptr<telegram_api::messages_SavedGifs> &&saved_animations_ptr) {
+    bool is_repair, tl_object_ptr<telegram_api::messages_SavedGifs> &&saved_animations_ptr) {
   CHECK(!td_->auth_manager_->is_bot());
-  if (!is_reload) {
+  if (!is_repair) {
     next_saved_animations_load_time_ = Time::now_cached() + Random::fast(30 * 60, 50 * 60);
   }
 
   CHECK(saved_animations_ptr != nullptr);
   int32 constructor_id = saved_animations_ptr->get_id();
   if (constructor_id == telegram_api::messages_savedGifsNotModified::ID) {
-    if (is_reload) {
+    if (is_repair) {
       return on_get_saved_animations_failed(true, Status::Error(500, "Failed to reload saved animations"));
     }
     LOG(INFO) << "Saved animations are not modified";
@@ -546,14 +546,14 @@ void AnimationsManager::on_get_saved_animations(
       LOG(ERROR) << "Receive " << static_cast<int>(document.first) << " instead of animation as saved animation";
       continue;
     }
-    if (!is_reload) {
+    if (!is_repair) {
       saved_animation_ids.push_back(document.second);
     }
   }
 
-  if (is_reload) {
-    auto promises = std::move(reload_saved_animations_queries_);
-    reload_saved_animations_queries_.clear();
+  if (is_repair) {
+    auto promises = std::move(repair_saved_animations_queries_);
+    repair_saved_animations_queries_.clear();
     for (auto &promise : promises) {
       promise.set_value(Unit());
     }
@@ -566,12 +566,12 @@ void AnimationsManager::on_get_saved_animations(
   }
 }
 
-void AnimationsManager::on_get_saved_animations_failed(bool is_reload, Status error) {
+void AnimationsManager::on_get_saved_animations_failed(bool is_repair, Status error) {
   CHECK(error.is_error());
-  if (!is_reload) {
+  if (!is_repair) {
     next_saved_animations_load_time_ = Time::now_cached() + Random::fast(5, 10);
   }
-  auto &queries = is_reload ? reload_saved_animations_queries_ : load_saved_animations_queries_;
+  auto &queries = is_repair ? repair_saved_animations_queries_ : load_saved_animations_queries_;
   auto promises = std::move(queries);
   queries.clear();
   for (auto &promise : promises) {
