@@ -345,8 +345,7 @@ Status IPAddress::init_ipv4_port(CSlice ipv4, int port) {
 }
 
 Status IPAddress::init_host_port(CSlice host, int port, bool prefer_ipv6) {
-  auto str_port = to_string(port);
-  return init_host_port(host, str_port, prefer_ipv6);
+  return init_host_port(host, PSLICE() << port, prefer_ipv6);
 }
 
 Status IPAddress::init_host_port(CSlice host, CSlice port, bool prefer_ipv6) {

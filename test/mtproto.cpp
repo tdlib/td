@@ -58,10 +58,11 @@ TEST(Mtproto, GetHostByName) {
       GetHostByNameActor::resolve(host, options, std::move(promise)).release();
     };
 
-    std::vector<std::string> hosts = {"127.0.0.2", "1.1.1.1", "localhost", "web.telegram.org", "москва.рф"};
-    for (auto host : hosts) {
-      for (auto type : {GetHostByNameActor::ResolveType::Native, GetHostByNameActor::ResolveType::Google,
-                        GetHostByNameActor::ResolveType::All}) {
+    std::vector<std::string> hosts = {"127.0.0.2",        "1.1.1.1",   "localhost", "web.telegram.org",
+                                      "web.telegram.org", "москва.рф", ""};
+    for (auto type : {GetHostByNameActor::ResolveType::Native, GetHostByNameActor::ResolveType::Google,
+                      GetHostByNameActor::ResolveType::All}) {
+      for (auto host : hosts) {
         for (auto prefer_ipv6 : {false, true}) {
           GetHostByNameActor::ResolveOptions options;
           options.type = type;

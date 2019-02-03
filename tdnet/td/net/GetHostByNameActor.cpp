@@ -14,6 +14,7 @@
 
 namespace td {
 namespace detail {
+
 class GoogleDnsResolver : public Actor {
  public:
   GoogleDnsResolver(std::string host, GetHostByNameActor::ResolveOptions options, Promise<IPAddress> promise)
@@ -25,40 +26,50 @@ class GoogleDnsResolver : public Actor {
   GetHostByNameActor::ResolveOptions options_;
   Promise<IPAddress> promise_;
   ActorOwn<Wget> wget_;
+  double begin_time_ = 0;
 
   void start_up() override {
     const int timeout = 10;
     const int ttl = 3;
-    wget_ = create_actor<Wget>("Wget", create_result_handler(std::move(promise_)),
+    begin_time_ = Time::now();
+    auto wget_promise = PromiseCreator::lambda([actor_id = actor_id(this)](Result<HttpQueryPtr> r_http_query) {
+      send_closure(actor_id, &GoogleDnsResolver::on_result, std::move(r_http_query));
+    });
+    wget_ = create_actor<Wget>("GoogleDnsResolver", std::move(wget_promise),
                                PSTRING() << "https://www.google.com/resolve?name=" << url_encode(host_)
                                          << "&type=" << (options_.prefer_ipv6 ? 28 : 1),
                                std::vector<std::pair<string, string>>({{"Host", "dns.google.com"}}), timeout, ttl,
                                options_.prefer_ipv6, SslStream::VerifyPeer::Off);
   }
 
-  Promise<HttpQueryPtr> create_result_handler(Promise<IPAddress> promise) {
-    return PromiseCreator::lambda([promise = std::move(promise)](Result<HttpQueryPtr> r_http_query) mutable {
-      promise.set_result([&]() -> Result<IPAddress> {
-        TRY_RESULT(http_query, std::move(r_http_query));
-        TRY_RESULT(json_value, json_decode(http_query->content_));
-        if (json_value.type() != JsonValue::Type::Object) {
-          return Status::Error("Failed to parse dns result: not an object");
-        }
-        TRY_RESULT(answer, get_json_object_field(json_value.get_object(), "Answer", JsonValue::Type::Array, false));
-        auto &array = answer.get_array();
-        if (array.size() == 0) {
-          return Status::Error("Failed to parse dns result: Answer is an empty array");
-        }
-        if (array[0].type() != JsonValue::Type::Object) {
-          return Status::Error("Failed to parse dns result: Answer[0] is not an object");
-        }
-        auto &answer_0 = array[0].get_object();
-        TRY_RESULT(ip_str, get_json_object_string_field(answer_0, "data", false));
-        IPAddress ip;
-        TRY_STATUS(ip.init_host_port(ip_str, 0));
-        return ip;
-      }());
-    });
+  static Result<IPAddress> get_ip_address(Result<HttpQueryPtr> r_http_query) {
+    TRY_RESULT(http_query, std::move(r_http_query));
+    TRY_RESULT(json_value, json_decode(http_query->content_));
+    if (json_value.type() != JsonValue::Type::Object) {
+      return Status::Error("Failed to parse DNS result: not an object");
+    }
+    TRY_RESULT(answer, get_json_object_field(json_value.get_object(), "Answer", JsonValue::Type::Array, false));
+    auto &array = answer.get_array();
+    if (array.size() == 0) {
+      return Status::Error("Failed to parse DNS result: Answer is an empty array");
+    }
+    if (array[0].type() != JsonValue::Type::Object) {
+      return Status::Error("Failed to parse DNS result: Answer[0] is not an object");
+    }
+    auto &answer_0 = array[0].get_object();
+    TRY_RESULT(ip_str, get_json_object_string_field(answer_0, "data", false));
+    IPAddress ip;
+    TRY_STATUS(ip.init_host_port(ip_str, 0));
+    return ip;
+  }
+
+  void on_result(Result<HttpQueryPtr> r_http_query) {
+    auto end_time = Time::now();
+    auto result = get_ip_address(std::move(r_http_query));
+    LOG(WARNING) << "Init host = " << host_ << " in " << end_time - begin_time_ << " seconds to "
+                 << (result.is_ok() ? (PSLICE() << result.ok()) : CSlice("[invalid]"));
+    promise_.set_result(std::move(result));
+    stop();
   }
 };
 
@@ -81,9 +92,9 @@ class NativeDnsResolver : public Actor {
     LOG(WARNING) << "Init host = " << host_ << " in " << end_time - begin_time << " seconds to " << ip;
     if (status.is_error()) {
       promise_.set_error(std::move(status));
-      return;
+    } else {
+      promise_.set_value(std::move(ip));
     }
-    promise_.set_value(std::move(ip));
     stop();
   }
 };
@@ -108,7 +119,7 @@ class DnsResolver : public Actor {
       return;
     }
     if (pos_ == 2) {
-      promise_.set_error(Status::Error("Failed to resolve ip"));
+      promise_.set_error(Status::Error("Failed to resolve IP address"));
       return stop();
     }
     options_.type = types[pos_];
@@ -129,8 +140,6 @@ class DnsResolver : public Actor {
   }
 };
 }  // namespace detail
-
-GetHostByNameActor::Options::Options() = default;
 
 ActorOwn<> GetHostByNameActor::resolve(std::string host, ResolveOptions options, Promise<IPAddress> promise) {
   switch (options.type) {
@@ -153,15 +162,13 @@ GetHostByNameActor::GetHostByNameActor(Options options) : options_(options) {
 }
 
 void GetHostByNameActor::on_result(std::string host, bool prefer_ipv6, Result<IPAddress> res) {
-  auto &value = cache_[prefer_ipv6].emplace(host, Value{{}, 0}).first->second;
+  auto value_it = cache_[prefer_ipv6].find(host);
+  CHECK(value_it != cache_[prefer_ipv6].end());
+  auto &value = value_it->second;
 
   auto promises = std::move(value.promises);
-  auto end_time = Time::now();
-  if (res.is_ok()) {
-    value = Value{res.move_as_ok(), end_time + options_.ok_timeout};
-  } else {
-    value = Value{res.move_as_error(), end_time + options_.error_timeout};
-  }
+  auto end_time = Time::now() + (res.is_ok() ? options_.ok_timeout : options_.error_timeout);
+  value = Value{std::move(res), end_time};
   for (auto &promise : promises) {
     promise.second.set_result(value.get_ip_port(promise.first));
   }
@@ -176,6 +183,8 @@ void GetHostByNameActor::run(string host, int port, bool prefer_ipv6, Promise<IP
 
   value.promises.emplace_back(port, std::move(promise));
   if (value.query.empty()) {
+    CHECK(value.promises.size() == 1);
+
     ResolveOptions options;
     options.type = options_.type;
     options.scheduler_id = options_.scheduler_id;

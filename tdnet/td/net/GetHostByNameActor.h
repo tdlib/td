@@ -19,20 +19,25 @@ namespace td {
 class GetHostByNameActor final : public Actor {
  public:
   enum class ResolveType { Native, Google, All };
+
   struct Options {
-    Options();
+    static constexpr int32 DEFAULT_CACHE_TIME = 60 * 29;       // 29 minutes
+    static constexpr int32 DEFAULT_ERROR_CACHE_TIME = 60 * 5;  // 5 minutes
+
     ResolveType type{ResolveType::Native};
-    int scheduler_id{-1};
-    int32 ok_timeout{CACHE_TIME};
-    int32 error_timeout{ERROR_CACHE_TIME};
+    int32 scheduler_id{-1};
+    int32 ok_timeout{DEFAULT_CACHE_TIME};
+    int32 error_timeout{DEFAULT_ERROR_CACHE_TIME};
   };
+
   explicit GetHostByNameActor(Options options = {});
+
   void run(std::string host, int port, bool prefer_ipv6, Promise<IPAddress> promise);
 
   struct ResolveOptions {
     ResolveType type{ResolveType::Native};
     bool prefer_ipv6{false};
-    int scheduler_id{-1};
+    int32 scheduler_id{-1};
   };
   static TD_WARN_UNUSED_RESULT ActorOwn<> resolve(std::string host, ResolveOptions options, Promise<IPAddress> promise);
 
@@ -56,8 +61,6 @@ class GetHostByNameActor final : public Actor {
     }
   };
   std::unordered_map<string, Value> cache_[2];
-  static constexpr int32 CACHE_TIME = 60 * 29;       // 29 minutes
-  static constexpr int32 ERROR_CACHE_TIME = 60 * 5;  // 5 minutes
 
   Options options_;
 
