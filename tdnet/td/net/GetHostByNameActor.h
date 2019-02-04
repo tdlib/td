@@ -30,7 +30,7 @@ class GetHostByNameActor final : public Actor {
     int32 error_timeout{DEFAULT_ERROR_CACHE_TIME};
   };
 
-  explicit GetHostByNameActor(Options options = {});
+  explicit GetHostByNameActor(Options options);
 
   void run(std::string host, int port, bool prefer_ipv6, Promise<IPAddress> promise);
 
@@ -52,7 +52,7 @@ class GetHostByNameActor final : public Actor {
     Value(Result<IPAddress> ip, double expire_at) : ip(std::move(ip)), expire_at(expire_at) {
     }
 
-    Result<IPAddress> get_ip_port(int port) {
+    Result<IPAddress> get_ip_port(int port) const {
       auto res = ip.clone();
       if (res.is_ok()) {
         res.ok_ref().set_port(port);

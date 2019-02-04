@@ -6,10 +6,12 @@
 //
 #include "td/net/GetHostByNameActor.h"
 
+#include "td/net/SslStream.h"
 #include "td/net/Wget.h"
 
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
+#include "td/utils/Slice.h"
 #include "td/utils/Time.h"
 
 namespace td {
@@ -139,6 +141,7 @@ class DnsResolver : public Actor {
     loop();
   }
 };
+
 }  // namespace detail
 
 ActorOwn<> GetHostByNameActor::resolve(std::string host, ResolveOptions options, Promise<IPAddress> promise) {
@@ -158,20 +161,7 @@ ActorOwn<> GetHostByNameActor::resolve(std::string host, ResolveOptions options,
   }
 }
 
-GetHostByNameActor::GetHostByNameActor(Options options) : options_(options) {
-}
-
-void GetHostByNameActor::on_result(std::string host, bool prefer_ipv6, Result<IPAddress> res) {
-  auto value_it = cache_[prefer_ipv6].find(host);
-  CHECK(value_it != cache_[prefer_ipv6].end());
-  auto &value = value_it->second;
-
-  auto promises = std::move(value.promises);
-  auto end_time = Time::now() + (res.is_ok() ? options_.ok_timeout : options_.error_timeout);
-  value = Value{std::move(res), end_time};
-  for (auto &promise : promises) {
-    promise.second.set_result(value.get_ip_port(promise.first));
-  }
+GetHostByNameActor::GetHostByNameActor(Options options) : options_(std::move(options)) {
 }
 
 void GetHostByNameActor::run(string host, int port, bool prefer_ipv6, Promise<IPAddress> promise) {
@@ -194,6 +184,24 @@ void GetHostByNameActor::run(string host, int port, bool prefer_ipv6, Promise<IP
                 PromiseCreator::lambda([actor_id = actor_id(this), host, prefer_ipv6](Result<IPAddress> res) mutable {
                   send_closure(actor_id, &GetHostByNameActor::on_result, std::move(host), prefer_ipv6, std::move(res));
                 }));
+  }
+}
+
+void GetHostByNameActor::on_result(std::string host, bool prefer_ipv6, Result<IPAddress> res) {
+  auto value_it = cache_[prefer_ipv6].find(host);
+  CHECK(value_it != cache_[prefer_ipv6].end());
+  auto &value = value_it->second;
+  CHECK(!value.promises.empty());
+  CHECK(!value.query.empty());
+
+  auto promises = std::move(value.promises);
+  auto end_time = Time::now() + (res.is_ok() ? options_.ok_timeout : options_.error_timeout);
+  value = Value{std::move(res), end_time};
+  CHECK(value.promises.empty());
+  CHECK(value.query.empty());
+
+  for (auto &promise : promises) {
+    promise.second.set_result(value.get_ip_port(promise.first));
   }
 }
 
