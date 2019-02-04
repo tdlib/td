@@ -31,6 +31,17 @@ class GoogleDnsResolver : public Actor {
   double begin_time_ = 0;
 
   void start_up() override {
+    auto r_address = IPAddress::get_ipv4_address(host_);
+    if (r_address.is_ok()) {
+      promise_.set_value(r_address.move_as_ok());
+      return stop();
+    }
+    r_address = IPAddress::get_ipv6_address(host_);
+    if (r_address.is_ok()) {
+      promise_.set_value(r_address.move_as_ok());
+      return stop();
+    }
+
     const int timeout = 10;
     const int ttl = 3;
     begin_time_ = Time::now();

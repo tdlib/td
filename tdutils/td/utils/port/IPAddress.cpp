@@ -345,6 +345,32 @@ Status IPAddress::init_ipv4_port(CSlice ipv4, int port) {
   return Status::OK();
 }
 
+Result<IPAddress> IPAddress::get_ipv4_address(CSlice host) {
+  // sometimes inet_addr allows much more valid IPv4 hosts than inet_pton,
+  // like 0x12.0x34.0x56.0x78, or 0x12345678, or 0x7f.001
+  auto ipv4_numeric_addr = inet_addr(host.c_str());
+  if (ipv4_numeric_addr == INADDR_NONE) {
+    return Status::Error("Host is not valid IPv4 address");
+  }
+
+  host = ::td::get_ip_str(AF_INET, &ipv4_numeric_addr);
+  IPAddress result;
+  auto status = result.init_ipv4_port(host, 1);
+  if (status.is_error()) {
+    return std::move(status);
+  }
+  return std::move(result);
+}
+
+Result<IPAddress> IPAddress::get_ipv6_address(CSlice host) {
+  IPAddress result;
+  auto status = result.init_ipv6_port(host, 1);
+  if (status.is_error()) {
+    return std::move(status);
+  }
+  return std::move(result);
+}
+
 Status IPAddress::init_host_port(CSlice host, int port, bool prefer_ipv6) {
   return init_host_port(host, PSLICE() << port, prefer_ipv6);
 }
