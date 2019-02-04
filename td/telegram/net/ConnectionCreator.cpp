@@ -1243,7 +1243,7 @@ void ConnectionCreator::start_up() {
 
   GetHostByNameActor::Options options;
   options.scheduler_id = G()->get_gc_scheduler_id();
-  options.types = {GetHostByNameActor::ResolveType::Google, GetHostByNameActor::ResolveType::Native};
+  options.resolver_types = {GetHostByNameActor::ResolverType::Google, GetHostByNameActor::ResolverType::Native};
   options.ok_timeout = 5 * 60 - 1;
   options.error_timeout = 0;
   get_host_by_name_actor_ = create_actor<GetHostByNameActor>("GetHostByNameActor", std::move(options));

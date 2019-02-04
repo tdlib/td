@@ -104,7 +104,7 @@ class NativeDnsResolver : public Actor {
 }  // namespace detail
 
 GetHostByNameActor::GetHostByNameActor(Options options) : options_(std::move(options)) {
-  CHECK(!options_.types.empty());
+  CHECK(!options_.resolver_types.empty());
 }
 
 void GetHostByNameActor::run(string host, int port, bool prefer_ipv6, Promise<IPAddress> promise) {
@@ -128,14 +128,14 @@ void GetHostByNameActor::run_query(std::string host, bool prefer_ipv6, Query &qu
   });
 
   CHECK(query.query.empty());
-  CHECK(query.pos < options_.types.size());
-  auto resolver_type = options_.types[query.pos++];
+  CHECK(query.pos < options_.resolver_types.size());
+  auto resolver_type = options_.resolver_types[query.pos++];
   query.query = [&] {
     switch (resolver_type) {
-      case ResolveType::Native:
+      case ResolverType::Native:
         return ActorOwn<>(create_actor_on_scheduler<detail::NativeDnsResolver>(
             "NativeDnsResolver", options_.scheduler_id, std::move(host), prefer_ipv6, std::move(promise)));
-      case ResolveType::Google:
+      case ResolverType::Google:
         return ActorOwn<>(create_actor_on_scheduler<detail::GoogleDnsResolver>(
             "GoogleDnsResolver", options_.scheduler_id, std::move(host), prefer_ipv6, std::move(promise)));
       default:
@@ -152,7 +152,7 @@ void GetHostByNameActor::on_query_result(std::string host, bool prefer_ipv6, Res
   CHECK(!query.promises.empty());
   CHECK(!query.query.empty());
 
-  if (res.is_error() && query.pos < options_.types.size()) {
+  if (res.is_error() && query.pos < options_.resolver_types.size()) {
     query.query.reset();
     return run_query(std::move(host), prefer_ipv6, query);
   }

@@ -18,13 +18,13 @@ namespace td {
 
 class GetHostByNameActor final : public Actor {
  public:
-  enum class ResolveType { Native, Google };
+  enum class ResolverType { Native, Google };
 
   struct Options {
     static constexpr int32 DEFAULT_CACHE_TIME = 60 * 29;       // 29 minutes
     static constexpr int32 DEFAULT_ERROR_CACHE_TIME = 60 * 5;  // 5 minutes
 
-    vector<ResolveType> types{ResolveType::Native};
+    vector<ResolverType> resolver_types{ResolverType::Native};
     int32 scheduler_id{-1};
     int32 ok_timeout{DEFAULT_CACHE_TIME};
     int32 error_timeout{DEFAULT_ERROR_CACHE_TIME};

@@ -62,13 +62,13 @@ TEST(Mtproto, GetHostByNameActor) {
 
     std::vector<std::string> hosts = {
         "127.0.0.2", "1.1.1.1", "localhost", "web.telegram.org", "web.telegram.org", "москва.рф", "", "%", " ", "a"};
-    for (auto types : {vector<GetHostByNameActor::ResolveType>{GetHostByNameActor::ResolveType::Native},
-                       vector<GetHostByNameActor::ResolveType>{GetHostByNameActor::ResolveType::Google},
-                       vector<GetHostByNameActor::ResolveType>{GetHostByNameActor::ResolveType::Google,
-                                                               GetHostByNameActor::ResolveType::Google,
-                                                               GetHostByNameActor::ResolveType::Native}}) {
+    for (auto types : {vector<GetHostByNameActor::ResolverType>{GetHostByNameActor::ResolverType::Native},
+                       vector<GetHostByNameActor::ResolverType>{GetHostByNameActor::ResolverType::Google},
+                       vector<GetHostByNameActor::ResolverType>{GetHostByNameActor::ResolverType::Google,
+                                                                GetHostByNameActor::ResolverType::Google,
+                                                                GetHostByNameActor::ResolverType::Native}}) {
       GetHostByNameActor::Options options;
-      options.types = types;
+      options.resolver_types = types;
       options.scheduler_id = threads_n;
 
       auto actor = create_actor<GetHostByNameActor>("GetHostByNameActor", std::move(options));
