@@ -92,7 +92,7 @@ tl_object_ptr<td_api::CallState> CallState::as_td_api() const {
         v.push_back(c.as_td_api());
       }
       return make_tl_object<td_api::callStateReady>(protocol.as_td_api(), std::move(v), config, key,
-                                                    vector<string>(emojis_fingerprint));
+                                                    vector<string>(emojis_fingerprint), allow_p2p);
     }
     case Type::HangingUp:
       return make_tl_object<td_api::callStateHangingUp>();
@@ -375,6 +375,7 @@ Status CallActor::do_update_call(telegram_api::phoneCall &call) {
     call_state_.connections.push_back(CallConnection::from_telegram_api(*connection));
   }
   call_state_.protocol = CallProtocol::from_telegram_api(*call.protocol_);
+  call_state_.allow_p2p = (call.flags_ & telegram_api::phoneCall::P2P_ALLOWED_MASK) != 0;
   call_state_.type = CallState::Type::Ready;
   call_state_need_flush_ = true;
 

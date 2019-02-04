@@ -118,6 +118,7 @@ class GetAuthorizationsQuery : public Td::ResultHandler {
   Promise<tl_object_ptr<td_api::sessions>> promise_;
   static constexpr int32 AUTHORIZATION_FLAG_IS_CURRENT = 1 << 0;
   static constexpr int32 AUTHORIZATION_FLAG_IS_OFFICIAL_APPLICATION = 1 << 1;
+  static constexpr int32 AUTHORIZATION_FLAG_IS_PASSWORD_PENDING = 1 << 2;
 
  public:
   explicit GetAuthorizationsQuery(Promise<tl_object_ptr<td_api::sessions>> &&promise) : promise_(std::move(promise)) {
@@ -142,9 +143,10 @@ class GetAuthorizationsQuery : public Td::ResultHandler {
       CHECK(authorization != nullptr);
       bool is_current = (authorization->flags_ & AUTHORIZATION_FLAG_IS_CURRENT) != 0;
       bool is_official_application = (authorization->flags_ & AUTHORIZATION_FLAG_IS_OFFICIAL_APPLICATION) != 0;
+      bool is_password_pending = (authorization->flags_ & AUTHORIZATION_FLAG_IS_PASSWORD_PENDING) != 0;
 
       results->sessions_.push_back(make_tl_object<td_api::session>(
-          authorization->hash_, is_current, authorization->api_id_, authorization->app_name_,
+          authorization->hash_, is_current, is_password_pending, authorization->api_id_, authorization->app_name_,
           authorization->app_version_, is_official_application, authorization->device_model_, authorization->platform_,
           authorization->system_version_, authorization->date_created_, authorization->date_active_, authorization->ip_,
           authorization->country_, authorization->region_));
@@ -7090,7 +7092,7 @@ void ContactsManager::on_get_chat_participants(tl_object_ptr<telegram_api::ChatP
 
       ChatFull *chat_full = get_chat_full(chat_id);
       if (chat_full == nullptr) {
-        LOG(INFO) << "Ignore update of members for unknown " << chat_id;
+        LOG(INFO) << "Ignore update of members for unknown full " << chat_id;
         return;
       }
 

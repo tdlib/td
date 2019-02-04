@@ -760,8 +760,9 @@ pageBlockSlideshow page_blocks:vector<PageBlock> caption:RichText = PageBlock;
 pageBlockChatLink title:string photo:chatPhoto username:string = PageBlock;
 
 
-//@description Describes an instant view page for a web page @page_blocks Content of the web page @is_full True, if the instant view contains the full page. A network request might be needed to get the full web page instant view
-webPageInstantView page_blocks:vector<PageBlock> is_full:Bool = WebPageInstantView;
+//@description Describes an instant view page for a web page @page_blocks Content of the web page @is_rtl True, if the instant view must be shown from right to left
+//@is_full True, if the instant view contains the full page. A network request might be needed to get the full web page instant view
+webPageInstantView page_blocks:vector<PageBlock> is_rtl:Bool is_full:Bool = WebPageInstantView;
 
 
 //@description Describes a web page preview @url Original URL of the link @display_url URL to display
@@ -1477,8 +1478,8 @@ callStatePending is_created:Bool is_received:Bool = CallState;
 //@description The call has been answered and encryption keys are being exchanged
 callStateExchangingKeys = CallState;
 
-//@description The call is ready to use @protocol Call protocols supported by the peer @connections Available UDP reflectors @config A JSON-encoded call config @encryption_key Call encryption key @emojis Encryption key emojis fingerprint
-callStateReady protocol:callProtocol connections:vector<callConnection> config:string encryption_key:bytes emojis:vector<string> = CallState;
+//@description The call is ready to use @protocol Call protocols supported by the peer @connections Available UDP reflectors @config A JSON-encoded call config @encryption_key Call encryption key @emojis Encryption key emojis fingerprint @allow_p2p True, if peer-to-peer connection is allowed by users privacy settings
+callStateReady protocol:callProtocol connections:vector<callConnection> config:string encryption_key:bytes emojis:vector<string> allow_p2p:Bool = CallState;
 
 //@description The call is hanging up after discardCall has been called
 callStateHangingUp = CallState;
@@ -1926,19 +1927,23 @@ userPrivacySettingAllowChatInvites = UserPrivacySetting;
 //@description A privacy setting for managing whether the user can be called
 userPrivacySettingAllowCalls = UserPrivacySetting;
 
+//@description A privacy setting for managing whether peer-to-peer connections can be used for calls
+userPrivacySettingAllowPeerToPeerCalls = UserPrivacySetting;
+
 
 //@description Contains information about the period of inactivity after which the current user's account will automatically be deleted @days Number of days of inactivity before the account will be flagged for deletion; should range from 30-366 days
 accountTtl days:int32 = AccountTtl;
 
 
 //@description Contains information about one session in a Telegram application used by the current user @id Session identifier @is_current True, if this session is the current session
+//@is_password_pending True, if a password is needed to complete authorization of the session
 //@api_id Telegram API identifier, as provided by the application @application_name Name of the application, as provided by the application
 //@application_version The version of the application, as provided by the application @is_official_application True, if the application is an official application or uses the api_id of an official application
 //@device_model Model of the device the application has been run or is running on, as provided by the application @platform Operating system the application has been run or is running on, as provided by the application
 //@system_version Version of the operating system the application has been run or is running on, as provided by the application @log_in_date Point in time (Unix timestamp) when the user has logged in
 //@last_active_date Point in time (Unix timestamp) when the session was last used @ip IP address from which the session was created, in human-readable format
 //@country A two-letter country code for the country from which the session was created, based on the IP address @region Region code from which the session was created, based on the IP address
-session id:int64 is_current:Bool api_id:int32 application_name:string application_version:string is_official_application:Bool device_model:string platform:string system_version:string log_in_date:int32 last_active_date:int32 ip:string country:string region:string = Session;
+session id:int64 is_current:Bool is_password_pending:Bool api_id:int32 application_name:string application_version:string is_official_application:Bool device_model:string platform:string system_version:string log_in_date:int32 last_active_date:int32 ip:string country:string region:string = Session;
 
 //@description Contains a list of sessions @sessions List of sessions
 sessions sessions:vector<session> = Sessions;

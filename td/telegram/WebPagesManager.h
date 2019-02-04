@@ -183,7 +183,7 @@ class WebPagesManager : public Actor {
                                                 const std::unordered_map<int64, Photo> &photos,
                                                 const std::unordered_map<int64, FileId> &videos) const;
 
-  void on_get_web_page_instant_view(WebPage *web_page, tl_object_ptr<telegram_api::Page> &&page_ptr, int32 hash,
+  void on_get_web_page_instant_view(WebPage *web_page, tl_object_ptr<telegram_api::page> &&page, int32 hash,
                                     DialogId owner_dialog_id);
 
   void save_web_page(const WebPage *web_page, WebPageId web_page_id, bool from_binlog);

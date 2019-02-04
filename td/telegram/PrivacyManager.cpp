@@ -38,6 +38,9 @@ PrivacyManager::UserPrivacySetting::UserPrivacySetting(const telegram_api::Priva
     case telegram_api::privacyKeyPhoneCall::ID:
       type_ = Type::Call;
       break;
+    case telegram_api::inputPrivacyKeyPhoneP2P::ID:
+      type_ = Type::PeerToPeerCall;
+      break;
     default:
       UNREACHABLE();
       type_ = Type::UserState;
@@ -51,6 +54,8 @@ tl_object_ptr<td_api::UserPrivacySetting> PrivacyManager::UserPrivacySetting::as
       return make_tl_object<td_api::userPrivacySettingAllowChatInvites>();
     case Type::Call:
       return make_tl_object<td_api::userPrivacySettingAllowCalls>();
+    case Type::PeerToPeerCall:
+      return make_tl_object<td_api::userPrivacySettingAllowPeerToPeerCalls>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -64,6 +69,8 @@ tl_object_ptr<telegram_api::InputPrivacyKey> PrivacyManager::UserPrivacySetting:
       return make_tl_object<telegram_api::inputPrivacyKeyChatInvite>();
     case Type::Call:
       return make_tl_object<telegram_api::inputPrivacyKeyPhoneCall>();
+    case Type::PeerToPeerCall:
+      return make_tl_object<telegram_api::inputPrivacyKeyPhoneP2P>();
     default:
       UNREACHABLE();
       return nullptr;
@@ -80,6 +87,9 @@ PrivacyManager::UserPrivacySetting::UserPrivacySetting(const td_api::UserPrivacy
       break;
     case td_api::userPrivacySettingAllowCalls::ID:
       type_ = Type::Call;
+      break;
+    case td_api::userPrivacySettingAllowPeerToPeerCalls::ID:
+      type_ = Type::PeerToPeerCall;
       break;
     default:
       UNREACHABLE();

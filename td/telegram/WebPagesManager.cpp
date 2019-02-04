@@ -135,6 +135,7 @@ class WebPagesManager::WebPageInstantView {
  public:
   vector<unique_ptr<PageBlock>> page_blocks;
   int32 hash = 0;
+  bool is_rtl = false;
   bool is_empty = true;
   bool is_full = false;
   bool is_loaded = false;
@@ -146,6 +147,7 @@ class WebPagesManager::WebPageInstantView {
     BEGIN_STORE_FLAGS();
     STORE_FLAG(is_full);
     STORE_FLAG(is_loaded);
+    STORE_FLAG(is_rtl);
     END_STORE_FLAGS();
 
     store(page_blocks, storer);
@@ -159,6 +161,7 @@ class WebPagesManager::WebPageInstantView {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(is_full);
     PARSE_FLAG(is_loaded);
+    PARSE_FLAG(is_rtl);
     END_PARSE_FLAGS();
 
     parse(page_blocks, parser);
@@ -2226,7 +2229,7 @@ tl_object_ptr<td_api::webPageInstantView> WebPagesManager::get_web_page_instant_
   return make_tl_object<td_api::webPageInstantView>(
       transform(web_page_instant_view->page_blocks,
                 [](const auto &page_block) { return page_block->get_page_block_object(); }),
-      web_page_instant_view->is_full);
+      web_page_instant_view->is_rtl, web_page_instant_view->is_full);
 }
 
 void WebPagesManager::update_messages_content(WebPageId web_page_id, bool have_web_page) {
@@ -2481,7 +2484,8 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
     }
     case telegram_api::pageBlockList::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockList>(page_block_ptr);
-      return td::make_unique<PageBlockList>(get_rich_texts(std::move(page_block->items_)), page_block->ordered_);
+      return nullptr;
+      // return td::make_unique<PageBlockList>(get_rich_texts(std::move(page_block->items_)), page_block->ordered_);
     }
     case telegram_api::pageBlockBlockquote::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockBlockquote>(page_block_ptr);
@@ -2502,7 +2506,7 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
       } else {
         photo = it->second;
       }
-      return make_unique<PageBlockPhoto>(std::move(photo), get_rich_text(std::move(page_block->caption_)));
+      return make_unique<PageBlockPhoto>(std::move(photo), get_rich_text(std::move(page_block->caption_->text_)));
     }
     case telegram_api::pageBlockVideo::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockVideo>(page_block_ptr);
@@ -2511,8 +2515,8 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
       auto animations_it = animations.find(page_block->video_id_);
       if (animations_it != animations.end()) {
         LOG_IF(ERROR, !is_looped) << "Receive non-looped animation";
-        return make_unique<PageBlockAnimation>(animations_it->second, get_rich_text(std::move(page_block->caption_)),
-                                               need_autoplay);
+        return make_unique<PageBlockAnimation>(animations_it->second,
+                                               get_rich_text(std::move(page_block->caption_->text_)), need_autoplay);
       }
 
       auto it = videos.find(page_block->video_id_);
@@ -2520,8 +2524,8 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
       if (it != videos.end()) {
         video_file_id = it->second;
       }
-      return make_unique<PageBlockVideo>(video_file_id, get_rich_text(std::move(page_block->caption_)), need_autoplay,
-                                         is_looped);
+      return make_unique<PageBlockVideo>(video_file_id, get_rich_text(std::move(page_block->caption_->text_)),
+                                         need_autoplay, is_looped);
     }
     case telegram_api::pageBlockCover::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockCover>(page_block_ptr);
@@ -2546,7 +2550,7 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
       }
       return td::make_unique<PageBlockEmbedded>(std::move(page_block->url_), std::move(page_block->html_),
                                                 std::move(poster_photo), get_dimensions(page_block->w_, page_block->h_),
-                                                get_rich_text(std::move(page_block->caption_)), is_full_width,
+                                                get_rich_text(std::move(page_block->caption_->text_)), is_full_width,
                                                 allow_scrolling);
     }
     case telegram_api::pageBlockEmbedPost::ID: {
@@ -2561,19 +2565,19 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
       return td::make_unique<PageBlockEmbeddedPost>(
           std::move(page_block->url_), std::move(page_block->author_), std::move(author_photo), page_block->date_,
           get_page_blocks(std::move(page_block->blocks_), animations, audios, photos, videos),
-          get_rich_text(std::move(page_block->caption_)));
+          get_rich_text(std::move(page_block->caption_->text_)));
     }
     case telegram_api::pageBlockCollage::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockCollage>(page_block_ptr);
       return td::make_unique<PageBlockCollage>(
           get_page_blocks(std::move(page_block->items_), animations, audios, photos, videos),
-          get_rich_text(std::move(page_block->caption_)));
+          get_rich_text(std::move(page_block->caption_->text_)));
     }
     case telegram_api::pageBlockSlideshow::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockSlideshow>(page_block_ptr);
       return td::make_unique<PageBlockSlideshow>(
           get_page_blocks(std::move(page_block->items_), animations, audios, photos, videos),
-          get_rich_text(std::move(page_block->caption_)));
+          get_rich_text(std::move(page_block->caption_->text_)));
     }
     case telegram_api::pageBlockChannel::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockChannel>(page_block_ptr);
@@ -2609,7 +2613,7 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
       if (it != audios.end()) {
         audio_file_id = it->second;
       }
-      return make_unique<PageBlockAudio>(audio_file_id, get_rich_text(std::move(page_block->caption_)));
+      return make_unique<PageBlockAudio>(audio_file_id, get_rich_text(std::move(page_block->caption_->text_)));
     }
     default:
       UNREACHABLE();
@@ -2632,20 +2636,15 @@ vector<unique_ptr<WebPagesManager::PageBlock>> WebPagesManager::get_page_blocks(
   return result;
 }
 
-void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_ptr<telegram_api::Page> &&page_ptr,
+void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_ptr<telegram_api::page> &&page,
                                                    int32 hash, DialogId owner_dialog_id) {
-  CHECK(page_ptr != nullptr);
-  vector<tl_object_ptr<telegram_api::PageBlock>> page_block_ptrs;
-  vector<tl_object_ptr<telegram_api::Photo>> photo_ptrs;
-  vector<tl_object_ptr<telegram_api::Document>> document_ptrs;
-  downcast_call(*page_ptr, [&](auto &page) {
-    page_block_ptrs = std::move(page.blocks_);
-    photo_ptrs = std::move(page.photos_);
-    document_ptrs = std::move(page.documents_);
-  });
+  CHECK(page != nullptr);
+  if ((page->flags_ & telegram_api::page::V2_MASK) == 0) {
+    return;
+  }
 
   std::unordered_map<int64, Photo> photos;
-  for (auto &photo_ptr : photo_ptrs) {
+  for (auto &photo_ptr : page->photos_) {
     if (photo_ptr->get_id() == telegram_api::photo::ID) {
       Photo photo =
           get_photo(td_->file_manager_.get(), move_tl_object_as<telegram_api::photo>(photo_ptr), owner_dialog_id);
@@ -2660,7 +2659,7 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
   std::unordered_map<int64, FileId> animations;
   std::unordered_map<int64, FileId> audios;
   std::unordered_map<int64, FileId> videos;
-  for (auto &document_ptr : document_ptrs) {
+  for (auto &document_ptr : page->documents_) {
     if (document_ptr->get_id() == telegram_api::document::ID) {
       auto document = move_tl_object_as<telegram_api::document>(document_ptr);
       auto document_id = document->id_;
@@ -2701,13 +2700,14 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
     }
   }
 
-  LOG(INFO) << "Receive a web page instant view with " << page_block_ptrs.size() << " blocks, " << animations.size()
+  LOG(INFO) << "Receive a web page instant view with " << page->blocks_.size() << " blocks, " << animations.size()
             << " animations, " << audios.size() << " audios, " << photos.size() << " photos and " << videos.size()
             << " videos";
-  web_page->instant_view.page_blocks = get_page_blocks(std::move(page_block_ptrs), animations, audios, photos, videos);
+  web_page->instant_view.page_blocks = get_page_blocks(std::move(page->blocks_), animations, audios, photos, videos);
+  web_page->instant_view.is_rtl = (page->flags_ & telegram_api::page::RTL_MASK) != 0;
   web_page->instant_view.hash = hash;
   web_page->instant_view.is_empty = false;
-  web_page->instant_view.is_full = page_ptr->get_id() == telegram_api::pageFull::ID;
+  web_page->instant_view.is_full = (page->flags_ & telegram_api::page::PART_MASK) == 0;
   web_page->instant_view.is_loaded = true;
 
   LOG(DEBUG) << "Receive web page instant view: "

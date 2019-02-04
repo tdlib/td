@@ -66,6 +66,7 @@ struct CallState {
   string key;
   string config;
   vector<string> emojis_fingerprint;
+  bool allow_p2p{false};
 
   Status error;
 
