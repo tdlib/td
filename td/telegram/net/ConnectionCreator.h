@@ -185,6 +185,7 @@ class ConnectionCreator : public NetQueryCallback {
   int32 max_proxy_id_ = 0;
   int32 active_proxy_id_ = 0;
   ActorOwn<GetHostByNameActor> get_host_by_name_actor_;
+  ActorOwn<GetHostByNameActor> block_get_host_by_name_actor_;
   IPAddress proxy_ip_address_;
   Timestamp resolve_proxy_timestamp_;
   uint64 resolve_proxy_query_token_{0};
@@ -321,6 +322,8 @@ class ConnectionCreator : public NetQueryCallback {
 
   Result<SocketFd> find_connection(const ProxyInfo &proxy, DcId dc_id, bool allow_media_only,
                                    FindConnectionExtra &extra);
+
+  ActorId<GetHostByNameActor> get_resolver() const;
 
   void ping_proxy_resolved(int32 proxy_id, IPAddress ip_address, Promise<double> promise);
 

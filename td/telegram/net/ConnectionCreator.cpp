@@ -457,6 +457,14 @@ void ConnectionCreator::get_proxy_link(int32 proxy_id, Promise<string> promise) 
   promise.set_value(std::move(url));
 }
 
+ActorId<GetHostByNameActor> ConnectionCreator::get_resolver() const {
+  if (G()->shared_config().get_option_boolean("expect_blocking", true)) {
+    return block_get_host_by_name_actor_.get();
+  } else {
+    return get_host_by_name_actor_.get();
+  }
+}
+
 void ConnectionCreator::ping_proxy(int32 proxy_id, Promise<double> promise) {
   if (proxy_id == 0) {
     ProxyInfo proxy{nullptr, IPAddress()};
@@ -507,7 +515,7 @@ void ConnectionCreator::ping_proxy(int32 proxy_id, Promise<double> promise) {
   }
   const Proxy &proxy = it->second;
   bool prefer_ipv6 = G()->shared_config().get_option_boolean("prefer_ipv6");
-  send_closure(get_host_by_name_actor_, &GetHostByNameActor::run, proxy.server().str(), proxy.port(), prefer_ipv6,
+  send_closure(get_resolver(), &GetHostByNameActor::run, proxy.server().str(), proxy.port(), prefer_ipv6,
                PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise),
                                        proxy_id](Result<IPAddress> result) mutable {
                  if (result.is_error()) {
@@ -1243,10 +1251,11 @@ void ConnectionCreator::start_up() {
 
   GetHostByNameActor::Options options;
   options.scheduler_id = G()->get_gc_scheduler_id();
-  options.resolver_types = {GetHostByNameActor::ResolverType::Google, GetHostByNameActor::ResolverType::Native};
   options.ok_timeout = 5 * 60 - 1;
   options.error_timeout = 0;
-  get_host_by_name_actor_ = create_actor<GetHostByNameActor>("GetHostByNameActor", std::move(options));
+  get_host_by_name_actor_ = create_actor<GetHostByNameActor>("GetHostByNameActor", options);
+  options.resolver_types = {GetHostByNameActor::ResolverType::Google, GetHostByNameActor::ResolverType::Native};
+  block_get_host_by_name_actor_ = create_actor<GetHostByNameActor>("GetHostByNameActor", options);
 
   ref_cnt_guard_ = create_reference(-1);
 
@@ -1373,7 +1382,7 @@ void ConnectionCreator::loop() {
         bool prefer_ipv6 = G()->shared_config().get_option_boolean("prefer_ipv6");
         VLOG(connections) << "Resolve IP address " << resolve_proxy_query_token_ << " of " << proxy.server();
         send_closure(
-            get_host_by_name_actor_, &GetHostByNameActor::run, proxy.server().str(), proxy.port(), prefer_ipv6,
+            get_resolver(), &GetHostByNameActor::run, proxy.server().str(), proxy.port(), prefer_ipv6,
             PromiseCreator::lambda([actor_id = create_reference(resolve_proxy_query_token_)](Result<IPAddress> result) {
               send_closure(std::move(actor_id), &ConnectionCreator::on_proxy_resolved, std::move(result), false);
             }));
