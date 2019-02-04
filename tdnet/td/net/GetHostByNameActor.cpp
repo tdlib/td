@@ -19,13 +19,13 @@ namespace detail {
 
 class GoogleDnsResolver : public Actor {
  public:
-  GoogleDnsResolver(std::string host, GetHostByNameActor::ResolveOptions options, Promise<IPAddress> promise)
-      : host_(std::move(host)), options_(std::move(options)), promise_(std::move(promise)) {
+  GoogleDnsResolver(std::string host, bool prefer_ipv6, Promise<IPAddress> promise)
+      : host_(std::move(host)), prefer_ipv6_(prefer_ipv6), promise_(std::move(promise)) {
   }
 
  private:
   std::string host_;
-  GetHostByNameActor::ResolveOptions options_;
+  bool prefer_ipv6_;
   Promise<IPAddress> promise_;
   ActorOwn<Wget> wget_;
   double begin_time_ = 0;
@@ -37,11 +37,11 @@ class GoogleDnsResolver : public Actor {
     auto wget_promise = PromiseCreator::lambda([actor_id = actor_id(this)](Result<HttpQueryPtr> r_http_query) {
       send_closure(actor_id, &GoogleDnsResolver::on_result, std::move(r_http_query));
     });
-    wget_ = create_actor<Wget>("GoogleDnsResolver", std::move(wget_promise),
-                               PSTRING() << "https://www.google.com/resolve?name=" << url_encode(host_)
-                                         << "&type=" << (options_.prefer_ipv6 ? 28 : 1),
-                               std::vector<std::pair<string, string>>({{"Host", "dns.google.com"}}), timeout, ttl,
-                               options_.prefer_ipv6, SslStream::VerifyPeer::Off);
+    wget_ = create_actor<Wget>(
+        "GoogleDnsResolver", std::move(wget_promise),
+        PSTRING() << "https://www.google.com/resolve?name=" << url_encode(host_) << "&type=" << (prefer_ipv6_ ? 28 : 1),
+        std::vector<std::pair<string, string>>({{"Host", "dns.google.com"}}), timeout, ttl, prefer_ipv6_,
+        SslStream::VerifyPeer::Off);
   }
 
   static Result<IPAddress> get_ip_address(Result<HttpQueryPtr> r_http_query) {
@@ -77,19 +77,19 @@ class GoogleDnsResolver : public Actor {
 
 class NativeDnsResolver : public Actor {
  public:
-  NativeDnsResolver(std::string host, GetHostByNameActor::ResolveOptions options, Promise<IPAddress> promise)
-      : host_(std::move(host)), options_(std::move(options)), promise_(std::move(promise)) {
+  NativeDnsResolver(std::string host, bool prefer_ipv6, Promise<IPAddress> promise)
+      : host_(std::move(host)), prefer_ipv6_(prefer_ipv6), promise_(std::move(promise)) {
   }
 
  private:
   std::string host_;
-  GetHostByNameActor::ResolveOptions options_;
+  bool prefer_ipv6_;
   Promise<IPAddress> promise_;
 
   void start_up() override {
     IPAddress ip;
     auto begin_time = Time::now();
-    auto status = ip.init_host_port(host_, 0, options_.prefer_ipv6);
+    auto status = ip.init_host_port(host_, 0, prefer_ipv6_);
     auto end_time = Time::now();
     LOG(WARNING) << "Init host = " << host_ << " in " << end_time - begin_time << " seconds to " << ip;
     if (status.is_error()) {
@@ -101,67 +101,10 @@ class NativeDnsResolver : public Actor {
   }
 };
 
-class DnsResolver : public Actor {
- public:
-  DnsResolver(std::string host, GetHostByNameActor::ResolveOptions options, Promise<IPAddress> promise)
-      : host_(std::move(host)), options_(std::move(options)), promise_(std::move(promise)) {
-  }
-
- private:
-  std::string host_;
-  GetHostByNameActor::ResolveOptions options_;
-  Promise<IPAddress> promise_;
-  ActorOwn<> query_;
-  size_t pos_ = 0;
-  GetHostByNameActor::ResolveType types[2] = {GetHostByNameActor::ResolveType::Google,
-                                              GetHostByNameActor::ResolveType::Native};
-
-  void loop() override {
-    if (!query_.empty()) {
-      return;
-    }
-    if (pos_ == 2) {
-      promise_.set_error(Status::Error("Failed to resolve IP address"));
-      return stop();
-    }
-    options_.type = types[pos_];
-    pos_++;
-    query_ = GetHostByNameActor::resolve(host_, options_,
-                                         PromiseCreator::lambda([actor_id = actor_id(this)](Result<IPAddress> res) {
-                                           send_closure(actor_id, &DnsResolver::on_result, std::move(res));
-                                         }));
-  }
-
-  void on_result(Result<IPAddress> res) {
-    query_.reset();
-    if (res.is_ok() || pos_ == 2) {
-      promise_.set_result(std::move(res));
-      return stop();
-    }
-    loop();
-  }
-};
-
 }  // namespace detail
 
-ActorOwn<> GetHostByNameActor::resolve(std::string host, ResolveOptions options, Promise<IPAddress> promise) {
-  switch (options.type) {
-    case ResolveType::Native:
-      return ActorOwn<>(create_actor_on_scheduler<detail::NativeDnsResolver>(
-          "NativeDnsResolver", options.scheduler_id, std::move(host), options, std::move(promise)));
-    case ResolveType::Google:
-      return ActorOwn<>(create_actor_on_scheduler<detail::GoogleDnsResolver>(
-          "GoogleDnsResolver", options.scheduler_id, std::move(host), options, std::move(promise)));
-    case ResolveType::All:
-      return ActorOwn<>(create_actor_on_scheduler<detail::DnsResolver>("DnsResolver", options.scheduler_id,
-                                                                       std::move(host), options, std::move(promise)));
-    default:
-      UNREACHABLE();
-      return ActorOwn<>();
-  }
-}
-
 GetHostByNameActor::GetHostByNameActor(Options options) : options_(std::move(options)) {
+  CHECK(!options_.types.empty());
 }
 
 void GetHostByNameActor::run(string host, int port, bool prefer_ipv6, Promise<IPAddress> promise) {
@@ -175,36 +118,54 @@ void GetHostByNameActor::run(string host, int port, bool prefer_ipv6, Promise<IP
   query.promises.emplace_back(port, std::move(promise));
   if (query.query.empty()) {
     CHECK(query.promises.size() == 1);
-
-    ResolveOptions options;
-    options.type = options_.type;
-    options.scheduler_id = options_.scheduler_id;
-    options.prefer_ipv6 = prefer_ipv6;
-    query.query =
-        resolve(host, options,
-                PromiseCreator::lambda([actor_id = actor_id(this), host, prefer_ipv6](Result<IPAddress> res) mutable {
-                  send_closure(actor_id, &GetHostByNameActor::on_result, std::move(host), prefer_ipv6, std::move(res));
-                }));
+    run_query(std::move(host), prefer_ipv6, query);
   }
 }
 
-void GetHostByNameActor::on_result(std::string host, bool prefer_ipv6, Result<IPAddress> res) {
-  auto value_it = cache_[prefer_ipv6].find(host);
-  CHECK(value_it != cache_[prefer_ipv6].end());
-  auto &value = value_it->second;
+void GetHostByNameActor::run_query(std::string host, bool prefer_ipv6, Query &query) {
+  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), host, prefer_ipv6](Result<IPAddress> res) mutable {
+    send_closure(actor_id, &GetHostByNameActor::on_query_result, std::move(host), prefer_ipv6, std::move(res));
+  });
+
+  CHECK(query.query.empty());
+  CHECK(query.pos < options_.types.size());
+  auto resolver_type = options_.types[query.pos++];
+  query.query = [&] {
+    switch (resolver_type) {
+      case ResolveType::Native:
+        return ActorOwn<>(create_actor_on_scheduler<detail::NativeDnsResolver>(
+            "NativeDnsResolver", options_.scheduler_id, std::move(host), prefer_ipv6, std::move(promise)));
+      case ResolveType::Google:
+        return ActorOwn<>(create_actor_on_scheduler<detail::GoogleDnsResolver>(
+            "GoogleDnsResolver", options_.scheduler_id, std::move(host), prefer_ipv6, std::move(promise)));
+      default:
+        UNREACHABLE();
+        return ActorOwn<>();
+    }
+  }();
+}
+
+void GetHostByNameActor::on_query_result(std::string host, bool prefer_ipv6, Result<IPAddress> res) {
   auto query_it = active_queries_[prefer_ipv6].find(host);
   CHECK(query_it != active_queries_[prefer_ipv6].end());
   auto &query = query_it->second;
   CHECK(!query.promises.empty());
   CHECK(!query.query.empty());
 
+  if (res.is_error() && query.pos < options_.types.size()) {
+    query.query.reset();
+    return run_query(std::move(host), prefer_ipv6, query);
+  }
+
   auto promises = std::move(query.promises);
   auto end_time = Time::now() + (res.is_ok() ? options_.ok_timeout : options_.error_timeout);
-  value = Value{std::move(res), end_time};
+  auto value_it = cache_[prefer_ipv6].find(host);
+  CHECK(value_it != cache_[prefer_ipv6].end());
+  value_it->second = Value{std::move(res), end_time};
   active_queries_[prefer_ipv6].erase(query_it);
 
   for (auto &promise : promises) {
-    promise.second.set_result(value.get_ip_port(promise.first));
+    promise.second.set_result(value_it->second.get_ip_port(promise.first));
   }
 }
 

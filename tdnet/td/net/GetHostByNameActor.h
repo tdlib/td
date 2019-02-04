@@ -18,13 +18,13 @@ namespace td {
 
 class GetHostByNameActor final : public Actor {
  public:
-  enum class ResolveType { Native, Google, All };
+  enum class ResolveType { Native, Google };
 
   struct Options {
     static constexpr int32 DEFAULT_CACHE_TIME = 60 * 29;       // 29 minutes
     static constexpr int32 DEFAULT_ERROR_CACHE_TIME = 60 * 5;  // 5 minutes
 
-    ResolveType type{ResolveType::Native};
+    vector<ResolveType> types{ResolveType::Native};
     int32 scheduler_id{-1};
     int32 ok_timeout{DEFAULT_CACHE_TIME};
     int32 error_timeout{DEFAULT_ERROR_CACHE_TIME};
@@ -34,15 +34,8 @@ class GetHostByNameActor final : public Actor {
 
   void run(std::string host, int port, bool prefer_ipv6, Promise<IPAddress> promise);
 
-  struct ResolveOptions {
-    ResolveType type{ResolveType::Native};
-    bool prefer_ipv6{false};
-    int32 scheduler_id{-1};
-  };
-  static TD_WARN_UNUSED_RESULT ActorOwn<> resolve(std::string host, ResolveOptions options, Promise<IPAddress> promise);
-
  private:
-  void on_result(std::string host, bool prefer_ipv6, Result<IPAddress> res);
+  void on_query_result(std::string host, bool prefer_ipv6, Result<IPAddress> res);
 
   struct Value {
     Result<IPAddress> ip;
@@ -63,11 +56,14 @@ class GetHostByNameActor final : public Actor {
 
   struct Query {
     ActorOwn<> query;
+    size_t pos = 0;
     std::vector<std::pair<int, Promise<IPAddress>>> promises;
   };
   std::unordered_map<string, Query> active_queries_[2];
 
   Options options_;
+
+  void run_query(std::string host, bool prefer_ipv6, Query &query);
 };
 
 }  // namespace td
