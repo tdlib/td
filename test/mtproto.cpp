@@ -93,8 +93,9 @@ TEST(Mtproto, GetHostByNameActor) {
 
       for (auto host : hosts) {
         for (auto prefer_ipv6 : {false, true}) {
-          bool allow_ok = host.size() > 2 && host != "127.0.0.1.";
-          bool allow_error = !allow_ok || host == "localhost" || (host == "москва.рф" && prefer_ipv6);
+          bool allow_ok = host.size() > 2;
+          bool allow_both = host == "127.0.0.1." || host == "localhost" || (host == "москва.рф" && prefer_ipv6);
+          bool allow_error = !allow_ok || allow_both;
           run(actor_id, host, prefer_ipv6, allow_ok, allow_error);
         }
       }
