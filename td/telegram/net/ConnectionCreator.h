@@ -323,7 +323,7 @@ class ConnectionCreator : public NetQueryCallback {
   Result<SocketFd> find_connection(const ProxyInfo &proxy, DcId dc_id, bool allow_media_only,
                                    FindConnectionExtra &extra);
 
-  ActorId<GetHostByNameActor> get_resolver() const;
+  ActorId<GetHostByNameActor> get_dns_resolver();
 
   void ping_proxy_resolved(int32 proxy_id, IPAddress ip_address, Promise<double> promise);
 
