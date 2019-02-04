@@ -1014,11 +1014,19 @@ static int merge_choose_remote_location(const FullRemoteFileLocation &x, int8 x_
       return !x_ref;
     }
     if (x.get_raw_file_reference() != y.get_raw_file_reference()) {
-      return x_source < y_source;
+      if (x_source != y_source) {
+        return x_source < y_source;
+      }
+      // prefer newest among two server locations
+      return 0;
     }
   }
   if (x.get_access_hash() != y.get_access_hash()) {
-    return x_source < y_source;
+    if (x_source != y_source) {
+      return x_source < y_source;
+    }
+    // prefer newest among two server locations
+    return 0;
   }
   return 2;
 }
