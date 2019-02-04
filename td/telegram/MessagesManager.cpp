@@ -19421,6 +19421,10 @@ void MessagesManager::on_update_dialog_pinned_message_id(DialogId dialog_id, Mes
   }
 
   if (d->pinned_message_id == pinned_message_id) {
+    if (!d->is_pinned_message_id_inited) {
+      d->is_pinned_message_id_inited = true;
+      on_dialog_updated(d->dialog_id, "set_dialog_is_pinned_message_id_inited");
+    }
     return;
   }
 
@@ -22545,6 +22549,7 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
       d->is_last_read_outbox_message_id_inited = true;
       d->notification_settings.is_synchronized = true;
       d->know_can_report_spam = true;
+      d->is_pinned_message_id_inited = true;
       if (!is_loaded_from_database) {
         d->can_report_spam =
             td_->contacts_manager_->default_can_report_spam_in_secret_chat(dialog_id.get_secret_chat_id());
@@ -22605,7 +22610,8 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
     send_get_dialog_query(dialog_id, Auto());
   }
 
-  if (being_added_dialog_id_ != dialog_id && !d->is_pinned_message_id_inited) {
+  if (being_added_dialog_id_ != dialog_id && !d->is_pinned_message_id_inited &&
+      (d->dialog_id == get_my_dialog_id() || d->dialog_id.get_type() != DialogType::User)) {
     // asynchronously get dialog pinned message from the server
     get_dialog_pinned_message(dialog_id, Auto());
   }
