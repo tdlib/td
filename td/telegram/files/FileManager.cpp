@@ -572,6 +572,9 @@ bool FileView::can_delete() const {
 }
 
 /*** FileManager ***/
+static int merge_choose_remote_location(const FullRemoteFileLocation &x, int8 x_source, const FullRemoteFileLocation &y,
+                                        int8 y_source);
+
 namespace {
 void prepare_path_for_pmc(FileType file_type, string &path) {
   path = PathView::relative(path, get_files_base_dir(file_type)).str();
@@ -938,7 +941,7 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
   bool new_remote = false;
   int32 remote_key = 0;
   if (file_view.has_remote_location()) {
-    RemoteInfo info{file_view.remote_location(), file_id};
+    RemoteInfo info{file_view.remote_location(), file_location_source, file_id};
     remote_key = remote_location_info_.add(info);
     auto &stored_info = remote_location_info_.get(remote_key);
     if (stored_info.file_id_ == file_id) {
@@ -946,10 +949,11 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
       new_remote = true;
     } else {
       to_merge.push_back(stored_info.file_id_);
-      if (stored_info.remote_ == file_view.remote_location() &&
-          stored_info.remote_.get_access_hash() != file_view.remote_location().get_access_hash() &&
-          file_location_source == FileLocationSource::FromServer) {
+      if (merge_choose_remote_location(file_view.remote_location(), static_cast<uint8>(file_location_source),
+                                       stored_info.remote_,
+                                       static_cast<uint8>(stored_info.file_location_source_)) == 0) {
         stored_info.remote_ = file_view.remote_location();
+        stored_info.file_location_source_ = file_location_source;
       }
     }
   }
@@ -998,6 +1002,26 @@ static int merge_choose_local_location(const LocalFileLocation &x, const LocalFi
   return 2;
 }
 
+static int merge_choose_remote_location(const FullRemoteFileLocation &x, int8 x_source, const FullRemoteFileLocation &y,
+                                        int8 y_source) {
+  if (x.is_web() != y.is_web()) {
+    return x.is_web();  // prefer non-web
+  }
+  auto x_ref = x.has_any_file_reference();
+  auto y_ref = y.has_any_file_reference();
+  if (x_ref || y_ref) {
+    if (x_ref != y_ref) {
+      return !x_ref;
+    }
+    if (x.get_raw_file_reference() != y.get_raw_file_reference()) {
+      return x_source < y_source;
+    }
+  }
+  if (x.get_access_hash() != y.get_access_hash()) {
+    return x_source < y_source;
+  }
+  return 2;
+}
 static int merge_choose_remote_location(const RemoteFileLocation &x, int8 x_source, const RemoteFileLocation &y,
                                         int8 y_source) {
   int32 x_type = static_cast<int32>(x.type());
@@ -1007,22 +1031,7 @@ static int merge_choose_remote_location(const RemoteFileLocation &x, int8 x_sour
   }
   // If access_hash changed use a newer one
   if (x.type() == RemoteFileLocation::Type::Full) {
-    if (x.full().is_web() != y.full().is_web()) {
-      return x.full().is_web();  // prefer non-web
-    }
-    auto x_ref = x.full().has_any_file_reference();
-    auto y_ref = y.full().has_any_file_reference();
-    if (x_ref || y_ref) {
-      if (x_ref != y_ref) {
-        return !x_ref;
-      }
-      if (x.full().get_raw_file_reference() != y.full().get_raw_file_reference()) {
-        return x_source < y_source;
-      }
-    }
-    if (x.full().get_access_hash() != y.full().get_access_hash()) {
-      return x_source < y_source;
-    }
+    return merge_choose_remote_location(x.full(), x_source, y.full(), y_source);
   }
   return 2;
 }
