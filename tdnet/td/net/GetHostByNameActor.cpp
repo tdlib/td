@@ -171,15 +171,16 @@ void GetHostByNameActor::run(string host, int port, bool prefer_ipv6, Promise<IP
     return promise.set_result(value.get_ip_port(port));
   }
 
-  value.promises.emplace_back(port, std::move(promise));
-  if (value.query.empty()) {
-    CHECK(value.promises.size() == 1);
+  auto &query = active_queries_[prefer_ipv6][host];
+  query.promises.emplace_back(port, std::move(promise));
+  if (query.query.empty()) {
+    CHECK(query.promises.size() == 1);
 
     ResolveOptions options;
     options.type = options_.type;
     options.scheduler_id = options_.scheduler_id;
     options.prefer_ipv6 = prefer_ipv6;
-    value.query =
+    query.query =
         resolve(host, options,
                 PromiseCreator::lambda([actor_id = actor_id(this), host, prefer_ipv6](Result<IPAddress> res) mutable {
                   send_closure(actor_id, &GetHostByNameActor::on_result, std::move(host), prefer_ipv6, std::move(res));
@@ -191,14 +192,16 @@ void GetHostByNameActor::on_result(std::string host, bool prefer_ipv6, Result<IP
   auto value_it = cache_[prefer_ipv6].find(host);
   CHECK(value_it != cache_[prefer_ipv6].end());
   auto &value = value_it->second;
-  CHECK(!value.promises.empty());
-  CHECK(!value.query.empty());
+  auto query_it = active_queries_[prefer_ipv6].find(host);
+  CHECK(query_it != active_queries_[prefer_ipv6].end());
+  auto &query = query_it->second;
+  CHECK(!query.promises.empty());
+  CHECK(!query.query.empty());
 
-  auto promises = std::move(value.promises);
+  auto promises = std::move(query.promises);
   auto end_time = Time::now() + (res.is_ok() ? options_.ok_timeout : options_.error_timeout);
   value = Value{std::move(res), end_time};
-  CHECK(value.promises.empty());
-  CHECK(value.query.empty());
+  active_queries_[prefer_ipv6].erase(query_it);
 
   for (auto &promise : promises) {
     promise.second.set_result(value.get_ip_port(promise.first));

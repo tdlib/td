@@ -42,12 +42,11 @@ class GetHostByNameActor final : public Actor {
   static TD_WARN_UNUSED_RESULT ActorOwn<> resolve(std::string host, ResolveOptions options, Promise<IPAddress> promise);
 
  private:
+  void on_result(std::string host, bool prefer_ipv6, Result<IPAddress> res);
+
   struct Value {
     Result<IPAddress> ip;
     double expire_at;
-
-    ActorOwn<> query;
-    std::vector<std::pair<int, Promise<IPAddress>>> promises;
 
     Value(Result<IPAddress> ip, double expire_at) : ip(std::move(ip)), expire_at(expire_at) {
     }
@@ -62,9 +61,13 @@ class GetHostByNameActor final : public Actor {
   };
   std::unordered_map<string, Value> cache_[2];
 
-  Options options_;
+  struct Query {
+    ActorOwn<> query;
+    std::vector<std::pair<int, Promise<IPAddress>>> promises;
+  };
+  std::unordered_map<string, Query> active_queries_[2];
 
-  void on_result(std::string host, bool prefer_ipv6, Result<IPAddress> res);
+  Options options_;
 };
 
 }  // namespace td
