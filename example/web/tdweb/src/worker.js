@@ -406,7 +406,7 @@ class TdClient {
     this.savingFiles = new Map();
     this.send({
       '@type': 'setOption',
-      name: 'language_pack_database_path'
+      name: 'language_pack_database_path',
       value: {
         '@type': 'optionValueString',
         value: this.tdfs.dbFileSystem.root + '/language'

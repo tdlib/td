@@ -5,7 +5,40 @@ import log from './logger.js';
 
 const sleep = ms => new Promise(res => setTimeout(res, ms));
 
+/**
+ * TDLib in browser
+ *
+ * TDLib can be used from javascript through the [JSON](https://github.com/tdlib/td#using-json) interface.
+ * This is a convenient wrapper around it.  
+ * Internally it uses TDLib built with emscripten as asm.js or WebAssembly. All work happens in a WebWorker.
+ * TdClient itself just sends queries to WebWorker, recieve updates and results from WebWorker.
+ *
+ * <br><br>
+ * Differences from TDLib API<br>
+ * 1. updateFatalError error:string = Update; <br>
+ * 3. file <..as in td_api..> idb_key:string = File; <br>
+ * 2. setJsVerbosity verbosity:int = Ok; // currenly no result will be sent <br>
+ * 3. inputFileBlob blob:<javascript blob> = InputFile;<br>
+ * <br>
+ * 4. setVerbosity verbosity:int = Ok; // Deprecated
+ */
 class TdClient {
+  /**
+   * @callback updateCallback
+   * @param {Object} update
+   */
+
+  /**
+   * Create TdClient
+   * @param {Object} options - Options
+   * @param {updateCallback} options.onUpdate - Callback for all updates. Could also be set explicitly right after TdClient construction.
+   * @param {number} [options.jsVerbosity='info'] - Verbosity level for javascript part of the code (error, warning, info, log, debug)
+   * @param {number} [options.verbosity=5] - Verbosity level for tdlib
+   * @param {string} [options.prefix=tdlib] Currently only one instance of TdClient per a prefix is allowed. All but one created instances will be automatically closed. Usually, the newest instace is kept alive.
+   * @param {boolean} [options.isBackground=false] - When choosing which instace to keep alive, we prefer instance with isBackground=false
+   * @param {string} [options.mode=wasm] - Type of tdlib build to use. 'asmjs' for asm.js and 'wasm' for WebAssembly.
+   * @param {boolean} [options.readOnly=false] - Open tdlib in read-only mode. Changes to tdlib database won't be persisted. For debug only.
+   */
   constructor(options) {
     log.setVerbosity(options.jsVerbosity);
     this.worker = new MyWorker();
@@ -53,10 +86,47 @@ class TdClient {
     };
     this.query_id = 0;
     this.query_callbacks = new Map();
+    if ('onUpdate' in options) {
+      this.onUpdate = options.onUpdate;
+      delete options.onUpdate;
+    }
     this.worker.postMessage({ '@type': 'init', options: options });
     this.closeOtherClients(options);
   }
 
+  /**
+   * Send query to tdlib.
+   *
+   * If query contains an '@extra' field, the same field will be added into the result.
+   * '@extra' may contain any js object, it won't be sent to web worker.
+   *
+   * @param {Object} query - Query for tdlib.
+   * @returns {Promise} Promise represents the result of the query.
+   */
+  send(query) {
+    this.query_id++;
+    if (query['@extra']) {
+      query['@extra'] = {
+        '@old_extra': JSON.parse(JSON.stringify(query.extra)),
+        query_id: this.query_id
+      };
+    } else {
+      query['@extra'] = {
+        query_id: this.query_id
+      };
+    }
+    if (query['@type'] === 'setJsVerbosity') {
+      log.setVerbosity(query.verbosity);
+    }
+
+    log.info('send to worker: ', query);
+    this.worker.postMessage(query);
+    return new Promise((resolve, reject) => {
+      this.query_callbacks.set(this.query_id, [resolve, reject]);
+    });
+  }
+
+  /** @private */
   onBroadcastMessage(e) {
     var message = e.data;
     log.info('got broadcast message: ', message);
@@ -84,6 +154,7 @@ class TdClient {
     }
   }
 
+  /** @private */
   postState() {
     let state = {
       id: this.uid,
@@ -95,19 +166,24 @@ class TdClient {
     this.channel.postMessage(state);
   }
 
+  /** @private */
   onWaitSetEmpty() {
     // nop
   }
 
+  /** @private */
   onInited() {
     this.isInited = true;
     this.doSendStart();
   }
+
+  /** @private */
   sendStart() {
     this.wantSendStart = true;
     this.doSendStart();
   }
 
+  /** @private */
   doSendStart() {
     if (!this.isInited || !this.wantSendStart || this.state !== 'start') {
       return;
@@ -119,6 +195,7 @@ class TdClient {
     this.worker.postMessage(query);
   }
 
+  /** @private */
   onClosed() {
     this.isClosing = true;
     this.worker.terminate();
@@ -127,6 +204,7 @@ class TdClient {
     this.postState();
   }
 
+  /** @private */
   close() {
     if (this.isClosing) {
       return;
@@ -154,6 +232,7 @@ class TdClient {
     this.postState();
   }
 
+  /** @private */
   async closeOtherClients(options) {
     this.uid = uuid4();
     this.state = 'start';
@@ -181,32 +260,10 @@ class TdClient {
     this.sendStart();
   }
 
+  /** @private */
   onUpdate(response) {
     log.info('ignore onUpdate');
     //nop
-  }
-
-  send(query) {
-    this.query_id++;
-    if (query['@extra']) {
-      query['@extra'] = {
-        '@old_extra': JSON.parse(JSON.stringify(query.extra)),
-        query_id: this.query_id
-      };
-    } else {
-      query['@extra'] = {
-        query_id: this.query_id
-      };
-    }
-    if (query['@type'] === 'setJsVerbosity') {
-      log.setVerbosity(query.verbosity);
-    }
-
-    log.info('send to worker: ', query);
-    this.worker.postMessage(query);
-    return new Promise((resolve, reject) => {
-      this.query_callbacks.set(this.query_id, [resolve, reject]);
-    });
   }
 }
 export default TdClient;
