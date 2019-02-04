@@ -97,13 +97,19 @@ FileSourceId FileReferenceManager::create_favorite_stickers_file_source() {
 }
 
 bool FileReferenceManager::add_file_source(NodeId node_id, FileSourceId file_source_id) {
-  VLOG(file_references) << "Add " << file_source_id << " for file " << node_id;
-  return nodes_[node_id].file_source_ids.add(file_source_id);
+  bool is_added = nodes_[node_id].file_source_ids.add(file_source_id);
+  VLOG(file_references) << "Add " << (is_added ? "new" : "old") << ' ' << file_source_id << " for file " << node_id;
+  return is_added;
 }
 
 bool FileReferenceManager::remove_file_source(NodeId node_id, FileSourceId file_source_id) {
-  VLOG(file_references) << "Remove " << file_source_id << " from file " << node_id;
-  return nodes_[node_id].file_source_ids.remove(file_source_id);
+  bool is_removed = nodes_[node_id].file_source_ids.remove(file_source_id);
+  if (is_removed) {
+    VLOG(file_references) << "Remove " << file_source_id << " from file " << node_id;
+  } else {
+    VLOG(file_references) << "Can't find " << file_source_id << " from file " << node_id << " to remove it";
+  }
+  return is_removed;
 }
 
 std::vector<FileSourceId> FileReferenceManager::get_some_file_sources(NodeId node_id) {
