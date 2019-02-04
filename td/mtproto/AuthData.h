@@ -57,7 +57,6 @@ class AuthData {
 
   bool is_ready(double now);
 
-  uint64 session_id_;
   void set_main_auth_key(AuthKey auth_key) {
     main_auth_key_ = std::move(auth_key);
   }
@@ -148,7 +147,7 @@ class AuthData {
     tmp_auth_key_.set_auth_flag(true);
   }
 
-  Slice get_header() {
+  Slice get_header() const {
     if (use_pfs()) {
       return tmp_auth_key_.need_header() ? Slice(header_) : Slice();
     } else {
@@ -170,7 +169,11 @@ class AuthData {
     }
   }
 
+  void set_session_id(uint64 session_id) {
+    session_id_ = session_id;
+  }
   uint64 get_session_id() const {
+    CHECK(session_id_ != 0);
     return session_id_;
   }
 
@@ -204,7 +207,7 @@ class AuthData {
     future_salts_.clear();
   }
 
-  bool is_server_salt_valid(double now) {
+  bool is_server_salt_valid(double now) const {
     return server_salt_.valid_until > get_server_time(now) + 60;
   }
 
@@ -224,9 +227,9 @@ class AuthData {
 
   int64 next_message_id(double now);
 
-  bool is_valid_outbound_msg_id(int64 id, double now);
+  bool is_valid_outbound_msg_id(int64 id, double now) const;
 
-  bool is_valid_inbound_msg_id(int64 id, double now);
+  bool is_valid_inbound_msg_id(int64 id, double now) const;
 
   Status check_packet(int64 session_id, int64 message_id, double now, bool &time_difference_was_updated);
 
@@ -264,6 +267,7 @@ class AuthData {
   int64 last_message_id_ = 0;
   int32 seq_no_ = 0;
   std::string header_;
+  uint64 session_id_ = 0;
 
   std::vector<ServerSalt> future_salts_;
 

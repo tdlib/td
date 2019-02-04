@@ -110,12 +110,13 @@ int64 AuthData::next_message_id(double now) {
   return result;
 }
 
-bool AuthData::is_valid_outbound_msg_id(int64 id, double now) {
+bool AuthData::is_valid_outbound_msg_id(int64 id, double now) const {
   double server_time = get_server_time(now);
   auto id_time = static_cast<double>(id / (1ll << 32));
   return server_time - 300 / 2 < id_time && id_time < server_time + 60 / 2;
 }
-bool AuthData::is_valid_inbound_msg_id(int64 id, double now) {
+
+bool AuthData::is_valid_inbound_msg_id(int64 id, double now) const {
   double server_time = get_server_time(now);
   auto id_time = static_cast<double>(id / (1ll << 32));
   return server_time - 300 < id_time && id_time < server_time + 30;

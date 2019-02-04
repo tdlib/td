@@ -499,7 +499,7 @@ Status SessionConnection::on_slice_packet(const MsgInfo &info, Slice packet) {
       return Status::OK();
     } else {
       VLOG(mtproto) << "Got update from " << get_name() << " created in " << (Time::now() - created_at_)
-                    << " in container " << container_id_ << " from session " << auth_data_->session_id_
+                    << " in container " << container_id_ << " from session " << auth_data_->get_session_id()
                     << " with message_id " << info.message_id << ", main_message_id = " << main_message_id_
                     << ", seq_no = " << info.seq_no << " and original size " << info.size;
       return callback_->on_message_result_ok(0, as_buffer_slice(packet), info.size);
@@ -789,7 +789,7 @@ void SessionConnection::destroy_key() {
 std::pair<uint64, BufferSlice> SessionConnection::encrypted_bind(int64 perm_key, int64 nonce, int32 expire_at) {
   int64 temp_key = auth_data_->get_tmp_auth_key().id();
 
-  mtproto_api::bind_auth_key_inner object(nonce, temp_key, perm_key, auth_data_->session_id_, expire_at);
+  mtproto_api::bind_auth_key_inner object(nonce, temp_key, perm_key, auth_data_->get_session_id(), expire_at);
   auto object_storer = create_storer(object);
   auto size = object_storer.size();
   auto object_packet = BufferWriter{size, 0, 0};

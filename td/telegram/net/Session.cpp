@@ -115,7 +115,6 @@ Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> 
                  bool is_main, bool use_pfs, bool is_cdn, bool need_destroy, const mtproto::AuthKey &tmp_auth_key,
                  std::vector<mtproto::ServerSalt> server_salts)
     : dc_id_(dc_id), is_main_(is_main), is_cdn_(is_cdn) {
-  LOG(INFO) << "Open session: ";
   VLOG(dc) << "Start connection";
   need_destroy_ = need_destroy;
   if (need_destroy) {
@@ -134,7 +133,7 @@ Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> 
   }
   uint64 session_id = 0;
   Random::secure_bytes(reinterpret_cast<uint8 *>(&session_id), sizeof(session_id));
-  auth_data_.session_id_ = session_id;
+  auth_data_.set_session_id(session_id);
   LOG(WARNING) << "Generate new session_id " << session_id << " for " << (use_pfs ? "temp " : "")
                << (is_cdn ? "CDN " : "") << "auth key " << auth_data_.get_auth_key().id() << " for DC" << dc_id;
 
@@ -222,7 +221,7 @@ void Session::send(NetQueryPtr &&query) {
   last_activity_timestamp_ = Time::now();
 
   query->debug("Session: received from SessionProxy");
-  query->set_session_id(auth_data_.session_id_);
+  query->set_session_id(auth_data_.get_session_id());
   VLOG(net_query) << "got query " << query;
   if (query->update_is_ready()) {
     return_query(std::move(query));
@@ -657,7 +656,7 @@ void Session::on_message_result_error(uint64 id, int error_code, BufferSlice mes
   // TODO: some errors shouldn't cause loss of authorizations. Especially when PFS will be used
   if (error_code == 401 && message.as_slice() != CSlice("SESSION_PASSWORD_NEEDED")) {
     if (auth_data_.use_pfs() && message.as_slice() == CSlice("AUTH_KEY_PERM_EMPTY")) {
-      LOG(ERROR) << "Receive AUTH_KEY_PERM_EMPTY in session " << auth_data_.session_id_ << " for auth key "
+      LOG(ERROR) << "Receive AUTH_KEY_PERM_EMPTY in session " << auth_data_.get_session_id() << " for auth key "
                  << auth_data_.get_tmp_auth_key().id();
       auth_data_.drop_tmp_auth_key();
       on_tmp_auth_key_updated();
@@ -822,7 +821,7 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
   NetQueryRef invoke_after = net_query->invoke_after();
   if (!invoke_after.empty()) {
     invoke_after_id = invoke_after->message_id();
-    if (invoke_after->session_id() != auth_data_.session_id_ || invoke_after_id == 0) {
+    if (invoke_after->session_id() != auth_data_.get_session_id() || invoke_after_id == 0) {
       net_query->set_error_resend_invoke_after();
       return return_query(std::move(net_query));
     }
@@ -1061,7 +1060,7 @@ void Session::on_handshake_ready(Result<unique_ptr<mtproto::AuthKeyHandshake>> r
         auth_data_.set_tmp_auth_key(std::move(handshake->auth_key));
         on_tmp_auth_key_updated();
       }
-      LOG(WARNING) << "Update auth key in session_id " << auth_data_.session_id_ << " to "
+      LOG(WARNING) << "Update auth key in session_id " << auth_data_.get_session_id() << " to "
                    << auth_data_.get_auth_key().id();
       connection_close(&main_connection_);
       connection_close(&long_poll_connection_);
