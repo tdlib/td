@@ -10,6 +10,8 @@
 #include "td/utils/logging.h"
 #include "td/utils/tests.h"
 
+#include <algorithm>
+
 REGISTER_TESTS(message_entities);
 
 using namespace td;
