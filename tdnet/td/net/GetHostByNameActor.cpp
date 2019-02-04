@@ -79,8 +79,9 @@ class GoogleDnsResolver : public Actor {
   void on_result(Result<HttpQueryPtr> r_http_query) {
     auto end_time = Time::now();
     auto result = get_ip_address(std::move(r_http_query));
-    LOG(WARNING) << "Init IPv" << (prefer_ipv6_ ? "6" : "4") << " host = " << host_ << " in " << end_time - begin_time_
-                 << " seconds to " << (result.is_ok() ? (PSLICE() << result.ok()) : CSlice("[invalid]"));
+    VLOG(dns_resolver) << "Init IPv" << (prefer_ipv6_ ? "6" : "4") << " host = " << host_ << " in "
+                       << end_time - begin_time_ << " seconds to "
+                       << (result.is_ok() ? (PSLICE() << result.ok()) : CSlice("[invalid]"));
     promise_.set_result(std::move(result));
     stop();
   }
@@ -102,7 +103,7 @@ class NativeDnsResolver : public Actor {
     auto begin_time = Time::now();
     auto status = ip.init_host_port(host_, 0, prefer_ipv6_);
     auto end_time = Time::now();
-    LOG(WARNING) << "Init host = " << host_ << " in " << end_time - begin_time << " seconds to " << ip;
+    VLOG(dns_resolver) << "Init host = " << host_ << " in " << end_time - begin_time << " seconds to " << ip;
     if (status.is_error()) {
       promise_.set_error(std::move(status));
     } else {
@@ -113,6 +114,8 @@ class NativeDnsResolver : public Actor {
 };
 
 }  // namespace detail
+
+int VERBOSITY_NAME(dns_resolver) = VERBOSITY_NAME(DEBUG);
 
 GetHostByNameActor::GetHostByNameActor(Options options) : options_(std::move(options)) {
   CHECK(!options_.resolver_types.empty());
@@ -181,8 +184,8 @@ void GetHostByNameActor::on_query_result(std::string host, bool prefer_ipv6, Res
   }
 
   auto end_time = Time::now();
-  LOG(WARNING) << "Init host = " << query.real_host << " in total of " << end_time - query.begin_time << " seconds to "
-               << (result.is_ok() ? (PSLICE() << result.ok()) : CSlice("[invalid]"));
+  VLOG(dns_resolver) << "Init host = " << query.real_host << " in total of " << end_time - query.begin_time
+                     << " seconds to " << (result.is_ok() ? (PSLICE() << result.ok()) : CSlice("[invalid]"));
 
   auto promises = std::move(query.promises);
   auto value_it = cache_[prefer_ipv6].find(host);

@@ -9,12 +9,15 @@
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
 
+#include "td/utils/logging.h"
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/Status.h"
 
 #include <unordered_map>
 
 namespace td {
+
+extern int VERBOSITY_NAME(dns_resolver);
 
 class GetHostByNameActor final : public Actor {
  public:
