@@ -132,7 +132,9 @@ Session::Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> 
     auth_data_.set_future_salts(std::move(server_salts), Time::now());
   }
   uint64 session_id = 0;
-  Random::secure_bytes(reinterpret_cast<uint8 *>(&session_id), sizeof(session_id));
+  do {
+    Random::secure_bytes(reinterpret_cast<uint8 *>(&session_id), sizeof(session_id));
+  } while (session_id == 0);
   auth_data_.set_session_id(session_id);
   LOG(WARNING) << "Generate new session_id " << session_id << " for " << (use_pfs ? "temp " : "")
                << (is_cdn ? "CDN " : "") << "auth key " << auth_data_.get_auth_key().id() << " for DC" << dc_id;
