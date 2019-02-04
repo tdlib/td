@@ -68,8 +68,8 @@ class GoogleDnsResolver : public Actor {
   void on_result(Result<HttpQueryPtr> r_http_query) {
     auto end_time = Time::now();
     auto result = get_ip_address(std::move(r_http_query));
-    LOG(WARNING) << "Init host = " << host_ << " in " << end_time - begin_time_ << " seconds to "
-                 << (result.is_ok() ? (PSLICE() << result.ok()) : CSlice("[invalid]"));
+    LOG(WARNING) << "Init IPv" << (prefer_ipv6_ ? "6" : "4") << " host = " << host_ << " in " << end_time - begin_time_
+                 << " seconds to " << (result.is_ok() ? (PSLICE() << result.ok()) : CSlice("[invalid]"));
     promise_.set_result(std::move(result));
     stop();
   }
@@ -108,17 +108,29 @@ GetHostByNameActor::GetHostByNameActor(Options options) : options_(std::move(opt
 }
 
 void GetHostByNameActor::run(string host, int port, bool prefer_ipv6, Promise<IPAddress> promise) {
-  auto &value = cache_[prefer_ipv6].emplace(host, Value{{}, 0}).first->second;
+  if (host.empty()) {
+    return promise.set_error(Status::Error("Host is empty"));
+  }
+
+  auto r_ascii_host = idn_to_ascii(host);
+  if (r_ascii_host.is_error()) {
+    return promise.set_error(r_ascii_host.move_as_error());
+  }
+  auto ascii_host = r_ascii_host.move_as_ok();
+
+  auto &value = cache_[prefer_ipv6].emplace(ascii_host, Value{{}, 0}).first->second;
   auto begin_time = Time::now();
   if (value.expire_at > begin_time) {
     return promise.set_result(value.get_ip_port(port));
   }
 
-  auto &query = active_queries_[prefer_ipv6][host];
+  auto &query = active_queries_[prefer_ipv6][ascii_host];
   query.promises.emplace_back(port, std::move(promise));
   if (query.query.empty()) {
     CHECK(query.promises.size() == 1);
-    run_query(std::move(host), prefer_ipv6, query);
+    query.real_host = std::move(host);
+    query.begin_time = Time::now();
+    run_query(std::move(ascii_host), prefer_ipv6, query);
   }
 }
 
@@ -145,23 +157,27 @@ void GetHostByNameActor::run_query(std::string host, bool prefer_ipv6, Query &qu
   }();
 }
 
-void GetHostByNameActor::on_query_result(std::string host, bool prefer_ipv6, Result<IPAddress> res) {
+void GetHostByNameActor::on_query_result(std::string host, bool prefer_ipv6, Result<IPAddress> result) {
   auto query_it = active_queries_[prefer_ipv6].find(host);
   CHECK(query_it != active_queries_[prefer_ipv6].end());
   auto &query = query_it->second;
   CHECK(!query.promises.empty());
   CHECK(!query.query.empty());
 
-  if (res.is_error() && query.pos < options_.resolver_types.size()) {
+  if (result.is_error() && query.pos < options_.resolver_types.size()) {
     query.query.reset();
     return run_query(std::move(host), prefer_ipv6, query);
   }
 
+  auto end_time = Time::now();
+  LOG(WARNING) << "Init host = " << query.real_host << " in total of " << end_time - query.begin_time << " seconds to "
+               << (result.is_ok() ? (PSLICE() << result.ok()) : CSlice("[invalid]"));
+
   auto promises = std::move(query.promises);
-  auto end_time = Time::now() + (res.is_ok() ? options_.ok_timeout : options_.error_timeout);
   auto value_it = cache_[prefer_ipv6].find(host);
   CHECK(value_it != cache_[prefer_ipv6].end());
-  value_it->second = Value{std::move(res), end_time};
+  auto cache_timeout = result.is_ok() ? options_.ok_timeout : options_.error_timeout;
+  value_it->second = Value{std::move(result), end_time + cache_timeout};
   active_queries_[prefer_ipv6].erase(query_it);
 
   for (auto &promise : promises) {

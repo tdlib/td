@@ -35,7 +35,7 @@ class GetHostByNameActor final : public Actor {
   void run(std::string host, int port, bool prefer_ipv6, Promise<IPAddress> promise);
 
  private:
-  void on_query_result(std::string host, bool prefer_ipv6, Result<IPAddress> res);
+  void on_query_result(std::string host, bool prefer_ipv6, Result<IPAddress> result);
 
   struct Value {
     Result<IPAddress> ip;
@@ -45,11 +45,11 @@ class GetHostByNameActor final : public Actor {
     }
 
     Result<IPAddress> get_ip_port(int port) const {
-      auto res = ip.clone();
-      if (res.is_ok()) {
-        res.ok_ref().set_port(port);
+      auto result = ip.clone();
+      if (result.is_ok()) {
+        result.ok_ref().set_port(port);
       }
-      return res;
+      return result;
     }
   };
   std::unordered_map<string, Value> cache_[2];
@@ -57,6 +57,8 @@ class GetHostByNameActor final : public Actor {
   struct Query {
     ActorOwn<> query;
     size_t pos = 0;
+    string real_host;
+    double begin_time;
     std::vector<std::pair<int, Promise<IPAddress>>> promises;
   };
   std::unordered_map<string, Query> active_queries_[2];

@@ -154,6 +154,7 @@ Result<string> idn_to_ascii(CSlice host) {
   auto parts = full_split(Slice(host), '.');
   bool is_first = true;
   string result;
+  result.reserve(host.size());
   for (auto part : parts) {
     if (!is_first) {
       result += '.';

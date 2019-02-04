@@ -61,7 +61,8 @@ TEST(Mtproto, GetHostByNameActor) {
     };
 
     std::vector<std::string> hosts = {
-        "127.0.0.2", "1.1.1.1", "localhost", "web.telegram.org", "web.telegram.org", "москва.рф", "", "%", " ", "a"};
+        "127.0.0.2", "1.1.1.1", "localhost", "web.telegram.org", "web.telegram.org.", "москва.рф", "", "%",
+        " ",         "a",       "\x80",      "127.0.0.1."};
     for (auto types : {vector<GetHostByNameActor::ResolverType>{GetHostByNameActor::ResolverType::Native},
                        vector<GetHostByNameActor::ResolverType>{GetHostByNameActor::ResolverType::Google},
                        vector<GetHostByNameActor::ResolverType>{GetHostByNameActor::ResolverType::Google,
