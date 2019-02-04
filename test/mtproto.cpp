@@ -34,7 +34,7 @@ REGISTER_TESTS(mtproto);
 using namespace td;
 
 TEST(Mtproto, GetHostByNameActor) {
-  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(WARNING));
+  SET_VERBOSITY_LEVEL(VERBOSITY_NAME(ERROR));
   ConcurrentScheduler sched;
   int threads_n = 1;
   sched.init(threads_n);
@@ -44,12 +44,15 @@ TEST(Mtproto, GetHostByNameActor) {
   {
     auto guard = sched.get_main_guard();
 
-    auto run = [&](ActorId<GetHostByNameActor> actor_id, string host, bool prefer_ipv6) {
-      auto promise = PromiseCreator::lambda([&cnt, &actors, num = cnt, host](Result<IPAddress> r_ip_address) {
-        if (r_ip_address.is_ok()) {
-          LOG(WARNING) << num << " \"" << host << "\" " << r_ip_address.ok();
-        } else {
+    auto run = [&](ActorId<GetHostByNameActor> actor_id, string host, bool prefer_ipv6, bool allow_ok,
+                   bool allow_error) {
+      auto promise = PromiseCreator::lambda([&cnt, &actors, num = cnt, host, allow_ok,
+                                             allow_error](Result<IPAddress> r_ip_address) {
+        if (r_ip_address.is_error() && !allow_error) {
           LOG(ERROR) << num << " \"" << host << "\" " << r_ip_address.error();
+        }
+        if (r_ip_address.is_ok() && !allow_ok && (r_ip_address.ok().is_ipv6() || r_ip_address.ok().get_ipv4() != 0)) {
+          LOG(ERROR) << num << " \"" << host << "\" " << r_ip_address.ok();
         }
         if (--cnt == 0) {
           actors.clear();
@@ -61,8 +64,8 @@ TEST(Mtproto, GetHostByNameActor) {
     };
 
     std::vector<std::string> hosts = {
-        "127.0.0.2", "1.1.1.1", "localhost", "web.telegram.org", "web.telegram.org.", "москва.рф", "", "%",
-        " ",         "a",       "\x80",      "127.0.0.1."};
+        "127.0.0.2", "1.1.1.1", "localhost", "web.telegram.org", "web.telegram.org.",  "москва.рф", "", "%",
+        " ",         "a",       "\x80",      "127.0.0.1.",       "0x12.0x34.0x56.0x78"};
     for (auto types : {vector<GetHostByNameActor::ResolverType>{GetHostByNameActor::ResolverType::Native},
                        vector<GetHostByNameActor::ResolverType>{GetHostByNameActor::ResolverType::Google},
                        vector<GetHostByNameActor::ResolverType>{GetHostByNameActor::ResolverType::Google,
@@ -78,7 +81,9 @@ TEST(Mtproto, GetHostByNameActor) {
 
       for (auto host : hosts) {
         for (auto prefer_ipv6 : {false, true}) {
-          run(actor_id, host, prefer_ipv6);
+          bool allow_ok = host.size() > 2 && host != "127.0.0.1.";
+          bool allow_error = !allow_ok || host == "localhost" || (host == "москва.рф" && prefer_ipv6);
+          run(actor_id, host, prefer_ipv6, allow_ok, allow_error);
         }
       }
     }
