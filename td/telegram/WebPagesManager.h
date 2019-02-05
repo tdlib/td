@@ -232,6 +232,12 @@ class WebPagesManager : public Actor {
 
   FileSourceId get_web_page_file_source_id(WebPage *web_page);
 
+  static void append_rich_text_file_ids(const RichText &rich_text, vector<FileId> &file_ids);
+
+  static void append_page_block_caption_file_ids(const PageBlockCaption &caption, vector<FileId> &file_ids);
+
+  static vector<FileId> get_rich_text_file_ids(const RichText &rich_text);
+
   static vector<FileId> get_web_page_file_ids(const WebPage *web_page);
 
   Td *td_;
