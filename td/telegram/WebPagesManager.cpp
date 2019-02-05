@@ -453,6 +453,30 @@ class WebPagesManager::RichText {
   }
 };
 
+class WebPagesManager::PageBlockCaption {
+ public:
+  RichText text;
+  RichText credit;
+
+  template <class T>
+  void store(T &storer) const {
+    using ::td::store;
+    store(text, storer);
+    store(credit, storer);
+  }
+
+  template <class T>
+  void parse(T &parser) {
+    using ::td::parse;
+    parse(text, parser);
+    if (parser.version() >= static_cast<int32>(Version::InstantView2_0Support)) {
+      parse(credit, parser);
+    } else {
+      credit = RichText();
+    }
+  }
+};
+
 class WebPagesManager::PageBlock {
  public:
   enum class Type : int32 {
@@ -849,11 +873,11 @@ class WebPagesManager::PageBlockList : public PageBlock {
 
 class WebPagesManager::PageBlockBlockQuote : public PageBlock {
   RichText text;
-  RichText caption;
+  RichText credit;
 
  public:
   PageBlockBlockQuote() = default;
-  PageBlockBlockQuote(RichText &&text, RichText &&caption) : text(std::move(text)), caption(std::move(caption)) {
+  PageBlockBlockQuote(RichText &&text, RichText &&credit) : text(std::move(text)), credit(std::move(credit)) {
   }
 
   Type get_type() const override {
@@ -861,31 +885,31 @@ class WebPagesManager::PageBlockBlockQuote : public PageBlock {
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
-    return make_tl_object<td_api::pageBlockBlockQuote>(get_rich_text_object(text), get_rich_text_object(caption));
+    return make_tl_object<td_api::pageBlockBlockQuote>(get_rich_text_object(text), get_rich_text_object(credit));
   }
 
   template <class T>
   void store(T &storer) const {
     using ::td::store;
     store(text, storer);
-    store(caption, storer);
+    store(credit, storer);
   }
 
   template <class T>
   void parse(T &parser) {
     using ::td::parse;
     parse(text, parser);
-    parse(caption, parser);
+    parse(credit, parser);
   }
 };
 
 class WebPagesManager::PageBlockPullQuote : public PageBlock {
   RichText text;
-  RichText caption;
+  RichText credit;
 
  public:
   PageBlockPullQuote() = default;
-  PageBlockPullQuote(RichText &&text, RichText &&caption) : text(std::move(text)), caption(std::move(caption)) {
+  PageBlockPullQuote(RichText &&text, RichText &&credit) : text(std::move(text)), credit(std::move(credit)) {
   }
 
   Type get_type() const override {
@@ -893,32 +917,32 @@ class WebPagesManager::PageBlockPullQuote : public PageBlock {
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
-    return make_tl_object<td_api::pageBlockPullQuote>(get_rich_text_object(text), get_rich_text_object(caption));
+    return make_tl_object<td_api::pageBlockPullQuote>(get_rich_text_object(text), get_rich_text_object(credit));
   }
 
   template <class T>
   void store(T &storer) const {
     using ::td::store;
     store(text, storer);
-    store(caption, storer);
+    store(credit, storer);
   }
 
   template <class T>
   void parse(T &parser) {
     using ::td::parse;
     parse(text, parser);
-    parse(caption, parser);
+    parse(credit, parser);
   }
 };
 
 class WebPagesManager::PageBlockAnimation : public PageBlock {
   FileId animation_file_id;
-  RichText caption;
+  PageBlockCaption caption;
   bool need_autoplay = false;
 
  public:
   PageBlockAnimation() = default;
-  PageBlockAnimation(FileId animation_file_id, RichText &&caption, bool need_autoplay)
+  PageBlockAnimation(FileId animation_file_id, PageBlockCaption &&caption, bool need_autoplay)
       : animation_file_id(animation_file_id), caption(std::move(caption)), need_autoplay(need_autoplay) {
   }
 
@@ -943,7 +967,7 @@ class WebPagesManager::PageBlockAnimation : public PageBlock {
     return make_tl_object<td_api::pageBlockAnimation>(
         G()->td().get_actor_unsafe()->animations_manager_->get_animation_object(animation_file_id,
                                                                                 "get_page_block_object"),
-        get_rich_text_object(caption), need_autoplay);
+        get_page_block_caption_object(caption), need_autoplay);
   }
 
   template <class T>
@@ -988,11 +1012,11 @@ class WebPagesManager::PageBlockAnimation : public PageBlock {
 
 class WebPagesManager::PageBlockPhoto : public PageBlock {
   Photo photo;
-  RichText caption;
+  PageBlockCaption caption;
 
  public:
   PageBlockPhoto() = default;
-  PageBlockPhoto(Photo photo, RichText &&caption) : photo(std::move(photo)), caption(std::move(caption)) {
+  PageBlockPhoto(Photo photo, PageBlockCaption &&caption) : photo(std::move(photo)), caption(std::move(caption)) {
   }
 
   Type get_type() const override {
@@ -1005,7 +1029,8 @@ class WebPagesManager::PageBlockPhoto : public PageBlock {
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
     return make_tl_object<td_api::pageBlockPhoto>(
-        get_photo_object(G()->td().get_actor_unsafe()->file_manager_.get(), &photo), get_rich_text_object(caption));
+        get_photo_object(G()->td().get_actor_unsafe()->file_manager_.get(), &photo),
+        get_page_block_caption_object(caption));
   }
 
   template <class T>
@@ -1025,13 +1050,13 @@ class WebPagesManager::PageBlockPhoto : public PageBlock {
 
 class WebPagesManager::PageBlockVideo : public PageBlock {
   FileId video_file_id;
-  RichText caption;
+  PageBlockCaption caption;
   bool need_autoplay = false;
   bool is_looped = false;
 
  public:
   PageBlockVideo() = default;
-  PageBlockVideo(FileId video_file_id, RichText &&caption, bool need_autoplay, bool is_looped)
+  PageBlockVideo(FileId video_file_id, PageBlockCaption &&caption, bool need_autoplay, bool is_looped)
       : video_file_id(video_file_id), caption(std::move(caption)), need_autoplay(need_autoplay), is_looped(is_looped) {
   }
 
@@ -1054,8 +1079,8 @@ class WebPagesManager::PageBlockVideo : public PageBlock {
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
     return make_tl_object<td_api::pageBlockVideo>(
-        G()->td().get_actor_unsafe()->videos_manager_->get_video_object(video_file_id), get_rich_text_object(caption),
-        need_autoplay, is_looped);
+        G()->td().get_actor_unsafe()->videos_manager_->get_video_object(video_file_id),
+        get_page_block_caption_object(caption), need_autoplay, is_looped);
   }
 
   template <class T>
@@ -1138,13 +1163,13 @@ class WebPagesManager::PageBlockEmbedded : public PageBlock {
   string html;
   Photo poster_photo;
   Dimensions dimensions;
-  RichText caption;
+  PageBlockCaption caption;
   bool is_full_width;
   bool allow_scrolling;
 
  public:
   PageBlockEmbedded() = default;
-  PageBlockEmbedded(string url, string html, Photo poster_photo, Dimensions dimensions, RichText &&caption,
+  PageBlockEmbedded(string url, string html, Photo poster_photo, Dimensions dimensions, PageBlockCaption &&caption,
                     bool is_full_width, bool allow_scrolling)
       : url(std::move(url))
       , html(std::move(html))
@@ -1166,7 +1191,7 @@ class WebPagesManager::PageBlockEmbedded : public PageBlock {
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
     return make_tl_object<td_api::pageBlockEmbedded>(
         url, html, get_photo_object(G()->td().get_actor_unsafe()->file_manager_.get(), &poster_photo), dimensions.width,
-        dimensions.height, get_rich_text_object(caption), is_full_width, allow_scrolling);
+        dimensions.height, get_page_block_caption_object(caption), is_full_width, allow_scrolling);
   }
 
   template <class T>
@@ -1206,12 +1231,12 @@ class WebPagesManager::PageBlockEmbeddedPost : public PageBlock {
   Photo author_photo;
   int32 date;
   vector<unique_ptr<PageBlock>> page_blocks;
-  RichText caption;
+  PageBlockCaption caption;
 
  public:
   PageBlockEmbeddedPost() = default;
   PageBlockEmbeddedPost(string url, string author, Photo author_photo, int32 date,
-                        vector<unique_ptr<PageBlock>> &&page_blocks, RichText &&caption)
+                        vector<unique_ptr<PageBlock>> &&page_blocks, PageBlockCaption &&caption)
       : url(std::move(url))
       , author(std::move(author))
       , author_photo(std::move(author_photo))
@@ -1235,7 +1260,7 @@ class WebPagesManager::PageBlockEmbeddedPost : public PageBlock {
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
     return make_tl_object<td_api::pageBlockEmbeddedPost>(
         url, author, get_photo_object(G()->td().get_actor_unsafe()->file_manager_.get(), &author_photo), date,
-        get_page_block_objects(page_blocks), get_rich_text_object(caption));
+        get_page_block_objects(page_blocks), get_page_block_caption_object(caption));
   }
   template <class T>
   void store(T &storer) const {
@@ -1262,11 +1287,11 @@ class WebPagesManager::PageBlockEmbeddedPost : public PageBlock {
 
 class WebPagesManager::PageBlockCollage : public PageBlock {
   vector<unique_ptr<PageBlock>> page_blocks;
-  RichText caption;
+  PageBlockCaption caption;
 
  public:
   PageBlockCollage() = default;
-  PageBlockCollage(vector<unique_ptr<PageBlock>> &&page_blocks, RichText &&caption)
+  PageBlockCollage(vector<unique_ptr<PageBlock>> &&page_blocks, PageBlockCaption &&caption)
       : page_blocks(std::move(page_blocks)), caption(std::move(caption)) {
   }
 
@@ -1283,7 +1308,8 @@ class WebPagesManager::PageBlockCollage : public PageBlock {
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
-    return make_tl_object<td_api::pageBlockCollage>(get_page_block_objects(page_blocks), get_rich_text_object(caption));
+    return make_tl_object<td_api::pageBlockCollage>(get_page_block_objects(page_blocks),
+                                                    get_page_block_caption_object(caption));
   }
 
   template <class T>
@@ -1303,11 +1329,11 @@ class WebPagesManager::PageBlockCollage : public PageBlock {
 
 class WebPagesManager::PageBlockSlideshow : public PageBlock {
   vector<unique_ptr<PageBlock>> page_blocks;
-  RichText caption;
+  PageBlockCaption caption;
 
  public:
   PageBlockSlideshow() = default;
-  PageBlockSlideshow(vector<unique_ptr<PageBlock>> &&page_blocks, RichText &&caption)
+  PageBlockSlideshow(vector<unique_ptr<PageBlock>> &&page_blocks, PageBlockCaption &&caption)
       : page_blocks(std::move(page_blocks)), caption(std::move(caption)) {
   }
 
@@ -1325,7 +1351,7 @@ class WebPagesManager::PageBlockSlideshow : public PageBlock {
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
     return make_tl_object<td_api::pageBlockSlideshow>(get_page_block_objects(page_blocks),
-                                                      get_rich_text_object(caption));
+                                                      get_page_block_caption_object(caption));
   }
 
   template <class T>
@@ -1386,11 +1412,12 @@ class WebPagesManager::PageBlockChatLink : public PageBlock {
 
 class WebPagesManager::PageBlockAudio : public PageBlock {
   FileId audio_file_id;
-  RichText caption;
+  PageBlockCaption caption;
 
  public:
   PageBlockAudio() = default;
-  PageBlockAudio(FileId audio_file_id, RichText &&caption) : audio_file_id(audio_file_id), caption(std::move(caption)) {
+  PageBlockAudio(FileId audio_file_id, PageBlockCaption &&caption)
+      : audio_file_id(audio_file_id), caption(std::move(caption)) {
   }
 
   Type get_type() const override {
@@ -1412,7 +1439,8 @@ class WebPagesManager::PageBlockAudio : public PageBlock {
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
     return make_tl_object<td_api::pageBlockAudio>(
-        G()->td().get_actor_unsafe()->audios_manager_->get_audio_object(audio_file_id), get_rich_text_object(caption));
+        G()->td().get_actor_unsafe()->audios_manager_->get_audio_object(audio_file_id),
+        get_page_block_caption_object(caption));
   }
 
   template <class T>
@@ -2487,6 +2515,21 @@ vector<tl_object_ptr<td_api::RichText>> WebPagesManager::get_rich_text_objects(c
   return transform(rich_texts, [](const RichText &rich_text) { return get_rich_text_object(rich_text); });
 }
 
+WebPagesManager::PageBlockCaption WebPagesManager::get_page_block_caption(
+    tl_object_ptr<telegram_api::pageCaption> &&page_caption, const std::unordered_map<int64, FileId> &documents) {
+  CHECK(page_caption != nullptr);
+  PageBlockCaption result;
+  result.text = get_rich_text(std::move(page_caption->text_), documents);
+  result.credit = get_rich_text(std::move(page_caption->credit_), documents);
+  return result;
+}
+
+td_api::object_ptr<td_api::pageBlockCaption> WebPagesManager::get_page_block_caption_object(
+    const PageBlockCaption &caption) {
+  return td_api::make_object<td_api::pageBlockCaption>(get_rich_text_object(caption.text),
+                                                       get_rich_text_object(caption.credit));
+}
+
 vector<tl_object_ptr<td_api::PageBlock>> WebPagesManager::get_page_block_objects(
     const vector<unique_ptr<PageBlock>> &page_blocks) {
   return transform(page_blocks,
@@ -2566,7 +2609,7 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
         photo = it->second;
       }
       return make_unique<PageBlockPhoto>(std::move(photo),
-                                         get_rich_text(std::move(page_block->caption_->text_), documents));
+                                         get_page_block_caption(std::move(page_block->caption_), documents));
     }
     case telegram_api::pageBlockVideo::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockVideo>(page_block_ptr);
@@ -2576,7 +2619,7 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
       if (animations_it != animations.end()) {
         LOG_IF(ERROR, !is_looped) << "Receive non-looped animation";
         return make_unique<PageBlockAnimation>(
-            animations_it->second, get_rich_text(std::move(page_block->caption_->text_), documents), need_autoplay);
+            animations_it->second, get_page_block_caption(std::move(page_block->caption_), documents), need_autoplay);
       }
 
       auto it = videos.find(page_block->video_id_);
@@ -2585,7 +2628,7 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
         video_file_id = it->second;
       }
       return make_unique<PageBlockVideo>(
-          video_file_id, get_rich_text(std::move(page_block->caption_->text_), documents), need_autoplay, is_looped);
+          video_file_id, get_page_block_caption(std::move(page_block->caption_), documents), need_autoplay, is_looped);
     }
     case telegram_api::pageBlockCover::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockCover>(page_block_ptr);
@@ -2610,7 +2653,7 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
       }
       return td::make_unique<PageBlockEmbedded>(std::move(page_block->url_), std::move(page_block->html_),
                                                 std::move(poster_photo), get_dimensions(page_block->w_, page_block->h_),
-                                                get_rich_text(std::move(page_block->caption_->text_), documents),
+                                                get_page_block_caption(std::move(page_block->caption_), documents),
                                                 is_full_width, allow_scrolling);
     }
     case telegram_api::pageBlockEmbedPost::ID: {
@@ -2625,19 +2668,19 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
       return td::make_unique<PageBlockEmbeddedPost>(
           std::move(page_block->url_), std::move(page_block->author_), std::move(author_photo), page_block->date_,
           get_page_blocks(std::move(page_block->blocks_), animations, audios, documents, photos, videos),
-          get_rich_text(std::move(page_block->caption_->text_), documents));
+          get_page_block_caption(std::move(page_block->caption_), documents));
     }
     case telegram_api::pageBlockCollage::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockCollage>(page_block_ptr);
       return td::make_unique<PageBlockCollage>(
           get_page_blocks(std::move(page_block->items_), animations, audios, documents, photos, videos),
-          get_rich_text(std::move(page_block->caption_->text_), documents));
+          get_page_block_caption(std::move(page_block->caption_), documents));
     }
     case telegram_api::pageBlockSlideshow::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockSlideshow>(page_block_ptr);
       return td::make_unique<PageBlockSlideshow>(
           get_page_blocks(std::move(page_block->items_), animations, audios, documents, photos, videos),
-          get_rich_text(std::move(page_block->caption_->text_), documents));
+          get_page_block_caption(std::move(page_block->caption_), documents));
     }
     case telegram_api::pageBlockChannel::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockChannel>(page_block_ptr);
@@ -2674,7 +2717,7 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
         audio_file_id = it->second;
       }
       return make_unique<PageBlockAudio>(audio_file_id,
-                                         get_rich_text(std::move(page_block->caption_->text_), documents));
+                                         get_page_block_caption(std::move(page_block->caption_), documents));
     }
     default:
       UNREACHABLE();

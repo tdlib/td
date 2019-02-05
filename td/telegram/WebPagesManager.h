@@ -100,6 +100,8 @@ class WebPagesManager : public Actor {
 
   class RichText;
 
+  class PageBlockCaption;
+
   class PageBlock;
   class PageBlockTitle;
   class PageBlockSubtitle;
@@ -169,6 +171,11 @@ class WebPagesManager : public Actor {
   static tl_object_ptr<td_api::RichText> get_rich_text_object(const RichText &rich_text);
 
   static vector<tl_object_ptr<td_api::RichText>> get_rich_text_objects(const vector<RichText> &rich_texts);
+
+  static PageBlockCaption get_page_block_caption(tl_object_ptr<telegram_api::pageCaption> &&page_caption,
+                                                 const std::unordered_map<int64, FileId> &documents);
+
+  static td_api::object_ptr<td_api::pageBlockCaption> get_page_block_caption_object(const PageBlockCaption &caption);
 
   static vector<tl_object_ptr<td_api::PageBlock>> get_page_block_objects(
       const vector<unique_ptr<PageBlock>> &page_blocks);

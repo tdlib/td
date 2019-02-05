@@ -27,6 +27,7 @@ enum class Version : int32 {
   AddTermsOfService,
   AddContactVcard,
   AddMessageUnsupportedVersion,
+  InstantView2_0Support,
   Next
 };
 

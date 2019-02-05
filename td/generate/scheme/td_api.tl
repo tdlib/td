@@ -696,13 +696,17 @@ richTextMarked text:RichText = RichText;
 //@description A rich text phone number @text Text @phone_number Phone number
 richTextPhoneNumber text:RichText phone_number:string = RichText;
 
-//@description A rich text inline image @document The image represented as a document
+//@description A rich text inline image @document The image represented as a document. The image can be in GIF, JPEG or PNG format
 //@width Width of a bounding box in which the image should be shown, 0 if unknown
 //@height Height of a bounding box in which the image should be shown, 0 if unknown
 richTextInlineImage document:document width:int32 height:int32 = RichText;
 
 //@description A concatenation of rich texts @texts Texts
 richTexts texts:vector<RichText> = RichText;
+
+
+//@description Contains a caption of an instant view web page block, consisting of a text and a trailing credit @text Content of the caption @credit Block credit (like HTML tag <cite>)
+pageBlockCaption text:RichText credit:RichText = PageBlockCaption;
 
 
 //@class PageBlock @description Describes a block of an instant view web page
@@ -740,38 +744,38 @@ pageBlockAnchor name:string = PageBlock;
 //@description A list of texts @items Texts @is_ordered True, if the items should be marked with numbers
 pageBlockList items:vector<RichText> is_ordered:Bool = PageBlock;
 
-//@description A block quote @text Quote text @caption Quote caption
-pageBlockBlockQuote text:RichText caption:RichText = PageBlock;
+//@description A block quote @text Quote text @credit Quote credit
+pageBlockBlockQuote text:RichText credit:RichText = PageBlock;
 
-//@description A pull quote @text Quote text @caption Quote caption
-pageBlockPullQuote text:RichText caption:RichText = PageBlock;
+//@description A pull quote @text Quote text @credit Quote credit
+pageBlockPullQuote text:RichText credit:RichText = PageBlock;
 
 //@description An animation @animation Animation file; may be null @caption Animation caption @need_autoplay True, if the animation should be played automatically
-pageBlockAnimation animation:animation caption:RichText need_autoplay:Bool = PageBlock;
+pageBlockAnimation animation:animation caption:pageBlockCaption need_autoplay:Bool = PageBlock;
 
 //@description An audio file @audio Audio file; may be null @caption Audio file caption
-pageBlockAudio audio:audio caption:RichText = PageBlock;
+pageBlockAudio audio:audio caption:pageBlockCaption = PageBlock;
 
 //@description A photo @photo Photo file; may be null @caption Photo caption
-pageBlockPhoto photo:photo caption:RichText = PageBlock;
+pageBlockPhoto photo:photo caption:pageBlockCaption = PageBlock;
 
 //@description A video @video Video file; may be null @caption Video caption @need_autoplay True, if the video should be played automatically @is_looped True, if the video should be looped
-pageBlockVideo video:video caption:RichText need_autoplay:Bool is_looped:Bool = PageBlock;
+pageBlockVideo video:video caption:pageBlockCaption need_autoplay:Bool is_looped:Bool = PageBlock;
 
 //@description A page cover @cover Cover
 pageBlockCover cover:PageBlock = PageBlock;
 
 //@description An embedded web page @url Web page URL, if available @html HTML-markup of the embedded page @poster_photo Poster photo, if available; may be null @width Block width @height Block height @caption Block caption @is_full_width True, if the block should be full width @allow_scrolling True, if scrolling should be allowed
-pageBlockEmbedded url:string html:string poster_photo:photo width:int32 height:int32 caption:RichText is_full_width:Bool allow_scrolling:Bool = PageBlock;
+pageBlockEmbedded url:string html:string poster_photo:photo width:int32 height:int32 caption:pageBlockCaption is_full_width:Bool allow_scrolling:Bool = PageBlock;
 
 //@description An embedded post @url Web page URL @author Post author @author_photo Post author photo @date Point in time (Unix timestamp) when the post was created; 0 if unknown @page_blocks Post content @caption Post caption
-pageBlockEmbeddedPost url:string author:string author_photo:photo date:int32 page_blocks:vector<PageBlock> caption:RichText = PageBlock;
+pageBlockEmbeddedPost url:string author:string author_photo:photo date:int32 page_blocks:vector<PageBlock> caption:pageBlockCaption = PageBlock;
 
 //@description A collage @page_blocks Collage item contents @caption Block caption
-pageBlockCollage page_blocks:vector<PageBlock> caption:RichText = PageBlock;
+pageBlockCollage page_blocks:vector<PageBlock> caption:pageBlockCaption = PageBlock;
 
 //@description A slideshow @page_blocks Slideshow item contents @caption Block caption
-pageBlockSlideshow page_blocks:vector<PageBlock> caption:RichText = PageBlock;
+pageBlockSlideshow page_blocks:vector<PageBlock> caption:pageBlockCaption = PageBlock;
 
 //@description A link to a chat @title Chat title @photo Chat photo; may be null @username Chat username, by which all other information about the chat should be resolved
 pageBlockChatLink title:string photo:chatPhoto username:string = PageBlock;
