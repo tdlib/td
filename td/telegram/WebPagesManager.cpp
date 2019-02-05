@@ -405,7 +405,21 @@ class WebPagesManager::WebPage {
 
 class WebPagesManager::RichText {
  public:
-  enum class Type : int32 { Plain, Bold, Italic, Underline, Strikethrough, Fixed, Url, EmailAddress, Concatenation };
+  enum class Type : int32 {
+    Plain,
+    Bold,
+    Italic,
+    Underline,
+    Strikethrough,
+    Fixed,
+    Url,
+    EmailAddress,
+    Concatenation,
+    Subscript,
+    Superscript,
+    Marked,
+    PhoneNumber
+  };
   Type type = Type::Plain;
   string content;
   vector<RichText> texts;
@@ -2226,10 +2240,8 @@ tl_object_ptr<td_api::webPageInstantView> WebPagesManager::get_web_page_instant_
     LOG(ERROR) << "Trying to get not loaded web page instant view";
     return nullptr;
   }
-  return make_tl_object<td_api::webPageInstantView>(
-      transform(web_page_instant_view->page_blocks,
-                [](const auto &page_block) { return page_block->get_page_block_object(); }),
-      web_page_instant_view->is_rtl, web_page_instant_view->is_full);
+  return make_tl_object<td_api::webPageInstantView>(get_page_block_objects(web_page_instant_view->page_blocks),
+                                                    web_page_instant_view->is_rtl, web_page_instant_view->is_full);
 }
 
 void WebPagesManager::update_messages_content(WebPageId web_page_id, bool have_web_page) {
@@ -2362,10 +2374,37 @@ WebPagesManager::RichText WebPagesManager::get_rich_text(tl_object_ptr<telegram_
     case telegram_api::textConcat::ID: {
       auto rich_text = move_tl_object_as<telegram_api::textConcat>(rich_text_ptr);
       result.type = RichText::Type::Concatenation;
-      result.texts.reserve(rich_text->texts_.size());
-      for (auto &text : rich_text->texts_) {
-        result.texts.push_back(get_rich_text(std::move(text)));
-      }
+      result.texts = get_rich_texts(std::move(rich_text->texts_));
+      break;
+    }
+    case telegram_api::textSubscript::ID: {
+      auto rich_text = move_tl_object_as<telegram_api::textSubscript>(rich_text_ptr);
+      result.type = RichText::Type::Subscript;
+      result.texts.push_back(get_rich_text(std::move(rich_text->text_)));
+      break;
+    }
+    case telegram_api::textSuperscript::ID: {
+      auto rich_text = move_tl_object_as<telegram_api::textSuperscript>(rich_text_ptr);
+      result.type = RichText::Type::Superscript;
+      result.texts.push_back(get_rich_text(std::move(rich_text->text_)));
+      break;
+    }
+    case telegram_api::textMarked::ID: {
+      auto rich_text = move_tl_object_as<telegram_api::textMarked>(rich_text_ptr);
+      result.type = RichText::Type::Marked;
+      result.texts.push_back(get_rich_text(std::move(rich_text->text_)));
+      break;
+    }
+    case telegram_api::textPhone::ID: {
+      auto rich_text = move_tl_object_as<telegram_api::textPhone>(rich_text_ptr);
+      result.type = RichText::Type::PhoneNumber;
+      result.content = std::move(rich_text->phone_);
+      result.texts.push_back(get_rich_text(std::move(rich_text->text_)));
+      break;
+    }
+    case telegram_api::textImage::ID: {
+      auto rich_text = move_tl_object_as<telegram_api::textImage>(rich_text_ptr);
+      LOG(ERROR) << "TODO. Ignore textImage";
       break;
     }
     default:
@@ -2376,12 +2415,9 @@ WebPagesManager::RichText WebPagesManager::get_rich_text(tl_object_ptr<telegram_
 
 vector<WebPagesManager::RichText> WebPagesManager::get_rich_texts(
     vector<tl_object_ptr<telegram_api::RichText>> &&rich_text_ptrs) {
-  vector<RichText> result;
-  result.reserve(rich_text_ptrs.size());
-  for (auto &rich_text : rich_text_ptrs) {
-    result.push_back(get_rich_text(std::move(rich_text)));
-  }
-  return result;
+  return transform(std::move(rich_text_ptrs), [](tl_object_ptr<telegram_api::RichText> &&rich_text) {
+    return get_rich_text(std::move(rich_text));
+  });
 }
 
 tl_object_ptr<td_api::RichText> WebPagesManager::get_rich_text_object(const RichText &rich_text) {
@@ -2402,36 +2438,29 @@ tl_object_ptr<td_api::RichText> WebPagesManager::get_rich_text_object(const Rich
       return make_tl_object<td_api::richTextUrl>(get_rich_text_object(rich_text.texts[0]), rich_text.content);
     case RichText::Type::EmailAddress:
       return make_tl_object<td_api::richTextEmailAddress>(get_rich_text_object(rich_text.texts[0]), rich_text.content);
-    case RichText::Type::Concatenation: {
-      vector<tl_object_ptr<td_api::RichText>> texts;
-      texts.reserve(rich_text.texts.size());
-      for (auto &text : rich_text.texts) {
-        texts.push_back(get_rich_text_object(text));
-      }
-      return make_tl_object<td_api::richTexts>(std::move(texts));
-    }
+    case RichText::Type::Concatenation:
+      return make_tl_object<td_api::richTexts>(get_rich_text_objects(rich_text.texts));
+    case RichText::Type::Subscript:
+      return make_tl_object<td_api::richTextSubscript>(get_rich_text_object(rich_text.texts[0]));
+    case RichText::Type::Superscript:
+      return make_tl_object<td_api::richTextSuperscript>(get_rich_text_object(rich_text.texts[0]));
+    case RichText::Type::Marked:
+      return make_tl_object<td_api::richTextMarked>(get_rich_text_object(rich_text.texts[0]));
+    case RichText::Type::PhoneNumber:
+      return make_tl_object<td_api::richTextPhoneNumber>(get_rich_text_object(rich_text.texts[0]), rich_text.content);
   }
   UNREACHABLE();
   return nullptr;
 }
 
 vector<tl_object_ptr<td_api::RichText>> WebPagesManager::get_rich_text_objects(const vector<RichText> &rich_texts) {
-  vector<tl_object_ptr<td_api::RichText>> result;
-  result.reserve(rich_texts.size());
-  for (auto &rich_text : rich_texts) {
-    result.push_back(get_rich_text_object(rich_text));
-  }
-  return result;
+  return transform(rich_texts, [](const RichText &rich_text) { return get_rich_text_object(rich_text); });
 }
 
 vector<tl_object_ptr<td_api::PageBlock>> WebPagesManager::get_page_block_objects(
     const vector<unique_ptr<PageBlock>> &page_blocks) {
-  vector<tl_object_ptr<td_api::PageBlock>> result;
-  result.reserve(page_blocks.size());
-  for (auto &page_block : page_blocks) {
-    result.push_back(page_block->get_page_block_object());
-  }
-  return result;
+  return transform(page_blocks,
+                   [](const unique_ptr<PageBlock> &page_block) { return page_block->get_page_block_object(); });
 }
 
 unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(

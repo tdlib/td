@@ -684,6 +684,18 @@ richTextUrl text:RichText url:string = RichText;
 //@description A rich text email link @text Text @email_address Email address
 richTextEmailAddress text:RichText email_address:string = RichText;
 
+//@description A subscript rich text @text Text
+richTextSubscript text:RichText = RichText;
+
+//@description A superscript rich text @text Text
+richTextSuperscript text:RichText = RichText;
+
+//@description A marked rich text @text Text
+richTextMarked text:RichText = RichText;
+
+//@description A rich text phone number @text Text @phone_number Phone number
+richTextPhoneNumber text:RichText phone_number:string = RichText;
+
 //@description A concatenation of rich texts @texts Texts
 richTexts texts:vector<RichText> = RichText;
 
