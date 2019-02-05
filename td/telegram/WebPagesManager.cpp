@@ -507,7 +507,7 @@ class WebPagesManager::PageBlock {
 
   virtual Type get_type() const = 0;
 
-  virtual vector<FileId> get_file_ids() const = 0;
+  virtual void append_file_ids(vector<FileId> &file_ids) const = 0;
 
   virtual tl_object_ptr<td_api::PageBlock> get_page_block_object() const = 0;
 
@@ -568,8 +568,8 @@ class WebPagesManager::PageBlockTitle : public PageBlock {
     return Type::Title;
   }
 
-  vector<FileId> get_file_ids() const override {
-    return get_rich_text_file_ids(title);
+  void append_file_ids(vector<FileId> &file_ids) const override {
+    append_rich_text_file_ids(title, file_ids);
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -600,8 +600,8 @@ class WebPagesManager::PageBlockSubtitle : public PageBlock {
     return Type::Subtitle;
   }
 
-  vector<FileId> get_file_ids() const override {
-    return get_rich_text_file_ids(subtitle);
+  void append_file_ids(vector<FileId> &file_ids) const override {
+    append_rich_text_file_ids(subtitle, file_ids);
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -633,8 +633,8 @@ class WebPagesManager::PageBlockAuthorDate : public PageBlock {
     return Type::AuthorDate;
   }
 
-  vector<FileId> get_file_ids() const override {
-    return get_rich_text_file_ids(author);
+  void append_file_ids(vector<FileId> &file_ids) const override {
+    append_rich_text_file_ids(author, file_ids);
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -667,8 +667,8 @@ class WebPagesManager::PageBlockHeader : public PageBlock {
     return Type::Header;
   }
 
-  vector<FileId> get_file_ids() const override {
-    return get_rich_text_file_ids(header);
+  void append_file_ids(vector<FileId> &file_ids) const override {
+    append_rich_text_file_ids(header, file_ids);
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -699,8 +699,8 @@ class WebPagesManager::PageBlockSubheader : public PageBlock {
     return Type::Subheader;
   }
 
-  vector<FileId> get_file_ids() const override {
-    return get_rich_text_file_ids(subheader);
+  void append_file_ids(vector<FileId> &file_ids) const override {
+    append_rich_text_file_ids(subheader, file_ids);
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -731,8 +731,8 @@ class WebPagesManager::PageBlockParagraph : public PageBlock {
     return Type::Paragraph;
   }
 
-  vector<FileId> get_file_ids() const override {
-    return get_rich_text_file_ids(text);
+  void append_file_ids(vector<FileId> &file_ids) const override {
+    append_rich_text_file_ids(text, file_ids);
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -764,8 +764,8 @@ class WebPagesManager::PageBlockPreformatted : public PageBlock {
     return Type::Preformatted;
   }
 
-  vector<FileId> get_file_ids() const override {
-    return get_rich_text_file_ids(text);
+  void append_file_ids(vector<FileId> &file_ids) const override {
+    append_rich_text_file_ids(text, file_ids);
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -798,8 +798,8 @@ class WebPagesManager::PageBlockFooter : public PageBlock {
     return Type::Footer;
   }
 
-  vector<FileId> get_file_ids() const override {
-    return get_rich_text_file_ids(footer);
+  void append_file_ids(vector<FileId> &file_ids) const override {
+    append_rich_text_file_ids(footer, file_ids);
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -824,8 +824,7 @@ class WebPagesManager::PageBlockDivider : public PageBlock {
     return Type::Divider;
   }
 
-  vector<FileId> get_file_ids() const override {
-    return {};
+  void append_file_ids(vector<FileId> &file_ids) const override {
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -851,8 +850,7 @@ class WebPagesManager::PageBlockAnchor : public PageBlock {
     return Type::Anchor;
   }
 
-  vector<FileId> get_file_ids() const override {
-    return {};
+  void append_file_ids(vector<FileId> &file_ids) const override {
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -883,12 +881,10 @@ class WebPagesManager::PageBlockList : public PageBlock {
     return Type::List;
   }
 
-  vector<FileId> get_file_ids() const override {
-    vector<FileId> result;
+  void append_file_ids(vector<FileId> &file_ids) const override {
     for (auto &item : items) {
-      append_rich_text_file_ids(item, result);
+      append_rich_text_file_ids(item, file_ids);
     }
-    return result;
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -930,11 +926,9 @@ class WebPagesManager::PageBlockBlockQuote : public PageBlock {
     return Type::BlockQuote;
   }
 
-  vector<FileId> get_file_ids() const override {
-    vector<FileId> result;
-    append_rich_text_file_ids(text, result);
-    append_rich_text_file_ids(credit, result);
-    return result;
+  void append_file_ids(vector<FileId> &file_ids) const override {
+    append_rich_text_file_ids(text, file_ids);
+    append_rich_text_file_ids(credit, file_ids);
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -969,11 +963,9 @@ class WebPagesManager::PageBlockPullQuote : public PageBlock {
     return Type::PullQuote;
   }
 
-  vector<FileId> get_file_ids() const override {
-    vector<FileId> result;
-    append_rich_text_file_ids(text, result);
-    append_rich_text_file_ids(credit, result);
-    return result;
+  void append_file_ids(vector<FileId> &file_ids) const override {
+    append_rich_text_file_ids(text, file_ids);
+    append_rich_text_file_ids(credit, file_ids);
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -1010,18 +1002,16 @@ class WebPagesManager::PageBlockAnimation : public PageBlock {
     return Type::Animation;
   }
 
-  vector<FileId> get_file_ids() const override {
-    vector<FileId> result;
-    append_page_block_caption_file_ids(caption, result);
+  void append_file_ids(vector<FileId> &file_ids) const override {
+    append_page_block_caption_file_ids(caption, file_ids);
     if (animation_file_id.is_valid()) {
-      result.push_back(animation_file_id);
+      file_ids.push_back(animation_file_id);
       auto thumbnail_file_id =
           G()->td().get_actor_unsafe()->animations_manager_->get_animation_thumbnail_file_id(animation_file_id);
       if (thumbnail_file_id.is_valid()) {
-        result.push_back(thumbnail_file_id);
+        file_ids.push_back(thumbnail_file_id);
       }
     }
-    return result;
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -1084,10 +1074,8 @@ class WebPagesManager::PageBlockPhoto : public PageBlock {
     return Type::Photo;
   }
 
-  vector<FileId> get_file_ids() const override {
-    auto result = photo_get_file_ids(photo);
-    append_page_block_caption_file_ids(caption, result);
-    return result;
+  void append_file_ids(vector<FileId> &file_ids) const override {
+    append_page_block_caption_file_ids(caption, file_ids);
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -1127,18 +1115,16 @@ class WebPagesManager::PageBlockVideo : public PageBlock {
     return Type::Video;
   }
 
-  vector<FileId> get_file_ids() const override {
-    vector<FileId> result;
-    append_page_block_caption_file_ids(caption, result);
+  void append_file_ids(vector<FileId> &file_ids) const override {
+    append_page_block_caption_file_ids(caption, file_ids);
     if (video_file_id.is_valid()) {
-      result.push_back(video_file_id);
+      file_ids.push_back(video_file_id);
       auto thumbnail_file_id =
           G()->td().get_actor_unsafe()->videos_manager_->get_video_thumbnail_file_id(video_file_id);
       if (thumbnail_file_id.is_valid()) {
-        result.push_back(thumbnail_file_id);
+        file_ids.push_back(thumbnail_file_id);
       }
     }
-    return result;
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -1201,8 +1187,8 @@ class WebPagesManager::PageBlockCover : public PageBlock {
     return Type::Cover;
   }
 
-  vector<FileId> get_file_ids() const override {
-    return cover->get_file_ids();
+  void append_file_ids(vector<FileId> &file_ids) const override {
+    cover->append_file_ids(file_ids);
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -1248,10 +1234,9 @@ class WebPagesManager::PageBlockEmbedded : public PageBlock {
     return Type::Embedded;
   }
 
-  vector<FileId> get_file_ids() const override {
-    auto result = photo_get_file_ids(poster_photo);
-    append_page_block_caption_file_ids(caption, result);
-    return result;
+  void append_file_ids(vector<FileId> &file_ids) const override {
+    append(file_ids, photo_get_file_ids(poster_photo));
+    append_page_block_caption_file_ids(caption, file_ids);
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -1315,13 +1300,12 @@ class WebPagesManager::PageBlockEmbeddedPost : public PageBlock {
     return Type::EmbeddedPost;
   }
 
-  vector<FileId> get_file_ids() const override {
-    vector<FileId> result = photo_get_file_ids(author_photo);
+  void append_file_ids(vector<FileId> &file_ids) const override {
+    append(file_ids, photo_get_file_ids(author_photo));
     for (auto &page_block : page_blocks) {
-      append(result, page_block->get_file_ids());
+      page_block->append_file_ids(file_ids);
     }
-    append_page_block_caption_file_ids(caption, result);
-    return result;
+    append_page_block_caption_file_ids(caption, file_ids);
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -1366,13 +1350,11 @@ class WebPagesManager::PageBlockCollage : public PageBlock {
     return Type::Collage;
   }
 
-  vector<FileId> get_file_ids() const override {
-    vector<FileId> result;
+  void append_file_ids(vector<FileId> &file_ids) const override {
     for (auto &page_block : page_blocks) {
-      append(result, page_block->get_file_ids());
+      page_block->append_file_ids(file_ids);
     }
-    append_page_block_caption_file_ids(caption, result);
-    return result;
+    append_page_block_caption_file_ids(caption, file_ids);
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -1409,13 +1391,11 @@ class WebPagesManager::PageBlockSlideshow : public PageBlock {
     return Type::Slideshow;
   }
 
-  vector<FileId> get_file_ids() const override {
-    vector<FileId> result;
+  void append_file_ids(vector<FileId> &file_ids) const override {
     for (auto &page_block : page_blocks) {
-      append(result, page_block->get_file_ids());
+      page_block->append_file_ids(file_ids);
     }
-    append_page_block_caption_file_ids(caption, result);
-    return result;
+    append_page_block_caption_file_ids(caption, file_ids);
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -1453,8 +1433,8 @@ class WebPagesManager::PageBlockChatLink : public PageBlock {
     return Type::ChatLink;
   }
 
-  vector<FileId> get_file_ids() const override {
-    return dialog_photo_get_file_ids(photo);
+  void append_file_ids(vector<FileId> &file_ids) const override {
+    append(file_ids, dialog_photo_get_file_ids(photo));
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -1493,18 +1473,16 @@ class WebPagesManager::PageBlockAudio : public PageBlock {
     return Type::Audio;
   }
 
-  vector<FileId> get_file_ids() const override {
-    vector<FileId> result;
+  void append_file_ids(vector<FileId> &file_ids) const override {
     if (audio_file_id.is_valid()) {
-      result.push_back(audio_file_id);
+      file_ids.push_back(audio_file_id);
       auto thumbnail_file_id =
           G()->td().get_actor_unsafe()->audios_manager_->get_audio_thumbnail_file_id(audio_file_id);
       if (thumbnail_file_id.is_valid()) {
-        result.push_back(thumbnail_file_id);
+        file_ids.push_back(thumbnail_file_id);
       }
     }
-    append_page_block_caption_file_ids(caption, result);
-    return result;
+    append_page_block_caption_file_ids(caption, file_ids);
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
@@ -3119,12 +3097,6 @@ void WebPagesManager::append_page_block_caption_file_ids(const PageBlockCaption 
   append_rich_text_file_ids(caption.credit, file_ids);
 }
 
-vector<FileId> WebPagesManager::get_rich_text_file_ids(const RichText &rich_text) {
-  vector<FileId> result;
-  append_rich_text_file_ids(rich_text, result);
-  return result;
-}
-
 vector<FileId> WebPagesManager::get_web_page_file_ids(const WebPage *web_page) {
   if (web_page == nullptr) {
     return vector<FileId>();
@@ -3136,7 +3108,7 @@ vector<FileId> WebPagesManager::get_web_page_file_ids(const WebPage *web_page) {
   }
   if (!web_page->instant_view.is_empty) {
     for (auto &page_block : web_page->instant_view.page_blocks) {
-      append(result, page_block->get_file_ids());
+      page_block->append_file_ids(result);
     }
   }
   return result;
