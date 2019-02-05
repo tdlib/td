@@ -696,6 +696,11 @@ richTextMarked text:RichText = RichText;
 //@description A rich text phone number @text Text @phone_number Phone number
 richTextPhoneNumber text:RichText phone_number:string = RichText;
 
+//@description A rich text inline image @document The image represented as a document
+//@width Width of a bounding box in which the image should be shown, 0 if unknown
+//@height Height of a bounding box in which the image should be shown, 0 if unknown
+richTextInlineImage document:document width:int32 height:int32 = RichText;
+
 //@description A concatenation of rich texts @texts Texts
 richTexts texts:vector<RichText> = RichText;
 

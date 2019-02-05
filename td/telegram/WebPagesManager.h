@@ -160,9 +160,11 @@ class WebPagesManager : public Actor {
   void on_get_web_page_preview_success(int64 request_id, const string &url, WebPageId web_page_id,
                                        Promise<Unit> &&promise);
 
-  static RichText get_rich_text(tl_object_ptr<telegram_api::RichText> &&rich_text_ptr);
+  static RichText get_rich_text(tl_object_ptr<telegram_api::RichText> &&rich_text_ptr,
+                                const std::unordered_map<int64, FileId> &documents);
 
-  static vector<RichText> get_rich_texts(vector<tl_object_ptr<telegram_api::RichText>> &&rich_text_ptrs);
+  static vector<RichText> get_rich_texts(vector<tl_object_ptr<telegram_api::RichText>> &&rich_text_ptrs,
+                                         const std::unordered_map<int64, FileId> &documents);
 
   static tl_object_ptr<td_api::RichText> get_rich_text_object(const RichText &rich_text);
 
@@ -174,12 +176,14 @@ class WebPagesManager : public Actor {
   unique_ptr<PageBlock> get_page_block(tl_object_ptr<telegram_api::PageBlock> page_block_ptr,
                                        const std::unordered_map<int64, FileId> &animations,
                                        const std::unordered_map<int64, FileId> &audios,
+                                       const std::unordered_map<int64, FileId> &documents,
                                        const std::unordered_map<int64, Photo> &photos,
                                        const std::unordered_map<int64, FileId> &videos) const;
 
   vector<unique_ptr<PageBlock>> get_page_blocks(vector<tl_object_ptr<telegram_api::PageBlock>> page_block_ptrs,
                                                 const std::unordered_map<int64, FileId> &animations,
                                                 const std::unordered_map<int64, FileId> &audios,
+                                                const std::unordered_map<int64, FileId> &documents,
                                                 const std::unordered_map<int64, Photo> &photos,
                                                 const std::unordered_map<int64, FileId> &videos) const;
 
