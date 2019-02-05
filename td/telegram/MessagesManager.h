@@ -1560,6 +1560,10 @@ class MessagesManager : public Actor {
 
   void update_dialog_mention_notification_count(const Dialog *d);
 
+  bool is_message_notification_disabled(const Dialog *d, const Message *m) const;
+
+  bool may_need_message_notification(const Dialog *d, const Message *m) const;
+
   bool add_new_message_notification(Dialog *d, Message *m, bool force);
 
   void flush_pending_new_message_notifications(DialogId dialog_id, bool from_mentions, DialogId settings_dialog_id);
@@ -2294,6 +2298,7 @@ class MessagesManager : public Actor {
   DialogId sponsored_dialog_id_;
 
   DialogId being_added_dialog_id_;
+  MessageId being_added_message_id_;
 
   double start_time_ = 0;
   bool is_inited_ = false;

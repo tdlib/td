@@ -18173,21 +18173,12 @@ void MessagesManager::update_dialog_mention_notification_count(const Dialog *d) 
                      d->mention_notification_group.group_id, total_count);
 }
 
-bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool force) {
+bool MessagesManager::is_message_notification_disabled(const Dialog *d, const Message *m) const {
   CHECK(d != nullptr);
   CHECK(m != nullptr);
 
-  CHECK(!m->notification_id.is_valid());
   if (m->is_outgoing || d->dialog_id == get_my_dialog_id() || td_->auth_manager_->is_bot()) {
-    return false;
-  }
-  auto from_mentions = is_from_mention_notification_group(d, m);
-  bool is_pinned = m->content->get_type() == MessageContentType::PinMessage;
-  bool is_active = from_mentions ? m->contains_unread_mention || is_pinned
-                                 : m->message_id.get() > d->last_read_inbox_message_id.get();
-  if (!is_active) {
-    VLOG(notifications) << "Disable inactive notification for " << m->message_id << " in " << d->dialog_id;
-    return false;
+    return true;
   }
 
   switch (d->dialog_id.get_type()) {
@@ -18196,23 +18187,62 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
     case DialogType::Chat:
       if (!td_->contacts_manager_->get_chat_is_active(d->dialog_id.get_chat_id()) ||
           m->content->get_type() == MessageContentType::ChatMigrateTo) {
-        return false;
+        return true;
       }
       break;
     case DialogType::Channel:
       if (!td_->contacts_manager_->get_channel_status(d->dialog_id.get_channel_id()).is_member() ||
           m->date < td_->contacts_manager_->get_channel_date(d->dialog_id.get_channel_id())) {
-        return false;
+        return true;
       }
       break;
     case DialogType::SecretChat:
       if (td_->contacts_manager_->get_secret_chat_state(d->dialog_id.get_secret_chat_id()) == SecretChatState::Closed) {
-        return false;
+        return true;
       }
       break;
     case DialogType::None:
     default:
       UNREACHABLE();
+  }
+
+  return false;
+}
+
+bool MessagesManager::may_need_message_notification(const Dialog *d, const Message *m) const {
+  CHECK(d != nullptr);
+  CHECK(m != nullptr);
+
+  if (is_message_notification_disabled(d, m)) {
+    return false;
+  }
+
+  if (is_from_mention_notification_group(d, m)) {
+    return true;
+  }
+
+  bool have_settings;
+  int32 mute_until;
+  std::tie(have_settings, mute_until) = get_dialog_mute_until(d->dialog_id, d);
+  return !have_settings || mute_until <= m->date;
+}
+
+bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool force) {
+  CHECK(d != nullptr);
+  CHECK(m != nullptr);
+
+  CHECK(!m->notification_id.is_valid());
+  if (is_message_notification_disabled(d, m)) {
+    return false;
+  }
+
+  auto from_mentions = is_from_mention_notification_group(d, m);
+  bool is_pinned = m->content->get_type() == MessageContentType::PinMessage;
+  bool is_active = from_mentions ? m->contains_unread_mention || is_pinned
+                                 : m->message_id.get() > d->last_read_inbox_message_id.get();
+  if (!is_active) {
+    VLOG(notifications) << "Disable inactive notification for " << m->message_id << " in " << d->dialog_id;
+    return false;
   }
 
   VLOG(notifications) << "Trying to " << (force ? "forcely " : "") << "add new message notification for "
@@ -18230,7 +18260,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   bool have_settings;
   int32 mute_until;
   std::tie(have_settings, mute_until) = get_dialog_mute_until(settings_dialog_id, settings_dialog);
-  if (mute_until > G()->unix_time()) {
+  if (mute_until > m->date && (have_settings || force)) {
     VLOG(notifications) << "Disable notification, because " << settings_dialog_id << " is muted";
     if (is_pinned) {
       remove_dialog_pinned_message_notification(d);
@@ -20983,6 +21013,15 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
+  if (*need_update && may_need_message_notification(d, message.get())) {
+    // notification group must be created here because it may force adding new messages from database
+    // in get_message_notification_group_force
+    get_dialog_notification_group_id(d->dialog_id, get_notification_group_info(d, message.get()));
+  }
+
+  CHECK(!being_added_message_id_.is_valid());  // there must be no two recursive calls to add_message_to_dialog
+  being_added_message_id_ = message_id;
+
   if (d->new_secret_chat_notification_id.is_valid()) {
     remove_new_secret_chat_notification(d, true);
   }
@@ -21016,6 +21055,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         LOG(INFO) << "Can't add " << message_id << " with expired TTL to " << dialog_id << " from " << source;
         delete_message_from_database(d, message_id, message.get(), true);
         debug_add_message_to_dialog_fail_reason_ = "delete expired by TTL message";
+        being_added_message_id_ = MessageId();
         return nullptr;
       } else {
         on_message_ttl_expired_impl(d, message.get());
@@ -21272,18 +21312,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
-  if (!td_->auth_manager_->is_bot() && from_update && d->reply_markup_message_id != MessageId()) {
-    auto deleted_user_id = get_message_content_deleted_user_id(m->content.get());
-    if (deleted_user_id.is_valid()) {  // do not check for is_user_bot to allow deleted bots
-      const Message *old_message = get_message_force(d, d->reply_markup_message_id);
-      if (old_message == nullptr || old_message->sender_user_id == deleted_user_id) {
-        LOG(INFO) << "Remove reply markup in " << dialog_id << ", because bot " << deleted_user_id
-                  << " isn't a member of the chat";
-        set_dialog_reply_markup(d, MessageId());
-      }
-    }
-  }
-
   if (message_content_type == MessageContentType::ContactRegistered && !d->has_contact_registered_message) {
     d->has_contact_registered_message = true;
     on_dialog_updated(dialog_id, "update_has_contact_registered_message");
@@ -21406,6 +21434,20 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   if (m->notification_id.is_valid()) {
     add_notification_id_to_message_id_correspondence(d, m->notification_id, message_id);
+  }
+
+  being_added_message_id_ = MessageId();
+
+  if (!td_->auth_manager_->is_bot() && from_update && d->reply_markup_message_id != MessageId()) {
+    auto deleted_user_id = get_message_content_deleted_user_id(m->content.get());
+    if (deleted_user_id.is_valid()) {  // do not check for is_user_bot to allow deleted bots
+      const Message *old_message = get_message_force(d, d->reply_markup_message_id);
+      if (old_message == nullptr || old_message->sender_user_id == deleted_user_id) {
+        LOG(INFO) << "Remove reply markup in " << dialog_id << ", because bot " << deleted_user_id
+                  << " isn't a member of the chat";
+        set_dialog_reply_markup(d, MessageId());
+      }
+    }
   }
 
   return result_message;
