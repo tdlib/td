@@ -6,6 +6,7 @@
 //
 #include "td/telegram/files/FileDb.h"
 
+#include "td/telegram/files/FileData.h"
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/Version.h"
 
