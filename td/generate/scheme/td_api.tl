@@ -711,6 +711,33 @@ pageBlockCaption text:RichText credit:RichText = PageBlockCaption;
 //@description Describes an item of a list page block @label Item label, can be empty @page_blocks Item blocks
 pageBlockListItem label:string page_blocks:vector<PageBlock> = PageBlockListItem;
 
+//@class PageBlockHorizontalAlignment @description Describes a horizontal alignment of a table cell content
+
+//@description The content should be left-aligned
+pageBlockHorizontalAlignmentLeft = PageBlockHorizontalAlignment;
+
+//@description The content should be center-aligned
+pageBlockHorizontalAlignmentCenter = PageBlockHorizontalAlignment;
+
+//@description The content should be right-aligned
+pageBlockHorizontalAlignmentRight = PageBlockHorizontalAlignment;
+
+//@class PageBlockVerticalAlignment @description Describes a Vertical alignment of a table cell content
+
+//@description The content should be top-aligned
+pageBlockVerticalAlignmentTop = PageBlockVerticalAlignment;
+
+//@description The content should be middle-aligned
+pageBlockVerticalAlignmentMiddle = PageBlockVerticalAlignment;
+
+//@description The content should be bottom-aligned
+pageBlockVerticalAlignmentBottom = PageBlockVerticalAlignment;
+
+//@description Represents a cell of a table @text Cell text @is_header True, if it is a header cell
+//@colspan The number of columns the cell should span @rowspan The number of rows the cell should span
+//@align Horizontal cell content alignment @valign Vertical cell content alignment
+pageBlockTableCell text:RichText is_header:Bool colspan:int32 rowspan:int32 align:PageBlockHorizontalAlignment valign:PageBlockVerticalAlignment = PageBlockTableCell;
+
 
 //@class PageBlock @description Describes a block of an instant view web page
 
@@ -785,6 +812,9 @@ pageBlockSlideshow page_blocks:vector<PageBlock> caption:pageBlockCaption = Page
 
 //@description A link to a chat @title Chat title @photo Chat photo; may be null @username Chat username, by which all other information about the chat should be resolved
 pageBlockChatLink title:string photo:chatPhoto username:string = PageBlock;
+
+//@description A table @title Table title @cells Table cells @is_bordered True, if the table is bordered @is_striped True, if the table is striped
+pageBlockTable title:RichText cells:vector<vector<pageBlockTableCell>> is_bordered:Bool is_striped:Bool = PageBlock;
 
 
 //@description Describes an instant view page for a web page @page_blocks Content of the web page @is_rtl True, if the instant view must be shown from right to left

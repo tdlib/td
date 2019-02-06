@@ -101,6 +101,7 @@ class WebPagesManager : public Actor {
   class RichText;
 
   class PageBlockCaption;
+  class PageBlockTableCell;
 
   class PageBlock;
   class PageBlockTitle;
@@ -127,6 +128,7 @@ class WebPagesManager : public Actor {
   class PageBlockSlideshow;
   class PageBlockChatLink;
   class PageBlockAudio;
+  class PageBlockTable;
 
   class WebPageInstantView;
 
@@ -177,6 +179,9 @@ class WebPagesManager : public Actor {
                                                  const std::unordered_map<int64, FileId> &documents);
 
   static td_api::object_ptr<td_api::pageBlockCaption> get_page_block_caption_object(const PageBlockCaption &caption);
+
+  static td_api::object_ptr<td_api::pageBlockTableCell> get_page_block_table_cell_object(
+      const PageBlockTableCell &cell);
 
   static vector<tl_object_ptr<td_api::PageBlock>> get_page_block_objects(
       const vector<unique_ptr<PageBlock>> &page_blocks);

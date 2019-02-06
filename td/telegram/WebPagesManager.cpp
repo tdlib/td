@@ -427,6 +427,10 @@ class WebPagesManager::RichText {
   FileId document_file_id;
   WebPageId web_page_id;
 
+  bool empty() const {
+    return type == Type::Plain && content.empty();
+  }
+
   template <class T>
   void store(T &storer) const {
     using ::td::store;
@@ -488,6 +492,78 @@ class WebPagesManager::PageBlockCaption {
   }
 };
 
+class WebPagesManager::PageBlockTableCell {
+ public:
+  RichText text;
+  bool is_header = false;
+  bool align_left = false;
+  bool align_center = false;
+  bool align_right = false;
+  bool valign_top = false;
+  bool valign_middle = false;
+  bool valign_bottom = false;
+  int32 colspan = 1;
+  int32 rowspan = 1;
+
+  template <class T>
+  void store(T &storer) const {
+    using ::td::store;
+    bool has_text = !text.empty();
+    bool has_colspan = colspan != 1;
+    bool has_rowspan = rowspan != 1;
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(is_header);
+    STORE_FLAG(align_left);
+    STORE_FLAG(align_center);
+    STORE_FLAG(align_right);
+    STORE_FLAG(valign_top);
+    STORE_FLAG(valign_middle);
+    STORE_FLAG(valign_bottom);
+    STORE_FLAG(has_text);
+    STORE_FLAG(has_colspan);
+    STORE_FLAG(has_rowspan);
+    END_STORE_FLAGS();
+    if (has_text) {
+      store(text, storer);
+    }
+    if (has_colspan) {
+      store(colspan, storer);
+    }
+    if (has_rowspan) {
+      store(rowspan, storer);
+    }
+  }
+
+  template <class T>
+  void parse(T &parser) {
+    using ::td::parse;
+    bool has_text;
+    bool has_colspan;
+    bool has_rowspan;
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(is_header);
+    PARSE_FLAG(align_left);
+    PARSE_FLAG(align_center);
+    PARSE_FLAG(align_right);
+    PARSE_FLAG(valign_top);
+    PARSE_FLAG(valign_middle);
+    PARSE_FLAG(valign_bottom);
+    PARSE_FLAG(has_text);
+    PARSE_FLAG(has_colspan);
+    PARSE_FLAG(has_rowspan);
+    END_PARSE_FLAGS();
+    if (has_text) {
+      parse(text, parser);
+    }
+    if (has_colspan) {
+      parse(colspan, parser);
+    }
+    if (has_rowspan) {
+      parse(rowspan, parser);
+    }
+  }
+};
+
 class WebPagesManager::PageBlock {
  public:
   enum class Type : int32 {
@@ -514,7 +590,8 @@ class WebPagesManager::PageBlock {
     Slideshow,
     ChatLink,
     Audio,
-    Kicker
+    Kicker,
+    Table
   };
 
   virtual Type get_type() const = 0;
@@ -537,6 +614,7 @@ class WebPagesManager::PageBlock {
     store(type, storer);
     call_impl(type, this, [&](const auto *object) { store(*object, storer); });
   }
+
   template <class T>
   static unique_ptr<PageBlock> parse(T &parser) {
     using ::td::parse;
@@ -593,6 +671,7 @@ class WebPagesManager::PageBlockTitle : public PageBlock {
     using ::td::store;
     store(title, storer);
   }
+
   template <class T>
   void parse(T &parser) {
     using ::td::parse;
@@ -625,6 +704,7 @@ class WebPagesManager::PageBlockSubtitle : public PageBlock {
     using ::td::store;
     store(subtitle, storer);
   }
+
   template <class T>
   void parse(T &parser) {
     using ::td::parse;
@@ -659,6 +739,7 @@ class WebPagesManager::PageBlockAuthorDate : public PageBlock {
     store(author, storer);
     store(date, storer);
   }
+
   template <class T>
   void parse(T &parser) {
     using ::td::parse;
@@ -692,6 +773,7 @@ class WebPagesManager::PageBlockHeader : public PageBlock {
     using ::td::store;
     store(header, storer);
   }
+
   template <class T>
   void parse(T &parser) {
     using ::td::parse;
@@ -724,6 +806,7 @@ class WebPagesManager::PageBlockSubheader : public PageBlock {
     using ::td::store;
     store(subheader, storer);
   }
+
   template <class T>
   void parse(T &parser) {
     using ::td::parse;
@@ -756,6 +839,7 @@ class WebPagesManager::PageBlockKicker : public PageBlock {
     using ::td::store;
     store(kicker, storer);
   }
+
   template <class T>
   void parse(T &parser) {
     using ::td::parse;
@@ -788,6 +872,7 @@ class WebPagesManager::PageBlockParagraph : public PageBlock {
     using ::td::store;
     store(text, storer);
   }
+
   template <class T>
   void parse(T &parser) {
     using ::td::parse;
@@ -822,6 +907,7 @@ class WebPagesManager::PageBlockPreformatted : public PageBlock {
     store(text, storer);
     store(language, storer);
   }
+
   template <class T>
   void parse(T &parser) {
     using ::td::parse;
@@ -855,6 +941,7 @@ class WebPagesManager::PageBlockFooter : public PageBlock {
     using ::td::store;
     store(footer, storer);
   }
+
   template <class T>
   void parse(T &parser) {
     using ::td::parse;
@@ -874,9 +961,11 @@ class WebPagesManager::PageBlockDivider : public PageBlock {
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
     return make_tl_object<td_api::pageBlockDivider>();
   }
+
   template <class T>
   void store(T &storer) const {
   }
+
   template <class T>
   void parse(T &parser) {
   }
@@ -900,11 +989,13 @@ class WebPagesManager::PageBlockAnchor : public PageBlock {
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
     return make_tl_object<td_api::pageBlockAnchor>(name);
   }
+
   template <class T>
   void store(T &storer) const {
     using ::td::store;
     store(name, storer);
   }
+
   template <class T>
   void parse(T &parser) {
     using ::td::parse;
@@ -924,6 +1015,7 @@ class WebPagesManager::PageBlockList : public PageBlock {
       store(label, storer);
       store(page_blocks, storer);
     }
+
     template <class T>
     void parse(T &parser) {
       using ::td::parse;
@@ -966,6 +1058,7 @@ class WebPagesManager::PageBlockList : public PageBlock {
     using ::td::store;
     store(items, storer);
   }
+
   template <class T>
   void parse(T &parser) {
     using ::td::parse;
@@ -1408,6 +1501,7 @@ class WebPagesManager::PageBlockEmbeddedPost : public PageBlock {
         url, author, get_photo_object(G()->td().get_actor_unsafe()->file_manager_.get(), &author_photo), date,
         get_page_block_objects(page_blocks), get_page_block_caption_object(caption));
   }
+
   template <class T>
   void store(T &storer) const {
     using ::td::store;
@@ -1623,6 +1717,63 @@ class WebPagesManager::PageBlockAudio : public PageBlock {
   }
 };
 
+class WebPagesManager::PageBlockTable : public PageBlock {
+  RichText title;
+  vector<vector<PageBlockTableCell>> cells;
+  bool is_bordered = false;
+  bool is_striped = false;
+
+ public:
+  PageBlockTable() = default;
+  PageBlockTable(RichText &&title, vector<vector<PageBlockTableCell>> &&cells, bool is_bordered, bool is_striped)
+      : title(std::move(title)), cells(std::move(cells)), is_bordered(is_bordered), is_striped(is_striped) {
+  }
+
+  Type get_type() const override {
+    return Type::Table;
+  }
+
+  void append_file_ids(vector<FileId> &file_ids) const override {
+    append_rich_text_file_ids(title, file_ids);
+    for (auto &row : cells) {
+      for (auto &cell : row) {
+        append_rich_text_file_ids(cell.text, file_ids);
+      }
+    }
+  }
+
+  tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
+    auto cell_objects = transform(cells, [&](const vector<PageBlockTableCell> &row) {
+      return transform(row, [&](const PageBlockTableCell &cell) { return get_page_block_table_cell_object(cell); });
+    });
+
+    return make_tl_object<td_api::pageBlockTable>(get_rich_text_object(title), std::move(cell_objects), is_bordered,
+                                                  is_striped);
+  }
+
+  template <class T>
+  void store(T &storer) const {
+    using ::td::store;
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(is_bordered);
+    STORE_FLAG(is_striped);
+    END_STORE_FLAGS();
+    store(title, storer);
+    store(cells, storer);
+  }
+
+  template <class T>
+  void parse(T &parser) {
+    using ::td::parse;
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(is_bordered);
+    PARSE_FLAG(is_striped);
+    END_PARSE_FLAGS();
+    parse(title, parser);
+    parse(cells, parser);
+  }
+};
+
 template <class F>
 void WebPagesManager::PageBlock::call_impl(Type type, const PageBlock *ptr, F &&f) {
   switch (type) {
@@ -1674,6 +1825,8 @@ void WebPagesManager::PageBlock::call_impl(Type type, const PageBlock *ptr, F &&
       return f(static_cast<const WebPagesManager::PageBlockChatLink *>(ptr));
     case Type::Audio:
       return f(static_cast<const WebPagesManager::PageBlockAudio *>(ptr));
+    case Type::Table:
+      return f(static_cast<const WebPagesManager::PageBlockTable *>(ptr));
   }
   UNREACHABLE();
 }
@@ -2676,6 +2829,38 @@ td_api::object_ptr<td_api::pageBlockCaption> WebPagesManager::get_page_block_cap
                                                        get_rich_text_object(caption.credit));
 }
 
+td_api::object_ptr<td_api::pageBlockTableCell> WebPagesManager::get_page_block_table_cell_object(
+    const PageBlockTableCell &cell) {
+  auto align = [&]() -> td_api::object_ptr<td_api::PageBlockHorizontalAlignment> {
+    if (cell.align_left) {
+      return td_api::make_object<td_api::pageBlockHorizontalAlignmentLeft>();
+    }
+    if (cell.align_center) {
+      return td_api::make_object<td_api::pageBlockHorizontalAlignmentCenter>();
+    }
+    if (cell.align_right) {
+      return td_api::make_object<td_api::pageBlockHorizontalAlignmentRight>();
+    }
+    UNREACHABLE();
+    return nullptr;
+  }();
+  auto valign = [&]() -> td_api::object_ptr<td_api::PageBlockVerticalAlignment> {
+    if (cell.valign_top) {
+      return td_api::make_object<td_api::pageBlockVerticalAlignmentTop>();
+    }
+    if (cell.valign_middle) {
+      return td_api::make_object<td_api::pageBlockVerticalAlignmentMiddle>();
+    }
+    if (cell.valign_bottom) {
+      return td_api::make_object<td_api::pageBlockVerticalAlignmentBottom>();
+    }
+    UNREACHABLE();
+    return nullptr;
+  }();
+  return td_api::make_object<td_api::pageBlockTableCell>(get_rich_text_object(cell.text), cell.is_header, cell.colspan,
+                                                         cell.rowspan, std::move(align), std::move(valign));
+}
+
 vector<tl_object_ptr<td_api::PageBlock>> WebPagesManager::get_page_block_objects(
     const vector<unique_ptr<PageBlock>> &page_blocks) {
   return transform(page_blocks,
@@ -2927,6 +3112,45 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
       return make_unique<PageBlockAudio>(audio_file_id,
                                          get_page_block_caption(std::move(page_block->caption_), documents));
     }
+    case telegram_api::pageBlockTable::ID: {
+      auto page_block = move_tl_object_as<telegram_api::pageBlockTable>(page_block_ptr);
+      auto is_bordered = (page_block->flags_ & telegram_api::pageBlockTable::BORDERED_MASK) != 0;
+      auto is_striped = (page_block->flags_ & telegram_api::pageBlockTable::STRIPED_MASK) != 0;
+      auto cells = transform(std::move(page_block->rows_), [&](tl_object_ptr<telegram_api::pageTableRow> &&row) {
+        return transform(std::move(row->cells_), [&](tl_object_ptr<telegram_api::pageTableCell> &&table_cell) {
+          PageBlockTableCell cell;
+          auto flags = table_cell->flags_;
+          cell.is_header = (flags & telegram_api::pageTableCell::HEADER_MASK) != 0;
+          cell.align_center = (flags & telegram_api::pageTableCell::ALIGN_CENTER_MASK) != 0;
+          if (!cell.align_center) {
+            cell.align_right = (flags & telegram_api::pageTableCell::ALIGN_RIGHT_MASK) != 0;
+            if (!cell.align_right) {
+              cell.align_left = true;
+            }
+          }
+          cell.valign_middle = (flags & telegram_api::pageTableCell::VALIGN_MIDDLE_MASK) != 0;
+          if (!cell.valign_middle) {
+            cell.valign_bottom = (flags & telegram_api::pageTableCell::VALIGN_BOTTOM_MASK) != 0;
+            if (!cell.valign_bottom) {
+              cell.valign_top = true;
+            }
+          }
+          if (table_cell->text_ != nullptr) {
+            cell.text = get_rich_text(std::move(table_cell->text_), documents);
+          }
+          if ((flags & telegram_api::pageTableCell::COLSPAN_MASK) != 0) {
+            cell.colspan = table_cell->colspan_;
+          }
+          if ((flags & telegram_api::pageTableCell::ROWSPAN_MASK) != 0) {
+            cell.rowspan = table_cell->rowspan_;
+          }
+          return cell;
+        });
+      });
+      return td::make_unique<PageBlockTable>(get_rich_text(std::move(page_block->title_), documents), std::move(cells),
+                                             is_bordered, is_striped);
+    }
+
     default:
       UNREACHABLE();
   }

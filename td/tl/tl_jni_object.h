@@ -17,6 +17,7 @@ namespace td {
 namespace td_api {
 class keyboardButton;
 class inlineKeyboardButton;
+class pageBlockTableCell;
 }  // namespace td_api
 
 namespace jni {
@@ -25,6 +26,7 @@ extern thread_local bool parse_error;
 
 extern jclass ArrayKeyboardButtonClass;
 extern jclass ArrayInlineKeyboardButtonClass;
+extern jclass ArrayPageBlockTableCellClass;
 extern jmethodID GetConstructorID;
 extern jmethodID BooleanGetValueMethodID;
 extern jmethodID IntegerGetValueMethodID;
@@ -140,6 +142,14 @@ class get_array_class<td_api::inlineKeyboardButton> {
  public:
   static jclass get() {
     return ArrayInlineKeyboardButtonClass;
+  }
+};
+
+template <>
+class get_array_class<td_api::pageBlockTableCell> {
+ public:
+  static jclass get() {
+    return ArrayPageBlockTableCellClass;
   }
 };
 
