@@ -425,6 +425,7 @@ class WebPagesManager::RichText {
   string content;
   vector<RichText> texts;
   FileId document_file_id;
+  WebPageId web_page_id;
 
   template <class T>
   void store(T &storer) const {
@@ -434,6 +435,9 @@ class WebPagesManager::RichText {
     store(texts, storer);
     if (type == Type::InlineImage) {
       storer.context()->td().get_actor_unsafe()->documents_manager_->store_document(document_file_id, storer);
+    }
+    if (type == Type::Url) {
+      store(web_page_id, storer);
     }
   }
 
@@ -449,6 +453,13 @@ class WebPagesManager::RichText {
         LOG(ERROR) << "Failed to load document from database";
         *this = RichText();
       }
+    } else {
+      document_file_id = FileId();
+    }
+    if (type == Type::Url && parser.version() >= static_cast<int32>(Version::SupportInstantView2_0)) {
+      parse(web_page_id, parser);
+    } else {
+      web_page_id = WebPageId();
     }
   }
 };
@@ -2498,6 +2509,7 @@ WebPagesManager::RichText WebPagesManager::get_rich_text(tl_object_ptr<telegram_
       result.type = RichText::Type::Url;
       result.content = std::move(rich_text->url_);
       result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
+      result.web_page_id = WebPageId(rich_text->webpage_id_);
       break;
     }
     case telegram_api::textEmail::ID: {
