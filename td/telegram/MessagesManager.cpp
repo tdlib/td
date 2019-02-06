@@ -21020,7 +21020,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   // there must be no two recursive calls to add_message_to_dialog
-  CHECK(!being_added_message_id_.is_valid()) << being_added_message_id_ << " " << source;
+  CHECK(!being_added_message_id_.is_valid()) << being_added_message_id_ << " " << message_id << " " << source;
   being_added_message_id_ = message_id;
 
   if (d->new_secret_chat_notification_id.is_valid()) {
