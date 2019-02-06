@@ -21019,7 +21019,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     get_dialog_notification_group_id(d->dialog_id, get_notification_group_info(d, message.get()));
   }
 
-  CHECK(!being_added_message_id_.is_valid());  // there must be no two recursive calls to add_message_to_dialog
+  // there must be no two recursive calls to add_message_to_dialog
+  CHECK(!being_added_message_id_.is_valid()) << being_added_message_id_ << " " << source;
   being_added_message_id_ = message_id;
 
   if (d->new_secret_chat_notification_id.is_valid()) {
@@ -21075,11 +21076,12 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     *need_update_dialog_pos = true;
   }
 
-  if (dialog_id.get_type() == DialogType::Channel && !message->contains_unread_mention &&
-      message->date <
-          G()->unix_time_cached() - G()->shared_config().get_option_integer("channels_read_media_period",
-                                                                            (G()->is_test_dc() ? 300 : 7 * 86400))) {
-    update_opened_message_content(message->content.get());
+  if (dialog_id.get_type() == DialogType::Channel && !message->contains_unread_mention) {
+    auto channel_read_media_period =
+        G()->shared_config().get_option_integer("channels_read_media_period", (G()->is_test_dc() ? 300 : 7 * 86400));
+    if (message->date < G()->unix_time_cached() - channel_read_media_period) {
+      update_opened_message_content(message->content.get());
+    }
   }
 
   if (message->contains_unread_mention && message_id.get() <= d->last_read_all_mentions_message_id.get()) {
