@@ -913,12 +913,35 @@ class WebPagesManager::PageBlockAnchor : public PageBlock {
 };
 
 class WebPagesManager::PageBlockList : public PageBlock {
-  vector<RichText> items;
-  bool is_ordered = false;
+ public:
+  struct Item {
+    string label;
+    vector<unique_ptr<PageBlock>> page_blocks;
+
+    template <class T>
+    void store(T &storer) const {
+      using ::td::store;
+      store(label, storer);
+      store(page_blocks, storer);
+    }
+    template <class T>
+    void parse(T &parser) {
+      using ::td::parse;
+      parse(label, parser);
+      parse(page_blocks, parser);
+    }
+  };
+
+ private:
+  vector<Item> items;
+
+  static td_api::object_ptr<td_api::pageBlockListItem> get_page_block_list_item_object(const Item &item) {
+    return td_api::make_object<td_api::pageBlockListItem>(item.label, get_page_block_objects(item.page_blocks));
+  }
 
  public:
   PageBlockList() = default;
-  PageBlockList(vector<RichText> &&items, bool is_ordered) : items(std::move(items)), is_ordered(is_ordered) {
+  explicit PageBlockList(vector<Item> &&items) : items(std::move(items)) {
   }
 
   Type get_type() const override {
@@ -927,33 +950,49 @@ class WebPagesManager::PageBlockList : public PageBlock {
 
   void append_file_ids(vector<FileId> &file_ids) const override {
     for (auto &item : items) {
-      append_rich_text_file_ids(item, file_ids);
+      for (auto &page_block : item.page_blocks) {
+        page_block->append_file_ids(file_ids);
+      }
     }
   }
 
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
-    return make_tl_object<td_api::pageBlockList>(get_rich_text_objects(items), is_ordered);
+    return td_api::make_object<td_api::pageBlockList>(
+        transform(items, [](const Item &item) { return get_page_block_list_item_object(item); }));
   }
 
   template <class T>
   void store(T &storer) const {
     using ::td::store;
-
-    BEGIN_STORE_FLAGS();
-    STORE_FLAG(is_ordered);
-    END_STORE_FLAGS();
-
     store(items, storer);
   }
   template <class T>
   void parse(T &parser) {
     using ::td::parse;
 
-    BEGIN_PARSE_FLAGS();
-    PARSE_FLAG(is_ordered);
-    END_PARSE_FLAGS();
+    if (parser.version() >= static_cast<int32>(Version::SupportInstantView2_0)) {
+      parse(items, parser);
+    } else {
+      vector<RichText> text_items;
+      bool is_ordered;
 
-    parse(items, parser);
+      BEGIN_PARSE_FLAGS();
+      PARSE_FLAG(is_ordered);
+      END_PARSE_FLAGS();
+
+      parse(text_items, parser);
+
+      int pos = 0;
+      items.reserve(text_items.size());
+      for (auto &text_item : text_items) {
+        Item item;
+        if (is_ordered) {
+          item.label = to_string(++pos);
+        }
+        item.page_blocks.push_back(make_unique<PageBlockParagraph>(std::move(text_item)));
+        items.push_back(std::move(item));
+      }
+    }
   }
 };
 
@@ -2697,8 +2736,55 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
     }
     case telegram_api::pageBlockList::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockList>(page_block_ptr);
-      return nullptr;
-      // return td::make_unique<PageBlockList>(get_rich_texts(std::move(page_block->items_), documents), page_block->ordered_);
+      return td::make_unique<PageBlockList>(transform(std::move(page_block->items_), [&](auto &&list_item_ptr) {
+        PageBlockList::Item item;
+        CHECK(list_item_ptr != nullptr);
+        switch (list_item_ptr->get_id()) {
+          case telegram_api::pageListItemText::ID: {
+            auto list_item = telegram_api::move_object_as<telegram_api::pageListItemText>(list_item_ptr);
+            item.page_blocks.push_back(
+                make_unique<PageBlockParagraph>(get_rich_text(std::move(list_item->text_), documents)));
+            break;
+          }
+          case telegram_api::pageListItemBlocks::ID: {
+            auto list_item = telegram_api::move_object_as<telegram_api::pageListItemBlocks>(list_item_ptr);
+            item.page_blocks =
+                get_page_blocks(std::move(list_item->blocks_), animations, audios, documents, photos, videos);
+            break;
+          }
+        }
+        if (item.page_blocks.empty()) {
+          item.page_blocks.push_back(make_unique<PageBlockParagraph>(RichText()));
+        }
+        return item;
+      }));
+    }
+    case telegram_api::pageBlockOrderedList::ID: {
+      auto page_block = move_tl_object_as<telegram_api::pageBlockOrderedList>(page_block_ptr);
+      return td::make_unique<PageBlockList>(transform(std::move(page_block->items_), [&](auto &&list_item_ptr) {
+        PageBlockList::Item item;
+        CHECK(list_item_ptr != nullptr);
+        switch (list_item_ptr->get_id()) {
+          case telegram_api::pageListOrderedItemText::ID: {
+            auto list_item = telegram_api::move_object_as<telegram_api::pageListOrderedItemText>(list_item_ptr);
+            item.label = std::move(list_item->num_);
+            item.page_blocks.push_back(
+                make_unique<PageBlockParagraph>(get_rich_text(std::move(list_item->text_), documents)));
+            break;
+          }
+          case telegram_api::pageListOrderedItemBlocks::ID: {
+            auto list_item = telegram_api::move_object_as<telegram_api::pageListOrderedItemBlocks>(list_item_ptr);
+            item.label = std::move(list_item->num_);
+            item.page_blocks =
+                get_page_blocks(std::move(list_item->blocks_), animations, audios, documents, photos, videos);
+            break;
+          }
+        }
+        if (item.page_blocks.empty()) {
+          item.page_blocks.push_back(make_unique<PageBlockParagraph>(RichText()));
+        }
+        return item;
+      }));
     }
     case telegram_api::pageBlockBlockquote::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockBlockquote>(page_block_ptr);

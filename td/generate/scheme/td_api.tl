@@ -708,6 +708,9 @@ richTexts texts:vector<RichText> = RichText;
 //@description Contains a caption of an instant view web page block, consisting of a text and a trailing credit @text Content of the caption @credit Block credit (like HTML tag <cite>)
 pageBlockCaption text:RichText credit:RichText = PageBlockCaption;
 
+//@description Describes an item of a list page block @label Item label, can be empty @page_blocks Item blocks
+pageBlockListItem label:string page_blocks:vector<PageBlock> = PageBlockListItem;
+
 
 //@class PageBlock @description Describes a block of an instant view web page
 
@@ -744,8 +747,8 @@ pageBlockDivider = PageBlock;
 //@description An invisible anchor on a page, which can be used in a URL to open the page from the specified anchor @name Name of the anchor
 pageBlockAnchor name:string = PageBlock;
 
-//@description A list of texts @items Texts @is_ordered True, if the items should be marked with numbers
-pageBlockList items:vector<RichText> is_ordered:Bool = PageBlock;
+//@description A list of data blocks @items The items of the list
+pageBlockList items:vector<pageBlockListItem> = PageBlock;
 
 //@description A block quote @text Quote text @credit Quote credit
 pageBlockBlockQuote text:RichText credit:RichText = PageBlock;
