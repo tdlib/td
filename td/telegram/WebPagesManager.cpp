@@ -2690,6 +2690,7 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
       auto page_block = move_tl_object_as<telegram_api::pageBlockEmbed>(page_block_ptr);
       bool is_full_width = (page_block->flags_ & telegram_api::pageBlockEmbed::FULL_WIDTH_MASK) != 0;
       bool allow_scrolling = (page_block->flags_ & telegram_api::pageBlockEmbed::ALLOW_SCROLLING_MASK) != 0;
+      bool has_dimensions = (page_block->flags_ & telegram_api::pageBlockEmbed::W_MASK) != 0;
       auto it = (page_block->flags_ & telegram_api::pageBlockEmbed::POSTER_PHOTO_ID_MASK) != 0
                     ? photos.find(page_block->poster_photo_id_)
                     : photos.end();
@@ -2699,10 +2700,13 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
       } else {
         poster_photo = it->second;
       }
-      return td::make_unique<PageBlockEmbedded>(std::move(page_block->url_), std::move(page_block->html_),
-                                                std::move(poster_photo), get_dimensions(page_block->w_, page_block->h_),
-                                                get_page_block_caption(std::move(page_block->caption_), documents),
-                                                is_full_width, allow_scrolling);
+      Dimensions dimensions;
+      if (has_dimensions) {
+        dimensions = get_dimensions(page_block->w_, page_block->h_);
+      }
+      return td::make_unique<PageBlockEmbedded>(
+          std::move(page_block->url_), std::move(page_block->html_), std::move(poster_photo), dimensions,
+          get_page_block_caption(std::move(page_block->caption_), documents), is_full_width, allow_scrolling);
     }
     case telegram_api::pageBlockEmbedPost::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockEmbedPost>(page_block_ptr);

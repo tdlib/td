@@ -765,7 +765,7 @@ pageBlockVideo video:video caption:pageBlockCaption need_autoplay:Bool is_looped
 //@description A page cover @cover Cover
 pageBlockCover cover:PageBlock = PageBlock;
 
-//@description An embedded web page @url Web page URL, if available @html HTML-markup of the embedded page @poster_photo Poster photo, if available; may be null @width Block width @height Block height @caption Block caption @is_full_width True, if the block should be full width @allow_scrolling True, if scrolling should be allowed
+//@description An embedded web page @url Web page URL, if available @html HTML-markup of the embedded page @poster_photo Poster photo, if available; may be null @width Block width, 0 if unknown @height Block height, 0 if unknown @caption Block caption @is_full_width True, if the block should be full width @allow_scrolling True, if scrolling should be allowed
 pageBlockEmbedded url:string html:string poster_photo:photo width:int32 height:int32 caption:pageBlockCaption is_full_width:Bool allow_scrolling:Bool = PageBlock;
 
 //@description An embedded post @url Web page URL @author Post author @author_photo Post author photo @date Point in time (Unix timestamp) when the post was created; 0 if unknown @page_blocks Post content @caption Post caption
