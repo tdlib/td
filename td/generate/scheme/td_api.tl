@@ -759,8 +759,8 @@ pageBlockAnimation animation:animation caption:pageBlockCaption need_autoplay:Bo
 //@description An audio file @audio Audio file; may be null @caption Audio file caption
 pageBlockAudio audio:audio caption:pageBlockCaption = PageBlock;
 
-//@description A photo @photo Photo file; may be null @caption Photo caption
-pageBlockPhoto photo:photo caption:pageBlockCaption = PageBlock;
+//@description A photo @photo Photo file; may be null @caption Photo caption @url URL associated with the photo
+pageBlockPhoto photo:photo caption:pageBlockCaption url:string = PageBlock;
 
 //@description A video @video Video file; may be null @caption Video caption @need_autoplay True, if the video should be played automatically @is_looped True, if the video should be looped
 pageBlockVideo video:video caption:pageBlockCaption need_autoplay:Bool is_looped:Bool = PageBlock;

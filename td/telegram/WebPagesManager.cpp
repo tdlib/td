@@ -469,7 +469,7 @@ class WebPagesManager::PageBlockCaption {
   void parse(T &parser) {
     using ::td::parse;
     parse(text, parser);
-    if (parser.version() >= static_cast<int32>(Version::InstantView2_0Support)) {
+    if (parser.version() >= static_cast<int32>(Version::SupportInstantView2_0)) {
       parse(credit, parser);
     } else {
       credit = RichText();
@@ -1097,10 +1097,13 @@ class WebPagesManager::PageBlockAnimation : public PageBlock {
 class WebPagesManager::PageBlockPhoto : public PageBlock {
   Photo photo;
   PageBlockCaption caption;
+  string url;
+  WebPageId web_page_id;
 
  public:
   PageBlockPhoto() = default;
-  PageBlockPhoto(Photo photo, PageBlockCaption &&caption) : photo(std::move(photo)), caption(std::move(caption)) {
+  PageBlockPhoto(Photo photo, PageBlockCaption &&caption, string &&url, WebPageId web_page_id)
+      : photo(std::move(photo)), caption(std::move(caption)), url(std::move(url)), web_page_id(web_page_id) {
   }
 
   Type get_type() const override {
@@ -1114,7 +1117,7 @@ class WebPagesManager::PageBlockPhoto : public PageBlock {
   tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
     return make_tl_object<td_api::pageBlockPhoto>(
         get_photo_object(G()->td().get_actor_unsafe()->file_manager_.get(), &photo),
-        get_page_block_caption_object(caption));
+        get_page_block_caption_object(caption), url);
   }
 
   template <class T>
@@ -1122,6 +1125,8 @@ class WebPagesManager::PageBlockPhoto : public PageBlock {
     using ::td::store;
     store(photo, storer);
     store(caption, storer);
+    store(url, storer);
+    store(web_page_id, storer);
   }
 
   template <class T>
@@ -1129,6 +1134,13 @@ class WebPagesManager::PageBlockPhoto : public PageBlock {
     using ::td::parse;
     parse(photo, parser);
     parse(caption, parser);
+    if (parser.version() >= static_cast<int32>(Version::SupportInstantView2_0)) {
+      parse(url, parser);
+      parse(web_page_id, parser);
+    } else {
+      url.clear();
+      web_page_id = WebPageId();
+    }
   }
 };
 
@@ -2695,8 +2707,15 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
       } else {
         photo = it->second;
       }
-      return make_unique<PageBlockPhoto>(std::move(photo),
-                                         get_page_block_caption(std::move(page_block->caption_), documents));
+      string url;
+      WebPageId web_page_id;
+      if ((page_block->flags_ & telegram_api::pageBlockPhoto::URL_MASK) != 0) {
+        url = std::move(page_block->url_);
+        web_page_id = WebPageId(page_block->webpage_id_);
+      }
+      return td::make_unique<PageBlockPhoto>(std::move(photo),
+                                             get_page_block_caption(std::move(page_block->caption_), documents),
+                                             std::move(url), web_page_id);
     }
     case telegram_api::pageBlockVideo::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockVideo>(page_block_ptr);
