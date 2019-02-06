@@ -502,7 +502,8 @@ class WebPagesManager::PageBlock {
     Collage,
     Slideshow,
     ChatLink,
-    Audio
+    Audio,
+    Kicker
   };
 
   virtual Type get_type() const = 0;
@@ -716,6 +717,38 @@ class WebPagesManager::PageBlockSubheader : public PageBlock {
   void parse(T &parser) {
     using ::td::parse;
     parse(subheader, parser);
+  }
+};
+
+class WebPagesManager::PageBlockKicker : public PageBlock {
+  RichText kicker;
+
+ public:
+  PageBlockKicker() = default;
+  explicit PageBlockKicker(RichText &&kicker) : kicker(std::move(kicker)) {
+  }
+
+  Type get_type() const override {
+    return Type::Kicker;
+  }
+
+  void append_file_ids(vector<FileId> &file_ids) const override {
+    append_rich_text_file_ids(kicker, file_ids);
+  }
+
+  tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
+    return make_tl_object<td_api::pageBlockKicker>(get_rich_text_object(kicker));
+  }
+
+  template <class T>
+  void store(T &storer) const {
+    using ::td::store;
+    store(kicker, storer);
+  }
+  template <class T>
+  void parse(T &parser) {
+    using ::td::parse;
+    parse(kicker, parser);
   }
 };
 
@@ -1541,6 +1574,8 @@ void WebPagesManager::PageBlock::call_impl(Type type, const PageBlock *ptr, F &&
       return f(static_cast<const WebPagesManager::PageBlockHeader *>(ptr));
     case Type::Subheader:
       return f(static_cast<const WebPagesManager::PageBlockSubheader *>(ptr));
+    case Type::Kicker:
+      return f(static_cast<const WebPagesManager::PageBlockKicker *>(ptr));
     case Type::Paragraph:
       return f(static_cast<const WebPagesManager::PageBlockParagraph *>(ptr));
     case Type::Preformatted:
@@ -2612,6 +2647,10 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
     case telegram_api::pageBlockSubheader::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockSubheader>(page_block_ptr);
       return make_unique<PageBlockSubheader>(get_rich_text(std::move(page_block->text_), documents));
+    }
+    case telegram_api::pageBlockKicker::ID: {
+      auto page_block = move_tl_object_as<telegram_api::pageBlockKicker>(page_block_ptr);
+      return make_unique<PageBlockKicker>(get_rich_text(std::move(page_block->text_), documents));
     }
     case telegram_api::pageBlockParagraph::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockParagraph>(page_block_ptr);

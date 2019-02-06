@@ -108,6 +108,7 @@ class WebPagesManager : public Actor {
   class PageBlockAuthorDate;
   class PageBlockHeader;
   class PageBlockSubheader;
+  class PageBlockKicker;
   class PageBlockParagraph;
   class PageBlockPreformatted;
   class PageBlockFooter;

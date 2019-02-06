@@ -726,6 +726,9 @@ pageBlockHeader header:RichText = PageBlock;
 //@description A subheader @subheader Subheader
 pageBlockSubheader subheader:RichText = PageBlock;
 
+//@description A kicker @kicker Kicker
+pageBlockKicker kicker:RichText = PageBlock;
+
 //@description A text paragraph @text Paragraph text
 pageBlockParagraph text:RichText = PageBlock;
 
