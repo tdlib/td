@@ -491,6 +491,7 @@ set(TDLIB_SOURCE
   td/telegram/FileReferenceManager.hpp
   td/telegram/files/FileBitmask.h
   td/telegram/files/FileData.h
+  td/telegram/files/FileData.hpp
   td/telegram/files/FileDb.h
   td/telegram/files/FileDbId.h
   td/telegram/files/FileDownloader.h
