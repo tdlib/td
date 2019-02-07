@@ -701,6 +701,9 @@ richTextPhoneNumber text:RichText phone_number:string = RichText;
 //@height Height of a bounding box in which the image should be shown, 0 if unknown
 richTextIcon document:document width:int32 height:int32 = RichText;
 
+//@description A rich text anchor @text Text @name Anchor name
+richTextAnchor text:RichText name:string = RichText;
+
 //@description A concatenation of rich texts @texts Texts
 richTexts texts:vector<RichText> = RichText;
 
@@ -738,8 +741,9 @@ pageBlockVerticalAlignmentBottom = PageBlockVerticalAlignment;
 //@align Horizontal cell content alignment @valign Vertical cell content alignment
 pageBlockTableCell text:RichText is_header:Bool colspan:int32 rowspan:int32 align:PageBlockHorizontalAlignment valign:PageBlockVerticalAlignment = PageBlockTableCell;
 
-//@description Contains information about a related article @url Related article URL @title Article title; can be empty @param_description Article description, can be empty @photo Article photo; may be null
-pageBlockRelatedArticle url:string title:string description:string photo:photo = PageBlockRelatedArticle;
+//@description Contains information about a related article @url Related article URL @title Article title; can be empty @param_description Article description, can be empty
+//@photo Article photo; may be null @author Article author, can be empty @published_date Article publish date; 0 if unknown
+pageBlockRelatedArticle url:string title:string description:string photo:photo author:string published_date:int32 = PageBlockRelatedArticle;
 
 
 //@class PageBlock @description Describes a block of an instant view web page
@@ -829,9 +833,11 @@ pageBlockRelatedArticles header:RichText articles:vector<pageBlockRelatedArticle
 pageBlockMap location:location zoom:int32 width:int32 height:int32 caption:pageBlockCaption = PageBlock;
 
 
-//@description Describes an instant view page for a web page @page_blocks Content of the web page @is_rtl True, if the instant view must be shown from right to left
+//@description Describes an instant view page for a web page @page_blocks Content of the web page
+//@url Instant view URL; may be different from WebPage.url and must be used for the correct anchors handling
+//@is_rtl True, if the instant view must be shown from right to left
 //@is_full True, if the instant view contains the full page. A network request might be needed to get the full web page instant view
-webPageInstantView page_blocks:vector<PageBlock> is_rtl:Bool is_full:Bool = WebPageInstantView;
+webPageInstantView page_blocks:vector<PageBlock> url:string is_rtl:Bool is_full:Bool = WebPageInstantView;
 
 
 //@description Describes a web page preview @url Original URL of the link @display_url URL to display

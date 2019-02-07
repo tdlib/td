@@ -135,6 +135,7 @@ class GetWebPageQuery : public Td::ResultHandler {
 class WebPagesManager::WebPageInstantView {
  public:
   vector<unique_ptr<PageBlock>> page_blocks;
+  string url;
   int32 hash = 0;
   bool is_v2 = false;
   bool is_rtl = false;
@@ -146,36 +147,46 @@ class WebPagesManager::WebPageInstantView {
   template <class T>
   void store(T &storer) const {
     using ::td::store;
+    bool has_url = !url.empty();
     BEGIN_STORE_FLAGS();
     STORE_FLAG(is_full);
     STORE_FLAG(is_loaded);
     STORE_FLAG(is_rtl);
     STORE_FLAG(is_v2);
+    STORE_FLAG(has_url);
     END_STORE_FLAGS();
 
     store(page_blocks, storer);
     store(hash, storer);
+    if (has_url) {
+      store(url, storer);
+    }
     CHECK(!is_empty);
   }
 
   template <class T>
   void parse(T &parser) {
     using ::td::parse;
+    bool has_url;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(is_full);
     PARSE_FLAG(is_loaded);
     PARSE_FLAG(is_rtl);
     PARSE_FLAG(is_v2);
+    PARSE_FLAG(has_url);
     END_PARSE_FLAGS();
 
     parse(page_blocks, parser);
     parse(hash, parser);
+    if (has_url) {
+      parse(url, parser);
+    }
     is_empty = false;
   }
 
   friend StringBuilder &operator<<(StringBuilder &string_builder,
                                    const WebPagesManager::WebPageInstantView &instant_view) {
-    return string_builder << "InstantView(size = " << instant_view.page_blocks.size()
+    return string_builder << "InstantView(url = " << instant_view.url << ", size = " << instant_view.page_blocks.size()
                           << ", hash = " << instant_view.hash << ", is_empty = " << instant_view.is_empty
                           << ", is_v2 = " << instant_view.is_v2 << ", is_rtl = " << instant_view.is_rtl
                           << ", is_full = " << instant_view.is_full << ", is_loaded = " << instant_view.is_loaded
@@ -431,7 +442,8 @@ class WebPagesManager::RichText {
     Superscript,
     Marked,
     PhoneNumber,
-    Icon
+    Icon,
+    Anchor
   };
   Type type = Type::Plain;
   string content;
@@ -583,6 +595,8 @@ class WebPagesManager::RelatedArticle {
   string title;
   string description;
   Photo photo;
+  string author;
+  int32 published_date = 0;
 
   template <class T>
   void store(T &storer) const {
@@ -590,10 +604,14 @@ class WebPagesManager::RelatedArticle {
     bool has_title = !title.empty();
     bool has_description = !description.empty();
     bool has_photo = photo.id != -2;
+    bool has_author = !author.empty();
+    bool has_date = published_date != 0;
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_title);
     STORE_FLAG(has_description);
     STORE_FLAG(has_photo);
+    STORE_FLAG(has_author);
+    STORE_FLAG(has_date);
     END_STORE_FLAGS();
     store(url, storer);
     store(web_page_id, storer);
@@ -606,6 +624,12 @@ class WebPagesManager::RelatedArticle {
     if (has_photo) {
       store(photo, storer);
     }
+    if (has_author) {
+      store(author, storer);
+    }
+    if (has_date) {
+      store(published_date, storer);
+    }
   }
 
   template <class T>
@@ -614,10 +638,14 @@ class WebPagesManager::RelatedArticle {
     bool has_title;
     bool has_description;
     bool has_photo;
+    bool has_author;
+    bool has_date;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_title);
     PARSE_FLAG(has_description);
     PARSE_FLAG(has_photo);
+    PARSE_FLAG(has_author);
+    PARSE_FLAG(has_date);
     END_PARSE_FLAGS();
     parse(url, parser);
     parse(web_page_id, parser);
@@ -631,6 +659,12 @@ class WebPagesManager::RelatedArticle {
       parse(photo, parser);
     } else {
       photo.id = -2;
+    }
+    if (has_author) {
+      parse(author, parser);
+    }
+    if (has_date) {
+      parse(published_date, parser);
     }
   }
 };
@@ -1925,7 +1959,8 @@ class WebPagesManager::PageBlockRelatedArticles : public PageBlock {
     auto related_article_objects = transform(related_articles, [](const RelatedArticle &article) {
       return td_api::make_object<td_api::pageBlockRelatedArticle>(
           article.url, article.title, article.description,
-          get_photo_object(G()->td().get_actor_unsafe()->file_manager_.get(), &article.photo));
+          get_photo_object(G()->td().get_actor_unsafe()->file_manager_.get(), &article.photo), article.author,
+          article.published_date);
     });
     return make_tl_object<td_api::pageBlockRelatedArticles>(get_rich_text_object(header),
                                                             std::move(related_article_objects));
@@ -2810,7 +2845,8 @@ tl_object_ptr<td_api::webPageInstantView> WebPagesManager::get_web_page_instant_
     return nullptr;
   }
   return make_tl_object<td_api::webPageInstantView>(get_page_block_objects(web_page_instant_view->page_blocks),
-                                                    web_page_instant_view->is_rtl, web_page_instant_view->is_full);
+                                                    web_page_instant_view->url, web_page_instant_view->is_rtl,
+                                                    web_page_instant_view->is_full);
 }
 
 void WebPagesManager::update_messages_content(WebPageId web_page_id, bool have_web_page) {
@@ -2986,6 +3022,13 @@ WebPagesManager::RichText WebPagesManager::get_rich_text(tl_object_ptr<telegram_
       }
       break;
     }
+    case telegram_api::textAnchor::ID: {
+      auto rich_text = move_tl_object_as<telegram_api::textAnchor>(rich_text_ptr);
+      result.type = RichText::Type::Anchor;
+      result.content = std::move(rich_text->name_);
+      result.texts.push_back(get_rich_text(std::move(rich_text->text_), documents));
+      break;
+    }
     default:
       UNREACHABLE();
   }
@@ -3036,6 +3079,8 @@ tl_object_ptr<td_api::RichText> WebPagesManager::get_rich_text_object(const Rich
           G()->td().get_actor_unsafe()->documents_manager_->get_document_object(rich_text.document_file_id), width,
           height);
     }
+    case RichText::Type::Anchor:
+      return make_tl_object<td_api::richTextAnchor>(get_rich_text_object(rich_text.texts[0]), rich_text.content);
   }
   UNREACHABLE();
   return nullptr;
@@ -3412,6 +3457,10 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
             } else {
               article.photo = it->second;
             }
+            article.author = std::move(related_article->author_);
+            if ((related_article->flags_ & telegram_api::pageRelatedArticle::PUBLISHED_DATE_MASK) != 0) {
+              article.published_date = related_article->published_date_;
+            }
             return article;
           });
       return td::make_unique<PageBlockRelatedArticles>(get_rich_text(std::move(page_block->title_), documents),
@@ -3537,6 +3586,7 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
   web_page->instant_view.is_v2 = (page->flags_ & telegram_api::page::V2_MASK) != 0;
   web_page->instant_view.is_rtl = (page->flags_ & telegram_api::page::RTL_MASK) != 0;
   web_page->instant_view.hash = hash;
+  web_page->instant_view.url = std::move(page->url_);
   web_page->instant_view.is_empty = false;
   web_page->instant_view.is_full = (page->flags_ & telegram_api::page::PART_MASK) == 0;
   web_page->instant_view.is_loaded = true;

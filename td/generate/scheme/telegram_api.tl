@@ -682,6 +682,7 @@ textSuperscript#c7fb5e01 text:RichText = RichText;
 textMarked#34b8621 text:RichText = RichText;
 textPhone#1ccb966a text:RichText phone:string = RichText;
 textImage#81ccf4f document_id:long w:int h:int = RichText;
+textAnchor#35553762 text:RichText name:string = RichText;
 
 pageBlockUnsupported#13567e8a = PageBlock;
 pageBlockTitle#70abc3fd text:RichText = PageBlock;
@@ -792,7 +793,7 @@ langPackStringDeleted#2979eeb2 key:string = LangPackString;
 
 langPackDifference#f385c1f6 lang_code:string from_version:int version:int strings:Vector<LangPackString> = LangPackDifference;
 
-langPackLanguage#651b98d flags:# official:flags.0?true rtl:flags.2?true beta:flags.3?true name:string native_name:string lang_code:string base_lang_code:flags.1?string plural_code:string strings_count:int translated_count:int = LangPackLanguage;
+langPackLanguage#eeca5ce3 flags:# official:flags.0?true rtl:flags.2?true beta:flags.3?true name:string native_name:string lang_code:string base_lang_code:flags.1?string plural_code:string strings_count:int translated_count:int translations_url:string = LangPackLanguage;
 
 channelAdminRights#5d7ceba5 flags:# change_info:flags.0?true post_messages:flags.1?true edit_messages:flags.2?true delete_messages:flags.3?true ban_users:flags.4?true invite_users:flags.5?true invite_link:flags.6?true pin_messages:flags.7?true add_admins:flags.9?true = ChannelAdminRights;
 
@@ -956,9 +957,14 @@ pageListItemBlocks#25e073fc blocks:Vector<PageBlock> = PageListItem;
 pageListOrderedItemText#5e068047 num:string text:RichText = PageListOrderedItem;
 pageListOrderedItemBlocks#98dd8936 num:string blocks:Vector<PageBlock> = PageListOrderedItem;
 
-pageRelatedArticle#f186f93c flags:# url:string webpage_id:long title:flags.0?string description:flags.1?string photo_id:flags.2?long = PageRelatedArticle;
+pageRelatedArticle#b390dc08 flags:# url:string webpage_id:long title:flags.0?string description:flags.1?string photo_id:flags.2?long author:flags.3?string published_date:flags.4?int = PageRelatedArticle;
 
-page#f199a0a8 flags:# part:flags.0?true rtl:flags.1?true v2:flags.2?true blocks:Vector<PageBlock> photos:Vector<Photo> documents:Vector<Document> = Page;
+page#ae891bec flags:# part:flags.0?true rtl:flags.1?true v2:flags.2?true url:string blocks:Vector<PageBlock> photos:Vector<Photo> documents:Vector<Document> = Page;
+
+help.supportName#8c05f1c9 name:string = help.SupportName;
+
+help.userInfoEmpty#f3ae2eed = help.UserInfo;
+help.userInfo#1eb3758 message:string entities:Vector<MessageEntity> author:string date:int = help.UserInfo;
 
 ---functions---
 
@@ -1028,6 +1034,9 @@ account.sendVerifyEmailCode#7011509f email:string = account.SentEmailCode;
 account.verifyEmail#ecba39db email:string code:string = Bool;
 account.initTakeoutSession#f05b4804 flags:# contacts:flags.0?true message_users:flags.1?true message_chats:flags.2?true message_megagroups:flags.3?true message_channels:flags.4?true files:flags.5?true file_max_size:flags.5?int = account.Takeout;
 account.finishTakeoutSession#1d2652ee flags:# success:flags.0?true = Bool;
+account.confirmPasswordEmail#8fdf1920 code:string = Bool;
+account.resendPasswordEmail#7a7f2a15 = Bool;
+account.cancelPasswordEmail#c1cbd5b6 = Bool;
 
 users.getUsers#d91a548 id:Vector<InputUser> = Vector<User>;
 users.getFullUser#ca30a5b1 id:InputUser = UserFull;
@@ -1187,6 +1196,9 @@ help.getDeepLinkInfo#3fedc75f path:string = help.DeepLinkInfo;
 help.getAppConfig#98914110 = JSONValue;
 help.saveAppLog#6f02f748 events:Vector<InputAppEvent> = Bool;
 help.getPassportConfig#c661ad08 hash:int = help.PassportConfig;
+help.getSupportName#d360e72c = help.SupportName;
+help.getUserInfo#38a08d3 user_id:InputUser = help.UserInfo;
+help.editUserInfo#66b91b70 user_id:InputUser message:string entities:Vector<MessageEntity> = help.UserInfo;
 
 channels.readHistory#cc104937 channel:InputChannel max_id:int = Bool;
 channels.deleteMessages#84c1fd4e channel:InputChannel id:Vector<int> = messages.AffectedMessages;
