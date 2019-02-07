@@ -851,8 +851,8 @@ webPageInstantView page_blocks:vector<PageBlock> is_rtl:Bool is_full:Bool = WebP
 //@video Preview of the content as a video, if available; may be null
 //@video_note Preview of the content as a video note, if available; may be null
 //@voice_note Preview of the content as a voice note, if available; may be null
-//@has_instant_view True, if the web page has an instant view
-webPage url:string display_url:string type:string site_name:string title:string description:string photo:photo embed_url:string embed_type:string embed_width:int32 embed_height:int32 duration:int32 author:string animation:animation audio:audio document:document sticker:sticker video:video video_note:videoNote voice_note:voiceNote has_instant_view:Bool = WebPage;
+//@instant_view_version Version of instant view, available for the web page (currently can be 1 or 2), 0 if none
+webPage url:string display_url:string type:string site_name:string title:string description:string photo:photo embed_url:string embed_type:string embed_width:int32 embed_height:int32 duration:int32 author:string animation:animation audio:audio document:document sticker:sticker video:video video_note:videoNote voice_note:voiceNote instant_view_version:int32 = WebPage;
 
 
 //@description Describes an address @country_code A two-letter ISO 3166-1 alpha-2 country code @state State, if applicable @city City @street_line1 First line of the address @street_line2 Second line of the address @postal_code Address postal code

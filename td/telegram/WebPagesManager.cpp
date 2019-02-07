@@ -136,6 +136,7 @@ class WebPagesManager::WebPageInstantView {
  public:
   vector<unique_ptr<PageBlock>> page_blocks;
   int32 hash = 0;
+  bool is_v2 = false;
   bool is_rtl = false;
   bool is_empty = true;
   bool is_full = false;
@@ -149,6 +150,7 @@ class WebPagesManager::WebPageInstantView {
     STORE_FLAG(is_full);
     STORE_FLAG(is_loaded);
     STORE_FLAG(is_rtl);
+    STORE_FLAG(is_v2);
     END_STORE_FLAGS();
 
     store(page_blocks, storer);
@@ -163,6 +165,7 @@ class WebPagesManager::WebPageInstantView {
     PARSE_FLAG(is_full);
     PARSE_FLAG(is_loaded);
     PARSE_FLAG(is_rtl);
+    PARSE_FLAG(is_v2);
     END_PARSE_FLAGS();
 
     parse(page_blocks, parser);
@@ -174,6 +177,7 @@ class WebPagesManager::WebPageInstantView {
                                    const WebPagesManager::WebPageInstantView &instant_view) {
     return string_builder << "InstantView(size = " << instant_view.page_blocks.size()
                           << ", hash = " << instant_view.hash << ", is_empty = " << instant_view.is_empty
+                          << ", is_v2 = " << instant_view.is_v2 << ", is_rtl = " << instant_view.is_rtl
                           << ", is_full = " << instant_view.is_full << ", is_loaded = " << instant_view.is_loaded
                           << ", was_loaded_from_database = " << instant_view.was_loaded_from_database << ")";
   }
@@ -215,6 +219,7 @@ class WebPagesManager::WebPage {
     bool has_author = !author.empty();
     bool has_document = document_type != DocumentsManager::DocumentType::Unknown;
     bool has_instant_view = !instant_view.is_empty;
+    bool is_instant_view_v2 = instant_view.is_v2;
     bool has_no_hash = true;
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_type);
@@ -229,6 +234,7 @@ class WebPagesManager::WebPage {
     STORE_FLAG(has_document);
     STORE_FLAG(has_instant_view);
     STORE_FLAG(has_no_hash);
+    STORE_FLAG(is_instant_view_v2);
     END_STORE_FLAGS();
 
     store(url, storer);
@@ -309,6 +315,7 @@ class WebPagesManager::WebPage {
     bool has_author;
     bool has_document;
     bool has_instant_view;
+    bool is_instant_view_v2;
     bool has_no_hash;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_type);
@@ -323,6 +330,7 @@ class WebPagesManager::WebPage {
     PARSE_FLAG(has_document);
     PARSE_FLAG(has_instant_view);
     PARSE_FLAG(has_no_hash);
+    PARSE_FLAG(is_instant_view_v2);
     END_PARSE_FLAGS();
 
     parse(url, parser);
@@ -400,6 +408,9 @@ class WebPagesManager::WebPage {
 
     if (has_instant_view) {
       instant_view.is_empty = false;
+    }
+    if (is_instant_view_v2) {
+      instant_view.is_v2 = true;
     }
   }
 };
@@ -2745,6 +2756,15 @@ tl_object_ptr<td_api::webPage> WebPagesManager::get_web_page_object(WebPageId we
   if (web_page == nullptr) {
     return nullptr;
   }
+  int32 instant_view_version = [web_page] {
+    if (web_page->instant_view.is_empty) {
+      return 0;
+    }
+    if (web_page->instant_view.is_v2) {
+      return 2;
+    }
+    return 1;
+  }();
   return make_tl_object<td_api::webPage>(
       web_page->url, web_page->display_url, web_page->type, web_page->site_name, web_page->title, web_page->description,
       get_photo_object(td_->file_manager_.get(), &web_page->photo), web_page->embed_url, web_page->embed_type,
@@ -2770,7 +2790,7 @@ tl_object_ptr<td_api::webPage> WebPagesManager::get_web_page_object(WebPageId we
       web_page->document_type == DocumentsManager::DocumentType::VoiceNote
           ? td_->voice_notes_manager_->get_voice_note_object(web_page->document_file_id)
           : nullptr,
-      !web_page->instant_view.is_empty);
+      instant_view_version);
 }
 
 tl_object_ptr<td_api::webPageInstantView> WebPagesManager::get_web_page_instant_view_object(
@@ -3432,10 +3452,6 @@ vector<unique_ptr<WebPagesManager::PageBlock>> WebPagesManager::get_page_blocks(
 void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_ptr<telegram_api::page> &&page,
                                                    int32 hash, DialogId owner_dialog_id) {
   CHECK(page != nullptr);
-  if ((page->flags_ & telegram_api::page::V2_MASK) == 0) {
-    return;
-  }
-
   std::unordered_map<int64, Photo> photos;
   for (auto &photo_ptr : page->photos_) {
     if (photo_ptr->get_id() == telegram_api::photo::ID) {
@@ -3509,6 +3525,7 @@ void WebPagesManager::on_get_web_page_instant_view(WebPage *web_page, tl_object_
             << " photos and " << videos.size() << " videos";
   web_page->instant_view.page_blocks =
       get_page_blocks(std::move(page->blocks_), animations, audios, documents, photos, videos);
+  web_page->instant_view.is_v2 = (page->flags_ & telegram_api::page::V2_MASK) != 0;
   web_page->instant_view.is_rtl = (page->flags_ & telegram_api::page::RTL_MASK) != 0;
   web_page->instant_view.hash = hash;
   web_page->instant_view.is_empty = false;
