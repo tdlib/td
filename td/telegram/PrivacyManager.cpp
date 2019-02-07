@@ -38,7 +38,7 @@ PrivacyManager::UserPrivacySetting::UserPrivacySetting(const telegram_api::Priva
     case telegram_api::privacyKeyPhoneCall::ID:
       type_ = Type::Call;
       break;
-    case telegram_api::inputPrivacyKeyPhoneP2P::ID:
+    case telegram_api::privacyKeyPhoneP2P::ID:
       type_ = Type::PeerToPeerCall;
       break;
     default:

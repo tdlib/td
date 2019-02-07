@@ -904,6 +904,9 @@ class CliClient final : public Actor {
     if (setting == "call") {
       return make_tl_object<td_api::userPrivacySettingAllowCalls>();
     }
+    if (setting == "p2p") {
+      return make_tl_object<td_api::userPrivacySettingAllowPeerToPeerCalls>();
+    }
     return nullptr;
   }
 
