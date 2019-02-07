@@ -1759,7 +1759,7 @@ class MessagesManager : public Actor {
   void get_message_force_from_server(Dialog *d, MessageId message_id, Promise<Unit> &&promise,
                                      tl_object_ptr<telegram_api::InputMessage> input_message = nullptr);
 
-  Message *on_get_message_from_database(DialogId dialog_id, Dialog *d, const BufferSlice &value);
+  Message *on_get_message_from_database(DialogId dialog_id, Dialog *d, const BufferSlice &value, const char *source);
 
   void get_dialog_message_by_date_from_server(const Dialog *d, int32 date, int64 random_id, bool after_database_search,
                                               Promise<Unit> &&promise);

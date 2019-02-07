@@ -8902,7 +8902,8 @@ void MessagesManager::ttl_db_on_result(Result<std::pair<std::vector<std::pair<Di
   LOG(INFO) << "ttl_db: query result " << tag("new expire_till", ttl_db_expire_till_)
             << tag("got messages", result.first.size());
   for (auto &dialog_message : result.first) {
-    on_get_message_from_database(dialog_message.first, get_dialog_force(dialog_message.first), dialog_message.second);
+    on_get_message_from_database(dialog_message.first, get_dialog_force(dialog_message.first), dialog_message.second,
+                                 "ttl_db_on_result");
   }
   ttl_db_loop(G()->server_time());
 }
@@ -13732,7 +13733,7 @@ void MessagesManager::on_search_dialog_messages_db_result(int64 random_id, Dialo
 
   res.reserve(messages.size());
   for (auto &message : messages) {
-    auto m = on_get_message_from_database(dialog_id, d, message);
+    auto m = on_get_message_from_database(dialog_id, d, message, "on_search_dialog_messages_db_result");
     if (m != nullptr && first_db_message_id.get() <= m->message_id.get()) {
       res.push_back(m->message_id);
     }
@@ -13832,7 +13833,8 @@ void MessagesManager::on_messages_db_fts_result(Result<MessagesDbFtsResult> resu
 
   res.reserve(fts_result.messages.size());
   for (auto &message : fts_result.messages) {
-    auto m = on_get_message_from_database(message.dialog_id, get_dialog_force(message.dialog_id), message.data);
+    auto m = on_get_message_from_database(message.dialog_id, get_dialog_force(message.dialog_id), message.data,
+                                          "on_messages_db_fts_result");
     if (m != nullptr) {
       res.push_back(FullMessageId(message.dialog_id, m->message_id));
     }
@@ -13858,7 +13860,8 @@ void MessagesManager::on_messages_db_calls_result(Result<MessagesDbCallsResult> 
 
   res.reserve(calls_result.messages.size());
   for (auto &message : calls_result.messages) {
-    auto m = on_get_message_from_database(message.dialog_id, get_dialog_force(message.dialog_id), message.data);
+    auto m = on_get_message_from_database(message.dialog_id, get_dialog_force(message.dialog_id), message.data,
+                                          "on_messages_db_calls_result");
 
     if (m != nullptr && first_db_message_id.get() <= m->message_id.get()) {
       res.push_back(FullMessageId(message.dialog_id, m->message_id));
@@ -13994,7 +13997,7 @@ void MessagesManager::on_get_dialog_message_by_date_from_database(DialogId dialo
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   if (result.is_ok()) {
-    Message *m = on_get_message_from_database(dialog_id, d, result.ok());
+    Message *m = on_get_message_from_database(dialog_id, d, result.ok(), "on_get_dialog_message_by_date_from_database");
     if (m != nullptr) {
       auto message_id = find_message_by_date(d->messages, date);
       if (!message_id.is_valid()) {
@@ -17804,7 +17807,8 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
                         << " messages with notifications from database in " << group_info.group_id << '/'
                         << d->dialog_id;
     for (auto &message : messages) {
-      auto m = on_get_message_from_database(d->dialog_id, d, std::move(message));
+      auto m = on_get_message_from_database(d->dialog_id, d, std::move(message),
+                                            "get_message_notifications_from_database_force");
       if (m == nullptr || !m->notification_id.is_valid() || is_from_mention_notification_group(d, m) != from_mentions) {
         // notification_id can be empty if it is deleted in memory, but not in the database
         continue;
@@ -18003,7 +18007,8 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
   VLOG(notifications) << "Loaded " << messages.size() << " messages with notifications in " << group_info.group_id
                       << '/' << dialog_id << " from database";
   for (auto &message : messages) {
-    auto m = on_get_message_from_database(dialog_id, d, std::move(message));
+    auto m =
+        on_get_message_from_database(dialog_id, d, std::move(message), "on_get_message_notifications_from_database");
     if (m == nullptr || !m->notification_id.is_valid() || is_from_mention_notification_group(d, m) != from_mentions) {
       continue;
     }
@@ -18102,7 +18107,7 @@ void MessagesManager::do_remove_message_notification(DialogId dialog_id, bool fr
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
-  auto m = on_get_message_from_database(dialog_id, d, std::move(result[0]));
+  auto m = on_get_message_from_database(dialog_id, d, std::move(result[0]), "do_remove_message_notification");
   if (m != nullptr && m->notification_id == notification_id &&
       is_from_mention_notification_group(d, m) == from_mentions && is_message_notification_active(d, m)) {
     remove_message_notification_id(d, m, false);
@@ -20712,11 +20717,11 @@ MessagesManager::Message *MessagesManager::get_message_force(Dialog *d, MessageI
   if (r_value.is_error()) {
     return nullptr;
   }
-  return on_get_message_from_database(d->dialog_id, d, r_value.ok());
+  return on_get_message_from_database(d->dialog_id, d, r_value.ok(), "get_message_force");
 }
 
 MessagesManager::Message *MessagesManager::on_get_message_from_database(DialogId dialog_id, Dialog *d,
-                                                                        const BufferSlice &value) {
+                                                                        const BufferSlice &value, const char *source) {
   if (value.empty()) {
     return nullptr;
   }
@@ -20727,16 +20732,16 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(DialogId
   }
 
   if (d == nullptr) {
-    LOG(ERROR) << "Can't find " << dialog_id << ", but have a message from it";
+    LOG(ERROR) << "Can't find " << dialog_id << ", but have a message from it from " << source;
     if (!dialog_id.is_valid()) {
-      LOG(ERROR) << "Got message in invalid " << dialog_id;
+      LOG(ERROR) << "Got message in invalid " << dialog_id << " from " << source;
       return nullptr;
     }
 
     // can succeed in private chats
     get_messages_from_server({FullMessageId{dialog_id, m->message_id}}, Auto());
 
-    force_create_dialog(dialog_id, "on_get_message_from_database");
+    force_create_dialog(dialog_id, source);
     d = get_dialog_force(dialog_id);
     CHECK(d != nullptr);
   }
@@ -20771,12 +20776,11 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(DialogId
   m->from_database = true;
   bool need_update = false;
   bool need_update_dialog_pos = false;
-  auto result = add_message_to_dialog(d, std::move(m), false, &need_update, &need_update_dialog_pos,
-                                      "on_get_message_from_database");
+  auto result = add_message_to_dialog(d, std::move(m), false, &need_update, &need_update_dialog_pos, source);
   if (need_update_dialog_pos) {
     LOG(ERROR) << "Need update dialog pos after load " << (result == nullptr ? MessageId() : result->message_id)
-               << " in " << d->dialog_id << " from database";
-    send_update_chat_last_message(d, "on_get_message_from_database");
+               << " in " << d->dialog_id << " from " << source;
+    send_update_chat_last_message(d, source);
   }
   return result;
 }
@@ -22056,7 +22060,8 @@ MessagesManager::Dialog *MessagesManager::get_dialog_by_message_id(MessageId mes
           G()->td_db()->get_messages_db_sync()->get_message_by_unique_message_id(message_id.get_server_message_id());
       if (r_value.is_ok()) {
         DialogId dialog_id(r_value.ok().first);
-        Message *m = on_get_message_from_database(dialog_id, get_dialog_force(dialog_id), r_value.ok().second);
+        Message *m = on_get_message_from_database(dialog_id, get_dialog_force(dialog_id), r_value.ok().second,
+                                                  "get_dialog_by_message_id");
         if (m != nullptr) {
           CHECK(m->message_id == message_id);
           CHECK(message_id_to_dialog_id_[message_id] == dialog_id);
@@ -22085,7 +22090,7 @@ MessageId MessagesManager::get_message_id_by_random_id(Dialog *d, int64 random_i
       auto r_value = G()->td_db()->get_messages_db_sync()->get_message_by_random_id(d->dialog_id, random_id);
       if (r_value.is_ok()) {
         debug_add_message_to_dialog_fail_reason_ = "not called";
-        Message *m = on_get_message_from_database(d->dialog_id, d, r_value.ok());
+        Message *m = on_get_message_from_database(d->dialog_id, d, r_value.ok(), "get_message_id_by_random_id");
         if (m != nullptr) {
           CHECK(m->random_id == random_id)
               << random_id << " " << m->random_id << " " << d->random_id_to_message_id[random_id] << " "
