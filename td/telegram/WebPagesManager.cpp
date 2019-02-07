@@ -419,7 +419,7 @@ class WebPagesManager::RichText {
     Superscript,
     Marked,
     PhoneNumber,
-    InlineImage
+    Icon
   };
   Type type = Type::Plain;
   string content;
@@ -437,7 +437,7 @@ class WebPagesManager::RichText {
     store(type, storer);
     store(content, storer);
     store(texts, storer);
-    if (type == Type::InlineImage) {
+    if (type == Type::Icon) {
       storer.context()->td().get_actor_unsafe()->documents_manager_->store_document(document_file_id, storer);
     }
     if (type == Type::Url) {
@@ -451,7 +451,7 @@ class WebPagesManager::RichText {
     parse(type, parser);
     parse(content, parser);
     parse(texts, parser);
-    if (type == Type::InlineImage) {
+    if (type == Type::Icon) {
       document_file_id = parser.context()->td().get_actor_unsafe()->documents_manager_->parse_document(parser);
       if (!document_file_id.is_valid()) {
         LOG(ERROR) << "Failed to load document from database";
@@ -591,7 +591,8 @@ class WebPagesManager::PageBlock {
     ChatLink,
     Audio,
     Kicker,
-    Table
+    Table,
+    Details
   };
 
   virtual Type get_type() const = 0;
@@ -1774,6 +1775,54 @@ class WebPagesManager::PageBlockTable : public PageBlock {
   }
 };
 
+class WebPagesManager::PageBlockDetails : public PageBlock {
+  RichText header;
+  vector<unique_ptr<PageBlock>> page_blocks;
+  bool is_open;
+
+ public:
+  PageBlockDetails() = default;
+  PageBlockDetails(RichText &&header, vector<unique_ptr<PageBlock>> &&page_blocks, bool is_open)
+      : header(std::move(header)), page_blocks(std::move(page_blocks)), is_open(is_open) {
+  }
+
+  Type get_type() const override {
+    return Type::Details;
+  }
+
+  void append_file_ids(vector<FileId> &file_ids) const override {
+    append_rich_text_file_ids(header, file_ids);
+    for (auto &page_block : page_blocks) {
+      page_block->append_file_ids(file_ids);
+    }
+  }
+
+  tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
+    return make_tl_object<td_api::pageBlockDetails>(get_rich_text_object(header), get_page_block_objects(page_blocks),
+                                                    is_open);
+  }
+
+  template <class T>
+  void store(T &storer) const {
+    using ::td::store;
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(is_open);
+    END_STORE_FLAGS();
+    store(header, storer);
+    store(page_blocks, storer);
+  }
+
+  template <class T>
+  void parse(T &parser) {
+    using ::td::parse;
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(is_open);
+    END_PARSE_FLAGS();
+    parse(header, parser);
+    parse(page_blocks, parser);
+  }
+};
+
 template <class F>
 void WebPagesManager::PageBlock::call_impl(Type type, const PageBlock *ptr, F &&f) {
   switch (type) {
@@ -1827,6 +1876,8 @@ void WebPagesManager::PageBlock::call_impl(Type type, const PageBlock *ptr, F &&
       return f(static_cast<const WebPagesManager::PageBlockAudio *>(ptr));
     case Type::Table:
       return f(static_cast<const WebPagesManager::PageBlockTable *>(ptr));
+    case Type::Details:
+      return f(static_cast<const WebPagesManager::PageBlockDetails *>(ptr));
   }
   UNREACHABLE();
 }
@@ -2746,7 +2797,7 @@ WebPagesManager::RichText WebPagesManager::get_rich_text(tl_object_ptr<telegram_
       auto rich_text = move_tl_object_as<telegram_api::textImage>(rich_text_ptr);
       auto it = documents.find(rich_text->document_id_);
       if (it != documents.end()) {
-        result.type = RichText::Type::InlineImage;
+        result.type = RichText::Type::Icon;
         result.document_file_id = it->second;
         Dimensions dimensions = get_dimensions(rich_text->w_, rich_text->h_);
         result.content = PSTRING() << (dimensions.width * static_cast<uint32>(65536) + dimensions.height);
@@ -2797,11 +2848,11 @@ tl_object_ptr<td_api::RichText> WebPagesManager::get_rich_text_object(const Rich
       return make_tl_object<td_api::richTextMarked>(get_rich_text_object(rich_text.texts[0]));
     case RichText::Type::PhoneNumber:
       return make_tl_object<td_api::richTextPhoneNumber>(get_rich_text_object(rich_text.texts[0]), rich_text.content);
-    case RichText::Type::InlineImage: {
+    case RichText::Type::Icon: {
       auto dimensions = to_integer<uint32>(rich_text.content);
       auto width = static_cast<int32>(dimensions / 65536);
       auto height = static_cast<int32>(dimensions % 65536);
-      return make_tl_object<td_api::richTextInlineImage>(
+      return make_tl_object<td_api::richTextIcon>(
           G()->td().get_actor_unsafe()->documents_manager_->get_document_object(rich_text.document_file_id), width,
           height);
     }
@@ -3150,7 +3201,13 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
       return td::make_unique<PageBlockTable>(get_rich_text(std::move(page_block->title_), documents), std::move(cells),
                                              is_bordered, is_striped);
     }
-
+    case telegram_api::pageBlockDetails::ID: {
+      auto page_block = move_tl_object_as<telegram_api::pageBlockDetails>(page_block_ptr);
+      auto is_open = (page_block->flags_ & telegram_api::pageBlockDetails::OPEN_MASK) != 0;
+      return td::make_unique<PageBlockDetails>(
+          get_rich_text(std::move(page_block->title_), documents),
+          get_page_blocks(std::move(page_block->blocks_), animations, audios, documents, photos, videos), is_open);
+    }
     default:
       UNREACHABLE();
   }
@@ -3466,7 +3523,7 @@ string WebPagesManager::get_web_page_search_text(WebPageId web_page_id) const {
 }
 
 void WebPagesManager::append_rich_text_file_ids(const RichText &rich_text, vector<FileId> &file_ids) {
-  if (rich_text.type == RichText::Type::InlineImage) {
+  if (rich_text.type == RichText::Type::Icon) {
     CHECK(rich_text.document_file_id.is_valid());
     file_ids.push_back(rich_text.document_file_id);
   } else {

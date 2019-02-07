@@ -129,6 +129,7 @@ class WebPagesManager : public Actor {
   class PageBlockChatLink;
   class PageBlockAudio;
   class PageBlockTable;
+  class PageBlockDetails;
 
   class WebPageInstantView;
 

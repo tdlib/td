@@ -696,10 +696,10 @@ richTextMarked text:RichText = RichText;
 //@description A rich text phone number @text Text @phone_number Phone number
 richTextPhoneNumber text:RichText phone_number:string = RichText;
 
-//@description A rich text inline image @document The image represented as a document. The image can be in GIF, JPEG or PNG format
+//@description A small image inside the text @document The image represented as a document. The image can be in GIF, JPEG or PNG format
 //@width Width of a bounding box in which the image should be shown, 0 if unknown
 //@height Height of a bounding box in which the image should be shown, 0 if unknown
-richTextInlineImage document:document width:int32 height:int32 = RichText;
+richTextIcon document:document width:int32 height:int32 = RichText;
 
 //@description A concatenation of rich texts @texts Texts
 richTexts texts:vector<RichText> = RichText;
@@ -813,8 +813,11 @@ pageBlockSlideshow page_blocks:vector<PageBlock> caption:pageBlockCaption = Page
 //@description A link to a chat @title Chat title @photo Chat photo; may be null @username Chat username, by which all other information about the chat should be resolved
 pageBlockChatLink title:string photo:chatPhoto username:string = PageBlock;
 
-//@description A table @title Table title @cells Table cells @is_bordered True, if the table is bordered @is_striped True, if the table is striped
-pageBlockTable title:RichText cells:vector<vector<pageBlockTableCell>> is_bordered:Bool is_striped:Bool = PageBlock;
+//@description A table @caption Table caption @cells Table cells @is_bordered True, if the table is bordered @is_striped True, if the table is striped
+pageBlockTable caption:RichText cells:vector<vector<pageBlockTableCell>> is_bordered:Bool is_striped:Bool = PageBlock;
+
+//@description A collapsible block @header Always visible heading for the block @page_blocks Block contents @is_open True, if the block is open by default
+pageBlockDetails header:RichText page_blocks:vector<PageBlock> is_open:Bool = PageBlock;
 
 
 //@description Describes an instant view page for a web page @page_blocks Content of the web page @is_rtl True, if the instant view must be shown from right to left
