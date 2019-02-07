@@ -3743,6 +3743,11 @@ void WebPagesManager::append_rich_text_file_ids(const RichText &rich_text, vecto
   if (rich_text.type == RichText::Type::Icon) {
     CHECK(rich_text.document_file_id.is_valid());
     file_ids.push_back(rich_text.document_file_id);
+    auto thumbnail_file_id =
+        G()->td().get_actor_unsafe()->documents_manager_->get_document_thumbnail_file_id(rich_text.document_file_id);
+    if (thumbnail_file_id.is_valid()) {
+      file_ids.push_back(thumbnail_file_id);
+    }
   } else {
     for (auto &text : rich_text.texts) {
       append_rich_text_file_ids(text, file_ids);
