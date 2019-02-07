@@ -19,7 +19,6 @@
 #include "td/utils/logging.h"
 #include "td/utils/Slice.h"
 #include "td/utils/StringBuilder.h"
-#include "td/utils/tl_helpers.h"
 #include "td/utils/Variant.h"
 
 #include <tuple>
@@ -145,23 +144,9 @@ struct PartialRemoteFileLocation {
   int32 is_big_;
 
   template <class StorerT>
-  void store(StorerT &storer) const {
-    using td::store;
-    store(file_id_, storer);
-    store(part_count_, storer);
-    store(part_size_, storer);
-    store(ready_part_count_, storer);
-    store(is_big_, storer);
-  }
+  void store(StorerT &storer) const;
   template <class ParserT>
-  void parse(ParserT &parser) {
-    using td::parse;
-    parse(file_id_, parser);
-    parse(part_count_, parser);
-    parse(part_size_, parser);
-    parse(ready_part_count_, parser);
-    parse(is_big_, parser);
-  }
+  void parse(ParserT &parser);
 };
 
 inline bool operator==(const PartialRemoteFileLocation &lhs, const PartialRemoteFileLocation &rhs) {
@@ -186,32 +171,15 @@ struct PhotoRemoteFileLocation {
   int32 local_id_;
 
   template <class StorerT>
-  void store(StorerT &storer) const {
-    using td::store;
-    store(id_, storer);
-    store(access_hash_, storer);
-    store(volume_id_, storer);
-    store(secret_, storer);
-    store(local_id_, storer);
-  }
+  void store(StorerT &storer) const;
   template <class ParserT>
-  void parse(ParserT &parser) {
-    using td::parse;
-    parse(id_, parser);
-    parse(access_hash_, parser);
-    parse(volume_id_, parser);
-    parse(secret_, parser);
-    parse(local_id_, parser);
-  }
+  void parse(ParserT &parser);
+
   struct AsKey {
     const PhotoRemoteFileLocation &key;
+
     template <class StorerT>
-    void store(StorerT &storer) const {
-      using td::store;
-      store(key.id_, storer);
-      store(key.volume_id_, storer);
-      store(key.local_id_, storer);
-    }
+    void store(StorerT &storer) const;
   };
   AsKey as_key() const {
     return AsKey{*this};
@@ -235,28 +203,20 @@ struct WebRemoteFileLocation {
   int64 access_hash_;
 
   template <class StorerT>
-  void store(StorerT &storer) const {
-    using td::store;
-    store(url_, storer);
-    store(access_hash_, storer);
-  }
+  void store(StorerT &storer) const;
   template <class ParserT>
-  void parse(ParserT &parser) {
-    using td::parse;
-    parse(url_, parser);
-    parse(access_hash_, parser);
-  }
+  void parse(ParserT &parser);
+
   struct AsKey {
     const WebRemoteFileLocation &key;
+
     template <class StorerT>
-    void store(StorerT &storer) const {
-      using td::store;
-      store(key.url_, storer);
-    }
+    void store(StorerT &storer) const;
   };
   AsKey as_key() const {
     return AsKey{*this};
   }
+
   bool operator<(const WebRemoteFileLocation &other) const {
     return url_ < other.url_;
   }
@@ -274,27 +234,20 @@ struct CommonRemoteFileLocation {
   int64 access_hash_;
 
   template <class StorerT>
-  void store(StorerT &storer) const {
-    using td::store;
-    store(id_, storer);
-    store(access_hash_, storer);
-  }
+  void store(StorerT &storer) const;
   template <class ParserT>
-  void parse(ParserT &parser) {
-    using td::parse;
-    parse(id_, parser);
-    parse(access_hash_, parser);
-  }
+  void parse(ParserT &parser);
+
   struct AsKey {
     const CommonRemoteFileLocation &key;
+
     template <class StorerT>
-    void store(StorerT &storer) const {
-      td::store(key.id_, storer);
-    }
+    void store(StorerT &storer) const;
   };
   AsKey as_key() const {
     return AsKey{*this};
   }
+
   bool operator<(const CommonRemoteFileLocation &other) const {
     return std::tie(id_) < std::tie(other.id_);
   }
@@ -393,70 +346,15 @@ class FullRemoteFileLocation {
 
  public:
   template <class StorerT>
-  void store(StorerT &storer) const {
-    using ::td::store;
-    store(full_type(), storer);
-    store(dc_id_.get_value(), storer);
-    if (!file_reference_.empty()) {
-      store(file_reference_, storer);
-    }
-    variant_.visit([&](auto &&value) {
-      using td::store;
-      store(value, storer);
-    });
-  }
+  void store(StorerT &storer) const;
   template <class ParserT>
-  void parse(ParserT &parser) {
-    using ::td::parse;
-    int32 raw_type;
-    parse(raw_type, parser);
-    web_location_flag_ = (raw_type & WEB_LOCATION_FLAG) != 0;
-    raw_type &= ~WEB_LOCATION_FLAG;
-    bool has_file_reference = (raw_type & FILE_REFERENCE_FLAG) != 0;
-    raw_type &= ~FILE_REFERENCE_FLAG;
-    if (raw_type < 0 || raw_type >= static_cast<int32>(FileType::Size)) {
-      return parser.set_error("Invalid FileType in FullRemoteFileLocation");
-    }
-    file_type_ = static_cast<FileType>(raw_type);
-    int32 dc_id_value;
-    parse(dc_id_value, parser);
-    dc_id_ = DcId::from_value(dc_id_value);
-
-    if (has_file_reference) {
-      parse(file_reference_, parser);
-    }
-
-    switch (location_type()) {
-      case LocationType::Web: {
-        variant_ = WebRemoteFileLocation();
-        return web().parse(parser);
-      }
-      case LocationType::Photo: {
-        variant_ = PhotoRemoteFileLocation();
-        return photo().parse(parser);
-      }
-      case LocationType::Common: {
-        variant_ = CommonRemoteFileLocation();
-        return common().parse(parser);
-      }
-      case LocationType::None: {
-        break;
-      }
-    }
-    parser.set_error("Invalid FileType in FullRemoteFileLocation");
-  }
+  void parse(ParserT &parser);
 
   struct AsKey {
     const FullRemoteFileLocation &key;
+
     template <class StorerT>
-    void store(StorerT &storer) const {
-      using td::store;
-      store(key.key_type(), storer);
-      key.variant_.visit([&](auto &&value) {
-        using td::store;
-        store(value.as_key(), storer);
-      });
-    }
+    void store(StorerT &storer) const;
   };
   AsKey as_key() const {
     return AsKey{*this};
@@ -722,17 +620,6 @@ class RemoteFileLocation {
     return static_cast<Type>(variant_.get_offset());
   }
 
-  template <class StorerT>
-  void store(StorerT &storer) const {
-    storer.store_int(variant_.get_offset());
-    bool ok{false};
-    variant_.visit([&](auto &&value) {
-      using td::store;
-      store(value, storer);
-      ok = true;
-    });
-    CHECK(ok);
-  }
   PartialRemoteFileLocation &partial() {
     return variant_.get<1>();
   }
@@ -745,22 +632,11 @@ class RemoteFileLocation {
   const FullRemoteFileLocation &full() const {
     return variant_.get<2>();
   }
+
+  template <class StorerT>
+  void store(StorerT &storer) const;
   template <class ParserT>
-  void parse(ParserT &parser) {
-    auto type = static_cast<Type>(parser.fetch_int());
-    switch (type) {
-      case Type::Empty:
-        variant_ = EmptyRemoteFileLocation();
-        return;
-      case Type::Partial:
-        variant_ = PartialRemoteFileLocation();
-        return partial().parse(parser);
-      case Type::Full:
-        variant_ = FullRemoteFileLocation();
-        return full().parse(parser);
-    }
-    parser.set_error("Invalid type in RemoteFileLocation");
-  }
+  void parse(ParserT &parser);
 
   RemoteFileLocation() : variant_{EmptyRemoteFileLocation{}} {
   }
@@ -833,36 +709,9 @@ struct PartialLocalFileLocation {
   string ready_bitmask_;
 
   template <class StorerT>
-  void store(StorerT &storer) const {
-    using td::store;
-    store(file_type_, storer);
-    store(path_, storer);
-    store(part_size_, storer);
-    int32 deprecated_ready_part_count = -1;
-    store(deprecated_ready_part_count, storer);
-    store(iv_, storer);
-    store(ready_bitmask_, storer);
-  }
+  void store(StorerT &storer) const;
   template <class ParserT>
-  void parse(ParserT &parser) {
-    using td::parse;
-    parse(file_type_, parser);
-    if (file_type_ < FileType::Thumbnail || file_type_ >= FileType::Size) {
-      return parser.set_error("Invalid type in PartialLocalFileLocation");
-    }
-    parse(path_, parser);
-    parse(part_size_, parser);
-    int32 deprecated_ready_part_count;
-    parse(deprecated_ready_part_count, parser);
-    parse(iv_, parser);
-    if (deprecated_ready_part_count == -1) {
-      parse(ready_bitmask_, parser);
-    } else {
-      CHECK(0 <= deprecated_ready_part_count);
-      CHECK(deprecated_ready_part_count <= (1 << 22));
-      ready_bitmask_ = Bitmask(Bitmask::Ones{}, deprecated_ready_part_count).encode();
-    }
-  }
+  void parse(ParserT &parser);
 };
 
 inline bool operator==(const PartialLocalFileLocation &lhs, const PartialLocalFileLocation &rhs) {
@@ -886,22 +735,10 @@ struct FullLocalFileLocation {
   uint64 mtime_nsec_;
 
   template <class StorerT>
-  void store(StorerT &storer) const {
-    using td::store;
-    store(file_type_, storer);
-    store(mtime_nsec_, storer);
-    store(path_, storer);
-  }
+  void store(StorerT &storer) const;
   template <class ParserT>
-  void parse(ParserT &parser) {
-    using td::parse;
-    parse(file_type_, parser);
-    if (file_type_ < FileType::Thumbnail || file_type_ >= FileType::Size) {
-      return parser.set_error("Invalid type in FullLocalFileLocation");
-    }
-    parse(mtime_nsec_, parser);
-    parse(path_, parser);
-  }
+  void parse(ParserT &parser);
+
   const FullLocalFileLocation &as_key() const {
     return *this;
   }
@@ -957,9 +794,7 @@ struct PartialLocalFileLocationPtr {
   ~PartialLocalFileLocationPtr() = default;
 
   template <class StorerT>
-  void store(StorerT &storer) const {
-    td::store(*location_, storer);
-  }
+  void store(StorerT &storer) const;
 };
 
 inline bool operator==(const PartialLocalFileLocationPtr &lhs, const PartialLocalFileLocationPtr &rhs) {
@@ -1000,31 +835,9 @@ class LocalFileLocation {
   }
 
   template <class StorerT>
-  void store(StorerT &storer) const {
-    using td::store;
-    store(variant_.get_offset(), storer);
-    variant_.visit([&](auto &&value) {
-      using td::store;
-      store(value, storer);
-    });
-  }
+  void store(StorerT &storer) const;
   template <class ParserT>
-  void parse(ParserT &parser) {
-    using td::parse;
-    auto type = static_cast<Type>(parser.fetch_int());
-    switch (type) {
-      case Type::Empty:
-        variant_ = EmptyLocalFileLocation();
-        return;
-      case Type::Partial:
-        variant_ = PartialLocalFileLocationPtr();
-        return parse(partial(), parser);
-      case Type::Full:
-        variant_ = FullLocalFileLocation();
-        return parse(full(), parser);
-    }
-    return parser.set_error("Invalid type in LocalFileLocation");
-  }
+  void parse(ParserT &parser);
 
   LocalFileLocation() : variant_{EmptyLocalFileLocation()} {
   }
@@ -1071,19 +884,9 @@ struct FullGenerateFileLocation {
   static const int32 KEY_MAGIC = 0x8b60a1c8;
 
   template <class StorerT>
-  void store(StorerT &storer) const {
-    using td::store;
-    store(file_type_, storer);
-    store(original_path_, storer);
-    store(conversion_, storer);
-  }
+  void store(StorerT &storer) const;
   template <class ParserT>
-  void parse(ParserT &parser) {
-    using td::parse;
-    parse(file_type_, parser);
-    parse(original_path_, parser);
-    parse(conversion_, parser);
-  }
+  void parse(ParserT &parser);
 
   const FullGenerateFileLocation &as_key() const {
     return *this;
@@ -1133,27 +936,9 @@ class GenerateFileLocation {
   }
 
   template <class StorerT>
-  void store(StorerT &storer) const {
-    td::store(type_, storer);
-    switch (type_) {
-      case Type::Empty:
-        return;
-      case Type::Full:
-        return td::store(full_, storer);
-    }
-  }
-
+  void store(StorerT &storer) const;
   template <class ParserT>
-  void parse(ParserT &parser) {
-    td::parse(type_, parser);
-    switch (type_) {
-      case Type::Empty:
-        return;
-      case Type::Full:
-        return td::parse(full_, parser);
-    }
-    return parser.set_error("Invalid type in GenerateFileLocation");
-  }
+  void parse(ParserT &parser);
 
   GenerateFileLocation() : type_(Type::Empty) {
   }

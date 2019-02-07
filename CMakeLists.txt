@@ -507,6 +507,7 @@ set(TDLIB_SOURCE
   td/telegram/files/FileLoaderUtils.h
   td/telegram/files/FileLoadManager.h
   td/telegram/files/FileLocation.h
+  td/telegram/files/FileLocation.hpp
   td/telegram/files/FileManager.h
   td/telegram/files/FileSourceId.h
   td/telegram/files/FileStats.h
