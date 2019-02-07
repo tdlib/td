@@ -21021,6 +21021,11 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     // notification group must be created here because it may force adding new messages from database
     // in get_message_notification_group_force
     get_dialog_notification_group_id(d->dialog_id, get_notification_group_info(d, message.get()));
+
+    auto pinned_message_id = get_message_content_pinned_message_id(message->content.get());
+    if (pinned_message_id.is_valid() && have_message({dialog_id, pinned_message_id})) {
+      LOG(INFO) << "Preloaded pinned " << pinned_message_id << " from database";
+    }
   }
 
   // there must be no two recursive calls to add_message_to_dialog
