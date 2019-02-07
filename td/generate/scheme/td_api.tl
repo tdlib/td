@@ -708,7 +708,7 @@ richTexts texts:vector<RichText> = RichText;
 //@description Contains a caption of an instant view web page block, consisting of a text and a trailing credit @text Content of the caption @credit Block credit (like HTML tag <cite>)
 pageBlockCaption text:RichText credit:RichText = PageBlockCaption;
 
-//@description Describes an item of a list page block @label Item label, can be empty @page_blocks Item blocks
+//@description Describes an item of a list page block @label Item label @page_blocks Item blocks
 pageBlockListItem label:string page_blocks:vector<PageBlock> = PageBlockListItem;
 
 //@class PageBlockHorizontalAlignment @description Describes a horizontal alignment of a table cell content

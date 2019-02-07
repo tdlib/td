@@ -1102,7 +1102,8 @@ class WebPagesManager::PageBlockList : public PageBlock {
   vector<Item> items;
 
   static td_api::object_ptr<td_api::pageBlockListItem> get_page_block_list_item_object(const Item &item) {
-    return td_api::make_object<td_api::pageBlockListItem>(item.label, get_page_block_objects(item.page_blocks));
+    return td_api::make_object<td_api::pageBlockListItem>(item.label.empty() ? "•" : item.label,
+                                                          get_page_block_objects(item.page_blocks));
   }
 
  public:
@@ -1154,7 +1155,8 @@ class WebPagesManager::PageBlockList : public PageBlock {
       for (auto &text_item : text_items) {
         Item item;
         if (is_ordered) {
-          item.label = to_string(++pos);
+          pos++;
+          item.label = (PSTRING() << pos << '.');
         }
         item.page_blocks.push_back(make_unique<PageBlockParagraph>(std::move(text_item)));
         items.push_back(std::move(item));
@@ -3175,6 +3177,7 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
     }
     case telegram_api::pageBlockOrderedList::ID: {
       auto page_block = move_tl_object_as<telegram_api::pageBlockOrderedList>(page_block_ptr);
+      int32 current_label = 0;
       return td::make_unique<PageBlockList>(transform(std::move(page_block->items_), [&](auto &&list_item_ptr) {
         PageBlockList::Item item;
         CHECK(list_item_ptr != nullptr);
@@ -3196,6 +3199,12 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
         }
         if (item.page_blocks.empty()) {
           item.page_blocks.push_back(make_unique<PageBlockParagraph>(RichText()));
+        }
+        ++current_label;
+        if (item.label.empty()) {
+          item.label = PSTRING() << current_label << '.';
+        } else {
+          item.label += '.';
         }
         return item;
       }));
