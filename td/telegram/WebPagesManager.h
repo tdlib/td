@@ -102,6 +102,7 @@ class WebPagesManager : public Actor {
 
   class PageBlockCaption;
   class PageBlockTableCell;
+  class RelatedArticle;
 
   class PageBlock;
   class PageBlockTitle;
@@ -130,6 +131,7 @@ class WebPagesManager : public Actor {
   class PageBlockAudio;
   class PageBlockTable;
   class PageBlockDetails;
+  class PageBlockRelatedArticles;
 
   class WebPageInstantView;
 

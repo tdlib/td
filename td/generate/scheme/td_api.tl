@@ -738,6 +738,9 @@ pageBlockVerticalAlignmentBottom = PageBlockVerticalAlignment;
 //@align Horizontal cell content alignment @valign Vertical cell content alignment
 pageBlockTableCell text:RichText is_header:Bool colspan:int32 rowspan:int32 align:PageBlockHorizontalAlignment valign:PageBlockVerticalAlignment = PageBlockTableCell;
 
+//@description Contains information about a related article @url Related article URL @title Article title; can be empty @param_description Article description, can be empty @photo Article photo; may be null
+pageBlockRelatedArticle url:string title:string description:string photo:photo = PageBlockRelatedArticle;
+
 
 //@class PageBlock @description Describes a block of an instant view web page
 
@@ -818,6 +821,9 @@ pageBlockTable caption:RichText cells:vector<vector<pageBlockTableCell>> is_bord
 
 //@description A collapsible block @header Always visible heading for the block @page_blocks Block contents @is_open True, if the block is open by default
 pageBlockDetails header:RichText page_blocks:vector<PageBlock> is_open:Bool = PageBlock;
+
+//@description Related articles @header Block header @articles List of related articles
+pageBlockRelatedArticles header:RichText articles:vector<pageBlockRelatedArticle> = PageBlock;
 
 
 //@description Describes an instant view page for a web page @page_blocks Content of the web page @is_rtl True, if the instant view must be shown from right to left

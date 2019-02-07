@@ -564,6 +564,65 @@ class WebPagesManager::PageBlockTableCell {
   }
 };
 
+class WebPagesManager::RelatedArticle {
+ public:
+  string url;
+  WebPageId web_page_id;
+  string title;
+  string description;
+  Photo photo;
+
+  template <class T>
+  void store(T &storer) const {
+    using ::td::store;
+    bool has_title = !title.empty();
+    bool has_description = !description.empty();
+    bool has_photo = photo.id != -2;
+    BEGIN_STORE_FLAGS();
+    STORE_FLAG(has_title);
+    STORE_FLAG(has_description);
+    STORE_FLAG(has_photo);
+    END_STORE_FLAGS();
+    store(url, storer);
+    store(web_page_id, storer);
+    if (has_title) {
+      store(title, storer);
+    }
+    if (has_description) {
+      store(description, storer);
+    }
+    if (has_photo) {
+      store(photo, storer);
+    }
+  }
+
+  template <class T>
+  void parse(T &parser) {
+    using ::td::parse;
+    bool has_title;
+    bool has_description;
+    bool has_photo;
+    BEGIN_PARSE_FLAGS();
+    PARSE_FLAG(has_title);
+    PARSE_FLAG(has_description);
+    PARSE_FLAG(has_photo);
+    END_PARSE_FLAGS();
+    parse(url, parser);
+    parse(web_page_id, parser);
+    if (has_title) {
+      parse(title, parser);
+    }
+    if (has_description) {
+      parse(description, parser);
+    }
+    if (has_photo) {
+      parse(photo, parser);
+    } else {
+      photo.id = -2;
+    }
+  }
+};
+
 class WebPagesManager::PageBlock {
  public:
   enum class Type : int32 {
@@ -592,7 +651,8 @@ class WebPagesManager::PageBlock {
     Audio,
     Kicker,
     Table,
-    Details
+    Details,
+    RelatedArticles
   };
 
   virtual Type get_type() const = 0;
@@ -1823,6 +1883,54 @@ class WebPagesManager::PageBlockDetails : public PageBlock {
   }
 };
 
+class WebPagesManager::PageBlockRelatedArticles : public PageBlock {
+  RichText header;
+  vector<RelatedArticle> related_articles;
+
+ public:
+  PageBlockRelatedArticles() = default;
+  PageBlockRelatedArticles(RichText &&header, vector<RelatedArticle> &&related_articles)
+      : header(std::move(header)), related_articles(std::move(related_articles)) {
+  }
+
+  Type get_type() const override {
+    return Type::RelatedArticles;
+  }
+
+  void append_file_ids(vector<FileId> &file_ids) const override {
+    append_rich_text_file_ids(header, file_ids);
+    for (auto &article : related_articles) {
+      if (article.photo.id != -2) {
+        append(file_ids, photo_get_file_ids(article.photo));
+      }
+    }
+  }
+
+  tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
+    auto related_article_objects = transform(related_articles, [](const RelatedArticle &article) {
+      return td_api::make_object<td_api::pageBlockRelatedArticle>(
+          article.url, article.title, article.description,
+          get_photo_object(G()->td().get_actor_unsafe()->file_manager_.get(), &article.photo));
+    });
+    return make_tl_object<td_api::pageBlockRelatedArticles>(get_rich_text_object(header),
+                                                            std::move(related_article_objects));
+  }
+
+  template <class T>
+  void store(T &storer) const {
+    using ::td::store;
+    store(header, storer);
+    store(related_articles, storer);
+  }
+
+  template <class T>
+  void parse(T &parser) {
+    using ::td::parse;
+    parse(header, parser);
+    parse(related_articles, parser);
+  }
+};
+
 template <class F>
 void WebPagesManager::PageBlock::call_impl(Type type, const PageBlock *ptr, F &&f) {
   switch (type) {
@@ -1878,6 +1986,8 @@ void WebPagesManager::PageBlock::call_impl(Type type, const PageBlock *ptr, F &&
       return f(static_cast<const WebPagesManager::PageBlockTable *>(ptr));
     case Type::Details:
       return f(static_cast<const WebPagesManager::PageBlockDetails *>(ptr));
+    case Type::RelatedArticles:
+      return f(static_cast<const WebPagesManager::PageBlockRelatedArticles *>(ptr));
   }
   UNREACHABLE();
 }
@@ -3207,6 +3317,28 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
       return td::make_unique<PageBlockDetails>(
           get_rich_text(std::move(page_block->title_), documents),
           get_page_blocks(std::move(page_block->blocks_), animations, audios, documents, photos, videos), is_open);
+    }
+    case telegram_api::pageBlockRelatedArticles::ID: {
+      auto page_block = move_tl_object_as<telegram_api::pageBlockRelatedArticles>(page_block_ptr);
+      auto articles = transform(
+          std::move(page_block->articles_), [&](tl_object_ptr<telegram_api::pageRelatedArticle> &&related_article) {
+            RelatedArticle article;
+            article.url = std::move(related_article->url_);
+            article.web_page_id = WebPageId(related_article->webpage_id_);
+            article.title = std::move(related_article->title_);
+            article.description = std::move(related_article->description_);
+            auto it = (related_article->flags_ & telegram_api::pageRelatedArticle::PHOTO_ID_MASK) != 0
+                          ? photos.find(related_article->photo_id_)
+                          : photos.end();
+            if (it == photos.end()) {
+              article.photo.id = -2;
+            } else {
+              article.photo = it->second;
+            }
+            return article;
+          });
+      return td::make_unique<PageBlockRelatedArticles>(get_rich_text(std::move(page_block->title_), documents),
+                                                       std::move(articles));
     }
     default:
       UNREACHABLE();
