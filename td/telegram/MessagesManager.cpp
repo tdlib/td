@@ -21020,8 +21020,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   // there must be no two recursive calls to add_message_to_dialog
-  CHECK(!being_added_message_id_.is_valid()) << being_added_message_id_ << " " << message_id << " " << source;
-  being_added_message_id_ = message_id;
+  CHECK(!d->being_added_message_id.is_valid()) << d->being_added_message_id << " " << message_id << " " << source;
+  d->being_added_message_id = message_id;
 
   if (d->new_secret_chat_notification_id.is_valid()) {
     remove_new_secret_chat_notification(d, true);
@@ -21056,7 +21056,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         LOG(INFO) << "Can't add " << message_id << " with expired TTL to " << dialog_id << " from " << source;
         delete_message_from_database(d, message_id, message.get(), true);
         debug_add_message_to_dialog_fail_reason_ = "delete expired by TTL message";
-        being_added_message_id_ = MessageId();
+        d->being_added_message_id = MessageId();
         return nullptr;
       } else {
         on_message_ttl_expired_impl(d, message.get());
@@ -21438,7 +21438,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     add_notification_id_to_message_id_correspondence(d, m->notification_id, message_id);
   }
 
-  being_added_message_id_ = MessageId();
+  d->being_added_message_id = MessageId();
 
   if (!td_->auth_manager_->is_bot() && from_update && d->reply_markup_message_id != MessageId()) {
     auto deleted_user_id = get_message_content_deleted_user_id(m->content.get());

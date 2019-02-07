@@ -910,6 +910,7 @@ class MessagesManager : public Actor {
     MessageId pending_last_message_id;
 
     MessageId max_added_message_id;
+    MessageId being_added_message_id;
 
     NotificationGroupInfo message_notification_group;
     NotificationGroupInfo mention_notification_group;
@@ -2298,7 +2299,6 @@ class MessagesManager : public Actor {
   DialogId sponsored_dialog_id_;
 
   DialogId being_added_dialog_id_;
-  MessageId being_added_message_id_;
 
   double start_time_ = 0;
   bool is_inited_ = false;
