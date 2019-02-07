@@ -132,6 +132,7 @@ class WebPagesManager : public Actor {
   class PageBlockTable;
   class PageBlockDetails;
   class PageBlockRelatedArticles;
+  class PageBlockMap;
 
   class WebPageInstantView;
 

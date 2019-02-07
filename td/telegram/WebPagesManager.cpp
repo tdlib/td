@@ -23,6 +23,7 @@
 #include "td/telegram/files/FileManager.hpp"
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/Global.h"
+#include "td/telegram/Location.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessageEntity.h"
 #include "td/telegram/MessagesManager.h"
@@ -652,7 +653,8 @@ class WebPagesManager::PageBlock {
     Kicker,
     Table,
     Details,
-    RelatedArticles
+    RelatedArticles,
+    Map
   };
 
   virtual Type get_type() const = 0;
@@ -1931,6 +1933,50 @@ class WebPagesManager::PageBlockRelatedArticles : public PageBlock {
   }
 };
 
+class WebPagesManager::PageBlockMap : public PageBlock {
+  Location location;
+  int32 zoom = 0;
+  Dimensions dimensions;
+  PageBlockCaption caption;
+
+ public:
+  PageBlockMap() = default;
+  PageBlockMap(Location location, int32 zoom, Dimensions dimensions, PageBlockCaption &&caption)
+      : location(std::move(location)), zoom(zoom), dimensions(dimensions), caption(std::move(caption)) {
+  }
+
+  Type get_type() const override {
+    return Type::Map;
+  }
+
+  void append_file_ids(vector<FileId> &file_ids) const override {
+    append_page_block_caption_file_ids(caption, file_ids);
+  }
+
+  tl_object_ptr<td_api::PageBlock> get_page_block_object() const override {
+    return make_tl_object<td_api::pageBlockMap>(location.get_location_object(), zoom, dimensions.width,
+                                                dimensions.height, get_page_block_caption_object(caption));
+  }
+
+  template <class T>
+  void store(T &storer) const {
+    using ::td::store;
+    store(location, storer);
+    store(zoom, storer);
+    store(dimensions, storer);
+    store(caption, storer);
+  }
+
+  template <class T>
+  void parse(T &parser) {
+    using ::td::parse;
+    parse(location, parser);
+    parse(zoom, parser);
+    parse(dimensions, parser);
+    parse(caption, parser);
+  }
+};
+
 template <class F>
 void WebPagesManager::PageBlock::call_impl(Type type, const PageBlock *ptr, F &&f) {
   switch (type) {
@@ -1988,6 +2034,8 @@ void WebPagesManager::PageBlock::call_impl(Type type, const PageBlock *ptr, F &&
       return f(static_cast<const WebPagesManager::PageBlockDetails *>(ptr));
     case Type::RelatedArticles:
       return f(static_cast<const WebPagesManager::PageBlockRelatedArticles *>(ptr));
+    case Type::Map:
+      return f(static_cast<const WebPagesManager::PageBlockMap *>(ptr));
   }
   UNREACHABLE();
 }
@@ -3339,6 +3387,26 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
           });
       return td::make_unique<PageBlockRelatedArticles>(get_rich_text(std::move(page_block->title_), documents),
                                                        std::move(articles));
+    }
+    case telegram_api::pageBlockMap::ID: {
+      auto page_block = move_tl_object_as<telegram_api::pageBlockMap>(page_block_ptr);
+      Location location(std::move(page_block->geo_));
+      auto zoom = page_block->zoom_;
+      Dimensions dimensions = get_dimensions(page_block->w_, page_block->h_);
+      if (location.empty()) {
+        LOG(ERROR) << "Receive invalid map location";
+        break;
+      }
+      if (zoom <= 0 || zoom > 30) {
+        LOG(ERROR) << "Receive invalid map zoom " << zoom;
+        break;
+      }
+      if (dimensions.width == 0) {
+        LOG(ERROR) << "Receive invalid map dimensions " << page_block->w_ << " " << page_block->h_;
+        break;
+      }
+      return make_unique<PageBlockMap>(std::move(location), zoom, dimensions,
+                                       get_page_block_caption(std::move(page_block->caption_), documents));
     }
     default:
       UNREACHABLE();

@@ -825,6 +825,9 @@ pageBlockDetails header:RichText page_blocks:vector<PageBlock> is_open:Bool = Pa
 //@description Related articles @header Block header @articles List of related articles
 pageBlockRelatedArticles header:RichText articles:vector<pageBlockRelatedArticle> = PageBlock;
 
+//@description A map @location Location of the map center @zoom Map zoom level @width Map width @height Map height @caption Block caption
+pageBlockMap location:location zoom:int32 width:int32 height:int32 caption:pageBlockCaption = PageBlock;
+
 
 //@description Describes an instant view page for a web page @page_blocks Content of the web page @is_rtl True, if the instant view must be shown from right to left
 //@is_full True, if the instant view contains the full page. A network request might be needed to get the full web page instant view
