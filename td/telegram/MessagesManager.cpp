@@ -627,6 +627,7 @@ class EditDialogPhotoQuery : public Td::ResultHandler {
     }
     if (FileReferenceManager::is_file_reference_error(status)) {
       if (file_id_.is_valid() && !was_uploaded_) {
+        VLOG(file_references) << "Receive " << status << " for " << file_id_;
         td->file_manager_->delete_file_reference(file_id_, file_reference_);
         td->messages_manager_->upload_dialog_photo(dialog_id_, file_id_, std::move(promise_));
         return;
@@ -1871,16 +1872,22 @@ class SendInlineBotResultQuery : public Td::ResultHandler {
 };
 
 class SendMultiMediaActor : public NetActorOnce {
+  vector<FileId> file_ids_;
+  vector<string> file_references_;
   vector<int64> random_ids_;
   DialogId dialog_id_;
 
  public:
-  void send(int32 flags, DialogId dialog_id, MessageId reply_to_message_id,
+  void send(int32 flags, DialogId dialog_id, MessageId reply_to_message_id, vector<FileId> &&file_ids,
             vector<tl_object_ptr<telegram_api::inputSingleMedia>> &&input_single_media, uint64 sequence_dispatcher_id) {
     for (auto &single_media : input_single_media) {
       random_ids_.push_back(single_media->random_id_);
+      CHECK(FileManager::extract_was_uploaded(single_media->media_) == false);
+      file_references_.push_back(FileManager::extract_file_reference(single_media->media_));
     }
     dialog_id_ = dialog_id;
+    file_ids_ = std::move(file_ids);
+    CHECK(file_ids_.size() == random_ids_.size());
 
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
@@ -1957,6 +1964,18 @@ class SendMultiMediaActor : public NetActorOnce {
     if (G()->close_flag() && G()->parameters().use_message_db) {
       // do not send error, message will be re-sent
       return;
+    }
+    if (FileReferenceManager::is_file_reference_error(status)) {
+      auto pos = FileReferenceManager::get_file_reference_error_pos(status);
+      if (1 <= pos && pos <= file_ids_.size() && file_ids_[pos - 1].is_valid()) {
+        VLOG(file_references) << "Receive " << status << " for " << file_ids_[pos - 1];
+        td->file_manager_->delete_file_reference(file_ids_[pos - 1], file_references_[pos - 1]);
+        td->messages_manager_->on_send_media_group_file_reference_error(dialog_id_, std::move(random_ids_));
+        return;
+      } else {
+        LOG(ERROR) << "Receive file reference error " << status << ", but file_ids = " << file_ids_
+                   << ", message_count = " << file_ids_.size();
+      }
     }
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendMultiMediaActor");
     for (auto &random_id : random_ids_) {
@@ -2042,7 +2061,6 @@ class SendMediaActor : public NetActorOnce {
       // do not send error, message will be re-sent
       return;
     }
-    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendMediaActor");
     if (was_uploaded_) {
       if (was_thumbnail_uploaded_) {
         CHECK(thumbnail_file_id_.is_valid());
@@ -2062,6 +2080,7 @@ class SendMediaActor : public NetActorOnce {
       }
     } else if (FileReferenceManager::is_file_reference_error(status)) {
       if (file_id_.is_valid() && !was_uploaded_) {
+        VLOG(file_references) << "Receive " << status << " for " << file_id_;
         td->file_manager_->delete_file_reference(file_id_, file_reference_);
         td->messages_manager_->on_send_message_file_reference_error(random_id_);
         return;
@@ -2071,6 +2090,7 @@ class SendMediaActor : public NetActorOnce {
       }
     }
 
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SendMediaActor");
     td->messages_manager_->on_send_message_fail(random_id_, std::move(status));
   }
 };
@@ -15658,6 +15678,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
 
   auto default_status = can_send_message(dialog_id);
   bool success = default_status.is_ok();
+  vector<FileId> file_ids;
   vector<int64> random_ids;
   vector<tl_object_ptr<telegram_api::inputSingleMedia>> input_single_media;
   MessageId reply_to_message_id;
@@ -15673,9 +15694,11 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     reply_to_message_id = m->reply_to_message_id;
     flags = get_message_flags(m);
 
+    file_ids.push_back(get_message_content_file_id(m->content.get()));
     random_ids.push_back(begin_send_message(dialog_id, m));
     const FormattedText *caption = get_message_content_caption(m->content.get());
     auto input_media = get_input_media(m->content.get(), td_, m->ttl);
+    CHECK(input_media != nullptr);
     auto entities = get_input_message_entities(td_->contacts_manager_.get(), caption, "do_send_message_group");
     int32 input_single_media_flags = 0;
     if (!entities.empty()) {
@@ -15713,7 +15736,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     LOG(INFO) << "Media group " << media_album_id << " from " << dialog_id << " is empty";
   }
   send_closure(td_->create_net_actor<SendMultiMediaActor>(), &SendMultiMediaActor::send, flags, dialog_id,
-               reply_to_message_id, std::move(input_single_media),
+               reply_to_message_id, std::move(file_ids), std::move(input_single_media),
                get_sequence_dispatcher_id(dialog_id, MessageContentType::Photo));
 }
 
@@ -16377,6 +16400,7 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
       }
     } else if (FileReferenceManager::is_file_reference_error(result.error())) {
       if (file_id.is_valid()) {
+        VLOG(file_references) << "Receive " << result.error() << " for " << file_id;
         td_->file_manager_->delete_file_reference(file_id, file_reference);
         do_send_message(dialog_id, m, {-1});
         return;
@@ -19014,6 +19038,65 @@ void MessagesManager::on_send_message_file_reference_error(int64 random_id) {
   }
 
   do_send_message(dialog_id, m, {-1});
+}
+
+void MessagesManager::on_send_media_group_file_reference_error(DialogId dialog_id, vector<int64> random_ids) {
+  int64 media_album_id = 0;
+  vector<MessageId> message_ids;
+  vector<Message *> messages;
+  for (auto &random_id : random_ids) {
+    auto it = being_sent_messages_.find(random_id);
+    if (it == being_sent_messages_.end()) {
+      // we can't receive fail more than once
+      // but message can be successfully sent before
+      LOG(ERROR) << "Receive file reference invalid error about successfully sent message with random_id = "
+                 << random_id;
+      continue;
+    }
+
+    auto full_message_id = it->second;
+
+    being_sent_messages_.erase(it);
+
+    Message *m = get_message(full_message_id);
+    if (m == nullptr) {
+      // message has already been deleted by the user or sent to inaccessible channel
+      // don't need to send error to the user, because the message has already been deleted
+      // and there is nothing to be deleted from the server
+      LOG(INFO) << "Fail to send already deleted by the user or sent to inaccessible chat " << full_message_id;
+      continue;
+    }
+
+    CHECK(m->media_album_id != 0);
+    CHECK(media_album_id == 0 || media_album_id == m->media_album_id);
+    media_album_id = m->media_album_id;
+
+    CHECK(dialog_id == full_message_id.get_dialog_id());
+    message_ids.push_back(full_message_id.get_message_id());
+    messages.push_back(m);
+  }
+
+  CHECK(dialog_id.get_type() != DialogType::SecretChat);
+
+  if (message_ids.empty()) {
+    // all messages was deleted, nothing to do
+    return;
+  }
+
+  auto &request = pending_message_group_sends_[media_album_id];
+  CHECK(!request.dialog_id.is_valid());
+  CHECK(request.finished_count == 0);
+  CHECK(request.results.empty());
+  request.dialog_id = dialog_id;
+  request.message_ids = std::move(message_ids);
+  request.is_finished.resize(request.message_ids.size(), false);
+  for (size_t i = 0; i < request.message_ids.size(); i++) {
+    request.results.push_back(Status::OK());
+  }
+
+  for (auto m : messages) {
+    do_send_message(dialog_id, m, {-1});
+  }
 }
 
 void MessagesManager::on_send_message_fail(int64 random_id, Status error) {

@@ -27,6 +27,17 @@ bool FileReferenceManager::is_file_reference_error(const Status &error) {
   return error.is_error() && error.code() == 400 && begins_with(error.message(), "FILE_REFERENCE_");
 }
 
+size_t FileReferenceManager::get_file_reference_error_pos(const Status &error) {
+  if (!is_file_reference_error(error)) {
+    return 0;
+  }
+  auto offset = Slice("FILE_REFERENCE_").size();
+  if (error.message().size() <= offset || !is_digit(error.message()[offset])) {
+    return 0;
+  }
+  return to_integer<size_t>(error.message().substr(offset)) + 1;
+}
+
 /*
 fileSourceMessage chat_id:int53 message_id:int53 = FileSource;         // repaired with get_messages_from_server
 fileSourceUserProfilePhoto user_id:int32 photo_id:int64 = FileSource;  // repaired with photos.getUserPhotos

@@ -641,6 +641,8 @@ class MessagesManager : public Actor {
 
   void on_send_message_file_reference_error(int64 random_id);
 
+  void on_send_media_group_file_reference_error(DialogId dialog_id, vector<int64> random_ids);
+
   void on_send_message_fail(int64 random_id, Status error);
 
   void on_upload_message_media_success(DialogId dialog_id, MessageId message_id,

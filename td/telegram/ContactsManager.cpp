@@ -740,6 +740,7 @@ class UpdateProfilePhotoQuery : public Td::ResultHandler {
   void on_error(uint64 id, Status status) override {
     if (FileReferenceManager::is_file_reference_error(status)) {
       if (file_id_.is_valid()) {
+        VLOG(file_references) << "Receive " << status << " for " << file_id_;
         td->file_manager_->delete_file_reference(file_id_, file_reference_);
         td->contacts_manager_->upload_profile_photo(file_id_, std::move(promise_));
         return;
@@ -6840,7 +6841,7 @@ void ContactsManager::add_user_photo_id(User *u, UserId user_id, int64 photo_id,
       file_source_id = it->second;
       user_profile_photo_file_source_ids_.erase(it);
     } else {
-      VLOG(file_references) << "Need to create new file source for " << photo_id << " of " << user_id;
+      VLOG(file_references) << "Need to create new file source for photo " << photo_id << " of " << user_id;
       file_source_id = td_->file_reference_manager_->create_user_photo_file_source(user_id, photo_id);
     }
     for (auto &file_id : photo_file_ids) {

@@ -101,6 +101,7 @@ class SaveGifQuery : public Td::ResultHandler {
 
   void on_error(uint64 id, Status status) override {
     if (FileReferenceManager::is_file_reference_error(status)) {
+      VLOG(file_references) << "Receive " << status << " for " << file_id_;
       td->file_manager_->delete_file_reference(file_id_, file_reference_);
       td->file_reference_manager_->repair_file_reference(
           file_id_, PromiseCreator::lambda([animation_id = file_id_, unsave = unsave_,

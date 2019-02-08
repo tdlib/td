@@ -536,7 +536,7 @@ class CliClient final : public Actor {
   }
 
   static tl_object_ptr<td_api::InputFile> as_input_file(string str) {
-    if ((str.size() >= 20 && is_base64(str)) || begins_with(str, "http")) {
+    if ((str.size() >= 20 && is_base64url(str)) || begins_with(str, "http")) {
       return as_remote_file(str);
     }
     auto r_id = to_integer_safe<int32>(trim(str));
@@ -867,7 +867,7 @@ class CliClient final : public Actor {
 
   static tl_object_ptr<td_api::formattedText> as_formatted_text(
       string text, vector<td_api::object_ptr<td_api::textEntity>> entities = {}) {
-    if (entities.empty()) {
+    if (entities.empty() && !text.empty()) {
       auto parsed_text =
           execute(make_tl_object<td_api::parseTextEntities>(text, make_tl_object<td_api::textParseModeMarkdown>()));
       if (parsed_text->get_id() == td_api::formattedText::ID) {
@@ -2632,7 +2632,7 @@ class CliClient final : public Actor {
           as_chat_id(chat_id), as_message_id(reply_to_message_id), false, false,
           transform(photos, [](const string &photo_path) {
             tl_object_ptr<td_api::InputMessageContent> content = make_tl_object<td_api::inputMessagePhoto>(
-                as_local_file(photo_path), nullptr, Auto(), 0, 0, as_caption(""), 0);
+                as_input_file(photo_path), nullptr, Auto(), 0, 0, as_caption(""), 0);
             return content;
           })));
     } else if (op == "em") {
