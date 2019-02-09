@@ -551,7 +551,7 @@ bool photo_has_input_media(FileManager *file_manager, const Photo &photo, bool i
     if (file_view.is_encrypted()) {
       return false;
     }
-    return file_view.has_remote_location() || file_view.has_url();
+    return /* file_view.has_remote_location() || */ file_view.has_url();
   }
 }
 

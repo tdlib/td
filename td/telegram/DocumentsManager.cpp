@@ -438,7 +438,10 @@ bool DocumentsManager::has_input_media(FileId file_id, FileId thumbnail_file_id,
     if (file_view.is_encrypted()) {
       return false;
     }
-    return file_view.has_remote_location() || file_view.has_url();
+    // having remote location is not enough to have InputMedia, because the file may not have valid file_reference
+    // also file_id needs to be duped, because upload can be called to repair the file_reference and every upload
+    // request must have unique file_id
+    return /* file_view.has_remote_location() || */ file_view.has_url();
   }
 }
 
@@ -559,7 +562,7 @@ bool DocumentsManager::merge_documents(FileId new_id, FileId old_id, bool can_de
     CHECK(new_ != nullptr);
 
     if (old_->thumbnail != new_->thumbnail) {
-      //    LOG_STATUS(td_->file_manager_->merge(new_->thumbnail.file_id, old_->thumbnail.file_id));
+      // LOG_STATUS(td_->file_manager_->merge(new_->thumbnail.file_id, old_->thumbnail.file_id));
     }
 
     new_->is_changed = true;

@@ -15378,6 +15378,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, Message *m, vector<int
   FileId file_id = get_message_content_file_id(content);
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   FileId thumbnail_file_id = get_message_content_thumbnail_file_id(content, td_);
+  LOG(DEBUG) << "Need to send file " << file_id << " with thumbnail " << thumbnail_file_id;
   if (is_secret) {
     auto layer = td_->contacts_manager_->get_secret_chat_layer(dialog_id.get_secret_chat_id());
     auto secret_input_media = get_secret_input_media(content, td_, nullptr, BufferSlice(), layer);

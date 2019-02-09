@@ -772,7 +772,7 @@ FileId FileManager::dup_file_id(FileId file_id) {
   if (!file_node) {
     return FileId();
   }
-  auto result = create_file_id(file_node_id, file_node);
+  auto result = FileId(create_file_id(file_node_id, file_node).get(), file_id.get_remote());
   LOG(INFO) << "Dup file " << file_id << " to " << result;
   return result;
 }
@@ -2110,6 +2110,8 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
     if (old_priority != 0) {
       LOG(INFO) << "Cancel file " << file_id << " uploading";
       do_cancel_upload(node);
+    } else {
+      LOG(INFO) << "File " << file_id << " upload priority is still 0";
     }
     return;
   }
@@ -2146,10 +2148,10 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
     node->upload_id_ = id;
     node->upload_was_update_file_reference_ = true;
 
-    context_->repair_file_reference(file_id, PromiseCreator::lambda([id, actor_id = actor_id(this)](Result<Unit> res) {
-                                      send_closure(actor_id, &FileManager::on_error, id,
-                                                   Status::Error("FILE_UPLOAD_RESTART_WITH_FILE_REFERENCE"));
-                                    }));
+    context_->repair_file_reference(
+        node->main_file_id_, PromiseCreator::lambda([id, actor_id = actor_id(this)](Result<Unit> res) {
+          send_closure(actor_id, &FileManager::on_error, id, Status::Error("FILE_UPLOAD_RESTART_WITH_FILE_REFERENCE"));
+        }));
     return;
   }
 
@@ -2912,11 +2914,12 @@ void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type,
     try_flush_node(node, "on_error");
   };
   if (status.code() != 1 && !G()->close_flag()) {
-    LOG(WARNING) << "Failed to upload/download/generate file: " << status << ". Query type = " << type
-                 << ". File type is " << FileView(node).get_type();
+    LOG(WARNING) << "Failed to upload/download/generate file " << node->main_file_id_ << ": " << status
+                 << ". Query type = " << type << ". File type is " << FileView(node).get_type();
     if (status.code() == 0) {
       // Remove partial locations
-      if (node->local_.type() == LocalFileLocation::Type::Partial && status.message() != "FILE_UPLOAD_RESTART") {
+      if (node->local_.type() == LocalFileLocation::Type::Partial &&
+          !begins_with(status.message(), "FILE_UPLOAD_RESTART")) {
         CSlice path = node->local_.partial().path_;
         if (begins_with(path, get_files_temp_dir(FileType::Encrypted)) ||
             begins_with(path, get_files_temp_dir(FileType::Video))) {
@@ -2945,8 +2948,9 @@ void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type,
       return;
     }
 
-    LOG(WARNING) << "Failed to upload file: unexpected " << status << ", is_small = " << has_partial_small_location
-                 << ", should_be_big = " << should_be_big_location << ", expected size = " << expected_size;
+    LOG(WARNING) << "Failed to upload file " << node->main_file_id_ << ": unexpected " << status
+                 << ", is_small = " << has_partial_small_location << ", should_be_big = " << should_be_big_location
+                 << ", expected size = " << expected_size;
   }
 
   if (begins_with(status.message(), "FILE_GENERATE_LOCATION_INVALID")) {
@@ -2972,7 +2976,7 @@ void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type,
     return;
   }
 
-  if (status.message() == "FILE_UPLOAD_RESTART") {
+  if (begins_with(status.message(), "FILE_UPLOAD_RESTART")) {
     if (ends_with(status.message(), "WITH_FILE_REFERENCE")) {
       node->upload_was_update_file_reference_ = true;
     }
