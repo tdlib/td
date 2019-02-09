@@ -137,6 +137,7 @@ void FullRemoteFileLocation::parse(ParserT &parser) {
 
   if (has_file_reference) {
     parse(file_reference_, parser);
+    file_reference_.clear();
   }
 
   switch (location_type()) {
