@@ -272,6 +272,14 @@ void LanguagePackManager::on_language_pack_version_changed(int32 new_version) {
       std::move(request_promise));
 }
 
+void LanguagePackManager::on_language_pack_too_long(string language_code) {
+  if (language_code == language_code_) {
+    return on_language_pack_version_changed(std::numeric_limits<int32>::max());
+  }
+  LOG(WARNING) << "Receive languagePackTooLong for language " << language_code << ", but use language "
+               << language_code_;
+}
+
 void LanguagePackManager::on_update_language_pack(tl_object_ptr<telegram_api::langPackDifference> difference) {
   LOG(INFO) << "Receive update language pack difference for language pack " << difference->lang_code_
             << " from version " << difference->from_version_ << " with version " << difference->version_ << " of size "

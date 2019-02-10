@@ -1856,8 +1856,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateContactsReset> 
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateLangPackTooLong> update, bool /*force_apply*/) {
-  send_closure(G()->language_pack_manager(), &LanguagePackManager::on_language_pack_version_changed,
-               std::numeric_limits<int32>::max());
+  send_closure(G()->language_pack_manager(), &LanguagePackManager::on_language_pack_too_long,
+               std::move(update->lang_code_));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateLangPack> update, bool /*force_apply*/) {

@@ -48,6 +48,8 @@ class LanguagePackManager : public NetQueryCallback {
 
   void on_language_pack_version_changed(int32 new_version);
 
+  void on_language_pack_too_long(string language_code);
+
   void get_languages(bool only_local, Promise<td_api::object_ptr<td_api::localizationTargetInfo>> promise);
 
   void get_language_pack_strings(string language_code, vector<string> keys,
