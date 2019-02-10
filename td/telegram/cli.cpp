@@ -1364,6 +1364,8 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::getRecoveryEmailAddress>(args));
     } else if (op == "creac") {
       send_request(make_tl_object<td_api::checkRecoveryEmailAddressCode>(args));
+    } else if (op == "rreac") {
+      send_request(make_tl_object<td_api::resendRecoveryEmailAddressCode>());
     } else if (op == "spncc") {
       send_request(make_tl_object<td_api::sendPhoneNumberVerificationCode>(args, false, false));
     } else if (op == "cpncc") {

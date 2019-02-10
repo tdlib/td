@@ -4658,6 +4658,12 @@ void Td::on_request(uint64 id, td_api::checkRecoveryEmailAddressCode &request) {
                std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::resendRecoveryEmailAddressCode &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  send_closure(password_manager_, &PasswordManager::resend_recovery_email_address_code, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::requestPasswordRecovery &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();

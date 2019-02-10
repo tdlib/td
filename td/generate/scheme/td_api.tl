@@ -2598,8 +2598,11 @@ getRecoveryEmailAddress password:string = RecoveryEmailAddress;
 //-If new_recovery_email_address is the same as the email address that is currently set up, this call succeeds immediately and aborts all other requests waiting for an email confirmation @password Password of the current user @new_recovery_email_address New recovery email address
 setRecoveryEmailAddress password:string new_recovery_email_address:string = PasswordState;
 
-//@description Checks the 2-step verification recovery email address code @code Verification code
+//@description Checks the 2-step verification recovery email address verification code @code Verification code
 checkRecoveryEmailAddressCode code:string = Ok;
+
+//@description Resends the 2-step verification recovery email address verification code
+resendRecoveryEmailAddressCode = Ok;
 
 //@description Requests to send a password recovery code to an email address that was previously set up
 requestPasswordRecovery = EmailAddressAuthenticationCodeInfo;

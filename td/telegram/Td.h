@@ -379,6 +379,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::checkRecoveryEmailAddressCode &request);
 
+  void on_request(uint64 id, const td_api::resendRecoveryEmailAddressCode &request);
+
   void on_request(uint64 id, td_api::requestPasswordRecovery &request);
 
   void on_request(uint64 id, td_api::recoverPassword &request);

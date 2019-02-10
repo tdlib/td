@@ -393,6 +393,19 @@ void PasswordManager::check_recovery_email_address_code(string code, Promise<Uni
                     }));
 }
 
+void PasswordManager::resend_recovery_email_address_code(Promise<Unit> promise) {
+  auto query =
+      G()->net_query_creator().create(create_storer(telegram_api::account_resendPasswordEmail()));
+  send_with_promise(std::move(query),
+                    PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
+                      auto r_result = fetch_result<telegram_api::account_resendPasswordEmail>(std::move(r_query));
+                      if (r_result.is_error()) {
+                        return promise.set_error(r_result.move_as_error());
+                      }
+                      return promise.set_value(Unit());
+                    }));
+}
+
 void PasswordManager::send_email_address_verification_code(
     string email, Promise<td_api::object_ptr<td_api::emailAddressAuthenticationCodeInfo>> promise) {
   last_verified_email_address_ = email;
