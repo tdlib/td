@@ -71,7 +71,7 @@ class SessionConnection
   // Interface
   Result<uint64> TD_WARN_UNUSED_RESULT send_query(BufferSlice buffer, bool gzip_flag, int64 message_id = 0,
                                                   uint64 invoke_after_id = 0, bool use_quick_ack = false);
-  std::pair<uint64, BufferSlice> encrypted_bind(int64 perm_key, int64 nonce, int32 expire_at);
+  std::pair<uint64, BufferSlice> encrypted_bind(int64 perm_key, int64 nonce, int32 expires_at);
 
   void get_state_info(int64 message_id);
   void resend_answer(int64 message_id);

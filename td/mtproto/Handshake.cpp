@@ -91,8 +91,8 @@ Status AuthKeyHandshake::on_res_pq(Slice message, Callback *connection, PublicRs
     case Mode::Temp:
       r_data_size = fill_data_with_hash(
           data_with_hash,
-          mtproto_api::p_q_inner_data_temp_dc(res_pq->pq_, p, q, nonce, server_nonce, new_nonce, dc_id_, expire_in_));
-      expire_at_ = Time::now() + expire_in_;
+          mtproto_api::p_q_inner_data_temp_dc(res_pq->pq_, p, q, nonce, server_nonce, new_nonce, dc_id_, expires_in_));
+      expires_at_ = Time::now() + expires_in_;
       break;
     case Mode::Unknown:
     default:
@@ -209,7 +209,7 @@ Status AuthKeyHandshake::on_server_dh_params(Slice message, Callback *connection
 
   auth_key = AuthKey(auth_key_params.first, std::move(auth_key_params.second));
   if (mode_ == Mode::Temp) {
-    auth_key.set_expire_at(expire_at_);
+    auth_key.set_expires_at(expires_at_);
   }
 
   server_salt = as<int64>(new_nonce.raw) ^ as<int64>(server_nonce.raw);
@@ -252,9 +252,9 @@ Status AuthKeyHandshake::start_main(Callback *connection) {
   return on_start(connection);
 }
 
-Status AuthKeyHandshake::start_tmp(Callback *connection, int32 expire_in) {
+Status AuthKeyHandshake::start_tmp(Callback *connection, int32 expires_in) {
   mode_ = Mode::Temp;
-  expire_in_ = expire_in;
+  expires_in_ = expires_in;
   return on_start(connection);
 }
 

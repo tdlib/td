@@ -89,7 +89,7 @@ class AuthData {
     if (tmp_auth_key_.empty()) {
       return true;
     }
-    if (now > tmp_auth_key_.expire_at() - 60 * 60 * 2 /*2 hours*/) {
+    if (now > tmp_auth_key_.expires_at() - 60 * 60 * 2 /*2 hours*/) {
       return true;
     }
     if (!has_tmp_auth_key(now)) {
@@ -110,7 +110,7 @@ class AuthData {
     if (tmp_auth_key_.empty()) {
       return false;
     }
-    if (now > tmp_auth_key_.expire_at() - 60 * 60 /*1 hour*/) {
+    if (now > tmp_auth_key_.expires_at() - 60 * 60 /*1 hour*/) {
       return false;
     }
     return true;

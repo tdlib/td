@@ -388,10 +388,10 @@ class ConfigRecoverer : public Actor {
     is_online_ = is_online;
     if (is_online) {
       if (simple_config_.dc_options.empty()) {
-        simple_config_expire_at_ = 0;
+        simple_config_expires_at_ = 0;
       }
       if (full_config_ == nullptr) {
-        full_config_expire_at_ = 0;
+        full_config_expires_at_ = 0;
       }
     }
     loop();
@@ -451,7 +451,7 @@ class ConfigRecoverer : public Actor {
         VLOG(config_recoverer) << "Config has expired at " << config->expires_;
       }
 
-      simple_config_expire_at_ = get_config_expire_time();
+      simple_config_expires_at_ = get_config_expire_time();
       simple_config_at_ = Time::now_cached();
       for (size_t i = 1; i < simple_config_.dc_options.size(); i++) {
         std::swap(simple_config_.dc_options[i], simple_config_.dc_options[Random::fast(0, static_cast<int>(i))]);
@@ -459,7 +459,7 @@ class ConfigRecoverer : public Actor {
     } else {
       VLOG(config_recoverer) << "Get SimpleConfig error " << r_simple_config.error();
       simple_config_ = DcOptions();
-      simple_config_expire_at_ = get_failed_config_expire_time();
+      simple_config_expires_at_ = get_failed_config_expire_time();
     }
     update_dc_options();
     loop();
@@ -470,12 +470,12 @@ class ConfigRecoverer : public Actor {
     if (r_full_config.is_ok()) {
       full_config_ = r_full_config.move_as_ok();
       VLOG(config_recoverer) << "Got FullConfig " << to_string(full_config_);
-      full_config_expire_at_ = get_config_expire_time();
+      full_config_expires_at_ = get_config_expire_time();
       send_closure(G()->connection_creator(), &ConnectionCreator::on_dc_options, DcOptions(full_config_->dc_options_));
     } else {
       VLOG(config_recoverer) << "Get FullConfig error " << r_full_config.error();
       full_config_ = FullConfig();
-      full_config_expire_at_ = get_failed_config_expire_time();
+      full_config_expires_at_ = get_failed_config_expire_time();
     }
     loop();
   }
@@ -506,7 +506,7 @@ class ConfigRecoverer : public Actor {
   uint32 network_generation_{0};
 
   DcOptions simple_config_;
-  double simple_config_expire_at_{0};
+  double simple_config_expires_at_{0};
   double simple_config_at_{0};
   ActorOwn<> simple_config_query_;
 
@@ -517,7 +517,7 @@ class ConfigRecoverer : public Actor {
   size_t dc_options_i_;
 
   FullConfig full_config_;
-  double full_config_expire_at_{0};
+  double full_config_expires_at_{0};
   ActorOwn<> full_config_query_;
 
   uint32 ref_cnt_{1};
@@ -569,14 +569,14 @@ class ConfigRecoverer : public Actor {
 
     bool has_connecting_problem =
         is_connecting_ && check_timeout(Timestamp::at(connecting_since_ + max_connecting_delay()));
-    bool is_valid_simple_config = !check_timeout(Timestamp::at(simple_config_expire_at_));
+    bool is_valid_simple_config = !check_timeout(Timestamp::at(simple_config_expires_at_));
     if (!is_valid_simple_config && !simple_config_.dc_options.empty()) {
       simple_config_ = DcOptions();
       update_dc_options();
     }
     bool need_simple_config = has_connecting_problem && !is_valid_simple_config && simple_config_query_.empty();
     bool has_dc_options = !dc_options_.dc_options.empty();
-    bool is_valid_full_config = !check_timeout(Timestamp::at(full_config_expire_at_));
+    bool is_valid_full_config = !check_timeout(Timestamp::at(full_config_expires_at_));
     bool need_full_config = has_connecting_problem && has_dc_options && !is_valid_full_config &&
                             full_config_query_.empty() &&
                             check_timeout(Timestamp::at(dc_options_at_ + (expect_blocking() ? 5 : 10)));
@@ -665,12 +665,12 @@ void ConfigManager::start_up() {
   config_recoverer_ = create_actor<ConfigRecoverer>("Recoverer", actor_shared());
   send_closure(config_recoverer_, &ConfigRecoverer::on_dc_options_update, load_dc_options_update());
   // }
-  auto expire = load_config_expire();
-  if (expire.is_in_past()) {
+  auto expire_time = load_config_expire_time();
+  if (expire_time.is_in_past()) {
     request_config();
   } else {
-    expire_ = expire;
-    set_timeout_in(expire_.in());
+    expire_time_ = expire_time;
+    set_timeout_in(expire_time_.in());
   }
 }
 
@@ -684,9 +684,9 @@ void ConfigManager::hangup() {
   try_stop();
 }
 void ConfigManager::loop() {
-  if (expire_ && expire_.is_in_past()) {
+  if (expire_time_ && expire_time_.is_in_past()) {
     request_config();
-    expire_ = {};
+    expire_time_ = {};
   }
 }
 void ConfigManager::try_stop() {
@@ -707,9 +707,9 @@ void ConfigManager::on_dc_options_update(DcOptions dc_options) {
   if (dc_options.dc_options.empty()) {
     return;
   }
-  expire_ = Timestamp::now();
-  save_config_expire(expire_);
-  set_timeout_in(expire_.in());
+  expire_time_ = Timestamp::now();
+  save_config_expire(expire_time_);
+  set_timeout_in(expire_time_.in());
 }
 
 void ConfigManager::request_config_from_dc_impl(DcId dc_id) {
@@ -727,8 +727,8 @@ void ConfigManager::on_result(NetQueryPtr res) {
   if (r_config.is_error()) {
     if (!G()->close_flag()) {
       LOG(ERROR) << "TODO: getConfig failed: " << r_config.error();
-      expire_ = Timestamp::in(60.0);  // try again in a minute
-      set_timeout_in(expire_.in());
+      expire_time_ = Timestamp::in(60.0);  // try again in a minute
+      set_timeout_in(expire_time_.in());
     }
   } else {
     on_dc_options_update(DcOptions());
@@ -753,18 +753,19 @@ DcOptions ConfigManager::load_dc_options_update() {
   return dc_options;
 }
 
-Timestamp ConfigManager::load_config_expire() {
-  auto expire_in = to_integer<int32>(G()->td_db()->get_binlog_pmc()->get("config_expire")) - Clocks::system();
+Timestamp ConfigManager::load_config_expire_time() {
+  auto expires_in = to_integer<int32>(G()->td_db()->get_binlog_pmc()->get("config_expire")) - Clocks::system();
 
-  if (expire_in < 0 || expire_in > 60 * 60 /* 1 hour */) {
+  if (expires_in < 0 || expires_in > 60 * 60 /* 1 hour */) {
     return Timestamp::now();
   } else {
-    return Timestamp::in(expire_in);
+    return Timestamp::in(expires_in);
   }
 }
 
 void ConfigManager::save_config_expire(Timestamp timestamp) {
-  G()->td_db()->get_binlog_pmc()->set("config_expire", to_string(static_cast<int>(Clocks::system() + expire_.in())));
+  G()->td_db()->get_binlog_pmc()->set("config_expire",
+                                      to_string(static_cast<int>(Clocks::system() + expire_time_.in())));
 }
 
 void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
@@ -777,8 +778,8 @@ void ConfigManager::process_config(tl_object_ptr<telegram_api::config> config) {
   if (!is_from_main_dc) {
     reload_in = 0;
   }
-  expire_ = Timestamp::in(reload_in);
-  set_timeout_at(expire_.at());
+  expire_time_ = Timestamp::in(reload_in);
+  set_timeout_at(expire_time_.at());
   LOG_IF(ERROR, config->test_mode_ != G()->is_test_dc()) << "Wrong parameter is_test";
 
   ConfigShared &shared_config = G()->shared_config();

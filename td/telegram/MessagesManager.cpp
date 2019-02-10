@@ -8926,15 +8926,15 @@ void MessagesManager::init() {
 }
 
 void MessagesManager::ttl_db_loop_start(double server_now) {
-  ttl_db_expire_from_ = 0;
-  ttl_db_expire_till_ = static_cast<int32>(server_now) + 15 /* 15 seconds */;
+  ttl_db_expires_from_ = 0;
+  ttl_db_expires_till_ = static_cast<int32>(server_now) + 15 /* 15 seconds */;
   ttl_db_has_query_ = false;
 
   ttl_db_loop(server_now);
 }
 
 void MessagesManager::ttl_db_loop(double server_now) {
-  LOG(INFO) << "ttl_db: loop " << tag("expire_from", ttl_db_expire_from_) << tag("expire_till", ttl_db_expire_till_)
+  LOG(INFO) << "ttl_db: loop " << tag("expires_from", ttl_db_expires_from_) << tag("expires_till", ttl_db_expires_till_)
             << tag("has_query", ttl_db_has_query_);
   if (ttl_db_has_query_) {
     return;
@@ -8942,14 +8942,14 @@ void MessagesManager::ttl_db_loop(double server_now) {
 
   auto now = static_cast<int32>(server_now);
 
-  if (ttl_db_expire_till_ < 0) {
+  if (ttl_db_expires_till_ < 0) {
     LOG(INFO) << "ttl_db: finished";
     return;
   }
 
-  if (now < ttl_db_expire_from_) {
+  if (now < ttl_db_expires_from_) {
     ttl_db_slot_.set_event(EventCreator::yield(actor_shared(this, YieldType::TtlDb)));
-    auto wakeup_in = ttl_db_expire_from_ - server_now;
+    auto wakeup_in = ttl_db_expires_from_ - server_now;
     ttl_db_slot_.set_timeout_in(wakeup_in);
     LOG(INFO) << "ttl_db: " << tag("wakeup in", wakeup_in);
     return;
@@ -8957,10 +8957,10 @@ void MessagesManager::ttl_db_loop(double server_now) {
 
   ttl_db_has_query_ = true;
   int32 limit = 50;
-  LOG(INFO) << "ttl_db: send query " << tag("expire_from", ttl_db_expire_from_)
-            << tag("expire_till", ttl_db_expire_till_) << tag("limit", limit);
+  LOG(INFO) << "ttl_db: send query " << tag("expires_from", ttl_db_expires_from_)
+            << tag("expires_till", ttl_db_expires_till_) << tag("limit", limit);
   G()->td_db()->get_messages_db_async()->get_expiring_messages(
-      ttl_db_expire_from_, ttl_db_expire_till_, limit,
+      ttl_db_expires_from_, ttl_db_expires_till_, limit,
       PromiseCreator::lambda(
           [actor_id = actor_id(this)](Result<std::pair<std::vector<std::pair<DialogId, BufferSlice>>, int32>> result) {
             send_closure(actor_id, &MessagesManager::ttl_db_on_result, std::move(result), false);
@@ -8971,10 +8971,10 @@ void MessagesManager::ttl_db_on_result(Result<std::pair<std::vector<std::pair<Di
                                        bool dummy) {
   auto result = r_result.move_as_ok();
   ttl_db_has_query_ = false;
-  ttl_db_expire_from_ = ttl_db_expire_till_;
-  ttl_db_expire_till_ = result.second;
+  ttl_db_expires_from_ = ttl_db_expires_till_;
+  ttl_db_expires_till_ = result.second;
 
-  LOG(INFO) << "ttl_db: query result " << tag("new expire_till", ttl_db_expire_till_)
+  LOG(INFO) << "ttl_db: query result " << tag("new expires_till", ttl_db_expires_till_)
             << tag("got messages", result.first.size());
   for (auto &dialog_message : result.first) {
     on_get_message_from_database(dialog_message.first, get_dialog_force(dialog_message.first), dialog_message.second,

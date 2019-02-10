@@ -1024,15 +1024,15 @@ bool Session::connection_send_bind_key(ConnectionInfo *info) {
 
   int64 perm_auth_key_id = auth_data_.get_main_auth_key().id();
   int64 nonce = Random::secure_int64();
-  int32 expire_at = static_cast<int32>(auth_data_.get_server_time(auth_data_.get_tmp_auth_key().expire_at()));
+  int32 expires_at = static_cast<int32>(auth_data_.get_server_time(auth_data_.get_tmp_auth_key().expires_at()));
   int64 message_id;
   BufferSlice encrypted;
-  std::tie(message_id, encrypted) = info->connection->encrypted_bind(perm_auth_key_id, nonce, expire_at);
+  std::tie(message_id, encrypted) = info->connection->encrypted_bind(perm_auth_key_id, nonce, expires_at);
 
   LOG(INFO) << "Bind key: " << tag("tmp", key_id) << tag("perm", static_cast<uint64>(perm_auth_key_id));
   NetQueryPtr query = G()->net_query_creator().create(
       last_bind_id_,
-      create_storer(telegram_api::auth_bindTempAuthKey(perm_auth_key_id, nonce, expire_at, std::move(encrypted))));
+      create_storer(telegram_api::auth_bindTempAuthKey(perm_auth_key_id, nonce, expires_at, std::move(encrypted))));
   query->dispatch_ttl = 0;
   query->set_callback(actor_shared(this));
   connection_send_query(info, std::move(query), message_id);

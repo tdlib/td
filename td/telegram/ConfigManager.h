@@ -55,7 +55,7 @@ class ConfigManager : public NetQueryCallback {
   int32 config_sent_cnt_{0};
   ActorOwn<ConfigRecoverer> config_recoverer_;
   int ref_cnt_{1};
-  Timestamp expire_;
+  Timestamp expire_time_;
 
   void start_up() override;
   void hangup_shared() override;
@@ -68,7 +68,7 @@ class ConfigManager : public NetQueryCallback {
   void request_config_from_dc_impl(DcId dc_id);
   void process_config(tl_object_ptr<telegram_api::config> config);
 
-  Timestamp load_config_expire();
+  Timestamp load_config_expire_time();
   void save_config_expire(Timestamp timestamp);
   void save_dc_options_update(DcOptions dc_options);
   DcOptions load_dc_options_update();

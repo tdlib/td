@@ -491,8 +491,8 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
     return Status::Error("Not found");
   }
 
-  Result<std::pair<std::vector<std::pair<DialogId, BufferSlice>>, int32>> get_expiring_messages(int32 expire_from,
-                                                                                                int32 expire_till,
+  Result<std::pair<std::vector<std::pair<DialogId, BufferSlice>>, int32>> get_expiring_messages(int32 expires_from,
+                                                                                                int32 expires_till,
                                                                                                 int32 limit) override {
     SCOPE_EXIT {
       get_expiring_messages_stmt_.reset();
@@ -501,9 +501,9 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
 
     std::vector<std::pair<DialogId, BufferSlice>> messages;
     // load messages
-    if (expire_from <= expire_till) {
-      get_expiring_messages_stmt_.bind_int32(1, expire_from).ensure();
-      get_expiring_messages_stmt_.bind_int32(2, expire_till).ensure();
+    if (expires_from <= expires_till) {
+      get_expiring_messages_stmt_.bind_int32(1, expires_from).ensure();
+      get_expiring_messages_stmt_.bind_int32(2, expires_till).ensure();
       get_expiring_messages_stmt_.step().ensure();
 
       while (get_expiring_messages_stmt_.has_row()) {
@@ -514,17 +514,17 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
       }
     }
 
-    // calc next expire_till
-    get_expiring_messages_helper_stmt_.bind_int32(1, expire_till).ensure();
+    // calc next expires_till
+    get_expiring_messages_helper_stmt_.bind_int32(1, expires_till).ensure();
     get_expiring_messages_helper_stmt_.bind_int32(2, limit).ensure();
     get_expiring_messages_helper_stmt_.step().ensure();
     CHECK(get_expiring_messages_helper_stmt_.has_row());
     int32 count = get_expiring_messages_helper_stmt_.view_int32(1);
-    int32 next_expire_till = -1;
+    int32 next_expires_till = -1;
     if (count != 0) {
-      next_expire_till = get_expiring_messages_helper_stmt_.view_int32(0);
+      next_expires_till = get_expiring_messages_helper_stmt_.view_int32(0);
     }
-    return std::make_pair(std::move(messages), next_expire_till);
+    return std::make_pair(std::move(messages), next_expires_till);
   }
 
   Result<std::vector<BufferSlice>> get_messages(MessagesDbMessagesQuery query) override {
@@ -921,9 +921,9 @@ class MessagesDbAsync : public MessagesDbAsyncInterface {
     send_closure_later(impl_, &Impl::get_messages_fts, std::move(query), std::move(promise));
   }
   void get_expiring_messages(
-      int32 expire_from, int32 expire_till, int32 limit,
+      int32 expires_from, int32 expires_till, int32 limit,
       Promise<std::pair<std::vector<std::pair<DialogId, BufferSlice>>, int32>> promise) override {
-    send_closure_later(impl_, &Impl::get_expiring_messages, expire_from, expire_till, limit, std::move(promise));
+    send_closure_later(impl_, &Impl::get_expiring_messages, expires_from, expires_till, limit, std::move(promise));
   }
 
   void close(Promise<> promise) override {
@@ -999,10 +999,10 @@ class MessagesDbAsync : public MessagesDbAsyncInterface {
       add_read_query();
       promise.set_result(sync_db_->get_messages_fts(std::move(query)));
     }
-    void get_expiring_messages(int32 expire_from, int32 expire_till, int32 limit,
+    void get_expiring_messages(int32 expires_from, int32 expires_till, int32 limit,
                                Promise<std::pair<std::vector<std::pair<DialogId, BufferSlice>>, int32>> promise) {
       add_read_query();
-      promise.set_result(sync_db_->get_expiring_messages(expire_from, expire_till, limit));
+      promise.set_result(sync_db_->get_expiring_messages(expires_from, expires_till, limit));
     }
 
     void close(Promise<> promise) {

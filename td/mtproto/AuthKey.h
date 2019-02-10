@@ -44,12 +44,12 @@ class AuthKey {
   void set_need_header(bool need_header) {
     need_header_ = need_header;
   }
-  double expire_at() const {
-    return expire_at_;
+  double expires_at() const {
+    return expires_at_;
   }
-  void set_expire_at(double expire_at) {
-    expire_at_ = expire_at;
-    // expire_at_ = Time::now() + 60 * 60 + 10 * 60;
+  void set_expires_at(double expires_at) {
+    expires_at_ = expires_at;
+    // expires_at_ = Time::now() + 60 * 60 + 10 * 60;
   }
   void clear() {
     auth_key_.clear();
@@ -80,7 +80,7 @@ class AuthKey {
   bool auth_flag_ = false;
   bool was_auth_flag_ = false;
   bool need_header_ = true;
-  double expire_at_ = 0;
+  double expires_at_ = 0;
 };
 
 }  // namespace mtproto

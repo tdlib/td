@@ -2127,8 +2127,8 @@ class MessagesManager : public Actor {
   Slot ttl_slot_;
 
   enum YieldType : int32 { None, Ttl, TtlDb };  // None must be first
-  int32 ttl_db_expire_from_;
-  int32 ttl_db_expire_till_;
+  int32 ttl_db_expires_from_;
+  int32 ttl_db_expires_till_;
   bool ttl_db_has_query_;
   Slot ttl_db_slot_;
 

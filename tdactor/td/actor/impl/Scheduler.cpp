@@ -423,8 +423,8 @@ void Scheduler::set_actor_timeout_in(ActorInfo *actor_info, double timeout) {
   if (timeout < 0) {
     timeout = 0;
   }
-  double expire_at = Time::now() + timeout;
-  set_actor_timeout_at(actor_info, expire_at);
+  double expires_at = Time::now() + timeout;
+  set_actor_timeout_at(actor_info, expires_at);
 }
 
 void Scheduler::set_actor_timeout_at(ActorInfo *actor_info, double timeout_at) {
