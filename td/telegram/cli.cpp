@@ -1360,6 +1360,10 @@ class CliClient final : public Actor {
       string recovery_email_address;
       std::tie(password, recovery_email_address) = split(args);
       send_request(make_tl_object<td_api::setRecoveryEmailAddress>(password, recovery_email_address));
+    } else if (op == "grea" || op == "GetRecoveryEmailAddress") {
+      send_request(make_tl_object<td_api::getRecoveryEmailAddress>(args));
+    } else if (op == "creac") {
+      send_request(make_tl_object<td_api::checkRecoveryEmailAddressCode>(args));
     } else if (op == "spncc") {
       send_request(make_tl_object<td_api::sendPhoneNumberVerificationCode>(args, false, false));
     } else if (op == "cpncc") {
@@ -1370,8 +1374,6 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::requestPasswordRecovery>());
     } else if (op == "rp" || op == "RecoverPassword") {
       send_request(make_tl_object<td_api::recoverPassword>(args));
-    } else if (op == "grea" || op == "GetRecoveryEmailAddress") {
-      send_request(make_tl_object<td_api::getRecoveryEmailAddress>(args));
     } else if (op == "gtp" || op == "GetTemporaryPassword") {
       send_request(make_tl_object<td_api::getTemporaryPasswordState>());
     } else if (op == "ctp" || op == "CreateTemporaryPassword") {

@@ -109,8 +109,10 @@ authorizationStateClosing = AuthorizationState;
 authorizationStateClosed = AuthorizationState;
 
 
-//@description Represents the current state of 2-step verification @has_password True, if a 2-step verification password is set @password_hint Hint for the password; can be empty @has_recovery_email_address True, if a recovery email is set @has_passport_data True, if some Telegram Passport elements were saved @unconfirmed_recovery_email_address_pattern Pattern of the email address to which the confirmation email was sent
-passwordState has_password:Bool password_hint:string has_recovery_email_address:Bool has_passport_data:Bool unconfirmed_recovery_email_address_pattern:string = PasswordState;
+//@description Represents the current state of 2-step verification @has_password True, if a 2-step verification password is set @password_hint Hint for the password; can be empty
+//@has_recovery_email_address True, if a recovery email is set @has_passport_data True, if some Telegram Passport elements were saved
+//@recovery_email_address_code_info Information about the recovery email address to which the confirmation email was sent; may be null
+passwordState has_password:Bool password_hint:string has_recovery_email_address:Bool has_passport_data:Bool recovery_email_address_code_info:emailAddressAuthenticationCodeInfo = PasswordState;
 
 //@description Contains information about the current recovery email address @recovery_email_address Recovery email address
 recoveryEmailAddress recovery_email_address:string = RecoveryEmailAddress;
@@ -2585,16 +2587,19 @@ setDatabaseEncryptionKey new_encryption_key:bytes = Ok;
 //@description Returns the current state of 2-step verification
 getPasswordState = PasswordState;
 
-//@description Changes the password for the user. If a new recovery email address is specified, then the error EMAIL_UNCONFIRMED is returned and the password change will not be applied until the new recovery email address has been confirmed. The application should periodically call getPasswordState to check whether the new email address has been confirmed
+//@description Changes the password for the user. If a new recovery email address is specified, then the change will not be applied until the new recovery email address is confirmed
 //@old_password Previous password of the user @new_password New password of the user; may be empty to remove the password @new_hint New password hint; may be empty @set_recovery_email_address Pass true if the recovery email address should be changed @new_recovery_email_address New recovery email address; may be empty
 setPassword old_password:string new_password:string new_hint:string set_recovery_email_address:Bool new_recovery_email_address:string = PasswordState;
 
-//@description Returns a recovery email address that was previously set up. This method can be used to verify a password provided by the user @password The password for the current user
+//@description Returns a 2-step verification recovery email address that was previously set up. This method can be used to verify a password provided by the user @password The password for the current user
 getRecoveryEmailAddress password:string = RecoveryEmailAddress;
 
-//@description Changes the recovery email address of the user. If a new recovery email address is specified, then the error EMAIL_UNCONFIRMED is returned and the email address will not be changed until the new email has been confirmed. The application should periodically call getPasswordState to check whether the email address has been confirmed.
+//@description Changes the 2-step verification recovery email address of the user. If a new recovery email address is specified, then the change will not be applied until the new recovery email address is confirmed
 //-If new_recovery_email_address is the same as the email address that is currently set up, this call succeeds immediately and aborts all other requests waiting for an email confirmation @password Password of the current user @new_recovery_email_address New recovery email address
 setRecoveryEmailAddress password:string new_recovery_email_address:string = PasswordState;
+
+//@description Checks the 2-step verification recovery email address code @code Verification code
+checkRecoveryEmailAddressCode code:string = Ok;
 
 //@description Requests to send a password recovery code to an email address that was previously set up
 requestPasswordRecovery = EmailAddressAuthenticationCodeInfo;

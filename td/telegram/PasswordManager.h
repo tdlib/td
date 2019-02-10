@@ -66,6 +66,7 @@ class PasswordManager : public NetQueryCallback {
                     string recovery_email_address, Promise<State> promise);
   void set_recovery_email_address(string password, string new_recovery_email_address, Promise<State> promise);
   void get_recovery_email_address(string password, Promise<tl_object_ptr<td_api::recoveryEmailAddress>> promise);
+  void check_recovery_email_address_code(string code, Promise<Unit> promise);
 
   void send_email_address_verification_code(
       string email, Promise<td_api::object_ptr<td_api::emailAddressAuthenticationCodeInfo>> promise);
@@ -96,6 +97,7 @@ class PasswordManager : public NetQueryCallback {
     bool has_recovery_email_address = false;
     bool has_secure_values = false;
     string unconfirmed_recovery_email_address_pattern;
+    int32 code_length = 0;
 
     string current_client_salt;
     string current_server_salt;
@@ -111,8 +113,13 @@ class PasswordManager : public NetQueryCallback {
     string new_secure_salt;
 
     State as_td_api() const {
+      td_api::object_ptr<td_api::emailAddressAuthenticationCodeInfo> code_info;
+      if (!unconfirmed_recovery_email_address_pattern.empty()) {
+        code_info = td_api::make_object<td_api::emailAddressAuthenticationCodeInfo>(
+            unconfirmed_recovery_email_address_pattern, code_length);
+      }
       return td_api::make_object<td_api::passwordState>(has_password, password_hint, has_recovery_email_address,
-                                                        has_secure_values, unconfirmed_recovery_email_address_pattern);
+                                                        has_secure_values, std::move(code_info));
     }
   };
 
@@ -147,6 +154,8 @@ class PasswordManager : public NetQueryCallback {
 
   string last_verified_email_address_;
 
+  int32 last_code_length_ = 0;
+
   static Result<secure_storage::Secret> decrypt_secure_secret(
       Slice password, tl_object_ptr<telegram_api::SecurePasswordKdfAlgo> algo_ptr, Slice secret, int64 secret_id);
 
@@ -162,9 +171,10 @@ class PasswordManager : public NetQueryCallback {
   void do_update_password_settings(UpdateSettings update_settings, PasswordFullState full_state, Promise<bool> promise);
   void do_update_password_settings_impl(UpdateSettings update_settings, PasswordState state,
                                         PasswordPrivateState private_state, Promise<bool> promise);
+  void on_get_code_length(int32 code_length);
   void do_get_state(Promise<PasswordState> promise);
   void get_full_state(string password, Promise<PasswordFullState> promise);
-  void do_get_secure_secret(bool recursive, string passwod, Promise<secure_storage::Secret> promise);
+  void do_get_secure_secret(bool allow_recursive, string password, Promise<secure_storage::Secret> promise);
   void do_get_full_state(string password, PasswordState state, Promise<PasswordFullState> promise);
   void cache_secret(secure_storage::Secret secret);
   void drop_cached_secret();

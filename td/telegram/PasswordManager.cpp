@@ -181,7 +181,8 @@ void PasswordManager::get_secure_secret(string password, Promise<secure_storage:
   return do_get_secure_secret(true, std::move(password), std::move(promise));
 }
 
-void PasswordManager::do_get_secure_secret(bool recursive, string password, Promise<secure_storage::Secret> promise) {
+void PasswordManager::do_get_secure_secret(bool allow_recursive, string password,
+                                           Promise<secure_storage::Secret> promise) {
   if (secret_) {
     return promise.set_value(secret_.value().clone());
   }
@@ -189,7 +190,7 @@ void PasswordManager::do_get_secure_secret(bool recursive, string password, Prom
     return promise.set_error(Status::Error(400, "PASSWORD_HASH_INVALID"));
   }
   get_full_state(
-      password, PromiseCreator::lambda([password, recursive, promise = std::move(promise),
+      password, PromiseCreator::lambda([password, allow_recursive, promise = std::move(promise),
                                         actor_id = actor_id(this)](Result<PasswordFullState> r_state) mutable {
         if (r_state.is_error()) {
           return promise.set_error(r_state.move_as_error());
@@ -202,7 +203,7 @@ void PasswordManager::do_get_secure_secret(bool recursive, string password, Prom
           send_closure(actor_id, &PasswordManager::cache_secret, state.private_state.secret.value().clone());
           return promise.set_value(std::move(state.private_state.secret.value()));
         }
-        if (!recursive) {
+        if (!allow_recursive) {
           return promise.set_error(Status::Error(400, "Failed to get Telegram Passport secret"));
         }
 
@@ -379,6 +380,19 @@ void PasswordManager::get_recovery_email_address(string password,
       }));
 }
 
+void PasswordManager::check_recovery_email_address_code(string code, Promise<Unit> promise) {
+  auto query =
+      G()->net_query_creator().create(create_storer(telegram_api::account_confirmPasswordEmail(std::move(code))));
+  send_with_promise(std::move(query),
+                    PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
+                      auto r_result = fetch_result<telegram_api::account_confirmPasswordEmail>(std::move(r_query));
+                      if (r_result.is_error()) {
+                        return promise.set_error(r_result.move_as_error());
+                      }
+                      return promise.set_value(Unit());
+                    }));
+}
+
 void PasswordManager::send_email_address_verification_code(
     string email, Promise<td_api::object_ptr<td_api::emailAddressAuthenticationCodeInfo>> promise) {
   last_verified_email_address_ = email;
@@ -457,8 +471,7 @@ void PasswordManager::update_password_settings(UpdateSettings update_settings, P
           return promise.set_error(r_update_settings.move_as_error());
         }
         if (!r_update_settings.ok()) {
-          promise.set_error(Status::Error(5, "account_updatePasswordSettings returned false"));
-          return;
+          return promise.set_error(Status::Error(5, "account_updatePasswordSettings returned false"));
         }
         send_closure(actor_id, &PasswordManager::get_state, std::move(promise));
       });
@@ -557,17 +570,33 @@ void PasswordManager::do_update_password_settings_impl(UpdateSettings update_set
   auto query = G()->net_query_creator().create(
       create_storer(telegram_api::account_updatePasswordSettings(std::move(current_hash), std::move(new_settings))));
 
-  send_with_promise(std::move(query),
-                    PromiseCreator::lambda([promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
+  send_with_promise(std::move(query), PromiseCreator::lambda([actor_id = actor_id(this), promise = std::move(promise)](
+                                                                 Result<NetQueryPtr> r_query) mutable {
                       auto r_result = fetch_result<telegram_api::account_updatePasswordSettings>(std::move(r_query));
                       if (r_result.is_error()) {
-                        if (r_result.error().code() == 400 && r_result.error().message() == "EMAIL_UNCONFIRMED") {
+                        Slice prefix("EMAIL_UNCONFIRMED");
+                        Slice message = r_result.error().message();
+                        if (r_result.error().code() == 400 && begins_with(message, prefix)) {
+                          if (message.size() >= prefix.size() + 2 && message[prefix.size()] == '_') {
+                            send_closure(actor_id, &PasswordManager::on_get_code_length,
+                                         to_integer<int32>(message.substr(prefix.size() + 1)));
+                          }
                           return promise.set_value(true);
                         }
                         return promise.set_error(r_result.move_as_error());
                       }
                       return promise.set_value(r_result.move_as_ok());
                     }));
+}
+
+void PasswordManager::on_get_code_length(int32 code_length) {
+  if (code_length <= 0 || code_length > 100) {
+    LOG(ERROR) << "Receive invalid code length " << code_length;
+    return;
+  }
+
+  LOG(INFO) << "Set code length to " << code_length;
+  last_code_length_ = code_length;
 }
 
 void PasswordManager::get_state(Promise<State> promise) {
@@ -582,7 +611,7 @@ void PasswordManager::get_state(Promise<State> promise) {
 void PasswordManager::do_get_state(Promise<PasswordState> promise) {
   auto query = G()->net_query_creator().create(create_storer(telegram_api::account_getPassword()));
   send_with_promise(
-      std::move(query), PromiseCreator::lambda([actor_id = actor_id(this),
+      std::move(query), PromiseCreator::lambda([actor_id = actor_id(this), code_length = last_code_length_,
                                                 promise = std::move(promise)](Result<NetQueryPtr> r_query) mutable {
         auto r_result = fetch_result<telegram_api::account_getPassword>(std::move(r_query));
         if (r_result.is_error()) {
@@ -623,6 +652,7 @@ void PasswordManager::do_get_state(Promise<PasswordState> promise) {
           send_closure(actor_id, &PasswordManager::drop_cached_secret);
         }
         state.unconfirmed_recovery_email_address_pattern = std::move(password->email_unconfirmed_pattern_);
+        state.code_length = code_length;
 
         CHECK(password->new_algo_ != nullptr);
         switch (password->new_algo_->get_id()) {
