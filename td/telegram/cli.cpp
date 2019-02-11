@@ -485,7 +485,7 @@ class CliClient final : public Actor {
     return transform(full_split(user_ids, delimiter), [this](Slice str) { return as_user_id(str); });
   }
 
-  int32 as_basic_group_id(Slice str) const {
+  static int32 as_basic_group_id(Slice str) {
     str = trim(str);
     auto result = to_integer<int32>(str);
     if (result < 0) {
@@ -494,7 +494,7 @@ class CliClient final : public Actor {
     return result;
   }
 
-  int32 as_supergroup_id(Slice str) const {
+  static int32 as_supergroup_id(Slice str) {
     str = trim(str);
     auto result = to_integer<int64>(str);
     int64 shift = static_cast<int64>(-1000000000000ll);
@@ -504,7 +504,7 @@ class CliClient final : public Actor {
     return static_cast<int32>(result);
   }
 
-  int32 as_secret_chat_id(Slice str) const {
+  static int32 as_secret_chat_id(Slice str) {
     str = trim(str);
     auto result = to_integer<int64>(str);
     int64 shift = static_cast<int64>(-2000000000000ll);
@@ -882,7 +882,7 @@ class CliClient final : public Actor {
     return as_formatted_text(caption, std::move(entities));
   }
 
-  tl_object_ptr<td_api::NotificationSettingsScope> get_notification_settings_scope(Slice scope) const {
+  static tl_object_ptr<td_api::NotificationSettingsScope> get_notification_settings_scope(Slice scope) {
     if (scope == "channels" || scope == "ch") {
       return make_tl_object<td_api::notificationSettingsScopeChannelChats>();
     }
@@ -988,7 +988,7 @@ class CliClient final : public Actor {
     return nullptr;
   }
 
-  tl_object_ptr<td_api::TopChatCategory> get_top_chat_category(MutableSlice category) {
+  static tl_object_ptr<td_api::TopChatCategory> get_top_chat_category(MutableSlice category) {
     category = trim(category);
     to_lower_inplace(category);
     if (!category.empty() && category.back() == 's') {
@@ -1175,6 +1175,13 @@ class CliClient final : public Actor {
 
     LOG(ERROR) << "Unsupported passport element type " << passport_element_type;
     return nullptr;
+  }
+
+  static td_api::object_ptr<td_api::languagePackInfo> as_language_pack_info(const string &language_code,
+                                                                            const string &name,
+                                                                            const string &native_name) {
+    return td_api::make_object<td_api::languagePackInfo>(language_code, "test", name, native_name, "en", true, true,
+                                                         true, -1, 5, 3, "abacaba");
   }
 
   static td_api::object_ptr<td_api::Object> execute(tl_object_ptr<td_api::Function> f) {
@@ -1859,7 +1866,7 @@ class CliClient final : public Actor {
           "DELETED", make_tl_object<td_api::languagePackStringValueDeleted>()));
 
       send_request(make_tl_object<td_api::setCustomLanguagePack>(
-          make_tl_object<td_api::languagePackInfo>(language_code, name, native_name, 3), std::move(strings)));
+          as_language_pack_info(language_code, name, native_name), std::move(strings)));
     } else if (op == "eclpi") {
       string language_code;
       string name;
@@ -1868,8 +1875,8 @@ class CliClient final : public Actor {
       std::tie(language_code, args) = split(args);
       std::tie(name, native_name) = split(args);
 
-      send_request(make_tl_object<td_api::editCustomLanguagePackInfo>(
-          make_tl_object<td_api::languagePackInfo>(language_code, name, native_name, 3)));
+      send_request(
+          make_tl_object<td_api::editCustomLanguagePackInfo>(as_language_pack_info(language_code, name, native_name)));
     } else if (op == "sclpsv" || op == "sclpsp" || op == "sclpsd") {
       string language_code;
       string key;

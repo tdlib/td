@@ -6196,29 +6196,16 @@ void Td::on_request(uint64 id, td_api::getLanguagePackStrings &request) {
 
 void Td::on_request(uint64 id, td_api::setCustomLanguagePack &request) {
   CHECK_IS_USER();
-  if (request.info_ == nullptr) {
-    return send_error_raw(id, 400, "Language pack info must not be empty");
-  }
-  CLEAN_INPUT_STRING(request.info_->id_);
-  CLEAN_INPUT_STRING(request.info_->name_);
-  CLEAN_INPUT_STRING(request.info_->native_name_);
   CREATE_OK_REQUEST_PROMISE();
-  send_closure(language_pack_manager_, &LanguagePackManager::set_custom_language, std::move(request.info_->id_),
-               std::move(request.info_->name_), std::move(request.info_->native_name_), std::move(request.strings_),
-               std::move(promise));
+  send_closure(language_pack_manager_, &LanguagePackManager::set_custom_language, std::move(request.info_),
+               std::move(request.strings_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::editCustomLanguagePackInfo &request) {
   CHECK_IS_USER();
-  if (request.info_ == nullptr) {
-    return send_error_raw(id, 400, "Language pack info must not be empty");
-  }
-  CLEAN_INPUT_STRING(request.info_->id_);
-  CLEAN_INPUT_STRING(request.info_->name_);
-  CLEAN_INPUT_STRING(request.info_->native_name_);
   CREATE_OK_REQUEST_PROMISE();
-  send_closure(language_pack_manager_, &LanguagePackManager::edit_custom_language_info, std::move(request.info_->id_),
-               std::move(request.info_->name_), std::move(request.info_->native_name_), std::move(promise));
+  send_closure(language_pack_manager_, &LanguagePackManager::edit_custom_language_info, std::move(request.info_),
+               std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::setCustomLanguagePackString &request) {

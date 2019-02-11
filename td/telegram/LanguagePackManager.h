@@ -61,10 +61,10 @@ class LanguagePackManager : public NetQueryCallback {
 
   void on_update_language_pack(tl_object_ptr<telegram_api::langPackDifference> difference);
 
-  void set_custom_language(string language_code, string language_name, string language_native_name,
+  void set_custom_language(td_api::object_ptr<td_api::languagePackInfo> &&language_pack_info,
                            vector<tl_object_ptr<td_api::languagePackString>> strings, Promise<Unit> &&promise);
 
-  void edit_custom_language_info(string language_code, string language_name, string language_native_name,
+  void edit_custom_language_info(td_api::object_ptr<td_api::languagePackInfo> &&language_pack_info,
                                  Promise<Unit> &&promise);
 
   void set_custom_language_string(string language_code, tl_object_ptr<td_api::languagePackString> str,
@@ -129,6 +129,13 @@ class LanguagePackManager : public NetQueryCallback {
 
   static td_api::object_ptr<td_api::languagePackStrings> get_language_pack_strings_object(Language *language,
                                                                                           const vector<string> &keys);
+
+  static td_api::object_ptr<td_api::languagePackInfo> get_language_pack_info_object(const string &language_code,
+                                                                                    const LanguageInfo &info);
+
+  static Result<LanguageInfo> get_language_info(td_api::languagePackInfo *language_pack_info);
+
+  static string get_language_info_string(const LanguageInfo &info);
 
   static Result<tl_object_ptr<telegram_api::LangPackString>> convert_to_telegram_api(
       tl_object_ptr<td_api::languagePackString> &&str);

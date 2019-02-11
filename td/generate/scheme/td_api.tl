@@ -91,7 +91,7 @@ authorizationStateWaitPhoneNumber = AuthorizationState;
 //@description TDLib needs the user's authentication code to finalize authorization @is_registered True, if the user is already registered @terms_of_service Telegram terms of service, which should be accepted before user can continue registration; may be null @code_info Information about the authorization code that was sent
 authorizationStateWaitCode is_registered:Bool terms_of_service:termsOfService code_info:authenticationCodeInfo = AuthorizationState;
 
-//@description The user has been authorized, but needs to enter a password to start using the application @password_hint Hint for the password; can be empty @has_recovery_email_address True if a recovery email address has been set up
+//@description The user has been authorized, but needs to enter a password to start using the application @password_hint Hint for the password; may be empty @has_recovery_email_address True if a recovery email address has been set up
 //@recovery_email_address_pattern Pattern of the email address to which the recovery email was sent; empty until a recovery email has been sent
 authorizationStateWaitPassword password_hint:string has_recovery_email_address:Bool recovery_email_address_pattern:string = AuthorizationState;
 
@@ -109,7 +109,7 @@ authorizationStateClosing = AuthorizationState;
 authorizationStateClosed = AuthorizationState;
 
 
-//@description Represents the current state of 2-step verification @has_password True, if a 2-step verification password is set @password_hint Hint for the password; can be empty
+//@description Represents the current state of 2-step verification @has_password True, if a 2-step verification password is set @password_hint Hint for the password; may be empty
 //@has_recovery_email_address True, if a recovery email is set @has_passport_data True, if some Telegram Passport elements were saved
 //@recovery_email_address_code_info Information about the recovery email address to which the confirmation email was sent; may be null
 passwordState has_password:Bool password_hint:string has_recovery_email_address:Bool has_passport_data:Bool recovery_email_address_code_info:emailAddressAuthenticationCodeInfo = PasswordState;
@@ -743,8 +743,8 @@ pageBlockVerticalAlignmentBottom = PageBlockVerticalAlignment;
 //@align Horizontal cell content alignment @valign Vertical cell content alignment
 pageBlockTableCell text:RichText is_header:Bool colspan:int32 rowspan:int32 align:PageBlockHorizontalAlignment valign:PageBlockVerticalAlignment = PageBlockTableCell;
 
-//@description Contains information about a related article @url Related article URL @title Article title; can be empty @param_description Article description, can be empty
-//@photo Article photo; may be null @author Article author, can be empty @published_date Article publish date; 0 if unknown
+//@description Contains information about a related article @url Related article URL @title Article title; may be empty @param_description Article description; may be empty
+//@photo Article photo; may be null @author Article author; may be empty @published_date Article publish date; 0 if unknown
 pageBlockRelatedArticle url:string title:string description:string photo:photo author:string published_date:int32 = PageBlockRelatedArticle;
 
 
@@ -1118,7 +1118,7 @@ passportRequiredElement suitable_elements:vector<passportSuitableElement> = Pass
 
 //@description Contains information about a Telegram Passport authorization form that was requested @id Unique identifier of the authorization form
 //@required_elements Information about the Telegram Passport elements that need to be provided to complete the form
-//@privacy_policy_url URL for the privacy policy of the service; can be empty
+//@privacy_policy_url URL for the privacy policy of the service; may be empty
 passportAuthorizationForm id:int32 required_elements:vector<passportRequiredElement> privacy_policy_url:string = PassportAuthorizationForm;
 
 //@description Contains information about a Telegram Passport elements and corresponding errors @elements Telegram Passport elements @errors Errors in the elements that are already available
@@ -1265,7 +1265,7 @@ messageChatSetTtl ttl:int32 = MessageContent;
 //@description A non-standard action has happened in the chat @text Message text to be shown in the chat
 messageCustomServiceAction text:string = MessageContent;
 
-//@description A new high score was achieved in a game @game_message_id Identifier of the message with the game, can be an identifier of a deleted message @game_id Identifier of the game, may be different from the games presented in the message with the game @score New score
+//@description A new high score was achieved in a game @game_message_id Identifier of the message with the game, can be an identifier of a deleted message @game_id Identifier of the game; may be different from the games presented in the message with the game @score New score
 messageGameScore game_message_id:int53 game_id:int64 score:int32 = MessageContent;
 
 //@description A payment has been completed @invoice_message_id Identifier of the message with the corresponding invoice; can be an identifier of a deleted message @currency Currency for the price of the product @total_amount Total price for the product, in the minimal quantity of the currency
@@ -1804,7 +1804,8 @@ chatEventLogFilters message_edits:Bool message_deletions:Bool message_pins:Bool 
 //@description An ordinary language pack string @value String value
 languagePackStringValueOrdinary value:string = LanguagePackStringValue;
 
-//@description A language pack string which has different forms based on the number of some object it mentions @zero_value Value for zero objects @one_value Value for one object @two_value Value for two objects
+//@description A language pack string which has different forms based on the number of some object it mentions. See https://www.unicode.org/cldr/charts/latest/supplemental/language_plural_rules.html for more info
+//@zero_value Value for zero objects @one_value Value for one object @two_value Value for two objects
 //@few_value Value for few objects @many_value Value for many objects @other_value Default value
 languagePackStringValuePluralized zero_value:string one_value:string two_value:string few_value:string many_value:string other_value:string = LanguagePackStringValue;
 
@@ -1818,8 +1819,14 @@ languagePackString key:string value:LanguagePackStringValue = LanguagePackString
 //@description Contains a list of language pack strings @strings A list of language pack strings
 languagePackStrings strings:vector<languagePackString> = LanguagePackStrings;
 
-//@description Contains information about a language pack @id Unique language pack identifier @name Language name @native_name Name of the language in that language @local_string_count Total number of non-deleted strings from the language pack available locally
-languagePackInfo id:string name:string native_name:string local_string_count:int32 = LanguagePackInfo;
+//@description Contains information about a language pack @id Unique language pack identifier
+//@base_language_pack_id Identifier of a base language pack; may be empty. If a string is missed in the language pack, then it should be fetched from base language pack. Unsupported in custom language packs
+//@name Language name @native_name Name of the language in that language
+//@plural_code A language code to be used to apply plural forms. See https://www.unicode.org/cldr/charts/latest/supplemental/language_plural_rules.html for more info
+//@is_official True, if the language pack is official @is_rtl True, if the language pack strings are RTL @is_beta True, if the language pack is a beta language pack
+//@total_string_count Total number of non-deleted strings from the language pack @translated_string_count Total number of translated strings from the language pack
+//@local_string_count Total number of non-deleted strings from the language pack available locally @translation_url Link to language translation interface; empty for custom local language packs
+languagePackInfo id:string base_language_pack_id:string name:string native_name:string plural_code:string is_official:Bool is_rtl:Bool is_beta:Bool total_string_count:int32 translated_string_count:int32 local_string_count:int32 translation_url:string = LanguagePackInfo;
 
 //@description Contains information about the current localization target @language_packs List of available language packs for this application
 localizationTargetInfo language_packs:vector<languagePackInfo> = LocalizationTargetInfo;
@@ -3132,7 +3139,7 @@ importContacts contacts:vector<contact> = ImportedContacts;
 //@description Returns all user contacts
 getContacts = Users;
 
-//@description Searches for the specified query in the first names, last names and usernames of the known user contacts @query Query to search for; can be empty to return all contacts @limit Maximum number of users to be returned
+//@description Searches for the specified query in the first names, last names and usernames of the known user contacts @query Query to search for; may be empty to return all contacts @limit Maximum number of users to be returned
 searchContacts query:string limit:int32 = Users;
 
 //@description Removes users from the contact list @user_ids Identifiers of users to be deleted
