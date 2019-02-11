@@ -61,6 +61,8 @@ class LanguagePackManager : public NetQueryCallback {
 
   void on_update_language_pack(tl_object_ptr<telegram_api::langPackDifference> difference);
 
+  void add_custom_server_language(string language_code, Promise<Unit> &&promise);
+
   void set_custom_language(td_api::object_ptr<td_api::languagePackInfo> &&language_pack_info,
                            vector<tl_object_ptr<td_api::languagePackString>> strings, Promise<Unit> &&promise);
 

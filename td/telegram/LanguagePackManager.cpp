@@ -83,6 +83,7 @@ struct LanguagePackManager::LanguagePack {
   SqliteKeyValue pack_kv_;                                              // usages should be guarded by database_->mutex_
   std::map<string, LanguageInfo> custom_language_pack_infos_;           // sorted by language_code
   vector<std::pair<string, LanguageInfo>> server_language_pack_infos_;  // sorted by server
+  std::unordered_map<string, LanguageInfo> all_server_language_pack_infos_;
   std::unordered_map<string, unique_ptr<Language>> languages_;
 };
 
@@ -465,6 +466,7 @@ LanguagePackManager::Language *LanguagePackManager::add_language(LanguageDatabas
               info.total_string_count_ = to_integer<int32>(all_infos[i + 8]);
               info.translated_string_count_ = to_integer<int32>(all_infos[i + 9]);
               info.translation_url_ = std::move(all_infos[i + 10]);
+              pack->all_server_language_pack_infos_.emplace(all_infos[i], info);
               pack->server_language_pack_infos_.emplace_back(std::move(all_infos[i]), std::move(info));
             }
           } else {
@@ -758,6 +760,7 @@ void LanguagePackManager::on_get_languages(vector<tl_object_ptr<telegram_api::la
     auto pack_it = database_->language_packs_.find(language_pack);
     if (pack_it != database_->language_packs_.end()) {
       LanguagePack *pack = pack_it->second.get();
+      std::lock_guard<std::mutex> pack_lock(pack->mutex_);
       for (auto &info : pack->custom_language_pack_infos_) {
         add_language_info(info.first, info.second);
       }
@@ -845,7 +848,11 @@ void LanguagePackManager::on_get_languages(vector<tl_object_ptr<telegram_api::la
     auto pack_it = database_->language_packs_.find(language_pack);
     if (pack_it != database_->language_packs_.end()) {
       LanguagePack *pack = pack_it->second.get();
+      std::lock_guard<std::mutex> pack_lock(pack->mutex_);
       if (pack->server_language_pack_infos_ != all_server_infos) {
+        for (auto &info : all_server_infos) {
+          pack->all_server_language_pack_infos_.emplace(info.first, info.second);
+        }
         pack->server_language_pack_infos_ = std::move(all_server_infos);
 
         if (!pack->pack_kv_.empty()) {
@@ -1266,6 +1273,40 @@ void LanguagePackManager::on_failed_get_difference(string language_pack, string 
   }
 }
 
+void LanguagePackManager::add_custom_server_language(string language_code, Promise<Unit> &&promise) {
+  if (language_pack_.empty()) {
+    return promise.set_error(Status::Error(400, "Option \"localization_target\" needs to be set first"));
+  }
+  if (!check_language_code_name(language_code)) {
+    return promise.set_error(Status::Error(400, "Language pack ID must contain only letters, digits and hyphen"));
+  }
+  if (is_custom_language_code(language_code)) {
+    return promise.set_error(
+        Status::Error(400, "Custom local language pack can't be added through addCustomServerLanguagePack"));
+  }
+
+  if (get_language(database_, language_pack_, language_code) == nullptr) {
+    return promise.set_error(Status::Error(400, "Language pack not found"));
+  }
+
+  std::lock_guard<std::mutex> packs_lock(database_->mutex_);
+  auto pack_it = database_->language_packs_.find(language_pack_);
+  CHECK(pack_it != database_->language_packs_.end());
+  LanguagePack *pack = pack_it->second.get();
+  std::lock_guard<std::mutex> pack_lock(pack->mutex_);
+  auto it = pack->all_server_language_pack_infos_.find(language_code);
+  if (it == pack->all_server_language_pack_infos_.end()) {
+    return promise.set_error(Status::Error(400, "Language pack info not found"));
+  }
+  auto &info = pack->custom_language_pack_infos_[language_code];
+  info = it->second;
+  if (!pack->pack_kv_.empty()) {
+    pack->pack_kv_.set(language_code, get_language_info_string(info));
+  }
+
+  promise.set_value(Unit());
+}
+
 Result<tl_object_ptr<telegram_api::LangPackString>> LanguagePackManager::convert_to_telegram_api(
     tl_object_ptr<td_api::languagePackString> &&str) {
   if (str == nullptr) {
@@ -1398,6 +1439,7 @@ void LanguagePackManager::set_custom_language(td_api::object_ptr<td_api::languag
   auto pack_it = database_->language_packs_.find(language_pack_);
   CHECK(pack_it != database_->language_packs_.end());
   LanguagePack *pack = pack_it->second.get();
+  std::lock_guard<std::mutex> pack_lock(pack->mutex_);
   auto &info = pack->custom_language_pack_infos_[language_code];
   info = r_info.move_as_ok();
   if (!pack->pack_kv_.empty()) {
@@ -1426,6 +1468,7 @@ void LanguagePackManager::edit_custom_language_info(td_api::object_ptr<td_api::l
   auto pack_it = database_->language_packs_.find(language_pack_);
   CHECK(pack_it != database_->language_packs_.end());
   LanguagePack *pack = pack_it->second.get();
+  std::lock_guard<std::mutex> pack_lock(pack->mutex_);
   auto language_info_it = pack->custom_language_pack_infos_.find(language_code);
   if (language_info_it == pack->custom_language_pack_infos_.end()) {
     return promise.set_error(Status::Error(400, "Custom language pack is not found"));

@@ -6194,6 +6194,14 @@ void Td::on_request(uint64 id, td_api::getLanguagePackStrings &request) {
                std::move(request.language_pack_id_), std::move(request.keys_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::addCustomServerLanguagePack &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.language_pack_id_);
+  CREATE_OK_REQUEST_PROMISE();
+  send_closure(language_pack_manager_, &LanguagePackManager::add_custom_server_language,
+               std::move(request.language_pack_id_), std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setCustomLanguagePack &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();

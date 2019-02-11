@@ -809,6 +809,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::getLanguagePackStrings &request);
 
+  void on_request(uint64 id, td_api::addCustomServerLanguagePack &request);
+
   void on_request(uint64 id, td_api::setCustomLanguagePack &request);
 
   void on_request(uint64 id, td_api::editCustomLanguagePackInfo &request);

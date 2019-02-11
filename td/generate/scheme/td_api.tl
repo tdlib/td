@@ -3380,16 +3380,19 @@ getLocalizationTargetInfo only_local:Bool = LocalizationTargetInfo;
 //@description Returns strings from a language pack in the current localization target by their keys @language_pack_id Language pack identifier of the strings to be returned @keys Language pack keys of the strings to be returned; leave empty to request all available strings
 getLanguagePackStrings language_pack_id:string keys:vector<string> = LanguagePackStrings;
 
-//@description Adds or changes a custom language pack to the current localization target @info Information about the language pack. Language pack ID must start with 'X', consist only of English letters, digits and hyphens, and must not exceed 64 characters @strings Strings of the new language pack
+//@description Adds a custom server language pack to the current localization target @language_pack_id Identifier of a language pack to be added; may be different from a name that is used in an "https://t.me/setlanguage/" link
+addCustomServerLanguagePack language_pack_id:string = Ok;
+
+//@description Adds or changes a custom local language pack to the current localization target @info Information about the language pack. Language pack ID must start with 'X', consist only of English letters, digits and hyphens, and must not exceed 64 characters @strings Strings of the new language pack
 setCustomLanguagePack info:languagePackInfo strings:vector<languagePackString> = Ok;
 
-//@description Edits information about a custom language pack in the current localization target @info New information about the custom language pack
+//@description Edits information about a custom local language pack in the current localization target @info New information about the custom local language pack
 editCustomLanguagePackInfo info:languagePackInfo = Ok;
 
-//@description Adds, edits or deletes a string in a custom language pack @language_pack_id Identifier of a previously added custom language pack in the current localization target @new_string New language pack string
+//@description Adds, edits or deletes a string in a custom local language pack @language_pack_id Identifier of a previously added custom local language pack in the current localization target @new_string New language pack string
 setCustomLanguagePackString language_pack_id:string new_string:languagePackString = Ok;
 
-//@description Deletes all information about a language pack in the current localization target. The language pack that is currently in use can't be deleted @language_pack_id Identifier of the language pack to delete
+//@description Deletes all information about a language pack in the current localization target. The language pack that is currently in use (including base language pack) can't be deleted @language_pack_id Identifier of the language pack to delete
 deleteLanguagePack language_pack_id:string = Ok;
 
 

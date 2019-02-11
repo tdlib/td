@@ -1846,6 +1846,9 @@ class CliClient final : public Actor {
       std::tie(language_code, key) = split(args);
       send_request(
           make_tl_object<td_api::getLanguagePackString>(language_database_path, language_pack, language_code, key));
+    } else if (op == "acslp") {
+      string language_code = args;
+      send_request(td_api::make_object<td_api::addCustomServerLanguagePack>(language_code));
     } else if (op == "sclp") {
       string language_code;
       string name;
