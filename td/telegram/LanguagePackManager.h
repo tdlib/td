@@ -46,7 +46,7 @@ class LanguagePackManager : public NetQueryCallback {
 
   void on_language_code_changed();
 
-  void on_language_pack_version_changed(int32 new_version);
+  void on_language_pack_version_changed(bool is_base, int32 new_version);
 
   void on_language_pack_too_long(string language_code);
 
@@ -83,6 +83,7 @@ class LanguagePackManager : public NetQueryCallback {
 
   string language_pack_;
   string language_code_;
+  string base_language_code_;
   LanguageDatabase *database_ = nullptr;
 
   struct PendingQueries {
@@ -138,6 +139,8 @@ class LanguagePackManager : public NetQueryCallback {
 
   void save_strings_to_database(SqliteKeyValue *kv, int32 new_version, bool new_is_full, int32 new_key_count,
                                 vector<std::pair<string, string>> strings);
+
+  void load_empty_language_pack(const string &language_code);
 
   void on_get_language_pack_strings(string language_pack, string language_code, int32 version, bool is_diff,
                                     vector<string> keys, vector<tl_object_ptr<telegram_api::LangPackString>> results,

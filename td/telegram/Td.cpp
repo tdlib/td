@@ -3430,6 +3430,8 @@ bool Td::is_internal_config_option(Slice name) {
   switch (name[0]) {
     case 'a':
       return name == "auth";
+    case 'b':
+      return name == "base_language_pack_version";
     case 'c':
       return name == "call_ring_timeout_ms" || name == "call_receive_timeout_ms" ||
              name == "channels_read_media_period";
@@ -3499,8 +3501,9 @@ void Td::on_config_option_updated(const string &name) {
       G()->net_query_dispatcher().update_mtproto_header();
     }
   } else if (name == "language_pack_version") {
-    send_closure(language_pack_manager_, &LanguagePackManager::on_language_pack_version_changed, -1);
-    return;
+    return send_closure(language_pack_manager_, &LanguagePackManager::on_language_pack_version_changed, false, -1);
+  } else if (name == "base_language_pack_version") {
+    return send_closure(language_pack_manager_, &LanguagePackManager::on_language_pack_version_changed, true, -1);
   } else if (name == "notification_group_count_max") {
     send_closure(notification_manager_actor_, &NotificationManager::on_notification_group_count_max_changed, true);
   } else if (name == "notification_group_size_max") {
