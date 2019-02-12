@@ -79,24 +79,24 @@ inline bool no_return_func() {
 }
 
 // clang-format off
-#define DUMMY_CHECK(condition) LOG_IF(NEVER, !(condition))
+#define DUMMY_LOG_CHECK(condition) LOG_IF(NEVER, !(condition))
 
 #ifdef TD_DEBUG
   #if TD_MSVC
-    #define CHECK(condition)            \
+    #define LOG_CHECK(condition)        \
       __analysis_assume(!!(condition)); \
       LOG_IMPL(FATAL, FATAL, !(condition), #condition)
   #else
-    #define CHECK(condition) LOG_IMPL(FATAL, FATAL, !(condition) && no_return_func(), #condition)
+    #define LOG_CHECK(condition) LOG_IMPL(FATAL, FATAL, !(condition) && no_return_func(), #condition)
   #endif
 #else
-  #define CHECK DUMMY_CHECK
+  #define LOG_CHECK DUMMY_LOG_CHECK
 #endif
 
 #if NDEBUG
-  #define DCHECK DUMMY_CHECK
+  #define LOG_DCHECK DUMMY_LOG_CHECK
 #else
-  #define DCHECK CHECK
+  #define LOG_DCHECK LOG_CHECK
 #endif
 // clang-format on
 

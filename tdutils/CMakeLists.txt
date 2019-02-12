@@ -69,6 +69,7 @@ set(TDUTILS_SOURCE
   td/utils/BigNum.cpp
   td/utils/buffer.cpp
   td/utils/BufferedUdp.cpp
+  td/utils/check.cpp
   td/utils/crypto.cpp
   td/utils/FileLog.cpp
   td/utils/filesystem.cpp
@@ -144,6 +145,7 @@ set(TDUTILS_SOURCE
   td/utils/BufferedUdp.h
   td/utils/ByteFlow.h
   td/utils/ChangesProcessor.h
+  td/utils/check.h
   td/utils/Closure.h
   td/utils/common.h
   td/utils/Container.h
