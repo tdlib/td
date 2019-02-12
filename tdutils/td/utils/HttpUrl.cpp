@@ -95,6 +95,9 @@ Result<HttpUrl> parse_url(MutableSlice url, HttpUrl::Protocol default_protocol) 
   if (host.empty()) {
     return Status::Error("URL host is empty");
   }
+  if (host == ".") {
+    return Status::Error("Host is invalid");
+  }
 
   int specified_port = port;
   if (port == 0) {
