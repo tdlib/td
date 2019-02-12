@@ -6183,6 +6183,14 @@ void Td::on_request(uint64 id, const td_api::getLocalizationTargetInfo &request)
   send_closure(language_pack_manager_, &LanguagePackManager::get_languages, request.only_local_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::getLanguagePackInfo &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.language_pack_id_);
+  CREATE_REQUEST_PROMISE();
+  send_closure(language_pack_manager_, &LanguagePackManager::search_language_info, request.language_pack_id_,
+               std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::getLanguagePackStrings &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.language_pack_id_);

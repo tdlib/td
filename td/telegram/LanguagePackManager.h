@@ -52,6 +52,8 @@ class LanguagePackManager : public NetQueryCallback {
 
   void get_languages(bool only_local, Promise<td_api::object_ptr<td_api::localizationTargetInfo>> promise);
 
+  void search_language_info(string language_code, Promise<td_api::object_ptr<td_api::languagePackInfo>> promise);
+
   void get_language_pack_strings(string language_code, vector<string> keys,
                                  Promise<td_api::object_ptr<td_api::languagePackStrings>> promise);
 
@@ -135,6 +137,8 @@ class LanguagePackManager : public NetQueryCallback {
   static td_api::object_ptr<td_api::languagePackInfo> get_language_pack_info_object(const string &language_code,
                                                                                     const LanguageInfo &info);
 
+  static Result<LanguageInfo> get_language_info(telegram_api::langPackLanguage *language);
+
   static Result<LanguageInfo> get_language_info(td_api::languagePackInfo *language_pack_info);
 
   static string get_language_info_string(const LanguageInfo &info);
@@ -160,8 +164,15 @@ class LanguagePackManager : public NetQueryCallback {
 
   void on_failed_get_difference(string language_pack, string language_code);
 
+  void on_get_language_info(const string &language_pack, td_api::languagePackInfo *language_pack_info);
+
+  void save_server_language_pack_infos(LanguagePack *pack);
+
   void on_get_languages(vector<tl_object_ptr<telegram_api::langPackLanguage>> languages, string language_pack,
                         bool only_local, Promise<td_api::object_ptr<td_api::localizationTargetInfo>> promise);
+
+  void on_get_language(tl_object_ptr<telegram_api::langPackLanguage> lang_pack_language, string language_pack,
+                       string language_code, Promise<td_api::object_ptr<td_api::languagePackInfo>> promise);
 
   Status do_delete_language(string language_code);
 
