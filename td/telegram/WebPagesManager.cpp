@@ -3211,7 +3211,7 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
           case telegram_api::pageListItemBlocks::ID: {
             auto list_item = telegram_api::move_object_as<telegram_api::pageListItemBlocks>(list_item_ptr);
             item.page_blocks =
-                get_page_blocks(std::move(list_item->blocks_), animations, audios, documents, photos, videos);
+                this->get_page_blocks(std::move(list_item->blocks_), animations, audios, documents, photos, videos);
             break;
           }
         }
@@ -3239,7 +3239,7 @@ unique_ptr<WebPagesManager::PageBlock> WebPagesManager::get_page_block(
             auto list_item = telegram_api::move_object_as<telegram_api::pageListOrderedItemBlocks>(list_item_ptr);
             item.label = std::move(list_item->num_);
             item.page_blocks =
-                get_page_blocks(std::move(list_item->blocks_), animations, audios, documents, photos, videos);
+                this->get_page_blocks(std::move(list_item->blocks_), animations, audios, documents, photos, videos);
             break;
           }
         }
