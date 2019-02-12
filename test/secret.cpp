@@ -204,7 +204,7 @@ static void downcast_call(TlBufferParser &p, F &&f) {
     case messages_sendEncryptedService::ID:
       return f(*make_tl_object<messages_sendEncryptedService>(p));
     default:
-      LOG_CHECK(0) << id;
+      LOG(ERROR) << "Unknown constructor " << id;
       UNREACHABLE();
   }
 }

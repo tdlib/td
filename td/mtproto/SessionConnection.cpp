@@ -743,7 +743,7 @@ void SessionConnection::send_crypto(const Storer &storer, uint64 quick_ack_token
 
 Result<uint64> SessionConnection::send_query(BufferSlice buffer, bool gzip_flag, int64 message_id,
                                              uint64 invoke_after_id, bool use_quick_ack) {
-  LOG_CHECK(mode_ != Mode::HttpLongPoll) << "LongPoll connection is only for http_wait";
+  CHECK(mode_ != Mode::HttpLongPoll);  // "LongPoll connection is only for http_wait"
   if (message_id == 0) {
     message_id = auth_data_->next_message_id(Time::now_cached());
   }
