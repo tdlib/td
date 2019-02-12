@@ -9,6 +9,7 @@
 #include "td/telegram/files/FileData.h"
 #include "td/telegram/files/FileData.hpp"
 #include "td/telegram/files/FileLocation.h"
+#include "td/telegram/files/FileLocation.hpp"
 #include "td/telegram/Version.h"
 
 #include "td/actor/actor.h"
