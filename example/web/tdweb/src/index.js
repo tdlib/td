@@ -9,9 +9,9 @@ const sleep = ms => new Promise(res => setTimeout(res, ms));
  * TDLib in browser
  *
  * TDLib can be used from javascript through the [JSON](https://github.com/tdlib/td#using-json) interface.
- * This is a convenient wrapper around it.  
+ * This is a convenient wrapper around it.
  * Internally it uses TDLib built with emscripten as asm.js or WebAssembly. All work happens in a WebWorker.
- * TdClient itself just sends queries to WebWorker, recieve updates and results from WebWorker.
+ * TdClient itself just sends queries to WebWorker, receive updates and results from WebWorker.
  *
  * <br><br>
  * Differences from TDLib API<br>

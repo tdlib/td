@@ -954,14 +954,14 @@ void Session::connection_open_finish(ConnectionInfo *info,
   Slice mode_name;
   if (mode_ == Mode::Tcp) {
     mode = mtproto::SessionConnection::Mode::Tcp;
-    mode_name = "Tcp";
+    mode_name = Slice("Tcp");
   } else {
     if (info->connection_id == 0) {
       mode = mtproto::SessionConnection::Mode::Http;
-      mode_name = "Http";
+      mode_name = Slice("Http");
     } else {
       mode = mtproto::SessionConnection::Mode::HttpLongPoll;
-      mode_name = "HttpLongPoll";
+      mode_name = Slice("HttpLongPoll");
     }
   }
   auto name = PSTRING() << get_name() << "::Connect::" << mode_name << "::" << raw_connection->debug_str_;

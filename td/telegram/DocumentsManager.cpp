@@ -136,7 +136,7 @@ std::pair<DocumentsManager::DocumentType, FileId> DocumentsManager::on_get_docum
     if (animated != nullptr || default_document_type == DocumentType::Animation) {
       document_type = DocumentType::Animation;
       file_type = FileType::Animation;
-      default_extension = "mp4";
+      default_extension = Slice("mp4");
     } else if (audio != nullptr || default_document_type == DocumentType::Audio ||
                default_document_type == DocumentType::VoiceNote) {
       bool is_voice_note = default_document_type == DocumentType::VoiceNote;
@@ -146,17 +146,17 @@ std::pair<DocumentsManager::DocumentType, FileId> DocumentsManager::on_get_docum
       if (is_voice_note) {
         document_type = DocumentType::VoiceNote;
         file_type = FileType::VoiceNote;
-        default_extension = "oga";
+        default_extension = Slice("oga");
         file_name.clear();
       } else {
         document_type = DocumentType::Audio;
         file_type = FileType::Audio;
-        default_extension = "mp3";
+        default_extension = Slice("mp3");
       }
     } else if (sticker != nullptr || default_document_type == DocumentType::Sticker) {
       document_type = DocumentType::Sticker;
       file_type = FileType::Sticker;
-      default_extension = "webp";
+      default_extension = Slice("webp");
       owner_dialog_id = DialogId();
       file_name.clear();
       has_webp_thumbnail = td_->stickers_manager_->has_webp_thumbnail(sticker);
@@ -177,7 +177,7 @@ std::pair<DocumentsManager::DocumentType, FileId> DocumentsManager::on_get_docum
         document_type = DocumentType::Video;
         file_type = FileType::Video;
       }
-      default_extension = "mp4";
+      default_extension = Slice("mp4");
     }
   } else if (type_attributes >= 2) {
     LOG(WARNING) << "Receive document with more than 1 type attribute: animated = " << to_string(animated)

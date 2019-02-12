@@ -691,10 +691,10 @@ Status HttpReader::parse_head(MutableSlice head) {
   parser.skip('\n');
 
   content_length_ = 0;
-  content_type_ = "application/octet-stream";
+  content_type_ = Slice("application/octet-stream");
   content_type_lowercased_ = content_type_.str();
-  transfer_encoding_ = "";
-  content_encoding_ = "";
+  transfer_encoding_ = Slice();
+  content_encoding_ = Slice();
 
   query_->keep_alive_ = false;
   query_->headers_.clear();

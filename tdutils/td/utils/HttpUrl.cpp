@@ -114,7 +114,7 @@ Result<HttpUrl> parse_url(MutableSlice url, HttpUrl::Protocol default_protocol) 
     query.remove_suffix(1);
   }
   if (query.empty()) {
-    query = "/";
+    query = Slice("/");
   }
   string query_str;
   if (query[0] != '/') {

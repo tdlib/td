@@ -217,13 +217,13 @@ class DefaultLog : public LogInterface {
     switch (log_level) {
       case VERBOSITY_NAME(FATAL):
       case VERBOSITY_NAME(ERROR):
-        color = TC_RED;
+        color = Slice(TC_RED);
         break;
       case VERBOSITY_NAME(WARNING):
-        color = TC_YELLOW;
+        color = Slice(TC_YELLOW);
         break;
       case VERBOSITY_NAME(INFO):
-        color = TC_CYAN;
+        color = Slice(TC_CYAN);
         break;
     }
     TsCerr() << color << slice << TC_EMPTY;

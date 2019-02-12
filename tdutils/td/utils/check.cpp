@@ -7,6 +7,7 @@
 #include "td/utils/check.h"
 
 #include "td/utils/logging.h"
+#include "td/utils/Slice.h"
 
 namespace td {
 namespace detail {
