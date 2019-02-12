@@ -7,12 +7,12 @@
 #pragma once
 
 #include "td/mtproto/PacketInfo.h"
-#include "td/mtproto/utils.h"
 
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
+#include "td/utils/StorerBase.h"
 #include "td/utils/UInt.h"
 
 #include <utility>

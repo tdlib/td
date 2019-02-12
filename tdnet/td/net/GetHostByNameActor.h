@@ -14,6 +14,7 @@
 #include "td/utils/Status.h"
 
 #include <unordered_map>
+#include <utility>
 
 namespace td {
 
@@ -42,9 +43,9 @@ class GetHostByNameActor final : public Actor {
 
   struct Value {
     Result<IPAddress> ip;
-    double expire_at;
+    double expires_at;
 
-    Value(Result<IPAddress> ip, double expire_at) : ip(std::move(ip)), expire_at(expire_at) {
+    Value(Result<IPAddress> ip, double expires_at) : ip(std::move(ip)), expires_at(expires_at) {
     }
 
     Result<IPAddress> get_ip_port(int port) const {

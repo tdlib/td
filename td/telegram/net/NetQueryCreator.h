@@ -12,7 +12,7 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/ObjectPool.h"
-#include "td/utils/Storer.h"
+#include "td/utils/StorerBase.h"
 
 namespace td {
 

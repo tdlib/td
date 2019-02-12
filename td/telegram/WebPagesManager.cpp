@@ -1135,7 +1135,8 @@ class WebPagesManager::PageBlockList : public PageBlock {
   vector<Item> items;
 
   static td_api::object_ptr<td_api::pageBlockListItem> get_page_block_list_item_object(const Item &item) {
-    return td_api::make_object<td_api::pageBlockListItem>(item.label.empty() ? "•" : item.label,
+    // if label is empty, then Bullet U+2022 is used as a label
+    return td_api::make_object<td_api::pageBlockListItem>(item.label.empty() ? "\xE2\x80\xA2" : item.label,
                                                           get_page_block_objects(item.page_blocks));
   }
 

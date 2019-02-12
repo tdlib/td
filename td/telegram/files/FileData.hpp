@@ -8,13 +8,11 @@
 
 #include "td/telegram/files/FileData.h"
 
-#include "td/telegram/DialogId.h"
 #include "td/telegram/FileReferenceManager.h"
 #include "td/telegram/FileReferenceManager.hpp"
 #include "td/telegram/files/FileEncryptionKey.h"
 #include "td/telegram/files/FileLocation.h"
 #include "td/telegram/files/FileLocation.hpp"
-#include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/Td.h"
 

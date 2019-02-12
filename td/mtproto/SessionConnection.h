@@ -16,6 +16,7 @@
 #include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
+#include "td/utils/StorerBase.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_parsers.h"
 

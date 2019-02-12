@@ -13,7 +13,6 @@
 #include "td/utils/buffer.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
-#include "td/utils/Storer.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
 

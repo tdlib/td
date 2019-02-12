@@ -409,7 +409,7 @@ class TdClient {
       name: 'language_pack_database_path'
       value: {
         '@type': 'optionValueString',
-         value: this.tdfs.dbFileSystem.root + '/language'
+        value: this.tdfs.dbFileSystem.root + '/language'
       }
     });
 

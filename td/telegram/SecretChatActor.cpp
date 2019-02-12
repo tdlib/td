@@ -31,6 +31,7 @@
 #include "td/utils/overloaded.h"
 #include "td/utils/Random.h"
 #include "td/utils/ScopeGuard.h"
+#include "td/utils/StorerBase.h"
 #include "td/utils/Time.h"
 #include "td/utils/tl_parsers.h"
 

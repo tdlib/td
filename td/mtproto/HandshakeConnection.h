@@ -19,6 +19,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/Status.h"
+#include "td/utils/StorerBase.h"
 
 namespace td {
 namespace mtproto {

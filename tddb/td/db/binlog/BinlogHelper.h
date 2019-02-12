@@ -11,7 +11,6 @@
 #include "td/db/binlog/BinlogEvent.h"
 
 #include "td/utils/common.h"
-#include "td/utils/Storer.h"
 
 namespace td {
 

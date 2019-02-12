@@ -16,20 +16,16 @@
 #include "td/utils/port/detail/PollableFd.h"
 #include "td/utils/port/SocketFd.h"
 #include "td/utils/Status.h"
+#include "td/utils/StorerBase.h"
 
 #include "td/telegram/StateManager.h"
 
 #include <map>
 
 namespace td {
-class Storer;
 namespace mtproto {
-class AuthKey;
-}  // namespace mtproto
-}  // namespace td
 
-namespace td {
-namespace mtproto {
+class AuthKey;
 
 class RawConnection {
  public:

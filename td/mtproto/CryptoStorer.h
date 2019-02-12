@@ -15,6 +15,7 @@
 
 #include "td/utils/logging.h"
 #include "td/utils/Slice.h"
+#include "td/utils/StorerBase.h"
 #include "td/utils/Time.h"
 
 namespace td {

@@ -6,7 +6,7 @@
 //
 #pragma once
 
-#include "td/utils/Storer.h"
+#include "td/utils/StorerBase.h"
 #include "td/utils/tl_storers.h"
 
 #include <limits>

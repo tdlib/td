@@ -19,6 +19,7 @@
 #include "td/utils/port/RwMutex.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Status.h"
+#include "td/utils/StorerBase.h"
 #include "td/utils/tl_parsers.h"
 #include "td/utils/tl_storers.h"
 

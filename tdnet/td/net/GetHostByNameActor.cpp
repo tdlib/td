@@ -6,11 +6,13 @@
 //
 #include "td/net/GetHostByNameActor.h"
 
+#include "td/net/HttpQuery.h"
 #include "td/net/SslStream.h"
 #include "td/net/Wget.h"
 
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Time.h"
 
@@ -134,7 +136,7 @@ void GetHostByNameActor::run(string host, int port, bool prefer_ipv6, Promise<IP
 
   auto &value = cache_[prefer_ipv6].emplace(ascii_host, Value{{}, 0}).first->second;
   auto begin_time = Time::now();
-  if (value.expire_at > begin_time) {
+  if (value.expires_at > begin_time) {
     return promise.set_result(value.get_ip_port(port));
   }
 
