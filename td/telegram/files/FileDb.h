@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/files/FileData.h"
 #include "td/telegram/files/FileDbId.h"
 
 #include "td/actor/PromiseFuture.h"
@@ -19,7 +20,6 @@
 
 namespace td {
 
-class FileData;
 class SqliteDb;
 class SqliteConnectionSafe;
 class SqliteKeyValue;
