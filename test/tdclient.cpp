@@ -15,6 +15,7 @@
 
 #include "td/utils/base64.h"
 #include "td/utils/BufferedFd.h"
+#include "td/utils/common.h"
 #include "td/utils/filesystem.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"

@@ -20,6 +20,7 @@
 
 #include "td/utils/base64.h"
 #include "td/utils/buffer.h"
+#include "td/utils/common.h"
 #include "td/utils/FileLog.h"
 #include "td/utils/format.h"
 #include "td/utils/JsonBuilder.h"

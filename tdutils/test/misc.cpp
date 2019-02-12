@@ -8,6 +8,7 @@
 #include "td/utils/base64.h"
 #include "td/utils/BigNum.h"
 #include "td/utils/bits.h"
+#include "td/utils/common.h"
 #include "td/utils/HttpUrl.h"
 #include "td/utils/invoke.h"
 #include "td/utils/logging.h"

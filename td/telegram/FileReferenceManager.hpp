@@ -20,6 +20,7 @@
 #include "td/telegram/WallpaperManager.h"
 #include "td/telegram/WebPagesManager.h"
 
+#include "td/utils/common.h"
 #include "td/utils/overloaded.h"
 #include "td/utils/tl_helpers.h"
 

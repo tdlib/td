@@ -7,6 +7,7 @@
 #include "td/net/HttpProxy.h"
 
 #include "td/utils/base64.h"
+#include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"

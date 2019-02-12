@@ -10,7 +10,7 @@
 #include "td/actor/impl/EventFull-decl.h"
 #include "td/actor/impl/Scheduler-decl.h"
 
-#include "td/utils/logging.h"
+#include "td/utils/common.h"
 #include "td/utils/ObjectPool.h"
 #include "td/utils/Slice.h"
 
@@ -115,8 +115,7 @@ inline ActorId<> Actor::actor_id() {
 }
 template <class SelfT>
 ActorId<SelfT> Actor::actor_id(SelfT *self) {
-  LOG_CHECK(static_cast<Actor *>(self) == this)
-      << self << " " << static_cast<Actor *>(self) << " " << this << " " << empty();
+  CHECK(static_cast<Actor *>(self) == this);
   return ActorId<SelfT>(info_.get_weak());
 }
 
@@ -125,8 +124,7 @@ inline ActorShared<> Actor::actor_shared() {
 }
 template <class SelfT>
 ActorShared<SelfT> Actor::actor_shared(SelfT *self, uint64 id) {
-  LOG_CHECK(static_cast<Actor *>(self) == this)
-      << self << " " << static_cast<Actor *>(self) << " " << this << " " << empty();
+  CHECK(static_cast<Actor *>(self) == this);
   return ActorShared<SelfT>(actor_id(self), id);
 }
 

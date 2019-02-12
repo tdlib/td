@@ -6,6 +6,7 @@
 //
 #include "td/net/SslStream.h"
 
+#include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/port/wstring_convert.h"

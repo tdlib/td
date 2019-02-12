@@ -12,6 +12,7 @@
 #include "td/actor/SleepActor.h"
 #include "td/actor/Timeout.h"
 
+#include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/MpscPollableQueue.h"
 #include "td/utils/Observer.h"

@@ -6,6 +6,7 @@
 //
 #include "td/db/SqliteDb.h"
 
+#include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/port/path.h"
 #include "td/utils/port/Stat.h"

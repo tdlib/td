@@ -9,6 +9,7 @@
 #include "td/mtproto/DhHandshake.h"
 
 #include "td/utils/base64.h"
+#include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/Slice.h"
 

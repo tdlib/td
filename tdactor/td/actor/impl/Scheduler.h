@@ -9,6 +9,7 @@
 #include "td/actor/impl/ActorInfo-decl.h"
 #include "td/actor/impl/Scheduler-decl.h"
 
+#include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/Heap.h"
 #include "td/utils/logging.h"

@@ -13,6 +13,7 @@
 #include "td/mtproto/utils.h"
 
 #include "td/utils/as.h"
+#include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/Gzip.h"
 #include "td/utils/logging.h"

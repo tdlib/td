@@ -6,6 +6,7 @@
 //
 #include "td/net/Socks5.h"
 
+#include "td/utils/common.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Slice.h"

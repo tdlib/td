@@ -8,6 +8,7 @@
 
 #include "td/actor/actor.h"
 
+#include "td/utils/common.h"
 #include "td/utils/optional.h"
 #include "td/utils/Time.h"
 

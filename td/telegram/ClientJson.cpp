@@ -11,6 +11,7 @@
 
 #include "td/tl/tl_json.h"
 
+#include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"

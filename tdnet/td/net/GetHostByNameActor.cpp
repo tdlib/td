@@ -10,6 +10,7 @@
 #include "td/net/SslStream.h"
 #include "td/net/Wget.h"
 
+#include "td/utils/common.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"

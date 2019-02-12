@@ -23,6 +23,7 @@
 
 #include "td/net/NetStats.h"
 
+#include "td/utils/common.h"
 #include "td/utils/FloodControlStrict.h"
 #include "td/utils/logging.h"
 #include "td/utils/port/IPAddress.h"

@@ -9,6 +9,7 @@
 
 #include "td/utils/benchmark.h"
 #include "td/utils/buffer.h"
+#include "td/utils/common.h"
 #include "td/utils/find_boundary.h"
 #include "td/utils/logging.h"
 

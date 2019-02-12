@@ -24,6 +24,7 @@
 
 #include "td/utils/buffer.h"
 #include "td/utils/ChangesProcessor.h"
+#include "td/utils/common.h"
 #include "td/utils/Container.h"
 #include "td/utils/format.h"
 #include "td/utils/port/Clocks.h"

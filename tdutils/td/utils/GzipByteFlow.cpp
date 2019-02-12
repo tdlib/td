@@ -9,6 +9,7 @@
 char disable_linker_warning_about_empty_file_gzipbyteflow_cpp TD_UNUSED;
 
 #if TD_HAVE_ZLIB
+#include "td/utils/common.h"
 #include "td/utils/Status.h"
 
 namespace td {
