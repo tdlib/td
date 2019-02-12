@@ -8,8 +8,6 @@
 
 #include "td/utils/Slice-decl.h"
 
-#include "td/utils/logging.h"
-
 #include <cstring>
 #include <type_traits>
 

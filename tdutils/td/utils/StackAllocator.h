@@ -8,7 +8,7 @@
 
 #include "td/utils/common.h"
 #include "td/utils/MovableValue.h"
-#include "td/utils/Slice-decl.h"
+#include "td/utils/Slice.h"
 
 #include <array>
 #include <cstdlib>
