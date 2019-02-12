@@ -48,7 +48,7 @@ TEST(MpscLinkQueue, one_thread) {
     while (auto node = reader.read()) {
       v.push_back(node.value().value());
     }
-    CHECK((v == std::vector<int>{1, 2, 3, 4})) << td::format::as_array(v);
+    LOG_CHECK((v == std::vector<int>{1, 2, 3, 4})) << td::format::as_array(v);
 
     v.clear();
     queue.push(create_node(5));
@@ -56,7 +56,7 @@ TEST(MpscLinkQueue, one_thread) {
     while (auto node = reader.read()) {
       v.push_back(node.value().value());
     }
-    CHECK((v == std::vector<int>{5})) << td::format::as_array(v);
+    LOG_CHECK((v == std::vector<int>{5})) << td::format::as_array(v);
   }
 
   {
@@ -70,7 +70,7 @@ TEST(MpscLinkQueue, one_thread) {
     while (auto node = reader.read()) {
       v.push_back(node.value().value());
     }
-    CHECK((v == std::vector<int>{3, 2, 1, 0})) << td::format::as_array(v);
+    LOG_CHECK((v == std::vector<int>{3, 2, 1, 0})) << td::format::as_array(v);
   }
 }
 

@@ -212,7 +212,7 @@ class LogEventParser : public WithVersion<WithContext<TlParser, Global *>> {
  public:
   explicit LogEventParser(Slice data) : WithVersion<WithContext<TlParser, Global *>>(data) {
     set_version(fetch_int());
-    CHECK(version() < static_cast<int32>(Version::Next)) << "Wrong version " << version();
+    LOG_CHECK(version() < static_cast<int32>(Version::Next)) << "Wrong version " << version();
     set_context(G());
   }
 };

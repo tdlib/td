@@ -77,7 +77,7 @@ Result<FileLoader::FileInfo> FileDownloader::init() {
     if (result_fd.is_ok()) {
       bitmask = Bitmask(Bitmask::Decode{}, partial.ready_bitmask_);
       if (encryption_key_.is_secret()) {
-        CHECK(partial.iv_.size() == 32) << partial.iv_.size();
+        LOG_CHECK(partial.iv_.size() == 32) << partial.iv_.size();
         encryption_key_.mutable_iv() = as<UInt256>(partial.iv_.data());
         next_part_ = narrow_cast<int32>(bitmask.get_ready_parts(0));
       }
@@ -342,7 +342,7 @@ Result<size_t> FileDownloader::process_part(Part part, NetQueryPtr net_query) {
     ctr_state.decrypt(bytes.as_slice(), bytes.as_slice());
   }
   if (encryption_key_.is_secret()) {
-    CHECK(next_part_ == part.id) << tag("expected part.id", next_part_) << "!=" << tag("part.id", part.id);
+    LOG_CHECK(next_part_ == part.id) << tag("expected part.id", next_part_) << "!=" << tag("part.id", part.id);
     CHECK(!next_part_stop_);
     next_part_++;
     if (part.size % 16 != 0) {

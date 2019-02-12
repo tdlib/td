@@ -136,12 +136,12 @@ inline vector<string> rand_split(string str) {
 
 template <class T1, class T2>
 void assert_eq_impl(const T1 &expected, const T2 &got, const char *file, int line) {
-  CHECK(expected == got) << tag("expected", expected) << tag("got", got) << " in " << file << " at line " << line;
+  LOG_CHECK(expected == got) << tag("expected", expected) << tag("got", got) << " in " << file << " at line " << line;
 }
 
 template <class T>
 void assert_true_impl(const T &got, const char *file, int line) {
-  CHECK(got) << "Expected true in " << file << " at line " << line;
+  LOG_CHECK(got) << "Expected true in " << file << " at line " << line;
 }
 
 }  // namespace td

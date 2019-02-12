@@ -208,7 +208,7 @@ Status SqliteDb::change_key(CSlice path, const DbKey &new_db_key, const DbKey &o
   }
 
   TRY_RESULT(new_db, open_with_key(path, new_db_key));
-  CHECK(new_db.user_version().ok() == user_version) << new_db.user_version().ok() << " " << user_version;
+  LOG_CHECK(new_db.user_version().ok() == user_version) << new_db.user_version().ok() << " " << user_version;
   return Status::OK();
 }
 Status SqliteDb::destroy(Slice path) {
@@ -221,7 +221,7 @@ Result<SqliteStatement> SqliteDb::get_statement(CSlice statement) {
   if (rc != SQLITE_OK) {
     return Status::Error(PSLICE() << "Failed to prepare SQLite " << tag("statement", statement) << raw_->last_error());
   }
-  CHECK(stmt != nullptr) << statement;
+  LOG_CHECK(stmt != nullptr) << statement;
   return SqliteStatement(stmt, raw_);
 }
 

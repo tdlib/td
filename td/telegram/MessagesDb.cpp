@@ -431,7 +431,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
                                                  MessageId last_message_id, int32 date) override {
     int64 left_message_id = first_message_id.get();
     int64 right_message_id = last_message_id.get();
-    CHECK(left_message_id <= right_message_id) << first_message_id << " " << last_message_id;
+    LOG_CHECK(left_message_id <= right_message_id) << first_message_id << " " << last_message_id;
     TRY_RESULT(first_messages,
                get_messages_inner(get_messages_stmt_.asc_stmt_, dialog_id.get(), left_message_id - 1, 1));
     if (!first_messages.empty()) {
@@ -661,7 +661,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
   Result<std::vector<BufferSlice>> get_messages_from_index(DialogId dialog_id, MessageId from_message_id,
                                                            int32 index_mask, int32 offset, int32 limit) {
     CHECK(index_mask != 0);
-    CHECK(index_mask < (1 << MESSAGES_DB_INDEX_COUNT)) << tag("index_mask", index_mask);
+    LOG_CHECK(index_mask < (1 << MESSAGES_DB_INDEX_COUNT)) << tag("index_mask", index_mask);
     int index_i = -1;
     for (int i = 0; i < MESSAGES_DB_INDEX_COUNT; i++) {
       if (index_mask == (1 << i)) {
@@ -679,7 +679,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
 
   Result<MessagesDbCallsResult> get_calls(MessagesDbCallsQuery query) override {
     CHECK(query.index_mask != 0);
-    CHECK(query.index_mask < (1 << MESSAGES_DB_INDEX_COUNT)) << tag("index_mask", query.index_mask);
+    LOG_CHECK(query.index_mask < (1 << MESSAGES_DB_INDEX_COUNT)) << tag("index_mask", query.index_mask);
     int index_i = -1;
     for (int i = 0; i < MESSAGES_DB_INDEX_COUNT; i++) {
       if (query.index_mask == (1 << i)) {
@@ -754,7 +754,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
 
   Result<std::vector<BufferSlice>> get_messages_impl(GetMessagesStmt &stmt, DialogId dialog_id,
                                                      MessageId from_message_id, int32 offset, int32 limit) {
-    CHECK(dialog_id.is_valid()) << dialog_id;
+    LOG_CHECK(dialog_id.is_valid()) << dialog_id;
     CHECK(from_message_id.is_valid());
 
     LOG(INFO) << "Loading messages in " << dialog_id << " from " << from_message_id << " with offset = " << offset

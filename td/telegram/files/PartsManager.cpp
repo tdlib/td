@@ -90,7 +90,7 @@ Status PartsManager::init(int64 size, int64 expected_size, bool is_size_final, s
   if (size == 0) {
     return init_no_size(part_size, ready_parts);
   }
-  CHECK(size > 0) << tag("size", size);
+  LOG_CHECK(size > 0) << tag("size", size);
   unknown_size_flag_ = false;
   size_ = size;
 
@@ -107,8 +107,8 @@ Status PartsManager::init(int64 size, int64 expected_size, bool is_size_final, s
       CHECK(part_size_ <= MAX_PART_SIZE);
     }
   }
-  CHECK(1 <= size_) << tag("size_", size_);
-  CHECK(!use_part_count_limit || calc_part_count(expected_size_, part_size_) <= MAX_PART_COUNT)
+  LOG_CHECK(1 <= size_) << tag("size_", size_);
+  LOG_CHECK(!use_part_count_limit || calc_part_count(expected_size_, part_size_) <= MAX_PART_COUNT)
       << tag("size_", size_) << tag("expected_size", size_) << tag("is_size_final", is_size_final)
       << tag("part_size_", part_size_) << tag("ready_parts", ready_parts.size());
   part_count_ = static_cast<int>(calc_part_count(size_, part_size_));
@@ -220,7 +220,7 @@ Status PartsManager::set_known_prefix(size_t size, bool is_ready) {
   } else {
     part_count_ = static_cast<int>(size / part_size_);
   }
-  CHECK(static_cast<size_t>(part_count_) >= part_status_.size())
+  LOG_CHECK(static_cast<size_t>(part_count_) >= part_status_.size())
       << size << " " << is_ready << " " << part_count_ << " " << part_size_ << " " << part_status_.size();
   part_status_.resize(part_count_);
   if (use_part_count_limit_ && calc_part_count(expected_size_, part_size_) > MAX_PART_COUNT) {
@@ -323,7 +323,7 @@ void PartsManager::init_common(const std::vector<int> &ready_parts) {
   part_status_ = vector<PartStatus>(part_count_);
 
   for (auto i : ready_parts) {
-    CHECK(0 <= i && i < part_count_) << tag("i", i) << tag("part_count", part_count_);
+    LOG_CHECK(0 <= i && i < part_count_) << tag("i", i) << tag("part_count", part_count_);
     part_status_[i] = PartStatus::Ready;
     bitmask_.set(i);
     auto part = get_part(i);

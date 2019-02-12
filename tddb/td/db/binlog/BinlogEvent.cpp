@@ -18,7 +18,7 @@ int32 VERBOSITY_NAME(binlog) = VERBOSITY_NAME(DEBUG) + 8;
 Status BinlogEvent::init(BufferSlice &&raw_event, bool check_crc) {
   TlParser parser(raw_event.as_slice());
   size_ = parser.fetch_int();
-  CHECK(size_ == raw_event.size()) << size_ << " " << raw_event.size() << debug_info_;
+  LOG_CHECK(size_ == raw_event.size()) << size_ << " " << raw_event.size() << debug_info_;
   id_ = parser.fetch_long();
   type_ = parser.fetch_int();
   flags_ = parser.fetch_int();

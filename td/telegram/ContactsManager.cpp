@@ -5208,7 +5208,7 @@ void ContactsManager::on_binlog_user_event(BinlogEvent &&event) {
     binlog_erase(G()->td_db()->get_binlog(), event.id_);
     return;  // TODO fix bug in Binlog and remove that fix
   }
-  CHECK(u->first_name.empty() && u->last_name.empty()) << user_id << " " << u->debug_source;
+  LOG_CHECK(u->first_name.empty() && u->last_name.empty()) << user_id << " " << u->debug_source;
   *u = std::move(log_event.u);  // users come from binlog before all other events, so just add them
 
   u->logevent_id = event.id_;
@@ -5257,7 +5257,7 @@ void ContactsManager::save_user_to_database_impl(User *u, UserId user_id, string
 void ContactsManager::on_save_user_to_database(UserId user_id, bool success) {
   User *u = get_user(user_id);
   CHECK(u != nullptr);
-  CHECK(u->is_being_saved) << user_id << " " << u->is_saved << " " << u->is_status_saved << " "
+  LOG_CHECK(u->is_being_saved) << user_id << " " << u->is_saved << " " << u->is_status_saved << " "
                            << load_user_from_database_queries_.count(user_id) << " " << u->is_received << " "
                            << u->is_deleted << " " << u->is_bot << " " << u->is_changed << " " << u->need_send_update
                            << " " << u->is_status_changed << " " << u->is_name_changed << " " << u->is_username_changed
@@ -5691,7 +5691,7 @@ void ContactsManager::on_binlog_channel_event(BinlogEvent &&event) {
     binlog_erase(G()->td_db()->get_binlog(), event.id_);
     return;  // TODO fix bug in Binlog and remove that fix
   }
-  CHECK(c->status.is_banned()) << channel_id << " " << c->debug_source;
+  LOG_CHECK(c->status.is_banned()) << channel_id << " " << c->debug_source;
   *c = std::move(log_event.c);  // channels come from binlog before all other events, so just add them
 
   c->logevent_id = event.id_;

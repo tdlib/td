@@ -169,7 +169,7 @@ inline CSlice ActorInfo::get_name() const {
 
 inline void ActorInfo::start_run() {
   VLOG(actor) << "start_run: " << *this;
-  CHECK(!is_running_) << "Recursive call of actor " << tag("name", get_name());
+  LOG_CHECK(!is_running_) << "Recursive call of actor " << tag("name", get_name());
   is_running_ = true;
 }
 inline void ActorInfo::finish_run() {

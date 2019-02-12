@@ -173,7 +173,7 @@ void SecretChatActor::replay_inbound_message(unique_ptr<logevent::InboundSecretM
     // check_status(do_inbound_message_decrypted_unchecked(std::move(message)));
     do_inbound_message_decrypted_pending(std::move(message));
   } else {  // just replay
-    CHECK(message->message_id > last_binlog_message_id_)
+    LOG_CHECK(message->message_id > last_binlog_message_id_)
         << tag("last_binlog_message_id", last_binlog_message_id_) << tag("message_id", message->message_id);
     last_binlog_message_id_ = message->message_id;
     check_status(do_inbound_message_decrypted(std::move(message)));
@@ -190,7 +190,7 @@ void SecretChatActor::replay_outbound_message(unique_ptr<logevent::OutboundSecre
     return;
   }
   CHECK(!binlog_replay_finish_flag_);
-  CHECK(message->message_id > last_binlog_message_id_)
+  LOG_CHECK(message->message_id > last_binlog_message_id_)
       << tag("last_binlog_message_id", last_binlog_message_id_) << tag("message_id", message->message_id);
   last_binlog_message_id_ = message->message_id;
   do_outbound_message_impl(std::move(message), Promise<>());
@@ -310,8 +310,8 @@ void SecretChatActor::send_message_impl(tl_object_ptr<secret_api::DecryptedMessa
   if (get_min_layer(*message) > config_state_.his_layer) {
     return promise.set_error(Status::Error(400, "Message is not supported by the other side"));
   }
-  CHECK(binlog_replay_finish_flag_) << "Trying to send message before binlog replay is finished: "
-                                    << to_string(*message) << to_string(file);
+  LOG_CHECK(binlog_replay_finish_flag_) << "Trying to send message before binlog replay is finished: "
+                                        << to_string(*message) << to_string(file);
   int64 random_id = 0;
   downcast_call(*message, [&](auto &x) { random_id = x.random_id_; });
 
@@ -1055,7 +1055,7 @@ void SecretChatActor::do_outbound_message_impl(unique_ptr<logevent::OutboundSecr
   binlog_event->crc = crc64(binlog_event->encrypted_message.as_slice());
   LOG(INFO) << "Do outbound message: " << *binlog_event << tag("crc", binlog_event->crc);
   auto &state_id_ref = random_id_to_outbound_message_state_token_[binlog_event->random_id];
-  CHECK(state_id_ref == 0) << "Random id collision";
+  LOG_CHECK(state_id_ref == 0) << "Random id collision";
   state_id_ref = outbound_message_states_.create();
   const uint64 state_id = state_id_ref;
   auto *state = outbound_message_states_.get(state_id);
@@ -2094,7 +2094,7 @@ Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionTypi
 
 // Perfect Forward Secrecy
 void SecretChatActor::on_outbound_action(secret_api::decryptedMessageActionRequestKey &request_key) {
-  CHECK(pfs_state_.state == PfsState::WaitSendRequest || pfs_state_.state == PfsState::SendRequest) << pfs_state_;
+  LOG_CHECK(pfs_state_.state == PfsState::WaitSendRequest || pfs_state_.state == PfsState::SendRequest) << pfs_state_;
   pfs_state_.state = PfsState::WaitRequestResponse;
   on_pfs_state_changed();
 }
@@ -2145,7 +2145,7 @@ Status SecretChatActor::on_inbound_action(secret_api::decryptedMessageActionRequ
   if (pfs_state_.state != PfsState::Empty) {
     return Status::Error("Unexpected RequestKey");
   }
-  CHECK(pfs_state_.other_auth_key.empty()) << "TODO: got requestKey, before old key is dropped";
+  LOG_CHECK(pfs_state_.other_auth_key.empty()) << "TODO: got requestKey, before old key is dropped";
   pfs_state_.state = PfsState::SendAccept;
   pfs_state_.handshake = DhHandshake();
   pfs_state_.exchange_id = request_key.exchange_id_;

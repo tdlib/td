@@ -58,7 +58,7 @@ struct Query {
   Query(Query &&) = default;
   Query &operator=(Query &&) = default;
   ~Query() {
-    CHECK(todo.empty()) << "Query lost";
+    LOG_CHECK(todo.empty()) << "Query lost";
   }
   int next_pow() {
     CHECK(!todo.empty());

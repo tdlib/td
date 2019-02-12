@@ -203,7 +203,7 @@ static void downcast_call(TlBufferParser &p, F &&f) {
     case messages_sendEncryptedService::ID:
       return f(*make_tl_object<messages_sendEncryptedService>(p));
     default:
-      CHECK(0) << id;
+      LOG_CHECK(0) << id;
       UNREACHABLE();
   }
 }

@@ -547,7 +547,7 @@ Status Binlog::load_binlog(const Callback &callback, const Callback &debug_callb
     fd_.truncate_to_current_position(offset).ensure();
     db_key_used_ = false;  // force reindex
   }
-  CHECK(IGNORE_ERASE_HACK || fd_size_ == offset) << fd_size << " " << fd_size_ << " " << offset;
+  LOG_CHECK(IGNORE_ERASE_HACK || fd_size_ == offset) << fd_size << " " << fd_size_ << " " << offset;
   binlog_reader_ptr_ = nullptr;
   state_ = State::Run;
 
@@ -651,7 +651,7 @@ void Binlog::do_reindex() {
   auto finish_time = Clocks::monotonic();
   auto finish_size = fd_size_;
   auto finish_events = fd_events_;
-  CHECK(fd_size_ == detail::file_size(path_))
+  LOG_CHECK(fd_size_ == detail::file_size(path_))
       << fd_size_ << ' ' << detail::file_size(path_) << ' ' << fd_events_ << ' ' << path_;
 
   double ratio = static_cast<double>(start_size) / static_cast<double>(finish_size + 1);

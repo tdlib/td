@@ -35,7 +35,7 @@ void Select::subscribe(PollableFd fd, PollFlags flags) {
     CHECK(it.fd.native_fd().fd() != native_fd);
   }
   fds_.push_back(FdInfo{std::move(fd), flags});
-  CHECK(0 <= native_fd && native_fd < FD_SETSIZE) << native_fd << " " << FD_SETSIZE;
+  LOG_CHECK(0 <= native_fd && native_fd < FD_SETSIZE) << native_fd << " " << FD_SETSIZE;
   FD_SET(native_fd, &all_fd_);
   if (native_fd > max_fd_) {
     max_fd_ = native_fd;
@@ -47,7 +47,7 @@ void Select::unsubscribe(PollableFdRef fd) {
   int native_fd = fd_locked.native_fd().fd();
   fd_locked.release_as_list_node();
 
-  CHECK(0 <= native_fd && native_fd < FD_SETSIZE) << native_fd << " " << FD_SETSIZE;
+  LOG_CHECK(0 <= native_fd && native_fd < FD_SETSIZE) << native_fd << " " << FD_SETSIZE;
   FD_CLR(native_fd, &all_fd_);
   FD_CLR(native_fd, &read_fd_);
   FD_CLR(native_fd, &write_fd_);

@@ -289,7 +289,7 @@ class OpenClose final : public Actor {
     ObserverBase *observer = reinterpret_cast<ObserverBase *>(123);
     if (cnt_ > 0) {
       auto r_file_fd = FileFd::open("server", FileFd::Read | FileFd::Create);
-      CHECK(r_file_fd.is_ok()) << r_file_fd.error();
+      LOG_CHECK(r_file_fd.is_ok()) << r_file_fd.error();
       auto file_fd = r_file_fd.move_as_ok();
       { PollableFd pollable_fd = file_fd.get_poll_info().extract_pollable_fd(observer); }
       file_fd.close();

@@ -3872,7 +3872,7 @@ void MessagesManager::Dialog::parse(ParserT &parser) {
       parser.set_error("Wrong first_database_message_id_by_index table size");
       return;
     }
-    CHECK(static_cast<size_t>(size) <= first_database_message_id_by_index.size())
+    LOG_CHECK(static_cast<size_t>(size) <= first_database_message_id_by_index.size())
         << size << " " << first_database_message_id_by_index.size();
     for (int32 i = 0; i < size; i++) {
       parse(first_database_message_id_by_index[i], parser);
@@ -3938,7 +3938,7 @@ void MessagesManager::CallsDbState::parse(ParserT &parser) {
   using td::parse;
   int32 size;
   parse(size, parser);
-  CHECK(static_cast<size_t>(size) <= first_calls_database_message_id_by_index.size())
+  LOG_CHECK(static_cast<size_t>(size) <= first_calls_database_message_id_by_index.size())
       << size << " " << first_calls_database_message_id_by_index.size();
   for (int32 i = 0; i < size; i++) {
     parse(first_calls_database_message_id_by_index[i], parser);
@@ -5002,7 +5002,7 @@ bool MessagesManager::update_message_views(DialogId dialog_id, Message *m, int32
 
 bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message *m, bool contains_unread_mention,
                                                              const char *source) {
-  CHECK(m != nullptr) << source;
+  LOG_CHECK(m != nullptr) << source;
   if (!contains_unread_mention && m->contains_unread_mention) {
     remove_message_notification_id(d, m, true);  // should be called before contains_unread_mention is updated
 
@@ -5368,7 +5368,7 @@ void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_p
 
   if (d == nullptr || pts_count > 0) {
     process_channel_update(std::move(update));
-    CHECK(!running_get_channel_difference(dialog_id)) << '"' << active_get_channel_differencies_[dialog_id] << '"';
+    LOG_CHECK(!running_get_channel_difference(dialog_id)) << '"' << active_get_channel_differencies_[dialog_id] << '"';
   } else {
     LOG_IF(INFO, update->get_id() != dummyUpdate::ID)
         << "Skip useless channel update from " << source << ": " << to_string(update);
@@ -5583,7 +5583,7 @@ bool MessagesManager::update_dialog_notification_settings(DialogId dialog_id,
 
   if (is_changed) {
     Dialog *d = get_dialog(dialog_id);
-    CHECK(d != nullptr) << "Wrong " << dialog_id << " in update_dialog_notification_settings";
+    LOG_CHECK(d != nullptr) << "Wrong " << dialog_id << " in update_dialog_notification_settings";
     bool was_muted = is_dialog_muted(d);
     bool was_dialog_mentions_disabled = is_dialog_mention_notifications_disabled(d);
     update_dialog_unmute_timeout(d, current_settings->use_default_mute_until, current_settings->mute_until,
@@ -6733,7 +6733,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
       }
       is_dialog_updated = true;
     } else {
-      CHECK(d->last_new_message_id.is_valid())
+      LOG_CHECK(d->last_new_message_id.is_valid())
           << dialog_id << " " << from_the_end << " " << d->first_database_message_id << " "
           << d->last_database_message_id << " " << first_added_message_id << " " << last_added_message_id << " "
           << d->last_message_id << " " << d->last_new_message_id << " " << d->have_full_history << " "
@@ -6773,7 +6773,7 @@ void MessagesManager::on_get_history(DialogId dialog_id, MessageId from_message_
         }
       }
     }
-    CHECK(d->first_database_message_id.is_valid())
+    LOG_CHECK(d->first_database_message_id.is_valid())
         << dialog_id << " " << from_the_end << " " << d->first_database_message_id << " " << d->last_database_message_id
         << " " << first_added_message_id << " " << last_added_message_id << " " << d->last_message_id << " "
         << d->last_new_message_id << " " << d->have_full_history << " " << prev_last_new_message_id << " "
@@ -7952,7 +7952,7 @@ void MessagesManager::read_channel_message_content_from_updates(Dialog *d, Messa
 }
 
 bool MessagesManager::read_message_content(Dialog *d, Message *m, bool is_local_read, const char *source) {
-  CHECK(m != nullptr) << source;
+  LOG_CHECK(m != nullptr) << source;
   bool is_mention_read = update_message_contains_unread_mention(d, m, false, "read_message_content");
   bool is_content_read =
       update_opened_message_content(m->content.get()) | ttl_on_open(d, m, Time::now(), is_local_read);
@@ -8556,7 +8556,8 @@ void MessagesManager::ttl_unregister_message(DialogId dialog_id, const Message *
 
   TtlNode ttl_node(dialog_id, message->message_id);
   auto it = ttl_nodes_.find(ttl_node);
-  CHECK(it != ttl_nodes_.end()) << dialog_id << " " << message->message_id << " " << source << " " << G()->close_flag();
+  LOG_CHECK(it != ttl_nodes_.end()) << dialog_id << " " << message->message_id << " " << source << " "
+                                    << G()->close_flag();
   auto *heap_node = it->as_heap_node();
   if (heap_node->in_heap()) {
     ttl_heap_.erase(heap_node);
@@ -9350,7 +9351,7 @@ void MessagesManager::fix_message_info_dialog_id(MessageInfo &message_info) cons
 MessagesManager::MessageInfo MessagesManager::parse_telegram_api_message(
     tl_object_ptr<telegram_api::Message> message_ptr, const char *source) const {
   LOG(DEBUG) << "Receive from " << source << " " << to_string(message_ptr);
-  CHECK(message_ptr != nullptr) << source;
+  LOG_CHECK(message_ptr != nullptr) << source;
   int32 constructor_id = message_ptr->get_id();
 
   MessageInfo message_info;
@@ -9758,7 +9759,7 @@ void MessagesManager::set_dialog_last_database_message_id(Dialog *d, MessageId l
 }
 
 void MessagesManager::set_dialog_last_new_message_id(Dialog *d, MessageId last_new_message_id, const char *source) {
-  CHECK(last_new_message_id.get() > d->last_new_message_id.get())
+  LOG_CHECK(last_new_message_id.get() > d->last_new_message_id.get())
       << last_new_message_id << " " << d->last_new_message_id << " " << source;
   CHECK(d->dialog_id.get_type() == DialogType::SecretChat || last_new_message_id.is_server());
   if (!d->last_new_message_id.is_valid()) {
@@ -9900,7 +9901,7 @@ void MessagesManager::set_dialog_is_pinned(Dialog *d, bool is_pinned) {
 
   if (is_pinned != was_pinned) {
     LOG(INFO) << "Set " << d->dialog_id << " is pinned to " << is_pinned;
-    CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_is_pinned";
+    LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_is_pinned";
     update_dialog_pos(d, false, "set_dialog_is_pinned", false);
     DialogDate dialog_date(d->order, d->dialog_id);
     send_closure(G()->td(), &Td::send_update,
@@ -9917,7 +9918,7 @@ void MessagesManager::set_dialog_reply_markup(Dialog *d, MessageId message_id) {
   d->need_restore_reply_markup = false;
 
   if (d->reply_markup_message_id.is_valid() || message_id.is_valid()) {
-    CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_reply_markup";
+    LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_reply_markup";
     d->reply_markup_message_id = message_id;
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateChatReplyMarkup>(d->dialog_id.get(), message_id.get()));
@@ -14410,7 +14411,8 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
         added_new_message = true;
       }
       if (next_message != nullptr && !next_message->have_previous) {
-        CHECK(m->message_id.get() < next_message->message_id.get()) << m->message_id << ' ' << next_message->message_id;
+        LOG_CHECK(m->message_id.get() < next_message->message_id.get())
+            << m->message_id << ' ' << next_message->message_id;
         LOG(INFO) << "Fix have_previous for " << next_message->message_id;
         next_message->have_previous = true;
         attach_message_to_previous(
@@ -14455,7 +14457,7 @@ void MessagesManager::on_get_history_from_database(DialogId dialog_id, MessageId
       if (last_added_message_id.get() < d->first_database_message_id.get() ||
           !d->first_database_message_id.is_valid()) {
         CHECK(next_message != nullptr);
-        CHECK(had_full_history || d->have_full_history)
+        LOG_CHECK(had_full_history || d->have_full_history)
             << had_full_history << ' ' << d->have_full_history << ' ' << next_message->message_id << ' '
             << last_added_message_id << ' ' << d->first_database_message_id << ' ' << debug_first_message_id << ' '
             << d->last_database_message_id << ' ' << debug_last_database_message_id;
@@ -15727,7 +15729,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     pending_message_group_sends_.erase(it);
     return;
   }
-  CHECK(request.finished_count == request.message_ids.size())
+  LOG_CHECK(request.finished_count == request.message_ids.size())
       << request.finished_count << " " << request.message_ids.size();
   pending_message_group_sends_.erase(it);
 
@@ -17640,7 +17642,7 @@ Result<MessageId> MessagesManager::add_local_message(
   bool need_update_dialog_pos = false;
   auto result =
       add_message_to_dialog(d, std::move(m), true, &need_update, &need_update_dialog_pos, "add local message");
-  CHECK(result != nullptr) << message_id << " " << debug_add_message_to_dialog_fail_reason_;
+  LOG_CHECK(result != nullptr) << message_id << " " << debug_add_message_to_dialog_fail_reason_;
 
   if (is_message_auto_read(dialog_id, result->is_outgoing)) {
     if (result->is_outgoing) {
@@ -18604,8 +18606,8 @@ void MessagesManager::send_update_message_content(DialogId dialog_id, MessageId 
                                                   const MessageContent *content, int32 message_date,
                                                   bool is_content_secret, const char *source) const {
   LOG(INFO) << "Send updateMessageContent for " << message_id << " in " << dialog_id << " from " << source;
-  CHECK(have_dialog(dialog_id)) << "Send updateMessageContent in unknown " << dialog_id << " from " << source
-                                << " with load count " << loaded_dialogs_.count(dialog_id);
+  LOG_CHECK(have_dialog(dialog_id)) << "Send updateMessageContent in unknown " << dialog_id << " from " << source
+                                    << " with load count " << loaded_dialogs_.count(dialog_id);
   auto content_object = get_message_content_object(content, td_, message_date, is_content_secret);
   send_closure(
       G()->td(), &Td::send_update,
@@ -18623,7 +18625,7 @@ void MessagesManager::send_update_message_edited(DialogId dialog_id, const Messa
 void MessagesManager::send_update_delete_messages(DialogId dialog_id, vector<int64> &&message_ids, bool is_permanent,
                                                   bool from_cache) const {
   if (!message_ids.empty()) {
-    CHECK(have_dialog(dialog_id)) << "Wrong " << dialog_id << " in send_update_delete_messages";
+    LOG_CHECK(have_dialog(dialog_id)) << "Wrong " << dialog_id << " in send_update_delete_messages";
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateDeleteMessages>(dialog_id.get(), std::move(message_ids), is_permanent,
                                                               from_cache));
@@ -18639,7 +18641,7 @@ void MessagesManager::send_update_new_chat(Dialog *d) {
 
 void MessagesManager::send_update_chat_draft_message(const Dialog *d) {
   CHECK(d != nullptr);
-  CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_draft_message";
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_draft_message";
   on_dialog_updated(d->dialog_id, "send_update_chat_draft_message");
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateChatDraftMessage>(
@@ -18654,7 +18656,8 @@ void MessagesManager::send_update_chat_last_message(Dialog *d, const char *sourc
 
 void MessagesManager::send_update_chat_last_message_impl(const Dialog *d, const char *source) const {
   CHECK(d != nullptr);
-  CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_last_message from " << source;
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_last_message from "
+                                        << source;
   LOG(INFO) << "Send updateChatLastMessage in " << d->dialog_id << " to " << d->last_message_id << " from " << source;
   auto update = make_tl_object<td_api::updateChatLastMessage>(
       d->dialog_id.get(), get_message_object(d->dialog_id, get_message(d, d->last_message_id)),
@@ -18739,7 +18742,8 @@ void MessagesManager::send_update_unread_chat_count(DialogId dialog_id, bool for
 void MessagesManager::send_update_chat_read_inbox(const Dialog *d, bool force, const char *source) {
   CHECK(d != nullptr);
   if (!td_->auth_manager_->is_bot()) {
-    CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_read_inbox from " << source;
+    LOG_CHECK(d->is_update_new_chat_sent)
+        << "Wrong " << d->dialog_id << " in send_update_chat_read_inbox from " << source;
     on_dialog_updated(d->dialog_id, source);
     if (!force && (running_get_difference_ || running_get_channel_difference(d->dialog_id) ||
                    get_channel_difference_to_logevent_id_.count(d->dialog_id) != 0)) {
@@ -18760,7 +18764,7 @@ void MessagesManager::send_update_chat_read_inbox(const Dialog *d, bool force, c
 void MessagesManager::send_update_chat_read_outbox(const Dialog *d) {
   CHECK(d != nullptr);
   if (!td_->auth_manager_->is_bot()) {
-    CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_read_outbox";
+    LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_read_outbox";
     on_dialog_updated(d->dialog_id, "send_update_chat_read_outbox");
     send_closure(
         G()->td(), &Td::send_update,
@@ -18771,7 +18775,7 @@ void MessagesManager::send_update_chat_read_outbox(const Dialog *d) {
 void MessagesManager::send_update_chat_unread_mention_count(const Dialog *d) {
   CHECK(d != nullptr);
   if (!td_->auth_manager_->is_bot()) {
-    CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_unread_mention_count";
+    LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_unread_mention_count";
     LOG(INFO) << "Update unread mention message count in " << d->dialog_id << " to " << d->unread_mention_count;
     on_dialog_updated(d->dialog_id, "send_update_chat_unread_mention_count");
     send_closure(G()->td(), &Td::send_update,
@@ -18903,8 +18907,8 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
   if (date <= 0) {
     LOG(ERROR) << "Receive " << new_message_id << " in " << dialog_id << " with wrong date " << date;
   } else {
-    CHECK(sent_message->date > 0) << old_message_id << ' ' << sent_message->message_id << ' ' << sent_message->date
-                                  << ' ' << date;
+    LOG_CHECK(sent_message->date > 0) << old_message_id << ' ' << sent_message->message_id << ' ' << sent_message->date
+                                      << ' ' << date;
     sent_message->date = date;
     CHECK(d->last_message_id != old_message_id);
   }
@@ -18928,8 +18932,8 @@ FullMessageId MessagesManager::on_send_message_success(int64 random_id, MessageI
 
   bool need_update = true;
   Message *m = add_message_to_dialog(d, std::move(sent_message), true, &need_update, &need_update_dialog_pos, source);
-  CHECK(m != nullptr) << dialog_id << " " << have_input_peer(dialog_id, AccessRights::Read) << " "
-                      << debug_add_message_to_dialog_fail_reason_ << " " << source;
+  LOG_CHECK(m != nullptr) << dialog_id << " " << have_input_peer(dialog_id, AccessRights::Read) << " "
+                          << debug_add_message_to_dialog_fail_reason_ << " " << source;
 
   send_update_message_send_succeeded(d, old_message_id, m);
   if (need_update_dialog_pos) {
@@ -19282,7 +19286,7 @@ MessageId MessagesManager::get_next_message_id(Dialog *d, int32 type) {
 
   int64 base = (last + MessageId::TYPE_MASK + 1) & ~MessageId::TYPE_MASK;
   d->last_assigned_message_id = MessageId(base + type);
-  CHECK(d->last_assigned_message_id.is_valid()) << d->last_assigned_message_id;
+  LOG_CHECK(d->last_assigned_message_id.is_valid()) << d->last_assigned_message_id;
   return d->last_assigned_message_id;
 }
 
@@ -19333,8 +19337,8 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
   bool need_update = false;
   Message *m = add_message_to_dialog(dialog_id, std::move(message), false, &need_update, &need_update_dialog_pos,
                                      "fail_send_message");
-  CHECK(m != nullptr) << "Failed to add failed to send " << new_message_id << " to " << dialog_id << " due to "
-                      << debug_add_message_to_dialog_fail_reason_;
+  LOG_CHECK(m != nullptr) << "Failed to add failed to send " << new_message_id << " to " << dialog_id << " due to "
+                          << debug_add_message_to_dialog_fail_reason_;
 
   LOG(INFO) << "Send updateMessageSendFailed for " << full_message_id;
   d->yet_unsent_message_id_to_persistent_message_id.emplace(old_message_id, m->message_id);
@@ -19475,7 +19479,7 @@ void MessagesManager::set_dialog_is_marked_as_unread(Dialog *d, bool is_marked_a
   on_dialog_updated(d->dialog_id, "set_dialog_is_marked_as_unread");
 
   LOG(INFO) << "Set " << d->dialog_id << " is marked as unread to " << is_marked_as_unread;
-  CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_is_marked_as_unread";
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_is_marked_as_unread";
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateChatIsMarkedAsUnread>(d->dialog_id.get(), is_marked_as_unread));
 
@@ -19523,7 +19527,7 @@ void MessagesManager::set_dialog_pinned_message_id(Dialog *d, MessageId pinned_m
   on_dialog_updated(d->dialog_id, "set_dialog_pinned_message_id");
 
   LOG(INFO) << "Set " << d->dialog_id << " pinned message to " << pinned_message_id;
-  CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_pinned_message_id";
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_pinned_message_id";
   send_closure(G()->td(), &Td::send_update,
                make_tl_object<td_api::updateChatPinnedMessage>(d->dialog_id.get(), pinned_message_id.get()));
 }
@@ -21419,7 +21423,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   // there must be no two recursive calls to add_message_to_dialog
-  CHECK(!d->being_added_message_id.is_valid()) << d->being_added_message_id << " " << message_id << " " << source;
+  LOG_CHECK(!d->being_added_message_id.is_valid()) << d->being_added_message_id << " " << message_id << " " << source;
   d->being_added_message_id = message_id;
 
   if (d->new_secret_chat_notification_id.is_valid()) {
@@ -21865,7 +21869,7 @@ void MessagesManager::add_message_to_database(const Dialog *d, const Message *m,
   CHECK(d != nullptr);
   CHECK(m != nullptr);
   MessageId message_id = m->message_id;
-  CHECK(message_id.is_server() || message_id.is_local()) << source;
+  LOG_CHECK(message_id.is_server() || message_id.is_local()) << source;
 
   LOG(INFO) << "Add " << FullMessageId(d->dialog_id, message_id) << " to database from " << source;
 
@@ -22076,9 +22080,9 @@ void MessagesManager::attach_message_to_previous(Dialog *d, MessageId message_id
   Message *message = *it;
   CHECK(message != nullptr);
   CHECK(message->message_id == message_id);
-  CHECK(message->have_previous) << d->dialog_id << " " << message_id << " " << source;
+  LOG_CHECK(message->have_previous) << d->dialog_id << " " << message_id << " " << source;
   --it;
-  CHECK(*it != nullptr) << d->dialog_id << " " << message_id << " " << source;
+  LOG_CHECK(*it != nullptr) << d->dialog_id << " " << message_id << " " << source;
   LOG(INFO) << "Attach " << message_id << " to the previous " << (*it)->message_id;
   if ((*it)->have_next) {
     message->have_next = true;
@@ -22093,9 +22097,9 @@ void MessagesManager::attach_message_to_next(Dialog *d, MessageId message_id, co
   Message *message = *it;
   CHECK(message != nullptr);
   CHECK(message->message_id == message_id);
-  CHECK(message->have_next) << d->dialog_id << " " << message_id << " " << source;
+  LOG_CHECK(message->have_next) << d->dialog_id << " " << message_id << " " << source;
   ++it;
-  CHECK(*it != nullptr) << d->dialog_id << " " << message_id << " " << source;
+  LOG_CHECK(*it != nullptr) << d->dialog_id << " " << message_id << " " << source;
   LOG(INFO) << "Attach " << message_id << " to the next " << (*it)->message_id;
   if ((*it)->have_previous) {
     message->have_previous = true;
@@ -22472,16 +22476,16 @@ MessageId MessagesManager::get_message_id_by_random_id(Dialog *d, int64 random_i
         debug_add_message_to_dialog_fail_reason_ = "not called";
         Message *m = on_get_message_from_database(d->dialog_id, d, r_value.ok(), "get_message_id_by_random_id");
         if (m != nullptr) {
-          CHECK(m->random_id == random_id)
+          LOG_CHECK(m->random_id == random_id)
               << random_id << " " << m->random_id << " " << d->random_id_to_message_id[random_id] << " "
               << d->random_id_to_message_id[m->random_id] << " " << m->message_id << " " << source << " "
               << m->from_database << get_message(d, m->message_id) << " " << m << " "
               << debug_add_message_to_dialog_fail_reason_;
-          CHECK(d->random_id_to_message_id.count(random_id))
+          LOG_CHECK(d->random_id_to_message_id.count(random_id))
               << source << " " << random_id << " " << m->message_id << " " << m->is_failed_to_send << " "
               << m->is_outgoing << " " << m->from_database << " " << get_message(d, m->message_id) << " " << m << " "
               << debug_add_message_to_dialog_fail_reason_;
-          CHECK(d->random_id_to_message_id[random_id] == m->message_id)
+          LOG_CHECK(d->random_id_to_message_id[random_id] == m->message_id)
               << source << " " << random_id << " " << d->random_id_to_message_id[random_id] << " " << m->message_id
               << " " << m->is_failed_to_send << " " << m->is_outgoing << " " << m->from_database << " "
               << get_message(d, m->message_id) << " " << m << " " << debug_add_message_to_dialog_fail_reason_;
@@ -22891,7 +22895,7 @@ void MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Mes
   CHECK(last_database_message->right == nullptr);
 
   auto message_id = last_database_message->message_id;
-  CHECK(d->last_database_message_id == message_id)
+  LOG_CHECK(d->last_database_message_id == message_id)
       << message_id << " " << d->last_database_message_id << " " << d->debug_set_dialog_last_database_message_id;
 
   if (!have_input_peer(d->dialog_id, AccessRights::Read)) {
@@ -23283,7 +23287,7 @@ MessagesManager::Dialog *MessagesManager::get_dialog_force(DialogId dialog_id) {
   if (r_value.is_ok()) {
     LOG(INFO) << "Loaded " << dialog_id << " from database";
     auto d = on_load_dialog_from_database(dialog_id, r_value.move_as_ok());
-    CHECK(d == nullptr || d->dialog_id == dialog_id) << d->dialog_id << " " << dialog_id;
+    LOG_CHECK(d == nullptr || d->dialog_id == dialog_id) << d->dialog_id << " " << dialog_id;
     return d;
   } else {
     LOG(INFO) << "Failed to load " << dialog_id << " from database: " << r_value.error().message();
@@ -23302,8 +23306,8 @@ unique_ptr<MessagesManager::Dialog> MessagesManager::parse_dialog(DialogId dialo
   if (status.is_error() || !d->dialog_id.is_valid() || d->dialog_id != dialog_id) {
     // can't happen unless database is broken, but has been seen in the wild
     // if dialog_id is invalid, we can't repair the dialog
-    CHECK(dialog_id.is_valid()) << "Can't repair " << dialog_id << ' ' << d->dialog_id << ' ' << status << ' '
-                                << format::as_hex_dump<4>(value.as_slice());
+    LOG_CHECK(dialog_id.is_valid()) << "Can't repair " << dialog_id << ' ' << d->dialog_id << ' ' << status << ' '
+                                    << format::as_hex_dump<4>(value.as_slice());
 
     LOG(ERROR) << "Repair broken " << dialog_id << ' ' << format::as_hex_dump<4>(value.as_slice());
 
@@ -23549,7 +23553,7 @@ void MessagesManager::process_get_channel_difference_updates(
       }
     }
   }
-  CHECK(!running_get_channel_difference(dialog_id)) << '"' << active_get_channel_differencies_[dialog_id] << '"';
+  LOG_CHECK(!running_get_channel_difference(dialog_id)) << '"' << active_get_channel_differencies_[dialog_id] << '"';
 
   if (need_repair_unread_count) {
     repair_channel_server_unread_count(get_dialog(dialog_id));
@@ -23796,7 +23800,7 @@ void MessagesManager::on_get_channel_difference(
 
 void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool success) {
   LOG(INFO) << "After " << (success ? "un" : "") << "successful get channel difference in " << dialog_id;
-  CHECK(!running_get_channel_difference(dialog_id)) << '"' << active_get_channel_differencies_[dialog_id] << '"';
+  LOG_CHECK(!running_get_channel_difference(dialog_id)) << '"' << active_get_channel_differencies_[dialog_id] << '"';
 
   auto logevent_it = get_channel_difference_to_logevent_id_.find(dialog_id);
   if (logevent_it != get_channel_difference_to_logevent_id_.end()) {

@@ -216,7 +216,7 @@ void TdDb::do_close(Promise<> on_finished, bool destroy_flag) {
   mpas.add_promise(PromiseCreator::lambda(
       [promise = std::move(on_finished), sql_connection = std::move(sql_connection_), destroy_flag](Unit) mutable {
         if (sql_connection) {
-          CHECK(sql_connection.unique()) << sql_connection.use_count();
+          LOG_CHECK(sql_connection.unique()) << sql_connection.use_count();
           if (destroy_flag) {
             sql_connection->close_and_destroy();
           } else {

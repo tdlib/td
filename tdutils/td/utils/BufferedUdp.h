@@ -87,7 +87,7 @@ class UdpReader {
       helpers_[i].init_inbound_message(messages_[i]);
     }
     for (size_t i = cnt; i < messages_.size(); i++) {
-      CHECK(messages_[i].data.size() == 2048)
+      LOG_CHECK(messages_[i].data.size() == 2048)
           << " cnt = " << cnt << " i = " << i << " size = " << messages_[i].data.size() << " status = " << status;
     }
     if (status.is_error() && !UdpSocketFd::is_critical_read_error(status)) {

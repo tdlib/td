@@ -151,7 +151,7 @@ tl_object_ptr<td_api::animation> AnimationsManager::get_animation_object(FileId 
   }
 
   auto &animation = animations_[file_id];
-  CHECK(animation != nullptr) << source << " " << file_id << " "
+  LOG_CHECK(animation != nullptr) << source << " " << file_id << " "
                               << static_cast<int32>(td_->file_manager_->get_file_view(file_id).get_type());
   // TODO can we make that function const?
   animation->is_changed = false;
@@ -589,7 +589,7 @@ int32 AnimationsManager::get_saved_animations_hash(const char *source) const {
     CHECK(animation != nullptr);
     auto file_view = td_->file_manager_->get_file_view(animation_id);
     CHECK(file_view.has_remote_location());
-    CHECK(file_view.remote_location().is_document()) << source << " " << file_view.remote_location();
+    LOG_CHECK(file_view.remote_location().is_document()) << source << " " << file_view.remote_location();
     auto id = static_cast<uint64>(file_view.remote_location().get_id());
     numbers.push_back(static_cast<uint32>(id >> 32));
     numbers.push_back(static_cast<uint32>(id & 0xFFFFFFFF));
@@ -619,7 +619,7 @@ void AnimationsManager::send_save_gif_query(FileId animation_id, bool unsave, Pr
   // TODO invokeAfter and log event
   auto file_view = td_->file_manager_->get_file_view(animation_id);
   CHECK(file_view.has_remote_location());
-  CHECK(file_view.remote_location().is_document()) << file_view.remote_location();
+  LOG_CHECK(file_view.remote_location().is_document()) << file_view.remote_location();
   CHECK(!file_view.remote_location().is_web());
   td_->create_handler<SaveGifQuery>(std::move(promise))
       ->send(animation_id, file_view.remote_location().as_input_document(), unsave);

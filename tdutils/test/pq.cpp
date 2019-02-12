@@ -80,13 +80,13 @@ static void test_pq(uint64 first, uint64 second) {
 
   std::string p_str, q_str;
   int err = td::pq_factorize(pq_str, &p_str, &q_str);
-  CHECK(err == 0) << first << " * " << second;
+  LOG_CHECK(err == 0) << first << " * " << second;
 
   BigNum p_res = BigNum::from_binary(p_str);
   BigNum q_res = BigNum::from_binary(q_str);
 
-  CHECK(p_str == p.to_binary()) << td::tag("got", p_res.to_decimal()) << td::tag("expected", first);
-  CHECK(q_str == q.to_binary()) << td::tag("got", q_res.to_decimal()) << td::tag("expected", second);
+  LOG_CHECK(p_str == p.to_binary()) << td::tag("got", p_res.to_decimal()) << td::tag("expected", first);
+  LOG_CHECK(q_str == q.to_binary()) << td::tag("got", q_res.to_decimal()) << td::tag("expected", second);
 }
 #endif
 

@@ -38,7 +38,7 @@ namespace td {
 
 template <class T>
 static void check_td_error(T &result) {
-  CHECK(result->get_id() != td_api::error::ID) << to_string(result);
+  LOG_CHECK(result->get_id() != td_api::error::ID) << to_string(result);
 }
 
 class TestClient : public Actor {
@@ -235,9 +235,9 @@ class DoAuthentication : public Task {
         on_authorization_ready();
         return;
       default:
-        CHECK(false) << "Unexpected authorization state " << to_string(authorization_state);
+        LOG_CHECK(false) << "Unexpected authorization state " << to_string(authorization_state);
     }
-    send_query(std::move(function), [](auto res) { CHECK(res->get_id() == td_api::ok::ID) << to_string(res); });
+    send_query(std::move(function), [](auto res) { LOG_CHECK(res->get_id() == td_api::ok::ID) << to_string(res); });
   }
   void on_authorization_ready() {
     LOG(INFO) << "GOT AUTHORIZED";
@@ -345,7 +345,7 @@ class CheckTestA : public Task {
         auto messageText = move_tl_object_as<td_api::messageText>(message->content_);
         auto text = messageText->text_->text_;
         if (text.substr(0, tag_.size()) == tag_) {
-          CHECK(text > previous_text_) << tag("now", text) << tag("previous", previous_text_);
+          LOG_CHECK(text > previous_text_) << tag("now", text) << tag("previous", previous_text_);
           previous_text_ = text;
           cnt_--;
           LOG(INFO) << "GOT " << tag("text", text) << tag("left", cnt_);

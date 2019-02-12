@@ -73,7 +73,7 @@ void Iocp::subscribe(const NativeFd &native_fd, Callback *callback) {
     auto error = OS_ERROR("CreateIoCompletionPort");
     LOG(FATAL) << error;
   }
-  CHECK(iocp_handle == iocp_handle_.fd()) << iocp_handle << " " << iocp_handle_.fd();
+  LOG_CHECK(iocp_handle == iocp_handle_.fd()) << iocp_handle << " " << iocp_handle_.fd();
 }
 
 void Iocp::post(size_t size, Callback *callback, WSAOVERLAPPED *overlapped) {

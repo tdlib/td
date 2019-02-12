@@ -37,7 +37,7 @@ class OrderedEventsProcessor {
   }
   template <class FromDataT, class FunctionT>
   void add(SeqNo seq_no, FromDataT &&data, FunctionT &&function) {
-    CHECK(seq_no >= begin_) << seq_no << ">=" << begin_;  // or ignore?
+    LOG_CHECK(seq_no >= begin_) << seq_no << ">=" << begin_;  // or ignore?
 
     if (seq_no == begin_) {  // run now
       begin_++;

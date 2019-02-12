@@ -455,7 +455,7 @@ class FullRemoteFileLocation {
 
 #define as_input_web_file_location() as_input_web_file_location_impl(__FILE__, __LINE__)
   tl_object_ptr<telegram_api::inputWebFileLocation> as_input_web_file_location_impl(const char *file, int line) const {
-    CHECK(is_web()) << file << ' ' << line;
+    LOG_CHECK(is_web()) << file << ' ' << line;
     return make_tl_object<telegram_api::inputWebFileLocation>(web().url_, web().access_hash_);
   }
 
@@ -484,15 +484,15 @@ class FullRemoteFileLocation {
 
 #define as_input_document() as_input_document_impl(__FILE__, __LINE__)
   tl_object_ptr<telegram_api::inputDocument> as_input_document_impl(const char *file, int line) const {
-    CHECK(is_common()) << file << ' ' << line;
-    CHECK(is_document()) << file << ' ' << line;
+    LOG_CHECK(is_common()) << file << ' ' << line;
+    LOG_CHECK(is_document()) << file << ' ' << line;
     return make_tl_object<telegram_api::inputDocument>(common().id_, common().access_hash_,
                                                        BufferSlice(FileReferenceView(file_reference_).upload()));
   }
 
 #define as_input_photo() as_input_photo_impl(__FILE__, __LINE__)
   tl_object_ptr<telegram_api::inputPhoto> as_input_photo_impl(const char *file, int line) const {
-    CHECK(is_photo()) << file << ' ' << line;
+    LOG_CHECK(is_photo()) << file << ' ' << line;
     return make_tl_object<telegram_api::inputPhoto>(photo().id_, photo().access_hash_,
                                                     BufferSlice(FileReferenceView(file_reference_).upload()));
   }
@@ -504,7 +504,7 @@ class FullRemoteFileLocation {
 
 #define as_input_secure_file() as_input_secure_file_impl(__FILE__, __LINE__)
   tl_object_ptr<telegram_api::inputSecureFile> as_input_secure_file_impl(const char *file, int line) const {
-    CHECK(is_secure()) << file << ' ' << line;
+    LOG_CHECK(is_secure()) << file << ' ' << line;
     return make_tl_object<telegram_api::inputSecureFile>(common().id_, common().access_hash_);
   }
 

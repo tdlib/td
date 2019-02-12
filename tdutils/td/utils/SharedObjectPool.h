@@ -192,7 +192,7 @@ class SharedObjectPool {
     while (free_queue_reader_.read()) {
       free_cnt++;
     }
-    CHECK(free_cnt == allocated_.size()) << free_cnt << " " << allocated_.size();
+    LOG_CHECK(free_cnt == allocated_.size()) << free_cnt << " " << allocated_.size();
   }
 
   template <class... ArgsT>

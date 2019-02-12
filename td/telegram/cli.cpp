@@ -590,7 +590,7 @@ class CliClient final : public Actor {
     from_json(object, as_json_value).ensure();
     CHECK(object != nullptr);
     auto as_json_str2 = json_encode<std::string>(ToJson(object));
-    CHECK(as_json_str == as_json_str2) << "\n" << tag("a", as_json_str) << "\n" << tag("b", as_json_str2);
+    LOG_CHECK(as_json_str == as_json_str2) << "\n" << tag("a", as_json_str) << "\n" << tag("b", as_json_str2);
     // LOG(INFO) << "on_result [" << generation << "][id=" << id << "] " << as_json_str;
 
     if (generation != generation_) {

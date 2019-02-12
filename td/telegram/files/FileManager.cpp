@@ -761,7 +761,7 @@ Status FileManager::check_local_location(FileNodePtr node) {
 }
 
 FileManager::FileIdInfo *FileManager::get_file_id_info(FileId file_id) {
-  CHECK(0 <= file_id.get() && file_id.get() < static_cast<int32>(file_id_info_.size()))
+  LOG_CHECK(0 <= file_id.get() && file_id.get() < static_cast<int32>(file_id_info_.size()))
       << file_id << " " << file_id_info_.size();
   return &file_id_info_[file_id.get()];
 }
@@ -1344,7 +1344,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
 
   for (auto file_id : other_node->file_ids_) {
     auto file_id_info = get_file_id_info(file_id);
-    CHECK(file_id_info->node_id_ == node_ids[other_node_i])
+    LOG_CHECK(file_id_info->node_id_ == node_ids[other_node_i])
         << node_ids[node_i] << " " << node_ids[other_node_i] << " " << file_id << " " << file_id_info->node_id_;
     file_id_info->node_id_ = node_ids[node_i];
     send_updates_flag |= file_id_info->send_updates_flag_;

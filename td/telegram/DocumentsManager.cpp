@@ -52,7 +52,7 @@ tl_object_ptr<td_api::document> DocumentsManager::get_document_object(FileId fil
 
   LOG(INFO) << "Return document " << file_id << " object";
   auto &document = documents_[file_id];
-  CHECK(document != nullptr) << tag("file_id", file_id);
+  LOG_CHECK(document != nullptr) << tag("file_id", file_id);
   document->is_changed = false;
   return make_tl_object<td_api::document>(document->file_name, document->mime_type,
                                           get_photo_size_object(td_->file_manager_.get(), &document->thumbnail),

@@ -404,19 +404,19 @@ class Result {
     return std::move(status_);
   }
   const T &ok() const {
-    CHECK(status_.is_ok()) << status_;
+    LOG_CHECK(status_.is_ok()) << status_;
     return value_;
   }
   T &ok_ref() {
-    CHECK(status_.is_ok()) << status_;
+    LOG_CHECK(status_.is_ok()) << status_;
     return value_;
   }
   const T &ok_ref() const {
-    CHECK(status_.is_ok()) << status_;
+    LOG_CHECK(status_.is_ok()) << status_;
     return value_;
   }
   T move_as_ok() {
-    CHECK(status_.is_ok()) << status_;
+    LOG_CHECK(status_.is_ok()) << status_;
     return std::move(value_);
   }
 

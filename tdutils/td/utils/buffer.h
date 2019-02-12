@@ -602,7 +602,7 @@ class ChainBufferReader {
   }
 
   ChainBufferReader cut_head(size_t offset) TD_WARN_UNUSED_RESULT {
-    CHECK(offset <= size()) << offset << " " << size();
+    LOG_CHECK(offset <= size()) << offset << " " << size();
     auto it = begin_.clone();
     it.advance(offset);
     return cut_head(std::move(it));

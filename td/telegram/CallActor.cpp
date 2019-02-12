@@ -312,7 +312,7 @@ Status CallActor::do_update_call(telegram_api::phoneCallRequested &call) {
 }
 
 tl_object_ptr<telegram_api::inputPhoneCall> CallActor::get_input_phone_call(const char *source) {
-  CHECK(is_call_id_inited_) << source;
+  LOG_CHECK(is_call_id_inited_) << source;
   return make_tl_object<telegram_api::inputPhoneCall>(call_id_, call_access_hash_);
 }
 

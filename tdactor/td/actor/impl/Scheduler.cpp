@@ -160,7 +160,7 @@ EventGuard::~EventGuard() {
   swap_context(info);
   CHECK(info->is_lite() || save_context_ == info->get_context());
 #ifdef TD_DEBUG
-  CHECK(info->is_lite() || save_log_tag2_ == info->get_name().c_str())
+  LOG_CHECK(info->is_lite() || save_log_tag2_ == info->get_name().c_str())
       << info->is_lite() << " " << info->empty() << " " << info->is_migrating() << " " << save_log_tag2_ << " "
       << info->get_name() << " " << scheduler_->close_flag_;
 #endif
@@ -307,8 +307,8 @@ void Scheduler::register_migrated_actor(ActorInfo *actor_info) {
   VLOG(actor) << "Register migrated actor: " << tag("name", *actor_info) << tag("ptr", actor_info)
               << tag("actor_count", actor_count_);
   actor_count_++;
-  CHECK(actor_info->is_migrating()) << *actor_info << " " << actor_count_ << " " << sched_id_ << " "
-                                    << actor_info->migrate_dest() << " " << actor_info->is_running() << close_flag_;
+  LOG_CHECK(actor_info->is_migrating()) << *actor_info << " " << actor_count_ << " " << sched_id_ << " "
+                                        << actor_info->migrate_dest() << " " << actor_info->is_running() << close_flag_;
   CHECK(sched_id_ == actor_info->migrate_dest());
   // CHECK(!actor_info->is_running());
   actor_info->finish_migrate();
@@ -358,7 +358,7 @@ void Scheduler::do_stop_actor(Actor *actor) {
 }
 void Scheduler::do_stop_actor(ActorInfo *actor_info) {
   CHECK(!actor_info->is_migrating());
-  CHECK(actor_info->migrate_dest() == sched_id_) << actor_info->migrate_dest() << " " << sched_id_;
+  LOG_CHECK(actor_info->migrate_dest() == sched_id_) << actor_info->migrate_dest() << " " << sched_id_;
   ObjectPool<ActorInfo>::OwnerPtr owner_ptr;
   if (!actor_info->is_lite()) {
     EventGuard guard(this, actor_info);
@@ -476,7 +476,7 @@ void Scheduler::run_mailbox() {
   //LOG(ERROR) << *actor_info;
   //cnt++;
   //}
-  //CHECK(cnt == actor_count_) << cnt << " vs " << actor_count_;
+  //LOG_CHECK(cnt == actor_count_) << cnt << " vs " << actor_count_;
 }
 
 Timestamp Scheduler::run_timeout() {

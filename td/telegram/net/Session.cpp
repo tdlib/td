@@ -851,7 +851,7 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
                   << tag("invoke_after", format::as_hex(invoke_after_id));
   net_query->set_message_id(message_id);
   net_query->cancel_slot_.clear_event();
-  CHECK(sent_queries_.find(message_id) == sent_queries_.end()) << message_id;
+  LOG_CHECK(sent_queries_.find(message_id) == sent_queries_.end()) << message_id;
   net_query->debug_unknown = false;
   net_query->debug_ack = 0;
   if (!net_query->cancel_slot_.empty()) {

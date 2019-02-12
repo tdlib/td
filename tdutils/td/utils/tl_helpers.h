@@ -45,15 +45,15 @@
 
 #define END_PARSE_FLAGS()                                                   \
   CHECK(bit_offset_parse < 31);                                             \
-  CHECK((flags_parse & ~((1 << bit_offset_parse) - 1)) == 0)                \
+  LOG_CHECK((flags_parse & ~((1 << bit_offset_parse) - 1)) == 0)            \
       << flags_parse << " " << bit_offset_parse << " " << parser.version(); \
   }                                                                         \
   while (false)
 
-#define END_PARSE_FLAGS_GENERIC()                                                                       \
-  CHECK(bit_offset_parse < 31);                                                                         \
-  CHECK((flags_parse & ~((1 << bit_offset_parse) - 1)) == 0) << flags_parse << " " << bit_offset_parse; \
-  }                                                                                                     \
+#define END_PARSE_FLAGS_GENERIC()                                                                           \
+  CHECK(bit_offset_parse < 31);                                                                             \
+  LOG_CHECK((flags_parse & ~((1 << bit_offset_parse) - 1)) == 0) << flags_parse << " " << bit_offset_parse; \
+  }                                                                                                         \
   while (false)
 
 namespace td {

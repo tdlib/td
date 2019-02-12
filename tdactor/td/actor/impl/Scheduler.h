@@ -104,7 +104,7 @@ ActorOwn<ActorT> Scheduler::register_actor_impl(Slice name, ActorT *actor_ptr, A
 #if TD_THREAD_UNSUPPORTED || TD_EVENTFD_UNSUPPORTED
   sched_id = 0;
 #endif
-  CHECK(sched_id == sched_id_ || (0 <= sched_id && sched_id < static_cast<int32>(outbound_queues_.size()))) << sched_id;
+  LOG_CHECK(sched_id == sched_id_ || (0 <= sched_id && sched_id < static_cast<int32>(outbound_queues_.size()))) << sched_id;
   auto info = actor_info_pool_->create_empty();
   VLOG(actor) << "Create actor: " << tag("name", name) << tag("ptr", *info) << tag("context", context())
               << tag("this", this) << tag("actor_count", actor_count_);
@@ -140,7 +140,7 @@ inline void Scheduler::destroy_actor(ActorInfo *actor_info) {
   VLOG(actor) << "Destroy actor: " << tag("name", *actor_info) << tag("ptr", actor_info)
               << tag("actor_count", actor_count_);
 
-  CHECK(actor_info->migrate_dest() == sched_id_) << actor_info->migrate_dest() << " " << sched_id_;
+  LOG_CHECK(actor_info->migrate_dest() == sched_id_) << actor_info->migrate_dest() << " " << sched_id_;
   cancel_actor_timeout(actor_info);
   actor_info->get_list_node()->remove();
   // called by ObjectPool
