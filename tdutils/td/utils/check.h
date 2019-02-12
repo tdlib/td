@@ -5,13 +5,22 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #pragma once
-#define CHECK(x)                                    \
-  if (!(x)) {                                       \
-    ::td::detail::do_check(#x, __FILE__, __LINE__); \
+#define DUMMY_CHECK(condition) ((void)(condition))
+#define CHECK(condition)                                               \
+  if (!(condition)) {                                                  \
+    ::td::detail::process_check_error(#condition, __FILE__, __LINE__); \
   }
-#define DCHECK(x) CHECK(x)
+
+#ifdef TD_DEBUG
+#define DCHECK CHECK
+#else
+#define DCHECK DUMMY_CHECK
+#endif
+
+#define UNREACHABLE(x) CHECK(false && "unreachable")
+
 namespace td {
 namespace detail {
-void do_check(const char *message, const char *file, int line);
+[[noreturn]] void process_check_error(const char *message, const char *file, int line);
 }
 }  // namespace td

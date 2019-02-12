@@ -100,10 +100,6 @@ inline bool no_return_func() {
 #endif
 // clang-format on
 
-#define UNREACHABLE() \
-  LOG(FATAL);         \
-  ::td::process_fatal_error("Unreachable in " __FILE__ " at " TD_DEFINE_STR(__LINE__))
-
 constexpr int VERBOSITY_NAME(PLAIN) = -1;
 constexpr int VERBOSITY_NAME(FATAL) = 0;
 constexpr int VERBOSITY_NAME(ERROR) = 1;
