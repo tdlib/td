@@ -152,7 +152,7 @@ tl_object_ptr<td_api::animation> AnimationsManager::get_animation_object(FileId 
 
   auto &animation = animations_[file_id];
   LOG_CHECK(animation != nullptr) << source << " " << file_id << " "
-                              << static_cast<int32>(td_->file_manager_->get_file_view(file_id).get_type());
+                                  << static_cast<int32>(td_->file_manager_->get_file_view(file_id).get_type());
   // TODO can we make that function const?
   animation->is_changed = false;
   return make_tl_object<td_api::animation>(animation->duration, animation->dimensions.width,

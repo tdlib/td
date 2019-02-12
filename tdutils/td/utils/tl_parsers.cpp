@@ -22,7 +22,7 @@ void TlParser::set_error(const string &error_message) {
     data = empty_data;
     CHECK(error_pos != std::numeric_limits<size_t>::max());
     LOG_CHECK(data_len == 0) << data_len << " " << left_len << " " << data << " " << &empty_data[0] << " " << error_pos
-                         << " " << error;
+                             << " " << error;
     CHECK(left_len == 0);
   }
 }

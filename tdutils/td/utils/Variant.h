@@ -172,7 +172,7 @@ class Variant {
   void init_empty(T &&t) {
     LOG_CHECK(offset_ == npos) << offset_
 #if TD_CLANG || TD_GCC
-                           << ' ' << __PRETTY_FUNCTION__
+                               << ' ' << __PRETTY_FUNCTION__
 #endif
         ;
     offset_ = offset<T>();

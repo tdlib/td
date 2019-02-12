@@ -105,7 +105,8 @@ ActorOwn<ActorT> Scheduler::register_actor_impl(Slice name, ActorT *actor_ptr, A
 #if TD_THREAD_UNSUPPORTED || TD_EVENTFD_UNSUPPORTED
   sched_id = 0;
 #endif
-  LOG_CHECK(sched_id == sched_id_ || (0 <= sched_id && sched_id < static_cast<int32>(outbound_queues_.size()))) << sched_id;
+  LOG_CHECK(sched_id == sched_id_ || (0 <= sched_id && sched_id < static_cast<int32>(outbound_queues_.size())))
+      << sched_id;
   auto info = actor_info_pool_->create_empty();
   VLOG(actor) << "Create actor: " << tag("name", name) << tag("ptr", *info) << tag("context", context())
               << tag("this", this) << tag("actor_count", actor_count_);

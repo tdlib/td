@@ -19,7 +19,7 @@ NetQueryCreator::Ptr NetQueryCreator::create(uint64 id, const Storer &storer, Dc
   BufferSlice slice(storer.size());
   auto real_size = storer.store(slice.as_slice().ubegin());
   LOG_CHECK(real_size == slice.size()) << real_size << " " << slice.size() << " "
-                                   << format::as_hex_dump<4>(Slice(slice.as_slice()));
+                                       << format::as_hex_dump<4>(Slice(slice.as_slice()));
 
   // TODO: magic constant
   if (slice.size() < (1 << 8)) {
