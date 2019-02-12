@@ -9,7 +9,6 @@
 #include "td/actor/impl/Scheduler-decl.h"
 
 #include "td/utils/common.h"
-#include "td/utils/logging.h"
 #include "td/utils/port/thread.h"
 #include "td/utils/Slice.h"
 #include "td/utils/Time.h"

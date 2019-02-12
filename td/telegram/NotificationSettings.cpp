@@ -9,7 +9,7 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/misc.h"
 
-#include "td/utils/logging.h"
+#include "td/utils/common.h"
 
 #include <limits>
 

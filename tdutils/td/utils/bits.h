@@ -7,7 +7,6 @@
 #pragma once
 
 #include "td/utils/common.h"
-#include "td/utils/logging.h"
 
 #if TD_MSVC
 #include <intrin.h>

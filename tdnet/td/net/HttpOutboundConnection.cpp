@@ -6,10 +6,10 @@
 //
 #include "td/net/HttpOutboundConnection.h"
 
-#include "td/utils/logging.h"
+#include "td/utils/common.h"
 
 namespace td {
-// HttpOutboundConnection implementation
+
 void HttpOutboundConnection::on_query(HttpQueryPtr query) {
   CHECK(!callback_.empty());
   send_closure(callback_, &Callback::handle, std::move(query));

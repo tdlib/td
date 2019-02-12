@@ -9,7 +9,7 @@
 #include "td/actor/impl/EventFull-decl.h"
 #include "td/actor/impl/Scheduler-decl.h"
 
-#include "td/utils/logging.h"
+#include "td/utils/common.h"
 
 #include <utility>
 

@@ -17,6 +17,7 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/utils/format.h"
+#include "td/utils/logging.h"
 #include "td/utils/port/Clocks.h"
 #include "td/utils/tl_helpers.h"
 

@@ -6,8 +6,6 @@
 //
 #include "td/utils/port/thread_local.h"
 
-#include "td/utils/logging.h"
-
 namespace td {
 
 namespace detail {

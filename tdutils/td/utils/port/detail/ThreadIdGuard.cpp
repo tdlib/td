@@ -6,7 +6,7 @@
 //
 #include "td/utils/port/detail/ThreadIdGuard.h"
 
-#include "td/utils/logging.h"
+#include "td/utils/common.h"
 #include "td/utils/port/thread_local.h"
 
 #include <mutex>

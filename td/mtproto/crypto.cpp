@@ -9,8 +9,8 @@
 #include "td/mtproto/mtproto_api.h"
 
 #include "td/utils/as.h"
+#include "td/utils/common.h"
 #include "td/utils/crypto.h"
-#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Random.h"
 #include "td/utils/ScopeGuard.h"

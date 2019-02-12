@@ -9,8 +9,6 @@
 #include "td/mtproto/HttpTransport.h"
 #include "td/mtproto/TcpTransport.h"
 
-#include "td/utils/logging.h"
-
 namespace td {
 namespace mtproto {
 

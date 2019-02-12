@@ -16,7 +16,6 @@
 #include "td/telegram/net/NetQuery.h"
 
 #include "td/utils/common.h"
-#include "td/utils/logging.h"
 #include "td/utils/Time.h"
 
 #include <array>

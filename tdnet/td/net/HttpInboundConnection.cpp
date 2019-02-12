@@ -8,10 +8,10 @@
 
 #include "td/net/SslStream.h"
 
-#include "td/utils/logging.h"
+#include "td/utils/common.h"
 
 namespace td {
-// HttpInboundConnection implementation
+
 HttpInboundConnection::HttpInboundConnection(SocketFd fd, size_t max_post_size, size_t max_files, int32 idle_timeout,
                                              ActorShared<Callback> callback)
     : HttpConnectionBase(State::Read, std::move(fd), SslStream(), max_post_size, max_files, idle_timeout)

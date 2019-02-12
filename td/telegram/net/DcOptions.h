@@ -12,7 +12,6 @@
 
 #include "td/utils/common.h"
 #include "td/utils/format.h"
-#include "td/utils/logging.h"
 #include "td/utils/port/IPAddress.h"
 #include "td/utils/Slice.h"
 #include "td/utils/StringBuilder.h"

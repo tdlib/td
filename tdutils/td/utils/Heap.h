@@ -7,7 +7,6 @@
 #pragma once
 
 #include "td/utils/common.h"
-#include "td/utils/logging.h"
 
 namespace td {
 
@@ -81,7 +80,7 @@ class KHeap {
   void check() const {
     for (size_t i = 0; i < array_.size(); i++) {
       for (size_t j = i * K + 1; j < i * K + 1 + K && j < array_.size(); j++) {
-        LOG_CHECK(array_[i].key_ <= array_[j].key_) << i << " " << j;
+        CHECK(array_[i].key_ <= array_[j].key_);
       }
     }
   }

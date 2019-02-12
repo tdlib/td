@@ -9,7 +9,6 @@
 #include "td/telegram/DialogId.h"
 
 #include "td/utils/common.h"
-#include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"

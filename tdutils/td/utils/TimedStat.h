@@ -6,7 +6,7 @@
 //
 #pragma once
 
-#include "td/utils/logging.h"
+#include "td/utils/common.h"
 
 #include <utility>
 
