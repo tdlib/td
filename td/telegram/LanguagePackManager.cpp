@@ -263,6 +263,7 @@ void LanguagePackManager::on_language_pack_version_changed(bool is_base, int32 n
     return;
   }
 
+  LOG(INFO) << (is_base ? "Base" : "Main") << " language pack vesrion has changed to " << new_version;
   Language *language = get_language(database_, language_pack_, language_code_);
   int32 version = language == nullptr ? static_cast<int32>(-1) : language->version_.load();
   if (version == -1) {
@@ -296,6 +297,8 @@ void LanguagePackManager::on_language_pack_version_changed(bool is_base, int32 n
     return;
   }
 
+  LOG(INFO) << (is_base ? "Base" : "Main") << " language pack " << language_code << " vesrion has changed to "
+            << new_version;
   std::lock_guard<std::mutex> lock(language->mutex_);
   if (language->has_get_difference_query_) {
     return;
@@ -380,21 +383,27 @@ void LanguagePackManager::inc_generation() {
   G()->shared_config().set_option_empty("base_language_pack_version");
 
   if (!language_pack_.empty() && !language_code_.empty()) {
+    LOG(INFO) << "Add main language " << language_code_;
     CHECK(check_language_code_name(language_code_));
     auto language = add_language(database_, language_pack_, language_code_);
     on_language_pack_version_changed(false, std::numeric_limits<int32>::max());
 
-    std::lock_guard<std::mutex> lock(language->mutex_);
-    base_language_code_ = language->base_language_code_;
+    {
+      std::lock_guard<std::mutex> lock(language->mutex_);
+      base_language_code_ = language->base_language_code_;
+    }
     if (!check_language_code_name(base_language_code_)) {
       LOG(ERROR) << "Have invalid base language pack ID \"" << base_language_code_ << '"';
       base_language_code_.clear();
     }
     if (!base_language_code_.empty()) {
+      CHECK(base_language_code_ != language_code_);
+      LOG(INFO) << "Add base language " << base_language_code_;
       add_language(database_, language_pack_, base_language_code_);
       on_language_pack_version_changed(true, std::numeric_limits<int32>::max());
     }
   }
+  LOG(INFO) << "Finished to apply new language pack";
 }
 
 LanguagePackManager::Language *LanguagePackManager::get_language(LanguageDatabase *database,
@@ -485,20 +494,21 @@ LanguagePackManager::Language *LanguagePackManager::add_language(LanguageDatabas
         auto &info = pack->custom_language_pack_infos_[lang.first];
         info.name_ = std::move(all_infos[0]);
         info.native_name_ = std::move(all_infos[1]);
-        if (all_infos.size() >= 2) {
+        if (all_infos.size() > 2) {
           CHECK(all_infos.size() == 10);
           info.base_language_code_ = std::move(all_infos[2]);
           info.plural_code_ = std::move(all_infos[3]);
           info.is_official_ = as_bool(all_infos[4]);
           info.is_rtl_ = as_bool(all_infos[5]);
           info.is_beta_ = as_bool(all_infos[6]);
-          info.is_from_database_ = true;
           info.total_string_count_ = to_integer<int32>(all_infos[7]);
           info.translated_string_count_ = to_integer<int32>(all_infos[8]);
           info.translation_url_ = std::move(all_infos[9]);
         }
+        info.is_from_database_ = true;
       }
       if (need_drop_server) {
+        LOG(INFO) << "Drop ald server language pack info cache";
         pack->pack_kv_.erase("!server");
       }
     }
@@ -808,6 +818,7 @@ void LanguagePackManager::save_server_language_pack_infos(LanguagePack *pack) {
     return;
   }
 
+  LOG(INFO) << "Save changes server language pack infos";
   vector<string> all_strings;
   all_strings.reserve(2 * pack->server_language_pack_infos_.size());
   for (auto &info : pack->server_language_pack_infos_) {
