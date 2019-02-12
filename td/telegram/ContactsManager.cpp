@@ -9720,7 +9720,7 @@ void ContactsManager::on_upload_profile_photo(FileId file_id, tl_object_ptr<tele
   uploaded_profile_photos_.erase(it);
 
   FileView file_view = td_->file_manager_->get_file_view(file_id);
-  if (file_view.has_remote_location()) {
+  if (file_view.has_remote_location() && input_file == nullptr) {
     if (file_view.remote_location().is_web()) {
       // TODO reupload
       promise.set_error(Status::Error(400, "Can't use web photo as profile photo"));

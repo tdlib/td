@@ -222,7 +222,7 @@ tl_object_ptr<telegram_api::InputMedia> VideosManager::get_input_media(
   if (file_view.is_encrypted()) {
     return nullptr;
   }
-  if (file_view.has_remote_location() && !file_view.remote_location().is_web()) {
+  if (file_view.has_remote_location() && !file_view.remote_location().is_web() && input_file == nullptr) {
     int32 flags = 0;
     if (ttl != 0) {
       flags |= telegram_api::inputMediaDocument::TTL_SECONDS_MASK;
@@ -237,7 +237,6 @@ tl_object_ptr<telegram_api::InputMedia> VideosManager::get_input_media(
     }
     return make_tl_object<telegram_api::inputMediaDocumentExternal>(flags, file_view.url(), ttl);
   }
-  CHECK(!file_view.has_remote_location());
 
   if (input_file != nullptr) {
     const Video *video = get_video(file_id);
@@ -277,6 +276,8 @@ tl_object_ptr<telegram_api::InputMedia> VideosManager::get_input_media(
     return make_tl_object<telegram_api::inputMediaUploadedDocument>(
         flags, false /*ignored*/, std::move(input_file), std::move(input_thumbnail), mime_type, std::move(attributes),
         std::move(added_stickers), ttl);
+  } else {
+    CHECK(!file_view.has_remote_location());
   }
 
   return nullptr;

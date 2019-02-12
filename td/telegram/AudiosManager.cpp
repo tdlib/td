@@ -218,13 +218,12 @@ tl_object_ptr<telegram_api::InputMedia> AudiosManager::get_input_media(
   if (file_view.is_encrypted()) {
     return nullptr;
   }
-  if (file_view.has_remote_location() && !file_view.remote_location().is_web()) {
+  if (file_view.has_remote_location() && !file_view.remote_location().is_web() && input_file == nullptr) {
     return make_tl_object<telegram_api::inputMediaDocument>(0, file_view.remote_location().as_input_document(), 0);
   }
   if (file_view.has_url()) {
     return make_tl_object<telegram_api::inputMediaDocumentExternal>(0, file_view.url(), 0);
   }
-  CHECK(!file_view.has_remote_location());
 
   if (input_file != nullptr) {
     const Audio *audio = get_audio(file_id);
@@ -248,6 +247,8 @@ tl_object_ptr<telegram_api::InputMedia> AudiosManager::get_input_media(
     return make_tl_object<telegram_api::inputMediaUploadedDocument>(
         flags, false /*ignored*/, std::move(input_file), std::move(input_thumbnail), mime_type, std::move(attributes),
         vector<tl_object_ptr<telegram_api::InputDocument>>(), 0);
+  } else {
+    CHECK(!file_view.has_remote_location());
   }
 
   return nullptr;
