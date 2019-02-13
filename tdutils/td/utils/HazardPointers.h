@@ -19,7 +19,11 @@ class HazardPointers {
   explicit HazardPointers(size_t threads_n) : threads_(threads_n) {
     for (auto &data : threads_) {
       for (auto &ptr : data.hazard) {
+#if TD_GCC && GCC_VERSION <= 40902
+        ptr = nullptr;
+#else
         std::atomic_init(&ptr, static_cast<T *>(nullptr));
+#endif
       }
     }
   }
