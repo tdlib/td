@@ -19,6 +19,7 @@ class HazardPointers {
   explicit HazardPointers(size_t threads_n) : threads_(threads_n) {
     for (auto &data : threads_) {
       for (auto &ptr : data.hazard) {
+// workaround for https://gcc.gnu.org/bugzilla/show_bug.cgi?id=64658
 #if TD_GCC && GCC_VERSION <= 40902
         ptr = nullptr;
 #else
