@@ -499,6 +499,7 @@ bool UpdatesManager::is_acceptable_message(const telegram_api::Message *message_
         case telegram_api::messageActionScreenshotTaken::ID:
         case telegram_api::messageActionSecureValuesSent::ID:
         case telegram_api::messageActionSecureValuesSentMe::ID:
+        case telegram_api::messageActionContactSignUp::ID:
           break;
         case telegram_api::messageActionChatCreate::ID: {
           auto chat_create = static_cast<const telegram_api::messageActionChatCreate *>(action);
@@ -1435,11 +1436,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadHistoryOutb
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateServiceNotification> update, bool /*force_apply*/) {
   CHECK(update != nullptr);
   td_->messages_manager_->on_update_service_notification(std::move(update));
-}
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateContactRegistered> update, bool /*force_apply*/) {
-  CHECK(update != nullptr);
-  td_->messages_manager_->on_update_contact_registered(std::move(update));
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateReadChannelInbox> update, bool /*force_apply*/) {

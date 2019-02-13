@@ -280,8 +280,6 @@ class MessagesManager : public Actor {
 
   void on_update_service_notification(tl_object_ptr<telegram_api::updateServiceNotification> &&update);
 
-  void on_update_contact_registered(tl_object_ptr<telegram_api::updateContactRegistered> &&update);
-
   void on_update_new_channel_message(tl_object_ptr<telegram_api::updateNewChannelMessage> &&update);
 
   void on_update_edit_channel_message(tl_object_ptr<telegram_api::updateEditChannelMessage> &&update);

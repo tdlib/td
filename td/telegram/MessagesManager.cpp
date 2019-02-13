@@ -4758,61 +4758,6 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
   }
 }
 
-void MessagesManager::on_update_contact_registered(tl_object_ptr<telegram_api::updateContactRegistered> &&update) {
-  if (update->date_ <= 0) {
-    LOG(ERROR) << "Receive wrong date " << update->date_ << " in updateContactRegistered";
-    return;
-  }
-  UserId user_id(update->user_id_);
-  if (!user_id.is_valid()) {
-    LOG(ERROR) << "Receive invalid " << user_id << " in updateContactRegistered";
-    return;
-  }
-
-  if (!td_->auth_manager_->is_bot() &&
-      !G()->shared_config().get_option_boolean("disable_contact_registered_notifications")) {
-    DialogId dialog_id(user_id);
-    force_create_dialog(dialog_id, "on_update_contact_registered");
-    Dialog *d = get_dialog(dialog_id);
-    CHECK(d != nullptr);
-
-    if (d->has_contact_registered_message) {
-      LOG(INFO) << "Ignore duplicate updateContactRegistered about " << user_id;
-      return;
-    }
-    if (d->last_message_id.is_valid()) {
-      auto m = get_message(d, d->last_message_id);
-      CHECK(m != nullptr);
-      if (m->content->get_type() == MessageContentType::ContactRegistered) {
-        LOG(INFO) << "Ignore duplicate updateContactRegistered about " << user_id;
-        return;
-      }
-    }
-
-    auto new_message = make_unique<Message>();
-    new_message->message_id = get_next_local_message_id(d);
-    new_message->random_y = get_random_y(new_message->message_id);
-    new_message->sender_user_id = user_id;
-    new_message->date = update->date_;
-    new_message->content = create_contact_registered_message_content();
-    new_message->have_previous = true;
-    new_message->have_next = true;
-
-    bool need_update = true;
-    bool need_update_dialog_pos = false;
-
-    const Message *m = add_message_to_dialog(d, std::move(new_message), true, &need_update, &need_update_dialog_pos,
-                                             "on_update_contact_registered");
-    if (m != nullptr && need_update) {
-      send_update_new_message(d, m);
-    }
-
-    if (need_update_dialog_pos) {
-      send_update_chat_last_message(d, "on_update_contact_registered");
-    }
-  }
-}
-
 void MessagesManager::on_update_new_channel_message(tl_object_ptr<telegram_api::updateNewChannelMessage> &&update) {
   int new_pts = update->pts_;
   int pts_count = update->pts_count_;
@@ -8050,6 +7995,10 @@ int32 MessagesManager::calc_new_unread_count(Dialog *d, MessageId max_message_id
 }
 
 void MessagesManager::repair_server_unread_count(DialogId dialog_id, int32 unread_count) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   LOG(INFO) << "Repair server unread count in " << dialog_id << " from " << unread_count;
   create_actor<SleepActor>("RepairServerUnreadCountSleepActor", 0.2,
                            PromiseCreator::lambda([actor_id = actor_id(this), dialog_id](Result<Unit> result) {
@@ -8063,6 +8012,9 @@ void MessagesManager::repair_channel_server_unread_count(Dialog *d) {
   CHECK(d != nullptr);
   CHECK(d->dialog_id.get_type() == DialogType::Channel);
 
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
   if (d->last_read_inbox_message_id.get() >= d->last_new_message_id.get()) {
     // all messages are already read
     return;

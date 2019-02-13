@@ -212,7 +212,6 @@ class UpdatesManager : public Actor {
   void on_update(tl_object_ptr<telegram_api::updateChatAdmins> update, bool /*force_apply*/);
 
   void on_update(tl_object_ptr<telegram_api::updateServiceNotification> update, bool force_apply);
-  void on_update(tl_object_ptr<telegram_api::updateContactRegistered> update, bool /*force_apply*/);
 
   void on_update(tl_object_ptr<telegram_api::updateDcOptions> update, bool /*force_apply*/);
 

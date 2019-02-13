@@ -422,7 +422,7 @@ class MessageChatSetTtl : public MessageContent {
 
 class MessageUnsupported : public MessageContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 1;
+  static constexpr int32 CURRENT_VERSION = 2;
   int32 version = CURRENT_VERSION;
 
   MessageUnsupported() = default;
@@ -4118,6 +4118,10 @@ unique_ptr<MessageContent> get_action_message_content(Td *td, tl_object_ptr<tele
       return td::make_unique<MessagePassportDataReceived>(
           get_encrypted_secure_values(td->file_manager_.get(), std::move(secure_values->values_)),
           get_encrypted_secure_credentials(std::move(secure_values->credentials_)));
+    }
+    case telegram_api::messageActionContactSignUp::ID: {
+      LOG_IF(ERROR, td->auth_manager_->is_bot()) << "Receive ContactRegistered in " << owner_dialog_id;
+      return td::make_unique<MessageContactRegistered>();
     }
     default:
       UNREACHABLE();

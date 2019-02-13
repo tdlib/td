@@ -8870,7 +8870,7 @@ ContactsManager::ChannelFull *ContactsManager::get_channel_full(ChannelId channe
   }
 
   auto channel_full = &p->second;
-  if (channel_full->is_expired()) {
+  if (channel_full->is_expired() && !td_->auth_manager_->is_bot()) {
     auto input_channel = get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_get_channel_full_query(channel_id, std::move(input_channel), Auto());
