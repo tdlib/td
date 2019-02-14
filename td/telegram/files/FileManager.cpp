@@ -45,18 +45,18 @@ constexpr int64 MAX_FILE_SIZE = 1500 * (1 << 20) /* 1500MB */;
 
 NewRemoteFileLocation::NewRemoteFileLocation(RemoteFileLocation remote, FileLocationSource source) {
   switch (remote.type()) {
-    case RemoteFileLocation::Type::Empty: {
-      return;
-    }
-    case RemoteFileLocation::Type::Partial: {
+    case RemoteFileLocation::Type::Empty:
+      break;
+    case RemoteFileLocation::Type::Partial:
       partial = make_unique<PartialRemoteFileLocation>(remote.partial());
-      return;
-    }
-    case RemoteFileLocation::Type::Full: {
+      break;
+    case RemoteFileLocation::Type::Full:
       full = remote.full();
       full_source = source;
       is_full_alive = true;
-    }
+      break;
+    default:
+      UNREACHABLE();
   }
 }
 
@@ -67,7 +67,7 @@ RemoteFileLocation NewRemoteFileLocation::partial_or_empty() const {
   return {};
 }
 
-int VERBOSITY_NAME(update_file) = VERBOSITY_NAME(DEBUG);
+int VERBOSITY_NAME(update_file) = VERBOSITY_NAME(WARNING);
 
 FileNode *FileNodePtr::operator->() const {
   return get();
@@ -165,9 +165,8 @@ void FileNode::set_local_location(const LocalFileLocation &local, int64 ready_si
 void FileNode::set_new_remote_location(NewRemoteFileLocation new_remote) {
   if (new_remote.full) {
     if (remote_.full && remote_.full.value() == new_remote.full.value()) {
-      if (remote_.full.value().get_access_hash() == new_remote.full.value().get_access_hash() &&
-          remote_.full.value().get_raw_file_reference() == new_remote.full.value().get_raw_file_reference()) {
-      } else {
+      if (remote_.full.value().get_access_hash() != new_remote.full.value().get_access_hash() ||
+          remote_.full.value().get_raw_file_reference() != new_remote.full.value().get_raw_file_reference()) {
         on_pmc_changed();
       }
     } else {
@@ -178,6 +177,7 @@ void FileNode::set_new_remote_location(NewRemoteFileLocation new_remote) {
     remote_.is_full_alive = new_remote.is_full_alive;
   } else {
     if (remote_.full) {
+      VLOG(update_file) << "File " << main_file_id_ << " has lost remote location";
       remote_.full = {};
       remote_.is_full_alive = false;
       on_changed();
@@ -192,12 +192,15 @@ void FileNode::set_new_remote_location(NewRemoteFileLocation new_remote) {
 }
 void FileNode::delete_partial_remote_location() {
   if (remote_.partial) {
+    VLOG(update_file) << "File " << main_file_id_ << " has lost partial remote location";
     remote_.partial.reset();
     on_changed();
   }
 }
+
 void FileNode::set_partial_remote_location(const PartialRemoteFileLocation &remote, int64 ready_size) {
   if (remote_.is_full_alive) {
+    VLOG(update_file) << "File " << main_file_id_ << " remote is still alive, so there is NO reason to update partial";
     return;
   }
   if (remote_.ready_size != ready_size) {
@@ -207,11 +210,19 @@ void FileNode::set_partial_remote_location(const PartialRemoteFileLocation &remo
     on_info_changed();
   }
   if (remote_.partial && *remote_.partial == remote) {
+    VLOG(update_file) << "Partial location of " << main_file_id_ << " is NOT changed";
     return;
   }
+  if (!remote_.partial && remote.ready_part_count_ == 0) {
+    // empty partial remote is equal to empty remote
+    VLOG(update_file) << "Partial location of " << main_file_id_
+                      << " is still empty, so there is NO reason to update it";
+    return;
+  }
+
+  VLOG(update_file) << "File " << main_file_id_ << " partial location has changed to " << remote;
   remote_.partial = make_unique<PartialRemoteFileLocation>(remote);
   on_changed();
-  return;
 }
 
 bool FileNode::delete_file_reference(Slice file_reference) {
@@ -325,9 +336,11 @@ void FileNode::on_changed() {
   on_pmc_changed();
   on_info_changed();
 }
+
 void FileNode::on_info_changed() {
   info_changed_flag_ = true;
 }
+
 void FileNode::on_pmc_changed() {
   pmc_changed_flag_ = true;
 }
@@ -1578,7 +1591,7 @@ void FileManager::flush_to_pmc(FileNodePtr node, bool new_remote, bool new_local
   if (data.local_.type() == LocalFileLocation::Type::Full) {
     prepare_path_for_pmc(data.local_.full().file_type_, data.local_.full().path_);
   }
-  if (node->remote_.is_full_alive) {
+  if (node->remote_.full) {
     data.remote_ = RemoteFileLocation(node->remote_.full.value());
   } else if (node->remote_.partial) {
     data.remote_ = RemoteFileLocation(*node->remote_.partial);
@@ -1937,7 +1950,6 @@ class ForceUploadActor : public Actor {
       , upload_order_(upload_order)
       , parent_(std::move(parent)) {
   }
-  virtual ~ForceUploadActor() = default;
 
  private:
   FileId file_id_;
@@ -1949,9 +1961,7 @@ class ForceUploadActor : public Actor {
   int attempt_{0};
   class UploadCallback : public FileManager::UploadCallback {
    public:
-    virtual ~UploadCallback() {
-    }
-    UploadCallback(ActorId<ForceUploadActor> callback) : callback_(std::move(callback)) {
+    explicit UploadCallback(ActorId<ForceUploadActor> callback) : callback_(std::move(callback)) {
     }
     void on_upload_ok(FileId file_id, tl_object_ptr<telegram_api::InputFile> input_file) override {
       send_closure(callback_, &ForceUploadActor::on_upload_ok, std::move(input_file));
@@ -2003,7 +2013,7 @@ class ForceUploadActor : public Actor {
     }
   }
 
-  bool is_ready() {
+  bool is_ready() const {
     return G()->file_manager().get_actor_unsafe()->get_file_view(file_id_).has_active_upload_remote_location();
   }
 
@@ -2017,12 +2027,16 @@ class ForceUploadActor : public Actor {
       callback_->on_upload_error(file_id_, std::move(error));
       callback_.reset();
       stop();
+    } else {
+      is_active_ = false;
+      loop();
     }
   }
 
   auto create_callback() {
     return std::make_shared<UploadCallback>(actor_id(this));
   }
+
   void loop() override {
     if (is_active_) {
       return;
@@ -2031,7 +2045,7 @@ class ForceUploadActor : public Actor {
     is_active_ = true;
     attempt_++;
     send_closure(G()->file_manager(), &FileManager::resume_upload, file_id_, std::vector<int>(), create_callback(),
-                 new_priority_, upload_order_, true);
+                 new_priority_, upload_order_, attempt_ == 2);
   }
 
   void tear_down() override {
@@ -2049,7 +2063,7 @@ void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std:
         .release();
     return;
   }
-  LOG(INFO) << "Resume upload of file " << file_id << " with priority " << new_priority;
+  LOG(INFO) << "Resume upload of file " << file_id << " with priority " << new_priority << " and force = " << force;
 
   auto node = get_sync_file_node(file_id);
   if (!node) {
@@ -2538,7 +2552,7 @@ Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> re
     return FileId();
   }
 
-  auto file_node = get_file_node(file_id);
+  auto file_node = get_sync_file_node(file_id);  // we need full data about sent files
   if (!file_node) {
     return Status::Error(6, "File not found");
   }
