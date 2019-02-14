@@ -334,7 +334,9 @@ class BlockUserQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(WARNING) << "Receive error for blockUser: " << status;
+    if (!G()->close_flag()) {
+      LOG(WARNING) << "Receive error for blockUser: " << status;
+    }
     status.ignore();
   }
 };
@@ -356,7 +358,9 @@ class UnblockUserQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(WARNING) << "Receive error for unblockUser: " << status;
+    if (!G()->close_flag()) {
+      LOG(WARNING) << "Receive error for unblockUser: " << status;
+    }
     status.ignore();
   }
 };
@@ -461,7 +465,9 @@ class GetContactsStatusesQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(ERROR) << "Receive error for getContactsStatuses: " << status;
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Receive error for getContactsStatuses: " << status;
+    }
   }
 };
 
@@ -7237,6 +7243,9 @@ bool ContactsManager::on_get_channel_error(ChannelId channel_id, const Status &s
   }
   if (status.message() == CSlice("BOT_METHOD_INVALID")) {
     LOG(ERROR) << "Receive BOT_METHOD_INVALID from " << source;
+    return true;
+  }
+  if (G()->close_flag()) {
     return true;
   }
   if (status.message() == "CHANNEL_PRIVATE" || status.message() == "CHANNEL_PUBLIC_GROUP_NA") {

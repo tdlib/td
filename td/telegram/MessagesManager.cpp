@@ -181,7 +181,9 @@ class GetDialogUnreadMarksQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(ERROR) << "Receive error for GetDialogUnreadMarksQuery: " << status;
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Receive error for GetDialogUnreadMarksQuery: " << status;
+    }
     status.ignore();
   }
 };
@@ -439,7 +441,9 @@ class SearchPublicDialogsQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(ERROR) << "Receive error for SearchPublicDialogsQuery: " << status;
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Receive error for SearchPublicDialogsQuery: " << status;
+    }
     td->messages_manager_->on_failed_public_dialogs_search(query_, std::move(status));
   }
 };
@@ -801,7 +805,9 @@ class ClearAllDraftsQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(ERROR) << "Receive error for ClearAllDraftsQuery: " << status;
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Receive error for ClearAllDraftsQuery: " << status;
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -884,7 +890,9 @@ class ReorderPinnedDialogsQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(ERROR) << "Receive error for ReorderPinnedDialogsQuery: " << status;
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Receive error for ReorderPinnedDialogsQuery: " << status;
+    }
     td->messages_manager_->on_update_pinned_dialogs();
     promise_.set_error(std::move(status));
   }
@@ -1017,7 +1025,9 @@ class ReadMessagesContentsQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(ERROR) << "Receive error for read message contents: " << status;
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Receive error for read message contents: " << status;
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -2143,7 +2153,7 @@ class UploadMediaQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(WARNING) << "Receive error for uploadMedia: " << status;
+    LOG(INFO) << "Receive error for uploadMedia: " << status;
     if (G()->close_flag() && G()->parameters().use_message_db) {
       // do not send error, message will be re-sent
       return;
@@ -2742,7 +2752,9 @@ class DeleteMessagesQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(ERROR) << "Receive error for delete messages: " << status;
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Receive error for delete messages: " << status;
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -3003,7 +3015,9 @@ class ResetNotifySettingsQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(ERROR) << "Receive error for reset notification settings: " << status;
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Receive error for reset notification settings: " << status;
+    }
     promise_.set_error(std::move(status));
   }
 };
@@ -17667,6 +17681,9 @@ bool MessagesManager::on_get_dialog_error(DialogId dialog_id, const Status &stat
   }
   if (status.message() == CSlice("BOT_METHOD_INVALID")) {
     LOG(ERROR) << "Receive BOT_METHOD_INVALID from " << source;
+    return true;
+  }
+  if (G()->close_flag()) {
     return true;
   }
 

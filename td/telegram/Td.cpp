@@ -320,7 +320,9 @@ class SetBotUpdatesStatusQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(WARNING) << "Receive error for SetBotUpdatesStatus: " << status;
+    if (!G()->close_flag()) {
+      LOG(WARNING) << "Receive error for SetBotUpdatesStatus: " << status;
+    }
     status.ignore();
   }
 };
@@ -349,7 +351,7 @@ class UpdateStatusQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    if (status.code() != NetQuery::Cancelled) {
+    if (status.code() != NetQuery::Cancelled && !G()->close_flag()) {
       LOG(ERROR) << "Receive error for UpdateStatusQuery: " << status;
     }
     status.ignore();

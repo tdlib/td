@@ -76,7 +76,9 @@ class GetAllStickersQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(ERROR) << "Receive error for get all stickers: " << status;
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Receive error for get all stickers: " << status;
+    }
     td->stickers_manager_->on_get_installed_sticker_sets_failed(is_masks_, std::move(status));
   }
 };
@@ -102,7 +104,9 @@ class SearchStickersQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(ERROR) << "Receive error for search stickers: " << status;
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Receive error for search stickers: " << status;
+    }
     td->stickers_manager_->on_find_stickers_fail(emoji_, std::move(status));
   }
 };
@@ -250,7 +254,9 @@ class GetRecentStickersQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(ERROR) << "Receive error for get recent " << (is_attached_ ? "attached " : "") << "stickers: " << status;
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Receive error for get recent " << (is_attached_ ? "attached " : "") << "stickers: " << status;
+    }
     td->stickers_manager_->on_get_recent_stickers_failed(is_repair_, is_attached_, std::move(status));
   }
 };
@@ -316,7 +322,9 @@ class SaveRecentStickerQuery : public Td::ResultHandler {
       return;
     }
 
-    LOG(ERROR) << "Receive error for save recent " << (is_attached_ ? "attached " : "") << "sticker: " << status;
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Receive error for save recent " << (is_attached_ ? "attached " : "") << "sticker: " << status;
+    }
     td->stickers_manager_->reload_recent_stickers(is_attached_, true);
     promise_.set_error(std::move(status));
   }
@@ -358,7 +366,9 @@ class ClearRecentStickersQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(ERROR) << "Receive error for clear recent " << (is_attached_ ? "attached " : "") << "stickers: " << status;
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Receive error for clear recent " << (is_attached_ ? "attached " : "") << "stickers: " << status;
+    }
     td->stickers_manager_->reload_recent_stickers(is_attached_, true);
     promise_.set_error(std::move(status));
   }
@@ -385,7 +395,9 @@ class GetFavedStickersQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(ERROR) << "Receive error for get favorite stickers: " << status;
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Receive error for get favorite stickers: " << status;
+    }
     td->stickers_manager_->on_get_favorite_stickers_failed(is_repair_, std::move(status));
   }
 };
@@ -444,7 +456,9 @@ class FaveStickerQuery : public Td::ResultHandler {
       return;
     }
 
-    LOG(ERROR) << "Receive error for fave sticker: " << status;
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Receive error for fave sticker: " << status;
+    }
     td->stickers_manager_->reload_favorite_stickers(true);
     promise_.set_error(std::move(status));
   }
@@ -477,7 +491,9 @@ class ReorderStickerSetsQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(ERROR) << "Receive error for ReorderStickerSetsQuery: " << status;
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Receive error for ReorderStickerSetsQuery: " << status;
+    }
     td->stickers_manager_->reload_installed_sticker_sets(is_masks_, true);
   }
 };
@@ -539,7 +555,9 @@ class SearchStickerSetsQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(ERROR) << "Receive error for search sticker sets: " << status;
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Receive error for search sticker sets: " << status;
+    }
     td->stickers_manager_->on_find_sticker_sets_fail(query_, std::move(status));
   }
 };
@@ -632,7 +650,9 @@ class ReadFeaturedStickerSetsQuery : public Td::ResultHandler {
   }
 
   void on_error(uint64 id, Status status) override {
-    LOG(ERROR) << "Receive error for ReadFeaturedStickerSetsQuery: " << status;
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Receive error for ReadFeaturedStickerSetsQuery: " << status;
+    }
     td->stickers_manager_->reload_featured_sticker_sets(true);
   }
 };
