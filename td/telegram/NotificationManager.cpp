@@ -15,6 +15,7 @@
 #include "td/telegram/StateManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/mtproto/AuthKey.h"
 #include "td/mtproto/PacketInfo.h"
@@ -38,6 +39,35 @@
 namespace td {
 
 int VERBOSITY_NAME(notifications) = VERBOSITY_NAME(INFO);
+
+class SetContactSignUpNotificationQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+
+ public:
+  explicit SetContactSignUpNotificationQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(bool is_disabled) {
+    send_query(G()->net_query_creator().create(
+        create_storer(telegram_api::account_setContactSignUpNotification(is_disabled))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::account_setContactSignUpNotification>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    if (!G()->close_flag()) {
+      LOG(ERROR) << "Receive error for set contact sign up notification: " << status;
+    }
+    promise_.set_error(std::move(status));
+  }
+};
 
 NotificationManager::NotificationManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
   flush_pending_notifications_timeout_.set_callback(on_flush_pending_notifications_timeout_callback);
@@ -114,7 +144,25 @@ ActiveNotificationsUpdate as_active_notifications_update(const td_api::updateAct
 
 }  // namespace
 
+string NotificationManager::get_is_contact_registered_notifications_synchronized_key() {
+  return "notifications_contact_registered_sync_state";
+}
+
 void NotificationManager::start_up() {
+  disable_contact_registered_notifications_ =
+      G()->shared_config().get_option_boolean("disable_contact_registered_notifications");
+  auto sync_state = G()->td_db()->get_binlog_pmc()->get(get_is_contact_registered_notifications_synchronized_key());
+  if (sync_state.empty()) {
+    sync_state = "00";
+  }
+  contact_registered_notifications_sync_state_ = static_cast<SyncState>(sync_state[0] - '0');
+  VLOG(notifications) << "Loaded disable_contact_registered_notifications = "
+                      << disable_contact_registered_notifications_ << " in state " << sync_state;
+  if (contact_registered_notifications_sync_state_ != SyncState::Completed ||
+      static_cast<bool>(sync_state[1] - '0') != disable_contact_registered_notifications_) {
+    run_contact_registered_notifications_sync();
+  }
+
   if (is_disabled()) {
     return;
   }
@@ -2055,6 +2103,62 @@ void NotificationManager::on_notification_default_delay_changed() {
   notification_default_delay_ms_ =
       G()->shared_config().get_option_integer("notification_default_delay_ms", DEFAULT_DEFAULT_DELAY_MS);
   VLOG(notifications) << "Set notification_default_delay_ms to " << notification_default_delay_ms_;
+}
+
+void NotificationManager::on_disable_contact_registered_notifications_changed() {
+  auto disable_contact_registered_notifications =
+      G()->shared_config().get_option_boolean("disable_contact_registered_notifications");
+
+  if (disable_contact_registered_notifications == disable_contact_registered_notifications_) {
+    return;
+  }
+
+  disable_contact_registered_notifications_ = disable_contact_registered_notifications;
+  if (contact_registered_notifications_sync_state_ == SyncState::Completed) {
+    run_contact_registered_notifications_sync();
+  }
+}
+
+void NotificationManager::set_contact_registered_notifications_sync_state(SyncState new_state) {
+  contact_registered_notifications_sync_state_ = new_state;
+  string value;
+  value += static_cast<char>(static_cast<int32>(new_state) + '0');
+  value += static_cast<char>(static_cast<int32>(disable_contact_registered_notifications_) + '0');
+  G()->td_db()->get_binlog_pmc()->set(get_is_contact_registered_notifications_synchronized_key(), value);
+}
+
+void NotificationManager::run_contact_registered_notifications_sync() {
+  auto is_disabled = disable_contact_registered_notifications_;
+  if (contact_registered_notifications_sync_state_ == SyncState::NotSynced && !is_disabled) {
+    set_contact_registered_notifications_sync_state(SyncState::Completed);
+    return;
+  }
+  if (contact_registered_notifications_sync_state_ != SyncState::Pending) {
+    set_contact_registered_notifications_sync_state(SyncState::Pending);
+  }
+
+  VLOG(notifications) << "Send SetContactSignUpNotificationQuery with " << is_disabled;
+  auto promise = PromiseCreator::lambda([actor_id = actor_id(this), is_disabled](Result<Unit> result) {
+    send_closure(actor_id, &NotificationManager::on_contact_registered_notifications_sync, is_disabled,
+                 std::move(result));
+  });
+  td_->create_handler<SetContactSignUpNotificationQuery>(std::move(promise))->send(is_disabled);
+}
+
+void NotificationManager::on_contact_registered_notifications_sync(bool is_disabled, Result<Unit> result) {
+  CHECK(contact_registered_notifications_sync_state_ == SyncState::Pending);
+  if (is_disabled != disable_contact_registered_notifications_) {
+    return run_contact_registered_notifications_sync();
+  }
+  if (result.is_ok()) {
+    // everything is synchronized
+    set_contact_registered_notifications_sync_state(SyncState::Completed);
+  } else {
+    // let's resend the query forever
+    if (!G()->close_flag()) {
+      run_contact_registered_notifications_sync();
+    }
+  }
 }
 
 void NotificationManager::process_push_notification(string payload, Promise<Unit> &&promise) {

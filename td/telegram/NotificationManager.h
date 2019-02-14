@@ -89,6 +89,8 @@ class NotificationManager : public Actor {
 
   void on_notification_default_delay_changed();
 
+  void on_disable_contact_registered_notifications_changed();
+
   void process_push_notification(string payload, Promise<Unit> &&promise);
 
   static Result<int64> get_push_receiver_id(string push);
@@ -145,6 +147,8 @@ class NotificationManager : public Actor {
     double pending_notifications_flush_time = 0;
     vector<PendingNotification> pending_notifications;
   };
+
+  enum class SyncState : int32 { NotSynced, Pending, Completed };
 
   using NotificationGroups = std::map<NotificationGroupKey, NotificationGroup>;
 
@@ -231,6 +235,14 @@ class NotificationManager : public Actor {
 
   void on_pending_notification_update_count_changed(int32 diff, int32 notification_group_id, const char *source);
 
+  static string get_is_contact_registered_notifications_synchronized_key();
+
+  void set_contact_registered_notifications_sync_state(SyncState new_state);
+
+  void run_contact_registered_notifications_sync();
+
+  void on_contact_registered_notifications_sync(bool is_disabled, Result<Unit> result);
+
   NotificationId current_notification_id_;
   NotificationGroupId current_notification_group_id_;
 
@@ -245,6 +257,9 @@ class NotificationManager : public Actor {
   int32 pending_notification_update_count_ = 0;
 
   NotificationGroupKey last_loaded_notification_group_key_;
+
+  SyncState contact_registered_notifications_sync_state_ = SyncState::NotSynced;
+  bool disable_contact_registered_notifications_ = false;
 
   bool is_destroyed_ = false;
 

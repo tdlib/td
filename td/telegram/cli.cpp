@@ -806,8 +806,8 @@ class CliClient final : public Actor {
                                                           td_api::make_object<td_api::optionValueInteger>(1)));
       send_request(td_api::make_object<td_api::setOption>("use_storage_optimizer",
                                                           td_api::make_object<td_api::optionValueBoolean>(false)));
-      send_request(
-          td_api::make_object<td_api::setOption>("online", td_api::make_object<td_api::optionValueBoolean>(true)));
+      send_request(td_api::make_object<td_api::setOption>(
+          "use_pfs", td_api::make_object<td_api::optionValueBoolean>(std::time(nullptr) / 86400 % 2 == 0)));
 
       send_request(td_api::make_object<td_api::setNetworkType>(td_api::make_object<td_api::networkTypeWiFi>()));
       send_request(td_api::make_object<td_api::getNetworkStatistics>());
@@ -824,6 +824,8 @@ class CliClient final : public Actor {
       bad_parameters->api_hash_ = api_hash_;
       send_request(td_api::make_object<td_api::setTdlibParameters>(std::move(bad_parameters)));
     }
+    send_request(td_api::make_object<td_api::setOption>("disable_contact_registered_notifications",
+                                                        td_api::make_object<td_api::optionValueBoolean>(true)));
   }
 
   void init() {
