@@ -79,6 +79,8 @@ class NotificationManager : public Actor {
 
   void remove_call_notification(DialogId dialog_id, CallId call_id);
 
+  void get_disable_contact_registered_notifications(Promise<Unit> &&promise);
+
   void on_notification_group_count_max_changed(bool send_updates);
 
   void on_notification_group_size_max_changed();
@@ -90,6 +92,8 @@ class NotificationManager : public Actor {
   void on_notification_default_delay_changed();
 
   void on_disable_contact_registered_notifications_changed();
+
+  void on_get_disable_contact_registered_notifications(bool is_disabled);
 
   void process_push_notification(string payload, Promise<Unit> &&promise);
 
