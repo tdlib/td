@@ -780,9 +780,8 @@ void UpdatesManager::on_get_updates_state(tl_object_ptr<telegram_api::updates_st
   }
 }
 
-std::unordered_set<int64> UpdatesManager::get_sent_messages_random_ids(const telegram_api::Updates *updates_ptr) {
-  std::unordered_set<int64> random_ids;
-  const vector<tl_object_ptr<telegram_api::Update>> *updates;
+const vector<tl_object_ptr<telegram_api::Update>> *UpdatesManager::get_updates(
+    const telegram_api::Updates *updates_ptr) {
   switch (updates_ptr->get_id()) {
     case telegram_api::updatesTooLong::ID:
     case telegram_api::updateShortMessage::ID:
@@ -790,24 +789,27 @@ std::unordered_set<int64> UpdatesManager::get_sent_messages_random_ids(const tel
     case telegram_api::updateShort::ID:
     case telegram_api::updateShortSentMessage::ID:
       LOG(ERROR) << "Receive " << oneline(to_string(*updates_ptr)) << " instead of updates";
-      return random_ids;
-    case telegram_api::updatesCombined::ID: {
-      updates = &static_cast<const telegram_api::updatesCombined *>(updates_ptr)->updates_;
-      break;
-    }
-    case telegram_api::updates::ID: {
-      updates = &static_cast<const telegram_api::updates *>(updates_ptr)->updates_;
-      break;
-    }
+      return nullptr;
+    case telegram_api::updatesCombined::ID:
+      return &static_cast<const telegram_api::updatesCombined *>(updates_ptr)->updates_;
+    case telegram_api::updates::ID:
+      return &static_cast<const telegram_api::updates *>(updates_ptr)->updates_;
     default:
       UNREACHABLE();
-      return random_ids;
+      return nullptr;
   }
-  for (auto &update : *updates) {
-    if (update->get_id() == telegram_api::updateMessageID::ID) {
-      int64 random_id = static_cast<const telegram_api::updateMessageID *>(update.get())->random_id_;
-      if (!random_ids.insert(random_id).second) {
-        LOG(ERROR) << "Receive twice updateMessageID for " << random_id;
+}
+
+std::unordered_set<int64> UpdatesManager::get_sent_messages_random_ids(const telegram_api::Updates *updates_ptr) {
+  std::unordered_set<int64> random_ids;
+  auto updates = get_updates(updates_ptr);
+  if (updates != nullptr) {
+    for (auto &update : *updates) {
+      if (update->get_id() == telegram_api::updateMessageID::ID) {
+        int64 random_id = static_cast<const telegram_api::updateMessageID *>(update.get())->random_id_;
+        if (!random_ids.insert(random_id).second) {
+          LOG(ERROR) << "Receive twice updateMessageID for " << random_id;
+        }
       }
     }
   }
@@ -817,39 +819,45 @@ std::unordered_set<int64> UpdatesManager::get_sent_messages_random_ids(const tel
 vector<const tl_object_ptr<telegram_api::Message> *> UpdatesManager::get_new_messages(
     const telegram_api::Updates *updates_ptr) {
   vector<const tl_object_ptr<telegram_api::Message> *> messages;
-  const vector<tl_object_ptr<telegram_api::Update>> *updates;
-  switch (updates_ptr->get_id()) {
-    case telegram_api::updatesTooLong::ID:
-    case telegram_api::updateShortMessage::ID:
-    case telegram_api::updateShortChatMessage::ID:
-    case telegram_api::updateShort::ID:
-    case telegram_api::updateShortSentMessage::ID:
-      LOG(ERROR) << "Receive " << oneline(to_string(*updates_ptr)) << " instead of updates";
-      return messages;
-    case telegram_api::updatesCombined::ID: {
-      updates = &static_cast<const telegram_api::updatesCombined *>(updates_ptr)->updates_;
-      break;
-    }
-    case telegram_api::updates::ID: {
-      updates = &static_cast<const telegram_api::updates *>(updates_ptr)->updates_;
-      break;
-    }
-    default:
-      UNREACHABLE();
-      return messages;
-  }
-  for (auto &update : *updates) {
-    auto constructor_id = update->get_id();
-    if (constructor_id == telegram_api::updateNewMessage::ID) {
-      messages.emplace_back(&static_cast<const telegram_api::updateNewMessage *>(update.get())->message_);
-    } else if (constructor_id == telegram_api::updateNewChannelMessage::ID) {
-      messages.emplace_back(&static_cast<const telegram_api::updateNewChannelMessage *>(update.get())->message_);
+  auto updates = get_updates(updates_ptr);
+  if (updates != nullptr) {
+    for (auto &update : *updates) {
+      auto constructor_id = update->get_id();
+      if (constructor_id == telegram_api::updateNewMessage::ID) {
+        messages.emplace_back(&static_cast<const telegram_api::updateNewMessage *>(update.get())->message_);
+      } else if (constructor_id == telegram_api::updateNewChannelMessage::ID) {
+        messages.emplace_back(&static_cast<const telegram_api::updateNewChannelMessage *>(update.get())->message_);
+      }
     }
   }
   return messages;
 }
 
-vector<DialogId> UpdatesManager::get_chats(const telegram_api::Updates *updates_ptr) {
+vector<DialogId> UpdatesManager::get_update_notify_settings_dialog_ids(const telegram_api::Updates *updates_ptr) {
+  vector<DialogId> dialog_ids;
+  auto updates = get_updates(updates_ptr);
+  if (updates != nullptr) {
+    dialog_ids.reserve(updates->size());
+    for (auto &update : *updates) {
+      DialogId dialog_id;
+      if (update->get_id() == telegram_api::updateNotifySettings::ID) {
+        auto notify_peer = static_cast<const telegram_api::updateNotifySettings *>(update.get())->peer_.get();
+        if (notify_peer->get_id() == telegram_api::notifyPeer::ID) {
+          dialog_id = DialogId(static_cast<const telegram_api::notifyPeer *>(notify_peer)->peer_);
+        }
+      }
+
+      if (dialog_id.is_valid()) {
+        dialog_ids.push_back(dialog_id);
+      } else {
+        LOG(ERROR) << "Receive unexpected " << to_string(update);
+      }
+    }
+  }
+  return dialog_ids;
+}
+
+vector<DialogId> UpdatesManager::get_chat_dialog_ids(const telegram_api::Updates *updates_ptr) {
   const vector<tl_object_ptr<telegram_api::Chat>> *chats = nullptr;
   switch (updates_ptr->get_id()) {
     case telegram_api::updatesTooLong::ID:

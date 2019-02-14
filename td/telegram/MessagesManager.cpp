@@ -1932,7 +1932,7 @@ class SendMultiMediaActor : public NetActorOnce {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for sendMultiMedia for " << format::as_array(random_ids_) << ": " << to_string(ptr);
 
-    auto sent_random_ids = td->updates_manager_->get_sent_messages_random_ids(ptr.get());
+    auto sent_random_ids = UpdatesManager::get_sent_messages_random_ids(ptr.get());
     bool is_result_wrong = false;
     auto sent_random_ids_size = sent_random_ids.size();
     for (auto &random_id : random_ids_) {
@@ -1950,7 +1950,7 @@ class SendMultiMediaActor : public NetActorOnce {
       is_result_wrong = true;
     }
     if (!is_result_wrong) {
-      auto sent_messages = td->updates_manager_->get_new_messages(ptr.get());
+      auto sent_messages = UpdatesManager::get_new_messages(ptr.get());
       if (sent_random_ids_size != sent_messages.size()) {
         is_result_wrong = true;
       }
@@ -2562,7 +2562,7 @@ class ForwardMessagesActor : public NetActorOnce {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for forwardMessages for " << format::as_array(random_ids_) << ": " << to_string(ptr);
-    auto sent_random_ids = td->updates_manager_->get_sent_messages_random_ids(ptr.get());
+    auto sent_random_ids = UpdatesManager::get_sent_messages_random_ids(ptr.get());
     bool is_result_wrong = false;
     auto sent_random_ids_size = sent_random_ids.size();
     for (auto &random_id : random_ids_) {
@@ -2580,7 +2580,7 @@ class ForwardMessagesActor : public NetActorOnce {
       is_result_wrong = true;
     }
     if (!is_result_wrong) {
-      auto sent_messages = td->updates_manager_->get_new_messages(ptr.get());
+      auto sent_messages = UpdatesManager::get_new_messages(ptr.get());
       if (sent_random_ids_size != sent_messages.size()) {
         is_result_wrong = true;
       }
@@ -2843,6 +2843,47 @@ class GetDialogNotifySettingsQuery : public Td::ResultHandler {
   void on_error(uint64 id, Status status) override {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetDialogNotifySettingsQuery");
     td->messages_manager_->on_get_dialog_notification_settings_query_finished(dialog_id_, std::move(status));
+  }
+};
+
+class GetNotifySettingsExceptionsQuery : public Td::ResultHandler {
+  Promise<vector<DialogId>> promise_;
+
+ public:
+  explicit GetNotifySettingsExceptionsQuery(Promise<vector<DialogId>> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(NotificationSettingsScope scope, bool filter_scope, bool compare_sound) {
+    // +account.getNotifyExceptions flags:# compare_sound:flags.1?true peer:flags.0?InputNotifyPeer = Updates;
+
+    int32 flags = 0;
+    tl_object_ptr<telegram_api::InputNotifyPeer> input_notify_peer;
+    if (filter_scope) {
+      flags |= telegram_api::account_getNotifyExceptions::PEER_MASK;
+      input_notify_peer = get_input_notify_peer(scope);
+    }
+    if (compare_sound) {
+      flags |= telegram_api::account_getNotifyExceptions::COMPARE_SOUND_MASK;
+    }
+    send_query(G()->net_query_creator().create(create_storer(
+        telegram_api::account_getNotifyExceptions(flags, false /* ignored */, std::move(input_notify_peer)))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::account_getNotifyExceptions>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto updates_ptr = result_ptr.move_as_ok();
+    auto dialog_ids = UpdatesManager::get_update_notify_settings_dialog_ids(updates_ptr.get());
+    td->updates_manager_->on_get_updates(std::move(updates_ptr));
+
+    promise_.set_value(std::move(dialog_ids));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    promise_.set_error(std::move(status));
   }
 };
 
@@ -12863,6 +12904,12 @@ int32 MessagesManager::get_scope_mute_until(DialogId dialog_id) const {
   }
 }
 
+void MessagesManager::get_dialog_notification_settings_exceptions(NotificationSettingsScope scope, bool filter_scope,
+                                                                  bool compare_sound,
+                                                                  Promise<vector<DialogId>> &&promise) {
+  td_->create_handler<GetNotifySettingsExceptionsQuery>(std::move(promise))->send(scope, filter_scope, compare_sound);
+}
+
 const ScopeNotificationSettings *MessagesManager::get_scope_notification_settings(NotificationSettingsScope scope,
                                                                                   Promise<Unit> &&promise) {
   const ScopeNotificationSettings *notification_settings = get_scope_notification_settings(scope);
@@ -18780,8 +18827,8 @@ void MessagesManager::check_send_message_result(int64 random_id, DialogId dialog
                                                 const telegram_api::Updates *updates_ptr, const char *source) {
   CHECK(updates_ptr != nullptr);
   CHECK(source != nullptr);
-  auto sent_messages = td_->updates_manager_->get_new_messages(updates_ptr);
-  auto sent_messages_random_ids = td_->updates_manager_->get_sent_messages_random_ids(updates_ptr);
+  auto sent_messages = UpdatesManager::get_new_messages(updates_ptr);
+  auto sent_messages_random_ids = UpdatesManager::get_sent_messages_random_ids(updates_ptr);
   if (sent_messages.size() != 1u || sent_messages_random_ids.size() != 1u ||
       *sent_messages_random_ids.begin() != random_id || get_message_dialog_id(*sent_messages[0]) != dialog_id) {
     LOG(ERROR) << "Receive wrong result for sending message with random_id " << random_id << " from " << source
@@ -19503,8 +19550,8 @@ void MessagesManager::set_dialog_pinned_message_id(Dialog *d, MessageId pinned_m
 
 void MessagesManager::on_create_new_dialog_success(int64 random_id, tl_object_ptr<telegram_api::Updates> &&updates,
                                                    DialogType expected_type, Promise<Unit> &&promise) {
-  auto sent_messages = td_->updates_manager_->get_new_messages(updates.get());
-  auto sent_messages_random_ids = td_->updates_manager_->get_sent_messages_random_ids(updates.get());
+  auto sent_messages = UpdatesManager::get_new_messages(updates.get());
+  auto sent_messages_random_ids = UpdatesManager::get_sent_messages_random_ids(updates.get());
   if (sent_messages.size() != 1u || sent_messages_random_ids.size() != 1u) {
     LOG(ERROR) << "Receive wrong result for create group or channel chat " << oneline(to_string(updates));
     return on_create_new_dialog_fail(random_id, Status::Error(500, "Unsupported server response"), std::move(promise));

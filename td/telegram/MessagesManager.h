@@ -519,7 +519,8 @@ class MessagesManager : public Actor {
   td_api::object_ptr<td_api::updateScopeNotificationSettings> get_update_scope_notification_settings_object(
       NotificationSettingsScope scope) const;
 
-  const DialogNotificationSettings *get_dialog_notification_settings(DialogId dialog_id, Promise<Unit> &&promise);
+  void get_dialog_notification_settings_exceptions(NotificationSettingsScope scope, bool filter_scope,
+                                                   bool compare_sound, Promise<vector<DialogId>> &&promise);
 
   const ScopeNotificationSettings *get_scope_notification_settings(NotificationSettingsScope scope,
                                                                    Promise<Unit> &&promise);

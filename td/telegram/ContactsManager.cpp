@@ -1505,7 +1505,7 @@ class ImportDialogInviteLinkQuery : public Td::ResultHandler {
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for importChatInvite: " << to_string(ptr);
 
-    auto dialog_ids = td->updates_manager_->get_chats(ptr.get());
+    auto dialog_ids = UpdatesManager::get_chat_dialog_ids(ptr.get());
     if (dialog_ids.size() != 1u) {
       LOG(ERROR) << "Receive wrong result for ImportDialogInviteLinkQuery: " << to_string(ptr);
       return on_error(id, Status::Error(500, "Internal Server Error"));

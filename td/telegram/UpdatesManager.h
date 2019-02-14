@@ -38,11 +38,14 @@ class UpdatesManager : public Actor {
 
   void on_get_difference(tl_object_ptr<telegram_api::updates_Difference> &&difference_ptr);
 
-  std::unordered_set<int64> get_sent_messages_random_ids(const telegram_api::Updates *updates_ptr);
+  static std::unordered_set<int64> get_sent_messages_random_ids(const telegram_api::Updates *updates_ptr);
 
-  vector<const tl_object_ptr<telegram_api::Message> *> get_new_messages(const telegram_api::Updates *updates_ptr);
+  static vector<const tl_object_ptr<telegram_api::Message> *> get_new_messages(
+      const telegram_api::Updates *updates_ptr);
 
-  vector<DialogId> get_chats(const telegram_api::Updates *updates_ptr);
+  static vector<DialogId> get_update_notify_settings_dialog_ids(const telegram_api::Updates *updates_ptr);
+
+  static vector<DialogId> get_chat_dialog_ids(const telegram_api::Updates *updates_ptr);
 
   void get_difference(const char *source);
 
@@ -175,6 +178,8 @@ class UpdatesManager : public Actor {
   void before_get_difference(bool is_initial);
 
   void after_get_difference();
+
+  static const vector<tl_object_ptr<telegram_api::Update>> *get_updates(const telegram_api::Updates *updates_ptr);
 
   bool is_acceptable_message_entities(const vector<tl_object_ptr<telegram_api::MessageEntity>> &message_entities) const;
 

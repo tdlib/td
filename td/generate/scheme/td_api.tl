@@ -3047,6 +3047,9 @@ getChatAdministrators chat_id:int53 = Users;
 clearAllDraftMessages exclude_secret_chats:Bool = Ok;
 
 
+//@description Returns list of chats with non-default notification settings @scope If specified, only chats from the specified scope will be returned @compare_sound If true, also chats with non-default sound will be returned
+getChatNotificationSettingsExceptions scope:NotificationSettingsScope compare_sound:Bool = Chats;
+
 //@description Returns the notification settings for chats of a given type @scope Types of chats for which to return the notification settings information
 getScopeNotificationSettings scope:NotificationSettingsScope = ScopeNotificationSettings;
 

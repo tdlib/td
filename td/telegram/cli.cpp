@@ -886,6 +886,9 @@ class CliClient final : public Actor {
   }
 
   static tl_object_ptr<td_api::NotificationSettingsScope> get_notification_settings_scope(Slice scope) {
+    if (scope.empty()) {
+      return nullptr;
+    }
     if (scope == "channels" || scope == "ch") {
       return make_tl_object<td_api::notificationSettingsScopeChannelChats>();
     }
@@ -3397,6 +3400,9 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::readAllChatMentions>(as_chat_id(chat_id)));
     } else if (op == "dpp") {
       send_request(make_tl_object<td_api::deleteProfilePhoto>(to_integer<int64>(args)));
+    } else if (op == "gcnse" || op == "gcnses") {
+      send_request(make_tl_object<td_api::getChatNotificationSettingsExceptions>(get_notification_settings_scope(args),
+                                                                                 op == "gcnses"));
     } else if (op == "gsns") {
       send_request(make_tl_object<td_api::getScopeNotificationSettings>(get_notification_settings_scope(args)));
     } else if (op == "scns" || op == "ssns") {

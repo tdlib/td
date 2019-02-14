@@ -2086,6 +2086,40 @@ class GetUserProfilePhotosRequest : public RequestActor<> {
   }
 };
 
+class GetChatNotificationSettingsExceptionsRequest : public RequestActor<vector<DialogId>> {
+  NotificationSettingsScope scope_;
+  bool filter_scope_;
+  bool compare_sound_;
+
+  vector<DialogId> dialog_ids_;
+
+  void do_run(Promise<vector<DialogId>> &&promise) override {
+    if (get_tries() < 2) {
+      promise.set_value(std::move(dialog_ids_));
+      return;
+    }
+    td->messages_manager_->get_dialog_notification_settings_exceptions(scope_, filter_scope_, compare_sound_,
+                                                                       std::move(promise));
+  }
+
+  void do_set_result(vector<DialogId> &&result) override {
+    dialog_ids_ = std::move(result);
+  }
+
+  void do_send_result() override {
+    send_result(MessagesManager::get_chats_object(dialog_ids_));
+  }
+
+ public:
+  GetChatNotificationSettingsExceptionsRequest(ActorShared<Td> td, uint64 request_id, NotificationSettingsScope scope,
+                                               bool filter_scope, bool compare_sound)
+      : RequestActor(std::move(td), request_id)
+      , scope_(scope)
+      , filter_scope_(filter_scope)
+      , compare_sound_(compare_sound) {
+  }
+};
+
 class GetScopeNotificationSettingsRequest : public RequestActor<> {
   NotificationSettingsScope scope_;
 
@@ -6117,6 +6151,17 @@ void Td::on_request(uint64 id, td_api::addSavedAnimation &request) {
 void Td::on_request(uint64 id, td_api::removeSavedAnimation &request) {
   CHECK_IS_USER();
   CREATE_REQUEST(RemoveSavedAnimationRequest, std::move(request.animation_));
+}
+
+void Td::on_request(uint64 id, const td_api::getChatNotificationSettingsExceptions &request) {
+  CHECK_IS_USER();
+  bool filter_scope = false;
+  NotificationSettingsScope scope = NotificationSettingsScope::Private;
+  if (request.scope_ != nullptr) {
+    filter_scope = true;
+    scope = get_notification_settings_scope(request.scope_);
+  }
+  CREATE_REQUEST(GetChatNotificationSettingsExceptionsRequest, scope, filter_scope, request.compare_sound_);
 }
 
 void Td::on_request(uint64 id, const td_api::getScopeNotificationSettings &request) {
