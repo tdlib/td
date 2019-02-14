@@ -17,10 +17,9 @@ const sleep = ms => new Promise(res => setTimeout(res, ms));
  * Differences from TDLib API<br>
  * 1. updateFatalError error:string = Update; <br>
  * 3. file <..as in td_api..> idb_key:string = File; <br>
- * 2. setJsVerbosity verbosity:int = Ok; // currenly no result will be sent <br>
+ * 2. setJsLogVerbosityLevel new_verbosity_level:string = Ok;
  * 3. inputFileBlob blob:<javascript blob> = InputFile;<br>
  * <br>
- * 4. setVerbosity verbosity:int = Ok; // Deprecated
  */
 class TdClient {
   /**
@@ -32,20 +31,20 @@ class TdClient {
    * Create TdClient
    * @param {Object} options - Options
    * @param {updateCallback} options.onUpdate - Callback for all updates. Could also be set explicitly right after TdClient construction.
-   * @param {number} [options.jsVerbosity='info'] - Verbosity level for javascript part of the code (error, warning, info, log, debug)
-   * @param {number} [options.verbosity=5] - Verbosity level for tdlib
-   * @param {string} [options.prefix=tdlib] Currently only one instance of TdClient per a prefix is allowed. All but one created instances will be automatically closed. Usually, the newest instace is kept alive.
-   * @param {boolean} [options.isBackground=false] - When choosing which instace to keep alive, we prefer instance with isBackground=false
+   * @param {number} [options.jsLogVerbosityLevel='info'] - Verbosity level for javascript part of the code (error, warning, info, log, debug)
+   * @param {number} [options.logVerbosityLevel=2] - Verbosity level for tdlib
+   * @param {string} [options.prefix=tdlib] Currently only one instance of TdClient per a prefix is allowed. All but one created instances will be automatically closed. Usually, the newest instance is kept alive.
+   * @param {boolean} [options.isBackground=false] - When choosing which instance to keep alive, we prefer instance with isBackground=false
    * @param {string} [options.mode=wasm] - Type of tdlib build to use. 'asmjs' for asm.js and 'wasm' for WebAssembly.
    * @param {boolean} [options.readOnly=false] - Open tdlib in read-only mode. Changes to tdlib database won't be persisted. For debug only.
    */
   constructor(options) {
-    log.setVerbosity(options.jsVerbosity);
+    log.setVerbosity(options.jsLogVerbosityLevel);
     this.worker = new MyWorker();
     var self = this;
     this.worker.onmessage = function(e) {
       let response = e.data;
-      log.info(
+      log.debug(
         'receive from worker: ',
         JSON.parse(
           JSON.stringify(response, (key, value) => {
@@ -115,11 +114,11 @@ class TdClient {
         query_id: this.query_id
       };
     }
-    if (query['@type'] === 'setJsVerbosity') {
-      log.setVerbosity(query.verbosity);
+    if (query['@type'] === 'setJsLogVerbosityLevel') {
+      log.setVerbosity(query.new_verbosity_level);
     }
 
-    log.info('send to worker: ', query);
+    log.debug('send to worker: ', query);
     this.worker.postMessage(query);
     return new Promise((resolve, reject) => {
       this.query_callbacks.set(this.query_id, [resolve, reject]);

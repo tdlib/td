@@ -323,7 +323,7 @@ class TdClient {
       return;
     }
     await this.testLocalForage();
-    log.setVerbosity(options.jsVerbosity);
+    log.setVerbosity(options.jsLogVerbosityLevel);
     this.wasInit = true;
 
     options = options || {};
@@ -397,10 +397,10 @@ class TdClient {
     log.info('FS inited');
 
     // no async initialization after this point
-    if (options.verbosity === undefined) {
-      options.verbosity = 5;
+    if (options.logVerbosityLevel === undefined) {
+      options.logVerbosityLevel = 2;
     }
-    this.td_functions.td_set_verbosity(options.verbosity);
+    this.td_functions.td_set_verbosity(options.logVerbosityLevel);
     this.client = this.td_functions.td_create();
 
     this.savingFiles = new Map();
@@ -416,7 +416,6 @@ class TdClient {
     this.flushPendingQueries();
 
     this.receive();
-    //setInterval(()=>this.receive(), 100);
   }
 
   prepareQueryRecursive(query) {
@@ -464,12 +463,16 @@ class TdClient {
       this.onStart();
       return;
     }
-    if (query['@type'] === 'setJsVerbosity') {
-      log.setVerbosity(query.verbosity);
+    if (query['@type'] === 'setJsLogVerbosityLevel') {
+      log.setVerbosity(query.new_verbosity_level);
       return;
     }
-    if (query['@type'] === 'setVerbosity') {
-      this.td_functions.td_set_verbosity(query.verbosity);
+    if (query['@type'] === 'setLogVerbosityLevel' ||
+        query['@type'] === 'getLogVerbosityLevel' ||
+        query['@type'] === 'setLogTagVerbosityLevel' ||
+        query['@type'] === 'getLogTagVerbosityLevel' ||
+        query['@type'] === 'getLogTags') {
+      this.execute(query);
       return;
     }
     if (this.isPending) {
@@ -481,6 +484,15 @@ class TdClient {
     this.scheduleReceiveSoon();
   }
 
+  execute(query) {
+    try {
+      let res = this.td_functions.td_execute(0, JSON.stringify(query));
+      let response = JSON.parse(res);
+      this.callback(response);
+    } catch (error) {
+      this.onFatalError(error);
+    }
+  }
   receive() {
     this.cancelReceive();
     if (this.wasFatalError) {
