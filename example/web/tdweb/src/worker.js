@@ -248,6 +248,28 @@ class DbFileSystem {
     clearInterval(this.syncfsInterval);
     await this.sync();
   }
+  async destroy() {
+    clearInterval(this.syncfsInterval);
+    if (this.readOnly) {
+      return;
+    }
+    this.FS.unmount(this.root);
+    var req = indexedDB.deleteDatabase(this.root);
+    await new Promise((resolve, reject) => {
+      req.onsuccess = function (e) {
+        log.info('SUCCESS');
+        resolve(e.result);
+      };
+      req.onerror = function(e) {
+        log.info('ONERROR');
+        reject(e.error);
+      }
+      req.onblocked = function(e) {
+        log.info('ONBLOCKED');
+        reject('blocked');
+      }
+    });
+  }
 }
 
 class TdFileSystem {
@@ -280,6 +302,9 @@ class TdFileSystem {
     } catch (e) {
       log.error('Failed to init TdFileSystem: ', e);
     }
+  }
+  async destroy() {
+    await this.dbFileSystem.destroy();
   }
 }
 
@@ -451,7 +476,13 @@ class TdClient {
   }
 
   send(query) {
-    if (this.wasFatalError || this.isClosing) {
+    if (this.isClosing) {
+      return;
+    }
+    if (this.wasFatalError) {
+      if (query['@type'] === 'destroy') {
+         this.destroy({'@type': 'Ok', '@extra': query['@extra']});
+      }
       return;
     }
     if (query['@type'] === 'init') {
@@ -498,6 +529,7 @@ class TdClient {
     if (this.wasFatalError) {
       return;
     }
+    this.onFatalError('XXXX');
     try {
       while (true) {
         let msg = this.td_functions.td_receive(this.client);
@@ -565,6 +597,24 @@ class TdClient {
       log.debug('close worker: finish');
     }
     this.callback(last_update);
+  }
+
+  async destroy(result) {
+    try {
+      log.info('destroy tdfs ...');
+      await this.tdfs.destroy();
+      log.info('destroy tdfs ok');
+    } catch (e) {
+      log.error('Failed destroy', e);
+    }
+    this.callback(result);
+    this.callback({ 
+        '@type': 'updateAuthorizationState',
+        authorization_state: {
+          '@type': 'authorizationStateClosed'
+        }
+      }
+    );
   }
 
   async asyncOnFatalError(error) {
