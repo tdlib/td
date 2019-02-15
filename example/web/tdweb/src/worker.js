@@ -475,6 +475,26 @@ class TdClient {
     log.info('ignore on_start');
   }
 
+  readFilePart(query) {
+    var res;
+    try {
+      //let file_size = this.FS.stat(query.path).size;
+      var stream = this.FS.open(query.path, 'r');
+      var buf = new Uint8Array(query.size);
+      this.FS.read(stream, buf, 0, query.size, query.offset);
+      this.FS.close(stream);
+      res = buf
+    } catch (e) {
+      this.callback({'@type':'error', '@extra': query['@extra'], code: 400, message: e});
+      return;
+    }
+    this.callback({
+      '@type': 'FilePart',
+      '@extra': query['@extra'],
+      'data': res
+    }, [res.buffer]);
+  }
+
   send(query) {
     if (this.isClosing) {
       return;
@@ -498,6 +518,10 @@ class TdClient {
       log.setVerbosity(query.new_verbosity_level);
       return;
     }
+    if (this.isPending) {
+      this.pendingQueries.push(query);
+      return;
+    }
     if (query['@type'] === 'setLogVerbosityLevel' ||
         query['@type'] === 'getLogVerbosityLevel' ||
         query['@type'] === 'setLogTagVerbosityLevel' ||
@@ -506,8 +530,8 @@ class TdClient {
       this.execute(query);
       return;
     }
-    if (this.isPending) {
-      this.pendingQueries.push(query);
+    if (query['@type'] === 'readFilePart') {
+      this.readFilePart(query);
       return;
     }
     query = this.prepareQuery(query);

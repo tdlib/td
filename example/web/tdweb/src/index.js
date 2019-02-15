@@ -19,6 +19,8 @@ const sleep = ms => new Promise(res => setTimeout(res, ms));
  * 3. file <..as in td_api..> idb_key:string = File; <br>
  * 2. setJsLogVerbosityLevel new_verbosity_level:string = Ok;
  * 3. inputFileBlob blob:<javascript blob> = InputFile;<br>
+ * 4. readFilePart path:string offset:int64 size:int64 = FilePart;<br>
+ *    filePart data:blob = FilePart;<br>
  * <br>
  */
 class TdClient {
