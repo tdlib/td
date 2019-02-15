@@ -6277,8 +6277,8 @@ void MessagesManager::on_load_secret_thumbnail(FileId thumbnail_file_id, BufferS
   if (m == nullptr) {
     // message has already been deleted by the user, do not need to send it
     // cancel file upload of the main file to allow next upload with the same file to succeed
-    td_->file_manager_->cancel_upload(file_id);
     LOG(INFO) << "Message with a media has already been deleted";
+    cancel_upload_file(file_id);
     return;
   }
   CHECK(m->message_id.is_yet_unsent());
@@ -15005,16 +15005,21 @@ vector<FileId> MessagesManager::get_message_file_ids(const Message *message) con
 
 void MessagesManager::cancel_upload_message_content_files(const MessageContent *content) {
   auto file_id = get_message_content_file_id(content);
-  // always cancel file upload, it is a no-op in the worst case
+  // always cancel file upload, it should be a no-op in the worst case
   if (being_uploaded_files_.erase(file_id) || file_id.is_valid()) {
-    LOG(INFO) << "Cancel upload file " << file_id;
-    td_->file_manager_->cancel_upload(file_id);
+    cancel_upload_file(file_id);
   }
   file_id = get_message_content_thumbnail_file_id(content, td_);
   if (being_uploaded_thumbnails_.erase(file_id) || file_id.is_valid()) {
-    LOG(INFO) << "Cancel upload thumbnail file " << file_id;
-    td_->file_manager_->cancel_upload(file_id);
+    cancel_upload_file(file_id);
   }
+}
+
+void MessagesManager::cancel_upload_file(FileId file_id) {
+  // send the request later so they doesn't interfere with other actions
+  // for example merge, supposed to happen soon, can auto-cancel the upload
+  LOG(WARNING) << "Cancel upload of file " << file_id;
+  send_closure_later(G()->file_manager(), &FileManager::cancel_upload, file_id);
 }
 
 void MessagesManager::cancel_send_message_query(DialogId dialog_id, unique_ptr<Message> &m) {
@@ -22431,7 +22436,7 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
   if (need_finish_upload) {
     // the file is likely to be already merged with a server file, but if not we need to
     // cancel file upload of the main file to allow next upload with the same file to succeed
-    td_->file_manager_->cancel_upload(old_file_id);
+    cancel_upload_file(old_file_id);
   }
 
   if (is_content_changed || need_update) {

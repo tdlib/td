@@ -1802,6 +1802,8 @@ class MessagesManager : public Actor {
 
   void cancel_upload_message_content_files(const MessageContent *content);
 
+  static void cancel_upload_file(FileId file_id);
+
   void cancel_send_message_query(DialogId dialog_id, unique_ptr<Message> &m);
 
   static int32 get_message_flags(const Message *m);
