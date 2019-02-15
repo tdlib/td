@@ -174,12 +174,14 @@ void FileNode::set_new_remote_location(NewRemoteFileLocation new_remote) {
       on_changed();
     }
     remote_.full = new_remote.full;
+    remote_.full_source = new_remote.full_source;
     remote_.is_full_alive = new_remote.is_full_alive;
   } else {
     if (remote_.full) {
       VLOG(update_file) << "File " << main_file_id_ << " has lost remote location";
       remote_.full = {};
       remote_.is_full_alive = false;
+      remote_.full_source = FileLocationSource::None;
       on_changed();
     }
   }
