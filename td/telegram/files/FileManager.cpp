@@ -50,6 +50,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, FileLocationSource sour
       return string_builder << "None";
     case FileLocationSource::FromUser:
       return string_builder << "User";
+    case FileLocationSource::FromBinlog:
+      return string_builder << "Binlog";
     case FileLocationSource::FromDatabase:
       return string_builder << "Database";
     case FileLocationSource::FromServer:
@@ -966,7 +968,8 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
   bool has_remote = data.remote_.type() == RemoteFileLocation::Type::Full;
   bool has_generate = data.generate_ != nullptr;
   if (data.local_.type() == LocalFileLocation::Type::Full && !force) {
-    if (file_location_source == FileLocationSource::FromDatabase) {
+    if (file_location_source == FileLocationSource::FromBinlog ||
+        file_location_source == FileLocationSource::FromDatabase) {
       PathView path_view(data.local_.full().path_);
       if (path_view.is_relative()) {
         data.local_.full().path_ = PSTRING()
