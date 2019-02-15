@@ -1422,7 +1422,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
         info->download_callback_.reset();
       }
     }
-    if (info->upload_priority_ != 0 && file_view.has_remote_location()) {
+    if (info->upload_priority_ != 0 && file_view.has_active_upload_remote_location()) {
       info->upload_priority_ = 0;
       if (info->upload_callback_) {
         info->upload_callback_->on_upload_ok(file_id, nullptr);
@@ -2326,11 +2326,14 @@ void FileManager::run_upload(FileNodePtr node, std::vector<int> bad_parts) {
   }
 
   CHECK(node->upload_id_ == 0);
-  if (file_view.has_remote_location() && !file_view.has_active_upload_remote_location() &&
-      file_view.get_type() != FileType::Thumbnail && file_view.get_type() != FileType::EncryptedThumbnail &&
-      !node->upload_was_update_file_reference_) {
+  if (file_view.has_alive_remote_location() && !file_view.has_active_upload_remote_location() &&
+      file_view.get_type() != FileType::Thumbnail && file_view.get_type() != FileType::EncryptedThumbnail) {
     QueryId id = queries_container_.create(Query{file_id, Query::UploadWaitFileReference});
     node->upload_id_ = id;
+    if (node->upload_was_update_file_reference_) {
+      on_error(id, Status::Error("Can't upload file: have no valid file reference"));
+      return;
+    }
     node->upload_was_update_file_reference_ = true;
 
     context_->repair_file_reference(
