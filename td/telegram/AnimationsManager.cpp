@@ -167,8 +167,9 @@ tl_object_ptr<td_api::animation> AnimationsManager::get_animation_object(FileId 
 
 FileId AnimationsManager::on_get_animation(unique_ptr<Animation> new_animation, bool replace) {
   auto file_id = new_animation->file_id;
-  LOG(INFO) << (replace ? "Replace" : "Add") << " animation " << file_id << " of size " << new_animation->dimensions;
   auto &a = animations_[file_id];
+  LOG(INFO) << (a == nullptr ? "Add" : (replace ? "Replace" : "Ignore")) << " animation " << file_id << " of size "
+            << new_animation->dimensions;
   if (a == nullptr) {
     a = std::move(new_animation);
   } else if (replace) {
@@ -644,7 +645,13 @@ void AnimationsManager::add_saved_animation_by_id(FileId animation_id) {
 bool AnimationsManager::add_saved_animation_impl(FileId animation_id, Promise<Unit> &promise) {
   CHECK(!td_->auth_manager_->is_bot());
 
-  LOG(INFO) << "Add saved animation " << animation_id;
+  auto file_view = td_->file_manager_->get_file_view(animation_id);
+  if (file_view.empty()) {
+    promise.set_error(Status::Error(7, "Animation file not found"));
+    return false;
+  }
+
+  LOG(INFO) << "Add saved animation " << animation_id << " with main file " << file_view.file_id();
   if (!are_saved_animations_loaded_) {
     load_saved_animations(PromiseCreator::lambda([animation_id, promise = std::move(promise)](Result<> result) mutable {
       if (result.is_ok()) {
@@ -677,7 +684,6 @@ bool AnimationsManager::add_saved_animation_impl(FileId animation_id, Promise<Un
     return false;
   }
 
-  auto file_view = td_->file_manager_->get_file_view(animation_id);
   if (!file_view.has_remote_location()) {
     promise.set_error(Status::Error(7, "Can save only sent animations"));
     return false;

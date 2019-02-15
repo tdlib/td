@@ -1725,6 +1725,8 @@ Result<InputMessageContent> get_input_message_content(
     DialogId dialog_id, tl_object_ptr<td_api::InputMessageContent> &&input_message_content, Td *td) {
   bool is_secret = dialog_id.get_type() == DialogType::SecretChat;
 
+  LOG(INFO) << "Get input message content from " << to_string(input_message_content);
+
   bool have_file = true;
   // TODO: send from secret chat to common
   Result<FileId> r_file_id = Status::Error(500, "Have no file");

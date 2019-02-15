@@ -2574,7 +2574,7 @@ Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> re
     // But it will not be duped if has_input_media(), so for now we can't return main_file_id
     return dup_file_id(file_id);
   }
-  return file_node->main_file_id_;
+  return FileId(file_node->main_file_id_.get(), file_id.get_remote());
 }
 
 Result<FileId> FileManager::get_input_thumbnail_file_id(const tl_object_ptr<td_api::InputFile> &thumbnail_input_file,

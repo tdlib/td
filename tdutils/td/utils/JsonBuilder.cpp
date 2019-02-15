@@ -12,6 +12,7 @@
 #include <cstring>
 
 namespace td {
+
 StringBuilder &operator<<(StringBuilder &sb, const JsonRawString &val) {
   sb << '"';
   SCOPE_EXIT {
@@ -133,6 +134,7 @@ StringBuilder &operator<<(StringBuilder &sb, const JsonString &val) {
   }
   return sb;
 }
+
 Result<MutableSlice> json_string_decode(Parser &parser) {
   if (!parser.try_skip('"')) {
     return Status::Error("Opening '\"' expected");
