@@ -46,7 +46,7 @@ extern int VERBOSITY_NAME(update_file);
 class FileData;
 class FileDbInterface;
 
-enum class FileLocationSource : int8 { None, FromUser, FromDb, FromServer };
+enum class FileLocationSource : int8 { None, FromUser, FromDatabase, FromServer };
 
 struct NewRemoteFileLocation {
   NewRemoteFileLocation() = default;

@@ -225,8 +225,9 @@ class FileDb : public FileDbInterface {
       generate_key = as_key(*file_data.generate_);
     }
     LOG(DEBUG) << "SAVE " << id.get() << " -> " << file_data << " "
-               << tag("remote", format::as_hex_dump<4>(Slice(remote_key)))
-               << tag("local", format::as_hex_dump<4>(Slice(local_key)));
+               << tag("remote_key", format::as_hex_dump<4>(Slice(remote_key)))
+               << tag("local_key", format::as_hex_dump<4>(Slice(local_key)))
+               << tag("generate_key", format::as_hex_dump<4>(Slice(generate_key)));
     send_closure(file_db_actor_, &FileDbActor::store_file_data, id, serialize(file_data), remote_key, local_key,
                  generate_key);
   }

@@ -30,6 +30,7 @@
 #include "td/utils/port/path.h"
 #include "td/utils/port/Stat.h"
 #include "td/utils/ScopeGuard.h"
+#include "td/utils/StringBuilder.h"
 #include "td/utils/tl_helpers.h"
 
 #include <algorithm>
@@ -42,6 +43,22 @@ namespace td {
 namespace {
 constexpr int64 MAX_FILE_SIZE = 1500 * (1 << 20) /* 1500MB */;
 }  // namespace
+
+StringBuilder &operator<<(StringBuilder &string_builder, FileLocationSource source) {
+  switch (source) {
+    case FileLocationSource::None:
+      return string_builder << "None";
+    case FileLocationSource::FromUser:
+      return string_builder << "User";
+    case FileLocationSource::FromDatabase:
+      return string_builder << "Database";
+    case FileLocationSource::FromServer:
+      return string_builder << "Server";
+    default:
+      UNREACHABLE();
+      return string_builder << "Unknown";
+  }
+}
 
 NewRemoteFileLocation::NewRemoteFileLocation(RemoteFileLocation remote, FileLocationSource source) {
   switch (remote.type()) {
@@ -949,7 +966,7 @@ Result<FileId> FileManager::register_file(FileData &&data, FileLocationSource fi
   bool has_remote = data.remote_.type() == RemoteFileLocation::Type::Full;
   bool has_generate = data.generate_ != nullptr;
   if (data.local_.type() == LocalFileLocation::Type::Full && !force) {
-    if (file_location_source == FileLocationSource::FromDb) {
+    if (file_location_source == FileLocationSource::FromDatabase) {
       PathView path_view(data.local_.full().path_);
       if (path_view.is_relative()) {
         data.local_.full().path_ = PSTRING()
@@ -1073,6 +1090,7 @@ static int merge_choose_file_source_location(FileLocationSource x, FileLocationS
 
 static int merge_choose_remote_location(const FullRemoteFileLocation &x, FileLocationSource x_source,
                                         const FullRemoteFileLocation &y, FileLocationSource y_source) {
+  LOG(INFO) << "Choose between " << x << " from " << x_source << " and " << y << " from " << y_source;
   if (x.is_web() != y.is_web()) {
     return x.is_web();  // prefer non-web
   }
@@ -1086,11 +1104,12 @@ static int merge_choose_remote_location(const FullRemoteFileLocation &x, FileLoc
       return merge_choose_file_source_location(x_source, y_source);
     }
   }
-  if (x.get_access_hash() != y.get_access_hash()) {
+  if (x.get_access_hash() != y.get_access_hash() && (x_source != y_source || x.is_web() || x.get_id() == y.get_id())) {
     return merge_choose_file_source_location(x_source, y_source);
   }
   return 2;
 }
+
 static int merge_choose_remote_location(const NewRemoteFileLocation &x, const NewRemoteFileLocation &y) {
   if (x.is_full_alive != y.is_full_alive) {
     return !x.is_full_alive;
@@ -1211,7 +1230,7 @@ void FileManager::do_cancel_generate(FileNodePtr node) {
 }
 
 Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sync) {
-  LOG(DEBUG) << x_file_id << " VS " << y_file_id;
+  LOG(DEBUG) << "Merge new file " << x_file_id << " and old file " << y_file_id;
 
   if (!x_file_id.is_valid()) {
     return Status::Error("First file_id is invalid");
@@ -1240,7 +1259,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   }
 
   if (x_node->remote_.full && y_node->remote_.full && !x_node->remote_.full.value().is_web() &&
-      !y_node->remote_.full.value().is_web() &&
+      !y_node->remote_.full.value().is_web() && y_node->remote_.is_full_alive &&
       x_node->remote_.full.value().get_dc_id() != y_node->remote_.full.value().get_dc_id()) {
     LOG(ERROR) << "File remote location was changed from " << y_node->remote_.full.value() << " to "
                << x_node->remote_.full.value();
@@ -1268,8 +1287,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   }
   if (encryption_key_i == -1) {
     if (nodes[remote_i]->remote_.full && nodes[local_i]->local_.type() != LocalFileLocation::Type::Partial) {
-      //???
-      LOG(ERROR) << "Different encryption key in files, but go Choose same key as remote location";
+      LOG(ERROR) << "Different encryption key in files, but lets choose same key as remote location";
       encryption_key_i = remote_i;
     } else {
       return Status::Error("Can't merge files. Different encryption keys");
@@ -1301,7 +1319,8 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
              << ", node_i = " << node_i << ", local_i = " << local_i << ", remote_i = " << remote_i
              << ", generate_i = " << generate_i << ", size_i = " << size_i << ", remote_name_i = " << remote_name_i
              << ", url_i = " << url_i << ", owner_i = " << owner_i << ", encryption_key_i = " << encryption_key_i
-             << ", main_file_id_i = " << main_file_id_i;
+             << ", main_file_id_i = " << main_file_id_i << ", trusted_by_source = " << trusted_by_source
+             << ", x_source = " << x_node->remote_.full_source << ", y_source = " << y_node->remote_.full_source;
   if (local_i == other_node_i) {
     do_cancel_download(node);
     node->set_download_offset(other_node->download_offset_);
@@ -1680,7 +1699,8 @@ void FileManager::load_from_pmc(FileNodePtr node, bool new_remote, bool new_loca
              << ", new_local = " << new_local << ", new_generate = " << new_generate;
   auto load = [&](auto location) {
     TRY_RESULT(file_data, file_db_->get_file_data_sync(location));
-    TRY_RESULT(new_file_id, register_file(std::move(file_data), FileLocationSource::FromDb, "load_from_pmc", false));
+    TRY_RESULT(new_file_id,
+               register_file(std::move(file_data), FileLocationSource::FromDatabase, "load_from_pmc", false));
     TRY_RESULT(main_file_id, merge(file_id, new_file_id));
     file_id = main_file_id;
     return Status::OK();

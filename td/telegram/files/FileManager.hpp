@@ -155,8 +155,8 @@ FileId FileManager::parse_file(ParserT &parser) {
         if (parser.version() >= static_cast<int32>(Version::StoreFileOwnerId)) {
           parse(owner_dialog_id, parser);
         }
-        return register_remote(full_remote_location, FileLocationSource::FromDb, owner_dialog_id, size, expected_size,
-                               name);
+        return register_remote(full_remote_location, FileLocationSource::FromDatabase, owner_dialog_id, size,
+                               expected_size, name);
       }
       case FileStoreType::Local: {
         FullLocalFileLocation full_local_location;
@@ -200,7 +200,7 @@ FileId FileManager::parse_file(ParserT &parser) {
           full_generated_location.conversion_ = PSTRING() << "#file_id#" << download_file_id.get();
         }
 
-        auto r_file_id = register_generate(full_generated_location.file_type_, FileLocationSource::FromDb,
+        auto r_file_id = register_generate(full_generated_location.file_type_, FileLocationSource::FromDatabase,
                                            full_generated_location.original_path_, full_generated_location.conversion_,
                                            owner_dialog_id, expected_size);
         if (r_file_id.is_ok()) {
@@ -217,7 +217,7 @@ FileId FileManager::parse_file(ParserT &parser) {
         if (parser.version() >= static_cast<int32>(Version::StoreFileOwnerId)) {
           parse(owner_dialog_id, parser);
         }
-        return register_url(url, type, FileLocationSource::FromDb, owner_dialog_id);
+        return register_url(url, type, FileLocationSource::FromDatabase, owner_dialog_id);
       }
     }
     return FileId();
