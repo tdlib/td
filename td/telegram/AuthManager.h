@@ -22,53 +22,6 @@
 
 namespace td {
 
-class PhoneNumberManager : public NetActor {
- public:
-  enum class Type : int32 { ChangePhone, VerifyPhone, ConfirmPhone };
-  PhoneNumberManager(Type type, ActorShared<> parent);
-  void get_state(uint64 query_id);
-
-  void set_phone_number(uint64 query_id, string phone_number, bool allow_flash_call, bool is_current_phone_number);
-  void set_phone_number_and_hash(uint64 query_id, string hash, string phone_number, bool allow_flash_call,
-                                 bool is_current_phone_number);
-
-  void resend_authentication_code(uint64 query_id);
-  void check_code(uint64 query_id, string code);
-
- private:
-  Type type_;
-
-  enum class State : int32 { Ok, WaitCode } state_ = State::Ok;
-  enum class NetQueryType : int32 { None, SendCode, CheckCode };
-
-  ActorShared<> parent_;
-  uint64 query_id_ = 0;
-  uint64 net_query_id_ = 0;
-  NetQueryType net_query_type_;
-
-  SendCodeHelper send_code_helper_;
-
-  void on_new_query(uint64 query_id);
-  void on_query_error(Status status);
-  void on_query_error(uint64 id, Status status);
-  void on_query_ok();
-  void start_net_query(NetQueryType net_query_type, NetQueryPtr net_query);
-
-  template <class T>
-  void process_send_code_result(uint64 query_id, T r_send_code);
-
-  template <class T>
-  void send_new_check_code_query(const T &query);
-
-  template <class T>
-  void process_check_code_result(T result);
-
-  void on_check_code_result(NetQueryPtr &result);
-  void on_send_code_result(NetQueryPtr &result);
-  void on_result(NetQueryPtr result) override;
-  void tear_down() override;
-};
-
 class AuthManager : public NetActor {
  public:
   AuthManager(int32 api_id, const string &api_hash, ActorShared<> parent);

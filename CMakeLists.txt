@@ -414,6 +414,7 @@ set(TDLIB_SOURCE
   td/telegram/NotificationType.cpp
   td/telegram/Payments.cpp
   td/telegram/PasswordManager.cpp
+  td/telegram/PhoneNumberManager.cpp
   td/telegram/PrivacyManager.cpp
   td/telegram/Photo.cpp
   td/telegram/ReplyMarkup.cpp
@@ -564,6 +565,7 @@ set(TDLIB_SOURCE
   td/telegram/NotificationType.h
   td/telegram/PasswordManager.h
   td/telegram/Payments.h
+  td/telegram/PhoneNumberManager.h
   td/telegram/Photo.h
   td/telegram/PrivacyManager.h
   td/telegram/PtsManager.h

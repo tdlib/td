@@ -53,6 +53,7 @@
 #include "td/telegram/NotificationSettings.h"
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Payments.h"
+#include "td/telegram/PhoneNumberManager.h"
 #include "td/telegram/Photo.h"
 #include "td/telegram/PrivacyManager.h"
 #include "td/telegram/RequestActor.h"
