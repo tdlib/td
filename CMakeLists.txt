@@ -423,6 +423,7 @@ set(TDLIB_SOURCE
   td/telegram/SecureManager.cpp
   td/telegram/SecureStorage.cpp
   td/telegram/SecureValue.cpp
+  td/telegram/SendCodeHelper.cpp
   td/telegram/SequenceDispatcher.cpp
   td/telegram/StateManager.cpp
   td/telegram/StickersManager.cpp
@@ -488,10 +489,8 @@ set(TDLIB_SOURCE
   td/telegram/DocumentsManager.h
   td/telegram/DraftMessage.h
   td/telegram/FileReferenceManager.h
-  td/telegram/FileReferenceManager.hpp
   td/telegram/files/FileBitmask.h
   td/telegram/files/FileData.h
-  td/telegram/files/FileData.hpp
   td/telegram/files/FileDb.h
   td/telegram/files/FileDbId.h
   td/telegram/files/FileDownloader.h
@@ -507,7 +506,6 @@ set(TDLIB_SOURCE
   td/telegram/files/FileLoaderUtils.h
   td/telegram/files/FileLoadManager.h
   td/telegram/files/FileLocation.h
-  td/telegram/files/FileLocation.hpp
   td/telegram/files/FileManager.h
   td/telegram/files/FileSourceId.h
   td/telegram/files/FileStats.h
@@ -579,6 +577,7 @@ set(TDLIB_SOURCE
   td/telegram/SecureManager.h
   td/telegram/SecureStorage.h
   td/telegram/SecureValue.h
+  td/telegram/SendCodeHelper.h
   td/telegram/SequenceDispatcher.h
   td/telegram/SetWithPosition.h
   td/telegram/StateManager.h
@@ -606,7 +605,10 @@ set(TDLIB_SOURCE
   td/telegram/AuthManager.hpp
   td/telegram/DocumentsManager.hpp
   td/telegram/DraftMessage.hpp
+  td/telegram/FileReferenceManager.hpp
+  td/telegram/files/FileData.hpp
   td/telegram/files/FileId.hpp
+  td/telegram/files/FileLocation.hpp
   td/telegram/files/FileManager.hpp
   td/telegram/Game.hpp
   td/telegram/InputMessageText.hpp
@@ -616,6 +618,7 @@ set(TDLIB_SOURCE
   td/telegram/Photo.hpp
   td/telegram/ReplyMarkup.hpp
   td/telegram/SecureValue.hpp
+  td/telegram/SendCodeHelper.hpp
   td/telegram/StickersManager.hpp
   td/telegram/VideoNotesManager.hpp
   td/telegram/VideosManager.hpp
