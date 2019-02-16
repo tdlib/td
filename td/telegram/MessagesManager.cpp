@@ -2877,6 +2877,31 @@ class GetNotifySettingsExceptionsQuery : public Td::ResultHandler {
 
     auto updates_ptr = result_ptr.move_as_ok();
     auto dialog_ids = UpdatesManager::get_update_notify_settings_dialog_ids(updates_ptr.get());
+    vector<tl_object_ptr<telegram_api::User>> users;
+    vector<tl_object_ptr<telegram_api::Chat>> chats;
+    switch (updates_ptr->get_id()) {
+      case telegram_api::updatesCombined::ID: {
+        auto updates = static_cast<telegram_api::updatesCombined *>(updates_ptr.get());
+        users = std::move(updates->users_);
+        chats = std::move(updates->chats_);
+        reset_to_empty(updates->users_);
+        reset_to_empty(updates->chats_);
+        break;
+      }
+      case telegram_api::updates::ID: {
+        auto updates = static_cast<telegram_api::updates *>(updates_ptr.get());
+        users = std::move(updates->users_);
+        chats = std::move(updates->chats_);
+        reset_to_empty(updates->users_);
+        reset_to_empty(updates->chats_);
+        break;
+      }
+    }
+    td->contacts_manager_->on_get_users(std::move(users), "GetNotifySettingsExceptionsQuery");
+    td->contacts_manager_->on_get_chats(std::move(chats), "GetNotifySettingsExceptionsQuery");
+    for (auto &dialog_id : dialog_ids) {
+      td->messages_manager_->force_create_dialog(dialog_id, "GetNotifySettingsExceptionsQuery");
+    }
     td->updates_manager_->on_get_updates(std::move(updates_ptr));
 
     promise_.set_value(std::move(dialog_ids));

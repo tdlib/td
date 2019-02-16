@@ -643,7 +643,7 @@ void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updat
     return;
   }
 
-  switch (updates_ptr->get_id()) {
+  switch (updates_type) {
     case telegram_api::updatesTooLong::ID:
       get_difference("updatesTooLong");
       break;
