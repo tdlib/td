@@ -909,6 +909,13 @@ void AuthManager::on_delete_account_result(NetQueryPtr &result) {
 }
 
 void AuthManager::on_authorization(tl_object_ptr<telegram_api::auth_authorization> auth) {
+  if (state_ == State::Ok) {
+    LOG(WARNING) << "Ignore duplicated auth.authorization";
+    if (query_id_ != 0) {
+      on_query_ok();
+    }
+    return;
+  }
   G()->shared_config().set_option_integer("authorization_date", G()->unix_time());
   if (was_check_bot_token_) {
     is_bot_ = true;
