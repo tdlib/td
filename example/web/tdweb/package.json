@@ -1,6 +1,6 @@
 {
   "name": "@arseny30/tdweb",
-  "version": "0.2.26",
+  "version": "0.2.27",
   "description": "Javascript interface for TDLib (telegram library)",
   "main": "dist/tdweb.js",
   "files": [
