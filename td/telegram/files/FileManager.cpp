@@ -1264,8 +1264,8 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   if (x_node->remote_.full && y_node->remote_.full && !x_node->remote_.full.value().is_web() &&
       !y_node->remote_.full.value().is_web() && y_node->remote_.is_full_alive &&
       x_node->remote_.full.value().get_dc_id() != y_node->remote_.full.value().get_dc_id()) {
-    LOG(ERROR) << "File remote location was changed from " << y_node->remote_.full.value() << " to "
-               << x_node->remote_.full.value();
+    LOG(WARNING) << "File remote location was changed from " << y_node->remote_.full.value() << " to "
+                 << x_node->remote_.full.value();
   }
 
   FileNodePtr nodes[] = {x_node, y_node, x_node};
@@ -2599,7 +2599,16 @@ Result<FileId> FileManager::check_input_file_id(FileType type, Result<FileId> re
     // But it will not be duped if has_input_media(), so for now we can't return main_file_id
     return dup_file_id(file_id);
   }
-  return FileId(file_node->main_file_id_.get(), file_id.get_remote());
+
+  int32 remote_id = file_id.get_remote();
+  if (remote_id == 0) {
+    RemoteInfo info{file_view.remote_location(), FileLocationSource::FromUser, file_id};
+    remote_id = remote_location_info_.add(info);
+    if (remote_location_info_.get(remote_id).file_id_ == file_id) {
+      get_file_id_info(file_id)->pin_flag_ = true;
+    }
+  }
+  return FileId(file_node->main_file_id_.get(), remote_id);
 }
 
 Result<FileId> FileManager::get_input_thumbnail_file_id(const tl_object_ptr<td_api::InputFile> &thumbnail_input_file,

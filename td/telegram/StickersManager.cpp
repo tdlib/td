@@ -3916,8 +3916,12 @@ bool StickersManager::add_recent_sticker_impl(bool is_attached, FileId sticker_i
     return false;
   }
 
+  auto is_equal = [sticker_id](FileId file_id) {
+    return file_id == sticker_id || (file_id.get_remote() == sticker_id.get_remote() && sticker_id.get_remote() != 0);
+  };
+
   vector<FileId> &sticker_ids = recent_sticker_ids_[is_attached];
-  if (!sticker_ids.empty() && sticker_ids[0] == sticker_id) {
+  if (!sticker_ids.empty() && is_equal(sticker_ids[0])) {
     if (sticker_ids[0].get_remote() == 0 && sticker_id.get_remote() != 0) {
       sticker_ids[0] = sticker_id;
       save_recent_stickers_to_database(is_attached);
@@ -3953,7 +3957,7 @@ bool StickersManager::add_recent_sticker_impl(bool is_attached, FileId sticker_i
 
   need_update_recent_stickers_[is_attached] = true;
 
-  auto it = std::find(sticker_ids.begin(), sticker_ids.end(), sticker_id);
+  auto it = std::find_if(sticker_ids.begin(), sticker_ids.end(), is_equal);
   if (it == sticker_ids.end()) {
     if (static_cast<int32>(sticker_ids.size()) == recent_stickers_limit_) {
       sticker_ids.back() = sticker_id;
@@ -4311,7 +4315,11 @@ bool StickersManager::add_favorite_sticker_impl(FileId sticker_id, Promise<Unit>
     return false;
   }
 
-  if (!favorite_sticker_ids_.empty() && favorite_sticker_ids_[0] == sticker_id) {
+  auto is_equal = [sticker_id](FileId file_id) {
+    return file_id == sticker_id || (file_id.get_remote() == sticker_id.get_remote() && sticker_id.get_remote() != 0);
+  };
+
+  if (!favorite_sticker_ids_.empty() && is_equal(favorite_sticker_ids_[0])) {
     if (favorite_sticker_ids_[0].get_remote() == 0 && sticker_id.get_remote() != 0) {
       favorite_sticker_ids_[0] = sticker_id;
       save_favorite_stickers_to_database();
@@ -4345,7 +4353,7 @@ bool StickersManager::add_favorite_sticker_impl(FileId sticker_id, Promise<Unit>
     return false;
   }
 
-  auto it = std::find(favorite_sticker_ids_.begin(), favorite_sticker_ids_.end(), sticker_id);
+  auto it = std::find_if(favorite_sticker_ids_.begin(), favorite_sticker_ids_.end(), is_equal);
   if (it == favorite_sticker_ids_.end()) {
     if (static_cast<int32>(favorite_sticker_ids_.size()) == favorite_stickers_limit_) {
       favorite_sticker_ids_.back() = sticker_id;

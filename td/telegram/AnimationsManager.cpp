@@ -664,7 +664,13 @@ bool AnimationsManager::add_saved_animation_impl(FileId animation_id, Promise<Un
     return false;
   }
 
-  if (!saved_animation_ids_.empty() && saved_animation_ids_[0] == animation_id) {
+  auto is_equal = [animation_id](FileId file_id) {
+    return file_id == animation_id ||
+           (file_id.get_remote() == animation_id.get_remote() && animation_id.get_remote() != 0);
+  };
+
+  if (!saved_animation_ids_.empty() && is_equal(saved_animation_ids_[0])) {
+    // fast path
     if (saved_animation_ids_[0].get_remote() == 0 && animation_id.get_remote() != 0) {
       saved_animation_ids_[0] = animation_id;
       save_saved_animations_to_database();
@@ -697,7 +703,7 @@ bool AnimationsManager::add_saved_animation_impl(FileId animation_id, Promise<Un
     return false;
   }
 
-  auto it = std::find(saved_animation_ids_.begin(), saved_animation_ids_.end(), animation_id);
+  auto it = std::find_if(saved_animation_ids_.begin(), saved_animation_ids_.end(), is_equal);
   if (it == saved_animation_ids_.end()) {
     if (static_cast<int32>(saved_animation_ids_.size()) == saved_animations_limit_) {
       saved_animation_ids_.back() = animation_id;
@@ -707,7 +713,7 @@ bool AnimationsManager::add_saved_animation_impl(FileId animation_id, Promise<Un
     it = saved_animation_ids_.end() - 1;
   }
   std::rotate(saved_animation_ids_.begin(), it, it + 1);
-  CHECK(saved_animation_ids_[0] == animation_id);
+  CHECK(is_equal(saved_animation_ids_[0]));
   if (saved_animation_ids_[0].get_remote() == 0 && animation_id.get_remote() != 0) {
     saved_animation_ids_[0] = animation_id;
   }
