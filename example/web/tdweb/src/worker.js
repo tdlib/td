@@ -553,7 +553,6 @@ class TdClient {
     if (this.wasFatalError) {
       return;
     }
-    this.onFatalError('XXXX');
     try {
       while (true) {
         let msg = this.td_functions.td_receive(this.client);
