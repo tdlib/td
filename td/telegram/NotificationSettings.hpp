@@ -32,6 +32,7 @@ void store(const DialogNotificationSettings &notification_settings, StorerT &sto
   STORE_FLAG(notification_settings.disable_pinned_message_notifications);
   STORE_FLAG(!notification_settings.use_default_disable_mention_notifications);
   STORE_FLAG(notification_settings.disable_mention_notifications);
+  STORE_FLAG(notification_settings.is_secret_chat_show_preview_fixed);
   END_STORE_FLAGS();
   if (is_muted) {
     store(notification_settings.mute_until, storer);
@@ -61,6 +62,7 @@ void parse(DialogNotificationSettings &notification_settings, ParserT &parser) {
   PARSE_FLAG(notification_settings.disable_pinned_message_notifications);
   PARSE_FLAG(use_disable_mention_notifications);
   PARSE_FLAG(notification_settings.disable_mention_notifications);
+  PARSE_FLAG(notification_settings.is_secret_chat_show_preview_fixed);
   END_PARSE_FLAGS();
   notification_settings.use_default_disable_pinned_message_notifications = !use_disable_pinned_message_notifications;
   notification_settings.use_default_disable_mention_notifications = !use_disable_mention_notifications;

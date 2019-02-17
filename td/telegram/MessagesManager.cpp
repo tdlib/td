@@ -17817,7 +17817,7 @@ NotificationGroupId MessagesManager::get_dialog_notification_group_id(DialogId d
     } while (get_message_notification_group_force(next_notification_group_id).dialog_id.is_valid());
     group_info.group_id = next_notification_group_id;
     group_info.is_changed = true;
-    VLOG(notifications) << "Assign " << next_notification_group_id << " to " << group_info.group_id << '/' << dialog_id;
+    VLOG(notifications) << "Assign " << next_notification_group_id << " to " << dialog_id;
     on_dialog_updated(dialog_id, "get_dialog_notification_group_id");
 
     notification_group_id_to_dialog_id_.emplace(next_notification_group_id, dialog_id);
@@ -22570,7 +22570,11 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
         Dialog *user_d = get_dialog_force(DialogId(user_id));
         if (user_d != nullptr && user_d->notification_settings.is_synchronized) {
           VLOG(notifications) << "Copy notification settings from " << user_d->dialog_id << " to " << dialog_id;
-          update_dialog_notification_settings(dialog_id, &d->notification_settings, user_d->notification_settings);
+          auto new_notification_settings = user_d->notification_settings;
+          new_notification_settings.use_default_show_preview = true;
+          new_notification_settings.show_preview = false;
+          new_notification_settings.is_secret_chat_show_preview_fixed = true;
+          update_dialog_notification_settings(dialog_id, &d->notification_settings, new_notification_settings);
         }
       } else {
         LOG(ERROR) << "Found previously created secret " << d->dialog_id << ", when creating it from " << source;
@@ -22677,6 +22681,14 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
         if (message_count == -1) {
           message_count = 0;
         }
+      }
+
+      if (!d->notification_settings.is_secret_chat_show_preview_fixed &&
+          d->dialog_id.get_type() == DialogType::SecretChat) {
+        d->notification_settings.use_default_show_preview = true;
+        d->notification_settings.show_preview = false;
+        d->notification_settings.is_secret_chat_show_preview_fixed = true;
+        on_dialog_updated(d->dialog_id, "fix secret chat show preview");
       }
 
       d->have_full_history = true;

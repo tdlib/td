@@ -25,6 +25,7 @@ class DialogNotificationSettings {
   bool use_default_sound = true;
   bool use_default_show_preview = true;
   bool is_use_default_fixed = true;
+  bool is_secret_chat_show_preview_fixed = false;
   bool is_synchronized = false;
 
   // local settings
