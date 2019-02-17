@@ -29,6 +29,7 @@
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
 #include "td/utils/ScopeGuard.h"
+#include "td/utils/Slice.h"
 #include "td/utils/Time.h"
 
 namespace td {

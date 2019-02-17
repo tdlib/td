@@ -23,6 +23,7 @@
 
 #include "td/utils/as.h"
 #include "td/utils/base64.h"
+#include "td/utils/buffer.h"
 #include "td/utils/format.h"
 #include "td/utils/JsonBuilder.h"
 #include "td/utils/logging.h"

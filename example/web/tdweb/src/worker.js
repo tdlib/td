@@ -501,7 +501,7 @@ class TdClient {
     }
     if (this.wasFatalError) {
       if (query['@type'] === 'destroy') {
-         this.destroy({'@type': 'Ok', '@extra': query['@extra']});
+        this.destroy({'@type': 'Ok', '@extra': query['@extra']});
       }
       return;
     }
@@ -631,7 +631,7 @@ class TdClient {
       log.error('Failed destroy', e);
     }
     this.callback(result);
-    this.callback({ 
+    this.callback({
         '@type': 'updateAuthorizationState',
         authorization_state: {
           '@type': 'authorizationStateClosed'

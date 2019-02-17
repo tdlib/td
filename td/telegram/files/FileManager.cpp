@@ -1967,9 +1967,10 @@ void FileManager::run_download(FileNodePtr node) {
 
 class ForceUploadActor : public Actor {
  public:
-  ForceUploadActor(FileId file_id, std::shared_ptr<FileManager::UploadCallback> callback, int32 new_priority,
-                   uint64 upload_order, ActorShared<> parent)
-      : file_id_(file_id)
+  ForceUploadActor(FileManager *file_manager, FileId file_id, std::shared_ptr<FileManager::UploadCallback> callback,
+                   int32 new_priority, uint64 upload_order, ActorShared<> parent)
+      : file_manager_(file_manager)
+      , file_id_(file_id)
       , callback_(std::move(callback))
       , new_priority_(new_priority)
       , upload_order_(upload_order)
@@ -1977,6 +1978,7 @@ class ForceUploadActor : public Actor {
   }
 
  private:
+  FileManager *file_manager_;
   FileId file_id_;
   std::shared_ptr<FileManager::UploadCallback> callback_;
   int32 new_priority_;
@@ -2039,7 +2041,7 @@ class ForceUploadActor : public Actor {
   }
 
   bool is_ready() const {
-    return G()->file_manager().get_actor_unsafe()->get_file_view(file_id_).has_active_upload_remote_location();
+    return !G()->close_flag() && file_manager_->get_file_view(file_id_).has_active_upload_remote_location();
   }
 
   void on_ok() {
@@ -2083,7 +2085,7 @@ class ForceUploadActor : public Actor {
 void FileManager::resume_upload(FileId file_id, std::vector<int> bad_parts, std::shared_ptr<UploadCallback> callback,
                                 int32 new_priority, uint64 upload_order, bool force) {
   if (bad_parts.size() == 1 && bad_parts[0] == -1) {
-    create_actor<ForceUploadActor>("ForceUploadActor", file_id, std::move(callback), new_priority, upload_order,
+    create_actor<ForceUploadActor>("ForceUploadActor", this, file_id, std::move(callback), new_priority, upload_order,
                                    context_->create_reference())
         .release();
     return;
