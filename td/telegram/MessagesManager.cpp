@@ -8806,6 +8806,8 @@ void MessagesManager::init() {
   }
   if (!channels_notification_settings_.is_synchronized) {
     channels_notification_settings_ = chats_notification_settings_;
+    channels_notification_settings_.disable_pinned_message_notifications = false;
+    channels_notification_settings_.disable_mention_notifications = false;
     channels_notification_settings_.is_synchronized = false;
     send_get_scope_notification_settings_query(NotificationSettingsScope::Channel, Promise<>());
   }
