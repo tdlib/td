@@ -81,7 +81,6 @@ tl_object_ptr<td_api::location> Location::get_location_object() const {
 
 tl_object_ptr<telegram_api::InputGeoPoint> Location::get_input_geo_point() const {
   if (empty()) {
-    LOG(ERROR) << "Location is empty";
     return make_tl_object<telegram_api::inputGeoPointEmpty>();
   }
 

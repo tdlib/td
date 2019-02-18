@@ -565,6 +565,9 @@ class CliClient final : public Actor {
   }
 
   static tl_object_ptr<td_api::location> as_location(string latitude, string longitude) {
+    if (trim(latitude).empty() && trim(longitude).empty()) {
+      return nullptr;
+    }
     return make_tl_object<td_api::location>(to_double(latitude), to_double(longitude));
   }
 

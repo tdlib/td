@@ -2037,7 +2037,9 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageCont
     }
     case MessageContentType::LiveLocation: {
       auto m = static_cast<const MessageLiveLocation *>(content);
-      return make_tl_object<telegram_api::inputMediaGeoLive>(m->location.get_input_geo_point(), m->period);
+      int32 flags = telegram_api::inputMediaGeoLive::PERIOD_MASK;
+      return make_tl_object<telegram_api::inputMediaGeoLive>(flags, false /*ignored*/,
+                                                             m->location.get_input_geo_point(), m->period);
     }
     case MessageContentType::Location: {
       auto m = static_cast<const MessageLocation *>(content);

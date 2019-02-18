@@ -2194,7 +2194,6 @@ class EditMessageActor : public NetActorOnce {
   void send(int32 flags, DialogId dialog_id, MessageId message_id, const string &message,
             vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities,
             tl_object_ptr<telegram_api::InputMedia> &&input_media,
-            tl_object_ptr<telegram_api::InputGeoPoint> &&input_geo_point,
             tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup, uint64 sequence_dispatcher_id) {
     dialog_id_ = dialog_id;
 
@@ -2223,14 +2222,11 @@ class EditMessageActor : public NetActorOnce {
     if (input_media != nullptr) {
       flags |= telegram_api::messages_editMessage::MEDIA_MASK;
     }
-    if (input_geo_point != nullptr) {
-      flags |= telegram_api::messages_editMessage::GEO_POINT_MASK;
-    }
     LOG(DEBUG) << "Edit message with flags " << flags;
 
     auto query = G()->net_query_creator().create(create_storer(telegram_api::messages_editMessage(
-        flags, false /*ignored*/, false /*ignored*/, std::move(input_peer), message_id.get_server_message_id().get(),
-        message, std::move(input_media), std::move(reply_markup), std::move(entities), std::move(input_geo_point))));
+        flags, false /*ignored*/, std::move(input_peer), message_id.get_server_message_id().get(), message,
+        std::move(input_media), std::move(reply_markup), std::move(entities))));
 
     query->debug("send to MessagesManager::MultiSequenceDispatcher");
     send_closure(td->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
@@ -2275,7 +2271,6 @@ class EditInlineMessageQuery : public Td::ResultHandler {
   void send(int32 flags, tl_object_ptr<telegram_api::inputBotInlineMessageID> input_bot_inline_message_id,
             const string &message, vector<tl_object_ptr<telegram_api::MessageEntity>> &&entities,
             tl_object_ptr<telegram_api::InputMedia> &&input_media,
-            tl_object_ptr<telegram_api::InputGeoPoint> &&input_geo_point,
             tl_object_ptr<telegram_api::ReplyMarkup> &&reply_markup) {
     CHECK(input_bot_inline_message_id != nullptr);
 
@@ -2292,20 +2287,17 @@ class EditInlineMessageQuery : public Td::ResultHandler {
     if (!message.empty()) {
       flags |= MessagesManager::SEND_MESSAGE_FLAG_HAS_MESSAGE;
     }
-    if (input_geo_point != nullptr) {
-      flags |= telegram_api::messages_editInlineBotMessage::GEO_POINT_MASK;
-    }
     if (input_media != nullptr) {
       flags |= telegram_api::messages_editInlineBotMessage::MEDIA_MASK;
     }
     LOG(DEBUG) << "Edit inline message with flags " << flags;
 
     auto dc_id = DcId::internal(input_bot_inline_message_id->dc_id_);
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::messages_editInlineBotMessage(
-            flags, false /*ignored*/, false /*ignored*/, std::move(input_bot_inline_message_id), message,
-            std::move(input_media), std::move(reply_markup), std::move(entities), std::move(input_geo_point))),
-        dc_id));
+    send_query(
+        G()->net_query_creator().create(create_storer(telegram_api::messages_editInlineBotMessage(
+                                            flags, false /*ignored*/, std::move(input_bot_inline_message_id), message,
+                                            std::move(input_media), std::move(reply_markup), std::move(entities))),
+                                        dc_id));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -15482,7 +15474,7 @@ void MessagesManager::on_message_media_uploaded(DialogId dialog_id, Message *m,
     send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 1 << 11,
                  dialog_id, message_id, caption == nullptr ? "" : caption->text,
                  get_input_message_entities(td_->contacts_manager_.get(), caption, "edit_message_media"),
-                 std::move(input_media), nullptr, std::move(input_reply_markup),
+                 std::move(input_media), std::move(input_reply_markup),
                  get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
     return;
   }
@@ -16340,7 +16332,7 @@ void MessagesManager::edit_message_text(FullMessageId full_message_id,
       td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, flags, dialog_id,
       message_id, input_message_text.text.text,
       get_input_message_entities(td_->contacts_manager_.get(), input_message_text.text.entities, "edit_message_text"),
-      nullptr, nullptr, std::move(input_reply_markup), get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+      nullptr, std::move(input_reply_markup), get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
 }
 
 void MessagesManager::edit_message_live_location(FullMessageId full_message_id,
@@ -16387,12 +16379,13 @@ void MessagesManager::edit_message_live_location(FullMessageId full_message_id,
 
   int32 flags = 0;
   if (location.empty()) {
-    flags |= telegram_api::messages_editMessage::STOP_GEO_LIVE_MASK;
+    flags |= telegram_api::inputMediaGeoLive::STOPPED_MASK;
   }
-  send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, flags, dialog_id,
-               message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), nullptr,
-               location.empty() ? nullptr : location.get_input_geo_point(), std::move(input_reply_markup),
-               get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+  auto input_media = telegram_api::make_object<telegram_api::inputMediaGeoLive>(flags, false /*ignored*/,
+                                                                                location.get_input_geo_point(), 0);
+  send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 0, dialog_id,
+               message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), std::move(input_media),
+               std::move(input_reply_markup), get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
 }
 
 void MessagesManager::cancel_edit_message_media(DialogId dialog_id, Message *m, Slice error_message) {
@@ -16599,8 +16592,7 @@ void MessagesManager::edit_message_caption(FullMessageId full_message_id,
   send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 1 << 11, dialog_id,
                message_id, caption.text,
                get_input_message_entities(td_->contacts_manager_.get(), caption.entities, "edit_message_caption"),
-               nullptr, nullptr, std::move(input_reply_markup),
-               get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
+               nullptr, std::move(input_reply_markup), get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
 }
 
 void MessagesManager::edit_message_reply_markup(FullMessageId full_message_id,
@@ -16638,7 +16630,7 @@ void MessagesManager::edit_message_reply_markup(FullMessageId full_message_id,
   }
   auto input_reply_markup = get_input_reply_markup(r_new_reply_markup.ok());
   send_closure(td_->create_net_actor<EditMessageActor>(std::move(promise)), &EditMessageActor::send, 0, dialog_id,
-               message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), nullptr, nullptr,
+               message_id, string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(), nullptr,
                std::move(input_reply_markup), get_sequence_dispatcher_id(dialog_id, MessageContentType::None));
 }
 
@@ -16683,7 +16675,7 @@ void MessagesManager::edit_inline_message_text(const string &inline_message_id,
       ->send(flags, std::move(input_bot_inline_message_id), input_message_text.text.text,
              get_input_message_entities(td_->contacts_manager_.get(), input_message_text.text.entities,
                                         "edit_inline_message_text"),
-             nullptr, nullptr, get_input_reply_markup(r_new_reply_markup.ok()));
+             nullptr, get_input_reply_markup(r_new_reply_markup.ok()));
 }
 
 void MessagesManager::edit_inline_message_live_location(const string &inline_message_id,
@@ -16711,12 +16703,13 @@ void MessagesManager::edit_inline_message_live_location(const string &inline_mes
 
   int32 flags = 0;
   if (location.empty()) {
-    flags |= telegram_api::messages_editMessage::STOP_GEO_LIVE_MASK;
+    flags |= telegram_api::inputMediaGeoLive::STOPPED_MASK;
   }
+  auto input_media = telegram_api::make_object<telegram_api::inputMediaGeoLive>(flags, false /*ignored*/,
+                                                                                location.get_input_geo_point(), 0);
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
-      ->send(flags, std::move(input_bot_inline_message_id), "", vector<tl_object_ptr<telegram_api::MessageEntity>>(),
-             nullptr, location.empty() ? nullptr : location.get_input_geo_point(),
-             get_input_reply_markup(r_new_reply_markup.ok()));
+      ->send(0, std::move(input_bot_inline_message_id), "", vector<tl_object_ptr<telegram_api::MessageEntity>>(),
+             std::move(input_media), get_input_reply_markup(r_new_reply_markup.ok()));
 }
 
 void MessagesManager::edit_inline_message_media(const string &inline_message_id,
@@ -16768,7 +16761,7 @@ void MessagesManager::edit_inline_message_media(const string &inline_message_id,
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
       ->send(1 << 11, std::move(input_bot_inline_message_id), caption == nullptr ? "" : caption->text,
              get_input_message_entities(td_->contacts_manager_.get(), caption, "edit_inline_message_media"),
-             std::move(input_media), nullptr, get_input_reply_markup(r_new_reply_markup.ok()));
+             std::move(input_media), get_input_reply_markup(r_new_reply_markup.ok()));
 }
 
 void MessagesManager::edit_inline_message_caption(const string &inline_message_id,
@@ -16799,7 +16792,7 @@ void MessagesManager::edit_inline_message_caption(const string &inline_message_i
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
       ->send(1 << 11, std::move(input_bot_inline_message_id), caption.text,
              get_input_message_entities(td_->contacts_manager_.get(), caption.entities, "edit_inline_message_caption"),
-             nullptr, nullptr, get_input_reply_markup(r_new_reply_markup.ok()));
+             nullptr, get_input_reply_markup(r_new_reply_markup.ok()));
 }
 
 void MessagesManager::edit_inline_message_reply_markup(const string &inline_message_id,
@@ -16821,7 +16814,7 @@ void MessagesManager::edit_inline_message_reply_markup(const string &inline_mess
 
   td_->create_handler<EditInlineMessageQuery>(std::move(promise))
       ->send(0, std::move(input_bot_inline_message_id), string(), vector<tl_object_ptr<telegram_api::MessageEntity>>(),
-             nullptr, nullptr, get_input_reply_markup(r_new_reply_markup.ok()));
+             nullptr, get_input_reply_markup(r_new_reply_markup.ok()));
 }
 
 int32 MessagesManager::get_message_flags(const Message *m) {
