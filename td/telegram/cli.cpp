@@ -2353,26 +2353,31 @@ class CliClient final : public Actor {
       string file_id;
       string priority;
       string offset;
+      string limit;
       std::tie(file_id, args) = split(args);
-      std::tie(offset, priority) = split(args);
+      std::tie(offset, args) = split(args);
+      std::tie(limit, priority) = split(args);
       if (priority.empty()) {
         priority = "1";
       }
 
       send_request(make_tl_object<td_api::downloadFile>(as_file_id(file_id), to_integer<int32>(priority),
-                                                        to_integer<int32>(offset)));
+                                                        to_integer<int32>(offset), to_integer<int32>(limit)));
     } else if (op == "dff") {
       string max_file_id;
       string priority;
       string offset;
+      string limit;
       std::tie(max_file_id, args) = split(args);
-      std::tie(offset, priority) = split(args);
+      std::tie(offset, args) = split(args);
+      std::tie(limit, priority) = split(args);
       if (priority.empty()) {
         priority = "1";
       }
 
       for (int i = 1; i <= as_file_id(max_file_id); i++) {
-        send_request(make_tl_object<td_api::downloadFile>(i, to_integer<int32>(priority), to_integer<int32>(offset)));
+        send_request(make_tl_object<td_api::downloadFile>(i, to_integer<int32>(priority), to_integer<int32>(offset),
+                                                          to_integer<int32>(limit)));
       }
     } else if (op == "cdf") {
       send_request(make_tl_object<td_api::cancelDownloadFile>(as_file_id(args), false));

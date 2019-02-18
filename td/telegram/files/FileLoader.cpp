@@ -74,6 +74,12 @@ void FileLoader::update_download_offset(int64 offset) {
   loop();
 }
 
+void FileLoader::update_download_limit(int64 limit) {
+  parts_manager_.set_streaming_limit(limit);
+  update_estimated_limit();
+  loop();
+}
+
 void FileLoader::start_up() {
   auto r_file_info = init();
   if (r_file_info.is_error()) {
@@ -98,6 +104,7 @@ void FileLoader::start_up() {
     parts_manager_.set_checked_prefix_size(0);
   }
   parts_manager_.set_streaming_offset(file_info.offset);
+  parts_manager_.set_streaming_limit(file_info.limit);
   if (ordered_flag_) {
     ordered_parts_ = OrderedEventsProcessor<std::pair<Part, NetQueryPtr>>(parts_manager_.get_ready_prefix_count());
   }
@@ -205,9 +212,9 @@ void FileLoader::update_estimated_limit() {
   if (stop_flag_) {
     return;
   }
-  auto estimated_exta = parts_manager_.get_expected_size() - parts_manager_.get_ready_size();
-  resource_state_.update_estimated_limit(estimated_exta);
-  VLOG(files) << "update estimated limit " << estimated_exta;
+  auto estimated_extra = parts_manager_.get_estimated_extra();
+  resource_state_.update_estimated_limit(estimated_extra);
+  VLOG(files) << "update estimated limit " << estimated_extra;
   if (!resource_manager_.empty()) {
     keep_fd_flag(narrow_cast<uint64>(resource_state_.active_limit()) >= parts_manager_.get_part_size());
     send_closure(resource_manager_, &ResourceManager::update_resources, resource_state_);

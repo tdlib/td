@@ -40,6 +40,7 @@ class FileLoader : public FileLoaderActor {
 
   void update_local_file_location(const LocalFileLocation &local) override;
   void update_download_offset(int64 offset) override;
+  void update_download_limit(int64 limit) override;
 
  protected:
   void set_ordered_flag(bool flag);
@@ -59,6 +60,7 @@ class FileLoader : public FileLoaderActor {
     bool only_check = false;
     bool need_delay = false;
     int64 offset{0};
+    int64 limit{0};
   };
   virtual Result<FileInfo> init() TD_WARN_UNUSED_RESULT = 0;
   virtual Status on_ok(int64 size) TD_WARN_UNUSED_RESULT = 0;

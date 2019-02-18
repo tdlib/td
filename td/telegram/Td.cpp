@@ -5739,7 +5739,8 @@ void Td::on_request(uint64 id, const td_api::downloadFile &request) {
   if (request.offset_ < 0) {
     return send_error_raw(id, 5, "Download offset must be non-negative");
   }
-  file_manager_->download(FileId(request.file_id_, 0), download_file_callback_, priority, request.offset_);
+  file_manager_->download(FileId(request.file_id_, 0), download_file_callback_, priority, request.offset_,
+                          request.limit_);
 
   auto file = file_manager_->get_file_object(FileId(request.file_id_, 0), false);
   if (file->id_ == 0) {
@@ -5750,7 +5751,7 @@ void Td::on_request(uint64 id, const td_api::downloadFile &request) {
 }
 
 void Td::on_request(uint64 id, const td_api::cancelDownloadFile &request) {
-  file_manager_->download(FileId(request.file_id_, 0), nullptr, request.only_if_pending_ ? -1 : 0, -1);
+  file_manager_->download(FileId(request.file_id_, 0), nullptr, request.only_if_pending_ ? -1 : 0, -1, -1);
 
   send_closure(actor_id(this), &Td::send_result, id, make_tl_object<td_api::ok>());
 }

@@ -36,12 +36,14 @@ class PartsManager {
   void set_need_check();
   void set_checked_prefix_size(int64 size);
   void set_streaming_offset(int64 offset);
+  void set_streaming_limit(int64 limit);
 
   int64 get_checked_prefix_size() const;
   int64 get_unchecked_ready_prefix_size();
   int64 get_size() const;
   int64 get_size_or_zero() const;
   int64 get_expected_size() const;
+  int64 get_estimated_extra() const;
   int64 get_ready_size() const;
   size_t get_part_size() const;
   int32 get_part_count() const;
@@ -75,6 +77,7 @@ class PartsManager {
   int first_empty_part_;
   int first_not_ready_part_;
   int64 streaming_offset_{0};
+  int64 streaming_limit_{0};
   int first_streaming_empty_part_;
   vector<PartStatus> part_status_;
   Bitmask bitmask_;

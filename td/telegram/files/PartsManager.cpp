@@ -49,6 +49,9 @@ void PartsManager::set_streaming_offset(int64 offset) {
     part_status_.resize(part_count_, PartStatus::Empty);
   }
 }
+void PartsManager::set_streaming_limit(int64 limit) {
+  streaming_limit_ = limit;
+}
 
 Status PartsManager::init_no_size(size_t part_size, const std::vector<int> &ready_parts) {
   unknown_size_flag_ = true;
@@ -198,6 +201,27 @@ Result<Part> PartsManager::start_part() {
       }
     }
   }
+
+  if (streaming_limit_ != 0) {
+    auto offset = static_cast<int64>(part_i * get_part_size());
+    int64 ready = 0;
+    if (part_i == first_streaming_empty_part_) {
+      if (offset > streaming_offset_) {
+        ready += offset - streaming_offset_;
+      }
+    } else {
+      ready += offset;
+      CHECK(!unknown_size_flag_);
+      if (streaming_offset_ < size_) {
+        ready += size_ - streaming_offset_;
+      }
+    }
+
+    if (ready >= streaming_limit_) {
+      return Status::Error("FILE_DOWNLOAD_LIMIT");
+    }
+  }
+
   CHECK(part_status_[part_i] == PartStatus::Empty);
   on_part_start(part_i);
   return get_part(part_i);
@@ -294,6 +318,14 @@ int64 PartsManager::get_size() const {
 }
 int64 PartsManager::get_size_or_zero() const {
   return size_;
+}
+
+int64 PartsManager::get_estimated_extra() const {
+  auto total_estimated_extra = get_expected_size() - get_ready_size();
+  if (streaming_limit_ != 0) {
+    return std::min(streaming_limit_, total_estimated_extra);
+  }
+  return total_estimated_extra;
 }
 
 int64 PartsManager::get_ready_size() const {

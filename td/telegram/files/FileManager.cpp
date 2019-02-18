@@ -158,6 +158,17 @@ void FileNode::set_download_offset(int64 download_offset) {
   recalc_ready_prefix_size(-1, -1);
   on_info_changed();
 }
+void FileNode::set_download_limit(int64 download_limit) {
+  if (download_limit < 0) {
+    return;
+  }
+  if (download_limit == download_limit_) {
+    return;
+  }
+
+  download_limit_ = download_limit;
+  is_download_offset_dirty_ = true;
+}
 
 void FileNode::drop_local_location() {
   set_local_location(LocalFileLocation(), 0, -1, -1);
@@ -1821,8 +1832,8 @@ void FileManager::delete_file(FileId file_id, Promise<Unit> promise, const char 
   promise.set_value(Unit());
 }
 
-void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> callback, int32 new_priority,
-                           int64 offset) {
+void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> callback, int32 new_priority, int64 offset,
+                           int64 limit) {
   LOG(INFO) << "Download file " << file_id << " with priority " << new_priority;
   auto node = get_sync_file_node(file_id);
   if (!node) {
@@ -1870,6 +1881,7 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
 
   LOG(INFO) << "Change download priority of file " << file_id << " to " << new_priority;
   node->set_download_offset(offset);
+  node->set_download_limit(limit);
   auto *file_info = get_file_id_info(file_id);
   CHECK(new_priority == 0 || callback);
   file_info->download_priority_ = narrow_cast<int8>(new_priority);
@@ -1913,9 +1925,16 @@ void FileManager::run_download(FileNodePtr node) {
   bool need_update_offset = node->is_download_offset_dirty_;
   node->is_download_offset_dirty_ = false;
 
+  bool need_update_limit = node->is_download_limit_dirty_;
+  node->is_download_limit_dirty_ = false;
+
   if (old_priority != 0) {
     CHECK(node->download_id_ != 0);
     send_closure(file_load_manager_, &FileLoadManager::update_priority, node->download_id_, priority);
+    if (need_update_limit) {
+      auto download_limit = node->download_limit_;
+      send_closure(file_load_manager_, &FileLoadManager::update_download_limit, node->download_id_, download_limit);
+    }
     if (need_update_offset) {
       auto download_offset = file_view.is_encrypted_any() ? 0 : node->download_offset_;
       send_closure(file_load_manager_, &FileLoadManager::update_download_offset, node->download_id_, download_offset);
@@ -1960,9 +1979,10 @@ void FileManager::run_download(FileNodePtr node) {
              << node->remote_.full.value() << " with suggested name " << node->suggested_name() << " and encyption key "
              << node->encryption_key_;
   auto download_offset = file_view.is_encrypted_any() ? 0 : node->download_offset_;
+  auto download_limit = node->download_limit_;
   send_closure(file_load_manager_, &FileLoadManager::download, id, node->remote_.full.value(), node->local_,
                node->size_, node->suggested_name(), node->encryption_key_, node->can_search_locally_, download_offset,
-               priority);
+               download_limit, priority);
 }
 
 class ForceUploadActor : public Actor {
@@ -3143,7 +3163,9 @@ void FileManager::on_error_impl(FileNodePtr node, FileManager::Query::Type type,
     if (status.code() == 0) {
       // Remove partial locations
       if (node->local_.type() == LocalFileLocation::Type::Partial &&
-          !begins_with(status.message(), "FILE_UPLOAD_RESTART")) {
+          !begins_with(status.message(), "FILE_UPLOAD_RESTART") &&
+          !begins_with(status.message(), "FILE_DOWNLOAD_RESTART") &&
+          !begins_with(status.message(), "FILE_DOWNLOAD_LIMIT")) {
         CSlice path = node->local_.partial().path_;
         if (begins_with(path, get_files_temp_dir(FileType::Encrypted)) ||
             begins_with(path, get_files_temp_dir(FileType::Video))) {

@@ -31,6 +31,14 @@ class ResourceState {
 
   bool update_estimated_limit(int64 extra) {
     auto new_estimated_limit = used_ + extra;
+
+    // Use extra extra limit
+    if (new_estimated_limit < limit_) {
+      auto extra_limit = limit_ - new_estimated_limit;
+      used_ += extra_limit;
+      new_estimated_limit += extra_limit;
+    }
+
     if (new_estimated_limit == estimated_limit_) {
       return false;
     }

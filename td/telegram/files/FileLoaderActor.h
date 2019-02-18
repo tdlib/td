@@ -28,6 +28,8 @@ class FileLoaderActor : public NetQueryCallback {
   }
   virtual void update_download_offset(int64 offset) {
   }
+  virtual void update_download_limit(int64 limit) {
+  }
 };
 
 }  // namespace td

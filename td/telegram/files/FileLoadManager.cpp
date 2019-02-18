@@ -39,7 +39,8 @@ ActorOwn<ResourceManager> &FileLoadManager::get_download_resource_manager(bool i
 
 void FileLoadManager::download(QueryId id, const FullRemoteFileLocation &remote_location,
                                const LocalFileLocation &local, int64 size, string name,
-                               const FileEncryptionKey &encryption_key, bool search_file, int64 offset, int8 priority) {
+                               const FileEncryptionKey &encryption_key, bool search_file, int64 offset, int64 limit,
+                               int8 priority) {
   if (stop_flag_) {
     return;
   }
@@ -50,8 +51,9 @@ void FileLoadManager::download(QueryId id, const FullRemoteFileLocation &remote_
   node->query_id_ = id;
   auto callback = make_unique<FileDownloaderCallback>(actor_shared(this, node_id));
   bool is_small = size < 20 * 1024;
-  node->loader_ = create_actor<FileDownloader>("Downloader", remote_location, local, size, std::move(name),
-                                               encryption_key, is_small, search_file, offset, std::move(callback));
+  node->loader_ =
+      create_actor<FileDownloader>("Downloader", remote_location, local, size, std::move(name), encryption_key,
+                                   is_small, search_file, offset, limit, std::move(callback));
   DcId dc_id = remote_location.is_web() ? G()->get_webfile_dc_id() : remote_location.get_dc_id();
   auto &resource_manager = get_download_resource_manager(is_small, dc_id);
   send_closure(resource_manager, &ResourceManager::register_worker,
@@ -169,6 +171,20 @@ void FileLoadManager::update_download_offset(QueryId id, int64 offset) {
     return;
   }
   send_closure(node->loader_, &FileLoaderActor::update_download_offset, offset);
+}
+void FileLoadManager::update_download_limit(QueryId id, int64 limit) {
+  if (stop_flag_) {
+    return;
+  }
+  auto it = query_id_to_node_id_.find(id);
+  if (it == query_id_to_node_id_.end()) {
+    return;
+  }
+  auto node = nodes_container_.get(it->second);
+  if (node == nullptr) {
+    return;
+  }
+  send_closure(node->loader_, &FileLoaderActor::update_download_limit, limit);
 }
 void FileLoadManager::hangup() {
   nodes_container_.for_each([](auto id, auto &node) { node.loader_.reset(); });

@@ -85,10 +85,10 @@ class FileDownloadGenerateActor : public FileGenerateActor {
     };
 
     send_closure(G()->file_manager(), &FileManager::download, file_id_, std::make_shared<Callback>(actor_id(this)), 1,
-                 -1);
+                 -1, -1);
   }
   void hangup() override {
-    send_closure(G()->file_manager(), &FileManager::download, file_id_, nullptr, 0, -1);
+    send_closure(G()->file_manager(), &FileManager::download, file_id_, nullptr, 0, -1, -1);
     stop();
   }
 

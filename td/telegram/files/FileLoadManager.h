@@ -49,7 +49,8 @@ class FileLoadManager final : public Actor {
 
   explicit FileLoadManager(ActorShared<Callback> callback, ActorShared<> parent);
   void download(QueryId id, const FullRemoteFileLocation &remote_location, const LocalFileLocation &local, int64 size,
-                string name, const FileEncryptionKey &encryption_key, bool search_file, int64 offset, int8 priority);
+                string name, const FileEncryptionKey &encryption_key, bool search_file, int64 offset, int64 limit,
+                int8 priority);
   void upload(QueryId id, const LocalFileLocation &local_location, const RemoteFileLocation &remote_location,
               int64 expected_size, const FileEncryptionKey &encryption_key, int8 priority, vector<int> bad_parts);
   void upload_by_hash(QueryId id, const FullLocalFileLocation &local_location, int64 size, int8 priority);
@@ -58,6 +59,7 @@ class FileLoadManager final : public Actor {
   void cancel(QueryId id);
   void update_local_file_location(QueryId id, const LocalFileLocation &local);
   void update_download_offset(QueryId id, int64 offset);
+  void update_download_limit(QueryId id, int64 limit);
   void get_content(const FullLocalFileLocation &local_location, Promise<BufferSlice> promise);
 
  private:

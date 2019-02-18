@@ -36,7 +36,7 @@ namespace td {
 
 FileDownloader::FileDownloader(const FullRemoteFileLocation &remote, const LocalFileLocation &local, int64 size,
                                string name, const FileEncryptionKey &encryption_key, bool is_small, bool search_file,
-                               int64 offset, unique_ptr<Callback> callback)
+                               int64 offset, int64 limit, unique_ptr<Callback> callback)
     : remote_(remote)
     , local_(local)
     , size_(size)
@@ -45,7 +45,8 @@ FileDownloader::FileDownloader(const FullRemoteFileLocation &remote, const Local
     , callback_(std::move(callback))
     , is_small_(is_small)
     , search_file_(search_file)
-    , offset_(offset) {
+    , offset_(offset)
+    , limit_(limit) {
   if (encryption_key.is_secret()) {
     set_ordered_flag(true);
   }
@@ -114,6 +115,7 @@ Result<FileLoader::FileInfo> FileDownloader::init() {
                      remote_.file_type_ == FileType::Video || remote_.file_type_ == FileType::Animation ||
                      (remote_.file_type_ == FileType::Encrypted && size_ > (1 << 20)));
   res.offset = offset_;
+  res.limit = limit_;
   return res;
 }
 Status FileDownloader::on_ok(int64 size) {
