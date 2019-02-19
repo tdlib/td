@@ -10475,6 +10475,7 @@ bool MessagesManager::can_unload_message(const Dialog *d, const Message *m) cons
   // don't want to unload messages to which there are replies in yet unsent messages
   // don't want to unload messages with pending web pages
   // don't want to unload message with active reply markup
+  // don't want to unload pinned message
   // can't unload from memory last dialog, last database messages, yet unsent messages, being edited media messages and active live locations
   // can't unload messages in dialog with active suffix load query
   FullMessageId full_message_id{d->dialog_id, m->message_id};
@@ -10482,7 +10483,7 @@ bool MessagesManager::can_unload_message(const Dialog *d, const Message *m) cons
          !m->message_id.is_yet_unsent() && active_live_location_full_message_ids_.count(full_message_id) == 0 &&
          replied_by_yet_unsent_messages_.count(full_message_id) == 0 && m->edited_content == nullptr &&
          waiting_for_web_page_messages_.count(full_message_id) == 0 && d->suffix_load_queries_.empty() &&
-         m->message_id != d->reply_markup_message_id;
+         m->message_id != d->reply_markup_message_id && m->message_id != d->pinned_message_id;
 }
 
 void MessagesManager::unload_message(Dialog *d, MessageId message_id) {
@@ -18453,6 +18454,9 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
                                  : m->message_id.get() > d->last_read_inbox_message_id.get();
   if (!is_active) {
     VLOG(notifications) << "Disable inactive notification for " << m->message_id << " in " << d->dialog_id;
+    if (is_pinned) {
+      remove_dialog_pinned_message_notification(d);
+    }
     return false;
   }
 
@@ -21468,6 +21472,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     auto pinned_message_id = get_message_content_pinned_message_id(message->content.get());
     if (pinned_message_id.is_valid() && have_message({dialog_id, pinned_message_id})) {
       LOG(INFO) << "Preloaded pinned " << pinned_message_id << " from database";
+    }
+    if (d->pinned_message_notification_message_id.is_valid() &&
+        have_message({dialog_id, d->pinned_message_notification_message_id})) {
+      LOG(INFO) << "Preloaded previously pinned " << d->pinned_message_notification_message_id << " from database";
     }
   }
 
