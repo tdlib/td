@@ -152,6 +152,17 @@ class GetAuthorizationsQuery : public Td::ResultHandler {
           authorization->country_, authorization->region_));
     }
 
+    std::sort(results->sessions_.begin(), results->sessions_.end(),
+              [](const td_api::object_ptr<td_api::session> &lhs, const td_api::object_ptr<td_api::session> &rhs) {
+                if (lhs->is_current_ != rhs->is_current_) {
+                  return lhs->is_current_;
+                }
+                if (lhs->is_password_pending_ != rhs->is_password_pending_) {
+                  return lhs->is_password_pending_;
+                }
+                return lhs->last_active_date_ > rhs->last_active_date_;
+              });
+
     promise_.set_value(std::move(results));
   }
 

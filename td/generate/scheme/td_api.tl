@@ -2032,7 +2032,8 @@ userPrivacySettingAllowPeerToPeerCalls = UserPrivacySetting;
 accountTtl days:int32 = AccountTtl;
 
 
-//@description Contains information about one session in a Telegram application used by the current user @id Session identifier @is_current True, if this session is the current session
+//@description Contains information about one session in a Telegram application used by the current user. Sessions should be shown to the user in the returned order
+//@id Session identifier @is_current True, if this session is the current session
 //@is_password_pending True, if a password is needed to complete authorization of the session
 //@api_id Telegram API identifier, as provided by the application @application_name Name of the application, as provided by the application
 //@application_version The version of the application, as provided by the application @is_official_application True, if the application is an official application or uses the api_id of an official application
