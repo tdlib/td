@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/MessageId.h"
 #include "td/telegram/PollId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -33,6 +34,10 @@ class PollManager : public Actor {
   ~PollManager() override;
 
   PollId create_poll(string &&question, vector<string> &&answers);
+
+  void register_poll(PollId poll_id, FullMessageId full_message_id);
+
+  void unregister_poll(PollId poll_id, FullMessageId full_message_id);
 
   void close_poll(PollId poll_id);
 
@@ -103,6 +108,8 @@ class PollManager : public Actor {
   Td *td_;
   ActorShared<> parent_;
   std::unordered_map<PollId, unique_ptr<Poll>, PollIdHash> polls_;
+
+  std::unordered_map<PollId, std::unordered_set<FullMessageId, FullMessageIdHash>, PollIdHash> poll_messages_;
 
   int64 current_local_poll_id_ = 0;
 

@@ -185,6 +185,10 @@ void merge_message_contents(Td *td, MessageContent *old_content, MessageContent 
 
 bool merge_message_content_file_id(Td *td, MessageContent *message_content, FileId new_file_id);
 
+void register_message_content(Td *td, const MessageContent *content, FullMessageId full_message_id);
+
+void unregister_message_content(Td *td, const MessageContent *content, FullMessageId full_message_id);
+
 unique_ptr<MessageContent> get_secret_message_content(
     Td *td, string message_text, tl_object_ptr<telegram_api::encryptedFile> file,
     tl_object_ptr<secret_api::DecryptedMessageMedia> &&media,

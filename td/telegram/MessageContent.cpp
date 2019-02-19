@@ -3269,6 +3269,24 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
   return false;
 }
 
+void register_message_content(Td *td, const MessageContent *content, FullMessageId full_message_id) {
+  switch (content->get_type()) {
+    case MessageContentType::Poll:
+      return td->poll_manager_->register_poll(static_cast<const MessagePoll *>(content)->poll_id, full_message_id);
+    default:
+      return;
+  }
+}
+
+void unregister_message_content(Td *td, const MessageContent *content, FullMessageId full_message_id) {
+  switch (content->get_type()) {
+    case MessageContentType::Poll:
+      return td->poll_manager_->unregister_poll(static_cast<const MessagePoll *>(content)->poll_id, full_message_id);
+    default:
+      return;
+  }
+}
+
 static FormattedText get_secret_media_caption(string &&message_text, string &&message_caption) {
   FormattedText caption;
   if (message_text.empty()) {

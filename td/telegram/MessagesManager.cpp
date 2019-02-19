@@ -8630,8 +8630,10 @@ void MessagesManager::on_message_ttl_expired(Dialog *d, Message *m) {
   CHECK(m->ttl > 0);
   CHECK(d->dialog_id.get_type() != DialogType::SecretChat);
   ttl_unregister_message(d->dialog_id, m, Time::now(), "on_message_ttl_expired");
+  unregister_message_content(td_, m->content.get(), {d->dialog_id, m->message_id});
   remove_message_file_sources(d->dialog_id, m);
   on_message_ttl_expired_impl(d, m);
+  register_message_content(td_, m->content.get(), {d->dialog_id, m->message_id});
   send_update_message_content(d->dialog_id, m->message_id, m->content.get(), m->date, m->is_content_secret,
                               "on_message_ttl_expired");
 }
@@ -10056,8 +10058,9 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
     return;
   }
 
-  auto dialog_id = it->second.get_dialog_id();
-  auto m = get_message_force(it->second);
+  auto full_message_id = it->second;
+  auto dialog_id = full_message_id.get_dialog_id();
+  auto m = get_message_force(full_message_id);
   if (m == nullptr) {
     // message has already been deleted
     return;
@@ -10080,6 +10083,8 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
     return;
   }
 
+  unregister_message_content(td_, m->content.get(), full_message_id);
+
   bool need_update = false;
   bool is_content_changed = false;
   merge_message_contents(td_, m->content.get(), new_content.get(), need_message_changed_warning(m), dialog_id, false,
@@ -10089,6 +10094,7 @@ void MessagesManager::on_update_sent_text_message(int64 random_id,
     m->content = std::move(new_content);
     m->is_content_secret = is_secret_message_content(m->ttl, MessageContentType::Text);
   }
+  register_message_content(td_, m->content.get(), full_message_id);
   if (need_update) {
     send_update_message_content(dialog_id, m->message_id, m->content.get(), m->date, m->is_content_secret,
                                 "on_update_sent_text_message");
@@ -10925,6 +10931,7 @@ void MessagesManager::on_message_deleted(Dialog *d, Message *m) {
       UNREACHABLE();
   }
   ttl_unregister_message(d->dialog_id, m, Time::now(), "on_message_deleted");
+  unregister_message_content(td_, m->content.get(), {d->dialog_id, m->message_id});
   if (m->notification_id.is_valid()) {
     delete_notification_id_to_message_id_correspondence(d, m->notification_id, m->message_id);
   }
@@ -21772,6 +21779,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   add_message_file_sources(dialog_id, m);
+  register_message_content(td_, m->content.get(), {dialog_id, message_id});
 
   if (from_update && message_id.is_server() && dialog_id.get_type() == DialogType::Channel) {
     int32 new_participant_count = get_message_content_new_participant_count(m->content.get());
@@ -22461,7 +22469,9 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
   }
 
   if (is_content_changed || need_update) {
+    unregister_message_content(td_, old_content.get(), {dialog_id, old_message->message_id});
     old_content = std::move(new_content);
+    register_message_content(td_, old_content.get(), {dialog_id, old_message->message_id});
     update_message_content_file_id_remote(old_content.get(), old_file_id);
   } else {
     update_message_content_file_id_remote(old_content.get(), get_message_content_file_id(new_content.get()));

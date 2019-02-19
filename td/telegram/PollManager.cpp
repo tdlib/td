@@ -143,6 +143,16 @@ PollId PollManager::create_poll(string &&question, vector<string> &&answers) {
   return poll_id;
 }
 
+void PollManager::register_poll(PollId poll_id, FullMessageId full_message_id) {
+  CHECK(have_poll(poll_id));
+  poll_messages_[poll_id].insert(full_message_id);
+}
+
+void PollManager::unregister_poll(PollId poll_id, FullMessageId full_message_id) {
+  CHECK(have_poll(poll_id));
+  poll_messages_[poll_id].erase(full_message_id);
+}
+
 void PollManager::close_poll(PollId poll_id) {
   auto poll = get_poll_editable(poll_id);
   CHECK(poll != nullptr);
