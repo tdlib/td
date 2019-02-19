@@ -7,6 +7,7 @@
 #include "td/telegram/net/NetQuery.h"
 
 #include "td/telegram/Global.h"
+#include "td/telegram/telegram_api.h"
 
 #include "td/utils/as.h"
 #include "td/utils/misc.h"
@@ -52,7 +53,10 @@ void NetQuery::set_error(Status status, string source) {
     LOG(ERROR) << "Receive INPUT_METHOD_INVALID for query " << format::as_hex_dump<4>(Slice(query_.as_slice()));
   }
   if (status.message() == "BOT_METHOD_INVALID") {
-    LOG(ERROR) << "Receive BOT_METHOD_INVALID for query " << format::as_hex(tl_constructor());
+    auto id = tl_constructor();
+    if (id != telegram_api::help_getNearestDc::ID && id != telegram_api::help_getProxyData::ID) {
+      LOG(ERROR) << "Receive BOT_METHOD_INVALID for query " << format::as_hex(id);
+    }
   }
   if (status.message() == "MSG_WAIT_FAILED" && status.code() != 400) {
     status = Status::Error(400, "MSG_WAIT_FAILED");

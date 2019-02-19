@@ -1421,8 +1421,12 @@ void ConnectionCreator::on_result(NetQueryPtr query) {
     if (G()->close_flag()) {
       return;
     }
-    LOG(ERROR) << "Receive error for getProxyData: " << res.error();
-    return schedule_get_proxy_info(60);
+    if (res.error().message() == "BOT_METHOD_INVALID") {
+      get_proxy_info_timestamp_ = Timestamp::in(30 * 86400);
+    } else {
+      LOG(ERROR) << "Receive error for getProxyData: " << res.error();
+      return schedule_get_proxy_info(60);
+    }
   }
   on_get_proxy_info(res.move_as_ok());
 }
