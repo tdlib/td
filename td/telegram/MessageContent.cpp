@@ -4756,6 +4756,24 @@ void update_expired_message_content(unique_ptr<MessageContent> &content) {
   }
 }
 
+void update_failed_to_send_message_content(Td *td, unique_ptr<MessageContent> &content) {
+  switch (content->get_type()) {
+    case MessageContentType::LiveLocation: {
+      MessageLiveLocation *message_live_location = static_cast<MessageLiveLocation *>(content.get());
+      message_live_location->period = 1;
+      break;
+    }
+    case MessageContentType::Poll: {
+      const MessagePoll *message_poll = static_cast<const MessagePoll *>(content.get());
+      td->poll_manager_->close_poll(message_poll->poll_id);
+      break;
+    }
+    default:
+      // nothing to do
+      break;
+  }
+}
+
 void add_message_content_dependencies(Dependencies &dependencies, const MessageContent *message_content) {
   switch (message_content->get_type()) {
     case MessageContentType::Text: {

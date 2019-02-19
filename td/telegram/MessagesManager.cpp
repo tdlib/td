@@ -19382,6 +19382,8 @@ void MessagesManager::fail_send_message(FullMessageId full_message_id, int error
   message->random_y = get_random_y(message->message_id);
   message->is_failed_to_send = true;
 
+  update_failed_to_send_message_content(td_, message->content);
+
   message->have_previous = true;
   message->have_next = true;
 

@@ -143,6 +143,20 @@ PollId PollManager::create_poll(string &&question, vector<string> &&answers) {
   return poll_id;
 }
 
+void PollManager::close_poll(PollId poll_id) {
+  auto poll = get_poll_editable(poll_id);
+  CHECK(poll != nullptr);
+  if (poll->is_closed) {
+    return;
+  }
+
+  poll->is_closed = true;
+  if (!is_local_poll_id(poll_id)) {
+    // TODO send poll close request to the server + LogEvent
+    save_poll(poll, poll_id);
+  }
+}
+
 tl_object_ptr<telegram_api::InputMedia> PollManager::get_input_media(PollId poll_id) const {
   auto poll = get_poll(poll_id);
   CHECK(poll != nullptr);

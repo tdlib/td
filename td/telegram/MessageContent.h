@@ -227,6 +227,8 @@ bool need_delay_message_content_notification(const MessageContent *content, User
 
 void update_expired_message_content(unique_ptr<MessageContent> &content);
 
+void update_failed_to_send_message_content(Td *td, unique_ptr<MessageContent> &content);
+
 void add_message_content_dependencies(Dependencies &dependencies, const MessageContent *message_content);
 
 void on_sent_message_content(Td *td, const MessageContent *content);

@@ -34,6 +34,8 @@ class PollManager : public Actor {
 
   PollId create_poll(string &&question, vector<string> &&answers);
 
+  void close_poll(PollId poll_id);
+
   tl_object_ptr<telegram_api::InputMedia> get_input_media(PollId poll_id) const;
 
   PollId on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll> &&poll_server,
