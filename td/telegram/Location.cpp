@@ -151,6 +151,10 @@ Location &Venue::location() {
   return location_;
 }
 
+const Location &Venue::location() const {
+  return location_;
+}
+
 tl_object_ptr<td_api::venue> Venue::get_venue_object() const {
   return make_tl_object<td_api::venue>(location_.get_location_object(), title_, address_, provider_, id_, type_);
 }

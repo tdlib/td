@@ -2679,7 +2679,7 @@ void set_message_content_web_page_id(MessageContent *content, WebPageId web_page
   static_cast<MessageText *>(content)->web_page_id = web_page_id;
 }
 
-static void merge_location_access_hash(Location &first, Location &second) {
+static void merge_location_access_hash(const Location &first, const Location &second) {
   if (second.get_access_hash() != 0) {
     first.set_access_hash(second.get_access_hash());
   } else {
@@ -2709,7 +2709,7 @@ static bool need_message_text_changed_warning(const MessageText *old_content, co
   return true;
 }
 
-void merge_message_contents(Td *td, MessageContent *old_content, MessageContent *new_content,
+void merge_message_contents(Td *td, const MessageContent *old_content, MessageContent *new_content,
                             bool need_message_changed_warning, DialogId dialog_id, bool need_merge_files,
                             bool &is_content_changed, bool &need_update) {
   MessageContentType content_type = new_content->get_type();
@@ -2812,8 +2812,8 @@ void merge_message_contents(Td *td, MessageContent *old_content, MessageContent 
       break;
     }
     case MessageContentType::LiveLocation: {
-      auto old_ = static_cast<MessageLiveLocation *>(old_content);
-      auto new_ = static_cast<MessageLiveLocation *>(new_content);
+      auto old_ = static_cast<const MessageLiveLocation *>(old_content);
+      auto new_ = static_cast<const MessageLiveLocation *>(new_content);
       if (old_->location != new_->location) {
         need_update = true;
       }
@@ -2827,8 +2827,8 @@ void merge_message_contents(Td *td, MessageContent *old_content, MessageContent 
       break;
     }
     case MessageContentType::Location: {
-      auto old_ = static_cast<MessageLocation *>(old_content);
-      auto new_ = static_cast<MessageLocation *>(new_content);
+      auto old_ = static_cast<const MessageLocation *>(old_content);
+      auto new_ = static_cast<const MessageLocation *>(new_content);
       if (old_->location != new_->location) {
         need_update = true;
       }
@@ -2903,8 +2903,8 @@ void merge_message_contents(Td *td, MessageContent *old_content, MessageContent 
       break;
     }
     case MessageContentType::Venue: {
-      auto old_ = static_cast<MessageVenue *>(old_content);
-      auto new_ = static_cast<MessageVenue *>(new_content);
+      auto old_ = static_cast<const MessageVenue *>(old_content);
+      auto new_ = static_cast<const MessageVenue *>(new_content);
       if (old_->venue != new_->venue) {
         need_update = true;
       }

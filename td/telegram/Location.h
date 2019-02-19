@@ -27,7 +27,7 @@ class Location {
   bool is_empty_ = true;
   double latitude_ = 0.0;
   double longitude_ = 0.0;
-  int64 access_hash_ = 0;
+  mutable int64 access_hash_ = 0;
 
   friend bool operator==(const Location &lhs, const Location &rhs);
   friend bool operator!=(const Location &lhs, const Location &rhs);
@@ -69,7 +69,7 @@ class Location {
     return access_hash_;
   }
 
-  void set_access_hash(int64 access_hash) {
+  void set_access_hash(int64 access_hash) const {
     access_hash_ = access_hash;
   }
 
@@ -138,6 +138,8 @@ class Venue {
   bool empty() const;
 
   Location &location();
+
+  const Location &location() const;
 
   tl_object_ptr<td_api::venue> get_venue_object() const;
 
