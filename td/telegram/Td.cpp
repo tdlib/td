@@ -55,6 +55,7 @@
 #include "td/telegram/Payments.h"
 #include "td/telegram/PhoneNumberManager.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/PollManager.h"
 #include "td/telegram/PrivacyManager.h"
 #include "td/telegram/RequestActor.h"
 #include "td/telegram/SecretChatId.h"
@@ -3679,6 +3680,8 @@ void Td::dec_actor_refcnt() {
       LOG(DEBUG) << "MessagesManager was cleared " << timer;
       notification_manager_.reset();
       LOG(DEBUG) << "NotificationManager was cleared " << timer;
+      poll_manager_.reset();
+      LOG(DEBUG) << "PollManager was cleared " << timer;
       stickers_manager_.reset();
       LOG(DEBUG) << "StickersManager was cleared " << timer;
       updates_manager_.reset();
@@ -3854,6 +3857,8 @@ void Td::clear() {
   LOG(DEBUG) << "MessagesManager actor was cleared " << timer;
   notification_manager_actor_.reset();
   LOG(DEBUG) << "NotificationManager actor was cleared " << timer;
+  poll_manager_actor_.reset();
+  LOG(DEBUG) << "PollManager actor was cleared " << timer;
   stickers_manager_actor_.reset();
   LOG(DEBUG) << "StickersManager actor was cleared " << timer;
   updates_manager_actor_.reset();
@@ -4182,6 +4187,8 @@ Status Td::init(DbKey key) {
   G()->set_messages_manager(messages_manager_actor_.get());
   notification_manager_ = make_unique<NotificationManager>(this, create_reference());
   notification_manager_actor_ = register_actor("NotificationManager", notification_manager_.get());
+  poll_manager_ = make_unique<PollManager>(this, create_reference());
+  poll_manager_actor_ = register_actor("PollManager", poll_manager_.get());
   G()->set_notification_manager(notification_manager_actor_.get());
   stickers_manager_ = make_unique<StickersManager>(this, create_reference());
   stickers_manager_actor_ = register_actor("StickersManager", stickers_manager_.get());

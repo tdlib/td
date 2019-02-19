@@ -5185,6 +5185,7 @@ bool MessagesManager::need_cancel_user_dialog_action(int32 action_id, MessageCon
     case MessageContentType::WebsiteConnected:
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
+    case MessageContentType::Poll:
       return false;
     default:
       UNREACHABLE();
@@ -9510,10 +9511,8 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
   }
 
   if (sender_user_id.is_valid() && (sender_user_id == my_id && dialog_id != my_dialog_id) != is_outgoing) {
-    //    if (content->get_type() != MessageContentType::ChatAddUser) {  // TODO: we have wrong flags for invites via links
     LOG(ERROR) << "Receive wrong message out flag: me is " << my_id << ", message is from " << sender_user_id
                << ", flags = " << flags << " for " << message_id << " in " << dialog_id;
-    //    }
     is_outgoing = !is_outgoing;
 
     if (dialog_type == DialogType::Channel && !running_get_difference_ && !running_get_channel_difference(dialog_id) &&
@@ -14825,6 +14824,7 @@ Status MessagesManager::can_send_message_content(DialogId dialog_id, const Messa
   bool can_send_stickers = true;
   bool can_send_animations = true;
   bool can_send_games = true;
+  bool can_send_polls = true;
 
   switch (dialog_type) {
     case DialogType::User:
@@ -14838,10 +14838,12 @@ Status MessagesManager::can_send_message_content(DialogId dialog_id, const Messa
       can_send_stickers = channel_status.can_send_stickers();
       can_send_animations = channel_status.can_send_animations();
       can_send_games = channel_status.can_send_games();
+      // can_send_polls = channel_status.can_send_polls(); TODO
       break;
     }
     case DialogType::SecretChat:
       can_send_games = false;
+      can_send_polls = false;
       break;
     case DialogType::None:
     default:
@@ -14922,6 +14924,11 @@ Status MessagesManager::can_send_message_content(DialogId dialog_id, const Messa
     case MessageContentType::Photo:
       if (!can_send_media) {
         return Status::Error(400, "Not enough rights to send photos to the chat");
+      }
+      break;
+    case MessageContentType::Poll:
+      if (!can_send_polls) {
+        return Status::Error(400, "Not enough rights to send polls to the chat");
       }
       break;
     case MessageContentType::Sticker:
@@ -16225,6 +16232,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
     }
     case MessageContentType::Contact:
     case MessageContentType::Location:
+    case MessageContentType::Poll:
     case MessageContentType::Sticker:
     case MessageContentType::Venue:
     case MessageContentType::VideoNote:
@@ -19275,6 +19283,8 @@ void MessagesManager::on_send_message_fail(int64 random_id, Status error) {
           error_message = "Wrong game short name specified";
         } else if (content_type == MessageContentType::Invoice) {
           error_message = "Wrong invoice information specified";
+        } else if (content_type == MessageContentType::Poll) {
+          error_message = "Wrong poll data specified";
         } else {
           error_message = "Wrong file identifier/HTTP URL specified";
         }

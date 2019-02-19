@@ -74,7 +74,8 @@ enum class MessageContentType : int32 {
   CustomServiceAction,
   WebsiteConnected,
   PassportDataSent,
-  PassportDataReceived
+  PassportDataReceived,
+  Poll
 };
 
 StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType content_type);

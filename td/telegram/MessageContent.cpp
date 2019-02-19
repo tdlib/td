@@ -38,6 +38,9 @@
 #include "td/telegram/Payments.hpp"
 #include "td/telegram/Photo.h"
 #include "td/telegram/Photo.hpp"
+#include "td/telegram/PollId.h"
+#include "td/telegram/PollId.hpp"
+#include "td/telegram/PollManager.h"
 #include "td/telegram/secret_api.hpp"
 #include "td/telegram/SecureValue.h"
 #include "td/telegram/SecureValue.hpp"
@@ -422,7 +425,7 @@ class MessageChatSetTtl : public MessageContent {
 
 class MessageUnsupported : public MessageContent {
  public:
-  static constexpr int32 CURRENT_VERSION = 2;
+  static constexpr int32 CURRENT_VERSION = 3;
   int32 version = CURRENT_VERSION;
 
   MessageUnsupported() = default;
@@ -618,6 +621,19 @@ class MessagePassportDataReceived : public MessageContent {
   }
 };
 
+class MessagePoll : public MessageContent {
+ public:
+  PollId poll_id;
+
+  MessagePoll() = default;
+  explicit MessagePoll(PollId poll_id) : poll_id(poll_id) {
+  }
+
+  MessageContentType get_type() const override {
+    return MessageContentType::Poll;
+  }
+};
+
 StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType content_type) {
   switch (content_type) {
     case MessageContentType::None:
@@ -702,6 +718,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, MessageContentType cont
       return string_builder << "PassportDataSent";
     case MessageContentType::PassportDataReceived:
       return string_builder << "PassportDataReceived";
+    case MessageContentType::Poll:
+      return string_builder << "Poll";
     default:
       UNREACHABLE();
       return string_builder;
@@ -955,6 +973,11 @@ static void store(const MessageContent *content, StorerT &storer) {
       auto m = static_cast<const MessagePassportDataReceived *>(content);
       store(m->values, storer);
       store(m->credentials, storer);
+      break;
+    }
+    case MessageContentType::Poll: {
+      auto m = static_cast<const MessagePoll *>(content);
+      store(m->poll_id, storer);
       break;
     }
     default:
@@ -1280,6 +1303,13 @@ static void parse(unique_ptr<MessageContent> &content, ParserT &parser) {
       auto m = make_unique<MessagePassportDataReceived>();
       parse(m->values, parser);
       parse(m->credentials, parser);
+      content = std::move(m);
+      break;
+    }
+    case MessageContentType::Poll: {
+      auto m = make_unique<MessagePoll>();
+      parse(m->poll_id, parser);
+      is_bad = !m->poll_id.is_valid();
       content = std::move(m);
       break;
     }
@@ -1715,6 +1745,42 @@ static Result<InputMessageContent> create_input_message_content(
       content = std::move(message_invoice);
       break;
     }
+    case td_api::inputMessagePoll::ID: {
+      constexpr size_t MAX_POLL_QUESTION_LENGTH = 255;  // server-side limit
+      constexpr size_t MAX_POLL_ANSWER_LENGTH = 100;    // server-side limit
+      constexpr size_t MAX_POLL_ANSWERS = 10;           // server-side limit
+      auto input_poll = static_cast<td_api::inputMessagePoll *>(input_message_content.get());
+      if (!clean_input_string(input_poll->question_)) {
+        return Status::Error(400, "Poll question must be encoded in UTF-8");
+      }
+      if (input_poll->question_.empty()) {
+        return Status::Error(400, "Poll question must be non-empty");
+      }
+      if (input_poll->question_.size() > MAX_POLL_QUESTION_LENGTH) {
+        return Status::Error(400, PSLICE() << "Poll question length must not exceed " << MAX_POLL_QUESTION_LENGTH);
+      }
+      if (input_poll->answers_.empty()) {
+        return Status::Error(400, "Poll must have at least 1 answer");
+      }
+      if (input_poll->answers_.size() > MAX_POLL_ANSWERS) {
+        return Status::Error(400, PSLICE() << "Poll can't have more than " << MAX_POLL_QUESTION_LENGTH << " answers");
+      }
+      for (auto &answer : input_poll->answers_) {
+        if (!clean_input_string(answer)) {
+          return Status::Error(400, "Poll answers must be encoded in UTF-8");
+        }
+        if (answer.empty()) {
+          return Status::Error(400, "Poll answers must be non-empty");
+        }
+        if (answer.size() > MAX_POLL_ANSWER_LENGTH) {
+          return Status::Error(400, PSLICE() << "Poll answers length must not exceed " << MAX_POLL_ANSWER_LENGTH);
+        }
+      }
+
+      content = make_unique<MessagePoll>(
+          td->poll_manager_->create_poll(std::move(input_poll->question_), std::move(input_poll->answers_)));
+      break;
+    }
     default:
       UNREACHABLE();
   }
@@ -1921,6 +1987,7 @@ SecretInputMedia get_secret_input_media(const MessageContent *content, Td *td,
     case MessageContentType::WebsiteConnected:
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
+    case MessageContentType::Poll:
       break;
     default:
       UNREACHABLE();
@@ -2069,6 +2136,10 @@ static tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageCont
       auto m = static_cast<const MessageVoiceNote *>(content);
       return td->voice_notes_manager_->get_input_media(m->file_id, std::move(input_file));
     }
+    case MessageContentType::Poll: {
+      auto m = static_cast<const MessagePoll *>(content);
+      return td->poll_manager_->get_input_media(m->poll_id);
+    }
     case MessageContentType::Text:
     case MessageContentType::Unsupported:
     case MessageContentType::ChatCreate:
@@ -2205,6 +2276,7 @@ void delete_message_content_thumbnail(MessageContent *content, Td *td) {
     case MessageContentType::WebsiteConnected:
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
+    case MessageContentType::Poll:
       break;
     default:
       UNREACHABLE();
@@ -2254,6 +2326,7 @@ bool is_allowed_media_group_content(MessageContentType content_type) {
     case MessageContentType::WebsiteConnected:
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
+    case MessageContentType::Poll:
       return false;
     default:
       UNREACHABLE();
@@ -2318,6 +2391,7 @@ bool is_secret_message_content(int32 ttl, MessageContentType content_type) {
     case MessageContentType::WebsiteConnected:
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
+    case MessageContentType::Poll:
       return false;
     default:
       UNREACHABLE();
@@ -2345,6 +2419,7 @@ bool is_service_message_content(MessageContentType content_type) {
     case MessageContentType::VoiceNote:
     case MessageContentType::ExpiredPhoto:
     case MessageContentType::ExpiredVideo:
+    case MessageContentType::Poll:
       return false;
     case MessageContentType::ChatCreate:
     case MessageContentType::ChatChangeTitle:
@@ -2418,6 +2493,7 @@ bool can_have_message_content_caption(MessageContentType content_type) {
     case MessageContentType::WebsiteConnected:
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
+    case MessageContentType::Poll:
       return false;
     default:
       UNREACHABLE();
@@ -2529,6 +2605,7 @@ int32 get_message_content_index_mask(const MessageContent *content, const Td *td
     case MessageContentType::WebsiteConnected:
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
+    case MessageContentType::Poll:
       return 0;
     default:
       UNREACHABLE();
@@ -3040,6 +3117,18 @@ void merge_message_contents(Td *td, MessageContent *old_content, MessageContent 
       }
       break;
     }
+    case MessageContentType::Poll: {
+      auto old_ = static_cast<const MessagePoll *>(old_content);
+      auto new_ = static_cast<const MessagePoll *>(new_content);
+      if (old_->poll_id != new_->poll_id) {
+        if (old_->poll_id.get() > 0) {
+          LOG(ERROR) << "Poll id has changed from " << old_->poll_id << " to " << new_->poll_id;
+        }
+        // polls are updated in a different way
+        is_content_changed = true;
+      }
+      break;
+    }
     case MessageContentType::Unsupported: {
       auto old_ = static_cast<const MessageUnsupported *>(old_content);
       auto new_ = static_cast<const MessageUnsupported *>(new_content);
@@ -3170,6 +3259,7 @@ bool merge_message_content_file_id(Td *td, MessageContent *message_content, File
     case MessageContentType::WebsiteConnected:
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
+    case MessageContentType::Poll:
       LOG(ERROR) << "Receive new file " << new_file_id << " in a sent message of the type " << content_type;
       break;
     default:
@@ -3743,10 +3833,17 @@ unique_ptr<MessageContent> get_message_content(Td *td, FormattedText message,
       auto web_page_id = td->web_pages_manager_->on_get_web_page(std::move(media_web_page->webpage_), owner_dialog_id);
       return make_unique<MessageText>(std::move(message), web_page_id);
     }
-
-    case telegram_api::messageMediaUnsupported::ID: {
-      return make_unique<MessageUnsupported>();
+    case telegram_api::messageMediaPoll::ID: {
+      auto media_poll = move_tl_object_as<telegram_api::messageMediaPoll>(media);
+      auto poll_id =
+          td->poll_manager_->on_get_poll(PollId(), std::move(media_poll->poll_), std::move(media_poll->results_));
+      if (!poll_id.is_valid()) {
+        break;
+      }
+      return make_unique<MessagePoll>(poll_id);
     }
+    case telegram_api::messageMediaUnsupported::ID:
+      return make_unique<MessageUnsupported>();
     default:
       UNREACHABLE();
   }
@@ -3917,6 +4014,8 @@ unique_ptr<MessageContent> dup_message_content(Td *td, DialogId dialog_id, const
       CHECK(result->file_id.is_valid());
       return std::move(result);
     }
+    case MessageContentType::Poll:
+      return make_unique<MessagePoll>(*static_cast<const MessagePoll *>(content));
     case MessageContentType::Unsupported:
     case MessageContentType::ChatCreate:
     case MessageContentType::ChatChangeTitle:
@@ -4310,6 +4409,10 @@ tl_object_ptr<td_api::MessageContent> get_message_content_object(const MessageCo
           get_encrypted_passport_element_object(td->file_manager_.get(), m->values),
           get_encrypted_credentials_object(m->credentials));
     }
+    case MessageContentType::Poll: {
+      const MessagePoll *m = static_cast<const MessagePoll *>(content);
+      return make_tl_object<td_api::messagePoll>(td->poll_manager_->get_poll_object(m->poll_id));
+    }
     default:
       UNREACHABLE();
       return nullptr;
@@ -4586,6 +4689,7 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::WebsiteConnected:
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
+    case MessageContentType::Poll:
       return string();
     default:
       UNREACHABLE();
@@ -4757,6 +4861,8 @@ void add_message_content_dependencies(Dependencies &dependencies, const MessageC
     case MessageContentType::PassportDataSent:
       break;
     case MessageContentType::PassportDataReceived:
+      break;
+    case MessageContentType::Poll:
       break;
     default:
       UNREACHABLE();

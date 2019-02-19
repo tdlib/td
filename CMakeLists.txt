@@ -417,6 +417,7 @@ set(TDLIB_SOURCE
   td/telegram/PhoneNumberManager.cpp
   td/telegram/PrivacyManager.cpp
   td/telegram/Photo.cpp
+  td/telegram/PollManager.cpp
   td/telegram/ReplyMarkup.cpp
   td/telegram/SecretChatActor.cpp
   td/telegram/SecretChatDb.cpp
@@ -567,6 +568,8 @@ set(TDLIB_SOURCE
   td/telegram/Payments.h
   td/telegram/PhoneNumberManager.h
   td/telegram/Photo.h
+  td/telegram/PollId.h
+  td/telegram/PollManager.h
   td/telegram/PrivacyManager.h
   td/telegram/PtsManager.h
   td/telegram/ReplyMarkup.h
@@ -618,6 +621,8 @@ set(TDLIB_SOURCE
   td/telegram/NotificationSettings.hpp
   td/telegram/Payments.hpp
   td/telegram/Photo.hpp
+  td/telegram/PollId.hpp
+  td/telegram/PollManager.hpp
   td/telegram/ReplyMarkup.hpp
   td/telegram/SecureValue.hpp
   td/telegram/SendCodeHelper.hpp

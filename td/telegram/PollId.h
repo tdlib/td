@@ -15,52 +15,42 @@
 
 namespace td {
 
-class WebPageId {
+class PollId {
   int64 id = 0;
 
  public:
-  WebPageId() = default;
+  PollId() = default;
 
-  explicit WebPageId(int64 web_page_id) : id(web_page_id) {
+  explicit PollId(int64 poll_id) : id(poll_id) {
   }
   template <class T, typename = std::enable_if_t<std::is_convertible<T, int64>::value>>
-  WebPageId(T web_page_id) = delete;
+  PollId(T poll_id) = delete;
 
   int64 get() const {
     return id;
   }
 
-  bool operator==(const WebPageId &other) const {
+  bool operator==(const PollId &other) const {
     return id == other.id;
   }
 
-  bool operator!=(const WebPageId &other) const {
+  bool operator!=(const PollId &other) const {
     return id != other.id;
   }
 
   bool is_valid() const {
     return id != 0;
   }
+};
 
-  template <class StorerT>
-  void store(StorerT &storer) const {
-    td::store(id, storer);
-  }
-
-  template <class ParserT>
-  void parse(ParserT &parser) {
-    td::parse(id, parser);
+struct PollIdHash {
+  std::size_t operator()(PollId poll_id) const {
+    return std::hash<int64>()(poll_id.get());
   }
 };
 
-struct WebPageIdHash {
-  std::size_t operator()(WebPageId web_page_id) const {
-    return std::hash<int64>()(web_page_id.get());
-  }
-};
-
-inline StringBuilder &operator<<(StringBuilder &string_builder, WebPageId web_page_id) {
-  return string_builder << "web page " << web_page_id.get();
+inline StringBuilder &operator<<(StringBuilder &string_builder, PollId poll_id) {
+  return string_builder << "poll " << poll_id.get();
 }
 
 }  // namespace td

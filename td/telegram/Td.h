@@ -54,6 +54,7 @@ class NetStatsManager;
 class NotificationManager;
 class PasswordManager;
 class PhoneNumberManager;
+class PollManager;
 class PrivacyManager;
 class SecureManager;
 class SecretChatsManager;
@@ -149,6 +150,8 @@ class Td final : public NetQueryCallback {
   ActorOwn<MessagesManager> messages_manager_actor_;
   unique_ptr<NotificationManager> notification_manager_;
   ActorOwn<NotificationManager> notification_manager_actor_;
+  unique_ptr<PollManager> poll_manager_;
+  ActorOwn<PollManager> poll_manager_actor_;
   unique_ptr<StickersManager> stickers_manager_;
   ActorOwn<StickersManager> stickers_manager_actor_;
   unique_ptr<UpdatesManager> updates_manager_;

@@ -27,6 +27,7 @@
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/NotificationManager.h"
 #include "td/telegram/Payments.h"
+#include "td/telegram/PollManager.h"
 #include "td/telegram/PrivacyManager.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/SecretChatsManager.h"
@@ -1869,9 +1870,10 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateLangPack> updat
                std::move(update->difference_));
 }
 
-// unsupported updates
-
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessagePoll> update, bool /*force_apply*/) {
+  td_->poll_manager_->on_get_poll(PollId(update->poll_id_), std::move(update->poll_), std::move(update->results_));
 }
+
+// unsupported updates
 
 }  // namespace td

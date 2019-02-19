@@ -192,6 +192,10 @@ maskPointChin = MaskPoint;
 maskPosition point:MaskPoint x_shift:double y_shift:double scale:double = MaskPosition;
 
 
+//@description Describes one answer of a poll @text Answer text, 1-100 characters @voter_count Number of voters for this answer @is_chosen True, if the answer was chosen by the user
+pollAnswer text:string voter_count:int32 is_chosen:Bool = PollAnswer;
+
+
 //@description Describes an animation file. The animation must be encoded in GIF or MPEG4 format @duration Duration of the animation, in seconds; as defined by the sender @width Width of the animation @height Height of the animation
 //@file_name Original name of the file; as defined by the sender @mime_type MIME type of the file, usually "image/gif" or "video/mp4" @thumbnail Animation thumbnail; may be null @animation File containing the animation
 animation duration:int32 width:int32 height:int32 file_name:string mime_type:string thumbnail:photoSize animation:file = Animation;
@@ -236,6 +240,9 @@ venue location:location title:string address:string provider:string id:string ty
 //@description Describes a game @id Game ID @short_name Game short name. To share a game use the URL https://t.me/{bot_username}?game={game_short_name} @title Game title @text Game text, usually containing scoreboards for a game
 //@param_description Game description @photo Game photo @animation Game animation; may be null
 game id:int64 short_name:string title:string text:formattedText description:string photo:photo animation:animation = Game;
+
+//@description Describes a poll @question Poll question, 1-255 characters @answers List of poll answers @total_voter_count Total number of voters, participating in the poll @is_closed True, if the poll is closed
+poll question:string answers:vector<pollAnswer> total_voter_count:int32 is_closed:Bool = Poll;
 
 
 //@description Describes a user profile photo @id Photo identifier; 0 for an empty photo. Can be used to find a photo in a list of userProfilePhotos
@@ -1215,6 +1222,9 @@ messageContact contact:contact = MessageContent;
 //@description A message with a game @game Game
 messageGame game:game = MessageContent;
 
+//@description A message with a poll @poll Poll
+messagePoll poll:poll = MessageContent;
+
 //@description A message with an invoice from a bot @title Product title @param_description Product description @photo Product photo; may be null @currency Currency for the product price @total_amount Product total price in the minimal quantity of the currency
 //@start_parameter Unique invoice bot start_parameter. To share an invoice use the URL https://t.me/{bot_username}?start={start_parameter} @is_test True, if the invoice is a test invoice
 //@need_shipping_address True, if the shipping address should be specified @receipt_message_id The identifier of the message with the receipt, after the product has been purchased
@@ -1391,6 +1401,9 @@ inputMessageGame bot_user_id:int32 game_short_name:string = InputMessageContent;
 //@description A message with an invoice; can be used only by bots and only in private chats @invoice Invoice @title Product title; 1-32 characters @param_description Product description; 0-255 characters @photo_url Product photo URL; optional @photo_size Product photo size @photo_width Product photo width @photo_height Product photo height
 //@payload The invoice payload @provider_token Payment provider token @provider_data JSON-encoded data about the invoice, which will be shared with the payment provider @start_parameter Unique invoice bot start_parameter for the generation of this invoice
 inputMessageInvoice invoice:invoice title:string description:string photo_url:string photo_size:int32 photo_width:int32 photo_height:int32 payload:bytes provider_token:string provider_data:string start_parameter:string = InputMessageContent;
+
+//@description A message with a poll @question Poll question, 1-255 characters @answers List of poll answers, 1-10 strings 1-100 characters each
+inputMessagePoll question:string answers:vector<string> = InputMessageContent;
 
 //@description A forwarded message @from_chat_id Identifier for the chat this forwarded message came from @message_id Identifier of the message to forward @in_game_share True, if a game message should be shared within a launched game; applies only to game messages
 inputMessageForwarded from_chat_id:int53 message_id:int53 in_game_share:Bool = InputMessageContent;

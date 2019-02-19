@@ -2975,6 +2975,14 @@ class CliClient final : public Actor {
 
       send_message(chat_id, make_tl_object<td_api::inputMessageLocation>(as_location(latitude, longitude),
                                                                          to_integer<int32>(period)));
+    } else if (op == "spoll") {
+      string chat_id;
+      string question;
+      std::tie(chat_id, args) = split(args);
+      std::tie(question, args) = split(args);
+      auto answers = full_split(args);
+
+      send_message(chat_id, make_tl_object<td_api::inputMessagePoll>(question, std::move(answers)));
     } else if (op == "sp") {
       string chat_id;
       string photo_path;

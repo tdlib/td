@@ -441,11 +441,11 @@ class FileManager : public FileLoadManager::Callback {
   static bool extract_was_uploaded(const tl_object_ptr<telegram_api::InputChatPhoto> &input_chat_photo);
   static string extract_file_reference(const tl_object_ptr<telegram_api::InputChatPhoto> &input_chat_photo);
 
-  template <class T>
-  void store_file(FileId file_id, T &storer, int32 ttl = 5) const;
+  template <class StorerT>
+  void store_file(FileId file_id, StorerT &storer, int32 ttl = 5) const;
 
-  template <class T>
-  FileId parse_file(T &parser);
+  template <class StorerT>
+  FileId parse_file(StorerT &parser);
 
  private:
   static constexpr char PERSISTENT_ID_VERSION = 2;
