@@ -1372,6 +1372,8 @@ class MessagesManager : public Actor {
   unique_ptr<Message> do_delete_message(Dialog *d, MessageId message_id, bool is_permanently_deleted,
                                         bool only_from_memory, bool *need_update_dialog_pos, const char *source);
 
+  void on_message_deleted(Dialog *d, Message *m);
+
   void unload_dialog(DialogId dialog_id);
 
   void delete_all_dialog_messages(Dialog *d, bool remove_from_dialog_list, bool is_permanent);

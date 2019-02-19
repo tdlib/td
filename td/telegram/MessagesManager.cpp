@@ -7813,7 +7813,7 @@ void MessagesManager::delete_all_dialog_messages(Dialog *d, bool remove_from_dia
   d->message_notification_group.max_removed_notification_id = NotificationId();  // it is not needed anymore
   d->mention_notification_group.max_removed_notification_id = NotificationId();  // it is not needed anymore
   std::fill(d->message_count_by_index.begin(), d->message_count_by_index.end(), 0);
-  d->notification_id_to_message_id.clear();
+  CHECK(d->notification_id_to_message_id.empty());
 
   if (has_last_message_id) {
     set_dialog_last_message_id(d, MessageId(), "delete_all_dialog_messages");
@@ -10903,27 +10903,31 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     update_message_count_by_index(d, -1, result.get());
   }
 
+  on_message_deleted(d, result.get());
+
+  return result;
+}
+
+void MessagesManager::on_message_deleted(Dialog *d, Message *m) {
   switch (d->dialog_id.get_type()) {
     case DialogType::User:
     case DialogType::Chat:
-      message_id_to_dialog_id_.erase(message_id);
+      message_id_to_dialog_id_.erase(m->message_id);
       break;
     case DialogType::Channel:
       // nothing to do
       break;
     case DialogType::SecretChat:
-      delete_random_id_to_message_id_correspondence(d, result->random_id, message_id);
+      delete_random_id_to_message_id_correspondence(d, m->random_id, m->message_id);
       break;
     case DialogType::None:
     default:
       UNREACHABLE();
   }
-  ttl_unregister_message(d->dialog_id, result.get(), Time::now(), "do_delete_message");
-  if (result->notification_id.is_valid()) {
-    delete_notification_id_to_message_id_correspondence(d, result->notification_id, message_id);
+  ttl_unregister_message(d->dialog_id, m, Time::now(), "on_message_deleted");
+  if (m->notification_id.is_valid()) {
+    delete_notification_id_to_message_id_correspondence(d, m->notification_id, m->message_id);
   }
-
-  return result;
 }
 
 void MessagesManager::do_delete_all_dialog_messages(Dialog *d, unique_ptr<Message> &m,
@@ -10953,22 +10957,7 @@ void MessagesManager::do_delete_all_dialog_messages(Dialog *d, unique_ptr<Messag
     cancel_edit_message_media(d->dialog_id, m.get(), "Message was deleted");
   }
 
-  switch (d->dialog_id.get_type()) {
-    case DialogType::User:
-    case DialogType::Chat:
-      message_id_to_dialog_id_.erase(message_id);
-      break;
-    case DialogType::Channel:
-      // nothing to do
-      break;
-    case DialogType::SecretChat:
-      delete_random_id_to_message_id_correspondence(d, m->random_id, message_id);
-      break;
-    case DialogType::None:
-    default:
-      UNREACHABLE();
-  }
-  ttl_unregister_message(d->dialog_id, m.get(), Time::now(), "do_delete_all_dialog_messages");
+  on_message_deleted(d, m.get());
 
   m = nullptr;
 }
