@@ -146,7 +146,7 @@ abstract class TlDocumentationGenerator
                         if ($key === 'description') {
                             $need_class_description = false;
 
-                            $value = $this->addDot($value);
+                            $value = $this->escapeDocumentation($this->addDot($value));
 
                             $this->addAbstractClassDocumentation($current_class, $value);
                             continue;
