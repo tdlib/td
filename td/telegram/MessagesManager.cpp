@@ -10890,9 +10890,11 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
       int32 local_unread_count = d->local_unread_count;
       int32 &unread_count = message_id.is_server() ? server_unread_count : local_unread_count;
       if (unread_count == 0) {
-        LOG(ERROR) << "Unread count became negative in " << d->dialog_id << " after deletion of " << message_id
-                   << ". Last read is " << d->last_read_inbox_message_id;
-        dump_debug_message_op(d, 3);
+        if (d->order > 0) {
+          LOG(ERROR) << "Unread count became negative in " << d->dialog_id << " after deletion of " << message_id
+                     << ". Last read is " << d->last_read_inbox_message_id;
+          dump_debug_message_op(d, 3);
+        }
       } else {
         unread_count--;
         set_dialog_last_read_inbox_message_id(d, MessageId::min(), server_unread_count, local_unread_count, false,
