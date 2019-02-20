@@ -8151,6 +8151,10 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
       ttl_read_history(d, false, max_message_id, d->last_read_inbox_message_id, Time::now());
     }
 
+    if (max_message_id.get() > d->last_new_message_id.get() && dialog_id.get_type() == DialogType::Channel) {
+      get_channel_difference(dialog_id, d->pts, true, "read_history_inbox");
+    }
+
     bool is_saved_messages = dialog_id == get_my_dialog_id();
     int32 server_unread_count =
         is_saved_messages ? 0 : calc_new_unread_count(d, max_message_id, MessageType::Server, unread_count);
@@ -8160,7 +8164,8 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
 
     if (server_unread_count < 0) {
       server_unread_count = unread_count >= 0 ? unread_count : d->server_unread_count;
-      if (dialog_id.get_type() != DialogType::SecretChat && have_input_peer(dialog_id, AccessRights::Read) && d->order > 0) {
+      if (dialog_id.get_type() != DialogType::SecretChat && have_input_peer(dialog_id, AccessRights::Read) &&
+          d->order > 0) {
         d->need_repair_server_unread_count = true;
         repair_server_unread_count(dialog_id, server_unread_count);
       }
