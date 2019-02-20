@@ -22251,21 +22251,23 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
       LOG(ERROR) << message_id << " in " << dialog_id << " has received forward info " << *new_message->forward_info
                  << ", really forwarded from " << old_message->debug_forward_from << ", message content type is "
                  << old_message->content->get_type() << '/' << new_message->content->get_type();
+      old_message->forward_info = std::move(new_message->forward_info);
+      is_changed = true;
     }
   } else {
     if (new_message->forward_info != nullptr) {
-      if (*old_message->forward_info != *new_message->forward_info &&
-          (!old_message->forward_info->sender_user_id.is_valid() ||
-           new_message->forward_info->sender_user_id.is_valid())) {
+      if (old_message->forward_info->author_signature != new_message->forward_info->author_signature) {
         old_message->forward_info->author_signature = new_message->forward_info->author_signature;
-        LOG_IF(ERROR, *old_message->forward_info != *new_message->forward_info)
-            << message_id << " in " << dialog_id << " has changed forward info from " << *old_message->forward_info
-            << " to " << *new_message->forward_info << ", really forwarded from " << old_message->debug_forward_from
-            << ", message content type is " << old_message->content->get_type() << '/'
-            << new_message->content->get_type();
+        is_changed = true;
       }
-      old_message->forward_info = std::move(new_message->forward_info);
-      is_changed = true;
+      if (*old_message->forward_info != *new_message->forward_info) {
+        LOG(ERROR) << message_id << " in " << dialog_id << " has changed forward info from "
+                   << *old_message->forward_info << " to " << *new_message->forward_info << ", really forwarded from "
+                   << old_message->debug_forward_from << ", message content type is "
+                   << old_message->content->get_type() << '/' << new_message->content->get_type();
+        old_message->forward_info = std::move(new_message->forward_info);
+        is_changed = true;
+      }
     } else {
       LOG(ERROR) << message_id << " in " << dialog_id << " sent by " << old_message->sender_user_id
                  << " has lost forward info " << *old_message->forward_info << ", really forwarded from "
