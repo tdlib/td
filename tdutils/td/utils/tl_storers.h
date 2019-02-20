@@ -227,12 +227,10 @@ class TlStorerToString {
       int b = value[static_cast<int>(i)] & 0xff;
       result += hex[b >> 4];
       result += hex[b & 15];
-      if (i + 1 != len) {
-        result += ' ';
-      }
+      result += ' ';
     }
     if (len < value.size()) {
-      result.append(" ...");
+      result.append("...");
     }
     result += '}';
     store_field_end();
