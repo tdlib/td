@@ -3765,7 +3765,7 @@ void MessagesManager::Dialog::store(StorerT &storer) const {
   STORE_FLAG(has_pinned_message_notification);
   STORE_FLAG(has_pinned_message_id);
   STORE_FLAG(is_pinned_message_id_inited);  // 28
-  //STORE_FLAG(has_flags2);
+  //STORE_FLAG(has_flags2);  // keep dialog_id at offset 4
   END_STORE_FLAGS();
 
   store(dialog_id, storer);  // must be stored at offset 4

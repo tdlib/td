@@ -833,6 +833,10 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
     LogEventParser message_date_parser(message.as_slice());
     int32 flags;
     td::parse(flags, message_date_parser);
+    int32 flags2 = 0;
+    if ((flags & (1 << 29)) != 0) {
+      td::parse(flags2, message_date_parser);
+    }
     bool has_sender = (flags >> 10) & 1;
     MessageId message_id;
     td::parse(message_id, message_date_parser);
