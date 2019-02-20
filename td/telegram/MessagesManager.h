@@ -608,7 +608,8 @@ class MessagesManager : public Actor {
   tl_object_ptr<telegram_api::InputNotifyPeer> get_input_notify_peer(DialogId dialogId) const;
 
   void on_update_dialog_notify_settings(DialogId dialog_id,
-                                        tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings);
+                                        tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings,
+                                        const char *source);
 
   void on_update_scope_notify_settings(NotificationSettingsScope scope,
                                        tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings);

@@ -2828,7 +2828,7 @@ class GetDialogNotifySettingsQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    td->messages_manager_->on_update_dialog_notify_settings(dialog_id_, std::move(ptr));
+    td->messages_manager_->on_update_dialog_notify_settings(dialog_id_, std::move(ptr), "GetDialogNotifySettingsQuery");
     td->messages_manager_->on_get_dialog_notification_settings_query_finished(dialog_id_, Status::OK());
   }
 
@@ -5846,12 +5846,13 @@ void MessagesManager::on_scope_unmute(NotificationSettingsScope scope) {
 }
 
 void MessagesManager::on_update_dialog_notify_settings(
-    DialogId dialog_id, tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings) {
+    DialogId dialog_id, tl_object_ptr<telegram_api::peerNotifySettings> &&peer_notify_settings, const char *source) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
 
-  VLOG(notifications) << "Receive notification settings for " << dialog_id << ": " << to_string(peer_notify_settings);
+  VLOG(notifications) << "Receive notification settings for " << dialog_id << " from " << source << ": "
+                      << to_string(peer_notify_settings);
 
   DialogNotificationSettings *current_settings = get_dialog_notification_settings(dialog_id, true);
   if (current_settings == nullptr) {
@@ -10275,7 +10276,7 @@ void MessagesManager::on_get_dialogs(vector<tl_object_ptr<telegram_api::dialog>>
     }
     bool is_new = d->last_new_message_id == MessageId();
 
-    on_update_dialog_notify_settings(dialog_id, std::move(dialog->notify_settings_));
+    on_update_dialog_notify_settings(dialog_id, std::move(dialog->notify_settings_), "on_get_dialogs");
     if (!d->notification_settings.is_synchronized) {
       LOG(ERROR) << "Failed to synchronize settings in " << dialog_id;
       d->notification_settings.is_synchronized = true;
@@ -12422,8 +12423,8 @@ DialogId MessagesManager::create_new_group_chat(const vector<UserId> &user_ids, 
     created_dialogs_.erase(it);
 
     // set default notification settings to newly created chat
-    on_update_dialog_notify_settings(dialog_id,
-                                     make_tl_object<telegram_api::peerNotifySettings>(0, false, false, 0, ""));
+    on_update_dialog_notify_settings(
+        dialog_id, make_tl_object<telegram_api::peerNotifySettings>(0, false, false, 0, ""), "create_new_group_chat");
 
     promise.set_value(Unit());
     return dialog_id;
@@ -12475,8 +12476,8 @@ DialogId MessagesManager::create_new_channel_chat(const string &title, bool is_m
     created_dialogs_.erase(it);
 
     // set default notification settings to newly created chat
-    on_update_dialog_notify_settings(dialog_id,
-                                     make_tl_object<telegram_api::peerNotifySettings>(0, false, false, 0, ""));
+    on_update_dialog_notify_settings(
+        dialog_id, make_tl_object<telegram_api::peerNotifySettings>(0, false, false, 0, ""), "create_new_channel_chat");
 
     promise.set_value(Unit());
     return dialog_id;

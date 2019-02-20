@@ -1524,7 +1524,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateNotifySettings>
     case telegram_api::notifyPeer::ID: {
       DialogId dialog_id(static_cast<const telegram_api::notifyPeer *>(update->peer_.get())->peer_);
       if (dialog_id.is_valid()) {
-        td_->messages_manager_->on_update_dialog_notify_settings(dialog_id, std::move(update->notify_settings_));
+        td_->messages_manager_->on_update_dialog_notify_settings(dialog_id, std::move(update->notify_settings_),
+                                                                 "updateNotifySettings");
       } else {
         LOG(ERROR) << "Receive wrong " << to_string(update);
       }
