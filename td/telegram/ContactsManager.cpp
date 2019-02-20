@@ -5089,12 +5089,13 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   bool need_location_bot = (flags & USER_FLAG_NEED_LOCATION_BOT) != 0;
   bool has_bot_info_version = (flags & USER_FLAG_HAS_BOT_INFO_VERSION) != 0;
 
-  LOG_IF(ERROR, !can_join_groups && !is_bot) << "Receive not bot which can't join groups from " << source;
+  LOG_IF(ERROR, !can_join_groups && !is_bot)
+      << "Receive not bot " << user_id << " which can't join groups from " << source;
   LOG_IF(ERROR, can_read_all_group_messages && !is_bot)
-      << "Receive not bot which can read all group messages from " << source;
-  LOG_IF(ERROR, is_inline_bot && !is_bot) << "Receive not bot which is inline bot from " << source;
+      << "Receive not bot " << user_id << " which can read all group messages from " << source;
+  LOG_IF(ERROR, is_inline_bot && !is_bot) << "Receive not bot " << user_id << " which is inline bot from " << source;
   LOG_IF(ERROR, need_location_bot && !is_inline_bot)
-      << "Receive not inline bot which needs user location from " << source;
+      << "Receive not inline bot " << user_id << " which needs user location from " << source;
 
   if (is_received && !u->is_received) {
     u->is_received = true;
@@ -5115,14 +5116,17 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     has_bot_info_version = false;
   }
 
-  LOG_IF(ERROR, has_bot_info_version && !is_bot) << "Receive not bot which has bot info version from " << source;
+  LOG_IF(ERROR, has_bot_info_version && !is_bot)
+      << "Receive not bot " << user_id << " which has bot info version from " << source;
 
   int32 bot_info_version = has_bot_info_version ? user->bot_info_version_ : -1;
   if (is_verified != u->is_verified || is_bot != u->is_bot || can_join_groups != u->can_join_groups ||
       can_read_all_group_messages != u->can_read_all_group_messages || restriction_reason != u->restriction_reason ||
       is_inline_bot != u->is_inline_bot || inline_query_placeholder != u->inline_query_placeholder ||
       need_location_bot != u->need_location_bot) {
-    LOG_IF(ERROR, is_bot != u->is_bot && !is_deleted && !u->is_deleted) << "User.is_bot has changed from " << source;
+    LOG_IF(ERROR, is_bot != u->is_bot && !is_deleted && !u->is_deleted)
+        << "User.is_bot has changed for " << user_id << "/" << u->username << " from " << source << " from "
+        << u->is_bot << " to " << is_bot;
     u->is_verified = is_verified;
     u->is_bot = is_bot;
     u->can_join_groups = can_join_groups;
@@ -5154,7 +5158,8 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   }
 
   bool has_language_code = (flags & USER_FLAG_HAS_LANGUAGE_CODE) != 0;
-  LOG_IF(ERROR, has_language_code && !td_->auth_manager_->is_bot()) << "Receive language code from " << source;
+  LOG_IF(ERROR, has_language_code && !td_->auth_manager_->is_bot())
+      << "Receive language code for " << user_id << " from " << source;
   if (u->language_code != user->lang_code_ && !user->lang_code_.empty()) {
     u->language_code = user->lang_code_;
 

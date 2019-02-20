@@ -2270,7 +2270,7 @@ int64 StickersManager::search_sticker_set(const string &short_name_to_search, Pr
 
 std::pair<int32, vector<int64>> StickersManager::search_installed_sticker_sets(bool is_masks, const string &query,
                                                                                int32 limit, Promise<Unit> &&promise) {
-  LOG(INFO) << "Search installed " << (is_masks ? "masks " : "") << "sticker sets with query = \"" << query
+  LOG(INFO) << "Search installed " << (is_masks ? "mask " : "") << "sticker sets with query = \"" << query
             << "\" and limit = " << limit;
 
   if (limit < 0) {
@@ -2460,14 +2460,14 @@ void StickersManager::load_installed_sticker_sets(bool is_masks, Promise<Unit> &
   load_installed_sticker_sets_queries_[is_masks].push_back(std::move(promise));
   if (load_installed_sticker_sets_queries_[is_masks].size() == 1u) {
     if (G()->parameters().use_file_db) {
-      LOG(INFO) << "Trying to load installed " << (is_masks ? "masks " : "") << "sticker sets from database";
+      LOG(INFO) << "Trying to load installed " << (is_masks ? "mask " : "") << "sticker sets from database";
       G()->td_db()->get_sqlite_pmc()->get(is_masks ? "sss1" : "sss0", PromiseCreator::lambda([is_masks](string value) {
                                             send_closure(G()->stickers_manager(),
                                                          &StickersManager::on_load_installed_sticker_sets_from_database,
                                                          is_masks, std::move(value));
                                           }));
     } else {
-      LOG(INFO) << "Trying to load installed " << (is_masks ? "masks " : "") << "sticker sets from server";
+      LOG(INFO) << "Trying to load installed " << (is_masks ? "mask " : "") << "sticker sets from server";
       reload_installed_sticker_sets(is_masks, true);
     }
   }
@@ -2529,14 +2529,15 @@ void StickersManager::on_load_installed_sticker_sets_finished(bool is_masks, vec
     }
   }
   if (need_reload) {
-    LOG(ERROR) << "Reload installed " << (is_masks ? "masks " : "") << "sticker sets, because only "
+    LOG(ERROR) << "Reload installed " << (is_masks ? "mask " : "") << "sticker sets, because only "
                << installed_sticker_set_ids_[is_masks].size() << " of " << installed_sticker_set_ids.size()
-               << " are really installed";
+               << " are really installed after loading from " << (from_database ? "database" : "server");
     reload_installed_sticker_sets(is_masks, true);
   } else if (!old_installed_sticker_set_ids.empty() &&
              old_installed_sticker_set_ids != installed_sticker_set_ids_[is_masks]) {
-    LOG(ERROR) << "Reload installed " << (is_masks ? "masks " : "") << "sticker sets, because they has changed from "
-               << old_installed_sticker_set_ids << " to " << installed_sticker_set_ids_[is_masks];
+    LOG(ERROR) << "Reload installed " << (is_masks ? "mask " : "") << "sticker sets, because they has changed from "
+               << old_installed_sticker_set_ids << " to " << installed_sticker_set_ids_[is_masks]
+               << " after loading from " << (from_database ? "database" : "server");
     reload_installed_sticker_sets(is_masks, true);
   }
 
