@@ -1110,8 +1110,9 @@ void ConnectionCreator::client_create_raw_connection(Result<ConnectionData> r_co
   if (check_mode) {
     VLOG(connections) << "Start check: " << debug_str;
     auto token = next_token();
-    children_[token] = {true, create_actor<detail::PingActor>("PingActor", std::move(raw_connection),
-                                                              std::move(promise), create_reference(token))};
+    children_[token] = {
+        true, create_actor<detail::PingActor>(PSLICE() << "PingActor<" << debug_str << ">", std::move(raw_connection),
+                                              std::move(promise), create_reference(token))};
   } else {
     promise.set_value(std::move(raw_connection));
   }
