@@ -8,6 +8,7 @@
 
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
+#include "td/telegram/MessagesManager.h"
 #include "td/telegram/PollManager.hpp"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/Td.h"
@@ -56,19 +57,31 @@ bool PollManager::have_poll(PollId poll_id) const {
   return get_poll(poll_id) != nullptr;
 }
 
+void PollManager::notify_on_poll_update(PollId poll_id) {
+  auto it = poll_messages_.find(poll_id);
+  if (it == poll_messages_.end()) {
+    return;
+  }
+
+  for (auto full_message_id : it->second) {
+    td_->messages_manager_->on_update_message_content(full_message_id);
+  }
+}
+
 string PollManager::get_poll_database_key(PollId poll_id) {
   return PSTRING() << "poll" << poll_id.get();
 }
 
 void PollManager::save_poll(const Poll *poll, PollId poll_id) {
+  CHECK(!is_local_poll_id(poll_id));
+
   if (!G()->parameters().use_message_db) {
     return;
   }
-  CHECK(!is_local_poll_id(poll_id));
 
   LOG(INFO) << "Save " << poll_id << " to database";
   CHECK(poll != nullptr);
-  // G()->td_db()->get_sqlite_pmc()->set(get_poll_database_key(poll_id), log_event_store(*poll).as_slice().str(), Auto());
+  G()->td_db()->get_sqlite_pmc()->set(get_poll_database_key(poll_id), log_event_store(*poll).as_slice().str(), Auto());
 }
 
 void PollManager::on_load_poll_from_database(PollId poll_id, string value) {
@@ -161,6 +174,7 @@ void PollManager::close_poll(PollId poll_id) {
   }
 
   poll->is_closed = true;
+  notify_on_poll_update(poll_id);
   if (!is_local_poll_id(poll_id)) {
     // TODO send poll close request to the server + LogEvent
     save_poll(poll, poll_id);
@@ -270,6 +284,7 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
   }
 
   if (is_changed) {
+    notify_on_poll_update(poll_id);
     save_poll(poll, poll_id);
   }
   return poll_id;

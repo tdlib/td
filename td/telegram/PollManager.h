@@ -97,6 +97,8 @@ class PollManager : public Actor {
 
   Poll *get_poll_editable(PollId poll_id);
 
+  void notify_on_poll_update(PollId poll_id);
+
   static string get_poll_database_key(PollId poll_id);
 
   void save_poll(const Poll *poll, PollId poll_id);

@@ -5017,6 +5017,13 @@ bool MessagesManager::update_message_views(DialogId dialog_id, Message *m, int32
   return false;
 }
 
+void MessagesManager::on_update_message_content(FullMessageId full_message_id) {
+  const Message *m = get_message(full_message_id);
+  CHECK(m != nullptr);
+  send_update_message_content(full_message_id.get_dialog_id(), m->message_id, m->content.get(), m->date,
+                              m->is_content_secret, "on_update_message_content");
+}
+
 bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message *m, bool contains_unread_mention,
                                                              const char *source) {
   LOG_CHECK(m != nullptr) << source;
