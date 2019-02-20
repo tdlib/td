@@ -39,7 +39,7 @@
 
 namespace td {
 
-int VERBOSITY_NAME(notifications) = VERBOSITY_NAME(INFO);
+int VERBOSITY_NAME(notifications) = VERBOSITY_NAME(WARNING);
 
 class SetContactSignUpNotificationQuery : public Td::ResultHandler {
   Promise<Unit> promise_;

@@ -8093,6 +8093,10 @@ void MessagesManager::repair_channel_server_unread_count(Dialog *d) {
     // all messages are already read
     return;
   }
+  if (d->order == 0) {
+    // there is no unread count in left channels
+    return;
+  }
 
   LOG(INFO) << "Reload ChannelFull for " << d->dialog_id << " to repair unread message counts";
   td_->contacts_manager_->get_channel_full(d->dialog_id.get_channel_id(), Auto());
@@ -8156,7 +8160,7 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
 
     if (server_unread_count < 0) {
       server_unread_count = unread_count >= 0 ? unread_count : d->server_unread_count;
-      if (dialog_id.get_type() != DialogType::SecretChat && have_input_peer(dialog_id, AccessRights::Read)) {
+      if (dialog_id.get_type() != DialogType::SecretChat && have_input_peer(dialog_id, AccessRights::Read) && d->order > 0) {
         d->need_repair_server_unread_count = true;
         repair_server_unread_count(dialog_id, server_unread_count);
       }
