@@ -9,9 +9,12 @@
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/net/NetActor.h"
 #include "td/telegram/PollManager.hpp"
+#include "td/telegram/SequenceDispatcher.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/UpdatesManager.h"
 
 #include "td/db/SqliteKeyValue.h"
 #include "td/db/SqliteKeyValueAsync.h"
@@ -20,7 +23,52 @@
 #include "td/utils/misc.h"
 #include "td/utils/Status.h"
 
+#include <algorithm>
+
 namespace td {
+
+class SetPollAnswerQuery : public NetActorOnce {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit SetPollAnswerQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(FullMessageId full_message_id, vector<BufferSlice> &&options, uint64 generation) {
+    dialog_id_ = full_message_id.get_dialog_id();
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
+    if (input_peer == nullptr) {
+      LOG(INFO) << "Can't set poll answer, because have no read access to " << dialog_id_;
+      return on_error(0, Status::Error(400, "Can't access the chat"));
+    }
+
+    auto message_id = full_message_id.get_message_id().get_server_message_id().get();
+    auto query = G()->net_query_creator().create(
+        create_storer(telegram_api::messages_sendVote(std::move(input_peer), message_id, std::move(options))));
+    auto sequence_id = -1;
+    send_closure(td->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
+                 std::move(query), actor_shared(this), sequence_id);
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_sendVote>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive sendVote result: " << to_string(result);
+
+    td->updates_manager_->on_get_updates(std::move(result));
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "SetPollAnswerQuery");
+    promise_.set_error(std::move(status));
+  }
+};
 
 PollManager::PollManager(Td *td, ActorShared<> parent) : td_(td), parent_(std::move(parent)) {
 }
@@ -130,8 +178,28 @@ td_api::object_ptr<td_api::pollOption> PollManager::get_poll_option_object(const
 td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id) const {
   auto poll = get_poll(poll_id);
   CHECK(poll != nullptr);
-  return td_api::make_object<td_api::poll>(poll->question, transform(poll->options, get_poll_option_object),
-                                           poll->total_voter_count, poll->is_closed);
+  vector<td_api::object_ptr<td_api::pollOption>> poll_options;
+  auto it = pending_answers_.find(poll_id);
+  int32 voter_count_diff = 0;
+  if (it == pending_answers_.end()) {
+    poll_options = transform(poll->options, get_poll_option_object);
+  } else {
+    auto &chosen_options = it->second.options_;
+    for (auto &poll_option : poll->options) {
+      auto is_chosen =
+          std::find(chosen_options.begin(), chosen_options.end(), poll_option.data) != chosen_options.end();
+      if (poll_option.is_chosen) {
+        voter_count_diff = -1;
+      }
+      poll_options.push_back(
+          td_api::make_object<td_api::pollOption>(poll_option.text, poll_option.voter_count - static_cast<int32>(poll_option.is_chosen) + static_cast<int32>(is_chosen), is_chosen));
+    }
+    if (!chosen_options.empty()) {
+      voter_count_diff++;
+    }
+  }
+  return td_api::make_object<td_api::poll>(poll->question, std::move(poll_options), poll->total_voter_count + voter_count_diff,
+                                           poll->is_closed);
 }
 
 telegram_api::object_ptr<telegram_api::pollAnswer> PollManager::get_input_poll_option(const PollOption &poll_option) {
@@ -164,6 +232,107 @@ void PollManager::register_poll(PollId poll_id, FullMessageId full_message_id) {
 void PollManager::unregister_poll(PollId poll_id, FullMessageId full_message_id) {
   CHECK(have_poll(poll_id));
   poll_messages_[poll_id].erase(full_message_id);
+}
+
+void PollManager::set_poll_answer(PollId poll_id, FullMessageId full_message_id, vector<int32> &&option_ids,
+                                  Promise<Unit> &&promise) {
+  if (option_ids.size() > 1) {
+    return promise.set_error(Status::Error(400, "Can't choose more than 1 option"));
+  }
+  if (is_local_poll_id(poll_id)) {
+    return promise.set_error(Status::Error(5, "Poll can't be answered"));
+  }
+
+  auto poll = get_poll(poll_id);
+  CHECK(poll != nullptr);
+  if (poll->is_closed) {
+    return promise.set_error(Status::Error(400, "Can't answer closed poll"));
+  }
+  vector<string> options;
+  for (auto &option_id : option_ids) {
+    auto index = static_cast<size_t>(option_id);
+    if (index >= poll->options.size()) {
+      return promise.set_error(Status::Error(400, "Invalid option id specified"));
+    }
+    options.push_back(poll->options[index].data);
+  }
+
+  do_set_poll_answer(poll_id, full_message_id, std::move(options), 0, std::move(promise));
+}
+
+void PollManager::do_set_poll_answer(PollId poll_id, FullMessageId full_message_id, vector<string> &&options,
+                                     uint64 logevent_id, Promise<Unit> &&promise) {
+  auto &pending_answer = pending_answers_[poll_id];
+  if (!pending_answer.promises_.empty() && pending_answer.options_ == options) {
+    pending_answer.promises_.push_back(std::move(promise));
+    return;
+  }
+
+  if (logevent_id == 0 && G()->parameters().use_message_db) {
+    // TODO add logevent or rewrite pending_answer.logevent_id_
+  }
+
+  if (!pending_answer.promises_.empty()) {
+    auto promises = std::move(pending_answer.promises_);
+    pending_answer.promises_.clear();
+    for (auto &old_promise : promises) {
+      old_promise.set_value(Unit());
+    }
+  }
+
+  vector<BufferSlice> sent_options;
+  for (auto &option : options) {
+    sent_options.emplace_back(option);
+  }
+
+  auto generation = ++current_generation_;
+
+  pending_answer.options_ = std::move(options);
+  pending_answer.promises_.push_back(std::move(promise));
+  pending_answer.generation_ = generation;
+  pending_answer.logevent_id_ = logevent_id;
+
+  notify_on_poll_update(poll_id);
+
+  auto query_promise = PromiseCreator::lambda([poll_id, generation, actor_id = actor_id(this)](Result<Unit> &&result) {
+    send_closure(actor_id, &PollManager::on_set_poll_answer, poll_id, generation, std::move(result));
+  });
+
+  send_closure(td_->create_net_actor<SetPollAnswerQuery>(std::move(query_promise)), &SetPollAnswerQuery::send,
+               full_message_id, std::move(sent_options), generation);
+}
+
+void PollManager::on_set_poll_answer(PollId poll_id, uint64 generation, Result<Unit> &&result) {
+  if (G()->close_flag() && result.is_error()) {
+    // request will be resent after restart
+    return;
+  }
+  auto it = pending_answers_.find(poll_id);
+  if (it == pending_answers_.end()) {
+    // can happen if this is an answer with mismatched generation and server has ignored invoke-after
+    return;
+  }
+
+  auto &pending_answer = it->second;
+  CHECK(!pending_answer.promises_.empty());
+  if (pending_answer.generation_ != generation) {
+    return;
+  }
+
+  if (pending_answer.logevent_id_ != 0) {
+    // TODO delete logevent
+  }
+
+  auto promises = std::move(pending_answer.promises_);
+  for (auto &promise : promises) {
+    if (result.is_ok()) {
+      promise.set_value(Unit());
+    } else {
+      promise.set_error(result.error().clone());
+    }
+  }
+
+  pending_answers_.erase(it);
 }
 
 void PollManager::close_poll(PollId poll_id) {

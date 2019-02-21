@@ -2906,6 +2906,11 @@ getJsonValue json:string = JsonValue;
 getJsonString json_value:JsonValue = Text;
 
 
+//@description Changes user answer to a poll @chat_id Identifier of the chat to which the poll belongs @message_id Identifier of the message containing the poll
+//@option_ids 0-based identifiers of options, chosen by the user. Currently user can't choose more than 1 option
+setPollAnswer chat_id:int53 message_id:int53 option_ids:vector<int32> = Ok;
+
+
 //@description Sends an inline query to a bot and returns its results. Returns an error with code 502 if the bot fails to answer the query before the query timeout expires @bot_user_id The identifier of the target bot
 //@chat_id Identifier of the chat, where the query was sent @user_location Location of the user, only if needed @query Text of the query @offset Offset of the first entry to return
 getInlineQueryResults bot_user_id:int32 chat_id:int53 user_location:location query:string offset:string = InlineQueryResults;

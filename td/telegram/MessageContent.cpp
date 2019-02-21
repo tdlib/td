@@ -2679,6 +2679,13 @@ void set_message_content_web_page_id(MessageContent *content, WebPageId web_page
   static_cast<MessageText *>(content)->web_page_id = web_page_id;
 }
 
+void set_message_content_poll_answer(Td *td, MessageContent *content, FullMessageId full_message_id,
+                                     vector<int32> &&option_ids, Promise<Unit> &&promise) {
+  CHECK(content->get_type() == MessageContentType::Poll);
+  td->poll_manager_->set_poll_answer(static_cast<MessagePoll *>(content)->poll_id, full_message_id,
+                                     std::move(option_ids), std::move(promise));
+}
+
 static void merge_location_access_hash(const Location &first, const Location &second) {
   if (second.get_access_hash() != 0) {
     first.set_access_hash(second.get_access_hash());

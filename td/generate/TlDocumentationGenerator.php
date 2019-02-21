@@ -213,7 +213,7 @@ abstract class TlDocumentationGenerator
                 foreach ($info as $name => $value) {
                     if (!$value) {
                         $this->printError("info[$name] for $class_name is empty");
-                    } elseif ($value[0] < 'A' || $value[0] > 'Z') {
+                    } elseif (($value[0] < 'A' || $value[0] > 'Z') && ($value[0] < '0' || $value[0] > '9')) {
                         $this->printError("info[$name] for $class_name doesn't begins with capital letter");
                     }
                 }

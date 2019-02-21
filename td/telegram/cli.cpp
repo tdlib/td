@@ -3212,6 +3212,15 @@ class CliClient final : public Actor {
 
       std::tie(chat_id, user_ids) = split(args);
       send_request(make_tl_object<td_api::addChatMembers>(as_chat_id(chat_id), as_user_ids(user_ids, ',')));
+    } else if (op == "spolla") {
+      string chat_id;
+      string message_id;
+      string option_ids;
+
+      std::tie(chat_id, args) = split(args);
+      std::tie(message_id, option_ids) = split(args);
+      send_request(make_tl_object<td_api::setPollAnswer>(as_chat_id(chat_id), as_message_id(message_id),
+                                                         to_integers<int32>(option_ids)));
     } else {
       op_not_found_count++;
     }

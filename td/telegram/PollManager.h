@@ -39,6 +39,9 @@ class PollManager : public Actor {
 
   void unregister_poll(PollId poll_id, FullMessageId full_message_id);
 
+  void set_poll_answer(PollId poll_id, FullMessageId full_message_id, vector<int32> &&option_ids,
+                       Promise<Unit> &&promise);
+
   void close_poll(PollId poll_id);
 
   tl_object_ptr<telegram_api::InputMedia> get_input_media(PollId poll_id) const;
@@ -83,7 +86,7 @@ class PollManager : public Actor {
 
   static bool is_local_poll_id(PollId poll_id);
 
-  static td_api::object_ptr<td_api::pollOption> get_poll_option_object(const PollOption &poll_option);
+  static td_api::object_ptr<td_api::pollOption> PollManager::get_poll_option_object(const PollOption &poll_option);
 
   static telegram_api::object_ptr<telegram_api::pollAnswer> get_input_poll_option(const PollOption &poll_option);
 
@@ -107,13 +110,28 @@ class PollManager : public Actor {
 
   Poll *get_poll_force(PollId poll_id);
 
+  void do_set_poll_answer(PollId poll_id, FullMessageId full_message_id, vector<string> &&options, uint64 logevent_id,
+                          Promise<Unit> &&promise);
+
+  void on_set_poll_answer(PollId poll_id, uint64 generation, Result<Unit> &&result);
+
   Td *td_;
   ActorShared<> parent_;
   std::unordered_map<PollId, unique_ptr<Poll>, PollIdHash> polls_;
 
   std::unordered_map<PollId, std::unordered_set<FullMessageId, FullMessageIdHash>, PollIdHash> poll_messages_;
 
+  struct PendingPollAnswer {
+    vector<string> options_;
+    vector<Promise<Unit>> promises_;
+    uint64 generation_ = 0;
+    uint64 logevent_id_ = 0;
+  };
+  std::unordered_map<PollId, PendingPollAnswer, PollIdHash> pending_answers_;
+
   int64 current_local_poll_id_ = 0;
+
+  uint64 current_generation_ = 0;
 
   std::unordered_set<PollId, PollIdHash> loaded_from_database_polls_;
 };

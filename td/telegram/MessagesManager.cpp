@@ -24874,12 +24874,32 @@ void MessagesManager::suffix_load_till_message_id(Dialog *d, MessageId message_i
   suffix_load_add_query(d, std::make_pair(std::move(promise), std::move(condition)));
 }
 
+void MessagesManager::set_poll_answer(FullMessageId full_message_id, vector<int32> &&option_ids,
+                                      Promise<Unit> &&promise) {
+  auto m = get_message_force(full_message_id);
+  if (m == nullptr) {
+    return promise.set_error(Status::Error(5, "Message not found"));
+  }
+  if (!have_input_peer(full_message_id.get_dialog_id(), AccessRights::Read)) {
+    return promise.set_error(Status::Error(3, "Can't access the chat"));
+  }
+  if (m->content->get_type() != MessageContentType::Poll) {
+    return promise.set_error(Status::Error(5, "Message is not a poll"));
+  }
+  auto message_id = full_message_id.get_message_id();
+  if (!message_id.is_server()) {
+    return promise.set_error(Status::Error(5, "Poll can't be answered"));
+  }
+
+  set_message_content_poll_answer(td_, m->content.get(), full_message_id, std::move(option_ids), std::move(promise));
+}
+
 Result<ServerMessageId> MessagesManager::get_invoice_message_id(FullMessageId full_message_id) {
-  auto message = get_message_force(full_message_id);
-  if (message == nullptr) {
+  auto m = get_message_force(full_message_id);
+  if (m == nullptr) {
     return Status::Error(5, "Message not found");
   }
-  if (message->content->get_type() != MessageContentType::Invoice) {
+  if (m->content->get_type() != MessageContentType::Invoice) {
     return Status::Error(5, "Message has no invoice");
   }
   auto message_id = full_message_id.get_message_id();
@@ -24926,11 +24946,11 @@ void MessagesManager::send_payment_form(FullMessageId full_message_id, const str
 
 void MessagesManager::get_payment_receipt(FullMessageId full_message_id,
                                           Promise<tl_object_ptr<td_api::paymentReceipt>> &&promise) {
-  auto message = get_message_force(full_message_id);
-  if (message == nullptr) {
+  auto m = get_message_force(full_message_id);
+  if (m == nullptr) {
     return promise.set_error(Status::Error(5, "Message not found"));
   }
-  if (message->content->get_type() != MessageContentType::PaymentSuccessful) {
+  if (m->content->get_type() != MessageContentType::PaymentSuccessful) {
     return promise.set_error(Status::Error(5, "Message has wrong type"));
   }
   auto message_id = full_message_id.get_message_id();
