@@ -40,7 +40,7 @@ size_t FileReferenceManager::get_file_reference_error_pos(const Status &error) {
 }
 
 /*
-fileSourceMessage chat_id:int53 message_id:int53 = FileSource;         // repaired with get_messages_from_server
+fileSourceMessage chat_id:int53 message_id:int53 = FileSource;         // repaired with get_message_from_server
 fileSourceUserProfilePhoto user_id:int32 photo_id:int64 = FileSource;  // repaired with photos.getUserPhotos
 fileSourceBasicGroupPhoto basic_group_id:int32 = FileSource;           // repaired with messages.getChats
 fileSourceSupergroupPhoto supergroup_id:int32 = FileSource;            // repaired with channels.getChannels
@@ -236,8 +236,8 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
   CHECK(index < file_sources_.size());
   file_sources_[index].visit(overloaded(
       [&](const FileSourceMessage &source) {
-        send_closure_later(G()->messages_manager(), &MessagesManager::get_messages_from_server,
-                           vector<FullMessageId>{source.full_message_id}, std::move(promise), nullptr);
+        send_closure_later(G()->messages_manager(), &MessagesManager::get_message_from_server, source.full_message_id,
+                           std::move(promise), nullptr);
       },
       [&](const FileSourceUserPhoto &source) {
         send_closure_later(G()->contacts_manager(), &ContactsManager::reload_user_profile_photo, source.user_id,

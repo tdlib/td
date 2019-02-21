@@ -6517,8 +6517,8 @@ void MessagesManager::after_get_difference() {
         if (dialog_id.get_type() != DialogType::Channel) {
           dump_debug_message_op(get_dialog(dialog_id));
         }
-        get_messages_from_server(
-            {it.first}, PromiseCreator::lambda([this, full_message_id = it.first](Result<Unit> result) {
+        get_message_from_server(
+            it.first, PromiseCreator::lambda([this, full_message_id = it.first](Result<Unit> result) {
               if (result.is_error()) {
                 LOG(WARNING) << "Failed to get missing " << full_message_id << ": " << result.error();
               } else {
@@ -11610,8 +11610,7 @@ void MessagesManager::get_message_force_from_server(Dialog *d, MessageId message
     }
 
     if (d->deleted_message_ids.count(message_id) == 0 && dialog_type != DialogType::SecretChat) {
-      return get_messages_from_server({FullMessageId(d->dialog_id, message_id)}, std::move(promise),
-                                      std::move(input_message));
+      return get_message_from_server({d->dialog_id, message_id}, std::move(promise), std::move(input_message));
     }
   }
 
@@ -11730,6 +11729,11 @@ bool MessagesManager::get_messages(DialogId dialog_id, const vector<MessageId> &
 
   promise.set_value(Unit());
   return true;
+}
+
+void MessagesManager::get_message_from_server(FullMessageId full_message_id, Promise<Unit> &&promise,
+                                              tl_object_ptr<telegram_api::InputMessage> input_message) {
+  get_messages_from_server({full_message_id}, std::move(promise), std::move(input_message));
 }
 
 void MessagesManager::get_messages_from_server(vector<FullMessageId> &&message_ids, Promise<Unit> &&promise,
@@ -14372,7 +14376,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::parse_message(DialogId dia
                << format::as_hex_dump<4>(value.as_slice());
     if (dialog_id.get_type() != DialogType::SecretChat && m->message_id.is_valid() && m->message_id.is_server()) {
       // trying to repair the message
-      get_messages_from_server({FullMessageId{dialog_id, m->message_id}}, Auto());
+      get_message_from_server({dialog_id, m->message_id}, Auto());
     }
     return nullptr;
   }
@@ -16485,7 +16489,7 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
     cancel_upload_message_content_files(m->edited_content.get());
 
     if (dialog_id.get_type() != DialogType::SecretChat) {
-      get_messages_from_server({FullMessageId{dialog_id, message_id}}, Auto());
+      get_message_from_server({dialog_id, message_id}, Auto());
     }
   }
 
@@ -18558,7 +18562,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
             send_closure(actor_id, &MessagesManager::flush_pending_new_message_notifications, dialog_id, from_mentions,
                          dialog_id);
           });
-      get_messages_from_server({FullMessageId{d->dialog_id, missing_pinned_message_id}}, std::move(promise));
+      get_message_from_server({d->dialog_id, missing_pinned_message_id}, std::move(promise));
     }
     return false;
   }
@@ -21190,7 +21194,7 @@ MessagesManager::Message *MessagesManager::on_get_message_from_database(DialogId
     }
 
     // can succeed in private and group chats
-    get_messages_from_server({FullMessageId{dialog_id, m->message_id}}, Auto());
+    get_message_from_server({dialog_id, m->message_id}, Auto());
 
     force_create_dialog(dialog_id, source);
     d = get_dialog_force(dialog_id);
@@ -21813,7 +21817,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       need_reget_message_content(m->content.get())) {
     FullMessageId full_message_id{dialog_id, message_id};
     LOG(INFO) << "Reget from server " << full_message_id;
-    get_messages_from_server({full_message_id}, Auto());
+    get_message_from_server(full_message_id, Auto());
   }
 
   add_message_file_sources(dialog_id, m);
@@ -23986,7 +23990,7 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
         // message will not be added to the dialog anyway, get channel difference didn't help
         request.second.set_value(Unit());
       } else {
-        get_messages_from_server({FullMessageId{dialog_id, message_id}}, std::move(request.second));
+        get_message_from_server({dialog_id, message_id}, std::move(request.second));
       }
     }
     postponed_get_message_requests_.erase(it_get_message_requests);
