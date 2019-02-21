@@ -21455,7 +21455,10 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
         auto old_index_mask = get_message_index_mask(dialog_id, v->get()) & INDEX_MASK_MASK;
         bool was_deleted = delete_active_live_location(dialog_id, v->get());
         auto old_file_ids = get_message_content_file_ids((*v)->content.get(), td_);
-        update_message(d, *v, std::move(message), need_update_dialog_pos);
+        bool is_changed = update_message(d, *v, std::move(message), need_update_dialog_pos);
+        if (!is_changed) {
+          LOG(INFO) << message_id << " in " << dialog_id << " is not changed";
+        }
         const Message *m = v->get();
         auto new_index_mask = get_message_index_mask(dialog_id, m) & INDEX_MASK_MASK;
         if (was_deleted) {
@@ -21477,7 +21480,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
             td_->file_manager_->change_files_source(file_source_id, old_file_ids, new_file_ids);
           }
         }
-        if (m->notification_id.is_valid() && is_message_notification_active(d, m)) {
+        if (is_changed && m->notification_id.is_valid() && is_message_notification_active(d, m)) {
           auto &group_info = get_notification_group_info(d, m);
           if (group_info.group_id.is_valid()) {
             send_closure_later(G()->notification_manager(), &NotificationManager::edit_notification,
@@ -22193,7 +22196,7 @@ void MessagesManager::attach_message_to_next(Dialog *d, MessageId message_id, co
   }
 }
 
-void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message, unique_ptr<Message> new_message,
+bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message, unique_ptr<Message> new_message,
                                      bool *need_update_dialog_pos) {
   CHECK(d != nullptr);
   CHECK(old_message != nullptr);
@@ -22439,6 +22442,7 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
   }
 
   on_message_changed(d, old_message.get(), is_changed, "update_message");
+  return is_changed;
 }
 
 bool MessagesManager::need_message_changed_warning(const Message *old_message) {
