@@ -15,7 +15,7 @@
 namespace td {
 
 template <class StorerT>
-void PollManager::PollAnswer::store(StorerT &storer) const {
+void PollManager::PollOption::store(StorerT &storer) const {
   using ::td::store;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(is_chosen);
@@ -27,7 +27,7 @@ void PollManager::PollAnswer::store(StorerT &storer) const {
 }
 
 template <class ParserT>
-void PollManager::PollAnswer::parse(ParserT &parser) {
+void PollManager::PollOption::parse(ParserT &parser) {
   using ::td::parse;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(is_chosen);
@@ -46,7 +46,7 @@ void PollManager::Poll::store(StorerT &storer) const {
   END_STORE_FLAGS();
 
   store(question, storer);
-  store(answers, storer);
+  store(options, storer);
   store(total_voter_count, storer);
 }
 
@@ -58,7 +58,7 @@ void PollManager::Poll::parse(ParserT &parser) {
   END_PARSE_FLAGS();
 
   parse(question, parser);
-  parse(answers, parser);
+  parse(options, parser);
   parse(total_voter_count, parser);
 }
 
@@ -69,8 +69,8 @@ void PollManager::store_poll(PollId poll_id, StorerT &storer) const {
     auto poll = get_poll(poll_id);
     CHECK(poll != nullptr);
     store(poll->question, storer);
-    vector<string> answers = transform(poll->answers, [](const PollAnswer &answer) { return answer.text; });
-    store(answers, storer);
+    vector<string> options = transform(poll->options, [](const PollOption &option) { return option.text; });
+    store(options, storer);
   }
 }
 
@@ -81,10 +81,10 @@ PollId PollManager::parse_poll(ParserT &parser) {
   PollId poll_id(poll_id_int);
   if (is_local_poll_id(poll_id)) {
     string question;
-    vector<string> answers;
+    vector<string> options;
     parse(question, parser);
-    parse(answers, parser);
-    return create_poll(std::move(question), std::move(answers));
+    parse(options, parser);
+    return create_poll(std::move(question), std::move(options));
   }
 
   auto poll = get_poll_force(poll_id);

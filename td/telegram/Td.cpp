@@ -6540,7 +6540,13 @@ void Td::on_request(uint64 id, td_api::setOption &request) {
 
   return send_error_raw(id, 3, "Option can't be set");
 }
-
+/*
+void Td::on_request(uint64 id, td_api::setPollAnswers &request) {
+  CHECK_IS_USER();
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->set_poll_answers({DialogId(request.chat_id_), MessageId(request.message_id_)}, std::move(request.option_ids_));
+}
+*/
 void Td::on_request(uint64 id, td_api::getInlineQueryResults &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);

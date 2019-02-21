@@ -1747,8 +1747,8 @@ static Result<InputMessageContent> create_input_message_content(
     }
     case td_api::inputMessagePoll::ID: {
       constexpr size_t MAX_POLL_QUESTION_LENGTH = 255;  // server-side limit
-      constexpr size_t MAX_POLL_ANSWER_LENGTH = 100;    // server-side limit
-      constexpr size_t MAX_POLL_ANSWERS = 10;           // server-side limit
+      constexpr size_t MAX_POLL_OPTION_LENGTH = 100;    // server-side limit
+      constexpr size_t MAX_POLL_OPTIONS = 10;           // server-side limit
       auto input_poll = static_cast<td_api::inputMessagePoll *>(input_message_content.get());
       if (!clean_input_string(input_poll->question_)) {
         return Status::Error(400, "Poll question must be encoded in UTF-8");
@@ -1759,26 +1759,26 @@ static Result<InputMessageContent> create_input_message_content(
       if (input_poll->question_.size() > MAX_POLL_QUESTION_LENGTH) {
         return Status::Error(400, PSLICE() << "Poll question length must not exceed " << MAX_POLL_QUESTION_LENGTH);
       }
-      if (input_poll->answers_.empty()) {
-        return Status::Error(400, "Poll must have at least 1 answer");
+      if (input_poll->options_.empty()) {
+        return Status::Error(400, "Poll must have at least 1 option");
       }
-      if (input_poll->answers_.size() > MAX_POLL_ANSWERS) {
-        return Status::Error(400, PSLICE() << "Poll can't have more than " << MAX_POLL_QUESTION_LENGTH << " answers");
+      if (input_poll->options_.size() > MAX_POLL_OPTIONS) {
+        return Status::Error(400, PSLICE() << "Poll can't have more than " << MAX_POLL_OPTIONS << " option");
       }
-      for (auto &answer : input_poll->answers_) {
-        if (!clean_input_string(answer)) {
-          return Status::Error(400, "Poll answers must be encoded in UTF-8");
+      for (auto &option : input_poll->options_) {
+        if (!clean_input_string(option)) {
+          return Status::Error(400, "Poll options must be encoded in UTF-8");
         }
-        if (answer.empty()) {
-          return Status::Error(400, "Poll answers must be non-empty");
+        if (option.empty()) {
+          return Status::Error(400, "Poll options must be non-empty");
         }
-        if (answer.size() > MAX_POLL_ANSWER_LENGTH) {
-          return Status::Error(400, PSLICE() << "Poll answers length must not exceed " << MAX_POLL_ANSWER_LENGTH);
+        if (option.size() > MAX_POLL_OPTION_LENGTH) {
+          return Status::Error(400, PSLICE() << "Poll options length must not exceed " << MAX_POLL_OPTION_LENGTH);
         }
       }
 
       content = make_unique<MessagePoll>(
-          td->poll_manager_->create_poll(std::move(input_poll->question_), std::move(input_poll->answers_)));
+          td->poll_manager_->create_poll(std::move(input_poll->question_), std::move(input_poll->options_)));
       break;
     }
     default:

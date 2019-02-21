@@ -33,7 +33,7 @@ class PollManager : public Actor {
   PollManager &operator=(PollManager &&) = delete;
   ~PollManager() override;
 
-  PollId create_poll(string &&question, vector<string> &&answers);
+  PollId create_poll(string &&question, vector<string> &&options);
 
   void register_poll(PollId poll_id, FullMessageId full_message_id);
 
@@ -55,7 +55,7 @@ class PollManager : public Actor {
   PollId parse_poll(ParserT &parser);
 
  private:
-  struct PollAnswer {
+  struct PollOption {
     string text;
     string data;
     int32 voter_count = 0;
@@ -69,7 +69,7 @@ class PollManager : public Actor {
 
   struct Poll {
     string question;
-    vector<PollAnswer> answers;
+    vector<PollOption> options;
     int32 total_voter_count = 0;
     bool is_closed = false;
 
@@ -83,11 +83,11 @@ class PollManager : public Actor {
 
   static bool is_local_poll_id(PollId poll_id);
 
-  static td_api::object_ptr<td_api::pollAnswer> get_poll_answer_object(const PollAnswer &poll_answer);
+  static td_api::object_ptr<td_api::pollOption> get_poll_option_object(const PollOption &poll_option);
 
-  static telegram_api::object_ptr<telegram_api::pollAnswer> get_input_poll_answer(const PollAnswer &poll_answer);
+  static telegram_api::object_ptr<telegram_api::pollAnswer> get_input_poll_option(const PollOption &poll_option);
 
-  static vector<PollAnswer> get_poll_answers(vector<tl_object_ptr<telegram_api::pollAnswer>> &&poll_answers);
+  static vector<PollOption> get_poll_options(vector<tl_object_ptr<telegram_api::pollAnswer>> &&poll_options);
 
   bool have_poll(PollId poll_id) const;
 

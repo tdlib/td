@@ -830,6 +830,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::setOption &request);
 
+  // void on_request(uint64 id, td_api::setPollAnswers &request);
+
   void on_request(uint64 id, td_api::getInlineQueryResults &request);
 
   void on_request(uint64 id, td_api::answerInlineQuery &request);

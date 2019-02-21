@@ -123,30 +123,30 @@ PollManager::Poll *PollManager::get_poll_force(PollId poll_id) {
   return get_poll_editable(poll_id);
 }
 
-td_api::object_ptr<td_api::pollAnswer> PollManager::get_poll_answer_object(const PollAnswer &poll_answer) {
-  return td_api::make_object<td_api::pollAnswer>(poll_answer.text, poll_answer.voter_count, poll_answer.is_chosen);
+td_api::object_ptr<td_api::pollOption> PollManager::get_poll_option_object(const PollOption &poll_option) {
+  return td_api::make_object<td_api::pollOption>(poll_option.text, poll_option.voter_count, poll_option.is_chosen);
 }
 
 td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id) const {
   auto poll = get_poll(poll_id);
   CHECK(poll != nullptr);
-  return td_api::make_object<td_api::poll>(poll->question, transform(poll->answers, get_poll_answer_object),
+  return td_api::make_object<td_api::poll>(poll->question, transform(poll->options, get_poll_option_object),
                                            poll->total_voter_count, poll->is_closed);
 }
 
-telegram_api::object_ptr<telegram_api::pollAnswer> PollManager::get_input_poll_answer(const PollAnswer &poll_answer) {
-  return telegram_api::make_object<telegram_api::pollAnswer>(poll_answer.text, BufferSlice(poll_answer.data));
+telegram_api::object_ptr<telegram_api::pollAnswer> PollManager::get_input_poll_option(const PollOption &poll_option) {
+  return telegram_api::make_object<telegram_api::pollAnswer>(poll_option.text, BufferSlice(poll_option.data));
 }
 
-PollId PollManager::create_poll(string &&question, vector<string> &&answers) {
+PollId PollManager::create_poll(string &&question, vector<string> &&options) {
   auto poll = make_unique<Poll>();
   poll->question = std::move(question);
   int pos = 0;
-  for (auto &answer_text : answers) {
-    PollAnswer answer;
-    answer.text = std::move(answer_text);
-    answer.data = to_string(pos++);
-    poll->answers.push_back(std::move(answer));
+  for (auto &option_text : options) {
+    PollOption option;
+    option.text = std::move(option_text);
+    option.data = to_string(pos++);
+    poll->options.push_back(std::move(option));
   }
 
   PollId poll_id(--current_local_poll_id_);
@@ -185,16 +185,16 @@ tl_object_ptr<telegram_api::InputMedia> PollManager::get_input_media(PollId poll
   auto poll = get_poll(poll_id);
   CHECK(poll != nullptr);
   return telegram_api::make_object<telegram_api::inputMediaPoll>(telegram_api::make_object<telegram_api::poll>(
-      0, 0, false /* ignored */, poll->question, transform(poll->answers, get_input_poll_answer)));
+      0, 0, false /* ignored */, poll->question, transform(poll->options, get_input_poll_option)));
 }
 
-vector<PollManager::PollAnswer> PollManager::get_poll_answers(
-    vector<tl_object_ptr<telegram_api::pollAnswer>> &&poll_answers) {
-  return transform(std::move(poll_answers), [](tl_object_ptr<telegram_api::pollAnswer> &&poll_answer) {
-    PollAnswer answer;
-    answer.text = std::move(poll_answer->text_);
-    answer.data = poll_answer->option_.as_slice().str();
-    return answer;
+vector<PollManager::PollOption> PollManager::get_poll_options(
+    vector<tl_object_ptr<telegram_api::pollAnswer>> &&poll_options) {
+  return transform(std::move(poll_options), [](tl_object_ptr<telegram_api::pollAnswer> &&poll_option) {
+    PollOption option;
+    option.text = std::move(poll_option->text_);
+    option.data = poll_option->option_.as_slice().str();
+    return option;
   });
 }
 
@@ -232,19 +232,19 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
       poll->question = std::move(poll_server->question_);
       is_changed = true;
     }
-    if (poll->answers.size() != poll_server->answers_.size()) {
-      poll->answers = get_poll_answers(std::move(poll_server->answers_));
+    if (poll->options.size() != poll_server->answers_.size()) {
+      poll->options = get_poll_options(std::move(poll_server->answers_));
       is_changed = true;
     } else {
-      for (size_t i = 0; i < poll->answers.size(); i++) {
-        if (poll->answers[i].text != poll_server->answers_[i]->text_) {
-          poll->answers[i].text = std::move(poll_server->answers_[i]->text_);
+      for (size_t i = 0; i < poll->options.size(); i++) {
+        if (poll->options[i].text != poll_server->answers_[i]->text_) {
+          poll->options[i].text = std::move(poll_server->answers_[i]->text_);
           is_changed = true;
         }
-        if (poll->answers[i].data != poll_server->answers_[i]->option_.as_slice()) {
-          poll->answers[i].data = poll_server->answers_[i]->option_.as_slice().str();
-          poll->answers[i].voter_count = 0;
-          poll->answers[i].is_chosen = false;
+        if (poll->options[i].data != poll_server->answers_[i]->option_.as_slice()) {
+          poll->options[i].data = poll_server->answers_[i]->option_.as_slice().str();
+          poll->options[i].voter_count = 0;
+          poll->options[i].is_chosen = false;
           is_changed = true;
         }
       }
@@ -265,19 +265,19 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
   }
   for (auto &poll_result : poll_results->results_) {
     Slice data = poll_result->option_.as_slice();
-    for (auto &answer : poll->answers) {
-      if (answer.data != data) {
+    for (auto &option : poll->options) {
+      if (option.data != data) {
         continue;
       }
       if (!is_min) {
         bool is_chosen = (poll_result->flags_ & telegram_api::pollAnswerVoters::CHOSEN_MASK) != 0;
-        if (is_chosen != answer.is_chosen) {
-          answer.is_chosen = is_chosen;
+        if (is_chosen != option.is_chosen) {
+          option.is_chosen = is_chosen;
           is_changed = true;
         }
       }
-      if (poll_result->voters_ != answer.voter_count) {
-        answer.voter_count = poll_result->voters_;
+      if (poll_result->voters_ != option.voter_count) {
+        option.voter_count = poll_result->voters_;
         is_changed = true;
       }
     }
