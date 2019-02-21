@@ -7,6 +7,7 @@
 #pragma once
 
 #include "td/telegram/MessageId.h"
+#include "td/telegram/net/NetQuery.h"
 #include "td/telegram/PollId.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
@@ -126,6 +127,7 @@ class PollManager : public Actor {
     vector<Promise<Unit>> promises_;
     uint64 generation_ = 0;
     uint64 logevent_id_ = 0;
+    NetQueryRef query_ref_;
   };
   std::unordered_map<PollId, PendingPollAnswer, PollIdHash> pending_answers_;
 

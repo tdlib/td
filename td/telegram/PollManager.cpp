@@ -35,7 +35,8 @@ class SetPollAnswerQuery : public NetActorOnce {
   explicit SetPollAnswerQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(FullMessageId full_message_id, vector<BufferSlice> &&options, uint64 generation) {
+  void send(FullMessageId full_message_id, vector<BufferSlice> &&options, uint64 generation,
+            NetQueryRef *query_ref) {
     dialog_id_ = full_message_id.get_dialog_id();
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
@@ -46,6 +47,7 @@ class SetPollAnswerQuery : public NetActorOnce {
     auto message_id = full_message_id.get_message_id().get_server_message_id().get();
     auto query = G()->net_query_creator().create(
         create_storer(telegram_api::messages_sendVote(std::move(input_peer), message_id, std::move(options))));
+    *query_ref = query.get_weak();
     auto sequence_id = -1;
     send_closure(td->messages_manager_->sequence_dispatcher_, &MultiSequenceDispatcher::send_with_callback,
                  std::move(query), actor_shared(this), sequence_id);
@@ -191,15 +193,17 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id) co
       if (poll_option.is_chosen) {
         voter_count_diff = -1;
       }
-      poll_options.push_back(
-          td_api::make_object<td_api::pollOption>(poll_option.text, poll_option.voter_count - static_cast<int32>(poll_option.is_chosen) + static_cast<int32>(is_chosen), is_chosen));
+      poll_options.push_back(td_api::make_object<td_api::pollOption>(
+          poll_option.text,
+          poll_option.voter_count - static_cast<int32>(poll_option.is_chosen) + static_cast<int32>(is_chosen),
+          is_chosen));
     }
     if (!chosen_options.empty()) {
       voter_count_diff++;
     }
   }
-  return td_api::make_object<td_api::poll>(poll->question, std::move(poll_options), poll->total_voter_count + voter_count_diff,
-                                           poll->is_closed);
+  return td_api::make_object<td_api::poll>(poll->question, std::move(poll_options),
+                                           poll->total_voter_count + voter_count_diff, poll->is_closed);
 }
 
 telegram_api::object_ptr<telegram_api::pollAnswer> PollManager::get_input_poll_option(const PollOption &poll_option) {
@@ -273,6 +277,10 @@ void PollManager::do_set_poll_answer(PollId poll_id, FullMessageId full_message_
   }
 
   if (!pending_answer.promises_.empty()) {
+    CHECK(!pending_answer.query_ref_.empty());
+    cancel_query(pending_answer.query_ref_);
+    pending_answer.query_ref_ = NetQueryRef();
+
     auto promises = std::move(pending_answer.promises_);
     pending_answer.promises_.clear();
     for (auto &old_promise : promises) {
@@ -299,7 +307,7 @@ void PollManager::do_set_poll_answer(PollId poll_id, FullMessageId full_message_
   });
 
   send_closure(td_->create_net_actor<SetPollAnswerQuery>(std::move(query_promise)), &SetPollAnswerQuery::send,
-               full_message_id, std::move(sent_options), generation);
+               full_message_id, std::move(sent_options), generation, &pending_answer.query_ref_);
 }
 
 void PollManager::on_set_poll_answer(PollId poll_id, uint64 generation, Result<Unit> &&result) {
@@ -322,6 +330,10 @@ void PollManager::on_set_poll_answer(PollId poll_id, uint64 generation, Result<U
   if (pending_answer.logevent_id_ != 0) {
     // TODO delete logevent
   }
+
+  CHECK(!pending_answer.query_ref_.empty());
+  cancel_query(pending_answer.query_ref_);
+  pending_answer.query_ref_ = NetQueryRef();
 
   auto promises = std::move(pending_answer.promises_);
   for (auto &promise : promises) {
