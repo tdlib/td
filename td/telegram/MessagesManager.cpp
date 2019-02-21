@@ -5009,6 +5009,8 @@ void MessagesManager::on_update_message_views(FullMessageId full_message_id, int
 bool MessagesManager::update_message_views(DialogId dialog_id, Message *m, int32 views) {
   CHECK(m != nullptr);
   if (views > m->views) {
+    LOG(DEBUG) << "Update views of " << FullMessageId{dialog_id, m->message_id} << " from " << m->views << " to "
+               << views;
     m->views = views;
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateMessageViews>(dialog_id.get(), m->message_id.get(), m->views));
@@ -22209,6 +22211,7 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
           << "Date has changed for incoming " << message_id << " in " << dialog_id << " from " << old_message->date
           << " to " << new_message->date;
       CHECK(old_message->date > 0);
+      LOG(DEBUG) << "Message date has changed from " << old_message->date << " to " << new_message->date;
       old_message->date = new_message->date;
       if (d->last_message_id == message_id) {
         *need_update_dialog_pos = true;
@@ -22222,6 +22225,8 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
   if (old_message->edit_date != new_message->edit_date) {
     if (new_message->edit_date > 0) {
       if (new_message->edit_date > old_message->edit_date) {
+        LOG(DEBUG) << "Message edit date has changed from " << old_message->edit_date << " to "
+                   << new_message->edit_date;
         old_message->edit_date = new_message->edit_date;
         is_edited = true;
         is_changed = true;
@@ -22233,10 +22238,9 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
   }
 
   if (old_message->author_signature != new_message->author_signature) {
-    LOG_IF(INFO, !old_message->sender_user_id.is_valid() || new_message->sender_user_id.is_valid())
-        << "Author signature has changed for " << message_id << " in " << dialog_id << " sent by "
-        << old_message->sender_user_id << "/" << new_message->sender_user_id << " from "
-        << old_message->author_signature << " to " << new_message->author_signature;
+    LOG(DEBUG) << "Author signature has changed for " << message_id << " in " << dialog_id << " sent by "
+               << old_message->sender_user_id << "/" << new_message->sender_user_id << " from "
+               << old_message->author_signature << " to " << new_message->author_signature;
     old_message->author_signature = std::move(new_message->author_signature);
     is_changed = true;
   }
@@ -22249,6 +22253,7 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
     LOG_IF(WARNING, new_message->sender_user_id.is_valid() || old_message->author_signature.empty())
         << "Update message sender from " << old_message->sender_user_id << " to " << new_message->sender_user_id
         << " in " << dialog_id;
+    LOG(DEBUG) << "Change message sender";
     old_message->sender_user_id = new_message->sender_user_id;
     is_changed = true;
   }
@@ -22264,6 +22269,7 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
     if (new_message->forward_info != nullptr) {
       if (old_message->forward_info->author_signature != new_message->forward_info->author_signature) {
         old_message->forward_info->author_signature = new_message->forward_info->author_signature;
+        LOG(DEBUG) << "Change message signature";
         is_changed = true;
       }
       if (*old_message->forward_info != *new_message->forward_info) {
@@ -22303,6 +22309,7 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
     // Can't check "&& get_message_force(d, old_message->reply_to_message_id) == nullptr", because it
     // can change message tree and invalidate reference to old_message
     if (new_message->reply_to_message_id == MessageId()) {
+      LOG(DEBUG) << "Drop message reply_to_message_id";
       old_message->reply_to_message_id = MessageId();
       is_changed = true;
     } else {
@@ -22316,6 +22323,8 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
       LOG(ERROR) << message_id << " in " << dialog_id << " has changed bot via it is sent from "
                  << old_message->via_bot_user_id << " to " << new_message->via_bot_user_id;
     }
+    LOG(DEBUG) << "Change message via_bot from " << old_message->via_bot_user_id << " to "
+               << new_message->via_bot_user_id;
     old_message->via_bot_user_id = new_message->via_bot_user_id;
     is_changed = true;
   }
@@ -22357,6 +22366,7 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
   }
   if ((old_message->media_album_id == 0 || td_->auth_manager_->is_bot()) && new_message->media_album_id != 0) {
     old_message->media_album_id = new_message->media_album_id;
+    LOG(DEBUG) << "Update message media_album_id";
     is_changed = true;
   }
 
@@ -22370,6 +22380,7 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
           new_message->reply_markup == nullptr) {
         set_dialog_reply_markup(d, MessageId());
       }
+      LOG(DEBUG) << "Update message reply keyboard";
       old_message->reply_markup = std::move(new_message->reply_markup);
       is_edited = true;
       is_changed = true;
@@ -22380,8 +22391,12 @@ void MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
       if (new_message->reply_markup != nullptr) {
         auto content_type = old_message->content->get_type();
         // MessageGame and MessageInvoice reply markup can be generated server side
-        LOG_IF(ERROR, content_type != MessageContentType::Game && content_type != MessageContentType::Invoice)
-            << message_id << " in " << dialog_id << " has received reply markup " << *new_message->reply_markup;
+        if (content_type != MessageContentType::Game && content_type != MessageContentType::Invoice) {
+          LOG(ERROR) << message_id << " in " << dialog_id << " has received reply markup "
+                     << *new_message->reply_markup;
+        } else {
+          LOG(DEBUG) << "Add message reply keyboard";
+        }
 
         old_message->had_reply_markup = false;
         old_message->reply_markup = std::move(new_message->reply_markup);
