@@ -48,10 +48,10 @@ class SendCodeHelper {
     return phone_registered_;
   }
 
-  template <class T>
-  void store(T &storer) const;
-  template <class T>
-  void parse(T &parser);
+  template <class StorerT>
+  void store(StorerT &storer) const;
+  template <class ParserT>
+  void parse(ParserT &parser);
 
  private:
   static constexpr int32 AUTH_SEND_CODE_FLAG_ALLOW_FLASH_CALL = 1 << 0;
@@ -71,10 +71,10 @@ class SendCodeHelper {
         : type(type), length(length), pattern(std::move(pattern)) {
     }
 
-    template <class T>
-    void store(T &storer) const;
-    template <class T>
-    void parse(T &parser);
+    template <class StorerT>
+    void store(StorerT &storer) const;
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   string phone_number_;

@@ -12,24 +12,24 @@
 
 namespace td {
 
-template <class T>
-void SendCodeHelper::AuthenticationCodeInfo::store(T &storer) const {
+template <class StorerT>
+void SendCodeHelper::AuthenticationCodeInfo::store(StorerT &storer) const {
   using td::store;
   store(type, storer);
   store(length, storer);
   store(pattern, storer);
 }
 
-template <class T>
-void SendCodeHelper::AuthenticationCodeInfo::parse(T &parser) {
+template <class ParserT>
+void SendCodeHelper::AuthenticationCodeInfo::parse(ParserT &parser) {
   using td::parse;
   parse(type, parser);
   parse(length, parser);
   parse(pattern, parser);
 }
 
-template <class T>
-void SendCodeHelper::store(T &storer) const {
+template <class StorerT>
+void SendCodeHelper::store(StorerT &storer) const {
   using td::store;
   store(phone_number_, storer);
   store(phone_registered_, storer);
@@ -39,8 +39,8 @@ void SendCodeHelper::store(T &storer) const {
   store(next_code_timestamp_, storer);
 }
 
-template <class T>
-void SendCodeHelper::parse(T &parser) {
+template <class ParserT>
+void SendCodeHelper::parse(ParserT &parser) {
   using td::parse;
   parse(phone_number_, parser);
   parse(phone_registered_, parser);

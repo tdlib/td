@@ -17,10 +17,8 @@
 #include <unordered_map>
 
 namespace td {
-class Td;
-}  // namespace td
 
-namespace td {
+class Td;
 
 class VoiceNotesManager {
  public:
@@ -43,11 +41,11 @@ class VoiceNotesManager {
 
   bool merge_voice_notes(FileId new_id, FileId old_id, bool can_delete_old);
 
-  template <class T>
-  void store_voice_note(FileId file_id, T &storer) const;
+  template <class StorerT>
+  void store_voice_note(FileId file_id, StorerT &storer) const;
 
-  template <class T>
-  FileId parse_voice_note(T &parser);
+  template <class ParserT>
+  FileId parse_voice_note(ParserT &parser);
 
  private:
   class VoiceNote {

@@ -17,8 +17,8 @@
 
 namespace td {
 
-template <class T>
-void AuthManager::WaitPasswordState::store(T &storer) const {
+template <class StorerT>
+void AuthManager::WaitPasswordState::store(StorerT &storer) const {
   using td::store;
   store(current_client_salt_, storer);
   store(current_server_salt_, storer);
@@ -31,8 +31,8 @@ void AuthManager::WaitPasswordState::store(T &storer) const {
   store(email_address_pattern_, storer);
 }
 
-template <class T>
-void AuthManager::WaitPasswordState::parse(T &parser) {
+template <class ParserT>
+void AuthManager::WaitPasswordState::parse(ParserT &parser) {
   using td::parse;
   parse(current_client_salt_, parser);
   parse(current_server_salt_, parser);
@@ -45,8 +45,8 @@ void AuthManager::WaitPasswordState::parse(T &parser) {
   parse(email_address_pattern_, parser);
 }
 
-template <class T>
-void AuthManager::DbState::store(T &storer) const {
+template <class StorerT>
+void AuthManager::DbState::store(StorerT &storer) const {
   using td::store;
   bool has_terms_of_service = !terms_of_service_.get_id().empty();
   bool is_pbkdf2_supported = true;
@@ -74,8 +74,8 @@ void AuthManager::DbState::store(T &storer) const {
   }
 }
 
-template <class T>
-void AuthManager::DbState::parse(T &parser) {
+template <class ParserT>
+void AuthManager::DbState::parse(ParserT &parser) {
   using td::parse;
   bool has_terms_of_service = false;
   bool is_pbkdf2_supported = false;

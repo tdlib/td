@@ -101,14 +101,14 @@ class TopDialogManager : public NetQueryCallback {
     double rating_timestamp = 0;
     std::vector<TopDialog> dialogs;
   };
-  template <class T>
-  friend void parse(TopDialog &top_dialog, T &parser);
-  template <class T>
-  friend void store(const TopDialog &top_dialog, T &storer);
-  template <class T>
-  friend void parse(TopDialogs &top_dialogs, T &parser);
-  template <class T>
-  friend void store(const TopDialogs &top_dialogs, T &storer);
+  template <class StorerT>
+  friend void store(const TopDialog &top_dialog, StorerT &storer);
+  template <class ParserT>
+  friend void parse(TopDialog &top_dialog, ParserT &parser);
+  template <class StorerT>
+  friend void store(const TopDialogs &top_dialogs, StorerT &storer);
+  template <class ParserT>
+  friend void parse(TopDialogs &top_dialogs, ParserT &parser);
 
   std::array<TopDialogs, static_cast<size_t>(TopDialogCategory::Size)> by_category_;
 

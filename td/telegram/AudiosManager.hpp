@@ -16,8 +16,8 @@
 
 namespace td {
 
-template <class T>
-void AudiosManager::store_audio(FileId file_id, T &storer) const {
+template <class StorerT>
+void AudiosManager::store_audio(FileId file_id, StorerT &storer) const {
   auto it = audios_.find(file_id);
   CHECK(it != audios_.end());
   const Audio *audio = it->second.get();
@@ -30,8 +30,8 @@ void AudiosManager::store_audio(FileId file_id, T &storer) const {
   store(file_id, storer);
 }
 
-template <class T>
-FileId AudiosManager::parse_audio(T &parser) {
+template <class ParserT>
+FileId AudiosManager::parse_audio(ParserT &parser) {
   auto audio = make_unique<Audio>();
   parse(audio->file_name, parser);
   parse(audio->mime_type, parser);

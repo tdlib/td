@@ -222,32 +222,32 @@ void TopDialogManager::update_rating_e_decay() {
   rating_e_decay_ = G()->shared_config().get_option_integer("rating_e_decay", rating_e_decay_);
 }
 
-template <class T>
-void parse(TopDialogManager::TopDialog &top_dialog, T &parser) {
-  using ::td::parse;
-  parse(top_dialog.dialog_id, parser);
-  parse(top_dialog.rating, parser);
-}
-
-template <class T>
-void store(const TopDialogManager::TopDialog &top_dialog, T &storer) {
+template <class StorerT>
+void store(const TopDialogManager::TopDialog &top_dialog, StorerT &storer) {
   using ::td::store;
   store(top_dialog.dialog_id, storer);
   store(top_dialog.rating, storer);
 }
 
-template <class T>
-void parse(TopDialogManager::TopDialogs &top_dialogs, T &parser) {
+template <class ParserT>
+void parse(TopDialogManager::TopDialog &top_dialog, ParserT &parser) {
   using ::td::parse;
-  parse(top_dialogs.rating_timestamp, parser);
-  parse(top_dialogs.dialogs, parser);
+  parse(top_dialog.dialog_id, parser);
+  parse(top_dialog.rating, parser);
 }
 
-template <class T>
-void store(const TopDialogManager::TopDialogs &top_dialogs, T &storer) {
+template <class StorerT>
+void store(const TopDialogManager::TopDialogs &top_dialogs, StorerT &storer) {
   using ::td::store;
   store(top_dialogs.rating_timestamp, storer);
   store(top_dialogs.dialogs, storer);
+}
+
+template <class ParserT>
+void parse(TopDialogManager::TopDialogs &top_dialogs, ParserT &parser) {
+  using ::td::parse;
+  parse(top_dialogs.rating_timestamp, parser);
+  parse(top_dialogs.dialogs, parser);
 }
 
 double TopDialogManager::rating_add(double now, double rating_timestamp) const {

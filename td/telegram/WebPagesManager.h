@@ -138,11 +138,11 @@ class WebPagesManager : public Actor {
 
   class WebPageLogEvent;
 
-  template <class T>
-  friend void store(const unique_ptr<PageBlock> &block, T &storer);
+  template <class StorerT>
+  friend void store(const unique_ptr<PageBlock> &block, StorerT &storer);
 
-  template <class T>
-  friend void parse(unique_ptr<PageBlock> &block, T &parser);
+  template <class ParserT>
+  friend void parse(unique_ptr<PageBlock> &block, ParserT &parser);
 
   void update_web_page(unique_ptr<WebPage> web_page, WebPageId web_page_id, bool from_binlog, bool from_database);
 

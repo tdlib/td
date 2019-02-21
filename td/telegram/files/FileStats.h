@@ -30,14 +30,14 @@ struct FileTypeStat {
   int32 cnt{0};
 };
 
-template <class T>
-void store(const FileTypeStat &stat, T &storer) {
+template <class StorerT>
+void store(const FileTypeStat &stat, StorerT &storer) {
   using ::td::store;
   store(stat.size, storer);
   store(stat.cnt, storer);
 }
-template <class T>
-void parse(FileTypeStat &stat, T &parser) {
+template <class ParserT>
+void parse(FileTypeStat &stat, ParserT &parser) {
   using ::td::parse;
   parse(stat.size, parser);
   parse(stat.cnt, parser);

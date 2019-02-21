@@ -24,10 +24,8 @@
 #include <unordered_map>
 
 namespace td {
-class Td;
-}  // namespace td
 
-namespace td {
+class Td;
 
 class AnimationsManager : public Actor {
  public:
@@ -78,11 +76,11 @@ class AnimationsManager : public Actor {
 
   void remove_saved_animation(const tl_object_ptr<td_api::InputFile> &input_file, Promise<Unit> &&promise);
 
-  template <class T>
-  void store_animation(FileId file_id, T &storer) const;
+  template <class StorerT>
+  void store_animation(FileId file_id, StorerT &storer) const;
 
-  template <class T>
-  FileId parse_animation(T &parser);
+  template <class ParserT>
+  FileId parse_animation(ParserT &parser);
 
   string get_animation_search_text(FileId file_id) const;
 

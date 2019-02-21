@@ -23,8 +23,8 @@ class NoCryptoImpl {
     }
   }
 
-  template <class T>
-  void do_store(T &storer) const {
+  template <class StorerT>
+  void do_store(StorerT &storer) const {
     storer.store_binary(message_id_);
     storer.store_binary(static_cast<int32>(data_.size() + pad_.size()));
     storer.store_storer(data_);

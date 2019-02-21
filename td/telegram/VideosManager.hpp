@@ -16,8 +16,8 @@
 
 namespace td {
 
-template <class T>
-void VideosManager::store_video(FileId file_id, T &storer) const {
+template <class StorerT>
+void VideosManager::store_video(FileId file_id, StorerT &storer) const {
   auto it = videos_.find(file_id);
   CHECK(it != videos_.end());
   const Video *video = it->second.get();
@@ -36,8 +36,8 @@ void VideosManager::store_video(FileId file_id, T &storer) const {
   }
 }
 
-template <class T>
-FileId VideosManager::parse_video(T &parser) {
+template <class ParserT>
+FileId VideosManager::parse_video(ParserT &parser) {
   auto video = make_unique<Video>();
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(video->has_stickers);

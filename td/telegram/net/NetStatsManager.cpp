@@ -22,8 +22,8 @@
 
 namespace td {
 
-template <class T>
-static void store(const NetStatsData &net_stats, T &storer) {
+template <class StorerT>
+static void store(const NetStatsData &net_stats, StorerT &storer) {
   using ::td::store;
   store(net_stats.read_size, storer);
   store(net_stats.write_size, storer);
@@ -31,8 +31,8 @@ static void store(const NetStatsData &net_stats, T &storer) {
   store(net_stats.duration, storer);
 }
 
-template <class T>
-static void parse(NetStatsData &net_stats, T &parser) {
+template <class ParserT>
+static void parse(NetStatsData &net_stats, ParserT &parser) {
   using ::td::parse;
   parse(net_stats.read_size, parser);
   parse(net_stats.write_size, parser);

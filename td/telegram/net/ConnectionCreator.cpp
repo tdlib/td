@@ -198,26 +198,8 @@ class ConnectionCreator::ProxyInfo {
   IPAddress ip_address_;
 };
 
-template <class T>
-void Proxy::parse(T &parser) {
-  using td::parse;
-  parse(type_, parser);
-  if (type_ == Proxy::Type::Socks5 || type_ == Proxy::Type::HttpTcp || type_ == Proxy::Type::HttpCaching) {
-    parse(server_, parser);
-    parse(port_, parser);
-    parse(user_, parser);
-    parse(password_, parser);
-  } else if (type_ == Proxy::Type::Mtproto) {
-    parse(server_, parser);
-    parse(port_, parser);
-    parse(secret_, parser);
-  } else {
-    LOG_CHECK(type_ == Proxy::Type::None) << static_cast<int32>(type_);
-  }
-}
-
-template <class T>
-void Proxy::store(T &storer) const {
+template <class StorerT>
+void Proxy::store(StorerT &storer) const {
   using td::store;
   store(type_, storer);
   if (type_ == Proxy::Type::Socks5 || type_ == Proxy::Type::HttpTcp || type_ == Proxy::Type::HttpCaching) {
@@ -231,6 +213,24 @@ void Proxy::store(T &storer) const {
     store(secret_, storer);
   } else {
     CHECK(type_ == Proxy::Type::None);
+  }
+}
+
+template <class ParserT>
+void Proxy::parse(ParserT &parser) {
+  using td::parse;
+  parse(type_, parser);
+  if (type_ == Proxy::Type::Socks5 || type_ == Proxy::Type::HttpTcp || type_ == Proxy::Type::HttpCaching) {
+    parse(server_, parser);
+    parse(port_, parser);
+    parse(user_, parser);
+    parse(password_, parser);
+  } else if (type_ == Proxy::Type::Mtproto) {
+    parse(server_, parser);
+    parse(port_, parser);
+    parse(secret_, parser);
+  } else {
+    LOG_CHECK(type_ == Proxy::Type::None) << static_cast<int32>(type_);
   }
 }
 

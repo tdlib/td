@@ -19,10 +19,8 @@
 #include <unordered_map>
 
 namespace td {
-class Td;
-}  // namespace td
 
-namespace td {
+class Td;
 
 class AudiosManager {
  public:
@@ -51,11 +49,11 @@ class AudiosManager {
 
   bool merge_audios(FileId new_id, FileId old_id, bool can_delete_old);
 
-  template <class T>
-  void store_audio(FileId file_id, T &storer) const;
+  template <class StorerT>
+  void store_audio(FileId file_id, StorerT &storer) const;
 
-  template <class T>
-  FileId parse_audio(T &parser);
+  template <class ParserT>
+  FileId parse_audio(ParserT &parser);
 
   string get_audio_search_text(FileId file_id) const;
 

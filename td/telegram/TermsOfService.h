@@ -45,8 +45,8 @@ class TermsOfService {
     return td_api::make_object<td_api::termsOfService>(get_formatted_text_object(text_), min_user_age_, show_popup_);
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using td::store;
     BEGIN_STORE_FLAGS();
     STORE_FLAG(show_popup_);
@@ -56,8 +56,8 @@ class TermsOfService {
     store(min_user_age_, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using td::parse;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(show_popup_);

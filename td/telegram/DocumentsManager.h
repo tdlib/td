@@ -101,11 +101,11 @@ class DocumentsManager {
 
   bool merge_documents(FileId new_id, FileId old_id, bool can_delete_old);
 
-  template <class T>
-  void store_document(FileId file_id, T &storer) const;
+  template <class StorerT>
+  void store_document(FileId file_id, StorerT &storer) const;
 
-  template <class T>
-  FileId parse_document(T &parser);
+  template <class ParserT>
+  FileId parse_document(ParserT &parser);
 
   string get_document_search_text(FileId file_id) const;
 

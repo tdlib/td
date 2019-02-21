@@ -16,8 +16,8 @@
 
 namespace td {
 
-template <class T>
-void DocumentsManager::store_document(FileId file_id, T &storer) const {
+template <class StorerT>
+void DocumentsManager::store_document(FileId file_id, StorerT &storer) const {
   LOG(DEBUG) << "Store document " << file_id;
   auto it = documents_.find(file_id);
   CHECK(it != documents_.end());
@@ -28,8 +28,8 @@ void DocumentsManager::store_document(FileId file_id, T &storer) const {
   store(file_id, storer);
 }
 
-template <class T>
-FileId DocumentsManager::parse_document(T &parser) {
+template <class ParserT>
+FileId DocumentsManager::parse_document(ParserT &parser) {
   auto document = make_unique<Document>();
   parse(document->file_name, parser);
   parse(document->mime_type, parser);

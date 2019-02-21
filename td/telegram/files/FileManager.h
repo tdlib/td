@@ -444,8 +444,8 @@ class FileManager : public FileLoadManager::Callback {
   template <class StorerT>
   void store_file(FileId file_id, StorerT &storer, int32 ttl = 5) const;
 
-  template <class StorerT>
-  FileId parse_file(StorerT &parser);
+  template <class ParserT>
+  FileId parse_file(ParserT &parser);
 
  private:
   static constexpr char PERSISTENT_ID_VERSION = 2;

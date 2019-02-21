@@ -144,8 +144,8 @@ class WebPagesManager::WebPageInstantView {
   bool is_loaded = false;
   bool was_loaded_from_database = false;
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     bool has_url = !url.empty();
     BEGIN_STORE_FLAGS();
@@ -164,8 +164,8 @@ class WebPagesManager::WebPageInstantView {
     CHECK(!is_empty);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     bool has_url;
     BEGIN_PARSE_FLAGS();
@@ -216,8 +216,8 @@ class WebPagesManager::WebPage {
 
   mutable uint64 logevent_id = 0;
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     bool has_type = !type.empty();
     bool has_site_name = !site_name.empty();
@@ -312,8 +312,8 @@ class WebPagesManager::WebPage {
     }
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     bool has_type;
     bool has_site_name;
@@ -455,8 +455,8 @@ class WebPagesManager::RichText {
     return type == Type::Plain && content.empty();
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     store(type, storer);
     store(content, storer);
@@ -469,8 +469,8 @@ class WebPagesManager::RichText {
     }
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     parse(type, parser);
     parse(content, parser);
@@ -497,15 +497,15 @@ class WebPagesManager::PageBlockCaption {
   RichText text;
   RichText credit;
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     store(text, storer);
     store(credit, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     parse(text, parser);
     if (parser.version() >= static_cast<int32>(Version::SupportInstantView2_0)) {
@@ -529,8 +529,8 @@ class WebPagesManager::PageBlockTableCell {
   int32 colspan = 1;
   int32 rowspan = 1;
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     bool has_text = !text.empty();
     bool has_colspan = colspan != 1;
@@ -558,8 +558,8 @@ class WebPagesManager::PageBlockTableCell {
     }
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     bool has_text;
     bool has_colspan;
@@ -598,8 +598,8 @@ class WebPagesManager::RelatedArticle {
   string author;
   int32 published_date = 0;
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     bool has_title = !title.empty();
     bool has_description = !description.empty();
@@ -632,8 +632,8 @@ class WebPagesManager::RelatedArticle {
     }
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     bool has_title;
     bool has_description;
@@ -715,16 +715,16 @@ class WebPagesManager::PageBlock {
   PageBlock &operator=(PageBlock &&) = delete;
   virtual ~PageBlock() = default;
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     Type type = get_type();
     store(type, storer);
     call_impl(type, this, [&](const auto *object) { store(*object, storer); });
   }
 
-  template <class T>
-  static unique_ptr<PageBlock> parse(T &parser) {
+  template <class ParserT>
+  static unique_ptr<PageBlock> parse(ParserT &parser) {
     using ::td::parse;
     Type type;
     parse(type, parser);
@@ -743,13 +743,13 @@ class WebPagesManager::PageBlock {
   static void call_impl(Type type, const PageBlock *ptr, F &&f);
 };
 
-template <class T>
-void store(const unique_ptr<WebPagesManager::PageBlock> &block, T &storer) {
+template <class StorerT>
+void store(const unique_ptr<WebPagesManager::PageBlock> &block, StorerT &storer) {
   block->store(storer);
 }
 
-template <class T>
-void parse(unique_ptr<WebPagesManager::PageBlock> &block, T &parser) {
+template <class ParserT>
+void parse(unique_ptr<WebPagesManager::PageBlock> &block, ParserT &parser) {
   block = WebPagesManager::PageBlock::parse(parser);
 }
 
@@ -774,14 +774,14 @@ class WebPagesManager::PageBlockTitle : public PageBlock {
     return make_tl_object<td_api::pageBlockTitle>(get_rich_text_object(title));
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     store(title, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     parse(title, parser);
   }
@@ -807,14 +807,14 @@ class WebPagesManager::PageBlockSubtitle : public PageBlock {
     return make_tl_object<td_api::pageBlockSubtitle>(get_rich_text_object(subtitle));
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     store(subtitle, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     parse(subtitle, parser);
   }
@@ -841,15 +841,15 @@ class WebPagesManager::PageBlockAuthorDate : public PageBlock {
     return make_tl_object<td_api::pageBlockAuthorDate>(get_rich_text_object(author), date);
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     store(author, storer);
     store(date, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     parse(author, parser);
     parse(date, parser);
@@ -876,14 +876,14 @@ class WebPagesManager::PageBlockHeader : public PageBlock {
     return make_tl_object<td_api::pageBlockHeader>(get_rich_text_object(header));
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     store(header, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     parse(header, parser);
   }
@@ -909,14 +909,14 @@ class WebPagesManager::PageBlockSubheader : public PageBlock {
     return make_tl_object<td_api::pageBlockSubheader>(get_rich_text_object(subheader));
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     store(subheader, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     parse(subheader, parser);
   }
@@ -942,14 +942,14 @@ class WebPagesManager::PageBlockKicker : public PageBlock {
     return make_tl_object<td_api::pageBlockKicker>(get_rich_text_object(kicker));
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     store(kicker, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     parse(kicker, parser);
   }
@@ -975,14 +975,14 @@ class WebPagesManager::PageBlockParagraph : public PageBlock {
     return make_tl_object<td_api::pageBlockParagraph>(get_rich_text_object(text));
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     store(text, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     parse(text, parser);
   }
@@ -1009,15 +1009,15 @@ class WebPagesManager::PageBlockPreformatted : public PageBlock {
     return make_tl_object<td_api::pageBlockPreformatted>(get_rich_text_object(text), language);
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     store(text, storer);
     store(language, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     parse(text, parser);
     parse(language, parser);
@@ -1044,14 +1044,14 @@ class WebPagesManager::PageBlockFooter : public PageBlock {
     return make_tl_object<td_api::pageBlockFooter>(get_rich_text_object(footer));
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     store(footer, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     parse(footer, parser);
   }
@@ -1070,12 +1070,12 @@ class WebPagesManager::PageBlockDivider : public PageBlock {
     return make_tl_object<td_api::pageBlockDivider>();
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
   }
 };
 
@@ -1098,14 +1098,14 @@ class WebPagesManager::PageBlockAnchor : public PageBlock {
     return make_tl_object<td_api::pageBlockAnchor>(name);
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     store(name, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     parse(name, parser);
   }
@@ -1117,15 +1117,15 @@ class WebPagesManager::PageBlockList : public PageBlock {
     string label;
     vector<unique_ptr<PageBlock>> page_blocks;
 
-    template <class T>
-    void store(T &storer) const {
+    template <class StorerT>
+    void store(StorerT &storer) const {
       using ::td::store;
       store(label, storer);
       store(page_blocks, storer);
     }
 
-    template <class T>
-    void parse(T &parser) {
+    template <class ParserT>
+    void parse(ParserT &parser) {
       using ::td::parse;
       parse(label, parser);
       parse(page_blocks, parser);
@@ -1163,14 +1163,14 @@ class WebPagesManager::PageBlockList : public PageBlock {
         transform(items, [](const Item &item) { return get_page_block_list_item_object(item); }));
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     store(items, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
 
     if (parser.version() >= static_cast<int32>(Version::SupportInstantView2_0)) {
@@ -1222,15 +1222,15 @@ class WebPagesManager::PageBlockBlockQuote : public PageBlock {
     return make_tl_object<td_api::pageBlockBlockQuote>(get_rich_text_object(text), get_rich_text_object(credit));
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     store(text, storer);
     store(credit, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     parse(text, parser);
     parse(credit, parser);
@@ -1259,15 +1259,15 @@ class WebPagesManager::PageBlockPullQuote : public PageBlock {
     return make_tl_object<td_api::pageBlockPullQuote>(get_rich_text_object(text), get_rich_text_object(credit));
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     store(text, storer);
     store(credit, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     parse(text, parser);
     parse(credit, parser);
@@ -1308,8 +1308,8 @@ class WebPagesManager::PageBlockAnimation : public PageBlock {
         get_page_block_caption_object(caption), need_autoplay);
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
 
     bool has_empty_animation = !animation_file_id.is_valid();
@@ -1324,8 +1324,8 @@ class WebPagesManager::PageBlockAnimation : public PageBlock {
     store(caption, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
 
     bool has_empty_animation;
@@ -1374,8 +1374,8 @@ class WebPagesManager::PageBlockPhoto : public PageBlock {
         get_page_block_caption_object(caption), url);
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     store(photo, storer);
     store(caption, storer);
@@ -1383,8 +1383,8 @@ class WebPagesManager::PageBlockPhoto : public PageBlock {
     store(web_page_id, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     parse(photo, parser);
     parse(caption, parser);
@@ -1432,8 +1432,8 @@ class WebPagesManager::PageBlockVideo : public PageBlock {
         get_page_block_caption_object(caption), need_autoplay, is_looped);
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
 
     bool has_empty_video = !video_file_id.is_valid();
@@ -1449,8 +1449,8 @@ class WebPagesManager::PageBlockVideo : public PageBlock {
     store(caption, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
 
     bool has_empty_video;
@@ -1494,14 +1494,14 @@ class WebPagesManager::PageBlockCover : public PageBlock {
     return make_tl_object<td_api::pageBlockCover>(cover->get_page_block_object());
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     store(cover, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     parse(cover, parser);
   }
@@ -1544,8 +1544,8 @@ class WebPagesManager::PageBlockEmbedded : public PageBlock {
         dimensions.height, get_page_block_caption_object(caption), is_full_width, allow_scrolling);
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     BEGIN_STORE_FLAGS();
     STORE_FLAG(is_full_width);
@@ -1559,8 +1559,8 @@ class WebPagesManager::PageBlockEmbedded : public PageBlock {
     store(caption, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(is_full_width);
@@ -1613,8 +1613,8 @@ class WebPagesManager::PageBlockEmbeddedPost : public PageBlock {
         get_page_block_objects(page_blocks), get_page_block_caption_object(caption));
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     store(url, storer);
     store(author, storer);
@@ -1624,8 +1624,8 @@ class WebPagesManager::PageBlockEmbeddedPost : public PageBlock {
     store(caption, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     parse(url, parser);
     parse(author, parser);
@@ -1662,15 +1662,15 @@ class WebPagesManager::PageBlockCollage : public PageBlock {
                                                     get_page_block_caption_object(caption));
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     store(page_blocks, storer);
     store(caption, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     parse(page_blocks, parser);
     parse(caption, parser);
@@ -1703,15 +1703,15 @@ class WebPagesManager::PageBlockSlideshow : public PageBlock {
                                                       get_page_block_caption_object(caption));
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     store(page_blocks, storer);
     store(caption, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     parse(page_blocks, parser);
     parse(caption, parser);
@@ -1742,16 +1742,16 @@ class WebPagesManager::PageBlockChatLink : public PageBlock {
         title, get_chat_photo_object(G()->td().get_actor_unsafe()->file_manager_.get(), &photo), username);
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     store(title, storer);
     store(photo, storer);
     store(username, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     parse(title, parser);
     parse(photo, parser);
@@ -1791,8 +1791,8 @@ class WebPagesManager::PageBlockAudio : public PageBlock {
         get_page_block_caption_object(caption));
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
 
     bool has_empty_audio = !audio_file_id.is_valid();
@@ -1806,8 +1806,8 @@ class WebPagesManager::PageBlockAudio : public PageBlock {
     store(caption, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
 
     bool has_empty_audio;
@@ -1862,8 +1862,8 @@ class WebPagesManager::PageBlockTable : public PageBlock {
                                                   is_striped);
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     BEGIN_STORE_FLAGS();
     STORE_FLAG(is_bordered);
@@ -1873,8 +1873,8 @@ class WebPagesManager::PageBlockTable : public PageBlock {
     store(cells, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(is_bordered);
@@ -1912,8 +1912,8 @@ class WebPagesManager::PageBlockDetails : public PageBlock {
                                                     is_open);
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     BEGIN_STORE_FLAGS();
     STORE_FLAG(is_open);
@@ -1922,8 +1922,8 @@ class WebPagesManager::PageBlockDetails : public PageBlock {
     store(page_blocks, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(is_open);
@@ -1967,15 +1967,15 @@ class WebPagesManager::PageBlockRelatedArticles : public PageBlock {
                                                             std::move(related_article_objects));
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     store(header, storer);
     store(related_articles, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     parse(header, parser);
     parse(related_articles, parser);
@@ -2007,8 +2007,8 @@ class WebPagesManager::PageBlockMap : public PageBlock {
                                                 dimensions.height, get_page_block_caption_object(caption));
   }
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     store(location, storer);
     store(zoom, storer);
@@ -2016,8 +2016,8 @@ class WebPagesManager::PageBlockMap : public PageBlock {
     store(caption, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     parse(location, parser);
     parse(zoom, parser);

@@ -94,14 +94,14 @@ class Timestamp {
   }
 };
 
-template <class T>
-void parse(Timestamp &timestamp, T &parser) {
-  timestamp = Timestamp::in(parser.fetch_double() - Clocks::system());
+template <class StorerT>
+void store(const Timestamp &timestamp, StorerT &storer) {
+  storer.store_binary(timestamp.at() - Time::now() + Clocks::system());
 }
 
-template <class T>
-void store(const Timestamp &timestamp, T &storer) {
-  storer.store_binary(timestamp.at() - Time::now() + Clocks::system());
+template <class ParserT>
+void parse(Timestamp &timestamp, ParserT &parser) {
+  timestamp = Timestamp::in(parser.fetch_double() - Clocks::system());
 }
 
 }  // namespace td

@@ -17,8 +17,8 @@
 
 namespace td {
 
-template <class T>
-void AnimationsManager::store_animation(FileId file_id, T &storer) const {
+template <class StorerT>
+void AnimationsManager::store_animation(FileId file_id, StorerT &storer) const {
   auto it = animations_.find(file_id);
   CHECK(it != animations_.end());
   const Animation *animation = it->second.get();
@@ -30,8 +30,8 @@ void AnimationsManager::store_animation(FileId file_id, T &storer) const {
   store(file_id, storer);
 }
 
-template <class T>
-FileId AnimationsManager::parse_animation(T &parser) {
+template <class ParserT>
+FileId AnimationsManager::parse_animation(ParserT &parser) {
   auto animation = make_unique<Animation>();
   if (parser.version() >= static_cast<int32>(Version::AddDurationToAnimation)) {
     parse(animation->duration, parser);

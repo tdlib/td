@@ -118,11 +118,11 @@ class Proxy {
     return type_;
   }
 
-  template <class T>
-  void parse(T &parser);
+  template <class StorerT>
+  void store(StorerT &storer) const;
 
-  template <class T>
-  void store(T &storer) const;
+  template <class ParserT>
+  void parse(ParserT &parser);
 
  private:
   Type type_{Type::None};

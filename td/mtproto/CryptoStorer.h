@@ -38,8 +38,8 @@ class ObjectImpl {
     message_id_ = auth_data->next_message_id(Time::now_cached());
     seq_no_ = auth_data->next_seq_no(need_ack);
   }
-  template <class T>
-  void do_store(T &storer) const {
+  template <class StorerT>
+  void do_store(StorerT &storer) const {
     if (empty()) {
       return;
     }
@@ -84,8 +84,8 @@ class CancelVectorImpl {
     }
   }
 
-  template <class T>
-  void do_store(T &storer) const {
+  template <class StorerT>
+  void do_store(StorerT &storer) const {
     for (auto &s : storers_) {
       storer.store_storer(s);
     }
@@ -107,8 +107,8 @@ class QueryImpl {
   QueryImpl(const MtprotoQuery &query, Slice header) : query_(query), header_(header) {
   }
 
-  template <class T>
-  void do_store(T &storer) const {
+  template <class StorerT>
+  void do_store(StorerT &storer) const {
     storer.store_binary(query_.message_id);
     storer.store_binary(query_.seq_no);
     Slice header = this->header_;
@@ -155,8 +155,8 @@ class QueryVectorImpl {
   QueryVectorImpl(const vector<MtprotoQuery> &to_send, Slice header) : to_send_(to_send), header_(header) {
   }
 
-  template <class T>
-  void do_store(T &storer) const {
+  template <class StorerT>
+  void do_store(StorerT &storer) const {
     if (to_send_.empty()) {
       return;
     }
@@ -175,8 +175,8 @@ class ContainerImpl {
   ContainerImpl(int32 cnt, Storer &storer) : cnt_(cnt), storer_(storer) {
   }
 
-  template <class T>
-  void do_store(T &storer) const {
+  template <class StorerT>
+  void do_store(StorerT &storer) const {
     storer.store_binary(mtproto_api::msg_container::ID);
     storer.store_binary(cnt_);
     storer.store_storer(storer_);
@@ -271,8 +271,8 @@ class CryptoImpl {
     }
   }
 
-  template <class T>
-  void do_store(T &storer) const {
+  template <class StorerT>
+  void do_store(StorerT &storer) const {
     switch (type_) {
       case OnlyAck:
         return storer.store_storer(ack_storer_);

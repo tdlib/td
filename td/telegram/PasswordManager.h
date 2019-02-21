@@ -32,16 +32,16 @@ struct TempPasswordState {
 
   tl_object_ptr<td_api::temporaryPasswordState> as_td_api() const;
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using ::td::store;
     CHECK(has_temp_password);
     store(temp_password, storer);
     store(valid_until, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using ::td::parse;
     has_temp_password = true;
     parse(temp_password, parser);

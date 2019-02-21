@@ -31,10 +31,8 @@
 #include <utility>
 
 namespace td {
-class Td;
-}  // namespace td
 
-namespace td {
+class Td;
 
 class StickersManager : public Actor {
  public:
@@ -213,11 +211,11 @@ class StickersManager : public Actor {
 
   bool merge_stickers(FileId new_id, FileId old_id, bool can_delete_old);
 
-  template <class T>
-  void store_sticker(FileId file_id, bool in_sticker_set, T &storer) const;
+  template <class StorerT>
+  void store_sticker(FileId file_id, bool in_sticker_set, StorerT &storer) const;
 
-  template <class T>
-  FileId parse_sticker(bool in_sticker_set, T &parser);
+  template <class ParserT>
+  FileId parse_sticker(bool in_sticker_set, ParserT &parser);
 
   void on_uploaded_sticker_file(FileId file_id, tl_object_ptr<telegram_api::MessageMedia> media,
                                 Promise<Unit> &&promise);
@@ -430,17 +428,17 @@ class StickersManager : public Actor {
 
   void save_favorite_stickers_to_database();
 
-  template <class T>
-  void store_sticker_set(const StickerSet *sticker_set, bool with_stickers, T &storer) const;
+  template <class StorerT>
+  void store_sticker_set(const StickerSet *sticker_set, bool with_stickers, StorerT &storer) const;
 
-  template <class T>
-  void parse_sticker_set(StickerSet *sticker_set, T &parser);
+  template <class ParserT>
+  void parse_sticker_set(StickerSet *sticker_set, ParserT &parser);
 
-  template <class T>
-  void store_sticker_set_id(int64 sticker_set_id, T &storer) const;
+  template <class StorerT>
+  void store_sticker_set_id(int64 sticker_set_id, StorerT &storer) const;
 
-  template <class T>
-  void parse_sticker_set_id(int64 &sticker_set_id, T &parser);
+  template <class ParserT>
+  void parse_sticker_set_id(int64 &sticker_set_id, ParserT &parser);
 
   Result<std::tuple<FileId, bool, bool>> prepare_input_file(const tl_object_ptr<td_api::InputFile> &input_file);
 

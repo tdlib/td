@@ -51,8 +51,8 @@ class SecretImpl {
  public:
   explicit SecretImpl(const Storer &data) : data(data) {
   }
-  template <class T>
-  void do_store(T &storer) const {
+  template <class StorerT>
+  void do_store(StorerT &storer) const {
     storer.store_binary(static_cast<int32>(data.size()));
     storer.store_storer(data);
   }

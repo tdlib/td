@@ -16,8 +16,8 @@
 
 namespace td {
 
-template <class T>
-void VideoNotesManager::store_video_note(FileId file_id, T &storer) const {
+template <class StorerT>
+void VideoNotesManager::store_video_note(FileId file_id, StorerT &storer) const {
   auto it = video_notes_.find(file_id);
   CHECK(it != video_notes_.end());
   const VideoNote *video_note = it->second.get();
@@ -27,8 +27,8 @@ void VideoNotesManager::store_video_note(FileId file_id, T &storer) const {
   store(file_id, storer);
 }
 
-template <class T>
-FileId VideoNotesManager::parse_video_note(T &parser) {
+template <class ParserT>
+FileId VideoNotesManager::parse_video_note(ParserT &parser) {
   auto video_note = make_unique<VideoNote>();
   parse(video_note->duration, parser);
   parse(video_note->dimensions, parser);

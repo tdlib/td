@@ -19,10 +19,8 @@
 #include <unordered_map>
 
 namespace td {
-class Td;
-}  // namespace td
 
-namespace td {
+class Td;
 
 class VideosManager {
  public:
@@ -53,11 +51,11 @@ class VideosManager {
 
   bool merge_videos(FileId new_id, FileId old_id, bool can_delete_old);
 
-  template <class T>
-  void store_video(FileId file_id, T &storer) const;
+  template <class StorerT>
+  void store_video(FileId file_id, StorerT &storer) const;
 
-  template <class T>
-  FileId parse_video(T &parser);
+  template <class ParserT>
+  FileId parse_video(ParserT &parser);
 
   string get_video_search_text(FileId file_id) const;
 

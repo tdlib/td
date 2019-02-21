@@ -60,8 +60,8 @@ struct EncryptedInputFile {
   int32 parts = 0;
   int32 key_fingerprint = 0;
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using td::store;
     store(magic, storer);
     store(type, storer);
@@ -80,8 +80,8 @@ struct EncryptedInputFile {
     return type == Empty;
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using td::parse;
     int32 got_magic;
 
@@ -154,8 +154,8 @@ struct EncryptedFileLocation {
   tl_object_ptr<telegram_api::encryptedFile> as_encrypted_file() {
     return make_tl_object<telegram_api::encryptedFile>(id, access_hash, size, dc_id, key_fingerprint);
   }
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using td::store;
     store(magic, storer);
     store(id, storer);
@@ -165,8 +165,8 @@ struct EncryptedFileLocation {
     store(key_fingerprint, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using td::parse;
     int32 got_magic;
 
@@ -221,8 +221,8 @@ class InboundSecretMessage : public LogEventHelper<InboundSecretMessage, SecretC
   bool has_encrypted_file = false;
   bool is_pending = false;
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using td::store;
 
     BEGIN_STORE_FLAGS();
@@ -249,8 +249,8 @@ class InboundSecretMessage : public LogEventHelper<InboundSecretMessage, SecretC
     }
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using td::parse;
 
     BEGIN_PARSE_FLAGS();
@@ -323,8 +323,8 @@ class OutboundSecretMessage : public LogEventHelper<OutboundSecretMessage, Secre
   // 3. can_rewrite_with_empty // false for almost all service messages
 
   // TODO: combine these two functions into one macros hell. Or a lambda hell.
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using td::store;
 
     store(chat_id, storer);
@@ -353,8 +353,8 @@ class OutboundSecretMessage : public LogEventHelper<OutboundSecretMessage, Secre
     }
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using td::parse;
 
     parse(chat_id, parser);
@@ -395,14 +395,14 @@ class CloseSecretChat : public LogEventHelper<CloseSecretChat, SecretChatEvent> 
   static constexpr Type type = SecretChatEvent::Type::CloseSecretChat;
   int32 chat_id = 0;
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using td::store;
     store(chat_id, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using td::parse;
     parse(chat_id, parser);
   }
@@ -419,16 +419,16 @@ class CreateSecretChat : public LogEventHelper<CreateSecretChat, SecretChatEvent
   int32 user_id = 0;
   int64 user_access_hash = 0;
 
-  template <class T>
-  void store(T &storer) const {
+  template <class StorerT>
+  void store(StorerT &storer) const {
     using td::store;
     store(random_id, storer);
     store(user_id, storer);
     store(user_access_hash, storer);
   }
 
-  template <class T>
-  void parse(T &parser) {
+  template <class ParserT>
+  void parse(ParserT &parser) {
     using td::parse;
     parse(random_id, parser);
     parse(user_id, parser);

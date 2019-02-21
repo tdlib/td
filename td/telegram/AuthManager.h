@@ -87,10 +87,10 @@ class AuthManager : public NetActor {
     bool has_recovery_ = false;
     string email_address_pattern_;
 
-    template <class T>
-    void store(T &storer) const;
-    template <class T>
-    void parse(T &parser);
+    template <class StorerT>
+    void store(StorerT &storer) const;
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   struct DbState {
@@ -128,10 +128,10 @@ class AuthManager : public NetActor {
       return state;
     }
 
-    template <class T>
-    void store(T &storer) const;
-    template <class T>
-    void parse(T &parser);
+    template <class StorerT>
+    void store(StorerT &storer) const;
+    template <class ParserT>
+    void parse(ParserT &parser);
   };
 
   bool load_state();
