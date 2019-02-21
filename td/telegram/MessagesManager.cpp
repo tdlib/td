@@ -9941,17 +9941,19 @@ void MessagesManager::set_dialog_is_pinned(DialogId dialog_id, bool is_pinned) {
 void MessagesManager::set_dialog_is_pinned(Dialog *d, bool is_pinned) {
   CHECK(d != nullptr);
   bool was_pinned = d->pinned_order != DEFAULT_ORDER;
+  auto old_order = DialogDate(d->order, d->dialog_id) <= last_dialog_date_ ? d->order : 0;
   d->pinned_order = is_pinned ? get_next_pinned_dialog_order() : DEFAULT_ORDER;
+  update_dialog_pos(d, false, "set_dialog_is_pinned", false);
+  auto new_order = DialogDate(d->order, d->dialog_id) <= last_dialog_date_ ? d->order : 0;
   on_dialog_updated(d->dialog_id, "set_dialog_is_pinned");
 
   if (is_pinned != was_pinned) {
     LOG(INFO) << "Set " << d->dialog_id << " is pinned to " << is_pinned;
+  }
+  if (old_order != new_order) {
     LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in set_dialog_is_pinned";
-    update_dialog_pos(d, false, "set_dialog_is_pinned", false);
-    DialogDate dialog_date(d->order, d->dialog_id);
     send_closure(G()->td(), &Td::send_update,
-                 make_tl_object<td_api::updateChatIsPinned>(d->dialog_id.get(), is_pinned,
-                                                            dialog_date <= last_dialog_date_ ? d->order : 0));
+                 make_tl_object<td_api::updateChatIsPinned>(d->dialog_id.get(), is_pinned, new_order));
   }
 }
 
