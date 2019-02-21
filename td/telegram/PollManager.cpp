@@ -220,7 +220,7 @@ PollId PollManager::create_poll(string &&question, vector<string> &&options) {
   for (auto &option_text : options) {
     PollOption option;
     option.text = std::move(option_text);
-    option.data = to_string(pos++);
+    option.data = string(1, narrow_cast<char>(pos++));
     poll->options.push_back(std::move(option));
   }
 
