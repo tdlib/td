@@ -75,6 +75,9 @@ Status init_binlog(Binlog &binlog, string path, BinlogKeyValue<Binlog> &binlog_p
       case LogEvent::HandlerType::WebPages:
         events.web_page_events.push_back(event.clone());
         break;
+      case LogEvent::HandlerType::SetPollAnswer:
+        events.to_poll_manager.push_back(event.clone());
+        break;
       case LogEvent::HandlerType::SendMessage:
       case LogEvent::HandlerType::DeleteMessage:
       case LogEvent::HandlerType::DeleteMessagesFromServer:

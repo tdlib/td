@@ -10,12 +10,16 @@
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/net/NetActor.h"
+#include "td/telegram/PollId.hpp"
 #include "td/telegram/PollManager.hpp"
 #include "td/telegram/SequenceDispatcher.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/Td.h"
+#include "td/telegram/TdParameters.h"
 #include "td/telegram/UpdatesManager.h"
 
+#include "td/db/binlog/BinlogEvent.h"
+#include "td/db/binlog/BinlogHelper.h"
 #include "td/db/SqliteKeyValue.h"
 #include "td/db/SqliteKeyValueAsync.h"
 
@@ -35,8 +39,7 @@ class SetPollAnswerQuery : public NetActorOnce {
   explicit SetPollAnswerQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(FullMessageId full_message_id, vector<BufferSlice> &&options, uint64 generation,
-            NetQueryRef *query_ref) {
+  void send(FullMessageId full_message_id, vector<BufferSlice> &&options, uint64 generation, NetQueryRef *query_ref) {
     dialog_id_ = full_message_id.get_dialog_id();
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
     if (input_peer == nullptr) {
@@ -264,6 +267,27 @@ void PollManager::set_poll_answer(PollId poll_id, FullMessageId full_message_id,
   do_set_poll_answer(poll_id, full_message_id, std::move(options), 0, std::move(promise));
 }
 
+class PollManager::SetPollAnswerLogEvent {
+ public:
+  PollId poll_id_;
+  FullMessageId full_message_id_;
+  vector<string> options_;
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(poll_id_, storer);
+    td::store(full_message_id_, storer);
+    td::store(options_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(poll_id_, parser);
+    td::parse(full_message_id_, parser);
+    td::parse(options_, parser);
+  }
+};
+
 void PollManager::do_set_poll_answer(PollId poll_id, FullMessageId full_message_id, vector<string> &&options,
                                      uint64 logevent_id, Promise<Unit> &&promise) {
   auto &pending_answer = pending_answers_[poll_id];
@@ -272,8 +296,24 @@ void PollManager::do_set_poll_answer(PollId poll_id, FullMessageId full_message_
     return;
   }
 
+  CHECK(pending_answer.logevent_id_ == 0 || logevent_id == 0);
   if (logevent_id == 0 && G()->parameters().use_message_db) {
-    // TODO add logevent or rewrite pending_answer.logevent_id_
+    SetPollAnswerLogEvent logevent;
+    logevent.poll_id_ = poll_id;
+    logevent.full_message_id_ = full_message_id;
+    logevent.options_ = options;
+    auto storer = LogEventStorerImpl<SetPollAnswerLogEvent>(logevent);
+    if (pending_answer.generation_ == 0) {
+      CHECK(pending_answer.logevent_id_ == 0);
+      logevent_id = binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::SetPollAnswer, storer);
+      LOG(INFO) << "Add set poll answer logevent " << logevent_id;
+    } else {
+      CHECK(pending_answer.logevent_id_ != 0);
+      logevent_id = pending_answer.logevent_id_;
+      auto new_logevent_id = binlog_rewrite(G()->td_db()->get_binlog(), pending_answer.logevent_id_,
+                                            LogEvent::HandlerType::SetPollAnswer, storer);
+      LOG(INFO) << "Rewrite set poll answer logevent " << logevent_id << " with " << new_logevent_id;
+    }
   }
 
   if (!pending_answer.promises_.empty()) {
@@ -328,12 +368,9 @@ void PollManager::on_set_poll_answer(PollId poll_id, uint64 generation, Result<U
   }
 
   if (pending_answer.logevent_id_ != 0) {
-    // TODO delete logevent
+    LOG(INFO) << "Delete set poll answer logevent " << pending_answer.logevent_id_;
+    binlog_erase(G()->td_db()->get_binlog(), pending_answer.logevent_id_);
   }
-
-  CHECK(!pending_answer.query_ref_.empty());
-  cancel_query(pending_answer.query_ref_);
-  pending_answer.query_ref_ = NetQueryRef();
 
   auto promises = std::move(pending_answer.promises_);
   for (auto &promise : promises) {
@@ -469,6 +506,34 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
     save_poll(poll, poll_id);
   }
   return poll_id;
+}
+
+void PollManager::on_binlog_events(vector<BinlogEvent> &&events) {
+  for (auto &event : events) {
+    switch (event.type_) {
+      case LogEvent::HandlerType::SetPollAnswer: {
+        if (!G()->parameters().use_message_db) {
+          binlog_erase(G()->td_db()->get_binlog(), event.id_);
+          break;
+        }
+
+        SetPollAnswerLogEvent log_event;
+        log_event_parse(log_event, event.data_).ensure();
+
+        auto dialog_id = log_event.full_message_id_.get_dialog_id();
+
+        Dependencies dependencies;
+        td_->messages_manager_->add_dialog_dependencies(dependencies, dialog_id);
+        td_->messages_manager_->resolve_dependencies_force(dependencies);
+
+        do_set_poll_answer(log_event.poll_id_, log_event.full_message_id_, std::move(log_event.options_), event.id_,
+                           Auto());
+        break;
+      }
+      default:
+        LOG(FATAL) << "Unsupported logevent type " << event.type_;
+    }
+  }
 }
 
 }  // namespace td

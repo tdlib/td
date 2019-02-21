@@ -22,6 +22,8 @@
 
 namespace td {
 
+struct BinlogEvent;
+
 class Td;
 
 class PollManager : public Actor {
@@ -51,6 +53,8 @@ class PollManager : public Actor {
                      tl_object_ptr<telegram_api::pollResults> &&poll_results);
 
   td_api::object_ptr<td_api::poll> get_poll_object(PollId poll_id) const;
+
+  void on_binlog_events(vector<BinlogEvent> &&events);
 
   template <class StorerT>
   void store_poll(PollId poll_id, StorerT &storer) const;
@@ -82,6 +86,8 @@ class PollManager : public Actor {
     template <class ParserT>
     void parse(ParserT &parser);
   };
+
+  class SetPollAnswerLogEvent;
 
   void tear_down() override;
 

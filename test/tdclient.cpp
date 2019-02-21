@@ -614,7 +614,7 @@ class CheckTestC : public Task {
         if (text.substr(0, tag_.size()) == tag_) {
           file_id_to_check_ = messageDocument->document_->document_->id_;
           LOG(ERROR) << "GOT FILE " << to_string(messageDocument->document_->document_);
-          this->send_query(make_tl_object<td_api::downloadFile>(file_id_to_check_, 1, 0),
+          this->send_query(make_tl_object<td_api::downloadFile>(file_id_to_check_, 1, 0, 0),
                            [](auto res) { check_td_error(res); });
         }
       }

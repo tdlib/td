@@ -55,6 +55,7 @@ class TdDb {
     vector<BinlogEvent> channel_events;
     vector<BinlogEvent> secret_chat_events;
     vector<BinlogEvent> web_page_events;
+    vector<BinlogEvent> to_poll_manager;
     vector<BinlogEvent> to_messages_manager;
   };
   static Result<unique_ptr<TdDb>> open(int32 scheduler_id, const TdParameters &parameters, DbKey key, Events &events);
