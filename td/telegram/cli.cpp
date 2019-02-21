@@ -2352,7 +2352,7 @@ class CliClient final : public Actor {
       send_request(make_tl_object<td_api::getMapThumbnailFile>(
           as_location(latitude, longitude), to_integer<int32>(zoom), to_integer<int32>(width),
           to_integer<int32>(height), to_integer<int32>(scale), as_chat_id(chat_id)));
-    } else if (op == "df" || op == "DownloadFile") {
+    } else if (op == "df" || op == "DownloadFile" || op == "dff") {
       string file_id;
       string priority;
       string offset;
@@ -2364,21 +2364,9 @@ class CliClient final : public Actor {
         priority = "1";
       }
 
-      send_request(make_tl_object<td_api::downloadFile>(as_file_id(file_id), to_integer<int32>(priority),
-                                                        to_integer<int32>(offset), to_integer<int32>(limit)));
-    } else if (op == "dff") {
-      string max_file_id;
-      string priority;
-      string offset;
-      string limit;
-      std::tie(max_file_id, args) = split(args);
-      std::tie(offset, args) = split(args);
-      std::tie(limit, priority) = split(args);
-      if (priority.empty()) {
-        priority = "1";
-      }
-
-      for (int i = 1; i <= as_file_id(max_file_id); i++) {
+      int32 max_file_id = as_file_id(file_id);
+      int32 min_file_id = (op == "dff" ? 1 : max_file_id);
+      for (int32 i = min_file_id; i <= max_file_id; i++) {
         send_request(make_tl_object<td_api::downloadFile>(i, to_integer<int32>(priority), to_integer<int32>(offset),
                                                           to_integer<int32>(limit)));
       }
