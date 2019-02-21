@@ -92,7 +92,7 @@ class Server : public TcpListener::Callback {
     create_actor_on_scheduler<HttpEchoConnection>("HttpInboundConnection", scheduler_id, std::move(fd)).release();
   }
   void hangup() override {
-    LOG(ERROR) << "hangup..";
+    LOG(ERROR) << "Hanging up..";
     stop();
   }
 

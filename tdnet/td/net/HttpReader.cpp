@@ -517,7 +517,7 @@ void HttpReader::process_header(MutableSlice header_name, MutableSlice header_va
   header_name = trim(header_name);
   header_value = trim(header_value);  // TODO need to remove "\r\n" from value
   to_lower_inplace(header_name);
-  LOG(DEBUG) << "process_header [" << header_name << "=>" << header_value << "]";
+  LOG(DEBUG) << "Process header [" << header_name << "=>" << header_value << "]";
   query_->headers_.emplace_back(header_name, header_value);
   // TODO: check if protocol is HTTP/1.1
   query_->keep_alive_ = true;

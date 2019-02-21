@@ -38,7 +38,7 @@ void RawConnection::send_crypto(const Storer &storer, int64 session_id, int64 sa
     if (tmp.second) {
       use_quick_ack = true;
     } else {
-      LOG(ERROR) << "quick_ack collision " << tag("quick_ack", info.message_ack);
+      LOG(ERROR) << "Quick ack collision " << tag("quick_ack", info.message_ack);
     }
   }
 

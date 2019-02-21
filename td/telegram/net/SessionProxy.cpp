@@ -210,15 +210,15 @@ void SessionProxy::update_auth_state() {
 }
 
 void SessionProxy::on_tmp_auth_key_updated(mtproto::AuthKey auth_key) {
-  string state;
+  Slice state;
   if (auth_key.empty()) {
-    state = "Empty";
+    state = Slice("Empty");
   } else if (auth_key.auth_flag()) {
-    state = "OK";
+    state = Slice("OK");
   } else {
-    state = "NoAuth";
+    state = Slice("NoAuth");
   }
-  LOG(WARNING) << "tmp_auth_key " << auth_key.id() << ": " << state;
+  LOG(WARNING) << "Have tmp_auth_key " << auth_key.id() << ": " << state;
   tmp_auth_key_ = std::move(auth_key);
 }
 void SessionProxy::on_server_salt_updated(std::vector<mtproto::ServerSalt> server_salts) {

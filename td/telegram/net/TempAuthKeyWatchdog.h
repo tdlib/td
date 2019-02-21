@@ -76,7 +76,7 @@ class TempAuthKeyWatchdog : public NetQueryCallback {
   void need_sync() {
     need_sync_ = true;
     try_sync();
-    LOG(DEBUG) << "need sync";
+    LOG(DEBUG) << "Need sync temp auth keys";
   }
 
   void try_sync() {
@@ -88,12 +88,12 @@ class TempAuthKeyWatchdog : public NetQueryCallback {
     if (sync_at_ == 0) {
       sync_at_ = now + SYNC_WAIT_MAX;
     }
-    LOG(DEBUG) << "set timeout";
+    LOG(DEBUG) << "Set sync timeout";
     set_timeout_at(min(sync_at_, now + SYNC_WAIT));
   }
 
   void timeout_expired() override {
-    LOG(DEBUG) << "timeout expired";
+    LOG(DEBUG) << "Sync timeout expired";
     CHECK(!run_sync_);
     if (!need_sync_) {
       LOG(ERROR) << "Do not need sync..";
@@ -120,10 +120,10 @@ class TempAuthKeyWatchdog : public NetQueryCallback {
       if (G()->close_flag()) {
         return;
       }
-      LOG(ERROR) << "auth_dropTempAuthKeys failed " << query->error();
+      LOG(ERROR) << "Receive error for auth_dropTempAuthKeys: " << query->error();
       need_sync_ = true;
     } else {
-      LOG(INFO) << "auth_dropTempAuthKeys OK";
+      LOG(INFO) << "Receive OK for auth_dropTempAuthKeys";
     }
     try_sync();
   }

@@ -3427,7 +3427,7 @@ void Td::force_get_difference() {
 
 void Td::on_result(NetQueryPtr query) {
   query->debug("Td: received from DcManager");
-  VLOG(net_query) << "on_result " << query;
+  VLOG(net_query) << "Receive result of " << query;
   if (close_flag_ > 1) {
     return;
   }
@@ -3596,7 +3596,7 @@ void Td::on_connection_state_changed(StateManager::State new_state) {
 }
 
 void Td::on_authorization_lost() {
-  LOG(WARNING) << "on_authorization_lost";
+  LOG(WARNING) << "Lost authoriation";
   send_closure(auth_manager_actor_, &AuthManager::on_authorization_lost);
 }
 
@@ -3737,7 +3737,7 @@ void Td::inc_request_actor_refcnt() {
 void Td::dec_request_actor_refcnt() {
   request_actor_refcnt_--;
   if (request_actor_refcnt_ == 0) {
-    LOG(WARNING) << "no request actors";
+    LOG(WARNING) << "Have no request actors";
     clear();
     dec_actor_refcnt();  // remove guard
   }

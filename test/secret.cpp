@@ -690,7 +690,7 @@ class Master : public Actor {
     }
     void on_binlog_replay_finish() {
       ready_ = true;
-      LOG(INFO) << "on_binlog_replay_finish!";
+      LOG(INFO) << "Finish replay binlog";
       send_closure(actor_, &SecretChatActor::binlog_replay_finish);
       for (auto &event : pending_events_) {
         send_event(actor_, std::move(event));
@@ -868,16 +868,16 @@ class Master : public Actor {
   }
   void send_ping(int id, int cnt) {
     if (cnt % 200 == 0) {
-      LOG(ERROR) << "send ping " << tag("id", id) << tag("cnt", cnt);
+      LOG(ERROR) << "Send ping " << tag("id", id) << tag("cnt", cnt);
     } else {
-      LOG(INFO) << "send ping " << tag("id", id) << tag("cnt", cnt);
+      LOG(INFO) << "Send ping " << tag("id", id) << tag("cnt", cnt);
     }
     string text = PSTRING() << "PING: " << cnt;
     send_message(id, std::move(text));
   }
   void send_message(int id, string text) {
     auto random_id = Random::secure_int64();
-    LOG(INFO) << "send message: " << tag("id", id) << tag("text", text) << tag("random_id", random_id);
+    LOG(INFO) << "Send message: " << tag("id", id) << tag("text", text) << tag("random_id", random_id);
     sent_messages_[random_id] = Message{id, text};
     send_closure(get_by_id(id), &SecretChatProxy::send_message,
                  secret_api::make_object<secret_api::decryptedMessage>(0, random_id, 0, text, Auto(), Auto(), Auto(),
@@ -904,7 +904,7 @@ class Master : public Actor {
 
     // We can't loose updates yet :(
     auto crc = crc64(data.as_slice());
-    LOG(INFO) << "send SecretChatProxy::add_inbound_message" << tag("crc", crc);
+    LOG(INFO) << "Send SecretChatProxy::add_inbound_message" << tag("crc", crc);
     send_closure(to(), &SecretChatProxy::add_inbound_message, narrow_cast<int32>(3 - get_link_token()), std::move(data),
                  crc);
   }
@@ -931,7 +931,7 @@ class Master : public Actor {
   }
   void on_send_message_error(int64 random_id, Status error, Promise<> promise) {
     promise.set_value(Unit());
-    LOG(INFO) << "on_send_message_error: " << tag("random_id", random_id) << error;
+    LOG(INFO) << "Receive send message error: " << tag("random_id", random_id) << error;
     auto it = sent_messages_.find(random_id);
     if (it == sent_messages_.end()) {
       LOG(INFO) << "TODO: try to fix errors about message after it is sent";
@@ -944,7 +944,7 @@ class Master : public Actor {
   }
   void on_send_message_ok(int64 random_id, Promise<> promise) {
     promise.set_value(Unit());
-    LOG(INFO) << "on_send_message_ok: " << tag("random_id", random_id);
+    LOG(INFO) << "Receive send message ok: " << tag("random_id", random_id);
     auto it = sent_messages_.find(random_id);
     if (it == sent_messages_.end()) {
       LOG(INFO) << "TODO: try to fix errors about message after it is sent";

@@ -210,7 +210,7 @@ void FileUploader::on_error(Status status) {
 }
 
 Status FileUploader::generate_iv_map() {
-  LOG(INFO) << "generate iv_map " << generate_offset_ << " " << local_size_;
+  LOG(INFO) << "Generate iv_map " << generate_offset_ << " " << local_size_;
   auto part_size = get_part_size();
   auto encryption_key = FileEncryptionKey(encryption_key_.key_slice(), generate_iv_);
   BufferSlice bytes(part_size);

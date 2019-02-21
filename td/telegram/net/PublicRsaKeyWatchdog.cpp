@@ -79,7 +79,7 @@ void PublicRsaKeyWatchdog::on_result(NetQueryPtr net_query) {
   has_query_ = false;
   yield();
   if (net_query->is_error()) {
-    LOG(ERROR) << "getCdnConfig error " << net_query->move_as_error();
+    LOG(ERROR) << "Receive error for getCdnConfig: " << net_query->move_as_error();
     return;
   }
 

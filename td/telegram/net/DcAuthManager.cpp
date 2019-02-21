@@ -144,7 +144,7 @@ void DcAuthManager::on_result(NetQueryPtr result) {
 }
 
 void DcAuthManager::dc_loop(DcInfo &dc) {
-  VLOG(dc) << "dc_loop " << dc.dc_id << " " << dc.auth_state;
+  VLOG(dc) << "In dc_loop: " << dc.dc_id << " " << dc.auth_state;
   if (dc.auth_state == AuthState::OK) {
     return;
   }

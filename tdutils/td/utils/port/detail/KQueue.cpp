@@ -162,7 +162,7 @@ void KQueue::run(int timeout_ms) {
       LOG(FATAL) << "EV_ERROR in kqueue is not supported";
     }
     VLOG(fd) << "Event [fd:" << event->ident << "] [filter:" << event->filter << "] [udata: " << event->udata << "]";
-    // LOG(WARNING) << "event->ident = " << event->ident << "event->filter = " << event->filter;
+    // LOG(WARNING) << "Have event->ident = " << event->ident << "event->filter = " << event->filter;
     auto pollable_fd = PollableFd::from_list_node(static_cast<ListNode *>(event->udata));
     pollable_fd.add_flags(flags);
     pollable_fd.release_as_list_node();

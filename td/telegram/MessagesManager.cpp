@@ -3281,7 +3281,7 @@ class GetChannelDifferenceQuery : public Td::ResultHandler {
 
   void on_error(uint64 id, Status status) override {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetChannelDifferenceQuery")) {
-      LOG(ERROR) << "updates.getChannelDifference error for " << dialog_id_ << ": " << status;
+      LOG(ERROR) << "Receive updates.getChannelDifference error for " << dialog_id_ << ": " << status;
     }
     td->messages_manager_->on_get_channel_difference(dialog_id_, pts_, limit_, nullptr);
     status.ignore();
@@ -4724,7 +4724,7 @@ void MessagesManager::add_pending_update(tl_object_ptr<telegram_api::Update> &&u
   }
 
   if (old_pts + pts_count > new_pts) {
-    LOG(WARNING) << "old_pts (= " << old_pts << ") + pts_count (= " << pts_count << ") > new_pts (= " << new_pts
+    LOG(WARNING) << "Have old_pts (= " << old_pts << ") + pts_count (= " << pts_count << ") > new_pts (= " << new_pts
                  << "). Logged in " << G()->shared_config().get_option_integer("authorization_date") << ". Update from "
                  << source << " = " << oneline(to_string(update));
     set_get_difference_timeout(0.001);
@@ -4737,7 +4737,7 @@ void MessagesManager::add_pending_update(tl_object_ptr<telegram_api::Update> &&u
   }
 
   if (old_pts + accumulated_pts_count_ > accumulated_pts_) {
-    LOG(WARNING) << "old_pts (= " << old_pts << ") + accumulated_pts_count (= " << accumulated_pts_count_
+    LOG(WARNING) << "Have old_pts (= " << old_pts << ") + accumulated_pts_count (= " << accumulated_pts_count_
                  << ") > accumulated_pts (= " << accumulated_pts_ << "). new_pts = " << new_pts
                  << ", pts_count = " << pts_count << ". Logged in "
                  << G()->shared_config().get_option_integer("authorization_date") << ". Update from " << source << " = "
@@ -6913,7 +6913,8 @@ void MessagesManager::on_get_dialog_messages_search_result(DialogId dialog_id, c
       auto &old_first_db_message_id =
           calls_db_state_.first_calls_database_message_id_by_index[search_calls_filter_index(filter)];
       bool from_the_end = !from_message_id.is_valid() || from_message_id.get() >= MessageId::max().get();
-      LOG(INFO) << "from_the_end = " << from_the_end << ", old_first_db_message_id = " << old_first_db_message_id.get()
+      LOG(INFO) << "Have from_the_end = " << from_the_end
+                << ", old_first_db_message_id = " << old_first_db_message_id.get()
                 << ", first_added_message_id = " << first_added_message_id.get()
                 << ", from_message_id = " << from_message_id.get();
       if ((from_the_end ||
@@ -8981,8 +8982,8 @@ void MessagesManager::ttl_db_loop_start(double server_now) {
 }
 
 void MessagesManager::ttl_db_loop(double server_now) {
-  LOG(INFO) << "ttl_db: loop " << tag("expires_from", ttl_db_expires_from_) << tag("expires_till", ttl_db_expires_till_)
-            << tag("has_query", ttl_db_has_query_);
+  LOG(INFO) << "Begin ttl_db loop: " << tag("expires_from", ttl_db_expires_from_)
+            << tag("expires_till", ttl_db_expires_till_) << tag("has_query", ttl_db_has_query_);
   if (ttl_db_has_query_) {
     return;
   }
@@ -8990,7 +8991,7 @@ void MessagesManager::ttl_db_loop(double server_now) {
   auto now = static_cast<int32>(server_now);
 
   if (ttl_db_expires_till_ < 0) {
-    LOG(INFO) << "ttl_db: finished";
+    LOG(INFO) << "Finish ttl_db loop";
     return;
   }
 
@@ -8998,13 +8999,13 @@ void MessagesManager::ttl_db_loop(double server_now) {
     ttl_db_slot_.set_event(EventCreator::yield(actor_shared(this, YieldType::TtlDb)));
     auto wakeup_in = ttl_db_expires_from_ - server_now;
     ttl_db_slot_.set_timeout_in(wakeup_in);
-    LOG(INFO) << "ttl_db: " << tag("wakeup in", wakeup_in);
+    LOG(INFO) << "Set ttl_db timeout in " << wakeup_in;
     return;
   }
 
   ttl_db_has_query_ = true;
   int32 limit = 50;
-  LOG(INFO) << "ttl_db: send query " << tag("expires_from", ttl_db_expires_from_)
+  LOG(INFO) << "Send ttl_db query " << tag("expires_from", ttl_db_expires_from_)
             << tag("expires_till", ttl_db_expires_till_) << tag("limit", limit);
   G()->td_db()->get_messages_db_async()->get_expiring_messages(
       ttl_db_expires_from_, ttl_db_expires_till_, limit,
@@ -9021,7 +9022,7 @@ void MessagesManager::ttl_db_on_result(Result<std::pair<std::vector<std::pair<Di
   ttl_db_expires_from_ = ttl_db_expires_till_;
   ttl_db_expires_till_ = result.second;
 
-  LOG(INFO) << "ttl_db: query result " << tag("new expires_till", ttl_db_expires_till_)
+  LOG(INFO) << "Receive ttl_db query result " << tag("new expires_till", ttl_db_expires_till_)
             << tag("got messages", result.first.size());
   for (auto &dialog_message : result.first) {
     on_get_message_from_database(dialog_message.first, get_dialog_force(dialog_message.first), dialog_message.second,
@@ -10767,7 +10768,8 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
         if (*it != nullptr) {
           set_dialog_last_message_id(d, (*it)->message_id, "do_delete_message");
         } else {
-          LOG(ERROR) << "have_previous is true, but there is no previous for " << full_message_id << " from " << source;
+          LOG(ERROR) << "Have have_previous is true, but there is no previous for " << full_message_id << " from "
+                     << source;
           dump_debug_message_op(d);
           set_dialog_last_message_id(d, MessageId(), "do_delete_message");
         }
@@ -10804,7 +10806,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
           need_get_history = true;
         }
       } else {
-        LOG(ERROR) << "have_previous is true, but there is no previous";
+        LOG(ERROR) << "Have have_previous is true, but there is no previous";
         dump_debug_message_op(d);
       }
     }
@@ -10822,7 +10824,8 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
         if (*it != nullptr) {
           d->suffix_load_first_message_id_ = (*it)->message_id;
         } else {
-          LOG(ERROR) << "have_previous is true, but there is no previous for " << full_message_id << " from " << source;
+          LOG(ERROR) << "Have have_previous is true, but there is no previous for " << full_message_id << " from "
+                     << source;
           dump_debug_message_op(d);
           d->suffix_load_first_message_id_ = MessageId();
           d->suffix_load_done_ = false;
@@ -10846,7 +10849,8 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     if (prev_m != nullptr) {
       prev_m->have_next = false;
     } else {
-      LOG(ERROR) << "have_previous is true, but there is no previous for " << full_message_id << " from " << source;
+      LOG(ERROR) << "Have have_previous is true, but there is no previous for " << full_message_id << " from "
+                 << source;
       dump_debug_message_op(d);
     }
   }
@@ -10858,7 +10862,7 @@ unique_ptr<MessagesManager::Message> MessagesManager::do_delete_message(Dialog *
     if (next_m != nullptr) {
       next_m->have_previous = false;
     } else {
-      LOG(ERROR) << "have_next is true, but there is no next for " << full_message_id << " from " << source;
+      LOG(ERROR) << "Have have_next is true, but there is no next for " << full_message_id << " from " << source;
       dump_debug_message_op(d);
     }
   }
@@ -24833,7 +24837,7 @@ void MessagesManager::suffix_load_query_ready(DialogId dialog_id) {
   bool is_unchanged = d->suffix_load_first_message_id_ == d->suffix_load_query_message_id_;
   suffix_load_update_first_message_id(d);
   if (is_unchanged && d->suffix_load_first_message_id_ == d->suffix_load_query_message_id_) {
-    LOG(INFO) << "suffix_load done " << dialog_id;
+    LOG(INFO) << "Finished suffix load in " << dialog_id;
     d->suffix_load_done_ = true;
   }
   d->suffix_load_has_query_ = false;

@@ -91,7 +91,7 @@ class GetUpdatesStateQuery : public Td::ResultHandler {
 
   void on_error(uint64 id, Status status) override {
     if (status.message() != CSlice("SESSION_REVOKED") && status.message() != CSlice("USER_DEACTIVATED")) {
-      LOG(ERROR) << "updates.getState error: " << status;
+      LOG(ERROR) << "Receive updates.getState error: " << status;
     }
     status.ignore();
     td->updates_manager_->on_get_updates_state(nullptr, "GetUpdatesStateQuery");
@@ -150,7 +150,7 @@ class GetDifferenceQuery : public Td::ResultHandler {
   void on_error(uint64 id, Status status) override {
     if (status.code() != 401 && status.message() != CSlice("SESSION_REVOKED") &&
         status.message() != CSlice("USER_DEACTIVATED")) {
-      LOG(ERROR) << "updates.getDifference error: " << status;
+      LOG(ERROR) << "Receive updates.getDifference error: " << status;
     }
     td->updates_manager_->on_get_difference(nullptr);
     if (status.message() == CSlice("PERSISTENT_TIMESTAMP_INVALID")) {

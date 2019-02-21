@@ -5153,7 +5153,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
       invalidate_user_full(user_id);
     }
 
-    LOG(DEBUG) << "is_deleted has changed for " << user_id;
+    LOG(DEBUG) << "User.is_deleted has changed for " << user_id;
     u->need_send_update = true;
   }
 

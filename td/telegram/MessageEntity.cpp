@@ -607,7 +607,7 @@ static vector<Slice> match_urls(Slice str) {
         }
       }
     }
-    // LOG(ERROR) << "full: " << Slice(url_begin_ptr, url_end_ptr) << " " << is_bad;
+    // LOG(ERROR) << "Full: " << Slice(url_begin_ptr, url_end_ptr) << " " << is_bad;
 
     if (!is_bad) {
       if (url_end_ptr > begin + dot_pos + 1) {

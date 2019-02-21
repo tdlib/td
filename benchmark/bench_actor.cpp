@@ -42,7 +42,7 @@ class RingBench : public td::Benchmark {
     int start_n = 0;
 
     void pass(int n) {
-      // LOG(INFO) << "pass: " << n;
+      // LOG(INFO) << "Pass: " << n;
       if (n == 0) {
         td::Scheduler::instance()->finish();
       } else {

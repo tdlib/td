@@ -1057,7 +1057,7 @@ class MessagesManager : public Actor {
     MessagesIteratorBase(const Message *root, MessageId message_id) {
       size_t last_right_pos = 0;
       while (root != nullptr) {
-        //        LOG(DEBUG) << "root->message_id = " << root->message_id;
+        //        LOG(DEBUG) << "Have root->message_id = " << root->message_id;
         stack_.push_back(root);
         if (root->message_id.get() <= message_id.get()) {
           //          LOG(DEBUG) << "Go right";

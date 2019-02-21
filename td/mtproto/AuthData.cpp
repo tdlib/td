@@ -55,7 +55,7 @@ bool AuthData::is_ready(double now) {
     return false;
   }
   if (!has_salt(now)) {
-    LOG(INFO) << "no salt";
+    LOG(INFO) << "Need salt";
     return false;
   }
   return true;

@@ -294,7 +294,8 @@ Status SessionConnection::on_packet(const MsgInfo &info, uint64 req_msg_id, cons
   if (req_msg_id != 0) {
     callback_->on_message_result_error(req_msg_id, rpc_error.error_code_, as_buffer_slice(rpc_error.error_message_));
   } else {
-    LOG(WARNING) << "rpc_error as update: [" << rpc_error.error_code_ << "][" << rpc_error.error_message_ << "]";
+    LOG(WARNING) << "Receive rpc_error as update: [" << rpc_error.error_code_ << "][" << rpc_error.error_message_
+                 << "]";
   }
   return Status::OK();
 }
@@ -779,7 +780,7 @@ void SessionConnection::cancel_answer(int64 message_id) {
 }
 
 void SessionConnection::destroy_key() {
-  LOG(INFO) << "need_destroy_key = true";
+  LOG(INFO) << "Set need_destroy_auth_key to true";
   need_destroy_auth_key_ = true;
 }
 

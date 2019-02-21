@@ -91,7 +91,6 @@ void NetQueryDelayer::delay(NetQueryPtr query) {
 void NetQueryDelayer::wakeup() {
   auto link_token = get_link_token();
   if (link_token) {
-    LOG(INFO) << "raw_event";
     on_slot_event(link_token);
   }
   loop();

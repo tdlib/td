@@ -346,7 +346,7 @@ inline void Scheduler::wakeup() {
 
 inline Timestamp Scheduler::run_events() {
   Timestamp res;
-  VLOG(actor) << "run events " << sched_id_ << " " << tag("pending", pending_events_.size())
+  VLOG(actor) << "Run events " << sched_id_ << " " << tag("pending", pending_events_.size())
               << tag("actors", actor_count_);
   do {
     run_mailbox();

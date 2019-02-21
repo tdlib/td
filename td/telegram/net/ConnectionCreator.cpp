@@ -921,7 +921,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
     return;
   }
 
-  VLOG(connections) << "client_loop: " << tag("client", format::as_hex(client.hash));
+  VLOG(connections) << "In client_loop: " << tag("client", format::as_hex(client.hash));
 
   // Remove expired ready connections
   client.ready_connections.erase(
@@ -1025,7 +1025,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
                                                actor_id(this), client.hash, extra.stat);
 
     if (proxy.use_socks5_proxy() || proxy.use_http_tcp_proxy()) {
-      VLOG(connections) << "client_loop: create new transparent proxy connection " << extra.debug_str;
+      VLOG(connections) << "In client_loop: create new transparent proxy connection " << extra.debug_str;
       class Callback : public TransparentProxy::Callback {
        public:
         explicit Callback(Promise<ConnectionData> promise, unique_ptr<detail::StatsCallback> stats_callback)
@@ -1070,7 +1070,7 @@ void ConnectionCreator::client_loop(ClientInfo &client) {
                                                           std::move(callback), create_reference(token))};
       }
     } else {
-      VLOG(connections) << "client_loop: create new direct connection " << extra.debug_str;
+      VLOG(connections) << "In client_loop: create new direct connection " << extra.debug_str;
 
       ConnectionData data;
       data.socket_fd = std::move(socket_fd);

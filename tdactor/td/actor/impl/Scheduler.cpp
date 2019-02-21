@@ -450,7 +450,7 @@ void Scheduler::run_poll(Timestamp timeout) {
 }
 
 void Scheduler::run_mailbox() {
-  VLOG(actor) << "run mailbox : begin";
+  VLOG(actor) << "Run mailbox : begin";
   ListNode actors_list = std::move(ready_actors_list_);
   while (!actors_list.empty()) {
     ListNode *node = actors_list.get();
@@ -459,7 +459,7 @@ void Scheduler::run_mailbox() {
     inc_wait_generation();
     flush_mailbox(actor_info, static_cast<void (*)(ActorInfo *)>(nullptr), static_cast<Event (*)()>(nullptr));
   }
-  VLOG(actor) << "run mailbox : finish " << actor_count_;
+  VLOG(actor) << "Run mailbox : finish " << actor_count_;
 
   //Useful for debug, but O(ActorsCount) check
 

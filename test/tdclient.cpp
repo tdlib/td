@@ -561,7 +561,7 @@ class TestFileGenerated : public Task {
       this->send_query(make_tl_object<td_api::finishFileGeneration>(id, nullptr),
                        [](auto result) { check_td_error(result); });
     } else {
-      LOG(FATAL) << "unknown " << tag("conversion", conversion);
+      LOG(FATAL) << "Unknown " << tag("conversion", conversion);
     }
   }
 

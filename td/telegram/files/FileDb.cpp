@@ -254,7 +254,7 @@ class FileDb : public FileDbInterface {
     int attempt_count = 0;
     while (true) {
       if (attempt_count > 100) {
-        LOG(FATAL) << "cycle in file database?";
+        LOG(FATAL) << "Cycle in file database?";
       }
       attempt_count++;
 

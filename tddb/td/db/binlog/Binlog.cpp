@@ -506,7 +506,7 @@ Status Binlog::load_binlog(const Callback &callback, const Callback &debug_callb
       break;
     }
     auto need_size = r_need_size.move_as_ok();
-    // LOG(ERROR) << "need size = " << need_size;
+    // LOG(ERROR) << "Need size = " << need_size;
     if (need_size == 0) {
       if (IGNORE_ERASE_HACK && event.type_ == BinlogEvent::ServiceTypes::Empty &&
           (event.flags_ & BinlogEvent::Flags::Rewrite) != 0) {
@@ -655,7 +655,7 @@ void Binlog::do_reindex() {
       << fd_size_ << ' ' << detail::file_size(path_) << ' ' << fd_events_ << ' ' << path_;
 
   double ratio = static_cast<double>(start_size) / static_cast<double>(finish_size + 1);
-  LOG(INFO) << "regenerate index " << tag("name", path_) << tag("time", format::as_time(finish_time - start_time))
+  LOG(INFO) << "Regenerate index " << tag("name", path_) << tag("time", format::as_time(finish_time - start_time))
             << tag("before_size", format::as_size(start_size)) << tag("after_size", format::as_size(finish_size))
             << tag("ratio", ratio) << tag("before_events", start_events) << tag("after_events", finish_events);
 

@@ -98,7 +98,7 @@ void SecretChatActor::create_chat(int32 user_id, int64 user_access_hash, int32 r
 }
 
 void SecretChatActor::on_result_resendable(NetQueryPtr net_query, Promise<NetQueryPtr> promise) {
-  LOG(INFO) << "on_result_resendable: " << net_query << " " << close_flag_;
+  LOG(INFO) << "In on_result_resendable: " << net_query << " " << close_flag_;
   if (context_->close_flag()) {
     return;
   }
@@ -496,9 +496,8 @@ void SecretChatActor::send_action(tl_object_ptr<secret_api::DecryptedMessageActi
 
 void SecretChatActor::binlog_replay_finish() {
   on_his_in_seq_no_updated();
-  LOG(INFO) << "Binlog replay is finished";
-  LOG(INFO) << "binlog_replay_finish with SeqNoState=" << seq_no_state_;
-  LOG(INFO) << "binlog_replay_finish with PfsState=" << pfs_state_;
+  LOG(INFO) << "Binlog replay is finished with SeqNoState=" << seq_no_state_;
+  LOG(INFO) << "Binlog replay is finished with PfsState=" << pfs_state_;
   binlog_replay_finish_flag_ = true;
   if (auth_state_.state == State::Ready) {
     if (config_state_.my_layer < MY_LAYER) {
@@ -1142,7 +1141,7 @@ void SecretChatActor::on_seq_no_state_changed() {
 }
 
 void SecretChatActor::on_pfs_state_changed() {
-  LOG(INFO) << "on_pfs_state_changed: " << pfs_state_;
+  LOG(INFO) << "In on_pfs_state_changed: " << pfs_state_;
   pfs_state_changed_ = true;
 }
 Promise<> SecretChatActor::add_changes(Promise<> save_changes_finish) {
@@ -1179,7 +1178,7 @@ void SecretChatActor::update_seq_no_state(const T &new_seq_no_state) {
   }
   seq_no_state_.message_id = new_seq_no_state.message_id;
   if (new_seq_no_state.my_in_seq_no != -1) {
-    LOG(INFO) << "my_in_seq_no: " << seq_no_state_.my_in_seq_no << "--->" << new_seq_no_state.my_in_seq_no;
+    LOG(INFO) << "Have my_in_seq_no: " << seq_no_state_.my_in_seq_no << "--->" << new_seq_no_state.my_in_seq_no;
     seq_no_state_.my_in_seq_no = new_seq_no_state.my_in_seq_no;
     seq_no_state_.my_out_seq_no = new_seq_no_state.my_out_seq_no;
 
@@ -1950,8 +1949,8 @@ void SecretChatActor::start_up() {
 
   // auto end = Time::now();
   // CHECK(end - start < 0.2);
-  LOG(INFO) << "start_up with SeqNoState=" << seq_no_state_;
-  LOG(INFO) << "start_up with PfsState=" << pfs_state_;
+  LOG(INFO) << "In start_up with SeqNoState=" << seq_no_state_;
+  LOG(INFO) << "In start_up with PfsState=" << pfs_state_;
 }
 
 void SecretChatActor::get_dh_config() {
@@ -2250,7 +2249,7 @@ Status SecretChatActor::on_inbound_action(secret_api::DecryptedMessageAction &ac
   }
   pfs_state_.message_id = message_id;  // replay protection
 
-  LOG(INFO) << "on_inbound_action: " << to_string(action);
+  LOG(INFO) << "In on_inbound_action: " << to_string(action);
   Status res;
   downcast_call(action, [&](auto &obj) { res = this->on_inbound_action(obj); });
   return res;
@@ -2270,7 +2269,7 @@ void SecretChatActor::on_outbound_action(secret_api::DecryptedMessageAction &act
   }
   pfs_state_.message_id = message_id;  // replay protection
 
-  LOG(INFO) << "on_outbound_action: " << to_string(action);
+  LOG(INFO) << "In on_outbound_action: " << to_string(action);
   downcast_call(action, [&](auto &obj) { this->on_outbound_action(obj); });
 }
 

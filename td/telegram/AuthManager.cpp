@@ -476,7 +476,7 @@ void AuthManager::on_log_out_result(NetQueryPtr &result) {
   } else {
     status = std::move(result->error());
   }
-  LOG_IF(ERROR, status.is_error()) << "auth.logOut failed: " << status;
+  LOG_IF(ERROR, status.is_error()) << "Receive error for auth.logOut: " << status;
   // state_ will stay logout, so no queries will work.
   destroy_auth_keys();
   if (query_id_ != 0) {
@@ -517,7 +517,7 @@ void AuthManager::on_delete_account_result(NetQueryPtr &result) {
     status = std::move(result->error());
   }
   if (status.is_error() && status.error().message() != "USER_DEACTIVATED") {
-    LOG(WARNING) << "account.deleteAccount failed: " << status;
+    LOG(WARNING) << "Request account.deleteAccount failed: " << status;
     // TODO handle some errors
     if (query_id_ != 0) {
       on_query_error(std::move(status));

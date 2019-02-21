@@ -694,9 +694,9 @@ FileManager::FileManager(unique_ptr<Context> context) : context_(std::move(conte
     if (status.is_error()) {
       auto r_stat = stat(path);
       if (r_stat.is_ok() && r_stat.ok().is_dir_) {
-        LOG(ERROR) << "mkdir " << tag("path", path) << " failed " << status << ", but directory exists";
+        LOG(ERROR) << "Creation of directory \"" << path << "\" failed with " << status << ", but directory exists";
       } else {
-        LOG(ERROR) << "mkdir " << tag("path", path) << " failed " << status;
+        LOG(ERROR) << "Creation of directory \"" << path << "\" failed with " << status;
       }
     }
 #if TD_ANDROID
@@ -1328,7 +1328,7 @@ Result<FileId> FileManager::merge(FileId x_file_id, FileId y_file_id, bool no_sy
   FileNodePtr other_node = nodes[other_node_i];
   auto file_view = FileView(node);
 
-  LOG(DEBUG) << "x_node->pmc_id_ = " << x_node->pmc_id_.get() << ", y_node->pmc_id_ = " << y_node->pmc_id_.get()
+  LOG(DEBUG) << "Have x_node->pmc_id_ = " << x_node->pmc_id_.get() << ", y_node->pmc_id_ = " << y_node->pmc_id_.get()
              << ", x_node_size = " << x_node->file_ids_.size() << ", y_node_size = " << y_node->file_ids_.size()
              << ", node_i = " << node_i << ", local_i = " << local_i << ", remote_i = " << remote_i
              << ", generate_i = " << generate_i << ", size_i = " << size_i << ", remote_name_i = " << remote_name_i
@@ -1948,7 +1948,7 @@ void FileManager::run_download(FileNodePtr node) {
 
   // If file reference is needed
   if (!file_view.has_active_download_remote_location()) {
-    VLOG(file_references) << "run_download: Do not have valid file_reference for file " << file_id;
+    VLOG(file_references) << "Do not have valid file_reference for file " << file_id;
     QueryId id = queries_container_.create(Query{file_id, Query::DownloadWaitFileReferece});
     node->download_id_ = id;
     if (node->download_was_update_file_reference_) {
@@ -1965,8 +1965,7 @@ void FileManager::run_download(FileNodePtr node) {
           } else {
             error = res.move_as_error();
           }
-          VLOG(file_references) << "run_download: Got result from FileSourceManager for file " << file_id << ": "
-                                << error;
+          VLOG(file_references) << "Got result from FileSourceManager for file " << file_id << ": " << error;
           send_closure(actor_id, &FileManager::on_error, id, std::move(error));
         }));
     return;

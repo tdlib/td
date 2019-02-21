@@ -66,7 +66,7 @@ namespace td {
 
 static void dump_memory_usage() {
   if (is_memprof_on()) {
-    LOG(WARNING) << "memory_dump";
+    LOG(WARNING) << "Memory dump:";
     clear_thread_locals();
     std::vector<AllocInfo> v;
     dump_alloc([&](const AllocInfo &info) { v.push_back(info); });
@@ -583,11 +583,11 @@ class CliClient final : public Actor {
 
   void on_result(uint64 generation, uint64 id, tl_object_ptr<td_api::Object> result) {
     if (id > 0 && GET_VERBOSITY_LEVEL() < VERBOSITY_NAME(td_requests)) {
-      LOG(ERROR) << "on_result [" << generation << "][id=" << id << "] " << to_string(result);
+      LOG(ERROR) << "Receive result [" << generation << "][id=" << id << "] " << to_string(result);
     }
 
     auto as_json_str = json_encode<std::string>(ToJson(result));
-    // LOG(INFO) << "on_result [" << generation << "][id=" << id << "] " << as_json_str;
+    // LOG(INFO) << "Receive result [" << generation << "][id=" << id << "] " << as_json_str;
     auto copy_as_json_str = as_json_str;
     auto as_json_value = json_decode(copy_as_json_str).move_as_ok();
     td_api::object_ptr<td_api::Object> object;
@@ -595,7 +595,7 @@ class CliClient final : public Actor {
     CHECK(object != nullptr);
     auto as_json_str2 = json_encode<std::string>(ToJson(object));
     LOG_CHECK(as_json_str == as_json_str2) << "\n" << tag("a", as_json_str) << "\n" << tag("b", as_json_str2);
-    // LOG(INFO) << "on_result [" << generation << "][id=" << id << "] " << as_json_str;
+    // LOG(INFO) << "Receive result [" << generation << "][id=" << id << "] " << as_json_str;
 
     if (generation != generation_) {
       LOG(INFO) << "Drop received from previous Client " << to_string(result);
@@ -691,12 +691,12 @@ class CliClient final : public Actor {
 
   void on_error(uint64 generation, uint64 id, tl_object_ptr<td_api::error> error) {
     if (id > 0 && GET_VERBOSITY_LEVEL() < VERBOSITY_NAME(td_requests)) {
-      LOG(ERROR) << "on_error [" << generation << "][id=" << id << "] " << to_string(error);
+      LOG(ERROR) << "Receive error [" << generation << "][id=" << id << "] " << to_string(error);
     }
   }
 
   void on_closed(uint64 generation) {
-    LOG(WARNING) << "on_closed " << generation;
+    LOG(WARNING) << "Td with generation " << generation << " is closed";
     closed_td_++;
     if (closed_td_ == generation_) {
       LOG(WARNING) << "Ready to stop";
@@ -731,7 +731,7 @@ class CliClient final : public Actor {
   static void static_add_cmd(char *line) {
     /* Can use ^D (stty eof) to exit. */
     if (line == nullptr) {
-      LOG(FATAL) << "closed";
+      LOG(FATAL) << "Closed";
       return;
     }
     if (*line) {

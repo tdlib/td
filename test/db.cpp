@@ -501,7 +501,7 @@ TEST(DB, persistent_key_value) {
       }
 
       void start_up() override {
-        LOG(INFO) << "start_up";
+        LOG(INFO) << "Start up";
         kv_->impl().init("test_pmc").ensure();
         for (int i = 0; i < threads_n_; i++) {
           create_actor_on_scheduler<Worker>("Worker", i + 1, actor_shared(this, 2), kv_, &queries_->at(i), &res_->at(i))
@@ -510,11 +510,11 @@ TEST(DB, persistent_key_value) {
       }
 
       void tear_down() override {
-        LOG(INFO) << "tear_down";
+        LOG(INFO) << "Tear down";
         // kv_->impl().close();
       }
       void hangup_shared() override {
-        LOG(INFO) << "hangup";
+        LOG(INFO) << "Hang up";
         ref_cnt_--;
         if (ref_cnt_ == 0) {
           kv_->impl().close();

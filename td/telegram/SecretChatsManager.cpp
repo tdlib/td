@@ -127,7 +127,7 @@ void SecretChatsManager::update_qts(int qts) {
   if (dummy_mode_ || close_flag_ || qts < 0) {
     return;
   }
-  LOG(INFO) << "update qts: " << qts;
+  LOG(INFO) << "Update qts to " << qts;
   add_qts(qts).set_value(Unit());
   has_qts_ = true;
   LOG(INFO) << "Update secret chats qts " << tag("qts", qts);

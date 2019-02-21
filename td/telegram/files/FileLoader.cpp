@@ -31,7 +31,7 @@ void FileLoader::update_priority(int8 priority) {
 }
 void FileLoader::update_resources(const ResourceState &other) {
   resource_state_.update_slave(other);
-  VLOG(files) << "update resources " << resource_state_;
+  VLOG(files) << "Update resources " << resource_state_;
   loop();
 }
 void FileLoader::set_ordered_flag(bool flag) {
@@ -214,7 +214,7 @@ void FileLoader::update_estimated_limit() {
   }
   auto estimated_extra = parts_manager_.get_estimated_extra();
   resource_state_.update_estimated_limit(estimated_extra);
-  VLOG(files) << "update estimated limit " << estimated_extra;
+  VLOG(files) << "Update estimated limit " << estimated_extra;
   if (!resource_manager_.empty()) {
     keep_fd_flag(narrow_cast<uint64>(resource_state_.active_limit()) >= parts_manager_.get_part_size());
     send_closure(resource_manager_, &ResourceManager::update_resources, resource_state_);

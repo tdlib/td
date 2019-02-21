@@ -93,7 +93,7 @@ void HttpConnectionBase::loop() {
     auto r = fd_.flush_read();
     if (r.is_error()) {
       if (!begins_with(r.error().message(), "SSL error {336134278")) {  // if error is not yet outputed
-        LOG(INFO) << "flush_read error: " << r.error();
+        LOG(INFO) << "Receive flush_read error: " << r.error();
       }
       on_error(Status::Error(r.error().public_message()));
       return stop();
@@ -132,7 +132,7 @@ void HttpConnectionBase::loop() {
     LOG(DEBUG) << "Can write to the connection";
     auto r = fd_.flush_write();
     if (r.is_error()) {
-      LOG(INFO) << "flush_write error: " << r.error();
+      LOG(INFO) << "Receive flush_write error: " << r.error();
       on_error(Status::Error(r.error().public_message()));
     }
     if (close_after_write_ && !fd_.need_flush_write()) {

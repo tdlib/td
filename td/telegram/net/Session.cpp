@@ -227,7 +227,7 @@ void Session::send(NetQueryPtr &&query) {
 
   query->debug("Session: received from SessionProxy");
   query->set_session_id(auth_data_.get_session_id());
-  VLOG(net_query) << "got query " << query;
+  VLOG(net_query) << "Got query " << query;
   if (query->update_is_ready()) {
     return_query(std::move(query));
     return;
@@ -409,9 +409,9 @@ void Session::on_closed(Status status) {
   }
 
   if (status.is_error()) {
-    LOG(WARNING) << "on_closed: " << status << " " << current_info_->connection->get_name();
+    LOG(WARNING) << "Session closed: " << status << " " << current_info_->connection->get_name();
   } else {
-    LOG(INFO) << "on_closed: " << status << " " << current_info_->connection->get_name();
+    LOG(INFO) << "Session closed: " << status << " " << current_info_->connection->get_name();
   }
 
   if (status.is_error() && status.code() == -404) {
@@ -443,7 +443,7 @@ void Session::on_closed(Status status) {
         mark_as_known(it->first, &it->second);
 
         auto &query = it->second.query;
-        VLOG(net_query) << "resend query (on_disconnected, no ack) " << query;
+        VLOG(net_query) << "Resend query (on_disconnected, no ack) " << query;
         query->set_message_id(0);
         query->cancel_slot_.clear_event();
         query->set_error(Status::Error(500, PSLICE() << "Session failed: " << status.message()),
@@ -466,7 +466,8 @@ void Session::on_closed(Status status) {
 void Session::on_session_created(uint64 unique_id, uint64 first_id) {
   // TODO: use unique_id
   // send updatesTooLong to force getDifference
-  LOG(INFO) << "new_session_created " << unique_id << " " << first_id;
+  LOG(INFO) << "New session " << unique_id << " created "
+            << " with first message_id " << first_id;
   if (is_main_) {
     LOG(DEBUG) << "Sending updatesTooLong to force getDifference";
     telegram_api::updatesTooLong too_long_;
@@ -485,7 +486,7 @@ void Session::on_session_created(uint64 unique_id, uint64 first_id) {
       mark_as_known(it->first, &it->second);
 
       auto &query = it->second.query;
-      VLOG(net_query) << "resend query (on_session_created) " << query;
+      VLOG(net_query) << "Resend query (on_session_created) " << query;
       query->set_message_id(0);
       query->cancel_slot_.clear_event();
       resend_query(std::move(query));
@@ -687,7 +688,7 @@ void Session::on_message_result_error(uint64 id, int error_code, BufferSlice mes
   }
 
   Query *query_ptr = &it->second;
-  VLOG(net_query) << "return query error " << query_ptr->query;
+  VLOG(net_query) << "Return query error " << query_ptr->query;
 
   cleanup_container(id, query_ptr);
   mark_as_known(id, query_ptr);
@@ -701,7 +702,7 @@ void Session::on_message_result_error(uint64 id, int error_code, BufferSlice mes
 }
 
 void Session::on_message_failed_inner(uint64 id, bool in_container) {
-  LOG(INFO) << "message inner failed " << id;
+  LOG(INFO) << "Message inner failed " << id;
   auto it = sent_queries_.find(id);
   if (it == sent_queries_.end()) {
     return;
@@ -721,7 +722,7 @@ void Session::on_message_failed_inner(uint64 id, bool in_container) {
 }
 
 void Session::on_message_failed(uint64 id, Status status) {
-  LOG(INFO) << "on_message_failed " << tag("id", id) << tag("status", status);
+  LOG(INFO) << "Message failed: " << tag("id", id) << tag("status", status);
   status.ignore();
 
   auto cit = sent_containers_.find(id);
@@ -847,7 +848,7 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
     LOG(FATAL) << "Failed to send query: " << r_message_id.error();
   }
   message_id = r_message_id.ok();
-  VLOG(net_query) << "send query to connection " << net_query << " [msg_id:" << format::as_hex(message_id) << "]"
+  VLOG(net_query) << "Send query to connection " << net_query << " [msg_id:" << format::as_hex(message_id) << "]"
                   << tag("invoke_after", format::as_hex(invoke_after_id));
   net_query->set_message_id(message_id);
   net_query->cancel_slot_.clear_event();
@@ -855,7 +856,7 @@ void Session::connection_send_query(ConnectionInfo *info, NetQueryPtr &&net_quer
   net_query->debug_unknown = false;
   net_query->debug_ack = 0;
   if (!net_query->cancel_slot_.empty()) {
-    LOG(DEBUG) << "set event for net_query cancellation " << tag("message_id", format::as_hex(message_id));
+    LOG(DEBUG) << "Set event for net_query cancellation " << tag("message_id", format::as_hex(message_id));
     net_query->cancel_slot_.set_event(EventCreator::raw(actor_id(), message_id));
   }
   auto status = sent_queries_.emplace(
@@ -965,8 +966,7 @@ void Session::connection_open_finish(ConnectionInfo *info,
     }
   }
   auto name = PSTRING() << get_name() << "::Connect::" << mode_name << "::" << raw_connection->debug_str_;
-  LOG(INFO) << "connection_open_finish: " << name;
-  //LOG(ERROR) << "connection_open_finish: " << name;
+  LOG(INFO) << "Finished to open connection " << name;
   info->connection = make_unique<mtproto::SessionConnection>(mode, std::move(raw_connection), &auth_data_);
   info->connection->set_online(connection_online_flag_, is_main_);
   info->connection->set_name(name);

@@ -109,7 +109,7 @@ class Server : public TcpListener::Callback {
   }
   void hangup() override {
     // may be it should be default?..
-    LOG(ERROR) << "hangup..";
+    LOG(ERROR) << "Hanging up..";
     stop();
   }
 

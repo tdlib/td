@@ -155,7 +155,7 @@ bool operator==(const ProfilePhoto &lhs, const ProfilePhoto &rhs) {
   }
 
   if (location_differs) {
-    LOG_IF(ERROR, !id_differs) << "location_differs = true, but id_differs = false. First profilePhoto: " << lhs
+    LOG_IF(ERROR, !id_differs) << "Photo " << lhs.id << " location has changed. First profilePhoto: " << lhs
                                << ", second profilePhoto: " << rhs;
     return false;
   }

@@ -404,7 +404,7 @@ void TopDialogManager::on_result(NetQueryPtr net_query) {
   };
 
   auto top_peers_parent = r_top_peers.move_as_ok();
-  LOG(DEBUG) << "contacts_getTopPeers returned " << to_string(top_peers_parent);
+  LOG(DEBUG) << "Receive contacts_getTopPeers result: " << to_string(top_peers_parent);
   switch (top_peers_parent->get_id()) {
     case telegram_api::contacts_topPeersNotModified::ID:
       // nothing to do
