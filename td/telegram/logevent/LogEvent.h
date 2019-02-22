@@ -70,6 +70,7 @@ class LogEvent {
     SecretChatInfos = 5,
     WebPages = 0x10,
     SetPollAnswer = 0x20,
+    StopPoll = 0x21,
     SendMessage = 0x100,
     DeleteMessage = 0x101,
     DeleteMessagesFromServer = 0x102,

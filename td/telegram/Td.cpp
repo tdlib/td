@@ -6550,6 +6550,11 @@ void Td::on_request(uint64 id, td_api::setPollAnswer &request) {
                                      std::move(request.option_ids_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::stopPoll &request) {
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->stop_poll({DialogId(request.chat_id_), MessageId(request.message_id_)}, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::getInlineQueryResults &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.query_);

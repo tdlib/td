@@ -3233,6 +3233,12 @@ class CliClient final : public Actor {
       std::tie(message_id, option_ids) = split(args);
       send_request(td_api::make_object<td_api::setPollAnswer>(as_chat_id(chat_id), as_message_id(message_id),
                                                               to_integers<int32>(option_ids)));
+    } else if (op == "stoppoll") {
+      string chat_id;
+      string message_id;
+
+      std::tie(chat_id, message_id) = split(args);
+      send_request(td_api::make_object<td_api::stopPoll>(as_chat_id(chat_id), as_message_id(message_id)));
     } else {
       op_not_found_count++;
     }

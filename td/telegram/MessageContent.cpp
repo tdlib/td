@@ -2667,6 +2667,15 @@ int32 get_message_content_live_location_period(const MessageContent *content) {
   }
 }
 
+bool get_message_content_poll_is_closed(const Td *td, const MessageContent *content) {
+  switch (content->get_type()) {
+    case MessageContentType::Poll:
+      return td->poll_manager_->get_poll_is_closed(static_cast<const MessagePoll *>(content)->poll_id);
+    default:
+      return true;
+  }
+}
+
 WebPageId get_message_content_web_page_id(const MessageContent *content) {
   if (content->get_type() == MessageContentType::Text) {
     return static_cast<const MessageText *>(content)->web_page_id;
@@ -2684,6 +2693,12 @@ void set_message_content_poll_answer(Td *td, MessageContent *content, FullMessag
   CHECK(content->get_type() == MessageContentType::Poll);
   td->poll_manager_->set_poll_answer(static_cast<MessagePoll *>(content)->poll_id, full_message_id,
                                      std::move(option_ids), std::move(promise));
+}
+
+void stop_message_content_poll(Td *td, MessageContent *content, FullMessageId full_message_id,
+                               Promise<Unit> &&promise) {
+  CHECK(content->get_type() == MessageContentType::Poll);
+  td->poll_manager_->stop_poll(static_cast<MessagePoll *>(content)->poll_id, full_message_id, std::move(promise));
 }
 
 static void merge_location_access_hash(const Location &first, const Location &second) {
@@ -4790,7 +4805,7 @@ void update_failed_to_send_message_content(Td *td, unique_ptr<MessageContent> &c
     }
     case MessageContentType::Poll: {
       const MessagePoll *message_poll = static_cast<const MessagePoll *>(content.get());
-      td->poll_manager_->close_poll(message_poll->poll_id);
+      td->poll_manager_->stop_local_poll(message_poll->poll_id);
       break;
     }
     default:

@@ -175,12 +175,16 @@ UserId get_message_content_deleted_user_id(const MessageContent *content);
 
 int32 get_message_content_live_location_period(const MessageContent *content);
 
+bool get_message_content_poll_is_closed(const Td *td, const MessageContent *content);
+
 WebPageId get_message_content_web_page_id(const MessageContent *content);
 
 void set_message_content_web_page_id(MessageContent *content, WebPageId web_page_id);
 
 void set_message_content_poll_answer(Td *td, MessageContent *content, FullMessageId full_message_id,
                                      vector<int32> &&option_ids, Promise<Unit> &&promise);
+
+void stop_message_content_poll(Td *td, MessageContent *content, FullMessageId full_message_id, Promise<Unit> &&promise);
 
 void merge_message_contents(Td *td, const MessageContent *old_content, MessageContent *new_content,
                             bool need_message_changed_warning, DialogId dialog_id, bool need_merge_files,

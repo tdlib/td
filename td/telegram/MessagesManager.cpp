@@ -2241,11 +2241,6 @@ class EditMessageActor : public NetActorOnce {
 
     auto ptr = result_ptr.move_as_ok();
     LOG(INFO) << "Receive result for editMessage: " << to_string(ptr);
-    if (ptr->get_id() == telegram_api::updateShortSentMessage::ID) {
-      LOG(ERROR) << "Receive updateShortSentMessage in edit message";
-      return on_error(id, Status::Error(500, "Unsupported result was returned from the server"));
-    }
-
     td->updates_manager_->on_get_updates(std::move(ptr));
 
     promise_.set_value(Unit());
@@ -5020,10 +5015,13 @@ bool MessagesManager::update_message_views(DialogId dialog_id, Message *m, int32
 }
 
 void MessagesManager::on_update_message_content(FullMessageId full_message_id) {
-  const Message *m = get_message(full_message_id);
+  const Dialog *d = get_dialog(full_message_id.get_dialog_id());
+  CHECK(d != nullptr);
+  const Message *m = get_message(d, full_message_id.get_message_id());
   CHECK(m != nullptr);
   send_update_message_content(full_message_id.get_dialog_id(), m->message_id, m->content.get(), m->date,
                               m->is_content_secret, "on_update_message_content");
+  on_message_changed(d, m, true, "on_update_message_content");
 }
 
 bool MessagesManager::update_message_contains_unread_mention(Dialog *d, Message *m, bool contains_unread_mention,
@@ -16190,8 +16188,11 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
     return false;
   }
 
+  auto content_type = m->content->get_type();
   DialogId my_dialog_id(my_id);
-  bool has_edit_time_limit = !(is_bot && m->is_outgoing) && dialog_id != my_dialog_id;
+  bool has_edit_time_limit = !(is_bot && m->is_outgoing) && dialog_id != my_dialog_id &&
+                             content_type != MessageContentType::Poll &&
+                             content_type != MessageContentType::LiveLocation;
 
   switch (dialog_id.get_type()) {
     case DialogType::User:
@@ -16234,13 +16235,15 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
       return false;
   }
 
-  const int32 DEFAULT_EDIT_TIME_LIMIT = 2 * 86400;
-  int32 edit_time_limit = G()->shared_config().get_option_integer("edit_time_limit", DEFAULT_EDIT_TIME_LIMIT);
-  if (has_edit_time_limit && G()->unix_time_cached() - m->date >= edit_time_limit + (is_editing ? 300 : 0)) {
-    return false;
+  if (has_edit_time_limit) {
+    const int32 DEFAULT_EDIT_TIME_LIMIT = 2 * 86400;
+    int32 edit_time_limit = G()->shared_config().get_option_integer("edit_time_limit", DEFAULT_EDIT_TIME_LIMIT);
+    if (G()->unix_time_cached() - m->date - (is_editing ? 300 : 0) >= edit_time_limit) {
+      return false;
+    }
   }
 
-  switch (m->content->get_type()) {
+  switch (content_type) {
     case MessageContentType::Animation:
     case MessageContentType::Audio:
     case MessageContentType::Document:
@@ -16257,9 +16260,15 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
       }
       return G()->unix_time_cached() - m->date < get_message_content_live_location_period(m->content.get());
     }
+    case MessageContentType::Poll: {
+      if (is_bot && only_reply_markup) {
+        // there is no caption to edit, but bot can edit inline reply_markup
+        return true;
+      }
+      return !get_message_content_poll_is_closed(td_, m->content.get());
+    }
     case MessageContentType::Contact:
     case MessageContentType::Location:
-    case MessageContentType::Poll:
     case MessageContentType::Sticker:
     case MessageContentType::Venue:
     case MessageContentType::VideoNote:
@@ -24920,6 +24929,24 @@ void MessagesManager::set_poll_answer(FullMessageId full_message_id, vector<int3
   }
 
   set_message_content_poll_answer(td_, m->content.get(), full_message_id, std::move(option_ids), std::move(promise));
+}
+
+void MessagesManager::stop_poll(FullMessageId full_message_id, Promise<Unit> &&promise) {
+  auto m = get_message_force(full_message_id);
+  if (m == nullptr) {
+    return promise.set_error(Status::Error(5, "Message not found"));
+  }
+  if (!have_input_peer(full_message_id.get_dialog_id(), AccessRights::Read)) {
+    return promise.set_error(Status::Error(3, "Can't access the chat"));
+  }
+  if (m->content->get_type() != MessageContentType::Poll) {
+    return promise.set_error(Status::Error(5, "Message is not a poll"));
+  }
+  if (!can_edit_message(full_message_id.get_dialog_id(), m, true)) {
+    return promise.set_error(Status::Error(5, "Poll can't be stopped"));
+  }
+
+  stop_message_content_poll(td_, m->content.get(), full_message_id, std::move(promise));
 }
 
 Result<ServerMessageId> MessagesManager::get_invoice_message_id(FullMessageId full_message_id) {

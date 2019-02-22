@@ -42,10 +42,14 @@ class PollManager : public Actor {
 
   void unregister_poll(PollId poll_id, FullMessageId full_message_id);
 
+  bool get_poll_is_closed(PollId poll_id) const;
+
   void set_poll_answer(PollId poll_id, FullMessageId full_message_id, vector<int32> &&option_ids,
                        Promise<Unit> &&promise);
 
-  void close_poll(PollId poll_id);
+  void stop_poll(PollId poll_id, FullMessageId full_message_id, Promise<Unit> &&promise);
+
+  void stop_local_poll(PollId poll_id);
 
   tl_object_ptr<telegram_api::InputMedia> get_input_media(PollId poll_id) const;
 
@@ -88,6 +92,7 @@ class PollManager : public Actor {
   };
 
   class SetPollAnswerLogEvent;
+  class StopPollLogEvent;
 
   void tear_down() override;
 
@@ -121,6 +126,8 @@ class PollManager : public Actor {
                           Promise<Unit> &&promise);
 
   void on_set_poll_answer(PollId poll_id, uint64 generation, Result<Unit> &&result);
+
+  void do_stop_poll(PollId poll_id, FullMessageId full_message_id, uint64 logevent_id, Promise<Unit> &&promise);
 
   Td *td_;
   ActorShared<> parent_;
