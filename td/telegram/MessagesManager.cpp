@@ -124,11 +124,11 @@ class GetDialogQuery : public Td::ResultHandler {
   }
 };
 
-class GetPinnedDialogsQuery : public NetActorOnce {
+class GetPinnedDialogsActor : public NetActorOnce {
   Promise<Unit> promise_;
 
  public:
-  explicit GetPinnedDialogsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit GetPinnedDialogsActor(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   NetQueryRef send(uint64 sequence_id) {
@@ -148,8 +148,8 @@ class GetPinnedDialogsQuery : public NetActorOnce {
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive pinned chats: " << to_string(result);
 
-    td->contacts_manager_->on_get_users(std::move(result->users_), "GetPinnedDialogsQuery");
-    td->contacts_manager_->on_get_chats(std::move(result->chats_), "GetPinnedDialogsQuery");
+    td->contacts_manager_->on_get_users(std::move(result->users_), "GetPinnedDialogsActor");
+    td->contacts_manager_->on_get_chats(std::move(result->chats_), "GetPinnedDialogsActor");
     std::reverse(result->dialogs_.begin(), result->dialogs_.end());
     td->messages_manager_->on_get_dialogs(std::move(result->dialogs_), -2, std::move(result->messages_),
                                           std::move(promise_));
@@ -356,11 +356,11 @@ class ExportChannelMessageLinkQuery : public Td::ResultHandler {
   }
 };
 
-class GetDialogListQuery : public NetActorOnce {
+class GetDialogListActor : public NetActorOnce {
   Promise<Unit> promise_;
 
  public:
-  explicit GetDialogListQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit GetDialogListActor(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(int32 offset_date, ServerMessageId offset_message_id, DialogId offset_dialog_id, int32 limit,
@@ -384,12 +384,12 @@ class GetDialogListQuery : public NetActorOnce {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for GetDialogListQuery: " << to_string(ptr);
+    LOG(INFO) << "Receive result for GetDialogListActor: " << to_string(ptr);
     switch (ptr->get_id()) {
       case telegram_api::messages_dialogs::ID: {
         auto dialogs = move_tl_object_as<telegram_api::messages_dialogs>(ptr);
-        td->contacts_manager_->on_get_users(std::move(dialogs->users_), "GetDialogListQuery");
-        td->contacts_manager_->on_get_chats(std::move(dialogs->chats_), "GetDialogListQuery");
+        td->contacts_manager_->on_get_users(std::move(dialogs->users_), "GetDialogListActor");
+        td->contacts_manager_->on_get_chats(std::move(dialogs->chats_), "GetDialogListActor");
         td->messages_manager_->on_get_dialogs(std::move(dialogs->dialogs_),
                                               narrow_cast<int32>(dialogs->dialogs_.size()),
                                               std::move(dialogs->messages_), std::move(promise_));
@@ -397,8 +397,8 @@ class GetDialogListQuery : public NetActorOnce {
       }
       case telegram_api::messages_dialogsSlice::ID: {
         auto dialogs = move_tl_object_as<telegram_api::messages_dialogsSlice>(ptr);
-        td->contacts_manager_->on_get_users(std::move(dialogs->users_), "GetDialogListQuery");
-        td->contacts_manager_->on_get_chats(std::move(dialogs->chats_), "GetDialogListQuery");
+        td->contacts_manager_->on_get_users(std::move(dialogs->users_), "GetDialogListActor");
+        td->contacts_manager_->on_get_chats(std::move(dialogs->chats_), "GetDialogListActor");
         td->messages_manager_->on_get_dialogs(std::move(dialogs->dialogs_), max(dialogs->count_, 0),
                                               std::move(dialogs->messages_), std::move(promise_));
         break;
@@ -11132,10 +11132,10 @@ void MessagesManager::load_dialog_list(int32 limit, Promise<Unit> &&promise) {
   } else {
     LOG(INFO) << "Get dialogs from " << last_server_dialog_date_;
     auto sequence_id = get_sequence_dispatcher_id(DialogId(), MessageContentType::None);
-    send_closure(td_->create_net_actor<GetPinnedDialogsQuery>(multipromise.get_promise()), &GetPinnedDialogsQuery::send,
+    send_closure(td_->create_net_actor<GetPinnedDialogsActor>(multipromise.get_promise()), &GetPinnedDialogsActor::send,
                  sequence_id);
     if (last_dialog_date_ == last_server_dialog_date_) {
-      send_closure(td_->create_net_actor<GetDialogListQuery>(multipromise.get_promise()), &GetDialogListQuery::send,
+      send_closure(td_->create_net_actor<GetDialogListActor>(multipromise.get_promise()), &GetDialogListActor::send,
                    last_server_dialog_date_.get_date(),
                    last_server_dialog_date_.get_message_id().get_next_server_message_id().get_server_message_id(),
                    last_server_dialog_date_.get_dialog_id(), int32{MAX_GET_DIALOGS}, sequence_id);
@@ -19528,7 +19528,7 @@ void MessagesManager::on_update_dialog_is_pinned(DialogId dialog_id, bool is_pin
   if (d == nullptr) {
     LOG(WARNING) << "Can't apply updateDialogPinned with " << dialog_id;
     // TODO logevent + promise
-    send_closure(td_->create_net_actor<GetPinnedDialogsQuery>(Promise<>()), &GetPinnedDialogsQuery::send,
+    send_closure(td_->create_net_actor<GetPinnedDialogsActor>(Promise<>()), &GetPinnedDialogsActor::send,
                  get_sequence_dispatcher_id(DialogId(), MessageContentType::None));
     return;
   }
@@ -19541,7 +19541,7 @@ void MessagesManager::on_update_dialog_is_pinned(DialogId dialog_id, bool is_pin
 
 void MessagesManager::on_update_pinned_dialogs() {
   // TODO logevent + promise
-  send_closure(td_->create_net_actor<GetPinnedDialogsQuery>(Promise<>()), &GetPinnedDialogsQuery::send,
+  send_closure(td_->create_net_actor<GetPinnedDialogsActor>(Promise<>()), &GetPinnedDialogsActor::send,
                get_sequence_dispatcher_id(DialogId(), MessageContentType::None));
 }
 
