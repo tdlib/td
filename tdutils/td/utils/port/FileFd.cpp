@@ -468,7 +468,11 @@ Stat FileFd::stat() {
 Status FileFd::sync() {
   CHECK(!empty());
 #if TD_PORT_POSIX
+#if TD_DARWIN
+  if (fcntl(get_native_fd().fd(), F_FULLFSYNC) == -1) {
+#else
   if (fsync(get_native_fd().fd()) != 0) {
+#endif
 #elif TD_PORT_WINDOWS
   if (FlushFileBuffers(get_native_fd().fd()) == 0) {
 #endif
