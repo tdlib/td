@@ -6,7 +6,10 @@
 //
 #include "td/telegram/PollManager.h"
 
+#include "td/telegram/AccessRights.h"
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/Dependencies.h"
+#include "td/telegram/DialogId.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/logevent/LogEvent.h"
 #include "td/telegram/logevent/LogEventHelper.h"
@@ -31,9 +34,12 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 #include "td/utils/Random.h"
+#include "td/utils/Slice.h"
 #include "td/utils/Status.h"
+#include "td/utils/tl_helpers.h"
 
 #include <algorithm>
+#include <limits>
 
 namespace td {
 
@@ -491,7 +497,7 @@ void PollManager::do_set_poll_answer(PollId poll_id, FullMessageId full_message_
 
 void PollManager::on_set_poll_answer(PollId poll_id, uint64 generation, Result<Unit> &&result) {
   if (G()->close_flag() && result.is_error()) {
-    // request will be resent after restart
+    // request will be re-sent after restart
     return;
   }
   auto it = pending_answers_.find(poll_id);

@@ -323,7 +323,7 @@ int64 PartsManager::get_size_or_zero() const {
 int64 PartsManager::get_estimated_extra() const {
   auto total_estimated_extra = get_expected_size() - get_ready_size();
   if (streaming_limit_ != 0) {
-    return std::min(streaming_limit_, total_estimated_extra);
+    return td::min(streaming_limit_, total_estimated_extra);
   }
   return total_estimated_extra;
 }

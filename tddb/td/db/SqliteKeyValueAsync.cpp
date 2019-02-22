@@ -6,6 +6,8 @@
 //
 #include "td/db/SqliteKeyValueAsync.h"
 
+#include "td/db/SqliteKeyValue.h"
+
 #include "td/actor/actor.h"
 
 #include "td/utils/common.h"

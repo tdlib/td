@@ -20,6 +20,8 @@
 #include "td/telegram/UserId.h"
 #include "td/telegram/WebPageId.h"
 
+#include "td/actor/PromiseFuture.h"
+
 #include "td/utils/buffer.h"
 #include "td/utils/common.h"
 #include "td/utils/Status.h"

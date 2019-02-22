@@ -53,6 +53,7 @@
 
 #include "td/db/binlog/BinlogEvent.h"
 #include "td/db/binlog/BinlogHelper.h"
+#include "td/db/SqliteKeyValue.h"
 #include "td/db/SqliteKeyValueAsync.h"
 
 #include "td/utils/format.h"
@@ -11120,7 +11121,7 @@ void MessagesManager::load_dialog_list(int32 limit, Promise<Unit> &&promise) {
   if (multipromise.promise_count() != 1) {
     // queries have already been sent, just wait for the result
     if (use_database) {
-      load_dialog_list_limit_max_ = std::max(load_dialog_list_limit_max_, limit);
+      load_dialog_list_limit_max_ = max(load_dialog_list_limit_max_, limit);
     }
     return;
   }

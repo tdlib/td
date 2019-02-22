@@ -848,7 +848,7 @@ void SessionConnection::flush_packet() {
     max_delay = HTTP_MAX_DELAY;
     max_after = HTTP_MAX_AFTER;
     auto time_to_disconnect =
-        std::min(ping_disconnect_delay() + last_pong_at_, read_disconnect_delay() + last_read_at_) - Time::now_cached();
+        min(ping_disconnect_delay() + last_pong_at_, read_disconnect_delay() + last_read_at_) - Time::now_cached();
     max_wait = min(http_max_wait(), static_cast<int>(1000 * max(0.1, time_to_disconnect - rtt())));
   } else if (mode_ == Mode::Http) {
     max_delay = HTTP_MAX_DELAY;

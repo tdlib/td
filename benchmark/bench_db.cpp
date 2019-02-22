@@ -13,6 +13,7 @@
 #include "td/db/SqliteConnectionSafe.h"
 #include "td/db/SqliteDb.h"
 #include "td/db/SqliteKeyValueAsync.h"
+#include "td/db/SqliteKeyValueSafe.h"
 
 #include "td/utils/benchmark.h"
 #include "td/utils/common.h"

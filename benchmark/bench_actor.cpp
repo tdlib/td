@@ -12,8 +12,6 @@
 #include "td/utils/common.h"
 #include "td/utils/logging.h"
 
-#include <algorithm>
-
 #if TD_MSVC
 #pragma comment(linker, "/STACK:16777216")
 #endif
@@ -104,7 +102,7 @@ class RingBench : public td::Benchmark {
 
   void run(int n) override {
     // first actor is on main_thread
-    actor_array_[0].get_actor_unsafe()->start_n = std::max(n, 100);
+    actor_array_[0].get_actor_unsafe()->start_n = td::max(n, 100);
     while (scheduler_->run_main(10)) {
       // empty
     }
