@@ -9954,9 +9954,8 @@ void MessagesManager::set_dialog_is_pinned(Dialog *d, bool is_pinned) {
     send_closure(G()->td(), &Td::send_update,
                  make_tl_object<td_api::updateChatIsPinned>(d->dialog_id.get(), is_pinned,
                                                             dialog_date <= last_dialog_date_ ? d->order : 0));
-  } else {
-    update_dialog_pos(d, false, "set_dialog_is_pinned 2");
   }
+  // there is no need to call update_dialog_pos otherwise, it will be called by the caller
 }
 
 void MessagesManager::set_dialog_reply_markup(Dialog *d, MessageId message_id) {
