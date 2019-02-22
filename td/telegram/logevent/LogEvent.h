@@ -185,6 +185,7 @@ class StorerImpl : public Storer {
  private:
   const T &event_;
 };
+
 }  // namespace detail
 
 template <class ChildT>
@@ -196,18 +197,6 @@ class LogEventBase : public LogEvent {
   }
   static Result<unique_ptr<ChildT>> from_buffer_slice(BufferSlice slice) {
     return detail::from_buffer_slice<ChildT>(std::move(slice));
-  }
-};
-
-template <class ChildT, class ParentT>
-class LogEventHelper : public ParentT {
- public:
-  typename ParentT::Type get_type() const override {
-    return ChildT::type;
-  }
-
-  constexpr int32 magic() const {
-    return static_cast<int32>(get_type());
   }
 };
 

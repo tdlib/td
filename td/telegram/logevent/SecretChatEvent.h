@@ -46,6 +46,18 @@ class SecretChatEvent : public LogEventBase<SecretChatEvent> {
   static void downcast_call(Type type, F &&f);
 };
 
+template <class ChildT>
+class SecretChatLogEventBase : public SecretChatEvent {
+ public:
+  typename SecretChatEvent::Type get_type() const override {
+    return ChildT::type;
+  }
+
+  constexpr int32 magic() const {
+    return static_cast<int32>(get_type());
+  }
+};
+
 // Internal structure
 
 // inputEncryptedFileEmpty#1837c364 = InputEncryptedFile;
@@ -191,7 +203,7 @@ inline StringBuilder &operator<<(StringBuilder &sb, const EncryptedFileLocation 
 
 // LogEvents
 // TODO: Qts and SeqNoState could be just Logevents that are updated during regenerate
-class InboundSecretMessage : public LogEventHelper<InboundSecretMessage, SecretChatEvent> {
+class InboundSecretMessage : public SecretChatLogEventBase<InboundSecretMessage> {
  public:
   static constexpr Type type = SecretChatEvent::Type::InboundSecretMessage;
   int32 qts = 0;
@@ -289,7 +301,7 @@ class InboundSecretMessage : public LogEventHelper<InboundSecretMessage, SecretC
   }
 };
 
-class OutboundSecretMessage : public LogEventHelper<OutboundSecretMessage, SecretChatEvent> {
+class OutboundSecretMessage : public SecretChatLogEventBase<OutboundSecretMessage> {
  public:
   static constexpr Type type = SecretChatEvent::Type::OutboundSecretMessage;
 
@@ -390,7 +402,7 @@ class OutboundSecretMessage : public LogEventHelper<OutboundSecretMessage, Secre
   }
 };
 
-class CloseSecretChat : public LogEventHelper<CloseSecretChat, SecretChatEvent> {
+class CloseSecretChat : public SecretChatLogEventBase<CloseSecretChat> {
  public:
   static constexpr Type type = SecretChatEvent::Type::CloseSecretChat;
   int32 chat_id = 0;
@@ -412,7 +424,7 @@ class CloseSecretChat : public LogEventHelper<CloseSecretChat, SecretChatEvent> 
   }
 };
 
-class CreateSecretChat : public LogEventHelper<CreateSecretChat, SecretChatEvent> {
+class CreateSecretChat : public SecretChatLogEventBase<CreateSecretChat> {
  public:
   static constexpr Type type = SecretChatEvent::Type::CreateSecretChat;
   int32 random_id = 0;
