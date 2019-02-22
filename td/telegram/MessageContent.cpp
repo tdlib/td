@@ -3143,7 +3143,7 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
       auto old_ = static_cast<const MessagePoll *>(old_content);
       auto new_ = static_cast<const MessagePoll *>(new_content);
       if (old_->poll_id != new_->poll_id) {
-        if (old_->poll_id.get() > 0) {
+        if (!PollManager::is_local_poll_id(old_->poll_id)) {
           LOG(ERROR) << "Poll id has changed from " << old_->poll_id << " to " << new_->poll_id;
         }
         // polls are updated in a different way

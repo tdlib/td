@@ -14,6 +14,7 @@
 
 #include "td/actor/actor.h"
 #include "td/actor/PromiseFuture.h"
+#include "td/actor/Timeout.h"
 
 #include "td/utils/common.h"
 
@@ -35,6 +36,8 @@ class PollManager : public Actor {
   PollManager(PollManager &&) = delete;
   PollManager &operator=(PollManager &&) = delete;
   ~PollManager() override;
+
+  static bool is_local_poll_id(PollId poll_id);
 
   PollId create_poll(string &&question, vector<string> &&options);
 
@@ -59,6 +62,8 @@ class PollManager : public Actor {
   td_api::object_ptr<td_api::poll> get_poll_object(PollId poll_id) const;
 
   void on_binlog_events(vector<BinlogEvent> &&events);
+
+  void on_get_poll_results_failed(PollId poll_id);
 
   template <class StorerT>
   void store_poll(PollId poll_id, StorerT &storer) const;
@@ -94,9 +99,10 @@ class PollManager : public Actor {
   class SetPollAnswerLogEvent;
   class StopPollLogEvent;
 
+  void start_up() override;
   void tear_down() override;
 
-  static bool is_local_poll_id(PollId poll_id);
+  static void on_update_poll_timeout_callback(void *poll_manager_ptr, int64 poll_id_int);
 
   static td_api::object_ptr<td_api::pollOption> PollManager::get_poll_option_object(const PollOption &poll_option);
 
@@ -120,6 +126,12 @@ class PollManager : public Actor {
 
   void on_load_poll_from_database(PollId poll_id, string value);
 
+  double get_polling_timeout() const;
+
+  void on_update_poll_timeout(PollId poll_id);
+
+  void on_online();
+
   Poll *get_poll_force(PollId poll_id);
 
   void do_set_poll_answer(PollId poll_id, FullMessageId full_message_id, vector<string> &&options, uint64 logevent_id,
@@ -128,6 +140,8 @@ class PollManager : public Actor {
   void on_set_poll_answer(PollId poll_id, uint64 generation, Result<Unit> &&result);
 
   void do_stop_poll(PollId poll_id, FullMessageId full_message_id, uint64 logevent_id, Promise<Unit> &&promise);
+
+  MultiTimeout update_poll_timeout_{"UpdatePollTimeout"};
 
   Td *td_;
   ActorShared<> parent_;
