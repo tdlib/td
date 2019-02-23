@@ -2598,7 +2598,7 @@ close = Ok;
 destroy = Ok;
 
 
-//@description Returns all updates needed to restore current TDLib state, i.e. all actual UpdateAuthorizationState/UpdateUser/UpdateNewChat and others. This is especially usefull if TDLib is run in a separate process
+//@description Returns all updates needed to restore current TDLib state, i.e. all actual UpdateAuthorizationState/UpdateUser/UpdateNewChat and others. This is especially usefull if TDLib is run in a separate process. This is an offline method. Can be called before authorization
 getCurrentState = Updates;
 
 
@@ -3402,31 +3402,31 @@ getSupportUser = User;
 getWallpapers = Wallpapers;
 
 
-//@description Returns information about the current localization target. This is an offline request if only_local is true @only_local If true, returns only locally available information without sending network requests
+//@description Returns information about the current localization target. This is an offline request if only_local is true. Can be called before authorization @only_local If true, returns only locally available information without sending network requests
 getLocalizationTargetInfo only_local:Bool = LocalizationTargetInfo;
 
-//@description Returns information about a language pack. Returned language pack identifier may be different from a provided one @language_pack_id Language pack identifier
+//@description Returns information about a language pack. Returned language pack identifier may be different from a provided one. Can be called before authorization @language_pack_id Language pack identifier
 getLanguagePackInfo language_pack_id:string = LanguagePackInfo;
 
-//@description Returns strings from a language pack in the current localization target by their keys @language_pack_id Language pack identifier of the strings to be returned @keys Language pack keys of the strings to be returned; leave empty to request all available strings
+//@description Returns strings from a language pack in the current localization target by their keys. Can be called before authorization @language_pack_id Language pack identifier of the strings to be returned @keys Language pack keys of the strings to be returned; leave empty to request all available strings
 getLanguagePackStrings language_pack_id:string keys:vector<string> = LanguagePackStrings;
 
-//@description Fetches latest versions of all strings from a language pack in the current localization target from the server. This method doesn't need to be called explicitly for the current used/base language packs @language_pack_id Language pack identifier
+//@description Fetches latest versions of all strings from a language pack in the current localization target from the server. This method doesn't need to be called explicitly for the current used/base language packs. Can be called before authorization @language_pack_id Language pack identifier
 synchronizeLanguagePack language_pack_id:string = Ok;
 
-//@description Adds a custom server language pack to the list of installed language packs in current localization target @language_pack_id Identifier of a language pack to be added; may be different from a name that is used in an "https://t.me/setlanguage/" link
+//@description Adds a custom server language pack to the list of installed language packs in current localization target. Can be called before authorization @language_pack_id Identifier of a language pack to be added; may be different from a name that is used in an "https://t.me/setlanguage/" link
 addCustomServerLanguagePack language_pack_id:string = Ok;
 
-//@description Adds or changes a custom local language pack to the current localization target @info Information about the language pack. Language pack ID must start with 'X', consist only of English letters, digits and hyphens, and must not exceed 64 characters @strings Strings of the new language pack
+//@description Adds or changes a custom local language pack to the current localization target @info Information about the language pack. Language pack ID must start with 'X', consist only of English letters, digits and hyphens, and must not exceed 64 characters. Can be called before authorization @strings Strings of the new language pack
 setCustomLanguagePack info:languagePackInfo strings:vector<languagePackString> = Ok;
 
-//@description Edits information about a custom local language pack in the current localization target @info New information about the custom local language pack
+//@description Edits information about a custom local language pack in the current localization target. Can be called before authorization @info New information about the custom local language pack
 editCustomLanguagePackInfo info:languagePackInfo = Ok;
 
-//@description Adds, edits or deletes a string in a custom local language pack @language_pack_id Identifier of a previously added custom local language pack in the current localization target @new_string New language pack string
+//@description Adds, edits or deletes a string in a custom local language pack. Can be called before authorization @language_pack_id Identifier of a previously added custom local language pack in the current localization target @new_string New language pack string
 setCustomLanguagePackString language_pack_id:string new_string:languagePackString = Ok;
 
-//@description Deletes all information about a language pack in the current localization target. The language pack which is currently in use (including base language pack) or is being synchronized can't be deleted @language_pack_id Identifier of the language pack to delete
+//@description Deletes all information about a language pack in the current localization target. The language pack which is currently in use (including base language pack) or is being synchronized can't be deleted. Can be called before authorization @language_pack_id Identifier of the language pack to delete
 deleteLanguagePack language_pack_id:string = Ok;
 
 
@@ -3673,7 +3673,7 @@ setLogVerbosityLevel new_verbosity_level:int32 = Ok;
 //@description Returns current verbosity level of the internal logging of TDLib. This is an offline method. Can be called before authorization. Can be called synchronously
 getLogVerbosityLevel = LogVerbosityLevel;
 
-//@description Returns list of available TDLib internal log tags, for example, ["actor", "binlog", "connections", "notifications", "proxy"]
+//@description Returns list of available TDLib internal log tags, for example, ["actor", "binlog", "connections", "notifications", "proxy"]. This is an offline method. Can be called before authorization. Can be called synchronously
 getLogTags = LogTags;
 
 //@description Sets the verbosity level for a specified TDLib internal log tag. This is an offline method. Can be called before authorization. Can be called synchronously
@@ -3684,27 +3684,27 @@ setLogTagVerbosityLevel tag:string new_verbosity_level:int32 = Ok;
 getLogTagVerbosityLevel tag:string = LogVerbosityLevel;
 
 
-//@description Does nothing; for testing only
+//@description Does nothing; for testing only. This is an offline method. Can be called before authorization
 testCallEmpty = Ok;
-//@description Returns the received string; for testing only @x String to return
+//@description Returns the received string; for testing only. This is an offline method. Can be called before authorization @x String to return
 testCallString x:string = TestString;
-//@description Returns the received bytes; for testing only @x Bytes to return
+//@description Returns the received bytes; for testing only. This is an offline method. Can be called before authorization @x Bytes to return
 testCallBytes x:bytes = TestBytes;
-//@description Returns the received vector of numbers; for testing only @x Vector of numbers to return
+//@description Returns the received vector of numbers; for testing only. This is an offline method. Can be called before authorization @x Vector of numbers to return
 testCallVectorInt x:vector<int32> = TestVectorInt;
-//@description Returns the received vector of objects containing a number; for testing only @x Vector of objects to return
+//@description Returns the received vector of objects containing a number; for testing only. This is an offline method. Can be called before authorization @x Vector of objects to return
 testCallVectorIntObject x:vector<testInt> = TestVectorIntObject;
-//@description For testing only request. Returns the received vector of strings; for testing only @x Vector of strings to return
+//@description For testing only request. Returns the received vector of strings; for testing only. This is an offline method. Can be called before authorization @x Vector of strings to return
 testCallVectorString x:vector<string> = TestVectorString;
-//@description Returns the received vector of objects containing a string; for testing only @x Vector of objects to return
+//@description Returns the received vector of objects containing a string; for testing only. This is an offline method. Can be called before authorization @x Vector of objects to return
 testCallVectorStringObject x:vector<testString> = TestVectorStringObject;
-//@description Returns the squared received number; for testing only @x Number to square
+//@description Returns the squared received number; for testing only. This is an offline method. Can be called before authorization @x Number to square
 testSquareInt x:int32 = TestInt;
-//@description Sends a simple network request to the Telegram servers; for testing only
+//@description Sends a simple network request to the Telegram servers; for testing only. Can be called before authorization
 testNetwork = Ok;
 //@description Forces an updates.getDifference call to the Telegram servers; for testing only
 testGetDifference = Ok;
-//@description Does nothing and ensures that the Update object is used; for testing only
+//@description Does nothing and ensures that the Update object is used; for testing only. This is an offline method. Can be called before authorization
 testUseUpdate = Update;
-//@description Does nothing and ensures that the Error object is used; for testing only
+//@description Does nothing and ensures that the Error object is used; for testing only. This is an offline method. Can be called before authorization
 testUseError = Error;

@@ -3147,9 +3147,9 @@ bool Td::is_synchronous_request(int32 id) {
     case td_api::getFileExtension::ID:
     case td_api::cleanFileName::ID:
     case td_api::getLanguagePackString::ID:
-    case td_api::getPushReceiverId::ID:
     case td_api::getJsonValue::ID:
     case td_api::getJsonString::ID:
+    case td_api::getPushReceiverId::ID:
     case td_api::setLogStream::ID:
     case td_api::getLogStream::ID:
     case td_api::setLogVerbosityLevel::ID:
@@ -3185,23 +3185,25 @@ bool Td::is_preinitialization_request(int32 id) {
 
 bool Td::is_preauthentication_request(int32 id) {
   switch (id) {
-    case td_api::processDcUpdate::ID:
-    case td_api::processPushNotification::ID:
     case td_api::getLocalizationTargetInfo::ID:
+    case td_api::getLanguagePackInfo::ID:
     case td_api::getLanguagePackStrings::ID:
     case td_api::synchronizeLanguagePack::ID:
+    case td_api::addCustomServerLanguagePack::ID:
     case td_api::setCustomLanguagePack::ID:
     case td_api::editCustomLanguagePackInfo::ID:
     case td_api::setCustomLanguagePackString::ID:
     case td_api::deleteLanguagePack::ID:
+    case td_api::processDcUpdate::ID:
+    case td_api::processPushNotification::ID:
     case td_api::getOption::ID:
     case td_api::setOption::ID:
+    case td_api::getStorageStatistics::ID:
+    case td_api::getStorageStatisticsFast::ID:
     case td_api::setNetworkType::ID:
     case td_api::getNetworkStatistics::ID:
     case td_api::addNetworkStatistics::ID:
     case td_api::resetNetworkStatistics::ID:
-    case td_api::getStorageStatistics::ID:
-    case td_api::getStorageStatisticsFast::ID:
     case td_api::getCountryCode::ID:
     case td_api::getDeepLinkInfo::ID:
     case td_api::getApplicationConfig::ID:
@@ -3212,6 +3214,7 @@ bool Td::is_preauthentication_request(int32 id) {
     case td_api::disableProxy::ID:
     case td_api::removeProxy::ID:
     case td_api::getProxies::ID:
+    case td_api::getProxyLink::ID:
     case td_api::pingProxy::ID:
     case td_api::testNetwork::ID:
       return true;
