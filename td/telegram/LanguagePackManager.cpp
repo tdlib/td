@@ -51,6 +51,7 @@ struct LanguagePackManager::Language {
   bool is_full_ = false;
   bool was_loaded_full_ = false;
   bool has_get_difference_query_ = false;
+  vector<Promise<Unit>> get_difference_queries_;
   std::unordered_map<string, string> ordinary_strings_;
   std::unordered_map<string, PluralizedString> pluralized_strings_;
   std::unordered_set<string> deleted_strings_;
@@ -299,11 +300,18 @@ void LanguagePackManager::on_language_pack_version_changed(bool is_base, int32 n
 
   LOG(INFO) << (is_base ? "Base" : "Main") << " language pack " << language_code << " vesrion has changed to "
             << new_version;
+  send_language_get_difference_query(language, language_code, version, Auto());
+}
+
+void LanguagePackManager::send_language_get_difference_query(Language *language, const string &language_code,
+                                                             int32 version, Promise<Unit> &&promise) {
   std::lock_guard<std::mutex> lock(language->mutex_);
+  language->get_difference_queries_.push_back(std::move(promise));
   if (language->has_get_difference_query_) {
     return;
   }
 
+  CHECK(language->get_difference_queries_.size() == 1);
   language->has_get_difference_query_ = true;
   auto request_promise =
       PromiseCreator::lambda([actor_id = actor_id(this), language_pack = language_pack_, language_code,
@@ -311,7 +319,7 @@ void LanguagePackManager::on_language_pack_version_changed(bool is_base, int32 n
         auto r_result = fetch_result<telegram_api::langpack_getDifference>(std::move(r_query));
         if (r_result.is_error()) {
           send_closure(actor_id, &LanguagePackManager::on_failed_get_difference, std::move(language_pack),
-                       std::move(language_code));
+                       std::move(language_code), r_result.move_as_error());
           return;
         }
 
@@ -1028,6 +1036,27 @@ void LanguagePackManager::load_empty_language_pack(const string &language_code) 
   get_language_pack_strings(language_code, vector<string>(), Auto());
 }
 
+void LanguagePackManager::synchronize_language_pack(string language_code, Promise<Unit> promise) {
+  if (!check_language_code_name(language_code) || language_code.empty()) {
+    return promise.set_error(Status::Error(400, "Language pack ID is invalid"));
+  }
+  if (language_pack_.empty()) {
+    return promise.set_error(Status::Error(400, "Option \"localization_target\" needs to be set first"));
+  }
+  if (is_custom_language_code(language_code)) {
+    return promise.set_value(Unit());
+  }
+
+  Language *language = add_language(database_, language_pack_, language_code);
+  load_language_strings(database_, language, vector<string>());
+
+  int32 version = language->version_.load();
+  if (version == -1) {
+    version = 0;
+  }
+  send_language_get_difference_query(language, language_code, version, std::move(promise));
+}
+
 static td_api::object_ptr<td_api::LanguagePackStringValue> copy_language_pack_string_value(
     const td_api::LanguagePackStringValue *value) {
   switch (value->get_id()) {
@@ -1205,7 +1234,7 @@ void LanguagePackManager::on_get_language_pack_strings(
     int32 key_count_delta = 0;
     if (language->version_ < version || !keys.empty()) {
       vector<td_api::object_ptr<td_api::languagePackString>> strings;
-      if (language->version_ < version && !(is_diff && language->version_ == -1)) {
+      if (language->version_ < version) {
         LOG(INFO) << "Set language pack " << language_code << " version to " << version;
         language->version_ = version;
         new_database_version = version;
@@ -1312,10 +1341,18 @@ void LanguagePackManager::on_get_language_pack_strings(
 
   if (is_diff) {
     CHECK(language != nullptr);
-    std::lock_guard<std::mutex> lock(language->mutex_);
-    if (language->has_get_difference_query_) {
-      language->has_get_difference_query_ = false;
-      is_version_changed = true;
+    vector<Promise<Unit>> get_difference_queries;
+    {
+      std::lock_guard<std::mutex> lock(language->mutex_);
+      if (language->has_get_difference_query_) {
+        language->has_get_difference_query_ = false;
+        get_difference_queries = std::move(language->get_difference_queries_);
+        reset_to_empty(language->get_difference_queries_);
+        is_version_changed = true;
+      }
+    }
+    for (auto &query : get_difference_queries) {
+      query.set_value(Unit());
     }
   }
   if (is_version_changed && language_pack == language_pack_ &&
@@ -1329,15 +1366,26 @@ void LanguagePackManager::on_get_language_pack_strings(
   }
 }
 
-void LanguagePackManager::on_failed_get_difference(string language_pack, string language_code) {
+void LanguagePackManager::on_failed_get_difference(string language_pack, string language_code, Status error) {
   Language *language = get_language(database_, language_pack, language_code);
   CHECK(language != nullptr);
-  std::lock_guard<std::mutex> lock(language->mutex_);
-  if (language->has_get_difference_query_) {
-    language->has_get_difference_query_ = false;
-    if (language_pack == language_pack_ && (language_code == language_code_ || language_code == base_language_code_)) {
-      send_closure_later(actor_id(this), &LanguagePackManager::on_language_pack_version_changed,
-                         language_code != language_code_, -1);
+  vector<Promise<Unit>> get_difference_queries;
+  {
+    std::lock_guard<std::mutex> lock(language->mutex_);
+    if (language->has_get_difference_query_) {
+      language->has_get_difference_query_ = false;
+      if (language_pack == language_pack_ &&
+          (language_code == language_code_ || language_code == base_language_code_)) {
+        send_closure_later(actor_id(this), &LanguagePackManager::on_language_pack_version_changed,
+                           language_code != language_code_, -1);
+      }
+      get_difference_queries = std::move(language->get_difference_queries_);
+      reset_to_empty(language->get_difference_queries_);
+    }
+  }
+  for (auto &query : get_difference_queries) {
+    if (query) {
+      query.set_error(error.clone());
     }
   }
 }

@@ -3411,6 +3411,9 @@ getLanguagePackInfo language_pack_id:string = LanguagePackInfo;
 //@description Returns strings from a language pack in the current localization target by their keys @language_pack_id Language pack identifier of the strings to be returned @keys Language pack keys of the strings to be returned; leave empty to request all available strings
 getLanguagePackStrings language_pack_id:string keys:vector<string> = LanguagePackStrings;
 
+//@description Fetches latest versions of all strings from a language pack in the current localization target from the server. This method doesn't need to be called explicitly for the current used/base language packs @language_pack_id Language pack identifier
+synchronizeLanguagePack language_pack_id:string = Ok;
+
 //@description Adds a custom server language pack to the list of installed language packs in current localization target @language_pack_id Identifier of a language pack to be added; may be different from a name that is used in an "https://t.me/setlanguage/" link
 addCustomServerLanguagePack language_pack_id:string = Ok;
 
@@ -3423,7 +3426,7 @@ editCustomLanguagePackInfo info:languagePackInfo = Ok;
 //@description Adds, edits or deletes a string in a custom local language pack @language_pack_id Identifier of a previously added custom local language pack in the current localization target @new_string New language pack string
 setCustomLanguagePackString language_pack_id:string new_string:languagePackString = Ok;
 
-//@description Deletes all information about a language pack in the current localization target. The language pack that is currently in use (including base language pack) can't be deleted @language_pack_id Identifier of the language pack to delete
+//@description Deletes all information about a language pack in the current localization target. The language pack which is currently in use (including base language pack) or is being synchronized can't be deleted @language_pack_id Identifier of the language pack to delete
 deleteLanguagePack language_pack_id:string = Ok;
 
 

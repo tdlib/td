@@ -3189,6 +3189,7 @@ bool Td::is_preauthentication_request(int32 id) {
     case td_api::processPushNotification::ID:
     case td_api::getLocalizationTargetInfo::ID:
     case td_api::getLanguagePackStrings::ID:
+    case td_api::synchronizeLanguagePack::ID:
     case td_api::setCustomLanguagePack::ID:
     case td_api::editCustomLanguagePackInfo::ID:
     case td_api::setCustomLanguagePackString::ID:
@@ -6261,6 +6262,14 @@ void Td::on_request(uint64 id, td_api::getLanguagePackStrings &request) {
   CREATE_REQUEST_PROMISE();
   send_closure(language_pack_manager_, &LanguagePackManager::get_language_pack_strings,
                std::move(request.language_pack_id_), std::move(request.keys_), std::move(promise));
+}
+
+void Td::on_request(uint64 id, td_api::synchronizeLanguagePack &request) {
+  CHECK_IS_USER();
+  CLEAN_INPUT_STRING(request.language_pack_id_);
+  CREATE_OK_REQUEST_PROMISE();
+  send_closure(language_pack_manager_, &LanguagePackManager::synchronize_language_pack,
+               std::move(request.language_pack_id_), std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::addCustomServerLanguagePack &request) {

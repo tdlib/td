@@ -62,6 +62,8 @@ class LanguagePackManager : public NetQueryCallback {
                                                                      const string &language_pack,
                                                                      const string &language_code, const string &key);
 
+  void synchronize_language_pack(string language_code, Promise<Unit> promise);
+
   void on_update_language_pack(tl_object_ptr<telegram_api::langPackDifference> difference);
 
   void add_custom_server_language(string language_code, Promise<Unit> &&promise);
@@ -163,7 +165,10 @@ class LanguagePackManager : public NetQueryCallback {
   void on_get_all_language_pack_strings(string language_pack, string language_code,
                                         Result<td_api::object_ptr<td_api::languagePackStrings>> r_strings);
 
-  void on_failed_get_difference(string language_pack, string language_code);
+  void send_language_get_difference_query(Language *language, const string &language_code, int32 version,
+                                          Promise<Unit> &&promise);
+
+  void on_failed_get_difference(string language_pack, string language_code, Status error);
 
   void on_get_language_info(const string &language_pack, td_api::languagePackInfo *language_pack_info);
 
