@@ -102,7 +102,7 @@ Result<FileLoader::PrefixInfo> FileUploader::on_update_local_location(const Loca
   }
 
   string path;
-  int64 local_size = 0;
+  int64 local_size = -1;
   bool local_is_ready{false};
   FileType file_type{FileType::Temp};
   if (location.type() == LocalFileLocation::Type::Empty ||

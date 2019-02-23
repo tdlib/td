@@ -1193,7 +1193,7 @@ class CliClient final : public Actor {
                                                                             const string &name,
                                                                             const string &native_name) {
     return td_api::make_object<td_api::languagePackInfo>(language_code, "test", name, native_name, "en", true, true,
-                                                         true, -1, 5, 3, "abacaba");
+                                                         true, true, -1, 5, 3, "abacaba");
   }
 
   static td_api::object_ptr<td_api::Object> execute(tl_object_ptr<td_api::Function> f) {

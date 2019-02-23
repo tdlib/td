@@ -767,9 +767,10 @@ void LanguagePackManager::search_language_info(string language_code,
 
 td_api::object_ptr<td_api::languagePackInfo> LanguagePackManager::get_language_pack_info_object(
     const string &language_code, const LanguageInfo &info) {
-  return td_api::make_object<td_api::languagePackInfo>(
-      language_code, info.base_language_code_, info.name_, info.native_name_, info.plural_code_, info.is_official_,
-      info.is_rtl_, info.is_beta_, info.total_string_count_, info.translated_string_count_, 0, info.translation_url_);
+  return td_api::make_object<td_api::languagePackInfo>(language_code, info.base_language_code_, info.name_,
+                                                       info.native_name_, info.plural_code_, info.is_official_,
+                                                       info.is_rtl_, info.is_beta_, false, info.total_string_count_,
+                                                       info.translated_string_count_, 0, info.translation_url_);
 }
 
 string LanguagePackManager::get_language_info_string(const LanguageInfo &info) {
@@ -835,9 +836,11 @@ void LanguagePackManager::on_get_languages(vector<tl_object_ptr<telegram_api::la
   auto results = td_api::make_object<td_api::localizationTargetInfo>();
   std::unordered_set<string> added_languages;
 
-  auto add_language_info = [&results, &added_languages](const string &language_code, const LanguageInfo &info) {
+  auto add_language_info = [&results, &added_languages](const string &language_code, const LanguageInfo &info,
+                                                        bool is_installed) {
     if (added_languages.insert(language_code).second) {
       results->language_packs_.push_back(get_language_pack_info_object(language_code, info));
+      results->language_packs_.back()->is_installed_ = is_installed;
     }
   };
 
@@ -848,11 +851,11 @@ void LanguagePackManager::on_get_languages(vector<tl_object_ptr<telegram_api::la
       LanguagePack *pack = pack_it->second.get();
       std::lock_guard<std::mutex> pack_lock(pack->mutex_);
       for (auto &info : pack->custom_language_pack_infos_) {
-        add_language_info(info.first, info.second);
+        add_language_info(info.first, info.second, true);
       }
       if (only_local) {
         for (auto &info : pack->server_language_pack_infos_) {
-          add_language_info(info.first, info.second);
+          add_language_info(info.first, info.second, false);
         }
       }
     }
@@ -865,7 +868,7 @@ void LanguagePackManager::on_get_languages(vector<tl_object_ptr<telegram_api::la
       continue;
     }
 
-    add_language_info(language->lang_code_, r_info.ok());
+    add_language_info(language->lang_code_, r_info.ok(), false);
     all_server_infos.emplace_back(std::move(language->lang_code_), r_info.move_as_ok());
   }
 
@@ -911,6 +914,10 @@ void LanguagePackManager::on_get_language(tl_object_ptr<telegram_api::langPackLa
   if (pack_it != database_->language_packs_.end()) {
     LanguagePack *pack = pack_it->second.get();
     std::lock_guard<std::mutex> pack_lock(pack->mutex_);
+
+    result->is_installed_ = pack->custom_language_pack_infos_.count(lang_pack_language->lang_code_) != 0 ||
+                            pack->custom_language_pack_infos_.count(language_code) != 0;
+
     bool is_changed = false;
     for (auto &info : pack->server_language_pack_infos_) {
       if (info.first == lang_pack_language->lang_code_ || info.first == language_code) {
@@ -926,6 +933,8 @@ void LanguagePackManager::on_get_language(tl_object_ptr<telegram_api::langPackLa
     if (is_changed) {
       save_server_language_pack_infos(pack);
     }
+  } else {
+    LOG(ERROR) << "Failed to find localization target " << language_pack;
   }
 
   promise.set_value(std::move(result));
