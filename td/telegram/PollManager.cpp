@@ -723,6 +723,10 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
   if ((poll_results->flags_ & telegram_api::pollResults::TOTAL_VOTERS_MASK) != 0 &&
       poll_results->total_voters_ != poll->total_voter_count) {
     poll->total_voter_count = poll_results->total_voters_;
+    if (poll->total_voter_count < 0) {
+      LOG(ERROR) << "Receive " << poll->total_voter_count << " voters in " << poll_id;
+      poll->total_voter_count = 0;
+    }
     is_changed = true;
   }
   for (auto &poll_result : poll_results->results_) {
@@ -740,6 +744,19 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
       }
       if (poll_result->voters_ != option.voter_count) {
         option.voter_count = poll_result->voters_;
+        if (option.voter_count < 0) {
+          LOG(ERROR) << "Receive " << option.voter_count << " voters for an option in " << poll_id;
+          option.voter_count = 0;
+        }
+        if (option.is_chosen && option.voter_count == 0) {
+          LOG(ERROR) << "Receive 0 voters for the chosen option";
+          option.voter_count = 1;
+        }
+        if (option.voter_count > poll->total_voter_count) {
+          LOG(ERROR) << "Have only " << poll->total_voter_count << " poll voters, but there are " << option.voter_count
+                     << " voters for an option";
+          poll->total_voter_count = option.voter_count;
+        }
         is_changed = true;
       }
     }
