@@ -15629,7 +15629,7 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
   auto content = get_message_content(td_, caption == nullptr ? FormattedText() : *caption, std::move(media), dialog_id,
                                      false, UserId(), nullptr);
 
-  update_message_content(dialog_id, m, std::move(content), true, true);
+  update_message_content(dialog_id, m, std::move(content), true, true, true);
 
   auto input_media = get_input_media(m->content.get(), td_, m->ttl);
   Status result;
@@ -16466,7 +16466,7 @@ void MessagesManager::on_message_media_edited(DialogId dialog_id, MessageId mess
     std::swap(m->content, m->edited_content);
     bool need_send_update_message_content = m->edited_content->get_type() == MessageContentType::Photo &&
                                             m->content->get_type() == MessageContentType::Photo;
-    update_message_content(dialog_id, m, std::move(m->edited_content), need_send_update_message_content, true);
+    update_message_content(dialog_id, m, std::move(m->edited_content), need_send_update_message_content, true, true);
   } else {
     if (was_uploaded) {
       if (was_thumbnail_uploaded) {
@@ -22446,7 +22446,8 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
   }
 
   if (update_message_content(dialog_id, old_message.get(), std::move(new_message->content), true,
-                             message_id.is_yet_unsent() && new_message->edit_date == 0)) {
+                             message_id.is_yet_unsent() && new_message->edit_date == 0,
+                             get_message(d, message_id) != nullptr)) {
     is_changed = true;
   }
   // TODO update can be send only if the message has already been returned to the user
@@ -22472,7 +22473,8 @@ bool MessagesManager::need_message_changed_warning(const Message *old_message) {
 
 bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_message,
                                              unique_ptr<MessageContent> new_content,
-                                             bool need_send_update_message_content, bool need_merge_files) {
+                                             bool need_send_update_message_content, bool need_merge_files,
+                                             bool is_message_in_dialog) {
   bool is_content_changed = false;
   bool need_update = false;
   unique_ptr<MessageContent> &old_content = old_message->content;
@@ -22536,9 +22538,13 @@ bool MessagesManager::update_message_content(DialogId dialog_id, Message *old_me
   }
 
   if (is_content_changed || need_update) {
-    unregister_message_content(td_, old_content.get(), {dialog_id, old_message->message_id});
+    if (is_message_in_dialog) {
+      unregister_message_content(td_, old_content.get(), {dialog_id, old_message->message_id});
+    }
     old_content = std::move(new_content);
-    register_message_content(td_, old_content.get(), {dialog_id, old_message->message_id});
+    if (is_message_in_dialog) {
+      register_message_content(td_, old_content.get(), {dialog_id, old_message->message_id});
+    }
     update_message_content_file_id_remote(old_content.get(), old_file_id);
   } else {
     update_message_content_file_id_remote(old_content.get(), get_message_content_file_id(new_content.get()));

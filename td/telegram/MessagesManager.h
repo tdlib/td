@@ -1552,7 +1552,7 @@ class MessagesManager : public Actor {
   static bool need_message_changed_warning(const Message *old_message);
 
   bool update_message_content(DialogId dialog_id, Message *old_message, unique_ptr<MessageContent> new_content,
-                              bool need_send_update_message_content, bool need_merge_files);
+                              bool need_send_update_message_content, bool need_merge_files, bool is_message_in_dialog);
 
   void send_update_new_message(const Dialog *d, const Message *m);
 

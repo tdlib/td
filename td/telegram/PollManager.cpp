@@ -359,11 +359,13 @@ PollId PollManager::create_poll(string &&question, vector<string> &&options) {
   CHECK(is_local_poll_id(poll_id));
   bool is_inserted = polls_.emplace(poll_id, std::move(poll)).second;
   CHECK(is_inserted);
+  LOG(INFO) << "Created " << poll_id << " with question \"" << oneline(question) << '"';
   return poll_id;
 }
 
 void PollManager::register_poll(PollId poll_id, FullMessageId full_message_id) {
   CHECK(have_poll(poll_id));
+  LOG(INFO) << "Register " << poll_id << " from " << full_message_id;
   poll_messages_[poll_id].insert(full_message_id);
   if (!td_->auth_manager_->is_bot() && !is_local_poll_id(poll_id) && !get_poll_is_closed(poll_id)) {
     update_poll_timeout_.add_timeout_in(poll_id.get(), 0);
@@ -372,6 +374,7 @@ void PollManager::register_poll(PollId poll_id, FullMessageId full_message_id) {
 
 void PollManager::unregister_poll(PollId poll_id, FullMessageId full_message_id) {
   CHECK(have_poll(poll_id));
+  LOG(INFO) << "Unregister " << poll_id << " from " << full_message_id;
   auto &message_ids = poll_messages_[poll_id];
   message_ids.erase(full_message_id);
   if (message_ids.empty()) {
@@ -435,6 +438,7 @@ class PollManager::SetPollAnswerLogEvent {
 
 void PollManager::do_set_poll_answer(PollId poll_id, FullMessageId full_message_id, vector<string> &&options,
                                      uint64 logevent_id, Promise<Unit> &&promise) {
+  LOG(INFO) << "Set answer in " << poll_id << " from " << full_message_id;
   auto &pending_answer = pending_answers_[poll_id];
   if (!pending_answer.promises_.empty() && pending_answer.options_ == options) {
     pending_answer.promises_.push_back(std::move(promise));
@@ -570,6 +574,7 @@ class PollManager::StopPollLogEvent {
 
 void PollManager::do_stop_poll(PollId poll_id, FullMessageId full_message_id, uint64 logevent_id,
                                Promise<Unit> &&promise) {
+  LOG(INFO) << "Stop " << poll_id << " from " << full_message_id;
   if (logevent_id == 0 && G()->parameters().use_message_db) {
     StopPollLogEvent logevent{poll_id, full_message_id};
     auto storer = LogEventStorerImpl<StopPollLogEvent>(logevent);
