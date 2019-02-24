@@ -27,8 +27,8 @@ namespace TdApp
             Items = new System.Collections.ObjectModel.ObservableCollection<string>();
             _handler = new MyClientResultHandler(this);
 
-            Td.Log.SetFilePath(Path.Combine(Windows.Storage.ApplicationData.Current.LocalFolder.Path, "log"));
-            Td.Log.SetVerbosityLevel(0);
+            Td.Client.Execute(new TdApi.SetLogVerbosityLevel(0));
+            Td.Client.Execute(new TdApi.SetLogStream(new TdApi.LogStreamFile(Path.Combine(Windows.Storage.ApplicationData.Current.LocalFolder.Path, "log"), 1 << 27)));
 
             System.Threading.Tasks.Task.Run(() =>
             {
@@ -118,7 +118,7 @@ namespace TdApp
             {
                 var args = command.Split(" ".ToCharArray(), 2);
                 AcceptCommand(command);
-                _client.Send(new TdApi.DownloadFile(Int32.Parse(args[1]), 1), _handler);
+                _client.Send(new TdApi.DownloadFile(Int32.Parse(args[1]), 1, 0, 0), _handler);
             }
             else if (command.StartsWith("bench"))
             {

@@ -206,8 +206,8 @@ namespace TdExample
         static void Main()
         {
             // disable TDLib log
-            Td.Log.SetVerbosityLevel(0);
-            if (!Td.Log.SetFilePath("tdlib.log"))
+            Td.Client.Execute(new TdApi.SetLogVerbosityLevel(0));
+            if (Td.Client.Execute(new TdApi.SetLogStream(new TdApi.LogStreamFile("tdlib.log", 1 << 27))) is TdApi.Error)
             {
                 throw new System.IO.IOException("Write access to the current directory is required");
             }
