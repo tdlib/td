@@ -418,6 +418,7 @@ set(TDLIB_SOURCE
   td/telegram/PrivacyManager.cpp
   td/telegram/Photo.cpp
   td/telegram/PollManager.cpp
+  td/telegram/QueryCombiner.cpp
   td/telegram/ReplyMarkup.cpp
   td/telegram/SecretChatActor.cpp
   td/telegram/SecretChatDb.cpp
@@ -572,6 +573,7 @@ set(TDLIB_SOURCE
   td/telegram/PollManager.h
   td/telegram/PrivacyManager.h
   td/telegram/PtsManager.h
+  td/telegram/QueryCombiner.h
   td/telegram/ReplyMarkup.h
   td/telegram/RequestActor.h
   td/telegram/SecretChatActor.h

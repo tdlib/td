@@ -19,6 +19,7 @@
 #include "td/telegram/files/FileSourceId.h"
 #include "td/telegram/MessageId.h"
 #include "td/telegram/Photo.h"
+#include "td/telegram/QueryCombiner.h"
 #include "td/telegram/SecretChatId.h"
 #include "td/telegram/UserId.h"
 
@@ -943,12 +944,6 @@ class ContactsManager : public Actor {
   void update_chat_full(ChatFull *chat_full, ChatId chat_id);
   void update_channel_full(ChannelFull *channel_full, ChannelId channel_id);
 
-  void on_get_user_full_result(UserId user_id, Result<Unit> &&result);
-
-  void on_get_chat_full_result(ChatId chat_id, Result<Unit> &&result);
-
-  void on_get_channel_full_result(ChannelId channel_id, Result<Unit> &&result);
-
   bool is_chat_full_outdated(ChatFull *chat_full, Chat *c, ChatId chat_id);
 
   int32 get_contacts_hash();
@@ -1095,9 +1090,9 @@ class ContactsManager : public Actor {
   std::unordered_map<SecretChatId, vector<Promise<Unit>>, SecretChatIdHash> load_secret_chat_from_database_queries_;
   std::unordered_set<SecretChatId, SecretChatIdHash> loaded_from_database_secret_chats_;
 
-  std::unordered_map<UserId, vector<Promise<Unit>>, UserIdHash> get_user_full_queries_;
-  std::unordered_map<ChatId, vector<Promise<Unit>>, ChatIdHash> get_chat_full_queries_;
-  std::unordered_map<ChannelId, vector<Promise<Unit>>, ChannelIdHash> get_channel_full_queries_;
+  QueryCombiner get_user_full_queries_{"GetUserFullCombiner"};
+  QueryCombiner get_chat_full_queries_{"GetChatFullCombiner"};
+  QueryCombiner get_channel_full_queries_{"GetChannelFullCombiner"};
 
   std::unordered_map<DialogId, vector<UserId>, DialogIdHash> dialog_administrators_;
 

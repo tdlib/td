@@ -8378,33 +8378,13 @@ bool ContactsManager::get_user_full(UserId user_id, Promise<Unit> &&promise) {
 
 void ContactsManager::send_get_user_full_query(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user,
                                                Promise<Unit> &&promise) {
-  auto &promises = get_user_full_queries_[user_id];
-  promises.push_back(std::move(promise));
-  if (promises.size() != 1) {
-    // query has already been sent, just wait for the result
-    return;
-  }
-
-  auto request_promise = PromiseCreator::lambda([actor_id = actor_id(this), user_id](Result<Unit> &&result) {
-    send_closure(actor_id, &ContactsManager::on_get_user_full_result, user_id, std::move(result));
-  });
-  td_->create_handler<GetFullUserQuery>(std::move(request_promise))->send(std::move(input_user));
-}
-
-void ContactsManager::on_get_user_full_result(UserId user_id, Result<Unit> &&result) {
-  auto it = get_user_full_queries_.find(user_id);
-  CHECK(it != get_user_full_queries_.end());
-  CHECK(!it->second.empty());
-  auto promises = std::move(it->second);
-  get_user_full_queries_.erase(it);
-
-  for (auto &promise : promises) {
-    if (result.is_ok()) {
-      promise.set_value(Unit());
-    } else {
-      promise.set_error(result.error().clone());
-    }
-  }
+  auto send_query =
+      PromiseCreator::lambda([td = td_, input_user = std::move(input_user)](Result<Promise<Unit>> &&promise) mutable {
+        if (promise.is_ok()) {
+          td->create_handler<GetFullUserQuery>(promise.move_as_ok())->send(std::move(input_user));
+        }
+      });
+  get_user_full_queries_.add_query(user_id.get(), std::move(send_query), std::move(promise));
 }
 
 std::pair<int32, vector<const Photo *>> ContactsManager::get_user_profile_photos(UserId user_id, int32 offset,
@@ -8653,33 +8633,13 @@ bool ContactsManager::get_chat_full(ChatId chat_id, Promise<Unit> &&promise) {
 }
 
 void ContactsManager::send_get_chat_full_query(ChatId chat_id, Promise<Unit> &&promise) {
-  auto &promises = get_chat_full_queries_[chat_id];
-  promises.push_back(std::move(promise));
-  if (promises.size() != 1) {
-    // query has already been sent, just wait for the result
-    return;
-  }
-
-  auto request_promise = PromiseCreator::lambda([actor_id = actor_id(this), chat_id](Result<Unit> &&result) {
-    send_closure(actor_id, &ContactsManager::on_get_chat_full_result, chat_id, std::move(result));
-  });
-  td_->create_handler<GetFullChatQuery>(std::move(request_promise))->send(chat_id);
-}
-
-void ContactsManager::on_get_chat_full_result(ChatId chat_id, Result<Unit> &&result) {
-  auto it = get_chat_full_queries_.find(chat_id);
-  CHECK(it != get_chat_full_queries_.end());
-  CHECK(!it->second.empty());
-  auto promises = std::move(it->second);
-  get_chat_full_queries_.erase(it);
-
-  for (auto &promise : promises) {
-    if (result.is_ok()) {
-      promise.set_value(Unit());
-    } else {
-      promise.set_error(result.error().clone());
+  auto send_query = PromiseCreator::lambda([td = td_, chat_id](Result<Promise<Unit>> &&promise) mutable {
+    if (promise.is_ok()) {
+      td->create_handler<GetFullChatQuery>(promise.move_as_ok())->send(chat_id);
     }
-  }
+  });
+
+  get_chat_full_queries_.add_query(chat_id.get(), std::move(send_query), std::move(promise));
 }
 
 bool ContactsManager::get_chat_is_active(ChatId chat_id) const {
@@ -8934,33 +8894,13 @@ bool ContactsManager::get_channel_full(ChannelId channel_id, Promise<Unit> &&pro
 void ContactsManager::send_get_channel_full_query(ChannelId channel_id,
                                                   tl_object_ptr<telegram_api::InputChannel> &&input_channel,
                                                   Promise<Unit> &&promise) {
-  auto &promises = get_channel_full_queries_[channel_id];
-  promises.push_back(std::move(promise));
-  if (promises.size() != 1) {
-    // query has already been sent, just wait for the result
-    return;
-  }
-
-  auto request_promise = PromiseCreator::lambda([actor_id = actor_id(this), channel_id](Result<Unit> &&result) {
-    send_closure(actor_id, &ContactsManager::on_get_channel_full_result, channel_id, std::move(result));
-  });
-  td_->create_handler<GetFullChannelQuery>(std::move(request_promise))->send(channel_id, std::move(input_channel));
-}
-
-void ContactsManager::on_get_channel_full_result(ChannelId channel_id, Result<Unit> &&result) {
-  auto it = get_channel_full_queries_.find(channel_id);
-  CHECK(it != get_channel_full_queries_.end());
-  CHECK(!it->second.empty());
-  auto promises = std::move(it->second);
-  get_channel_full_queries_.erase(it);
-
-  for (auto &promise : promises) {
-    if (result.is_ok()) {
-      promise.set_value(Unit());
-    } else {
-      promise.set_error(result.error().clone());
-    }
-  }
+  auto send_query = PromiseCreator::lambda(
+      [td = td_, channel_id, input_channel = std::move(input_channel)](Result<Promise<Unit>> &&promise) mutable {
+        if (promise.is_ok()) {
+          td->create_handler<GetFullChannelQuery>(promise.move_as_ok())->send(channel_id, std::move(input_channel));
+        }
+      });
+  get_channel_full_queries_.add_query(channel_id.get(), std::move(send_query), std::move(promise));
 }
 
 bool ContactsManager::have_secret_chat(SecretChatId secret_chat_id) const {
