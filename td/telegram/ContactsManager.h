@@ -1090,9 +1090,9 @@ class ContactsManager : public Actor {
   std::unordered_map<SecretChatId, vector<Promise<Unit>>, SecretChatIdHash> load_secret_chat_from_database_queries_;
   std::unordered_set<SecretChatId, SecretChatIdHash> loaded_from_database_secret_chats_;
 
-  QueryCombiner get_user_full_queries_{"GetUserFullCombiner"};
-  QueryCombiner get_chat_full_queries_{"GetChatFullCombiner"};
-  QueryCombiner get_channel_full_queries_{"GetChannelFullCombiner"};
+  QueryCombiner get_user_full_queries_{"GetUserFullCombiner", 2.0};
+  QueryCombiner get_chat_full_queries_{"GetChatFullCombiner", 2.0};
+  QueryCombiner get_channel_full_queries_{"GetChannelFullCombiner", 2.0};
 
   std::unordered_map<DialogId, vector<UserId>, DialogIdHash> dialog_administrators_;
 

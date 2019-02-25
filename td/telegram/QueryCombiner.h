@@ -12,6 +12,7 @@
 #include "td/utils/common.h"
 
 #include <functional>
+#include <queue>
 #include <unordered_map>
 
 namespace td {
@@ -19,7 +20,7 @@ namespace td {
 // combines identical queries into one request
 class QueryCombiner : public Actor {
  public:
-  explicit QueryCombiner(Slice name) {
+  explicit QueryCombiner(Slice name, double min_delay = 0) : min_delay_(min_delay) {
     register_actor(name, this).release();
   }
 
@@ -29,11 +30,23 @@ class QueryCombiner : public Actor {
   struct QueryInfo {
     vector<Promise<Unit>> promises;
     bool is_sent = false;
+    Promise<Promise<Unit>> send_query;
   };
+
+  int32 query_count_ = 0;
+
+  double next_query_time_ = 0.0;
+  double min_delay_;
+
+  std::queue<int64> delayed_queries_;
 
   std::unordered_map<int64, QueryInfo> queries_;
 
+  void do_send_query(int64 query_id, QueryInfo &query);
+
   void on_get_query_result(int64 query_id, Result<Unit> &&result);
+
+  void loop() override;
 };
 
 }  // namespace td
