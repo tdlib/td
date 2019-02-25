@@ -2340,6 +2340,10 @@ bool can_forward_message_content(const MessageContent *content) {
     auto *text = static_cast<const MessageText *>(content);
     return !is_empty_string(text->text.text);  // text can't be empty in the new message
   }
+  if (content_type == MessageContentType::Poll) {
+    auto *poll = static_cast<const MessagePoll *>(content);
+    return !PollManager::is_local_poll_id(poll->poll_id);
+  }
 
   return !is_service_message_content(content_type) && content_type != MessageContentType::Unsupported &&
          content_type != MessageContentType::ExpiredPhoto && content_type != MessageContentType::ExpiredVideo;
