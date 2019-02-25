@@ -516,7 +516,7 @@ LanguagePackManager::Language *LanguagePackManager::add_language(LanguageDatabas
         info.is_from_database_ = true;
       }
       if (need_drop_server) {
-        LOG(INFO) << "Drop ald server language pack info cache";
+        LOG(INFO) << "Drop old server language pack info cache";
         pack->pack_kv_.erase("!server");
       }
     }
@@ -535,6 +535,9 @@ LanguagePackManager::Language *LanguagePackManager::add_language(LanguageDatabas
       language->version_ = load_database_language_version(&language->kv_);
       language->key_count_ = load_database_language_key_count(&language->kv_);
       language->base_language_code_ = load_database_language_base_language_code(&language->kv_);
+      LOG(INFO) << "Loaded language " << language_code << " with version " << language->version_.load()
+                << ", key count " << language->key_count_.load() << " and base language "
+                << language->base_language_code_;
     }
     code_it = pack->languages_.emplace(language_code, std::move(language)).first;
   }
