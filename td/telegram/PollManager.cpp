@@ -366,7 +366,8 @@ PollId PollManager::create_poll(string &&question, vector<string> &&options) {
 void PollManager::register_poll(PollId poll_id, FullMessageId full_message_id) {
   CHECK(have_poll(poll_id));
   LOG(INFO) << "Register " << poll_id << " from " << full_message_id;
-  poll_messages_[poll_id].insert(full_message_id);
+  bool is_inserted = poll_messages_[poll_id].insert(full_message_id).second;
+  CHECK(is_inserted);
   if (!td_->auth_manager_->is_bot() && !is_local_poll_id(poll_id) && !get_poll_is_closed(poll_id)) {
     update_poll_timeout_.add_timeout_in(poll_id.get(), 0);
   }
@@ -376,7 +377,8 @@ void PollManager::unregister_poll(PollId poll_id, FullMessageId full_message_id)
   CHECK(have_poll(poll_id));
   LOG(INFO) << "Unregister " << poll_id << " from " << full_message_id;
   auto &message_ids = poll_messages_[poll_id];
-  message_ids.erase(full_message_id);
+  auto is_deleted = message_ids.erase(full_message_id);
+  CHECK(is_deleted);
   if (message_ids.empty()) {
     poll_messages_.erase(poll_id);
     update_poll_timeout_.cancel_timeout(poll_id.get());
