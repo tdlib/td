@@ -10,12 +10,15 @@ namespace td {
 
 void QueryCombiner::add_query(int64 query_id, Promise<Promise<Unit>> &&send_query, Promise<Unit> &&promise) {
   auto &query = queries_[query_id];
-  query.promises.push_back(std::move(promise));
-  if (query.promises.size() != 1) {
-    // query has already been sent, just wait for the result
+  if (promise) {
+    query.promises.push_back(std::move(promise));
+  }
+  if (query.is_sent) {
+    // just wait for the result
     return;
   }
 
+  query.is_sent = true;
   send_query.set_value(PromiseCreator::lambda([actor_id = actor_id(this), query_id](Result<Unit> &&result) {
     send_closure(actor_id, &QueryCombiner::on_get_query_result, query_id, std::move(result));
   }));
@@ -24,7 +27,7 @@ void QueryCombiner::add_query(int64 query_id, Promise<Promise<Unit>> &&send_quer
 void QueryCombiner::on_get_query_result(int64 query_id, Result<Unit> &&result) {
   auto it = queries_.find(query_id);
   CHECK(it != queries_.end());
-  CHECK(!it->second.promises.empty());
+  CHECK(it->second.is_sent);
   auto promises = std::move(it->second.promises);
   queries_.erase(it);
 

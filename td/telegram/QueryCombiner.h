@@ -28,6 +28,7 @@ class QueryCombiner : public Actor {
  private:
   struct QueryInfo {
     vector<Promise<Unit>> promises;
+    bool is_sent = false;
   };
 
   std::unordered_map<int64, QueryInfo> queries_;
