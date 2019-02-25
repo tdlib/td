@@ -1850,11 +1850,13 @@ class GetUsersQuery : public Td::ResultHandler {
 };
 
 class GetFullUserQuery : public Td::ResultHandler {
-  UserId user_id_;
+  Promise<Unit> promise_;
 
  public:
-  void send(UserId user_id, tl_object_ptr<telegram_api::InputUser> &&input_user) {
-    user_id_ = user_id;
+  explicit GetFullUserQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(tl_object_ptr<telegram_api::InputUser> &&input_user) {
     send_query(G()->net_query_creator().create(create_storer(telegram_api::users_getFullUser(std::move(input_user)))));
   }
 
@@ -1866,11 +1868,11 @@ class GetFullUserQuery : public Td::ResultHandler {
 
     LOG(DEBUG) << "Receive result for getFullUser " << to_string(result_ptr.ok());
     td->contacts_manager_->on_get_user_full(result_ptr.move_as_ok());
-    td->contacts_manager_->on_get_user_full_result(user_id_, Unit());
+    promise_.set_value(Unit());
   }
 
   void on_error(uint64 id, Status status) override {
-    td->contacts_manager_->on_get_user_full_result(user_id_, std::move(status));
+    promise_.set_error(std::move(status));
   }
 };
 
@@ -1971,11 +1973,13 @@ class GetChatsQuery : public Td::ResultHandler {
 };
 
 class GetFullChatQuery : public Td::ResultHandler {
-  ChatId chat_id_;
+  Promise<Unit> promise_;
 
  public:
+  explicit GetFullChatQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
   void send(ChatId chat_id) {
-    chat_id_ = chat_id;
     LOG(INFO) << "Send getFullChat query to get " << chat_id;
     send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_getFullChat(chat_id.get()))));
   }
@@ -1987,16 +1991,15 @@ class GetFullChatQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    //    LOG(INFO) << "Receive result for getFullChat query: " << to_string(ptr);
     td->contacts_manager_->on_get_users(std::move(ptr->users_), "GetFullChatQuery");
     td->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetFullChatQuery");
     td->contacts_manager_->on_get_chat_full(std::move(ptr->full_chat_));
 
-    td->contacts_manager_->on_get_chat_full_result(chat_id_, Unit());
+    promise_.set_value(Unit());
   }
 
   void on_error(uint64 id, Status status) override {
-    td->contacts_manager_->on_get_chat_full_result(chat_id_, std::move(status));
+    promise_.set_error(std::move(status));
   }
 };
 
@@ -2055,9 +2058,13 @@ class GetChannelsQuery : public Td::ResultHandler {
 };
 
 class GetFullChannelQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
   ChannelId channel_id_;
 
  public:
+  explicit GetFullChannelQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
   void send(ChannelId channel_id, tl_object_ptr<telegram_api::InputChannel> &&input_channel) {
     channel_id_ = channel_id;
     send_query(G()->net_query_creator().create(
@@ -2071,17 +2078,16 @@ class GetFullChannelQuery : public Td::ResultHandler {
     }
 
     auto ptr = result_ptr.move_as_ok();
-    //    LOG(INFO) << "Receive result for getFullChannel query: " << to_string(ptr);
     td->contacts_manager_->on_get_users(std::move(ptr->users_), "GetFullChannelQuery");
     td->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetFullChannelQuery");
     td->contacts_manager_->on_get_chat_full(std::move(ptr->full_chat_));
 
-    td->contacts_manager_->on_get_channel_full_result(channel_id_, Unit());
+    promise_.set_value(Unit());
   }
 
   void on_error(uint64 id, Status status) override {
     td->contacts_manager_->on_get_channel_error(channel_id_, status, "GetFullChannelQuery");
-    td->contacts_manager_->on_get_channel_full_result(channel_id_, std::move(status));
+    promise_.set_error(std::move(status));
   }
 };
 
@@ -8379,7 +8385,10 @@ void ContactsManager::send_get_user_full_query(UserId user_id, tl_object_ptr<tel
     return;
   }
 
-  td_->create_handler<GetFullUserQuery>()->send(user_id, std::move(input_user));
+  auto request_promise = PromiseCreator::lambda([actor_id = actor_id(this), user_id](Result<Unit> &&result) {
+    send_closure(actor_id, &ContactsManager::on_get_user_full_result, user_id, std::move(result));
+  });
+  td_->create_handler<GetFullUserQuery>(std::move(request_promise))->send(std::move(input_user));
 }
 
 void ContactsManager::on_get_user_full_result(UserId user_id, Result<Unit> &&result) {
@@ -8651,7 +8660,10 @@ void ContactsManager::send_get_chat_full_query(ChatId chat_id, Promise<Unit> &&p
     return;
   }
 
-  td_->create_handler<GetFullChatQuery>()->send(chat_id);
+  auto request_promise = PromiseCreator::lambda([actor_id = actor_id(this), chat_id](Result<Unit> &&result) {
+    send_closure(actor_id, &ContactsManager::on_get_chat_full_result, chat_id, std::move(result));
+  });
+  td_->create_handler<GetFullChatQuery>(std::move(request_promise))->send(chat_id);
 }
 
 void ContactsManager::on_get_chat_full_result(ChatId chat_id, Result<Unit> &&result) {
@@ -8929,7 +8941,10 @@ void ContactsManager::send_get_channel_full_query(ChannelId channel_id,
     return;
   }
 
-  td_->create_handler<GetFullChannelQuery>()->send(channel_id, std::move(input_channel));
+  auto request_promise = PromiseCreator::lambda([actor_id = actor_id(this), channel_id](Result<Unit> &&result) {
+    send_closure(actor_id, &ContactsManager::on_get_channel_full_result, channel_id, std::move(result));
+  });
+  td_->create_handler<GetFullChannelQuery>(std::move(request_promise))->send(channel_id, std::move(input_channel));
 }
 
 void ContactsManager::on_get_channel_full_result(ChannelId channel_id, Result<Unit> &&result) {

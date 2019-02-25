@@ -200,12 +200,6 @@ class ContactsManager : public Actor {
 
   void on_get_created_public_channels(vector<tl_object_ptr<telegram_api::Chat>> &&chats);
 
-  void on_get_user_full_result(UserId user_id, Result<Unit> &&result);
-
-  void on_get_chat_full_result(ChatId chat_id, Result<Unit> &&result);
-
-  void on_get_channel_full_result(ChannelId channel_id, Result<Unit> &&result);
-
   UserId get_my_id() const;
 
   void set_my_online_status(bool is_online, bool send_update, bool is_local);
@@ -948,6 +942,12 @@ class ContactsManager : public Actor {
   void update_user_full(UserFull *user_full, UserId user_id);
   void update_chat_full(ChatFull *chat_full, ChatId chat_id);
   void update_channel_full(ChannelFull *channel_full, ChannelId channel_id);
+
+  void on_get_user_full_result(UserId user_id, Result<Unit> &&result);
+
+  void on_get_chat_full_result(ChatId chat_id, Result<Unit> &&result);
+
+  void on_get_channel_full_result(ChannelId channel_id, Result<Unit> &&result);
 
   bool is_chat_full_outdated(ChatFull *chat_full, Chat *c, ChatId chat_id);
 
