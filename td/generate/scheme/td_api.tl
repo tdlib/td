@@ -2621,10 +2621,10 @@ getRecoveryEmailAddress password:string = RecoveryEmailAddress;
 setRecoveryEmailAddress password:string new_recovery_email_address:string = PasswordState;
 
 //@description Checks the 2-step verification recovery email address verification code @code Verification code
-checkRecoveryEmailAddressCode code:string = Ok;
+checkRecoveryEmailAddressCode code:string = PasswordState;
 
 //@description Resends the 2-step verification recovery email address verification code
-resendRecoveryEmailAddressCode = Ok;
+resendRecoveryEmailAddressCode = PasswordState;
 
 //@description Requests to send a password recovery code to an email address that was previously set up
 requestPasswordRecovery = EmailAddressAuthenticationCodeInfo;
