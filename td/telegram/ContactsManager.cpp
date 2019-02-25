@@ -1866,11 +1866,11 @@ class GetFullUserQuery : public Td::ResultHandler {
 
     LOG(DEBUG) << "Receive result for getFullUser " << to_string(result_ptr.ok());
     td->contacts_manager_->on_get_user_full(result_ptr.move_as_ok());
-    td->contacts_manager_->on_get_user_full_success(user_id_);
+    td->contacts_manager_->on_get_user_full_result(user_id_, Unit());
   }
 
   void on_error(uint64 id, Status status) override {
-    td->contacts_manager_->on_get_user_full_fail(user_id_, std::move(status));
+    td->contacts_manager_->on_get_user_full_result(user_id_, std::move(status));
   }
 };
 
@@ -1992,11 +1992,11 @@ class GetFullChatQuery : public Td::ResultHandler {
     td->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetFullChatQuery");
     td->contacts_manager_->on_get_chat_full(std::move(ptr->full_chat_));
 
-    td->contacts_manager_->on_get_chat_full_success(chat_id_);
+    td->contacts_manager_->on_get_chat_full_result(chat_id_, Unit());
   }
 
   void on_error(uint64 id, Status status) override {
-    td->contacts_manager_->on_get_chat_full_fail(chat_id_, std::move(status));
+    td->contacts_manager_->on_get_chat_full_result(chat_id_, std::move(status));
   }
 };
 
@@ -2076,12 +2076,12 @@ class GetFullChannelQuery : public Td::ResultHandler {
     td->contacts_manager_->on_get_chats(std::move(ptr->chats_), "GetFullChannelQuery");
     td->contacts_manager_->on_get_chat_full(std::move(ptr->full_chat_));
 
-    td->contacts_manager_->on_get_channel_full_success(channel_id_);
+    td->contacts_manager_->on_get_channel_full_result(channel_id_, Unit());
   }
 
   void on_error(uint64 id, Status status) override {
     td->contacts_manager_->on_get_channel_error(channel_id_, status, "GetFullChannelQuery");
-    td->contacts_manager_->on_get_channel_full_fail(channel_id_, std::move(status));
+    td->contacts_manager_->on_get_channel_full_result(channel_id_, std::move(status));
   }
 };
 
@@ -8382,7 +8382,7 @@ void ContactsManager::send_get_user_full_query(UserId user_id, tl_object_ptr<tel
   td_->create_handler<GetFullUserQuery>()->send(user_id, std::move(input_user));
 }
 
-void ContactsManager::on_get_user_full_success(UserId user_id) {
+void ContactsManager::on_get_user_full_result(UserId user_id, Result<Unit> &&result) {
   auto it = get_user_full_queries_.find(user_id);
   CHECK(it != get_user_full_queries_.end());
   CHECK(!it->second.empty());
@@ -8390,19 +8390,11 @@ void ContactsManager::on_get_user_full_success(UserId user_id) {
   get_user_full_queries_.erase(it);
 
   for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
-}
-
-void ContactsManager::on_get_user_full_fail(UserId user_id, Status &&error) {
-  auto it = get_user_full_queries_.find(user_id);
-  CHECK(it != get_user_full_queries_.end());
-  CHECK(!it->second.empty());
-  auto promises = std::move(it->second);
-  get_user_full_queries_.erase(it);
-
-  for (auto &promise : promises) {
-    promise.set_error(error.clone());
+    if (result.is_ok()) {
+      promise.set_value(Unit());
+    } else {
+      promise.set_error(result.error().clone());
+    }
   }
 }
 
@@ -8662,7 +8654,7 @@ void ContactsManager::send_get_chat_full_query(ChatId chat_id, Promise<Unit> &&p
   td_->create_handler<GetFullChatQuery>()->send(chat_id);
 }
 
-void ContactsManager::on_get_chat_full_success(ChatId chat_id) {
+void ContactsManager::on_get_chat_full_result(ChatId chat_id, Result<Unit> &&result) {
   auto it = get_chat_full_queries_.find(chat_id);
   CHECK(it != get_chat_full_queries_.end());
   CHECK(!it->second.empty());
@@ -8670,19 +8662,11 @@ void ContactsManager::on_get_chat_full_success(ChatId chat_id) {
   get_chat_full_queries_.erase(it);
 
   for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
-}
-
-void ContactsManager::on_get_chat_full_fail(ChatId chat_id, Status &&error) {
-  auto it = get_chat_full_queries_.find(chat_id);
-  CHECK(it != get_chat_full_queries_.end());
-  CHECK(!it->second.empty());
-  auto promises = std::move(it->second);
-  get_chat_full_queries_.erase(it);
-
-  for (auto &promise : promises) {
-    promise.set_error(error.clone());
+    if (result.is_ok()) {
+      promise.set_value(Unit());
+    } else {
+      promise.set_error(result.error().clone());
+    }
   }
 }
 
@@ -8948,7 +8932,7 @@ void ContactsManager::send_get_channel_full_query(ChannelId channel_id,
   td_->create_handler<GetFullChannelQuery>()->send(channel_id, std::move(input_channel));
 }
 
-void ContactsManager::on_get_channel_full_success(ChannelId channel_id) {
+void ContactsManager::on_get_channel_full_result(ChannelId channel_id, Result<Unit> &&result) {
   auto it = get_channel_full_queries_.find(channel_id);
   CHECK(it != get_channel_full_queries_.end());
   CHECK(!it->second.empty());
@@ -8956,19 +8940,11 @@ void ContactsManager::on_get_channel_full_success(ChannelId channel_id) {
   get_channel_full_queries_.erase(it);
 
   for (auto &promise : promises) {
-    promise.set_value(Unit());
-  }
-}
-
-void ContactsManager::on_get_channel_full_fail(ChannelId channel_id, Status &&error) {
-  auto it = get_channel_full_queries_.find(channel_id);
-  CHECK(it != get_channel_full_queries_.end());
-  CHECK(!it->second.empty());
-  auto promises = std::move(it->second);
-  get_channel_full_queries_.erase(it);
-
-  for (auto &promise : promises) {
-    promise.set_error(error.clone());
+    if (result.is_ok()) {
+      promise.set_value(Unit());
+    } else {
+      promise.set_error(result.error().clone());
+    }
   }
 }
 

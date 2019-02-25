@@ -200,17 +200,11 @@ class ContactsManager : public Actor {
 
   void on_get_created_public_channels(vector<tl_object_ptr<telegram_api::Chat>> &&chats);
 
-  void on_get_user_full_success(UserId user_id);
+  void on_get_user_full_result(UserId user_id, Result<Unit> &&result);
 
-  void on_get_user_full_fail(UserId user_id, Status &&error);
+  void on_get_chat_full_result(ChatId chat_id, Result<Unit> &&result);
 
-  void on_get_chat_full_success(ChatId chat_id);
-
-  void on_get_chat_full_fail(ChatId chat_id, Status &&error);
-
-  void on_get_channel_full_success(ChannelId channel_id);
-
-  void on_get_channel_full_fail(ChannelId channel_id, Status &&error);
+  void on_get_channel_full_result(ChannelId channel_id, Result<Unit> &&result);
 
   UserId get_my_id() const;
 
