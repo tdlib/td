@@ -166,8 +166,10 @@ void FileNode::set_download_limit(int64 download_limit) {
     return;
   }
 
+  VLOG(update_file) << "File " << main_file_id_ << " has changed download_limit from " << download_limit_ << " to "
+                    << download_limit;
   download_limit_ = download_limit;
-  is_download_offset_dirty_ = true;
+  is_download_limit_dirty_ = true;
 }
 
 void FileNode::drop_local_location() {
