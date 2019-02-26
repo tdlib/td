@@ -2201,8 +2201,19 @@ class MessagesManager : public Actor {
       loaded_dialogs_;  // dialogs loaded from database, but not added to dialogs_
 
   std::unordered_set<DialogId, DialogIdHash> postponed_chat_read_inbox_updates_;
-  std::unordered_map<DialogId, vector<std::pair<MessageId, Promise<Unit>>>, DialogIdHash>
-      postponed_get_message_requests_;
+
+  struct PendingGetMessageRequest {
+    MessageId message_id;
+    Promise<Unit> promise;
+    tl_object_ptr<telegram_api::InputMessage> input_message;
+
+    PendingGetMessageRequest(MessageId message_id, Promise<Unit> promise,
+                             tl_object_ptr<telegram_api::InputMessage> input_message)
+        : message_id(message_id), promise(std::move(promise)), input_message(std::move(input_message)) {
+    }
+  };
+
+  std::unordered_map<DialogId, vector<PendingGetMessageRequest>, DialogIdHash> postponed_get_message_requests_;
 
   std::unordered_map<string, vector<Promise<Unit>>> search_public_dialogs_queries_;
   std::unordered_map<string, vector<DialogId>> found_public_dialogs_;     // TODO time bound cache

@@ -11756,8 +11756,11 @@ void MessagesManager::get_message_force_from_server(Dialog *d, MessageId message
       // message will not be added to the dialog anyway
       if (dialog_type == DialogType::Channel) {
         // so we try to force channel difference first
-        CHECK(input_message == nullptr);  // replied message can't be older than already added original message
-        postponed_get_message_requests_[d->dialog_id].emplace_back(message_id, std::move(promise));
+
+        // replied message can't be older than already added original message, but pinned message can be
+        CHECK(input_message == nullptr || input_message->get_id() == telegram_api::inputMessagePinned::ID);
+        postponed_get_message_requests_[d->dialog_id].emplace_back(message_id, std::move(promise),
+                                                                   std::move(input_message));
         get_channel_difference(d->dialog_id, d->pts, true, "get_message");
       } else {
         promise.set_value(Unit());
@@ -24204,13 +24207,13 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
   if (it_get_message_requests != postponed_get_message_requests_.end()) {
     CHECK(d != nullptr);
     for (auto &request : it_get_message_requests->second) {
-      auto message_id = request.first;
+      auto message_id = request.message_id;
       LOG(INFO) << "Run postponed getMessage request for " << message_id << " in " << dialog_id;
       if (d->last_new_message_id != MessageId() && message_id.get() > d->last_new_message_id.get()) {
         // message will not be added to the dialog anyway, get channel difference didn't help
-        request.second.set_value(Unit());
+        request.promise.set_value(Unit());
       } else {
-        get_message_from_server({dialog_id, message_id}, std::move(request.second));
+        get_message_from_server({dialog_id, message_id}, std::move(request.promise), std::move(request.input_message));
       }
     }
     postponed_get_message_requests_.erase(it_get_message_requests);
