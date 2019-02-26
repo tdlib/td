@@ -12833,6 +12833,18 @@ void MessagesManager::open_dialog(Dialog *d) {
     default:
       UNREACHABLE();
   }
+
+  if (!td_->auth_manager_->is_bot()) {
+    auto online_count_it = dialog_online_member_counts_.find(d->dialog_id);
+    if (online_count_it != dialog_online_member_counts_.end()) {
+      auto &info = online_count_it->second;
+      CHECK(!info.is_update_sent);
+      if (Time::now() - info.updated_time < ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME) {
+        info.is_update_sent = true;
+        send_update_chat_online_member_count(d->dialog_id, info.online_member_count);
+      }
+    }
+  }
 }
 
 void MessagesManager::close_dialog(Dialog *d) {
@@ -12882,6 +12894,14 @@ void MessagesManager::close_dialog(Dialog *d) {
     case DialogType::None:
     default:
       UNREACHABLE();
+  }
+
+  if (!td_->auth_manager_->is_bot()) {
+    auto online_count_it = dialog_online_member_counts_.find(d->dialog_id);
+    if (online_count_it != dialog_online_member_counts_.end()) {
+      auto &info = online_count_it->second;
+      info.is_update_sent = false;
+    }
   }
 }
 

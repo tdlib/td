@@ -1240,6 +1240,9 @@ class MessagesManager : public Actor {
   static constexpr int32 USERNAME_CACHE_EXPIRE_TIME = 3 * 86400;
   static constexpr int32 USERNAME_CACHE_EXPIRE_TIME_SHORT = 900;
 
+  static constexpr int32 ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME = 30 * 60;
+  static constexpr int32 ONLINE_MEMBER_COUNT_UPDATE_TIME = 5 * 60;
+
   static constexpr int32 MAX_RESEND_DELAY = 86400;  // seconds, some resonable limit
 
   static constexpr int32 MAX_PRELOADED_DIALOGS = 1000;
