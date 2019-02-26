@@ -6723,6 +6723,12 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     }
     td_->messages_manager_->on_update_dialog_pinned_message_id(DialogId(channel_id), pinned_message_id);
 
+    int32 online_member_count = 0;
+    if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_ONLINE_MEMBER_COUNT) != 0) {
+      online_member_count = channel_full->online_count_;
+    }
+    td_->messages_manager_->on_update_channel_online_member_count(channel_id, online_member_count);
+
     for (auto &bot_info : channel_full->bot_info_) {
       on_update_bot_info(std::move(bot_info));
     }

@@ -303,6 +303,8 @@ class MessagesManager : public Actor {
 
   void on_update_channel_max_unavailable_message_id(ChannelId channel_id, MessageId max_unavailable_message_id);
 
+  void on_update_channel_online_member_count(ChannelId channel_id, int32 online_member_count);
+
   void on_update_include_sponsored_dialog_to_unread_count();
 
   void on_user_dialog_action(DialogId dialog_id, UserId user_id, tl_object_ptr<td_api::ChatAction> &&action,
@@ -1454,6 +1456,8 @@ class MessagesManager : public Actor {
   void set_dialog_max_unavailable_message_id(DialogId dialog_id, MessageId max_unavailable_message_id, bool from_update,
                                              const char *source);
 
+  void set_dialog_online_member_count(DialogId dialog_id, int32 online_member_count, const char *source);
+
   void preload_newer_messages(const Dialog *d, MessageId max_message_id);
 
   void preload_older_messages(const Dialog *d, MessageId min_message_id);
@@ -1634,6 +1638,8 @@ class MessagesManager : public Actor {
   void send_update_chat_unread_mention_count(const Dialog *d);
 
   void send_update_chat_is_sponsored(const Dialog *d) const;
+
+  void send_update_chat_online_member_count(DialogId dialog_id, int32 online_member_count) const;
 
   tl_object_ptr<td_api::message> get_message_object(DialogId dialog_id, const Message *message) const;
 
@@ -2339,6 +2345,14 @@ class MessagesManager : public Actor {
   std::unordered_map<DialogId, NetQueryRef, DialogIdHash> set_typing_query_;
 
   std::unordered_map<FullMessageId, FileSourceId, FullMessageIdHash> full_message_id_to_file_source_id_;
+
+  struct OnlineMemberCountInfo {
+    int32 online_member_count = 0;
+    double updated_time = 0;
+    bool is_update_sent = false;
+  };
+
+  std::unordered_map<DialogId, OnlineMemberCountInfo, DialogIdHash> dialog_online_member_counts_;
 
   DialogId sponsored_dialog_id_;
 

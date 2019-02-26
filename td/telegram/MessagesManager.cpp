@@ -5096,6 +5096,21 @@ void MessagesManager::on_update_channel_max_unavailable_message_id(ChannelId cha
                                         "on_update_channel_max_unavailable_message_id");
 }
 
+void MessagesManager::on_update_channel_online_member_count(ChannelId channel_id, int32 online_member_count) {
+  if (!channel_id.is_valid()) {
+    LOG(ERROR) << "Receive online member count in invalid " << channel_id;
+    return;
+  }
+
+  DialogId dialog_id(channel_id);
+  if (is_broadcast_channel(dialog_id)) {
+    LOG_IF(ERROR, online_member_count != 0) << "Receive online member count in broadcast " << channel_id;
+    return;
+  }
+
+  set_dialog_online_member_count(dialog_id, online_member_count, "on_update_channel_online_member_count");
+}
+
 void MessagesManager::on_update_include_sponsored_dialog_to_unread_count() {
   if (td_->auth_manager_->is_bot()) {
     // just in case
@@ -8445,6 +8460,28 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
     }
   } else {
     LOG(INFO) << "Receive max unavailable message identifier in unknown " << dialog_id << " from " << source;
+  }
+}
+
+void MessagesManager::set_dialog_online_member_count(DialogId dialog_id, int32 online_member_count,
+                                                     const char *source) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  Dialog *d = get_dialog(dialog_id);
+  if (d == nullptr) {
+    return;
+  }
+
+  auto &info = dialog_online_member_counts_[dialog_id];
+  bool need_update = d->is_opened && (!info.is_update_sent || info.online_member_count != online_member_count);
+  info.online_member_count = online_member_count;
+  info.updated_time = Time::now();
+
+  if (need_update) {
+    info.is_update_sent = true;
+    send_update_chat_online_member_count(dialog_id, online_member_count);
   }
 }
 
@@ -18663,24 +18700,26 @@ void MessagesManager::remove_all_dialog_notifications(DialogId dialog_id, Notifi
 void MessagesManager::remove_all_dialog_notifications(Dialog *d, MessageId max_message_id,
                                                       NotificationGroupInfo &group_info, const char *source) {
   // removes up to max_message_id
-  if (group_info.group_id.is_valid()) {
-    VLOG(notifications) << "Remove all dialog notifications in " << group_info.group_id << '/' << d->dialog_id
-                        << " up to " << max_message_id << " from " << source;
-
-    auto max_notification_message_id = max_message_id;
-    if (d->last_message_id.is_valid() && max_notification_message_id.get() >= d->last_message_id.get()) {
-      max_notification_message_id = d->last_message_id;
-      set_dialog_last_notification(d->dialog_id, group_info, 0, NotificationId(), "remove_all_dialog_notifications 1");
-    } else if (max_notification_message_id == MessageId::max()) {
-      max_notification_message_id = get_next_local_message_id(d);
-      set_dialog_last_notification(d->dialog_id, group_info, 0, NotificationId(), "remove_all_dialog_notifications 2");
-    } else {
-      LOG(FATAL) << "TODO support deleting up to " << max_message_id << " if ever will be needed";
-    }
-
-    send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group,
-                       group_info.group_id, NotificationId(), max_notification_message_id, 0, Promise<Unit>());
+  if (!group_info.group_id.is_valid()) {
+    return;
   }
+
+  VLOG(notifications) << "Remove all dialog notifications in " << group_info.group_id << '/' << d->dialog_id
+                      << " up to " << max_message_id << " from " << source;
+
+  auto max_notification_message_id = max_message_id;
+  if (d->last_message_id.is_valid() && max_notification_message_id.get() >= d->last_message_id.get()) {
+    max_notification_message_id = d->last_message_id;
+    set_dialog_last_notification(d->dialog_id, group_info, 0, NotificationId(), "remove_all_dialog_notifications 1");
+  } else if (max_notification_message_id == MessageId::max()) {
+    max_notification_message_id = get_next_local_message_id(d);
+    set_dialog_last_notification(d->dialog_id, group_info, 0, NotificationId(), "remove_all_dialog_notifications 2");
+  } else {
+    LOG(FATAL) << "TODO support deleting up to " << max_message_id << " if ever will be needed";
+  }
+
+  send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group, group_info.group_id,
+                     NotificationId(), max_notification_message_id, 0, Promise<Unit>());
 }
 
 void MessagesManager::send_update_message_send_succeeded(Dialog *d, MessageId old_message_id, const Message *m) const {
@@ -18713,12 +18752,14 @@ void MessagesManager::send_update_message_edited(DialogId dialog_id, const Messa
 
 void MessagesManager::send_update_delete_messages(DialogId dialog_id, vector<int64> &&message_ids, bool is_permanent,
                                                   bool from_cache) const {
-  if (!message_ids.empty()) {
-    LOG_CHECK(have_dialog(dialog_id)) << "Wrong " << dialog_id << " in send_update_delete_messages";
-    send_closure(G()->td(), &Td::send_update,
-                 make_tl_object<td_api::updateDeleteMessages>(dialog_id.get(), std::move(message_ids), is_permanent,
-                                                              from_cache));
+  if (message_ids.empty()) {
+    return;
   }
+
+  LOG_CHECK(have_dialog(dialog_id)) << "Wrong " << dialog_id << " in send_update_delete_messages";
+  send_closure(
+      G()->td(), &Td::send_update,
+      make_tl_object<td_api::updateDeleteMessages>(dialog_id.get(), std::move(message_ids), is_permanent, from_cache));
 }
 
 void MessagesManager::send_update_new_chat(Dialog *d) {
@@ -18755,131 +18796,153 @@ void MessagesManager::send_update_chat_last_message_impl(const Dialog *d, const 
 }
 
 void MessagesManager::send_update_unread_message_count(DialogId dialog_id, bool force, const char *source) {
-  if (!td_->auth_manager_->is_bot() && G()->parameters().use_message_db) {
-    CHECK(is_message_unread_count_inited_);
-    if (unread_message_muted_count_ < 0 || unread_message_muted_count_ > unread_message_total_count_) {
-      LOG(ERROR) << "Unread message count became invalid: " << unread_message_total_count_ << '/'
-                 << unread_message_total_count_ - unread_message_muted_count_ << " from " << source << " and "
-                 << dialog_id;
-      if (unread_message_muted_count_ < 0) {
-        unread_message_muted_count_ = 0;
-      }
-      if (unread_message_muted_count_ > unread_message_total_count_) {
-        unread_message_total_count_ = unread_message_muted_count_;
-      }
+  if (td_->auth_manager_->is_bot() || !G()->parameters().use_message_db) {
+    return;
+  }
+
+  CHECK(is_message_unread_count_inited_);
+  if (unread_message_muted_count_ < 0 || unread_message_muted_count_ > unread_message_total_count_) {
+    LOG(ERROR) << "Unread message count became invalid: " << unread_message_total_count_ << '/'
+               << unread_message_total_count_ - unread_message_muted_count_ << " from " << source << " and "
+               << dialog_id;
+    if (unread_message_muted_count_ < 0) {
+      unread_message_muted_count_ = 0;
     }
-    G()->td_db()->get_binlog_pmc()->set("unread_message_count",
-                                        PSTRING() << unread_message_total_count_ << ' ' << unread_message_muted_count_);
-    int32 unread_unmuted_count = unread_message_total_count_ - unread_message_muted_count_;
-    if (!force && running_get_difference_) {
-      LOG(INFO) << "Postpone updateUnreadMessageCount to " << unread_message_total_count_ << '/' << unread_unmuted_count
-                << " from " << source << " and " << dialog_id;
-      have_postponed_unread_message_count_update_ = true;
-    } else {
-      have_postponed_unread_message_count_update_ = false;
-      LOG(INFO) << "Send updateUnreadMessageCount to " << unread_message_total_count_ << '/' << unread_unmuted_count
-                << " from " << source << " and " << dialog_id;
-      send_closure(G()->td(), &Td::send_update, get_update_unread_message_count_object());
+    if (unread_message_muted_count_ > unread_message_total_count_) {
+      unread_message_total_count_ = unread_message_muted_count_;
     }
+  }
+  G()->td_db()->get_binlog_pmc()->set("unread_message_count",
+                                      PSTRING() << unread_message_total_count_ << ' ' << unread_message_muted_count_);
+  int32 unread_unmuted_count = unread_message_total_count_ - unread_message_muted_count_;
+  if (!force && running_get_difference_) {
+    LOG(INFO) << "Postpone updateUnreadMessageCount to " << unread_message_total_count_ << '/' << unread_unmuted_count
+              << " from " << source << " and " << dialog_id;
+    have_postponed_unread_message_count_update_ = true;
+  } else {
+    have_postponed_unread_message_count_update_ = false;
+    LOG(INFO) << "Send updateUnreadMessageCount to " << unread_message_total_count_ << '/' << unread_unmuted_count
+              << " from " << source << " and " << dialog_id;
+    send_closure(G()->td(), &Td::send_update, get_update_unread_message_count_object());
   }
 }
 
 void MessagesManager::send_update_unread_chat_count(DialogId dialog_id, bool force, const char *source) {
-  if (!td_->auth_manager_->is_bot() && G()->parameters().use_message_db) {
-    CHECK(is_dialog_unread_count_inited_);
-    if (unread_dialog_muted_marked_count_ < 0 || unread_dialog_marked_count_ < unread_dialog_muted_marked_count_ ||
-        unread_dialog_muted_count_ < unread_dialog_muted_marked_count_ ||
-        unread_dialog_total_count_ + unread_dialog_muted_marked_count_ <
-            unread_dialog_muted_count_ + unread_dialog_marked_count_) {
-      LOG(ERROR) << "Unread chat count became invalid: " << unread_dialog_total_count_ << '/'
-                 << unread_dialog_total_count_ - unread_dialog_muted_count_ << '/' << unread_dialog_marked_count_ << '/'
-                 << unread_dialog_marked_count_ - unread_dialog_muted_marked_count_ << " from " << source << " and "
-                 << dialog_id;
-      if (unread_dialog_muted_marked_count_ < 0) {
-        unread_dialog_muted_marked_count_ = 0;
-      }
-      if (unread_dialog_marked_count_ < unread_dialog_muted_marked_count_) {
-        unread_dialog_marked_count_ = unread_dialog_muted_marked_count_;
-      }
-      if (unread_dialog_muted_count_ < unread_dialog_muted_marked_count_) {
-        unread_dialog_muted_count_ = unread_dialog_muted_marked_count_;
-      }
-      if (unread_dialog_total_count_ + unread_dialog_muted_marked_count_ <
+  if (td_->auth_manager_->is_bot() || !G()->parameters().use_message_db) {
+    return;
+  }
+
+  CHECK(is_dialog_unread_count_inited_);
+  if (unread_dialog_muted_marked_count_ < 0 || unread_dialog_marked_count_ < unread_dialog_muted_marked_count_ ||
+      unread_dialog_muted_count_ < unread_dialog_muted_marked_count_ ||
+      unread_dialog_total_count_ + unread_dialog_muted_marked_count_ <
           unread_dialog_muted_count_ + unread_dialog_marked_count_) {
-        unread_dialog_total_count_ =
-            unread_dialog_muted_count_ + unread_dialog_marked_count_ - unread_dialog_muted_marked_count_;
-      }
+    LOG(ERROR) << "Unread chat count became invalid: " << unread_dialog_total_count_ << '/'
+               << unread_dialog_total_count_ - unread_dialog_muted_count_ << '/' << unread_dialog_marked_count_ << '/'
+               << unread_dialog_marked_count_ - unread_dialog_muted_marked_count_ << " from " << source << " and "
+               << dialog_id;
+    if (unread_dialog_muted_marked_count_ < 0) {
+      unread_dialog_muted_marked_count_ = 0;
     }
-    G()->td_db()->get_binlog_pmc()->set(
-        "unread_dialog_count", PSTRING() << unread_dialog_total_count_ << ' ' << unread_dialog_muted_count_ << ' '
-                                         << unread_dialog_marked_count_ << ' ' << unread_dialog_muted_marked_count_);
-    bool need_postpone = !force && running_get_difference_;
-    int32 unread_unmuted_count = unread_dialog_total_count_ - unread_dialog_muted_count_;
-    int32 unread_unmuted_marked_count = unread_dialog_marked_count_ - unread_dialog_muted_marked_count_;
-    LOG(INFO) << (need_postpone ? "Postpone" : "Send") << " updateUnreadChatCount to " << unread_dialog_total_count_
-              << '/' << unread_unmuted_count << '/' << unread_dialog_marked_count_ << '/' << unread_unmuted_marked_count
-              << " from " << source << " and " << dialog_id;
-    if (need_postpone) {
-      have_postponed_unread_chat_count_update_ = true;
-    } else {
-      have_postponed_unread_chat_count_update_ = false;
-      send_closure(G()->td(), &Td::send_update, get_update_unread_chat_count_object());
+    if (unread_dialog_marked_count_ < unread_dialog_muted_marked_count_) {
+      unread_dialog_marked_count_ = unread_dialog_muted_marked_count_;
     }
+    if (unread_dialog_muted_count_ < unread_dialog_muted_marked_count_) {
+      unread_dialog_muted_count_ = unread_dialog_muted_marked_count_;
+    }
+    if (unread_dialog_total_count_ + unread_dialog_muted_marked_count_ <
+        unread_dialog_muted_count_ + unread_dialog_marked_count_) {
+      unread_dialog_total_count_ =
+          unread_dialog_muted_count_ + unread_dialog_marked_count_ - unread_dialog_muted_marked_count_;
+    }
+  }
+  G()->td_db()->get_binlog_pmc()->set(
+      "unread_dialog_count", PSTRING() << unread_dialog_total_count_ << ' ' << unread_dialog_muted_count_ << ' '
+                                       << unread_dialog_marked_count_ << ' ' << unread_dialog_muted_marked_count_);
+  bool need_postpone = !force && running_get_difference_;
+  int32 unread_unmuted_count = unread_dialog_total_count_ - unread_dialog_muted_count_;
+  int32 unread_unmuted_marked_count = unread_dialog_marked_count_ - unread_dialog_muted_marked_count_;
+  LOG(INFO) << (need_postpone ? "Postpone" : "Send") << " updateUnreadChatCount to " << unread_dialog_total_count_
+            << '/' << unread_unmuted_count << '/' << unread_dialog_marked_count_ << '/' << unread_unmuted_marked_count
+            << " from " << source << " and " << dialog_id;
+  if (need_postpone) {
+    have_postponed_unread_chat_count_update_ = true;
+  } else {
+    have_postponed_unread_chat_count_update_ = false;
+    send_closure(G()->td(), &Td::send_update, get_update_unread_chat_count_object());
   }
 }
 
 void MessagesManager::send_update_chat_read_inbox(const Dialog *d, bool force, const char *source) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   CHECK(d != nullptr);
-  if (!td_->auth_manager_->is_bot()) {
-    LOG_CHECK(d->is_update_new_chat_sent)
-        << "Wrong " << d->dialog_id << " in send_update_chat_read_inbox from " << source;
-    on_dialog_updated(d->dialog_id, source);
-    if (!force && (running_get_difference_ || running_get_channel_difference(d->dialog_id) ||
-                   get_channel_difference_to_logevent_id_.count(d->dialog_id) != 0)) {
-      LOG(INFO) << "Postpone updateChatReadInbox in " << d->dialog_id << "(" << get_dialog_title(d->dialog_id)
-                << ") to " << d->server_unread_count << " + " << d->local_unread_count << " from " << source;
-      postponed_chat_read_inbox_updates_.insert(d->dialog_id);
-    } else {
-      postponed_chat_read_inbox_updates_.erase(d->dialog_id);
-      LOG(INFO) << "Send updateChatReadInbox in " << d->dialog_id << "(" << get_dialog_title(d->dialog_id) << ") to "
-                << d->server_unread_count << " + " << d->local_unread_count << " from " << source;
-      send_closure(G()->td(), &Td::send_update,
-                   make_tl_object<td_api::updateChatReadInbox>(d->dialog_id.get(), d->last_read_inbox_message_id.get(),
-                                                               d->server_unread_count + d->local_unread_count));
-    }
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_read_inbox from "
+                                        << source;
+  on_dialog_updated(d->dialog_id, source);
+  if (!force && (running_get_difference_ || running_get_channel_difference(d->dialog_id) ||
+                 get_channel_difference_to_logevent_id_.count(d->dialog_id) != 0)) {
+    LOG(INFO) << "Postpone updateChatReadInbox in " << d->dialog_id << "(" << get_dialog_title(d->dialog_id) << ") to "
+              << d->server_unread_count << " + " << d->local_unread_count << " from " << source;
+    postponed_chat_read_inbox_updates_.insert(d->dialog_id);
+  } else {
+    postponed_chat_read_inbox_updates_.erase(d->dialog_id);
+    LOG(INFO) << "Send updateChatReadInbox in " << d->dialog_id << "(" << get_dialog_title(d->dialog_id) << ") to "
+              << d->server_unread_count << " + " << d->local_unread_count << " from " << source;
+    send_closure(G()->td(), &Td::send_update,
+                 make_tl_object<td_api::updateChatReadInbox>(d->dialog_id.get(), d->last_read_inbox_message_id.get(),
+                                                             d->server_unread_count + d->local_unread_count));
   }
 }
 
 void MessagesManager::send_update_chat_read_outbox(const Dialog *d) {
-  CHECK(d != nullptr);
-  if (!td_->auth_manager_->is_bot()) {
-    LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_read_outbox";
-    on_dialog_updated(d->dialog_id, "send_update_chat_read_outbox");
-    send_closure(
-        G()->td(), &Td::send_update,
-        make_tl_object<td_api::updateChatReadOutbox>(d->dialog_id.get(), d->last_read_outbox_message_id.get()));
+  if (td_->auth_manager_->is_bot()) {
+    return;
   }
+
+  CHECK(d != nullptr);
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_read_outbox";
+  on_dialog_updated(d->dialog_id, "send_update_chat_read_outbox");
+  send_closure(G()->td(), &Td::send_update,
+               make_tl_object<td_api::updateChatReadOutbox>(d->dialog_id.get(), d->last_read_outbox_message_id.get()));
 }
 
 void MessagesManager::send_update_chat_unread_mention_count(const Dialog *d) {
-  CHECK(d != nullptr);
-  if (!td_->auth_manager_->is_bot()) {
-    LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_unread_mention_count";
-    LOG(INFO) << "Update unread mention message count in " << d->dialog_id << " to " << d->unread_mention_count;
-    on_dialog_updated(d->dialog_id, "send_update_chat_unread_mention_count");
-    send_closure(G()->td(), &Td::send_update,
-                 make_tl_object<td_api::updateChatUnreadMentionCount>(d->dialog_id.get(), d->unread_mention_count));
+  if (td_->auth_manager_->is_bot()) {
+    return;
   }
+
+  CHECK(d != nullptr);
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_unread_mention_count";
+  LOG(INFO) << "Update unread mention message count in " << d->dialog_id << " to " << d->unread_mention_count;
+  on_dialog_updated(d->dialog_id, "send_update_chat_unread_mention_count");
+  send_closure(G()->td(), &Td::send_update,
+               make_tl_object<td_api::updateChatUnreadMentionCount>(d->dialog_id.get(), d->unread_mention_count));
 }
 
 void MessagesManager::send_update_chat_is_sponsored(const Dialog *d) const {
-  if (!td_->auth_manager_->is_bot()) {
-    bool is_sponsored = d->order == SPONSORED_DIALOG_ORDER;
-    LOG(INFO) << "Update chat is sponsored for " << d->dialog_id;
-    auto order = DialogDate(d->order, d->dialog_id) <= last_dialog_date_ ? d->order : 0;
-    send_closure(G()->td(), &Td::send_update,
-                 make_tl_object<td_api::updateChatIsSponsored>(d->dialog_id.get(), is_sponsored, order));
+  if (td_->auth_manager_->is_bot()) {
+    return;
   }
+
+  CHECK(d != nullptr);
+  LOG_CHECK(d->is_update_new_chat_sent) << "Wrong " << d->dialog_id << " in send_update_chat_is_sponsored";
+  bool is_sponsored = d->order == SPONSORED_DIALOG_ORDER;
+  LOG(INFO) << "Update chat is sponsored for " << d->dialog_id;
+  auto order = DialogDate(d->order, d->dialog_id) <= last_dialog_date_ ? d->order : 0;
+  send_closure(G()->td(), &Td::send_update,
+               make_tl_object<td_api::updateChatIsSponsored>(d->dialog_id.get(), is_sponsored, order));
+}
+
+void MessagesManager::send_update_chat_online_member_count(DialogId dialog_id, int32 online_member_count) const {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
+  send_closure(G()->td(), &Td::send_update,
+               make_tl_object<td_api::updateChatOnlineMemberCount>(dialog_id.get(), online_member_count));
 }
 
 void MessagesManager::on_send_message_get_quick_ack(int64 random_id) {
