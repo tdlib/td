@@ -642,6 +642,7 @@ class ContactsManager : public Actor {
     bool can_get_participants = false;
     bool can_set_username = false;
     bool can_set_sticker_set = false;
+    bool can_view_statistics = false;
     bool is_all_history_available = true;
 
     bool is_changed = true;

@@ -3531,6 +3531,12 @@ class CliClient final : public Actor {
 
       send_request(
           td_api::make_object<td_api::reportChat>(as_chat_id(chat_id), std::move(reason), as_message_ids(message_ids)));
+    } else if (op == "gcsu") {
+      string chat_id;
+      string parameters;
+      std::tie(chat_id, parameters) = split(args);
+
+      send_request(td_api::make_object<td_api::getChatStatisticsUrl>(as_chat_id(args), parameters));
     } else if (op == "rsgs" || op == "rchs") {
       string supergroup_id;
       string user_id;

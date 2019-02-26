@@ -430,12 +430,13 @@ supergroup id:int32 username:string date:int32 status:ChatMemberStatus member_co
 //@can_get_members True, if members of the chat can be retrieved
 //@can_set_username True, if the chat can be made public
 //@can_set_sticker_set True, if the supergroup sticker set can be changed
+//@can_view_statistics True, if the channel statistics is available through getChatStatisticsUrl
 //@is_all_history_available True, if new chat members will have access to old messages. In public supergroups and both public and private channels, old messages are always available, so this option affects only private supergroups. The value of this field is only available for chat administrators
 //@sticker_set_id Identifier of the supergroup sticker set; 0 if none
 //@invite_link Invite link for this chat
 //@upgraded_from_basic_group_id Identifier of the basic group from which supergroup was upgraded; 0 if none
 //@upgraded_from_max_message_id Identifier of the last message in the basic group from which supergroup was upgraded; 0 if none
-supergroupFullInfo description:string member_count:int32 administrator_count:int32 restricted_count:int32 banned_count:int32 can_get_members:Bool can_set_username:Bool can_set_sticker_set:Bool is_all_history_available:Bool sticker_set_id:int64 invite_link:string upgraded_from_basic_group_id:int32 upgraded_from_max_message_id:int53 = SupergroupFullInfo;
+supergroupFullInfo description:string member_count:int32 administrator_count:int32 restricted_count:int32 banned_count:int32 can_get_members:Bool can_set_username:Bool can_set_sticker_set:Bool can_view_statistics:Bool is_all_history_available:Bool sticker_set_id:int64 invite_link:string upgraded_from_basic_group_id:int32 upgraded_from_max_message_id:int53 = SupergroupFullInfo;
 
 
 //@class SecretChatState @description Describes the current secret chat state
@@ -1592,6 +1593,10 @@ animations animations:vector<animation> = Animations;
 //@description Represents the result of an ImportContacts request @user_ids User identifiers of the imported contacts in the same order as they were specified in the request; 0 if the contact is not yet a registered user
 //@importer_count The number of users that imported the corresponding contact; 0 for already registered users or if unavailable
 importedContacts user_ids:vector<int32> importer_count:vector<int32> = ImportedContacts;
+
+
+//@description Contains a link to chat statistics @url The URL containing chat statistics
+chatStatisticsUrl url:string = ChatStatisticsUrl;
 
 
 //@class InputInlineQueryResult @description Represents a single result of an inline query; for bots only
@@ -3484,6 +3489,10 @@ changeChatReportSpamState chat_id:int53 is_spam_chat:Bool = Ok;
 
 //@description Reports a chat to the Telegram moderators. Supported only for supergroups, channels, or private chats with bots, since other chats can't be checked by moderators @chat_id Chat identifier @reason The reason for reporting the chat @message_ids Identifiers of reported messages, if any
 reportChat chat_id:int53 reason:ChatReportReason message_ids:vector<int53> = Ok;
+
+
+//@description Returns URL with chat statistics. Currently this method can be used only for channels @chat_id Chat identifier @parameters Parameters from "tg://statsrefresh?params=******" link
+getChatStatisticsUrl chat_id:int53 parameters:string = ChatStatisticsUrl;
 
 
 //@description Returns storage usage statistics. Can be called before authorization @chat_limit Maximum number of chats with the largest storage usage for which separate statistics should be returned. All other chats will be grouped in entries with chat_id == 0. If the chat info database is not used, the chat_limit is ignored and is always set to 0

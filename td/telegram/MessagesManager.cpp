@@ -2874,8 +2874,6 @@ class GetNotifySettingsExceptionsQuery : public Td::ResultHandler {
   }
 
   void send(NotificationSettingsScope scope, bool filter_scope, bool compare_sound) {
-    // +account.getNotifyExceptions flags:# compare_sound:flags.1?true peer:flags.0?InputNotifyPeer = Updates;
-
     int32 flags = 0;
     tl_object_ptr<telegram_api::InputNotifyPeer> input_notify_peer;
     if (filter_scope) {
@@ -3271,6 +3269,39 @@ class ReportPeerQuery : public Td::ResultHandler {
   void on_error(uint64 id, Status status) override {
     LOG(INFO) << "Receive error for report peer: " << status;
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "ReportPeerQuery");
+    promise_.set_error(std::move(status));
+  }
+};
+
+class GetStatsUrlQuery : public Td::ResultHandler {
+  Promise<td_api::object_ptr<td_api::chatStatisticsUrl>> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit GetStatsUrlQuery(Promise<td_api::object_ptr<td_api::chatStatisticsUrl>> &&promise)
+      : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, const string &parameters) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Read);
+    CHECK(input_peer != nullptr);
+    send_query(
+        G()->net_query_creator().create(create_storer(telegram_api::messages_getStatsURL(std::move(input_peer)))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_getStatsURL>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto result = result_ptr.move_as_ok();
+    promise_.set_value(td_api::make_object<td_api::chatStatisticsUrl>(result->url_));
+  }
+
+  void on_error(uint64 id, Status status) override {
+    td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetStatsUrlQuery");
     promise_.set_error(std::move(status));
   }
 };
@@ -6178,6 +6209,23 @@ void MessagesManager::on_get_peer_settings(DialogId dialog_id,
   d->know_can_report_spam = true;
   d->can_report_spam = (peer_settings->flags_ & telegram_api::peerSettings::REPORT_SPAM_MASK) != 0;
   on_dialog_updated(dialog_id, "can_report_spam");
+}
+
+void MessagesManager::get_dialog_statistics_url(DialogId dialog_id, const string &parameters,
+                                                Promise<td_api::object_ptr<td_api::chatStatisticsUrl>> &&promise) {
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    return promise.set_error(Status::Error(3, "Chat not found"));
+  }
+
+  if (!have_input_peer(dialog_id, AccessRights::Read)) {
+    return promise.set_error(Status::Error(3, "Can't access the chat"));
+  }
+  if (dialog_id.get_type() == DialogType::SecretChat) {
+    return promise.set_error(Status::Error(500, "There is no statistics for secret chats"));
+  }
+
+  td_->create_handler<GetStatsUrlQuery>(std::move(promise))->send(dialog_id, parameters);
 }
 
 void MessagesManager::load_secret_thumbnail(FileId thumbnail_file_id) {

@@ -6206,6 +6206,13 @@ void Td::on_request(uint64 id, td_api::reportChat &request) {
                                    MessagesManager::get_message_ids(request.message_ids_), std::move(promise));
 }
 
+void Td::on_request(uint64 id, td_api::getChatStatisticsUrl &request) {
+  CHECK_IS_USER();
+  CREATE_REQUEST_PROMISE();
+  CLEAN_INPUT_STRING(request.parameters_);
+  messages_manager_->get_dialog_statistics_url(DialogId(request.chat_id_), request.parameters_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setChatNotificationSettings &request) {
   CHECK_IS_USER();
   answer_ok_query(id, messages_manager_->set_dialog_notification_settings(DialogId(request.chat_id_),

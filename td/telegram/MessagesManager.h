@@ -628,6 +628,9 @@ class MessagesManager : public Actor {
   void report_dialog(DialogId dialog_id, const tl_object_ptr<td_api::ChatReportReason> &reason,
                      const vector<MessageId> &message_ids, Promise<Unit> &&promise);
 
+  void get_dialog_statistics_url(DialogId dialog_id, const string &parameters,
+                                 Promise<td_api::object_ptr<td_api::chatStatisticsUrl>> &&promise);
+
   void on_get_peer_settings(DialogId dialog_id, tl_object_ptr<telegram_api::peerSettings> &&peer_settings);
 
   void before_get_difference();

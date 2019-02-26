@@ -808,6 +808,8 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::reportChat &request);
 
+  void on_request(uint64 id, td_api::getChatStatisticsUrl &request);
+
   void on_request(uint64 id, const td_api::getMapThumbnailFile &request);
 
   void on_request(uint64 id, const td_api::getLocalizationTargetInfo &request);

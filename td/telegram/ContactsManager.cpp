@@ -6687,6 +6687,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     auto can_get_participants = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_GET_PARTICIPANTS) != 0;
     auto can_set_username = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_SET_USERNAME) != 0;
     auto can_set_sticker_set = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_SET_STICKERS) != 0;
+    auto can_view_statistics = (channel_full->flags_ & CHANNEL_FULL_FLAG_CAN_VIEW_STATISTICS) != 0;
     auto is_all_history_available = (channel_full->flags_ & CHANNEL_FULL_FLAG_IS_ALL_HISTORY_HIDDEN) == 0;
     int64 sticker_set_id = channel_full->stickerset_ == nullptr
                                ? 0
@@ -6698,7 +6699,8 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
         channel->administrator_count != administrator_count || channel->restricted_count != restricted_count ||
         channel->banned_count != banned_count || channel->can_get_participants != can_get_participants ||
         channel->can_set_username != can_set_username || channel->can_set_sticker_set != can_set_sticker_set ||
-        channel->sticker_set_id != sticker_set_id || channel->is_all_history_available != is_all_history_available) {
+        channel->can_view_statistics != can_view_statistics || channel->sticker_set_id != sticker_set_id ||
+        channel->is_all_history_available != is_all_history_available) {
       channel->description = std::move(channel_full->about_);
       channel->participant_count = participant_count;
       channel->administrator_count = administrator_count;
@@ -6707,6 +6709,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       channel->can_get_participants = can_get_participants;
       channel->can_set_username = can_set_username;
       channel->can_set_sticker_set = can_set_sticker_set;
+      channel->can_view_statistics = can_view_statistics;
       channel->sticker_set_id = sticker_set_id;
       channel->is_all_history_available = is_all_history_available;
 
@@ -9911,8 +9914,8 @@ tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_i
   return make_tl_object<td_api::supergroupFullInfo>(
       channel_full->description, channel_full->participant_count, channel_full->administrator_count,
       channel_full->restricted_count, channel_full->banned_count, channel_full->can_get_participants,
-      channel_full->can_set_username, channel_full->can_set_sticker_set, channel_full->is_all_history_available,
-      channel_full->sticker_set_id, channel_full->invite_link,
+      channel_full->can_set_username, channel_full->can_set_sticker_set, channel_full->can_view_statistics,
+      channel_full->is_all_history_available, channel_full->sticker_set_id, channel_full->invite_link,
       get_basic_group_id_object(channel_full->migrated_from_chat_id, "get_supergroup_full_info_object"),
       channel_full->migrated_from_max_message_id.get());
 }
