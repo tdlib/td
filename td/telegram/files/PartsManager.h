@@ -24,6 +24,7 @@ class PartsManager {
  public:
   Status init(int64 size, int64 expected_size, bool is_size_final, size_t part_size,
               const std::vector<int> &ready_parts, bool use_part_count_limit) TD_WARN_UNUSED_RESULT;
+  bool may_finish();
   bool ready();
   bool unchecked_ready();
   Status finish() TD_WARN_UNUSED_RESULT;
@@ -79,6 +80,7 @@ class PartsManager {
   int64 streaming_offset_{0};
   int64 streaming_limit_{0};
   int first_streaming_empty_part_;
+  int first_streaming_not_ready_part_;
   vector<PartStatus> part_status_;
   Bitmask bitmask_;
   bool use_part_count_limit_;
@@ -88,11 +90,14 @@ class PartsManager {
                            const std::vector<int> &ready_parts) TD_WARN_UNUSED_RESULT;
   Status init_no_size(size_t part_size, const std::vector<int> &ready_parts) TD_WARN_UNUSED_RESULT;
 
-  Part get_part(int id);
+  Part get_part(int id) const;
   Part get_empty_part();
   void on_part_start(int32 id);
   void update_first_empty_part();
   void update_first_not_ready_part();
+
+  bool is_streaming_limit_reached();
+  bool is_part_in_streaming_limit(int part_i) const;
 };
 
 }  // namespace td

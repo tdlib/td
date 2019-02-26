@@ -148,7 +148,7 @@ Status FileLoader::do_loop() {
     parts_manager_.set_checked_prefix_size(check_info.checked_prefix_size);
   }
 
-  if (parts_manager_.ready()) {
+  if (parts_manager_.may_finish()) {
     TRY_STATUS(parts_manager_.finish());
     TRY_STATUS(on_ok(parts_manager_.get_size()));
     LOG(INFO) << "Bad download order rate: "
