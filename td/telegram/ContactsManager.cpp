@@ -48,6 +48,7 @@
 #include "td/utils/StringBuilder.h"
 #include "td/utils/Time.h"
 #include "td/utils/tl_helpers.h"
+#include "td/utils/utf8.h"
 
 #include <algorithm>
 #include <limits>
@@ -5358,6 +5359,19 @@ void ContactsManager::on_load_user_from_database(UserId user_id, string value) {
       u = add_user(user_id, "on_load_user_from_database");
 
       log_event_parse(*u, value).ensure();
+
+      if (!check_utf8(u->first_name)) {
+        LOG(ERROR) << "Have invalid " << user_id << " first name \"" << u->first_name << '"';
+        u->first_name.clear();
+      }
+      if (!check_utf8(u->last_name)) {
+        LOG(ERROR) << "Have invalid " << user_id << " last name \"" << u->last_name << '"';
+        u->last_name.clear();
+      }
+      if (!check_utf8(u->username)) {
+        LOG(ERROR) << "Have invalid " << user_id << " username \"" << u->username << '"';
+        u->username.clear();
+      }
 
       u->is_saved = true;
       u->is_status_saved = true;
