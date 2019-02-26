@@ -2380,7 +2380,7 @@ updateChatReplyMarkup chat_id:int53 reply_markup_message_id:int53 = Update;
 //@description A chat draft has changed. Be aware that the update may come in the currently opened chat but with old content of the draft. If the user has changed the content of the draft, this update shouldn't be applied @chat_id Chat identifier @draft_message The new draft message; may be null @order New value of the chat order
 updateChatDraftMessage chat_id:int53 draft_message:draftMessage order:int64 = Update;
 
-//@description The number of online group members has changed. This update is sent only for currently open chats. There is no guarantee that it will be sent just after the count has changed @chat_id Identifier of the chat @online_member_count New number of online members in the chat
+//@description The number of online group members has changed. This update is sent only for currently open chats. There is no guarantee that it will be sent just after the count has changed @chat_id Identifier of the chat @online_member_count New number of online members in the chat, or 0 if unknown
 updateChatOnlineMemberCount chat_id:int53 online_member_count:int32 = Update;
 
 //@description A notification was changed @notification_group_id Unique notification group identifier @notification Changed notification

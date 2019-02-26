@@ -438,6 +438,8 @@ class ContactsManager : public Actor {
 
   UserId get_support_user(Promise<Unit> &&promise);
 
+  void repair_chat_participants(ChatId chat_id);
+
   void after_get_difference();
 
   void get_current_state(vector<td_api::object_ptr<td_api::Update>> &updates) const;
@@ -838,8 +840,6 @@ class ContactsManager : public Actor {
   void set_my_id(UserId my_id);
 
   static LinkState get_link_state(tl_object_ptr<telegram_api::ContactLink> &&link);
-
-  void repair_chat_participants(ChatId chat_id);
 
   static bool is_valid_username(const string &username);
 

@@ -6640,6 +6640,22 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     td_->messages_manager_->on_update_dialog_notify_settings(DialogId(chat_id), std::move(chat_full->notify_settings_),
                                                              "on_get_chat_full");
 
+    int32 online_member_count = 0;
+    int32 time = G()->unix_time();
+    for (auto &participant : chat->participants) {
+      auto u = get_user(participant.user_id);
+      if (u != nullptr) {
+        int32 was_online = u->was_online;
+        if (participant.user_id == get_my_id() && my_was_online_local_ != 0) {
+          was_online = my_was_online_local_;
+        }
+        if (was_online > time) {
+          online_member_count++;
+        }
+      }
+    }
+    td_->messages_manager_->on_update_dialog_online_member_count(DialogId(chat_id), online_member_count);
+
     update_chat_full(chat, chat_id);
   } else {
     CHECK(chat_full_ptr->get_id() == telegram_api::channelFull::ID);
@@ -6727,7 +6743,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_ONLINE_MEMBER_COUNT) != 0) {
       online_member_count = channel_full->online_count_;
     }
-    td_->messages_manager_->on_update_channel_online_member_count(channel_id, online_member_count);
+    td_->messages_manager_->on_update_dialog_online_member_count(DialogId(channel_id), online_member_count);
 
     for (auto &bot_info : channel_full->bot_info_) {
       on_update_bot_info(std::move(bot_info));

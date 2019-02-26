@@ -303,7 +303,7 @@ class MessagesManager : public Actor {
 
   void on_update_channel_max_unavailable_message_id(ChannelId channel_id, MessageId max_unavailable_message_id);
 
-  void on_update_channel_online_member_count(ChannelId channel_id, int32 online_member_count);
+  void on_update_dialog_online_member_count(DialogId dialog_id, int32 online_member_count);
 
   void on_update_include_sponsored_dialog_to_unread_count();
 
@@ -1461,6 +1461,8 @@ class MessagesManager : public Actor {
 
   void set_dialog_online_member_count(DialogId dialog_id, int32 online_member_count, const char *source);
 
+  void on_update_dialog_online_member_count_timeout(DialogId dialog_id);
+
   void preload_newer_messages(const Dialog *d, MessageId max_message_id);
 
   void preload_older_messages(const Dialog *d, MessageId min_message_id);
@@ -1985,6 +1987,8 @@ class MessagesManager : public Actor {
 
   static void on_active_dialog_action_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
 
+  static void on_update_dialog_online_member_count_timeout_callback(void *messages_manager_ptr, int64 dialog_id_int);
+
   void load_secret_thumbnail(FileId thumbnail_file_id);
 
   static tl_object_ptr<telegram_api::channelAdminLogEventsFilter> get_channel_admin_log_events_filter(
@@ -2298,6 +2302,7 @@ class MessagesManager : public Actor {
   MultiTimeout dialog_unmute_timeout_{"DialogUnmuteTimeout"};
   MultiTimeout pending_send_dialog_action_timeout_{"PendingSendDialogActionTimeout"};
   MultiTimeout active_dialog_action_timeout_{"ActiveDialogActionTimeout"};
+  MultiTimeout update_dialog_online_member_count_timeout_{"UpdateDialogOnlineMemberCountTimeout"};
 
   Hints dialogs_hints_;  // search dialogs by title and username
 
