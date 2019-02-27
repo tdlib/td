@@ -393,6 +393,9 @@ class FullRemoteFileLocation {
         return 0;
     }
   }
+  void clear_file_reference() {
+    file_reference_ = "";
+  }
 
   bool delete_file_reference(Slice bad_file_reference) {
     auto res = FileReferenceView(file_reference_).delete_file_reference(bad_file_reference);
