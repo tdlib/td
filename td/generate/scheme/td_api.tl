@@ -492,7 +492,7 @@ messageSendingStateFailed = MessageSendingState;
 //@chat_id Chat identifier
 //@sending_state Information about the sending state of the message; may be null
 //@is_outgoing True, if the message is outgoing
-//@can_be_edited True, if the message can be edited
+//@can_be_edited True, if the message can be edited. For live location and poll messages this fields shows, whether editMessageLiveLocation or stopPoll can be used with this message by the client
 //@can_be_forwarded True, if the message can be forwarded
 //@can_be_deleted_only_for_self True, if the message can be deleted only for the current user while other users will continue to see it
 //@can_be_deleted_for_all_users True, if the message can be deleted for all users
