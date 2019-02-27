@@ -52,6 +52,15 @@ void PartsManager::set_streaming_offset(int64 offset) {
 }
 void PartsManager::set_streaming_limit(int64 limit) {
   streaming_limit_ = limit;
+  streaming_ready_size_ = 0;
+  if (streaming_limit_ == 0) {
+    return;
+  }
+  for (int part_i = 0; part_i < part_count_; part_i++) {
+    if (is_part_in_streaming_limit(part_i) && part_status_[part_i] == PartStatus::Ready) {
+      streaming_ready_size_ = get_part(part_i).size;
+    }
+  }
 }
 
 Status PartsManager::init_no_size(size_t part_size, const std::vector<int> &ready_parts) {
@@ -138,13 +147,13 @@ bool PartsManager::ready() {
 }
 
 Status PartsManager::finish() {
+  if (ready()) {
+    return Status::OK();
+  }
   if (is_streaming_limit_reached()) {
     return Status::Error("FILE_DOWNLOAD_LIMIT");
   }
-  if (!ready()) {
-    return Status::Error("File transferring not finished");
-  }
-  return Status::OK();
+  return Status::Error("File transferring not finished");
 }
 
 void PartsManager::update_first_empty_part() {
@@ -305,6 +314,9 @@ Status PartsManager::on_part_ok(int32 id, size_t part_size, size_t actual_size) 
     bitmask_.set(id);
   }
   ready_size_ += narrow_cast<int64>(actual_size);
+  if (streaming_limit_ > 0 && is_part_in_streaming_limit(id)) {
+    streaming_ready_size_ += narrow_cast<int64>(actual_size);
+  }
 
   VLOG(files) << "Transferred part " << id << " of size " << part_size << ", total ready size = " << ready_size_;
 
@@ -389,13 +401,18 @@ int64 PartsManager::get_estimated_extra() const {
         streaming_size = min(expected_size, prefix + suffix);
       }
     }
-    //TODO: optimize
     int64 res = streaming_size;
+
+    //TODO: delete this block if CHECK won't fail
+    int64 sub = 0;
     for (int part_i = 0; part_i < part_count_; part_i++) {
       if (is_part_in_streaming_limit(part_i) && part_status_[part_i] == PartStatus::Ready) {
-        res -= get_part(part_i).size;
+        sub += get_part(part_i).size;
       }
     }
+    CHECK(sub == streaming_ready_size_);
+
+    res -= streaming_ready_size_;
     CHECK(res >= 0);
     return res;
   }
@@ -423,6 +440,7 @@ int32 PartsManager::get_part_count() const {
 
 void PartsManager::init_common(const std::vector<int> &ready_parts) {
   ready_size_ = 0;
+  streaming_ready_size_ = 0;
   pending_count_ = 0;
   first_empty_part_ = 0;
   first_not_ready_part_ = 0;
@@ -469,13 +487,11 @@ int64 PartsManager::get_unchecked_ready_prefix_size() {
 Part PartsManager::get_part(int id) const {
   int64 offset = narrow_cast<int64>(part_size_) * id;
   int64 size = narrow_cast<int64>(part_size_);
-  if (!unknown_size_flag_) {
-    auto total_size = get_size();
-    if (total_size < offset) {
-      size = 0;
-    } else {
-      size = min(size, total_size - offset);
-    }
+  auto total_size = unknown_size_flag_ ? max_size_ : get_size();
+  if (total_size < offset) {
+    size = 0;
+  } else {
+    size = min(size, total_size - offset);
   }
   return Part{id, offset, static_cast<size_t>(size)};
 }

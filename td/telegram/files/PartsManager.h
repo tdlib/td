@@ -71,6 +71,7 @@ class PartsManager {
   int64 max_size_;
   bool unknown_size_flag_;
   int64 ready_size_;
+  int64 streaming_ready_size_;
 
   size_t part_size_;
   int part_count_;
