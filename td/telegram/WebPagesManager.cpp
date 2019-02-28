@@ -3821,7 +3821,7 @@ void WebPagesManager::append_page_block_caption_file_ids(const PageBlockCaption 
   append_rich_text_file_ids(caption.credit, file_ids);
 }
 
-vector<FileId> WebPagesManager::get_web_page_file_ids(const WebPage *web_page) {
+vector<FileId> WebPagesManager::get_web_page_file_ids(const WebPage *web_page) const {
   if (web_page == nullptr) {
     return vector<FileId>();
   }
@@ -3829,6 +3829,30 @@ vector<FileId> WebPagesManager::get_web_page_file_ids(const WebPage *web_page) {
   vector<FileId> result = photo_get_file_ids(web_page->photo);
   if (web_page->document_file_id.is_valid()) {
     result.push_back(web_page->document_file_id);
+    FileId thumbnail_file_id;
+    switch (web_page->document_type) {
+      case DocumentsManager::DocumentType::Animation:
+        thumbnail_file_id = td_->animations_manager_->get_animation_thumbnail_file_id(web_page->document_file_id);
+        break;
+      case DocumentsManager::DocumentType::Audio:
+        thumbnail_file_id = td_->audios_manager_->get_audio_thumbnail_file_id(web_page->document_file_id);
+        break;
+      case DocumentsManager::DocumentType::General:
+        thumbnail_file_id = td_->documents_manager_->get_document_thumbnail_file_id(web_page->document_file_id);
+        break;
+      case DocumentsManager::DocumentType::Sticker:
+        thumbnail_file_id = td_->stickers_manager_->get_sticker_thumbnail_file_id(web_page->document_file_id);
+        break;
+      case DocumentsManager::DocumentType::Video:
+        thumbnail_file_id = td_->videos_manager_->get_video_thumbnail_file_id(web_page->document_file_id);
+        break;
+      case DocumentsManager::DocumentType::VideoNote:
+        thumbnail_file_id = td_->video_notes_manager_->get_video_note_thumbnail_file_id(web_page->document_file_id);
+        break;
+    }
+    if (thumbnail_file_id.is_valid()) {
+      result.push_back(thumbnail_file_id);
+    }
   }
   if (!web_page->instant_view.is_empty) {
     for (auto &page_block : web_page->instant_view.page_blocks) {

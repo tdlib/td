@@ -4639,7 +4639,7 @@ vector<FileId> get_message_content_file_ids(const MessageContent *content, const
     case MessageContentType::Sticker:
       return td->stickers_manager_->get_sticker_file_ids(static_cast<const MessageSticker *>(content)->file_id);
     case MessageContentType::Game:
-      return static_cast<const MessageGame *>(content)->game.get_file_ids();
+      return static_cast<const MessageGame *>(content)->game.get_file_ids(td);
     case MessageContentType::Invoice:
       return photo_get_file_ids(static_cast<const MessageInvoice *>(content)->photo);
     case MessageContentType::ChatChangePhoto:

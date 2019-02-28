@@ -84,10 +84,14 @@ UserId Game::get_bot_user_id() const {
   return bot_user_id_;
 }
 
-vector<FileId> Game::get_file_ids() const {
+vector<FileId> Game::get_file_ids(const Td *td) const {
   auto result = photo_get_file_ids(photo_);
   if (animation_file_id_.is_valid()) {
     result.push_back(animation_file_id_);
+    auto thumbnail_file_id = td->animations_manager_->get_animation_thumbnail_file_id(animation_file_id_);
+    if (thumbnail_file_id.is_valid()) {
+      result.push_back(thumbnail_file_id);
+    }
   }
   return result;
 }
