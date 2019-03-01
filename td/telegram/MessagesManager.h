@@ -1238,7 +1238,6 @@ class MessagesManager : public Actor {
   static constexpr int32 MIN_SAVE_DRAFT_DELAY = 1;    // seconds
   static constexpr int32 MIN_READ_HISTORY_DELAY = 3;  // seconds
   static constexpr int32 MAX_SAVE_DIALOG_DELAY = 0;   // seconds
-  static constexpr int32 DIALOG_UNLOAD_DELAY = 60;    // seconds
 
   static constexpr int32 USERNAME_CACHE_EXPIRE_TIME = 3 * 86400;
   static constexpr int32 USERNAME_CACHE_EXPIRE_TIME_SHORT = 900;
@@ -1395,6 +1394,8 @@ class MessagesManager : public Actor {
                                         bool only_from_memory, bool *need_update_dialog_pos, const char *source);
 
   void on_message_deleted(Dialog *d, Message *m);
+
+  int32 get_unload_dialog_delay() const;
 
   void unload_dialog(DialogId dialog_id);
 

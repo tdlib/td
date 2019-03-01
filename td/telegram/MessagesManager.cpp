@@ -7845,14 +7845,20 @@ void MessagesManager::delete_all_channel_messages_from_user_on_server(ChannelId 
       ->send(channel_id, user_id);
 }
 
+int32 MessagesManager::get_unload_dialog_delay() const {
+  constexpr int32 DIALOG_UNLOAD_DELAY = 60;       // seconds
+  constexpr int32 DIALOG_UNLOAD_BOT_DELAY = 600;  // seconds
+  return td_->auth_manager_->is_bot() ? DIALOG_UNLOAD_BOT_DELAY : DIALOG_UNLOAD_DELAY;
+}
+
 void MessagesManager::unload_dialog(DialogId dialog_id) {
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
 
   vector<MessageId> to_unload_message_ids;
   int32 left_to_unload = 0;
-  find_unloadable_messages(d, G()->unix_time_cached() - DIALOG_UNLOAD_DELAY + 2, d->messages, to_unload_message_ids,
-                           left_to_unload);
+  find_unloadable_messages(d, G()->unix_time_cached() - get_unload_dialog_delay() + 2, d->messages,
+                           to_unload_message_ids, left_to_unload);
 
   vector<int64> unloaded_message_ids;
   for (auto message_id : to_unload_message_ids) {
@@ -7872,7 +7878,7 @@ void MessagesManager::unload_dialog(DialogId dialog_id) {
 
   if (left_to_unload > 0) {
     LOG(DEBUG) << "Need to unload " << left_to_unload << " messages more in " << dialog_id;
-    pending_unload_dialog_timeout_.add_timeout_in(d->dialog_id.get(), DIALOG_UNLOAD_DELAY);
+    pending_unload_dialog_timeout_.add_timeout_in(d->dialog_id.get(), get_unload_dialog_delay());
   }
 }
 
@@ -13002,7 +13008,7 @@ void MessagesManager::close_dialog(Dialog *d) {
 
   if (is_message_unload_enabled()) {
     LOG(INFO) << "Schedule unload of " << d->dialog_id;
-    pending_unload_dialog_timeout_.set_timeout_in(d->dialog_id.get(), DIALOG_UNLOAD_DELAY);
+    pending_unload_dialog_timeout_.set_timeout_in(d->dialog_id.get(), get_unload_dialog_delay());
   }
 
   switch (d->dialog_id.get_type()) {
@@ -21757,7 +21763,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   if (!d->is_opened && d->messages != nullptr && is_message_unload_enabled()) {
     LOG(INFO) << "Schedule unload of " << dialog_id;
-    pending_unload_dialog_timeout_.add_timeout_in(dialog_id.get(), DIALOG_UNLOAD_DELAY);
+    pending_unload_dialog_timeout_.add_timeout_in(dialog_id.get(), get_unload_dialog_delay());
   }
 
   if (message->ttl > 0 && message->ttl_expires_at != 0) {
