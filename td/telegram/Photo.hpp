@@ -72,8 +72,10 @@ void parse(PhotoSize &photo_size, ParserT &parser) {
 
 template <class StorerT>
 void store(const Photo &photo, StorerT &storer) {
+  bool has_minithumbnail = !photo.minithumbnail.empty();
   BEGIN_STORE_FLAGS();
   STORE_FLAG(photo.has_stickers);
+  STORE_FLAG(has_minithumbnail);
   END_STORE_FLAGS();
   store(photo.id, storer);
   store(photo.date, storer);
@@ -81,18 +83,26 @@ void store(const Photo &photo, StorerT &storer) {
   if (photo.has_stickers) {
     store(photo.sticker_file_ids, storer);
   }
+  if (has_minithumbnail) {
+    store(photo.minithumbnail, storer);
+  }
 }
 
 template <class ParserT>
 void parse(Photo &photo, ParserT &parser) {
+  bool has_minithumbnail;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(photo.has_stickers);
+  PARSE_FLAG(has_minithumbnail);
   END_PARSE_FLAGS();
   parse(photo.id, parser);
   parse(photo.date, parser);
   parse(photo.photos, parser);
   if (photo.has_stickers) {
     parse(photo.sticker_file_ids, parser);
+  }
+  if (has_minithumbnail) {
+    parse(photo.minithumbnail, parser);
   }
 }
 

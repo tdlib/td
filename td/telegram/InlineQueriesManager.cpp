@@ -852,6 +852,11 @@ td_api::object_ptr<td_api::file> copy(const td_api::file &obj) {
 }
 
 template <>
+tl_object_ptr<td_api::minithumbnail> copy(const td_api::minithumbnail &obj) {
+  return make_tl_object<td_api::minithumbnail>(obj.width_, obj.height_, obj.data_);
+}
+
+template <>
 tl_object_ptr<td_api::photoSize> copy(const td_api::photoSize &obj) {
   return make_tl_object<td_api::photoSize>(obj.type_, copy(obj.photo_), obj.width_, obj.height_);
 }
@@ -885,23 +890,26 @@ tl_object_ptr<td_api::maskPosition> copy(const td_api::maskPosition &obj) {
 template <>
 tl_object_ptr<td_api::animation> copy(const td_api::animation &obj) {
   return make_tl_object<td_api::animation>(obj.duration_, obj.width_, obj.height_, obj.file_name_, obj.mime_type_,
-                                           copy(obj.thumbnail_), copy(obj.animation_));
+                                           copy(obj.minithumbnail_), copy(obj.thumbnail_), copy(obj.animation_));
 }
 
 template <>
 tl_object_ptr<td_api::audio> copy(const td_api::audio &obj) {
   return make_tl_object<td_api::audio>(obj.duration_, obj.title_, obj.performer_, obj.file_name_, obj.mime_type_,
-                                       copy(obj.album_cover_thumbnail_), copy(obj.audio_));
+                                       copy(obj.album_cover_minithumbnail_), copy(obj.album_cover_thumbnail_),
+                                       copy(obj.audio_));
 }
 
 template <>
 tl_object_ptr<td_api::document> copy(const td_api::document &obj) {
-  return make_tl_object<td_api::document>(obj.file_name_, obj.mime_type_, copy(obj.thumbnail_), copy(obj.document_));
+  return make_tl_object<td_api::document>(obj.file_name_, obj.mime_type_, copy(obj.minithumbnail_),
+                                          copy(obj.thumbnail_), copy(obj.document_));
 }
 
 template <>
 tl_object_ptr<td_api::photo> copy(const td_api::photo &obj) {
-  return make_tl_object<td_api::photo>(obj.has_stickers_, transform(obj.sizes_, copy_photo_size));
+  return make_tl_object<td_api::photo>(obj.has_stickers_, copy(obj.minithumbnail_),
+                                       transform(obj.sizes_, copy_photo_size));
 }
 
 template <>
@@ -913,8 +921,8 @@ tl_object_ptr<td_api::sticker> copy(const td_api::sticker &obj) {
 template <>
 tl_object_ptr<td_api::video> copy(const td_api::video &obj) {
   return make_tl_object<td_api::video>(obj.duration_, obj.width_, obj.height_, obj.file_name_, obj.mime_type_,
-                                       obj.has_stickers_, obj.supports_streaming_, copy(obj.thumbnail_),
-                                       copy(obj.video_));
+                                       obj.has_stickers_, obj.supports_streaming_, copy(obj.minithumbnail_),
+                                       copy(obj.thumbnail_), copy(obj.video_));
 }
 
 template <>

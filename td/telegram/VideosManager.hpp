@@ -29,6 +29,7 @@ void VideosManager::store_video(FileId file_id, StorerT &storer) const {
   store(video->mime_type, storer);
   store(video->duration, storer);
   store(video->dimensions, storer);
+  store(video->minithumbnail, storer);
   store(video->thumbnail, storer);
   store(file_id, storer);
   if (video->has_stickers) {
@@ -47,6 +48,9 @@ FileId VideosManager::parse_video(ParserT &parser) {
   parse(video->mime_type, parser);
   parse(video->duration, parser);
   parse(video->dimensions, parser);
+  if (parser.version() >= static_cast<int32>(Version::SupportMinithumbnails)) {
+    parse(video->minithumbnail, parser);
+  }
   parse(video->thumbnail, parser);
   parse(video->file_id, parser);
   if (video->has_stickers) {

@@ -14,6 +14,7 @@
 #include "td/telegram/files/FileManager.h"
 #include "td/telegram/net/DcId.h"
 
+#include "td/utils/base64.h"
 #include "td/utils/common.h"
 #include "td/utils/format.h"
 #include "td/utils/HttpUrl.h"
@@ -59,6 +60,39 @@ bool operator!=(const Dimensions &lhs, const Dimensions &rhs) {
 
 StringBuilder &operator<<(StringBuilder &string_builder, const Dimensions &dimensions) {
   return string_builder << "(" << dimensions.width << ", " << dimensions.height << ")";
+}
+
+td_api::object_ptr<td_api::minithumbnail> get_minithumbnail_object(const string &packed) {
+  if (packed.size() < 3) {
+    return nullptr;
+  }
+  if (packed[0] == '\x01') {
+    static const string header =
+        base64_decode(
+            "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDACgcHiMeGSgjISMtKygwPGRBPDc3PHtYXUlkkYCZlo+AjIqgtObDoKrarYqMyP/L2u71////"
+            "m8H///"
+            "/6/+b9//j/2wBDASstLTw1PHZBQXb4pYyl+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj/"
+            "wAARCAAAAAADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/"
+            "8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0R"
+            "FRkd"
+            "ISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2"
+            "uHi4"
+            "+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/"
+            "8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkN"
+            "ERUZ"
+            "HSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2"
+            "Nna4"
+            "uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwA=")
+            .move_as_ok();
+    static const string footer = base64_decode("/9k=").move_as_ok();
+    auto result = td_api::make_object<td_api::minithumbnail>();
+    result->width_ = static_cast<unsigned char>(packed[1]);
+    result->height_ = static_cast<unsigned char>(packed[2]);
+    result->data_ = PSTRING() << header.substr(0, 164) << packed[1] << header[165] << packed[2] << header.substr(167)
+                              << packed.substr(3) << footer;
+    return result;
+  }
+  return nullptr;
 }
 
 static FileId register_photo(FileManager *file_manager, FileType file_type, int64 id, int64 access_hash,
@@ -228,8 +262,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const DialogPhoto &dial
                         << ", big_file_id = " << dialog_photo.big_file_id << ">";
 }
 
-PhotoSize get_thumbnail_photo_size(FileManager *file_manager, BufferSlice bytes, DialogId owner_dialog_id, int32 width,
-                                   int32 height) {
+PhotoSize get_secret_thumbnail_photo_size(FileManager *file_manager, BufferSlice bytes, DialogId owner_dialog_id,
+                                          int32 width, int32 height) {
   if (bytes.empty()) {
     return PhotoSize();
   }
@@ -252,9 +286,9 @@ PhotoSize get_thumbnail_photo_size(FileManager *file_manager, BufferSlice bytes,
   return res;
 }
 
-PhotoSize get_photo_size(FileManager *file_manager, FileType file_type, int64 id, int64 access_hash,
-                         std::string upload_file_reference, DialogId owner_dialog_id,
-                         tl_object_ptr<telegram_api::PhotoSize> &&size_ptr, bool is_webp) {
+Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, FileType file_type, int64 id, int64 access_hash,
+                                          std::string upload_file_reference, DialogId owner_dialog_id,
+                                          tl_object_ptr<telegram_api::PhotoSize> &&size_ptr, bool is_webp) {
   tl_object_ptr<telegram_api::FileLocation> location_ptr;
   string type;
 
@@ -263,7 +297,7 @@ PhotoSize get_photo_size(FileManager *file_manager, FileType file_type, int64 id
 
   switch (size_ptr->get_id()) {
     case telegram_api::photoSizeEmpty::ID:
-      return res;
+      return std::move(res);
     case telegram_api::photoSize::ID: {
       auto size = move_tl_object_as<telegram_api::photoSize>(size_ptr);
 
@@ -287,6 +321,10 @@ PhotoSize get_photo_size(FileManager *file_manager, FileType file_type, int64 id
 
       break;
     }
+    case telegram_api::photoStrippedSize::ID: {
+      auto size = move_tl_object_as<telegram_api::photoStrippedSize>(size_ptr);
+      return size->bytes_.as_slice().str();
+    }
     default:
       UNREACHABLE();
       break;
@@ -306,7 +344,7 @@ PhotoSize get_photo_size(FileManager *file_manager, FileType file_type, int64 id
     res.type = static_cast<int32>(type[0]);
   }
 
-  return res;
+  return std::move(res);
 }
 
 PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_type, DialogId owner_dialog_id,
@@ -465,8 +503,8 @@ Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::encrypted
   res.date = 0;
 
   if (!photo->thumb_.empty()) {
-    res.photos.push_back(get_thumbnail_photo_size(file_manager, std::move(photo->thumb_), owner_dialog_id,
-                                                  photo->thumb_w_, photo->thumb_h_));
+    res.photos.push_back(get_secret_thumbnail_photo_size(file_manager, std::move(photo->thumb_), owner_dialog_id,
+                                                         photo->thumb_w_, photo->thumb_h_));
   }
 
   PhotoSize s;
@@ -487,9 +525,14 @@ Photo get_photo(FileManager *file_manager, tl_object_ptr<telegram_api::photo> &&
   res.has_stickers = (photo->flags_ & telegram_api::photo::HAS_STICKERS_MASK) != 0;
 
   for (auto &size_ptr : photo->sizes_) {
-    res.photos.push_back(get_photo_size(file_manager, FileType::Photo, photo->id_, photo->access_hash_,
-                                        photo->file_reference_.as_slice().str(), owner_dialog_id, std::move(size_ptr),
-                                        false));
+    auto photo_size =
+        get_photo_size(file_manager, FileType::Photo, photo->id_, photo->access_hash_,
+                       photo->file_reference_.as_slice().str(), owner_dialog_id, std::move(size_ptr), false);
+    if (photo_size.get_offset() == 0) {
+      res.photos.push_back(std::move(photo_size.get<0>()));
+    } else {
+      res.minithumbnail = std::move(photo_size.get<1>());
+    }
   }
 
   return res;
@@ -513,7 +556,8 @@ tl_object_ptr<td_api::photo> get_photo_object(FileManager *file_manager, const P
     return nullptr;
   }
 
-  return td_api::make_object<td_api::photo>(photo->has_stickers, get_photo_sizes_object(file_manager, photo->photos));
+  return td_api::make_object<td_api::photo>(photo->has_stickers, get_minithumbnail_object(photo->minithumbnail),
+                                            get_photo_sizes_object(file_manager, photo->photos));
 }
 
 tl_object_ptr<td_api::userProfilePhoto> get_user_profile_photo_object(FileManager *file_manager, const Photo *photo) {
@@ -718,6 +762,8 @@ tl_object_ptr<telegram_api::userProfilePhoto> convert_photo_to_profile_photo(
         }
         break;
       }
+      case telegram_api::photoStrippedSize::ID:
+        break;
       default:
         UNREACHABLE();
         break;

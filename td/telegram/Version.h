@@ -29,6 +29,7 @@ enum class Version : int32 {
   AddMessageUnsupportedVersion,
   SupportInstantView2_0,
   AddNotificationGroupInfoMaxRemovedMessageId,
+  SupportMinithumbnails,
   Next
 };
 

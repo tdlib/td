@@ -24,6 +24,7 @@ void DocumentsManager::store_document(FileId file_id, StorerT &storer) const {
   const GeneralDocument *document = it->second.get();
   store(document->file_name, storer);
   store(document->mime_type, storer);
+  store(document->minithumbnail, storer);
   store(document->thumbnail, storer);
   store(file_id, storer);
 }
@@ -33,6 +34,9 @@ FileId DocumentsManager::parse_document(ParserT &parser) {
   auto document = make_unique<GeneralDocument>();
   parse(document->file_name, parser);
   parse(document->mime_type, parser);
+  if (parser.version() >= static_cast<int32>(Version::SupportMinithumbnails)) {
+    parse(document->minithumbnail, parser);
+  }
   parse(document->thumbnail, parser);
   parse(document->file_id, parser);
   LOG(DEBUG) << "Parsed document " << document->file_id;

@@ -40,7 +40,7 @@ tl_object_ptr<td_api::video> VideosManager::get_video_object(FileId file_id) {
 
   return make_tl_object<td_api::video>(
       video->duration, video->dimensions.width, video->dimensions.height, video->file_name, video->mime_type,
-      video->has_stickers, video->supports_streaming,
+      video->has_stickers, video->supports_streaming, get_minithumbnail_object(video->minithumbnail),
       get_photo_size_object(td_->file_manager_.get(), &video->thumbnail), td_->file_manager_->get_file_object(file_id));
 }
 
@@ -68,6 +68,10 @@ FileId VideosManager::on_get_video(unique_ptr<Video> new_video, bool replace) {
     if (v->file_name != new_video->file_name) {
       LOG(DEBUG) << "Video " << file_id << " file name has changed";
       v->file_name = std::move(new_video->file_name);
+      v->is_changed = true;
+    }
+    if (v->minithumbnail != new_video->minithumbnail) {
+      v->minithumbnail = std::move(new_video->minithumbnail);
       v->is_changed = true;
     }
     if (v->thumbnail != new_video->thumbnail) {
@@ -168,7 +172,7 @@ bool VideosManager::merge_videos(FileId new_id, FileId old_id, bool can_delete_o
   return true;
 }
 
-void VideosManager::create_video(FileId file_id, PhotoSize thumbnail, bool has_stickers,
+void VideosManager::create_video(FileId file_id, string minithumbnail, PhotoSize thumbnail, bool has_stickers,
                                  vector<FileId> &&sticker_file_ids, string file_name, string mime_type, int32 duration,
                                  Dimensions dimensions, bool supports_streaming, bool replace) {
   auto v = make_unique<Video>();
@@ -177,6 +181,7 @@ void VideosManager::create_video(FileId file_id, PhotoSize thumbnail, bool has_s
   v->mime_type = std::move(mime_type);
   v->duration = max(duration, 0);
   v->dimensions = dimensions;
+  v->minithumbnail = std::move(minithumbnail);
   v->thumbnail = std::move(thumbnail);
   v->supports_streaming = supports_streaming;
   v->has_stickers = has_stickers;

@@ -11,13 +11,14 @@
 #include "td/telegram/files/FileType.h"
 #include "td/telegram/SecretInputMedia.h"
 
-#include "td/utils/buffer.h"
-#include "td/utils/common.h"
-#include "td/utils/StringBuilder.h"
-
 #include "td/telegram/secret_api.h"
 #include "td/telegram/td_api.h"
 #include "td/telegram/telegram_api.h"
+
+#include "td/utils/buffer.h"
+#include "td/utils/common.h"
+#include "td/utils/StringBuilder.h"
+#include "td/utils/Variant.h"
 
 namespace td {
 
@@ -47,6 +48,7 @@ struct PhotoSize {
 struct Photo {
   int64 id = 0;
   int32 date = 0;
+  string minithumbnail;
   vector<PhotoSize> photos;
 
   bool has_stickers = false;
@@ -59,6 +61,8 @@ bool operator==(const Dimensions &lhs, const Dimensions &rhs);
 bool operator!=(const Dimensions &lhs, const Dimensions &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const Dimensions &dimensions);
+
+td_api::object_ptr<td_api::minithumbnail> get_minithumbnail_object(const string &packed);
 
 ProfilePhoto get_profile_photo(FileManager *file_manager,
                                tl_object_ptr<telegram_api::UserProfilePhoto> &&profile_photo_ptr);
@@ -80,11 +84,11 @@ bool operator!=(const DialogPhoto &lhs, const DialogPhoto &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogPhoto &dialog_photo);
 
-PhotoSize get_thumbnail_photo_size(FileManager *file_manager, BufferSlice bytes, DialogId owner_dialog_id, int32 width,
-                                   int32 height);
-PhotoSize get_photo_size(FileManager *file_manager, FileType file_type, int64 id, int64 access_hash,
-                         std::string upload_file_reference, DialogId owner_dialog_id,
-                         tl_object_ptr<telegram_api::PhotoSize> &&size_ptr, bool is_webp);
+PhotoSize get_secret_thumbnail_photo_size(FileManager *file_manager, BufferSlice bytes, DialogId owner_dialog_id,
+                                          int32 width, int32 height);
+Variant<PhotoSize, string> get_photo_size(FileManager *file_manager, FileType file_type, int64 id, int64 access_hash,
+                                          std::string upload_file_reference, DialogId owner_dialog_id,
+                                          tl_object_ptr<telegram_api::PhotoSize> &&size_ptr, bool is_webp);
 PhotoSize get_web_document_photo_size(FileManager *file_manager, FileType file_type, DialogId owner_dialog_id,
                                       tl_object_ptr<telegram_api::WebDocument> web_document_ptr);
 td_api::object_ptr<td_api::photoSize> get_photo_size_object(FileManager *file_manager, const PhotoSize *photo_size);

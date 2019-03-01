@@ -1499,7 +1499,7 @@ static Result<InputMessageContent> create_input_message_content(
       auto input_animation = static_cast<td_api::inputMessageAnimation *>(input_message_content.get());
 
       td->animations_manager_->create_animation(
-          file_id, thumbnail, std::move(file_name), std::move(mime_type), input_animation->duration_,
+          file_id, string(), thumbnail, std::move(file_name), std::move(mime_type), input_animation->duration_,
           get_dimensions(input_animation->width_, input_animation->height_), false);
 
       content = make_unique<MessageAnimation>(file_id, std::move(caption));
@@ -1515,7 +1515,7 @@ static Result<InputMessageContent> create_input_message_content(
         return Status::Error(400, "Audio performer must be encoded in UTF-8");
       }
 
-      td->audios_manager_->create_audio(file_id, thumbnail, std::move(file_name), std::move(mime_type),
+      td->audios_manager_->create_audio(file_id, string(), thumbnail, std::move(file_name), std::move(mime_type),
                                         input_audio->duration_, std::move(input_audio->title_),
                                         std::move(input_audio->performer_), false);
 
@@ -1523,7 +1523,8 @@ static Result<InputMessageContent> create_input_message_content(
       break;
     }
     case td_api::inputMessageDocument::ID:
-      td->documents_manager_->create_document(file_id, thumbnail, std::move(file_name), std::move(mime_type), false);
+      td->documents_manager_->create_document(file_id, string(), thumbnail, std::move(file_name), std::move(mime_type),
+                                              false);
 
       content = make_unique<MessageDocument>(file_id, std::move(caption));
       break;
@@ -1579,7 +1580,7 @@ static Result<InputMessageContent> create_input_message_content(
       ttl = input_video->ttl_;
 
       bool has_stickers = !sticker_file_ids.empty();
-      td->videos_manager_->create_video(file_id, thumbnail, has_stickers, std::move(sticker_file_ids),
+      td->videos_manager_->create_video(file_id, string(), thumbnail, has_stickers, std::move(sticker_file_ids),
                                         std::move(file_name), std::move(mime_type), input_video->duration_,
                                         get_dimensions(input_video->width_, input_video->height_),
                                         input_video->supports_streaming_, false);
@@ -1595,7 +1596,7 @@ static Result<InputMessageContent> create_input_message_content(
         return Status::Error(400, "Wrong video note length");
       }
 
-      td->video_notes_manager_->create_video_note(file_id, thumbnail, input_video_note->duration_,
+      td->video_notes_manager_->create_video_note(file_id, string(), thumbnail, input_video_note->duration_,
                                                   get_dimensions(length, length), false);
 
       content = make_unique<MessageVideoNote>(file_id, false);
@@ -2867,6 +2868,9 @@ void merge_message_contents(Td *td, const MessageContent *old_content, MessageCo
         is_content_changed = true;
       }
       if (old_photo->id != new_photo->id || old_->caption != new_->caption) {
+        need_update = true;
+      }
+      if (old_photo->minithumbnail != new_photo->minithumbnail) {
         need_update = true;
       }
       if (old_photo->photos != new_photo->photos) {

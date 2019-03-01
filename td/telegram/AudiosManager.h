@@ -30,8 +30,8 @@ class AudiosManager {
 
   tl_object_ptr<td_api::audio> get_audio_object(FileId file_id);
 
-  void create_audio(FileId file_id, PhotoSize thumbnail, string file_name, string mime_type, int32 duration,
-                    string title, string performer, bool replace);
+  void create_audio(FileId file_id, string minithumbnail, PhotoSize thumbnail, string file_name, string mime_type,
+                    int32 duration, string title, string performer, bool replace);
 
   tl_object_ptr<telegram_api::InputMedia> get_input_media(FileId file_id,
                                                           tl_object_ptr<telegram_api::InputFile> input_file,
@@ -65,6 +65,7 @@ class AudiosManager {
     int32 duration = 0;
     string title;
     string performer;
+    string minithumbnail;
     PhotoSize thumbnail;
 
     FileId file_id;

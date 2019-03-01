@@ -35,8 +35,8 @@ class AnimationsManager : public Actor {
 
   tl_object_ptr<td_api::animation> get_animation_object(FileId file_id, const char *source);
 
-  void create_animation(FileId file_id, PhotoSize thumbnail, string file_name, string mime_type, int32 duration,
-                        Dimensions dimensions, bool replace);
+  void create_animation(FileId file_id, string minithumbnail, PhotoSize thumbnail, string file_name, string mime_type,
+                        int32 duration, Dimensions dimensions, bool replace);
 
   tl_object_ptr<telegram_api::InputMedia> get_input_media(FileId file_id,
                                                           tl_object_ptr<telegram_api::InputFile> input_file,
@@ -95,6 +95,7 @@ class AnimationsManager : public Actor {
     string mime_type;
     int32 duration = 0;
     Dimensions dimensions;
+    string minithumbnail;
     PhotoSize thumbnail;
 
     FileId file_id;

@@ -1165,8 +1165,14 @@ std::pair<int64, FileId> StickersManager::on_get_sticker_document(tl_object_ptr<
                              document->file_reference_.as_slice().str()),
       FileLocationSource::FromServer, DialogId(), document->size_, 0, PSTRING() << document_id << ".webp");
 
-  PhotoSize thumbnail = get_photo_size(td_->file_manager_.get(), FileType::Thumbnail, 0, 0, "", DialogId(),
-                                       std::move(document->thumb_), has_webp_thumbnail(sticker));
+  auto photo_size = get_photo_size(td_->file_manager_.get(), FileType::Thumbnail, 0, 0, "", DialogId(),
+                                   std::move(document->thumb_), has_webp_thumbnail(sticker));
+  PhotoSize thumbnail;
+  if (photo_size.get_offset() == 0) {
+    thumbnail = std::move(photo_size.get<0>());
+  } else {
+    LOG(ERROR) << "Receive minithumbnail for a sticker";
+  }
 
   create_sticker(sticker_id, std::move(thumbnail), dimensions, from_message, std::move(sticker), nullptr);
   return {document_id, sticker_id};
@@ -3220,7 +3226,7 @@ Result<std::tuple<FileId, bool, bool>> StickersManager::prepare_input_file(
   }
   auto file_id = r_file_id.move_as_ok();
 
-  td_->documents_manager_->create_document(file_id, PhotoSize(), "sticker.png", "image/png", false);
+  td_->documents_manager_->create_document(file_id, string(), PhotoSize(), "sticker.png", "image/png", false);
 
   FileView file_view = td_->file_manager_->get_file_view(file_id);
   if (file_view.is_encrypted()) {
