@@ -3849,6 +3849,8 @@ vector<FileId> WebPagesManager::get_web_page_file_ids(const WebPage *web_page) c
       case DocumentsManager::DocumentType::VideoNote:
         thumbnail_file_id = td_->video_notes_manager_->get_video_note_thumbnail_file_id(web_page->document_file_id);
         break;
+      default:
+        break;
     }
     if (thumbnail_file_id.is_valid()) {
       result.push_back(thumbnail_file_id);
