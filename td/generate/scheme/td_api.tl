@@ -291,10 +291,12 @@ botInfo description:string commands:vector<botCommand> = BotInfo;
 
 //@description Represents a user @id User identifier @first_name First name of the user @last_name Last name of the user @username Username of the user
 //@phone_number Phone number of the user @status Current online status of the user @profile_photo Profile photo of the user; may be null
-//@outgoing_link Relationship from the current user to the other user @incoming_link Relationship from the other user to the current user @is_verified True, if the user is verified @restriction_reason If non-empty, it contains the reason why access to this user must be restricted. The format of the string is "{type}: {description}".
+//@outgoing_link Relationship from the current user to the other user @incoming_link Relationship from the other user to the current user
+//@is_verified True, if the user is verified @is_support True, if the user is Telegram support account
+//@restriction_reason If non-empty, it contains the reason why access to this user must be restricted. The format of the string is "{type}: {description}".
 //-{type} contains the type of the restriction and at least one of the suffixes "-all", "-ios", "-android", or "-wp", which describe the platforms on which access should be restricted. (For example, "terms-ios-android". {description} contains a human-readable description of the restriction, which can be shown to the user)
 //@have_access If false, the user is inaccessible, and the only information known about the user is inside this class. It can't be passed to any method except GetUser @type Type of the user @language_code IETF language tag of the user's language; only available to bots
-user id:int32 first_name:string last_name:string username:string phone_number:string status:UserStatus profile_photo:profilePhoto outgoing_link:LinkState incoming_link:LinkState is_verified:Bool restriction_reason:string have_access:Bool type:UserType language_code:string = User;
+user id:int32 first_name:string last_name:string username:string phone_number:string status:UserStatus profile_photo:profilePhoto outgoing_link:LinkState incoming_link:LinkState is_verified:Bool is_support:Bool restriction_reason:string have_access:Bool type:UserType language_code:string = User;
 
 //@description Contains full information about a user (except the full list of profile photos) @is_blocked True, if the user is blacklisted by the current user @can_be_called True, if the user can be called @has_private_calls True, if the user can't be called due to their privacy settings
 //@bio A short user bio @share_text For bots, the text that is included with the link when users share the bot @group_in_common_count Number of group chats where both the other user and the current user are a member; 0 for the current user @bot_info If the user is a bot, information about the bot; may be null

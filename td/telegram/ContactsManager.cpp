@@ -2473,6 +2473,7 @@ void ContactsManager::User::store(StorerT &storer) const {
   STORE_FLAG(is_restricted);
   STORE_FLAG(has_language_code);
   STORE_FLAG(have_access_hash);
+  STORE_FLAG(is_support);
   END_STORE_FLAGS();
   store(first_name, storer);
   if (has_last_name) {
@@ -2529,6 +2530,7 @@ void ContactsManager::User::parse(ParserT &parser) {
   PARSE_FLAG(is_restricted);
   PARSE_FLAG(has_language_code);
   PARSE_FLAG(have_access_hash);
+  PARSE_FLAG(is_support);
   END_PARSE_FLAGS();
   parse(first_name, parser);
   if (has_last_name) {
@@ -4994,7 +4996,7 @@ ChannelId ContactsManager::get_channel_id(const tl_object_ptr<telegram_api::Chat
 }
 
 void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, const char *source, bool is_me,
-                                  bool is_support) {
+                                  bool expect_support) {
   LOG(DEBUG) << "Receive from " << source << ' ' << to_string(user_ptr);
   int32 constructor_id = user_ptr->get_id();
   if (constructor_id == telegram_api::userEmpty::ID) {
@@ -5044,7 +5046,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
     */
   }
 
-  if (is_support) {
+  if (expect_support) {
     support_user_id_ = user_id;
   }
 
@@ -5088,6 +5090,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   }
 
   bool is_verified = (flags & USER_FLAG_IS_VERIFIED) != 0;
+  bool is_support = (flags & USER_FLAG_IS_SUPPORT) != 0;
   bool is_deleted = (flags & USER_FLAG_IS_DELETED) != 0;
   bool can_join_groups = (flags & USER_FLAG_IS_PRIVATE_BOT) == 0;
   bool can_read_all_group_messages = (flags & USER_FLAG_IS_BOT_WITH_PRIVACY_DISABLED) != 0;
@@ -5097,6 +5100,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   bool need_location_bot = (flags & USER_FLAG_NEED_LOCATION_BOT) != 0;
   bool has_bot_info_version = (flags & USER_FLAG_HAS_BOT_INFO_VERSION) != 0;
 
+  LOG_IF(ERROR, !is_support && expect_support) << "Receive non-support " << user_id << ", but expected a support user";
   LOG_IF(ERROR, !can_join_groups && !is_bot)
       << "Receive not bot " << user_id << " which can't join groups from " << source;
   LOG_IF(ERROR, can_read_all_group_messages && !is_bot)
@@ -5115,6 +5119,7 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
   if (is_deleted) {
     // just in case
     is_verified = false;
+    is_support = false;
     is_bot = false;
     can_join_groups = false;
     can_read_all_group_messages = false;
@@ -5128,14 +5133,15 @@ void ContactsManager::on_get_user(tl_object_ptr<telegram_api::User> &&user_ptr, 
       << "Receive not bot " << user_id << " which has bot info version from " << source;
 
   int32 bot_info_version = has_bot_info_version ? user->bot_info_version_ : -1;
-  if (is_verified != u->is_verified || is_bot != u->is_bot || can_join_groups != u->can_join_groups ||
-      can_read_all_group_messages != u->can_read_all_group_messages || restriction_reason != u->restriction_reason ||
-      is_inline_bot != u->is_inline_bot || inline_query_placeholder != u->inline_query_placeholder ||
-      need_location_bot != u->need_location_bot) {
+  if (is_verified != u->is_verified || is_support != u->is_support || is_bot != u->is_bot ||
+      can_join_groups != u->can_join_groups || can_read_all_group_messages != u->can_read_all_group_messages ||
+      restriction_reason != u->restriction_reason || is_inline_bot != u->is_inline_bot ||
+      inline_query_placeholder != u->inline_query_placeholder || need_location_bot != u->need_location_bot) {
     LOG_IF(ERROR, is_bot != u->is_bot && !is_deleted && !u->is_deleted)
         << "User.is_bot has changed for " << user_id << "/" << u->username << " from " << source << " from "
         << u->is_bot << " to " << is_bot;
     u->is_verified = is_verified;
+    u->is_support = is_support;
     u->is_bot = is_bot;
     u->can_join_groups = can_join_groups;
     u->can_read_all_group_messages = can_read_all_group_messages;
@@ -5402,7 +5408,8 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
   auto u = get_user_force_impl(user_id);
   if (user_id == UserId(777000) && (u == nullptr || !u->is_received)) {
     int32 flags = telegram_api::user::ACCESS_HASH_MASK | telegram_api::user::FIRST_NAME_MASK |
-                  telegram_api::user::PHONE_MASK | telegram_api::user::PHOTO_MASK | telegram_api::user::VERIFIED_MASK;
+                  telegram_api::user::PHONE_MASK | telegram_api::user::PHOTO_MASK | telegram_api::user::VERIFIED_MASK |
+                  telegram_api::user::SUPPORT_MASK;
     auto profile_photo = telegram_api::make_object<telegram_api::userProfilePhoto>(
         3337190045231018,
         telegram_api::make_object<telegram_api::fileLocation>(1, 702229962, 26779, 5859320227133863146, BufferSlice()),
@@ -5416,8 +5423,8 @@ ContactsManager::User *ContactsManager::get_user_force(UserId user_id) {
     auto user = telegram_api::make_object<telegram_api::user>(
         flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
         false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
-        false /*ignored*/, 777000, 1, "Telegram", "Updates", string(), "42777", std::move(profile_photo), nullptr, 0,
-        string(), string(), string());
+        false /*ignored*/, false /*ignored*/, 777000, 1, "Telegram", "Updates", string(), "42777",
+        std::move(profile_photo), nullptr, 0, string(), string(), string());
     on_get_user(std::move(user), "get_user_force");
     u = get_user(user_id);
     CHECK(u != nullptr && u->is_received);
@@ -9786,8 +9793,8 @@ int32 ContactsManager::get_user_id_object(UserId user_id, const char *source) co
                  td_api::make_object<td_api::updateUser>(td_api::make_object<td_api::user>(
                      user_id.get(), "", "", "", "", td_api::make_object<td_api::userStatusEmpty>(),
                      get_profile_photo_object(td_->file_manager_.get(), nullptr),
-                     get_link_state_object(LinkState::Unknown), get_link_state_object(LinkState::Unknown), false, "",
-                     false, td_api::make_object<td_api::userTypeUnknown>(), "")));
+                     get_link_state_object(LinkState::Unknown), get_link_state_object(LinkState::Unknown), false, false,
+                     "", false, td_api::make_object<td_api::userTypeUnknown>(), "")));
   }
   return user_id.get();
 }
@@ -9813,8 +9820,8 @@ tl_object_ptr<td_api::user> ContactsManager::get_user_object(UserId user_id, con
   return make_tl_object<td_api::user>(
       user_id.get(), u->first_name, u->last_name, u->username, u->phone_number, get_user_status_object(user_id, u),
       get_profile_photo_object(td_->file_manager_.get(), &u->photo), get_link_state_object(u->outbound),
-      get_link_state_object(u->inbound), u->is_verified, u->restriction_reason, u->is_received, std::move(type),
-      u->language_code);
+      get_link_state_object(u->inbound), u->is_verified, u->is_support, u->restriction_reason, u->is_received,
+      std::move(type), u->language_code);
 }
 
 vector<int32> ContactsManager::get_user_ids_object(const vector<UserId> &user_ids) const {

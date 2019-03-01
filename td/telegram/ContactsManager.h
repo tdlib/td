@@ -129,7 +129,7 @@ class ContactsManager : public Actor {
   void on_get_contacts_link(tl_object_ptr<telegram_api::contacts_link> &&link);
 
   void on_get_user(tl_object_ptr<telegram_api::User> &&user, const char *source, bool is_me = false,
-                   bool is_support = false);
+                   bool expect_support = false);
   void on_get_users(vector<tl_object_ptr<telegram_api::User>> &&users, const char *source);
 
   void on_binlog_user_event(BinlogEvent &&event);
@@ -473,6 +473,7 @@ class ContactsManager : public Actor {
 
     bool is_received = false;
     bool is_verified = false;
+    bool is_support = false;
     bool is_deleted = true;
     bool is_bot = true;
     bool can_join_groups = true;
@@ -722,6 +723,7 @@ class ContactsManager : public Actor {
   static constexpr int32 USER_FLAG_IS_INACCESSIBLE = 1 << 20;
   static constexpr int32 USER_FLAG_NEED_LOCATION_BOT = 1 << 21;
   static constexpr int32 USER_FLAG_HAS_LANGUAGE_CODE = 1 << 22;
+  static constexpr int32 USER_FLAG_IS_SUPPORT = 1 << 23;
 
   static constexpr int32 USER_FULL_FLAG_IS_BLOCKED = 1 << 0;
   static constexpr int32 USER_FULL_FLAG_HAS_ABOUT = 1 << 1;
