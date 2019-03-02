@@ -8599,6 +8599,7 @@ void MessagesManager::on_update_dialog_online_member_count_timeout(DialogId dial
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
   if (!d->is_opened) {
+    send_update_chat_online_member_count(dialog_id, 0);
     return;
   }
 
@@ -13032,7 +13033,8 @@ void MessagesManager::close_dialog(Dialog *d) {
       auto &info = online_count_it->second;
       info.is_update_sent = false;
     }
-    update_dialog_online_member_count_timeout_.cancel_timeout(d->dialog_id.get());
+    update_dialog_online_member_count_timeout_.set_timeout_in(d->dialog_id.get(),
+                                                              ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME);
   }
 }
 
