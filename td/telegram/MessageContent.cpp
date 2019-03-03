@@ -4700,6 +4700,10 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
       auto video = static_cast<const MessageVideo *>(content);
       return PSTRING() << td->videos_manager_->get_video_search_text(video->file_id) << " " << video->caption.text;
     }
+    case MessageContentType::Poll: {
+      auto poll = static_cast<const MessagePoll *>(content);
+      return td->poll_manager_->get_poll_search_text(poll->poll_id);
+    }
     case MessageContentType::Contact:
     case MessageContentType::Game:
     case MessageContentType::Invoice:
@@ -4733,7 +4737,6 @@ string get_message_content_search_text(const Td *td, const MessageContent *conte
     case MessageContentType::WebsiteConnected:
     case MessageContentType::PassportDataSent:
     case MessageContentType::PassportDataReceived:
-    case MessageContentType::Poll:
       return string();
     default:
       UNREACHABLE();

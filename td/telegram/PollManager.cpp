@@ -391,6 +391,18 @@ bool PollManager::get_poll_is_closed(PollId poll_id) const {
   return poll->is_closed;
 }
 
+string PollManager::get_poll_search_text(PollId poll_id) const {
+  auto poll = get_poll(poll_id);
+  CHECK(poll != nullptr);
+
+  string result = poll->question;
+  for (auto &option : poll->options) {
+    result += ' ';
+    result += option.text;
+  }
+  return result;
+}
+
 void PollManager::set_poll_answer(PollId poll_id, FullMessageId full_message_id, vector<int32> &&option_ids,
                                   Promise<Unit> &&promise) {
   if (option_ids.size() > 1) {

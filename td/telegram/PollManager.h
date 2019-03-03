@@ -48,6 +48,8 @@ class PollManager : public Actor {
 
   bool get_poll_is_closed(PollId poll_id) const;
 
+  string get_poll_search_text(PollId poll_id) const;
+
   void set_poll_answer(PollId poll_id, FullMessageId full_message_id, vector<int32> &&option_ids,
                        Promise<Unit> &&promise);
 
