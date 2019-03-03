@@ -754,8 +754,8 @@ pageBlockVerticalAlignmentBottom = PageBlockVerticalAlignment;
 pageBlockTableCell text:RichText is_header:Bool colspan:int32 rowspan:int32 align:PageBlockHorizontalAlignment valign:PageBlockVerticalAlignment = PageBlockTableCell;
 
 //@description Contains information about a related article @url Related article URL @title Article title; may be empty @param_description Article description; may be empty
-//@photo Article photo; may be null @author Article author; may be empty @published_date Article publish date; 0 if unknown
-pageBlockRelatedArticle url:string title:string description:string photo:photo author:string published_date:int32 = PageBlockRelatedArticle;
+//@photo Article photo; may be null @author Article author; may be empty @publish_date Point in time (Unix timestamp) when the article was published; 0 if unknown
+pageBlockRelatedArticle url:string title:string description:string photo:photo author:string publish_date:int32 = PageBlockRelatedArticle;
 
 
 //@class PageBlock @description Describes a block of an instant view web page
