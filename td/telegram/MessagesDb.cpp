@@ -570,7 +570,7 @@ class MessagesDbImpl : public MessagesDbSyncInterface {
     };
 
     const size_t MAX_QUERY_SIZE = 1024;
-    query.truncate(MAX_QUERY_SIZE);
+    query = utf8_truncate(query, MAX_QUERY_SIZE);
     auto buf = StackAllocator::alloc(query.size() * 4 + 100);
     StringBuilder sb(buf.as_slice());
     bool in_word{false};
