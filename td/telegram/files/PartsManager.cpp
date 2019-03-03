@@ -58,7 +58,7 @@ void PartsManager::set_streaming_limit(int64 limit) {
   }
   for (int part_i = 0; part_i < part_count_; part_i++) {
     if (is_part_in_streaming_limit(part_i) && part_status_[part_i] == PartStatus::Ready) {
-      streaming_ready_size_ = get_part(part_i).size;
+      streaming_ready_size_ += get_part(part_i).size;
     }
   }
 }

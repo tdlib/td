@@ -71,6 +71,7 @@ void FileLoader::update_download_offset(int64 offset) {
   for (auto &it : part_map_) {
     it.second.second.reset();  // cancel_query(it.second.second);
   }
+  update_estimated_limit();
   loop();
 }
 
