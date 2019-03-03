@@ -2,7 +2,7 @@
 
 git clone https://github.com/pybee/Python-Apple-support
 cd Python-Apple-support
-git checkout 2.7
+git checkout tags/2.7-b5 -b archs-all
 cd ..
 
 #TODO: change openssl version
