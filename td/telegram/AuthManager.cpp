@@ -18,6 +18,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
+#include "td/telegram/NotificationManager.h"
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
@@ -560,6 +561,7 @@ void AuthManager::on_authorization(tl_object_ptr<telegram_api::auth_authorizatio
   if ((auth->flags_ & telegram_api::auth_authorization::TMP_SESSIONS_MASK) != 0) {
     G()->shared_config().set_option_integer("session_count", auth->tmp_sessions_);
   }
+  td->notification_manager_->init();
   td->updates_manager_->get_difference("on_authorization");
   td->on_online_updated(false, true);
   td->schedule_get_terms_of_service(0);

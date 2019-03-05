@@ -141,7 +141,7 @@ void NotificationManager::on_flush_pending_updates_timeout_callback(void *notifi
 }
 
 bool NotificationManager::is_disabled() const {
-  return td_->auth_manager_->is_bot() || G()->close_flag();
+  return !td_->auth_manager_->is_authorized() || td_->auth_manager_->is_bot() || G()->close_flag();
 }
 
 namespace {
@@ -179,6 +179,14 @@ string NotificationManager::get_is_contact_registered_notifications_synchronized
 }
 
 void NotificationManager::start_up() {
+  init();
+}
+
+void NotificationManager::init() {
+  if (is_disabled()) {
+    return;
+  }
+
   disable_contact_registered_notifications_ =
       G()->shared_config().get_option_boolean("disable_contact_registered_notifications");
   auto sync_state = G()->td_db()->get_binlog_pmc()->get(get_is_contact_registered_notifications_synchronized_key());
@@ -191,10 +199,6 @@ void NotificationManager::start_up() {
   if (contact_registered_notifications_sync_state_ != SyncState::Completed ||
       static_cast<bool>(sync_state[1] - '0') != disable_contact_registered_notifications_) {
     run_contact_registered_notifications_sync();
-  }
-
-  if (is_disabled()) {
-    return;
   }
 
   current_notification_id_ =
@@ -2136,6 +2140,10 @@ void NotificationManager::on_notification_default_delay_changed() {
 }
 
 void NotificationManager::on_disable_contact_registered_notifications_changed() {
+  if (is_disabled()) {
+    return;
+  }
+
   auto is_disabled = G()->shared_config().get_option_boolean("disable_contact_registered_notifications");
 
   if (is_disabled == disable_contact_registered_notifications_) {
@@ -2162,6 +2170,10 @@ void NotificationManager::on_get_disable_contact_registered_notifications(bool i
 }
 
 void NotificationManager::set_contact_registered_notifications_sync_state(SyncState new_state) {
+  if (is_disabled()) {
+    return;
+  }
+
   contact_registered_notifications_sync_state_ = new_state;
   string value;
   value += static_cast<char>(static_cast<int32>(new_state) + '0');
@@ -2170,6 +2182,10 @@ void NotificationManager::set_contact_registered_notifications_sync_state(SyncSt
 }
 
 void NotificationManager::run_contact_registered_notifications_sync() {
+  if (is_disabled()) {
+    return;
+  }
+
   auto is_disabled = disable_contact_registered_notifications_;
   if (contact_registered_notifications_sync_state_ == SyncState::NotSynced && !is_disabled) {
     set_contact_registered_notifications_sync_state(SyncState::Completed);
@@ -2197,13 +2213,16 @@ void NotificationManager::on_contact_registered_notifications_sync(bool is_disab
     set_contact_registered_notifications_sync_state(SyncState::Completed);
   } else {
     // let's resend the query forever
-    if (!G()->close_flag()) {
-      run_contact_registered_notifications_sync();
-    }
+    run_contact_registered_notifications_sync();
   }
 }
 
 void NotificationManager::get_disable_contact_registered_notifications(Promise<Unit> &&promise) {
+  if (is_disabled()) {
+    promise.set_value(Unit());
+    return;
+  }
+
   td_->create_handler<GetContactSignUpNotificationQuery>(std::move(promise))->send();
 }
 

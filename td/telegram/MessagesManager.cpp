@@ -8994,7 +8994,9 @@ void MessagesManager::init() {
     channels_notification_settings_.disable_pinned_message_notifications = false;
     channels_notification_settings_.disable_mention_notifications = false;
     channels_notification_settings_.is_synchronized = false;
-    send_get_scope_notification_settings_query(NotificationSettingsScope::Channel, Promise<>());
+    if (!td_->auth_manager_->is_bot()) {
+      send_get_scope_notification_settings_query(NotificationSettingsScope::Channel, Promise<>());
+    }
   }
   G()->td_db()->get_binlog_pmc()->erase("nsfac");
 
@@ -20030,6 +20032,11 @@ void MessagesManager::send_get_dialog_notification_settings_query(DialogId dialo
 
 void MessagesManager::send_get_scope_notification_settings_query(NotificationSettingsScope scope,
                                                                  Promise<Unit> &&promise) {
+  if (td_->auth_manager_->is_bot()) {
+    LOG(ERROR) << "Can't get notification settings for " << scope;
+    return promise.set_error(Status::Error(500, "Wrong getScopeNotificationSettings query"));
+  }
+
   td_->create_handler<GetScopeNotifySettingsQuery>(std::move(promise))->send(scope);
 }
 
@@ -23064,7 +23071,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   }
 
   if (d->notification_settings.is_synchronized && !d->notification_settings.is_use_default_fixed &&
-      have_input_peer(dialog_id, AccessRights::Read)) {
+      have_input_peer(dialog_id, AccessRights::Read) && !td_->auth_manager_->is_bot()) {
     LOG(INFO) << "Reget notification settings of " << dialog_id;
     if (d->dialog_id.get_type() == DialogType::SecretChat) {
       if (d->notification_settings.mute_until == 0 && users_notification_settings_.mute_until == 0) {
