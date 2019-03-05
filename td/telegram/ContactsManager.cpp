@@ -2402,6 +2402,10 @@ UserId ContactsManager::load_my_id() {
 }
 
 void ContactsManager::on_user_online_timeout_callback(void *contacts_manager_ptr, int64 user_id_long) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   auto contacts_manager = static_cast<ContactsManager *>(contacts_manager_ptr);
   UserId user_id(narrow_cast<int32>(user_id_long));
   auto u = contacts_manager->get_user(user_id);
@@ -2411,6 +2415,8 @@ void ContactsManager::on_user_online_timeout_callback(void *contacts_manager_ptr
   send_closure_later(
       G()->td(), &Td::send_update,
       make_tl_object<td_api::updateUserStatus>(user_id.get(), contacts_manager->get_user_status_object(user_id, u)));
+
+  contacts_manager->update_user_online_member_count(u);
 }
 
 void ContactsManager::on_channel_unban_timeout_callback(void *contacts_manager_ptr, int64 channel_id_long) {
@@ -6215,6 +6221,10 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
                  make_tl_object<td_api::updateUserStatus>(user_id.get(), get_user_status_object(user_id, u)));
     u->is_status_changed = false;
   }
+  if (u->is_online_status_changed) {
+    update_user_online_member_count(u);
+    u->is_online_status_changed = false;
+  }
 
   if (!from_database) {
     save_user(u, user_id, from_binlog);
@@ -6975,6 +6985,8 @@ void ContactsManager::on_update_user_online(User *u, UserId user_id, tl_object_p
 
   if (new_online != u->was_online) {
     LOG(DEBUG) << "Update " << user_id << " online from " << u->was_online << " to " << new_online;
+    bool was_online = u->was_online > G()->unix_time_cached();
+    bool is_online = new_online > G()->unix_time_cached();
     u->was_online = new_online;
     u->is_status_changed = true;
 
@@ -6983,6 +6995,8 @@ void ContactsManager::on_update_user_online(User *u, UserId user_id, tl_object_p
       if (is_offline) {
         td_->on_online_updated(false, false);
       }
+    } else if (was_online != is_online) {
+      u->is_online_status_changed = true;
     }
   }
 }
@@ -7121,8 +7135,31 @@ void ContactsManager::invalidate_user_full(UserId user_id) {
   update_user_full(user_full, user_id);
 }
 
-void ContactsManager::update_chat_online_member_count(const ChatFull *chat_full, ChatId chat_id,
-                                                      bool is_from_server) const {
+void ContactsManager::update_user_online_member_count(User *u) {
+  if (u->online_member_chats.empty()) {
+    return;
+  }
+
+  auto now = G()->unix_time_cached();
+  vector<ChatId> expired_chat_ids;
+  for (auto &it : u->online_member_chats) {
+    auto chat_id = it.first;
+    auto time = it.second;
+    if (time < now - MessagesManager::ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME) {
+      expired_chat_ids.push_back(chat_id);
+      continue;
+    }
+
+    auto chat_full = get_chat_full(chat_id);
+    CHECK(chat_full != nullptr);
+    update_chat_online_member_count(chat_full, chat_id, false);
+  }
+  for (auto &chat_id : expired_chat_ids) {
+    u->online_member_chats.erase(chat_id);
+  }
+}
+
+void ContactsManager::update_chat_online_member_count(const ChatFull *chat_full, ChatId chat_id, bool is_from_server) {
   if (td_->auth_manager_->is_bot()) {
     return;
   }
@@ -7139,6 +7176,7 @@ void ContactsManager::update_chat_online_member_count(const ChatFull *chat_full,
       if (was_online > time) {
         online_member_count++;
       }
+      u->online_member_chats[chat_id] = time;
     }
   }
   td_->messages_manager_->on_update_dialog_online_member_count(DialogId(chat_id), online_member_count, is_from_server);

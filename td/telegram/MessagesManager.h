@@ -159,6 +159,8 @@ class MessagesManager : public Actor {
   static constexpr int32 SEND_MESSAGE_FLAG_GROUP_MEDIA = 1 << 9;
   static constexpr int32 SEND_MESSAGE_FLAG_HAS_MESSAGE = 1 << 11;
 
+  static constexpr int32 ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME = 30 * 60;
+
   MessagesManager(Td *td, ActorShared<> parent);
   MessagesManager(const MessagesManager &) = delete;
   MessagesManager &operator=(const MessagesManager &) = delete;
@@ -1242,7 +1244,6 @@ class MessagesManager : public Actor {
   static constexpr int32 USERNAME_CACHE_EXPIRE_TIME = 3 * 86400;
   static constexpr int32 USERNAME_CACHE_EXPIRE_TIME_SHORT = 900;
 
-  static constexpr int32 ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME = 30 * 60;
   static constexpr int32 ONLINE_MEMBER_COUNT_UPDATE_TIME = 5 * 60;
 
   static constexpr int32 MAX_RESEND_DELAY = 86400;  // seconds, some resonable limit

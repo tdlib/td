@@ -471,6 +471,8 @@ class ContactsManager : public Actor {
 
     std::unordered_set<int64> photo_ids;
 
+    std::unordered_map<ChatId, int32, ChatIdHash> online_member_chats;  // id -> time
+
     bool is_received = false;
     bool is_verified = false;
     bool is_support = false;
@@ -490,6 +492,7 @@ class ContactsManager : public Actor {
     bool is_changed = true;        // have new changes not sent to the database except changes visible to the client
     bool need_send_update = true;  // have new changes not sent to the client
     bool is_status_changed = true;
+    bool is_online_status_changed = true;  // whether online/offline has changed
 
     bool is_saved = false;         // is current user version being saved/is saved to the database
     bool is_being_saved = false;   // is current user being saved to the database
@@ -891,8 +894,10 @@ class ContactsManager : public Actor {
   void speculative_add_channel_user(ChannelId channel_id, UserId user_id, DialogParticipantStatus status,
                                     DialogParticipantStatus old_status);
 
-  void update_chat_online_member_count(const ChatFull *chat_full, ChatId chat_id, bool is_from_server) const;
   void invalidate_chat_full(ChatId chat_id);
+
+  void update_user_online_member_count(User *u);
+  void update_chat_online_member_count(const ChatFull *chat_full, ChatId chat_id, bool is_from_server);
 
   void on_chat_update(telegram_api::chatEmpty &chat, const char *source);
   void on_chat_update(telegram_api::chat &chat, const char *source);
