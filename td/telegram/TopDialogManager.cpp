@@ -94,6 +94,11 @@ static tl_object_ptr<telegram_api::TopPeerCategory> top_dialog_category_as_teleg
 }
 
 void TopDialogManager::update_is_enabled(bool is_enabled) {
+  auto auth_manager = G()->td().get_actor_unsafe()->auth_manager_.get();
+  if (auth_manager == nullptr || !auth_manager->is_authorized() || auth_manager->is_bot()) {
+    return;
+  }
+
   if (set_is_enabled(is_enabled)) {
     G()->td_db()->get_binlog_pmc()->set("top_peers_enabled", is_enabled ? "1" : "0");
     send_toggle_top_peers(is_enabled);
