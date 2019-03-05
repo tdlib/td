@@ -635,7 +635,7 @@ void PollManager::on_update_poll_timeout(PollId poll_id) {
 }
 
 void PollManager::on_get_poll_results_failed(PollId poll_id) {
-  if (!get_poll_is_closed(poll_id)) {
+  if (!get_poll_is_closed(poll_id) && !td_->auth_manager_->is_bot()) {
     auto timeout = get_polling_timeout();
     LOG(INFO) << "Schedule updating of " << poll_id << " in " << timeout;
     update_poll_timeout_.add_timeout_in(poll_id.get(), timeout);

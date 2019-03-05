@@ -22,6 +22,7 @@
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
+#include "td/telegram/TopDialogManager.h"
 #include "td/telegram/UniqueId.h"
 #include "td/telegram/UpdatesManager.h"
 
@@ -562,6 +563,7 @@ void AuthManager::on_authorization(tl_object_ptr<telegram_api::auth_authorizatio
     G()->shared_config().set_option_integer("session_count", auth->tmp_sessions_);
   }
   td->notification_manager_->init();
+  send_closure(td->top_dialog_manager_, &TopDialogManager::do_start_up);
   td->updates_manager_->get_difference("on_authorization");
   td->on_online_updated(false, true);
   td->schedule_get_terms_of_service(0);

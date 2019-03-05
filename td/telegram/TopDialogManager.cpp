@@ -464,7 +464,16 @@ void TopDialogManager::do_save_top_dialogs() {
 }
 
 void TopDialogManager::start_up() {
-  is_active_ = G()->parameters().use_chat_info_db && !G()->td().get_actor_unsafe()->auth_manager_->is_bot();
+  do_start_up();
+}
+
+void TopDialogManager::do_start_up() {
+  auto auth_manager = G()->td().get_actor_unsafe()->auth_manager_.get();
+  if (auth_manager == nullptr || !auth_manager->is_authorized()) {
+    return;
+  }
+
+  is_active_ = G()->parameters().use_chat_info_db && !auth_manager->is_bot();
   is_enabled_ = !G()->shared_config().get_option_boolean("disable_top_chats");
   update_rating_e_decay();
 

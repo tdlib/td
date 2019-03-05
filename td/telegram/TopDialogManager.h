@@ -49,6 +49,8 @@ class TopDialogManager : public NetQueryCallback {
   explicit TopDialogManager(ActorShared<> parent) : parent_(std::move(parent)) {
   }
 
+  void do_start_up();
+
   void on_dialog_used(TopDialogCategory category, DialogId dialog_id, int32 date);
 
   void remove_dialog(TopDialogCategory category, DialogId dialog_id, tl_object_ptr<telegram_api::InputPeer> input_peer);
