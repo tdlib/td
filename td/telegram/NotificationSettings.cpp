@@ -224,4 +224,10 @@ ScopeNotificationSettings get_scope_notification_settings(tl_object_ptr<telegram
           old_disable_mention_notifications};
 }
 
+bool are_default_dialog_notification_settings(const DialogNotificationSettings &settings, bool compare_sound) {
+  return settings.use_default_mute_until && (!compare_sound || settings.use_default_sound) &&
+         settings.use_default_show_preview && settings.use_default_disable_pinned_message_notifications &&
+         settings.use_default_disable_mention_notifications;
+}
+
 }  // namespace td

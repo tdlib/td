@@ -118,4 +118,6 @@ ScopeNotificationSettings get_scope_notification_settings(tl_object_ptr<telegram
                                                           bool old_disable_pinned_message_notifications,
                                                           bool old_disable_mention_notifications);
 
+bool are_default_dialog_notification_settings(const DialogNotificationSettings &settings, bool compare_sound);
+
 }  // namespace td

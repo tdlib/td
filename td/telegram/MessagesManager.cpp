@@ -2867,10 +2867,10 @@ class GetDialogNotifySettingsQuery : public Td::ResultHandler {
 };
 
 class GetNotifySettingsExceptionsQuery : public Td::ResultHandler {
-  Promise<vector<DialogId>> promise_;
+  Promise<Unit> promise_;
 
  public:
-  explicit GetNotifySettingsExceptionsQuery(Promise<vector<DialogId>> &&promise) : promise_(std::move(promise)) {
+  explicit GetNotifySettingsExceptionsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(NotificationSettingsScope scope, bool filter_scope, bool compare_sound) {
@@ -2922,7 +2922,7 @@ class GetNotifySettingsExceptionsQuery : public Td::ResultHandler {
     }
     td->updates_manager_->on_get_updates(std::move(updates_ptr));
 
-    promise_.set_value(std::move(dialog_ids));
+    promise_.set_value(Unit());
   }
 
   void on_error(uint64 id, Status status) override {
@@ -13150,10 +13150,37 @@ int32 MessagesManager::get_scope_mute_until(DialogId dialog_id) const {
   }
 }
 
-void MessagesManager::get_dialog_notification_settings_exceptions(NotificationSettingsScope scope, bool filter_scope,
-                                                                  bool compare_sound,
-                                                                  Promise<vector<DialogId>> &&promise) {
+vector<DialogId> MessagesManager::get_dialog_notification_settings_exceptions(NotificationSettingsScope scope,
+                                                                              bool filter_scope, bool compare_sound,
+                                                                              bool force, Promise<Unit> &&promise) {
+  if (last_dialog_date_ == MAX_DIALOG_DATE || force) {
+    vector<DialogId> result;
+    for (const auto &it : ordered_server_dialogs_) {
+      auto dialog_id = it.get_dialog_id();
+      if (filter_scope && get_dialog_notification_setting_scope(dialog_id) != scope) {
+        continue;
+      }
+
+      Dialog *d = get_dialog(dialog_id);
+      CHECK(d != nullptr);
+      if (d->order == DEFAULT_ORDER) {
+        break;
+      }
+      if (are_default_dialog_notification_settings(d->notification_settings, compare_sound)) {
+        continue;
+      }
+      result.push_back(dialog_id);
+    }
+    promise.set_value(Unit());
+    return result;
+  }
+
+  if (ordered_dialogs_.size() < MAX_PRELOADED_DIALOGS) {
+    preload_dialog_list(static_cast<void *>(this));
+  }
+
   td_->create_handler<GetNotifySettingsExceptionsQuery>(std::move(promise))->send(scope, filter_scope, compare_sound);
+  return {};
 }
 
 const ScopeNotificationSettings *MessagesManager::get_scope_notification_settings(NotificationSettingsScope scope,

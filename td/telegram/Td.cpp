@@ -2088,24 +2088,16 @@ class GetUserProfilePhotosRequest : public RequestActor<> {
   }
 };
 
-class GetChatNotificationSettingsExceptionsRequest : public RequestActor<vector<DialogId>> {
+class GetChatNotificationSettingsExceptionsRequest : public RequestActor<> {
   NotificationSettingsScope scope_;
   bool filter_scope_;
   bool compare_sound_;
 
   vector<DialogId> dialog_ids_;
 
-  void do_run(Promise<vector<DialogId>> &&promise) override {
-    if (get_tries() < 2) {
-      promise.set_value(std::move(dialog_ids_));
-      return;
-    }
-    td->messages_manager_->get_dialog_notification_settings_exceptions(scope_, filter_scope_, compare_sound_,
-                                                                       std::move(promise));
-  }
-
-  void do_set_result(vector<DialogId> &&result) override {
-    dialog_ids_ = std::move(result);
+  void do_run(Promise<Unit> &&promise) override {
+    dialog_ids_ = td->messages_manager_->get_dialog_notification_settings_exceptions(
+        scope_, filter_scope_, compare_sound_, get_tries() < 3, std::move(promise));
   }
 
   void do_send_result() override {
@@ -2119,6 +2111,7 @@ class GetChatNotificationSettingsExceptionsRequest : public RequestActor<vector<
       , scope_(scope)
       , filter_scope_(filter_scope)
       , compare_sound_(compare_sound) {
+    set_tries(3);
   }
 };
 
