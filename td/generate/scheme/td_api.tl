@@ -192,7 +192,7 @@ maskPointChin = MaskPoint;
 maskPosition point:MaskPoint x_shift:double y_shift:double scale:double = MaskPosition;
 
 
-//@description Describes one answer option of a poll @text Option text, 1-100 characters @voter_count Number of voters for this option @vote_percentage The percentage of votes for this option, 0-100 @is_chosen True, if the option was chosen by the user
+//@description Describes one answer option of a poll @text Option text, 1-100 characters @voter_count Number of voters for this option, available only for closed or voted polls @vote_percentage The percentage of votes for this option, 0-100 @is_chosen True, if the option was chosen by the user
 pollOption text:string voter_count:int32 vote_percentage:int32 is_chosen:Bool = PollOption;
 
 

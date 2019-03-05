@@ -312,18 +312,24 @@ td_api::object_ptr<td_api::pollOption> PollManager::get_poll_option_object(const
 }
 
 vector<int32> PollManager::get_vote_percentage(const vector<int32> &voter_counts, int32 total_voter_count) {
-  vector<int32> result(voter_counts.size(), 0);
-  if (total_voter_count == 0 || voter_counts.empty()) {
-    return result;
-  }
-
   int32 sum = 0;
   for (auto voter_count : voter_counts) {
     CHECK(0 <= voter_count);
     CHECK(voter_count <= std::numeric_limits<int32>::max() - sum);
     sum += voter_count;
   }
-  CHECK(total_voter_count <= sum);
+  if (total_voter_count > sum) {
+    if (sum != 0) {
+      LOG(ERROR) << "Have total_voter_count = " << total_voter_count << ", but votes sum = " << sum << ": "
+                 << voter_counts;
+    }
+    total_voter_count = sum;
+  }
+
+  vector<int32> result(voter_counts.size(), 0);
+  if (total_voter_count == 0) {
+    return result;
+  }
   if (total_voter_count != sum) {
     // just round to the nearest
     for (size_t i = 0; i < result.size(); i++) {
@@ -358,7 +364,7 @@ vector<int32> PollManager::get_vote_percentage(const vector<int32> &voter_counts
   std::unordered_map<int32, Option> options;
   for (size_t i = 0; i < result.size(); i++) {
     auto &option = options[voter_counts[i]];
-    option.pos = i;
+    option.pos = narrow_cast<int32>(i);
     option.count++;
   }
   vector<Option> sorted_options;
@@ -427,6 +433,18 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id) co
       voter_count_diff++;
     }
   }
+
+  bool is_voted = false;
+  for (auto &poll_option : poll_options) {
+    is_voted |= poll_option->is_chosen_;
+  }
+  if (!is_voted && !poll->is_closed) {
+    // hide the voter counts
+    for (auto &poll_option : poll_options) {
+      poll_option->voter_count_ = 0;
+    }
+  }
+
   auto total_voter_count = poll->total_voter_count + voter_count_diff;
   auto voter_counts = transform(poll_options, [](auto &poll_option) { return poll_option->voter_count_; });
   for (auto &voter_count : voter_counts) {
@@ -435,6 +453,7 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id) co
       total_voter_count = voter_count;
     }
   }
+
   auto vote_percentage = get_vote_percentage(voter_counts, total_voter_count);
   CHECK(poll_options.size() == vote_percentage.size());
   for (size_t i = 0; i < poll_options.size(); i++) {
@@ -837,8 +856,8 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
 
   CHECK(poll_results != nullptr);
   bool is_min = (poll_results->flags_ & telegram_api::pollResults::MIN_MASK) != 0;
-  if ((poll_results->flags_ & telegram_api::pollResults::TOTAL_VOTERS_MASK) != 0 &&
-      poll_results->total_voters_ != poll->total_voter_count) {
+  bool has_total_voters = (poll_results->flags_ & telegram_api::pollResults::TOTAL_VOTERS_MASK) != 0;
+  if (has_total_voters && poll_results->total_voters_ != poll->total_voter_count) {
     poll->total_voter_count = poll_results->total_voters_;
     if (poll->total_voter_count < 0) {
       LOG(ERROR) << "Receive " << poll->total_voter_count << " voters in " << poll_id;
@@ -883,14 +902,16 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
       }
     }
   }
-  int32 max_total_voter_count = 0;
-  for (auto &option : poll->options) {
-    max_total_voter_count += option.voter_count;
-  }
-  if (poll->total_voter_count > max_total_voter_count) {
-    LOG(ERROR) << "Have only " << max_total_voter_count << " total poll voters, but there are "
-               << poll->total_voter_count << " voters in the poll";
-    poll->total_voter_count = max_total_voter_count;
+  if (!poll_results->results_.empty() && has_total_voters) {
+    int32 max_total_voter_count = 0;
+    for (auto &option : poll->options) {
+      max_total_voter_count += option.voter_count;
+    }
+    if (poll->total_voter_count > max_total_voter_count && max_total_voter_count != 0) {
+      LOG(ERROR) << "Have only " << max_total_voter_count << " total poll voters, but there are "
+                 << poll->total_voter_count << " voters in the poll";
+      poll->total_voter_count = max_total_voter_count;
+    }
   }
 
   if (!td_->auth_manager_->is_bot() && !poll->is_closed) {
