@@ -6389,7 +6389,7 @@ void ContactsManager::update_chat_full(ChatFull *chat_full, ChatId chat_id) {
   if (chat_full->is_changed) {
     vector<UserId> administrator_user_ids;
     vector<UserId> bot_user_ids;
-    for (auto &participant : chat_full->participants) {
+    for (const auto &participant : chat_full->participants) {
       auto user_id = participant.user_id;
       if (participant.status.is_administrator()) {
         administrator_user_ids.push_back(user_id);
@@ -6661,22 +6661,6 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     td_->messages_manager_->on_update_dialog_notify_settings(DialogId(chat_id), std::move(chat_full->notify_settings_),
                                                              "on_get_chat_full");
 
-    int32 online_member_count = 0;
-    int32 time = G()->unix_time();
-    for (auto &participant : chat->participants) {
-      auto u = get_user(participant.user_id);
-      if (u != nullptr) {
-        int32 was_online = u->was_online;
-        if (participant.user_id == get_my_id() && my_was_online_local_ != 0) {
-          was_online = my_was_online_local_;
-        }
-        if (was_online > time) {
-          online_member_count++;
-        }
-      }
-    }
-    td_->messages_manager_->on_update_dialog_online_member_count(DialogId(chat_id), online_member_count);
-
     update_chat_full(chat, chat_id);
   } else {
     CHECK(chat_full_ptr->get_id() == telegram_api::channelFull::ID);
@@ -6767,7 +6751,7 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_ONLINE_MEMBER_COUNT) != 0) {
       online_member_count = channel_full->online_count_;
     }
-    td_->messages_manager_->on_update_dialog_online_member_count(DialogId(channel_id), online_member_count);
+    td_->messages_manager_->on_update_dialog_online_member_count(DialogId(channel_id), online_member_count, true);
 
     for (auto &bot_info : channel_full->bot_info_) {
       on_update_bot_info(std::move(bot_info));
@@ -7137,6 +7121,25 @@ void ContactsManager::invalidate_user_full(UserId user_id) {
   update_user_full(user_full, user_id);
 }
 
+void ContactsManager::update_chat_online_member_count(const ChatFull *chat_full, ChatId chat_id,
+                                                      bool is_from_server) const {
+  int32 online_member_count = 0;
+  int32 time = G()->unix_time();
+  for (const auto &participant : chat_full->participants) {
+    auto u = get_user(participant.user_id);
+    if (u != nullptr) {
+      int32 was_online = u->was_online;
+      if (participant.user_id == get_my_id() && my_was_online_local_ != 0) {
+        was_online = my_was_online_local_;
+      }
+      if (was_online > time) {
+        online_member_count++;
+      }
+    }
+  }
+  td_->messages_manager_->on_update_dialog_online_member_count(DialogId(chat_id), online_member_count, is_from_server);
+}
+
 void ContactsManager::on_get_chat_participants(tl_object_ptr<telegram_api::ChatParticipants> &&participants_ptr) {
   switch (participants_ptr->get_id()) {
     case telegram_api::chatParticipantsForbidden::ID: {
@@ -7248,8 +7251,8 @@ const DialogParticipant *ContactsManager::get_chat_participant(ChatId chat_id, U
   return get_chat_participant(chat_full, user_id);
 }
 
-const DialogParticipant *ContactsManager::get_chat_participant(const ChatFull *chat_full, UserId user_id) const {
-  for (auto &dialog_participant : chat_full->participants) {
+const DialogParticipant *ContactsManager::get_chat_participant(const ChatFull *chat_full, UserId user_id) {
+  for (const auto &dialog_participant : chat_full->participants) {
     if (dialog_participant.user_id == user_id) {
       return &dialog_participant;
     }
@@ -7741,6 +7744,7 @@ void ContactsManager::on_update_chat_add_user(ChatId chat_id, UserId inviter_use
                                                         user_id == chat_full->creator_user_id
                                                             ? DialogParticipantStatus::Creator(true)
                                                             : DialogParticipantStatus::Member()});
+    update_chat_online_member_count(chat_full, chat_id, false);
     chat_full->is_changed = true;
     update_chat_full(chat_full, chat_id);
 
@@ -7863,6 +7867,7 @@ void ContactsManager::on_update_chat_delete_user(ChatId chat_id, UserId user_id,
         chat_full->participants[i] = chat_full->participants.back();
         chat_full->participants.resize(chat_full->participants.size() - 1);
         chat_full->is_changed = true;
+        update_chat_online_member_count(chat_full, chat_id, false);
         update_chat_full(chat_full, chat_id);
 
         if (static_cast<int>(chat_full->participants.size()) != c->participant_count) {
@@ -8078,6 +8083,7 @@ void ContactsManager::on_update_chat_full_participants(ChatFull *chat_full, Chat
   chat_full->participants = std::move(participants);
   chat_full->version = version;
   chat_full->is_changed = true;
+  update_chat_online_member_count(chat_full, chat_id, true);
 }
 
 void ContactsManager::invalidate_chat_full(ChatId chat_id) {
@@ -8095,6 +8101,7 @@ void ContactsManager::invalidate_chat_full(ChatId chat_id) {
   chat_full->participants.clear();
   chat_full->version = -1;
   update_invite_link(chat_full->invite_link, nullptr);
+  update_chat_online_member_count(chat_full, chat_id, true);
   chat_full->is_changed = true;
   update_chat_full(chat_full, chat_id);
 }
@@ -8625,7 +8632,7 @@ ContactsManager::ChatFull *ContactsManager::get_chat_full(ChatId chat_id) {
   }
 }
 
-bool ContactsManager::is_chat_full_outdated(ChatFull *chat_full, Chat *c, ChatId chat_id) {
+bool ContactsManager::is_chat_full_outdated(const ChatFull *chat_full, const Chat *c, ChatId chat_id) const {
   CHECK(c != nullptr);
   CHECK(chat_full != nullptr);
   if (chat_full->version != c->version) {
@@ -8634,7 +8641,7 @@ bool ContactsManager::is_chat_full_outdated(ChatFull *chat_full, Chat *c, ChatId
     return true;
   }
 
-  for (auto &participant : chat_full->participants) {
+  for (const auto &participant : chat_full->participants) {
     auto user = get_user(participant.user_id);
     if (user != nullptr && user->bot_info_version != -1) {
       auto user_full = get_user_full(participant.user_id);
@@ -9127,7 +9134,7 @@ std::pair<int32, vector<DialogParticipant>> ContactsManager::search_chat_partici
   };
 
   vector<UserId> user_ids;
-  for (auto &participant : chat_full->participants) {
+  for (const auto &participant : chat_full->participants) {
     if (is_dialog_participant_suitable(participant, filter)) {
       user_ids.push_back(participant.user_id);
     }

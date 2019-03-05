@@ -891,6 +891,7 @@ class ContactsManager : public Actor {
   void speculative_add_channel_user(ChannelId channel_id, UserId user_id, DialogParticipantStatus status,
                                     DialogParticipantStatus old_status);
 
+  void update_chat_online_member_count(const ChatFull *chat_full, ChatId chat_id, bool is_from_server) const;
   void invalidate_chat_full(ChatId chat_id);
 
   void on_chat_update(telegram_api::chatEmpty &chat, const char *source);
@@ -949,7 +950,7 @@ class ContactsManager : public Actor {
   void update_chat_full(ChatFull *chat_full, ChatId chat_id);
   void update_channel_full(ChannelFull *channel_full, ChannelId channel_id);
 
-  bool is_chat_full_outdated(ChatFull *chat_full, Chat *c, ChatId chat_id);
+  bool is_chat_full_outdated(const ChatFull *chat_full, const Chat *c, ChatId chat_id) const;
 
   int32 get_contacts_hash();
 
@@ -980,7 +981,7 @@ class ContactsManager : public Actor {
 
   const DialogParticipant *get_chat_participant(ChatId chat_id, UserId user_id) const;
 
-  const DialogParticipant *get_chat_participant(const ChatFull *chat_full, UserId user_id) const;
+  static const DialogParticipant *get_chat_participant(const ChatFull *chat_full, UserId user_id);
 
   static string get_dialog_administrators_database_key(DialogId dialog_id);
 

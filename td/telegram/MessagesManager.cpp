@@ -106,12 +106,12 @@ class GetOnlinesQuery : public Td::ResultHandler {
     }
 
     auto result = result_ptr.move_as_ok();
-    td->messages_manager_->on_update_dialog_online_member_count(dialog_id_, result->onlines_);
+    td->messages_manager_->on_update_dialog_online_member_count(dialog_id_, result->onlines_, true);
   }
 
   void on_error(uint64 id, Status status) override {
     td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetOnlinesQuery");
-    td->messages_manager_->on_update_dialog_online_member_count(dialog_id_, 0);
+    td->messages_manager_->on_update_dialog_online_member_count(dialog_id_, 0, true);
   }
 };
 
@@ -5173,7 +5173,8 @@ void MessagesManager::on_update_channel_max_unavailable_message_id(ChannelId cha
                                         "on_update_channel_max_unavailable_message_id");
 }
 
-void MessagesManager::on_update_dialog_online_member_count(DialogId dialog_id, int32 online_member_count) {
+void MessagesManager::on_update_dialog_online_member_count(DialogId dialog_id, int32 online_member_count,
+                                                           bool is_from_server) {
   if (!dialog_id.is_valid()) {
     LOG(ERROR) << "Receive online member count in invalid " << dialog_id;
     return;
@@ -5190,7 +5191,8 @@ void MessagesManager::on_update_dialog_online_member_count(DialogId dialog_id, i
     return;
   }
 
-  set_dialog_online_member_count(dialog_id, online_member_count, "on_update_channel_online_member_count");
+  set_dialog_online_member_count(dialog_id, online_member_count, is_from_server,
+                                 "on_update_channel_online_member_count");
 }
 
 void MessagesManager::on_update_include_sponsored_dialog_to_unread_count() {
@@ -8568,7 +8570,7 @@ void MessagesManager::set_dialog_max_unavailable_message_id(DialogId dialog_id, 
   }
 }
 
-void MessagesManager::set_dialog_online_member_count(DialogId dialog_id, int32 online_member_count,
+void MessagesManager::set_dialog_online_member_count(DialogId dialog_id, int32 online_member_count, bool is_from_server,
                                                      const char *source) {
   if (td_->auth_manager_->is_bot()) {
     return;
@@ -8590,7 +8592,11 @@ void MessagesManager::set_dialog_online_member_count(DialogId dialog_id, int32 o
     send_update_chat_online_member_count(dialog_id, online_member_count);
   }
   if (d->is_opened) {
-    update_dialog_online_member_count_timeout_.set_timeout_in(dialog_id.get(), ONLINE_MEMBER_COUNT_UPDATE_TIME);
+    if (is_from_server) {
+      update_dialog_online_member_count_timeout_.set_timeout_in(dialog_id.get(), ONLINE_MEMBER_COUNT_UPDATE_TIME);
+    } else {
+      update_dialog_online_member_count_timeout_.add_timeout_in(dialog_id.get(), ONLINE_MEMBER_COUNT_UPDATE_TIME);
+    }
   }
 }
 

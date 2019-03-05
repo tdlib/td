@@ -303,7 +303,7 @@ class MessagesManager : public Actor {
 
   void on_update_channel_max_unavailable_message_id(ChannelId channel_id, MessageId max_unavailable_message_id);
 
-  void on_update_dialog_online_member_count(DialogId dialog_id, int32 online_member_count);
+  void on_update_dialog_online_member_count(DialogId dialog_id, int32 online_member_count, bool is_from_server);
 
   void on_update_include_sponsored_dialog_to_unread_count();
 
@@ -1463,7 +1463,8 @@ class MessagesManager : public Actor {
   void set_dialog_max_unavailable_message_id(DialogId dialog_id, MessageId max_unavailable_message_id, bool from_update,
                                              const char *source);
 
-  void set_dialog_online_member_count(DialogId dialog_id, int32 online_member_count, const char *source);
+  void set_dialog_online_member_count(DialogId dialog_id, int32 online_member_count, bool is_from_server,
+                                      const char *source);
 
   void on_update_dialog_online_member_count_timeout(DialogId dialog_id);
 
