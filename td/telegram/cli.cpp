@@ -2313,8 +2313,8 @@ class CliClient final : public Actor {
       string to_message_id_str;
       std::tie(chat_id, args) = split(args);
       std::tie(from_message_id_str, to_message_id_str) = split(args);
-      auto to_message_id = to_integer<int32>(to_message_id_str);
-      for (auto message_id = to_integer<int32>(from_message_id_str); message_id <= to_message_id; message_id++) {
+      auto to_message_id = to_integer<int64>(to_message_id_str);
+      for (auto message_id = to_integer<int64>(from_message_id_str); message_id <= to_message_id; message_id++) {
         send_request(td_api::make_object<td_api::getMessage>(as_chat_id(chat_id), message_id << 20));
       }
     } else if (op == "gml") {
