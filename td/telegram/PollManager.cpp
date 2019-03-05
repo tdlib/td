@@ -308,7 +308,98 @@ PollManager::Poll *PollManager::get_poll_force(PollId poll_id) {
 }
 
 td_api::object_ptr<td_api::pollOption> PollManager::get_poll_option_object(const PollOption &poll_option) {
-  return td_api::make_object<td_api::pollOption>(poll_option.text, poll_option.voter_count, poll_option.is_chosen);
+  return td_api::make_object<td_api::pollOption>(poll_option.text, poll_option.voter_count, 0, poll_option.is_chosen);
+}
+
+vector<int32> PollManager::get_vote_percentage(const vector<int32> &voter_counts, int32 total_voter_count) {
+  vector<int32> result(voter_counts.size(), 0);
+  if (total_voter_count == 0 || voter_counts.empty()) {
+    return result;
+  }
+
+  int32 sum = 0;
+  for (auto voter_count : voter_counts) {
+    CHECK(0 <= voter_count);
+    CHECK(voter_count <= std::numeric_limits<int32>::max() - sum);
+    sum += voter_count;
+  }
+  CHECK(total_voter_count <= sum);
+  if (total_voter_count != sum) {
+    // just round to the nearest
+    for (size_t i = 0; i < result.size(); i++) {
+      result[i] =
+          static_cast<int32>((static_cast<int64_t>(voter_counts[i]) * 200 + total_voter_count) / total_voter_count / 2);
+    }
+    return result;
+  }
+
+  // make sure that options with equal votes have equal percent and total sum is less than 100%
+  int32 percent_sum = 0;
+  vector<int32> gap(voter_counts.size(), 0);
+  for (size_t i = 0; i < result.size(); i++) {
+    auto multiplied_voter_count = static_cast<int64_t>(voter_counts[i]) * 100;
+    result[i] = static_cast<int32>(multiplied_voter_count / total_voter_count);
+    CHECK(0 <= result[i] && result[i] <= 100);
+    gap[i] = static_cast<int32>(static_cast<int64_t>(result[i] + 1) * total_voter_count - multiplied_voter_count);
+    CHECK(0 <= gap[i] && gap[i] <= total_voter_count);
+    percent_sum += result[i];
+  }
+  CHECK(0 <= percent_sum && percent_sum <= 100);
+  if (percent_sum == 100) {
+    return result;
+  }
+
+  // now we need to choose up to (100 - percent_sum) options with minimum total gap, such so
+  // any two options with the same voter_count are chosen or not chosen simultaneously
+  struct Option {
+    int32 pos = -1;
+    int32 count = 0;
+  };
+  std::unordered_map<int32, Option> options;
+  for (size_t i = 0; i < result.size(); i++) {
+    auto &option = options[voter_counts[i]];
+    option.pos = i;
+    option.count++;
+  }
+  vector<Option> sorted_options;
+  for (auto option : options) {
+    auto pos = option.second.pos;
+    if (gap[pos] > total_voter_count / 2) {
+      // do not round to wrong direction
+      continue;
+    }
+    if (gap[pos] == total_voter_count / 2 && result[pos] >= 50) {
+      // round halves to the 50%
+      continue;
+    }
+    sorted_options.push_back(option.second);
+  }
+  std::sort(sorted_options.begin(), sorted_options.end(), [&](const Option &lhs, const Option &rhs) {
+    if (gap[lhs.pos] != gap[rhs.pos]) {
+      // prefer options with smallest gap
+      return gap[lhs.pos] < gap[rhs.pos];
+    }
+    return lhs.count > rhs.count;  // prefer more popular options
+  });
+
+  // dynamic programming or brute force can give perfect result, but for now we use simple gready approach
+  int32 left_percent = 100 - percent_sum;
+  for (auto option : sorted_options) {
+    if (option.count <= left_percent) {
+      left_percent -= option.count;
+
+      auto pos = option.pos;
+      for (size_t i = 0; i < result.size(); i++) {
+        if (voter_counts[i] == voter_counts[pos]) {
+          result[i]++;
+        }
+      }
+      if (left_percent == 0) {
+        break;
+      }
+    }
+  }
+  return result;
 }
 
 td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id) const {
@@ -329,15 +420,27 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id) co
       }
       poll_options.push_back(td_api::make_object<td_api::pollOption>(
           poll_option.text,
-          poll_option.voter_count - static_cast<int32>(poll_option.is_chosen) + static_cast<int32>(is_chosen),
+          poll_option.voter_count - static_cast<int32>(poll_option.is_chosen) + static_cast<int32>(is_chosen), 0,
           is_chosen));
     }
     if (!chosen_options.empty()) {
       voter_count_diff++;
     }
   }
-  return td_api::make_object<td_api::poll>(poll->question, std::move(poll_options),
-                                           poll->total_voter_count + voter_count_diff, poll->is_closed);
+  auto total_voter_count = poll->total_voter_count + voter_count_diff;
+  auto voter_counts = transform(poll_options, [](auto &poll_option) { return poll_option->voter_count_; });
+  for (auto &voter_count : voter_counts) {
+    if (total_voter_count < voter_count) {
+      LOG(ERROR) << "Fix total voter count from " << total_voter_count << " to " << voter_count;
+      total_voter_count = voter_count;
+    }
+  }
+  auto vote_percentage = get_vote_percentage(voter_counts, total_voter_count);
+  CHECK(poll_options.size() == vote_percentage.size());
+  for (size_t i = 0; i < poll_options.size(); i++) {
+    poll_options[i]->vote_percentage_ = vote_percentage[i];
+  }
+  return td_api::make_object<td_api::poll>(poll->question, std::move(poll_options), total_voter_count, poll->is_closed);
 }
 
 telegram_api::object_ptr<telegram_api::pollAnswer> PollManager::get_input_poll_option(const PollOption &poll_option) {
@@ -771,9 +874,23 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
                      << " voters for an option";
           poll->total_voter_count = option.voter_count;
         }
+        auto max_voter_count = std::numeric_limits<int32>::max() / narrow_cast<int32>(poll->options.size()) - 2;
+        if (option.voter_count > max_voter_count) {
+          LOG(ERROR) << "Have too much " << option.voter_count << " poll voters for an option";
+          option.voter_count = max_voter_count;
+        }
         is_changed = true;
       }
     }
+  }
+  int32 max_total_voter_count = 0;
+  for (auto &option : poll->options) {
+    max_total_voter_count += option.voter_count;
+  }
+  if (poll->total_voter_count > max_total_voter_count) {
+    LOG(ERROR) << "Have only " << max_total_voter_count << " total poll voters, but there are "
+               << poll->total_voter_count << " voters in the poll";
+    poll->total_voter_count = max_total_voter_count;
   }
 
   if (!td_->auth_manager_->is_bot() && !poll->is_closed) {

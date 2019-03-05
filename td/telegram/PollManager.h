@@ -68,6 +68,8 @@ class PollManager : public Actor {
 
   void on_get_poll_results_failed(PollId poll_id);
 
+  static vector<int32> get_vote_percentage(const vector<int32> &voter_counts, int32 total_voter_count);
+
   template <class StorerT>
   void store_poll(PollId poll_id, StorerT &storer) const;
 
