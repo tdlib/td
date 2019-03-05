@@ -7123,6 +7123,10 @@ void ContactsManager::invalidate_user_full(UserId user_id) {
 
 void ContactsManager::update_chat_online_member_count(const ChatFull *chat_full, ChatId chat_id,
                                                       bool is_from_server) const {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   int32 online_member_count = 0;
   int32 time = G()->unix_time();
   for (const auto &participant : chat_full->participants) {

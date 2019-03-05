@@ -5175,6 +5175,10 @@ void MessagesManager::on_update_channel_max_unavailable_message_id(ChannelId cha
 
 void MessagesManager::on_update_dialog_online_member_count(DialogId dialog_id, int32 online_member_count,
                                                            bool is_from_server) {
+  if (td_->auth_manager_->is_bot()) {
+    return;
+  }
+
   if (!dialog_id.is_valid()) {
     LOG(ERROR) << "Receive online member count in invalid " << dialog_id;
     return;
