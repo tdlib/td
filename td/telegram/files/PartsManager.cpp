@@ -30,6 +30,9 @@ Status PartsManager::init_known_prefix(int64 known_prefix, size_t part_size, con
 }
 
 void PartsManager::set_streaming_offset(int64 offset) {
+  SCOPE_EXIT {
+    set_streaming_limit(streaming_limit_);
+  };
   if (offset < 0 || need_check_ || (!unknown_size_flag_ && get_size() < offset)) {
     streaming_offset_ = 0;
     return;
