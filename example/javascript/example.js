@@ -17,9 +17,6 @@ const tdlib = ffi.Library(
     'td_json_client_receive'         : ['string' , ['pointer', 'double']],
     'td_json_client_execute'         : ['string' , ['pointer', 'string']],
     'td_json_client_destroy'         : ['void'   , ['pointer']],
-    'td_set_log_file_path'           : ['int'    , ['string']],
-    'td_set_log_verbosity_level'     : ['void'   , ['int']],
-    'td_set_log_fatal_error_callback': ['void'   , ['pointer']]
   }
 )
 
