@@ -5,7 +5,6 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 #include <td/telegram/Client.h>
-#include <td/telegram/Log.h>
 #include <td/telegram/td_api.h>
 #include <td/telegram/td_api.hpp>
 
@@ -54,7 +53,7 @@ namespace td_api = td::td_api;
 class TdExample {
  public:
   TdExample() {
-    td::Log::set_verbosity_level(1);
+    td::Client::execute({0, td_api::make_object<td_api::setLogVerbosityLevel>(1)});
     client_ = std::make_unique<td::Client>();
   }
 

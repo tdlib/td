@@ -12,6 +12,9 @@
 // the main event cycle, which should be essentially the same for all languages.
 
 int main() {
+  // disable TDLib logging
+  td_json_client_execute(nullptr, "{\"@type\":\"setLogVerbosityLevel\", \"new_verbosity_level\":0}");
+
   void *client = td_json_client_create();
   // somehow share the client with other threads, which will be able to send requests via td_json_client_send
 

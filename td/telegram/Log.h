@@ -20,6 +20,8 @@ namespace td {
 /**
  * Interface for managing the internal logging of TDLib.
  * By default TDLib writes logs to stderr or an OS specific log and uses a verbosity level of 5.
+ * These functions are deprecated since TDLib 1.4.0 in favor of the td::td_api::setLogVerbosityLevel,
+ * td::td_api::setLogStream and other synchronous requests for managing the intrenal TDLib logging.
  */
 class Log {
  public:
@@ -28,6 +30,7 @@ class Log {
    * By default TDLib writes logs to stderr or an OS specific log.
    * Use this method to write the log to a file instead.
    *
+   * \deprecated Use synchronous td::td_api::setLogStream request instead.
    * \param[in]  file_path Path to a file where the internal TDLib log will be written. Use an empty path to
    *                       switch back to the default logging behaviour.
    * \return True on success, or false otherwise, i.e. if the file can't be opened for writing.
@@ -38,6 +41,7 @@ class Log {
    * Sets maximum size of the file to where the internal TDLib log is written before the file will be auto-rotated.
    * Unused if log is not written to a file. Defaults to 10 MB.
    *
+   * \deprecated Use synchronous td::td_api::setLogStream request instead.
    * \param[in]  max_file_size Maximum size of the file to where the internal TDLib log is written before the file
    *                           will be auto-rotated. Should be positive.
    */
@@ -47,6 +51,7 @@ class Log {
    * Sets the verbosity level of the internal logging of TDLib.
    * By default the TDLib uses a verbosity level of 5 for logging.
    *
+   * \deprecated Use synchronous td::td_api::setLogVerbosityLevel request instead.
    * \param[in]  new_verbosity_level New value of the verbosity level for logging.
    *                                 Value 0 corresponds to fatal errors,
    *                                 value 1 corresponds to errors,
