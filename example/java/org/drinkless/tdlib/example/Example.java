@@ -7,7 +7,6 @@
 package org.drinkless.tdlib.example;
 
 import org.drinkless.tdlib.Client;
-import org.drinkless.tdlib.Log;
 import org.drinkless.tdlib.TdApi;
 
 import java.io.IOError;
@@ -285,8 +284,8 @@ public final class Example {
 
     public static void main(String[] args) throws InterruptedException {
         // disable TDLib log
-        Log.setVerbosityLevel(0);
-        if (!Log.setFilePath("tdlib.log")) {
+        Client.execute(new TdApi.SetLogVerbosityLevel(0));
+        if (Client.execute(new TdApi.SetLogStream(new TdApi.LogStreamFile("tdlib.log", 1 << 27))) instanceof TdApi.Error) {
             throw new IOError(new IOException("Write access to the current directory is required"));
         }
 
