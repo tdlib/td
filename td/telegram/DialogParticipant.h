@@ -23,7 +23,7 @@ class DialogParticipantStatus {
   static constexpr uint32 CAN_EDIT_MESSAGES = 1 << 2;
   static constexpr uint32 CAN_DELETE_MESSAGES = 1 << 3;
   static constexpr uint32 CAN_INVITE_USERS = 1 << 4;
-  static constexpr uint32 CAN_EXPORT_DIALOG_INVITE_LINK = 1 << 5;
+  // static constexpr uint32 CAN_EXPORT_DIALOG_INVITE_LINK = 1 << 5;
   static constexpr uint32 CAN_RESTRICT_MEMBERS = 1 << 6;
   static constexpr uint32 CAN_PIN_MESSAGES = 1 << 7;
   static constexpr uint32 CAN_PROMOTE_MEMBERS = 1 << 8;
@@ -44,9 +44,9 @@ class DialogParticipantStatus {
   static constexpr int TYPE_SHIFT = 28;
   static constexpr uint32 HAS_UNTIL_DATE = 1u << 31;
 
-  static constexpr uint32 ALL_ADMINISTRATOR_RIGHTS =
-      CAN_CHANGE_INFO_AND_SETTINGS | CAN_POST_MESSAGES | CAN_EDIT_MESSAGES | CAN_DELETE_MESSAGES | CAN_INVITE_USERS |
-      CAN_EXPORT_DIALOG_INVITE_LINK | CAN_RESTRICT_MEMBERS | CAN_PIN_MESSAGES | CAN_PROMOTE_MEMBERS;
+  static constexpr uint32 ALL_ADMINISTRATOR_RIGHTS = CAN_CHANGE_INFO_AND_SETTINGS | CAN_POST_MESSAGES |
+                                                     CAN_EDIT_MESSAGES | CAN_DELETE_MESSAGES | CAN_INVITE_USERS |
+                                                     CAN_RESTRICT_MEMBERS | CAN_PIN_MESSAGES | CAN_PROMOTE_MEMBERS;
 
   static constexpr uint32 ALL_RESTRICTED_RIGHTS = CAN_SEND_MESSAGES | CAN_SEND_MEDIA | CAN_SEND_STICKERS |
                                                   CAN_SEND_ANIMATIONS | CAN_SEND_GAMES | CAN_USE_INLINE_BOTS |
@@ -69,8 +69,8 @@ class DialogParticipantStatus {
 
   static DialogParticipantStatus Administrator(bool can_be_edited, bool can_change_info, bool can_post_messages,
                                                bool can_edit_messages, bool can_delete_messages, bool can_invite_users,
-                                               bool can_export_dialog_invite_link, bool can_restrict_members,
-                                               bool can_pin_messages, bool can_promote_members);
+                                               bool can_restrict_members, bool can_pin_messages,
+                                               bool can_promote_members);
 
   static DialogParticipantStatus Member();
 
@@ -116,10 +116,6 @@ class DialogParticipantStatus {
 
   bool can_invite_users() const {
     return (flags_ & CAN_INVITE_USERS) != 0;
-  }
-
-  bool can_export_dialog_invite_link() const {
-    return (flags_ & CAN_EXPORT_DIALOG_INVITE_LINK) != 0;
   }
 
   bool can_restrict_members() const {

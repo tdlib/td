@@ -30,7 +30,6 @@ DialogParticipantStatus DialogParticipantStatus::Creator(bool is_member) {
 DialogParticipantStatus DialogParticipantStatus::Administrator(bool can_be_edited, bool can_change_info,
                                                                bool can_post_messages, bool can_edit_messages,
                                                                bool can_delete_messages, bool can_invite_users,
-                                                               bool can_export_dialog_invite_link,
                                                                bool can_restrict_members, bool can_pin_messages,
                                                                bool can_promote_members) {
   uint32 flags = (static_cast<uint32>(can_be_edited) * CAN_BE_EDITED) |
@@ -39,7 +38,6 @@ DialogParticipantStatus DialogParticipantStatus::Administrator(bool can_be_edite
                  (static_cast<uint32>(can_edit_messages) * CAN_EDIT_MESSAGES) |
                  (static_cast<uint32>(can_delete_messages) * CAN_DELETE_MESSAGES) |
                  (static_cast<uint32>(can_invite_users) * CAN_INVITE_USERS) |
-                 (static_cast<uint32>(can_export_dialog_invite_link) * CAN_EXPORT_DIALOG_INVITE_LINK) |
                  (static_cast<uint32>(can_restrict_members) * CAN_RESTRICT_MEMBERS) |
                  (static_cast<uint32>(can_pin_messages) * CAN_PIN_MESSAGES) |
                  (static_cast<uint32>(can_promote_members) * CAN_PROMOTE_MEMBERS);
@@ -81,15 +79,14 @@ DialogParticipantStatus DialogParticipantStatus::Banned(int32 banned_until_date)
 }
 
 DialogParticipantStatus DialogParticipantStatus::GroupAdministrator(bool is_creator) {
-  return DialogParticipantStatus::Administrator(is_creator, true, false, false, true, true, false, true, true, false);
+  return DialogParticipantStatus::Administrator(is_creator, true, false, false, true, true, true, true, false);
 }
 
 DialogParticipantStatus DialogParticipantStatus::ChannelAdministrator(bool is_creator, bool is_megagroup) {
   if (is_megagroup) {
-    return DialogParticipantStatus::Administrator(is_creator, true, false, false, true, true, false, true, true, false);
+    return DialogParticipantStatus::Administrator(is_creator, true, false, false, true, true, true, true, false);
   } else {
-    return DialogParticipantStatus::Administrator(is_creator, false, true, true, true, false, false, true, false,
-                                                  false);
+    return DialogParticipantStatus::Administrator(is_creator, false, true, true, true, false, true, false, false);
   }
 }
 
@@ -100,8 +97,7 @@ tl_object_ptr<td_api::ChatMemberStatus> DialogParticipantStatus::get_chat_member
     case Type::Administrator:
       return make_tl_object<td_api::chatMemberStatusAdministrator>(
           can_be_edited(), can_change_info_and_settings(), can_post_messages(), can_edit_messages(),
-          can_delete_messages(), can_invite_users() || can_export_dialog_invite_link(), can_restrict_members(),
-          can_pin_messages(), can_promote_members());
+          can_delete_messages(), can_invite_users(), can_restrict_members(), can_pin_messages(), can_promote_members());
     case Type::Member:
       return make_tl_object<td_api::chatMemberStatusMember>();
     case Type::Restricted:
@@ -135,8 +131,6 @@ tl_object_ptr<telegram_api::channelAdminRights> DialogParticipantStatus::get_cha
   }
   if (can_invite_users()) {
     flags |= telegram_api::channelAdminRights::INVITE_USERS_MASK;
-  }
-  if (can_export_dialog_invite_link()) {
     flags |= telegram_api::channelAdminRights::INVITE_LINK_MASK;
   }
   if (can_restrict_members()) {
@@ -309,10 +303,10 @@ DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api
     }
     case td_api::chatMemberStatusAdministrator::ID: {
       auto st = static_cast<const td_api::chatMemberStatusAdministrator *>(status.get());
-      return DialogParticipantStatus::Administrator(
-          st->can_be_edited_, st->can_change_info_, st->can_post_messages_, st->can_edit_messages_,
-          st->can_delete_messages_, st->can_invite_users_, st->can_invite_users_, st->can_restrict_members_,
-          st->can_pin_messages_, st->can_promote_members_);
+      return DialogParticipantStatus::Administrator(st->can_be_edited_, st->can_change_info_, st->can_post_messages_,
+                                                    st->can_edit_messages_, st->can_delete_messages_,
+                                                    st->can_invite_users_, st->can_restrict_members_,
+                                                    st->can_pin_messages_, st->can_promote_members_);
     }
     case td_api::chatMemberStatusMember::ID:
       return DialogParticipantStatus::Member();
@@ -344,13 +338,12 @@ DialogParticipantStatus get_dialog_participant_status(
   bool can_edit_messages = (admin_rights->flags_ & telegram_api::channelAdminRights::EDIT_MESSAGES_MASK) != 0;
   bool can_delete_messages = (admin_rights->flags_ & telegram_api::channelAdminRights::DELETE_MESSAGES_MASK) != 0;
   bool can_invite_users = (admin_rights->flags_ & telegram_api::channelAdminRights::INVITE_USERS_MASK) != 0;
-  bool can_export_invite_link = (admin_rights->flags_ & telegram_api::channelAdminRights::INVITE_LINK_MASK) != 0;
   bool can_restrict_members = (admin_rights->flags_ & telegram_api::channelAdminRights::BAN_USERS_MASK) != 0;
   bool can_pin_messages = (admin_rights->flags_ & telegram_api::channelAdminRights::PIN_MESSAGES_MASK) != 0;
   bool can_promote_members = (admin_rights->flags_ & telegram_api::channelAdminRights::ADD_ADMINS_MASK) != 0;
   return DialogParticipantStatus::Administrator(can_be_edited, can_change_info, can_post_messages, can_edit_messages,
-                                                can_delete_messages, can_invite_users, can_export_invite_link,
-                                                can_restrict_members, can_pin_messages, can_promote_members);
+                                                can_delete_messages, can_invite_users, can_restrict_members,
+                                                can_pin_messages, can_promote_members);
 }
 
 DialogParticipantStatus get_dialog_participant_status(
