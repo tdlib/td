@@ -44,10 +44,14 @@
 namespace td {
 
 class GetPollResultsQuery : public Td::ResultHandler {
+  Promise<tl_object_ptr<telegram_api::Updates>> promise_;
   PollId poll_id_;
   DialogId dialog_id_;
 
  public:
+  explicit GetPollResultsQuery(Promise<tl_object_ptr<telegram_api::Updates>> &&promise) : promise_(std::move(promise)) {
+  }
+
   void send(PollId poll_id, FullMessageId full_message_id) {
     poll_id_ = poll_id;
     dialog_id_ = full_message_id.get_dialog_id();
@@ -69,17 +73,14 @@ class GetPollResultsQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    auto result = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive poll results: " << to_string(result);
-
-    td->updates_manager_->on_get_updates(std::move(result));
+    promise_.set_value(result_ptr.move_as_ok());
   }
 
   void on_error(uint64 id, Status status) override {
     if (!td->messages_manager_->on_get_dialog_error(dialog_id_, status, "GetPollResultsQuery")) {
       LOG(ERROR) << "Receive " << status << ", while trying to get results of " << poll_id_;
-      td->poll_manager_->on_get_poll_results_failed(poll_id_);
     }
+    promise_.set_error(std::move(status));
   }
 };
 
@@ -630,7 +631,6 @@ void PollManager::do_set_poll_answer(PollId poll_id, FullMessageId full_message_
   auto query_promise = PromiseCreator::lambda([poll_id, generation, actor_id = actor_id(this)](Result<Unit> &&result) {
     send_closure(actor_id, &PollManager::on_set_poll_answer, poll_id, generation, std::move(result));
   });
-
   send_closure(td_->create_net_actor<SetPollAnswerActor>(std::move(query_promise)), &SetPollAnswerActor::send,
                full_message_id, std::move(sent_options), generation, &pending_answer.query_ref_);
 }
@@ -753,15 +753,24 @@ void PollManager::on_update_poll_timeout(PollId poll_id) {
 
   auto full_message_id = *it->second.begin();
   LOG(INFO) << "Fetching results of " << poll_id << " from " << full_message_id;
-  td_->create_handler<GetPollResultsQuery>()->send(poll_id, full_message_id);
+  auto query_promise = PromiseCreator::lambda(
+      [poll_id, actor_id = actor_id(this)](Result<tl_object_ptr<telegram_api::Updates>> &&result) {
+        send_closure(actor_id, &PollManager::on_get_poll_results, poll_id, std::move(result));
+      });
+  td_->create_handler<GetPollResultsQuery>(std::move(query_promise))->send(poll_id, full_message_id);
 }
 
-void PollManager::on_get_poll_results_failed(PollId poll_id) {
-  if (!get_poll_is_closed(poll_id) && !td_->auth_manager_->is_bot()) {
-    auto timeout = get_polling_timeout();
-    LOG(INFO) << "Schedule updating of " << poll_id << " in " << timeout;
-    update_poll_timeout_.add_timeout_in(poll_id.get(), timeout);
+void PollManager::on_get_poll_results(PollId poll_id, Result<tl_object_ptr<telegram_api::Updates>> result) {
+  if (result.is_error()) {
+    if (!get_poll_is_closed(poll_id) && !td_->auth_manager_->is_bot()) {
+      auto timeout = get_polling_timeout();
+      LOG(INFO) << "Schedule updating of " << poll_id << " in " << timeout;
+      update_poll_timeout_.add_timeout_in(poll_id.get(), timeout);
+    }
+    return;
   }
+
+  td_->updates_manager_->on_get_updates(result.move_as_ok());
 }
 
 void PollManager::on_online() {

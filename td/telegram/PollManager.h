@@ -66,8 +66,6 @@ class PollManager : public Actor {
 
   void on_binlog_events(vector<BinlogEvent> &&events);
 
-  void on_get_poll_results_failed(PollId poll_id);
-
   static vector<int32> get_vote_percentage(const vector<int32> &voter_counts, int32 total_voter_count);
 
   template <class StorerT>
@@ -138,6 +136,8 @@ class PollManager : public Actor {
   void on_online();
 
   Poll *get_poll_force(PollId poll_id);
+
+  void on_get_poll_results(PollId poll_id, Result<tl_object_ptr<telegram_api::Updates>> result);
 
   void do_set_poll_answer(PollId poll_id, FullMessageId full_message_id, vector<string> &&options, uint64 logevent_id,
                           Promise<Unit> &&promise);
