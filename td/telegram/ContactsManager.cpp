@@ -7168,7 +7168,7 @@ void ContactsManager::update_chat_online_member_count(const ChatFull *chat_full,
   int32 time = G()->unix_time();
   for (const auto &participant : chat_full->participants) {
     auto u = get_user(participant.user_id);
-    if (u != nullptr) {
+    if (u != nullptr && !u->is_deleted && !u->is_bot) {
       int32 was_online = u->was_online;
       if (participant.user_id == get_my_id() && my_was_online_local_ != 0) {
         was_online = my_was_online_local_;
