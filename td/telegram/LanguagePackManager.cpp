@@ -327,6 +327,7 @@ void LanguagePackManager::send_language_get_difference_query(Language *language,
         LOG(INFO) << "Receive language pack difference for language pack " << result->lang_code_ << " from version "
                   << result->from_version_ << " with version " << result->version_ << " of size "
                   << result->strings_.size();
+        to_lower_inplace(result->lang_code_);
         LOG_IF(ERROR, result->lang_code_ != language_code)
             << "Receive strings for " << result->lang_code_ << " instead of " << language_code;
         LOG_IF(ERROR, result->from_version_ != from_version)
@@ -356,6 +357,7 @@ void LanguagePackManager::on_update_language_pack(tl_object_ptr<telegram_api::la
   LOG(INFO) << "Receive update language pack difference for language pack " << difference->lang_code_
             << " from version " << difference->from_version_ << " with version " << difference->version_ << " of size "
             << difference->strings_.size();
+  to_lower_inplace(difference->lang_code_);
   if (language_pack_.empty()) {
     LOG(WARNING) << "Ignore difference for language pack " << difference->lang_code_
                  << ", because used language pack was unset";
@@ -1000,6 +1002,7 @@ void LanguagePackManager::get_language_pack_strings(string language_code, vector
           }
 
           auto result = r_result.move_as_ok();
+          to_lower_inplace(result->lang_code_);
           LOG(INFO) << "Receive language pack " << result->lang_code_ << " from version " << result->from_version_
                     << " with version " << result->version_ << " of size " << result->strings_.size();
           LOG_IF(ERROR, result->lang_code_ != language_code)
@@ -1479,6 +1482,7 @@ Result<LanguagePackManager::LanguageInfo> LanguagePackManager::get_language_info
     LOG(ERROR) << "Receive custom language pack ID \"" << language->lang_code_ << "\" from server";
     return Status::Error(500, "Unallowed custom language pack ID");
   }
+  to_lower_inplace(language->lang_code_);
 
   LanguageInfo info;
   info.name_ = std::move(language->name_);
