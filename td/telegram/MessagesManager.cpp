@@ -21776,6 +21776,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     if (pinned_message_id.is_valid() && have_message({dialog_id, pinned_message_id})) {
       LOG(INFO) << "Preloaded pinned " << pinned_message_id << " from database";
     }
+  }
+  if (*need_update) {
     if (d->pinned_message_notification_message_id.is_valid() &&
         have_message({dialog_id, d->pinned_message_notification_message_id})) {
       LOG(INFO) << "Preloaded previously pinned " << d->pinned_message_notification_message_id << " from database";
