@@ -745,6 +745,10 @@ void PollManager::on_update_poll_timeout(PollId poll_id) {
   if (get_poll_is_closed(poll_id)) {
     return;
   }
+  if (pending_answers_.find(poll_id) != pending_answers_.end()) {
+    LOG(INFO) << "Skip fetching results of " << poll_id << ", because it is being voted now";
+    return;
+  }
 
   auto it = poll_messages_.find(poll_id);
   if (it == poll_messages_.end()) {
