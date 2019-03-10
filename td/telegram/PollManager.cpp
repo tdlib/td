@@ -376,7 +376,7 @@ vector<int32> PollManager::get_vote_percentage(const vector<int32> &voter_counts
       // do not round to wrong direction
       continue;
     }
-    if (gap[pos] == total_voter_count / 2 && result[pos] >= 50) {
+    if (total_voter_count % 2 == 0 && gap[pos] == total_voter_count / 2 && result[pos] >= 50) {
       // round halves to the 50%
       continue;
     }

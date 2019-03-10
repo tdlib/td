@@ -24,6 +24,7 @@ TEST(Poll, get_vote_percentage) {
   check_vote_percentage({1}, 1, {100});
   check_vote_percentage({999}, 999, {100});
   check_vote_percentage({0}, 0, {0});
+  check_vote_percentage({2, 1}, 3, {67, 33});
   check_vote_percentage({100, 100}, 200, {50, 50});
   check_vote_percentage({101, 99}, 200, {50, 50});
   check_vote_percentage({102, 98}, 200, {51, 49});
