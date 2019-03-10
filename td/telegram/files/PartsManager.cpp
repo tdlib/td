@@ -35,13 +35,14 @@ void PartsManager::set_streaming_offset(int64 offset) {
   };
   if (offset < 0 || need_check_ || (!unknown_size_flag_ && get_size() < offset)) {
     streaming_offset_ = 0;
+    LOG(ERROR) << "Ignore streaming_offset (1)";
     return;
   }
 
   auto part_i = offset / part_size_;
-  if (part_i >= MAX_PART_COUNT) {
+  if (use_part_count_limit_ && part_i >= MAX_PART_COUNT) {
     streaming_offset_ = 0;
-    // error?
+    LOG(ERROR) << "Ignore streaming_offset (2)";
     return;
   }
 

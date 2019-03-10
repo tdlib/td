@@ -30,7 +30,10 @@ class ResourceState {
   }
 
   bool update_estimated_limit(int64 extra) {
-    auto new_estimated_limit = used_ + extra;
+    // unused() must be positive, i.e. used_ + using_ must be less than limit_
+    // TODO: use exact intersection between using_ and extra.
+    auto using_and_extra_intersection = min(using_, extra);  // between 0 and min(using_, extra)
+    auto new_estimated_limit = used_ + using_ + extra - using_and_extra_intersection;
 
     // Use extra extra limit
     if (new_estimated_limit < limit_) {
