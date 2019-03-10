@@ -336,10 +336,10 @@ void LanguagePackManager::send_language_get_difference_query(Language *language,
                      std::move(language_code), result->version_, true, vector<string>(), std::move(result->strings_),
                      Promise<td_api::object_ptr<td_api::languagePackStrings>>());
       });
-  send_with_promise(
-      G()->net_query_creator().create(create_storer(telegram_api::langpack_getDifference(language_code, version)),
-                                      DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off),
-      std::move(request_promise));
+  send_with_promise(G()->net_query_creator().create(
+                        create_storer(telegram_api::langpack_getDifference(language_pack_, language_code, version)),
+                        DcId::main(), NetQuery::Type::Common, NetQuery::AuthFlag::Off),
+                    std::move(request_promise));
 }
 
 void LanguagePackManager::on_language_pack_too_long(string language_code) {
