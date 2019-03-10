@@ -309,7 +309,8 @@ PollManager::Poll *PollManager::get_poll_force(PollId poll_id) {
 }
 
 td_api::object_ptr<td_api::pollOption> PollManager::get_poll_option_object(const PollOption &poll_option) {
-  return td_api::make_object<td_api::pollOption>(poll_option.text, poll_option.voter_count, 0, poll_option.is_chosen);
+  return td_api::make_object<td_api::pollOption>(poll_option.text, poll_option.voter_count, 0, poll_option.is_chosen,
+                                                 false);
 }
 
 vector<int32> PollManager::get_vote_percentage(const vector<int32> &voter_counts, int32 total_voter_count) {
@@ -420,18 +421,14 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id) co
   } else {
     auto &chosen_options = it->second.options_;
     for (auto &poll_option : poll->options) {
-      auto is_chosen =
+      auto is_being_chosen =
           std::find(chosen_options.begin(), chosen_options.end(), poll_option.data) != chosen_options.end();
       if (poll_option.is_chosen) {
         voter_count_diff = -1;
       }
       poll_options.push_back(td_api::make_object<td_api::pollOption>(
-          poll_option.text,
-          poll_option.voter_count - static_cast<int32>(poll_option.is_chosen) + static_cast<int32>(is_chosen), 0,
-          is_chosen));
-    }
-    if (!chosen_options.empty()) {
-      voter_count_diff++;
+          poll_option.text, poll_option.voter_count - static_cast<int32>(poll_option.is_chosen), 0, false,
+          is_being_chosen));
     }
   }
 
