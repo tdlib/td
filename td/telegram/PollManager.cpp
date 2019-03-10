@@ -683,6 +683,8 @@ void PollManager::stop_poll(PollId poll_id, FullMessageId full_message_id, Promi
     return;
   }
 
+  ++current_generation_;
+
   poll->is_closed = true;
   notify_on_poll_update(poll_id);
   save_poll(poll, poll_id);
@@ -753,19 +755,27 @@ void PollManager::on_update_poll_timeout(PollId poll_id) {
 
   auto full_message_id = *it->second.begin();
   LOG(INFO) << "Fetching results of " << poll_id << " from " << full_message_id;
-  auto query_promise = PromiseCreator::lambda(
-      [poll_id, actor_id = actor_id(this)](Result<tl_object_ptr<telegram_api::Updates>> &&result) {
-        send_closure(actor_id, &PollManager::on_get_poll_results, poll_id, std::move(result));
-      });
+  auto query_promise = PromiseCreator::lambda([poll_id, generation = current_generation_, actor_id = actor_id(this)](
+                                                  Result<tl_object_ptr<telegram_api::Updates>> &&result) {
+    send_closure(actor_id, &PollManager::on_get_poll_results, poll_id, generation, std::move(result));
+  });
   td_->create_handler<GetPollResultsQuery>(std::move(query_promise))->send(poll_id, full_message_id);
 }
 
-void PollManager::on_get_poll_results(PollId poll_id, Result<tl_object_ptr<telegram_api::Updates>> result) {
+void PollManager::on_get_poll_results(PollId poll_id, uint64 generation,
+                                      Result<tl_object_ptr<telegram_api::Updates>> result) {
   if (result.is_error()) {
     if (!get_poll_is_closed(poll_id) && !td_->auth_manager_->is_bot()) {
       auto timeout = get_polling_timeout();
       LOG(INFO) << "Schedule updating of " << poll_id << " in " << timeout;
       update_poll_timeout_.add_timeout_in(poll_id.get(), timeout);
+    }
+    return;
+  }
+  if (generation != current_generation_) {
+    LOG(INFO) << "Receive possibly outdated result of " << poll_id << ", reget it";
+    if (!get_poll_is_closed(poll_id) && !td_->auth_manager_->is_bot()) {
+      update_poll_timeout_.set_timeout_in(poll_id.get(), 0.0);
     }
     return;
   }
