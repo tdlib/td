@@ -737,7 +737,8 @@ void PollManager::stop_local_poll(PollId poll_id) {
 }
 
 double PollManager::get_polling_timeout() const {
-  return td_->is_online() ? 60 : 30 * 60;
+  double result = td_->is_online() ? 60 : 30 * 60;
+  return result * Random::fast(70, 100) * 0.01;
 }
 
 void PollManager::on_update_poll_timeout(PollId poll_id) {
