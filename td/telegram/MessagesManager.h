@@ -1804,9 +1804,9 @@ class MessagesManager : public Actor {
   Message *get_message(FullMessageId full_message_id);
   const Message *get_message(FullMessageId full_message_id) const;
 
-  Message *get_message_force(Dialog *d, MessageId message_id);
+  Message *get_message_force(Dialog *d, MessageId message_id, const char *source);
 
-  Message *get_message_force(FullMessageId full_message_id);
+  Message *get_message_force(FullMessageId full_message_id, const char *source);
 
   void get_message_force_from_server(Dialog *d, MessageId message_id, Promise<Unit> &&promise,
                                      tl_object_ptr<telegram_api::InputMessage> input_message = nullptr);
