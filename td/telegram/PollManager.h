@@ -142,7 +142,7 @@ class PollManager : public Actor {
   void do_set_poll_answer(PollId poll_id, FullMessageId full_message_id, vector<string> &&options, uint64 logevent_id,
                           Promise<Unit> &&promise);
 
-  void on_set_poll_answer(PollId poll_id, uint64 generation, Result<Unit> &&result);
+  void on_set_poll_answer(PollId poll_id, uint64 generation, Result<tl_object_ptr<telegram_api::Updates>> &&result);
 
   void do_stop_poll(PollId poll_id, FullMessageId full_message_id, uint64 logevent_id, Promise<Unit> &&promise);
 

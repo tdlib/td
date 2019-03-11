@@ -85,11 +85,11 @@ class GetPollResultsQuery : public Td::ResultHandler {
 };
 
 class SetPollAnswerActor : public NetActorOnce {
-  Promise<Unit> promise_;
+  Promise<tl_object_ptr<telegram_api::Updates>> promise_;
   DialogId dialog_id_;
 
  public:
-  explicit SetPollAnswerActor(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  explicit SetPollAnswerActor(Promise<tl_object_ptr<telegram_api::Updates>> &&promise) : promise_(std::move(promise)) {
   }
 
   void send(FullMessageId full_message_id, vector<BufferSlice> &&options, uint64 generation, NetQueryRef *query_ref) {
@@ -117,9 +117,7 @@ class SetPollAnswerActor : public NetActorOnce {
 
     auto result = result_ptr.move_as_ok();
     LOG(INFO) << "Receive sendVote result: " << to_string(result);
-
-    td->updates_manager_->on_get_updates(std::move(result));
-    promise_.set_value(Unit());
+    promise_.set_value(std::move(result));
   }
 
   void on_error(uint64 id, Status status) override {
@@ -447,7 +445,8 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id) co
   auto voter_counts = transform(poll_options, [](auto &poll_option) { return poll_option->voter_count_; });
   for (auto &voter_count : voter_counts) {
     if (total_voter_count < voter_count) {
-      LOG(ERROR) << "Fix total voter count from " << total_voter_count << " to " << voter_count;
+      LOG(ERROR) << "Fix total voter count from " << poll->total_voter_count << " + " << voter_count_diff << " to "
+                 << voter_count;
       total_voter_count = voter_count;
     }
   }
@@ -631,14 +630,16 @@ void PollManager::do_set_poll_answer(PollId poll_id, FullMessageId full_message_
 
   notify_on_poll_update(poll_id);
 
-  auto query_promise = PromiseCreator::lambda([poll_id, generation, actor_id = actor_id(this)](Result<Unit> &&result) {
-    send_closure(actor_id, &PollManager::on_set_poll_answer, poll_id, generation, std::move(result));
-  });
+  auto query_promise = PromiseCreator::lambda(
+      [poll_id, generation, actor_id = actor_id(this)](Result<tl_object_ptr<telegram_api::Updates>> &&result) {
+        send_closure(actor_id, &PollManager::on_set_poll_answer, poll_id, generation, std::move(result));
+      });
   send_closure(td_->create_net_actor<SetPollAnswerActor>(std::move(query_promise)), &SetPollAnswerActor::send,
                full_message_id, std::move(sent_options), generation, &pending_answer.query_ref_);
 }
 
-void PollManager::on_set_poll_answer(PollId poll_id, uint64 generation, Result<Unit> &&result) {
+void PollManager::on_set_poll_answer(PollId poll_id, uint64 generation,
+                                     Result<tl_object_ptr<telegram_api::Updates>> &&result) {
   if (G()->close_flag() && result.is_error()) {
     // request will be re-sent after restart
     return;
@@ -661,6 +662,10 @@ void PollManager::on_set_poll_answer(PollId poll_id, uint64 generation, Result<U
   }
 
   auto promises = std::move(pending_answer.promises_);
+  pending_answers_.erase(it);
+
+  td_->updates_manager_->on_get_updates(result.move_as_ok());
+
   for (auto &promise : promises) {
     if (result.is_ok()) {
       promise.set_value(Unit());
@@ -668,8 +673,6 @@ void PollManager::on_set_poll_answer(PollId poll_id, uint64 generation, Result<U
       promise.set_error(result.error().clone());
     }
   }
-
-  pending_answers_.erase(it);
 }
 
 void PollManager::stop_poll(PollId poll_id, FullMessageId full_message_id, Promise<Unit> &&promise) {
