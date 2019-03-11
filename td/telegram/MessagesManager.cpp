@@ -13175,8 +13175,8 @@ vector<DialogId> MessagesManager::get_dialog_notification_settings_exceptions(No
     return result;
   }
 
-  if (ordered_dialogs_.size() < MAX_PRELOADED_DIALOGS) {
-    preload_dialog_list(static_cast<void *>(this));
+  if (G()->parameters().use_message_db && last_loaded_database_dialog_date_ < last_database_server_dialog_date_) {
+    load_dialog_list(MAX_GET_DIALOGS, Auto());
   }
 
   td_->create_handler<GetNotifySettingsExceptionsQuery>(std::move(promise))->send(scope, filter_scope, compare_sound);
