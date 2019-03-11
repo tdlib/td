@@ -10195,6 +10195,7 @@ void MessagesManager::remove_dialog_mention_notifications(Dialog *d) {
   if (d->unread_mention_count == 0) {
     return;
   }
+  CHECK(!d->being_added_message_id.is_valid());
 
   VLOG(notifications) << "Remove mention notifications in " << d->dialog_id;
 
@@ -18080,7 +18081,7 @@ NotificationGroupId MessagesManager::get_dialog_notification_group_id(DialogId d
     do {
       next_notification_group_id = td_->notification_manager_->get_next_notification_group_id();
       if (!next_notification_group_id.is_valid()) {
-        return next_notification_group_id;
+        return NotificationGroupId();
       }
     } while (get_message_notification_group_force(next_notification_group_id).dialog_id.is_valid());
     group_info.group_id = next_notification_group_id;
@@ -18091,7 +18092,7 @@ NotificationGroupId MessagesManager::get_dialog_notification_group_id(DialogId d
     notification_group_id_to_dialog_id_.emplace(next_notification_group_id, dialog_id);
 
     if (running_get_channel_difference(dialog_id) || get_channel_difference_to_logevent_id_.count(dialog_id) != 0) {
-      send_closure_later(td_->notification_manager_actor_, &NotificationManager::before_get_chat_difference,
+      send_closure_later(G()->notification_manager(), &NotificationManager::before_get_chat_difference,
                          next_notification_group_id);
     }
   }
@@ -18111,7 +18112,7 @@ NotificationId MessagesManager::get_next_notification_id(Dialog *d, Notification
   do {
     notification_id = td_->notification_manager_->get_next_notification_id();
     if (!notification_id.is_valid()) {
-      return notification_id;
+      return NotificationId();
     }
   } while (d->notification_id_to_message_id.count(notification_id) != 0 ||
            d->new_secret_chat_notification_id == notification_id);  // just in case
@@ -21772,6 +21773,23 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     }
   }
 
+  if (*need_update) {
+    if (message_content_type == MessageContentType::PinMessage &&
+        (is_dialog_pinned_message_notifications_disabled(d) ||
+         !get_message_content_pinned_message_id(message->content.get()).is_valid())) {
+      // treat message pin without pinned message as an ordinary message
+      message->contains_mention = false;
+    }
+    if (message->contains_mention && is_dialog_mention_notifications_disabled(d)) {
+      // disable mention notification
+      message->is_mention_notification_disabled = true;
+    }
+  }
+
+  if (message->contains_unread_mention && message_id.get() <= d->last_read_all_mentions_message_id.get()) {
+    message->contains_unread_mention = false;
+  }
+
   if (*need_update && may_need_message_notification(d, message.get())) {
     // notification group must be created here because it may force adding new messages from database
     // in get_message_notification_group_force
@@ -21790,12 +21808,14 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   // there must be no two recursive calls to add_message_to_dialog
-  LOG_CHECK(!d->being_added_message_id.is_valid()) << d->being_added_message_id << " " << message_id << " " << source;
+  LOG_CHECK(!d->being_added_message_id.is_valid())
+      << d->dialog_id << " " << d->being_added_message_id << " " << message_id << " " << *need_update << " " << source;
   d->being_added_message_id = message_id;
 
   if (d->new_secret_chat_notification_id.is_valid()) {
     remove_new_secret_chat_notification(d, true);
   }
+
   if (message->message_id.get() > d->max_added_message_id.get()) {
     d->max_added_message_id = message->message_id;
   }
@@ -21852,10 +21872,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     if (message->date < G()->unix_time_cached() - channel_read_media_period) {
       update_opened_message_content(message->content.get());
     }
-  }
-
-  if (message->contains_unread_mention && message_id.get() <= d->last_read_all_mentions_message_id.get()) {
-    message->contains_unread_mention = false;
   }
 
   if (message_id.is_yet_unsent() && message->reply_to_message_id.is_valid() &&
@@ -21965,17 +21981,6 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
 
   if (*need_update) {
-    if (message_content_type == MessageContentType::PinMessage &&
-        (is_dialog_pinned_message_notifications_disabled(d) ||
-         !get_message_content_pinned_message_id(message->content.get()).is_valid())) {
-      // treat message pin without pinned message as ordinary message
-      message->contains_mention = false;
-    }
-    if (message->contains_mention && is_dialog_mention_notifications_disabled(d)) {
-      // disable mention notification
-      message->is_mention_notification_disabled = true;
-    }
-
     // notification must be added before updating unread_count to have correct total notification count
     // in get_message_notification_group_force
     add_new_message_notification(d, message.get(), false);
@@ -23899,11 +23904,11 @@ void MessagesManager::do_get_channel_difference(DialogId dialog_id, int32 pts, b
   const Dialog *d = get_dialog(dialog_id);
   if (d != nullptr) {
     if (d->message_notification_group.group_id.is_valid()) {
-      send_closure_later(td_->notification_manager_actor_, &NotificationManager::before_get_chat_difference,
+      send_closure_later(G()->notification_manager(), &NotificationManager::before_get_chat_difference,
                          d->message_notification_group.group_id);
     }
     if (d->mention_notification_group.group_id.is_valid()) {
-      send_closure_later(td_->notification_manager_actor_, &NotificationManager::before_get_chat_difference,
+      send_closure_later(G()->notification_manager(), &NotificationManager::before_get_chat_difference,
                          d->mention_notification_group.group_id);
     }
   }
@@ -24249,11 +24254,11 @@ void MessagesManager::after_get_channel_difference(DialogId dialog_id, bool succ
 
   if (d != nullptr) {
     if (d->message_notification_group.group_id.is_valid()) {
-      send_closure_later(td_->notification_manager_actor_, &NotificationManager::after_get_chat_difference,
+      send_closure_later(G()->notification_manager(), &NotificationManager::after_get_chat_difference,
                          d->message_notification_group.group_id);
     }
     if (d->mention_notification_group.group_id.is_valid()) {
-      send_closure_later(td_->notification_manager_actor_, &NotificationManager::after_get_chat_difference,
+      send_closure_later(G()->notification_manager(), &NotificationManager::after_get_chat_difference,
                          d->mention_notification_group.group_id);
     }
   }
