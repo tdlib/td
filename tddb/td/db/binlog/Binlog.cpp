@@ -306,6 +306,7 @@ Status Binlog::close_and_destroy() {
   destroy(path).ignore();
   return close_status;
 }
+
 Status Binlog::destroy(Slice path) {
   unlink(PSLICE() << path).ignore();
   unlink(PSLICE() << path << ".new").ignore();
@@ -385,7 +386,12 @@ void Binlog::do_event(BinlogEvent &&event) {
       if (state_ == State::Load) {
         fd_.seek(fd_size_).ensure();
         fd_.truncate_to_current_position(fd_size_).ensure();
+
+        if (data.empty()) {
+          return;
+        }
       }
+
       LOG(FATAL) << "Truncate binlog \"" << path_ << "\" from size " << old_size << " to size " << fd_size_
                  << " in state " << static_cast<int32>(state_) << " due to error: " << status << " after reading "
                  << data;
@@ -499,6 +505,9 @@ Status Binlog::load_binlog(const Callback &callback, const Callback &debug_callb
         auto data = debug_get_binlog_data(offset, old_size);
         fd_.seek(offset).ensure();
         fd_.truncate_to_current_position(offset).ensure();
+        if (data.empty()) {
+          break;
+        }
         LOG(FATAL) << "Truncate binlog \"" << path_ << "\" from size " << old_size << " to size " << offset
                    << " due to error: " << r_need_size.error() << " after reading " << data;
       }
@@ -698,11 +707,26 @@ string Binlog::debug_get_binlog_data(int64 begin_offset, int64 end_offset) {
   if (r_data_size.is_error()) {
     return PSTRING() << "Failed to read binlog: " << r_data_size.error();
   }
+
   if (r_data_size.ok() < expected_data_length) {
     data.resize(r_data_size.ok());
     data = PSTRING() << format::as_hex_dump<4>(Slice(data)) << " | with " << expected_data_length - r_data_size.ok()
                      << " missed bytes";
   } else {
+    if (encryption_type_ == EncryptionType::AesCtr) {
+      bool is_zero = true;
+      for (auto &c : data) {
+        if (c != '\0') {
+          is_zero = false;
+        }
+      }
+      // very often we have '\0' bytes written to disk instead of a real log event
+      // this is clearly impossible content for a real encrypted log event, so just ignore it
+      if (is_zero) {
+        return string();
+      }
+    }
+
     data = PSTRING() << format::as_hex_dump<4>(Slice(data));
   }
   return data;
