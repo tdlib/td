@@ -9718,7 +9718,7 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
       // it is safer to completely ignore the message and re-get it through getChannelsDifference
       Dialog *d = get_dialog(dialog_id);
       if (d != nullptr) {
-        get_channel_difference(dialog_id, d->pts, true, "create_message");
+        channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
         return {DialogId(), nullptr};
       }
     }
