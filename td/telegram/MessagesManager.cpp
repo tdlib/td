@@ -18141,7 +18141,11 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
   if (d == nullptr) {
     return MessageNotificationGroup();
   }
-  CHECK(d->message_notification_group.group_id == group_id || d->mention_notification_group.group_id == group_id);
+  LOG_CHECK(d->message_notification_group.group_id == group_id || d->mention_notification_group.group_id == group_id)
+      << group_id << " " << d->message_notification_group.group_id << " " << d->mention_notification_group.group_id
+      << " " << d->dialog_id << " " << notification_group_id_to_dialog_id_[group_id] << " "
+      << notification_group_id_to_dialog_id_[d->message_notification_group.group_id] << " "
+      << notification_group_id_to_dialog_id_[d->mention_notification_group.group_id];
 
   bool from_mentions = d->mention_notification_group.group_id == group_id;
   auto &group_info = from_mentions ? d->mention_notification_group : d->message_notification_group;
