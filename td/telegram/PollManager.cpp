@@ -485,6 +485,9 @@ PollId PollManager::create_poll(string &&question, vector<string> &&options) {
 
 void PollManager::register_poll(PollId poll_id, FullMessageId full_message_id) {
   CHECK(have_poll(poll_id));
+  if (!full_message_id.get_message_id().is_server()) {
+    return;
+  }
   LOG(INFO) << "Register " << poll_id << " from " << full_message_id;
   bool is_inserted = poll_messages_[poll_id].insert(full_message_id).second;
   CHECK(is_inserted);
@@ -495,6 +498,9 @@ void PollManager::register_poll(PollId poll_id, FullMessageId full_message_id) {
 
 void PollManager::unregister_poll(PollId poll_id, FullMessageId full_message_id) {
   CHECK(have_poll(poll_id));
+  if (!full_message_id.get_message_id().is_server()) {
+    return;
+  }
   LOG(INFO) << "Unregister " << poll_id << " from " << full_message_id;
   auto &message_ids = poll_messages_[poll_id];
   auto is_deleted = message_ids.erase(full_message_id);

@@ -25196,8 +25196,7 @@ void MessagesManager::set_poll_answer(FullMessageId full_message_id, vector<int3
   if (m->content->get_type() != MessageContentType::Poll) {
     return promise.set_error(Status::Error(5, "Message is not a poll"));
   }
-  auto message_id = full_message_id.get_message_id();
-  if (!message_id.is_server()) {
+  if (!full_message_id.get_message_id().is_server()) {
     return promise.set_error(Status::Error(5, "Poll can't be answered"));
   }
 
@@ -25216,6 +25215,9 @@ void MessagesManager::stop_poll(FullMessageId full_message_id, Promise<Unit> &&p
     return promise.set_error(Status::Error(5, "Message is not a poll"));
   }
   if (!can_edit_message(full_message_id.get_dialog_id(), m, true)) {
+    return promise.set_error(Status::Error(5, "Poll can't be stopped"));
+  }
+  if (!full_message_id.get_message_id().is_server()) {
     return promise.set_error(Status::Error(5, "Poll can't be stopped"));
   }
 
