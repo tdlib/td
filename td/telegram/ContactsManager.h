@@ -471,7 +471,7 @@ class ContactsManager : public Actor {
 
     std::unordered_set<int64> photo_ids;
 
-    std::unordered_map<ChatId, int32, ChatIdHash> online_member_chats;  // id -> time
+    std::unordered_map<DialogId, int32, DialogIdHash> online_member_dialogs;  // id -> time
 
     bool is_received = false;
     bool is_verified = false;
@@ -898,6 +898,8 @@ class ContactsManager : public Actor {
 
   void update_user_online_member_count(User *u);
   void update_chat_online_member_count(const ChatFull *chat_full, ChatId chat_id, bool is_from_server);
+  void update_dialog_online_member_count(const vector<DialogParticipant> &participants, DialogId dialog_id,
+                                         bool is_from_server);
 
   void on_chat_update(telegram_api::chatEmpty &chat, const char *source);
   void on_chat_update(telegram_api::chat &chat, const char *source);
