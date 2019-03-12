@@ -7457,13 +7457,33 @@ void ContactsManager::on_get_channel_participants_success(
   auto participant_count = filter.is_recent() && total_count != 0 && total_count < 10000 ? total_count : -1;
   int32 administrator_count = filter.is_administrators() ? total_count : -1;
   if (offset == 0 && static_cast<int32>(participants.size()) < limit &&
-      (filter.is_administrators() || filter.is_bots())) {
-    auto user_ids = transform(result, [](const DialogParticipant &participant) { return participant.user_id; });
-    if (filter.is_administrators()) {
-      on_update_dialog_administrators(DialogId(channel_id), std::move(user_ids), true);
+      (filter.is_administrators() || filter.is_bots() || filter.is_recent())) {
+    vector<UserId> participant_user_ids;
+    vector<UserId> administrator_user_ids;
+    vector<UserId> bot_user_ids;
+    {
+      auto user_ids = transform(result, [](const DialogParticipant &participant) { return participant.user_id; });
+      if (filter.is_recent()) {
+        for (const auto &participant : result) {
+          if (participant.status.is_administrator()) {
+            administrator_user_ids.push_back(participant.user_id);
+          }
+          if (is_user_bot(participant.user_id)) {
+            bot_user_ids.push_back(participant.user_id);
+          }
+        }
+        participant_user_ids = std::move(user_ids);
+      } else if (filter.is_administrators()) {
+        administrator_user_ids = std::move(user_ids);
+      } else if (filter.is_bots()) {
+        bot_user_ids = std::move(user_ids);
+      }
     }
-    if (filter.is_bots()) {
-      td_->messages_manager_->on_dialog_bots_updated(DialogId(channel_id), std::move(user_ids));
+    if (filter.is_administrators() || filter.is_recent()) {
+      on_update_dialog_administrators(DialogId(channel_id), std::move(administrator_user_ids), true);
+    }
+    if (filter.is_bots() || filter.is_recent()) {
+      td_->messages_manager_->on_dialog_bots_updated(DialogId(channel_id), std::move(bot_user_ids));
     }
   }
 
