@@ -7441,6 +7441,20 @@ void ContactsManager::on_get_channel_participants_success(
     result.push_back(get_dialog_participant(channel_id, std::move(participant_ptr)));
   }
 
+  if (filter.is_recent() && total_count != 0 && total_count < 10000) {
+    auto channel_full = get_channel_full(channel_id);
+    if (channel_full != nullptr && channel_full->participant_count != total_count) {
+      channel_full->participant_count = total_count;
+      channel_full->is_changed = true;
+      update_channel_full(channel_full, channel_id);
+    }
+    auto c = get_channel(channel_id);
+    if (c != nullptr && c->participant_count != total_count) {
+      c->participant_count = total_count;
+      c->need_send_update = true;
+      update_channel(c, channel_id);
+    }
+  }
   if (offset == 0 && static_cast<int32>(participants.size()) < limit) {
     if (filter.is_administrators() || filter.is_bots()) {
       auto user_ids = transform(result, [](const DialogParticipant &participant) { return participant.user_id; });
