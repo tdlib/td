@@ -7171,6 +7171,9 @@ void ContactsManager::update_user_online_member_count(User *u) {
   }
   for (auto &dialog_id : expired_dialog_ids) {
     u->online_member_dialogs.erase(dialog_id);
+    if (dialog_id.get_type() == DialogType::Channel) {
+      cached_channel_participants_.erase(dialog_id.get_channel_id());
+    }
   }
 }
 
@@ -7208,7 +7211,9 @@ void ContactsManager::update_dialog_online_member_count(const vector<DialogParti
       if (was_online > time) {
         online_member_count++;
       }
-      u->online_member_dialogs[dialog_id] = time;
+      if (is_from_server) {
+        u->online_member_dialogs[dialog_id] = time;
+      }
     }
   }
   td_->messages_manager_->on_update_dialog_online_member_count(dialog_id, online_member_count, is_from_server);
