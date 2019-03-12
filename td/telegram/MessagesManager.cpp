@@ -6315,7 +6315,7 @@ void MessagesManager::on_upload_media(FileId file_id, tl_object_ptr<telegram_api
         // TODO: download thumbnail if needed (like in secret chats)
         being_uploaded_thumbnails_[thumbnail_file_id] = {full_message_id, file_id, std::move(input_file)};
         LOG(INFO) << "Ask to upload thumbnail " << thumbnail_file_id;
-        td_->file_manager_->upload(thumbnail_file_id, upload_thumbnail_callback_, 1, m->message_id.get());
+        td_->file_manager_->upload(thumbnail_file_id, upload_thumbnail_callback_, 32, m->message_id.get());
       } else {
         do_send_media(dialog_id, m, file_id, thumbnail_file_id, std::move(input_file), nullptr);
       }
@@ -20686,7 +20686,7 @@ void MessagesManager::upload_dialog_photo(DialogId dialog_id, FileId file_id, Pr
   CHECK(uploaded_dialog_photos_.find(file_id) == uploaded_dialog_photos_.end());
   uploaded_dialog_photos_[file_id] = {std::move(promise), dialog_id};
   LOG(INFO) << "Ask to upload chat photo " << file_id;
-  td_->file_manager_->upload(file_id, upload_dialog_photo_callback_, 1, 0);
+  td_->file_manager_->upload(file_id, upload_dialog_photo_callback_, 32, 0);
 }
 
 void MessagesManager::set_dialog_title(DialogId dialog_id, const string &title, Promise<Unit> &&promise) {

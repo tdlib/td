@@ -3924,7 +3924,7 @@ void ContactsManager::upload_profile_photo(FileId file_id, Promise<Unit> &&promi
   CHECK(uploaded_profile_photos_.find(file_id) == uploaded_profile_photos_.end());
   uploaded_profile_photos_.emplace(file_id, std::move(promise));
   LOG(INFO) << "Ask to upload profile photo " << file_id;
-  td_->file_manager_->upload(file_id, upload_profile_photo_callback_, 1, 0);
+  td_->file_manager_->upload(file_id, upload_profile_photo_callback_, 32, 0);
 }
 
 void ContactsManager::delete_profile_photo(int64 profile_photo_id, Promise<Unit> &&promise) {
