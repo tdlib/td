@@ -466,7 +466,7 @@ telegram_api::object_ptr<telegram_api::pollAnswer> PollManager::get_input_poll_o
 PollId PollManager::create_poll(string &&question, vector<string> &&options) {
   auto poll = make_unique<Poll>();
   poll->question = std::move(question);
-  int pos = 0;
+  int pos = '0';
   for (auto &option_text : options) {
     PollOption option;
     option.text = std::move(option_text);
