@@ -172,8 +172,6 @@ class ContactsManager : public Actor {
 
   void on_update_dialog_administrators(DialogId dialog_id, vector<UserId> administrator_user_ids, bool have_access);
 
-  static bool speculative_add_count(int32 &count, int32 new_count);
-
   void speculative_add_channel_participants(ChannelId channel_id, int32 new_participant_count, bool by_me);
 
   void invalidate_channel_full(ChannelId channel_id, bool drop_invite_link);
@@ -891,6 +889,8 @@ class ContactsManager : public Actor {
   void on_update_channel_full_invite_link(ChannelFull *channel_full,
                                           tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link_ptr);
 
+  static bool speculative_add_count(int32 &count, int32 new_count);
+
   void speculative_add_channel_user(ChannelId channel_id, UserId user_id, DialogParticipantStatus status,
                                     DialogParticipantStatus old_status);
 
@@ -898,6 +898,7 @@ class ContactsManager : public Actor {
 
   void update_user_online_member_count(User *u);
   void update_chat_online_member_count(const ChatFull *chat_full, ChatId chat_id, bool is_from_server);
+  void update_channel_online_member_count(ChannelId channel_id, bool is_from_server);
   void update_dialog_online_member_count(const vector<DialogParticipant> &participants, DialogId dialog_id,
                                          bool is_from_server);
 
@@ -1118,6 +1119,8 @@ class ContactsManager : public Actor {
 
   std::unordered_map<int64, DialogParticipant> received_channel_participant_;
   std::unordered_map<int64, std::pair<int32, vector<DialogParticipant>>> received_channel_participants_;
+
+  std::unordered_map<ChannelId, vector<DialogParticipant>, ChannelIdHash> cached_channel_participants_;
 
   std::unordered_map<int64, std::pair<int32, vector<UserId>>>
       found_blocked_users_;  // random_id -> [total_count, [user_id]...]

@@ -7176,6 +7176,18 @@ void ContactsManager::update_chat_online_member_count(const ChatFull *chat_full,
   update_dialog_online_member_count(chat_full->participants, DialogId(chat_id), is_from_server);
 }
 
+void ContactsManager::update_channel_online_member_count(ChannelId channel_id, bool is_from_server) {
+  if (get_channel_type(channel_id) != ChannelType::Megagroup) {
+    return;
+  }
+
+  auto it = cached_channel_participants_.find(channel_id);
+  if (it == cached_channel_participants_.end()) {
+    return;
+  }
+  update_dialog_online_member_count(it->second, DialogId(channel_id), is_from_server);
+}
+
 void ContactsManager::update_dialog_online_member_count(const vector<DialogParticipant> &participants,
                                                         DialogId dialog_id, bool is_from_server) {
   if (td_->auth_manager_->is_bot()) {
@@ -7458,7 +7470,6 @@ void ContactsManager::on_get_channel_participants_success(
   int32 administrator_count = filter.is_administrators() ? total_count : -1;
   if (offset == 0 && static_cast<int32>(participants.size()) < limit &&
       (filter.is_administrators() || filter.is_bots() || filter.is_recent())) {
-    vector<UserId> participant_user_ids;
     vector<UserId> administrator_user_ids;
     vector<UserId> bot_user_ids;
     {
@@ -7472,13 +7483,15 @@ void ContactsManager::on_get_channel_participants_success(
             bot_user_ids.push_back(participant.user_id);
           }
         }
-        participant_user_ids = std::move(user_ids);
         administrator_count = administrator_user_ids.size();
       } else if (filter.is_administrators()) {
         administrator_user_ids = std::move(user_ids);
       } else if (filter.is_bots()) {
         bot_user_ids = std::move(user_ids);
       }
+
+      cached_channel_participants_[channel_id] = result;
+      update_channel_online_member_count(channel_id, true);
     }
     if (filter.is_administrators() || filter.is_recent()) {
       on_update_dialog_administrators(DialogId(channel_id), std::move(administrator_user_ids), true);
