@@ -8614,7 +8614,14 @@ void MessagesManager::on_update_dialog_online_member_count_timeout(DialogId dial
   }
 
   if (dialog_id.get_type() == DialogType::Channel && !is_broadcast_channel(dialog_id)) {
-    td_->create_handler<GetOnlinesQuery>()->send(dialog_id);
+    auto participant_count = td_->contacts_manager_->get_channel_participant_count(dialog_id.get_channel_id());
+    if (participant_count == 0 || participant_count >= 195) {
+      td_->create_handler<GetOnlinesQuery>()->send(dialog_id);
+    } else {
+      td_->contacts_manager_->send_get_channel_participants_query(
+          dialog_id.get_channel_id(),
+          ChannelParticipantsFilter(td_api::make_object<td_api::supergroupMembersFilterRecent>()), 0, 200, 0, Auto());
+    }
     return;
   }
   if (dialog_id.get_type() == DialogType::Chat) {

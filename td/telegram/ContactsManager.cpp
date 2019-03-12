@@ -6757,11 +6757,13 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
     }
     td_->messages_manager_->on_update_dialog_pinned_message_id(DialogId(channel_id), pinned_message_id);
 
-    int32 online_member_count = 0;
-    if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_ONLINE_MEMBER_COUNT) != 0) {
-      online_member_count = channel_full->online_count_;
+    if (participant_count >= 190) {
+      int32 online_member_count = 0;
+      if ((channel_full->flags_ & CHANNEL_FULL_FLAG_HAS_ONLINE_MEMBER_COUNT) != 0) {
+        online_member_count = channel_full->online_count_;
+      }
+      td_->messages_manager_->on_update_dialog_online_member_count(DialogId(channel_id), online_member_count, true);
     }
-    td_->messages_manager_->on_update_dialog_online_member_count(DialogId(channel_id), online_member_count, true);
 
     for (auto &bot_info : channel_full->bot_info_) {
       on_update_bot_info(std::move(bot_info));
@@ -7442,10 +7444,8 @@ void ContactsManager::on_get_channel_participants_success(
     ChannelId channel_id, ChannelParticipantsFilter filter, int32 offset, int32 limit, int64 random_id,
     int32 total_count, vector<tl_object_ptr<telegram_api::ChannelParticipant>> &&participants) {
   LOG(INFO) << "Receive " << participants.size() << " members in " << channel_id;
-  auto it = received_channel_participants_.find(random_id);
-  CHECK(it != received_channel_participants_.end());
 
-  auto &result = it->second.second;
+  vector<DialogParticipant> result;
   CHECK(result.empty());
   for (auto &participant_ptr : participants) {
     result.push_back(get_dialog_participant(channel_id, std::move(participant_ptr)));
@@ -7459,12 +7459,12 @@ void ContactsManager::on_get_channel_participants_success(
       total_count--;
     }
   }
+
   if (total_count < narrow_cast<int32>(result.size())) {
     LOG(ERROR) << "Receive total_count = " << total_count << ", but have at least " << result.size() << " members in "
                << channel_id;
     total_count = static_cast<int32>(result.size());
   }
-  it->second.first = total_count;
 
   auto participant_count = filter.is_recent() && total_count != 0 && total_count < 10000 ? total_count : -1;
   int32 administrator_count = filter.is_administrators() ? total_count : -1;
@@ -7525,12 +7525,18 @@ void ContactsManager::on_get_channel_participants_success(
       }
     }
   }
+
+  if (random_id != 0) {
+    received_channel_participants_[random_id] = {total_count, std::move(result)};
+  }
 }
 
 void ContactsManager::on_get_channel_participants_fail(ChannelId channel_id, ChannelParticipantsFilter filter,
                                                        int32 offset, int32 limit, int64 random_id) {
-  // clean up
-  received_channel_participants_.erase(random_id);
+  if (random_id != 0) {
+    // clean up
+    received_channel_participants_.erase(random_id);
+  }
 }
 
 bool ContactsManager::speculative_add_count(int32 &count, int32 new_count) {
@@ -8999,6 +9005,14 @@ DialogParticipantStatus ContactsManager::get_channel_status(const Channel *c) {
   return c->status;
 }
 
+int32 ContactsManager::get_channel_participant_count(ChannelId channel_id) const {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return 0;
+  }
+  return c->participant_count;
+}
+
 bool ContactsManager::get_channel_sign_messages(ChannelId channel_id) const {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
@@ -9488,11 +9502,18 @@ std::pair<int32, vector<DialogParticipant>> ContactsManager::get_channel_partici
   } while (random_id == 0 || received_channel_participants_.find(random_id) != received_channel_participants_.end());
   received_channel_participants_[random_id];  // reserve place for result
 
-  LOG(DEBUG) << "Get members of the " << channel_id << " with offset = " << offset << " and limit = " << limit;
-
-  td_->create_handler<GetChannelParticipantsQuery>(std::move(promise))
-      ->send(channel_id, ChannelParticipantsFilter(filter), offset, limit, random_id);
+  send_get_channel_participants_query(channel_id, ChannelParticipantsFilter(filter), offset, limit, random_id,
+                                      std::move(promise));
   return result;
+}
+
+void ContactsManager::send_get_channel_participants_query(ChannelId channel_id, ChannelParticipantsFilter filter,
+                                                          int32 offset, int32 limit, int64 random_id,
+                                                          Promise<Unit> &&promise) {
+  LOG(DEBUG) << "Get members of the " << channel_id << " with filter " << filter << ", offset = " << offset
+             << " and limit = " << limit;
+  td_->create_handler<GetChannelParticipantsQuery>(std::move(promise))
+      ->send(channel_id, std::move(filter), offset, limit, random_id);
 }
 
 vector<UserId> ContactsManager::get_dialog_administrators(DialogId dialog_id, int left_tries, Promise<Unit> &&promise) {

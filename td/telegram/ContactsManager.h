@@ -375,6 +375,7 @@ class ContactsManager : public Actor {
   ChannelType get_channel_type(ChannelId channel_id) const;
   int32 get_channel_date(ChannelId channel_id) const;
   DialogParticipantStatus get_channel_status(ChannelId channel_id) const;
+  int32 get_channel_participant_count(ChannelId channel_id) const;
   bool get_channel_sign_messages(ChannelId channel_id) const;
   FileSourceId get_channel_photo_file_source_id(ChannelId channel_id);
 
@@ -393,6 +394,9 @@ class ContactsManager : public Actor {
       ChannelId channel_id, const tl_object_ptr<td_api::SupergroupMembersFilter> &filter,
       const string &additional_query, int32 offset, int32 limit, int32 additional_limit, int64 &random_id, bool force,
       Promise<Unit> &&promise);
+
+  void send_get_channel_participants_query(ChannelId channel_id, ChannelParticipantsFilter filter, int32 offset,
+                                           int32 limit, int64 random_id, Promise<Unit> &&promise);
 
   DialogParticipant get_dialog_participant(ChannelId channel_id,
                                            tl_object_ptr<telegram_api::ChannelParticipant> &&participant_ptr) const;
