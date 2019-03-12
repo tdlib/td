@@ -7473,6 +7473,7 @@ void ContactsManager::on_get_channel_participants_success(
           }
         }
         participant_user_ids = std::move(user_ids);
+        administrator_count = administrator_user_ids.size();
       } else if (filter.is_administrators()) {
         administrator_user_ids = std::move(user_ids);
       } else if (filter.is_bots()) {
