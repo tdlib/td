@@ -22105,10 +22105,23 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   register_message_content(td_, m->content.get(), {dialog_id, message_id});
 
   if (from_update && message_id.is_server() && dialog_id.get_type() == DialogType::Channel) {
-    int32 new_participant_count = get_message_content_new_participant_count(m->content.get());
-    if (new_participant_count != 0) {
-      td_->contacts_manager_->speculative_add_channel_participants(dialog_id.get_channel_id(), new_participant_count,
-                                                                   m->sender_user_id == my_user_id);
+    switch (message_content_type) {
+      case MessageContentType::ChatAddUsers:
+        td_->contacts_manager_->speculative_add_channel_participants(
+            dialog_id.get_channel_id(), get_message_content_added_user_ids(m->content.get()),
+            m->sender_user_id == my_user_id);
+        break;
+      case MessageContentType::ChatJoinedByLink:
+        td_->contacts_manager_->speculative_add_channel_participants(dialog_id.get_channel_id(), {m->sender_user_id},
+                                                                     m->sender_user_id == my_user_id);
+        break;
+      case MessageContentType::ChatDeleteUser:
+        td_->contacts_manager_->speculative_delete_channel_participant(
+            dialog_id.get_channel_id(), get_message_content_deleted_user_id(m->content.get()),
+            m->sender_user_id == my_user_id);
+        break;
+      default:
+        break;
     }
   }
   if (from_update && message_id.is_server() && message_content_type == MessageContentType::PinMessage) {

@@ -2618,19 +2618,6 @@ int32 get_message_content_index_mask(const MessageContent *content, const Td *td
   return 0;
 }
 
-int32 get_message_content_new_participant_count(const MessageContent *content) {
-  switch (content->get_type()) {
-    case MessageContentType::ChatAddUsers:
-      return narrow_cast<int32>(static_cast<const MessageChatAddUsers *>(content)->user_ids.size());
-    case MessageContentType::ChatJoinedByLink:
-      return 1;
-    case MessageContentType::ChatDeleteUser:
-      return -1;
-    default:
-      return 0;
-  }
-}
-
 MessageId get_message_content_pinned_message_id(const MessageContent *content) {
   switch (content->get_type()) {
     case MessageContentType::PinMessage:
@@ -2651,6 +2638,11 @@ MessageId get_message_content_replied_message_id(const MessageContent *content) 
     default:
       return MessageId();
   }
+}
+
+vector<UserId> get_message_content_added_user_ids(const MessageContent *content) {
+  CHECK(content->get_type() == MessageContentType::ChatAddUsers);
+  return static_cast<const MessageChatAddUsers *>(content)->user_ids;
 }
 
 UserId get_message_content_deleted_user_id(const MessageContent *content) {

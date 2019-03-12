@@ -7544,6 +7544,31 @@ bool ContactsManager::speculative_add_count(int32 &count, int32 new_count) {
   return true;
 }
 
+void ContactsManager::speculative_add_channel_participants(ChannelId channel_id, const vector<UserId> &added_user_ids,
+                                                           bool by_me) {
+  int32 new_participant_count = 0;
+  for (auto &user_id : added_user_ids) {
+    if (!user_id.is_valid()) {
+      continue;
+    }
+
+    new_participant_count++;
+  }
+  if (new_participant_count == 0) {
+    return;
+  }
+
+  speculative_add_channel_participants(channel_id, new_participant_count, by_me);
+}
+
+void ContactsManager::speculative_delete_channel_participant(ChannelId channel_id, UserId deleted_user_id, bool by_me) {
+  if (!deleted_user_id.is_valid()) {
+    return;
+  }
+
+  speculative_add_channel_participants(channel_id, -1, by_me);
+}
+
 void ContactsManager::speculative_add_channel_participants(ChannelId channel_id, int32 new_participant_count,
                                                            bool by_me) {
   if (by_me) {

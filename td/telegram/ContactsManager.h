@@ -172,7 +172,9 @@ class ContactsManager : public Actor {
 
   void on_update_dialog_administrators(DialogId dialog_id, vector<UserId> administrator_user_ids, bool have_access);
 
-  void speculative_add_channel_participants(ChannelId channel_id, int32 new_participant_count, bool by_me);
+  void speculative_add_channel_participants(ChannelId channel_id, const vector<UserId> &added_user_ids, bool by_me);
+
+  void speculative_delete_channel_participant(ChannelId channel_id, UserId deleted_user_id, bool by_me);
 
   void invalidate_channel_full(ChannelId channel_id, bool drop_invite_link);
 
@@ -890,6 +892,8 @@ class ContactsManager : public Actor {
                                           tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link_ptr);
 
   static bool speculative_add_count(int32 &count, int32 new_count);
+
+  void speculative_add_channel_participants(ChannelId channel_id, int32 new_participant_count, bool by_me);
 
   void speculative_add_channel_user(ChannelId channel_id, UserId user_id, DialogParticipantStatus status,
                                     DialogParticipantStatus old_status);

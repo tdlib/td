@@ -167,11 +167,11 @@ bool update_opened_message_content(MessageContent *content);
 
 int32 get_message_content_index_mask(const MessageContent *content, const Td *td, bool is_secret, bool is_outgoing);
 
-int32 get_message_content_new_participant_count(const MessageContent *content);
-
 MessageId get_message_content_pinned_message_id(const MessageContent *content);
 
 MessageId get_message_content_replied_message_id(const MessageContent *content);
+
+vector<UserId> get_message_content_added_user_ids(const MessageContent *content);
 
 UserId get_message_content_deleted_user_id(const MessageContent *content);
 
