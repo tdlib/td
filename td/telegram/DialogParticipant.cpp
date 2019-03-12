@@ -371,6 +371,12 @@ DialogParticipantStatus get_dialog_participant_status(
                                              can_send_games, can_use_inline_bots, can_add_web_page_previews);
 }
 
+StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipant &dialog_participant) {
+  return string_builder << '[' << dialog_participant.user_id << " invited by " << dialog_participant.inviter_user_id
+                        << " at " << dialog_participant.joined_date << " with status " << dialog_participant.status
+                        << ']';
+}
+
 tl_object_ptr<telegram_api::ChannelParticipantsFilter>
 ChannelParticipantsFilter::get_input_channel_participants_filter() const {
   switch (type) {
@@ -422,6 +428,26 @@ ChannelParticipantsFilter::ChannelParticipantsFilter(const tl_object_ptr<td_api:
     default:
       UNREACHABLE();
       type = Type::Recent;
+  }
+}
+
+StringBuilder &operator<<(StringBuilder &string_builder, const ChannelParticipantsFilter &filter) {
+  switch (filter.type) {
+    case ChannelParticipantsFilter::Type::Recent:
+      return string_builder << "Recent";
+    case ChannelParticipantsFilter::Type::Administrators:
+      return string_builder << "Administrators";
+    case ChannelParticipantsFilter::Type::Search:
+      return string_builder << "Search \"" << filter.query << '"';
+    case ChannelParticipantsFilter::Type::Restricted:
+      return string_builder << "Restricted \"" << filter.query << '"';
+    case ChannelParticipantsFilter::Type::Banned:
+      return string_builder << "Banned \"" << filter.query << '"';
+    case ChannelParticipantsFilter::Type::Bots:
+      return string_builder << "Bots";
+    default:
+      UNREACHABLE();
+      return string_builder;
   }
 }
 

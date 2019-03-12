@@ -7433,20 +7433,32 @@ void ContactsManager::on_get_channel_participants_success(
   auto it = received_channel_participants_.find(random_id);
   CHECK(it != received_channel_participants_.end());
 
-  it->second.first = total_count;
-
   auto &result = it->second.second;
   CHECK(result.empty());
   for (auto &participant_ptr : participants) {
     result.push_back(get_dialog_participant(channel_id, std::move(participant_ptr)));
+    if ((filter.is_bots() && !is_user_bot(result.back().user_id)) ||
+        (filter.is_administrators() && !result.back().status.is_administrator()) ||
+        ((filter.is_recent() || filter.is_search()) && !result.back().status.is_member()) ||
+        (filter.is_restricted() && !result.back().status.is_restricted()) ||
+        (filter.is_banned() && !result.back().status.is_banned())) {
+      LOG(ERROR) << "Receive " << result.back() << ", while searching for " << filter;
+      result.pop_back();
+      total_count--;
+    }
   }
+  if (total_count < narrow_cast<int32>(result.size())) {
+    LOG(ERROR) << "Receive total_count = " << total_count << ", but have at least " << result.size() << " members in "
+               << channel_id;
+    total_count = static_cast<int32>(result.size());
+  }
+  it->second.first = total_count;
 
   if (filter.is_recent() && total_count != 0 && total_count < 10000) {
     auto channel_full = get_channel_full(channel_id);
     if (channel_full != nullptr && channel_full->participant_count != total_count) {
       channel_full->participant_count = total_count;
       channel_full->is_changed = true;
-      update_channel_full(channel_full, channel_id);
     }
     auto c = get_channel(channel_id);
     if (c != nullptr && c->participant_count != total_count) {
@@ -7455,16 +7467,23 @@ void ContactsManager::on_get_channel_participants_success(
       update_channel(c, channel_id);
     }
   }
-  if (offset == 0 && static_cast<int32>(participants.size()) < limit) {
-    if (filter.is_administrators() || filter.is_bots()) {
-      auto user_ids = transform(result, [](const DialogParticipant &participant) { return participant.user_id; });
-      if (filter.is_administrators()) {
-        on_update_dialog_administrators(DialogId(channel_id), std::move(user_ids), true);
-      } else {
-        td_->messages_manager_->on_dialog_bots_updated(DialogId(channel_id), std::move(user_ids));
-      }
+  int32 administrator_count = filter.is_administrators() ? total_count : -1;
+  if (offset == 0 && static_cast<int32>(participants.size()) < limit &&
+      (filter.is_administrators() || filter.is_bots())) {
+    auto user_ids = transform(result, [](const DialogParticipant &participant) { return participant.user_id; });
+    if (filter.is_administrators()) {
+      on_update_dialog_administrators(DialogId(channel_id), std::move(user_ids), true);
+    }
+    if (filter.is_bots()) {
+      td_->messages_manager_->on_dialog_bots_updated(DialogId(channel_id), std::move(user_ids));
     }
   }
+  auto channel_full = get_channel_full(channel_id);
+  if (channel_full != nullptr && channel_full->administrator_count != administrator_count) {
+    channel_full->administrator_count = administrator_count;
+    channel_full->is_changed = true;
+  }
+  update_channel_full(channel_full, channel_id);
 }
 
 void ContactsManager::on_get_channel_participants_fail(ChannelId channel_id, ChannelParticipantsFilter filter,

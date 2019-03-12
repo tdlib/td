@@ -246,9 +246,13 @@ struct DialogParticipant {
   }
 };
 
+StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipant &dialog_participant);
+
 class ChannelParticipantsFilter {
   enum class Type : int32 { Recent, Administrators, Search, Restricted, Banned, Bots } type;
   string query;
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const ChannelParticipantsFilter &filter);
 
  public:
   explicit ChannelParticipantsFilter(const tl_object_ptr<td_api::SupergroupMembersFilter> &filter);
@@ -266,7 +270,21 @@ class ChannelParticipantsFilter {
   bool is_recent() const {
     return type == Type::Recent;
   }
+
+  bool is_search() const {
+    return type == Type::Search;
+  }
+
+  bool is_restricted() const {
+    return type == Type::Search;
+  }
+
+  bool is_banned() const {
+    return type == Type::Search;
+  }
 };
+
+StringBuilder &operator<<(StringBuilder &string_builder, const ChannelParticipantsFilter &filter);
 
 enum class DialogParticipantsFilter : int32 { Administrators, Members, Restricted, Banned, Bots };
 
