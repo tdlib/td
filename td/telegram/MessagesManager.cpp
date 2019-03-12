@@ -22108,11 +22108,12 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     switch (message_content_type) {
       case MessageContentType::ChatAddUsers:
         td_->contacts_manager_->speculative_add_channel_participants(
-            dialog_id.get_channel_id(), get_message_content_added_user_ids(m->content.get()),
-            m->sender_user_id == my_user_id);
+            dialog_id.get_channel_id(), get_message_content_added_user_ids(m->content.get()), m->sender_user_id,
+            m->date, m->sender_user_id == my_user_id);
         break;
       case MessageContentType::ChatJoinedByLink:
         td_->contacts_manager_->speculative_add_channel_participants(dialog_id.get_channel_id(), {m->sender_user_id},
+                                                                     m->sender_user_id, m->date,
                                                                      m->sender_user_id == my_user_id);
         break;
       case MessageContentType::ChatDeleteUser:

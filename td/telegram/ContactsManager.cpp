@@ -7490,8 +7490,10 @@ void ContactsManager::on_get_channel_participants_success(
         bot_user_ids = std::move(user_ids);
       }
 
-      cached_channel_participants_[channel_id] = result;
-      update_channel_online_member_count(channel_id, true);
+      if (get_channel_type(channel_id) == ChannelType::Megagroup) {
+        cached_channel_participants_[channel_id] = result;
+        update_channel_online_member_count(channel_id, true);
+      }
     }
     if (filter.is_administrators() || filter.is_recent()) {
       on_update_dialog_administrators(DialogId(channel_id), std::move(administrator_user_ids), true);
@@ -7545,14 +7547,35 @@ bool ContactsManager::speculative_add_count(int32 &count, int32 new_count) {
 }
 
 void ContactsManager::speculative_add_channel_participants(ChannelId channel_id, const vector<UserId> &added_user_ids,
-                                                           bool by_me) {
+                                                           UserId inviter_user_id, int32 date, bool by_me) {
+  auto it = cached_channel_participants_.find(channel_id);
+  bool is_participants_cache_changed = false;
+
   int32 new_participant_count = 0;
-  for (auto &user_id : added_user_ids) {
+  for (auto user_id : added_user_ids) {
     if (!user_id.is_valid()) {
       continue;
     }
 
     new_participant_count++;
+
+    if (it != cached_channel_participants_.end()) {
+      auto &participants = it->second;
+      bool is_found = false;
+      for (auto &participant : participants) {
+        if (participant.user_id == user_id) {
+          is_found = true;
+          break;
+        }
+      }
+      if (!is_found) {
+        is_participants_cache_changed = true;
+        participants.emplace_back(user_id, inviter_user_id, date, DialogParticipantStatus::Member());
+      }
+    }
+  }
+  if (is_participants_cache_changed) {
+    update_channel_online_member_count(channel_id, false);
   }
   if (new_participant_count == 0) {
     return;
@@ -7564,6 +7587,18 @@ void ContactsManager::speculative_add_channel_participants(ChannelId channel_id,
 void ContactsManager::speculative_delete_channel_participant(ChannelId channel_id, UserId deleted_user_id, bool by_me) {
   if (!deleted_user_id.is_valid()) {
     return;
+  }
+
+  auto it = cached_channel_participants_.find(channel_id);
+  if (it != cached_channel_participants_.end()) {
+    auto &participants = it->second;
+    for (size_t i = 0; i < participants.size(); i++) {
+      if (participants[i].user_id == deleted_user_id) {
+        participants.erase(participants.begin() + i);
+        update_channel_online_member_count(channel_id, false);
+        break;
+      }
+    }
   }
 
   speculative_add_channel_participants(channel_id, -1, by_me);
@@ -7593,16 +7628,17 @@ void ContactsManager::speculative_add_channel_participants(ChannelId channel_id,
   update_channel_full(channel_full, channel_id);
 }
 
-void ContactsManager::speculative_add_channel_user(ChannelId channel_id, UserId user_id, DialogParticipantStatus status,
+void ContactsManager::speculative_add_channel_user(ChannelId channel_id, UserId user_id,
+                                                   DialogParticipantStatus new_status,
                                                    DialogParticipantStatus old_status) {
   auto c = get_channel(channel_id);
   if (c != nullptr && c->participant_count != 0 &&
-      speculative_add_count(c->participant_count, status.is_member() - old_status.is_member())) {
+      speculative_add_count(c->participant_count, new_status.is_member() - old_status.is_member())) {
     c->need_send_update = true;
     update_channel(c, channel_id);
   }
 
-  if (status.is_administrator() != old_status.is_administrator()) {
+  if (new_status.is_administrator() != old_status.is_administrator()) {
     DialogId dialog_id(channel_id);
     auto administrators_it = dialog_administrators_.find(dialog_id);
     if (administrators_it != dialog_administrators_.end()) {
@@ -7610,7 +7646,7 @@ void ContactsManager::speculative_add_channel_user(ChannelId channel_id, UserId 
       auto it = std::find(user_ids.begin(), user_ids.end(), user_id);
       bool is_found = it != user_ids.end();
 
-      if (status.is_administrator() != is_found) {
+      if (new_status.is_administrator() != is_found) {
         if (is_found) {
           user_ids.erase(it);
         } else {
@@ -7621,19 +7657,41 @@ void ContactsManager::speculative_add_channel_user(ChannelId channel_id, UserId 
     }
   }
 
+  auto it = cached_channel_participants_.find(channel_id);
+  if (it != cached_channel_participants_.end()) {
+    auto &participants = it->second;
+    bool is_found = false;
+    for (size_t i = 0; i < participants.size(); i++) {
+      if (participants[i].user_id == user_id) {
+        if (!new_status.is_member()) {
+          participants.erase(participants.begin() + i);
+          update_channel_online_member_count(channel_id, false);
+        } else {
+          participants[i].status = new_status;
+        }
+        is_found = true;
+        break;
+      }
+    }
+    if (!is_found && new_status.is_member()) {
+      participants.emplace_back(user_id, get_my_id(), G()->unix_time(), new_status);
+      update_channel_online_member_count(channel_id, false);
+    }
+  }
+
   auto channel_full = get_channel_full(channel_id);
   if (channel_full == nullptr) {
     return;
   }
 
   channel_full->is_changed |=
-      speculative_add_count(channel_full->participant_count, status.is_member() - old_status.is_member());
+      speculative_add_count(channel_full->participant_count, new_status.is_member() - old_status.is_member());
   channel_full->is_changed |= speculative_add_count(channel_full->administrator_count,
-                                                    status.is_administrator() - old_status.is_administrator());
+                                                    new_status.is_administrator() - old_status.is_administrator());
   channel_full->is_changed |=
-      speculative_add_count(channel_full->restricted_count, status.is_restricted() - old_status.is_restricted());
+      speculative_add_count(channel_full->restricted_count, new_status.is_restricted() - old_status.is_restricted());
   channel_full->is_changed |=
-      speculative_add_count(channel_full->banned_count, status.is_banned() - old_status.is_banned());
+      speculative_add_count(channel_full->banned_count, new_status.is_banned() - old_status.is_banned());
 
   update_channel_full(channel_full, channel_id);
 }
