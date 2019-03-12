@@ -7454,19 +7454,7 @@ void ContactsManager::on_get_channel_participants_success(
   }
   it->second.first = total_count;
 
-  if (filter.is_recent() && total_count != 0 && total_count < 10000) {
-    auto channel_full = get_channel_full(channel_id);
-    if (channel_full != nullptr && channel_full->participant_count != total_count) {
-      channel_full->participant_count = total_count;
-      channel_full->is_changed = true;
-    }
-    auto c = get_channel(channel_id);
-    if (c != nullptr && c->participant_count != total_count) {
-      c->participant_count = total_count;
-      c->need_send_update = true;
-      update_channel(c, channel_id);
-    }
-  }
+  auto participant_count = filter.is_recent() && total_count != 0 && total_count < 10000 ? total_count : -1;
   int32 administrator_count = filter.is_administrators() ? total_count : -1;
   if (offset == 0 && static_cast<int32>(participants.size()) < limit &&
       (filter.is_administrators() || filter.is_bots())) {
@@ -7478,12 +7466,29 @@ void ContactsManager::on_get_channel_participants_success(
       td_->messages_manager_->on_dialog_bots_updated(DialogId(channel_id), std::move(user_ids));
     }
   }
-  auto channel_full = get_channel_full(channel_id);
-  if (channel_full != nullptr && channel_full->administrator_count != administrator_count) {
-    channel_full->administrator_count = administrator_count;
-    channel_full->is_changed = true;
+
+  if (participant_count != -1 || administrator_count != -1) {
+    auto channel_full = get_channel_full(channel_id);
+    if (channel_full != nullptr) {
+      if (participant_count != -1 && channel_full->participant_count != participant_count) {
+        channel_full->participant_count = participant_count;
+        channel_full->is_changed = true;
+      }
+      if (administrator_count != -1 && channel_full->administrator_count != administrator_count) {
+        channel_full->administrator_count = administrator_count;
+        channel_full->is_changed = true;
+      }
+      update_channel_full(channel_full, channel_id);
+    }
+    if (participant_count != -1) {
+      auto c = get_channel(channel_id);
+      if (c != nullptr && c->participant_count != participant_count) {
+        c->participant_count = participant_count;
+        c->need_send_update = true;
+        update_channel(c, channel_id);
+      }
+    }
   }
-  update_channel_full(channel_full, channel_id);
 }
 
 void ContactsManager::on_get_channel_participants_fail(ChannelId channel_id, ChannelParticipantsFilter filter,
