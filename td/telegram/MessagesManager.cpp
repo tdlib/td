@@ -8625,6 +8625,7 @@ void MessagesManager::on_update_dialog_online_member_count_timeout(DialogId dial
     return;
   }
   if (dialog_id.get_type() == DialogType::Chat) {
+    // we need actual online status state, so we need to reget chat participants
     td_->contacts_manager_->repair_chat_participants(dialog_id.get_chat_id());
     return;
   }
@@ -12944,7 +12945,8 @@ void MessagesManager::read_message_contents_on_server(DialogId dialog_id, vector
 }
 
 void MessagesManager::open_dialog(Dialog *d) {
-  if (d->is_opened || !have_input_peer(d->dialog_id, AccessRights::Read)) {
+  DialogId dialog_id = d->dialog_id;
+  if (d->is_opened || !have_input_peer(dialog_id, AccessRights::Read)) {
     return;
   }
   d->is_opened = true;
@@ -12957,26 +12959,36 @@ void MessagesManager::open_dialog(Dialog *d) {
       m = m->right.get();
     }
     if (m->message_id.get() < min_message_id) {
-      read_history_inbox(d->dialog_id, m->message_id, -1, "open_dialog");
+      read_history_inbox(dialog_id, m->message_id, -1, "open_dialog");
     }
   }
 
-  LOG(INFO) << "Cancel unload timeout for " << d->dialog_id;
-  pending_unload_dialog_timeout_.cancel_timeout(d->dialog_id.get());
+  LOG(INFO) << "Cancel unload timeout for " << dialog_id;
+  pending_unload_dialog_timeout_.cancel_timeout(dialog_id.get());
 
   if (d->new_secret_chat_notification_id.is_valid()) {
     remove_new_secret_chat_notification(d, true);
   }
 
-  get_dialog_pinned_message(d->dialog_id, Auto());
+  get_dialog_pinned_message(dialog_id, Auto());
 
-  switch (d->dialog_id.get_type()) {
+  switch (dialog_id.get_type()) {
     case DialogType::User:
       break;
     case DialogType::Chat:
+      td_->contacts_manager_->repair_chat_participants(dialog_id.get_chat_id());
       break;
     case DialogType::Channel:
-      get_channel_difference(d->dialog_id, d->pts, true, "open_dialog");
+      if (!is_broadcast_channel(dialog_id)) {
+        auto participant_count = td_->contacts_manager_->get_channel_participant_count(dialog_id.get_channel_id());
+        if (1 <= participant_count && participant_count < 195) {
+          td_->contacts_manager_->send_get_channel_participants_query(
+              dialog_id.get_channel_id(),
+              ChannelParticipantsFilter(td_api::make_object<td_api::supergroupMembersFilterRecent>()), 0, 200, 0,
+              Auto());
+        }
+      }
+      get_channel_difference(dialog_id, d->pts, true, "open_dialog");
       break;
     case DialogType::SecretChat:
       break;
@@ -12986,13 +12998,13 @@ void MessagesManager::open_dialog(Dialog *d) {
   }
 
   if (!td_->auth_manager_->is_bot()) {
-    auto online_count_it = dialog_online_member_counts_.find(d->dialog_id);
+    auto online_count_it = dialog_online_member_counts_.find(dialog_id);
     if (online_count_it != dialog_online_member_counts_.end()) {
       auto &info = online_count_it->second;
       CHECK(!info.is_update_sent);
       if (Time::now() - info.updated_time < ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME) {
         info.is_update_sent = true;
-        send_update_chat_online_member_count(d->dialog_id, info.online_member_count);
+        send_update_chat_online_member_count(dialog_id, info.online_member_count);
       }
     }
   }
@@ -13004,41 +13016,42 @@ void MessagesManager::close_dialog(Dialog *d) {
   }
   d->is_opened = false;
 
-  if (have_input_peer(d->dialog_id, AccessRights::Write)) {
-    if (pending_draft_message_timeout_.has_timeout(d->dialog_id.get())) {
-      pending_draft_message_timeout_.set_timeout_in(d->dialog_id.get(), 0.0);
+  auto dialog_id = d->dialog_id;
+  if (have_input_peer(dialog_id, AccessRights::Write)) {
+    if (pending_draft_message_timeout_.has_timeout(dialog_id.get())) {
+      pending_draft_message_timeout_.set_timeout_in(dialog_id.get(), 0.0);
     }
   } else {
-    pending_draft_message_timeout_.cancel_timeout(d->dialog_id.get());
+    pending_draft_message_timeout_.cancel_timeout(dialog_id.get());
   }
 
-  if (have_input_peer(d->dialog_id, AccessRights::Read)) {
-    if (pending_message_views_timeout_.has_timeout(d->dialog_id.get())) {
-      pending_message_views_timeout_.set_timeout_in(d->dialog_id.get(), 0.0);
+  if (have_input_peer(dialog_id, AccessRights::Read)) {
+    if (pending_message_views_timeout_.has_timeout(dialog_id.get())) {
+      pending_message_views_timeout_.set_timeout_in(dialog_id.get(), 0.0);
     }
-    if (pending_read_history_timeout_.has_timeout(d->dialog_id.get())) {
-      pending_read_history_timeout_.set_timeout_in(d->dialog_id.get(), 0.0);
+    if (pending_read_history_timeout_.has_timeout(dialog_id.get())) {
+      pending_read_history_timeout_.set_timeout_in(dialog_id.get(), 0.0);
     }
   } else {
-    pending_message_views_timeout_.cancel_timeout(d->dialog_id.get());
+    pending_message_views_timeout_.cancel_timeout(dialog_id.get());
     d->pending_viewed_message_ids.clear();
     d->increment_view_counter = false;
 
-    pending_read_history_timeout_.cancel_timeout(d->dialog_id.get());
+    pending_read_history_timeout_.cancel_timeout(dialog_id.get());
   }
 
   if (is_message_unload_enabled()) {
-    LOG(INFO) << "Schedule unload of " << d->dialog_id;
-    pending_unload_dialog_timeout_.set_timeout_in(d->dialog_id.get(), get_unload_dialog_delay());
+    LOG(INFO) << "Schedule unload of " << dialog_id;
+    pending_unload_dialog_timeout_.set_timeout_in(dialog_id.get(), get_unload_dialog_delay());
   }
 
-  switch (d->dialog_id.get_type()) {
+  switch (dialog_id.get_type()) {
     case DialogType::User:
       break;
     case DialogType::Chat:
       break;
     case DialogType::Channel:
-      channel_get_difference_timeout_.cancel_timeout(d->dialog_id.get());
+      channel_get_difference_timeout_.cancel_timeout(dialog_id.get());
       break;
     case DialogType::SecretChat:
       break;
@@ -13048,13 +13061,12 @@ void MessagesManager::close_dialog(Dialog *d) {
   }
 
   if (!td_->auth_manager_->is_bot()) {
-    auto online_count_it = dialog_online_member_counts_.find(d->dialog_id);
+    auto online_count_it = dialog_online_member_counts_.find(dialog_id);
     if (online_count_it != dialog_online_member_counts_.end()) {
       auto &info = online_count_it->second;
       info.is_update_sent = false;
     }
-    update_dialog_online_member_count_timeout_.set_timeout_in(d->dialog_id.get(),
-                                                              ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME);
+    update_dialog_online_member_count_timeout_.set_timeout_in(dialog_id.get(), ONLINE_MEMBER_COUNT_CACHE_EXPIRE_TIME);
   }
 }
 

@@ -3159,6 +3159,7 @@ void ContactsManager::set_my_online_status(bool is_online, bool send_update, boo
       if (new_online != my_was_online_local_) {
         my_was_online_local_ = new_online;
         u->is_status_changed = true;
+        u->is_online_status_changed = true;
       }
     } else {
       if (my_was_online_local_ != 0 || new_online != u->was_online) {
@@ -3166,6 +3167,7 @@ void ContactsManager::set_my_online_status(bool is_online, bool send_update, boo
         my_was_online_local_ = 0;
         u->was_online = new_online;
         u->is_status_changed = true;
+        u->is_online_status_changed = true;
       }
     }
 
@@ -6993,7 +6995,10 @@ void ContactsManager::on_update_user_online(User *u, UserId user_id, tl_object_p
     u->is_status_changed = true;
 
     if (user_id == get_my_id()) {
-      my_was_online_local_ = 0;
+      if (my_was_online_local_ != 0 || was_online != is_online) {
+        my_was_online_local_ = 0;
+        u->is_online_status_changed = true;
+      }
       if (is_offline) {
         td_->on_online_updated(false, false);
       }
@@ -7160,8 +7165,11 @@ void ContactsManager::update_user_online_member_count(User *u) {
         update_chat_online_member_count(chat_full, chat_id, false);
         break;
       }
-      case DialogType::Channel:
+      case DialogType::Channel: {
+        auto channel_id = dialog_id.get_channel_id();
+        update_channel_online_member_count(channel_id, false);
         break;
+      }
       case DialogType::User:
       case DialogType::SecretChat:
       case DialogType::None:
@@ -7495,7 +7503,7 @@ void ContactsManager::on_get_channel_participants_success(
         bot_user_ids = std::move(user_ids);
       }
 
-      if (get_channel_type(channel_id) == ChannelType::Megagroup) {
+      if (get_channel_type(channel_id) == ChannelType::Megagroup && !td_->auth_manager_->is_bot()) {
         cached_channel_participants_[channel_id] = result;
         update_channel_online_member_count(channel_id, true);
       }

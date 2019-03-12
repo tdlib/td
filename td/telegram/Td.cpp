@@ -3350,7 +3350,7 @@ td_api::object_ptr<td_api::Object> Td::static_request(td_api::object_ptr<td_api:
     LOG(ERROR) << "Receive empty static request";
     return td_api::make_object<td_api::error>(400, "Request is empty");
   }
-  
+
   bool need_logging = [&] {
     switch (function->get_id()) {
       case td_api::getTextEntities::ID:
