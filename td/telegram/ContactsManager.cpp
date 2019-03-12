@@ -7479,7 +7479,9 @@ void ContactsManager::on_get_channel_participants_success(
     total_count = static_cast<int32>(result.size());
   }
 
-  auto participant_count = filter.is_recent() && total_count != 0 && total_count < 10000 ? total_count : -1;
+  const auto max_participant_count = get_channel_type(channel_id) == ChannelType::Megagroup ? 9950 : 195;
+  auto participant_count =
+      filter.is_recent() && total_count != 0 && total_count < max_participant_count ? total_count : -1;
   int32 administrator_count = filter.is_administrators() ? total_count : -1;
   if (offset == 0 && static_cast<int32>(participants.size()) < limit &&
       (filter.is_administrators() || filter.is_bots() || filter.is_recent())) {
