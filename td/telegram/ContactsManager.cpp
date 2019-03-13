@@ -7459,7 +7459,6 @@ void ContactsManager::on_get_channel_participants_success(
   LOG(INFO) << "Receive " << participants.size() << " members in " << channel_id;
 
   vector<DialogParticipant> result;
-  CHECK(result.empty());
   for (auto &participant_ptr : participants) {
     result.push_back(get_dialog_participant(channel_id, std::move(participant_ptr)));
     if ((filter.is_bots() && !is_user_bot(result.back().user_id)) ||
@@ -7499,15 +7498,15 @@ void ContactsManager::on_get_channel_participants_success(
           }
         }
         administrator_count = narrow_cast<int32>(administrator_user_ids.size());
+
+        if (get_channel_type(channel_id) == ChannelType::Megagroup && !td_->auth_manager_->is_bot()) {
+          cached_channel_participants_[channel_id] = result;
+          update_channel_online_member_count(channel_id, true);
+        }
       } else if (filter.is_administrators()) {
         administrator_user_ids = std::move(user_ids);
       } else if (filter.is_bots()) {
         bot_user_ids = std::move(user_ids);
-      }
-
-      if (get_channel_type(channel_id) == ChannelType::Megagroup && !td_->auth_manager_->is_bot()) {
-        cached_channel_participants_[channel_id] = result;
-        update_channel_online_member_count(channel_id, true);
       }
     }
     if (filter.is_administrators() || filter.is_recent()) {

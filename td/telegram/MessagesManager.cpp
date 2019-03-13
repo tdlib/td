@@ -8585,8 +8585,9 @@ void MessagesManager::set_dialog_online_member_count(DialogId dialog_id, int32 o
     return;
   }
 
-  LOG(INFO) << "Set online member count to " << online_member_count << " in " << dialog_id << " from " << source;
   auto &info = dialog_online_member_counts_[dialog_id];
+  LOG(INFO) << "Change online member count from " << info.online_member_count << " to " << online_member_count << " in "
+            << dialog_id << " from " << source;
   bool need_update = d->is_opened && (!info.is_update_sent || info.online_member_count != online_member_count);
   info.online_member_count = online_member_count;
   info.updated_time = Time::now();
@@ -12981,7 +12982,7 @@ void MessagesManager::open_dialog(Dialog *d) {
     case DialogType::Channel:
       if (!is_broadcast_channel(dialog_id)) {
         auto participant_count = td_->contacts_manager_->get_channel_participant_count(dialog_id.get_channel_id());
-        if (1 <= participant_count && participant_count < 195) {
+        if (participant_count < 195) {  // include unknown participant_count
           td_->contacts_manager_->send_get_channel_participants_query(
               dialog_id.get_channel_id(),
               ChannelParticipantsFilter(td_api::make_object<td_api::supergroupMembersFilterRecent>()), 0, 200, 0,
