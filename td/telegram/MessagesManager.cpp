@@ -10801,7 +10801,8 @@ void MessagesManager::remove_new_secret_chat_notification(Dialog *d, bool is_per
   CHECK(d != nullptr);
   auto notification_id = d->new_secret_chat_notification_id;
   CHECK(notification_id.is_valid());
-  VLOG(notifications) << "Remove " << notification_id << " about new secret " << d->dialog_id;
+  VLOG(notifications) << "Remove " << notification_id << " about new secret " << d->dialog_id << " from "
+                      << d->message_notification_group.group_id;
   d->new_secret_chat_notification_id = NotificationId();
   bool is_fixed = set_dialog_last_notification(d->dialog_id, d->message_notification_group, 0, NotificationId(),
                                                "remove_new_secret_chat_notification");
@@ -22959,31 +22960,32 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
           new_notification_settings.is_secret_chat_show_preview_fixed = true;
           update_dialog_notification_settings(dialog_id, &d->notification_settings, new_notification_settings);
         }
-      } else {
-        LOG(ERROR) << "Found previously created secret " << d->dialog_id << ", when creating it from " << source;
-      }
 
-      if (G()->parameters().use_message_db && !td_->auth_manager_->is_bot() &&
-          !td_->contacts_manager_->get_secret_chat_is_outbound(secret_chat_id)) {
-        auto notification_group_id = get_dialog_notification_group_id(dialog_id, d->message_notification_group);
-        if (notification_group_id.is_valid()) {
-          if (d->new_secret_chat_notification_id.is_valid()) {
-            LOG(ERROR) << "Found previously created " << d->new_secret_chat_notification_id << " in " << d->dialog_id
-                       << ", when creating it from " << source;
-          } else {
-            d->new_secret_chat_notification_id = get_next_notification_id(d, notification_group_id, MessageId());
+        if (G()->parameters().use_message_db && !td_->auth_manager_->is_bot() &&
+            !td_->contacts_manager_->get_secret_chat_is_outbound(secret_chat_id)) {
+          auto notification_group_id = get_dialog_notification_group_id(dialog_id, d->message_notification_group);
+          if (notification_group_id.is_valid()) {
             if (d->new_secret_chat_notification_id.is_valid()) {
-              auto date = td_->contacts_manager_->get_secret_chat_date(secret_chat_id);
-              bool is_changed = set_dialog_last_notification(dialog_id, d->message_notification_group, date,
-                                                             d->new_secret_chat_notification_id, "add_new_secret_chat");
-              CHECK(is_changed);
-              VLOG(notifications) << "Create " << d->new_secret_chat_notification_id << " with " << secret_chat_id;
-              send_closure_later(G()->notification_manager(), &NotificationManager::add_notification,
-                                 notification_group_id, NotificationGroupType::SecretChat, dialog_id, date, dialog_id,
-                                 false, 0, d->new_secret_chat_notification_id, create_new_secret_chat_notification());
+              LOG(ERROR) << "Found previously created " << d->new_secret_chat_notification_id << " in " << d->dialog_id
+                         << ", when creating it from " << source;
+            } else {
+              d->new_secret_chat_notification_id = get_next_notification_id(d, notification_group_id, MessageId());
+              if (d->new_secret_chat_notification_id.is_valid()) {
+                auto date = td_->contacts_manager_->get_secret_chat_date(secret_chat_id);
+                bool is_changed =
+                    set_dialog_last_notification(dialog_id, d->message_notification_group, date,
+                                                 d->new_secret_chat_notification_id, "add_new_secret_chat");
+                CHECK(is_changed);
+                VLOG(notifications) << "Create " << d->new_secret_chat_notification_id << " with " << secret_chat_id;
+                send_closure_later(G()->notification_manager(), &NotificationManager::add_notification,
+                                   notification_group_id, NotificationGroupType::SecretChat, dialog_id, date, dialog_id,
+                                   false, 0, d->new_secret_chat_notification_id, create_new_secret_chat_notification());
+              }
             }
           }
         }
+      } else {
+        LOG(ERROR) << "Found previously created secret " << d->dialog_id << ", when creating it from " << source;
       }
     }
     if (!have_input_peer(dialog_id, AccessRights::Read)) {
@@ -23329,6 +23331,16 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
   LOG(INFO) << "Loaded " << dialog_id << " with last new " << d->last_new_message_id << ", first database "
             << d->first_database_message_id << ", last database " << d->last_database_message_id << ", last "
             << d->last_message_id << " with order " << d->order << " and pinned order " << d->pinned_order;
+  VLOG(notifications) << "Have " << dialog_id << " with message " << d->message_notification_group.group_id
+                      << " with last " << d->message_notification_group.last_notification_id << " sent at "
+                      << d->message_notification_group.last_notification_date << ", max removed "
+                      << d->message_notification_group.max_removed_notification_id << " and new secret chat "
+                      << d->new_secret_chat_notification_id;
+  VLOG(notifications) << "Have " << dialog_id << " with mention " << d->mention_notification_group.group_id
+                      << " with last " << d->mention_notification_group.last_notification_id << " sent at "
+                      << d->mention_notification_group.last_notification_date << " and max removed "
+                      << d->mention_notification_group.max_removed_notification_id << " and pinned message "
+                      << d->pinned_message_notification_message_id;
 }
 
 void MessagesManager::add_dialog_last_database_message(Dialog *d, unique_ptr<Message> &&last_database_message) {
