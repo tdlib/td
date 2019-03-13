@@ -988,12 +988,18 @@ Status SessionConnection::do_flush() {
   TRY_STATUS(raw_connection_->flush(auth_data_->get_auth_key(), *this));
 
   if (last_pong_at_ + ping_disconnect_delay() < Time::now_cached()) {
-    raw_connection_->stats_callback()->on_error();
+    auto stats_callback = raw_connection_->stats_callback();
+    if (stats_callback != nullptr) {
+      stats_callback->on_error();
+    }
     return Status::Error(PSLICE() << "Ping timeout of " << ping_disconnect_delay() << " seconds expired");
   }
 
   if (last_read_at_ + read_disconnect_delay() < Time::now_cached()) {
-    raw_connection_->stats_callback()->on_error();
+    auto stats_callback = raw_connection_->stats_callback();
+    if (stats_callback != nullptr) {
+      stats_callback->on_error();
+    }
     return Status::Error(PSLICE() << "Read timeout of " << read_disconnect_delay() << " seconds expired");
   }
 
