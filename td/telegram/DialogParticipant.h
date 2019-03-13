@@ -276,11 +276,11 @@ class ChannelParticipantsFilter {
   }
 
   bool is_restricted() const {
-    return type == Type::Search;
+    return type == Type::Restricted;
   }
 
   bool is_banned() const {
-    return type == Type::Search;
+    return type == Type::Banned;
   }
 };
 
