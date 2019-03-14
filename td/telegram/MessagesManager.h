@@ -1616,7 +1616,7 @@ class MessagesManager : public Actor {
 
   void flush_pending_new_message_notifications(DialogId dialog_id, bool from_mentions, DialogId settings_dialog_id);
 
-  void remove_all_dialog_notifications(DialogId dialog_id, NotificationGroupInfo &group_info, const char *source);
+  void remove_all_dialog_notifications(Dialog *d, NotificationGroupInfo &group_info, const char *source);
 
   void remove_all_dialog_notifications(Dialog *d, MessageId max_message_id, NotificationGroupInfo &group_info,
                                        const char *source);
