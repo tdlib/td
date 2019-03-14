@@ -3449,6 +3449,18 @@ tl_object_ptr<td_api::users> ContactsManager::get_blocked_users_object(int64 ran
   return result;
 }
 
+int32 ContactsManager::get_user_was_online(const User *u, UserId user_id) const {
+  if (u == nullptr || u->is_deleted) {
+    return 0;
+  }
+
+  int32 was_online = u->was_online;
+  if (user_id == get_my_id() && my_was_online_local_ != 0) {
+    was_online = my_was_online_local_;
+  }
+  return was_online;
+}
+
 void ContactsManager::load_contacts(Promise<Unit> &&promise) {
   if (td_->auth_manager_->is_bot()) {
     are_contacts_loaded_ = true;
@@ -6175,7 +6187,7 @@ void ContactsManager::update_user(User *u, UserId user_id, bool from_binlog, boo
     }
   }
   if (u->is_status_changed && user_id != get_my_id()) {
-    auto left_time = u->was_online - G()->server_time_cached();
+    auto left_time = get_user_was_online(u, user_id) - G()->server_time_cached();
     if (left_time >= 0 && left_time < 30 * 86400) {
       left_time += 2.0;  // to guarantee expiration
       LOG(DEBUG) << "Set online timeout for " << user_id << " in " << left_time;
@@ -6989,20 +7001,20 @@ void ContactsManager::on_update_user_online(User *u, UserId user_id, tl_object_p
 
   if (new_online != u->was_online) {
     LOG(DEBUG) << "Update " << user_id << " online from " << u->was_online << " to " << new_online;
-    bool was_online = u->was_online > G()->unix_time_cached();
-    bool is_online = new_online > G()->unix_time_cached();
+    bool old_is_online = u->was_online > G()->unix_time_cached();
+    bool new_is_online = new_online > G()->unix_time_cached();
     u->was_online = new_online;
     u->is_status_changed = true;
 
     if (user_id == get_my_id()) {
-      if (my_was_online_local_ != 0 || was_online != is_online) {
+      if (my_was_online_local_ != 0 || old_is_online != new_is_online) {
         my_was_online_local_ = 0;
         u->is_online_status_changed = true;
       }
       if (is_offline) {
         td_->on_online_updated(false, false);
       }
-    } else if (was_online != is_online) {
+    } else if (old_is_online != new_is_online) {
       u->is_online_status_changed = true;
     }
   }
@@ -7212,11 +7224,7 @@ void ContactsManager::update_dialog_online_member_count(const vector<DialogParti
   for (const auto &participant : participants) {
     auto u = get_user(participant.user_id);
     if (u != nullptr && !u->is_deleted && !u->is_bot) {
-      int32 was_online = u->was_online;
-      if (participant.user_id == get_my_id() && my_was_online_local_ != 0) {
-        was_online = my_was_online_local_;
-      }
-      if (was_online > time) {
+      if (get_user_was_online(u, participant.user_id) > time) {
         online_member_count++;
       }
       if (is_from_server) {
@@ -9306,11 +9314,7 @@ std::pair<int32, vector<UserId>> ContactsManager::search_among_users(const vecto
       continue;
     }
     hints.add(user_id.get(), u->first_name + " " + u->last_name + " " + u->username);
-    auto was_online = u->was_online;
-    if (user_id == my_user_id && my_was_online_local_ != 0) {
-      was_online = my_was_online_local_;
-    }
-    hints.set_rating(user_id.get(), -was_online);
+    hints.set_rating(user_id.get(), -get_user_was_online(u, user_id));
   }
 
   auto result = hints.search(query, limit, true);
@@ -10018,10 +10022,7 @@ tl_object_ptr<td_api::UserStatus> ContactsManager::get_user_status_object(UserId
     return make_tl_object<td_api::userStatusOnline>(std::numeric_limits<int32>::max());
   }
 
-  int32 was_online = u->was_online;
-  if (user_id == get_my_id() && my_was_online_local_ != 0) {
-    was_online = my_was_online_local_;
-  }
+  int32 was_online = get_user_was_online(u, user_id);
   switch (was_online) {
     case -3:
       return make_tl_object<td_api::userStatusLastMonth>();
