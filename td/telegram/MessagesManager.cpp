@@ -3544,6 +3544,7 @@ void MessagesManager::Message::store(StorerT &storer) const {
     BEGIN_STORE_FLAGS();
     STORE_FLAG(has_notification_id);
     STORE_FLAG(is_mention_notification_disabled);
+    STORE_FLAG(had_forward_info);
     END_STORE_FLAGS();
   }
 
@@ -3669,6 +3670,7 @@ void MessagesManager::Message::parse(ParserT &parser) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(has_notification_id);
     PARSE_FLAG(is_mention_notification_disabled);
+    PARSE_FLAG(had_forward_info);
     END_PARSE_FLAGS();
   }
 
@@ -5391,7 +5393,7 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, UserId user_id,
 
 void MessagesManager::cancel_user_dialog_action(DialogId dialog_id, const Message *m) {
   CHECK(m != nullptr);
-  if (m->forward_info != nullptr || m->via_bot_user_id.is_valid() || m->is_channel_post) {
+  if (m->forward_info != nullptr || m->had_forward_info || m->via_bot_user_id.is_valid() || m->is_channel_post) {
     return;
   }
 
@@ -5646,7 +5648,7 @@ void MessagesManager::on_message_edited(FullMessageId full_message_id) {
   if (td_->auth_manager_->is_bot()) {
     send_update_message_edited(dialog_id, m);
   } else {
-    if (m->forward_info == nullptr && (m->is_outgoing || dialog_id == get_my_dialog_id())) {
+    if (m->forward_info == nullptr && !m->had_forward_info && (m->is_outgoing || dialog_id == get_my_dialog_id())) {
       update_used_hashtags(dialog_id, m);
     }
   }
@@ -9773,6 +9775,8 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     views = 0;
   }
 
+  bool has_forward_info = message_info.forward_header != nullptr;
+
   LOG(INFO) << "Receive " << message_id << " in " << dialog_id << " from " << sender_user_id;
 
   auto message = make_unique<Message>();
@@ -9822,6 +9826,10 @@ std::pair<DialogId, unique_ptr<MessagesManager::Message>> MessagesManager::creat
     } else {
       message->media_album_id = message_info.media_album_id;
     }
+  }
+
+  if (message->forward_info == nullptr && has_forward_info) {
+    message->had_forward_info = true;
   }
 
   return {dialog_id, std::move(message)};
@@ -16424,7 +16432,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
   if (m->message_id.is_local()) {
     return false;
   }
-  if (m->forward_info != nullptr) {
+  if (m->forward_info != nullptr || m->had_forward_info) {
     return false;
   }
 
@@ -20467,7 +20475,7 @@ void MessagesManager::on_send_dialog_action_timeout(DialogId dialog_id) {
   if (m == nullptr) {
     return;
   }
-  if (m->forward_info != nullptr) {
+  if (m->forward_info != nullptr || m->had_forward_info) {
     return;
   }
 
@@ -22150,7 +22158,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     auto pinned_message_id = get_message_content_pinned_message_id(m->content.get());
     on_update_dialog_pinned_message_id(dialog_id, pinned_message_id);
   }
-  if (!td_->auth_manager_->is_bot() && from_update && m->forward_info == nullptr &&
+  if (!td_->auth_manager_->is_bot() && from_update && m->forward_info == nullptr && !m->had_forward_info &&
       (m->is_outgoing || dialog_id == my_dialog_id)) {
     if (dialog_id.get_type() != DialogType::SecretChat && !message_id.is_local()) {
       on_sent_message_content(td_, m->content.get());
@@ -22159,7 +22167,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
   }
   if (!td_->auth_manager_->is_bot() && from_update && message_id.is_server() &&
       (m->is_outgoing || dialog_id == my_dialog_id) && dialog_id.get_type() != DialogType::SecretChat) {
-    if (m->via_bot_user_id.is_valid() && m->forward_info == nullptr) {
+    if (m->via_bot_user_id.is_valid() && m->forward_info == nullptr && !m->had_forward_info) {
       // forwarded game messages can't be distinguished from sent via bot game messages, so increase rating anyway
       send_closure(G()->top_dialog_manager(), &TopDialogManager::on_dialog_used, TopDialogCategory::BotInline,
                    DialogId(m->via_bot_user_id), m->date);
@@ -22612,6 +22620,10 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
       is_changed = true;
     }
   }
+  if (old_message->had_forward_info != new_message->had_forward_info) {
+    old_message->had_forward_info = new_message->had_forward_info;
+    is_changed = true;
+  }
   if (old_message->notification_id != new_message->notification_id) {
     if (old_message->notification_id.is_valid()) {
       if (new_message->notification_id.is_valid()) {
@@ -22771,7 +22783,8 @@ bool MessagesManager::need_message_changed_warning(const Message *old_message) {
     // message was edited
     return false;
   }
-  if (old_message->message_id.is_yet_unsent() && old_message->forward_info != nullptr) {
+  if (old_message->message_id.is_yet_unsent() &&
+      (old_message->forward_info != nullptr || old_message->had_forward_info)) {
     // original message may be edited
     return false;
   }
