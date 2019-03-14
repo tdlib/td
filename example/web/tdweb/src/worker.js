@@ -651,6 +651,7 @@ class TdClient {
     try {
       var arr = this.FS.readFile(file.local.path);
       if (arr) {
+        file = Object.create(file);
         file.arr = arr;
         this.doSaveFile(pid, file, arr);
       }
