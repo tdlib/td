@@ -25504,6 +25504,14 @@ void MessagesManager::get_current_state(vector<td_api::object_ptr<td_api::Update
           dialog_date <= last_dialog_date_ ? d->order : 0));
     }
     updates.push_back(std::move(update));
+
+    if (d->is_opened) {
+      auto info_it = dialog_online_member_counts_.find(d->dialog_id);
+      if (info_it != dialog_online_member_counts_.end() && info_it->second.is_update_sent) {
+        updates.push_back(td_api::make_object<td_api::updateChatOnlineMemberCount>(
+            d->dialog_id.get(), info_it->second.online_member_count));
+      }
+    }
   }
   append(updates, std::move(last_message_updates));
 }
