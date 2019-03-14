@@ -4332,6 +4332,8 @@ void Td::send_update(tl_object_ptr<td_api::Update> &&object) {
     case td_api::updateChatReadInbox::ID * 2:
     case td_api::updateUnreadMessageCount::ID * 2:
     case td_api::updateUnreadChatCount::ID * 2:
+    case td_api::updateChatOnlineMemberCount::ID * 2:
+    case td_api::updateUserChatAction::ID * 2:
       LOG(ERROR) << "Sending update: " << oneline(to_string(object));
       break;
     default:

@@ -153,6 +153,7 @@ class ContactsManager : public Actor {
   void on_update_user_phone_number(UserId user_id, string &&phone_number);
   void on_update_user_photo(UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo_ptr);
   void on_update_user_online(UserId user_id, tl_object_ptr<telegram_api::UserStatus> &&status);
+  void on_update_user_local_was_online(UserId user_id, int32 local_was_online);
   void on_update_user_links(UserId user_id, tl_object_ptr<telegram_api::ContactLink> &&outbound,
                             tl_object_ptr<telegram_api::ContactLink> &&inbound);
   void on_update_user_blocked(UserId user_id, bool is_blocked);
@@ -468,6 +469,7 @@ class ContactsManager : public Actor {
     int32 bot_info_version = -1;
 
     int32 was_online = 0;
+    int32 local_was_online = 0;
 
     string language_code;
 
@@ -860,6 +862,7 @@ class ContactsManager : public Actor {
   void on_update_user_phone_number(User *u, UserId user_id, string &&phone_number);
   void on_update_user_photo(User *u, UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo);
   void on_update_user_online(User *u, UserId user_id, tl_object_ptr<telegram_api::UserStatus> &&status);
+  void on_update_user_local_was_online(User *u, UserId user_id, int32 local_was_online);
   void on_update_user_links(User *u, UserId user_id, LinkState outbound, LinkState inbound);
 
   void do_update_user_photo(User *u, UserId user_id, tl_object_ptr<telegram_api::UserProfilePhoto> &&photo);

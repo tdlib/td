@@ -5307,10 +5307,14 @@ bool MessagesManager::need_cancel_user_dialog_action(int32 action_id, MessageCon
 }
 
 void MessagesManager::on_user_dialog_action(DialogId dialog_id, UserId user_id,
-                                            tl_object_ptr<td_api::ChatAction> &&action,
+                                            tl_object_ptr<td_api::ChatAction> &&action, int32 date,
                                             MessageContentType message_content_type) {
   if (td_->auth_manager_->is_bot() || !user_id.is_valid() || is_broadcast_channel(dialog_id)) {
     return;
+  }
+
+  if (action != nullptr || message_content_type != MessageContentType::None) {
+    td_->contacts_manager_->on_update_user_local_was_online(user_id, date);
   }
 
   bool is_canceled = action == nullptr || action->get_id() == td_api::chatActionCancel::ID;
@@ -5397,7 +5401,7 @@ void MessagesManager::cancel_user_dialog_action(DialogId dialog_id, const Messag
     return;
   }
 
-  on_user_dialog_action(dialog_id, m->sender_user_id, nullptr, m->content->get_type());
+  on_user_dialog_action(dialog_id, m->sender_user_id, nullptr, m->date, m->content->get_type());
 }
 
 void MessagesManager::add_pending_channel_update(DialogId dialog_id, tl_object_ptr<telegram_api::Update> &&update,
@@ -20540,7 +20544,7 @@ void MessagesManager::on_active_dialog_action_timeout(DialogId dialog_id) {
 
   auto now = Time::now();
   while (actions_it->second[0].start_time + DIALOG_ACTION_TIMEOUT < now + 0.1) {
-    on_user_dialog_action(dialog_id, actions_it->second[0].user_id, nullptr);
+    on_user_dialog_action(dialog_id, actions_it->second[0].user_id, nullptr, 0);
 
     actions_it = active_dialog_actions_.find(dialog_id);
     if (actions_it == active_dialog_actions_.end()) {
@@ -20559,7 +20563,7 @@ void MessagesManager::clear_active_dialog_actions(DialogId dialog_id) {
   auto actions_it = active_dialog_actions_.find(dialog_id);
   while (actions_it != active_dialog_actions_.end()) {
     CHECK(!actions_it->second.empty());
-    on_user_dialog_action(dialog_id, actions_it->second[0].user_id, nullptr);
+    on_user_dialog_action(dialog_id, actions_it->second[0].user_id, nullptr, 0);
     actions_it = active_dialog_actions_.find(dialog_id);
   }
 }

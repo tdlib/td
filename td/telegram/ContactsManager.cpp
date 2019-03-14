@@ -3455,8 +3455,14 @@ int32 ContactsManager::get_user_was_online(const User *u, UserId user_id) const 
   }
 
   int32 was_online = u->was_online;
-  if (user_id == get_my_id() && my_was_online_local_ != 0) {
-    was_online = my_was_online_local_;
+  if (user_id == get_my_id()) {
+    if (my_was_online_local_ != 0) {
+      was_online = my_was_online_local_;
+    }
+  } else {
+    if (u->local_was_online != 0 && u->local_was_online > was_online) {
+      was_online = u->local_was_online;
+    }
   }
   return was_online;
 }
@@ -7005,6 +7011,9 @@ void ContactsManager::on_update_user_online(User *u, UserId user_id, tl_object_p
     bool new_is_online = new_online > G()->unix_time_cached();
     u->was_online = new_online;
     u->is_status_changed = true;
+    if (u->was_online > 0) {
+      u->local_was_online = 0;
+    }
 
     if (user_id == get_my_id()) {
       if (my_was_online_local_ != 0 || old_is_online != new_is_online) {
@@ -7017,6 +7026,49 @@ void ContactsManager::on_update_user_online(User *u, UserId user_id, tl_object_p
     } else if (old_is_online != new_is_online) {
       u->is_online_status_changed = true;
     }
+  }
+}
+
+void ContactsManager::on_update_user_local_was_online(UserId user_id, int32 local_was_online) {
+  CHECK(user_id.is_valid());
+
+  User *u = get_user_force(user_id);
+  if (u == nullptr) {
+    return;
+  }
+
+  on_update_user_local_was_online(u, user_id, local_was_online);
+  update_user(u, user_id);
+}
+
+void ContactsManager::on_update_user_local_was_online(User *u, UserId user_id, int32 local_was_online) {
+  CHECK(u != nullptr);
+  if (u->is_deleted || u->is_bot || user_id == get_my_id()) {
+    return;
+  }
+  if (u->was_online > G()->unix_time_cached()) {
+    // if user is currently online, ignore local online
+    return;
+  }
+
+  if (u->was_online > 0) {
+    // bring users with accessible status online for 1 minute
+    local_was_online += 60;
+  } else {
+    // bring users with inaccessible status online for 5 minutes
+    local_was_online += 5 * 60;
+  }
+  if (local_was_online < G()->unix_time_cached() + 2 || local_was_online <= u->local_was_online) {
+    return;
+  }
+
+  LOG(DEBUG) << "Update " << user_id << " local online from " << u->local_was_online << " to " << local_was_online;
+  bool old_is_online = u->local_was_online > G()->unix_time_cached();
+  u->local_was_online = local_was_online;
+  u->is_status_changed = true;
+
+  if (!old_is_online) {
+    u->is_online_status_changed = true;
   }
 }
 

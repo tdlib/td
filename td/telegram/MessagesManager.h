@@ -309,7 +309,7 @@ class MessagesManager : public Actor {
 
   void on_update_include_sponsored_dialog_to_unread_count();
 
-  void on_user_dialog_action(DialogId dialog_id, UserId user_id, tl_object_ptr<td_api::ChatAction> &&action,
+  void on_user_dialog_action(DialogId dialog_id, UserId user_id, tl_object_ptr<td_api::ChatAction> &&action, int32 date,
                              MessageContentType message_content_type = MessageContentType::None);
 
   void delete_messages(DialogId dialog_id, const vector<MessageId> &message_ids, bool revoke, Promise<Unit> &&promise);
