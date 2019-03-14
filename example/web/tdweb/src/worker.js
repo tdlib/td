@@ -190,17 +190,14 @@ class InboundFileSystem {
     this.pids.delete(pid);
   }
 
-  async persist(pid, path) {
-    var arr;
+  async persist(pid, path, arr) {
     try {
-      arr = this.FS.readFile(path);
       await this.store.setItem(pid, new Blob([arr]));
       this.pids.add(pid);
       this.FS.unlink(path);
     } catch (e) {
       log.error('Failed persist ' + path + ' ', e);
     }
-    return arr;
   }
 }
 
@@ -645,20 +642,30 @@ class TdClient {
     this.callback({ '@type': 'updateFatalError', error: error });
   }
 
-  async saveFile(pid, file) {
+  saveFile(pid, file) {
     let isSaving = this.savingFiles.has(pid);
     this.savingFiles.set(pid, file);
     if (isSaving) {
-      return;
+      return file;
     }
-    let arr = await this.tdfs.inboundFileSystem.persist(pid, file.local.path);
+    try {
+      var arr = this.FS.readFile(file.local.path);
+      if (arr) {
+        file.arr = arr;
+        this.doSaveFile(pid, file, arr);
+      }
+    } catch (e) {
+      log.error('Failed to readFile: ', e);
+    }
+    return file;
+  }
+
+  async doSaveFile(pid, file, arr) {
+    await this.tdfs.inboundFileSystem.persist(pid, file.local.path, arr);
     file = this.savingFiles.get(pid);
     file.idb_key = pid;
-    if (arr) {
-      file.arr = arr;
-    }
-    this.callback({ '@type': 'updateFile', file: file }, [arr.buffer]);
-    delete file.arr;
+    this.callback({ '@type': 'updateFile', file: file });
+
     this.savingFiles.delete(pid);
   }
 
@@ -676,7 +683,7 @@ class TdClient {
     }
 
     if (file.local.is_downloading_completed) {
-      this.saveFile(pid, file);
+      file = this.saveFile(pid, file);
     }
     return file;
   }

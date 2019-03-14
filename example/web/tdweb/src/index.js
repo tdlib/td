@@ -50,9 +50,9 @@ class TdClient {
         'receive from worker: ',
         JSON.parse(
           JSON.stringify(response, (key, value) => {
-            if (key === 'arr') {
-              return undefined;
-            }
+            //if (key === 'arr') {
+              //return undefined;
+            //}
             return value;
           })
         )
