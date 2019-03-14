@@ -237,7 +237,7 @@ int64 CallbackQueriesManager::send_callback_query(FullMessageId full_message_id,
     return 0;
   }
 
-  if (!td_->messages_manager_->have_message(full_message_id)) {
+  if (!td_->messages_manager_->have_message(full_message_id, "send_callback_query")) {
     promise.set_error(Status::Error(5, "Message not found"));
     return 0;
   }

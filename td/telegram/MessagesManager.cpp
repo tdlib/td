@@ -6620,7 +6620,7 @@ void MessagesManager::after_get_difference() {
       // fallthrough
       case DialogType::User:
       case DialogType::Chat:
-        if (!have_message({dialog_id, it.second})) {
+        if (!have_message({dialog_id, it.second}, "after get difference")) {
           // The sent message has already been deleted by the user or sent to inaccessible channel.
           // The sent message may never be received, but we will need updateMessageId in case the message is received
           // to delete it from the server and to not add to the chat.
@@ -11745,8 +11745,8 @@ void MessagesManager::on_get_common_dialogs(UserId user_id, vector<tl_object_ptr
   }
 }
 
-bool MessagesManager::have_message(FullMessageId full_message_id) {
-  return get_message_force(full_message_id, "have_message") != nullptr;
+bool MessagesManager::have_message(FullMessageId full_message_id, const char *source) {
+  return get_message_force(full_message_id, source) != nullptr;
 }
 
 MessagesManager::Message *MessagesManager::get_message(FullMessageId full_message_id) {
@@ -18790,7 +18790,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   MessageId missing_pinned_message_id;
   if (is_pinned) {
     auto message_id = get_message_content_pinned_message_id(m->content.get());
-    if (message_id.is_valid() && !have_message({d->dialog_id, message_id})) {
+    if (message_id.is_valid() && !have_message({d->dialog_id, message_id}, "add_new_message_notification")) {
       missing_pinned_message_id = message_id;
     }
   }
@@ -20809,7 +20809,7 @@ void MessagesManager::pin_dialog_message(DialogId dialog_id, MessageId message_i
   if (is_unpin) {
     CHECK(message_id == MessageId());
   } else {
-    if (!have_message({dialog_id, message_id})) {
+    if (!have_message({dialog_id, message_id}, "pin_dialog_message")) {
       return promise.set_error(Status::Error(6, "Message not found"));
     }
 
@@ -21829,13 +21829,13 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
     get_dialog_notification_group_id(d->dialog_id, get_notification_group_info(d, message.get()));
 
     auto pinned_message_id = get_message_content_pinned_message_id(message->content.get());
-    if (pinned_message_id.is_valid() && have_message({dialog_id, pinned_message_id})) {
+    if (pinned_message_id.is_valid() && have_message({dialog_id, pinned_message_id}, "preload pinned message")) {
       LOG(INFO) << "Preloaded pinned " << pinned_message_id << " from database";
     }
   }
   if (*need_update) {
     if (d->pinned_message_notification_message_id.is_valid() &&
-        have_message({dialog_id, d->pinned_message_notification_message_id})) {
+        have_message({dialog_id, d->pinned_message_notification_message_id}, "preload previously pinned message")) {
       LOG(INFO) << "Preloaded previously pinned " << d->pinned_message_notification_message_id << " from database";
     }
   }
