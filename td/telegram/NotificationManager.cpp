@@ -396,7 +396,8 @@ int32 NotificationManager::load_message_notification_groups_from_database(int32 
   int32 result = 0;
   for (auto &group_key : group_keys) {
     auto group_it = get_group_force(group_key.group_id, send_update);
-    CHECK(group_it != groups_.end());
+    LOG_CHECK(group_it != groups_.end()) << call_notification_group_ids_ << " " << group_key.group_id << " "
+                                         << current_notification_group_id_;
     CHECK(group_it->first.dialog_id.is_valid());
     if (!(last_loaded_notification_group_key_ < group_it->first)) {
       result++;
