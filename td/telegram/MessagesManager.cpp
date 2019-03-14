@@ -11316,7 +11316,7 @@ void MessagesManager::load_dialog_list(int32 limit, Promise<Unit> &&promise) {
       G()->parameters().use_message_db && last_loaded_database_dialog_date_ < last_database_server_dialog_date_;
   if (multipromise.promise_count() != 1) {
     // queries have already been sent, just wait for the result
-    if (use_database) {
+    if (use_database && load_dialog_list_limit_max_ != 0) {
       load_dialog_list_limit_max_ = max(load_dialog_list_limit_max_, limit);
     }
     return;
