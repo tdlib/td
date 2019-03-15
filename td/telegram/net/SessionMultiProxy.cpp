@@ -41,7 +41,9 @@ void SessionMultiProxy::send(NetQueryPtr query) {
     if (query->session_rand()) {
       pos = query->session_rand() % sessions_.size();
     } else {
-      pos = pos_++ % sessions_.size();
+      pos = std::min_element(sessions_.begin(), sessions_.end(),
+                             [](const auto &a, const auto &b) { return a.queries_count < b.queries_count; }) -
+            sessions_.begin();
     }
   }
   query->debug(PSTRING() << get_name() << ": send to proxy #" << pos);

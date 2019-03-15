@@ -56,8 +56,10 @@ class SessionCallback : public Session::Callback {
   }
 
   void on_result(NetQueryPtr query) override {
+    if (query->id() != 0) {  // not an update
+      send_closure(parent_, &SessionProxy::on_query_finished);
+    }
     G()->net_query_dispatcher().dispatch(std::move(query));
-    send_closure(parent_, &SessionProxy::on_query_finished);
   }
 
  private:
@@ -105,6 +107,7 @@ void SessionProxy::start_up() {
 void SessionProxy::tear_down() {
   for (auto &query : pending_queries_) {
     query->resend();
+    callback_->on_query_finished();
     G()->net_query_dispatcher().dispatch(std::move(query));
   }
   pending_queries_.clear();
