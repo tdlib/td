@@ -7051,13 +7051,8 @@ void ContactsManager::on_update_user_local_was_online(User *u, UserId user_id, i
     return;
   }
 
-  if (u->was_online > 0) {
-    // bring users with accessible status online for 1 minute
-    local_was_online += 60;
-  } else {
-    // bring users with inaccessible status online for 5 minutes
-    local_was_online += 5 * 60;
-  }
+  // bring users online for 30 seconds
+  local_was_online += 30;
   if (local_was_online < G()->unix_time_cached() + 2 || local_was_online <= u->local_was_online ||
       local_was_online <= u->was_online) {
     return;
