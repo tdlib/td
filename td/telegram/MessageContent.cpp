@@ -3485,9 +3485,11 @@ static auto secret_to_telegram_document(secret_api::decryptedMessageMediaExterna
   if (!clean_input_string(from.mime_type_)) {
     from.mime_type_.clear();
   }
-  return make_tl_object<telegram_api::document>(from.id_, from.access_hash_, BufferSlice(), from.date_, from.mime_type_,
-                                                from.size_, secret_to_telegram<telegram_api::PhotoSize>(*from.thumb_),
-                                                from.dc_id_, secret_to_telegram(from.attributes_));
+  vector<telegram_api::object_ptr<telegram_api::PhotoSize>> thumbnails;
+  thumbnails.push_back(secret_to_telegram<telegram_api::PhotoSize>(*from.thumb_));
+  return make_tl_object<telegram_api::document>(
+      telegram_api::document::THUMBS_MASK, from.id_, from.access_hash_, BufferSlice(), from.date_, from.mime_type_,
+      from.size_, std::move(thumbnails), from.dc_id_, secret_to_telegram(from.attributes_));
 }
 
 template <class ToT, class FromT>

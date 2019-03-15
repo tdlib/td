@@ -6042,13 +6042,6 @@ void Td::on_request(uint64 id, const td_api::getUserProfilePhotos &request) {
   CREATE_REQUEST(GetUserProfilePhotosRequest, request.user_id_, request.offset_, request.limit_);
 }
 
-void Td::on_request(uint64 id, const td_api::toggleBasicGroupAdministrators &request) {
-  CHECK_IS_USER();
-  CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->toggle_chat_administrators(ChatId(request.basic_group_id_), request.everyone_is_administrator_,
-                                                std::move(promise));
-}
-
 void Td::on_request(uint64 id, td_api::setSupergroupUsername &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.username_);
@@ -6060,13 +6053,6 @@ void Td::on_request(uint64 id, const td_api::setSupergroupStickerSet &request) {
   CREATE_OK_REQUEST_PROMISE();
   contacts_manager_->set_channel_sticker_set(ChannelId(request.supergroup_id_), request.sticker_set_id_,
                                              std::move(promise));
-}
-
-void Td::on_request(uint64 id, const td_api::toggleSupergroupInvites &request) {
-  CHECK_IS_USER();
-  CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->toggle_channel_invites(ChannelId(request.supergroup_id_), request.anyone_can_invite_,
-                                            std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::toggleSupergroupSignMessages &request) {

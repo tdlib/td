@@ -211,12 +211,14 @@ Document DocumentsManager::on_get_document(RemoteDocument remote_document, Dialo
     file_reference = document->file_reference_.as_slice().str();
 
     if (document_type != Document::Type::VoiceNote) {
-      auto photo_size = get_photo_size(td_->file_manager_.get(), FileType::Thumbnail, 0, 0, "", owner_dialog_id,
-                                       std::move(document->thumb_), has_webp_thumbnail);
-      if (photo_size.get_offset() == 0) {
-        thumbnail = std::move(photo_size.get<0>());
-      } else {
-        minithumbnail = std::move(photo_size.get<1>());
+      for (auto &thumb : document->thumbs_) {
+        auto photo_size = get_photo_size(td_->file_manager_.get(), FileType::Thumbnail, 0, 0, "", owner_dialog_id,
+                                         std::move(thumb), has_webp_thumbnail);
+        if (photo_size.get_offset() == 0) {
+          thumbnail = std::move(photo_size.get<0>());
+        } else {
+          minithumbnail = std::move(photo_size.get<1>());
+        }
       }
     }
   } else if (remote_document.secret_file != nullptr) {

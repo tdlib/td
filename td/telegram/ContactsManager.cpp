@@ -903,40 +903,6 @@ class UpdateUsernameQuery : public Td::ResultHandler {
   }
 };
 
-class ToggleChatAdminsQuery : public Td::ResultHandler {
-  Promise<Unit> promise_;
-
- public:
-  explicit ToggleChatAdminsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(ChatId chat_id, bool everyone_is_administrator) {
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::messages_toggleChatAdmins(chat_id.get(), !everyone_is_administrator))));
-  }
-
-  void on_result(uint64 id, BufferSlice packet) override {
-    auto result_ptr = fetch_result<telegram_api::messages_toggleChatAdmins>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for toggleChatAdmins: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr));
-
-    promise_.set_value(Unit());
-  }
-
-  void on_error(uint64 id, Status status) override {
-    if (status.message() == "CHAT_NOT_MODIFIED" && !td->auth_manager_->is_bot()) {
-      promise_.set_value(Unit());
-      return;
-    }
-    promise_.set_error(std::move(status));
-  }
-};
-
 class CheckChannelUsernameQuery : public Td::ResultHandler {
   Promise<bool> promise_;
   ChannelId channel_id_;
@@ -1073,48 +1039,6 @@ class SetChannelStickerSetQuery : public Td::ResultHandler {
   }
 };
 
-class ToggleChannelInvitesQuery : public Td::ResultHandler {
-  Promise<Unit> promise_;
-  ChannelId channel_id_;
-
- public:
-  explicit ToggleChannelInvitesQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
-  }
-
-  void send(ChannelId channel_id, bool anyone_can_invite) {
-    channel_id_ = channel_id;
-    auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
-    CHECK(input_channel != nullptr);
-    send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::channels_toggleInvites(std::move(input_channel), anyone_can_invite))));
-  }
-
-  void on_result(uint64 id, BufferSlice packet) override {
-    auto result_ptr = fetch_result<telegram_api::channels_toggleInvites>(packet);
-    if (result_ptr.is_error()) {
-      return on_error(id, result_ptr.move_as_error());
-    }
-
-    auto ptr = result_ptr.move_as_ok();
-    LOG(INFO) << "Receive result for toggleChannelInvites: " << to_string(ptr);
-    td->updates_manager_->on_get_updates(std::move(ptr));
-
-    promise_.set_value(Unit());
-  }
-
-  void on_error(uint64 id, Status status) override {
-    if (status.message() == "CHAT_NOT_MODIFIED") {
-      if (!td->auth_manager_->is_bot()) {
-        promise_.set_value(Unit());
-        return;
-      }
-    } else {
-      td->contacts_manager_->on_get_channel_error(channel_id_, status, "ToggleChannelInvitesQuery");
-    }
-    promise_.set_error(std::move(status));
-  }
-};
-
 class ToggleChannelSignaturesQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   ChannelId channel_id_;
@@ -1215,14 +1139,16 @@ class EditChannelAboutQuery : public Td::ResultHandler {
   void send(ChannelId channel_id, const string &about) {
     channel_id_ = channel_id;
     about_ = about;
-    auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
-    CHECK(input_channel != nullptr);
+    auto input_peer = td->messages_manager_->get_input_peer(DialogId(channel_id), AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(0, Status::Error(400, "Can't access the chat"));
+    }
     send_query(G()->net_query_creator().create(
-        create_storer(telegram_api::channels_editAbout(std::move(input_channel), about))));
+        create_storer(telegram_api::messages_editChatAbout(std::move(input_peer), about))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
-    auto result_ptr = fetch_result<telegram_api::channels_editAbout>(packet);
+    auto result_ptr = fetch_result<telegram_api::messages_editChatAbout>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
     }
@@ -1230,7 +1156,7 @@ class EditChannelAboutQuery : public Td::ResultHandler {
     bool result = result_ptr.ok();
     LOG(DEBUG) << "Receive result for editChannelAbout " << result;
     if (!result) {
-      return on_error(id, Status::Error(500, "Supergroup description is not updated"));
+      return on_error(id, Status::Error(500, "Chat description is not updated"));
     }
 
     td->contacts_manager_->on_update_channel_description(channel_id_, std::move(about_));
@@ -1404,7 +1330,12 @@ class ExportChatInviteLinkQuery : public Td::ResultHandler {
 
   void send(ChatId chat_id) {
     chat_id_ = chat_id;
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_exportChatInvite(chat_id.get()))));
+    auto input_peer = td->messages_manager_->get_input_peer(DialogId(chat_id), AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(0, Status::Error(400, "Can't access the chat"));
+    }
+    send_query(
+        G()->net_query_creator().create(create_storer(telegram_api::messages_exportChatInvite(std::move(input_peer)))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1436,14 +1367,16 @@ class ExportChannelInviteLinkQuery : public Td::ResultHandler {
 
   void send(ChannelId channel_id) {
     channel_id_ = channel_id;
-    auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
-    CHECK(input_channel != nullptr);
+    auto input_peer = td->messages_manager_->get_input_peer(DialogId(channel_id), AccessRights::Read);
+    if (input_peer == nullptr) {
+      return on_error(0, Status::Error(400, "Can't access the chat"));
+    }
     send_query(
-        G()->net_query_creator().create(create_storer(telegram_api::channels_exportInvite(std::move(input_channel)))));
+        G()->net_query_creator().create(create_storer(telegram_api::messages_exportChatInvite(std::move(input_peer)))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
-    auto result_ptr = fetch_result<telegram_api::channels_exportInvite>(packet);
+    auto result_ptr = fetch_result<telegram_api::messages_exportChatInvite>(packet);
     if (result_ptr.is_error()) {
       return on_error(id, result_ptr.move_as_error());
     }
@@ -1652,7 +1585,7 @@ class EditChannelAdminQuery : public Td::ResultHandler {
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_editAdmin(
-        std::move(input_channel), std::move(input_user), status.get_channel_admin_rights()))));
+        std::move(input_channel), std::move(input_user), status.get_chat_admin_rights()))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -1689,7 +1622,7 @@ class EditChannelBannedQuery : public Td::ResultHandler {
     auto input_channel = td->contacts_manager_->get_input_channel(channel_id);
     CHECK(input_channel != nullptr);
     send_query(G()->net_query_creator().create(create_storer(telegram_api::channels_editBanned(
-        std::move(input_channel), std::move(input_user), status.get_channel_banned_rights()))));
+        std::move(input_channel), std::move(input_user), status.get_chat_banned_rights()))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -4036,19 +3969,6 @@ void ContactsManager::set_username(const string &username, Promise<Unit> &&promi
   td_->create_handler<UpdateUsernameQuery>(std::move(promise))->send(username);
 }
 
-void ContactsManager::toggle_chat_administrators(ChatId chat_id, bool everyone_is_administrator,
-                                                 Promise<Unit> &&promise) {
-  auto c = get_chat(chat_id);
-  if (c == nullptr) {
-    return promise.set_error(Status::Error(6, "Group not found"));
-  }
-  if (!get_chat_status(c).is_creator()) {
-    return promise.set_error(Status::Error(6, "Not enough rights to toggle basic group administrators"));
-  }
-
-  td_->create_handler<ToggleChatAdminsQuery>(std::move(promise))->send(chat_id, everyone_is_administrator);
-}
-
 void ContactsManager::set_channel_username(ChannelId channel_id, const string &username, Promise<Unit> &&promise) {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
@@ -4101,21 +4021,6 @@ void ContactsManager::set_channel_sticker_set(ChannelId channel_id, int64 sticke
 
   td_->create_handler<SetChannelStickerSetQuery>(std::move(promise))
       ->send(channel_id, sticker_set_id, std::move(input_sticker_set));
-}
-
-void ContactsManager::toggle_channel_invites(ChannelId channel_id, bool anyone_can_invite, Promise<Unit> &&promise) {
-  auto c = get_channel(channel_id);
-  if (c == nullptr) {
-    return promise.set_error(Status::Error(6, "Supergroup not found"));
-  }
-  if (!get_channel_status(c).can_change_info_and_settings()) {
-    return promise.set_error(Status::Error(6, "Not enough rights to toggle supergroup invites"));
-  }
-  if (get_channel_type(c) != ChannelType::Megagroup) {
-    return promise.set_error(Status::Error(6, "Invites by any member can be enabled in the supergroups only"));
-  }
-
-  td_->create_handler<ToggleChannelInvitesQuery>(std::move(promise))->send(channel_id, anyone_can_invite);
 }
 
 void ContactsManager::toggle_channel_sign_messages(ChannelId channel_id, bool sign_messages, Promise<Unit> &&promise) {
@@ -9811,8 +9716,8 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *sourc
   }
 
   bool is_creator = 0 != (chat.flags_ & CHAT_FLAG_USER_IS_CREATOR);
-  bool is_administrator = 0 != (chat.flags_ & CHAT_FLAG_IS_ADMINISTRATOR);
-  bool everyone_is_administrator = 0 == (chat.flags_ & CHAT_FLAG_ADMINISTRATORS_ENABLED);
+  bool is_administrator = false;          // 0 != (chat.flags_ & CHAT_FLAG_IS_ADMINISTRATOR);
+  bool everyone_is_administrator = true;  // 0 == (chat.flags_ & CHAT_FLAG_ADMINISTRATORS_ENABLED);
 
   bool is_active = 0 == (chat.flags_ & CHAT_FLAG_IS_DEACTIVATED);
 
@@ -9920,7 +9825,7 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   bool has_access_hash = (channel.flags_ & CHANNEL_FLAG_HAS_ACCESS_HASH) != 0;
   auto access_hash = has_access_hash ? channel.access_hash_ : 0;
 
-  bool anyone_can_invite = (channel.flags_ & CHANNEL_FLAG_ANYONE_CAN_INVITE) != 0;
+  bool anyone_can_invite = true;  // (channel.flags_ & CHANNEL_FLAG_ANYONE_CAN_INVITE) != 0;
   bool sign_messages = (channel.flags_ & CHANNEL_FLAG_SIGN_MESSAGES) != 0;
   bool is_megagroup = (channel.flags_ & CHANNEL_FLAG_IS_MEGAGROUP) != 0;
   bool is_verified = (channel.flags_ & CHANNEL_FLAG_IS_VERIFIED) != 0;

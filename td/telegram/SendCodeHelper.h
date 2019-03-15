@@ -54,8 +54,6 @@ class SendCodeHelper {
   void parse(ParserT &parser);
 
  private:
-  static constexpr int32 AUTH_SEND_CODE_FLAG_ALLOW_FLASH_CALL = 1 << 0;
-
   static constexpr int32 SENT_CODE_FLAG_IS_USER_REGISTERED = 1 << 0;
   static constexpr int32 SENT_CODE_FLAG_HAS_NEXT_TYPE = 1 << 1;
   static constexpr int32 SENT_CODE_FLAG_HAS_TIMEOUT = 1 << 2;
@@ -90,8 +88,11 @@ class SendCodeHelper {
   static AuthenticationCodeInfo get_authentication_code_info(
       tl_object_ptr<telegram_api::auth_SentCodeType> &&sent_code_type_ptr);
 
-  static tl_object_ptr<td_api::AuthenticationCodeType> get_authentication_code_type_object(
+  static td_api::object_ptr<td_api::AuthenticationCodeType> get_authentication_code_type_object(
       const AuthenticationCodeInfo &authentication_code_info);
+
+  static telegram_api::object_ptr<telegram_api::codeSettings> get_input_code_settings(bool allow_flash_call,
+                                                                                      bool is_current_phone_number);
 };
 
 }  // namespace td

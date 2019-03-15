@@ -37,7 +37,7 @@ class WallpaperManager : public Actor {
  private:
   void tear_down() override;
 
-  void on_get_wallpapers(Result<vector<telegram_api::object_ptr<telegram_api::WallPaper>>> result);
+  void on_get_wallpapers(Result<vector<telegram_api::object_ptr<telegram_api::wallPaper>>> result);
 
   struct Wallpaper {
     int32 id = 0;

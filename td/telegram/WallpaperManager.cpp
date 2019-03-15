@@ -24,15 +24,15 @@
 namespace td {
 
 class GetWallpapersQuery : public Td::ResultHandler {
-  Promise<vector<telegram_api::object_ptr<telegram_api::WallPaper>>> promise_;
+  Promise<vector<telegram_api::object_ptr<telegram_api::wallPaper>>> promise_;
 
  public:
-  explicit GetWallpapersQuery(Promise<vector<telegram_api::object_ptr<telegram_api::WallPaper>>> &&promise)
+  explicit GetWallpapersQuery(Promise<vector<telegram_api::object_ptr<telegram_api::wallPaper>>> &&promise)
       : promise_(std::move(promise)) {
   }
 
   void send() {
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::account_getWallPapers())));
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::account_getWallPapers(0))));
   }
 
   void on_result(uint64 id, BufferSlice packet) override {
@@ -41,7 +41,8 @@ class GetWallpapersQuery : public Td::ResultHandler {
       return on_error(id, result_ptr.move_as_error());
     }
 
-    promise_.set_value(result_ptr.move_as_ok());
+    // TODO
+    promise_.set_value(vector<telegram_api::object_ptr<telegram_api::wallPaper>>());
   }
 
   void on_error(uint64 id, Status status) override {
@@ -68,7 +69,7 @@ void WallpaperManager::reload_wallpapers(Promise<Unit> &&promise) {
   pending_get_wallpapers_queries_.push_back(std::move(promise));
   if (pending_get_wallpapers_queries_.size() == 1) {
     auto request_promise = PromiseCreator::lambda(
-        [actor_id = actor_id(this)](Result<vector<telegram_api::object_ptr<telegram_api::WallPaper>>> result) {
+        [actor_id = actor_id(this)](Result<vector<telegram_api::object_ptr<telegram_api::wallPaper>>> result) {
           send_closure(actor_id, &WallpaperManager::on_get_wallpapers, std::move(result));
         });
 
@@ -76,7 +77,7 @@ void WallpaperManager::reload_wallpapers(Promise<Unit> &&promise) {
   }
 }
 
-void WallpaperManager::on_get_wallpapers(Result<vector<telegram_api::object_ptr<telegram_api::WallPaper>>> result) {
+void WallpaperManager::on_get_wallpapers(Result<vector<telegram_api::object_ptr<telegram_api::wallPaper>>> result) {
   auto promises = std::move(pending_get_wallpapers_queries_);
   CHECK(!promises.empty());
   reset_to_empty(pending_get_wallpapers_queries_);
@@ -91,8 +92,9 @@ void WallpaperManager::on_get_wallpapers(Result<vector<telegram_api::object_ptr<
     return;
   }
 
+  /*
   wallpapers_ = transform(result.move_as_ok(), [file_manager = td_->file_manager_.get()](
-                                                   tl_object_ptr<telegram_api::WallPaper> &&wallpaper_ptr) {
+                                                   tl_object_ptr<telegram_api::wallPaper> &&wallpaper_ptr) {
     CHECK(wallpaper_ptr != nullptr);
     switch (wallpaper_ptr->get_id()) {
       case telegram_api::wallPaper::ID: {
@@ -119,6 +121,7 @@ void WallpaperManager::on_get_wallpapers(Result<vector<telegram_api::object_ptr<
         return Wallpaper{0, {}, 0};
     }
   });
+  */
   vector<FileId> new_file_ids;
   for (auto &wallpaper : wallpapers_) {
     append(new_file_ids, transform(wallpaper.sizes, [](auto &size) { return size.file_id; }));

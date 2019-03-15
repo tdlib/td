@@ -342,9 +342,13 @@ chatMemberStatusMember = ChatMemberStatus;
 //@restricted_until_date Point in time (Unix timestamp) when restrictions will be lifted from the user; 0 if never. If the user is restricted for more than 366 days or for less than 30 seconds from the current time, the user is considered to be restricted forever
 //@can_send_messages True, if the user can send text messages, contacts, locations, and venues
 //@can_send_media_messages True, if the user can send audio files, documents, photos, videos, video notes, and voice notes. Implies can_send_messages permissions
+//@can_send_polls True, if the user can send polls. Implies can_send_messages permissions
 //@can_send_other_messages True, if the user can send animations, games, and stickers and use inline bots. Implies can_send_media_messages permissions
 //@can_add_web_page_previews True, if the user may add a web page preview to his messages. Implies can_send_messages permissions
-chatMemberStatusRestricted is_member:Bool restricted_until_date:int32 can_send_messages:Bool can_send_media_messages:Bool can_send_other_messages:Bool can_add_web_page_previews:Bool = ChatMemberStatus;
+//@can_change_info True, if the user can change the chat title, photo, and other settings; applicable to groups only
+//@can_invite_users True, if the user can invite new users to the chat; applicable to groups only
+//@can_pin_messages True, if the user can pin messages; applicable to groups only
+chatMemberStatusRestricted is_member:Bool restricted_until_date:int32 can_send_messages:Bool can_send_media_messages:Bool can_send_polls:Bool can_send_other_messages:Bool can_add_web_page_previews:Bool can_change_info:Bool can_invite_users:Bool can_pin_messages:Bool = ChatMemberStatus;
 
 //@description The user is not a chat member
 chatMemberStatusLeft = ChatMemberStatus;
@@ -3483,18 +3487,11 @@ disconnectWebsite website_id:int64 = Ok;
 disconnectAllWebsites = Ok;
 
 
-//@description Toggles the "All members are admins" setting in basic groups; requires creator privileges in the group @basic_group_id Identifier of the basic group @everyone_is_administrator New value of everyone_is_administrator
-toggleBasicGroupAdministrators basic_group_id:int32 everyone_is_administrator:Bool = Ok;
-
-
 //@description Changes the username of a supergroup or channel, requires creator privileges in the supergroup or channel @supergroup_id Identifier of the supergroup or channel @username New value of the username. Use an empty string to remove the username
 setSupergroupUsername supergroup_id:int32 username:string = Ok;
 
 //@description Changes the sticker set of a supergroup; requires appropriate rights in the supergroup @supergroup_id Identifier of the supergroup @sticker_set_id New value of the supergroup sticker set identifier. Use 0 to remove the supergroup sticker set
 setSupergroupStickerSet supergroup_id:int32 sticker_set_id:int64 = Ok;
-
-//@description Toggles whether all members of a supergroup can add new members; requires appropriate administrator rights in the supergroup. @supergroup_id Identifier of the supergroup @anyone_can_invite New value of anyone_can_invite
-toggleSupergroupInvites supergroup_id:int32 anyone_can_invite:Bool = Ok;
 
 //@description Toggles sender signatures messages sent in a channel; requires appropriate administrator rights in the channel. @supergroup_id Identifier of the channel @sign_messages New value of sign_messages
 toggleSupergroupSignMessages supergroup_id:int32 sign_messages:Bool = Ok;

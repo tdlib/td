@@ -18,14 +18,14 @@
 namespace td {
 
 class DialogParticipantStatus {
-  static constexpr uint32 CAN_CHANGE_INFO_AND_SETTINGS = 1 << 0;
+  static constexpr uint32 CAN_CHANGE_INFO_AND_SETTINGS_ADMIN = 1 << 0;
   static constexpr uint32 CAN_POST_MESSAGES = 1 << 1;
   static constexpr uint32 CAN_EDIT_MESSAGES = 1 << 2;
   static constexpr uint32 CAN_DELETE_MESSAGES = 1 << 3;
-  static constexpr uint32 CAN_INVITE_USERS = 1 << 4;
+  static constexpr uint32 CAN_INVITE_USERS_ADMIN = 1 << 4;
   // static constexpr uint32 CAN_EXPORT_DIALOG_INVITE_LINK = 1 << 5;
   static constexpr uint32 CAN_RESTRICT_MEMBERS = 1 << 6;
-  static constexpr uint32 CAN_PIN_MESSAGES = 1 << 7;
+  static constexpr uint32 CAN_PIN_MESSAGES_ADMIN = 1 << 7;
   static constexpr uint32 CAN_PROMOTE_MEMBERS = 1 << 8;
 
   static constexpr uint32 CAN_BE_EDITED = 1 << 15;
@@ -37,6 +37,10 @@ class DialogParticipantStatus {
   static constexpr uint32 CAN_SEND_GAMES = 1 << 20;
   static constexpr uint32 CAN_USE_INLINE_BOTS = 1 << 21;
   static constexpr uint32 CAN_ADD_WEB_PAGE_PREVIEWS = 1 << 22;
+  static constexpr uint32 CAN_SEND_POLLS = 1 << 23;
+  static constexpr uint32 CAN_CHANGE_INFO_AND_SETTINGS_BANNED = 1 << 24;
+  static constexpr uint32 CAN_INVITE_USERS_BANNED = 1 << 25;
+  static constexpr uint32 CAN_PIN_MESSAGES_BANNED = 1 << 26;
 
   static constexpr uint32 IS_MEMBER = 1 << 27;
 
@@ -44,13 +48,14 @@ class DialogParticipantStatus {
   static constexpr int TYPE_SHIFT = 28;
   static constexpr uint32 HAS_UNTIL_DATE = 1u << 31;
 
-  static constexpr uint32 ALL_ADMINISTRATOR_RIGHTS = CAN_CHANGE_INFO_AND_SETTINGS | CAN_POST_MESSAGES |
-                                                     CAN_EDIT_MESSAGES | CAN_DELETE_MESSAGES | CAN_INVITE_USERS |
-                                                     CAN_RESTRICT_MEMBERS | CAN_PIN_MESSAGES | CAN_PROMOTE_MEMBERS;
+  static constexpr uint32 ALL_ADMINISTRATOR_RIGHTS =
+      CAN_CHANGE_INFO_AND_SETTINGS_ADMIN | CAN_POST_MESSAGES | CAN_EDIT_MESSAGES | CAN_DELETE_MESSAGES |
+      CAN_INVITE_USERS_ADMIN | CAN_RESTRICT_MEMBERS | CAN_PIN_MESSAGES_ADMIN | CAN_PROMOTE_MEMBERS;
 
-  static constexpr uint32 ALL_RESTRICTED_RIGHTS = CAN_SEND_MESSAGES | CAN_SEND_MEDIA | CAN_SEND_STICKERS |
-                                                  CAN_SEND_ANIMATIONS | CAN_SEND_GAMES | CAN_USE_INLINE_BOTS |
-                                                  CAN_ADD_WEB_PAGE_PREVIEWS;
+  static constexpr uint32 ALL_RESTRICTED_RIGHTS =
+      CAN_SEND_MESSAGES | CAN_SEND_MEDIA | CAN_SEND_STICKERS | CAN_SEND_ANIMATIONS | CAN_SEND_GAMES |
+      CAN_USE_INLINE_BOTS | CAN_ADD_WEB_PAGE_PREVIEWS | CAN_SEND_POLLS | CAN_CHANGE_INFO_AND_SETTINGS_BANNED |
+      CAN_INVITE_USERS_BANNED | CAN_PIN_MESSAGES_BANNED;
 
   enum class Type : int32 { Creator, Administrator, Member, Restricted, Left, Banned };
   // all fields are logically const, but should be updated in update_restrictions()
@@ -77,7 +82,9 @@ class DialogParticipantStatus {
   static DialogParticipantStatus Restricted(bool is_member, int32 restricted_until_date, bool can_send_messages,
                                             bool can_send_media, bool can_send_stickers, bool can_send_animations,
                                             bool can_send_games, bool can_use_inline_bots,
-                                            bool can_add_web_page_previews);
+                                            bool can_add_web_page_previews, bool can_send_polls,
+                                            bool can_change_info_and_settings, bool can_invite_users,
+                                            bool can_pin_messages);
 
   static DialogParticipantStatus Left();
 
@@ -91,15 +98,15 @@ class DialogParticipantStatus {
 
   tl_object_ptr<td_api::ChatMemberStatus> get_chat_member_status_object() const;
 
-  tl_object_ptr<telegram_api::channelAdminRights> get_channel_admin_rights() const;
+  tl_object_ptr<telegram_api::chatAdminRights> get_chat_admin_rights() const;
 
-  tl_object_ptr<telegram_api::channelBannedRights> get_channel_banned_rights() const;
+  tl_object_ptr<telegram_api::chatBannedRights> get_chat_banned_rights() const;
 
   // unrestricts user if restriction time expired. Should be called before all privileges checks
   void update_restrictions() const;
 
   bool can_change_info_and_settings() const {
-    return (flags_ & CAN_CHANGE_INFO_AND_SETTINGS) != 0;
+    return (flags_ & CAN_CHANGE_INFO_AND_SETTINGS_ADMIN) != 0 || (flags_ & CAN_CHANGE_INFO_AND_SETTINGS_BANNED) != 0;
   }
 
   bool can_post_messages() const {
@@ -115,7 +122,7 @@ class DialogParticipantStatus {
   }
 
   bool can_invite_users() const {
-    return (flags_ & CAN_INVITE_USERS) != 0;
+    return (flags_ & CAN_INVITE_USERS_ADMIN) != 0 || (flags_ & CAN_INVITE_USERS_BANNED) != 0;
   }
 
   bool can_restrict_members() const {
@@ -123,7 +130,7 @@ class DialogParticipantStatus {
   }
 
   bool can_pin_messages() const {
-    return (flags_ & CAN_PIN_MESSAGES) != 0;
+    return (flags_ & CAN_PIN_MESSAGES_ADMIN) != 0 || (flags_ & CAN_PIN_MESSAGES_BANNED) != 0;
   }
 
   bool can_promote_members() const {
@@ -160,6 +167,10 @@ class DialogParticipantStatus {
 
   bool can_add_web_page_previews() const {
     return (flags_ & CAN_ADD_WEB_PAGE_PREVIEWS) != 0;
+  }
+
+  bool can_send_polls() const {
+    return (flags_ & CAN_SEND_POLLS) != 0;
   }
 
   void set_is_member(bool is_member) {
@@ -288,10 +299,10 @@ DialogParticipantsFilter get_dialog_participants_filter(const tl_object_ptr<td_a
 
 DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api::ChatMemberStatus> &status);
 
-DialogParticipantStatus get_dialog_participant_status(
-    bool can_be_edited, const tl_object_ptr<telegram_api::channelAdminRights> &admin_rights);
+DialogParticipantStatus get_dialog_participant_status(bool can_be_edited,
+                                                      const tl_object_ptr<telegram_api::chatAdminRights> &admin_rights);
 
 DialogParticipantStatus get_dialog_participant_status(
-    bool is_member, const tl_object_ptr<telegram_api::channelBannedRights> &banned_rights);
+    bool is_member, const tl_object_ptr<telegram_api::chatBannedRights> &banned_rights);
 
 }  // namespace td

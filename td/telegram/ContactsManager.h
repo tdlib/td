@@ -283,13 +283,9 @@ class ContactsManager : public Actor {
 
   void set_username(const string &username, Promise<Unit> &&promise);
 
-  void toggle_chat_administrators(ChatId chat_id, bool everyone_is_administrator, Promise<Unit> &&promise);
-
   void set_channel_username(ChannelId channel_id, const string &username, Promise<Unit> &&promise);
 
   void set_channel_sticker_set(ChannelId channel_id, int64 sticker_set_id, Promise<Unit> &&promise);
-
-  void toggle_channel_invites(ChannelId channel_id, bool anyone_can_invite, Promise<Unit> &&promise);
 
   void toggle_channel_sign_messages(ChannelId channel_id, bool sign_messages, Promise<Unit> &&promise);
 
@@ -751,8 +747,8 @@ class ContactsManager : public Actor {
   static constexpr int32 CHAT_FLAG_USER_IS_CREATOR = 1 << 0;
   static constexpr int32 CHAT_FLAG_USER_WAS_KICKED = 1 << 1;
   static constexpr int32 CHAT_FLAG_USER_HAS_LEFT = 1 << 2;
-  static constexpr int32 CHAT_FLAG_ADMINISTRATORS_ENABLED = 1 << 3;
-  static constexpr int32 CHAT_FLAG_IS_ADMINISTRATOR = 1 << 4;
+  // static constexpr int32 CHAT_FLAG_ADMINISTRATORS_ENABLED = 1 << 3;
+  // static constexpr int32 CHAT_FLAG_IS_ADMINISTRATOR = 1 << 4;
   static constexpr int32 CHAT_FLAG_IS_DEACTIVATED = 1 << 5;
   static constexpr int32 CHAT_FLAG_WAS_MIGRATED = 1 << 6;
 
@@ -765,7 +761,7 @@ class ContactsManager : public Actor {
   static constexpr int32 CHANNEL_FLAG_IS_VERIFIED = 1 << 7;
   static constexpr int32 CHANNEL_FLAG_IS_MEGAGROUP = 1 << 8;
   static constexpr int32 CHANNEL_FLAG_IS_RESTRICTED = 1 << 9;
-  static constexpr int32 CHANNEL_FLAG_ANYONE_CAN_INVITE = 1 << 10;
+  // static constexpr int32 CHANNEL_FLAG_ANYONE_CAN_INVITE = 1 << 10;
   static constexpr int32 CHANNEL_FLAG_SIGN_MESSAGES = 1 << 11;
   static constexpr int32 CHANNEL_FLAG_IS_MIN = 1 << 12;
   static constexpr int32 CHANNEL_FLAG_HAS_ACCESS_HASH = 1 << 13;

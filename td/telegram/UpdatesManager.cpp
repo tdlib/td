@@ -1678,11 +1678,6 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatParticipant
                                                      update->version_);
 }
 
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatAdmins> update, bool /*force_apply*/) {
-  td_->contacts_manager_->on_update_chat_everyone_is_administrator(ChatId(update->chat_id_), !update->enabled_,
-                                                                   update->version_);
-}
-
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDraftMessage> update, bool /*force_apply*/) {
   td_->messages_manager_->on_update_dialog_draft_message(DialogId(update->peer_), std::move(update->draft_));
 }
@@ -1843,5 +1838,9 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessagePoll> up
 }
 
 // unsupported updates
+
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatDefaultBannedRights> update,
+                               bool /*force_apply*/) {
+}
 
 }  // namespace td

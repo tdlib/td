@@ -3296,15 +3296,16 @@ class CliClient final : public Actor {
                                                                             false, false, false);
       } else if (status_str == "rest") {
         status = td_api::make_object<td_api::chatMemberStatusRestricted>(
-            true, static_cast<int32>(120 + std::time(nullptr)), false, false, false, false);
+            true, static_cast<int32>(120 + std::time(nullptr)), false, false, false, false, false, false, false, false);
       } else if (status_str == "restkick") {
         status = td_api::make_object<td_api::chatMemberStatusRestricted>(
-            false, static_cast<int32>(120 + std::time(nullptr)), true, false, false, false);
+            false, static_cast<int32>(120 + std::time(nullptr)), true, false, false, false, false, false, false, false);
       } else if (status_str == "restunkick") {
         status = td_api::make_object<td_api::chatMemberStatusRestricted>(
-            true, static_cast<int32>(120 + std::time(nullptr)), true, false, false, false);
+            true, static_cast<int32>(120 + std::time(nullptr)), true, false, false, false, false, false, false, false);
       } else if (status_str == "unrest") {
-        status = td_api::make_object<td_api::chatMemberStatusRestricted>(true, 0, true, true, true, true);
+        status = td_api::make_object<td_api::chatMemberStatusRestricted>(true, 0, true, true, true, true, true, true,
+                                                                         true, true);
       }
       if (status != nullptr) {
         send_request(td_api::make_object<td_api::setChatMemberStatus>(as_chat_id(chat_id), as_user_id(user_id),
@@ -3343,13 +3344,6 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::setBio>("\n" + args + "\n" + args + "\n"));
     } else if (op == "sun") {
       send_request(td_api::make_object<td_api::setUsername>(args));
-    } else if (op == "tbga") {
-      string group_id;
-      string everyone_is_administrator;
-
-      std::tie(group_id, everyone_is_administrator) = split(args);
-      send_request(td_api::make_object<td_api::toggleBasicGroupAdministrators>(as_basic_group_id(group_id),
-                                                                               as_bool(everyone_is_administrator)));
     } else if (op == "ccun") {
       string chat_id;
       string username;
@@ -3369,13 +3363,6 @@ class CliClient final : public Actor {
       std::tie(supergroup_id, sticker_set_id) = split(args);
       send_request(td_api::make_object<td_api::setSupergroupStickerSet>(as_supergroup_id(supergroup_id),
                                                                         to_integer<int64>(sticker_set_id)));
-    } else if (op == "tsgi") {
-      string supergroup_id;
-      string anyone_can_invite;
-
-      std::tie(supergroup_id, anyone_can_invite) = split(args);
-      send_request(td_api::make_object<td_api::toggleSupergroupInvites>(as_supergroup_id(supergroup_id),
-                                                                        as_bool(anyone_can_invite)));
     } else if (op == "tsgp") {
       string supergroup_id;
       string is_all_history_available;
