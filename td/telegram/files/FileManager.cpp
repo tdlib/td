@@ -782,6 +782,20 @@ string FileManager::get_file_name(FileType file_type, Slice path) {
   return file_name.str();
 }
 
+bool FileManager::are_modification_times_equal(int64 old_mtime, int64 new_mtime) {
+  if (old_mtime == new_mtime) {
+    return true;
+  }
+  if (old_mtime < new_mtime) {
+    return false;
+  }
+  if (old_mtime - new_mtime == 1000000000 && old_mtime % 1000000000 == 0 && new_mtime % 2000000000 == 0) {
+    // FAT32 has 2 seconds mtime resolution, but file system sometimes reports odd modification time
+    return true;
+  }
+  return false;
+}
+
 Status FileManager::check_local_location(FullLocalFileLocation &location, int64 &size) {
   constexpr int64 MAX_THUMBNAIL_SIZE = 200 * (1 << 10) /* 200 kB */;
   constexpr int64 MAX_PHOTO_SIZE = 10 * (1 << 20) /* 10 MB */;
@@ -812,8 +826,8 @@ Status FileManager::check_local_location(FullLocalFileLocation &location, int64 
   if (location.mtime_nsec_ == 0) {
     LOG(INFO) << "Set file \"" << location.path_ << "\" modification time to " << stat.mtime_nsec_;
     location.mtime_nsec_ = stat.mtime_nsec_;
-  } else if (location.mtime_nsec_ != stat.mtime_nsec_) {
-    LOG(INFO) << "File \"" << location.path_ << "\" was nodified: old mtime = " << location.mtime_nsec_
+  } else if (!are_modification_times_equal(location.mtime_nsec_, stat.mtime_nsec_)) {
+    LOG(INFO) << "File \"" << location.path_ << "\" was modified: old mtime = " << location.mtime_nsec_
               << ", new mtime = " << stat.mtime_nsec_;
     return Status::Error(PSLICE() << "File \"" << location.path_ << "\" was modified");
   }

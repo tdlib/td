@@ -371,6 +371,8 @@ class FileManager : public FileLoadManager::Callback {
   FileManager &operator=(FileManager &&other) = delete;
   ~FileManager() override;
 
+  static bool are_modification_times_equal(int64 old_mtime, int64 new_mtime);
+
   void init_actor();
 
   FileId dup_file_id(FileId file_id);
