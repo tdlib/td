@@ -3460,7 +3460,7 @@ int32 ContactsManager::get_user_was_online(const User *u, UserId user_id) const 
       was_online = my_was_online_local_;
     }
   } else {
-    if (u->local_was_online != 0 && u->local_was_online > was_online) {
+    if (u->local_was_online > 0 && u->local_was_online > was_online && u->local_was_online > G()->unix_time_cached()) {
       was_online = u->local_was_online;
     }
   }
@@ -7058,7 +7058,8 @@ void ContactsManager::on_update_user_local_was_online(User *u, UserId user_id, i
     // bring users with inaccessible status online for 5 minutes
     local_was_online += 5 * 60;
   }
-  if (local_was_online < G()->unix_time_cached() + 2 || local_was_online <= u->local_was_online) {
+  if (local_was_online < G()->unix_time_cached() + 2 || local_was_online <= u->local_was_online ||
+      local_was_online <= u->was_online) {
     return;
   }
 

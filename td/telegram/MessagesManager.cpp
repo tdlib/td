@@ -5347,6 +5347,10 @@ void MessagesManager::on_user_dialog_action(DialogId dialog_id, UserId user_id,
       action = make_tl_object<td_api::chatActionCancel>();
     }
   } else {
+    if (date < G()->unix_time_cached() - DIALOG_ACTION_TIMEOUT - 60) {
+      LOG(DEBUG) << "Ignore too old action of " << user_id << " in " << dialog_id << " sent at " << date;
+      return;
+    }
     auto &active_actions = active_dialog_actions_[dialog_id];
     auto it = std::find_if(active_actions.begin(), active_actions.end(),
                            [user_id](const ActiveDialogAction &action) { return action.user_id == user_id; });

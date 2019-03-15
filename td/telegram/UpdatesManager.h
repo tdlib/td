@@ -107,6 +107,8 @@ class UpdatesManager : public Actor {
   int32 seq_ = 0;
   string date_source_ = "nowhere";
 
+  int32 short_update_date_ = 0;
+
   std::multimap<int32, PendingUpdates> postponed_updates_;    // updates received during getDifference
   std::multimap<int32, PendingUpdates> pending_seq_updates_;  // updates with too big seq
 
@@ -146,6 +148,8 @@ class UpdatesManager : public Actor {
   void save_pts(int32 pts);
 
   void set_date(int32 date, bool from_update, string date_source);
+
+  int32 get_short_update_date() const;
 
   static tl_object_ptr<td_api::ChatAction> convert_send_message_action(
       tl_object_ptr<telegram_api::SendMessageAction> action);

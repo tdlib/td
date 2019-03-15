@@ -705,10 +705,11 @@ void UpdatesManager::on_get_updates(tl_object_ptr<telegram_api::Updates> &&updat
         LOG(ERROR) << "Receive unacceptable short update: " << td::oneline(to_string(update));
         return get_difference("unacceptable short update");
       }
-
+      short_update_date_ = update->date_;
       if (!downcast_call(*update->update_, OnUpdate(this, update->update_, false))) {
         LOG(ERROR) << "Can't call on some update";
       }
+      short_update_date_ = 0;
       break;
     }
     case telegram_api::updatesCombined::ID: {
@@ -1566,6 +1567,14 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChannelWebPage>
                                                      update->pts_count_, "on_updateChannelWebPage");
 }
 
+int32 UpdatesManager::get_short_update_date() const {
+  int32 now = G()->unix_time();
+  if (short_update_date_ > 0) {
+    return min(short_update_date_, now);
+  }
+  return now;
+}
+
 tl_object_ptr<td_api::ChatAction> UpdatesManager::convert_send_message_action(
     tl_object_ptr<telegram_api::SendMessageAction> action) {
   auto fix_progress = [](int32 progress) { return progress <= 0 || progress > 100 ? 0 : progress; };
@@ -1624,9 +1633,8 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserTyping> upd
     LOG(DEBUG) << "Ignore user typing in unknown " << dialog_id;
     return;
   }
-  // TODO date
   td_->messages_manager_->on_user_dialog_action(
-      dialog_id, user_id, convert_send_message_action(std::move(update->action_)), G()->unix_time_cached());
+      dialog_id, user_id, convert_send_message_action(std::move(update->action_)), get_short_update_date());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatUserTyping> update, bool /*force_apply*/) {
@@ -1646,7 +1654,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatUserTyping>
     }
   }
   td_->messages_manager_->on_user_dialog_action(
-      dialog_id, user_id, convert_send_message_action(std::move(update->action_)), G()->unix_time_cached());
+      dialog_id, user_id, convert_send_message_action(std::move(update->action_)), get_short_update_date());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEncryptedChatTyping> update, bool /*force_apply*/) {
@@ -1665,7 +1673,7 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateEncryptedChatTy
   }
 
   td_->messages_manager_->on_user_dialog_action(dialog_id, user_id, make_tl_object<td_api::chatActionTyping>(),
-                                                G()->unix_time_cached());
+                                                get_short_update_date());
 }
 
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateUserStatus> update, bool /*force_apply*/) {
