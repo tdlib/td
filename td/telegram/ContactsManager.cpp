@@ -9360,7 +9360,6 @@ std::pair<int32, vector<UserId>> ContactsManager::search_among_users(const vecto
                                                                      const string &query, int32 limit) {
   Hints hints;  // TODO cache Hints
 
-  UserId my_user_id = get_my_id();
   for (auto user_id : user_ids) {
     auto u = get_user(user_id);
     if (u == nullptr) {
