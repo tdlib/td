@@ -9333,6 +9333,14 @@ void MessagesManager::read_secret_chat_outbox(SecretChatId secret_chat_id, int32
   if (d == nullptr) {
     return;
   }
+
+  if (read_date > 0) {
+    auto user_id = td_->contacts_manager_->get_secret_chat_user_id(secret_chat_id);
+    if (user_id.is_valid()) {
+      td_->contacts_manager_->on_update_user_local_was_online(user_id, read_date);
+    }
+  }
+
   // TODO: protect with logevent
   suffix_load_till_date(
       d, up_to_date,
