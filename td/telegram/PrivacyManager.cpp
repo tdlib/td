@@ -195,7 +195,7 @@ Result<PrivacyManager::UserPrivacySettingRule> PrivacyManager::UserPrivacySettin
   UserPrivacySettingRule res(*rule);
   for (auto user_id : res.user_ids_) {
     if (!G()->td().get_actor_unsafe()->contacts_manager_->have_user(UserId(user_id))) {
-      return Status::Error(500, "Got unaccessible user from the server");
+      return Status::Error(500, "Got inaccessible user from the server");
     }
   }
   return res;

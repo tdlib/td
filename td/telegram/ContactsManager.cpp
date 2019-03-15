@@ -8703,7 +8703,7 @@ bool ContactsManager::get_user_full(UserId user_id, Promise<Unit> &&promise) {
   if (user_full == nullptr || !user_full->is_inited) {
     auto input_user = get_input_user(user_id);
     if (input_user == nullptr) {
-      promise.set_error(Status::Error(6, "Can't get info about unaccessible user"));
+      promise.set_error(Status::Error(6, "Can't get info about inaccessible user"));
       return false;
     }
 

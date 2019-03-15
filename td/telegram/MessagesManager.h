@@ -2334,7 +2334,7 @@ class MessagesManager : public Actor {
   };
 
   std::unordered_map<string, ResolvedUsername> resolved_usernames_;
-  std::unordered_map<string, DialogId> unaccessible_resolved_usernames_;
+  std::unordered_map<string, DialogId> inaccessible_resolved_usernames_;
 
   struct PendingOnGetDialogs {
     vector<tl_object_ptr<telegram_api::dialog>> dialogs;

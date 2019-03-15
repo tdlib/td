@@ -47,7 +47,7 @@ class RequestActor : public Actor {
     } else {
       if (--tries_left_ == 0) {
         future.close();
-        do_send_error(Status::Error(400, "Requested data is unaccessible"));
+        do_send_error(Status::Error(400, "Requested data is inaccessible"));
         return stop();
       }
 

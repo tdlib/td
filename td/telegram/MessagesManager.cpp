@@ -20027,8 +20027,8 @@ DialogId MessagesManager::resolve_dialog_username(const string &username) {
     return it->second.dialog_id;
   }
 
-  auto it2 = unaccessible_resolved_usernames_.find(clean_username(username));
-  if (it2 != unaccessible_resolved_usernames_.end()) {
+  auto it2 = inaccessible_resolved_usernames_.find(clean_username(username));
+  if (it2 != inaccessible_resolved_usernames_.end()) {
     return it2->second;
   }
 
@@ -20053,8 +20053,8 @@ DialogId MessagesManager::search_public_dialog(const string &username_to_search,
     }
     dialog_id = it->second.dialog_id;
   } else {
-    auto it2 = unaccessible_resolved_usernames_.find(username);
-    if (it2 != unaccessible_resolved_usernames_.end()) {
+    auto it2 = inaccessible_resolved_usernames_.find(username);
+    if (it2 != inaccessible_resolved_usernames_.end()) {
       dialog_id = it2->second;
     }
   }
@@ -20241,7 +20241,7 @@ void MessagesManager::on_dialog_username_updated(DialogId dialog_id, const strin
   }
   if (!old_username.empty() && old_username != new_username) {
     resolved_usernames_.erase(clean_username(old_username));
-    unaccessible_resolved_usernames_.erase(clean_username(old_username));
+    inaccessible_resolved_usernames_.erase(clean_username(old_username));
   }
   if (!new_username.empty()) {
     auto cache_time = is_update_about_username_change_received(dialog_id) ? USERNAME_CACHE_EXPIRE_TIME
@@ -20263,11 +20263,11 @@ void MessagesManager::on_resolved_username(const string &username, DialogId dial
     return;
   }
 
-  unaccessible_resolved_usernames_[clean_username(username)] = dialog_id;
+  inaccessible_resolved_usernames_[clean_username(username)] = dialog_id;
 }
 
 void MessagesManager::drop_username(const string &username) {
-  unaccessible_resolved_usernames_.erase(clean_username(username));
+  inaccessible_resolved_usernames_.erase(clean_username(username));
 
   auto it = resolved_usernames_.find(clean_username(username));
   if (it == resolved_usernames_.end()) {

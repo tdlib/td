@@ -2407,7 +2407,7 @@ updateActiveNotifications groups:vector<notificationGroup> = Update;
 updateHavePendingNotifications have_pending_notifications:Bool = Update;
 
 //@description Some messages were deleted @chat_id Chat identifier @message_ids Identifiers of the deleted messages
-//@is_permanent True, if the messages are permanently deleted by a user (as opposed to just becoming unaccessible)
+//@is_permanent True, if the messages are permanently deleted by a user (as opposed to just becoming inaccessible)
 //@from_cache True, if the messages are deleted only from the cache and can possibly be retrieved again in the future
 updateDeleteMessages chat_id:int53 message_ids:vector<int53> is_permanent:Bool from_cache:Bool = Update;
 
