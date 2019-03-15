@@ -221,6 +221,9 @@ ActorOwn<> get_full_config(DcId dc_id, IPAddress ip_address, Promise<FullConfig>
     void on_tmp_auth_key_updated(mtproto::AuthKey auth_key) final {
       // nop
     }
+    void on_result(NetQueryPtr net_query) final {
+      G()->net_query_dispatcher().dispatch(std::move(net_query));
+    }
 
    private:
     ActorShared<> parent_;

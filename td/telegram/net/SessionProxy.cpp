@@ -55,6 +55,11 @@ class SessionCallback : public Session::Callback {
     send_closure(parent_, &SessionProxy::on_server_salt_updated, std::move(server_salts));
   }
 
+  void on_result(NetQueryPtr query) override {
+    G()->net_query_dispatcher().dispatch(std::move(query));
+    send_closure(parent_, &SessionProxy::on_query_finished);
+  }
+
  private:
   ActorShared<SessionProxy> parent_;
   DcId dc_id_;
@@ -63,9 +68,11 @@ class SessionCallback : public Session::Callback {
   size_t hash_ = 0;
 };
 
-SessionProxy::SessionProxy(std::shared_ptr<AuthDataShared> shared_auth_data, bool is_main, bool allow_media_only,
-                           bool is_media, bool use_pfs, bool is_cdn, bool need_destroy)
-    : auth_data_(std::move(shared_auth_data))
+SessionProxy::SessionProxy(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data,
+                           bool is_main, bool allow_media_only, bool is_media, bool use_pfs, bool is_cdn,
+                           bool need_destroy)
+    : callback_(std::move(callback))
+    , auth_data_(std::move(shared_auth_data))
     , is_main_(is_main)
     , allow_media_only_(allow_media_only)
     , is_media_(is_media)
@@ -223,6 +230,10 @@ void SessionProxy::on_tmp_auth_key_updated(mtproto::AuthKey auth_key) {
 }
 void SessionProxy::on_server_salt_updated(std::vector<mtproto::ServerSalt> server_salts) {
   server_salts_ = std::move(server_salts);
+}
+
+void SessionProxy::on_query_finished() {
+  callback_->on_query_finished();
 }
 
 }  // namespace td

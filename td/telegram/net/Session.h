@@ -60,6 +60,7 @@ class Session final
     virtual void on_server_salt_updated(std::vector<mtproto::ServerSalt> server_salts) {
     }
     // one still have to call close after on_closed
+    virtual void on_result(NetQueryPtr net_query) = 0;
   };
 
   Session(unique_ptr<Callback> callback, std::shared_ptr<AuthDataShared> shared_auth_data, int32 dc_id, bool is_main,

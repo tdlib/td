@@ -275,7 +275,7 @@ void Session::return_query(NetQueryPtr &&query) {
   last_activity_timestamp_ = Time::now();
 
   query->set_session_id(0);
-  G()->net_query_dispatcher().dispatch(std::move(query));
+  callback_->on_result(std::move(query));
 }
 
 void Session::flush_pending_invoke_after_queries() {

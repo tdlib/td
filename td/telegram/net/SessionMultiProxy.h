@@ -46,7 +46,12 @@ class SessionMultiProxy : public Actor {
   bool is_media_ = false;
   bool is_cdn_ = false;
   bool need_destroy_auth_key_ = false;
-  std::vector<ActorOwn<SessionProxy>> sessions_;
+  struct SessionInfo {
+    ActorOwn<SessionProxy> proxy;
+    int queries_count{0};
+  };
+  uint32 sessions_generation_{0};
+  std::vector<SessionInfo> sessions_;
 
   void start_up() override;
   void init();
@@ -54,6 +59,8 @@ class SessionMultiProxy : public Actor {
   bool get_pfs_flag() const;
 
   void update_auth_state();
+
+  void on_query_finished(uint32 generation, int session_id);
 };
 
 }  // namespace td

@@ -45,20 +45,21 @@ void SessionMultiProxy::send(NetQueryPtr query) {
     }
   }
   query->debug(PSTRING() << get_name() << ": send to proxy #" << pos);
-  send_closure(sessions_[pos], &SessionProxy::send, std::move(query));
+  sessions_[pos].queries_count++;
+  send_closure(sessions_[pos].proxy, &SessionProxy::send, std::move(query));
 }
 
 void SessionMultiProxy::update_main_flag(bool is_main) {
   LOG(INFO) << "Update " << get_name() << " is_main to " << is_main;
   is_main_ = is_main;
   for (auto &session : sessions_) {
-    send_closure(session, &SessionProxy::update_main_flag, is_main);
+    send_closure(session.proxy, &SessionProxy::update_main_flag, is_main);
   }
 }
 
 void SessionMultiProxy::update_destroy_auth_key(bool need_destroy_auth_key) {
   need_destroy_auth_key_ = need_destroy_auth_key;
-  send_closure(sessions_[0], &SessionProxy::update_destroy, need_destroy_auth_key_);
+  send_closure(sessions_[0].proxy, &SessionProxy::update_destroy, need_destroy_auth_key_);
 }
 void SessionMultiProxy::update_session_count(int32 session_count) {
   update_options(session_count, use_pfs_);
@@ -97,7 +98,7 @@ void SessionMultiProxy::update_options(int32 session_count, bool use_pfs) {
 
 void SessionMultiProxy::update_mtproto_header() {
   for (auto &session : sessions_) {
-    send_closure_later(session, &SessionProxy::update_mtproto_header);
+    send_closure_later(session.proxy, &SessionProxy::update_mtproto_header);
   }
 }
 
@@ -110,6 +111,7 @@ bool SessionMultiProxy::get_pfs_flag() const {
 }
 
 void SessionMultiProxy::init() {
+  sessions_generation_++;
   sessions_.clear();
   if (is_main_) {
     LOG(WARNING) << tag("session_count", session_count_);
@@ -117,9 +119,35 @@ void SessionMultiProxy::init() {
   for (int32 i = 0; i < session_count_; i++) {
     string name = PSTRING() << "Session" << get_name().substr(Slice("SessionMulti").size())
                             << format::cond(session_count_ > 1, format::concat("#", i));
-    sessions_.push_back(create_actor<SessionProxy>(name, auth_data_, is_main_, allow_media_only_, is_media_,
-                                                   get_pfs_flag(), is_cdn_, need_destroy_auth_key_ && i == 0));
+
+    SessionInfo info;
+    class Callback : public SessionProxy::Callback {
+     public:
+      Callback(ActorId<SessionMultiProxy> parent, uint32 generation, int32 session_id)
+          : parent_(parent), generation_(generation), session_id_(session_id) {
+      }
+      void on_query_finished() override {
+        send_closure(parent_, &SessionMultiProxy::on_query_finished, generation_, session_id_);
+      }
+
+     private:
+      ActorId<SessionMultiProxy> parent_;
+      uint32 generation_;
+      int32 session_id_;
+    };
+    info.proxy = create_actor<SessionProxy>(name, make_unique<Callback>(actor_id(this), sessions_generation_, i),
+                                            auth_data_, is_main_, allow_media_only_, is_media_, get_pfs_flag(), is_cdn_,
+                                            need_destroy_auth_key_ && i == 0);
+    sessions_.push_back(std::move(info));
   }
+}
+
+void SessionMultiProxy::on_query_finished(uint32 generation, int session_id) {
+  if (generation != sessions_generation_) {
+    return;
+  }
+  sessions_.at(session_id).queries_count--;
+  CHECK(sessions_.at(session_id).queries_count >= 0);
 }
 
 }  // namespace td
