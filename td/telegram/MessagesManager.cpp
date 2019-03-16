@@ -5632,10 +5632,10 @@ void MessagesManager::process_channel_update(tl_object_ptr<telegram_api::Update>
       break;
     }
     case telegram_api::updateEditChannelMessage::ID: {
+      LOG(INFO) << "Process updateEditChannelMessage";
       auto full_message_id =
           on_get_message(std::move(move_tl_object_as<telegram_api::updateEditChannelMessage>(update)->message_), false,
                          true, false, false, "updateEditChannelMessage");
-      LOG(INFO) << "Process updateEditChannelMessage";
       on_message_edited(full_message_id);
       break;
     }
@@ -21697,8 +21697,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
                         message_id.get() > d->last_database_message_id.get() && !message->is_failed_to_send))) {
     if (!message->from_database) {
       LOG(ERROR) << "Ignore " << message_id << " in " << dialog_id << " received not through update from " << source
-                 << ". Last new is " << d->last_new_message_id << ", "
-                 << to_string(get_message_object(dialog_id, message.get()));
+                 << ". Last new is " << d->last_new_message_id << ", channel difference "
+                 << debug_channel_difference_dialog_ << to_string(get_message_object(dialog_id, message.get()));
       dump_debug_message_op(d, 3);
       if (dialog_id.get_type() == DialogType::Channel && have_input_peer(dialog_id, AccessRights::Read)) {
         channel_get_difference_retry_timeout_.add_timeout_in(dialog_id.get(), 0.001);
@@ -24041,6 +24041,8 @@ void MessagesManager::process_get_channel_difference_updates(
     vector<tl_object_ptr<telegram_api::Update>> &&other_updates) {
   LOG(INFO) << "In get channel difference for " << dialog_id << " receive " << new_messages.size() << " messages and "
             << other_updates.size() << " other updates";
+  CHECK(!debug_channel_difference_dialog_.is_valid());
+  debug_channel_difference_dialog_ = dialog_id;
   for (auto &update : other_updates) {
     if (update->get_id() == telegram_api::updateMessageID::ID) {
       auto sent_message_update = move_tl_object_as<telegram_api::updateMessageID>(update);
@@ -24078,6 +24080,9 @@ void MessagesManager::process_get_channel_difference_updates(
   if (need_repair_unread_count) {
     repair_channel_server_unread_count(get_dialog(dialog_id));
   }
+
+  CHECK(debug_channel_difference_dialog_ == dialog_id);
+  debug_channel_difference_dialog_ = DialogId();
 }
 
 void MessagesManager::on_get_channel_dialog(DialogId dialog_id, MessageId last_message_id,

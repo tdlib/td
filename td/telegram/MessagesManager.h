@@ -2384,6 +2384,8 @@ class MessagesManager : public Actor {
 
   DialogId being_added_dialog_id_;
 
+  DialogId debug_channel_difference_dialog_;
+
   double start_time_ = 0;
   bool is_inited_ = false;
 
