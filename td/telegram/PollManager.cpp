@@ -665,12 +665,14 @@ void PollManager::on_set_poll_answer(PollId poll_id, uint64 generation,
   auto promises = std::move(pending_answer.promises_);
   pending_answers_.erase(it);
 
-  td_->updates_manager_->on_get_updates(result.move_as_ok());
+  if (result.is_ok()) {
+    td_->updates_manager_->on_get_updates(result.move_as_ok());
 
-  for (auto &promise : promises) {
-    if (result.is_ok()) {
+    for (auto &promise : promises) {
       promise.set_value(Unit());
-    } else {
+    }
+  } else {
+    for (auto &promise : promises) {
       promise.set_error(result.error().clone());
     }
   }
