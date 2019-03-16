@@ -149,7 +149,7 @@ tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *co
                                                         tl_object_ptr<telegram_api::InputFile> input_thumbnail,
                                                         FileId file_id, FileId thumbnail_file_id, int32 ttl);
 
-tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td, int32 ttl);
+tl_object_ptr<telegram_api::InputMedia> get_input_media(const MessageContent *content, Td *td, int32 ttl, bool force);
 
 void delete_message_content_thumbnail(MessageContent *content, Td *td);
 

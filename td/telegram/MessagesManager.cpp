@@ -15754,7 +15754,7 @@ void MessagesManager::do_send_message(DialogId dialog_id, Message *m, vector<int
       on_secret_message_media_uploaded(dialog_id, m, std::move(secret_input_media), file_id, thumbnail_file_id);
     }
   } else {
-    auto input_media = get_input_media(content, td_, m->ttl);
+    auto input_media = get_input_media(content, td_, m->ttl, false);
     if (input_media == nullptr) {
       if (content_type == MessageContentType::Photo) {
         thumbnail_file_id = FileId();
@@ -15920,7 +15920,7 @@ void MessagesManager::on_upload_message_media_success(DialogId dialog_id, Messag
 
   update_message_content(dialog_id, m, std::move(content), true, true, true);
 
-  auto input_media = get_input_media(m->content.get(), td_, m->ttl);
+  auto input_media = get_input_media(m->content.get(), td_, m->ttl, true);
   Status result;
   if (input_media == nullptr) {
     result = Status::Error(400, "Failed to upload file");
@@ -16059,7 +16059,7 @@ void MessagesManager::do_send_message_group(int64 media_album_id) {
     file_ids.push_back(get_message_content_file_id(m->content.get()));
     random_ids.push_back(begin_send_message(dialog_id, m));
     const FormattedText *caption = get_message_content_caption(m->content.get());
-    auto input_media = get_input_media(m->content.get(), td_, m->ttl);
+    auto input_media = get_input_media(m->content.get(), td_, m->ttl, true);
     CHECK(input_media != nullptr);
     auto entities = get_input_message_entities(td_->contacts_manager_.get(), caption, "do_send_message_group");
     int32 input_single_media_flags = 0;
@@ -17086,7 +17086,7 @@ void MessagesManager::edit_inline_message_media(const string &inline_message_id,
     return promise.set_error(Status::Error(400, "Wrong inline message identifier specified"));
   }
 
-  auto input_media = get_input_media(content.content.get(), td_, 0);
+  auto input_media = get_input_media(content.content.get(), td_, 0, true);
   if (input_media == nullptr) {
     return promise.set_error(Status::Error(400, "Wrong message content specified"));
   }
@@ -18360,7 +18360,7 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
       LOG_CHECK(m->notification_id.get() < from_notification_id.get())
           << from_mentions << " " << d->dialog_id << " " << m->message_id << " " << m->notification_id << " "
           << from_message_id << " " << from_notification_id << " " << group_info.group_id << " "
-          << group_info.last_notification_date << " " << greoup_info.last_notification_id << " "
+          << group_info.last_notification_date << " " << group_info.last_notification_id << " "
           << group_info.max_removed_notification_id;
       from_notification_id = m->notification_id;
       from_message_id = m->message_id;
