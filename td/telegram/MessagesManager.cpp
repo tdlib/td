@@ -22998,18 +22998,19 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
   if (d == nullptr) {
     LOG(INFO) << "Force create " << dialog_id << " from " << source;
     if (loaded_dialogs_.count(dialog_id) > 0) {
+      LOG(INFO) << "Skip creation of " << dialog_id << ", because it is being loaded now";
       return;
     }
 
     d = add_dialog(dialog_id);
     update_dialog_pos(d, false, "force_create_dialog");
 
-    if (dialog_id.get_type() == DialogType::SecretChat) {
+    if (dialog_id.get_type() == DialogType::SecretChat && !d->notification_settings.is_synchronized) {
       // secret chat is being created
       // let's copy notification settings from main chat if available
       VLOG(notifications) << "Create new secret " << dialog_id << " from " << source;
       auto secret_chat_id = dialog_id.get_secret_chat_id();
-      if (!d->notification_settings.is_synchronized) {
+      {
         auto user_id = td_->contacts_manager_->get_secret_chat_user_id(secret_chat_id);
         Dialog *user_d = get_dialog_force(DialogId(user_id));
         if (user_d != nullptr && user_d->notification_settings.is_synchronized) {
@@ -23019,33 +23020,32 @@ void MessagesManager::force_create_dialog(DialogId dialog_id, const char *source
           new_notification_settings.show_preview = false;
           new_notification_settings.is_secret_chat_show_preview_fixed = true;
           update_dialog_notification_settings(dialog_id, &d->notification_settings, new_notification_settings);
+        } else {
+          d->notification_settings.is_synchronized = true;
         }
+      }
 
-        if (G()->parameters().use_message_db && !td_->auth_manager_->is_bot() &&
-            !td_->contacts_manager_->get_secret_chat_is_outbound(secret_chat_id)) {
-          auto notification_group_id = get_dialog_notification_group_id(dialog_id, d->message_notification_group);
-          if (notification_group_id.is_valid()) {
+      if (G()->parameters().use_message_db && !td_->auth_manager_->is_bot() &&
+          !td_->contacts_manager_->get_secret_chat_is_outbound(secret_chat_id)) {
+        auto notification_group_id = get_dialog_notification_group_id(dialog_id, d->message_notification_group);
+        if (notification_group_id.is_valid()) {
+          if (d->new_secret_chat_notification_id.is_valid()) {
+            LOG(ERROR) << "Found previously created " << d->new_secret_chat_notification_id << " in " << d->dialog_id
+                       << ", when creating it from " << source;
+          } else {
+            d->new_secret_chat_notification_id = get_next_notification_id(d, notification_group_id, MessageId());
             if (d->new_secret_chat_notification_id.is_valid()) {
-              LOG(ERROR) << "Found previously created " << d->new_secret_chat_notification_id << " in " << d->dialog_id
-                         << ", when creating it from " << source;
-            } else {
-              d->new_secret_chat_notification_id = get_next_notification_id(d, notification_group_id, MessageId());
-              if (d->new_secret_chat_notification_id.is_valid()) {
-                auto date = td_->contacts_manager_->get_secret_chat_date(secret_chat_id);
-                bool is_changed =
-                    set_dialog_last_notification(dialog_id, d->message_notification_group, date,
-                                                 d->new_secret_chat_notification_id, "add_new_secret_chat");
-                CHECK(is_changed);
-                VLOG(notifications) << "Create " << d->new_secret_chat_notification_id << " with " << secret_chat_id;
-                send_closure_later(G()->notification_manager(), &NotificationManager::add_notification,
-                                   notification_group_id, NotificationGroupType::SecretChat, dialog_id, date, dialog_id,
-                                   false, 0, d->new_secret_chat_notification_id, create_new_secret_chat_notification());
-              }
+              auto date = td_->contacts_manager_->get_secret_chat_date(secret_chat_id);
+              bool is_changed = set_dialog_last_notification(dialog_id, d->message_notification_group, date,
+                                                             d->new_secret_chat_notification_id, "add_new_secret_chat");
+              CHECK(is_changed);
+              VLOG(notifications) << "Create " << d->new_secret_chat_notification_id << " with " << secret_chat_id;
+              send_closure_later(G()->notification_manager(), &NotificationManager::add_notification,
+                                 notification_group_id, NotificationGroupType::SecretChat, dialog_id, date, dialog_id,
+                                 false, 0, d->new_secret_chat_notification_id, create_new_secret_chat_notification());
             }
           }
         }
-      } else {
-        LOG(ERROR) << "Found previously created secret " << d->dialog_id << ", when creating it from " << source;
       }
     }
     if (!have_input_peer(dialog_id, AccessRights::Read)) {
@@ -23140,7 +23140,6 @@ MessagesManager::Dialog *MessagesManager::add_new_dialog(unique_ptr<Dialog> &&d,
       d->need_restore_reply_markup = false;
       d->is_last_read_inbox_message_id_inited = true;
       d->is_last_read_outbox_message_id_inited = true;
-      d->notification_settings.is_synchronized = true;
       d->know_can_report_spam = true;
       d->is_pinned_message_id_inited = true;
       if (!is_loaded_from_database) {
