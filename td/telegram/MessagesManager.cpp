@@ -18357,7 +18357,11 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
         continue;
       }
 
-      CHECK(m->notification_id.get() < from_notification_id.get());
+      LOG_CHECK(m->notification_id.get() < from_notification_id.get())
+          << from_mentions << " " << d->dialog_id << " " << m->message_id << " " << m->notification_id << " "
+          << from_message_id << " " << from_notification_id << " " << group_info.group_id << " "
+          << group_info.last_notification_date << " " << greoup_info.last_notification_id << " "
+          << group_info.max_removed_notification_id;
       from_notification_id = m->notification_id;
       from_message_id = m->message_id;
       is_found = true;
