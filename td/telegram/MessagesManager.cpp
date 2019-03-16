@@ -8488,7 +8488,8 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
       }
       total_count -= static_cast<int32>(d->pending_new_message_notifications.size());
       if (total_count < 0) {
-        LOG(ERROR) << "Total message notification count is negative in " << d->dialog_id;
+        LOG(ERROR) << "Total message notification count is " << total_count << " in " << d->dialog_id << " with "
+                   << d->pending_new_message_notifications.size() << " pending new message notifications";
         total_count = 0;
       }
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group,
@@ -18205,10 +18206,12 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
                       << " unread messages";
   result.dialog_id = d->dialog_id;
   result.total_count = get_dialog_pending_notification_count(d, from_mentions);
-  result.total_count -= static_cast<int32>(from_mentions ? d->pending_new_mention_notifications.size()
-                                                         : d->pending_new_message_notifications.size());
+  auto pending_notification_count =
+      from_mentions ? d->pending_new_mention_notifications.size() : d->pending_new_message_notifications.size();
+  result.total_count -= static_cast<int32>(pending_notification_count);
   if (result.total_count < 0) {
-    LOG(ERROR) << "Total notification count is negative in " << d->dialog_id;
+    LOG(ERROR) << "Total notification count is " << result.total_count << " in " << d->dialog_id << " with "
+               << pending_notification_count << " pending new notifications";
     result.total_count = 0;
   }
   if (d->new_secret_chat_notification_id.is_valid()) {
@@ -18691,7 +18694,8 @@ void MessagesManager::update_dialog_mention_notification_count(const Dialog *d) 
   auto total_count =
       get_dialog_pending_notification_count(d, true) - static_cast<int32>(d->pending_new_mention_notifications.size());
   if (total_count < 0) {
-    LOG(ERROR) << "Total mention notification count is negative in " << d->dialog_id;
+    LOG(ERROR) << "Total mention notification count is " << total_count << " in " << d->dialog_id << " with "
+               << d->pending_new_mention_notifications << " pending new mention notifications";
     total_count = 0;
   }
   send_closure_later(G()->notification_manager(), &NotificationManager::set_notification_total_count,
