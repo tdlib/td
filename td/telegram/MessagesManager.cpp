@@ -18658,6 +18658,13 @@ void MessagesManager::remove_message_notifications(DialogId dialog_id, Notificat
                       << max_notification_id;
   group_info.max_removed_notification_id = max_notification_id;
   on_dialog_updated(dialog_id, "remove_message_notifications");
+
+  if (group_info.last_notification_id.is_valid() &&
+      max_notification_id.get() >= group_info.last_notification_id.get()) {
+    bool is_changed =
+        set_dialog_last_notification(dialog_id, group_info, 0, NotificationId(), "remove_message_notifications");
+    CHECK(is_changed);
+  }
 }
 
 int32 MessagesManager::get_dialog_pending_notification_count(const Dialog *d, bool from_mentions) const {
