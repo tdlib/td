@@ -8480,11 +8480,23 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
   }
   if (message_id != MessageId::min() && d->last_read_inbox_message_id.is_valid() && d->order != DEFAULT_ORDER &&
       d->order != SPONSORED_DIALOG_ORDER) {
+    VLOG(notifications) << "Remove some notifications in " << d->dialog_id
+                        << " after updating last read inbox message to " << message_id
+                        << " and unread message count to " << server_unread_count << " + " << local_unread_count
+                        << " from " << source;
     if (d->message_notification_group.group_id.is_valid()) {
       auto total_count = get_dialog_pending_notification_count(d, false);
       if (total_count == 0) {
         set_dialog_last_notification(d->dialog_id, d->message_notification_group, 0, NotificationId(),
                                      "set_dialog_last_read_inbox_message_id");
+      }
+      if (!d->pending_new_message_notifications.empty()) {
+        for (auto &it : d->pending_new_message_notifications) {
+          if (it.second.get() <= message_id.get()) {
+            it.first = DialogId();
+          }
+        }
+        flush_pending_new_message_notifications(d->dialog_id, false, DialogId(UserId(1)));
       }
       total_count -= static_cast<int32>(d->pending_new_message_notifications.size());
       if (total_count < 0) {
