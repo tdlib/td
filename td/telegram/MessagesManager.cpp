@@ -18828,9 +18828,12 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
     VLOG(notifications) << "Delay new message notification for " << m->message_id << " in " << d->dialog_id << " with "
                         << pending_notifications.size() << " already waiting messages";
     if (pending_notifications.empty()) {
+      VLOG(notifications) << "Create FlushPendingNewMessageNotificationsSleepActor for " << d->dialog_id;
       create_actor<SleepActor>("FlushPendingNewMessageNotificationsSleepActor", 5.0,
                                PromiseCreator::lambda([actor_id = actor_id(this), dialog_id = d->dialog_id,
                                                        from_mentions](Result<Unit> result) {
+                                 VLOG(notifications)
+                                     << "Pending notifications timeout in " << dialog_id << " has expired";
                                  send_closure(actor_id, &MessagesManager::flush_pending_new_message_notifications,
                                               dialog_id, from_mentions, DialogId());
                                }))
@@ -18908,6 +18911,7 @@ void MessagesManager::flush_pending_new_message_notifications(DialogId dialog_id
   auto &pending_notifications =
       from_mentions ? d->pending_new_mention_notifications : d->pending_new_message_notifications;
   if (pending_notifications.empty()) {
+    VLOG(notifications) << "Have no pending notifications in " << dialog_id << " to flush";
     return;
   }
   for (auto &it : pending_notifications) {
@@ -23387,7 +23391,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
                       << d->new_secret_chat_notification_id;
   VLOG(notifications) << "Have " << dialog_id << " with mention " << d->mention_notification_group.group_id
                       << " with last " << d->mention_notification_group.last_notification_id << " sent at "
-                      << d->mention_notification_group.last_notification_date << " and max removed "
+                      << d->mention_notification_group.last_notification_date << ", max removed "
                       << d->mention_notification_group.max_removed_notification_id << " and pinned message "
                       << d->pinned_message_notification_message_id;
 }
