@@ -524,6 +524,7 @@ void photo_delete_thumbnail(Photo &photo) {
   for (size_t i = 0; i < photo.photos.size(); i++) {
     if (photo.photos[i].type == 't') {
       photo.photos.erase(photo.photos.begin() + i);
+      return;
     }
   }
 }
