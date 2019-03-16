@@ -18201,6 +18201,26 @@ MessagesManager::MessageNotificationGroup MessagesManager::get_message_notificat
   if (d == nullptr) {
     return MessageNotificationGroup();
   }
+  if (d->message_notification_group.group_id != group_id && d->mention_notification_group.group_id != group_id) {
+    if (d->dialog_id.get_type() == DialogType::SecretChat && !d->message_notification_group.group_id.is_valid() &&
+        !d->mention_notification_group.group_id.is_valid()) {
+      // the group was reused, but wasn't deleted from the database, trying to resave it
+      auto &group_info = d->message_notification_group;
+      group_info.group_id = group_id;
+      group_info.is_changed = true;
+      group_info.try_reuse = true;
+      save_dialog_to_database(d->dialog_id);
+      group_info.group_id = NotificationGroupId();
+      group_info.is_changed = false;
+      group_info.try_reuse = false;
+
+      if (Random::fast(0, 9) > 0) {
+        // allow crash with probability 10% if resaving doesn't help
+        return MessageNotificationGroup();
+      }
+    }
+  }
+
   LOG_CHECK(d->message_notification_group.group_id == group_id || d->mention_notification_group.group_id == group_id)
       << group_id << " " << d->message_notification_group.group_id << " " << d->mention_notification_group.group_id
       << " " << d->dialog_id << " " << notification_group_id_to_dialog_id_[group_id] << " "
