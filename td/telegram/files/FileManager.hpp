@@ -30,12 +30,12 @@ void FileManager::store_file(FileId file_id, StorerT &storer, int32 ttl) const {
   if (file_view.empty() || ttl <= 0) {
   } else if (file_view.has_remote_location()) {
     file_store_type = FileStoreType::Remote;
-  } else if (file_view.has_local_location()) {
-    file_store_type = FileStoreType::Local;
   } else if (file_view.has_url()) {
     file_store_type = FileStoreType::Url;
   } else if (file_view.has_generate_location()) {
     file_store_type = FileStoreType::Generate;
+  } else if (file_view.has_local_location()) {
+    file_store_type = FileStoreType::Local;
   }
 
   store(file_store_type, storer);
@@ -173,7 +173,8 @@ FileId FileManager::parse_file(ParserT &parser) {
         if (r_file_id.is_ok()) {
           return r_file_id.move_as_ok();
         }
-        LOG(ERROR) << "Can't resend local file " << full_local_location.path_;
+        LOG(ERROR) << "Can't resend local file " << full_local_location << " of size " << size << " owned by "
+                   << owner_dialog_id;
         return register_empty(full_local_location.file_type_);
       }
       case FileStoreType::Generate: {
