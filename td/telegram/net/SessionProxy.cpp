@@ -56,7 +56,8 @@ class SessionCallback : public Session::Callback {
   }
 
   void on_result(NetQueryPtr query) override {
-    if (query->id() != 0) {  // not an update
+    if (UniqueId::extract_type(query->id()) != UniqueId::BindKey &&
+        query->id() != 0) {  // not bind key query and not an update
       send_closure(parent_, &SessionProxy::on_query_finished);
     }
     G()->net_query_dispatcher().dispatch(std::move(query));
