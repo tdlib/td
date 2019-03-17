@@ -13,6 +13,8 @@
 #include "td/utils/logging.h"
 #include "td/utils/Slice.h"
 
+#include <algorithm>
+
 namespace td {
 
 SessionMultiProxy::SessionMultiProxy() = default;

@@ -21,7 +21,6 @@
 #include "td/telegram/StateManager.h"
 #include "td/telegram/TdDb.h"
 #include "td/telegram/Td.h"
-#include "td/telegram/TdParameters.h"
 #include "td/telegram/UpdatesManager.h"
 
 #include "td/db/binlog/BinlogEvent.h"
@@ -335,7 +334,7 @@ vector<int32> PollManager::get_vote_percentage(const vector<int32> &voter_counts
     // just round to the nearest
     for (size_t i = 0; i < result.size(); i++) {
       result[i] =
-          static_cast<int32>((static_cast<int64_t>(voter_counts[i]) * 200 + total_voter_count) / total_voter_count / 2);
+          static_cast<int32>((static_cast<int64>(voter_counts[i]) * 200 + total_voter_count) / total_voter_count / 2);
     }
     return result;
   }
@@ -344,10 +343,10 @@ vector<int32> PollManager::get_vote_percentage(const vector<int32> &voter_counts
   int32 percent_sum = 0;
   vector<int32> gap(voter_counts.size(), 0);
   for (size_t i = 0; i < result.size(); i++) {
-    auto multiplied_voter_count = static_cast<int64_t>(voter_counts[i]) * 100;
+    auto multiplied_voter_count = static_cast<int64>(voter_counts[i]) * 100;
     result[i] = static_cast<int32>(multiplied_voter_count / total_voter_count);
     CHECK(0 <= result[i] && result[i] <= 100);
-    gap[i] = static_cast<int32>(static_cast<int64_t>(result[i] + 1) * total_voter_count - multiplied_voter_count);
+    gap[i] = static_cast<int32>(static_cast<int64>(result[i] + 1) * total_voter_count - multiplied_voter_count);
     CHECK(0 <= gap[i] && gap[i] <= total_voter_count);
     percent_sum += result[i];
   }

@@ -11,6 +11,7 @@
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/net/NetQueryDispatcher.h"
 #include "td/telegram/net/Session.h"
+#include "td/telegram/UniqueId.h"
 
 #include "td/actor/PromiseFuture.h"
 
