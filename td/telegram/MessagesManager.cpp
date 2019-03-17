@@ -6138,7 +6138,7 @@ void MessagesManager::change_dialog_report_spam_state_on_server(DialogId dialog_
 bool MessagesManager::can_report_dialog(DialogId dialog_id) const {
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      return td_->contacts_manager_->is_user_bot(dialog_id.get_user_id());
+      return td_->contacts_manager_->can_report_user(dialog_id.get_user_id());
     case DialogType::Chat:
       return false;
     case DialogType::Channel:

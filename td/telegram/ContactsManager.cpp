@@ -8591,6 +8591,11 @@ Result<BotData> ContactsManager::get_bot_data(UserId user_id) const {
   return bot_data;
 }
 
+bool ContactsManager::can_report_user(UserId user_id) const {
+  auto u = get_user(user_id);
+  return u != nullptr && !u->is_deleted && u->is_bot && !u->is_support;
+}
+
 const ContactsManager::User *ContactsManager::get_user(UserId user_id) const {
   auto p = users_.find(user_id);
   if (p == users_.end()) {

@@ -336,6 +336,8 @@ class ContactsManager : public Actor {
   bool is_user_bot(UserId user_id) const;
   Result<BotData> get_bot_data(UserId user_id) const TD_WARN_UNUSED_RESULT;
 
+  bool can_report_user(UserId user_id) const;
+
   bool have_user(UserId user_id) const;
   bool have_min_user(UserId user_id) const;
   bool have_user_force(UserId user_id);
