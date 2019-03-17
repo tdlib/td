@@ -53,9 +53,10 @@ Status scan_db(CallbackT &&callback) {
     if (value.substr(0, 2) == "@@") {
       return;
     }
+    TlParser parser(value);
     FileData data;
-    auto status = unserialize(data, value);
-    if (status.is_error()) {
+    data.parse(parser, false);
+    if (parser.get_status().is_error()) {
       LOG(ERROR) << "Invalid FileData in the database " << tag("value", format::escaped(value));
       return;
     }

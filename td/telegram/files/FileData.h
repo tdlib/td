@@ -35,7 +35,7 @@ class FileData {
   void store(StorerT &storer) const;
 
   template <class ParserT>
-  void parse(ParserT &parser);
+  void parse(ParserT &parser, bool register_file_sources);
 };
 
 inline StringBuilder &operator<<(StringBuilder &sb, const FileData &file_data) {

@@ -275,8 +275,11 @@ class FileDb : public FileDbInterface {
     //LOG(DEBUG) << "By id " << id.get() << " found data " << format::as_hex_dump<4>(Slice(data_str));
     //LOG(INFO) << attempt_count;
 
+    TlParser parser(data_str);
     FileData data;
-    auto status = unserialize(data, data_str);
+    data.parse(parser, true);
+    parser.fetch_end();
+    auto status = parser.get_status();
     if (status.is_error()) {
       return std::move(status);
     }

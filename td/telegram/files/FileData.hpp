@@ -61,7 +61,7 @@ void FileData::store(StorerT &storer) const {
   }
 }
 template <class ParserT>
-void FileData::parse(ParserT &parser) {
+void FileData::parse(ParserT &parser, bool register_file_sources) {
   using ::td::parse;
   bool has_owner_dialog_id;
   bool has_expected_size;
@@ -96,8 +96,8 @@ void FileData::parse(ParserT &parser) {
   parse(url_, parser);
   encryption_key_.parse(encryption_key_is_secure ? FileEncryptionKey::Type::Secure : FileEncryptionKey::Type::Secret,
                         parser);
-  if (has_sources) {
-    auto td = G()->td().get_actor_unsafe();
+  if (has_sources && register_file_sources) {
+    Td *td = G()->td().get_actor_unsafe();
     int32 size;
     parse(size, parser);
     if (0 < size && size < 5) {
