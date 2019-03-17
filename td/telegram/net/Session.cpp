@@ -1200,10 +1200,10 @@ void Session::loop() {
           connection_send_bind_key(&main_connection_);
           need_flush = true;
         }
-        if (can_destroy_auth_key()) {
-          if (main_connection_.connection) {
-            main_connection_.connection->destroy_key();
-          }
+      }
+      if (can_destroy_auth_key()) {
+        if (main_connection_.connection) {
+          main_connection_.connection->destroy_key();
         }
       }
       if (need_flush) {
