@@ -18378,10 +18378,10 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
       }
 
       LOG_CHECK(m->notification_id.get() < from_notification_id.get())
-          << from_mentions << " " << d->dialog_id << " " << m->message_id << " " << m->notification_id << " "
-          << from_message_id << " " << from_notification_id << " " << group_info.group_id << " "
-          << group_info.last_notification_date << " " << group_info.last_notification_id << " "
-          << group_info.max_removed_notification_id;
+          << from_mentions << " " << is_from_mention_notification_group(d, m) << " " << d->dialog_id << " "
+          << m->message_id << " " << m->notification_id << " " << from_message_id << " " << from_notification_id << " "
+          << group_info.group_id << " " << group_info.last_notification_date << " " << group_info.last_notification_id
+          << " " << group_info.max_removed_notification_id;
       from_notification_id = m->notification_id;
       from_message_id = m->message_id;
       is_found = true;
@@ -18581,8 +18581,12 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
     }
 
     CHECK(!from_notification_id.is_valid() || m->notification_id.get() < from_notification_id.get());
+    LOG_CHECK(!from_message_id.is_valid() || m->message_id.get() < from_message_id.get())
+        << from_mentions << " " << is_from_mention_notification_group(d, m) << " " << dialog_id << " " << m->message_id
+        << " " << m->notification_id << " " << from_message_id << " " << from_notification_id << " "
+        << group_info.group_id << " " << group_info.last_notification_date << " " << group_info.last_notification_id
+        << " " << group_info.max_removed_notification_id;
     from_notification_id = m->notification_id;
-    CHECK(!from_message_id.is_valid() || m->message_id.get() < from_message_id.get());
     from_message_id = m->message_id;
 
     if (is_from_mention_notification_group(d, m) == from_mentions) {
