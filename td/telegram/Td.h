@@ -205,6 +205,11 @@ class Td final : public NetQueryCallback {
 
   template <class HandlerT, class... Args>
   std::shared_ptr<HandlerT> create_handler(Args &&... args) {
+    LOG_CHECK(close_flag_ < 2) << close_flag_
+#if TD_CLANG || TD_GCC
+                               << ' ' << __PRETTY_FUNCTION__
+#endif
+        ;
     auto ptr = std::make_shared<HandlerT>(std::forward<Args>(args)...);
     ptr->set_td(this);
     return ptr;

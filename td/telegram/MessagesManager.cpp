@@ -8629,6 +8629,10 @@ void MessagesManager::set_dialog_online_member_count(DialogId dialog_id, int32 o
 }
 
 void MessagesManager::on_update_dialog_online_member_count_timeout(DialogId dialog_id) {
+  if (G()->close_flag()) {
+    return;
+  }
+
   LOG(INFO) << "Expired timeout for online member count for " << dialog_id;
   Dialog *d = get_dialog(dialog_id);
   CHECK(d != nullptr);
@@ -23269,6 +23273,7 @@ void MessagesManager::fix_new_dialog(Dialog *d, unique_ptr<Message> &&last_datab
       d->new_secret_chat_notification_id.get() <= d->message_notification_group.max_removed_notification_id.get()) {
     VLOG(notifications) << "Fix removing new secret chat " << d->new_secret_chat_notification_id << " in " << dialog_id;
     d->new_secret_chat_notification_id = NotificationId();
+    on_dialog_updated(d->dialog_id, "fix new secret chat notification id");
   }
 
   auto pending_it = pending_add_dialog_last_database_message_dependent_dialogs_.find(dialog_id);

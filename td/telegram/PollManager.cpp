@@ -753,6 +753,9 @@ void PollManager::on_update_poll_timeout(PollId poll_id) {
   CHECK(!td_->auth_manager_->is_bot());
   CHECK(!is_local_poll_id(poll_id));
 
+  if (G()->close_flag()) {
+    return;
+  }
   if (get_poll_is_closed(poll_id)) {
     return;
   }
