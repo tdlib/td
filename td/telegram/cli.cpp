@@ -2192,30 +2192,17 @@ class CliClient final : public Actor {
     } else if (op == "GetChatAdministrators") {
       string chat_id = args;
       send_request(td_api::make_object<td_api::getChatAdministrators>(as_chat_id(chat_id)));
-    } else if (op == "GetSupergroupAdministrators") {
-      string supergroup_id;
-      string offset;
-      string limit;
-
-      std::tie(supergroup_id, args) = split(args);
-      std::tie(offset, limit) = split(args);
-      if (offset.empty()) {
-        offset = "0";
-      }
-      if (limit.empty()) {
-        limit = "10";
-      }
-      send_request(td_api::make_object<td_api::getSupergroupMembers>(
-          as_supergroup_id(supergroup_id), td_api::make_object<td_api::supergroupMembersFilterAdministrators>(),
-          to_integer<int32>(offset), to_integer<int32>(limit)));
-    } else if (op == "GetSupergroupBanned") {
+    } else if (op == "GetSupergroupAdministrators" || op == "GetSupergroupBanned" || op == "GetSupergroupBots" ||
+               op == "GetSupergroupMembers" || op == "SearchSupergroupMembers" || op == "GetSupergroupRestricted") {
       string supergroup_id;
       string query;
       string offset;
       string limit;
 
       std::tie(supergroup_id, args) = split(args);
-      std::tie(query, args) = split(args);
+      if (op == "GetSupergroupBanned" || op == "SearchSupergroupMembers" || op == "GetSupergroupRestricted") {
+        std::tie(query, args) = split(args);
+      }
       std::tie(offset, limit) = split(args);
       if (offset.empty()) {
         offset = "0";
@@ -2223,77 +2210,22 @@ class CliClient final : public Actor {
       if (limit.empty()) {
         limit = "10";
       }
-      send_request(td_api::make_object<td_api::getSupergroupMembers>(
-          as_supergroup_id(supergroup_id), td_api::make_object<td_api::supergroupMembersFilterBanned>(query),
-          to_integer<int32>(offset), to_integer<int32>(limit)));
-    } else if (op == "GetSupergroupBots") {
-      string supergroup_id;
-      string offset;
-      string limit;
-
-      std::tie(supergroup_id, args) = split(args);
-      std::tie(offset, limit) = split(args);
-      if (offset.empty()) {
-        offset = "0";
-      }
-      if (limit.empty()) {
-        limit = "10";
+      td_api::object_ptr<td_api::SupergroupMembersFilter> filter;
+      if (op == "GetSupergroupAdministrators") {
+        filter = td_api::make_object<td_api::supergroupMembersFilterAdministrators>();
+      } else if (op == "GetSupergroupBanned") {
+        filter = td_api::make_object<td_api::supergroupMembersFilterBanned>(query);
+      } else if (op == "GetSupergroupBots") {
+        filter = td_api::make_object<td_api::supergroupMembersFilterBots>();
+      } else if (op == "GetSupergroupMembers") {
+        filter = td_api::make_object<td_api::supergroupMembersFilterRecent>();
+      } else if (op == "SearchSupergroupMembers") {
+        filter = td_api::make_object<td_api::supergroupMembersFilterSearch>(query);
+      } else if (op == "GetSupergroupBanned") {
+        filter = td_api::make_object<td_api::supergroupMembersFilterRestricted>(query);
       }
       send_request(td_api::make_object<td_api::getSupergroupMembers>(
-          as_supergroup_id(supergroup_id), td_api::make_object<td_api::supergroupMembersFilterBots>(),
-          to_integer<int32>(offset), to_integer<int32>(limit)));
-    } else if (op == "GetSupergroupMembers") {
-      string supergroup_id;
-      string offset;
-      string limit;
-
-      std::tie(supergroup_id, args) = split(args);
-      std::tie(offset, limit) = split(args);
-      if (offset.empty()) {
-        offset = "0";
-      }
-      if (limit.empty()) {
-        limit = "10";
-      }
-      send_request(td_api::make_object<td_api::getSupergroupMembers>(
-          as_supergroup_id(supergroup_id), td_api::make_object<td_api::supergroupMembersFilterRecent>(),
-          to_integer<int32>(offset), to_integer<int32>(limit)));
-    } else if (op == "SearchSupergroupMembers") {
-      string supergroup_id;
-      string query;
-      string offset;
-      string limit;
-
-      std::tie(supergroup_id, args) = split(args);
-      std::tie(query, args) = split(args);
-      std::tie(offset, limit) = split(args);
-      if (offset.empty()) {
-        offset = "0";
-      }
-      if (limit.empty()) {
-        limit = "10";
-      }
-      send_request(td_api::make_object<td_api::getSupergroupMembers>(
-          as_supergroup_id(supergroup_id), td_api::make_object<td_api::supergroupMembersFilterSearch>(query),
-          to_integer<int32>(offset), to_integer<int32>(limit)));
-    } else if (op == "GetSupergroupRestricted") {
-      string supergroup_id;
-      string query;
-      string offset;
-      string limit;
-
-      std::tie(supergroup_id, args) = split(args);
-      std::tie(query, args) = split(args);
-      std::tie(offset, limit) = split(args);
-      if (offset.empty()) {
-        offset = "0";
-      }
-      if (limit.empty()) {
-        limit = "10";
-      }
-      send_request(td_api::make_object<td_api::getSupergroupMembers>(
-          as_supergroup_id(supergroup_id), td_api::make_object<td_api::supergroupMembersFilterRestricted>(query),
-          to_integer<int32>(offset), to_integer<int32>(limit)));
+          as_supergroup_id(supergroup_id), std::move(filter), to_integer<int32>(offset), to_integer<int32>(limit)));
     } else if (op == "gdialog" || op == "gd") {
       send_request(td_api::make_object<td_api::getChat>(as_chat_id(args)));
     } else if (op == "open") {
