@@ -1618,8 +1618,8 @@ class MessagesManager : public Actor {
 
   void remove_all_dialog_notifications(Dialog *d, NotificationGroupInfo &group_info, const char *source);
 
-  void remove_all_dialog_notifications(Dialog *d, MessageId max_message_id, NotificationGroupInfo &group_info,
-                                       const char *source);
+  void remove_message_dialog_notifications(Dialog *d, MessageId max_message_id, NotificationGroupInfo &group_info,
+                                           const char *source);
 
   void send_update_message_send_succeeded(Dialog *d, MessageId old_message_id, const Message *m) const;
 
