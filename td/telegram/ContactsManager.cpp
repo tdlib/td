@@ -1127,19 +1127,32 @@ class ToggleChannelIsAllHistoryAvailableQuery : public Td::ResultHandler {
   }
 };
 
-class EditChannelAboutQuery : public Td::ResultHandler {
+class EditChatAboutQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
-  ChannelId channel_id_;
+  DialogId dialog_id_;
   string about_;
 
- public:
-  explicit EditChannelAboutQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  void on_success() {
+    switch (dialog_id_.get_type()) {
+      case DialogType::Chat:
+        return td->contacts_manager_->on_update_chat_description(dialog_id_.get_chat_id(), std::move(about_));
+      case DialogType::Channel:
+        return td->contacts_manager_->on_update_channel_description(dialog_id_.get_channel_id(), std::move(about_));
+      case DialogType::User:
+      case DialogType::SecretChat:
+      case DialogType::None:
+        UNREACHABLE();
+    }
   }
 
-  void send(ChannelId channel_id, const string &about) {
-    channel_id_ = channel_id;
+ public:
+  explicit EditChatAboutQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, const string &about) {
+    dialog_id_ = dialog_id;
     about_ = about;
-    auto input_peer = td->messages_manager_->get_input_peer(DialogId(channel_id), AccessRights::Read);
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
     if (input_peer == nullptr) {
       return on_error(0, Status::Error(400, "Can't access the chat"));
     }
@@ -1154,24 +1167,24 @@ class EditChannelAboutQuery : public Td::ResultHandler {
     }
 
     bool result = result_ptr.ok();
-    LOG(DEBUG) << "Receive result for editChannelAbout " << result;
+    LOG(DEBUG) << "Receive result for editChatAbout " << result;
     if (!result) {
       return on_error(id, Status::Error(500, "Chat description is not updated"));
     }
 
-    td->contacts_manager_->on_update_channel_description(channel_id_, std::move(about_));
+    on_success();
     promise_.set_value(Unit());
   }
 
   void on_error(uint64 id, Status status) override {
     if (status.message() == "CHAT_ABOUT_NOT_MODIFIED" || status.message() == "CHAT_NOT_MODIFIED") {
-      td->contacts_manager_->on_update_channel_description(channel_id_, std::move(about_));
+      on_success();
       if (!td->auth_manager_->is_bot()) {
         promise_.set_value(Unit());
         return;
       }
     } else {
-      td->contacts_manager_->on_get_channel_error(channel_id_, status, "EditChannelAboutQuery");
+      td->messages_manager_->on_get_dialog_error(dialog_id_, status, "EditChatAboutQuery");
     }
     promise_.set_error(std::move(status));
   }
@@ -3969,6 +3982,19 @@ void ContactsManager::set_username(const string &username, Promise<Unit> &&promi
   td_->create_handler<UpdateUsernameQuery>(std::move(promise))->send(username);
 }
 
+void ContactsManager::set_chat_description(ChatId chat_id, const string &description, Promise<Unit> &&promise) {
+  auto new_description = strip_empty_characters(description, MAX_DESCRIPTION_LENGTH);
+  auto c = get_chat(chat_id);
+  if (c == nullptr) {
+    return promise.set_error(Status::Error(6, "Chat info not found"));
+  }
+  if (!get_chat_status(c).can_change_info_and_settings()) {
+    return promise.set_error(Status::Error(6, "Not enough rights to set chat description"));
+  }
+
+  td_->create_handler<EditChatAboutQuery>(std::move(promise))->send(DialogId(chat_id), new_description);
+}
+
 void ContactsManager::set_channel_username(ChannelId channel_id, const string &username, Promise<Unit> &&promise) {
   auto c = get_channel(channel_id);
   if (c == nullptr) {
@@ -4060,13 +4086,13 @@ void ContactsManager::set_channel_description(ChannelId channel_id, const string
   auto new_description = strip_empty_characters(description, MAX_DESCRIPTION_LENGTH);
   auto c = get_channel(channel_id);
   if (c == nullptr) {
-    return promise.set_error(Status::Error(6, "Supergroup not found"));
+    return promise.set_error(Status::Error(6, "Chat info not found"));
   }
   if (!get_channel_status(c).can_change_info_and_settings()) {
-    return promise.set_error(Status::Error(6, "Not enough rights to set supergroup description"));
+    return promise.set_error(Status::Error(6, "Not enough rights to set chat description"));
   }
 
-  td_->create_handler<EditChannelAboutQuery>(std::move(promise))->send(channel_id, new_description);
+  td_->create_handler<EditChatAboutQuery>(std::move(promise))->send(DialogId(channel_id), new_description);
 }
 
 void ContactsManager::report_channel_spam(ChannelId channel_id, UserId user_id, const vector<MessageId> &message_ids,
@@ -6606,6 +6632,11 @@ void ContactsManager::on_get_chat_full(tl_object_ptr<telegram_api::ChatFull> &&c
       }
     }
 
+    if (chat->description != chat_full->about_) {
+      chat->description = std::move(chat_full->about_);
+      chat->is_changed = true;
+    }
+
     on_get_chat_participants(std::move(chat_full->participants_));
     td_->messages_manager_->on_update_dialog_notify_settings(DialogId(chat_id), std::move(chat_full->notify_settings_),
                                                              "on_get_chat_full");
@@ -8302,6 +8333,23 @@ void ContactsManager::on_update_chat_migrated_to_channel_id(Chat *c, ChatId chat
         << migrated_to_channel_id;
     c->migrated_to_channel_id = migrated_to_channel_id;
     c->need_send_update = true;
+  }
+}
+
+void ContactsManager::on_update_chat_description(ChatId chat_id, string &&description) {
+  if (!chat_id.is_valid()) {
+    LOG(ERROR) << "Receive invalid " << chat_id;
+    return;
+  }
+
+  auto chat_full = get_chat_full(chat_id);
+  if (chat_full == nullptr) {
+    return;
+  }
+  if (chat_full->description != description) {
+    chat_full->description = std::move(description);
+    chat_full->is_changed = true;
+    update_chat_full(chat_full, chat_id);
   }
 }
 
@@ -10180,7 +10228,7 @@ tl_object_ptr<td_api::basicGroupFullInfo> ContactsManager::get_basic_group_full_
     const ChatFull *chat_full) const {
   CHECK(chat_full != nullptr);
   return make_tl_object<td_api::basicGroupFullInfo>(
-      get_user_id_object(chat_full->creator_user_id, "basicGroupFullInfo"),
+      chat_full->description, get_user_id_object(chat_full->creator_user_id, "basicGroupFullInfo"),
       transform(chat_full->participants,
                 [this](const DialogParticipant &chat_participant) { return get_chat_member_object(chat_participant); }),
       chat_full->invite_link);

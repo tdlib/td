@@ -5698,6 +5698,23 @@ void Td::on_request(uint64 id, td_api::setChatClientData &request) {
       id, messages_manager_->set_dialog_client_data(DialogId(request.chat_id_), std::move(request.client_data_)));
 }
 
+void Td::on_request(uint64 id, td_api::setChatDescription &request) {
+  CLEAN_INPUT_STRING(request.description_);
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->set_dialog_description(DialogId(request.chat_id_), request.description_, std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::pinChatMessage &request) {
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->pin_dialog_message(DialogId(request.chat_id_), MessageId(request.message_id_),
+                                        request.disable_notification_, false, std::move(promise));
+}
+
+void Td::on_request(uint64 id, const td_api::unpinChatMessage &request) {
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->pin_dialog_message(DialogId(request.chat_id_), MessageId(), false, true, std::move(promise));
+}
+
 void Td::on_request(uint64 id, const td_api::joinChat &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
@@ -6067,24 +6084,6 @@ void Td::on_request(uint64 id, const td_api::toggleSupergroupIsAllHistoryAvailab
   CREATE_OK_REQUEST_PROMISE();
   contacts_manager_->toggle_channel_is_all_history_available(ChannelId(request.supergroup_id_),
                                                              request.is_all_history_available_, std::move(promise));
-}
-
-void Td::on_request(uint64 id, td_api::setSupergroupDescription &request) {
-  CLEAN_INPUT_STRING(request.description_);
-  CREATE_OK_REQUEST_PROMISE();
-  contacts_manager_->set_channel_description(ChannelId(request.supergroup_id_), request.description_,
-                                             std::move(promise));
-}
-
-void Td::on_request(uint64 id, const td_api::pinChatMessage &request) {
-  CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->pin_dialog_message(DialogId(request.chat_id_), MessageId(request.message_id_),
-                                        request.disable_notification_, false, std::move(promise));
-}
-
-void Td::on_request(uint64 id, const td_api::unpinChatMessage &request) {
-  CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->pin_dialog_message(DialogId(request.chat_id_), MessageId(), false, true, std::move(promise));
 }
 
 void Td::on_request(uint64 id, const td_api::reportSupergroupSpam &request) {

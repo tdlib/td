@@ -3377,12 +3377,12 @@ class CliClient final : public Actor {
       std::tie(supergroup_id, sign_messages) = split(args);
       send_request(td_api::make_object<td_api::toggleSupergroupSignMessages>(as_supergroup_id(supergroup_id),
                                                                              as_bool(sign_messages)));
-    } else if (op == "csgd" || op == "cchd") {
-      string supergroup_id;
+    } else if (op == "scd") {
+      string chat_id;
       string description;
 
-      std::tie(supergroup_id, description) = split(args);
-      send_request(td_api::make_object<td_api::setSupergroupDescription>(as_supergroup_id(supergroup_id), description));
+      std::tie(chat_id, description) = split(args);
+      send_request(td_api::make_object<td_api::setChatDescription>(as_chat_id(chat_id), description));
     } else if (op == "pcm" || op == "pcms") {
       string chat_id;
       string message_id;

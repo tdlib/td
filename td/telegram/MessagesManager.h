@@ -418,6 +418,8 @@ class MessagesManager : public Actor {
 
   void set_dialog_title(DialogId dialog_id, const string &title, Promise<Unit> &&promise);
 
+  void set_dialog_description(DialogId dialog_id, const string &description, Promise<Unit> &&promise);
+
   void pin_dialog_message(DialogId dialog_id, MessageId message_id, bool disable_notification, bool is_unpin,
                           Promise<Unit> &&promise);
 

@@ -414,8 +414,8 @@ supergroupMembersFilterBots = SupergroupMembersFilter;
 //@upgraded_to_supergroup_id Identifier of the supergroup to which this group was upgraded; 0 if none
 basicGroup id:int32 member_count:int32 status:ChatMemberStatus everyone_is_administrator:Bool is_active:Bool upgraded_to_supergroup_id:int32 = BasicGroup;
 
-//@description Contains full information about a basic group @creator_user_id User identifier of the creator of the group; 0 if unknown @members Group members @invite_link Invite link for this group; available only for the group creator and only after it has been generated at least once
-basicGroupFullInfo creator_user_id:int32 members:vector<chatMember> invite_link:string = BasicGroupFullInfo;
+//@description Contains full information about a basic group @param_description Group description @creator_user_id User identifier of the creator of the group; 0 if unknown @members Group members @invite_link Invite link for this group; available only for the group creator and only after it has been generated at least once
+basicGroupFullInfo description:string creator_user_id:int32 members:vector<chatMember> invite_link:string = BasicGroupFullInfo;
 
 
 //@description Represents a supergroup or channel with zero or more members (subscribers in the case of channels). From the point of view of the system, a channel is a special kind of a supergroup: only administrators can post and see the list of members, and posts from all administrators use the name and photo of the channel instead of individual names and profile photos. Unlike supergroups, channels can have an unlimited number of subscribers
@@ -3179,6 +3179,9 @@ toggleChatDefaultDisableNotification chat_id:int53 default_disable_notification:
 //@description Changes client data associated with a chat @chat_id Chat identifier @client_data New value of client_data
 setChatClientData chat_id:int53 client_data:string = Ok;
 
+//@description Changes information about a chat. Available for basic groups, supergroups, and channels. Requires appropriate administrator rights @chat_id Identifier of the chat @param_description New chat description; 0-255 characters
+setChatDescription chat_id:int53 description:string = Ok;
+
 //@description Pins a message in a chat; requires appropriate administrator rights in the group or channel @chat_id Identifier of the chat @message_id Identifier of the new pinned message @disable_notification True, if there should be no notification about the pinned message
 pinChatMessage chat_id:int53 message_id:int53 disable_notification:Bool = Ok;
 
@@ -3498,9 +3501,6 @@ toggleSupergroupSignMessages supergroup_id:int32 sign_messages:Bool = Ok;
 
 //@description Toggles whether the message history of a supergroup is available to new members; requires appropriate administrator rights in the supergroup. @supergroup_id The identifier of the supergroup @is_all_history_available The new value of is_all_history_available
 toggleSupergroupIsAllHistoryAvailable supergroup_id:int32 is_all_history_available:Bool = Ok;
-
-//@description Changes information about a supergroup or channel; requires appropriate administrator rights @supergroup_id Identifier of the supergroup or channel @param_description New supergroup or channel description; 0-255 characters
-setSupergroupDescription supergroup_id:int32 description:string = Ok;
 
 //@description Reports some messages from a user in a supergroup as spam; requires administrator rights in the supergroup @supergroup_id Supergroup identifier @user_id User identifier @message_ids Identifiers of messages sent in the supergroup by the user. This list must be non-empty
 reportSupergroupSpam supergroup_id:int32 user_id:int32 message_ids:vector<int53> = Ok;

@@ -15423,7 +15423,7 @@ Status MessagesManager::can_send_message_content(DialogId dialog_id, const Messa
       can_send_stickers = channel_status.can_send_stickers();
       can_send_animations = channel_status.can_send_animations();
       can_send_games = channel_status.can_send_games();
-      // can_send_polls = channel_status.can_send_polls(); TODO
+      can_send_polls = channel_status.can_send_polls();
       break;
     }
     case DialogType::SecretChat:
@@ -21460,6 +21460,30 @@ void MessagesManager::set_dialog_title(DialogId dialog_id, const string &title, 
 
   // TODO invoke after
   td_->create_handler<EditDialogTitleQuery>(std::move(promise))->send(dialog_id, new_title);
+}
+
+void MessagesManager::set_dialog_description(DialogId dialog_id, const string &description, Promise<Unit> &&promise) {
+  LOG(INFO) << "Receive setChatDescription request to set description of " << dialog_id << " to \"" << description
+            << '"';
+
+  if (!have_dialog_force(dialog_id)) {
+    return promise.set_error(Status::Error(3, "Chat not found"));
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return promise.set_error(Status::Error(3, "Can't change private chat description"));
+    case DialogType::Chat:
+      return td_->contacts_manager_->set_chat_description(dialog_id.get_chat_id(), description, std::move(promise));
+    case DialogType::Channel:
+      return td_->contacts_manager_->set_channel_description(dialog_id.get_channel_id(), description,
+                                                             std::move(promise));
+    case DialogType::SecretChat:
+      return promise.set_error(Status::Error(3, "Can't change secret chat description"));
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
 }
 
 void MessagesManager::pin_dialog_message(DialogId dialog_id, MessageId message_id, bool disable_notification,

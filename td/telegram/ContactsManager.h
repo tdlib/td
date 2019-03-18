@@ -163,6 +163,7 @@ class ContactsManager : public Actor {
 
   void on_get_chat_participants(tl_object_ptr<telegram_api::ChatParticipants> &&participants);
   void on_update_chat_add_user(ChatId chat_id, UserId inviter_user_id, UserId user_id, int32 date, int32 version);
+  void on_update_chat_description(ChatId chat_id, string &&description);
   void on_update_chat_edit_administrator(ChatId chat_id, UserId user_id, bool is_administrator, int32 version);
   void on_update_chat_delete_user(ChatId chat_id, UserId user_id, int32 version);
   void on_update_chat_everyone_is_administrator(ChatId chat_id, bool everyone_is_administrator, int32 version);
@@ -282,6 +283,8 @@ class ContactsManager : public Actor {
   void set_bio(const string &bio, Promise<Unit> &&promise);
 
   void set_username(const string &username, Promise<Unit> &&promise);
+
+  void set_chat_description(ChatId chat_id, const string &description, Promise<Unit> &&promise);
 
   void set_channel_username(ChannelId channel_id, const string &username, Promise<Unit> &&promise);
 
@@ -594,6 +597,8 @@ class ContactsManager : public Actor {
     UserId creator_user_id;
     vector<DialogParticipant> participants;
 
+    string description;
+
     string invite_link;
 
     bool is_changed = true;
@@ -710,7 +715,7 @@ class ContactsManager : public Actor {
 
   static constexpr int32 MAX_GET_PROFILE_PHOTOS = 100;        // server side limit
   static constexpr size_t MAX_NAME_LENGTH = 64;               // server side limit for first/last name
-  static constexpr size_t MAX_DESCRIPTION_LENGTH = 255;       // server side limit for channel description
+  static constexpr size_t MAX_DESCRIPTION_LENGTH = 255;       // server side limit for chat/channel description
   static constexpr size_t MAX_BIO_LENGTH = 70;                // server side limit
   static constexpr int32 MAX_GET_CHANNEL_PARTICIPANTS = 200;  // server side limit
 
