@@ -256,7 +256,7 @@ struct DialogParticipant {
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipant &dialog_participant);
 
 class ChannelParticipantsFilter {
-  enum class Type : int32 { Recent, Administrators, Search, Restricted, Banned, Bots } type;
+  enum class Type : int32 { Recent, Contacts, Administrators, Search, Restricted, Banned, Bots } type;
   string query;
 
   friend StringBuilder &operator<<(StringBuilder &string_builder, const ChannelParticipantsFilter &filter);
@@ -276,6 +276,10 @@ class ChannelParticipantsFilter {
 
   bool is_recent() const {
     return type == Type::Recent;
+  }
+
+  bool is_contacts() const {
+    return type == Type::Contacts;
   }
 
   bool is_search() const {

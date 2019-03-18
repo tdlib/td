@@ -2189,6 +2189,9 @@ class CliClient final : public Actor {
 
       std::tie(chat_id, user_id) = split(args);
       send_request(td_api::make_object<td_api::getChatMember>(as_chat_id(chat_id), as_user_id(user_id)));
+    } else if (op == "GetChatAdministrators") {
+      string chat_id = args;
+      send_request(td_api::make_object<td_api::getChatAdministrators>(as_chat_id(chat_id)));
     } else if (op == "GetSupergroupAdministrators") {
       string supergroup_id;
       string offset;
@@ -2205,9 +2208,6 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getSupergroupMembers>(
           as_supergroup_id(supergroup_id), td_api::make_object<td_api::supergroupMembersFilterAdministrators>(),
           to_integer<int32>(offset), to_integer<int32>(limit)));
-    } else if (op == "GetChatAdministrators") {
-      string chat_id = args;
-      send_request(td_api::make_object<td_api::getChatAdministrators>(as_chat_id(chat_id)));
     } else if (op == "GetSupergroupBanned") {
       string supergroup_id;
       string query;

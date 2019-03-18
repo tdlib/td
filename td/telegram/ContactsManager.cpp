@@ -7516,7 +7516,7 @@ void ContactsManager::on_get_channel_participants_success(
     result.push_back(get_dialog_participant(channel_id, std::move(participant_ptr)));
     if ((filter.is_bots() && !is_user_bot(result.back().user_id)) ||
         (filter.is_administrators() && !result.back().status.is_administrator()) ||
-        ((filter.is_recent() || filter.is_search()) && !result.back().status.is_member()) ||
+        ((filter.is_recent() || filter.is_contacts() || filter.is_search()) && !result.back().status.is_member()) ||
         (filter.is_restricted() && !result.back().status.is_restricted()) ||
         (filter.is_banned() && !result.back().status.is_banned())) {
       bool skip_error = filter.is_administrators() && is_user_deleted(result.back().user_id);

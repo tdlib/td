@@ -408,6 +408,8 @@ ChannelParticipantsFilter::get_input_channel_participants_filter() const {
   switch (type) {
     case Type::Recent:
       return make_tl_object<telegram_api::channelParticipantsRecent>();
+    case Type::Contacts:
+      return make_tl_object<telegram_api::channelParticipantsContacts>(query);
     case Type::Administrators:
       return make_tl_object<telegram_api::channelParticipantsAdmins>();
     case Type::Search:
@@ -432,6 +434,10 @@ ChannelParticipantsFilter::ChannelParticipantsFilter(const tl_object_ptr<td_api:
   switch (filter->get_id()) {
     case td_api::supergroupMembersFilterRecent::ID:
       type = Type::Recent;
+      return;
+    case td_api::supergroupMembersFilterContacts::ID:
+      type = Type::Contacts;
+      query = static_cast<const td_api::supergroupMembersFilterContacts *>(filter.get())->query_;
       return;
     case td_api::supergroupMembersFilterAdministrators::ID:
       type = Type::Administrators;
@@ -461,6 +467,8 @@ StringBuilder &operator<<(StringBuilder &string_builder, const ChannelParticipan
   switch (filter.type) {
     case ChannelParticipantsFilter::Type::Recent:
       return string_builder << "Recent";
+    case ChannelParticipantsFilter::Type::Contacts:
+      return string_builder << "Contacts \"" << filter.query << '"';
     case ChannelParticipantsFilter::Type::Administrators:
       return string_builder << "Administrators";
     case ChannelParticipantsFilter::Type::Search:

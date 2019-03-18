@@ -389,6 +389,9 @@ chatMembersFilterBots = ChatMembersFilter;
 //@description Returns recently active users in reverse chronological order
 supergroupMembersFilterRecent = SupergroupMembersFilter;
 
+//@description Returns contacts, which are members of the supergroup or channel @query Query to search for
+supergroupMembersFilterContacts query:string = SupergroupMembersFilter;
+
 //@description Returns the creator and administrators
 supergroupMembersFilterAdministrators = SupergroupMembersFilter;
 
