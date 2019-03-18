@@ -2193,14 +2193,16 @@ class CliClient final : public Actor {
       string chat_id = args;
       send_request(td_api::make_object<td_api::getChatAdministrators>(as_chat_id(chat_id)));
     } else if (op == "GetSupergroupAdministrators" || op == "GetSupergroupBanned" || op == "GetSupergroupBots" ||
-               op == "GetSupergroupMembers" || op == "SearchSupergroupMembers" || op == "GetSupergroupRestricted") {
+               op == "GetSupergroupContacts" || op == "GetSupergroupMembers" || op == "GetSupergroupRestricted" ||
+               op == "SearchSupergroupMembers") {
       string supergroup_id;
       string query;
       string offset;
       string limit;
 
       std::tie(supergroup_id, args) = split(args);
-      if (op == "GetSupergroupBanned" || op == "SearchSupergroupMembers" || op == "GetSupergroupRestricted") {
+      if (op == "GetSupergroupBanned" || op == "GetSupergroupContacts" || op == "GetSupergroupRestricted" ||
+          op == "SearchSupergroupMembers") {
         std::tie(query, args) = split(args);
       }
       std::tie(offset, limit) = split(args);
@@ -2217,12 +2219,14 @@ class CliClient final : public Actor {
         filter = td_api::make_object<td_api::supergroupMembersFilterBanned>(query);
       } else if (op == "GetSupergroupBots") {
         filter = td_api::make_object<td_api::supergroupMembersFilterBots>();
+      } else if (op == "GetSupergroupContacts") {
+        filter = td_api::make_object<td_api::supergroupMembersFilterContacts>(query);
       } else if (op == "GetSupergroupMembers") {
         filter = td_api::make_object<td_api::supergroupMembersFilterRecent>();
+      } else if (op == "GetSupergroupRestricted") {
+        filter = td_api::make_object<td_api::supergroupMembersFilterRestricted>(query);
       } else if (op == "SearchSupergroupMembers") {
         filter = td_api::make_object<td_api::supergroupMembersFilterSearch>(query);
-      } else if (op == "GetSupergroupBanned") {
-        filter = td_api::make_object<td_api::supergroupMembersFilterRestricted>(query);
       }
       send_request(td_api::make_object<td_api::getSupergroupMembers>(
           as_supergroup_id(supergroup_id), std::move(filter), to_integer<int32>(offset), to_integer<int32>(limit)));
