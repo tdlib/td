@@ -18866,7 +18866,9 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
   MessageId missing_pinned_message_id;
   if (is_pinned) {
     auto message_id = get_message_content_pinned_message_id(m->content.get());
-    if (message_id.is_valid() && !have_message({d->dialog_id, message_id}, "add_new_message_notification")) {
+    if (message_id.is_valid() &&
+        !have_message({d->dialog_id, message_id},
+                      force ? "add_new_message_notification false" : "add_new_message_notification true")) {
       missing_pinned_message_id = message_id;
     }
   }
@@ -18898,7 +18900,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
                      settings_dialog_id);
       });
       if (settings_dialog == nullptr && have_input_peer(settings_dialog_id, AccessRights::Read)) {
-        force_create_dialog(settings_dialog_id, "add_new_message_notification");
+        force_create_dialog(settings_dialog_id, "add_new_message_notification 2");
         settings_dialog = get_dialog(settings_dialog_id);
       }
       if (settings_dialog != nullptr) {
@@ -18933,7 +18935,7 @@ bool MessagesManager::add_new_message_notification(Dialog *d, Message *m, bool f
     return false;
   }
   bool is_changed = set_dialog_last_notification(d->dialog_id, group_info, m->date, m->notification_id,
-                                                 "add_new_message_notification");
+                                                 "add_new_message_notification 3");
   CHECK(is_changed);
   if (is_pinned) {
     set_dialog_pinned_message_notification(d, from_mentions ? m->message_id : MessageId());
@@ -21924,7 +21926,8 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
 
   // there must be no two recursive calls to add_message_to_dialog
   LOG_CHECK(!d->being_added_message_id.is_valid())
-      << d->dialog_id << " " << d->being_added_message_id << " " << message_id << " " << *need_update << " " << source;
+      << d->dialog_id << " " << d->being_added_message_id << " " << message_id << " " << *need_update << " "
+      << d->pinned_message_notification_message_id << " " << source;
   d->being_added_message_id = message_id;
 
   if (d->new_secret_chat_notification_id.is_valid()) {
