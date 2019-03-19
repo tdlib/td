@@ -2596,11 +2596,9 @@ void ContactsManager::Chat::parse(ParserT &parser) {
     } else {
       status = DialogParticipantStatus::Member();
     }
-    if (everyone_is_administrator) {
-      default_restricted_rights = RestrictedRights(true, true, true, true, true, true, true, true, true, true, true);
-    } else {
-      default_restricted_rights = RestrictedRights(true, true, true, true, true, true, true, true, false, false, false);
-    }
+    default_restricted_rights =
+        RestrictedRights(true, true, true, true, true, true, true, true, everyone_is_administrator,
+                         everyone_is_administrator, everyone_is_administrator);
   }
 }
 
@@ -2611,11 +2609,12 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   bool has_username = !username.empty();
   bool is_restricted = !restriction_reason.empty();
   bool use_new_rights = true;
+  bool have_default_restricted_rights = true;
   bool have_participant_count = participant_count != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(false);
   STORE_FLAG(false);
-  STORE_FLAG(anyone_can_invite);
+  STORE_FLAG(false);
   STORE_FLAG(sign_messages);
   STORE_FLAG(false);
   STORE_FLAG(false);
@@ -2627,6 +2626,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   STORE_FLAG(is_restricted);
   STORE_FLAG(use_new_rights);
   STORE_FLAG(have_participant_count);
+  STORE_FLAG(have_default_restricted_rights);
   END_STORE_FLAGS();
 
   store(status, storer);
@@ -2645,6 +2645,9 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   if (have_participant_count) {
     store(participant_count, storer);
   }
+  if (is_megagroup) {
+    store(default_restricted_rights, storer);
+  }
 }
 
 template <class ParserT>
@@ -2658,8 +2661,10 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   bool is_creator;
   bool can_edit;
   bool can_moderate;
+  bool anyone_can_invite;
   bool use_new_rights;
   bool have_participant_count;
+  bool have_default_restricted_rights;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(left);
   PARSE_FLAG(kicked);
@@ -2675,6 +2680,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   PARSE_FLAG(is_restricted);
   PARSE_FLAG(use_new_rights);
   PARSE_FLAG(have_participant_count);
+  PARSE_FLAG(have_default_restricted_rights);
   END_PARSE_FLAGS();
 
   if (use_new_rights) {
@@ -2706,6 +2712,14 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   }
   if (have_participant_count) {
     parse(participant_count, parser);
+  }
+  if (is_megagroup) {
+    if (have_default_restricted_rights) {
+      parse(default_restricted_rights, parser);
+    } else {
+      default_restricted_rights =
+          RestrictedRights(true, true, true, true, true, true, true, true, false, anyone_can_invite, false);
+    }
   }
 }
 
@@ -4233,7 +4247,8 @@ void ContactsManager::add_channel_participant(ChannelId channel_id, UserId user_
     return;
   }
 
-  if (!(c->anyone_can_invite && get_channel_status(c).is_member()) && !get_channel_status(c).can_invite_users()) {
+  // TODO !(c->anyone_can_invite && get_channel_status(c).is_member())
+  if (!get_channel_status(c).can_invite_users()) {
     return promise.set_error(Status::Error(3, "Not enough rights to invite members to the supergroup chat"));
   }
 
@@ -4254,7 +4269,8 @@ void ContactsManager::add_channel_participants(ChannelId channel_id, const vecto
     return promise.set_error(Status::Error(3, "Chat info not found"));
   }
 
-  if (!(c->anyone_can_invite && get_channel_status(c).is_member()) && !get_channel_status(c).can_invite_users()) {
+  // TODO !(c->anyone_can_invite && get_channel_status(c).is_member())
+  if (!get_channel_status(c).can_invite_users()) {
     return promise.set_error(Status::Error(3, "Not enough rights to invite members to the supergroup chat"));
   }
 
@@ -8435,6 +8451,16 @@ void ContactsManager::on_update_channel_status(Channel *c, ChannelId channel_id,
   }
 }
 
+void ContactsManager::on_update_channel_default_restricted_rights(Channel *c, ChannelId channel_id,
+                                                                  RestrictedRights rights) {
+  if (c->default_restricted_rights != rights) {
+    LOG(INFO) << "Update " << channel_id << " default restricted rights from " << c->default_restricted_rights << " to "
+              << rights;
+    c->default_restricted_rights = rights;
+    c->need_send_update = true;
+  }
+}
+
 void ContactsManager::on_update_channel_username(ChannelId channel_id, string &&username) {
   if (!channel_id.is_valid()) {
     LOG(ERROR) << "Receive invalid " << channel_id;
@@ -9848,7 +9874,6 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   bool has_access_hash = (channel.flags_ & CHANNEL_FLAG_HAS_ACCESS_HASH) != 0;
   auto access_hash = has_access_hash ? channel.access_hash_ : 0;
 
-  bool anyone_can_invite = true;  // (channel.flags_ & CHANNEL_FLAG_ANYONE_CAN_INVITE) != 0;
   bool sign_messages = (channel.flags_ & CHANNEL_FLAG_SIGN_MESSAGES) != 0;
   bool is_megagroup = (channel.flags_ & CHANNEL_FLAG_IS_MEGAGROUP) != 0;
   bool is_verified = (channel.flags_ & CHANNEL_FLAG_IS_VERIFIED) != 0;
@@ -9861,11 +9886,6 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
     LOG_IF(ERROR, is_broadcast == is_megagroup)
         << "Receive wrong channel flag is_broadcast == is_megagroup == " << is_megagroup << " from " << source << ": "
         << oneline(to_string(channel));
-  }
-
-  if (!is_megagroup && anyone_can_invite) {
-    LOG(ERROR) << "Anyone can invite new members to the " << channel_id << " from " << source;
-    anyone_can_invite = false;
   }
 
   if (is_megagroup) {
@@ -9898,10 +9918,10 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
       on_update_channel_title(c, channel_id, std::move(channel.title_));
       on_update_channel_username(c, channel_id, std::move(channel.username_));
       on_update_channel_photo(c, channel_id, std::move(channel.photo_));
+      on_update_channel_default_restricted_rights(c, channel_id,
+                                                  get_restricted_rights(std::move(channel.default_banned_rights_)));
 
-      if (c->anyone_can_invite != anyone_can_invite || c->is_megagroup != is_megagroup ||
-          c->is_verified != is_verified) {
-        c->anyone_can_invite = anyone_can_invite;
+      if (c->is_megagroup != is_megagroup || c->is_verified != is_verified) {
         c->is_megagroup = is_megagroup;
         c->is_verified = is_verified;
 
@@ -9936,15 +9956,16 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   on_update_channel_photo(c, channel_id, std::move(channel.photo_));
   on_update_channel_status(c, channel_id, std::move(status));
   on_update_channel_username(c, channel_id, std::move(channel.username_));  // uses status, must be called after
+  on_update_channel_default_restricted_rights(c, channel_id,
+                                              get_restricted_rights(std::move(channel.default_banned_rights_)));
 
   if (participant_count != 0 && participant_count != c->participant_count) {
     c->participant_count = participant_count;
     c->need_send_update = true;
   }
 
-  if (c->anyone_can_invite != anyone_can_invite || c->sign_messages != sign_messages ||
-      c->is_megagroup != is_megagroup || c->is_verified != is_verified || c->restriction_reason != restriction_reason) {
-    c->anyone_can_invite = anyone_can_invite;
+  if (c->sign_messages != sign_messages || c->is_megagroup != is_megagroup || c->is_verified != is_verified ||
+      c->restriction_reason != restriction_reason) {
     c->sign_messages = sign_messages;
     c->is_megagroup = is_megagroup;
     c->is_verified = is_verified;
@@ -9991,8 +10012,8 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
   int32 unban_date = (channel.flags_ & CHANNEL_FLAG_HAS_UNBAN_DATE) != 0 ? channel.until_date_ : 0;
   on_update_channel_status(c, channel_id, DialogParticipantStatus::Banned(unban_date));
   on_update_channel_username(c, channel_id, "");  // don't know if channel username is empty, but update it anyway
+  on_update_channel_default_restricted_rights(c, channel_id, get_restricted_rights(nullptr));
 
-  bool anyone_can_invite = false;
   bool sign_messages = false;
   bool is_megagroup = (channel.flags_ & CHANNEL_FLAG_IS_MEGAGROUP) != 0;
   bool is_verified = false;
@@ -10014,9 +10035,8 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
     c->need_send_update = true;
   }
 
-  if (c->anyone_can_invite != anyone_can_invite || c->sign_messages != sign_messages ||
-      c->is_megagroup != is_megagroup || c->is_verified != is_verified || c->restriction_reason != restriction_reason) {
-    c->anyone_can_invite = anyone_can_invite;
+  if (c->sign_messages != sign_messages || c->is_megagroup != is_megagroup || c->is_verified != is_verified ||
+      c->restriction_reason != restriction_reason) {
     c->sign_messages = sign_messages;
     c->is_megagroup = is_megagroup;
     c->is_verified = is_verified;
@@ -10234,8 +10254,8 @@ tl_object_ptr<td_api::supergroup> ContactsManager::get_supergroup_object(Channel
   }
   return make_tl_object<td_api::supergroup>(
       channel_id.get(), channel->username, channel->date, get_channel_status(channel).get_chat_member_status_object(),
-      channel->participant_count, channel->anyone_can_invite, channel->sign_messages, !channel->is_megagroup,
-      channel->is_verified, channel->restriction_reason);
+      channel->participant_count, channel->default_restricted_rights.can_invite_users(), channel->sign_messages,
+      !channel->is_megagroup, channel->is_verified, channel->restriction_reason);
 }
 
 tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_info_object(ChannelId channel_id) const {

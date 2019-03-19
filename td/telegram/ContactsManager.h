@@ -566,8 +566,8 @@ class ContactsManager : public Actor {
     ChannelId migrated_to_channel_id;
 
     DialogParticipantStatus status = DialogParticipantStatus::Banned(0);
-    RestrictedRights default_restricted_rights =
-        RestrictedRights(false, false, false, false, false, false, false, false, false, false, false);
+    RestrictedRights default_restricted_rights{false, false, false, false, false, false,
+                                               false, false, false, false, false};
 
     bool is_active = false;
 
@@ -607,10 +607,11 @@ class ContactsManager : public Actor {
     string username;
     string restriction_reason;
     DialogParticipantStatus status = DialogParticipantStatus::Banned(0);
+    RestrictedRights default_restricted_rights{false, false, false, false, false, false,
+                                               false, false, false, false, false};
     int32 date = 0;
     int32 participant_count = 0;
 
-    bool anyone_can_invite = false;
     bool sign_messages = false;
 
     bool is_megagroup = false;
@@ -897,6 +898,7 @@ class ContactsManager : public Actor {
   void on_update_channel_title(Channel *c, ChannelId channel_id, string &&title);
   void on_update_channel_username(Channel *c, ChannelId channel_id, string &&username);
   void on_update_channel_status(Channel *c, ChannelId channel_id, DialogParticipantStatus &&status);
+  void on_update_channel_default_restricted_rights(Channel *c, ChannelId channel_id, RestrictedRights rights);
 
   void on_update_channel_full_invite_link(ChannelFull *channel_full,
                                           tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link_ptr);
