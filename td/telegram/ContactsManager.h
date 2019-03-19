@@ -166,7 +166,6 @@ class ContactsManager : public Actor {
   void on_update_chat_description(ChatId chat_id, string &&description);
   void on_update_chat_edit_administrator(ChatId chat_id, UserId user_id, bool is_administrator, int32 version);
   void on_update_chat_delete_user(ChatId chat_id, UserId user_id, int32 version);
-  void on_update_chat_everyone_is_administrator(ChatId chat_id, bool everyone_is_administrator, int32 version);
 
   void on_update_channel_username(ChannelId channel_id, string &&username);
   void on_update_channel_description(ChannelId channel_id, string &&description);
@@ -566,13 +565,9 @@ class ContactsManager : public Actor {
     int32 version = -1;
     ChannelId migrated_to_channel_id;
 
-    bool left = false;
-    bool kicked = true;
-
-    bool is_creator = false;
-    bool is_administrator = false;
-    bool everyone_is_administrator = true;
-    bool can_edit = true;
+    DialogParticipantStatus status = DialogParticipantStatus::Banned(0);
+    RestrictedRights default_restricted_rights =
+        RestrictedRights(false, false, false, false, false, false, false, false, false, false, false);
 
     bool is_active = false;
 
@@ -882,12 +877,11 @@ class ContactsManager : public Actor {
                                     tl_object_ptr<telegram_api::botInfo> &&bot_info);
   void invalidate_user_full(UserId user_id);
 
-  void on_update_chat_left(Chat *c, ChatId chat_id, bool left, bool kicked);
+  void on_update_chat_status(Chat *c, ChatId chat_id, DialogParticipantStatus status);
+  void on_update_chat_default_restricted_rights(Chat *c, ChatId chat_id, RestrictedRights rights);
   void on_update_chat_participant_count(Chat *c, ChatId chat_id, int32 participant_count, int32 version,
                                         const string &debug_str);
   void on_update_chat_photo(Chat *c, ChatId chat_id, tl_object_ptr<telegram_api::ChatPhoto> &&chat_photo_ptr);
-  void on_update_chat_rights(Chat *c, ChatId chat_id, bool is_creator, bool is_administrator,
-                             bool everyone_is_administrator);
   void on_update_chat_title(Chat *c, ChatId chat_id, string &&title);
   void on_update_chat_active(Chat *c, ChatId chat_id, bool is_active);
   void on_update_chat_migrated_to_channel_id(Chat *c, ChatId chat_id, ChannelId migrated_to_channel_id);

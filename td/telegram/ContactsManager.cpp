@@ -2525,15 +2525,17 @@ template <class StorerT>
 void ContactsManager::Chat::store(StorerT &storer) const {
   using td::store;
   bool has_photo = photo.small_file_id.is_valid();
+  bool use_new_rights = true;
   BEGIN_STORE_FLAGS();
-  STORE_FLAG(left);
-  STORE_FLAG(kicked);
-  STORE_FLAG(is_creator);
-  STORE_FLAG(is_administrator);
-  STORE_FLAG(everyone_is_administrator);
-  STORE_FLAG(can_edit);
+  STORE_FLAG(false);
+  STORE_FLAG(false);
+  STORE_FLAG(false);
+  STORE_FLAG(false);
+  STORE_FLAG(false);
+  STORE_FLAG(false);
   STORE_FLAG(is_active);
   STORE_FLAG(has_photo);
+  STORE_FLAG(use_new_rights);
   END_STORE_FLAGS();
 
   store(title, storer);
@@ -2544,12 +2546,21 @@ void ContactsManager::Chat::store(StorerT &storer) const {
   store(date, storer);
   store(migrated_to_channel_id, storer);
   store(version, storer);
+  store(status, storer);
+  store(default_restricted_rights, storer);
 }
 
 template <class ParserT>
 void ContactsManager::Chat::parse(ParserT &parser) {
   using td::parse;
   bool has_photo;
+  bool left;
+  bool kicked;
+  bool is_creator;
+  bool is_administrator;
+  bool everyone_is_administrator;
+  bool can_edit;
+  bool use_new_rights;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(left);
   PARSE_FLAG(kicked);
@@ -2559,6 +2570,7 @@ void ContactsManager::Chat::parse(ParserT &parser) {
   PARSE_FLAG(can_edit);
   PARSE_FLAG(is_active);
   PARSE_FLAG(has_photo);
+  PARSE_FLAG(use_new_rights);
   END_PARSE_FLAGS();
 
   parse(title, parser);
@@ -2569,6 +2581,27 @@ void ContactsManager::Chat::parse(ParserT &parser) {
   parse(date, parser);
   parse(migrated_to_channel_id, parser);
   parse(version, parser);
+  if (use_new_rights) {
+    parse(status, parser);
+    parse(default_restricted_rights, parser);
+  } else {
+    if (kicked || !is_active) {
+      status = DialogParticipantStatus::Banned(0);
+    } else if (left) {
+      status = DialogParticipantStatus::Left();
+    } else if (is_creator) {
+      status = DialogParticipantStatus::Creator(true);
+    } else if (is_administrator && !everyone_is_administrator) {
+      status = DialogParticipantStatus::GroupAdministrator(false);
+    } else {
+      status = DialogParticipantStatus::Member();
+    }
+    if (everyone_is_administrator) {
+      default_restricted_rights = RestrictedRights(true, true, true, true, true, true, true, true, true, true, true);
+    } else {
+      default_restricted_rights = RestrictedRights(true, true, true, true, true, true, true, true, false, false, false);
+    }
+  }
 }
 
 template <class StorerT>
@@ -2813,7 +2846,7 @@ bool ContactsManager::have_input_peer_chat(const Chat *chat, AccessRights access
   if (access_rights == AccessRights::Read) {
     return true;
   }
-  if (chat->left) {
+  if (chat->status.is_left()) {
     return false;
   }
   if (access_rights == AccessRights::Write && !chat->is_active) {
@@ -4161,7 +4194,7 @@ void ContactsManager::add_chat_participant(ChatId chat_id, UserId user_id, int32
     if (!get_chat_status(c).can_invite_users()) {
       return promise.set_error(Status::Error(3, "Not enough rights to invite members to the group chat"));
     }
-  } else if (c->kicked) {
+  } else if (c->status.is_banned()) {
     return promise.set_error(Status::Error(3, "User was kicked from the chat"));
   }
   // TODO upper bound on forward_limit
@@ -4396,10 +4429,6 @@ void ContactsManager::change_chat_participant_status(ChatId chat_id, UserId user
     return promise.set_error(Status::Error(3, "Need creator rights in the group chat"));
   }
 
-  if (c->everyone_is_administrator) {
-    return promise.set_error(Status::Error(3, "Administrators editing is disabled in the group chat"));
-  }
-
   if (user_id == get_my_id()) {
     return promise.set_error(Status::Error(3, "Can't change chat member status of self"));
   }
@@ -4498,7 +4527,7 @@ void ContactsManager::delete_chat_participant(ChatId chat_id, UserId user_id, Pr
     return promise.set_error(Status::Error(3, "Chat is deactivated"));
   }
   auto my_id = get_my_id();
-  if (c->left) {
+  if (c->status.is_left()) {
     if (user_id == my_id) {
       return promise.set_value(Unit());
     } else {
@@ -4510,6 +4539,8 @@ void ContactsManager::delete_chat_participant(ChatId chat_id, UserId user_id, Pr
     if (!my_status.is_creator()) {  // creator can delete anyone
       auto participant = get_chat_participant(chat_id, user_id);
       if (participant != nullptr) {  // if have no information about participant, just send request to the server
+        /*
+        TODO
         if (c->everyone_is_administrator) {
           // if all are administrators, only invited by me participants can be deleted
           if (participant->inviter_user_id != my_id) {
@@ -4526,6 +4557,7 @@ void ContactsManager::delete_chat_participant(ChatId chat_id, UserId user_id, Pr
             return promise.set_error(Status::Error(3, "Need to be inviter of a user to kick it from a basic group"));
           }
         }
+        */
       }
     }
   }
@@ -4617,7 +4649,7 @@ ChannelId ContactsManager::migrate_chat_to_megagroup(ChatId chat_id, Promise<Uni
     return ChannelId();
   }
 
-  if (!c->is_creator) {
+  if (!c->status.is_creator()) {
     promise.set_error(Status::Error(3, "Need creator rights in the chat"));
     return ChannelId();
   }
@@ -5467,12 +5499,7 @@ void ContactsManager::on_binlog_chat_event(BinlogEvent &&event) {
   auto chat_id = log_event.chat_id;
   LOG(INFO) << "Add " << chat_id << " from binlog";
   Chat *c = add_chat(chat_id);
-  if (c->left || !c->kicked) {
-    LOG(ERROR) << "Skip adding already added " << chat_id;
-    binlog_erase(G()->td_db()->get_binlog(), event.id_);
-    return;  // TODO fix bug in Binlog and remove that fix
-  }
-  CHECK(!c->left && c->kicked);
+  CHECK(c->status.is_banned());
   *c = std::move(log_event.c);  // chats come from binlog before all other events, so just add them
 
   c->logevent_id = event.id_;
@@ -7340,7 +7367,7 @@ void ContactsManager::on_get_chat_participants(tl_object_ptr<telegram_api::ChatP
           case telegram_api::chatParticipantAdmin::ID: {
             auto participant = move_tl_object_as<telegram_api::chatParticipantAdmin>(participant_ptr);
             dialog_participant = {UserId(participant->user_id_), UserId(participant->inviter_id_), participant->date_,
-                                  DialogParticipantStatus::GroupAdministrator(c->is_creator)};
+                                  DialogParticipantStatus::GroupAdministrator(c->status.is_creator())};
             break;
           }
           default:
@@ -8014,7 +8041,7 @@ void ContactsManager::on_update_chat_add_user(ChatId chat_id, UserId inviter_use
     repair_chat_participants(chat_id);
     return;
   }
-  if (c->left) {
+  if (c->status.is_left()) {
     // possible if updates come out of order
     LOG(WARNING) << "Receive updateChatParticipantAdd for left " << chat_id << ". Couldn't apply it";
 
@@ -8075,7 +8102,7 @@ void ContactsManager::on_update_chat_edit_administrator(ChatId chat_id, UserId u
     return;
   }
 
-  if (c->left) {
+  if (c->status.is_left()) {
     // possible if updates come out of order
     LOG(WARNING) << "Receive updateChatParticipantAdmin for left " << chat_id << ". Couldn't apply it";
 
@@ -8088,6 +8115,8 @@ void ContactsManager::on_update_chat_edit_administrator(ChatId chat_id, UserId u
   }
   CHECK(c->version >= 0);
 
+  auto status = is_administrator ? DialogParticipantStatus::GroupAdministrator(c->status.is_creator())
+                                 : DialogParticipantStatus::Member();
   if (version > c->version) {
     if (version != c->version + 1) {
       LOG(ERROR) << "Administrators of " << chat_id << " with version " << c->version
@@ -8098,8 +8127,8 @@ void ContactsManager::on_update_chat_edit_administrator(ChatId chat_id, UserId u
 
     c->version = version;
     c->is_changed = true;
-    if (user_id == get_my_id()) {
-      on_update_chat_rights(c, chat_id, c->is_creator, is_administrator, c->everyone_is_administrator);
+    if (user_id == get_my_id() && !c->status.is_creator()) {
+      on_update_chat_status(c, chat_id, status);
     }
     update_chat(c, chat_id);
   }
@@ -8109,8 +8138,7 @@ void ContactsManager::on_update_chat_edit_administrator(ChatId chat_id, UserId u
     if (chat_full->version + 1 == version) {
       for (auto &participant : chat_full->participants) {
         if (participant.user_id == user_id) {
-          participant.status = is_administrator ? DialogParticipantStatus::GroupAdministrator(c->is_creator)
-                                                : DialogParticipantStatus::Member();
+          participant.status = std::move(status);
           chat_full->is_changed = true;
           update_chat_full(chat_full, chat_id);
           return;
@@ -8147,11 +8175,11 @@ void ContactsManager::on_update_chat_delete_user(ChatId chat_id, UserId user_id,
     return;
   }
   if (user_id == get_my_id()) {
-    LOG_IF(WARNING, !c->left) << "User was removed from " << chat_id
-                              << " but it is not left the group. Possible if updates comes out of order";
+    LOG_IF(WARNING, c->status.is_member()) << "User was removed from " << chat_id
+                                           << " but it is not left the group. Possible if updates comes out of order";
     return;
   }
-  if (c->left) {
+  if (c->status.is_left()) {
     // possible if updates come out of order
     LOG(INFO) << "Receive updateChatParticipantDelete for left " << chat_id;
 
@@ -8178,60 +8206,14 @@ void ContactsManager::on_update_chat_delete_user(ChatId chat_id, UserId user_id,
   }
 }
 
-void ContactsManager::on_update_chat_everyone_is_administrator(ChatId chat_id, bool everyone_is_administrator,
-                                                               int32 version) {
-  if (!chat_id.is_valid()) {
-    LOG(ERROR) << "Receive invalid " << chat_id;
-    return;
-  }
-  LOG(INFO) << "Receive updateChatAdmins in " << chat_id << " with version " << version
-            << " and everyone_is_administrator = " << everyone_is_administrator << ". Current version is " << version;
+void ContactsManager::on_update_chat_status(Chat *c, ChatId chat_id, DialogParticipantStatus status) {
+  if (c->status != status) {
+    LOG(INFO) << "Update " << chat_id << " status from " << c->status << " to " << status;
+    bool drop_invite_link = c->status.is_left() != status.is_left();
 
-  auto c = get_chat_force(chat_id);
-  if (c == nullptr) {
-    LOG(INFO) << "Ignoring update about unknown " << chat_id;
-    return;
-  }
+    c->status = status;
 
-  if (c->left) {
-    // possible if updates come out of order
-    LOG(WARNING) << "Receive updateChatAdmins for left " << chat_id << ". Couldn't apply it";
-
-    repair_chat_participants(chat_id);  // just in case
-    return;
-  }
-  if (version <= -1) {
-    LOG(ERROR) << "Receive wrong version " << version << " for " << chat_id;
-    return;
-  }
-  CHECK(c->version >= 0);
-
-  if (version > c->version) {
-    if (version != c->version + 1) {
-      LOG(WARNING) << "Anyone can edit of " << chat_id << " with version " << c->version
-                   << " has changed but new version is " << version;
-      repair_chat_participants(chat_id);
-      return;
-    }
-
-    LOG_IF(ERROR, everyone_is_administrator == c->everyone_is_administrator)
-        << "Receive updateChatAdmins in " << chat_id << " with version " << version
-        << " and everyone_is_administrator = " << everyone_is_administrator
-        << ", but everyone_is_administrator is not changed. Current version is " << c->version;
-    c->version = version;
-    c->is_changed = true;
-    on_update_chat_rights(c, chat_id, c->is_creator, c->is_administrator, everyone_is_administrator);
-    update_chat(c, chat_id);
-  }
-}
-
-void ContactsManager::on_update_chat_left(Chat *c, ChatId chat_id, bool left, bool kicked) {
-  if (c->left != left || c->kicked != kicked) {
-    bool drop_invite_link = c->left != left;
-    c->left = left;
-    c->kicked = kicked;
-
-    if (c->left) {
+    if (c->status.is_left()) {
       c->participant_count = 0;
       c->version = -1;
 
@@ -8248,14 +8230,11 @@ void ContactsManager::on_update_chat_left(Chat *c, ChatId chat_id, bool left, bo
   }
 }
 
-void ContactsManager::on_update_chat_rights(Chat *c, ChatId chat_id, bool is_creator, bool is_administrator,
-                                            bool everyone_is_administrator) {
-  if (c->is_creator != is_creator || c->is_administrator != is_administrator ||
-      c->everyone_is_administrator != everyone_is_administrator) {
-    c->is_creator = is_creator;
-    c->is_administrator = is_administrator;
-    c->everyone_is_administrator = everyone_is_administrator;
-    c->can_edit = is_creator || is_administrator || everyone_is_administrator;
+void ContactsManager::on_update_chat_default_restricted_rights(Chat *c, ChatId chat_id, RestrictedRights rights) {
+  if (c->default_restricted_rights != rights) {
+    LOG(INFO) << "Update " << chat_id << " default restricted rights from " << c->default_restricted_rights << " to "
+              << rights;
+    c->default_restricted_rights = rights;
     c->need_send_update = true;
   }
 }
@@ -9031,19 +9010,10 @@ DialogParticipantStatus ContactsManager::get_chat_status(ChatId chat_id) const {
 }
 
 DialogParticipantStatus ContactsManager::get_chat_status(const Chat *c) {
-  if (c->kicked || !c->is_active) {
+  if (!c->is_active) {
     return DialogParticipantStatus::Banned(0);
   }
-  if (c->left) {
-    return DialogParticipantStatus::Left();
-  }
-  if (c->is_creator) {
-    return DialogParticipantStatus::Creator(true);
-  }
-  if (c->can_edit) {
-    return DialogParticipantStatus::GroupAdministrator(false);
-  }
-  return DialogParticipantStatus::Member();
+  return c->status;
 }
 
 bool ContactsManager::is_appointed_chat_administrator(ChatId chat_id) const {
@@ -9051,11 +9021,7 @@ bool ContactsManager::is_appointed_chat_administrator(ChatId chat_id) const {
   if (c == nullptr) {
     return false;
   }
-  if (c->everyone_is_administrator) {
-    return c->is_creator;
-  } else {
-    return c->can_edit;
-  }
+  return c->status.is_administrator();
 }
 
 FileSourceId ContactsManager::get_chat_photo_file_source_id(ChatId chat_id) {
@@ -9756,16 +9722,27 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *sourc
     return;
   }
 
-  bool has_left = 0 != (chat.flags_ & CHAT_FLAG_USER_HAS_LEFT);
-  bool was_kicked = 0 != (chat.flags_ & CHAT_FLAG_USER_WAS_KICKED);
-  if (was_kicked) {
-    LOG_IF(ERROR, has_left) << "Kicked and left" << debug_str;  // only one of the flags can be set
-    has_left = true;
-  }
+  DialogParticipantStatus status = [&]() {
+    bool is_creator = 0 != (chat.flags_ & CHAT_FLAG_USER_IS_CREATOR);
+    bool has_left = 0 != (chat.flags_ & CHAT_FLAG_USER_HAS_LEFT);
+    bool was_kicked = 0 != (chat.flags_ & CHAT_FLAG_USER_WAS_KICKED);
+    if (was_kicked) {
+      LOG_IF(ERROR, has_left) << "Kicked and left" << debug_str;  // only one of the flags can be set
+      has_left = true;
+    }
 
-  bool is_creator = 0 != (chat.flags_ & CHAT_FLAG_USER_IS_CREATOR);
-  bool is_administrator = false;          // 0 != (chat.flags_ & CHAT_FLAG_IS_ADMINISTRATOR);
-  bool everyone_is_administrator = true;  // 0 == (chat.flags_ & CHAT_FLAG_ADMINISTRATORS_ENABLED);
+    if (is_creator) {
+      return DialogParticipantStatus::Creator(!has_left);
+    } else if (chat.admin_rights_ != nullptr) {
+      return get_dialog_participant_status(false, std::move(chat.admin_rights_));
+    } else if (was_kicked) {
+      return DialogParticipantStatus::Banned(0);
+    } else if (has_left) {
+      return DialogParticipantStatus::Left();
+    } else {
+      return DialogParticipantStatus::Member();
+    }
+  }();
 
   bool is_active = 0 == (chat.flags_ & CHAT_FLAG_IS_DEACTIVATED);
 
@@ -9806,7 +9783,7 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *sourc
 
   Chat *c = add_chat(chat_id);
   on_update_chat_title(c, chat_id, std::move(chat.title_));
-  if (!has_left) {
+  if (!status.is_left()) {
     on_update_chat_participant_count(c, chat_id, chat.participants_count_, chat.version_, debug_str);
   }
   if (c->date != chat.date_) {
@@ -9815,8 +9792,8 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *sourc
     c->date = chat.date_;
     c->is_changed = true;
   }
-  on_update_chat_left(c, chat_id, has_left, was_kicked);
-  on_update_chat_rights(c, chat_id, is_creator, is_administrator, everyone_is_administrator);
+  on_update_chat_status(c, chat_id, std::move(status));
+  on_update_chat_default_restricted_rights(c, chat_id, get_restricted_rights(std::move(chat.default_banned_rights_)));
   on_update_chat_photo(c, chat_id, std::move(chat.photo_));
   on_update_chat_active(c, chat_id, is_active);
   on_update_chat_migrated_to_channel_id(c, chat_id, migrated_to_channel_id);
@@ -9831,18 +9808,16 @@ void ContactsManager::on_chat_update(telegram_api::chatForbidden &chat, const ch
     return;
   }
 
+  bool is_uninited = get_chat_force(chat_id) == nullptr;
   Chat *c = add_chat(chat_id);
-  bool is_uninited = c->left == false && c->kicked == true;
-
   on_update_chat_title(c, chat_id, std::move(chat.title_));
-  // chat participant count will be updated in on_update_chat_left
-  // leave rights as is
+  // chat participant count will be updated in on_update_chat_status
   on_update_chat_photo(c, chat_id, nullptr);
   if (c->date != 0) {
     c->date = 0;  // removed in 38-th layer
     c->is_changed = true;
   }
-  on_update_chat_left(c, chat_id, true, true);
+  on_update_chat_status(c, chat_id, DialogParticipantStatus::Banned(0));
   if (is_uninited) {
     on_update_chat_active(c, chat_id, true);
     on_update_chat_migrated_to_channel_id(c, chat_id, ChannelId());
@@ -10214,9 +10189,11 @@ tl_object_ptr<td_api::basicGroup> ContactsManager::get_basic_group_object(ChatId
 
 tl_object_ptr<td_api::basicGroup> ContactsManager::get_basic_group_object_const(ChatId chat_id,
                                                                                 const Chat *chat) const {
+  auto everyone_is_administrator = chat->default_restricted_rights ==
+                                   RestrictedRights(true, true, true, true, true, true, true, true, true, true, true);
   return make_tl_object<td_api::basicGroup>(
       chat_id.get(), chat->participant_count, get_chat_status(chat).get_chat_member_status_object(),
-      chat->everyone_is_administrator, chat->is_active,
+      everyone_is_administrator, chat->is_active,
       get_supergroup_id_object(chat->migrated_to_channel_id, "get_basic_group_object"));
 }
 
