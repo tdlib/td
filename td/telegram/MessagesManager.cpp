@@ -18390,7 +18390,11 @@ vector<Notification> MessagesManager::get_message_notifications_from_database_fo
           << from_mentions << " " << is_from_mention_notification_group(d, m) << " " << d->dialog_id << " "
           << m->message_id << " " << m->notification_id << " " << from_message_id << " " << from_notification_id << " "
           << group_info.group_id << " " << group_info.last_notification_date << " " << group_info.last_notification_id
-          << " " << group_info.max_removed_notification_id;
+          << " " << group_info.max_removed_notification_id << " " << d->last_new_message_id << " " << d->last_message_id
+          << " " << d->first_database_message_id << " " << d->last_database_message_id << " " << d->max_added_message_id
+          << " " << d->pinned_message_notification_message_id << " " << d->is_last_message_deleted_locally << " "
+          << d->debug_last_new_message_id << " " << d->debug_first_database_message_id << " "
+          << d->debug_last_database_message_id;
       from_notification_id = m->notification_id;
       from_message_id = m->message_id;
       is_found = true;
@@ -18594,7 +18598,12 @@ void MessagesManager::on_get_message_notifications_from_database(DialogId dialog
         << from_mentions << " " << is_from_mention_notification_group(d, m) << " " << dialog_id << " " << m->message_id
         << " " << m->notification_id << " " << from_message_id << " " << from_notification_id << " "
         << group_info.group_id << " " << group_info.last_notification_date << " " << group_info.last_notification_id
-        << " " << group_info.max_removed_notification_id;
+        << " " << group_info.max_removed_notification_id << " " << d->last_new_message_id << " " << d->last_message_id
+        << " " << d->first_database_message_id << " " << d->last_database_message_id << " " << d->max_added_message_id
+        << " " << d->pinned_message_notification_message_id << " " << d->is_last_message_deleted_locally << " "
+        << d->debug_last_new_message_id << " " << d->debug_first_database_message_id << " "
+        << d->debug_last_database_message_id;
+
     from_notification_id = m->notification_id;
     from_message_id = m->message_id;
 
