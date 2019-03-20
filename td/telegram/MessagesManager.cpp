@@ -18779,6 +18779,11 @@ bool MessagesManager::is_message_notification_disabled(const Dialog *d, const Me
       VLOG(notifications) << "Disable notification for " << m->message_id << " in " << d->dialog_id
                           << " with content of type " << m->content->get_type();
       return true;
+    case MessageContentType::ContactRegistered:
+      if (m->disable_notification) {
+        return true;
+      }
+      break;
     default:
       break;
   }
