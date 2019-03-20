@@ -8287,6 +8287,53 @@ void ContactsManager::on_update_chat_status(Chat *c, ChatId chat_id, DialogParti
   }
 }
 
+void ContactsManager::on_update_chat_default_permissions(ChatId chat_id, RestrictedRights default_permissions,
+                                                         int32 version) {
+  if (!chat_id.is_valid()) {
+    LOG(ERROR) << "Receive invalid " << chat_id;
+    return;
+  }
+  LOG(INFO) << "Receive updateChatDefaultBannedRights in " << chat_id << " with " << default_permissions
+            << " and version " << version << ". Current version is " << version;
+
+  auto c = get_chat_force(chat_id);
+  if (c == nullptr) {
+    LOG(INFO) << "Ignoring update about unknown " << chat_id;
+    return;
+  }
+
+  if (c->status.is_left()) {
+    // possible if updates come out of order
+    LOG(WARNING) << "Receive updateChatDefaultBannedRights for left " << chat_id << ". Couldn't apply it";
+
+    repair_chat_participants(chat_id);  // just in case
+    return;
+  }
+  if (version <= -1) {
+    LOG(ERROR) << "Receive wrong version " << version << " for " << chat_id;
+    return;
+  }
+  CHECK(c->version >= 0);
+
+  if (version > c->version) {
+    if (version != c->version + 1) {
+      LOG(WARNING) << "Default permissions of " << chat_id << " with version " << c->version
+                   << " has changed but new version is " << version;
+      repair_chat_participants(chat_id);
+      return;
+    }
+
+    LOG_IF(ERROR, default_permissions == c->default_permissions)
+        << "Receive updateChatDefaultBannedRights in " << chat_id << " with version " << version
+        << " and default_permissions = " << default_permissions
+        << ", but default_permissions are not changed. Current version is " << c->version;
+    c->version = version;
+    c->is_changed = true;
+    on_update_chat_default_permissions(c, chat_id, default_permissions);
+    update_chat(c, chat_id);
+  }
+}
+
 void ContactsManager::on_update_chat_default_permissions(Chat *c, ChatId chat_id,
                                                          RestrictedRights default_permissions) {
   if (c->default_permissions != default_permissions) {
@@ -8516,7 +8563,7 @@ void ContactsManager::on_update_channel_username(ChannelId channel_id, string &&
     on_update_channel_username(c, channel_id, std::move(username));
     update_channel(c, channel_id);
   } else {
-    LOG(ERROR) << "Ignore update channel username about unknown " << channel_id;
+    LOG(INFO) << "Ignore update channel username about unknown " << channel_id;
   }
 }
 
@@ -8582,6 +8629,22 @@ void ContactsManager::on_update_channel_is_all_history_available(ChannelId chann
     channel_full->is_all_history_available = is_all_history_available;
     channel_full->is_changed = true;
     update_channel_full(channel_full, channel_id);
+  }
+}
+
+void ContactsManager::on_update_channel_default_permissions(ChannelId channel_id,
+                                                            RestrictedRights default_permissions) {
+  if (!channel_id.is_valid()) {
+    LOG(ERROR) << "Receive invalid " << channel_id;
+    return;
+  }
+
+  Channel *c = get_channel_force(channel_id);
+  if (c != nullptr) {
+    on_update_channel_default_permissions(c, channel_id, std::move(default_permissions));
+    update_channel(c, channel_id);
+  } else {
+    LOG(INFO) << "Ignore update channel default permissions about unknown " << channel_id;
   }
 }
 

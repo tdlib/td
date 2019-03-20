@@ -171,11 +171,13 @@ class ContactsManager : public Actor {
   void on_update_chat_description(ChatId chat_id, string &&description);
   void on_update_chat_edit_administrator(ChatId chat_id, UserId user_id, bool is_administrator, int32 version);
   void on_update_chat_delete_user(ChatId chat_id, UserId user_id, int32 version);
+  void on_update_chat_default_permissions(ChatId chat_id, RestrictedRights default_permissions, int32 version);
 
   void on_update_channel_username(ChannelId channel_id, string &&username);
   void on_update_channel_description(ChannelId channel_id, string &&description);
   void on_update_channel_sticker_set(ChannelId channel_id, int64 sticker_set_id);
   void on_update_channel_is_all_history_available(ChannelId channel_id, bool is_all_history_available);
+  void on_update_channel_default_permissions(ChannelId channel_id, RestrictedRights default_permissions);
 
   void on_update_dialog_administrators(DialogId dialog_id, vector<UserId> administrator_user_ids, bool have_access);
 

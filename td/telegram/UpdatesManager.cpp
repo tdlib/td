@@ -1678,6 +1678,27 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatParticipant
                                                      update->version_);
 }
 
+void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatDefaultBannedRights> update,
+                               bool /*force_apply*/) {
+  DialogId dialog_id(update->peer_);
+  RestrictedRights permissions = get_restricted_rights(std::move(update->default_banned_rights_));
+  auto version = update->version_;
+  switch (dialog_id.get_type()) {
+    case DialogType::None:
+    case DialogType::User:
+    case DialogType::SecretChat:
+    default:
+      LOG(ERROR) << "Receive updateChatDefaultBannedRights in the " << dialog_id;
+      return;
+    case DialogType::Chat:
+      return td_->contacts_manager_->on_update_chat_default_permissions(dialog_id.get_chat_id(), permissions, version);
+    case DialogType::Channel: {
+      LOG_IF(ERROR, version != 0) << "Receive version " << version << " in " << dialog_id;
+      return td_->contacts_manager_->on_update_channel_default_permissions(dialog_id.get_channel_id(), permissions);
+    }
+  }
+}
+
 void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateDraftMessage> update, bool /*force_apply*/) {
   td_->messages_manager_->on_update_dialog_draft_message(DialogId(update->peer_), std::move(update->draft_));
 }
@@ -1838,9 +1859,5 @@ void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateMessagePoll> up
 }
 
 // unsupported updates
-
-void UpdatesManager::on_update(tl_object_ptr<telegram_api::updateChatDefaultBannedRights> update,
-                               bool /*force_apply*/) {
-}
 
 }  // namespace td
