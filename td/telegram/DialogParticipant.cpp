@@ -545,6 +545,18 @@ RestrictedRights get_restricted_rights(const tl_object_ptr<telegram_api::chatBan
                           can_change_info_and_settings, can_invite_users, can_pin_messages);
 }
 
+RestrictedRights get_restricted_rights(const td_api::object_ptr<td_api::chatPermissions> &permissions) {
+  bool can_send_polls = permissions->can_send_polls_;
+  bool can_send_media = permissions->can_send_media_messages_ || permissions->can_send_other_messages_ ||
+                        permissions->can_add_web_page_previews_;
+  bool can_send_messages = permissions->can_send_messages_ || can_send_media || can_send_polls;
+  return RestrictedRights(can_send_messages, can_send_media, permissions->can_send_other_messages_,
+                          permissions->can_send_other_messages_, permissions->can_send_other_messages_,
+                          permissions->can_send_other_messages_, permissions->can_add_web_page_previews_,
+                          permissions->can_send_polls_, permissions->can_change_info_, permissions->can_invite_users_,
+                          permissions->can_pin_messages_);
+}
+
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipant &dialog_participant) {
   return string_builder << '[' << dialog_participant.user_id << " invited by " << dialog_participant.inviter_user_id
                         << " at " << dialog_participant.joined_date << " with status " << dialog_participant.status

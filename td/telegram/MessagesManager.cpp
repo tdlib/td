@@ -756,6 +756,48 @@ class EditDialogTitleQuery : public Td::ResultHandler {
   }
 };
 
+class EditDialogDefaultBannedRightsQuery : public Td::ResultHandler {
+  Promise<Unit> promise_;
+  DialogId dialog_id_;
+
+ public:
+  explicit EditDialogDefaultBannedRightsQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
+  }
+
+  void send(DialogId dialog_id, RestrictedRights permissions) {
+    dialog_id_ = dialog_id;
+    auto input_peer = td->messages_manager_->get_input_peer(dialog_id, AccessRights::Write);
+    CHECK(input_peer != nullptr);
+    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_editChatDefaultBannedRights(
+        std::move(input_peer), permissions.get_chat_banned_rights()))));
+  }
+
+  void on_result(uint64 id, BufferSlice packet) override {
+    auto result_ptr = fetch_result<telegram_api::messages_editChatDefaultBannedRights>(packet);
+    if (result_ptr.is_error()) {
+      return on_error(id, result_ptr.move_as_error());
+    }
+
+    auto ptr = result_ptr.move_as_ok();
+    LOG(INFO) << "Receive result for editDialogPermissions " << to_string(ptr);
+    td->updates_manager_->on_get_updates(std::move(ptr));
+
+    promise_.set_value(Unit());
+  }
+
+  void on_error(uint64 id, Status status) override {
+    if (status.message() == "CHAT_NOT_MODIFIED") {
+      if (!td->auth_manager_->is_bot()) {
+        promise_.set_value(Unit());
+        return;
+      }
+    } else {
+      td->messages_manager_->on_get_dialog_error(dialog_id_, status, "EditDialogDefaultBannedRightsQuery");
+    }
+    promise_.set_error(std::move(status));
+  }
+};
+
 class SaveDraftMessageQuery : public Td::ResultHandler {
   Promise<Unit> promise_;
   DialogId dialog_id_;
@@ -21369,7 +21411,7 @@ SearchMessagesFilter MessagesManager::get_search_messages_filter(
 
 void MessagesManager::set_dialog_photo(DialogId dialog_id, const tl_object_ptr<td_api::InputFile> &photo,
                                        Promise<Unit> &&promise) {
-  LOG(INFO) << "Receive SetChatPhoto request to change photo of " << dialog_id;
+  LOG(INFO) << "Receive setChatPhoto request to change photo of " << dialog_id;
 
   if (!have_dialog_force(dialog_id)) {
     return promise.set_error(Status::Error(3, "Chat not found"));
@@ -21443,7 +21485,7 @@ void MessagesManager::upload_dialog_photo(DialogId dialog_id, FileId file_id, Pr
 }
 
 void MessagesManager::set_dialog_title(DialogId dialog_id, const string &title, Promise<Unit> &&promise) {
-  LOG(INFO) << "Receive SetChatTitle request to change title of " << dialog_id << " to \"" << title << '"';
+  LOG(INFO) << "Receive setChatTitle request to change title of " << dialog_id << " to \"" << title << '"';
 
   if (!have_dialog_force(dialog_id)) {
     return promise.set_error(Status::Error(3, "Chat not found"));
@@ -21487,6 +21529,62 @@ void MessagesManager::set_dialog_title(DialogId dialog_id, const string &title, 
 
   // TODO invoke after
   td_->create_handler<EditDialogTitleQuery>(std::move(promise))->send(dialog_id, new_title);
+}
+
+void MessagesManager::set_dialog_permissions(DialogId dialog_id,
+                                             const td_api::object_ptr<td_api::chatPermissions> &permissions,
+                                             Promise<Unit> &&promise) {
+  LOG(INFO) << "Receive setChatPermissions request to change permissions of " << dialog_id << " to "
+            << to_string(permissions);
+
+  if (!have_dialog_force(dialog_id)) {
+    return promise.set_error(Status::Error(3, "Chat not found"));
+  }
+  if (!have_input_peer(dialog_id, AccessRights::Write)) {
+    return promise.set_error(Status::Error(3, "Can't access the chat"));
+  }
+
+  if (permissions == nullptr) {
+    return promise.set_error(Status::Error(3, "New permissions must not be empty"));
+  }
+
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return promise.set_error(Status::Error(3, "Can't change private chat permissions"));
+    case DialogType::Chat: {
+      auto chat_id = dialog_id.get_chat_id();
+      auto status = td_->contacts_manager_->get_chat_status(chat_id);
+      if (!status.can_restrict_members()) {
+        return promise.set_error(Status::Error(3, "Not enough rights to change chat permissions"));
+      }
+      break;
+    }
+    case DialogType::Channel: {
+      if (is_broadcast_channel(dialog_id)) {
+        return promise.set_error(Status::Error(3, "Can't change channel chat permissions"));
+      }
+      auto status = td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id());
+      if (!status.can_restrict_members()) {
+        return promise.set_error(Status::Error(3, "Not enough rights to change chat permissions"));
+      }
+      break;
+    }
+    case DialogType::SecretChat:
+      return promise.set_error(Status::Error(3, "Can't change secret chat permissions"));
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+  }
+
+  auto new_permissions = get_restricted_rights(permissions);
+
+  // TODO this can be wrong if there was previous change title requests
+  if (get_dialog_permissions(dialog_id) == new_permissions) {
+    return promise.set_value(Unit());
+  }
+
+  // TODO invoke after
+  td_->create_handler<EditDialogDefaultBannedRightsQuery>(std::move(promise))->send(dialog_id, new_permissions);
 }
 
 void MessagesManager::set_dialog_description(DialogId dialog_id, const string &description, Promise<Unit> &&promise) {
@@ -21620,7 +21718,7 @@ void MessagesManager::set_dialog_participant_status(DialogId dialog_id, UserId u
                                                     const tl_object_ptr<td_api::ChatMemberStatus> &chat_member_status,
                                                     Promise<Unit> &&promise) {
   auto status = get_dialog_participant_status(chat_member_status);
-  LOG(INFO) << "Receive SetChatMemberStatus request with " << user_id << " and " << dialog_id << " to " << status;
+  LOG(INFO) << "Receive setChatMemberStatus request with " << user_id << " and " << dialog_id << " to " << status;
   if (!have_dialog_force(dialog_id)) {
     return promise.set_error(Status::Error(3, "Chat not found"));
   }
@@ -21728,7 +21826,7 @@ std::pair<int32, vector<DialogParticipant>> MessagesManager::search_private_chat
 std::pair<int32, vector<DialogParticipant>> MessagesManager::search_dialog_participants(
     DialogId dialog_id, const string &query, int32 limit, DialogParticipantsFilter filter, int64 &random_id, bool force,
     Promise<Unit> &&promise) {
-  LOG(INFO) << "Receive SearchChatMembers request to search for " << query << " in " << dialog_id;
+  LOG(INFO) << "Receive searchChatMembers request to search for " << query << " in " << dialog_id;
   if (!have_dialog_force(dialog_id)) {
     promise.set_error(Status::Error(3, "Chat not found"));
     return {};

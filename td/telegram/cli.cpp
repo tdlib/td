@@ -3160,6 +3160,20 @@ class CliClient final : public Actor {
 
       std::tie(chat_id, photo_path) = split(args);
       send_request(td_api::make_object<td_api::setChatPhoto>(as_chat_id(chat_id), as_input_file(photo_path)));
+    } else if (op == "scperm") {
+      string chat_id;
+      string permissions;
+
+      std::tie(chat_id, permissions) = split(args);
+      if (permissions.size() == 8) {
+        auto &s = permissions;
+        send_request(td_api::make_object<td_api::setChatPermissions>(
+            as_chat_id(chat_id),
+            td_api::make_object<td_api::chatPermissions>(s[0] == '1', s[1] == '1', s[2] == '1', s[3] == '1',
+                                                         s[4] == '1', s[5] == '1', s[6] == '1', s[7] == '1')));
+      } else {
+        LOG(ERROR) << "Wrong permissions size, expected 8";
+      }
     } else if (op == "scpid") {
       string chat_id;
       string file_id;

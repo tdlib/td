@@ -406,4 +406,6 @@ DialogParticipantStatus get_dialog_participant_status(
 
 RestrictedRights get_restricted_rights(const tl_object_ptr<telegram_api::chatBannedRights> &banned_rights);
 
+RestrictedRights get_restricted_rights(const td_api::object_ptr<td_api::chatPermissions> &permissions);
+
 }  // namespace td

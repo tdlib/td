@@ -5664,6 +5664,11 @@ void Td::on_request(uint64 id, const td_api::setChatPhoto &request) {
   messages_manager_->set_dialog_photo(DialogId(request.chat_id_), request.photo_, std::move(promise));
 }
 
+void Td::on_request(uint64 id, const td_api::setChatPermissions &request) {
+  CREATE_OK_REQUEST_PROMISE();
+  messages_manager_->set_dialog_permissions(DialogId(request.chat_id_), request.permissions_, std::move(promise));
+}
+
 void Td::on_request(uint64 id, td_api::setChatDraftMessage &request) {
   CHECK_IS_USER();
   answer_ok_query(

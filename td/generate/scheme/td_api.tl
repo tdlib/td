@@ -3171,6 +3171,10 @@ setChatTitle chat_id:int53 title:string = Ok;
 //@chat_id Chat identifier @photo New chat photo. You can use a zero InputFileId to delete the chat photo. Files that are accessible only by HTTP URL are not acceptable
 setChatPhoto chat_id:int53 photo:InputFile = Ok;
 
+//@description Changes the chat members permissions. Supported only for basic groups and supergroups. Requires can_restrict_members administrator right
+//@chat_id Chat identifier @permissions New members permissions in the chat
+setChatPermissions chat_id:int53 permissions:chatPermissions = Ok;
+
 //@description Changes the draft message in a chat @chat_id Chat identifier @draft_message New draft message; may be null
 setChatDraftMessage chat_id:int53 draft_message:draftMessage = Ok;
 

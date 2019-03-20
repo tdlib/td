@@ -10119,7 +10119,8 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
   int32 unban_date = (channel.flags_ & CHANNEL_FLAG_HAS_UNBAN_DATE) != 0 ? channel.until_date_ : 0;
   on_update_channel_status(c, channel_id, DialogParticipantStatus::Banned(unban_date));
   on_update_channel_username(c, channel_id, "");  // don't know if channel username is empty, but update it anyway
-  on_update_channel_default_permissions(c, channel_id, get_restricted_rights(nullptr));
+  tl_object_ptr<telegram_api::chatBannedRights> banned_rights;  // == nullptr
+  on_update_channel_default_permissions(c, channel_id, get_restricted_rights(banned_rights));
 
   bool sign_messages = false;
   bool is_megagroup = (channel.flags_ & CHANNEL_FLAG_IS_MEGAGROUP) != 0;
