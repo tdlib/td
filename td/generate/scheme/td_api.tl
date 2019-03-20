@@ -1785,6 +1785,9 @@ chatEventMessageEdited old_message:message new_message:message = ChatEventAction
 //@description A message was deleted @message Deleted message
 chatEventMessageDeleted message:message = ChatEventAction;
 
+//@description A poll in a message was stopped @message The message with the poll
+chatEventPollStopped message:message = ChatEventAction;
+
 //@description A message was pinned @message Pinned message
 chatEventMessagePinned message:message = ChatEventAction;
 
@@ -1809,6 +1812,9 @@ chatEventMemberRestricted user_id:int32 old_status:ChatMemberStatus new_status:C
 //@description The chat title was changed @old_title Previous chat title @new_title New chat title
 chatEventTitleChanged old_title:string new_title:string = ChatEventAction;
 
+//@description The chat permissions was changed @old_permissions Previous chat permissions @new_permissions New chat permissions
+chatEventPermissionsChanged old_permissions:chatPermissions new_permissions:chatPermissions = ChatEventAction;
+
 //@description The chat description was changed @old_description Previous chat description @new_description New chat description
 chatEventDescriptionChanged old_description:string new_description:string = ChatEventAction;
 
@@ -1818,8 +1824,8 @@ chatEventUsernameChanged old_username:string new_username:string = ChatEventActi
 //@description The chat photo was changed @old_photo Previous chat photo value; may be null @new_photo New chat photo value; may be null
 chatEventPhotoChanged old_photo:chatPhoto new_photo:chatPhoto = ChatEventAction;
 
-//@description The anyone_can_invite setting of a supergroup chat was toggled @anyone_can_invite New value of anyone_can_invite
-chatEventInvitesToggled anyone_can_invite:Bool = ChatEventAction;
+//@description The can_invite_users permission of a supergroup chat was toggled @can_invite_users New value of can_invite_users permission
+chatEventInvitesToggled can_invite_users:Bool = ChatEventAction;
 
 //@description The sign_messages setting of a channel was toggled @sign_messages New value of sign_messages
 chatEventSignMessagesToggled sign_messages:Bool = ChatEventAction;

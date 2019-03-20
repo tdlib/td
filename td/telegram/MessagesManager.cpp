@@ -22115,6 +22115,13 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       return make_tl_object<td_api::chatEventPhotoChanged>(get_chat_photo_object(file_manager, &old_photo),
                                                            get_chat_photo_object(file_manager, &new_photo));
     }
+    case telegram_api::channelAdminLogEventActionDefaultBannedRights::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionDefaultBannedRights>(action_ptr);
+      auto old_permissions = get_restricted_rights(std::move(action->prev_banned_rights_));
+      auto new_permissions = get_restricted_rights(std::move(action->new_banned_rights_));
+      return make_tl_object<td_api::chatEventPermissionsChanged>(old_permissions.get_chat_permissions_object(),
+                                                                 new_permissions.get_chat_permissions_object());
+    }
     case telegram_api::channelAdminLogEventActionToggleInvites::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionToggleInvites>(action_ptr);
       return make_tl_object<td_api::chatEventInvitesToggled>(action->new_value_);
@@ -22147,6 +22154,20 @@ tl_object_ptr<td_api::ChatEventAction> MessagesManager::get_chat_event_action_ob
       return make_tl_object<td_api::chatEventMessageEdited>(
           get_message_object(old_message.first, old_message.second.get()),
           get_message_object(new_message.first, new_message.second.get()));
+    }
+    case telegram_api::channelAdminLogEventActionStopPoll::ID: {
+      auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionStopPoll>(action_ptr);
+      auto message = create_message(
+          parse_telegram_api_message(std::move(action->message_), "channelAdminLogEventActionStopPoll"), true);
+      if (message.second == nullptr) {
+        LOG(ERROR) << "Failed to get stopped poll message";
+        return nullptr;
+      }
+      if (message.second->content->get_type() != MessageContentType::Poll) {
+        LOG(ERROR) << "Receive not a poll in channelAdminLogEventActionStopPoll";
+        return nullptr;
+      }
+      return make_tl_object<td_api::chatEventPollStopped>(get_message_object(message.first, message.second.get()));
     }
     case telegram_api::channelAdminLogEventActionDeleteMessage::ID: {
       auto action = move_tl_object_as<telegram_api::channelAdminLogEventActionDeleteMessage>(action_ptr);
