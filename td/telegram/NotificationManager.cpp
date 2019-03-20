@@ -652,7 +652,9 @@ void NotificationManager::try_reuse_notification_group_id(NotificationGroupId gr
   auto group_it = get_group(group_id);
   if (group_it != groups_.end()) {
     CHECK(group_it->first.last_notification_date == 0);
-    CHECK(group_it->second.total_count == 0);
+    LOG_CHECK(group_it->second.total_count == 0)
+        << running_get_difference_ << " " << pending_notification_update_count_ << " "
+        << pending_updates_[group_id.get()].size() << " " << group_it->first << " " << group_it->second;
     CHECK(group_it->second.notifications.empty());
     CHECK(group_it->second.pending_notifications.empty());
     CHECK(!group_it->second.is_being_loaded_from_database);

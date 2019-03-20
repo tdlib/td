@@ -25,6 +25,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/Status.h"
 #include "td/utils/StringBuilder.h"
+#include "td/utils/Time.h"
 
 #include <functional>
 #include <map>
@@ -140,6 +141,13 @@ class NotificationManager : public Actor {
     bool is_silent = false;
     NotificationId notification_id;
     unique_ptr<NotificationType> type;
+
+    friend StringBuilder &operator<<(StringBuilder &string_builder, const PendingNotification &pending_notification) {
+      return string_builder << "PendingNotification[" << pending_notification.notification_id << " of type "
+                            << pending_notification.type << " sent at " << pending_notification.date
+                            << " with settings from " << pending_notification.settings_dialog_id
+                            << ", is_silent = " << pending_notification.is_silent << "]";
+    }
   };
 
   struct NotificationGroup {
@@ -152,6 +160,16 @@ class NotificationManager : public Actor {
 
     double pending_notifications_flush_time = 0;
     vector<PendingNotification> pending_notifications;
+
+    friend StringBuilder &operator<<(StringBuilder &string_builder, const NotificationGroup &notification_group) {
+      return string_builder << "NotificationGroup[" << notification_group.type << " with total "
+                            << notification_group.total_count << " notifications " << notification_group.notifications
+                            << " + " << notification_group.pending_notifications
+                            << ", is_loaded_from_database = " << notification_group.is_loaded_from_database
+                            << ", is_being_loaded_from_database = " << notification_group.is_being_loaded_from_database
+                            << ", pending_notifications_flush_time = "
+                            << notification_group.pending_notifications_flush_time << ", now = " << Time::now() << "]";
+    }
   };
 
   enum class SyncState : int32 { NotSynced, Pending, Completed };

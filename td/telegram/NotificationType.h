@@ -46,6 +46,13 @@ inline StringBuilder &operator<<(StringBuilder &string_builder, const Notificati
   return notification_type.to_string_builder(string_builder);
 }
 
+inline StringBuilder &operator<<(StringBuilder &string_builder, const unique_ptr<NotificationType> &notification_type) {
+  if (notification_type == nullptr) {
+    return string_builder << "null";
+  }
+  return string_builder << *notification_type;
+}
+
 unique_ptr<NotificationType> create_new_message_notification(MessageId message_id);
 
 unique_ptr<NotificationType> create_new_secret_chat_notification();
