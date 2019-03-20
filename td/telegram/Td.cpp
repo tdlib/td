@@ -4429,7 +4429,7 @@ void Td::answer_ok_query(uint64 id, Status status) {
 }
 
 Promise<Unit> Td::create_ok_request_promise(uint64 id) {
-  return PromiseCreator::lambda([id = id, actor_id = actor_id(this)](Result<Unit> result) mutable {
+  return PromiseCreator::lambda([id = id, actor_id = actor_id(this)](Result<Unit> result) {
     if (result.is_error()) {
       send_closure(actor_id, &Td::send_error, id, result.move_as_error());
     } else {
@@ -7012,7 +7012,7 @@ void Td::on_request(uint64 id, td_api::removeRecentHashtag &request) {
 void Td::on_request(uint64 id, td_api::acceptTermsOfService &request) {
   CHECK_IS_USER();
   CLEAN_INPUT_STRING(request.terms_of_service_id_);
-  auto promise = PromiseCreator::lambda([id = id, actor_id = actor_id(this)](Result<> result) mutable {
+  auto promise = PromiseCreator::lambda([id = id, actor_id = actor_id(this)](Result<> result) {
     if (result.is_error()) {
       send_closure(actor_id, &Td::send_error, id, result.move_as_error());
     } else {

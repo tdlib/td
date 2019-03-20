@@ -6344,7 +6344,7 @@ void MessagesManager::load_secret_thumbnail(FileId thumbnail_file_id) {
   };
 
   auto thumbnail_promise = PromiseCreator::lambda([actor_id = actor_id(this),
-                                                   thumbnail_file_id](Result<BufferSlice> r_thumbnail) mutable {
+                                                   thumbnail_file_id](Result<BufferSlice> r_thumbnail) {
     BufferSlice thumbnail_slice;
     if (r_thumbnail.is_ok()) {
       thumbnail_slice = r_thumbnail.move_as_ok();
@@ -12443,13 +12443,12 @@ void MessagesManager::save_dialog_draft_message_on_server(DialogId dialog_id) {
 
   Promise<> promise;
   if (d->save_draft_message_logevent_id != 0) {
-    promise = PromiseCreator::lambda(
-        [actor_id = actor_id(this), dialog_id,
-         generation = d->save_draft_message_logevent_id_generation](Result<Unit> result) mutable {
-          if (!G()->close_flag()) {
-            send_closure(actor_id, &MessagesManager::on_saved_dialog_draft_message, dialog_id, generation);
-          }
-        });
+    promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id,
+                                      generation = d->save_draft_message_logevent_id_generation](Result<Unit> result) {
+      if (!G()->close_flag()) {
+        send_closure(actor_id, &MessagesManager::on_saved_dialog_draft_message, dialog_id, generation);
+      }
+    });
   }
 
   // TODO do not send two queries simultaneously or use SequenceDispatcher
@@ -12807,7 +12806,7 @@ void MessagesManager::update_dialog_notification_settings_on_server(DialogId dia
   if (d->save_notification_settings_logevent_id != 0) {
     promise = PromiseCreator::lambda(
         [actor_id = actor_id(this), dialog_id,
-         generation = d->save_notification_settings_logevent_id_generation](Result<Unit> result) mutable {
+         generation = d->save_notification_settings_logevent_id_generation](Result<Unit> result) {
           if (!G()->close_flag()) {
             send_closure(actor_id, &MessagesManager::on_updated_dialog_notification_settings, dialog_id, generation);
           }
@@ -13960,13 +13959,12 @@ void MessagesManager::read_history_on_server_impl(DialogId dialog_id, MessageId 
 
   Promise<> promise;
   if (d->read_history_logevent_id != 0) {
-    promise =
-        PromiseCreator::lambda([actor_id = actor_id(this), dialog_id,
-                                generation = d->read_history_logevent_id_generation](Result<Unit> result) mutable {
-          if (!G()->close_flag()) {
-            send_closure(actor_id, &MessagesManager::on_read_history_finished, dialog_id, generation);
-          }
-        });
+    promise = PromiseCreator::lambda([actor_id = actor_id(this), dialog_id,
+                                      generation = d->read_history_logevent_id_generation](Result<Unit> result) {
+      if (!G()->close_flag()) {
+        send_closure(actor_id, &MessagesManager::on_read_history_finished, dialog_id, generation);
+      }
+    });
   }
 
   LOG(INFO) << "Send read history request in " << dialog_id << " up to " << max_message_id;
@@ -16340,18 +16338,18 @@ void MessagesManager::on_upload_message_media_finished(int64 media_album_id, Dia
     // send later, because some messages may be being deleted now
     for (auto request_message_id : request.message_ids) {
       LOG(INFO) << "Send on_media_message_ready_to_send for " << request_message_id << " in " << dialog_id;
-      send_closure_later(
-          actor_id(this), &MessagesManager::on_media_message_ready_to_send, dialog_id, request_message_id,
-          PromiseCreator::lambda([actor_id = actor_id(this), media_album_id](Result<Message *> result) mutable {
-            if (result.is_error() || G()->close_flag()) {
-              return;
-            }
+      send_closure_later(actor_id(this), &MessagesManager::on_media_message_ready_to_send, dialog_id,
+                         request_message_id,
+                         PromiseCreator::lambda([actor_id = actor_id(this), media_album_id](Result<Message *> result) {
+                           if (result.is_error() || G()->close_flag()) {
+                             return;
+                           }
 
-            auto m = result.move_as_ok();
-            CHECK(m != nullptr);
-            CHECK(m->media_album_id == media_album_id);
-            send_closure_later(actor_id, &MessagesManager::do_send_message_group, media_album_id);
-          }));
+                           auto m = result.move_as_ok();
+                           CHECK(m != nullptr);
+                           CHECK(m->media_album_id == media_album_id);
+                           send_closure_later(actor_id, &MessagesManager::do_send_message_group, media_album_id);
+                         }));
     }
   }
 }

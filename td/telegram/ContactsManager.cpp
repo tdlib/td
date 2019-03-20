@@ -9117,7 +9117,7 @@ bool ContactsManager::get_chat_full(ChatId chat_id, Promise<Unit> &&promise) {
 }
 
 void ContactsManager::send_get_chat_full_query(ChatId chat_id, Promise<Unit> &&promise) {
-  auto send_query = PromiseCreator::lambda([td = td_, chat_id](Result<Promise<Unit>> &&promise) mutable {
+  auto send_query = PromiseCreator::lambda([td = td_, chat_id](Result<Promise<Unit>> &&promise) {
     if (promise.is_ok()) {
       td->create_handler<GetFullChatQuery>(promise.move_as_ok())->send(chat_id);
     }

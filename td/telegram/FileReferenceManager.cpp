@@ -211,26 +211,25 @@ void FileReferenceManager::send_query(Destination dest, FileSourceId file_source
   node.query->active_queries++;
 
   auto promise = PromiseCreator::lambda([dest, file_source_id, file_reference_manager = G()->file_reference_manager(),
-                                         file_manager = G()->file_manager()](Result<Unit> result) mutable {
+                                         file_manager = G()->file_manager()](Result<Unit> result) {
     if (G()->close_flag()) {
       VLOG(file_references) << "Ignore file reference repair from " << file_source_id << " during closing";
       return;
     }
 
-    auto new_promise =
-        PromiseCreator::lambda([dest, file_source_id, file_reference_manager](Result<Unit> result) mutable {
-          if (G()->close_flag()) {
-            VLOG(file_references) << "Ignore file reference repair from " << file_source_id << " during closing";
-            return;
-          }
+    auto new_promise = PromiseCreator::lambda([dest, file_source_id, file_reference_manager](Result<Unit> result) {
+      if (G()->close_flag()) {
+        VLOG(file_references) << "Ignore file reference repair from " << file_source_id << " during closing";
+        return;
+      }
 
-          Status status;
-          if (result.is_error()) {
-            status = result.move_as_error();
-          }
-          send_closure(file_reference_manager, &FileReferenceManager::on_query_result, dest, file_source_id,
-                       std::move(status), 0);
-        });
+      Status status;
+      if (result.is_error()) {
+        status = result.move_as_error();
+      }
+      send_closure(file_reference_manager, &FileReferenceManager::on_query_result, dest, file_source_id,
+                   std::move(status), 0);
+    });
 
     send_lambda(file_manager, [file_manager, dest, result = std::move(result), file_source_id,
                                new_promise = std::move(new_promise)]() mutable {

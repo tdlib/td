@@ -279,7 +279,7 @@ void PrivacyManager::get_privacy(tl_object_ptr<td_api::UserPrivacySetting> key,
       create_storer(telegram_api::account_getPrivacy(user_privacy_setting.as_telegram_api())));
 
   send_with_promise(std::move(net_query),
-                    PromiseCreator::lambda([this, user_privacy_setting](Result<NetQueryPtr> x_net_query) mutable {
+                    PromiseCreator::lambda([this, user_privacy_setting](Result<NetQueryPtr> x_net_query) {
                       on_get_result(user_privacy_setting, [&]() -> Result<UserPrivacySettingRules> {
                         TRY_RESULT(net_query, std::move(x_net_query));
                         TRY_RESULT(rules, fetch_result<telegram_api::account_getPrivacy>(std::move(net_query)));

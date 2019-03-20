@@ -95,7 +95,7 @@ CallId CallManager::create_call_actor() {
   auto it_flag = id_to_actor_.emplace(id, ActorOwn<CallActor>());
   CHECK(it_flag.second);
   LOG(INFO) << "Create CallActor: " << id;
-  auto main_promise = PromiseCreator::lambda([actor_id = actor_id(this), id](Result<int64> call_id) mutable {
+  auto main_promise = PromiseCreator::lambda([actor_id = actor_id(this), id](Result<int64> call_id) {
     send_closure(actor_id, &CallManager::set_call_id, id, std::move(call_id));
   });
   it_flag.first->second = create_actor<CallActor>(PSLICE() << "Call " << id.get(), id, actor_shared(this, id.get()),

@@ -990,8 +990,8 @@ void LanguagePackManager::get_language_pack_strings(string language_code, vector
     auto result_promise =
         PromiseCreator::lambda([actor_id = actor_id(this), language_pack = language_pack_, language_code](
                                    Result<td_api::object_ptr<td_api::languagePackStrings>> r_strings) mutable {
-          send_closure(actor_id, &LanguagePackManager::on_get_all_language_pack_strings, language_pack, language_code,
-                       std::move(r_strings));
+          send_closure(actor_id, &LanguagePackManager::on_get_all_language_pack_strings, std::move(language_pack),
+                       std::move(language_code), std::move(r_strings));
         });
     auto request_promise =
         PromiseCreator::lambda([actor_id = actor_id(this), language_pack = language_pack_, language_code,
