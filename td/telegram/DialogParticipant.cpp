@@ -93,6 +93,12 @@ DialogParticipantStatus DialogParticipantStatus::ChannelAdministrator(bool is_cr
   }
 }
 
+RestrictedRights DialogParticipantStatus::get_restricted_rights() const {
+  return RestrictedRights(can_send_messages(), can_send_media(), can_send_stickers(), can_send_animations(),
+                          can_send_games(), can_use_inline_bots(), can_add_web_page_previews(), can_send_polls(),
+                          can_change_info_and_settings(), can_invite_users(), can_pin_messages());
+}
+
 tl_object_ptr<td_api::ChatMemberStatus> DialogParticipantStatus::get_chat_member_status_object() const {
   switch (type_) {
     case Type::Creator:
@@ -104,10 +110,8 @@ tl_object_ptr<td_api::ChatMemberStatus> DialogParticipantStatus::get_chat_member
     case Type::Member:
       return make_tl_object<td_api::chatMemberStatusMember>();
     case Type::Restricted:
-      return make_tl_object<td_api::chatMemberStatusRestricted>(
-          is_member(), until_date_, can_send_messages(), can_send_media(), can_send_polls(),
-          can_send_stickers() && can_send_animations() && can_send_games() && can_use_inline_bots(),
-          can_add_web_page_previews(), can_change_info_and_settings(), can_invite_users(), can_pin_messages());
+      return make_tl_object<td_api::chatMemberStatusRestricted>(is_member(), until_date_,
+                                                                get_restricted_rights().get_chat_permissions_object());
     case Type::Left:
       return make_tl_object<td_api::chatMemberStatusLeft>();
     case Type::Banned:
@@ -339,13 +343,17 @@ DialogParticipantStatus get_dialog_participant_status(const tl_object_ptr<td_api
       return DialogParticipantStatus::Member();
     case td_api::chatMemberStatusRestricted::ID: {
       auto st = static_cast<const td_api::chatMemberStatusRestricted *>(status.get());
-      bool can_send_media =
-          st->can_send_media_messages_ || st->can_send_other_messages_ || st->can_add_web_page_previews_;
+      auto permissions = st->permissions_.get();
+      bool can_send_polls = permissions->can_send_polls_;
+      bool can_send_media = permissions->can_send_media_messages_ || permissions->can_send_other_messages_ ||
+                            permissions->can_add_web_page_previews_;
+      bool can_send_messages = permissions->can_send_messages_ || can_send_media || can_send_polls;
       return DialogParticipantStatus::Restricted(
-          st->is_member_, st->restricted_until_date_, st->can_send_messages_ || can_send_media, can_send_media,
-          st->can_send_other_messages_, st->can_send_other_messages_, st->can_send_other_messages_,
-          st->can_send_other_messages_, st->can_add_web_page_previews_, st->can_send_polls_, st->can_change_info_,
-          st->can_invite_users_, st->can_pin_messages_);
+          st->is_member_, st->restricted_until_date_, can_send_messages, can_send_media,
+          permissions->can_send_other_messages_, permissions->can_send_other_messages_,
+          permissions->can_send_other_messages_, permissions->can_send_other_messages_,
+          permissions->can_add_web_page_previews_, permissions->can_send_polls_, permissions->can_change_info_,
+          permissions->can_invite_users_, permissions->can_pin_messages_);
     }
     case td_api::chatMemberStatusLeft::ID:
       return DialogParticipantStatus::Left();
@@ -412,6 +420,13 @@ RestrictedRights::RestrictedRights(bool can_send_messages, bool can_send_media, 
            (static_cast<uint32>(can_change_info_and_settings) * CAN_CHANGE_INFO_AND_SETTINGS) |
            (static_cast<uint32>(can_invite_users) * CAN_INVITE_USERS) |
            (static_cast<uint32>(can_pin_messages) * CAN_PIN_MESSAGES);
+}
+
+tl_object_ptr<td_api::chatPermissions> RestrictedRights::get_chat_permissions_object() const {
+  return td_api::make_object<td_api::chatPermissions>(
+      can_send_messages(), can_send_media(), can_send_polls(),
+      can_send_stickers() && can_send_animations() && can_send_games() && can_use_inline_bots(),
+      can_add_web_page_previews(), can_change_info_and_settings(), can_invite_users(), can_pin_messages());
 }
 
 tl_object_ptr<telegram_api::chatBannedRights> RestrictedRights::get_chat_banned_rights() const {

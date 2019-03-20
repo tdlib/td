@@ -2547,7 +2547,7 @@ void ContactsManager::Chat::store(StorerT &storer) const {
   store(migrated_to_channel_id, storer);
   store(version, storer);
   store(status, storer);
-  store(default_restricted_rights, storer);
+  store(default_permissions, storer);
 }
 
 template <class ParserT>
@@ -2583,7 +2583,7 @@ void ContactsManager::Chat::parse(ParserT &parser) {
   parse(version, parser);
   if (use_new_rights) {
     parse(status, parser);
-    parse(default_restricted_rights, parser);
+    parse(default_permissions, parser);
   } else {
     if (kicked || !is_active) {
       status = DialogParticipantStatus::Banned(0);
@@ -2596,9 +2596,8 @@ void ContactsManager::Chat::parse(ParserT &parser) {
     } else {
       status = DialogParticipantStatus::Member();
     }
-    default_restricted_rights =
-        RestrictedRights(true, true, true, true, true, true, true, true, everyone_is_administrator,
-                         everyone_is_administrator, everyone_is_administrator);
+    default_permissions = RestrictedRights(true, true, true, true, true, true, true, true, everyone_is_administrator,
+                                           everyone_is_administrator, everyone_is_administrator);
   }
 }
 
@@ -2609,7 +2608,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   bool has_username = !username.empty();
   bool is_restricted = !restriction_reason.empty();
   bool use_new_rights = true;
-  bool have_default_restricted_rights = true;
+  bool have_default_permissions = true;
   bool have_participant_count = participant_count != 0;
   BEGIN_STORE_FLAGS();
   STORE_FLAG(false);
@@ -2626,7 +2625,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
   STORE_FLAG(is_restricted);
   STORE_FLAG(use_new_rights);
   STORE_FLAG(have_participant_count);
-  STORE_FLAG(have_default_restricted_rights);
+  STORE_FLAG(have_default_permissions);
   END_STORE_FLAGS();
 
   store(status, storer);
@@ -2646,7 +2645,7 @@ void ContactsManager::Channel::store(StorerT &storer) const {
     store(participant_count, storer);
   }
   if (is_megagroup) {
-    store(default_restricted_rights, storer);
+    store(default_permissions, storer);
   }
 }
 
@@ -2664,7 +2663,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   bool anyone_can_invite;
   bool use_new_rights;
   bool have_participant_count;
-  bool have_default_restricted_rights;
+  bool have_default_permissions;
   BEGIN_PARSE_FLAGS();
   PARSE_FLAG(left);
   PARSE_FLAG(kicked);
@@ -2680,7 +2679,7 @@ void ContactsManager::Channel::parse(ParserT &parser) {
   PARSE_FLAG(is_restricted);
   PARSE_FLAG(use_new_rights);
   PARSE_FLAG(have_participant_count);
-  PARSE_FLAG(have_default_restricted_rights);
+  PARSE_FLAG(have_default_permissions);
   END_PARSE_FLAGS();
 
   if (use_new_rights) {
@@ -2714,10 +2713,10 @@ void ContactsManager::Channel::parse(ParserT &parser) {
     parse(participant_count, parser);
   }
   if (is_megagroup) {
-    if (have_default_restricted_rights) {
-      parse(default_restricted_rights, parser);
+    if (have_default_permissions) {
+      parse(default_permissions, parser);
     } else {
-      default_restricted_rights =
+      default_permissions =
           RestrictedRights(true, true, true, true, true, true, true, true, false, anyone_can_invite, false);
     }
   }
@@ -3012,6 +3011,40 @@ string ContactsManager::get_secret_chat_title(SecretChatId secret_chat_id) const
     return string();
   }
   return get_user_title(c->user_id);
+}
+
+RestrictedRights ContactsManager::get_user_default_permissions(UserId user_id) const {
+  auto u = get_user(user_id);
+  if (u == nullptr) {
+    return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false);
+  }
+
+  bool can_pin_messages = user_id == get_my_id(); /* TODO */
+  return RestrictedRights(true, true, true, true, true, true, true, true, false, false, can_pin_messages);
+}
+
+RestrictedRights ContactsManager::get_chat_default_permissions(ChatId chat_id) const {
+  auto c = get_chat(chat_id);
+  if (c == nullptr) {
+    return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false);
+  }
+  return c->default_permissions;
+}
+
+RestrictedRights ContactsManager::get_channel_default_permissions(ChannelId channel_id) const {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false);
+  }
+  return c->default_permissions;
+}
+
+RestrictedRights ContactsManager::get_secret_chat_default_permissions(SecretChatId secret_chat_id) const {
+  auto c = get_secret_chat(secret_chat_id);
+  if (c == nullptr) {
+    return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false);
+  }
+  return RestrictedRights(true, true, true, true, true, true, true, true, false, false, false);
 }
 
 int32 ContactsManager::get_secret_chat_date(SecretChatId secret_chat_id) const {
@@ -6252,8 +6285,12 @@ void ContactsManager::update_chat(Chat *c, ChatId chat_id, bool from_binlog, boo
   if (c->is_title_changed) {
     td_->messages_manager_->on_dialog_title_updated(DialogId(chat_id));
   }
+  if (c->is_default_permissions_changed) {
+    td_->messages_manager_->on_dialog_permissions_updated(DialogId(chat_id));
+  }
   c->is_photo_changed = false;
   c->is_title_changed = false;
+  c->is_default_permissions_changed = false;
 
   LOG(DEBUG) << "Update " << chat_id << ": is_changed = " << c->is_changed
              << ", need_send_update = " << c->need_send_update;
@@ -6319,8 +6356,12 @@ void ContactsManager::update_channel(Channel *c, ChannelId channel_id, bool from
       }
     }
   }
+  if (c->is_default_permissions_changed) {
+    td_->messages_manager_->on_dialog_permissions_updated(DialogId(channel_id));
+  }
   c->is_photo_changed = false;
   c->is_title_changed = false;
+  c->is_default_permissions_changed = false;
   c->is_status_changed = false;
   c->is_username_changed = false;
 
@@ -8246,12 +8287,14 @@ void ContactsManager::on_update_chat_status(Chat *c, ChatId chat_id, DialogParti
   }
 }
 
-void ContactsManager::on_update_chat_default_restricted_rights(Chat *c, ChatId chat_id, RestrictedRights rights) {
-  if (c->default_restricted_rights != rights) {
-    LOG(INFO) << "Update " << chat_id << " default restricted rights from " << c->default_restricted_rights << " to "
-              << rights;
-    c->default_restricted_rights = rights;
-    c->need_send_update = true;
+void ContactsManager::on_update_chat_default_permissions(Chat *c, ChatId chat_id,
+                                                         RestrictedRights default_permissions) {
+  if (c->default_permissions != default_permissions) {
+    LOG(INFO) << "Update " << chat_id << " default permissions from " << c->default_permissions << " to "
+              << default_permissions;
+    c->default_permissions = default_permissions;
+    c->is_default_permissions_changed = true;
+    c->is_changed = true;
   }
 }
 
@@ -8451,13 +8494,14 @@ void ContactsManager::on_update_channel_status(Channel *c, ChannelId channel_id,
   }
 }
 
-void ContactsManager::on_update_channel_default_restricted_rights(Channel *c, ChannelId channel_id,
-                                                                  RestrictedRights rights) {
-  if (c->default_restricted_rights != rights) {
-    LOG(INFO) << "Update " << channel_id << " default restricted rights from " << c->default_restricted_rights << " to "
-              << rights;
-    c->default_restricted_rights = rights;
-    c->need_send_update = true;
+void ContactsManager::on_update_channel_default_permissions(Channel *c, ChannelId channel_id,
+                                                            RestrictedRights default_permissions) {
+  if (c->default_permissions != default_permissions) {
+    LOG(INFO) << "Update " << channel_id << " default permissions from " << c->default_permissions << " to "
+              << default_permissions;
+    c->default_permissions = default_permissions;
+    c->is_default_permissions_changed = true;
+    c->is_changed = true;
   }
 }
 
@@ -9819,7 +9863,7 @@ void ContactsManager::on_chat_update(telegram_api::chat &chat, const char *sourc
     c->is_changed = true;
   }
   on_update_chat_status(c, chat_id, std::move(status));
-  on_update_chat_default_restricted_rights(c, chat_id, get_restricted_rights(std::move(chat.default_banned_rights_)));
+  on_update_chat_default_permissions(c, chat_id, get_restricted_rights(std::move(chat.default_banned_rights_)));
   on_update_chat_photo(c, chat_id, std::move(chat.photo_));
   on_update_chat_active(c, chat_id, is_active);
   on_update_chat_migrated_to_channel_id(c, chat_id, migrated_to_channel_id);
@@ -9918,8 +9962,8 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
       on_update_channel_title(c, channel_id, std::move(channel.title_));
       on_update_channel_username(c, channel_id, std::move(channel.username_));
       on_update_channel_photo(c, channel_id, std::move(channel.photo_));
-      on_update_channel_default_restricted_rights(c, channel_id,
-                                                  get_restricted_rights(std::move(channel.default_banned_rights_)));
+      on_update_channel_default_permissions(c, channel_id,
+                                            get_restricted_rights(std::move(channel.default_banned_rights_)));
 
       if (c->is_megagroup != is_megagroup || c->is_verified != is_verified) {
         c->is_megagroup = is_megagroup;
@@ -9956,8 +10000,8 @@ void ContactsManager::on_chat_update(telegram_api::channel &channel, const char 
   on_update_channel_photo(c, channel_id, std::move(channel.photo_));
   on_update_channel_status(c, channel_id, std::move(status));
   on_update_channel_username(c, channel_id, std::move(channel.username_));  // uses status, must be called after
-  on_update_channel_default_restricted_rights(c, channel_id,
-                                              get_restricted_rights(std::move(channel.default_banned_rights_)));
+  on_update_channel_default_permissions(c, channel_id,
+                                        get_restricted_rights(std::move(channel.default_banned_rights_)));
 
   if (participant_count != 0 && participant_count != c->participant_count) {
     c->participant_count = participant_count;
@@ -10012,7 +10056,7 @@ void ContactsManager::on_chat_update(telegram_api::channelForbidden &channel, co
   int32 unban_date = (channel.flags_ & CHANNEL_FLAG_HAS_UNBAN_DATE) != 0 ? channel.until_date_ : 0;
   on_update_channel_status(c, channel_id, DialogParticipantStatus::Banned(unban_date));
   on_update_channel_username(c, channel_id, "");  // don't know if channel username is empty, but update it anyway
-  on_update_channel_default_restricted_rights(c, channel_id, get_restricted_rights(nullptr));
+  on_update_channel_default_permissions(c, channel_id, get_restricted_rights(nullptr));
 
   bool sign_messages = false;
   bool is_megagroup = (channel.flags_ & CHANNEL_FLAG_IS_MEGAGROUP) != 0;
@@ -10185,10 +10229,9 @@ int32 ContactsManager::get_basic_group_id_object(ChatId chat_id, const char *sou
   if (chat_id.is_valid() && get_chat(chat_id) == nullptr && unknown_chats_.count(chat_id) == 0) {
     LOG(ERROR) << "Have no info about " << chat_id << " from " << source;
     unknown_chats_.insert(chat_id);
-    send_closure(
-        G()->td(), &Td::send_update,
-        td_api::make_object<td_api::updateBasicGroup>(td_api::make_object<td_api::basicGroup>(
-            chat_id.get(), 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(), true, true, 0)));
+    send_closure(G()->td(), &Td::send_update,
+                 td_api::make_object<td_api::updateBasicGroup>(td_api::make_object<td_api::basicGroup>(
+                     chat_id.get(), 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(), true, 0)));
   }
   return chat_id.get();
 }
@@ -10209,11 +10252,8 @@ tl_object_ptr<td_api::basicGroup> ContactsManager::get_basic_group_object(ChatId
 
 tl_object_ptr<td_api::basicGroup> ContactsManager::get_basic_group_object_const(ChatId chat_id,
                                                                                 const Chat *chat) const {
-  auto everyone_is_administrator = chat->default_restricted_rights ==
-                                   RestrictedRights(true, true, true, true, true, true, true, true, true, true, true);
   return make_tl_object<td_api::basicGroup>(
-      chat_id.get(), chat->participant_count, get_chat_status(chat).get_chat_member_status_object(),
-      everyone_is_administrator, chat->is_active,
+      chat_id.get(), chat->participant_count, get_chat_status(chat).get_chat_member_status_object(), chat->is_active,
       get_supergroup_id_object(chat->migrated_to_channel_id, "get_basic_group_object"));
 }
 
@@ -10238,7 +10278,7 @@ int32 ContactsManager::get_supergroup_id_object(ChannelId channel_id, const char
     send_closure(G()->td(), &Td::send_update,
                  td_api::make_object<td_api::updateSupergroup>(td_api::make_object<td_api::supergroup>(
                      channel_id.get(), string(), 0, DialogParticipantStatus::Banned(0).get_chat_member_status_object(),
-                     0, false, false, true, false, "")));
+                     0, false, true, false, "")));
   }
   return channel_id.get();
 }
@@ -10252,10 +10292,10 @@ tl_object_ptr<td_api::supergroup> ContactsManager::get_supergroup_object(Channel
   if (channel == nullptr) {
     return nullptr;
   }
-  return make_tl_object<td_api::supergroup>(
-      channel_id.get(), channel->username, channel->date, get_channel_status(channel).get_chat_member_status_object(),
-      channel->participant_count, channel->default_restricted_rights.can_invite_users(), channel->sign_messages,
-      !channel->is_megagroup, channel->is_verified, channel->restriction_reason);
+  return make_tl_object<td_api::supergroup>(channel_id.get(), channel->username, channel->date,
+                                            get_channel_status(channel).get_chat_member_status_object(),
+                                            channel->participant_count, channel->sign_messages, !channel->is_megagroup,
+                                            channel->is_verified, channel->restriction_reason);
 }
 
 tl_object_ptr<td_api::supergroupFullInfo> ContactsManager::get_supergroup_full_info_object(ChannelId channel_id) const {

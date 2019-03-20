@@ -17,6 +17,95 @@
 
 namespace td {
 
+class RestrictedRights {
+  static constexpr uint32 CAN_SEND_MESSAGES = 1 << 16;
+  static constexpr uint32 CAN_SEND_MEDIA = 1 << 17;
+  static constexpr uint32 CAN_SEND_STICKERS = 1 << 18;
+  static constexpr uint32 CAN_SEND_ANIMATIONS = 1 << 19;
+  static constexpr uint32 CAN_SEND_GAMES = 1 << 20;
+  static constexpr uint32 CAN_USE_INLINE_BOTS = 1 << 21;
+  static constexpr uint32 CAN_ADD_WEB_PAGE_PREVIEWS = 1 << 22;
+  static constexpr uint32 CAN_SEND_POLLS = 1 << 23;
+  static constexpr uint32 CAN_CHANGE_INFO_AND_SETTINGS = 1 << 24;
+  static constexpr uint32 CAN_INVITE_USERS = 1 << 25;
+  static constexpr uint32 CAN_PIN_MESSAGES = 1 << 26;
+
+  uint32 flags_;
+
+ public:
+  RestrictedRights(bool can_send_messages, bool can_send_media, bool can_send_stickers, bool can_send_animations,
+                   bool can_send_games, bool can_use_inline_bots, bool can_add_web_page_previews, bool can_send_polls,
+                   bool can_change_info_and_settings, bool can_invite_users, bool can_pin_messages);
+
+  td_api::object_ptr<td_api::chatPermissions> get_chat_permissions_object() const;
+
+  tl_object_ptr<telegram_api::chatBannedRights> get_chat_banned_rights() const;
+
+  bool can_change_info_and_settings() const {
+    return (flags_ & CAN_CHANGE_INFO_AND_SETTINGS) != 0;
+  }
+
+  bool can_invite_users() const {
+    return (flags_ & CAN_INVITE_USERS);
+  }
+
+  bool can_pin_messages() const {
+    return (flags_ & CAN_PIN_MESSAGES) != 0;
+  }
+
+  bool can_send_messages() const {
+    return (flags_ & CAN_SEND_MESSAGES) != 0;
+  }
+
+  bool can_send_media() const {
+    return (flags_ & CAN_SEND_MEDIA) != 0;
+  }
+
+  bool can_send_stickers() const {
+    return (flags_ & CAN_SEND_STICKERS) != 0;
+  }
+
+  bool can_send_animations() const {
+    return (flags_ & CAN_SEND_ANIMATIONS) != 0;
+  }
+
+  bool can_send_games() const {
+    return (flags_ & CAN_SEND_GAMES) != 0;
+  }
+
+  bool can_use_inline_bots() const {
+    return (flags_ & CAN_USE_INLINE_BOTS) != 0;
+  }
+
+  bool can_add_web_page_previews() const {
+    return (flags_ & CAN_ADD_WEB_PAGE_PREVIEWS) != 0;
+  }
+
+  bool can_send_polls() const {
+    return (flags_ & CAN_SEND_POLLS) != 0;
+  }
+
+  template <class StorerT>
+  void store(StorerT &storer) const {
+    td::store(flags_, storer);
+  }
+
+  template <class ParserT>
+  void parse(ParserT &parser) {
+    td::parse(flags_, parser);
+  }
+
+  friend bool operator==(const RestrictedRights &lhs, const RestrictedRights &rhs);
+
+  friend StringBuilder &operator<<(StringBuilder &string_builder, const RestrictedRights &status);
+};
+
+bool operator==(const RestrictedRights &lhs, const RestrictedRights &rhs);
+
+bool operator!=(const RestrictedRights &lhs, const RestrictedRights &rhs);
+
+StringBuilder &operator<<(StringBuilder &string_builder, const RestrictedRights &status);
+
 class DialogParticipantStatus {
   static constexpr uint32 CAN_CHANGE_INFO_AND_SETTINGS_ADMIN = 1 << 0;
   static constexpr uint32 CAN_POST_MESSAGES = 1 << 1;
@@ -95,6 +184,8 @@ class DialogParticipantStatus {
 
   // legacy rights
   static DialogParticipantStatus ChannelAdministrator(bool is_creator, bool is_megagroup);
+
+  RestrictedRights get_restricted_rights() const;
 
   tl_object_ptr<td_api::ChatMemberStatus> get_chat_member_status_object() const;
 
@@ -243,93 +334,6 @@ bool operator==(const DialogParticipantStatus &lhs, const DialogParticipantStatu
 bool operator!=(const DialogParticipantStatus &lhs, const DialogParticipantStatus &rhs);
 
 StringBuilder &operator<<(StringBuilder &string_builder, const DialogParticipantStatus &status);
-
-class RestrictedRights {
-  static constexpr uint32 CAN_SEND_MESSAGES = 1 << 16;
-  static constexpr uint32 CAN_SEND_MEDIA = 1 << 17;
-  static constexpr uint32 CAN_SEND_STICKERS = 1 << 18;
-  static constexpr uint32 CAN_SEND_ANIMATIONS = 1 << 19;
-  static constexpr uint32 CAN_SEND_GAMES = 1 << 20;
-  static constexpr uint32 CAN_USE_INLINE_BOTS = 1 << 21;
-  static constexpr uint32 CAN_ADD_WEB_PAGE_PREVIEWS = 1 << 22;
-  static constexpr uint32 CAN_SEND_POLLS = 1 << 23;
-  static constexpr uint32 CAN_CHANGE_INFO_AND_SETTINGS = 1 << 24;
-  static constexpr uint32 CAN_INVITE_USERS = 1 << 25;
-  static constexpr uint32 CAN_PIN_MESSAGES = 1 << 26;
-
-  uint32 flags_;
-
- public:
-  RestrictedRights(bool can_send_messages, bool can_send_media, bool can_send_stickers, bool can_send_animations,
-                   bool can_send_games, bool can_use_inline_bots, bool can_add_web_page_previews, bool can_send_polls,
-                   bool can_change_info_and_settings, bool can_invite_users, bool can_pin_messages);
-
-  tl_object_ptr<telegram_api::chatBannedRights> get_chat_banned_rights() const;
-
-  bool can_change_info_and_settings() const {
-    return (flags_ & CAN_CHANGE_INFO_AND_SETTINGS) != 0;
-  }
-
-  bool can_invite_users() const {
-    return (flags_ & CAN_INVITE_USERS);
-  }
-
-  bool can_pin_messages() const {
-    return (flags_ & CAN_PIN_MESSAGES) != 0;
-  }
-
-  bool can_send_messages() const {
-    return (flags_ & CAN_SEND_MESSAGES) != 0;
-  }
-
-  bool can_send_media() const {
-    return (flags_ & CAN_SEND_MEDIA) != 0;
-  }
-
-  bool can_send_stickers() const {
-    return (flags_ & CAN_SEND_STICKERS) != 0;
-  }
-
-  bool can_send_animations() const {
-    return (flags_ & CAN_SEND_ANIMATIONS) != 0;
-  }
-
-  bool can_send_games() const {
-    return (flags_ & CAN_SEND_GAMES) != 0;
-  }
-
-  bool can_use_inline_bots() const {
-    return (flags_ & CAN_USE_INLINE_BOTS) != 0;
-  }
-
-  bool can_add_web_page_previews() const {
-    return (flags_ & CAN_ADD_WEB_PAGE_PREVIEWS) != 0;
-  }
-
-  bool can_send_polls() const {
-    return (flags_ & CAN_SEND_POLLS) != 0;
-  }
-
-  template <class StorerT>
-  void store(StorerT &storer) const {
-    td::store(flags_, storer);
-  }
-
-  template <class ParserT>
-  void parse(ParserT &parser) {
-    td::parse(flags_, parser);
-  }
-
-  friend bool operator==(const RestrictedRights &lhs, const RestrictedRights &rhs);
-
-  friend StringBuilder &operator<<(StringBuilder &string_builder, const RestrictedRights &status);
-};
-
-bool operator==(const RestrictedRights &lhs, const RestrictedRights &rhs);
-
-bool operator!=(const RestrictedRights &lhs, const RestrictedRights &rhs);
-
-StringBuilder &operator<<(StringBuilder &string_builder, const RestrictedRights &status);
 
 struct DialogParticipant {
   UserId user_id;

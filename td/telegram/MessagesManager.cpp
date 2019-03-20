@@ -13387,6 +13387,7 @@ tl_object_ptr<td_api::chat> MessagesManager::get_chat_object(const Dialog *d) co
   return make_tl_object<td_api::chat>(
       d->dialog_id.get(), get_chat_type_object(d->dialog_id), get_dialog_title(d->dialog_id),
       get_chat_photo_object(td_->file_manager_.get(), get_dialog_photo(d->dialog_id)),
+      get_dialog_permissions(d->dialog_id).get_chat_permissions_object(),
       get_message_object(d->dialog_id, get_message(d, d->last_message_id)),
       DialogDate(d->order, d->dialog_id) <= last_dialog_date_ ? d->order : 0, d->pinned_order != DEFAULT_ORDER,
       d->is_marked_as_unread, d->order == SPONSORED_DIALOG_ORDER, can_delete_for_self, can_delete_for_all_users,
@@ -20699,6 +20700,15 @@ void MessagesManager::on_dialog_title_updated(DialogId dialog_id) {
   }
 }
 
+void MessagesManager::on_dialog_permissions_updated(DialogId dialog_id) {
+  auto d = get_dialog(dialog_id);  // called from update_user, must not create the dialog
+  if (d != nullptr && d->is_update_new_chat_sent) {
+    send_closure(G()->td(), &Td::send_update,
+                 td_api::make_object<td_api::updateChatPermissions>(
+                     dialog_id.get(), get_dialog_permissions(dialog_id).get_chat_permissions_object()));
+  }
+}
+
 DialogId MessagesManager::resolve_dialog_username(const string &username) {
   auto it = resolved_usernames_.find(clean_username(username));
   if (it != resolved_usernames_.end()) {
@@ -21016,6 +21026,23 @@ string MessagesManager::get_dialog_username(DialogId dialog_id) const {
     default:
       UNREACHABLE();
       return string();
+  }
+}
+
+RestrictedRights MessagesManager::get_dialog_permissions(DialogId dialog_id) const {
+  switch (dialog_id.get_type()) {
+    case DialogType::User:
+      return td_->contacts_manager_->get_user_default_permissions(dialog_id.get_user_id());
+    case DialogType::Chat:
+      return td_->contacts_manager_->get_chat_default_permissions(dialog_id.get_chat_id());
+    case DialogType::Channel:
+      return td_->contacts_manager_->get_channel_default_permissions(dialog_id.get_channel_id());
+    case DialogType::SecretChat:
+      return td_->contacts_manager_->get_secret_chat_default_permissions(dialog_id.get_secret_chat_id());
+    case DialogType::None:
+    default:
+      UNREACHABLE();
+      return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false);
   }
 }
 

@@ -3232,16 +3232,19 @@ class CliClient final : public Actor {
                                                                             false, false, false);
       } else if (status_str == "rest") {
         status = td_api::make_object<td_api::chatMemberStatusRestricted>(
-            true, static_cast<int32>(120 + std::time(nullptr)), false, false, false, false, false, false, false, false);
+            true, static_cast<int32>(120 + std::time(nullptr)),
+            td_api::make_object<td_api::chatPermissions>(false, false, false, false, false, false, false, false));
       } else if (status_str == "restkick") {
         status = td_api::make_object<td_api::chatMemberStatusRestricted>(
-            false, static_cast<int32>(120 + std::time(nullptr)), true, false, false, false, false, false, false, false);
+            false, static_cast<int32>(120 + std::time(nullptr)),
+            td_api::make_object<td_api::chatPermissions>(true, false, false, false, false, false, false, false));
       } else if (status_str == "restunkick") {
         status = td_api::make_object<td_api::chatMemberStatusRestricted>(
-            true, static_cast<int32>(120 + std::time(nullptr)), true, false, false, false, false, false, false, false);
+            true, static_cast<int32>(120 + std::time(nullptr)),
+            td_api::make_object<td_api::chatPermissions>(true, false, false, false, false, false, false, false));
       } else if (status_str == "unrest") {
-        status = td_api::make_object<td_api::chatMemberStatusRestricted>(true, 0, true, true, true, true, true, true,
-                                                                         true, true);
+        status = td_api::make_object<td_api::chatMemberStatusRestricted>(
+            true, 0, td_api::make_object<td_api::chatPermissions>(true, true, true, true, true, true, true, true));
       }
       if (status != nullptr) {
         send_request(td_api::make_object<td_api::setChatMemberStatus>(as_chat_id(chat_id), as_user_id(user_id),

@@ -98,6 +98,11 @@ class ContactsManager : public Actor {
   string get_channel_title(ChannelId channel_id) const;
   string get_secret_chat_title(SecretChatId secret_chat_id) const;
 
+  RestrictedRights get_user_default_permissions(UserId user_id) const;
+  RestrictedRights get_chat_default_permissions(ChatId chat_id) const;
+  RestrictedRights get_channel_default_permissions(ChannelId channel_id) const;
+  RestrictedRights get_secret_chat_default_permissions(SecretChatId secret_chat_id) const;
+
   bool is_update_about_username_change_received(UserId user_id) const;
 
   string get_user_username(UserId user_id) const;
@@ -566,13 +571,13 @@ class ContactsManager : public Actor {
     ChannelId migrated_to_channel_id;
 
     DialogParticipantStatus status = DialogParticipantStatus::Banned(0);
-    RestrictedRights default_restricted_rights{false, false, false, false, false, false,
-                                               false, false, false, false, false};
+    RestrictedRights default_permissions{false, false, false, false, false, false, false, false, false, false, false};
 
     bool is_active = false;
 
     bool is_title_changed = true;
     bool is_photo_changed = true;
+    bool is_default_permissions_changed = true;
     bool is_changed = true;        // have new changes not sent to the database except changes visible to the client
     bool need_send_update = true;  // have new changes not sent to the client
 
@@ -607,8 +612,7 @@ class ContactsManager : public Actor {
     string username;
     string restriction_reason;
     DialogParticipantStatus status = DialogParticipantStatus::Banned(0);
-    RestrictedRights default_restricted_rights{false, false, false, false, false, false,
-                                               false, false, false, false, false};
+    RestrictedRights default_permissions{false, false, false, false, false, false, false, false, false, false, false};
     int32 date = 0;
     int32 participant_count = 0;
 
@@ -620,6 +624,7 @@ class ContactsManager : public Actor {
     bool is_title_changed = true;
     bool is_username_changed = true;
     bool is_photo_changed = true;
+    bool is_default_permissions_changed = true;
     bool is_status_changed = true;
     bool had_read_access = true;
     bool was_member = false;
@@ -879,7 +884,7 @@ class ContactsManager : public Actor {
   void invalidate_user_full(UserId user_id);
 
   void on_update_chat_status(Chat *c, ChatId chat_id, DialogParticipantStatus status);
-  void on_update_chat_default_restricted_rights(Chat *c, ChatId chat_id, RestrictedRights rights);
+  void on_update_chat_default_permissions(Chat *c, ChatId chat_id, RestrictedRights default_permissions);
   void on_update_chat_participant_count(Chat *c, ChatId chat_id, int32 participant_count, int32 version,
                                         const string &debug_str);
   void on_update_chat_photo(Chat *c, ChatId chat_id, tl_object_ptr<telegram_api::ChatPhoto> &&chat_photo_ptr);
@@ -898,7 +903,7 @@ class ContactsManager : public Actor {
   void on_update_channel_title(Channel *c, ChannelId channel_id, string &&title);
   void on_update_channel_username(Channel *c, ChannelId channel_id, string &&username);
   void on_update_channel_status(Channel *c, ChannelId channel_id, DialogParticipantStatus &&status);
-  void on_update_channel_default_restricted_rights(Channel *c, ChannelId channel_id, RestrictedRights rights);
+  void on_update_channel_default_permissions(Channel *c, ChannelId channel_id, RestrictedRights default_permissions);
 
   void on_update_channel_full_invite_link(ChannelFull *channel_full,
                                           tl_object_ptr<telegram_api::ExportedChatInvite> &&invite_link_ptr);
