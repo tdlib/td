@@ -147,6 +147,7 @@ class BufferedStdinImpl {
   BufferedStdinImpl(BufferedStdinImpl &&) = delete;
   BufferedStdinImpl &operator=(BufferedStdinImpl &&) = delete;
   ~BufferedStdinImpl() {
+    file_fd_.get_native_fd().set_is_blocking(true);
     file_fd_.move_as_native_fd().release();
   }
 
