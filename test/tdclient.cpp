@@ -10,6 +10,7 @@
 #include "td/actor/PromiseFuture.h"
 
 #include "td/telegram/ClientActor.h"
+#include "td/telegram/Client.h"
 
 #include "td/telegram/td_api.h"
 
@@ -831,5 +832,41 @@ class Tdclient_login : public Test {
   Status result_;
 };
 //RegisterTest<Tdclient_login> Tdclient_login("Tdclient_login");
+
+TEST(Client, Simple) {
+  td::Client client;
+  //client.execute({1, td::td_api::make_object<td::td_api::setLogTagVerbosityLevel>("actor", 1)});
+  client.send({3, td::make_tl_object<td::td_api::testSquareInt>(3)});
+  while (true) {
+    auto result = client.receive(10);
+    if (result.id == 3) {
+      auto test_int = td::td_api::move_object_as<td::td_api::testInt>(result.object);
+      ASSERT_EQ(test_int->value_, 9);
+      break;
+    }
+  }
+}
+
+TEST(Client, SimpleMulti) {
+  std::vector<td::Client> clients(50);
+  //for (auto &client : clients) {
+  //client.execute({1, td::td_api::make_object<td::td_api::setLogTagVerbosityLevel>("td_requests", 1)});
+  //}
+
+  for (auto &client : clients) {
+    client.send({3, td::make_tl_object<td::td_api::testSquareInt>(3)});
+  }
+
+  for (auto &client : clients) {
+    while (true) {
+      auto result = client.receive(10);
+      if (result.id == 3) {
+        auto test_int = td::td_api::move_object_as<td::td_api::testInt>(result.object);
+        ASSERT_EQ(test_int->value_, 9);
+        break;
+      }
+    }
+  }
+}
 
 }  // namespace td

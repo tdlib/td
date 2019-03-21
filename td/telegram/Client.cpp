@@ -106,16 +106,103 @@ class Client::Impl final {
 
 #else
 
-using OutputQueue = MpscPollableQueue<Client::Response>;
+class MultiTd : public Actor {
+ public:
+  void create(int td_id, unique_ptr<TdCallback> callback) {
+    auto &td = tds_[td_id];
+    CHECK(td.empty());
+
+    string name = "Td";
+    if (td_id != 0) {
+      name += PSTRING() << "#" << td_id;
+    }
+    td = create_actor<Td>(name, std::move(callback));
+  }
+  void send(int td_id, Client::Request request) {
+    auto &td = tds_[td_id];
+    CHECK(!td.empty());
+    send_closure(td, &Td::request, request.id, std::move(request.function));
+  }
+  void destroy(int td_id) {
+    auto size = tds_.erase(td_id);
+    CHECK(size == 1);
+  }
+
+ private:
+  std::unordered_map<int, ActorOwn<Td> > tds_;
+};
+
+class MultiImpl {
+ public:
+  static std::shared_ptr<MultiImpl> get() {
+    static std::mutex mutex;
+    static std::weak_ptr<MultiImpl> impl;
+    std::unique_lock<std::mutex> lock(mutex);
+    auto res = impl.lock();
+    if (!res) {
+      res = std::make_shared<MultiImpl>();
+      impl = res;
+    }
+    return res;
+  }
+  MultiImpl() {
+    concurrent_scheduler_ = std::make_shared<ConcurrentScheduler>();
+    concurrent_scheduler_->init(3);
+    concurrent_scheduler_->start();
+
+    {
+      auto guard = concurrent_scheduler_->get_main_guard();
+      multi_td_ = create_actor<MultiTd>("MultiTd");
+    }
+
+    scheduler_thread_ = thread([concurrent_scheduler = concurrent_scheduler_] {
+      while (concurrent_scheduler->run_main(10)) {
+      }
+      concurrent_scheduler->finish();
+    });
+  }
+  int32 create_id() {
+    return id_.fetch_add(1) + 1;
+  }
+  void create(int32 td_id, td::unique_ptr<TdCallback> callback) {
+    auto guard = concurrent_scheduler_->get_send_guard();
+    send_closure(multi_td_, &MultiTd::create, td_id, std::move(callback));
+  }
+  void send(int32 td_id, Client::Request request) {
+    auto guard = concurrent_scheduler_->get_send_guard();
+    send_closure(multi_td_, &MultiTd::send, td_id, std::move(request));
+  }
+  void destroy(int32 td_id) {
+    auto guard = concurrent_scheduler_->get_send_guard();
+    send_closure(multi_td_, &MultiTd::destroy, td_id);
+  }
+
+  ~MultiImpl() {
+    {
+      auto guard = concurrent_scheduler_->get_send_guard();
+      multi_td_.reset();
+      Scheduler::instance()->finish();
+    }
+    scheduler_thread_.join();
+  }
+
+ private:
+  std::shared_ptr<ConcurrentScheduler> concurrent_scheduler_;
+  td::thread scheduler_thread_;
+  td::ActorOwn<MultiTd> multi_td_;
+  std::atomic<int32> id_{0};
+};
 
 /*** Client::Impl ***/
 class Client::Impl final {
  public:
+  using OutputQueue = MpscPollableQueue<Client::Response>;
   Impl() {
+    multi_impl_ = MultiImpl::get();
+    td_id_ = multi_impl_->create_id();
     output_queue_ = std::make_shared<OutputQueue>();
     output_queue_->init();
-    concurrent_scheduler_ = std::make_shared<ConcurrentScheduler>();
-    concurrent_scheduler_->init(3);
+
     class Callback : public TdCallback {
      public:
       explicit Callback(std::shared_ptr<OutputQueue> output_queue) : output_queue_(std::move(output_queue)) {
@@ -131,33 +218,26 @@ class Client::Impl final {
       Callback(Callback &&) = delete;
       Callback &operator=(Callback &&) = delete;
       ~Callback() override {
-        Scheduler::instance()->finish();
+        output_queue_->writer_put({0, nullptr});
       }
 
      private:
       std::shared_ptr<OutputQueue> output_queue_;
     };
-    td_ = concurrent_scheduler_->create_actor_unsafe<Td>(0, "Td", td::make_unique<Callback>(output_queue_));
-    concurrent_scheduler_->start();
 
-    scheduler_thread_ = thread([concurrent_scheduler = concurrent_scheduler_] {
-      while (concurrent_scheduler->run_main(10)) {
-      }
-      concurrent_scheduler->finish();
-    });
+    multi_impl_->create(td_id_, td::make_unique<Callback>(output_queue_));
   }
 
-  void send(Request request) {
+  void send(Client::Request request) {
     if (request.id == 0 || request.function == nullptr) {
       LOG(ERROR) << "Drop wrong request " << request.id;
       return;
     }
 
-    auto guard = concurrent_scheduler_->get_send_guard();
-    send_closure(td_, &Td::request, request.id, std::move(request.function));
+    multi_impl_->send(td_id_, std::move(request));
   }
 
-  Response receive(double timeout) {
+  Client::Response receive(double timeout) {
     VLOG(td_requests) << "Begin to wait for updates with timeout " << timeout;
     auto is_locked = receive_lock_.exchange(true);
     CHECK(!is_locked);
@@ -173,26 +253,32 @@ class Client::Impl final {
   Impl(Impl &&) = delete;
   Impl &operator=(Impl &&) = delete;
   ~Impl() {
-    auto guard = concurrent_scheduler_->get_send_guard();
-    td_.reset();
-    scheduler_thread_.join();
+    multi_impl_->destroy(td_id_);
+    while (!is_closed_) {
+      receive(10);
+    }
   }
 
  private:
-  std::shared_ptr<OutputQueue> output_queue_;
-  std::shared_ptr<ConcurrentScheduler> concurrent_scheduler_;
-  int output_queue_ready_cnt_{0};
-  thread scheduler_thread_;
-  std::atomic<bool> receive_lock_{false};
-  ActorOwn<Td> td_;
+  std::shared_ptr<MultiImpl> multi_impl_;
 
-  Response receive_unlocked(double timeout) {
+  std::shared_ptr<OutputQueue> output_queue_;
+  int output_queue_ready_cnt_{0};
+  std::atomic<bool> receive_lock_{false};
+  bool is_closed_{false};
+  int32 td_id_;
+
+  Client::Response receive_unlocked(double timeout) {
     if (output_queue_ready_cnt_ == 0) {
       output_queue_ready_cnt_ = output_queue_->reader_wait_nonblock();
     }
     if (output_queue_ready_cnt_ > 0) {
       output_queue_ready_cnt_--;
-      return output_queue_->reader_get_unsafe();
+      auto res = output_queue_->reader_get_unsafe();
+      if (!res.object) {
+        is_closed_ = true;
+      }
+      return res;
     }
     if (timeout != 0) {
       output_queue_->reader_get_event_fd().wait(static_cast<int>(timeout * 1000));
