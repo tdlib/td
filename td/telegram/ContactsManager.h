@@ -857,11 +857,11 @@ class ContactsManager : public Actor {
   SecretChat *add_secret_chat(SecretChatId secret_chat_id);
 
   static DialogParticipantStatus get_chat_status(const Chat *c);
-  static DialogParticipantStatus get_chat_permissions(const Chat *c);
+  DialogParticipantStatus get_chat_permissions(const Chat *c) const;
 
   static ChannelType get_channel_type(const Channel *c);
   static DialogParticipantStatus get_channel_status(const Channel *c);
-  static DialogParticipantStatus get_channel_permissions(const Channel *c);
+  DialogParticipantStatus get_channel_permissions(const Channel *c) const;
   static bool get_channel_sign_messages(const Channel *c);
 
   void set_my_id(UserId my_id);

@@ -9155,11 +9155,11 @@ DialogParticipantStatus ContactsManager::get_chat_permissions(ChatId chat_id) co
   return get_chat_permissions(c);
 }
 
-DialogParticipantStatus ContactsManager::get_chat_permissions(const Chat *c) {
+DialogParticipantStatus ContactsManager::get_chat_permissions(const Chat *c) const {
   if (!c->is_active) {
     return DialogParticipantStatus::Banned(0);
   }
-  return c->status.apply_restrictions(c->default_permissions);
+  return c->status.apply_restrictions(c->default_permissions, td_->auth_manager_->is_bot());
 }
 
 bool ContactsManager::is_appointed_chat_administrator(ChatId chat_id) const {
@@ -9223,13 +9223,13 @@ DialogParticipantStatus ContactsManager::get_channel_permissions(ChannelId chann
   return get_channel_permissions(c);
 }
 
-DialogParticipantStatus ContactsManager::get_channel_permissions(const Channel *c) {
+DialogParticipantStatus ContactsManager::get_channel_permissions(const Channel *c) const {
   c->status.update_restrictions();
   if (!c->is_megagroup) {
     // there is no restrictions in broadcast channels
     return c->status;
   }
-  return c->status.apply_restrictions(c->default_permissions);
+  return c->status.apply_restrictions(c->default_permissions, td_->auth_manager_->is_bot());
 }
 
 int32 ContactsManager::get_channel_participant_count(ChannelId channel_id) const {

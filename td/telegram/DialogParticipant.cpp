@@ -201,7 +201,8 @@ tl_object_ptr<telegram_api::chatBannedRights> DialogParticipantStatus::get_chat_
       false /*ignored*/, until_date_);
 }
 
-DialogParticipantStatus DialogParticipantStatus::apply_restrictions(RestrictedRights default_restrictions) const {
+DialogParticipantStatus DialogParticipantStatus::apply_restrictions(RestrictedRights default_restrictions,
+                                                                    bool is_bot) const {
   auto flags = flags_;
   switch (type_) {
     case Type::Creator:
@@ -210,13 +211,18 @@ DialogParticipantStatus DialogParticipantStatus::apply_restrictions(RestrictedRi
     case Type::Administrator:
       // administrators aren't affected by restrictions, but if everyone can invite users,
       // pin messages or change info, they also can do that
-      flags |= default_restrictions.flags_ & ALL_ADMIN_PERMISSION_RIGHTS;
+      if (!is_bot) {
+        flags |= default_restrictions.flags_ & ALL_ADMIN_PERMISSION_RIGHTS;
+      }
       break;
     case Type::Member:
     case Type::Restricted:
     case Type::Left:
       // members and restricted are affected by default restrictions
       flags &= ~ALL_PERMISSION_RIGHTS | default_restrictions.flags_;
+      if (is_bot) {
+        flags &= ~ALL_ADMIN_PERMISSION_RIGHTS;
+      }
       break;
     case Type::Banned:
       // banned can do nothing, even restirctions allows them to do that
