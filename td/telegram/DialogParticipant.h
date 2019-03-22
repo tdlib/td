@@ -32,6 +32,8 @@ class RestrictedRights {
 
   uint32 flags_;
 
+  friend class DialogParticipantStatus;
+
  public:
   RestrictedRights(bool can_send_messages, bool can_send_media, bool can_send_stickers, bool can_send_animations,
                    bool can_send_games, bool can_use_inline_bots, bool can_add_web_page_previews, bool can_send_polls,
@@ -186,6 +188,10 @@ class DialogParticipantStatus {
   static DialogParticipantStatus ChannelAdministrator(bool is_creator, bool is_megagroup);
 
   RestrictedRights get_restricted_rights() const;
+
+  DialogParticipantStatus apply_restrictions(RestrictedRights default_restrictions) const {
+    return DialogParticipantStatus(type_, flags_ & (~ALL_RESTRICTED_RIGHTS | default_restrictions.flags_), 0);
+  }
 
   tl_object_ptr<td_api::ChatMemberStatus> get_chat_member_status_object() const;
 

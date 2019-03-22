@@ -9149,6 +9149,24 @@ DialogParticipantStatus ContactsManager::get_chat_status(const Chat *c) {
   return c->status;
 }
 
+DialogParticipantStatus ContactsManager::get_chat_permissions(ChatId chat_id) const {
+  auto c = get_chat(chat_id);
+  if (c == nullptr) {
+    return DialogParticipantStatus::Banned(0);
+  }
+  return get_chat_permissions(c);
+}
+
+DialogParticipantStatus ContactsManager::get_chat_permissions(const Chat *c) {
+  if (!c->is_active) {
+    return DialogParticipantStatus::Banned(0);
+  }
+  if (c->status.is_administrator() || c->status.is_banned()) {
+    return c->status;
+  }
+  return c->status.apply_restrictions(c->default_permissions);
+}
+
 bool ContactsManager::is_appointed_chat_administrator(ChatId chat_id) const {
   auto c = get_chat(chat_id);
   if (c == nullptr) {
@@ -9200,6 +9218,22 @@ DialogParticipantStatus ContactsManager::get_channel_status(ChannelId channel_id
 DialogParticipantStatus ContactsManager::get_channel_status(const Channel *c) {
   c->status.update_restrictions();
   return c->status;
+}
+
+DialogParticipantStatus ContactsManager::get_channel_permissions(ChannelId channel_id) const {
+  auto c = get_channel(channel_id);
+  if (c == nullptr) {
+    return DialogParticipantStatus::Banned(0);
+  }
+  return get_channel_permissions(c);
+}
+
+DialogParticipantStatus ContactsManager::get_channel_permissions(const Channel *c) {
+  c->status.update_restrictions();
+  if (!c->is_megagroup || c->status.is_administrator() || c->status.is_banned()) {
+    return c->status;
+  }
+  return c->status.apply_restrictions(c->default_permissions);
 }
 
 int32 ContactsManager::get_channel_participant_count(ChannelId channel_id) const {

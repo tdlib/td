@@ -1487,7 +1487,7 @@ static Result<InputMessageContent> create_input_message_content(
       WebPageId web_page_id;
       bool can_add_web_page_previews =
           dialog_id.get_type() != DialogType::Channel ||
-          td->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).can_add_web_page_previews();
+          td->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id()).can_add_web_page_previews();
       if (!is_bot && !disable_web_page_preview && can_add_web_page_previews) {
         web_page_id = td->web_pages_manager_->get_web_page_by_url(
             get_first_url(input_message_text.text.text, input_message_text.text.entities));

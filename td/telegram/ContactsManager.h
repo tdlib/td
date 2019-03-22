@@ -366,6 +366,7 @@ class ContactsManager : public Actor {
 
   bool get_chat_is_active(ChatId chat_id) const;
   DialogParticipantStatus get_chat_status(ChatId chat_id) const;
+  DialogParticipantStatus get_chat_permissions(ChatId chat_id) const;
   bool is_appointed_chat_administrator(ChatId chat_id) const;
   FileSourceId get_chat_photo_file_source_id(ChatId chat_id);
 
@@ -384,6 +385,7 @@ class ContactsManager : public Actor {
   ChannelType get_channel_type(ChannelId channel_id) const;
   int32 get_channel_date(ChannelId channel_id) const;
   DialogParticipantStatus get_channel_status(ChannelId channel_id) const;
+  DialogParticipantStatus get_channel_permissions(ChannelId channel_id) const;
   int32 get_channel_participant_count(ChannelId channel_id) const;
   bool get_channel_sign_messages(ChannelId channel_id) const;
   FileSourceId get_channel_photo_file_source_id(ChannelId channel_id);
@@ -855,9 +857,11 @@ class ContactsManager : public Actor {
   SecretChat *add_secret_chat(SecretChatId secret_chat_id);
 
   static DialogParticipantStatus get_chat_status(const Chat *c);
+  static DialogParticipantStatus get_chat_permissions(const Chat *c);
 
   static ChannelType get_channel_type(const Channel *c);
   static DialogParticipantStatus get_channel_status(const Channel *c);
+  static DialogParticipantStatus get_channel_permissions(const Channel *c);
   static bool get_channel_sign_messages(const Channel *c);
 
   void set_my_id(UserId my_id);
