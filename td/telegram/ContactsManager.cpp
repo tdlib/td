@@ -9161,9 +9161,6 @@ DialogParticipantStatus ContactsManager::get_chat_permissions(const Chat *c) {
   if (!c->is_active) {
     return DialogParticipantStatus::Banned(0);
   }
-  if (c->status.is_administrator() || c->status.is_banned()) {
-    return c->status;
-  }
   return c->status.apply_restrictions(c->default_permissions);
 }
 
@@ -9230,7 +9227,8 @@ DialogParticipantStatus ContactsManager::get_channel_permissions(ChannelId chann
 
 DialogParticipantStatus ContactsManager::get_channel_permissions(const Channel *c) {
   c->status.update_restrictions();
-  if (!c->is_megagroup || c->status.is_administrator() || c->status.is_banned()) {
+  if (!c->is_megagroup) {
+    // there is no restrictions in broadcast channels
     return c->status;
   }
   return c->status.apply_restrictions(c->default_permissions);

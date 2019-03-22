@@ -201,6 +201,34 @@ tl_object_ptr<telegram_api::chatBannedRights> DialogParticipantStatus::get_chat_
       false /*ignored*/, until_date_);
 }
 
+DialogParticipantStatus DialogParticipantStatus::apply_restrictions(RestrictedRights default_restrictions) const {
+  auto flags = flags_;
+  switch (type_) {
+    case Type::Creator:
+      // creator can do anything and isn't affected by restrictions
+      break;
+    case Type::Administrator:
+      // administrators aren't affected by restrictions, but if everyone can invite users,
+      // pin messages or change info, they also can do that
+      flags &= ~ALL_ADMIN_RESTRICTED_RIGHTS | default_restrictions.flags_;
+      break;
+    case Type::Member:
+    case Type::Restricted:
+    case Type::Left:
+      // members and restricted are affected by default restrictions
+      flags &= ~ALL_RESTRICTED_RIGHTS | default_restrictions.flags_;
+      break;
+    case Type::Banned:
+      // banned can do nothing, even restirctions allows them to do that
+      break;
+    default:
+      UNREACHABLE();
+      break;
+  }
+
+  return DialogParticipantStatus(type_, flags, 0);
+}
+
 void DialogParticipantStatus::update_restrictions() const {
   if (until_date_ != 0 && G()->unix_time() > until_date_) {
     until_date_ = 0;
@@ -520,7 +548,7 @@ StringBuilder &operator<<(StringBuilder &string_builder, const RestrictedRights 
 
 RestrictedRights get_restricted_rights(const tl_object_ptr<telegram_api::chatBannedRights> &banned_rights) {
   if (banned_rights == nullptr) {
-    return RestrictedRights(false, false, false, false, false, false, false, false, false, true, false);
+    return RestrictedRights(false, false, false, false, false, false, false, false, false, false, false);
   }
   bool can_view_messages = (banned_rights->flags_ & telegram_api::chatBannedRights::VIEW_MESSAGES_MASK) == 0;
   if (!can_view_messages) {

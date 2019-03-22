@@ -143,10 +143,12 @@ class DialogParticipantStatus {
       CAN_CHANGE_INFO_AND_SETTINGS_ADMIN | CAN_POST_MESSAGES | CAN_EDIT_MESSAGES | CAN_DELETE_MESSAGES |
       CAN_INVITE_USERS_ADMIN | CAN_RESTRICT_MEMBERS | CAN_PIN_MESSAGES_ADMIN | CAN_PROMOTE_MEMBERS;
 
+  static constexpr uint32 ALL_ADMIN_RESTRICTED_RIGHTS =
+      CAN_CHANGE_INFO_AND_SETTINGS_BANNED | CAN_INVITE_USERS_BANNED | CAN_PIN_MESSAGES_BANNED;
+
   static constexpr uint32 ALL_RESTRICTED_RIGHTS =
       CAN_SEND_MESSAGES | CAN_SEND_MEDIA | CAN_SEND_STICKERS | CAN_SEND_ANIMATIONS | CAN_SEND_GAMES |
-      CAN_USE_INLINE_BOTS | CAN_ADD_WEB_PAGE_PREVIEWS | CAN_SEND_POLLS | CAN_CHANGE_INFO_AND_SETTINGS_BANNED |
-      CAN_INVITE_USERS_BANNED | CAN_PIN_MESSAGES_BANNED;
+      CAN_USE_INLINE_BOTS | CAN_ADD_WEB_PAGE_PREVIEWS | CAN_SEND_POLLS | ALL_ADMIN_RESTRICTED_RIGHTS;
 
   enum class Type : int32 { Creator, Administrator, Member, Restricted, Left, Banned };
   // all fields are logically const, but should be updated in update_restrictions()
@@ -189,9 +191,7 @@ class DialogParticipantStatus {
 
   RestrictedRights get_restricted_rights() const;
 
-  DialogParticipantStatus apply_restrictions(RestrictedRights default_restrictions) const {
-    return DialogParticipantStatus(type_, flags_ & (~ALL_RESTRICTED_RIGHTS | default_restrictions.flags_), 0);
-  }
+  DialogParticipantStatus apply_restrictions(RestrictedRights default_restrictions) const;
 
   tl_object_ptr<td_api::ChatMemberStatus> get_chat_member_status_object() const;
 
