@@ -143,12 +143,14 @@ class DialogParticipantStatus {
       CAN_CHANGE_INFO_AND_SETTINGS_ADMIN | CAN_POST_MESSAGES | CAN_EDIT_MESSAGES | CAN_DELETE_MESSAGES |
       CAN_INVITE_USERS_ADMIN | CAN_RESTRICT_MEMBERS | CAN_PIN_MESSAGES_ADMIN | CAN_PROMOTE_MEMBERS;
 
-  static constexpr uint32 ALL_ADMIN_RESTRICTED_RIGHTS =
+  static constexpr uint32 ALL_ADMIN_PERMISSION_RIGHTS =
       CAN_CHANGE_INFO_AND_SETTINGS_BANNED | CAN_INVITE_USERS_BANNED | CAN_PIN_MESSAGES_BANNED;
 
-  static constexpr uint32 ALL_RESTRICTED_RIGHTS =
-      CAN_SEND_MESSAGES | CAN_SEND_MEDIA | CAN_SEND_STICKERS | CAN_SEND_ANIMATIONS | CAN_SEND_GAMES |
-      CAN_USE_INLINE_BOTS | CAN_ADD_WEB_PAGE_PREVIEWS | CAN_SEND_POLLS | ALL_ADMIN_RESTRICTED_RIGHTS;
+  static constexpr uint32 ALL_RESTRICTED_RIGHTS = CAN_SEND_MESSAGES | CAN_SEND_MEDIA | CAN_SEND_STICKERS |
+                                                  CAN_SEND_ANIMATIONS | CAN_SEND_GAMES | CAN_USE_INLINE_BOTS |
+                                                  CAN_ADD_WEB_PAGE_PREVIEWS | CAN_SEND_POLLS;
+
+  static constexpr uint32 ALL_PERMISSION_RIGHTS = ALL_RESTRICTED_RIGHTS | ALL_ADMIN_PERMISSION_RIGHTS;
 
   enum class Type : int32 { Creator, Administrator, Member, Restricted, Left, Banned };
   // all fields are logically const, but should be updated in update_restrictions()

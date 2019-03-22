@@ -4068,7 +4068,7 @@ void ContactsManager::set_chat_description(ChatId chat_id, const string &descrip
   if (c == nullptr) {
     return promise.set_error(Status::Error(6, "Chat info not found"));
   }
-  if (!get_chat_status(c).can_change_info_and_settings()) {
+  if (!get_chat_permissions(c).can_change_info_and_settings()) {
     return promise.set_error(Status::Error(6, "Not enough rights to set chat description"));
   }
 
@@ -4106,7 +4106,7 @@ void ContactsManager::set_channel_sticker_set(ChannelId channel_id, int64 sticke
   if (!c->is_megagroup) {
     return promise.set_error(Status::Error(6, "Chat sticker set can be set only for supergroups"));
   }
-  if (!get_channel_status(c).can_change_info_and_settings()) {
+  if (!get_channel_permissions(c).can_change_info_and_settings()) {
     return promise.set_error(Status::Error(6, "Not enough rights to change supergroup sticker set"));
   }
 
@@ -4137,7 +4137,7 @@ void ContactsManager::toggle_channel_sign_messages(ChannelId channel_id, bool si
   if (get_channel_type(c) == ChannelType::Megagroup) {
     return promise.set_error(Status::Error(6, "Message signatures can't be toggled in supergroups"));
   }
-  if (!get_channel_status(c).can_change_info_and_settings()) {
+  if (!get_channel_permissions(c).can_change_info_and_settings()) {
     return promise.set_error(Status::Error(6, "Not enough rights to toggle channel sign messages"));
   }
 
@@ -4150,7 +4150,7 @@ void ContactsManager::toggle_channel_is_all_history_available(ChannelId channel_
   if (c == nullptr) {
     return promise.set_error(Status::Error(6, "Supergroup not found"));
   }
-  if (!get_channel_status(c).can_change_info_and_settings()) {
+  if (!get_channel_permissions(c).can_change_info_and_settings()) {
     return promise.set_error(Status::Error(6, "Not enough rights to toggle all supergroup history availability"));
   }
   if (get_channel_type(c) != ChannelType::Megagroup) {
@@ -4168,7 +4168,7 @@ void ContactsManager::set_channel_description(ChannelId channel_id, const string
   if (c == nullptr) {
     return promise.set_error(Status::Error(6, "Chat info not found"));
   }
-  if (!get_channel_status(c).can_change_info_and_settings()) {
+  if (!get_channel_permissions(c).can_change_info_and_settings()) {
     return promise.set_error(Status::Error(6, "Not enough rights to set chat description"));
   }
 
@@ -4238,7 +4238,7 @@ void ContactsManager::add_chat_participant(ChatId chat_id, UserId user_id, int32
     return promise.set_error(Status::Error(3, "Can't forward negative number of messages"));
   }
   if (user_id != get_my_id()) {
-    if (!get_chat_status(c).can_invite_users()) {
+    if (!get_chat_permissions(c).can_invite_users()) {
       return promise.set_error(Status::Error(3, "Not enough rights to invite members to the group chat"));
     }
   } else if (c->status.is_banned()) {
@@ -4280,8 +4280,7 @@ void ContactsManager::add_channel_participant(ChannelId channel_id, UserId user_
     return;
   }
 
-  // TODO !(c->anyone_can_invite && get_channel_status(c).is_member())
-  if (!get_channel_status(c).can_invite_users()) {
+  if (!get_channel_permissions(c).can_invite_users()) {
     return promise.set_error(Status::Error(3, "Not enough rights to invite members to the supergroup chat"));
   }
 
@@ -4302,8 +4301,7 @@ void ContactsManager::add_channel_participants(ChannelId channel_id, const vecto
     return promise.set_error(Status::Error(3, "Chat info not found"));
   }
 
-  // TODO !(c->anyone_can_invite && get_channel_status(c).is_member())
-  if (!get_channel_status(c).can_invite_users()) {
+  if (!get_channel_permissions(c).can_invite_users()) {
     return promise.set_error(Status::Error(3, "Not enough rights to invite members to the supergroup chat"));
   }
 
@@ -4449,7 +4447,7 @@ void ContactsManager::promote_channel_participant(ChannelId channel_id, UserId u
     CHECK(status.is_member());
     // allow to demote self. TODO is it allowed server-side?
   } else {
-    if (!get_channel_status(c).can_promote_members()) {
+    if (!get_channel_permissions(c).can_promote_members()) {
       return promise.set_error(Status::Error(3, "Not enough rights"));
     }
   }
@@ -4474,7 +4472,7 @@ void ContactsManager::change_chat_participant_status(ChatId chat_id, UserId user
     return promise.set_error(Status::Error(6, "Chat info not found"));
   }
 
-  if (!get_chat_status(c).can_promote_members()) {
+  if (!get_chat_permissions(c).can_promote_members()) {
     return promise.set_error(Status::Error(3, "Need creator rights in the group chat"));
   }
 
@@ -4507,7 +4505,7 @@ void ContactsManager::export_chat_invite_link(ChatId chat_id, Promise<Unit> &&pr
     return promise.set_error(Status::Error(3, "Chat is deactivated"));
   }
 
-  if (!get_chat_status(c).can_invite_users()) {
+  if (!get_chat_permissions(c).can_invite_users()) {
     return promise.set_error(Status::Error(3, "Not enough rights to export chat invite link"));
   }
 
@@ -4584,7 +4582,7 @@ void ContactsManager::delete_chat_participant(ChatId chat_id, UserId user_id, Pr
     }
   }
   if (user_id != my_id) {
-    auto my_status = get_chat_status(c);
+    auto my_status = get_chat_permissions(c);
     if (!my_status.is_creator()) {  // creator can delete anyone
       auto participant = get_chat_participant(chat_id, user_id);
       if (participant != nullptr) {  // if have no information about participant, just send request to the server
@@ -4658,7 +4656,7 @@ void ContactsManager::restrict_channel_participant(ChannelId channel_id, UserId 
     return promise.set_error(Status::Error(3, "Not enough rights to restrict chat creator"));
   }
 
-  if (!get_channel_status(c).can_restrict_members()) {
+  if (!get_channel_permissions(c).can_restrict_members()) {
     return promise.set_error(Status::Error(3, "Not enough rights to restrict/unrestrict chat member"));
   }
 

@@ -24,7 +24,7 @@ int32 DialogParticipantStatus::fix_until_date(int32 date) {
 
 DialogParticipantStatus DialogParticipantStatus::Creator(bool is_member) {
   return DialogParticipantStatus(Type::Creator,
-                                 ALL_ADMINISTRATOR_RIGHTS | ALL_RESTRICTED_RIGHTS | (is_member ? IS_MEMBER : 0), 0);
+                                 ALL_ADMINISTRATOR_RIGHTS | ALL_PERMISSION_RIGHTS | (is_member ? IS_MEMBER : 0), 0);
 }
 
 DialogParticipantStatus DialogParticipantStatus::Administrator(bool can_be_edited, bool can_change_info,
@@ -48,7 +48,7 @@ DialogParticipantStatus DialogParticipantStatus::Administrator(bool can_be_edite
 }
 
 DialogParticipantStatus DialogParticipantStatus::Member() {
-  return DialogParticipantStatus(Type::Member, IS_MEMBER | ALL_RESTRICTED_RIGHTS, 0);
+  return DialogParticipantStatus(Type::Member, IS_MEMBER | ALL_PERMISSION_RIGHTS, 0);
 }
 
 DialogParticipantStatus DialogParticipantStatus::Restricted(
@@ -67,14 +67,14 @@ DialogParticipantStatus DialogParticipantStatus::Restricted(
                  (static_cast<uint32>(can_invite_users) * CAN_INVITE_USERS_BANNED) |
                  (static_cast<uint32>(can_pin_messages) * CAN_PIN_MESSAGES_BANNED) |
                  (static_cast<uint32>(is_member) * IS_MEMBER);
-  if (flags == (IS_MEMBER | ALL_RESTRICTED_RIGHTS)) {
+  if (flags == (IS_MEMBER | ALL_PERMISSION_RIGHTS)) {
     return Member();
   }
   return DialogParticipantStatus(Type::Restricted, flags, fix_until_date(restricted_until_date));
 }
 
 DialogParticipantStatus DialogParticipantStatus::Left() {
-  return DialogParticipantStatus(Type::Left, ALL_RESTRICTED_RIGHTS, 0);
+  return DialogParticipantStatus(Type::Left, ALL_PERMISSION_RIGHTS, 0);
 }
 
 DialogParticipantStatus DialogParticipantStatus::Banned(int32 banned_until_date) {
@@ -210,13 +210,13 @@ DialogParticipantStatus DialogParticipantStatus::apply_restrictions(RestrictedRi
     case Type::Administrator:
       // administrators aren't affected by restrictions, but if everyone can invite users,
       // pin messages or change info, they also can do that
-      flags &= ~ALL_ADMIN_RESTRICTED_RIGHTS | default_restrictions.flags_;
+      flags |= default_restrictions.flags_ & ALL_ADMIN_PERMISSION_RIGHTS;
       break;
     case Type::Member:
     case Type::Restricted:
     case Type::Left:
       // members and restricted are affected by default restrictions
-      flags &= ~ALL_RESTRICTED_RIGHTS | default_restrictions.flags_;
+      flags &= ~ALL_PERMISSION_RIGHTS | default_restrictions.flags_;
       break;
     case Type::Banned:
       // banned can do nothing, even restirctions allows them to do that
@@ -238,7 +238,7 @@ void DialogParticipantStatus::update_restrictions() const {
       } else {
         type_ = Type::Left;
       }
-      flags_ |= ALL_RESTRICTED_RIGHTS;
+      flags_ |= ALL_PERMISSION_RIGHTS;
     } else if (type_ == Type::Banned) {
       type_ = Type::Left;
     } else {

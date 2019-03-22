@@ -7534,7 +7534,7 @@ void MessagesManager::delete_messages(DialogId dialog_id, const vector<MessageId
       }
       break;
     case DialogType::Channel: {
-      auto dialog_status = td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id());
+      auto dialog_status = td_->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id());
       for (auto message_id : message_ids) {
         if (!can_delete_channel_message(dialog_status, get_message(d, message_id), is_bot)) {
           return promise.set_error(Status::Error(6, "Message can't be deleted"));
@@ -7879,7 +7879,7 @@ void MessagesManager::delete_dialog_messages_from_user(DialogId dialog_id, UserI
       if (channel_type != ChannelType::Megagroup) {
         return promise.set_error(Status::Error(3, "The method is available only for supergroup chats"));
       }
-      channel_status = td_->contacts_manager_->get_channel_status(channel_id);
+      channel_status = td_->contacts_manager_->get_channel_permissions(channel_id);
       if (!channel_status.can_delete_messages()) {
         return promise.set_error(Status::Error(5, "Need delete messages administator right in the supergroup chat"));
       }
@@ -15247,7 +15247,7 @@ tl_object_ptr<td_api::message> MessagesManager::get_message_object(DialogId dial
   auto dialog_type = dialog_id.get_type();
   auto is_bot = td_->auth_manager_->is_bot();
   if (dialog_type == DialogType::Channel) {
-    auto dialog_status = td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id());
+    auto dialog_status = td_->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id());
     can_delete = can_delete_channel_message(dialog_status, message, is_bot);
   }
 
@@ -15409,7 +15409,7 @@ Status MessagesManager::can_send_message(DialogId dialog_id) const {
   if (dialog_id.get_type() == DialogType::Channel) {
     auto channel_id = dialog_id.get_channel_id();
     auto channel_type = td_->contacts_manager_->get_channel_type(channel_id);
-    auto channel_status = td_->contacts_manager_->get_channel_status(channel_id);
+    auto channel_status = td_->contacts_manager_->get_channel_permissions(channel_id);
 
     switch (channel_type) {
       case ChannelType::Unknown:
@@ -15458,7 +15458,7 @@ Status MessagesManager::can_send_message_content(DialogId dialog_id, const Messa
       // ok
       break;
     case DialogType::Channel: {
-      auto channel_status = td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id());
+      auto channel_status = td_->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id());
       can_send_messages = channel_status.can_send_messages();
       can_send_media = channel_status.can_send_media();
       can_send_stickers = channel_status.can_send_stickers();
@@ -16541,7 +16541,7 @@ Result<MessageId> MessagesManager::send_bot_start_message(UserId bot_user_id, Di
       if (!td_->contacts_manager_->have_input_peer_chat(chat_id, AccessRights::Write)) {
         return Status::Error(3, "Can't access the chat");
       }
-      auto status = td_->contacts_manager_->get_chat_status(chat_id);
+      auto status = td_->contacts_manager_->get_chat_permissions(chat_id);
       if (!status.can_invite_users()) {
         return Status::Error(3, "Need administrator rights to invite a bot to the group chat");
       }
@@ -16564,7 +16564,7 @@ Result<MessageId> MessagesManager::send_bot_start_message(UserId bot_user_id, Di
         default:
           UNREACHABLE();
       }
-      auto status = td_->contacts_manager_->get_channel_status(channel_id);
+      auto status = td_->contacts_manager_->get_channel_permissions(channel_id);
       if (!status.can_invite_users()) {
         return Status::Error(3, "Need administrator rights to invite a bot to the supergroup chat");
       }
@@ -16684,7 +16684,7 @@ Result<MessageId> MessagesManager::send_inline_query_result_message(DialogId dia
       // ok
       break;
     case DialogType::Channel: {
-      auto channel_status = td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id());
+      auto channel_status = td_->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id());
       if (!channel_status.can_use_inline_bots()) {
         return Status::Error(400, "Can't use inline bots in the chat");
       }
@@ -16848,7 +16848,7 @@ bool MessagesManager::can_edit_message(DialogId dialog_id, const Message *m, boo
       }
 
       auto channel_id = dialog_id.get_channel_id();
-      auto channel_status = td_->contacts_manager_->get_channel_status(channel_id);
+      auto channel_status = td_->contacts_manager_->get_channel_permissions(channel_id);
       if (m->is_channel_post) {
         if (!channel_status.can_edit_messages() && !(channel_status.can_post_messages() && m->is_outgoing)) {
           return false;
@@ -17562,7 +17562,7 @@ bool MessagesManager::can_set_game_score(DialogId dialog_id, const Message *m) c
         break;
       }
       auto channel_id = dialog_id.get_channel_id();
-      auto channel_status = td_->contacts_manager_->get_channel_status(channel_id);
+      auto channel_status = td_->contacts_manager_->get_channel_permissions(channel_id);
       if (m->is_channel_post) {
         if (!channel_status.can_edit_messages() && !(channel_status.can_post_messages() && m->is_outgoing)) {
           return false;
@@ -20955,10 +20955,8 @@ bool MessagesManager::is_update_about_username_change_received(DialogId dialog_i
       return td_->contacts_manager_->is_update_about_username_change_received(dialog_id.get_user_id());
     case DialogType::Chat:
       return true;
-    case DialogType::Channel: {
-      auto status = td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id());
-      return status.is_member();
-    }
+    case DialogType::Channel:
+      return td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).is_member();
     case DialogType::SecretChat:
       return true;
     case DialogType::None:
@@ -21420,7 +21418,7 @@ void MessagesManager::set_dialog_photo(DialogId dialog_id, const tl_object_ptr<t
       return promise.set_error(Status::Error(3, "Can't change private chat photo"));
     case DialogType::Chat: {
       auto chat_id = dialog_id.get_chat_id();
-      auto status = td_->contacts_manager_->get_chat_status(chat_id);
+      auto status = td_->contacts_manager_->get_chat_permissions(chat_id);
       if (!status.can_change_info_and_settings() ||
           (td_->auth_manager_->is_bot() && !td_->contacts_manager_->is_appointed_chat_administrator(chat_id))) {
         return promise.set_error(Status::Error(3, "Not enough rights to change chat photo"));
@@ -21428,7 +21426,7 @@ void MessagesManager::set_dialog_photo(DialogId dialog_id, const tl_object_ptr<t
       break;
     }
     case DialogType::Channel: {
-      auto status = td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id());
+      auto status = td_->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id());
       if (!status.can_change_info_and_settings()) {
         return promise.set_error(Status::Error(3, "Not enough rights to change chat photo"));
       }
@@ -21499,7 +21497,7 @@ void MessagesManager::set_dialog_title(DialogId dialog_id, const string &title, 
       return promise.set_error(Status::Error(3, "Can't change private chat title"));
     case DialogType::Chat: {
       auto chat_id = dialog_id.get_chat_id();
-      auto status = td_->contacts_manager_->get_chat_status(chat_id);
+      auto status = td_->contacts_manager_->get_chat_permissions(chat_id);
       if (!status.can_change_info_and_settings() ||
           (td_->auth_manager_->is_bot() && !td_->contacts_manager_->is_appointed_chat_administrator(chat_id))) {
         return promise.set_error(Status::Error(3, "Not enough rights to change chat title"));
@@ -21507,7 +21505,7 @@ void MessagesManager::set_dialog_title(DialogId dialog_id, const string &title, 
       break;
     }
     case DialogType::Channel: {
-      auto status = td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id());
+      auto status = td_->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id());
       if (!status.can_change_info_and_settings()) {
         return promise.set_error(Status::Error(3, "Not enough rights to change chat title"));
       }
@@ -21551,7 +21549,7 @@ void MessagesManager::set_dialog_permissions(DialogId dialog_id,
       return promise.set_error(Status::Error(3, "Can't change private chat permissions"));
     case DialogType::Chat: {
       auto chat_id = dialog_id.get_chat_id();
-      auto status = td_->contacts_manager_->get_chat_status(chat_id);
+      auto status = td_->contacts_manager_->get_chat_permissions(chat_id);
       if (!status.can_restrict_members()) {
         return promise.set_error(Status::Error(3, "Not enough rights to change chat permissions"));
       }
@@ -21561,7 +21559,7 @@ void MessagesManager::set_dialog_permissions(DialogId dialog_id,
       if (is_broadcast_channel(dialog_id)) {
         return promise.set_error(Status::Error(3, "Can't change channel chat permissions"));
       }
-      auto status = td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id());
+      auto status = td_->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id());
       if (!status.can_restrict_members()) {
         return promise.set_error(Status::Error(3, "Not enough rights to change chat permissions"));
       }
@@ -21624,7 +21622,7 @@ void MessagesManager::pin_dialog_message(DialogId dialog_id, MessageId message_i
       break;
     case DialogType::Chat: {
       auto chat_id = dialog_id.get_chat_id();
-      auto status = td_->contacts_manager_->get_chat_status(chat_id);
+      auto status = td_->contacts_manager_->get_chat_permissions(chat_id);
       if (!status.can_pin_messages() ||
           (td_->auth_manager_->is_bot() && !td_->contacts_manager_->is_appointed_chat_administrator(chat_id))) {
         return promise.set_error(Status::Error(3, PSLICE() << "Not enough rights to " << action << " a message"));
@@ -21632,7 +21630,7 @@ void MessagesManager::pin_dialog_message(DialogId dialog_id, MessageId message_i
       break;
     }
     case DialogType::Channel: {
-      auto status = td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id());
+      auto status = td_->contacts_manager_->get_channel_permissions(dialog_id.get_channel_id());
       bool can_pin = is_broadcast_channel(dialog_id) ? status.can_edit_messages() : status.can_pin_messages();
       if (!can_pin) {
         return promise.set_error(Status::Error(6, PSLICE() << "Not enough rights to " << action << " a message"));
@@ -24496,8 +24494,7 @@ void MessagesManager::update_dialog_pos(Dialog *d, bool remove_from_dialog_list,
     }
     case DialogType::Channel: {
       auto channel_id = d->dialog_id.get_channel_id();
-      auto status = td_->contacts_manager_->get_channel_status(channel_id);
-      if (!status.is_member()) {
+      if (!td_->contacts_manager_->get_channel_status(channel_id).is_member()) {
         remove_from_dialog_list = true;
       }
       break;
