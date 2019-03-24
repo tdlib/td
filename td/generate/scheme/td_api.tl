@@ -2975,17 +2975,17 @@ deleteChatReplyMarkup chat_id:int53 message_id:int53 = Ok;
 sendChatAction chat_id:int53 action:ChatAction = Ok;
 
 
-//@description This method should be called if the chat is opened by the user. Many useful activities depend on the chat being opened or closed (e.g., in supergroups and channels all updates are received only for opened chats) @chat_id Chat identifier
+//@description Informs TDLib that the chat is opened by the user. Many useful activities depend on the chat being opened or closed (e.g., in supergroups and channels all updates are received only for opened chats) @chat_id Chat identifier
 openChat chat_id:int53 = Ok;
 
-//@description This method should be called if the chat is closed by the user. Many useful activities depend on the chat being opened or closed @chat_id Chat identifier
+//@description Informs TDLib that the chat is closed by the user. Many useful activities depend on the chat being opened or closed @chat_id Chat identifier
 closeChat chat_id:int53 = Ok;
 
-//@description This method should be called if messages are being viewed by the user. Many useful activities depend on whether the messages are currently being viewed or not (e.g., marking messages as read, incrementing a view counter, updating a view counter, removing deleted messages in supergroups and channels) @chat_id Chat identifier @message_ids The identifiers of the messages being viewed
+//@description Informs TDLib that messages are being viewed by the user. Many useful activities depend on whether the messages are currently being viewed or not (e.g., marking messages as read, incrementing a view counter, updating a view counter, removing deleted messages in supergroups and channels) @chat_id Chat identifier @message_ids The identifiers of the messages being viewed
 //@force_read True, if messages in closed chats should be marked as read
 viewMessages chat_id:int53 message_ids:vector<int53> force_read:Bool = Ok;
 
-//@description This method should be called if the message content has been opened (e.g., the user has opened a photo, video, document, location or venue, or has listened to an audio file or voice note message). An updateMessageContentOpened update will be generated if something has changed @chat_id Chat identifier of the message @message_id Identifier of the message with the opened content
+//@description Informs TDLib that the message content has been opened (e.g., the user has opened a photo, video, document, location or venue, or has listened to an audio file or voice note message). An updateMessageContentOpened update will be generated if something has changed @chat_id Chat identifier of the message @message_id Identifier of the message with the opened content
 openMessageContent chat_id:int53 message_id:int53 = Ok;
 
 
@@ -3119,7 +3119,7 @@ uploadFile file:InputFile file_type:FileType priority:int32 = File;
 //@description Stops the uploading of a file. Supported only for files uploaded by using uploadFile. For other files the behavior is undefined @file_id Identifier of the file to stop uploading
 cancelUploadFile file_id:int32 = Ok;
 
-//@description The next part of a file was generated
+//@description Informs TDLib on a file generation prograss
 //@generation_id The identifier of the generation process
 //@expected_size Expected size of the generated file, in bytes; 0 if unknown
 //@local_prefix_size The number of bytes already generated
@@ -3487,7 +3487,7 @@ deleteAccount reason:string = Ok;
 //@description Returns information on whether the current chat can be reported as spam @chat_id Chat identifier
 getChatReportSpamState chat_id:int53 = ChatReportSpamState;
 
-//@description Used to let the server know whether a chat is spam or not. Can be used only if ChatReportSpamState.can_report_spam is true. After this request, ChatReportSpamState.can_report_spam becomes false forever @chat_id Chat identifier @is_spam_chat If true, the chat will be reported as spam; otherwise it will be marked as not spam
+//@description Reports to the server whether a chat is a spam chat or not. Can be used only if ChatReportSpamState.can_report_spam is true. After this request, ChatReportSpamState.can_report_spam becomes false forever @chat_id Chat identifier @is_spam_chat If true, the chat will be reported as spam; otherwise it will be marked as not spam
 changeChatReportSpamState chat_id:int53 is_spam_chat:Bool = Ok;
 
 //@description Reports a chat to the Telegram moderators. Supported only for supergroups, channels, or private chats with bots, since other chats can't be checked by moderators @chat_id Chat identifier @reason The reason for reporting the chat @message_ids Identifiers of reported messages, if any
@@ -3709,7 +3709,7 @@ testCallBytes x:bytes = TestBytes;
 testCallVectorInt x:vector<int32> = TestVectorInt;
 //@description Returns the received vector of objects containing a number; for testing only. This is an offline method. Can be called before authorization @x Vector of objects to return
 testCallVectorIntObject x:vector<testInt> = TestVectorIntObject;
-//@description For testing only request. Returns the received vector of strings; for testing only. This is an offline method. Can be called before authorization @x Vector of strings to return
+//@description Returns the received vector of strings; for testing only. This is an offline method. Can be called before authorization @x Vector of strings to return
 testCallVectorString x:vector<string> = TestVectorString;
 //@description Returns the received vector of objects containing a string; for testing only. This is an offline method. Can be called before authorization @x Vector of objects to return
 testCallVectorStringObject x:vector<testString> = TestVectorStringObject;
