@@ -2230,7 +2230,7 @@ void NotificationManager::get_disable_contact_registered_notifications(Promise<U
 }
 
 void NotificationManager::process_push_notification(string payload, Promise<Unit> &&promise) {
-  if (is_disabled()) {
+  if (is_disabled() || payload == "{}") {
     promise.set_value(Unit());
     return;
   }
@@ -2269,6 +2269,10 @@ void NotificationManager::process_push_notification(string payload, Promise<Unit
 }
 
 Result<int64> NotificationManager::get_push_receiver_id(string payload) {
+  if (payload == "{}") {
+    return static_cast<int64>(0);
+  }
+
   auto r_json_value = json_decode(payload);
   if (r_json_value.is_error()) {
     return Status::Error(400, "Failed to parse payload as JSON object");
