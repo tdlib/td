@@ -158,9 +158,10 @@ EOT
 );
     }
 
-    protected function getFunctionReturnTypeDescription($return_type)
+    protected function getFunctionReturnTypeDescription($return_type, $for_constructor)
     {
-        return "\r\n/// <para>Returns <see cref=\"".substr($return_type, 0, -1).'"/>.</para>';
+        $shift = $for_constructor ? '  ' : '';
+        return "\r\n$shift/// <para>Returns <see cref=\"".substr($return_type, 0, -1).'"/>.</para>';
     }
 
     protected function addClassDocumentation($class_name, $base_class_name, $description)
@@ -189,17 +190,17 @@ EOT
 );
     }
 
-    protected function addDefaultConstructorDocumentation($class_name)
+    protected function addDefaultConstructorDocumentation($class_name, $class_description)
     {
         $this->addDocumentation("  $class_name();", <<<EOT
   /// <summary>
-  /// Default constructor.
+  /// $class_description
   /// </summary>
 EOT
 );
     }
 
-    protected function addFullConstructorDocumentation($class_name, $known_fields, $info)
+    protected function addFullConstructorDocumentation($class_name, $class_description, $known_fields, $info)
     {
         $full_constructor = "  $class_name(";
         $colon = '';
@@ -216,7 +217,7 @@ EOT
 
         $full_doc = <<<EOT
   /// <summary>
-  /// Constructor for initialization of all fields.
+  /// $class_description
   /// </summary>
 EOT;
         foreach ($known_fields as $name => $type) {

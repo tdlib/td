@@ -87,15 +87,15 @@ abstract class TlDocumentationGenerator
 
     abstract protected function addAbstractClassDocumentation($class_name, $value);
 
-    abstract protected function getFunctionReturnTypeDescription($return_type);
+    abstract protected function getFunctionReturnTypeDescription($return_type, $for_constructor);
 
     abstract protected function addClassDocumentation($class_name, $base_class_name, $description);
 
     abstract protected function addFieldDocumentation($class_name, $field_name, $type_name, $field_info, $may_be_null);
 
-    abstract protected function addDefaultConstructorDocumentation($class_name);
+    abstract protected function addDefaultConstructorDocumentation($class_name, $class_description);
 
-    abstract protected function addFullConstructorDocumentation($class_name, $known_fields, $info);
+    abstract protected function addFullConstructorDocumentation($class_name, $class_description, $known_fields, $info);
 
     public function generate($tl_scheme_file, $source_file)
     {
@@ -237,7 +237,7 @@ abstract class TlDocumentationGenerator
                 $base_class_name = $current_class ?: $this->getBaseClassName($is_function);
                 $class_description = $info['description'];
                 if ($is_function) {
-                    $class_description .= $this->getFunctionReturnTypeDescription($this->getTypeName($type));
+                    $class_description .= $this->getFunctionReturnTypeDescription($this->getTypeName($type), false);
                 }
                 $this->addClassDocumentation($class_name, $base_class_name, $class_description);
 
@@ -246,10 +246,19 @@ abstract class TlDocumentationGenerator
                     $this->addFieldDocumentation($class_name, $this->getFieldName($name, $class_name), $this->getTypeName($type), $info[$name], $may_be_null);
                 }
 
-                $this->addDefaultConstructorDocumentation($class_name);
+                if ($is_function) {
+                    $default_constructor_prefix = 'Default constructor for a function, which ';
+                    $full_constructor_prefix = 'Creates a function, which ';
+                    $class_description = lcfirst($info['description']);
+                    $class_description .= $this->getFunctionReturnTypeDescription($this->getTypeName($type), true);
+                } else {
+                    $default_constructor_prefix = '';
+                    $full_constructor_prefix = '';
+                }
+                $this->addDefaultConstructorDocumentation($class_name, $default_constructor_prefix.$class_description);
 
                 if ($known_fields) {
-                    $this->addFullConstructorDocumentation($class_name, $known_fields, $info);
+                    $this->addFullConstructorDocumentation($class_name, $full_constructor_prefix.$class_description, $known_fields, $info);
                 }
 
                 $description = '';
