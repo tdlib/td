@@ -321,13 +321,16 @@ EOT
 );
     }
 
-    protected function addClassDocumentation($class_name, $base_class_name, $description, $return_type)
+    protected function getFunctionReturnTypeDescription($return_type)
     {
-        $return_type_description = $return_type ? PHP_EOL.' *'.PHP_EOL." * Returns $return_type." : '';
+        return PHP_EOL.' *'.PHP_EOL." * Returns $return_type.";
+    }
 
+    protected function addClassDocumentation($class_name, $base_class_name, $description)
+    {
         $this->addDocumentation("class $class_name final : public $base_class_name {", <<<EOT
 /**
- * $description$return_type_description
+ * $description
  */
 EOT
 );

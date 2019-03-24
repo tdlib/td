@@ -158,13 +158,16 @@ EOT
 );
     }
 
-    protected function addClassDocumentation($class_name, $base_class_name, $description, $return_type)
+    protected function getFunctionReturnTypeDescription($return_type)
     {
-        $return_type_description = $return_type ? "\r\n/// <para>Returns <see cref=\"".substr($return_type, 0, -1).'"/>.</para>' : '';
+        return "\r\n/// <para>Returns <see cref=\"".substr($return_type, 0, -1).'"/>.</para>';
+    }
 
+    protected function addClassDocumentation($class_name, $base_class_name, $description)
+    {
         $this->addDocumentation("public ref class $class_name sealed : $base_class_name {", <<<EOT
 /// <summary>
-/// $description$return_type_description
+/// $description
 /// </summary>
 EOT
 );

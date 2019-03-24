@@ -190,13 +190,16 @@ EOT
 );
     }
 
-    protected function addClassDocumentation($class_name, $base_class_name, $description, $return_type)
+    protected function getFunctionReturnTypeDescription($return_type)
     {
-        $return_type_description = $return_type ? PHP_EOL.'     *'.PHP_EOL."     * <p> Returns {@link $return_type $return_type} </p>" : '';
+        return PHP_EOL.'     *'.PHP_EOL."     * <p> Returns {@link $return_type $return_type} </p>";
+    }
 
+    protected function addClassDocumentation($class_name, $base_class_name, $description)
+    {
         $this->addDocumentation("    public static class $class_name extends $base_class_name {", <<<EOT
     /**
-     * $description$return_type_description
+     * $description
      */
 EOT
 );
