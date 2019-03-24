@@ -36,8 +36,8 @@ void PartsManager::set_streaming_offset(int64 offset) {
   };
   if (offset < 0 || need_check_ || (!unknown_size_flag_ && get_size() < offset)) {
     streaming_offset_ = 0;
-    LOG(ERROR) << "Ignore streaming_offset " << offset << ", need_check_ = " << need_check_
-               << ", unknown_size_flag_ = " << unknown_size_flag_ << ", size = " << get_size();
+    LOG_IF(ERROR, offset != 0) << "Ignore streaming_offset " << offset << ", need_check_ = " << need_check_
+                               << ", unknown_size_flag_ = " << unknown_size_flag_ << ", size = " << get_size();
     return;
   }
 
