@@ -110,7 +110,7 @@ void FileGcWorker::run_gc(const FileGcParameters &parameters, std::vector<FullFi
               return true;
             }
             if (static_cast<double>(info.mtime_nsec / 1000000000) > now - parameters.immunity_delay) {
-              // new files are immune to gc.
+              // new files are immune to gc
               time_immunity_ignored_cnt++;
               new_stats.add(FullFileInfo(info));
               return true;

@@ -19,6 +19,7 @@
 
 #include "td/utils/format.h"
 #include "td/utils/logging.h"
+#include "td/utils/misc.h"
 #include "td/utils/PathView.h"
 #include "td/utils/port/path.h"
 #include "td/utils/port/Stat.h"
@@ -115,6 +116,11 @@ Status scan_fs(CallbackT &&callback) {
                       return;
                     }
                     auto stat = r_stat.move_as_ok();
+                    if (ends_with(path, "/.nomedia") && stat.size_ == 0) {
+                      // skip .nomedia file
+                      return;
+                    }
+
                     FsFileInfo info;
                     info.path = path.str();
                     info.size = stat.size_;
