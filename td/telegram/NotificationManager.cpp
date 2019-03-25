@@ -12,6 +12,8 @@
 #include "td/telegram/DeviceTokenManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/net/ConnectionCreator.h"
+#include "td/telegram/net/DcId.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
@@ -2336,6 +2338,17 @@ Status NotificationManager::process_push_notification_payload(string payload) {
   }
   if (badge < 0) {
     return Status::Error("Expected badge to be positive");
+  }
+
+  if (loc_key == "DC_UPDATE") {
+    TRY_RESULT(dc_id, get_json_object_int_field(custom, "dc", false));
+    TRY_RESULT(addr, get_json_object_string_field(custom, "addr", false));
+    if (!DcId::is_valid(dc_id)) {
+      return Status::Error("Invalid dc id");
+    }
+    send_closure(G()->connection_creator(), &ConnectionCreator::on_dc_update, DcId::internal(dc_id), std::move(addr),
+                 Promise<Unit>());
+    return Status::OK();
   }
 
   return Status::OK();
