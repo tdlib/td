@@ -448,8 +448,8 @@ TEST(Mtproto, notifications) {
       "H0yJkEMoKRgaF9NaYI4u26oIQ-Ez46kTVU-R7e3acdofOJKm7HIKan_5ZMg82Dvec2M6vc_"
       "I54Vs28iBx8IbBO1y5z9WSScgW3JCvFFKP2MXIu7Jow5-cpUx6jXdzwRUb9RDApwAFKi45zpv8eb3uPCDAmIQ";
   vector<string> decrypted_payloads = {
-      "fwAAAHsibG9jX2tleSI6Ik1FU1NBR0VfVEVYVCIsImxvY19hcmdzIjpbIkFyc2VueSBTbWlybm92IiwiYWJjZGVmZyJdLCJjdXN0b20iOnsibXNn"
-      "X2lkIjoiNTkwMDQ3IiwiZnJvbV9pZCI6IjYyODE0In0sImJhZGdlIjoiNDA5In0",
+      "eyJsb2Nfa2V5IjoiTUVTU0FHRV9URVhUIiwibG9jX2FyZ3MiOlsiQXJzZW55IFNtaXJub3YiLCJhYmNkZWZnIl0sImN1c3RvbSI6eyJtc2dfaWQi"
+      "OiI1OTAwNDciLCJmcm9tX2lkIjoiNjI4MTQifSwiYmFkZ2UiOiI0MDkifQ",
       "eyJsb2Nfa2V5IjoiIiwibG9jX2FyZ3MiOltdLCJjdXN0b20iOnsiY2hhbm5lbF9pZCI6IjExNzY4OTU0OTciLCJtYXhfaWQiOiIxMzU5In0sImJh"
       "ZGdlIjoiMCJ9"};
   key = base64url_decode(key).move_as_ok();

@@ -2364,7 +2364,10 @@ Result<string> NotificationManager::decrypt_push_payload(int64 encryption_key_id
   if (result.type() != mtproto::Transport::ReadResult::Packet) {
     return Status::Error(400, "Wrong packet type");
   }
-  return result.packet().str();
+  if (result.packet().size() < 4) {
+    return Status::Error(400, "Packet is too small");
+  }
+  return result.packet().substr(4).str();
 }
 
 void NotificationManager::before_get_difference() {
