@@ -432,25 +432,34 @@ TEST(Mtproto, socks5) {
 }
 
 TEST(Mtproto, notifications) {
-  string push =
+  vector<string> pushes = {
       "eyJwIjoiSkRnQ3NMRWxEaWhyVWRRN1pYM3J1WVU4TlRBMFhMb0N6UWRNdzJ1cWlqMkdRbVR1WXVvYXhUeFJHaG1QQm8yVElYZFBzX2N3b2RIb3lY"
       "b2drVjM1dVl0UzdWeElNX1FNMDRKMG1mV3ZZWm4zbEtaVlJ0aFVBNGhYUWlaN0pfWDMyZDBLQUlEOWgzRnZwRjNXUFRHQWRaVkdFYzg3bnFPZ3hD"
       "NUNMRkM2SU9fZmVqcEpaV2RDRlhBWWpwc1k2aktrbVNRdFZ1MzE5ZW04UFVieXZudFpfdTNud2hjQ0czMk96TGp4S1kyS1lzU21JZm1GMzRmTmw1"
       "QUxaa2JvY2s2cE5rZEdrak9qYmRLckJyU0ZtWU8tQ0FsRE10dEplZFFnY1U5bVJQdU80b1d2NG5sb1VXS19zSlNTaXdIWEZyb1pWTnZTeFJ0Z1dN"
-      "ZyJ9";
+      "ZyJ9",
+      "eyJwIjoiSkRnQ3NMRWxEaWlZby1GRWJndk9WaTFkUFdPVmZndzBBWHYwTWNzWDFhWEtNZC03T1Q2WWNfT0taRURHZDJsZ0h0WkhMSllyVG50RE95"
+      "TkY1aXJRQlZ4UUFLQlRBekhPTGZIS3BhQXdoaWd5b3NQd0piWnJVV2xRWmh4eEozUFUzZjBNRTEwX0xNT0pFN0xsVUFaY2dabUNaX2V1QmNPZWNK"
+      "VERxRkpIRGZjN2pBOWNrcFkyNmJRT2dPUEhCeHlEMUVrNVdQcFpLTnlBODVuYzQ1eHFPdERqcU5aVmFLU3pKb2VIcXBQMnJqR29kN2M5YkxsdGd5"
+      "Q0NGd2NBU3dJeDc3QWNWVXY1UnVZIn0"};
   string key =
       "uBa5yu01a-nJJeqsR3yeqMs6fJLYXjecYzFcvS6jIwS3nefBIr95LWrTm-IbRBNDLrkISz1Sv0KYpDzhU8WFRk1D0V_"
       "qyO7XsbDPyrYxRBpGxofJUINSjb1uCxoSdoh1_F0UXEA2fWWKKVxL0DKUQssZfbVj3AbRglsWpH-jDK1oc6eBydRiS3i4j-"
       "H0yJkEMoKRgaF9NaYI4u26oIQ-Ez46kTVU-R7e3acdofOJKm7HIKan_5ZMg82Dvec2M6vc_"
       "I54Vs28iBx8IbBO1y5z9WSScgW3JCvFFKP2MXIu7Jow5-cpUx6jXdzwRUb9RDApwAFKi45zpv8eb3uPCDAmIQ";
-  string decrypted_payload =
+  vector<string> decrypted_payloads = {
       "fwAAAHsibG9jX2tleSI6Ik1FU1NBR0VfVEVYVCIsImxvY19hcmdzIjpbIkFyc2VueSBTbWlybm92IiwiYWJjZGVmZyJdLCJjdXN0b20iOnsibXNn"
-      "X2lkIjoiNTkwMDQ3IiwiZnJvbV9pZCI6IjYyODE0In0sImJhZGdlIjoiNDA5In0";
-  push = base64url_decode(push).move_as_ok();
+      "X2lkIjoiNTkwMDQ3IiwiZnJvbV9pZCI6IjYyODE0In0sImJhZGdlIjoiNDA5In0",
+      "eyJsb2Nfa2V5IjoiIiwibG9jX2FyZ3MiOltdLCJjdXN0b20iOnsiY2hhbm5lbF9pZCI6IjExNzY4OTU0OTciLCJtYXhfaWQiOiIxMzU5In0sImJh"
+      "ZGdlIjoiMCJ9"};
   key = base64url_decode(key).move_as_ok();
-  decrypted_payload = base64url_decode(decrypted_payload).move_as_ok();
 
-  auto key_id = DhHandshake::calc_key_id(key);
-  ASSERT_EQ(key_id, NotificationManager::get_push_receiver_id(push).ok());
-  ASSERT_EQ(decrypted_payload, NotificationManager::decrypt_push(key_id, key, push).ok());
+  for (size_t i = 0; i < pushes.size(); i++) {
+    auto push = base64url_decode(pushes[i]).move_as_ok();
+    auto decrypted_payload = base64url_decode(decrypted_payloads[i]).move_as_ok();
+
+    auto key_id = DhHandshake::calc_key_id(key);
+    ASSERT_EQ(key_id, NotificationManager::get_push_receiver_id(push).ok());
+    ASSERT_EQ(decrypted_payload, NotificationManager::decrypt_push(key_id, key, push).ok());
+  }
 }
