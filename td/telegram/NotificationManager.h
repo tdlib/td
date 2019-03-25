@@ -102,7 +102,7 @@ class NotificationManager : public Actor {
 
   static Result<int64> get_push_receiver_id(string push);
 
-  static Result<string> decrypt_push(int64 encryption_key_id, string encryption_key, string push);
+  static Result<string> decrypt_push(int64 encryption_key_id, string encryption_key, string push);  // public for tests
 
   void before_get_difference();
 
@@ -252,6 +252,8 @@ class NotificationManager : public Actor {
   NotificationGroupId get_call_notification_group_id(DialogId dialog_id);
 
   static Result<string> decrypt_push_payload(int64 encryption_key_id, string encryption_key, string payload);
+
+  Status process_push_notification_payload(string payload);
 
   void after_get_difference_impl();
 

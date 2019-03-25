@@ -2248,24 +2248,97 @@ void NotificationManager::process_push_notification(string payload, Promise<Unit
 
   auto encryption_keys = td_->device_token_manager_->get_actor_unsafe()->get_encryption_keys();
   for (auto &key : encryption_keys) {
-    VLOG(notifications) << "Have key " << key.first << ": \"" << format::escaped(key.second) << '"';
+    // VLOG(notifications) << "Have key " << key.first << ": \"" << format::escaped(key.second) << '"';
     if (key.first == receiver_id) {
-      if (key.second.empty()) {
-        VLOG(notifications) << "Process unencrypted push notification";
-      } else {
-        VLOG(notifications) << "Process encrypted push notification";
+      if (!key.second.empty()) {
+        auto r_payload = decrypt_push(key.first, key.second.str(), std::move(payload));
+        if (r_payload.is_error()) {
+          LOG(ERROR) << "Failed to decrypt push: " << r_payload.error();
+          promise.set_error(Status::Error(400, "Failed to decrypt push payload"));
+          return;
+        }
+        payload = r_payload.move_as_ok();
       }
-      promise.set_value(Unit());
-      return;
+      receiver_id = 0;
+      break;
     }
   }
-  if (receiver_id != 0) {  // TODO move this check up
+  if (receiver_id == 0) {
+    auto status = process_push_notification_payload(payload);
+    if (status.is_error()) {
+      LOG(ERROR) << "Receive error " << status << ", while parsing push payload " << payload;
+    }
     promise.set_value(Unit());
     return;
   }
 
   VLOG(notifications) << "Failed to process push notification";
   promise.set_value(Unit());
+}
+
+Status NotificationManager::process_push_notification_payload(string payload) {
+  VLOG(notifications) << "Process push notification payload " << payload;
+  auto r_json_value = json_decode(payload);
+  if (r_json_value.is_error()) {
+    return Status::Error("Failed to parse payload as JSON object");
+  }
+
+  auto json_value = r_json_value.move_as_ok();
+  if (json_value.type() != JsonValue::Type::Object) {
+    return Status::Error("Expected a JSON object as push payload");
+  }
+
+  string loc_key;
+  JsonObject custom;
+  string announcement_message_text;
+  int32 badge = 0;
+  vector<string> loc_args;
+  for (auto &field_value : json_value.get_object()) {
+    if (field_value.first == "loc_key") {
+      if (field_value.second.type() != JsonValue::Type::String) {
+        return Status::Error("Expected loc_key as a String");
+      }
+      loc_key = field_value.second.get_string().str();
+    } else if (field_value.first == "loc_args") {
+      if (field_value.second.type() != JsonValue::Type::Array) {
+        return Status::Error("Expected loc_args as an Array");
+      }
+      loc_args.reserve(field_value.second.get_array().size());
+      for (auto &arg : field_value.second.get_array()) {
+        if (arg.type() != JsonValue::Type::String) {
+          return Status::Error("Expected loc_arg as a String");
+        }
+        loc_args.push_back(arg.get_string().str());
+      }
+    } else if (field_value.first == "custom") {
+      if (field_value.second.type() != JsonValue::Type::Object) {
+        return Status::Error("Expected custom as an Object");
+      }
+      custom = std::move(field_value.second.get_object());
+    } else if (field_value.first == "badge") {
+      if (field_value.second.type() == JsonValue::Type::String) {
+        TRY_RESULT(badge_value, to_integer_safe<int32>(field_value.second.get_string()));
+        badge = badge_value;
+        continue;
+      }
+      if (field_value.second.type() == JsonValue::Type::Number) {
+        TRY_RESULT(badge_value, to_integer_safe<int32>(field_value.second.get_number()));
+        badge = badge_value;
+        continue;
+      }
+      return Status::Error("Expected badge as a Number");
+    } else if (field_value.first == "message") {
+      if (field_value.second.type() != JsonValue::Type::String) {
+        return Status::Error("Expected announcement message text as a String");
+      }
+      announcement_message_text = field_value.second.get_string().str();
+    }
+  }
+  if (badge < 0) {
+    return Status::Error("Expected badge to be positive");
+  }
+
+  return Status::OK();
 }
 
 Result<int64> NotificationManager::get_push_receiver_id(string payload) {
