@@ -225,10 +225,8 @@ void NotificationManager::init() {
     } while (loaded_groups < needed_groups && last_loaded_notification_group_key_.last_notification_date != 0);
 
     auto update = get_update_active_notifications();
-    if (update != nullptr) {
-      VLOG(notifications) << "Send " << as_active_notifications_update(update.get());
-      send_closure(G()->td(), &Td::send_update, std::move(update));
-    }
+    VLOG(notifications) << "Send " << as_active_notifications_update(update.get());
+    send_closure(G()->td(), &Td::send_update, std::move(update));
   }
 
   auto call_notification_group_ids_string = G()->td_db()->get_binlog_pmc()->get("notification_call_group_ids");
@@ -286,9 +284,6 @@ td_api::object_ptr<td_api::updateActiveNotifications> NotificationManager::get_u
           group.first.group_id.get(), get_notification_group_type_object(group.second.type),
           group.first.dialog_id.get(), group.second.total_count, std::move(notifications)));
     }
-  }
-  if (groups.empty()) {
-    return nullptr;
   }
 
   return td_api::make_object<td_api::updateActiveNotifications>(std::move(groups));
@@ -2600,10 +2595,7 @@ void NotificationManager::get_current_state(vector<td_api::object_ptr<td_api::Up
     return;
   }
 
-  auto update = get_update_active_notifications();
-  if (update != nullptr) {
-    updates.push_back(std::move(update));
-  }
+  updates.push_back(get_update_active_notifications());
   if (pending_notification_update_count_ != 0) {
     updates.push_back(td_api::make_object<td_api::updateHavePendingNotifications>(true));
   }
