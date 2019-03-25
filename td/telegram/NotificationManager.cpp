@@ -12,6 +12,7 @@
 #include "td/telegram/DeviceTokenManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
+#include "td/telegram/misc.h"
 #include "td/telegram/net/ConnectionCreator.h"
 #include "td/telegram/net/DcId.h"
 #include "td/telegram/StateManager.h"
@@ -2337,7 +2338,34 @@ Status NotificationManager::process_push_notification_payload(string payload) {
     }
   }
   if (badge < 0) {
-    return Status::Error("Expected badge to be positive");
+    return Status::Error("Expected badge to be non-negative");
+  }
+  if (!clean_input_string(loc_key)) {
+    return Status::Error(PSLICE() << "Receive invalid loc_key " << format::escaped(loc_key));
+  }
+  if (!clean_input_string(announcement_message_text)) {
+    return Status::Error(PSLICE() << "Receive invalid announcement_message_text "
+                                  << format::escaped(announcement_message_text));
+  }
+  for (auto &loc_arg : loc_args) {
+    if (!clean_input_string(loc_arg)) {
+      return Status::Error(PSLICE() << "Receive invalid loc_arg " << format::escaped(loc_arg));
+    }
+  }
+
+  if (loc_key == "MESSAGE_ANNOUNCEMENT") {
+    if (announcement_message_text.empty()) {
+      return Status::Error("Have empty announcement message text");
+    }
+
+    auto update = telegram_api::make_object<telegram_api::updateServiceNotification>(
+        telegram_api::updateServiceNotification::INBOX_DATE_MASK, false, G()->unix_time(), string(),
+        announcement_message_text, nullptr, vector<telegram_api::object_ptr<telegram_api::MessageEntity>>());
+    send_closure(G()->messages_manager(), &MessagesManager::on_update_service_notification, std::move(update));
+    return Status::OK();
+  }
+  if (!announcement_message_text.empty()) {
+    LOG(ERROR) << "Have non-empty announcement message text with loc_key = " << loc_key;
   }
 
   if (loc_key == "DC_UPDATE") {
@@ -2345,6 +2373,9 @@ Status NotificationManager::process_push_notification_payload(string payload) {
     TRY_RESULT(addr, get_json_object_string_field(custom, "addr", false));
     if (!DcId::is_valid(dc_id)) {
       return Status::Error("Invalid dc id");
+    }
+    if (!clean_input_string(addr)) {
+      return Status::Error(PSLICE() << "Receive invalid addr " << format::escaped(addr));
     }
     send_closure(G()->connection_creator(), &ConnectionCreator::on_dc_update, DcId::internal(dc_id), std::move(addr),
                  Promise<Unit>());

@@ -4860,21 +4860,21 @@ MessagesManager::Dialog *MessagesManager::get_service_notifications_dialog() {
 
 void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api::updateServiceNotification> &&update) {
   int32 ttl = 0;
+  bool has_date = (update->flags_ & telegram_api::updateServiceNotification::INBOX_DATE_MASK) != 0;
+  auto date = has_date ? update->inbox_date_ : G()->unix_time();
   auto content = get_message_content(
       td_,
-      get_message_text(td_->contacts_manager_.get(), std::move(update->message_), std::move(update->entities_),
-                       update->inbox_date_, "on_update_service_notification"),
+      get_message_text(td_->contacts_manager_.get(), std::move(update->message_), std::move(update->entities_), date,
+                       "on_update_service_notification"),
       std::move(update->media_),
       td_->auth_manager_->is_bot() ? DialogId() : get_service_notifications_dialog()->dialog_id, false, UserId(), &ttl);
   bool is_content_secret = is_secret_message_content(ttl, content->get_type());
   if ((update->flags_ & telegram_api::updateServiceNotification::POPUP_MASK) != 0) {
-    send_closure(
-        G()->td(), &Td::send_update,
-        make_tl_object<td_api::updateServiceNotification>(
-            update->type_, get_message_content_object(content.get(), td_, update->inbox_date_, is_content_secret)));
+    send_closure(G()->td(), &Td::send_update,
+                 td_api::make_object<td_api::updateServiceNotification>(
+                     update->type_, get_message_content_object(content.get(), td_, date, is_content_secret)));
   }
-  if ((update->flags_ & telegram_api::updateServiceNotification::INBOX_DATE_MASK) != 0 &&
-      !td_->auth_manager_->is_bot()) {
+  if (has_date && !td_->auth_manager_->is_bot()) {
     Dialog *d = get_service_notifications_dialog();
     CHECK(d != nullptr);
     auto dialog_id = d->dialog_id;
@@ -4883,7 +4883,7 @@ void MessagesManager::on_update_service_notification(tl_object_ptr<telegram_api:
     new_message->message_id = get_next_local_message_id(d);
     new_message->random_y = get_random_y(new_message->message_id);
     new_message->sender_user_id = dialog_id.get_user_id();
-    new_message->date = update->inbox_date_;
+    new_message->date = date;
     new_message->ttl = ttl;
     new_message->is_content_secret = is_content_secret;
     new_message->content = std::move(content);
