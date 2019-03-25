@@ -71,7 +71,7 @@ void FileLog::append(CSlice cslice, int log_level) {
   while (!slice.empty()) {
     auto r_size = fd_.write(slice);
     if (r_size.is_error()) {
-      process_fatal_error(r_size.error().message());
+      process_fatal_error(PSLICE() << r_size.error() << " in " << __FILE__ << " at " << __LINE__);
     }
     auto written = r_size.ok();
     size_ += static_cast<int64>(written);
@@ -84,7 +84,7 @@ void FileLog::append(CSlice cslice, int log_level) {
   if (size_ > rotate_threshold_) {
     auto status = rename(path_, PSLICE() << path_ << ".old");
     if (status.is_error()) {
-      process_fatal_error(status.message());
+      process_fatal_error(PSLICE() << status.error() << " in " << __FILE__ << " at " << __LINE__);
     }
     do_rotate();
   }
@@ -104,7 +104,7 @@ void FileLog::do_rotate() {
   fd_.close();
   auto r_fd = FileFd::open(path_, FileFd::Create | FileFd::Truncate | FileFd::Write);
   if (r_fd.is_error()) {
-    process_fatal_error(r_fd.error().message());
+    process_fatal_error(PSLICE() << r_fd.error() << " in " << __FILE__ << " at " << __LINE__);
   }
   fd_ = r_fd.move_as_ok();
   if (!Stderr().empty()) {
