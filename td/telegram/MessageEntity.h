@@ -151,8 +151,8 @@ Status fix_formatted_text(string &text, vector<MessageEntity> &entities, bool al
                           bool skip_bot_commands, bool for_draft) TD_WARN_UNUSED_RESULT;
 
 FormattedText get_message_text(const ContactsManager *contacts_manager, string message_text,
-                               vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities, int32 send_date,
-                               const char *source);
+                               vector<tl_object_ptr<telegram_api::MessageEntity>> &&server_entities,
+                               bool skip_new_entities, int32 send_date, const char *source);
 
 td_api::object_ptr<td_api::formattedText> extract_input_caption(
     tl_object_ptr<td_api::InputMessageContent> &input_message_content);

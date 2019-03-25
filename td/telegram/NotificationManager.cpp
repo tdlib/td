@@ -2322,10 +2322,6 @@ Status NotificationManager::process_push_notification_payload(string payload) {
   if (!clean_input_string(loc_key)) {
     return Status::Error(PSLICE() << "Receive invalid loc_key " << format::escaped(loc_key));
   }
-  if (!clean_input_string(announcement_message_text)) {
-    return Status::Error(PSLICE() << "Receive invalid announcement_message_text "
-                                  << format::escaped(announcement_message_text));
-  }
   for (auto &loc_arg : loc_args) {
     if (!clean_input_string(loc_arg)) {
       return Status::Error(PSLICE() << "Receive invalid loc_arg " << format::escaped(loc_arg));
@@ -2340,7 +2336,7 @@ Status NotificationManager::process_push_notification_payload(string payload) {
     auto update = telegram_api::make_object<telegram_api::updateServiceNotification>(
         telegram_api::updateServiceNotification::INBOX_DATE_MASK, false, G()->unix_time(), string(),
         announcement_message_text, nullptr, vector<telegram_api::object_ptr<telegram_api::MessageEntity>>());
-    send_closure(G()->messages_manager(), &MessagesManager::on_update_service_notification, std::move(update));
+    send_closure(G()->messages_manager(), &MessagesManager::on_update_service_notification, std::move(update), false);
     return Status::OK();
   }
   if (!announcement_message_text.empty()) {

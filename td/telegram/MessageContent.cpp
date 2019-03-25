@@ -1403,7 +1403,7 @@ InlineMessageContent create_inline_message_content(Td *td, FileId file_id,
       auto input_message_media_auto = move_tl_object_as<telegram_api::botInlineMessageMediaAuto>(inline_message);
       auto caption =
           get_message_text(td->contacts_manager_.get(), input_message_media_auto->message_,
-                           std::move(input_message_media_auto->entities_), 0, "register_inline_message_content");
+                           std::move(input_message_media_auto->entities_), true, 0, "register_inline_message_content");
       if (allowed_media_content_id == td_api::inputMessageAnimation::ID) {
         result.message_content = make_unique<MessageAnimation>(file_id, std::move(caption));
       } else if (allowed_media_content_id == td_api::inputMessageAudio::ID) {

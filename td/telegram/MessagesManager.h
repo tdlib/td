@@ -280,7 +280,8 @@ class MessagesManager : public Actor {
 
   void on_update_dialog_pinned_message_id(DialogId dialog_id, MessageId pinned_message_id);
 
-  void on_update_service_notification(tl_object_ptr<telegram_api::updateServiceNotification> &&update);
+  void on_update_service_notification(tl_object_ptr<telegram_api::updateServiceNotification> &&update,
+                                      bool skip_new_entities);
 
   void on_update_new_channel_message(tl_object_ptr<telegram_api::updateNewChannelMessage> &&update);
 
