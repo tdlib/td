@@ -7514,6 +7514,8 @@ void ContactsManager::on_get_channel_participants_success(
     int32 total_count, vector<tl_object_ptr<telegram_api::ChannelParticipant>> &&participants) {
   LOG(INFO) << "Receive " << participants.size() << " members in " << channel_id;
 
+  bool is_full = offset == 0 && static_cast<int32>(participants.size()) < limit && total_count < limit;
+
   vector<DialogParticipant> result;
   for (auto &participant_ptr : participants) {
     result.push_back(get_dialog_participant(channel_id, std::move(participant_ptr)));
@@ -7532,14 +7534,16 @@ void ContactsManager::on_get_channel_participants_success(
     LOG(ERROR) << "Receive total_count = " << total_count << ", but have at least " << result.size() << " members in "
                << channel_id;
     total_count = static_cast<int32>(result.size());
+  } else if (is_full && total_count > static_cast<int32>(result.size())) {
+    LOG(ERROR) << "Fix total member count from " << total_count << " to " << result.size();
+    total_count = static_cast<int32>(result.size());
   }
 
   const auto max_participant_count = get_channel_type(channel_id) == ChannelType::Megagroup ? 9950 : 195;
   auto participant_count =
       filter.is_recent() && total_count != 0 && total_count < max_participant_count ? total_count : -1;
   int32 administrator_count = filter.is_administrators() ? total_count : -1;
-  if (offset == 0 && static_cast<int32>(participants.size()) < limit &&
-      (filter.is_administrators() || filter.is_bots() || filter.is_recent())) {
+  if (is_full && (filter.is_administrators() || filter.is_bots() || filter.is_recent())) {
     vector<UserId> administrator_user_ids;
     vector<UserId> bot_user_ids;
     {
@@ -9540,6 +9544,9 @@ std::pair<int32, vector<DialogParticipant>> ContactsManager::get_channel_partici
   if (limit <= 0) {
     promise.set_error(Status::Error(3, "Parameter limit must be positive"));
     return result;
+  }
+  if (limit > MAX_GET_CHANNEL_PARTICIPANTS) {
+    limit = MAX_GET_CHANNEL_PARTICIPANTS;
   }
 
   if (offset < 0) {
