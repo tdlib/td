@@ -312,6 +312,8 @@ class MessagesManager : public Actor {
   void on_user_dialog_action(DialogId dialog_id, UserId user_id, tl_object_ptr<td_api::ChatAction> &&action, int32 date,
                              MessageContentType message_content_type = MessageContentType::None);
 
+  void read_history_inbox(DialogId dialog_id, MessageId max_message_id, int32 unread_count, const char *source);
+
   void delete_messages(DialogId dialog_id, const vector<MessageId> &message_ids, bool revoke, Promise<Unit> &&promise);
 
   void delete_dialog_history(DialogId dialog_id, bool remove_from_dialog_list, Promise<Unit> &&promise);
@@ -1449,8 +1451,6 @@ class MessagesManager : public Actor {
   void repair_server_unread_count(DialogId dialog_id, int32 unread_count);
 
   void repair_channel_server_unread_count(Dialog *d);
-
-  void read_history_inbox(DialogId dialog_id, MessageId max_message_id, int32 unread_count, const char *source);
 
   void read_history_outbox(DialogId dialog_id, MessageId max_message_id, int32 read_date = -1);
 

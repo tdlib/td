@@ -2294,7 +2294,6 @@ Status NotificationManager::process_push_notification_payload(string payload) {
   string loc_key;
   JsonObject custom;
   string announcement_message_text;
-  int32 badge = 0;
   vector<string> loc_args;
   for (auto &field_value : json_value.get_object()) {
     if (field_value.first == "loc_key") {
@@ -2318,27 +2317,12 @@ Status NotificationManager::process_push_notification_payload(string payload) {
         return Status::Error("Expected custom as an Object");
       }
       custom = std::move(field_value.second.get_object());
-    } else if (field_value.first == "badge") {
-      if (field_value.second.type() == JsonValue::Type::String) {
-        TRY_RESULT(badge_value, to_integer_safe<int32>(field_value.second.get_string()));
-        badge = badge_value;
-        continue;
-      }
-      if (field_value.second.type() == JsonValue::Type::Number) {
-        TRY_RESULT(badge_value, to_integer_safe<int32>(field_value.second.get_number()));
-        badge = badge_value;
-        continue;
-      }
-      return Status::Error("Expected badge as a Number");
     } else if (field_value.first == "message") {
       if (field_value.second.type() != JsonValue::Type::String) {
         return Status::Error("Expected announcement message text as a String");
       }
       announcement_message_text = field_value.second.get_string().str();
     }
-  }
-  if (badge < 0) {
-    return Status::Error("Expected badge to be non-negative");
   }
   if (!clean_input_string(loc_key)) {
     return Status::Error(PSLICE() << "Receive invalid loc_key " << format::escaped(loc_key));
@@ -2379,6 +2363,60 @@ Status NotificationManager::process_push_notification_payload(string payload) {
     }
     send_closure(G()->connection_creator(), &ConnectionCreator::on_dc_update, DcId::internal(dc_id), std::move(addr),
                  Promise<Unit>());
+    return Status::OK();
+  }
+
+  DialogId dialog_id;
+  if (has_json_object_field(custom, "from_id")) {
+    TRY_RESULT(user_id_int, get_json_object_int_field(custom, "from_id"));
+    UserId user_id(user_id_int);
+    if (!user_id.is_valid()) {
+      return Status::Error("Receive invalid user_id");
+    }
+    dialog_id = DialogId(user_id);
+  }
+  if (has_json_object_field(custom, "chat_id")) {
+    TRY_RESULT(chat_id_int, get_json_object_int_field(custom, "chat_id"));
+    ChatId chat_id(chat_id_int);
+    if (!chat_id.is_valid()) {
+      return Status::Error("Receive invalid chat_id");
+    }
+    dialog_id = DialogId(chat_id);
+  }
+  if (has_json_object_field(custom, "channel_id")) {
+    TRY_RESULT(channel_id_int, get_json_object_int_field(custom, "channel_id"));
+    ChannelId channel_id(channel_id_int);
+    if (!channel_id.is_valid()) {
+      return Status::Error("Receive invalid channel_id");
+    }
+    dialog_id = DialogId(channel_id);
+  }
+  if (has_json_object_field(custom, "encryption_id")) {
+    TRY_RESULT(secret_chat_id_int, get_json_object_int_field(custom, "encryption_id"));
+    SecretChatId secret_chat_id(secret_chat_id_int);
+    if (!secret_chat_id.is_valid()) {
+      return Status::Error("Receive invalid secret_chat_id");
+    }
+    dialog_id = DialogId(secret_chat_id);
+  }
+  if (!dialog_id.is_valid()) {
+    // TODO if (loc_key == "ENCRYPTED_MESSAGE") ?
+    return Status::Error("Can't find dialog_id");
+  }
+
+  if (loc_key.empty()) {
+    if (dialog_id.get_type() == DialogType::SecretChat) {
+      return Status::Error("Receive read history in a secret chat");
+    }
+
+    TRY_RESULT(max_id, get_json_object_int_field(custom, "max_id"));
+    ServerMessageId max_server_message_id(max_id);
+    if (!max_server_message_id.is_valid()) {
+      return Status::Error("Receive invalid max_id");
+    }
+
+    send_closure(G()->messages_manager(), &MessagesManager::read_history_inbox, dialog_id,
+                 MessageId(max_server_message_id), -1, "process_push_notification_payload");
     return Status::OK();
   }
 
