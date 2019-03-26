@@ -135,6 +135,8 @@ class NotificationManager : public Actor {
   static constexpr int32 MIN_UPDATE_DELAY_MS = 50;
   static constexpr int32 MAX_UPDATE_DELAY_MS = 60000;
 
+  static constexpr int32 ANNOUNCEMENT_ID_CACHE_TIME = 7 * 86400;
+
   struct PendingNotification {
     int32 date = 0;
     DialogId settings_dialog_id;
@@ -273,6 +275,8 @@ class NotificationManager : public Actor {
 
   void on_contact_registered_notifications_sync(bool is_disabled, Result<Unit> result);
 
+  void save_announcement_ids();
+
   NotificationId current_notification_id_;
   NotificationGroupId current_notification_group_id_;
 
@@ -313,6 +317,8 @@ class NotificationManager : public Actor {
     NotificationId notification_id;
   };
   std::unordered_map<DialogId, vector<ActiveCallNotification>, DialogIdHash> active_call_notifications_;
+
+  std::unordered_map<int32, int32> announcement_id_date_;
 
   Td *td_;
   ActorShared<> parent_;

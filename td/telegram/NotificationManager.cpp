@@ -246,6 +246,28 @@ void NotificationManager::init() {
     }
   }
 
+  auto notification_announcement_ids_string = G()->td_db()->get_binlog_pmc()->get("notification_announcement_ids");
+  if (!notification_announcement_ids_string.empty()) {
+    VLOG(notifications) << "Load announcement ids = " << notification_announcement_ids_string;
+    auto ids = transform(full_split(notification_announcement_ids_string, ','),
+                         [](Slice str) { return to_integer_safe<int32>(str).ok(); });
+    CHECK(ids.size() % 2 == 0);
+    bool is_changed = false;
+    auto min_date = G()->unix_time() - ANNOUNCEMENT_ID_CACHE_TIME;
+    for (size_t i = 0; i < ids.size(); i += 2) {
+      auto id = ids[i];
+      auto date = ids[i + 1];
+      if (date < min_date) {
+        is_changed = true;
+        continue;
+      }
+      announcement_id_date_.emplace(id, date);
+    }
+    if (is_changed) {
+      save_announcement_ids();
+    }
+  }
+
   class StateCallback : public StateManager::Callback {
    public:
     explicit StateCallback(ActorId<NotificationManager> parent) : parent_(std::move(parent)) {
@@ -261,6 +283,29 @@ void NotificationManager::init() {
     ActorId<NotificationManager> parent_;
   };
   send_closure(G()->state_manager(), &StateManager::add_callback, make_unique<StateCallback>(actor_id(this)));
+}
+
+void NotificationManager::save_announcement_ids() {
+  auto min_date = G()->unix_time() - ANNOUNCEMENT_ID_CACHE_TIME;
+  vector<int32> ids;
+  for (auto &it : announcement_id_date_) {
+    auto id = it.first;
+    auto date = it.second;
+    if (date < min_date) {
+      continue;
+    }
+    ids.push_back(id);
+    ids.push_back(date);
+  }
+
+  VLOG(notifications) << "Save announcement ids " << ids;
+  if (ids.empty()) {
+    G()->td_db()->get_binlog_pmc()->erase("notification_announcement_ids");
+    return;
+  }
+
+  auto notification_announcement_ids_string = implode(transform(ids, [](int32 id) { return to_string(id); }), ',');
+  G()->td_db()->get_binlog_pmc()->set("notification_announcement_ids", notification_announcement_ids_string);
 }
 
 td_api::object_ptr<td_api::updateActiveNotifications> NotificationManager::get_update_active_notifications() const {
@@ -2261,7 +2306,7 @@ void NotificationManager::process_push_notification(string payload, Promise<Unit
       break;
     }
   }
-  if (receiver_id == 0) {
+  if (receiver_id == 0 || receiver_id == G()->get_my_id()) {
     auto status = process_push_notification_payload(payload);
     if (status.is_error()) {
       LOG(ERROR) << "Receive error " << status << ", while parsing push payload " << payload;
@@ -2332,11 +2377,20 @@ Status NotificationManager::process_push_notification_payload(string payload) {
     if (announcement_message_text.empty()) {
       return Status::Error("Have empty announcement message text");
     }
+    TRY_RESULT(announcement_id, get_json_object_int_field(custom, "announcement"));
+    auto &date = announcement_id_date_[announcement_id];
+    auto now = G()->unix_time();
+    if (date >= now - ANNOUNCEMENT_ID_CACHE_TIME) {
+      VLOG(notifications) << "Ignore duplicate announcement " << announcement_id;
+      return Status::OK();
+    }
+    date = now;
 
     auto update = telegram_api::make_object<telegram_api::updateServiceNotification>(
         telegram_api::updateServiceNotification::INBOX_DATE_MASK, false, G()->unix_time(), string(),
         announcement_message_text, nullptr, vector<telegram_api::object_ptr<telegram_api::MessageEntity>>());
     send_closure(G()->messages_manager(), &MessagesManager::on_update_service_notification, std::move(update), false);
+    save_announcement_ids();
     return Status::OK();
   }
   if (!announcement_message_text.empty()) {
@@ -2347,7 +2401,7 @@ Status NotificationManager::process_push_notification_payload(string payload) {
     TRY_RESULT(dc_id, get_json_object_int_field(custom, "dc", false));
     TRY_RESULT(addr, get_json_object_string_field(custom, "addr", false));
     if (!DcId::is_valid(dc_id)) {
-      return Status::Error("Invalid dc id");
+      return Status::Error("Invalid datacenter ID");
     }
     if (!clean_input_string(addr)) {
       return Status::Error(PSLICE() << "Receive invalid addr " << format::escaped(addr));
@@ -2553,7 +2607,7 @@ Result<int64> NotificationManager::get_push_receiver_id(string payload) {
     }
   }
 
-  return Status::Error(200, "Unsupported push notification");
+  return static_cast<int64>(0);
 }
 
 Result<string> NotificationManager::decrypt_push(int64 encryption_key_id, string encryption_key, string push) {
