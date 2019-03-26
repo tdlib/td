@@ -4031,7 +4031,6 @@ Status Td::init(DbKey key) {
 
     complete_pending_preauthentication_requests([](int32 id) {
       switch (id) {
-        case td_api::processPushNotification::ID:
         case td_api::setNetworkType::ID:
         case td_api::getNetworkStatistics::ID:
         case td_api::addNetworkStatistics::ID:
