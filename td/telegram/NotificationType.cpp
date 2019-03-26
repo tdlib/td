@@ -14,7 +14,7 @@ namespace td {
 
 class NotificationTypeMessage : public NotificationType {
   bool can_be_delayed() const override {
-    return true;
+    return message_id_.is_valid() && message_id_.is_server();
   }
 
   MessageId get_message_id() const override {
