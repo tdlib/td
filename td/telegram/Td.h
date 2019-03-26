@@ -397,8 +397,6 @@ class Td final : public NetQueryCallback {
 
   void on_request(uint64 id, td_api::createTemporaryPassword &request);
 
-  void on_request(uint64 id, td_api::processDcUpdate &request);
-
   void on_request(uint64 id, td_api::processPushNotification &request);
 
   void on_request(uint64 id, td_api::registerDevice &request);

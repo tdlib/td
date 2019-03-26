@@ -1420,11 +1420,6 @@ class CliClient final : public Actor {
     } else if (op == "dpe") {
       string passport_element_type = args;
       send_request(td_api::make_object<td_api::deletePassportElement>(as_passport_element_type(passport_element_type)));
-    } else if (op == "pdu" || op == "processDcUpdate") {
-      string dc_id;
-      string ip_port;
-      std::tie(dc_id, ip_port) = split(args);
-      send_request(td_api::make_object<td_api::processDcUpdate>(dc_id, ip_port));
     } else if (op == "ppn") {
       send_request(td_api::make_object<td_api::processPushNotification>(args));
     } else if (op == "gpri") {

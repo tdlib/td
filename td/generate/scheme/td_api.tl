@@ -3444,9 +3444,6 @@ deleteLanguagePack language_pack_id:string = Ok;
 //@description Registers the currently used device for receiving push notifications. Returns a globally unique identifier of the push notification subscription @device_token Device token @other_user_ids List of at most 100 user identifiers of other users currently using the client
 registerDevice device_token:DeviceToken other_user_ids:vector<int32> = PushReceiverId;
 
-//@description Handles a DC_UPDATE push notification. Can be called before authorization @dc Value of the "dc" parameter of the push notification @addr Value of the "addr" parameter of the push notification
-processDcUpdate dc:string addr:string = Ok;
-
 //@description Handles a push notification. Can be called before authorization @payload JSON-encoded push notification payload
 processPushNotification payload:string = Ok;
 

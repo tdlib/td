@@ -3187,7 +3187,6 @@ bool Td::is_preauthentication_request(int32 id) {
     case td_api::editCustomLanguagePackInfo::ID:
     case td_api::setCustomLanguagePackString::ID:
     case td_api::deleteLanguagePack::ID:
-    case td_api::processDcUpdate::ID:
     case td_api::processPushNotification::ID:
     case td_api::getOption::ID:
     case td_api::setOption::ID:
@@ -4032,7 +4031,6 @@ Status Td::init(DbKey key) {
 
     complete_pending_preauthentication_requests([](int32 id) {
       switch (id) {
-        case td_api::processDcUpdate::ID:
         case td_api::processPushNotification::ID:
         case td_api::setNetworkType::ID:
         case td_api::getNetworkStatistics::ID:
@@ -4746,18 +4744,6 @@ void Td::on_request(uint64 id, td_api::createTemporaryPassword &request) {
   CREATE_REQUEST_PROMISE();
   send_closure(password_manager_, &PasswordManager::create_temp_password, std::move(request.password_),
                request.valid_for_, std::move(promise));
-}
-
-void Td::on_request(uint64 id, td_api::processDcUpdate &request) {
-  CLEAN_INPUT_STRING(request.dc_);
-  CLEAN_INPUT_STRING(request.addr_);
-  CREATE_OK_REQUEST_PROMISE();
-  auto dc_id_raw = to_integer<int32>(request.dc_);
-  if (!DcId::is_valid(dc_id_raw)) {
-    return promise.set_error(Status::Error("Invalid dc id"));
-  }
-  send_closure(G()->connection_creator(), &ConnectionCreator::on_dc_update, DcId::internal(dc_id_raw), request.addr_,
-               std::move(promise));
 }
 
 void Td::on_request(uint64 id, td_api::processPushNotification &request) {
