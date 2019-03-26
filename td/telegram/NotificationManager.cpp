@@ -2411,7 +2411,36 @@ Status NotificationManager::process_push_notification_payload(string payload) {
     return Status::OK();
   }
 
+  TRY_RESULT(msg_id, get_json_object_int_field(custom, "msg_id"));
+  ServerMessageId server_message_id(msg_id);
+  if (server_message_id != ServerMessageId() && !server_message_id.is_valid()) {
+    return Status::Error("Receive invalid msg_id");
+  }
+
+  TRY_RESULT(random_id, get_json_object_long_field(custom, "random_id"));
+
+  UserId sender_user_id;
+  if (has_json_object_field(custom, "chat_from_id")) {
+    TRY_RESULT(sender_user_id_int, get_json_object_int_field(custom, "chat_from_id"));
+    sender_user_id = UserId(sender_user_id_int);
+    if (!sender_user_id.is_valid()) {
+      return Status::Error("Receive invalid chat_from_id");
+    }
+  }
+
+  TRY_RESULT(contains_mention_int, get_json_object_int_field(custom, "mention"));
+  bool contains_mention = contains_mention_int != 0;
+
+  process_message_push_notification(dialog_id, sender_user_id, MessageId(server_message_id), random_id,
+                                    contains_mention, std::move(loc_key), std::move(loc_args));
+
   return Status::OK();
+}
+
+void NotificationManager::process_message_push_notification(DialogId dialog_id, UserId sender_user_id,
+                                                            MessageId message_id, int64 random_id,
+                                                            bool contains_mention, string loc_key,
+                                                            vector<string> loc_args) {
 }
 
 Result<int64> NotificationManager::get_push_receiver_id(string payload) {

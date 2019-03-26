@@ -827,6 +827,9 @@ Result<bool> get_json_object_bool_field(JsonObject &object, Slice name, bool is_
 Result<int32> get_json_object_int_field(JsonObject &object, Slice name, bool is_optional = true,
                                         int32 default_value = 0) TD_WARN_UNUSED_RESULT;
 
+Result<int64> get_json_object_long_field(JsonObject &object, Slice name, bool is_optional = true,
+                                         int64 default_value = 0) TD_WARN_UNUSED_RESULT;
+
 Result<double> get_json_object_double_field(JsonObject &object, Slice name, bool is_optional = true,
                                             double default_value = 0.0) TD_WARN_UNUSED_RESULT;
 

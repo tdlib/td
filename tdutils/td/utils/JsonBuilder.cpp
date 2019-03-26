@@ -637,6 +637,25 @@ Result<int32> get_json_object_int_field(JsonObject &object, Slice name, bool is_
   return Status::Error(400, PSLICE() << "Can't find field \"" << name << "\"");
 }
 
+Result<int64> get_json_object_long_field(JsonObject &object, Slice name, bool is_optional, int64 default_value) {
+  for (auto &field_value : object) {
+    if (field_value.first == name) {
+      if (field_value.second.type() == JsonValue::Type::String) {
+        return to_integer_safe<int64>(field_value.second.get_string());
+      }
+      if (field_value.second.type() == JsonValue::Type::Number) {
+        return to_integer_safe<int64>(field_value.second.get_number());
+      }
+
+      return Status::Error(400, PSLICE() << "Field \"" << name << "\" must be a Number");
+    }
+  }
+  if (is_optional) {
+    return default_value;
+  }
+  return Status::Error(400, PSLICE() << "Can't find field \"" << name << "\"");
+}
+
 Result<double> get_json_object_double_field(JsonObject &object, Slice name, bool is_optional, double default_value) {
   TRY_RESULT(value, get_json_object_field(object, name, JsonValue::Type::Number, is_optional));
   if (value.type() == JsonValue::Type::Null) {
