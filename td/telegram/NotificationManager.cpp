@@ -2357,6 +2357,15 @@ Status NotificationManager::process_push_notification_payload(string payload) {
     return Status::OK();
   }
 
+  if (loc_key == "LOCKED_MESSAGE") {
+    return Status::OK();
+  }
+
+  if (loc_key == "AUTH_REGION" || loc_key == "AUTH_UNKNOWN") {
+    // TODO
+    return Status::OK();
+  }
+
   DialogId dialog_id;
   if (has_json_object_field(custom, "from_id")) {
     TRY_RESULT(user_id_int, get_json_object_int_field(custom, "from_id"));
@@ -2461,6 +2470,16 @@ Status NotificationManager::process_push_notification_payload(string payload) {
     return Status::Error("Receive message ID in secret chat push");
   }
 
+  if (begins_with(loc_key, "ENCRYPTION_")) {
+    // TODO new secret chat notification
+    return Status::OK();
+  }
+
+  if (begins_with(loc_key, "PHONE_CALL_")) {
+    // TODO phone call request/missed notification
+    return Status::OK();
+  }
+
   return process_message_push_notification(dialog_id, sender_user_id, MessageId(server_message_id), random_id,
                                            contains_mention, std::move(loc_key), std::move(loc_args));
 }
@@ -2469,6 +2488,19 @@ Status NotificationManager::process_message_push_notification(DialogId dialog_id
                                                               MessageId message_id, int64 random_id,
                                                               bool contains_mention, string loc_key,
                                                               vector<string> loc_args) {
+  auto is_pinned = begins_with(loc_key, "PINNED_");
+  if (is_pinned) {
+    contains_mention = true;
+  }
+  if (!td_->messages_manager_->need_message_push_notification(dialog_id, message_id, random_id, contains_mention,
+                                                              is_pinned)) {
+    VLOG(notifications) << "Don't need message push notification for " << message_id << "/" << random_id << " from "
+                        << dialog_id;
+    return Status::OK();
+  }
+
+  VLOG(notifications) << "Process message push notification " << loc_key << " for " << message_id << "/" << random_id
+                      << " from " << dialog_id << ", sent by " << sender_user_id << " with args " << loc_args;
   return Status::OK();
 }
 

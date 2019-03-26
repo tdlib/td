@@ -691,6 +691,9 @@ class MessagesManager : public Actor {
 
   FileSourceId get_message_file_source_id(FullMessageId full_message_id);
 
+  bool need_message_push_notification(DialogId dialog_id, MessageId message_id, int64 random_id, bool &contains_mention,
+                                      bool is_pinned);
+
   struct MessageNotificationGroup {
     DialogId dialog_id;
     NotificationGroupType type = NotificationGroupType::Calls;
@@ -1610,6 +1613,8 @@ class MessagesManager : public Actor {
   void update_dialog_mention_notification_count(const Dialog *d);
 
   bool is_message_notification_disabled(const Dialog *d, const Message *m) const;
+
+  bool is_dialog_message_notification_disabled(DialogId dialog_id, int32 message_date) const;
 
   bool may_need_message_notification(const Dialog *d, const Message *m) const;
 

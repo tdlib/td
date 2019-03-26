@@ -18174,6 +18174,41 @@ NotificationGroupId MessagesManager::get_dialog_notification_group_id(DialogId d
   return group_info.group_id;
 }
 
+bool MessagesManager::need_message_push_notification(DialogId dialog_id, MessageId message_id, int64 random_id,
+                                                     bool &contains_mention, bool is_pinned) {
+  init();
+
+  Dialog *d = get_dialog_force(dialog_id);
+  if (d == nullptr) {
+    return false;
+  }
+  if (message_id.is_valid() && message_id.get() <= d->last_new_message_id.get()) {
+    return false;
+  }
+  if (random_id != 0) {
+    CHECK(dialog_id.get_type() == DialogType::SecretChat);
+    if (get_message_id_by_random_id(d, random_id, "need_message_push_notification").is_valid()) {
+      return false;
+    }
+  }
+  if (dialog_id == get_my_dialog_id() || td_->auth_manager_->is_bot()) {
+    return false;
+  }
+
+  if (is_dialog_message_notification_disabled(dialog_id, G()->unix_time())) {
+    return false;
+  }
+
+  if (is_pinned && is_dialog_pinned_message_notifications_disabled(d)) {
+    contains_mention = false;
+  }
+  if (contains_mention && is_dialog_mention_notifications_disabled(d)) {
+    contains_mention = false;
+  }
+
+  return true;
+}
+
 NotificationId MessagesManager::get_next_notification_id(Dialog *d, NotificationGroupId notification_group_id,
                                                          MessageId message_id) {
   NotificationId notification_id;
@@ -18789,22 +18824,26 @@ bool MessagesManager::is_message_notification_disabled(const Dialog *d, const Me
       break;
   }
 
-  switch (d->dialog_id.get_type()) {
+  return is_dialog_message_notification_disabled(d->dialog_id, m->date);
+}
+
+bool MessagesManager::is_dialog_message_notification_disabled(DialogId dialog_id, int32 message_date) const {
+  switch (dialog_id.get_type()) {
     case DialogType::User:
       break;
     case DialogType::Chat:
-      if (!td_->contacts_manager_->get_chat_is_active(d->dialog_id.get_chat_id())) {
+      if (!td_->contacts_manager_->get_chat_is_active(dialog_id.get_chat_id())) {
         return true;
       }
       break;
     case DialogType::Channel:
-      if (!td_->contacts_manager_->get_channel_status(d->dialog_id.get_channel_id()).is_member() ||
-          m->date < td_->contacts_manager_->get_channel_date(d->dialog_id.get_channel_id())) {
+      if (!td_->contacts_manager_->get_channel_status(dialog_id.get_channel_id()).is_member() ||
+          message_date < td_->contacts_manager_->get_channel_date(dialog_id.get_channel_id())) {
         return true;
       }
       break;
     case DialogType::SecretChat:
-      if (td_->contacts_manager_->get_secret_chat_state(d->dialog_id.get_secret_chat_id()) == SecretChatState::Closed) {
+      if (td_->contacts_manager_->get_secret_chat_state(dialog_id.get_secret_chat_id()) == SecretChatState::Closed) {
         return true;
       }
       break;
