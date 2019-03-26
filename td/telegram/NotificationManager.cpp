@@ -1502,7 +1502,7 @@ void NotificationManager::edit_notification(NotificationGroupId group_id, Notifi
 
 void NotificationManager::on_notifications_removed(
     NotificationGroups::iterator &&group_it, vector<td_api::object_ptr<td_api::notification>> &&added_notifications,
-    vector<int32> &&removed_notification_ids) {
+    vector<int32> &&removed_notification_ids, bool force_update) {
   VLOG(notifications) << "In on_notifications_removed for " << group_it->first.group_id << " with "
                       << added_notifications.size() << " added notifications and " << removed_notification_ids.size()
                       << " removed notifications, new total_count = " << group_it->second.total_count;
@@ -1567,6 +1567,12 @@ void NotificationManager::on_notifications_removed(
     group_it->second = std::move(group);
   }
 
+  if (force_update) {
+    auto id = group_key.group_id.get();
+    flush_pending_updates_timeout_.cancel_timeout(id);
+    flush_pending_updates(id, "on_notifications_removed");
+  }
+
   if (last_loaded_notification_group_key_ < last_group_key) {
     load_message_notification_groups_from_database(td::max(static_cast<int32>(max_notification_group_count_), 10) / 2,
                                                    true);
@@ -1620,7 +1626,7 @@ void NotificationManager::remove_added_notifications_from_pending_updates(
 }
 
 void NotificationManager::remove_notification(NotificationGroupId group_id, NotificationId notification_id,
-                                              bool is_permanent, Promise<Unit> &&promise) {
+                                              bool is_permanent, bool force_update, Promise<Unit> &&promise) {
   if (!group_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Notification group identifier is invalid"));
   }
@@ -1632,7 +1638,8 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
     return promise.set_value(Unit());
   }
 
-  VLOG(notifications) << "Remove " << notification_id << " from " << group_id;
+  VLOG(notifications) << "Remove " << notification_id << " from " << group_id
+                      << " with force_update = " << force_update;
 
   auto group_it = get_group_force(group_id);
   if (group_it == groups_.end()) {
@@ -1698,7 +1705,8 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
   }
 
   if (is_total_count_changed || !removed_notification_ids.empty()) {
-    on_notifications_removed(std::move(group_it), std::move(added_notifications), std::move(removed_notification_ids));
+    on_notifications_removed(std::move(group_it), std::move(added_notifications), std::move(removed_notification_ids),
+                             force_update);
   }
 
   remove_added_notifications_from_pending_updates(
@@ -1710,7 +1718,7 @@ void NotificationManager::remove_notification(NotificationGroupId group_id, Noti
 }
 
 void NotificationManager::remove_notification_group(NotificationGroupId group_id, NotificationId max_notification_id,
-                                                    MessageId max_message_id, int32 new_total_count,
+                                                    MessageId max_message_id, int32 new_total_count, bool force_update,
                                                     Promise<Unit> &&promise) {
   if (!group_id.is_valid()) {
     return promise.set_error(Status::Error(400, "Group identifier is invalid"));
@@ -1724,7 +1732,7 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
   }
 
   VLOG(notifications) << "Remove " << group_id << " up to " << max_notification_id << " or " << max_message_id
-                      << " with new_total_count = " << new_total_count;
+                      << " with new_total_count = " << new_total_count << " and force_update = " << force_update;
 
   auto group_it = get_group_force(group_id);
   if (group_it == groups_.end()) {
@@ -1760,7 +1768,8 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
   if (new_total_count != -1) {
     new_total_count -= static_cast<int32>(group_it->second.pending_notifications.size());
     if (new_total_count < 0) {
-      LOG(ERROR) << "Have wrong new_total_count " << new_total_count;
+      LOG(ERROR) << "Have wrong new_total_count " << new_total_count << " + "
+                 << group_it->second.pending_notifications.size();
     }
   }
 
@@ -1802,7 +1811,7 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
 
   if (new_total_count != -1 || !removed_notification_ids.empty()) {
     on_notifications_removed(std::move(group_it), vector<td_api::object_ptr<td_api::notification>>(),
-                             std::move(removed_notification_ids));
+                             std::move(removed_notification_ids), force_update);
   } else {
     VLOG(notifications) << "Have new_total_count = " << new_total_count << " and " << removed_notification_ids.size()
                         << " removed notifications";
@@ -1859,7 +1868,8 @@ void NotificationManager::set_notification_total_count(NotificationGroupId group
   VLOG(notifications) << "Set total_count in " << group_id << " to " << new_total_count;
   group_it->second.total_count = new_total_count;
 
-  on_notifications_removed(std::move(group_it), vector<td_api::object_ptr<td_api::notification>>(), vector<int32>());
+  on_notifications_removed(std::move(group_it), vector<td_api::object_ptr<td_api::notification>>(), vector<int32>(),
+                           false);
 }
 
 vector<MessageId> NotificationManager::get_notification_group_message_ids(NotificationGroupId group_id) {
@@ -1978,7 +1988,7 @@ void NotificationManager::remove_call_notification(DialogId dialog_id, CallId ca
   auto &active_notifications = active_call_notifications_[dialog_id];
   for (auto it = active_notifications.begin(); it != active_notifications.end(); ++it) {
     if (it->call_id == call_id) {
-      remove_notification(group_id, it->notification_id, true, Promise<Unit>());
+      remove_notification(group_id, it->notification_id, true, true, Promise<Unit>());
       active_notifications.erase(it);
       if (active_notifications.empty()) {
         VLOG(notifications) << "Reuse call " << group_id;

@@ -8507,7 +8507,7 @@ void MessagesManager::set_dialog_last_read_inbox_message_id(Dialog *d, MessageId
       }
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group,
                          d->message_notification_group.group_id, NotificationId(), d->last_read_inbox_message_id,
-                         total_count, Promise<Unit>());
+                         total_count, Slice(source) == Slice("view_messages"), Promise<Unit>());
     }
 
     if (d->mention_notification_group.group_id.is_valid() && d->pinned_message_notification_message_id.is_valid() &&
@@ -10259,7 +10259,7 @@ void MessagesManager::remove_dialog_mention_notifications(Dialog *d) {
     if (m->notification_id.is_valid() && is_message_notification_active(d, m) &&
         is_from_mention_notification_group(d, m)) {
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification, notification_group_id,
-                         m->notification_id, false, Promise<Unit>());
+                         m->notification_id, false, true, Promise<Unit>());
     }
   }
 
@@ -10271,7 +10271,7 @@ void MessagesManager::remove_dialog_mention_notifications(Dialog *d) {
       if (m != nullptr && m->notification_id.is_valid() && is_message_notification_active(d, m)) {
         CHECK(is_from_mention_notification_group(d, m));
         send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification,
-                           notification_group_id, m->notification_id, false, Promise<Unit>());
+                           notification_group_id, m->notification_id, false, true, Promise<Unit>());
       }
     }
   }
@@ -10829,7 +10829,7 @@ void MessagesManager::remove_message_notification_id(Dialog *d, Message *m, bool
   if (is_permanent) {
     if (had_active_notification) {
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification, group_info.group_id,
-                         notification_id, true, Promise<Unit>());
+                         notification_id, true, true, Promise<Unit>());
     }
 
     // on_message_changed will be called by the caller
@@ -10852,7 +10852,7 @@ void MessagesManager::remove_new_secret_chat_notification(Dialog *d, bool is_per
   if (is_permanent) {
     CHECK(d->message_notification_group.group_id.is_valid());
     send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification,
-                       d->message_notification_group.group_id, notification_id, true, Promise<Unit>());
+                       d->message_notification_group.group_id, notification_id, true, true, Promise<Unit>());
   }
 }
 
@@ -19054,7 +19054,7 @@ void MessagesManager::remove_all_dialog_notifications(Dialog *d, NotificationGro
                         << group_info.last_notification_id << " from " << source;
     group_info.max_removed_notification_id = group_info.last_notification_id;
     send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group,
-                       group_info.group_id, group_info.last_notification_id, MessageId(), 0, Promise<Unit>());
+                       group_info.group_id, group_info.last_notification_id, MessageId(), 0, true, Promise<Unit>());
     if (d->new_secret_chat_notification_id.is_valid() && &group_info == &d->message_notification_group) {
       remove_new_secret_chat_notification(d, false);
     } else {
@@ -19088,7 +19088,7 @@ void MessagesManager::remove_message_dialog_notifications(Dialog *d, MessageId m
   }
 
   send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification_group, group_info.group_id,
-                     NotificationId(), max_notification_message_id, 0, Promise<Unit>());
+                     NotificationId(), max_notification_message_id, 0, true, Promise<Unit>());
 }
 
 void MessagesManager::send_update_message_send_succeeded(Dialog *d, MessageId old_message_id, const Message *m) const {
@@ -22169,7 +22169,7 @@ MessagesManager::Message *MessagesManager::add_message_to_dialog(Dialog *d, uniq
       }
 
       send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification,
-                         d->mention_notification_group.group_id, notification_id, false, Promise<Unit>());
+                         d->mention_notification_group.group_id, notification_id, false, false, Promise<Unit>());
 
       on_message_changed(d, message.get(), false, "remove_mention_notification");
     }
@@ -22581,7 +22581,7 @@ void MessagesManager::delete_message_from_database(Dialog *d, MessageId message_
       }
       if (is_message_notification_active(d, m)) {
         send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification, group_info.group_id,
-                           m->notification_id, true, Promise<Unit>());
+                           m->notification_id, true, false, Promise<Unit>());
       }
     }
   }

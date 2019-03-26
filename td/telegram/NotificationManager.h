@@ -69,10 +69,11 @@ class NotificationManager : public Actor {
                          unique_ptr<NotificationType> type);
 
   void remove_notification(NotificationGroupId group_id, NotificationId notification_id, bool is_permanent,
-                           Promise<Unit> &&promise);
+                           bool force_update, Promise<Unit> &&promise);
 
   void remove_notification_group(NotificationGroupId group_id, NotificationId max_notification_id,
-                                 MessageId max_message_id, int32 new_total_count, Promise<Unit> &&promise);
+                                 MessageId max_message_id, int32 new_total_count, bool force_update,
+                                 Promise<Unit> &&promise);
 
   void set_notification_total_count(NotificationGroupId group_id, int32 new_total_count);
 
@@ -241,7 +242,7 @@ class NotificationManager : public Actor {
 
   void on_notifications_removed(NotificationGroups::iterator &&group_it,
                                 vector<td_api::object_ptr<td_api::notification>> &&added_notifications,
-                                vector<int32> &&removed_notification_ids);
+                                vector<int32> &&removed_notification_ids, bool force_update);
 
   void remove_added_notifications_from_pending_updates(
       NotificationGroupId group_id,
