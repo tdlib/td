@@ -117,7 +117,6 @@ extern int VERBOSITY_NAME(fd);
 extern int VERBOSITY_NAME(net_query);
 extern int VERBOSITY_NAME(td_requests);
 extern int VERBOSITY_NAME(actor);
-extern int VERBOSITY_NAME(buffer);
 extern int VERBOSITY_NAME(files);
 extern int VERBOSITY_NAME(sqlite);
 
