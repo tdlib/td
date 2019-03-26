@@ -255,9 +255,9 @@ class NotificationManager : public Actor {
 
   Status process_push_notification_payload(string payload);
 
-  void process_message_push_notification(DialogId dialog_id, UserId sender_user_id, MessageId message_id,
-                                         int64 random_id, bool contains_mention, string loc_key,
-                                         vector<string> loc_args);
+  Status process_message_push_notification(DialogId dialog_id, UserId sender_user_id, MessageId message_id,
+                                           int64 random_id, bool contains_mention, string loc_key,
+                                           vector<string> loc_args);
 
   void after_get_difference_impl();
 

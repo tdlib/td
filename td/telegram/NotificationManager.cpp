@@ -2431,16 +2431,45 @@ Status NotificationManager::process_push_notification_payload(string payload) {
   TRY_RESULT(contains_mention_int, get_json_object_int_field(custom, "mention"));
   bool contains_mention = contains_mention_int != 0;
 
-  process_message_push_notification(dialog_id, sender_user_id, MessageId(server_message_id), random_id,
-                                    contains_mention, std::move(loc_key), std::move(loc_args));
+  if (begins_with(loc_key, "CHANNEL_MESSAGE")) {
+    if (dialog_id.get_type() != DialogType::Channel) {
+      return Status::Error("Receive wrong chat type");
+    }
+    loc_key = loc_key.substr(8);
+  }
+  if (begins_with(loc_key, "CHAT_MESSAGE")) {
+    if (dialog_id.get_type() != DialogType::Chat) {
+      return Status::Error("Receive wrong chat type");
+    }
+    loc_key = loc_key.substr(5);
+  }
+  if (begins_with(loc_key, "CHAT_")) {
+    auto dialog_type = dialog_id.get_type();
+    if (dialog_type != DialogType::Chat && dialog_type != DialogType::Channel) {
+      return Status::Error("Receive wrong chat type");
+    }
+  }
+  if (begins_with(loc_key, "MESSAGE") && !server_message_id.is_valid()) {
+    return Status::Error("Receive no message ID");
+  }
+  if (begins_with(loc_key, "ENCRYPT") || random_id != 0) {
+    if (dialog_id.get_type() != DialogType::SecretChat) {
+      return Status::Error("Receive wrong chat type");
+    }
+  }
+  if (server_message_id.is_valid() && dialog_id.get_type() == DialogType::SecretChat) {
+    return Status::Error("Receive message ID in secret chat push");
+  }
 
-  return Status::OK();
+  return process_message_push_notification(dialog_id, sender_user_id, MessageId(server_message_id), random_id,
+                                           contains_mention, std::move(loc_key), std::move(loc_args));
 }
 
-void NotificationManager::process_message_push_notification(DialogId dialog_id, UserId sender_user_id,
-                                                            MessageId message_id, int64 random_id,
-                                                            bool contains_mention, string loc_key,
-                                                            vector<string> loc_args) {
+Status NotificationManager::process_message_push_notification(DialogId dialog_id, UserId sender_user_id,
+                                                              MessageId message_id, int64 random_id,
+                                                              bool contains_mention, string loc_key,
+                                                              vector<string> loc_args) {
+  return Status::OK();
 }
 
 Result<int64> NotificationManager::get_push_receiver_id(string payload) {
