@@ -24,6 +24,7 @@
 #include "td/utils/logging.h"
 #include "td/utils/misc.h"
 
+#include <atomic>
 #include <map>
 #include <mutex>
 
@@ -62,6 +63,7 @@ Status Logging::set_current_stream(td_api::object_ptr<td_api::LogStream> stream)
       }
 
       TRY_STATUS(file_log.init(file_stream->path_, max_log_file_size));
+      std::atomic_thread_fence(std::memory_order_release);  // better than nothing
       log_interface = &ts_log;
       return Status::OK();
     }
