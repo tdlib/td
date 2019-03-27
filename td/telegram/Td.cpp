@@ -5787,10 +5787,14 @@ void Td::on_file_download_finished(FileId file_id) {
     auto download_offset = file_object->local_->download_offset_;
     auto downloaded_size = file_object->local_->downloaded_prefix_size_;
     auto file_size = file_object->size_;
+    auto limit = it->second.limit;
+    if (limit == 0) {
+      limit = std::numeric_limits<int32>::max();
+    }
     if (file_object->local_->is_downloading_completed_ ||
         (download_offset <= it->second.offset && download_offset + downloaded_size >= it->second.offset &&
          ((file_size != 0 && download_offset + downloaded_size == file_size) ||
-          download_offset + downloaded_size - it->second.offset >= it->second.limit))) {
+          download_offset + downloaded_size - it->second.offset >= limit))) {
       send_result(id, std::move(file_object));
     } else {
       send_error_impl(id, td_api::make_object<td_api::error>(400, "File download has failed or was cancelled"));
