@@ -10251,6 +10251,7 @@ void MessagesManager::remove_dialog_mention_notifications(Dialog *d) {
   VLOG(notifications) << "Remove mention notifications in " << d->dialog_id;
 
   vector<MessageId> message_ids;
+  vector<NotificationId> removed_notification_ids;
   find_unread_mentions(d->messages, message_ids);
   VLOG(notifications) << "Found unread mentions in " << message_ids;
   for (auto &message_id : message_ids) {
@@ -10258,8 +10259,7 @@ void MessagesManager::remove_dialog_mention_notifications(Dialog *d) {
     CHECK(m != nullptr);
     if (m->notification_id.is_valid() && is_message_notification_active(d, m) &&
         is_from_mention_notification_group(d, m)) {
-      send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification, notification_group_id,
-                         m->notification_id, false, true, Promise<Unit>());
+      removed_notification_ids.push_back(m->notification_id);
     }
   }
 
@@ -10270,10 +10270,14 @@ void MessagesManager::remove_dialog_mention_notifications(Dialog *d) {
       auto m = get_message_force(d, message_id, "remove_dialog_mention_notifications");
       if (m != nullptr && m->notification_id.is_valid() && is_message_notification_active(d, m)) {
         CHECK(is_from_mention_notification_group(d, m));
-        send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification,
-                           notification_group_id, m->notification_id, false, true, Promise<Unit>());
+        removed_notification_ids.push_back(m->notification_id);
       }
     }
+  }
+
+  for (size_t i = 0; i < removed_notification_ids.size(); i++) {
+    send_closure_later(G()->notification_manager(), &NotificationManager::remove_notification, notification_group_id,
+                       removed_notification_ids[i], false, i + 1 == removed_notification_ids.size(), Promise<Unit>());
   }
 }
 
