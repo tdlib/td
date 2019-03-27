@@ -7372,11 +7372,11 @@ bool MessagesManager::can_revoke_message(DialogId dialog_id, const Message *m) c
 
   bool is_appointed_administrator = false;
   bool can_revoke_incoming = false;
-  const int32 DEFAULT_REVOKE_TIME_LIMIT = 2 * 86400;
+  const int32 DEFAULT_REVOKE_TIME_LIMIT = td_->auth_manager_->is_bot() ? 2 * 86400 : std::numeric_limits<int32>::max();
   int32 revoke_time_limit = G()->shared_config().get_option_integer("revoke_time_limit", DEFAULT_REVOKE_TIME_LIMIT);
   switch (dialog_id.get_type()) {
     case DialogType::User:
-      can_revoke_incoming = G()->shared_config().get_option_boolean("revoke_pm_inbox");
+      can_revoke_incoming = G()->shared_config().get_option_boolean("revoke_pm_inbox", true);
       revoke_time_limit = G()->shared_config().get_option_integer("revoke_pm_time_limit", DEFAULT_REVOKE_TIME_LIMIT);
       break;
     case DialogType::Chat:
