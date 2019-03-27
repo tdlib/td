@@ -3915,9 +3915,11 @@ class Td::DownloadFileCallback : public FileManager::DownloadCallback {
   }
 
   void on_download_ok(FileId file_id) override {
+    send_closure(G()->td(), &Td::on_file_download_finished, file_id);
   }
 
   void on_download_error(FileId file_id, Status error) override {
+    send_closure(G()->td(), &Td::on_file_download_finished, file_id);
   }
 };
 
@@ -5734,18 +5736,67 @@ void Td::on_request(uint64 id, const td_api::downloadFile &request) {
   if (!(1 <= priority && priority <= 32)) {
     return send_error_raw(id, 5, "Download priority must be in [1;32] range");
   }
-  if (request.offset_ < 0) {
+  auto offset = request.offset_;
+  if (offset < 0) {
     return send_error_raw(id, 5, "Download offset must be non-negative");
   }
-  file_manager_->download(FileId(request.file_id_, 0), download_file_callback_, priority, request.offset_,
-                          request.limit_);
+  auto limit = request.limit_;
+  if (limit < 0) {
+    return send_error_raw(id, 5, "Download limit must be non-negative");
+  }
 
-  auto file = file_manager_->get_file_object(FileId(request.file_id_, 0), false);
-  if (file->id_ == 0) {
+  FileId file_id(request.file_id_, 0);
+  auto file_view = file_manager_->get_file_view(file_id);
+  if (file_view.empty()) {
     return send_error_raw(id, 400, "Invalid file id");
   }
 
-  send_closure(actor_id(this), &Td::send_result, id, std::move(file));
+  auto info_it = pending_file_downloads_.find(file_id);
+  DownloadInfo *info = info_it == pending_file_downloads_.end() ? nullptr : &info_it->second;
+  if (info != nullptr && (offset != info->offset || limit != info->limit)) {
+    // we can't have two pending requests with different offset and limit, so cancel all previous requests
+    for (auto request_id : info->request_ids) {
+      send_closure(actor_id(this), &Td::send_error, request_id,
+                   Status::Error(200, "Cancelled by another downloadFile request"));
+    }
+    info->request_ids.clear();
+  }
+  if (request.synchronous_) {
+    if (info == nullptr) {
+      info = &pending_file_downloads_[file_id];
+    }
+    info->offset = offset;
+    info->limit = limit;
+    info->request_ids.push_back(id);
+  }
+  file_manager_->download(file_id, download_file_callback_, priority, offset, limit);
+  if (!request.synchronous_) {
+    send_closure(actor_id(this), &Td::send_result, id, file_manager_->get_file_object(file_id, false));
+  }
+}
+
+void Td::on_file_download_finished(FileId file_id) {
+  auto it = pending_file_downloads_.find(file_id);
+  if (it == pending_file_downloads_.end()) {
+    return;
+  }
+  for (auto id : it->second.request_ids) {
+    // there was send_closure to call this function
+    auto file_object = file_manager_->get_file_object(file_id, false);
+    CHECK(file_object != nullptr);
+    auto download_offset = file_object->local_->download_offset_;
+    auto downloaded_size = file_object->local_->downloaded_prefix_size_;
+    auto file_size = file_object->size_;
+    if (file_object->local_->is_downloading_completed_ ||
+        (download_offset <= it->second.offset && download_offset + downloaded_size >= it->second.offset &&
+         ((file_size != 0 && download_offset + downloaded_size == file_size) ||
+          download_offset + downloaded_size - it->second.offset >= it->second.limit))) {
+      send_result(id, std::move(file_object));
+    } else {
+      send_error_impl(id, td_api::make_object<td_api::error>(400, "File download has failed or was cancelled"));
+    }
+  }
+  pending_file_downloads_.erase(it);
 }
 
 void Td::on_request(uint64 id, const td_api::cancelDownloadFile &request) {

@@ -2371,7 +2371,7 @@ class CliClient final : public Actor {
       send_request(td_api::make_object<td_api::getMapThumbnailFile>(
           as_location(latitude, longitude), to_integer<int32>(zoom), to_integer<int32>(width),
           to_integer<int32>(height), to_integer<int32>(scale), as_chat_id(chat_id)));
-    } else if (op == "df" || op == "DownloadFile" || op == "dff") {
+    } else if (op == "df" || op == "DownloadFile" || op == "dff" || op == "dfs") {
       string file_id;
       string priority;
       string offset;
@@ -2386,8 +2386,8 @@ class CliClient final : public Actor {
       int32 max_file_id = as_file_id(file_id);
       int32 min_file_id = (op == "dff" ? 1 : max_file_id);
       for (int32 i = min_file_id; i <= max_file_id; i++) {
-        send_request(td_api::make_object<td_api::downloadFile>(i, to_integer<int32>(priority),
-                                                               to_integer<int32>(offset), to_integer<int32>(limit)));
+        send_request(td_api::make_object<td_api::downloadFile>(
+            i, to_integer<int32>(priority), to_integer<int32>(offset), to_integer<int32>(limit), op == "dfs"));
       }
     } else if (op == "cdf") {
       send_request(td_api::make_object<td_api::cancelDownloadFile>(as_file_id(args), false));

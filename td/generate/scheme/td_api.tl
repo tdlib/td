@@ -3099,12 +3099,14 @@ resetAllNotificationSettings = Ok;
 setPinnedChats chat_ids:vector<int53> = Ok;
 
 
-//@description Asynchronously downloads a file from the cloud. updateFile will be used to notify about the download progress and successful completion of the download. Returns file state just after the download has been started
+//@description Downloads a file from the cloud. Download progress and completion of the download will be notified through updateFile updates
 //@file_id Identifier of the file to download
 //@priority Priority of the download (1-32). The higher the priority, the earlier the file will be downloaded. If the priorities of two files are equal, then the last one for which downloadFile was called will be downloaded first
 //@offset File will be downloaded starting from that offset in bytes first. Supposed to be used for streaming
 //@limit Download will be automatically cancelled when at least limit bytes are downloaded starting from the specified offset; use 0 to download without limit
-downloadFile file_id:int32 priority:int32 offset:int32 limit:int32 = File;
+//@synchronous If false, this request returns file state just after the download has been started. If true, this request returns file state only after
+//-the download has succeeded, has failed, has been cancelled or a new downloadFile request with different offset/limit parameters was sent
+downloadFile file_id:int32 priority:int32 offset:int32 limit:int32 synchronous:Bool = File;
 
 //@description Returns file downloaded prefix size from a given offset @file_id Identifier of the file @offset Offset from which downloaded prefix size should be calculated
 getFileDownloadedPrefixSize file_id:int32 offset:int32 = Count;

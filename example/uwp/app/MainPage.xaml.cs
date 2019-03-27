@@ -118,7 +118,7 @@ namespace TdApp
             {
                 var args = command.Split(" ".ToCharArray(), 2);
                 AcceptCommand(command);
-                _client.Send(new TdApi.DownloadFile(Int32.Parse(args[1]), 1, 0, 0), _handler);
+                _client.Send(new TdApi.DownloadFile(Int32.Parse(args[1]), 1, 0, 0, false), _handler);
             }
             else if (command.StartsWith("bench"))
             {

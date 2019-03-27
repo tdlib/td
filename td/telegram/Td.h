@@ -6,6 +6,7 @@
 //
 #pragma once
 
+#include "td/telegram/files/FileId.h"
 #include "td/telegram/net/MtprotoHeader.h"
 #include "td/telegram/net/NetQuery.h"
 #include "td/telegram/StateManager.h"
@@ -275,6 +276,13 @@ class Td final : public NetQueryCallback {
 
   TermsOfService pending_terms_of_service_;
 
+  struct DownloadInfo {
+    int32 offset = -1;
+    int32 limit = -1;
+    vector<uint64> request_ids;
+  };
+  std::unordered_map<FileId, DownloadInfo, FileIdHash> pending_file_downloads_;
+
   vector<std::pair<uint64, td_api::object_ptr<td_api::Function>>> pending_preauthentication_requests_;
 
   template <class T>
@@ -302,6 +310,8 @@ class Td final : public NetQueryCallback {
   // void destroy_handler(ResultHandler *handler);
 
   void clear_requests();
+
+  void on_file_download_finished(FileId file_id);
 
   static bool is_internal_config_option(Slice name);
 

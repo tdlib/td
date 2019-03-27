@@ -1900,6 +1900,13 @@ void FileManager::download(FileId file_id, std::shared_ptr<DownloadCallback> cal
   node->set_download_limit(limit);
   auto *file_info = get_file_id_info(file_id);
   CHECK(new_priority == 0 || callback);
+  if (file_info->download_callback_ != nullptr && file_info->download_callback_.get() != callback.get()) {
+    // the callback will be destroyed soon and lost forever
+    // this would be an error and should never happen, unless we cancel previous download query
+    // in that case we send an error to the callback
+    CHECK(new_priority == 0);
+    file_info->download_callback_->on_download_error(file_id, Status::Error(200, "Cancelled"));
+  }
   file_info->download_priority_ = narrow_cast<int8>(new_priority);
   file_info->download_callback_ = std::move(callback);
   // TODO: send current progress?
