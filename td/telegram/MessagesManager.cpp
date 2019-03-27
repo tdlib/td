@@ -1471,6 +1471,7 @@ class DeleteHistoryQuery : public Td::ResultHandler {
   DialogId dialog_id_;
   MessageId max_message_id_;
   bool remove_from_dialog_list_;
+  bool revoke_;
 
   void send_request() {
     auto input_peer = td->messages_manager_->get_input_peer(dialog_id_, AccessRights::Read);
@@ -1482,20 +1483,25 @@ class DeleteHistoryQuery : public Td::ResultHandler {
     if (!remove_from_dialog_list_) {
       flags |= telegram_api::messages_deleteHistory::JUST_CLEAR_MASK;
     }
+    if (revoke_) {
+      flags |= telegram_api::messages_deleteHistory::REVOKE_MASK;
+    }
     LOG(INFO) << "Delete " << dialog_id_ << " history up to " << max_message_id_ << " with flags " << flags;
 
-    send_query(G()->net_query_creator().create(create_storer(telegram_api::messages_deleteHistory(
-        flags, false /*ignored*/, std::move(input_peer), max_message_id_.get_server_message_id().get()))));
+    send_query(G()->net_query_creator().create(create_storer(
+        telegram_api::messages_deleteHistory(flags, false /*ignored*/, false /*ignored*/, std::move(input_peer),
+                                             max_message_id_.get_server_message_id().get()))));
   }
 
  public:
   explicit DeleteHistoryQuery(Promise<Unit> &&promise) : promise_(std::move(promise)) {
   }
 
-  void send(DialogId dialog_id, MessageId max_message_id, bool remove_from_dialog_list) {
+  void send(DialogId dialog_id, MessageId max_message_id, bool remove_from_dialog_list, bool revoke) {
     dialog_id_ = dialog_id;
     max_message_id_ = max_message_id;
     remove_from_dialog_list_ = remove_from_dialog_list;
+    revoke_ = revoke;
 
     send_request();
   }
@@ -7557,9 +7563,10 @@ void MessagesManager::delete_messages_from_server(DialogId dialog_id, vector<Mes
   }
 }
 
-void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from_dialog_list, Promise<Unit> &&promise) {
+void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from_dialog_list, bool revoke,
+                                            Promise<Unit> &&promise) {
   LOG(INFO) << "Receive deleteChatHistory request to delete all messages in " << dialog_id
-            << ", remove_from_chat_list is " << remove_from_dialog_list;
+            << ", remove_from_chat_list is " << remove_from_dialog_list << ", revoke is " << revoke;
 
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
@@ -7604,7 +7611,7 @@ void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from
 
   delete_all_dialog_messages(d, remove_from_dialog_list, true);
 
-  if (last_new_message_id.is_valid() && last_new_message_id == d->max_unavailable_message_id) {
+  if (last_new_message_id.is_valid() && last_new_message_id == d->max_unavailable_message_id && !revoke) {
     // history has already been cleared, nothing to do
     promise.set_value(Unit());
     return;
@@ -7612,7 +7619,7 @@ void MessagesManager::delete_dialog_history(DialogId dialog_id, bool remove_from
 
   set_dialog_max_unavailable_message_id(dialog_id, last_new_message_id, false, "delete_dialog_history");
 
-  delete_dialog_history_from_server(dialog_id, last_new_message_id, remove_from_dialog_list, allow_error, 0,
+  delete_dialog_history_from_server(dialog_id, last_new_message_id, remove_from_dialog_list, revoke, allow_error, 0,
                                     std::move(promise));
 }
 
@@ -7621,11 +7628,13 @@ class MessagesManager::DeleteDialogHistoryFromServerLogEvent {
   DialogId dialog_id_;
   MessageId max_message_id_;
   bool remove_from_dialog_list_;
+  bool revoke_;
 
   template <class StorerT>
   void store(StorerT &storer) const {
     BEGIN_STORE_FLAGS();
     STORE_FLAG(remove_from_dialog_list_);
+    STORE_FLAG(revoke_);
     END_STORE_FLAGS();
 
     td::store(dialog_id_, storer);
@@ -7636,6 +7645,7 @@ class MessagesManager::DeleteDialogHistoryFromServerLogEvent {
   void parse(ParserT &parser) {
     BEGIN_PARSE_FLAGS();
     PARSE_FLAG(remove_from_dialog_list_);
+    PARSE_FLAG(revoke_);
     END_PARSE_FLAGS();
 
     td::parse(dialog_id_, parser);
@@ -7644,19 +7654,20 @@ class MessagesManager::DeleteDialogHistoryFromServerLogEvent {
 };
 
 uint64 MessagesManager::save_delete_dialog_history_from_server_logevent(DialogId dialog_id, MessageId max_message_id,
-                                                                        bool remove_from_dialog_list) {
-  DeleteDialogHistoryFromServerLogEvent logevent{dialog_id, max_message_id, remove_from_dialog_list};
+                                                                        bool remove_from_dialog_list, bool revoke) {
+  DeleteDialogHistoryFromServerLogEvent logevent{dialog_id, max_message_id, remove_from_dialog_list, revoke};
   auto storer = LogEventStorerImpl<DeleteDialogHistoryFromServerLogEvent>(logevent);
   return binlog_add(G()->td_db()->get_binlog(), LogEvent::HandlerType::DeleteDialogHistoryFromServer, storer);
 }
 
 void MessagesManager::delete_dialog_history_from_server(DialogId dialog_id, MessageId max_message_id,
-                                                        bool remove_from_dialog_list, bool allow_error,
+                                                        bool remove_from_dialog_list, bool revoke, bool allow_error,
                                                         uint64 logevent_id, Promise<Unit> &&promise) {
   LOG(INFO) << "Delete history in " << dialog_id << " up to " << max_message_id << " from server";
 
   if (logevent_id == 0 && G()->parameters().use_message_db) {
-    logevent_id = save_delete_dialog_history_from_server_logevent(dialog_id, max_message_id, remove_from_dialog_list);
+    logevent_id =
+        save_delete_dialog_history_from_server_logevent(dialog_id, max_message_id, remove_from_dialog_list, revoke);
   }
 
   auto new_promise = get_erase_logevent_promise(logevent_id, std::move(promise));
@@ -7666,7 +7677,7 @@ void MessagesManager::delete_dialog_history_from_server(DialogId dialog_id, Mess
     case DialogType::User:
     case DialogType::Chat:
       td_->create_handler<DeleteHistoryQuery>(std::move(promise))
-          ->send(dialog_id, max_message_id, remove_from_dialog_list);
+          ->send(dialog_id, max_message_id, remove_from_dialog_list, revoke);
       break;
     case DialogType::Channel:
       td_->create_handler<DeleteChannelHistoryQuery>(std::move(promise))
@@ -24862,7 +24873,7 @@ void MessagesManager::on_binlog_events(vector<BinlogEvent> &&events) {
         }
 
         delete_dialog_history_from_server(dialog_id, log_event.max_message_id_, log_event.remove_from_dialog_list_,
-                                          true, event.id_, Auto());
+                                          log_event.revoke_, true, event.id_, Auto());
         break;
       }
       case LogEvent::HandlerType::DeleteAllChannelMessagesFromUserOnServer: {

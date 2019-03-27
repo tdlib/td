@@ -3150,9 +3150,11 @@ class CliClient final : public Actor {
     } else if (op == "delete") {
       string chat_id;
       string remove_from_the_chat_list;
-      std::tie(chat_id, remove_from_the_chat_list) = split(args);
-      send_request(
-          td_api::make_object<td_api::deleteChatHistory>(as_chat_id(chat_id), as_bool(remove_from_the_chat_list)));
+      string revoke;
+      std::tie(chat_id, args) = split(args);
+      std::tie(remove_from_the_chat_list, revoke) = split(args);
+      send_request(td_api::make_object<td_api::deleteChatHistory>(as_chat_id(chat_id),
+                                                                  as_bool(remove_from_the_chat_list), as_bool(revoke)));
     } else if (op == "dmfu") {
       string chat_id;
       string user_id;

@@ -5201,7 +5201,7 @@ void Td::on_request(uint64 id, const td_api::getChatHistory &request) {
 void Td::on_request(uint64 id, const td_api::deleteChatHistory &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  messages_manager_->delete_dialog_history(DialogId(request.chat_id_), request.remove_from_chat_list_,
+  messages_manager_->delete_dialog_history(DialogId(request.chat_id_), request.remove_from_chat_list_, request.revoke_,
                                            std::move(promise));
 }
 

@@ -317,7 +317,7 @@ class MessagesManager : public Actor {
 
   void delete_messages(DialogId dialog_id, const vector<MessageId> &message_ids, bool revoke, Promise<Unit> &&promise);
 
-  void delete_dialog_history(DialogId dialog_id, bool remove_from_dialog_list, Promise<Unit> &&promise);
+  void delete_dialog_history(DialogId dialog_id, bool remove_from_dialog_list, bool revoke, Promise<Unit> &&promise);
 
   void delete_dialog_messages_from_user(DialogId dialog_id, UserId user_id, Promise<Unit> &&promise);
 
@@ -1415,7 +1415,7 @@ class MessagesManager : public Actor {
                                    Promise<Unit> &&promise);
 
   void delete_dialog_history_from_server(DialogId dialog_id, MessageId max_message_id, bool remove_from_dialog_list,
-                                         bool allow_error, uint64 logevent_id, Promise<Unit> &&promise);
+                                         bool revoke, bool allow_error, uint64 logevent_id, Promise<Unit> &&promise);
 
   void delete_all_channel_messages_from_user_on_server(ChannelId channel_id, UserId user_id, uint64 logevent_id,
                                                        Promise<Unit> &&promise);
@@ -2070,7 +2070,7 @@ class MessagesManager : public Actor {
                                                    bool revoke);
 
   uint64 save_delete_dialog_history_from_server_logevent(DialogId dialog_id, MessageId max_message_id,
-                                                         bool remove_from_dialog_list);
+                                                         bool remove_from_dialog_list, bool revoke);
 
   uint64 save_delete_all_channel_messages_from_user_on_server_logevent(ChannelId channel_id, UserId user_id);
 
