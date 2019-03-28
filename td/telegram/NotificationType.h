@@ -36,10 +36,9 @@ class NotificationType {
   virtual StringBuilder &to_string_builder(StringBuilder &string_builder) const = 0;
 
  protected:
-  // append only
-  enum class Type : int32 { Message, SecretChat, Call };
+  // enum class Type : int32 { Message, SecretChat, Call, PushMessage };
 
-  virtual Type get_type() const = 0;
+  // virtual Type get_type() const = 0;
 };
 
 inline StringBuilder &operator<<(StringBuilder &string_builder, const NotificationType &notification_type) {
@@ -58,5 +57,8 @@ unique_ptr<NotificationType> create_new_message_notification(MessageId message_i
 unique_ptr<NotificationType> create_new_secret_chat_notification();
 
 unique_ptr<NotificationType> create_new_call_notification(CallId call_id);
+
+unique_ptr<NotificationType> create_new_push_message_notification(string sender_name, string sender_photo_path,
+                                                                  MessageId message_id, string key, string arg);
 
 }  // namespace td

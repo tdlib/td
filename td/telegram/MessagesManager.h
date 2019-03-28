@@ -691,8 +691,14 @@ class MessagesManager : public Actor {
 
   FileSourceId get_message_file_source_id(FullMessageId full_message_id);
 
-  bool need_message_push_notification(DialogId dialog_id, MessageId message_id, int64 random_id, bool &contains_mention,
-                                      bool is_pinned);
+  struct MessagePushNotificationInfo {
+    NotificationGroupId group_id;
+    NotificationGroupType group_type = NotificationGroupType::Calls;
+    DialogId settings_dialog_id;
+  };
+  MessagePushNotificationInfo get_message_push_notification_info(DialogId dialog_id, MessageId message_id,
+                                                                 int64 random_id, UserId sender_user_id, int32 date,
+                                                                 bool contains_mention, bool is_pinned);
 
   struct MessageNotificationGroup {
     DialogId dialog_id;

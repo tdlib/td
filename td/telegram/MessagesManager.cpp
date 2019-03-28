@@ -18189,39 +18189,69 @@ NotificationGroupId MessagesManager::get_dialog_notification_group_id(DialogId d
   return group_info.group_id;
 }
 
-bool MessagesManager::need_message_push_notification(DialogId dialog_id, MessageId message_id, int64 random_id,
-                                                     bool &contains_mention, bool is_pinned) {
+MessagesManager::MessagePushNotificationInfo MessagesManager::get_message_push_notification_info(
+    DialogId dialog_id, MessageId message_id, int64 random_id, UserId sender_user_id, int32 date, bool contains_mention,
+    bool is_pinned) {
   init();
+
+  if (dialog_id == get_my_dialog_id() || td_->auth_manager_->is_bot()) {
+    return {};
+  }
+
+  if (sender_user_id.is_valid() && !td_->contacts_manager_->have_user(sender_user_id)) {
+    // allow messages from unknown sender, we will use only sender's name and photo
+    // return {};
+  }
 
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
-    return false;
+    return {};
   }
   if (message_id.is_valid() && message_id.get() <= d->last_new_message_id.get()) {
-    return false;
+    return {};
   }
   if (random_id != 0) {
     CHECK(dialog_id.get_type() == DialogType::SecretChat);
     if (get_message_id_by_random_id(d, random_id, "need_message_push_notification").is_valid()) {
-      return false;
+      return {};
     }
   }
-  if (dialog_id == get_my_dialog_id() || td_->auth_manager_->is_bot()) {
-    return false;
-  }
 
-  if (is_dialog_message_notification_disabled(dialog_id, G()->unix_time())) {
-    return false;
-  }
-
-  if (is_pinned && is_dialog_pinned_message_notifications_disabled(d)) {
-    contains_mention = false;
-  }
-  if (contains_mention && is_dialog_mention_notifications_disabled(d)) {
+  if (is_pinned) {
+    contains_mention = !is_dialog_pinned_message_notifications_disabled(d);
+  } else if (contains_mention && is_dialog_mention_notifications_disabled(d)) {
     contains_mention = false;
   }
 
-  return true;
+  DialogId settings_dialog_id = dialog_id;
+  Dialog *settings_dialog = d;
+  if (contains_mention && sender_user_id.is_valid()) {
+    settings_dialog_id = DialogId(sender_user_id);
+    settings_dialog = get_dialog_force(settings_dialog_id);
+  }
+
+  bool have_settings;
+  int32 mute_until;
+  std::tie(have_settings, mute_until) = get_dialog_mute_until(settings_dialog_id, settings_dialog);
+  if (have_settings && mute_until <= date) {
+    return {};
+  }
+
+  if (is_dialog_message_notification_disabled(settings_dialog_id, date)) {
+    return {};
+  }
+
+  auto group_id = get_dialog_notification_group_id(
+      dialog_id, contains_mention ? d->mention_notification_group : d->message_notification_group);
+  if (!group_id.is_valid()) {
+    return {};
+  }
+
+  MessagePushNotificationInfo result;
+  result.group_id = group_id;
+  result.group_type = contains_mention ? NotificationGroupType::Mentions : NotificationGroupType::Messages;
+  result.settings_dialog_id = settings_dialog_id;
+  return result;
 }
 
 NotificationId MessagesManager::get_next_notification_id(Dialog *d, NotificationGroupId notification_group_id,

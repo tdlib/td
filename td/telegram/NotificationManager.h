@@ -256,11 +256,13 @@ class NotificationManager : public Actor {
 
   static Result<string> decrypt_push_payload(int64 encryption_key_id, string encryption_key, string payload);
 
+  static string convert_loc_key(const string &loc_key);
+
   Status process_push_notification_payload(string payload);
 
-  Status process_message_push_notification(DialogId dialog_id, UserId sender_user_id, MessageId message_id,
-                                           int64 random_id, bool contains_mention, string loc_key,
-                                           vector<string> loc_args);
+  Status process_message_push_notification(DialogId dialog_id, MessageId message_id, int64 random_id,
+                                           UserId sender_user_id, string sender_name, int32 date, bool contains_mention,
+                                           bool is_silent, string loc_key, vector<string> loc_args);
 
   void after_get_difference_impl();
 

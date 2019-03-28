@@ -2945,7 +2945,7 @@ tl_object_ptr<telegram_api::inputEncryptedChat> ContactsManager::get_input_encry
 }
 
 const DialogPhoto *ContactsManager::get_user_dialog_photo(UserId user_id) {
-  auto u = get_user(user_id);
+  auto u = get_user_force(user_id);
   if (u == nullptr) {
     return nullptr;
   }

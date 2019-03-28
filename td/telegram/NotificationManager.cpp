@@ -10,6 +10,7 @@
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DeviceTokenManager.h"
+#include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
@@ -2329,6 +2330,191 @@ void NotificationManager::process_push_notification(string payload, Promise<Unit
   promise.set_value(Unit());
 }
 
+string NotificationManager::convert_loc_key(const string &loc_key) {
+  if (loc_key == "MESSAGES") {
+    return loc_key;
+  }
+  switch (loc_key[8]) {
+    case 'A':
+      if (loc_key == "PINNED_GAME") {
+        return "PINNED_MESSAGE_GAME";
+      }
+      if (loc_key == "CHAT_CREATED") {
+        return "MESSAGE_BASIC_GROUP_CHAT_CREATE";
+      }
+      if (loc_key == "MESSAGE_AUDIO") {
+        return "MESSAGE_VOICE_NOTE";
+      }
+      break;
+    case 'C':
+      if (loc_key == "MESSAGE_CONTACT") {
+        return "MESSAGE_CONTACT";
+      }
+      break;
+    case 'D':
+      if (loc_key == "MESSAGE_DOC") {
+        return "MESSAGE_DOCUMENT";
+      }
+      break;
+    case 'E':
+      if (loc_key == "PINNED_GEO") {
+        return "PINNED_MESSAGE_LOCATION";
+      }
+      if (loc_key == "PINNED_GEOLIVE") {
+        return "PINNED_MESSAGE_LIVE_LOCATION";
+      }
+      if (loc_key == "CHAT_DELETE_MEMBER") {
+        return "MESSAGE_CHAT_DELETE_MEMBER";
+      }
+      if (loc_key == "CHAT_DELETE_YOU") {
+        return "MESSAGE_CHAT_DELETE_MEMBER_YOU";
+      }
+      if (loc_key == "PINNED_TEXT") {
+        return "PINNED_MESSAGE_TEXT";
+      }
+      break;
+    case 'F':
+      if (loc_key == "MESSAGE_FWDS") {
+        return "MESSAGE_FORWARDS";
+      }
+      break;
+    case 'G':
+      if (loc_key == "MESSAGE_GAME") {
+        return "MESSAGE_GAME";
+      }
+      if (loc_key == "MESSAGE_GEO") {
+        return "MESSAGE_LOCATION";
+      }
+      if (loc_key == "MESSAGE_GEOLIVE") {
+        return "MESSAGE_LIVE_LOCATION";
+      }
+      if (loc_key == "MESSAGE_GIF") {
+        return "MESSAGE_ANIMATION";
+      }
+      break;
+    case 'H':
+      if (loc_key == "PINNED_PHOTO") {
+        return "PINNED_MESSAGE_PHOTO";
+      }
+      break;
+    case 'I':
+      if (loc_key == "PINNED_VIDEO") {
+        return "PINNED_MESSAGE_VIDEO";
+      }
+      if (loc_key == "PINNED_GIF") {
+        return "PINNED_MESSAGE_ANIMATION";
+      }
+      if (loc_key == "MESSAGE_INVOICE") {
+        return "MESSAGE_INVOICE";
+      }
+      break;
+    case 'J':
+      if (loc_key == "CONTACT_JOINED") {
+        return "MESSAGE_CONTACT_REGISTERED";
+      }
+      break;
+    case 'L':
+      if (loc_key == "CHAT_TITLE_EDITED") {
+        return "MESSAGE_CHAT_CHANGE_TITLE";
+      }
+      break;
+    case 'N':
+      if (loc_key == "CHAT_JOINED") {
+        return "MESSAGE_CHAT_JOIN_BY_LINK";
+      }
+      if (loc_key == "MESSAGE_NOTEXT") {
+        return "MESSAGE";
+      }
+      if (loc_key == "PINNED_INVOICE") {
+        return "PINNED_MESSAGE_INVOICE";
+      }
+      break;
+    case 'O':
+      if (loc_key == "PINNED_DOC") {
+        return "PINNED_MESSAGE_DOCUMENT";
+      }
+      if (loc_key == "PINNED_POLL") {
+        return "PINNED_MESSAGE_POLL";
+      }
+      if (loc_key == "PINNED_CONTACT") {
+        return "PINNED_MESSAGE_CONTACT";
+      }
+      if (loc_key == "PINNED_NOTEXT") {
+        return "PINNED_MESSAGE";
+      }
+      if (loc_key == "PINNED_ROUND") {
+        return "PINNED_MESSAGE_VIDEO_NOTE";
+      }
+      break;
+    case 'P':
+      if (loc_key == "MESSAGE_PHOTO") {
+        return "MESSAGE_PHOTO";
+      }
+      if (loc_key == "MESSAGE_PHOTOS") {
+        return "MESSAGE_PHOTOS";
+      }
+      if (loc_key == "MESSAGE_PHOTO_SECRET") {
+        return "MESSAGE_SECRET_PHOTO";
+      }
+      if (loc_key == "MESSAGE_POLL") {
+        return "MESSAGE_POLL";
+      }
+      break;
+    case 'R':
+      if (loc_key == "MESSAGE_ROUND") {
+        return "MESSAGE_VIDEO_NOTE";
+      }
+      break;
+    case 'S':
+      if (loc_key == "MESSAGE_SCREENSHOT") {
+        return "MESSAGE_SCREENSHOT_TAKEN";
+      }
+      if (loc_key == "MESSAGE_STICKER") {
+        return "MESSAGE_STICKER";
+      }
+      break;
+    case 'T':
+      if (loc_key == "CHAT_LEFT") {
+        return "MESSAGE_CHAT_DELETE_MEMBER_LEFT";
+      }
+      if (loc_key == "MESSAGE_TEXT") {
+        return "MESSAGE_TEXT";
+      }
+      if (loc_key == "PINNED_STICKER") {
+        return "PINNED_MESSAGE_STICKER";
+      }
+      if (loc_key == "CHAT_PHOTO_EDITED") {
+        return "MESSAGE_CHAT_CHANGE_PHOTO";
+      }
+      break;
+    case 'U':
+      if (loc_key == "PINNED_AUDIO") {
+        return "PINNED_MESSAGE_VOICE_NOTE";
+      }
+      if (loc_key == "CHAT_RETURNED") {
+        return "MESSAGE_CHAT_ADD_MEMBERS_RETURNED";
+      }
+      break;
+    case 'V':
+      if (loc_key == "MESSAGE_VIDEO") {
+        return "MESSAGE_VIDEO";
+      }
+      if (loc_key == "MESSAGE_VIDEO_SECRET") {
+        return "MESSAGE_SECRET_VIDEO";
+      }
+      break;
+    case '_':
+      if (loc_key == "CHAT_ADD_MEMBER") {
+        return "MESSAGE_CHAT_ADD_MEMBERS";
+      }
+      if (loc_key == "CHAT_ADD_YOU") {
+        return "MESSAGE_CHAT_ADD_MEMBERS_YOU";
+      }
+      break;
+  }
+  return string();
+}
+
 Status NotificationManager::process_push_notification_payload(string payload) {
   VLOG(notifications) << "Process push notification payload " << payload;
   auto r_json_value = json_decode(payload);
@@ -2345,6 +2531,9 @@ Status NotificationManager::process_push_notification_payload(string payload) {
   JsonObject custom;
   string announcement_message_text;
   vector<string> loc_args;
+  string sender_name;
+  int32 sent_date = G()->unix_time();
+  bool is_silent = false;
   for (auto &field_value : json_value.get_object()) {
     if (field_value.first == "loc_key") {
       if (field_value.second.type() != JsonValue::Type::String) {
@@ -2372,6 +2561,17 @@ Status NotificationManager::process_push_notification_payload(string payload) {
         return Status::Error("Expected announcement message text as a String");
       }
       announcement_message_text = field_value.second.get_string().str();
+    } else if (field_value.first == "google.sent_time") {
+      TRY_RESULT(google_sent_time, get_json_object_long_field(json_value.get_object(), "google.sent_time"));
+      google_sent_time /= 1000;
+      if (sent_date - 86400 <= google_sent_time && google_sent_time <= sent_date + 5) {
+        sent_date = narrow_cast<int32>(google_sent_time);
+      }
+    } else if (field_value.first == "google.notification.sound" && field_value.second.type() != JsonValue::Type::Null) {
+      if (field_value.second.type() != JsonValue::Type::String) {
+        return Status::Error("Expected notification sound as a String");
+      }
+      is_silent = field_value.second.get_string().empty();
     }
   }
   if (!clean_input_string(loc_key)) {
@@ -2510,17 +2710,20 @@ Status NotificationManager::process_push_notification_payload(string payload) {
     }
     loc_key = loc_key.substr(8);
   }
-  if (begins_with(loc_key, "CHAT_MESSAGE")) {
-    if (dialog_id.get_type() != DialogType::Chat) {
-      return Status::Error("Receive wrong chat type");
-    }
-    loc_key = loc_key.substr(5);
-  }
   if (begins_with(loc_key, "CHAT_")) {
     auto dialog_type = dialog_id.get_type();
     if (dialog_type != DialogType::Chat && dialog_type != DialogType::Channel) {
       return Status::Error("Receive wrong chat type");
     }
+
+    if (begins_with(loc_key, "CHAT_MESSAGE")) {
+      loc_key = loc_key.substr(5);
+    }
+    if (loc_args.empty()) {
+      return Status::Error("Expect sender name as first argument");
+    }
+    sender_name = std::move(loc_args[0]);
+    loc_args.erase(loc_args.begin());
   }
   if (begins_with(loc_key, "MESSAGE") && !server_message_id.is_valid()) {
     return Status::Error("Receive no message ID");
@@ -2535,7 +2738,7 @@ Status NotificationManager::process_push_notification_payload(string payload) {
   }
 
   if (begins_with(loc_key, "ENCRYPTION_")) {
-    // TODO new secret chat notification
+    // TODO new secret chat notifications
     return Status::OK();
   }
 
@@ -2544,27 +2747,81 @@ Status NotificationManager::process_push_notification_payload(string payload) {
     return Status::OK();
   }
 
-  return process_message_push_notification(dialog_id, sender_user_id, MessageId(server_message_id), random_id,
-                                           contains_mention, std::move(loc_key), std::move(loc_args));
+  loc_key = convert_loc_key(loc_key);
+  if (loc_key.empty()) {
+    return Status::Error("Push type is unknown");
+  }
+
+  if (loc_args.empty()) {
+    return Status::Error("Expected chat name as next argument");
+  }
+  if (dialog_id.get_type() == DialogType::User) {
+    sender_name = std::move(loc_args[0]);
+  }
+  loc_args.erase(
+      loc_args
+          .begin());  // chat title for CHAT_*, CHANNEL_*, ENCRYPTED_MESSAGE and PINNED_*, sender name for MESSAGE_* and CONTACT_JOINED
+
+  return process_message_push_notification(dialog_id, MessageId(server_message_id), random_id, sender_user_id,
+                                           std::move(sender_name), sent_date, contains_mention, is_silent,
+                                           std::move(loc_key), std::move(loc_args));
 }
 
-Status NotificationManager::process_message_push_notification(DialogId dialog_id, UserId sender_user_id,
-                                                              MessageId message_id, int64 random_id,
-                                                              bool contains_mention, string loc_key,
+Status NotificationManager::process_message_push_notification(DialogId dialog_id, MessageId message_id, int64 random_id,
+                                                              UserId sender_user_id, string sender_name, int32 date,
+                                                              bool contains_mention, bool is_silent, string loc_key,
                                                               vector<string> loc_args) {
-  auto is_pinned = begins_with(loc_key, "PINNED_");
-  if (is_pinned) {
-    contains_mention = true;
+  if (loc_args.size() > 1) {
+    return Status::Error("Receive too much arguments");
   }
-  if (!td_->messages_manager_->need_message_push_notification(dialog_id, message_id, random_id, contains_mention,
-                                                              is_pinned)) {
+
+  string arg;
+  if (loc_args.size() == 1) {
+    arg = std::move(loc_args[0]);
+  }
+
+  auto is_pinned = begins_with(loc_key, "PINNED_");
+  auto info = td_->messages_manager_->get_message_push_notification_info(
+      dialog_id, message_id, random_id, sender_user_id, date, contains_mention, is_pinned);
+  if (!info.group_id.is_valid()) {
     VLOG(notifications) << "Don't need message push notification for " << message_id << "/" << random_id << " from "
                         << dialog_id;
     return Status::OK();
   }
 
-  VLOG(notifications) << "Process message push notification " << loc_key << " for " << message_id << "/" << random_id
-                      << " from " << dialog_id << ", sent by " << sender_user_id << " with args " << loc_args;
+  if (dialog_id.get_type() == DialogType::SecretChat) {
+    VLOG(notifications) << "Skep notification in secret " << dialog_id;
+    // TODO support secret chat notifications
+    // main problem: there is no message_id yet
+    return Status::OK();
+  }
+  CHECK(random_id == 0);
+
+  auto notification_id = get_next_notification_id();
+  if (!notification_id.is_valid()) {
+    return Status::OK();
+  }
+
+  auto sender_photo = td_->contacts_manager_->get_user_dialog_photo(sender_user_id);
+  string sender_photo_path;
+  if (sender_photo != nullptr) {
+    FileView file_view = td_->file_manager_->get_file_view(sender_photo->small_file_id);
+    if (file_view.has_local_location()) {
+      sender_photo_path = file_view.path();
+    }
+  }
+
+  auto group_id = info.group_id;
+  auto group_type = info.group_type;
+  auto settings_dialog_id = info.settings_dialog_id;
+  VLOG(notifications) << "Add message push notification of type " << loc_key << " for " << message_id << "/"
+                      << random_id << " in " << dialog_id << ", sent by " << sender_user_id << " at " << date
+                      << " with args " << loc_args << " to " << group_id << " of type " << group_type
+                      << " with settings from " << settings_dialog_id;
+
+  add_notification(group_id, group_type, dialog_id, date, settings_dialog_id, is_silent, 0, notification_id,
+                   create_new_push_message_notification(std::move(sender_name), std::move(sender_photo_path),
+                                                        message_id, std::move(loc_key), std::move(arg)));
   return Status::OK();
 }
 

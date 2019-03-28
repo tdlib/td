@@ -32,11 +32,11 @@ class NotificationTypeMessage : public NotificationType {
   StringBuilder &to_string_builder(StringBuilder &string_builder) const override {
     return string_builder << "NewMessageNotification[" << message_id_ << ']';
   }
-
+  /*
   Type get_type() const override {
     return Type::Message;
   }
-
+  */
   MessageId message_id_;
 
  public:
@@ -60,11 +60,11 @@ class NotificationTypeSecretChat : public NotificationType {
   StringBuilder &to_string_builder(StringBuilder &string_builder) const override {
     return string_builder << "NewSecretChatNotification[]";
   }
-
+  /*
   Type get_type() const override {
     return Type::SecretChat;
   }
-
+  */
  public:
   NotificationTypeSecretChat() {
   }
@@ -86,15 +86,55 @@ class NotificationTypeCall : public NotificationType {
   StringBuilder &to_string_builder(StringBuilder &string_builder) const override {
     return string_builder << "NewCallNotification[" << call_id_ << ']';
   }
-
+  /*
   Type get_type() const override {
     return Type::Call;
   }
-
+  */
   CallId call_id_;
 
  public:
   explicit NotificationTypeCall(CallId call_id) : call_id_(call_id) {
+  }
+};
+
+class NotificationTypePushMessage : public NotificationType {
+  bool can_be_delayed() const override {
+    return false;
+  }
+
+  MessageId get_message_id() const override {
+    return message_id_;
+  }
+
+  td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const override {
+    return nullptr;
+    // return td_api::make_object<td_api::notificationTypeNewPushMessage>(sender_name_, sender_photo_path_, message_id_.get(), key_, arg_);
+  }
+
+  StringBuilder &to_string_builder(StringBuilder &string_builder) const override {
+    return string_builder << "NewPushMessageNotification[" << sender_name_ << ", " << message_id_ << ", " << key_
+                          << ", " << arg_ << ']';
+  }
+  /*
+  Type get_type() const override {
+    return Type::PushMessage;
+  }
+  */
+  string sender_name_;
+  string sender_photo_path_;
+  MessageId message_id_;
+  string key_;
+  string arg_;
+
+ public:
+  NotificationTypePushMessage(string sender_name, string sender_photo_path, MessageId message_id, string key,
+                              string arg)
+      : sender_name_(std::move(sender_name))
+      , sender_photo_path_(std::move(sender_photo_path))
+      , message_id_(message_id)
+      , key_(std::move(key))
+      , arg_(std::move(arg)) {
   }
 };
 
@@ -108,6 +148,12 @@ unique_ptr<NotificationType> create_new_secret_chat_notification() {
 
 unique_ptr<NotificationType> create_new_call_notification(CallId call_id) {
   return make_unique<NotificationTypeCall>(call_id);
+}
+
+unique_ptr<NotificationType> create_new_push_message_notification(string sender_name, string sender_photo_path,
+                                                                  MessageId message_id, string key, string arg) {
+  return td::make_unique<NotificationTypePushMessage>(std::move(sender_name), std::move(sender_photo_path), message_id,
+                                                      std::move(key), std::move(arg));
 }
 
 }  // namespace td
