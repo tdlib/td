@@ -17437,6 +17437,11 @@ tl_object_ptr<td_api::gameHighScores> MessagesManager::get_game_high_scores_obje
   return result;
 }
 
+bool MessagesManager::is_forward_info_sender_hidden(const MessageForwardInfo *forward_info) {
+  return forward_info->dialog_id == DialogId(static_cast<int64>(-1001228946795ll)) &&
+         !forward_info->author_signature.empty() && !forward_info->message_id.is_valid();
+}
+
 unique_ptr<MessagesManager::MessageForwardInfo> MessagesManager::get_message_forward_info(
     tl_object_ptr<telegram_api::messageFwdHeader> &&forward_header) {
   if (forward_header == nullptr) {
@@ -17524,11 +17529,15 @@ tl_object_ptr<td_api::MessageForwardInfo> MessagesManager::get_message_forward_i
   }
 
   if (forward_info->dialog_id.is_valid()) {
-    return make_tl_object<td_api::messageForwardedPost>(
+    if (is_forward_info_sender_hidden(forward_info.get())) {
+      return td_api::make_object<td_api::messageForwardedFromHiddenUser>(forward_info->author_signature,
+                                                                         forward_info->date);
+    }
+    return td_api::make_object<td_api::messageForwardedPost>(
         forward_info->dialog_id.get(), forward_info->author_signature, forward_info->date,
         forward_info->message_id.get(), forward_info->from_dialog_id.get(), forward_info->from_message_id.get());
   }
-  return make_tl_object<td_api::messageForwardedFromUser>(
+  return td_api::make_object<td_api::messageForwardedFromUser>(
       td_->contacts_manager_->get_user_id_object(forward_info->sender_user_id, "messageForwardedFromUser"),
       forward_info->date, forward_info->from_dialog_id.get(), forward_info->from_message_id.get());
 }
@@ -22799,10 +22808,12 @@ bool MessagesManager::update_message(Dialog *d, unique_ptr<Message> &old_message
         is_changed = true;
       }
       if (*old_message->forward_info != *new_message->forward_info) {
-        LOG(ERROR) << message_id << " in " << dialog_id << " has changed forward info from "
-                   << *old_message->forward_info << " to " << *new_message->forward_info << ", really forwarded from "
-                   << old_message->debug_forward_from << ", message content type is "
-                   << old_message->content->get_type() << '/' << new_message->content->get_type();
+        if (!is_forward_info_sender_hidden(new_message->forward_info.get())) {
+          LOG(ERROR) << message_id << " in " << dialog_id << " has changed forward info from "
+                     << *old_message->forward_info << " to " << *new_message->forward_info << ", really forwarded from "
+                     << old_message->debug_forward_from << ", message content type is "
+                     << old_message->content->get_type() << '/' << new_message->content->get_type();
+        }
         old_message->forward_info = std::move(new_message->forward_info);
         is_changed = true;
       }

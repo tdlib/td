@@ -1854,6 +1854,8 @@ class MessagesManager : public Actor {
 
   static int32 get_message_flags(const Message *m);
 
+  static bool is_forward_info_sender_hidden(const MessageForwardInfo *forward_info);
+
   unique_ptr<MessageForwardInfo> get_message_forward_info(
       tl_object_ptr<telegram_api::messageFwdHeader> &&forward_header);
 

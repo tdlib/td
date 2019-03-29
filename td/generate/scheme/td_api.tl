@@ -468,12 +468,21 @@ secretChat id:int32 user_id:int32 state:SecretChatState is_outbound:Bool ttl:int
 
 //@class MessageForwardInfo @description Contains information about the initial sender of a forwarded message
 
-//@description The message was originally written by a known user @sender_user_id Identifier of the user that originally sent this message @date Point in time (Unix timestamp) when the message was originally sent
+//@description The message was originally written by a known user
+//@sender_user_id Identifier of the user that originally sent this message
+//@date Point in time (Unix timestamp) when the message was originally sent
 //@forwarded_from_chat_id For messages forwarded to the chat with the current user (saved messages), the identifier of the chat from which the message was forwarded; 0 if unknown
 //@forwarded_from_message_id For messages forwarded to the chat with the current user (saved messages) the identifier of the original message from which the new message was forwarded; 0 if unknown
 messageForwardedFromUser sender_user_id:int32 date:int32 forwarded_from_chat_id:int53 forwarded_from_message_id:int53 = MessageForwardInfo;
 
-//@description The message was originally a post in a channel @chat_id Identifier of the chat from which the message was forwarded @author_signature Post author signature
+//@description The message was originally written by a user, which is hidden by his privacy settings
+//@sender_name Name of the sender
+//@date Point in time (Unix timestamp) when the message was originally sent
+messageForwardedFromHiddenUser sender_name:string date:int32 = MessageForwardInfo;
+
+//@description The message was originally a post in a channel
+//@chat_id Identifier of the chat from which the message was forwarded
+//@author_signature Post author signature
 //@date Point in time (Unix timestamp) when the message was originally sent @message_id Message identifier of the original message from which the new message was forwarded; 0 if unknown
 //@forwarded_from_chat_id For messages forwarded to the chat with the current user (saved messages), the identifier of the chat from which the message was forwarded; 0 if unknown
 //@forwarded_from_message_id For messages forwarded to the chat with the current user (saved messages), the identifier of the original message from which the new message was forwarded; 0 if unknown
