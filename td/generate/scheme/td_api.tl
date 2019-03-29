@@ -242,8 +242,8 @@ venue location:location title:string address:string provider:string id:string ty
 //@param_description Game description @photo Game photo @animation Game animation; may be null
 game id:int64 short_name:string title:string text:formattedText description:string photo:photo animation:animation = Game;
 
-//@description Describes a poll @question Poll question, 1-255 characters @options List of poll answer options @total_voter_count Total number of voters, participating in the poll @is_closed True, if the poll is closed
-poll question:string options:vector<pollOption> total_voter_count:int32 is_closed:Bool = Poll;
+//@description Describes a poll @id Unique poll identifier @question Poll question, 1-255 characters @options List of poll answer options @total_voter_count Total number of voters, participating in the poll @is_closed True, if the poll is closed
+poll id:int64 question:string options:vector<pollOption> total_voter_count:int32 is_closed:Bool = Poll;
 
 
 //@description Describes a user profile photo @id Photo identifier; 0 for an empty photo. Can be used to find a photo in a list of userProfilePhotos

@@ -456,7 +456,8 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id) co
   for (size_t i = 0; i < poll_options.size(); i++) {
     poll_options[i]->vote_percentage_ = vote_percentage[i];
   }
-  return td_api::make_object<td_api::poll>(poll->question, std::move(poll_options), total_voter_count, poll->is_closed);
+  return td_api::make_object<td_api::poll>(poll_id.get(), poll->question, std::move(poll_options), total_voter_count,
+                                           poll->is_closed);
 }
 
 telegram_api::object_ptr<telegram_api::pollAnswer> PollManager::get_input_poll_option(const PollOption &poll_option) {
