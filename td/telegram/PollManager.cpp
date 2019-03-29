@@ -438,7 +438,7 @@ td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, co
   for (auto &poll_option : poll_options) {
     is_voted |= poll_option->is_chosen_;
   }
-  if (!is_voted && !poll->is_closed) {
+  if (!is_voted && !poll->is_closed && !td_->auth_manager_->is_bot()) {
     // hide the voter counts
     for (auto &poll_option : poll_options) {
       poll_option->voter_count_ = 0;
