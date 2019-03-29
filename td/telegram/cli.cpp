@@ -2996,9 +2996,9 @@ class CliClient final : public Actor {
       string question;
       std::tie(chat_id, args) = split(args);
       std::tie(question, args) = split(args);
-      auto answers = full_split(args);
+      auto options = full_split(args);
 
-      send_message(chat_id, td_api::make_object<td_api::inputMessagePoll>(question, std::move(answers)));
+      send_message(chat_id, td_api::make_object<td_api::inputMessagePoll>(question, std::move(options)));
     } else if (op == "sp") {
       string chat_id;
       string photo_path;
