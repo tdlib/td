@@ -7,8 +7,8 @@
 #include "td/telegram/NotificationManager.h"
 
 #include "td/telegram/AuthManager.h"
-#include "td/telegram/ChatId.h"
 #include "td/telegram/ChannelId.h"
+#include "td/telegram/ChatId.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DeviceTokenManager.h"
@@ -2783,13 +2783,16 @@ Status NotificationManager::process_message_push_notification(DialogId dialog_id
   }
 
   auto is_pinned = begins_with(loc_key, "PINNED_");
-  auto info = td_->messages_manager_->get_message_push_notification_info(
+  auto r_info = td_->messages_manager_->get_message_push_notification_info(
       dialog_id, message_id, random_id, sender_user_id, date, contains_mention, is_pinned);
-  if (!info.group_id.is_valid()) {
+  if (r_info.is_error()) {
     VLOG(notifications) << "Don't need message push notification for " << message_id << "/" << random_id << " from "
-                        << dialog_id;
+                        << dialog_id << ": " << r_info.error();
     return Status::OK();
   }
+
+  auto info = r_info.move_as_ok();
+  CHECK(info.group_id.is_valid());
 
   if (dialog_id.get_type() == DialogType::SecretChat) {
     VLOG(notifications) << "Skep notification in secret " << dialog_id;

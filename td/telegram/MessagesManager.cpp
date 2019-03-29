@@ -18198,31 +18198,36 @@ NotificationGroupId MessagesManager::get_dialog_notification_group_id(DialogId d
   return group_info.group_id;
 }
 
-MessagesManager::MessagePushNotificationInfo MessagesManager::get_message_push_notification_info(
+Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_message_push_notification_info(
     DialogId dialog_id, MessageId message_id, int64 random_id, UserId sender_user_id, int32 date, bool contains_mention,
     bool is_pinned) {
   init();
 
-  if (dialog_id == get_my_dialog_id() || td_->auth_manager_->is_bot()) {
-    return {};
+  if (dialog_id == get_my_dialog_id()) {
+    return Status::Error("Ignore notification in chat with self");
+  }
+  if (td_->auth_manager_->is_bot()) {
+    return Status::Error("Ignore notification sent to bot");
   }
 
   if (sender_user_id.is_valid() && !td_->contacts_manager_->have_user(sender_user_id)) {
     // allow messages from unknown sender, we will use only sender's name and photo
-    // return {};
+    // return Status::Error("Ignore notification from unknown user");
   }
 
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
-    return {};
+    return Status::Error("Ignore notification in unknown chat");
+    ;
   }
   if (message_id.is_valid() && message_id.get() <= d->last_new_message_id.get()) {
-    return {};
+    return Status::Error("Ignore notification about known message");
+    ;
   }
   if (random_id != 0) {
     CHECK(dialog_id.get_type() == DialogType::SecretChat);
     if (get_message_id_by_random_id(d, random_id, "need_message_push_notification").is_valid()) {
-      return {};
+      return Status::Error("Ignore notification about known secret message");
     }
   }
 
@@ -18243,17 +18248,17 @@ MessagesManager::MessagePushNotificationInfo MessagesManager::get_message_push_n
   int32 mute_until;
   std::tie(have_settings, mute_until) = get_dialog_mute_until(settings_dialog_id, settings_dialog);
   if (have_settings && mute_until <= date) {
-    return {};
+    return Status::Error("Ignore notification in muted chat");
   }
 
   if (is_dialog_message_notification_disabled(settings_dialog_id, date)) {
-    return {};
+    return Status::Error("Ignore notification in chat, because notifications are disabled in the chat");
   }
 
   auto group_id = get_dialog_notification_group_id(
       dialog_id, contains_mention ? d->mention_notification_group : d->message_notification_group);
   if (!group_id.is_valid()) {
-    return {};
+    return Status::Error("Can't assign notification group ID");
   }
 
   MessagePushNotificationInfo result;

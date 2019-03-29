@@ -696,9 +696,10 @@ class MessagesManager : public Actor {
     NotificationGroupType group_type = NotificationGroupType::Calls;
     DialogId settings_dialog_id;
   };
-  MessagePushNotificationInfo get_message_push_notification_info(DialogId dialog_id, MessageId message_id,
-                                                                 int64 random_id, UserId sender_user_id, int32 date,
-                                                                 bool contains_mention, bool is_pinned);
+  Result<MessagePushNotificationInfo> get_message_push_notification_info(DialogId dialog_id, MessageId message_id,
+                                                                         int64 random_id, UserId sender_user_id,
+                                                                         int32 date, bool contains_mention,
+                                                                         bool is_pinned);
 
   struct MessageNotificationGroup {
     DialogId dialog_id;
