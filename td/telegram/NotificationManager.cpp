@@ -7,6 +7,8 @@
 #include "td/telegram/NotificationManager.h"
 
 #include "td/telegram/AuthManager.h"
+#include "td/telegram/ChatId.h"
+#include "td/telegram/ChannelId.h"
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DeviceTokenManager.h"
@@ -16,6 +18,7 @@
 #include "td/telegram/misc.h"
 #include "td/telegram/net/ConnectionCreator.h"
 #include "td/telegram/net/DcId.h"
+#include "td/telegram/SecretChatId.h"
 #include "td/telegram/StateManager.h"
 #include "td/telegram/Td.h"
 #include "td/telegram/TdDb.h"
@@ -2758,9 +2761,8 @@ Status NotificationManager::process_push_notification_payload(string payload) {
   if (dialog_id.get_type() == DialogType::User) {
     sender_name = std::move(loc_args[0]);
   }
-  loc_args.erase(
-      loc_args
-          .begin());  // chat title for CHAT_*, CHANNEL_*, ENCRYPTED_MESSAGE and PINNED_*, sender name for MESSAGE_* and CONTACT_JOINED
+  // chat title for CHAT_*, CHANNEL_*, ENCRYPTED_MESSAGE and PINNED_*, sender name for MESSAGE_* and CONTACT_JOINED
+  loc_args.erase(loc_args.begin());
 
   return process_message_push_notification(dialog_id, MessageId(server_message_id), random_id, sender_user_id,
                                            std::move(sender_name), sent_date, contains_mention, is_silent,
