@@ -56,7 +56,14 @@ TEST(SharedPtr, simple) {
   ptr2 = std::move(ptr);
   CHECK(ptr.empty());
   CHECK(*ptr2 == "hello");
+#if TD_CLANG
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wself-assign-overloaded"
+#endif
   ptr2 = ptr2;
+#if TD_CLANG
+#pragma clang diagnostic pop
+#endif
   CHECK(*ptr2 == "hello");
   CHECK(!Deleter::was_delete());
   ptr2.reset();
