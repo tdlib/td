@@ -137,6 +137,8 @@ class PollManager : public Actor {
 
   Poll *get_poll_force(PollId poll_id);
 
+  td_api::object_ptr<td_api::poll> get_poll_object(PollId poll_id, const Poll *poll) const;
+
   void on_get_poll_results(PollId poll_id, uint64 generation, Result<tl_object_ptr<telegram_api::Updates>> result);
 
   void do_set_poll_answer(PollId poll_id, FullMessageId full_message_id, vector<string> &&options, uint64 logevent_id,

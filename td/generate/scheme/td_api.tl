@@ -2533,6 +2533,9 @@ updateNewCustomEvent event:string = Update;
 //@description A new incoming query; for bots only @id The query identifier @data JSON-serialized query data @timeout Query timeout
 updateNewCustomQuery id:int64 data:string timeout:int32 = Update;
 
+//@description Information about a poll was updated; for bots only @poll New data about the poll
+updatePoll poll:poll = Update;
+
 
 //@description Contains a list of updated @updates List of updates
 updates updates:vector<Update> = Updates;

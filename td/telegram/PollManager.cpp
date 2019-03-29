@@ -411,6 +411,10 @@ vector<int32> PollManager::get_vote_percentage(const vector<int32> &voter_counts
 td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id) const {
   auto poll = get_poll(poll_id);
   CHECK(poll != nullptr);
+  return get_poll_object(poll_id, poll);
+}
+
+td_api::object_ptr<td_api::poll> PollManager::get_poll_object(PollId poll_id, const Poll *poll) const {
   vector<td_api::object_ptr<td_api::pollOption>> poll_options;
   auto it = pending_answers_.find(poll_id);
   int32 voter_count_diff = 0;
@@ -834,6 +838,8 @@ vector<PollManager::PollOption> PollManager::get_poll_options(
 
 PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll> &&poll_server,
                                 tl_object_ptr<telegram_api::pollResults> &&poll_results) {
+  bool is_bot = td_->auth_manager_->is_bot();
+  bool need_update_poll = poll_id.is_valid() && is_bot;
   if (!poll_id.is_valid() && poll_server != nullptr) {
     poll_id = PollId(poll_server->id_);
   }
@@ -958,6 +964,11 @@ PollId PollManager::on_get_poll(PollId poll_id, tl_object_ptr<telegram_api::poll
   if (is_changed) {
     notify_on_poll_update(poll_id);
     save_poll(poll, poll_id);
+
+    if (need_update_poll) {
+      send_closure(G()->td(), &Td::send_update,
+                   td_api::make_object<td_api::updatePoll>(get_poll_object(poll_id, poll)));
+    }
   }
   return poll_id;
 }
