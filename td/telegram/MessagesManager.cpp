@@ -18247,7 +18247,7 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
   bool have_settings;
   int32 mute_until;
   std::tie(have_settings, mute_until) = get_dialog_mute_until(settings_dialog_id, settings_dialog);
-  if (have_settings && mute_until <= date) {
+  if (have_settings && mute_until > date) {
     return Status::Error("Ignore notification in muted chat");
   }
 

@@ -2702,6 +2702,8 @@ Status NotificationManager::process_push_notification_payload(string payload) {
     if (!sender_user_id.is_valid()) {
       return Status::Error("Receive invalid chat_from_id");
     }
+  } else if (dialog_id.get_type() == DialogType::User) {
+    sender_user_id = dialog_id.get_user_id();
   }
 
   TRY_RESULT(contains_mention_int, get_json_object_int_field(custom, "mention"));
