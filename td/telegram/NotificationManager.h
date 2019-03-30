@@ -258,6 +258,8 @@ class NotificationManager : public Actor {
 
   void flush_pending_updates(int32 group_id, const char *source);
 
+  void force_flush_pending_updates(NotificationGroupId group_id, const char *source);
+
   void flush_all_pending_updates(bool include_delayed_chats, const char *source);
 
   NotificationGroupId get_call_notification_group_id(DialogId dialog_id);

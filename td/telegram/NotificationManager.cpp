@@ -1279,6 +1279,11 @@ void NotificationManager::flush_pending_updates(int32 group_id, const char *sour
   on_pending_notification_update_count_changed(-1, group_id, "flush_pending_updates");
 }
 
+void NotificationManager::force_flush_pending_updates(NotificationGroupId group_id, const char *source) {
+  flush_pending_updates_timeout_.cancel_timeout(group_id.get());
+  flush_pending_updates(group_id.get(), source);
+}
+
 void NotificationManager::flush_all_pending_updates(bool include_delayed_chats, const char *source) {
   VLOG(notifications) << "Flush all pending notification updates "
                       << (include_delayed_chats ? "with delayed chats " : "") << "from " << source;
@@ -1299,8 +1304,7 @@ void NotificationManager::flush_all_pending_updates(bool include_delayed_chats, 
   VLOG(notifications) << "Flush pending updates in " << ready_group_keys.size() << " notification groups";
   std::sort(ready_group_keys.begin(), ready_group_keys.end());
   for (auto group_key : reversed(ready_group_keys)) {
-    flush_pending_updates_timeout_.cancel_timeout(group_key.group_id.get());
-    flush_pending_updates(group_key.group_id.get(), "flush_all_pending_updates");
+    force_flush_pending_updates(group_key.group_id, "flush_all_pending_updates");
   }
   if (include_delayed_chats) {
     CHECK(pending_updates_.empty());
@@ -1498,9 +1502,7 @@ void NotificationManager::flush_pending_notifications(NotificationGroupId group_
   add_group(std::move(final_group_key), std::move(group));
 
   if (force_update) {
-    auto id = group_key.group_id.get();
-    flush_pending_updates_timeout_.cancel_timeout(id);
-    flush_pending_updates(id, "on_notifications_removed");
+    force_flush_pending_updates(group_key.group_id, "flush_pending_notifications");
   }
 }
 
@@ -1626,9 +1628,7 @@ void NotificationManager::on_notifications_removed(
   }
 
   if (force_update) {
-    auto id = group_key.group_id.get();
-    flush_pending_updates_timeout_.cancel_timeout(id);
-    flush_pending_updates(id, "on_notifications_removed");
+    force_flush_pending_updates(group_key.group_id, "on_notifications_removed");
   }
 
   if (last_loaded_notification_group_key_ < last_group_key) {
@@ -2159,8 +2159,7 @@ void NotificationManager::remove_call_notification(DialogId dialog_id, CallId ca
 
         flush_pending_notifications_timeout_.cancel_timeout(group_id.get());
         flush_pending_notifications(group_id);
-        flush_pending_updates_timeout_.cancel_timeout(group_id.get());
-        flush_pending_updates(group_id.get(), "reuse call group_id");
+        force_flush_pending_updates(group_id, "reuse call group_id");
 
         auto group_it = get_group(group_id);
         CHECK(group_it->first.dialog_id == dialog_id);
@@ -3161,8 +3160,7 @@ void NotificationManager::after_get_chat_difference_impl(NotificationGroupId gro
   VLOG(notifications) << "Flush updates after get chat difference in " << group_id;
   CHECK(group_id.is_valid());
   if (!running_get_difference_ && pending_updates_.count(group_id.get()) == 1) {
-    flush_pending_updates_timeout_.cancel_timeout(group_id.get());
-    flush_pending_updates(group_id.get(), "after_get_chat_difference");
+    force_flush_pending_updates(group_id, "after_get_chat_difference");
   }
 }
 
