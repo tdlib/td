@@ -958,6 +958,7 @@ class MessagesManager : public Actor {
     MessageId deleted_last_message_id;
     int32 pending_last_message_date = 0;
     MessageId pending_last_message_id;
+    MessageId max_notification_message_id;
 
     MessageId max_added_message_id;
     MessageId being_added_message_id;

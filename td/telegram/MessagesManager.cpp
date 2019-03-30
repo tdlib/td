@@ -8298,8 +8298,8 @@ void MessagesManager::read_history_inbox(DialogId dialog_id, MessageId max_messa
     }
 
     LOG_IF(INFO, d->last_new_message_id.is_valid() && max_message_id.get() > d->last_new_message_id.get() &&
-                     max_message_id.is_server() && dialog_id.get_type() != DialogType::Channel &&
-                     !running_get_difference_)
+                     max_message_id.get() > d->max_notification_message_id.get() && max_message_id.is_server() &&
+                     dialog_id.get_type() != DialogType::Channel && !running_get_difference_)
         << "Receive read inbox update up to unknown " << max_message_id << " in " << dialog_id << " from " << source
         << ". Last new is " << d->last_new_message_id << ", unread_count = " << unread_count
         << ". Possible only for deleted incoming message. " << td_->updates_manager_->get_state();
@@ -12884,6 +12884,9 @@ Status MessagesManager::view_messages(DialogId dialog_id, const vector<MessageId
           on_message_changed(d, message, true, "view_messages");
         }
       }
+    } else if (!message_id.is_yet_unsent() && message_id.get() > max_message_id.get() &&
+               message_id.get() <= d->max_notification_message_id.get()) {
+      max_message_id = message_id;
     }
   }
   if (!d->pending_viewed_message_ids.empty()) {
@@ -18214,8 +18217,19 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
   if (d == nullptr) {
     return Status::Error("Ignore notification in unknown chat");
   }
-  if (message_id.is_valid() && message_id.get() <= d->last_new_message_id.get()) {
-    return Status::Error("Ignore notification about known message");
+  if (message_id.is_valid()) {
+    if (message_id.get() <= d->last_new_message_id.get()) {
+      return Status::Error("Ignore notification about known message");
+    }
+    if (message_id.get() == d->max_notification_message_id.get()) {
+      return Status::Error("Ignore previously added message push notification");
+    }
+    if (message_id.get() < d->max_notification_message_id.get()) {
+      return Status::Error("Ignore out of order message push notification");
+    }
+    if (message_id.get() <= d->last_read_inbox_message_id.get()) {
+      return Status::Error("Ignore notification about read message");
+    }
   }
   if (random_id != 0) {
     CHECK(dialog_id.get_type() == DialogType::SecretChat);
@@ -18252,6 +18266,10 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
       dialog_id, contains_mention ? d->mention_notification_group : d->message_notification_group);
   if (!group_id.is_valid()) {
     return Status::Error("Can't assign notification group ID");
+  }
+
+  if (message_id.is_valid() && message_id.get() > d->max_notification_message_id.get()) {
+    d->max_notification_message_id = message_id;
   }
 
   MessagePushNotificationInfo result;
