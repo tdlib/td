@@ -18,6 +18,10 @@ class NotificationTypeMessage : public NotificationType {
     return message_id_.is_valid() && message_id_.is_server();
   }
 
+  bool is_temporary() const override {
+    return false;
+  }
+
   MessageId get_message_id() const override {
     return message_id_;
   }
@@ -50,6 +54,10 @@ class NotificationTypeSecretChat : public NotificationType {
     return false;
   }
 
+  bool is_temporary() const override {
+    return false;
+  }
+
   MessageId get_message_id() const override {
     return MessageId();
   }
@@ -73,6 +81,10 @@ class NotificationTypeSecretChat : public NotificationType {
 
 class NotificationTypeCall : public NotificationType {
   bool can_be_delayed() const override {
+    return false;
+  }
+
+  bool is_temporary() const override {
     return false;
   }
 
@@ -104,15 +116,18 @@ class NotificationTypePushMessage : public NotificationType {
     return false;
   }
 
+  bool is_temporary() const override {
+    return true;
+  }
+
   MessageId get_message_id() const override {
     return message_id_;
   }
 
   td_api::object_ptr<td_api::NotificationType> get_notification_type_object(DialogId dialog_id) const override {
-    // auto sender_user_id = G()->td().get_actor_unsafe()->contacts_manager_->get_user_id_object(
-    //     sender_user_id_, "get_notification_type_object");
-    // return td_api::make_object<td_api::notificationTypeNewPushMessage>(sender_user_id, message_id_.get(), key_, arg_);
-    return nullptr;
+    auto sender_user_id = G()->td().get_actor_unsafe()->contacts_manager_->get_user_id_object(
+        sender_user_id_, "get_notification_type_object");
+    return td_api::make_object<td_api::notificationTypeNewPushMessage>(message_id_.get(), sender_user_id, key_, arg_);
   }
 
   StringBuilder &to_string_builder(StringBuilder &string_builder) const override {

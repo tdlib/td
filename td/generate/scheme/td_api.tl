@@ -1944,13 +1944,17 @@ notificationTypeNewSecretChat = NotificationType;
 //@description New call was received @call_id Call identifier
 notificationTypeNewCall call_id:int32 = NotificationType;
 
+//@description New message was received through a push notification @message_id The message identifier @sender_user_id Sender of the message. Corresponding user may be inaccessible
+//@content_type Notification content type @argument Optional argument for the notification content type
+notificationTypeNewPushMessage message_id:int53 sender_user_id:int32 content_type:string argument:string = NotificationType;
+
 
 //@class NotificationGroupType @description Describes type of notifications in the group
 
-//@description A group containing notifications of type notificationTypeNewMessage with ordinary unread messages
+//@description A group containing notifications of type notificationTypeNewMessage and notificationTypeNewPushMessage with ordinary unread messages
 notificationGroupTypeMessages = NotificationGroupType;
 
-//@description A group containing notifications of type notificationTypeNewMessage with unread mentions of the current user, replies to their messages, or a pinned message
+//@description A group containing notifications of type notificationTypeNewMessage and notificationTypeNewPushMessage with unread mentions of the current user, replies to their messages, or a pinned message
 notificationGroupTypeMentions = NotificationGroupType;
 
 //@description A group containing a notification of type notificationTypeSecretChat

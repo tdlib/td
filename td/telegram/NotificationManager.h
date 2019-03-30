@@ -205,7 +205,15 @@ class NotificationManager : public Actor {
 
   static NotificationId get_first_notification_id(const NotificationGroup &group);
 
+  static NotificationId get_last_notification_id(const NotificationGroup &group);
+
   static MessageId get_first_message_id(const NotificationGroup &group);
+
+  static MessageId get_last_message_id(const NotificationGroup &group);
+
+  static int32 get_temporary_notification_total_count(const NotificationGroup &group);
+
+  void remove_temporary_notifications(NotificationGroupId group_id);
 
   int32 load_message_notification_groups_from_database(int32 limit, bool send_update);
 
@@ -233,8 +241,8 @@ class NotificationManager : public Actor {
   int32 get_notification_delay_ms(DialogId dialog_id, const PendingNotification &notification,
                                   int32 min_delay_ms) const;
 
-  void do_flush_pending_notifications(NotificationGroupKey &group_key, NotificationGroup &group,
-                                      vector<PendingNotification> &pending_notifications);
+  bool do_flush_pending_notifications(NotificationGroupKey &group_key, NotificationGroup &group,
+                                      vector<PendingNotification> &pending_notifications) TD_WARN_UNUSED_RESULT;
 
   void flush_pending_notifications(NotificationGroupId group_id);
 
