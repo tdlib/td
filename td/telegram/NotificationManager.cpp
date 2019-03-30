@@ -1449,6 +1449,7 @@ void NotificationManager::flush_pending_notifications(NotificationGroupId group_
   bool is_updated = final_group_key < last_group_key;
   bool force_update = false;
 
+  NotificationGroupId removed_group_id;
   if (!is_updated) {
     CHECK(!was_updated);
     VLOG(notifications) << "There is no need to send updateNotificationGroup in " << group_key
@@ -1462,6 +1463,7 @@ void NotificationManager::flush_pending_notifications(NotificationGroupId group_
     if (!was_updated) {
       if (last_group_key.last_notification_date != 0) {
         // need to remove last notification group to not exceed max_notification_group_count_
+        removed_group_id = last_group_key.group_id;
         send_remove_group_update(last_group_key, groups_[last_group_key], vector<int32>());
       }
       send_add_group_update(group_key, group);
@@ -1502,7 +1504,10 @@ void NotificationManager::flush_pending_notifications(NotificationGroupId group_
   add_group(std::move(final_group_key), std::move(group));
 
   if (force_update) {
-    force_flush_pending_updates(group_key.group_id, "flush_pending_notifications");
+    if (removed_group_id.is_valid()) {
+      force_flush_pending_updates(removed_group_id, "flush_pending_notifications 1");
+    }
+    force_flush_pending_updates(group_key.group_id, "flush_pending_notifications 2");
   }
 }
 
