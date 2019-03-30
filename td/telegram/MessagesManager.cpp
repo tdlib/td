@@ -18210,19 +18210,12 @@ Result<MessagesManager::MessagePushNotificationInfo> MessagesManager::get_messag
     return Status::Error("Ignore notification sent to bot");
   }
 
-  if (sender_user_id.is_valid() && !td_->contacts_manager_->have_user(sender_user_id)) {
-    // allow messages from unknown sender, we will use only sender's name and photo
-    // return Status::Error("Ignore notification from unknown user");
-  }
-
   Dialog *d = get_dialog_force(dialog_id);
   if (d == nullptr) {
     return Status::Error("Ignore notification in unknown chat");
-    ;
   }
   if (message_id.is_valid() && message_id.get() <= d->last_new_message_id.get()) {
     return Status::Error("Ignore notification about known message");
-    ;
   }
   if (random_id != 0) {
     CHECK(dialog_id.get_type() == DialogType::SecretChat);

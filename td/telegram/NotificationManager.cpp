@@ -12,7 +12,6 @@
 #include "td/telegram/ConfigShared.h"
 #include "td/telegram/ContactsManager.h"
 #include "td/telegram/DeviceTokenManager.h"
-#include "td/telegram/files/FileManager.h"
 #include "td/telegram/Global.h"
 #include "td/telegram/MessagesManager.h"
 #include "td/telegram/misc.h"
@@ -2809,13 +2808,14 @@ Status NotificationManager::process_message_push_notification(DialogId dialog_id
     return Status::OK();
   }
 
-  auto sender_photo = td_->contacts_manager_->get_user_dialog_photo(sender_user_id);
-  string sender_photo_path;
-  if (sender_photo != nullptr) {
-    FileView file_view = td_->file_manager_->get_file_view(sender_photo->small_file_id);
-    if (file_view.has_local_location()) {
-      sender_photo_path = file_view.path();
-    }
+  if (sender_user_id.is_valid() && !td_->contacts_manager_->have_user(sender_user_id)) {
+    int32 flags = telegram_api::user::FIRST_NAME_MASK | telegram_api::user::MIN_MASK;
+    auto user = telegram_api::make_object<telegram_api::user>(
+        flags, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+        false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/, false /*ignored*/,
+        false /*ignored*/, false /*ignored*/, sender_user_id.get(), 0, sender_name, string(), string(), string(),
+        nullptr, nullptr, 0, string(), string(), string());
+    td_->contacts_manager_->on_get_user(std::move(user), "process_message_push_notification");
   }
 
   auto group_id = info.group_id;
@@ -2826,9 +2826,9 @@ Status NotificationManager::process_message_push_notification(DialogId dialog_id
                       << " with args " << loc_args << " to " << group_id << " of type " << group_type
                       << " with settings from " << settings_dialog_id;
 
-  add_notification(group_id, group_type, dialog_id, date, settings_dialog_id, is_silent, 0, notification_id,
-                   create_new_push_message_notification(std::move(sender_name), std::move(sender_photo_path),
-                                                        message_id, std::move(loc_key), std::move(arg)));
+  add_notification(
+      group_id, group_type, dialog_id, date, settings_dialog_id, is_silent, 0, notification_id,
+      create_new_push_message_notification(sender_user_id, message_id, std::move(loc_key), std::move(arg)));
   return Status::OK();
 }
 
