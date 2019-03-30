@@ -1791,6 +1791,10 @@ void NotificationManager::remove_notification_group(NotificationGroupId group_id
     return promise.set_value(Unit());
   }
 
+  if (new_total_count == 0) {
+    remove_temporary_notifications(group_id);
+  }
+
   VLOG(notifications) << "Remove " << group_id << " up to " << max_notification_id << " or " << max_message_id
                       << " with new_total_count = " << new_total_count << " and force_update = " << force_update;
 
