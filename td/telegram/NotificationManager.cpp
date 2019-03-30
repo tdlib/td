@@ -2927,15 +2927,6 @@ Status NotificationManager::process_push_notification_payload(string payload) {
   // chat title for CHAT_*, CHANNEL_*, ENCRYPTED_MESSAGE and PINNED_*, sender name for MESSAGE_* and CONTACT_JOINED
   loc_args.erase(loc_args.begin());
 
-  return process_message_push_notification(dialog_id, MessageId(server_message_id), random_id, sender_user_id,
-                                           std::move(sender_name), sent_date, contains_mention, is_silent,
-                                           std::move(loc_key), std::move(loc_args));
-}
-
-Status NotificationManager::process_message_push_notification(DialogId dialog_id, MessageId message_id, int64 random_id,
-                                                              UserId sender_user_id, string sender_name, int32 date,
-                                                              bool contains_mention, bool is_silent, string loc_key,
-                                                              vector<string> loc_args) {
   if (loc_args.size() > 1) {
     return Status::Error("Receive too much arguments");
   }
@@ -2945,6 +2936,15 @@ Status NotificationManager::process_message_push_notification(DialogId dialog_id
     arg = std::move(loc_args[0]);
   }
 
+  return process_message_push_notification(dialog_id, MessageId(server_message_id), random_id, sender_user_id,
+                                           std::move(sender_name), sent_date, contains_mention, is_silent,
+                                           std::move(loc_key), std::move(arg));
+}
+
+Status NotificationManager::process_message_push_notification(DialogId dialog_id, MessageId message_id, int64 random_id,
+                                                              UserId sender_user_id, string sender_name, int32 date,
+                                                              bool contains_mention, bool is_silent, string loc_key,
+                                                              string arg) {
   auto is_pinned = begins_with(loc_key, "PINNED_");
   auto r_info = td_->messages_manager_->get_message_push_notification_info(
       dialog_id, message_id, random_id, sender_user_id, date, contains_mention, is_pinned);
@@ -2989,7 +2989,7 @@ Status NotificationManager::process_message_push_notification(DialogId dialog_id
   auto settings_dialog_id = info.settings_dialog_id;
   VLOG(notifications) << "Add message push notification of type " << loc_key << " for " << message_id << "/"
                       << random_id << " in " << dialog_id << ", sent by " << sender_user_id << " at " << date
-                      << " with args " << loc_args << " to " << group_id << " of type " << group_type
+                      << " with arg " << arg << " to " << group_id << " of type " << group_type
                       << " with settings from " << settings_dialog_id;
 
   add_notification(

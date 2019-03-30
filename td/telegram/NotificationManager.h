@@ -272,7 +272,7 @@ class NotificationManager : public Actor {
 
   Status process_message_push_notification(DialogId dialog_id, MessageId message_id, int64 random_id,
                                            UserId sender_user_id, string sender_name, int32 date, bool contains_mention,
-                                           bool is_silent, string loc_key, vector<string> loc_args);
+                                           bool is_silent, string loc_key, string arg);
 
   void after_get_difference_impl();
 
